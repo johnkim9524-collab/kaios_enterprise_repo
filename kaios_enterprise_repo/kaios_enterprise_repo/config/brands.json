@@ -1,0 +1,40 @@
+{
+  "brands": [
+    {
+      "id": "popmart",
+      "name": "POP MART",
+      "category": "Designer Toys",
+      "region": "China / Global"
+    },
+    {
+      "id": "pokemon",
+      "name": "The Pokémon Company",
+      "category": "Trading Cards / Characters",
+      "region": "Japan / Global"
+    },
+    {
+      "id": "lego",
+      "name": "LEGO",
+      "category": "Construction / Hobby",
+      "region": "Denmark / Global"
+    },
+    {
+      "id": "hottoys",
+      "name": "Hot Toys",
+      "category": "Premium Figures",
+      "region": "Hong Kong / Global"
+    },
+    {
+      "id": "bandai",
+      "name": "Bandai",
+      "category": "Character Goods",
+      "region": "Japan / Global"
+    },
+    {
+      "id": "medicom",
+      "name": "Medicom Toy",
+      "category": "Designer Toys",
+      "region": "Japan / Global"
+    }
+  ]
+}

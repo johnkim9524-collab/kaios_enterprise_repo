@@ -1,0 +1,5 @@
+{
+  "monthly_autopilot_cron": "0 17 1 * *",
+  "health_monitor_cron": "0 18 * * *",
+  "timezone": "UTC"
+}

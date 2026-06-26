@@ -1,0 +1,6 @@
+services:
+  kaios:
+    build: .
+    volumes:
+      - .:/app
+    command: python scripts/run_kaios.py

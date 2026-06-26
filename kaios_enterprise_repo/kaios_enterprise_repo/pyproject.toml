@@ -1,0 +1,9 @@
+[project]
+name = "kaios-enterprise"
+version = "1.0.0"
+description = "KIDULTS Autonomous Intelligence Operating System"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

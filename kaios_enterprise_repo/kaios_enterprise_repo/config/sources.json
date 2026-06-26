@@ -1,0 +1,48 @@
+{
+  "sources": [
+    {
+      "id": "gdelt",
+      "name": "GDELT Media Monitor",
+      "type": "media",
+      "enabled": false,
+      "weight": 0.2,
+      "requires_secret": false
+    },
+    {
+      "id": "official_rss",
+      "name": "Official Brand RSS",
+      "type": "official",
+      "enabled": true,
+      "weight": 0.3,
+      "url": "https://example.com/rss"
+    },
+    {
+      "id": "marketplace",
+      "name": "Marketplace Signals",
+      "type": "marketplace",
+      "enabled": true,
+      "weight": 0.25,
+      "url": "https://example.com/marketplace"
+    },
+    {
+      "id": "community",
+      "name": "Community Signals",
+      "type": "community",
+      "enabled": true,
+      "weight": 0.15,
+      "url": "https://example.com/community"
+    },
+    {
+      "id": "search_trends",
+      "name": "Search Trends",
+      "type": "search",
+      "enabled": true,
+      "weight": 0.1,
+      "url": "https://example.com/trends"
+    }
+  ],
+  "notes": [
+    "Foundation connectors generate fallback signals when live source URLs are placeholders.",
+    "Add real API/RSS endpoints and secrets in GitHub Secrets for production."
+  ]
+}

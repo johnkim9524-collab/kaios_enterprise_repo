@@ -1,0 +1,11 @@
+{
+  "name": "KIDULTS",
+  "system": "KAIOS",
+  "full_name": "KIDULTS Autonomous Intelligence Operating System",
+  "base_url": "https://www.kidults.com",
+  "current_edition": "2026.06",
+  "timezone": "UTC",
+  "output_dir": "public",
+  "auto_publish": true,
+  "halt_on_quality_failure": true
+}

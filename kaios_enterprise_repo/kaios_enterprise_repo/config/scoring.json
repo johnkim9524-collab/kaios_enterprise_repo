@@ -1,0 +1,21 @@
+{
+  "brand_score": {
+    "signal": 0.4,
+    "sentiment": 0.2,
+    "visibility": 0.2,
+    "source_quality": 0.1,
+    "historical_stability": 0.1
+  },
+  "quality_gate": {
+    "min_sources": 3,
+    "min_brand_count": 3,
+    "min_confidence": 70,
+    "required_fields": [
+      "edition",
+      "top_50_brands",
+      "industry_map",
+      "confidence_engine",
+      "report_intelligence"
+    ]
+  }
+}
