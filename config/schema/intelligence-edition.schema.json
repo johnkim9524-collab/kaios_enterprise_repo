@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kaios.kidults.com/schema/intelligence-edition.schema.json",
+  "title": "KAIOS Intelligence Edition",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "edition",
+    "generated_at",
+    "platform",
+    "system",
+    "kidult_100_index",
+    "collector_sentiment",
+    "confidence_engine",
+    "top_50_brands",
+    "industry_map",
+    "geography"
+  ],
+  "properties": {
+    "edition": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "platform": {
+      "type": "string",
+      "const": "KIDULTS"
+    },
+    "system": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kidult_100_index": {
+      "type": "object",
+      "required": ["value", "change"],
+      "properties": {
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "change": {
+          "type": "number"
+        }
+      }
+    },
+    "collector_sentiment": {
+      "type": "object",
+      "required": ["score", "label"],
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "confidence_engine": {
+      "type": "object",
+      "required": ["overall", "grade", "breakdown"],
+      "properties": {
+        "overall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "grade": {
+          "type": "string"
+        },
+        "breakdown": {
+          "type": "array"
+        }
+      }
+    },
+    "top_50_brands": {
+      "type": "array"
+    },
+    "industry_map": {
+      "type": "array"
+    },
+    "geography": {
+      "type": "array"
+    }
+  }
+}

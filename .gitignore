@@ -39,3 +39,10 @@ dist/
 # Local tooling
 .wrangler/
 .dev.vars
+
+# KAIOS runtime-transient data
+data/raw/
+data/cache/
+data/audit/
+data/signals/
+data/editions/
