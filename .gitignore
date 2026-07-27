@@ -46,3 +46,10 @@ data/cache/
 data/audit/
 data/signals/
 data/editions/
+
+# KAIOS SQLite runtime persistence
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.sqlite
+data/*.sqlite3
