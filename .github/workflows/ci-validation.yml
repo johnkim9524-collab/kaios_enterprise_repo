@@ -1,0 +1,65 @@
+﻿name: CI Validation
+
+on:
+  push:
+    branches:
+      - main
+      - "refactor/**"
+      - "feature/**"
+      - "fix/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate KAIOS Foundation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify repository structure
+        run: |
+          test -f README.md
+          test -f pyproject.toml
+          test -f requirements.txt
+          test -f scripts/run_kaios.py
+          test -d app
+          test -d config
+          test -d public
+          test -d tests
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Run KAIOS pipeline
+        run: python scripts/run_kaios.py
+
+      - name: Verify generated outputs
+        run: |
+          test -f public/monthly-data.json
+          test -f public/api/status.json
+          test -f public/api/health.json
+          test -d public/archive
+
+      - name: Show generated status
+        run: |
+          cat public/api/status.json
+          cat public/api/health.json
