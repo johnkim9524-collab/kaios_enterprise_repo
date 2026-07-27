@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - "feat/**"
       - "refactor/**"
       - "feature/**"
       - "fix/**"
@@ -40,7 +41,14 @@ jobs:
           test -f README.md
           test -f pyproject.toml
           test -f requirements.txt
+          test -f Dockerfile
+          test -f docker-compose.yml
+          test -f .dockerignore
+          test -f .env.example
           test -f scripts/run_kaios.py
+          test -f scripts/run_gateway.py
+          test -f deploy/healthcheck.py
+          test -f deploy/smoke_test.py
           test -d app
           test -d config
           test -d public
@@ -63,3 +71,43 @@ jobs:
         run: |
           cat public/api/status.json
           cat public/api/health.json
+
+  container:
+    name: Validate Production Container
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build production image
+        run: |
+          docker build \
+            --tag kaios-enterprise:ci \
+            .
+
+      - name: Start production container
+        run: |
+          docker run \
+            --detach \
+            --name kaios-enterprise-ci \
+            --publish 8787:8787 \
+            --env KAIOS_ENVIRONMENT=ci \
+            kaios-enterprise:ci
+
+      - name: Run deployment smoke test
+        run: |
+          python deploy/smoke_test.py
+
+      - name: Inspect container
+        if: always()
+        run: |
+          docker ps --all
+          docker inspect kaios-enterprise-ci || true
+          docker logs kaios-enterprise-ci || true
+
+      - name: Stop production container
+        if: always()
+        run: |
+          docker rm --force kaios-enterprise-ci || true
