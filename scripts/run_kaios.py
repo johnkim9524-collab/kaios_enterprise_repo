@@ -24,7 +24,16 @@ def main() -> int:
         )
     )
 
-    result = KAIOSAgent(mode=mode).run()
+    trigger_type = os.getenv(
+        "KAIOS_TRIGGER_TYPE",
+        "manual",
+    ).strip().lower()
+
+    result = KAIOSAgent(
+        mode=mode
+    ).run(
+        trigger_type=trigger_type
+    )
 
     print(
         json.dumps(
