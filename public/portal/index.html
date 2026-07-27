@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
+  <meta
+    name="description"
+    content="KAIOS 2.0 Intelligence Portal"
+  >
+  <title>KAIOS 2.0 Intelligence Portal</title>
+  <link
+    rel="stylesheet"
+    href="/portal/assets/portal.css"
+  >
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/portal/" aria-label="KAIOS Portal home">
+        <span class="brand-mark">K</span>
+        <span>
+          <strong>KAIOS 2.0</strong>
+          <small>Autonomous Intelligence Portal</small>
+        </span>
+      </a>
+
+      <div class="topbar-actions">
+        <span
+          id="connectionBadge"
+          class="status-badge status-loading"
+        >
+          Connecting
+        </span>
+
+        <button
+          id="refreshButton"
+          class="button button-secondary"
+          type="button"
+        >
+          Refresh
+        </button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">KAIOS ENTERPRISE INTELLIGENCE</p>
+          <h1>System Control and Intelligence Overview</h1>
+          <p class="hero-copy">
+            Monitor system health, inspect the current intelligence edition,
+            review collector execution, and run the deterministic fixture
+            pipeline from one responsive portal.
+          </p>
+        </div>
+
+        <div class="hero-meta">
+          <span>Runtime mode</span>
+          <strong id="runtimeMode">fixture</strong>
+        </div>
+      </section>
+
+      <section
+        id="errorPanel"
+        class="error-panel hidden"
+        role="alert"
+        aria-live="polite"
+      >
+        <strong id="errorTitle">Gateway error</strong>
+        <p id="errorMessage"></p>
+      </section>
+
+      <section class="metric-grid" aria-label="System metrics">
+        <article class="metric-card">
+          <span class="metric-label">System Health</span>
+          <strong id="healthStatus" class="metric-value">Loading</strong>
+          <small id="healthCheckedAt">Waiting for gateway</small>
+        </article>
+
+        <article class="metric-card">
+          <span class="metric-label">Current Edition</span>
+          <strong id="editionValue" class="metric-value">—</strong>
+          <small id="editionGeneratedAt">No edition loaded</small>
+        </article>
+
+        <article class="metric-card">
+          <span class="metric-label">Collector Status</span>
+          <strong id="collectorStatus" class="metric-value">Idle</strong>
+          <small id="collectorSummary">No collection executed</small>
+        </article>
+
+        <article class="metric-card">
+          <span class="metric-label">Runtime Result</span>
+          <strong id="runtimeStatus" class="metric-value">Idle</strong>
+          <small id="runtimeSummary">No runtime executed</small>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">SYSTEM</p>
+              <h2>Health Checks</h2>
+            </div>
+          </div>
+
+          <div
+            id="healthChecks"
+            class="check-list"
+            aria-live="polite"
+          >
+            <p class="empty-state">Loading health checks...</p>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">INTELLIGENCE</p>
+              <h2>Current Edition</h2>
+            </div>
+          </div>
+
+          <dl class="definition-list">
+            <div>
+              <dt>Platform</dt>
+              <dd id="editionPlatform">—</dd>
+            </div>
+            <div>
+              <dt>System</dt>
+              <dd id="editionSystem">—</dd>
+            </div>
+            <div>
+              <dt>Kidult 100 Index</dt>
+              <dd id="editionIndex">—</dd>
+            </div>
+            <div>
+              <dt>Collector Sentiment</dt>
+              <dd id="editionSentiment">—</dd>
+            </div>
+            <div>
+              <dt>Confidence</dt>
+              <dd id="editionConfidence">—</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+
+      <section class="panel control-panel">
+        <div class="panel-heading panel-heading-responsive">
+          <div>
+            <p class="eyebrow">RUNTIME CONTROL</p>
+            <h2>Fixture Execution</h2>
+            <p>
+              Fixture mode is deterministic and safe for validation.
+            </p>
+          </div>
+
+          <div class="control-actions">
+            <button
+              id="runCollectorButton"
+              class="button button-secondary"
+              type="button"
+            >
+              Run Collector
+            </button>
+
+            <button
+              id="runRuntimeButton"
+              class="button button-primary"
+              type="button"
+            >
+              Run Full Runtime
+            </button>
+          </div>
+        </div>
+
+        <div class="execution-grid">
+          <div>
+            <h3>Collector Sources</h3>
+            <div id="sourceExecutions" class="execution-list">
+              <p class="empty-state">No collector execution yet.</p>
+            </div>
+          </div>
+
+          <div>
+            <h3>Runtime Stages</h3>
+            <div id="runtimeStages" class="execution-list">
+              <p class="empty-state">No runtime execution yet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>KAIOS 2.0</span>
+      <span>Intelligence Holdings</span>
+    </footer>
+  </div>
+
+  <script src="/portal/assets/portal.js" defer></script>
+</body>
+</html>
