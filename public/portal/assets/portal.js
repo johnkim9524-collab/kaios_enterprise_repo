@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 const API = Object.freeze({
   health: "/api/health",
@@ -36,7 +36,11 @@ const elements = {
 };
 
 function text(value, fallback = "—") {
-  if (value === null || value === undefined || value === "") {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
     return fallback;
   }
 
@@ -58,7 +62,10 @@ function formatTimestamp(value) {
 }
 
 function setConnectionState(status) {
-  const normalized = text(status, "error").toLowerCase();
+  const normalized = text(
+    status,
+    "error"
+  ).toLowerCase();
 
   elements.connectionBadge.textContent = normalized;
   elements.connectionBadge.className = [
@@ -68,11 +75,16 @@ function setConnectionState(status) {
 }
 
 function showError(title, message) {
-  elements.errorTitle.textContent = text(title, "Gateway error");
+  elements.errorTitle.textContent = text(
+    title,
+    "Gateway error"
+  );
+
   elements.errorMessage.textContent = text(
     message,
     "An unexpected error occurred."
   );
+
   elements.errorPanel.classList.remove("hidden");
 }
 
@@ -82,7 +94,10 @@ function clearError() {
   elements.errorMessage.textContent = "";
 }
 
-async function fetchEnvelope(url, options = {}) {
+async function fetchEnvelope(
+  url,
+  options = {}
+) {
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
@@ -90,20 +105,32 @@ async function fetchEnvelope(url, options = {}) {
     ...options,
   });
 
-  const payload = await response.json().catch(() => null);
+  const payload = await response
+    .json()
+    .catch(() => null);
 
   if (!payload) {
-    throw new Error(`Invalid JSON response from ${url}`);
+    throw new Error(
+      `Invalid JSON response from ${url}`
+    );
   }
 
-  if (!response.ok || payload.ok !== true) {
+  if (
+    !response.ok ||
+    payload.ok !== true
+  ) {
     const gatewayError = payload.error || {};
+
     const message =
       gatewayError.message ||
       `Gateway request failed with HTTP ${response.status}`;
 
     const error = new Error(message);
-    error.type = gatewayError.type || "gateway_error";
+
+    error.type =
+      gatewayError.type ||
+      "gateway_error";
+
     error.status = response.status;
     error.payload = payload;
 
@@ -114,7 +141,10 @@ async function fetchEnvelope(url, options = {}) {
 }
 
 function renderHealth(data) {
-  const status = text(data.status, "unknown").toLowerCase();
+  const status = text(
+    data.status,
+    "unknown"
+  ).toLowerCase();
 
   elements.healthStatus.textContent = status;
   elements.healthStatus.className = [
@@ -125,145 +155,254 @@ function renderHealth(data) {
   elements.healthCheckedAt.textContent =
     `Checked ${formatTimestamp(data.checked_at)}`;
 
-  const checks = Array.isArray(data.checks) ? data.checks : [];
+  const checks = Array.isArray(data.checks)
+    ? data.checks
+    : [];
 
   if (checks.length === 0) {
     elements.healthChecks.innerHTML =
       '<p class="empty-state">No health checks available.</p>';
+
     return;
   }
 
   elements.healthChecks.replaceChildren(
     ...checks.map((check) => {
-      const item = document.createElement("div");
+      const item =
+        document.createElement("div");
+
       item.className = "check-item";
 
-      const name = document.createElement("span");
-      name.textContent = text(check.name, "Unnamed check");
+      const name =
+        document.createElement("span");
 
-      const state = document.createElement("span");
+      name.textContent = text(
+        check.name,
+        "Unnamed check"
+      );
+
+      const state =
+        document.createElement("span");
+
       state.className = [
         "check-state",
-        check.ok ? "state-passed" : "state-failed",
+        check.ok
+          ? "state-passed"
+          : "state-failed",
       ].join(" ");
-      state.textContent = check.ok ? "Passed" : "Failed";
+
+      state.textContent = check.ok
+        ? "Passed"
+        : "Failed";
 
       item.append(name, state);
+
       return item;
     })
   );
 }
 
 function renderEdition(data) {
-  elements.editionValue.textContent = text(data.edition);
+  elements.editionValue.textContent = text(
+    data.edition
+  );
+
   elements.editionGeneratedAt.textContent =
     `Generated ${formatTimestamp(data.generated_at)}`;
-  elements.editionPlatform.textContent = text(data.platform);
-  elements.editionSystem.textContent = text(data.system);
 
-  const index = data.kidult_100_index || {};
-  const sentiment = data.collector_sentiment || {};
-  const confidence = data.confidence_engine || {};
+  elements.editionPlatform.textContent = text(
+    data.platform
+  );
+
+  elements.editionSystem.textContent = text(
+    data.system
+  );
+
+  const index =
+    data.kidult_100_index || {};
+
+  const sentiment =
+    data.collector_sentiment || {};
+
+  const confidence =
+    data.confidence_engine || {};
 
   elements.editionIndex.textContent =
     `${text(index.value)} (${text(index.change, "0")})`;
+
   elements.editionSentiment.textContent =
     `${text(sentiment.score)} · ${text(sentiment.label)}`;
+
   elements.editionConfidence.textContent =
     `${text(confidence.overall)} · ${text(confidence.grade)}`;
 }
 
 function renderCollector(data) {
-  const status = text(data.status, "unknown").toLowerCase();
+  const status = text(
+    data.status,
+    "unknown"
+  ).toLowerCase();
 
   elements.collectorStatus.textContent = status;
+
   elements.collectorStatus.className = [
     "metric-value",
     `state-${status}`,
   ].join(" ");
 
   elements.collectorSummary.textContent = [
-    `${text(data.successful_source_count, "0")} successful`,
-    `${text(data.failed_source_count, "0")} failed`,
-    `${Array.isArray(data.signals) ? data.signals.length : 0} signals`,
+    `${text(
+      data.successful_source_count,
+      "0"
+    )} successful`,
+    `${text(
+      data.failed_source_count,
+      "0"
+    )} failed`,
+    `${
+      Array.isArray(data.signals)
+        ? data.signals.length
+        : 0
+    } signals`,
   ].join(" · ");
 
-  const sources = Array.isArray(data.sources) ? data.sources : [];
+  const sources = Array.isArray(data.sources)
+    ? data.sources
+    : [];
 
   if (sources.length === 0) {
     elements.sourceExecutions.innerHTML =
       '<p class="empty-state">No source execution data available.</p>';
+
     return;
   }
 
   elements.sourceExecutions.replaceChildren(
     ...sources.map((source) => {
-      const item = document.createElement("div");
+      const item =
+        document.createElement("div");
+
       item.className = "execution-item";
 
-      const main = document.createElement("div");
+      const main =
+        document.createElement("div");
+
       main.className = "execution-main";
 
-      const name = document.createElement("strong");
-      name.textContent = text(source.source_name, source.source_id);
+      const name =
+        document.createElement("strong");
 
-      const detail = document.createElement("small");
+      name.textContent = text(
+        source.source_name,
+        source.source_id
+      );
+
+      const detail =
+        document.createElement("small");
+
       detail.textContent = [
-        `Attempts: ${text(source.attempts, "0")}`,
-        `Signals: ${text(source.signal_count, "0")}`,
-        source.error ? `Error: ${source.error}` : null,
-      ].filter(Boolean).join(" · ");
+        `Attempts: ${text(
+          source.attempts,
+          "0"
+        )}`,
+        `Signals: ${text(
+          source.signal_count,
+          "0"
+        )}`,
+        source.error
+          ? `Error: ${source.error}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
 
       main.append(name, detail);
 
-      const state = document.createElement("span");
-      const normalizedStatus = text(source.status, "unknown").toLowerCase();
+      const state =
+        document.createElement("span");
+
+      const normalizedStatus = text(
+        source.status,
+        "unknown"
+      ).toLowerCase();
+
       state.className = [
         "execution-state",
         `state-${normalizedStatus}`,
       ].join(" ");
+
       state.textContent = normalizedStatus;
 
       item.append(main, state);
+
       return item;
     })
   );
 }
 
 function renderRuntime(data) {
-  const published = data.published === true;
+  const published =
+    data.published === true;
 
-  elements.runtimeMode.textContent = text(data.mode, "fixture");
-  elements.runtimeStatus.textContent = published ? "published" : "failed";
+  elements.runtimeMode.textContent = text(
+    data.mode,
+    "fixture"
+  );
+
+  elements.runtimeStatus.textContent =
+    published
+      ? "published"
+      : "failed";
+
   elements.runtimeStatus.className = [
     "metric-value",
-    published ? "state-passed" : "state-failed",
+    published
+      ? "state-passed"
+      : "state-failed",
   ].join(" ");
 
-  elements.runtimeSummary.textContent = published
-    ? `Edition ${text(data.edition)} published successfully`
-    : text(data.error?.message, "Runtime execution failed");
+  elements.runtimeSummary.textContent =
+    published
+      ? `Edition ${text(data.edition)} published successfully`
+      : text(
+          data.error?.message,
+          "Runtime execution failed"
+        );
 
-  const stages = Array.isArray(data.stages) ? data.stages : [];
+  const stages = Array.isArray(data.stages)
+    ? data.stages
+    : [];
 
   if (stages.length === 0) {
     elements.runtimeStages.innerHTML =
       '<p class="empty-state">No runtime stage data available.</p>';
+
     return;
   }
 
   elements.runtimeStages.replaceChildren(
     ...stages.map((stage) => {
-      const item = document.createElement("div");
+      const item =
+        document.createElement("div");
+
       item.className = "execution-item";
 
-      const main = document.createElement("div");
+      const main =
+        document.createElement("div");
+
       main.className = "execution-main";
 
-      const name = document.createElement("strong");
-      name.textContent = text(stage.name, "Unnamed stage");
+      const name =
+        document.createElement("strong");
 
-      const detail = document.createElement("small");
+      name.textContent = text(
+        stage.name,
+        "Unnamed stage"
+      );
+
+      const detail =
+        document.createElement("small");
+
       detail.textContent = text(
         stage.detail,
         "Completed without additional detail"
@@ -271,15 +410,23 @@ function renderRuntime(data) {
 
       main.append(name, detail);
 
-      const state = document.createElement("span");
-      const normalizedStatus = text(stage.status, "unknown").toLowerCase();
+      const state =
+        document.createElement("span");
+
+      const normalizedStatus = text(
+        stage.status,
+        "unknown"
+      ).toLowerCase();
+
       state.className = [
         "execution-state",
         `state-${normalizedStatus}`,
       ].join(" ");
+
       state.textContent = normalizedStatus;
 
       item.append(main, state);
+
       return item;
     })
   );
@@ -288,10 +435,15 @@ function renderRuntime(data) {
 async function loadOverview() {
   clearError();
   setConnectionState("loading");
+
   elements.refreshButton.disabled = true;
 
   try {
-    const [health, status, edition] = await Promise.all([
+    const [
+      health,
+      status,
+      edition,
+    ] = await Promise.all([
       fetchEnvelope(API.health),
       fetchEnvelope(API.status),
       fetchEnvelope(API.edition),
@@ -309,7 +461,11 @@ async function loadOverview() {
     setConnectionState(gatewayStatus);
   } catch (error) {
     setConnectionState("error");
-    showError(error.type || "Gateway error", error.message);
+
+    showError(
+      error.type || "Gateway error",
+      error.message
+    );
   } finally {
     elements.refreshButton.disabled = false;
   }
@@ -317,51 +473,94 @@ async function loadOverview() {
 
 async function runCollector() {
   clearError();
+
   elements.runCollectorButton.disabled = true;
-  elements.runCollectorButton.textContent = "Running...";
+  elements.runCollectorButton.textContent =
+    "Running...";
 
   try {
-    const data = await fetchEnvelope(API.collector);
+    const data = await fetchEnvelope(
+      API.collector
+    );
+
     renderCollector(data);
   } catch (error) {
-    const data = error.payload?.data;
+    const data =
+      error.payload?.data;
 
     if (data) {
       renderCollector(data);
     }
 
-    showError(error.type || "Collector error", error.message);
+    showError(
+      error.type || "Collector error",
+      error.message
+    );
   } finally {
     elements.runCollectorButton.disabled = false;
-    elements.runCollectorButton.textContent = "Run Collector";
+    elements.runCollectorButton.textContent =
+      "Run Collector";
   }
 }
 
 async function runRuntime() {
   clearError();
+
   elements.runRuntimeButton.disabled = true;
-  elements.runRuntimeButton.textContent = "Running...";
+  elements.runRuntimeButton.textContent =
+    "Running...";
 
   try {
-    const data = await fetchEnvelope(API.runtime);
+    const data = await fetchEnvelope(
+      API.runtime
+    );
+
     renderRuntime(data);
     await loadOverview();
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "kaios:runtime-complete",
+        {
+          detail: data,
+        }
+      )
+    );
   } catch (error) {
-    const data = error.payload?.data;
+    const data =
+      error.payload?.data;
 
     if (data) {
       renderRuntime(data);
     }
 
-    showError(error.type || "Runtime error", error.message);
+    showError(
+      error.type || "Runtime error",
+      error.message
+    );
   } finally {
     elements.runRuntimeButton.disabled = false;
-    elements.runRuntimeButton.textContent = "Run Full Runtime";
+    elements.runRuntimeButton.textContent =
+      "Run Full Runtime";
   }
 }
 
-elements.refreshButton.addEventListener("click", loadOverview);
-elements.runCollectorButton.addEventListener("click", runCollector);
-elements.runRuntimeButton.addEventListener("click", runRuntime);
+elements.refreshButton.addEventListener(
+  "click",
+  loadOverview
+);
 
-document.addEventListener("DOMContentLoaded", loadOverview);
+elements.runCollectorButton.addEventListener(
+  "click",
+  runCollector
+);
+
+elements.runRuntimeButton.addEventListener(
+  "click",
+  runRuntime
+);
+
+document.addEventListener(
+  "DOMContentLoaded",
+  loadOverview
+);

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -15,6 +15,7 @@
     rel="stylesheet"
     href="/portal/assets/portal.css"
   >
+  <link rel="stylesheet" href="/portal/assets/run-history.css">
 </head>
 <body>
   <div class="app-shell">
@@ -82,7 +83,7 @@
 
         <article class="metric-card">
           <span class="metric-label">Current Edition</span>
-          <strong id="editionValue" class="metric-value">—</strong>
+          <strong id="editionValue" class="metric-value">??/strong>
           <small id="editionGeneratedAt">No edition loaded</small>
         </article>
 
@@ -128,23 +129,23 @@
           <dl class="definition-list">
             <div>
               <dt>Platform</dt>
-              <dd id="editionPlatform">—</dd>
+              <dd id="editionPlatform">??/dd>
             </div>
             <div>
               <dt>System</dt>
-              <dd id="editionSystem">—</dd>
+              <dd id="editionSystem">??/dd>
             </div>
             <div>
               <dt>Kidult 100 Index</dt>
-              <dd id="editionIndex">—</dd>
+              <dd id="editionIndex">??/dd>
             </div>
             <div>
               <dt>Collector Sentiment</dt>
-              <dd id="editionSentiment">—</dd>
+              <dd id="editionSentiment">??/dd>
             </div>
             <div>
               <dt>Confidence</dt>
-              <dd id="editionConfidence">—</dd>
+              <dd id="editionConfidence">??/dd>
             </div>
           </dl>
         </article>
@@ -195,6 +196,53 @@
           </div>
         </div>
       </section>
+      <section class="panel">
+        <div class="panel-heading panel-heading-responsive">
+          <div>
+            <p class="eyebrow">PERSISTENT OPERATIONS</p>
+            <h2>Run History</h2>
+            <p id="runHistoryCount">
+              Loading persistent runtime history...
+            </p>
+          </div>
+
+          <button
+            id="refreshRunsButton"
+            class="button button-secondary"
+            type="button"
+          >
+            Refresh Runs
+          </button>
+        </div>
+
+        <div class="run-history-grid">
+          <div>
+            <h3>Recent Runs</h3>
+            <div
+              id="recentRuns"
+              class="run-list"
+              aria-live="polite"
+            >
+              <p class="empty-state">
+                Loading recent runs...
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h3>Run Detail</h3>
+            <div
+              id="runDetail"
+              class="run-detail"
+              aria-live="polite"
+            >
+              <p class="empty-state">
+                Select a runtime record.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="footer">
@@ -204,5 +252,6 @@
   </div>
 
   <script src="/portal/assets/portal.js" defer></script>
+  <script src="/portal/assets/run-history.js" defer></script>
 </body>
 </html>

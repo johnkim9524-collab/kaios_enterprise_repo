@@ -7,12 +7,23 @@ from typing import Any
 from app.agent import KAIOSAgent
 from app.collectors.source_collector import SourceCollector
 from app.core.modes import RuntimeMode
+from app.persistence.repository import RunHistoryRepository
 
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class GatewayService:
+    def __init__(
+        self,
+        history_repository: RunHistoryRepository | None = None,
+    ) -> None:
+        self.history_repository = (
+            history_repository
+            if history_repository is not None
+            else RunHistoryRepository()
+        )
+
     def _read_json(
         self,
         relative_path: str,
@@ -58,5 +69,30 @@ class GatewayService:
         mode: RuntimeMode,
     ) -> dict[str, Any]:
         return KAIOSAgent(
-            mode=mode
-        ).run()
+            mode=mode,
+            history_repository=self.history_repository,
+        ).run(
+            trigger_type="api"
+        )
+
+    def runs(
+        self,
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        runs = self.history_repository.list_runs(
+            limit=limit
+        )
+
+        return {
+            "count": len(runs),
+            "limit": limit,
+            "runs": runs,
+        }
+
+    def run_detail(
+        self,
+        run_id: str,
+    ) -> dict[str, Any] | None:
+        return self.history_repository.get_run(
+            run_id
+        )

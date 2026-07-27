@@ -44,6 +44,45 @@ class KAIOSGateway:
             request.query.get("mode")
         )
 
+    def _parse_limit(
+        self,
+        request: GatewayRequest,
+    ) -> int:
+        raw_limit = request.query.get(
+            "limit",
+            "20",
+        ).strip()
+
+        try:
+            limit = int(raw_limit)
+        except ValueError as exc:
+            raise ValueError(
+                "Run history limit must be an integer."
+            ) from exc
+
+        if not 1 <= limit <= 100:
+            raise ValueError(
+                "Run history limit must be between 1 and 100."
+            )
+
+        return limit
+
+    @staticmethod
+    def _run_id_from_path(
+        path: str,
+    ) -> str | None:
+        prefix = "/api/runs/"
+
+        if not path.startswith(prefix):
+            return None
+
+        run_id = path.removeprefix(prefix).strip()
+
+        if not run_id or "/" in run_id:
+            return None
+
+        return run_id
+
     def handle(
         self,
         request: GatewayRequest,
@@ -107,6 +146,40 @@ class KAIOSGateway:
                     },
                 )
 
+            if path == "/api/runs":
+                limit = self._parse_limit(request)
+                data = self.service.runs(
+                    limit=limit
+                )
+
+                return success_response(
+                    endpoint=path,
+                    data=data,
+                )
+
+            run_id = self._run_id_from_path(path)
+
+            if run_id is not None:
+                data = self.service.run_detail(
+                    run_id=run_id
+                )
+
+                if data is None:
+                    return error_response(
+                        endpoint=path,
+                        error_type="run_not_found",
+                        message=(
+                            f"No runtime history exists for run ID "
+                            f"{run_id}."
+                        ),
+                        status_code=404,
+                    )
+
+                return success_response(
+                    endpoint=path,
+                    data=data,
+                )
+
             return error_response(
                 endpoint=path,
                 error_type="not_found",
@@ -117,9 +190,15 @@ class KAIOSGateway:
             )
 
         except ValueError as exc:
+            error_type = (
+                "invalid_runtime_mode"
+                if "mode" in str(exc).lower()
+                else "invalid_request"
+            )
+
             return error_response(
                 endpoint=path,
-                error_type="invalid_runtime_mode",
+                error_type=error_type,
                 message=str(exc),
                 status_code=400,
             )
