@@ -1,48 +1,57 @@
 {
-  "sources": [
-    {
-      "id": "gdelt",
-      "name": "GDELT Media Monitor",
-      "type": "media",
-      "enabled": false,
-      "weight": 0.2,
-      "requires_secret": false
-    },
-    {
-      "id": "official_rss",
-      "name": "Official Brand RSS",
-      "type": "official",
-      "enabled": true,
-      "weight": 0.3,
-      "url": "https://example.com/rss"
-    },
-    {
-      "id": "marketplace",
-      "name": "Marketplace Signals",
-      "type": "marketplace",
-      "enabled": true,
-      "weight": 0.25,
-      "url": "https://example.com/marketplace"
-    },
-    {
-      "id": "community",
-      "name": "Community Signals",
-      "type": "community",
-      "enabled": true,
-      "weight": 0.15,
-      "url": "https://example.com/community"
-    },
-    {
-      "id": "search_trends",
-      "name": "Search Trends",
-      "type": "search",
-      "enabled": true,
-      "weight": 0.1,
-      "url": "https://example.com/trends"
-    }
-  ],
-  "notes": [
-    "Foundation connectors generate fallback signals when live source URLs are placeholders.",
-    "Add real API/RSS endpoints and secrets in GitHub Secrets for production."
-  ]
+    "sources":  [
+                    {
+                        "id":  "gdelt",
+                        "name":  "GDELT Media Monitor",
+                        "type":  "media",
+                        "enabled":  false,
+                        "live_enabled":  false,
+                        "weight":  0.2,
+                        "requires_secret":  false
+                    },
+                    {
+                        "id":  "official_rss",
+                        "name":  "Kidult Market News RSS",
+                        "type":  "official",
+                        "adapter":  "rss",
+                        "enabled":  true,
+                        "live_enabled":  false,
+                        "weight":  0.3,
+                        "url":  "https://news.google.com/rss/search?q=LEGO+Pokemon+Pop+Mart+Bandai+Medicom+Hot+Toys\u0026hl=en-US\u0026gl=US\u0026ceid=US:en",
+                        "timeout_seconds":  10,
+                        "max_entries":  25
+                    },
+                    {
+                        "id":  "marketplace",
+                        "name":  "Marketplace Signals",
+                        "type":  "marketplace",
+                        "enabled":  true,
+                        "live_enabled":  false,
+                        "weight":  0.25,
+                        "url":  "https://example.com/marketplace"
+                    },
+                    {
+                        "id":  "community",
+                        "name":  "Community Signals",
+                        "type":  "community",
+                        "enabled":  true,
+                        "live_enabled":  false,
+                        "weight":  0.15,
+                        "url":  "https://example.com/community"
+                    },
+                    {
+                        "id":  "search_trends",
+                        "name":  "Search Trends",
+                        "type":  "search",
+                        "enabled":  true,
+                        "live_enabled":  false,
+                        "weight":  0.1,
+                        "url":  "https://example.com/trends"
+                    }
+                ],
+    "notes":  [
+                  "Fixture and fallback modes continue to use all enabled foundation sources.",
+                  "Live mode uses only sources where live_enabled is true.",
+                  "KAIOS_LIVE_RSS_URL can override the configured RSS URL."
+              ]
 }

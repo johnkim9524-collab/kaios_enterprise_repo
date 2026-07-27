@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import time
 from typing import Any
 
 from app.collectors.contracts import (
@@ -36,6 +38,32 @@ class CollectorRuntime:
         )
         self.max_attempts = max_attempts
 
+    def _is_active(
+        self,
+        source: dict[str, Any],
+    ) -> bool:
+        if not source.get("enabled"):
+            return False
+
+        if self.mode is RuntimeMode.LIVE:
+            environment_url = os.getenv(
+                "KAIOS_LIVE_RSS_URL",
+                "",
+            ).strip()
+
+            return bool(
+                source.get("live_enabled", False)
+                or (
+                    environment_url
+                    and str(
+                        source.get("adapter", "")
+                    ).strip().lower()
+                    in {"rss", "atom"}
+                )
+            )
+
+        return True
+
     def collect(
         self,
         sources: list[dict[str, Any]],
@@ -44,14 +72,27 @@ class CollectorRuntime:
         active_sources = [
             source
             for source in sources
-            if source.get("enabled")
+            if self._is_active(source)
         ]
+
+        if (
+            self.mode is RuntimeMode.LIVE
+            and not active_sources
+        ):
+            raise LiveModeUnavailableError()
 
         signals: list[dict[str, Any]] = []
         executions: list[SourceExecution] = []
 
         successful_source_count = 0
         failed_source_count = 0
+
+        retry_delay_seconds = float(
+            os.getenv(
+                "KAIOS_LIVE_RETRY_DELAY_SECONDS",
+                "0",
+            )
+        )
 
         for source in active_sources:
             adapter = self.registry.resolve(source)
@@ -82,9 +123,23 @@ class CollectorRuntime:
                 except Exception as exc:
                     error_message = str(exc)
 
+                    if (
+                        attempt < self.max_attempts
+                        and retry_delay_seconds > 0
+                    ):
+                        time.sleep(
+                            retry_delay_seconds
+                        )
+
             if error_message is None:
                 successful_source_count += 1
                 signals.extend(source_signals)
+
+                first_signal = (
+                    source_signals[0]
+                    if source_signals
+                    else {}
+                )
 
                 executions.append(
                     SourceExecution(
@@ -95,6 +150,21 @@ class CollectorRuntime:
                         attempts=attempts,
                         signal_count=len(
                             source_signals
+                        ),
+                        source_url=first_signal.get(
+                            "source_url"
+                        ),
+                        payload_hash=first_signal.get(
+                            "payload_hash"
+                        ),
+                        duplicate_count=int(
+                            first_signal.get(
+                                "duplicate_count",
+                                0,
+                            )
+                        ),
+                        collected_at=first_signal.get(
+                            "collected_at"
                         ),
                     )
                 )
@@ -108,6 +178,8 @@ class CollectorRuntime:
                         source_type=source["type"],
                         status="failed",
                         attempts=attempts,
+                        source_url=source.get("url"),
+                        collected_at=now_iso(),
                         error=error_message,
                     )
                 )

@@ -3,10 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+
     image: kaios-enterprise:local
     container_name: kaios-enterprise
+
     restart: unless-stopped
     init: true
+
     environment:
       KAIOS_GATEWAY_HOST: ${KAIOS_GATEWAY_HOST:-0.0.0.0}
       KAIOS_GATEWAY_PORT: ${KAIOS_GATEWAY_PORT:-8787}
@@ -16,8 +19,14 @@ services:
       KAIOS_LOG_LEVEL: ${KAIOS_LOG_LEVEL:-INFO}
       KAIOS_SHUTDOWN_TIMEOUT_SECONDS: ${KAIOS_SHUTDOWN_TIMEOUT_SECONDS:-10}
       KAIOS_DATABASE_PATH: ${KAIOS_DATABASE_PATH:-/app/data/kaios.db}
+
+      KAIOS_LIVE_RSS_URL: ${KAIOS_LIVE_RSS_URL:-}
+      KAIOS_LIVE_HTTP_TIMEOUT_SECONDS: ${KAIOS_LIVE_HTTP_TIMEOUT_SECONDS:-10}
+      KAIOS_LIVE_RETRY_DELAY_SECONDS: ${KAIOS_LIVE_RETRY_DELAY_SECONDS:-0}
+
     ports:
       - "${KAIOS_GATEWAY_PORT:-8787}:8787"
+
     healthcheck:
       test:
         - CMD
@@ -27,16 +36,19 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+
     security_opt:
       - no-new-privileges:true
-    read_only: true
+
+    read_only: false
+
     tmpfs:
       - /tmp:size=64m,mode=1777
+
     volumes:
       - kaios-runtime-data:/app/data
-      - kaios-public-data:/app/public/api
+
     stop_grace_period: 15s
 
 volumes:
   kaios-runtime-data:
-  kaios-public-data:
