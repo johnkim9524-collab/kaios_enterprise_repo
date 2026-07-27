@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from typing import Any
@@ -21,6 +21,10 @@ class SourceExecution:
     status: str
     attempts: int
     signal_count: int = 0
+    source_url: str | None = None
+    payload_hash: str | None = None
+    duplicate_count: int = 0
+    collected_at: str | None = None
     error: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -49,8 +53,5 @@ class CollectionReport:
             "failed_source_count": self.failed_source_count,
             "brand_count": self.brand_count,
             "signals": self.signals,
-            "sources": [
-                source.to_dict()
-                for source in self.sources
-            ],
+            "sources": [source.to_dict() for source in self.sources],
         }
