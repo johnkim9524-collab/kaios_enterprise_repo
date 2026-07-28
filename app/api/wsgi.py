@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs
 
-from app.api.contracts import GatewayRequest
+from app.api.contracts import (
+    GatewayRequest,
+    SECURITY_HEADERS,
+)
 from app.api.gateway import KAIOSGateway
 
 
@@ -34,8 +37,10 @@ class KAIOSWSGIApplication:
         if path in {"/portal", "/portal/"}:
             candidate = PORTAL_ROOT / "index.html"
         elif path.startswith("/portal/"):
-            relative_path = path.removeprefix("/portal/")
-            candidate = PORTAL_ROOT / relative_path
+            candidate = (
+                PORTAL_ROOT
+                / path.removeprefix("/portal/")
+            )
         else:
             return None
 
@@ -46,10 +51,15 @@ class KAIOSWSGIApplication:
         except (ValueError, OSError):
             return None
 
-        if not resolved_candidate.is_file():
-            return None
+        return (
+            resolved_candidate
+            if resolved_candidate.is_file()
+            else None
+        )
 
-        return resolved_candidate
+    @staticmethod
+    def _security_headers() -> list[tuple[str, str]]:
+        return list(SECURITY_HEADERS.items())
 
     def _serve_static(
         self,
@@ -57,38 +67,29 @@ class KAIOSWSGIApplication:
         start_response,
     ) -> list[bytes]:
         payload = path.read_bytes()
-
         content_type, _ = mimetypes.guess_type(
             path.name
         )
 
-        headers = [
-            (
-                "Content-Type",
-                content_type
-                or "application/octet-stream",
-            ),
-            (
-                "Content-Length",
-                str(len(payload)),
-            ),
-            (
-                "Cache-Control",
-                (
-                    "no-store"
-                    if path.name == "index.html"
-                    else "public, max-age=300"
-                ),
-            ),
-            (
-                "X-Content-Type-Options",
-                "nosniff",
-            ),
-        ]
-
         start_response(
             "200 OK",
-            headers,
+            [
+                (
+                    "Content-Type",
+                    content_type
+                    or "application/octet-stream",
+                ),
+                ("Content-Length", str(len(payload))),
+                (
+                    "Cache-Control",
+                    (
+                        "no-store"
+                        if path.name == "index.html"
+                        else "public, max-age=300"
+                    ),
+                ),
+                *self._security_headers(),
+            ],
         )
 
         return [payload]
@@ -97,18 +98,32 @@ class KAIOSWSGIApplication:
         self,
         start_response,
     ) -> list[bytes]:
-        payload = b""
-
         start_response(
             "302 Found",
             [
                 ("Location", "/portal/"),
                 ("Content-Length", "0"),
                 ("Cache-Control", "no-store"),
+                *self._security_headers(),
             ],
         )
 
-        return [payload]
+        return [b""]
+
+    @staticmethod
+    def _request_headers(
+        environ: dict[str, Any],
+    ) -> dict[str, str]:
+        headers: dict[str, str] = {}
+
+        for key, value in environ.items():
+            if key.startswith("HTTP_"):
+                normalized = key.removeprefix(
+                    "HTTP_"
+                ).replace("_", "-").lower()
+                headers[normalized] = str(value)
+
+        return headers
 
     def __call__(
         self,
@@ -119,7 +134,6 @@ class KAIOSWSGIApplication:
             "REQUEST_METHOD",
             "GET",
         ).strip().upper()
-
         path = environ.get(
             "PATH_INFO",
             "/",
@@ -135,7 +149,6 @@ class KAIOSWSGIApplication:
         if static_file is not None:
             if method != "GET":
                 payload = b"Method Not Allowed"
-
                 start_response(
                     "405 Method Not Allowed",
                     [
@@ -147,9 +160,9 @@ class KAIOSWSGIApplication:
                             "Content-Length",
                             str(len(payload)),
                         ),
+                        *self._security_headers(),
                     ],
                 )
-
                 return [payload]
 
             return self._serve_static(
@@ -161,7 +174,6 @@ class KAIOSWSGIApplication:
             environ.get("QUERY_STRING", ""),
             keep_blank_values=True,
         )
-
         query = {
             key: values[0]
             for key, values in raw_query.items()
@@ -172,35 +184,28 @@ class KAIOSWSGIApplication:
             method=method,
             path=path,
             query=query,
+            headers=self._request_headers(environ),
+            client_ip=str(
+                environ.get(
+                    "REMOTE_ADDR",
+                    "unknown",
+                )
+            ),
         )
-
         response = self.gateway.handle(request)
-
-        status = HTTPStatus(
-            response.status_code
-        )
-
+        status = HTTPStatus(response.status_code)
         payload = json.dumps(
             response.body,
             ensure_ascii=False,
             indent=2,
         ).encode("utf-8")
 
-        headers = [
-            *response.headers.items(),
-            (
-                "Content-Length",
-                str(len(payload)),
-            ),
-            (
-                "X-Content-Type-Options",
-                "nosniff",
-            ),
-        ]
-
         start_response(
             f"{status.value} {status.phrase}",
-            headers,
+            [
+                *response.headers.items(),
+                ("Content-Length", str(len(payload))),
+            ],
         )
 
         return [payload]

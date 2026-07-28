@@ -1,0 +1,61 @@
+.security-login {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    place-items: center;
+    padding: 24px;
+    background: rgba(3, 9, 22, 0.94);
+    backdrop-filter: blur(16px);
+}
+
+.security-login.is-visible {
+    display: grid;
+}
+
+.security-login-card {
+    width: min(100%, 420px);
+    padding: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 24px;
+    background: #081121;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+}
+
+.security-login-card h2 {
+    margin: 0 0 10px;
+}
+
+.security-login-card p {
+    color: rgba(255, 255, 255, 0.66);
+}
+
+.security-token-input {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 18px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font: inherit;
+}
+
+.security-login-button {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 12px;
+    border: 0;
+    border-radius: 12px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.security-login-error {
+    min-height: 20px;
+    margin-top: 12px;
+    color: #ffb4b4;
+    font-size: 13px;
+}
