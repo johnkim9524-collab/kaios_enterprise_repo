@@ -3,10 +3,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from wsgiref.simple_server import (
-    WSGIServer,
-    make_server,
-)
+from wsgiref.simple_server import WSGIServer, make_server
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,13 +13,15 @@ if str(ROOT) not in sys.path:
 
 
 from app.api.wsgi import application
+from app.config import load_application_config
+from app.config.environment import EnvironmentName
+from app.config.errors import ConfigurationError
 
 
 def environment_name() -> str:
-    return os.getenv(
-        "KAIOS_ENVIRONMENT",
-        "local",
-    ).strip().lower()
+    return EnvironmentName.parse(
+        os.getenv("KAIOS_ENVIRONMENT")
+    ).value
 
 
 def gateway_host() -> str:
@@ -53,46 +52,47 @@ def gateway_port() -> int:
     return port
 
 
-def serve(
-    server: WSGIServer,
-) -> None:
+def serve(server: WSGIServer) -> None:
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print(
-            "\nKAIOS API Gateway shutdown requested."
-        )
+        print("\nKAIOS API Gateway shutdown requested.")
     finally:
         server.server_close()
-        print(
-            "KAIOS API Gateway stopped."
-        )
+        print("KAIOS API Gateway stopped.")
 
 
 def main() -> int:
-    host = gateway_host()
-    port = gateway_port()
-    environment = environment_name()
+    try:
+        config = load_application_config(strict=True)
+    except ConfigurationError as exc:
+        print(
+            f"KAIOS configuration error: {exc}",
+            file=sys.stderr,
+        )
+        return 2
 
+    print("KAIOS API Gateway starting")
+    print(f"Environment: {config.environment.value}")
+    print(f"Log level: {config.log_level}")
+    print(f"Secret source: {config.api_secret_source}")
     print(
-        "KAIOS API Gateway starting"
+        f"Listening: http://{config.gateway_host}:{config.gateway_port}"
     )
     print(
-        f"Environment: {environment}"
+        f"Portal: http://{config.gateway_host}:{config.gateway_port}/portal/"
     )
     print(
-        f"Listening: http://{host}:{port}"
+        f"Health: http://{config.gateway_host}:{config.gateway_port}/api/health"
     )
     print(
-        f"Portal: http://{host}:{port}/portal/"
-    )
-    print(
-        f"Health: http://{host}:{port}/api/health"
+        "Configuration: "
+        f"http://{config.gateway_host}:{config.gateway_port}/api/config/status"
     )
 
     with make_server(
-        host,
-        port,
+        config.gateway_host,
+        config.gateway_port,
         application,
     ) as server:
         serve(server)

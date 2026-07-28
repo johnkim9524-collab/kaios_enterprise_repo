@@ -1,0 +1,6 @@
+.config-health-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+.config-health-card { min-width:0; padding:18px; border:1px solid rgba(255,255,255,.12); border-radius:18px; background:rgba(255,255,255,.035); }
+.config-health-label { margin:0 0 8px; color:rgba(255,255,255,.58); font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+.config-health-value { margin:0; font-size:20px; overflow-wrap:anywhere; }
+@media (max-width:760px) { .config-health-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:480px) { .config-health-grid { grid-template-columns:1fr; } }

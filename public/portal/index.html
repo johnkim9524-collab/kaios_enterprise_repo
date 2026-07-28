@@ -17,6 +17,7 @@
   >
   <link rel="stylesheet" href="/portal/assets/run-history.css">
   <link rel="stylesheet" href="/portal/assets/scheduler.css">
+    <link rel="stylesheet" href="/portal/assets/config.css">
 </head>
 <body>
   <div class="app-shell">
@@ -258,7 +259,16 @@
         </div>
         <div id="schedulerLock" class="scheduler-lock" aria-live="polite">Loading runtime lock...</div>
       </section>
-    </main>
+    <section class="portal-section" id="configuration-health">
+    <div class="section-heading"><div><p class="section-kicker">Production Configuration</p><h2>Configuration Health</h2></div></div>
+    <div class="config-health-grid">
+        <article class="config-health-card"><p class="config-health-label">Status</p><p class="config-health-value" id="config-health-status">Loading</p></article>
+        <article class="config-health-card"><p class="config-health-label">Environment</p><p class="config-health-value" id="config-health-environment">Loading</p></article>
+        <article class="config-health-card"><p class="config-health-label">Production Ready</p><p class="config-health-value" id="config-health-production-ready">Loading</p></article>
+        <article class="config-health-card"><p class="config-health-label">Secret Source</p><p class="config-health-value" id="config-health-secret-source">Loading</p></article>
+    </div>
+</section>
+</main>
 
     <footer class="footer">
       <span>KAIOS 2.0</span>
@@ -269,5 +279,6 @@
   <script src="/portal/assets/portal.js" defer></script>
   <script src="/portal/assets/run-history.js" defer></script>
   <script src="/portal/assets/scheduler.js" defer></script>
+    <script src="/portal/assets/config.js"></script>
 </body>
 </html>
