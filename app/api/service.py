@@ -6,6 +6,7 @@ from typing import Any
 
 from app.agent import KAIOSAgent
 from app.collectors.source_collector import SourceCollector
+from app.config.status import configuration_status
 from app.core.modes import RuntimeMode
 from app.persistence.repository import RunHistoryRepository
 from app.scheduler.service import SchedulerService
@@ -101,3 +102,6 @@ class GatewayService:
         return SchedulerService(
             history_repository=self.history_repository
         ).status()
+
+    def config_status(self) -> dict[str, Any]:
+        return configuration_status()

@@ -32,6 +32,7 @@ class KAIOSGateway:
             Callable[[], dict[str, Any]],
         ] = {
             "/api/health": self.service.health,
+            "/api/config/status": self.service.config_status,
             "/api/status": self.service.status,
             "/api/edition": self.service.edition,
             "/api/scheduler/status": self.service.scheduler_status,
