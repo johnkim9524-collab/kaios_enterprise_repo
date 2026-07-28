@@ -93,7 +93,8 @@ jobs:
             --detach \
             --name kaios-enterprise-ci \
             --publish 8787:8787 \
-            --env KAIOS_ENVIRONMENT=ci \
+            --env KAIOS_ENVIRONMENT=production \
+            --env KAIOS_API_SECRET=kaios-ci-validation-secret \
             kaios-enterprise:ci
 
       - name: Run deployment smoke test
