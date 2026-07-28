@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="/portal/assets/config.css">
     <link rel="stylesheet" href="/portal/assets/security.css">
     <script src="/portal/assets/security.js"></script>
+    <link rel="stylesheet" href="/portal/assets/observability.css">
 </head>
 <body>
 <div class="security-login" id="security-login" aria-modal="true" role="dialog">
@@ -287,6 +288,21 @@
         <article class="config-health-card"><p class="config-health-label">Secret Source</p><p class="config-health-value" id="config-health-secret-source">Loading</p></article>
     </div>
 </section>
+
+<section class="portal-section" id="observability">
+    <div class="section-heading">
+        <div>
+            <p class="section-kicker">Operational Intelligence</p>
+            <h2>Observability</h2>
+        </div>
+    </div>
+    <div class="observability-grid">
+        <article class="observability-card"><p class="observability-label">Status</p><p class="observability-value" id="observability-status">Loading</p></article>
+        <article class="observability-card"><p class="observability-label">Requests</p><p class="observability-value" id="observability-requests">0</p></article>
+        <article class="observability-card"><p class="observability-label">Errors</p><p class="observability-value" id="observability-errors">0</p></article>
+        <article class="observability-card"><p class="observability-label">Average Latency</p><p class="observability-value" id="observability-latency">0 ms</p></article>
+    </div>
+</section>
 </main>
 
     <footer class="footer">
@@ -299,5 +315,6 @@
   <script src="/portal/assets/run-history.js" defer></script>
   <script src="/portal/assets/scheduler.js" defer></script>
     <script src="/portal/assets/config.js"></script>
+    <script src="/portal/assets/observability.js"></script>
 </body>
 </html>
