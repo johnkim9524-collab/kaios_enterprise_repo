@@ -18,8 +18,27 @@
   <link rel="stylesheet" href="/portal/assets/run-history.css">
   <link rel="stylesheet" href="/portal/assets/scheduler.css">
     <link rel="stylesheet" href="/portal/assets/config.css">
+    <link rel="stylesheet" href="/portal/assets/security.css">
+    <script src="/portal/assets/security.js"></script>
 </head>
 <body>
+<div class="security-login" id="security-login" aria-modal="true" role="dialog">
+    <form class="security-login-card" id="security-login-form">
+        <p class="section-kicker">Protected Intelligence</p>
+        <h2>KAIOS Secure Access</h2>
+        <p>Enter an authorized Bearer token to access protected intelligence operations.</p>
+        <input
+            class="security-token-input"
+            id="security-token-input"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Bearer token"
+            aria-label="Bearer token"
+        >
+        <button class="security-login-button" type="submit">Authenticate</button>
+        <p class="security-login-error" id="security-login-error" aria-live="polite"></p>
+    </form>
+</div>
   <div class="app-shell">
     <header class="topbar">
       <a class="brand" href="/portal/" aria-label="KAIOS Portal home">
