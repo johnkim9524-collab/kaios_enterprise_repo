@@ -4,6 +4,8 @@ import json
 import mimetypes
 from http import HTTPStatus
 from pathlib import Path
+from time import monotonic
+from uuid import uuid4
 from typing import Any
 from urllib.parse import parse_qs
 
@@ -12,6 +14,7 @@ from app.api.contracts import (
     SECURITY_HEADERS,
 )
 from app.api.gateway import KAIOSGateway
+from app.observability import observability
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -180,11 +183,22 @@ class KAIOSWSGIApplication:
             if values
         }
 
+        request_headers = self._request_headers(environ)
+        request_id = request_headers.get(
+            "x-request-id",
+            str(uuid4()),
+        )
+        correlation_id = request_headers.get(
+            "x-correlation-id",
+            request_id,
+        )
+        request_started = monotonic()
+
         request = GatewayRequest(
             method=method,
             path=path,
             query=query,
-            headers=self._request_headers(environ),
+            headers=request_headers,
             client_ip=str(
                 environ.get(
                     "REMOTE_ADDR",
@@ -193,6 +207,16 @@ class KAIOSWSGIApplication:
             ),
         )
         response = self.gateway.handle(request)
+        duration_ms = (monotonic() - request_started) * 1000
+        observability.record(
+            request_id=request_id,
+            correlation_id=correlation_id,
+            method=method,
+            path=path,
+            status_code=response.status_code,
+            duration_ms=duration_ms,
+            client_ip=request.client_ip,
+        )
         status = HTTPStatus(response.status_code)
         payload = json.dumps(
             response.body,
@@ -204,6 +228,8 @@ class KAIOSWSGIApplication:
             f"{status.value} {status.phrase}",
             [
                 *response.headers.items(),
+                ("X-Request-ID", request_id),
+                ("X-Correlation-ID", correlation_id),
                 ("Content-Length", str(len(payload))),
             ],
         )

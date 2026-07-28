@@ -12,6 +12,7 @@ from app.api.contracts import (
 from app.api.service import GatewayService
 from app.core.errors import LiveModeUnavailableError
 from app.core.modes import RuntimeMode
+from app.observability import observability
 from app.security.audit import SecurityAuditLogger
 from app.security.auth import (
     SecurityConfig,
@@ -57,6 +58,9 @@ class KAIOSGateway:
             "/api/edition": self.service.edition,
             "/api/scheduler/status": self.service.scheduler_status,
             "/api/security/status": self.security_status,
+            "/api/metrics": observability.metrics,
+            "/api/observability/status": observability.status,
+            "/api/alerts": lambda: {"alerts": observability.alerts()},
         }
 
     def security_status(self) -> dict[str, Any]:

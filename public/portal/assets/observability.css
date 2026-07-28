@@ -1,0 +1,39 @@
+.observability-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.observability-card {
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.observability-label {
+    margin: 0 0 8px;
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.observability-value {
+    margin: 0;
+    font-size: 20px;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+    .observability-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .observability-grid {
+        grid-template-columns: 1fr;
+    }
+}

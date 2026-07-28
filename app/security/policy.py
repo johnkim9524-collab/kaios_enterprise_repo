@@ -10,6 +10,12 @@ PUBLIC_ROUTES = {
     "/api/security/status",
 }
 
+ADMIN_ROUTES = {
+    "/api/metrics",
+    "/api/observability/status",
+    "/api/alerts",
+}
+
 OPERATOR_ROUTES = {
     "/api/collector",
     "/api/runtime",
@@ -21,6 +27,9 @@ def required_role(
 ) -> Role | None:
     if path in PUBLIC_ROUTES:
         return None
+
+    if path in ADMIN_ROUTES:
+        return Role.ADMIN
 
     if path in OPERATOR_ROUTES:
         return Role.OPERATOR
