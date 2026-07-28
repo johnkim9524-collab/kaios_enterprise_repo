@@ -34,6 +34,7 @@ class KAIOSGateway:
             "/api/health": self.service.health,
             "/api/status": self.service.status,
             "/api/edition": self.service.edition,
+            "/api/scheduler/status": self.service.scheduler_status,
         }
 
     def _parse_mode(

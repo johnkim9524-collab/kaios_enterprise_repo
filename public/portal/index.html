@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -16,6 +16,7 @@
     href="/portal/assets/portal.css"
   >
   <link rel="stylesheet" href="/portal/assets/run-history.css">
+  <link rel="stylesheet" href="/portal/assets/scheduler.css">
 </head>
 <body>
   <div class="app-shell">
@@ -243,6 +244,20 @@
           </div>
         </div>
       </section>
+
+      <section class="panel">
+        <div class="panel-heading panel-heading-responsive">
+          <div><p class="eyebrow">AUTONOMOUS OPERATIONS</p><h2>Scheduler Status</h2><p>Monitor scheduled execution and the runtime lock.</p></div>
+          <button id="refreshSchedulerButton" class="button button-secondary" type="button">Refresh Scheduler</button>
+        </div>
+        <div class="scheduler-grid">
+          <div class="scheduler-metric"><span>Scheduler</span><strong id="schedulerEnabled">Loading</strong></div>
+          <div class="scheduler-metric"><span>Runtime Mode</span><strong id="schedulerMode">Loading</strong></div>
+          <div class="scheduler-metric"><span>Last Scheduled Run</span><strong id="schedulerLastRun">Loading</strong></div>
+          <div class="scheduler-metric"><span>Next Run</span><strong id="schedulerNextRun">Loading</strong></div>
+        </div>
+        <div id="schedulerLock" class="scheduler-lock" aria-live="polite">Loading runtime lock...</div>
+      </section>
     </main>
 
     <footer class="footer">
@@ -253,5 +268,6 @@
 
   <script src="/portal/assets/portal.js" defer></script>
   <script src="/portal/assets/run-history.js" defer></script>
+  <script src="/portal/assets/scheduler.js" defer></script>
 </body>
 </html>

@@ -8,6 +8,7 @@ from app.agent import KAIOSAgent
 from app.collectors.source_collector import SourceCollector
 from app.core.modes import RuntimeMode
 from app.persistence.repository import RunHistoryRepository
+from app.scheduler.service import SchedulerService
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -96,3 +97,7 @@ class GatewayService:
         return self.history_repository.get_run(
             run_id
         )
+    def scheduler_status(self) -> dict[str, Any]:
+        return SchedulerService(
+            history_repository=self.history_repository
+        ).status()
