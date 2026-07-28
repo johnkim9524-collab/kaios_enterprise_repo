@@ -24,6 +24,13 @@ services:
       KAIOS_LIVE_HTTP_TIMEOUT_SECONDS: ${KAIOS_LIVE_HTTP_TIMEOUT_SECONDS:-10}
       KAIOS_LIVE_RETRY_DELAY_SECONDS: ${KAIOS_LIVE_RETRY_DELAY_SECONDS:-0}
 
+      KAIOS_SCHEDULER_ENABLED: ${KAIOS_SCHEDULER_ENABLED:-false}
+      KAIOS_SCHEDULER_INTERVAL_SECONDS: ${KAIOS_SCHEDULER_INTERVAL_SECONDS:-3600}
+      KAIOS_SCHEDULER_LOCK_TTL_SECONDS: ${KAIOS_SCHEDULER_LOCK_TTL_SECONDS:-3600}
+      KAIOS_SCHEDULER_HEARTBEAT_SECONDS: ${KAIOS_SCHEDULER_HEARTBEAT_SECONDS:-30}
+      KAIOS_SCHEDULER_RUNTIME_MODE: ${KAIOS_SCHEDULER_RUNTIME_MODE:-fixture}
+      KAIOS_SCHEDULER_ID: ${KAIOS_SCHEDULER_ID:-kaios-primary}
+
     ports:
       - "${KAIOS_GATEWAY_PORT:-8787}:8787"
 
@@ -36,6 +43,59 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+
+    security_opt:
+      - no-new-privileges:true
+
+    read_only: false
+
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+
+    volumes:
+      - kaios-runtime-data:/app/data
+
+    stop_grace_period: 15s
+
+  kaios-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: kaios-enterprise:local
+    container_name: kaios-scheduler
+
+    command:
+      - python
+      - -m
+      - scripts.run_scheduler
+
+    profiles:
+      - scheduler
+
+    restart: unless-stopped
+    init: true
+
+    depends_on:
+      kaios:
+        condition: service_healthy
+
+    environment:
+      KAIOS_ENVIRONMENT: ${KAIOS_ENVIRONMENT:-production}
+      KAIOS_LOG_LEVEL: ${KAIOS_LOG_LEVEL:-INFO}
+      KAIOS_DATABASE_PATH: ${KAIOS_DATABASE_PATH:-/app/data/kaios.db}
+
+      KAIOS_RUNTIME_MODE: ${KAIOS_RUNTIME_MODE:-fixture}
+      KAIOS_LIVE_RSS_URL: ${KAIOS_LIVE_RSS_URL:-}
+      KAIOS_LIVE_HTTP_TIMEOUT_SECONDS: ${KAIOS_LIVE_HTTP_TIMEOUT_SECONDS:-10}
+      KAIOS_LIVE_RETRY_DELAY_SECONDS: ${KAIOS_LIVE_RETRY_DELAY_SECONDS:-0}
+
+      KAIOS_SCHEDULER_ENABLED: ${KAIOS_SCHEDULER_ENABLED:-true}
+      KAIOS_SCHEDULER_INTERVAL_SECONDS: ${KAIOS_SCHEDULER_INTERVAL_SECONDS:-3600}
+      KAIOS_SCHEDULER_LOCK_TTL_SECONDS: ${KAIOS_SCHEDULER_LOCK_TTL_SECONDS:-3600}
+      KAIOS_SCHEDULER_HEARTBEAT_SECONDS: ${KAIOS_SCHEDULER_HEARTBEAT_SECONDS:-30}
+      KAIOS_SCHEDULER_RUNTIME_MODE: ${KAIOS_SCHEDULER_RUNTIME_MODE:-fixture}
+      KAIOS_SCHEDULER_ID: ${KAIOS_SCHEDULER_ID:-kaios-primary}
 
     security_opt:
       - no-new-privileges:true

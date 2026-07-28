@@ -1,8 +1,21 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from app.persistence.database import (
+    MIGRATIONS_ROOT,
     SQLiteDatabase,
 )
+
+
+def migration_count() -> int:
+    return len(
+        list(
+            Path(
+                MIGRATIONS_ROOT
+            ).glob("*.sql")
+        )
+    )
 
 
 def test_migration_creates_required_tables(
@@ -34,6 +47,8 @@ def test_migration_creates_required_tables(
         "stage_executions",
         "source_executions",
         "publications",
+        "scheduler_state",
+        "runtime_locks",
     }
 
     assert required_tables.issubset(
@@ -59,4 +74,37 @@ def test_migration_is_idempotent(
             """
         ).fetchone()
 
-    assert row["count"] == 1
+    assert (
+        row["count"]
+        == migration_count()
+    )
+
+
+def test_each_migration_is_recorded_once(
+    tmp_path,
+) -> None:
+    database = SQLiteDatabase(
+        tmp_path / "kaios-test.db"
+    )
+
+    database.migrate()
+    database.migrate()
+
+    with database.connect() as connection:
+        rows = connection.execute(
+            """
+            SELECT version, COUNT(*) AS count
+            FROM schema_migrations
+            GROUP BY version
+            ORDER BY version
+            """
+        ).fetchall()
+
+    assert rows
+
+    assert all(
+        row["count"] == 1
+        for row in rows
+    )
+
+    assert len(rows) == migration_count()
