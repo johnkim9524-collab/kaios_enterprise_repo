@@ -1,0 +1,50 @@
+{
+  "certification": "week-4-dual-portal-gate",
+  "version": "0.1.0",
+  "result": "pass",
+  "week5Authorized": true,
+  "thresholds": {
+    "productQuality": 90,
+    "dataTrust": 90,
+    "luxuryBrandFit": 95,
+    "desktopUx": 90,
+    "mobileUx": 90,
+    "accessibility": 85,
+    "failureStates": 90,
+    "governanceVisibility": 95,
+    "exportReadiness": 90
+  },
+  "kidults": {
+    "portal": "enterprise-beta",
+    "status": "certified-for-week5-staging",
+    "productionPromotion": false,
+    "illustrativeValues": true
+  },
+  "artfund": {
+    "portal": "institutional-beta",
+    "status": "certified-for-week5-staging",
+    "productionReadinessClaimed": false,
+    "illustrativeValues": true,
+    "provenanceDisputeStateRequired": true
+  },
+  "mandatoryControls": [
+    "trust-surface-complete",
+    "viewer-export-blocked",
+    "governed-export-required",
+    "rights-gate",
+    "methodology-gate",
+    "confidence-gate",
+    "evidence-gate",
+    "freshness-gate",
+    "desktop-mobile-parity",
+    "320px-no-horizontal-overflow"
+  ],
+  "authorizedNextScope": [
+    "autonomous-report-generation",
+    "alert-engine",
+    "daily-index-auto-publishing",
+    "publication-quality-gate",
+    "automatic-publish-hold-retry-rollback",
+    "report-alert-archive"
+  ]
+}
