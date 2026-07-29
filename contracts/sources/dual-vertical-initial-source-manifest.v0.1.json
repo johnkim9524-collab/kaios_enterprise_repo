@@ -1,0 +1,49 @@
+{
+  "version": "0.1.0",
+  "environment": "staging",
+  "promotionPolicy": {
+    "rightsRequired": true,
+    "minimumHealthScore": 70,
+    "minimumConfidenceScore": 70,
+    "criticalDriftBlocksPromotion": true,
+    "productionPromotionRequiresSeparateGate": true
+  },
+  "sources": [
+    {
+      "sourceId": "kidults-discovery-rss-001",
+      "vertical": "kidults",
+      "sourceType": "rss",
+      "tier": "experimental",
+      "lifecycle": "candidate",
+      "rightsStatus": "review_required",
+      "purpose": "collectibles market discovery"
+    },
+    {
+      "sourceId": "kidults-official-brand-feed-001",
+      "vertical": "kidults",
+      "sourceType": "official",
+      "tier": "tier_1",
+      "lifecycle": "candidate",
+      "rightsStatus": "review_required",
+      "purpose": "official product and release intelligence"
+    },
+    {
+      "sourceId": "artfund-auction-results-001",
+      "vertical": "artfund",
+      "sourceType": "auction",
+      "tier": "tier_1",
+      "lifecycle": "candidate",
+      "rightsStatus": "review_required",
+      "purpose": "auction price and liquidity intelligence"
+    },
+    {
+      "sourceId": "artfund-institution-feed-001",
+      "vertical": "artfund",
+      "sourceType": "institution",
+      "tier": "tier_1",
+      "lifecycle": "candidate",
+      "rightsStatus": "review_required",
+      "purpose": "artist exhibition and institutional intelligence"
+    }
+  ]
+}
