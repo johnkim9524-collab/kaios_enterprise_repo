@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://intelligence-holdings.example/contracts/canonical-intelligence-contract.schema.json",
+  "title": "Canonical Intelligence Contract",
+  "type": "object",
+  "required": [
+    "contract_version",
+    "vertical",
+    "source",
+    "source_record",
+    "evidence",
+    "entity",
+    "methodology",
+    "confidence_grade"
+  ],
+  "properties": {
+    "contract_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "vertical": {
+      "type": "string",
+      "enum": ["kidults", "artfund"]
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "source_record": {
+      "$ref": "#/$defs/sourceRecord"
+    },
+    "evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "entity": {
+      "$ref": "#/$defs/entity"
+    },
+    "observation": {
+      "$ref": "#/$defs/observation"
+    },
+    "signal": {
+      "$ref": "#/$defs/signal"
+    },
+    "score": {
+      "$ref": "#/$defs/score"
+    },
+    "index_point": {
+      "$ref": "#/$defs/indexPoint"
+    },
+    "methodology": {
+      "$ref": "#/$defs/methodology"
+    },
+    "confidence_grade": {
+      "$ref": "#/$defs/confidenceGrade"
+    }
+  },
+  "$defs": {
+    "confidenceGrade": {
+      "type": "string",
+      "enum": ["A", "B", "C", "D", "U"]
+    },
+    "rightsPermission": {
+      "type": "string",
+      "enum": ["allowed", "restricted", "prohibited", "unknown"]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "source_name",
+        "source_type",
+        "canonical_url",
+        "tier",
+        "rights",
+        "active_status"
+      ],
+      "properties": {
+        "source_id": {"type": "string", "minLength": 1},
+        "source_name": {"type": "string", "minLength": 1},
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "official",
+            "marketplace",
+            "auction",
+            "institutional",
+            "gallery",
+            "museum",
+            "media",
+            "community",
+            "search-interest",
+            "contributed",
+            "partner"
+          ]
+        },
+        "canonical_url": {"type": "string", "format": "uri"},
+        "jurisdiction": {"type": "string"},
+        "language": {"type": "string"},
+        "owner": {"type": "string"},
+        "tier": {"type": "string", "enum": ["T1", "T2", "T3", "T4"]},
+        "reliability_score": {"type": "number", "minimum": 0, "maximum": 100},
+        "rights": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["collect", "store", "transform", "display", "redistribute", "sell"],
+          "properties": {
+            "collect": {"$ref": "#/$defs/rightsPermission"},
+            "store": {"$ref": "#/$defs/rightsPermission"},
+            "transform": {"$ref": "#/$defs/rightsPermission"},
+            "display": {"$ref": "#/$defs/rightsPermission"},
+            "redistribute": {"$ref": "#/$defs/rightsPermission"},
+            "sell": {"$ref": "#/$defs/rightsPermission"}
+          }
+        },
+        "active_status": {"type": "string", "enum": ["active", "degraded", "quarantined", "retired"]},
+        "reviewed_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "sourceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_record_id", "source_id", "retrieved_at", "content_hash", "content_type", "storage_location"],
+      "properties": {
+        "source_record_id": {"type": "string"},
+        "source_id": {"type": "string"},
+        "retrieved_at": {"type": "string", "format": "date-time"},
+        "published_at": {"type": ["string", "null"], "format": "date-time"},
+        "content_hash": {"type": "string", "minLength": 32},
+        "content_type": {"type": "string"},
+        "storage_location": {"type": "string"},
+        "collection_method": {"type": "string"},
+        "http_status": {"type": ["integer", "null"], "minimum": 100, "maximum": 599},
+        "parser_version": {"type": "string"},
+        "retention_class": {"type": "string"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "source_record_id", "evidence_type", "claim_scope", "confidence_grade", "review_status"],
+      "properties": {
+        "evidence_id": {"type": "string"},
+        "source_record_id": {"type": "string"},
+        "evidence_type": {"type": "string"},
+        "claim_scope": {"type": "string"},
+        "extracted_value": {},
+        "unit": {"type": ["string", "null"]},
+        "currency": {"type": ["string", "null"]},
+        "effective_at": {"type": ["string", "null"], "format": "date-time"},
+        "confidence_grade": {"$ref": "#/$defs/confidenceGrade"},
+        "review_status": {"type": "string", "enum": ["unreviewed", "machine-reviewed", "human-reviewed", "disputed", "superseded"]},
+        "supersedes_evidence_id": {"type": ["string", "null"]}
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity_id", "entity_type", "canonical_name", "canonical_slug", "status", "confidence_grade"],
+      "properties": {
+        "entity_id": {"type": "string"},
+        "entity_type": {"type": "string"},
+        "canonical_name": {"type": "string"},
+        "canonical_slug": {"type": "string"},
+        "status": {"type": "string", "enum": ["active", "provisional", "disputed", "retired"]},
+        "primary_market": {"type": ["string", "null"]},
+        "confidence_grade": {"$ref": "#/$defs/confidenceGrade"}
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observation_id", "entity_id", "metric_type", "metric_value", "observed_at", "evidence_id", "normalization_version", "confidence_grade"],
+      "properties": {
+        "observation_id": {"type": "string"},
+        "entity_id": {"type": "string"},
+        "metric_type": {"type": "string"},
+        "metric_value": {"type": "number"},
+        "unit": {"type": ["string", "null"]},
+        "currency": {"type": ["string", "null"]},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "effective_at": {"type": ["string", "null"], "format": "date-time"},
+        "evidence_id": {"type": "string"},
+        "normalization_version": {"type": "string"},
+        "confidence_grade": {"$ref": "#/$defs/confidenceGrade"}
+      }
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signal_id", "entity_id", "signal_type", "direction", "magnitude", "detected_at", "methodology_version", "confidence_grade"],
+      "properties": {
+        "signal_id": {"type": "string"},
+        "entity_id": {"type": "string"},
+        "signal_type": {"type": "string"},
+        "direction": {"type": "string", "enum": ["positive", "negative", "neutral", "mixed"]},
+        "magnitude": {"type": "number"},
+        "detected_at": {"type": "string", "format": "date-time"},
+        "window": {"type": "string"},
+        "source_coverage": {"type": "number", "minimum": 0, "maximum": 1},
+        "methodology_version": {"type": "string"},
+        "confidence_grade": {"$ref": "#/$defs/confidenceGrade"}
+      }
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score_id", "entity_id", "score_type", "score_value", "calculated_at", "methodology_id", "methodology_version", "input_snapshot_hash", "confidence_grade"],
+      "properties": {
+        "score_id": {"type": "string"},
+        "entity_id": {"type": "string"},
+        "score_type": {"type": "string"},
+        "score_value": {"type": "number"},
+        "score_scale": {"type": "string"},
+        "calculated_at": {"type": "string", "format": "date-time"},
+        "methodology_id": {"type": "string"},
+        "methodology_version": {"type": "string"},
+        "input_snapshot_hash": {"type": "string"},
+        "confidence_grade": {"$ref": "#/$defs/confidenceGrade"}
+      }
+    },
+    "indexPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index_id", "index_code", "index_level", "calculated_at", "effective_at", "methodology_id", "methodology_version", "constituent_snapshot_hash", "publication_status"],
+      "properties": {
+        "index_id": {"type": "string"},
+        "index_code": {"type": "string"},
+        "index_level": {"type": "number"},
+        "calculated_at": {"type": "string", "format": "date-time"},
+        "effective_at": {"type": "string", "format": "date-time"},
+        "methodology_id": {"type": "string"},
+        "methodology_version": {"type": "string"},
+        "constituent_snapshot_hash": {"type": "string"},
+        "publication_status": {"type": "string", "enum": ["draft", "research", "beta", "approved", "restated", "retired"]}
+      }
+    },
+    "methodology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["methodology_id", "name", "semantic_version", "status", "effective_from", "input_contract", "calculation_contract", "restatement_policy"],
+      "properties": {
+        "methodology_id": {"type": "string"},
+        "name": {"type": "string"},
+        "semantic_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "status": {"type": "string", "enum": ["draft", "research", "beta", "approved", "retired"]},
+        "effective_from": {"type": "string", "format": "date-time"},
+        "effective_to": {"type": ["string", "null"], "format": "date-time"},
+        "input_contract": {"type": "object"},
+        "calculation_contract": {"type": "object"},
+        "exclusion_rules": {"type": "array", "items": {"type": "string"}},
+        "outlier_policy": {"type": "string"},
+        "missing_data_policy": {"type": "string"},
+        "confidence_policy": {"type": "string"},
+        "rebalancing_policy": {"type": "string"},
+        "restatement_policy": {"type": "string"},
+        "change_log": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}
