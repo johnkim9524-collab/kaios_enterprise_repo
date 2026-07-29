@@ -1,0 +1,30 @@
+{
+  "gate": "week-2-dual-staging",
+  "version": "0.1.0",
+  "result": "pass",
+  "authorized_next_stage": "week-3-intelligence-engine",
+  "certified_at": "2026-07-29T14:25:00Z",
+  "controls": {
+    "shared_governance": true,
+    "kidults_staging": true,
+    "artfund_staging": true,
+    "read_only_apis": true,
+    "rbac": true,
+    "explicit_failure_states": true,
+    "mobile_min_width_px": 320,
+    "production_unchanged": true
+  },
+  "thresholds": {
+    "minimum_customer_confidence": 70,
+    "product_quality_score": 90,
+    "data_trust_score": 90,
+    "luxury_brand_fit": 95
+  },
+  "restrictions": [
+    "no_destructive_production_migration",
+    "no_write_api",
+    "no_public_staging_values",
+    "no_commercial_use_without_approved_rights",
+    "no_artfund_production_claim"
+  ]
+}
