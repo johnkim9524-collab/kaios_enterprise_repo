@@ -1,0 +1,68 @@
+{
+  "contractVersion": "0.1",
+  "scope": "staging",
+  "verticals": ["kidults", "artfund"],
+  "authentication": {
+    "scheme": "bearer",
+    "roles": ["viewer", "operator", "admin"],
+    "unauthenticatedStatus": 401
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/staging/kidults/enterprise/snapshot",
+      "minimumRole": "viewer"
+    },
+    {
+      "method": "GET",
+      "path": "/api/staging/artfund/institutional/snapshot",
+      "minimumRole": "viewer"
+    },
+    {
+      "method": "GET",
+      "path": "/api/staging/{vertical}/scores",
+      "minimumRole": "viewer"
+    },
+    {
+      "method": "GET",
+      "path": "/api/staging/{vertical}/indices",
+      "minimumRole": "viewer"
+    },
+    {
+      "method": "GET",
+      "path": "/api/staging/{vertical}/export-manifest",
+      "minimumRole": "operator"
+    }
+  ],
+  "customerStates": [
+    "loading",
+    "ready",
+    "empty",
+    "partial",
+    "degraded",
+    "unauthorized",
+    "rights_restricted",
+    "provenance_disputed",
+    "error"
+  ],
+  "visibilityGates": {
+    "rightsStatus": "approved",
+    "methodologyStatus": ["approved", "active"],
+    "minimumConfidence": 70,
+    "minimumEvidenceCount": 1,
+    "expiredFreshnessBlocked": true,
+    "artfundDisputedProvenanceBlocked": true
+  },
+  "export": {
+    "viewerAllowed": false,
+    "operatorAllowed": true,
+    "adminAllowed": true,
+    "formats": ["csv", "json", "pdf"],
+    "manifestRequired": true
+  },
+  "productionClaims": {
+    "kidultsProductionModified": false,
+    "artfundProductionReady": false,
+    "illustrativeStagingValuesPublic": false
+  }
+}
