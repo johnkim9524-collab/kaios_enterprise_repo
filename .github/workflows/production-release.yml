@@ -9,6 +9,7 @@ on:
       smoke_base_url:
         description: Production smoke-test base URL
         required: true
+        default: https://kaios.kidults.com
         type: string
 
 permissions:
@@ -53,10 +54,21 @@ jobs:
       - name: Generate release notes
         run: python -m scripts.generate_release_notes
 
-      - name: Production smoke test
+      - name: Validate production smoke secret
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          KAIOS_PRODUCTION_ADMIN_TOKEN: ${{ secrets.KAIOS_PRODUCTION_ADMIN_TOKEN }}
+        run: |
+          if [ -z "${KAIOS_PRODUCTION_ADMIN_TOKEN}" ]; then
+            echo "Missing repository secret: KAIOS_PRODUCTION_ADMIN_TOKEN" >&2
+            exit 1
+          fi
+
+      - name: Production smoke certification
+        if: github.event_name == 'workflow_dispatch'
         env:
           SMOKE_BASE_URL: ${{ inputs.smoke_base_url }}
-        if: github.event_name == 'workflow_dispatch'
+          KAIOS_PRODUCTION_ADMIN_TOKEN: ${{ secrets.KAIOS_PRODUCTION_ADMIN_TOKEN }}
         run: |
           python -m scripts.production_smoke \
             --base-url "${SMOKE_BASE_URL}"
