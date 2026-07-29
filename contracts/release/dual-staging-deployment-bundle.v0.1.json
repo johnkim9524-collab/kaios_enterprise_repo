@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "0.1.0",
+  "bundleId": "ih-dual-staging-rc1",
+  "releaseCandidate": "ih-dual-rc-2026.09.09-rc1",
+  "components": [
+    {"name":"shared-governance","required":true},
+    {"name":"source-execution-control","required":true},
+    {"name":"entity-resolution","required":true},
+    {"name":"quality-anomaly-engine","required":true},
+    {"name":"deterministic-scoring-engine","required":true},
+    {"name":"kidults-enterprise-portal","required":true},
+    {"name":"artfund-institutional-portal","required":true},
+    {"name":"autonomous-report-engine","required":true},
+    {"name":"autonomous-alert-engine","required":true},
+    {"name":"index-auto-publisher","required":true},
+    {"name":"publication-orchestrator","required":true}
+  ],
+  "migrations": [
+    "0001_shared_governance_foundation.sql",
+    "0002_source_execution_control.sql",
+    "0003_entity_resolution_foundation.sql",
+    "0004_quality_anomaly_foundation.sql",
+    "0005_scoring_index_foundation.sql",
+    "0006_autonomous_report_archive.sql",
+    "0007_autonomous_alert_archive.sql",
+    "0008_index_auto_publishing.sql",
+    "0009_publication_orchestrator.sql"
+  ],
+  "preflight": [
+    "all required gate documents present",
+    "database migrations apply cleanly",
+    "authenticated viewer/operator/admin smoke paths pass",
+    "mobile minimum width 320px passes",
+    "rollback bundle checksum verified"
+  ],
+  "publishFlags": {
+    "reports": false,
+    "alerts": false,
+    "indices": false
+  }
+}
