@@ -1,0 +1,29 @@
+{
+  "version": "0.1.0",
+  "profiles": [
+    {
+      "vertical": "kidults",
+      "indexId": "kidult-100",
+      "displayName": "Kidult 100",
+      "cadence": "daily",
+      "minimumConfidence": 70,
+      "minimumEvidenceCount": 1,
+      "requiresApprovedRights": true,
+      "requiresCurrentFreshness": true,
+      "requiresProvenanceClearance": false,
+      "historyPolicy": "immutable"
+    },
+    {
+      "vertical": "artfund",
+      "indexId": "global-art-market-index",
+      "displayName": "Artfund Global Art Market Index",
+      "cadence": "daily",
+      "minimumConfidence": 70,
+      "minimumEvidenceCount": 1,
+      "requiresApprovedRights": true,
+      "requiresCurrentFreshness": true,
+      "requiresProvenanceClearance": true,
+      "historyPolicy": "immutable"
+    }
+  ]
+}
