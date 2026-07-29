@@ -1,0 +1,29 @@
+{
+  "contract": "dual-portal-export",
+  "version": "0.1.0",
+  "verticals": ["kidults", "artfund"],
+  "formats": ["csv", "json", "pdf"],
+  "roles": {
+    "viewer": ["read"],
+    "operator": ["read", "export_ready_snapshot"],
+    "admin": ["read", "export_ready_snapshot"]
+  },
+  "minimumConfidence": 70,
+  "requiredAttachments": [
+    "methodology.json",
+    "evidence-manifest.json",
+    "rights-manifest.json"
+  ],
+  "blockingConditions": [
+    "unauthenticated",
+    "viewer_role",
+    "empty_records",
+    "rights_not_approved",
+    "confidence_below_70",
+    "evidence_missing",
+    "methodology_missing_or_unapproved",
+    "freshness_not_current",
+    "artfund_provenance_disputed"
+  ],
+  "productionPromotionAuthorized": false
+}
