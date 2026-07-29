@@ -1,0 +1,23 @@
+{
+  "certification": "week-6-runtime-deployment-preflight",
+  "version": "0.1",
+  "status": "pass",
+  "authorization": "dual-staging-runtime-execution-and-certification",
+  "checks": {
+    "environment_fail_closed": true,
+    "database_isolation": true,
+    "non_destructive_migrations": true,
+    "authenticated_smoke_contract": true,
+    "portal_runtime_contract": true,
+    "mobile_320px_contract": true,
+    "backup_restore_rehearsal_contract": true,
+    "failure_isolation_contract": true,
+    "production_promotion_authorized": false
+  },
+  "restrictions": [
+    "publication_disabled",
+    "write_api_unauthorized",
+    "kidults_production_unchanged",
+    "artfund_production_readiness_not_claimed"
+  ]
+}
