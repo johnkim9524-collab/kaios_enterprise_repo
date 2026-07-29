@@ -1,0 +1,51 @@
+{
+  "certification_id": "IH-DGS-W1-2026-07-29",
+  "program": "Dual Global Standard",
+  "stage": "week_1_architecture_luxury_gate",
+  "certified_at": "2026-07-29T13:45:00Z",
+  "decision": "pass",
+  "authorization": "week_2_staging_implementation",
+  "verticals": ["kidults", "artfund"],
+  "shared_platform": "kaios",
+  "targets": {
+    "product_quality_score_min": 90,
+    "data_trust_score_min": 90,
+    "luxury_brand_fit_min": 95,
+    "evidence_traceability_percent_min": 95,
+    "rights_classification_percent": 100,
+    "desktop_mobile_parity_required": true
+  },
+  "gates": {
+    "canonical_architecture": "pass",
+    "one_fact_one_home": "pass",
+    "rights_and_permitted_use": "pass",
+    "evidence_traceability": "pass",
+    "methodology_governance": "pass",
+    "fully_autonomous_operating_loop": "pass",
+    "kidults_taxonomy_and_ids": "pass",
+    "artfund_taxonomy_and_ids": "pass",
+    "index_foundation": "pass",
+    "portal_architecture": "pass",
+    "luxury_portal_contract": "pass",
+    "desktop_mobile_parity": "pass"
+  },
+  "production_constraints": {
+    "kidults_production_change_authorized": false,
+    "artfund_production_claim_authorized": false,
+    "destructive_migration_authorized": false,
+    "staging_implementation_authorized": true
+  },
+  "required_week_2_outputs": [
+    "source_registry",
+    "rights_registry",
+    "evidence_ledger",
+    "methodology_registry",
+    "confidence_grade_service",
+    "kidults_staging_schema",
+    "artfund_staging_schema",
+    "read_only_registry_apis",
+    "kidults_enterprise_portal_shell",
+    "artfund_institutional_portal_shell",
+    "contract_migration_api_mobile_failure_tests"
+  ]
+}
