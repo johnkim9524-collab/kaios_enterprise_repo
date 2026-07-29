@@ -1,0 +1,40 @@
+{
+  "contract_version": "0.1",
+  "release_candidate": "ih-dual-rc-2026.09.09-rc1",
+  "environment": "staging",
+  "production_promotion_authorized": false,
+  "publication_defaults": {
+    "reports": false,
+    "alerts": false,
+    "indices": false
+  },
+  "databases": {
+    "governance": "isolated",
+    "kidults": "isolated",
+    "artfund": "isolated"
+  },
+  "migration_policy": {
+    "destructive_allowed": false,
+    "checksum_required": true,
+    "ordered": true
+  },
+  "runtime_smoke": {
+    "authenticated_api_required": true,
+    "unauthenticated_status": 401,
+    "viewer_export_status": 403,
+    "desktop_required": true,
+    "mobile_min_width_px": 320,
+    "horizontal_overflow_allowed": false
+  },
+  "rollback": {
+    "backup_required": true,
+    "restore_integrity_required": true,
+    "checksum_preservation_required": true,
+    "immutable_audit_preservation_required": true
+  },
+  "failure_isolation": {
+    "kidults_from_artfund": true,
+    "artfund_from_kidults": true,
+    "product_level": true
+  }
+}
