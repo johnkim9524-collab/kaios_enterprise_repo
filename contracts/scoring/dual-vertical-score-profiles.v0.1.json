@@ -1,0 +1,67 @@
+{
+  "version": "0.1.0",
+  "kidults": {
+    "brand_momentum": {
+      "methodology_id": "KID-METHOD-BRAND-MOMENTUM",
+      "inputs": [
+        { "name": "price_momentum", "weight": 0.30 },
+        { "name": "transaction_velocity", "weight": 0.25 },
+        { "name": "search_interest", "weight": 0.15 },
+        { "name": "release_activity", "weight": 0.15 },
+        { "name": "collector_sentiment", "weight": 0.15 }
+      ]
+    },
+    "canon_strength": {
+      "methodology_id": "KID-METHOD-CANON-STRENGTH",
+      "inputs": [
+        { "name": "franchise_depth", "weight": 0.25 },
+        { "name": "character_recognition", "weight": 0.20 },
+        { "name": "historical_continuity", "weight": 0.20 },
+        { "name": "secondary_market_resilience", "weight": 0.20 },
+        { "name": "global_reach", "weight": 0.15 }
+      ]
+    },
+    "liquidity_grade": {
+      "methodology_id": "KID-METHOD-LIQUIDITY-GRADE",
+      "inputs": [
+        { "name": "transaction_frequency", "weight": 0.35 },
+        { "name": "active_listings", "weight": 0.20 },
+        { "name": "bid_ask_tightness", "weight": 0.20 },
+        { "name": "days_to_sale", "weight": 0.15 },
+        { "name": "source_coverage", "weight": 0.10 }
+      ]
+    }
+  },
+  "artfund": {
+    "artist_momentum": {
+      "methodology_id": "ART-METHOD-ARTIST-MOMENTUM",
+      "inputs": [
+        { "name": "price_momentum", "weight": 0.30 },
+        { "name": "sell_through", "weight": 0.20 },
+        { "name": "exhibition_activity", "weight": 0.20 },
+        { "name": "institutional_visibility", "weight": 0.15 },
+        { "name": "media_velocity", "weight": 0.15 }
+      ]
+    },
+    "auction_liquidity": {
+      "methodology_id": "ART-METHOD-AUCTION-LIQUIDITY",
+      "inputs": [
+        { "name": "lot_frequency", "weight": 0.30 },
+        { "name": "sell_through", "weight": 0.25 },
+        { "name": "bid_depth", "weight": 0.20 },
+        { "name": "estimate_accuracy", "weight": 0.15 },
+        { "name": "days_between_sales", "weight": 0.10 }
+      ]
+    },
+    "provenance_strength": {
+      "methodology_id": "ART-METHOD-PROVENANCE-STRENGTH",
+      "inputs": [
+        { "name": "chain_completeness", "weight": 0.35 },
+        { "name": "institutional_evidence", "weight": 0.25 },
+        { "name": "document_authenticity", "weight": 0.20 },
+        { "name": "dispute_status", "weight": 0.15 },
+        { "name": "freshness", "weight": 0.05 }
+      ]
+    }
+  }
+}
