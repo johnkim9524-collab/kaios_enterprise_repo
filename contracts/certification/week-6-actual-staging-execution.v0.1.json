@@ -1,0 +1,34 @@
+{
+  "contract_id": "week-6-actual-staging-execution.v0.1",
+  "release_candidate": "ih-dual-rc-2026.09.09-rc1",
+  "environment": "staging",
+  "production_promotion_authorized": false,
+  "publication_defaults": {
+    "report": false,
+    "alert": false,
+    "index": false
+  },
+  "isolated_databases": [
+    "governance",
+    "kidults",
+    "artfund"
+  ],
+  "required_runtime_evidence": [
+    "migration-execution",
+    "kidults-unauthenticated-401",
+    "artfund-unauthenticated-401",
+    "kidults-viewer-200",
+    "artfund-viewer-200",
+    "kidults-viewer-export-403",
+    "artfund-viewer-export-403",
+    "kidults-mobile-320",
+    "artfund-mobile-320",
+    "governance-backup-restore",
+    "kidults-backup-restore",
+    "artfund-backup-restore",
+    "failure-isolation"
+  ],
+  "certification_rule": "all_required_evidence_must_pass",
+  "kidults_production_promotion": "separate_gate_required",
+  "artfund_production_promotion": "not_authorized"
+}
