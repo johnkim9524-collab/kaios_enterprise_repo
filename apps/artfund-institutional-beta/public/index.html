@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Artfund Institutional Intelligence Beta</title>
+  <style>
+    :root{--ink:#171717;--ivory:#f6f1e7;--paper:#fffdf8;--gold:#b89b5e;--muted:#6d675f;--line:rgba(23,23,23,.12);--card:rgba(255,255,255,.72)}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:linear-gradient(180deg,#f8f4ec 0%,#eee7dc 100%);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-x:hidden}
+    body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+    .shell{width:min(1440px,100%);margin:0 auto;padding:24px clamp(16px,4vw,56px) 72px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:10px 0 34px;border-bottom:1px solid var(--line)}
+    .brand{font-family:Georgia,"Times New Roman",serif;font-size:clamp(28px,4vw,46px);letter-spacing:-.04em}.badge{border:1px solid var(--gold);padding:9px 14px;border-radius:999px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.45)}
+    .hero{padding:56px 0 34px;display:grid;grid-template-columns:1.4fr .6fr;gap:28px;align-items:end}.eyebrow{color:#8a6a2f;text-transform:uppercase;letter-spacing:.18em;font-size:12px;font-weight:700}.hero h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(42px,7vw,88px);line-height:.98;letter-spacing:-.055em;margin:16px 0}.hero p{max-width:760px;color:var(--muted);font-size:clamp(16px,2vw,20px);line-height:1.6}.meta{border-left:1px solid var(--line);padding-left:24px;color:var(--muted);font-size:13px;line-height:1.8}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;margin-top:24px}.card{background:var(--card);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.75);box-shadow:0 18px 60px rgba(65,53,33,.08);border-radius:20px;padding:22px;min-width:0}.span-4{grid-column:span 4}.span-6{grid-column:span 6}.span-8{grid-column:span 8}.span-12{grid-column:span 12}.label{font-size:12px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}.value{font-family:Georgia,"Times New Roman",serif;font-size:clamp(34px,5vw,62px);margin:12px 0}.delta{font-size:14px;color:#446b55}.bar{height:8px;border-radius:999px;background:#e7dfd1;overflow:hidden;margin-top:14px}.bar>span{display:block;height:100%;background:linear-gradient(90deg,#8b6b30,#c6aa72);border-radius:inherit}.trust{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}.trust div{border-top:1px solid var(--line);padding-top:10px}.trust strong{display:block;font-size:14px}.trust small{color:var(--muted)}
+    .list{display:grid;gap:12px;margin-top:16px}.row{display:grid;grid-template-columns:1fr auto;gap:16px;padding:14px 0;border-top:1px solid var(--line)}.row:first-child{border-top:0}.row h3{margin:0 0 4px;font-size:16px}.row p{margin:0;color:var(--muted);font-size:13px}.score{font-family:Georgia,"Times New Roman",serif;font-size:28px}.notice{margin-top:28px;padding:16px 18px;border:1px solid rgba(184,155,94,.45);background:rgba(255,250,237,.72);border-radius:14px;color:#725a2a;font-size:13px}
+    @media(max-width:900px){.hero{grid-template-columns:1fr}.meta{border-left:0;border-top:1px solid var(--line);padding:18px 0 0}.span-4,.span-6,.span-8{grid-column:span 12}.trust{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:480px){.shell{padding-left:14px;padding-right:14px}.badge{padding:8px 10px;font-size:10px}.hero{padding-top:38px}.card{padding:18px;border-radius:16px}.trust{grid-template-columns:1fr}.row{grid-template-columns:1fr}.score{font-size:24px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header><div class="brand">Artfund</div><div class="badge">Institutional Beta</div></header>
+    <section class="hero">
+      <div><div class="eyebrow">The Global Standard for Art Investment Intelligence</div><h1>Market authority,<br/>evidence first.</h1><p>Institutional intelligence across artists, auctions, provenance, liquidity and global art-market indices.</p></div>
+      <div class="meta">Environment: Staging<br/>Data: Illustrative<br/>Access: Authenticated read-only<br/>Updated: 2026-07-30</div>
+    </section>
+    <section class="grid">
+      <article class="card span-8"><div class="label">Global Art Market Index</div><div class="value">112.8</div><div class="delta">+2.4% month over month</div><div class="bar"><span style="width:82%"></span></div><div class="trust"><div><strong>A / 92</strong><small>Confidence</small></div><div><strong>88%</strong><small>Coverage</small></div><div><strong>14</strong><small>Evidence</small></div><div><strong>Approved</strong><small>Rights</small></div></div></article>
+      <article class="card span-4"><div class="label">Market Breadth</div><div class="value">67%</div><p>Positive breadth across tracked segments.</p></article>
+      <article class="card span-4"><div class="label">Artist Momentum</div><div class="list"><div class="row"><div><h3>Contemporary Leaders</h3><p>Price, exhibitions and liquidity</p></div><div class="score">84</div></div><div class="row"><div><h3>Post-War Rotation</h3><p>Institutional demand improving</p></div><div class="score">78</div></div></div></article>
+      <article class="card span-4"><div class="label">Auction Liquidity</div><div class="list"><div class="row"><div><h3>Global Evening Sales</h3><p>Sell-through and bid depth</p></div><div class="score">81</div></div><div class="row"><div><h3>Online Auctions</h3><p>Velocity remains elevated</p></div><div class="score">74</div></div></div></article>
+      <article class="card span-4"><div class="label">Provenance Strength</div><div class="value">89</div><p>High completeness; no disputed provenance in displayed cohort.</p></article>
+      <article class="card span-12"><div class="label">Institutional Decision Signal</div><div class="list"><div class="row"><div><h3>Selective accumulation</h3><p>Momentum is improving, but liquidity remains concentrated in high-confidence segments.</p></div><div class="score">Moderate</div></div></div></article>
+    </section>
+    <div class="notice">Illustrative staging values only. No public release, investment recommendation or production-readiness claim.</div>
+  </main>
+</body>
+</html>
