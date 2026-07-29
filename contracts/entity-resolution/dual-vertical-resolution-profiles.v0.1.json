@@ -1,0 +1,30 @@
+{
+  "version": "0.1.0",
+  "defaultThresholds": {
+    "autoMatch": 90,
+    "manualReview": 70,
+    "duplicateSuppression": 95
+  },
+  "profiles": [
+    {
+      "profileId": "kidults-product-resolution-v0.1",
+      "vertical": "kidults",
+      "entityTypes": ["brand", "franchise", "character", "product_line", "product", "edition", "variant"],
+      "identityKeys": ["maker_sku", "upc", "ean", "official_product_url"],
+      "contextKeys": ["brand_id", "franchise_id", "product_line_id", "edition_year", "scale", "material"],
+      "normalizationRules": ["unicode_nfkd", "lowercase", "symbol_spacing", "whitespace_collapse"],
+      "commercialConstraints": ["approved_rights", "confidence_gte_70", "evidence_required"],
+      "manualReviewCases": ["edition_variant_conflict", "reissue_original_conflict", "brand_alias_collision"]
+    },
+    {
+      "profileId": "artfund-artist-artwork-resolution-v0.1",
+      "vertical": "artfund",
+      "entityTypes": ["artist", "artwork", "edition", "object_instance", "auction_lot"],
+      "identityKeys": ["artist_authority_id", "catalogue_raisonne_id", "auction_lot_url", "institution_accession_id"],
+      "contextKeys": ["artist_id", "title", "creation_year", "medium", "dimensions", "edition_number", "provenance_chain"],
+      "normalizationRules": ["unicode_nfkd", "lowercase", "title_punctuation_normalization", "whitespace_collapse"],
+      "commercialConstraints": ["approved_rights", "confidence_gte_70", "provenance_not_disputed", "evidence_required"],
+      "manualReviewCases": ["attribution_conflict", "workshop_vs_artist_conflict", "edition_instance_conflict", "provenance_dispute"]
+    }
+  ]
+}
