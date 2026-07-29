@@ -1,0 +1,36 @@
+{
+  "version": "0.1.0",
+  "verticals": {
+    "kidults": {
+      "timezone": "UTC",
+      "schedule": [
+        { "kind": "index", "product_id": "kidult-100", "cadence": "daily" },
+        { "kind": "alert", "product_id": "kidults-governed-alerts", "cadence": "hourly" },
+        { "kind": "report", "product_id": "kidults-flagship-intelligence", "cadence": "monthly" }
+      ]
+    },
+    "artfund": {
+      "timezone": "UTC",
+      "schedule": [
+        { "kind": "index", "product_id": "artfund-global-art-market-index", "cadence": "daily" },
+        { "kind": "alert", "product_id": "artfund-governed-alerts", "cadence": "hourly" },
+        { "kind": "report", "product_id": "artfund-flagship-intelligence", "cadence": "monthly" }
+      ]
+    }
+  },
+  "gates": {
+    "minimum_confidence": 70,
+    "minimum_evidence_count": 1,
+    "minimum_source_coverage": 1,
+    "approved_rights_only": true,
+    "approved_or_active_methodology_only": true,
+    "current_freshness_required": true,
+    "artfund_disputed_provenance_blocked": true
+  },
+  "recovery": {
+    "retryable_reasons": ["missing_evidence", "missing_source_coverage", "freshness_stale"],
+    "max_attempts": 4,
+    "rollback_requires_original_checksum": true,
+    "cross_vertical_failure_isolation": true
+  }
+}
