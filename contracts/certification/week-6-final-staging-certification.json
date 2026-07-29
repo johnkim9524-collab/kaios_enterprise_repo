@@ -1,0 +1,32 @@
+{
+  "certification": "pass",
+  "release_candidate": "ih-dual-rc-2026.09.09-rc1",
+  "environment": "staging",
+  "safe_defaults_verified": true,
+  "production_promotion_authorized": false,
+  "kidults_promotion_decision": "separate_gate_required",
+  "artfund_promotion_decision": "not_authorized",
+  "runtime": {
+    "kidults": {
+      "bind": "127.0.0.1:18871",
+      "service": "kaios-kidults-staging.service",
+      "status": "active"
+    },
+    "artfund": {
+      "bind": "127.0.0.1:18872",
+      "service": "kaios-artfund-staging.service",
+      "status": "active"
+    }
+  },
+  "checks": {
+    "migration_execution": "pass",
+    "unauthenticated_access": "pass",
+    "authenticated_viewer_access": "pass",
+    "viewer_export_denial": "pass",
+    "mobile_320px": "pass",
+    "backup_restore": "pass",
+    "failure_isolation": "pass"
+  },
+  "checksum": "af14aec2a664c1d93b7b76c91986902e9d4ada5bc9aefec4e08387c48463a977",
+  "evidence_path": "/opt/intelligence-holdings/staging/kaios-enterprise/artifacts/staging-evidence"
+}
