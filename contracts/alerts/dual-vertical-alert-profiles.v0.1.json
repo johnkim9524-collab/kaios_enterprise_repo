@@ -1,0 +1,23 @@
+{
+  "version": "0.1",
+  "kidults": [
+    {"alertType":"brand_momentum_shift","minimumSeverity":"watch","minimumConfidence":75,"channels":["portal","email","archive"]},
+    {"alertType":"category_rotation","minimumSeverity":"watch","minimumConfidence":75,"channels":["portal","archive"]},
+    {"alertType":"liquidity_drop","minimumSeverity":"warning","minimumConfidence":80,"channels":["portal","email","archive"]},
+    {"alertType":"market_risk","minimumSeverity":"critical","minimumConfidence":85,"channels":["portal","email","webhook","archive"]}
+  ],
+  "artfund": [
+    {"alertType":"artist_momentum_shift","minimumSeverity":"watch","minimumConfidence":75,"channels":["portal","email","archive"]},
+    {"alertType":"auction_liquidity_drop","minimumSeverity":"warning","minimumConfidence":80,"channels":["portal","email","archive"]},
+    {"alertType":"provenance_risk","minimumSeverity":"critical","minimumConfidence":90,"channels":["portal","email","webhook","archive"]},
+    {"alertType":"market_risk","minimumSeverity":"critical","minimumConfidence":85,"channels":["portal","email","webhook","archive"]}
+  ],
+  "globalControls": {
+    "minimumCustomerConfidence": 70,
+    "approvedRightsOnly": true,
+    "approvedOrActiveMethodologyOnly": true,
+    "currentDataOnly": true,
+    "disputedArtfundProvenanceBlocksDelivery": true,
+    "immutableAuditTrail": true
+  }
+}
