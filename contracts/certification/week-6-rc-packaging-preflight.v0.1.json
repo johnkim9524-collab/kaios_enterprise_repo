@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "0.1.0",
+  "gate": "week_6_rc_packaging_preflight",
+  "status": "pass",
+  "checks": {
+    "week1GatePresent": true,
+    "week2GatePresent": true,
+    "week3GatePresent": true,
+    "week4GatePresent": true,
+    "week5GatePresent": true,
+    "releaseManifestPresent": true,
+    "deploymentBundlePresent": true,
+    "environmentContractPresent": true,
+    "rollbackPackagePresent": true,
+    "releaseNotesPresent": true,
+    "safePublishDefaults": true,
+    "productionPromotionAuthorized": false
+  },
+  "authorization": "staging_deployment_bundle_implementation"
+}
