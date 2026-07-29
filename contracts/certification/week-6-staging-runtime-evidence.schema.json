@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://intelligence-holdings.example/contracts/week-6-staging-runtime-evidence.schema.json",
+  "title": "Week 6 Staging Runtime Evidence",
+  "type": "object",
+  "required": ["releaseCandidateId", "environment", "generatedAt", "productionPromotionAuthorized", "publicationEnabled", "probes"],
+  "properties": {
+    "releaseCandidateId": { "type": "string", "minLength": 1 },
+    "environment": { "const": "staging" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "productionPromotionAuthorized": { "const": false },
+    "publicationEnabled": { "const": false },
+    "probes": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["id", "vertical", "category", "status", "observedAt", "details"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "vertical": { "enum": ["kidults", "artfund", "governance"] },
+          "category": { "enum": ["migration", "api", "portal_desktop", "portal_mobile", "backup_restore", "failure_isolation"] },
+          "status": { "enum": ["pass", "fail", "not_run"] },
+          "observedAt": { "type": "string", "format": "date-time" },
+          "details": { "type": "object" },
+          "checksum": {
+            "type": "object",
+            "required": ["algorithm", "before", "after", "matches"],
+            "properties": {
+              "algorithm": { "const": "sha256" },
+              "before": { "type": "string" },
+              "after": { "type": "string" },
+              "matches": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
