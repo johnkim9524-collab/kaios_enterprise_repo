@@ -1,0 +1,35 @@
+{
+  "version": "0.1.0",
+  "environment": "staging",
+  "adapters": [
+    {
+      "adapterId": "kidults-news-rss-v1",
+      "sourceId": "kidults-market-news-rss",
+      "vertical": "kidults",
+      "kind": "rss-json-normalized",
+      "expectedFields": ["title", "url", "publishedAt"],
+      "rightsRequired": true,
+      "commercialPromotion": "separate-gate",
+      "status": "implemented"
+    },
+    {
+      "adapterId": "artfund-auction-feed-v1",
+      "sourceId": "artfund-auction-results-feed",
+      "vertical": "artfund",
+      "kind": "auction-json-normalized",
+      "expectedFields": ["artist", "title", "saleDate", "currency", "hammerPrice"],
+      "rightsRequired": true,
+      "commercialPromotion": "separate-gate",
+      "status": "implemented"
+    }
+  ],
+  "controls": {
+    "auditTrailRequired": true,
+    "healthPersistenceRequired": true,
+    "retryPolicy": "deterministic-capped-exponential",
+    "automaticQuarantine": true,
+    "automaticRecovery": "timed-for-repeated-transport-failure-only",
+    "criticalDriftRecovery": "manual-review-required",
+    "rightsRecovery": "rights-approval-required"
+  }
+}
