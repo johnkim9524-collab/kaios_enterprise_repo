@@ -1,0 +1,26 @@
+{
+  "version": "0.1.0",
+  "methodology_version": "quality-v0.1",
+  "shared": {
+    "minimum_confidence": 70,
+    "stale_after_hours": 168,
+    "maximum_gap_hours": 72,
+    "outlier_z_threshold": 4,
+    "duplicate_evidence_policy": "review",
+    "critical_decision": "quarantine"
+  },
+  "kidults": {
+    "required_observation_fields": ["entity_id", "source_id", "observed_at", "evidence_hash"],
+    "market_signal_quality_inputs": ["evidence_count", "source_coverage", "confidence_score", "duplicate_evidence_count"],
+    "premium_surface_minimum_score": 70,
+    "invalid_negative_price": "quarantine",
+    "large_price_outlier": "review_or_reject"
+  },
+  "artfund": {
+    "required_transaction_fields": ["artwork_id", "auction_lot_id", "transaction_date", "currency", "evidence_hash"],
+    "transaction_quality_inputs": ["evidence_count", "source_coverage", "confidence_score", "provenance_completeness", "provenance_disputed"],
+    "premium_surface_minimum_score": 70,
+    "disputed_provenance": "quarantine",
+    "unknown_buyer_premium_treatment": "review"
+  }
+}
