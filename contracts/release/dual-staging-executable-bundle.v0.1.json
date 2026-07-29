@@ -1,0 +1,36 @@
+{
+  "bundle_id": "ih-dual-rc-2026.09.09-rc1-executable",
+  "environment": "staging",
+  "verticals": ["kidults", "artfund"],
+  "publication_defaults": {
+    "reports": false,
+    "alerts": false,
+    "indices": false
+  },
+  "migration_order": [
+    "0001_shared_governance_foundation.sql",
+    "0002_source_execution_control.sql",
+    "0003_entity_resolution_foundation.sql",
+    "0004_quality_anomaly_foundation.sql",
+    "0005_scoring_index_foundation.sql",
+    "0006_autonomous_report_archive.sql",
+    "0007_autonomous_alert_archive.sql",
+    "0008_index_auto_publishing.sql",
+    "0009_publication_orchestrator.sql"
+  ],
+  "smoke_matrix": [
+    { "vertical": "kidults", "endpoint": "/api/enterprise", "role": "unauthenticated", "expected_status": 401 },
+    { "vertical": "kidults", "endpoint": "/api/enterprise", "role": "viewer", "expected_status": 200 },
+    { "vertical": "kidults", "endpoint": "/api/export", "role": "viewer", "expected_status": 403 },
+    { "vertical": "artfund", "endpoint": "/api/institutional", "role": "unauthenticated", "expected_status": 401 },
+    { "vertical": "artfund", "endpoint": "/api/institutional", "role": "viewer", "expected_status": 200 },
+    { "vertical": "artfund", "endpoint": "/api/export", "role": "viewer", "expected_status": 403 }
+  ],
+  "rollback_requirements": [
+    "backup_verified",
+    "restore_integrity_ok",
+    "checksum_preserved",
+    "immutable_audit_preserved"
+  ],
+  "production_promotion_authorized": false
+}

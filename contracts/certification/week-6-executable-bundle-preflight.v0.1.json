@@ -1,0 +1,25 @@
+{
+  "certification_id": "week-6-executable-bundle-preflight-v0.1",
+  "release_candidate": "ih-dual-rc-2026.09.09-rc1",
+  "scope": "staging-only",
+  "status": "PASS",
+  "authorized_next_step": "dual staging deployment and runtime certification",
+  "controls": {
+    "environment_validator": true,
+    "ordered_non_destructive_migrations": true,
+    "authenticated_smoke_runner": true,
+    "viewer_export_denial": true,
+    "rollback_rehearsal": true,
+    "checksum_verification": true,
+    "immutable_audit_preservation": true,
+    "vertical_failure_isolation": true,
+    "publication_disabled_by_default": true,
+    "production_promotion_authorized": false
+  },
+  "restrictions": [
+    "no_production_migration",
+    "no_publication_enablement",
+    "no_customer_release_of_illustrative_data",
+    "no_artfund_production_readiness_claim"
+  ]
+}
