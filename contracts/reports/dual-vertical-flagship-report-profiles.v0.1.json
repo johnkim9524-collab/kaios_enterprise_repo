@@ -1,0 +1,55 @@
+{
+  "version": "0.1.0",
+  "profiles": [
+    {
+      "vertical": "kidults",
+      "reportType": "flagship_monthly",
+      "title": "Kidults Global Collectibles Intelligence",
+      "requiredSections": [
+        "executive_summary",
+        "kidult_100",
+        "brand_momentum",
+        "category_rotation",
+        "liquidity",
+        "risk_signals",
+        "outlook",
+        "methodology_and_evidence"
+      ],
+      "minimumEvidencePerClaim": 1,
+      "minimumConfidence": 70,
+      "rightsRequired": "approved",
+      "archivePrefix": "kidults"
+    },
+    {
+      "vertical": "artfund",
+      "reportType": "flagship_monthly",
+      "title": "Artfund Global Art Investment Intelligence",
+      "requiredSections": [
+        "executive_summary",
+        "global_art_market_index",
+        "artist_momentum",
+        "auction_liquidity",
+        "provenance_strength",
+        "segment_rotation",
+        "risk_signals",
+        "outlook",
+        "methodology_and_evidence"
+      ],
+      "minimumEvidencePerClaim": 1,
+      "minimumConfidence": 70,
+      "rightsRequired": "approved",
+      "provenanceDisputeBlocksPublication": true,
+      "archivePrefix": "artfund"
+    }
+  ],
+  "publicationGate": {
+    "blockedClaimCountMustEqual": 0,
+    "draftMethodologyAllowed": false,
+    "unknownRightsAllowed": false,
+    "restrictedRightsAllowed": false,
+    "missingEvidenceAllowed": false,
+    "minimumConfidence": 70,
+    "deterministicChecksumRequired": true,
+    "immutableArchiveKeyRequired": true
+  }
+}
