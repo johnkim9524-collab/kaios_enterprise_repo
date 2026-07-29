@@ -1,0 +1,33 @@
+{
+  "certification": "week_3_intelligence_engine_gate",
+  "version": "0.1.0",
+  "result": "pass",
+  "authorized_next_stage": "week_4_luxury_portal_mvp",
+  "certified_capabilities": [
+    "autonomous_source_adapters",
+    "source_execution_control",
+    "entity_resolution",
+    "quality_anomaly_engine",
+    "deterministic_scoring",
+    "daily_index_foundation"
+  ],
+  "kidults_scores": [
+    "brand_momentum",
+    "canon_strength",
+    "liquidity_grade"
+  ],
+  "artfund_scores": [
+    "artist_momentum",
+    "auction_liquidity",
+    "provenance_strength"
+  ],
+  "controls": {
+    "approved_methodology_required": true,
+    "confidence_floor": 70,
+    "unknown_rights_block_commercial_use": true,
+    "disputed_artfund_provenance_blocks_use": true,
+    "historical_results_immutable": true,
+    "kidults_production_modified": false,
+    "artfund_production_ready_claimed": false
+  }
+}
