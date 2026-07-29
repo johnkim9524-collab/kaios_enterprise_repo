@@ -1,0 +1,42 @@
+{
+  "contract_id": "kidults-production-promotion-gate.v0.1",
+  "vertical": "kidults",
+  "environment": "production",
+  "default_decision": "hold",
+  "allowed_decisions": ["go", "hold", "rollback"],
+  "mandatory_gates": {
+    "week6_staging_certification": "pass",
+    "production_stability_evidence": "pass",
+    "configuration_delta_review": "pass",
+    "database_integrity": "pass",
+    "migration_safety": "pass",
+    "backup_restore_readiness": "pass",
+    "rollback_readiness": "pass",
+    "authentication_rbac": "pass",
+    "desktop_portal_qa": "pass",
+    "mobile_320px_qa": "pass",
+    "governance_controls": "pass",
+    "observability_incident_response": "pass",
+    "executive_authorization": "pass"
+  },
+  "safe_defaults": {
+    "production_promotion_authorized": false,
+    "report_publishing_enabled": false,
+    "alert_delivery_enabled": false,
+    "index_publishing_enabled": false,
+    "artfund_production_promotion_authorized": false
+  },
+  "hard_blocks": [
+    "destructive_migration",
+    "unknown_or_restricted_rights",
+    "draft_or_deprecated_methodology",
+    "confidence_below_70",
+    "missing_evidence",
+    "expired_freshness",
+    "backup_restore_failure",
+    "rollback_unverified",
+    "unauthenticated_premium_access",
+    "viewer_export_allowed",
+    "mobile_horizontal_overflow"
+  ]
+}
