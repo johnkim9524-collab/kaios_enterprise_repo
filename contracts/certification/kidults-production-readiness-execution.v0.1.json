@@ -1,0 +1,43 @@
+{
+  "contract": "kidults-production-readiness-execution",
+  "version": "0.1",
+  "default_decision": "hold",
+  "minimum_go_score": 90,
+  "maximum_score": 100,
+  "mandatory_evidence": [
+    "production-audit.json",
+    "staging-production-delta.json",
+    "docker-runtime.txt",
+    "caddy-state.txt",
+    "fail2ban-state.txt",
+    "listening-ports.txt"
+  ],
+  "mandatory_gates": [
+    "runtime_health_200",
+    "database_integrity_ok",
+    "backup_integrity_ok",
+    "rollback_rehearsal_passed",
+    "unauthenticated_access_401",
+    "viewer_export_not_exposed",
+    "mobile_320_passed",
+    "governance_gate_passed",
+    "observability_passed",
+    "incident_response_ready"
+  ],
+  "hard_blockers": [
+    "destructive_schema_delta",
+    "database_integrity_failure",
+    "backup_integrity_failure",
+    "authentication_bypass",
+    "viewer_export_exposure",
+    "restricted_rights_exposure",
+    "production_instability",
+    "implicit_promotion_authorization"
+  ],
+  "decisions": {
+    "go": "score >= 90, every mandatory gate passes, and no hard blocker exists",
+    "hold": "recoverable evidence or readiness gaps remain",
+    "rollback": "a hard blocker exists or the deployed change is unsafe"
+  },
+  "artfund_production_promotion_authorized": false
+}
