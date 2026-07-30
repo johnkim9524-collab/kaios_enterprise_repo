@@ -1,0 +1,29 @@
+{
+  "contract_version": "0.1",
+  "vertical": "kidults",
+  "decision": "go",
+  "minimum_score": 100,
+  "required": {
+    "mandatory_gates_passed": true,
+    "hard_blockers": [],
+    "production_promotion_authorized": true,
+    "artfund_production_promotion_authorized": false
+  },
+  "required_evidence": [
+    "production-audit.json",
+    "production-rollback-rehearsal.json",
+    "production-mobile-320.json",
+    "production-governance-trust.json",
+    "production-observability.json",
+    "production-incident-response.json",
+    "staging-production-delta.json",
+    "kidults-production-readiness.json"
+  ],
+  "deployment_constraints": {
+    "production_change_executed": false,
+    "explicit_deployment_authorization_required": true,
+    "pre_deployment_snapshot_required": true,
+    "post_deployment_smoke_required": true,
+    "rollback_available": true
+  }
+}
