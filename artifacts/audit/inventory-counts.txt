@@ -1,0 +1,12 @@
+# Sprint 20-A1 Inventory Counts
+
+Artifact                                    Count
+Repository files                              506
+Runtime candidates                            159
+Build/runtime manifests                        25
+Deployment/operations files                     0
+Test files                                     23
+Database/migration files                       13
+Runtime route signals                         153
+Technical debt signals                         14
+Duplicate filenames                             4

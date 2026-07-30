@@ -1,0 +1,14 @@
+apps/artfund-institutional-beta/public/index.html:31:      <article class="card span-4"><div class="label">Artist Momentum</div><div class="list"><div class="row"><div><h3>Contemporary Leaders</h3><p>Price, exhibitions and liquidity</p></div><div class="score">84</div></div><div class="row"><div><h3>Post-War Rotation</h3><p>Institutional demand improving</p></div><div class="score">78</div></div></div></article>
+apps/artfund-institutional-staging/public/index.html:88:        <div><div class="kicker">Artist Momentum</div><h2>Modern & Contemporary</h2></div>
+packages/index-auto-publisher/src/index.ts:13:  methodologyStatus: "approved" | "active" | "draft" | "deprecated";
+packages/kidults-enterprise-portal-contracts/src/index.ts:18:  methodologyStatus: "draft" | "approved" | "active" | "deprecated" | "retired";
+packages/publication-orchestrator/src/index.ts:19:  methodologyStatus: "active" | "approved" | "draft" | "deprecated";
+packages/governance-contracts/src/index.ts:6:export type MethodologyStatus = "draft" | "approved" | "active" | "deprecated" | "retired";
+packages/autonomous-alert-engine/src/index.ts:19:  methodologyStatus: "approved" | "active" | "draft" | "deprecated";
+packages/artfund-institutional-portal-contracts/src/index.ts:21:  methodologyStatus: "draft" | "approved" | "active" | "deprecated" | "retired";
+packages/autonomous-report-engine/src/index.ts:18:  status: "approved" | "active" | "draft" | "deprecated";
+packages/dual-portal-api-wiring/src/index.ts:30:  methodologyStatus: "draft" | "approved" | "active" | "deprecated" | "retired";
+packages/dual-portal-api-wiring/src/index.ts:50:  methodologyStatus: "draft" | "approved" | "active" | "deprecated" | "retired";
+scripts/audit/sprint-20-a1-inventory.sh:149:    '(TODO|FIXME|HACK|XXX|deprecated|temporary|legacy)' \
+infrastructure/staging/0001_shared_governance_foundation.sql:63:  status TEXT NOT NULL CHECK (status IN ('draft','approved','active','deprecated','retired')),
+contracts/certification/kidults-production-promotion-gate.v0.1.json:32:    "draft_or_deprecated_methodology",

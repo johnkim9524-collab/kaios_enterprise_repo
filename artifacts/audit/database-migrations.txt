@@ -1,0 +1,13 @@
+./app/persistence/migrations/0001_run_history.sql
+./app/persistence/migrations/0002_scheduler_run_lock.sql
+./infrastructure/staging/0001_shared_governance_foundation.sql
+./infrastructure/staging/0002_source_execution_control.sql
+./infrastructure/staging/0003_entity_resolution_foundation.sql
+./infrastructure/staging/0004_quality_anomaly_foundation.sql
+./infrastructure/staging/0005_scoring_index_foundation.sql
+./infrastructure/staging/0006_autonomous_report_archive.sql
+./infrastructure/staging/0007_autonomous_alert_archive.sql
+./infrastructure/staging/0008_index_auto_publishing.sql
+./infrastructure/staging/0009_publication_orchestrator.sql
+./infrastructure/staging/artfund/0001_artfund_canonical_foundation.sql
+./infrastructure/staging/kidults/0001_kidults_canonical_foundation.sql
