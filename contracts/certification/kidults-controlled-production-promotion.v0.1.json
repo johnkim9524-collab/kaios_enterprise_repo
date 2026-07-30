@@ -1,0 +1,36 @@
+{
+  "contract_version": "0.1",
+  "vertical": "kidults",
+  "promotion_mode": "controlled",
+  "required_readiness": {
+    "decision": "go",
+    "score": 100,
+    "mandatory_gates_passed": true,
+    "hard_blockers": [],
+    "production_promotion_authorized": true,
+    "artfund_production_promotion_authorized": false
+  },
+  "required_predeployment_evidence": [
+    "sealed_readiness_manifest",
+    "sealed_readiness_checksum",
+    "production_database_snapshot",
+    "production_configuration_snapshot",
+    "production_container_snapshot",
+    "rollback_plan"
+  ],
+  "required_postdeployment_checks": {
+    "health_http": 200,
+    "portal_http": 200,
+    "unauthenticated_collector_http": 401,
+    "authenticated_collector_http": 200,
+    "database_integrity": "ok",
+    "mobile_320": "pass"
+  },
+  "safety": {
+    "default_action": "dry-run",
+    "explicit_execution_flag": "KAIOS_EXECUTE_PRODUCTION_PROMOTION=true",
+    "artfund_changes_forbidden": true,
+    "automatic_rollback_on_smoke_failure": true,
+    "production_database_destructive_migration_forbidden": true
+  }
+}
