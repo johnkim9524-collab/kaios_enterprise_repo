@@ -1,0 +1,52 @@
+{
+  "contract_id": "kidults-production-runtime-audit.v0.1",
+  "environment": "production",
+  "default_decision": "hold",
+  "production_promotion_authorized": false,
+  "artfund_production_promotion_authorized": false,
+  "score": {
+    "maximum": 100,
+    "go_threshold": 90,
+    "hold_threshold": 70
+  },
+  "categories": [
+    {"id": "runtime_availability", "weight": 20, "mandatory": true},
+    {"id": "database_migration_safety", "weight": 15, "mandatory": true},
+    {"id": "backup_rollback", "weight": 15, "mandatory": true},
+    {"id": "authentication_rbac", "weight": 15, "mandatory": true},
+    {"id": "portal_mobile_quality", "weight": 10, "mandatory": true},
+    {"id": "governance_trust", "weight": 15, "mandatory": true},
+    {"id": "observability_incident_response", "weight": 10, "mandatory": true}
+  ],
+  "mandatory_probes": [
+    "production_health_200",
+    "database_integrity_ok",
+    "schema_fingerprint_recorded",
+    "backup_current",
+    "restore_rehearsal_pass",
+    "rollback_plan_verified",
+    "unauthenticated_premium_401",
+    "viewer_export_403",
+    "authenticated_snapshot_200",
+    "mobile_320_no_overflow",
+    "publication_controls_safe",
+    "staging_production_delta_reviewed",
+    "monitoring_active",
+    "incident_response_ready"
+  ],
+  "hard_blockers": [
+    "destructive_schema_delta",
+    "database_integrity_failure",
+    "restore_checksum_mismatch",
+    "authentication_bypass",
+    "viewer_export_allowed",
+    "unknown_or_restricted_rights_exposed",
+    "production_instability",
+    "production_promotion_implicitly_authorized"
+  ],
+  "decision_rules": {
+    "go": "score >= 90 and all mandatory probes pass and no hard blocker exists",
+    "hold": "score between 70 and 89 or any recoverable mandatory gap remains",
+    "rollback": "score < 70 or any hard blocker exists"
+  }
+}
