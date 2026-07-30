@@ -1,0 +1,29 @@
+{
+  "contract_version": "0.1",
+  "vertical": "kidults",
+  "environment": "production",
+  "required_checks": {
+    "health_http": 200,
+    "portal_http": 200,
+    "unauthenticated_collector_http": 401,
+    "authenticated_collector_http": 200,
+    "database_integrity": "ok",
+    "gateway_image_id_required": true,
+    "scheduler_image_id_required": true,
+    "database_sha256_required": true,
+    "gateway_log_required": true,
+    "scheduler_log_required": true
+  },
+  "certification_rules": {
+    "all_required_checks_must_pass": true,
+    "production_change_executed": true,
+    "artfund_change_executed": false,
+    "archive_sha256_required": true,
+    "stability_baseline_days": 30
+  },
+  "failure_policy": {
+    "certification_status": "failed",
+    "production_incident_review_required": true,
+    "artfund_promotion_remains_blocked": true
+  }
+}
