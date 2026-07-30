@@ -1,0 +1,50 @@
+{
+  "contract": "kidults-stability-daily-operations-seal",
+  "version": "0.1",
+  "vertical": "kidults",
+  "environment": "production",
+  "observation_days_required": 30,
+  "change_policy": {
+    "production_change_allowed": false,
+    "emergency_change_requires_incident_record": true,
+    "artfund_production_authorized": false
+  },
+  "schedule": {
+    "snapshot": "03:30 Asia/Seoul daily with randomized delay up to 300 seconds",
+    "evaluation": "03:40 Asia/Seoul daily with randomized delay up to 120 seconds"
+  },
+  "systemd_units": [
+    "kidults-stability-snapshot.service",
+    "kidults-stability-snapshot.timer",
+    "kidults-stability-evaluate.service",
+    "kidults-stability-evaluate.timer"
+  ],
+  "filesystem": {
+    "baseline_root": "/mnt/ih_prod_01/backups/stability-baseline",
+    "daily_snapshots": "/mnt/ih_prod_01/backups/stability-baseline/daily",
+    "status": "/mnt/ih_prod_01/backups/stability-baseline/status",
+    "incidents": "/mnt/ih_prod_01/backups/stability-baseline/incidents",
+    "false_positives": "/mnt/ih_prod_01/backups/stability-baseline/incidents/false-positive",
+    "metadata": "/mnt/ih_prod_01/backups/stability-baseline-metadata"
+  },
+  "wrapper_security": {
+    "owner": "root",
+    "group": "kaios",
+    "mode": "0750"
+  },
+  "daily_acceptance": {
+    "snapshot_status": "pass",
+    "failed_days": 0,
+    "invalid_snapshot_files": 0,
+    "active_incidents": 0,
+    "production_change_allowed": false,
+    "artfund_production_authorized": false
+  },
+  "final_acceptance": {
+    "elapsed_days_minimum": 30,
+    "consecutive_pass_days_minimum": 30,
+    "failed_days": 0,
+    "invalid_snapshot_files": 0,
+    "final_certification_ready": true
+  }
+}
