@@ -1,0 +1,264 @@
+===== REPOSITORY SUMMARY =====
+# Repository Summary
+
+Generated: 2026-07-30T09:34:43Z
+Branch: feat/sprint-20-a1-launch-aligned-holistic-inventory
+Commit: bae310545cd5bf2fab9cd5909b34576b8d8da8c4
+
+## Top-Level Entries
+.dockerignore
+.env.example
+.github
+.gitignore
+Dockerfile
+LICENSE
+README.md
+VERSION
+app
+apps
+artifacts
+backups
+config
+contracts
+data
+deploy
+docker-compose.yml
+docs
+infrastructure
+packages
+public
+pyproject.toml
+release
+requirements.txt
+scripts
+secrets
+tests
+
+===== BUILD / RUNTIME MANIFESTS =====
+./Dockerfile
+./apps/dual-staging-http-runtime/package.json
+./docker-compose.yml
+./packages/artfund-entity-contracts/package.json
+./packages/artfund-institutional-portal-contracts/package.json
+./packages/autonomous-alert-engine/package.json
+./packages/autonomous-product-certification/package.json
+./packages/autonomous-report-engine/package.json
+./packages/autonomous-source-adapters/package.json
+./packages/deterministic-scoring-engine/package.json
+./packages/dual-portal-api-wiring/package.json
+./packages/dual-portal-quality-certification/package.json
+./packages/dual-staging-integration/package.json
+./packages/dual-staging-runtime-deployer/package.json
+./packages/entity-resolution/package.json
+./packages/governance-contracts/package.json
+./packages/index-auto-publisher/package.json
+./packages/kidults-enterprise-portal-contracts/package.json
+./packages/kidults-entity-contracts/package.json
+./packages/portal-export-pipeline/package.json
+./packages/publication-orchestrator/package.json
+./packages/quality-anomaly-engine/package.json
+./packages/source-execution-control/package.json
+./packages/staging-deployment-runner/package.json
+./packages/staging-runtime-evidence/package.json
+
+===== TEST FILES =====
+./packages/artfund-entity-contracts/src/index.test.ts
+./packages/artfund-institutional-portal-contracts/src/index.test.ts
+./packages/autonomous-alert-engine/src/index.test.ts
+./packages/autonomous-product-certification/src/index.test.ts
+./packages/autonomous-report-engine/src/index.test.ts
+./packages/autonomous-source-adapters/src/index.test.ts
+./packages/deterministic-scoring-engine/src/index.test.ts
+./packages/dual-portal-api-wiring/src/index.test.ts
+./packages/dual-portal-quality-certification/src/index.test.ts
+./packages/dual-staging-integration/src/index.test.ts
+./packages/dual-staging-runtime-deployer/src/index.test.ts
+./packages/entity-resolution/src/index.test.ts
+./packages/governance-contracts/src/eligibility.test.ts
+./packages/governance-contracts/src/repository.test.ts
+./packages/index-auto-publisher/src/index.test.ts
+./packages/kidults-enterprise-portal-contracts/src/index.test.ts
+./packages/kidults-entity-contracts/src/index.test.ts
+./packages/portal-export-pipeline/src/index.test.ts
+./packages/publication-orchestrator/src/index.test.ts
+./packages/quality-anomaly-engine/src/index.test.ts
+./packages/source-execution-control/src/index.test.ts
+./packages/staging-deployment-runner/src/index.test.ts
+./packages/staging-runtime-evidence/src/index.test.ts
+
+===== DATABASE / MIGRATIONS =====
+./app/persistence/migrations/0001_run_history.sql
+./app/persistence/migrations/0002_scheduler_run_lock.sql
+./infrastructure/staging/0001_shared_governance_foundation.sql
+./infrastructure/staging/0002_source_execution_control.sql
+./infrastructure/staging/0003_entity_resolution_foundation.sql
+./infrastructure/staging/0004_quality_anomaly_foundation.sql
+./infrastructure/staging/0005_scoring_index_foundation.sql
+./infrastructure/staging/0006_autonomous_report_archive.sql
+./infrastructure/staging/0007_autonomous_alert_archive.sql
+./infrastructure/staging/0008_index_auto_publishing.sql
+./infrastructure/staging/0009_publication_orchestrator.sql
+./infrastructure/staging/artfund/0001_artfund_canonical_foundation.sql
+./infrastructure/staging/kidults/0001_kidults_canonical_foundation.sql
+
+===== DUPLICATE FILENAMES =====
+index.html
+index.test.ts
+index.ts
+package.json
+
+===== TECHNICAL DEBT SIGNALS =====
+apps/artfund-institutional-beta/public/index.html:31:      <article class="card span-4"><div class="label">Artist Momentum</div><div class="list"><div class="row"><div><h3>Contemporary Leaders</h3><p>Price, exhibitions and liquidity</p></div><div class="score">84</div></div><div class="row"><div><h3>Post-War Rotation</h3><p>Institutional demand improving</p></div><div class="score">78</div></div></div></article>
+apps/artfund-institutional-staging/public/index.html:88:        <div><div class="kicker">Artist Momentum</div><h2>Modern & Contemporary</h2></div>
+packages/index-auto-publisher/src/index.ts:13:  methodologyStatus: "approved" | "active" | "draft" | "deprecated";
+packages/kidults-enterprise-portal-contracts/src/index.ts:18:  methodologyStatus: "draft" | "approved" | "active" | "deprecated" | "retired";
+packages/publication-orchestrator/src/index.ts:19:  methodologyStatus: "active" | "approved" | "draft" | "deprecated";
+packages/governance-contracts/src/index.ts:6:export type MethodologyStatus = "draft" | "approved" | "active" | "deprecated" | "retired";
+packages/autonomous-alert-engine/src/index.ts:19:  methodologyStatus: "approved" | "active" | "draft" | "deprecated";
+packages/artfund-institutional-portal-contracts/src/index.ts:21:  methodologyStatus: "draft" | "approved" | "active" | "deprecated" | "retired";
+packages/autonomous-report-engine/src/index.ts:18:  status: "approved" | "active" | "draft" | "deprecated";
+packages/dual-portal-api-wiring/src/index.ts:30:  methodologyStatus: "draft" | "approved" | "active" | "deprecated" | "retired";
+packages/dual-portal-api-wiring/src/index.ts:50:  methodologyStatus: "draft" | "approved" | "active" | "deprecated" | "retired";
+scripts/audit/sprint-20-a1-inventory.sh:149:    '(TODO|FIXME|HACK|XXX|deprecated|temporary|legacy)' \
+infrastructure/staging/0001_shared_governance_foundation.sql:63:  status TEXT NOT NULL CHECK (status IN ('draft','approved','active','deprecated','retired')),
+contracts/certification/kidults-production-promotion-gate.v0.1.json:32:    "draft_or_deprecated_methodology",
+
+===== RUNTIME ROUTE SIGNALS - FIRST 120 =====
+./tests/baseline/test_generated_outputs.py:41:    output_path = ROOT / "public/api/health.json"
+./tests/baseline/test_repository_baseline.py:50:        ROOT / "config/schema/health-status.schema.json",
+./tests/api/test_gateway_contracts.py:11:        endpoint="/api/test",
+./tests/api/test_gateway_contracts.py:18:        "endpoint": "/api/test",
+./tests/api/test_gateway_contracts.py:26:        endpoint="/api/test",
+./tests/api/test_observability_routes.py:11:            path="/api/observability/status",
+./tests/api/test_observability_routes.py:27:            path="/api/metrics",
+./tests/api/test_gateway_routes.py:22:    response = request("/api/health")
+./tests/api/test_gateway_routes.py:34:    response = request("/api/status")
+./tests/api/test_gateway_routes.py:41:    response = request("/api/edition")
+./tests/api/test_gateway_routes.py:49:    response = request("/api/unknown")
+./tests/api/test_gateway_routes.py:58:        "/api/health",
+./tests/api/test_scheduler_status_route.py:6:    response=KAIOSGateway().handle(GatewayRequest(method="GET",path="/api/scheduler/status",query={}))
+./tests/api/test_config_status_route.py:9:    response = KAIOSGateway().handle(GatewayRequest(method="GET", path="/api/config/status", query={}))
+./tests/api/test_wsgi_application.py:25:            "PATH_INFO": "/api/health",
+./tests/api/test_wsgi_application.py:37:    assert payload["endpoint"] == "/api/health"
+./tests/api/test_wsgi_application.py:54:            "PATH_INFO": "/api/collector",
+./tests/api/test_gateway_runtime.py:11:            path="/api/collector",
+./tests/api/test_gateway_runtime.py:32:            path="/api/runtime",
+./tests/api/test_gateway_runtime.py:53:            path="/api/collector",
+./tests/api/test_gateway_runtime.py:66:            path="/api/runtime",
+./tests/api/test_gateway_runtime.py:83:            path="/api/runtime",
+./tests/api/test_run_history_routes.py:102:        "/api/runs",
+./tests/api/test_run_history_routes.py:126:        "/api/runs",
+./tests/api/test_run_history_routes.py:144:        "/api/runs",
+./tests/api/test_run_history_routes.py:165:        "/api/runs",
+./tests/api/test_run_history_routes.py:186:        "/api/runs",
+./tests/api/test_run_history_routes.py:211:        f"/api/runs/{run_id}",
+./tests/api/test_run_history_routes.py:238:        "/api/runs/missing-run",
+./tests/api/test_run_history_routes.py:258:        "/api/runs/run-id/extra",
+./tests/api/test_run_history_routes.py:278:        "/api/runtime",
+./tests/api/test_run_history_routes.py:312:            path="/api/runs",
+./tests/collectors/test_live_rss_adapter.py:16:    def fetch(self, url: str, timeout_seconds: float) -> HttpPayload:
+./tests/collectors/test_live_quality_contract.py:25:    def fetch(
+./tests/collectors/test_live_runtime.py:13:    def fetch(self, url: str, timeout_seconds: float) -> HttpPayload:
+./tests/security/test_gateway_authorization.py:48:        request("/api/health")
+./tests/security/test_gateway_authorization.py:58:        request("/api/edition")
+./tests/security/test_gateway_authorization.py:70:            "/api/runtime",
+./tests/security/test_gateway_authorization.py:85:            path="/api/collector",
+./tests/security/test_gateway_authorization.py:107:                "/api/edition",
+./tests/security/test_gateway_authorization.py:115:            "/api/edition",
+./tests/security/test_gateway_authorization.py:129:            "/api/edition",
+./tests/security/test_security_headers.py:11:            path="/api/security/status",
+./tests/observability/test_runtime.py:27:        path="/api/health",
+./tests/observability/test_runtime.py:69:        path="/api/edition",
+./tests/portal/test_portal_structure.py:45:        "/api/health",
+./tests/portal/test_portal_structure.py:46:        "/api/status",
+./tests/portal/test_portal_structure.py:47:        "/api/edition",
+./tests/portal/test_portal_structure.py:48:        "/api/collector?mode=fixture",
+./tests/portal/test_portal_structure.py:49:        "/api/runtime?mode=fixture",
+./tests/portal/test_portal_wsgi.py:78:    assert b"/api/runtime?mode=fixture" in payload
+./tests/portal/test_run_history_portal.py:80:    assert '"/api/runs?limit=20"' in content
+./tests/portal/test_run_history_portal.py:81:    assert "/api/runs/" in content
+./tests/portal/test_config_portal.py:18:    assert 'fetch("/api/config/status"' in javascript
+./tests/deployment/test_production_smoke_auth.py:23:        if url.endswith("/api/health"):
+./tests/deployment/test_production_smoke_auth.py:36:        if url.endswith("/api/collector?mode=fixture"):
+./tests/deployment/test_production_smoke_auth.py:83:            "https://kaios.kidults.com/api/health",
+./tests/deployment/test_production_smoke_auth.py:93:            "https://kaios.kidults.com/api/collector?mode=fixture",
+./tests/deployment/test_production_smoke_auth.py:98:            "https://kaios.kidults.com/api/collector?mode=fixture",
+./tests/deployment/test_deployment_scripts.py:42:        "deploy/healthcheck.py",
+./tests/deployment/test_deployment_scripts.py:56:        == "http://localhost:9000/api/health"
+./tests/deployment/test_compose_contract.py:94:    assert "deploy/healthcheck.py" in " ".join(
+./apps/dual-staging-http-runtime/src/server.mjs:17:  const snapshotPath = isKidults ? '/api/enterprise/snapshot' : '/api/institutional/snapshot';
+./apps/dual-staging-http-runtime/src/server.mjs:18:  const exportPath = isKidults ? '/api/enterprise/export' : '/api/institutional/export';
+./apps/dual-staging-http-runtime/src/server.mjs:39:    if (url.pathname === '/health') {
+./apps/dual-staging-http-runtime/src/server.test.mjs:18:    assert.equal((await fetch(`${base}/api/enterprise/snapshot`)).status, 401);
+./apps/dual-staging-http-runtime/src/server.test.mjs:19:    assert.equal((await fetch(`${base}/api/enterprise/snapshot`, { headers: { authorization: 'Bearer viewer' } })).status, 200);
+./apps/dual-staging-http-runtime/src/server.test.mjs:20:    assert.equal((await fetch(`${base}/api/enterprise/export`, { headers: { authorization: 'Bearer viewer' } })).status, 403);
+./apps/dual-staging-http-runtime/src/server.test.mjs:21:    assert.equal((await fetch(`${base}/portal?viewport=320`, { headers: { authorization: 'Bearer viewer' } })).status, 200);
+./apps/dual-staging-http-runtime/src/server.test.mjs:27:    assert.equal((await fetch(`${base}/api/institutional/snapshot`)).status, 401);
+./apps/dual-staging-http-runtime/src/server.test.mjs:28:    const response = await fetch(`${base}/api/institutional/snapshot`, { headers: { authorization: 'Bearer operator' } });
+./apps/dual-staging-http-runtime/src/server.test.mjs:31:    assert.equal((await fetch(`${base}/api/institutional/export`, { headers: { authorization: 'Bearer operator' } })).status, 200);
+./app/api/service.py:48:            "public/api/health.json"
+./app/api/service.py:53:            "public/api/status.json"
+./app/api/gateway.py:55:            "/api/health": self.service.health,
+./app/api/gateway.py:56:            "/api/status": self.service.status,
+./app/api/gateway.py:57:            "/api/config/status": self.service.config_status,
+./app/api/gateway.py:58:            "/api/edition": self.service.edition,
+./app/api/gateway.py:59:            "/api/scheduler/status": self.service.scheduler_status,
+./app/api/gateway.py:60:            "/api/security/status": self.security_status,
+./app/api/gateway.py:61:            "/api/metrics": observability.metrics,
+./app/api/gateway.py:62:            "/api/observability/status": observability.status,
+./app/api/gateway.py:63:            "/api/alerts": lambda: {"alerts": observability.alerts()},
+./app/api/gateway.py:228:        prefix = "/api/runs/"
+./app/api/gateway.py:277:            if path == "/api/collector":
+./app/api/gateway.py:292:            if path == "/api/runtime":
+./app/api/gateway.py:312:            if path == "/api/runs":
+./app/monitors/health_monitor.py:16:        write_json("data/audit/health_status.json", status)
+./app/monitors/health_monitor.py:17:        write_json("public/api/health.json", status)
+./app/collectors/adapters.py:125:        payload = self.fetcher.fetch(url=url, timeout_seconds=timeout_seconds)
+./app/collectors/live_http.py:17:    def fetch(self, url: str, timeout_seconds: float) -> HttpPayload:
+./app/collectors/live_http.py:25:    def fetch(self, url: str, timeout_seconds: float) -> HttpPayload:
+./app/publishers/publisher.py:23:        write_json("public/api/status.json", {"status": "operational", "edition": edition, "quality_gate": "passed"})
+./app/security/policy.py:7:    "/api/health",
+./app/security/policy.py:8:    "/api/status",
+./app/security/policy.py:9:    "/api/config/status",
+./app/security/policy.py:10:    "/api/security/status",
+./app/security/policy.py:14:    "/api/metrics",
+./app/security/policy.py:15:    "/api/observability/status",
+./app/security/policy.py:16:    "/api/alerts",
+./app/security/policy.py:20:    "/api/collector",
+./app/security/policy.py:21:    "/api/runtime",
+./app/security/policy.py:38:        path == "/api/edition"
+./app/security/policy.py:39:        or path == "/api/scheduler/status"
+./app/security/policy.py:40:        or path == "/api/runs"
+./app/security/policy.py:41:        or path.startswith("/api/runs/")
+./deploy/smoke_test.py:65:                "/api/health"
+./deploy/smoke_test.py:127:        "/api/collector?mode=fixture"
+./deploy/healthcheck.py:20:    return f"http://{host}:{port}/api/health"
+./packages/staging-deployment-runner/src/index.test.ts:40:      { vertical: "kidults" as const, endpoint: "/api/enterprise", role: "viewer" as const, expectedStatus: 200 },
+./packages/staging-deployment-runner/src/index.test.ts:41:      { vertical: "artfund" as const, endpoint: "/api/institutional", role: "unauthenticated" as const, expectedStatus: 401 },
+./packages/staging-deployment-runner/src/index.test.ts:67:      { vertical: "kidults", endpoint: "/api/enterprise", role: "viewer", expectedStatus: 200 },
+./packages/staging-deployment-runner/src/index.test.ts:68:      { vertical: "artfund", endpoint: "/api/institutional", role: "viewer", expectedStatus: 200 },
+./scripts/stability_snapshot.py:168:        f"{args.base_url.rstrip('/')}/api/health"
+./scripts/production/certify-kidults-postdeployment.sh:36:HEALTH_HTTP="$(curl -sS -o "${EVIDENCE_DIR}/health.json" -w '%{http_code}' "${BASE_URL}/api/health")"
+./scripts/production/certify-kidults-postdeployment.sh:38:UNAUTH_HTTP="$(curl -sS -o "${EVIDENCE_DIR}/collector-unauth.json" -w '%{http_code}' "${BASE_URL}/api/collector?mode=live")"
+./scripts/production/certify-kidults-postdeployment.sh:40:AUTH_HTTP="$(curl -sS -o "${EVIDENCE_DIR}/collector-auth.json" -w '%{http_code}' -H "Authorization: Bearer ${ADMIN_TOKEN}" "${BASE_URL}/api/collector?mode=live")"
+./scripts/production/promote-kidults-controlled.sh:71:HEALTH_HTTP="$(curl -sS -o /tmp/kidults-health.json -w '%{http_code}' "${BASE_URL}/api/health")"
+./scripts/production/promote-kidults-controlled.sh:73:UNAUTH_HTTP="$(curl -sS -o /tmp/kidults-unauth.json -w '%{http_code}' "${BASE_URL}/api/collector?mode=live")"
+./scripts/production/promote-kidults-controlled.sh:75:AUTH_HTTP="$(curl -sS -o /tmp/kidults-auth.json -w '%{http_code}' -H "Authorization: Bearer ${ADMIN_TOKEN}" "${BASE_URL}/api/collector?mode=live")"
+
+===== CURRENT SYSTEMD KIDULTS UNITS =====
+kidults-stability-30d.service                                                 static          -
+kidults-stability-daily.service                                               static          -
+kidults-stability-evaluate.service                                            static          -
+kidults-stability-snapshot.service                                            static          -
+kidults-stability-weekly.service                                              static          -
+kidults-stability-30d.timer                                                   enabled         enabled
+kidults-stability-daily.timer                                                 enabled         enabled
+kidults-stability-evaluate.timer                                              enabled         enabled
+kidults-stability-snapshot.timer                                              enabled         enabled
+kidults-stability-weekly.timer                                                enabled         enabled
+
+===== CURRENT BRANCH =====
+feat/sprint-20-a1-launch-aligned-holistic-inventory
+
+===== CURRENT COMMIT =====
+bae310545cd5bf2fab9cd5909b34576b8d8da8c4

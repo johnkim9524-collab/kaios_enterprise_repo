@@ -1,0 +1,8 @@
+# Repository Area Counts
+
+apps                          7
+packages                     71
+scripts                      33
+infrastructure               13
+contracts                    35
+docs                        108
