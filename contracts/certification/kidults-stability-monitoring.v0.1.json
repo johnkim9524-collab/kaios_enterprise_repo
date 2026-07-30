@@ -1,0 +1,35 @@
+{
+  "contract_version": "0.1",
+  "vertical": "kidults",
+  "environment": "production",
+  "observation_days_required": 30,
+  "snapshot_pattern": "kidults-stability-*.json",
+  "status_output": "kidults-stability-status.json",
+  "incident_output_pattern": "kidults-stability-incident-*.json",
+  "required_snapshot_status": "pass",
+  "required_checks": [
+    "health_http",
+    "portal_http",
+    "database_integrity",
+    "gateway_running",
+    "scheduler_running"
+  ],
+  "incident_conditions": [
+    "missing_status_file",
+    "latest_snapshot_not_pass",
+    "failed_snapshot_detected",
+    "invalid_snapshot_file_detected",
+    "unexpected_monitor_status"
+  ],
+  "controls": {
+    "production_change_allowed_during_observation": false,
+    "final_certification_before_30_days": false,
+    "artfund_production_authorized": false
+  },
+  "completion_gate": {
+    "minimum_elapsed_days": 30,
+    "failed_days": 0,
+    "invalid_snapshot_files": 0,
+    "minimum_consecutive_pass_days": 30
+  }
+}
