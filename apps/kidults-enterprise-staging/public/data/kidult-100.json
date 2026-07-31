@@ -1,1 +1,38 @@
-{"version":"1.0","status":"draft","index_name":"Kidult 100","updated_at":null,"items":[]}
+{
+  "version": "1.0",
+  "status": "staging",
+  "index_name": "Kidult 100",
+  "methodology_version": "K100-0.9",
+  "updated_at": "2026-07-31T00:00:00Z",
+  "currency": "USD",
+  "source_mode": "staging-evidence",
+  "items": [
+    {
+      "rank": 1,
+      "name": "Designer Toys",
+      "category": "Art Toys",
+      "score": 88.2,
+      "momentum_30d": 5.8,
+      "confidence": 94,
+      "freshness_hours": 2
+    },
+    {
+      "rank": 2,
+      "name": "Trading Cards",
+      "category": "Cards",
+      "score": 86.4,
+      "momentum_30d": 3.1,
+      "confidence": 92,
+      "freshness_hours": 2
+    },
+    {
+      "rank": 3,
+      "name": "Action Figures",
+      "category": "Figures",
+      "score": 84.9,
+      "momentum_30d": 1.7,
+      "confidence": 91,
+      "freshness_hours": 3
+    }
+  ]
+}

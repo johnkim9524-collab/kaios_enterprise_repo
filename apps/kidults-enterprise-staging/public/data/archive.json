@@ -1,1 +1,20 @@
-{"version":"1.0","status":"active","reports":[]}
+{
+  "version": "1.0",
+  "status": "active",
+  "updated_at": "2026-07-31T00:00:00Z",
+  "reports": [
+    {
+      "id": "monthly-intelligence-2026-08",
+      "title": "Monthly Intelligence Issue 01",
+      "type": "monthly-intelligence",
+      "period": "2026-08",
+      "status": "draft",
+      "path": "reports/monthly-intelligence-2026-08.html",
+      "tags": [
+        "market-pulse",
+        "categories",
+        "liquidity"
+      ]
+    }
+  ]
+}
