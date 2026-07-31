@@ -1,0 +1,30 @@
+{
+  "batch_id": "collector-example-2026-08-01",
+  "generated_at": "2026-08-01T00:00:00Z",
+  "signals": [
+    {
+      "name": "Designer Toys",
+      "category": "Art Toys",
+      "score": 88.2,
+      "momentum_30d": 5.8,
+      "confidence": 94,
+      "freshness_hours": 2
+    },
+    {
+      "name": "Trading Cards",
+      "category": "Cards",
+      "score": 86.4,
+      "momentum_30d": 3.1,
+      "confidence": 92,
+      "freshness_hours": 2
+    },
+    {
+      "name": "Action Figures",
+      "category": "Figures",
+      "score": 84.9,
+      "momentum_30d": 1.7,
+      "confidence": 91,
+      "freshness_hours": 3
+    }
+  ]
+}
