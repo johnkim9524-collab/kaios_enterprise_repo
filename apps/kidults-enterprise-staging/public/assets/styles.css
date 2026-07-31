@@ -939,6 +939,19 @@ a {
     width: min(100% - 24px, var(--max-width));
   }
 
+  .methodology-hero,
+  .methodology-layout {
+    width: min(100% - 36px, var(--max-width));
+  }
+
+  .methodology-meta > div {
+    min-width: 0;
+  }
+
+  .methodology-meta small {
+    overflow-wrap: anywhere;
+  }
+
   .hero {
     gap: 22px;
     padding-block: 44px 42px;
