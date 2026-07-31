@@ -615,7 +615,11 @@ a {
     justify-content: flex-start;
     overflow-x: auto;
     overscroll-behavior-inline: contain;
-    scrollbar-width: thin;
+    scrollbar-width: none;
+  }
+
+  .site-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .site-nav a {
@@ -685,6 +689,11 @@ a {
   .page-hero h1,
   .report-hero h1 {
     font-size: 2.65rem;
+  }
+
+  .report-hero h1 {
+    font-size: 2.25rem;
+    line-height: 0.98;
   }
 
   .status-panel,
