@@ -23,6 +23,10 @@ function fixture() {
   writeFileSync(resolve(publicDir, "data/archive.json"), JSON.stringify({ reports: [] }));
   writeFileSync(resolve(operationsDir, "validated-signals.json"), JSON.stringify({
     batch_id: "collector-2026-08-01",
+    generated_at: "2026-08-01T00:00:00.000Z",
+    source_report_sha256: "a".repeat(64),
+    eligibility: "staging-research",
+    evidence_summary: { accepted_records: 3, categories: 3, source_ids: ["official_rss"] },
     signals: [
       { name: "Cards", category: "Cards", score: 82, momentum_30d: 3, confidence: 91, freshness_hours: 2 },
       { name: "Designer Toys", category: "Art Toys", score: 90, momentum_30d: 6, confidence: 95, freshness_hours: 1 },
@@ -107,5 +111,7 @@ test("reports non-PII operational counts", () => {
   ].map(JSON.stringify).join("\n") + "\n");
   const status = operationsStatus(paths);
   assert.deepEqual(status.conversion_counts, { newsletter: 2, inquiry: 1 });
+  assert.equal(status.collector_evidence.eligibility, "staging-research");
+  assert.equal(status.collector_evidence.evidence_summary.categories, 3);
   assert.equal(status.production_promotion_authorized, false);
 });

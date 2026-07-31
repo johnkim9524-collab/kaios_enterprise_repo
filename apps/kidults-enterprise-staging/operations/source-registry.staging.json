@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "environment": "staging",
+  "maximum_batch_age_hours": 24,
+  "minimum_categories": 3,
+  "minimum_evidence_records": 3,
+  "sources": [
+    {
+      "id": "official_rss",
+      "name": "Kidult Market News RSS",
+      "enabled": true,
+      "environment": "staging",
+      "tier": "T3",
+      "maximum_age_hours": 48,
+      "product_eligibility": "staging-research",
+      "rights": {
+        "collect": "allowed",
+        "store": "allowed",
+        "transform": "allowed",
+        "display": "restricted",
+        "redistribute": "prohibited",
+        "sell": "prohibited",
+        "license_type": "public-discovery-feed",
+        "attribution_required": true,
+        "reviewed_at": "2026-07-31T00:00:00Z",
+        "next_review_at": "2026-10-31T00:00:00Z"
+      }
+    }
+  ]
+}
