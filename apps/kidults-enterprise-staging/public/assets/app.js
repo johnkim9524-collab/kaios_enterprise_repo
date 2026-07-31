@@ -125,42 +125,72 @@ function setupArchiveControls() {
   });
 }
 
+async function submitConversion(form, status, button) {
+  const formData = new FormData(form);
+  const submission = {
+    type: form.dataset.conversionForm,
+    email: String(formData.get("email") || "").trim(),
+    organization: String(formData.get("organization") || "").trim(),
+    interest: String(formData.get("interest") || "").trim(),
+    consent: formData.get("consent") === "yes",
+    consent_version: "2026-08",
+    website: String(formData.get("website") || "").trim()
+  };
+
+  button.disabled = true;
+  form.setAttribute("aria-busy", "true");
+  status.classList.remove("is-error");
+  status.textContent = "Securely recording your request…";
+
+  try {
+    const response = await fetch("/api/conversions", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(submission)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(result.message || "The request could not be recorded.");
+    }
+    form.reset();
+    status.textContent = result.message || form.dataset.successMessage;
+  } catch (error) {
+    status.classList.add("is-error");
+    status.textContent = error instanceof Error
+      ? error.message
+      : "The service is temporarily unavailable. Please try again.";
+  } finally {
+    button.disabled = false;
+    form.removeAttribute("aria-busy");
+    status.focus();
+  }
+}
+
 function setupForms() {
   document.querySelectorAll("[data-conversion-form]").forEach((form) => {
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const status = form.querySelector("[data-form-status]");
-      const formData = new FormData(form);
-      const email = String(formData.get("email") || "").trim();
-      if (!form.reportValidity() || !email) return;
-
-      const submission = {
-        type: form.dataset.conversionForm,
-        email,
-        organization: String(formData.get("organization") || "").trim(),
-        interest: String(formData.get("interest") || "").trim(),
-        created_at: new Date().toISOString(),
-        environment: "staging"
-      };
-
-      try {
-        const existing = JSON.parse(localStorage.getItem("kidults-conversion-queue") || "[]");
-        existing.push(submission);
-        localStorage.setItem("kidults-conversion-queue", JSON.stringify(existing.slice(-50)));
-      } catch {
-        // The visible confirmation remains available when storage is restricted.
-      }
-
-      form.reset();
-      status.textContent = form.dataset.successMessage || "Thank you. Your request has been recorded for staging review.";
-      status.focus();
+      const button = form.querySelector('button[type="submit"]');
+      if (!status || !button || !form.reportValidity()) return;
+      await submitConversion(form, status, button);
     });
+  });
+}
+
+function setupPrintControls() {
+  document.querySelectorAll("[data-print-report]").forEach((button) => {
+    button.addEventListener("click", () => window.print());
   });
 }
 
 async function initialize() {
   setupArchiveControls();
   setupForms();
+  setupPrintControls();
 
   const tasks = [];
   if (document.querySelector("[data-index-list]")) {

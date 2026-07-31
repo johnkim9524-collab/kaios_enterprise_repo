@@ -154,10 +154,18 @@
           <h3>Monthly signals</h3>
           <p>Receive the public monthly intelligence brief and selected category signals.</p>
           <form class="conversion-form" data-conversion-form="newsletter" data-success-message="You're on the staging newsletter list.">
+            <div class="honeypot-field" aria-hidden="true">
+              <label for="newsletter-website">Website</label>
+              <input id="newsletter-website" name="website" type="text" autocomplete="off" tabindex="-1">
+            </div>
             <div class="field">
               <label for="newsletter-email">Work email</label>
               <input id="newsletter-email" name="email" type="email" autocomplete="email" required placeholder="you@company.com">
             </div>
+            <label class="consent-field" for="newsletter-consent">
+              <input id="newsletter-consent" name="consent" type="checkbox" value="yes" required>
+              <span>I agree to the <a href="#privacy">privacy notice</a> and email contact.</span>
+            </label>
             <button class="button" type="submit">Subscribe</button>
             <p class="form-status" tabindex="-1" data-form-status role="status"></p>
           </form>
@@ -168,6 +176,10 @@
           <h3>Early intelligence access</h3>
           <p>Join the queue for deeper benchmarks, evidence views and decision workflows.</p>
           <form class="conversion-form" data-conversion-form="waitlist" data-success-message="Your enterprise access request is recorded for staging review.">
+            <div class="honeypot-field" aria-hidden="true">
+              <label for="waitlist-website">Website</label>
+              <input id="waitlist-website" name="website" type="text" autocomplete="off" tabindex="-1">
+            </div>
             <div class="field">
               <label for="waitlist-email">Work email</label>
               <input id="waitlist-email" name="email" type="email" autocomplete="email" required placeholder="you@company.com">
@@ -176,6 +188,10 @@
               <label for="waitlist-organization">Organization</label>
               <input id="waitlist-organization" name="organization" type="text" autocomplete="organization" required placeholder="Company or institution">
             </div>
+            <label class="consent-field" for="waitlist-consent">
+              <input id="waitlist-consent" name="consent" type="checkbox" value="yes" required>
+              <span>I agree to the <a href="#privacy">privacy notice</a> and follow-up contact.</span>
+            </label>
             <button class="button" type="submit">Join waitlist</button>
             <p class="form-status" tabindex="-1" data-form-status role="status"></p>
           </form>
@@ -186,19 +202,35 @@
           <h3>Discuss a decision</h3>
           <p>Tell us which market, category or strategic question your team is evaluating.</p>
           <form class="conversion-form" data-conversion-form="inquiry" data-success-message="Your inquiry is recorded for staging review.">
+            <div class="honeypot-field" aria-hidden="true">
+              <label for="inquiry-website">Website</label>
+              <input id="inquiry-website" name="website" type="text" autocomplete="off" tabindex="-1">
+            </div>
             <div class="field">
               <label for="inquiry-email">Work email</label>
               <input id="inquiry-email" name="email" type="email" autocomplete="email" required placeholder="you@company.com">
             </div>
             <div class="field">
               <label for="inquiry-interest">Decision or interest</label>
-              <textarea id="inquiry-interest" name="interest" required placeholder="Describe the market, category or decision."></textarea>
+              <textarea id="inquiry-interest" name="interest" minlength="10" maxlength="2000" required placeholder="Describe the market, category or decision."></textarea>
             </div>
+            <label class="consent-field" for="inquiry-consent">
+              <input id="inquiry-consent" name="consent" type="checkbox" value="yes" required>
+              <span>I agree to the <a href="#privacy">privacy notice</a> and inquiry response.</span>
+            </label>
             <button class="button" type="submit">Send inquiry</button>
             <p class="form-status" tabindex="-1" data-form-status role="status"></p>
           </form>
         </article>
       </div>
+
+      <aside class="privacy-notice" id="privacy" aria-labelledby="privacy-title">
+        <div>
+          <p class="kicker">Privacy · Staging</p>
+          <h3 id="privacy-title">Your information is used only to manage this request.</h3>
+        </div>
+        <p>Kidults records the submitted work email and any organization or inquiry details for access review and follow-up. Records are stored in the isolated staging environment, protected from public access and accompanied by a non-PII audit trail. Do not submit confidential, financial or sensitive personal information.</p>
+      </aside>
     </section>
   </main>
 
