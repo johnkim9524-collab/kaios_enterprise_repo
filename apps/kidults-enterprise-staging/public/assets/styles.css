@@ -902,12 +902,17 @@ a {
   }
 
   .methodology-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    max-width: 100%;
   }
 
   .methodology-index {
     position: static;
     display: flex;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     overflow-x: auto;
     overscroll-behavior-inline: contain;
     scrollbar-width: none;
@@ -1045,8 +1050,18 @@ a {
   }
 
   .methodology-layout {
+    width: calc(100% - 36px);
+    max-width: calc(100% - 36px);
     gap: 24px;
     padding-block: 30px;
+    overflow-x: clip;
+  }
+
+  .methodology-content,
+  .methodology-content > * {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .principle-grid,
