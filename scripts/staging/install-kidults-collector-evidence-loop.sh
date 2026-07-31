@@ -7,7 +7,7 @@ OPERATIONS_DIR="${KIDULTS_OPERATIONS_DATA_DIR:-/opt/intelligence-holdings/stagin
 SERVICE_NAME="kaios-kidults-collector-evidence.service"
 TIMER_NAME="kaios-kidults-collector-evidence.timer"
 RUNNER="${ROOT_DIR}/scripts/staging/run-kidults-collector-evidence-loop.sh"
-RSS_URL="${KAIOS_LIVE_RSS_URL:-https://news.google.com/rss/search?q=LEGO+Pokemon+Pop+Mart+Bandai+Medicom+Hot+Toys&hl=en-US&gl=US&ceid=US:en}"
+RSS_URL="${KAIOS_LIVE_RSS_URL:-https://news.google.com/rss/search?q=LEGO%20OR%20Pokemon%20OR%20%22Pop%20Mart%22%20OR%20Bandai%20OR%20Medicom%20OR%20%22Hot%20Toys%22&hl=en-US&gl=US&ceid=US:en}"
 
 [[ "${ROOT_DIR}" == /opt/intelligence-holdings/staging/* ]] || {
   echo "ROOT_DIR must remain inside /opt/intelligence-holdings/staging" >&2

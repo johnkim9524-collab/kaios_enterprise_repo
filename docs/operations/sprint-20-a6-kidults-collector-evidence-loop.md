@@ -20,6 +20,8 @@ Production promotion is not authorized by this sprint.
 - Stores only hashed evidence URLs in the validated dataset and records non-PII
   audit events.
 - Requires at least three independently populated categories before publication.
+- Uses an explicit `OR` query so each tracked brand can independently produce
+  evidence; the previous all-term query could return an empty feed.
 
 ## Exact validation commands
 
