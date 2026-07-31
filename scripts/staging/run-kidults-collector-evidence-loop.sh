@@ -42,3 +42,8 @@ node "${APP_DIR}/operations.mjs" refresh \
   --public "${APP_DIR}/public" \
   --operations "${OPERATIONS_DIR}" \
   --source "${VALIDATED_PATH}"
+
+node "${APP_DIR}/quality-alerts.mjs" evaluate \
+  --public "${APP_DIR}/public" \
+  --operations "${OPERATIONS_DIR}" \
+  --policy "${APP_DIR}/operations/quality-policy.staging.json"
