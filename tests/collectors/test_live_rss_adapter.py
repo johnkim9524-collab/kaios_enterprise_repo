@@ -61,6 +61,7 @@ def test_configured_rss_query_keeps_tracked_brands_independent() -> None:
         (root / "config" / "sources.json").read_text(encoding="utf-8-sig")
     )["sources"]
     rss_source = next(source for source in sources if source["id"] == "official_rss")
+    assert rss_source["live_enabled"] is True
     query = parse_qs(urlparse(rss_source["url"]).query)["q"][0]
     assert " OR " in query
     for brand in ("LEGO", "Pokemon", "Pop Mart", "Bandai", "Medicom", "Hot Toys"):
