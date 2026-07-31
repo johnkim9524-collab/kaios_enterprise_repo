@@ -685,10 +685,16 @@ a {
     width: min(100% - 24px, var(--max-width));
   }
 
+  .hero {
+    gap: 22px;
+    padding-block: 44px 42px;
+  }
+
   .hero h1,
-  .page-hero h1,
-  .report-hero h1 {
-    font-size: 2.65rem;
+  .page-hero h1 {
+    margin-block: 13px 18px;
+    font-size: 2.35rem;
+    line-height: 0.97;
   }
 
   .report-hero h1 {
@@ -696,15 +702,64 @@ a {
     line-height: 0.98;
   }
 
+  .hero-copy,
+  .lede {
+    font-size: 0.96rem;
+    line-height: 1.58;
+  }
+
+  .hero-actions {
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .section {
+    padding-block: 34px;
+  }
+
+  .section-heading {
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .section-heading h2,
+  .report-section h2 {
+    font-size: 1.85rem;
+    line-height: 1.04;
+  }
+
+  .metrics-grid,
+  .conversion-grid {
+    gap: 14px;
+  }
+
   .status-panel,
   .metric-card,
   .conversion-card,
   .archive-card {
-    padding: 18px;
+    padding: 16px;
+  }
+
+  .conversion-card h3 {
+    font-size: 1.55rem;
+  }
+
+  .conversion-card > p {
+    margin-block: 8px 0;
+  }
+
+  .conversion-form {
+    gap: 11px;
+    margin-top: 16px;
   }
 
   .trust-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .trust-item {
+    padding: 14px;
   }
 
   .hero-actions,
