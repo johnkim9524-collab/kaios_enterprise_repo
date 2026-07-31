@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "environment": "staging",
+  "status": "monitoring_pending",
+  "evaluated_at": null,
+  "latest_success_at": null,
+  "metrics": {
+    "run_age_hours": null,
+    "records": null,
+    "categories": null,
+    "sources": null,
+    "average_confidence": null,
+    "maximum_freshness_hours": null,
+    "verified_outputs": null
+  },
+  "alerts": [],
+  "production_promotion_authorized": false
+}
