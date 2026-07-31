@@ -31,6 +31,11 @@ jobs:
           python-version: "3.11"
           cache: pip
 
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -56,6 +61,9 @@ jobs:
 
       - name: Run tests
         run: pytest -q
+
+      - name: Validate Kidults staging intelligence
+        run: npm --prefix apps/kidults-enterprise-staging test
 
       - name: Run KAIOS pipeline
         run: python scripts/run_kaios.py

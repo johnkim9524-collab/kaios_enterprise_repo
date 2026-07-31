@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Kidults staging intelligence quality, freshness, coverage and publication integrity status.">
+  <meta name="theme-color" content="#06111f">
+  <title>Intelligence Status — Kidults</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306111f'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23c7a86d'%3EK%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/styles.css">
+  <script src="assets/quality-status.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="index.html" aria-label="Kidults home">Kidults<span class="brand-dot">.</span></a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="index.html#intelligence">Intelligence</a>
+        <a href="index.html#kidult-100">Kidult 100</a>
+        <a href="index.html#archive">Archive</a>
+        <a href="methodology.html">Methodology</a>
+        <a href="operations.html" aria-current="page">Status</a>
+        <a href="index.html#access">Access</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-content" class="quality-page" data-quality-root data-status="monitoring_pending">
+    <header class="shell page-hero quality-hero">
+      <p class="eyebrow">Intelligence Operations · Staging</p>
+      <h1>Evidence you can verify.</h1>
+      <p class="lede">A public, non-sensitive view of freshness, evidence coverage, confidence and publication integrity across the Kidults intelligence pipeline.</p>
+      <div class="quality-state-line" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <strong data-quality-state>Loading status</strong>
+      </div>
+      <p class="metadata">Last evaluated: <span data-quality-evaluated>Loading…</span></p>
+    </header>
+
+    <section class="shell section" aria-labelledby="quality-metrics-title">
+      <div class="section-heading">
+        <div>
+          <p class="kicker">Quality gates</p>
+          <h2 id="quality-metrics-title">Current operating evidence.</h2>
+        </div>
+        <p>Metrics are redacted for public display and contain no source URLs, server paths, credentials or personal information.</p>
+      </div>
+      <div class="quality-metrics">
+        <article><b data-quality-run-age>—</b><span>Latest run age</span><small>Target ≤ 30h</small></article>
+        <article><b data-quality-records>—</b><span>Validated records</span><small>Target ≥ 20</small></article>
+        <article><b data-quality-categories>—</b><span>Categories</span><small>Target ≥ 4</small></article>
+        <article><b data-quality-confidence>—</b><span>Average confidence</span><small>Target ≥ 70%</small></article>
+        <article><b data-quality-outputs>—</b><span>Verified outputs</span><small>Target 3</small></article>
+      </div>
+    </section>
+
+    <section class="shell section quality-alert-section" aria-labelledby="quality-alerts-title">
+      <div>
+        <p class="kicker">Active conditions</p>
+        <h2 id="quality-alerts-title">Quality and freshness alerts.</h2>
+      </div>
+      <ul class="quality-alert-list" data-quality-alerts aria-live="polite">
+        <li class="quality-clear">Loading configured quality gates…</li>
+      </ul>
+    </section>
+
+    <section class="shell section">
+      <div class="quality-governance">
+        <div>
+          <p class="kicker">Release governance</p>
+          <h2>Staging remains isolated.</h2>
+        </div>
+        <p>This status surface does not authorize production promotion. A passing quality evaluation confirms only that the configured staging evidence gates are currently satisfied.</p>
+        <a class="button button-secondary" href="methodology.html">Read methodology</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell footer">
+    <span>Kidults Intelligence Status · KQ-1.0</span>
+    <span>Powered by KAIOS · Staging evidence only</span>
+  </footer>
+</body>
+</html>
