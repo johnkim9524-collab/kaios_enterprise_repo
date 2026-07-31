@@ -1292,3 +1292,337 @@ body:has(.quality-page) .footer {
     box-shadow: none;
   }
 }
+
+/*
+ * KIDULTS Global Editorial System
+ * One visual language across consumer, intelligence and public operations.
+ * Dark surfaces are reserved for decision-critical status only.
+ */
+:root {
+  --paper: #f4efe5;
+  --paper-raised: #fbf8f1;
+  --paper-muted: #ebe3d5;
+  --ink: #151511;
+  --ink-soft: #67675f;
+  --navy: #071421;
+  --navy-raised: #0c1b2b;
+  --cream: #fbf6eb;
+  --gold: #a87f3e;
+  --gold-light: #caa866;
+  --green: #4d735a;
+  --red: #a95557;
+  --line: #d8cebc;
+  --line-dark: rgba(244, 236, 220, 0.18);
+  --serif: "Bodoni 72", Didot, "Bodoni MT", "Times New Roman", serif;
+  --sans: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --radius: 2px;
+  --shadow: 0 24px 70px rgba(43, 34, 20, 0.055);
+  --step--1: clamp(0.76rem, 0.74rem + 0.1vw, 0.84rem);
+  --step-0: clamp(0.92rem, 0.89rem + 0.14vw, 1rem);
+  --step-1: clamp(1.06rem, 1rem + 0.3vw, 1.24rem);
+  --step-2: clamp(1.42rem, 1.24rem + 0.68vw, 1.88rem);
+  --step-3: clamp(1.9rem, 1.58rem + 1.28vw, 2.75rem);
+  --step-4: clamp(2.65rem, 2rem + 2.55vw, 4.7rem);
+}
+
+body {
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  font-synthesis: none;
+}
+
+.site-header {
+  background: rgba(244, 239, 229, 0.965);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.brand {
+  font-weight: 400;
+  letter-spacing: -0.045em;
+}
+
+.brand-dot {
+  color: var(--gold);
+}
+
+.site-nav a {
+  color: var(--ink-soft);
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+.site-nav a:hover,
+.site-nav a[aria-current="page"] {
+  color: var(--ink);
+  background: var(--paper-raised);
+  border-color: var(--line);
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 400;
+  line-height: 0.96;
+  letter-spacing: -0.042em;
+}
+
+.eyebrow,
+.kicker {
+  font-weight: 650;
+  letter-spacing: 0.2em;
+}
+
+.hero {
+  position: relative;
+  min-height: 590px;
+  color: var(--ink);
+}
+
+.hero::before {
+  background:
+    linear-gradient(90deg, transparent 0 54%, rgba(168, 127, 62, 0.035) 54% 54.08%, transparent 54.08%),
+    radial-gradient(circle at 82% 20%, rgba(168, 127, 62, 0.08), transparent 27%),
+    var(--paper);
+}
+
+.hero::after {
+  position: absolute;
+  top: 16%;
+  right: -3%;
+  z-index: -1;
+  color: rgba(168, 127, 62, 0.055);
+  content: "COLLECTIBLES";
+  font-family: var(--serif);
+  font-size: clamp(5rem, 12vw, 11rem);
+  line-height: 0.8;
+  letter-spacing: -0.06em;
+  writing-mode: vertical-rl;
+  pointer-events: none;
+}
+
+.hero-copy,
+.hero .lede {
+  color: var(--ink-soft);
+}
+
+.button {
+  border-radius: 0;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+}
+
+.button-secondary {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.status-panel {
+  color: var(--cream);
+  background: var(--navy);
+  border-color: var(--navy);
+  border-radius: 0;
+  box-shadow: 18px 18px 0 rgba(168, 127, 62, 0.1);
+}
+
+.status-panel small {
+  color: #aeb6bd;
+}
+
+.metric-card,
+.archive-card,
+.conversion-card,
+.report-section,
+.report-aside {
+  border-radius: 0;
+}
+
+.metric-label,
+.field label,
+.score-header {
+  font-weight: 600;
+}
+
+.metric-number,
+.trust-item b {
+  font-weight: 400;
+}
+
+.methodology-hero,
+.report-hero {
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 82% 18%, rgba(168, 127, 62, 0.08), transparent 29%),
+    var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.methodology-hero .lede,
+.report-hero .lede {
+  color: var(--ink-soft);
+}
+
+.methodology-meta div {
+  border-color: var(--line);
+}
+
+.methodology-meta small {
+  color: var(--ink-soft);
+}
+
+.methodology-callout {
+  border-radius: 0;
+}
+
+.quality-page {
+  color: var(--ink);
+  background: var(--paper);
+}
+
+body:has(.quality-page) {
+  color-scheme: light;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+body:has(.quality-page)::before {
+  background-image: linear-gradient(rgba(168, 127, 62, 0.035) 1px, transparent 1px);
+}
+
+body:has(.quality-page) .footer {
+  color: var(--ink-soft);
+  border-color: var(--line);
+}
+
+.quality-hero {
+  position: relative;
+  padding-bottom: clamp(3rem, 6vw, 5rem);
+  border-bottom: 1px solid var(--line);
+}
+
+.quality-hero::after {
+  position: absolute;
+  right: 0;
+  bottom: 1rem;
+  color: rgba(168, 127, 62, 0.07);
+  content: "STATUS";
+  font-family: var(--serif);
+  font-size: clamp(4rem, 12vw, 10rem);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.quality-hero .lede,
+.quality-page .section-heading > p,
+.quality-governance > p {
+  color: var(--ink-soft);
+}
+
+.quality-page .section {
+  border-color: var(--line);
+}
+
+.quality-page .kicker,
+.quality-page .eyebrow {
+  color: var(--gold);
+}
+
+.quality-state-line {
+  position: relative;
+  z-index: 1;
+  width: fit-content;
+  margin-top: 2rem;
+  padding: 1rem 1.2rem;
+  color: var(--cream);
+  background: var(--navy);
+}
+
+.quality-metrics {
+  background: var(--paper-raised);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+}
+
+.quality-metrics article {
+  border-color: var(--line);
+}
+
+.quality-metrics b {
+  font-weight: 400;
+}
+
+.quality-metrics span {
+  font-weight: 600;
+}
+
+.quality-metrics small,
+.quality-page .metadata {
+  color: var(--ink-soft);
+}
+
+.quality-alert-list li {
+  background: var(--paper-raised);
+  border-color: var(--line);
+}
+
+.quality-alert-list span {
+  color: var(--ink-soft);
+}
+
+.quality-governance {
+  color: var(--cream);
+  background: var(--navy);
+  border-color: var(--navy);
+}
+
+.quality-governance > p {
+  color: #b8c0c8;
+}
+
+@media (max-width: 900px) {
+  .quality-metrics article {
+    border-color: var(--line);
+  }
+}
+
+@media (max-width: 620px) {
+  :root {
+    --radius: 0;
+    --step-4: clamp(2.25rem, 10.5vw, 3rem);
+    --step-3: clamp(1.68rem, 7.1vw, 2.15rem);
+    --step-2: clamp(1.3rem, 5.3vw, 1.65rem);
+  }
+
+  .brand {
+    font-size: 2rem;
+  }
+
+  .site-nav a {
+    font-size: 0.74rem;
+    font-weight: 600;
+  }
+
+  .hero {
+    padding-block: 3.4rem;
+  }
+
+  .hero::after,
+  .quality-hero::after {
+    display: none;
+  }
+
+  .status-panel {
+    box-shadow: 8px 8px 0 rgba(168, 127, 62, 0.1);
+  }
+
+  .metric-card,
+  .conversion-card,
+  .report-section,
+  .archive-card {
+    padding: 1.15rem;
+  }
+
+  .quality-state-line {
+    padding: 0.8rem 1rem;
+  }
+}
