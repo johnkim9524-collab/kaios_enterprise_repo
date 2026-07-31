@@ -1,0 +1,32 @@
+{
+  "version": "1.0",
+  "status": "draft",
+  "issue": "2026-08",
+  "title": "Monthly Intelligence Issue 01",
+  "subtitle": "Global Collectibles Market Signals",
+  "published_at": null,
+  "updated_at": "2026-07-31T00:00:00Z",
+  "executive_summary": "Designer toys and premium trading cards continue to lead market momentum, while liquidity remains strongest in established global brands.",
+  "sections": [
+    {
+      "id": "market-pulse",
+      "title": "Market Pulse",
+      "summary": "Demand remains concentrated in premium categories with strong brand recognition and active secondary markets."
+    },
+    {
+      "id": "category-intelligence",
+      "title": "Category Intelligence",
+      "summary": "Designer toys lead 30-day momentum, followed by trading cards and action figures."
+    },
+    {
+      "id": "liquidity",
+      "title": "Liquidity",
+      "summary": "High-confidence categories show healthy turnover, while long-tail assets remain more fragmented."
+    },
+    {
+      "id": "risk",
+      "title": "Risk Watch",
+      "summary": "Illustrative staging values remain subject to live-source verification and methodology certification."
+    }
+  ]
+}
