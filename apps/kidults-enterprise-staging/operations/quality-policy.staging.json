@@ -1,0 +1,11 @@
+{
+  "version": "KQ-1.0",
+  "environment": "staging",
+  "maximum_run_age_hours": 30,
+  "minimum_records": 20,
+  "minimum_categories": 4,
+  "minimum_sources": 1,
+  "minimum_average_confidence": 70,
+  "maximum_signal_freshness_hours": 168,
+  "production_promotion_authorized": false
+}
