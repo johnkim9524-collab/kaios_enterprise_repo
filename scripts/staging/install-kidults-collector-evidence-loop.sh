@@ -74,5 +74,9 @@ sudo install -o root -g root -m 0644 "${timer_file}" "/etc/systemd/system/${TIME
 sudo systemctl daemon-reload
 sudo systemctl enable --now "${TIMER_NAME}"
 sudo systemctl start "${SERVICE_NAME}"
-sudo systemctl --no-pager --full status "${SERVICE_NAME}"
+sudo systemctl show "${SERVICE_NAME}" \
+  --property=Result \
+  --property=ExecMainStatus \
+  --property=InactiveEnterTimestamp \
+  --no-pager
 sudo systemctl list-timers --all --no-pager "${TIMER_NAME}"
