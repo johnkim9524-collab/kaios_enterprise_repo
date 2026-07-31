@@ -1,37 +1,44 @@
-# Sprint 20-A8 — Kidults Three-Layer Design System
+# Sprint 20-A8 — Kidults Global Editorial Design System
 
 ## Outcome
 
-Sprint 20-A8 establishes one visual system with three clearly separated presentation layers:
+Sprint 20-A8 establishes one consistent public visual language across three functional layers:
 
-- Consumer Light: ivory paper, restrained black typography, warm gold and green accents.
-- Intelligence Editorial: navy authority surfaces paired with light, readable research sections.
-- Operations Dark: persistent navy monitoring surfaces for quality and release-governance status.
+- Consumer: approachable discovery and conversion.
+- Intelligence: evidence-led rankings, research and reports.
+- Operations: public, non-sensitive quality and freshness status.
 
-The implementation remains staging-only. Production promotion is not authorized.
+All three now use the same ivory editorial canvas, high-contrast luxury typography, fine rules, restrained gold accents and square archival components. Dark navy is reserved for decision-critical status and governance panels. The implementation remains staging-only; production promotion is not authorized.
+
+## Typography decision
+
+- Display: `"Bodoni 72", Didot, "Bodoni MT", "Times New Roman", serif`.
+- Body and interface: `"Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif`.
+- Headline weights were reduced to regular editorial weight.
+- Body scale, navigation scale and mobile headline scale were reduced.
+- The stack has no external font request, avoiding render delay, tracking exposure and third-party availability risk.
+
+For production brand fidelity, a separately licensed and self-hosted Bodoni-compatible WOFF2 family may replace the system display stack without changing the design tokens.
 
 ## Delivered
 
-- Replaced the Kidults public stylesheet with shared color, type, spacing, radius and responsive tokens.
-- Reduced headline scale, visual weight, card padding and border radius across the portal.
-- Converted the main intelligence page to a navy editorial hero with light research, archive and conversion surfaces.
-- Converted the Monthly Intelligence report and K100 Methodology pages to light reading surfaces beneath navy authority headers.
-- Preserved the dedicated dark operations surface and its quality-state severity treatments.
-- Preserved all existing JSON rendering, archive search, conversion submission, print and status scripts.
-- Added responsive layouts for 320, 340, 375, 390, 430, 620, 768, 900 and desktop widths.
-- Added touch-target, focus-visible, reduced-motion and print rules.
+- Unified the header, navigation, hero, report, methodology and operations surfaces.
+- Converted full-dark public operations into a light editorial page.
+- Retained dark navy only for live status and governance decision panels.
+- Added restrained editorial watermarks and finer dividers without decorative excess.
+- Reduced font weight, headline size, card padding and radius across desktop and mobile.
+- Preserved JSON rendering, archive search, conversion submission, print and status scripts.
+- Preserved responsive behavior from 320px upward.
+- Preserved touch targets, focus visibility, reduced-motion behavior and print rules.
 
 ## Validation
 
 - `npm test`: PASS — 25 tests, 0 failures.
 - `git diff --check`: PASS.
-- HTML parser validation: PASS for index, methodology, operations and monthly report pages.
-- CSS block structure: PASS — balanced rule blocks.
-- JSON parsing: PASS for Kidult 100, Monthly Intelligence and Archive data.
-- Staging HTTP path checks: PASS for all four pages, shared assets and archive data.
-- Total primary page and shared CSS/JS transfer source: approximately 60 KB before transport compression.
-
-Automated browser screenshots were not generated in the workspace because the local Playwright package has no installed browser binary. Responsive containment is enforced by the shared width, grid-collapse and overflow rules and remains part of the staging visual review gate.
+- HTML parser validation: PASS — 4/4 pages.
+- CSS block structure and design tokens: PASS.
+- JSON parsing: PASS — 3/3 data files.
+- Staging HTTP path checks: PASS — all pages, shared assets and archive data returned HTTP 200.
 
 ## Safety and release posture
 
@@ -67,4 +74,4 @@ node server.mjs
 
 ## Review gate
 
-Review the main page, Monthly Intelligence, Methodology and Operations Status at 320, 375, 390, 430, 768 and desktop widths. Confirm that light consumer-facing reading surfaces, navy intelligence authority surfaces and dark operations surfaces remain visually distinct before merging.
+Review the main page, Monthly Intelligence, Methodology and Operations Status at 320, 375, 390, 430, 768 and desktop widths. Confirm one coherent Kidults identity throughout, sufficient mobile side margins, readable regular-weight typography and dark-panel restraint before merging.
