@@ -1,6 +1,9 @@
 ﻿from __future__ import annotations
 
 import hashlib
+import json
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 from app.collectors.adapters import RSSLiveSourceAdapter
 from app.collectors.contracts import AdapterContext
@@ -50,3 +53,16 @@ def test_live_rss_adapter_rejects_empty_url(monkeypatch) -> None:
         assert "URL is not configured" in str(exc)
     else:
         raise AssertionError("Expected a missing URL failure.")
+
+
+def test_configured_rss_query_keeps_tracked_brands_independent() -> None:
+    root = Path(__file__).resolve().parents[2]
+    sources = json.loads(
+        (root / "config" / "sources.json").read_text(encoding="utf-8-sig")
+    )["sources"]
+    rss_source = next(source for source in sources if source["id"] == "official_rss")
+    assert rss_source["live_enabled"] is True
+    query = parse_qs(urlparse(rss_source["url"]).query)["q"][0]
+    assert " OR " in query
+    for brand in ("LEGO", "Pokemon", "Pop Mart", "Bandai", "Medicom", "Hot Toys"):
+        assert brand in query

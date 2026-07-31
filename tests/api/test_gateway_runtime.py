@@ -2,6 +2,42 @@ from __future__ import annotations
 
 from app.api.contracts import GatewayRequest
 from app.api.gateway import KAIOSGateway
+from app.api.service import GatewayService
+from app.core.modes import RuntimeMode
+
+
+class LiveContractService(GatewayService):
+    def collector(
+        self,
+        mode: RuntimeMode,
+    ) -> dict:
+        assert mode is RuntimeMode.LIVE
+
+        return {
+            "mode": "live",
+            "status": "operational",
+            "source_count": 1,
+            "successful_source_count": 1,
+            "failed_source_count": 0,
+        }
+
+    def runtime(
+        self,
+        mode: RuntimeMode,
+    ) -> dict:
+        assert mode is RuntimeMode.LIVE
+
+        return {
+            "mode": "live",
+            "published": False,
+            "error": {
+                "type": "quality_gate_failed",
+                "stage": "quality_gate",
+                "message": (
+                    "The intelligence edition did not pass."
+                ),
+            },
+        }
 
 
 def test_fixture_collector_endpoint() -> None:
@@ -46,8 +82,10 @@ def test_fixture_runtime_endpoint() -> None:
     )
 
 
-def test_live_collector_returns_503() -> None:
-    response = KAIOSGateway().handle(
+def test_live_collector_returns_operational_contract() -> None:
+    response = KAIOSGateway(
+        service=LiveContractService()
+    ).handle(
         GatewayRequest(
             method="GET",
             path="/api/collector",
@@ -55,12 +93,22 @@ def test_live_collector_returns_503() -> None:
         )
     )
 
-    assert response.status_code == 503
-    assert response.body["ok"] is False
+    assert response.status_code == 200
+    assert response.body["ok"] is True
+    assert (
+        response.body["data"]["status"]
+        == "operational"
+    )
+    assert (
+        response.body["data"]["successful_source_count"]
+        == 1
+    )
 
 
-def test_live_runtime_returns_503() -> None:
-    response = KAIOSGateway().handle(
+def test_live_runtime_preserves_quality_gate() -> None:
+    response = KAIOSGateway(
+        service=LiveContractService()
+    ).handle(
         GatewayRequest(
             method="GET",
             path="/api/runtime",
@@ -72,7 +120,7 @@ def test_live_runtime_returns_503() -> None:
     assert response.body["ok"] is False
     assert (
         response.body["data"]["error"]["stage"]
-        == "collector"
+        == "quality_gate"
     )
 
 

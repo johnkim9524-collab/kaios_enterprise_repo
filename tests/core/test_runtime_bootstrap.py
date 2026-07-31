@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from app.agent import KAIOSAgent
+from app.collectors.adapters import RSSLiveSourceAdapter
+from app.collectors.registry import AdapterRegistry
 from app.collectors.source_collector import SourceCollector
-from app.core.errors import LiveModeUnavailableError
 from app.core.modes import RuntimeMode
 
 
@@ -28,17 +29,29 @@ def test_fallback_collection_is_explicit() -> None:
     )
 
 
-def test_live_collection_fails_without_adapters() -> None:
+def test_live_collection_has_verified_adapter() -> None:
     collector = SourceCollector(RuntimeMode.LIVE)
+    live_sources = [
+        source
+        for source in collector.sources
+        if source.get("enabled")
+        and source.get("live_enabled")
+    ]
 
-    try:
-        collector.collect()
-    except LiveModeUnavailableError:
-        pass
-    else:
-        raise AssertionError(
-            "Live mode must fail until verified adapters exist."
+    assert live_sources
+    assert all(
+        source.get("adapter") in {"rss", "atom"}
+        for source in live_sources
+    )
+    assert all(
+        isinstance(
+            AdapterRegistry(
+                RuntimeMode.LIVE
+            ).resolve(source),
+            RSSLiveSourceAdapter,
         )
+        for source in live_sources
+    )
 
 
 def test_agent_returns_canonical_runtime_contract() -> None:

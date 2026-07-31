@@ -15,9 +15,9 @@
                         "type":  "official",
                         "adapter":  "rss",
                         "enabled":  true,
-                        "live_enabled":  false,
+                        "live_enabled":  true,
                         "weight":  0.3,
-                        "url":  "https://news.google.com/rss/search?q=LEGO+Pokemon+Pop+Mart+Bandai+Medicom+Hot+Toys\u0026hl=en-US\u0026gl=US\u0026ceid=US:en",
+                        "url":  "https://news.google.com/rss/search?q=LEGO%20OR%20Pokemon%20OR%20%22Pop%20Mart%22%20OR%20Bandai%20OR%20Medicom%20OR%20%22Hot%20Toys%22\u0026hl=en-US\u0026gl=US\u0026ceid=US:en",
                         "timeout_seconds":  10,
                         "max_entries":  25
                     },

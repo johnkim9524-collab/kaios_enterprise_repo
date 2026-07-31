@@ -242,10 +242,22 @@ export function operationsStatus(options = {}) {
   const operationsDir = resolve(options.operationsDir || DEFAULT_OPERATIONS_DIR);
   const dataDir = resolve(options.dataDir || DEFAULT_DATA_DIR);
   const latestRunPath = resolve(operationsDir, "latest-run.json");
+  const validatedSignalsPath = resolve(operationsDir, "validated-signals.json");
   const submissions = readJsonLines(resolve(dataDir, "conversion-submissions.jsonl"));
   return {
     environment: "staging",
     latest_run: existsSync(latestRunPath) ? readJson(latestRunPath) : null,
+    collector_evidence: existsSync(validatedSignalsPath)
+      ? (() => {
+          const evidence = readJson(validatedSignalsPath);
+          return {
+            generated_at: evidence.generated_at || null,
+            source_report_sha256: evidence.source_report_sha256 || null,
+            eligibility: evidence.eligibility || null,
+            evidence_summary: evidence.evidence_summary || null
+          };
+        })()
+      : null,
     conversion_counts: submissions.reduce((counts, record) => {
       counts[record.type] = (counts[record.type] || 0) + 1;
       return counts;
