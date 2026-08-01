@@ -1,0 +1,23 @@
+/*
+ * Kidults Portal Base V22 — A9 Hero Fine-Tuning Override
+ *
+ * Apply with:
+ *   <link rel="stylesheet" href="baselines/kidults-portal-base-v22.css">
+ *
+ * Canonical HTML source:
+ *   baselines/kidults-portal-base-v17.html
+ *
+ * A9 requirement:
+ *   The functional portal hero must preserve this CULTURE treatment.
+ */
+
+.hero-title strong {
+  display: inline-block;
+  transform: rotate(-2.3deg);
+  transform-origin: left center;
+  text-shadow:
+    .08em .07em 0 rgba(7, 43, 32, .86),
+    .14em .12em 0 rgba(14, 82, 61, .54),
+    .19em .17em 0 rgba(112, 170, 145, .20),
+    .24em .22em .38em rgba(0, 0, 0, .12);
+}
