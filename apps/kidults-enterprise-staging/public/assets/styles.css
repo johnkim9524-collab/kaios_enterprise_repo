@@ -183,17 +183,8 @@ h3 {
 .page-hero,
 .report-hero {
   position: relative;
-  isolation: isolate;
-  overflow: clip;
   padding-top: clamp(6.5rem, 12vw, 12rem);
   padding-bottom: clamp(5rem, 10vw, 9rem);
-}
-
-.hero > *,
-.page-hero > *,
-.report-hero > * {
-  position: relative;
-  z-index: 1;
 }
 
 .hero {
@@ -208,7 +199,7 @@ h3 {
 .report-hero::after {
   content: "K";
   position: absolute;
-  z-index: 0;
+  z-index: -1;
   top: 4rem;
   right: var(--gutter);
   color: rgba(173, 132, 70, 0.055);
@@ -991,11 +982,9 @@ h3 {
   .hero::after,
   .page-hero::after,
   .report-hero::after {
-    top: 3rem;
-    right: -3.2rem;
-    color: rgba(173, 132, 70, 0.065);
-    font-size: clamp(15rem, 82vw, 19rem);
-    line-height: 0.78;
+    top: 2rem;
+    right: 0.5rem;
+    font-size: 18rem;
   }
 
   .hero h1,
