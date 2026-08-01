@@ -38,7 +38,6 @@ A separately licensed, self-hosted Bodoni-compatible WOFF2 family may replace th
 - Preserved archive search, Kidult 100 rendering, conversion submissions and quality status behavior.
 - Preserved report print behavior and staging-only release posture.
 - Preserved responsive layout from 320px upward with visible left and right card margins.
-- Added a persistent, low-contrast serif hero watermark on desktop and mobile; editorial pages use `K`, while Operations Status retains its `Q` marker.
 - Preserved minimum touch targets, visible keyboard focus and reduced-motion support.
 
 ## Validation
@@ -84,7 +83,6 @@ Review all four pages at desktop and at 320px. Confirm:
 - visible left and right margins around every large card;
 - champagne panels feel integrated rather than promotional;
 - title hierarchy is elegant but not oversized or heavy;
-- the cropped mobile watermark remains subtle, visible and behind all readable content;
 - dark navy appears only when the Operations page reports a real critical condition;
 - archive search and all three conversion forms still respond correctly.
 
