@@ -1,0 +1,259 @@
+<!doctype html>
+<!-- KIDULTS GLOBAL STANDARD · CLEAN MARKET CARDS · BALANCED METHOD STATUS v17 · CANONICAL PORTAL BASE -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#031f18">
+<title>Kidults — Global Collector Intelligence</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400&display=swap");
+    @font-face {
+      font-family:"Kidults Numerals";
+      src:local("Bodoni 72"),local("Didot"),local("Bodoni MT"),local("Bodoni MT Std");
+      unicode-range:U+0025,U+002B,U+002D,U+002E,U+0030-0039,U+2212;
+      font-style:normal;
+      font-weight:400 900;
+      font-display:swap;
+    }
+
+    :root {
+      --ink:#031f18;
+      --ink-2:#073528;
+      --ink-3:#0b4332;
+      --paper:#f2ead7;
+      --paper-dim:#cfc5aa;
+      --olive:#a7a978;
+      --lime:#c8ff3d;
+      --gold:#b7893d;
+      --mint:#72aa91;
+      --surface:rgba(255,255,255,.035);
+      --shadow:0 24px 64px rgba(0,0,0,.18);
+      --sans:"Kidults Numerals",Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --serif:"Kidults Numerals",Iowan Old Style,Baskerville,"Times New Roman",serif;
+      --mono:"Kidults Numerals","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+      --space:clamp(1.25rem,4vw,5.5rem);
+      --display:clamp(3.6rem,6.35vw,7.35rem);
+      --section:clamp(2.75rem,4.7vw,5.5rem);
+      --card:clamp(1.95rem,2.7vw,3.15rem);
+      --body:clamp(1rem,1.05vw,1.16rem);
+    }
+
+    *{box-sizing:border-box}
+    html{width:100%;max-width:100%;scroll-behavior:smooth;background:var(--ink);overflow-x:clip}
+    body{width:100%;max-width:100%;margin:0;min-width:0;background:var(--ink);color:var(--paper);font-family:var(--sans);font-size:16px;line-height:1.55;overflow-x:clip}
+    button,a{font:inherit}
+    a{color:inherit;text-decoration:none}
+    img,svg{display:block;max-width:100%}
+    .skip{position:fixed;z-index:100;left:1rem;top:1rem;padding:.7rem 1rem;background:var(--paper);color:var(--ink);transform:translateY(-160%)}
+    .skip:focus{transform:none}
+    :focus-visible{outline:3px solid var(--olive);outline-offset:4px}
+
+    .site-header{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding:1.6rem var(--space);background:#021913;position:relative;z-index:20}
+    .brand{font-family:var(--serif);font-size:clamp(2.5rem,3.6vw,4.25rem);font-weight:700;line-height:.9;letter-spacing:-.055em}
+    .brand i{font-style:normal;color:var(--lime)}
+    .nav{display:flex;align-items:center;gap:clamp(1.2rem,3vw,3.5rem);font:700 .78rem/1 var(--mono);letter-spacing:.09em;text-transform:uppercase}
+    .nav a{padding:.6rem 0;color:var(--paper-dim)}
+    .nav a:hover{color:var(--paper)}
+    .nav .access{padding:1rem 1.25rem;background:var(--surface);color:var(--paper)}
+    .menu{display:none;border:0;background:var(--surface);color:var(--paper);padding:.85rem 1rem;font:700 .75rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+
+    header,main,footer,section,article,nav,div{min-width:0}
+    main{width:100%;max-width:100%;overflow:clip}
+    .hero{min-height:calc(100svh - 110px);display:grid;grid-template-columns:minmax(0,1.65fr) minmax(20rem,.75fr);align-items:center;gap:clamp(3rem,7vw,9rem);padding:clamp(3.5rem,7vh,7rem) var(--space);background:radial-gradient(circle at 78% 35%,rgba(19,94,66,.44),transparent 34%),linear-gradient(135deg,#031f18,#063326)}
+    .hero-copy,.signal-card,.category-card,.stage,.method-copy,.method-list,.monthly-copy,.monthly-card{min-width:0}
+    .eyebrow{margin:0 0 2rem;color:var(--gold);font:700 clamp(.68rem,.9vw,.82rem)/1.5 var(--mono);letter-spacing:.17em;text-transform:uppercase}
+    .hero-title{max-width:12ch;margin:0;font-family:var(--serif);font-size:var(--display);font-weight:400;line-height:.82;letter-spacing:-.07em;text-wrap:balance}
+    .hero-title span,.hero-title strong{display:block}
+    .hero-title strong{font-family:var(--sans);font-size:.62em;font-style:normal;letter-spacing:-.07em;line-height:1.04;margin:.10em 0 .13em;text-shadow:.12em .11em 0 rgba(112,170,145,.23)}
+    .lead{max-width:47rem;margin:2.35rem 0 0;color:var(--paper-dim);font-family:var(--serif);font-size:clamp(1.08rem,1.45vw,1.38rem);line-height:1.58}
+    .lead b{color:var(--paper)}
+    .actions{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:2rem}
+    .button{display:inline-flex;min-height:3.5rem;align-items:center;justify-content:center;padding:1rem 1.35rem;border:1px solid rgba(207,197,170,.24);background:rgba(255,255,255,.055);color:var(--paper);font:800 .76rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;transition:background-color .2s ease,border-color .2s ease,color .2s ease}
+    .button:hover{border-color:rgba(200,255,61,.42);background:rgba(200,255,61,.07);color:#e9ffc0}
+    .button.secondary{background:transparent;color:var(--paper-dim)}
+
+    .signal-card{position:relative;padding:clamp(1.6rem,3vw,3rem);background:rgba(1,27,20,.88);box-shadow:var(--shadow)}
+    .signal-meta{display:flex;justify-content:space-between;gap:1rem;color:var(--mint);font:700 .68rem/1.35 var(--mono);text-transform:uppercase}
+    .updated-status{display:inline-flex;align-items:center;justify-content:flex-end;gap:.5rem;white-space:nowrap}
+    .updated-status::before{content:"";width:.52rem;height:.52rem;flex:0 0 .52rem;border-radius:50%;background:var(--lime);box-shadow:0 0 0 .22rem rgba(200,255,61,.1),0 0 1rem rgba(200,255,61,.32);transform-origin:center;animation:livePulse 1.65s ease-in-out infinite}
+    @keyframes livePulse{0%,100%{opacity:1;transform:scale(1);box-shadow:0 0 0 .2rem rgba(200,255,61,.1),0 0 .9rem rgba(200,255,61,.34)}50%{opacity:.48;transform:scale(.76);box-shadow:0 0 0 .38rem rgba(200,255,61,.08),0 0 1.25rem rgba(200,255,61,.5)}}
+    .signal-card h2{margin:3rem 0 .2rem;font-family:var(--serif);font-size:var(--card);line-height:.92}
+    .signal-card>p{margin:.35rem 0 1.5rem;color:var(--paper-dim)}
+    .score-row{display:flex;align-items:end;gap:1.25rem;margin:1.25rem 0 2rem}
+    .score{font-family:"Cormorant Garamond","Iowan Old Style",Garamond,"Times New Roman",serif;font-size:clamp(4.2rem,6vw,6.5rem);font-weight:400;font-variant-numeric:oldstyle-nums proportional-nums;font-feature-settings:"onum" 1,"pnum" 1;line-height:.8;letter-spacing:-.07em}
+    .delta{color:var(--lime);font:700 .76rem/1.5 var(--mono)}
+    .meter{height:.25rem;margin-top:0;background:rgba(255,255,255,.12);overflow:hidden}
+    .meter span{display:block;width:87.4%;height:100%;background:var(--lime);box-shadow:0 0 .9rem rgba(200,255,61,.28)}
+    .signal-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;margin-top:1.5rem}
+    .signal-stats div{padding:1rem;background:rgba(255,255,255,.035)}
+    .signal-stats small{display:block;color:var(--mint);font:700 .68rem/1.35 var(--mono);text-transform:uppercase}
+    .signal-stats b{display:block;margin-top:.45rem;font-family:var(--serif);font-size:1.32rem}
+
+    .section{padding:clamp(5rem,10vw,10rem) var(--space)}
+    .architecture{background:linear-gradient(155deg,var(--ink),var(--ink-2))}
+    .architecture .section-head{display:block}
+    .architecture .section-head .eyebrow{margin-bottom:1.5rem}
+    .section-head{display:grid;grid-template-columns:minmax(10rem,.45fr) minmax(0,1.55fr);gap:2rem;align-items:start;margin-bottom:clamp(3rem,6vw,6rem)}
+    .section-head h2,.method-copy h2,.monthly-copy h2,.access-copy h2{margin:0;font-family:var(--serif);font-size:var(--section);font-weight:400;letter-spacing:-.055em;line-height:.87;text-wrap:balance}
+    .category-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+    .category-card{min-height:28rem;padding:clamp(1.5rem,3vw,3rem);background:var(--surface);display:flex;flex-direction:column;justify-content:flex-start}
+    .category-card .role{margin:clamp(5.5rem,8vw,8rem) 0 5rem;color:var(--gold);font-family:var(--serif);font-size:clamp(2.8rem,4.35vw,4.8rem);font-style:italic;line-height:1}
+    .category-card.core{background:#0a402f}
+    .category-card h3{margin:0 0 .6rem;font-family:var(--serif);font-size:clamp(2.1rem,2.7vw,3.25rem);line-height:.92}
+    .category-card p{margin:0;color:var(--paper-dim);font-size:var(--body)}
+    .lifecycle{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1rem}
+    .stage{padding:2rem;background:rgba(0,0,0,.15)}
+    .stage small{color:var(--gold);font:700 .68rem/1 var(--mono)}
+    .stage h3{margin:2.5rem 0 .6rem;font-family:var(--serif);font-size:1.8rem}
+    .stage p{margin:0;color:var(--paper-dim)}
+
+    .method{display:grid;grid-template-columns:minmax(18rem,.72fr) minmax(0,1.28fr);gap:clamp(3rem,7vw,8rem);background:#05281f}
+    .method-copy p{max-width:35rem;color:var(--paper-dim);font-family:var(--serif);font-size:clamp(1.05rem,1.3vw,1.25rem);line-height:1.62}
+    .method-copy .eyebrow{margin:0 0 2rem;color:var(--gold);font:700 clamp(.68rem,.9vw,.82rem)/1.5 var(--mono);letter-spacing:.17em;text-transform:uppercase}
+    .method-list{display:grid;gap:.75rem}
+    .method-item{display:grid;grid-template-columns:2.5rem minmax(0,1fr) auto;align-items:center;gap:1rem;padding:1.3rem 1.5rem;background:var(--surface)}
+    .method-item small{color:var(--gold);font:700 .68rem/1 var(--mono)}
+    .method-item b{font-family:var(--serif);font-size:clamp(1.28rem,1.75vw,1.75rem)}
+    .method-item em{min-width:6.75rem;color:var(--lime);font:700 clamp(.84rem,.92vw,.98rem)/1.15 var(--mono);font-style:normal;letter-spacing:.015em;text-align:right}
+
+    .monthly{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(18rem,.65fr);align-items:center;gap:clamp(3rem,7vw,8rem);background:linear-gradient(145deg,#0a402f,#062c22)}
+    .monthly-card{padding:clamp(1.5rem,3vw,3rem);background:rgba(0,0,0,.18);box-shadow:var(--shadow)}
+    .issue{display:inline-block;margin-bottom:2.5rem;padding:.6rem .75rem;border:1px solid rgba(207,197,170,.22);background:transparent;color:var(--paper-dim);font:800 .65rem/1 var(--mono);letter-spacing:.07em;text-transform:uppercase}
+    .monthly-card h3{margin:0;font-family:var(--serif);font-size:clamp(2.3rem,3.45vw,3.75rem);line-height:.92}
+    .monthly-card p{color:var(--paper-dim);font-size:var(--body)}
+
+    .access-section{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:2rem;background:#021913}
+    .access-copy+.button{min-width:14rem}
+    footer{display:flex;justify-content:space-between;gap:1rem;padding:2rem var(--space);background:#01140f;color:var(--mint);font:700 .66rem/1.5 var(--mono);text-transform:uppercase}
+
+    @media (max-width:900px){
+      .hero{grid-template-columns:1fr;min-height:auto}
+      .signal-card{max-width:38rem}
+      .section-head,.method,.monthly{grid-template-columns:1fr}
+      .category-grid{grid-template-columns:1fr 1fr}
+      .category-card.core{grid-column:1/-1}
+    }
+
+    @media (max-width:720px){
+      :root{--space:1.25rem;--display:clamp(2.35rem,11.7vw,3rem);--section:clamp(2.15rem,10.5vw,3rem);--card:clamp(1.85rem,8vw,2.35rem)}
+      body{font-size:15px}
+      .site-header{width:100%;max-width:100%;padding:1.25rem;gap:1rem}
+      .brand{font-size:2.5rem}
+      .menu{display:block}
+      .nav{display:none;position:absolute;left:1rem;right:1rem;top:calc(100% - .25rem);max-width:calc(100% - 2rem);padding:1rem;background:#05281f;box-shadow:var(--shadow);flex-direction:column;align-items:stretch;gap:0}
+      .nav.open{display:flex}
+      .nav a,.nav .access{padding:1rem;background:transparent}
+      .hero{display:block;width:100%;max-width:100%;padding-top:3.25rem;padding-bottom:4rem;background:linear-gradient(155deg,#031f18,#073b2c)}
+      .hero-copy,.signal-card,.category-card,.stage,.method-copy,.method-list,.monthly-copy,.monthly-card,.access-copy{width:100%;max-width:100%;min-width:0}
+      .hero-title{max-width:100%;font-size:var(--display);line-height:.84;letter-spacing:-.055em}
+      .hero-title strong{font-size:.72em;line-height:.98;margin:.10em 0 .13em;text-shadow:.1em .1em 0 rgba(112,170,145,.22)}
+      .eyebrow{margin-bottom:1.5rem;font-size:.68rem;overflow-wrap:anywhere}
+      .lead{margin-top:1.65rem;font-size:1.02rem;line-height:1.6}
+      .actions{display:grid;grid-template-columns:minmax(0,1fr);width:100%}
+      .button{width:100%;min-width:0;max-width:100%;white-space:normal;text-align:center}
+      .signal-card{margin-top:4.25rem;padding:1.35rem;box-shadow:0 18px 42px rgba(0,0,0,.16)}
+      .signal-meta{flex-wrap:wrap;font-size:.66rem}
+      .signal-card h2{margin-top:2.4rem}
+      .score-row{flex-wrap:wrap}
+      .score{font-size:4.35rem}
+      .delta{font-size:.69rem}
+      .section{width:100%;max-width:100%;padding:4.75rem 1.25rem}
+      .section-head{display:block;margin-bottom:2.5rem}
+      .section-head .eyebrow{margin-bottom:1.5rem}
+      .category-grid,.lifecycle{grid-template-columns:1fr}
+      .category-card.core{grid-column:auto}
+      .category-card{min-height:22rem;padding:1.5rem}
+      .category-card .role{margin:auto 0 3.5rem;font-size:3.15rem}
+      .category-card h3{font-size:2.15rem}
+      .stage{padding:1.5rem}
+      .method{display:block}
+      .method-list{margin-top:2.5rem}
+      .method-item{width:100%;max-width:100%;grid-template-columns:2rem minmax(0,1fr);padding:1.1rem}
+      .method-item b,.monthly-card h3,.category-card h3{overflow-wrap:anywhere}
+      .method-item b{font-size:1.35rem;line-height:1.08}
+      .method-item em{grid-column:2;min-width:0;font-size:.84rem;line-height:1.25;text-align:left}
+      .monthly{display:block}
+      .monthly-card{margin-top:2.5rem;padding:1.5rem}
+      .access-section{display:block}
+      .access-copy+.button{margin-top:2rem;min-width:0}
+      footer{display:block;width:100%;max-width:100%;padding:1.75rem 1.25rem;overflow-wrap:anywhere}
+      footer span{display:block;margin-top:.5rem}
+    }
+
+    @media (max-width:360px){
+      :root{--space:1rem}
+      .site-header,.section{padding-left:1rem;padding-right:1rem}
+      .nav{left:.75rem;right:.75rem;max-width:calc(100% - 1.5rem)}
+      .hero{padding-left:1rem;padding-right:1rem}
+      .brand{font-size:2.3rem}
+      .hero-title{font-size:2.35rem}
+      .lead{font-size:1rem}
+      .signal-card{padding:1.15rem}
+      .score{font-size:3.9rem}
+      .signal-stats{grid-template-columns:1fr}
+      .category-card,.stage,.monthly-card{padding:1.25rem}
+      .method-item{grid-template-columns:1.6rem minmax(0,1fr);gap:.7rem;padding:1rem}
+      footer{padding-left:1rem;padding-right:1rem}
+    }
+
+    @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.updated-status::before{animation:none}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Kidults home">Kidults<i>.</i></a>
+    <button class="menu" type="button" aria-expanded="false" aria-controls="navigation">Menu</button>
+    <nav class="nav" id="navigation" aria-label="Primary navigation">
+      <a href="#intelligence">Intelligence</a><a href="#markets">Markets</a><a href="#methodology">Methodology</a><a href="#archive">Archive</a><a class="access" href="#access">Access</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">Collector Intelligence / Signal 001</p>
+        <h1 class="hero-title"><span>Objects become</span><strong>CULTURE</strong><span>before consensus.</span></h1>
+        <p class="lead"><b>KIDULTS identifies cultural demand before the market fully prices it.</b> Scarcity, canon and market velocity become comparable evidence for collector decisions.</p>
+        <div class="actions"><a class="button" href="#intelligence">Explore intelligence</a><a class="button secondary" href="#methodology">How we verify</a></div>
+      </div>
+      <article class="signal-card" id="intelligence" aria-labelledby="signal-title">
+        <div class="signal-meta"><span>Designer Toys · Core Market</span><span class="updated-status">Updated 14m</span></div>
+        <h2 id="signal-title">Category momentum</h2><p>Global collector demand signal</p>
+        <div class="score-row"><span class="score">87.4</span><span class="delta">▲ 5.8<br>30-day delta</span></div>
+        <div class="meter" aria-label="Momentum score 87.4 out of 100"><span></span></div>
+        <div class="signal-stats"><div><small>Confidence</small><b>A</b></div><div><small>Qualified signals</small><b>25</b></div><div><small>Source families</small><b>6</b></div><div><small>Regions tracked</small><b>4</b></div></div>
+      </article>
+    </section>
+
+    <section class="section architecture" id="markets">
+      <div class="section-head"><p class="eyebrow">01 / Category architecture</p><h2>One Core.<br>Expanding Horizons.</h2></div>
+      <div class="category-grid">
+        <article class="category-card core"><span class="role">Core</span><h3>Designer Toys</h3><p>Full-depth intelligence: complete evidence, benchmarks, methodology and monthly editorial coverage.</p></article>
+        <article class="category-card"><span class="role">Horizon</span><h3>Trading Cards</h3><p>Expansion watch: liquidity, grading ecosystems and cross-border collector demand.</p></article>
+        <article class="category-card"><span class="role">Horizon</span><h3>Premium Figures</h3><p>Expansion watch: scarcity, licensed canon and aftermarket velocity.</p></article>
+      </div>
+      <div class="lifecycle" aria-label="Market coverage lifecycle">
+        <article class="stage"><small>01</small><h3>Watch</h3><p>Signals observed before a category earns public coverage.</p></article><article class="stage"><small>02</small><h3>Horizon Market</h3><p>Research coverage with transparent, developing evidence.</p></article><article class="stage"><small>03</small><h3>Core Market</h3><p>Full-depth intelligence with recurring benchmarks and editorial.</p></article>
+      </div>
+    </section>
+
+    <section class="section method" id="methodology">
+      <div class="method-copy"><p class="eyebrow">02 / Evidence before conviction</p><h2>Cultural heat, made auditable.</h2><p>Every signal is qualified for source quality, freshness, corroboration and market relevance before it influences a published score.</p></div>
+      <div class="method-list"><div class="method-item"><small>01</small><b>Source qualification</b><em>Verified</em></div><div class="method-item"><small>02</small><b>Signal normalization</b><em>Comparable</em></div><div class="method-item"><small>03</small><b>Confidence grading</b><em>A–D</em></div><div class="method-item"><small>04</small><b>Editorial interpretation</b><em>Human-led</em></div></div>
+    </section>
+
+    <section class="section monthly" id="archive">
+      <div class="monthly-copy"><p class="eyebrow">03 / Monthly intelligence</p><h2>Read the signal before it becomes the story.</h2></div>
+      <article class="monthly-card"><span class="issue">Issue 01 · August 2026</span><h3>Global Collectibles Market Signals</h3><p>Momentum, evidence and editorial context across the Core Market and emerging Horizons.</p><a class="button secondary" href="#">Read monthly brief</a></article>
+    </section>
+
+    <section class="section access-section" id="access"><div class="access-copy"><p class="eyebrow">04 / Collector access</p><h2>Go deeper than the feed.</h2></div><a class="button" href="#">Request access</a></section>
+  </main>
+  <footer>Kidults · Global Collector Intelligence <span>Concept preview · 2026</span></footer>
+  <script>
+    const menu=document.querySelector('.menu');const nav=document.querySelector('.nav');menu.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(open))});nav.addEventListener('click',()=>{nav.classList.remove('open');menu.setAttribute('aria-expanded','false')});
+  </script>
+</body>
+</html>
