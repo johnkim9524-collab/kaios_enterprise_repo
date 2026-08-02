@@ -1,9 +1,11 @@
 @media (min-width: 1201px) {
   .signals.section-shell,
   .research.section-shell {
-    width: calc(var(--shell) - 68px);
-    max-width: calc(var(--shell) - 68px);
-    margin-inline: auto;
+    width: 1412px !important;
+    max-width: 1412px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
   }
 }
 
