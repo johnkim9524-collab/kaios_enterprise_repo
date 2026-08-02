@@ -1,0 +1,64 @@
+/* A13 Global Intelligence House — design tokens */
+:root {
+  color-scheme: light;
+
+  --font-sans: Inter, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
+  --color-canvas: #f6f3ec;
+  --color-surface: #ffffff;
+  --color-surface-muted: #ece8df;
+  --color-ink: #111827;
+  --color-ink-muted: #5f6673;
+  --color-line: #d9d5cc;
+  --color-line-strong: #b9b4aa;
+
+  --color-signal: #1f5eff;
+  --color-signal-strong: #1748c9;
+  --color-signal-soft: #e9efff;
+  --color-positive: #147a52;
+  --color-positive-soft: #e6f5ee;
+  --color-warning: #9a6200;
+  --color-warning-soft: #fff3d6;
+  --color-critical: #b42318;
+  --color-critical-soft: #fdecea;
+
+  --shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.06);
+  --shadow-md: 0 12px 32px rgba(17, 24, 39, 0.08);
+  --shadow-lg: 0 24px 64px rgba(17, 24, 39, 0.12);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  --container: 1440px;
+  --content: 1180px;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: clamp(1.75rem, 2.4vw, 2.5rem);
+  --text-3xl: clamp(2.5rem, 4.6vw, 4.8rem);
+  --text-display: clamp(3.2rem, 7vw, 7.2rem);
+
+  --ease-standard: cubic-bezier(.2,.8,.2,1);
+  --duration-fast: 140ms;
+  --duration-base: 220ms;
+}
