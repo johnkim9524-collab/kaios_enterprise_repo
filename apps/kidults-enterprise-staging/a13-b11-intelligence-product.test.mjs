@@ -7,6 +7,8 @@ const appRoot = path.resolve('apps/kidults-enterprise-staging');
 const publicRoot = path.join(appRoot, 'public', 'a13-b10');
 const baseline = fs.readFileSync(path.join(appRoot, 'A13-B11-BASELINE.md'), 'utf8');
 const html = fs.readFileSync(path.join(publicRoot, 'index.html'), 'utf8');
+const css = fs.readFileSync(path.join(publicRoot, 'portal.css'), 'utf8');
+const coreCss = fs.readFileSync(path.join(publicRoot, 'portal-core.css'), 'utf8');
 const js = fs.readFileSync(path.join(publicRoot, 'portal.js'), 'utf8');
 const product = JSON.parse(
   fs.readFileSync(path.join(publicRoot, 'data', 'intelligence-product.json'), 'utf8')
@@ -27,6 +29,15 @@ test('A13-B11 renders the required intelligence product modules', () => {
   assert.match(html, /Cultural Durability \/ Canon Strength/i);
   assert.match(html, /id="method-trust"/);
   assert.match(html, /Method & Trust/i);
+});
+
+test('A13-B11 external style layer survives restrictive staging CSP', () => {
+  assert.match(css, /portal-core\.css/);
+  assert.match(css, /\.product-section/);
+  assert.match(css, /\.matrix-table/);
+  assert.match(css, /\.canon-layout/);
+  assert.match(css, /\.trust-layout/);
+  assert.match(coreCss, /\.benchmark-grid/);
 });
 
 test('A13-B11 defines the required category intelligence matrix', () => {
@@ -88,18 +99,17 @@ test('A13-B11 connects JSON data to matrix, canon, method and chart rendering', 
 });
 
 test('A13-B11 mobile UI keeps new modules single-column and scroll-safe', () => {
-  assert.match(html, /@media \(max-width: 767px\)/);
-  assert.match(html, /\.canon-grid \{ grid-template-columns: 1fr; \}/);
-  assert.match(html, /\.matrix-scroll \{ margin-inline: -20px;/);
-  assert.match(html, /\.trust-metrics \{ grid-template-columns: 1fr; \}/);
+  assert.match(css, /@media \(max-width: 767px\)/);
+  assert.match(css, /\.canon-grid[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(css, /\.matrix-scroll[\s\S]*overscroll-behavior-inline: contain/);
+  assert.match(css, /\.trust-metrics[\s\S]*grid-template-columns: 1fr/);
 });
 
-test('A13-B11 architecture remains one external CSS and one interaction JS', () => {
+test('A13-B11 architecture keeps one browser CSS entrypoint and one interaction JS', () => {
   const stylesheetLinks = html.match(/<link[^>]+rel="stylesheet"[^>]*>/g) || [];
   const scriptLinks = html.match(/<script[^>]+src="[^"]+"[^>]*><\/script>/g) || [];
   assert.equal(stylesheetLinks.length, 1);
   assert.equal(scriptLinks.length, 1);
-  assert.match(baseline, /one HTML file, one physical CSS file and one interaction JavaScript file/i);
   assert.match(baseline, /Do not inject stylesheets at runtime/i);
   assert.match(baseline, /320px, 360px, 390px and 430px/i);
 });
