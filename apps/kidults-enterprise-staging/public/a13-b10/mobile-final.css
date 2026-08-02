@@ -1,11 +1,3 @@
-@media (min-width: 1201px) {
-  .signals.section-shell,
-  .research.section-shell {
-    max-width: 1320px;
-    margin-inline: auto;
-  }
-}
-
 @media (max-width: 767px) {
   .signals.section-shell,
   .research.section-shell {
