@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Kidults provides global intelligence for collectible markets, combining category momentum, liquidity, brand strength and evidence quality.">
+  <meta name="theme-color" content="#f4f1ea">
+  <title>Kidults — Global Intelligence for Collectible Markets</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/shell.css">
+  <link rel="stylesheet" href="styles/home.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container shell-inner">
+      <a class="wordmark" href="/a13/" aria-label="Kidults home">Kidults<span>.</span></a>
+      <nav class="primary-nav" aria-label="Primary navigation">
+        <a href="#intelligence">Intelligence</a>
+        <a href="#kidult-100">Kidult 100</a>
+        <a href="#research">Research</a>
+        <a href="#trust">Trust Center</a>
+        <a class="nav-cta" href="#enterprise">Enterprise Access</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <p class="eyebrow">Global collectible-market intelligence</p>
+          <h1>See the market before it becomes consensus.</h1>
+          <p class="hero-copy">Kidults transforms fragmented collectible-market evidence into decision-ready intelligence across category momentum, liquidity, brand strength and confidence.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#kidult-100">Explore Kidult 100</a>
+            <a class="button button-secondary" href="#enterprise">Request Enterprise Access</a>
+          </div>
+        </div>
+
+        <aside class="hero-proof" aria-label="Current intelligence status">
+          <p class="eyebrow">Current evidence signal</p>
+          <h2>Market intelligence with visible confidence.</h2>
+          <p>Every published direction is paired with freshness, methodology and evidence quality.</p>
+          <div class="proof-score">
+            <strong data-hero-score>—</strong>
+            <span>Average evidence confidence</span>
+          </div>
+          <div class="proof-meta">
+            <div><small>Operating state</small><b data-hero-status>Monitoring pending</b></div>
+            <div><small>Last evaluated</small><b data-hero-updated>Pending</b></div>
+            <div><small>Qualified signals</small><b>25</b></div>
+            <div><small>Coverage</small><b>Global</b></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="intelligence" aria-labelledby="intelligence-title">
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Intelligence surface</p>
+            <h2 id="intelligence-title">A market becomes legible when its signals connect.</h2>
+          </div>
+          <p>Kidults connects market movement, liquidity, brand durability and evidence confidence so decision-makers can distinguish momentum from noise.</p>
+        </div>
+
+        <div class="signal-grid">
+          <article class="signal-card"><span>Category momentum</span><strong>72</strong><span>Composite opportunity signal</span></article>
+          <article class="signal-card"><span>Liquidity grade</span><strong>B+</strong><span>Healthy secondary depth</span></article>
+          <article class="signal-card"><span>Brand strength</span><strong>A</strong><span>Highest confidence tier</span></article>
+          <article class="signal-card"><span>Evidence coverage</span><strong>20</strong><span>Target source plan</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="kidult-100" aria-labelledby="k100-title">
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Proprietary benchmark</p>
+            <h2 id="k100-title">Kidult 100</h2>
+          </div>
+          <p>A transparent ranking of the categories showing the strongest combination of market momentum, liquidity, brand strength and evidence quality.</p>
+        </div>
+
+        <div class="index-panel">
+          <div class="index-summary">
+            <p class="eyebrow">Global category benchmark</p>
+            <h3>Evidence before conviction.</h3>
+            <p>Kidult 100 turns fragmented market signals into a comparable, confidence-weighted decision surface.</p>
+            <div class="index-meta">
+              <div><b data-index-count>—</b><small>Ranked categories</small></div>
+              <div><b data-index-method>—</b><small>Methodology</small></div>
+              <div><b>A</b><small>Confidence grade</small></div>
+              <div><b data-index-updated>—</b><small>Last updated</small></div>
+            </div>
+          </div>
+          <div class="ranking-list" data-index-list aria-live="polite">
+            <div class="empty-state">Loading Kidult 100 intelligence…</div>
+          </div>
+        </div>
+        <p class="load-state" data-load-state hidden>Live data could not be loaded. Confirm the staging server is running.</p>
+      </div>
+    </section>
+
+    <section class="section" id="research" aria-labelledby="research-title">
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Research intelligence</p>
+            <h2 id="research-title">Evidence that compounds over time.</h2>
+          </div>
+          <p>Monthly intelligence, market notes and category research create a living archive of how collectible markets evolve.</p>
+        </div>
+
+        <div class="research-toolbar" role="search">
+          <div class="field">
+            <label for="archive-search">Search research</label>
+            <input id="archive-search" type="search" placeholder="Search category, signal or period" data-archive-search>
+          </div>
+          <div class="field">
+            <label for="archive-type">Research type</label>
+            <select id="archive-type" data-archive-type>
+              <option value="all">All research</option>
+              <option value="monthly-intelligence">Monthly intelligence</option>
+            </select>
+          </div>
+        </div>
+        <p class="research-count" data-archive-count aria-live="polite">Loading research…</p>
+        <div class="research-grid" data-archive-results></div>
+      </div>
+    </section>
+
+    <section class="section" id="trust" aria-labelledby="trust-title">
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Trust Center</p>
+            <h2 id="trust-title">The methodology is visible. The evidence is governed.</h2>
+          </div>
+          <p>Confidence, freshness, methodology and release integrity are part of the product—not disclosures hidden at the end.</p>
+        </div>
+        <div class="trust-links">
+          <a class="trust-card" href="/methodology.html"><span>Methodology</span><strong>How Kidults scores markets</strong><em>Open framework ↗</em></a>
+          <a class="trust-card" href="/operations.html"><span>Intelligence status</span><strong>Freshness, coverage and release integrity</strong><em>View status ↗</em></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section enterprise" id="enterprise" aria-labelledby="enterprise-title">
+      <div class="container">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Enterprise intelligence</p>
+            <h2 id="enterprise-title">Turn category signals into strategic decisions.</h2>
+          </div>
+          <p>Request access to deeper benchmarks, evidence views and decision workflows designed for brands, investors and market leaders.</p>
+        </div>
+
+        <div class="enterprise-grid">
+          <div class="enterprise-points">
+            <article><h3>Benchmark the opportunity</h3><p>Compare momentum, liquidity, brand durability and evidence confidence across categories.</p></article>
+            <article><h3>See the evidence behind the signal</h3><p>Move from headline score to source quality, freshness, corroboration and governance.</p></article>
+            <article><h3>Build a decision workflow</h3><p>Translate market intelligence into category strategy, partnerships and capital allocation.</p></article>
+          </div>
+
+          <form class="enterprise-form" data-conversion-form="waitlist" data-success-message="Your enterprise access request is recorded for staging review.">
+            <h3>Request Enterprise Access</h3>
+            <div class="form-grid">
+              <div class="field"><label for="enterprise-email">Work email</label><input id="enterprise-email" name="email" type="email" autocomplete="email" required placeholder="you@company.com"></div>
+              <div class="field"><label for="enterprise-organization">Organization</label><input id="enterprise-organization" name="organization" type="text" autocomplete="organization" required placeholder="Company or institution"></div>
+              <div class="field"><label for="enterprise-interest">Decision or market interest</label><textarea id="enterprise-interest" name="interest" minlength="10" maxlength="2000" required placeholder="Tell us what your team is evaluating."></textarea></div>
+              <div class="honeypot-field" aria-hidden="true"><label for="enterprise-website">Website</label><input id="enterprise-website" name="website" type="text" autocomplete="off" tabindex="-1"></div>
+              <label class="consent-field" for="enterprise-consent"><input id="enterprise-consent" name="consent" type="checkbox" value="yes" required><span>I agree to the privacy notice and follow-up contact.</span></label>
+              <button class="button button-primary" type="submit">Request access</button>
+              <p class="form-status" tabindex="-1" data-form-status role="status"></p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div><a class="wordmark" href="/a13/">Kidults<span>.</span></a><p>Global intelligence for collectible markets.</p></div>
+      <div><a href="#kidult-100">Kidult 100</a><a href="#research">Research</a><a href="#trust">Trust Center</a></div>
+      <div><span>Powered by KAIOS</span><span>Staging environment</span></div>
+    </div>
+  </footer>
+</body>
+</html>
