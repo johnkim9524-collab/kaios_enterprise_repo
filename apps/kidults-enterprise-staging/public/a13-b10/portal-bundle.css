@@ -1,0 +1,4 @@
+/* A13-B10 single stylesheet entry. Physical source consolidation follows after visual regression lock. */
+@import url('/a13-b10/portal.css');
+@import url('/a13-b10/hero-stability.css');
+@import url('/a13-b10/mobile-final.css');
