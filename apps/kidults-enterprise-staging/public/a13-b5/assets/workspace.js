@@ -1,5 +1,5 @@
 (() => {
-  for (const href of ['/a13-b5/assets/full-width.css','/a13-b5/assets/data-luxury.css','/a13-b5/assets/compact-command.css','/a13-b5/assets/holistic-tuning.css']) {
+  for (const href of ['/a13-b5/assets/full-width.css','/a13-b5/assets/data-luxury.css','/a13-b5/assets/compact-command.css','/a13-b5/assets/holistic-tuning.css','/a13-b5/assets/benchmark-signal-reflow.css']) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
@@ -25,6 +25,9 @@
   const rail = qs('.rail');
   const command = qs('.command');
   const toolbar = qs('.toolbar');
+  const canvasGrid = qs('.canvas-grid');
+  const canvas = qs('.canvas');
+  const signalQueue = qs('.signal-queue');
   const evidenceDrawer = qs('.evidence-drawer');
 
   if (command) {
@@ -33,30 +36,37 @@
     const headline = command.querySelector('h1');
     const lede = command.querySelector('p');
     if (eyebrow) eyebrow.textContent = 'Global autonomous collectible intelligence';
-    if (headline) headline.innerHTML = 'The autonomous<br>intelligence layer<br>for global collectible markets.';
+    if (headline) headline.innerHTML = 'The autonomous intelligence layer<br>for global collectible markets.';
     if (lede) lede.textContent = 'Kidults continuously observes market behavior, validates fragmented evidence, detects regime shifts and converts cultural momentum into proprietary benchmarks, signals and decision intelligence.';
   }
 
   if (toolbar) toolbar.id = 'benchmark';
-  if (lower) lower.id = 'signals';
+  if (signalQueue) signalQueue.id = 'signals';
   if (evidenceDrawer) evidenceDrawer.id = 'evidence';
 
-  if (workspace && main && lower && watchlist) {
+  if (workspace && main && watchlist) {
     watchlist.classList.add('watchlist-inline');
     watchlist.id = 'watchlist';
-    lower.insertAdjacentElement('afterend', watchlist);
     const layoutStyle = document.createElement('style');
     layoutStyle.textContent = `
       .workspace{grid-template-columns:minmax(0,1fr)}
       .main{grid-column:1;grid-row:1}
-      .watchlist-inline{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
       .watchlist-inline>.eyebrow,.watchlist-inline>h3{grid-column:1/-1}
       .watchlist-inline .watch{border-top:1px solid var(--ink);border-left:1px solid var(--line)}
       .watchlist-inline .watch:first-of-type{border-left:0}
-      @media(max-width:1100px){.watchlist-inline{grid-template-columns:repeat(2,minmax(0,1fr))}.watchlist-inline .watch:nth-of-type(3){border-left:0}}
-      @media(max-width:820px){.workspace{display:block}.watchlist-inline{grid-template-columns:1fr}.watchlist-inline .watch{border-left:0}}
     `;
     document.head.appendChild(layoutStyle);
+  }
+
+  if (canvasGrid && canvas && signalQueue) {
+    const stack = document.createElement('div');
+    stack.className = 'benchmark-stack';
+    canvas.insertAdjacentElement('beforebegin', stack);
+    stack.append(canvas, signalQueue);
+  }
+
+  if (lower && watchlist && evidenceDrawer) {
+    lower.replaceChildren(watchlist, evidenceDrawer);
   }
 
   let strip;
@@ -91,7 +101,7 @@
         <article><small>Category research</small><h4>Character Goods durability.</h4><p>Licensing strength, cultural memory and cross-border transaction depth.</p></article>
         <article><small>Market note</small><h4>Trading Cards concentration.</h4><p>Why headline momentum still requires dispersion and breadth monitoring.</p></article>
       </div>`;
-    watchlist.insertAdjacentElement('afterend', research);
+    lower.insertAdjacentElement('afterend', research);
   }
 
   const commandEyebrow = qs('.command .eyebrow');
