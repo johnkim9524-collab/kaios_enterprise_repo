@@ -2,6 +2,14 @@
   const qs = selector => document.querySelector(selector);
   const qsa = selector => [...document.querySelectorAll(selector)];
 
+  if (!document.querySelector('link[data-a13-b10-mobile-final]')) {
+    const mobileStylesheet = document.createElement('link');
+    mobileStylesheet.rel = 'stylesheet';
+    mobileStylesheet.href = '/a13-b10/mobile-final.css';
+    mobileStylesheet.dataset.a13B10MobileFinal = 'true';
+    document.head.appendChild(mobileStylesheet);
+  }
+
   const categories = {
     all: { title: 'Kidult 100', value: '94.8', delta: '+2.1%', interpretation: 'Liquidity expansion is broadening across culturally durable categories.' },
     character: { title: 'Character Goods', value: '89.9', delta: '+4.8%', interpretation: 'Licensed character ecosystems are converting cultural memory into repeat transaction depth.' },
