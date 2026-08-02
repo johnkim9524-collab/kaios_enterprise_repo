@@ -20,7 +20,7 @@
 
 .state-ring {
   position: relative;
-  width: min(330px, 100%);
+  width: min(315px, 100%);
   aspect-ratio: 1;
 }
 
@@ -33,15 +33,15 @@
 .state-ring-track,
 .state-ring-value {
   fill: none;
-  stroke-width: 16;
+  stroke-width: 13;
 }
 
 .state-ring-track {
-  stroke: #dce3da;
+  stroke: #e3e7df;
 }
 
 .state-ring-value {
-  stroke: var(--forest);
+  stroke: #5f806f;
   stroke-linecap: butt;
   stroke-dasharray: 94.8 100;
 }
@@ -57,21 +57,21 @@
 
 .state-ring-center strong {
   font-family: var(--font-display);
-  font-size: clamp(4.6rem, 7vw, 6.7rem);
+  font-size: clamp(3.8rem, 5.5vw, 5.25rem);
   font-weight: 500;
-  line-height: .84;
-  letter-spacing: -.04em;
+  line-height: .88;
+  letter-spacing: -.035em;
 }
 
 .state-ring-center span {
-  margin-top: 12px;
-  color: var(--forest);
+  margin-top: 14px;
+  color: #4f735f;
   font-size: 13px;
   font-weight: 600;
 }
 
 .state-ring-center small {
-  margin-top: 7px;
+  margin-top: 9px;
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
@@ -187,7 +187,11 @@
   }
 
   .state-ring {
-    width: min(260px, 100%);
+    width: min(245px, 100%);
+  }
+
+  .state-ring-center strong {
+    font-size: clamp(3.3rem, 15vw, 4.25rem);
   }
 
   .current-state-copy {
