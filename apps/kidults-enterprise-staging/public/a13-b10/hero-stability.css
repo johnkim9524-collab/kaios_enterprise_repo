@@ -11,21 +11,20 @@
 
 .hero h1 {
   max-width: 10.8ch;
-  line-height: .89;
+  line-height: .84;
 }
 
 .hero h1 em {
-  display: block;
-  margin-top: .035em;
-  margin-bottom: .055em;
-  line-height: .82;
+  display: inline;
+  margin: 0;
+  line-height: inherit;
 }
 
 .hero-watermark {
-  left: 150px;
-  top: 250px;
-  font-size: clamp(7.5rem, 13.5vw, 12.5rem);
-  color: rgba(18, 24, 21, .018);
+  left: 210px;
+  top: 300px;
+  font-size: clamp(7rem, 12.5vw, 11.5rem);
+  color: rgba(18, 24, 21, .014);
 }
 
 .index-proof {
@@ -69,8 +68,8 @@
   }
 
   .hero-watermark {
-    left: 110px;
-    top: 238px;
+    left: 150px;
+    top: 286px;
   }
 }
 
@@ -85,19 +84,14 @@
   }
 
   .hero-watermark {
-    left: 70px;
-    top: 220px;
+    left: 95px;
+    top: 270px;
   }
 }
 
 @media (max-width: 900px) {
   .hero h1 {
-    line-height: .9;
-  }
-
-  .hero h1 em {
-    margin-top: .04em;
-    margin-bottom: .07em;
+    line-height: .86;
   }
 
   .index-proof {
@@ -108,12 +102,7 @@
 @media (max-width: 520px) {
   .hero h1 {
     max-width: 9.6ch;
-    line-height: .91;
-  }
-
-  .hero h1 em {
-    margin-top: .05em;
-    margin-bottom: .08em;
+    line-height: .87;
   }
 
   .index-proof {
