@@ -6,10 +6,13 @@ import path from 'node:path';
 const root = path.resolve('apps/kidults-enterprise-staging/public/a13-b10');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const portalCss = fs.readFileSync(path.join(root, 'portal.css'), 'utf8');
+const coreCssPath = path.join(root, 'portal-core.css');
+const coreCss = fs.existsSync(coreCssPath)
+  ? fs.readFileSync(coreCssPath, 'utf8')
+  : '';
 const js = fs.readFileSync(path.join(root, 'portal.js'), 'utf8');
 const baseline = fs.readFileSync(path.join(root, 'BASELINE-LOCK.md'), 'utf8');
-
-const combined = `${portalCss}\n${portalCss}\n${portalCss}`;
+const combined = `${coreCss}\n${portalCss}`;
 
 test('A13-B10 keeps the approved editorial hero and explicit mobile line hooks', () => {
   assert.match(html, /Collector Intelligence \/ Signal 001/i);
@@ -44,8 +47,8 @@ test('A13-B10 score ring is stable and digits are not split by JavaScript', () =
 });
 
 test('A13-B10 mobile signal and research layouts remain connected', () => {
-  assert.match(portalCss, /grid-template-areas:\s*\n\s*"priority score"/);
-  assert.match(portalCss, /\.research-grid\s*\{[^}]*display:\s*block/s);
+  assert.match(combined, /grid-template-areas:\s*\n\s*"priority score"/);
+  assert.match(combined, /\.research-grid\s*\{[^}]*display:\s*block/s);
 });
 
 test('A13-B10 does not inject stylesheets at runtime', () => {
