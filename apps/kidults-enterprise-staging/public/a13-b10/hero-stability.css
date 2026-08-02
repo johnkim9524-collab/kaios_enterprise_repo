@@ -31,28 +31,85 @@
   width: 100%;
   max-width: 430px;
   justify-self: end;
-  padding: 34px 24px 30px;
+  padding: 32px 24px 28px;
   border: 1px solid var(--line-strong);
   background: rgba(251, 248, 242, .86);
 }
 
-.index-number {
-  font-size: clamp(4.8rem, 5.4vw, 6.1rem);
-  white-space: nowrap;
+.hero-index-ring {
+  position: relative;
+  width: 168px;
+  aspect-ratio: 1;
+  margin: 8px auto 24px;
 }
 
-.index-delta {
-  line-height: 1.4;
+.hero-index-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.hero-ring-track,
+.hero-ring-value {
+  fill: none;
+  stroke-width: 10;
+}
+
+.hero-ring-track {
+  stroke: #e0e5dc;
+}
+
+.hero-ring-value {
+  stroke: #66816f;
+  stroke-dasharray: 94.8 100;
+  stroke-linecap: butt;
+}
+
+.hero-ring-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.hero-ring-center strong {
+  font-family: var(--font-display);
+  font-size: 3.35rem;
+  font-weight: 500;
+  line-height: .86;
+  letter-spacing: -.035em;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.hero-ring-center span {
+  margin-top: 7px;
+  color: var(--forest);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.hero-ring-center small {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .proof-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px 24px;
+  gap: 20px 24px;
+  padding-top: 22px;
 }
 
 .proof-grid strong {
   max-width: 100%;
-  font-size: clamp(1.2rem, 1.45vw, 1.45rem);
+  font-size: clamp(1.15rem, 1.35vw, 1.38rem);
   line-height: 1.08;
   overflow-wrap: anywhere;
 }
@@ -70,6 +127,10 @@
   .hero-watermark {
     left: 150px;
     top: 286px;
+  }
+
+  .hero-index-ring {
+    width: 156px;
   }
 }
 
@@ -107,7 +168,16 @@
 
   .index-proof {
     max-width: none;
-    padding: 26px 20px 24px;
+    padding: 24px 20px;
+  }
+
+  .hero-index-ring {
+    width: 148px;
+    margin-bottom: 22px;
+  }
+
+  .hero-ring-center strong {
+    font-size: 3rem;
   }
 
   .proof-grid {
@@ -115,6 +185,6 @@
   }
 
   .proof-grid strong {
-    font-size: 1.18rem;
+    font-size: 1.16rem;
   }
 }
