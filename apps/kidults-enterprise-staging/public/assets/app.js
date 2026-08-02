@@ -3,7 +3,18 @@
 const DATA_PATHS = {
   index: "data/kidult-100.json",
   monthly: "data/monthly-intelligence.json",
-  archive: "data/archive.json"
+  archive: "data/archive.json",
+  quality: "data/quality-status.json"
+};
+
+const QUALITY_LABELS = {
+  operational: "Operational",
+  degraded: "Degraded",
+  critical: "Critical",
+  delayed: "Delayed",
+  under_review: "Under review",
+  insufficient_evidence: "Insufficient evidence",
+  monitoring_pending: "Monitoring pending"
 };
 
 const state = {
@@ -33,10 +44,48 @@ function formatDate(value) {
   }).format(date);
 }
 
+function formatDateTime(value) {
+  if (!value) return "Monitoring pending";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short"
+  }).format(date);
+}
+
 async function getJson(path) {
   const response = await fetch(path, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error(`Unable to load ${path}`);
   return response.json();
+}
+
+function renderQualityStatus(data) {
+  const rawStatus = typeof data?.status === "string" ? data.status : "monitoring_pending";
+  const status = Object.hasOwn(QUALITY_LABELS, rawStatus) ? rawStatus : "monitoring_pending";
+  const label = QUALITY_LABELS[status];
+  const metrics = data?.metrics && typeof data.metrics === "object" ? data.metrics : {};
+  const scoreValue = Number(metrics.average_confidence);
+  const score = Number.isFinite(scoreValue) ? `${Math.round(scoreValue)}%` : "—";
+  const updated = data?.evaluated_at || data?.latest_success_at || null;
+
+  document.querySelectorAll("[data-hero-status], [data-quality-status]").forEach((element) => {
+    element.textContent = label;
+    element.dataset.qualityState = status;
+  });
+  document.querySelectorAll("[data-hero-updated]").forEach((element) => {
+    element.textContent = formatDateTime(updated);
+  });
+  document.querySelectorAll("[data-hero-score]").forEach((element) => {
+    element.textContent = score;
+  });
+
+  document.documentElement.dataset.qualityState = status;
 }
 
 function renderIndex(data) {
@@ -46,10 +95,17 @@ function renderIndex(data) {
   const method = document.querySelector("[data-index-method]");
   if (!list) return;
 
-  count.textContent = String(data.items.length);
-  updated.textContent = formatDate(data.updated_at);
-  method.textContent = data.methodology_version || "Pending";
-  list.innerHTML = data.items.map((item) => `
+  const items = Array.isArray(data?.items) ? data.items : [];
+  if (count) count.textContent = String(items.length);
+  if (updated) updated.textContent = formatDate(data?.updated_at);
+  if (method) method.textContent = data?.methodology_version || "Pending";
+
+  if (!items.length) {
+    list.innerHTML = '<div class="empty-state">Kidult 100 is awaiting sufficient evidence.</div>';
+    return;
+  }
+
+  list.innerHTML = items.map((item) => `
     <div class="ranking-row">
       <span aria-label="Rank ${item.rank}">${item.rank}</span>
       <strong>${escapeHtml(item.name)} <small class="metadata">· ${escapeHtml(item.category)}</small></strong>
@@ -65,9 +121,9 @@ function renderMonthly(data) {
   const summary = document.querySelector("[data-monthly-summary]");
   const issue = document.querySelector("[data-monthly-issue]");
   if (!title) return;
-  title.textContent = data.title;
-  summary.textContent = data.executive_summary;
-  issue.textContent = data.issue;
+  title.textContent = data?.title || "Monthly Intelligence";
+  if (summary) summary.textContent = data?.executive_summary || "The current brief is awaiting publication.";
+  if (issue) issue.textContent = data?.issue || "Pending";
 }
 
 function renderArchive() {
@@ -77,19 +133,13 @@ function renderArchive() {
 
   const query = state.archiveQuery.trim().toLowerCase();
   const filtered = state.archive.filter((report) => {
-    const searchable = [
-      report.title,
-      report.period,
-      report.type,
-      report.status,
-      ...(report.tags || [])
-    ].join(" ").toLowerCase();
-    const matchesQuery = !query || searchable.includes(query);
-    const matchesType = state.archiveType === "all" || report.type === state.archiveType;
-    return matchesQuery && matchesType;
+    const searchable = [report.title, report.period, report.type, report.status, ...(report.tags || [])]
+      .join(" ").toLowerCase();
+    return (!query || searchable.includes(query)) &&
+      (state.archiveType === "all" || report.type === state.archiveType);
   });
 
-  count.textContent = `${filtered.length} ${filtered.length === 1 ? "report" : "reports"}`;
+  if (count) count.textContent = `${filtered.length} ${filtered.length === 1 ? "report" : "reports"}`;
   if (!filtered.length) {
     container.innerHTML = '<div class="empty-state">No reports match this search. Try a broader keyword or select all report types.</div>';
     return;
@@ -113,16 +163,8 @@ function setupArchiveControls() {
   const search = document.querySelector("[data-archive-search]");
   const type = document.querySelector("[data-archive-type]");
   if (!search || !type) return;
-
-  search.addEventListener("input", (event) => {
-    state.archiveQuery = event.target.value;
-    renderArchive();
-  });
-
-  type.addEventListener("change", (event) => {
-    state.archiveType = event.target.value;
-    renderArchive();
-  });
+  search.addEventListener("input", (event) => { state.archiveQuery = event.target.value; renderArchive(); });
+  type.addEventListener("change", (event) => { state.archiveType = event.target.value; renderArchive(); });
 }
 
 async function submitConversion(form, status, button) {
@@ -145,23 +187,16 @@ async function submitConversion(form, status, button) {
   try {
     const response = await fetch("/api/conversions", {
       method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json"
-      },
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify(submission)
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(result.message || "The request could not be recorded.");
-    }
+    if (!response.ok) throw new Error(result.message || "The request could not be recorded.");
     form.reset();
     status.textContent = result.message || form.dataset.successMessage;
   } catch (error) {
     status.classList.add("is-error");
-    status.textContent = error instanceof Error
-      ? error.message
-      : "The service is temporarily unavailable. Please try again.";
+    status.textContent = error instanceof Error ? error.message : "The service is temporarily unavailable. Please try again.";
   } finally {
     button.disabled = false;
     form.removeAttribute("aria-busy");
@@ -193,24 +228,21 @@ async function initialize() {
   setupPrintControls();
 
   const tasks = [];
-  if (document.querySelector("[data-index-list]")) {
-    tasks.push(getJson(DATA_PATHS.index).then(renderIndex));
-  }
-  if (document.querySelector("[data-monthly-title]")) {
-    tasks.push(getJson(DATA_PATHS.monthly).then(renderMonthly));
-  }
+  if (document.querySelector("[data-index-list]")) tasks.push(getJson(DATA_PATHS.index).then(renderIndex));
+  if (document.querySelector("[data-monthly-title]")) tasks.push(getJson(DATA_PATHS.monthly).then(renderMonthly));
   if (document.querySelector("[data-archive-results]")) {
     tasks.push(getJson(DATA_PATHS.archive).then((data) => {
       state.archive = Array.isArray(data.reports) ? data.reports : [];
       renderArchive();
     }));
   }
+  if (document.querySelector("[data-hero-status], [data-quality-status]")) {
+    tasks.push(getJson(DATA_PATHS.quality).then(renderQualityStatus));
+  }
 
   const results = await Promise.allSettled(tasks);
   if (results.some((result) => result.status === "rejected")) {
-    document.querySelectorAll("[data-load-state]").forEach((element) => {
-      element.hidden = false;
-    });
+    document.querySelectorAll("[data-load-state]").forEach((element) => { element.hidden = false; });
   }
 }
 
