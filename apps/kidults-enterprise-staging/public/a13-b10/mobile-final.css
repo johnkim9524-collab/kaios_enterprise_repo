@@ -1,0 +1,158 @@
+@media (max-width: 767px) {
+  .signals.section-shell,
+  .research.section-shell {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 14px;
+    padding-right: 14px;
+    overflow: visible;
+  }
+
+  .signals,
+  .research {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .signals {
+    padding: 0;
+  }
+
+  .signals .section-heading {
+    padding: 0 0 24px;
+  }
+
+  .signals .section-heading h2 {
+    max-width: 9ch;
+    font-size: clamp(2.4rem, 12vw, 2.9rem);
+    line-height: .98;
+  }
+
+  .signals .split-heading > p {
+    max-width: 22ch;
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .signal-table {
+    width: 100%;
+    border-top: 1px solid var(--ink);
+    overflow: visible;
+  }
+
+  .signal-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "priority score"
+      "name name";
+    gap: 10px 14px;
+    min-height: 0;
+    padding: 20px 4px 18px;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+    overflow: visible;
+  }
+
+  .signal-row.active {
+    background: #f0ece4;
+    margin-inline: -4px;
+    padding-inline: 8px;
+  }
+
+  .signal-row .priority {
+    grid-area: priority;
+    align-self: center;
+  }
+
+  .signal-row .signal-score {
+    grid-area: score;
+    justify-self: end;
+    align-self: center;
+    font-size: 29px;
+    line-height: 1;
+  }
+
+  .signal-row .signal-name {
+    grid-area: name;
+    min-width: 0;
+  }
+
+  .signal-name strong {
+    font-size: 15px;
+    line-height: 1.32;
+  }
+
+  .signal-name small {
+    max-width: 100%;
+    margin-top: 6px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .signal-row > span:nth-child(4),
+  .signal-row > span:nth-child(5) {
+    display: none;
+  }
+
+  .research {
+    padding: 0;
+  }
+
+  .research .section-heading {
+    padding: 0 0 26px;
+    margin-bottom: 0;
+  }
+
+  .research .section-heading h2 {
+    max-width: 10ch;
+    font-size: clamp(2.5rem, 12.5vw, 3rem);
+    line-height: .98;
+  }
+
+  .research .section-heading > p,
+  .research .split-heading > p {
+    max-width: 25ch;
+    margin-top: 14px;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .research-grid {
+    display: block;
+    width: 100%;
+    border-top: 1px solid var(--ink);
+  }
+
+  .research-grid article {
+    width: 100%;
+    min-height: 0;
+    padding: 28px 4px 30px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+  }
+
+  .research-grid article:last-child {
+    border-bottom: 0;
+  }
+
+  .research-grid h3 {
+    max-width: 12ch;
+    margin: 34px 0 14px;
+    font-size: 30px;
+    line-height: 1.04;
+  }
+
+  .research-grid p {
+    max-width: 28ch;
+    font-size: 15.5px;
+    line-height: 1.58;
+  }
+}
