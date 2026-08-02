@@ -53,19 +53,53 @@
   }));
 
   const navLinks = qsa('.main-nav a');
+  const sections = navLinks
+    .map(link => ({ link, section: qs(link.getAttribute('href')) }))
+    .filter(item => item.section);
+
+  const setActiveNav = id => {
+    navLinks.forEach(link => {
+      const active = link.getAttribute('href') === `#${id}`;
+      link.classList.toggle('active', active);
+      if (active) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+  };
+
   navLinks.forEach(link => link.addEventListener('click', event => {
     event.preventDefault();
     const target = qs(link.getAttribute('href'));
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!target) return;
+    setActiveNav(target.id);
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
 
-  const sections = ['index','signals','evidence','research'].map(id => document.getElementById(id)).filter(Boolean);
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver(entries => {
-      const visible = entries.filter(entry => entry.isIntersecting).sort((a,b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (!visible) return;
-      navLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${visible.target.id}`));
-    }, { rootMargin: '-20% 0px -65% 0px', threshold: [0,.15,.45] });
-    sections.forEach(section => observer.observe(section));
-  }
+  let ticking = false;
+  const syncNavigation = () => {
+    const headerOffset = 110;
+    const marker = window.scrollY + headerOffset;
+    let activeId = sections[0]?.section.id;
+
+    for (const { section } of sections) {
+      if (section.offsetTop <= marker) activeId = section.id;
+      else break;
+    }
+
+    const nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 8;
+    if (nearBottom && sections.length) activeId = sections[sections.length - 1].section.id;
+
+    if (activeId) setActiveNav(activeId);
+    ticking = false;
+  };
+
+  const requestNavigationSync = () => {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(syncNavigation);
+  };
+
+  window.addEventListener('scroll', requestNavigationSync, { passive: true });
+  window.addEventListener('resize', requestNavigationSync);
+  window.addEventListener('load', requestNavigationSync);
+  requestNavigationSync();
 })();
