@@ -52,7 +52,8 @@
 .hero-index-ring svg {
   width: 100%;
   height: 100%;
-  transform: rotate(-90deg);
+  transform: rotate(180deg);
+  transform-origin: 50% 50%;
 }
 
 .hero-ring-track,
@@ -68,7 +69,7 @@
 .hero-ring-value {
   stroke: #66816f;
   stroke-dasharray: 94.8 100;
-  stroke-linecap: butt;
+  stroke-linecap: round;
 }
 
 .hero-ring-center {
