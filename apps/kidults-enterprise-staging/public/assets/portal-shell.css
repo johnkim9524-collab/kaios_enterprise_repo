@@ -6,6 +6,9 @@
   --portal-shell-line:rgba(244,236,217,.08);
   --portal-shell-accent:#c8ff3d;
 }
+html{
+  scrollbar-gutter:stable;
+}
 .site-header{
   position:sticky;
   top:0;
@@ -56,7 +59,7 @@
   line-height:1!important;
   white-space:nowrap!important;
   transform:none!important;
-  transition:opacity .18s ease!important;
+  transition:none!important;
 }
 .site-nav a:hover,
 .site-nav a:focus-visible,
@@ -99,4 +102,7 @@
   .site-nav a[aria-current="page"]{
     min-height:42px!important;
   }
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
 }
