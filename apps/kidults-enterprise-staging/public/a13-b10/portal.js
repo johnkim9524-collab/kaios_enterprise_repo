@@ -2,14 +2,6 @@
   const qs = selector => document.querySelector(selector);
   const qsa = selector => [...document.querySelectorAll(selector)];
 
-  if (!document.querySelector('link[data-a13-b10-mobile-final]')) {
-    const mobileStylesheet = document.createElement('link');
-    mobileStylesheet.rel = 'stylesheet';
-    mobileStylesheet.href = '/a13-b10/mobile-final.css';
-    mobileStylesheet.dataset.a13B10MobileFinal = 'true';
-    document.head.appendChild(mobileStylesheet);
-  }
-
   const syncDesktopPanelWidths = () => {
     const reference = qs('.benchmark-grid');
     const targets = [qs('#signals'), qs('#research')].filter(Boolean);
