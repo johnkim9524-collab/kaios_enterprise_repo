@@ -2,17 +2,6 @@
   const qs = selector => document.querySelector(selector);
   const qsa = selector => [...document.querySelectorAll(selector)];
 
-  const stylizeHeroIndexNumber = () => {
-    const element = qs('.hero-ring-center strong');
-    if (!element) return;
-    const value = element.textContent ?? '';
-    element.innerHTML = [...value].map(character => (
-      character === '9'
-        ? `<span class="digit-nine-tail">${character}</span>`
-        : character
-    )).join('');
-  };
-
   const categories = {
     all: { title: 'Kidult 100', value: '94.8', delta: '+2.1%', interpretation: 'Liquidity expansion is broadening across culturally durable categories.' },
     character: { title: 'Character Goods', value: '89.9', delta: '+4.8%', interpretation: 'Licensed character ecosystems are converting cultural memory into repeat transaction depth.' },
@@ -109,7 +98,6 @@
     window.requestAnimationFrame(syncNavigation);
   };
 
-  stylizeHeroIndexNumber();
   window.addEventListener('scroll', requestNavigationSync, { passive: true });
   window.addEventListener('resize', requestNavigationSync);
   window.addEventListener('load', requestNavigationSync);
