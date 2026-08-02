@@ -1,0 +1,92 @@
+{
+  "version": "1.0",
+  "environment": "staging",
+  "tabs": {
+    "intelligence": {
+      "required": ["headline", "summary", "updated_at", "quality_status"],
+      "optional": ["momentum_score", "delta_30d", "confidence_grade", "qualified_signals", "source_families", "regions_tracked"]
+    },
+    "markets": {
+      "required": ["market_id", "name", "coverage_stage", "quality_status"],
+      "optional": ["summary", "momentum_score", "confidence_grade", "updated_at"]
+    },
+    "kidult_100": {
+      "required": ["rank", "category_id", "category_name", "score", "confidence_grade", "updated_at"],
+      "optional": ["delta", "coverage_stage", "methodology_version", "quality_status"]
+    },
+    "archive": {
+      "required": ["report_id", "title", "period", "report_type", "published_at"],
+      "optional": ["summary", "tags", "href", "quality_status"]
+    },
+    "methodology": {
+      "required": ["version", "effective_at", "stages"],
+      "optional": ["source_qualification", "normalization", "confidence_grading", "editorial_interpretation"]
+    },
+    "status": {
+      "required": ["status", "evaluated_at", "metrics", "alerts"],
+      "optional": ["latest_success_at", "production_promotion_authorized"]
+    },
+    "access": {
+      "required": ["newsletter_enabled", "waitlist_enabled", "inquiry_enabled"],
+      "optional": ["privacy_notice_version", "retention_days"]
+    }
+  },
+  "quality_status": {
+    "allowed": [
+      "operational",
+      "degraded",
+      "critical",
+      "delayed",
+      "under_review",
+      "insufficient_evidence",
+      "monitoring_pending"
+    ],
+    "public_labels": {
+      "operational": "Operational",
+      "degraded": "Degraded",
+      "critical": "Critical",
+      "delayed": "Delayed",
+      "under_review": "Under review",
+      "insufficient_evidence": "Insufficient evidence",
+      "monitoring_pending": "Monitoring pending"
+    },
+    "fallback_order": [
+      "last_good_publication",
+      "safe_placeholder",
+      "hide_optional_metric"
+    ]
+  },
+  "public_field_policy": {
+    "allowed": [
+      "status",
+      "evaluated_at",
+      "latest_success_at",
+      "metrics",
+      "alerts",
+      "scores",
+      "confidence_grade",
+      "coverage_stage",
+      "report_metadata"
+    ],
+    "forbidden": [
+      "credentials",
+      "tokens",
+      "server_paths",
+      "source_secrets",
+      "personal_data",
+      "private_exports",
+      "internal_incident_notes"
+    ]
+  },
+  "dom_hooks": {
+    "hero_status": "[data-hero-status]",
+    "hero_updated": "[data-hero-updated]",
+    "hero_score": "[data-hero-score]",
+    "kidult_100_list": "[data-index-list]",
+    "archive_results": "[data-archive-results]",
+    "archive_search": "[data-archive-search]",
+    "archive_type": "[data-archive-type]",
+    "quality_status": "[data-quality-status]",
+    "conversion_form": "[data-conversion-form]"
+  }
+}
