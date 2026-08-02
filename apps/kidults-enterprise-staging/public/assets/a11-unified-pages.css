@@ -17,7 +17,7 @@ body{min-width:0}
 .site-nav{display:flex;align-items:center;gap:clamp(1rem,2.5vw,2.6rem);flex-wrap:wrap}
 .site-nav a{color:#e7dcc4;font-weight:700;text-decoration:none;padding:.65rem 0;border-bottom:1px solid transparent}
 .site-nav a:hover,.site-nav a:focus-visible{color:#fff}
-.site-nav a[aria-current="page"]{color:var(--a11-lime);border-color:var(--a11-lime)}
+.site-nav a[aria-current="page"]{color:var(--a11-gold);border-color:var(--a11-gold)}
 .page-hero{padding-top:clamp(5rem,10vw,9rem);padding-bottom:clamp(4rem,8vw,7rem);background:radial-gradient(circle at 80% 15%,rgba(27,103,76,.35),transparent 32%)}
 .page-hero .eyebrow,.kicker{color:var(--a11-gold)}
 .page-hero h1{color:var(--a11-paper);font-size:clamp(4rem,8vw,8.2rem);line-height:.88;letter-spacing:-.065em;max-width:11ch}
@@ -31,7 +31,7 @@ body{min-width:0}
 .methodology-layout{display:grid;grid-template-columns:15rem minmax(0,1fr);gap:clamp(2rem,6vw,7rem);padding-top:5rem;padding-bottom:7rem}
 .methodology-index{position:sticky;top:150px;align-self:start;display:grid;gap:.75rem}
 .methodology-index a{color:#d5c9af;text-decoration:none}
-.methodology-index a:hover{color:var(--a11-lime)}
+.methodology-index a:hover{color:var(--a11-gold)}
 .methodology-content{display:grid;gap:5rem}
 .report-section h2,.quality-page h2,.methodology-callout h2{color:var(--a11-paper);font-size:clamp(2.3rem,4vw,4.8rem);line-height:.96}
 .principle-grid,.confidence-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:2rem}
