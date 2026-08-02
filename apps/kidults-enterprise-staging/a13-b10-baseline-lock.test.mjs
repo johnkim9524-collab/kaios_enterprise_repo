@@ -43,6 +43,20 @@ test('A13-B10 mobile signal and research layouts remain connected', () => {
   assert.match(mobileCss, /\.research-grid\s*\{[^}]*display:\s*block/s);
 });
 
+test('A13-B10 does not inject duplicate stylesheets at runtime', () => {
+  assert.doesNotMatch(js, /createElement\(['"]link['"]\)/);
+  assert.doesNotMatch(js, /mobile-final\.css/);
+  assert.doesNotMatch(js, /data-a13-b10-mobile-final/);
+});
+
+test('A13-B10 desktop signal and research widths track the benchmark canvas', () => {
+  assert.match(js, /const reference = qs\('\.benchmark-grid'\)/);
+  assert.match(js, /qs\('#signals'\)/);
+  assert.match(js, /qs\('#research'\)/);
+  assert.match(js, /getBoundingClientRect\(\)\.width/);
+  assert.match(js, /window\.innerWidth >= 1201/);
+});
+
 test('A13-B10 baseline documents the remaining merge gates', () => {
   assert.match(baseline, /STAGING · ILLUSTRATIVE DATA/);
   assert.match(baseline, /one HTML, one CSS and one JS/i);
