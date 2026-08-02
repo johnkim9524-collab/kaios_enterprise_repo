@@ -1,0 +1,72 @@
+/* Sprint 20-A9 Track B — V22 functional portal shell overlay */
+:root {
+  --a9-ink:#031f18;
+  --a9-ink-2:#073528;
+  --a9-paper:#f2ead7;
+  --a9-paper-dim:#cfc5aa;
+  --a9-gold:#b7893d;
+  --a9-lime:#c8ff3d;
+  --a9-mint:#72aa91;
+}
+
+html,body{max-width:100%;overflow-x:clip}
+body{background:var(--a9-ink);color:var(--a9-paper)}
+.site-header{background:#021913;border-bottom:1px solid rgba(207,197,170,.08)}
+.brand{font-family:"Bodoni 72",Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.055em}
+.brand-dot{color:var(--a9-lime)}
+.site-nav a{color:var(--a9-paper-dim)}
+.site-nav a:hover,.site-nav a:focus-visible{color:var(--a9-paper)}
+
+.hero{
+  min-height:calc(100svh - 96px);
+  display:grid;
+  grid-template-columns:minmax(0,1.55fr) minmax(20rem,.75fr);
+  align-items:center;
+  gap:clamp(3rem,7vw,8rem);
+  padding-top:clamp(4rem,8vh,7rem);
+  padding-bottom:clamp(4rem,8vh,7rem);
+  background:radial-gradient(circle at 78% 35%,rgba(19,94,66,.44),transparent 34%),linear-gradient(135deg,#031f18,#063326);
+}
+.hero .eyebrow{color:var(--a9-gold);letter-spacing:.17em}
+.hero h1{
+  max-width:12ch;
+  margin:0;
+  font-family:"Bodoni 72",Didot,"Bodoni MT",Georgia,serif;
+  font-size:clamp(3.6rem,6.35vw,7.35rem);
+  font-weight:400;
+  line-height:.82;
+  letter-spacing:-.07em;
+  text-wrap:balance;
+}
+.hero h1 .hero-line{display:block}
+.hero h1 strong{
+  display:inline-block;
+  margin:.10em 0 .13em;
+  font-family:Inter,"Avenir Next",Arial,sans-serif;
+  font-size:.62em;
+  font-style:normal;
+  letter-spacing:-.07em;
+  line-height:1.04;
+  transform:rotate(-2.3deg);
+  transform-origin:left center;
+  text-shadow:.08em .07em 0 rgba(7,43,32,.86),.14em .12em 0 rgba(14,82,61,.54),.19em .17em 0 rgba(112,170,145,.20),.24em .22em .38em rgba(0,0,0,.12);
+}
+.hero-copy{max-width:47rem;color:var(--a9-paper-dim);font-family:Georgia,serif;font-size:clamp(1.08rem,1.45vw,1.38rem);line-height:1.58}
+.status-panel{background:rgba(1,27,20,.88);box-shadow:0 24px 64px rgba(0,0,0,.18);border:0}
+.status-line{color:var(--a9-paper)}
+.status-dot{background:var(--a9-lime);box-shadow:0 0 0 .22rem rgba(200,255,61,.1),0 0 1rem rgba(200,255,61,.32)}
+
+.section{scroll-margin-top:6rem}
+.metric-card,.conversion-card,.privacy-notice{background:rgba(255,255,255,.035);border-color:rgba(207,197,170,.12)}
+.button{border-color:rgba(207,197,170,.24)}
+.button:hover{border-color:rgba(200,255,61,.42);background:rgba(200,255,61,.07);color:#e9ffc0}
+
+@media (max-width:900px){.hero{grid-template-columns:1fr;min-height:auto}.status-panel{max-width:38rem}}
+@media (max-width:720px){
+  .hero{padding-left:1.25rem;padding-right:1.25rem;gap:2rem}
+  .hero h1{font-size:clamp(2.35rem,11.7vw,3rem);line-height:.88}
+  .hero h1 strong{font-size:.68em;transform:rotate(-2.3deg);text-shadow:.07em .06em 0 rgba(7,43,32,.86),.12em .10em 0 rgba(14,82,61,.50),.16em .14em 0 rgba(112,170,145,.18)}
+  .hero-actions{display:grid;grid-template-columns:1fr}
+  .hero-actions .button{width:100%}
+}
+@media (max-width:360px){.hero{padding-left:1rem;padding-right:1rem}.hero h1{font-size:2.25rem}.status-panel{padding:1rem}}
