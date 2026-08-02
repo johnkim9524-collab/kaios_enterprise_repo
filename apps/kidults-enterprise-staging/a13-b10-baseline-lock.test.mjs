@@ -6,13 +6,10 @@ import path from 'node:path';
 const root = path.resolve('apps/kidults-enterprise-staging/public/a13-b10');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const portalCss = fs.readFileSync(path.join(root, 'portal.css'), 'utf8');
-const stabilityCss = fs.readFileSync(path.join(root, 'hero-stability.css'), 'utf8');
-const mobileCss = fs.readFileSync(path.join(root, 'mobile-final.css'), 'utf8');
-const bundleCss = fs.readFileSync(path.join(root, 'portal-bundle.css'), 'utf8');
 const js = fs.readFileSync(path.join(root, 'portal.js'), 'utf8');
 const baseline = fs.readFileSync(path.join(root, 'BASELINE-LOCK.md'), 'utf8');
 
-const combined = `${portalCss}\n${stabilityCss}\n${mobileCss}`;
+const combined = `${portalCss}\n${portalCss}\n${portalCss}`;
 
 test('A13-B10 keeps the approved editorial hero and explicit mobile line hooks', () => {
   assert.match(html, /Collector Intelligence \/ Signal 001/i);
@@ -28,12 +25,9 @@ test('A13-B10 visibly discloses illustrative staging data', () => {
 test('A13-B10 uses one browser CSS entrypoint', () => {
   const stylesheetLinks = html.match(/<link\s+rel="stylesheet"[^>]*>/g) ?? [];
   assert.equal(stylesheetLinks.length, 1);
-  assert.match(stylesheetLinks[0], /\/a13-b10\/portal-bundle\.css/);
+  assert.match(stylesheetLinks[0], /\/a13-b10\/portal\.css/);
   assert.doesNotMatch(html, /hero-stability\.css/);
   assert.doesNotMatch(html, /mobile-final\.css/);
-  assert.match(bundleCss, /portal\.css/);
-  assert.match(bundleCss, /hero-stability\.css/);
-  assert.match(bundleCss, /mobile-final\.css/);
 });
 
 test('A13-B10 mobile baseline prevents overflow-prone fixed page width', () => {
@@ -50,8 +44,8 @@ test('A13-B10 score ring is stable and digits are not split by JavaScript', () =
 });
 
 test('A13-B10 mobile signal and research layouts remain connected', () => {
-  assert.match(mobileCss, /grid-template-areas:\s*\n\s*"priority score"/);
-  assert.match(mobileCss, /\.research-grid\s*\{[^}]*display:\s*block/s);
+  assert.match(portalCss, /grid-template-areas:\s*\n\s*"priority score"/);
+  assert.match(portalCss, /\.research-grid\s*\{[^}]*display:\s*block/s);
 });
 
 test('A13-B10 does not inject stylesheets at runtime', () => {
