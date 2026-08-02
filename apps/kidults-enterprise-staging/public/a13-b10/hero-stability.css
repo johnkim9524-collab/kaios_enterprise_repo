@@ -4,6 +4,37 @@
   --font-number: 'Bodoni Moda', 'Times New Roman', serif;
 }
 
+.site-header {
+  display: flex;
+  align-items: center;
+  padding-inline: 36px;
+}
+
+.brand {
+  flex: 0 0 auto;
+  margin-right: auto;
+  font-size: 24px;
+  letter-spacing: .28em;
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-left: auto;
+}
+
+.main-nav a {
+  font-size: 15px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: 44px;
+}
+
 .hero {
   grid-template-columns: minmax(0, 1.62fr) minmax(380px, .62fr);
   gap: 72px;
@@ -153,6 +184,26 @@
 }
 
 @media (max-width: 1320px) {
+  .site-header {
+    padding-inline: 28px;
+  }
+
+  .brand {
+    font-size: 23px;
+  }
+
+  .main-nav {
+    gap: 27px;
+  }
+
+  .main-nav a {
+    font-size: 14px;
+  }
+
+  .header-actions {
+    margin-left: 32px;
+  }
+
   .hero {
     grid-template-columns: minmax(0, 1.5fr) minmax(360px, .7fr);
     gap: 54px;
@@ -173,6 +224,22 @@
 }
 
 @media (max-width: 1200px) {
+  .site-header {
+    padding-inline: 22px;
+  }
+
+  .brand {
+    font-size: 21px;
+  }
+
+  .main-nav {
+    gap: 22px;
+  }
+
+  .header-actions {
+    margin-left: 24px;
+  }
+
   .hero {
     grid-template-columns: 1fr;
   }
@@ -189,6 +256,25 @@
 }
 
 @media (max-width: 900px) {
+  .site-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    padding-inline: 20px;
+  }
+
+  .brand {
+    margin-right: 0;
+    font-size: 20px;
+  }
+
+  .main-nav {
+    display: none;
+  }
+
+  .header-actions {
+    margin-left: 0;
+  }
+
   .hero h1 {
     line-height: .86;
   }
@@ -199,6 +285,14 @@
 }
 
 @media (max-width: 520px) {
+  .site-header {
+    padding-inline: 16px;
+  }
+
+  .brand {
+    font-size: 18px;
+  }
+
   .hero h1 {
     max-width: 9.6ch;
     line-height: .87;
