@@ -1,3 +1,4 @@
+@import url('/a13-b5/assets/editorial-fusion.css');
 /* A13-B7 Hero, navigation and holistic global-standard tuning */
 :root{--anchor-offset:96px}
 html{scroll-padding-top:var(--anchor-offset)}
@@ -5,6 +6,7 @@ html{scroll-padding-top:var(--anchor-offset)}
 .command{grid-template-columns:minmax(0,1.25fr) minmax(520px,.75fr);gap:38px;align-items:end;padding-top:10px;margin-bottom:14px}
 .command-copy{padding:18px 4px 8px;max-width:900px}
 .command h1{font-size:clamp(64px,6.7vw,112px);line-height:.86;max-width:9.6ch;margin:14px 0 22px}
+.command h1 br:first-of-type{display:none}
 .command p{max-width:820px;font-size:18px;line-height:1.62;margin-bottom:0}
 .state-grid{min-height:280px}.state{min-height:140px;padding:24px 22px;grid-template-rows:22px 58px 20px}.state strong{font-size:40px}.state span{font-size:12px}
 .command-strip{margin:12px 0 12px;padding:10px 14px;min-height:58px}.command-strip__nav,.command-strip__status{gap:18px}.command-strip__nav button{padding:9px 6px;font-size:11px}.command-strip__status{font-size:10px}
