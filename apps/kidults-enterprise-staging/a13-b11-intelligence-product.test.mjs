@@ -6,6 +6,8 @@ import path from 'node:path';
 const appRoot = path.resolve('apps/kidults-enterprise-staging');
 const publicRoot = path.join(appRoot, 'public', 'a13-b10');
 const baseline = fs.readFileSync(path.join(appRoot, 'A13-B11-BASELINE.md'), 'utf8');
+const html = fs.readFileSync(path.join(publicRoot, 'index.html'), 'utf8');
+const js = fs.readFileSync(path.join(publicRoot, 'portal.js'), 'utf8');
 const product = JSON.parse(
   fs.readFileSync(path.join(publicRoot, 'data', 'intelligence-product.json'), 'utf8')
 );
@@ -14,7 +16,17 @@ test('A13-B11 keeps staging and illustrative data explicit', () => {
   assert.equal(product.meta.release, 'A13-B11');
   assert.equal(product.meta.status, 'staging');
   assert.equal(product.meta.dataMode, 'illustrative');
+  assert.match(html, /Staging · Illustrative data/i);
   assert.match(baseline, /Production remains untouched/i);
+});
+
+test('A13-B11 renders the required intelligence product modules', () => {
+  assert.match(html, /id="category-matrix"/);
+  assert.match(html, /Category Intelligence Matrix/i);
+  assert.match(html, /id="canon-strength"/);
+  assert.match(html, /Cultural Durability \/ Canon Strength/i);
+  assert.match(html, /id="method-trust"/);
+  assert.match(html, /Method & Trust/i);
 });
 
 test('A13-B11 defines the required category intelligence matrix', () => {
@@ -37,7 +49,6 @@ test('A13-B11 defines the required category intelligence matrix', () => {
 test('A13-B11 canon contract exposes four explainable dimensions', () => {
   assert.match(product.canon.headline, /Cultural durability/i);
   assert.equal(product.canon.dimensions.length, 4);
-
   const keys = product.canon.dimensions.map(item => item.key);
   assert.deepEqual(keys, ['memory', 'licensing', 'community', 'crossBorder']);
 
@@ -66,7 +77,28 @@ test('A13-B11 time-series contract supports all categories and horizons', () => 
   }
 });
 
-test('A13-B11 architecture remains one HTML, one CSS and one JS', () => {
+test('A13-B11 connects JSON data to matrix, canon, method and chart rendering', () => {
+  assert.match(js, /fetch\('\/a13-b10\/data\/intelligence-product\.json'/);
+  assert.match(js, /renderCategoryMatrix/);
+  assert.match(js, /renderCanon/);
+  assert.match(js, /renderMethod/);
+  assert.match(js, /renderChart/);
+  assert.match(js, /data-series-line/);
+  assert.match(js, /data-confidence-band/);
+});
+
+test('A13-B11 mobile UI keeps new modules single-column and scroll-safe', () => {
+  assert.match(html, /@media \(max-width: 767px\)/);
+  assert.match(html, /\.canon-grid \{ grid-template-columns: 1fr; \}/);
+  assert.match(html, /\.matrix-scroll \{ margin-inline: -20px;/);
+  assert.match(html, /\.trust-metrics \{ grid-template-columns: 1fr; \}/);
+});
+
+test('A13-B11 architecture remains one external CSS and one interaction JS', () => {
+  const stylesheetLinks = html.match(/<link[^>]+rel="stylesheet"[^>]*>/g) || [];
+  const scriptLinks = html.match(/<script[^>]+src="[^"]+"[^>]*><\/script>/g) || [];
+  assert.equal(stylesheetLinks.length, 1);
+  assert.equal(scriptLinks.length, 1);
   assert.match(baseline, /one HTML file, one physical CSS file and one interaction JavaScript file/i);
   assert.match(baseline, /Do not inject stylesheets at runtime/i);
   assert.match(baseline, /320px, 360px, 390px and 430px/i);
