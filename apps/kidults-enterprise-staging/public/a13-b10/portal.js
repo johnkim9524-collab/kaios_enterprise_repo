@@ -2,51 +2,6 @@
   const qs = selector => document.querySelector(selector);
   const qsa = selector => [...document.querySelectorAll(selector)];
 
-  const stateStylesheet = document.createElement('link');
-  stateStylesheet.rel = 'stylesheet';
-  stateStylesheet.href = '/a13-b10/current-state.css';
-  document.head.appendChild(stateStylesheet);
-
-  const hero = qs('#hero');
-  if (hero && !qs('.current-state')) {
-    const section = document.createElement('section');
-    section.className = 'current-state section-shell';
-    section.setAttribute('aria-label', 'Current market state');
-    section.innerHTML = `
-      <div class="current-state-card">
-        <div class="current-state-visual">
-          <div class="state-ring" role="img" aria-label="Kidult 100 current score 94.8 out of 100">
-            <svg viewBox="0 0 120 120" aria-hidden="true">
-              <circle class="state-ring-track" cx="60" cy="60" r="48" pathLength="100"></circle>
-              <circle class="state-ring-value" cx="60" cy="60" r="48" pathLength="100"></circle>
-            </svg>
-            <div class="state-ring-center">
-              <strong>94.8</strong>
-              <span>▲ 2.1%</span>
-              <small>Expansion</small>
-            </div>
-          </div>
-        </div>
-        <div class="current-state-copy">
-          <div>
-            <p class="eyebrow">Current Market State / Kidult 100</p>
-            <h2>The Global Collectibles Intelligence Index.</h2>
-            <p class="state-summary">The Kidult 100 measures collectible market momentum through liquidity, canon strength, scarcity and cultural persistence across brands, categories and regions.</p>
-            <div class="state-interpretation">
-              <span>Current interpretation</span>
-              <p>Liquidity expansion is broadening across culturally durable categories.</p>
-            </div>
-          </div>
-          <div class="state-metrics">
-            <div><small>Confidence</small><strong>94% / A</strong></div>
-            <div><small>Coverage</small><strong>500+ Brands</strong></div>
-            <div><small>Market regime</small><strong>Expansion</strong></div>
-          </div>
-        </div>
-      </div>`;
-    hero.insertAdjacentElement('afterend', section);
-  }
-
   const categories = {
     all: { title: 'Kidult 100', value: '94.8', delta: '+2.1%', interpretation: 'Liquidity expansion is broadening across culturally durable categories.' },
     character: { title: 'Character Goods', value: '89.9', delta: '+4.8%', interpretation: 'Licensed character ecosystems are converting cultural memory into repeat transaction depth.' },
