@@ -10,6 +10,54 @@
   const evidenceBody = document.querySelector('[data-evidence-body]');
   const cycle = document.querySelector('[data-cycle]');
 
+  const workspace = document.querySelector('.workspace');
+  const main = document.querySelector('.main');
+  const lower = document.querySelector('.lower');
+  const watchlist = document.querySelector('.rightbar');
+
+  if (workspace && main && lower && watchlist) {
+    watchlist.classList.add('watchlist-inline');
+    lower.insertAdjacentElement('afterend', watchlist);
+
+    const layoutStyle = document.createElement('style');
+    layoutStyle.textContent = `
+      .workspace{grid-template-columns:220px minmax(0,1fr)}
+      .rail{grid-column:1;grid-row:1}
+      .main{grid-column:2;grid-row:1}
+      .watchlist-inline{
+        display:grid!important;
+        grid-template-columns:repeat(4,minmax(0,1fr));
+        gap:0;
+        margin-top:18px;
+        padding:18px;
+        border:1px solid var(--line);
+        background:var(--paper);
+      }
+      .watchlist-inline>.eyebrow,
+      .watchlist-inline>h3{grid-column:1/-1}
+      .watchlist-inline>h3{margin:2px 0 16px;font-size:27px}
+      .watchlist-inline .watch{
+        padding:14px 16px;
+        border-top:1px solid var(--line);
+        border-left:1px solid var(--line);
+      }
+      .watchlist-inline .watch:first-of-type{border-top:1px solid var(--ink);border-left:0}
+      .watchlist-inline .watch:nth-of-type(2),
+      .watchlist-inline .watch:nth-of-type(3),
+      .watchlist-inline .watch:nth-of-type(4){border-top:1px solid var(--ink)}
+      @media(max-width:1100px){
+        .watchlist-inline{grid-template-columns:repeat(2,minmax(0,1fr))}
+        .watchlist-inline .watch:nth-of-type(3){border-left:0}
+      }
+      @media(max-width:820px){
+        .workspace{display:block}
+        .watchlist-inline{grid-template-columns:1fr;margin-top:14px;padding:14px}
+        .watchlist-inline .watch{border-left:0}
+      }
+    `;
+    document.head.appendChild(layoutStyle);
+  }
+
   const datasets = {
     all: { label: 'Kidult 100', value: '94.8', delta: '+2.1', interpretation: 'Liquidity expansion is broadening across culturally durable categories.' },
     characters: { label: 'Character Goods', value: '89.9', delta: '+4.8', interpretation: 'Licensed character ecosystems are converting cultural memory into repeat transaction depth.' },
