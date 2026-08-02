@@ -17,7 +17,7 @@ body{min-width:0}
 .site-nav{display:flex;align-items:center;gap:clamp(1rem,2.5vw,2.6rem);flex-wrap:wrap}
 .site-nav a{color:#e7dcc4;font-weight:700;text-decoration:none;padding:.65rem 0;border-bottom:1px solid transparent}
 .site-nav a:hover,.site-nav a:focus-visible{color:#fff}
-.site-nav a[aria-current="page"]{color:#fff;border-color:var(--a11-gold)}
+.site-nav a[aria-current="page"]{color:#fff;border-color:transparent}
 .page-hero{padding-top:clamp(5rem,10vw,9rem);padding-bottom:clamp(4rem,8vw,7rem);background:radial-gradient(circle at 80% 15%,rgba(27,103,76,.35),transparent 32%)}
 .page-hero .eyebrow,.kicker{color:var(--a11-gold)}
 .page-hero h1{color:var(--a11-paper);font-size:clamp(4rem,8vw,8.2rem);line-height:.88;letter-spacing:-.065em;max-width:11ch}
