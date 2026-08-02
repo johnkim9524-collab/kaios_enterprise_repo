@@ -2,6 +2,38 @@
   const qs = selector => document.querySelector(selector);
   const qsa = selector => [...document.querySelectorAll(selector)];
 
+  if (!document.querySelector('link[data-a13-b10-mobile-final]')) {
+    const mobileStylesheet = document.createElement('link');
+    mobileStylesheet.rel = 'stylesheet';
+    mobileStylesheet.href = '/a13-b10/mobile-final.css';
+    mobileStylesheet.dataset.a13B10MobileFinal = 'true';
+    document.head.appendChild(mobileStylesheet);
+  }
+
+  const syncDesktopPanelWidths = () => {
+    const reference = qs('.benchmark-grid');
+    const targets = [qs('#signals'), qs('#research')].filter(Boolean);
+    if (!reference || !targets.length) return;
+
+    if (window.innerWidth >= 1201) {
+      const referenceWidth = Math.round(reference.getBoundingClientRect().width);
+      targets.forEach(target => {
+        target.style.setProperty('width', `${referenceWidth}px`, 'important');
+        target.style.setProperty('max-width', `${referenceWidth}px`, 'important');
+        target.style.setProperty('margin-left', 'auto', 'important');
+        target.style.setProperty('margin-right', 'auto', 'important');
+      });
+      return;
+    }
+
+    targets.forEach(target => {
+      target.style.removeProperty('width');
+      target.style.removeProperty('max-width');
+      target.style.removeProperty('margin-left');
+      target.style.removeProperty('margin-right');
+    });
+  };
+
   const categories = {
     all: { title: 'Kidult 100', value: '94.8', delta: '+2.1%', interpretation: 'Liquidity expansion is broadening across culturally durable categories.' },
     character: { title: 'Character Goods', value: '89.9', delta: '+4.8%', interpretation: 'Licensed character ecosystems are converting cultural memory into repeat transaction depth.' },
@@ -52,30 +84,6 @@
     qs('[data-evidence-body]').innerHTML = `<div class="evidence-grid">${data.metrics.map(([label,value]) => `<div><small>${label}</small><strong>${value}</strong></div>`).join('')}</div><div class="evidence-notes">${data.notes.map(note => `<p>${note}</p>`).join('')}</div>`;
   }));
 
-  const syncDesktopPanelWidths = () => {
-    const desktop = window.innerWidth >= 1201;
-    const targetWidth = `${Math.min(1412, Math.max(0, window.innerWidth - 68))}px`;
-
-    ['#signals', '#research'].forEach(selector => {
-      const element = qs(selector);
-      if (!element) return;
-
-      if (desktop) {
-        element.style.setProperty('width', targetWidth, 'important');
-        element.style.setProperty('max-width', targetWidth, 'important');
-        element.style.setProperty('margin-left', 'auto', 'important');
-        element.style.setProperty('margin-right', 'auto', 'important');
-        element.style.setProperty('box-sizing', 'border-box', 'important');
-      } else {
-        element.style.removeProperty('width');
-        element.style.removeProperty('max-width');
-        element.style.removeProperty('margin-left');
-        element.style.removeProperty('margin-right');
-        element.style.removeProperty('box-sizing');
-      }
-    });
-  };
-
   const navLinks = qsa('.main-nav a');
   const sections = navLinks
     .map(link => ({ link, section: qs(link.getAttribute('href')) }))
@@ -122,6 +130,7 @@
     window.requestAnimationFrame(syncNavigation);
   };
 
+  syncDesktopPanelWidths();
   window.addEventListener('scroll', requestNavigationSync, { passive: true });
   window.addEventListener('resize', () => {
     syncDesktopPanelWidths();
@@ -131,7 +140,5 @@
     syncDesktopPanelWidths();
     requestNavigationSync();
   });
-
-  syncDesktopPanelWidths();
   requestNavigationSync();
 })();
