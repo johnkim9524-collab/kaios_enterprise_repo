@@ -1,3 +1,6 @@
+@import url("./portal-shell.css");
+@import url("./a12-comprehensive-tuning.css");
+
 /* Sprint 20-A9 Track B — V22 functional portal shell overlay */
 :root {
   --a9-ink:#031f18;
