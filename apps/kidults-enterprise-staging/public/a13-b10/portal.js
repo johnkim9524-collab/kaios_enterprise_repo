@@ -2,6 +2,32 @@
   const qs = selector => document.querySelector(selector);
   const qsa = selector => [...document.querySelectorAll(selector)];
 
+  const premiumNumberSelector = [
+    '.hero-ring-center strong',
+    '.proof-grid strong',
+    '.hero-metrics strong',
+    '.headline-index strong',
+    '.metric-row strong',
+    '.watch-grid > article > strong',
+    '.evidence-grid strong'
+  ].join(',');
+
+  const stylizePremiumNumber = element => {
+    if (!element) return;
+    const value = element.textContent ?? '';
+    element.innerHTML = [...value].map(character => (
+      /[346789]/.test(character)
+        ? `<span class="digit-tall">${character}</span>`
+        : character
+    )).join('');
+  };
+
+  const stylizePremiumNumbers = root => {
+    const scope = root ?? document;
+    if (scope.matches?.(premiumNumberSelector)) stylizePremiumNumber(scope);
+    scope.querySelectorAll?.(premiumNumberSelector).forEach(stylizePremiumNumber);
+  };
+
   const categories = {
     all: { title: 'Kidult 100', value: '94.8', delta: '+2.1%', interpretation: 'Liquidity expansion is broadening across culturally durable categories.' },
     character: { title: 'Character Goods', value: '89.9', delta: '+4.8%', interpretation: 'Licensed character ecosystems are converting cultural memory into repeat transaction depth.' },
@@ -34,7 +60,9 @@
     const data = categories[button.dataset.category];
     if (!data) return;
     qs('[data-index-title]').textContent = data.title;
-    qs('[data-index-value]').textContent = data.value;
+    const indexValue = qs('[data-index-value]');
+    indexValue.textContent = data.value;
+    stylizePremiumNumber(indexValue);
     qs('[data-index-delta]').textContent = data.delta;
     qs('[data-interpretation]').textContent = data.interpretation;
   }));
@@ -49,7 +77,9 @@
     const data = evidence[button.dataset.signal];
     if (!data) return;
     qs('[data-evidence-title]').textContent = data.title;
-    qs('[data-evidence-body]').innerHTML = `<div class="evidence-grid">${data.metrics.map(([label,value]) => `<div><small>${label}</small><strong>${value}</strong></div>`).join('')}</div><div class="evidence-notes">${data.notes.map(note => `<p>${note}</p>`).join('')}</div>`;
+    const body = qs('[data-evidence-body]');
+    body.innerHTML = `<div class="evidence-grid">${data.metrics.map(([label,value]) => `<div><small>${label}</small><strong>${value}</strong></div>`).join('')}</div><div class="evidence-notes">${data.notes.map(note => `<p>${note}</p>`).join('')}</div>`;
+    stylizePremiumNumbers(body);
   }));
 
   const navLinks = qsa('.main-nav a');
@@ -98,6 +128,7 @@
     window.requestAnimationFrame(syncNavigation);
   };
 
+  stylizePremiumNumbers(document);
   window.addEventListener('scroll', requestNavigationSync, { passive: true });
   window.addEventListener('resize', requestNavigationSync);
   window.addEventListener('load', requestNavigationSync);
