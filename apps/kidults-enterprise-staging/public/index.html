@@ -4,10 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Kidults delivers decision-ready global collectibles intelligence, market signals, category rankings and institutional research.">
-  <meta name="theme-color" content="#06111f">
-  <title>Kidults — Global Collectibles Intelligence</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306111f'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23c7a86d'%3EK%3C/text%3E%3C/svg%3E">
+  <meta name="theme-color" content="#031f18">
+  <title>Kidults — Global Collector Intelligence</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23031f18'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23c8ff3d'%3EK%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="assets/a9-v22-shell.css">
   <script src="assets/app.js" defer></script>
 </head>
 <body>
@@ -18,6 +19,7 @@
       <a class="brand" href="index.html" aria-label="Kidults home">Kidults<span class="brand-dot">.</span></a>
       <nav class="site-nav" aria-label="Primary navigation">
         <a href="#intelligence">Intelligence</a>
+        <a href="#markets">Markets</a>
         <a href="#kidult-100">Kidult 100</a>
         <a href="#archive">Archive</a>
         <a href="methodology.html">Methodology</a>
@@ -28,19 +30,38 @@
   </header>
 
   <main id="main-content">
-    <section class="shell hero" aria-labelledby="hero-title">
-      <div>
-        <p class="eyebrow">Enterprise Intelligence · Staging</p>
-        <h1 id="hero-title">The global reference layer for collectibles intelligence.</h1>
-        <p class="hero-copy">Decision-ready market, category and asset intelligence with methodology, confidence and evidence visible at every decision point.</p>
+    <section class="shell hero hero-v22" aria-labelledby="hero-title">
+      <div class="hero-copy-block">
+        <p class="eyebrow">Global Collector Intelligence · Staging</p>
+        <h1 id="hero-title" class="hero-title">
+          <span>Objects become</span>
+          <strong>CULTURE</strong>
+          <span>before consensus.</span>
+        </h1>
+        <p class="hero-copy">Kidults identifies category momentum before it becomes market consensus, with methodology, confidence and evidence visible at every decision point.</p>
         <div class="hero-actions">
           <a class="button" href="#kidult-100">Explore Kidult 100</a>
-          <a class="button button-secondary" href="reports/monthly-intelligence-2026-08.html">Read the monthly brief</a>
+          <a class="button button-secondary" href="reports/monthly-intelligence-2026-08.html">Read Monthly Intelligence</a>
         </div>
       </div>
-      <aside class="status-panel" aria-label="System status">
-        <p class="kicker">Intelligence status</p>
-        <div class="status-line"><span class="status-dot" aria-hidden="true"></span>Operational</div>
+
+      <aside class="status-panel signal-card" aria-label="Category momentum and intelligence status">
+        <div class="signal-meta">
+          <span>Category Momentum</span>
+          <span class="status-line" data-hero-status><span class="status-dot" aria-hidden="true"></span>Monitoring pending</span>
+        </div>
+        <h2>Collector market signal</h2>
+        <p>Evidence-weighted momentum across qualified categories.</p>
+        <div class="score-row">
+          <strong class="score" data-hero-score>—</strong>
+          <span class="delta">Qualified signal</span>
+        </div>
+        <div class="signal-stats">
+          <div><small>Updated</small><b data-hero-updated>Pending</b></div>
+          <div><small>Confidence</small><b>A</b></div>
+          <div><small>Qualified signals</small><b>25</b></div>
+          <div><small>Regions</small><b>Global</b></div>
+        </div>
         <small>Staging evidence only · Production remains isolated</small>
       </aside>
     </section>
@@ -51,51 +72,39 @@
           <p class="kicker">Decision surface</p>
           <h2 id="intelligence-title">Signals designed for action.</h2>
         </div>
-        <p>Institutional-grade context for leaders evaluating momentum, liquidity and category strength across the global collectibles economy.</p>
+        <p>Institutional context for leaders evaluating momentum, liquidity and category strength across the global collectibles economy.</p>
       </div>
-
       <div class="metrics-grid">
         <article class="metric-card metric-card-wide">
           <p class="kicker">Monthly Intelligence · <span data-monthly-issue>2026-08</span></p>
           <h3 class="metric-number" data-monthly-title>Monthly Intelligence Issue 01</h3>
           <p data-monthly-summary>Loading the current intelligence brief…</p>
-          <div class="hero-actions">
-            <a class="button button-secondary" href="reports/monthly-intelligence-2026-08.html">Open report</a>
-          </div>
+          <div class="hero-actions"><a class="button button-secondary" href="reports/monthly-intelligence-2026-08.html">Open report</a></div>
         </article>
-        <article class="metric-card">
-          <p class="kicker">Market coverage</p>
-          <div class="metric-number">20</div>
-          <p class="metric-label">Target source plan</p>
-          <p class="data-state">Live source promotion remains subject to rights and confidence gates.</p>
-        </article>
-        <article class="metric-card">
-          <p class="kicker">Brand momentum</p>
-          <div class="metric-number">A</div>
-          <p class="metric-label">Highest confidence tier</p>
-        </article>
-        <article class="metric-card">
-          <p class="kicker">Liquidity grade</p>
-          <div class="metric-number">B+</div>
-          <p class="metric-label">Healthy secondary-market depth</p>
-        </article>
-        <article class="metric-card">
-          <p class="kicker">Decision signal</p>
-          <div class="metric-number">72</div>
-          <p class="metric-label">Composite opportunity score</p>
-        </article>
+        <article class="metric-card"><p class="kicker">Market coverage</p><div class="metric-number">20</div><p class="metric-label">Target source plan</p><p class="data-state">Live source promotion remains subject to rights and confidence gates.</p></article>
+        <article class="metric-card"><p class="kicker">Brand momentum</p><div class="metric-number">A</div><p class="metric-label">Highest confidence tier</p></article>
+        <article class="metric-card"><p class="kicker">Liquidity grade</p><div class="metric-number">B+</div><p class="metric-label">Healthy secondary-market depth</p></article>
+        <article class="metric-card"><p class="kicker">Decision signal</p><div class="metric-number">72</div><p class="metric-label">Composite opportunity score</p></article>
+      </div>
+    </section>
+
+    <section class="shell section" id="markets" aria-labelledby="markets-title">
+      <div class="section-heading">
+        <div><p class="kicker">Category architecture</p><h2 id="markets-title">Markets move through evidence stages.</h2></div>
+        <p>Core and Horizon markets are evaluated through the same qualification, normalization and confidence framework.</p>
+      </div>
+      <div class="metrics-grid market-grid">
+        <article class="metric-card metric-card-wide"><p class="kicker">Core market</p><h3>Designer Toys</h3><p>Established collector demand, visible secondary liquidity and repeatable evidence coverage.</p></article>
+        <article class="metric-card"><p class="kicker">Horizon market</p><h3>Trading Cards</h3><p>Growing evidence density with category-level momentum under active review.</p></article>
+        <article class="metric-card"><p class="kicker">Horizon market</p><h3>Premium Figures</h3><p>Emerging signals assessed against confidence and source-quality gates.</p></article>
       </div>
     </section>
 
     <section class="shell section" id="kidult-100" aria-labelledby="index-title">
       <div class="section-heading">
-        <div>
-          <p class="kicker">Proprietary benchmark</p>
-          <h2 id="index-title">Kidult 100</h2>
-        </div>
-        <p>A transparent staging preview of the categories showing the strongest blend of momentum, quality and evidence confidence.</p>
+        <div><p class="kicker">Proprietary benchmark</p><h2 id="index-title">Kidult 100</h2></div>
+        <p>A transparent staging view of categories showing the strongest blend of momentum, quality and evidence confidence.</p>
       </div>
-
       <article class="metric-card metric-card-wide">
         <div class="trust-grid" aria-label="Index metadata">
           <div class="trust-item"><b data-index-count>—</b><small>Ranked categories</small></div>
@@ -103,140 +112,85 @@
           <div class="trust-item"><b>A</b><small>Confidence grade</small></div>
           <div class="trust-item"><b data-index-updated>—</b><small>Updated</small></div>
         </div>
-        <div class="ranking-list" data-index-list aria-live="polite">
-          <div class="data-state">Loading Kidult 100 intelligence…</div>
-        </div>
+        <div class="ranking-list" data-index-list aria-live="polite"><div class="data-state">Loading Kidult 100 intelligence…</div></div>
         <div class="data-state" data-load-state hidden>Live data could not be loaded. Run this page through the local HTTP server command supplied with the sprint.</div>
-        <div class="hero-actions">
-          <a class="button button-secondary" href="methodology.html">Read K100 methodology</a>
-        </div>
+        <div class="hero-actions"><a class="button button-secondary" href="methodology.html">Read K100 methodology</a></div>
       </article>
     </section>
 
     <section class="shell section" id="archive" aria-labelledby="archive-title">
       <div class="section-heading">
-        <div>
-          <p class="kicker">Research library</p>
-          <h2 id="archive-title">Intelligence Archive</h2>
-        </div>
+        <div><p class="kicker">Research library</p><h2 id="archive-title">Intelligence Archive</h2></div>
         <p>Search published and developing reports by title, period, type or research tag.</p>
       </div>
-
       <div class="archive-toolbar" role="search">
-        <div class="field">
-          <label for="archive-search">Search reports</label>
-          <input id="archive-search" type="search" placeholder="Try liquidity or market pulse" autocomplete="off" data-archive-search>
-        </div>
-        <div class="field">
-          <label for="archive-type">Report type</label>
-          <select id="archive-type" data-archive-type>
-            <option value="all">All reports</option>
-            <option value="monthly-intelligence">Monthly intelligence</option>
-          </select>
-        </div>
+        <div class="field"><label for="archive-search">Search reports</label><input id="archive-search" type="search" placeholder="Try liquidity or market pulse" autocomplete="off" data-archive-search></div>
+        <div class="field"><label for="archive-type">Report type</label><select id="archive-type" data-archive-type><option value="all">All reports</option><option value="monthly-intelligence">Monthly intelligence</option></select></div>
       </div>
       <p class="metadata" data-archive-count aria-live="polite">Loading reports…</p>
       <div class="archive-results" data-archive-results></div>
       <div class="data-state" data-load-state hidden>Archive data could not be loaded. Confirm the local server is running from the public directory.</div>
     </section>
 
+    <section class="shell section methodology-preview" aria-labelledby="method-preview-title">
+      <div class="section-heading">
+        <div><p class="kicker">Evidence before conviction</p><h2 id="method-preview-title">Methodology is part of the product.</h2></div>
+        <p>Source qualification, signal normalization, confidence grading and editorial interpretation remain visible throughout the portal.</p>
+      </div>
+      <div class="trust-grid">
+        <div class="trust-item"><b>01</b><small>Source qualification</small></div>
+        <div class="trust-item"><b>02</b><small>Signal normalization</small></div>
+        <div class="trust-item"><b>03</b><small>Confidence grading</small></div>
+        <div class="trust-item"><b>04</b><small>Editorial interpretation</small></div>
+      </div>
+      <div class="hero-actions"><a class="button button-secondary" href="methodology.html">Open methodology</a><a class="button button-secondary" href="operations.html">View intelligence status</a></div>
+    </section>
+
     <section class="shell section" id="access" aria-labelledby="access-title">
       <div class="section-heading">
-        <div>
-          <p class="kicker">Conversion pathways</p>
-          <h2 id="access-title">Choose your level of access.</h2>
-        </div>
+        <div><p class="kicker">Access</p><h2 id="access-title">Choose your level of intelligence access.</h2></div>
         <p>Follow the public brief, join the enterprise access queue or start a focused intelligence conversation.</p>
       </div>
-
       <div class="conversion-grid">
         <article class="conversion-card">
-          <p class="kicker">Newsletter</p>
-          <h3>Monthly signals</h3>
-          <p>Receive the public monthly intelligence brief and selected category signals.</p>
+          <p class="kicker">Newsletter</p><h3>Monthly signals</h3><p>Receive the public monthly intelligence brief and selected category signals.</p>
           <form class="conversion-form" data-conversion-form="newsletter" data-success-message="You're on the staging newsletter list.">
-            <div class="honeypot-field" aria-hidden="true">
-              <label for="newsletter-website">Website</label>
-              <input id="newsletter-website" name="website" type="text" autocomplete="off" tabindex="-1">
-            </div>
-            <div class="field">
-              <label for="newsletter-email">Work email</label>
-              <input id="newsletter-email" name="email" type="email" autocomplete="email" required placeholder="you@company.com">
-            </div>
-            <label class="consent-field" for="newsletter-consent">
-              <input id="newsletter-consent" name="consent" type="checkbox" value="yes" required>
-              <span>I agree to the <a href="#privacy">privacy notice</a> and email contact.</span>
-            </label>
-            <button class="button" type="submit">Subscribe</button>
-            <p class="form-status" tabindex="-1" data-form-status role="status"></p>
+            <div class="honeypot-field" aria-hidden="true"><label for="newsletter-website">Website</label><input id="newsletter-website" name="website" type="text" autocomplete="off" tabindex="-1"></div>
+            <div class="field"><label for="newsletter-email">Work email</label><input id="newsletter-email" name="email" type="email" autocomplete="email" required placeholder="you@company.com"></div>
+            <label class="consent-field" for="newsletter-consent"><input id="newsletter-consent" name="consent" type="checkbox" value="yes" required><span>I agree to the <a href="#privacy">privacy notice</a> and email contact.</span></label>
+            <button class="button" type="submit">Subscribe</button><p class="form-status" tabindex="-1" data-form-status role="status"></p>
           </form>
         </article>
-
         <article class="conversion-card">
-          <p class="kicker">Enterprise waitlist</p>
-          <h3>Early intelligence access</h3>
-          <p>Join the queue for deeper benchmarks, evidence views and decision workflows.</p>
+          <p class="kicker">Enterprise waitlist</p><h3>Early intelligence access</h3><p>Join the queue for deeper benchmarks, evidence views and decision workflows.</p>
           <form class="conversion-form" data-conversion-form="waitlist" data-success-message="Your enterprise access request is recorded for staging review.">
-            <div class="honeypot-field" aria-hidden="true">
-              <label for="waitlist-website">Website</label>
-              <input id="waitlist-website" name="website" type="text" autocomplete="off" tabindex="-1">
-            </div>
-            <div class="field">
-              <label for="waitlist-email">Work email</label>
-              <input id="waitlist-email" name="email" type="email" autocomplete="email" required placeholder="you@company.com">
-            </div>
-            <div class="field">
-              <label for="waitlist-organization">Organization</label>
-              <input id="waitlist-organization" name="organization" type="text" autocomplete="organization" required placeholder="Company or institution">
-            </div>
-            <label class="consent-field" for="waitlist-consent">
-              <input id="waitlist-consent" name="consent" type="checkbox" value="yes" required>
-              <span>I agree to the <a href="#privacy">privacy notice</a> and follow-up contact.</span>
-            </label>
-            <button class="button" type="submit">Join waitlist</button>
-            <p class="form-status" tabindex="-1" data-form-status role="status"></p>
+            <div class="honeypot-field" aria-hidden="true"><label for="waitlist-website">Website</label><input id="waitlist-website" name="website" type="text" autocomplete="off" tabindex="-1"></div>
+            <div class="field"><label for="waitlist-email">Work email</label><input id="waitlist-email" name="email" type="email" autocomplete="email" required placeholder="you@company.com"></div>
+            <div class="field"><label for="waitlist-organization">Organization</label><input id="waitlist-organization" name="organization" type="text" autocomplete="organization" required placeholder="Company or institution"></div>
+            <label class="consent-field" for="waitlist-consent"><input id="waitlist-consent" name="consent" type="checkbox" value="yes" required><span>I agree to the <a href="#privacy">privacy notice</a> and follow-up contact.</span></label>
+            <button class="button" type="submit">Join waitlist</button><p class="form-status" tabindex="-1" data-form-status role="status"></p>
           </form>
         </article>
-
         <article class="conversion-card">
-          <p class="kicker">Inquiry</p>
-          <h3>Discuss a decision</h3>
-          <p>Tell us which market, category or strategic question your team is evaluating.</p>
+          <p class="kicker">Inquiry</p><h3>Discuss a decision</h3><p>Tell us which market, category or strategic question your team is evaluating.</p>
           <form class="conversion-form" data-conversion-form="inquiry" data-success-message="Your inquiry is recorded for staging review.">
-            <div class="honeypot-field" aria-hidden="true">
-              <label for="inquiry-website">Website</label>
-              <input id="inquiry-website" name="website" type="text" autocomplete="off" tabindex="-1">
-            </div>
-            <div class="field">
-              <label for="inquiry-email">Work email</label>
-              <input id="inquiry-email" name="email" type="email" autocomplete="email" required placeholder="you@company.com">
-            </div>
-            <div class="field">
-              <label for="inquiry-interest">Decision or interest</label>
-              <textarea id="inquiry-interest" name="interest" minlength="10" maxlength="2000" required placeholder="Describe the market, category or decision."></textarea>
-            </div>
-            <label class="consent-field" for="inquiry-consent">
-              <input id="inquiry-consent" name="consent" type="checkbox" value="yes" required>
-              <span>I agree to the <a href="#privacy">privacy notice</a> and inquiry response.</span>
-            </label>
-            <button class="button" type="submit">Send inquiry</button>
-            <p class="form-status" tabindex="-1" data-form-status role="status"></p>
+            <div class="honeypot-field" aria-hidden="true"><label for="inquiry-website">Website</label><input id="inquiry-website" name="website" type="text" autocomplete="off" tabindex="-1"></div>
+            <div class="field"><label for="inquiry-email">Work email</label><input id="inquiry-email" name="email" type="email" autocomplete="email" required placeholder="you@company.com"></div>
+            <div class="field"><label for="inquiry-interest">Decision or interest</label><textarea id="inquiry-interest" name="interest" minlength="10" maxlength="2000" required placeholder="Describe the market, category or decision."></textarea></div>
+            <label class="consent-field" for="inquiry-consent"><input id="inquiry-consent" name="consent" type="checkbox" value="yes" required><span>I agree to the <a href="#privacy">privacy notice</a> and inquiry response.</span></label>
+            <button class="button" type="submit">Send inquiry</button><p class="form-status" tabindex="-1" data-form-status role="status"></p>
           </form>
         </article>
       </div>
-
       <aside class="privacy-notice" id="privacy" aria-labelledby="privacy-title">
-        <div>
-          <p class="kicker">Privacy · Staging</p>
-          <h3 id="privacy-title">Your information is used only to manage this request.</h3>
-        </div>
+        <div><p class="kicker">Privacy · Staging</p><h3 id="privacy-title">Your information is used only to manage this request.</h3></div>
         <p>Kidults records the submitted work email and any organization or inquiry details for access review and follow-up. Records are stored in the isolated staging environment, protected from public access and accompanied by a non-PII audit trail. Do not submit confidential, financial or sensitive personal information.</p>
       </aside>
     </section>
   </main>
 
   <footer class="shell footer">
-    <span>Kidults — The Global Standard for Collectibles Intelligence</span>
+    <span>Kidults — The Global Standard for Collector Intelligence</span>
     <span><a href="operations.html">Intelligence status</a> · Powered by KAIOS</span>
   </footer>
 </body>
