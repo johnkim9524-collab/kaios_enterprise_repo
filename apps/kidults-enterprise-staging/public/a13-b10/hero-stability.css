@@ -1,3 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&display=swap');
+
+:root {
+  --font-number: 'Bodoni Moda', 'Times New Roman', serif;
+}
+
 .hero {
   grid-template-columns: minmax(0, 1.62fr) minmax(380px, .62fr);
   gap: 72px;
@@ -74,13 +80,23 @@
   text-align: center;
 }
 
+.hero-ring-center strong,
+.proof-grid strong,
+.hero-metrics strong,
+.headline-index strong,
+.metric-row strong,
+.watch-grid > article > strong,
+.evidence-grid strong {
+  font-family: var(--font-number);
+  font-optical-sizing: auto;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
 .hero-ring-center strong {
-  font-family: var(--font-display);
-  font-size: 3.35rem;
+  font-size: 3.2rem;
   font-weight: 500;
   line-height: .86;
-  letter-spacing: -.035em;
-  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -.045em;
 }
 
 .hero-ring-center span {
@@ -109,9 +125,31 @@
 
 .proof-grid strong {
   max-width: 100%;
-  font-size: clamp(1.15rem, 1.35vw, 1.38rem);
+  font-size: clamp(1.1rem, 1.3vw, 1.34rem);
+  font-weight: 500;
   line-height: 1.08;
   overflow-wrap: anywhere;
+}
+
+.hero-metrics strong,
+.metric-row strong,
+.watch-grid > article > strong,
+.evidence-grid strong {
+  font-weight: 500;
+  letter-spacing: -.025em;
+}
+
+.headline-index strong {
+  font-weight: 500;
+  letter-spacing: -.045em;
+}
+
+.signal-row > span:nth-child(4),
+.signal-row > span:nth-child(5),
+.axis-labels text,
+.annotation {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 1320px) {
@@ -177,7 +215,7 @@
   }
 
   .hero-ring-center strong {
-    font-size: 3rem;
+    font-size: 2.9rem;
   }
 
   .proof-grid {
@@ -185,6 +223,6 @@
   }
 
   .proof-grid strong {
-    font-size: 1.16rem;
+    font-size: 1.12rem;
   }
 }
