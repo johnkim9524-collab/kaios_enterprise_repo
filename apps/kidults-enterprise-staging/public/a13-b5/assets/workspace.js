@@ -1,5 +1,5 @@
 (() => {
-  for (const href of ['/a13-b5/assets/full-width.css','/a13-b5/assets/data-luxury.css']) {
+  for (const href of ['/a13-b5/assets/full-width.css','/a13-b5/assets/data-luxury.css','/a13-b5/assets/compact-command.css']) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
@@ -21,15 +21,16 @@
   const main = document.querySelector('.main');
   const lower = document.querySelector('.lower');
   const watchlist = document.querySelector('.rightbar');
+  const rail = document.querySelector('.rail');
+  const command = document.querySelector('.command');
 
   if (workspace && main && lower && watchlist) {
     watchlist.classList.add('watchlist-inline');
     lower.insertAdjacentElement('afterend', watchlist);
     const layoutStyle = document.createElement('style');
     layoutStyle.textContent = `
-      .workspace{grid-template-columns:190px minmax(0,1fr)}
-      .rail{grid-column:1;grid-row:1}
-      .main{grid-column:2;grid-row:1}
+      .workspace{grid-template-columns:minmax(0,1fr)}
+      .main{grid-column:1;grid-row:1}
       .watchlist-inline{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
       .watchlist-inline>.eyebrow,.watchlist-inline>h3{grid-column:1/-1}
       .watchlist-inline .watch{border-top:1px solid var(--ink);border-left:1px solid var(--line)}
@@ -38,6 +39,31 @@
       @media(max-width:820px){.workspace{display:block}.watchlist-inline{grid-template-columns:1fr}.watchlist-inline .watch{border-left:0}}
     `;
     document.head.appendChild(layoutStyle);
+  }
+
+  if (main && command && rail) {
+    const workspaceButtons = [...rail.querySelectorAll('.rail-section:first-of-type button')];
+    const systemMeta = [...rail.querySelectorAll('.system-meta span')].map(item => item.textContent.trim());
+    const strip = document.createElement('section');
+    strip.className = 'command-strip';
+    strip.setAttribute('aria-label', 'Workspace and system status');
+    strip.innerHTML = `
+      <div class="command-strip__nav">
+        <span>Workspace</span>
+        ${workspaceButtons.map((button,index) => `<button${index===0?' class="active"':''}>${button.textContent.trim()}</button>`).join('')}
+      </div>
+      <div class="command-strip__status">
+        <span class="online"><strong>System online</strong></span>
+        <span>Model <strong>KAIOS / K100 v2.4</strong></span>
+        <span>Pipeline <strong>12 markets · 247 sources</strong></span>
+        <span>Next cycle <strong>21:15 KST</strong></span>
+      </div>`;
+    command.insertAdjacentElement('afterend', strip);
+    strip.querySelectorAll('.command-strip__nav button').forEach(button => button.addEventListener('click', () => {
+      strip.querySelectorAll('.command-strip__nav button').forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+    }));
+    rail.remove();
   }
 
   const commandEyebrow = document.querySelector('.command .eyebrow');
