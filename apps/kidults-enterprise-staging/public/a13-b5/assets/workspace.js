@@ -1,4 +1,9 @@
 (() => {
+  const fullWidthStylesheet = document.createElement('link');
+  fullWidthStylesheet.rel = 'stylesheet';
+  fullWidthStylesheet.href = '/a13-b5/assets/full-width.css';
+  document.head.appendChild(fullWidthStylesheet);
+
   const horizonButtons = [...document.querySelectorAll('[data-horizon]')];
   const categoryButtons = [...document.querySelectorAll('[data-category]')];
   const signalRows = [...document.querySelectorAll('[data-signal]')];
