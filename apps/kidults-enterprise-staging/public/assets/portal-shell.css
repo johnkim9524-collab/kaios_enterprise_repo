@@ -1,0 +1,102 @@
+/* Shared Kidults Portal Shell — canonical header, navigation, and footer */
+:root{
+  --portal-shell-bg:#011b15;
+  --portal-shell-paper:#f4ecd9;
+  --portal-shell-muted:#e7dcc4;
+  --portal-shell-line:rgba(244,236,217,.08);
+  --portal-shell-accent:#c8ff3d;
+}
+.site-header{
+  position:sticky;
+  top:0;
+  z-index:100;
+  background:var(--portal-shell-bg)!important;
+  border-bottom:1px solid var(--portal-shell-line)!important;
+}
+.header-inner{
+  min-height:112px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:2rem!important;
+  padding-top:0!important;
+  padding-bottom:0!important;
+}
+.brand{
+  color:var(--portal-shell-paper)!important;
+  font-family:"Bodoni 72",Didot,"Bodoni MT",Georgia,serif!important;
+  font-size:clamp(2.8rem,4vw,4.2rem)!important;
+  line-height:1!important;
+  letter-spacing:-.055em!important;
+  text-decoration:none!important;
+}
+.brand-dot{color:var(--portal-shell-accent)!important}
+.site-nav{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:clamp(1rem,2.2vw,2.35rem)!important;
+  flex-wrap:nowrap!important;
+  width:auto!important;
+}
+.site-nav a,
+.site-nav a[aria-current="page"]{
+  display:inline-flex!important;
+  align-items:center!important;
+  min-height:44px!important;
+  padding:.25rem 0!important;
+  margin:0!important;
+  color:var(--portal-shell-paper)!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  text-decoration:none!important;
+  font-weight:700!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  transform:none!important;
+  transition:opacity .18s ease!important;
+}
+.site-nav a:hover,
+.site-nav a:focus-visible,
+.site-nav a[aria-current="page"]:hover,
+.site-nav a[aria-current="page"]:focus-visible{
+  color:#fff!important;
+  opacity:.78!important;
+  outline:none!important;
+  transform:none!important;
+}
+.footer{
+  background:var(--portal-shell-bg)!important;
+  border-top:1px solid var(--portal-shell-line)!important;
+}
+@media(max-width:900px){
+  .header-inner{
+    min-height:auto!important;
+    align-items:flex-start!important;
+    flex-direction:column!important;
+    gap:1rem!important;
+    padding-top:1.15rem!important;
+    padding-bottom:1.15rem!important;
+  }
+  .site-nav{
+    width:100%!important;
+    justify-content:flex-start!important;
+    flex-wrap:wrap!important;
+    gap:.65rem 1.15rem!important;
+  }
+}
+@media(max-width:560px){
+  .brand{font-size:2.5rem!important}
+  .site-nav{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:.35rem .9rem!important;
+    font-size:.84rem!important;
+  }
+  .site-nav a,
+  .site-nav a[aria-current="page"]{
+    min-height:42px!important;
+  }
+}
