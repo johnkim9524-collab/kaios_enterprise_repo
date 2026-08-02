@@ -1,0 +1,14 @@
+/* A13-B9 Layered panel and proprietary watermark treatment */
+.canvas-grid .canvas,.canvas-grid .signal-queue,.canvas-grid .interpretation,.lower>.watchlist-inline,.lower>.evidence-drawer{overflow:hidden;isolation:isolate}
+.canvas-grid .canvas::before,.canvas-grid .signal-queue::before,.canvas-grid .interpretation::before,.lower>.watchlist-inline::before,.lower>.evidence-drawer::before{position:absolute;z-index:-1;pointer-events:none;font-family:var(--display);font-weight:400;letter-spacing:.11em;white-space:nowrap;color:rgba(221,235,247,.035);transform:rotate(-8deg);transform-origin:center}
+.canvas-grid .canvas::before{content:'KIDULT 100';font-size:clamp(78px,10vw,170px);right:-4%;top:18%}
+.canvas-grid .signal-queue::before{content:'SIGNAL INTELLIGENCE';font-size:clamp(46px,6vw,96px);right:-3%;bottom:6%}
+.canvas-grid .interpretation::before{content:'AUTONOMOUS';font-size:clamp(54px,6vw,88px);left:-18%;bottom:14%;transform:rotate(-90deg)}
+.lower>.watchlist-inline::before{content:'MARKET WATCH';font-size:clamp(58px,7vw,110px);right:-3%;bottom:8%}
+.lower>.evidence-drawer::before{content:'EVIDENCE';font-size:clamp(58px,7vw,96px);right:-10%;top:30%}
+.canvas-grid .canvas::after,.canvas-grid .signal-queue::after,.canvas-grid .interpretation::after,.lower>.watchlist-inline::after,.lower>.evidence-drawer::after{content:'';position:absolute;inset:7px;pointer-events:none;border:1px solid rgba(173,201,225,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.015),inset 0 18px 38px rgba(255,255,255,.008);z-index:2}
+.canvas-grid .canvas,.canvas-grid .signal-queue,.canvas-grid .interpretation,.lower>.watchlist-inline,.lower>.evidence-drawer{border-radius:2px}
+.canvas-grid .canvas-head,.canvas-grid .section-title,.lower>.watchlist-inline>h3,.lower>.evidence-drawer .evidence-head{position:relative}
+.canvas-grid .canvas-head::after,.canvas-grid .section-title::after,.lower>.watchlist-inline>h3::after,.lower>.evidence-drawer .evidence-head::after{content:'';position:absolute;left:0;bottom:-9px;width:72px;height:1px;background:linear-gradient(90deg,var(--cockpit-green),transparent)}
+.canvas-grid .canvas:hover,.canvas-grid .signal-queue:hover,.canvas-grid .interpretation:hover,.lower>.watchlist-inline:hover,.lower>.evidence-drawer:hover{border-color:rgba(143,198,173,.3)!important;box-shadow:0 28px 80px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.035)!important}
+@media(max-width:820px){.canvas-grid .canvas::before,.canvas-grid .signal-queue::before,.canvas-grid .interpretation::before,.lower>.watchlist-inline::before,.lower>.evidence-drawer::before{opacity:.7;font-size:54px}.canvas-grid .interpretation::before{left:-28%}}

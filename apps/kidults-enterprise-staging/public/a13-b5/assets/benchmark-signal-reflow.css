@@ -1,3 +1,5 @@
+@import url('/a13-b5/assets/readability-polish.css');
+@import url('/a13-b5/assets/cockpit-watermark.css');
 /* A13-B8 Benchmark / Signal / Watchlist reflow */
 .benchmark-stack{display:grid;grid-template-rows:auto auto;gap:14px;min-width:0}
 .canvas-grid{grid-template-columns:minmax(0,1.92fr) minmax(330px,.58fr);align-items:stretch}
