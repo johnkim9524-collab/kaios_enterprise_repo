@@ -12,6 +12,22 @@
     "production-use-rights",
     "retention-rights"
   ],
-  "allowedEvents": ["contacted", "responded", "diligence", "rejected", "evidence-verified"],
-  "events": []
+  "allowedEvents": [
+    "contacted",
+    "responded",
+    "diligence",
+    "rejected",
+    "evidence-verified"
+  ],
+  "events": [
+    {
+      "eventId": "ebay-marketplace-insights-contacted-1785744085013",
+      "candidateId": "ebay-marketplace-insights",
+      "type": "contacted",
+      "evidenceType": null,
+      "recordedAt": "2026-08-03T08:01:25.013Z",
+      "personalContactStored": false,
+      "secretStored": false
+    }
+  ]
 }

@@ -41,3 +41,23 @@ test('A13-B22 stores no secrets or personal contact details', () => {
   assert.doesNotMatch(runner, /process\.env/);
   assert.match(baseline, /no secrets, recipient addresses or personal contact details/i);
 });
+
+
+test('A13-B22 renders dispatch audit status and candidate history', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(dataRoot, '..', 'portal.css'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /id="dispatch-ledger"/);
+  assert.match(html, /data-dispatch-candidates/);
+  assert.match(js, /provider-dispatch-audit\.json/);
+  assert.match(js, /evidenceVerified/);
+  assert.match(css, /A13-B22 dispatch ledger/);
+});
+
+test('A13-B22 UI remains secret-safe and production-blocked', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /Production blocked/i);
+  assert.doesNotMatch(html, /@/);
+  assert.doesNotMatch(js, /process\.env/);
+});
