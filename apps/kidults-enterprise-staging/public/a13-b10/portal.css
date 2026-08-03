@@ -2452,3 +2452,17 @@ footer {
 .dispatch-candidate p{margin:8px 0 0;color:var(--muted);font-size:.78rem;line-height:1.5}
 @media (max-width:900px){.dispatch-layout{grid-template-columns:1fr}}
 @media (max-width:430px){.dispatch-state{flex-direction:column}.dispatch-state h3{font-size:2.6rem}}
+
+
+/* A13-B23 batch outreach and evidence intake */
+.batch-intake-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px}
+.batch-state{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding-bottom:26px;border-bottom:1px solid var(--line)}
+.batch-state h3{margin:8px 0 0;font-family:var(--serif);font-size:clamp(2.4rem,5vw,4.6rem);font-weight:400;line-height:.96;text-transform:capitalize}
+.batch-candidate-list{border-top:1px solid var(--ink)}
+.batch-candidate{padding:18px 0;border-bottom:1px solid var(--line)}
+.batch-candidate-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.batch-candidate-head h3{margin:0;font-size:1rem}
+.batch-candidate-meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:8px;color:var(--muted);font-size:.76rem}
+.batch-note{margin:24px 0 0;color:var(--muted);font-size:.82rem}
+@media (max-width:900px){.batch-intake-layout{grid-template-columns:1fr}}
+@media (max-width:430px){.batch-state{flex-direction:column}.batch-state h3{font-size:2.5rem}.batch-candidate-head{align-items:center}}

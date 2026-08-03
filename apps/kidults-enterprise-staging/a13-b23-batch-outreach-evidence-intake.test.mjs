@@ -40,3 +40,23 @@ test('A13-B23 stores no secrets or personal contact details', () => {
   assert.match(baseline, /no secrets, recipient addresses or personal contact details/i);
   assert.match(baseline, /320px, 360px, 390px and 430px/i);
 });
+
+
+test('A13-B23 renders batch progress without auto-dispatching providers', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(dataRoot, '..', 'portal.css'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /id="batch-intake"/);
+  assert.match(html, /explicit confirmation/i);
+  assert.match(js, /provider-batch-progress\.json/);
+  assert.match(js, /remainingDispatches/);
+  assert.match(css, /A13-B23 batch outreach and evidence intake/);
+});
+
+test('A13-B23 UI remains secret-safe and production-blocked', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /Production blocked/i);
+  assert.doesNotMatch(html, /API_KEY|recipient@/i);
+  assert.doesNotMatch(js, /process\.env/);
+});

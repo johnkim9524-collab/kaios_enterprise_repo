@@ -1,0 +1,114 @@
+{
+  "release": "A13-B23",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T11:41:14.042Z",
+  "status": "batch-intake-open",
+  "productionPromotionAuthorized": false,
+  "totals": {
+    "candidates": 6,
+    "contacted": 1,
+    "remainingDispatches": 5,
+    "responseImports": 0,
+    "pilotReady": 0
+  },
+  "remainingDispatches": [
+    {
+      "candidateId": "pricecharting-prices-api",
+      "role": "transactions",
+      "priority": 2,
+      "status": "awaiting-explicit-confirmation"
+    },
+    {
+      "candidateId": "ebay-browse-api",
+      "role": "supply",
+      "priority": 1,
+      "status": "awaiting-explicit-confirmation"
+    },
+    {
+      "candidateId": "tcgplayer-api-supply",
+      "role": "supply",
+      "priority": 2,
+      "status": "awaiting-explicit-confirmation"
+    },
+    {
+      "candidateId": "google-trends-api-alpha",
+      "role": "culturalDemand",
+      "priority": 1,
+      "status": "awaiting-explicit-confirmation"
+    },
+    {
+      "candidateId": "youtube-data-api",
+      "role": "culturalDemand",
+      "priority": 2,
+      "status": "awaiting-explicit-confirmation"
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "ebay-marketplace-insights",
+      "role": "transactions",
+      "priority": 1,
+      "status": "contacted",
+      "evidenceVerified": 0,
+      "evidenceRequired": 8,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "candidateId": "pricecharting-prices-api",
+      "role": "transactions",
+      "priority": 2,
+      "status": "not-contacted",
+      "evidenceVerified": 0,
+      "evidenceRequired": 8,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "candidateId": "ebay-browse-api",
+      "role": "supply",
+      "priority": 1,
+      "status": "not-contacted",
+      "evidenceVerified": 0,
+      "evidenceRequired": 8,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "candidateId": "tcgplayer-api-supply",
+      "role": "supply",
+      "priority": 2,
+      "status": "not-contacted",
+      "evidenceVerified": 0,
+      "evidenceRequired": 8,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "candidateId": "google-trends-api-alpha",
+      "role": "culturalDemand",
+      "priority": 1,
+      "status": "not-contacted",
+      "evidenceVerified": 0,
+      "evidenceRequired": 8,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "candidateId": "youtube-data-api",
+      "role": "culturalDemand",
+      "priority": 2,
+      "status": "not-contacted",
+      "evidenceVerified": 0,
+      "evidenceRequired": 8,
+      "evidenceComplete": false,
+      "pilotReady": false
+    }
+  ],
+  "gates": {
+    "dispatchBatchPrepared": "passed",
+    "explicitConfirmationRequired": "passed",
+    "evidenceValidation": "blocked",
+    "productionAuthorization": "blocked"
+  }
+}
