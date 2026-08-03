@@ -1,0 +1,25 @@
+{
+  "release": "A13-B18",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T05:38:22.577Z",
+  "status": "blocked",
+  "productionPromotionAuthorized": false,
+  "candidates": [],
+  "selectedProviders": [],
+  "independentProviderFamilies": 0,
+  "gates": {
+    "roleCoverage": "blocked",
+    "independentFamilies": "blocked",
+    "commercialReview": "blocked",
+    "rightsReview": "blocked",
+    "technicalReview": "blocked",
+    "pilotManifest": "blocked",
+    "productionAuthorization": "blocked"
+  },
+  "blockers": [
+    "One or more required provider roles have no pilot-ready candidate.",
+    "Independent provider-family minimum is not met.",
+    "The live pilot manifest is not explicitly approved.",
+    "Explicit production release authorization remains false."
+  ]
+}

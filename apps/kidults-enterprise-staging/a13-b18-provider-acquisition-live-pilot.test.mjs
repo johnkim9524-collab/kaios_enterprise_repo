@@ -41,3 +41,23 @@ test('A13-B18 blocks promotion until pilot approval and mobile gates remain', ()
   assert.match(baseline, /320px, 360px, 390px and 430px/i);
   assert.match(baseline, /production promotion remains blocked by default/i);
 });
+
+
+test('A13-B18 renders live pilot readiness and provider selection UI', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(dataRoot, '..', 'portal.css'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /id="live-pilot-readiness"/);
+  assert.match(html, /data-pilot-role-list/);
+  assert.match(css, /A13-B18 Provider Acquisition & Live Pilot/);
+  assert.match(js, /renderLivePilotReadiness/);
+  assert.match(js, /generated\/live-pilot-readiness\.json/);
+});
+
+test('A13-B18 UI exposes only evaluation state and keeps production blocked', () => {
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(js, /productionPromotionAuthorized/);
+  assert.match(js, /Production blocked/);
+  assert.doesNotMatch(js, /process\.env/);
+  assert.doesNotMatch(js, /API_KEY=/);
+});

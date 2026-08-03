@@ -648,6 +648,86 @@
   };
 
 
+
+
+  const renderLivePilotReadiness = report => {
+    const gates = report?.gates || {};
+    const gateEntries = Object.entries(gates);
+    const passed = gateEntries.filter(([, value]) => value === 'passed').length;
+    const selected = Array.isArray(report?.selectedProviders) ? report.selectedProviders : [];
+    const candidates = Array.isArray(report?.candidates) ? report.candidates : [];
+    const requiredRoles = ['transactions', 'supply', 'culturalDemand'];
+
+    setText('[data-pilot-state]', String(report?.status || 'blocked').replaceAll('-', ' '));
+    setText('[data-pilot-selected]', `${selected.length}/3`);
+    setText('[data-pilot-families]', report?.independentProviderFamilies ?? 0);
+    setText('[data-pilot-gates]', passed);
+
+    const badge = qs('[data-pilot-badge]');
+    if (badge) {
+      badge.textContent = report?.productionPromotionAuthorized ? 'Production authorized' : 'Production blocked';
+      badge.dataset.health = report?.productionPromotionAuthorized ? 'healthy' : 'failed';
+    }
+
+    const gateList = qs('[data-pilot-gate-list]');
+    if (gateList) {
+      gateList.innerHTML = gateEntries.map(([key, value]) => `
+        <div><span>${key.replace(/([A-Z])/g, ' $1')}</span><strong data-status="${value}">${value}</strong></div>
+      `).join('');
+    }
+
+    const roleList = qs('[data-pilot-role-list]');
+    if (roleList) {
+      roleList.innerHTML = requiredRoles.map(role => {
+        const selectedProvider = selected.find(item => item.role === role);
+        const roleCandidates = candidates.filter(item => item.role === role);
+        const bestCandidate = selectedProvider
+          ? candidates.find(item => item.id === selectedProvider.id) || selectedProvider
+          : [...roleCandidates].sort((a, b) => Number(b.score || 0) - Number(a.score || 0))[0];
+        const status = selectedProvider ? 'ready' : 'blocked';
+        const score = bestCandidate?.score ?? '—';
+        const commercial = bestCandidate?.gates?.commercial || 'blocked';
+        const rights = bestCandidate?.gates?.rights || 'blocked';
+        const technical = bestCandidate?.gates?.technical || 'blocked';
+        return `
+          <div class="pilot-role-item">
+            <div><strong>${role}</strong><small>${bestCandidate?.id || 'No approved candidate'}</small></div>
+            <span class="source-health-status" data-health="${status === 'ready' ? 'healthy' : 'failed'}">${status}</span>
+            <div class="pilot-role-meta"><span>Score: ${score}</span><span>Commercial: ${commercial}</span><span>Rights: ${rights}</span><span>Technical: ${technical}</span></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    const blockers = qs('[data-pilot-blockers]');
+    if (blockers) {
+      const items = Array.isArray(report?.blockers) && report.blockers.length
+        ? report.blockers
+        : ['No pilot blocker is currently reported.'];
+      blockers.innerHTML = items.map(item => `<p>${item}</p>`).join('');
+    }
+
+    document.body.dataset.livePilot = report?.status || 'blocked';
+  };
+
+  const loadLivePilotReadiness = async () => {
+    try {
+      const report = await fetchJson('/a13-b10/data/generated/live-pilot-readiness.json');
+      renderLivePilotReadiness(report);
+    } catch (error) {
+      console.error(error);
+      renderLivePilotReadiness({
+        status: 'blocked',
+        productionPromotionAuthorized: false,
+        selectedProviders: [],
+        independentProviderFamilies: 0,
+        candidates: [],
+        gates: { report: 'blocked', productionAuthorization: 'blocked' },
+        blockers: ['Live pilot readiness report is unavailable.']
+      });
+    }
+  };
+
   qsa('[data-category]').forEach(button => button.addEventListener('click', () => {
     setActive(qsa('[data-category]'), button);
     state.category = button.dataset.category;
@@ -826,4 +906,6 @@
   });
   loadAutonomousOperations();
   requestNavigationSync();
+  loadLivePilotReadiness();
+
 })();
