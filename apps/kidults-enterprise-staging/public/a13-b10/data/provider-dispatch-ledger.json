@@ -1,0 +1,17 @@
+{
+  "release": "A13-B22",
+  "environment": "staging",
+  "productionPromotionAuthorized": false,
+  "requiredEvidence": [
+    "commercial-terms",
+    "api-access",
+    "quota",
+    "latency",
+    "uptime",
+    "freshness",
+    "production-use-rights",
+    "retention-rights"
+  ],
+  "allowedEvents": ["contacted", "responded", "diligence", "rejected", "evidence-verified"],
+  "events": []
+}
