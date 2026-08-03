@@ -32,9 +32,11 @@
     "provider-commercial-responses",
     "provider-rights-approval",
     "provider-credentials-and-endpoints",
-    "legal-entity-review",
-    "trademark-filing-review",
     "live-pilot-approval"
+  ],
+  "separateExecutiveDecisions": [
+    "legal-entity-review",
+    "trademark-filing-review"
   ],
   "changePolicy": {
     "featureExpansionAllowed": false,
