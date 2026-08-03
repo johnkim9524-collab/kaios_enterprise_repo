@@ -19,7 +19,7 @@ test('B10 uses the consolidated portal architecture', () => {
 test('B10 preserves the approved collector intelligence hero', () => {
   assert.ok(html.includes('Collector Intelligence / Signal 001'));
   assert.ok(html.includes('Objects become'));
-  assert.ok(html.includes('<em>CULTURE</em>'));
+  assert.match(html, /<em[^>]*>CULTURE<\/em>/);
   assert.ok(html.includes('before consensus.'));
   assert.ok(html.includes('Scarcity, canon and market velocity'));
 });
