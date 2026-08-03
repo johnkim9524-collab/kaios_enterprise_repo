@@ -1,0 +1,27 @@
+{
+  "engine": "Kidult 100",
+  "methodVersion": "K100-3.0",
+  "deterministic": true,
+  "minimumEvidenceRoles": 2,
+  "weights": {
+    "transactionDepth": 0.18,
+    "priceIntegrity": 0.12,
+    "listingVelocity": 0.14,
+    "scarcityIntegrity": 0.12,
+    "culturalVelocity": 0.20,
+    "canonStrength": 0.16,
+    "confidence": 0.08
+  },
+  "penalties": {
+    "missingRole": 8,
+    "anomalyMultiplier": 20,
+    "staleSource": 5
+  },
+  "bands": [
+    {"min":90,"label":"Category defining"},
+    {"min":80,"label":"Expansion"},
+    {"min":70,"label":"Established"},
+    {"min":60,"label":"Watch"},
+    {"min":0,"label":"Fragile"}
+  ]
+}
