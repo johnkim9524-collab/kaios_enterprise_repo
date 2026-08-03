@@ -1,0 +1,21 @@
+{
+  "sourceId": "cultural-demand-primary",
+  "role": "culturalDemand",
+  "family": "cultural-signals",
+  "mode": "illustrative",
+  "rights": {
+    "status": "staging-approved",
+    "commercialUse": false,
+    "attributionRequired": false
+  },
+  "provenance": {
+    "provider": "Kidults staging evidence",
+    "collectedAt": "2026-08-03T03:30:00Z",
+    "method": "normalized search, editorial and community demand observations"
+  },
+  "records": [
+    {"category":"Character Goods","culturalVelocity":93,"canonStrength":89,"confidence":91,"anomalyRate":0.03},
+    {"category":"Trading Cards","culturalVelocity":85,"canonStrength":86,"confidence":88,"anomalyRate":0.05},
+    {"category":"Art Toys","culturalVelocity":82,"canonStrength":84,"confidence":84,"anomalyRate":0.05}
+  ]
+}

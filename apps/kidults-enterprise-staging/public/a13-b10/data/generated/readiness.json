@@ -1,0 +1,17 @@
+{
+  "release": "A13-B14",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T03:45:38.504Z",
+  "productionPromotionAuthorized": false,
+  "status": "staging-certified",
+  "gates": {
+    "sources": "passed",
+    "aggregation": "passed",
+    "scoring": "passed",
+    "monthlyReport": "passed",
+    "certification": "passed"
+  },
+  "blockers": [
+    "Production promotion requires explicit external source rights certification."
+  ]
+}

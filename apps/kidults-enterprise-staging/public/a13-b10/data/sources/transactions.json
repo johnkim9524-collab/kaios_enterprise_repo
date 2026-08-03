@@ -1,0 +1,21 @@
+{
+  "sourceId": "transactions-primary",
+  "role": "transactions",
+  "family": "market-transactions",
+  "mode": "illustrative",
+  "rights": {
+    "status": "staging-approved",
+    "commercialUse": false,
+    "attributionRequired": false
+  },
+  "provenance": {
+    "provider": "Kidults staging evidence",
+    "collectedAt": "2026-08-03T03:30:00Z",
+    "method": "normalized sold-price observations"
+  },
+  "records": [
+    {"category":"Character Goods","transactionDepth":91,"priceIntegrity":86,"confidence":92,"anomalyRate":0.04},
+    {"category":"Trading Cards","transactionDepth":88,"priceIntegrity":82,"confidence":89,"anomalyRate":0.06},
+    {"category":"Art Toys","transactionDepth":79,"priceIntegrity":84,"confidence":85,"anomalyRate":0.05}
+  ]
+}

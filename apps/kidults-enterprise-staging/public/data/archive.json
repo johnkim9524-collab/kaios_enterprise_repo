@@ -1,20 +1,16 @@
 {
   "version": "1.0",
   "status": "active",
-  "updated_at": "2026-07-31T00:00:00Z",
+  "updated_at": "2026-08-03T03:45:38.504Z",
   "reports": [
     {
       "id": "monthly-intelligence-2026-08",
-      "title": "Monthly Intelligence Issue 01",
+      "title": "Monthly Intelligence 2026-08",
       "type": "monthly-intelligence",
       "period": "2026-08",
-      "status": "draft",
-      "path": "reports/monthly-intelligence-2026-08.html",
-      "tags": [
-        "market-pulse",
-        "categories",
-        "liquidity"
-      ]
+      "status": "generated-staging",
+      "path": "/a13-b10/data/generated/monthly-intelligence.json",
+      "generatedAt": "2026-08-03T03:45:38.504Z"
     }
   ]
 }

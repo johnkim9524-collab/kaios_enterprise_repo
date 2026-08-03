@@ -464,6 +464,69 @@
     }
   };
 
+
+
+  const renderIntegratedActivation = ({ index, monthly, readiness }) => {
+    const leader = Array.isArray(index?.categories) ? index.categories[0] : null;
+    setText('[data-activation-score]', leader ? leader.score.toFixed(1) : '—');
+    setText('[data-activation-category]', leader?.category || 'Unavailable');
+    setText('[data-activation-families]', index?.sourceFamilies ?? '—');
+    setText('[data-activation-method]', index?.methodVersion || 'Unavailable');
+    setText('[data-activation-regime]', leader?.regime || 'Unavailable');
+    setText('[data-activation-confidence]', monthly?.averageConfidence != null ? `${monthly.averageConfidence}%` : '—');
+    setText('[data-activation-report-title]', monthly?.title || 'Monthly Intelligence unavailable');
+    setText('[data-activation-summary]', monthly?.executiveSummary || 'No generated summary is available.');
+    setText('[data-activation-issue]', monthly?.issue || '—');
+    setText('[data-activation-risk]', Array.isArray(monthly?.riskWatch) ? `${monthly.riskWatch.length} categories` : '—');
+    setText('[data-activation-readiness]', readiness?.status || 'Blocked');
+
+    const chip = qs('[data-activation-readiness-chip]');
+    if (chip) {
+      const passed = readiness?.status === 'staging-certified';
+      chip.textContent = passed ? 'Staging certified' : 'Blocked';
+      chip.dataset.health = passed ? 'healthy' : 'failed';
+    }
+
+    const gates = qs('[data-activation-gates]');
+    if (gates) {
+      gates.innerHTML = Object.entries(readiness?.gates || {}).map(([id, status]) => `
+        <div class="activation-gate" data-status="${status}">
+          <small>${id.replace(/([A-Z])/g, ' $1')}</small>
+          <strong>${status}</strong>
+        </div>
+      `).join('');
+    }
+
+    const blocker = Array.isArray(readiness?.blockers) && readiness.blockers.length
+      ? readiness.blockers[0]
+      : 'Production promotion remains blocked pending explicit authorization.';
+    setText('[data-activation-blocker]', blocker);
+    document.body.dataset.activationReadiness = readiness?.status || 'blocked';
+  };
+
+  const loadIntegratedActivation = async () => {
+    try {
+      const [index, monthly, readiness] = await Promise.all([
+        fetchJson('/a13-b10/data/generated/kidult-100.json'),
+        fetchJson('/a13-b10/data/generated/monthly-intelligence.json'),
+        fetchJson('/a13-b10/data/generated/readiness.json')
+      ]);
+      renderIntegratedActivation({ index, monthly, readiness });
+    } catch (error) {
+      console.error(error);
+      renderIntegratedActivation({
+        index: null,
+        monthly: null,
+        readiness: {
+          status: 'blocked',
+          gates: {},
+          blockers: ['Generated activation outputs are unavailable. B12 fallback remains active.']
+        }
+      });
+    }
+  };
+
+
   qsa('[data-category]').forEach(button => button.addEventListener('click', () => {
     setActive(qsa('[data-category]'), button);
     state.category = button.dataset.category;
@@ -554,6 +617,7 @@
 
   syncDesktopPanelWidths();
   loadSourceRegistry().finally(loadProductThroughAdapter);
+  loadIntegratedActivation();
   window.addEventListener('scroll', requestNavigationSync, { passive: true });
   window.addEventListener('resize', () => {
     syncDesktopPanelWidths();
