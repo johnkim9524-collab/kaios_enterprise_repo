@@ -1,0 +1,23 @@
+{
+  "release": "A13-B12",
+  "mode": "fallback",
+  "endpoint": null,
+  "fallback": "/a13-b10/data/intelligence-product.json",
+  "freshness": {
+    "generatedAt": "2026-08-03T00:00:00Z",
+    "maxAgeMinutes": 1440,
+    "status": "illustrative"
+  },
+  "provenance": {
+    "sourceFamilies": 42,
+    "brandsCovered": 500,
+    "categoriesCovered": 12,
+    "confidenceModel": "Source diversity × recency × reconciliation × anomaly control"
+  },
+  "safety": {
+    "requireExplicitMode": true,
+    "allowLiveWithoutProvenance": false,
+    "fallbackOnFetchError": true,
+    "fallbackOnSchemaError": true
+  }
+}
