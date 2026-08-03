@@ -1,0 +1,122 @@
+{
+  "release": "A13-B21",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T07:11:14.168Z",
+  "status": "response-intake-open",
+  "productionPromotionAuthorized": false,
+  "totals": {
+    "packs": 6,
+    "contacted": 0,
+    "responded": 0,
+    "pilotReady": 0,
+    "verifiedEvidence": 0,
+    "requiredEvidencePerCandidate": 8
+  },
+  "queue": [
+    {
+      "role": "transactions",
+      "candidateId": "ebay-marketplace-insights",
+      "priority": 1,
+      "subject": "Kidults data pilot inquiry — sold-history intelligence",
+      "request": "Request limited pilot access, permitted retention scope, production-use rights, quota, latency, uptime and commercial terms.",
+      "packStatus": "draft",
+      "status": "not-contacted",
+      "contacted": false,
+      "responded": false,
+      "evidenceCount": 0,
+      "verifiedEvidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "role": "transactions",
+      "candidateId": "pricecharting-prices-api",
+      "priority": 2,
+      "subject": "Kidults data pilot inquiry — collectible price intelligence",
+      "request": "Request category coverage, display rights, retention scope, pilot pricing, quota and service-level information.",
+      "packStatus": "draft",
+      "status": "not-contacted",
+      "contacted": false,
+      "responded": false,
+      "evidenceCount": 0,
+      "verifiedEvidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "role": "supply",
+      "candidateId": "ebay-browse-api",
+      "priority": 1,
+      "subject": "Kidults data pilot inquiry — active listing supply signals",
+      "request": "Request production eligibility, listing data retention terms, quota, latency, uptime and approved commercial use.",
+      "packStatus": "draft",
+      "status": "not-contacted",
+      "contacted": false,
+      "responded": false,
+      "evidenceCount": 0,
+      "verifiedEvidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "role": "supply",
+      "candidateId": "tcgplayer-api-supply",
+      "priority": 2,
+      "subject": "Kidults enterprise API access inquiry",
+      "request": "Request exception access, approved commercial-use scope, catalog coverage, pricing availability and pilot terms.",
+      "packStatus": "draft",
+      "status": "not-contacted",
+      "contacted": false,
+      "responded": false,
+      "evidenceCount": 0,
+      "verifiedEvidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "role": "culturalDemand",
+      "candidateId": "google-trends-api-alpha",
+      "priority": 1,
+      "subject": "Kidults Google Trends API alpha use case",
+      "request": "Request alpha access for collectible demand monitoring, historical coverage, quota, retention and commercial-use clarification.",
+      "packStatus": "draft",
+      "status": "not-contacted",
+      "contacted": false,
+      "responded": false,
+      "evidenceCount": 0,
+      "verifiedEvidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "role": "culturalDemand",
+      "candidateId": "youtube-data-api",
+      "priority": 2,
+      "subject": "Kidults YouTube Data API pilot review",
+      "request": "Confirm quota-efficient use, retention limits, display rights and approved analytics use for collectible attention signals.",
+      "packStatus": "draft",
+      "status": "not-contacted",
+      "contacted": false,
+      "responded": false,
+      "evidenceCount": 0,
+      "verifiedEvidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    }
+  ],
+  "gates": {
+    "outreachPackComplete": "passed",
+    "outreachStarted": "blocked",
+    "responsesReceived": "blocked",
+    "evidenceComplete": "blocked",
+    "pilotManifest": "blocked",
+    "productionAuthorization": "blocked"
+  },
+  "blockers": [
+    "No provider outreach has been recorded.",
+    "No provider response has been recorded.",
+    "Each required role needs one evidence-complete candidate.",
+    "The pilot manifest is not explicitly approved.",
+    "Explicit production release authorization remains false."
+  ]
+}
