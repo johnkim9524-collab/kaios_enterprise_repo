@@ -1,0 +1,89 @@
+{
+  "release": "A13-B20",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T06:44:17.650Z",
+  "status": "outreach-in-progress",
+  "productionPromotionAuthorized": false,
+  "totals": {
+    "queued": 6,
+    "contacted": 0,
+    "responded": 0,
+    "pilotReady": 0
+  },
+  "queue": [
+    {
+      "role": "transactions",
+      "candidateId": "ebay-marketplace-insights",
+      "priority": 1,
+      "status": "not-contacted",
+      "evidence": [],
+      "evidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "role": "transactions",
+      "candidateId": "pricecharting-prices-api",
+      "priority": 2,
+      "status": "not-contacted",
+      "evidence": [],
+      "evidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "role": "supply",
+      "candidateId": "ebay-browse-api",
+      "priority": 1,
+      "status": "not-contacted",
+      "evidence": [],
+      "evidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "role": "supply",
+      "candidateId": "tcgplayer-api-supply",
+      "priority": 2,
+      "status": "not-contacted",
+      "evidence": [],
+      "evidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "role": "culturalDemand",
+      "candidateId": "google-trends-api-alpha",
+      "priority": 1,
+      "status": "not-contacted",
+      "evidence": [],
+      "evidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    },
+    {
+      "role": "culturalDemand",
+      "candidateId": "youtube-data-api",
+      "priority": 2,
+      "status": "not-contacted",
+      "evidence": [],
+      "evidenceCount": 0,
+      "evidenceComplete": false,
+      "pilotReady": false
+    }
+  ],
+  "gates": {
+    "outreachStarted": "blocked",
+    "responsesReceived": "blocked",
+    "evidenceComplete": "blocked",
+    "pilotManifest": "blocked",
+    "productionAuthorization": "blocked"
+  },
+  "blockers": [
+    "No provider outreach has been recorded.",
+    "No provider response has been recorded.",
+    "Each required role needs one evidence-complete candidate.",
+    "The pilot manifest is not explicitly approved.",
+    "Explicit production release authorization remains false."
+  ]
+}
