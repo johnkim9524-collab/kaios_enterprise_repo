@@ -9,6 +9,9 @@ const baseline = fs.readFileSync(path.join(appRoot, 'A13-B13-BASELINE.md'), 'utf
 const registry = JSON.parse(
   fs.readFileSync(path.join(publicRoot, 'data', 'source-registry.json'), 'utf8')
 );
+const html = fs.readFileSync(path.join(publicRoot, 'index.html'), 'utf8');
+const css = fs.readFileSync(path.join(publicRoot, 'portal.css'), 'utf8');
+const js = fs.readFileSync(path.join(publicRoot, 'portal.js'), 'utf8');
 
 test('A13-B13 remains staging-only and production-safe', () => {
   assert.equal(registry.release, 'A13-B13');
@@ -52,4 +55,35 @@ test('A13-B13 retains the approved architecture and mobile gates', () => {
   assert.match(baseline, /one interaction JavaScript file/i);
   assert.match(baseline, /320px, 360px, 390px and 430px/i);
   assert.match(baseline, /no runtime stylesheet injection/i);
+});
+
+
+test('A13-B13 renders operational health and source registry UI', () => {
+  assert.match(html, /id="operational-health"/);
+  assert.match(html, /data-registry-state/);
+  assert.match(html, /data-source-health-list/);
+  assert.match(css, /\.source-health-list/);
+  assert.match(css, /\.source-health-status/);
+});
+
+test('A13-B13 loads and validates the source registry before product delivery', () => {
+  assert.match(js, /fetchJson\('\/a13-b10\/data\/source-registry\.json'\)/);
+  assert.match(js, /validateSourceRegistry/);
+  assert.match(js, /loadSourceRegistry\(\)\.finally\(loadProductThroughAdapter\)/);
+});
+
+test('A13-B13 implements timeout retry and circuit breaker runtime controls', () => {
+  assert.match(js, /AbortController/);
+  assert.match(js, /fetchWithTimeout/);
+  assert.match(js, /retry\.maxAttempts/);
+  assert.match(js, /failureThreshold/);
+  assert.match(js, /openMs/);
+  assert.match(js, /half-open/);
+});
+
+test('A13-B13 publishes partial failure and fallback health states', () => {
+  assert.match(js, /Partial failure allowed/);
+  assert.match(js, /aggregate = healthy\.length >= minimum/);
+  assert.match(js, /document\.body\.dataset\.registryHealth/);
+  assert.match(js, /B12 fallback remains active/);
 });

@@ -1980,3 +1980,118 @@ footer {
     line-height: 1.45;
   }
 }
+
+
+/* A13-B13 Live Source Resilience */
+.operational-health-layout {
+  align-items: stretch;
+}
+
+.operational-health-layout .trust-panel {
+  min-width: 0;
+}
+
+.operational-health-metrics strong {
+  max-width: 100%;
+  font-size: clamp(2rem, 3vw, 2.85rem);
+  overflow-wrap: anywhere;
+}
+
+.source-health-list {
+  border-top: 1px solid var(--ink);
+}
+
+.source-health-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.source-health-head {
+  min-width: 0;
+}
+
+.source-health-head strong,
+.source-health-status {
+  display: block;
+}
+
+.source-health-head strong {
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.source-health-head small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.source-health-status {
+  align-self: start;
+  min-width: 72px;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  color: var(--body);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.source-health-status[data-health="healthy"] {
+  border-color: var(--forest);
+  color: var(--forest);
+}
+
+.source-health-status[data-health="degraded"],
+.source-health-status[data-health="stale"] {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.source-health-status[data-health="open"],
+.source-health-status[data-health="failed"] {
+  border-color: var(--risk);
+  color: var(--risk);
+}
+
+.source-health-meta {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 16px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.source-health-empty {
+  margin: 0;
+  padding: 20px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+@media (max-width: 767px) {
+  .source-health-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .source-health-status {
+    justify-self: start;
+  }
+
+  .source-health-meta {
+    grid-column: 1;
+    display: grid;
+    gap: 4px;
+  }
+}

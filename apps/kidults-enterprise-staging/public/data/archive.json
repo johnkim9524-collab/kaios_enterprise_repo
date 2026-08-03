@@ -1,14 +1,14 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "status": "active",
-  "updated_at": "2026-07-31T00:00:00Z",
+  "updated_at": "2026-08-03T02:22:22.248Z",
   "reports": [
     {
       "id": "monthly-intelligence-2026-08",
-      "title": "Monthly Intelligence Issue 01",
+      "title": "Monthly Intelligence 2026-08",
       "type": "monthly-intelligence",
       "period": "2026-08",
-      "status": "draft",
+      "status": "published",
       "path": "reports/monthly-intelligence-2026-08.html",
       "tags": [
         "market-pulse",

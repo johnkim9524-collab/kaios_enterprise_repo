@@ -1,18 +1,29 @@
 {
   "version": "1.0",
   "environment": "staging",
-  "status": "monitoring_pending",
-  "evaluated_at": null,
-  "latest_success_at": null,
+  "status": "critical",
+  "evaluated_at": "2026-08-03T02:15:05.752Z",
+  "latest_success_at": "2026-08-03T02:15:05.356Z",
   "metrics": {
-    "run_age_hours": null,
-    "records": null,
-    "categories": null,
-    "sources": null,
-    "average_confidence": null,
-    "maximum_freshness_hours": null,
-    "verified_outputs": null
+    "run_age_hours": 0,
+    "records": 3,
+    "categories": 3,
+    "sources": 1,
+    "average_confidence": 83.3,
+    "maximum_freshness_hours": 0,
+    "verified_outputs": 3
   },
-  "alerts": [],
+  "alerts": [
+    {
+      "code": "RECORD_COVERAGE_LOW",
+      "severity": "critical",
+      "message": "Validated record coverage is below the operating floor."
+    },
+    {
+      "code": "CATEGORY_COVERAGE_LOW",
+      "severity": "degraded",
+      "message": "Category coverage is below the operating floor."
+    }
+  ],
   "production_promotion_authorized": false
 }
