@@ -909,3 +909,32 @@
   loadLivePilotReadiness();
 
 })();
+
+
+// A13-B19 provider shortlist
+const renderProviderShortlist = async () => {
+  const section = document.querySelector('#provider-shortlist');
+  if (!section) return;
+  try {
+    const response = await fetch('/a13-b10/data/generated/provider-shortlist.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Shortlist request failed: ${response.status}`);
+    const report = await response.json();
+    const set = (selector, value) => { const node = section.querySelector(selector); if (node) node.textContent = value; };
+    set('[data-shortlist-status]', report.status.replaceAll('-', ' '));
+    set('[data-shortlist-candidates]', String(report.candidateCount));
+    set('[data-shortlist-roles]', `${report.roleCoverage.filter(item => item.candidateCount >= 2).length}/${report.roleCoverage.length}`);
+    set('[data-shortlist-outreach]', String(report.outreachRequired));
+    const gates = section.querySelector('[data-shortlist-gates]');
+    if (gates) gates.innerHTML = Object.entries(report.gates).map(([name, value]) => `<p><span>${name.replace(/([A-Z])/g, ' $1')}</span><strong>${value}</strong></p>`).join('');
+    const roles = section.querySelector('[data-shortlist-roles-list]');
+    if (roles) roles.innerHTML = report.roleCoverage.map(role => {
+      const primary = role.primaryCandidate;
+      return `<article class="provider-role-card"><div class="provider-role-head"><h3>${role.role}</h3><span>${role.candidateCount} candidates</span></div><p class="provider-primary">${primary ? primary.provider : 'No primary candidate'}</p><div class="provider-meta"><span>Access: ${primary ? primary.accessStatus : 'unknown'}</span><span>Priority: ${primary ? '1' : '—'}</span></div><p class="provider-action">${primary ? primary.outreachAction : 'Direct provider research required.'}</p></article>`;
+    }).join('');
+    document.body.dataset.providerShortlist = report.status;
+  } catch (error) {
+    setTimeout(() => { const node = section.querySelector('[data-shortlist-status]'); if (node) node.textContent = 'Unavailable'; }, 0);
+    console.error(error);
+  }
+};
+renderProviderShortlist();
