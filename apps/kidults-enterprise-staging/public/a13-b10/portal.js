@@ -1021,3 +1021,29 @@ const renderDispatchLedger = async () => {
   }
 };
 renderDispatchLedger();
+
+
+// A13-B23 batch outreach and evidence intake
+const renderBatchIntake = async () => {
+  const section = document.querySelector('#batch-intake');
+  if (!section) return;
+  try {
+    const response = await fetch('/a13-b10/data/generated/provider-batch-progress.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Batch intake request failed: ${response.status}`);
+    const report = await response.json();
+    const set = (selector, value) => { const node = section.querySelector(selector); if (node) node.textContent = value; };
+    set('[data-batch-status]', report.status.replaceAll('-', ' '));
+    set('[data-batch-contacted]', `${report.totals.contacted}/${report.totals.candidates}`);
+    set('[data-batch-remaining]', String(report.totals.remainingDispatches));
+    set('[data-batch-ready]', String(report.totals.pilotReady));
+    const gates = section.querySelector('[data-batch-gates]');
+    if (gates) gates.innerHTML = Object.entries(report.gates).map(([name, value]) => `<p><span>${name.replace(/([A-Z])/g, ' $1')}</span><strong>${value}</strong></p>`).join('');
+    const list = section.querySelector('[data-batch-candidates]');
+    if (list) list.innerHTML = report.candidates.map(item => `<article class="batch-candidate"><div class="batch-candidate-head"><h3>${item.role} · priority ${item.priority}</h3><span class="status-chip">${item.status}</span></div><div class="batch-candidate-meta"><span>${item.candidateId}</span><span>Evidence ${item.evidenceVerified}/${item.evidenceRequired}</span><span>Complete: ${item.evidenceComplete ? 'Yes' : 'No'}</span><span>Pilot-ready: ${item.pilotReady ? 'Yes' : 'No'}</span></div></article>`).join('');
+    document.body.dataset.batchIntake = report.status;
+  } catch (error) {
+    set('[data-batch-status]', 'Unavailable');
+    console.error(error);
+  }
+};
+renderBatchIntake();
