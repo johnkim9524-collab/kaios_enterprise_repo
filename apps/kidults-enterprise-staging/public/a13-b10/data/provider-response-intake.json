@@ -1,0 +1,23 @@
+{
+  "release": "A13-B21",
+  "environment": "staging",
+  "responses": [],
+  "requiredEvidence": [
+    "commercial-terms",
+    "api-access",
+    "quota",
+    "latency",
+    "uptime",
+    "freshness",
+    "production-use-rights",
+    "retention-rights"
+  ],
+  "allowedStatuses": [
+    "contacted",
+    "responded",
+    "diligence",
+    "pilot-approved",
+    "rejected"
+  ],
+  "productionPromotionAuthorized": false
+}
