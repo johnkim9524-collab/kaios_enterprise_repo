@@ -5,7 +5,9 @@
   const state = {
     category: 'all',
     horizon: '6M',
-    product: null
+    product: null,
+    adapter: null,
+    effectiveMode: 'fallback'
   };
 
   const categoryCopy = {
@@ -33,11 +35,29 @@
     }
   };
 
+  const setText = (selector, value) => {
+    const node = qs(selector);
+    if (node) node.textContent = String(value);
+  };
+
   const setActive = (buttons, active) => {
     buttons.forEach(button => button.classList.toggle('active', button === active));
   };
 
   const formatVelocity = value => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
+
+  const formatTimestamp = value => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Unavailable';
+    return new Intl.DateTimeFormat('en', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    }).format(date);
+  };
 
   const getCategoryRecord = key => {
     if (!state.product || key === 'all') return null;
@@ -89,11 +109,11 @@
 
     qs('[data-series-line]')?.setAttribute('points', buildChartPoints(series));
     qs('[data-confidence-band]')?.setAttribute('d', buildConfidenceBand(series));
-    if (qs('[data-index-title]')) qs('[data-index-title]').textContent = copy.title;
-    if (qs('[data-index-value]')) qs('[data-index-value]').textContent = latest.toFixed(1);
-    if (qs('[data-index-delta]')) qs('[data-index-delta]').textContent = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`;
-    if (qs('[data-interpretation]')) qs('[data-interpretation]').textContent = copy.interpretation;
-    if (qs('[data-horizon-label]')) qs('[data-horizon-label]').textContent = state.horizon;
+    setText('[data-index-title]', copy.title);
+    setText('[data-index-value]', latest.toFixed(1));
+    setText('[data-index-delta]', `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`);
+    setText('[data-interpretation]', copy.interpretation);
+    setText('[data-horizon-label]', state.horizon);
 
     const metricValues = category
       ? [category.regime, formatVelocity(category.velocity), category.liquidity.toFixed(1), category.canonStrength.toFixed(1), `${category.confidence}%`]
@@ -129,8 +149,8 @@
     const scores = product.canon.dimensions.map(item => item.score);
     const composite = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
 
-    if (qs('[data-canon-headline]')) qs('[data-canon-headline]').textContent = product.canon.headline;
-    if (qs('[data-canon-composite]')) qs('[data-canon-composite]').textContent = composite;
+    setText('[data-canon-headline]', product.canon.headline);
+    setText('[data-canon-composite]', composite);
 
     target.innerHTML = product.canon.dimensions.map(item => `
       <article class="canon-card">
@@ -152,10 +172,7 @@
       ['[data-method-version]', product.meta.methodVersion]
     ];
 
-    setters.forEach(([selector, value]) => {
-      const node = qs(selector);
-      if (node) node.textContent = value;
-    });
+    setters.forEach(([selector, value]) => setText(selector, value));
 
     const principles = qs('[data-method-principles]');
     if (principles) principles.innerHTML = method.principles.map(item => `<li>${item}</li>`).join('');
@@ -168,22 +185,145 @@
     renderMethod(product);
     renderChart();
 
-    const status = qs('[data-product-status]');
-    if (status) {
-      status.textContent = `${product.meta.release} · ${product.meta.methodVersion} · ${product.meta.dataMode} data`;
-    }
+    setText('[data-product-status]', `${product.meta.release} · ${product.meta.methodVersion} · ${state.effectiveMode} data`);
   };
 
-  const loadProduct = async () => {
+  const validateProduct = product => {
+    if (!product || typeof product !== 'object') throw new Error('Product payload is not an object');
+    if (!product.meta || !Array.isArray(product.categoryMatrix)) throw new Error('Product payload metadata is incomplete');
+    if (!product.canon || !Array.isArray(product.canon.dimensions)) throw new Error('Product canon schema is incomplete');
+    if (!product.method || !product.timeSeries?.series) throw new Error('Product method or time-series schema is incomplete');
+    for (const key of ['all', 'character', 'cards', 'art']) {
+      if (!Array.isArray(product.timeSeries.series[key])) throw new Error(`Missing time-series: ${key}`);
+    }
+    return product;
+  };
+
+  const validateAdapter = adapter => {
+    if (!adapter || adapter.release !== 'A13-B12') throw new Error('Adapter release is invalid');
+    if (!['live', 'stale', 'fallback'].includes(adapter.mode)) throw new Error('Adapter mode is invalid');
+    if (!adapter.fallback) throw new Error('Adapter fallback is required');
+    if (!adapter.freshness?.generatedAt || typeof adapter.freshness.maxAgeMinutes !== 'number') {
+      throw new Error('Adapter freshness metadata is incomplete');
+    }
+    if (adapter.mode === 'live' && !adapter.endpoint) throw new Error('Live mode requires an endpoint');
+    if (adapter.mode === 'live' && adapter.safety?.allowLiveWithoutProvenance === false) {
+      const provenance = adapter.provenance;
+      if (!provenance?.sourceFamilies || !provenance?.brandsCovered || !provenance?.confidenceModel) {
+        throw new Error('Live mode provenance is incomplete');
+      }
+    }
+    return adapter;
+  };
+
+  const fetchJson = async url => {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Request failed: ${response.status} ${url}`);
+    return response.json();
+  };
+
+  const getFreshnessState = adapter => {
+    if (adapter.mode === 'fallback' || adapter.freshness.status === 'illustrative') return 'Illustrative';
+    const generated = new Date(adapter.freshness.generatedAt).getTime();
+    if (!Number.isFinite(generated)) return 'Unknown';
+    const ageMinutes = Math.max(0, (Date.now() - generated) / 60000);
+    return ageMinutes <= adapter.freshness.maxAgeMinutes ? 'Fresh' : 'Stale';
+  };
+
+  const renderAdapterStatus = ({ adapter, effectiveMode, source, fallbackUsed, reason }) => {
+    const provenance = adapter?.provenance || {};
+    const freshness = adapter ? getFreshnessState(adapter) : 'Unavailable';
+    const provenanceState = provenance.sourceFamilies && provenance.brandsCovered ? 'Verified' : 'Incomplete';
+
+    setText('[data-adapter-status]', reason || `${adapter.release} adapter · ${effectiveMode} mode`);
+    setText('[data-adapter-mode]', effectiveMode.charAt(0).toUpperCase() + effectiveMode.slice(1));
+    setText('[data-adapter-freshness]', freshness);
+    setText('[data-adapter-confidence]', provenanceState);
+    setText('[data-adapter-generated]', adapter ? formatTimestamp(adapter.freshness.generatedAt) : 'Unavailable');
+    const sourceLabel = effectiveMode === 'fallback'
+      ? 'Illustrative intelligence dataset'
+      : source || 'Unavailable';
+    setText('[data-adapter-source]', sourceLabel);
+    setText('[data-adapter-fallback]', effectiveMode === 'fallback' || fallbackUsed ? 'Active' : 'Standby');
+    setText('[data-adapter-brands]', provenance.brandsCovered ? `${provenance.brandsCovered}+` : '—');
+    setText('[data-adapter-sources]', provenance.sourceFamilies || '—');
+    setText('[data-adapter-categories]', provenance.categoriesCovered || '—');
+    setText('[data-adapter-model]', provenance.confidenceModel || 'Unavailable');
+
+    document.body.dataset.dataMode = effectiveMode;
+    document.body.dataset.freshness = freshness.toLowerCase();
+  };
+
+  const loadProductThroughAdapter = async () => {
+    let adapter;
     try {
-      const response = await fetch('/a13-b10/data/intelligence-product.json', { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Product data request failed: ${response.status}`);
-      const product = await response.json();
-      renderProduct(product);
+      adapter = validateAdapter(await fetchJson('/a13-b10/data/data-adapter.json'));
+      state.adapter = adapter;
     } catch (error) {
       console.error(error);
-      const status = qs('[data-product-status]');
-      if (status) status.textContent = 'Illustrative fallback · product data unavailable';
+      adapter = {
+        release: 'A13-B12',
+        mode: 'fallback',
+        fallback: '/a13-b10/data/intelligence-product.json',
+        freshness: { generatedAt: new Date(0).toISOString(), maxAgeMinutes: 0, status: 'illustrative' },
+        provenance: {},
+        safety: { fallbackOnFetchError: true, fallbackOnSchemaError: true }
+      };
+    }
+
+    const preferredSource = adapter.mode === 'live' || adapter.mode === 'stale'
+      ? adapter.endpoint
+      : adapter.fallback;
+
+    try {
+      const product = validateProduct(await fetchJson(preferredSource));
+      state.effectiveMode = adapter.mode;
+      renderAdapterStatus({
+        adapter,
+        effectiveMode: adapter.mode,
+        source: preferredSource,
+        fallbackUsed: false,
+        reason: `${adapter.release} adapter · ${getFreshnessState(adapter)} · ${adapter.mode}`
+      });
+      renderProduct(product);
+      return;
+    } catch (primaryError) {
+      console.error(primaryError);
+      const allowFallback = adapter.safety?.fallbackOnFetchError !== false && adapter.safety?.fallbackOnSchemaError !== false;
+      if (!allowFallback || preferredSource === adapter.fallback) {
+        renderAdapterStatus({
+          adapter,
+          effectiveMode: 'fallback',
+          source: adapter.fallback,
+          fallbackUsed: true,
+          reason: 'Fallback unavailable · data delivery failed'
+        });
+        setText('[data-product-status]', 'Illustrative fallback · product data unavailable');
+        return;
+      }
+    }
+
+    try {
+      const fallbackProduct = validateProduct(await fetchJson(adapter.fallback));
+      state.effectiveMode = 'fallback';
+      renderAdapterStatus({
+        adapter,
+        effectiveMode: 'fallback',
+        source: adapter.fallback,
+        fallbackUsed: true,
+        reason: `${adapter.release} adapter · fallback activated`
+      });
+      renderProduct(fallbackProduct);
+    } catch (fallbackError) {
+      console.error(fallbackError);
+      renderAdapterStatus({
+        adapter,
+        effectiveMode: 'fallback',
+        source: adapter.fallback,
+        fallbackUsed: true,
+        reason: 'Fallback unavailable · data delivery failed'
+      });
+      setText('[data-product-status]', 'Illustrative fallback · product data unavailable');
     }
   };
 
@@ -203,8 +343,11 @@
     setActive(qsa('[data-signal]'), button);
     const data = evidence[button.dataset.signal];
     if (!data) return;
-    qs('[data-evidence-title]').textContent = data.title;
-    qs('[data-evidence-body]').innerHTML = `<div class="evidence-grid">${data.metrics.map(([label,value]) => `<div><small>${label}</small><strong>${value}</strong></div>`).join('')}</div><div class="evidence-notes">${data.notes.map(note => `<p>${note}</p>`).join('')}</div>`;
+    setText('[data-evidence-title]', data.title);
+    const body = qs('[data-evidence-body]');
+    if (body) {
+      body.innerHTML = `<div class="evidence-grid">${data.metrics.map(([label,value]) => `<div><small>${label}</small><strong>${value}</strong></div>`).join('')}</div><div class="evidence-notes">${data.notes.map(note => `<p>${note}</p>`).join('')}</div>`;
+    }
   }));
 
   const syncDesktopPanelWidths = () => {
@@ -273,7 +416,7 @@
   };
 
   syncDesktopPanelWidths();
-  loadProduct();
+  loadProductThroughAdapter();
   window.addEventListener('scroll', requestNavigationSync, { passive: true });
   window.addEventListener('resize', () => {
     syncDesktopPanelWidths();

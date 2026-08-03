@@ -88,7 +88,7 @@ test('A13-B11 time-series contract supports all categories and horizons', () => 
 });
 
 test('A13-B11 connects JSON data to matrix, canon, method and chart rendering', () => {
-  assert.match(js, /fetch\('\/a13-b10\/data\/intelligence-product\.json'/);
+  assert.match(js, /fetchJson\('\/a13-b10\/data\/data-adapter\.json'\)/);
   assert.match(js, /renderCategoryMatrix/);
   assert.match(js, /renderCanon/);
   assert.match(js, /renderMethod/);

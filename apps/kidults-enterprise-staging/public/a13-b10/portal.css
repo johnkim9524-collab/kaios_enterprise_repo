@@ -1946,3 +1946,37 @@ footer {
     padding-inline: 18px;
   }
 }
+
+/* A13-B12 Operational State polish */
+#data-operations .trust-metrics > div {
+  min-width: 0;
+  overflow: hidden;
+}
+
+#data-operations .trust-metrics strong {
+  display: block;
+  max-width: 100%;
+  font-size: clamp(2rem, 2.7vw, 2.7rem);
+  line-height: .96;
+  letter-spacing: -.035em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#data-operations .trust-meta strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+@media (max-width: 767px) {
+  #data-operations .trust-metrics strong {
+    font-size: 2rem;
+    text-align: right;
+  }
+
+  #data-operations .trust-meta strong {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+}
