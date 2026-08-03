@@ -8,8 +8,8 @@ const publicRoot = path.join(appRoot, 'public', 'a13-b10');
 const baseline = fs.readFileSync(path.join(appRoot, 'A13-B11-BASELINE.md'), 'utf8');
 const html = fs.readFileSync(path.join(publicRoot, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(publicRoot, 'portal.css'), 'utf8');
-const coreCss = fs.readFileSync(path.join(publicRoot, 'portal-core.css'), 'utf8');
 const js = fs.readFileSync(path.join(publicRoot, 'portal.js'), 'utf8');
+const portalCss = fs.readFileSync(path.join(publicRoot, 'portal.css'), 'utf8');
 const product = JSON.parse(
   fs.readFileSync(path.join(publicRoot, 'data', 'intelligence-product.json'), 'utf8')
 );
@@ -32,12 +32,11 @@ test('A13-B11 renders the required intelligence product modules', () => {
 });
 
 test('A13-B11 external style layer survives restrictive staging CSP', () => {
-  assert.match(css, /portal-core\.css/);
   assert.match(css, /\.product-section/);
   assert.match(css, /\.matrix-table/);
   assert.match(css, /\.canon-layout/);
   assert.match(css, /\.trust-layout/);
-  assert.match(coreCss, /\.benchmark-grid/);
+  assert.match(portalCss, /\.benchmark-grid/);
 });
 
 test('A13-B11 defines the required category intelligence matrix', () => {
@@ -110,6 +109,8 @@ test('A13-B11 architecture keeps one browser CSS entrypoint and one interaction 
   const scriptLinks = html.match(/<script[^>]+src="[^"]+"[^>]*><\/script>/g) || [];
   assert.equal(stylesheetLinks.length, 1);
   assert.equal(scriptLinks.length, 1);
+  assert.doesNotMatch(html, /<style>/i);
+  assert.doesNotMatch(portalCss, /portal-core\.css/);
   assert.match(baseline, /Do not inject stylesheets at runtime/i);
   assert.match(baseline, /320px, 360px, 390px and 430px/i);
 });
