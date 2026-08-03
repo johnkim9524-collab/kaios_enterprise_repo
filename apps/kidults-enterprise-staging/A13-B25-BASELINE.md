@@ -11,12 +11,15 @@ Freeze the approved Kidults staging product after B24 and publish a deterministi
 - provider acquisition, outreach, response intake and audit ledgers
 - manual dispatch packets and operator confirmation gates
 
-## External dependencies
+## External technical dependencies
 - provider outreach must be sent manually
 - provider responses and commercial terms remain external
-- legal entity formation remains pending executive review
-- trademark filing remains pending executive review
+- provider production-use and retention rights remain unapproved
 - production credentials, rights and endpoints remain unavailable
+- live-pilot approval remains pending
+
+## Separate executive decisions
+Corporate formation and trademark filing are managed outside this technical release freeze. They are not B25 engineering blockers and are not included in the release gate.
 
 ## Safety
 - staging only
