@@ -1,0 +1,53 @@
+{
+  "release": "A13-B17",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T05:19:14.755Z",
+  "status": "blocked",
+  "productionPromotionAuthorized": false,
+  "providers": [
+    {
+      "role": "transactions",
+      "endpointConfigured": false,
+      "healthEndpointConfigured": false,
+      "credentialPresent": false,
+      "rightsApproved": false,
+      "secretValueExposed": false,
+      "status": "blocked"
+    },
+    {
+      "role": "supply",
+      "endpointConfigured": false,
+      "healthEndpointConfigured": false,
+      "credentialPresent": false,
+      "rightsApproved": false,
+      "secretValueExposed": false,
+      "status": "blocked"
+    },
+    {
+      "role": "culturalDemand",
+      "endpointConfigured": false,
+      "healthEndpointConfigured": false,
+      "credentialPresent": false,
+      "rightsApproved": false,
+      "secretValueExposed": false,
+      "status": "blocked"
+    }
+  ],
+  "gates": {
+    "roles": "passed",
+    "endpoints": "blocked",
+    "healthEndpoints": "blocked",
+    "credentials": "blocked",
+    "rights": "blocked",
+    "mockHarness": "passed",
+    "releaseCommandCenter": "passed",
+    "productionAuthorization": "blocked"
+  },
+  "blockers": [
+    "One or more provider endpoints are missing or invalid.",
+    "One or more provider health endpoints are missing or invalid.",
+    "One or more provider credentials are missing.",
+    "One or more provider rights approvals are incomplete.",
+    "Explicit production release authorization remains false."
+  ]
+}

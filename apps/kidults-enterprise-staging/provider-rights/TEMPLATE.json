@@ -1,0 +1,14 @@
+{
+  "providerRole": "replace-with-role",
+  "providerLegalName": "",
+  "datasetName": "",
+  "status": "pending",
+  "productionUseApproved": false,
+  "evidenceRetentionApproved": false,
+  "redistributionApproved": false,
+  "attributionRequired": false,
+  "approvedAt": null,
+  "approvedBy": "",
+  "expiresAt": null,
+  "notes": ""
+}
