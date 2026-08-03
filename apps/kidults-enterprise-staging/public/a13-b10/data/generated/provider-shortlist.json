@@ -1,0 +1,139 @@
+{
+  "release": "A13-B19",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T06:15:27.036Z",
+  "status": "candidate-shortlist-ready",
+  "productionPromotionAuthorized": false,
+  "roleCoverage": [
+    {
+      "role": "transactions",
+      "candidateCount": 3,
+      "primaryCandidate": {
+        "id": "ebay-marketplace-insights",
+        "provider": "eBay",
+        "accessStatus": "restricted-not-open-to-new-users",
+        "outreachAction": "Apply through eBay partner and developer channels for limited-release access."
+      },
+      "candidates": [
+        {
+          "id": "ebay-marketplace-insights",
+          "provider": "eBay",
+          "accessStatus": "restricted-not-open-to-new-users",
+          "commercialStatus": "requires-partner-outreach",
+          "rightsStatus": "requires-provider-approval",
+          "pilotPriority": 1
+        },
+        {
+          "id": "pricecharting-prices-api",
+          "provider": "PriceCharting",
+          "accessStatus": "paid-subscription",
+          "commercialStatus": "pricing-plan-review-required",
+          "rightsStatus": "subscription-terms-review-required",
+          "pilotPriority": 2
+        },
+        {
+          "id": "tcgplayer-api-transactions-proxy",
+          "provider": "TCGplayer",
+          "accessStatus": "no-new-api-access",
+          "commercialStatus": "existing-or-exception-access-only",
+          "rightsStatus": "approved-purpose-required",
+          "pilotPriority": 3
+        }
+      ]
+    },
+    {
+      "role": "supply",
+      "candidateCount": 3,
+      "primaryCandidate": {
+        "id": "ebay-browse-api",
+        "provider": "eBay",
+        "accessStatus": "developer-api-with-production-approval-requirements",
+        "outreachAction": "Register application, confirm production Buy API eligibility and allowed data retention."
+      },
+      "candidates": [
+        {
+          "id": "ebay-browse-api",
+          "provider": "eBay",
+          "accessStatus": "developer-api-with-production-approval-requirements",
+          "commercialStatus": "partner-requirements-review-required",
+          "rightsStatus": "api-license-review-required",
+          "pilotPriority": 1
+        },
+        {
+          "id": "tcgplayer-api-supply",
+          "provider": "TCGplayer",
+          "accessStatus": "no-new-api-access",
+          "commercialStatus": "existing-or-exception-access-only",
+          "rightsStatus": "approved-purpose-required",
+          "pilotPriority": 2
+        },
+        {
+          "id": "pricecharting-marketplace-api",
+          "provider": "PriceCharting",
+          "accessStatus": "paid-or-seller-context",
+          "commercialStatus": "scope-review-required",
+          "rightsStatus": "subscription-terms-review-required",
+          "pilotPriority": 3
+        }
+      ]
+    },
+    {
+      "role": "culturalDemand",
+      "candidateCount": 4,
+      "primaryCandidate": {
+        "id": "google-trends-api-alpha",
+        "provider": "Google",
+        "accessStatus": "limited-alpha-application",
+        "outreachAction": "Apply to the Google Trends API alpha with the Kidults monitoring use case."
+      },
+      "candidates": [
+        {
+          "id": "google-trends-api-alpha",
+          "provider": "Google",
+          "accessStatus": "limited-alpha-application",
+          "commercialStatus": "alpha-terms-review-required",
+          "rightsStatus": "google-api-terms-review-required",
+          "pilotPriority": 1
+        },
+        {
+          "id": "youtube-data-api",
+          "provider": "Google YouTube",
+          "accessStatus": "public-api-with-quota",
+          "commercialStatus": "terms-and-quota-review-required",
+          "rightsStatus": "youtube-api-services-terms-required",
+          "pilotPriority": 2
+        },
+        {
+          "id": "reddit-data-api",
+          "provider": "Reddit",
+          "accessStatus": "oauth-and-approval",
+          "commercialStatus": "commercial-use-contact-required",
+          "rightsStatus": "developer-and-data-api-terms-required",
+          "pilotPriority": 3
+        },
+        {
+          "id": "gdelt-doc-api",
+          "provider": "GDELT Project",
+          "accessStatus": "public-api",
+          "commercialStatus": "usage-policy-review-required",
+          "rightsStatus": "source-document-rights-remain-external",
+          "pilotPriority": 4
+        }
+      ]
+    }
+  ],
+  "candidateCount": 10,
+  "outreachRequired": 10,
+  "gates": {
+    "roleCoverage": "passed",
+    "primarySourcePolicy": "passed",
+    "unknownValuesPreserved": "passed",
+    "pilotApproval": "blocked",
+    "productionAuthorization": "blocked"
+  },
+  "blockers": [
+    "Provider commercial terms, service levels and rights require direct confirmation.",
+    "No candidate is pilot-approved until outreach and due diligence are complete.",
+    "Explicit production release authorization remains false."
+  ]
+}

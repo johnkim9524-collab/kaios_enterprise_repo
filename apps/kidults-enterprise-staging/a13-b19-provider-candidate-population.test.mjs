@@ -52,3 +52,24 @@ test('A13-B19 does not approve a pilot without direct diligence', () => {
   assert.match(runner, /pilotApproval: 'blocked'/);
   assert.match(runner, /Explicit production release authorization remains false/);
 });
+
+
+test('A13-B19 renders the verified shortlist without invented commercial metrics', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(dataRoot, '..', 'portal.css'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /id="provider-shortlist"/);
+  assert.match(html, /data-shortlist-roles-list/);
+  assert.match(js, /provider-shortlist\.json/);
+  assert.match(js, /outreachAction/);
+  assert.match(css, /A13-B19 provider shortlist/);
+  assert.doesNotMatch(js, /monthlyPilotCostUsd/);
+});
+
+test('A13-B19 UI keeps production blocked and exposes no credentials', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /Production blocked/i);
+  assert.doesNotMatch(html, /API_KEY/);
+  assert.doesNotMatch(js, /process\.env/);
+});
