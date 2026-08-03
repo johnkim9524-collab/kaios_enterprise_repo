@@ -1,0 +1,41 @@
+{
+  "release": "A13-B18",
+  "environment": "staging",
+  "status": "candidate_pending",
+  "productionPromotionAuthorized": false,
+  "requiredRoles": ["transactions", "supply", "culturalDemand"],
+  "minimumIndependentProviderFamilies": 2,
+  "scoreWeights": {
+    "rights": 0.25,
+    "coverage": 0.2,
+    "freshness": 0.15,
+    "reliability": 0.15,
+    "commercial": 0.1,
+    "latency": 0.1,
+    "integration": 0.05
+  },
+  "minimumPassingScore": 75,
+  "pilotThresholds": {
+    "minimumUptimePercent": 99,
+    "maximumP95LatencyMs": 2500,
+    "minimumFreshnessMinutes": 1440,
+    "minimumQuotaPerDay": 1000,
+    "maximumMonthlyPilotCostUsd": 2500
+  },
+  "candidates": [],
+  "pilot": {
+    "approved": false,
+    "durationDays": 30,
+    "selectedProviders": [],
+    "fallbackRequired": true,
+    "rollbackRequired": true
+  },
+  "gates": {
+    "roleCoverage": "blocked",
+    "commercialReview": "blocked",
+    "rightsReview": "blocked",
+    "technicalReview": "blocked",
+    "pilotManifest": "blocked",
+    "productionAuthorization": "blocked"
+  }
+}
