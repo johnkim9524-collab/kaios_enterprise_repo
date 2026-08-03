@@ -254,6 +254,68 @@
     document.body.dataset.freshness = freshness.toLowerCase();
   };
 
+
+
+  const renderProviderCommandCenter = report => {
+    const gates = Object.entries(report.gates || {});
+    const providers = Array.isArray(report.providers) ? report.providers : [];
+    const passed = gates.filter(([, value]) => value === 'passed').length;
+    const blocked = gates.length - passed;
+    const ready = providers.filter(provider => provider.status === 'ready').length;
+
+    setText('[data-provider-state]', String(report.status || 'blocked').replaceAll('-', ' '));
+    setText('[data-provider-ready]', `${ready}/${providers.length}`);
+    setText('[data-provider-passed]', passed);
+    setText('[data-provider-blocked]', blocked);
+
+    const badge = qs('[data-provider-badge]');
+    if (badge) {
+      const authorized = report.productionPromotionAuthorized === true;
+      badge.textContent = authorized ? 'Authorized' : 'Production blocked';
+      badge.dataset.health = authorized ? 'healthy' : 'failed';
+    }
+
+    const gateTarget = qs('[data-provider-gates]');
+    if (gateTarget) gateTarget.innerHTML = gates.map(([key, value]) => `
+      <div class="provider-gate"><span>${key.replace(/([A-Z])/g, ' $1')}</span><strong data-state="${value}">${value}</strong></div>
+    `).join('');
+
+    const providerTarget = qs('[data-provider-list]');
+    if (providerTarget) providerTarget.innerHTML = providers.map(provider => `
+      <article class="source-health-item">
+        <div class="source-health-head"><strong>${provider.role}</strong><small>Secure provider injection</small></div>
+        <span class="source-health-status" data-health="${provider.status === 'ready' ? 'healthy' : 'failed'}">${provider.status}</span>
+        <div class="source-health-meta">
+          <span>Endpoint: ${provider.endpointConfigured ? 'configured' : 'blocked'}</span>
+          <span>Health: ${provider.healthEndpointConfigured ? 'configured' : 'blocked'}</span>
+          <span>Credential: ${provider.credentialPresent ? 'present' : 'blocked'}</span>
+          <span>Rights: ${provider.rightsApproved ? 'approved' : 'blocked'}</span>
+        </div>
+      </article>
+    `).join('');
+
+    const blockerTarget = qs('[data-provider-blockers]');
+    if (blockerTarget) blockerTarget.innerHTML = (report.blockers || []).map(item => `<p>${item}</p>`).join('');
+
+    document.body.dataset.providerInjection = report.status || 'blocked';
+  };
+
+  const loadProviderCommandCenter = async () => {
+    try {
+      const report = await fetchJson('/a13-b10/data/generated/provider-injection.json');
+      renderProviderCommandCenter(report);
+    } catch (error) {
+      console.error(error);
+      renderProviderCommandCenter({
+        status: 'blocked',
+        productionPromotionAuthorized: false,
+        providers: [],
+        gates: { report: 'blocked', productionAuthorization: 'blocked' },
+        blockers: ['Provider injection report is unavailable.']
+      });
+    }
+  };
+
   const loadProductThroughAdapter = async () => {
     let adapter;
     try {
@@ -750,6 +812,7 @@
 
   syncDesktopPanelWidths();
   loadSourceRegistry().finally(loadProductThroughAdapter);
+  loadProviderCommandCenter();
   loadExternalCertification();
   loadIntegratedActivation();
   window.addEventListener('scroll', requestNavigationSync, { passive: true });

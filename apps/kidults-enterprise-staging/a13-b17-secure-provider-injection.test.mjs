@@ -61,3 +61,25 @@ test('A13-B17 blocks production until explicit authorization', () => {
   assert.match(baseline, /production promotion remains blocked by default/i);
   assert.match(baseline, /320px, 360px, 390px and 430px/i);
 });
+
+
+test('A13-B17 renders secure provider command center without secrets', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(dataRoot, '..', 'portal.css'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /id="provider-command-center"/);
+  assert.match(html, /data-provider-list/);
+  assert.match(css, /A13-B17 Secure Provider Injection/);
+  assert.match(js, /renderProviderCommandCenter/);
+  assert.match(js, /generated\/provider-injection\.json/);
+  assert.doesNotMatch(html, /KIDULTS_[A-Z_]+_API_KEY=/);
+  assert.doesNotMatch(js, /process\.env/);
+});
+
+test('A13-B17 UI keeps promotion blocked and exposes only configuration state', () => {
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(js, /Production blocked/);
+  assert.match(js, /credentialPresent/);
+  assert.match(js, /rightsApproved/);
+  assert.match(js, /document\.body\.dataset\.providerInjection/);
+});
