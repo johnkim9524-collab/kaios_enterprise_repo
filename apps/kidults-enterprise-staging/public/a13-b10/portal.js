@@ -938,3 +938,31 @@ const renderProviderShortlist = async () => {
   }
 };
 renderProviderShortlist();
+
+
+// A13-B20 provider outreach
+const renderProviderOutreach = async () => {
+  const section = document.querySelector('#provider-outreach');
+  if (!section) return;
+  const set = (selector, value) => { const node = section.querySelector(selector); if (node) node.textContent = value; };
+  try {
+    const response = await fetch('/a13-b10/data/generated/provider-outreach-status.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Outreach request failed: ${response.status}`);
+    const report = await response.json();
+    set('[data-outreach-status]', report.status.replaceAll('-', ' '));
+    set('[data-outreach-contacted]', `${report.totals.contacted}/${report.totals.queued}`);
+    set('[data-outreach-responded]', String(report.totals.responded));
+    set('[data-outreach-ready]', String(report.totals.pilotReady));
+    const gates = section.querySelector('[data-outreach-gates]');
+    if (gates) gates.innerHTML = Object.entries(report.gates).map(([name, value]) => `<p><span>${name.replace(/([A-Z])/g, ' $1')}</span><strong>${value}</strong></p>`).join('');
+    const queue = section.querySelector('[data-outreach-queue]');
+    if (queue) queue.innerHTML = report.queue.map(item => `<article class="outreach-item"><div class="outreach-item-head"><h3>${item.role}</h3><span>${item.status}</span></div><div class="outreach-item-meta"><span>${item.candidateId}</span><span>Priority ${item.priority}</span><span>Evidence ${item.evidenceCount}/8</span></div><p class="outreach-evidence">Evidence complete: ${item.evidenceComplete ? 'yes' : 'no'} · Pilot-ready: ${item.pilotReady ? 'yes' : 'no'}</p></article>`).join('');
+    const blockers = section.querySelector('[data-outreach-blockers]');
+    if (blockers) blockers.innerHTML = report.blockers.map(item => `<p class="outreach-blocker">${item}</p>`).join('');
+    document.body.dataset.providerOutreach = report.status;
+  } catch (error) {
+    set('[data-outreach-status]', 'Unavailable');
+    console.error(error);
+  }
+};
+renderProviderOutreach();

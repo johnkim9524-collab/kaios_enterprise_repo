@@ -41,3 +41,24 @@ test('A13-B20 keeps personal details and secrets out of the repository', () => {
   assert.match(baseline, /no secret values or personal contact details committed/i);
   assert.match(baseline, /320px, 360px, 390px and 430px/i);
 });
+
+
+test('A13-B20 renders outreach progress evidence and blockers', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(dataRoot, '..', 'portal.css'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /id="provider-outreach"/);
+  assert.match(html, /data-outreach-queue/);
+  assert.match(js, /provider-outreach-status\.json/);
+  assert.match(js, /evidenceComplete/);
+  assert.match(js, /pilotReady/);
+  assert.match(css, /A13-B20 provider outreach/);
+});
+
+test('A13-B20 UI remains secret-safe and production-blocked', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /Production blocked/i);
+  assert.doesNotMatch(html, /API_KEY|@/);
+  assert.doesNotMatch(js, /process\.env/);
+});
