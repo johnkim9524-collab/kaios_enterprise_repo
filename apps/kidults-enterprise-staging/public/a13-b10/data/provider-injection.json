@@ -1,0 +1,40 @@
+{
+  "release": "A13-B17",
+  "environment": "staging",
+  "status": "awaiting-provider-values",
+  "productionPromotionAuthorized": false,
+  "requiredRoles": ["transactions", "supply", "culturalDemand"],
+  "providers": [
+    {
+      "role": "transactions",
+      "endpointEnv": "KIDULTS_TRANSACTIONS_ENDPOINT",
+      "healthEndpointEnv": "KIDULTS_TRANSACTIONS_HEALTH_ENDPOINT",
+      "credentialEnv": "KIDULTS_TRANSACTIONS_API_KEY",
+      "rightsApprovalFile": "provider-rights/transactions.json"
+    },
+    {
+      "role": "supply",
+      "endpointEnv": "KIDULTS_SUPPLY_ENDPOINT",
+      "healthEndpointEnv": "KIDULTS_SUPPLY_HEALTH_ENDPOINT",
+      "credentialEnv": "KIDULTS_SUPPLY_API_KEY",
+      "rightsApprovalFile": "provider-rights/supply.json"
+    },
+    {
+      "role": "culturalDemand",
+      "endpointEnv": "KIDULTS_CULTURAL_DEMAND_ENDPOINT",
+      "healthEndpointEnv": "KIDULTS_CULTURAL_DEMAND_HEALTH_ENDPOINT",
+      "credentialEnv": "KIDULTS_CULTURAL_DEMAND_API_KEY",
+      "rightsApprovalFile": "provider-rights/cultural-demand.json"
+    }
+  ],
+  "gates": {
+    "roles": "passed",
+    "endpoints": "blocked",
+    "healthEndpoints": "blocked",
+    "credentials": "blocked",
+    "rights": "blocked",
+    "mockHarness": "pending",
+    "releaseCommandCenter": "pending",
+    "productionAuthorization": "blocked"
+  }
+}
