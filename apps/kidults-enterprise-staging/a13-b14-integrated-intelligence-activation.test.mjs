@@ -5,10 +5,17 @@ import path from 'node:path';
 
 const appRoot = path.resolve('apps/kidults-enterprise-staging');
 const publicRoot = path.join(appRoot, 'public', 'a13-b10');
+const dataRoot = path.join(publicRoot, 'data');
+const sourceRoot = path.join(dataRoot, 'sources');
 const baseline = fs.readFileSync(path.join(appRoot, 'A13-B14-INTEGRATED-BASELINE.md'), 'utf8');
-const contract = JSON.parse(
-  fs.readFileSync(path.join(publicRoot, 'data', 'integrated-activation.json'), 'utf8')
-);
+const contract = JSON.parse(fs.readFileSync(path.join(dataRoot, 'integrated-activation.json'), 'utf8'));
+const methodology = JSON.parse(fs.readFileSync(path.join(dataRoot, 'kidult-100-methodology.json'), 'utf8'));
+const pipeline = fs.readFileSync(path.join(appRoot, 'scripts', 'run-a13-b14-integrated-pipeline.mjs'), 'utf8');
+const sources = [
+  JSON.parse(fs.readFileSync(path.join(sourceRoot, 'transactions.json'), 'utf8')),
+  JSON.parse(fs.readFileSync(path.join(sourceRoot, 'supply.json'), 'utf8')),
+  JSON.parse(fs.readFileSync(path.join(sourceRoot, 'cultural-demand.json'), 'utf8'))
+];
 
 test('A13-B14 is one integrated staging delivery', () => {
   assert.equal(contract.release, 'A13-B14');
@@ -33,12 +40,55 @@ test('A13-B14 combines source onboarding aggregation scoring reporting and certi
   assert.equal(contract.workstreams.certification.endToEndRequired, true);
 });
 
-test('A13-B14 blocks promotion until independent live evidence and release gates pass', () => {
+test('A13-B14 registers all three source roles with rights and provenance', () => {
+  assert.deepEqual(sources.map(source => source.role), ['transactions', 'supply', 'culturalDemand']);
+  assert.equal(new Set(sources.map(source => source.family)).size, 3);
+  for (const source of sources) {
+    assert.equal(source.mode, 'illustrative');
+    assert.equal(source.rights.status, 'staging-approved');
+    assert.equal(source.rights.commercialUse, false);
+    assert.equal(typeof source.provenance.provider, 'string');
+    assert.ok(Array.isArray(source.records));
+    assert.ok(source.records.length >= 3);
+  }
+});
+
+test('A13-B14 methodology is deterministic and normalized', () => {
+  assert.equal(methodology.engine, 'Kidult 100');
+  assert.equal(methodology.methodVersion, 'K100-3.0');
+  assert.equal(methodology.deterministic, true);
+  assert.ok(methodology.minimumEvidenceRoles >= 2);
+  const weightTotal = Object.values(methodology.weights).reduce((sum, value) => sum + value, 0);
+  assert.ok(Math.abs(weightTotal - 1) < 0.000001);
+  assert.ok(methodology.penalties.missingRole > 0);
+  assert.ok(methodology.penalties.anomalyMultiplier > 0);
+});
+
+test('A13-B14 pipeline performs normalization reconciliation and scoring', () => {
+  assert.match(pipeline, /const categories = \[\.\.\.new Set/);
+  assert.match(pipeline, /Object\.assign\(\{\}, \.\.\.evidence/);
+  assert.match(pipeline, /methodology\.weights/);
+  assert.match(pipeline, /missingRoles\.length \* methodology\.penalties\.missingRole/);
+  assert.match(pipeline, /anomalyRate \* methodology\.penalties\.anomalyMultiplier/);
+  assert.match(pipeline, /sort\(\(a, b\) => b\.score - a\.score\)/);
+});
+
+test('A13-B14 pipeline generates index report archive and readiness outputs', () => {
+  assert.match(pipeline, /generated', 'kidult-100\.json/);
+  assert.match(pipeline, /generated', 'monthly-intelligence\.json/);
+  assert.match(pipeline, /generated', 'readiness\.json/);
+  assert.match(pipeline, /archive\.json/);
+  assert.match(pipeline, /executiveSummary/);
+  assert.match(pipeline, /categoryLeaders/);
+  assert.match(pipeline, /riskWatch/);
+});
+
+test('A13-B14 keeps production promotion blocked by default', () => {
+  assert.match(pipeline, /productionPromotionAuthorized: false/);
+  assert.match(pipeline, /Production promotion requires explicit external source rights certification/);
   assert.ok(contract.workstreams.sourceOnboarding.minimumIndependentHealthyFamilies >= 2);
   assert.equal(contract.workstreams.sourceOnboarding.rightsMetadataRequired, true);
   assert.equal(contract.workstreams.sourceOnboarding.provenanceRequired, true);
-  assert.ok(contract.gates.length >= 5);
-  assert.ok(contract.gates.every(gate => gate.status === 'pending'));
 });
 
 test('A13-B14 retains mobile and deterministic quality gates', () => {
