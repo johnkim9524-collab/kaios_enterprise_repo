@@ -993,3 +993,31 @@ const renderProviderResponseIntake = async () => {
   }
 };
 renderProviderResponseIntake();
+
+
+// A13-B22 dispatch ledger
+const renderDispatchLedger = async () => {
+  const section = document.querySelector('#dispatch-ledger');
+  if (!section) return;
+  try {
+    const response = await fetch('/a13-b10/data/generated/provider-dispatch-audit.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Dispatch audit request failed: ${response.status}`);
+    const report = await response.json();
+    const set = (selector, value) => { const node = section.querySelector(selector); if (node) node.textContent = value; };
+    set('[data-dispatch-status]', report.status.replaceAll('-', ' '));
+    set('[data-dispatch-contacted]', `${report.totals.contacted}/${report.totals.candidates}`);
+    set('[data-dispatch-responded]', String(report.totals.responded));
+    set('[data-dispatch-ready]', String(report.totals.pilotReady));
+    set('[data-dispatch-events]', String(report.totals.events));
+    const gates = section.querySelector('[data-dispatch-gates]');
+    if (gates) gates.innerHTML = Object.entries(report.gates).map(([name, value]) => `<p><span>${name.replace(/([A-Z])/g, ' $1')}</span><strong>${value}</strong></p>`).join('');
+    const candidates = section.querySelector('[data-dispatch-candidates]');
+    if (candidates) candidates.innerHTML = report.candidates.map(item => `<article class="dispatch-candidate"><div class="dispatch-candidate-head"><h3>${item.role} · priority ${item.priority}</h3><span class="status-chip">${item.status}</span></div><p>${item.candidateId}</p><p>Evidence ${item.evidenceVerified}/${item.evidenceRequired} · Complete: ${item.evidenceComplete ? 'Yes' : 'No'} · Pilot-ready: ${item.pilotReady ? 'Yes' : 'No'}</p></article>`).join('');
+    document.body.dataset.dispatchLedger = report.status;
+  } catch (error) {
+    const node = section.querySelector('[data-dispatch-status]');
+    if (node) node.textContent = 'Unavailable';
+    console.error(error);
+  }
+};
+renderDispatchLedger();
