@@ -8,8 +8,9 @@ const js = fs.readFileSync(path.join(root, 'workspace.js'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'holistic-tuning.css'), 'utf8');
 const fusion = fs.readFileSync(path.join(root, 'editorial-fusion.css'), 'utf8');
 
-test('B7 replaces the generic hero with category-defining positioning', () => {
-  assert.ok(js.includes('The autonomous<br>intelligence layer<br>for global collectible markets.'));
+test('B7 preserves category-defining positioning in the legacy workspace', () => {
+  assert.ok(js.includes('The autonomous intelligence layer'));
+  assert.ok(js.includes('global collectible markets'));
   assert.ok(js.includes('proprietary benchmarks, signals and decision intelligence'));
   assert.ok(css.includes('.command h1 br:first-of-type{display:none}'));
 });

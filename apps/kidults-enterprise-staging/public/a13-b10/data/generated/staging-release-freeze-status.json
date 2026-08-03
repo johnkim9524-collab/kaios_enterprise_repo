@@ -1,0 +1,52 @@
+{
+  "release": "A13-B25",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T15:14:05.567Z",
+  "status": "staging-release-frozen",
+  "productionPromotionAuthorized": false,
+  "frozenThrough": "A13-B24",
+  "quality": {
+    "lastVerifiedTests": 124,
+    "lastVerifiedFailures": 0,
+    "mobileSafe": true,
+    "secretSafe": true,
+    "productionUntouched": true
+  },
+  "frozenCapabilities": [
+    "collector-intelligence-ui",
+    "kidult-100-scoring",
+    "monthly-intelligence",
+    "archive-generation",
+    "live-stale-fallback-adapter",
+    "source-resilience",
+    "autonomous-operations-certification",
+    "provider-readiness",
+    "provider-shortlist",
+    "outreach-execution",
+    "response-intake",
+    "dispatch-ledger",
+    "batch-evidence-intake",
+    "manual-dispatch-control-center"
+  ],
+  "openExternalDependencies": [
+    "manual-provider-dispatch",
+    "provider-commercial-responses",
+    "provider-rights-approval",
+    "provider-credentials-and-endpoints",
+    "live-pilot-approval"
+  ],
+  "changePolicy": {
+    "featureExpansionAllowed": false,
+    "verifiedDefectFixAllowed": true,
+    "confirmedComplianceFixAllowed": true,
+    "approvedProviderIntegrationAllowed": true
+  },
+  "gates": {
+    "regression": "passed",
+    "mobileSafety": "passed",
+    "secretSafety": "passed",
+    "productionIsolation": "passed",
+    "externalDependencyClosure": "blocked",
+    "productionAuthorization": "blocked"
+  }
+}

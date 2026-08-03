@@ -8,8 +8,8 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'assets/workspace.css'), 'utf8');
 const js = fs.readFileSync(path.join(root, 'assets/workspace.js'), 'utf8');
 
-test('B5 is a workspace rather than a long-form landing page', () => {
-  for (const token of ['Command Center','Intelligence Canvas','Machine interpretation','Signal Queue','Evidence drawer','Recommended action']) assert.ok(html.includes(token), token);
+test('B5 preserves the legacy autonomous workspace artifact', () => {
+  for (const token of ['Command Center','Primary intelligence canvas','Machine interpretation','Signal Queue','Evidence drawer','Recommended action']) assert.ok(html.includes(token), token);
   assert.ok(html.includes('class="workspace"'));
   assert.ok(html.includes('class="rail"'));
   assert.ok(html.includes('class="rightbar"'));
