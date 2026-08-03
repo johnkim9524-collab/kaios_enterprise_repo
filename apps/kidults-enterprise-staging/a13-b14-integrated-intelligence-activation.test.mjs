@@ -98,3 +98,26 @@ test('A13-B14 retains mobile and deterministic quality gates', () => {
   assert.equal(contract.workstreams.scoring.anomalyControlRequired, true);
   assert.match(baseline, /one HTML, one physical CSS and one interaction JavaScript/i);
 });
+
+
+test('A13-B14 renders generated index monthly intelligence and readiness in the portal', () => {
+  const html = fs.readFileSync(path.join(publicRoot, 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(publicRoot, 'portal.css'), 'utf8');
+  const js = fs.readFileSync(path.join(publicRoot, 'portal.js'), 'utf8');
+  assert.match(html, /id="integrated-activation"/);
+  assert.match(html, /data-activation-score/);
+  assert.match(html, /data-activation-gates/);
+  assert.match(css, /\.activation-gates/);
+  assert.match(css, /A13-B14 Integrated Intelligence Activation/);
+  assert.match(js, /loadIntegratedActivation/);
+  assert.match(js, /generated\/kidult-100\.json/);
+  assert.match(js, /generated\/monthly-intelligence\.json/);
+  assert.match(js, /generated\/readiness\.json/);
+});
+
+test('A13-B14 preserves fallback when generated activation outputs are unavailable', () => {
+  const js = fs.readFileSync(path.join(publicRoot, 'portal.js'), 'utf8');
+  assert.match(js, /B12 fallback remains active/);
+  assert.match(js, /activationReadiness/);
+  assert.match(js, /production promotion remains blocked/i);
+});

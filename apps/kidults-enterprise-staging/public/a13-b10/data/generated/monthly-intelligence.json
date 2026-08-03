@@ -1,0 +1,133 @@
+{
+  "release": "A13-B14",
+  "issue": "2026-08",
+  "status": "generated-staging",
+  "generatedAt": "2026-08-03T03:45:38.504Z",
+  "title": "Monthly Intelligence 2026-08",
+  "executiveSummary": "Character Goods leads the current evidence set with a Kidult 100 score of 88.2.",
+  "categoryLeaders": [
+    {
+      "category": "Character Goods",
+      "score": 88.2,
+      "regime": "Expansion",
+      "confidence": 91,
+      "anomalyRate": 0,
+      "evidenceRoles": [
+        "transactions",
+        "supply",
+        "culturalDemand"
+      ],
+      "missingRoles": [],
+      "metrics": {
+        "category": "Character Goods",
+        "transactionDepth": 91,
+        "priceIntegrity": 86,
+        "confidence": 91,
+        "anomalyRate": 0.03,
+        "listingVelocity": 88,
+        "scarcityIntegrity": 82,
+        "culturalVelocity": 93,
+        "canonStrength": 89
+      }
+    },
+    {
+      "category": "Trading Cards",
+      "score": 83.3,
+      "regime": "Expansion",
+      "confidence": 88,
+      "anomalyRate": 0.1,
+      "evidenceRoles": [
+        "transactions",
+        "supply",
+        "culturalDemand"
+      ],
+      "missingRoles": [],
+      "metrics": {
+        "category": "Trading Cards",
+        "transactionDepth": 88,
+        "priceIntegrity": 82,
+        "confidence": 88,
+        "anomalyRate": 0.05,
+        "listingVelocity": 84,
+        "scarcityIntegrity": 78,
+        "culturalVelocity": 85,
+        "canonStrength": 86
+      }
+    },
+    {
+      "category": "Art Toys",
+      "score": 80.8,
+      "regime": "Expansion",
+      "confidence": 84,
+      "anomalyRate": 0.1,
+      "evidenceRoles": [
+        "transactions",
+        "supply",
+        "culturalDemand"
+      ],
+      "missingRoles": [],
+      "metrics": {
+        "category": "Art Toys",
+        "transactionDepth": 79,
+        "priceIntegrity": 84,
+        "confidence": 84,
+        "anomalyRate": 0.05,
+        "listingVelocity": 76,
+        "scarcityIntegrity": 86,
+        "culturalVelocity": 82,
+        "canonStrength": 84
+      }
+    }
+  ],
+  "riskWatch": [
+    {
+      "category": "Trading Cards",
+      "score": 83.3,
+      "regime": "Expansion",
+      "confidence": 88,
+      "anomalyRate": 0.1,
+      "evidenceRoles": [
+        "transactions",
+        "supply",
+        "culturalDemand"
+      ],
+      "missingRoles": [],
+      "metrics": {
+        "category": "Trading Cards",
+        "transactionDepth": 88,
+        "priceIntegrity": 82,
+        "confidence": 88,
+        "anomalyRate": 0.05,
+        "listingVelocity": 84,
+        "scarcityIntegrity": 78,
+        "culturalVelocity": 85,
+        "canonStrength": 86
+      }
+    },
+    {
+      "category": "Art Toys",
+      "score": 80.8,
+      "regime": "Expansion",
+      "confidence": 84,
+      "anomalyRate": 0.1,
+      "evidenceRoles": [
+        "transactions",
+        "supply",
+        "culturalDemand"
+      ],
+      "missingRoles": [],
+      "metrics": {
+        "category": "Art Toys",
+        "transactionDepth": 79,
+        "priceIntegrity": 84,
+        "confidence": 84,
+        "anomalyRate": 0.05,
+        "listingVelocity": 76,
+        "scarcityIntegrity": 86,
+        "culturalVelocity": 82,
+        "canonStrength": 84
+      }
+    }
+  ],
+  "averageConfidence": 87.7
+}
