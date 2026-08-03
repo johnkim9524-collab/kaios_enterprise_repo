@@ -1,0 +1,139 @@
+{
+  "release": "A13-B19",
+  "environment": "staging",
+  "status": "candidate_population_complete",
+  "productionPromotionAuthorized": false,
+  "requiredRoles": ["transactions", "supply", "culturalDemand"],
+  "researchPolicy": {
+    "primarySourcesRequired": true,
+    "unknownValuesRemainUnknown": true,
+    "pilotApprovalRequiresOutreach": true
+  },
+  "candidates": [
+    {
+      "id": "ebay-marketplace-insights",
+      "provider": "eBay",
+      "role": "transactions",
+      "family": "marketplace-sold-history",
+      "evidenceType": "sold item history",
+      "accessStatus": "restricted-not-open-to-new-users",
+      "commercialStatus": "requires-partner-outreach",
+      "rightsStatus": "requires-provider-approval",
+      "historicSalesSupported": true,
+      "pilotPriority": 1,
+      "outreachAction": "Apply through eBay partner and developer channels for limited-release access."
+    },
+    {
+      "id": "pricecharting-prices-api",
+      "provider": "PriceCharting",
+      "role": "transactions",
+      "family": "collectible-price-guide",
+      "evidenceType": "current item values by condition",
+      "accessStatus": "paid-subscription",
+      "commercialStatus": "pricing-plan-review-required",
+      "rightsStatus": "subscription-terms-review-required",
+      "historicSalesSupported": false,
+      "pilotPriority": 2,
+      "outreachAction": "Confirm category coverage, commercial display rights and pilot subscription cost."
+    },
+    {
+      "id": "tcgplayer-api-transactions-proxy",
+      "provider": "TCGplayer",
+      "role": "transactions",
+      "family": "collectible-card-marketplace",
+      "evidenceType": "catalog and pricing proxy",
+      "accessStatus": "no-new-api-access",
+      "commercialStatus": "existing-or-exception-access-only",
+      "rightsStatus": "approved-purpose-required",
+      "historicSalesSupported": null,
+      "pilotPriority": 3,
+      "outreachAction": "Request enterprise exception access and approved commercial-use scope."
+    },
+    {
+      "id": "ebay-browse-api",
+      "provider": "eBay",
+      "role": "supply",
+      "family": "marketplace-active-listings",
+      "evidenceType": "active listing search and item detail",
+      "accessStatus": "developer-api-with-production-approval-requirements",
+      "commercialStatus": "partner-requirements-review-required",
+      "rightsStatus": "api-license-review-required",
+      "marketCoverage": "multiple-supported-ebay-marketplaces",
+      "pilotPriority": 1,
+      "outreachAction": "Register application, confirm production Buy API eligibility and allowed data retention."
+    },
+    {
+      "id": "tcgplayer-api-supply",
+      "provider": "TCGplayer",
+      "role": "supply",
+      "family": "collectible-card-marketplace",
+      "evidenceType": "catalog, product and pricing availability",
+      "accessStatus": "no-new-api-access",
+      "commercialStatus": "existing-or-exception-access-only",
+      "rightsStatus": "approved-purpose-required",
+      "pilotPriority": 2,
+      "outreachAction": "Request enterprise exception access for card-market supply coverage."
+    },
+    {
+      "id": "pricecharting-marketplace-api",
+      "provider": "PriceCharting",
+      "role": "supply",
+      "family": "collectible-marketplace-offers",
+      "evidenceType": "marketplace offers",
+      "accessStatus": "paid-or-seller-context",
+      "commercialStatus": "scope-review-required",
+      "rightsStatus": "subscription-terms-review-required",
+      "pilotPriority": 3,
+      "outreachAction": "Confirm whether broad marketplace-offer retrieval is licensed for intelligence use."
+    },
+    {
+      "id": "google-trends-api-alpha",
+      "provider": "Google",
+      "role": "culturalDemand",
+      "family": "search-interest",
+      "evidenceType": "consistently scaled search interest",
+      "accessStatus": "limited-alpha-application",
+      "commercialStatus": "alpha-terms-review-required",
+      "rightsStatus": "google-api-terms-review-required",
+      "coverage": "rolling-five-years-with-region-and-subregion",
+      "pilotPriority": 1,
+      "outreachAction": "Apply to the Google Trends API alpha with the Kidults monitoring use case."
+    },
+    {
+      "id": "youtube-data-api",
+      "provider": "Google YouTube",
+      "role": "culturalDemand",
+      "family": "video-attention",
+      "evidenceType": "video, channel and activity signals",
+      "accessStatus": "public-api-with-quota",
+      "commercialStatus": "terms-and-quota-review-required",
+      "rightsStatus": "youtube-api-services-terms-required",
+      "pilotPriority": 2,
+      "outreachAction": "Create a Google Cloud project, enable API and define a quota-efficient signal model."
+    },
+    {
+      "id": "reddit-data-api",
+      "provider": "Reddit",
+      "role": "culturalDemand",
+      "family": "community-discussion",
+      "evidenceType": "public post, comment and engagement signals",
+      "accessStatus": "oauth-and-approval",
+      "commercialStatus": "commercial-use-contact-required",
+      "rightsStatus": "developer-and-data-api-terms-required",
+      "pilotPriority": 3,
+      "outreachAction": "Submit a commercial Data API use request and retention proposal."
+    },
+    {
+      "id": "gdelt-doc-api",
+      "provider": "GDELT Project",
+      "role": "culturalDemand",
+      "family": "global-news-documents",
+      "evidenceType": "global news document mentions",
+      "accessStatus": "public-api",
+      "commercialStatus": "usage-policy-review-required",
+      "rightsStatus": "source-document-rights-remain-external",
+      "pilotPriority": 4,
+      "outreachAction": "Use as a supplementary signal and retain links and metadata rather than republishing full text."
+    }
+  ]
+}
