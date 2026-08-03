@@ -966,3 +966,30 @@ const renderProviderOutreach = async () => {
   }
 };
 renderProviderOutreach();
+
+
+// A13-B21 response intake
+const renderProviderResponseIntake = async () => {
+  const section = document.querySelector('#response-intake');
+  if (!section) return;
+  const set = (selector, value) => { const node = section.querySelector(selector); if (node) node.textContent = value; };
+  try {
+    const response = await fetch('/a13-b10/data/generated/provider-response-intake-status.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Response intake request failed: ${response.status}`);
+    const report = await response.json();
+    set('[data-intake-status]', report.status.replaceAll('-', ' '));
+    set('[data-intake-packs]', String(report.totals.packs));
+    set('[data-intake-contacted]', String(report.totals.contacted));
+    set('[data-intake-responded]', String(report.totals.responded));
+    set('[data-intake-ready]', String(report.totals.pilotReady));
+    const gates = section.querySelector('[data-intake-gates]');
+    if (gates) gates.innerHTML = Object.entries(report.gates).map(([name, value]) => `<p><span>${name.replace(/([A-Z])/g, ' $1')}</span><strong>${value}</strong></p>`).join('');
+    const queue = section.querySelector('[data-intake-queue]');
+    if (queue) queue.innerHTML = report.queue.map(item => `<article class="intake-card"><div class="intake-card-head"><h3>${item.role} · priority ${item.priority}</h3><span class="status-chip">${item.status}</span></div><p class="intake-card-subject">${item.subject || item.candidateId}</p><div class="intake-card-meta"><span>Candidate: ${item.candidateId}</span><span>Evidence: ${item.verifiedEvidenceCount}/${report.totals.requiredEvidencePerCandidate}</span><span>Complete: ${item.evidenceComplete ? 'Yes' : 'No'}</span></div><p class="intake-card-request">${item.request || 'Provider response pending.'}</p></article>`).join('');
+    document.body.dataset.responseIntake = report.status;
+  } catch (error) {
+    set('[data-intake-status]', 'Unavailable');
+    console.error(error);
+  }
+};
+renderProviderResponseIntake();

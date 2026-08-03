@@ -36,3 +36,24 @@ test('A13-B21 stores no secrets or personal contact details', () => {
 test('A13-B21 preserves responsive gates', () => {
   assert.match(baseline, /320px, 360px, 390px and 430px/i);
 });
+
+
+test('A13-B21 runner publishes response intake status without secrets', () => {
+  const runner = fs.readFileSync(path.join(appRoot, 'scripts', 'run-a13-b21-response-intake.mjs'), 'utf8');
+  assert.match(runner, /provider-response-intake-status\.json/);
+  assert.match(runner, /evidenceComplete/);
+  assert.match(runner, /pilot-handoff-ready/);
+  assert.doesNotMatch(runner, /process\.env/);
+});
+
+test('A13-B21 renders response intake and preserves mobile-safe architecture', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(dataRoot, '..', 'portal.css'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /id="response-intake"/);
+  assert.match(html, /data-intake-queue/);
+  assert.match(js, /provider-response-intake-status\.json/);
+  assert.match(css, /A13-B21 response intake/);
+  assert.match(css, /max-width:430px/);
+  assert.doesNotMatch(html, /API_KEY/);
+});
