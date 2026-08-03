@@ -41,3 +41,22 @@ test('A13-B24 preserves mobile-safe staging architecture', () => {
   assert.match(baseline, /mobile-safe staging status UI contract/i);
   assert.match(baseline, /staging only/i);
 });
+
+
+test('A13-B24 renders the manual dispatch control center', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(dataRoot, '..', 'portal.css'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /id="manual-dispatch-control"/);
+  assert.match(html, /data-manual-dispatch-list/);
+  assert.match(js, /provider-manual-dispatch-status\.json/);
+  assert.match(js, /contactedCommand/);
+  assert.match(css, /A13-B24 manual dispatch control/);
+});
+
+test('A13-B24 UI hides contacted commands until review and dispatch confirmation', () => {
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(js, /Contacted command locked/);
+  assert.match(js, /item\.contactedCommand/);
+  assert.doesNotMatch(js, /sendMail|smtp|recipientAddress|process\.env/);
+});

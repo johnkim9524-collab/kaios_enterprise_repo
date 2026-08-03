@@ -1,0 +1,66 @@
+{
+  "release": "A13-B24",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T14:10:16.928Z",
+  "status": "dispatch-packets-ready",
+  "productionPromotionAuthorized": false,
+  "totals": {
+    "pending": 5,
+    "reviewComplete": 0,
+    "dispatchedConfirmed": 0,
+    "contactedCommandsReady": 0
+  },
+  "exports": [
+    {
+      "candidateId": "pricecharting-prices-api",
+      "role": "transactions",
+      "subject": "Kidults data pilot inquiry — collectible price intelligence",
+      "exportFile": "manual-dispatch/pricecharting-prices-api.md",
+      "reviewComplete": false,
+      "dispatched": false,
+      "contactedCommand": null
+    },
+    {
+      "candidateId": "ebay-browse-api",
+      "role": "supply",
+      "subject": "Kidults data pilot inquiry — active listing supply signals",
+      "exportFile": "manual-dispatch/ebay-browse-api.md",
+      "reviewComplete": false,
+      "dispatched": false,
+      "contactedCommand": null
+    },
+    {
+      "candidateId": "tcgplayer-api-supply",
+      "role": "supply",
+      "subject": "Kidults enterprise API access inquiry",
+      "exportFile": "manual-dispatch/tcgplayer-api-supply.md",
+      "reviewComplete": false,
+      "dispatched": false,
+      "contactedCommand": null
+    },
+    {
+      "candidateId": "google-trends-api-alpha",
+      "role": "culturalDemand",
+      "subject": "Kidults Google Trends API alpha use case",
+      "exportFile": "manual-dispatch/google-trends-api-alpha.md",
+      "reviewComplete": false,
+      "dispatched": false,
+      "contactedCommand": null
+    },
+    {
+      "candidateId": "youtube-data-api",
+      "role": "culturalDemand",
+      "subject": "Kidults YouTube Data API pilot review",
+      "exportFile": "manual-dispatch/youtube-data-api.md",
+      "reviewComplete": false,
+      "dispatched": false,
+      "contactedCommand": null
+    }
+  ],
+  "gates": {
+    "packetExport": "passed",
+    "operatorReview": "blocked",
+    "explicitConfirmation": "blocked",
+    "productionAuthorization": "blocked"
+  }
+}

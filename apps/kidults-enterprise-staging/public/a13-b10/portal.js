@@ -1047,3 +1047,36 @@ const renderBatchIntake = async () => {
   }
 };
 renderBatchIntake();
+
+
+// A13-B24 manual dispatch control
+const renderManualDispatchControl = async () => {
+  const section = document.querySelector('#manual-dispatch-control');
+  if (!section) return;
+  try {
+    const response = await fetch('/a13-b10/data/generated/provider-manual-dispatch-status.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Manual dispatch status request failed: ${response.status}`);
+    const report = await response.json();
+    const set = (selector, value) => { const node = section.querySelector(selector); if (node) node.textContent = value; };
+    set('[data-manual-dispatch-status]', report.status.replaceAll('-', ' '));
+    set('[data-manual-dispatch-pending]', String(report.totals.pending));
+    set('[data-manual-dispatch-reviewed]', String(report.totals.reviewComplete));
+    set('[data-manual-dispatch-confirmed]', String(report.totals.dispatchedConfirmed));
+    set('[data-manual-dispatch-commands]', String(report.totals.contactedCommandsReady));
+    const gates = section.querySelector('[data-manual-dispatch-gates]');
+    if (gates) gates.innerHTML = Object.entries(report.gates).map(([name, value]) => `<p><span>${name.replace(/([A-Z])/g, ' $1')}</span><strong>${value}</strong></p>`).join('');
+    const list = section.querySelector('[data-manual-dispatch-list]');
+    if (list) list.innerHTML = report.exports.map(item => {
+      const command = item.contactedCommand
+        ? `<p class="manual-dispatch-command">${item.contactedCommand}</p>`
+        : '<p class="manual-dispatch-locked">Contacted command locked until review and real dispatch confirmation are complete.</p>';
+      return `<article class="manual-dispatch-card"><div class="manual-dispatch-head"><h3>${item.subject}</h3><span>${item.role}</span></div><div class="manual-dispatch-meta"><span>Review: ${item.reviewComplete ? 'complete' : 'pending'}</span><span>Dispatch: ${item.dispatched ? 'confirmed' : 'pending'}</span></div><p class="manual-dispatch-path">Packet: ${item.exportFile}</p>${command}</article>`;
+    }).join('');
+    document.body.dataset.manualDispatch = report.status;
+  } catch (error) {
+    const node = section.querySelector('[data-manual-dispatch-status]');
+    if (node) node.textContent = 'Unavailable';
+    console.error(error);
+  }
+};
+renderManualDispatchControl();
