@@ -527,6 +527,65 @@
   };
 
 
+
+
+  const loadAutonomousOperations = async () => {
+    try {
+      const [health, report] = await Promise.all([
+        fetchJson('/a13-b10/data/generated/operations-health.json'),
+        fetchJson('/a13-b10/data/generated/autonomous-operations.json')
+      ]);
+      const results = health.failureSimulation?.results || [];
+      const passed = results.filter(item => item.passed).length;
+      const stateLabel = report.status === 'staging-operations-certified'
+        ? 'Staging operations certified'
+        : 'Operations blocked';
+      setText('[data-operations-state]', stateLabel);
+      setText('[data-operations-simulations]', `${passed}/${results.length}`);
+      setText('[data-operations-reports]', health.archive?.reportCount ?? 0);
+      setText('[data-operations-fallback]', health.fallback?.verifiedBySimulation ? 'Verified' : 'Blocked');
+      setText('[data-operations-schedule]', `${health.schedule?.status || 'blocked'} · ${health.schedule?.cadence || 'unavailable'} ${health.schedule?.timezone || ''}`);
+      setText('[data-operations-pipeline]', report.gates?.pipeline || 'blocked');
+      setText('[data-operations-recovery]', report.gates?.recovery || 'blocked');
+      setText('[data-operations-production]', report.productionPromotionAuthorized ? 'Authorized' : 'Blocked');
+
+      const badge = qs('[data-operations-badge]');
+      if (badge) {
+        const healthy = report.status === 'staging-operations-certified';
+        badge.textContent = healthy ? 'Certified' : 'Blocked';
+        badge.dataset.health = healthy ? 'healthy' : 'failed';
+      }
+
+      const simulationList = qs('[data-operations-simulations-list]');
+      if (simulationList) {
+        simulationList.innerHTML = results.map(item => `
+          <div class="operations-simulation-item">
+            <strong>${item.id}</strong>
+            <span class="source-health-status" data-health="${item.passed ? 'healthy' : 'failed'}">${item.passed ? 'Passed' : 'Blocked'}</span>
+            <small>Expected: ${item.expected} · Outcome: ${item.outcome} · Fallback: ${item.fallbackActivated ? 'active' : 'not used'}</small>
+          </div>
+        `).join('');
+      }
+
+      const blockers = qs('[data-operations-blockers]');
+      if (blockers) {
+        blockers.innerHTML = report.blockers?.length
+          ? report.blockers.map(item => `<p>${item}</p>`).join('')
+          : '<p>No staging operations blockers.</p>';
+      }
+      document.body.dataset.operationsHealth = health.aggregateHealth || 'unknown';
+    } catch (error) {
+      console.error(error);
+      setText('[data-operations-state]', 'Operations report unavailable');
+      const badge = qs('[data-operations-badge]');
+      if (badge) {
+        badge.textContent = 'Unavailable';
+        badge.dataset.health = 'failed';
+      }
+    }
+  };
+
+
   qsa('[data-category]').forEach(button => button.addEventListener('click', () => {
     setActive(qsa('[data-category]'), button);
     state.category = button.dataset.category;
@@ -702,5 +761,6 @@
     syncDesktopPanelWidths();
     requestNavigationSync();
   });
+  loadAutonomousOperations();
   requestNavigationSync();
 })();

@@ -62,7 +62,7 @@ test('A13-B16 publishes machine-readable gates and blockers', () => {
   assert.match(runner, /staging-operations-certified/);
   assert.match(runner, /productionPromotionAuthorized: false/);
   assert.match(runner, /Explicit production release authorization remains false/);
-  assert.match(runner, /includeBlockers/);
+  assert.match(runner, /blockers:/);
 });
 
 test('A13-B16 documents executable recovery and rollback', () => {
@@ -70,4 +70,25 @@ test('A13-B16 documents executable recovery and rollback', () => {
   assert.match(runbook, /git reset --hard origin\/main/);
   assert.match(runbook, /Never commit `.env` files containing values/i);
   assert.match(baseline, /320px, 360px, 390px and 430px/i);
+});
+
+
+test('A13-B16 renders autonomous operations and failure certification UI', () => {
+  const html = fs.readFileSync(path.join(appRoot, 'public', 'a13-b10', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(appRoot, 'public', 'a13-b10', 'portal.css'), 'utf8');
+  const js = fs.readFileSync(path.join(appRoot, 'public', 'a13-b10', 'portal.js'), 'utf8');
+  assert.match(html, /id="autonomous-operations"/);
+  assert.match(html, /data-operations-simulations-list/);
+  assert.match(css, /A13-B16 Autonomous Operations/);
+  assert.match(js, /loadAutonomousOperations/);
+  assert.match(js, /operations-health\.json/);
+  assert.match(js, /autonomous-operations\.json/);
+});
+
+test('A13-B16 UI keeps production blocked and exposes no credentials', () => {
+  const html = fs.readFileSync(path.join(appRoot, 'public', 'a13-b10', 'index.html'), 'utf8');
+  const js = fs.readFileSync(path.join(appRoot, 'public', 'a13-b10', 'portal.js'), 'utf8');
+  assert.match(html, /data-operations-production>Blocked/);
+  assert.doesNotMatch(html, /KIDULTS_[A-Z_]+_API_KEY/);
+  assert.doesNotMatch(js, /process\.env/);
 });
