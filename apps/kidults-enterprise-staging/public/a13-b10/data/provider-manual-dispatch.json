@@ -1,0 +1,33 @@
+{
+  "release": "A13-B24",
+  "environment": "staging",
+  "productionPromotionAuthorized": false,
+  "dispatchPolicy": {
+    "automaticSendingAllowed": false,
+    "explicitOperatorConfirmationRequired": true,
+    "storeRecipientAddress": false,
+    "storePersonalContact": false,
+    "storeSecrets": false
+  },
+  "reviewChecklist": [
+    "provider-channel-confirmed",
+    "subject-reviewed",
+    "request-reviewed",
+    "commercial-questions-included",
+    "technical-questions-included",
+    "rights-questions-included",
+    "no-secrets-present",
+    "operator-confirmation-recorded"
+  ],
+  "requiredEvidence": [
+    "commercial-terms",
+    "api-access",
+    "quota",
+    "latency",
+    "uptime",
+    "freshness",
+    "production-use-rights",
+    "retention-rights"
+  ],
+  "confirmations": []
+}
