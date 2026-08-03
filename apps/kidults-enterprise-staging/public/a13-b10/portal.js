@@ -327,6 +327,143 @@
     }
   };
 
+
+
+  const validateSourceRegistry = registry => {
+    if (!registry || registry.release !== 'A13-B13') throw new Error('Source registry release is invalid');
+    if (!Array.isArray(registry.sources)) throw new Error('Source registry sources are missing');
+    if (!registry.defaults?.retry || !registry.defaults?.circuitBreaker) throw new Error('Source resilience defaults are incomplete');
+    return registry;
+  };
+
+  const sourceRuntime = new Map();
+
+  const wait = ms => new Promise(resolve => window.setTimeout(resolve, ms));
+
+  const fetchWithTimeout = async (url, timeoutMs) => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+      if (!response.ok) {
+        const error = new Error(`Source request failed: ${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+      return response;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  };
+
+  const getCircuitState = (source, policy) => {
+    const runtime = sourceRuntime.get(source.id) || { failures: 0, openedAt: 0 };
+    if (runtime.failures < policy.failureThreshold) return 'closed';
+    if (Date.now() - runtime.openedAt >= policy.openMs) return 'half-open';
+    return 'open';
+  };
+
+  const recordSourceSuccess = source => {
+    sourceRuntime.set(source.id, { failures: 0, openedAt: 0 });
+  };
+
+  const recordSourceFailure = (source, policy) => {
+    const runtime = sourceRuntime.get(source.id) || { failures: 0, openedAt: 0 };
+    const failures = runtime.failures + 1;
+    sourceRuntime.set(source.id, {
+      failures,
+      openedAt: failures >= policy.failureThreshold ? Date.now() : runtime.openedAt
+    });
+  };
+
+  const probeSource = async (source, registry) => {
+    const retry = registry.defaults.retry;
+    const circuit = registry.defaults.circuitBreaker;
+    const state = getCircuitState(source, circuit);
+    if (!source.enabled) return { source, health: 'disabled', circuit: 'closed', attempts: 0 };
+    if (state === 'open') return { source, health: 'open', circuit: 'open', attempts: 0 };
+
+    const healthUrl = source.healthEndpoint || source.endpoint;
+    let lastError = null;
+    for (let attempt = 1; attempt <= retry.maxAttempts; attempt += 1) {
+      try {
+        await fetchWithTimeout(healthUrl, registry.defaults.timeoutMs);
+        recordSourceSuccess(source);
+        return { source, health: source.trust === 'illustrative' ? 'healthy' : 'healthy', circuit: 'closed', attempts: attempt };
+      } catch (error) {
+        lastError = error;
+        const retryable = !error.status || retry.retryOn.includes(error.status);
+        if (!retryable || attempt >= retry.maxAttempts) break;
+        await wait(retry.backoffMs * attempt);
+      }
+    }
+
+    recordSourceFailure(source, circuit);
+    return {
+      source,
+      health: getCircuitState(source, circuit) === 'open' ? 'open' : 'failed',
+      circuit: getCircuitState(source, circuit),
+      attempts: retry.maxAttempts,
+      error: lastError?.message || 'Unknown source failure'
+    };
+  };
+
+  const renderSourceRegistry = (registry, results) => {
+    const enabled = registry.sources.filter(source => source.enabled);
+    const healthy = results.filter(result => result.health === 'healthy');
+    const failed = results.filter(result => ['failed', 'open'].includes(result.health));
+    const minimum = registry.aggregatePolicy.minimumHealthySources;
+    const aggregate = healthy.length >= minimum
+      ? (failed.length ? 'Degraded' : 'Healthy')
+      : 'Fallback';
+
+    setText('[data-registry-state]', aggregate);
+    setText('[data-registry-healthy]', `${healthy.length}/${enabled.length}`);
+    setText('[data-registry-enabled]', enabled.length);
+    setText('[data-registry-retry]', `${registry.defaults.retry.maxAttempts} attempts · ${registry.defaults.retry.backoffMs}ms backoff`);
+    setText('[data-registry-circuit]', `${registry.defaults.circuitBreaker.failureThreshold} failures · ${Math.round(registry.defaults.circuitBreaker.openMs / 1000)}s open`);
+    setText('[data-registry-policy]', registry.aggregatePolicy.allowPartialFailure
+      ? 'Partial failure allowed · total failure falls back'
+      : 'All sources required');
+
+    const target = qs('[data-source-health-list]');
+    if (target) {
+      target.innerHTML = results.map(result => {
+        const source = result.source;
+        const trust = source.trust || 'unclassified';
+        const freshness = source.freshness?.status || (trust === 'illustrative' ? 'Illustrative' : 'Unknown');
+        return `
+          <article class="source-health-item">
+            <div class="source-health-head"><strong>${source.label}</strong><small>${source.id}</small></div>
+            <span class="source-health-status" data-health="${result.health}">${result.health}</span>
+            <div class="source-health-meta"><span>Trust: ${trust}</span><span>Freshness: ${freshness}</span><span>Circuit: ${result.circuit}</span><span>Attempts: ${result.attempts}</span></div>
+          </article>
+        `;
+      }).join('') || '<p class="source-health-empty">No enabled sources.</p>';
+    }
+
+    document.body.dataset.registryHealth = aggregate.toLowerCase();
+  };
+
+  const loadSourceRegistry = async () => {
+    try {
+      const registry = validateSourceRegistry(await fetchJson('/a13-b10/data/source-registry.json'));
+      const ordered = [...registry.sources].sort((a, b) => b.priority - a.priority);
+      const results = await Promise.all(ordered.map(source => probeSource(source, registry)));
+      renderSourceRegistry(registry, results);
+      return { registry, results };
+    } catch (error) {
+      console.error(error);
+      setText('[data-registry-state]', 'Fallback');
+      setText('[data-registry-healthy]', '0/0');
+      setText('[data-registry-enabled]', '0');
+      const target = qs('[data-source-health-list]');
+      if (target) target.innerHTML = '<p class="source-health-empty">Source registry unavailable. B12 fallback remains active.</p>';
+      document.body.dataset.registryHealth = 'fallback';
+      return null;
+    }
+  };
+
   qsa('[data-category]').forEach(button => button.addEventListener('click', () => {
     setActive(qsa('[data-category]'), button);
     state.category = button.dataset.category;
@@ -416,7 +553,7 @@
   };
 
   syncDesktopPanelWidths();
-  loadProductThroughAdapter();
+  loadSourceRegistry().finally(loadProductThroughAdapter);
   window.addEventListener('scroll', requestNavigationSync, { passive: true });
   window.addEventListener('resize', () => {
     syncDesktopPanelWidths();

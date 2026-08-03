@@ -1,0 +1,46 @@
+{
+  "release": "A13-B13",
+  "environment": "staging",
+  "mode": "contract",
+  "aggregatePolicy": {
+    "minimumHealthySources": 1,
+    "allowPartialFailure": true,
+    "fallbackOnTotalFailure": true,
+    "fallbackDataset": "/a13-b10/data/intelligence-product.json"
+  },
+  "defaults": {
+    "timeoutMs": 4500,
+    "retry": {
+      "maxAttempts": 2,
+      "backoffMs": 600,
+      "retryOn": [408, 425, 429, 500, 502, 503, 504]
+    },
+    "circuitBreaker": {
+      "failureThreshold": 3,
+      "openMs": 60000,
+      "halfOpenAttempts": 1
+    },
+    "freshness": {
+      "maxAgeMinutes": 1440,
+      "staleAfterMinutes": 720
+    }
+  },
+  "sources": [
+    {
+      "id": "kidults-illustrative-primary",
+      "label": "Illustrative intelligence dataset",
+      "kind": "json",
+      "endpoint": "/a13-b10/data/intelligence-product.json",
+      "healthEndpoint": null,
+      "enabled": true,
+      "priority": 100,
+      "trust": "illustrative",
+      "provenance": {
+        "sourceFamilies": 42,
+        "brandsCovered": 500,
+        "categoriesCovered": 12,
+        "confidenceModel": "Source diversity × recency × reconciliation × anomaly control"
+      }
+    }
+  ]
+}
