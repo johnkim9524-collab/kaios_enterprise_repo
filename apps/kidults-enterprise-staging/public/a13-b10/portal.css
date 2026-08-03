@@ -2178,3 +2178,88 @@ footer {
   .activation-gate:nth-child(2n) { border-right: 0; }
   .activation-gate:last-child { grid-column: 1; }
 }
+
+
+/* A13-B15 External Source Certification */
+.certification-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.certification-heading h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  font-weight: 500;
+  line-height: .94;
+  letter-spacing: -.03em;
+  text-transform: capitalize;
+}
+.certification-metrics { margin-bottom: 28px; }
+.certification-gates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--ink);
+}
+.certification-gate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.certification-gate:nth-child(odd) { padding-right: 18px; }
+.certification-gate:nth-child(even) { padding-left: 18px; border-left: 1px solid var(--line); }
+.certification-gate span:first-child {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.certification-gate strong {
+  flex: 0 0 auto;
+  color: var(--risk);
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.certification-gate strong[data-state="passed"],
+.certification-gate strong[data-state="ready"] { color: var(--forest); }
+.certification-safety {
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.certification-blockers { margin-top: 28px; }
+.certification-blockers ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--ink);
+}
+.certification-blockers li {
+  position: relative;
+  padding: 14px 0 14px 24px;
+  border-bottom: 1px solid var(--line);
+  color: var(--body);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.certification-blockers li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+}
+@media (max-width: 767px) {
+  .certification-heading { display: block; }
+  .certification-heading .source-health-status { margin-top: 14px; }
+  .certification-gates { grid-template-columns: 1fr; }
+  .certification-gate:nth-child(odd),
+  .certification-gate:nth-child(even) { padding-inline: 0; border-left: 0; }
+}

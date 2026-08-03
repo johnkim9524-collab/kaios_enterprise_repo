@@ -1,0 +1,95 @@
+{
+  "release": "A13-B15",
+  "environment": "staging",
+  "status": "credential_pending",
+  "productionPromotionAuthorized": false,
+  "requiredRoles": ["transactions", "supply", "culturalDemand"],
+  "minimumIndependentCertifiedFamilies": 2,
+  "providers": [
+    {
+      "id": "transactions-provider-primary",
+      "role": "transactions",
+      "family": "marketplace-transactions",
+      "mode": "contract",
+      "endpoint": null,
+      "healthEndpoint": null,
+      "credentialEnv": "KIDULTS_TRANSACTIONS_API_KEY",
+      "credentialPresent": false,
+      "rights": {
+        "status": "pending",
+        "productionUseApproved": false,
+        "evidenceRetentionApproved": false
+      },
+      "provenance": {
+        "provider": "pending",
+        "dataset": "sold-price evidence",
+        "freshnessField": "generatedAt"
+      }
+    },
+    {
+      "id": "supply-provider-primary",
+      "role": "supply",
+      "family": "marketplace-listings",
+      "mode": "contract",
+      "endpoint": null,
+      "healthEndpoint": null,
+      "credentialEnv": "KIDULTS_SUPPLY_API_KEY",
+      "credentialPresent": false,
+      "rights": {
+        "status": "pending",
+        "productionUseApproved": false,
+        "evidenceRetentionApproved": false
+      },
+      "provenance": {
+        "provider": "pending",
+        "dataset": "listing and supply evidence",
+        "freshnessField": "generatedAt"
+      }
+    },
+    {
+      "id": "cultural-demand-provider-primary",
+      "role": "culturalDemand",
+      "family": "cultural-demand-signals",
+      "mode": "contract",
+      "endpoint": null,
+      "healthEndpoint": null,
+      "credentialEnv": "KIDULTS_CULTURAL_DEMAND_API_KEY",
+      "credentialPresent": false,
+      "rights": {
+        "status": "pending",
+        "productionUseApproved": false,
+        "evidenceRetentionApproved": false
+      },
+      "provenance": {
+        "provider": "pending",
+        "dataset": "cultural demand evidence",
+        "freshnessField": "generatedAt"
+      }
+    }
+  ],
+  "schedule": {
+    "enabled": false,
+    "cadence": "0 3 * * *",
+    "timezone": "UTC",
+    "pipeline": "run-a13-b14-integrated-pipeline.mjs"
+  },
+  "failureSimulation": {
+    "required": true,
+    "scenarios": [
+      "single-provider-timeout",
+      "single-provider-schema-failure",
+      "two-provider-partial-failure",
+      "total-provider-failure-with-fallback"
+    ],
+    "status": "pending"
+  },
+  "gates": {
+    "roles": "passed",
+    "credentials": "blocked",
+    "rights": "blocked",
+    "health": "blocked",
+    "schedule": "blocked",
+    "failureSimulation": "blocked",
+    "productionAuthorization": "blocked"
+  }
+}
