@@ -23,11 +23,21 @@ test('A13-B25 preserves production isolation and secret safety', () => {
   assert.match(baseline, /production promotion remains blocked by default/i);
 });
 
-test('A13-B25 records only externally resolvable blockers', () => {
+test('A13-B25 records only technical external dependencies as release blockers', () => {
   assert.ok(manifest.openExternalDependencies.includes('manual-provider-dispatch'));
-  assert.ok(manifest.openExternalDependencies.includes('legal-entity-review'));
-  assert.ok(manifest.openExternalDependencies.includes('trademark-filing-review'));
+  assert.ok(manifest.openExternalDependencies.includes('provider-rights-approval'));
+  assert.ok(manifest.openExternalDependencies.includes('provider-credentials-and-endpoints'));
   assert.ok(manifest.openExternalDependencies.includes('live-pilot-approval'));
+  assert.equal(manifest.openExternalDependencies.includes('legal-entity-review'), false);
+  assert.equal(manifest.openExternalDependencies.includes('trademark-filing-review'), false);
+});
+
+test('A13-B25 separates corporate and trademark review from the technical release gate', () => {
+  assert.deepEqual(manifest.separateExecutiveDecisions, [
+    'legal-entity-review',
+    'trademark-filing-review'
+  ]);
+  assert.match(baseline, /not B25 engineering blockers/i);
 });
 
 test('A13-B25 permits only defects compliance gaps or approved provider integration', () => {
