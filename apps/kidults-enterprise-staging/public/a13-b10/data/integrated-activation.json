@@ -1,0 +1,48 @@
+{
+  "release": "A13-B14",
+  "environment": "staging",
+  "status": "in_progress",
+  "productionPromotionAuthorized": false,
+  "workstreams": {
+    "sourceOnboarding": {
+      "requiredRoles": ["transactions", "supply", "culturalDemand"],
+      "minimumIndependentHealthyFamilies": 2,
+      "rightsMetadataRequired": true,
+      "provenanceRequired": true
+    },
+    "aggregation": {
+      "normalizationRequired": true,
+      "reconciliationRequired": true,
+      "allowPartialFailure": true,
+      "fallbackOnTotalFailure": true
+    },
+    "scoring": {
+      "engine": "Kidult 100",
+      "methodVersion": "K100-3.0-draft",
+      "deterministic": true,
+      "minimumEvidenceThresholdRequired": true,
+      "confidencePenaltyRequired": true,
+      "anomalyControlRequired": true
+    },
+    "monthlyIntelligence": {
+      "snapshotRequired": true,
+      "executiveSummaryRequired": true,
+      "categoryLeadersRequired": true,
+      "riskWatchRequired": true,
+      "archiveRegistrationRequired": true
+    },
+    "certification": {
+      "endToEndRequired": true,
+      "failureSimulationRequired": true,
+      "mobileWidths": [320, 360, 390, 430],
+      "machineReadableReadinessRequired": true
+    }
+  },
+  "gates": [
+    {"id": "sources", "status": "pending"},
+    {"id": "aggregation", "status": "pending"},
+    {"id": "scoring", "status": "pending"},
+    {"id": "monthly-report", "status": "pending"},
+    {"id": "certification", "status": "pending"}
+  ]
+}
