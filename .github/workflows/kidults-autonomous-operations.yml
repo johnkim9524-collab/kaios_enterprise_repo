@@ -1,0 +1,39 @@
+name: Kidults Autonomous Operations
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *'
+
+concurrency:
+  group: kidults-autonomous-operations
+  cancel-in-progress: false
+
+jobs:
+  staging-operations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run autonomous operations
+        run: node apps/kidults-enterprise-staging/scripts/run-a13-b16-autonomous-operations.mjs
+
+      - name: Run Kidults regression suite
+        run: |
+          node --test \
+            apps/kidults-enterprise-staging/a13-b10-baseline-lock.test.mjs \
+            apps/kidults-enterprise-staging/a13-b11-intelligence-product.test.mjs \
+            apps/kidults-enterprise-staging/a13-b12-live-data-integration.test.mjs \
+            apps/kidults-enterprise-staging/a13-b13-live-source-resilience.test.mjs \
+            apps/kidults-enterprise-staging/a13-b14-integrated-intelligence-activation.test.mjs \
+            apps/kidults-enterprise-staging/a13-b15-external-source-certification.test.mjs \
+            apps/kidults-enterprise-staging/a13-b16-autonomous-operations-certification.test.mjs

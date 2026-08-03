@@ -2263,3 +2263,61 @@ footer {
   .certification-gate:nth-child(odd),
   .certification-gate:nth-child(even) { padding-inline: 0; border-left: 0; }
 }
+
+
+/* A13-B16 Autonomous Operations */
+.operations-state-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.operations-state-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.8rem, 4.6vw, 4.8rem);
+  font-weight: 500;
+  letter-spacing: -.035em;
+  line-height: .92;
+  overflow-wrap: anywhere;
+}
+.operations-metrics strong { font-size: clamp(2rem, 3vw, 2.85rem); }
+.operations-simulation-list,
+.operations-blocker-list { border-top: 1px solid var(--ink); }
+.operations-simulation-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 18px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.operations-simulation-item strong { font-size: 14px; line-height: 1.4; }
+.operations-simulation-item small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.operations-blocker-heading { margin-top: 30px; }
+.operations-blocker-list p {
+  position: relative;
+  margin: 0;
+  padding: 14px 0 14px 26px;
+  border-bottom: 1px solid var(--line);
+  color: var(--body);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.operations-blocker-list p::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+}
+@media (max-width: 767px) {
+  .operations-state-head { display: block; }
+  .operations-state-head .source-health-status { margin-top: 16px; }
+  .operations-simulation-item { grid-template-columns: minmax(0, 1fr); }
+  .operations-simulation-item .source-health-status { justify-self: start; }
+  .operations-simulation-item small { grid-column: 1; }
+}

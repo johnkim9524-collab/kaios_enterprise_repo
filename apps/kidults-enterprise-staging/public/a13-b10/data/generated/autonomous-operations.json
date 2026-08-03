@@ -1,0 +1,28 @@
+{
+  "release": "A13-B16",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T04:35:56.416Z",
+  "status": "staging-operations-certified",
+  "productionPromotionAuthorized": false,
+  "gates": {
+    "schedule": "passed",
+    "failureSimulation": "passed",
+    "pipeline": "passed",
+    "healthSnapshot": "passed",
+    "recovery": "passed",
+    "productionAuthorization": "blocked"
+  },
+  "blockers": [
+    "External provider certification remains blocked.",
+    "Explicit production release authorization remains false."
+  ],
+  "recovery": {
+    "runbook": "A13-B16-OPERATIONS-RUNBOOK.md",
+    "fallbackDataset": "/a13-b10/data/intelligence-product.json",
+    "rollbackStrategy": "reset staging deployment to the latest certified main commit"
+  },
+  "execution": {
+    "b14": "A13-B14 pipeline completed: 3 categories, 3 source families.\nReadiness: staging-certified; production promotion authorized: false.",
+    "b15": "A13-B15 certification: blocked.\nIndependent certified families: 0."
+  }
+}

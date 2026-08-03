@@ -1,0 +1,76 @@
+{
+  "release": "A13-B16",
+  "environment": "staging",
+  "status": "ready_for_simulation",
+  "productionPromotionAuthorized": false,
+  "schedule": {
+    "enabled": true,
+    "cadence": "0 3 * * *",
+    "timezone": "UTC",
+    "maxRuntimeMinutes": 15,
+    "concurrency": 1,
+    "runner": "run-a13-b16-autonomous-operations.mjs"
+  },
+  "pipeline": {
+    "steps": [
+      "simulate-failures",
+      "run-b14-pipeline",
+      "run-b15-certification",
+      "generate-health-snapshot",
+      "generate-operations-report"
+    ],
+    "continueOnPartialFailure": true,
+    "fallbackOnTotalFailure": true,
+    "fallbackDataset": "/a13-b10/data/intelligence-product.json"
+  },
+  "failureSimulation": {
+    "required": true,
+    "scenarios": [
+      {
+        "id": "single-provider-timeout",
+        "expected": "degraded",
+        "fallbackExpected": false
+      },
+      {
+        "id": "single-provider-schema-failure",
+        "expected": "degraded",
+        "fallbackExpected": false
+      },
+      {
+        "id": "two-provider-partial-failure",
+        "expected": "degraded",
+        "fallbackExpected": false
+      },
+      {
+        "id": "total-provider-failure-with-fallback",
+        "expected": "fallback",
+        "fallbackExpected": true
+      }
+    ]
+  },
+  "healthSnapshot": {
+    "output": "/a13-b10/data/generated/operations-health.json",
+    "include": [
+      "pipeline",
+      "failureSimulation",
+      "b14Readiness",
+      "b15Certification",
+      "archive",
+      "fallback"
+    ]
+  },
+  "operationsReport": {
+    "output": "/a13-b10/data/generated/autonomous-operations.json",
+    "machineReadable": true,
+    "includeBlockers": true,
+    "includeRecovery": true
+  },
+  "gates": {
+    "schedule": "pending",
+    "failureSimulation": "pending",
+    "pipeline": "pending",
+    "healthSnapshot": "pending",
+    "recovery": "pending",
+    "productionAuthorization": "blocked"
+  }
+}

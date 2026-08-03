@@ -1,0 +1,65 @@
+{
+  "release": "A13-B16",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T04:35:56.416Z",
+  "aggregateHealth": "healthy",
+  "schedule": {
+    "status": "ready",
+    "cadence": "0 3 * * *",
+    "timezone": "UTC"
+  },
+  "failureSimulation": {
+    "status": "passed",
+    "results": [
+      {
+        "id": "single-provider-timeout",
+        "expected": "degraded",
+        "outcome": "degraded",
+        "fallbackExpected": false,
+        "fallbackActivated": false,
+        "passed": true
+      },
+      {
+        "id": "single-provider-schema-failure",
+        "expected": "degraded",
+        "outcome": "degraded",
+        "fallbackExpected": false,
+        "fallbackActivated": false,
+        "passed": true
+      },
+      {
+        "id": "two-provider-partial-failure",
+        "expected": "degraded",
+        "outcome": "degraded",
+        "fallbackExpected": false,
+        "fallbackActivated": false,
+        "passed": true
+      },
+      {
+        "id": "total-provider-failure-with-fallback",
+        "expected": "fallback",
+        "outcome": "fallback",
+        "fallbackExpected": true,
+        "fallbackActivated": true,
+        "passed": true
+      }
+    ]
+  },
+  "b14Readiness": {
+    "status": "staging-certified",
+    "productionPromotionAuthorized": false
+  },
+  "b15Certification": {
+    "status": "blocked",
+    "productionPromotionAuthorized": false,
+    "independentCertifiedFamilies": 0
+  },
+  "archive": {
+    "status": "ready",
+    "reportCount": 1
+  },
+  "fallback": {
+    "available": true,
+    "verifiedBySimulation": true
+  }
+}
