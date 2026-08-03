@@ -8,6 +8,7 @@ const publicRoot = path.join(appRoot, 'public', 'a13-b10');
 const baseline = fs.readFileSync(path.join(appRoot, 'A13-B12-BASELINE.md'), 'utf8');
 const html = fs.readFileSync(path.join(publicRoot, 'index.html'), 'utf8');
 const js = fs.readFileSync(path.join(publicRoot, 'portal.js'), 'utf8');
+const css = fs.readFileSync(path.join(publicRoot, 'portal.css'), 'utf8');
 const adapter = JSON.parse(
   fs.readFileSync(path.join(publicRoot, 'data', 'data-adapter.json'), 'utf8')
 );
@@ -87,4 +88,13 @@ test('A13-B12 retains the approved architecture and mobile gates', () => {
   assert.match(baseline, /one HTML file, one physical CSS file and one interaction JavaScript file/i);
   assert.match(baseline, /320px, 360px, 390px and 430px/i);
   assert.match(baseline, /No runtime stylesheet injection/i);
+});
+
+
+test('A13-B12 operational state labels stay human-readable and overflow-safe', () => {
+  assert.match(js, /Illustrative intelligence dataset/);
+  assert.match(js, /effectiveMode\.charAt\(0\)\.toUpperCase\(\)/);
+  assert.match(js, /effectiveMode === 'fallback' \|\| fallbackUsed \? 'Active' : 'Standby'/);
+  assert.match(css, /#data-operations \.trust-metrics strong/);
+  assert.match(css, /overflow-wrap:\s*anywhere/);
 });

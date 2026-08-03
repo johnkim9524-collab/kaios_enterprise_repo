@@ -236,12 +236,15 @@
     const provenanceState = provenance.sourceFamilies && provenance.brandsCovered ? 'Verified' : 'Incomplete';
 
     setText('[data-adapter-status]', reason || `${adapter.release} adapter · ${effectiveMode} mode`);
-    setText('[data-adapter-mode]', effectiveMode.toUpperCase());
+    setText('[data-adapter-mode]', effectiveMode.charAt(0).toUpperCase() + effectiveMode.slice(1));
     setText('[data-adapter-freshness]', freshness);
     setText('[data-adapter-confidence]', provenanceState);
     setText('[data-adapter-generated]', adapter ? formatTimestamp(adapter.freshness.generatedAt) : 'Unavailable');
-    setText('[data-adapter-source]', source || 'Unavailable');
-    setText('[data-adapter-fallback]', fallbackUsed ? 'Active' : 'Not used');
+    const sourceLabel = effectiveMode === 'fallback'
+      ? 'Illustrative intelligence dataset'
+      : source || 'Unavailable';
+    setText('[data-adapter-source]', sourceLabel);
+    setText('[data-adapter-fallback]', effectiveMode === 'fallback' || fallbackUsed ? 'Active' : 'Standby');
     setText('[data-adapter-brands]', provenance.brandsCovered ? `${provenance.brandsCovered}+` : '—');
     setText('[data-adapter-sources]', provenance.sourceFamilies || '—');
     setText('[data-adapter-categories]', provenance.categoriesCovered || '—');
