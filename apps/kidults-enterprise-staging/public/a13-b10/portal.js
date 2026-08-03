@@ -574,6 +574,80 @@
     });
   };
 
+
+
+  const formatCertificationLabel = value => String(value || '').replace(/([A-Z])/g, ' $1').replace(/^./, char => char.toUpperCase());
+
+  const renderExternalCertification = report => {
+    const gates = Object.entries(report.gates || {});
+    const passed = gates.filter(([, value]) => value === 'passed' || value === 'ready').length;
+    const blocked = gates.length - passed;
+    const authorized = report.productionPromotionAuthorized === true;
+
+    setText('[data-certification-status]', report.status || 'blocked');
+    setText('[data-certified-families]', report.independentCertifiedFamilies || 0);
+    setText('[data-certification-passed]', passed);
+    setText('[data-certification-blocked]', blocked);
+
+    const badge = qs('[data-certification-badge]');
+    if (badge) {
+      badge.textContent = authorized ? 'Production authorized' : 'Production blocked';
+      badge.dataset.health = authorized ? 'healthy' : 'failed';
+    }
+
+    const gateTarget = qs('[data-certification-gates]');
+    if (gateTarget) {
+      gateTarget.innerHTML = gates.map(([name, value]) => `
+        <div class="certification-gate"><span>${formatCertificationLabel(name)}</span><strong data-state="${value}">${value}</strong></div>
+      `).join('');
+    }
+
+    const providerTarget = qs('[data-provider-certification-list]');
+    if (providerTarget) {
+      providerTarget.innerHTML = (report.providers || []).map(provider => {
+        const providerGates = Object.values(provider.certification || {});
+        const providerReady = providerGates.every(value => value === 'passed' || value === 'ready');
+        return `
+          <article class="source-health-item">
+            <div class="source-health-head"><strong>${provider.role}</strong><small>${provider.family} · ${provider.id}</small></div>
+            <span class="source-health-status" data-health="${providerReady ? 'healthy' : 'failed'}">${providerReady ? 'Certified' : 'Blocked'}</span>
+            <div class="source-health-meta">
+              <span>Credentials: ${provider.certification?.credentials || 'blocked'}</span>
+              <span>Rights: ${provider.certification?.rights || 'blocked'}</span>
+              <span>Endpoint: ${provider.certification?.endpoint || 'blocked'}</span>
+              <span>Health: ${provider.certification?.healthProbe || 'blocked'}</span>
+            </div>
+          </article>
+        `;
+      }).join('') || '<p class="source-health-empty">No provider certification records.</p>';
+    }
+
+    const blockers = qs('[data-certification-blockers]');
+    if (blockers) {
+      blockers.innerHTML = (report.blockers || []).map(item => `<li>${item}</li>`).join('') || '<li>No blockers.</li>';
+    }
+
+    document.body.dataset.externalCertification = report.status || 'blocked';
+    document.body.dataset.productionAuthorized = String(authorized);
+  };
+
+  const loadExternalCertification = async () => {
+    try {
+      const report = await fetchJson('/a13-b10/data/generated/external-source-certification.json');
+      renderExternalCertification(report);
+    } catch (error) {
+      console.error(error);
+      renderExternalCertification({
+        status: 'blocked',
+        productionPromotionAuthorized: false,
+        independentCertifiedFamilies: 0,
+        providers: [],
+        gates: { certificationReport: 'blocked' },
+        blockers: ['Certification report is unavailable. Production promotion remains blocked.']
+      });
+    }
+  };
+
   const navLinks = qsa('.main-nav a');
   const sections = navLinks.map(link => ({ link, section: qs(link.getAttribute('href')) })).filter(item => item.section);
 
@@ -617,6 +691,7 @@
 
   syncDesktopPanelWidths();
   loadSourceRegistry().finally(loadProductThroughAdapter);
+  loadExternalCertification();
   loadIntegratedActivation();
   window.addEventListener('scroll', requestNavigationSync, { passive: true });
   window.addEventListener('resize', () => {

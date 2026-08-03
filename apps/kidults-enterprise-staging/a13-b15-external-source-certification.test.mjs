@@ -73,3 +73,24 @@ test('A13-B15 preserves mobile and release safety gates', () => {
   assert.match(baseline, /Illustrative fallback remains available/i);
   assert.match(baseline, /production promotion remains blocked by default/i);
 });
+
+
+test('A13-B15 renders external certification and promotion blockers', () => {
+  const html = fs.readFileSync(path.join(dataRoot, '..', 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(dataRoot, '..', 'portal.css'), 'utf8');
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.match(html, /id="external-certification"/);
+  assert.match(html, /data-certification-status/);
+  assert.match(html, /data-provider-certification-list/);
+  assert.match(css, /A13-B15 External Source Certification/);
+  assert.match(js, /loadExternalCertification/);
+  assert.match(js, /generated\/external-source-certification\.json/);
+  assert.match(js, /productionAuthorized/);
+});
+
+test('A13-B15 UI never exposes credential values', () => {
+  const js = fs.readFileSync(path.join(dataRoot, '..', 'portal.js'), 'utf8');
+  assert.doesNotMatch(js, /process\.env/);
+  assert.match(js, /Credentials:/);
+  assert.match(js, /Production promotion remains blocked/);
+});

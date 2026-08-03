@@ -1,0 +1,107 @@
+{
+  "release": "A13-B15",
+  "environment": "staging",
+  "evaluatedAt": "2026-08-03T04:17:05.108Z",
+  "status": "blocked",
+  "productionPromotionAuthorized": false,
+  "independentCertifiedFamilies": 0,
+  "providers": [
+    {
+      "id": "transactions-provider-primary",
+      "role": "transactions",
+      "family": "marketplace-transactions",
+      "mode": "contract",
+      "endpoint": null,
+      "healthEndpoint": null,
+      "credentialEnv": "KIDULTS_TRANSACTIONS_API_KEY",
+      "credentialPresent": false,
+      "rights": {
+        "status": "pending",
+        "productionUseApproved": false,
+        "evidenceRetentionApproved": false
+      },
+      "provenance": {
+        "provider": "pending",
+        "dataset": "sold-price evidence",
+        "freshnessField": "generatedAt"
+      },
+      "certification": {
+        "credentials": "blocked",
+        "rights": "blocked",
+        "endpoint": "blocked",
+        "healthProbe": "blocked"
+      }
+    },
+    {
+      "id": "supply-provider-primary",
+      "role": "supply",
+      "family": "marketplace-listings",
+      "mode": "contract",
+      "endpoint": null,
+      "healthEndpoint": null,
+      "credentialEnv": "KIDULTS_SUPPLY_API_KEY",
+      "credentialPresent": false,
+      "rights": {
+        "status": "pending",
+        "productionUseApproved": false,
+        "evidenceRetentionApproved": false
+      },
+      "provenance": {
+        "provider": "pending",
+        "dataset": "listing and supply evidence",
+        "freshnessField": "generatedAt"
+      },
+      "certification": {
+        "credentials": "blocked",
+        "rights": "blocked",
+        "endpoint": "blocked",
+        "healthProbe": "blocked"
+      }
+    },
+    {
+      "id": "cultural-demand-provider-primary",
+      "role": "culturalDemand",
+      "family": "cultural-demand-signals",
+      "mode": "contract",
+      "endpoint": null,
+      "healthEndpoint": null,
+      "credentialEnv": "KIDULTS_CULTURAL_DEMAND_API_KEY",
+      "credentialPresent": false,
+      "rights": {
+        "status": "pending",
+        "productionUseApproved": false,
+        "evidenceRetentionApproved": false
+      },
+      "provenance": {
+        "provider": "pending",
+        "dataset": "cultural demand evidence",
+        "freshnessField": "generatedAt"
+      },
+      "certification": {
+        "credentials": "blocked",
+        "rights": "blocked",
+        "endpoint": "blocked",
+        "healthProbe": "blocked"
+      }
+    }
+  ],
+  "gates": {
+    "roles": "passed",
+    "credentials": "blocked",
+    "rights": "blocked",
+    "health": "blocked",
+    "independentFamilies": "blocked",
+    "schedule": "blocked",
+    "failureSimulation": "blocked",
+    "productionAuthorization": "blocked"
+  },
+  "blockers": [
+    "Provider credentials are missing.",
+    "Production source rights are not approved.",
+    "Provider health endpoints are not configured.",
+    "Independent certified provider-family minimum is not met.",
+    "Scheduled pipeline execution is disabled.",
+    "Failure simulation has not passed.",
+    "Explicit release authorization remains false."
+  ]
+}
