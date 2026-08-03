@@ -1,0 +1,108 @@
+{
+  "meta": {
+    "product": "Kidults Collector Intelligence",
+    "release": "A13-B11",
+    "status": "staging",
+    "dataMode": "illustrative",
+    "generatedAt": "2026-08-03T00:00:00Z",
+    "methodVersion": "K100 v2.5"
+  },
+  "categoryMatrix": [
+    {
+      "category": "Character Goods",
+      "index": 89.9,
+      "velocity": 4.8,
+      "liquidity": 91,
+      "canonStrength": 92,
+      "culturalDurability": 94,
+      "scarcityIntegrity": 86,
+      "confidence": 91,
+      "regime": "Expansion"
+    },
+    {
+      "category": "Trading Cards",
+      "index": 81.7,
+      "velocity": 2.1,
+      "liquidity": 84,
+      "canonStrength": 88,
+      "culturalDurability": 85,
+      "scarcityIntegrity": 73,
+      "confidence": 84,
+      "regime": "Concentration"
+    },
+    {
+      "category": "Art Toys",
+      "index": 76.3,
+      "velocity": 1.9,
+      "liquidity": 78,
+      "canonStrength": 82,
+      "culturalDurability": 80,
+      "scarcityIntegrity": 79,
+      "confidence": 82,
+      "regime": "Acceleration"
+    },
+    {
+      "category": "Luxury Collectibles",
+      "index": 68.4,
+      "velocity": -1.4,
+      "liquidity": 69,
+      "canonStrength": 75,
+      "culturalDurability": 72,
+      "scarcityIntegrity": 83,
+      "confidence": 76,
+      "regime": "Cooling"
+    }
+  ],
+  "canon": {
+    "headline": "Cultural durability compounds before consensus.",
+    "dimensions": [
+      {
+        "key": "memory",
+        "label": "Cultural Memory",
+        "score": 93,
+        "definition": "Persistence across generations, regions and recurring collector participation."
+      },
+      {
+        "key": "licensing",
+        "label": "Licensing Continuity",
+        "score": 89,
+        "definition": "Continuity and breadth of rights, releases and institutional stewardship."
+      },
+      {
+        "key": "community",
+        "label": "Community Density",
+        "score": 91,
+        "definition": "Repeat participation, creator networks and collector-to-collector transmission."
+      },
+      {
+        "key": "crossBorder",
+        "label": "Cross-border Persistence",
+        "score": 87,
+        "definition": "Evidence that demand persists across markets rather than one local cycle."
+      }
+    ]
+  },
+  "method": {
+    "headline": "Evidence before interpretation.",
+    "sourceFamilies": 42,
+    "brandsCovered": 500,
+    "categoriesCovered": 12,
+    "refreshCadence": "Monthly intelligence cycle",
+    "confidenceModel": "Source diversity × recency × reconciliation × anomaly control",
+    "principles": [
+      "Every interpretation links to evidence lineage.",
+      "No single marketplace determines a category score.",
+      "Confidence is published separately from momentum.",
+      "Illustrative staging data is never represented as production evidence."
+    ]
+  },
+  "timeSeries": {
+    "horizons": ["1M", "3M", "6M", "1Y"],
+    "series": {
+      "all": [72.4, 74.1, 73.6, 76.8, 78.2, 80.9, 82.1, 84.8, 86.2, 89.1, 91.4, 94.8],
+      "character": [68.2, 70.5, 72.1, 74.8, 76.9, 79.6, 81.5, 83.7, 85.2, 87.1, 88.4, 89.9],
+      "cards": [73.8, 74.9, 76.4, 75.8, 77.1, 78.6, 80.2, 82.4, 83.1, 82.6, 81.9, 81.7],
+      "art": [61.3, 63.8, 65.1, 66.4, 68.9, 69.8, 71.6, 72.9, 73.8, 74.9, 75.5, 76.3]
+    }
+  }
+}
