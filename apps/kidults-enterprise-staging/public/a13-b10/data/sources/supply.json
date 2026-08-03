@@ -1,0 +1,21 @@
+{
+  "sourceId": "supply-primary",
+  "role": "supply",
+  "family": "market-supply",
+  "mode": "illustrative",
+  "rights": {
+    "status": "staging-approved",
+    "commercialUse": false,
+    "attributionRequired": false
+  },
+  "provenance": {
+    "provider": "Kidults staging evidence",
+    "collectedAt": "2026-08-03T03:30:00Z",
+    "method": "normalized listing and inventory observations"
+  },
+  "records": [
+    {"category":"Character Goods","listingVelocity":88,"scarcityIntegrity":82,"confidence":90,"anomalyRate":0.05},
+    {"category":"Trading Cards","listingVelocity":84,"scarcityIntegrity":78,"confidence":87,"anomalyRate":0.08},
+    {"category":"Art Toys","listingVelocity":76,"scarcityIntegrity":86,"confidence":83,"anomalyRate":0.06}
+  ]
+}
