@@ -533,6 +533,11 @@ footer {
   display: block;
 }
 
+.hero-line-opening {
+  /* Optical separation for the tall all-caps CULTURE line below. */
+  padding-bottom: .095em;
+}
+
 .hero-line-culture {
   margin: 0;
   line-height: inherit;
@@ -857,6 +862,10 @@ footer {
   .hero-line-opening,
   .hero-line-closing {
     white-space: normal;
+  }
+
+  .hero-line-opening {
+    padding-bottom: .045em;
   }
 
   .hero-line-culture {
