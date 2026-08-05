@@ -135,7 +135,7 @@
   }
 
   function loadB48() {
-    loadStylesheet('b48-rc1-layout-balance.css?v=1', 'b48-rc1-layout-balance');
+    loadStylesheet('b48-rc1-layout-balance.css?v=2', 'b48-rc1-layout-balance');
   }
 
   function loadEnhancements() {
