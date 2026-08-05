@@ -9,31 +9,45 @@
     "confidence": 94,
     "coverageBrands": 500,
     "sourceFamilies": 42,
-    "categories": 4,
+    "categories": 12,
     "sentiment": 67.4,
     "canonStrength": 81.2,
     "marketVelocity": 4.8,
     "activeListings": 128000
   },
   "trend": [
-    {"period":"May 12","value":89.6},
-    {"period":"May 26","value":90.4},
-    {"period":"Jun 9","value":91.1},
-    {"period":"Jun 23","value":91.8},
-    {"period":"Jul 7","value":92.7},
-    {"period":"Jul 21","value":93.5},
-    {"period":"Aug 5","value":94.8}
+    {"period":"May 12","value":89.6},{"period":"May 26","value":90.4},{"period":"Jun 9","value":91.1},{"period":"Jun 23","value":91.8},{"period":"Jul 7","value":92.7},{"period":"Jul 21","value":93.5},{"period":"Aug 5","value":94.8}
   ],
   "categoriesData": [
-    {"name":"Character Goods","score":89.9,"confidence":91,"state":"Accelerating"},
-    {"name":"Trading Cards","score":81.7,"confidence":84,"state":"Monitor"},
-    {"name":"Art Toys","score":76.3,"confidence":82,"state":"Monitor"},
-    {"name":"Luxury Collectibles","score":68.4,"confidence":76,"state":"Weakening"}
+    {"name":"Character Goods","score":89.9,"confidence":91,"state":"Accelerating","velocity":4.9,"liquidity":86},
+    {"name":"Trading Cards","score":81.7,"confidence":84,"state":"Monitor","velocity":4.1,"liquidity":91},
+    {"name":"Art Toys","score":76.3,"confidence":82,"state":"Monitor","velocity":3.8,"liquidity":72},
+    {"name":"Luxury Collectibles","score":68.4,"confidence":76,"state":"Weakening","velocity":2.9,"liquidity":64},
+    {"name":"Watches","score":66.8,"confidence":78,"state":"Stable","velocity":3.1,"liquidity":69},
+    {"name":"Sneakers","score":64.5,"confidence":74,"state":"Stable","velocity":3.5,"liquidity":77},
+    {"name":"Designer Fashion","score":61.7,"confidence":73,"state":"Monitor","velocity":3.0,"liquidity":62},
+    {"name":"Automotive Icons","score":59.4,"confidence":71,"state":"Emerging","velocity":4.4,"liquidity":51}
   ],
   "signalMix": [
-    {"name":"Market activity","value":31},
-    {"name":"Cultural momentum","value":27},
-    {"name":"Scarcity","value":22},
-    {"name":"Canon strength","value":20}
-  ]
+    {"name":"Market activity","value":31},{"name":"Cultural momentum","value":27},{"name":"Scarcity","value":22},{"name":"Canon strength","value":20}
+  ],
+  "confidenceDistribution": [
+    {"grade":"A","value":38},{"grade":"B","value":34},{"grade":"C","value":20},{"grade":"D","value":8}
+  ],
+  "sourceComposition": [
+    {"name":"Marketplaces","value":29},{"name":"Auctions","value":24},{"name":"Brands","value":18},{"name":"Editorial","value":16},{"name":"Cultural signals","value":13}
+  ],
+  "geography": [
+    {"region":"North America","value":34},{"region":"Europe","value":24},{"region":"East Asia","value":22},{"region":"Southeast Asia","value":11},{"region":"Other","value":9}
+  ],
+  "movers": [
+    {"name":"Character Goods","change":5.8},{"name":"Automotive Icons","change":4.6},{"name":"Trading Cards","change":3.9},{"name":"Watches","change":2.7},{"name":"Luxury Collectibles","change":-1.8}
+  ],
+  "lifecycle": [
+    {"name":"Character Goods","stage":"Growth","score":88},{"name":"Trading Cards","stage":"Mature","score":81},{"name":"Art Toys","stage":"Growth","score":76},{"name":"Luxury Collectibles","stage":"Legacy","score":69}
+  ],
+  "correlation": {
+    "labels":["Character","Cards","Art Toys","Luxury"],
+    "values":[[1,0.72,0.64,0.41],[0.72,1,0.58,0.37],[0.64,0.58,1,0.46],[0.41,0.37,0.46,1]]
+  }
 }
