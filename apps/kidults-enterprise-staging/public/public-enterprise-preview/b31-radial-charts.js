@@ -126,6 +126,10 @@
     loadStylesheet('b44-mobile-kpi-root-containment.css', 'b44-mobile-kpi-root-containment');
   }
 
+  function loadB45() {
+    loadStylesheet('b45-typography-scale-freeze-v2.css', 'b45-typography-freeze');
+  }
+
   function loadEnhancements() {
     loadB32();
     loadB35();
@@ -135,6 +139,7 @@
     loadB42();
     loadB43();
     loadB44();
+    loadB45();
   }
 
   function render() {
