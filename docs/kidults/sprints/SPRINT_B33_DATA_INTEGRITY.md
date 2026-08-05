@@ -9,6 +9,8 @@ Convert the current public enterprise preview from a presentation-driven staging
 - Frozen visual baseline: `baseline/kidults-portal-base-v1`
 - Working branch: `feat/kidults-sprint-b33-data-integrity`
 - Portal layout, typography, color, spacing and responsive behavior are out of scope unless a data-state defect requires a narrowly scoped correction.
+- Hero Instrument Dial v2 is accepted as-is at commit `5bf5b75`; no further dial-value size tuning is part of Sprint B33.
+- The corrected mobile KPI containment is accepted and frozen for this sprint.
 
 ## Current authoritative staging asset
 
@@ -55,13 +57,13 @@ The asset currently contains:
 
 ## Delivery sequence
 
-### B33-A1 — Asset inventory and ownership
+### B33-A1 — Asset inventory and ownership — COMPLETE
 
 - Register every intelligence field and consuming component.
 - Assign canonical ownership to `intelligence-data.json` for the current staging phase.
 - Record whether each field is raw, derived, precomputed or presentation metadata.
 
-### B33-A2 — Unified intelligence data contract
+### B33-A2 — Unified intelligence data contract — COMPLETE
 
 - Add a machine-readable JSON Schema.
 - Define allowed status values:
@@ -71,7 +73,7 @@ The asset currently contains:
   - `production`
 - Define numeric ranges, required fields, uniqueness rules and matrix constraints.
 
-### B33-A3 — Integrity validator
+### B33-A3 — Integrity validator — COMPLETE (FIRST CERTIFIED PASS)
 
 The validator must fail on:
 
@@ -91,13 +93,15 @@ Warnings must be emitted for:
 - precomputed 30-day change without a derivation window in the retained trend data
 - staging or illustrative labels exposed in a production build
 
-### B33-A4 — Single-source UI wiring
+### B33-A4 — Single-source UI wiring — IN PROGRESS
 
 - Confirm Hero Dial, KPI strip, trend, category cards and all visualizations consume the same contract.
 - Remove duplicated hard-coded numeric fallbacks where safe.
 - Preserve fail-closed behavior when the asset is unavailable or invalid.
+- Automated audit: `scripts/kidults/audit-public-intelligence-wiring.mjs`
+- The audit checks canonical fetch usage, all public bindings, visualization targets, hard-coded headline values and fail-closed state publication.
 
-### B33-A5 — Data-state UI
+### B33-A5 — Data-state UI — NEXT
 
 - Render a controlled state label from the contract.
 - Prevent `validated` or `production` claims unless validation succeeds.
@@ -110,6 +114,7 @@ Required gates:
 - schema validation: 100%
 - integrity rules: 100%
 - deterministic validator output
+- single-source UI wiring audit: pass
 - desktop regression: pass
 - mobile 320 / 375 / 390 / 430: pass
 - no Portal Base v1 visual drift
