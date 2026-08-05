@@ -134,6 +134,10 @@
     loadStylesheet('b46-instrument-dial-v2.css?v=3', 'b46-instrument-dial');
   }
 
+  function loadB48() {
+    loadStylesheet('b48-rc1-layout-balance.css?v=1', 'b48-rc1-layout-balance');
+  }
+
   function loadEnhancements() {
     loadB32();
     loadB35();
@@ -145,6 +149,7 @@
     loadB44();
     loadB45();
     loadB46();
+    loadB48();
   }
 
   function render() {
