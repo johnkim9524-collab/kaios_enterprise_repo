@@ -1,4 +1,5 @@
 (() => {
+  const visualizationCss = document.createElement('link'); visualizationCss.rel = 'stylesheet'; visualizationCss.href = 'b30-visualization.css'; document.head.appendChild(visualizationCss);
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const fmt = new Intl.NumberFormat('en-US');
