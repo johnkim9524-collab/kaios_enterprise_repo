@@ -114,12 +114,17 @@
     loadStylesheet('b41-final-type-overflow-tuning.css', 'b41-final-type-overflow-tuning');
   }
 
+  function loadB42() {
+    loadStylesheet('b42-governed-system-mobile-overflow.css', 'b42-governed-system-mobile-overflow');
+  }
+
   function loadEnhancements() {
     loadB32();
     loadB35();
     loadB36();
     loadB40();
     loadB41();
+    loadB42();
   }
 
   function render() {
