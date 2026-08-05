@@ -1,5 +1,11 @@
 (() => {
-  const COLORS = ['#0b4a3b', '#477a69', '#82a99b', '#c4d6cf', '#d8c18c'];
+  const COLORS = [
+    '#123F35',
+    '#356456',
+    '#5F8174',
+    '#8FA69D',
+    '#C6C7B8'
+  ];
 
   const esc = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
     '&': '&amp;',
