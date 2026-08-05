@@ -1,6 +1,6 @@
 /* KIDULTS Portal RC1 — final visualization alignment and balance fixes.
-   Scope: mobile donut centering, mobile correlation containment,
-   and desktop Category Intelligence / Signal Composition height parity. */
+   Scope: mobile radial alignment, complete mobile correlation containment,
+   desktop Source Composition legend placement, and Category / Signal height parity. */
 
 /* Desktop: make the right intelligence panel occupy the full grid height. */
 .intelligence-grid {
@@ -24,19 +24,19 @@
   margin-top: auto;
 }
 
-/* Keep source-composition chart and legend optically centered. */
+/* Desktop Source Composition: chart left, index/legend right. */
 #source-donut.donut-wrap {
   width: 100%;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  gap: 30px;
   align-items: center;
-  justify-content: flex-start;
   box-sizing: border-box;
 }
 
 #source-donut .donut {
-  flex: 0 0 auto;
+  justify-self: center;
   margin-inline: auto;
 }
 
@@ -65,96 +65,117 @@
     height: auto;
     min-height: 0;
   }
+
+  #source-donut.donut-wrap {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 20px;
+  }
+
+  #source-donut .legend {
+    justify-self: stretch;
+  }
 }
 
 @media (max-width: 600px) {
+  /* Keep all radial visualizations on one shared mobile diameter. */
+  #confidence-chart .radial-donut,
+  #source-donut .donut {
+    width: 160px !important;
+  }
+
+  #geography-chart .semi-wrap {
+    width: 160px !important;
+    height: 108px !important;
+    justify-self: center;
+    align-self: auto;
+  }
+
+  #geography-chart .semi-donut {
+    width: 160px !important;
+    bottom: -54px !important;
+  }
+
+  #geography-chart .semi-cutout {
+    inset: 36px !important;
+  }
+
+  #geography-chart .semi-center {
+    min-width: 130px;
+    bottom: 2px;
+  }
+
+  #geography-chart .semi-center strong {
+    font-size: 29px;
+  }
+
+  /* Center Source Composition in the actual mobile card content box. */
   #source-donut.donut-wrap {
     padding-inline: 0;
   }
 
   #source-donut .donut {
+    justify-self: center;
     align-self: center;
     margin-left: auto;
     margin-right: auto;
   }
 
   #source-donut .legend {
+    justify-self: stretch;
     align-self: stretch;
   }
 
-  /* Full 4 x 4 matrix: 42px label column + four 42px data columns. */
-  #correlation-chart {
-    display: flex;
-    justify-content: center;
-  }
-
+  /* Full 4×4 matrix: fixed compact tracks prevent CSS min-content expansion. */
   #correlation-chart .matrix-grid {
-    width: auto !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    display: grid !important;
-    grid-template-columns: 42px repeat(4, 42px) !important;
-    grid-auto-columns: 42px !important;
-    gap: 3px !important;
-    justify-content: center !important;
-    align-items: stretch !important;
-    overflow: visible !important;
-    margin-inline: auto !important;
+    --mobile-label: 54px;
+    --mobile-cell: 42px;
+    display: grid;
+    grid-template-columns: var(--mobile-label) repeat(4, var(--mobile-cell)) !important;
+    justify-content: center;
+    align-items: stretch;
+    gap: 2px;
+    overflow: visible;
   }
 
   #correlation-chart .matrix-grid > b {
-    width: 42px !important;
-    min-width: 0 !important;
-    max-width: 42px !important;
-    padding: 2px !important;
-    box-sizing: border-box !important;
-    font-size: 7px !important;
-    line-height: 1.05 !important;
-    overflow-wrap: anywhere !important;
-    text-align: center !important;
+    width: auto;
+    min-width: 0;
+    padding: 1px;
+    font-size: 6.5px;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    text-align: center;
   }
 
   #correlation-chart .matrix-grid > span {
-    width: 42px !important;
-    min-width: 42px !important;
-    max-width: 42px !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    aspect-ratio: auto !important;
-    box-sizing: border-box !important;
-    display: grid !important;
-    place-items: center !important;
+    width: var(--mobile-cell) !important;
+    min-width: 0;
+    min-height: var(--mobile-cell) !important;
+    height: var(--mobile-cell);
+    aspect-ratio: auto;
   }
 
   #correlation-chart .matrix-grid > span i {
-    font-size: 8px !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
+    font-size: 8px;
+    line-height: 1;
+    white-space: nowrap;
   }
 }
 
 @media (max-width: 340px) {
   #correlation-chart .matrix-grid {
-    grid-template-columns: 38px repeat(4, 38px) !important;
-    grid-auto-columns: 38px !important;
-    gap: 2px !important;
+    --mobile-label: 50px;
+    --mobile-cell: 38px;
+    gap: 2px;
   }
 
   #correlation-chart .matrix-grid > b {
-    width: 38px !important;
-    max-width: 38px !important;
-    font-size: 6.5px !important;
-  }
-
-  #correlation-chart .matrix-grid > span {
-    width: 38px !important;
-    min-width: 38px !important;
-    max-width: 38px !important;
-    height: 38px !important;
-    min-height: 38px !important;
+    font-size: 6px;
   }
 
   #correlation-chart .matrix-grid > span i {
-    font-size: 7.5px !important;
+    font-size: 7.5px;
   }
 }
