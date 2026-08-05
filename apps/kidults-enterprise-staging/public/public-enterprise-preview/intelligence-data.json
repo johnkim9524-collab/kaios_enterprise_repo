@@ -1,0 +1,39 @@
+{
+  "status": "staging",
+  "label": "Illustrative staging data",
+  "updated": "2026-08-05T15:30:00+09:00",
+  "methodologyVersion": "v1.3",
+  "headline": {
+    "kidult100": 94.8,
+    "change30d": 2.1,
+    "confidence": 94,
+    "coverageBrands": 500,
+    "sourceFamilies": 42,
+    "categories": 4,
+    "sentiment": 67.4,
+    "canonStrength": 81.2,
+    "marketVelocity": 4.8,
+    "activeListings": 128000
+  },
+  "trend": [
+    {"period":"May 12","value":89.6},
+    {"period":"May 26","value":90.4},
+    {"period":"Jun 9","value":91.1},
+    {"period":"Jun 23","value":91.8},
+    {"period":"Jul 7","value":92.7},
+    {"period":"Jul 21","value":93.5},
+    {"period":"Aug 5","value":94.8}
+  ],
+  "categoriesData": [
+    {"name":"Character Goods","score":89.9,"confidence":91,"state":"Accelerating"},
+    {"name":"Trading Cards","score":81.7,"confidence":84,"state":"Monitor"},
+    {"name":"Art Toys","score":76.3,"confidence":82,"state":"Monitor"},
+    {"name":"Luxury Collectibles","score":68.4,"confidence":76,"state":"Weakening"}
+  ],
+  "signalMix": [
+    {"name":"Market activity","value":31},
+    {"name":"Cultural momentum","value":27},
+    {"name":"Scarcity","value":22},
+    {"name":"Canon strength","value":20}
+  ]
+}
