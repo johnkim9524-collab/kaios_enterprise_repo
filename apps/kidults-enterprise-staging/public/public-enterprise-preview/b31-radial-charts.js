@@ -87,6 +87,23 @@
     }
   }
 
+  function loadB34() {
+    if (!document.querySelector('link[data-b34-luxury-number]')) {
+      const stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = 'b34-luxury-number.css';
+      stylesheet.dataset.b34LuxuryNumber = 'true';
+      document.head.appendChild(stylesheet);
+    }
+    if (!document.querySelector('script[data-b34-luxury-number]')) {
+      const script = document.createElement('script');
+      script.src = 'b34-luxury-number.js';
+      script.defer = true;
+      script.dataset.b34LuxuryNumber = 'true';
+      document.head.appendChild(script);
+    }
+  }
+
   function render() {
     fetch('intelligence-data.json', { cache: 'no-store' })
       .then((response) => {
@@ -99,10 +116,12 @@
         if (confidence) confidence.innerHTML = confidenceDonut(data.confidenceDistribution || []);
         if (geography) geography.innerHTML = geographySemiDonut(data.geography || []);
         loadB32();
+        loadB34();
       })
       .catch((error) => {
         console.error('Radial chart enhancement failed', error);
         loadB32();
+        loadB34();
       });
   }
 
