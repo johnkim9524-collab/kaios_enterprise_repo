@@ -1,0 +1,128 @@
+/* KIDULTS Portal RC1 — final visualization alignment and balance fixes.
+   Scope: mobile donut centering, mobile correlation containment,
+   and desktop Category Intelligence / Signal Composition height parity. */
+
+/* Desktop: make the right intelligence panel occupy the full grid height. */
+.intelligence-grid {
+  align-items: stretch;
+}
+
+.intelligence-grid > .category-bars,
+.intelligence-grid > .mix-panel {
+  min-width: 0;
+}
+
+.intelligence-grid > .mix-panel {
+  height: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.intelligence-grid > .mix-panel > small {
+  margin-top: auto;
+}
+
+/* Keep source-composition chart and legend optically centered. */
+#source-donut.donut-wrap {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+}
+
+#source-donut .donut {
+  flex: 0 0 auto;
+  margin-inline: auto;
+}
+
+#source-donut .legend {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Correlation matrix must always remain inside its card. */
+#correlation-chart,
+#correlation-chart .matrix-grid {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#correlation-chart {
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .intelligence-grid > .mix-panel {
+    height: auto;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Center the donut within the actual 320px card content box. */
+  #source-donut.donut-wrap {
+    padding-inline: 0;
+  }
+
+  #source-donut .donut {
+    align-self: center;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #source-donut .legend {
+    align-self: stretch;
+  }
+
+  /* Use fluid cells instead of a desktop-width matrix that gets clipped. */
+  #correlation-chart .matrix-grid {
+    display: grid;
+    grid-template-columns: minmax(48px, .78fr) repeat(4, minmax(0, 1fr)) !important;
+    gap: 3px;
+    overflow: visible;
+  }
+
+  #correlation-chart .matrix-grid > b {
+    min-width: 0;
+    padding-inline: 1px;
+    font-size: clamp(7px, 2.35vw, 9px);
+    line-height: 1.12;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+
+  #correlation-chart .matrix-grid > span {
+    min-width: 0;
+    width: auto;
+    aspect-ratio: 1;
+  }
+
+  #correlation-chart .matrix-grid > span i {
+    font-size: clamp(8px, 2.7vw, 11px);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 340px) {
+  #correlation-chart .matrix-grid {
+    grid-template-columns: 44px repeat(4, minmax(0, 1fr)) !important;
+    gap: 2px;
+  }
+
+  #correlation-chart .matrix-grid > b {
+    font-size: 7px;
+  }
+
+  #correlation-chart .matrix-grid > span i {
+    font-size: 8px;
+  }
+}
