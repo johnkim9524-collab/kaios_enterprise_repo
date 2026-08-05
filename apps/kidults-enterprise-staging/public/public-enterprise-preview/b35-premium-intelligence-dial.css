@@ -1,2 +1,56 @@
 @import url('./b39-mobile-design-freeze.css');
 :root{--kidults-dial-paper:#F4F1EA;--kidults-dial-forest-900:#0A3A30;--kidults-dial-forest-800:#174B3F;--kidults-dial-forest-700:#2D6657;--kidults-dial-forest-600:#4F8373;--kidults-dial-forest-500:#78A596;--kidults-dial-forest-300:#AFCBC1;--kidults-dial-track:rgba(103,142,129,.15);--kidults-dial-accent:#B9934D;--kidults-dial-positive:#9FD6C2}.hero{align-items:start!important;padding-top:64px!important}.hero aside.premium-dial-card{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;align-self:start;min-height:0!important;height:auto!important;max-height:none!important;padding:1.35rem 1.55rem 1.25rem;overflow:visible;background:linear-gradient(145deg,#07392f,#052f27 72%);box-shadow:0 18px 46px rgba(4,28,23,.08)}.premium-dial-card>.eyebrow{margin:0 0 .66rem}.premium-dial{position:relative;display:grid;place-items:center;width:min(13.45rem,100%);aspect-ratio:1;margin:0 auto .82rem;border-radius:50%;background:conic-gradient(from -90deg,var(--kidults-dial-forest-300) 0%,var(--kidults-dial-forest-500) 18%,var(--kidults-dial-forest-600) 42%,var(--kidults-dial-forest-700) 70%,var(--kidults-dial-forest-800) calc(var(--dial-value,94.8)*1%),var(--kidults-dial-track) 0);box-shadow:0 0 0 1px rgba(244,241,234,.055),0 10px 30px rgba(0,0,0,.1)}.premium-dial::before{content:"";position:absolute;inset:12px;border-radius:50%;background:linear-gradient(145deg,rgba(15,76,63,.94),rgba(5,47,39,.98) 70%);box-shadow:inset 0 0 0 1px rgba(244,241,234,.06),inset 0 14px 26px rgba(255,255,255,.018)}.premium-dial::after{content:"";position:absolute;inset:25px;border-radius:50%;border:1px solid rgba(169,199,188,.14);background:linear-gradient(155deg,rgba(255,255,255,.025),transparent 42%)}.premium-dial__content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center}.premium-dial__value{font-family:Georgia,'Times New Roman',serif!important;font-size:clamp(3.94rem,4.94vw,5.3rem)!important;font-weight:400!important;line-height:.88!important;letter-spacing:-.047em!important;color:var(--kidults-dial-paper)!important;white-space:nowrap;font-variant-numeric:lining-nums tabular-nums;font-feature-settings:'lnum' 1,'tnum' 1;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;transform:translateY(-1px)}.premium-dial__label{margin-top:.55rem;font-size:.61rem;line-height:1.15;letter-spacing:.187em;text-transform:uppercase;color:rgba(244,241,234,.72)}.premium-dial__delta{margin-top:.46rem;font-size:.74rem;font-weight:700;letter-spacing:.024em;color:var(--kidults-dial-positive)}.premium-dial__seal{display:inline-flex;align-items:center;gap:.34rem;margin-top:.5rem;padding:.24rem .44rem;border:1px solid rgba(185,147,77,.22);border-radius:999px;font-size:.51rem;letter-spacing:.125em;text-transform:uppercase;color:#C9AE72}.premium-dial__seal::before{content:"";width:.3rem;height:.3rem;border-radius:50%;background:var(--kidults-dial-positive);box-shadow:0 0 0 3px rgba(159,214,194,.07)}.premium-dial-card dl{margin:.02rem 0 0!important}.premium-dial-card dl>div{padding:.5rem 0!important}.premium-dial-card small{margin-top:.56rem!important}.premium-dial-card .luxury-number__integer,.premium-dial-card .luxury-number__decimal{font-size:inherit!important;transform:none!important;letter-spacing:inherit!important}.premium-dial-card .premium-dial__value.luxury-number{font-size:clamp(3.94rem,4.94vw,5.3rem)!important;letter-spacing:-.047em!important}.premium-dial-card .premium-dial__value .luxury-number__decimal{font-size:1em!important}@media(max-width:980px){.hero{align-items:start!important;padding-top:52px!important}.premium-dial{width:min(12.8rem,76vw)}.premium-dial-card .premium-dial__value,.premium-dial__value{font-size:4.72rem!important}}@media(max-width:760px){.hero{padding-top:40px!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;max-width:100%!important;overflow:hidden!important}.hero>*{min-width:0!important;max-width:100%!important}.hero aside.premium-dial-card{width:100%!important;min-width:0!important;max-width:100%!important;padding:1.2rem 1.05rem;overflow:hidden!important}.premium-dial{width:min(12.15rem,66vw);max-width:100%!important;margin-bottom:.74rem}.premium-dial-card .premium-dial__value,.premium-dial__value{font-size:clamp(3.35rem,17vw,4.3rem)!important}.premium-dial__label{font-size:.58rem;letter-spacing:.18em;max-width:100%}.premium-dial__delta{font-size:.7rem}.premium-dial__seal{max-width:100%;white-space:normal;text-align:center}.premium-dial-card dl>div{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}.premium-dial-card dd{min-width:0;overflow-wrap:anywhere;text-align:right}body{overflow-x:hidden!important}}@media(max-width:430px){.premium-dial{width:min(11.4rem,62vw)}.hero aside.premium-dial-card{padding:1.05rem .9rem}.premium-dial-card .premium-dial__value,.premium-dial__value{font-size:clamp(3.05rem,16vw,3.9rem)!important}}@media(max-width:360px){.premium-dial{width:min(10.6rem,60vw)}.premium-dial-card .premium-dial__value,.premium-dial__value{font-size:clamp(2.8rem,15.5vw,3.5rem)!important}}@media(prefers-reduced-motion:no-preference){.premium-dial{animation:dial-reveal .45s cubic-bezier(.2,.75,.2,1) both}@keyframes dial-reveal{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}}
+
+/* B46 — Align CURRENT INTELLIGENCE STATE value with the restrained trend metric scale. */
+.premium-dial-card .premium-dial__value,
+.premium-dial-card .premium-dial__value.luxury-number,
+.premium-dial__value {
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: clamp(3.5rem, 4.2vw, 4rem) !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.035em !important;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: 'lnum' 1, 'tnum' 1;
+  transform: none !important;
+}
+
+.premium-dial-card .premium-dial__value .luxury-number__integer,
+.premium-dial-card .premium-dial__value .luxury-number__decimal {
+  font-size: 1em !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  transform: none !important;
+}
+
+@media (max-width: 980px) {
+  .premium-dial-card .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number,
+  .premium-dial__value {
+    font-size: 4rem !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .premium-dial-card .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number,
+  .premium-dial__value {
+    font-size: 3.25rem !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .premium-dial-card .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number,
+  .premium-dial__value {
+    font-size: 3rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .premium-dial-card .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number,
+  .premium-dial__value {
+    font-size: 2.8rem !important;
+  }
+}
