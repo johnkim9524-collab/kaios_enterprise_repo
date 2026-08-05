@@ -130,6 +130,10 @@
     loadStylesheet('b45-typography-scale-freeze-v2.css', 'b45-typography-freeze');
   }
 
+  function loadB46() {
+    loadStylesheet('b46-instrument-dial-v2.css?v=3', 'b46-instrument-dial');
+  }
+
   function loadEnhancements() {
     loadB32();
     loadB35();
@@ -140,6 +144,7 @@
     loadB43();
     loadB44();
     loadB45();
+    loadB46();
   }
 
   function render() {
