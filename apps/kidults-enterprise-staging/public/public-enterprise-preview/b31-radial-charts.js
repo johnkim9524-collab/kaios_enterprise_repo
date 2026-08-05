@@ -104,6 +104,16 @@
     }
   }
 
+  function loadB36() {
+    if (!document.querySelector('link[data-b36-category-density]')) {
+      const stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = 'b36-category-density.css';
+      stylesheet.dataset.b36CategoryDensity = 'true';
+      document.head.appendChild(stylesheet);
+    }
+  }
+
   function render() {
     fetch('intelligence-data.json', { cache: 'no-store' })
       .then((response) => {
@@ -117,11 +127,13 @@
         if (geography) geography.innerHTML = geographySemiDonut(data.geography || []);
         loadB32();
         loadB35();
+        loadB36();
       })
       .catch((error) => {
         console.error('Radial chart enhancement failed', error);
         loadB32();
         loadB35();
+        loadB36();
       });
   }
 
