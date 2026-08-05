@@ -64,6 +64,23 @@
     </div>`;
   }
 
+  function loadB32() {
+    if (!document.querySelector('link[data-b32-integrity]')) {
+      const stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = 'b32-visualization-integrity.css';
+      stylesheet.dataset.b32Integrity = 'true';
+      document.head.appendChild(stylesheet);
+    }
+    if (!document.querySelector('script[data-b32-integrity]')) {
+      const script = document.createElement('script');
+      script.src = 'b32-visualization-integrity.js';
+      script.defer = true;
+      script.dataset.b32Integrity = 'true';
+      document.head.appendChild(script);
+    }
+  }
+
   function render() {
     fetch('intelligence-data.json', { cache: 'no-store' })
       .then((response) => {
@@ -75,8 +92,12 @@
         const geography = document.querySelector('#geography-chart');
         if (confidence) confidence.innerHTML = confidenceDonut(data.confidenceDistribution || []);
         if (geography) geography.innerHTML = geographySemiDonut(data.geography || []);
+        loadB32();
       })
-      .catch((error) => console.error('Radial chart enhancement failed', error));
+      .catch((error) => {
+        console.error('Radial chart enhancement failed', error);
+        loadB32();
+      });
   }
 
   if (document.readyState === 'loading') {
