@@ -54,10 +54,10 @@
 .premium-dial__value,
 .premium-dial-card .premium-dial__value.luxury-number {
   font-family: Georgia, 'Times New Roman', serif !important;
-  font-size: clamp(3.35rem, 4.2vw, 4.55rem) !important;
+  font-size: clamp(3.18rem, 4vw, 4.32rem) !important;
   font-weight: 400 !important;
-  line-height: .9 !important;
-  letter-spacing: -.035em !important;
+  line-height: .92 !important;
+  letter-spacing: -.032em !important;
   color: #F4F1EA !important;
   text-shadow: 0 1px 0 rgba(255,255,255,.02) !important;
 }
@@ -90,7 +90,7 @@
 
   .premium-dial__value,
   .premium-dial-card .premium-dial__value.luxury-number {
-    font-size: 4.1rem !important;
+    font-size: 3.9rem !important;
   }
 }
 
@@ -101,7 +101,7 @@
 
   .premium-dial__value,
   .premium-dial-card .premium-dial__value.luxury-number {
-    font-size: clamp(2.95rem, 15.2vw, 3.75rem) !important;
+    font-size: clamp(2.8rem, 14.5vw, 3.56rem) !important;
   }
 }
 
@@ -112,6 +112,6 @@
 
   .premium-dial__value,
   .premium-dial-card .premium-dial__value.luxury-number {
-    font-size: clamp(2.72rem, 14.8vw, 3.35rem) !important;
+    font-size: clamp(2.58rem, 14vw, 3.18rem) !important;
   }
 }
