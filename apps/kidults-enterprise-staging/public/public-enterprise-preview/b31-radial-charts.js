@@ -104,6 +104,23 @@
     }
   }
 
+  function loadB35() {
+    if (!document.querySelector('link[data-b35-premium-dial]')) {
+      const stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = 'b35-premium-intelligence-dial.css';
+      stylesheet.dataset.b35PremiumDial = 'true';
+      document.head.appendChild(stylesheet);
+    }
+    if (!document.querySelector('script[data-b35-premium-dial]')) {
+      const script = document.createElement('script');
+      script.src = 'b35-premium-intelligence-dial.js';
+      script.defer = true;
+      script.dataset.b35PremiumDial = 'true';
+      document.head.appendChild(script);
+    }
+  }
+
   function render() {
     fetch('intelligence-data.json', { cache: 'no-store' })
       .then((response) => {
@@ -117,11 +134,13 @@
         if (geography) geography.innerHTML = geographySemiDonut(data.geography || []);
         loadB32();
         loadB34();
+        loadB35();
       })
       .catch((error) => {
         console.error('Radial chart enhancement failed', error);
         loadB32();
         loadB34();
+        loadB35();
       });
   }
 
