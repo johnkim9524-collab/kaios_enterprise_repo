@@ -122,6 +122,10 @@
     loadStylesheet('b43-mobile-kpi-strip-containment.css', 'b43-mobile-kpi-strip-containment');
   }
 
+  function loadB44() {
+    loadStylesheet('b44-mobile-kpi-root-containment.css', 'b44-mobile-kpi-root-containment');
+  }
+
   function loadEnhancements() {
     loadB32();
     loadB35();
@@ -130,6 +134,7 @@
     loadB41();
     loadB42();
     loadB43();
+    loadB44();
   }
 
   function render() {
