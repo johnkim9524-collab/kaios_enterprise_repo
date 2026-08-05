@@ -1,0 +1,41 @@
+/* B47 — Final CURRENT INTELLIGENCE STATE value scale.
+   Reduces only the central 94.8 by roughly five percent.
+   Ring, card, data, layout and all other typography remain unchanged. */
+
+.premium-dial-card .premium-dial__value,
+.premium-dial-card .premium-dial__value.luxury-number,
+.premium-dial__value {
+  font-size: clamp(3.32rem, 4vw, 3.8rem) !important;
+}
+
+@media (max-width: 980px) {
+  .premium-dial-card .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number,
+  .premium-dial__value {
+    font-size: 3.8rem !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .premium-dial-card .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number,
+  .premium-dial__value {
+    font-size: 3.08rem !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .premium-dial-card .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number,
+  .premium-dial__value {
+    font-size: 2.85rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .premium-dial-card .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number,
+  .premium-dial__value {
+    font-size: 2.66rem !important;
+  }
+}
