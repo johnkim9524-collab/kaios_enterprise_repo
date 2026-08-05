@@ -80,7 +80,7 @@ The asset currently contains:
 - Automated audit: `scripts/kidults/audit-public-intelligence-wiring.mjs`.
 - Certified result: `[B33-A4] PASS`.
 
-### B33-A5 — Data-state UI — IMPLEMENTED / LOCAL CERTIFICATION REQUIRED
+### B33-A5 — Data-state UI — COMPLETE
 
 - Governed runtime: `b47-data-state-runtime.js`.
 - Fail-closed presentation rules: `b47-data-state-runtime.css`.
@@ -89,20 +89,25 @@ The asset currently contains:
 - Invalid assets publish `Data temporarily unavailable` and suppress numeric/chart claims.
 - Runtime diagnostics are exposed through `window.KIDULTS_INTELLIGENCE_RUNTIME` and document data attributes.
 - Automated audit: `scripts/kidults/audit-data-state-runtime.mjs`.
+- Certified result: `[B33-A5] PASS`.
 
-### B33-A6 — Certification — NEXT
+### B33-A6 — Release certification — IMPLEMENTED / MANUAL VIEWPORT SIGN-OFF REQUIRED
 
-Required gates:
+- Automated release gate: `scripts/kidults/certify-sprint-b33-release.mjs`.
+- RC1 checklist: `docs/kidults/releases/KIDULTS_PORTAL_RC1_CERTIFICATION.md`.
+- Automated checks cover required release files, runtime load order, responsive controls, safe-area metadata, canonical status and core data presence.
+- Manual certification covers desktop widths `1920 / 1600 / 1440 / 1366 / 1280` and mobile widths `320 / 360 / 375 / 390 / 412 / 430`.
+- RC1 cannot be declared until viewport, overflow, accessibility and Lighthouse checks are signed off.
 
-- schema validation: 100%
-- integrity rules: 100%
-- deterministic validator output
-- single-source UI wiring audit: pass
-- governed data-state runtime audit: pass
-- desktop regression: pass
-- mobile 320 / 375 / 390 / 430: pass
-- no Portal Base v1 visual drift
+## Final certification command set
+
+```powershell
+node scripts/kidults/validate-intelligence-data.mjs
+node scripts/kidults/audit-public-intelligence-wiring.mjs
+node scripts/kidults/audit-data-state-runtime.mjs
+node scripts/kidults/certify-sprint-b33-release.mjs
+```
 
 ## Definition of done
 
-Sprint B33 is complete only when every displayed intelligence value can be traced to the canonical asset, every derived value has an explicit rule, malformed data fails closed, and the approved portal baseline remains visually unchanged.
+Sprint B33 is complete only when every displayed intelligence value can be traced to the canonical asset, every derived value has an explicit rule, malformed data fails closed, all automated certification commands pass, the manual RC1 viewport matrix is signed off, and the approved portal baseline remains visually unchanged.
