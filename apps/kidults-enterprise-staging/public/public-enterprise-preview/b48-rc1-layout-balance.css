@@ -2,7 +2,6 @@
    Scope: mobile radial alignment, complete mobile correlation containment,
    desktop Source Composition legend placement, and Category / Signal height parity. */
 
-/* Desktop: make the right intelligence panel occupy the full grid height. */
 .intelligence-grid {
   align-items: stretch;
 }
@@ -24,7 +23,6 @@
   margin-top: auto;
 }
 
-/* Desktop Source Composition: chart left, index/legend right. */
 #source-donut.donut-wrap {
   width: 100%;
   min-width: 0;
@@ -47,16 +45,15 @@
   box-sizing: border-box;
 }
 
-/* Correlation matrix must always remain inside its card. */
 #correlation-chart,
 #correlation-chart .matrix-grid {
-  width: 100%;
-  max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
 }
 
 #correlation-chart {
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
 }
 
@@ -78,7 +75,6 @@
 }
 
 @media (max-width: 600px) {
-  /* Keep all radial visualizations on one shared mobile diameter. */
   #confidence-chart .radial-donut,
   #source-donut .donut {
     width: 160px !important;
@@ -109,7 +105,6 @@
     font-size: 29px;
   }
 
-  /* Center Source Composition in the actual mobile card content box. */
   #source-donut.donut-wrap {
     padding-inline: 0;
   }
@@ -126,56 +121,84 @@
     align-self: stretch;
   }
 
-  /* Full 4×4 matrix: fixed compact tracks prevent CSS min-content expansion. */
+  /* Hard reset every inherited desktop matrix rule before rebuilding the mobile grid. */
+  #correlation-chart {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    overflow: hidden !important;
+  }
+
   #correlation-chart .matrix-grid {
-    --mobile-label: 54px;
-    --mobile-cell: 42px;
-    display: grid;
+    --mobile-label: 50px;
+    --mobile-cell: 40px;
+    display: grid !important;
+    grid-auto-flow: row !important;
     grid-template-columns: var(--mobile-label) repeat(4, var(--mobile-cell)) !important;
-    justify-content: center;
-    align-items: stretch;
-    gap: 2px;
-    overflow: visible;
+    grid-auto-columns: var(--mobile-cell) !important;
+    width: calc(var(--mobile-label) + (4 * var(--mobile-cell)) + 8px) !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    justify-content: start !important;
+    align-content: start !important;
+    align-items: stretch !important;
+    gap: 2px !important;
+    transform: none !important;
+    overflow: visible !important;
   }
 
   #correlation-chart .matrix-grid > b {
-    width: auto;
-    min-width: 0;
-    padding: 1px;
-    font-size: 6.5px;
-    line-height: 1.05;
-    overflow-wrap: anywhere;
-    word-break: normal;
-    text-align: center;
+    display: grid !important;
+    place-items: center !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 1px !important;
+    font-size: 6px !important;
+    line-height: 1.05 !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+    text-align: center !important;
   }
 
   #correlation-chart .matrix-grid > span {
+    display: grid !important;
+    place-items: center !important;
     width: var(--mobile-cell) !important;
-    min-width: 0;
+    min-width: var(--mobile-cell) !important;
+    max-width: var(--mobile-cell) !important;
+    height: var(--mobile-cell) !important;
     min-height: var(--mobile-cell) !important;
-    height: var(--mobile-cell);
-    aspect-ratio: auto;
+    margin: 0 !important;
+    padding: 0 !important;
+    aspect-ratio: auto !important;
+    transform: none !important;
   }
 
   #correlation-chart .matrix-grid > span i {
-    font-size: 8px;
-    line-height: 1;
-    white-space: nowrap;
+    font-size: 7.5px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
   }
 }
 
 @media (max-width: 340px) {
   #correlation-chart .matrix-grid {
-    --mobile-label: 50px;
+    --mobile-label: 48px;
     --mobile-cell: 38px;
-    gap: 2px;
   }
 
   #correlation-chart .matrix-grid > b {
-    font-size: 6px;
+    font-size: 5.8px !important;
   }
 
   #correlation-chart .matrix-grid > span i {
-    font-size: 7.5px;
+    font-size: 7px !important;
   }
 }
