@@ -110,11 +110,16 @@
     loadStylesheet('b40-mobile-final-tuning.css', 'b40-mobile-final-tuning');
   }
 
+  function loadB41() {
+    loadStylesheet('b41-final-type-overflow-tuning.css', 'b41-final-type-overflow-tuning');
+  }
+
   function loadEnhancements() {
     loadB32();
     loadB35();
     loadB36();
     loadB40();
+    loadB41();
   }
 
   function render() {
