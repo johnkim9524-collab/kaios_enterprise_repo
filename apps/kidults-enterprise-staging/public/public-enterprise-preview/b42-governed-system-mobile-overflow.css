@@ -1,0 +1,61 @@
+/* KIDULTS B42 — ONE GOVERNED SYSTEM mobile-only overflow correction.
+   Scope is intentionally limited to the dark governed-system section. */
+@media (max-width: 600px) {
+  .dark.shell {
+    width: auto !important;
+    max-width: calc(100% - 36px) !important;
+    margin-left: 18px !important;
+    margin-right: 18px !important;
+    padding: 24px 16px !important;
+    overflow: hidden !important;
+  }
+
+  .dark.shell > div,
+  .dark.shell .dark-grid,
+  .dark.shell .dark-grid article {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .dark.shell h2 {
+    max-width: 100% !important;
+    font-size: clamp(2rem, 10.5vw, 2.65rem) !important;
+    line-height: 1 !important;
+    letter-spacing: -.028em !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    hyphens: none !important;
+  }
+
+  .dark.shell .dark-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .dark.shell .dark-grid article {
+    padding: 17px 16px !important;
+    overflow: hidden !important;
+  }
+
+  .dark.shell .dark-grid h3,
+  .dark.shell .dark-grid p,
+  .dark.shell .dark-grid a {
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .dark.shell {
+    max-width: calc(100% - 32px) !important;
+    margin-left: 16px !important;
+    margin-right: 16px !important;
+    padding: 22px 14px !important;
+  }
+
+  .dark.shell h2 {
+    font-size: clamp(1.9rem, 10vw, 2.35rem) !important;
+  }
+}
