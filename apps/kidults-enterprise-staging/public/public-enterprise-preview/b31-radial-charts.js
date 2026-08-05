@@ -118,6 +118,10 @@
     loadStylesheet('b42-governed-system-mobile-overflow.css', 'b42-governed-system-mobile-overflow');
   }
 
+  function loadB43() {
+    loadStylesheet('b43-mobile-kpi-strip-containment.css', 'b43-mobile-kpi-strip-containment');
+  }
+
   function loadEnhancements() {
     loadB32();
     loadB35();
@@ -125,6 +129,7 @@
     loadB40();
     loadB41();
     loadB42();
+    loadB43();
   }
 
   function render() {
