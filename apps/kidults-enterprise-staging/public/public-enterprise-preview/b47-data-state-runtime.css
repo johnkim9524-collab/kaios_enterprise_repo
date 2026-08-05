@@ -1,0 +1,75 @@
+/* KIDULTS B33-A5 governed data-state UI.
+   Data state only: no approved layout, typography or chart styling changes. */
+
+html[data-intelligence-state="loading"] [data-status-label] {
+  opacity: .72;
+}
+
+html[data-intelligence-state="unavailable"] [data-k100],
+html[data-intelligence-state="unavailable"] [data-change],
+html[data-intelligence-state="unavailable"] [data-confidence],
+html[data-intelligence-state="unavailable"] [data-coverage],
+html[data-intelligence-state="unavailable"] [data-sources],
+html[data-intelligence-state="unavailable"] [data-updated],
+html[data-intelligence-state="unavailable"] [data-method],
+html[data-intelligence-state="unavailable"] [data-sentiment],
+html[data-intelligence-state="unavailable"] [data-canon],
+html[data-intelligence-state="unavailable"] [data-velocity],
+html[data-intelligence-state="unavailable"] [data-listings],
+html[data-intelligence-state="unavailable"] [data-category-count] {
+  color: transparent !important;
+  text-shadow: none !important;
+  position: relative;
+}
+
+html[data-intelligence-state="unavailable"] [data-k100]::after,
+html[data-intelligence-state="unavailable"] [data-sentiment]::after,
+html[data-intelligence-state="unavailable"] [data-canon]::after,
+html[data-intelligence-state="unavailable"] [data-velocity]::after,
+html[data-intelligence-state="unavailable"] [data-listings]::after,
+html[data-intelligence-state="unavailable"] [data-category-count]::after {
+  content: "—";
+  color: currentColor;
+  position: absolute;
+  inset: 0;
+}
+
+html[data-intelligence-state="unavailable"] #trend-chart,
+html[data-intelligence-state="unavailable"] #category-bars,
+html[data-intelligence-state="unavailable"] #signal-mix,
+html[data-intelligence-state="unavailable"] #confidence-chart,
+html[data-intelligence-state="unavailable"] #source-donut,
+html[data-intelligence-state="unavailable"] #geography-chart,
+html[data-intelligence-state="unavailable"] #movers-chart,
+html[data-intelligence-state="unavailable"] #lifecycle-chart,
+html[data-intelligence-state="unavailable"] #correlation-chart {
+  min-height: 8rem;
+  display: grid;
+  place-items: center;
+}
+
+html[data-intelligence-state="unavailable"] #trend-chart::before,
+html[data-intelligence-state="unavailable"] #category-bars::before,
+html[data-intelligence-state="unavailable"] #signal-mix::before,
+html[data-intelligence-state="unavailable"] #confidence-chart::before,
+html[data-intelligence-state="unavailable"] #source-donut::before,
+html[data-intelligence-state="unavailable"] #geography-chart::before,
+html[data-intelligence-state="unavailable"] #movers-chart::before,
+html[data-intelligence-state="unavailable"] #lifecycle-chart::before,
+html[data-intelligence-state="unavailable"] #correlation-chart::before {
+  content: "Data temporarily unavailable";
+  font: 600 .72rem/1.4 Arial, sans-serif;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(20, 31, 27, .56);
+}
+
+html[data-intelligence-state="unavailable"] .premium-dial {
+  opacity: .34;
+  filter: grayscale(.45);
+}
+
+html[data-data-status="illustrative"] .live-pulse,
+html[data-data-status="staging"] .live-pulse {
+  animation: none !important;
+}
