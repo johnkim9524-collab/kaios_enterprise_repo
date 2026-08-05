@@ -88,7 +88,7 @@
     }).join('');
   }
 
-  function horizontal(items, valueKey, labelKey, suffix = '%', scale = 'relative') {
+  function horizontal(items, valueKey, labelKey, suffix = '%', scale = 'percent') {
     const values = items.map((item) => Number(item[valueKey]) || 0);
     const relativeMax = Math.max(...values, 1);
     const denominator = scale === 'percent' ? 100 : relativeMax;
@@ -96,9 +96,10 @@
     return items.map((item) => {
       const value = Number(item[valueKey]) || 0;
       const width = clampPercentage((value / denominator) * 100);
+      const scaleLabel = scale === 'percent' ? 'out of 100' : `relative to maximum ${relativeMax}`;
       return `<div class="hbar-row">
         <span>${esc(item[labelKey])}</span>
-        <div role="img" aria-label="${esc(item[labelKey])}: ${value}${suffix}"><i style="width:${width}%"></i></div>
+        <div role="img" aria-label="${esc(item[labelKey])}: ${value}${suffix}, ${scaleLabel}"><i style="width:${width}%"></i></div>
         <strong>${value}${suffix}</strong>
       </div>`;
     }).join('');
@@ -129,16 +130,17 @@
   }
 
   function donut(items) {
-    const total = items.reduce((sum, item) => sum + item.value, 0);
+    const total = items.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
     let offset = 0;
     const colors = ['#82d0b3', '#d8c18c', '#73998b', '#b8a789', '#315f52'];
     const stops = items.map((item, index) => {
+      const value = Number(item.value) || 0;
       const start = offset;
-      offset += (item.value / total) * 100;
+      offset += total > 0 ? (value / total) * 100 : 0;
       return `${colors[index % colors.length]} ${start}% ${offset}%`;
     }).join(',');
 
-    return `<div class="donut" style="background:conic-gradient(${stops})">
+    return `<div class="donut" style="background:conic-gradient(${stops})" role="img" aria-label="Source composition totals ${total}%">
       <div><strong>${total}%</strong><span>covered</span></div>
     </div>
     <div class="legend">${items.map((item, index) => `<span><i style="background:${colors[index % colors.length]}"></i>${esc(item.name)} <b>${item.value}%</b></span>`).join('')}</div>`;
@@ -198,9 +200,9 @@
       $('#trend-chart').innerHTML = lineChart(data.trend);
       $('#category-bars').innerHTML = bars(data.categoriesData);
       $('#signal-mix').innerHTML = evidenceComposition(data.signalMix);
-      $('#confidence-chart').innerHTML = horizontal(data.confidenceDistribution, 'value', 'grade', '', 'relative');
+      $('#confidence-chart').innerHTML = horizontal(data.confidenceDistribution, 'value', 'grade', '%', 'percent');
       $('#source-donut').innerHTML = donut(data.sourceComposition);
-      $('#geography-chart').innerHTML = horizontal(data.geography, 'value', 'region', '', 'relative');
+      $('#geography-chart').innerHTML = horizontal(data.geography, 'value', 'region', '%', 'percent');
       $('#movers-chart').innerHTML = movers(data.movers);
       $('#lifecycle-chart').innerHTML = lifecycle(data.lifecycle);
       $('#correlation-chart').innerHTML = matrix(data.correlation);
