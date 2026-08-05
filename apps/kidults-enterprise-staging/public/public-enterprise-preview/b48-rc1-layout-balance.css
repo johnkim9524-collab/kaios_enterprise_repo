@@ -68,7 +68,6 @@
 }
 
 @media (max-width: 600px) {
-  /* Center the donut within the actual 320px card content box. */
   #source-donut.donut-wrap {
     padding-inline: 0;
   }
@@ -83,46 +82,79 @@
     align-self: stretch;
   }
 
-  /* Use fluid cells instead of a desktop-width matrix that gets clipped. */
+  /* Full 4 x 4 matrix: 42px label column + four 42px data columns. */
+  #correlation-chart {
+    display: flex;
+    justify-content: center;
+  }
+
   #correlation-chart .matrix-grid {
-    display: grid;
-    grid-template-columns: minmax(48px, .78fr) repeat(4, minmax(0, 1fr)) !important;
-    gap: 3px;
-    overflow: visible;
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: 42px repeat(4, 42px) !important;
+    grid-auto-columns: 42px !important;
+    gap: 3px !important;
+    justify-content: center !important;
+    align-items: stretch !important;
+    overflow: visible !important;
+    margin-inline: auto !important;
   }
 
   #correlation-chart .matrix-grid > b {
-    min-width: 0;
-    padding-inline: 1px;
-    font-size: clamp(7px, 2.35vw, 9px);
-    line-height: 1.12;
-    overflow-wrap: anywhere;
-    text-align: center;
+    width: 42px !important;
+    min-width: 0 !important;
+    max-width: 42px !important;
+    padding: 2px !important;
+    box-sizing: border-box !important;
+    font-size: 7px !important;
+    line-height: 1.05 !important;
+    overflow-wrap: anywhere !important;
+    text-align: center !important;
   }
 
   #correlation-chart .matrix-grid > span {
-    min-width: 0;
-    width: auto;
-    aspect-ratio: 1;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    aspect-ratio: auto !important;
+    box-sizing: border-box !important;
+    display: grid !important;
+    place-items: center !important;
   }
 
   #correlation-chart .matrix-grid > span i {
-    font-size: clamp(8px, 2.7vw, 11px);
-    white-space: nowrap;
+    font-size: 8px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
   }
 }
 
 @media (max-width: 340px) {
   #correlation-chart .matrix-grid {
-    grid-template-columns: 44px repeat(4, minmax(0, 1fr)) !important;
-    gap: 2px;
+    grid-template-columns: 38px repeat(4, 38px) !important;
+    grid-auto-columns: 38px !important;
+    gap: 2px !important;
   }
 
   #correlation-chart .matrix-grid > b {
-    font-size: 7px;
+    width: 38px !important;
+    max-width: 38px !important;
+    font-size: 6.5px !important;
+  }
+
+  #correlation-chart .matrix-grid > span {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
   }
 
   #correlation-chart .matrix-grid > span i {
-    font-size: 8px;
+    font-size: 7.5px !important;
   }
 }
