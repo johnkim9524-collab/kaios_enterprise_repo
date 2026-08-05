@@ -70,14 +70,18 @@
     </div>`;
   }
 
+  function loadStylesheet(href, dataKey) {
+    const selector = `link[data-${dataKey}]`;
+    if (document.querySelector(selector)) return;
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = href;
+    stylesheet.setAttribute(`data-${dataKey}`, 'true');
+    document.head.appendChild(stylesheet);
+  }
+
   function loadB32() {
-    if (!document.querySelector('link[data-b32-integrity]')) {
-      const stylesheet = document.createElement('link');
-      stylesheet.rel = 'stylesheet';
-      stylesheet.href = 'b32-visualization-integrity.css';
-      stylesheet.dataset.b32Integrity = 'true';
-      document.head.appendChild(stylesheet);
-    }
+    loadStylesheet('b32-visualization-integrity.css', 'b32-integrity');
     if (!document.querySelector('script[data-b32-integrity]')) {
       const script = document.createElement('script');
       script.src = 'b32-visualization-integrity.js';
@@ -88,13 +92,7 @@
   }
 
   function loadB35() {
-    if (!document.querySelector('link[data-b35-premium-dial]')) {
-      const stylesheet = document.createElement('link');
-      stylesheet.rel = 'stylesheet';
-      stylesheet.href = 'b35-premium-intelligence-dial.css';
-      stylesheet.dataset.b35PremiumDial = 'true';
-      document.head.appendChild(stylesheet);
-    }
+    loadStylesheet('b35-premium-intelligence-dial.css', 'b35-premium-dial');
     if (!document.querySelector('script[data-b35-premium-dial]')) {
       const script = document.createElement('script');
       script.src = 'b35-premium-intelligence-dial.js';
@@ -105,13 +103,18 @@
   }
 
   function loadB36() {
-    if (!document.querySelector('link[data-b36-category-density]')) {
-      const stylesheet = document.createElement('link');
-      stylesheet.rel = 'stylesheet';
-      stylesheet.href = 'b36-category-density.css';
-      stylesheet.dataset.b36CategoryDensity = 'true';
-      document.head.appendChild(stylesheet);
-    }
+    loadStylesheet('b36-category-density.css', 'b36-category-density');
+  }
+
+  function loadB40() {
+    loadStylesheet('b40-mobile-final-tuning.css', 'b40-mobile-final-tuning');
+  }
+
+  function loadEnhancements() {
+    loadB32();
+    loadB35();
+    loadB36();
+    loadB40();
   }
 
   function render() {
@@ -125,15 +128,11 @@
         const geography = document.querySelector('#geography-chart');
         if (confidence) confidence.innerHTML = confidenceDonut(data.confidenceDistribution || []);
         if (geography) geography.innerHTML = geographySemiDonut(data.geography || []);
-        loadB32();
-        loadB35();
-        loadB36();
+        loadEnhancements();
       })
       .catch((error) => {
         console.error('Radial chart enhancement failed', error);
-        loadB32();
-        loadB35();
-        loadB36();
+        loadEnhancements();
       });
   }
 
