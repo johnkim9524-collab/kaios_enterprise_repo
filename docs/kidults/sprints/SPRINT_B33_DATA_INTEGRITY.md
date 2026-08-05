@@ -59,55 +59,38 @@ The asset currently contains:
 
 ### B33-A1 — Asset inventory and ownership — COMPLETE
 
-- Register every intelligence field and consuming component.
-- Assign canonical ownership to `intelligence-data.json` for the current staging phase.
-- Record whether each field is raw, derived, precomputed or presentation metadata.
+- Registered every intelligence field and consuming component.
+- Assigned canonical ownership to `intelligence-data.json` for the current staging phase.
 
 ### B33-A2 — Unified intelligence data contract — COMPLETE
 
-- Add a machine-readable JSON Schema.
-- Define allowed status values:
-  - `illustrative`
-  - `staging`
-  - `validated`
-  - `production`
-- Define numeric ranges, required fields, uniqueness rules and matrix constraints.
+- Added the machine-readable JSON Schema.
+- Defined the allowed status values: `illustrative`, `staging`, `validated`, `production`.
+- Defined required fields, numeric ranges and integrity constraints.
 
-### B33-A3 — Integrity validator — COMPLETE (FIRST CERTIFIED PASS)
+### B33-A3 — Integrity validator — COMPLETE
 
-The validator must fail on:
+- Validator passes the canonical staging asset with governed warnings only.
+- Invalid status, timestamp, totals, duplicate categories, headline/trend mismatches and malformed matrices fail validation.
 
-- missing required fields
-- invalid timestamp
-- unsupported status
-- duplicate category names
-- percentage collections not totaling 100
-- headline/trend current-value mismatch
-- malformed or asymmetric correlation matrix
-- score, confidence, liquidity or percentage values outside allowed ranges
-- non-finite numbers
+### B33-A4 — Single-source UI wiring — COMPLETE
 
-Warnings must be emitted for:
+- Hero Dial, KPI strip, trend, category cards and all visualizations consume the canonical contract.
+- Hard-coded headline values are absent from `index.html`.
+- Automated audit: `scripts/kidults/audit-public-intelligence-wiring.mjs`.
+- Certified result: `[B33-A4] PASS`.
 
-- tracked category count exceeding displayed category rows
-- precomputed 30-day change without a derivation window in the retained trend data
-- staging or illustrative labels exposed in a production build
+### B33-A5 — Data-state UI — IMPLEMENTED / LOCAL CERTIFICATION REQUIRED
 
-### B33-A4 — Single-source UI wiring — IN PROGRESS
+- Governed runtime: `b47-data-state-runtime.js`.
+- Fail-closed presentation rules: `b47-data-state-runtime.css`.
+- Runtime loads before intelligence rendering and validates the canonical response before publication.
+- Controlled labels are derived from `illustrative`, `staging`, `validated` and `production` states.
+- Invalid assets publish `Data temporarily unavailable` and suppress numeric/chart claims.
+- Runtime diagnostics are exposed through `window.KIDULTS_INTELLIGENCE_RUNTIME` and document data attributes.
+- Automated audit: `scripts/kidults/audit-data-state-runtime.mjs`.
 
-- Confirm Hero Dial, KPI strip, trend, category cards and all visualizations consume the same contract.
-- Remove duplicated hard-coded numeric fallbacks where safe.
-- Preserve fail-closed behavior when the asset is unavailable or invalid.
-- Automated audit: `scripts/kidults/audit-public-intelligence-wiring.mjs`
-- The audit checks canonical fetch usage, all public bindings, visualization targets, hard-coded headline values and fail-closed state publication.
-
-### B33-A5 — Data-state UI — NEXT
-
-- Render a controlled state label from the contract.
-- Prevent `validated` or `production` claims unless validation succeeds.
-- Replace invalid values with a governed unavailable state instead of fabricated defaults.
-
-### B33-A6 — Certification
+### B33-A6 — Certification — NEXT
 
 Required gates:
 
@@ -115,6 +98,7 @@ Required gates:
 - integrity rules: 100%
 - deterministic validator output
 - single-source UI wiring audit: pass
+- governed data-state runtime audit: pass
 - desktop regression: pass
 - mobile 320 / 375 / 390 / 430: pass
 - no Portal Base v1 visual drift
