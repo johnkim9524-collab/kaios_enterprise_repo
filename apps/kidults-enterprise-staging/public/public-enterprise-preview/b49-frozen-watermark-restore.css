@@ -21,11 +21,11 @@
   content: "CULTURE";
   position: absolute;
   z-index: 0;
-  top: 11.15rem;
-  left: 24.5%;
-  color: rgba(198, 188, 172, 0.52);
+  top: 11.7rem;
+  left: 27%;
+  color: rgba(198, 188, 172, 0.39);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(7.25rem, 10.6vw, 11.5rem);
+  font-size: clamp(6.55rem, 9.55vw, 10.35rem);
   font-weight: 400;
   letter-spacing: -0.045em;
   line-height: 0.82;
@@ -40,10 +40,10 @@
   .hero::after,
   .page-hero::after,
   .report-hero::after {
-    top: 9.15rem;
-    left: 1.15rem;
-    color: rgba(198, 188, 172, 0.50);
-    font-size: clamp(5.6rem, 27vw, 7.6rem);
+    top: 9.5rem;
+    left: 1.35rem;
+    color: rgba(198, 188, 172, 0.38);
+    font-size: clamp(5.1rem, 24.5vw, 6.85rem);
     letter-spacing: -0.05em;
     line-height: 0.82;
   }
