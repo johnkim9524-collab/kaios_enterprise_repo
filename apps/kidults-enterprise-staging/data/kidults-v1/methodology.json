@@ -1,0 +1,27 @@
+{
+  "version": "v1.0.0",
+  "status": "baseline",
+  "index": {
+    "base": 50,
+    "scale": 50,
+    "weights": {
+      "marketActivity": 0.31,
+      "culturalMomentum": 0.27,
+      "scarcity": 0.22,
+      "canonStrength": 0.20
+    }
+  },
+  "confidence": {
+    "sourceCoverageWeight": 0.45,
+    "freshnessWeight": 0.25,
+    "consistencyWeight": 0.20,
+    "lineageWeight": 0.10
+  },
+  "releaseControls": {
+    "minimumCategories": 4,
+    "minimumObservationsPerCategory": 3,
+    "maximumMissingRatio": 0.05,
+    "requireSourceId": true,
+    "requireObservedAt": true
+  }
+}
