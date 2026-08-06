@@ -13,14 +13,33 @@
     "sentiment": 64.4,
     "canonStrength": 68.6,
     "marketVelocity": 3.66,
-    "activeListings": 128000
+    "activeListings": 128000,
+    "categories": 8
   },
   "trend": [
-    {"period":"May 26","value":57.7},
-    {"period":"Jun 9","value":58.5},
-    {"period":"Jun 23","value":59.3},
-    {"period":"Jul 7","value":60.1},
-    {"period":"Jul 21","value":60.9},
-    {"period":"Aug 5","value":61.7}
+    {
+      "period": "May 26",
+      "value": 57.7
+    },
+    {
+      "period": "Jun 9",
+      "value": 58.5
+    },
+    {
+      "period": "Jun 23",
+      "value": 59.3
+    },
+    {
+      "period": "Jul 7",
+      "value": 60.1
+    },
+    {
+      "period": "Jul 21",
+      "value": 60.9
+    },
+    {
+      "period": "Aug 5",
+      "value": 61.7
+    }
   ]
 }
