@@ -85,15 +85,16 @@
     }
 
     const footer = document.querySelector('footer');
-    if (footer && !footer.classList.contains('kidults-final-footer')) {
-      footer.className = 'kidults-final-footer';
+    if (footer) {
+      footer.className = 'kidults-final-footer kidults-footer-minimal';
       footer.innerHTML = `
-        <div class="footer-brand"><strong>KIDULTS</strong><span>Global Collectibles Intelligence</span></div>
-        <div class="footer-pillar"><strong>Intelligence</strong><a href="intelligence.html">Kidult 100</a><a href="research.html">Research</a><a href="archive.html">Archive</a></div>
-        <div class="footer-pillar"><strong>Evidence</strong><a href="methodology.html">Methodology</a><a href="reports.html">Reports</a></div>
-        <div class="footer-pillar"><strong>Enterprise</strong><a href="api.html">API</a><a href="../provider/">Providers</a></div>
-        <div class="footer-pillar"><strong>Company</strong><a href="company.html">About</a><a href="../provider/partnership.html">Enterprise Access</a></div>
-        <div class="footer-meta">© 2026 KIDULTS<br>Research · Evidence · Decision</div>`;
+        <nav class="footer-primary" aria-label="Footer">
+          <a href="intelligence.html">Intelligence</a>
+          <a href="methodology.html">Evidence</a>
+          <a href="api.html">Enterprise</a>
+          <a href="company.html">Company</a>
+        </nav>
+        <small>© 2026 KIDULTS</small>`;
     }
   }
 
