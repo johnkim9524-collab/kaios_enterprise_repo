@@ -1,0 +1,204 @@
+/* KIDULTS Portal RC1 — final visualization alignment and balance fixes.
+   Scope: mobile radial alignment, complete mobile correlation containment,
+   desktop Source Composition legend placement, and Category / Signal height parity. */
+
+.intelligence-grid {
+  align-items: stretch;
+}
+
+.intelligence-grid > .category-bars,
+.intelligence-grid > .mix-panel {
+  min-width: 0;
+}
+
+.intelligence-grid > .mix-panel {
+  height: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.intelligence-grid > .mix-panel > small {
+  margin-top: auto;
+}
+
+#source-donut.donut-wrap {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  gap: 30px;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+#source-donut .donut {
+  justify-self: center;
+  margin-inline: auto;
+}
+
+#source-donut .legend {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#correlation-chart,
+#correlation-chart .matrix-grid {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#correlation-chart {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .intelligence-grid > .mix-panel {
+    height: auto;
+    min-height: 0;
+  }
+
+  #source-donut.donut-wrap {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 20px;
+  }
+
+  #source-donut .legend {
+    justify-self: stretch;
+  }
+}
+
+@media (max-width: 600px) {
+  #confidence-chart .radial-donut,
+  #source-donut .donut {
+    width: 160px !important;
+  }
+
+  #geography-chart .semi-wrap {
+    width: 160px !important;
+    height: 108px !important;
+    justify-self: center;
+    align-self: auto;
+  }
+
+  #geography-chart .semi-donut {
+    width: 160px !important;
+    bottom: -54px !important;
+  }
+
+  #geography-chart .semi-cutout {
+    inset: 36px !important;
+  }
+
+  #geography-chart .semi-center {
+    min-width: 130px;
+    bottom: 2px;
+  }
+
+  #geography-chart .semi-center strong {
+    font-size: 29px;
+  }
+
+  #source-donut.donut-wrap {
+    padding-inline: 0;
+  }
+
+  #source-donut .donut {
+    justify-self: center;
+    align-self: center;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #source-donut .legend {
+    justify-self: stretch;
+    align-self: stretch;
+  }
+
+  /* Hard reset every inherited desktop matrix rule before rebuilding the mobile grid. */
+  #correlation-chart {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    overflow: hidden !important;
+  }
+
+  #correlation-chart .matrix-grid {
+    --mobile-label: 50px;
+    --mobile-cell: 40px;
+    display: grid !important;
+    grid-auto-flow: row !important;
+    grid-template-columns: var(--mobile-label) repeat(4, var(--mobile-cell)) !important;
+    grid-auto-columns: var(--mobile-cell) !important;
+    width: calc(var(--mobile-label) + (4 * var(--mobile-cell)) + 8px) !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    justify-content: start !important;
+    align-content: start !important;
+    align-items: stretch !important;
+    gap: 2px !important;
+    transform: none !important;
+    overflow: visible !important;
+  }
+
+  #correlation-chart .matrix-grid > b {
+    display: grid !important;
+    place-items: center !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 1px !important;
+    font-size: 6px !important;
+    line-height: 1.05 !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+
+  #correlation-chart .matrix-grid > span {
+    display: grid !important;
+    place-items: center !important;
+    width: var(--mobile-cell) !important;
+    min-width: var(--mobile-cell) !important;
+    max-width: var(--mobile-cell) !important;
+    height: var(--mobile-cell) !important;
+    min-height: var(--mobile-cell) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    aspect-ratio: auto !important;
+    transform: none !important;
+  }
+
+  #correlation-chart .matrix-grid > span i {
+    font-size: 7.5px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 340px) {
+  #correlation-chart .matrix-grid {
+    --mobile-label: 48px;
+    --mobile-cell: 38px;
+  }
+
+  #correlation-chart .matrix-grid > b {
+    font-size: 5.8px !important;
+  }
+
+  #correlation-chart .matrix-grid > span i {
+    font-size: 7px !important;
+  }
+}

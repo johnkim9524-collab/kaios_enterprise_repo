@@ -1,0 +1,108 @@
+/* KIDULTS Mobile Final Tuning — 320px+ */
+@media (max-width: 600px) {
+  html, body, main, section, article, .shell, .section, .viz-grid, .viz-card,
+  .category-bars, .category-row, .category-copy, .dark, .dark-grid,
+  .metrics, .grid, .grid.four, .company {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Category Intelligence: prevent score wrapping and preserve hierarchy. */
+  .category-row {
+    grid-template-columns: 26px minmax(0, 1fr) !important;
+    gap: 10px !important;
+    padding: 14px 12px !important;
+  }
+  .category-copy { min-width: 0 !important; }
+  .category-copy > div:first-child {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 10px !important;
+    align-items: start !important;
+  }
+  .category-copy > div:first-child span {
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+    line-height: 1.35 !important;
+  }
+  .category-copy > div:first-child strong {
+    font-size: 26px !important;
+    line-height: 1 !important;
+    letter-spacing: -.02em !important;
+    white-space: nowrap !important;
+  }
+  .category-row .rank {
+    font-size: 16px !important;
+    line-height: 1 !important;
+  }
+  .category-meta {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 5px 10px !important;
+    font-size: 10px !important;
+  }
+
+  /* Correlation matrix: fit inside the card; no page-level side burst. */
+  .correlation-chart {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+  .matrix-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    grid-template-columns: 54px repeat(4, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+  }
+  .matrix-grid > b {
+    min-width: 0 !important;
+    padding: 4px 2px !important;
+    font-size: 8px !important;
+    line-height: 1.15 !important;
+    overflow-wrap: anywhere !important;
+  }
+  .matrix-grid > span:not(:first-child) {
+    min-width: 0 !important;
+    min-height: 54px !important;
+  }
+  .matrix-grid i { font-size: 10px !important; }
+
+  /* Dark governed-system block: shrink display type and remove overflow. */
+  .dark {
+    overflow: hidden !important;
+    padding: 26px 16px !important;
+  }
+  .dark > div, .dark-grid, .dark-grid article { min-width: 0 !important; }
+  .dark h2 {
+    font-size: clamp(2.2rem, 12vw, 3rem) !important;
+    line-height: .98 !important;
+    letter-spacing: -.03em !important;
+    overflow-wrap: anywhere !important;
+  }
+  .dark-grid h3 {
+    font-size: 24px !important;
+    overflow-wrap: anywhere !important;
+  }
+  .dark-grid article { padding: 18px !important; }
+
+  /* KPI strip: reduce number size for balanced 320px presentation. */
+  .metrics div { padding: 18px 16px !important; }
+  .metrics strong {
+    font-size: 34px !important;
+    line-height: 1 !important;
+    letter-spacing: -.02em !important;
+    white-space: nowrap !important;
+  }
+  .metrics span {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .section, .page-hero { padding-left: 16px !important; padding-right: 16px !important; }
+  .viz-card { padding: 16px !important; }
+  .viz-title h3 { font-size: 30px !important; }
+  .category-copy > div:first-child strong { font-size: 24px !important; }
+  .metrics strong { font-size: 32px !important; }
+}

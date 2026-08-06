@@ -1,0 +1,50 @@
+/* KIDULTS Portal Base v1 — approved CULTURE watermark restoration only.
+   Frozen scope: do not modify layout, typography, charts, cards, spacing, or responsive rules here. */
+.hero,
+.page-hero,
+.report-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+}
+
+.hero > *,
+.page-hero > *,
+.report-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero::after,
+.page-hero::after,
+.report-hero::after {
+  content: "CULTURE";
+  position: absolute;
+  z-index: 0;
+  top: 11.9rem;
+  left: 28%;
+  color: rgba(198, 188, 172, 0.24);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(5.9rem, 8.7vw, 9.4rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 0.82;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  text-shadow: none;
+  filter: none;
+}
+
+@media (max-width: 720px) {
+  .hero::after,
+  .page-hero::after,
+  .report-hero::after {
+    top: 9.65rem;
+    left: 1.55rem;
+    color: rgba(198, 188, 172, 0.23);
+    font-size: clamp(4.65rem, 22vw, 6.15rem);
+    letter-spacing: -0.05em;
+    line-height: 0.82;
+  }
+}

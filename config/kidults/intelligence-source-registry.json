@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0",
+  "status": "staging",
+  "sources": [
+    {
+      "id": "fixture-marketplace-primary",
+      "name": "Fixture Marketplace Primary",
+      "family": "marketplace",
+      "adapter": "fixture-json",
+      "enabled": true,
+      "cadence": "daily",
+      "attributionRequired": true,
+      "licenseStatus": "internal-fixture-only",
+      "trustTier": "B",
+      "categories": ["Character Goods", "Trading Cards", "Art Toys", "Luxury Collectibles", "Watches", "Sneakers", "Designer Fashion", "Automotive Icons"]
+    },
+    {
+      "id": "fixture-auction-primary",
+      "name": "Fixture Auction Primary",
+      "family": "auction",
+      "adapter": "fixture-json",
+      "enabled": true,
+      "cadence": "daily",
+      "attributionRequired": true,
+      "licenseStatus": "internal-fixture-only",
+      "trustTier": "A",
+      "categories": ["Trading Cards", "Art Toys", "Luxury Collectibles", "Watches", "Automotive Icons"]
+    },
+    {
+      "id": "fixture-cultural-signals",
+      "name": "Fixture Cultural Signals",
+      "family": "cultural-signal",
+      "adapter": "fixture-json",
+      "enabled": true,
+      "cadence": "daily",
+      "attributionRequired": true,
+      "licenseStatus": "internal-fixture-only",
+      "trustTier": "B",
+      "categories": ["Character Goods", "Trading Cards", "Art Toys", "Sneakers", "Designer Fashion"]
+    }
+  ]
+}

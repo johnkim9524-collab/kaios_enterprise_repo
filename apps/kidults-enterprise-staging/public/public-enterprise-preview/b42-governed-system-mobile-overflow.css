@@ -1,0 +1,140 @@
+/* KIDULTS B42 — final responsive and visual corrections. */
+@media (max-width: 600px) {
+  .dark.shell {
+    width: auto !important;
+    max-width: calc(100% - 36px) !important;
+    margin-left: 18px !important;
+    margin-right: 18px !important;
+    padding: 24px 16px !important;
+    overflow: hidden !important;
+  }
+
+  .dark.shell > div,
+  .dark.shell .dark-grid,
+  .dark.shell .dark-grid article {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .dark.shell h2 {
+    max-width: 100% !important;
+    font-size: clamp(2rem, 10.5vw, 2.65rem) !important;
+    line-height: 1 !important;
+    letter-spacing: -.028em !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    hyphens: none !important;
+  }
+
+  .dark.shell .dark-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .dark.shell .dark-grid article {
+    padding: 17px 16px !important;
+    overflow: hidden !important;
+  }
+
+  .dark.shell .dark-grid h3,
+  .dark.shell .dark-grid p,
+  .dark.shell .dark-grid a {
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+
+  /* Add breathing room between the Signal Composition legend and its note. */
+  .mix-panel #signal-mix {
+    margin-bottom: 16px !important;
+  }
+
+  .mix-panel > small {
+    display: block !important;
+    margin-top: 0 !important;
+    padding-top: 2px !important;
+    line-height: 1.65 !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .dark.shell {
+    max-width: calc(100% - 32px) !important;
+    margin-left: 16px !important;
+    margin-right: 16px !important;
+    padding: 22px 14px !important;
+  }
+
+  .dark.shell h2 {
+    font-size: clamp(1.9rem, 10vw, 2.35rem) !important;
+  }
+
+  .mix-panel #signal-mix {
+    margin-bottom: 14px !important;
+  }
+}
+
+/* Final Hero watermark alignment.
+   The watermark is positioned behind and slightly left of the live CULTURE
+   line so both read as one layered editorial expression. */
+@media (min-width: 761px) {
+  .hero {
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  .hero::after {
+    content: "CULTURE" !important;
+    position: absolute !important;
+    left: 18% !important;
+    top: 205px !important;
+    z-index: 0 !important;
+    font-family: var(--serif) !important;
+    font-size: clamp(6rem, 9vw, 9.4rem) !important;
+    font-weight: 400 !important;
+    line-height: 1 !important;
+    letter-spacing: -.045em !important;
+    color: rgba(198, 188, 172, .18) !important;
+    pointer-events: none !important;
+    white-space: nowrap !important;
+  }
+
+  .hero > div,
+  .hero > aside {
+    position: relative !important;
+    z-index: 1 !important;
+  }
+}
+
+/* Trend summary terminology: display the actual retained observation count. */
+.trend-summary-strip > span:last-child b {
+  font-size: 0 !important;
+}
+
+.trend-summary-strip > span:last-child b::after {
+  content: "7";
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.trend-summary-strip > span:last-child small {
+  font-size: 0 !important;
+}
+
+.trend-summary-strip > span:last-child small::after {
+  content: "OBSERVATIONS";
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+
+@media (max-width: 600px) {
+  .trend-summary-strip > span:last-child b::after {
+    font-size: 19px;
+  }
+}
