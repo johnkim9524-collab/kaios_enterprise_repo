@@ -1,5 +1,4 @@
-/* KIDULTS B42 — ONE GOVERNED SYSTEM mobile-only overflow correction.
-   Scope is intentionally limited to the dark governed-system section. */
+/* KIDULTS B42 — final responsive and visual corrections. */
 @media (max-width: 600px) {
   .dark.shell {
     width: auto !important;
@@ -45,6 +44,18 @@
     overflow-wrap: break-word !important;
     word-break: normal !important;
   }
+
+  /* Add breathing room between the Signal Composition legend and its note. */
+  .mix-panel #signal-mix {
+    margin-bottom: 16px !important;
+  }
+
+  .mix-panel > small {
+    display: block !important;
+    margin-top: 0 !important;
+    padding-top: 2px !important;
+    line-height: 1.65 !important;
+  }
 }
 
 @media (max-width: 360px) {
@@ -57,5 +68,73 @@
 
   .dark.shell h2 {
     font-size: clamp(1.9rem, 10vw, 2.35rem) !important;
+  }
+
+  .mix-panel #signal-mix {
+    margin-bottom: 14px !important;
+  }
+}
+
+/* Final Hero watermark alignment.
+   The watermark is positioned behind and slightly left of the live CULTURE
+   line so both read as one layered editorial expression. */
+@media (min-width: 761px) {
+  .hero {
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  .hero::after {
+    content: "CULTURE" !important;
+    position: absolute !important;
+    left: 18% !important;
+    top: 205px !important;
+    z-index: 0 !important;
+    font-family: var(--serif) !important;
+    font-size: clamp(6rem, 9vw, 9.4rem) !important;
+    font-weight: 400 !important;
+    line-height: 1 !important;
+    letter-spacing: -.045em !important;
+    color: rgba(198, 188, 172, .18) !important;
+    pointer-events: none !important;
+    white-space: nowrap !important;
+  }
+
+  .hero > div,
+  .hero > aside {
+    position: relative !important;
+    z-index: 1 !important;
+  }
+}
+
+/* Trend summary terminology: display the actual retained observation count. */
+.trend-summary-strip > span:last-child b {
+  font-size: 0 !important;
+}
+
+.trend-summary-strip > span:last-child b::after {
+  content: "7";
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.trend-summary-strip > span:last-child small {
+  font-size: 0 !important;
+}
+
+.trend-summary-strip > span:last-child small::after {
+  content: "OBSERVATIONS";
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+
+@media (max-width: 600px) {
+  .trend-summary-strip > span:last-child b::after {
+    font-size: 19px;
   }
 }
