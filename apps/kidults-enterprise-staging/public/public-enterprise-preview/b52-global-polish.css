@@ -197,8 +197,13 @@ footer.kidults-footer-minimal {
   text-underline-offset: 5px;
 }
 .kidults-footer-minimal small {
-  color: var(--muted);
-  font-size: 11px;
+  color: #a67b36;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: .16em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
