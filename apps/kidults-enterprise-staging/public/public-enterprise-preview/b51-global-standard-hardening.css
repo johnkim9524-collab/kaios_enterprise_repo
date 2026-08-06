@@ -1,0 +1,25 @@
+/* Non-invasive global-standard hardening layer.
+   Adds interpretation and staging disclosure only; frozen layout remains unchanged. */
+.radial-data-note,
+.geography-interpretation {
+  margin: 1.1rem 0 0;
+  padding-top: .9rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.55;
+  letter-spacing: .01em;
+}
+
+#signal-mix .composition-detail {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .radial-data-note,
+  .geography-interpretation {
+    margin-top: .9rem;
+    padding-top: .75rem;
+    font-size: .68rem;
+  }
+}
