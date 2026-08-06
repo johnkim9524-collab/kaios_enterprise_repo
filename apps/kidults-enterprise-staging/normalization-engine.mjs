@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const DEFAULT_CATEGORY = 'Other Collectibles';
 const CATEGORY_RULES = [
@@ -147,7 +148,11 @@ export function runNormalizationCli(argv = process.argv.slice(2), env = process.
   return { ready: true, output, counts: snapshot.counts };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+function isMainModule() {
+  return Boolean(process.argv[1]) && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+}
+
+if (isMainModule()) {
   try {
     console.log(JSON.stringify(runNormalizationCli()));
   } catch (error) {
