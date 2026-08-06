@@ -1,4 +1,4 @@
-/* KIDULTS Portal Base v1 — frozen watermark restoration only.
+/* KIDULTS Portal Base v1 — frozen CULTURE watermark restoration only.
    Do not modify layout, typography, charts, cards, spacing, or responsive rules here. */
 .hero,
 .page-hero,
@@ -18,16 +18,18 @@
 .hero::after,
 .page-hero::after,
 .report-hero::after {
-  content: "K";
+  content: "CULTURE";
   position: absolute;
   z-index: 0;
-  top: 4rem;
-  right: var(--gutter, 4vw);
-  color: rgba(173, 132, 70, 0.055);
+  top: 9.5rem;
+  left: 20%;
+  color: rgba(173, 132, 70, 0.045);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(18rem, 30vw, 34rem);
+  font-size: clamp(10rem, 20vw, 22rem);
   font-weight: 400;
+  letter-spacing: -0.045em;
   line-height: 0.78;
+  white-space: nowrap;
   pointer-events: none;
   user-select: none;
 }
@@ -36,10 +38,11 @@
   .hero::after,
   .page-hero::after,
   .report-hero::after {
-    top: 3rem;
-    right: -3.2rem;
-    color: rgba(173, 132, 70, 0.065);
-    font-size: clamp(15rem, 82vw, 19rem);
-    line-height: 0.78;
+    top: 9rem;
+    left: 1.1rem;
+    color: rgba(173, 132, 70, 0.055);
+    font-size: clamp(6.5rem, 34vw, 9.5rem);
+    letter-spacing: -0.05em;
+    line-height: 0.8;
   }
 }
