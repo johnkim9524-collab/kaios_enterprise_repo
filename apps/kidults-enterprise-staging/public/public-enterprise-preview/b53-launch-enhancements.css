@@ -1,0 +1,103 @@
+/* KIDULTS Public Enterprise v1.1 — launch enhancements.
+   Built on top of the frozen v1.0 release branch.
+   Scope: hierarchy, interaction affordance and footer utility only. */
+
+@media (min-width: 961px) {
+  .hero > div:first-child {
+    transform: translateY(-18px);
+  }
+}
+
+.metrics > div:first-child {
+  background: rgba(5, 79, 63, 0.025);
+}
+
+.metrics > div:first-child strong {
+  font-size: 44px;
+}
+
+.category-bars > *:first-child {
+  position: relative;
+  box-shadow: inset 3px 0 0 var(--forest, #075241);
+}
+
+.category-bars > *:first-child::after {
+  content: "LEAD SIGNAL";
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  color: var(--forest, #075241);
+}
+
+.trend-chart svg circle,
+.trend-chart svg [data-point] {
+  transition: transform .18s ease, filter .18s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.trend-chart svg circle:hover,
+.trend-chart svg circle:focus,
+.trend-chart svg [data-point]:hover,
+.trend-chart svg [data-point]:focus {
+  transform: scale(1.18);
+  filter: drop-shadow(0 2px 3px rgba(4, 64, 51, .22));
+}
+
+footer {
+  align-items: center;
+}
+
+.footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+}
+
+.footer-nav a {
+  color: inherit;
+  text-decoration: none;
+  transition: color .18s ease;
+}
+
+.footer-nav a:hover,
+.footer-nav a:focus-visible {
+  color: var(--forest, #075241);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+@media (max-width: 960px) {
+  .category-bars > *:first-child::after {
+    top: 14px;
+    right: 14px;
+  }
+}
+
+@media (max-width: 760px) {
+  .metrics > div:first-child strong {
+    font-size: 34px;
+  }
+
+  .category-bars > *:first-child::after {
+    content: "LEAD";
+    font-size: 8px;
+  }
+
+  .footer-nav {
+    justify-content: flex-start;
+    gap: 10px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trend-chart svg circle,
+  .trend-chart svg [data-point],
+  .footer-nav a {
+    transition: none;
+  }
+}
