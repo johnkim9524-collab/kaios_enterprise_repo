@@ -1,0 +1,275 @@
+{
+  "status": "staging",
+  "label": "B35 generated staging data",
+  "updated": "2026-08-06T00:13:48.863Z",
+  "methodologyVersion": "v1.4-b35",
+  "headline": {
+    "kidult100": 61.7,
+    "change30d": 2.1,
+    "confidence": 58.1,
+    "coverageBrands": 500,
+    "sourceFamilies": 42,
+    "categories": 8,
+    "sentiment": 64.4,
+    "canonStrength": 68.6,
+    "marketVelocity": 3.66,
+    "activeListings": 128000
+  },
+  "trend": [
+    {
+      "period": "May 26",
+      "value": 57.7
+    },
+    {
+      "period": "Jun 9",
+      "value": 58.5
+    },
+    {
+      "period": "Jun 23",
+      "value": 59.3
+    },
+    {
+      "period": "Jul 7",
+      "value": 60.1
+    },
+    {
+      "period": "Jul 21",
+      "value": 60.9
+    },
+    {
+      "period": "Aug 5",
+      "value": 61.7
+    }
+  ],
+  "categoriesData": [
+    {
+      "name": "Character Goods",
+      "score": 77.4,
+      "confidence": 57.9,
+      "state": "Accelerating",
+      "velocity": 4.76,
+      "liquidity": 86
+    },
+    {
+      "name": "Trading Cards",
+      "score": 74,
+      "confidence": 64.9,
+      "state": "Emerging",
+      "velocity": 4.04,
+      "liquidity": 91
+    },
+    {
+      "name": "Art Toys",
+      "score": 68.9,
+      "confidence": 63.3,
+      "state": "Stable",
+      "velocity": 3.74,
+      "liquidity": 72
+    },
+    {
+      "name": "Luxury Collectibles",
+      "score": 62.7,
+      "confidence": 62.6,
+      "state": "Monitor",
+      "velocity": 2.9,
+      "liquidity": 64
+    },
+    {
+      "name": "Watches",
+      "score": 62.7,
+      "confidence": 64.2,
+      "state": "Stable",
+      "velocity": 3.1,
+      "liquidity": 69
+    },
+    {
+      "name": "Sneakers",
+      "score": 57.9,
+      "confidence": 47.1,
+      "state": "Stable",
+      "velocity": 3.4,
+      "liquidity": 77
+    },
+    {
+      "name": "Automotive Icons",
+      "score": 57.1,
+      "confidence": 58.5,
+      "state": "Emerging",
+      "velocity": 4.39,
+      "liquidity": 51
+    },
+    {
+      "name": "Designer Fashion",
+      "score": 54.7,
+      "confidence": 46.5,
+      "state": "Monitor",
+      "velocity": 2.92,
+      "liquidity": 62
+    }
+  ],
+  "signalMix": [
+    {
+      "name": "Market activity",
+      "value": 32
+    },
+    {
+      "name": "Cultural momentum",
+      "value": 24
+    },
+    {
+      "name": "Scarcity",
+      "value": 21
+    },
+    {
+      "name": "Canon strength",
+      "value": 23
+    }
+  ],
+  "confidenceDistribution": [
+    {
+      "grade": "A",
+      "value": 0
+    },
+    {
+      "grade": "B",
+      "value": 0
+    },
+    {
+      "grade": "C",
+      "value": 75
+    },
+    {
+      "grade": "D",
+      "value": 25
+    }
+  ],
+  "sourceComposition": [
+    {
+      "name": "Marketplaces",
+      "value": 29
+    },
+    {
+      "name": "Auctions",
+      "value": 24
+    },
+    {
+      "name": "Brands",
+      "value": 18
+    },
+    {
+      "name": "Editorial",
+      "value": 16
+    },
+    {
+      "name": "Cultural signals",
+      "value": 13
+    }
+  ],
+  "geography": [
+    {
+      "region": "North America",
+      "value": 34
+    },
+    {
+      "region": "Europe",
+      "value": 24
+    },
+    {
+      "region": "East Asia",
+      "value": 22
+    },
+    {
+      "region": "Southeast Asia",
+      "value": 11
+    },
+    {
+      "region": "Other",
+      "value": 9
+    }
+  ],
+  "movers": [
+    {
+      "name": "Character Goods",
+      "change": 1.1
+    },
+    {
+      "name": "Automotive Icons",
+      "change": 0.7
+    },
+    {
+      "name": "Trading Cards",
+      "change": 0.4
+    },
+    {
+      "name": "Art Toys",
+      "change": 0.1
+    },
+    {
+      "name": "Sneakers",
+      "change": -0.3
+    }
+  ],
+  "lifecycle": [
+    {
+      "name": "Character Goods",
+      "stage": "Growth",
+      "score": 77
+    },
+    {
+      "name": "Trading Cards",
+      "stage": "Growth",
+      "score": 74
+    },
+    {
+      "name": "Art Toys",
+      "stage": "Emerging",
+      "score": 69
+    },
+    {
+      "name": "Luxury Collectibles",
+      "stage": "Emerging",
+      "score": 63
+    }
+  ],
+  "correlation": {
+    "labels": [
+      "Character",
+      "Cards",
+      "Art Toys",
+      "Luxury"
+    ],
+    "values": [
+      [
+        1,
+        0.82,
+        0.77,
+        0.68
+      ],
+      [
+        0.82,
+        1,
+        0.82,
+        0.74
+      ],
+      [
+        0.77,
+        0.82,
+        1,
+        0.79
+      ],
+      [
+        0.68,
+        0.74,
+        0.79,
+        1
+      ]
+    ]
+  },
+  "governance": {
+    "engineVersion": "B35",
+    "generatedFrom": "artifacts/kidults/b34/scored-intelligence.json",
+    "deterministic": true,
+    "productionEligible": false,
+    "manualApprovalRequired": true
+  }
+}
