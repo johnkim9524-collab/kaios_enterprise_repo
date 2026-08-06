@@ -21,6 +21,45 @@
   padding-block: 13px !important;
 }
 
+/* LIVE INTELLIGENCE: match the frozen 1px divider system and restore a restrained pulse. */
+.data-note {
+  border-top-width: 1px !important;
+  border-top-style: solid !important;
+  border-top-color: rgba(44, 53, 48, 0.16) !important;
+}
+
+.live-pulse {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: #7fd0b4;
+  box-shadow: 0 0 0 5px rgba(127, 208, 180, 0.16);
+}
+
+.live-pulse::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 1px solid rgba(127, 208, 180, 0.42);
+  border-radius: 50%;
+  animation: kidults-live-pulse 2.2s ease-out infinite;
+}
+
+@keyframes kidults-live-pulse {
+  0% {
+    transform: scale(0.72);
+    opacity: 0.72;
+  }
+  70%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
 .signal-donut-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -90,33 +129,39 @@
   color: rgba(255,255,255,.62);
 }
 
+/* Desktop: keep all four signal indices in one horizontal row. */
 .signal-donut-legend {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
 }
 
 .signal-donut-legend span {
   display: grid;
-  grid-template-columns: 10px minmax(0,1fr) 34px;
-  gap: 8px;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  gap: 6px;
   align-items: center;
-  font-size: 12px;
+  min-width: 0;
+  font-size: 10px;
+  line-height: 1.25;
 }
 
 .signal-donut-legend i {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 .signal-donut-legend b {
+  min-width: 0;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .signal-donut-legend strong {
-  width: 34px;
-  font-size: 12px;
+  font-size: 10px;
   text-align: right;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
@@ -145,6 +190,27 @@
   background: rgba(255,255,255,.025);
 }
 
+@media (max-width: 1180px) and (min-width: 761px) {
+  .signal-donut-legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 18px;
+  }
+
+  .signal-donut-legend span {
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+    font-size: 12px;
+  }
+
+  .signal-donut-legend i {
+    width: 10px;
+    height: 10px;
+  }
+
+  .signal-donut-legend strong {
+    font-size: 12px;
+  }
+}
+
 @media (max-width: 760px) {
   .hero::after,
   .page-hero::after,
@@ -166,27 +232,49 @@
 
   .signal-donut-legend {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .signal-donut-legend span {
     grid-template-columns: 10px minmax(0,1fr) 38px;
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .signal-donut-legend i {
+    width: 10px;
+    height: 10px;
+  }
+
+  .signal-donut-legend b {
+    white-space: normal;
+  }
+
+  .signal-donut-legend strong {
+    width: 38px;
+    font-size: 12px;
   }
 
   .mix-panel > small {
     display: block;
-    margin-top: 16px !important;
+    margin-top: 18px !important;
     line-height: 1.55;
   }
 }
 
 @media (max-width: 360px) {
   .mix-panel > small {
-    margin-top: 14px !important;
+    margin-top: 16px !important;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dark-grid article {
     transition: none;
+  }
+
+  .live-pulse::after {
+    animation: none;
+    opacity: 0;
   }
 }
