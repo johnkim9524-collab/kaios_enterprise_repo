@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.1.0",
+  "edition": "2026-08",
+  "signalMix": [
+    {"name":"Market activity","value":32},
+    {"name":"Cultural momentum","value":24},
+    {"name":"Scarcity","value":21},
+    {"name":"Canon strength","value":23}
+  ],
+  "confidenceDistribution": [
+    {"grade":"A","value":0},
+    {"grade":"B","value":0},
+    {"grade":"C","value":75},
+    {"grade":"D","value":25}
+  ],
+  "sourceComposition": [
+    {"name":"Marketplaces","value":29},
+    {"name":"Auctions","value":24},
+    {"name":"Brands","value":18},
+    {"name":"Editorial","value":16},
+    {"name":"Cultural signals","value":13}
+  ],
+  "geography": [
+    {"region":"North America","value":34},
+    {"region":"Europe","value":24},
+    {"region":"East Asia","value":22},
+    {"region":"Southeast Asia","value":11},
+    {"region":"Other","value":9}
+  ],
+  "movers": [
+    {"name":"Character Goods","change":1.1},
+    {"name":"Automotive Icons","change":0.7},
+    {"name":"Trading Cards","change":0.4},
+    {"name":"Art Toys","change":0.1},
+    {"name":"Sneakers","change":-0.3}
+  ],
+  "lifecycle": [
+    {"name":"Character Goods","stage":"Growth","score":77.4},
+    {"name":"Trading Cards","stage":"Growth","score":74.0},
+    {"name":"Art Toys","stage":"Emerging","score":68.9},
+    {"name":"Luxury Collectibles","stage":"Emerging","score":62.7}
+  ],
+  "correlation": {
+    "labels":["Character","Cards","Art Toys","Luxury"],
+    "values":[[1,0.82,0.77,0.68],[0.82,1,0.82,0.74],[0.77,0.82,1,0.79],[0.68,0.74,0.79,1]]
+  }
+}
