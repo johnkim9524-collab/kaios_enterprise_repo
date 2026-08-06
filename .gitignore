@@ -53,3 +53,11 @@ data/*.db-shm
 data/*.db-wal
 data/*.sqlite
 data/*.sqlite3
+
+# Kidults local backups and generated artifacts
+apps/kidults-enterprise-staging/public/a13-b10-*/
+apps/kidults-enterprise-staging/public/a13-b11*/
+apps/kidults-enterprise-staging/public/a13-b12*/
+apps/kidults-enterprise-staging/public/a13-b13/
+apps/kidults-enterprise-staging/public/a13-b14/
+artifacts/kidults/

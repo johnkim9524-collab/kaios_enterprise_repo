@@ -1,7 +1,7 @@
 {
-  "status": "illustrative",
-  "label": "Illustrative staging data",
-  "updated": "2026-08-06T14:45:00+09:00",
+  "status": "staging",
+  "label": "B35 generated staging data",
+  "updated": "2026-08-06T00:13:48.863Z",
   "methodologyVersion": "v1.4-b35",
   "headline": {
     "kidult100": 61.7,
@@ -9,11 +9,11 @@
     "confidence": 58.1,
     "coverageBrands": 500,
     "sourceFamilies": 42,
+    "categories": 8,
     "sentiment": 64.4,
     "canonStrength": 68.6,
     "marketVelocity": 3.66,
-    "activeListings": 128000,
-    "categories": 8
+    "activeListings": 128000
   },
   "trend": [
     {
@@ -43,88 +43,70 @@
   ],
   "categoriesData": [
     {
-      "id": "character-goods",
       "name": "Character Goods",
       "score": 77.4,
       "confidence": 57.9,
-      "velocity": 4.8,
-      "liquidity": 86,
       "state": "Accelerating",
-      "leadSignal": true
+      "velocity": 4.76,
+      "liquidity": 86
     },
     {
-      "id": "trading-cards",
       "name": "Trading Cards",
       "score": 74,
       "confidence": 64.9,
-      "velocity": 4,
-      "liquidity": 91,
       "state": "Emerging",
-      "leadSignal": false
+      "velocity": 4.04,
+      "liquidity": 91
     },
     {
-      "id": "art-toys",
       "name": "Art Toys",
       "score": 68.9,
       "confidence": 63.3,
-      "velocity": 3.7,
-      "liquidity": 72,
       "state": "Stable",
-      "leadSignal": false
+      "velocity": 3.74,
+      "liquidity": 72
     },
     {
-      "id": "luxury-collectibles",
       "name": "Luxury Collectibles",
       "score": 62.7,
       "confidence": 62.6,
-      "velocity": 2.9,
-      "liquidity": 64,
       "state": "Monitor",
-      "leadSignal": false
+      "velocity": 2.9,
+      "liquidity": 64
     },
     {
-      "id": "watches",
       "name": "Watches",
       "score": 62.7,
       "confidence": 64.2,
-      "velocity": 3.1,
-      "liquidity": 69,
       "state": "Stable",
-      "leadSignal": false
+      "velocity": 3.1,
+      "liquidity": 69
     },
     {
-      "id": "sneakers",
       "name": "Sneakers",
       "score": 57.9,
       "confidence": 47.1,
-      "velocity": 3.4,
-      "liquidity": 77,
       "state": "Stable",
-      "leadSignal": false
+      "velocity": 3.4,
+      "liquidity": 77
     },
     {
-      "id": "automotive-icons",
       "name": "Automotive Icons",
       "score": 57.1,
       "confidence": 58.5,
-      "velocity": 4.4,
-      "liquidity": 51,
       "state": "Emerging",
-      "leadSignal": false
+      "velocity": 4.39,
+      "liquidity": 51
     },
     {
-      "id": "designer-fashion",
       "name": "Designer Fashion",
       "score": 54.7,
       "confidence": 46.5,
-      "velocity": 2.9,
-      "liquidity": 62,
       "state": "Monitor",
-      "leadSignal": false
+      "velocity": 2.92,
+      "liquidity": 62
     }
   ],
-  "schemaVersion": "1.1.0",
-  "edition": "2026-08",
   "signalMix": [
     {
       "name": "Market activity",
@@ -231,7 +213,7 @@
     {
       "name": "Character Goods",
       "stage": "Growth",
-      "score": 77.4
+      "score": 77
     },
     {
       "name": "Trading Cards",
@@ -241,12 +223,12 @@
     {
       "name": "Art Toys",
       "stage": "Emerging",
-      "score": 68.9
+      "score": 69
     },
     {
       "name": "Luxury Collectibles",
       "stage": "Emerging",
-      "score": 62.7
+      "score": 63
     }
   ],
   "correlation": {
@@ -282,5 +264,12 @@
         1
       ]
     ]
+  },
+  "governance": {
+    "engineVersion": "B35",
+    "generatedFrom": "artifacts/kidults/b34/scored-intelligence.json",
+    "deterministic": true,
+    "productionEligible": false,
+    "manualApprovalRequired": true
   }
 }

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.1.0",
+  "editions": [
+    {
+      "id": "2026-08",
+      "label": "August 2026",
+      "status": "illustrative",
+      "publishedAt": "2026-08-06T14:45:00+09:00",
+      "headline": 61.7,
+      "methodologyVersion": "v1.4-b35",
+      "path": "2026-08.json"
+    }
+  ]
+}
