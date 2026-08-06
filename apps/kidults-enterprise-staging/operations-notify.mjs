@@ -7,6 +7,7 @@ import {
   writeFileSync
 } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { notifierFromEnvironment } from "./notification.mjs";
 
 const DEFAULT_INTERVAL_MS = 30000;
@@ -129,7 +130,12 @@ async function runWatch(config, intervalMs) {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+function isMainModule() {
+  if (!process.argv[1]) return false;
+  return import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+}
+
+if (isMainModule()) {
   if (process.env.KAIOS_ENVIRONMENT !== "staging") {
     throw new Error("KAIOS_ENVIRONMENT must be staging");
   }
