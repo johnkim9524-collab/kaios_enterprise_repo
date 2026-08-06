@@ -16,16 +16,33 @@ export function stableId(value) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 24);
 }
 
+function insightEvidence(insight) {
+  return insight.evidence_ids ?? insight.evidence ?? [];
+}
+
+function insightKind(insight) {
+  if (insight.kind) return insight.kind;
+  if (String(insight.type ?? '').includes('risk')) return 'risk';
+  if (String(insight.type ?? '').includes('opportunity') || String(insight.type ?? '').includes('momentum')) return 'opportunity';
+  return 'signal';
+}
+
+function insightTitle(insight) {
+  return insight.title ?? insight.headline ?? insight.subject ?? 'Governed insight';
+}
+
 export function evaluatePublicationGate(insight, policy = {}) {
   const minScore = Number(policy.min_score ?? 70);
   const minConfidence = Number(policy.min_confidence ?? 0.75);
   const minEvidence = Number(policy.min_evidence ?? 2);
   const reasons = [];
+  const evidence = insightEvidence(insight);
+  const kind = insightKind(insight);
 
   if (Number(insight.score ?? 0) < minScore) reasons.push('score_below_threshold');
   if (Number(insight.confidence ?? 0) < minConfidence) reasons.push('confidence_below_threshold');
-  if ((insight.evidence_ids ?? []).length < minEvidence) reasons.push('insufficient_evidence');
-  if (insight.kind === 'risk') reasons.push('risk_requires_human_review');
+  if (evidence.length < minEvidence) reasons.push('insufficient_evidence');
+  if (kind === 'risk') reasons.push('risk_requires_human_review');
 
   return {
     eligible: reasons.length === 0,
@@ -35,25 +52,29 @@ export function evaluatePublicationGate(insight, policy = {}) {
 }
 
 export function buildPublishPlan(insightSnapshot, normalizationSnapshot, policy = {}) {
-  if (insightSnapshot?.schema !== 'kidults.insights.v1') {
+  if (insightSnapshot?.schema_version !== 'kidults.insights.v1') {
     throw new Error('unsupported_insight_schema');
   }
-  if (normalizationSnapshot?.schema !== 'kidults.normalization.v1') {
+  if (normalizationSnapshot?.schema_version !== 'kidults.normalized.v1') {
     throw new Error('unsupported_normalization_schema');
   }
 
   const candidates = (insightSnapshot.insights ?? []).map((insight) => {
     const gate = evaluatePublicationGate(insight, policy);
+    const evidence = insightEvidence(insight);
+    const kind = insightKind(insight);
+    const title = insightTitle(insight);
     return {
-      publication_id: stableId({ insight_id: insight.insight_id, generated_at: insightSnapshot.generated_at }),
-      insight_id: insight.insight_id,
-      kind: insight.kind,
-      title: insight.title,
+      publication_id: stableId({ insight_id: insight.id, generated_at: insightSnapshot.generated_at }),
+      insight_id: insight.id,
+      kind,
+      insight_type: insight.type,
+      title,
       summary: insight.summary,
       recommendation: insight.recommendation,
       score: insight.score,
       confidence: insight.confidence,
-      evidence_ids: insight.evidence_ids ?? [],
+      evidence_ids: evidence,
       status: gate.eligible ? 'publish_candidate' : 'held',
       gate
     };
@@ -61,7 +82,7 @@ export function buildPublishPlan(insightSnapshot, normalizationSnapshot, policy 
 
   const publishCandidates = candidates.filter((item) => item.status === 'publish_candidate');
   return {
-    schema: 'kidults.publish-plan.v1',
+    schema_version: 'kidults.publish-plan.v1',
     generated_at: new Date().toISOString(),
     source: {
       insight_generated_at: insightSnapshot.generated_at,
@@ -144,7 +165,7 @@ export async function readPublishingStatus(filePath = SNAPSHOT_PATH) {
   const snapshot = await readJson(filePath);
   return {
     ready: true,
-    schema: snapshot.schema,
+    schema_version: snapshot.schema_version,
     generated_at: snapshot.generated_at,
     ...snapshot.counts,
     production_promotion_authorized: snapshot.production_promotion_authorized
