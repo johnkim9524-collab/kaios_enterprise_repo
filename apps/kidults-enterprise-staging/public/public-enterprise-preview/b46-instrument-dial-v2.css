@@ -1,5 +1,5 @@
-/* KIDULTS Instrument Dial v2
-   Hero dial only. No layout, data, chart, or global typography changes. */
+/* KIDULTS Instrument Dial v3 — editorial ring refinement.
+   Hero dial only. No layout, data, chart, card, spacing, or global typography changes. */
 
 .premium-dial-card {
   background:
@@ -10,18 +10,12 @@
 .premium-dial {
   width: min(13rem, 100%);
   background:
-    repeating-conic-gradient(
-      from -90deg,
-      rgba(244,241,234,.14) 0deg .6deg,
-      transparent .6deg 7.5deg
-    ),
     conic-gradient(
       from -90deg,
       #AFCBC1 0%,
-      #78A596 20%,
-      #4F8373 44%,
-      #2D6657 72%,
-      #174B3F calc(var(--dial-value, 94.8) * 1%),
+      #78A596 28%,
+      #4F8373 58%,
+      #2D6657 calc(var(--dial-value, 94.8) * 1%),
       rgba(103,142,129,.13) 0
     ) !important;
   box-shadow:
@@ -35,16 +29,16 @@
     radial-gradient(circle at 50% 32%, rgba(255,255,255,.035), transparent 34%),
     linear-gradient(145deg, rgba(15,76,63,.96), rgba(5,47,39,.985) 72%) !important;
   box-shadow:
-    inset 0 0 0 1px rgba(244,241,234,.055),
-    inset 0 12px 24px rgba(255,255,255,.016),
-    inset 0 -14px 22px rgba(0,0,0,.12) !important;
+    inset 0 0 0 1px rgba(244,241,234,.045),
+    inset 0 12px 24px rgba(255,255,255,.014),
+    inset 0 -14px 22px rgba(0,0,0,.11) !important;
 }
 
 .premium-dial::after {
   inset: 31px !important;
-  border: 1px solid rgba(169,199,188,.12) !important;
+  border: 1px solid rgba(169,199,188,.10) !important;
   background:
-    radial-gradient(circle at 50% 38%, rgba(255,255,255,.026), transparent 42%) !important;
+    radial-gradient(circle at 50% 38%, rgba(255,255,255,.022), transparent 42%) !important;
 }
 
 .premium-dial__content {
@@ -78,9 +72,9 @@
 .premium-dial__seal {
   margin-top: .62rem !important;
   padding: .22rem .48rem !important;
-  border-color: rgba(175,203,193,.2) !important;
+  border-color: rgba(175,203,193,.18) !important;
   color: rgba(244,241,234,.68) !important;
-  background: rgba(255,255,255,.015) !important;
+  background: rgba(255,255,255,.012) !important;
 }
 
 @media (max-width: 980px) {
