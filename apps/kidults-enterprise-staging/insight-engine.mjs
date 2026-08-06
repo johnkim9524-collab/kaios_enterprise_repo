@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 function stableId(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -60,7 +61,7 @@ export function generateInsights(graph, now = new Date()) {
       score: Math.round(share * 100),
       confidence,
       recommendation: share >= 0.5 ? 'Prioritize deeper evidence collection and market validation.' : 'Continue monitoring before allocation decisions.',
-      evidence: group.flatMap((edge) => edge.observation_ids ?? []).filter(Boolean),
+      evidence: group.flatMap((edge) => edge.evidence?.observation_ids ?? edge.observation_ids ?? []).filter(Boolean),
       explainability: { metric: 'category_share', numerator: group.length, denominator: itemNodes.length }
     });
   }
@@ -77,7 +78,7 @@ export function generateInsights(graph, now = new Date()) {
       score: Math.round(share * 100),
       confidence: calculateSignalConfidence({ evidenceCount: group.length, graphCoverage: share }),
       recommendation: share >= 0.4 ? 'Evaluate partnership, coverage expansion and comparable evidence.' : 'Maintain observation until evidence density improves.',
-      evidence: group.flatMap((edge) => edge.observation_ids ?? []).filter(Boolean),
+      evidence: group.flatMap((edge) => edge.evidence?.observation_ids ?? edge.observation_ids ?? []).filter(Boolean),
       explainability: { metric: 'brand_share', numerator: group.length, denominator: itemNodes.length }
     });
   }
@@ -94,7 +95,7 @@ export function generateInsights(graph, now = new Date()) {
       score: Math.round(sourceShare * 100),
       confidence: calculateSignalConfidence({ evidenceCount: itemNodes.length, graphCoverage: sourceShare }),
       recommendation: 'Add independent primary or high-tier sources before publication.',
-      evidence: sourceEdges.flatMap((edge) => edge.observation_ids ?? []).filter(Boolean),
+      evidence: sourceEdges.flatMap((edge) => edge.evidence?.observation_ids ?? edge.observation_ids ?? []).filter(Boolean),
       explainability: { metric: 'source_concentration', numerator: sourceConcentration, denominator: itemNodes.length }
     });
   }
@@ -148,7 +149,11 @@ export function runInsightCli(argv = process.argv.slice(2), env = process.env) {
   return { ready: true, output, counts: snapshot.counts, executive_brief: snapshot.executive_brief };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+function isMainModule() {
+  return Boolean(process.argv[1]) && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+}
+
+if (isMainModule()) {
   try {
     console.log(JSON.stringify(runInsightCli()));
   } catch (error) {
