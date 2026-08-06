@@ -2,11 +2,7 @@
   'use strict';
 
   const esc = (value) => String(value).replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[character]);
 
   const params = new URLSearchParams(window.location.search);
@@ -18,21 +14,14 @@
     const current = Number(data?.headline?.kidult100);
     const source = Array.isArray(data?.trend) ? data.trend : [];
     if (!Number.isFinite(current) || source.length === 0) return source;
-
     const values = source.map((point) => Number(point.value)).filter(Number.isFinite);
     if (values.length !== source.length) return source;
-
-    const last = values.at(-1);
-    const offset = current - last;
-    return source.map((point) => ({
-      ...point,
-      value: Number((Number(point.value) + offset).toFixed(1))
-    }));
+    const offset = current - values.at(-1);
+    return source.map((point) => ({ ...point, value: Number((Number(point.value) + offset).toFixed(1)) }));
   }
 
   function renderTrend(points) {
     if (!Array.isArray(points) || points.length === 0) return '';
-
     const width = 900;
     const height = 300;
     const left = 54;
@@ -53,8 +42,12 @@
     const labels = points
       .map((point, index) => `<text x="${x(index)}" y="${height - 12}" text-anchor="middle">${esc(point.period)}</text>`)
       .join('');
+    const circles = points.map((point, index) => {
+      const label = `${point.period}: Kidult 100 index ${point.value}`;
+      return `<circle cx="${x(index)}" cy="${y(point.value)}" r="5" fill="#f4efe7" stroke="#0b4a3b" stroke-width="3" tabindex="0" role="button" aria-label="${esc(label)}"><title>${esc(label)}</title></circle>`;
+    }).join('');
 
-    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Kidult 100 staging trend"><defs><linearGradient id="trendFillB52" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#0b4a3b" stop-opacity=".36"/><stop offset="1" stop-color="#0b4a3b" stop-opacity=".02"/></linearGradient></defs><g class="chart-grid">${grid}</g><path d="${area}" fill="url(#trendFillB52)"/><path d="${path}" fill="none" stroke="#0b4a3b" stroke-width="3" vector-effect="non-scaling-stroke"/>${points.map((point, index) => `<circle cx="${x(index)}" cy="${y(point.value)}" r="5" fill="#f4efe7" stroke="#0b4a3b" stroke-width="3"><title>${esc(point.period)}: ${point.value}</title></circle>`).join('')}<g class="chart-labels">${labels}</g></svg>`;
+    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Kidult 100 staging trend"><defs><linearGradient id="trendFillB52" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#0b4a3b" stop-opacity=".36"/><stop offset="1" stop-color="#0b4a3b" stop-opacity=".02"/></linearGradient></defs><g class="chart-grid">${grid}</g><path d="${area}" fill="url(#trendFillB52)"/><path d="${path}" fill="none" stroke="#0b4a3b" stroke-width="3" vector-effect="non-scaling-stroke"/>${circles}<g class="chart-labels">${labels}</g></svg>`;
   }
 
   function renderSignalDonut(items) {
@@ -81,13 +74,8 @@
     const high = Math.max(...values).toFixed(1);
     const currentText = Number(current).toFixed(1);
 
-    document.querySelectorAll('[data-k100]').forEach((node) => {
-      node.textContent = currentText;
-    });
-
-    document.querySelectorAll('[data-method]').forEach((node) => {
-      node.textContent = methodologyVersion;
-    });
+    document.querySelectorAll('[data-k100]').forEach((node) => { node.textContent = currentText; });
+    document.querySelectorAll('[data-method]').forEach((node) => { node.textContent = methodologyVersion; });
 
     document.querySelectorAll('*').forEach((node) => {
       if (node.children.length > 0) return;
@@ -105,15 +93,43 @@
 
   function markPendingConfidence(data) {
     const items = Array.isArray(data?.confidenceDistribution) ? data.confidenceDistribution : [];
-    const upper = items
-      .filter((item) => item.grade === 'A' || item.grade === 'B')
+    const upper = items.filter((item) => item.grade === 'A' || item.grade === 'B')
       .reduce((sum, item) => sum + (Number(item.value) || 0), 0);
     if (upper !== 0) return;
-
     const center = document.querySelector('#confidence-chart .radial-center');
     if (!center) return;
     center.innerHTML = '<span class="confidence-pending">Pending</span><span>A + B</span>';
     center.closest('[role="img"]')?.setAttribute('aria-label', 'Confidence distribution is illustrative staging data. Production confidence is pending.');
+  }
+
+  function enhanceFooter() {
+    const footer = document.querySelector('footer');
+    if (!footer || footer.dataset.enhanced === 'true') return;
+    footer.dataset.enhanced = 'true';
+    footer.classList.add('enterprise-footer');
+    footer.innerHTML = `
+      <div class="footer-brand">
+        <strong>KIDULTS</strong>
+        <small>Global Collectibles Intelligence</small>
+      </div>
+      <nav class="footer-nav" aria-label="Footer navigation">
+        <div><strong>INTELLIGENCE</strong><a href="intelligence.html">Kidult 100</a><a href="research.html">Research</a></div>
+        <div><strong>EVIDENCE</strong><a href="methodology.html">Methodology</a><a href="archive.html">Archive</a></div>
+        <div><strong>ENTERPRISE</strong><a href="api.html">API</a><a href="../provider/">Providers</a></div>
+        <div><strong>COMPANY</strong><a href="company.html">About</a><a href="../provider/partnership.html">Enterprise Access</a></div>
+      </nav>
+      <div class="footer-meta">© 2026 KIDULTS<br>Research · Evidence · Decision</div>`;
+  }
+
+  function enableTrendKeyboard() {
+    document.querySelectorAll('.trend-chart circle[tabindex="0"]').forEach((circle) => {
+      circle.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          circle.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+        }
+      });
+    });
   }
 
   function apply(data) {
@@ -126,6 +142,8 @@
 
     updateTrendSummaries(points, data.headline?.kidult100, data.methodologyVersion || '—');
     markPendingConfidence(data);
+    enhanceFooter();
+    enableTrendKeyboard();
   }
 
   async function run() {
@@ -137,7 +155,8 @@
       setTimeout(() => apply(data), 250);
       setTimeout(() => apply(data), 900);
     } catch (error) {
-      console.error('B52 global polish failed', error);
+      console.error('KIDULTS v1.1 enhancement layer failed', error);
+      enhanceFooter();
     }
   }
 
