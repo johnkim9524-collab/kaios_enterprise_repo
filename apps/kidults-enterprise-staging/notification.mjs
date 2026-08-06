@@ -126,11 +126,18 @@ function writeLine(socket, value) {
 
 export function createSmtpNotifier(config) {
   const username = required(config.username, "KIDULTS_SMTP_USERNAME");
-  const password = required(config.password, "KIDULTS_SMTP_APP_PASSWORD");
+  const password = required(config.password, "KIDULTS_SMTP_APP_PASSWORD").replace(/\s+/g, "");
   const recipient = config.recipient || "partnerships@kidults.com";
   const host = config.host || DEFAULT_HOST;
   const port = Number(config.port || DEFAULT_PORT);
   const timeoutMs = Number(config.timeoutMs || DEFAULT_TIMEOUT_MS);
+
+  if (password.length !== 16) {
+    throw new Error("KIDULTS_SMTP_APP_PASSWORD must contain 16 characters after whitespace is removed");
+  }
+  if (port !== 465) {
+    throw new Error("Kidults SMTP notifier currently requires implicit TLS on port 465");
+  }
 
   return async function notify(submission) {
     const message = messageForSubmission(submission, recipient);
@@ -174,9 +181,9 @@ export function createSmtpNotifier(config) {
 export function notifierFromEnvironment(env = process.env) {
   if (env.KIDULTS_NOTIFICATION_ENABLED !== "true") return null;
   return createSmtpNotifier({
-    username: env.KIDULTS_SMTP_USERNAME,
+    username: env.KIDULTS_SMTP_USERNAME || env.KIDULTS_SMTP_USER,
     password: env.KIDULTS_SMTP_APP_PASSWORD,
-    recipient: env.KIDULTS_NOTIFICATION_RECIPIENT || "partnerships@kidults.com",
+    recipient: env.KIDULTS_NOTIFICATION_RECIPIENT || env.KIDULTS_NOTIFICATION_TO || "partnerships@kidults.com",
     host: env.KIDULTS_SMTP_HOST || DEFAULT_HOST,
     port: env.KIDULTS_SMTP_PORT || DEFAULT_PORT,
     timeoutMs: env.KIDULTS_SMTP_TIMEOUT_MS || DEFAULT_TIMEOUT_MS
