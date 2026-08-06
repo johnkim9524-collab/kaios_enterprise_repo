@@ -1,6 +1,6 @@
-/* KIDULTS Portal Base 9.5 — final global-standard polish.
-   Scope: watermark restraint, representative KPI emphasis, Signal Composition donut,
-   enterprise hover refinement, and disclosure styling. Frozen layout remains intact. */
+/* KIDULTS Frozen Design v1.0 — final global-standard polish.
+   Scope is intentionally restricted to micro-refinement only.
+   Frozen hero, chart, card and responsive structures must not be changed. */
 
 .hero::after,
 .page-hero::after,
@@ -10,6 +10,15 @@
 
 .metrics > div:first-child strong {
   font-size: 42px;
+}
+
+/* Hero intelligence dial: retain the instrument language while reducing visual weight. */
+.premium-dial::before {
+  inset: 12px !important;
+}
+
+.premium-dial-card dl > div {
+  padding-block: 13px !important;
 }
 
 .signal-donut-layout {
@@ -89,7 +98,7 @@
 
 .signal-donut-legend span {
   display: grid;
-  grid-template-columns: 10px minmax(0,1fr) auto;
+  grid-template-columns: 10px minmax(0,1fr) 34px;
   gap: 8px;
   align-items: center;
   font-size: 12px;
@@ -105,7 +114,10 @@
 }
 
 .signal-donut-legend strong {
+  width: 34px;
   font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .confidence-pending {
@@ -114,7 +126,7 @@
   min-width: 72px;
   min-height: 34px;
   padding: 7px 12px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(15, 49, 41, .18);
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
@@ -144,12 +156,32 @@
     font-size: 32px;
   }
 
+  .premium-dial-card dl > div {
+    padding-block: 11px !important;
+  }
+
   .signal-donut-wrap {
     width: min(180px, 76vw);
   }
 
   .signal-donut-legend {
     grid-template-columns: 1fr;
+  }
+
+  .signal-donut-legend span {
+    grid-template-columns: 10px minmax(0,1fr) 38px;
+  }
+
+  .mix-panel > small {
+    display: block;
+    margin-top: 16px !important;
+    line-height: 1.55;
+  }
+}
+
+@media (max-width: 360px) {
+  .mix-panel > small {
+    margin-top: 14px !important;
   }
 }
 
