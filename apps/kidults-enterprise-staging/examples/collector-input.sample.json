@@ -1,0 +1,11 @@
+[
+  {
+    "type": "rss",
+    "url": "https://example.com/collectibles/report-1",
+    "title": "Collector market signal",
+    "summary": "Example governed collector input.",
+    "source_tier": 2,
+    "locale": "en",
+    "category_hint": "Figures"
+  }
+]
