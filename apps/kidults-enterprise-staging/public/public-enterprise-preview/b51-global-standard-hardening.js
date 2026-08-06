@@ -39,4 +39,28 @@
       return response;
     }
   };
+
+  function loadFinalPolish() {
+    if (!document.querySelector('link[data-b52-global-polish]')) {
+      const stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = 'b52-global-polish.css?v=1';
+      stylesheet.dataset.b52GlobalPolish = 'true';
+      document.head.appendChild(stylesheet);
+    }
+
+    if (!document.querySelector('script[data-b52-global-polish]')) {
+      const script = document.createElement('script');
+      script.src = 'b52-global-polish.js?v=1';
+      script.defer = true;
+      script.dataset.b52GlobalPolish = 'true';
+      document.head.appendChild(script);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadFinalPolish, { once: true });
+  } else {
+    loadFinalPolish();
+  }
 })();
