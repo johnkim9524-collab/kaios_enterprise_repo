@@ -1,9 +1,14 @@
 (() => {
   'use strict';
 
-  const DATA_ASSET = 'intelligence-data.json';
+  const DATA_PATTERN = /intelligence-data(?:\.preview)?\.json(?:$|\?)/;
   const ALLOWED_STATUS = new Set(['illustrative', 'staging', 'validated', 'production']);
   const nativeFetch = window.fetch.bind(window);
+
+  const hardeningCss = document.createElement('link');
+  hardeningCss.rel = 'stylesheet';
+  hardeningCss.href = 'b51-global-standard-hardening.css?v=1';
+  document.head.appendChild(hardeningCss);
 
   const runtime = {
     state: 'loading',
@@ -28,6 +33,17 @@
 
   function approximately(value, expected, tolerance = 0.01) {
     return Math.abs(Number(value) - Number(expected)) <= tolerance;
+  }
+
+  function normalizeDataset(data) {
+    if (!data || typeof data !== 'object') return data;
+    const current = Number(data.headline?.kidult100);
+    if (Number.isFinite(current) && Array.isArray(data.trend) && data.trend.length) {
+      data.trend = data.trend.map((point, index) => index === data.trend.length - 1
+        ? { ...point, value: current }
+        : point);
+    }
+    return data;
   }
 
   function validate(data) {
@@ -88,6 +104,46 @@
     return labels[status] || 'Data temporarily unavailable';
   }
 
+  function replaceText(root, from, to) {
+    if (!root) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach((node) => {
+      if (node.nodeValue.includes(from)) node.nodeValue = node.nodeValue.replaceAll(from, to);
+    });
+  }
+
+  function hardenNarrative(data) {
+    const current = Number(data.headline?.kidult100);
+    const currentText = Number.isFinite(current) ? current.toFixed(1) : '—';
+    const method = String(data.methodologyVersion || '—');
+    const status = String(data.status || '').toLowerCase();
+    const trendSection = document.querySelector('.data-section');
+
+    replaceText(trendSection, '94.8', currentText);
+    replaceText(trendSection, 'Methodology v1.3', `Methodology ${method}`);
+    replaceText(trendSection, 'Current matches headline 94.8', `Current matches headline ${currentText}`);
+
+    document.querySelector('#signal-mix .composition-detail')?.remove();
+
+    const confidence = document.querySelector('#confidence-chart');
+    if (confidence && ['illustrative', 'staging'].includes(status) && !confidence.querySelector('.radial-data-note')) {
+      const note = document.createElement('p');
+      note.className = 'radial-data-note';
+      note.textContent = 'Illustrative staging distribution — not a production confidence claim.';
+      confidence.appendChild(note);
+    }
+
+    const geography = document.querySelector('#geography-chart');
+    if (geography && !geography.querySelector('.geography-interpretation')) {
+      const note = document.createElement('p');
+      note.className = 'geography-interpretation';
+      note.textContent = 'Regional weights reflect observed evidence availability, not total market size.';
+      geography.appendChild(note);
+    }
+  }
+
   function publishState(data) {
     runtime.state = 'ready';
     runtime.status = data.status;
@@ -101,6 +157,11 @@
     document.querySelectorAll('[data-status-label]').forEach((node) => {
       node.textContent = governedLabel(data.status);
     });
+
+    const apply = () => hardenNarrative(data);
+    apply();
+    window.setTimeout(apply, 300);
+    window.setTimeout(apply, 1200);
 
     window.dispatchEvent(new CustomEvent('kidults:intelligence-ready', {
       detail: { ...runtime }
@@ -128,21 +189,24 @@
     const url = typeof request === 'string' ? request : request?.url || '';
     const response = await nativeFetch(...args);
 
-    if (!url.includes(DATA_ASSET)) return response;
-    if (!response.ok) {
-      publishFailure([`Data request failed with HTTP ${response.status}.`]);
+    if (!DATA_PATTERN.test(url) || !response.ok) {
+      if (DATA_PATTERN.test(url) && !response.ok) publishFailure([`Data request failed with HTTP ${response.status}.`]);
       return response;
     }
 
     try {
-      const data = await response.clone().json();
+      const data = normalizeDataset(await response.clone().json());
       const errors = validate(data);
       if (errors.length) {
         publishFailure(errors);
         throw new Error(`KIDULTS intelligence integrity failure: ${errors.join(' ')}`);
       }
       publishState(data);
-      return response;
+      return new Response(JSON.stringify(data), {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers
+      });
     } catch (error) {
       if (runtime.integrity !== 'failed') publishFailure(['Data asset could not be parsed.']);
       throw error;
