@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.1.0",
+  "status": "configured",
+  "recipient": "partnerships@kidults.com",
+  "replyToRequired": true,
+  "fields": [
+    {"name":"name","required":true},
+    {"name":"organization","required":true},
+    {"name":"email","required":true},
+    {"name":"role","required":false},
+    {"name":"interest","required":true,"options":["Data partnership","API access","Research licensing","Enterprise intelligence","Other"]},
+    {"name":"message","required":true},
+    {"name":"consent","required":true}
+  ],
+  "controls": {
+    "honeypot": true,
+    "rateLimitPerHour": 5,
+    "storeSubmission": false,
+    "sendAcknowledgement": true
+  }
+}
