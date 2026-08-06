@@ -1,5 +1,4 @@
-/* KIDULTS B42 — ONE GOVERNED SYSTEM mobile-only overflow correction.
-   Scope is intentionally limited to the dark governed-system section. */
+/* KIDULTS B42 — final responsive and visual corrections. */
 @media (max-width: 600px) {
   .dark.shell {
     width: auto !important;
@@ -45,6 +44,18 @@
     overflow-wrap: break-word !important;
     word-break: normal !important;
   }
+
+  /* Add breathing room between the Signal Composition legend and its note. */
+  .mix-panel #signal-mix {
+    margin-bottom: 16px !important;
+  }
+
+  .mix-panel > small {
+    display: block !important;
+    margin-top: 0 !important;
+    padding-top: 2px !important;
+    line-height: 1.65 !important;
+  }
 }
 
 @media (max-width: 360px) {
@@ -58,11 +69,15 @@
   .dark.shell h2 {
     font-size: clamp(1.9rem, 10vw, 2.35rem) !important;
   }
+
+  .mix-panel #signal-mix {
+    margin-bottom: 14px !important;
+  }
 }
 
-/* Final frozen Hero watermark alignment.
-   The watermark deliberately overlaps the live CULTURE line so it reads as
-   one layered editorial gesture rather than a second independent word. */
+/* Final Hero watermark alignment.
+   The watermark is positioned behind and slightly left of the live CULTURE
+   line so both read as one layered editorial expression. */
 @media (min-width: 761px) {
   .hero {
     position: relative !important;
@@ -72,7 +87,7 @@
   .hero::after {
     content: "CULTURE" !important;
     position: absolute !important;
-    left: 22.5% !important;
+    left: 18% !important;
     top: 205px !important;
     z-index: 0 !important;
     font-family: var(--serif) !important;
@@ -92,8 +107,7 @@
   }
 }
 
-/* Trend summary terminology: show the actual retained observation count,
-   not the elapsed calendar span. */
+/* Trend summary terminology: display the actual retained observation count. */
 .trend-summary-strip > span:last-child b {
   font-size: 0 !important;
 }
