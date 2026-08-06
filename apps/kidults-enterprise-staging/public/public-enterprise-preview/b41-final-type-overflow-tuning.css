@@ -1,0 +1,111 @@
+/* KIDULTS B41 — final typography and overflow tuning.
+   Scope: hero dial number, trend current value, governed-system block,
+   CTA/display headings and 320px containment. Desktop structure is preserved. */
+
+/* Slightly calmer display scale on large screens. */
+.company h2,
+.dark h2 {
+  font-size: clamp(2.75rem, 3.65vw, 3.85rem) !important;
+  line-height: 1 !important;
+  letter-spacing: -.028em !important;
+}
+
+/* The hero dial remains dominant without crowding its inner labels. */
+.premium-dial-card .premium-dial__value,
+.premium-dial__value,
+.premium-dial-card .premium-dial__value.luxury-number {
+  font-size: clamp(3.65rem, 4.55vw, 4.9rem) !important;
+  line-height: .9 !important;
+}
+
+/* Trend summary value: reduce visual weight while preserving hierarchy. */
+.chart-side > strong {
+  font-size: 58px !important;
+  line-height: .95 !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 760px) {
+  /* Dial value: prevent label collision at phone widths. */
+  .premium-dial-card .premium-dial__value,
+  .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number {
+    font-size: clamp(2.85rem, 14.5vw, 3.55rem) !important;
+    letter-spacing: -.04em !important;
+    line-height: .9 !important;
+  }
+
+  /* Trend current value. */
+  .chart-side > strong {
+    font-size: 44px !important;
+    line-height: .96 !important;
+  }
+
+  /* Governed-system and CTA display headings. */
+  .dark h2,
+  .company h2 {
+    max-width: 100% !important;
+    font-size: clamp(2.05rem, 10.5vw, 2.65rem) !important;
+    line-height: 1.02 !important;
+    letter-spacing: -.025em !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+    hyphens: none !important;
+  }
+
+  .dark,
+  .company,
+  .dark-grid,
+  .dark-grid article,
+  .company > div {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .dark-grid h3 {
+    font-size: 22px !important;
+    line-height: 1.08 !important;
+    overflow-wrap: break-word !important;
+  }
+
+  /* Keep all prominent section headings inside the mobile canvas. */
+  .section-head h2,
+  .viz-title h3,
+  .page-hero h1 {
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .premium-dial-card .premium-dial__value,
+  .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number {
+    font-size: clamp(2.72rem, 14vw, 3.18rem) !important;
+  }
+
+  .chart-side > strong { font-size: 41px !important; }
+
+  .dark h2,
+  .company h2 {
+    font-size: clamp(1.95rem, 10vw, 2.35rem) !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .premium-dial-card .premium-dial__value,
+  .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number {
+    font-size: 2.7rem !important;
+  }
+
+  .chart-side > strong { font-size: 39px !important; }
+
+  .dark h2,
+  .company h2 {
+    font-size: 2rem !important;
+    line-height: 1.04 !important;
+  }
+}
