@@ -1,0 +1,44 @@
+name: Kidults Monthly Intelligence
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 0 1 * *'
+
+permissions:
+  contents: write
+
+jobs:
+  build-monthly-intelligence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build governed intelligence artifacts
+        working-directory: apps/kidults-enterprise-staging
+        run: npm run build:sprint21
+
+      - name: Validate generated JSON
+        working-directory: apps/kidults-enterprise-staging
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('public/public-enterprise-preview/intelligence-data.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('public/public-enterprise-preview/reports/index.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('public/public-enterprise-preview/api/v1/monthly.json','utf8'))"
+
+      - name: Commit generated artifacts
+        run: |
+          git config user.name "kidults-intelligence-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/kidults-enterprise-staging/public/public-enterprise-preview/intelligence-data.json
+          git add apps/kidults-enterprise-staging/public/public-enterprise-preview/search-index.json
+          git add apps/kidults-enterprise-staging/public/public-enterprise-preview/api/v1
+          git add apps/kidults-enterprise-staging/public/public-enterprise-preview/reports
+          git add apps/kidults-enterprise-staging/public/public-enterprise-preview/archive-data
+          git diff --cached --quiet || git commit -m "data(kidults): publish monthly intelligence artifacts"
+          git push

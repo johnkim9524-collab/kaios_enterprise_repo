@@ -1,10 +1,13 @@
 {
   "name": "@kaios/kidults-enterprise-staging",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "scripts": {
     "backup": "node operations.mjs backup",
+    "build:intelligence": "node scripts/build-intelligence.mjs",
+    "build:operations": "node scripts/build-operations.mjs",
+    "build:sprint21": "npm run build:intelligence && npm run build:operations",
     "export:conversions": "node operations.mjs export-conversions",
     "refresh": "node operations.mjs refresh",
     "quality:evaluate": "node quality-alerts.mjs evaluate",
