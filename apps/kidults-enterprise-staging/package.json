@@ -1,6 +1,6 @@
 {
   "name": "@kaios/kidults-enterprise-staging",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,6 +14,7 @@
     "build:sprint25": "npm run crm:build && npm run ai:build && npm run executive:build && npm run build:sprint22",
     "build:sprint26a": "npm run collector:status && npm test",
     "build:sprint26b": "npm run collector:status && npm run normalize:status && npm test",
+    "build:sprint26c": "npm run collector:status && npm run normalize:status && npm run graph:status && npm test",
     "crm:build": "node operations-crm-cli.mjs build",
     "crm:status": "node operations-crm-cli.mjs status",
     "crm:read": "node operations-crm-cli.mjs mark-read",
@@ -33,6 +34,8 @@
     "collector:status": "node global-collector.mjs status",
     "normalize:run": "node normalization-engine.mjs run",
     "normalize:status": "node normalization-engine.mjs status",
+    "graph:build": "node intelligence-graph.mjs build",
+    "graph:status": "node intelligence-graph.mjs status",
     "export:conversions": "node operations.mjs export-conversions",
     "notify:once": "node operations-notify.mjs once",
     "notify:watch": "node operations-notify.mjs watch",
@@ -42,7 +45,7 @@
     "retention": "node operations.mjs enforce-retention",
     "start": "node server.mjs",
     "status": "node operations.mjs status",
-    "test": "node --test server.test.mjs operations.test.mjs collector-evidence.test.mjs quality-alerts.test.mjs operations-notify.test.mjs operations-crm.test.mjs ai-operations.test.mjs executive-dashboard.test.mjs global-collector.test.mjs normalization-engine.test.mjs"
+    "test": "node --test server.test.mjs operations.test.mjs collector-evidence.test.mjs quality-alerts.test.mjs operations-notify.test.mjs operations-crm.test.mjs ai-operations.test.mjs executive-dashboard.test.mjs global-collector.test.mjs normalization-engine.test.mjs intelligence-graph.test.mjs"
   },
   "engines": {
     "node": ">=20"
