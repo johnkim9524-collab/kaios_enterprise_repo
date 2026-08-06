@@ -1,0 +1,160 @@
+/* KIDULTS Portal Base 9.5 — final global-standard polish.
+   Scope: watermark restraint, representative KPI emphasis, Signal Composition donut,
+   enterprise hover refinement, and disclosure styling. Frozen layout remains intact. */
+
+.hero::after,
+.page-hero::after,
+.report-hero::after {
+  color: rgba(198, 188, 172, 0.18) !important;
+}
+
+.metrics > div:first-child strong {
+  font-size: 42px;
+}
+
+.signal-donut-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  align-items: center;
+}
+
+.signal-donut {
+  width: min(210px, 82%);
+  aspect-ratio: 1;
+  margin: 2px auto 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(
+    #0b4a3b 0 32%,
+    #477a69 32% 56%,
+    #82a99b 56% 77%,
+    #c4d6cf 77% 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+}
+
+.signal-donut::after {
+  content: "";
+  width: 58%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: linear-gradient(145deg, var(--forest-dark), #063f32);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+.signal-donut-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.signal-donut-wrap {
+  position: relative;
+  width: min(210px, 82%);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.signal-donut-wrap .signal-donut {
+  width: 100%;
+  margin: 0;
+}
+
+.signal-donut-center strong {
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1;
+  color: #fff;
+}
+
+.signal-donut-center span {
+  margin-top: 5px;
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.62);
+}
+
+.signal-donut-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+
+.signal-donut-legend span {
+  display: grid;
+  grid-template-columns: 10px minmax(0,1fr) auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.signal-donut-legend i {
+  width: 10px;
+  height: 10px;
+}
+
+.signal-donut-legend b {
+  font-weight: 500;
+}
+
+.signal-donut-legend strong {
+  font-size: 12px;
+}
+
+.confidence-pending {
+  display: inline-grid;
+  place-items: center;
+  min-width: 72px;
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.dark-grid article {
+  transition: transform .22s ease, border-color .22s ease, background-color .22s ease;
+}
+
+.dark-grid article:hover,
+.dark-grid article:focus-within {
+  transform: translateY(-3px);
+  border-color: rgba(222,199,149,.42);
+  background: rgba(255,255,255,.025);
+}
+
+@media (max-width: 760px) {
+  .hero::after,
+  .page-hero::after,
+  .report-hero::after {
+    color: rgba(198, 188, 172, 0.17) !important;
+  }
+
+  .metrics > div:first-child strong {
+    font-size: 32px;
+  }
+
+  .signal-donut-wrap {
+    width: min(180px, 76vw);
+  }
+
+  .signal-donut-legend {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dark-grid article {
+    transition: none;
+  }
+}
