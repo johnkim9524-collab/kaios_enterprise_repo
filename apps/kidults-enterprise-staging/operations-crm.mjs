@@ -28,7 +28,13 @@ function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+function isTestSubmission(submission) {
+  const text = `${submission.email_fingerprint || ""} ${submission.interest || ""}`.toLowerCase();
+  return /manual-sprint\d+-test|notification delivery test|\btest submission\b/.test(text);
+}
+
 function classify(submission) {
+  if (isTestSubmission(submission)) return "Test";
   const text = `${submission.type || ""} ${submission.interest || ""} ${submission.organization || ""}`.toLowerCase();
   if (/provider|data partner|supplier/.test(text)) return "Provider";
   if (/press|media|journal|editor/.test(text)) return "Media";
@@ -41,6 +47,7 @@ function classify(submission) {
 }
 
 function priorityFor(submission, category) {
+  if (category === "Test") return "normal";
   const text = `${submission.interest || ""} ${submission.organization || ""}`.toLowerCase();
   if (/urgent|immediate|contract|pilot|license|licence/.test(text)) return "high";
   if (["Provider", "Investor", "API", "Partnership"].includes(category)) return "medium";
@@ -60,6 +67,7 @@ export function buildCrmSnapshot({ submissions, state, now = new Date() }) {
     .map((submission) => {
       const saved = safeState.records[submission.id] || {};
       const category = saved.category || classify(submission);
+      const testRecord = isTestSubmission(submission);
       return {
         id: submission.id,
         type: submission.type || "unknown",
@@ -70,7 +78,8 @@ export function buildCrmSnapshot({ submissions, state, now = new Date() }) {
         environment: submission.environment || "staging",
         category,
         priority: saved.priority || priorityFor(submission, category),
-        status: saved.status || "unread",
+        status: saved.status || (testRecord ? "archived" : "unread"),
+        is_test: testRecord,
         notes: saved.notes || "",
         updated_at: saved.updated_at || submission.created_at || null
       };
@@ -85,7 +94,7 @@ export function buildCrmSnapshot({ submissions, state, now = new Date() }) {
     unread: active.filter((item) => item.status === "unread").length,
     read: active.filter((item) => item.status === "read").length,
     archived: records.filter((item) => item.status === "archived").length,
-    today: records.filter((item) => String(item.created_at || "").startsWith(today)).length
+    today: active.filter((item) => String(item.created_at || "").startsWith(today)).length
   };
 
   const categories = {};
@@ -109,10 +118,24 @@ function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
 }
 
+function maskEmail(email) {
+  const value = String(email || "");
+  const at = value.indexOf("@");
+  if (at <= 0) return "Private contact";
+  const local = value.slice(0, at);
+  const domain = value.slice(at + 1);
+  const visible = local.slice(0, Math.min(2, local.length));
+  return `${visible}${"*".repeat(Math.max(3, local.length - visible.length))}@${domain}`;
+}
+
 function dashboardHtml(snapshot) {
-  const rows = snapshot.records.map((item) => `<tr data-status="${escapeHtml(item.status)}" data-category="${escapeHtml(item.category)}"><td><span class="status ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></td><td><b>${escapeHtml(item.category)}</b><small>${escapeHtml(item.type)}</small></td><td><b>${escapeHtml(item.organization || "Independent")}</b><a href="mailto:${escapeHtml(item.email)}">${escapeHtml(item.email)}</a></td><td>${escapeHtml(item.interest || "—")}</td><td><span class="priority ${escapeHtml(item.priority)}">${escapeHtml(item.priority)}</span></td><td>${escapeHtml(item.created_at || "—")}</td></tr>`).join("");
+  const rows = snapshot.records.map((item) => {
+    const maskedEmail = maskEmail(item.email);
+    const testBadge = item.is_test ? '<span class="priority normal">TEST</span>' : "";
+    return `<tr data-status="${escapeHtml(item.status)}" data-category="${escapeHtml(item.category)}"><td><span class="status ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></td><td><b>${escapeHtml(item.category)}</b><small>${escapeHtml(item.type)}</small>${testBadge}</td><td><b>${escapeHtml(item.organization || "Independent")}</b><small>${escapeHtml(maskedEmail)}</small><a href="mailto:${escapeHtml(item.email)}" aria-label="Reply to ${escapeHtml(maskedEmail)}">Reply</a></td><td>${escapeHtml(item.interest || "—")}</td><td><span class="priority ${escapeHtml(item.priority)}">${escapeHtml(item.priority)}</span></td><td>${escapeHtml(item.created_at || "—")}</td></tr>`;
+  }).join("");
   const categoryCards = Object.entries(snapshot.categories).map(([name, count]) => `<div><span>${escapeHtml(name)}</span><strong>${count}</strong></div>`).join("");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KIDULTS Operations CRM</title><link rel="stylesheet" href="operations.css"></head><body><header><div><span>KIDULTS</span><small>Enterprise Operations</small></div><p>Generated ${escapeHtml(snapshot.generated_at)}</p></header><main><section class="hero"><div><p class="eyebrow">SPRINT 23</p><h1>Operations CRM</h1><p>Contact, newsletter and inquiry activity in one governed local dashboard.</p></div><div class="metrics"><article><span>Today</span><strong>${snapshot.counts.today}</strong></article><article><span>Unread</span><strong>${snapshot.counts.unread}</strong></article><article><span>Active</span><strong>${snapshot.counts.active}</strong></article><article><span>Archived</span><strong>${snapshot.counts.archived}</strong></article></div></section><section class="categories">${categoryCards || "<p>No active records.</p>"}</section><section class="table-wrap"><div class="toolbar"><input id="search" type="search" placeholder="Search organization, email or interest"><select id="status"><option value="">All statuses</option><option>unread</option><option>read</option><option>archived</option></select><select id="category"><option value="">All categories</option>${Object.keys(snapshot.categories).map((name) => `<option>${escapeHtml(name)}</option>`).join("")}</select></div><table><thead><tr><th>Status</th><th>Category</th><th>Contact</th><th>Interest</th><th>Priority</th><th>Received</th></tr></thead><tbody id="rows">${rows || "<tr><td colspan=6>No submissions yet.</td></tr>"}</tbody></table></section></main><script>const q=document.querySelector('#search'),s=document.querySelector('#status'),c=document.querySelector('#category');function filter(){for(const row of document.querySelectorAll('#rows tr')){const text=row.textContent.toLowerCase();row.hidden=!(text.includes(q.value.toLowerCase())&&(!s.value||row.dataset.status===s.value)&&(!c.value||row.dataset.category===c.value));}}q.addEventListener('input',filter);s.addEventListener('change',filter);c.addEventListener('change',filter);</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KIDULTS Operations CRM</title><link rel="stylesheet" href="operations.css"></head><body><header><div><span>KIDULTS</span><small>Enterprise Operations</small></div><p>Generated ${escapeHtml(snapshot.generated_at)}</p></header><main><section class="hero"><div><p class="eyebrow">SPRINT 23</p><h1>Operations CRM</h1><p>Contact, newsletter and inquiry activity in one governed local dashboard.</p></div><div class="metrics"><article><span>Today</span><strong>${snapshot.counts.today}</strong></article><article><span>Unread</span><strong>${snapshot.counts.unread}</strong></article><article><span>Active</span><strong>${snapshot.counts.active}</strong></article><article><span>Archived</span><strong>${snapshot.counts.archived}</strong></article></div></section><section class="categories">${categoryCards || "<p>No active records.</p>"}</section><section class="table-wrap"><div class="toolbar"><input id="search" type="search" placeholder="Search organization or interest"><select id="status"><option value="">All statuses</option><option>unread</option><option>read</option><option>archived</option></select><select id="category"><option value="">All categories</option>${Object.keys(snapshot.categories).map((name) => `<option>${escapeHtml(name)}</option>`).join("")}</select></div><table><thead><tr><th>Status</th><th>Category</th><th>Contact</th><th>Interest</th><th>Priority</th><th>Received</th></tr></thead><tbody id="rows">${rows || "<tr><td colspan=6>No submissions yet.</td></tr>"}</tbody></table></section></main><script>const q=document.querySelector('#search'),s=document.querySelector('#status'),c=document.querySelector('#category');function filter(){for(const row of document.querySelectorAll('#rows tr')){const text=row.textContent.toLowerCase();row.hidden=!(text.includes(q.value.toLowerCase())&&(!s.value||row.dataset.status===s.value)&&(!c.value||row.dataset.category===c.value));}}q.addEventListener('input',filter);s.addEventListener('change',filter);c.addEventListener('change',filter);</script></body></html>`;
 }
 
 export function runCrmCommand(command, env = process.env, args = process.argv.slice(3)) {
