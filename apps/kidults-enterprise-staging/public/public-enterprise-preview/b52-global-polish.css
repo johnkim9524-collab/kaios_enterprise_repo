@@ -21,11 +21,9 @@
   padding-block: 13px !important;
 }
 
-/* LIVE INTELLIGENCE: match the frozen 1px divider system and restore a restrained pulse. */
+/* LIVE INTELLIGENCE: avoid a doubled divider between metrics and status row. */
 .data-note {
-  border-top-width: 1px !important;
-  border-top-style: solid !important;
-  border-top-color: rgba(44, 53, 48, 0.16) !important;
+  border-top: 0 !important;
 }
 
 .live-pulse {
@@ -129,37 +127,39 @@
   color: rgba(255,255,255,.62);
 }
 
-/* Desktop: keep all four signal indices in one horizontal row. */
+/* The panel is narrow: a balanced 2 × 2 grid preserves readability. */
 .signal-donut-legend {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
   align-items: start;
 }
 
 .signal-donut-legend span {
   display: grid;
-  grid-template-columns: 8px minmax(0, 1fr) auto;
-  gap: 6px;
+  grid-template-columns: 9px minmax(0, 1fr) 32px;
+  gap: 7px;
   align-items: center;
   min-width: 0;
-  font-size: 10px;
-  line-height: 1.25;
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 .signal-donut-legend i {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
 }
 
 .signal-donut-legend b {
   min-width: 0;
   font-weight: 500;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .signal-donut-legend strong {
-  font-size: 10px;
+  width: 32px;
+  font-size: 11px;
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -188,27 +188,6 @@
   transform: translateY(-3px);
   border-color: rgba(222,199,149,.42);
   background: rgba(255,255,255,.025);
-}
-
-@media (max-width: 1180px) and (min-width: 761px) {
-  .signal-donut-legend {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px 18px;
-  }
-
-  .signal-donut-legend span {
-    grid-template-columns: 10px minmax(0, 1fr) auto;
-    font-size: 12px;
-  }
-
-  .signal-donut-legend i {
-    width: 10px;
-    height: 10px;
-  }
-
-  .signal-donut-legend strong {
-    font-size: 12px;
-  }
 }
 
 @media (max-width: 760px) {
@@ -244,10 +223,6 @@
   .signal-donut-legend i {
     width: 10px;
     height: 10px;
-  }
-
-  .signal-donut-legend b {
-    white-space: normal;
   }
 
   .signal-donut-legend strong {
