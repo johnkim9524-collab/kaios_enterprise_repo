@@ -14,6 +14,34 @@
     ? 'intelligence-data.preview.json'
     : 'intelligence-data.json';
 
+  function installLaunchEnhancements() {
+    if (!document.querySelector('link[data-kidults-b53]')) {
+      const stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = 'b53-launch-enhancements.css?v=1';
+      stylesheet.dataset.kidultsB53 = 'true';
+      document.head.appendChild(stylesheet);
+    }
+
+    const footer = document.querySelector('footer');
+    if (footer && !footer.querySelector('.footer-nav')) {
+      const existingCenter = footer.querySelector('span:nth-of-type(1)');
+      if (existingCenter) {
+        existingCenter.className = 'footer-nav';
+        existingCenter.innerHTML = [
+          ['Intelligence', 'intelligence.html'],
+          ['Research', 'research.html'],
+          ['Reports', 'reports.html'],
+          ['Archive', 'archive.html'],
+          ['Methodology', 'methodology.html'],
+          ['API', 'api.html'],
+          ['Providers', '../provider/'],
+          ['Company', 'company.html']
+        ].map(([label, href]) => `<a href="${href}">${label}</a>`).join('');
+      }
+    }
+  }
+
   function normalizeTrend(data) {
     const current = Number(data?.headline?.kidult100);
     const source = Array.isArray(data?.trend) ? data.trend : [];
@@ -54,7 +82,7 @@
       .map((point, index) => `<text x="${x(index)}" y="${height - 12}" text-anchor="middle">${esc(point.period)}</text>`)
       .join('');
 
-    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Kidult 100 staging trend"><defs><linearGradient id="trendFillB52" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#0b4a3b" stop-opacity=".36"/><stop offset="1" stop-color="#0b4a3b" stop-opacity=".02"/></linearGradient></defs><g class="chart-grid">${grid}</g><path d="${area}" fill="url(#trendFillB52)"/><path d="${path}" fill="none" stroke="#0b4a3b" stroke-width="3" vector-effect="non-scaling-stroke"/>${points.map((point, index) => `<circle cx="${x(index)}" cy="${y(point.value)}" r="5" fill="#f4efe7" stroke="#0b4a3b" stroke-width="3"><title>${esc(point.period)}: ${point.value}</title></circle>`).join('')}<g class="chart-labels">${labels}</g></svg>`;
+    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Kidult 100 staging trend"><defs><linearGradient id="trendFillB52" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#0b4a3b" stop-opacity=".36"/><stop offset="1" stop-color="#0b4a3b" stop-opacity=".02"/></linearGradient></defs><g class="chart-grid">${grid}</g><path d="${area}" fill="url(#trendFillB52)"/><path d="${path}" fill="none" stroke="#0b4a3b" stroke-width="3" vector-effect="non-scaling-stroke"/>${points.map((point, index) => `<circle cx="${x(index)}" cy="${y(point.value)}" r="5" fill="#f4efe7" stroke="#0b4a3b" stroke-width="3" tabindex="0"><title>${esc(point.period)}: ${point.value}</title></circle>`).join('')}<g class="chart-labels">${labels}</g></svg>`;
   }
 
   function renderSignalDonut(items) {
@@ -117,6 +145,7 @@
   }
 
   function apply(data) {
+    installLaunchEnhancements();
     const points = normalizeTrend(data);
     const trend = document.querySelector('#trend-chart');
     if (trend && points.length) trend.innerHTML = renderTrend(points);
@@ -129,6 +158,7 @@
   }
 
   async function run() {
+    installLaunchEnhancements();
     try {
       const response = await fetch(dataAsset, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
