@@ -1,0 +1,9 @@
+source_id,observed_at,category,market_activity,cultural_momentum,scarcity,canon_strength,liquidity,active_listings,region
+SRC-MKT-001,2026-08-06T00:00:00Z,Character Goods,0.78,0.82,0.63,0.71,86,34200,North America
+SRC-MKT-002,2026-08-06T00:00:00Z,Trading Cards,0.74,0.77,0.69,0.76,91,29100,East Asia
+SRC-MKT-003,2026-08-06T00:00:00Z,Art Toys,0.68,0.73,0.61,0.72,72,16400,East Asia
+SRC-MKT-004,2026-08-06T00:00:00Z,Luxury Collectibles,0.62,0.58,0.71,0.79,64,9800,Europe
+SRC-MKT-005,2026-08-06T00:00:00Z,Watches,0.61,0.55,0.74,0.82,69,12700,Europe
+SRC-MKT-006,2026-08-06T00:00:00Z,Sneakers,0.59,0.66,0.57,0.62,77,13200,North America
+SRC-MKT-007,2026-08-06T00:00:00Z,Automotive Icons,0.58,0.63,0.76,0.84,51,6400,Europe
+SRC-MKT-008,2026-08-06T00:00:00Z,Designer Fashion,0.55,0.60,0.52,0.68,62,6200,Europe
