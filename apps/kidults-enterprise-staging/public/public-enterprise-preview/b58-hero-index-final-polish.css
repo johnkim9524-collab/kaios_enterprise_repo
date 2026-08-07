@@ -1,0 +1,88 @@
+/* KIDULTS Hero Index Final Polish — final visual lock.
+   Scope: hero intelligence dial only. No data, layout, trend, rail, or card changes. */
+
+/* The hero index should speak the same editorial numeral language as the KPI rail. */
+.premium-dial__value,
+.premium-dial-card .premium-dial__value.luxury-number {
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: clamp(3.55rem, 4.35vw, 4.55rem) !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  line-height: .88 !important;
+  letter-spacing: -.045em !important;
+  font-variant-numeric: lining-nums proportional-nums !important;
+  font-feature-settings: 'lnum' 1, 'pnum' 1 !important;
+  color: #f6f1e8 !important;
+  text-shadow: none !important;
+}
+
+/* Keep the dial as a quiet framing device rather than the visual subject. */
+.premium-dial {
+  background:
+    conic-gradient(
+      from -90deg,
+      rgba(175,203,193,.82) 0%,
+      rgba(120,165,150,.78) 28%,
+      rgba(79,131,115,.74) 58%,
+      rgba(45,102,87,.70) calc(var(--dial-value, 94.8) * 1%),
+      rgba(103,142,129,.10) 0
+    ) !important;
+  box-shadow:
+    0 0 0 1px rgba(244,241,234,.035),
+    0 12px 28px rgba(0,0,0,.09) !important;
+}
+
+.premium-dial::before {
+  background:
+    radial-gradient(circle at 50% 32%, rgba(255,255,255,.026), transparent 34%),
+    linear-gradient(145deg, rgba(15,76,63,.945), rgba(5,47,39,.975) 72%) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(244,241,234,.035),
+    inset 0 -12px 20px rgba(0,0,0,.075) !important;
+}
+
+.premium-dial::after {
+  border-color: rgba(169,199,188,.075) !important;
+  opacity: .78 !important;
+}
+
+.premium-dial__content {
+  transform: translateY(-2px) !important;
+}
+
+.premium-dial__label {
+  margin-top: .66rem !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  letter-spacing: .205em !important;
+  text-transform: uppercase !important;
+  color: rgba(246,241,232,.63) !important;
+}
+
+.premium-dial__delta {
+  margin-top: .48rem !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  letter-spacing: .025em !important;
+}
+
+/* Redundant with CURRENT INTELLIGENCE STATE + Updated; remove dashboard-like badge. */
+.premium-dial__seal {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number {
+    font-size: clamp(2.95rem, 14vw, 3.62rem) !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number {
+    font-size: clamp(2.72rem, 13.5vw, 3.28rem) !important;
+  }
+}
