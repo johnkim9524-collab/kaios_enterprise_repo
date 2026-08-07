@@ -40,14 +40,17 @@
     }
   };
 
+  function appendStylesheet(href, dataAttribute) {
+    if (document.querySelector(`link[${dataAttribute}]`)) return;
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = href;
+    stylesheet.setAttribute(dataAttribute, 'true');
+    document.head.appendChild(stylesheet);
+  }
+
   function loadFinalPolish() {
-    if (!document.querySelector('link[data-b52-global-polish]')) {
-      const stylesheet = document.createElement('link');
-      stylesheet.rel = 'stylesheet';
-      stylesheet.href = 'b52-global-polish.css?v=2';
-      stylesheet.dataset.b52GlobalPolish = 'true';
-      document.head.appendChild(stylesheet);
-    }
+    appendStylesheet('b52-global-polish.css?v=2', 'data-b52-global-polish');
 
     if (!document.querySelector('script[data-b52-global-polish]')) {
       const script = document.createElement('script');
@@ -56,6 +59,11 @@
       script.dataset.b52GlobalPolish = 'true';
       document.head.appendChild(script);
     }
+
+    /* Final homepage-only editorial unification. High-specificity selectors in this
+       stylesheet intentionally override earlier frozen layers without touching the
+       rest of the portal. */
+    appendStylesheet('b54-editorial-intelligence-system.css?v=1', 'data-b54-editorial-intelligence-system');
   }
 
   if (document.readyState === 'loading') {
