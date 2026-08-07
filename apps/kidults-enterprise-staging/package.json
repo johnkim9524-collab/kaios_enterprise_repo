@@ -6,6 +6,7 @@
   "scripts": {
     "backup": "node operations.mjs backup",
     "build:intelligence": "node scripts/build-intelligence.mjs",
+    "build:portal-bridge": "node scripts/build-portal-intelligence-bridge.mjs",
     "build:operations": "node scripts/build-operations.mjs",
     "build:sprint21": "npm run build:intelligence && npm run build:operations",
     "build:sprint22": "npm run build:sprint21 && npm test",
@@ -18,6 +19,7 @@
     "build:sprint26d": "npm run collector:status && npm run normalize:status && npm run graph:status && npm run insight:status && npm test",
     "pipeline:sprint26e": "npm run collector:run && npm run normalize:run && npm run graph:build && npm run insight:build && npm run publish:build",
     "build:sprint26e": "npm run pipeline:sprint26e && npm run collector:status && npm run normalize:status && npm run graph:status && npm run insight:status && npm run publish:status && npm test",
+    "build:sprint27a": "npm run pipeline:sprint26e && npm run build:intelligence && npm run build:portal-bridge && npm test",
     "crm:build": "node operations-crm-cli.mjs build",
     "crm:status": "node operations-crm-cli.mjs status",
     "crm:read": "node operations-crm-cli.mjs mark-read",
@@ -52,7 +54,7 @@
     "retention": "node operations.mjs enforce-retention",
     "start": "node server.mjs",
     "status": "node operations.mjs status",
-    "test": "node --test server.test.mjs operations.test.mjs collector-evidence.test.mjs quality-alerts.test.mjs operations-notify.test.mjs operations-crm.test.mjs ai-operations.test.mjs executive-dashboard.test.mjs global-collector.test.mjs normalization-engine.test.mjs intelligence-graph.test.mjs insight-engine.test.mjs governed-publisher.test.mjs"
+    "test": "node --test server.test.mjs operations.test.mjs collector-evidence.test.mjs quality-alerts.test.mjs operations-notify.test.mjs operations-crm.test.mjs ai-operations.test.mjs executive-dashboard.test.mjs global-collector.test.mjs normalization-engine.test.mjs intelligence-graph.test.mjs insight-engine.test.mjs governed-publisher.test.mjs portal-intelligence-bridge.test.mjs"
   },
   "engines": {
     "node": ">=20"
