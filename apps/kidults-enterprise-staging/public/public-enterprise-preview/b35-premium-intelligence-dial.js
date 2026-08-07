@@ -5,6 +5,16 @@
     return node ? node.textContent.replace(/\s+/g, ' ').trim() : '';
   }
 
+  function ensureFinalHeroStyles() {
+    const existing = document.querySelector('link[data-b58-hero-index-final-polish-runtime]');
+    if (existing) return;
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = 'b58-hero-index-final-polish.css?v=3';
+    stylesheet.dataset.b58HeroIndexFinalPolishRuntime = 'true';
+    document.head.appendChild(stylesheet);
+  }
+
   function renderDial() {
     const card = document.querySelector(CARD_SELECTOR);
     if (!card || card.dataset.premiumDialReady === 'true') return false;
@@ -30,13 +40,6 @@
     valueNode.textContent = numericValue.toFixed(1);
     valueNode.removeAttribute('style');
 
-    // Match the editorial numeral language used by the Core KPI rail.
-    // Do not use inline !important sizing here; the final B58 layer owns the visual lock.
-    valueNode.style.fontFamily = "Georgia, 'Times New Roman', serif";
-    valueNode.style.fontWeight = '400';
-    valueNode.style.fontStyle = 'normal';
-    valueNode.style.fontVariantNumeric = 'lining-nums proportional-nums';
-
     const label = document.createElement('span');
     label.className = 'premium-dial__label';
     label.textContent = labelNode ? plainText(labelNode) : 'Kidult 100 Index';
@@ -58,6 +61,11 @@
     card.classList.add('premium-dial-card');
     card.dataset.premiumDialReady = 'true';
     document.documentElement.dataset.heroMetricSystem = 'premium-dial-b35';
+
+    /* Earlier enhancement layers append their stylesheets dynamically after the
+       static head. Re-append B58 at runtime so the final approved hero numeral
+       remains the last cascade layer. */
+    ensureFinalHeroStyles();
     return true;
   }
 
