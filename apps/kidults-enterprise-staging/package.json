@@ -1,6 +1,6 @@
 {
   "name": "@kaios/kidults-enterprise-staging",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,6 +16,8 @@
     "build:sprint26b": "npm run collector:status && npm run normalize:status && npm test",
     "build:sprint26c": "npm run collector:status && npm run normalize:status && npm run graph:status && npm test",
     "build:sprint26d": "npm run collector:status && npm run normalize:status && npm run graph:status && npm run insight:status && npm test",
+    "pipeline:sprint26e": "npm run collector:run && npm run normalize:run && npm run graph:build && npm run insight:build && npm run publish:build",
+    "build:sprint26e": "npm run pipeline:sprint26e && npm run collector:status && npm run normalize:status && npm run graph:status && npm run insight:status && npm run publish:status && npm test",
     "crm:build": "node operations-crm-cli.mjs build",
     "crm:status": "node operations-crm-cli.mjs status",
     "crm:read": "node operations-crm-cli.mjs mark-read",
@@ -39,6 +41,8 @@
     "graph:status": "node intelligence-graph.mjs status",
     "insight:build": "node insight-engine.mjs build",
     "insight:status": "node insight-engine.mjs status",
+    "publish:build": "node governed-publisher.mjs build",
+    "publish:status": "node governed-publisher.mjs status",
     "export:conversions": "node operations.mjs export-conversions",
     "notify:once": "node operations-notify.mjs once",
     "notify:watch": "node operations-notify.mjs watch",
@@ -48,7 +52,7 @@
     "retention": "node operations.mjs enforce-retention",
     "start": "node server.mjs",
     "status": "node operations.mjs status",
-    "test": "node --test server.test.mjs operations.test.mjs collector-evidence.test.mjs quality-alerts.test.mjs operations-notify.test.mjs operations-crm.test.mjs ai-operations.test.mjs executive-dashboard.test.mjs global-collector.test.mjs normalization-engine.test.mjs intelligence-graph.test.mjs insight-engine.test.mjs"
+    "test": "node --test server.test.mjs operations.test.mjs collector-evidence.test.mjs quality-alerts.test.mjs operations-notify.test.mjs operations-crm.test.mjs ai-operations.test.mjs executive-dashboard.test.mjs global-collector.test.mjs normalization-engine.test.mjs intelligence-graph.test.mjs insight-engine.test.mjs governed-publisher.test.mjs"
   },
   "engines": {
     "node": ">=20"
