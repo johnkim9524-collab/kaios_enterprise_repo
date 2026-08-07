@@ -13,7 +13,123 @@
     })[character]);
   }
 
+  function ensureQuietLuxuryStyles() {
+    if (document.querySelector('[data-governed-homepage-style]')) return;
+
+    const style = document.createElement('style');
+    style.dataset.governedHomepageStyle = 'true';
+    style.textContent = `
+      .data-note {
+        min-height: 52px !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        align-items: center !important;
+      }
+
+      .data-note strong,
+      .data-note span,
+      .data-note [data-status-label] {
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+        letter-spacing: .11em !important;
+      }
+
+      .governed-homepage-metrics {
+        min-height: 0 !important;
+        height: auto !important;
+        align-items: stretch !important;
+      }
+
+      .governed-homepage-metrics > div {
+        min-height: 118px !important;
+        padding: 24px 30px 22px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        gap: 10px !important;
+      }
+
+      .governed-homepage-metrics strong {
+        margin: 0 !important;
+        font-size: clamp(25px, 2.15vw, 34px) !important;
+        line-height: .96 !important;
+        font-weight: 400 !important;
+        letter-spacing: -.025em !important;
+      }
+
+      .governed-homepage-metrics [data-governed-production] {
+        font-size: clamp(20px, 1.75vw, 28px) !important;
+        letter-spacing: .015em !important;
+      }
+
+      .governed-homepage-metrics [data-governed-updated] {
+        font-size: clamp(19px, 1.6vw, 26px) !important;
+        line-height: 1.08 !important;
+        letter-spacing: -.012em !important;
+        white-space: nowrap !important;
+      }
+
+      .governed-homepage-metrics span {
+        margin: 0 !important;
+        font-size: 10px !important;
+        line-height: 1.25 !important;
+        font-weight: 500 !important;
+        letter-spacing: .115em !important;
+        text-transform: uppercase !important;
+        opacity: .68 !important;
+      }
+
+      @media (max-width: 900px) {
+        .governed-homepage-metrics > div {
+          min-height: 102px !important;
+          padding: 20px 22px 18px !important;
+        }
+
+        .governed-homepage-metrics strong {
+          font-size: 27px !important;
+        }
+
+        .governed-homepage-metrics [data-governed-production] {
+          font-size: 22px !important;
+        }
+
+        .governed-homepage-metrics [data-governed-updated] {
+          font-size: 20px !important;
+          white-space: normal !important;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .data-note {
+          min-height: 48px !important;
+        }
+
+        .governed-homepage-metrics > div {
+          min-height: 92px !important;
+          padding: 18px 16px 16px !important;
+        }
+
+        .governed-homepage-metrics strong {
+          font-size: 24px !important;
+        }
+
+        .governed-homepage-metrics [data-governed-production],
+        .governed-homepage-metrics [data-governed-updated] {
+          font-size: 18px !important;
+        }
+
+        .governed-homepage-metrics span {
+          font-size: 9px !important;
+          letter-spacing: .09em !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function ensurePanel() {
+    ensureQuietLuxuryStyles();
+
     let panel = document.querySelector('[data-governed-homepage]');
     if (panel) return panel;
 
