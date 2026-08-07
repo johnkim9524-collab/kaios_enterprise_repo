@@ -19,25 +19,39 @@
     const style = document.createElement('style');
     style.dataset.governedHomepageStyle = 'true';
     style.textContent = `
-      /* Secondary governed state: one quiet editorial rail, not a second KPI dashboard. */
+      /* 9.x editorial-luxury refinement: preserve the portal, quiet only this governed layer. */
       .data-note {
-        min-height: 46px !important;
-        padding: 0 32px !important;
+        min-height: 42px !important;
+        padding: 0 40px !important;
         display: flex !important;
         align-items: center !important;
-        border-top: 1px solid rgba(16, 39, 33, .11) !important;
-        border-bottom: 1px solid rgba(16, 39, 33, .11) !important;
-        background: rgba(247, 243, 234, .58) !important;
+        gap: 10px !important;
+        border-top: 1px solid rgba(16, 39, 33, .10) !important;
+        border-bottom: 0 !important;
+        background: transparent !important;
+      }
+
+      .data-note .live-pulse {
+        width: 7px !important;
+        height: 7px !important;
+        box-shadow: 0 0 0 5px rgba(87, 209, 170, .13) !important;
       }
 
       .data-note strong,
       .data-note span,
       .data-note [data-status-label] {
-        font-size: 10px !important;
+        font-size: 9px !important;
         line-height: 1 !important;
         font-weight: 600 !important;
-        letter-spacing: .12em !important;
+        letter-spacing: .14em !important;
         text-transform: uppercase !important;
+      }
+
+      .data-note [data-status-label] {
+        margin-left: auto !important;
+        font-weight: 500 !important;
+        letter-spacing: .08em !important;
+        opacity: .46 !important;
       }
 
       .governed-homepage-metrics {
@@ -45,57 +59,94 @@
         height: auto !important;
         display: grid !important;
         grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-        align-items: stretch !important;
-        border-bottom: 1px solid rgba(16, 39, 33, .11) !important;
-        background: rgba(247, 243, 234, .34) !important;
+        align-items: center !important;
+        padding: 0 40px !important;
+        border-top: 1px solid rgba(16, 39, 33, .08) !important;
+        border-bottom: 1px solid rgba(16, 39, 33, .10) !important;
+        background: transparent !important;
       }
 
       .governed-homepage-metrics > div {
+        position: relative !important;
         min-width: 0 !important;
-        min-height: 82px !important;
-        padding: 17px 30px 15px !important;
+        min-height: 64px !important;
+        padding: 0 28px !important;
         display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        gap: 8px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 14px !important;
         border: 0 !important;
-        border-right: 1px solid rgba(16, 39, 33, .10) !important;
         background: transparent !important;
         box-shadow: none !important;
       }
 
-      .governed-homepage-metrics > div:last-child {
-        border-right: 0 !important;
+      .governed-homepage-metrics > div:first-child {
+        padding-left: 0 !important;
       }
 
-      /* Every governed value uses one typographic scale. */
+      .governed-homepage-metrics > div:last-child {
+        padding-right: 0 !important;
+      }
+
+      .governed-homepage-metrics > div:not(:last-child)::after {
+        content: '' !important;
+        position: absolute !important;
+        right: 0 !important;
+        top: 20px !important;
+        width: 1px !important;
+        height: 24px !important;
+        background: rgba(16, 39, 33, .11) !important;
+      }
+
       .governed-homepage-metrics strong,
       .governed-homepage-metrics [data-governed-production],
       .governed-homepage-metrics [data-governed-updated] {
         margin: 0 !important;
-        font-family: inherit !important;
-        font-size: 20px !important;
-        line-height: 1.05 !important;
-        font-weight: 500 !important;
-        letter-spacing: -.012em !important;
+        font-family: Georgia, 'Times New Roman', serif !important;
+        font-size: 16px !important;
+        line-height: 1 !important;
+        font-weight: 400 !important;
+        letter-spacing: -.018em !important;
         white-space: nowrap !important;
-        color: #102721 !important;
+        color: #0b332a !important;
       }
 
       .governed-homepage-metrics span {
+        order: -1 !important;
         margin: 0 !important;
-        font-size: 9px !important;
-        line-height: 1.15 !important;
+        font-size: 8px !important;
+        line-height: 1 !important;
         font-weight: 600 !important;
-        letter-spacing: .105em !important;
+        letter-spacing: .13em !important;
         text-transform: uppercase !important;
-        opacity: .58 !important;
+        opacity: .64 !important;
         color: #102721 !important;
+        white-space: nowrap !important;
       }
 
       .governed-homepage-metrics[data-governed-state='review'] [data-governed-production] {
-        font-weight: 600 !important;
-        letter-spacing: .04em !important;
+        font-weight: 400 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+      }
+
+      .governed-homepage-metrics [data-governed-production]::first-letter {
+        text-transform: uppercase !important;
+      }
+
+      @media (max-width: 1100px) {
+        .governed-homepage-metrics {
+          padding: 0 28px !important;
+          grid-template-columns: repeat(5, minmax(145px, 1fr)) !important;
+          overflow-x: auto !important;
+          overscroll-behavior-x: contain !important;
+          -webkit-overflow-scrolling: touch !important;
+        }
+
+        .governed-homepage-metrics > div {
+          padding: 0 20px !important;
+        }
       }
 
       @media (max-width: 900px) {
@@ -104,56 +155,59 @@
         }
 
         .governed-homepage-metrics {
-          grid-template-columns: repeat(5, minmax(118px, 1fr)) !important;
-          overflow-x: auto !important;
-          overscroll-behavior-x: contain !important;
-          -webkit-overflow-scrolling: touch !important;
+          padding: 0 22px !important;
+          grid-template-columns: repeat(5, minmax(138px, 1fr)) !important;
         }
 
         .governed-homepage-metrics > div {
-          min-height: 76px !important;
-          padding: 15px 20px 14px !important;
+          min-height: 60px !important;
+          gap: 11px !important;
         }
 
         .governed-homepage-metrics strong,
         .governed-homepage-metrics [data-governed-production],
         .governed-homepage-metrics [data-governed-updated] {
-          font-size: 18px !important;
+          font-size: 15px !important;
         }
       }
 
       @media (max-width: 620px) {
         .data-note {
-          min-height: 44px !important;
+          min-height: 40px !important;
           padding: 0 16px !important;
         }
 
         .data-note strong,
         .data-note span,
         .data-note [data-status-label] {
-          font-size: 9px !important;
-          letter-spacing: .10em !important;
+          font-size: 8px !important;
+          letter-spacing: .11em !important;
         }
 
         .governed-homepage-metrics {
-          grid-template-columns: repeat(5, minmax(112px, 1fr)) !important;
+          padding: 0 16px !important;
+          grid-template-columns: repeat(5, minmax(132px, 1fr)) !important;
         }
 
         .governed-homepage-metrics > div {
-          min-height: 72px !important;
-          padding: 14px 16px 12px !important;
-          gap: 6px !important;
+          min-height: 58px !important;
+          padding: 0 16px !important;
+          gap: 9px !important;
+        }
+
+        .governed-homepage-metrics > div:first-child {
+          padding-left: 0 !important;
         }
 
         .governed-homepage-metrics strong,
         .governed-homepage-metrics [data-governed-production],
         .governed-homepage-metrics [data-governed-updated] {
-          font-size: 17px !important;
+          font-size: 14px !important;
         }
 
         .governed-homepage-metrics span {
-          font-size: 8px !important;
-          letter-spacing: .085em !important;
+          font-size: 7px !important;
+          letter-spacing: .10em !important;
         }
       }
     `;
@@ -177,8 +231,8 @@
       <div><strong data-governed-publish>—</strong><span>Publish candidates</span></div>
       <div><strong data-governed-held>—</strong><span>Held for review</span></div>
       <div><strong data-governed-feed>—</strong><span>Executive feed</span></div>
-      <div><strong data-governed-production>—</strong><span>Production state</span></div>
-      <div><strong data-governed-updated>—</strong><span>Governed update</span></div>
+      <div><strong data-governed-production>—</strong><span>Production</span></div>
+      <div><strong data-governed-updated>—</strong><span>Updated</span></div>
     `;
     anchor.insertAdjacentElement('afterend', panel);
     return panel;
@@ -213,7 +267,7 @@
     set('[data-governed-publish]', String(Number(counts.publish_candidates || 0)));
     set('[data-governed-held]', String(Number(counts.held || 0)));
     set('[data-governed-feed]', String(Number(counts.executive_feed || 0)));
-    set('[data-governed-production]', authorized ? 'AUTHORIZED' : 'REVIEW');
+    set('[data-governed-production]', authorized ? 'Authorized' : 'Review');
     set('[data-governed-updated]', generated && Number.isFinite(generated.getTime())
       ? generated.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
       : '—');
@@ -247,7 +301,7 @@
       render(data);
     } catch (error) {
       console.warn('Governed homepage intelligence unavailable', error);
-      publishUnavailable('REVIEW');
+      publishUnavailable('Review');
     }
   }
 
