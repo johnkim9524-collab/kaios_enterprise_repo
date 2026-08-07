@@ -5,6 +5,10 @@
     return node ? node.textContent.replace(/\s+/g, ' ').trim() : '';
   }
 
+  function removeHeroStatusLine(card) {
+    card.querySelectorAll('[data-status-label], small').forEach((node) => node.remove());
+  }
+
   function ensureFinalHeroStyles() {
     let stylesheet = document.querySelector('link[data-b58-hero-index-final-polish-runtime]');
     if (!stylesheet) {
@@ -32,6 +36,7 @@
 
     renderEditorialNumber(valueNode, numericValue);
     card.querySelectorAll('.premium-dial__seal').forEach((node) => node.remove());
+    removeHeroStatusLine(card);
     card.dataset.premiumDialReady = 'true';
     document.documentElement.dataset.heroMetricSystem = 'premium-dial-category-numeral-v8';
     ensureFinalHeroStyles();
@@ -83,6 +88,7 @@
     else card.prepend(dial);
 
     card.classList.add('premium-dial-card');
+    removeHeroStatusLine(card);
     card.dataset.premiumDialReady = 'true';
     document.documentElement.dataset.heroMetricSystem = 'premium-dial-category-numeral-v8';
     ensureFinalHeroStyles();
