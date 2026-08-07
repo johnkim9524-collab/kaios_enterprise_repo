@@ -11,7 +11,7 @@
   document.head.appendChild(hardeningCss);
 
   const governedHomepageScript = document.createElement('script');
-  governedHomepageScript.src = 'b53-homepage-live-intelligence.js?v=1';
+  governedHomepageScript.src = 'b53-homepage-live-intelligence.js?v=2';
   governedHomepageScript.defer = true;
   document.head.appendChild(governedHomepageScript);
 
