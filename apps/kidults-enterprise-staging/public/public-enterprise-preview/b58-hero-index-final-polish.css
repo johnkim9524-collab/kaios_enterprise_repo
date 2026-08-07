@@ -1,7 +1,7 @@
-/* KIDULTS Hero Index Final Polish — numeral lock v8.
-   Scope: hero intelligence dial only. Preserve the existing donut, data binding,
-   label, delta, layout and responsive behavior. The Hero value now uses the
-   exact Category Intelligence numeral language instead of a synthetic split. */
+/* KIDULTS Hero Index Final Polish — premium dial v9.
+   Scope: hero intelligence dial only. Preserve data binding, numeral, labels,
+   panel layout and responsive behavior. Use one cleaner, slightly wider sage
+   progress ring with no secondary inner-outline ring. */
 
 .premium-dial__value,
 .premium-dial-card .premium-dial__value,
@@ -24,8 +24,6 @@ main .hero aside strong[data-k100] {
   font-synthesis:none !important;
 }
 
-/* Neutralize the legacy split-number construction if an older cached runtime
-   leaves its spans behind. v8 itself renders one continuous value (e.g. 61.7). */
 .premium-dial__value .premium-dial__integer,
 .premium-dial__value .premium-dial__decimal {
   display:inline !important;
@@ -36,35 +34,35 @@ main .hero aside strong[data-k100] {
   transform:none !important;
 }
 
-/* Slightly lighter sage/mint dial so the instrument separates from the deep
-   forest hero panel without changing the panel itself. */
+/* Single premium ring: a little wider than v8, but deliberately less bright
+   than the concept mockup so it stays editorial rather than consumer-like. */
 .premium-dial {
   background:
     conic-gradient(
       from -90deg,
-      rgba(190,220,210,.92) 0%,
-      rgba(151,195,180,.88) 28%,
-      rgba(111,164,146,.84) 58%,
-      rgba(75,137,117,.80) calc(var(--dial-value,94.8) * 1%),
-      rgba(132,174,159,.16) 0
+      rgba(181,211,201,.88) 0%,
+      rgba(145,188,174,.85) 28%,
+      rgba(108,160,143,.82) 58%,
+      rgba(73,133,114,.78) calc(var(--dial-value,94.8) * 1%),
+      rgba(126,166,151,.14) 0
     ) !important;
   box-shadow:
-    0 0 0 1px rgba(244,241,234,.055),
-    0 12px 28px rgba(0,0,0,.08) !important;
+    0 0 0 1px rgba(244,241,234,.045),
+    0 11px 25px rgba(0,0,0,.075) !important;
 }
 
+/* Reduce the centre mask to widen the visible ring while keeping the centre
+   continuous with the panel. */
 .premium-dial::before {
-  background:
-    radial-gradient(circle at 50% 32%,rgba(255,255,255,.04),transparent 34%),
-    linear-gradient(145deg,rgba(17,82,67,.94),rgba(6,52,43,.97) 72%) !important;
-  box-shadow:
-    inset 0 0 0 1px rgba(244,241,234,.045),
-    inset 0 -12px 20px rgba(0,0,0,.065) !important;
+  inset:17% !important;
+  background:linear-gradient(145deg,rgba(16,78,64,.96),rgba(6,51,42,.985) 72%) !important;
+  box-shadow:none !important;
 }
 
+/* Remove the secondary inner outline completely. */
 .premium-dial::after {
-  border-color:rgba(191,218,208,.12) !important;
-  opacity:.86 !important;
+  display:none !important;
+  content:none !important;
 }
 
 .premium-dial__content {
