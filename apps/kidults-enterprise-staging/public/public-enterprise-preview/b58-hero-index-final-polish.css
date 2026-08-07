@@ -1,18 +1,16 @@
 /* KIDULTS Hero Index Final Polish — final visual lock.
    Scope: hero intelligence dial only. No data, layout, trend, rail, or card changes. */
 
-/* The hero index should speak the same editorial numeral language as the KPI rail.
-   The live hero keeps the original data-k100 node inside the hero aside, while some
-   earlier dial layers may wrap it with premium-dial classes. Cover both DOM forms. */
+/* Match the hero index numeral to the locked Core KPI editorial numeral system. */
 .premium-dial__value,
-.premium-dial-card .premium-dial__value.luxury-number,
+.premium-dial-card .premium-dial__value,
 main .hero > aside > strong[data-k100],
 main .hero aside strong[data-k100] {
   font-family: Georgia, 'Times New Roman', serif !important;
-  font-size: clamp(3.55rem, 4.35vw, 4.55rem) !important;
+  font-size: clamp(38px, 3vw, 48px) !important;
   font-weight: 400 !important;
   font-style: normal !important;
-  line-height: .88 !important;
+  line-height: .9 !important;
   letter-spacing: -.045em !important;
   font-variant-numeric: lining-nums proportional-nums !important;
   font-feature-settings: 'lnum' 1, 'pnum' 1 !important;
@@ -72,25 +70,24 @@ main .hero aside strong[data-k100] {
   letter-spacing: .025em !important;
 }
 
-/* Redundant with CURRENT INTELLIGENCE STATE + Updated; remove dashboard-like badge. */
 .premium-dial__seal {
   display: none !important;
 }
 
 @media (max-width: 760px) {
   .premium-dial__value,
-  .premium-dial-card .premium-dial__value.luxury-number,
+  .premium-dial-card .premium-dial__value,
   main .hero > aside > strong[data-k100],
   main .hero aside strong[data-k100] {
-    font-size: clamp(2.95rem, 14vw, 3.62rem) !important;
+    font-size: 31px !important;
   }
 }
 
 @media (max-width: 430px) {
   .premium-dial__value,
-  .premium-dial-card .premium-dial__value.luxury-number,
+  .premium-dial-card .premium-dial__value,
   main .hero > aside > strong[data-k100],
   main .hero aside strong[data-k100] {
-    font-size: clamp(2.72rem, 13.5vw, 3.28rem) !important;
+    font-size: 31px !important;
   }
 }
