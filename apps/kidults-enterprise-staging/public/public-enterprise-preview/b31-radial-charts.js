@@ -58,7 +58,6 @@
     const { items, total } = normalize(rawItems);
     const stops = conicStops(items, total);
     const leading = items[0] || { region: '—', value: 0 };
-
     return `<div class="radial-layout geography-radial">
       <div class="semi-wrap">
         <div class="semi-donut" style="background:conic-gradient(from 270deg, ${stops}, transparent 100% 100%)" role="img" aria-label="Regional signal share: ${items.map((item) => `${item.region} ${item.value}%`).join(', ')}.">
@@ -92,10 +91,10 @@
   }
 
   function loadB35() {
-    loadStylesheet('b35-premium-intelligence-dial.css', 'b35-premium-dial');
+    loadStylesheet('b35-premium-intelligence-dial.css?v=6', 'b35-premium-dial');
     if (!document.querySelector('script[data-b35-premium-dial]')) {
       const script = document.createElement('script');
-      script.src = 'b35-premium-intelligence-dial.js';
+      script.src = 'b35-premium-intelligence-dial.js?v=6';
       script.defer = true;
       script.dataset.b35PremiumDial = 'true';
       document.head.appendChild(script);
