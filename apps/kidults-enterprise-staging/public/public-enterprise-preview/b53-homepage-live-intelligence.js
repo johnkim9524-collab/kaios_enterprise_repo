@@ -41,6 +41,22 @@
     });
   }
 
+  function formatUpdated(value) {
+    const date = value ? new Date(value) : null;
+    return date && Number.isFinite(date.getTime())
+      ? date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : '—';
+  }
+
+  async function loadVisibleSnapshotTimestamp() {
+    const asset = window.KIDULTS_DATA_ASSET || 'intelligence-data.json';
+    const response = await fetch(asset, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Snapshot HTTP ${response.status}`);
+    const snapshot = await response.json();
+    if (!snapshot?.updated) throw new Error('Snapshot timestamp unavailable');
+    return snapshot.updated;
+  }
+
   function publishUnavailable(message = 'Unavailable') {
     const panel = ensurePanel();
     if (!panel) return;
@@ -52,22 +68,19 @@
     set('[data-governed-updated]', '—');
   }
 
-  function render(data) {
+  function render(data, visibleUpdated) {
     const panel = ensurePanel();
     if (!panel) return;
 
     const counts = data?.counts || {};
     const authorized = data?.production_promotion_authorized === true;
-    const generated = data?.generated_at ? new Date(data.generated_at) : null;
 
     panel.dataset.governedState = authorized ? 'authorized' : 'review';
     set('[data-governed-publish]', String(Number(counts.publish_candidates || 0)));
     set('[data-governed-held]', String(Number(counts.held || 0)));
     set('[data-governed-feed]', String(Number(counts.executive_feed || 0)));
     set('[data-governed-production]', authorized ? 'Authorized' : 'Review');
-    set('[data-governed-updated]', generated && Number.isFinite(generated.getTime())
-      ? generated.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-      : '—');
+    set('[data-governed-updated]', formatUpdated(visibleUpdated));
 
     const held = Array.isArray(data?.held) ? data.held : [];
     panel.title = held.length
@@ -76,7 +89,8 @@
 
     window.KIDULTS_GOVERNED_HOMEPAGE = Object.freeze({
       schemaVersion: data?.schema_version || null,
-      generatedAt: data?.generated_at || null,
+      bridgeGeneratedAt: data?.generated_at || null,
+      visibleSnapshotUpdatedAt: visibleUpdated || null,
       productionPromotionAuthorized: authorized,
       counts: { ...counts }
     });
@@ -89,13 +103,16 @@
   async function load() {
     ensurePanel();
     try {
-      const response = await fetch(API_PATH, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
+      const [bridgeResponse, visibleUpdated] = await Promise.all([
+        fetch(API_PATH, { cache: 'no-store' }),
+        loadVisibleSnapshotTimestamp()
+      ]);
+      if (!bridgeResponse.ok) throw new Error(`HTTP ${bridgeResponse.status}`);
+      const data = await bridgeResponse.json();
       if (data?.schema_version !== 'kidults.portal-bridge.v1') {
         throw new Error('Unsupported governed portal bridge schema');
       }
-      render(data);
+      render(data, visibleUpdated);
     } catch (error) {
       console.warn('Governed homepage intelligence unavailable', error);
       publishUnavailable('Review');
