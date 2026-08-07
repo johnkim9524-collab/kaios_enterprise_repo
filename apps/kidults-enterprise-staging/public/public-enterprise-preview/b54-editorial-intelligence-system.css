@@ -10,6 +10,8 @@
   --ki-line:rgba(16,22,19,.12);
   --ki-line-soft:rgba(16,22,19,.075);
   --ki-paper:#f6f1e8;
+  --ki-panel-bright:#fbf8f2;
+  --ki-panel-side:#faf6ee;
 }
 
 /* =========================================================
@@ -252,11 +254,20 @@ main .data-section>.trend-summary-strip small {
   color:var(--ki-muted) !important;
 }
 
-/* Chart keeps its existing structure; only remove the heavy card effect. */
+/* Brighter analytical surface, aligned with the visualization cards. */
 main .data-section .chart-panel {
-  border:1px solid var(--ki-line-soft) !important;
-  background:rgba(255,255,255,.08) !important;
+  border:1px solid rgba(154,113,53,.18) !important;
+  background:var(--ki-panel-bright) !important;
   box-shadow:none !important;
+}
+
+main .data-section .chart-panel .trend-chart {
+  background:transparent !important;
+}
+
+main .data-section .chart-panel .chart-side {
+  background:var(--ki-panel-side) !important;
+  border-left:1px solid rgba(154,113,53,.14) !important;
 }
 
 @media(max-width:1100px){
