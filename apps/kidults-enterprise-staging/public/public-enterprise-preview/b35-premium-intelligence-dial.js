@@ -30,11 +30,12 @@
     valueNode.textContent = numericValue.toFixed(1);
     valueNode.removeAttribute('style');
 
-    // Final approved scale. Inline !important prevents later dynamically loaded
-    // dial styles from restoring the oversized value.
-    valueNode.style.setProperty('font-size', 'clamp(2.75rem, 3.55vw, 3.55rem)', 'important');
-    valueNode.style.setProperty('line-height', '0.94', 'important');
-    valueNode.style.setProperty('letter-spacing', '-0.025em', 'important');
+    // Match the editorial numeral language used by the Core KPI rail.
+    // Do not use inline !important sizing here; the final B58 layer owns the visual lock.
+    valueNode.style.fontFamily = "Georgia, 'Times New Roman', serif";
+    valueNode.style.fontWeight = '400';
+    valueNode.style.fontStyle = 'normal';
+    valueNode.style.fontVariantNumeric = 'lining-nums proportional-nums';
 
     const label = document.createElement('span');
     label.className = 'premium-dial__label';
@@ -44,11 +45,7 @@
     delta.className = 'premium-dial__delta';
     delta.textContent = deltaNode ? plainText(deltaNode) : '';
 
-    const seal = document.createElement('span');
-    seal.className = 'premium-dial__seal';
-    seal.textContent = 'Current Edition';
-
-    content.append(valueNode, label, delta, seal);
+    content.append(valueNode, label, delta);
     dial.appendChild(content);
 
     if (labelNode) labelNode.remove();
