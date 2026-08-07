@@ -13,16 +13,15 @@
       stylesheet.dataset.b58HeroIndexFinalPolishRuntime = 'true';
       document.head.appendChild(stylesheet);
     }
-    stylesheet.href = 'b58-hero-index-final-polish.css?v=6';
+    stylesheet.href = 'b58-hero-index-final-polish.css?v=7';
   }
 
   function renderEditorialNumber(node, value) {
     if (!node || !Number.isFinite(value)) return;
     const formatted = Number(value).toFixed(1);
-    const [integer, decimal] = formatted.split('.');
     node.className = 'premium-dial__value premium-dial__value--editorial';
     node.setAttribute('aria-label', formatted);
-    node.innerHTML = `<span class="premium-dial__integer">${integer}</span><span class="premium-dial__decimal">.${decimal}</span>`;
+    node.textContent = formatted;
     node.removeAttribute('style');
   }
 
@@ -34,7 +33,7 @@
     renderEditorialNumber(valueNode, numericValue);
     card.querySelectorAll('.premium-dial__seal').forEach((node) => node.remove());
     card.dataset.premiumDialReady = 'true';
-    document.documentElement.dataset.heroMetricSystem = 'premium-dial-b35-editorial-v6';
+    document.documentElement.dataset.heroMetricSystem = 'premium-dial-category-numeral-v7';
     ensureFinalHeroStyles();
     return true;
   }
@@ -85,7 +84,7 @@
 
     card.classList.add('premium-dial-card');
     card.dataset.premiumDialReady = 'true';
-    document.documentElement.dataset.heroMetricSystem = 'premium-dial-b35-editorial-v6';
+    document.documentElement.dataset.heroMetricSystem = 'premium-dial-category-numeral-v7';
     ensureFinalHeroStyles();
     return true;
   }
