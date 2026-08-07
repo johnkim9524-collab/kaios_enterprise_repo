@@ -6,16 +6,18 @@
   }
 
   function ensureFinalHeroStyles() {
-    const existing = document.querySelector('link[data-b58-hero-index-final-polish-runtime]');
-    if (existing) return;
-    const stylesheet = document.createElement('link');
-    stylesheet.rel = 'stylesheet';
-    stylesheet.href = 'b58-hero-index-final-polish.css?v=4';
-    stylesheet.dataset.b58HeroIndexFinalPolishRuntime = 'true';
-    document.head.appendChild(stylesheet);
+    let stylesheet = document.querySelector('link[data-b58-hero-index-final-polish-runtime]');
+    if (!stylesheet) {
+      stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.dataset.b58HeroIndexFinalPolishRuntime = 'true';
+      document.head.appendChild(stylesheet);
+    }
+    stylesheet.href = 'b58-hero-index-final-polish.css?v=6';
   }
 
   function renderEditorialNumber(node, value) {
+    if (!node || !Number.isFinite(value)) return;
     const formatted = Number(value).toFixed(1);
     const [integer, decimal] = formatted.split('.');
     node.className = 'premium-dial__value premium-dial__value--editorial';
@@ -24,15 +26,31 @@
     node.removeAttribute('style');
   }
 
+  function upgradeExistingDial(card) {
+    const valueNode = card.querySelector('.premium-dial__value, [data-k100]');
+    const numericValue = Number.parseFloat(plainText(valueNode));
+    if (!valueNode || !Number.isFinite(numericValue)) return false;
+
+    renderEditorialNumber(valueNode, numericValue);
+    card.querySelectorAll('.premium-dial__seal').forEach((node) => node.remove());
+    card.dataset.premiumDialReady = 'true';
+    document.documentElement.dataset.heroMetricSystem = 'premium-dial-b35-editorial-v6';
+    ensureFinalHeroStyles();
+    return true;
+  }
+
   function renderDial() {
     const card = document.querySelector(CARD_SELECTOR);
-    if (!card || card.dataset.premiumDialReady === 'true') return false;
+    if (!card) return false;
+
+    if (card.dataset.premiumDialReady === 'true' || card.querySelector('.premium-dial')) {
+      return upgradeExistingDial(card);
+    }
 
     const valueNode = card.querySelector('[data-k100]');
     const deltaNode = card.querySelector('[data-change]');
     const labelNode = valueNode ? valueNode.nextElementSibling : null;
-    const rawValue = plainText(valueNode);
-    const numericValue = Number.parseFloat(rawValue);
+    const numericValue = Number.parseFloat(plainText(valueNode));
 
     if (!valueNode || !Number.isFinite(numericValue)) return false;
 
@@ -67,8 +85,7 @@
 
     card.classList.add('premium-dial-card');
     card.dataset.premiumDialReady = 'true';
-    document.documentElement.dataset.heroMetricSystem = 'premium-dial-b35-editorial';
-
+    document.documentElement.dataset.heroMetricSystem = 'premium-dial-b35-editorial-v6';
     ensureFinalHeroStyles();
     return true;
   }
