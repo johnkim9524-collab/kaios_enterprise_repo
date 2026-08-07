@@ -1,24 +1,49 @@
 /* KIDULTS Hero Index Final Polish — final visual lock.
    Scope: hero intelligence dial only. No data, layout, trend, rail, or card changes. */
 
-/* Match the hero index numeral to the locked Core KPI editorial numeral system. */
 .premium-dial__value,
 .premium-dial-card .premium-dial__value,
 main .hero > aside > strong[data-k100],
 main .hero aside strong[data-k100] {
+  display:inline-flex !important;
+  align-items:flex-start !important;
+  justify-content:center !important;
   font-family: Georgia, 'Times New Roman', serif !important;
-  font-size: clamp(38px, 3vw, 48px) !important;
+  font-size: clamp(40px, 3.15vw, 50px) !important;
   font-weight: 400 !important;
   font-style: normal !important;
-  line-height: .9 !important;
-  letter-spacing: -.045em !important;
+  line-height: .86 !important;
+  letter-spacing: -.065em !important;
   font-variant-numeric: lining-nums proportional-nums !important;
   font-feature-settings: 'lnum' 1, 'pnum' 1 !important;
   color: #f6f1e8 !important;
   text-shadow: none !important;
+  white-space: nowrap !important;
+  text-rendering: geometricPrecision !important;
 }
 
-/* Keep the dial as a quiet framing device rather than the visual subject. */
+/* True editorial construction: integer carries the visual weight; decimal is a
+   smaller annotation, matching the intended luxury KPI numeral language. */
+.premium-dial__value .premium-dial__integer {
+  display:inline-block !important;
+  font:inherit !important;
+  font-size:1em !important;
+  line-height:.86 !important;
+  letter-spacing:-.075em !important;
+}
+
+.premium-dial__value .premium-dial__decimal {
+  display:inline-block !important;
+  font-family:inherit !important;
+  font-size:.48em !important;
+  font-weight:400 !important;
+  line-height:1 !important;
+  letter-spacing:-.035em !important;
+  margin-left:.14em !important;
+  transform:translateY(.16em) !important;
+  transform-origin:left top !important;
+}
+
 .premium-dial {
   background:
     conic-gradient(
@@ -79,7 +104,7 @@ main .hero aside strong[data-k100] {
   .premium-dial-card .premium-dial__value,
   main .hero > aside > strong[data-k100],
   main .hero aside strong[data-k100] {
-    font-size: 31px !important;
+    font-size: 34px !important;
   }
 }
 
@@ -88,6 +113,6 @@ main .hero aside strong[data-k100] {
   .premium-dial-card .premium-dial__value,
   main .hero > aside > strong[data-k100],
   main .hero aside strong[data-k100] {
-    font-size: 31px !important;
+    font-size: 32px !important;
   }
 }
