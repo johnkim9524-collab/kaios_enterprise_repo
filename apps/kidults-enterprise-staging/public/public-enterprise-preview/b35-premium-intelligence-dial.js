@@ -10,9 +10,18 @@
     if (existing) return;
     const stylesheet = document.createElement('link');
     stylesheet.rel = 'stylesheet';
-    stylesheet.href = 'b58-hero-index-final-polish.css?v=3';
+    stylesheet.href = 'b58-hero-index-final-polish.css?v=4';
     stylesheet.dataset.b58HeroIndexFinalPolishRuntime = 'true';
     document.head.appendChild(stylesheet);
+  }
+
+  function renderEditorialNumber(node, value) {
+    const formatted = Number(value).toFixed(1);
+    const [integer, decimal] = formatted.split('.');
+    node.className = 'premium-dial__value premium-dial__value--editorial';
+    node.setAttribute('aria-label', formatted);
+    node.innerHTML = `<span class="premium-dial__integer">${integer}</span><span class="premium-dial__decimal">.${decimal}</span>`;
+    node.removeAttribute('style');
   }
 
   function renderDial() {
@@ -36,9 +45,7 @@
     const content = document.createElement('div');
     content.className = 'premium-dial__content';
 
-    valueNode.className = 'premium-dial__value';
-    valueNode.textContent = numericValue.toFixed(1);
-    valueNode.removeAttribute('style');
+    renderEditorialNumber(valueNode, numericValue);
 
     const label = document.createElement('span');
     label.className = 'premium-dial__label';
@@ -60,11 +67,8 @@
 
     card.classList.add('premium-dial-card');
     card.dataset.premiumDialReady = 'true';
-    document.documentElement.dataset.heroMetricSystem = 'premium-dial-b35';
+    document.documentElement.dataset.heroMetricSystem = 'premium-dial-b35-editorial';
 
-    /* Earlier enhancement layers append their stylesheets dynamically after the
-       static head. Re-append B58 at runtime so the final approved hero numeral
-       remains the last cascade layer. */
     ensureFinalHeroStyles();
     return true;
   }
