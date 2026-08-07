@@ -1,0 +1,99 @@
+/* KIDULTS Core Intelligence Microtype System — 9.5+ polish
+   Scope: small labels, captions, axis text and micro-metadata only.
+   Large values, graph geometry, colors and layout remain untouched. */
+
+:root {
+  --ki-micro-label: 9px;
+  --ki-micro-caption: 11px;
+  --ki-micro-note: 12px;
+  --ki-micro-track: .16em;
+  --ki-micro-color: #68706b;
+}
+
+/* Core KPI labels */
+main #live-intelligence.metrics span {
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: var(--ki-micro-label) !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  letter-spacing: var(--ki-micro-track) !important;
+  text-transform: uppercase !important;
+  color: #626a65 !important;
+}
+
+/* LIVE INTELLIGENCE heading + status */
+main .data-note.shell strong {
+  font-size: var(--ki-micro-label) !important;
+  line-height: 1.15 !important;
+  letter-spacing: var(--ki-micro-track) !important;
+}
+
+main .data-note.shell [data-status-label] {
+  font-size: var(--ki-micro-caption) !important;
+  line-height: 1.25 !important;
+  letter-spacing: .015em !important;
+}
+
+/* Governed intelligence labels */
+main section.governed-homepage-metrics[data-governed-homepage] span {
+  font-size: var(--ki-micro-label) !important;
+  line-height: 1.15 !important;
+  letter-spacing: var(--ki-micro-track) !important;
+  color: var(--ki-micro-color) !important;
+}
+
+/* Trend section eyebrow and summary labels */
+main .data-section .section-head .eyebrow,
+main .data-section > .trend-summary-strip small {
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: var(--ki-micro-label) !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  letter-spacing: var(--ki-micro-track) !important;
+  text-transform: uppercase !important;
+}
+
+/* Trend chart axis/date labels */
+main .data-section .trend-chart svg text,
+main .data-section .trend-chart .chart-grid text,
+main .data-section .trend-chart .chart-labels text {
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: var(--ki-micro-caption) !important;
+  font-weight: 400 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0 !important;
+  fill: #69716c !important;
+}
+
+/* Right-side Current panel microcopy */
+main .data-section .chart-side > span:first-child {
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: var(--ki-micro-label) !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  letter-spacing: var(--ki-micro-track) !important;
+  text-transform: uppercase !important;
+}
+
+main .data-section .chart-side > span[data-change],
+main .data-section .chart-side small,
+main .data-section .chart-side small b {
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: var(--ki-micro-caption) !important;
+  line-height: 1.35 !important;
+}
+
+/* Trend/evidence metadata — normalize known small-text containers without changing content. */
+main .data-section .chart-panel + *,
+main .data-section .chart-panel ~ * {
+  font-size: var(--ki-micro-note) !important;
+  line-height: 1.4 !important;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --ki-micro-label: 9px;
+    --ki-micro-caption: 11px;
+    --ki-micro-note: 11px;
+  }
+}
