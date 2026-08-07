@@ -32,7 +32,6 @@
       <div class="trend-intel-meta">
         <p><span>Methodology</span><b>${methodology}</b></p>
         <p><span>Matches headline</span><b class="trend-intel-check">✓</b></p>
-        <p><span>Confidence</span><b>High</b></p>
       </div>`;
 
     document.querySelectorAll('.data-section > .trend-summary-strip').forEach((node) => node.remove());
