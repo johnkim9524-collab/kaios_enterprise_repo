@@ -1,326 +1,225 @@
-/* KIDULTS Homepage Editorial Intelligence System — Sprint 27B final visual unification.
-   Scope is intentionally limited to the headline KPI rail, LIVE INTELLIGENCE rail,
-   governed status rail, and Kidult 100 trend summary. */
+/* KIDULTS Homepage Editorial Intelligence System — 9.x premium rail system.
+   Scope: headline KPI rail, LIVE INTELLIGENCE, governed status rail, trend summary only. */
 
 :root {
-  --editorial-hairline: rgba(16, 39, 33, .12);
-  --editorial-hairline-soft: rgba(16, 39, 33, .08);
-  --editorial-ink: #111815;
-  --editorial-forest: #0b4a3b;
-  --editorial-muted: #626a64;
+  --ki-ink:#111815;
+  --ki-forest:#0b4a3b;
+  --ki-muted:#69716c;
+  --ki-gold:#9b7438;
+  --ki-line:rgba(17,24,21,.115);
+  --ki-line-soft:rgba(17,24,21,.075);
+  --ki-wash:rgba(11,74,59,.025);
 }
 
-/* 1. PRIMARY KPI RAIL — open editorial layout, not boxed dashboard cards. */
+/* PRIMARY KPI RAIL */
 main #live-intelligence.metrics {
-  display: grid !important;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-  margin: 0 auto !important;
-  padding: 0 40px !important;
-  border-top: 1px solid var(--editorial-hairline) !important;
-  border-bottom: 1px solid var(--editorial-hairline) !important;
-  background: transparent !important;
+  display:grid !important;
+  grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+  max-width:var(--shell) !important;
+  margin:0 auto !important;
+  padding:0 40px !important;
+  border-top:1px solid var(--ki-line) !important;
+  border-bottom:1px solid var(--ki-line) !important;
+  background:transparent !important;
 }
-
-main #live-intelligence.metrics > div {
-  position: relative !important;
-  min-width: 0 !important;
-  min-height: 142px !important;
-  padding: 32px 36px 28px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+main #live-intelligence.metrics>div {
+  min-width:0 !important;
+  min-height:126px !important;
+  padding:27px 0 25px !important;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:center !important;
 }
-
-main #live-intelligence.metrics > div:first-child { padding-left: 0 !important; }
-main #live-intelligence.metrics > div:last-child { padding-right: 0 !important; }
-
-main #live-intelligence.metrics > div:not(:last-child)::after {
-  content: '' !important;
-  position: absolute !important;
-  right: 0 !important;
-  top: 34px !important;
-  bottom: 34px !important;
-  width: 1px !important;
-  background: var(--editorial-hairline) !important;
-}
-
+main #live-intelligence.metrics>div+div { margin-left:54px !important; }
 main #live-intelligence.metrics strong,
 main #live-intelligence.metrics strong.luxury-number,
 main #live-intelligence.metrics strong.luxury-number--secondary {
-  margin: 0 0 14px !important;
-  font-family: Georgia, 'Times New Roman', serif !important;
-  font-size: clamp(34px, 3.05vw, 48px) !important;
-  line-height: .95 !important;
-  font-weight: 400 !important;
-  letter-spacing: -.045em !important;
-  color: var(--editorial-ink) !important;
+  margin:0 0 13px !important;
+  font-family:Georgia,'Times New Roman',serif !important;
+  font-size:clamp(36px,3.15vw,50px) !important;
+  font-weight:400 !important;
+  line-height:.92 !important;
+  letter-spacing:-.052em !important;
+  color:var(--ki-ink) !important;
 }
-
 main #live-intelligence.metrics span {
-  margin: 0 !important;
-  font-family: Arial, Helvetica, sans-serif !important;
-  font-size: 9px !important;
-  line-height: 1.15 !important;
-  font-weight: 600 !important;
-  letter-spacing: .19em !important;
-  text-transform: uppercase !important;
-  color: var(--editorial-muted) !important;
+  font-family:Arial,Helvetica,sans-serif !important;
+  font-size:8px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  letter-spacing:.22em !important;
+  text-transform:uppercase !important;
+  color:var(--ki-muted) !important;
 }
 
-/* 2. LIVE INTELLIGENCE LABEL — quiet section marker. */
+/* LIVE INTELLIGENCE MARKER */
 main .data-note.shell {
-  min-height: 46px !important;
-  padding: 0 40px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  border-top: 0 !important;
-  border-bottom: 1px solid var(--editorial-hairline-soft) !important;
-  background: transparent !important;
+  min-height:43px !important;
+  padding:0 40px !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+  border:0 !important;
+  border-bottom:1px solid var(--ki-line-soft) !important;
+  background:transparent !important;
 }
-
 main .data-note.shell .live-pulse {
-  width: 7px !important;
-  height: 7px !important;
-  flex: 0 0 7px !important;
-  box-shadow: 0 0 0 5px rgba(87, 209, 170, .12) !important;
+  width:6px !important;
+  height:6px !important;
+  flex:0 0 6px !important;
+  box-shadow:0 0 0 5px rgba(87,209,170,.12) !important;
 }
-
 main .data-note.shell strong {
-  font-size: 9px !important;
-  line-height: 1 !important;
-  font-weight: 700 !important;
-  letter-spacing: .16em !important;
-  text-transform: uppercase !important;
-  color: var(--editorial-ink) !important;
+  font-size:8px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  letter-spacing:.2em !important;
+  text-transform:uppercase !important;
+  color:var(--ki-ink) !important;
 }
-
 main .data-note.shell [data-status-label] {
-  margin-left: auto !important;
-  font-size: 8px !important;
-  line-height: 1 !important;
-  font-weight: 500 !important;
-  letter-spacing: .08em !important;
-  text-transform: none !important;
-  color: var(--editorial-muted) !important;
-  opacity: .46 !important;
+  margin-left:auto !important;
+  font-size:8px !important;
+  font-weight:500 !important;
+  line-height:1 !important;
+  letter-spacing:.06em !important;
+  text-transform:none !important;
+  color:var(--ki-muted) !important;
+  opacity:.48 !important;
 }
 
-/* 3. GOVERNED STATUS RAIL — same visual grammar as the target comp. */
+/* GOVERNED RAIL — deliberately quieter than KPI rail, same typography grammar. */
 main section.governed-homepage-metrics[data-governed-homepage] {
-  display: grid !important;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-  align-items: stretch !important;
-  min-height: 76px !important;
-  height: auto !important;
-  margin: 0 auto !important;
-  padding: 0 40px !important;
-  border-top: 0 !important;
-  border-bottom: 1px solid var(--editorial-hairline) !important;
-  background: transparent !important;
-  box-shadow: none !important;
+  display:grid !important;
+  grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+  max-width:var(--shell) !important;
+  margin:0 auto !important;
+  padding:0 40px !important;
+  min-height:82px !important;
+  border:0 !important;
+  border-bottom:1px solid var(--ki-line) !important;
+  background:var(--ki-wash) !important;
+  box-shadow:none !important;
 }
-
-main section.governed-homepage-metrics[data-governed-homepage] > div {
-  position: relative !important;
-  min-width: 0 !important;
-  min-height: 76px !important;
-  padding: 0 30px !important;
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  gap: 16px !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+main section.governed-homepage-metrics[data-governed-homepage]>div {
+  min-width:0 !important;
+  min-height:82px !important;
+  padding:17px 0 15px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  justify-content:center !important;
+  gap:8px !important;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
 }
-
-main section.governed-homepage-metrics[data-governed-homepage] > div:first-child { padding-left: 0 !important; }
-main section.governed-homepage-metrics[data-governed-homepage] > div:last-child { padding-right: 0 !important; }
-
-main section.governed-homepage-metrics[data-governed-homepage] > div:not(:last-child)::after {
-  content: '' !important;
-  position: absolute !important;
-  right: 0 !important;
-  top: 24px !important;
-  width: 1px !important;
-  height: 28px !important;
-  background: var(--editorial-hairline) !important;
-}
-
+main section.governed-homepage-metrics[data-governed-homepage]>div+div { margin-left:54px !important; }
 main section.governed-homepage-metrics[data-governed-homepage] span {
-  order: -1 !important;
-  margin: 0 !important;
-  font-family: Arial, Helvetica, sans-serif !important;
-  font-size: 8px !important;
-  line-height: 1 !important;
-  font-weight: 600 !important;
-  letter-spacing: .16em !important;
-  text-transform: uppercase !important;
-  color: var(--editorial-muted) !important;
-  opacity: .88 !important;
-  white-space: nowrap !important;
+  order:-1 !important;
+  margin:0 !important;
+  font-family:Arial,Helvetica,sans-serif !important;
+  font-size:7px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  letter-spacing:.19em !important;
+  text-transform:uppercase !important;
+  color:var(--ki-muted) !important;
+  opacity:.92 !important;
+  white-space:nowrap !important;
 }
-
 main section.governed-homepage-metrics[data-governed-homepage] strong,
 main section.governed-homepage-metrics[data-governed-homepage] [data-governed-production],
 main section.governed-homepage-metrics[data-governed-homepage] [data-governed-updated] {
-  margin: 0 !important;
-  font-family: Georgia, 'Times New Roman', serif !important;
-  font-size: 18px !important;
-  line-height: 1 !important;
-  font-weight: 400 !important;
-  letter-spacing: -.02em !important;
-  color: var(--editorial-forest) !important;
-  white-space: nowrap !important;
+  margin:0 !important;
+  font-family:Georgia,'Times New Roman',serif !important;
+  font-size:20px !important;
+  font-weight:400 !important;
+  line-height:1 !important;
+  letter-spacing:-.025em !important;
+  color:var(--ki-forest) !important;
+  white-space:nowrap !important;
+  text-transform:none !important;
 }
 
-main section.governed-homepage-metrics[data-governed-homepage] [data-governed-production] {
-  text-transform: none !important;
-  letter-spacing: -.015em !important;
+/* TREND SUMMARY — same stacked label/value language as governed rail. */
+main .data-section>.trend-summary-strip {
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  margin:28px 0 18px !important;
+  padding:0 !important;
+  border:0 !important;
+  border-top:1px solid var(--ki-line) !important;
+  border-bottom:1px solid var(--ki-line) !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+main .data-section>.trend-summary-strip>span {
+  min-width:0 !important;
+  min-height:70px !important;
+  padding:15px 14px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:center !important;
+  gap:6px !important;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+main .data-section>.trend-summary-strip>span+span { border-left:1px solid var(--ki-line-soft) !important; }
+main .data-section>.trend-summary-strip b,
+main .data-section>.trend-summary-strip b.luxury-number--secondary {
+  order:2 !important;
+  margin:0 !important;
+  font-family:Georgia,'Times New Roman',serif !important;
+  font-size:22px !important;
+  font-weight:400 !important;
+  line-height:1 !important;
+  letter-spacing:-.035em !important;
+  color:var(--ki-ink) !important;
+}
+main .data-section>.trend-summary-strip small {
+  order:1 !important;
+  margin:0 !important;
+  font-family:Arial,Helvetica,sans-serif !important;
+  font-size:7px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  letter-spacing:.18em !important;
+  text-transform:uppercase !important;
+  color:var(--ki-muted) !important;
 }
 
-/* 4. KIDULT 100 TREND SUMMARY — remove mini-card appearance, match the same rail system. */
-main .data-section > .trend-summary-strip {
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  align-items: stretch !important;
-  margin: 24px 0 16px !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-top: 1px solid var(--editorial-hairline) !important;
-  border-bottom: 1px solid var(--editorial-hairline) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-main .data-section > .trend-summary-strip > span {
-  position: relative !important;
-  min-width: 0 !important;
-  min-height: 66px !important;
-  padding: 14px 24px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  gap: 4px !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-main .data-section > .trend-summary-strip > span:first-child { padding-left: 14px !important; }
-main .data-section > .trend-summary-strip > span:last-child { padding-right: 14px !important; }
-
-main .data-section > .trend-summary-strip > span:not(:last-child)::after {
-  content: '' !important;
-  position: absolute !important;
-  right: 0 !important;
-  top: 17px !important;
-  width: 1px !important;
-  height: 32px !important;
-  background: var(--editorial-hairline) !important;
-}
-
-main .data-section > .trend-summary-strip b,
-main .data-section > .trend-summary-strip b.luxury-number--secondary {
-  margin: 0 !important;
-  font-family: Georgia, 'Times New Roman', serif !important;
-  font-size: 22px !important;
-  line-height: 1 !important;
-  font-weight: 400 !important;
-  letter-spacing: -.035em !important;
-  color: var(--editorial-ink) !important;
-}
-
-main .data-section > .trend-summary-strip small {
-  margin: 0 !important;
-  font-family: Arial, Helvetica, sans-serif !important;
-  font-size: 8px !important;
-  line-height: 1 !important;
-  font-weight: 500 !important;
-  letter-spacing: .13em !important;
-  text-transform: uppercase !important;
-  color: var(--editorial-muted) !important;
-}
-
-/* Keep the graph itself untouched; only soften the panel shell to match the editorial rails. */
 main .data-section .chart-panel {
-  border-color: var(--editorial-hairline) !important;
-  background: rgba(251, 248, 242, .44) !important;
-  box-shadow: none !important;
+  border:1px solid var(--ki-line) !important;
+  background:rgba(251,248,242,.36) !important;
+  box-shadow:none !important;
 }
 
-@media (max-width: 1100px) {
+@media(max-width:1100px){
   main #live-intelligence.metrics,
-  main section.governed-homepage-metrics[data-governed-homepage] {
-    padding-left: 28px !important;
-    padding-right: 28px !important;
-  }
-  main #live-intelligence.metrics > div { padding-left: 24px !important; padding-right: 24px !important; }
-  main section.governed-homepage-metrics[data-governed-homepage] > div { padding-left: 20px !important; padding-right: 20px !important; gap: 12px !important; }
+  main section.governed-homepage-metrics[data-governed-homepage]{padding-left:28px !important;padding-right:28px !important}
+  main #live-intelligence.metrics>div+div,
+  main section.governed-homepage-metrics[data-governed-homepage]>div+div{margin-left:30px !important}
 }
 
-@media (max-width: 760px) {
-  main #live-intelligence.metrics {
-    margin: 0 18px !important;
-    padding: 0 !important;
-    grid-template-columns: 1fr !important;
-  }
-  main #live-intelligence.metrics > div,
-  main #live-intelligence.metrics > div:first-child,
-  main #live-intelligence.metrics > div:last-child {
-    min-height: 76px !important;
-    padding: 14px 0 !important;
-  }
-  main #live-intelligence.metrics > div:not(:last-child)::after {
-    left: 0 !important;
-    right: 0 !important;
-    top: auto !important;
-    bottom: 0 !important;
-    width: auto !important;
-    height: 1px !important;
-  }
+@media(max-width:760px){
+  main #live-intelligence.metrics{margin:0 18px !important;padding:0 !important;grid-template-columns:1fr !important}
+  main #live-intelligence.metrics>div,
+  main #live-intelligence.metrics>div+div{min-height:72px !important;margin-left:0 !important;padding:13px 0 !important;border-bottom:1px solid var(--ki-line-soft) !important}
+  main #live-intelligence.metrics>div:last-child{border-bottom:0 !important}
   main #live-intelligence.metrics strong,
   main #live-intelligence.metrics strong.luxury-number,
-  main #live-intelligence.metrics strong.luxury-number--secondary {
-    margin-bottom: 8px !important;
-    font-size: 30px !important;
-  }
-  main .data-note.shell {
-    margin: 0 18px !important;
-    padding: 0 !important;
-    min-height: 42px !important;
-  }
-  main section.governed-homepage-metrics[data-governed-homepage] {
-    margin: 0 18px !important;
-    padding: 0 !important;
-    grid-template-columns: repeat(5, minmax(150px, 1fr)) !important;
-    overflow-x: auto !important;
-    overscroll-behavior-x: contain !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-  main section.governed-homepage-metrics[data-governed-homepage] > div,
-  main section.governed-homepage-metrics[data-governed-homepage] > div:first-child,
-  main section.governed-homepage-metrics[data-governed-homepage] > div:last-child {
-    min-height: 64px !important;
-    padding: 0 16px !important;
-    gap: 10px !important;
-  }
-  main .data-section > .trend-summary-strip {
-    grid-template-columns: repeat(4, minmax(120px, 1fr)) !important;
-    overflow-x: auto !important;
-    overscroll-behavior-x: contain !important;
-  }
-  main .data-section > .trend-summary-strip > span { min-height: 60px !important; padding: 12px 16px !important; }
-  main .data-section > .trend-summary-strip b,
-  main .data-section > .trend-summary-strip b.luxury-number--secondary { font-size: 20px !important; }
-}
-
-@media (max-width: 360px) {
-  main section.governed-homepage-metrics[data-governed-homepage] { grid-template-columns: repeat(5, minmax(142px, 1fr)) !important; }
-  main .data-section > .trend-summary-strip { grid-template-columns: repeat(4, minmax(112px, 1fr)) !important; }
+  main #live-intelligence.metrics strong.luxury-number--secondary{font-size:30px !important;margin-bottom:8px !important}
+  main .data-note.shell{margin:0 18px !important;padding:0 !important;min-height:40px !important}
+  main section.governed-homepage-metrics[data-governed-homepage]{margin:0 18px !important;padding:0 !important;grid-template-columns:repeat(5,minmax(132px,1fr)) !important;overflow-x:auto !important;overscroll-behavior-x:contain !important;-webkit-overflow-scrolling:touch !important}
+  main section.governed-homepage-metrics[data-governed-homepage]>div,
+  main section.governed-homepage-metrics[data-governed-homepage]>div+div{min-height:68px !important;margin-left:0 !important;padding:13px 14px !important}
+  main .data-section>.trend-summary-strip{grid-template-columns:repeat(4,minmax(118px,1fr)) !important;overflow-x:auto !important;overscroll-behavior-x:contain !important}
+  main .data-section>.trend-summary-strip>span{min-height:62px !important;padding:12px 13px !important}
+  main .data-section>.trend-summary-strip b,
+  main .data-section>.trend-summary-strip b.luxury-number--secondary{font-size:19px !important}
 }
