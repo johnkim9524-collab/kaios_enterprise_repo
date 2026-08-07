@@ -1,4 +1,4 @@
-/* KIDULTS Hero Index Final Polish — numeral lock v7.
+/* KIDULTS Hero Index Final Polish — numeral lock v8.
    Scope: hero intelligence dial only. Preserve the existing donut, data binding,
    label, delta, layout and responsive behavior. The Hero value now uses the
    exact Category Intelligence numeral language instead of a synthetic split. */
@@ -25,7 +25,7 @@ main .hero aside strong[data-k100] {
 }
 
 /* Neutralize the legacy split-number construction if an older cached runtime
-   leaves its spans behind. v7 itself renders one continuous value (e.g. 61.7). */
+   leaves its spans behind. v8 itself renders one continuous value (e.g. 61.7). */
 .premium-dial__value .premium-dial__integer,
 .premium-dial__value .premium-dial__decimal {
   display:inline !important;
@@ -36,33 +36,35 @@ main .hero aside strong[data-k100] {
   transform:none !important;
 }
 
+/* Slightly lighter sage/mint dial so the instrument separates from the deep
+   forest hero panel without changing the panel itself. */
 .premium-dial {
   background:
     conic-gradient(
       from -90deg,
-      rgba(175,203,193,.82) 0%,
-      rgba(120,165,150,.78) 28%,
-      rgba(79,131,115,.74) 58%,
-      rgba(45,102,87,.70) calc(var(--dial-value,94.8) * 1%),
-      rgba(103,142,129,.10) 0
+      rgba(190,220,210,.92) 0%,
+      rgba(151,195,180,.88) 28%,
+      rgba(111,164,146,.84) 58%,
+      rgba(75,137,117,.80) calc(var(--dial-value,94.8) * 1%),
+      rgba(132,174,159,.16) 0
     ) !important;
   box-shadow:
-    0 0 0 1px rgba(244,241,234,.035),
-    0 12px 28px rgba(0,0,0,.09) !important;
+    0 0 0 1px rgba(244,241,234,.055),
+    0 12px 28px rgba(0,0,0,.08) !important;
 }
 
 .premium-dial::before {
   background:
-    radial-gradient(circle at 50% 32%,rgba(255,255,255,.026),transparent 34%),
-    linear-gradient(145deg,rgba(15,76,63,.945),rgba(5,47,39,.975) 72%) !important;
+    radial-gradient(circle at 50% 32%,rgba(255,255,255,.04),transparent 34%),
+    linear-gradient(145deg,rgba(17,82,67,.94),rgba(6,52,43,.97) 72%) !important;
   box-shadow:
-    inset 0 0 0 1px rgba(244,241,234,.035),
-    inset 0 -12px 20px rgba(0,0,0,.075) !important;
+    inset 0 0 0 1px rgba(244,241,234,.045),
+    inset 0 -12px 20px rgba(0,0,0,.065) !important;
 }
 
 .premium-dial::after {
-  border-color:rgba(169,199,188,.075) !important;
-  opacity:.78 !important;
+  border-color:rgba(191,218,208,.12) !important;
+  opacity:.86 !important;
 }
 
 .premium-dial__content {
