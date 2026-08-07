@@ -1,5 +1,10 @@
 /* KIDULTS Trend Intelligence Summary — consolidated 9.5+ core data module */
 
+/* Match the KIDULT 100 TREND eyebrow to the shared CATEGORY INTELLIGENCE eyebrow size. */
+main .data-section .section-head .eyebrow {
+  font-size:11px !important;
+}
+
 main .data-section > .trend-summary-strip {
   display:none !important;
 }
