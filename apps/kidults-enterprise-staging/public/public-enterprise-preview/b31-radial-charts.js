@@ -77,6 +77,15 @@
     document.head.appendChild(stylesheet);
   }
 
+  function loadScript(src, dataKey) {
+    if (document.querySelector(`script[data-${dataKey}]`)) return;
+    const script = document.createElement('script');
+    script.src = src;
+    script.defer = true;
+    script.setAttribute(`data-${dataKey}`, 'true');
+    document.head.appendChild(script);
+  }
+
   function loadEnhancements() {
     loadStylesheet('b32-visualization-integrity.css', 'b32-integrity');
     loadStylesheet('b35-premium-intelligence-dial.css?v=6', 'b35-premium-dial');
@@ -90,20 +99,9 @@
     loadStylesheet('b46-instrument-dial-v2.css?v=3', 'b46-instrument-dial');
     loadStylesheet('b48-rc1-layout-balance.css?v=2', 'b48-rc1-layout-balance');
 
-    if (!document.querySelector('script[data-b32-integrity]')) {
-      const script = document.createElement('script');
-      script.src = 'b32-visualization-integrity.js';
-      script.defer = true;
-      script.dataset.b32Integrity = 'true';
-      document.head.appendChild(script);
-    }
-    if (!document.querySelector('script[data-b35-premium-dial]')) {
-      const script = document.createElement('script');
-      script.src = 'b35-premium-intelligence-dial.js?v=6';
-      script.defer = true;
-      script.dataset.b35PremiumDial = 'true';
-      document.head.appendChild(script);
-    }
+    loadScript('b32-visualization-integrity.js', 'b32-integrity');
+    loadScript('b35-premium-intelligence-dial.js?v=6', 'b35-premium-dial');
+    loadScript('b59-lead-signal-singleton.js?v=1', 'b59-lead-signal-singleton');
   }
 
   function renderFromData(data) {
