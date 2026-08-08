@@ -51,7 +51,10 @@
     "a19:finalize": "npm run a19:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A19",
     "a20:gate": "node scripts/a20-product-readiness-monetization-gate-certify.mjs",
     "a20:certify": "npm run typecheck && npm run a20:gate",
-    "a20:finalize": "npm run a20:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A20"
+    "a20:finalize": "npm run a20:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A20",
+    "a21:pipeline": "node scripts/a21-intelligence-product-pipeline-certify.mjs",
+    "a21:certify": "npm run typecheck && npm run a21:pipeline",
+    "a21:finalize": "npm run a21:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A21"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",
