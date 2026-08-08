@@ -1,7 +1,7 @@
 {
   "name": "@kaios/kidults-autonomous-intelligence",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local",
@@ -17,9 +17,16 @@
     "scale:100k": "node scripts/a10-scale-certify.mjs --profile=baseline",
     "scale:1m": "node scripts/a10-scale-certify.mjs --profile=million",
     "a10:certify": "npm run typecheck && npm run scale:smoke && npm run scale:100k",
+    "persist:smoke": "node scripts/a11-persistence-certify.mjs --profile=smoke",
+    "persist:100k": "node scripts/a11-persistence-certify.mjs --profile=baseline",
+    "persist:1m": "node scripts/a11-persistence-certify.mjs --profile=million",
+    "a11:certify": "npm run typecheck && npm run persist:smoke && npm run persist:100k && npm run persist:1m",
     "a12:5m": "node scripts/a12-scale-certify.mjs --profile=sustained5m",
     "a12:10m": "node scripts/a12-scale-certify.mjs --profile=partition10m",
-    "a12:certify": "npm run typecheck && npm run a12:5m && npm run a12:10m"
+    "a12:certify": "npm run typecheck && npm run a12:5m && npm run a12:10m",
+    "a13:smoke": "node scripts/a13-provider-concurrency-certify.mjs --profile=smoke",
+    "a13:baseline": "node scripts/a13-provider-concurrency-certify.mjs --profile=baseline",
+    "a13:certify": "npm run typecheck && npm run a13:smoke && npm run a13:baseline"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",
