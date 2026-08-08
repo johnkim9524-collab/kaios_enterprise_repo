@@ -25,7 +25,8 @@
    Categorical composition: Mint → Teal → Petrol Blue → Aqua Blue → Dusty Sage.
    State/progress: Muted Forest.
    Sequential intensity: Dusty Sage → Deep Teal.
-   Directional movement: Muted Forest / restrained Red. */
+   Directional movement: Muted Forest / restrained Red.
+   Hero instrument: single Sage→Muted Teal signal derived from the same system. */
 
 /* 4A) Categorical radial charts. */
 .mix-panel .signal-donut{
@@ -62,6 +63,20 @@
   border:1px solid rgba(246,241,232,.9);
 }
 .matrix-grid>span:not(:first-child) i{color:#fff!important;text-shadow:0 1px 0 rgba(5,47,39,.08)}
+
+/* 4D) Hero intelligence instrument: visually related, semantically distinct.
+   It remains one KPI gauge, so use one restrained sequential arc rather than
+   the categorical multi-color donut palette. */
+.premium-dial{
+  background:conic-gradient(
+    from -90deg,
+    #A7BEB4 0%,
+    #9ABBAF 30%,
+    #87B5AA 60%,
+    #72A89C calc(var(--dial-value,94.8) * 1%),
+    rgba(131,207,186,.12) 0
+  )!important;
+}
 
 /* 5) Governed system: authoritative, but not visually heavier than the Hero. */
 .dark{
