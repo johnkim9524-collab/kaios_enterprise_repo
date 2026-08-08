@@ -17,8 +17,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
       - run: npm install
       - run: npm run typecheck
       - name: Verify A14 command wiring
