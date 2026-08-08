@@ -1,7 +1,7 @@
 {
   "name": "@kaios/kidults-autonomous-intelligence",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local",
@@ -16,7 +16,10 @@
     "scale:smoke": "node scripts/a10-scale-certify.mjs --profile=smoke",
     "scale:100k": "node scripts/a10-scale-certify.mjs --profile=baseline",
     "scale:1m": "node scripts/a10-scale-certify.mjs --profile=million",
-    "a10:certify": "npm run typecheck && npm run scale:smoke && npm run scale:100k"
+    "a10:certify": "npm run typecheck && npm run scale:smoke && npm run scale:100k",
+    "a12:5m": "node scripts/a12-scale-certify.mjs --profile=sustained5m",
+    "a12:10m": "node scripts/a12-scale-certify.mjs --profile=partition10m",
+    "a12:certify": "npm run typecheck && npm run a12:5m && npm run a12:10m"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",
