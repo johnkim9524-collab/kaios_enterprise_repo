@@ -27,10 +27,10 @@ function toCliPath(file) {
 
 function runWranglerFile(sqlFile, maxBuffer = 10 * 1024 * 1024) {
   const cliFile = toCliPath(sqlFile);
-  const args = ['wrangler', 'd1', 'execute', 'DB', '--remote', '--file', cliFile];
+  const args = ['wrangler', 'd1', 'execute', 'DB', '--remote', '--file', cliFile, '--yes'];
   if (process.platform === 'win32') {
     const comspec = process.env.ComSpec || 'cmd.exe';
-    const command = `npx wrangler d1 execute DB --remote --file ${cliFile}`;
+    const command = `npx wrangler d1 execute DB --remote --file ${cliFile} --yes`;
     return spawnSync(comspec, ['/d', '/s', '/c', command], {
       cwd,
       encoding: 'utf8',
