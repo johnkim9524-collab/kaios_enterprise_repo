@@ -1,7 +1,7 @@
 {
   "name": "@kaios/kidults-autonomous-intelligence",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local",
@@ -45,7 +45,10 @@
     "a18:1m": "node scripts/a18-autonomous-data-scale-certify.mjs --profile=million",
     "a18:5m": "node scripts/a18-autonomous-data-scale-certify.mjs --profile=fiveMillion",
     "a18:certify": "npm run typecheck && npm run a18:100k && npm run a18:1m",
-    "a18:finalize": "npm run a18:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A18"
+    "a18:finalize": "npm run a18:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A18",
+    "a19:gap": "node scripts/a19-data-productization-gap-certify.mjs",
+    "a19:certify": "npm run typecheck && npm run a19:gap",
+    "a19:finalize": "npm run a19:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A19"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",
