@@ -1,0 +1,145 @@
+{
+  "policyId": "a28-executive-governance-policy",
+  "policyVersion": "a28-executive-governance-policy.v1",
+  "stage": "A28",
+  "description": "Canonical Executive Governance Plane policy for the KIDULTS Global Autonomous Intelligence Platform.",
+  "effectiveFrom": "2026-08-08T00:00:00.000Z",
+  "authorityHierarchy": [
+    { "level": "AUTONOMOUS",    "rank": 0, "description": "Routine reversible autonomous operations" },
+    { "level": "OPERATIONS",   "rank": 1, "description": "Operational acknowledgements and bounded restarts" },
+    { "level": "ENGINEERING",  "rank": 2, "description": "Engineering-scope decisions" },
+    { "level": "SECURITY",     "rank": 3, "description": "Security incidents and credential decisions" },
+    { "level": "COMMERCIAL",   "rank": 4, "description": "Commercial scope and channel decisions" },
+    { "level": "EXECUTIVE",    "rank": 5, "description": "Material commercial commitments, billing, production expansion, policy changes" },
+    { "level": "BOARD_OR_LEGAL", "rank": 6, "description": "Legal, contractual, and board-level matters" }
+  ],
+  "decisionClasses": [
+    { "class": "NO_ACTION",               "minAuthority": "AUTONOMOUS",    "description": "No action required" },
+    { "class": "INFORMATION_ONLY",        "minAuthority": "AUTONOMOUS",    "description": "Informational signal; no decision required" },
+    { "class": "ACKNOWLEDGEMENT_REQUIRED","minAuthority": "OPERATIONS",    "description": "Operational acknowledgement required" },
+    { "class": "APPROVAL_REQUIRED",       "minAuthority": "OPERATIONS",    "description": "Approval needed for bounded operation" },
+    { "class": "REJECTION_REQUIRED",      "minAuthority": "OPERATIONS",    "description": "Explicit rejection must be recorded" },
+    { "class": "SECURITY_DECISION",       "minAuthority": "SECURITY",      "description": "Credential, security-incident, or policy-security decision" },
+    { "class": "COMMERCIAL_DECISION",     "minAuthority": "COMMERCIAL",    "description": "Commercial scope or channel decision" },
+    { "class": "PROVIDER_DECISION",       "minAuthority": "EXECUTIVE",     "description": "Provider procurement or contract decision" },
+    { "class": "BILLING_DECISION",        "minAuthority": "EXECUTIVE",     "description": "Billing or financial commitment decision" },
+    { "class": "LEGAL_DECISION",          "minAuthority": "BOARD_OR_LEGAL","description": "Legal or contractual obligation" },
+    { "class": "PRODUCTION_DECISION",     "minAuthority": "EXECUTIVE",     "description": "Major production scope expansion or irreversible mutation" },
+    { "class": "POLICY_DECISION",         "minAuthority": "EXECUTIVE",     "description": "Platform governance policy change" },
+    { "class": "EMERGENCY_DECISION",      "minAuthority": "EXECUTIVE",     "description": "Emergency platform response requiring immediate authority" }
+  ],
+  "riskThresholds": {
+    "UNKNOWN": "FAIL_CLOSED — authority expansion blocked",
+    "CRITICAL": "Executive attention required",
+    "HIGH": "Urgent decision within P1 timeframe",
+    "MODERATE": "Same-day attention within P2 timeframe",
+    "LOW": "Routine monitoring"
+  },
+  "priorityRules": {
+    "P0": ["SEV0 incident", "CRITICAL risk", "security + financial combined exposure"],
+    "P1": ["SEV1 incident", "HIGH risk", "security exposure", "financial deadline"],
+    "P2": ["SEV2 incident", "MODERATE risk", "customer impact", "domain-wide blast radius"],
+    "P3": ["SEV3 incident", "decision dependency"],
+    "P4": ["informational", "routine monitoring"]
+  },
+  "timeoutRules": {
+    "impliesApprovalOnTimeout": false,
+    "sensitiveClasses": [
+      "BILLING_DECISION",
+      "LEGAL_DECISION",
+      "PROVIDER_DECISION",
+      "COMMERCIAL_DECISION",
+      "SECURITY_DECISION",
+      "PRODUCTION_DECISION",
+      "POLICY_DECISION",
+      "EMERGENCY_DECISION"
+    ],
+    "defaultActions": {
+      "NO_ACTION":                "NO_CHANGE",
+      "INFORMATION_ONLY":         "NO_CHANGE",
+      "ACKNOWLEDGEMENT_REQUIRED": "ESCALATE_AUTHORITY",
+      "APPROVAL_REQUIRED":        "MAINTAIN_FREEZE",
+      "REJECTION_REQUIRED":       "FAIL_CLOSED",
+      "SECURITY_DECISION":        "FAIL_CLOSED",
+      "COMMERCIAL_DECISION":      "FAIL_CLOSED",
+      "PROVIDER_DECISION":        "FAIL_CLOSED",
+      "BILLING_DECISION":         "FAIL_CLOSED",
+      "LEGAL_DECISION":           "FAIL_CLOSED",
+      "PRODUCTION_DECISION":      "HALT_SCOPE",
+      "POLICY_DECISION":          "MAINTAIN_FREEZE",
+      "EMERGENCY_DECISION":       "HALT_PLATFORM"
+    }
+  },
+  "directiveRules": {
+    "permittedDirectives": [
+      "ACKNOWLEDGE", "APPROVE_SCOPE", "REJECT_SCOPE", "MAINTAIN_FREEZE",
+      "RELEASE_FREEZE", "ALLOW_DEGRADED", "HALT_SCOPE", "RESUME_SCOPE",
+      "ALLOW_PROVIDER_USE", "DENY_PROVIDER_USE",
+      "ALLOW_PUBLICATION_SCOPE", "DENY_PUBLICATION_SCOPE",
+      "ALLOW_COMMERCIAL_SCOPE", "DENY_COMMERCIAL_SCOPE"
+    ],
+    "prohibitedDirectives": [
+      "ARBITRARY_SHELL",
+      "ARBITRARY_SQL",
+      "ARBITRARY_EXTERNAL_MUTATION",
+      "UNLIMITED_PRODUCTION_ACCESS",
+      "UNBOUNDED_PROVIDER_ACCESS",
+      "CREDENTIAL_EXPORT",
+      "SECURITY_POLICY_DISABLE"
+    ],
+    "twoPhaseRequired": true,
+    "preflightRequired": true,
+    "verificationRequired": true,
+    "evidenceRequiredAfterDirective": true
+  },
+  "freezeRules": {
+    "states": ["NONE", "PARTIAL", "FULL", "SECURITY", "EMERGENCY"],
+    "releaseRequires": ["policy release conditions pass", "executive approval", "no bypass flag"],
+    "bypassProhibited": true
+  },
+  "approvalRules": {
+    "irreversibleActionRequiresExplicitApproval": true,
+    "twoPhaseValidationRequired": true,
+    "noImplicitApprovalOnTimeout": true,
+    "authorityCannotEscalateItself": true,
+    "policyCannotSelfWeaken": true
+  },
+  "prohibitedActions": [
+    "noAutonomousBilling",
+    "noAutonomousProviderProcurement",
+    "noAutonomousLegalCommitment",
+    "noArbitraryExecutionDirective",
+    "noCredentialExposure",
+    "noPolicyWeakeningWithoutBoardOrLegal",
+    "noBypassOfA22Publication",
+    "noBypassOfA23Commercial",
+    "noBypassOfA24Activation",
+    "noBypassOfA27ChangeFreeze",
+    "noBypassOfA26Recovery",
+    "noUnresolvedSEV0ContinuationWithoutExecutiveApproval"
+  ],
+  "invariants": {
+    "upstreamEvidenceIsCanonical": true,
+    "decisionAuthorityBounded": true,
+    "executiveDecisionRequiredForMaterialActions": true,
+    "noImplicitApprovalOnTimeout": true,
+    "irreversibleActionRequiresExplicitApproval": true,
+    "twoPhaseValidationRequired": true,
+    "directivePreflightRequired": true,
+    "a24ActivationPreserved": true,
+    "a22PublicationPreserved": true,
+    "a23CommercialPreserved": true,
+    "a27ChangeFreezePreserved": true,
+    "a26RecoveryPreserved": true,
+    "noCredentialExposure": true,
+    "noAutonomousBilling": true,
+    "noAutonomousProviderProcurement": true,
+    "noAutonomousLegalCommitment": true,
+    "noArbitraryExecutionDirective": true,
+    "unknownStateFailsClosed": true,
+    "evidenceRequiredBeforeDecision": true,
+    "evidenceProducedAfterDirective": true,
+    "authorityCannotEscalateItself": true,
+    "policyCannotSelfWeaken": true
+  }
+}
