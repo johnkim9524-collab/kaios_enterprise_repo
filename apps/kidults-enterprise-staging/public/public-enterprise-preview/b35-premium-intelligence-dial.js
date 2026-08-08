@@ -5,15 +5,56 @@
     return node ? node.textContent.replace(/\s+/g, ' ').trim() : '';
   }
 
+  function removeHeroStatusLine(card) {
+    card.querySelectorAll('[data-status-label], small').forEach((node) => node.remove());
+  }
+
+  function ensureFinalHeroStyles() {
+    let stylesheet = document.querySelector('link[data-b58-hero-index-final-polish-runtime]');
+    if (!stylesheet) {
+      stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.dataset.b58HeroIndexFinalPolishRuntime = 'true';
+      document.head.appendChild(stylesheet);
+    }
+    stylesheet.href = 'b58-hero-index-final-polish.css?v=8';
+  }
+
+  function renderEditorialNumber(node, value) {
+    if (!node || !Number.isFinite(value)) return;
+    const formatted = Number(value).toFixed(1);
+    node.className = 'premium-dial__value premium-dial__value--editorial';
+    node.setAttribute('aria-label', formatted);
+    node.textContent = formatted;
+    node.removeAttribute('style');
+  }
+
+  function upgradeExistingDial(card) {
+    const valueNode = card.querySelector('.premium-dial__value, [data-k100]');
+    const numericValue = Number.parseFloat(plainText(valueNode));
+    if (!valueNode || !Number.isFinite(numericValue)) return false;
+
+    renderEditorialNumber(valueNode, numericValue);
+    card.querySelectorAll('.premium-dial__seal').forEach((node) => node.remove());
+    removeHeroStatusLine(card);
+    card.dataset.premiumDialReady = 'true';
+    document.documentElement.dataset.heroMetricSystem = 'premium-dial-category-numeral-v8';
+    ensureFinalHeroStyles();
+    return true;
+  }
+
   function renderDial() {
     const card = document.querySelector(CARD_SELECTOR);
-    if (!card || card.dataset.premiumDialReady === 'true') return false;
+    if (!card) return false;
+
+    if (card.dataset.premiumDialReady === 'true' || card.querySelector('.premium-dial')) {
+      return upgradeExistingDial(card);
+    }
 
     const valueNode = card.querySelector('[data-k100]');
     const deltaNode = card.querySelector('[data-change]');
     const labelNode = valueNode ? valueNode.nextElementSibling : null;
-    const rawValue = plainText(valueNode);
-    const numericValue = Number.parseFloat(rawValue);
+    const numericValue = Number.parseFloat(plainText(valueNode));
 
     if (!valueNode || !Number.isFinite(numericValue)) return false;
 
@@ -26,15 +67,7 @@
     const content = document.createElement('div');
     content.className = 'premium-dial__content';
 
-    valueNode.className = 'premium-dial__value';
-    valueNode.textContent = numericValue.toFixed(1);
-    valueNode.removeAttribute('style');
-
-    // Final approved scale. Inline !important prevents later dynamically loaded
-    // dial styles from restoring the oversized value.
-    valueNode.style.setProperty('font-size', 'clamp(2.75rem, 3.55vw, 3.55rem)', 'important');
-    valueNode.style.setProperty('line-height', '0.94', 'important');
-    valueNode.style.setProperty('letter-spacing', '-0.025em', 'important');
+    renderEditorialNumber(valueNode, numericValue);
 
     const label = document.createElement('span');
     label.className = 'premium-dial__label';
@@ -44,11 +77,7 @@
     delta.className = 'premium-dial__delta';
     delta.textContent = deltaNode ? plainText(deltaNode) : '';
 
-    const seal = document.createElement('span');
-    seal.className = 'premium-dial__seal';
-    seal.textContent = 'Current Edition';
-
-    content.append(valueNode, label, delta, seal);
+    content.append(valueNode, label, delta);
     dial.appendChild(content);
 
     if (labelNode) labelNode.remove();
@@ -59,8 +88,10 @@
     else card.prepend(dial);
 
     card.classList.add('premium-dial-card');
+    removeHeroStatusLine(card);
     card.dataset.premiumDialReady = 'true';
-    document.documentElement.dataset.heroMetricSystem = 'premium-dial-b35';
+    document.documentElement.dataset.heroMetricSystem = 'premium-dial-category-numeral-v8';
+    ensureFinalHeroStyles();
     return true;
   }
 

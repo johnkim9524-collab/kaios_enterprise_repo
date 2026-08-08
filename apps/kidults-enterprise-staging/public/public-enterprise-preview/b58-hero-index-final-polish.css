@@ -1,0 +1,96 @@
+/* KIDULTS Hero Index Final Polish — premium dial v10. */
+
+.premium-dial__value,
+.premium-dial-card .premium-dial__value,
+main .hero > aside > strong[data-k100],
+main .hero aside strong[data-k100] {
+  display:inline-block !important;
+  font-family:var(--kidults-number-serif, Georgia, 'Times New Roman', serif) !important;
+  font-size:clamp(43px,3.45vw,54px) !important;
+  font-weight:400 !important;
+  font-style:normal !important;
+  line-height:.92 !important;
+  letter-spacing:-.045em !important;
+  font-variant-numeric:lining-nums tabular-nums !important;
+  font-feature-settings:'lnum' 1,'tnum' 1 !important;
+  color:#f6f1e8 !important;
+  text-shadow:none !important;
+  white-space:nowrap !important;
+  text-rendering:geometricPrecision !important;
+  -webkit-font-smoothing:antialiased !important;
+  font-synthesis:none !important;
+}
+
+.premium-dial__value .premium-dial__integer,
+.premium-dial__value .premium-dial__decimal {
+  display:inline !important;
+  font:inherit !important;
+  line-height:inherit !important;
+  letter-spacing:inherit !important;
+  margin:0 !important;
+  transform:none !important;
+}
+
+/* Hero stays a single KPI instrument, but the active arc now uses restrained
+   tones derived from the fixed KIDULTS Intelligence palette. */
+.premium-dial {
+  background:
+    conic-gradient(
+      from -90deg,
+      #A7BEB4 0%,
+      #9ABBAF 30%,
+      #87B5AA 60%,
+      #72A89C calc(var(--dial-value,94.8) * 1%),
+      rgba(131,207,186,.12) 0
+    ) !important;
+  box-shadow:
+    0 0 0 1px rgba(244,241,234,.045),
+    0 11px 25px rgba(0,0,0,.075) !important;
+}
+
+.premium-dial::before {
+  inset:17% !important;
+  background:linear-gradient(145deg,rgba(16,78,64,.96),rgba(6,51,42,.985) 72%) !important;
+  box-shadow:none !important;
+}
+
+.premium-dial::after {
+  display:none !important;
+  content:none !important;
+}
+
+.premium-dial__content { transform:translateY(-2px) !important; }
+
+.premium-dial__label {
+  margin-top:.66rem !important;
+  font-size:9px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  letter-spacing:.205em !important;
+  text-transform:uppercase !important;
+  color:rgba(246,241,232,.63) !important;
+}
+
+.premium-dial__delta {
+  margin-top:.48rem !important;
+  font-size:11px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  letter-spacing:.025em !important;
+}
+
+.premium-dial__seal { display:none !important; }
+
+@media (max-width:760px) {
+  .premium-dial__value,
+  .premium-dial-card .premium-dial__value,
+  main .hero > aside > strong[data-k100],
+  main .hero aside strong[data-k100] { font-size:36px !important; }
+}
+
+@media (max-width:430px) {
+  .premium-dial__value,
+  .premium-dial-card .premium-dial__value,
+  main .hero > aside > strong[data-k100],
+  main .hero aside strong[data-k100] { font-size:33px !important; }
+}

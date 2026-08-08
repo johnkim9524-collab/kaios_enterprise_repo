@@ -1,0 +1,147 @@
+/* KIDULTS Trend Intelligence Summary — consolidated 9.5+ core data module */
+
+/* Match the KIDULT 100 TREND eyebrow to the shared CATEGORY INTELLIGENCE eyebrow size. */
+main .data-section .section-head .eyebrow {
+  font-size:11px !important;
+}
+
+main .data-section > .trend-summary-strip {
+  display:none !important;
+}
+
+main .data-section .chart-panel {
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 246px !important;
+  overflow:hidden !important;
+  border:1px solid rgba(154,113,53,.12) !important;
+  background:#fffdf9 !important;
+  box-shadow:0 10px 28px rgba(16,22,19,.02) !important;
+}
+
+main .data-section .chart-panel .trend-chart,
+main .data-section .chart-panel .chart-side {
+  background:#fffdf9 !important;
+}
+
+main .data-section .chart-panel .chart-side {
+  padding:34px 30px 28px !important;
+  border-left:1px solid rgba(16,22,19,.09) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:center !important;
+  gap:0 !important;
+}
+
+.trend-intel-primary {
+  padding-bottom:22px;
+  border-bottom:1px solid rgba(16,22,19,.09);
+}
+
+.trend-intel-kicker,
+.trend-intel-stats dt {
+  display:block;
+  margin:0 0 8px;
+  font:700 9px/1 Arial,Helvetica,sans-serif;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:#9a7135;
+}
+
+.trend-intel-current {
+  display:block;
+  margin:0 0 10px;
+  font:400 52px/.9 Georgia,'Times New Roman',serif;
+  letter-spacing:-.045em;
+  color:#101613;
+}
+
+.trend-intel-delta {
+  font:700 12px/1.2 Arial,Helvetica,sans-serif;
+  letter-spacing:.02em;
+  color:#0b4b3d;
+}
+
+.trend-intel-stats {
+  margin:20px 0 0;
+  padding:0 0 18px;
+  border-bottom:1px solid rgba(16,22,19,.09);
+}
+
+.trend-intel-stats > div {
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:14px;
+  padding:6px 0;
+}
+
+.trend-intel-stats dt {
+  margin:0;
+  color:#6d746f;
+}
+
+.trend-intel-stats dd {
+  margin:0;
+  font:400 18px/1 Georgia,'Times New Roman',serif;
+  letter-spacing:-.02em;
+  color:#101613;
+}
+
+.trend-intel-meta {
+  padding-top:17px;
+}
+
+.trend-intel-meta p {
+  margin:0;
+  padding:5px 0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  font:400 11px/1.35 Arial,Helvetica,sans-serif;
+  color:#5f6762;
+}
+
+.trend-intel-meta b {
+  font-weight:700;
+  color:#0b4b3d;
+}
+
+.trend-intel-check {
+  display:inline-grid;
+  place-items:center;
+  width:18px;
+  height:18px;
+  border:1px solid rgba(11,75,61,.45);
+  border-radius:50%;
+  font-size:10px;
+}
+
+@media(max-width:900px){
+  main .data-section .chart-panel {
+    grid-template-columns:1fr !important;
+  }
+  main .data-section .chart-panel .chart-side {
+    border-left:0 !important;
+    border-top:1px solid rgba(16,22,19,.09) !important;
+    padding:24px !important;
+  }
+  .trend-intel-stats {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:18px;
+  }
+  .trend-intel-stats > div {
+    display:block;
+  }
+}
+
+@media(max-width:560px){
+  .trend-intel-stats {
+    grid-template-columns:1fr 1fr 1fr;
+    gap:10px;
+  }
+  .trend-intel-current {
+    font-size:44px;
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kidults-autonomous-intelligence",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-08-01",
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kidults-intelligence-db",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "triggers": {
+    "crons": ["17 * * * *"]
+  },
+  "vars": {
+    "KIDULTS_ENV": "staging",
+    "METHODOLOGY_VERSION": "v2.0-autonomous-foundation",
+    "MIN_EVIDENCE_FOR_PUBLISH": "20",
+    "SOURCE_ADAPTERS_JSON": "[]"
+  }
+}

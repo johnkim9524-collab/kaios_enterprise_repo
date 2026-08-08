@@ -1,0 +1,124 @@
+/* KIDULTS 9.5 premium polish — CSS only, no data/runtime/DOM mutation. */
+
+/* 1) LIVE INTELLIGENCE: keep the governed label, remove the low-value staging status line. */
+.data-note [data-status-label] { display:none!important; }
+
+/* 2) Trend validation: keep only the three public-facing signals. */
+.trend-validation-note > span:nth-child(1),
+.trend-validation-note > span:nth-child(4),
+.trend-validation-note > span:nth-child(5) { display:none!important; }
+.trend-validation-note{gap:10px 24px!important;padding-top:13px!important;color:rgba(79,88,82,.88)!important}
+.trend-validation-note>span{padding-left:11px!important}
+.trend-validation-note>span::before{width:3px!important;height:3px!important;top:.6em!important;background:rgba(155,116,56,.86)!important}
+
+/* 3) Visualization hierarchy: flagship views get more breathing room. */
+@supports selector(article:has(#geography-chart)) {
+  .visualization-suite .viz-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+  .visualization-suite .viz-card:has(#geography-chart),
+  .visualization-suite .viz-card:has(#correlation-chart){grid-column:1/-1;padding-top:30px;padding-bottom:30px}
+  .visualization-suite .viz-card:has(#confidence-chart)>small,
+  .visualization-suite .viz-card:has(#confidence-chart)>p:last-child{max-width:38ch;color:rgba(79,88,82,.72)!important;font-size:10.5px!important;line-height:1.45!important}
+}
+
+/* 4) KIDULTS INTELLIGENCE COLOR SYSTEM — FIXED
+   Brand shell: Cream + Deep Forest + Muted Gold.
+   Categorical composition: Mint → Teal → Petrol Blue → Aqua Blue → Dusty Sage.
+   State/progress: Muted Forest.
+   Sequential intensity: Dusty Sage → Deep Teal.
+   Directional movement: Muted Forest / restrained Red.
+   Hero instrument: single Sage→Muted Teal signal derived from the same system. */
+
+/* 4A) Categorical radial charts. */
+.mix-panel .signal-donut{
+  background:conic-gradient(
+    #83CFBA 0% 32%,
+    #5AA3A5 32% 56%,
+    #6298B8 56% 77%,
+    #86B9D5 77% 100%
+  )!important;
+  box-shadow:0 0 0 1px rgba(246,241,232,.08)!important;
+}
+.mix-panel .signal-donut-legend span:nth-child(1) i{background:#83CFBA!important}
+.mix-panel .signal-donut-legend span:nth-child(2) i{background:#5AA3A5!important}
+.mix-panel .signal-donut-legend span:nth-child(3) i{background:#6298B8!important}
+.mix-panel .signal-donut-legend span:nth-child(4) i{background:#86B9D5!important}
+.geography-radial .radial-donut{box-shadow:inset 0 0 0 1px rgba(40,95,83,.05)}
+
+/* 4B) State/progress graphics: keep a single restrained intelligence green. */
+.category-row .bar-track i,
+.hbar-row i,
+.lifecycle-track i.active{background:#285F53!important}
+.lifecycle-row>span,
+.mover-row strong:not(.negative){color:#285F53!important}
+
+/* 4C) Correlation matrix: sequential scale, not categorical colors. */
+.matrix-grid>span:not(:first-child){
+  background:
+    linear-gradient(
+      rgb(32 93 80 / clamp(0,calc((var(--alpha) - .60) / .40),1)),
+      rgb(32 93 80 / clamp(0,calc((var(--alpha) - .60) / .40),1))
+    ),
+    #A7BEB4!important;
+  color:#fff!important;
+  border:1px solid rgba(246,241,232,.9);
+}
+.matrix-grid>span:not(:first-child) i{color:#fff!important;text-shadow:0 1px 0 rgba(5,47,39,.08)}
+
+/* 4D) Hero intelligence instrument: visually related, semantically distinct.
+   It remains one KPI gauge, so use one restrained sequential arc rather than
+   the categorical multi-color donut palette. */
+.premium-dial{
+  background:conic-gradient(
+    from -90deg,
+    #A7BEB4 0%,
+    #9ABBAF 30%,
+    #87B5AA 60%,
+    #72A89C calc(var(--dial-value,94.8) * 1%),
+    rgba(131,207,186,.12) 0
+  )!important;
+}
+
+/* 5) Governed system: authoritative, but not visually heavier than the Hero. */
+.dark{
+  grid-template-columns:minmax(0,1.02fr) minmax(0,1.48fr)!important;
+  gap:46px!important;
+  background:linear-gradient(145deg,#0A1915,#0B241D)!important;
+  border-top:1px solid rgba(222,199,149,.10);
+  border-bottom:1px solid rgba(222,199,149,.08);
+}
+.dark>div:first-child>h2{font-size:clamp(2.48rem,2.95vw,2.95rem)!important;line-height:1!important;letter-spacing:-.027em!important;max-width:14.5ch!important;text-wrap:balance}
+.dark-grid article{border-color:rgba(255,255,255,.10)!important;background:rgba(255,255,255,.012)}
+.dark-grid p{color:rgba(255,255,255,.69)!important}
+
+/* 6) Company band: preserve brand forest while creating a clear tonal step from Governed System. */
+.company{
+  background:linear-gradient(145deg,#0A4035,#0B4A3B)!important;
+  border-top:1px solid rgba(255,255,255,.06);
+  border-bottom:1px solid rgba(5,47,39,.15);
+}
+.company p{color:rgba(255,255,255,.76)!important}
+
+/* 7) Editorial rhythm and surface discipline. */
+.visualization-suite{padding-top:68px;padding-bottom:82px}
+.visualization-suite .section-head{margin-bottom:34px}
+.visualization-suite .viz-card{background:rgba(251,248,242,.82)}
+.viz-card,.grid.four article,.category-row,.chart-panel{box-shadow:none!important}
+
+/* 8) Product cards: quiet premium interaction. */
+.grid.four article{transition:border-color .18s ease,transform .18s ease}
+@media (hover:hover) and (pointer:fine){.grid.four article:hover{border-color:rgba(155,116,56,.40);transform:translateY(-2px)}}
+
+@media(max-width:1100px){
+  .dark{grid-template-columns:1fr!important;gap:32px!important}
+  .dark>div:first-child>h2{max-width:18ch!important}
+}
+@media(max-width:760px){
+  .visualization-suite{padding-top:54px;padding-bottom:60px}
+  @supports selector(article:has(#geography-chart)){
+    .visualization-suite .viz-grid{grid-template-columns:1fr}
+    .visualization-suite .viz-card:has(#geography-chart),.visualization-suite .viz-card:has(#correlation-chart){grid-column:auto}
+  }
+  .trend-validation-note{grid-template-columns:1fr!important;gap:7px!important}
+  .dark>div:first-child>h2{font-size:clamp(2.2rem,10vw,2.8rem)!important;max-width:15ch!important;text-wrap:balance}
+}
+@media(prefers-reduced-motion:reduce){.grid.four article{transition:none!important}}

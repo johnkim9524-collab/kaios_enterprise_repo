@@ -1,0 +1,67 @@
+/* KIDULTS Core Data Final Lock — trend surface + hero numeral refinement */
+
+:root {
+  --kidults-trend-panel:#fdfaf4;
+}
+
+/* Remove legacy trend summary strip even if an earlier runtime recreates it. */
+main .data-section .trend-summary-strip,
+main .data-section > .trend-summary-strip {
+  display:none !important;
+}
+
+/* Graph and summary are one analytical object: same surface, one hairline divider. */
+main .data-section .chart-panel,
+main .data-section .chart-panel .trend-chart,
+main .data-section .chart-panel .chart-side {
+  background:var(--kidults-trend-panel) !important;
+  background-color:var(--kidults-trend-panel) !important;
+}
+
+main .data-section .chart-panel {
+  border-color:rgba(154,113,53,.11) !important;
+  box-shadow:0 10px 28px rgba(16,22,19,.018) !important;
+}
+
+main .data-section .chart-panel .chart-side {
+  border-left:1px solid rgba(16,22,19,.085) !important;
+}
+
+/* Hero 61.7 — same editorial numeral language as the Trend summary, but hero-scale. */
+.premium-dial__value,
+.premium-dial-card .premium-dial__value.luxury-number {
+  font-family:Georgia,'Times New Roman',serif !important;
+  font-size:clamp(3.35rem,4vw,4.15rem) !important;
+  font-weight:400 !important;
+  line-height:.88 !important;
+  letter-spacing:-.055em !important;
+  font-variant-numeric:lining-nums tabular-nums !important;
+  color:#f6f1e8 !important;
+  text-shadow:0 1px 0 rgba(255,255,255,.025),0 8px 20px rgba(0,0,0,.08) !important;
+}
+
+.premium-dial__label {
+  margin-top:.7rem !important;
+  font-size:9px !important;
+  font-weight:700 !important;
+  letter-spacing:.19em !important;
+  color:rgba(246,241,232,.64) !important;
+}
+
+.premium-dial__delta {
+  margin-top:.5rem !important;
+  font-size:11px !important;
+  font-weight:700 !important;
+  letter-spacing:.02em !important;
+}
+
+@media(max-width:760px){
+  main .data-section .chart-panel .chart-side {
+    border-left:0 !important;
+    border-top:1px solid rgba(16,22,19,.085) !important;
+  }
+  .premium-dial__value,
+  .premium-dial-card .premium-dial__value.luxury-number {
+    font-size:clamp(2.85rem,14vw,3.5rem) !important;
+  }
+}
