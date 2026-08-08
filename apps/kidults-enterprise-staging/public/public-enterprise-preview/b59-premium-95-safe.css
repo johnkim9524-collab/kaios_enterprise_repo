@@ -1,0 +1,86 @@
+/* KIDULTS 9.5 premium polish — CSS only, no data/runtime/DOM mutation. */
+
+/* 1) LIVE INTELLIGENCE: keep the governed label, remove the low-value staging status line. */
+.data-note [data-status-label] {
+  display: none !important;
+}
+
+/* 2) Visualization hierarchy: flagship views get more breathing room without changing markup or data. */
+@supports selector(article:has(#geography-chart)) {
+  .visualization-suite .viz-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .visualization-suite .viz-card:has(#geography-chart),
+  .visualization-suite .viz-card:has(#correlation-chart) {
+    grid-column: 1 / -1;
+  }
+
+  .visualization-suite .viz-card:has(#geography-chart),
+  .visualization-suite .viz-card:has(#correlation-chart) {
+    padding-top: 30px;
+    padding-bottom: 30px;
+  }
+}
+
+/* 3) Governed system: slightly reduce secondary headline weight so Hero stays dominant. */
+.dark > div:first-child > h2 {
+  font-size: clamp(2.7rem, 3.75vw, 3.85rem) !important;
+  line-height: 1.01 !important;
+  letter-spacing: -.026em !important;
+  max-width: 11.5ch;
+}
+
+/* 4) Editorial rhythm: slightly more space between major intelligence systems. */
+.visualization-suite {
+  padding-top: 68px;
+  padding-bottom: 82px;
+}
+
+.visualization-suite .section-head {
+  margin-bottom: 34px;
+}
+
+.visualization-suite .viz-card {
+  background: rgba(251,248,242,.82);
+}
+
+/* 5) Product cards: quieter, more premium hierarchy without changing structure. */
+.grid.four article {
+  transition: border-color .18s ease, transform .18s ease;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .grid.four article:hover {
+    border-color: rgba(155,116,56,.46);
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 760px) {
+  .visualization-suite {
+    padding-top: 54px;
+    padding-bottom: 60px;
+  }
+
+  @supports selector(article:has(#geography-chart)) {
+    .visualization-suite .viz-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .visualization-suite .viz-card:has(#geography-chart),
+    .visualization-suite .viz-card:has(#correlation-chart) {
+      grid-column: auto;
+    }
+  }
+
+  .dark > div:first-child > h2 {
+    font-size: clamp(2.35rem, 11vw, 3.2rem) !important;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid.four article { transition: none !important; }
+}
