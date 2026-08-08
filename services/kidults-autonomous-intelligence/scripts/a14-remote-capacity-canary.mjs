@@ -63,6 +63,19 @@ function exec(sql, tag = 'sql') {
   }
 }
 
+function extractCount(output, alias) {
+  const text = String(output ?? '').replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '');
+  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const jsonMatch = text.match(new RegExp(`"${escaped}"\\s*:\\s*(\\d+)`, 'i'));
+  if (jsonMatch) return Number(jsonMatch[1]);
+
+  const tableMatch = text.match(new RegExp(`[│|]\\s*${escaped}\\s*[│|][\\s\\S]*?[│|]\\s*(\\d+)\\s*[│|]`, 'i'));
+  if (tableMatch) return Number(tableMatch[1]);
+
+  return null;
+}
+
 function percentile(values, p) {
   const a = [...values].sort((x, y) => x - y);
   return a[Math.min(a.length - 1, Math.floor((a.length - 1) * p))] ?? 0;
@@ -84,14 +97,13 @@ try {
   }
   const writeMs = performance.now() - started;
 
-  const read = exec(`SELECT COUNT(*) AS c, MIN(id) AS min_id, MAX(id) AS max_id FROM ${table} WHERE run_id='${runId}';`, 'verify-read');
-  const countMatch = read.out.match(/"c"\s*:\s*(\d+)/) || read.out.match(/\bc\s*\|\s*(\d+)/);
-  const observed = countMatch ? Number(countMatch[1]) : rows;
+  const read = exec(`SELECT COUNT(*) AS a14_count, MIN(id) AS min_id, MAX(id) AS max_id FROM ${table} WHERE run_id='${runId}';`, 'verify-read');
+  const observed = extractCount(read.out, 'a14_count');
 
   const contentionStart = performance.now();
   const probeFiles = Array.from({ length: parallelism }, (_, n) => {
     const file = resolve(workDir, `${runId}-probe-${n}.sql`);
-    writeFileSync(file, `SELECT COUNT(*) AS c FROM ${table} WHERE id % ${parallelism} = ${n};\n`, 'utf8');
+    writeFileSync(file, `SELECT COUNT(*) AS a14_probe_count FROM ${table} WHERE id % ${parallelism} = ${n};\n`, 'utf8');
     return file;
   });
   let probes;
@@ -106,16 +118,22 @@ try {
   const contentionOk = probes.every((p) => !p.error && p.status === 0);
 
   exec(`DELETE FROM ${table} WHERE run_id='${runId}';`, 'delete-run');
-  const verifyDelete = exec(`SELECT COUNT(*) AS c FROM ${table} WHERE run_id='${runId}';`, 'verify-delete');
+  const verifyDelete = exec(`SELECT COUNT(*) AS a14_cleanup_count FROM ${table} WHERE run_id='${runId}';`, 'verify-delete');
+  const cleanupRowsRemaining = extractCount(verifyDelete.out, 'a14_cleanup_count');
+
   cleanupAttempted = true;
   exec(`DROP TABLE IF EXISTS ${table};`, 'drop-table');
+  const verifyDrop = exec(`SELECT COUNT(*) AS a14_table_count FROM sqlite_master WHERE type='table' AND name='${table}';`, 'verify-drop');
+  const cleanupTablesRemaining = extractCount(verifyDrop.out, 'a14_table_count');
 
   const gates = {
     remoteD1Reachable: true,
     writeReadConsistency: observed === rows,
     expectedRowsPersisted: observed === rows,
     concurrentReadProbesHealthy: contentionOk,
-    cleanupVerified: /"c"\s*:\s*0/.test(verifyDelete.out) || /\bc\s*\|\s*0/.test(verifyDelete.out),
+    cleanupRowsRemoved: cleanupRowsRemaining === 0,
+    cleanupTableDropped: cleanupTablesRemaining === 0,
+    cleanupVerified: cleanupRowsRemaining === 0 && cleanupTablesRemaining === 0,
     productionBlocked: config?.vars?.KIDULTS_ENV !== 'production',
     latencyWithinCanaryBound: percentile(latencies, 0.95) < 15000,
   };
@@ -123,6 +141,7 @@ try {
   const report = {
     stage: 'A14', mode: 'remote-d1-canary', runId, database: { name: db.database_name, id: db.database_id },
     workload: { rows, insertBatch: 20, concurrentReadProbes: parallelism },
+    observations: { observedRows: observed, cleanupRowsRemaining, cleanupTablesRemaining },
     performance: { writeMs: Number(writeMs.toFixed(2)), contentionProbeMs: Number(contentionMs.toFixed(2)), p50RemoteCommandMs: Number(percentile(latencies, .5).toFixed(2)), p95RemoteCommandMs: Number(percentile(latencies, .95).toFixed(2)), maxRemoteCommandMs: Number(Math.max(...latencies).toFixed(2)) },
     gates, status, completedAt: new Date().toISOString(),
   };
