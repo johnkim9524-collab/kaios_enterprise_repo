@@ -1,0 +1,98 @@
+{
+  "policyVersion": "a23-commercial-delivery-policy.v1",
+  "stage": "A23",
+  "controlPlaneLifecycle": [
+    "policy",
+    "upstream-evidence-ingestion",
+    "channel-preflight",
+    "delivery-eligibility-evaluation",
+    "entitlement-boundary",
+    "provider-dependency-check",
+    "commercial-decision",
+    "evidence-emission",
+    "rollback-path",
+    "audit-record",
+    "finalize"
+  ],
+  "invariants": {
+    "policyBeforeExecution": true,
+    "preflightBeforeMutation": true,
+    "nonInteractiveByDefault": true,
+    "failClosedOnUnknown": true,
+    "noUnrestrictedProductionPublication": true,
+    "noProviderProcurement": true,
+    "noProviderCredentialConsumptionOrStorage": true,
+    "noBillingMutation": true,
+    "noExternalPublicationMutation": true,
+    "noExternalSystemMutation": true,
+    "noIrreversibleCommercialTransaction": true,
+    "evidenceProducedForEveryEvaluation": true,
+    "idempotentEvaluation": true,
+    "deterministicOutput": true,
+    "rollbackPathRepresented": true,
+    "a20DecisionsRespected": true,
+    "a21DecisionsRespected": true,
+    "a22DecisionsRespected": true,
+    "providerRequiredProductsDependencyBlocked": true,
+    "commercialEligibilityNotProductionPermission": true,
+    "unknownChannelsFailClosed": true,
+    "unknownProductsFailClosed": true
+  },
+  "thresholds": {
+    "provenance": 0.8,
+    "quality": 0.75,
+    "freshness": 0.7
+  },
+  "channels": {
+    "PUBLIC_EDITORIAL": {
+      "requiresProvenanceCoverage": true,
+      "requiresFreshness": true,
+      "requiresQualityThreshold": true,
+      "blockedOnProviderDependency": true,
+      "blockedOnUnresolvedUpstream": true,
+      "noDirectCredentialBillingRequirement": true,
+      "mustRemainNonInteractive": true,
+      "failClosed": true,
+      "allowedDataStrategies": ["SELF-FIRST"],
+      "publicationPolicyRequired": true
+    },
+    "PRO_SUBSCRIPTION": {
+      "requiresMonetizationReadiness": true,
+      "requiresEntitlementBoundary": true,
+      "requiresPublicationReadinessOrInternalServing": true,
+      "mustNotPerformBillingMutation": true,
+      "mustEmitEntitlementEvidence": true,
+      "allowedDataStrategies": ["SELF-FIRST", "HYBRID"]
+    },
+    "ENTERPRISE_API": {
+      "requiresApiDeliveryReadiness": true,
+      "requiresStableProductIdentity": true,
+      "requiresStableSchema": true,
+      "requiresProvenance": true,
+      "requiresFreshness": true,
+      "requiresQuality": true,
+      "requiresRepeatability": true,
+      "mustDefineAuthAuthzContractOnly": true,
+      "mustNotProvisionCredentials": true,
+      "mustNotMutateExternalIdentity": true,
+      "allowedDataStrategies": ["SELF-FIRST", "HYBRID"]
+    },
+    "DATA_LICENSE": {
+      "requiresProvenanceEvidence": true,
+      "requiresUsageRightsEvidence": true,
+      "requiresStableDataContract": true,
+      "requiresLicensingEligibility": true,
+      "mustNotExecuteLicensingTransactions": true,
+      "mustNotExecuteBillingTransactions": true,
+      "mustNotExecuteContractTransactions": true,
+      "allowedDataStrategies": ["SELF-FIRST"]
+    },
+    "CUSTOM_INTELLIGENCE": {
+      "requiresBoundedDeliveryScope": true,
+      "requiresProductDataDependencyCompleteness": true,
+      "mustEmitHumanReviewRequirementWhereRequired": true,
+      "mustNotAutoCommitIrreversibleCommercialObligations": true,
+      "allowedDataStrategies": ["SELF-FIRST", "HYBRID"]
+    }
+  }
+}

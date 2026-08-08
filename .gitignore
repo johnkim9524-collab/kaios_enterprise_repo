@@ -40,6 +40,10 @@ dist/
 .wrangler/
 .dev.vars
 
+# Node dependencies and lockfiles
+node_modules/
+package-lock.json
+
 # KAIOS runtime-transient data
 data/raw/
 data/cache/
