@@ -8,17 +8,15 @@
     {
       "binding": "DB",
       "database_name": "kidults-intelligence-db",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "d6d65f81-f91d-428b-bf43-8a025aaa47bd",
       "migrations_dir": "migrations"
     }
   ],
-  "triggers": {
-    "crons": ["17 * * * *"]
-  },
+  "triggers": { "crons": ["17 * * * *"] },
   "vars": {
     "KIDULTS_ENV": "staging",
     "METHODOLOGY_VERSION": "v2.0-autonomous-foundation",
     "MIN_EVIDENCE_FOR_PUBLISH": "20",
-    "SOURCE_ADAPTERS_JSON": "[]"
+    "SOURCE_ADAPTERS_JSON": "[{\"id\":\"staging-transactions-golden-path\",\"family\":\"marketplace\",\"endpoint\":\"https://kidults-autonomous-intelligence.john-kim9524.workers.dev/internal/golden-path/transactions\",\"enabled\":true,\"timeoutMs\":15000}]"
   }
 }
