@@ -1,0 +1,43 @@
+{
+  "stage": "A24",
+  "policyVersion": "a24-rollback-contract.v1",
+  "description": "Rollback contract governing rollback path certification, strategy, and fail-closed behavior for all A24 production activation attempts.",
+  "rollbackRequired": true,
+  "rollbackStrategy": "state-snapshot-restore",
+  "rollbackTarget": "last-known-good-state",
+  "rollbackTrigger": {
+    "onPolicyDecisionDenied": true,
+    "onPreflightFailure": true,
+    "onEvidenceFailure": true,
+    "onVerificationFailure": true,
+    "onEnvironmentSafetyFailure": true,
+    "onMutationBoundExceeded": true,
+    "onIdempotencyViolation": true,
+    "onProviderBlockDetected": true,
+    "onPublicationBlockDetected": true,
+    "onCommercialBlockDetected": true,
+    "onUnknownState": true,
+    "onActivationTimeout": true
+  },
+  "rollbackTimeoutSeconds": 120,
+  "evidenceRequired": true,
+  "verificationRequired": true,
+  "failClosedOnRollbackFailure": true,
+  "rollbackSteps": [
+    "halt-active-mutation",
+    "snapshot-current-state",
+    "verify-rollback-target-existence",
+    "apply-last-known-good-state",
+    "verify-rollback-success",
+    "emit-rollback-evidence",
+    "emit-audit-record",
+    "notify-fail-closed-if-rollback-fails"
+  ],
+  "invariants": {
+    "rollbackCertifiedBeforeActivation": true,
+    "noPartialRollback": true,
+    "failClosedOnRollbackFailure": true,
+    "rollbackEvidenceRequired": true,
+    "rollbackVerificationRequired": true
+  }
+}

@@ -1,0 +1,223 @@
+{
+  "stage": "A24",
+  "mode": "autonomous-production-activation-gate",
+  "policyVersion": "a24-production-activation-policy.v1",
+  "description": "Canonical production activation contract governing all bounded production execution transitions for the KIDULTS Autonomous Intelligence Platform.",
+  "activationScope": "bounded-production-only",
+  "defaultDecision": "DENIED",
+  "lifecycle": [
+    "observe",
+    "decide",
+    "policy",
+    "preflight",
+    "execute",
+    "verify",
+    "evidence",
+    "activate",
+    "monitor",
+    "rollback-or-fail-closed"
+  ],
+  "activationClasses": {
+    "DENIED": {
+      "description": "Default class. No production activation permitted.",
+      "mutationPermitted": false,
+      "canaryPermitted": false,
+      "publicationPermitted": false,
+      "commercialPermitted": false
+    },
+    "INTERNAL_READY": {
+      "description": "Target is certified for internal non-production use only. No production mutation.",
+      "mutationPermitted": false,
+      "canaryPermitted": false,
+      "publicationPermitted": false,
+      "commercialPermitted": false
+    },
+    "CANARY_READY": {
+      "description": "Target is eligible for bounded canary execution only.",
+      "mutationPermitted": true,
+      "canaryPermitted": true,
+      "publicationPermitted": false,
+      "commercialPermitted": false,
+      "boundaryRequired": true,
+      "rollbackRequired": true
+    },
+    "BOUNDED_PRODUCTION_READY": {
+      "description": "Target is eligible for policy-scoped bounded production execution.",
+      "mutationPermitted": true,
+      "canaryPermitted": true,
+      "publicationPermitted": false,
+      "commercialPermitted": false,
+      "boundaryRequired": true,
+      "rollbackRequired": true,
+      "evidenceRequired": true,
+      "verificationRequired": true
+    },
+    "PUBLICATION_BLOCKED": {
+      "description": "Target must not be publicly released. Blocked by A22 publication gate.",
+      "mutationPermitted": false,
+      "canaryPermitted": false,
+      "publicationPermitted": false,
+      "commercialPermitted": false
+    },
+    "COMMERCIAL_BLOCKED": {
+      "description": "Target must not be used in monetized delivery. Blocked by A23 commercial gate.",
+      "mutationPermitted": false,
+      "canaryPermitted": false,
+      "publicationPermitted": false,
+      "commercialPermitted": false
+    },
+    "PROVIDER_BLOCKED": {
+      "description": "Target requires validated provider evidence that is not yet present.",
+      "mutationPermitted": false,
+      "canaryPermitted": false,
+      "publicationPermitted": false,
+      "commercialPermitted": false
+    },
+    "ROLLBACK_ONLY": {
+      "description": "Only rollback operations are permitted. No new production mutation.",
+      "mutationPermitted": false,
+      "canaryPermitted": false,
+      "publicationPermitted": false,
+      "commercialPermitted": false,
+      "rollbackPermitted": true
+    }
+  },
+  "allowedTargets": [
+    "entity-master",
+    "canon-strength",
+    "market-momentum",
+    "collector-sentiment",
+    "price-index",
+    "comparables",
+    "scarcity-signal",
+    "availability-monitor",
+    "culture-velocity",
+    "trend-radar",
+    "auction-intelligence",
+    "liquidity-signal",
+    "provenance-confidence",
+    "asset-history",
+    "condition-risk",
+    "auth-confidence",
+    "category-outlook",
+    "kidult-100"
+  ],
+  "prohibitedTargets": [
+    "__wildcard__",
+    "__all__",
+    "*"
+  ],
+  "mandatoryPreflight": [
+    "synchronizedRepositoryState",
+    "expectedBranchState",
+    "productionEnvironmentIdentification",
+    "providerAuthenticationReadiness",
+    "providerPermissionReadiness",
+    "targetExistence",
+    "activationScopeValidity",
+    "policyAllowlistMembership",
+    "publicationPermissionState",
+    "commercialDeliveryPermissionState",
+    "rollbackPathAvailability",
+    "idempotencyKeyAvailability",
+    "evidenceSinkAvailability",
+    "productionMutationBound",
+    "environmentSafetyCondition"
+  ],
+  "mandatoryEvidence": [
+    "a15-global-autonomous-policy",
+    "a16-execution-control",
+    "a17-bounded-live-adapter-readiness",
+    "a18-autonomous-acquisition-scale",
+    "a19-productization-gap",
+    "a20-product-readiness-monetization",
+    "a21-intelligence-product-pipeline",
+    "a22-publication-control",
+    "a23-commercial-delivery-channel-control"
+  ],
+  "mandatoryVerification": [
+    "policyDecision",
+    "preflightDecision",
+    "evidenceDecision",
+    "rollbackDecision",
+    "idempotencyDecision",
+    "environmentDecision"
+  ],
+  "rollbackRequired": true,
+  "boundedMutationRequired": true,
+  "nonInteractiveRequired": true,
+  "failClosedRequired": true,
+  "providerBoundaryRequired": true,
+  "publicationBoundaryRequired": true,
+  "commercialBoundaryRequired": true,
+  "productionEnvironmentRequired": true,
+  "activationWindowRequired": true,
+  "idempotencyRequired": true,
+  "auditEvidenceRequired": true,
+  "activationScopeClasses": {
+    "READ_ONLY": {
+      "description": "No state mutation. Read operations only.",
+      "mutationAllowed": false,
+      "productionAllowed": false
+    },
+    "INTERNAL_ONLY": {
+      "description": "Internal non-production scope. No implicit promotion to BOUNDED_PRODUCTION.",
+      "mutationAllowed": false,
+      "productionAllowed": false,
+      "note": "INTERNAL_ONLY does NOT implicitly promote to BOUNDED_PRODUCTION under any condition."
+    },
+    "BOUNDED_PRODUCTION": {
+      "description": "Policy-scoped bounded production execution with strict evidence, rollback, and audit requirements.",
+      "mutationAllowed": true,
+      "productionAllowed": true,
+      "requiresRollback": true,
+      "requiresEvidence": true,
+      "requiresIdempotency": true
+    },
+    "EXTERNAL_PUBLICATION": {
+      "description": "Controlled external publication path. Requires A22 clearance.",
+      "mutationAllowed": false,
+      "productionAllowed": false,
+      "requiresA22Clearance": true
+    },
+    "COMMERCIAL_DELIVERY": {
+      "description": "Monetized commercial delivery channel. Requires A23 clearance.",
+      "mutationAllowed": false,
+      "productionAllowed": false,
+      "requiresA23Clearance": true
+    }
+  },
+  "boundedMutationPolicy": {
+    "maxRowsAffected": 10000,
+    "maxObjectsAffected": 500,
+    "maxWriteBatchSize": 100,
+    "maxExecutionDurationSeconds": 300,
+    "maxRetryCount": 3,
+    "maxProviderCalls": 0,
+    "maxExternalPublications": 0,
+    "maxCommercialDeliveries": 0,
+    "unknownBoundsDenyByDefault": true
+  },
+  "invariants": {
+    "policyBeforeExecution": true,
+    "preflightBeforeMutation": true,
+    "nonInteractiveByDefault": true,
+    "failClosedOnUnknownState": true,
+    "noImplicitPromotionFromInternalToBoundedProduction": true,
+    "noUnrestrictedProductionMutation": true,
+    "noProviderProcurement": true,
+    "noProviderCredentialConsumptionOrStorage": true,
+    "noBillingMutation": true,
+    "noExternalPublicationMutation": true,
+    "noIrreversibleCommercialTransaction": true,
+    "evidenceProducedForEveryEvaluation": true,
+    "idempotentEvaluation": true,
+    "deterministicOutput": true,
+    "rollbackCertifiedBeforeActivation": true,
+    "a15ThroughA23EvidenceRequired": true,
+    "providerRequiredProductsRemainProviderBlocked": true,
+    "a22BlockedProductsRemainPublicationBlocked": true,
+    "a23BlockedProductsRemainCommercialBlocked": true,
+    "noA19A20BypassAllowed": true
+  }
+}

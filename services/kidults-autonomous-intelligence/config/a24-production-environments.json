@@ -1,0 +1,100 @@
+{
+  "policyVersion": "a24-production-environments.v1",
+  "stage": "A24",
+  "description": "Canonical environment contract for all A24 production activation targets.",
+  "validActivationTargets": ["canary", "production"],
+  "environments": {
+    "local": {
+      "name": "local",
+      "class": "DEVELOPMENT",
+      "mutationAllowed": false,
+      "maxMutationScope": "NONE",
+      "requiresApprovalPolicy": false,
+      "requiresRollback": false,
+      "requiresCanary": false,
+      "requiresEvidence": false,
+      "requiresHealthCheck": false,
+      "requiresIdempotency": false,
+      "requiresProviderVerification": false,
+      "requiresPublicationVerification": false,
+      "requiresCommercialVerification": false,
+      "activationTarget": false
+    },
+    "test": {
+      "name": "test",
+      "class": "TEST",
+      "mutationAllowed": false,
+      "maxMutationScope": "NONE",
+      "requiresApprovalPolicy": false,
+      "requiresRollback": false,
+      "requiresCanary": false,
+      "requiresEvidence": true,
+      "requiresHealthCheck": false,
+      "requiresIdempotency": true,
+      "requiresProviderVerification": false,
+      "requiresPublicationVerification": false,
+      "requiresCommercialVerification": false,
+      "activationTarget": false
+    },
+    "staging": {
+      "name": "staging",
+      "class": "PRE_PRODUCTION",
+      "mutationAllowed": false,
+      "maxMutationScope": "INTERNAL_ONLY",
+      "requiresApprovalPolicy": true,
+      "requiresRollback": true,
+      "requiresCanary": false,
+      "requiresEvidence": true,
+      "requiresHealthCheck": true,
+      "requiresIdempotency": true,
+      "requiresProviderVerification": false,
+      "requiresPublicationVerification": false,
+      "requiresCommercialVerification": false,
+      "activationTarget": false
+    },
+    "canary": {
+      "name": "canary",
+      "class": "CANARY",
+      "mutationAllowed": true,
+      "maxMutationScope": "CANARY_BOUNDED",
+      "requiresApprovalPolicy": true,
+      "requiresRollback": true,
+      "requiresCanary": true,
+      "requiresEvidence": true,
+      "requiresHealthCheck": true,
+      "requiresIdempotency": true,
+      "requiresProviderVerification": true,
+      "requiresPublicationVerification": true,
+      "requiresCommercialVerification": false,
+      "activationTarget": true,
+      "evidenceThresholds": {
+        "dataCoverage": 0.65,
+        "provenanceCoverage": 0.70,
+        "freshness": 0.65,
+        "quality": 0.70
+      }
+    },
+    "production": {
+      "name": "production",
+      "class": "PRODUCTION",
+      "mutationAllowed": true,
+      "maxMutationScope": "BOUNDED_PRODUCTION",
+      "requiresApprovalPolicy": true,
+      "requiresRollback": true,
+      "requiresCanary": true,
+      "requiresEvidence": true,
+      "requiresHealthCheck": true,
+      "requiresIdempotency": true,
+      "requiresProviderVerification": true,
+      "requiresPublicationVerification": true,
+      "requiresCommercialVerification": true,
+      "activationTarget": true,
+      "evidenceThresholds": {
+        "dataCoverage": 0.75,
+        "provenanceCoverage": 0.80,
+        "freshness": 0.70,
+        "quality": 0.75
+      }
+    }
+  }
+}
