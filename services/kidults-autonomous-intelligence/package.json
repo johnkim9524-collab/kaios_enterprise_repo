@@ -1,7 +1,7 @@
 {
   "name": "@kaios/kidults-autonomous-intelligence",
   "private": true,
-  "version": "0.2.3",
+  "version": "0.2.4",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local",
@@ -13,7 +13,7 @@
     "validate": "npm run typecheck && npm run runtime:smoke"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20260727.1",
+    "@cloudflare/workers-types": "5.20260808.1",
     "typescript": "^5.9.2",
     "wrangler": "^4.28.1"
   }
