@@ -15,17 +15,24 @@ const table = `a14_canary_${Date.now()}`;
 const rows = 200;
 const parallelism = 4;
 const latencies = [];
+const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+
+function runWrangler(args, maxBuffer = 10 * 1024 * 1024) {
+  return spawnSync(npxCommand, ['wrangler', ...args], {
+    cwd,
+    encoding: 'utf8',
+    shell: false,
+    maxBuffer,
+    windowsHide: true,
+  });
+}
 
 function exec(sql) {
   const t0 = performance.now();
-  const r = spawnSync('npx', ['wrangler', 'd1', 'execute', 'DB', '--remote', '--command', sql], {
-    cwd,
-    encoding: 'utf8',
-    shell: process.platform === 'win32',
-    maxBuffer: 10 * 1024 * 1024,
-  });
+  const r = runWrangler(['d1', 'execute', 'DB', '--remote', '--command', sql]);
   const ms = performance.now() - t0;
   latencies.push(ms);
+  if (r.error) throw r.error;
   if (r.status !== 0) throw new Error((r.stderr || r.stdout || `wrangler exit ${r.status}`).trim());
   return { ms, out: r.stdout };
 }
@@ -57,12 +64,13 @@ try {
 
   const contentionStart = performance.now();
   const probes = Array.from({ length: parallelism }, (_, n) =>
-    spawnSync('npx', ['wrangler', 'd1', 'execute', 'DB', '--remote', '--command', `SELECT COUNT(*) AS c FROM ${table} WHERE id % ${parallelism} = ${n};`], {
-      cwd, encoding: 'utf8', shell: process.platform === 'win32', maxBuffer: 5 * 1024 * 1024,
-    })
+    runWrangler(
+      ['d1', 'execute', 'DB', '--remote', '--command', `SELECT COUNT(*) AS c FROM ${table} WHERE id % ${parallelism} = ${n};`],
+      5 * 1024 * 1024,
+    )
   );
   const contentionMs = performance.now() - contentionStart;
-  const contentionOk = probes.every((p) => p.status === 0);
+  const contentionOk = probes.every((p) => !p.error && p.status === 0);
 
   exec(`DELETE FROM ${table} WHERE run_id='${runId}';`);
   const verifyDelete = exec(`SELECT COUNT(*) AS c FROM ${table} WHERE run_id='${runId}';`);
