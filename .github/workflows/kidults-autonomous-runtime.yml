@@ -1,0 +1,42 @@
+name: KIDULTS Autonomous Runtime
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-autonomous-runtime.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-autonomous-runtime.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/kidults-autonomous-intelligence
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
+
+      - name: Install autonomous intelligence dependencies
+        run: npm ci
+
+      - name: Typecheck autonomous worker
+        run: npm run typecheck
+
+      - name: Apply local D1 migrations and verify invariants
+        run: npm run runtime:smoke
