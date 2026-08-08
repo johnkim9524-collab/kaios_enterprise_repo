@@ -1,17 +1,19 @@
 {
   "name": "@kaios/kidults-autonomous-intelligence",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.2.4",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "db:migrate:remote": "wrangler d1 migrations apply DB --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "runtime:smoke": "node scripts/runtime-smoke.mjs",
+    "validate": "npm run typecheck && npm run runtime:smoke"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260801.0",
+    "@cloudflare/workers-types": "5.20260808.1",
     "typescript": "^5.9.2",
     "wrangler": "^4.28.1"
   }
