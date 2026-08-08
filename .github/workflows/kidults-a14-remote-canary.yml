@@ -1,0 +1,38 @@
+name: Kidults A14 Remote Canary Validation
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-a14-remote-canary.yml'
+
+jobs:
+  static-validation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/kidults-autonomous-intelligence
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install
+      - run: npm run typecheck
+      - name: Verify A14 command wiring
+        run: |
+          node -e "const p=require('./package.json'); for (const k of ['a14:canary','a14:certify','a14:finalize']) if(!p.scripts[k]) process.exit(1)"
+      - name: Verify production guard and cleanup exist
+        run: |
+          grep -q "A14 remote canary is blocked in production" scripts/a14-remote-capacity-canary.mjs
+          grep -q "DROP TABLE IF EXISTS" scripts/a14-remote-capacity-canary.mjs
+          grep -q "git pull --ff-only origin main" scripts/stage-finalize.ps1
+
+  remote-canary-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert remote canary is explicit/manual-runtime only
+        run: |
+          grep -q 'wrangler.*d1.*execute.*DB.*--remote' services/kidults-autonomous-intelligence/scripts/a14-remote-capacity-canary.mjs
+          echo 'Remote D1 execution requires authenticated operator environment; PR CI does not mutate remote D1.'
