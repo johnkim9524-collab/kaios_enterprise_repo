@@ -1,5 +1,6 @@
 import baseWorker, { type Env as BaseEnv } from './index';
 import { collectConfiguredAdapters } from './orchestrator';
+import { enrichPortalPayload, persistEnrichedSnapshot } from './publication';
 
 export interface Env extends BaseEnv {
   SOURCE_ADAPTERS_JSON?: string;
@@ -84,14 +85,23 @@ async function promote(env: Env) {
   const result = await response.json() as any;
   if (!response.ok) throw new Error(result?.message || result?.error || `publish HTTP ${response.status}`);
 
-  if (!result.productionEligible) {
+  const enriched = await enrichPortalPayload(env, result.runId, result.payload || {});
+  const payloadHash = await persistEnrichedSnapshot(env, result.runId, enriched.payload);
+  const publishReady = Boolean(result.productionEligible) && enriched.ready;
+
+  if (!publishReady) {
     await env.DB.prepare(`UPDATE publication_snapshots SET status='blocked',published_at=NULL WHERE run_id=? AND channel='portal'`)
       .bind(result.runId).run();
     await env.DB.prepare(`
       INSERT INTO audit_log (id,event_type,actor,subject_id,details_json,created_at)
       VALUES (?,'publication.blocked','orchestrator',?,?,?)
-    `).bind(makeId('audit'), result.runId || null, JSON.stringify({ reason: 'production gate failed' }), nowIso()).run();
-    return { promoted: false, result };
+    `).bind(makeId('audit'), result.runId || null, JSON.stringify({
+      productionEligible: Boolean(result.productionEligible),
+      portalContractReady: enriched.ready,
+      trendObservationCount: enriched.payload?.governance?.trendObservationCount || 0,
+      correlationObservationWindow: enriched.payload?.governance?.correlationObservationWindow || 0
+    }), nowIso()).run();
+    return { promoted: false, portalContractReady: enriched.ready, result: { ...result, payload: enriched.payload, payloadHash } };
   }
 
   const snapshot = await env.DB.prepare(`
@@ -113,7 +123,7 @@ async function promote(env: Env) {
     VALUES (?,'publication.promoted','orchestrator',?,?,?)
   `).bind(makeId('audit'), snapshot.id, JSON.stringify({ runId: result.runId, payloadHash: snapshot.payload_hash }), nowIso()).run();
 
-  return { promoted: true, snapshotId: snapshot.id, result };
+  return { promoted: true, snapshotId: snapshot.id, payloadHash: snapshot.payload_hash, result: { ...result, payload: enriched.payload } };
 }
 
 async function autonomousCycle(env: Env) {
