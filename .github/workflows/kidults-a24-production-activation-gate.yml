@@ -1,0 +1,30 @@
+name: kidults-a24-production-activation-gate
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-a24-production-activation-gate.yml'
+  workflow_dispatch:
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: services/kidults-autonomous-intelligence
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm run a24:gate
+      - name: Upload A24 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-a24-production-activation-evidence
+          path: services/kidults-autonomous-intelligence/reports/production-activation/*.json
+          if-no-files-found: error
