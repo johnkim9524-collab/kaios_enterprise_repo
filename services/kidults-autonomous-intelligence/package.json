@@ -63,7 +63,10 @@
     "a23:finalize": "npm run a23:certify && node scripts/a23-finalize.mjs",
     "a24:gate": "node scripts/a24-production-activation-gate.mjs",
     "a24:certify": "npm run typecheck && npm run a24:gate",
-    "a24:finalize": "npm run a24:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A24"
+    "a24:finalize": "npm run a24:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A24",
+    "a25:runtime": "node scripts/a25-autonomous-production-runtime.mjs",
+    "a25:certify": "npm run typecheck && npm run a25:runtime",
+    "a25:finalize": "npm run a25:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A25"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",
