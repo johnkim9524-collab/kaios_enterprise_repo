@@ -1,6 +1,7 @@
 import baseWorker, { type Env as BaseEnv } from './index';
 import { collectConfiguredAdapters } from './orchestrator';
 import { enrichPortalPayload, persistEnrichedSnapshot } from './publication';
+import { handleControlTowerRequest, isControlTowerRoute } from './control-tower-ui/executive-control-tower.js';
 
 export interface Env extends BaseEnv {
   SOURCE_ADAPTERS_JSON?: string;
@@ -135,6 +136,9 @@ async function autonomousCycle(env: Env) {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    if (isControlTowerRoute(url.pathname)) {
+      return handleControlTowerRequest(request);
+    }
     if (request.method === 'POST' && url.pathname === '/internal/collect') {
       const auth = env.INGEST_TOKEN ? request.headers.get('authorization') === `Bearer ${env.INGEST_TOKEN}` : env.KIDULTS_ENV !== 'production';
       if (!auth) return json({ error: 'unauthorized' }, 401);
