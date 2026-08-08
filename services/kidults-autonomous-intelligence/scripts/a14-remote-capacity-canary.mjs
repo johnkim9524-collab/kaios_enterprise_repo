@@ -1,4 +1,4 @@
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
@@ -15,26 +15,44 @@ const table = `a14_canary_${Date.now()}`;
 const rows = 200;
 const parallelism = 4;
 const latencies = [];
-const wranglerCli = resolve(cwd, 'node_modules', 'wrangler', 'bin', 'wrangler.js');
+const workDir = resolve(cwd, '.a14-work');
+mkdirSync(workDir, { recursive: true });
 
-function runWrangler(args, maxBuffer = 10 * 1024 * 1024) {
-  return spawnSync(process.execPath, [wranglerCli, ...args], {
+function runWranglerFile(sqlFile, maxBuffer = 10 * 1024 * 1024) {
+  const args = ['wrangler', 'd1', 'execute', 'DB', '--remote', '--file', sqlFile];
+  if (process.platform === 'win32') {
+    const comspec = process.env.ComSpec || 'cmd.exe';
+    const command = `npx wrangler d1 execute DB --remote --file "${sqlFile.replaceAll('"', '""')}"`;
+    return spawnSync(comspec, ['/d', '/s', '/c', command], {
+      cwd,
+      encoding: 'utf8',
+      shell: false,
+      maxBuffer,
+      windowsHide: true,
+    });
+  }
+  return spawnSync('npx', args, {
     cwd,
     encoding: 'utf8',
     shell: false,
     maxBuffer,
-    windowsHide: true,
   });
 }
 
-function exec(sql) {
+function exec(sql, tag = 'sql') {
+  const sqlFile = resolve(workDir, `${runId}-${tag}-${Date.now()}-${Math.random().toString(16).slice(2)}.sql`);
+  writeFileSync(sqlFile, `${sql}\n`, 'utf8');
   const t0 = performance.now();
-  const r = runWrangler(['d1', 'execute', 'DB', '--remote', '--command', sql]);
-  const ms = performance.now() - t0;
-  latencies.push(ms);
-  if (r.error) throw r.error;
-  if (r.status !== 0) throw new Error((r.stderr || r.stdout || `wrangler exit ${r.status}`).trim());
-  return { ms, out: r.stdout };
+  try {
+    const r = runWranglerFile(sqlFile);
+    const ms = performance.now() - t0;
+    latencies.push(ms);
+    if (r.error) throw r.error;
+    if (r.status !== 0) throw new Error((r.stderr || r.stdout || `wrangler exit ${r.status}`).trim());
+    return { ms, out: r.stdout };
+  } finally {
+    try { unlinkSync(sqlFile); } catch {}
+  }
 }
 
 function percentile(values, p) {
@@ -44,8 +62,8 @@ function percentile(values, p) {
 
 let cleanupAttempted = false;
 try {
-  exec(`CREATE TABLE IF NOT EXISTS ${table} (id INTEGER PRIMARY KEY, run_id TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);`);
-  exec(`CREATE INDEX IF NOT EXISTS idx_${table}_run ON ${table}(run_id);`);
+  exec(`CREATE TABLE IF NOT EXISTS ${table} (id INTEGER PRIMARY KEY, run_id TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);`, 'create-table');
+  exec(`CREATE INDEX IF NOT EXISTS idx_${table}_run ON ${table}(run_id);`, 'create-index');
 
   const started = performance.now();
   for (let base = 0; base < rows; base += 20) {
@@ -54,28 +72,35 @@ try {
       const payload = JSON.stringify({ provider: `p${i % 20}`, seq: i, marker: runId }).replaceAll("'", "''");
       values.push(`(${i},'${runId}','${payload}',datetime('now'))`);
     }
-    exec(`INSERT INTO ${table}(id,run_id,payload,created_at) VALUES ${values.join(',')};`);
+    exec(`INSERT INTO ${table}(id,run_id,payload,created_at) VALUES ${values.join(',')};`, `insert-${base}`);
   }
   const writeMs = performance.now() - started;
 
-  const read = exec(`SELECT COUNT(*) AS c, MIN(id) AS min_id, MAX(id) AS max_id FROM ${table} WHERE run_id='${runId}';`);
+  const read = exec(`SELECT COUNT(*) AS c, MIN(id) AS min_id, MAX(id) AS max_id FROM ${table} WHERE run_id='${runId}';`, 'verify-read');
   const countMatch = read.out.match(/"c"\s*:\s*(\d+)/) || read.out.match(/\bc\s*\|\s*(\d+)/);
   const observed = countMatch ? Number(countMatch[1]) : rows;
 
   const contentionStart = performance.now();
-  const probes = Array.from({ length: parallelism }, (_, n) =>
-    runWrangler(
-      ['d1', 'execute', 'DB', '--remote', '--command', `SELECT COUNT(*) AS c FROM ${table} WHERE id % ${parallelism} = ${n};`],
-      5 * 1024 * 1024,
-    )
-  );
+  const probeFiles = Array.from({ length: parallelism }, (_, n) => {
+    const file = resolve(workDir, `${runId}-probe-${n}.sql`);
+    writeFileSync(file, `SELECT COUNT(*) AS c FROM ${table} WHERE id % ${parallelism} = ${n};\n`, 'utf8');
+    return file;
+  });
+  let probes;
+  try {
+    probes = probeFiles.map((file) => runWranglerFile(file, 5 * 1024 * 1024));
+  } finally {
+    for (const file of probeFiles) {
+      try { unlinkSync(file); } catch {}
+    }
+  }
   const contentionMs = performance.now() - contentionStart;
   const contentionOk = probes.every((p) => !p.error && p.status === 0);
 
-  exec(`DELETE FROM ${table} WHERE run_id='${runId}';`);
-  const verifyDelete = exec(`SELECT COUNT(*) AS c FROM ${table} WHERE run_id='${runId}';`);
+  exec(`DELETE FROM ${table} WHERE run_id='${runId}';`, 'delete-run');
+  const verifyDelete = exec(`SELECT COUNT(*) AS c FROM ${table} WHERE run_id='${runId}';`, 'verify-delete');
   cleanupAttempted = true;
-  exec(`DROP TABLE IF EXISTS ${table};`);
+  exec(`DROP TABLE IF EXISTS ${table};`, 'drop-table');
 
   const gates = {
     remoteD1Reachable: true,
@@ -103,7 +128,7 @@ try {
   if (status !== 'PASS') process.exit(1);
 } catch (error) {
   if (!cleanupAttempted) {
-    try { exec(`DROP TABLE IF EXISTS ${table};`); } catch {}
+    try { exec(`DROP TABLE IF EXISTS ${table};`, 'cleanup-drop'); } catch {}
   }
   throw error;
 }
