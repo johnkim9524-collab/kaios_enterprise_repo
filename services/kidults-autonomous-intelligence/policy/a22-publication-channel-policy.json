@@ -1,0 +1,149 @@
+{
+  "policyVersion": "a22-publication-channel-policy.v1",
+  "stage": "A22",
+  "controlPlaneLifecycle": [
+    "policy",
+    "product-readiness",
+    "channel-intent",
+    "publication-preflight",
+    "authorization",
+    "package-verification",
+    "promotion-decision",
+    "canary-plan",
+    "execution-envelope",
+    "post-execution-verification",
+    "evidence",
+    "rollback/recovery",
+    "finalize"
+  ],
+  "invariants": {
+    "productionPublicationBlocked": true,
+    "noProviderContact": true,
+    "noProviderCredentials": true,
+    "noBillingMutation": true,
+    "noProcurementMutation": true,
+    "noExternalCustomerMutation": true,
+    "nonInteractiveExecution": true,
+    "policyBeforeExecution": true,
+    "preflightBeforePromotion": true,
+    "evidenceRequired": true,
+    "rollbackPlanRequired": true,
+    "unknownStateFailsClosed": true
+  },
+  "thresholds": {
+    "provenance": 0.8,
+    "quality": 0.75,
+    "freshness": 0.7
+  },
+  "channels": {
+    "PUBLIC_EDITORIAL": {
+      "allowedCommercialLayers": [
+        "CORE_DATA",
+        "SIGNAL",
+        "INDEX",
+        "ANALYTICS",
+        "PREMIUM_INTELLIGENCE"
+      ],
+      "canaryOnly": true,
+      "allowCanary": true,
+      "requires": [
+        "provenance",
+        "freshness",
+        "quality",
+        "editorial-safety",
+        "policy-authorization",
+        "rollback-plan",
+        "evidence-sink"
+      ],
+      "controls": {
+        "productionPublicationBlocked": true,
+        "editorialSafetyRequired": true,
+        "boundedAudienceRequired": true
+      }
+    },
+    "PRO_SUBSCRIPTION": {
+      "allowedCommercialLayers": [
+        "SIGNAL",
+        "INDEX",
+        "ANALYTICS"
+      ],
+      "canaryOnly": false,
+      "allowCanary": false,
+      "requires": [
+        "monetization-readiness",
+        "quality",
+        "freshness",
+        "policy-authorization",
+        "evidence-sink"
+      ],
+      "controls": {
+        "billingIntegrationDisabled": true,
+        "productionPublicationBlocked": true
+      }
+    },
+    "ENTERPRISE_API": {
+      "allowedCommercialLayers": [
+        "CORE_DATA",
+        "INDEX",
+        "ANALYTICS",
+        "PREMIUM_INTELLIGENCE"
+      ],
+      "canaryOnly": false,
+      "allowCanary": false,
+      "requires": [
+        "stable-id",
+        "schema-version-contract",
+        "provenance",
+        "policy-authorization",
+        "evidence-sink"
+      ],
+      "controls": {
+        "rateAvailabilityEvidenceOnly": true,
+        "noExternalCustomerMutation": true,
+        "productionPublicationBlocked": true
+      }
+    },
+    "DATA_LICENSE": {
+      "allowedCommercialLayers": [
+        "CORE_DATA",
+        "PREMIUM_INTELLIGENCE"
+      ],
+      "canaryOnly": false,
+      "allowCanary": false,
+      "requires": [
+        "usage-rights-known",
+        "provenance",
+        "licensing-eligibility-evidence",
+        "policy-authorization",
+        "evidence-sink"
+      ],
+      "controls": {
+        "contractExecutionDisabled": true,
+        "billingMutationBlocked": true,
+        "productionPublicationBlocked": true
+      }
+    },
+    "CUSTOM_INTELLIGENCE": {
+      "allowedCommercialLayers": [
+        "CORE_DATA",
+        "SIGNAL",
+        "INDEX",
+        "ANALYTICS",
+        "PREMIUM_INTELLIGENCE"
+      ],
+      "canaryOnly": false,
+      "allowCanary": false,
+      "requires": [
+        "provenance",
+        "quality",
+        "dependency-completeness",
+        "policy-authorization",
+        "evidence-sink"
+      ],
+      "controls": {
+        "externalClientDeliveryDisabled": true,
+        "productionPublicationBlocked": true
+      }
+    }
+  }
+}
