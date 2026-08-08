@@ -1,10 +1,13 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const cwd = resolve(new URL('..', import.meta.url).pathname);
+const currentFile = fileURLToPath(import.meta.url);
+const currentDir = dirname(currentFile);
+const cwd = resolve(currentDir, '..');
 const raw = readFileSync(resolve(cwd, 'wrangler.jsonc'), 'utf8');
-const jsonc = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-const config = JSON.parse(jsonc);
+const cleanRaw = raw.replace(/^\uFEFF/, '');
+const config = JSON.parse(cleanRaw);
 
 const failures = [];
 const db = config?.d1_databases?.find((item) => item.binding === 'DB');
@@ -17,11 +20,16 @@ if (config?.vars?.SOURCE_ADAPTERS_JSON === undefined) failures.push('SOURCE_ADAP
 if (!config?.vars?.METHODOLOGY_VERSION) failures.push('METHODOLOGY_VERSION is missing.');
 if (!config?.vars?.MIN_EVIDENCE_FOR_PUBLISH) failures.push('MIN_EVIDENCE_FOR_PUBLISH is missing.');
 
+try {
+  const adapters = JSON.parse(config?.vars?.SOURCE_ADAPTERS_JSON || '[]');
+  if (!Array.isArray(adapters)) failures.push('SOURCE_ADAPTERS_JSON must be an array.');
+} catch {
+  failures.push('SOURCE_ADAPTERS_JSON is not valid JSON.');
+}
+
 const expectedVisualLock = 'KIDULTS Portal Visual Baseline v1.0';
 const lockMigration = readFileSync(resolve(cwd, 'migrations/0002_autonomous_orchestration.sql'), 'utf8');
-if (!lockMigration.includes(expectedVisualLock) || !lockMigration.includes('"locked":true')) {
-  failures.push('Visual baseline lock checkpoint is missing or changed.');
-}
+if (!lockMigration.includes(expectedVisualLock) || !lockMigration.includes('"locked":true')) failures.push('Visual baseline lock checkpoint is missing or changed.');
 
 if (failures.length) {
   console.error('KIDULTS deployment preflight BLOCKED');
