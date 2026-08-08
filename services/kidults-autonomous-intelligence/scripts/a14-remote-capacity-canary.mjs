@@ -1,5 +1,5 @@
 import { readFileSync, mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 
@@ -18,11 +18,18 @@ const latencies = [];
 const workDir = resolve(cwd, '.a14-work');
 mkdirSync(workDir, { recursive: true });
 
+function toCliPath(file) {
+  const rel = relative(cwd, file).replaceAll('\\', '/');
+  if (!rel || rel.startsWith('..')) throw new Error(`A14 SQL file escaped working directory: ${file}`);
+  return rel;
+}
+
 function runWranglerFile(sqlFile, maxBuffer = 10 * 1024 * 1024) {
-  const args = ['wrangler', 'd1', 'execute', 'DB', '--remote', '--file', sqlFile];
+  const cliFile = toCliPath(sqlFile);
+  const args = ['wrangler', 'd1', 'execute', 'DB', '--remote', '--file', cliFile];
   if (process.platform === 'win32') {
     const comspec = process.env.ComSpec || 'cmd.exe';
-    const command = `npx wrangler d1 execute DB --remote --file "${sqlFile.replaceAll('"', '""')}"`;
+    const command = `npx wrangler d1 execute DB --remote --file "${cliFile.replaceAll('"', '""')}"`;
     return spawnSync(comspec, ['/d', '/s', '/c', command], {
       cwd,
       encoding: 'utf8',
