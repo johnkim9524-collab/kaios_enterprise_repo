@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const COLORS = ['#0B4A3B', '#2E6F73', '#4F87A3', '#67AFC2', '#79CDB8'];
+  const COLORS = ['#2B6A5B', '#3F7E82', '#5595AF', '#70B5C7', '#83CFBA'];
 
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
     '&': '&amp;',
