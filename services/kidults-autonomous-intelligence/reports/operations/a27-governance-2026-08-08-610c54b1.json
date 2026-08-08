@@ -1,0 +1,588 @@
+{
+  "stage": "A27",
+  "mode": "autonomous-slo-incident-response-operational-governance",
+  "governanceId": "a27-governance-2026-08-08-610c54b1",
+  "policyVersion": "a27-operational-governance-policy.v1",
+  "producedAt": "2026-08-08T19:35:23.326Z",
+  "sloCatalog": [
+    {
+      "sloId": "slo-availability-platform",
+      "domain": "availability",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-correctness-operations",
+      "domain": "correctness",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-freshness-data",
+      "domain": "freshness",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-latency-p95",
+      "domain": "latency",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-throughput-platform",
+      "domain": "throughput",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-data-quality",
+      "domain": "data-quality",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-provider-health",
+      "domain": "provider-health",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-runtime-health",
+      "domain": "runtime-health",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-recovery-health",
+      "domain": "recovery-health",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-publication-health",
+      "domain": "publication-health",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-commercial-delivery-health",
+      "domain": "commercial-delivery-health",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-evidence-integrity",
+      "domain": "evidence-integrity",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-dependency-health",
+      "domain": "dependency-health",
+      "enabled": true
+    },
+    {
+      "sloId": "slo-security-posture",
+      "domain": "security-posture",
+      "enabled": true
+    }
+  ],
+  "sliSummary": {
+    "availabilityRatio": {
+      "status": "UNKNOWN",
+      "value": null,
+      "sampleCount": 0
+    },
+    "successfulOperationRatio": {
+      "status": "UNKNOWN",
+      "value": null,
+      "sampleCount": 0
+    },
+    "verifiedOperationRatio": {
+      "status": "UNKNOWN",
+      "value": null,
+      "sampleCount": 0
+    },
+    "freshRecordRatio": {
+      "status": "HEALTHY",
+      "value": 1,
+      "sampleCount": 1
+    },
+    "p50LatencyMs": {
+      "status": "UNKNOWN",
+      "value": null,
+      "sampleCount": 0
+    },
+    "p95LatencyMs": {
+      "status": "UNKNOWN",
+      "value": null,
+      "sampleCount": 0
+    },
+    "p99LatencyMs": {
+      "status": "UNKNOWN",
+      "value": null,
+      "sampleCount": 0
+    },
+    "throughputPerMinute": {
+      "status": "UNKNOWN",
+      "value": 0,
+      "sampleCount": 0
+    },
+    "providerSuccessRatio": {
+      "status": "UNKNOWN",
+      "value": null,
+      "sampleCount": 0
+    },
+    "recoverySuccessRatio": {
+      "status": "HEALTHY",
+      "value": 1.6666666666666667,
+      "sampleCount": 3
+    },
+    "rollbackSuccessRatio": {
+      "status": "HEALTHY",
+      "value": 1,
+      "sampleCount": 2
+    },
+    "publicationSuccessRatio": {
+      "status": "HEALTHY",
+      "value": 1,
+      "sampleCount": 1
+    },
+    "commercialDeliverySuccessRatio": {
+      "status": "HEALTHY",
+      "value": 1,
+      "sampleCount": 1
+    },
+    "evidenceCompletenessRatio": {
+      "status": "HEALTHY",
+      "value": 1,
+      "sampleCount": 1
+    },
+    "dependencyHealthyRatio": {
+      "status": "HEALTHY",
+      "value": 1,
+      "sampleCount": 1
+    },
+    "policyEvaluationSuccessRatio": {
+      "status": "HEALTHY",
+      "value": 1,
+      "sampleCount": 1
+    }
+  },
+  "sloResults": [
+    {
+      "sloId": "slo-availability-platform",
+      "status": "UNKNOWN",
+      "value": null
+    },
+    {
+      "sloId": "slo-correctness-operations",
+      "status": "UNKNOWN",
+      "value": null
+    },
+    {
+      "sloId": "slo-freshness-data",
+      "domain": "freshness",
+      "status": "HEALTHY",
+      "value": 1
+    },
+    {
+      "sloId": "slo-latency-p95",
+      "status": "UNKNOWN",
+      "value": null
+    },
+    {
+      "sloId": "slo-throughput-platform",
+      "status": "UNKNOWN",
+      "value": null
+    },
+    {
+      "sloId": "slo-data-quality",
+      "status": "UNKNOWN",
+      "value": null
+    },
+    {
+      "sloId": "slo-provider-health",
+      "status": "UNKNOWN",
+      "value": null
+    },
+    {
+      "sloId": "slo-runtime-health",
+      "status": "UNKNOWN",
+      "value": null
+    },
+    {
+      "sloId": "slo-recovery-health",
+      "domain": "recovery-health",
+      "status": "HEALTHY",
+      "value": 1.6666666666666667
+    },
+    {
+      "sloId": "slo-publication-health",
+      "domain": "publication-health",
+      "status": "HEALTHY",
+      "value": 1
+    },
+    {
+      "sloId": "slo-commercial-delivery-health",
+      "domain": "commercial-delivery-health",
+      "status": "HEALTHY",
+      "value": 1
+    },
+    {
+      "sloId": "slo-evidence-integrity",
+      "domain": "evidence-integrity",
+      "status": "HEALTHY",
+      "value": 1
+    },
+    {
+      "sloId": "slo-dependency-health",
+      "domain": "dependency-health",
+      "status": "HEALTHY",
+      "value": 1
+    },
+    {
+      "sloId": "slo-security-posture",
+      "domain": "security-posture",
+      "status": "HEALTHY",
+      "value": 1
+    }
+  ],
+  "errorBudgets": [
+    {
+      "sloId": "slo-availability-platform",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.001
+    },
+    {
+      "sloId": "slo-correctness-operations",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.001
+    },
+    {
+      "sloId": "slo-freshness-data",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.01
+    },
+    {
+      "sloId": "slo-latency-p95",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.01
+    },
+    {
+      "sloId": "slo-throughput-platform",
+      "budgetState": "EXHAUSTED",
+      "burnRate": 1,
+      "budgetRemaining": 0
+    },
+    {
+      "sloId": "slo-data-quality",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.001
+    },
+    {
+      "sloId": "slo-provider-health",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.01
+    },
+    {
+      "sloId": "slo-runtime-health",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.001
+    },
+    {
+      "sloId": "slo-recovery-health",
+      "budgetState": "HEALTHY",
+      "burnRate": -66.66666666666667,
+      "budgetRemaining": 0.6766666666666667
+    },
+    {
+      "sloId": "slo-publication-health",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.001
+    },
+    {
+      "sloId": "slo-commercial-delivery-health",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.001
+    },
+    {
+      "sloId": "slo-evidence-integrity",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.0001
+    },
+    {
+      "sloId": "slo-dependency-health",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.01
+    },
+    {
+      "sloId": "slo-security-posture",
+      "budgetState": "HEALTHY",
+      "burnRate": 0,
+      "budgetRemaining": 0.0001
+    }
+  ],
+  "incidents": [
+    {
+      "incidentId": "inc-2e3460a0",
+      "state": "FAILED_CLOSED",
+      "severity": "SEV2",
+      "fingerprint": "d3a71299124feb52"
+    },
+    {
+      "incidentId": "inc-b2876033",
+      "state": "FAILED_CLOSED",
+      "severity": "SEV2",
+      "fingerprint": "65885524c2f2befe"
+    },
+    {
+      "incidentId": "inc-8fc90d56",
+      "state": "ESCALATED",
+      "severity": "SEV0",
+      "fingerprint": "3ad3f68ac8bcd6d0"
+    },
+    {
+      "incidentId": "inc-61ac9198",
+      "state": "FAILED_CLOSED",
+      "severity": "SEV2",
+      "fingerprint": "7a75f3943de94929"
+    },
+    {
+      "incidentId": "inc-226745f4",
+      "state": "FAILED_CLOSED",
+      "severity": "SEV2",
+      "fingerprint": "86619d655bf6975b"
+    },
+    {
+      "incidentId": "inc-e1300b3e",
+      "state": "ESCALATED",
+      "severity": "SEV2",
+      "fingerprint": "bca8b4db1f7813c9"
+    }
+  ],
+  "escalations": [
+    {
+      "escalationId": "esc-8927a426",
+      "class": "ENGINEERING",
+      "status": "OPEN",
+      "severity": "SEV2"
+    },
+    {
+      "escalationId": "esc-07b63383",
+      "class": "ENGINEERING",
+      "status": "OPEN",
+      "severity": "SEV2"
+    },
+    {
+      "escalationId": "esc-20473910",
+      "class": "SECURITY",
+      "status": "OPEN",
+      "severity": "SEV0"
+    },
+    {
+      "escalationId": "esc-4ad3c9b2",
+      "class": "ENGINEERING",
+      "status": "OPEN",
+      "severity": "SEV2"
+    },
+    {
+      "escalationId": "esc-3dbb407b",
+      "class": "ENGINEERING",
+      "status": "OPEN",
+      "severity": "SEV2"
+    },
+    {
+      "escalationId": "esc-32a6e608",
+      "class": "ENGINEERING",
+      "status": "OPEN",
+      "severity": "SEV2"
+    }
+  ],
+  "changeFreeze": {
+    "frozen": true,
+    "reason": "POLICY_TRIGGERED_CHANGE_FREEZE",
+    "blockedOperations": [
+      "NEW_ACTIVATION",
+      "PUBLICATION_EXPANSION",
+      "COMMERCIAL_CHANNEL_EXPANSION",
+      "PROVIDER_ONBOARDING",
+      "SCHEMA_MIGRATION",
+      "NON_ESSENTIAL_DEPLOYMENT"
+    ],
+    "permittedOperations": [
+      "SAFE_CONTAINMENT",
+      "SAFE_ROLLBACK",
+      "EVIDENCE_GENERATION",
+      "APPROVED_RECOVERY",
+      "SECURITY_RESPONSE"
+    ]
+  },
+  "healthIndex": "HALTED",
+  "executiveSignal": {
+    "platformStatus": "HALTED",
+    "activeIncidentCount": 6,
+    "highestSeverity": "SEV0",
+    "criticalSloBreaches": [],
+    "errorBudgetStatus": "EXHAUSTED",
+    "degradedScopes": [],
+    "haltedScopes": [],
+    "providerRisk": false,
+    "publicationRisk": false,
+    "commercialRisk": false,
+    "securityRisk": true,
+    "executiveActionRequired": true,
+    "summary": "Platform health: HALTED. Active incidents: 6. Highest severity: SEV0. Executive action: REQUIRED.",
+    "producedAt": "2026-08-08T19:35:23.326Z"
+  },
+  "metrics": {
+    "slo_evaluation_count": 112,
+    "slo_breach_count": 30,
+    "error_budget_burn_rate": -7135.357142857143,
+    "error_budget_exhausted_count": 5,
+    "incident_detected_count": 6,
+    "incident_deduplicated_count": 7,
+    "incident_correlated_count": 0,
+    "sev0_count": 1,
+    "sev1_count": 0,
+    "sev2_count": 5,
+    "sev3_count": 0,
+    "sev4_count": 0,
+    "containment_count": 6,
+    "recovery_invocation_count": 6,
+    "escalation_count": 6,
+    "executive_escalation_count": 1,
+    "change_freeze_count": 7,
+    "incident_closed_count": 0,
+    "incident_reopened_count": 0,
+    "mean_time_to_detect_ms": 0.16666666666666666,
+    "mean_time_to_contain_ms": 0.5,
+    "mean_time_to_recover_ms": 0.5,
+    "mean_time_to_close_ms": 0,
+    "active_incident_count": 1,
+    "_timing_detect_samples": [
+      0,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "_timing_contain_samples": [
+      1,
+      0,
+      0,
+      2,
+      0,
+      0
+    ],
+    "_timing_recover_samples": [
+      1,
+      0,
+      0,
+      2,
+      0,
+      0
+    ],
+    "_timing_close_samples": []
+  },
+  "postIncidentRecords": [
+    {
+      "incidentId": "inc-8fc90d56",
+      "rootCauseClass": "EVIDENCE",
+      "recurrence": "FIRST_OCCURRENCE"
+    },
+    {
+      "incidentId": "inc-e1300b3e",
+      "rootCauseClass": "EXECUTION",
+      "recurrence": "FIRST_OCCURRENCE"
+    }
+  ],
+  "invariants": {
+    "policyGoverned": true,
+    "failClosed": true,
+    "nonInteractive": true,
+    "bounded": true,
+    "auditable": true,
+    "noSecretsInEvidence": true,
+    "upstreamA15ThroughA26ControlsPreserved": true
+  },
+  "a25EvidenceRef": "a25-runtime-a25-runtime-2026-08-08-92431bdf.json",
+  "a26EvidenceRef": "a26-recovery-a26-recovery-2026-08-08-e29be0ba.json",
+  "scenarioSummary": [
+    {
+      "scenarioId": "scenario-nominal",
+      "label": "Nominal operation — all SLIs healthy, no incidents",
+      "incidentCount": 0,
+      "escalationCount": 0,
+      "healthIndex": "HEALTHY",
+      "changeFreezeActive": false,
+      "passed": true
+    },
+    {
+      "scenarioId": "scenario-slo-warning",
+      "label": "SLO warning — availability slightly below target",
+      "incidentCount": 0,
+      "escalationCount": 0,
+      "healthIndex": "CRITICAL",
+      "changeFreezeActive": true,
+      "passed": true
+    },
+    {
+      "scenarioId": "scenario-slo-breach",
+      "label": "SLO breach — availability below critical threshold",
+      "incidentCount": 1,
+      "escalationCount": 1,
+      "healthIndex": "CRITICAL",
+      "changeFreezeActive": true,
+      "passed": true
+    },
+    {
+      "scenarioId": "scenario-provider-outage",
+      "label": "Provider outage — provider-health SLO breached",
+      "incidentCount": 1,
+      "escalationCount": 1,
+      "healthIndex": "CRITICAL",
+      "changeFreezeActive": true,
+      "passed": true
+    },
+    {
+      "scenarioId": "scenario-evidence-integrity-failure",
+      "label": "Evidence integrity failure — SEV0 path exercised",
+      "incidentCount": 1,
+      "escalationCount": 1,
+      "healthIndex": "HALTED",
+      "changeFreezeActive": true,
+      "passed": true
+    },
+    {
+      "scenarioId": "scenario-repeated-recovery",
+      "label": "Chronic recurrence — repeated recovery cycles",
+      "incidentCount": 1,
+      "escalationCount": 1,
+      "healthIndex": "CRITICAL",
+      "changeFreezeActive": true,
+      "passed": true
+    },
+    {
+      "scenarioId": "scenario-deduplication",
+      "label": "Incident deduplication — identical signals collapsed",
+      "incidentCount": 1,
+      "escalationCount": 1,
+      "healthIndex": "CRITICAL",
+      "changeFreezeActive": true,
+      "passed": true
+    },
+    {
+      "scenarioId": "scenario-change-freeze",
+      "label": "Change freeze — SEV1 triggers freeze",
+      "incidentCount": 1,
+      "escalationCount": 1,
+      "healthIndex": "CRITICAL",
+      "changeFreezeActive": true,
+      "passed": true
+    }
+  ],
+  "governanceVersion": "1.0.0",
+  "status": "PASS"
+}
