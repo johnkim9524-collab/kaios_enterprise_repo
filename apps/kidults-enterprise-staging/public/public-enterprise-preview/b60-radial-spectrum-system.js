@@ -4,7 +4,7 @@
   /* KIDULTS Radial Color System v1.0
      Use only for categorical composition/distribution visualization.
      Brand UI, Hero gauge, Trend, Category bars and lifecycle remain Forest/Gold. */
-  const COLORS = ['#83CFBA', '#5AA3A5', '#6298B8', '#86B9D5', '#AAA1D0'];
+  const COLORS = ['#83CFBA', '#5AA3A5', '#6298B8', '#86B9D5', '#A7BEB4'];
   const params = new URLSearchParams(window.location.search);
   const dataAsset = window.KIDULTS_DATA_ASSET || (params.get('data') === 'preview' ? 'intelligence-data.preview.json' : 'intelligence-data.json');
 
