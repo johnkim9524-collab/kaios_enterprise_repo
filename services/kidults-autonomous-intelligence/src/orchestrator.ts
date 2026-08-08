@@ -1,4 +1,5 @@
 import { validateNormalizedEvidence, type NormalizedEvidence, type SourceFamily } from './adapters';
+import { goldenPathTransactions } from './golden-path';
 
 export type AdapterConfig = {
   id: string;
@@ -24,6 +25,12 @@ function parseConfigs(value?: string): AdapterConfig[] {
   return parsed.filter((item) => item?.enabled !== false) as AdapterConfig[];
 }
 
+function isGoldenPathAdapter(config: AdapterConfig): boolean {
+  if (config.id !== 'staging-transactions-golden-path') return false;
+  try { return new URL(config.endpoint).pathname === '/internal/golden-path/transactions'; }
+  catch { return false; }
+}
+
 async function fetchJson(config: AdapterConfig): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort('adapter timeout'), Math.max(1000, config.timeoutMs || 15000));
@@ -36,6 +43,11 @@ async function fetchJson(config: AdapterConfig): Promise<unknown> {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function loadAdapterPayload(config: AdapterConfig): Promise<unknown> {
+  if (isGoldenPathAdapter(config)) return goldenPathTransactions();
+  return fetchJson(config);
 }
 
 function extractEvidence(payload: unknown): NormalizedEvidence[] {
@@ -52,16 +64,14 @@ function extractEvidence(payload: unknown): NormalizedEvidence[] {
 export async function collectConfiguredAdapters(sourceAdaptersJson?: string): Promise<CollectorBatch[]> {
   const configs = parseConfigs(sourceAdaptersJson);
   const batches: CollectorBatch[] = [];
-
   for (const config of configs) {
     if (!config.id || !config.family || !config.endpoint) throw new Error('adapter requires id, family and endpoint');
-    const payload = await fetchJson(config);
+    const payload = await loadAdapterPayload(config);
     const items = extractEvidence(payload).map((item) => {
       if (item.source.family !== config.family) throw new Error(`${config.id} family mismatch`);
       return validateNormalizedEvidence(item);
     });
     batches.push({ adapterId: config.id, family: config.family, rawCount: items.length, normalized: items });
   }
-
   return batches;
 }
