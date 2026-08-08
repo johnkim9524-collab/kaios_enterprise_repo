@@ -1,0 +1,424 @@
+{
+  "snapshotId": "a28-control-tower-2026-08-08-fb016f40",
+  "generatedAt": "2026-08-08T19:56:22.927Z",
+  "platform": {
+    "controlPlaneId": "a28-control-tower-2026-08-08-fb016f40",
+    "generatedAt": "2026-08-08T19:56:22.927Z",
+    "policyVersion": "a28-executive-governance-policy.v1",
+    "platformStatus": "HEALTHY",
+    "operationalHealth": "HEALTHY",
+    "runtimeHealth": "HEALTHY",
+    "recoveryHealth": "HEALTHY",
+    "sloHealth": "HEALTHY",
+    "incidentHealth": "HEALTHY",
+    "providerHealth": "HEALTHY",
+    "publicationHealth": "HEALTHY",
+    "commercialHealth": "HEALTHY",
+    "securityHealth": "HEALTHY",
+    "dataQualityHealth": "HEALTHY",
+    "evidenceHealth": "HEALTHY",
+    "changeFreeze": false,
+    "executiveActionRequired": false,
+    "highestRisk": "LOW",
+    "activeDecisionCount": 0,
+    "activeIncidentCount": 0,
+    "degradedScopeCount": 0,
+    "haltedScopeCount": 0,
+    "summary": "Platform is HEALTHY. No executive action required. All SLOs nominal. Autonomous governance is operating within policy bounds."
+  },
+  "operations": {
+    "signals": [
+      {
+        "source": "A15_POLICY",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A16_EXECUTION",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A17_ADAPTER_READINESS",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A18_ACQUISITION",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A19_PRODUCTIZATION_GAP",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A20_PRODUCT_READINESS",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A21_PIPELINE",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A22_PUBLICATION",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A23_COMMERCIAL_DELIVERY",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A24_PRODUCTION_ACTIVATION",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A25_RUNTIME",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A26_RECOVERY",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      },
+      {
+        "source": "A27_GOVERNANCE",
+        "health": "HEALTHY",
+        "changeFreeze": false,
+        "activeIncidents": 0
+      }
+    ],
+    "changeFreezeActive": false,
+    "changeFreezeReason": null
+  },
+  "products": [
+    {
+      "productId": "kidults-intelligence-core",
+      "readiness": "READY",
+      "runtimeStatus": "ACTIVE",
+      "activationStatus": "ACTIVATED",
+      "publicationStatus": "PUBLISHED",
+      "commercialStatus": "LIVE",
+      "dependencyStatus": "SATISFIED",
+      "sloStatus": "HEALTHY",
+      "incidentStatus": "NONE",
+      "recoveryStatus": "NONE_NEEDED",
+      "executiveDecisionRequired": false,
+      "blockReason": null
+    }
+  ],
+  "providers": [
+    {
+      "providerId": "provider-alpha",
+      "status": "OPERATIONAL",
+      "dependencyLevel": "HIGH",
+      "health": "HEALTHY",
+      "contractStatus": "ACTIVE",
+      "credentialStatus": "VALID",
+      "billingStatus": "CURRENT",
+      "usageStatus": "WITHIN_LIMITS",
+      "costRisk": "LOW",
+      "operationalRisk": "LOW",
+      "affectedProducts": [],
+      "decisionRequired": false,
+      "decisionReason": null
+    }
+  ],
+  "incidents": {
+    "activeCount": 0,
+    "highestSeverity": "NONE",
+    "summaries": []
+  },
+  "decisions": [],
+  "freezes": {
+    "state": "NONE",
+    "reason": null,
+    "scope": [],
+    "initiatedAt": null,
+    "initiatedBy": null,
+    "releaseConditions": [],
+    "releaseEligible": false
+  },
+  "publication": {
+    "publicationState": "ACTIVE",
+    "eligibleProducts": [
+      "kidults-intelligence-core"
+    ],
+    "blockedProducts": [],
+    "blockedReasons": {},
+    "channels": [
+      "api",
+      "dashboard"
+    ],
+    "activeFreeze": false,
+    "freezeReason": null,
+    "risk": "LOW",
+    "decisionRequired": false,
+    "a22EvidenceRef": "A22_PUBLICATION_CONTROL"
+  },
+  "commercial": {
+    "commercialState": "ACTIVE",
+    "eligibleProducts": [
+      "kidults-intelligence-core"
+    ],
+    "eligibleChannels": [
+      "direct",
+      "partner"
+    ],
+    "blockedChannels": [],
+    "providerDependencies": [
+      "provider-alpha"
+    ],
+    "billingDependencies": [
+      "billing-account-primary"
+    ],
+    "contractDependencies": [
+      "contract-v2"
+    ],
+    "commercialRisk": "LOW",
+    "decisionRequired": false,
+    "decisionReason": null,
+    "a23EvidenceRef": "A23_COMMERCIAL_DELIVERY_CONTROL"
+  },
+  "security": {
+    "securityStatus": "SECURE",
+    "activeSecurityIncidents": 0,
+    "credentialRisk": "LOW",
+    "policyViolations": [],
+    "unresolvedSecurityDecisions": 0,
+    "changeFreeze": false,
+    "recommendedExecutiveAction": null
+  },
+  "risk": {
+    "operationalRisk": "LOW",
+    "securityRisk": "LOW",
+    "providerRisk": "LOW",
+    "dataRisk": "LOW",
+    "publicationRisk": "LOW",
+    "commercialRisk": "LOW",
+    "financialRisk": "LOW",
+    "reputationalRisk": "LOW",
+    "dependencyRisk": "LOW",
+    "continuityRisk": "LOW",
+    "overallRisk": "LOW",
+    "requiresExecutiveAttention": false
+  },
+  "metrics": {
+    "activeDecisionCount": 2,
+    "activeIncidentCount": 0,
+    "degradedScopeCount": 0,
+    "haltedScopeCount": 0,
+    "escalationQueueDepth": 0,
+    "policyVersion": "a28-executive-governance-policy.v1"
+  },
+  "evidenceRefs": [
+    {
+      "stage": "A15_POLICY",
+      "evidenceId": "a15_policy-1786218982924-390d",
+      "path": "reports/a15_policy/a15_policy-1786218982924-390d.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A16_EXECUTION",
+      "evidenceId": "a16_execution-1786218982924-0013",
+      "path": "reports/a16_execution/a16_execution-1786218982924-0013.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A17_ADAPTER_READINESS",
+      "evidenceId": "a17_adapter_readiness-1786218982924-042b",
+      "path": "reports/a17_adapter_readiness/a17_adapter_readiness-1786218982924-042b.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A18_ACQUISITION",
+      "evidenceId": "a18_acquisition-1786218982924-df9a",
+      "path": "reports/a18_acquisition/a18_acquisition-1786218982924-df9a.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A19_PRODUCTIZATION_GAP",
+      "evidenceId": "a19_productization_gap-1786218982924-7878",
+      "path": "reports/a19_productization_gap/a19_productization_gap-1786218982924-7878.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A20_PRODUCT_READINESS",
+      "evidenceId": "a20_product_readiness-1786218982924-1f21",
+      "path": "reports/a20_product_readiness/a20_product_readiness-1786218982924-1f21.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A21_PIPELINE",
+      "evidenceId": "a21_pipeline-1786218982924-86b1",
+      "path": "reports/a21_pipeline/a21_pipeline-1786218982924-86b1.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A22_PUBLICATION",
+      "evidenceId": "a22_publication-1786218982924-261f",
+      "path": "reports/a22_publication/a22_publication-1786218982924-261f.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A23_COMMERCIAL_DELIVERY",
+      "evidenceId": "a23_commercial_delivery-1786218982924-458c",
+      "path": "reports/a23_commercial_delivery/a23_commercial_delivery-1786218982924-458c.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A24_PRODUCTION_ACTIVATION",
+      "evidenceId": "a24_production_activation-1786218982924-80c6",
+      "path": "reports/a24_production_activation/a24_production_activation-1786218982924-80c6.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A25_RUNTIME",
+      "evidenceId": "a25_runtime-1786218982924-9b21",
+      "path": "reports/a25_runtime/a25_runtime-1786218982924-9b21.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A26_RECOVERY",
+      "evidenceId": "a26_recovery-1786218982924-91c9",
+      "path": "reports/a26_recovery/a26_recovery-1786218982924-91c9.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    },
+    {
+      "stage": "A27_GOVERNANCE",
+      "evidenceId": "a27_governance-1786218982924-ff37",
+      "path": "reports/a27_governance/a27_governance-1786218982924-ff37.json",
+      "producedAt": "2026-08-08T19:56:22.924Z",
+      "signalType": "AUTONOMOUS_EVIDENCE"
+    }
+  ],
+  "escalationQueue": [],
+  "executiveSummary": {
+    "platformStatus": "HEALTHY",
+    "executiveActionRequired": false,
+    "highestPriority": "P4",
+    "activeDecisions": 0,
+    "activeIncidents": 0,
+    "criticalRisks": [],
+    "autonomousActionsInProgress": [
+      "routine-health-checks",
+      "slo-evaluation"
+    ],
+    "blockedScopes": [],
+    "recommendedNextDecision": null,
+    "summary": "Platform is HEALTHY. No executive action required. All SLOs nominal. Autonomous governance is operating within policy bounds."
+  },
+  "executiveBriefing": {
+    "briefingId": "briefing-f054bae0",
+    "generatedAt": "2026-08-08T19:56:22.925Z",
+    "whatChanged": "No material change detected in current observation window.",
+    "whyItMatters": "Continued nominal operation indicates stable platform health.",
+    "whatSystemDid": "A28 executive governance plane aggregated A15–A27 signals. All SLOs within bounds. No incidents detected. No executive decisions queued.",
+    "whatIsStillBlocked": "No scopes blocked.",
+    "whatDecisionIsRequired": null,
+    "options": [],
+    "recommendation": "No executive action required. Continue nominal autonomous operation.",
+    "risks": [],
+    "deadline": null,
+    "evidenceRefs": [
+      {
+        "stage": "A15_POLICY",
+        "evidenceId": "a15_policy-1786218982924-390d",
+        "path": "reports/a15_policy/a15_policy-1786218982924-390d.json",
+        "producedAt": "2026-08-08T19:56:22.924Z",
+        "signalType": "AUTONOMOUS_EVIDENCE"
+      },
+      {
+        "stage": "A16_EXECUTION",
+        "evidenceId": "a16_execution-1786218982924-0013",
+        "path": "reports/a16_execution/a16_execution-1786218982924-0013.json",
+        "producedAt": "2026-08-08T19:56:22.924Z",
+        "signalType": "AUTONOMOUS_EVIDENCE"
+      },
+      {
+        "stage": "A17_ADAPTER_READINESS",
+        "evidenceId": "a17_adapter_readiness-1786218982924-042b",
+        "path": "reports/a17_adapter_readiness/a17_adapter_readiness-1786218982924-042b.json",
+        "producedAt": "2026-08-08T19:56:22.924Z",
+        "signalType": "AUTONOMOUS_EVIDENCE"
+      }
+    ]
+  },
+  "certification": {
+    "stage": "A28",
+    "allInvariantsPassed": true,
+    "positiveCasesPassed": 10,
+    "failedCasesRejected": 16,
+    "invariantsChecked": 52,
+    "invariantsPassed": 52,
+    "signalsAggregated": 13,
+    "decisionsGenerated": 2,
+    "durationMs": 6,
+    "certifiedAt": "2026-08-08T19:56:22.927Z"
+  },
+  "auditLog": [
+    {
+      "auditId": "audit-f0f64708",
+      "actorType": "AUTONOMOUS_SYSTEM",
+      "authorityLevel": "AUTONOMOUS",
+      "decisionId": null,
+      "directiveId": null,
+      "action": "A28_CONTROL_TOWER_SNAPSHOT",
+      "scope": [
+        "platform"
+      ],
+      "policyVersion": "a28-executive-governance-policy.v1",
+      "beforeState": "UNOBSERVED",
+      "afterState": "HEALTHY",
+      "evidenceRefs": [
+        "a15_policy-1786218982924-390d",
+        "a16_execution-1786218982924-0013",
+        "a17_adapter_readiness-1786218982924-042b",
+        "a18_acquisition-1786218982924-df9a",
+        "a19_productization_gap-1786218982924-7878",
+        "a20_product_readiness-1786218982924-1f21",
+        "a21_pipeline-1786218982924-86b1",
+        "a22_publication-1786218982924-261f",
+        "a23_commercial_delivery-1786218982924-458c",
+        "a24_production_activation-1786218982924-80c6",
+        "a25_runtime-1786218982924-9b21",
+        "a26_recovery-1786218982924-91c9",
+        "a27_governance-1786218982924-ff37"
+      ],
+      "timestamp": "2026-08-08T19:56:22.927Z",
+      "result": "SUCCESS",
+      "reason": "A28 control tower snapshot produced and all invariants certified."
+    }
+  ]
+}

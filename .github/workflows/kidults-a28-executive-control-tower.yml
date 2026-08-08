@@ -1,0 +1,68 @@
+name: Kidults A28 Executive Control Tower
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'services/kidults-autonomous-intelligence/src/control-tower/**'
+      - 'services/kidults-autonomous-intelligence/scripts/a28-executive-control-tower.mjs'
+      - 'contracts/a28-executive-governance-policy.json'
+
+concurrency:
+  group: kidults-a28-executive-control-tower
+  cancel-in-progress: false
+
+jobs:
+  a28-executive-control-tower:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm install
+
+      - name: Verify A28 package scripts exist
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          echo "Verifying required A28 package scripts..."
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json','utf-8'));
+            const required = ['a28:control-tower', 'a28:certify', 'a28:finalize'];
+            const missing = required.filter(s => !pkg.scripts[s]);
+            if (missing.length > 0) {
+              console.error('MISSING SCRIPTS:', missing.join(', '));
+              process.exit(1);
+            }
+            console.log('All required A28 scripts present:', required.join(', '));
+          "
+
+      - name: Typecheck
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+
+      - name: Run A28 control tower
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a28:control-tower
+
+      - name: Run A28 certify
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a28:certify
+
+      - name: Upload A28 control tower evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: a28-control-tower-evidence
+          path: services/kidults-autonomous-intelligence/reports/control-tower/
+          retention-days: 30
+          if-no-files-found: error
