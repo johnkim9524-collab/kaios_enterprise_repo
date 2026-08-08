@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const COLORS = ['#123F35', '#356456', '#5F8174', '#8FA69D', '#C6C7B8'];
+  const COLORS = ['#0B4A3B', '#2E6F73', '#4F87A3', '#67AFC2', '#79CDB8'];
 
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
     '&': '&amp;',
@@ -52,16 +52,13 @@
     </div>`;
   }
 
-  function geographySemiDonut(rawItems) {
+  function geographyDonut(rawItems) {
     const { items, total } = normalize(rawItems);
     const stops = conicStops(items, total);
     const leading = items[0] || { region: '—', value: 0 };
     return `<div class="radial-layout geography-radial">
-      <div class="semi-wrap">
-        <div class="semi-donut" style="background:conic-gradient(from 270deg, ${stops}, transparent 100% 100%)" role="img" aria-label="Regional signal share: ${items.map((item) => `${item.region} ${item.value}%`).join(', ')}.">
-          <div class="semi-cutout"></div>
-        </div>
-        <div class="semi-center"><strong>${leading.value}%</strong><span>${esc(leading.region)}</span></div>
+      <div class="radial-donut geography-donut" style="background:conic-gradient(${stops})" role="img" aria-label="Regional signal share: ${items.map((item) => `${item.region} ${item.value}%`).join(', ')}.">
+        <div class="radial-center"><strong>${leading.value}%</strong><span>${esc(leading.region)}</span></div>
       </div>
       ${legend(items, 'region')}
     </div>`;
@@ -110,7 +107,7 @@
     const confidence = document.querySelector('#confidence-chart');
     const geography = document.querySelector('#geography-chart');
     if (confidence) confidence.innerHTML = confidenceDonut(data.confidenceDistribution);
-    if (geography) geography.innerHTML = geographySemiDonut(data.geography);
+    if (geography) geography.innerHTML = geographyDonut(data.geography);
     document.documentElement.dataset.radialSnapshotAsset = window.KIDULTS_DATA_ASSET || 'intelligence-data.json';
   }
 
