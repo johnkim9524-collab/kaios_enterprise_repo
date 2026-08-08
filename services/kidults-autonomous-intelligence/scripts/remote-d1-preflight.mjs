@@ -31,6 +31,27 @@ function run(command, maxBuffer = 10 * 1024 * 1024) {
   });
 }
 
+function runQuery(sql, maxBuffer = 10 * 1024 * 1024) {
+  if (process.platform === 'win32') {
+    const escaped = sql.replaceAll("'", "''");
+    const psCommand = `& npx wrangler d1 execute DB --remote --command '${escaped}'`;
+    return spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', psCommand], {
+      cwd,
+      encoding: 'utf8',
+      shell: false,
+      maxBuffer,
+      windowsHide: true,
+    });
+  }
+  const escaped = sql.replaceAll("'", "'\\''");
+  return spawnSync('sh', ['-lc', `npx wrangler d1 execute DB --remote --command '${escaped}'`], {
+    cwd,
+    encoding: 'utf8',
+    shell: false,
+    maxBuffer,
+  });
+}
+
 function assertOk(label, result) {
   if (result.error) throw result.error;
   if (result.status !== 0) {
@@ -48,7 +69,7 @@ if (!/d1\s*\(write\)/i.test(`${whoami.stdout}\n${whoami.stderr}`)) {
 }
 console.log('PASS: OAuth session and D1 write permission');
 
-const query = run('npx wrangler d1 execute DB --remote --command "SELECT 1 AS a14_preflight_query;"');
+const query = runQuery('SELECT 1 AS a14_preflight_query;');
 assertOk('Remote D1 query-path check', query);
 console.log('PASS: Remote D1 query path');
 
