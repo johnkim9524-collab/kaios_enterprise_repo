@@ -10,9 +10,6 @@ export class ExecutionControlPlane {
   }
 
   async run(operation) {
-    const adapter = this.adapters[operation.adapter];
-    if (!adapter) throw new Error(`adapter-not-registered:${operation.adapter}`);
-
     const evidence = {
       operationId: operation.id,
       adapter: operation.adapter,
@@ -30,6 +27,8 @@ export class ExecutionControlPlane {
 
     try {
       stage('discover');
+      const adapter = this.adapters[operation.adapter];
+      if (!adapter) throw new Error(`adapter-not-registered:${operation.adapter}`);
       const discovery = await adapter.discover(operation);
 
       stage('preflight');
