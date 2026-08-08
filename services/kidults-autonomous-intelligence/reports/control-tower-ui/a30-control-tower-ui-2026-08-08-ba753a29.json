@@ -1,0 +1,136 @@
+{
+  "evidenceId": "a30-control-tower-ui-2026-08-08-ba753a29",
+  "generatedAt": "2026-08-08T20:47:44.996Z",
+  "stage": "A30",
+  "title": "Autonomous Executive Control Tower UI & Decision Console",
+  "canonicalInputs": {
+    "a28SnapshotId": "a28-control-tower-2026-08-08-fb016f40",
+    "a29EvidenceId": "a29-executive-decision-2026-08-08-a25fdc06"
+  },
+  "dataModes": [
+    "LIVE",
+    "EVIDENCE",
+    "DEMO"
+  ],
+  "requiredRoutes": [
+    "/control-tower",
+    "/control-tower/decisions",
+    "/control-tower/incidents",
+    "/control-tower/products",
+    "/control-tower/providers",
+    "/control-tower/publication",
+    "/control-tower/commercial",
+    "/control-tower/audit"
+  ],
+  "requiredScenarios": [
+    "Healthy",
+    "Decision Required",
+    "Provider Outage",
+    "SEV1 Incident",
+    "Change Freeze",
+    "Decision Executing",
+    "Decision Verified",
+    "Rollback Completed",
+    "Critical Halt"
+  ],
+  "uiEvents": [
+    "control_tower_view",
+    "decision_open",
+    "decision_confirm_view",
+    "decision_action_submit",
+    "decision_action_result",
+    "incident_view",
+    "evidence_view"
+  ],
+  "tests": [
+    {
+      "name": "dashboard rendering",
+      "passed": true
+    },
+    {
+      "name": "healthy state",
+      "passed": true
+    },
+    {
+      "name": "decision required state",
+      "passed": true
+    },
+    {
+      "name": "decision disabled on stale evidence",
+      "passed": true
+    },
+    {
+      "name": "approval confirmation",
+      "passed": true
+    },
+    {
+      "name": "reject flow",
+      "passed": true
+    },
+    {
+      "name": "defer flow",
+      "passed": true
+    },
+    {
+      "name": "limited-scope flow",
+      "passed": true
+    },
+    {
+      "name": "incident rendering",
+      "passed": true
+    },
+    {
+      "name": "change freeze rendering",
+      "passed": true
+    },
+    {
+      "name": "mobile layout logic",
+      "passed": true
+    },
+    {
+      "name": "unknown-state fail closed",
+      "passed": true
+    },
+    {
+      "name": "security-sensitive data exclusion",
+      "passed": true
+    }
+  ],
+  "certification": {
+    "invariants": {
+      "a28IsCanonicalControlTowerInput": true,
+      "a29IsCanonicalDecisionLifecycle": true,
+      "uiDoesNotRecalculateGovernance": true,
+      "businessFirstViewPresent": true,
+      "executiveDecisionCenterPresent": true,
+      "decisionConfirmationRequired": true,
+      "unsafeActionsUnavailable": true,
+      "staleEvidenceBlocksAction": true,
+      "unknownStateBlocksAction": true,
+      "authorityBoundaryPreserved": true,
+      "a29LifecyclePreserved": true,
+      "a28GovernancePreserved": true,
+      "a27FreezePreserved": true,
+      "a24ActivationPreserved": true,
+      "a23CommercialPreserved": true,
+      "a22PublicationPreserved": true,
+      "noCredentialExposure": true,
+      "noArbitraryExecution": true,
+      "noAutonomousBilling": true,
+      "noProviderProcurement": true,
+      "mobileResponsive": true,
+      "desktopResponsive": true,
+      "horizontalOverflowPrevented": true,
+      "keyboardAccessible": true,
+      "evidenceAvailable": true,
+      "auditTimelineAvailable": true,
+      "demoModeExplicit": true,
+      "dataModeUnambiguous": true
+    },
+    "testsPassed": 13,
+    "testsTotal": 13,
+    "allTestsPassed": true,
+    "allInvariantsPassed": true,
+    "certificationPassed": true
+  }
+}

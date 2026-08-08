@@ -78,7 +78,10 @@
     "a28:finalize": "npm run a28:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A28",
     "a29:orchestrate": "node scripts/a29-executive-decision-orchestration.mjs",
     "a29:certify": "npm run typecheck && npm run a29:orchestrate",
-    "a29:finalize": "npm run a29:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A29"
+    "a29:finalize": "npm run a29:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A29",
+    "a30:ui": "node scripts/a30-executive-control-tower-ui.mjs",
+    "a30:certify": "npm run typecheck && npm run a30:ui",
+    "a30:finalize": "npm run a30:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A30"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",
