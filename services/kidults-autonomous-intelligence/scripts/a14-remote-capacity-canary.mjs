@@ -15,10 +15,10 @@ const table = `a14_canary_${Date.now()}`;
 const rows = 200;
 const parallelism = 4;
 const latencies = [];
-const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+const wranglerCli = resolve(cwd, 'node_modules', 'wrangler', 'bin', 'wrangler.js');
 
 function runWrangler(args, maxBuffer = 10 * 1024 * 1024) {
-  return spawnSync(npxCommand, ['wrangler', ...args], {
+  return spawnSync(process.execPath, [wranglerCli, ...args], {
     cwd,
     encoding: 'utf8',
     shell: false,
