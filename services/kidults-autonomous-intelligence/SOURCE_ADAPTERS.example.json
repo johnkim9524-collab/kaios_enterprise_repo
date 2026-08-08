@@ -1,0 +1,37 @@
+[
+  {
+    "id": "approved-marketplace-feed",
+    "family": "marketplace",
+    "endpoint": "https://example.internal/kidults/marketplace/normalized",
+    "enabled": false,
+    "timeoutMs": 15000
+  },
+  {
+    "id": "approved-auction-feed",
+    "family": "auction",
+    "endpoint": "https://example.internal/kidults/auction/normalized",
+    "enabled": false,
+    "timeoutMs": 15000
+  },
+  {
+    "id": "approved-brand-direct-feed",
+    "family": "brand_direct",
+    "endpoint": "https://example.internal/kidults/brand-direct/normalized",
+    "enabled": false,
+    "timeoutMs": 15000
+  },
+  {
+    "id": "approved-editorial-feed",
+    "family": "editorial",
+    "endpoint": "https://example.internal/kidults/editorial/normalized",
+    "enabled": false,
+    "timeoutMs": 15000
+  },
+  {
+    "id": "approved-cultural-signal-feed",
+    "family": "cultural_signal",
+    "endpoint": "https://example.internal/kidults/cultural/normalized",
+    "enabled": false,
+    "timeoutMs": 15000
+  }
+]
