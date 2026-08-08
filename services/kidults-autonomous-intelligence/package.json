@@ -1,7 +1,7 @@
 {
   "name": "@kaios/kidults-autonomous-intelligence",
   "private": true,
-  "version": "0.2.6",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local",
@@ -12,7 +12,11 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "runtime:smoke": "node scripts/runtime-smoke.mjs",
     "validate": "npm run typecheck && npm run runtime:smoke",
-    "a9:finalize": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/a9-finalize.ps1"
+    "a9:finalize": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/a9-finalize.ps1",
+    "scale:smoke": "node scripts/a10-scale-certify.mjs --profile=smoke",
+    "scale:100k": "node scripts/a10-scale-certify.mjs --profile=baseline",
+    "scale:1m": "node scripts/a10-scale-certify.mjs --profile=million",
+    "a10:certify": "npm run typecheck && npm run scale:smoke && npm run scale:100k"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",
