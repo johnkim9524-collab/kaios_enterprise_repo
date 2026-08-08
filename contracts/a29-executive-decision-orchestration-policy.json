@@ -1,0 +1,162 @@
+{
+  "policyId": "a29-executive-decision-orchestration-policy",
+  "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+  "stage": "A29",
+  "description": "Canonical Executive Decision Orchestration & Approval Lifecycle policy for the KIDULTS Global Autonomous Intelligence Platform.",
+  "effectiveFrom": "2026-08-08T00:00:00.000Z",
+  "a28Dependency": "a28-executive-governance-policy.v1",
+
+  "authorityRules": {
+    "hierarchy": [
+      { "level": "AUTONOMOUS",      "rank": 0 },
+      { "level": "OPERATIONS",      "rank": 1 },
+      { "level": "ENGINEERING",     "rank": 2 },
+      { "level": "SECURITY",        "rank": 3 },
+      { "level": "COMMERCIAL",      "rank": 4 },
+      { "level": "EXECUTIVE",       "rank": 5 },
+      { "level": "BOARD_OR_LEGAL",  "rank": 6 }
+    ],
+    "rules": [
+      "lower authority cannot approve higher authority decisions",
+      "authority cannot self-elevate",
+      "unknown identity or authority fails closed",
+      "expired authority context fails closed",
+      "decision authority must match policy"
+    ]
+  },
+
+  "decisionLifecycle": {
+    "states": [
+      "CREATED", "RECOMMENDED", "AWAITING_AUTHORITY", "AWAITING_DECISION",
+      "APPROVED", "REJECTED", "DEFERRED", "EXPIRED",
+      "PREFLIGHT_PENDING", "PREFLIGHT_PASSED", "PREFLIGHT_FAILED",
+      "EXECUTION_PENDING", "EXECUTING", "VERIFYING", "VERIFIED",
+      "ROLLBACK_PENDING", "ROLLED_BACK", "FAILED_CLOSED", "CLOSED", "SUPERSEDED"
+    ],
+    "invalidTransition": "FAIL_CLOSED",
+    "neverImplicitApproval": true
+  },
+
+  "approvalRules": {
+    "allowedActions": [
+      "APPROVE", "REJECT", "DEFER", "ACKNOWLEDGE", "APPROVE_LIMITED_SCOPE",
+      "MAINTAIN_FREEZE", "RELEASE_FREEZE", "ALLOW_DEGRADED_OPERATION",
+      "HALT_SCOPE", "RESUME_SCOPE"
+    ],
+    "approvalRecordStatuses": ["VALID", "EXPIRED", "REVOKED", "SUPERSEDED", "INVALID"],
+    "twoPhaseRequired": true,
+    "phase1": "DECISION_APPROVAL",
+    "phase2": "EXECUTION_PREFLIGHT",
+    "approvalDoesNotDirectlyMutate": true
+  },
+
+  "executionAllowlist": [
+    "ACKNOWLEDGE_INCIDENT",
+    "HALT_SCOPE",
+    "RESUME_SCOPE",
+    "MAINTAIN_FREEZE",
+    "RELEASE_FREEZE",
+    "ALLOW_DEGRADED_SCOPE",
+    "ENABLE_APPROVED_SCOPE",
+    "DISABLE_SCOPE",
+    "ALLOW_PROVIDER_SCOPE",
+    "DENY_PROVIDER_SCOPE",
+    "ALLOW_PUBLICATION_SCOPE",
+    "DENY_PUBLICATION_SCOPE",
+    "ALLOW_COMMERCIAL_SCOPE",
+    "DENY_COMMERCIAL_SCOPE"
+  ],
+
+  "prohibitedActions": [
+    "ARBITRARY_SHELL",
+    "ARBITRARY_SQL",
+    "CREDENTIAL_EXPORT",
+    "SECRET_ROTATION_WITHOUT_SECURITY_POLICY",
+    "UNBOUNDED_PROVIDER_ACCESS",
+    "UNLIMITED_PRODUCTION_ACCESS",
+    "UNCONTROLLED_BILLING",
+    "AUTONOMOUS_PROVIDER_PURCHASE",
+    "AUTONOMOUS_CONTRACT_SIGNING",
+    "POLICY_SELF_WEAKENING",
+    "SECURITY_CONTROL_DISABLE"
+  ],
+
+  "timeoutRules": {
+    "allowedDefaultOnTimeout": [
+      "NO_CHANGE", "MAINTAIN_FREEZE", "DEGRADE", "HALT_SCOPE",
+      "HALT_PLATFORM", "ESCALATE_AUTHORITY", "FAIL_CLOSED"
+    ],
+    "neverImplicitApprovalOnTimeout": true
+  },
+
+  "rollbackRules": {
+    "rollbackRequiredForMaterialActions": true,
+    "rollbackUnknownBlocksExecution": true,
+    "rollbackFailedTriggersEscalation": true,
+    "rollbackAvailabilityStates": ["AVAILABLE", "NOT_REQUIRED", "UNKNOWN", "UNAVAILABLE"]
+  },
+
+  "verificationRules": {
+    "requiredOutcomes": [
+      "VERIFIED_SUCCESS", "VERIFIED_DEGRADED", "VERIFIED_ROLLED_BACK",
+      "VERIFICATION_FAILED", "UNKNOWN"
+    ],
+    "unknownFailsClosed": true,
+    "closureRequiresVerification": true
+  },
+
+  "closureRules": {
+    "closureClasses": [
+      "APPROVED_AND_EXECUTED", "APPROVED_AND_ROLLED_BACK",
+      "REJECTED", "DEFERRED", "EXPIRED", "FAILED_CLOSED"
+    ],
+    "conditions": [
+      "final action known",
+      "execution completed or rejected/deferred appropriately",
+      "verification completed",
+      "evidence complete",
+      "audit complete",
+      "no unresolved rollback",
+      "no unresolved critical escalation"
+    ]
+  },
+
+  "evidenceFreshnessChecks": [
+    "policyFresh", "incidentFresh", "SLOFresh", "providerFresh",
+    "securityFresh", "activationFresh", "publicationFresh", "commercialFresh"
+  ],
+
+  "riskDimensions": [
+    "operationalRisk", "securityRisk", "providerRisk", "commercialRisk",
+    "financialRisk", "publicationRisk", "dependencyRisk", "continuityRisk"
+  ],
+
+  "invariants": {
+    "a28DecisionIsCanonicalInput": true,
+    "authorityValidatedBeforeDecision": true,
+    "authorityCannotSelfElevate": true,
+    "approvalDoesNotDirectlyMutate": true,
+    "preflightImmediatelyBeforeExecution": true,
+    "staleEvidenceBlocksExecution": true,
+    "supersededDecisionCannotExecute": true,
+    "expiredDecisionCannotExecute": true,
+    "twoPhaseApprovalRequired": true,
+    "executionScopeBounded": true,
+    "idempotencyEnforced": true,
+    "decisionExecutionLocked": true,
+    "rollbackPlanRequiredWhereApplicable": true,
+    "a26RecoveryPreserved": true,
+    "a27FreezePreserved": true,
+    "a24ActivationPreserved": true,
+    "a22PublicationPreserved": true,
+    "a23CommercialPreserved": true,
+    "noAutonomousBilling": true,
+    "noAutonomousProviderProcurement": true,
+    "noAutonomousLegalCommitment": true,
+    "noCredentialExport": true,
+    "noArbitraryExecution": true,
+    "noPolicySelfWeakening": true,
+    "verificationRequiredBeforeClosure": true,
+    "auditComplete": true
+  }
+}

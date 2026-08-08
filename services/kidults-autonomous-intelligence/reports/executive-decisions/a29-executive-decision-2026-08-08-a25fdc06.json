@@ -1,0 +1,882 @@
+{
+  "evidenceId": "a29-executive-decision-2026-08-08-a25fdc06",
+  "generatedAt": "2026-08-08T20:33:39.945Z",
+  "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+  "stage": "A29",
+  "platform": "KIDULTS Global Autonomous Intelligence Platform",
+  "certification": {
+    "invariants": {
+      "a28DecisionIsCanonicalInput": true,
+      "authorityValidatedBeforeDecision": true,
+      "authorityCannotSelfElevate": true,
+      "approvalDoesNotDirectlyMutate": true,
+      "preflightImmediatelyBeforeExecution": true,
+      "staleEvidenceBlocksExecution": true,
+      "supersededDecisionCannotExecute": true,
+      "expiredDecisionCannotExecute": true,
+      "twoPhaseApprovalRequired": true,
+      "executionScopeBounded": true,
+      "idempotencyEnforced": true,
+      "decisionExecutionLocked": true,
+      "rollbackPlanRequiredWhereApplicable": true,
+      "a26RecoveryPreserved": true,
+      "a27FreezePreserved": true,
+      "a24ActivationPreserved": true,
+      "a22PublicationPreserved": true,
+      "a23CommercialPreserved": true,
+      "noAutonomousBilling": true,
+      "noAutonomousProviderProcurement": true,
+      "noAutonomousLegalCommitment": true,
+      "noCredentialExport": true,
+      "noArbitraryExecution": true,
+      "noPolicySelfWeakening": true,
+      "verificationRequiredBeforeClosure": true,
+      "auditComplete": true
+    },
+    "positiveCasesPassed": 12,
+    "positiveCasesTotal": 12,
+    "failClosedCasesPassed": 22,
+    "failClosedCasesTotal": 22,
+    "certificationPassed": true
+  },
+  "positiveCases": [
+    {
+      "label": "Informational decision closes without mutation",
+      "passed": true
+    },
+    {
+      "label": "Executive approves limited scope",
+      "passed": true
+    },
+    {
+      "label": "Preflight passes when all gates satisfied",
+      "passed": true
+    },
+    {
+      "label": "Bounded scope executes HALT_SCOPE",
+      "passed": true
+    },
+    {
+      "label": "Verification outcome VERIFIED_SUCCESS produces CLOSED",
+      "passed": true
+    },
+    {
+      "label": "Audit records produced for complete lifecycle",
+      "passed": true
+    },
+    {
+      "label": "Executive response contract is generated",
+      "passed": true
+    },
+    {
+      "label": "Rejected decision does not execute",
+      "passed": true
+    },
+    {
+      "label": "Deferred decision generates new deadline",
+      "passed": true
+    },
+    {
+      "label": "Duplicate approval attempt is idempotent",
+      "passed": true
+    },
+    {
+      "label": "Bounded rollback succeeds when verification fails",
+      "passed": true
+    },
+    {
+      "label": "Decision metrics reflect resolved decisions",
+      "passed": true
+    }
+  ],
+  "failClosedCases": [
+    {
+      "label": "Insufficient authority fails closed",
+      "passed": true
+    },
+    {
+      "label": "Stale evidence blocks execution",
+      "passed": true
+    },
+    {
+      "label": "Missing evidence refs fails closed",
+      "passed": true
+    },
+    {
+      "label": "Expired decision cannot execute",
+      "passed": true
+    },
+    {
+      "label": "Superseded decision cannot execute",
+      "passed": true
+    },
+    {
+      "label": "Concurrent duplicate execution rejected",
+      "passed": true
+    },
+    {
+      "label": "A24 activation bypass fails preflight",
+      "passed": true
+    },
+    {
+      "label": "A22 publication bypass fails preflight",
+      "passed": true
+    },
+    {
+      "label": "A23 commercial bypass fails preflight",
+      "passed": true
+    },
+    {
+      "label": "Change freeze bypass fails preflight",
+      "passed": true
+    },
+    {
+      "label": "Arbitrary shell is rejected",
+      "passed": true
+    },
+    {
+      "label": "Arbitrary SQL is rejected",
+      "passed": true
+    },
+    {
+      "label": "Uncontrolled billing is rejected",
+      "passed": true
+    },
+    {
+      "label": "Autonomous provider procurement is rejected",
+      "passed": true
+    },
+    {
+      "label": "Credential export is rejected",
+      "passed": true
+    },
+    {
+      "label": "Autonomous contract signing is rejected",
+      "passed": true
+    },
+    {
+      "label": "Policy self-weakening is rejected",
+      "passed": true
+    },
+    {
+      "label": "Rollback UNKNOWN blocks execution",
+      "passed": true
+    },
+    {
+      "label": "Rollback UNKNOWN fails preflight explicitly",
+      "passed": true
+    },
+    {
+      "label": "Verification failure triggers rollback path",
+      "passed": true
+    },
+    {
+      "label": "Unknown verification outcome fails closed",
+      "passed": true
+    },
+    {
+      "label": "Authority self-elevation is prohibited",
+      "passed": true
+    }
+  ],
+  "metrics": {
+    "executive_decision_created_count": 34,
+    "executive_decision_approved_count": 28,
+    "executive_decision_rejected_count": 1,
+    "executive_decision_deferred_count": 1,
+    "executive_decision_expired_count": 1,
+    "decision_preflight_failed_count": 7,
+    "decision_execution_count": 12,
+    "decision_execution_failed_count": 0,
+    "decision_rollback_count": 2,
+    "decision_superseded_count": 1,
+    "decision_verification_failed_count": 3,
+    "active_executive_decision_count": 1,
+    "auditRecords": 166,
+    "invariantsChecked": 26,
+    "invariantsPassed": 26,
+    "positiveCasesPassed": 12,
+    "failCasesRejected": 22,
+    "durationMs": 9
+  },
+  "auditLog": [
+    {
+      "auditId": "audit-dec-1a450674-0001",
+      "decisionId": "dec-1a450674",
+      "eventType": "DECISION_CREATED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": null,
+      "afterState": "CREATED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.939Z",
+      "result": "INFO",
+      "detail": "Decision contract accepted from A28."
+    },
+    {
+      "auditId": "audit-dec-1a450674-0002",
+      "decisionId": "dec-1a450674",
+      "eventType": "APPROVAL_RECORDED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "AWAITING_DECISION",
+      "afterState": "APPROVED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.939Z",
+      "result": "PASS",
+      "detail": "Action: ACKNOWLEDGE. Reason: Incident resolved. Safe to resume."
+    },
+    {
+      "auditId": "audit-dec-1a450674-0003",
+      "decisionId": "dec-1a450674",
+      "eventType": "PREFLIGHT_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "APPROVED",
+      "afterState": "PREFLIGHT_PENDING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.939Z",
+      "result": "INFO",
+      "detail": "Preflight started immediately before execution."
+    },
+    {
+      "auditId": "audit-dec-1a450674-0004",
+      "decisionId": "dec-1a450674",
+      "eventType": "PREFLIGHT_PASSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PENDING",
+      "afterState": "PREFLIGHT_PASSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.939Z",
+      "result": "PASS",
+      "detail": "All preflight checks passed."
+    },
+    {
+      "auditId": "audit-dec-1a450674-0005",
+      "decisionId": "dec-1a450674",
+      "eventType": "EXECUTION_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PASSED",
+      "afterState": "EXECUTING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.939Z",
+      "result": "INFO",
+      "detail": "Bounded execution started."
+    },
+    {
+      "auditId": "audit-dec-1a450674-0006",
+      "decisionId": "dec-1a450674",
+      "eventType": "EXECUTION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "EXECUTING",
+      "afterState": "VERIFYING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.939Z",
+      "result": "PASS",
+      "detail": "Execution completed. Proceeding to verification."
+    },
+    {
+      "auditId": "audit-dec-1a450674-0007",
+      "decisionId": "dec-1a450674",
+      "eventType": "VERIFICATION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFYING",
+      "afterState": "VERIFIED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.939Z",
+      "result": "PASS",
+      "detail": "Verification outcome: VERIFIED_SUCCESS."
+    },
+    {
+      "auditId": "audit-dec-1a450674-0008",
+      "decisionId": "dec-1a450674",
+      "eventType": "DECISION_CLOSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFIED",
+      "afterState": "CLOSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.939Z",
+      "result": "PASS",
+      "detail": "Decision closed: APPROVED_AND_EXECUTED."
+    },
+    {
+      "auditId": "audit-dec-c593b811-0009",
+      "decisionId": "dec-c593b811",
+      "eventType": "DECISION_CREATED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": null,
+      "afterState": "CREATED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.939Z",
+      "result": "INFO",
+      "detail": "Decision contract accepted from A28."
+    },
+    {
+      "auditId": "audit-dec-c593b811-0010",
+      "decisionId": "dec-c593b811",
+      "eventType": "APPROVAL_RECORDED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "AWAITING_DECISION",
+      "afterState": "APPROVED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.939Z",
+      "result": "PASS",
+      "detail": "Action: APPROVE_LIMITED_SCOPE. Reason: Incident resolved. Safe to resume."
+    },
+    {
+      "auditId": "audit-dec-c593b811-0011",
+      "decisionId": "dec-c593b811",
+      "eventType": "PREFLIGHT_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "APPROVED",
+      "afterState": "PREFLIGHT_PENDING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "INFO",
+      "detail": "Preflight started immediately before execution."
+    },
+    {
+      "auditId": "audit-dec-c593b811-0012",
+      "decisionId": "dec-c593b811",
+      "eventType": "PREFLIGHT_PASSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PENDING",
+      "afterState": "PREFLIGHT_PASSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "All preflight checks passed."
+    },
+    {
+      "auditId": "audit-dec-c593b811-0013",
+      "decisionId": "dec-c593b811",
+      "eventType": "EXECUTION_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PASSED",
+      "afterState": "EXECUTING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "INFO",
+      "detail": "Bounded execution started."
+    },
+    {
+      "auditId": "audit-dec-c593b811-0014",
+      "decisionId": "dec-c593b811",
+      "eventType": "EXECUTION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "EXECUTING",
+      "afterState": "VERIFYING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Execution completed. Proceeding to verification."
+    },
+    {
+      "auditId": "audit-dec-c593b811-0015",
+      "decisionId": "dec-c593b811",
+      "eventType": "VERIFICATION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFYING",
+      "afterState": "VERIFIED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Verification outcome: VERIFIED_SUCCESS."
+    },
+    {
+      "auditId": "audit-dec-c593b811-0016",
+      "decisionId": "dec-c593b811",
+      "eventType": "DECISION_CLOSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFIED",
+      "afterState": "CLOSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Decision closed: APPROVED_AND_EXECUTED."
+    },
+    {
+      "auditId": "audit-dec-fd7b2b3a-0017",
+      "decisionId": "dec-fd7b2b3a",
+      "eventType": "DECISION_CREATED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": null,
+      "afterState": "CREATED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "INFO",
+      "detail": "Decision contract accepted from A28."
+    },
+    {
+      "auditId": "audit-dec-fd7b2b3a-0018",
+      "decisionId": "dec-fd7b2b3a",
+      "eventType": "APPROVAL_RECORDED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "AWAITING_DECISION",
+      "afterState": "APPROVED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Action: APPROVE. Reason: Incident resolved. Safe to resume."
+    },
+    {
+      "auditId": "audit-dec-fd7b2b3a-0019",
+      "decisionId": "dec-fd7b2b3a",
+      "eventType": "PREFLIGHT_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "APPROVED",
+      "afterState": "PREFLIGHT_PENDING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "INFO",
+      "detail": "Preflight started immediately before execution."
+    },
+    {
+      "auditId": "audit-dec-fd7b2b3a-0020",
+      "decisionId": "dec-fd7b2b3a",
+      "eventType": "PREFLIGHT_PASSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PENDING",
+      "afterState": "PREFLIGHT_PASSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "All preflight checks passed."
+    },
+    {
+      "auditId": "audit-dec-fd7b2b3a-0021",
+      "decisionId": "dec-fd7b2b3a",
+      "eventType": "EXECUTION_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PASSED",
+      "afterState": "EXECUTING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "INFO",
+      "detail": "Bounded execution started."
+    },
+    {
+      "auditId": "audit-dec-fd7b2b3a-0022",
+      "decisionId": "dec-fd7b2b3a",
+      "eventType": "EXECUTION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "EXECUTING",
+      "afterState": "VERIFYING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Execution completed. Proceeding to verification."
+    },
+    {
+      "auditId": "audit-dec-fd7b2b3a-0023",
+      "decisionId": "dec-fd7b2b3a",
+      "eventType": "VERIFICATION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFYING",
+      "afterState": "VERIFIED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Verification outcome: VERIFIED_SUCCESS."
+    },
+    {
+      "auditId": "audit-dec-fd7b2b3a-0024",
+      "decisionId": "dec-fd7b2b3a",
+      "eventType": "DECISION_CLOSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFIED",
+      "afterState": "CLOSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Decision closed: APPROVED_AND_EXECUTED."
+    },
+    {
+      "auditId": "audit-dec-ab025eca-0025",
+      "decisionId": "dec-ab025eca",
+      "eventType": "DECISION_CREATED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": null,
+      "afterState": "CREATED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "INFO",
+      "detail": "Decision contract accepted from A28."
+    },
+    {
+      "auditId": "audit-dec-ab025eca-0026",
+      "decisionId": "dec-ab025eca",
+      "eventType": "APPROVAL_RECORDED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "AWAITING_DECISION",
+      "afterState": "APPROVED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Action: HALT_SCOPE. Reason: Incident resolved. Safe to resume."
+    },
+    {
+      "auditId": "audit-dec-ab025eca-0027",
+      "decisionId": "dec-ab025eca",
+      "eventType": "PREFLIGHT_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "APPROVED",
+      "afterState": "PREFLIGHT_PENDING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "INFO",
+      "detail": "Preflight started immediately before execution."
+    },
+    {
+      "auditId": "audit-dec-ab025eca-0028",
+      "decisionId": "dec-ab025eca",
+      "eventType": "PREFLIGHT_PASSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PENDING",
+      "afterState": "PREFLIGHT_PASSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "All preflight checks passed."
+    },
+    {
+      "auditId": "audit-dec-ab025eca-0029",
+      "decisionId": "dec-ab025eca",
+      "eventType": "EXECUTION_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PASSED",
+      "afterState": "EXECUTING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "INFO",
+      "detail": "Bounded execution started."
+    },
+    {
+      "auditId": "audit-dec-ab025eca-0030",
+      "decisionId": "dec-ab025eca",
+      "eventType": "EXECUTION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "EXECUTING",
+      "afterState": "VERIFYING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Execution completed. Proceeding to verification."
+    },
+    {
+      "auditId": "audit-dec-ab025eca-0031",
+      "decisionId": "dec-ab025eca",
+      "eventType": "VERIFICATION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFYING",
+      "afterState": "VERIFIED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Verification outcome: VERIFIED_SUCCESS."
+    },
+    {
+      "auditId": "audit-dec-ab025eca-0032",
+      "decisionId": "dec-ab025eca",
+      "eventType": "DECISION_CLOSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFIED",
+      "afterState": "CLOSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Decision closed: APPROVED_AND_EXECUTED."
+    },
+    {
+      "auditId": "audit-dec-c5479987-0033",
+      "decisionId": "dec-c5479987",
+      "eventType": "DECISION_CREATED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": null,
+      "afterState": "CREATED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "INFO",
+      "detail": "Decision contract accepted from A28."
+    },
+    {
+      "auditId": "audit-dec-c5479987-0034",
+      "decisionId": "dec-c5479987",
+      "eventType": "APPROVAL_RECORDED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "AWAITING_DECISION",
+      "afterState": "APPROVED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Action: APPROVE. Reason: Incident resolved. Safe to resume."
+    },
+    {
+      "auditId": "audit-dec-c5479987-0035",
+      "decisionId": "dec-c5479987",
+      "eventType": "PREFLIGHT_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "APPROVED",
+      "afterState": "PREFLIGHT_PENDING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "INFO",
+      "detail": "Preflight started immediately before execution."
+    },
+    {
+      "auditId": "audit-dec-c5479987-0036",
+      "decisionId": "dec-c5479987",
+      "eventType": "PREFLIGHT_PASSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PENDING",
+      "afterState": "PREFLIGHT_PASSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "All preflight checks passed."
+    },
+    {
+      "auditId": "audit-dec-c5479987-0037",
+      "decisionId": "dec-c5479987",
+      "eventType": "EXECUTION_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PASSED",
+      "afterState": "EXECUTING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "INFO",
+      "detail": "Bounded execution started."
+    },
+    {
+      "auditId": "audit-dec-c5479987-0038",
+      "decisionId": "dec-c5479987",
+      "eventType": "EXECUTION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "EXECUTING",
+      "afterState": "VERIFYING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Execution completed. Proceeding to verification."
+    },
+    {
+      "auditId": "audit-dec-c5479987-0039",
+      "decisionId": "dec-c5479987",
+      "eventType": "VERIFICATION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFYING",
+      "afterState": "VERIFIED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Verification outcome: VERIFIED_SUCCESS."
+    },
+    {
+      "auditId": "audit-dec-c5479987-0040",
+      "decisionId": "dec-c5479987",
+      "eventType": "DECISION_CLOSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFIED",
+      "afterState": "CLOSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.940Z",
+      "result": "PASS",
+      "detail": "Decision closed: APPROVED_AND_EXECUTED."
+    },
+    {
+      "auditId": "audit-dec-9702f781-0041",
+      "decisionId": "dec-9702f781",
+      "eventType": "DECISION_CREATED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": null,
+      "afterState": "CREATED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.941Z",
+      "result": "INFO",
+      "detail": "Decision contract accepted from A28."
+    },
+    {
+      "auditId": "audit-dec-9702f781-0042",
+      "decisionId": "dec-9702f781",
+      "eventType": "APPROVAL_RECORDED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "AWAITING_DECISION",
+      "afterState": "APPROVED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.941Z",
+      "result": "PASS",
+      "detail": "Action: APPROVE. Reason: Incident resolved. Safe to resume."
+    },
+    {
+      "auditId": "audit-dec-9702f781-0043",
+      "decisionId": "dec-9702f781",
+      "eventType": "PREFLIGHT_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "APPROVED",
+      "afterState": "PREFLIGHT_PENDING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.941Z",
+      "result": "INFO",
+      "detail": "Preflight started immediately before execution."
+    },
+    {
+      "auditId": "audit-dec-9702f781-0044",
+      "decisionId": "dec-9702f781",
+      "eventType": "PREFLIGHT_PASSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PENDING",
+      "afterState": "PREFLIGHT_PASSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.941Z",
+      "result": "PASS",
+      "detail": "All preflight checks passed."
+    },
+    {
+      "auditId": "audit-dec-9702f781-0045",
+      "decisionId": "dec-9702f781",
+      "eventType": "EXECUTION_STARTED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "PREFLIGHT_PASSED",
+      "afterState": "EXECUTING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.941Z",
+      "result": "INFO",
+      "detail": "Bounded execution started."
+    },
+    {
+      "auditId": "audit-dec-9702f781-0046",
+      "decisionId": "dec-9702f781",
+      "eventType": "EXECUTION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "EXECUTING",
+      "afterState": "VERIFYING",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.941Z",
+      "result": "PASS",
+      "detail": "Execution completed. Proceeding to verification."
+    },
+    {
+      "auditId": "audit-dec-9702f781-0047",
+      "decisionId": "dec-9702f781",
+      "eventType": "VERIFICATION_COMPLETED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFYING",
+      "afterState": "VERIFIED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.941Z",
+      "result": "PASS",
+      "detail": "Verification outcome: VERIFIED_SUCCESS."
+    },
+    {
+      "auditId": "audit-dec-9702f781-0048",
+      "decisionId": "dec-9702f781",
+      "eventType": "DECISION_CLOSED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "VERIFIED",
+      "afterState": "CLOSED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.941Z",
+      "result": "PASS",
+      "detail": "Decision closed: APPROVED_AND_EXECUTED."
+    },
+    {
+      "auditId": "audit-dec-351893d1-0049",
+      "decisionId": "dec-351893d1",
+      "eventType": "DECISION_CREATED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": null,
+      "afterState": "CREATED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.941Z",
+      "result": "INFO",
+      "detail": "Decision contract accepted from A28."
+    },
+    {
+      "auditId": "audit-dec-351893d1-0050",
+      "decisionId": "dec-351893d1",
+      "eventType": "APPROVAL_RECORDED",
+      "actorType": "SYSTEM",
+      "authorityLevel": "NONE",
+      "beforeState": "AWAITING_DECISION",
+      "afterState": "APPROVED",
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "timestamp": "2026-08-08T20:33:39.941Z",
+      "result": "PASS",
+      "detail": "Action: APPROVE. Reason: Incident resolved. Safe to resume."
+    }
+  ],
+  "invariants": {
+    "a28DecisionIsCanonicalInput": true,
+    "authorityValidatedBeforeDecision": true,
+    "authorityCannotSelfElevate": true,
+    "approvalDoesNotDirectlyMutate": true,
+    "preflightImmediatelyBeforeExecution": true,
+    "staleEvidenceBlocksExecution": true,
+    "supersededDecisionCannotExecute": true,
+    "expiredDecisionCannotExecute": true,
+    "twoPhaseApprovalRequired": true,
+    "executionScopeBounded": true,
+    "idempotencyEnforced": true,
+    "decisionExecutionLocked": true,
+    "rollbackPlanRequiredWhereApplicable": true,
+    "a26RecoveryPreserved": true,
+    "a27FreezePreserved": true,
+    "a24ActivationPreserved": true,
+    "a22PublicationPreserved": true,
+    "a23CommercialPreserved": true,
+    "noAutonomousBilling": true,
+    "noAutonomousProviderProcurement": true,
+    "noAutonomousLegalCommitment": true,
+    "noCredentialExport": true,
+    "noArbitraryExecution": true,
+    "noPolicySelfWeakening": true,
+    "verificationRequiredBeforeClosure": true,
+    "auditComplete": true
+  }
+}
