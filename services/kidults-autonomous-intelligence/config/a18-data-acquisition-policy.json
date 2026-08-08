@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "stage": "A18",
+  "objective": "Scale autonomous first-party/public-source acquisition before provider onboarding.",
+  "executionOrder": [
+    "source_discovery",
+    "policy_check",
+    "fetch",
+    "normalize",
+    "deduplicate",
+    "classify",
+    "enrich",
+    "quality_score",
+    "persist",
+    "analyze",
+    "evidence",
+    "publish_eligibility"
+  ],
+  "sourceClasses": [
+    "public_web",
+    "public_feed",
+    "public_api",
+    "first_party",
+    "provider_shaped_synthetic"
+  ],
+  "defaults": {
+    "robotsAndTermsRequired": true,
+    "mutation": "deny",
+    "credentials": "none",
+    "personalData": "deny",
+    "copyrightPayloadRetention": "metadata_only",
+    "nonInteractive": true,
+    "failClosed": true,
+    "evidenceRequired": true,
+    "publishRequiresQualityGate": true
+  },
+  "quality": {
+    "minimumScore": 0.72,
+    "maximumDuplicateLeakage": 0,
+    "maximumInvalidRate": 0.02,
+    "freshnessRequired": true,
+    "provenanceRequired": true
+  },
+  "scaleProfiles": {
+    "smoke": 10000,
+    "baseline100k": 100000,
+    "million": 1000000,
+    "fiveMillion": 5000000
+  },
+  "safety": {
+    "productionPublication": false,
+    "providerCredentials": false,
+    "externalMutation": false,
+    "boundedMemory": true,
+    "batchProcessing": true,
+    "sourceFailureIsolation": true,
+    "retryBudgetRequired": true
+  }
+}
