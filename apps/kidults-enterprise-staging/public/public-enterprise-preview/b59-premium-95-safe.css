@@ -20,10 +20,14 @@
   .visualization-suite .viz-card:has(#confidence-chart)>p:last-child{max-width:38ch;color:rgba(79,88,82,.72)!important;font-size:10.5px!important;line-height:1.45!important}
 }
 
-/* 4) FIXED RADIAL SYSTEM.
-   All categorical radial charts use the same restrained KIDULTS pastel identity:
-   Mint → Teal → Petrol Blue → Aqua Blue → Dusty Sage.
-   Dark surfaces keep exactly the same hues to preserve semantic identity. */
+/* 4) KIDULTS INTELLIGENCE COLOR SYSTEM — FIXED
+   Brand shell: Cream + Deep Forest + Muted Gold.
+   Categorical composition: Mint → Teal → Petrol Blue → Aqua Blue → Dusty Sage.
+   State/progress: Muted Forest.
+   Sequential intensity: Dusty Sage → Deep Teal.
+   Directional movement: Muted Forest / restrained Red. */
+
+/* 4A) Categorical radial charts. */
 .mix-panel .signal-donut{
   background:conic-gradient(
     #83CFBA 0% 32%,
@@ -37,9 +41,29 @@
 .mix-panel .signal-donut-legend span:nth-child(2) i{background:#5AA3A5!important}
 .mix-panel .signal-donut-legend span:nth-child(3) i{background:#6298B8!important}
 .mix-panel .signal-donut-legend span:nth-child(4) i{background:#86B9D5!important}
+.geography-radial .radial-donut{box-shadow:inset 0 0 0 1px rgba(40,95,83,.05)}
 
-/* Keep full-circle geography as the fixed geography form. */
-.geography-radial .radial-donut{box-shadow:inset 0 0 0 1px rgba(11,74,59,.045)}
+/* 4B) State/progress graphics: keep a single restrained intelligence green. */
+.category-row .bar-track i,
+.hbar-row i,
+.lifecycle-track i.active{background:#285F53!important}
+.lifecycle-row>span,
+.mover-row strong:not(.negative){color:#285F53!important}
+
+/* 4C) Correlation matrix: sequential scale, not categorical colors.
+   Existing --alpha values are remapped from the observed 0.60–1.00 range so low
+   correlations read as Dusty Sage and high correlations resolve into Deep Teal. */
+.matrix-grid>span:not(:first-child){
+  background:
+    linear-gradient(
+      rgb(32 93 80 / clamp(0,calc((var(--alpha) - .60) / .40),1)),
+      rgb(32 93 80 / clamp(0,calc((var(--alpha) - .60) / .40),1))
+    ),
+    #A7BEB4!important;
+  color:#fff!important;
+  border:1px solid rgba(246,241,232,.9);
+}
+.matrix-grid>span:not(:first-child) i{color:#fff!important;text-shadow:0 1px 0 rgba(5,47,39,.08)}
 
 /* 5) Governed system: preserve authority without competing with the Hero. */
 .dark{grid-template-columns:minmax(0,1.02fr) minmax(0,1.48fr)!important;gap:46px!important}
