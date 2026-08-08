@@ -1,0 +1,56 @@
+/* KIDULTS Homepage Editorial Intelligence System — quiet luxury 9.x
+   Scope ONLY: headline KPI rail, LIVE INTELLIGENCE governed rail,
+   and Kidult 100 trend summary. */
+
+:root {
+  --ki-ink:#101613;
+  --ki-forest:#0b4b3d;
+  --ki-muted:#6d746f;
+  --ki-gold:#9a7135;
+  --ki-line:rgba(16,22,19,.12);
+  --ki-line-soft:rgba(16,22,19,.075);
+  --ki-paper:#f6f1e8;
+  --ki-panel-bright:#fffdf9;
+  --ki-panel-side:#fdfaf4;
+}
+
+main #live-intelligence.metrics {
+  display:grid !important;
+  grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+  max-width:var(--shell) !important;
+  margin:0 auto !important;
+  padding:38px 40px 34px !important;
+  border-top:1px solid var(--ki-line-soft) !important;
+  border-bottom:1px solid var(--ki-line-soft) !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+main #live-intelligence.metrics>div {position:relative !important;min-width:0 !important;min-height:0 !important;padding:0 34px !important;border:0 !important;background:transparent !important;box-shadow:none !important;display:flex !important;flex-direction:column !important;justify-content:flex-start !important}
+main #live-intelligence.metrics>div:first-child{padding-left:0 !important}main #live-intelligence.metrics>div:last-child{padding-right:0 !important}
+main #live-intelligence.metrics>div+div::before{content:"" !important;position:absolute !important;left:0 !important;top:4px !important;width:1px !important;height:56px !important;background:var(--ki-line) !important}
+main #live-intelligence.metrics strong,main #live-intelligence.metrics strong.luxury-number,main #live-intelligence.metrics strong.luxury-number--secondary{margin:0 0 16px !important;font-family:Georgia,'Times New Roman',serif !important;font-size:clamp(38px,3vw,48px) !important;font-weight:400 !important;line-height:.9 !important;letter-spacing:-.045em !important;color:var(--ki-ink) !important}
+main #live-intelligence.metrics span{font-family:Arial,Helvetica,sans-serif !important;font-size:8px !important;font-weight:700 !important;line-height:1 !important;letter-spacing:.22em !important;text-transform:uppercase !important;color:#626a65 !important}
+
+/* LIVE INTELLIGENCE now uses the same section-title scale as Category Intelligence. */
+main .data-note.shell{min-height:58px !important;padding:0 40px !important;display:flex !important;align-items:center !important;gap:12px !important;border:0 !important;border-bottom:1px solid var(--ki-line-soft) !important;background:transparent !important}
+main .data-note.shell .live-pulse{width:7px !important;height:7px !important;flex:0 0 7px !important;box-shadow:0 0 0 5px rgba(87,209,170,.12) !important}
+main .data-note.shell strong{font-family:Arial,Helvetica,sans-serif !important;font-size:11px !important;font-weight:700 !important;line-height:1 !important;letter-spacing:.16em !important;text-transform:uppercase !important;color:var(--ki-ink) !important}
+main .data-note.shell [data-status-label]{margin-left:auto !important;font-family:Arial,Helvetica,sans-serif !important;font-size:9px !important;font-weight:500 !important;line-height:1 !important;letter-spacing:.02em !important;text-transform:none !important;color:var(--ki-muted) !important;opacity:.52 !important}
+
+/* Governed rail fixed as one bordered editorial information band. */
+main section.governed-homepage-metrics[data-governed-homepage]{display:grid !important;grid-template-columns:repeat(5,minmax(0,1fr)) !important;max-width:calc(var(--shell) - 0px) !important;margin:0 auto 0 !important;padding:0 40px !important;min-height:84px !important;border:1px solid var(--ki-line-soft) !important;background:rgba(255,253,249,.28) !important;box-shadow:none !important}
+main section.governed-homepage-metrics[data-governed-homepage]>div{position:relative !important;min-width:0 !important;min-height:82px !important;padding:0 30px !important;display:flex !important;flex-direction:row !important;align-items:center !important;justify-content:flex-start !important;gap:17px !important;border:0 !important;background:transparent !important;box-shadow:none !important}
+main section.governed-homepage-metrics[data-governed-homepage]>div:first-child{padding-left:0 !important}main section.governed-homepage-metrics[data-governed-homepage]>div:last-child{padding-right:0 !important}
+main section.governed-homepage-metrics[data-governed-homepage]>div+div::before{content:"" !important;position:absolute !important;left:0 !important;top:27px !important;width:1px !important;height:28px !important;background:var(--ki-line-soft) !important}
+main section.governed-homepage-metrics[data-governed-homepage] strong,main section.governed-homepage-metrics[data-governed-homepage] [data-governed-production],main section.governed-homepage-metrics[data-governed-homepage] [data-governed-updated]{order:1 !important;margin:0 !important;font-family:Georgia,'Times New Roman',serif !important;font-size:21px !important;font-weight:400 !important;line-height:1 !important;letter-spacing:-.025em !important;color:var(--ki-forest) !important;white-space:nowrap !important;text-transform:none !important}
+main section.governed-homepage-metrics[data-governed-homepage] span{order:2 !important;margin:0 !important;font-family:Arial,Helvetica,sans-serif !important;font-size:9px !important;font-weight:700 !important;line-height:1 !important;letter-spacing:.16em !important;text-transform:uppercase !important;color:#5f6762 !important;white-space:nowrap !important}
+
+main .data-section>.trend-summary-strip{display:grid !important;grid-template-columns:repeat(4,minmax(0,1fr)) !important;margin:30px 0 18px !important;padding:0 !important;border:0 !important;border-top:1px solid var(--ki-line-soft) !important;border-bottom:1px solid var(--ki-line-soft) !important;background:transparent !important;box-shadow:none !important}
+main .data-section>.trend-summary-strip>span{position:relative !important;min-width:0 !important;min-height:62px !important;padding:13px 16px !important;display:flex !important;flex-direction:column !important;justify-content:center !important;gap:6px !important;border:0 !important;background:transparent !important;box-shadow:none !important}
+main .data-section>.trend-summary-strip>span:first-child{padding-left:14px !important}main .data-section>.trend-summary-strip>span+span::before{content:"" !important;position:absolute !important;left:0 !important;top:17px !important;width:1px !important;height:28px !important;background:var(--ki-line-soft) !important}
+main .data-section>.trend-summary-strip b,main .data-section>.trend-summary-strip b.luxury-number--secondary{order:1 !important;margin:0 !important;font-family:Georgia,'Times New Roman',serif !important;font-size:20px !important;font-weight:400 !important;line-height:1 !important;letter-spacing:-.03em !important;color:var(--ki-ink) !important}
+main .data-section>.trend-summary-strip small{order:2 !important;margin:0 !important;font-family:Arial,Helvetica,sans-serif !important;font-size:7px !important;font-weight:700 !important;line-height:1 !important;letter-spacing:.18em !important;text-transform:uppercase !important;color:var(--ki-muted) !important}
+main .data-section .chart-panel{border:1px solid rgba(154,113,53,.13) !important;background:#fffdf9 !important;box-shadow:0 12px 30px rgba(16,22,19,.025) !important}main .data-section .chart-panel .trend-chart{background:#fffdf9 !important}main .data-section .chart-panel .chart-side{background:#fdfaf4 !important;border-left:1px solid rgba(154,113,53,.11) !important}
+
+@media(max-width:1100px){main #live-intelligence.metrics,main section.governed-homepage-metrics[data-governed-homepage]{padding-left:28px !important;padding-right:28px !important}main #live-intelligence.metrics>div{padding-left:24px !important;padding-right:24px !important}main section.governed-homepage-metrics[data-governed-homepage]>div{padding-left:20px !important;padding-right:20px !important;gap:11px !important}}
+@media(max-width:760px){main #live-intelligence.metrics{margin:0 18px !important;padding:0 !important;grid-template-columns:1fr 1fr !important;border-top:1px solid var(--ki-line-soft) !important}main #live-intelligence.metrics>div,main #live-intelligence.metrics>div:first-child,main #live-intelligence.metrics>div:last-child{min-height:82px !important;padding:17px 0 !important;border-bottom:1px solid var(--ki-line-soft) !important}main #live-intelligence.metrics>div:nth-child(even){padding-left:18px !important}main #live-intelligence.metrics>div+div::before{display:none !important}main #live-intelligence.metrics strong,main #live-intelligence.metrics strong.luxury-number,main #live-intelligence.metrics strong.luxury-number--secondary{font-size:31px !important;margin-bottom:9px !important}main .data-note.shell{margin:0 18px !important;padding:0 !important;min-height:48px !important}main .data-note.shell strong{font-size:10px !important}main section.governed-homepage-metrics[data-governed-homepage]{margin:0 18px !important;padding:0 14px !important;grid-template-columns:repeat(5,minmax(155px,1fr)) !important;overflow-x:auto !important;overscroll-behavior-x:contain !important;-webkit-overflow-scrolling:touch !important}main section.governed-homepage-metrics[data-governed-homepage]>div,main section.governed-homepage-metrics[data-governed-homepage]>div:first-child,main section.governed-homepage-metrics[data-governed-homepage]>div:last-child{min-height:70px !important;padding:0 14px !important;gap:10px !important}main section.governed-homepage-metrics[data-governed-homepage]>div:first-child{padding-left:0 !important}main section.governed-homepage-metrics[data-governed-homepage]>div+div::before{top:22px !important;height:26px !important}main section.governed-homepage-metrics[data-governed-homepage] strong,main section.governed-homepage-metrics[data-governed-homepage] [data-governed-production],main section.governed-homepage-metrics[data-governed-homepage] [data-governed-updated]{font-size:18px !important}main section.governed-homepage-metrics[data-governed-homepage] span{font-size:8px !important}main .data-section>.trend-summary-strip{grid-template-columns:repeat(4,minmax(116px,1fr)) !important;overflow-x:auto !important;overscroll-behavior-x:contain !important}main .data-section>.trend-summary-strip>span{min-height:58px !important;padding:11px 13px !important}main .data-section>.trend-summary-strip b,main .data-section>.trend-summary-strip b.luxury-number--secondary{font-size:18px !important}}

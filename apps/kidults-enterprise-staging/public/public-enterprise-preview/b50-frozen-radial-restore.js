@@ -1,5 +1,8 @@
 (() => {
-  const COLORS = ['#123F35', '#356456', '#5F8174', '#8FA69D', '#C6C7B8'];
+  /* KIDULTS Radial Color System v1.0 — fixed pastel palette.
+     This restoration layer must use the same palette as the live renderer so it
+     never reintroduces legacy or violet colors after render. */
+  const COLORS = ['#83CFBA', '#5AA3A5', '#6298B8', '#86B9D5', '#A7BEB4'];
   const params = new URLSearchParams(window.location.search);
   const dataFile = params.get('data') === 'preview'
     ? 'intelligence-data.preview.json'
@@ -41,11 +44,8 @@
     const { items, total } = normalize(rawItems);
     const leading = items[0] || { region: '—', value: 0 };
     return `<div class="radial-layout geography-radial" data-frozen-radial="geography">
-      <div class="semi-wrap">
-        <div class="semi-donut" style="background:conic-gradient(from 270deg, ${stops(items, total)}, transparent 100% 100%)" role="img" aria-label="Regional signal share: ${items.map((item) => `${item.region} ${item.value}%`).join(', ')}.">
-          <div class="semi-cutout"></div>
-        </div>
-        <div class="semi-center"><strong>${leading.value}%</strong><span>${esc(leading.region)}</span></div>
+      <div class="radial-donut geography-donut" style="background:conic-gradient(${stops(items, total)})" role="img" aria-label="Regional signal share: ${items.map((item) => `${item.region} ${item.value}%`).join(', ')}.">
+        <div class="radial-center"><strong>${leading.value}%</strong><span>${esc(leading.region)}</span></div>
       </div>${legend(items, 'region')}
     </div>`;
   };
