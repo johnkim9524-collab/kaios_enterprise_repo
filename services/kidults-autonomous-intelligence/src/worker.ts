@@ -85,6 +85,8 @@ async function promote(env: Env) {
   if (!response.ok) throw new Error(result?.message || result?.error || `publish HTTP ${response.status}`);
 
   if (!result.productionEligible) {
+    await env.DB.prepare(`UPDATE publication_snapshots SET status='blocked',published_at=NULL WHERE run_id=? AND channel='portal'`)
+      .bind(result.runId).run();
     await env.DB.prepare(`
       INSERT INTO audit_log (id,event_type,actor,subject_id,details_json,created_at)
       VALUES (?,'publication.blocked','orchestrator',?,?,?)
@@ -139,9 +141,10 @@ export default {
       const state = await env.DB.prepare(`
         SELECT p.payload_json,p.payload_hash,p.published_at
         FROM publication_state s JOIN publication_snapshots p ON p.id=s.snapshot_id
-        WHERE s.channel='portal' LIMIT 1
+        WHERE s.channel='portal' AND p.status='published' LIMIT 1
       `).first<{ payload_json:string; payload_hash:string; published_at:string }>();
-      if (state) return new Response(state.payload_json, { headers: {
+      if (!state) return json({ error: 'no promoted production snapshot' }, 404);
+      return new Response(state.payload_json, { headers: {
         'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=60',
         'etag': `"${state.payload_hash}"`, 'x-kidults-published-at': state.published_at,
       }});
