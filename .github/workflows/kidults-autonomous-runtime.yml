@@ -36,5 +36,15 @@ jobs:
       - name: Typecheck autonomous worker
         run: npm run typecheck
 
+      - name: Verify A26 package-script wiring
+        run: |
+          npm run | grep -E 'a26:recovery|a26:certify|a26:finalize'
+
+      - name: Run A26 recovery certification
+        run: npm run a26:recovery
+
+      - name: Run A26 certify chain
+        run: npm run a26:certify
+
       - name: Apply local D1 migrations and verify invariants
         run: npm run runtime:smoke
