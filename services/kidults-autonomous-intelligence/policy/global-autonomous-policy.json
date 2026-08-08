@@ -1,0 +1,64 @@
+{
+  "policyVersion": "1.0.0",
+  "platform": "KAIOS Global Autonomous Intelligence Platform",
+  "principles": [
+    "policy-before-execution",
+    "preflight-before-mutation",
+    "non-interactive-by-default",
+    "fail-closed",
+    "bounded-blast-radius",
+    "canary-before-scale",
+    "rollback-before-high-risk-mutation",
+    "evidence-after-execution",
+    "human-approval-only-for-strategic-or-irreversible-actions",
+    "provider-independent",
+    "infrastructure-independent",
+    "vertical-independent",
+    "data-provenance-mandatory",
+    "continuous-certification"
+  ],
+  "executionContract": [
+    "discover",
+    "preflight",
+    "plan",
+    "authorize",
+    "execute",
+    "verify",
+    "cleanup_or_rollback",
+    "evidence",
+    "finalize"
+  ],
+  "riskTiers": {
+    "R0": { "description": "Observation/read-only", "autoExecute": true, "humanApprovalRequired": false },
+    "R1": { "description": "Reversible automation", "autoExecute": true, "humanApprovalRequired": false },
+    "R2": { "description": "Controlled mutation", "autoExecute": true, "humanApprovalRequired": false },
+    "R3": { "description": "Production or material mutation", "autoExecute": true, "humanApprovalRequired": false },
+    "R4": { "description": "Irreversible, strategic, ownership or large financial action", "autoExecute": false, "humanApprovalRequired": true }
+  },
+  "globalRequirements": {
+    "mutationRequiresPreflight": true,
+    "successRequiresEvidence": true,
+    "unknownAdapterDenied": true,
+    "productionRequiresRollback": true,
+    "productionRequiresCanary": true,
+    "interactivePromptAllowedInAutonomousExecution": false,
+    "defaultDecision": "deny"
+  },
+  "limits": {
+    "R0": { "maxCostUsd": 5, "maxBlastRadius": 1000000 },
+    "R1": { "maxCostUsd": 25, "maxBlastRadius": 100000 },
+    "R2": { "maxCostUsd": 100, "maxBlastRadius": 10000 },
+    "R3": { "maxCostUsd": 500, "maxBlastRadius": 1000 },
+    "R4": { "maxCostUsd": 1000000, "maxBlastRadius": 1000000 }
+  },
+  "adapters": {
+    "cloudflare": { "enabled": true, "preflightRequired": true, "nonInteractiveRequired": true },
+    "github": { "enabled": true, "preflightRequired": true, "nonInteractiveRequired": true },
+    "digitalocean": { "enabled": true, "preflightRequired": true, "nonInteractiveRequired": true },
+    "provider": { "enabled": true, "preflightRequired": true, "nonInteractiveRequired": true },
+    "database": { "enabled": true, "preflightRequired": true, "nonInteractiveRequired": true },
+    "storage": { "enabled": true, "preflightRequired": true, "nonInteractiveRequired": true },
+    "dns": { "enabled": true, "preflightRequired": true, "nonInteractiveRequired": true },
+    "server": { "enabled": true, "preflightRequired": true, "nonInteractiveRequired": true }
+  }
+}
