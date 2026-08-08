@@ -99,6 +99,7 @@
     loadScript('b32-visualization-integrity.js', 'b32-integrity');
     loadScript('b35-premium-intelligence-dial.js?v=6', 'b35-premium-dial');
     loadScript('b59-lead-signal-singleton.js?v=1', 'b59-lead-signal-singleton');
+    loadScript('b60-radial-spectrum-system.js?v=1', 'b60-radial-spectrum');
   }
 
   function renderFromData(data) {
