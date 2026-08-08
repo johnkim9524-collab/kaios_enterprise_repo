@@ -1,0 +1,574 @@
+{
+  "stage": "A27",
+  "policyVersion": "a27-operational-governance-policy.v1",
+  "description": "Canonical Autonomous SLO, Incident Response & Operational Governance policy for the KIDULTS Global Autonomous Intelligence Platform. Sits above A25 continuous runtime and A26 autonomous recovery.",
+  "governanceScope": "autonomous-slo-incident-response-operational-governance",
+  "defaultDecision": "FAIL_CLOSED",
+  "upstreamContracts": ["A15", "A16", "A17", "A18", "A19", "A20", "A21", "A22", "A23", "A24", "A25", "A26"],
+
+  "governancePipeline": [
+    "OBSERVE",
+    "MEASURE",
+    "EVALUATE_SLO",
+    "DETECT_INCIDENT",
+    "CLASSIFY_SEVERITY",
+    "DETERMINE_BLAST_RADIUS",
+    "APPLY_INCIDENT_POLICY",
+    "CONTAIN",
+    "RECOVER_OR_DEGRADE_OR_HALT",
+    "VERIFY",
+    "ESCALATE_WHEN_REQUIRED",
+    "CLOSE_INCIDENT",
+    "PRODUCE_AUDIT_EVIDENCE",
+    "UPDATE_OPERATIONAL_HEALTH"
+  ],
+
+  "platformInvariants": {
+    "policyGoverned": true,
+    "nonInteractiveByDefault": true,
+    "failClosed": true,
+    "bounded": true,
+    "deterministic": true,
+    "observable": true,
+    "auditable": true,
+    "reversibleWheresPossible": true,
+    "evidenceFirst": true,
+    "noUnrestrictedAutonomousAuthority": true,
+    "humanEscalationIsExplicitPolicyOutcome": true,
+    "upstreamA15ThroughA26ControlsPreserved": true,
+    "noSelfModificationOfProductionCodeOrPolicy": true
+  },
+
+  "sloModel": {
+    "domains": [
+      "availability",
+      "correctness",
+      "freshness",
+      "latency",
+      "throughput",
+      "data-quality",
+      "provider-health",
+      "runtime-health",
+      "recovery-health",
+      "publication-health",
+      "commercial-delivery-health",
+      "evidence-integrity",
+      "dependency-health",
+      "security-posture"
+    ],
+    "measurementWindows": ["1m", "5m", "15m", "1h", "6h", "24h", "7d", "30d"],
+    "requiredSloFields": [
+      "sloId",
+      "name",
+      "domain",
+      "scope",
+      "target",
+      "measurementWindow",
+      "minimumSampleSize",
+      "warningThreshold",
+      "criticalThreshold",
+      "errorBudget",
+      "policyVersion",
+      "ownerType",
+      "enabled",
+      "createdAt"
+    ],
+    "missingTelemetryBehavior": "UNKNOWN",
+    "unknownSloForMutationSensitiveDecisions": "FAIL_CLOSED",
+    "noSilentSloDisappearance": true
+  },
+
+  "sliModel": {
+    "requiredExamples": [
+      "availabilityRatio",
+      "successfulOperationRatio",
+      "verifiedOperationRatio",
+      "freshRecordRatio",
+      "p50LatencyMs",
+      "p95LatencyMs",
+      "p99LatencyMs",
+      "throughputPerMinute",
+      "providerSuccessRatio",
+      "recoverySuccessRatio",
+      "rollbackSuccessRatio",
+      "publicationSuccessRatio",
+      "commercialDeliverySuccessRatio",
+      "evidenceCompletenessRatio",
+      "dependencyHealthyRatio",
+      "policyEvaluationSuccessRatio"
+    ],
+    "requiredSliFields": [
+      "value",
+      "sampleCount",
+      "windowStart",
+      "windowEnd",
+      "source",
+      "confidence",
+      "freshness",
+      "status"
+    ],
+    "statuses": ["HEALTHY", "WARNING", "BREACHED", "UNKNOWN"]
+  },
+
+  "errorBudget": {
+    "trackedFields": [
+      "budgetTotal",
+      "budgetConsumed",
+      "budgetRemaining",
+      "burnRate",
+      "shortWindowBurnRate",
+      "longWindowBurnRate",
+      "budgetState"
+    ],
+    "states": ["HEALTHY", "CONSUMING", "AT_RISK", "EXHAUSTED", "UNKNOWN"],
+    "exhaustedRule": "BLOCK_NON_ESSENTIAL_MUTATION_EXPANSION",
+    "unknownRule": "NO_AUTONOMOUS_WIDENING_OF_PRODUCTION_SCOPE",
+    "noAutomaticResetToClearIncident": true
+  },
+
+  "incidentDetection": {
+    "triggers": [
+      "SLO_BREACH",
+      "RAPID_ERROR_BUDGET_BURN",
+      "REPEATED_A26_RECOVERIES",
+      "REPEATED_DEGRADED_CYCLES",
+      "ROLLBACK_FAILURE",
+      "CHECKPOINT_INTEGRITY_FAILURE",
+      "PROVIDER_OUTAGE",
+      "AUTHENTICATION_FAILURE",
+      "DATA_QUALITY_COLLAPSE",
+      "STALE_DATA_THRESHOLD_BREACH",
+      "PUBLICATION_CONTROL_FAILURE",
+      "COMMERCIAL_DELIVERY_FAILURE",
+      "EVIDENCE_INTEGRITY_FAILURE",
+      "SECURITY_POLICY_VIOLATION",
+      "DEPENDENCY_CASCADE",
+      "UNEXPECTED_MUTATION",
+      "RUNTIME_HALT",
+      "UNKNOWN_CRITICAL_STATE"
+    ],
+    "deduplicationEnabled": true,
+    "correlationEnabled": true
+  },
+
+  "incidentSeverity": {
+    "levels": ["SEV0", "SEV1", "SEV2", "SEV3", "SEV4"],
+    "semantics": {
+      "SEV0": {
+        "description": "Platform integrity / security / uncontrolled mutation risk",
+        "action": "IMMEDIATE_GLOBAL_FAIL_CLOSED_WHERE_APPROPRIATE",
+        "escalation": "HUMAN_ESCALATION_MANDATORY"
+      },
+      "SEV1": {
+        "description": "Major production impact or critical intelligence integrity risk",
+        "action": "AUTOMATIC_CONTAINMENT",
+        "escalation": "EXECUTIVE_ESCALATION_REQUIRED"
+      },
+      "SEV2": {
+        "description": "Significant degraded service with bounded blast radius",
+        "action": "AUTONOMOUS_REMEDIATION_ALLOWED",
+        "escalation": "ESCALATION_BASED_ON_DURATION_OR_BUDGET"
+      },
+      "SEV3": {
+        "description": "Minor operational degradation",
+        "action": "AUTONOMOUS_HANDLING_PREFERRED",
+        "escalation": "NONE_BY_DEFAULT"
+      },
+      "SEV4": {
+        "description": "Informational or maintenance-level incident",
+        "action": "OBSERVE_ONLY",
+        "escalation": "NONE"
+      }
+    },
+    "determinationInputs": [
+      "affectedProductCount",
+      "affectedWorkloadCount",
+      "affectedProviders",
+      "affectedChannels",
+      "customerFacingImpact",
+      "dataIntegrity",
+      "publicationIntegrity",
+      "financialOrCommercialImpact",
+      "securityExposure",
+      "duration",
+      "errorBudgetBurn",
+      "recoveryHistory",
+      "blastRadius"
+    ]
+  },
+
+  "blastRadiusModel": {
+    "scopes": [
+      "OPERATION",
+      "WORKLOAD",
+      "PRODUCT",
+      "DIMENSION",
+      "PROVIDER",
+      "CHANNEL",
+      "CUSTOMER_SEGMENT",
+      "DATABASE",
+      "REGION",
+      "SERVICE",
+      "PLATFORM"
+    ],
+    "requiredIncidentFields": [
+      "affectedScopes",
+      "unaffectedScopes",
+      "estimatedImpact",
+      "dependencyPropagation",
+      "containmentBoundary"
+    ],
+    "containmentPrinciple": "CONTAIN_AT_SMALLEST_SAFE_SCOPE",
+    "noGlobalHaltOfUnrelatedSelfFirstWorkloads": true
+  },
+
+  "incidentStateMachine": {
+    "states": [
+      "OBSERVING",
+      "DETECTED",
+      "CORRELATING",
+      "CLASSIFYING",
+      "CONTAINMENT_PENDING",
+      "CONTAINED",
+      "REMEDIATING",
+      "VERIFYING",
+      "DEGRADED_OPERATION",
+      "ESCALATION_REQUIRED",
+      "ESCALATED",
+      "RECOVERED",
+      "MONITORING_RECOVERY",
+      "CLOSED",
+      "HALTED",
+      "FAILED_CLOSED"
+    ],
+    "transitions": {
+      "OBSERVING": ["DETECTED", "HALTED", "FAILED_CLOSED"],
+      "DETECTED": ["CORRELATING", "CLASSIFYING", "CONTAINMENT_PENDING", "HALTED", "FAILED_CLOSED"],
+      "CORRELATING": ["CLASSIFYING", "HALTED", "FAILED_CLOSED"],
+      "CLASSIFYING": ["CONTAINMENT_PENDING", "ESCALATION_REQUIRED", "HALTED", "FAILED_CLOSED"],
+      "CONTAINMENT_PENDING": ["CONTAINED", "ESCALATION_REQUIRED", "HALTED", "FAILED_CLOSED"],
+      "CONTAINED": ["REMEDIATING", "ESCALATION_REQUIRED", "DEGRADED_OPERATION", "HALTED", "FAILED_CLOSED"],
+      "REMEDIATING": ["VERIFYING", "ESCALATION_REQUIRED", "DEGRADED_OPERATION", "HALTED", "FAILED_CLOSED"],
+      "VERIFYING": ["RECOVERED", "MONITORING_RECOVERY", "ESCALATION_REQUIRED", "DEGRADED_OPERATION", "HALTED", "FAILED_CLOSED"],
+      "DEGRADED_OPERATION": ["REMEDIATING", "ESCALATION_REQUIRED", "HALTED", "FAILED_CLOSED"],
+      "ESCALATION_REQUIRED": ["ESCALATED", "HALTED", "FAILED_CLOSED"],
+      "ESCALATED": ["REMEDIATING", "CONTAINED", "DEGRADED_OPERATION", "HALTED", "FAILED_CLOSED"],
+      "RECOVERED": ["MONITORING_RECOVERY", "CLOSED"],
+      "MONITORING_RECOVERY": ["CLOSED", "DETECTED", "HALTED", "FAILED_CLOSED"],
+      "CLOSED": [],
+      "HALTED": ["OBSERVING"],
+      "FAILED_CLOSED": []
+    },
+    "forbiddenShortcuts": [
+      "DETECTED_TO_CLOSED",
+      "DETECTED_TO_RECOVERED",
+      "REMEDIATING_TO_CLOSED",
+      "ESCALATION_REQUIRED_TO_CLOSED"
+    ],
+    "recoveryVerificationMandatoryBeforeClosure": true,
+    "unknownTransitionMustFailClosed": true
+  },
+
+  "incidentPolicyEngine": {
+    "decisions": [
+      "OBSERVE_ONLY",
+      "AUTO_CONTAIN",
+      "AUTO_RECOVER",
+      "AUTO_DEGRADE",
+      "AUTO_ROLLBACK",
+      "BLOCK_SCOPE",
+      "HALT_SCOPE",
+      "HALT_RUNTIME",
+      "ESCALATE",
+      "EXECUTIVE_ESCALATE",
+      "SECURITY_ESCALATE",
+      "FAIL_CLOSED"
+    ],
+    "policyInputs": [
+      "severity",
+      "sloState",
+      "errorBudget",
+      "blastRadius",
+      "recoveryAvailability",
+      "a26RecoveryState",
+      "rollbackState",
+      "a24Activation",
+      "publicationState",
+      "commercialDeliveryState",
+      "providerDependency",
+      "securityClassification",
+      "incidentDuration",
+      "incidentRecurrence",
+      "evidenceCompleteness"
+    ]
+  },
+
+  "containment": {
+    "permitted": [
+      "STOP_AFFECTED_WORKLOAD",
+      "QUARANTINE_AFFECTED_PRODUCT",
+      "ISOLATE_FAILED_PROVIDER",
+      "OPEN_CIRCUIT_BREAKER",
+      "DISABLE_AFFECTED_DELIVERY_CHANNEL",
+      "FREEZE_AFFECTED_PUBLICATION_PATH",
+      "REDUCE_PROCESSING_RATE",
+      "ENTER_DEGRADED_MODE",
+      "STOP_MUTATION_ON_AFFECTED_SCOPE"
+    ],
+    "prohibited": [
+      "DELETE_PRODUCTION_DATA_BLINDLY",
+      "CREATE_PAID_SERVICES",
+      "MUTATE_BILLING",
+      "BYPASS_PROVIDER_TERMS",
+      "BYPASS_AUTHENTICATION",
+      "BYPASS_A22_A23_A24_CONTROLS",
+      "DISABLE_SECURITY_CONTROLS",
+      "EXPAND_PRODUCTION_AUTHORITY"
+    ]
+  },
+
+  "escalationPolicy": {
+    "classes": [
+      "NONE",
+      "OPERATIONS",
+      "ENGINEERING",
+      "SECURITY",
+      "DATA_QUALITY",
+      "COMMERCIAL",
+      "EXECUTIVE"
+    ],
+    "mandatoryTriggers": [
+      "SEV0",
+      "SEV1",
+      "REPEATED_UNSUCCESSFUL_RECOVERY",
+      "ROLLBACK_FAILED",
+      "ROLLBACK_UNKNOWN",
+      "SECURITY_POLICY_VIOLATION",
+      "UNEXPECTED_FINANCIAL_MUTATION",
+      "CREDENTIALS_REQUIRING_HUMAN_CHANGE",
+      "BILLING_OR_PROCUREMENT_REQUIREMENT",
+      "LEGAL_OR_PROVIDER_CONTRACT_DECISION",
+      "PERSISTENT_DEPENDENCY_OUTAGE",
+      "ERROR_BUDGET_EXHAUSTED_BEYOND_POLICY_DURATION",
+      "UNKNOWN_CRITICAL_STATE"
+    ],
+    "escalationRecordFields": [
+      "escalationId",
+      "incidentId",
+      "class",
+      "reason",
+      "severity",
+      "requiredDecision",
+      "evidenceRefs",
+      "createdAt",
+      "deadline",
+      "status"
+    ],
+    "escalationStatuses": ["OPEN", "ACKNOWLEDGED", "RESOLVED", "EXPIRED"],
+    "noUncontrolledMessagingToExecutives": true,
+    "escalationProducesEventContractForNotificationLayer": true
+  },
+
+  "operationalGovernance": {
+    "policyHierarchy": [
+      "GLOBAL_POLICY",
+      "PLATFORM_POLICY",
+      "SERVICE_POLICY",
+      "PRODUCT_POLICY",
+      "WORKLOAD_POLICY",
+      "INCIDENT_POLICY"
+    ],
+    "lowerPolicyMayBecomeStricter": true,
+    "lowerPolicyMayNotWeakenHigherPolicy": true,
+    "conflictResolution": "CHOOSE_STRICTER_OR_FAIL_CLOSED"
+  },
+
+  "changeFreeze": {
+    "triggers": [
+      "SEV0",
+      "SEV1",
+      "EXHAUSTED_CRITICAL_ERROR_BUDGET",
+      "SECURITY_INCIDENT",
+      "EVIDENCE_INTEGRITY_FAILURE",
+      "ROLLBACK_UNCERTAINTY",
+      "PLATFORM_LEVEL_INSTABILITY"
+    ],
+    "mayBlock": [
+      "NEW_ACTIVATION",
+      "PUBLICATION_EXPANSION",
+      "COMMERCIAL_CHANNEL_EXPANSION",
+      "PROVIDER_ONBOARDING",
+      "SCHEMA_MIGRATION",
+      "NON_ESSENTIAL_DEPLOYMENT"
+    ],
+    "mustNotPrevent": [
+      "SAFE_CONTAINMENT",
+      "SAFE_ROLLBACK",
+      "EVIDENCE_GENERATION",
+      "APPROVED_RECOVERY",
+      "SECURITY_RESPONSE"
+    ]
+  },
+
+  "incidentCorrelation": {
+    "correlationInputs": [
+      "timeWindow",
+      "provider",
+      "product",
+      "dimension",
+      "runtimeCycle",
+      "dependencyGraph",
+      "failureClassification",
+      "sloBreach",
+      "sharedRootCause"
+    ],
+    "requiredOutputFields": [
+      "rootIncidentId",
+      "relatedIncidentIds",
+      "correlationConfidence",
+      "correlationReason"
+    ],
+    "avoidIncidentStorms": true
+  },
+
+  "incidentDeduplication": {
+    "useFingerprintInputs": [
+      "scope",
+      "failureClassification",
+      "slo",
+      "provider",
+      "product",
+      "dependency",
+      "policyVersion"
+    ],
+    "mustNotHideMateriallyDifferentIncidents": true
+  },
+
+  "recurrenceDetection": {
+    "states": ["FIRST_OCCURRENCE", "RECURRING", "CHRONIC", "SYSTEMIC"],
+    "chronicOrSystemicRule": "INCREASE_SEVERITY_OR_ESCALATION_PER_POLICY"
+  },
+
+  "a26Integration": {
+    "mustUseA26ForRecovery": true,
+    "noParallelRecoveryEngine": true,
+    "a27Determines": ["CONTAIN", "RECOVER", "ROLLBACK", "DEGRADE", "HALT", "ESCALATE"],
+    "a26Performs": "BOUNDED_RECOVERY_MECHANICS",
+    "a27VerifiesOutcomeAfterward": true
+  },
+
+  "incidentClosure": {
+    "closureConditions": [
+      "AFFECTED_SLO_RECOVERED",
+      "VERIFICATION_PASS",
+      "A26_RECOVERY_RESULT_ACCEPTABLE",
+      "ROLLBACK_CLEAN",
+      "DEPENDENCY_GRAPH_HEALTHY_ENOUGH",
+      "EVIDENCE_COMPLETE",
+      "NO_UNRESOLVED_CRITICAL_ESCALATION",
+      "MONITORING_RECOVERY_WINDOW_COMPLETED"
+    ],
+    "closureClasses": [
+      "AUTO_CLOSED",
+      "HUMAN_CONFIRMED",
+      "DEGRADED_CLOSED",
+      "NOT_CLOSED"
+    ]
+  },
+
+  "postIncidentLearning": {
+    "requiredFields": [
+      "incidentId",
+      "rootCauseClass",
+      "trigger",
+      "timeline",
+      "blastRadius",
+      "containment",
+      "recoveryActions",
+      "rollback",
+      "sloImpact",
+      "errorBudgetImpact",
+      "evidenceRefs",
+      "recurrence",
+      "preventiveActionCandidates"
+    ],
+    "a27MayRecommendPreventiveActions": true,
+    "a27MustNotRewriteProductionCodeOrPolicy": true,
+    "selfModificationProhibited": true
+  },
+
+  "operationalHealthIndex": {
+    "inputs": [
+      "sloCompliance",
+      "errorBudgetHealth",
+      "activeIncidents",
+      "incidentSeverity",
+      "recoverySuccess",
+      "providerHealth",
+      "dependencyHealth",
+      "publicationHealth",
+      "commercialHealth",
+      "evidenceIntegrity"
+    ],
+    "classes": ["EXCELLENT", "HEALTHY", "DEGRADED", "AT_RISK", "CRITICAL", "HALTED", "UNKNOWN"],
+    "unknownBlocksMutationExpansion": true
+  },
+
+  "executiveOperatingSignal": {
+    "requiredFields": [
+      "platformStatus",
+      "activeIncidentCount",
+      "highestSeverity",
+      "criticalSloBreaches",
+      "errorBudgetStatus",
+      "degradedScopes",
+      "haltedScopes",
+      "providerRisk",
+      "publicationRisk",
+      "commercialRisk",
+      "securityRisk",
+      "executiveActionRequired",
+      "summary"
+    ],
+    "isCanonicalExecutiveOperatingContract": true,
+    "isNotDashboardYet": true
+  },
+
+  "observability": {
+    "requiredMetrics": [
+      "slo_evaluation_count",
+      "slo_breach_count",
+      "error_budget_burn_rate",
+      "error_budget_exhausted_count",
+      "incident_detected_count",
+      "incident_deduplicated_count",
+      "incident_correlated_count",
+      "sev0_count",
+      "sev1_count",
+      "sev2_count",
+      "sev3_count",
+      "sev4_count",
+      "containment_count",
+      "recovery_invocation_count",
+      "escalation_count",
+      "executive_escalation_count",
+      "change_freeze_count",
+      "incident_closed_count",
+      "incident_reopened_count",
+      "mean_time_to_detect_ms",
+      "mean_time_to_contain_ms",
+      "mean_time_to_recover_ms",
+      "mean_time_to_close_ms",
+      "active_incident_count"
+    ],
+    "noSecretsOrSensitiveDataInTelemetry": true
+  },
+
+  "evidenceModel": {
+    "immutable": true,
+    "machineReadable": true,
+    "canonicalPath": "services/kidults-autonomous-intelligence/reports/operations/",
+    "filePrefix": "a27-operations-",
+    "everyGovernanceCycleMustProduceEvidence": true
+  }
+}
