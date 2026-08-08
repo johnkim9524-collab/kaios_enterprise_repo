@@ -21,6 +21,7 @@ mkdirSync(workDir, { recursive: true });
 function toCliPath(file) {
   const rel = relative(cwd, file).replaceAll('\\', '/');
   if (!rel || rel.startsWith('..')) throw new Error(`A14 SQL file escaped working directory: ${file}`);
+  if (/\s/.test(rel)) throw new Error(`A14 relative SQL path unexpectedly contains whitespace: ${rel}`);
   return rel;
 }
 
@@ -29,7 +30,7 @@ function runWranglerFile(sqlFile, maxBuffer = 10 * 1024 * 1024) {
   const args = ['wrangler', 'd1', 'execute', 'DB', '--remote', '--file', cliFile];
   if (process.platform === 'win32') {
     const comspec = process.env.ComSpec || 'cmd.exe';
-    const command = `npx wrangler d1 execute DB --remote --file "${cliFile.replaceAll('"', '""')}"`;
+    const command = `npx wrangler d1 execute DB --remote --file ${cliFile}`;
     return spawnSync(comspec, ['/d', '/s', '/c', command], {
       cwd,
       encoding: 'utf8',
