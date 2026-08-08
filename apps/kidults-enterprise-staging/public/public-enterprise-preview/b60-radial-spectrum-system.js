@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const COLORS = ['#0B4A3B', '#2E6F73', '#4F87A3', '#67AFC2', '#79CDB8'];
+  const COLORS = ['#2B6A5B', '#3F7E82', '#5595AF', '#70B5C7', '#83CFBA'];
   const params = new URLSearchParams(window.location.search);
   const dataAsset = window.KIDULTS_DATA_ASSET || (params.get('data') === 'preview'
     ? 'intelligence-data.preview.json'
@@ -38,7 +38,7 @@
   function apply(data) {
     applyDonut('#source-donut .donut', '#source-donut .legend i', data.sourceComposition || []);
     applyDonut('#signal-mix .signal-donut', '#signal-mix .signal-donut-legend i', data.signalMix || []);
-    document.documentElement.dataset.radialSpectrum = 'kidults-intelligence-spectrum-v1';
+    document.documentElement.dataset.radialSpectrum = 'kidults-intelligence-spectrum-v2-soft';
   }
 
   fetch(dataAsset, { cache: 'no-store' })
