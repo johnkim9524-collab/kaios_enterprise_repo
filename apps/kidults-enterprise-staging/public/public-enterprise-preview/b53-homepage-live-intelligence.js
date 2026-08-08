@@ -79,7 +79,7 @@
     set('[data-governed-publish]', String(Number(counts.publish_candidates || 0)));
     set('[data-governed-held]', String(Number(counts.held || 0)));
     set('[data-governed-feed]', String(Number(counts.executive_feed || 0)));
-    set('[data-governed-production]', authorized ? 'Authorized' : 'Review');
+    set('[data-governed-production]', authorized ? 'AUTHORIZED' : 'REVIEW');
     set('[data-governed-updated]', formatUpdated(visibleUpdated));
 
     const held = Array.isArray(data?.held) ? data.held : [];
@@ -115,7 +115,7 @@
       render(data, visibleUpdated);
     } catch (error) {
       console.warn('Governed homepage intelligence unavailable', error);
-      publishUnavailable('Review');
+      publishUnavailable('REVIEW');
     }
   }
 
