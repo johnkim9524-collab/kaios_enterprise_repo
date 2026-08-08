@@ -1,0 +1,38 @@
+name: KIDULTS A15 Global Autonomous Policy Certification
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-a15-autonomous-policy.yml'
+  workflow_dispatch:
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/kidults-autonomous-intelligence
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm run a15:policy
+      - name: Verify A15 command wiring and finalization contract
+        run: |
+          node -e "const p=require('./package.json'); for (const k of ['a15:policy','a15:certify','a15:finalize']) if(!p.scripts[k]) process.exit(1)"
+          grep -q 'git pull --ff-only origin main' scripts/stage-finalize.ps1
+          grep -q 'policy-before-execution' policy/global-autonomous-policy.json
+          grep -q 'digitalocean' policy/autonomous-operations-inventory.json
+          grep -q 'cloudflare' policy/autonomous-operations-inventory.json
+          grep -q 'github' policy/autonomous-operations-inventory.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-a15-policy-report
+          path: services/kidults-autonomous-intelligence/reports/policy/a15-policy-*.json
+          if-no-files-found: warn
