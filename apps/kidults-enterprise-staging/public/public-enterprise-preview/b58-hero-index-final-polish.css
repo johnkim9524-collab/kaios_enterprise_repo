@@ -1,7 +1,4 @@
-/* KIDULTS Hero Index Final Polish — premium dial v9.
-   Scope: hero intelligence dial only. Preserve data binding, numeral, labels,
-   panel layout and responsive behavior. Use one cleaner, slightly wider sage
-   progress ring with no secondary inner-outline ring. */
+/* KIDULTS Hero Index Final Polish — premium dial v10. */
 
 .premium-dial__value,
 .premium-dial-card .premium-dial__value,
@@ -34,40 +31,35 @@ main .hero aside strong[data-k100] {
   transform:none !important;
 }
 
-/* Single premium ring: a little wider than v8, but deliberately less bright
-   than the concept mockup so it stays editorial rather than consumer-like. */
+/* Hero stays a single KPI instrument, but the active arc now uses restrained
+   tones derived from the fixed KIDULTS Intelligence palette. */
 .premium-dial {
   background:
     conic-gradient(
       from -90deg,
-      rgba(181,211,201,.88) 0%,
-      rgba(145,188,174,.85) 28%,
-      rgba(108,160,143,.82) 58%,
-      rgba(73,133,114,.78) calc(var(--dial-value,94.8) * 1%),
-      rgba(126,166,151,.14) 0
+      #A7BEB4 0%,
+      #9ABBAF 30%,
+      #87B5AA 60%,
+      #72A89C calc(var(--dial-value,94.8) * 1%),
+      rgba(131,207,186,.12) 0
     ) !important;
   box-shadow:
     0 0 0 1px rgba(244,241,234,.045),
     0 11px 25px rgba(0,0,0,.075) !important;
 }
 
-/* Reduce the centre mask to widen the visible ring while keeping the centre
-   continuous with the panel. */
 .premium-dial::before {
   inset:17% !important;
   background:linear-gradient(145deg,rgba(16,78,64,.96),rgba(6,51,42,.985) 72%) !important;
   box-shadow:none !important;
 }
 
-/* Remove the secondary inner outline completely. */
 .premium-dial::after {
   display:none !important;
   content:none !important;
 }
 
-.premium-dial__content {
-  transform:translateY(-2px) !important;
-}
+.premium-dial__content { transform:translateY(-2px) !important; }
 
 .premium-dial__label {
   margin-top:.66rem !important;
@@ -93,16 +85,12 @@ main .hero aside strong[data-k100] {
   .premium-dial__value,
   .premium-dial-card .premium-dial__value,
   main .hero > aside > strong[data-k100],
-  main .hero aside strong[data-k100] {
-    font-size:36px !important;
-  }
+  main .hero aside strong[data-k100] { font-size:36px !important; }
 }
 
 @media (max-width:430px) {
   .premium-dial__value,
   .premium-dial-card .premium-dial__value,
   main .hero > aside > strong[data-k100],
-  main .hero aside strong[data-k100] {
-    font-size:33px !important;
-  }
+  main .hero aside strong[data-k100] { font-size:33px !important; }
 }
