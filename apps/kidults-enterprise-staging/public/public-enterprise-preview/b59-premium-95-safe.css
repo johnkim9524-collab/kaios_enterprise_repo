@@ -5,7 +5,32 @@
   display: none !important;
 }
 
-/* 2) Visualization hierarchy: flagship views get more breathing room without changing markup or data. */
+/* 2) Trend validation: keep only the three public-facing signals.
+   Runtime still creates the full validation set; CSS only suppresses low-value QA copy. */
+.trend-validation-note > span:nth-child(1),
+.trend-validation-note > span:nth-child(4),
+.trend-validation-note > span:nth-child(5) {
+  display: none !important;
+}
+
+.trend-validation-note {
+  gap: 10px 24px !important;
+  padding-top: 13px !important;
+  color: rgba(79,88,82,.88) !important;
+}
+
+.trend-validation-note > span {
+  padding-left: 11px !important;
+}
+
+.trend-validation-note > span::before {
+  width: 3px !important;
+  height: 3px !important;
+  top: .6em !important;
+  background: rgba(155,116,56,.86) !important;
+}
+
+/* 3) Visualization hierarchy: flagship views get more breathing room without changing markup or data. */
 @supports selector(article:has(#geography-chart)) {
   .visualization-suite .viz-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -15,24 +40,36 @@
   .visualization-suite .viz-card:has(#geography-chart),
   .visualization-suite .viz-card:has(#correlation-chart) {
     grid-column: 1 / -1;
-  }
-
-  .visualization-suite .viz-card:has(#geography-chart),
-  .visualization-suite .viz-card:has(#correlation-chart) {
     padding-top: 30px;
     padding-bottom: 30px;
   }
+
+  /* Confidence caveat stays available, but visually recedes into methodology metadata. */
+  .visualization-suite .viz-card:has(#confidence-chart) > small,
+  .visualization-suite .viz-card:has(#confidence-chart) > p:last-child {
+    max-width: 38ch;
+    color: rgba(79,88,82,.72) !important;
+    font-size: 10.5px !important;
+    line-height: 1.45 !important;
+  }
 }
 
-/* 3) Governed system: slightly reduce secondary headline weight so Hero stays dominant. */
+/* 4) Governed system: preserve authority without competing with the Hero.
+   Wider text measure + smaller scale prevents poster-like five-line wrapping. */
+.dark {
+  grid-template-columns: minmax(0,1.02fr) minmax(0,1.48fr) !important;
+  gap: 46px !important;
+}
+
 .dark > div:first-child > h2 {
-  font-size: clamp(2.7rem, 3.75vw, 3.85rem) !important;
-  line-height: 1.01 !important;
-  letter-spacing: -.026em !important;
-  max-width: 11.5ch;
+  font-size: clamp(2.55rem, 3.05vw, 3.05rem) !important;
+  line-height: .99 !important;
+  letter-spacing: -.028em !important;
+  max-width: 14.5ch !important;
+  text-wrap: balance;
 }
 
-/* 4) Editorial rhythm: slightly more space between major intelligence systems. */
+/* 5) Editorial rhythm: slightly more space between major intelligence systems. */
 .visualization-suite {
   padding-top: 68px;
   padding-bottom: 82px;
@@ -46,7 +83,7 @@
   background: rgba(251,248,242,.82);
 }
 
-/* 5) Product cards: quieter, more premium hierarchy without changing structure. */
+/* 6) Product cards: quieter, more premium hierarchy without changing structure. */
 .grid.four article {
   transition: border-color .18s ease, transform .18s ease;
 }
@@ -55,6 +92,17 @@
   .grid.four article:hover {
     border-color: rgba(155,116,56,.46);
     transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 1100px) {
+  .dark {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+
+  .dark > div:first-child > h2 {
+    max-width: 18ch !important;
   }
 }
 
@@ -75,9 +123,15 @@
     }
   }
 
+  .trend-validation-note {
+    grid-template-columns: 1fr !important;
+    gap: 7px !important;
+  }
+
   .dark > div:first-child > h2 {
-    font-size: clamp(2.35rem, 11vw, 3.2rem) !important;
-    max-width: none;
+    font-size: clamp(2.25rem, 10.5vw, 2.9rem) !important;
+    max-width: 15ch !important;
+    text-wrap: balance;
   }
 }
 
