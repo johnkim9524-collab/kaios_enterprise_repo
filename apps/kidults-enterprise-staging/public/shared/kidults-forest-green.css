@@ -1,0 +1,19 @@
+:root {
+  --kidults-forest-950: #052f27;
+  --kidults-forest-900: #063f32;
+  --kidults-forest-800: #084a3b;
+  --kidults-forest-700: #0a5947;
+  --kidults-forest-600: #0d6a54;
+  --kidults-forest-500: #148064;
+  --kidults-forest-300: #65a792;
+  --kidults-forest-150: #bfd6cd;
+  --kidults-forest-075: #e4eee9;
+
+  --kidults-brand-primary: var(--kidults-forest-900);
+  --kidults-brand-panel: var(--kidults-forest-950);
+  --kidults-brand-display: var(--kidults-forest-800);
+  --kidults-brand-positive: var(--kidults-forest-500);
+  --kidults-brand-muted: var(--kidults-forest-300);
+  --kidults-brand-border: var(--kidults-forest-150);
+  --kidults-brand-surface: var(--kidults-forest-075);
+}
