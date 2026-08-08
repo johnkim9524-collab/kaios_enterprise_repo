@@ -1,0 +1,31 @@
+name: KIDULTS A13 Provider Concurrency Certification
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-a13-provider-concurrency.yml'
+  workflow_dispatch:
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: services/kidults-autonomous-intelligence
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm run a13:smoke
+      - run: npm run a13:baseline
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-a13-reports
+          path: services/kidults-autonomous-intelligence/reports/scale/a13-*.json
+          if-no-files-found: warn
