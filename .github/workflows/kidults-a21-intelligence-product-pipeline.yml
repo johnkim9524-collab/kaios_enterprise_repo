@@ -1,0 +1,29 @@
+name: kidults-a21-intelligence-product-pipeline
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-a21-intelligence-product-pipeline.yml'
+  workflow_dispatch:
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: services/kidults-autonomous-intelligence
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: npm run a21:certify
+      - name: Upload A21 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a21-pipeline-evidence
+          path: services/kidults-autonomous-intelligence/reports/product-pipeline/*.json
+          if-no-files-found: error
