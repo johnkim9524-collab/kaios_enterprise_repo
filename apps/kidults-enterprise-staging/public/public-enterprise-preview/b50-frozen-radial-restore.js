@@ -1,8 +1,8 @@
 (() => {
   /* KIDULTS Radial Color System v1.0 — fixed pastel palette.
      This restoration layer must use the same palette as the live renderer so it
-     never reintroduces the legacy Forest-heavy colors after render. */
-  const COLORS = ['#83CFBA', '#5AA3A5', '#6298B8', '#86B9D5', '#AAA1D0'];
+     never reintroduces legacy or violet colors after render. */
+  const COLORS = ['#83CFBA', '#5AA3A5', '#6298B8', '#86B9D5', '#A7BEB4'];
   const params = new URLSearchParams(window.location.search);
   const dataFile = params.get('data') === 'preview'
     ? 'intelligence-data.preview.json'
