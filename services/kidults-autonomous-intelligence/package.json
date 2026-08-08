@@ -66,7 +66,10 @@
     "a24:finalize": "npm run a24:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A24",
     "a25:runtime": "node scripts/a25-autonomous-production-runtime.mjs",
     "a25:certify": "npm run typecheck && npm run a25:runtime",
-    "a25:finalize": "npm run a25:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A25"
+    "a25:finalize": "npm run a25:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A25",
+    "a26:recovery": "node scripts/a26-autonomous-recovery.mjs",
+    "a26:certify": "npm run typecheck && npm run a26:recovery",
+    "a26:finalize": "npm run a26:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A26"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",
