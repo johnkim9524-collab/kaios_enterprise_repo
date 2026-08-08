@@ -1,0 +1,535 @@
+{
+  "policyVersion": "a23-commercial-delivery-policy.v1",
+  "stage": "A23",
+  "controlPlaneLifecycle": [
+    "policy",
+    "commercial-intent",
+    "channel-eligibility",
+    "delivery-preflight",
+    "authorization",
+    "package-contract-verification",
+    "entitlement-evaluation",
+    "delivery-decision",
+    "bounded-canary-plan",
+    "execution-envelope",
+    "post-delivery-verification",
+    "evidence",
+    "rollback-revocation-plan",
+    "finalize"
+  ],
+  "invariants": {
+    "policyBeforeExecution": true,
+    "commercialIntentRequired": true,
+    "channelEligibilityRequired": true,
+    "deliveryPreflightRequired": true,
+    "authorizationRequired": true,
+    "packageContractVerificationRequired": true,
+    "entitlementEvaluationRequired": true,
+    "deliveryDecisionRequired": true,
+    "boundedCanaryRequiredForPublicChannels": true,
+    "productionDeliveryBlocked": true,
+    "deliveryMutationBlocked": true,
+    "billingMutationBlocked": true,
+    "procurementMutationBlocked": true,
+    "providerContactBlocked": true,
+    "externalPublicationBlocked": true,
+    "credentialConsumptionBlocked": true,
+    "externalCustomerMutationBlocked": true,
+    "evidenceRequired": true,
+    "rollbackRequired": true,
+    "failClosed": true,
+    "nonInteractiveExecution": true,
+    "postDeliveryVerificationRequired": true
+  },
+  "thresholds": {
+    "provenance": 0.8,
+    "freshness": 0.7,
+    "quality": 0.75
+  },
+  "entitlementClasses": [
+    "PUBLIC",
+    "REGISTERED",
+    "PRO",
+    "ENTERPRISE",
+    "LICENSED_DATA",
+    "CUSTOM_CONTRACT",
+    "INTERNAL_ONLY"
+  ],
+  "customerClasses": [
+    "ANONYMOUS",
+    "REGISTERED_USER",
+    "PRO_SUBSCRIBER",
+    "ENTERPRISE_CLIENT",
+    "DATA_LICENSEE",
+    "CUSTOM_INTELLIGENCE_CLIENT",
+    "INTERNAL_SYSTEM"
+  ],
+  "decisionClasses": [
+    "INTERNAL_DELIVERY_ALLOWED",
+    "CANARY_DELIVERY_ELIGIBLE",
+    "ENTITLEMENT_BLOCKED",
+    "DEPENDENCY_BLOCKED",
+    "PROVIDER_EVIDENCE_BLOCKED",
+    "RIGHTS_BLOCKED",
+    "QUALITY_BLOCKED",
+    "FRESHNESS_BLOCKED",
+    "PROVENANCE_BLOCKED",
+    "PACKAGE_BLOCKED",
+    "CHANNEL_NOT_ELIGIBLE",
+    "CUSTOMER_CLASS_BLOCKED",
+    "POLICY_BLOCKED",
+    "PRODUCTION_DELIVERY_BLOCKED"
+  ],
+  "channels": {
+    "PUBLIC_EDITORIAL": {
+      "channelId": "PUBLIC_EDITORIAL",
+      "channelClass": "PUBLIC_CANARY_EDITORIAL",
+      "allowedProductClasses": [
+        "CORE_DATA",
+        "SIGNAL",
+        "INDEX",
+        "ANALYTICS"
+      ],
+      "allowedReadinessClasses": [
+        "INTERNAL_READY",
+        "HYBRID_READY"
+      ],
+      "allowedMonetizationClasses": [
+        "MONETIZABLE_INTERNAL",
+        "MONETIZABLE_AFTER_PROVIDER"
+      ],
+      "allowedPublicationClasses": [
+        "CANARY_ELIGIBLE"
+      ],
+      "minimumProvenance": 0.8,
+      "minimumFreshness": 0.7,
+      "minimumQuality": 0.75,
+      "dependencyRequirements": {
+        "upstreamComplete": true,
+        "blockedDependenciesForbidden": true,
+        "providerDependencyModesAllowed": [
+          "SELF-FIRST",
+          "HYBRID"
+        ]
+      },
+      "providerEvidenceRequirements": {
+        "requiredForHybrid": true,
+        "requiredForProviderRequired": true,
+        "requiredFields": [
+          "providerId",
+          "contractVersion",
+          "provenance",
+          "freshness",
+          "usageRights",
+          "stableId",
+          "deliveryWindow"
+        ],
+        "freshnessSlaHours": 72
+      },
+      "usageRightsRequirements": {
+        "knownRightsRequired": true,
+        "allowedStates": [
+          "SELF_OWNED",
+          "PUBLIC_EDITORIAL_CANARY",
+          "LICENSED_FOR_RESALE"
+        ],
+        "redistributionRequired": false
+      },
+      "packageRequirements": {
+        "stableIdRequired": true,
+        "schemaVersionRequired": true,
+        "contractFingerprintRequired": true,
+        "artifactManifestRequired": true
+      },
+      "entitlementRequirements": {
+        "requiredEntitlementClasses": [
+          "PUBLIC",
+          "INTERNAL_ONLY"
+        ],
+        "boundedAudienceRequired": true,
+        "liveServingForbidden": true
+      },
+      "customerClassRequirements": {
+        "allowedCustomerClasses": [
+          "ANONYMOUS",
+          "REGISTERED_USER",
+          "INTERNAL_SYSTEM"
+        ],
+        "defaultCustomerClass": "ANONYMOUS",
+        "externalContractRequired": false
+      },
+      "canaryAllowed": true,
+      "productionAllowed": false,
+      "deliveryMutationAllowed": false,
+      "billingMutationAllowed": false,
+      "procurementMutationAllowed": false,
+      "providerContactAllowed": false,
+      "externalPublicationAllowed": false,
+      "credentialConsumptionAllowed": false,
+      "evidenceRequired": true,
+      "rollbackRequired": true,
+      "failClosed": true,
+      "nonInteractive": true,
+      "policyVersion": "a23-commercial-delivery-policy.v1"
+    },
+    "PRO_SUBSCRIPTION": {
+      "channelId": "PRO_SUBSCRIPTION",
+      "channelClass": "PRO_INTERNAL_SUBSCRIPTION_CONTROLLED",
+      "allowedProductClasses": [
+        "SIGNAL",
+        "INDEX",
+        "ANALYTICS"
+      ],
+      "allowedReadinessClasses": [
+        "INTERNAL_READY",
+        "HYBRID_READY"
+      ],
+      "allowedMonetizationClasses": [
+        "MONETIZABLE_INTERNAL",
+        "MONETIZABLE_AFTER_PROVIDER"
+      ],
+      "allowedPublicationClasses": [
+        "INTERNAL_ONLY",
+        "CANARY_ELIGIBLE"
+      ],
+      "minimumProvenance": 0.8,
+      "minimumFreshness": 0.75,
+      "minimumQuality": 0.8,
+      "dependencyRequirements": {
+        "upstreamComplete": true,
+        "blockedDependenciesForbidden": true,
+        "providerDependencyModesAllowed": [
+          "SELF-FIRST",
+          "HYBRID"
+        ]
+      },
+      "providerEvidenceRequirements": {
+        "requiredForHybrid": true,
+        "requiredForProviderRequired": true,
+        "requiredFields": [
+          "providerId",
+          "contractVersion",
+          "provenance",
+          "freshness",
+          "usageRights",
+          "slaClass"
+        ],
+        "freshnessSlaHours": 48
+      },
+      "usageRightsRequirements": {
+        "knownRightsRequired": true,
+        "allowedStates": [
+          "SELF_OWNED",
+          "INTERNAL_ONLY",
+          "PRO_DERIVED"
+        ],
+        "redistributionRequired": false
+      },
+      "packageRequirements": {
+        "stableIdRequired": true,
+        "schemaVersionRequired": true,
+        "contractFingerprintRequired": true,
+        "artifactManifestRequired": true
+      },
+      "entitlementRequirements": {
+        "requiredEntitlementClasses": [
+          "PRO",
+          "INTERNAL_ONLY"
+        ],
+        "boundedAudienceRequired": true,
+        "liveServingForbidden": true
+      },
+      "customerClassRequirements": {
+        "allowedCustomerClasses": [
+          "PRO_SUBSCRIBER",
+          "INTERNAL_SYSTEM"
+        ],
+        "defaultCustomerClass": "PRO_SUBSCRIBER",
+        "externalContractRequired": false
+      },
+      "canaryAllowed": false,
+      "productionAllowed": false,
+      "deliveryMutationAllowed": false,
+      "billingMutationAllowed": false,
+      "procurementMutationAllowed": false,
+      "providerContactAllowed": false,
+      "externalPublicationAllowed": false,
+      "credentialConsumptionAllowed": false,
+      "evidenceRequired": true,
+      "rollbackRequired": true,
+      "failClosed": true,
+      "nonInteractive": true,
+      "policyVersion": "a23-commercial-delivery-policy.v1"
+    },
+    "ENTERPRISE_API": {
+      "channelId": "ENTERPRISE_API",
+      "channelClass": "ENTERPRISE_API_SANDBOX_CONTROLLED",
+      "allowedProductClasses": [
+        "CORE_DATA",
+        "INDEX",
+        "ANALYTICS",
+        "PREMIUM_INTELLIGENCE"
+      ],
+      "allowedReadinessClasses": [
+        "INTERNAL_READY",
+        "HYBRID_READY"
+      ],
+      "allowedMonetizationClasses": [
+        "MONETIZABLE_INTERNAL",
+        "MONETIZABLE_AFTER_PROVIDER"
+      ],
+      "allowedPublicationClasses": [
+        "INTERNAL_ONLY",
+        "CANARY_ELIGIBLE"
+      ],
+      "minimumProvenance": 0.82,
+      "minimumFreshness": 0.7,
+      "minimumQuality": 0.78,
+      "dependencyRequirements": {
+        "upstreamComplete": true,
+        "blockedDependenciesForbidden": true,
+        "providerDependencyModesAllowed": [
+          "SELF-FIRST",
+          "HYBRID"
+        ]
+      },
+      "providerEvidenceRequirements": {
+        "requiredForHybrid": true,
+        "requiredForProviderRequired": true,
+        "requiredFields": [
+          "providerId",
+          "contractVersion",
+          "provenance",
+          "freshness",
+          "usageRights",
+          "stableId",
+          "schemaVersion"
+        ],
+        "freshnessSlaHours": 72
+      },
+      "usageRightsRequirements": {
+        "knownRightsRequired": true,
+        "allowedStates": [
+          "SELF_OWNED",
+          "INTERNAL_ONLY",
+          "ENTERPRISE_DERIVED",
+          "LICENSED_FOR_RESALE"
+        ],
+        "redistributionRequired": false
+      },
+      "packageRequirements": {
+        "stableIdRequired": true,
+        "schemaVersionRequired": true,
+        "contractFingerprintRequired": true,
+        "artifactManifestRequired": true
+      },
+      "entitlementRequirements": {
+        "requiredEntitlementClasses": [
+          "ENTERPRISE",
+          "INTERNAL_ONLY"
+        ],
+        "boundedAudienceRequired": true,
+        "liveServingForbidden": true
+      },
+      "customerClassRequirements": {
+        "allowedCustomerClasses": [
+          "ENTERPRISE_CLIENT",
+          "INTERNAL_SYSTEM"
+        ],
+        "defaultCustomerClass": "ENTERPRISE_CLIENT",
+        "externalContractRequired": true
+      },
+      "canaryAllowed": false,
+      "productionAllowed": false,
+      "deliveryMutationAllowed": false,
+      "billingMutationAllowed": false,
+      "procurementMutationAllowed": false,
+      "providerContactAllowed": false,
+      "externalPublicationAllowed": false,
+      "credentialConsumptionAllowed": false,
+      "evidenceRequired": true,
+      "rollbackRequired": true,
+      "failClosed": true,
+      "nonInteractive": true,
+      "policyVersion": "a23-commercial-delivery-policy.v1"
+    },
+    "DATA_LICENSE": {
+      "channelId": "DATA_LICENSE",
+      "channelClass": "LICENSED_DATA_SANDBOX_CONTROLLED",
+      "allowedProductClasses": [
+        "CORE_DATA",
+        "PREMIUM_INTELLIGENCE"
+      ],
+      "allowedReadinessClasses": [
+        "INTERNAL_READY",
+        "HYBRID_READY"
+      ],
+      "allowedMonetizationClasses": [
+        "MONETIZABLE_INTERNAL",
+        "MONETIZABLE_AFTER_PROVIDER"
+      ],
+      "allowedPublicationClasses": [
+        "INTERNAL_ONLY",
+        "CANARY_ELIGIBLE"
+      ],
+      "minimumProvenance": 0.85,
+      "minimumFreshness": 0.7,
+      "minimumQuality": 0.8,
+      "dependencyRequirements": {
+        "upstreamComplete": true,
+        "blockedDependenciesForbidden": true,
+        "providerDependencyModesAllowed": [
+          "SELF-FIRST",
+          "HYBRID"
+        ]
+      },
+      "providerEvidenceRequirements": {
+        "requiredForHybrid": true,
+        "requiredForProviderRequired": true,
+        "requiredFields": [
+          "providerId",
+          "contractVersion",
+          "provenance",
+          "freshness",
+          "usageRights",
+          "licenseScope"
+        ],
+        "freshnessSlaHours": 96
+      },
+      "usageRightsRequirements": {
+        "knownRightsRequired": true,
+        "allowedStates": [
+          "SELF_OWNED",
+          "LICENSED_FOR_RESALE"
+        ],
+        "redistributionRequired": true
+      },
+      "packageRequirements": {
+        "stableIdRequired": true,
+        "schemaVersionRequired": true,
+        "contractFingerprintRequired": true,
+        "artifactManifestRequired": true
+      },
+      "entitlementRequirements": {
+        "requiredEntitlementClasses": [
+          "LICENSED_DATA",
+          "INTERNAL_ONLY"
+        ],
+        "boundedAudienceRequired": true,
+        "liveServingForbidden": true
+      },
+      "customerClassRequirements": {
+        "allowedCustomerClasses": [
+          "DATA_LICENSEE",
+          "INTERNAL_SYSTEM"
+        ],
+        "defaultCustomerClass": "DATA_LICENSEE",
+        "externalContractRequired": true
+      },
+      "canaryAllowed": false,
+      "productionAllowed": false,
+      "deliveryMutationAllowed": false,
+      "billingMutationAllowed": false,
+      "procurementMutationAllowed": false,
+      "providerContactAllowed": false,
+      "externalPublicationAllowed": false,
+      "credentialConsumptionAllowed": false,
+      "evidenceRequired": true,
+      "rollbackRequired": true,
+      "failClosed": true,
+      "nonInteractive": true,
+      "policyVersion": "a23-commercial-delivery-policy.v1"
+    },
+    "CUSTOM_INTELLIGENCE": {
+      "channelId": "CUSTOM_INTELLIGENCE",
+      "channelClass": "CUSTOM_CONTRACT_SANDBOX_CONTROLLED",
+      "allowedProductClasses": [
+        "CORE_DATA",
+        "SIGNAL",
+        "INDEX",
+        "ANALYTICS",
+        "PREMIUM_INTELLIGENCE"
+      ],
+      "allowedReadinessClasses": [
+        "INTERNAL_READY",
+        "HYBRID_READY"
+      ],
+      "allowedMonetizationClasses": [
+        "MONETIZABLE_INTERNAL",
+        "MONETIZABLE_AFTER_PROVIDER"
+      ],
+      "allowedPublicationClasses": [
+        "INTERNAL_ONLY",
+        "CANARY_ELIGIBLE"
+      ],
+      "minimumProvenance": 0.8,
+      "minimumFreshness": 0.7,
+      "minimumQuality": 0.78,
+      "dependencyRequirements": {
+        "upstreamComplete": true,
+        "blockedDependenciesForbidden": true,
+        "providerDependencyModesAllowed": [
+          "SELF-FIRST",
+          "HYBRID"
+        ]
+      },
+      "providerEvidenceRequirements": {
+        "requiredForHybrid": true,
+        "requiredForProviderRequired": true,
+        "requiredFields": [
+          "providerId",
+          "contractVersion",
+          "provenance",
+          "freshness",
+          "usageRights",
+          "statementOfWork"
+        ],
+        "freshnessSlaHours": 72
+      },
+      "usageRightsRequirements": {
+        "knownRightsRequired": true,
+        "allowedStates": [
+          "SELF_OWNED",
+          "INTERNAL_ONLY",
+          "CUSTOM_DELIVERY_RIGHTS"
+        ],
+        "redistributionRequired": false
+      },
+      "packageRequirements": {
+        "stableIdRequired": true,
+        "schemaVersionRequired": true,
+        "contractFingerprintRequired": true,
+        "artifactManifestRequired": true
+      },
+      "entitlementRequirements": {
+        "requiredEntitlementClasses": [
+          "CUSTOM_CONTRACT",
+          "INTERNAL_ONLY"
+        ],
+        "boundedAudienceRequired": true,
+        "liveServingForbidden": true
+      },
+      "customerClassRequirements": {
+        "allowedCustomerClasses": [
+          "CUSTOM_INTELLIGENCE_CLIENT",
+          "INTERNAL_SYSTEM"
+        ],
+        "defaultCustomerClass": "CUSTOM_INTELLIGENCE_CLIENT",
+        "externalContractRequired": true
+      },
+      "canaryAllowed": false,
+      "productionAllowed": false,
+      "deliveryMutationAllowed": false,
+      "billingMutationAllowed": false,
+      "procurementMutationAllowed": false,
+      "providerContactAllowed": false,
+      "externalPublicationAllowed": false,
+      "credentialConsumptionAllowed": false,
+      "evidenceRequired": true,
+      "rollbackRequired": true,
+      "failClosed": true,
+      "nonInteractive": true,
+      "policyVersion": "a23-commercial-delivery-policy.v1"
+    }
+  }
+}
