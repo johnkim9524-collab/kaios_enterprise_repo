@@ -1,0 +1,390 @@
+{
+  "stage": "A26",
+  "policyVersion": "a26-recovery-policy.v1",
+  "description": "Canonical Autonomous Recovery, Self-Healing & Operational Resilience policy governing all A26 bounded recovery operations for the KIDULTS Global Autonomous Intelligence Platform.",
+  "recoveryScope": "bounded-autonomous-recovery-and-resilience",
+  "defaultDecision": "FAIL_CLOSED",
+  "upstreamContracts": ["A15", "A16", "A17", "A18", "A19", "A20", "A21", "A22", "A23", "A24", "A25"],
+  "recoveryStateMachine": {
+    "states": [
+      "MONITORING",
+      "FAILURE_DETECTED",
+      "CLASSIFYING",
+      "ISOLATING",
+      "RECOVERY_POLICY_CHECK",
+      "RECOVERY_READY",
+      "RECOVERING",
+      "VERIFYING_RECOVERY",
+      "RECOVERED",
+      "DEGRADED",
+      "ROLLBACK_REQUIRED",
+      "ROLLING_BACK",
+      "REENTRY_CHECK",
+      "REENTRY_ALLOWED",
+      "HALTED",
+      "FAILED_CLOSED"
+    ],
+    "transitions": {
+      "MONITORING": ["FAILURE_DETECTED", "HALTED", "FAILED_CLOSED"],
+      "FAILURE_DETECTED": ["CLASSIFYING", "FAILED_CLOSED"],
+      "CLASSIFYING": ["ISOLATING", "HALTED", "FAILED_CLOSED"],
+      "ISOLATING": ["RECOVERY_POLICY_CHECK", "HALTED", "FAILED_CLOSED"],
+      "RECOVERY_POLICY_CHECK": ["RECOVERY_READY", "DEGRADED", "ROLLBACK_REQUIRED", "HALTED", "FAILED_CLOSED"],
+      "RECOVERY_READY": ["RECOVERING", "HALTED", "FAILED_CLOSED"],
+      "RECOVERING": ["VERIFYING_RECOVERY", "ROLLBACK_REQUIRED", "FAILED_CLOSED"],
+      "VERIFYING_RECOVERY": ["RECOVERED", "ROLLBACK_REQUIRED", "HALTED", "FAILED_CLOSED"],
+      "RECOVERED": ["REENTRY_CHECK", "MONITORING"],
+      "DEGRADED": ["MONITORING", "HALTED", "FAILED_CLOSED"],
+      "ROLLBACK_REQUIRED": ["ROLLING_BACK", "HALTED", "FAILED_CLOSED"],
+      "ROLLING_BACK": ["REENTRY_CHECK", "HALTED", "FAILED_CLOSED"],
+      "REENTRY_CHECK": ["REENTRY_ALLOWED", "DEGRADED", "HALTED", "FAILED_CLOSED"],
+      "REENTRY_ALLOWED": ["MONITORING"],
+      "HALTED": ["MONITORING"],
+      "FAILED_CLOSED": []
+    },
+    "transitionInvariants": {
+      "noDirectFailureDetectedToRecovered": true,
+      "noRecoveryWithoutClassification": true,
+      "noRecoveryWithoutPolicyEvaluation": true,
+      "noReentryWithoutRecoveryVerification": true,
+      "unknownOrContradictoryStateMustFailClosed": true,
+      "failedVerificationMustRollbackOrHalt": true,
+      "failedRollbackMustHaltOrFailClosed": true,
+      "unsupportedTransitionMustFailClosed": true
+    }
+  },
+  "failureDomains": [
+    "workload",
+    "product",
+    "dimension",
+    "provider",
+    "channel",
+    "publication",
+    "commercial-delivery",
+    "database",
+    "cache",
+    "queue",
+    "network",
+    "runtime",
+    "policy",
+    "authentication",
+    "rate-limit",
+    "evidence",
+    "dependency",
+    "unknown"
+  ],
+  "domainIsolationRules": {
+    "oneProviderFailureMustNotStopUnrelatedSelfFirstWorkloads": true,
+    "oneStalProductMustNotHaltAllHealthyProducts": true,
+    "onePublicationChannelFailureMustNotBypassA22": true,
+    "oneCommercialDeliveryFailureMustNotBypassA23": true,
+    "providerRequiredDependencyFailureRemainsBlocked": true,
+    "policyFailureMayHaltAffectedScopeImmediately": true,
+    "unknownDomainMustFailClosed": true,
+    "isolateSmallestSafeDomainWhereverpossible": true
+  },
+  "failureClassification": {
+    "classes": [
+      "TRANSIENT",
+      "DEPENDENCY",
+      "AUTH",
+      "RATE_LIMIT",
+      "NETWORK",
+      "TIMEOUT",
+      "DATA_QUALITY",
+      "STALE_DATA",
+      "POLICY",
+      "ACTIVATION",
+      "EXECUTION",
+      "VERIFICATION",
+      "PUBLICATION",
+      "COMMERCIAL_DELIVERY",
+      "DATABASE",
+      "QUEUE",
+      "RESOURCE_EXHAUSTION",
+      "PARTIAL_MUTATION",
+      "ROLLBACK",
+      "EVIDENCE",
+      "UNKNOWN"
+    ],
+    "severities": ["INFO", "WARN", "ERROR", "CRITICAL"],
+    "unknownSeverityOrClassificationMustFailClosedForMutation": true,
+    "requiredFailureRecordFields": [
+      "failureId",
+      "cycleId",
+      "detectedAt",
+      "domain",
+      "classification",
+      "severity",
+      "scope",
+      "source",
+      "retryable",
+      "rollbackRequired",
+      "policyDecision",
+      "evidenceRef"
+    ]
+  },
+  "recoveryActions": [
+    "NO_ACTION",
+    "RETRY",
+    "BACKOFF",
+    "RESTART_SCOPE",
+    "RESET_CONNECTION",
+    "RELOAD_STATE",
+    "REPLAY_SAFE_OPERATION",
+    "QUARANTINE",
+    "DEGRADE",
+    "ISOLATE_PROVIDER",
+    "ISOLATE_PRODUCT",
+    "CIRCUIT_BREAK",
+    "ROLLBACK",
+    "HALT_SCOPE",
+    "HALT_RUNTIME",
+    "FAIL_CLOSED"
+  ],
+  "recoveryPolicyConstraints": {
+    "noActionMayExpandMutationScope": true,
+    "noRecoveryActionMayBypassA15ThroughA25Controls": true,
+    "policyDecisionConsiders": [
+      "failureClassification",
+      "severity",
+      "affectedScope",
+      "retryBudget",
+      "recoveryBudget",
+      "rollbackAvailability",
+      "providerDependency",
+      "a24ActivationEligibility",
+      "a25RuntimeHealth",
+      "publicationControls",
+      "commercialControls",
+      "priorFailureHistory",
+      "circuitBreakerState"
+    ]
+  },
+  "recoveryBudgets": {
+    "maxRecoveryAttemptsPerCycle": 5,
+    "maxRecoveryAttemptsPerFailure": 3,
+    "maxRecoveryDurationMs": 120000,
+    "maxRollbackAttempts": 2,
+    "maxRestartAttempts": 2,
+    "maxProviderReconnectAttempts": 3,
+    "maxReplayAttempts": 2,
+    "maxDegradedCycles": 5,
+    "maxConsecutiveFailures": 5,
+    "budgetExceededMustHaltScopeOrFailClosed": true,
+    "noUnlimitedRecoveryLoops": true
+  },
+  "retryPolicy": {
+    "backoffStrategy": "exponential-or-policy-defined",
+    "jitterSupported": true,
+    "maxDelayMs": 120000,
+    "deterministicAttemptCounting": true,
+    "noRetryAfterPermanentPolicyDenial": true,
+    "noRetryAfterInvalidCredentialsUnlessStateChanges": true,
+    "noRetryThatBypassesPreflight": true,
+    "noRetryThatBypassesA24Activation": true,
+    "noRetryThatBypassesDependencyRules": true,
+    "requiredRetryFields": ["attempt", "reason", "delayMs", "policyDecision", "evidenceRef"]
+  },
+  "circuitBreaker": {
+    "states": ["CLOSED", "OPEN", "HALF_OPEN"],
+    "inputs": [
+      "consecutiveFailures",
+      "rollingErrorRate",
+      "providerFailures",
+      "timeoutRate",
+      "authFailures",
+      "rateLimitPressure",
+      "verificationFailures"
+    ],
+    "behavior": {
+      "CLOSED": "normal-bounded-operations",
+      "OPEN": "affected-dependency-scope-blocked",
+      "HALF_OPEN": "limited-probe-operation-only"
+    },
+    "successfulProbeTransition": "CLOSED",
+    "failedProbeTransition": "OPEN",
+    "decisionsMustBeEvidenceProducingAndPolicyGoverned": true,
+    "mustNotGloballyHaltUnrelatedWorkloadsUnlessRequiredByDependencyPropagation": true,
+    "thresholds": {
+      "consecutiveFailuresForOpen": 5,
+      "errorRateThresholdPct": 50,
+      "halfOpenProbeCount": 1,
+      "windowSizeSeconds": 300
+    }
+  },
+  "selfHealing": {
+    "permitted": [
+      "recreate-in-memory-state",
+      "reload-configuration",
+      "refresh-non-secret-metadata",
+      "reset-bounded-worker-state",
+      "reopen-database-connection",
+      "restart-isolated-internal-processing-scope",
+      "replay-idempotent-internal-work",
+      "rebuild-derived-cache",
+      "resume-from-durable-checkpoint"
+    ],
+    "prohibited": [
+      "silently-change-provider-credentials",
+      "create-new-paid-provider-subscriptions",
+      "modify-billing",
+      "bypass-provider-limits",
+      "create-unsupported-infrastructure",
+      "modify-security-policy",
+      "modify-production-activation-rules",
+      "mutate-external-systems-beyond-approved-a25-scope"
+    ]
+  },
+  "checkpoint": {
+    "requiredFields": [
+      "checkpointId",
+      "cycleId",
+      "workloadId",
+      "product",
+      "runtimeState",
+      "lastVerifiedOperation",
+      "processedCount",
+      "mutationCount",
+      "evidenceRef",
+      "createdAt"
+    ],
+    "resumeConditions": [
+      "checkpointIsValid",
+      "provenanceIsValid",
+      "policyVersionCompatible",
+      "a24ActivationRemainsValid",
+      "preflightPasses",
+      "noConflictingNewerStateExists"
+    ],
+    "unknownIntegrityMustFailClosed": true
+  },
+  "partialMutation": {
+    "recoverySequence": [
+      "detect-partial-mutation",
+      "identify-affected-scope",
+      "verify-persisted-state",
+      "compare-expected-vs-observed",
+      "decide-complete-safely-or-rollback-or-quarantine-or-halt"
+    ],
+    "neverAssumePartialSuccess": true,
+    "requiredEvidenceFields": ["expected", "observed", "delta", "decision", "rollbackRequired"]
+  },
+  "rollbackHardening": {
+    "phases": [
+      "ROLLBACK_PREFLIGHT",
+      "ROLLBACK_EXECUTION",
+      "ROLLBACK_VERIFICATION",
+      "ROLLBACK_EVIDENCE"
+    ],
+    "outcomes": [
+      "NOT_REQUIRED",
+      "AVAILABLE",
+      "STARTED",
+      "SUCCEEDED",
+      "PARTIAL",
+      "FAILED",
+      "UNKNOWN"
+    ],
+    "outcomeRules": {
+      "PARTIAL": "no-production-reentry",
+      "FAILED": "halt-affected-scope",
+      "UNKNOWN": "fail-closed"
+    },
+    "idempotent": true,
+    "bounded": true
+  },
+  "degradedOperation": {
+    "isolateAffectedScope": true,
+    "continueOnlyIndependentEligibleWorkloads": true,
+    "preserveA19DependencyPropagation": true,
+    "preserveA22PublicationRestrictions": true,
+    "preserveA23DeliveryRestrictions": true,
+    "preserveA24ActivationRestrictions": true,
+    "trackingFields": [
+      "degradedSince",
+      "affectedScopes",
+      "degradedReason",
+      "remainingHealthyScopes",
+      "maxDegradedCycles"
+    ],
+    "exceededBudgetMustHaltOrFailClosed": true
+  },
+  "reentry": {
+    "requiredChecks": [
+      "policyValid",
+      "preflightPass",
+      "a24ActivationStillValid",
+      "a25RuntimeHealthAcceptable",
+      "failureCleared",
+      "circuitBreakerPermits",
+      "verificationPass",
+      "rollbackStateClean",
+      "evidenceComplete",
+      "dependencyGraphHealthy"
+    ],
+    "decisions": ["ALLOW", "DEGRADED_ALLOW", "DENY", "HALT"],
+    "noAutomaticFullReentryAfterRecoveryWithoutGate": true
+  },
+  "resilienceHealth": {
+    "dimensions": [
+      "recovery_readiness",
+      "rollback_readiness",
+      "circuit_breaker_health",
+      "checkpoint_health",
+      "dependency_isolation_health",
+      "degraded_mode_pressure",
+      "consecutive_failure_pressure",
+      "evidence_integrity",
+      "recovery_latency",
+      "recovery_success_rate"
+    ],
+    "classes": ["RESILIENT", "DEGRADED", "UNSTABLE", "HALTED", "UNKNOWN"],
+    "unknownMustBlockMutation": true
+  },
+  "observability": {
+    "requiredMetrics": [
+      "failure_detected_count",
+      "failure_classification_count",
+      "recovery_attempt_count",
+      "recovery_success_count",
+      "recovery_failure_count",
+      "rollback_attempt_count",
+      "rollback_success_count",
+      "rollback_failure_count",
+      "circuit_open_count",
+      "circuit_half_open_count",
+      "circuit_close_count",
+      "checkpoint_created_count",
+      "checkpoint_resume_count",
+      "degraded_cycle_count",
+      "scope_halt_count",
+      "runtime_halt_count",
+      "partial_mutation_count",
+      "reentry_allow_count",
+      "reentry_deny_count",
+      "mean_recovery_time_ms",
+      "max_recovery_time_ms"
+    ],
+    "noSecretValuesInMetricsOrLogs": true
+  },
+  "evidenceModel": {
+    "immutable": true,
+    "machineReadable": true,
+    "canonicalPath": "services/kidults-autonomous-intelligence/reports/recovery/",
+    "filePrefix": "a26-recovery-",
+    "everyRecoveryAttemptMustProduceEvidence": true
+  },
+  "invariants": {
+    "policyGovernedRecovery": true,
+    "boundedRecovery": true,
+    "failClosedByDefault": true,
+    "observableRecovery": true,
+    "auditableRecovery": true,
+    "idempotentWheresPossible": true,
+    "nonInteractiveByDefault": true,
+    "noUncontrolledAutoHealing": true,
+    "noSilentOverrideOfSafetyControls": true,
+    "upstreamA15ThroughA25ControlsPreserved": true
+  }
+}
