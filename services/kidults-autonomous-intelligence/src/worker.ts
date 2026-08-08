@@ -2,6 +2,9 @@ import baseWorker, { type Env as BaseEnv } from './index';
 import { collectConfiguredAdapters } from './orchestrator';
 import { enrichPortalPayload, persistEnrichedSnapshot } from './publication';
 import { handleControlTowerRequest, isControlTowerRoute } from './control-tower-ui/executive-control-tower.js';
+import { handleGatewayRequest, isGatewayRoute } from './control-tower-gateway/control-tower-gateway.js';
+import { buildControlTowerFixture } from './control-tower-ui/control-tower-fixtures.js';
+import type { LiveAdapterInputs } from './control-tower-gateway/control-tower-live-adapter.js';
 
 export interface Env extends BaseEnv {
   SOURCE_ADAPTERS_JSON?: string;
@@ -138,6 +141,22 @@ export default {
     const url = new URL(request.url);
     if (isControlTowerRoute(url.pathname)) {
       return handleControlTowerRequest(request);
+    }
+    if (isGatewayRoute(url.pathname)) {
+      const requestedMode = String(url.searchParams.get('mode') || 'evidence').toLowerCase();
+      let dataMode: LiveAdapterInputs['dataMode'] = 'EVIDENCE';
+      if (requestedMode === 'demo') dataMode = 'DEMO';
+      else if (requestedMode === 'live') dataMode = 'LIVE';
+      const scenario = url.searchParams.get('scenario') || 'healthy';
+      const fixture = buildControlTowerFixture(scenario as import('./control-tower-ui/control-tower-fixtures.js').ControlTowerScenario);
+      const inputs: LiveAdapterInputs = {
+        a28Snapshot: fixture.a28 as Record<string, unknown>,
+        a29Evidence: fixture.a29 as Record<string, unknown>,
+        dataMode,
+        policyVersion: 'a31-gateway-policy.v1',
+        nowIso: new Date().toISOString(),
+      };
+      return handleGatewayRequest(request, inputs);
     }
     if (request.method === 'POST' && url.pathname === '/internal/collect') {
       const auth = env.INGEST_TOKEN ? request.headers.get('authorization') === `Bearer ${env.INGEST_TOKEN}` : env.KIDULTS_ENV !== 'production';

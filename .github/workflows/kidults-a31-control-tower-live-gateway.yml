@@ -1,0 +1,70 @@
+name: Kidults A31 Executive Control Tower Live Integration & Governed Action Gateway
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'services/kidults-autonomous-intelligence/src/control-tower-gateway/**'
+      - 'services/kidults-autonomous-intelligence/src/worker.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/a31-control-tower-governed-gateway.mjs'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - '.github/workflows/kidults-a31-control-tower-live-gateway.yml'
+
+concurrency:
+  group: kidults-a31-control-tower-live-gateway
+  cancel-in-progress: false
+
+jobs:
+  a31-control-tower-live-gateway:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm install
+
+      - name: Verify A31 package scripts exist
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json','utf-8'));
+            const required = ['a31:gateway', 'a31:certify', 'a31:finalize'];
+            const missing = required.filter(s => !pkg.scripts[s]);
+            if (missing.length) { console.error('MISSING SCRIPTS:', missing.join(', ')); process.exit(1); }
+            console.log('A31 scripts present:', required.join(', '));
+          "
+
+      - name: Typecheck
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+
+      - name: Run A31 gateway certification
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a31:gateway
+
+      - name: Run A31 certify
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a31:certify
+
+      - name: List package scripts
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run
+
+      - name: Upload A31 certification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: a31-control-tower-gateway-evidence
+          path: services/kidults-autonomous-intelligence/reports/control-tower-gateway/
+          retention-days: 30
+          if-no-files-found: error
