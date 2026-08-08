@@ -86,14 +86,24 @@ export async function enrichPortalPayload(env: DbEnv, runId: string, payload: Po
   }));
 
   payload.correlation = { labels, values };
+
+  const ready = payload.trend.length >= 2
+    && labels.length >= 2
+    && orderedRunIds.length >= 3
+    && series.length === labels.length
+    && series.every((item)=>item.length >= 3);
+
+  payload.status = ready ? 'production' : 'staging';
+  payload.label = ready ? 'Production intelligence' : 'Staging intelligence';
   payload.governance = {
     ...(payload.governance || {}),
+    productionEligible: Boolean(payload.governance?.productionEligible) && ready,
     trendObservationCount: payload.trend.length,
     correlationObservationWindow: orderedRunIds.length,
     publicationContractVersion: 'portal-v1'
   };
 
-  return { payload, ready: payload.trend.length >= 2 && labels.length >= 2 && orderedRunIds.length >= 3 };
+  return { payload, ready };
 }
 
 export async function persistEnrichedSnapshot(env: DbEnv, runId: string, payload: PortalPayload) {
