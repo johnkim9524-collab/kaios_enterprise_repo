@@ -34,5 +34,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Assert remote canary is explicit/manual-runtime only
         run: |
-          grep -q 'wrangler.*d1.*execute.*DB.*--remote' services/kidults-autonomous-intelligence/scripts/a14-remote-capacity-canary.mjs
+          SCRIPT='services/kidults-autonomous-intelligence/scripts/a14-remote-capacity-canary.mjs'
+          grep -q "'wrangler'" "$SCRIPT"
+          grep -q "'d1'" "$SCRIPT"
+          grep -q "'execute'" "$SCRIPT"
+          grep -q "'DB'" "$SCRIPT"
+          grep -q "'--remote'" "$SCRIPT"
           echo 'Remote D1 execution requires authenticated operator environment; PR CI does not mutate remote D1.'
