@@ -1,0 +1,31 @@
+name: kidults-a18-autonomous-data-scale
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-a18-autonomous-data-scale.yml'
+  workflow_dispatch:
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/kidults-autonomous-intelligence
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm run a18:100k
+      - run: npm run a18:1m
+      - name: Upload A18 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a18-data-acquisition-evidence
+          path: services/kidults-autonomous-intelligence/reports/data-acquisition/*.json
+          if-no-files-found: warn
