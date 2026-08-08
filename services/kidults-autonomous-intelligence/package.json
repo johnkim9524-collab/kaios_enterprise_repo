@@ -1,7 +1,7 @@
 {
   "name": "@kaios/kidults-autonomous-intelligence",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local",
@@ -33,7 +33,10 @@
     "a14:finalize": "npm run a14:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A14",
     "a15:policy": "node scripts/a15-policy-certify.mjs",
     "a15:certify": "npm run typecheck && npm run a15:policy",
-    "a15:finalize": "npm run a15:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A15"
+    "a15:finalize": "npm run a15:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A15",
+    "a16:execution": "node scripts/a16-execution-control-certify.mjs",
+    "a16:certify": "npm run typecheck && npm run a15:policy && npm run a16:execution",
+    "a16:finalize": "npm run a16:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A16"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",

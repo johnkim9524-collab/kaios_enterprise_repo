@@ -1,0 +1,29 @@
+name: KIDULTS A16 Execution Control Certification
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-a16-execution-control.yml'
+  workflow_dispatch:
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/kidults-autonomous-intelligence
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: npm run a16:certify
+      - name: Upload A16 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-a16-execution-control-evidence
+          path: services/kidults-autonomous-intelligence/reports/execution-control/*.json
+          if-no-files-found: warn
