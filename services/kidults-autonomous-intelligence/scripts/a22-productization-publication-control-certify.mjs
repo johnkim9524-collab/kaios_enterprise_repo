@@ -527,8 +527,12 @@ function evaluateProductChannel(productName, channel, overrides = {}) {
   const channelPolicy = policy.channels[channel] ?? null;
   const a20 = overrides.a20 ?? deriveA20Evidence(productName);
   const a21 = overrides.a21 ?? deriveA21PipelineEvidence(productName);
-  const stableId = overrides.stableId ?? (product ? stableIdForProduct(product) : null);
-  const usageRightsState = overrides.usageRightsState ?? (product ? usageRightsStateForProduct(product) : 'UNKNOWN');
+  const stableId = Object.prototype.hasOwnProperty.call(overrides, 'stableId')
+    ? overrides.stableId
+    : (product ? stableIdForProduct(product) : null);
+  const usageRightsState = Object.prototype.hasOwnProperty.call(overrides, 'usageRightsState')
+    ? overrides.usageRightsState
+    : (product ? usageRightsStateForProduct(product) : 'UNKNOWN');
   const rollbackPlanSeed = overrides.rollbackPlanExists ?? true;
   const channelAllowedForCommercialLayer = Boolean(product && channelPolicy && channelPolicy.allowedCommercialLayers.includes(product.commercialLayer) && a20.eligibleChannels.includes(channel));
   const policyResult = overrides.policyResult ?? buildPolicyResult(product, channel, channelPolicy, channelAllowedForCommercialLayer);
@@ -740,11 +744,21 @@ function buildNegativeTests(decisions) {
     },
     {
       name: 'missing provenance is blocked',
-      result: evaluateProductChannel('price-index', 'ENTERPRISE_API').decision === 'PROVENANCE_BLOCKED',
+      result: evaluateProductChannel('canon-strength', 'CUSTOM_INTELLIGENCE', {
+        a20: {
+          ...deriveA20Evidence('canon-strength'),
+          provenanceCoverage: 0.4,
+        },
+      }).decision === 'PROVENANCE_BLOCKED',
     },
     {
       name: 'stale product is blocked',
-      result: evaluateProductChannel('price-index', 'PRO_SUBSCRIPTION').decision === 'FRESHNESS_BLOCKED' || deriveA20Evidence('price-index').freshness < THRESHOLDS.freshness,
+      result: evaluateProductChannel('canon-strength', 'PRO_SUBSCRIPTION', {
+        a20: {
+          ...deriveA20Evidence('canon-strength'),
+          freshness: 0.4,
+        },
+      }).decision === 'FRESHNESS_BLOCKED',
     },
     {
       name: 'low-quality product is blocked',
@@ -764,7 +778,7 @@ function buildNegativeTests(decisions) {
     },
     {
       name: 'usage-rights unknown blocks DATA_LICENSE',
-      result: evaluateProductChannel('provenance-confidence', 'DATA_LICENSE').decision === 'POLICY_BLOCKED',
+      result: evaluateProductChannel('entity-master', 'DATA_LICENSE', { usageRightsState: 'UNKNOWN' }).decision === 'POLICY_BLOCKED',
     },
     {
       name: 'monetization-ineligible product blocks PRO_SUBSCRIPTION',
@@ -957,14 +971,14 @@ function buildCertificationGates(decisions, negativeTests, positiveTests) {
     a21PipelineEvidenceConsumed: decisions.every((decision) => typeof decision.pipelineStatus === 'string' && decision.evidenceRefs.some((ref) => ref.startsWith('A21:'))),
     policyBeforePromotion: decisions.every((decision) => decision.controlPlaneLifecycle.indexOf('policy') < decision.controlPlaneLifecycle.indexOf('promotion-decision')),
     preflightBeforePromotion: decisions.every((decision) => decision.controlPlaneLifecycle.indexOf('publication-preflight') < decision.controlPlaneLifecycle.indexOf('promotion-decision')),
-    provenanceGateOperational: decisions.some((decision) => decision.decision === 'PROVENANCE_BLOCKED') && decisions.every((decision) => decision.productReadiness.provenanceCoverage >= 0),
-    freshnessGateOperational: decisions.some((decision) => decision.decision === 'FRESHNESS_BLOCKED') || productUniverse.some((product) => product.scorecard.freshness < THRESHOLDS.freshness),
+    provenanceGateOperational: negativeTests.find((test) => test.name === 'missing provenance is blocked')?.result === true,
+    freshnessGateOperational: negativeTests.find((test) => test.name === 'stale product is blocked')?.result === true,
     qualityGateOperational: decisions.some((decision) => decision.decision === 'QUALITY_BLOCKED' || decision.decision === 'DEPENDENCY_BLOCKED'),
     dependencyPropagationOperational: decisions.some((decision) => decision.blockingReasons.some((reason) => reason.startsWith('blocked-upstream:'))),
     providerBoundaryPreserved: decisions
-      .filter((decision) => productIndex.get(decision.product)?.dataStrategy === 'PROVIDER-REQUIRED' && ['CUSTOM_INTELLIGENCE', 'ENTERPRISE_API', 'DATA_LICENSE'].includes(decision.channel))
-      .every((decision) => decision.decision === 'DEPENDENCY_BLOCKED' || decision.decision === 'POLICY_BLOCKED'),
-    usageRightsGateOperational: decisions.some((decision) => decision.channel === 'DATA_LICENSE' && decision.blockingReasons.includes('usage-rights-unknown')),
+      .filter((decision) => productIndex.get(decision.product)?.dataStrategy === 'PROVIDER-REQUIRED')
+      .every((decision) => !['INTERNAL_ALLOWED', 'CANARY_ELIGIBLE', 'PRODUCTION_CANDIDATE'].includes(decision.decision)),
+    usageRightsGateOperational: negativeTests.find((test) => test.name === 'usage-rights unknown blocks DATA_LICENSE')?.result === true,
     stableIdsPreserved: decisions.every((decision) => {
       const product = productIndex.get(decision.product);
       return product ? decision.stableId === stableIdForProduct(product) : true;
