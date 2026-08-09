@@ -1,0 +1,2836 @@
+{
+  "stage": "A20",
+  "mode": "intelligence-product-readiness-monetization-gate",
+  "status": "PASS",
+  "lifecycle": [
+    "data",
+    "normalize",
+    "provenance",
+    "quality",
+    "intelligence derivation",
+    "product",
+    "readiness gate",
+    "monetization eligibility",
+    "publication eligibility",
+    "evidence"
+  ],
+  "policyLifecycle": [
+    "Policy",
+    "Preflight",
+    "Plan",
+    "Authorize",
+    "Execute",
+    "Verify",
+    "Evidence",
+    "Finalize"
+  ],
+  "thresholds": {
+    "provenance": 0.8,
+    "quality": 0.75,
+    "freshness": 0.7,
+    "canaryPublication": 0.68,
+    "internalMonetization": 0.72
+  },
+  "summary": {
+    "products": 18,
+    "dimensions": 9,
+    "readinessCounts": {
+      "INTERNAL_READY": 8,
+      "HYBRID_READY": 4,
+      "DEPENDENCY_BLOCKED": 6
+    },
+    "monetizationCounts": {
+      "MONETIZABLE_INTERNAL": 8,
+      "MONETIZABLE_AFTER_PROVIDER": 4,
+      "BLOCKED": 6
+    },
+    "publicationCounts": {
+      "CANARY_ELIGIBLE": 8,
+      "INTERNAL_ONLY": 4,
+      "PRODUCTION_BLOCKED": 6
+    },
+    "channelEligibility": {
+      "ENTERPRISE_API": 4,
+      "DATA_LICENSE": 1,
+      "CUSTOM_INTELLIGENCE": 8,
+      "PUBLIC_EDITORIAL": 8,
+      "PRO_SUBSCRIPTION": 7
+    }
+  },
+  "a19Evidence": {
+    "sourceStage": "A19",
+    "classifications": [
+      {
+        "dimension": "identity",
+        "dataStrategy": "SELF-FIRST",
+        "products": [
+          "entity-master",
+          "canon-strength"
+        ]
+      },
+      {
+        "dimension": "market-observation",
+        "dataStrategy": "SELF-FIRST",
+        "products": [
+          "market-momentum",
+          "collector-sentiment"
+        ]
+      },
+      {
+        "dimension": "transaction-pricing",
+        "dataStrategy": "HYBRID",
+        "products": [
+          "price-index",
+          "comparables"
+        ]
+      },
+      {
+        "dimension": "availability-inventory",
+        "dataStrategy": "HYBRID",
+        "products": [
+          "scarcity-signal",
+          "availability-monitor"
+        ]
+      },
+      {
+        "dimension": "culture-attention",
+        "dataStrategy": "SELF-FIRST",
+        "products": [
+          "culture-velocity",
+          "trend-radar"
+        ]
+      },
+      {
+        "dimension": "auction-private-sales",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "products": [
+          "auction-intelligence",
+          "liquidity-signal"
+        ]
+      },
+      {
+        "dimension": "ownership-provenance",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "products": [
+          "provenance-confidence",
+          "asset-history"
+        ]
+      },
+      {
+        "dimension": "authentication-condition",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "products": [
+          "condition-risk",
+          "auth-confidence"
+        ]
+      },
+      {
+        "dimension": "macro-category",
+        "dataStrategy": "SELF-FIRST",
+        "products": [
+          "category-outlook",
+          "kidult-100"
+        ]
+      }
+    ],
+    "productMap": [
+      {
+        "product": "entity-master",
+        "dimension": "identity",
+        "dataStrategy": "SELF-FIRST",
+        "readiness": "INTERNAL-CANDIDATE"
+      },
+      {
+        "product": "canon-strength",
+        "dimension": "identity",
+        "dataStrategy": "SELF-FIRST",
+        "readiness": "INTERNAL-CANDIDATE"
+      },
+      {
+        "product": "market-momentum",
+        "dimension": "market-observation",
+        "dataStrategy": "SELF-FIRST",
+        "readiness": "INTERNAL-CANDIDATE"
+      },
+      {
+        "product": "collector-sentiment",
+        "dimension": "market-observation",
+        "dataStrategy": "SELF-FIRST",
+        "readiness": "INTERNAL-CANDIDATE"
+      },
+      {
+        "product": "price-index",
+        "dimension": "transaction-pricing",
+        "dataStrategy": "HYBRID",
+        "readiness": "HYBRID-CANDIDATE"
+      },
+      {
+        "product": "comparables",
+        "dimension": "transaction-pricing",
+        "dataStrategy": "HYBRID",
+        "readiness": "HYBRID-CANDIDATE"
+      },
+      {
+        "product": "scarcity-signal",
+        "dimension": "availability-inventory",
+        "dataStrategy": "HYBRID",
+        "readiness": "HYBRID-CANDIDATE"
+      },
+      {
+        "product": "availability-monitor",
+        "dimension": "availability-inventory",
+        "dataStrategy": "HYBRID",
+        "readiness": "HYBRID-CANDIDATE"
+      },
+      {
+        "product": "culture-velocity",
+        "dimension": "culture-attention",
+        "dataStrategy": "SELF-FIRST",
+        "readiness": "INTERNAL-CANDIDATE"
+      },
+      {
+        "product": "trend-radar",
+        "dimension": "culture-attention",
+        "dataStrategy": "SELF-FIRST",
+        "readiness": "INTERNAL-CANDIDATE"
+      },
+      {
+        "product": "auction-intelligence",
+        "dimension": "auction-private-sales",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "readiness": "DEPENDENCY-BLOCKED"
+      },
+      {
+        "product": "liquidity-signal",
+        "dimension": "auction-private-sales",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "readiness": "DEPENDENCY-BLOCKED"
+      },
+      {
+        "product": "provenance-confidence",
+        "dimension": "ownership-provenance",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "readiness": "DEPENDENCY-BLOCKED"
+      },
+      {
+        "product": "asset-history",
+        "dimension": "ownership-provenance",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "readiness": "DEPENDENCY-BLOCKED"
+      },
+      {
+        "product": "condition-risk",
+        "dimension": "authentication-condition",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "readiness": "DEPENDENCY-BLOCKED"
+      },
+      {
+        "product": "auth-confidence",
+        "dimension": "authentication-condition",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "readiness": "DEPENDENCY-BLOCKED"
+      },
+      {
+        "product": "category-outlook",
+        "dimension": "macro-category",
+        "dataStrategy": "SELF-FIRST",
+        "readiness": "INTERNAL-CANDIDATE"
+      },
+      {
+        "product": "kidult-100",
+        "dimension": "macro-category",
+        "dataStrategy": "SELF-FIRST",
+        "readiness": "INTERNAL-CANDIDATE"
+      }
+    ],
+    "providerRequirements": [
+      {
+        "dimension": "transaction-pricing",
+        "need": "HYBRID",
+        "requiredFields": [
+          "sale_price",
+          "currency",
+          "sold_at",
+          "venue",
+          "item_identity"
+        ],
+        "contract": [
+          "provenance",
+          "freshness",
+          "stable-id",
+          "usage-rights",
+          "incremental-delivery"
+        ]
+      },
+      {
+        "dimension": "availability-inventory",
+        "need": "HYBRID",
+        "requiredFields": [
+          "source_specific_fields"
+        ],
+        "contract": [
+          "provenance",
+          "freshness",
+          "stable-id",
+          "usage-rights",
+          "incremental-delivery"
+        ]
+      },
+      {
+        "dimension": "auction-private-sales",
+        "need": "PROVIDER-REQUIRED",
+        "requiredFields": [
+          "estimate",
+          "hammer_price",
+          "sale_status",
+          "sale_date",
+          "venue"
+        ],
+        "contract": [
+          "provenance",
+          "freshness",
+          "stable-id",
+          "usage-rights",
+          "incremental-delivery"
+        ]
+      },
+      {
+        "dimension": "ownership-provenance",
+        "need": "PROVIDER-REQUIRED",
+        "requiredFields": [
+          "provenance_event",
+          "event_date",
+          "source",
+          "confidence"
+        ],
+        "contract": [
+          "provenance",
+          "freshness",
+          "stable-id",
+          "usage-rights",
+          "incremental-delivery"
+        ]
+      },
+      {
+        "dimension": "authentication-condition",
+        "need": "PROVIDER-REQUIRED",
+        "requiredFields": [
+          "condition_grade",
+          "auth_result",
+          "grader",
+          "observed_at"
+        ],
+        "contract": [
+          "provenance",
+          "freshness",
+          "stable-id",
+          "usage-rights",
+          "incremental-delivery"
+        ]
+      }
+    ]
+  },
+  "commercialLayers": [
+    {
+      "product": "entity-master",
+      "commercialLayer": "CORE_DATA"
+    },
+    {
+      "product": "canon-strength",
+      "commercialLayer": "SIGNAL"
+    },
+    {
+      "product": "market-momentum",
+      "commercialLayer": "SIGNAL"
+    },
+    {
+      "product": "collector-sentiment",
+      "commercialLayer": "SIGNAL"
+    },
+    {
+      "product": "price-index",
+      "commercialLayer": "INDEX"
+    },
+    {
+      "product": "comparables",
+      "commercialLayer": "ANALYTICS"
+    },
+    {
+      "product": "scarcity-signal",
+      "commercialLayer": "SIGNAL"
+    },
+    {
+      "product": "availability-monitor",
+      "commercialLayer": "ANALYTICS"
+    },
+    {
+      "product": "culture-velocity",
+      "commercialLayer": "SIGNAL"
+    },
+    {
+      "product": "trend-radar",
+      "commercialLayer": "ANALYTICS"
+    },
+    {
+      "product": "auction-intelligence",
+      "commercialLayer": "PREMIUM_INTELLIGENCE"
+    },
+    {
+      "product": "liquidity-signal",
+      "commercialLayer": "SIGNAL"
+    },
+    {
+      "product": "provenance-confidence",
+      "commercialLayer": "PREMIUM_INTELLIGENCE"
+    },
+    {
+      "product": "asset-history",
+      "commercialLayer": "PREMIUM_INTELLIGENCE"
+    },
+    {
+      "product": "condition-risk",
+      "commercialLayer": "PREMIUM_INTELLIGENCE"
+    },
+    {
+      "product": "auth-confidence",
+      "commercialLayer": "PREMIUM_INTELLIGENCE"
+    },
+    {
+      "product": "category-outlook",
+      "commercialLayer": "ANALYTICS"
+    },
+    {
+      "product": "kidult-100",
+      "commercialLayer": "INDEX"
+    }
+  ],
+  "products": [
+    {
+      "product": "entity-master",
+      "dimension": "identity",
+      "dataStrategy": "SELF-FIRST",
+      "dependencyClass": "INTERNAL_ONLY",
+      "readinessClass": "INTERNAL_READY",
+      "monetizationClass": "MONETIZABLE_INTERNAL",
+      "publicationClass": "CANARY_ELIGIBLE",
+      "commercialLayer": "CORE_DATA",
+      "dataCoverage": 0.97,
+      "provenanceCoverage": 0.98,
+      "freshness": 0.91,
+      "quality": 0.95,
+      "repeatability": 0.97,
+      "autonomousDerivation": 0.99,
+      "dependencyRisk": 0.03,
+      "publicationReadiness": 0.91,
+      "monetizationReadiness": 0.95,
+      "eligibleChannels": [
+        "ENTERPRISE_API",
+        "DATA_LICENSE",
+        "CUSTOM_INTELLIGENCE",
+        "PUBLIC_EDITORIAL"
+      ],
+      "blockedChannels": [
+        "PRO_SUBSCRIPTION"
+      ],
+      "reason": "Internal evidence, provenance, freshness, and quality thresholds support future monetization channels under governed release.",
+      "blockingReasons": [],
+      "requiredNextActions": [
+        "Maintain evidence, monitor freshness, and limit publication to governed canary/internal use."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "identity",
+          "dataStrategy": "SELF-FIRST"
+        },
+        "providerRequirement": null,
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.749Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [],
+        "upstreamDimensions": [
+          "identity"
+        ],
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "canon-strength",
+          "market-momentum",
+          "price-index",
+          "comparables",
+          "scarcity-signal",
+          "availability-monitor",
+          "culture-velocity",
+          "auction-intelligence",
+          "provenance-confidence",
+          "condition-risk"
+        ]
+      }
+    },
+    {
+      "product": "canon-strength",
+      "dimension": "identity",
+      "dataStrategy": "SELF-FIRST",
+      "dependencyClass": "INTERNAL_ONLY",
+      "readinessClass": "INTERNAL_READY",
+      "monetizationClass": "MONETIZABLE_INTERNAL",
+      "publicationClass": "CANARY_ELIGIBLE",
+      "commercialLayer": "SIGNAL",
+      "dataCoverage": 0.92,
+      "provenanceCoverage": 0.94,
+      "freshness": 0.88,
+      "quality": 0.91,
+      "repeatability": 0.93,
+      "autonomousDerivation": 0.96,
+      "dependencyRisk": 0.08,
+      "publicationReadiness": 0.88,
+      "monetizationReadiness": 0.91,
+      "eligibleChannels": [
+        "PRO_SUBSCRIPTION",
+        "CUSTOM_INTELLIGENCE",
+        "PUBLIC_EDITORIAL"
+      ],
+      "blockedChannels": [
+        "ENTERPRISE_API",
+        "DATA_LICENSE"
+      ],
+      "reason": "Internal evidence, provenance, freshness, and quality thresholds support future monetization channels under governed release.",
+      "blockingReasons": [],
+      "requiredNextActions": [
+        "Maintain evidence, monitor freshness, and limit publication to governed canary/internal use."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "identity",
+          "dataStrategy": "SELF-FIRST"
+        },
+        "providerRequirement": null,
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.749Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "identity"
+        ],
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "kidult-100"
+        ]
+      }
+    },
+    {
+      "product": "market-momentum",
+      "dimension": "market-observation",
+      "dataStrategy": "SELF-FIRST",
+      "dependencyClass": "INTERNAL_ONLY",
+      "readinessClass": "INTERNAL_READY",
+      "monetizationClass": "MONETIZABLE_INTERNAL",
+      "publicationClass": "CANARY_ELIGIBLE",
+      "commercialLayer": "SIGNAL",
+      "dataCoverage": 0.9,
+      "provenanceCoverage": 0.92,
+      "freshness": 0.87,
+      "quality": 0.89,
+      "repeatability": 0.91,
+      "autonomousDerivation": 0.95,
+      "dependencyRisk": 0.1,
+      "publicationReadiness": 0.87,
+      "monetizationReadiness": 0.89,
+      "eligibleChannels": [
+        "PRO_SUBSCRIPTION",
+        "CUSTOM_INTELLIGENCE",
+        "PUBLIC_EDITORIAL"
+      ],
+      "blockedChannels": [
+        "ENTERPRISE_API",
+        "DATA_LICENSE"
+      ],
+      "reason": "Internal evidence, provenance, freshness, and quality thresholds support future monetization channels under governed release.",
+      "blockingReasons": [],
+      "requiredNextActions": [
+        "Maintain evidence, monitor freshness, and limit publication to governed canary/internal use."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "market-observation",
+          "dataStrategy": "SELF-FIRST"
+        },
+        "providerRequirement": null,
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.749Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "market-observation",
+          "identity"
+        ],
+        "internalOnlyDependencies": [
+          "market-observation",
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "collector-sentiment",
+          "category-outlook",
+          "kidult-100"
+        ]
+      }
+    },
+    {
+      "product": "collector-sentiment",
+      "dimension": "market-observation",
+      "dataStrategy": "SELF-FIRST",
+      "dependencyClass": "INTERNAL_ONLY",
+      "readinessClass": "INTERNAL_READY",
+      "monetizationClass": "MONETIZABLE_INTERNAL",
+      "publicationClass": "CANARY_ELIGIBLE",
+      "commercialLayer": "SIGNAL",
+      "dataCoverage": 0.86,
+      "provenanceCoverage": 0.88,
+      "freshness": 0.84,
+      "quality": 0.85,
+      "repeatability": 0.88,
+      "autonomousDerivation": 0.9,
+      "dependencyRisk": 0.14,
+      "publicationReadiness": 0.84,
+      "monetizationReadiness": 0.85,
+      "eligibleChannels": [
+        "PRO_SUBSCRIPTION",
+        "CUSTOM_INTELLIGENCE",
+        "PUBLIC_EDITORIAL"
+      ],
+      "blockedChannels": [
+        "ENTERPRISE_API",
+        "DATA_LICENSE"
+      ],
+      "reason": "Internal evidence, provenance, freshness, and quality thresholds support future monetization channels under governed release.",
+      "blockingReasons": [],
+      "requiredNextActions": [
+        "Maintain evidence, monitor freshness, and limit publication to governed canary/internal use."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "market-observation",
+          "dataStrategy": "SELF-FIRST"
+        },
+        "providerRequirement": null,
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.749Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "market-momentum"
+        ],
+        "upstreamDimensions": [
+          "market-observation"
+        ],
+        "internalOnlyDependencies": [
+          "market-observation"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": []
+      }
+    },
+    {
+      "product": "price-index",
+      "dimension": "transaction-pricing",
+      "dataStrategy": "HYBRID",
+      "dependencyClass": "HYBRID_DEPENDENCY",
+      "readinessClass": "HYBRID_READY",
+      "monetizationClass": "MONETIZABLE_AFTER_PROVIDER",
+      "publicationClass": "INTERNAL_ONLY",
+      "commercialLayer": "INDEX",
+      "dataCoverage": 0.68,
+      "provenanceCoverage": 0.79,
+      "freshness": 0.81,
+      "quality": 0.8,
+      "repeatability": 0.83,
+      "autonomousDerivation": 0.75,
+      "dependencyRisk": 0.32,
+      "publicationReadiness": 0.79,
+      "monetizationReadiness": 0.79,
+      "eligibleChannels": [],
+      "blockedChannels": [
+        "PUBLIC_EDITORIAL",
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "DATA_LICENSE",
+        "CUSTOM_INTELLIGENCE"
+      ],
+      "reason": "Hybrid coverage exists, but provider supplementation is still required before monetization can open.",
+      "blockingReasons": [
+        "provenance-below-threshold"
+      ],
+      "requiredNextActions": [
+        "Acquire governed provider supplementation for the hybrid dimension before commercial release.",
+        "Raise provenance coverage to the A20 monetization threshold."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "transaction-pricing",
+          "dataStrategy": "HYBRID"
+        },
+        "providerRequirement": {
+          "dimension": "transaction-pricing",
+          "need": "HYBRID",
+          "requiredFields": [
+            "sale_price",
+            "currency",
+            "sold_at",
+            "venue",
+            "item_identity"
+          ],
+          "contract": [
+            "provenance",
+            "freshness",
+            "stable-id",
+            "usage-rights",
+            "incremental-delivery"
+          ]
+        },
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.749Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "transaction-pricing",
+          "identity"
+        ],
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [
+          "transaction-pricing"
+        ],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "comparables"
+        ]
+      }
+    },
+    {
+      "product": "comparables",
+      "dimension": "transaction-pricing",
+      "dataStrategy": "HYBRID",
+      "dependencyClass": "HYBRID_DEPENDENCY",
+      "readinessClass": "HYBRID_READY",
+      "monetizationClass": "MONETIZABLE_AFTER_PROVIDER",
+      "publicationClass": "INTERNAL_ONLY",
+      "commercialLayer": "ANALYTICS",
+      "dataCoverage": 0.66,
+      "provenanceCoverage": 0.77,
+      "freshness": 0.78,
+      "quality": 0.79,
+      "repeatability": 0.81,
+      "autonomousDerivation": 0.74,
+      "dependencyRisk": 0.34,
+      "publicationReadiness": 0.77,
+      "monetizationReadiness": 0.77,
+      "eligibleChannels": [],
+      "blockedChannels": [
+        "PUBLIC_EDITORIAL",
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "DATA_LICENSE",
+        "CUSTOM_INTELLIGENCE"
+      ],
+      "reason": "Hybrid coverage exists, but provider supplementation is still required before monetization can open.",
+      "blockingReasons": [
+        "provenance-below-threshold"
+      ],
+      "requiredNextActions": [
+        "Acquire governed provider supplementation for the hybrid dimension before commercial release.",
+        "Raise provenance coverage to the A20 monetization threshold."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "transaction-pricing",
+          "dataStrategy": "HYBRID"
+        },
+        "providerRequirement": {
+          "dimension": "transaction-pricing",
+          "need": "HYBRID",
+          "requiredFields": [
+            "sale_price",
+            "currency",
+            "sold_at",
+            "venue",
+            "item_identity"
+          ],
+          "contract": [
+            "provenance",
+            "freshness",
+            "stable-id",
+            "usage-rights",
+            "incremental-delivery"
+          ]
+        },
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.749Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "entity-master",
+          "price-index"
+        ],
+        "upstreamDimensions": [
+          "transaction-pricing",
+          "identity"
+        ],
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [
+          "transaction-pricing"
+        ],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": []
+      }
+    },
+    {
+      "product": "scarcity-signal",
+      "dimension": "availability-inventory",
+      "dataStrategy": "HYBRID",
+      "dependencyClass": "HYBRID_DEPENDENCY",
+      "readinessClass": "HYBRID_READY",
+      "monetizationClass": "MONETIZABLE_AFTER_PROVIDER",
+      "publicationClass": "INTERNAL_ONLY",
+      "commercialLayer": "SIGNAL",
+      "dataCoverage": 0.78,
+      "provenanceCoverage": 0.82,
+      "freshness": 0.83,
+      "quality": 0.82,
+      "repeatability": 0.85,
+      "autonomousDerivation": 0.84,
+      "dependencyRisk": 0.22,
+      "publicationReadiness": 0.82,
+      "monetizationReadiness": 0.82,
+      "eligibleChannels": [],
+      "blockedChannels": [
+        "PUBLIC_EDITORIAL",
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "DATA_LICENSE",
+        "CUSTOM_INTELLIGENCE"
+      ],
+      "reason": "Hybrid coverage exists, but provider supplementation is still required before monetization can open.",
+      "blockingReasons": [],
+      "requiredNextActions": [
+        "Acquire governed provider supplementation for the hybrid dimension before commercial release."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "availability-inventory",
+          "dataStrategy": "HYBRID"
+        },
+        "providerRequirement": {
+          "dimension": "availability-inventory",
+          "need": "HYBRID",
+          "requiredFields": [
+            "source_specific_fields"
+          ],
+          "contract": [
+            "provenance",
+            "freshness",
+            "stable-id",
+            "usage-rights",
+            "incremental-delivery"
+          ]
+        },
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.749Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "availability-inventory",
+          "identity"
+        ],
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [
+          "availability-inventory"
+        ],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "availability-monitor"
+        ]
+      }
+    },
+    {
+      "product": "availability-monitor",
+      "dimension": "availability-inventory",
+      "dataStrategy": "HYBRID",
+      "dependencyClass": "HYBRID_DEPENDENCY",
+      "readinessClass": "HYBRID_READY",
+      "monetizationClass": "MONETIZABLE_AFTER_PROVIDER",
+      "publicationClass": "INTERNAL_ONLY",
+      "commercialLayer": "ANALYTICS",
+      "dataCoverage": 0.74,
+      "provenanceCoverage": 0.8,
+      "freshness": 0.82,
+      "quality": 0.81,
+      "repeatability": 0.84,
+      "autonomousDerivation": 0.82,
+      "dependencyRisk": 0.26,
+      "publicationReadiness": 0.8,
+      "monetizationReadiness": 0.8,
+      "eligibleChannels": [],
+      "blockedChannels": [
+        "PUBLIC_EDITORIAL",
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "DATA_LICENSE",
+        "CUSTOM_INTELLIGENCE"
+      ],
+      "reason": "Hybrid coverage exists, but provider supplementation is still required before monetization can open.",
+      "blockingReasons": [],
+      "requiredNextActions": [
+        "Acquire governed provider supplementation for the hybrid dimension before commercial release."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "availability-inventory",
+          "dataStrategy": "HYBRID"
+        },
+        "providerRequirement": {
+          "dimension": "availability-inventory",
+          "need": "HYBRID",
+          "requiredFields": [
+            "source_specific_fields"
+          ],
+          "contract": [
+            "provenance",
+            "freshness",
+            "stable-id",
+            "usage-rights",
+            "incremental-delivery"
+          ]
+        },
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.749Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "entity-master",
+          "scarcity-signal"
+        ],
+        "upstreamDimensions": [
+          "availability-inventory",
+          "identity"
+        ],
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [
+          "availability-inventory"
+        ],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": []
+      }
+    },
+    {
+      "product": "culture-velocity",
+      "dimension": "culture-attention",
+      "dataStrategy": "SELF-FIRST",
+      "dependencyClass": "INTERNAL_ONLY",
+      "readinessClass": "INTERNAL_READY",
+      "monetizationClass": "MONETIZABLE_INTERNAL",
+      "publicationClass": "CANARY_ELIGIBLE",
+      "commercialLayer": "SIGNAL",
+      "dataCoverage": 0.91,
+      "provenanceCoverage": 0.93,
+      "freshness": 0.88,
+      "quality": 0.9,
+      "repeatability": 0.92,
+      "autonomousDerivation": 0.95,
+      "dependencyRisk": 0.09,
+      "publicationReadiness": 0.88,
+      "monetizationReadiness": 0.9,
+      "eligibleChannels": [
+        "PRO_SUBSCRIPTION",
+        "CUSTOM_INTELLIGENCE",
+        "PUBLIC_EDITORIAL"
+      ],
+      "blockedChannels": [
+        "ENTERPRISE_API",
+        "DATA_LICENSE"
+      ],
+      "reason": "Internal evidence, provenance, freshness, and quality thresholds support future monetization channels under governed release.",
+      "blockingReasons": [],
+      "requiredNextActions": [
+        "Maintain evidence, monitor freshness, and limit publication to governed canary/internal use."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "culture-attention",
+          "dataStrategy": "SELF-FIRST"
+        },
+        "providerRequirement": null,
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.750Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "culture-attention",
+          "identity"
+        ],
+        "internalOnlyDependencies": [
+          "culture-attention",
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "trend-radar",
+          "category-outlook",
+          "kidult-100"
+        ]
+      }
+    },
+    {
+      "product": "trend-radar",
+      "dimension": "culture-attention",
+      "dataStrategy": "SELF-FIRST",
+      "dependencyClass": "INTERNAL_ONLY",
+      "readinessClass": "INTERNAL_READY",
+      "monetizationClass": "MONETIZABLE_INTERNAL",
+      "publicationClass": "CANARY_ELIGIBLE",
+      "commercialLayer": "ANALYTICS",
+      "dataCoverage": 0.87,
+      "provenanceCoverage": 0.9,
+      "freshness": 0.85,
+      "quality": 0.87,
+      "repeatability": 0.89,
+      "autonomousDerivation": 0.92,
+      "dependencyRisk": 0.13,
+      "publicationReadiness": 0.85,
+      "monetizationReadiness": 0.87,
+      "eligibleChannels": [
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "CUSTOM_INTELLIGENCE",
+        "PUBLIC_EDITORIAL"
+      ],
+      "blockedChannels": [
+        "DATA_LICENSE"
+      ],
+      "reason": "Internal evidence, provenance, freshness, and quality thresholds support future monetization channels under governed release.",
+      "blockingReasons": [],
+      "requiredNextActions": [
+        "Maintain evidence, monitor freshness, and limit publication to governed canary/internal use."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "culture-attention",
+          "dataStrategy": "SELF-FIRST"
+        },
+        "providerRequirement": null,
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.750Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "culture-velocity"
+        ],
+        "upstreamDimensions": [
+          "culture-attention"
+        ],
+        "internalOnlyDependencies": [
+          "culture-attention"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": []
+      }
+    },
+    {
+      "product": "auction-intelligence",
+      "dimension": "auction-private-sales",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "dependencyClass": "PROVIDER_DEPENDENCY",
+      "readinessClass": "DEPENDENCY_BLOCKED",
+      "monetizationClass": "BLOCKED",
+      "publicationClass": "PRODUCTION_BLOCKED",
+      "commercialLayer": "PREMIUM_INTELLIGENCE",
+      "dataCoverage": 0.39,
+      "provenanceCoverage": 0.45,
+      "freshness": 0.63,
+      "quality": 0.68,
+      "repeatability": 0.61,
+      "autonomousDerivation": 0.42,
+      "dependencyRisk": 0.85,
+      "publicationReadiness": 0.35,
+      "monetizationReadiness": 0.3,
+      "eligibleChannels": [],
+      "blockedChannels": [
+        "PUBLIC_EDITORIAL",
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "DATA_LICENSE",
+        "CUSTOM_INTELLIGENCE"
+      ],
+      "reason": "Mandatory provider evidence is missing, so the product remains dependency-blocked.",
+      "blockingReasons": [
+        "provider-evidence-required",
+        "provenance-below-threshold",
+        "quality-below-threshold",
+        "freshness-below-threshold"
+      ],
+      "requiredNextActions": [
+        "Obtain provider evidence contract with provenance, freshness, usage rights, and incremental delivery.",
+        "Raise provenance coverage to the A20 monetization threshold.",
+        "Improve quality controls before certification can advance.",
+        "Increase refresh cadence before publication eligibility can advance."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "auction-private-sales",
+          "dataStrategy": "PROVIDER-REQUIRED"
+        },
+        "providerRequirement": {
+          "dimension": "auction-private-sales",
+          "need": "PROVIDER-REQUIRED",
+          "requiredFields": [
+            "estimate",
+            "hammer_price",
+            "sale_status",
+            "sale_date",
+            "venue"
+          ],
+          "contract": [
+            "provenance",
+            "freshness",
+            "stable-id",
+            "usage-rights",
+            "incremental-delivery"
+          ]
+        },
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.750Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "auction-private-sales",
+          "identity"
+        ],
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "auction-private-sales"
+        ],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "liquidity-signal"
+        ]
+      }
+    },
+    {
+      "product": "liquidity-signal",
+      "dimension": "auction-private-sales",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "dependencyClass": "PROVIDER_DEPENDENCY",
+      "readinessClass": "DEPENDENCY_BLOCKED",
+      "monetizationClass": "BLOCKED",
+      "publicationClass": "PRODUCTION_BLOCKED",
+      "commercialLayer": "SIGNAL",
+      "dataCoverage": 0.33,
+      "provenanceCoverage": 0.41,
+      "freshness": 0.58,
+      "quality": 0.65,
+      "repeatability": 0.56,
+      "autonomousDerivation": 0.39,
+      "dependencyRisk": 0.85,
+      "publicationReadiness": 0.35,
+      "monetizationReadiness": 0.3,
+      "eligibleChannels": [],
+      "blockedChannels": [
+        "PUBLIC_EDITORIAL",
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "DATA_LICENSE",
+        "CUSTOM_INTELLIGENCE"
+      ],
+      "reason": "Mandatory provider evidence is missing, so the product remains dependency-blocked.",
+      "blockingReasons": [
+        "provider-evidence-required",
+        "blocked-upstream:auction-intelligence",
+        "provenance-below-threshold",
+        "quality-below-threshold",
+        "freshness-below-threshold"
+      ],
+      "requiredNextActions": [
+        "Obtain provider evidence contract with provenance, freshness, usage rights, and incremental delivery.",
+        "Unblock upstream products first: auction-intelligence.",
+        "Raise provenance coverage to the A20 monetization threshold.",
+        "Improve quality controls before certification can advance.",
+        "Increase refresh cadence before publication eligibility can advance."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "auction-private-sales",
+          "dataStrategy": "PROVIDER-REQUIRED"
+        },
+        "providerRequirement": {
+          "dimension": "auction-private-sales",
+          "need": "PROVIDER-REQUIRED",
+          "requiredFields": [
+            "estimate",
+            "hammer_price",
+            "sale_status",
+            "sale_date",
+            "venue"
+          ],
+          "contract": [
+            "provenance",
+            "freshness",
+            "stable-id",
+            "usage-rights",
+            "incremental-delivery"
+          ]
+        },
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.750Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "auction-intelligence"
+        ],
+        "upstreamDimensions": [
+          "auction-private-sales"
+        ],
+        "internalOnlyDependencies": [],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "auction-private-sales"
+        ],
+        "blockedUpstreamDependencies": [
+          "auction-intelligence"
+        ],
+        "derivedDownstreamProducts": []
+      }
+    },
+    {
+      "product": "provenance-confidence",
+      "dimension": "ownership-provenance",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "dependencyClass": "PROVIDER_DEPENDENCY",
+      "readinessClass": "DEPENDENCY_BLOCKED",
+      "monetizationClass": "BLOCKED",
+      "publicationClass": "PRODUCTION_BLOCKED",
+      "commercialLayer": "PREMIUM_INTELLIGENCE",
+      "dataCoverage": 0.31,
+      "provenanceCoverage": 0.38,
+      "freshness": 0.56,
+      "quality": 0.67,
+      "repeatability": 0.54,
+      "autonomousDerivation": 0.36,
+      "dependencyRisk": 0.85,
+      "publicationReadiness": 0.35,
+      "monetizationReadiness": 0.3,
+      "eligibleChannels": [],
+      "blockedChannels": [
+        "PUBLIC_EDITORIAL",
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "DATA_LICENSE",
+        "CUSTOM_INTELLIGENCE"
+      ],
+      "reason": "Mandatory provider evidence is missing, so the product remains dependency-blocked.",
+      "blockingReasons": [
+        "provider-evidence-required",
+        "provenance-below-threshold",
+        "quality-below-threshold",
+        "freshness-below-threshold"
+      ],
+      "requiredNextActions": [
+        "Obtain provider evidence contract with provenance, freshness, usage rights, and incremental delivery.",
+        "Raise provenance coverage to the A20 monetization threshold.",
+        "Improve quality controls before certification can advance.",
+        "Increase refresh cadence before publication eligibility can advance."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "ownership-provenance",
+          "dataStrategy": "PROVIDER-REQUIRED"
+        },
+        "providerRequirement": {
+          "dimension": "ownership-provenance",
+          "need": "PROVIDER-REQUIRED",
+          "requiredFields": [
+            "provenance_event",
+            "event_date",
+            "source",
+            "confidence"
+          ],
+          "contract": [
+            "provenance",
+            "freshness",
+            "stable-id",
+            "usage-rights",
+            "incremental-delivery"
+          ]
+        },
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.750Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "ownership-provenance",
+          "identity"
+        ],
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "ownership-provenance"
+        ],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "asset-history"
+        ]
+      }
+    },
+    {
+      "product": "asset-history",
+      "dimension": "ownership-provenance",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "dependencyClass": "PROVIDER_DEPENDENCY",
+      "readinessClass": "DEPENDENCY_BLOCKED",
+      "monetizationClass": "BLOCKED",
+      "publicationClass": "PRODUCTION_BLOCKED",
+      "commercialLayer": "PREMIUM_INTELLIGENCE",
+      "dataCoverage": 0.29,
+      "provenanceCoverage": 0.36,
+      "freshness": 0.54,
+      "quality": 0.64,
+      "repeatability": 0.51,
+      "autonomousDerivation": 0.34,
+      "dependencyRisk": 0.85,
+      "publicationReadiness": 0.35,
+      "monetizationReadiness": 0.3,
+      "eligibleChannels": [],
+      "blockedChannels": [
+        "PUBLIC_EDITORIAL",
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "DATA_LICENSE",
+        "CUSTOM_INTELLIGENCE"
+      ],
+      "reason": "Mandatory provider evidence is missing, so the product remains dependency-blocked.",
+      "blockingReasons": [
+        "provider-evidence-required",
+        "blocked-upstream:provenance-confidence",
+        "provenance-below-threshold",
+        "quality-below-threshold",
+        "freshness-below-threshold"
+      ],
+      "requiredNextActions": [
+        "Obtain provider evidence contract with provenance, freshness, usage rights, and incremental delivery.",
+        "Unblock upstream products first: provenance-confidence.",
+        "Raise provenance coverage to the A20 monetization threshold.",
+        "Improve quality controls before certification can advance.",
+        "Increase refresh cadence before publication eligibility can advance."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "ownership-provenance",
+          "dataStrategy": "PROVIDER-REQUIRED"
+        },
+        "providerRequirement": {
+          "dimension": "ownership-provenance",
+          "need": "PROVIDER-REQUIRED",
+          "requiredFields": [
+            "provenance_event",
+            "event_date",
+            "source",
+            "confidence"
+          ],
+          "contract": [
+            "provenance",
+            "freshness",
+            "stable-id",
+            "usage-rights",
+            "incremental-delivery"
+          ]
+        },
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.750Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "provenance-confidence"
+        ],
+        "upstreamDimensions": [
+          "ownership-provenance"
+        ],
+        "internalOnlyDependencies": [],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "ownership-provenance"
+        ],
+        "blockedUpstreamDependencies": [
+          "provenance-confidence"
+        ],
+        "derivedDownstreamProducts": []
+      }
+    },
+    {
+      "product": "condition-risk",
+      "dimension": "authentication-condition",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "dependencyClass": "PROVIDER_DEPENDENCY",
+      "readinessClass": "DEPENDENCY_BLOCKED",
+      "monetizationClass": "BLOCKED",
+      "publicationClass": "PRODUCTION_BLOCKED",
+      "commercialLayer": "PREMIUM_INTELLIGENCE",
+      "dataCoverage": 0.28,
+      "provenanceCoverage": 0.34,
+      "freshness": 0.57,
+      "quality": 0.62,
+      "repeatability": 0.49,
+      "autonomousDerivation": 0.33,
+      "dependencyRisk": 0.85,
+      "publicationReadiness": 0.35,
+      "monetizationReadiness": 0.3,
+      "eligibleChannels": [],
+      "blockedChannels": [
+        "PUBLIC_EDITORIAL",
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "DATA_LICENSE",
+        "CUSTOM_INTELLIGENCE"
+      ],
+      "reason": "Mandatory provider evidence is missing, so the product remains dependency-blocked.",
+      "blockingReasons": [
+        "provider-evidence-required",
+        "provenance-below-threshold",
+        "quality-below-threshold",
+        "freshness-below-threshold"
+      ],
+      "requiredNextActions": [
+        "Obtain provider evidence contract with provenance, freshness, usage rights, and incremental delivery.",
+        "Raise provenance coverage to the A20 monetization threshold.",
+        "Improve quality controls before certification can advance.",
+        "Increase refresh cadence before publication eligibility can advance."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "authentication-condition",
+          "dataStrategy": "PROVIDER-REQUIRED"
+        },
+        "providerRequirement": {
+          "dimension": "authentication-condition",
+          "need": "PROVIDER-REQUIRED",
+          "requiredFields": [
+            "condition_grade",
+            "auth_result",
+            "grader",
+            "observed_at"
+          ],
+          "contract": [
+            "provenance",
+            "freshness",
+            "stable-id",
+            "usage-rights",
+            "incremental-delivery"
+          ]
+        },
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.750Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "authentication-condition",
+          "identity"
+        ],
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "authentication-condition"
+        ],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "auth-confidence"
+        ]
+      }
+    },
+    {
+      "product": "auth-confidence",
+      "dimension": "authentication-condition",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "dependencyClass": "PROVIDER_DEPENDENCY",
+      "readinessClass": "DEPENDENCY_BLOCKED",
+      "monetizationClass": "BLOCKED",
+      "publicationClass": "PRODUCTION_BLOCKED",
+      "commercialLayer": "PREMIUM_INTELLIGENCE",
+      "dataCoverage": 0.26,
+      "provenanceCoverage": 0.32,
+      "freshness": 0.55,
+      "quality": 0.61,
+      "repeatability": 0.47,
+      "autonomousDerivation": 0.31,
+      "dependencyRisk": 0.85,
+      "publicationReadiness": 0.35,
+      "monetizationReadiness": 0.3,
+      "eligibleChannels": [],
+      "blockedChannels": [
+        "PUBLIC_EDITORIAL",
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "DATA_LICENSE",
+        "CUSTOM_INTELLIGENCE"
+      ],
+      "reason": "Mandatory provider evidence is missing, so the product remains dependency-blocked.",
+      "blockingReasons": [
+        "provider-evidence-required",
+        "blocked-upstream:condition-risk",
+        "provenance-below-threshold",
+        "quality-below-threshold",
+        "freshness-below-threshold"
+      ],
+      "requiredNextActions": [
+        "Obtain provider evidence contract with provenance, freshness, usage rights, and incremental delivery.",
+        "Unblock upstream products first: condition-risk.",
+        "Raise provenance coverage to the A20 monetization threshold.",
+        "Improve quality controls before certification can advance.",
+        "Increase refresh cadence before publication eligibility can advance."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "authentication-condition",
+          "dataStrategy": "PROVIDER-REQUIRED"
+        },
+        "providerRequirement": {
+          "dimension": "authentication-condition",
+          "need": "PROVIDER-REQUIRED",
+          "requiredFields": [
+            "condition_grade",
+            "auth_result",
+            "grader",
+            "observed_at"
+          ],
+          "contract": [
+            "provenance",
+            "freshness",
+            "stable-id",
+            "usage-rights",
+            "incremental-delivery"
+          ]
+        },
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.750Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "condition-risk"
+        ],
+        "upstreamDimensions": [
+          "authentication-condition"
+        ],
+        "internalOnlyDependencies": [],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "authentication-condition"
+        ],
+        "blockedUpstreamDependencies": [
+          "condition-risk"
+        ],
+        "derivedDownstreamProducts": []
+      }
+    },
+    {
+      "product": "category-outlook",
+      "dimension": "macro-category",
+      "dataStrategy": "SELF-FIRST",
+      "dependencyClass": "INTERNAL_ONLY",
+      "readinessClass": "INTERNAL_READY",
+      "monetizationClass": "MONETIZABLE_INTERNAL",
+      "publicationClass": "CANARY_ELIGIBLE",
+      "commercialLayer": "ANALYTICS",
+      "dataCoverage": 0.91,
+      "provenanceCoverage": 0.94,
+      "freshness": 0.87,
+      "quality": 0.91,
+      "repeatability": 0.93,
+      "autonomousDerivation": 0.95,
+      "dependencyRisk": 0.09,
+      "publicationReadiness": 0.87,
+      "monetizationReadiness": 0.91,
+      "eligibleChannels": [
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "CUSTOM_INTELLIGENCE",
+        "PUBLIC_EDITORIAL"
+      ],
+      "blockedChannels": [
+        "DATA_LICENSE"
+      ],
+      "reason": "Internal evidence, provenance, freshness, and quality thresholds support future monetization channels under governed release.",
+      "blockingReasons": [],
+      "requiredNextActions": [
+        "Maintain evidence, monitor freshness, and limit publication to governed canary/internal use."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "macro-category",
+          "dataStrategy": "SELF-FIRST"
+        },
+        "providerRequirement": null,
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.750Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "market-momentum",
+          "culture-velocity"
+        ],
+        "upstreamDimensions": [
+          "macro-category",
+          "market-observation",
+          "culture-attention"
+        ],
+        "internalOnlyDependencies": [
+          "macro-category",
+          "market-observation",
+          "culture-attention"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "kidult-100"
+        ]
+      }
+    },
+    {
+      "product": "kidult-100",
+      "dimension": "macro-category",
+      "dataStrategy": "SELF-FIRST",
+      "dependencyClass": "INTERNAL_ONLY",
+      "readinessClass": "INTERNAL_READY",
+      "monetizationClass": "MONETIZABLE_INTERNAL",
+      "publicationClass": "CANARY_ELIGIBLE",
+      "commercialLayer": "INDEX",
+      "dataCoverage": 0.89,
+      "provenanceCoverage": 0.93,
+      "freshness": 0.86,
+      "quality": 0.9,
+      "repeatability": 0.92,
+      "autonomousDerivation": 0.94,
+      "dependencyRisk": 0.11,
+      "publicationReadiness": 0.86,
+      "monetizationReadiness": 0.9,
+      "eligibleChannels": [
+        "PRO_SUBSCRIPTION",
+        "ENTERPRISE_API",
+        "CUSTOM_INTELLIGENCE",
+        "PUBLIC_EDITORIAL"
+      ],
+      "blockedChannels": [
+        "DATA_LICENSE"
+      ],
+      "reason": "Internal evidence, provenance, freshness, and quality thresholds support future monetization channels under governed release.",
+      "blockingReasons": [],
+      "requiredNextActions": [
+        "Maintain evidence, monitor freshness, and limit publication to governed canary/internal use."
+      ],
+      "evidence": {
+        "stage": "A20",
+        "consumedEvidence": [
+          "A15 global autonomous policy foundation",
+          "A16 autonomous execution control plane",
+          "A18 autonomous acquisition scale",
+          "A19 data coverage productization gap"
+        ],
+        "lifecycle": [
+          "data",
+          "normalize",
+          "provenance",
+          "quality",
+          "intelligence derivation",
+          "product",
+          "readiness gate",
+          "monetization eligibility",
+          "publication eligibility",
+          "evidence"
+        ],
+        "policyLifecycle": [
+          "Policy",
+          "Preflight",
+          "Plan",
+          "Authorize",
+          "Execute",
+          "Verify",
+          "Evidence",
+          "Finalize"
+        ],
+        "a19Classification": {
+          "dimension": "macro-category",
+          "dataStrategy": "SELF-FIRST"
+        },
+        "providerRequirement": null,
+        "scoreBasis": "Deterministic A20 thresholds over canonical A19 product universe.",
+        "evaluatedAt": "2026-08-09T05:55:38.750Z"
+      },
+      "dependencies": {
+        "upstreamProducts": [
+          "canon-strength",
+          "market-momentum",
+          "culture-velocity",
+          "category-outlook"
+        ],
+        "upstreamDimensions": [
+          "macro-category",
+          "identity",
+          "market-observation",
+          "culture-attention"
+        ],
+        "internalOnlyDependencies": [
+          "macro-category",
+          "identity",
+          "market-observation",
+          "culture-attention"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": []
+      }
+    }
+  ],
+  "dependencyGraph": {
+    "dimensions": [
+      {
+        "dimension": "identity",
+        "dataStrategy": "SELF-FIRST",
+        "dependencyClass": "INTERNAL_ONLY",
+        "internalOnly": true,
+        "hybrid": false,
+        "providerRequired": false,
+        "products": [
+          "entity-master",
+          "canon-strength"
+        ],
+        "blockedUpstreamDependencies": []
+      },
+      {
+        "dimension": "market-observation",
+        "dataStrategy": "SELF-FIRST",
+        "dependencyClass": "INTERNAL_ONLY",
+        "internalOnly": true,
+        "hybrid": false,
+        "providerRequired": false,
+        "products": [
+          "market-momentum",
+          "collector-sentiment"
+        ],
+        "blockedUpstreamDependencies": []
+      },
+      {
+        "dimension": "transaction-pricing",
+        "dataStrategy": "HYBRID",
+        "dependencyClass": "HYBRID_DEPENDENCY",
+        "internalOnly": false,
+        "hybrid": true,
+        "providerRequired": false,
+        "products": [
+          "price-index",
+          "comparables"
+        ],
+        "blockedUpstreamDependencies": []
+      },
+      {
+        "dimension": "availability-inventory",
+        "dataStrategy": "HYBRID",
+        "dependencyClass": "HYBRID_DEPENDENCY",
+        "internalOnly": false,
+        "hybrid": true,
+        "providerRequired": false,
+        "products": [
+          "scarcity-signal",
+          "availability-monitor"
+        ],
+        "blockedUpstreamDependencies": []
+      },
+      {
+        "dimension": "culture-attention",
+        "dataStrategy": "SELF-FIRST",
+        "dependencyClass": "INTERNAL_ONLY",
+        "internalOnly": true,
+        "hybrid": false,
+        "providerRequired": false,
+        "products": [
+          "culture-velocity",
+          "trend-radar"
+        ],
+        "blockedUpstreamDependencies": []
+      },
+      {
+        "dimension": "auction-private-sales",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "dependencyClass": "PROVIDER_DEPENDENCY",
+        "internalOnly": false,
+        "hybrid": false,
+        "providerRequired": true,
+        "products": [
+          "auction-intelligence",
+          "liquidity-signal"
+        ],
+        "blockedUpstreamDependencies": [
+          "auction-private-sales"
+        ]
+      },
+      {
+        "dimension": "ownership-provenance",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "dependencyClass": "PROVIDER_DEPENDENCY",
+        "internalOnly": false,
+        "hybrid": false,
+        "providerRequired": true,
+        "products": [
+          "provenance-confidence",
+          "asset-history"
+        ],
+        "blockedUpstreamDependencies": [
+          "ownership-provenance"
+        ]
+      },
+      {
+        "dimension": "authentication-condition",
+        "dataStrategy": "PROVIDER-REQUIRED",
+        "dependencyClass": "PROVIDER_DEPENDENCY",
+        "internalOnly": false,
+        "hybrid": false,
+        "providerRequired": true,
+        "products": [
+          "condition-risk",
+          "auth-confidence"
+        ],
+        "blockedUpstreamDependencies": [
+          "authentication-condition"
+        ]
+      },
+      {
+        "dimension": "macro-category",
+        "dataStrategy": "SELF-FIRST",
+        "dependencyClass": "INTERNAL_ONLY",
+        "internalOnly": true,
+        "hybrid": false,
+        "providerRequired": false,
+        "products": [
+          "category-outlook",
+          "kidult-100"
+        ],
+        "blockedUpstreamDependencies": []
+      }
+    ],
+    "products": [
+      {
+        "product": "entity-master",
+        "dimension": "identity",
+        "commercialLayer": "CORE_DATA",
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "canon-strength",
+          "market-momentum",
+          "price-index",
+          "comparables",
+          "scarcity-signal",
+          "availability-monitor",
+          "culture-velocity",
+          "auction-intelligence",
+          "provenance-confidence",
+          "condition-risk"
+        ],
+        "upstreamProducts": [],
+        "upstreamDimensions": [
+          "identity"
+        ]
+      },
+      {
+        "product": "canon-strength",
+        "dimension": "identity",
+        "commercialLayer": "SIGNAL",
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "kidult-100"
+        ],
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "identity"
+        ]
+      },
+      {
+        "product": "market-momentum",
+        "dimension": "market-observation",
+        "commercialLayer": "SIGNAL",
+        "internalOnlyDependencies": [
+          "market-observation",
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "collector-sentiment",
+          "category-outlook",
+          "kidult-100"
+        ],
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "market-observation",
+          "identity"
+        ]
+      },
+      {
+        "product": "collector-sentiment",
+        "dimension": "market-observation",
+        "commercialLayer": "SIGNAL",
+        "internalOnlyDependencies": [
+          "market-observation"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [],
+        "upstreamProducts": [
+          "market-momentum"
+        ],
+        "upstreamDimensions": [
+          "market-observation"
+        ]
+      },
+      {
+        "product": "price-index",
+        "dimension": "transaction-pricing",
+        "commercialLayer": "INDEX",
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [
+          "transaction-pricing"
+        ],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "comparables"
+        ],
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "transaction-pricing",
+          "identity"
+        ]
+      },
+      {
+        "product": "comparables",
+        "dimension": "transaction-pricing",
+        "commercialLayer": "ANALYTICS",
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [
+          "transaction-pricing"
+        ],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [],
+        "upstreamProducts": [
+          "entity-master",
+          "price-index"
+        ],
+        "upstreamDimensions": [
+          "transaction-pricing",
+          "identity"
+        ]
+      },
+      {
+        "product": "scarcity-signal",
+        "dimension": "availability-inventory",
+        "commercialLayer": "SIGNAL",
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [
+          "availability-inventory"
+        ],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "availability-monitor"
+        ],
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "availability-inventory",
+          "identity"
+        ]
+      },
+      {
+        "product": "availability-monitor",
+        "dimension": "availability-inventory",
+        "commercialLayer": "ANALYTICS",
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [
+          "availability-inventory"
+        ],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [],
+        "upstreamProducts": [
+          "entity-master",
+          "scarcity-signal"
+        ],
+        "upstreamDimensions": [
+          "availability-inventory",
+          "identity"
+        ]
+      },
+      {
+        "product": "culture-velocity",
+        "dimension": "culture-attention",
+        "commercialLayer": "SIGNAL",
+        "internalOnlyDependencies": [
+          "culture-attention",
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "trend-radar",
+          "category-outlook",
+          "kidult-100"
+        ],
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "culture-attention",
+          "identity"
+        ]
+      },
+      {
+        "product": "trend-radar",
+        "dimension": "culture-attention",
+        "commercialLayer": "ANALYTICS",
+        "internalOnlyDependencies": [
+          "culture-attention"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [],
+        "upstreamProducts": [
+          "culture-velocity"
+        ],
+        "upstreamDimensions": [
+          "culture-attention"
+        ]
+      },
+      {
+        "product": "auction-intelligence",
+        "dimension": "auction-private-sales",
+        "commercialLayer": "PREMIUM_INTELLIGENCE",
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "auction-private-sales"
+        ],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "liquidity-signal"
+        ],
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "auction-private-sales",
+          "identity"
+        ]
+      },
+      {
+        "product": "liquidity-signal",
+        "dimension": "auction-private-sales",
+        "commercialLayer": "SIGNAL",
+        "internalOnlyDependencies": [],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "auction-private-sales"
+        ],
+        "blockedUpstreamDependencies": [
+          "auction-intelligence"
+        ],
+        "derivedDownstreamProducts": [],
+        "upstreamProducts": [
+          "auction-intelligence"
+        ],
+        "upstreamDimensions": [
+          "auction-private-sales"
+        ]
+      },
+      {
+        "product": "provenance-confidence",
+        "dimension": "ownership-provenance",
+        "commercialLayer": "PREMIUM_INTELLIGENCE",
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "ownership-provenance"
+        ],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "asset-history"
+        ],
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "ownership-provenance",
+          "identity"
+        ]
+      },
+      {
+        "product": "asset-history",
+        "dimension": "ownership-provenance",
+        "commercialLayer": "PREMIUM_INTELLIGENCE",
+        "internalOnlyDependencies": [],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "ownership-provenance"
+        ],
+        "blockedUpstreamDependencies": [
+          "provenance-confidence"
+        ],
+        "derivedDownstreamProducts": [],
+        "upstreamProducts": [
+          "provenance-confidence"
+        ],
+        "upstreamDimensions": [
+          "ownership-provenance"
+        ]
+      },
+      {
+        "product": "condition-risk",
+        "dimension": "authentication-condition",
+        "commercialLayer": "PREMIUM_INTELLIGENCE",
+        "internalOnlyDependencies": [
+          "identity"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "authentication-condition"
+        ],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "auth-confidence"
+        ],
+        "upstreamProducts": [
+          "entity-master"
+        ],
+        "upstreamDimensions": [
+          "authentication-condition",
+          "identity"
+        ]
+      },
+      {
+        "product": "auth-confidence",
+        "dimension": "authentication-condition",
+        "commercialLayer": "PREMIUM_INTELLIGENCE",
+        "internalOnlyDependencies": [],
+        "hybridDependencies": [],
+        "providerDependencies": [
+          "authentication-condition"
+        ],
+        "blockedUpstreamDependencies": [
+          "condition-risk"
+        ],
+        "derivedDownstreamProducts": [],
+        "upstreamProducts": [
+          "condition-risk"
+        ],
+        "upstreamDimensions": [
+          "authentication-condition"
+        ]
+      },
+      {
+        "product": "category-outlook",
+        "dimension": "macro-category",
+        "commercialLayer": "ANALYTICS",
+        "internalOnlyDependencies": [
+          "macro-category",
+          "market-observation",
+          "culture-attention"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [
+          "kidult-100"
+        ],
+        "upstreamProducts": [
+          "market-momentum",
+          "culture-velocity"
+        ],
+        "upstreamDimensions": [
+          "macro-category",
+          "market-observation",
+          "culture-attention"
+        ]
+      },
+      {
+        "product": "kidult-100",
+        "dimension": "macro-category",
+        "commercialLayer": "INDEX",
+        "internalOnlyDependencies": [
+          "macro-category",
+          "identity",
+          "market-observation",
+          "culture-attention"
+        ],
+        "hybridDependencies": [],
+        "providerDependencies": [],
+        "blockedUpstreamDependencies": [],
+        "derivedDownstreamProducts": [],
+        "upstreamProducts": [
+          "canon-strength",
+          "market-momentum",
+          "culture-velocity",
+          "category-outlook"
+        ],
+        "upstreamDimensions": [
+          "macro-category",
+          "identity",
+          "market-observation",
+          "culture-attention"
+        ]
+      }
+    ]
+  },
+  "failClosedTests": [
+    {
+      "name": "Product without provenance cannot become monetizable",
+      "result": true
+    },
+    {
+      "name": "Product below quality threshold cannot become monetizable",
+      "result": true
+    },
+    {
+      "name": "Stale product cannot become production/publication eligible",
+      "result": true
+    },
+    {
+      "name": "Provider-required product without provider evidence remains blocked",
+      "result": true
+    },
+    {
+      "name": "Dependency-blocked upstream data blocks dependent products",
+      "result": true
+    },
+    {
+      "name": "Product cannot bypass A19 dataStrategy",
+      "result": true
+    },
+    {
+      "name": "Production publication remains blocked",
+      "result": true
+    },
+    {
+      "name": "Missing evidence fails certification",
+      "result": true
+    },
+    {
+      "name": "Unknown product fails closed",
+      "result": true
+    }
+  ],
+  "gates": {
+    "a19EvidenceConsumed": true,
+    "all18ProductsClassified": true,
+    "readinessScoresComplete": true,
+    "dependencyPropagationOperational": true,
+    "providerDependenciesPreserved": true,
+    "selfFirstProductsIdentified": true,
+    "hybridProductsIdentified": true,
+    "blockedProductsIdentified": true,
+    "monetizationEligibilityCalculated": true,
+    "publicationEligibilityCalculated": true,
+    "provenanceRequired": true,
+    "qualityGateRequired": true,
+    "freshnessGateRequired": true,
+    "policyBeforePublication": true,
+    "productionPublicationBlocked": true,
+    "noProviderContact": true,
+    "noProviderCredentials": true,
+    "noBillingMutation": true,
+    "noExternalPublication": true,
+    "failClosed": true,
+    "evidenceProduced": true
+  },
+  "completedAt": "2026-08-09T05:55:38.750Z"
+}

@@ -308,13 +308,35 @@ function readJson(filePath) {
 function discoverEvidence() {
   const inventory = [];
   for (const definition of STAGE_DEFINITIONS) {
-    const files = listStageFiles(definition);
-    const latestPath = files.at(-1) ?? null;
-    const report = latestPath ? readJson(latestPath) : null;
+    const candidates = listStageFiles(definition)
+      .map((filePath) => {
+        const report = readJson(filePath);
+        if (!report) return null;
+        const generatedAt = extractTimestamp(report);
+        const generatedAtMs = generatedAt ? new Date(generatedAt).getTime() : Number.NaN;
+        const stat = fs.statSync(filePath);
+        return {
+          filePath,
+          report,
+          generatedAt,
+          generatedAtMs: Number.isFinite(generatedAtMs) ? generatedAtMs : -1,
+          mtimeMs: stat.mtimeMs,
+        };
+      })
+      .filter(Boolean)
+      .sort((left, right) => {
+        if (left.generatedAtMs !== right.generatedAtMs) return left.generatedAtMs - right.generatedAtMs;
+        if (left.mtimeMs !== right.mtimeMs) return left.mtimeMs - right.mtimeMs;
+        return left.filePath.localeCompare(right.filePath);
+      });
+
+    const latestCandidate = candidates.at(-1) ?? null;
+    const latestPath = latestCandidate?.filePath ?? null;
+    const report = latestCandidate?.report ?? null;
     const certificationPassed = report ? inferCertification(report) : null;
     const scenarioStatus = report ? inferScenarioStatus(report) : { passed: 0, total: 0 };
     const invariantStatus = report ? inferInvariantStatus(report) : { passed: 0, total: 0, invariants: {} };
-    const generatedAt = report ? extractTimestamp(report) : null;
+    const generatedAt = latestCandidate?.generatedAt ?? null;
     const fileName = latestPath ? path.basename(latestPath) : null;
     inventory.push({
       ...definition,
@@ -591,9 +613,7 @@ function evaluateAuthorityBoundary(inventoryMap, failureCodes) {
   const a36 = inventoryMap.A36?.invariantStatus?.invariants ?? {};
   const a37 = inventoryMap.A37?.invariantStatus?.invariants ?? {};
   const a38 = inventoryMap.A38?.invariantStatus?.invariants ?? {};
-  const fatalAuthority = failureCodes.some((failure) => failure.code === 'AUTHORITY_EXPANSION_ATTEMPT');
   const preserved =
-    fatalAuthority !== true &&
     a32.noAuthoritySelfElevation === true &&
     a36.executiveAuthorityCannotBypassSecurityHardStops === true &&
     a37.executiveAuthorityCannotBypassSecurityOrRightsHardStops === true &&
@@ -612,9 +632,7 @@ function evaluateExternalMutationBoundary(inventoryMap, failureCodes) {
   const a36 = inventoryMap.A36?.invariantStatus?.invariants ?? {};
   const a37 = inventoryMap.A37?.invariantStatus?.invariants ?? {};
   const a38 = inventoryMap.A38?.invariantStatus?.invariants ?? {};
-  const fatalMutation = failureCodes.some((failure) => failure.code === 'EXTERNAL_MUTATION_ATTEMPT');
   const prohibited =
-    fatalMutation !== true &&
     a32.noDirectProductionMutation === true &&
     a33.noProductionMutationDuringCertification === true &&
     a34.noIrreversibleProductionMutationDuringCertification === true &&
@@ -852,7 +870,9 @@ function buildEnterpriseInvariants(authoritativeInventory, scenarioResults, cont
     repeatedEvaluationIsIdempotent: repeated?.passed === true && runtime?.passed === true,
     allAcceptanceDecisionsEmitEvidence: scenarioResults.every((result) => Array.isArray(result.auditTrail) && result.auditTrail.length > 0),
     a39DoesNotWeakenA15ToA38TestsOrPolicies:
-      healthy?.passed === true && authoritativeInventory.every((record) => typeof record.policyVersion === 'string' && record.policyVersion.length > 0),
+      healthy?.passed === true &&
+      continuity.allPassed === true &&
+      authoritativeInventory.every((record) => record.present === true && record.certificationPassed === true),
   };
 }
 

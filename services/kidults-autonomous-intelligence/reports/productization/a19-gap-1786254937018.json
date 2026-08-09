@@ -1,0 +1,331 @@
+{
+  "stage": "A19",
+  "mode": "data-coverage-productization-gap",
+  "sourceEvidence": "A18 autonomous acquisition scale",
+  "summary": {
+    "dimensions": 9,
+    "products": 18,
+    "SELF-FIRST": 4,
+    "HYBRID": 2,
+    "PROVIDER-REQUIRED": 3
+  },
+  "dimensions": [
+    {
+      "id": "identity",
+      "self": 0.92,
+      "provider": 0.08,
+      "products": [
+        "entity-master",
+        "canon-strength"
+      ],
+      "strategy": "SELF-FIRST",
+      "providerNeed": 0.08,
+      "selfCoverage": 0.92
+    },
+    {
+      "id": "market-observation",
+      "self": 0.82,
+      "provider": 0.18,
+      "products": [
+        "market-momentum",
+        "collector-sentiment"
+      ],
+      "strategy": "SELF-FIRST",
+      "providerNeed": 0.18,
+      "selfCoverage": 0.82
+    },
+    {
+      "id": "transaction-pricing",
+      "self": 0.48,
+      "provider": 0.52,
+      "products": [
+        "price-index",
+        "comparables"
+      ],
+      "strategy": "HYBRID",
+      "providerNeed": 0.52,
+      "selfCoverage": 0.48
+    },
+    {
+      "id": "availability-inventory",
+      "self": 0.7,
+      "provider": 0.3,
+      "products": [
+        "scarcity-signal",
+        "availability-monitor"
+      ],
+      "strategy": "HYBRID",
+      "providerNeed": 0.3,
+      "selfCoverage": 0.7
+    },
+    {
+      "id": "culture-attention",
+      "self": 0.9,
+      "provider": 0.1,
+      "products": [
+        "culture-velocity",
+        "trend-radar"
+      ],
+      "strategy": "SELF-FIRST",
+      "providerNeed": 0.1,
+      "selfCoverage": 0.9
+    },
+    {
+      "id": "auction-private-sales",
+      "self": 0.35,
+      "provider": 0.65,
+      "products": [
+        "auction-intelligence",
+        "liquidity-signal"
+      ],
+      "strategy": "PROVIDER-REQUIRED",
+      "providerNeed": 0.65,
+      "selfCoverage": 0.35
+    },
+    {
+      "id": "ownership-provenance",
+      "self": 0.3,
+      "provider": 0.7,
+      "products": [
+        "provenance-confidence",
+        "asset-history"
+      ],
+      "strategy": "PROVIDER-REQUIRED",
+      "providerNeed": 0.7,
+      "selfCoverage": 0.3
+    },
+    {
+      "id": "authentication-condition",
+      "self": 0.22,
+      "provider": 0.78,
+      "products": [
+        "condition-risk",
+        "auth-confidence"
+      ],
+      "strategy": "PROVIDER-REQUIRED",
+      "providerNeed": 0.78,
+      "selfCoverage": 0.22
+    },
+    {
+      "id": "macro-category",
+      "self": 0.88,
+      "provider": 0.12,
+      "products": [
+        "category-outlook",
+        "kidult-100"
+      ],
+      "strategy": "SELF-FIRST",
+      "providerNeed": 0.12,
+      "selfCoverage": 0.88
+    }
+  ],
+  "providerRequirements": [
+    {
+      "dimension": "transaction-pricing",
+      "need": "HYBRID",
+      "requiredFields": [
+        "sale_price",
+        "currency",
+        "sold_at",
+        "venue",
+        "item_identity"
+      ],
+      "contract": [
+        "provenance",
+        "freshness",
+        "stable-id",
+        "usage-rights",
+        "incremental-delivery"
+      ]
+    },
+    {
+      "dimension": "availability-inventory",
+      "need": "HYBRID",
+      "requiredFields": [
+        "source_specific_fields"
+      ],
+      "contract": [
+        "provenance",
+        "freshness",
+        "stable-id",
+        "usage-rights",
+        "incremental-delivery"
+      ]
+    },
+    {
+      "dimension": "auction-private-sales",
+      "need": "PROVIDER-REQUIRED",
+      "requiredFields": [
+        "estimate",
+        "hammer_price",
+        "sale_status",
+        "sale_date",
+        "venue"
+      ],
+      "contract": [
+        "provenance",
+        "freshness",
+        "stable-id",
+        "usage-rights",
+        "incremental-delivery"
+      ]
+    },
+    {
+      "dimension": "ownership-provenance",
+      "need": "PROVIDER-REQUIRED",
+      "requiredFields": [
+        "provenance_event",
+        "event_date",
+        "source",
+        "confidence"
+      ],
+      "contract": [
+        "provenance",
+        "freshness",
+        "stable-id",
+        "usage-rights",
+        "incremental-delivery"
+      ]
+    },
+    {
+      "dimension": "authentication-condition",
+      "need": "PROVIDER-REQUIRED",
+      "requiredFields": [
+        "condition_grade",
+        "auth_result",
+        "grader",
+        "observed_at"
+      ],
+      "contract": [
+        "provenance",
+        "freshness",
+        "stable-id",
+        "usage-rights",
+        "incremental-delivery"
+      ]
+    }
+  ],
+  "productMap": [
+    {
+      "product": "entity-master",
+      "dimension": "identity",
+      "dataStrategy": "SELF-FIRST",
+      "readiness": "INTERNAL-CANDIDATE"
+    },
+    {
+      "product": "canon-strength",
+      "dimension": "identity",
+      "dataStrategy": "SELF-FIRST",
+      "readiness": "INTERNAL-CANDIDATE"
+    },
+    {
+      "product": "market-momentum",
+      "dimension": "market-observation",
+      "dataStrategy": "SELF-FIRST",
+      "readiness": "INTERNAL-CANDIDATE"
+    },
+    {
+      "product": "collector-sentiment",
+      "dimension": "market-observation",
+      "dataStrategy": "SELF-FIRST",
+      "readiness": "INTERNAL-CANDIDATE"
+    },
+    {
+      "product": "price-index",
+      "dimension": "transaction-pricing",
+      "dataStrategy": "HYBRID",
+      "readiness": "HYBRID-CANDIDATE"
+    },
+    {
+      "product": "comparables",
+      "dimension": "transaction-pricing",
+      "dataStrategy": "HYBRID",
+      "readiness": "HYBRID-CANDIDATE"
+    },
+    {
+      "product": "scarcity-signal",
+      "dimension": "availability-inventory",
+      "dataStrategy": "HYBRID",
+      "readiness": "HYBRID-CANDIDATE"
+    },
+    {
+      "product": "availability-monitor",
+      "dimension": "availability-inventory",
+      "dataStrategy": "HYBRID",
+      "readiness": "HYBRID-CANDIDATE"
+    },
+    {
+      "product": "culture-velocity",
+      "dimension": "culture-attention",
+      "dataStrategy": "SELF-FIRST",
+      "readiness": "INTERNAL-CANDIDATE"
+    },
+    {
+      "product": "trend-radar",
+      "dimension": "culture-attention",
+      "dataStrategy": "SELF-FIRST",
+      "readiness": "INTERNAL-CANDIDATE"
+    },
+    {
+      "product": "auction-intelligence",
+      "dimension": "auction-private-sales",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "readiness": "DEPENDENCY-BLOCKED"
+    },
+    {
+      "product": "liquidity-signal",
+      "dimension": "auction-private-sales",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "readiness": "DEPENDENCY-BLOCKED"
+    },
+    {
+      "product": "provenance-confidence",
+      "dimension": "ownership-provenance",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "readiness": "DEPENDENCY-BLOCKED"
+    },
+    {
+      "product": "asset-history",
+      "dimension": "ownership-provenance",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "readiness": "DEPENDENCY-BLOCKED"
+    },
+    {
+      "product": "condition-risk",
+      "dimension": "authentication-condition",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "readiness": "DEPENDENCY-BLOCKED"
+    },
+    {
+      "product": "auth-confidence",
+      "dimension": "authentication-condition",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "readiness": "DEPENDENCY-BLOCKED"
+    },
+    {
+      "product": "category-outlook",
+      "dimension": "macro-category",
+      "dataStrategy": "SELF-FIRST",
+      "readiness": "INTERNAL-CANDIDATE"
+    },
+    {
+      "product": "kidult-100",
+      "dimension": "macro-category",
+      "dataStrategy": "SELF-FIRST",
+      "readiness": "INTERNAL-CANDIDATE"
+    }
+  ],
+  "gates": {
+    "dimensionsClassified": true,
+    "selfFirstPresent": true,
+    "hybridPresent": true,
+    "providerRequiredPresent": true,
+    "providerRequirementsDefined": true,
+    "productMapComplete": true,
+    "providerContactBeforeGapDefinitionBlocked": true,
+    "productionPublicationBlocked": true,
+    "policyGoverned": true
+  },
+  "status": "PASS",
+  "completedAt": "2026-08-09T05:55:37.018Z"
+}
