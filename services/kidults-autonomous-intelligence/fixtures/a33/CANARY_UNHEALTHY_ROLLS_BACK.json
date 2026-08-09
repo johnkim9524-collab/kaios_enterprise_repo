@@ -1,0 +1,20 @@
+{
+  "scenarioId": "CANARY_UNHEALTHY_ROLLS_BACK",
+  "mode": "SIMULATION",
+  "description": "Canary health is UNHEALTHY — automatic rollback is triggered.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "canaryHealth": "UNHEALTHY",
+  "expectedEligibilityState": "READY_FOR_CANARY",
+  "expectedFinalState": "ROLLED_BACK",
+  "expectedPromotionDecision": "ROLLBACK",
+  "expectedBusinessOutcome": "AUTOMATIC_ROLLBACK_EXECUTED"
+}

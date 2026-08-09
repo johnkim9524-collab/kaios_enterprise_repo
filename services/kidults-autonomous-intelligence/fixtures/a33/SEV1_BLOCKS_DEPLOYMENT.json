@@ -1,0 +1,19 @@
+{
+  "scenarioId": "SEV1_BLOCKS_DEPLOYMENT",
+  "mode": "SIMULATION",
+  "description": "Active SEV1 incident blocks deployment eligibility.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": true,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "expectedEligibilityState": "BLOCKED",
+  "expectedFinalState": "BLOCKED",
+  "expectedPromotionDecision": "BLOCK",
+  "expectedBusinessOutcome": "DEPLOYMENT_BLOCKED_BY_SEV1"
+}

@@ -1,0 +1,20 @@
+{
+  "scenarioId": "MISSING_ROLLBACK_TARGET_FAILS_CLOSED",
+  "mode": "SIMULATION",
+  "description": "Rollback target is missing — deployment fails closed. Non-overridable hard stop.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": false,
+  "executiveDecision": "APPROVE_PROMOTION",
+  "expectedEligibilityState": "NOT_ELIGIBLE",
+  "expectedFinalState": "FAILED_CLOSED",
+  "expectedPromotionDecision": "BLOCK",
+  "expectedBusinessOutcome": "MISSING_ROLLBACK_TARGET_HARD_STOP"
+}

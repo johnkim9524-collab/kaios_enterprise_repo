@@ -1,0 +1,19 @@
+{
+  "scenarioId": "CHANGE_FREEZE_BLOCKS_DEPLOYMENT",
+  "mode": "SIMULATION",
+  "description": "Active change freeze blocks deployment eligibility.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": true,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "expectedEligibilityState": "BLOCKED",
+  "expectedFinalState": "BLOCKED",
+  "expectedPromotionDecision": "BLOCK",
+  "expectedBusinessOutcome": "DEPLOYMENT_BLOCKED_BY_CHANGE_FREEZE"
+}

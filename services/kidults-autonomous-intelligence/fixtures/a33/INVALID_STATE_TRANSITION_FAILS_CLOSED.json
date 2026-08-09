@@ -1,0 +1,22 @@
+{
+  "scenarioId": "INVALID_STATE_TRANSITION_FAILS_CLOSED",
+  "mode": "SIMULATION",
+  "description": "An invalid deployment state transition is attempted — fails closed deterministically.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "forcedInvalidTransition": true,
+  "fromState": "NOT_ELIGIBLE",
+  "toState": "PROMOTED",
+  "expectedEligibilityState": "FAILED_CLOSED",
+  "expectedFinalState": "FAILED_CLOSED",
+  "expectedPromotionDecision": "BLOCK",
+  "expectedBusinessOutcome": "INVALID_TRANSITION_REJECTED"
+}

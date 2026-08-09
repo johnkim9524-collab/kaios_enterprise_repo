@@ -1,0 +1,21 @@
+{
+  "scenarioId": "REPEATED_IDENTICAL_EVALUATION_IS_IDEMPOTENT",
+  "mode": "SIMULATION",
+  "description": "Running the same evaluation multiple times produces identical, deterministic results.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "canaryHealth": "HEALTHY",
+  "repeatCount": 3,
+  "expectedEligibilityState": "READY_FOR_CANARY",
+  "expectedFinalState": "PROMOTED",
+  "expectedPromotionDecision": "PROMOTE",
+  "expectedBusinessOutcome": "IDEMPOTENT_EVALUATION_CONFIRMED"
+}

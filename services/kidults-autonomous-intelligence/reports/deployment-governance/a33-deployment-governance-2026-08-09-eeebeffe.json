@@ -1,0 +1,1705 @@
+{
+  "evidenceId": "a33-2026-08-09-a6da35b3",
+  "runId": "a33-2026-08-09-502b38fc45e6",
+  "stage": "A33",
+  "mode": "SIMULATION",
+  "title": "Production Deployment, Canary & Rollback Governance",
+  "generatedAt": "2026-08-09T03:56:14.075Z",
+  "policyVersion": "a33-deployment-governance-policy.v1",
+  "sourceA32Evidence": {
+    "evidenceId": "a32-2026-08-09-b7c10b7d",
+    "certificationPassed": true,
+    "evidenceFresh": true,
+    "generatedAt": "2026-08-09T03:19:37.976Z"
+  },
+  "scenarioCount": 16,
+  "positiveCount": 8,
+  "failClosedCount": 8,
+  "passedCount": 16,
+  "failedCount": 0,
+  "scenarios": [
+    {
+      "scenarioId": "HEALTHY_CANARY_PROMOTES",
+      "category": "POSITIVE",
+      "passed": true,
+      "finalState": "PROMOTED",
+      "promotionDecision": "PROMOTE",
+      "eligibilityState": "READY_FOR_CANARY",
+      "deploymentState": "PROMOTED",
+      "businessOutcome": "DEPLOYMENT_PROMOTED_TO_PRODUCTION",
+      "healthResult": {
+        "health": "HEALTHY",
+        "dimensions": {
+          "availability": "PASS",
+          "errorRate": "PASS",
+          "latency": "PASS",
+          "saturation": "PASS",
+          "functionalVerification": "PASS",
+          "securitySignals": "PASS",
+          "incidentState": "PASS",
+          "providerHealth": "PASS",
+          "dataFreshness": "PASS",
+          "policyCompliance": "PASS"
+        }
+      },
+      "canaryPlan": {
+        "deploymentId": "dep-healthy-canary-promotes-ce23d769",
+        "artifactId": "artifact-2bd03dec",
+        "version": "1.0.0-canary",
+        "sourceCommitSha": "67d45392beb58c265d4b27575cd32d0cdfa4d0ba",
+        "targetEnvironment": "production",
+        "canaryPercentage": 5,
+        "rolloutCohort": "cohort-a",
+        "startTime": "2026-08-09T03:56:14.079Z",
+        "observationWindowMs": 300000,
+        "successThresholds": {
+          "availability": 0.999,
+          "errorRateMax": 0.01,
+          "p99LatencyMs": 500,
+          "functionalVerification": "PASS"
+        },
+        "rollbackThresholds": {
+          "availability": 0.99,
+          "errorRateMax": 0.05,
+          "p99LatencyMs": 2000
+        },
+        "previousStableVersion": "0.9.0",
+        "rollbackArtifact": "rollback-artifact-9d78fef4",
+        "policyVersion": "a33-deployment-governance-policy.v1",
+        "evidenceRefs": [
+          "a32:a32-2026-08-09-b7c10b7d"
+        ],
+        "simulationMode": true
+      },
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "READY_FOR_CANARY",
+          "reasons": []
+        },
+        {
+          "event": "CANARY_PLAN_BUILT",
+          "deploymentId": "dep-healthy-canary-promotes-ce23d769",
+          "canaryPercentage": 5
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "READY_FOR_CANARY",
+          "toState": "CANARY_DEPLOYING",
+          "result": "CANARY_DEPLOYING"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_DEPLOYING",
+          "toState": "CANARY_ACTIVE",
+          "result": "CANARY_ACTIVE"
+        },
+        {
+          "event": "CANARY_HEALTH_EVALUATED",
+          "health": "HEALTHY"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_ACTIVE",
+          "toState": "CANARY_HEALTHY",
+          "result": "CANARY_HEALTHY"
+        },
+        {
+          "event": "PROMOTION_DECISION",
+          "decision": "PROMOTE",
+          "reasons": [
+            "CANARY_HEALTHY"
+          ]
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_HEALTHY",
+          "toState": "PROMOTION_PENDING",
+          "result": "PROMOTION_PENDING"
+        },
+        {
+          "event": "PROMOTION_INITIATED",
+          "deploymentId": "dep-healthy-canary-promotes-ce23d769",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "POST_PROMOTION_VERIFICATION",
+          "result": "PASS"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "PROMOTION_PENDING",
+          "toState": "PROMOTED",
+          "result": "PROMOTED"
+        }
+      ],
+      "evidenceRef": "dep-healthy-canary-promotes-ce23d769",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "CANARY_DEGRADED_DEFERS",
+      "category": "POSITIVE",
+      "passed": true,
+      "finalState": "DEFERRED",
+      "promotionDecision": "DEFER",
+      "eligibilityState": "READY_FOR_CANARY",
+      "deploymentState": "DEFERRED",
+      "businessOutcome": "PROMOTION_DEFERRED_DUE_TO_DEGRADATION",
+      "healthResult": {
+        "health": "DEGRADED",
+        "dimensions": {
+          "availability": "WARN",
+          "errorRate": "WARN",
+          "latency": "WARN",
+          "saturation": "WARN",
+          "functionalVerification": "WARN",
+          "securitySignals": "PASS",
+          "incidentState": "PASS",
+          "providerHealth": "PASS",
+          "dataFreshness": "PASS",
+          "policyCompliance": "PASS"
+        }
+      },
+      "canaryPlan": {
+        "deploymentId": "dep-canary-degraded-defers-25d2df17",
+        "artifactId": "artifact-9bcbebf9",
+        "version": "1.0.0-canary",
+        "sourceCommitSha": "fdde6524a8c8acf9c4d8ecb81155b4fe37929933",
+        "targetEnvironment": "production",
+        "canaryPercentage": 5,
+        "rolloutCohort": "cohort-a",
+        "startTime": "2026-08-09T03:56:14.080Z",
+        "observationWindowMs": 300000,
+        "successThresholds": {
+          "availability": 0.999,
+          "errorRateMax": 0.01,
+          "p99LatencyMs": 500,
+          "functionalVerification": "PASS"
+        },
+        "rollbackThresholds": {
+          "availability": 0.99,
+          "errorRateMax": 0.05,
+          "p99LatencyMs": 2000
+        },
+        "previousStableVersion": "0.9.0",
+        "rollbackArtifact": "rollback-artifact-22c2aefc",
+        "policyVersion": "a33-deployment-governance-policy.v1",
+        "evidenceRefs": [
+          "a32:a32-2026-08-09-b7c10b7d"
+        ],
+        "simulationMode": true
+      },
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "READY_FOR_CANARY",
+          "reasons": []
+        },
+        {
+          "event": "CANARY_PLAN_BUILT",
+          "deploymentId": "dep-canary-degraded-defers-25d2df17",
+          "canaryPercentage": 5
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "READY_FOR_CANARY",
+          "toState": "CANARY_DEPLOYING",
+          "result": "CANARY_DEPLOYING"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_DEPLOYING",
+          "toState": "CANARY_ACTIVE",
+          "result": "CANARY_ACTIVE"
+        },
+        {
+          "event": "CANARY_HEALTH_EVALUATED",
+          "health": "DEGRADED"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_ACTIVE",
+          "toState": "CANARY_DEGRADED",
+          "result": "CANARY_DEGRADED"
+        },
+        {
+          "event": "PROMOTION_DECISION",
+          "decision": "DEFER",
+          "reasons": [
+            "CANARY_DEGRADED"
+          ]
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_DEGRADED",
+          "toState": "DEFERRED",
+          "result": "DEFERRED"
+        }
+      ],
+      "evidenceRef": "dep-canary-degraded-defers-25d2df17",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "CANARY_UNHEALTHY_ROLLS_BACK",
+      "category": "POSITIVE",
+      "passed": true,
+      "finalState": "ROLLED_BACK",
+      "promotionDecision": "ROLLBACK",
+      "eligibilityState": "READY_FOR_CANARY",
+      "deploymentState": "ROLLED_BACK",
+      "businessOutcome": "AUTOMATIC_ROLLBACK_EXECUTED",
+      "healthResult": {
+        "health": "UNHEALTHY",
+        "dimensions": {
+          "availability": "FAIL",
+          "errorRate": "FAIL",
+          "latency": "FAIL",
+          "saturation": "WARN",
+          "functionalVerification": "FAIL",
+          "securitySignals": "PASS",
+          "incidentState": "PASS",
+          "providerHealth": "PASS",
+          "dataFreshness": "PASS",
+          "policyCompliance": "PASS"
+        }
+      },
+      "canaryPlan": {
+        "deploymentId": "dep-canary-unhealthy-rolls-back-37b79f0c",
+        "artifactId": "artifact-5d974626",
+        "version": "1.0.0-canary",
+        "sourceCommitSha": "30bb8d78f5cd4e9a469fb2a4373afb92e3746c7e",
+        "targetEnvironment": "production",
+        "canaryPercentage": 5,
+        "rolloutCohort": "cohort-a",
+        "startTime": "2026-08-09T03:56:14.080Z",
+        "observationWindowMs": 300000,
+        "successThresholds": {
+          "availability": 0.999,
+          "errorRateMax": 0.01,
+          "p99LatencyMs": 500,
+          "functionalVerification": "PASS"
+        },
+        "rollbackThresholds": {
+          "availability": 0.99,
+          "errorRateMax": 0.05,
+          "p99LatencyMs": 2000
+        },
+        "previousStableVersion": "0.9.0",
+        "rollbackArtifact": "rollback-artifact-1d1f35ae",
+        "policyVersion": "a33-deployment-governance-policy.v1",
+        "evidenceRefs": [
+          "a32:a32-2026-08-09-b7c10b7d"
+        ],
+        "simulationMode": true
+      },
+      "rollbackResult": {
+        "success": true,
+        "rollbackId": "rollback-e25e0f66",
+        "targetVersion": "0.9.0",
+        "rollbackArtifact": "rollback-artifact-1d1f35ae",
+        "evidenceGenerated": true,
+        "idempotent": true
+      },
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "READY_FOR_CANARY",
+          "reasons": []
+        },
+        {
+          "event": "CANARY_PLAN_BUILT",
+          "deploymentId": "dep-canary-unhealthy-rolls-back-37b79f0c",
+          "canaryPercentage": 5
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "READY_FOR_CANARY",
+          "toState": "CANARY_DEPLOYING",
+          "result": "CANARY_DEPLOYING"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_DEPLOYING",
+          "toState": "CANARY_ACTIVE",
+          "result": "CANARY_ACTIVE"
+        },
+        {
+          "event": "CANARY_HEALTH_EVALUATED",
+          "health": "UNHEALTHY"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_ACTIVE",
+          "toState": "ROLLBACK_REQUIRED",
+          "result": "ROLLBACK_REQUIRED"
+        },
+        {
+          "event": "ROLLBACK_INITIATED",
+          "rollbackId": "rollback-e25e0f66",
+          "reason": "HEALTH_UNHEALTHY",
+          "rollbackArtifact": "rollback-artifact-1d1f35ae"
+        },
+        {
+          "event": "ROLLBACK_COMPLETED",
+          "rollbackId": "rollback-e25e0f66",
+          "targetVersion": "0.9.0"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "ROLLBACK_REQUIRED",
+          "toState": "ROLLING_BACK",
+          "result": "ROLLING_BACK"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "ROLLING_BACK",
+          "toState": "ROLLED_BACK",
+          "result": "ROLLED_BACK"
+        }
+      ],
+      "evidenceRef": "dep-canary-unhealthy-rolls-back-37b79f0c",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        },
+        {
+          "name": "rollback_was_executed",
+          "passed": true
+        },
+        {
+          "name": "rollback_is_idempotent_flag",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "SECURITY_BLOCK_PREVENTS_DEPLOYMENT",
+      "category": "FAIL_CLOSED",
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "promotionDecision": "BLOCK",
+      "eligibilityState": "BLOCKED",
+      "deploymentState": "FAILED_CLOSED",
+      "businessOutcome": "SECURITY_BLOCK_NON_OVERRIDABLE",
+      "healthResult": null,
+      "canaryPlan": null,
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "BLOCKED",
+          "reasons": [
+            "SECURITY_BLOCK_ACTIVE"
+          ]
+        },
+        {
+          "event": "INVALID_TRANSITION",
+          "fromState": "BLOCKED",
+          "toState": "FAILED_CLOSED",
+          "result": "FAILED_CLOSED"
+        }
+      ],
+      "evidenceRef": "dep-security-block-prevents-deployment-325a90c7",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        },
+        {
+          "name": "security_block_is_non_overridable",
+          "passed": true
+        },
+        {
+          "name": "executive_cannot_override_security_block",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "SEV1_BLOCKS_DEPLOYMENT",
+      "category": "FAIL_CLOSED",
+      "passed": true,
+      "finalState": "BLOCKED",
+      "promotionDecision": "BLOCK",
+      "eligibilityState": "BLOCKED",
+      "deploymentState": "BLOCKED",
+      "businessOutcome": "DEPLOYMENT_BLOCKED_BY_SEV1",
+      "healthResult": null,
+      "canaryPlan": null,
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "BLOCKED",
+          "reasons": [
+            "ACTIVE_SEV1_INCIDENT"
+          ]
+        }
+      ],
+      "evidenceRef": "dep-sev1-blocks-deployment-4be75ec4",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "CHANGE_FREEZE_BLOCKS_DEPLOYMENT",
+      "category": "FAIL_CLOSED",
+      "passed": true,
+      "finalState": "BLOCKED",
+      "promotionDecision": "BLOCK",
+      "eligibilityState": "BLOCKED",
+      "deploymentState": "BLOCKED",
+      "businessOutcome": "DEPLOYMENT_BLOCKED_BY_CHANGE_FREEZE",
+      "healthResult": null,
+      "canaryPlan": null,
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "BLOCKED",
+          "reasons": [
+            "CHANGE_FREEZE_ACTIVE"
+          ]
+        }
+      ],
+      "evidenceRef": "dep-change-freeze-blocks-deployment-af653fab",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "EXECUTIVE_DEFER",
+      "category": "POSITIVE",
+      "passed": true,
+      "finalState": "DEFERRED",
+      "promotionDecision": "DEFER",
+      "eligibilityState": "READY_FOR_CANARY",
+      "deploymentState": "DEFERRED",
+      "businessOutcome": "EXECUTIVE_DEFER_APPLIED",
+      "healthResult": {
+        "health": "HEALTHY",
+        "dimensions": {
+          "availability": "PASS",
+          "errorRate": "PASS",
+          "latency": "PASS",
+          "saturation": "PASS",
+          "functionalVerification": "PASS",
+          "securitySignals": "PASS",
+          "incidentState": "PASS",
+          "providerHealth": "PASS",
+          "dataFreshness": "PASS",
+          "policyCompliance": "PASS"
+        }
+      },
+      "canaryPlan": {
+        "deploymentId": "dep-executive-defer-b32ea497",
+        "artifactId": "artifact-9691560a",
+        "version": "1.0.0-canary",
+        "sourceCommitSha": "290f5fe06f1483f111ffd7fbbf8ff788fc560c9c",
+        "targetEnvironment": "production",
+        "canaryPercentage": 5,
+        "rolloutCohort": "cohort-a",
+        "startTime": "2026-08-09T03:56:14.082Z",
+        "observationWindowMs": 300000,
+        "successThresholds": {
+          "availability": 0.999,
+          "errorRateMax": 0.01,
+          "p99LatencyMs": 500,
+          "functionalVerification": "PASS"
+        },
+        "rollbackThresholds": {
+          "availability": 0.99,
+          "errorRateMax": 0.05,
+          "p99LatencyMs": 2000
+        },
+        "previousStableVersion": "0.9.0",
+        "rollbackArtifact": "rollback-artifact-b67e4252",
+        "policyVersion": "a33-deployment-governance-policy.v1",
+        "evidenceRefs": [
+          "a32:a32-2026-08-09-b7c10b7d"
+        ],
+        "simulationMode": true
+      },
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "READY_FOR_CANARY",
+          "reasons": []
+        },
+        {
+          "event": "CANARY_PLAN_BUILT",
+          "deploymentId": "dep-executive-defer-b32ea497",
+          "canaryPercentage": 5
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "READY_FOR_CANARY",
+          "toState": "CANARY_DEPLOYING",
+          "result": "CANARY_DEPLOYING"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_DEPLOYING",
+          "toState": "CANARY_ACTIVE",
+          "result": "CANARY_ACTIVE"
+        },
+        {
+          "event": "CANARY_HEALTH_EVALUATED",
+          "health": "HEALTHY"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_ACTIVE",
+          "toState": "CANARY_HEALTHY",
+          "result": "CANARY_HEALTHY"
+        },
+        {
+          "event": "PROMOTION_DECISION",
+          "decision": "DEFER",
+          "reasons": [
+            "EXECUTIVE_DEFERRAL"
+          ]
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "PROMOTION_PENDING",
+          "toState": "DEFERRED",
+          "result": "DEFERRED"
+        }
+      ],
+      "evidenceRef": "dep-executive-defer-b32ea497",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "EXECUTIVE_REJECT",
+      "category": "POSITIVE",
+      "passed": true,
+      "finalState": "BLOCKED",
+      "promotionDecision": "BLOCK",
+      "eligibilityState": "READY_FOR_CANARY",
+      "deploymentState": "BLOCKED",
+      "businessOutcome": "EXECUTIVE_REJECTION_APPLIED",
+      "healthResult": {
+        "health": "HEALTHY",
+        "dimensions": {
+          "availability": "PASS",
+          "errorRate": "PASS",
+          "latency": "PASS",
+          "saturation": "PASS",
+          "functionalVerification": "PASS",
+          "securitySignals": "PASS",
+          "incidentState": "PASS",
+          "providerHealth": "PASS",
+          "dataFreshness": "PASS",
+          "policyCompliance": "PASS"
+        }
+      },
+      "canaryPlan": {
+        "deploymentId": "dep-executive-reject-df51d074",
+        "artifactId": "artifact-e32acb4a",
+        "version": "1.0.0-canary",
+        "sourceCommitSha": "22812024b9318049dad5a9721a3880263e0911b1",
+        "targetEnvironment": "production",
+        "canaryPercentage": 5,
+        "rolloutCohort": "cohort-a",
+        "startTime": "2026-08-09T03:56:14.082Z",
+        "observationWindowMs": 300000,
+        "successThresholds": {
+          "availability": 0.999,
+          "errorRateMax": 0.01,
+          "p99LatencyMs": 500,
+          "functionalVerification": "PASS"
+        },
+        "rollbackThresholds": {
+          "availability": 0.99,
+          "errorRateMax": 0.05,
+          "p99LatencyMs": 2000
+        },
+        "previousStableVersion": "0.9.0",
+        "rollbackArtifact": "rollback-artifact-838a14de",
+        "policyVersion": "a33-deployment-governance-policy.v1",
+        "evidenceRefs": [
+          "a32:a32-2026-08-09-b7c10b7d"
+        ],
+        "simulationMode": true
+      },
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "READY_FOR_CANARY",
+          "reasons": []
+        },
+        {
+          "event": "CANARY_PLAN_BUILT",
+          "deploymentId": "dep-executive-reject-df51d074",
+          "canaryPercentage": 5
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "READY_FOR_CANARY",
+          "toState": "CANARY_DEPLOYING",
+          "result": "CANARY_DEPLOYING"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_DEPLOYING",
+          "toState": "CANARY_ACTIVE",
+          "result": "CANARY_ACTIVE"
+        },
+        {
+          "event": "CANARY_HEALTH_EVALUATED",
+          "health": "HEALTHY"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_ACTIVE",
+          "toState": "CANARY_HEALTHY",
+          "result": "CANARY_HEALTHY"
+        },
+        {
+          "event": "PROMOTION_DECISION",
+          "decision": "BLOCK",
+          "reasons": [
+            "EXECUTIVE_REJECTION"
+          ]
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "PROMOTION_PENDING",
+          "toState": "BLOCKED",
+          "result": "BLOCKED"
+        }
+      ],
+      "evidenceRef": "dep-executive-reject-df51d074",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "EXECUTIVE_APPROVE",
+      "category": "POSITIVE",
+      "passed": true,
+      "finalState": "PROMOTED",
+      "promotionDecision": "PROMOTE",
+      "eligibilityState": "READY_FOR_CANARY",
+      "deploymentState": "PROMOTED",
+      "businessOutcome": "EXECUTIVE_APPROVE_AND_PROMOTE",
+      "healthResult": {
+        "health": "HEALTHY",
+        "dimensions": {
+          "availability": "PASS",
+          "errorRate": "PASS",
+          "latency": "PASS",
+          "saturation": "PASS",
+          "functionalVerification": "PASS",
+          "securitySignals": "PASS",
+          "incidentState": "PASS",
+          "providerHealth": "PASS",
+          "dataFreshness": "PASS",
+          "policyCompliance": "PASS"
+        }
+      },
+      "canaryPlan": {
+        "deploymentId": "dep-executive-approve-70d65c9d",
+        "artifactId": "artifact-8592ca83",
+        "version": "1.0.0-canary",
+        "sourceCommitSha": "2051e85aa288e8ea5871d9773f21c109ab4f2ac6",
+        "targetEnvironment": "production",
+        "canaryPercentage": 5,
+        "rolloutCohort": "cohort-a",
+        "startTime": "2026-08-09T03:56:14.083Z",
+        "observationWindowMs": 300000,
+        "successThresholds": {
+          "availability": 0.999,
+          "errorRateMax": 0.01,
+          "p99LatencyMs": 500,
+          "functionalVerification": "PASS"
+        },
+        "rollbackThresholds": {
+          "availability": 0.99,
+          "errorRateMax": 0.05,
+          "p99LatencyMs": 2000
+        },
+        "previousStableVersion": "0.9.0",
+        "rollbackArtifact": "rollback-artifact-9ae57205",
+        "policyVersion": "a33-deployment-governance-policy.v1",
+        "evidenceRefs": [
+          "a32:a32-2026-08-09-b7c10b7d"
+        ],
+        "simulationMode": true
+      },
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "READY_FOR_CANARY",
+          "reasons": []
+        },
+        {
+          "event": "CANARY_PLAN_BUILT",
+          "deploymentId": "dep-executive-approve-70d65c9d",
+          "canaryPercentage": 5
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "READY_FOR_CANARY",
+          "toState": "CANARY_DEPLOYING",
+          "result": "CANARY_DEPLOYING"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_DEPLOYING",
+          "toState": "CANARY_ACTIVE",
+          "result": "CANARY_ACTIVE"
+        },
+        {
+          "event": "CANARY_HEALTH_EVALUATED",
+          "health": "HEALTHY"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_ACTIVE",
+          "toState": "CANARY_HEALTHY",
+          "result": "CANARY_HEALTHY"
+        },
+        {
+          "event": "PROMOTION_DECISION",
+          "decision": "PROMOTE",
+          "reasons": [
+            "EXECUTIVE_APPROVED",
+            "CANARY_HEALTHY"
+          ]
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_HEALTHY",
+          "toState": "PROMOTION_PENDING",
+          "result": "PROMOTION_PENDING"
+        },
+        {
+          "event": "PROMOTION_INITIATED",
+          "deploymentId": "dep-executive-approve-70d65c9d",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "POST_PROMOTION_VERIFICATION",
+          "result": "PASS"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "PROMOTION_PENDING",
+          "toState": "PROMOTED",
+          "result": "PROMOTED"
+        }
+      ],
+      "evidenceRef": "dep-executive-approve-70d65c9d",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "MISSING_ROLLBACK_TARGET_FAILS_CLOSED",
+      "category": "FAIL_CLOSED",
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "promotionDecision": "BLOCK",
+      "eligibilityState": "NOT_ELIGIBLE",
+      "deploymentState": "FAILED_CLOSED",
+      "businessOutcome": "MISSING_ROLLBACK_TARGET_HARD_STOP",
+      "healthResult": null,
+      "canaryPlan": null,
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "NOT_ELIGIBLE",
+          "reasons": [
+            "ROLLBACK_TARGET_MISSING"
+          ]
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "NOT_ELIGIBLE",
+          "toState": "FAILED_CLOSED",
+          "result": "FAILED_CLOSED"
+        }
+      ],
+      "evidenceRef": "dep-missing-rollback-target-fails-closed-38bc3bec",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        },
+        {
+          "name": "missing_rollback_is_hard_stop",
+          "passed": true
+        },
+        {
+          "name": "executive_cannot_override_missing_rollback",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "STALE_A32_EVIDENCE_FAILS_CLOSED",
+      "category": "FAIL_CLOSED",
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "promotionDecision": "BLOCK",
+      "eligibilityState": "NOT_ELIGIBLE",
+      "deploymentState": "FAILED_CLOSED",
+      "businessOutcome": "STALE_EVIDENCE_HARD_STOP",
+      "healthResult": null,
+      "canaryPlan": null,
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "NOT_ELIGIBLE",
+          "reasons": [
+            "POLICY_EVIDENCE_STALE"
+          ]
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "NOT_ELIGIBLE",
+          "toState": "FAILED_CLOSED",
+          "result": "FAILED_CLOSED"
+        }
+      ],
+      "evidenceRef": "dep-stale-a32-evidence-fails-closed-c47727f4",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        },
+        {
+          "name": "stale_evidence_prevents_eligibility",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "UNKNOWN_HEALTH_FAILS_CLOSED",
+      "category": "FAIL_CLOSED",
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "promotionDecision": "BLOCK",
+      "eligibilityState": "READY_FOR_CANARY",
+      "deploymentState": "FAILED_CLOSED",
+      "businessOutcome": "UNKNOWN_HEALTH_FAILS_CLOSED",
+      "healthResult": {
+        "health": "UNKNOWN",
+        "dimensions": {
+          "availability": "FAIL",
+          "errorRate": "FAIL",
+          "latency": "FAIL",
+          "saturation": "WARN",
+          "functionalVerification": "WARN",
+          "securitySignals": "PASS",
+          "incidentState": "PASS",
+          "providerHealth": "PASS",
+          "dataFreshness": "PASS",
+          "policyCompliance": "PASS"
+        }
+      },
+      "canaryPlan": {
+        "deploymentId": "dep-unknown-health-fails-closed-05b01bae",
+        "artifactId": "artifact-88ff6618",
+        "version": "1.0.0-canary",
+        "sourceCommitSha": "67232cfeb9db608691814cd145734a8928ef458b",
+        "targetEnvironment": "production",
+        "canaryPercentage": 5,
+        "rolloutCohort": "cohort-a",
+        "startTime": "2026-08-09T03:56:14.083Z",
+        "observationWindowMs": 300000,
+        "successThresholds": {
+          "availability": 0.999,
+          "errorRateMax": 0.01,
+          "p99LatencyMs": 500,
+          "functionalVerification": "PASS"
+        },
+        "rollbackThresholds": {
+          "availability": 0.99,
+          "errorRateMax": 0.05,
+          "p99LatencyMs": 2000
+        },
+        "previousStableVersion": "0.9.0",
+        "rollbackArtifact": "rollback-artifact-63fb81e0",
+        "policyVersion": "a33-deployment-governance-policy.v1",
+        "evidenceRefs": [
+          "a32:a32-2026-08-09-b7c10b7d"
+        ],
+        "simulationMode": true
+      },
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "READY_FOR_CANARY",
+          "reasons": []
+        },
+        {
+          "event": "CANARY_PLAN_BUILT",
+          "deploymentId": "dep-unknown-health-fails-closed-05b01bae",
+          "canaryPercentage": 5
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "READY_FOR_CANARY",
+          "toState": "CANARY_DEPLOYING",
+          "result": "CANARY_DEPLOYING"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_DEPLOYING",
+          "toState": "CANARY_ACTIVE",
+          "result": "CANARY_ACTIVE"
+        },
+        {
+          "event": "CANARY_HEALTH_EVALUATED",
+          "health": "UNKNOWN"
+        },
+        {
+          "event": "HARD_STOP",
+          "reason": "CANARY_HEALTH_UNKNOWN",
+          "fromState": "CANARY_ACTIVE"
+        }
+      ],
+      "evidenceRef": "dep-unknown-health-fails-closed-05b01bae",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        },
+        {
+          "name": "unknown_health_blocks_promotion",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "PROVIDER_UNAVAILABLE_BLOCKS",
+      "category": "FAIL_CLOSED",
+      "passed": true,
+      "finalState": "BLOCKED",
+      "promotionDecision": "BLOCK",
+      "eligibilityState": "BLOCKED",
+      "deploymentState": "BLOCKED",
+      "businessOutcome": "PROVIDER_UNAVAILABLE_DEPLOYMENT_BLOCKED",
+      "healthResult": null,
+      "canaryPlan": null,
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "BLOCKED",
+          "reasons": [
+            "PROVIDER_UNAVAILABLE"
+          ]
+        }
+      ],
+      "evidenceRef": "dep-provider-unavailable-blocks-1dc931bb",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "POST_PROMOTION_VERIFY_FAILURE_ROLLBACK",
+      "category": "POSITIVE",
+      "passed": true,
+      "finalState": "ROLLED_BACK",
+      "promotionDecision": "ROLLBACK",
+      "eligibilityState": "READY_FOR_CANARY",
+      "deploymentState": "ROLLED_BACK",
+      "businessOutcome": "POST_PROMOTION_ROLLBACK_EXECUTED",
+      "healthResult": {
+        "health": "HEALTHY",
+        "dimensions": {
+          "availability": "PASS",
+          "errorRate": "PASS",
+          "latency": "PASS",
+          "saturation": "PASS",
+          "functionalVerification": "PASS",
+          "securitySignals": "PASS",
+          "incidentState": "PASS",
+          "providerHealth": "PASS",
+          "dataFreshness": "PASS",
+          "policyCompliance": "PASS"
+        }
+      },
+      "canaryPlan": {
+        "deploymentId": "dep-post-promotion-verify-failure-rollback-3f189290",
+        "artifactId": "artifact-7eedf87b",
+        "version": "1.0.0-canary",
+        "sourceCommitSha": "cb2a289823aad9fa8df424319a9c77a00db05dd2",
+        "targetEnvironment": "production",
+        "canaryPercentage": 5,
+        "rolloutCohort": "cohort-a",
+        "startTime": "2026-08-09T03:56:14.084Z",
+        "observationWindowMs": 300000,
+        "successThresholds": {
+          "availability": 0.999,
+          "errorRateMax": 0.01,
+          "p99LatencyMs": 500,
+          "functionalVerification": "PASS"
+        },
+        "rollbackThresholds": {
+          "availability": 0.99,
+          "errorRateMax": 0.05,
+          "p99LatencyMs": 2000
+        },
+        "previousStableVersion": "0.9.0",
+        "rollbackArtifact": "rollback-artifact-f7bc8d3f",
+        "policyVersion": "a33-deployment-governance-policy.v1",
+        "evidenceRefs": [
+          "a32:a32-2026-08-09-b7c10b7d"
+        ],
+        "simulationMode": true
+      },
+      "rollbackResult": {
+        "success": true,
+        "rollbackId": "rollback-aa84ab76",
+        "targetVersion": "0.9.0",
+        "rollbackArtifact": "rollback-artifact-f7bc8d3f",
+        "evidenceGenerated": true,
+        "idempotent": true
+      },
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "READY_FOR_CANARY",
+          "reasons": []
+        },
+        {
+          "event": "CANARY_PLAN_BUILT",
+          "deploymentId": "dep-post-promotion-verify-failure-rollback-3f189290",
+          "canaryPercentage": 5
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "READY_FOR_CANARY",
+          "toState": "CANARY_DEPLOYING",
+          "result": "CANARY_DEPLOYING"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_DEPLOYING",
+          "toState": "CANARY_ACTIVE",
+          "result": "CANARY_ACTIVE"
+        },
+        {
+          "event": "CANARY_HEALTH_EVALUATED",
+          "health": "HEALTHY"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_ACTIVE",
+          "toState": "CANARY_HEALTHY",
+          "result": "CANARY_HEALTHY"
+        },
+        {
+          "event": "PROMOTION_DECISION",
+          "decision": "PROMOTE",
+          "reasons": [
+            "CANARY_HEALTHY"
+          ]
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_HEALTHY",
+          "toState": "PROMOTION_PENDING",
+          "result": "PROMOTION_PENDING"
+        },
+        {
+          "event": "PROMOTION_INITIATED",
+          "deploymentId": "dep-post-promotion-verify-failure-rollback-3f189290",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "POST_PROMOTION_VERIFICATION",
+          "result": "FAIL"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "PROMOTION_PENDING",
+          "toState": "ROLLBACK_REQUIRED",
+          "result": "ROLLBACK_REQUIRED"
+        },
+        {
+          "event": "ROLLBACK_INITIATED",
+          "rollbackId": "rollback-aa84ab76",
+          "reason": "POST_PROMOTION_VERIFY_FAILURE",
+          "rollbackArtifact": "rollback-artifact-f7bc8d3f"
+        },
+        {
+          "event": "ROLLBACK_COMPLETED",
+          "rollbackId": "rollback-aa84ab76",
+          "targetVersion": "0.9.0"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "ROLLBACK_REQUIRED",
+          "toState": "ROLLING_BACK",
+          "result": "ROLLING_BACK"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "ROLLING_BACK",
+          "toState": "ROLLED_BACK",
+          "result": "ROLLED_BACK"
+        }
+      ],
+      "evidenceRef": "dep-post-promotion-verify-failure-rollback-3f189290",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        },
+        {
+          "name": "rollback_was_executed",
+          "passed": true
+        },
+        {
+          "name": "rollback_is_idempotent_flag",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 1
+    },
+    {
+      "scenarioId": "INVALID_STATE_TRANSITION_FAILS_CLOSED",
+      "category": "FAIL_CLOSED",
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "deploymentState": "FAILED_CLOSED",
+      "businessOutcome": "INVALID_TRANSITION_REJECTED",
+      "promotionDecision": "BLOCK",
+      "auditTrail": [
+        {
+          "event": "INVALID_TRANSITION",
+          "fromState": "NOT_ELIGIBLE",
+          "toState": "PROMOTED",
+          "result": "FAILED_CLOSED"
+        }
+      ],
+      "tests": [
+        {
+          "name": "invalid_transition_fails_closed",
+          "passed": true
+        }
+      ],
+      "evidenceRef": "dep-invalid-state-transition-fails-closed-7ba029cc",
+      "policyVersion": "a33-deployment-governance-policy.v1"
+    },
+    {
+      "scenarioId": "REPEATED_IDENTICAL_EVALUATION_IS_IDEMPOTENT",
+      "category": "POSITIVE",
+      "passed": true,
+      "finalState": "PROMOTED",
+      "promotionDecision": "PROMOTE",
+      "eligibilityState": "READY_FOR_CANARY",
+      "deploymentState": "PROMOTED",
+      "businessOutcome": "IDEMPOTENT_EVALUATION_CONFIRMED",
+      "healthResult": {
+        "health": "HEALTHY",
+        "dimensions": {
+          "availability": "PASS",
+          "errorRate": "PASS",
+          "latency": "PASS",
+          "saturation": "PASS",
+          "functionalVerification": "PASS",
+          "securitySignals": "PASS",
+          "incidentState": "PASS",
+          "providerHealth": "PASS",
+          "dataFreshness": "PASS",
+          "policyCompliance": "PASS"
+        }
+      },
+      "canaryPlan": {
+        "deploymentId": "dep-repeated-identical-evaluation-is-idempotent-69f9d41a",
+        "artifactId": "artifact-73c98080",
+        "version": "1.0.0-canary",
+        "sourceCommitSha": "f7a1ac6fa7d7a1c84358bdd6347b20c24609c487",
+        "targetEnvironment": "production",
+        "canaryPercentage": 5,
+        "rolloutCohort": "cohort-a",
+        "startTime": "2026-08-09T03:56:14.084Z",
+        "observationWindowMs": 300000,
+        "successThresholds": {
+          "availability": 0.999,
+          "errorRateMax": 0.01,
+          "p99LatencyMs": 500,
+          "functionalVerification": "PASS"
+        },
+        "rollbackThresholds": {
+          "availability": 0.99,
+          "errorRateMax": 0.05,
+          "p99LatencyMs": 2000
+        },
+        "previousStableVersion": "0.9.0",
+        "rollbackArtifact": "rollback-artifact-0806d3e3",
+        "policyVersion": "a33-deployment-governance-policy.v1",
+        "evidenceRefs": [
+          "a32:a32-2026-08-09-b7c10b7d"
+        ],
+        "simulationMode": true
+      },
+      "rollbackResult": null,
+      "auditTrail": [
+        {
+          "event": "ELIGIBILITY_EVALUATED",
+          "state": "READY_FOR_CANARY",
+          "reasons": []
+        },
+        {
+          "event": "CANARY_PLAN_BUILT",
+          "deploymentId": "dep-repeated-identical-evaluation-is-idempotent-69f9d41a",
+          "canaryPercentage": 5
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "READY_FOR_CANARY",
+          "toState": "CANARY_DEPLOYING",
+          "result": "CANARY_DEPLOYING"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_DEPLOYING",
+          "toState": "CANARY_ACTIVE",
+          "result": "CANARY_ACTIVE"
+        },
+        {
+          "event": "CANARY_HEALTH_EVALUATED",
+          "health": "HEALTHY"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_ACTIVE",
+          "toState": "CANARY_HEALTHY",
+          "result": "CANARY_HEALTHY"
+        },
+        {
+          "event": "PROMOTION_DECISION",
+          "decision": "PROMOTE",
+          "reasons": [
+            "CANARY_HEALTHY"
+          ]
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "CANARY_HEALTHY",
+          "toState": "PROMOTION_PENDING",
+          "result": "PROMOTION_PENDING"
+        },
+        {
+          "event": "PROMOTION_INITIATED",
+          "deploymentId": "dep-repeated-identical-evaluation-is-idempotent-69f9d41a",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "POST_PROMOTION_VERIFICATION",
+          "result": "PASS"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "PROMOTION_PENDING",
+          "toState": "PROMOTED",
+          "result": "PROMOTED"
+        }
+      ],
+      "evidenceRef": "dep-repeated-identical-evaluation-is-idempotent-69f9d41a",
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "noProductionMutation": true,
+      "tests": [
+        {
+          "name": "final_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "promotion_decision_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "eligibility_state_matches_expected",
+          "passed": true
+        },
+        {
+          "name": "audit_trail_populated",
+          "passed": true
+        },
+        {
+          "name": "evidence_ref_present",
+          "passed": true
+        },
+        {
+          "name": "all_repeats_same_final_state",
+          "passed": true
+        },
+        {
+          "name": "all_repeats_same_decision",
+          "passed": true
+        }
+      ],
+      "idempotencyVerified": true,
+      "repeatCount": 3
+    }
+  ],
+  "invariants": {
+    "a32CertificationIsMandatory": true,
+    "productionPromotionCannotOccurDirectly": true,
+    "rollbackTargetIsMandatory": true,
+    "securityBlockIsNonOverridable": true,
+    "unknownCriticalStateFailsClosed": true,
+    "promotionRequiresHealthyCanary": true,
+    "executiveOverrideCannotBypassHardStops": true,
+    "repeatedEvaluationsAreIdempotent": true,
+    "everyDecisionEmitsEvidence": true,
+    "noProductionMutationDuringCertification": true,
+    "a15ToA32ControlsPreserved": true,
+    "invalidTransitionFailsClosed": true,
+    "executiveApproveCanPromoteHealthyCanary": true,
+    "executiveRejectBlocksPromotion": true,
+    "rollbackIsIdempotent": true,
+    "postPromotionVerificationRollback": true
+  },
+  "invariantPassCount": 16,
+  "invariantTotal": 16,
+  "certification": {
+    "allScenariosPassed": true,
+    "allInvariantsPassed": true,
+    "certificationPassed": true
+  },
+  "deploymentStateModel": [
+    "NOT_ELIGIBLE",
+    "READY_FOR_CANARY",
+    "CANARY_DEPLOYING",
+    "CANARY_ACTIVE",
+    "CANARY_HEALTHY",
+    "CANARY_DEGRADED",
+    "PROMOTION_PENDING",
+    "PROMOTED",
+    "ROLLBACK_REQUIRED",
+    "ROLLING_BACK",
+    "ROLLED_BACK",
+    "BLOCKED",
+    "DEFERRED",
+    "FAILED_CLOSED"
+  ],
+  "noProductionMutation": true,
+  "completedAt": "2026-08-09T03:56:14.085Z"
+}

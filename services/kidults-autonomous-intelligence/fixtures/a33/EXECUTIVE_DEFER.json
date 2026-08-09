@@ -1,0 +1,21 @@
+{
+  "scenarioId": "EXECUTIVE_DEFER",
+  "mode": "SIMULATION",
+  "description": "Executive defers promotion — deployment is paused with audit trail.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "canaryHealth": "HEALTHY",
+  "executiveDecision": "DEFER_PROMOTION",
+  "expectedEligibilityState": "READY_FOR_CANARY",
+  "expectedFinalState": "DEFERRED",
+  "expectedPromotionDecision": "DEFER",
+  "expectedBusinessOutcome": "EXECUTIVE_DEFER_APPLIED"
+}

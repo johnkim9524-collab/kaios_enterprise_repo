@@ -1,0 +1,19 @@
+{
+  "scenarioId": "STALE_A32_EVIDENCE_FAILS_CLOSED",
+  "mode": "SIMULATION",
+  "description": "A32 policy evidence is stale — deployment fails closed.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": false,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "expectedEligibilityState": "NOT_ELIGIBLE",
+  "expectedFinalState": "FAILED_CLOSED",
+  "expectedPromotionDecision": "BLOCK",
+  "expectedBusinessOutcome": "STALE_EVIDENCE_HARD_STOP"
+}

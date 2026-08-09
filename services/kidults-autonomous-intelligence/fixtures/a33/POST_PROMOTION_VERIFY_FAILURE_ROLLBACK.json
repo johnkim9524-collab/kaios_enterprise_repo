@@ -1,0 +1,21 @@
+{
+  "scenarioId": "POST_PROMOTION_VERIFY_FAILURE_ROLLBACK",
+  "mode": "SIMULATION",
+  "description": "Post-promotion verification fails — automatic rollback is triggered.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "canaryHealth": "HEALTHY",
+  "postPromotionVerification": "FAIL",
+  "expectedEligibilityState": "READY_FOR_CANARY",
+  "expectedFinalState": "ROLLED_BACK",
+  "expectedPromotionDecision": "ROLLBACK",
+  "expectedBusinessOutcome": "POST_PROMOTION_ROLLBACK_EXECUTED"
+}

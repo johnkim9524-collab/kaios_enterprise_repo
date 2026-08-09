@@ -1,0 +1,20 @@
+{
+  "scenarioId": "UNKNOWN_HEALTH_FAILS_CLOSED",
+  "mode": "SIMULATION",
+  "description": "Canary health is UNKNOWN — promotion is blocked and fails closed.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "canaryHealth": "UNKNOWN",
+  "expectedEligibilityState": "READY_FOR_CANARY",
+  "expectedFinalState": "FAILED_CLOSED",
+  "expectedPromotionDecision": "BLOCK",
+  "expectedBusinessOutcome": "UNKNOWN_HEALTH_FAILS_CLOSED"
+}

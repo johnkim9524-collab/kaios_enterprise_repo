@@ -1,0 +1,20 @@
+{
+  "scenarioId": "SECURITY_BLOCK_PREVENTS_DEPLOYMENT",
+  "mode": "SIMULATION",
+  "description": "Security block is active — deployment is blocked and fails closed. Non-overridable.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": true,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "executiveDecision": "APPROVE_PROMOTION",
+  "expectedEligibilityState": "BLOCKED",
+  "expectedFinalState": "FAILED_CLOSED",
+  "expectedPromotionDecision": "BLOCK",
+  "expectedBusinessOutcome": "SECURITY_BLOCK_NON_OVERRIDABLE"
+}
