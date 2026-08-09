@@ -7,6 +7,7 @@ on:
       - 'services/kidults-autonomous-intelligence/scripts/a36-economic-governance.mjs'
       - 'services/kidults-autonomous-intelligence/fixtures/a36/**'
       - 'services/kidults-autonomous-intelligence/package.json'
+      - 'services/kidults-autonomous-intelligence/package-lock.json'
       - '.github/workflows/kidults-a36-economic-governance.yml'
 
 concurrency:
@@ -27,11 +28,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
 
       - name: Install dependencies
         working-directory: services/kidults-autonomous-intelligence
-        run: npm install
+        run: npm ci --no-audit --no-fund
 
       - name: Verify A36 package scripts exist
         working-directory: services/kidults-autonomous-intelligence
