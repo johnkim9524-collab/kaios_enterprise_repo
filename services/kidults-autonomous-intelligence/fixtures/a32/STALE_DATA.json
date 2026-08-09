@@ -1,0 +1,13 @@
+{
+  "scenarioId": "STALE_DATA",
+  "mode": "SIMULATION",
+  "description": "Critical evidence is stale — all unsafe operations must be blocked.",
+  "stageStates": {
+    "a18": "STALE",
+    "a19": "STALE",
+    "a20": "STALE"
+  },
+  "staleSince": "30d",
+  "expectedFinalState": "FAILED_CLOSED",
+  "expectedBusinessOutcome": "STALE_EVIDENCE_BLOCKED"
+}

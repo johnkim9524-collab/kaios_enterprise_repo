@@ -1,0 +1,26 @@
+{
+  "scenarioId": "HEALTHY_FULL_CHAIN",
+  "mode": "SIMULATION",
+  "description": "All stages healthy — no executive action required.",
+  "stageStates": {
+    "a15": "HEALTHY",
+    "a16": "HEALTHY",
+    "a17": "HEALTHY",
+    "a18": "HEALTHY",
+    "a19": "NO_GAP",
+    "a20": "READY",
+    "a21": "COMPLETE",
+    "a22": "ELIGIBLE",
+    "a23": "ELIGIBLE",
+    "a24": "APPROVED",
+    "a25": "RUNNING",
+    "a26": "STANDBY",
+    "a27": "SLO_HEALTHY",
+    "a28": "SNAPSHOT_FRESH",
+    "a29": "NO_DECISION_REQUIRED",
+    "a30": "UI_HEALTHY",
+    "a31": "GATEWAY_HEALTHY"
+  },
+  "expectedFinalState": "HEALTHY",
+  "expectedBusinessOutcome": "NO_EXECUTIVE_ACTION_REQUIRED"
+}

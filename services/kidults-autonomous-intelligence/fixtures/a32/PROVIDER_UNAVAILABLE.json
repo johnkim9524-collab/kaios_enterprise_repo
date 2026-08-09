@@ -1,0 +1,11 @@
+{
+  "scenarioId": "PROVIDER_UNAVAILABLE",
+  "mode": "SIMULATION",
+  "description": "Primary data provider is unavailable — expansion must be blocked.",
+  "stageStates": {
+    "a17": "UNAVAILABLE",
+    "a18": "PARTIAL"
+  },
+  "expectedFinalState": "FAILED_CLOSED",
+  "expectedBusinessOutcome": "PROVIDER_FAILURE_CONTAINED"
+}

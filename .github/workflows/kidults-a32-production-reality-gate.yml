@@ -1,0 +1,86 @@
+name: Kidults A32 Production Reality Gate & End-to-End Live Acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'services/kidults-autonomous-intelligence/scripts/a32-production-reality-gate.mjs'
+      - 'services/kidults-autonomous-intelligence/fixtures/a32/**'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'scripts/a32-production-reality-gate.mjs'
+      - '.github/workflows/kidults-a32-production-reality-gate.yml'
+
+concurrency:
+  group: kidults-a32-production-reality-gate
+  cancel-in-progress: false
+
+jobs:
+  a32-production-reality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm install
+
+      - name: Verify A32 package scripts exist
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json','utf-8'));
+            const required = ['a32:reality', 'a32:certify', 'a32:finalize'];
+            const missing = required.filter(s => !pkg.scripts[s]);
+            if (missing.length) { console.error('MISSING SCRIPTS:', missing.join(', ')); process.exit(1); }
+            console.log('A32 scripts present:', required.join(', '));
+          "
+
+      - name: Typecheck
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+
+      - name: Run A32 production reality gate
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a32:reality
+        env:
+          A32_MODE: SIMULATION
+
+      - name: Run A32 certify
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a32:certify
+        env:
+          A32_MODE: SIMULATION
+
+      - name: Run upstream A31 certification tests
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a31:certify
+
+      - name: Run upstream A29 certification tests
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a29:certify
+
+      - name: Run upstream A28 certification tests
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a28:certify
+
+      - name: List package scripts
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run
+
+      - name: Upload A32 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: a32-production-reality-evidence
+          path: services/kidults-autonomous-intelligence/reports/production-reality/
+          retention-days: 90
+          if-no-files-found: error
