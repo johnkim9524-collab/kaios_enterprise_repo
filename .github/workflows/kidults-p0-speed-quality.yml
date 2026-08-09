@@ -5,6 +5,7 @@ on:
     paths:
       - 'services/kidults-autonomous-intelligence/**'
       - '.github/workflows/kidults-p0-speed-quality.yml'
+      - '.github/workflows/kidults-live-open-data-operation.yml'
   workflow_dispatch:
 
 concurrency:
@@ -59,6 +60,9 @@ jobs:
 
       - name: Unified autonomous preflight with real public data
         run: node scripts/p0-unified-preflight-gate.mjs
+
+      - name: Real external open-data operational run
+        run: node scripts/live-open-data-operation.mjs
 
       - name: A25-A40 simulation regression
         env:
@@ -119,7 +123,7 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      - name: Upload truth and preflight evidence
+      - name: Upload truth, preflight and live-open-data evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -127,5 +131,6 @@ jobs:
           path: |
             services/kidults-autonomous-intelligence/reports/truth-layer/truth-gate-latest.json
             services/kidults-autonomous-intelligence/reports/preflight/unified-preflight-latest.json
+            services/kidults-autonomous-intelligence/reports/live-open-data/live-open-data-latest.json
           retention-days: 30
           if-no-files-found: error
