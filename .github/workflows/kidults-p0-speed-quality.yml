@@ -33,6 +33,9 @@ jobs:
           cache: npm
           cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
 
+      - name: Critical CI determinism audit
+        run: node scripts/p0-critical-ci-audit.mjs
+
       - name: Repository quality audit before dependency install
         run: npm run quality:audit
 
@@ -94,12 +97,14 @@ jobs:
         if: always()
         run: npm run quality:audit
 
-      - name: Upload engineering audit
+      - name: Upload engineering audits
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kidults-p0-engineering-quality-audit
-          path: services/kidults-autonomous-intelligence/reports/engineering-hardening/quality-audit-latest.json
+          path: |
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/quality-audit-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/critical-ci-audit-latest.json
           retention-days: 30
           if-no-files-found: error
 
