@@ -6,6 +6,8 @@ on:
     paths:
       - 'services/kidults-autonomous-intelligence/src/executive-orchestration/**'
       - 'services/kidults-autonomous-intelligence/scripts/a29-executive-decision-orchestration.mjs'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'services/kidults-autonomous-intelligence/package-lock.json'
       - 'contracts/a29-executive-decision-orchestration-policy.json'
 
 concurrency:
@@ -26,11 +28,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
 
       - name: Install dependencies
         working-directory: services/kidults-autonomous-intelligence
-        run: npm install
+        run: npm ci --no-audit --no-fund
 
       - name: Verify A29 package scripts exist
         working-directory: services/kidults-autonomous-intelligence
