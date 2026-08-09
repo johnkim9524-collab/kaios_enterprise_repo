@@ -42,6 +42,75 @@ type IngestInput = {
   metrics: MetricInput[];
 };
 
+type IndexSnapshotRow = {
+  run_id: string;
+  kidult100: number;
+  sentiment_index: number | null;
+  canon_strength: number | null;
+  market_velocity: number | null;
+  active_listings: number | null;
+  confidence: number;
+  coverage_brands: number;
+  source_families: number;
+  category_count: number;
+  evidence_count: number;
+  production_eligible: number | boolean;
+  methodology_version: string;
+  finished_at: string;
+};
+
+type CategorySnapshotRow = {
+  category: string;
+  score: number;
+  confidence: number;
+  lifecycle_stage: string;
+  market_velocity: number | null;
+  liquidity: number | null;
+};
+
+type PreviousIndexRow = {
+  kidult100: number;
+  finished_at: string;
+};
+
+type NamedCountRow = {
+  name: string;
+  count: number;
+};
+
+type RegionCountRow = {
+  region: string;
+  count: number;
+};
+
+type EvidenceGradeRow = {
+  grade: string;
+  count: number;
+};
+
+type PublishedSnapshotRow = {
+  payload_json: string;
+  payload_hash: string;
+  published_at: string;
+};
+
+type EvidenceLookupRow = {
+  id: string;
+  source_id: string;
+  entity_id: string;
+  external_id: string | null;
+  observed_at: string;
+  ingested_at: string;
+  payload_hash: string;
+  provenance_url: string | null;
+  provenance_label: string | null;
+  license_code: string | null;
+  evidence_grade: string;
+  confidence: number;
+  status: string;
+  supersedes_id: string | null;
+};
+
 const CATEGORY_WEIGHTS: Record<string, number> = {
   market_activity: 0.32,
   cultural_momentum: 0.24,
@@ -291,41 +360,42 @@ async function runIntelligence(env: Env, triggerType: string) {
   return { runId, inputEvidenceCount, categoryCount: categorySnapshots.length, productionEligible };
 }
 
+function toPercent<T extends { count: number }>(rows: readonly T[]): Array<T & { value: number }> {
+  const total = rows.reduce((sum,row)=>sum+Number(row.count||0),0) || 1;
+  let used=0;
+  return rows.map((row,index)=>{
+    const value=index===rows.length-1?100-used:Math.round((Number(row.count||0)/total)*100);
+    used+=value;
+    return {...row,value};
+  });
+}
+
 async function buildPortalPayload(env: Env, runId?: string) {
   const index = runId
-    ? await env.DB.prepare(`SELECT i.*,r.methodology_version,r.finished_at FROM index_snapshots i JOIN intelligence_runs r ON r.id=i.run_id WHERE i.run_id=?`).bind(runId).first<any>()
-    : await env.DB.prepare(`SELECT i.*,r.methodology_version,r.finished_at FROM index_snapshots i JOIN intelligence_runs r ON r.id=i.run_id WHERE r.status='succeeded' ORDER BY r.finished_at DESC LIMIT 1`).first<any>();
+    ? await env.DB.prepare(`SELECT i.*,r.methodology_version,r.finished_at FROM index_snapshots i JOIN intelligence_runs r ON r.id=i.run_id WHERE i.run_id=?`).bind(runId).first<IndexSnapshotRow>()
+    : await env.DB.prepare(`SELECT i.*,r.methodology_version,r.finished_at FROM index_snapshots i JOIN intelligence_runs r ON r.id=i.run_id WHERE r.status='succeeded' ORDER BY r.finished_at DESC LIMIT 1`).first<IndexSnapshotRow>();
   if (!index) return null;
 
-  const categories = await env.DB.prepare(`SELECT * FROM category_snapshots WHERE run_id=? ORDER BY score DESC,category ASC`).bind(index.run_id).all<any>();
-  const previous = await env.DB.prepare(`SELECT i.kidult100,r.finished_at FROM index_snapshots i JOIN intelligence_runs r ON r.id=i.run_id WHERE r.status='succeeded' AND r.finished_at<? ORDER BY r.finished_at DESC LIMIT 1`).bind(index.finished_at).first<any>();
+  const categories = await env.DB.prepare(`SELECT * FROM category_snapshots WHERE run_id=? ORDER BY score DESC,category ASC`).bind(index.run_id).all<CategorySnapshotRow>();
+  const previous = await env.DB.prepare(`SELECT i.kidult100,r.finished_at FROM index_snapshots i JOIN intelligence_runs r ON r.id=i.run_id WHERE r.status='succeeded' AND r.finished_at<? ORDER BY r.finished_at DESC LIMIT 1`).bind(index.finished_at).first<PreviousIndexRow>();
   const change30d = previous?.kidult100 ? round1(((index.kidult100 - previous.kidult100) / previous.kidult100) * 100) : 0;
 
-  const sourceRows = await env.DB.prepare(`SELECT source_family AS name,COUNT(*) AS count FROM source_registry WHERE is_active=1 GROUP BY source_family ORDER BY count DESC,name`).all<any>();
-  const regionRows = await env.DB.prepare(`SELECT COALESCE(region,'Other') AS region,COUNT(*) AS count FROM source_registry WHERE is_active=1 GROUP BY COALESCE(region,'Other') ORDER BY count DESC,region`).all<any>();
-  const evidenceGrades = await env.DB.prepare(`SELECT evidence_grade AS grade,COUNT(*) AS count FROM evidence_ledger WHERE status='accepted' GROUP BY evidence_grade`).all<any>();
+  const sourceRows = await env.DB.prepare(`SELECT source_family AS name,COUNT(*) AS count FROM source_registry WHERE is_active=1 GROUP BY source_family ORDER BY count DESC,name`).all<NamedCountRow>();
+  const regionRows = await env.DB.prepare(`SELECT COALESCE(region,'Other') AS region,COUNT(*) AS count FROM source_registry WHERE is_active=1 GROUP BY COALESCE(region,'Other') ORDER BY count DESC,region`).all<RegionCountRow>();
+  const evidenceGrades = await env.DB.prepare(`SELECT evidence_grade AS grade,COUNT(*) AS count FROM evidence_ledger WHERE status='accepted' GROUP BY evidence_grade`).all<EvidenceGradeRow>();
 
-  const toPercent = (rows:any[], key='count') => {
-    const total = rows.reduce((sum,row)=>sum+Number(row[key]||0),0) || 1;
-    let used=0;
-    return rows.map((row,index)=>{
-      const value=index===rows.length-1?100-used:Math.round((Number(row[key]||0)/total)*100);
-      used+=value; return {...row,value};
-    });
-  };
-
-  const sourceComposition = toPercent(sourceRows.results || []).slice(0,5).map(({name,value}:any)=>({name,value}));
-  const geography = toPercent(regionRows.results || []).slice(0,5).map(({region,value}:any)=>({region,value}));
-  const gradeMap = new Map((evidenceGrades.results || []).map((row:any)=>[row.grade,Number(row.count)]));
+  const sourceComposition = toPercent(sourceRows.results || []).slice(0,5).map(({name,value})=>({name,value}));
+  const geography = toPercent(regionRows.results || []).slice(0,5).map(({region,value})=>({region,value}));
+  const gradeMap = new Map((evidenceGrades.results || []).map((row)=>[row.grade,Number(row.count)]));
   const gradeRows = ['A','B','C','D'].map((grade)=>({grade,count:gradeMap.get(grade)||0}));
-  const confidenceDistribution = toPercent(gradeRows).map(({grade,value}:any)=>({grade,value}));
+  const confidenceDistribution = toPercent(gradeRows).map(({grade,value})=>({grade,value}));
 
-  const categoriesData=(categories.results||[]).map((row:any)=>({
+  const categoriesData=(categories.results||[]).map((row)=>({
     name:row.category, score:round1(row.score), confidence:round1(row.confidence), state:row.lifecycle_stage,
     velocity:row.market_velocity===null?0:round2(row.market_velocity), liquidity:row.liquidity===null?0:round1(row.liquidity),
   }));
-  const movers=categoriesData.slice(0,5).map((item:any,index:number)=>({name:item.name,change:index===0?round1(change30d):0}));
-  const lifecycle=categoriesData.slice(0,4).map((item:any)=>({name:item.name,stage:item.state,score:Math.round(item.score)}));
+  const movers=categoriesData.slice(0,5).map((item,index)=>({name:item.name,change:index===0?round1(change30d):0}));
+  const lifecycle=categoriesData.slice(0,4).map((item)=>({name:item.name,stage:item.state,score:Math.round(item.score)}));
 
   return {
     status: index.production_eligible ? 'production-ready' : 'staging',
@@ -372,13 +442,13 @@ async function route(request: Request, env: Env) {
     return json({ok:db?.ok===1,service:'kidults-autonomous-intelligence',environment:env.KIDULTS_ENV,methodologyVersion:env.METHODOLOGY_VERSION});
   }
   if (request.method==='GET' && url.pathname==='/v1/intelligence/current') {
-    const published=await env.DB.prepare(`SELECT payload_json,payload_hash,published_at FROM publication_snapshots WHERE channel='portal' AND status='published' ORDER BY published_at DESC LIMIT 1`).first<any>();
+    const published=await env.DB.prepare(`SELECT payload_json,payload_hash,published_at FROM publication_snapshots WHERE channel='portal' AND status='published' ORDER BY published_at DESC LIMIT 1`).first<PublishedSnapshotRow>();
     if (!published) return json({error:'no published snapshot'}, {status:404});
     return new Response(published.payload_json,{headers:{'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=60','etag':`"${published.payload_hash}"`,'x-kidults-published-at':published.published_at}});
   }
   if (request.method==='GET' && url.pathname.startsWith('/v1/evidence/')) {
     const evidenceId=url.pathname.split('/').pop()!;
-    const row=await env.DB.prepare(`SELECT id,source_id,entity_id,external_id,observed_at,ingested_at,payload_hash,provenance_url,provenance_label,license_code,evidence_grade,confidence,status,supersedes_id FROM evidence_ledger WHERE id=?`).bind(evidenceId).first();
+    const row=await env.DB.prepare(`SELECT id,source_id,entity_id,external_id,observed_at,ingested_at,payload_hash,provenance_url,provenance_label,license_code,evidence_grade,confidence,status,supersedes_id FROM evidence_ledger WHERE id=?`).bind(evidenceId).first<EvidenceLookupRow>();
     return row?json(row):json({error:'not found'},{status:404});
   }
   if (request.method==='POST' && url.pathname==='/internal/ingest') return ingest(request,env);
@@ -393,7 +463,11 @@ export default {
   fetch(request: Request, env: Env): Promise<Response> {
     return route(request,env).catch(async(error)=>{
       const message=error instanceof Error?error.message:String(error);
-      try { await env.DB.prepare(`INSERT INTO audit_log (id,event_type,actor,details_json,created_at) VALUES (?,'runtime.error','worker',?,?)`).bind(makeId('audit'),JSON.stringify({message}),nowIso()).run(); } catch {}
+      try {
+        await env.DB.prepare(`INSERT INTO audit_log (id,event_type,actor,details_json,created_at) VALUES (?,'runtime.error','worker',?,?)`).bind(makeId('audit'),JSON.stringify({message}),nowIso()).run();
+      } catch (auditError) {
+        void auditError;
+      }
       return json({error:'internal_error',message:env.KIDULTS_ENV==='production'?'Internal error':message},{status:500});
     });
   },
