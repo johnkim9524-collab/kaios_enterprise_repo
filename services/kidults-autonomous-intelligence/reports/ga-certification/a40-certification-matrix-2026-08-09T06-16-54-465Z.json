@@ -1,0 +1,556 @@
+{
+  "generatedAt": "2026-08-09T06:16:54.465Z",
+  "requiredStageRange": "A15-A39",
+  "certificationMatrix": [
+    {
+      "stage": "A15",
+      "purpose": "Global autonomous policy foundation",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a15-policy-1786254932332",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/policy/a15-policy-1786254932332.json",
+        "generatedAt": "2026-08-09T05:55:32.332Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "policyVersion": "1.0.0",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "ROOT"
+    },
+    {
+      "stage": "A16",
+      "purpose": "Autonomous execution control plane",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a16-execution-control-1786254932483",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/execution-control/a16-execution-control-1786254932483.json",
+        "generatedAt": "2026-08-09T05:55:32.483Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "policyVersion": null,
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A17",
+      "purpose": "Bounded live adapter governance",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a17-bounded-live-1786254932632",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/execution-control/a17-bounded-live-1786254932632.json",
+        "generatedAt": "2026-08-09T05:55:32.632Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "policyVersion": null,
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A18",
+      "purpose": "Autonomous data acquisition scale",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a18-million-1786254935253",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/data-acquisition/a18-million-1786254935253.json",
+        "generatedAt": "2026-08-09T05:55:35.253Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "policyVersion": "1.0",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A19",
+      "purpose": "Data productization gap certification",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a19-gap-1786254937018",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/productization/a19-gap-1786254937018.json",
+        "generatedAt": "2026-08-09T05:55:37.018Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "policyVersion": null,
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A20",
+      "purpose": "Product readiness monetization gate",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a20-product-readiness-1786254938751",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/product-readiness/a20-product-readiness-1786254938751.json",
+        "generatedAt": "2026-08-09T05:55:38.750Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "policyVersion": null,
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A21",
+      "purpose": "Autonomous intelligence product pipeline",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a21-pipeline-2026-08-09-36cea328234ba784",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/product-pipeline/a21-pipeline-1786254940477.json",
+        "generatedAt": "2026-08-09T05:55:40.477Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "policyVersion": null,
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A22",
+      "purpose": "Publication control governance",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a22-publication-control-2026-08-09-68e56f36cd514287",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/publication-control/a22-publication-control-1786254942217.json",
+        "generatedAt": "2026-08-09T05:55:42.216Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 12,
+        "total": 12
+      },
+      "policyVersion": "a22-publication-channel-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A23",
+      "purpose": "Commercial delivery control",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a23-commercial-delivery-2026-08-08-ab295b47507e6a7f",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/commercial-delivery/a23-commercial-delivery-1786209460203.json",
+        "generatedAt": "2026-08-08T17:17:40.203Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 90,
+        "total": 90
+      },
+      "invariantResult": {
+        "passed": 22,
+        "total": 22
+      },
+      "policyVersion": "a23-commercial-delivery-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A24",
+      "purpose": "Production activation gate",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "act-54c0c46a6ccd",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/production-activation/a24-production-activation-1786213695954.json",
+        "generatedAt": "2026-08-08T18:28:15.954Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 18,
+        "total": 18
+      },
+      "invariantResult": {
+        "passed": 20,
+        "total": 20
+      },
+      "policyVersion": "a24-production-activation-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A25",
+      "purpose": "Autonomous production runtime",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a25-runtime-2026-08-08-92431bdf",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/runtime/a25-runtime-2026-08-08-92431bdf.json",
+        "generatedAt": "2026-08-08T18:41:00.758Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 7,
+        "total": 7
+      },
+      "policyVersion": "a25-runtime-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A26",
+      "purpose": "Recovery resilience",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a26-recovery-2026-08-08-e29be0ba",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/recovery/a26-recovery-2026-08-08-e29be0ba.json",
+        "generatedAt": "2026-08-08T18:55:30.935Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 11,
+        "total": 11
+      },
+      "policyVersion": "a26-recovery-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A27",
+      "purpose": "Operational governance and escalation",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a27-governance-2026-08-08-610c54b1",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/operations/a27-governance-2026-08-08-610c54b1.json",
+        "generatedAt": "2026-08-08T19:35:23.326Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 7,
+        "total": 7
+      },
+      "policyVersion": "a27-operational-governance-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A28",
+      "purpose": "Executive control tower governance",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a28-control-tower-2026-08-09-55f44ecf",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/control-tower/a28-control-tower-2026-08-09-55f44ecf.json",
+        "generatedAt": "2026-08-09T01:25:10.565Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "policyVersion": "a28-executive-governance-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A29",
+      "purpose": "Executive decision orchestration",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a29-executive-decision-2026-08-08-a25fdc06",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/executive-decisions/a29-executive-decision-2026-08-08-a25fdc06.json",
+        "generatedAt": "2026-08-08T20:33:39.945Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 12,
+        "total": 12
+      },
+      "invariantResult": {
+        "passed": 26,
+        "total": 26
+      },
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A30",
+      "purpose": "Executive control tower UI contract",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a30-control-tower-ui-2026-08-09-3d4d84c5",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/control-tower-ui/a30-control-tower-ui-2026-08-09-3d4d84c5.json",
+        "generatedAt": "2026-08-09T01:31:29.419Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 28,
+        "total": 28
+      },
+      "policyVersion": "a29-executive-decision-orchestration-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A31",
+      "purpose": "Governed action gateway",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a31-control-tower-gateway-2026-08-09-25d045ba",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/control-tower-gateway/a31-control-tower-gateway-2026-08-09-25d045ba.json",
+        "generatedAt": "2026-08-09T01:23:57.918Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 0,
+        "total": 0
+      },
+      "invariantResult": {
+        "passed": 29,
+        "total": 29
+      },
+      "policyVersion": "a31-gateway-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A32",
+      "purpose": "Production reality gate",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a32-2026-08-09-eebc74e7e301",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/production-reality/a32-production-reality-a32-2026-08-09-eebc74e7e301.json",
+        "generatedAt": "2026-08-09T03:19:37.976Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 24,
+        "total": 24
+      },
+      "invariantResult": {
+        "passed": 41,
+        "total": 41
+      },
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A33",
+      "purpose": "Deployment governance and canary rollback",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a33-2026-08-09-a6da35b3",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/deployment-governance/a33-deployment-governance-2026-08-09-eeebeffe.json",
+        "generatedAt": "2026-08-09T03:56:14.075Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 16,
+        "total": 16
+      },
+      "invariantResult": {
+        "passed": 16,
+        "total": 16
+      },
+      "policyVersion": "a33-deployment-governance-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A34",
+      "purpose": "Continuous production assurance",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a34-2026-08-09-deff5eeb86db",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/production-assurance/a34-production-assurance-2026-08-09-1a92f33e.json",
+        "generatedAt": "2026-08-09T05:55:43.947Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 16,
+        "total": 16
+      },
+      "invariantResult": {
+        "passed": 20,
+        "total": 20
+      },
+      "policyVersion": "a34-production-assurance-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A35",
+      "purpose": "Capacity governance and protected reserves",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a35-2026-08-09-bb4b7d4d1f50",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/capacity-governance/a35-capacity-governance-2026-08-09-8fe54da1.json",
+        "generatedAt": "2026-08-09T04:48:53.905Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 17,
+        "total": 17
+      },
+      "invariantResult": {
+        "passed": 24,
+        "total": 24
+      },
+      "policyVersion": "a35-capacity-governance-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A36",
+      "purpose": "Economic governance and hard budget stops",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a36-2026-08-09-5e5c3897b680",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-9b99da55.json",
+        "generatedAt": "2026-08-09T05:05:31.119Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 18,
+        "total": 18
+      },
+      "invariantResult": {
+        "passed": 29,
+        "total": 29
+      },
+      "policyVersion": "a36-economic-governance-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A37",
+      "purpose": "Commercial governance and rights controls",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a37-2026-08-09-32de15a6a37f",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-f942864d.json",
+        "generatedAt": "2026-08-09T05:23:36.737Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 20,
+        "total": 20
+      },
+      "invariantResult": {
+        "passed": 35,
+        "total": 35
+      },
+      "policyVersion": "a37-commercial-governance-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A38",
+      "purpose": "Customer value delivery boundaries",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a38-2026-08-09-87b6cb2d4e22",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/customer-value-delivery/a38-customer-value-delivery-2026-08-09-4dccc245.json",
+        "generatedAt": "2026-08-09T05:55:45.689Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 20,
+        "total": 20
+      },
+      "invariantResult": {
+        "passed": 20,
+        "total": 20
+      },
+      "policyVersion": "a38-customer-value-delivery-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    },
+    {
+      "stage": "A39",
+      "purpose": "Enterprise autonomous operations acceptance",
+      "classification": "CRITICAL",
+      "certificationEvidence": {
+        "evidenceId": "a39-2026-08-09-4e6c0f5361fb",
+        "evidencePath": "services/kidults-autonomous-intelligence/reports/enterprise-acceptance/a39-enterprise-acceptance-2026-08-09T05-58-42-521Z.json",
+        "generatedAt": "2026-08-09T05:58:42.521Z"
+      },
+      "certificationResult": "PASS",
+      "scenarioResult": {
+        "passed": 24,
+        "total": 24
+      },
+      "invariantResult": {
+        "passed": 26,
+        "total": 26
+      },
+      "policyVersion": "a39-enterprise-acceptance-policy.v1",
+      "evidenceFreshness": "FRESH",
+      "upstreamDependencyState": "UPSTREAM_CERTIFIED"
+    }
+  ]
+}

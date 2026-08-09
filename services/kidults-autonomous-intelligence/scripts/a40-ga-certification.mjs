@@ -9,7 +9,6 @@ const ROOT = path.resolve(__dirname, '..');
 const REPO_ROOT = path.resolve(ROOT, '..', '..');
 const REPORT_DIR = path.join(ROOT, 'reports', 'ga-certification');
 const FIXTURES_DIR = path.join(ROOT, 'fixtures', 'a40');
-const DOC_PATH = path.join(REPO_ROOT, 'docs', 'kidults', 'A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md');
 const PACKAGE_PATH = path.join(ROOT, 'package.json');
 
 const SUPPORTED_MODES = ['SIMULATION', 'EVIDENCE', 'LIVE_SAFE'];
@@ -431,17 +430,29 @@ function applyFixtureMutations(authoritativeInventory, fixture) {
 }
 
 function validateBackchain(inventoryMap) {
-  const missingStages = STAGE_DEFINITIONS.filter((definition) => definition.stage !== 'A39' && inventoryMap[definition.stage]?.present !== true).map(
-    (definition) => definition.stage,
-  );
+  const requiredUpstreamStages = STAGE_DEFINITIONS.filter((definition) => definition.stage !== 'A39').map((definition) => definition.stage);
+  const missingStages = requiredUpstreamStages.filter((stage) => inventoryMap[stage]?.present !== true);
   const uncertifiedStages = STAGE_DEFINITIONS.filter((definition) => inventoryMap[definition.stage]?.certificationPassed !== true).map(
     (definition) => definition.stage,
   );
+  const a39 = inventoryMap.A39;
+  const a39Inventory = Array.isArray(a39?.report?.stageEvidenceInventory) ? a39.report.stageEvidenceInventory : [];
+  const a39Range = a39?.report?.requiredStageRange;
+  const a39Invariants = a39?.report?.crossStageInvariantResults ?? {};
   return {
     checkId: 'A15_TO_A39_CHAIN_CERTIFIED',
-    passed: missingStages.length === 0 && uncertifiedStages.length === 0,
+    passed:
+      missingStages.length === 0 &&
+      uncertifiedStages.length === 0 &&
+      a39?.present === true &&
+      a39?.certificationPassed === true &&
+      a39Range === 'A15-A38' &&
+      a39Inventory.length >= 24 &&
+      a39Invariants.a39DoesNotWeakenA15ToA38TestsOrPolicies === true,
     missingStages,
     uncertifiedStages,
+    a39Range,
+    a39InventoryCount: a39Inventory.length,
   };
 }
 
@@ -474,7 +485,7 @@ function validateDirectAdjacency(stage, inventoryMap) {
 function validateChainContinuity(inventory) {
   const inventoryMap = buildInventoryMap(inventory);
   const checks = [validateBackchain(inventoryMap)];
-  for (const definition of STAGE_DEFINITIONS.filter((entry) => entry.previousStage)) {
+  for (const definition of STAGE_DEFINITIONS.filter((entry) => ['A33', 'A34', 'A35', 'A36', 'A37', 'A38', 'A39'].includes(entry.stage))) {
     const check = validateDirectAdjacency(definition.stage, inventoryMap);
     if (check) checks.push(check);
   }
@@ -834,6 +845,11 @@ function buildResidualRisks(inventory, continuity, repositoryBaseline, criticalC
 function deriveFailureCodes(context, fixture) {
   const codes = [];
   const { inventory, repositoryBaseline, continuity, operationalReadiness, rollbackReadiness, recoveryReadiness, governance, externalMutation, executiveAuthority } = context;
+  const hasEvidenceGaps =
+    continuity.missingStages.length > 0 ||
+    continuity.unreadableStages.length > 0 ||
+    continuity.uncertifiedStages.length > 0 ||
+    continuity.staleStages.length > 0;
 
   if (repositoryBaseline.dirty) codes.push({ code: 'DIRTY_WORKING_TREE', detail: 'Tracked or untracked changes detected.' });
   if (repositoryBaseline.branch !== 'main') codes.push({ code: 'NON_MAIN_BRANCH', detail: repositoryBaseline.branch });
@@ -862,9 +878,15 @@ function deriveFailureCodes(context, fixture) {
   if (Object.values(operationalReadiness).some((value) => value !== 'READY')) codes.push({ code: 'PRECHECK_FAILURE', detail: 'Operational readiness incomplete' });
   if (Object.values(rollbackReadiness).some((value) => value !== true)) codes.push({ code: 'ROLLBACK_NOT_READY', detail: 'Rollback readiness incomplete' });
   if (Object.values(recoveryReadiness).some((value) => value !== true)) codes.push({ code: 'RECOVERY_NOT_READY', detail: 'Recovery readiness incomplete' });
-  if (!governance.preserved) codes.push({ code: 'GOVERNANCE_BOUNDARY_ERODED', detail: 'Governance boundaries not fully preserved' });
-  if (externalMutation.prohibited !== true) codes.push({ code: 'UNAUTHORIZED_EXTERNAL_MUTATION', detail: externalMutation.status });
-  if (executiveAuthority.preserved !== true) codes.push({ code: 'EXECUTIVE_AUTHORITY_EXPANDED', detail: executiveAuthority.status });
+  if (!hasEvidenceGaps && !governance.preserved) {
+    codes.push({ code: 'GOVERNANCE_BOUNDARY_ERODED', detail: 'Governance boundaries not fully preserved' });
+  }
+  if (!hasEvidenceGaps && externalMutation.prohibited !== true) {
+    codes.push({ code: 'UNAUTHORIZED_EXTERNAL_MUTATION', detail: externalMutation.status });
+  }
+  if (!hasEvidenceGaps && executiveAuthority.preserved !== true) {
+    codes.push({ code: 'EXECUTIVE_AUTHORITY_EXPANDED', detail: executiveAuthority.status });
+  }
 
   for (const injected of fixture?.mutations?.injectedFailures ?? []) {
     codes.push({ code: injected.code, stage: injected.stage ?? null, detail: injected.detail ?? injected.code });
