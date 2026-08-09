@@ -1,0 +1,17 @@
+{
+  "scenarioId": "P0_CAPACITY_REMAINS_PROTECTED",
+  "category": "CAPACITY_GOVERNANCE",
+  "description": "P0 capacity protection must remain preserved.",
+  "expectedState": "CHAIN_DEGRADED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["P0_CAPACITY_PROTECTED"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "P0_CAPACITY_PROTECTED",
+        "stage": "A35",
+        "detail": "p0_capacity_cannot_be_consumed"
+      }
+    ]
+  }
+}

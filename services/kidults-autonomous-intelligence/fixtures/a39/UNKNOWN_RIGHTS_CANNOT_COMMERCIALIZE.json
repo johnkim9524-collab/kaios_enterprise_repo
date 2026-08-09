@@ -1,0 +1,17 @@
+{
+  "scenarioId": "UNKNOWN_RIGHTS_CANNOT_COMMERCIALIZE",
+  "category": "COMMERCIAL_GOVERNANCE",
+  "description": "Unknown rights must block commercialization and enterprise acceptance.",
+  "expectedState": "CHAIN_DEGRADED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["RIGHTS_UNKNOWN"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "RIGHTS_UNKNOWN",
+        "stage": "A37",
+        "detail": "unknown_rights_cannot_commercialize"
+      }
+    ]
+  }
+}

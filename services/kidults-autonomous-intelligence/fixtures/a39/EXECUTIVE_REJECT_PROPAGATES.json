@@ -1,0 +1,17 @@
+{
+  "scenarioId": "EXECUTIVE_REJECT_PROPAGATES",
+  "category": "EXECUTIVE_GOVERNANCE",
+  "description": "Executive rejection must block enterprise acceptance.",
+  "expectedState": "ACCEPTANCE_BLOCKED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["EXECUTIVE_REJECT"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "EXECUTIVE_REJECT",
+        "stage": "A29",
+        "detail": "authoritative_reject_propagates"
+      }
+    ]
+  }
+}

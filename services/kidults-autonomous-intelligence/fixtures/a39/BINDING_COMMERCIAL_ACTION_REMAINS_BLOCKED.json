@@ -1,0 +1,17 @@
+{
+  "scenarioId": "BINDING_COMMERCIAL_ACTION_REMAINS_BLOCKED",
+  "category": "COMMERCIAL",
+  "description": "Binding commercial action must remain blocked during certification.",
+  "expectedState": "CHAIN_DEGRADED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["BINDING_COMMERCIAL_ACTION_BLOCKED"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "BINDING_COMMERCIAL_ACTION_BLOCKED",
+        "stage": "A37",
+        "detail": "binding_offer_dispatch_blocked"
+      }
+    ]
+  }
+}

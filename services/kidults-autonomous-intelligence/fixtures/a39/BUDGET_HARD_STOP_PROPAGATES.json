@@ -1,0 +1,17 @@
+{
+  "scenarioId": "BUDGET_HARD_STOP_PROPAGATES",
+  "category": "ECONOMIC_GOVERNANCE",
+  "description": "Budget hard stops must propagate without downstream disappearance.",
+  "expectedState": "CHAIN_DEGRADED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["BUDGET_HARD_STOP"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "BUDGET_HARD_STOP",
+        "stage": "A36",
+        "detail": "hard_budget_limit_blocks_spend"
+      }
+    ]
+  }
+}

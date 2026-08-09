@@ -1,0 +1,15 @@
+{
+  "scenarioId": "STALE_CRITICAL_EVIDENCE_BLOCKS_ACCEPTANCE",
+  "category": "EVIDENCE_DISCOVERY",
+  "description": "Stale critical evidence must block enterprise acceptance.",
+  "expectedState": "ACCEPTANCE_BLOCKED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["STALE_CRITICAL_EVIDENCE"],
+  "mutations": {
+    "stageOverrides": {
+      "A32": {
+        "freshnessStatus": "STALE"
+      }
+    }
+  }
+}

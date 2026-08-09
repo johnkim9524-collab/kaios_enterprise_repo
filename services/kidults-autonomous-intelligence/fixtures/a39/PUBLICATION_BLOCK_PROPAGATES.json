@@ -1,0 +1,17 @@
+{
+  "scenarioId": "PUBLICATION_BLOCK_PROPAGATES",
+  "category": "PUBLICATION_GOVERNANCE",
+  "description": "Publication blocks must prevent enterprise acceptance.",
+  "expectedState": "ACCEPTANCE_BLOCKED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["PUBLICATION_BLOCK"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "PUBLICATION_BLOCK",
+        "stage": "A22",
+        "detail": "publication_eligibility_blocked"
+      }
+    ]
+  }
+}

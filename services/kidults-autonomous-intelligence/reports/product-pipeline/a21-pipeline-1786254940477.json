@@ -1,0 +1,1780 @@
+{
+  "stage": "A21",
+  "mode": "autonomous-intelligence-product-pipeline",
+  "status": "PASS",
+  "runId": "a21-pipeline-2026-08-09-36cea328234ba784",
+  "startedAt": "2026-08-09T05:55:40.473Z",
+  "completedAt": "2026-08-09T05:55:40.477Z",
+  "pipelineStages": [
+    "policy",
+    "preflight",
+    "acquire",
+    "normalize",
+    "validate",
+    "derive",
+    "score",
+    "package",
+    "publication-gate",
+    "evidence",
+    "rollback-recovery"
+  ],
+  "policyLifecycle": [
+    "Policy",
+    "Preflight",
+    "Plan",
+    "Authorize",
+    "Execute",
+    "Verify",
+    "Evidence",
+    "Finalize"
+  ],
+  "thresholds": {
+    "provenance": 0.8,
+    "quality": 0.75,
+    "freshness": 0.7,
+    "canaryPublication": 0.68,
+    "internalMonetization": 0.72
+  },
+  "configuration": {
+    "maxConcurrentProducts": 6,
+    "maxRetries": 2,
+    "retryBackoffMs": 50
+  },
+  "summary": {
+    "totalProducts": 18,
+    "complete": 10,
+    "blocked": 8,
+    "error": 0,
+    "selfFirst": 8,
+    "hybrid": 4,
+    "providerRequired": 6,
+    "canaryEligible": 8,
+    "internalOnly": 0,
+    "productionBlocked": 10
+  },
+  "consumedEvidence": [
+    "A15 global autonomous policy foundation",
+    "A16 autonomous execution control plane",
+    "A17 bounded live adapter readiness",
+    "A18 autonomous data acquisition scale",
+    "A19 data coverage productization gap",
+    "A20 intelligence product readiness monetization gate"
+  ],
+  "preflight": {
+    "passed": true,
+    "checks": {
+      "a19EvidenceAvailable": true,
+      "a20ReadinessModelConsumed": true,
+      "canonicalProductCountVerified": true,
+      "dimensionCountVerified": true,
+      "providerRequirementsConsumed": true,
+      "noProductionTarget": true,
+      "noProviderCredentials": true,
+      "noBillingScope": true,
+      "pipelineStagesComplete": true,
+      "inputFingerprintStable": true,
+      "concurrencyBounded": true,
+      "retriesBounded": true
+    }
+  },
+  "products": [
+    {
+      "product": "entity-master",
+      "dimension": "identity",
+      "dataStrategy": "SELF-FIRST",
+      "pipelineStatus": "COMPLETE",
+      "stages": {
+        "policy": {
+          "phase": "product:entity-master",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "entity-master",
+          "strategy": "SELF-FIRST",
+          "acquired": true,
+          "acquisitionClass": "INTERNAL_COMPLETE",
+          "coverageRatio": 0.97,
+          "rawRecords": 97000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "entity-master",
+          "normalized": true,
+          "normalizedRecords": 97000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "d929aa08c5856abc"
+        },
+        "validate": {
+          "product": "entity-master",
+          "valid": true,
+          "provenanceCoverage": 0.98,
+          "quality": 0.95,
+          "freshness": 0.91,
+          "blockingReasons": []
+        },
+        "derive": {
+          "product": "entity-master",
+          "derived": true,
+          "derivationClass": "AUTONOMOUS_DERIVED",
+          "autonomousDerivation": 0.99,
+          "repeatability": 0.97
+        },
+        "score": {
+          "product": "entity-master",
+          "scored": true,
+          "pipelineReadiness": 0.91,
+          "publicationReadiness": 0.91,
+          "monetizationReadiness": 0.95,
+          "dependencyRisk": 0.03
+        },
+        "package": {
+          "product": "entity-master",
+          "packaged": true,
+          "packageClass": "INTERNAL_READY",
+          "stableId": "kidults.identity.entity-master.v1",
+          "provenance": {
+            "runId": "a21-pipeline-2026-08-09-36cea328234ba784",
+            "dimension": "identity",
+            "dataStrategy": "SELF-FIRST",
+            "commercialLayer": "CORE_DATA",
+            "a19Classification": {
+              "dimension": "identity",
+              "dataStrategy": "SELF-FIRST"
+            },
+            "a20ReadinessClass": "INTERNAL_READY",
+            "a20MonetizationClass": "MONETIZABLE_INTERNAL",
+            "a20PublicationClass": "CANARY_ELIGIBLE"
+          },
+          "pipelineReadiness": 0.91,
+          "publicationReadiness": 0.91,
+          "monetizationReadiness": 0.95,
+          "dependencyRisk": 0.03,
+          "freshnessTs": "2026-08-09T05:55:40.473Z"
+        },
+        "publicationGate": {
+          "product": "entity-master",
+          "gateClass": "CANARY_ELIGIBLE",
+          "passed": true,
+          "reason": "canary-eligible-internal-use-only"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "INTERNAL_READY",
+        "monetizationClass": "MONETIZABLE_INTERNAL",
+        "publicationClass": "CANARY_ELIGIBLE"
+      }
+    },
+    {
+      "product": "canon-strength",
+      "dimension": "identity",
+      "dataStrategy": "SELF-FIRST",
+      "pipelineStatus": "COMPLETE",
+      "stages": {
+        "policy": {
+          "phase": "product:canon-strength",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "canon-strength",
+          "strategy": "SELF-FIRST",
+          "acquired": true,
+          "acquisitionClass": "INTERNAL_COMPLETE",
+          "coverageRatio": 0.92,
+          "rawRecords": 92000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "canon-strength",
+          "normalized": true,
+          "normalizedRecords": 92000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "b83f94f00d6337e0"
+        },
+        "validate": {
+          "product": "canon-strength",
+          "valid": true,
+          "provenanceCoverage": 0.94,
+          "quality": 0.91,
+          "freshness": 0.88,
+          "blockingReasons": []
+        },
+        "derive": {
+          "product": "canon-strength",
+          "derived": true,
+          "derivationClass": "AUTONOMOUS_DERIVED",
+          "autonomousDerivation": 0.96,
+          "repeatability": 0.93
+        },
+        "score": {
+          "product": "canon-strength",
+          "scored": true,
+          "pipelineReadiness": 0.88,
+          "publicationReadiness": 0.88,
+          "monetizationReadiness": 0.91,
+          "dependencyRisk": 0.08
+        },
+        "package": {
+          "product": "canon-strength",
+          "packaged": true,
+          "packageClass": "INTERNAL_READY",
+          "stableId": "kidults.identity.canon-strength.v1",
+          "provenance": {
+            "runId": "a21-pipeline-2026-08-09-36cea328234ba784",
+            "dimension": "identity",
+            "dataStrategy": "SELF-FIRST",
+            "commercialLayer": "SIGNAL",
+            "a19Classification": {
+              "dimension": "identity",
+              "dataStrategy": "SELF-FIRST"
+            },
+            "a20ReadinessClass": "INTERNAL_READY",
+            "a20MonetizationClass": "MONETIZABLE_INTERNAL",
+            "a20PublicationClass": "CANARY_ELIGIBLE"
+          },
+          "pipelineReadiness": 0.88,
+          "publicationReadiness": 0.88,
+          "monetizationReadiness": 0.91,
+          "dependencyRisk": 0.08,
+          "freshnessTs": "2026-08-09T05:55:40.473Z"
+        },
+        "publicationGate": {
+          "product": "canon-strength",
+          "gateClass": "CANARY_ELIGIBLE",
+          "passed": true,
+          "reason": "canary-eligible-internal-use-only"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "INTERNAL_READY",
+        "monetizationClass": "MONETIZABLE_INTERNAL",
+        "publicationClass": "CANARY_ELIGIBLE"
+      }
+    },
+    {
+      "product": "market-momentum",
+      "dimension": "market-observation",
+      "dataStrategy": "SELF-FIRST",
+      "pipelineStatus": "COMPLETE",
+      "stages": {
+        "policy": {
+          "phase": "product:market-momentum",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "market-momentum",
+          "strategy": "SELF-FIRST",
+          "acquired": true,
+          "acquisitionClass": "INTERNAL_COMPLETE",
+          "coverageRatio": 0.9,
+          "rawRecords": 90000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "market-momentum",
+          "normalized": true,
+          "normalizedRecords": 90000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "92db4cca98dafc5d"
+        },
+        "validate": {
+          "product": "market-momentum",
+          "valid": true,
+          "provenanceCoverage": 0.92,
+          "quality": 0.89,
+          "freshness": 0.87,
+          "blockingReasons": []
+        },
+        "derive": {
+          "product": "market-momentum",
+          "derived": true,
+          "derivationClass": "AUTONOMOUS_DERIVED",
+          "autonomousDerivation": 0.95,
+          "repeatability": 0.91
+        },
+        "score": {
+          "product": "market-momentum",
+          "scored": true,
+          "pipelineReadiness": 0.87,
+          "publicationReadiness": 0.87,
+          "monetizationReadiness": 0.89,
+          "dependencyRisk": 0.1
+        },
+        "package": {
+          "product": "market-momentum",
+          "packaged": true,
+          "packageClass": "INTERNAL_READY",
+          "stableId": "kidults.market-observation.market-momentum.v1",
+          "provenance": {
+            "runId": "a21-pipeline-2026-08-09-36cea328234ba784",
+            "dimension": "market-observation",
+            "dataStrategy": "SELF-FIRST",
+            "commercialLayer": "SIGNAL",
+            "a19Classification": {
+              "dimension": "market-observation",
+              "dataStrategy": "SELF-FIRST"
+            },
+            "a20ReadinessClass": "INTERNAL_READY",
+            "a20MonetizationClass": "MONETIZABLE_INTERNAL",
+            "a20PublicationClass": "CANARY_ELIGIBLE"
+          },
+          "pipelineReadiness": 0.87,
+          "publicationReadiness": 0.87,
+          "monetizationReadiness": 0.89,
+          "dependencyRisk": 0.1,
+          "freshnessTs": "2026-08-09T05:55:40.473Z"
+        },
+        "publicationGate": {
+          "product": "market-momentum",
+          "gateClass": "CANARY_ELIGIBLE",
+          "passed": true,
+          "reason": "canary-eligible-internal-use-only"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "INTERNAL_READY",
+        "monetizationClass": "MONETIZABLE_INTERNAL",
+        "publicationClass": "CANARY_ELIGIBLE"
+      }
+    },
+    {
+      "product": "collector-sentiment",
+      "dimension": "market-observation",
+      "dataStrategy": "SELF-FIRST",
+      "pipelineStatus": "COMPLETE",
+      "stages": {
+        "policy": {
+          "phase": "product:collector-sentiment",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "collector-sentiment",
+          "strategy": "SELF-FIRST",
+          "acquired": true,
+          "acquisitionClass": "INTERNAL_COMPLETE",
+          "coverageRatio": 0.86,
+          "rawRecords": 86000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "collector-sentiment",
+          "normalized": true,
+          "normalizedRecords": 86000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "2ef069e5f9729543"
+        },
+        "validate": {
+          "product": "collector-sentiment",
+          "valid": true,
+          "provenanceCoverage": 0.88,
+          "quality": 0.85,
+          "freshness": 0.84,
+          "blockingReasons": []
+        },
+        "derive": {
+          "product": "collector-sentiment",
+          "derived": true,
+          "derivationClass": "AUTONOMOUS_DERIVED",
+          "autonomousDerivation": 0.9,
+          "repeatability": 0.88
+        },
+        "score": {
+          "product": "collector-sentiment",
+          "scored": true,
+          "pipelineReadiness": 0.84,
+          "publicationReadiness": 0.84,
+          "monetizationReadiness": 0.85,
+          "dependencyRisk": 0.14
+        },
+        "package": {
+          "product": "collector-sentiment",
+          "packaged": true,
+          "packageClass": "INTERNAL_READY",
+          "stableId": "kidults.market-observation.collector-sentiment.v1",
+          "provenance": {
+            "runId": "a21-pipeline-2026-08-09-36cea328234ba784",
+            "dimension": "market-observation",
+            "dataStrategy": "SELF-FIRST",
+            "commercialLayer": "SIGNAL",
+            "a19Classification": {
+              "dimension": "market-observation",
+              "dataStrategy": "SELF-FIRST"
+            },
+            "a20ReadinessClass": "INTERNAL_READY",
+            "a20MonetizationClass": "MONETIZABLE_INTERNAL",
+            "a20PublicationClass": "CANARY_ELIGIBLE"
+          },
+          "pipelineReadiness": 0.84,
+          "publicationReadiness": 0.84,
+          "monetizationReadiness": 0.85,
+          "dependencyRisk": 0.14,
+          "freshnessTs": "2026-08-09T05:55:40.473Z"
+        },
+        "publicationGate": {
+          "product": "collector-sentiment",
+          "gateClass": "CANARY_ELIGIBLE",
+          "passed": true,
+          "reason": "canary-eligible-internal-use-only"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "INTERNAL_READY",
+        "monetizationClass": "MONETIZABLE_INTERNAL",
+        "publicationClass": "CANARY_ELIGIBLE"
+      }
+    },
+    {
+      "product": "price-index",
+      "dimension": "transaction-pricing",
+      "dataStrategy": "HYBRID",
+      "pipelineStatus": "BLOCKED",
+      "stages": {
+        "policy": {
+          "phase": "product:price-index",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "price-index",
+          "strategy": "HYBRID",
+          "acquired": true,
+          "acquisitionClass": "HYBRID_PARTIAL",
+          "coverageRatio": 0.68,
+          "rawRecords": 68000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "price-index",
+          "normalized": true,
+          "normalizedRecords": 68000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "6741d0533d5af697"
+        },
+        "validate": {
+          "product": "price-index",
+          "valid": false,
+          "provenanceCoverage": 0.79,
+          "quality": 0.8,
+          "freshness": 0.81,
+          "blockingReasons": [
+            "provenance-below-threshold"
+          ]
+        },
+        "derive": {
+          "product": "price-index",
+          "derived": false,
+          "derivationClass": "BLOCKED",
+          "reason": "validation-failed: provenance-below-threshold"
+        },
+        "score": {
+          "product": "price-index",
+          "scored": false,
+          "pipelineReadiness": 0,
+          "publicationReadiness": 0,
+          "monetizationReadiness": 0,
+          "dependencyRisk": 1
+        },
+        "package": {
+          "product": "price-index",
+          "packaged": false,
+          "packageClass": "BLOCKED",
+          "reason": "upstream-pipeline-stage-not-complete"
+        },
+        "publicationGate": {
+          "product": "price-index",
+          "gateClass": "PRODUCTION_BLOCKED",
+          "passed": false,
+          "reason": "package-not-complete"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "DEPENDENCY_BLOCKED",
+        "monetizationClass": "BLOCKED",
+        "publicationClass": "PRODUCTION_BLOCKED"
+      }
+    },
+    {
+      "product": "comparables",
+      "dimension": "transaction-pricing",
+      "dataStrategy": "HYBRID",
+      "pipelineStatus": "BLOCKED",
+      "stages": {
+        "policy": {
+          "phase": "product:comparables",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "comparables",
+          "strategy": "HYBRID",
+          "acquired": true,
+          "acquisitionClass": "HYBRID_PARTIAL",
+          "coverageRatio": 0.66,
+          "rawRecords": 66000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "comparables",
+          "normalized": true,
+          "normalizedRecords": 66000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "47e786c4f89fdac4"
+        },
+        "validate": {
+          "product": "comparables",
+          "valid": false,
+          "provenanceCoverage": 0.77,
+          "quality": 0.79,
+          "freshness": 0.78,
+          "blockingReasons": [
+            "provenance-below-threshold"
+          ]
+        },
+        "derive": {
+          "product": "comparables",
+          "derived": false,
+          "derivationClass": "BLOCKED",
+          "reason": "validation-failed: provenance-below-threshold"
+        },
+        "score": {
+          "product": "comparables",
+          "scored": false,
+          "pipelineReadiness": 0,
+          "publicationReadiness": 0,
+          "monetizationReadiness": 0,
+          "dependencyRisk": 1
+        },
+        "package": {
+          "product": "comparables",
+          "packaged": false,
+          "packageClass": "BLOCKED",
+          "reason": "upstream-pipeline-stage-not-complete"
+        },
+        "publicationGate": {
+          "product": "comparables",
+          "gateClass": "PRODUCTION_BLOCKED",
+          "passed": false,
+          "reason": "package-not-complete"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "DEPENDENCY_BLOCKED",
+        "monetizationClass": "BLOCKED",
+        "publicationClass": "PRODUCTION_BLOCKED"
+      }
+    },
+    {
+      "product": "scarcity-signal",
+      "dimension": "availability-inventory",
+      "dataStrategy": "HYBRID",
+      "pipelineStatus": "COMPLETE",
+      "stages": {
+        "policy": {
+          "phase": "product:scarcity-signal",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "scarcity-signal",
+          "strategy": "HYBRID",
+          "acquired": true,
+          "acquisitionClass": "HYBRID_PARTIAL",
+          "coverageRatio": 0.78,
+          "rawRecords": 78000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "scarcity-signal",
+          "normalized": true,
+          "normalizedRecords": 78000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "b465f9261b2a4f71"
+        },
+        "validate": {
+          "product": "scarcity-signal",
+          "valid": true,
+          "provenanceCoverage": 0.82,
+          "quality": 0.82,
+          "freshness": 0.83,
+          "blockingReasons": []
+        },
+        "derive": {
+          "product": "scarcity-signal",
+          "derived": true,
+          "derivationClass": "HYBRID_DERIVED",
+          "autonomousDerivation": 0.84,
+          "repeatability": 0.85
+        },
+        "score": {
+          "product": "scarcity-signal",
+          "scored": true,
+          "pipelineReadiness": 0.78,
+          "publicationReadiness": 0.82,
+          "monetizationReadiness": 0.82,
+          "dependencyRisk": 0.22
+        },
+        "package": {
+          "product": "scarcity-signal",
+          "packaged": true,
+          "packageClass": "DEPENDENCY_BLOCKED",
+          "stableId": "kidults.availability-inventory.scarcity-signal.v1",
+          "provenance": {
+            "runId": "a21-pipeline-2026-08-09-36cea328234ba784",
+            "dimension": "availability-inventory",
+            "dataStrategy": "HYBRID",
+            "commercialLayer": "SIGNAL",
+            "a19Classification": {
+              "dimension": "availability-inventory",
+              "dataStrategy": "HYBRID"
+            },
+            "a20ReadinessClass": "DEPENDENCY_BLOCKED",
+            "a20MonetizationClass": "BLOCKED",
+            "a20PublicationClass": "PRODUCTION_BLOCKED"
+          },
+          "pipelineReadiness": 0.78,
+          "publicationReadiness": 0.82,
+          "monetizationReadiness": 0.82,
+          "dependencyRisk": 0.22,
+          "freshnessTs": "2026-08-09T05:55:40.473Z"
+        },
+        "publicationGate": {
+          "product": "scarcity-signal",
+          "gateClass": "PRODUCTION_BLOCKED",
+          "passed": false,
+          "reason": "production-publication-blocked-by-a21-policy"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "DEPENDENCY_BLOCKED",
+        "monetizationClass": "BLOCKED",
+        "publicationClass": "PRODUCTION_BLOCKED"
+      }
+    },
+    {
+      "product": "availability-monitor",
+      "dimension": "availability-inventory",
+      "dataStrategy": "HYBRID",
+      "pipelineStatus": "COMPLETE",
+      "stages": {
+        "policy": {
+          "phase": "product:availability-monitor",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "availability-monitor",
+          "strategy": "HYBRID",
+          "acquired": true,
+          "acquisitionClass": "HYBRID_PARTIAL",
+          "coverageRatio": 0.74,
+          "rawRecords": 74000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "availability-monitor",
+          "normalized": true,
+          "normalizedRecords": 74000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "5fa85b280adc0527"
+        },
+        "validate": {
+          "product": "availability-monitor",
+          "valid": true,
+          "provenanceCoverage": 0.8,
+          "quality": 0.81,
+          "freshness": 0.82,
+          "blockingReasons": []
+        },
+        "derive": {
+          "product": "availability-monitor",
+          "derived": true,
+          "derivationClass": "HYBRID_DERIVED",
+          "autonomousDerivation": 0.82,
+          "repeatability": 0.84
+        },
+        "score": {
+          "product": "availability-monitor",
+          "scored": true,
+          "pipelineReadiness": 0.74,
+          "publicationReadiness": 0.8,
+          "monetizationReadiness": 0.8,
+          "dependencyRisk": 0.26
+        },
+        "package": {
+          "product": "availability-monitor",
+          "packaged": true,
+          "packageClass": "DEPENDENCY_BLOCKED",
+          "stableId": "kidults.availability-inventory.availability-monitor.v1",
+          "provenance": {
+            "runId": "a21-pipeline-2026-08-09-36cea328234ba784",
+            "dimension": "availability-inventory",
+            "dataStrategy": "HYBRID",
+            "commercialLayer": "ANALYTICS",
+            "a19Classification": {
+              "dimension": "availability-inventory",
+              "dataStrategy": "HYBRID"
+            },
+            "a20ReadinessClass": "DEPENDENCY_BLOCKED",
+            "a20MonetizationClass": "BLOCKED",
+            "a20PublicationClass": "PRODUCTION_BLOCKED"
+          },
+          "pipelineReadiness": 0.74,
+          "publicationReadiness": 0.8,
+          "monetizationReadiness": 0.8,
+          "dependencyRisk": 0.26,
+          "freshnessTs": "2026-08-09T05:55:40.473Z"
+        },
+        "publicationGate": {
+          "product": "availability-monitor",
+          "gateClass": "PRODUCTION_BLOCKED",
+          "passed": false,
+          "reason": "production-publication-blocked-by-a21-policy"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "DEPENDENCY_BLOCKED",
+        "monetizationClass": "BLOCKED",
+        "publicationClass": "PRODUCTION_BLOCKED"
+      }
+    },
+    {
+      "product": "culture-velocity",
+      "dimension": "culture-attention",
+      "dataStrategy": "SELF-FIRST",
+      "pipelineStatus": "COMPLETE",
+      "stages": {
+        "policy": {
+          "phase": "product:culture-velocity",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "culture-velocity",
+          "strategy": "SELF-FIRST",
+          "acquired": true,
+          "acquisitionClass": "INTERNAL_COMPLETE",
+          "coverageRatio": 0.91,
+          "rawRecords": 91000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "culture-velocity",
+          "normalized": true,
+          "normalizedRecords": 91000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "79aa923e3f88365c"
+        },
+        "validate": {
+          "product": "culture-velocity",
+          "valid": true,
+          "provenanceCoverage": 0.93,
+          "quality": 0.9,
+          "freshness": 0.88,
+          "blockingReasons": []
+        },
+        "derive": {
+          "product": "culture-velocity",
+          "derived": true,
+          "derivationClass": "AUTONOMOUS_DERIVED",
+          "autonomousDerivation": 0.95,
+          "repeatability": 0.92
+        },
+        "score": {
+          "product": "culture-velocity",
+          "scored": true,
+          "pipelineReadiness": 0.88,
+          "publicationReadiness": 0.88,
+          "monetizationReadiness": 0.9,
+          "dependencyRisk": 0.09
+        },
+        "package": {
+          "product": "culture-velocity",
+          "packaged": true,
+          "packageClass": "INTERNAL_READY",
+          "stableId": "kidults.culture-attention.culture-velocity.v1",
+          "provenance": {
+            "runId": "a21-pipeline-2026-08-09-36cea328234ba784",
+            "dimension": "culture-attention",
+            "dataStrategy": "SELF-FIRST",
+            "commercialLayer": "SIGNAL",
+            "a19Classification": {
+              "dimension": "culture-attention",
+              "dataStrategy": "SELF-FIRST"
+            },
+            "a20ReadinessClass": "INTERNAL_READY",
+            "a20MonetizationClass": "MONETIZABLE_INTERNAL",
+            "a20PublicationClass": "CANARY_ELIGIBLE"
+          },
+          "pipelineReadiness": 0.88,
+          "publicationReadiness": 0.88,
+          "monetizationReadiness": 0.9,
+          "dependencyRisk": 0.09,
+          "freshnessTs": "2026-08-09T05:55:40.473Z"
+        },
+        "publicationGate": {
+          "product": "culture-velocity",
+          "gateClass": "CANARY_ELIGIBLE",
+          "passed": true,
+          "reason": "canary-eligible-internal-use-only"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "INTERNAL_READY",
+        "monetizationClass": "MONETIZABLE_INTERNAL",
+        "publicationClass": "CANARY_ELIGIBLE"
+      }
+    },
+    {
+      "product": "trend-radar",
+      "dimension": "culture-attention",
+      "dataStrategy": "SELF-FIRST",
+      "pipelineStatus": "COMPLETE",
+      "stages": {
+        "policy": {
+          "phase": "product:trend-radar",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "trend-radar",
+          "strategy": "SELF-FIRST",
+          "acquired": true,
+          "acquisitionClass": "INTERNAL_COMPLETE",
+          "coverageRatio": 0.87,
+          "rawRecords": 87000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "trend-radar",
+          "normalized": true,
+          "normalizedRecords": 87000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "b3e3cdbfa343d44c"
+        },
+        "validate": {
+          "product": "trend-radar",
+          "valid": true,
+          "provenanceCoverage": 0.9,
+          "quality": 0.87,
+          "freshness": 0.85,
+          "blockingReasons": []
+        },
+        "derive": {
+          "product": "trend-radar",
+          "derived": true,
+          "derivationClass": "AUTONOMOUS_DERIVED",
+          "autonomousDerivation": 0.92,
+          "repeatability": 0.89
+        },
+        "score": {
+          "product": "trend-radar",
+          "scored": true,
+          "pipelineReadiness": 0.85,
+          "publicationReadiness": 0.85,
+          "monetizationReadiness": 0.87,
+          "dependencyRisk": 0.13
+        },
+        "package": {
+          "product": "trend-radar",
+          "packaged": true,
+          "packageClass": "INTERNAL_READY",
+          "stableId": "kidults.culture-attention.trend-radar.v1",
+          "provenance": {
+            "runId": "a21-pipeline-2026-08-09-36cea328234ba784",
+            "dimension": "culture-attention",
+            "dataStrategy": "SELF-FIRST",
+            "commercialLayer": "ANALYTICS",
+            "a19Classification": {
+              "dimension": "culture-attention",
+              "dataStrategy": "SELF-FIRST"
+            },
+            "a20ReadinessClass": "INTERNAL_READY",
+            "a20MonetizationClass": "MONETIZABLE_INTERNAL",
+            "a20PublicationClass": "CANARY_ELIGIBLE"
+          },
+          "pipelineReadiness": 0.85,
+          "publicationReadiness": 0.85,
+          "monetizationReadiness": 0.87,
+          "dependencyRisk": 0.13,
+          "freshnessTs": "2026-08-09T05:55:40.473Z"
+        },
+        "publicationGate": {
+          "product": "trend-radar",
+          "gateClass": "CANARY_ELIGIBLE",
+          "passed": true,
+          "reason": "canary-eligible-internal-use-only"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "INTERNAL_READY",
+        "monetizationClass": "MONETIZABLE_INTERNAL",
+        "publicationClass": "CANARY_ELIGIBLE"
+      }
+    },
+    {
+      "product": "auction-intelligence",
+      "dimension": "auction-private-sales",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "pipelineStatus": "BLOCKED",
+      "stages": {
+        "policy": {
+          "phase": "product:auction-intelligence",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "auction-intelligence",
+          "strategy": "PROVIDER-REQUIRED",
+          "acquired": false,
+          "acquisitionClass": "DEPENDENCY_BLOCKED",
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "rawRecords": 0
+        },
+        "normalize": {
+          "product": "auction-intelligence",
+          "normalized": false,
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "normalizedRecords": 0
+        },
+        "validate": {
+          "product": "auction-intelligence",
+          "valid": false,
+          "reason": "not-normalized",
+          "blockingReasons": [
+            "not-normalized"
+          ]
+        },
+        "derive": {
+          "product": "auction-intelligence",
+          "derived": false,
+          "derivationClass": "BLOCKED",
+          "reason": "validation-failed: not-normalized"
+        },
+        "score": {
+          "product": "auction-intelligence",
+          "scored": false,
+          "pipelineReadiness": 0,
+          "publicationReadiness": 0,
+          "monetizationReadiness": 0,
+          "dependencyRisk": 1
+        },
+        "package": {
+          "product": "auction-intelligence",
+          "packaged": false,
+          "packageClass": "BLOCKED",
+          "reason": "upstream-pipeline-stage-not-complete"
+        },
+        "publicationGate": {
+          "product": "auction-intelligence",
+          "gateClass": "PRODUCTION_BLOCKED",
+          "passed": false,
+          "reason": "package-not-complete"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "DEPENDENCY_BLOCKED",
+        "monetizationClass": "BLOCKED",
+        "publicationClass": "PRODUCTION_BLOCKED"
+      }
+    },
+    {
+      "product": "liquidity-signal",
+      "dimension": "auction-private-sales",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "pipelineStatus": "BLOCKED",
+      "stages": {
+        "policy": {
+          "phase": "product:liquidity-signal",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "liquidity-signal",
+          "strategy": "PROVIDER-REQUIRED",
+          "acquired": false,
+          "acquisitionClass": "DEPENDENCY_BLOCKED",
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "rawRecords": 0
+        },
+        "normalize": {
+          "product": "liquidity-signal",
+          "normalized": false,
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "normalizedRecords": 0
+        },
+        "validate": {
+          "product": "liquidity-signal",
+          "valid": false,
+          "reason": "not-normalized",
+          "blockingReasons": [
+            "not-normalized"
+          ]
+        },
+        "derive": {
+          "product": "liquidity-signal",
+          "derived": false,
+          "derivationClass": "BLOCKED",
+          "reason": "validation-failed: not-normalized"
+        },
+        "score": {
+          "product": "liquidity-signal",
+          "scored": false,
+          "pipelineReadiness": 0,
+          "publicationReadiness": 0,
+          "monetizationReadiness": 0,
+          "dependencyRisk": 1
+        },
+        "package": {
+          "product": "liquidity-signal",
+          "packaged": false,
+          "packageClass": "BLOCKED",
+          "reason": "upstream-pipeline-stage-not-complete"
+        },
+        "publicationGate": {
+          "product": "liquidity-signal",
+          "gateClass": "PRODUCTION_BLOCKED",
+          "passed": false,
+          "reason": "package-not-complete"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "DEPENDENCY_BLOCKED",
+        "monetizationClass": "BLOCKED",
+        "publicationClass": "PRODUCTION_BLOCKED"
+      }
+    },
+    {
+      "product": "provenance-confidence",
+      "dimension": "ownership-provenance",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "pipelineStatus": "BLOCKED",
+      "stages": {
+        "policy": {
+          "phase": "product:provenance-confidence",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "provenance-confidence",
+          "strategy": "PROVIDER-REQUIRED",
+          "acquired": false,
+          "acquisitionClass": "DEPENDENCY_BLOCKED",
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "rawRecords": 0
+        },
+        "normalize": {
+          "product": "provenance-confidence",
+          "normalized": false,
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "normalizedRecords": 0
+        },
+        "validate": {
+          "product": "provenance-confidence",
+          "valid": false,
+          "reason": "not-normalized",
+          "blockingReasons": [
+            "not-normalized"
+          ]
+        },
+        "derive": {
+          "product": "provenance-confidence",
+          "derived": false,
+          "derivationClass": "BLOCKED",
+          "reason": "validation-failed: not-normalized"
+        },
+        "score": {
+          "product": "provenance-confidence",
+          "scored": false,
+          "pipelineReadiness": 0,
+          "publicationReadiness": 0,
+          "monetizationReadiness": 0,
+          "dependencyRisk": 1
+        },
+        "package": {
+          "product": "provenance-confidence",
+          "packaged": false,
+          "packageClass": "BLOCKED",
+          "reason": "upstream-pipeline-stage-not-complete"
+        },
+        "publicationGate": {
+          "product": "provenance-confidence",
+          "gateClass": "PRODUCTION_BLOCKED",
+          "passed": false,
+          "reason": "package-not-complete"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "DEPENDENCY_BLOCKED",
+        "monetizationClass": "BLOCKED",
+        "publicationClass": "PRODUCTION_BLOCKED"
+      }
+    },
+    {
+      "product": "asset-history",
+      "dimension": "ownership-provenance",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "pipelineStatus": "BLOCKED",
+      "stages": {
+        "policy": {
+          "phase": "product:asset-history",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "asset-history",
+          "strategy": "PROVIDER-REQUIRED",
+          "acquired": false,
+          "acquisitionClass": "DEPENDENCY_BLOCKED",
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "rawRecords": 0
+        },
+        "normalize": {
+          "product": "asset-history",
+          "normalized": false,
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "normalizedRecords": 0
+        },
+        "validate": {
+          "product": "asset-history",
+          "valid": false,
+          "reason": "not-normalized",
+          "blockingReasons": [
+            "not-normalized"
+          ]
+        },
+        "derive": {
+          "product": "asset-history",
+          "derived": false,
+          "derivationClass": "BLOCKED",
+          "reason": "validation-failed: not-normalized"
+        },
+        "score": {
+          "product": "asset-history",
+          "scored": false,
+          "pipelineReadiness": 0,
+          "publicationReadiness": 0,
+          "monetizationReadiness": 0,
+          "dependencyRisk": 1
+        },
+        "package": {
+          "product": "asset-history",
+          "packaged": false,
+          "packageClass": "BLOCKED",
+          "reason": "upstream-pipeline-stage-not-complete"
+        },
+        "publicationGate": {
+          "product": "asset-history",
+          "gateClass": "PRODUCTION_BLOCKED",
+          "passed": false,
+          "reason": "package-not-complete"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "DEPENDENCY_BLOCKED",
+        "monetizationClass": "BLOCKED",
+        "publicationClass": "PRODUCTION_BLOCKED"
+      }
+    },
+    {
+      "product": "condition-risk",
+      "dimension": "authentication-condition",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "pipelineStatus": "BLOCKED",
+      "stages": {
+        "policy": {
+          "phase": "product:condition-risk",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "condition-risk",
+          "strategy": "PROVIDER-REQUIRED",
+          "acquired": false,
+          "acquisitionClass": "DEPENDENCY_BLOCKED",
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "rawRecords": 0
+        },
+        "normalize": {
+          "product": "condition-risk",
+          "normalized": false,
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "normalizedRecords": 0
+        },
+        "validate": {
+          "product": "condition-risk",
+          "valid": false,
+          "reason": "not-normalized",
+          "blockingReasons": [
+            "not-normalized"
+          ]
+        },
+        "derive": {
+          "product": "condition-risk",
+          "derived": false,
+          "derivationClass": "BLOCKED",
+          "reason": "validation-failed: not-normalized"
+        },
+        "score": {
+          "product": "condition-risk",
+          "scored": false,
+          "pipelineReadiness": 0,
+          "publicationReadiness": 0,
+          "monetizationReadiness": 0,
+          "dependencyRisk": 1
+        },
+        "package": {
+          "product": "condition-risk",
+          "packaged": false,
+          "packageClass": "BLOCKED",
+          "reason": "upstream-pipeline-stage-not-complete"
+        },
+        "publicationGate": {
+          "product": "condition-risk",
+          "gateClass": "PRODUCTION_BLOCKED",
+          "passed": false,
+          "reason": "package-not-complete"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "DEPENDENCY_BLOCKED",
+        "monetizationClass": "BLOCKED",
+        "publicationClass": "PRODUCTION_BLOCKED"
+      }
+    },
+    {
+      "product": "auth-confidence",
+      "dimension": "authentication-condition",
+      "dataStrategy": "PROVIDER-REQUIRED",
+      "pipelineStatus": "BLOCKED",
+      "stages": {
+        "policy": {
+          "phase": "product:auth-confidence",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "auth-confidence",
+          "strategy": "PROVIDER-REQUIRED",
+          "acquired": false,
+          "acquisitionClass": "DEPENDENCY_BLOCKED",
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "rawRecords": 0
+        },
+        "normalize": {
+          "product": "auth-confidence",
+          "normalized": false,
+          "reason": "provider-evidence-required; dependency-blocked without valid provider evidence contract",
+          "normalizedRecords": 0
+        },
+        "validate": {
+          "product": "auth-confidence",
+          "valid": false,
+          "reason": "not-normalized",
+          "blockingReasons": [
+            "not-normalized"
+          ]
+        },
+        "derive": {
+          "product": "auth-confidence",
+          "derived": false,
+          "derivationClass": "BLOCKED",
+          "reason": "validation-failed: not-normalized"
+        },
+        "score": {
+          "product": "auth-confidence",
+          "scored": false,
+          "pipelineReadiness": 0,
+          "publicationReadiness": 0,
+          "monetizationReadiness": 0,
+          "dependencyRisk": 1
+        },
+        "package": {
+          "product": "auth-confidence",
+          "packaged": false,
+          "packageClass": "BLOCKED",
+          "reason": "upstream-pipeline-stage-not-complete"
+        },
+        "publicationGate": {
+          "product": "auth-confidence",
+          "gateClass": "PRODUCTION_BLOCKED",
+          "passed": false,
+          "reason": "package-not-complete"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "DEPENDENCY_BLOCKED",
+        "monetizationClass": "BLOCKED",
+        "publicationClass": "PRODUCTION_BLOCKED"
+      }
+    },
+    {
+      "product": "category-outlook",
+      "dimension": "macro-category",
+      "dataStrategy": "SELF-FIRST",
+      "pipelineStatus": "COMPLETE",
+      "stages": {
+        "policy": {
+          "phase": "product:category-outlook",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "category-outlook",
+          "strategy": "SELF-FIRST",
+          "acquired": true,
+          "acquisitionClass": "INTERNAL_COMPLETE",
+          "coverageRatio": 0.91,
+          "rawRecords": 91000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "category-outlook",
+          "normalized": true,
+          "normalizedRecords": 91000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "875b8016c95401fc"
+        },
+        "validate": {
+          "product": "category-outlook",
+          "valid": true,
+          "provenanceCoverage": 0.94,
+          "quality": 0.91,
+          "freshness": 0.87,
+          "blockingReasons": []
+        },
+        "derive": {
+          "product": "category-outlook",
+          "derived": true,
+          "derivationClass": "AUTONOMOUS_DERIVED",
+          "autonomousDerivation": 0.95,
+          "repeatability": 0.93
+        },
+        "score": {
+          "product": "category-outlook",
+          "scored": true,
+          "pipelineReadiness": 0.87,
+          "publicationReadiness": 0.87,
+          "monetizationReadiness": 0.91,
+          "dependencyRisk": 0.09
+        },
+        "package": {
+          "product": "category-outlook",
+          "packaged": true,
+          "packageClass": "INTERNAL_READY",
+          "stableId": "kidults.macro-category.category-outlook.v1",
+          "provenance": {
+            "runId": "a21-pipeline-2026-08-09-36cea328234ba784",
+            "dimension": "macro-category",
+            "dataStrategy": "SELF-FIRST",
+            "commercialLayer": "ANALYTICS",
+            "a19Classification": {
+              "dimension": "macro-category",
+              "dataStrategy": "SELF-FIRST"
+            },
+            "a20ReadinessClass": "INTERNAL_READY",
+            "a20MonetizationClass": "MONETIZABLE_INTERNAL",
+            "a20PublicationClass": "CANARY_ELIGIBLE"
+          },
+          "pipelineReadiness": 0.87,
+          "publicationReadiness": 0.87,
+          "monetizationReadiness": 0.91,
+          "dependencyRisk": 0.09,
+          "freshnessTs": "2026-08-09T05:55:40.473Z"
+        },
+        "publicationGate": {
+          "product": "category-outlook",
+          "gateClass": "CANARY_ELIGIBLE",
+          "passed": true,
+          "reason": "canary-eligible-internal-use-only"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "INTERNAL_READY",
+        "monetizationClass": "MONETIZABLE_INTERNAL",
+        "publicationClass": "CANARY_ELIGIBLE"
+      }
+    },
+    {
+      "product": "kidult-100",
+      "dimension": "macro-category",
+      "dataStrategy": "SELF-FIRST",
+      "pipelineStatus": "COMPLETE",
+      "stages": {
+        "policy": {
+          "phase": "product:kidult-100",
+          "policyChecked": true,
+          "nonInteractive": true,
+          "productionPublicationBlocked": true,
+          "noProviderContact": true,
+          "noProviderCredentials": true,
+          "noBillingMutation": true,
+          "noExternalMutation": true,
+          "policyAuthorized": true
+        },
+        "acquire": {
+          "product": "kidult-100",
+          "strategy": "SELF-FIRST",
+          "acquired": true,
+          "acquisitionClass": "INTERNAL_COMPLETE",
+          "coverageRatio": 0.89,
+          "rawRecords": 89000,
+          "retries": 0
+        },
+        "normalize": {
+          "product": "kidult-100",
+          "normalized": true,
+          "normalizedRecords": 89000,
+          "schema": "canonical-a19-schema-v1",
+          "idempotencyKey": "5950cfd5817ef01d"
+        },
+        "validate": {
+          "product": "kidult-100",
+          "valid": true,
+          "provenanceCoverage": 0.93,
+          "quality": 0.9,
+          "freshness": 0.86,
+          "blockingReasons": []
+        },
+        "derive": {
+          "product": "kidult-100",
+          "derived": true,
+          "derivationClass": "AUTONOMOUS_DERIVED",
+          "autonomousDerivation": 0.94,
+          "repeatability": 0.92
+        },
+        "score": {
+          "product": "kidult-100",
+          "scored": true,
+          "pipelineReadiness": 0.86,
+          "publicationReadiness": 0.86,
+          "monetizationReadiness": 0.9,
+          "dependencyRisk": 0.11
+        },
+        "package": {
+          "product": "kidult-100",
+          "packaged": true,
+          "packageClass": "INTERNAL_READY",
+          "stableId": "kidults.macro-category.kidult-100.v1",
+          "provenance": {
+            "runId": "a21-pipeline-2026-08-09-36cea328234ba784",
+            "dimension": "macro-category",
+            "dataStrategy": "SELF-FIRST",
+            "commercialLayer": "INDEX",
+            "a19Classification": {
+              "dimension": "macro-category",
+              "dataStrategy": "SELF-FIRST"
+            },
+            "a20ReadinessClass": "INTERNAL_READY",
+            "a20MonetizationClass": "MONETIZABLE_INTERNAL",
+            "a20PublicationClass": "CANARY_ELIGIBLE"
+          },
+          "pipelineReadiness": 0.86,
+          "publicationReadiness": 0.86,
+          "monetizationReadiness": 0.9,
+          "dependencyRisk": 0.11,
+          "freshnessTs": "2026-08-09T05:55:40.473Z"
+        },
+        "publicationGate": {
+          "product": "kidult-100",
+          "gateClass": "CANARY_ELIGIBLE",
+          "passed": true,
+          "reason": "canary-eligible-internal-use-only"
+        }
+      },
+      "a20Classes": {
+        "readinessClass": "INTERNAL_READY",
+        "monetizationClass": "MONETIZABLE_INTERNAL",
+        "publicationClass": "CANARY_ELIGIBLE"
+      }
+    }
+  ],
+  "rollbackPlan": {
+    "rollbackClass": "EVIDENCE_ONLY",
+    "recoveryActions": [
+      {
+        "product": "price-index",
+        "action": "quarantine",
+        "reason": "validation-failed: provenance-below-threshold",
+        "recoverable": true
+      },
+      {
+        "product": "comparables",
+        "action": "quarantine",
+        "reason": "validation-failed: provenance-below-threshold",
+        "recoverable": true
+      },
+      {
+        "product": "auction-intelligence",
+        "action": "quarantine",
+        "reason": "validation-failed: not-normalized",
+        "recoverable": false
+      },
+      {
+        "product": "liquidity-signal",
+        "action": "quarantine",
+        "reason": "validation-failed: not-normalized",
+        "recoverable": false
+      },
+      {
+        "product": "provenance-confidence",
+        "action": "quarantine",
+        "reason": "validation-failed: not-normalized",
+        "recoverable": false
+      },
+      {
+        "product": "asset-history",
+        "action": "quarantine",
+        "reason": "validation-failed: not-normalized",
+        "recoverable": false
+      },
+      {
+        "product": "condition-risk",
+        "action": "quarantine",
+        "reason": "validation-failed: not-normalized",
+        "recoverable": false
+      },
+      {
+        "product": "auth-confidence",
+        "action": "quarantine",
+        "reason": "validation-failed: not-normalized",
+        "recoverable": false
+      }
+    ],
+    "noMutationOnRollback": true,
+    "productionPublicationRemainsBlocked": true
+  },
+  "failClosedTests": [
+    {
+      "name": "Production publication is unconditionally blocked for all products",
+      "result": true
+    },
+    {
+      "name": "Provider-required products are dependency-blocked without provider evidence",
+      "result": true
+    },
+    {
+      "name": "Provider-required products do not pass publication gate",
+      "result": true
+    },
+    {
+      "name": "Self-first products with sufficient scores reach CANARY_ELIGIBLE or INTERNAL_ONLY",
+      "result": true
+    },
+    {
+      "name": "Pipeline is non-interactive (all policy checks confirm non-interactive)",
+      "result": true
+    },
+    {
+      "name": "Policy is checked before every product execution",
+      "result": true
+    },
+    {
+      "name": "No provider contact in pipeline run",
+      "result": true
+    },
+    {
+      "name": "No billing mutation in pipeline run",
+      "result": true
+    },
+    {
+      "name": "All 18 canonical products are processed",
+      "result": true
+    },
+    {
+      "name": "Run identity is stable and deterministic",
+      "result": true
+    },
+    {
+      "name": "Stable IDs are unique across all packaged products",
+      "result": true
+    },
+    {
+      "name": "Upstream-blocked products propagate blocking to dependent products",
+      "result": true
+    },
+    {
+      "name": "Unknown product state fails closed (not reached with canonical universe)",
+      "result": true
+    },
+    {
+      "name": "Rollback plan is evidence-only (no mutation on rollback)",
+      "result": true
+    },
+    {
+      "name": "Idempotency keys are present on all normalized products",
+      "result": true
+    }
+  ],
+  "positiveCaseTests": [
+    {
+      "name": "At least one SELF-FIRST product completes the full pipeline",
+      "result": true
+    },
+    {
+      "name": "All SELF-FIRST products are acquired successfully",
+      "result": true
+    },
+    {
+      "name": "All SELF-FIRST products are normalized",
+      "result": true
+    },
+    {
+      "name": "SELF-FIRST products above thresholds pass validation",
+      "result": true
+    },
+    {
+      "name": "8 SELF-FIRST products identified and processed",
+      "result": true
+    },
+    {
+      "name": "4 HYBRID products identified and processed",
+      "result": true
+    },
+    {
+      "name": "6 PROVIDER-REQUIRED products identified and remain dependency-blocked",
+      "result": true
+    }
+  ],
+  "gates": {
+    "globalPolicyChecked": true,
+    "preflightPassed": true,
+    "all18ProductsProcessed": true,
+    "a19EvidenceConsumed": true,
+    "a20ReadinessModelConsumed": true,
+    "productionPublicationBlocked": true,
+    "providerRequiredProductsBlocked": true,
+    "selfFirstProductsPipelined": true,
+    "policyBeforeExecution": true,
+    "preflightBeforeMutation": true,
+    "nonInteractiveExecution": true,
+    "noProviderContact": true,
+    "noProviderCredentials": true,
+    "noBillingMutation": true,
+    "noExternalMutation": true,
+    "machineReadableEvidenceProduced": true,
+    "runIdentityDeterministic": true,
+    "idempotencyKeysPresent": true,
+    "stableIdsPresent": true,
+    "rollbackPlanProduced": true,
+    "concurrencyBounded": true,
+    "retriesBounded": true,
+    "failClosedTestsPassed": true,
+    "positiveCaseTestsPassed": true,
+    "evidenceComplete": true
+  },
+  "invariants": {
+    "productionPublicationBlocked": "UNCONDITIONAL — no pipeline path enables production publication",
+    "providerContactBlocked": "No external provider contact occurs during pipeline execution",
+    "noCredentials": "No provider credentials are consumed or stored",
+    "noBilling": "No billing or procurement mutation occurs",
+    "noExternalMutation": "No external system mutation occurs",
+    "policyFirst": "Policy is checked before every execution phase",
+    "preflightFirst": "Preflight is checked before every mutation phase",
+    "failClosed": "Unknown or incomplete states fail closed"
+  }
+}

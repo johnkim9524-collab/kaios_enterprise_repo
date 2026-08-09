@@ -1,0 +1,9 @@
+{
+  "scenarioId": "REPEATED_IDENTICAL_ACCEPTANCE_IS_IDEMPOTENT",
+  "category": "DETERMINISM",
+  "description": "Repeated identical acceptance evaluation must remain deterministic and idempotent.",
+  "expectedState": "ENTERPRISE_ACCEPTED",
+  "expectedDecision": "ENTERPRISE_ACCEPTED",
+  "expectedFailureCodes": [],
+  "idempotencyRepeatCount": 3
+}

@@ -1,0 +1,17 @@
+{
+  "scenarioId": "PRIVACY_UNKNOWN_BLOCKS_OR_REQUIRES_REVIEW",
+  "category": "CUSTOMER_VALUE",
+  "description": "Unknown privacy state must require review and never silently pass.",
+  "expectedState": "EXECUTIVE_REVIEW_REQUIRED",
+  "expectedDecision": "ENTERPRISE_ACCEPTED_WITH_REVIEW",
+  "expectedFailureCodes": ["PRIVACY_UNKNOWN"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "PRIVACY_UNKNOWN",
+        "stage": "A38",
+        "detail": "privacy_state_unknown"
+      }
+    ]
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "certification": "KIDULTS A15 Global Autonomous Policy Foundation",
+  "policyVersion": "1.0.0",
+  "platform": "KAIOS Global Autonomous Intelligence Platform",
+  "completedAt": "2026-08-09T05:55:32.332Z",
+  "executionContract": {
+    "required": [
+      "discover",
+      "preflight",
+      "plan",
+      "authorize",
+      "execute",
+      "verify",
+      "cleanup_or_rollback",
+      "evidence",
+      "finalize"
+    ],
+    "observed": [
+      "discover",
+      "preflight",
+      "plan",
+      "authorize",
+      "execute",
+      "verify",
+      "cleanup_or_rollback",
+      "evidence",
+      "finalize"
+    ],
+    "valid": true,
+    "missing": [],
+    "ordered": true
+  },
+  "inventory": {
+    "surfaces": 28,
+    "systems": [
+      "cloudflare",
+      "database",
+      "digitalocean",
+      "dns",
+      "github",
+      "npm-node",
+      "provider",
+      "publication",
+      "recovery",
+      "server"
+    ],
+    "requiredSystems": [
+      "cloudflare",
+      "github",
+      "digitalocean",
+      "server",
+      "database",
+      "dns",
+      "provider",
+      "npm-node",
+      "publication",
+      "recovery"
+    ]
+  },
+  "testResults": [
+    {
+      "name": "R0 read-only observation is autonomous",
+      "expected": true,
+      "decision": {
+        "allowed": true,
+        "reason": "authorized"
+      },
+      "passed": true
+    },
+    {
+      "name": "R2 controlled mutation with policy gates is autonomous",
+      "expected": true,
+      "decision": {
+        "allowed": true,
+        "reason": "authorized"
+      },
+      "passed": true
+    },
+    {
+      "name": "mutation without preflight is denied",
+      "expected": false,
+      "decision": {
+        "allowed": false,
+        "reason": "mutation-preflight-required"
+      },
+      "passed": true
+    },
+    {
+      "name": "interactive autonomous execution is denied",
+      "expected": false,
+      "decision": {
+        "allowed": false,
+        "reason": "interactive-execution-forbidden"
+      },
+      "passed": true
+    },
+    {
+      "name": "R3 production mutation without rollback is denied",
+      "expected": false,
+      "decision": {
+        "allowed": false,
+        "reason": "production-rollback-required"
+      },
+      "passed": true
+    },
+    {
+      "name": "R3 production mutation without canary is denied",
+      "expected": false,
+      "decision": {
+        "allowed": false,
+        "reason": "production-canary-required"
+      },
+      "passed": true
+    },
+    {
+      "name": "R4 irreversible action cannot self-authorize",
+      "expected": false,
+      "decision": {
+        "allowed": false,
+        "reason": "human-approval-required"
+      },
+      "passed": true
+    },
+    {
+      "name": "R4 can proceed only with explicit human approval",
+      "expected": true,
+      "decision": {
+        "allowed": true,
+        "reason": "authorized"
+      },
+      "passed": true
+    },
+    {
+      "name": "unknown adapter fails closed",
+      "expected": false,
+      "decision": {
+        "allowed": false,
+        "reason": "unknown-or-disabled-adapter"
+      },
+      "passed": true
+    },
+    {
+      "name": "cost budget breach is denied",
+      "expected": false,
+      "decision": {
+        "allowed": false,
+        "reason": "cost-limit-exceeded"
+      },
+      "passed": true
+    },
+    {
+      "name": "missing evidence contract is denied",
+      "expected": false,
+      "decision": {
+        "allowed": false,
+        "reason": "evidence-contract-required"
+      },
+      "passed": true
+    }
+  ],
+  "gates": {
+    "executionContractCompleteAndOrdered": true,
+    "policyCasesPass": true,
+    "autonomousOperationsInventoryCoverage": true,
+    "irreversibleActionsClassified": true,
+    "nonInteractiveByDefault": true,
+    "failClosedDefault": true,
+    "coreAdapterPolicyCoverage": true,
+    "policyBeforeExecution": true,
+    "evidenceRequired": true,
+    "mutationPreflightRequired": true
+  },
+  "status": "PASS"
+}

@@ -1,0 +1,17 @@
+{
+  "scenarioId": "RECOVERY_EXHAUSTION_PROPAGATES",
+  "category": "RECOVERY",
+  "description": "Recovery exhaustion must remain blocking downstream.",
+  "expectedState": "CHAIN_DEGRADED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["RECOVERY_EXHAUSTION"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "RECOVERY_EXHAUSTION",
+        "stage": "A26",
+        "detail": "recovery_exhausted"
+      }
+    ]
+  }
+}

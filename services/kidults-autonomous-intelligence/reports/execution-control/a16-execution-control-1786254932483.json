@@ -1,0 +1,121 @@
+{
+  "certification": "KIDULTS A16 Autonomous Execution Control Plane",
+  "completedAt": "2026-08-09T05:55:32.483Z",
+  "adapters": [
+    {
+      "name": "cloudflare",
+      "valid": true,
+      "missing": []
+    },
+    {
+      "name": "github",
+      "valid": true,
+      "missing": []
+    },
+    {
+      "name": "digitalocean",
+      "valid": true,
+      "missing": []
+    },
+    {
+      "name": "provider",
+      "valid": true,
+      "missing": []
+    },
+    {
+      "name": "database",
+      "valid": true,
+      "missing": []
+    },
+    {
+      "name": "storage",
+      "valid": true,
+      "missing": []
+    },
+    {
+      "name": "dns",
+      "valid": true,
+      "missing": []
+    },
+    {
+      "name": "server",
+      "valid": true,
+      "missing": []
+    }
+  ],
+  "successfulRuns": [
+    {
+      "operationId": "a16-staging-cloudflare-dry-run",
+      "status": "PASS",
+      "stages": [
+        "discover",
+        "preflight",
+        "plan",
+        "authorize",
+        "execute",
+        "verify",
+        "cleanup_or_rollback",
+        "evidence",
+        "finalize"
+      ]
+    },
+    {
+      "operationId": "a16-production-digitalocean-canary",
+      "status": "PASS",
+      "stages": [
+        "discover",
+        "preflight",
+        "plan",
+        "authorize",
+        "execute",
+        "verify",
+        "cleanup_or_rollback",
+        "evidence",
+        "finalize"
+      ]
+    }
+  ],
+  "negativeCases": [
+    {
+      "name": "unknown adapter fails closed",
+      "passed": true,
+      "message": "adapter-not-registered:unknown"
+    },
+    {
+      "name": "preflight failure blocks execution",
+      "passed": true,
+      "message": "preflight-failed:forced-preflight-failure"
+    },
+    {
+      "name": "production without rollback is policy denied",
+      "passed": true,
+      "message": "policy-denied:production-rollback-required"
+    },
+    {
+      "name": "R4 without human approval is policy denied",
+      "passed": true,
+      "message": "policy-denied:human-approval-required"
+    },
+    {
+      "name": "verification failure invokes rollback path",
+      "passed": true,
+      "message": "verification-failed:forced-verification-failure"
+    }
+  ],
+  "evidenceCount": 7,
+  "gates": {
+    "adapterContractCoverage": true,
+    "cloudflareAdapterRegistered": true,
+    "githubAdapterRegistered": true,
+    "digitaloceanAdapterRegistered": true,
+    "providerAdapterRegistered": true,
+    "databaseStorageDnsServerRegistered": true,
+    "successfulPolicyGovernedExecution": true,
+    "executionStagesOrdered": true,
+    "negativeCasesFailClosed": true,
+    "rollbackPathCertified": true,
+    "evidenceProducedForEveryAttempt": true,
+    "nonInteractiveExecutionContract": true
+  },
+  "status": "PASS"
+}

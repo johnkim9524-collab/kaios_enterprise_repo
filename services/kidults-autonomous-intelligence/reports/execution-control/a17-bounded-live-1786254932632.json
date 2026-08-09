@@ -1,0 +1,148 @@
+{
+  "certification": "KIDULTS A17 Bounded Live Adapter Readiness",
+  "completedAt": "2026-08-09T05:55:32.632Z",
+  "purpose": "Certify policy-governed bounded live execution contracts before enabling real external mutations.",
+  "executionOrder": [
+    "discover",
+    "preflight",
+    "plan",
+    "authorize",
+    "execute",
+    "verify",
+    "cleanup_or_rollback",
+    "evidence",
+    "finalize"
+  ],
+  "contracts": [
+    {
+      "adapter": "cloudflare",
+      "mode": "bounded-live-ready",
+      "mutationDefault": "deny",
+      "requiresPreflight": true,
+      "requiresPolicyAuthorization": true,
+      "nonInteractive": true,
+      "requiresVerification": true,
+      "requiresEvidence": true,
+      "productionRequiresCanary": true,
+      "productionRequiresRollback": true,
+      "destructiveRequiresExplicitApproval": true
+    },
+    {
+      "adapter": "github",
+      "mode": "bounded-live-ready",
+      "mutationDefault": "deny",
+      "requiresPreflight": true,
+      "requiresPolicyAuthorization": true,
+      "nonInteractive": true,
+      "requiresVerification": true,
+      "requiresEvidence": true,
+      "productionRequiresCanary": true,
+      "productionRequiresRollback": true,
+      "destructiveRequiresExplicitApproval": true
+    },
+    {
+      "adapter": "digitalocean",
+      "mode": "bounded-live-ready",
+      "mutationDefault": "deny",
+      "requiresPreflight": true,
+      "requiresPolicyAuthorization": true,
+      "nonInteractive": true,
+      "requiresVerification": true,
+      "requiresEvidence": true,
+      "productionRequiresCanary": true,
+      "productionRequiresRollback": true,
+      "destructiveRequiresExplicitApproval": true
+    }
+  ],
+  "results": [
+    {
+      "name": "cloudflare-readonly-discovery",
+      "adapter": "cloudflare",
+      "environment": "staging",
+      "risk": "R1",
+      "mutation": false,
+      "preflight": true,
+      "authorized": true,
+      "verified": true,
+      "evidence": true,
+      "decision": "ALLOW"
+    },
+    {
+      "name": "github-bounded-mutation-plan",
+      "adapter": "github",
+      "environment": "staging",
+      "risk": "R2",
+      "mutation": true,
+      "preflight": true,
+      "authorized": true,
+      "verified": true,
+      "evidence": true,
+      "blastRadius": 1,
+      "decision": "ALLOW"
+    },
+    {
+      "name": "digitalocean-production-canary-plan",
+      "adapter": "digitalocean",
+      "environment": "production",
+      "risk": "R3",
+      "mutation": true,
+      "preflight": true,
+      "authorized": true,
+      "verified": true,
+      "evidence": true,
+      "blastRadius": 1,
+      "canary": true,
+      "rollback": true,
+      "decision": "ALLOW"
+    },
+    {
+      "name": "deny-missing-preflight",
+      "adapter": "cloudflare",
+      "environment": "staging",
+      "risk": "R2",
+      "mutation": true,
+      "preflight": false,
+      "authorized": true,
+      "expected": "DENY",
+      "decision": "DENY"
+    },
+    {
+      "name": "deny-unbounded-blast-radius",
+      "adapter": "github",
+      "environment": "staging",
+      "risk": "R2",
+      "mutation": true,
+      "preflight": true,
+      "authorized": true,
+      "blastRadius": 999,
+      "expected": "DENY",
+      "decision": "DENY"
+    },
+    {
+      "name": "deny-production-without-canary",
+      "adapter": "digitalocean",
+      "environment": "production",
+      "risk": "R3",
+      "mutation": true,
+      "preflight": true,
+      "authorized": true,
+      "rollback": true,
+      "canary": false,
+      "expected": "DENY",
+      "decision": "DENY"
+    }
+  ],
+  "gates": {
+    "threeCoreAdaptersCovered": true,
+    "policyBeforeExecution": true,
+    "preflightBeforeExecution": true,
+    "nonInteractiveByDefault": true,
+    "boundedMutationDefault": true,
+    "verificationAndEvidenceRequired": true,
+    "productionCanaryRollbackRequired": true,
+    "positiveCasesAllowed": true,
+    "negativeCasesFailClosed": true,
+    "executionOrderCanonical": true
+  },
+  "status": "PASS"
+}

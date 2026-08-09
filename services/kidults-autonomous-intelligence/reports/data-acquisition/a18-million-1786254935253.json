@@ -1,0 +1,67 @@
+{
+  "certification": "KIDULTS A18 Autonomous Data Acquisition Scale",
+  "profile": "million",
+  "completedAt": "2026-08-09T05:55:35.253Z",
+  "purpose": "Certify high-volume autonomous collection, normalization, deduplication, quality gating and analysis before paid provider onboarding.",
+  "policyVersion": "1.0",
+  "executionOrder": [
+    "source_discovery",
+    "policy_check",
+    "fetch",
+    "normalize",
+    "deduplicate",
+    "classify",
+    "enrich",
+    "quality_score",
+    "persist",
+    "analyze",
+    "evidence",
+    "publish_eligibility"
+  ],
+  "workload": {
+    "rows": 1000000,
+    "batchSize": 10000,
+    "sourceClasses": 5,
+    "categories": 8
+  },
+  "results": {
+    "accepted": 1000000,
+    "duplicates": 0,
+    "invalid": 0,
+    "analyzed": 1000000,
+    "sourceFailures": 3,
+    "retries": 3,
+    "invalidRate": 0,
+    "checksum": 33038890
+  },
+  "performance": {
+    "durationMs": 501.41,
+    "recordsPerSecond": 1994376.55,
+    "maxBatchMs": 15.68
+  },
+  "memory": {
+    "rssBytes": 133562368,
+    "heapTotalBytes": 67428352,
+    "heapUsedBytes": 48831312,
+    "externalBytes": 1762628,
+    "arrayBuffers": 10475
+  },
+  "gates": {
+    "canonicalExecutionOrder": true,
+    "approvedSourceClassesOnly": true,
+    "noProviderCredentials": true,
+    "noExternalMutation": true,
+    "productionPublicationBlocked": true,
+    "nonInteractive": true,
+    "failClosed": true,
+    "provenanceRequired": true,
+    "expectedRowsAccounted": true,
+    "duplicateLeakageZero": true,
+    "invalidRateWithinBound": true,
+    "analysisCoverageComplete": true,
+    "sourceFailureIsolationOperational": true,
+    "boundedBatchMemoryContract": true,
+    "throughputPositive": true
+  },
+  "status": "PASS"
+}

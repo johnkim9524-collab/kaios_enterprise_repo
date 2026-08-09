@@ -1,0 +1,17 @@
+{
+  "scenarioId": "SLO_BREACH_PROPAGATES",
+  "category": "OPERATIONAL_GOVERNANCE",
+  "description": "SLO breaches must remain visible to enterprise acceptance.",
+  "expectedState": "CHAIN_DEGRADED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["SLO_BREACH"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "SLO_BREACH",
+        "stage": "A27",
+        "detail": "critical_slo_breach"
+      }
+    ]
+  }
+}

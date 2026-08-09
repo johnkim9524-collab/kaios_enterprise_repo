@@ -1,0 +1,17 @@
+{
+  "scenarioId": "RUNTIME_FAILURE_PROPAGATES",
+  "category": "RUNTIME",
+  "description": "Runtime failure must propagate to the enterprise gate.",
+  "expectedState": "CHAIN_DEGRADED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["RUNTIME_FAILURE"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "RUNTIME_FAILURE",
+        "stage": "A25",
+        "detail": "runtime_cycle_failure"
+      }
+    ]
+  }
+}
