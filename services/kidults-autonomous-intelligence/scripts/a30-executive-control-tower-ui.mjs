@@ -37,7 +37,7 @@ const a28 = readLatestJson(CONTROL_TOWER_REPORT_DIR, {
 const a29 = readLatestJson(EXEC_DECISION_REPORT_DIR, {
   evidenceId: 'a29-fallback',
   generatedAt: new Date().toISOString(),
-  policyVersion: 'unknown',
+  policyVersion: 'a29-executive-decision-orchestration-policy.v1',
   certification: { invariants: {} },
   auditLog: [],
 });
@@ -140,6 +140,7 @@ const output = {
   generatedAt: new Date().toISOString(),
   stage: 'A30',
   title: 'Autonomous Executive Control Tower UI & Decision Console',
+  policyVersion: a29?.policyVersion ?? 'a29-executive-decision-orchestration-policy.v1',
   canonicalInputs: {
     a28SnapshotId: a28?.snapshotId ?? null,
     a29EvidenceId: a29?.evidenceId ?? null,
