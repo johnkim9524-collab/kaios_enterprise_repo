@@ -30,7 +30,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - name: Collect and validate actual external open data
-        run: npm run live:open-data
+        run: node scripts/live-open-data-operation.mjs
       - name: Upload live external-data evidence
         if: always()
         uses: actions/upload-artifact@v4
