@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
-      contents: read
+      contents: write
 
     defaults:
       run:
@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -32,6 +34,23 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
+
+      - name: Apply idempotent A40 structural refactor
+        run: node scripts/p0-a40-structure-refactor.mjs
+
+      - name: Commit A40 structural refactor when generated
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs services/kidults-autonomous-intelligence/scripts/lib/a40-ga-static-config.mjs
+          if git diff --cached --quiet; then
+            echo "A40 structural refactor already committed."
+            exit 0
+          fi
+          git commit -m "refactor(kidults): split A40 static certification config"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
       - name: Repository quality audit before dependency install
         run: node scripts/p0-engineering-quality-audit.mjs
