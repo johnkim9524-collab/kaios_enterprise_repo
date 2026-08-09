@@ -1,11 +1,11 @@
 {
-  "gaCertificationId": "a40-ga-f80fba5ec9fb",
+  "gaCertificationId": "a40-ga-53de5a612733",
   "releaseName": "KIDULTS Autonomous Intelligence General Availability",
   "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
   "stage": "A40",
   "title": "GA Certification & Production Baseline Freeze",
   "mode": "SIMULATION",
-  "generatedAt": "2026-08-09T06:16:54.465Z",
+  "generatedAt": "2026-08-09T06:17:43.502Z",
   "policyVersion": "a40-ga-certification-policy.v1",
   "gaStateModel": [
     "UNASSESSED",
@@ -28,25 +28,29 @@
   "requiredStageRange": "A15-A39",
   "repository": "johnkim9524-collab/kaios_enterprise_repo",
   "branch": "main",
-  "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
-  "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+  "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
+  "certificationTimestamp": "2026-08-09T06:17:43.502Z",
   "observedRepositoryState": {
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "branch": "copilot/kidults-sprint-a40-final-certification",
-    "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+    "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
     "originMainSha": null,
     "dirty": true,
     "syncState": "UNKNOWN",
     "synchronizedWithOriginMain": false,
     "statusLines": [
-      "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+      "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+      " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+      " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+      " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+      " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
     ],
-    "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+    "certificationTimestamp": "2026-08-09T06:17:43.502Z"
   },
   "authoritativeBaseline": {
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "branch": "main",
-    "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+    "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
     "requiredStageRange": "A15-A39",
     "packageVersion": "0.8.0",
     "policyVersions": [
@@ -172,9 +176,9 @@
       "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
       "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
     ],
-    "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+    "certificationTimestamp": "2026-08-09T06:17:43.502Z",
     "dirty": false,
-    "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+    "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
     "synchronizedWithOriginMain": true,
     "syncState": "SYNCHRONIZED",
     "statusLines": [],
@@ -358,15 +362,19 @@
     "observedRepositoryState": {
       "repository": "johnkim9524-collab/kaios_enterprise_repo",
       "branch": "copilot/kidults-sprint-a40-final-certification",
-      "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+      "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
       "originMainSha": null,
       "dirty": true,
       "syncState": "UNKNOWN",
       "synchronizedWithOriginMain": false,
       "statusLines": [
-        "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+        "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+        " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+        " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+        " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+        " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
       ],
-      "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+      "certificationTimestamp": "2026-08-09T06:17:43.502Z"
     }
   },
   "certificationMatrix": [
@@ -921,7 +929,7 @@
       "upstreamDependencyState": "UPSTREAM_CERTIFIED"
     }
   ],
-  "baselineId": "a40-baseline-e93daf0ac20d",
+  "baselineId": "a40-baseline-48d8f6602d21",
   "policyVersions": [
     {
       "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -1102,7 +1110,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -1228,9 +1236,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -1414,15 +1422,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -2063,11 +2075,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -2754,12 +2766,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-d06c0473e88b",
+        "gaCertificationId": "a40-ga-862a399e5794",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -3312,7 +3324,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -3463,12 +3475,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -3628,7 +3640,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -3754,9 +3766,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -3940,15 +3952,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -4589,11 +4605,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -5280,12 +5296,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-d06c0473e88b",
+        "gaCertificationId": "a40-ga-862a399e5794",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -5838,7 +5854,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -5989,12 +6005,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -6145,7 +6161,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -6271,9 +6287,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -6457,15 +6473,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -7106,11 +7126,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -7797,12 +7817,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-23ffa29e42de",
+        "gaCertificationId": "a40-ga-3119dc312f3f",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -8355,7 +8375,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -8506,12 +8526,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -8658,7 +8678,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -8784,9 +8804,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -8970,15 +8990,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -9619,11 +9643,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -10310,12 +10334,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-23ffa29e42de",
+        "gaCertificationId": "a40-ga-3119dc312f3f",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -10868,7 +10892,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -11019,12 +11043,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -11185,7 +11209,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -11311,9 +11335,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": true,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [
@@ -11499,15 +11523,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -12154,11 +12182,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-25dc6c758819",
+        "baselineId": "a40-baseline-780924470683",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -12851,12 +12879,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-01e18e059519",
+        "gaCertificationId": "a40-ga-2a99f242b1e1",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -13409,7 +13437,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-25dc6c758819",
+        "baselineId": "a40-baseline-780924470683",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -13566,12 +13594,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": true
         },
         {
@@ -13731,7 +13759,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -13857,9 +13885,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -14043,15 +14071,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -14692,11 +14724,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -15383,12 +15415,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-d06c0473e88b",
+        "gaCertificationId": "a40-ga-862a399e5794",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -15941,7 +15973,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -16092,12 +16124,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -16248,7 +16280,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -16374,9 +16406,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -16560,15 +16592,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -17209,11 +17245,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -17900,12 +17936,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-23ffa29e42de",
+        "gaCertificationId": "a40-ga-3119dc312f3f",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -18458,7 +18494,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -18609,12 +18645,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -18770,7 +18806,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -18896,9 +18932,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -19082,15 +19118,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -19731,11 +19771,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -20422,12 +20462,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-ffe5b025c6fa",
+        "gaCertificationId": "a40-ga-ac02d110af3a",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -20980,7 +21020,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -21131,12 +21171,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -21287,7 +21327,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -21413,9 +21453,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -21599,15 +21639,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -22248,11 +22292,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -22939,12 +22983,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-23ffa29e42de",
+        "gaCertificationId": "a40-ga-3119dc312f3f",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -23497,7 +23541,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -23648,12 +23692,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -23841,7 +23885,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -23967,9 +24011,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -24153,15 +24197,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -24813,11 +24861,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-0715dc67d0a8",
+        "baselineId": "a40-baseline-8496c596a6c3",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -25515,12 +25563,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-21d5644b04c2",
+        "gaCertificationId": "a40-ga-fb666c6325c5",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -26073,7 +26121,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-0715dc67d0a8",
+        "baselineId": "a40-baseline-8496c596a6c3",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -26235,12 +26283,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -26407,7 +26455,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "release/a40-candidate",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -26533,9 +26581,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": false,
         "syncState": "OUT_OF_SYNC",
         "statusLines": [],
@@ -26719,15 +26767,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -27374,11 +27426,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-0c7025710304",
+        "baselineId": "a40-baseline-263e80014396",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "release/a40-candidate",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -28071,12 +28123,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-59a517ab217b",
+        "gaCertificationId": "a40-ga-bd42cdd8e856",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "release/a40-candidate",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -28629,7 +28681,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-0c7025710304",
+        "baselineId": "a40-baseline-263e80014396",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -28786,12 +28838,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "release/a40-candidate",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -28936,21 +28988,21 @@
       "description": "Main must be synchronized with origin/main before GA certification can pass.",
       "finalState": "GA_BLOCKED",
       "finalDecision": "GA_BLOCKED",
-      "blockingCondition": "1d43576357965c751cb1183473ada3c9e265dce1 != 0000000000000000000000000000000000000000",
+      "blockingCondition": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09 != 0000000000000000000000000000000000000000",
       "failureCodes": [
         "OUT_OF_SYNC_MAIN"
       ],
       "failureDetails": [
         {
           "code": "OUT_OF_SYNC_MAIN",
-          "detail": "1d43576357965c751cb1183473ada3c9e265dce1 != 0000000000000000000000000000000000000000",
+          "detail": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09 != 0000000000000000000000000000000000000000",
           "classification": "blocking"
         }
       ],
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -29076,7 +29128,7 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
         "originMainSha": "0000000000000000000000000000000000000000",
         "synchronizedWithOriginMain": false,
@@ -29262,15 +29314,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -29917,11 +29973,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-a374fa46f837",
+        "baselineId": "a40-baseline-b4474c66baba",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -30614,12 +30670,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-8a92fbefd267",
+        "gaCertificationId": "a40-ga-0881d38258aa",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -31172,7 +31228,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-a374fa46f837",
+        "baselineId": "a40-baseline-b4474c66baba",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -31329,12 +31385,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -31494,7 +31550,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -31620,9 +31676,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -31806,15 +31862,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -32455,11 +32515,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -33146,12 +33206,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-e9889e3dc3d7",
+        "gaCertificationId": "a40-ga-2d1d86829576",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -33704,7 +33764,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -33855,12 +33915,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -34020,7 +34080,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -34146,9 +34206,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -34332,15 +34392,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -34981,11 +35045,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -35672,12 +35736,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-d06c0473e88b",
+        "gaCertificationId": "a40-ga-862a399e5794",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -36230,7 +36294,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -36381,12 +36445,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -36537,7 +36601,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -36663,9 +36727,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -36849,15 +36913,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -37498,11 +37566,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -38189,12 +38257,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-23ffa29e42de",
+        "gaCertificationId": "a40-ga-3119dc312f3f",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -38747,7 +38815,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -38898,12 +38966,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -39056,7 +39124,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -39182,9 +39250,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -39368,15 +39436,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -40017,11 +40089,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -40708,12 +40780,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-23ffa29e42de",
+        "gaCertificationId": "a40-ga-3119dc312f3f",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -41266,7 +41338,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -41417,12 +41489,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -41569,7 +41641,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -41695,9 +41767,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -41881,15 +41953,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -42530,11 +42606,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -43221,12 +43297,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-23ffa29e42de",
+        "gaCertificationId": "a40-ga-3119dc312f3f",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -43779,7 +43855,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -43930,12 +44006,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -44097,7 +44173,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -44223,9 +44299,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -44409,15 +44485,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -45058,11 +45138,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -45749,12 +45829,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-ffe5b025c6fa",
+        "gaCertificationId": "a40-ga-ac02d110af3a",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -46307,7 +46387,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -46458,12 +46538,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -46623,7 +46703,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -46749,9 +46829,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -46935,15 +47015,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -47584,11 +47668,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -48275,12 +48359,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-d06c0473e88b",
+        "gaCertificationId": "a40-ga-862a399e5794",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -48833,7 +48917,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -48984,12 +49068,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -49181,7 +49265,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -49307,9 +49391,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -49493,15 +49577,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -50153,11 +50241,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-c3f927428952",
+        "baselineId": "a40-baseline-b2ad7eaf8e42",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -50855,12 +50943,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-fdc4bdaf3c90",
+        "gaCertificationId": "a40-ga-b893e832cda3",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -51413,7 +51501,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-c3f927428952",
+        "baselineId": "a40-baseline-b2ad7eaf8e42",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -51575,12 +51663,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -51747,7 +51835,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -51873,9 +51961,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -52059,15 +52147,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -52708,11 +52800,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -53399,12 +53491,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-ffe5b025c6fa",
+        "gaCertificationId": "a40-ga-ac02d110af3a",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -53957,7 +54049,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -54108,12 +54200,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -54273,7 +54365,7 @@
       "repositoryBaseline": {
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "requiredStageRange": "A15-A39",
         "packageVersion": "0.8.0",
         "policyVersions": [
@@ -54399,9 +54491,9 @@
           "docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md",
           "docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md"
         ],
-        "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+        "certificationTimestamp": "2026-08-09T06:17:43.502Z",
         "dirty": false,
-        "originMainSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "originMainSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "synchronizedWithOriginMain": true,
         "syncState": "SYNCHRONIZED",
         "statusLines": [],
@@ -54585,15 +54677,19 @@
         "observedRepositoryState": {
           "repository": "johnkim9524-collab/kaios_enterprise_repo",
           "branch": "copilot/kidults-sprint-a40-final-certification",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "originMainSha": null,
           "dirty": true,
           "syncState": "UNKNOWN",
           "synchronizedWithOriginMain": false,
           "statusLines": [
-            "M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"
+            "D services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
+            " D services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json"
           ],
-          "certificationTimestamp": "2026-08-09T06:16:54.465Z"
+          "certificationTimestamp": "2026-08-09T06:17:43.502Z"
         }
       },
       "certificationMatrix": [
@@ -55234,11 +55330,11 @@
         "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
       ],
       "baselineManifest": {
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -55925,12 +56021,12 @@
         }
       },
       "releaseManifest": {
-        "gaCertificationId": "a40-ga-d06c0473e88b",
+        "gaCertificationId": "a40-ga-862a399e5794",
         "releaseName": "KIDULTS Autonomous Intelligence General Availability",
         "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
         "repository": "johnkim9524-collab/kaios_enterprise_repo",
         "branch": "main",
-        "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+        "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
         "certificationMatrix": [
           {
             "stage": "A15",
@@ -56483,7 +56579,7 @@
             "upstreamDependencyState": "UPSTREAM_CERTIFIED"
           }
         ],
-        "baselineId": "a40-baseline-e93daf0ac20d",
+        "baselineId": "a40-baseline-48d8f6602d21",
         "policyVersions": [
           {
             "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -56634,12 +56730,12 @@
       "auditTrail": [
         {
           "step": "UNASSESSED",
-          "timestamp": "2026-08-09T06:16:54.465Z"
+          "timestamp": "2026-08-09T06:17:43.502Z"
         },
         {
           "step": "COLLECTING_BASELINE",
           "branch": "main",
-          "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+          "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
           "dirty": false
         },
         {
@@ -56822,11 +56918,11 @@
   "certificationPassed": true,
   "blockingCondition": null,
   "baselineManifest": {
-    "baselineId": "a40-baseline-e93daf0ac20d",
+    "baselineId": "a40-baseline-48d8f6602d21",
     "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "branch": "main",
-    "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+    "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
     "certificationMatrix": [
       {
         "stage": "A15",
@@ -57513,12 +57609,12 @@
     }
   },
   "releaseManifest": {
-    "gaCertificationId": "a40-ga-23ffa29e42de",
+    "gaCertificationId": "a40-ga-3119dc312f3f",
     "releaseName": "KIDULTS Autonomous Intelligence General Availability",
     "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "branch": "main",
-    "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+    "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
     "certificationMatrix": [
       {
         "stage": "A15",
@@ -58071,7 +58167,7 @@
         "upstreamDependencyState": "UPSTREAM_CERTIFIED"
       }
     ],
-    "baselineId": "a40-baseline-e93daf0ac20d",
+    "baselineId": "a40-baseline-48d8f6602d21",
     "policyVersions": [
       {
         "path": "services/kidults-autonomous-intelligence/policy/a22-publication-channel-policy.json",
@@ -58218,31 +58314,31 @@
       "Any material post-GA change to authority, policy, privacy, legal, commercial, rollback, recovery, or deployment semantics requires re-certification."
     ],
     "finalDecision": "GA_CERTIFIED",
-    "certificationTimestamp": "2026-08-09T06:16:54.465Z",
+    "certificationTimestamp": "2026-08-09T06:17:43.502Z",
     "evidenceArchivePaths": [
-      "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
-      "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
-      "services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json",
-      "services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+      "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-17-43-502Z.json",
+      "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-17-43-502Z.md",
+      "services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-17-43-502Z.json",
+      "services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-17-43-502Z.json",
       "services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json"
     ]
   },
   "evidenceArchivePaths": [
-    "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
-    "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.md",
-    "services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json",
-    "services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json",
+    "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-17-43-502Z.json",
+    "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-17-43-502Z.md",
+    "services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-17-43-502Z.json",
+    "services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-17-43-502Z.json",
     "services/kidults-autonomous-intelligence/reports/ga-certification/GA_BASELINE.json"
   ],
   "timestamps": {
-    "generatedAt": "2026-08-09T06:16:54.465Z",
-    "completedAt": "2026-08-09T06:16:55.170Z"
+    "generatedAt": "2026-08-09T06:17:43.502Z",
+    "completedAt": "2026-08-09T06:17:44.200Z"
   },
   "executiveSummary": {
     "platform": "KIDULTS Autonomous Intelligence General Availability",
     "release": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0 (johnkim9524-collab/kaios_enterprise_repo)",
     "gaStatus": "GA_CERTIFIED",
-    "baselineCommit": "1d43576357965c751cb1183473ada3c9e265dce1",
+    "baselineCommit": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
     "whatIsCertified": "A15-A39",
     "whatRemainsHumanControlled": [
       "executive approval",

@@ -1,13 +1,13 @@
 {
-  "gaCertificationId": "a40-ga-f80fba5ec9fb",
-  "baselineId": "a40-baseline-e93daf0ac20d",
+  "gaCertificationId": "a40-ga-53de5a612733",
+  "baselineId": "a40-baseline-48d8f6602d21",
   "releaseVersion": "KIDULTS-AUTONOMOUS-INTELLIGENCE-GA-1.0",
   "repository": "johnkim9524-collab/kaios_enterprise_repo",
   "branch": "main",
-  "commitSha": "1d43576357965c751cb1183473ada3c9e265dce1",
+  "commitSha": "4ff39b4c4645a94d9a55a6ad56b6e2a2e5a7bd09",
   "finalDecision": "GA_CERTIFIED",
-  "updatedAt": "2026-08-09T06:16:54.465Z",
-  "baselineManifestPath": "services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-16-54-465Z.json",
-  "certificationManifestPath": "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-16-54-465Z.json",
-  "certificationMatrixPath": "services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-16-54-465Z.json"
+  "updatedAt": "2026-08-09T06:17:43.502Z",
+  "baselineManifestPath": "services/kidults-autonomous-intelligence/reports/ga-certification/a40-production-baseline-2026-08-09T06-17-43-502Z.json",
+  "certificationManifestPath": "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-17-43-502Z.json",
+  "certificationMatrixPath": "services/kidults-autonomous-intelligence/reports/ga-certification/a40-certification-matrix-2026-08-09T06-17-43-502Z.json"
 }
