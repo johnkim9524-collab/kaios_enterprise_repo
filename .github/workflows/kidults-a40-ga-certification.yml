@@ -29,11 +29,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
         working-directory: services/kidults-autonomous-intelligence
-        run: npm install
+        run: npm install --no-audit --no-fund
 
       - name: Verify A40 package scripts exist
         working-directory: services/kidults-autonomous-intelligence
