@@ -1,0 +1,117 @@
+{
+  "scenarioId": "CROSS_ACCOUNT_DATA_RISK_BLOCKS_DELIVERY",
+  "category": "NEGATIVE",
+  "description": "Cross-account leakage risk blocks delivery preparation.",
+  "a37CertificationPassed": true,
+  "a37CommercialState": "MONETIZATION_ELIGIBLE",
+  "customerContext": {
+    "customerContextId": "ctx-a38-14",
+    "segment": "ENTERPRISE_ACCOUNT",
+    "entitlementClass": "ENTERPRISE",
+    "geography": "US",
+    "organizationClass": "ENTERPRISE",
+    "channelEligibility": [
+      "ENTERPRISE_PORTAL"
+    ],
+    "privacyConstraints": {
+      "allowedGeographies": [
+        "US"
+      ],
+      "restrictedPersonalDataAllowed": false,
+      "customerIsolationRequired": true,
+      "explicitEnterpriseLicense": false
+    },
+    "commercialRestrictions": [],
+    "approvalRequirements": [
+      "COMMERCIAL_APPROVAL"
+    ],
+    "explicitAuthorizedScopes": []
+  },
+  "valuePackage": {
+    "productId": "enterprise-data-risk",
+    "productVersion": "2026.08",
+    "intelligenceAssetIds": [
+      "enterprise-data-risk-asset"
+    ],
+    "valueTier": "HIGH",
+    "freshnessClass": "CURRENT",
+    "exclusivityClass": "STANDARD",
+    "entitlementRequirement": "ENTERPRISE",
+    "deliveryChannel": "ENTERPRISE_PORTAL",
+    "recommendedCommercialTerms": {
+      "simulationOnly": true,
+      "bindingOffer": false,
+      "explicitEnterpriseLicense": false,
+      "customerSpecificLegalTerms": false
+    },
+    "pricingReference": {
+      "state": "PRICE_ADMISSIBLE",
+      "customPricing": false,
+      "aboveCustomPricingThreshold": false
+    },
+    "rightsReference": {
+      "state": "RIGHTS_CONFIRMED",
+      "restrictedDistribution": false,
+      "channelRestrictions": [],
+      "authorizedScopeKey": "enterprise-data-risk"
+    },
+    "legalState": "CLEARED",
+    "privacyState": "KNOWN_SAFE",
+    "securityState": "SAFE",
+    "validityWindow": {
+      "startsAt": "2026-08-09T00:00:00Z",
+      "endsAt": "2026-12-31T23:59:59Z"
+    },
+    "evidenceReferences": [
+      "reports/commercial-governance/latest-certified.json"
+    ]
+  },
+  "deliveryRequest": {
+    "intendedChannel": "ENTERPRISE_PORTAL",
+    "prepareDelivery": true,
+    "deliveryPurpose": "COMMERCIAL_RECOMMENDATION",
+    "requireAuthorizedOperatorHandoff": false,
+    "externalMessageSendAttempted": false,
+    "contractExecutionAttempted": false,
+    "paymentActivationAttempted": false,
+    "refundAttempted": false,
+    "paidAccessProvisioningAttempted": false,
+    "billingMutationAttempted": false,
+    "bindingCommitmentAttempted": false,
+    "externalCrmMutationAttempted": false,
+    "externalProviderMutationAttempted": false
+  },
+  "productEvidence": {
+    "identityAuthoritative": true,
+    "freshnessAcceptable": true,
+    "noActiveHardStopIncident": true,
+    "activeHardStopIncident": false,
+    "embargoed": false
+  },
+  "contentProfile": {
+    "includedFields": [
+      "productSummary",
+      "recommendedBenefits",
+      "pricingSummary"
+    ],
+    "restrictedFields": [],
+    "minimizationPossible": true,
+    "containsInternalAuditInternals": false,
+    "containsSecuritySensitiveData": false,
+    "containsCredentials": false,
+    "containsProviderSecrets": false,
+    "containsInternalGovernanceData": false,
+    "containsUnrelatedCustomerInformation": false,
+    "containsRestrictedSourceMaterial": false,
+    "crossAccountDataRisk": true,
+    "purposeCompatible": true,
+    "restrictedPersonalData": false,
+    "retentionCompatible": true,
+    "disclosureRestricted": false
+  },
+  "approvals": {
+    "executiveApproved": true
+  },
+  "expectedDeliveryState": "DELIVERY_BLOCKED",
+  "expectedNextPermittedAction": "BLOCK_DELIVERY"
+}

@@ -1,0 +1,117 @@
+{
+  "scenarioId": "RESTRICTED_CONTENT_IS_MINIMIZED_OR_BLOCKED",
+  "category": "EDGE",
+  "description": "Restricted content is deterministically redacted before a simulated prepared delivery.",
+  "a37CertificationPassed": true,
+  "a37CommercialState": "OFFER_ELIGIBLE",
+  "customerContext": {
+    "customerContextId": "ctx-a38-15",
+    "segment": "INTERNAL_USER",
+    "entitlementClass": "RESTRICTED",
+    "geography": null,
+    "organizationClass": "INTERNAL",
+    "channelEligibility": [
+      "REPORT_DOWNLOAD"
+    ],
+    "privacyConstraints": {
+      "allowedGeographies": [],
+      "restrictedPersonalDataAllowed": false,
+      "customerIsolationRequired": true,
+      "explicitEnterpriseLicense": false
+    },
+    "commercialRestrictions": [],
+    "approvalRequirements": [
+      "COMMERCIAL_APPROVAL"
+    ],
+    "explicitAuthorizedScopes": [
+      "restricted-research-pack"
+    ]
+  },
+  "valuePackage": {
+    "productId": "restricted-research-pack",
+    "productVersion": "2026.08",
+    "intelligenceAssetIds": [
+      "restricted-research-pack-asset"
+    ],
+    "valueTier": "HIGH",
+    "freshnessClass": "CURRENT",
+    "exclusivityClass": "STANDARD",
+    "entitlementRequirement": "RESTRICTED",
+    "deliveryChannel": "REPORT_DOWNLOAD",
+    "recommendedCommercialTerms": {
+      "simulationOnly": true,
+      "bindingOffer": false,
+      "explicitEnterpriseLicense": false,
+      "customerSpecificLegalTerms": false
+    },
+    "pricingReference": {
+      "state": "PRICE_ADMISSIBLE",
+      "customPricing": false,
+      "aboveCustomPricingThreshold": false
+    },
+    "rightsReference": {
+      "state": "RIGHTS_CONFIRMED",
+      "restrictedDistribution": false,
+      "channelRestrictions": [],
+      "authorizedScopeKey": "restricted-research-pack"
+    },
+    "legalState": "CLEARED",
+    "privacyState": "KNOWN_SAFE",
+    "securityState": "SAFE",
+    "validityWindow": {
+      "startsAt": "2026-08-09T00:00:00Z",
+      "endsAt": "2026-12-31T23:59:59Z"
+    },
+    "evidenceReferences": [
+      "reports/commercial-governance/latest-certified.json"
+    ]
+  },
+  "deliveryRequest": {
+    "intendedChannel": "REPORT_DOWNLOAD",
+    "prepareDelivery": true,
+    "deliveryPurpose": "COMMERCIAL_RECOMMENDATION",
+    "requireAuthorizedOperatorHandoff": false,
+    "externalMessageSendAttempted": false,
+    "contractExecutionAttempted": false,
+    "paymentActivationAttempted": false,
+    "refundAttempted": false,
+    "paidAccessProvisioningAttempted": false,
+    "billingMutationAttempted": false,
+    "bindingCommitmentAttempted": false,
+    "externalCrmMutationAttempted": false,
+    "externalProviderMutationAttempted": false
+  },
+  "productEvidence": {
+    "identityAuthoritative": true,
+    "freshnessAcceptable": true,
+    "noActiveHardStopIncident": true,
+    "activeHardStopIncident": false,
+    "embargoed": false
+  },
+  "contentProfile": {
+    "includedFields": [
+      "productSummary",
+      "recommendedBenefits",
+      "pricingSummary"
+    ],
+    "restrictedFields": [
+      "restrictedInsight"
+    ],
+    "minimizationPossible": true,
+    "containsInternalAuditInternals": false,
+    "containsSecuritySensitiveData": false,
+    "containsCredentials": false,
+    "containsProviderSecrets": false,
+    "containsInternalGovernanceData": true,
+    "containsUnrelatedCustomerInformation": false,
+    "containsRestrictedSourceMaterial": false,
+    "crossAccountDataRisk": false,
+    "purposeCompatible": true,
+    "restrictedPersonalData": false,
+    "retentionCompatible": true,
+    "disclosureRestricted": false
+  },
+  "approvals": {},
+  "expectedDeliveryState": "DELIVERY_PREPARED",
+  "expectedNextPermittedAction": "HANDOFF_TO_AUTHORIZED_OPERATOR"
+}
