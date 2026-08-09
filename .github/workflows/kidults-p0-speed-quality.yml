@@ -51,8 +51,8 @@ jobs:
       - name: Truth-layer unit tests
         run: npm test
 
-      - name: Truth-layer coverage
-        run: npm run coverage
+      - name: Truth-layer coverage threshold gate
+        run: node scripts/p0-coverage-gate.mjs
 
       - name: Truth-layer acceptance gate
         run: npm run truth:gate
@@ -93,6 +93,9 @@ jobs:
           npm run a39:certify
           npm run a40:certify
 
+      - name: SRE and reliability baseline audit
+        run: node scripts/p0-sre-readiness-audit.mjs
+
       - name: Engineering quality audit after validation
         if: always()
         run: npm run quality:audit
@@ -105,6 +108,7 @@ jobs:
           path: |
             services/kidults-autonomous-intelligence/reports/engineering-hardening/quality-audit-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/critical-ci-audit-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/sre-readiness-latest.json
           retention-days: 30
           if-no-files-found: error
 
