@@ -10,6 +10,15 @@ export interface Env extends BaseEnv {
   SOURCE_ADAPTERS_JSON?: string;
 }
 
+interface PublishResult {
+  runId: string;
+  payload?: Record<string, unknown>;
+  productionEligible?: boolean;
+  message?: string;
+  error?: string;
+  [key: string]: unknown;
+}
+
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body, null, 2), {
   status,
   headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
@@ -86,8 +95,8 @@ async function collect(env: Env) {
 
 async function promote(env: Env) {
   const response = await baseWorker.fetch(internalRequest('/internal/publish', env), env);
-  const result = await response.json() as any;
-  if (!response.ok) throw new Error(result?.message || result?.error || `publish HTTP ${response.status}`);
+  const result = await response.json() as PublishResult;
+  if (!response.ok) throw new Error(result.message || result.error || `publish HTTP ${response.status}`);
 
   const enriched = await enrichPortalPayload(env, result.runId, result.payload || {});
   const payloadHash = await persistEnrichedSnapshot(env, result.runId, enriched.payload);
