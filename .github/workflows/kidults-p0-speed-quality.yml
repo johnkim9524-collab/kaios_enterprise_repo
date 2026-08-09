@@ -29,7 +29,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
@@ -41,6 +41,7 @@ jobs:
         run: npm run runtime:smoke
 
       - name: Engineering quality audit
+        if: always()
         run: node scripts/p0-engineering-quality-audit.mjs
 
       - name: Upload engineering audit
