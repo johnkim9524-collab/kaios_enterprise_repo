@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0.0",
+  "policyId": "kidult100-intelligence-value-policy-v1",
+  "principle": "Collect the smallest defensible dataset capable of producing the highest-value, most reproducible intelligence.",
+  "intelligencePrimitives": [
+    "IDENTITY",
+    "SCARCITY",
+    "TRANSACTION_PRICE_COMPARABLE",
+    "LIQUIDITY",
+    "DEMAND_ATTENTION",
+    "CANON_CULTURAL_STRENGTH",
+    "RISK_CONFIDENCE"
+  ],
+  "collectionGate": {
+    "required": ["VALUE", "RIGHTS", "PROVENANCE", "COMPARABILITY", "ECONOMICS"],
+    "failureDisposition": "DO_NOT_COLLECT_OR_HUMAN_REVIEW"
+  },
+  "defaultExcludedData": [
+    "GENERIC_DESCRIPTION_WITHOUT_ANALYTIC_VALUE",
+    "FULL_TEXT_PAGE_COPY",
+    "DECORATIVE_IMAGE_METADATA",
+    "BROAD_MENTION_ONLY_WEB_CONTENT",
+    "REDUNDANT_DERIVABLE_FIELDS",
+    "UNNECESSARY_PERSONAL_DATA",
+    "RIGHTS_UNCLEAR_DATA"
+  ],
+  "sourceTiers": {
+    "A": "AUTHORITATIVE_IDENTITY_PROVENANCE",
+    "B": "TRANSACTION_MARKET_EVIDENCE",
+    "C": "INDEPENDENT_VERIFICATION",
+    "D": "DEMAND_CULTURAL_SIGNAL"
+  },
+  "kidult100Eligibility": {
+    "canonicalIdentityRequired": true,
+    "authoritativeProvenanceRequired": true,
+    "scarcityEvidenceRequired": true,
+    "marketOrComparableEvidenceRequiredForValuationPublication": true,
+    "liquidityEvidenceRequiredForLiquidityScore": true,
+    "riskConfidenceEvidenceRequired": true,
+    "missingOptionalDimensionBehavior": "LOWER_CONFIDENCE_OR_SUPPRESS_SCORE"
+  },
+  "moatModel": [
+    "ENTITY",
+    "SOURCE_OBSERVATION",
+    "TRANSACTION",
+    "SUPPLY_STATE",
+    "DEMAND_STATE",
+    "CANON_EVENT",
+    "RISK_EVENT",
+    "NORMALIZED_SIGNAL",
+    "HISTORICAL_SCORE",
+    "INDEX_DECISION"
+  ]
+}
