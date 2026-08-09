@@ -96,6 +96,9 @@ jobs:
       - name: SRE and reliability baseline audit
         run: node scripts/p0-sre-readiness-audit.mjs
 
+      - name: 120 governance baseline audit
+        run: node scripts/p0-120-governance-baseline-audit.mjs
+
       - name: Engineering quality audit after validation
         if: always()
         run: npm run quality:audit
@@ -109,6 +112,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/engineering-hardening/quality-audit-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/critical-ci-audit-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/sre-readiness-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/governance-baseline-latest.json
           retention-days: 30
           if-no-files-found: error
 
