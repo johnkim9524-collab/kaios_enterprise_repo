@@ -1,0 +1,17 @@
+{
+  "scenarioId": "EXTERNAL_MUTATION_ATTEMPT_BLOCKED",
+  "category": "EXTERNAL_MUTATION_BOUNDARY",
+  "description": "Any external mutation attempt remains fail-closed.",
+  "expectedState": "FAILED_CLOSED",
+  "expectedDecision": "FAILED_CLOSED",
+  "expectedFailureCodes": ["EXTERNAL_MUTATION_ATTEMPT"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "EXTERNAL_MUTATION_ATTEMPT",
+        "stage": "A40",
+        "detail": "unauthorized external mutation attempt"
+      }
+    ]
+  }
+}

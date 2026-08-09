@@ -1,0 +1,8 @@
+{
+  "scenarioId": "ROLLBACK_READINESS_VALID",
+  "category": "ROLLBACK_READINESS",
+  "description": "Rollback readiness remains valid and bounded.",
+  "expectedState": "GA_CERTIFIED",
+  "expectedDecision": "GA_CERTIFIED",
+  "expectedFailureCodes": []
+}

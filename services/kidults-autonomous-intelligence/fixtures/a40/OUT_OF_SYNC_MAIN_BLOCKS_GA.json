@@ -1,0 +1,16 @@
+{
+  "scenarioId": "OUT_OF_SYNC_MAIN_BLOCKS_GA",
+  "category": "REPOSITORY_BASELINE",
+  "description": "Main must be synchronized with origin/main before GA certification can pass.",
+  "expectedState": "GA_BLOCKED",
+  "expectedDecision": "GA_BLOCKED",
+  "expectedFailureCodes": ["OUT_OF_SYNC_MAIN"],
+  "mutations": {
+    "repositoryOverrides": {
+      "branch": "main",
+      "synchronizedWithOriginMain": false,
+      "syncState": "OUT_OF_SYNC",
+      "originMainSha": "0000000000000000000000000000000000000000"
+    }
+  }
+}

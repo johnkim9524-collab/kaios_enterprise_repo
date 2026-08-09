@@ -1,0 +1,17 @@
+{
+  "scenarioId": "UNKNOWN_CRITICAL_STATE_FAILS_CLOSED",
+  "category": "GOVERNANCE_BOUNDARY",
+  "description": "Unknown critical state must fail closed.",
+  "expectedState": "FAILED_CLOSED",
+  "expectedDecision": "FAILED_CLOSED",
+  "expectedFailureCodes": ["UNKNOWN_CRITICAL_STATE"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "UNKNOWN_CRITICAL_STATE",
+        "stage": "A40",
+        "detail": "unknown critical readiness state"
+      }
+    ]
+  }
+}

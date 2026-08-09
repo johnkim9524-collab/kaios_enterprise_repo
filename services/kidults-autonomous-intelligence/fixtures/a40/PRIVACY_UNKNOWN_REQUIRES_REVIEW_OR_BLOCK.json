@@ -1,0 +1,17 @@
+{
+  "scenarioId": "PRIVACY_UNKNOWN_REQUIRES_REVIEW_OR_BLOCK",
+  "category": "PRIVACY_BOUNDARY",
+  "description": "Privacy uncertainty requires review and cannot silently pass.",
+  "expectedState": "GA_REVIEW_REQUIRED",
+  "expectedDecision": "GA_CERTIFIED_WITH_REVIEW",
+  "expectedFailureCodes": ["PRIVACY_UNKNOWN"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "PRIVACY_UNKNOWN",
+        "stage": "A38",
+        "detail": "privacy review required"
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scenarioId": "CHANGE_FREEZE_REMAINS_ENFORCED",
+  "category": "FAILURE_READINESS",
+  "description": "Change freeze remains enforced and blocks GA readiness.",
+  "expectedState": "GA_BLOCKED",
+  "expectedDecision": "GA_BLOCKED",
+  "expectedFailureCodes": ["CHANGE_FREEZE"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "CHANGE_FREEZE",
+        "stage": "A33",
+        "detail": "change freeze active"
+      }
+    ]
+  }
+}

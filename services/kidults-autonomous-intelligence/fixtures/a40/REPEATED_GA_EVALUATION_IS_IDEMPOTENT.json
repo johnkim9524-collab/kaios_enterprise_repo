@@ -1,0 +1,9 @@
+{
+  "scenarioId": "REPEATED_GA_EVALUATION_IS_IDEMPOTENT",
+  "category": "REPRODUCIBILITY",
+  "description": "Repeated GA evaluation remains idempotent on the same baseline.",
+  "expectedState": "GA_CERTIFIED",
+  "expectedDecision": "GA_CERTIFIED",
+  "expectedFailureCodes": [],
+  "idempotencyRepeatCount": 3
+}

@@ -1,0 +1,14 @@
+{
+  "scenarioId": "DIRTY_WORKING_TREE_BLOCKS_GA",
+  "category": "REPOSITORY_BASELINE",
+  "description": "A dirty working tree must block GA certification.",
+  "expectedState": "GA_BLOCKED",
+  "expectedDecision": "GA_BLOCKED",
+  "expectedFailureCodes": ["DIRTY_WORKING_TREE"],
+  "mutations": {
+    "repositoryOverrides": {
+      "dirty": true,
+      "statusLines": [" M services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs"]
+    }
+  }
+}

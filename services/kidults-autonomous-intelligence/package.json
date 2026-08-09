@@ -108,7 +108,10 @@
     "a38:finalize": "npm run a38:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A38",
     "a39:gate": "node scripts/a39-enterprise-acceptance.mjs",
     "a39:certify": "npm run typecheck && npm run a39:gate",
-    "a39:finalize": "npm run a39:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A39"
+    "a39:finalize": "npm run a39:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A39",
+    "a40:gate": "node scripts/a40-ga-certification.mjs",
+    "a40:certify": "npm run typecheck && npm run a40:gate",
+    "a40:finalize": "npm run a40:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A40"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",
