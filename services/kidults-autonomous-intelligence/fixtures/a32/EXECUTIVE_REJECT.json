@@ -1,0 +1,8 @@
+{
+  "scenarioId": "EXECUTIVE_REJECT",
+  "mode": "SIMULATION",
+  "description": "Executive rejects proposed action — no execution must occur.",
+  "executiveAction": "REJECT",
+  "expectedFinalState": "REJECTED_NO_EXECUTION",
+  "expectedBusinessOutcome": "EXECUTIVE_REJECT_PRESERVED"
+}

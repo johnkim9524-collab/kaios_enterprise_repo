@@ -1,0 +1,9 @@
+{
+  "scenarioId": "EXECUTIVE_DEFER",
+  "mode": "SIMULATION",
+  "description": "Executive defers decision — new deadline generated, no execution.",
+  "executiveAction": "DEFER",
+  "deferralDays": 7,
+  "expectedFinalState": "DEFERRED",
+  "expectedBusinessOutcome": "EXECUTIVE_DEFER_PRESERVED"
+}

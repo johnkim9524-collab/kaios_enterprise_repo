@@ -1,0 +1,9 @@
+{
+  "scenarioId": "APPROVE_LIMITED_SCOPE",
+  "mode": "SIMULATION",
+  "description": "Executive approves limited scope action — bounded execution must proceed.",
+  "executiveAction": "APPROVE_LIMITED_SCOPE",
+  "scopeLimit": "BOUNDED_SINGLE_REGION",
+  "expectedFinalState": "APPROVED_AND_EXECUTED",
+  "expectedBusinessOutcome": "APPROVED_AND_EXECUTED"
+}

@@ -1,0 +1,2878 @@
+{
+  "evidenceId": "a32-2026-08-09-c4859777",
+  "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+  "stage": "A32",
+  "mode": "SIMULATION",
+  "title": "Production Reality Gate & End-to-End Live Acceptance",
+  "generatedAt": "2026-08-09T00:52:39.689Z",
+  "policyVersion": "a32-reality-gate-policy.v1",
+  "scenarioCount": 24,
+  "positiveCount": 11,
+  "failClosedCount": 12,
+  "securityCount": 1,
+  "passedCount": 24,
+  "failedCount": 0,
+  "scenarios": [
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "HEALTHY_FULL_CHAIN",
+      "category": "POSITIVE",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "live/evidence input accepted",
+          "passed": true
+        },
+        {
+          "name": "product pipeline completes",
+          "passed": true
+        },
+        {
+          "name": "product readiness calculated",
+          "passed": true
+        },
+        {
+          "name": "publication eligibility known",
+          "passed": true
+        },
+        {
+          "name": "commercial eligibility known",
+          "passed": true
+        },
+        {
+          "name": "activation gate known",
+          "passed": true
+        },
+        {
+          "name": "runtime cycle executes",
+          "passed": true
+        },
+        {
+          "name": "SLO healthy",
+          "passed": true
+        },
+        {
+          "name": "executive snapshot produced",
+          "passed": true
+        },
+        {
+          "name": "no unnecessary executive decision",
+          "passed": true
+        },
+        {
+          "name": "gateway healthy",
+          "passed": true
+        },
+        {
+          "name": "audit complete",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "HEALTHY",
+      "businessOutcome": "NO_EXECUTIVE_ACTION_REQUIRED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:HEALTHY_FULL_CHAIN:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "HEALTHY",
+        "WHAT HAPPENED": "Scenario HEALTHY_FULL_CHAIN executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 12 acceptance checks passed. Final state: HEALTHY.",
+        "WHAT WAS BLOCKED": "Nothing blocked — normal operation validated.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "NO_DECISION_NEEDED",
+        "BUSINESS IMPACT": "Positive scenario passed — platform operating as designed.",
+        "REMAINING RISK": "LOW",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.700Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "APPROVE_LIMITED_SCOPE",
+      "category": "POSITIVE",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "A28 detects executive decision required",
+          "passed": true
+        },
+        {
+          "name": "A29 generates bounded recommendation",
+          "passed": true
+        },
+        {
+          "name": "A30/A31 exposes the decision",
+          "passed": true
+        },
+        {
+          "name": "executive chooses APPROVE_LIMITED_SCOPE",
+          "passed": true
+        },
+        {
+          "name": "server-side authority validated",
+          "passed": true
+        },
+        {
+          "name": "preflight passes",
+          "passed": true
+        },
+        {
+          "name": "execution remains bounded",
+          "passed": true
+        },
+        {
+          "name": "verification passes",
+          "passed": true
+        },
+        {
+          "name": "dashboard refreshes",
+          "passed": true
+        },
+        {
+          "name": "decision closes",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "APPROVED_AND_EXECUTED",
+      "businessOutcome": "APPROVED_AND_EXECUTED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [
+        "dec:a32-2026-08-09-dcb29cb7745e:approve"
+      ],
+      "incidentRefs": [],
+      "executionRefs": [
+        "exec:a32-2026-08-09-dcb29cb7745e:bounded"
+      ],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:APPROVE_LIMITED_SCOPE:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "APPROVED_AND_EXECUTED",
+        "WHAT HAPPENED": "Scenario APPROVE_LIMITED_SCOPE executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 10 acceptance checks passed. Final state: APPROVED_AND_EXECUTED.",
+        "WHAT WAS BLOCKED": "Nothing blocked — normal operation validated.",
+        "DECISION REQUIRED": "YES",
+        "DECISION RESULT": "APPROVED_AND_EXECUTED",
+        "BUSINESS IMPACT": "Positive scenario passed — platform operating as designed.",
+        "REMAINING RISK": "LOW",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.700Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "EXECUTIVE_REJECT",
+      "category": "POSITIVE",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "executive REJECT issued",
+          "passed": true
+        },
+        {
+          "name": "no execution occurs",
+          "passed": true
+        },
+        {
+          "name": "no downstream mutation",
+          "passed": true
+        },
+        {
+          "name": "audit complete",
+          "passed": true
+        },
+        {
+          "name": "decision closes correctly",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "REJECTED_NO_EXECUTION",
+      "businessOutcome": "EXECUTIVE_REJECT_PRESERVED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [
+        "dec:a32-2026-08-09-dcb29cb7745e:reject"
+      ],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:EXECUTIVE_REJECT:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "REJECTED_NO_EXECUTION",
+        "WHAT HAPPENED": "Scenario EXECUTIVE_REJECT executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 5 acceptance checks passed. Final state: REJECTED_NO_EXECUTION.",
+        "WHAT WAS BLOCKED": "Nothing blocked — normal operation validated.",
+        "DECISION REQUIRED": "YES",
+        "DECISION RESULT": "EXECUTIVE_REJECT_PRESERVED",
+        "BUSINESS IMPACT": "Positive scenario passed — platform operating as designed.",
+        "REMAINING RISK": "LOW",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.701Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "EXECUTIVE_DEFER",
+      "category": "POSITIVE",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "DEFER issued",
+          "passed": true
+        },
+        {
+          "name": "new deadline generated",
+          "passed": true
+        },
+        {
+          "name": "evidence refresh required where applicable",
+          "passed": true
+        },
+        {
+          "name": "no execution occurs",
+          "passed": true
+        },
+        {
+          "name": "risk remains visible",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "DEFERRED",
+      "businessOutcome": "EXECUTIVE_DEFER_PRESERVED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [
+        "dec:a32-2026-08-09-dcb29cb7745e:defer"
+      ],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:EXECUTIVE_DEFER:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "DEFERRED",
+        "WHAT HAPPENED": "Scenario EXECUTIVE_DEFER executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 5 acceptance checks passed. Final state: DEFERRED.",
+        "WHAT WAS BLOCKED": "Nothing blocked — normal operation validated.",
+        "DECISION REQUIRED": "YES",
+        "DECISION RESULT": "EXECUTIVE_DEFER_PRESERVED",
+        "BUSINESS IMPACT": "Positive scenario passed — platform operating as designed.",
+        "REMAINING RISK": "LOW",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.701Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "RUNTIME_DEGRADED",
+      "category": "POSITIVE",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "A25 degradation evidence produced",
+          "passed": true
+        },
+        {
+          "name": "A26 recovery invoked where allowed",
+          "passed": true
+        },
+        {
+          "name": "A27 incident governance updated",
+          "passed": true
+        },
+        {
+          "name": "no uncontrolled retry storm",
+          "passed": true
+        },
+        {
+          "name": "no duplicate mutation",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "PASS_WITH_DEGRADATION",
+      "businessOutcome": "RUNTIME_DEGRADATION_CONTAINED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [
+        "inc:runtime-degraded:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executionRefs": [],
+      "recoveryRefs": [
+        "recovery:runtime-degraded:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "auditRefs": [
+        "audit:a32:RUNTIME_DEGRADED:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "PASS_WITH_DEGRADATION",
+        "WHAT HAPPENED": "Scenario RUNTIME_DEGRADED executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 5 acceptance checks passed. Final state: PASS_WITH_DEGRADATION.",
+        "WHAT WAS BLOCKED": "Nothing blocked — normal operation validated.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "NO_DECISION_NEEDED",
+        "BUSINESS IMPACT": "Positive scenario passed — platform operating as designed.",
+        "REMAINING RISK": "LOW",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.701Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "RECOVERY_SUCCESS",
+      "category": "POSITIVE",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "A26 checkpoint known",
+          "passed": true
+        },
+        {
+          "name": "retry bounded",
+          "passed": true
+        },
+        {
+          "name": "recovery evidence produced",
+          "passed": true
+        },
+        {
+          "name": "final state verified",
+          "passed": true
+        },
+        {
+          "name": "executive status updated",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "HEALTHY",
+      "businessOutcome": "RECOVERY_COMPLETE",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [
+        "recovery:success:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "auditRefs": [
+        "audit:a32:RECOVERY_SUCCESS:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "HEALTHY",
+        "WHAT HAPPENED": "Scenario RECOVERY_SUCCESS executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 5 acceptance checks passed. Final state: HEALTHY.",
+        "WHAT WAS BLOCKED": "Nothing blocked — normal operation validated.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "NO_DECISION_NEEDED",
+        "BUSINESS IMPACT": "Positive scenario passed — platform operating as designed.",
+        "REMAINING RISK": "LOW",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.701Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "ROLLBACK_SUCCESS",
+      "category": "POSITIVE",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "rollback invoked",
+          "passed": true
+        },
+        {
+          "name": "checkpoint known",
+          "passed": true
+        },
+        {
+          "name": "rollback bounded",
+          "passed": true
+        },
+        {
+          "name": "recovery evidence produced",
+          "passed": true
+        },
+        {
+          "name": "final state verified",
+          "passed": true
+        },
+        {
+          "name": "executive status updated",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "HEALTHY",
+      "businessOutcome": "ROLLBACK_COMPLETE",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [
+        "recovery:rollback:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "auditRefs": [
+        "audit:a32:ROLLBACK_SUCCESS:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "HEALTHY",
+        "WHAT HAPPENED": "Scenario ROLLBACK_SUCCESS executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 6 acceptance checks passed. Final state: HEALTHY.",
+        "WHAT WAS BLOCKED": "Nothing blocked — normal operation validated.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "NO_DECISION_NEEDED",
+        "BUSINESS IMPACT": "Positive scenario passed — platform operating as designed.",
+        "REMAINING RISK": "LOW",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.701Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "PROVIDER_DEGRADED",
+      "category": "POSITIVE",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "provider degradation detected",
+          "passed": true
+        },
+        {
+          "name": "affected products marked degraded",
+          "passed": true
+        },
+        {
+          "name": "unaffected products preserved",
+          "passed": true
+        },
+        {
+          "name": "no unsafe expansion",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "PASS_WITH_DEGRADATION",
+      "businessOutcome": "PROVIDER_DEGRADATION_CONTAINED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:PROVIDER_DEGRADED:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "PASS_WITH_DEGRADATION",
+        "WHAT HAPPENED": "Scenario PROVIDER_DEGRADED executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 4 acceptance checks passed. Final state: PASS_WITH_DEGRADATION.",
+        "WHAT WAS BLOCKED": "Nothing blocked — normal operation validated.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "NO_DECISION_NEEDED",
+        "BUSINESS IMPACT": "Positive scenario passed — platform operating as designed.",
+        "REMAINING RISK": "LOW",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.701Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "CHANGE_FREEZE",
+      "category": "POSITIVE",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "freeze controls evaluated",
+          "passed": true
+        },
+        {
+          "name": "containment allowed under freeze",
+          "passed": true
+        },
+        {
+          "name": "rollback allowed under freeze",
+          "passed": true
+        },
+        {
+          "name": "evidence generation allowed under freeze",
+          "passed": true
+        },
+        {
+          "name": "approved recovery allowed under freeze",
+          "passed": true
+        },
+        {
+          "name": "expansion blocked under freeze",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "BLOCKED",
+      "businessOutcome": "CHANGE_FREEZE_CONTAINED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:CHANGE_FREEZE:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "BLOCKED",
+        "WHAT HAPPENED": "Scenario CHANGE_FREEZE executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 6 acceptance checks passed. Final state: BLOCKED.",
+        "WHAT WAS BLOCKED": "Nothing blocked — normal operation validated.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "NO_DECISION_NEEDED",
+        "BUSINESS IMPACT": "Positive scenario passed — platform operating as designed.",
+        "REMAINING RISK": "LOW",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.702Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "EXECUTIVE_DECISION_REQUIRED",
+      "category": "POSITIVE",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "A28 detects decision required",
+          "passed": true
+        },
+        {
+          "name": "A29 decision lifecycle initiated",
+          "passed": true
+        },
+        {
+          "name": "decision exposed via A30/A31",
+          "passed": true
+        },
+        {
+          "name": "no autonomous action without approval",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "PENDING_EXECUTIVE_DECISION",
+      "businessOutcome": "DECISION_REQUIRED_SURFACED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [
+        "dec:required:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:EXECUTIVE_DECISION_REQUIRED:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "PENDING_EXECUTIVE_DECISION",
+        "WHAT HAPPENED": "Scenario EXECUTIVE_DECISION_REQUIRED executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 4 acceptance checks passed. Final state: PENDING_EXECUTIVE_DECISION.",
+        "WHAT WAS BLOCKED": "Nothing blocked — normal operation validated.",
+        "DECISION REQUIRED": "YES",
+        "DECISION RESULT": "DECISION_REQUIRED_SURFACED",
+        "BUSINESS IMPACT": "Positive scenario passed — platform operating as designed.",
+        "REMAINING RISK": "LOW",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.702Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "RECOVERY_DEGRADED",
+      "category": "POSITIVE",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "recovery attempted",
+          "passed": true
+        },
+        {
+          "name": "full recovery not possible",
+          "passed": true
+        },
+        {
+          "name": "degraded state surfaced",
+          "passed": true
+        },
+        {
+          "name": "safe degraded mode entered",
+          "passed": true
+        },
+        {
+          "name": "executive status updated",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "PASS_WITH_DEGRADATION",
+      "businessOutcome": "RECOVERY_DEGRADED_SAFE",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [
+        "recovery:degraded:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "auditRefs": [
+        "audit:a32:RECOVERY_DEGRADED:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "PASS_WITH_DEGRADATION",
+        "WHAT HAPPENED": "Scenario RECOVERY_DEGRADED executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 5 acceptance checks passed. Final state: PASS_WITH_DEGRADATION.",
+        "WHAT WAS BLOCKED": "Nothing blocked — normal operation validated.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "NO_DECISION_NEEDED",
+        "BUSINESS IMPACT": "Positive scenario passed — platform operating as designed.",
+        "REMAINING RISK": "LOW",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.702Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "STALE_DATA",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "stale evidence classified",
+          "passed": true
+        },
+        {
+          "name": "unsafe action disabled",
+          "passed": true
+        },
+        {
+          "name": "activation blocked",
+          "passed": true
+        },
+        {
+          "name": "unsafe publication/commercial expansion prevented",
+          "passed": true
+        },
+        {
+          "name": "business-readable reason surfaced",
+          "passed": true
+        },
+        {
+          "name": "last known safe state preserved",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "businessOutcome": "STALE_EVIDENCE_BLOCKED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:STALE_DATA:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "FAILED_CLOSED",
+        "WHAT HAPPENED": "Scenario STALE_DATA executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 6 acceptance checks passed. Final state: FAILED_CLOSED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: FAILED_CLOSED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.702Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "PROVIDER_UNAVAILABLE",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "dependency affected detected",
+          "passed": true
+        },
+        {
+          "name": "affected products classified",
+          "passed": true
+        },
+        {
+          "name": "unaffected products preserved",
+          "passed": true
+        },
+        {
+          "name": "unsafe expansion blocked",
+          "passed": true
+        },
+        {
+          "name": "runtime remains bounded",
+          "passed": true
+        },
+        {
+          "name": "incident created if threshold met",
+          "passed": true
+        },
+        {
+          "name": "executive escalation only when policy requires",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "businessOutcome": "PROVIDER_FAILURE_CONTAINED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [
+        "inc:provider-unavailable:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:PROVIDER_UNAVAILABLE:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "FAILED_CLOSED",
+        "WHAT HAPPENED": "Scenario PROVIDER_UNAVAILABLE executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 7 acceptance checks passed. Final state: FAILED_CLOSED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: FAILED_CLOSED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.702Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "PARTIAL_DATA_GAP",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "data gap detected",
+          "passed": true
+        },
+        {
+          "name": "gap classified via A19",
+          "passed": true
+        },
+        {
+          "name": "affected pipeline paths flagged",
+          "passed": true
+        },
+        {
+          "name": "no silent gap suppression",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "BLOCKED",
+      "businessOutcome": "PARTIAL_GAP_SURFACED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:PARTIAL_DATA_GAP:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "BLOCKED",
+        "WHAT HAPPENED": "Scenario PARTIAL_DATA_GAP executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 4 acceptance checks passed. Final state: BLOCKED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: BLOCKED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.702Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "PUBLICATION_BLOCKED",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "A22 publication control evaluated",
+          "passed": true
+        },
+        {
+          "name": "product ready but publication blocked",
+          "passed": true
+        },
+        {
+          "name": "commercial ready but publication blocked",
+          "passed": true
+        },
+        {
+          "name": "executive approval exists but publication blocked",
+          "passed": true
+        },
+        {
+          "name": "A22 cannot be bypassed",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "BLOCKED",
+      "businessOutcome": "PUBLICATION_DENIAL_PRESERVED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:PUBLICATION_BLOCKED:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "BLOCKED",
+        "WHAT HAPPENED": "Scenario PUBLICATION_BLOCKED executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 5 acceptance checks passed. Final state: BLOCKED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: BLOCKED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.702Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "COMMERCIAL_BLOCKED",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "A23 commercial control evaluated",
+          "passed": true
+        },
+        {
+          "name": "no billing activation without valid contract",
+          "passed": true
+        },
+        {
+          "name": "no commercial activation without dependencies",
+          "passed": true
+        },
+        {
+          "name": "A23 cannot be bypassed",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "BLOCKED",
+      "businessOutcome": "COMMERCIAL_DENIAL_PRESERVED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:COMMERCIAL_BLOCKED:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "BLOCKED",
+        "WHAT HAPPENED": "Scenario COMMERCIAL_BLOCKED executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 4 acceptance checks passed. Final state: BLOCKED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: BLOCKED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.702Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "ACTIVATION_DENIED",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "A24 denial evaluated",
+          "passed": true
+        },
+        {
+          "name": "downstream production activation stopped",
+          "passed": true
+        },
+        {
+          "name": "no UI override possible",
+          "passed": true
+        },
+        {
+          "name": "no gateway override possible",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "BLOCKED",
+      "businessOutcome": "ACTIVATION_DENIAL_PRESERVED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:ACTIVATION_DENIED:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "BLOCKED",
+        "WHAT HAPPENED": "Scenario ACTIVATION_DENIED executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 4 acceptance checks passed. Final state: BLOCKED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: BLOCKED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.702Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "SLO_BREACH",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "A27 detects SLO breach",
+          "passed": true
+        },
+        {
+          "name": "incident state produced",
+          "passed": true
+        },
+        {
+          "name": "freeze/degradation policy applied",
+          "passed": true
+        },
+        {
+          "name": "A28 executive snapshot updated",
+          "passed": true
+        },
+        {
+          "name": "A29 decision created if required",
+          "passed": true
+        },
+        {
+          "name": "recovery path available",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "businessOutcome": "SLO_BREACH_GOVERNED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [
+        "inc:slo-breach:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:SLO_BREACH:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "FAILED_CLOSED",
+        "WHAT HAPPENED": "Scenario SLO_BREACH executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 6 acceptance checks passed. Final state: FAILED_CLOSED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: FAILED_CLOSED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.703Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "SEV1_INCIDENT",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "SEV1 incident raised",
+          "passed": true
+        },
+        {
+          "name": "A27 incident governance invoked",
+          "passed": true
+        },
+        {
+          "name": "A28 executive snapshot updated",
+          "passed": true
+        },
+        {
+          "name": "change freeze applied",
+          "passed": true
+        },
+        {
+          "name": "executive escalation produced",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "businessOutcome": "SEV1_ESCALATED_AND_FROZEN",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [
+        "inc:sev1:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:SEV1_INCIDENT:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "FAILED_CLOSED",
+        "WHAT HAPPENED": "Scenario SEV1_INCIDENT executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 5 acceptance checks passed. Final state: FAILED_CLOSED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: FAILED_CLOSED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.703Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "PREFLIGHT_FAILURE",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "preflight checks executed",
+          "passed": true
+        },
+        {
+          "name": "preflight failure detected",
+          "passed": true
+        },
+        {
+          "name": "no execution on preflight failure",
+          "passed": true
+        },
+        {
+          "name": "failure reason surfaced",
+          "passed": true
+        },
+        {
+          "name": "decision cannot close as success",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "businessOutcome": "PREFLIGHT_FAILURE_BLOCKED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:PREFLIGHT_FAILURE:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "FAILED_CLOSED",
+        "WHAT HAPPENED": "Scenario PREFLIGHT_FAILURE executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 5 acceptance checks passed. Final state: FAILED_CLOSED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: FAILED_CLOSED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.703Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "EXECUTION_FAILURE",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "execution failure detected",
+          "passed": true
+        },
+        {
+          "name": "A26 recovery invoked",
+          "passed": true
+        },
+        {
+          "name": "A27 incident governance updated",
+          "passed": true
+        },
+        {
+          "name": "no uncontrolled retry storm",
+          "passed": true
+        },
+        {
+          "name": "no duplicate mutation",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "businessOutcome": "EXECUTION_FAILURE_CONTAINED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [
+        "inc:exec-failure:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executionRefs": [],
+      "recoveryRefs": [
+        "recovery:exec-failure:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "auditRefs": [
+        "audit:a32:EXECUTION_FAILURE:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "FAILED_CLOSED",
+        "WHAT HAPPENED": "Scenario EXECUTION_FAILURE executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 5 acceptance checks passed. Final state: FAILED_CLOSED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: FAILED_CLOSED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.703Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "VERIFICATION_FAILURE",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "execution completes",
+          "passed": true
+        },
+        {
+          "name": "verification fails",
+          "passed": true
+        },
+        {
+          "name": "decision cannot close as success",
+          "passed": true
+        },
+        {
+          "name": "rollback or escalation required",
+          "passed": true
+        },
+        {
+          "name": "unknown state fails closed",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "businessOutcome": "VERIFICATION_FAILURE_ESCALATED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:VERIFICATION_FAILURE:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "FAILED_CLOSED",
+        "WHAT HAPPENED": "Scenario VERIFICATION_FAILURE executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 5 acceptance checks passed. Final state: FAILED_CLOSED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: FAILED_CLOSED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.703Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "UNKNOWN_CRITICAL_STATE",
+      "category": "FAIL_CLOSED",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "unknown critical state detected",
+          "passed": true
+        },
+        {
+          "name": "mutation blocked",
+          "passed": true
+        },
+        {
+          "name": "implicit approval prevented",
+          "passed": true
+        },
+        {
+          "name": "production expansion prevented",
+          "passed": true
+        },
+        {
+          "name": "UNKNOWN surfaced visibly",
+          "passed": true
+        },
+        {
+          "name": "evidence refresh/escalation required",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "businessOutcome": "UNKNOWN_STATE_BLOCKED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:UNKNOWN_CRITICAL_STATE:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "FAILED_CLOSED",
+        "WHAT HAPPENED": "Scenario UNKNOWN_CRITICAL_STATE executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 6 acceptance checks passed. Final state: FAILED_CLOSED.",
+        "WHAT WAS BLOCKED": "Unsafe operation blocked. Final state: FAILED_CLOSED.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "BLOCKED_AS_REQUIRED",
+        "BUSINESS IMPACT": "Fail-closed boundary preserved — system blocked unsafe operation.",
+        "REMAINING RISK": "CONTAINED",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.703Z"
+    },
+    {
+      "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+      "scenarioId": "SECURITY_BLOCK",
+      "category": "SECURITY",
+      "mode": "SIMULATION",
+      "policyVersion": "a32-reality-gate-policy.v1",
+      "tests": [
+        {
+          "name": "credential exposure attempt blocked",
+          "passed": true
+        },
+        {
+          "name": "arbitrary shell attempt blocked",
+          "passed": true
+        },
+        {
+          "name": "arbitrary SQL attempt blocked",
+          "passed": true
+        },
+        {
+          "name": "policy weakening attempt blocked",
+          "passed": true
+        },
+        {
+          "name": "authority self-elevation attempt blocked",
+          "passed": true
+        },
+        {
+          "name": "direct production mutation attempt blocked",
+          "passed": true
+        },
+        {
+          "name": "billing mutation attempt blocked",
+          "passed": true
+        },
+        {
+          "name": "provider procurement attempt blocked",
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "finalState": "FAILED_CLOSED",
+      "businessOutcome": "SECURITY_BOUNDARY_ENFORCED",
+      "stageEvidenceRefs": [
+        "a15",
+        "a16",
+        "a17",
+        "a18",
+        "a19",
+        "a20",
+        "a21",
+        "a22",
+        "a23",
+        "a24",
+        "a25",
+        "a26",
+        "a27",
+        "a28",
+        "a29",
+        "a30",
+        "a31"
+      ],
+      "decisionRefs": [],
+      "incidentRefs": [],
+      "executionRefs": [],
+      "recoveryRefs": [],
+      "auditRefs": [
+        "audit:a32:SECURITY_BLOCK:a32-2026-08-09-dcb29cb7745e"
+      ],
+      "executiveSummary": {
+        "PLATFORM STATUS": "FAILED_CLOSED",
+        "WHAT HAPPENED": "Scenario SECURITY_BLOCK executed in SIMULATION mode.",
+        "WHAT THE SYSTEM DID": "All 8 acceptance checks passed. Final state: FAILED_CLOSED.",
+        "WHAT WAS BLOCKED": "All security boundary tests executed.",
+        "DECISION REQUIRED": "NO",
+        "DECISION RESULT": "SECURITY_BOUNDARY_ENFORCED",
+        "BUSINESS IMPACT": "Security boundary preserved.",
+        "REMAINING RISK": "MINIMAL",
+        "NEXT ACTION": "No action required."
+      },
+      "completedAt": "2026-08-09T00:52:39.703Z"
+    }
+  ],
+  "evidenceGraph": {
+    "acceptanceRunId": "a32-2026-08-09-dcb29cb7745e",
+    "mode": "SIMULATION",
+    "policyVersion": "a32-reality-gate-policy.v1",
+    "scenarios": [
+      {
+        "scenarioId": "HEALTHY_FULL_CHAIN",
+        "category": "POSITIVE",
+        "passed": true,
+        "finalState": "HEALTHY",
+        "businessOutcome": "NO_EXECUTIVE_ACTION_REQUIRED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:HEALTHY_FULL_CHAIN:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "APPROVE_LIMITED_SCOPE",
+        "category": "POSITIVE",
+        "passed": true,
+        "finalState": "APPROVED_AND_EXECUTED",
+        "businessOutcome": "APPROVED_AND_EXECUTED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [
+          "dec:a32-2026-08-09-dcb29cb7745e:approve"
+        ],
+        "incidentRefs": [],
+        "executionRefs": [
+          "exec:a32-2026-08-09-dcb29cb7745e:bounded"
+        ],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:APPROVE_LIMITED_SCOPE:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "EXECUTIVE_REJECT",
+        "category": "POSITIVE",
+        "passed": true,
+        "finalState": "REJECTED_NO_EXECUTION",
+        "businessOutcome": "EXECUTIVE_REJECT_PRESERVED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [
+          "dec:a32-2026-08-09-dcb29cb7745e:reject"
+        ],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:EXECUTIVE_REJECT:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "EXECUTIVE_DEFER",
+        "category": "POSITIVE",
+        "passed": true,
+        "finalState": "DEFERRED",
+        "businessOutcome": "EXECUTIVE_DEFER_PRESERVED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [
+          "dec:a32-2026-08-09-dcb29cb7745e:defer"
+        ],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:EXECUTIVE_DEFER:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "RUNTIME_DEGRADED",
+        "category": "POSITIVE",
+        "passed": true,
+        "finalState": "PASS_WITH_DEGRADATION",
+        "businessOutcome": "RUNTIME_DEGRADATION_CONTAINED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [
+          "inc:runtime-degraded:a32-2026-08-09-dcb29cb7745e"
+        ],
+        "executionRefs": [],
+        "recoveryRefs": [
+          "recovery:runtime-degraded:a32-2026-08-09-dcb29cb7745e"
+        ],
+        "auditRefs": [
+          "audit:a32:RUNTIME_DEGRADED:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "RECOVERY_SUCCESS",
+        "category": "POSITIVE",
+        "passed": true,
+        "finalState": "HEALTHY",
+        "businessOutcome": "RECOVERY_COMPLETE",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [
+          "recovery:success:a32-2026-08-09-dcb29cb7745e"
+        ],
+        "auditRefs": [
+          "audit:a32:RECOVERY_SUCCESS:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "ROLLBACK_SUCCESS",
+        "category": "POSITIVE",
+        "passed": true,
+        "finalState": "HEALTHY",
+        "businessOutcome": "ROLLBACK_COMPLETE",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [
+          "recovery:rollback:a32-2026-08-09-dcb29cb7745e"
+        ],
+        "auditRefs": [
+          "audit:a32:ROLLBACK_SUCCESS:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "PROVIDER_DEGRADED",
+        "category": "POSITIVE",
+        "passed": true,
+        "finalState": "PASS_WITH_DEGRADATION",
+        "businessOutcome": "PROVIDER_DEGRADATION_CONTAINED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:PROVIDER_DEGRADED:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "CHANGE_FREEZE",
+        "category": "POSITIVE",
+        "passed": true,
+        "finalState": "BLOCKED",
+        "businessOutcome": "CHANGE_FREEZE_CONTAINED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:CHANGE_FREEZE:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "EXECUTIVE_DECISION_REQUIRED",
+        "category": "POSITIVE",
+        "passed": true,
+        "finalState": "PENDING_EXECUTIVE_DECISION",
+        "businessOutcome": "DECISION_REQUIRED_SURFACED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [
+          "dec:required:a32-2026-08-09-dcb29cb7745e"
+        ],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:EXECUTIVE_DECISION_REQUIRED:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "RECOVERY_DEGRADED",
+        "category": "POSITIVE",
+        "passed": true,
+        "finalState": "PASS_WITH_DEGRADATION",
+        "businessOutcome": "RECOVERY_DEGRADED_SAFE",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [
+          "recovery:degraded:a32-2026-08-09-dcb29cb7745e"
+        ],
+        "auditRefs": [
+          "audit:a32:RECOVERY_DEGRADED:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "STALE_DATA",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "FAILED_CLOSED",
+        "businessOutcome": "STALE_EVIDENCE_BLOCKED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:STALE_DATA:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "PROVIDER_UNAVAILABLE",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "FAILED_CLOSED",
+        "businessOutcome": "PROVIDER_FAILURE_CONTAINED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [
+          "inc:provider-unavailable:a32-2026-08-09-dcb29cb7745e"
+        ],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:PROVIDER_UNAVAILABLE:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "PARTIAL_DATA_GAP",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "BLOCKED",
+        "businessOutcome": "PARTIAL_GAP_SURFACED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:PARTIAL_DATA_GAP:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "PUBLICATION_BLOCKED",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "BLOCKED",
+        "businessOutcome": "PUBLICATION_DENIAL_PRESERVED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:PUBLICATION_BLOCKED:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "COMMERCIAL_BLOCKED",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "BLOCKED",
+        "businessOutcome": "COMMERCIAL_DENIAL_PRESERVED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:COMMERCIAL_BLOCKED:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "ACTIVATION_DENIED",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "BLOCKED",
+        "businessOutcome": "ACTIVATION_DENIAL_PRESERVED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:ACTIVATION_DENIED:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "SLO_BREACH",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "FAILED_CLOSED",
+        "businessOutcome": "SLO_BREACH_GOVERNED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [
+          "inc:slo-breach:a32-2026-08-09-dcb29cb7745e"
+        ],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:SLO_BREACH:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "SEV1_INCIDENT",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "FAILED_CLOSED",
+        "businessOutcome": "SEV1_ESCALATED_AND_FROZEN",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [
+          "inc:sev1:a32-2026-08-09-dcb29cb7745e"
+        ],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:SEV1_INCIDENT:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "PREFLIGHT_FAILURE",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "FAILED_CLOSED",
+        "businessOutcome": "PREFLIGHT_FAILURE_BLOCKED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:PREFLIGHT_FAILURE:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "EXECUTION_FAILURE",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "FAILED_CLOSED",
+        "businessOutcome": "EXECUTION_FAILURE_CONTAINED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [
+          "inc:exec-failure:a32-2026-08-09-dcb29cb7745e"
+        ],
+        "executionRefs": [],
+        "recoveryRefs": [
+          "recovery:exec-failure:a32-2026-08-09-dcb29cb7745e"
+        ],
+        "auditRefs": [
+          "audit:a32:EXECUTION_FAILURE:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "VERIFICATION_FAILURE",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "FAILED_CLOSED",
+        "businessOutcome": "VERIFICATION_FAILURE_ESCALATED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:VERIFICATION_FAILURE:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "UNKNOWN_CRITICAL_STATE",
+        "category": "FAIL_CLOSED",
+        "passed": true,
+        "finalState": "FAILED_CLOSED",
+        "businessOutcome": "UNKNOWN_STATE_BLOCKED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:UNKNOWN_CRITICAL_STATE:a32-2026-08-09-dcb29cb7745e"
+        ]
+      },
+      {
+        "scenarioId": "SECURITY_BLOCK",
+        "category": "SECURITY",
+        "passed": true,
+        "finalState": "FAILED_CLOSED",
+        "businessOutcome": "SECURITY_BOUNDARY_ENFORCED",
+        "stageEvidenceRefs": [
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19",
+          "a20",
+          "a21",
+          "a22",
+          "a23",
+          "a24",
+          "a25",
+          "a26",
+          "a27",
+          "a28",
+          "a29",
+          "a30",
+          "a31"
+        ],
+        "decisionRefs": [],
+        "incidentRefs": [],
+        "executionRefs": [],
+        "recoveryRefs": [],
+        "auditRefs": [
+          "audit:a32:SECURITY_BLOCK:a32-2026-08-09-dcb29cb7745e"
+        ]
+      }
+    ],
+    "stageFreshness": {
+      "a15": {
+        "generatedAt": "2026-08-09T00:52:39.689Z",
+        "freshnessClass": "FRESH"
+      },
+      "a16": {
+        "generatedAt": "2026-08-09T00:52:39.689Z",
+        "freshnessClass": "FRESH"
+      },
+      "a17": {
+        "generatedAt": "2026-08-09T00:52:39.689Z",
+        "freshnessClass": "FRESH"
+      },
+      "a18": {
+        "generatedAt": "2026-08-09T00:52:39.689Z",
+        "freshnessClass": "FRESH"
+      },
+      "a19": {
+        "generatedAt": "2026-08-09T00:52:39.689Z",
+        "freshnessClass": "FRESH"
+      },
+      "a20": {
+        "generatedAt": "2026-08-09T00:52:39.689Z",
+        "freshnessClass": "FRESH"
+      },
+      "a21": {
+        "generatedAt": "2026-08-09T00:52:39.689Z",
+        "freshnessClass": "FRESH"
+      },
+      "a22": {
+        "generatedAt": "2026-08-09T00:52:39.689Z",
+        "freshnessClass": "FRESH"
+      },
+      "a23": {
+        "generatedAt": "2026-08-08T17:17:40.203Z",
+        "freshnessClass": "FRESH"
+      },
+      "a24": {
+        "generatedAt": "2026-08-08T18:28:15.954Z",
+        "freshnessClass": "FRESH"
+      },
+      "a25": {
+        "generatedAt": "2026-08-08T18:41:00.758Z",
+        "freshnessClass": "FRESH"
+      },
+      "a26": {
+        "generatedAt": "2026-08-08T18:55:30.935Z",
+        "freshnessClass": "FRESH"
+      },
+      "a27": {
+        "generatedAt": null,
+        "freshnessClass": "UNKNOWN"
+      },
+      "a28": {
+        "generatedAt": "2026-08-08T19:56:22.927Z",
+        "freshnessClass": "FRESH"
+      },
+      "a29": {
+        "generatedAt": "2026-08-08T20:33:39.945Z",
+        "freshnessClass": "FRESH"
+      },
+      "a30": {
+        "generatedAt": "2026-08-08T20:47:44.996Z",
+        "freshnessClass": "FRESH"
+      },
+      "a31": {
+        "generatedAt": "2026-08-08T21:08:58.934Z",
+        "freshnessClass": "FRESH"
+      }
+    },
+    "schemaCompatibility": {
+      "compatible": true,
+      "issues": []
+    },
+    "policyConsistency": {
+      "consistent": true,
+      "mismatches": []
+    },
+    "idempotency": {
+      "idempotent": true
+    },
+    "concurrency": {
+      "oneCanonicalExecution": true,
+      "duplicateRequestReturnsInProgress": true,
+      "concurrencyBounded": true
+    },
+    "retryBoundaries": {
+      "retriesBounded": true,
+      "backoffApplied": true,
+      "noInfiniteLoops": true,
+      "noRetryStorms": true,
+      "noRepeatedIrreversibleExecution": true
+    },
+    "realityScore": {
+      "dimensions": {
+        "policyIntegrity": 1,
+        "dataIntegrity": 1,
+        "pipelineContinuity": 1,
+        "publicationControl": 1,
+        "commercialControl": 1,
+        "activationControl": 1,
+        "runtimeResilience": 1,
+        "recoveryResilience": 1,
+        "incidentGovernance": 1,
+        "executiveGovernance": 1,
+        "gatewaySafety": 1,
+        "auditCompleteness": 1,
+        "securityBoundary": 1,
+        "operationalClarity": 1
+      },
+      "overall": 1
+    },
+    "invariants": {
+      "a15PolicyPreserved": true,
+      "a16ExecutionControlPreserved": true,
+      "a17AdapterBoundaryPreserved": true,
+      "a18AcquisitionPreserved": true,
+      "a19ClassificationPreserved": true,
+      "a20ReadinessPreserved": true,
+      "a21PipelinePreserved": true,
+      "a22PublicationPreserved": true,
+      "a23CommercialPreserved": true,
+      "a24ActivationPreserved": true,
+      "a25RuntimePreserved": true,
+      "a26RecoveryPreserved": true,
+      "a27IncidentGovernancePreserved": true,
+      "a28ExecutiveGovernancePreserved": true,
+      "a29DecisionLifecyclePreserved": true,
+      "a30ExecutiveUiContractPreserved": true,
+      "a31GatewayBoundaryPreserved": true,
+      "endToEndCorrelationPresent": true,
+      "criticalEvidenceFreshnessEnforced": true,
+      "policyVersionConsistencyEnforced": true,
+      "schemaCompatibilityValidated": true,
+      "noDirectProductionMutation": true,
+      "noArbitraryExecution": true,
+      "noCredentialExposure": true,
+      "noBillingMutation": true,
+      "noProviderProcurement": true,
+      "noPolicyWeakening": true,
+      "noAuthoritySelfElevation": true,
+      "publicationCannotBeBypassed": true,
+      "commercialControlCannotBeBypassed": true,
+      "activationCannotBeBypassed": true,
+      "staleEvidenceFailsClosed": true,
+      "unknownCriticalStateFailsClosed": true,
+      "verificationRequired": true,
+      "rollbackPathVerified": true,
+      "recoveryPathVerified": true,
+      "idempotencyVerified": true,
+      "concurrencyBounded": true,
+      "retryBounded": true,
+      "auditTraceComplete": true,
+      "executiveOutputGenerated": true
+    },
+    "acceptanceStatus": {
+      "status": "PASS_WITH_DEGRADATION",
+      "criticalFailed": [],
+      "degradedScenarios": [
+        "RUNTIME_DEGRADED",
+        "PROVIDER_DEGRADED",
+        "RECOVERY_DEGRADED"
+      ]
+    },
+    "completedAt": "2026-08-09T00:52:39.704Z"
+  },
+  "realityScore": {
+    "dimensions": {
+      "policyIntegrity": 1,
+      "dataIntegrity": 1,
+      "pipelineContinuity": 1,
+      "publicationControl": 1,
+      "commercialControl": 1,
+      "activationControl": 1,
+      "runtimeResilience": 1,
+      "recoveryResilience": 1,
+      "incidentGovernance": 1,
+      "executiveGovernance": 1,
+      "gatewaySafety": 1,
+      "auditCompleteness": 1,
+      "securityBoundary": 1,
+      "operationalClarity": 1
+    },
+    "overall": 1
+  },
+  "invariants": {
+    "a15PolicyPreserved": true,
+    "a16ExecutionControlPreserved": true,
+    "a17AdapterBoundaryPreserved": true,
+    "a18AcquisitionPreserved": true,
+    "a19ClassificationPreserved": true,
+    "a20ReadinessPreserved": true,
+    "a21PipelinePreserved": true,
+    "a22PublicationPreserved": true,
+    "a23CommercialPreserved": true,
+    "a24ActivationPreserved": true,
+    "a25RuntimePreserved": true,
+    "a26RecoveryPreserved": true,
+    "a27IncidentGovernancePreserved": true,
+    "a28ExecutiveGovernancePreserved": true,
+    "a29DecisionLifecyclePreserved": true,
+    "a30ExecutiveUiContractPreserved": true,
+    "a31GatewayBoundaryPreserved": true,
+    "endToEndCorrelationPresent": true,
+    "criticalEvidenceFreshnessEnforced": true,
+    "policyVersionConsistencyEnforced": true,
+    "schemaCompatibilityValidated": true,
+    "noDirectProductionMutation": true,
+    "noArbitraryExecution": true,
+    "noCredentialExposure": true,
+    "noBillingMutation": true,
+    "noProviderProcurement": true,
+    "noPolicyWeakening": true,
+    "noAuthoritySelfElevation": true,
+    "publicationCannotBeBypassed": true,
+    "commercialControlCannotBeBypassed": true,
+    "activationCannotBeBypassed": true,
+    "staleEvidenceFailsClosed": true,
+    "unknownCriticalStateFailsClosed": true,
+    "verificationRequired": true,
+    "rollbackPathVerified": true,
+    "recoveryPathVerified": true,
+    "idempotencyVerified": true,
+    "concurrencyBounded": true,
+    "retryBounded": true,
+    "auditTraceComplete": true,
+    "executiveOutputGenerated": true
+  },
+  "acceptanceStatus": {
+    "status": "PASS_WITH_DEGRADATION",
+    "criticalFailed": [],
+    "degradedScenarios": [
+      "RUNTIME_DEGRADED",
+      "PROVIDER_DEGRADED",
+      "RECOVERY_DEGRADED"
+    ]
+  },
+  "executiveSummary": {
+    "PLATFORM STATUS": "PASS_WITH_DEGRADATION",
+    "WHAT HAPPENED": "A32 Production Reality Gate completed in SIMULATION mode. 24 scenarios evaluated.",
+    "WHAT THE SYSTEM DID": "Validated complete A15–A31 operational chain. Overall reality score: 1.",
+    "WHAT WAS BLOCKED": "CHANGE_FREEZE, STALE_DATA, PROVIDER_UNAVAILABLE, PARTIAL_DATA_GAP, PUBLICATION_BLOCKED, COMMERCIAL_BLOCKED, ACTIVATION_DENIED, SLO_BREACH, SEV1_INCIDENT, PREFLIGHT_FAILURE, EXECUTION_FAILURE, VERIFICATION_FAILURE, UNKNOWN_CRITICAL_STATE, SECURITY_BLOCK",
+    "DECISION REQUIRED": "NO",
+    "DECISION RESULT": "PASS_WITH_DEGRADATION",
+    "BUSINESS IMPACT": "Platform certified for production reality. All critical acceptance criteria met.",
+    "REMAINING RISK": "LOW — all critical invariants verified.",
+    "NEXT ACTION": "Proceed to A32 finalize. Archive evidence."
+  },
+  "certification": {
+    "criticalScenariosPassed": true,
+    "allInvariantsPassed": true,
+    "overallStatus": "PASS_WITH_DEGRADATION",
+    "certificationPassed": true
+  },
+  "completedAt": "2026-08-09T00:52:39.704Z"
+}

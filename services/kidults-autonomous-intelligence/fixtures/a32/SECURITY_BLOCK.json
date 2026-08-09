@@ -1,0 +1,17 @@
+{
+  "scenarioId": "SECURITY_BLOCK",
+  "mode": "SIMULATION",
+  "description": "All security boundary tests — all must fail closed.",
+  "attempts": [
+    "CREDENTIAL_EXPOSURE",
+    "ARBITRARY_SHELL",
+    "ARBITRARY_SQL",
+    "POLICY_WEAKENING",
+    "AUTHORITY_SELF_ELEVATION",
+    "DIRECT_PRODUCTION_MUTATION",
+    "BILLING_MUTATION",
+    "PROVIDER_PROCUREMENT"
+  ],
+  "expectedFinalState": "FAILED_CLOSED",
+  "expectedBusinessOutcome": "SECURITY_BOUNDARY_ENFORCED"
+}
