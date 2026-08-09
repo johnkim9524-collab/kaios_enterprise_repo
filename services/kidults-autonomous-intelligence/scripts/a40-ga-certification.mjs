@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { DIRECT_CONTINUITY_RESOLVERS, FAILURE_CLASSIFICATIONS, FINAL_DECISIONS, GA_STATES, STAGE_DEFINITIONS } from './lib/a40-ga-static-config.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -28,105 +29,6 @@ const REQUIRED_STAGE_RANGE = 'A15-A39';
 const FRESH_WINDOW_MS = 72 * 60 * 60 * 1000;
 const STALE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const REQUIRED_STAGE_COUNT = 25;
-
-const GA_STATES = [
-  'UNASSESSED',
-  'COLLECTING_BASELINE',
-  'VALIDATING_CERTIFICATIONS',
-  'VALIDATING_OPERATIONS',
-  'VALIDATING_GOVERNANCE',
-  'READY_FOR_GA',
-  'GA_REVIEW_REQUIRED',
-  'GA_BLOCKED',
-  'FAILED_CLOSED',
-  'GA_CERTIFIED',
-];
-
-const FINAL_DECISIONS = ['GA_CERTIFIED', 'GA_CERTIFIED_WITH_REVIEW', 'GA_BLOCKED', 'FAILED_CLOSED'];
-
-const STAGE_DEFINITIONS = [
-  { stage: 'A15', key: 'a15', purpose: 'Global autonomous policy foundation', reportDir: ['reports', 'policy'], filePrefix: 'a15-policy-', previousStage: null, classification: 'CRITICAL' },
-  { stage: 'A16', key: 'a16', purpose: 'Autonomous execution control plane', reportDir: ['reports', 'execution-control'], filePrefix: 'a16-execution-control-', previousStage: 'A15', classification: 'CRITICAL' },
-  { stage: 'A17', key: 'a17', purpose: 'Bounded live adapter governance', reportDir: ['reports', 'execution-control'], filePrefix: 'a17-bounded-live-', previousStage: 'A16', classification: 'CRITICAL' },
-  { stage: 'A18', key: 'a18', purpose: 'Autonomous data acquisition scale', reportDir: ['reports', 'data-acquisition'], filePrefix: 'a18-', previousStage: 'A17', classification: 'CRITICAL' },
-  { stage: 'A19', key: 'a19', purpose: 'Data productization gap certification', reportDir: ['reports', 'productization'], filePrefix: 'a19-gap-', previousStage: 'A18', classification: 'CRITICAL' },
-  { stage: 'A20', key: 'a20', purpose: 'Product readiness monetization gate', reportDir: ['reports', 'product-readiness'], filePrefix: 'a20-product-readiness-', previousStage: 'A19', classification: 'CRITICAL' },
-  { stage: 'A21', key: 'a21', purpose: 'Autonomous intelligence product pipeline', reportDir: ['reports', 'product-pipeline'], filePrefix: 'a21-pipeline-', previousStage: 'A20', classification: 'CRITICAL' },
-  { stage: 'A22', key: 'a22', purpose: 'Publication control governance', reportDir: ['reports', 'publication-control'], filePrefix: 'a22-publication-control-', previousStage: 'A21', classification: 'CRITICAL' },
-  { stage: 'A23', key: 'a23', purpose: 'Commercial delivery control', reportDir: ['reports', 'commercial-delivery'], filePrefix: 'a23-commercial-delivery-', previousStage: 'A22', classification: 'CRITICAL' },
-  { stage: 'A24', key: 'a24', purpose: 'Production activation gate', reportDir: ['reports', 'production-activation'], filePrefix: 'a24-production-activation-', previousStage: 'A23', classification: 'CRITICAL' },
-  { stage: 'A25', key: 'a25', purpose: 'Autonomous production runtime', reportDir: ['reports', 'runtime'], filePrefix: 'a25-runtime-', previousStage: 'A24', classification: 'CRITICAL' },
-  { stage: 'A26', key: 'a26', purpose: 'Recovery resilience', reportDir: ['reports', 'recovery'], filePrefix: 'a26-recovery-', previousStage: 'A25', classification: 'CRITICAL' },
-  { stage: 'A27', key: 'a27', purpose: 'Operational governance and escalation', reportDir: ['reports', 'operations'], filePrefix: 'a27-governance-', previousStage: 'A26', classification: 'CRITICAL' },
-  { stage: 'A28', key: 'a28', purpose: 'Executive control tower governance', reportDir: ['reports', 'control-tower'], filePrefix: 'a28-control-tower-', previousStage: 'A27', classification: 'CRITICAL' },
-  { stage: 'A29', key: 'a29', purpose: 'Executive decision orchestration', reportDir: ['reports', 'executive-decisions'], filePrefix: 'a29-executive-decision-', previousStage: 'A28', classification: 'CRITICAL' },
-  { stage: 'A30', key: 'a30', purpose: 'Executive control tower UI contract', reportDir: ['reports', 'control-tower-ui'], filePrefix: 'a30-control-tower-ui-', previousStage: 'A29', classification: 'CRITICAL' },
-  { stage: 'A31', key: 'a31', purpose: 'Governed action gateway', reportDir: ['reports', 'control-tower-gateway'], filePrefix: 'a31-control-tower-gateway-', previousStage: 'A30', classification: 'CRITICAL' },
-  { stage: 'A32', key: 'a32', purpose: 'Production reality gate', reportDir: ['reports', 'production-reality'], filePrefix: 'a32-production-reality-', previousStage: 'A31', classification: 'CRITICAL' },
-  { stage: 'A33', key: 'a33', purpose: 'Deployment governance and canary rollback', reportDir: ['reports', 'deployment-governance'], filePrefix: 'a33-deployment-governance-', previousStage: 'A32', classification: 'CRITICAL' },
-  { stage: 'A34', key: 'a34', purpose: 'Continuous production assurance', reportDir: ['reports', 'production-assurance'], filePrefix: 'a34-production-assurance-', previousStage: 'A33', classification: 'CRITICAL' },
-  { stage: 'A35', key: 'a35', purpose: 'Capacity governance and protected reserves', reportDir: ['reports', 'capacity-governance'], filePrefix: 'a35-capacity-governance-', previousStage: 'A34', classification: 'CRITICAL' },
-  { stage: 'A36', key: 'a36', purpose: 'Economic governance and hard budget stops', reportDir: ['reports', 'economic-governance'], filePrefix: 'a36-economic-governance-', previousStage: 'A35', classification: 'CRITICAL' },
-  { stage: 'A37', key: 'a37', purpose: 'Commercial governance and rights controls', reportDir: ['reports', 'commercial-governance'], filePrefix: 'a37-commercial-governance-', previousStage: 'A36', classification: 'CRITICAL' },
-  { stage: 'A38', key: 'a38', purpose: 'Customer value delivery boundaries', reportDir: ['reports', 'customer-value-delivery'], filePrefix: 'a38-customer-value-delivery-', previousStage: 'A37', classification: 'CRITICAL' },
-  { stage: 'A39', key: 'a39', purpose: 'Enterprise autonomous operations acceptance', reportDir: ['reports', 'enterprise-acceptance'], filePrefix: 'a39-enterprise-acceptance-', previousStage: 'A38', classification: 'CRITICAL' },
-];
-
-const DIRECT_CONTINUITY_RESOLVERS = {
-  A33: (record) => [record.report?.sourceA32Evidence?.evidenceId, record.report?.sourceA32Evidence?.generatedAt],
-  A34: (record) => [record.report?.sourceA32Evidence?.evidenceId, record.report?.sourceA33DeploymentEvidence?.evidenceId],
-  A35: (record) => [record.report?.sourceA34Evidence?.evidenceId],
-  A36: (record) => [record.report?.sourceA35Evidence?.evidenceId],
-  A37: (record) => [record.report?.sourceA36Evidence?.evidenceId],
-  A38: (record) => [record.report?.sourceA37Evidence?.commercialRunId],
-  A39: (record) => [
-    ...(Array.isArray(record.report?.stageEvidenceInventory)
-      ? record.report.stageEvidenceInventory.map((entry) => entry?.evidenceId)
-      : []),
-    record.report?.requiredStageRange,
-  ],
-};
-
-const FAILURE_CLASSIFICATIONS = {
-  DIRTY_WORKING_TREE: 'blocking',
-  NON_MAIN_BRANCH: 'blocking',
-  OUT_OF_SYNC_MAIN: 'blocking',
-  UNKNOWN_REPOSITORY_SYNC: 'blocking',
-  UNKNOWN_CRITICAL_STATE: 'fatal',
-  MISSING_A39_ACCEPTANCE: 'blocking',
-  UNCERTIFIED_CRITICAL_STAGE: 'blocking',
-  MISSING_CRITICAL_STAGE_EVIDENCE: 'blocking',
-  STALE_CRITICAL_EVIDENCE: 'blocking',
-  BROKEN_UPSTREAM_REFERENCE: 'blocking',
-  SECURITY_HARD_STOP: 'fatal',
-  PROVIDER_FAILURE: 'blocking',
-  PROVIDER_DEGRADED: 'blocking',
-  STALE_DATA: 'blocking',
-  PARTIAL_DATA_GAP: 'blocking',
-  PRECHECK_FAILURE: 'blocking',
-  RUNTIME_FAILURE: 'blocking',
-  VERIFICATION_FAILURE: 'blocking',
-  RECOVERY_EXHAUSTED: 'blocking',
-  SLO_BREACH: 'blocking',
-  SEV1_INCIDENT: 'blocking',
-  CHANGE_FREEZE: 'blocking',
-  ROLLBACK_REQUIRED: 'blocking',
-  ROLLBACK_NOT_READY: 'blocking',
-  RECOVERY_NOT_READY: 'blocking',
-  CAPACITY_PRESSURE: 'blocking',
-  BUDGET_HARD_STOP: 'blocking',
-  RIGHTS_UNKNOWN: 'blocking',
-  ENTITLEMENT_MISMATCH: 'blocking',
-  PRIVACY_UNKNOWN: 'review',
-  GOVERNANCE_BOUNDARY_ERODED: 'fatal',
-  EXECUTIVE_AUTHORITY_EXPANDED: 'fatal',
-  EXTERNAL_MUTATION_ATTEMPT: 'fatal',
-  UNAUTHORIZED_EXTERNAL_MUTATION: 'fatal',
-  CERTIFICATION_MATRIX_INCOMPLETE: 'blocking',
-  BASELINE_MANIFEST_INCOMPLETE: 'blocking',
-  RELEASE_MANIFEST_INCOMPLETE: 'blocking',
-  REPRODUCIBILITY_FAILURE: 'blocking',
-};
 
 function stableSerialize(value) {
   if (Array.isArray(value)) return `[${value.map((entry) => stableSerialize(entry)).join(',')}]`;
