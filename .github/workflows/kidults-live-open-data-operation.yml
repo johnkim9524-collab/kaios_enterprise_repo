@@ -1,0 +1,41 @@
+name: KIDULTS Live Open Data Operation
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+concurrency:
+  group: kidults-live-open-data-operation
+  cancel-in-progress: false
+
+jobs:
+  live-open-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    defaults:
+      run:
+        working-directory: services/kidults-autonomous-intelligence
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - name: Collect and validate actual external open data
+        run: npm run live:open-data
+      - name: Upload live external-data evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-live-open-data-evidence
+          path: services/kidults-autonomous-intelligence/reports/live-open-data/live-open-data-latest.json
+          retention-days: 30
+          if-no-files-found: error
