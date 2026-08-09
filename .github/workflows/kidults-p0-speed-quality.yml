@@ -1,0 +1,53 @@
+name: Kidults P0 Speed x Quality Hardening
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-p0-speed-quality.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: kidults-p0-speed-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engineering-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    defaults:
+      run:
+        working-directory: services/kidults-autonomous-intelligence
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Runtime smoke
+        run: npm run runtime:smoke
+
+      - name: Engineering quality audit
+        run: node scripts/p0-engineering-quality-audit.mjs
+
+      - name: Upload engineering audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-p0-engineering-quality-audit
+          path: services/kidults-autonomous-intelligence/reports/engineering-hardening/quality-audit-latest.json
+          retention-days: 30
+          if-no-files-found: warn
