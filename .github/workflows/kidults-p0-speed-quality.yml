@@ -37,6 +37,14 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Upload generated dependency lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-generated-package-lock
+          path: services/kidults-autonomous-intelligence/package-lock.json
+          retention-days: 7
+          if-no-files-found: error
+
       - name: Typecheck
         run: npm run typecheck
 
