@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0.0",
+  "datasetId": "kidults-real-public-lego-2026-08-10",
+  "mode": "REAL_PUBLIC_SOURCE_VALIDATION",
+  "description": "Real-world public-source validation fixture observed from official LEGO US product pages. This is actual public data, not synthetic data, but it is not contractual provider/SLA evidence and must not set liveValidationCertified=true.",
+  "records": [
+    {
+      "observationId": "lego-42143-20260810",
+      "critical": true,
+      "sourceId": "lego-official-us",
+      "observedAt": "2026-08-09T22:39:00Z",
+      "evidenceRef": "https://www.lego.com/en-us/product/ferrari-daytona-sp3-42143",
+      "payloadHash": "sha256:f5a87ded9d8557e0c62b777265b21ee5048df101f2e520982247cd07b171e780",
+      "expectedEntityId": "lego-set-42143",
+      "resolvedEntityId": "lego-set-42143",
+      "expectedDisposition": "ACCEPT",
+      "actualDisposition": "ACCEPT",
+      "duplicateOf": null,
+      "assertions": [
+        { "field": "name", "expected": "Ferrari Daytona SP3", "actual": "Ferrari Daytona SP3", "critical": true },
+        { "field": "priceUsd", "expected": 449.99, "actual": 449.99, "critical": true },
+        { "field": "availability", "expected": "SOLD_OUT", "actual": "SOLD_OUT", "critical": true },
+        { "field": "pieces", "expected": 3778, "actual": 3778, "critical": true }
+      ]
+    },
+    {
+      "observationId": "lego-10295-20260810",
+      "critical": true,
+      "sourceId": "lego-official-us",
+      "observedAt": "2026-08-09T22:39:00Z",
+      "evidenceRef": "https://www.lego.com/en-us/product/porsche-911-10295",
+      "payloadHash": "sha256:6d648a59ed6aa0dd03059e1c1dcdbb98b3150d5cea14df78ef43661612c189e6",
+      "expectedEntityId": "lego-set-10295",
+      "resolvedEntityId": "lego-set-10295",
+      "expectedDisposition": "ACCEPT",
+      "actualDisposition": "ACCEPT",
+      "duplicateOf": null,
+      "assertions": [
+        { "field": "name", "expected": "Porsche 911", "actual": "Porsche 911", "critical": true },
+        { "field": "priceUsd", "expected": 169.99, "actual": 169.99, "critical": true },
+        { "field": "availability", "expected": "AVAILABLE_NOW", "actual": "AVAILABLE_NOW", "critical": true },
+        { "field": "pieces", "expected": 1458, "actual": 1458, "critical": true }
+      ]
+    },
+    {
+      "observationId": "lego-42115-20260810",
+      "critical": true,
+      "sourceId": "lego-official-us",
+      "observedAt": "2026-08-09T22:39:00Z",
+      "evidenceRef": "https://www.lego.com/en-us/product/lamborghini-sian-fkp-37-42115",
+      "payloadHash": "sha256:c6f8c296747119609651911ab198e7cadc111243f075a84f433e028d459217d7",
+      "expectedEntityId": "lego-set-42115",
+      "resolvedEntityId": "lego-set-42115",
+      "expectedDisposition": "ACCEPT",
+      "actualDisposition": "ACCEPT",
+      "duplicateOf": null,
+      "assertions": [
+        { "field": "name", "expected": "Lamborghini Sián FKP 37", "actual": "Lamborghini Sián FKP 37", "critical": true },
+        { "field": "currentPriceUsd", "expected": 314.99, "actual": 314.99, "critical": true },
+        { "field": "listPriceUsd", "expected": 449.99, "actual": 449.99, "critical": true },
+        { "field": "availability", "expected": "SOLD_OUT", "actual": "SOLD_OUT", "critical": true },
+        { "field": "pieces", "expected": 3696, "actual": 3696, "critical": true }
+      ]
+    }
+  ]
+}
