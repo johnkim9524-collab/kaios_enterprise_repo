@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "CONTROL_BASELINE",
+  "liveOperationalCertified": false,
+  "unattendedOperations": {
+    "routineInterventionRateMax": 0.01,
+    "selfRecoveryTargetMin": 0.95,
+    "selfRecoveryStretchMin": 0.99,
+    "criticalSilentFailureMax": 0,
+    "exceptionOnlyExecutiveQueue": true,
+    "humanAuthorityRequiredFor": ["legal", "financial", "strategic", "security", "provider-contract"]
+  },
+  "efficiencyMetrics": [
+    "costPerValidatedObject",
+    "costPerIntelligenceOutput",
+    "humanMinutesPer1000Records",
+    "providerDuplicationCost",
+    "cacheEffectiveness",
+    "workerCpuMsPer1000Records",
+    "workerColdStartRate",
+    "retryCost",
+    "failedProcessingCost",
+    "intelligenceValuePerUnitCost"
+  ],
+  "effectivenessMetrics": [
+    "freshness",
+    "accuracy",
+    "provenanceCoverage",
+    "predictiveUsefulness",
+    "engagement",
+    "paidConversion",
+    "enterpriseUsage",
+    "manualCorrectionRate"
+  ],
+  "reliabilityEvidenceRequired": [
+    "structured logs",
+    "metrics",
+    "traces",
+    "alerts",
+    "provider timeout and retry evidence",
+    "circuit breaker evidence",
+    "backpressure evidence",
+    "DLQ quarantine replay evidence",
+    "idempotency evidence",
+    "backup restore evidence",
+    "RTO RPO drill evidence",
+    "canary rollback evidence"
+  ],
+  "liveCertificationRequirements": {
+    "controlledLiveRun": true,
+    "authoritativeData": true,
+    "productionObservability": true,
+    "recoveryDrill": true,
+    "syntheticEvidenceAloneIsInsufficient": true
+  }
+}
