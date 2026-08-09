@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "DESIGN_BASELINE",
+  "liveProviderCertified": false,
+  "selectionClasses": ["MUST_HAVE", "CONDITIONAL", "EXCLUDE"],
+  "requiredDimensions": [
+    "category",
+    "geography",
+    "historicalDepth",
+    "freshness",
+    "dailyVolume",
+    "peakVolume",
+    "accessMode",
+    "rateLimits",
+    "rights",
+    "sla",
+    "provenance",
+    "commercialTerms",
+    "replaceability",
+    "marginalIntelligenceValuePerCost"
+  ],
+  "topology": {
+    "primary": "required-for-authoritative-acquisition",
+    "independentVerification": "separate-source-validation-required-for-critical-facts",
+    "fallback": "must-preserve-fail-closed-and-staleness-controls"
+  },
+  "rightsRequired": [
+    "commercial-use",
+    "ai-processing",
+    "historical-retention",
+    "caching",
+    "derived-intelligence-retention",
+    "redistribution-where-required"
+  ],
+  "terminationPrinciple": "KIDULTS should retain lawful derived intelligence and methodology outputs after provider termination whenever contractually permitted.",
+  "scorecardWeights": {
+    "uniqueness": 0.15,
+    "provenanceQuality": 0.15,
+    "reliability": 0.15,
+    "rightsFit": 0.15,
+    "freshnessLatency": 0.1,
+    "historicalDepth": 0.1,
+    "replaceability": 0.1,
+    "marginalIntelligenceValuePerCost": 0.1
+  },
+  "failClosedRules": {
+    "unknownRights": "BLOCK_COMMERCIAL_USE",
+    "missingProvenance": "QUARANTINE_CRITICAL_RECORD",
+    "staleBeyondContract": "REJECT_OR_DEGRADE_WITH_EXPLICIT_STATUS",
+    "providerFailure": "USE_VALID_FALLBACK_OR_BLOCK",
+    "liveCertificationWithoutEvidence": "FORBIDDEN"
+  },
+  "externalDependencies": [
+    "actual provider candidate datasets",
+    "commercial terms",
+    "executed rights",
+    "live SLA evidence",
+    "live failover evidence"
+  ]
+}
