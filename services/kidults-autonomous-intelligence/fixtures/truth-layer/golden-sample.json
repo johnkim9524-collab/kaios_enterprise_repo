@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "1.0.0",
+  "datasetId": "kidults-truth-synthetic-baseline-v1",
+  "mode": "SYNTHETIC_BASELINE",
+  "description": "Synthetic acceptance fixture only. It is not real provider evidence and must never be represented as live-data validation.",
+  "records": [
+    {
+      "observationId": "obs-001",
+      "critical": true,
+      "sourceId": "auction-primary",
+      "observedAt": "2026-08-09T10:00:00Z",
+      "evidenceRef": "synthetic://auction-primary/lot-001",
+      "payloadHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "expectedEntityId": "entity-001",
+      "resolvedEntityId": "entity-001",
+      "expectedDisposition": "ACCEPT",
+      "actualDisposition": "ACCEPT",
+      "duplicateOf": null,
+      "assertions": [
+        { "field": "currency", "expected": "USD", "actual": "USD", "critical": true },
+        { "field": "price", "expected": 1250, "actual": 1250, "critical": true }
+      ]
+    },
+    {
+      "observationId": "obs-002",
+      "critical": true,
+      "sourceId": "market-secondary",
+      "observedAt": "2026-08-09T10:01:00Z",
+      "evidenceRef": "synthetic://market-secondary/item-002",
+      "payloadHash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "expectedEntityId": "entity-002",
+      "resolvedEntityId": "entity-002",
+      "expectedDisposition": "ACCEPT",
+      "actualDisposition": "ACCEPT",
+      "duplicateOf": null,
+      "assertions": [
+        { "field": "availability", "expected": "IN_STOCK", "actual": "IN_STOCK", "critical": true }
+      ]
+    },
+    {
+      "observationId": "obs-003",
+      "critical": true,
+      "sourceId": "official-primary",
+      "observedAt": "2026-08-09T10:02:00Z",
+      "evidenceRef": "synthetic://official-primary/release-003",
+      "payloadHash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "expectedEntityId": "entity-003",
+      "resolvedEntityId": "entity-003",
+      "expectedDisposition": "ACCEPT",
+      "actualDisposition": "ACCEPT",
+      "duplicateOf": null,
+      "assertions": [
+        { "field": "releaseYear", "expected": 2026, "actual": 2026, "critical": true }
+      ]
+    },
+    {
+      "observationId": "obs-004",
+      "critical": true,
+      "sourceId": "auction-primary",
+      "observedAt": "2026-08-09T10:03:00Z",
+      "evidenceRef": "synthetic://auction-primary/lot-004",
+      "payloadHash": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "expectedEntityId": "entity-004",
+      "resolvedEntityId": "entity-004",
+      "expectedDisposition": "ACCEPT",
+      "actualDisposition": "ACCEPT",
+      "duplicateOf": null,
+      "assertions": [
+        { "field": "condition", "expected": "MINT", "actual": "MINT", "critical": true }
+      ]
+    },
+    {
+      "observationId": "obs-005",
+      "critical": true,
+      "sourceId": "market-secondary",
+      "observedAt": "2026-08-09T10:04:00Z",
+      "evidenceRef": "synthetic://market-secondary/item-005",
+      "payloadHash": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "expectedEntityId": "entity-005",
+      "resolvedEntityId": "entity-005",
+      "expectedDisposition": "ACCEPT",
+      "actualDisposition": "ACCEPT",
+      "duplicateOf": null,
+      "assertions": [
+        { "field": "currency", "expected": "EUR", "actual": "EUR", "critical": true }
+      ]
+    },
+    {
+      "observationId": "obs-006",
+      "critical": true,
+      "sourceId": "cultural-signal",
+      "observedAt": "2026-08-09T10:05:00Z",
+      "evidenceRef": "synthetic://cultural-signal/signal-006",
+      "payloadHash": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "expectedEntityId": "entity-006",
+      "resolvedEntityId": "entity-006",
+      "expectedDisposition": "ACCEPT",
+      "actualDisposition": "ACCEPT",
+      "duplicateOf": null,
+      "assertions": [
+        { "field": "signalClass", "expected": "SEARCH_MOMENTUM", "actual": "SEARCH_MOMENTUM", "critical": true }
+      ]
+    },
+    {
+      "observationId": "obs-007-stale",
+      "critical": true,
+      "sourceId": "market-secondary",
+      "observedAt": "2024-01-01T00:00:00Z",
+      "evidenceRef": "synthetic://market-secondary/stale-007",
+      "payloadHash": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "expectedEntityId": "entity-007",
+      "resolvedEntityId": "entity-007",
+      "expectedDisposition": "REJECT_STALE",
+      "actualDisposition": "REJECT_STALE",
+      "duplicateOf": null,
+      "assertions": [
+        { "field": "stale", "expected": true, "actual": true, "critical": true }
+      ]
+    },
+    {
+      "observationId": "obs-008-duplicate",
+      "critical": true,
+      "sourceId": "market-secondary",
+      "observedAt": "2026-08-09T10:06:00Z",
+      "evidenceRef": "synthetic://market-secondary/duplicate-008",
+      "payloadHash": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "expectedEntityId": "entity-002",
+      "resolvedEntityId": "entity-002",
+      "expectedDisposition": "REJECT_DUPLICATE",
+      "actualDisposition": "REJECT_DUPLICATE",
+      "duplicateOf": "obs-002",
+      "assertions": [
+        { "field": "duplicateDetected", "expected": true, "actual": true, "critical": true }
+      ]
+    }
+  ]
+}
