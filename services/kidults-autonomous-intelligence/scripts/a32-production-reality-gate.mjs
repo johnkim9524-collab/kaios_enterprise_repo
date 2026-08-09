@@ -220,11 +220,6 @@ export function createStagePolicyAuthorities(root = ROOT) {
       getCanonical: () => readScriptPolicySource(path.join(root, 'scripts', 'a29-executive-decision-orchestration.mjs')),
       getObserved: (ev) => resolveObservedPolicyVersion(ev),
     },
-    a30: {
-      source: path.join(root, 'scripts', 'a29-executive-decision-orchestration.mjs'),
-      getCanonical: () => readScriptPolicySource(path.join(root, 'scripts', 'a29-executive-decision-orchestration.mjs')),
-      getObserved: (ev) => resolveObservedPolicyVersion(ev),
-    },
     a31: {
       source: path.join(root, 'scripts', 'a31-control-tower-governed-gateway.mjs'),
       getCanonical: () => readScriptPolicySource(path.join(root, 'scripts', 'a31-control-tower-governed-gateway.mjs')),
