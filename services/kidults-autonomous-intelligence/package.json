@@ -96,7 +96,10 @@
     "a34:finalize": "npm run a34:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A34",
     "a35:gate": "node scripts/a35-capacity-governance.mjs",
     "a35:certify": "npm run typecheck && npm run a35:gate",
-    "a35:finalize": "npm run a35:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A35"
+    "a35:finalize": "npm run a35:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A35",
+    "a36:gate": "node scripts/a36-economic-governance.mjs",
+    "a36:certify": "npm run typecheck && npm run a36:gate",
+    "a36:finalize": "npm run a36:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A36"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",
