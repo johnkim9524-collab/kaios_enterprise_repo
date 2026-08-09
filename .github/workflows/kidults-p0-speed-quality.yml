@@ -14,7 +14,7 @@ concurrency:
 jobs:
   engineering-quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     permissions:
       contents: read
 
@@ -53,6 +53,42 @@ jobs:
 
       - name: Truth-layer acceptance gate
         run: npm run truth:gate
+
+      - name: A25-A40 simulation regression
+        env:
+          A25_MODE: SIMULATION
+          A26_MODE: SIMULATION
+          A27_MODE: SIMULATION
+          A28_MODE: SIMULATION
+          A29_MODE: SIMULATION
+          A30_MODE: SIMULATION
+          A31_MODE: SIMULATION
+          A32_MODE: SIMULATION
+          A33_MODE: SIMULATION
+          A34_MODE: SIMULATION
+          A35_MODE: SIMULATION
+          A36_MODE: SIMULATION
+          A37_MODE: SIMULATION
+          A38_MODE: SIMULATION
+          A39_MODE: SIMULATION
+          A40_MODE: SIMULATION
+        run: |
+          npm run a25:certify
+          npm run a26:certify
+          npm run a27:certify
+          npm run a28:certify
+          npm run a29:certify
+          npm run a30:certify
+          npm run a31:certify
+          npm run a32:certify
+          npm run a33:certify
+          npm run a34:certify
+          npm run a35:certify
+          npm run a36:certify
+          npm run a37:certify
+          npm run a38:certify
+          npm run a39:certify
+          npm run a40:certify
 
       - name: Engineering quality audit after validation
         if: always()
