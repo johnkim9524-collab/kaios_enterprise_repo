@@ -3,11 +3,20 @@
   "private": true,
   "version": "0.8.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "wrangler dev --local",
     "deploy": "npm run deploy:preflight && wrangler deploy",
     "deploy:preflight": "node scripts/deploy-preflight.mjs",
     "typecheck": "tsc --noEmit",
+    "lint": "npm run typecheck && node scripts/p0-engineering-quality-audit.mjs",
+    "test": "node --test test/*.test.mjs",
+    "coverage": "node --experimental-test-coverage --test test/*.test.mjs",
+    "quality:audit": "node scripts/p0-engineering-quality-audit.mjs",
+    "truth:gate": "node scripts/p0-real-data-truth-gate.mjs",
+    "quality:gate": "npm run lint && npm run test && npm run coverage && npm run truth:gate && npm run runtime:smoke",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "runtime:smoke": "node scripts/runtime-smoke.mjs",
