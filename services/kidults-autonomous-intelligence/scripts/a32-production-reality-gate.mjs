@@ -121,13 +121,145 @@ for (const [stage, dir] of Object.entries(REPORT_ROOTS)) {
 // Policy-version consistency check (§25)
 // ---------------------------------------------------------------------------
 
-function checkPolicyVersionConsistency(evidence) {
+const DEFAULT_POLICY_VERSION_PATHS = [
+  ['policyVersion'],
+  ['policy', 'version'],
+];
+
+function getNestedValue(source, pathSegments) {
+  let current = source;
+  for (const segment of pathSegments) {
+    if (!current || typeof current !== 'object' || !(segment in current)) return null;
+    current = current[segment];
+  }
+  return typeof current === 'string' && current.trim() ? current : null;
+}
+
+function readJsonPolicySource(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return { known: false, source: filePath, reason: 'SOURCE_FILE_MISSING' };
+  }
+  try {
+    const json = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    const policyVersion = getNestedValue(json, ['policyVersion']) ?? getNestedValue(json, ['policy', 'version']);
+    if (!policyVersion) {
+      return { known: false, source: filePath, reason: 'SOURCE_POLICY_VERSION_MISSING' };
+    }
+    return { known: true, source: filePath, policyVersion };
+  } catch {
+    return { known: false, source: filePath, reason: 'SOURCE_FILE_INVALID' };
+  }
+}
+
+function readScriptPolicySource(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return { known: false, source: filePath, reason: 'SOURCE_FILE_MISSING' };
+  }
+  try {
+    const script = fs.readFileSync(filePath, 'utf-8');
+    const match = script.match(/const POLICY_VERSION = ['"]([^'"]+)['"]/);
+    if (!match) {
+      return { known: false, source: filePath, reason: 'SOURCE_POLICY_VERSION_MISSING' };
+    }
+    return { known: true, source: filePath, policyVersion: match[1] };
+  } catch {
+    return { known: false, source: filePath, reason: 'SOURCE_FILE_INVALID' };
+  }
+}
+
+function resolveObservedPolicyVersion(ev, policyPaths = DEFAULT_POLICY_VERSION_PATHS, fallbackValue = null) {
+  if (ev && !ev._fallback) {
+    for (const policyPath of policyPaths) {
+      const value = getNestedValue(ev, policyPath);
+      if (value) return value;
+    }
+  }
+  return fallbackValue;
+}
+
+export function createStagePolicyAuthorities(root = ROOT) {
+  return {
+    a15: {
+      source: path.join(root, 'policy', 'global-autonomous-policy.json'),
+      getCanonical: () => readJsonPolicySource(path.join(root, 'policy', 'global-autonomous-policy.json')),
+      getObserved: (ev, canonical) => resolveObservedPolicyVersion(ev, DEFAULT_POLICY_VERSION_PATHS, canonical.policyVersion),
+      isMaterial: () => true,
+    },
+    a23: {
+      source: path.join(root, 'policy', 'a23-commercial-delivery-policy.json'),
+      getCanonical: () => readJsonPolicySource(path.join(root, 'policy', 'a23-commercial-delivery-policy.json')),
+      getObserved: (ev) => resolveObservedPolicyVersion(ev),
+    },
+    a24: {
+      source: path.join(root, 'contracts', 'a24-production-activation-policy.json'),
+      getCanonical: () => readJsonPolicySource(path.join(root, 'contracts', 'a24-production-activation-policy.json')),
+      getObserved: (ev) => resolveObservedPolicyVersion(ev),
+    },
+    a25: {
+      source: path.join(root, 'contracts', 'a25-runtime-policy.json'),
+      getCanonical: () => readJsonPolicySource(path.join(root, 'contracts', 'a25-runtime-policy.json')),
+      getObserved: (ev) => resolveObservedPolicyVersion(ev),
+    },
+    a26: {
+      source: path.join(root, 'contracts', 'a26-recovery-policy.json'),
+      getCanonical: () => readJsonPolicySource(path.join(root, 'contracts', 'a26-recovery-policy.json')),
+      getObserved: (ev) => resolveObservedPolicyVersion(ev),
+    },
+    a27: {
+      source: path.join(root, 'contracts', 'a27-operational-governance-policy.json'),
+      getCanonical: () => readJsonPolicySource(path.join(root, 'contracts', 'a27-operational-governance-policy.json')),
+      getObserved: (ev) => resolveObservedPolicyVersion(ev),
+    },
+    a28: {
+      source: path.resolve(root, '..', '..', 'contracts', 'a28-executive-governance-policy.json'),
+      getCanonical: () => readJsonPolicySource(path.resolve(root, '..', '..', 'contracts', 'a28-executive-governance-policy.json')),
+      getObserved: (ev) => resolveObservedPolicyVersion(ev, [['policyVersion'], ['platform', 'policyVersion'], ['metrics', 'policyVersion']]),
+    },
+    a29: {
+      source: path.join(root, 'scripts', 'a29-executive-decision-orchestration.mjs'),
+      getCanonical: () => readScriptPolicySource(path.join(root, 'scripts', 'a29-executive-decision-orchestration.mjs')),
+      getObserved: (ev) => resolveObservedPolicyVersion(ev),
+    },
+    a31: {
+      source: path.join(root, 'scripts', 'a31-control-tower-governed-gateway.mjs'),
+      getCanonical: () => readScriptPolicySource(path.join(root, 'scripts', 'a31-control-tower-governed-gateway.mjs')),
+      getObserved: (ev) => resolveObservedPolicyVersion(ev),
+    },
+  };
+}
+
+export function checkPolicyVersionConsistency(evidence, authorities = createStagePolicyAuthorities()) {
   const mismatches = [];
-  for (const [stage, ev] of Object.entries(evidence)) {
-    if (ev?._fallback) continue;
-    const evPv = ev?.policyVersion ?? ev?.policy?.version ?? null;
-    if (evPv && !evPv.startsWith('a')) {
-      mismatches.push({ stage, policyVersion: evPv });
+  for (const [stage, authority] of Object.entries(authorities)) {
+    const ev = evidence?.[stage] ?? null;
+    const canonical = authority.getCanonical();
+    if (!canonical.known) {
+      mismatches.push({ stage, reason: canonical.reason, source: authority.source });
+      continue;
+    }
+
+    const isMaterial = authority.isMaterial ? authority.isMaterial(ev, canonical, evidence) : Boolean(ev && !ev._fallback);
+    if (!isMaterial) continue;
+
+    const observed = authority.getObserved(ev, canonical, evidence);
+    if (!observed) {
+      mismatches.push({
+        stage,
+        reason: 'MISSING_POLICY_VERSION',
+        source: canonical.source,
+        expected: canonical.policyVersion,
+      });
+      continue;
+    }
+
+    if (observed !== canonical.policyVersion) {
+      mismatches.push({
+        stage,
+        reason: 'POLICY_VERSION_MISMATCH',
+        source: canonical.source,
+        expected: canonical.policyVersion,
+        observed,
+      });
     }
   }
   return { consistent: mismatches.length === 0, mismatches };
@@ -856,7 +988,13 @@ function computeAcceptanceStatus(scenarioResults, invariants) {
   const degradedScenarios = scenarioResults.filter((r) => r.finalState === 'PASS_WITH_DEGRADATION');
 
   if (criticalFailed.length > 0 || !invariantsPassed) return { status: 'FAIL', criticalFailed };
-  if (allPassed && invariantsPassed && degradedScenarios.length === 0) return { status: 'PASS', criticalFailed: [] };
+  if (allPassed && invariantsPassed) {
+    return {
+      status: 'PASS',
+      criticalFailed: [],
+      degradedScenarios: degradedScenarios.map((r) => r.scenarioId),
+    };
+  }
   if (degradedScenarios.length > 0) return { status: 'PASS_WITH_DEGRADATION', criticalFailed: [], degradedScenarios: degradedScenarios.map((r) => r.scenarioId) };
   return { status: 'PASS', criticalFailed: [] };
 }
@@ -865,145 +1003,159 @@ function computeAcceptanceStatus(scenarioResults, invariants) {
 // Main acceptance run
 // ---------------------------------------------------------------------------
 
-console.log(`[A32] Production Reality Gate — ${MODE} mode`);
-console.log(`[A32] Acceptance Run: ${acceptanceRunId}`);
+export function runProductionRealityGate() {
+  console.log(`[A32] Production Reality Gate — ${MODE} mode`);
+  console.log(`[A32] Acceptance Run: ${acceptanceRunId}`);
 
-const stageFreshness = buildStageFreshness(stageEvidence);
-const schemaCheck = validateSchemaCompatibility(stageEvidence);
-const policyCheck = checkPolicyVersionConsistency(stageEvidence);
+  const stageFreshness = buildStageFreshness(stageEvidence);
+  const schemaCheck = validateSchemaCompatibility(stageEvidence);
+  const policyCheck = checkPolicyVersionConsistency(stageEvidence);
 
-console.log(`[A32] Stage freshness computed for ${Object.keys(stageFreshness).length} stages`);
-console.log(`[A32] Schema compatibility: ${schemaCheck.compatible ? 'OK' : `ISSUES: ${schemaCheck.issues.length}`}`);
-console.log(`[A32] Policy consistency: ${policyCheck.consistent ? 'OK' : `MISMATCHES: ${policyCheck.mismatches.length}`}`);
+  console.log(`[A32] Stage freshness computed for ${Object.keys(stageFreshness).length} stages`);
+  console.log(`[A32] Schema compatibility: ${schemaCheck.compatible ? 'OK' : `ISSUES: ${schemaCheck.issues.length}`}`);
+  console.log(`[A32] Policy consistency: ${policyCheck.consistent ? 'OK' : `MISMATCHES: ${policyCheck.mismatches.length}`}`);
 
-// Run all scenarios
-const scenarioResults = [];
-for (const scenario of SCENARIOS) {
-  const result = runScenario(scenario, stageEvidence, stageFreshness);
-  scenarioResults.push(result);
-  const mark = result.passed ? 'PASS' : 'FAIL';
-  console.log(`[A32][${mark}] ${result.scenarioId} → ${result.finalState}`);
-}
-
-const idempotencyCheck = checkIdempotency(scenarioResults);
-const concurrencyCheck = checkConcurrency();
-const retryCheck = checkRetryBoundaries();
-const invariants = buildInvariants(scenarioResults, stageFreshness, schemaCheck, policyCheck, idempotencyCheck, concurrencyCheck, retryCheck);
-const realityScore = computeRealityScore(scenarioResults);
-const acceptanceStatus = computeAcceptanceStatus(scenarioResults, invariants);
-
-// ---------------------------------------------------------------------------
-// Evidence graph (§23)
-// ---------------------------------------------------------------------------
-
-const evidenceGraph = {
-  acceptanceRunId,
-  mode: MODE,
-  policyVersion: POLICY_VERSION,
-  scenarios: scenarioResults.map((r) => ({
-    scenarioId: r.scenarioId,
-    category: r.category,
-    passed: r.passed,
-    finalState: r.finalState,
-    businessOutcome: r.businessOutcome,
-    stageEvidenceRefs: r.stageEvidenceRefs,
-    decisionRefs: r.decisionRefs,
-    incidentRefs: r.incidentRefs,
-    executionRefs: r.executionRefs,
-    recoveryRefs: r.recoveryRefs,
-    auditRefs: r.auditRefs,
-  })),
-  stageFreshness,
-  schemaCompatibility: schemaCheck,
-  policyConsistency: policyCheck,
-  idempotency: idempotencyCheck,
-  concurrency: concurrencyCheck,
-  retryBoundaries: retryCheck,
-  realityScore,
-  invariants,
-  acceptanceStatus,
-  completedAt: new Date().toISOString(),
-};
-
-// Overall executive summary (§30)
-const overallExecutiveSummary = {
-  'PLATFORM STATUS': acceptanceStatus.status,
-  'WHAT HAPPENED': `A32 Production Reality Gate completed in ${MODE} mode. ${scenarioResults.length} scenarios evaluated.`,
-  'WHAT THE SYSTEM DID': `Validated complete A15–A31 operational chain. Overall reality score: ${realityScore.overall}.`,
-  'WHAT WAS BLOCKED': scenarioResults.filter((r) => ['BLOCKED', 'FAILED_CLOSED'].includes(r.finalState) && r.passed).map((r) => r.scenarioId).join(', ') || 'No unsafe operations attempted in this run.',
-  'DECISION REQUIRED': acceptanceStatus.status === 'FAIL' ? 'YES — critical scenarios failed' : 'NO',
-  'DECISION RESULT': acceptanceStatus.status,
-  'BUSINESS IMPACT': (acceptanceStatus.status === 'PASS' || acceptanceStatus.status === 'PASS_WITH_DEGRADATION') ? 'Platform certified for production reality. All critical acceptance criteria met.' : `Platform NOT certified. Critical failures: ${(acceptanceStatus.criticalFailed ?? []).join(', ')}`,
-  'REMAINING RISK': (acceptanceStatus.status === 'PASS' || acceptanceStatus.status === 'PASS_WITH_DEGRADATION') ? 'LOW — all critical invariants verified.' : 'HIGH — certification incomplete.',
-  'NEXT ACTION': (acceptanceStatus.status === 'PASS' || acceptanceStatus.status === 'PASS_WITH_DEGRADATION') ? 'Proceed to A32 finalize. Archive evidence.' : 'Investigate failing scenarios and re-run certification.',
-};
-
-// Final output
-const output = {
-  evidenceId: `a32-${nowIso.slice(0, 10)}-${crypto.randomBytes(4).toString('hex')}`,
-  acceptanceRunId,
-  stage: 'A32',
-  mode: MODE,
-  title: 'Production Reality Gate & End-to-End Live Acceptance',
-  generatedAt: nowIso,
-  policyVersion: POLICY_VERSION,
-  scenarioCount: scenarioResults.length,
-  positiveCount: scenarioResults.filter((r) => r.category === 'POSITIVE').length,
-  failClosedCount: scenarioResults.filter((r) => r.category === 'FAIL_CLOSED').length,
-  securityCount: scenarioResults.filter((r) => r.category === 'SECURITY').length,
-  passedCount: scenarioResults.filter((r) => r.passed).length,
-  failedCount: scenarioResults.filter((r) => !r.passed).length,
-  scenarios: scenarioResults,
-  evidenceGraph,
-  realityScore,
-  invariants,
-  acceptanceStatus,
-  executiveSummary: overallExecutiveSummary,
-  certification: {
-    criticalScenariosPassed: SCENARIOS.filter((s) => s.criticalPath).every((s) => scenarioResults.find((r) => r.scenarioId === s.id)?.passed),
-    allInvariantsPassed: Object.values(invariants).every(Boolean),
-    overallStatus: acceptanceStatus.status,
-    certificationPassed: acceptanceStatus.status === 'PASS' || acceptanceStatus.status === 'PASS_WITH_DEGRADATION',
-  },
-  completedAt: new Date().toISOString(),
-};
-
-// ---------------------------------------------------------------------------
-// Write evidence
-// ---------------------------------------------------------------------------
-
-fs.mkdirSync(REPORT_DIR, { recursive: true });
-const evidenceFile = path.join(REPORT_DIR, `a32-production-reality-${acceptanceRunId}.json`);
-fs.writeFileSync(evidenceFile, `${JSON.stringify(output, null, 2)}\n`, 'utf-8');
-
-// ---------------------------------------------------------------------------
-// Console output
-// ---------------------------------------------------------------------------
-
-console.log(`\n[A32] === ACCEPTANCE RESULTS ===`);
-console.log(`[A32] Run ID:          ${acceptanceRunId}`);
-console.log(`[A32] Mode:            ${MODE}`);
-console.log(`[A32] Scenarios:       ${output.scenarioCount} total | ${output.passedCount} passed | ${output.failedCount} failed`);
-console.log(`[A32] Reality Score:   ${realityScore.overall}`);
-console.log(`[A32] Invariants:      ${Object.values(invariants).filter(Boolean).length}/${Object.keys(invariants).length} passed`);
-console.log(`[A32] Status:          ${acceptanceStatus.status}`);
-console.log(`[A32] Evidence:        ${evidenceFile}`);
-
-console.log(`\n[A32] === EXECUTIVE SUMMARY ===`);
-for (const [k, v] of Object.entries(overallExecutiveSummary)) {
-  console.log(`[A32] ${k}: ${v}`);
-}
-
-// Report individual scenario failures
-const failedScenarios = scenarioResults.filter((r) => !r.passed);
-if (failedScenarios.length > 0) {
-  console.log(`\n[A32] === SCENARIO FAILURES ===`);
-  for (const r of failedScenarios) {
-    const failedTests = r.tests.filter((t) => !t.passed);
-    console.error(`[A32][FAIL] ${r.scenarioId}: ${failedTests.map((t) => t.name).join(', ')}`);
+  // Run all scenarios
+  const scenarioResults = [];
+  for (const scenario of SCENARIOS) {
+    const result = runScenario(scenario, stageEvidence, stageFreshness);
+    scenarioResults.push(result);
+    const mark = result.passed ? 'PASS' : 'FAIL';
+    console.log(`[A32][${mark}] ${result.scenarioId} → ${result.finalState}`);
   }
+
+  const idempotencyCheck = checkIdempotency(scenarioResults);
+  const concurrencyCheck = checkConcurrency();
+  const retryCheck = checkRetryBoundaries();
+  const invariants = buildInvariants(scenarioResults, stageFreshness, schemaCheck, policyCheck, idempotencyCheck, concurrencyCheck, retryCheck);
+  const realityScore = computeRealityScore(scenarioResults);
+  const acceptanceStatus = computeAcceptanceStatus(scenarioResults, invariants);
+
+  // -------------------------------------------------------------------------
+  // Evidence graph (§23)
+  // -------------------------------------------------------------------------
+
+  const evidenceGraph = {
+    acceptanceRunId,
+    mode: MODE,
+    policyVersion: POLICY_VERSION,
+    scenarios: scenarioResults.map((r) => ({
+      scenarioId: r.scenarioId,
+      category: r.category,
+      passed: r.passed,
+      finalState: r.finalState,
+      businessOutcome: r.businessOutcome,
+      stageEvidenceRefs: r.stageEvidenceRefs,
+      decisionRefs: r.decisionRefs,
+      incidentRefs: r.incidentRefs,
+      executionRefs: r.executionRefs,
+      recoveryRefs: r.recoveryRefs,
+      auditRefs: r.auditRefs,
+    })),
+    stageFreshness,
+    schemaCompatibility: schemaCheck,
+    policyConsistency: policyCheck,
+    idempotency: idempotencyCheck,
+    concurrency: concurrencyCheck,
+    retryBoundaries: retryCheck,
+    realityScore,
+    invariants,
+    acceptanceStatus,
+    completedAt: new Date().toISOString(),
+  };
+
+  const passStatuses = new Set(['PASS', 'PASS_WITH_DEGRADATION']);
+
+  // Overall executive summary (§30)
+  const overallExecutiveSummary = {
+    'PLATFORM STATUS': acceptanceStatus.status,
+    'WHAT HAPPENED': `A32 Production Reality Gate completed in ${MODE} mode. ${scenarioResults.length} scenarios evaluated.`,
+    'WHAT THE SYSTEM DID': `Validated complete A15–A31 operational chain. Overall reality score: ${realityScore.overall}.`,
+    'WHAT WAS BLOCKED': scenarioResults.filter((r) => ['BLOCKED', 'FAILED_CLOSED'].includes(r.finalState) && r.passed).map((r) => r.scenarioId).join(', ') || 'No unsafe operations attempted in this run.',
+    'DECISION REQUIRED': acceptanceStatus.status === 'FAIL' ? 'YES — critical scenarios failed' : 'NO',
+    'DECISION RESULT': acceptanceStatus.status,
+    'BUSINESS IMPACT': passStatuses.has(acceptanceStatus.status) ? 'Platform certified for production reality. All critical acceptance criteria met.' : `Platform NOT certified. Critical failures: ${(acceptanceStatus.criticalFailed ?? []).join(', ')}`,
+    'REMAINING RISK': passStatuses.has(acceptanceStatus.status) ? 'LOW — all critical invariants verified.' : 'HIGH — certification incomplete.',
+    'NEXT ACTION': passStatuses.has(acceptanceStatus.status) ? 'Proceed to A32 finalize. Archive evidence.' : 'Investigate failing scenarios and re-run certification.',
+  };
+
+  // Final output
+  const output = {
+    evidenceId: `a32-${nowIso.slice(0, 10)}-${crypto.randomBytes(4).toString('hex')}`,
+    acceptanceRunId,
+    stage: 'A32',
+    mode: MODE,
+    title: 'Production Reality Gate & End-to-End Live Acceptance',
+    generatedAt: nowIso,
+    policyVersion: POLICY_VERSION,
+    scenarioCount: scenarioResults.length,
+    positiveCount: scenarioResults.filter((r) => r.category === 'POSITIVE').length,
+    failClosedCount: scenarioResults.filter((r) => r.category === 'FAIL_CLOSED').length,
+    securityCount: scenarioResults.filter((r) => r.category === 'SECURITY').length,
+    passedCount: scenarioResults.filter((r) => r.passed).length,
+    failedCount: scenarioResults.filter((r) => !r.passed).length,
+    scenarios: scenarioResults,
+    evidenceGraph,
+    realityScore,
+    invariants,
+    acceptanceStatus,
+    executiveSummary: overallExecutiveSummary,
+    certification: {
+      criticalScenariosPassed: SCENARIOS.filter((s) => s.criticalPath).every((s) => scenarioResults.find((r) => r.scenarioId === s.id)?.passed),
+      allInvariantsPassed: Object.values(invariants).every(Boolean),
+      overallStatus: acceptanceStatus.status,
+      certificationPassed: passStatuses.has(acceptanceStatus.status),
+    },
+    completedAt: new Date().toISOString(),
+  };
+
+  // -------------------------------------------------------------------------
+  // Write evidence
+  // -------------------------------------------------------------------------
+
+  fs.mkdirSync(REPORT_DIR, { recursive: true });
+  const evidenceFile = path.join(REPORT_DIR, `a32-production-reality-${acceptanceRunId}.json`);
+  fs.writeFileSync(evidenceFile, `${JSON.stringify(output, null, 2)}\n`, 'utf-8');
+
+  // -------------------------------------------------------------------------
+  // Console output
+  // -------------------------------------------------------------------------
+
+  const invariantPassCount = Object.values(invariants).filter(Boolean).length;
+  console.log(`\n[A32] === ACCEPTANCE RESULTS ===`);
+  console.log(`[A32] Run ID:                ${acceptanceRunId}`);
+  console.log(`[A32] Mode:                  ${MODE}`);
+  console.log(`[A32] Scenarios:             ${output.passedCount}/${output.scenarioCount} ${output.failedCount === 0 ? 'PASS' : 'FAIL'}`);
+  console.log(`[A32] Schema Compatibility:  ${schemaCheck.compatible ? 'OK' : 'FAIL'}`);
+  console.log(`[A32] Policy consistency:    ${policyCheck.consistent ? 'OK' : 'FAIL'}`);
+  console.log(`[A32] Policy mismatches:     ${policyCheck.mismatches.length}`);
+  console.log(`[A32] Reality Score:         ${realityScore.overall}`);
+  console.log(`[A32] Invariants:            ${invariantPassCount}/${Object.keys(invariants).length} ${invariantPassCount === Object.keys(invariants).length ? 'PASS' : 'FAIL'}`);
+  console.log(`[A32] Status:                ${acceptanceStatus.status}`);
+  console.log(`[A32] certificationPassed:   ${output.certification.certificationPassed}`);
+  console.log(`[A32] Evidence:              ${evidenceFile}`);
+
+  console.log(`\n[A32] === EXECUTIVE SUMMARY ===`);
+  for (const [k, v] of Object.entries(overallExecutiveSummary)) {
+    console.log(`[A32] ${k}: ${v}`);
+  }
+
+  const failedScenarios = scenarioResults.filter((r) => !r.passed);
+  if (failedScenarios.length > 0) {
+    console.log(`\n[A32] === SCENARIO FAILURES ===`);
+    for (const r of failedScenarios) {
+      const failedTests = r.tests.filter((t) => !t.passed);
+      console.error(`[A32][FAIL] ${r.scenarioId}: ${failedTests.map((t) => t.name).join(', ')}`);
+    }
+  }
+
+  if (!output.certification.certificationPassed) {
+    process.exitCode = 1;
+  }
+
+  return output;
 }
 
-if (!output.certification.certificationPassed) {
-  process.exitCode = 1;
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  runProductionRealityGate();
 }
