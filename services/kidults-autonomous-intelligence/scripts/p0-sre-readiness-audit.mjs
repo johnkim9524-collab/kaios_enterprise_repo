@@ -5,14 +5,17 @@ const ROOT = process.cwd();
 const read = (relative) => fs.readFile(path.join(ROOT, relative), 'utf8');
 const readJson = async (relative) => JSON.parse(await read(relative));
 
-const [policy, recovery, governance, deployment, worker, criticalCi] = await Promise.all([
+const [policy, recoveryRunner, recoveryEngine, governance, deployment, worker, criticalCi] = await Promise.all([
   readJson('policy/p0-sre-reliability-baseline.json'),
   read('scripts/a26-autonomous-recovery.mjs'),
+  read('scripts/lib/autonomous-recovery-engine.mjs'),
   read('scripts/a27-autonomous-operational-governance.mjs'),
   read('scripts/a33-deployment-governance.mjs'),
   read('src/worker.ts'),
   readJson('reports/engineering-hardening/critical-ci-audit-latest.json'),
 ]);
+
+const recoveryControlSource = `${recoveryRunner}\n${recoveryEngine}`;
 
 const checks = [
   {
@@ -39,11 +42,14 @@ const checks = [
   },
   {
     id: 'RECOVERY_TIMEOUT_RATE_LIMIT_BACKOFF',
-    passed: /TIMEOUT/u.test(recovery) && /RATE_LIMIT/u.test(recovery) && /BACKOFF/u.test(recovery),
+    passed:
+      /TIMEOUT/u.test(recoveryControlSource) &&
+      /RATE_LIMIT/u.test(recoveryControlSource) &&
+      /BACKOFF/u.test(recoveryControlSource),
   },
   {
     id: 'RECOVERY_QUARANTINE_ROLLBACK',
-    passed: /QUARANTINE/u.test(recovery) && /ROLLBACK/u.test(recovery),
+    passed: /QUARANTINE/u.test(recoveryControlSource) && /ROLLBACK/u.test(recoveryControlSource),
   },
   {
     id: 'STRUCTURED_OPERATIONAL_LOGS_AND_SLO',
