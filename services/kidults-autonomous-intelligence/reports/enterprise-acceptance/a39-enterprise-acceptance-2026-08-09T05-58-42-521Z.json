@@ -1,10 +1,10 @@
 {
-  "acceptanceRunId": "a39-2026-08-09-5a84ea466fe2",
-  "repositoryCommit": "a1e111de38f8e5d6fb2fbb5a841b6f5964dc476f",
+  "acceptanceRunId": "a39-2026-08-09-4e6c0f5361fb",
+  "repositoryCommit": "ef9414c93ff31a4065ce563e26ec2141c663d7a0",
   "stage": "A39",
   "mode": "SIMULATION",
   "title": "Enterprise Autonomous Operations Acceptance",
-  "generatedAt": "2026-08-09T05:57:14.446Z",
+  "generatedAt": "2026-08-09T05:58:42.521Z",
   "policyVersion": "a39-enterprise-acceptance-policy.v1",
   "requiredStageRange": "A15-A38",
   "stageEvidenceInventory": [
@@ -1496,7 +1496,7 @@
       {
         "step": "DISCOVERING_EVIDENCE",
         "scenarioId": "FULL_HEALTHY_CHAIN_ENTERPRISE_ACCEPTED",
-        "timestamp": "2026-08-09T05:57:14.446Z"
+        "timestamp": "2026-08-09T05:58:42.521Z"
       },
       {
         "step": "VALIDATING_CHAIN",
@@ -1953,7 +1953,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "AUTHORITY_DOES_NOT_EXPAND_DOWNSTREAM",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -2415,7 +2415,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "BINDING_COMMERCIAL_ACTION_REMAINS_BLOCKED",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -2872,7 +2872,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "BROKEN_UPSTREAM_REFERENCE_BLOCKS_ACCEPTANCE",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -3334,7 +3334,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "BUDGET_HARD_STOP_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -3796,7 +3796,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "CHANGE_FREEZE_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -4258,7 +4258,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "ENTITLEMENT_MISMATCH_BLOCKS_DELIVERY",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -4720,7 +4720,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "EXECUTIVE_REJECT_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -5182,7 +5182,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "EXTERNAL_MUTATION_ATTEMPT_BLOCKED",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -5660,7 +5660,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "MISSING_CRITICAL_STAGE_EVIDENCE_FAILS_CLOSED",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -6129,7 +6129,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "P0_CAPACITY_REMAINS_PROTECTED",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -6591,7 +6591,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "PRIVACY_UNKNOWN_BLOCKS_OR_REQUIRES_REVIEW",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -7053,7 +7053,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "PROVIDER_FAILURE_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -7515,7 +7515,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "PUBLICATION_BLOCK_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -7977,7 +7977,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "RECOVERY_EXHAUSTION_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -8428,7 +8428,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "REPEATED_IDENTICAL_ACCEPTANCE_IS_IDEMPOTENT",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -8884,7 +8884,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "ROLLBACK_REQUIREMENT_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -9346,7 +9346,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "RUNTIME_FAILURE_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -9808,7 +9808,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "SECURITY_BLOCK_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -10270,7 +10270,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "SLO_BREACH_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -10742,7 +10742,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "STALE_CRITICAL_EVIDENCE_BLOCKS_ACCEPTANCE",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -11226,7 +11226,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "UNCERTIFIED_STAGE_BLOCKS_ACCEPTANCE",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -11694,7 +11694,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "UNKNOWN_COST_CANNOT_AUTHORIZE_SPEND",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -12156,7 +12156,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "UNKNOWN_RIGHTS_CANNOT_COMMERCIALIZE",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -12649,7 +12649,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "AUTHORITY_DOES_NOT_EXPAND_DOWNSTREAM",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -13111,7 +13111,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "BINDING_COMMERCIAL_ACTION_REMAINS_BLOCKED",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -13568,7 +13568,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "BROKEN_UPSTREAM_REFERENCE_BLOCKS_ACCEPTANCE",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -14030,7 +14030,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "BUDGET_HARD_STOP_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -14492,7 +14492,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "CHANGE_FREEZE_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -14954,7 +14954,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "ENTITLEMENT_MISMATCH_BLOCKS_DELIVERY",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -15416,7 +15416,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "EXECUTIVE_REJECT_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -15878,7 +15878,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "EXTERNAL_MUTATION_ATTEMPT_BLOCKED",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -16329,7 +16329,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "FULL_HEALTHY_CHAIN_ENTERPRISE_ACCEPTED",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -16801,7 +16801,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "MISSING_CRITICAL_STAGE_EVIDENCE_FAILS_CLOSED",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -17270,7 +17270,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "P0_CAPACITY_REMAINS_PROTECTED",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -17732,7 +17732,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "PRIVACY_UNKNOWN_BLOCKS_OR_REQUIRES_REVIEW",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -18194,7 +18194,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "PROVIDER_FAILURE_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -18656,7 +18656,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "PUBLICATION_BLOCK_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -19118,7 +19118,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "RECOVERY_EXHAUSTION_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -19569,7 +19569,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "REPEATED_IDENTICAL_ACCEPTANCE_IS_IDEMPOTENT",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -20025,7 +20025,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "ROLLBACK_REQUIREMENT_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -20487,7 +20487,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "RUNTIME_FAILURE_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -20949,7 +20949,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "SECURITY_BLOCK_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -21411,7 +21411,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "SLO_BREACH_PROPAGATES",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -21883,7 +21883,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "STALE_CRITICAL_EVIDENCE_BLOCKS_ACCEPTANCE",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -22367,7 +22367,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "UNCERTIFIED_STAGE_BLOCKS_ACCEPTANCE",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -22835,7 +22835,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "UNKNOWN_COST_CANNOT_AUTHORIZE_SPEND",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -23297,7 +23297,7 @@
         {
           "step": "DISCOVERING_EVIDENCE",
           "scenarioId": "UNKNOWN_RIGHTS_CANNOT_COMMERCIALIZE",
-          "timestamp": "2026-08-09T05:57:14.446Z"
+          "timestamp": "2026-08-09T05:58:42.521Z"
         },
         {
           "step": "VALIDATING_CHAIN",
@@ -23393,14 +23393,14 @@
   "certificationPassed": true,
   "blockingStage": null,
   "timestamps": {
-    "generatedAt": "2026-08-09T05:57:14.446Z",
-    "completedAt": "2026-08-09T05:57:14.881Z"
+    "generatedAt": "2026-08-09T05:58:42.521Z",
+    "completedAt": "2026-08-09T05:58:42.958Z"
   },
   "auditTrail": [
     {
       "scenarioId": "AUTHORITY_DOES_NOT_EXPAND_DOWNSTREAM",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "AUTHORITY_DOES_NOT_EXPAND_DOWNSTREAM",
@@ -23434,7 +23434,7 @@
     {
       "scenarioId": "BINDING_COMMERCIAL_ACTION_REMAINS_BLOCKED",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "BINDING_COMMERCIAL_ACTION_REMAINS_BLOCKED",
@@ -23468,7 +23468,7 @@
     {
       "scenarioId": "BROKEN_UPSTREAM_REFERENCE_BLOCKS_ACCEPTANCE",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "BROKEN_UPSTREAM_REFERENCE_BLOCKS_ACCEPTANCE",
@@ -23502,7 +23502,7 @@
     {
       "scenarioId": "BUDGET_HARD_STOP_PROPAGATES",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "BUDGET_HARD_STOP_PROPAGATES",
@@ -23536,7 +23536,7 @@
     {
       "scenarioId": "CHANGE_FREEZE_PROPAGATES",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "CHANGE_FREEZE_PROPAGATES",
@@ -23570,7 +23570,7 @@
     {
       "scenarioId": "ENTITLEMENT_MISMATCH_BLOCKS_DELIVERY",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "ENTITLEMENT_MISMATCH_BLOCKS_DELIVERY",
@@ -23604,7 +23604,7 @@
     {
       "scenarioId": "EXECUTIVE_REJECT_PROPAGATES",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "EXECUTIVE_REJECT_PROPAGATES",
@@ -23638,7 +23638,7 @@
     {
       "scenarioId": "EXTERNAL_MUTATION_ATTEMPT_BLOCKED",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "EXTERNAL_MUTATION_ATTEMPT_BLOCKED",
@@ -23672,7 +23672,7 @@
     {
       "scenarioId": "FULL_HEALTHY_CHAIN_ENTERPRISE_ACCEPTED",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "FULL_HEALTHY_CHAIN_ENTERPRISE_ACCEPTED",
@@ -23704,7 +23704,7 @@
     {
       "scenarioId": "MISSING_CRITICAL_STAGE_EVIDENCE_FAILS_CLOSED",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "MISSING_CRITICAL_STAGE_EVIDENCE_FAILS_CLOSED",
@@ -23744,7 +23744,7 @@
     {
       "scenarioId": "P0_CAPACITY_REMAINS_PROTECTED",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "P0_CAPACITY_REMAINS_PROTECTED",
@@ -23778,7 +23778,7 @@
     {
       "scenarioId": "PRIVACY_UNKNOWN_BLOCKS_OR_REQUIRES_REVIEW",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "PRIVACY_UNKNOWN_BLOCKS_OR_REQUIRES_REVIEW",
@@ -23812,7 +23812,7 @@
     {
       "scenarioId": "PROVIDER_FAILURE_PROPAGATES",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "PROVIDER_FAILURE_PROPAGATES",
@@ -23846,7 +23846,7 @@
     {
       "scenarioId": "PUBLICATION_BLOCK_PROPAGATES",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "PUBLICATION_BLOCK_PROPAGATES",
@@ -23880,7 +23880,7 @@
     {
       "scenarioId": "RECOVERY_EXHAUSTION_PROPAGATES",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "RECOVERY_EXHAUSTION_PROPAGATES",
@@ -23914,7 +23914,7 @@
     {
       "scenarioId": "REPEATED_IDENTICAL_ACCEPTANCE_IS_IDEMPOTENT",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "REPEATED_IDENTICAL_ACCEPTANCE_IS_IDEMPOTENT",
@@ -23946,7 +23946,7 @@
     {
       "scenarioId": "ROLLBACK_REQUIREMENT_PROPAGATES",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "ROLLBACK_REQUIREMENT_PROPAGATES",
@@ -23980,7 +23980,7 @@
     {
       "scenarioId": "RUNTIME_FAILURE_PROPAGATES",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "RUNTIME_FAILURE_PROPAGATES",
@@ -24014,7 +24014,7 @@
     {
       "scenarioId": "SECURITY_BLOCK_PROPAGATES",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "SECURITY_BLOCK_PROPAGATES",
@@ -24048,7 +24048,7 @@
     {
       "scenarioId": "SLO_BREACH_PROPAGATES",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "SLO_BREACH_PROPAGATES",
@@ -24082,7 +24082,7 @@
     {
       "scenarioId": "STALE_CRITICAL_EVIDENCE_BLOCKS_ACCEPTANCE",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "STALE_CRITICAL_EVIDENCE_BLOCKS_ACCEPTANCE",
@@ -24119,7 +24119,7 @@
     {
       "scenarioId": "UNCERTIFIED_STAGE_BLOCKS_ACCEPTANCE",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "UNCERTIFIED_STAGE_BLOCKS_ACCEPTANCE",
@@ -24157,7 +24157,7 @@
     {
       "scenarioId": "UNKNOWN_COST_CANNOT_AUTHORIZE_SPEND",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "UNKNOWN_COST_CANNOT_AUTHORIZE_SPEND",
@@ -24191,7 +24191,7 @@
     {
       "scenarioId": "UNKNOWN_RIGHTS_CANNOT_COMMERCIALIZE",
       "step": "DISCOVERING_EVIDENCE",
-      "timestamp": "2026-08-09T05:57:14.446Z"
+      "timestamp": "2026-08-09T05:58:42.521Z"
     },
     {
       "scenarioId": "UNKNOWN_RIGHTS_CANNOT_COMMERCIALIZE",
