@@ -1,0 +1,5408 @@
+{
+  "commercialRunId": "a37-2026-08-09-32de15a6a37f",
+  "stage": "A37",
+  "mode": "SIMULATION",
+  "title": "Autonomous Revenue, Monetization & Commercial Governance",
+  "generatedAt": "2026-08-09T05:23:36.737Z",
+  "policyVersion": "a37-commercial-governance-policy.v1",
+  "sourceA36Evidence": {
+    "evidenceId": "a36-2026-08-09-5e5c3897b680",
+    "certificationPassed": true,
+    "generatedAt": "2026-08-09T05:05:31.119Z"
+  },
+  "commercialStateModel": [
+    "UNASSESSED",
+    "ASSESSING",
+    "NOT_COMMERCIAL_READY",
+    "COMMERCIAL_READY",
+    "MONETIZATION_ELIGIBLE",
+    "OFFER_ELIGIBLE",
+    "PRICE_REVIEW_REQUIRED",
+    "CHANNEL_REVIEW_REQUIRED",
+    "LEGAL_REVIEW_REQUIRED",
+    "EXECUTIVE_REVIEW_REQUIRED",
+    "COMMERCIAL_BLOCKED",
+    "FAILED_CLOSED"
+  ],
+  "monetizationModes": [
+    "FREE",
+    "FREEMIUM",
+    "ONE_TIME_PURCHASE",
+    "SUBSCRIPTION",
+    "PREMIUM_REPORT",
+    "DATA_ACCESS",
+    "API_ACCESS",
+    "ENTERPRISE_LICENSE",
+    "SPONSORSHIP_ELIGIBLE",
+    "PARTNERSHIP_ELIGIBLE"
+  ],
+  "customerSegments": [
+    "PUBLIC",
+    "REGISTERED",
+    "PREMIUM",
+    "PROFESSIONAL",
+    "ENTERPRISE",
+    "PARTNER",
+    "INTERNAL"
+  ],
+  "entitlementLevels": [
+    "PUBLIC_ACCESS",
+    "REGISTERED_ACCESS",
+    "PREMIUM_ACCESS",
+    "ENTERPRISE_ACCESS",
+    "INTERNAL_ONLY",
+    "RESTRICTED"
+  ],
+  "channelTypes": [
+    "DIRECT_WEB",
+    "ENTERPRISE_DIRECT",
+    "API",
+    "DATA_LICENSE",
+    "PARTNER_CHANNEL",
+    "REPORT_DOWNLOAD",
+    "SUBSCRIPTION",
+    "SPONSORED_CHANNEL"
+  ],
+  "commercialAnomalyTypes": [
+    "PRICE_BELOW_MARGIN_FLOOR",
+    "PRICE_ABOVE_POLICY_RANGE",
+    "DISCOUNT_OVER_LIMIT",
+    "ENTITLEMENT_MISMATCH",
+    "CHANNEL_POLICY_MISMATCH",
+    "RIGHTS_UNKNOWN",
+    "LICENSE_SCOPE_CONFLICT",
+    "COMMERCIAL_COST_SPIKE",
+    "UNAUTHORIZED_OFFER",
+    "UNKNOWN_COMMERCIAL_STATE"
+  ],
+  "pricingDecisions": [
+    "PRICE_ACCEPTABLE",
+    "PRICE_OPTIMIZATION_RECOMMENDED",
+    "PRICE_TOO_LOW",
+    "PRICE_TOO_HIGH",
+    "PRICE_REVIEW_REQUIRED",
+    "EXECUTIVE_REVIEW_REQUIRED"
+  ],
+  "offerDecisions": [
+    "OFFER_RECOMMENDED",
+    "OFFER_DEFERRED",
+    "PRICE_REVIEW_REQUIRED",
+    "LEGAL_REVIEW_REQUIRED",
+    "EXECUTIVE_REVIEW_REQUIRED",
+    "COMMERCIAL_BLOCKED"
+  ],
+  "prohibitedCommercialActions": [
+    "CONTRACT_ACCEPTANCE",
+    "BINDING_OFFER_DISPATCH",
+    "PAYMENT_COLLECTION",
+    "REFUND_INITIATION",
+    "PAYMENT_PROCESSOR_CHANGE",
+    "UNRESTRICTED_DISCOUNT",
+    "EXTERNAL_FINANCIAL_COMMITMENT",
+    "CUSTOMER_DATA_EXPOSURE",
+    "LEGAL_OBLIGATION_CREATION"
+  ],
+  "scenarioCount": 20,
+  "passedCount": 20,
+  "failedCount": 0,
+  "scenarios": [
+    {
+      "scenarioId": "BINDING_OFFER_ATTEMPT_BLOCKED",
+      "category": "NEGATIVE",
+      "commercialState": "FAILED_CLOSED",
+      "offerDecision": "COMMERCIAL_BLOCKED",
+      "decisionReason": "BINDING_OFFER_DISPATCH_PROHIBITED",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": false,
+        "pricingDecision": "PRICE_REVIEW_REQUIRED",
+        "recommendedPrice": null,
+        "grossMargin": null,
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN",
+        "reason": "PRICING_POLICY_UNAVAILABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": "UNKNOWN",
+        "estimatedCost": "UNKNOWN",
+        "grossMargin": "UNKNOWN",
+        "contributionMargin": "UNKNOWN",
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-012e3577",
+        "productId": "kidults-report-binding-offer-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "BINDING_OFFER_DISPATCH_PROHIBITED",
+        "marginEstimate": {
+          "estimatedRevenue": "UNKNOWN",
+          "estimatedCost": "UNKNOWN",
+          "grossMargin": "UNKNOWN",
+          "contributionMargin": "UNKNOWN",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "COMMERCIAL_BLOCKED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [
+          "UNAUTHORIZED_OFFER"
+        ],
+        "criticalAnomalies": [
+          "UNAUTHORIZED_OFFER"
+        ],
+        "hasCriticalAnomaly": true
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "BINDING_OFFER_ATTEMPT_BLOCKED",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_REVIEW_REQUIRED",
+          "grossMargin": null
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [
+            "UNAUTHORIZED_OFFER"
+          ],
+          "criticalAnomalies": [
+            "UNAUTHORIZED_OFFER"
+          ]
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "FAILED_CLOSED",
+          "offerDecision": "COMMERCIAL_BLOCKED",
+          "reason": "BINDING_OFFER_DISPATCH_PROHIBITED"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "COMMERCIAL_BLOCKED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "CONTRACT_ACCEPTANCE_ATTEMPT_BLOCKED",
+      "category": "NEGATIVE",
+      "commercialState": "FAILED_CLOSED",
+      "offerDecision": "COMMERCIAL_BLOCKED",
+      "decisionReason": "CONTRACT_ACCEPTANCE_PROHIBITED",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "ENTERPRISE_ACCESS",
+        "segment": "ENTERPRISE",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "ENTERPRISE_DIRECT"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": false,
+        "pricingDecision": "PRICE_REVIEW_REQUIRED",
+        "recommendedPrice": null,
+        "grossMargin": null,
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN",
+        "reason": "PRICING_POLICY_UNAVAILABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": "UNKNOWN",
+        "estimatedCost": "UNKNOWN",
+        "grossMargin": "UNKNOWN",
+        "contributionMargin": "UNKNOWN",
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-cb5f8b9a",
+        "productId": "kidults-report-contract-v1",
+        "segment": "ENTERPRISE",
+        "monetizationMode": "ENTERPRISE_LICENSE",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "ENTERPRISE_ACCESS",
+        "commercialRationale": "CONTRACT_ACCEPTANCE_PROHIBITED",
+        "marginEstimate": {
+          "estimatedRevenue": "UNKNOWN",
+          "estimatedCost": "UNKNOWN",
+          "grossMargin": "UNKNOWN",
+          "contributionMargin": "UNKNOWN",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "COMMERCIAL_BLOCKED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "CONTRACT_ACCEPTANCE_ATTEMPT_BLOCKED",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "ENTERPRISE_ACCESS",
+          "segment": "ENTERPRISE",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_REVIEW_REQUIRED",
+          "grossMargin": null
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "FAILED_CLOSED",
+          "offerDecision": "COMMERCIAL_BLOCKED",
+          "reason": "CONTRACT_ACCEPTANCE_PROHIBITED"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "COMMERCIAL_BLOCKED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "DISCOUNT_OVER_LIMIT_BLOCKED",
+      "category": "NEGATIVE",
+      "commercialState": "COMMERCIAL_BLOCKED",
+      "offerDecision": "COMMERCIAL_BLOCKED",
+      "decisionReason": "DISCOUNT_EXCEEDS_POLICY",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_TOO_LOW",
+        "proposedPrice": 199,
+        "totalCost": 130,
+        "grossMargin": 0.347,
+        "marginClass": "BELOW_FLOOR",
+        "economicViability": "BELOW_MINIMUM",
+        "recommendedPrice": 200,
+        "reason": "PRICE_TOO_LOW"
+      },
+      "discount": {
+        "requested": true,
+        "blocked": true,
+        "discountPct": 0.5,
+        "maxDiscountPolicy": 0.2,
+        "reason": "DISCOUNT_EXCEEDS_MAXIMUM_POLICY"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 199,
+        "estimatedCost": 130,
+        "grossMargin": 0.347,
+        "contributionMargin": 0.281,
+        "marginClass": "BELOW_FLOOR",
+        "economicViability": "BELOW_MINIMUM"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-654aafdc",
+        "productId": "kidults-report-overdiscounted-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "DISCOUNT_EXCEEDS_POLICY",
+        "marginEstimate": {
+          "estimatedRevenue": 199,
+          "estimatedCost": 130,
+          "grossMargin": 0.347,
+          "contributionMargin": 0.281,
+          "marginClass": "BELOW_FLOOR",
+          "economicViability": "BELOW_MINIMUM"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "COMMERCIAL_BLOCKED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [
+          "DISCOUNT_OVER_LIMIT",
+          "PRICE_BELOW_MARGIN_FLOOR"
+        ],
+        "criticalAnomalies": [
+          "DISCOUNT_OVER_LIMIT"
+        ],
+        "hasCriticalAnomaly": true
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "DISCOUNT_OVER_LIMIT_BLOCKED",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_TOO_LOW",
+          "grossMargin": 0.347
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": true
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [
+            "DISCOUNT_OVER_LIMIT",
+            "PRICE_BELOW_MARGIN_FLOOR"
+          ],
+          "criticalAnomalies": [
+            "DISCOUNT_OVER_LIMIT"
+          ]
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "COMMERCIAL_BLOCKED",
+          "offerDecision": "COMMERCIAL_BLOCKED",
+          "reason": "DISCOUNT_EXCEEDS_POLICY"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "BELOW_FLOOR",
+          "economicViability": "BELOW_MINIMUM"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "COMMERCIAL_BLOCKED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "DISCOUNT_WITHIN_POLICY_RECOMMENDED",
+      "category": "POSITIVE",
+      "commercialState": "MONETIZATION_ELIGIBLE",
+      "offerDecision": "OFFER_RECOMMENDED",
+      "decisionReason": "ALL_COMMERCIAL_CHECKS_PASSED",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_ACCEPTABLE",
+        "proposedPrice": 200,
+        "totalCost": 130,
+        "grossMargin": 0.35,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE",
+        "recommendedPrice": 200,
+        "reason": "PRICE_ACCEPTABLE"
+      },
+      "discount": {
+        "requested": true,
+        "blocked": false,
+        "requiresExecutiveApproval": false,
+        "discountPct": 0.1,
+        "maxDiscountPolicy": 0.2,
+        "reason": "DISCOUNT_WITHIN_POLICY"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 200,
+        "estimatedCost": 130,
+        "grossMargin": 0.35,
+        "contributionMargin": 0.285,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-4f862c14",
+        "productId": "kidults-report-discounted-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": 200,
+        "currency": "USD",
+        "validityWindow": "SIMULATION_ONLY",
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "ALL_COMMERCIAL_CHECKS_PASSED",
+        "marginEstimate": {
+          "estimatedRevenue": 200,
+          "estimatedCost": 130,
+          "grossMargin": 0.35,
+          "contributionMargin": 0.285,
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [
+          "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json"
+        ],
+        "decision": "OFFER_RECOMMENDED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "MONETIZATION_ELIGIBLE",
+          "actual": "MONETIZATION_ELIGIBLE"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "OFFER_RECOMMENDED",
+          "actual": "OFFER_RECOMMENDED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "DISCOUNT_WITHIN_POLICY_RECOMMENDED",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_ACCEPTABLE",
+          "grossMargin": 0.35
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "MONETIZATION_ELIGIBLE",
+          "offerDecision": "OFFER_RECOMMENDED",
+          "reason": "ALL_COMMERCIAL_CHECKS_PASSED"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "OFFER_RECOMMENDED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "ENTERPRISE_PRODUCT_BLOCKED_FOR_PUBLIC",
+      "category": "NEGATIVE",
+      "commercialState": "COMMERCIAL_BLOCKED",
+      "offerDecision": "COMMERCIAL_BLOCKED",
+      "decisionReason": "ENTITLEMENT_MISMATCH",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "ENTERPRISE_ACCESS",
+        "segment": "PUBLIC",
+        "mismatch": true,
+        "reason": "SEGMENT_NOT_AUTHORIZED_FOR_ENTITLEMENT"
+      },
+      "channel": {
+        "declaredChannels": [
+          "ENTERPRISE_DIRECT",
+          "API"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": false,
+        "pricingDecision": "PRICE_REVIEW_REQUIRED",
+        "recommendedPrice": null,
+        "grossMargin": null,
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN",
+        "reason": "PRICING_POLICY_UNAVAILABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": "UNKNOWN",
+        "estimatedCost": "UNKNOWN",
+        "grossMargin": "UNKNOWN",
+        "contributionMargin": "UNKNOWN",
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-9cfa763f",
+        "productId": "kidults-enterprise-data-v1",
+        "segment": "PUBLIC",
+        "monetizationMode": "ENTERPRISE_LICENSE",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "ENTERPRISE_ACCESS",
+        "commercialRationale": "ENTITLEMENT_MISMATCH",
+        "marginEstimate": {
+          "estimatedRevenue": "UNKNOWN",
+          "estimatedCost": "UNKNOWN",
+          "grossMargin": "UNKNOWN",
+          "contributionMargin": "UNKNOWN",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "COMMERCIAL_BLOCKED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [
+          "ENTITLEMENT_MISMATCH"
+        ],
+        "criticalAnomalies": [
+          "ENTITLEMENT_MISMATCH"
+        ],
+        "hasCriticalAnomaly": true
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "ENTERPRISE_PRODUCT_BLOCKED_FOR_PUBLIC",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "ENTERPRISE_ACCESS",
+          "segment": "PUBLIC",
+          "mismatch": true,
+          "reason": "SEGMENT_NOT_AUTHORIZED_FOR_ENTITLEMENT"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_REVIEW_REQUIRED",
+          "grossMargin": null
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [
+            "ENTITLEMENT_MISMATCH"
+          ],
+          "criticalAnomalies": [
+            "ENTITLEMENT_MISMATCH"
+          ]
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "COMMERCIAL_BLOCKED",
+          "offerDecision": "COMMERCIAL_BLOCKED",
+          "reason": "ENTITLEMENT_MISMATCH"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "COMMERCIAL_BLOCKED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "ENTITLEMENT_MISMATCH_BLOCKED",
+      "category": "NEGATIVE",
+      "commercialState": "COMMERCIAL_BLOCKED",
+      "offerDecision": "COMMERCIAL_BLOCKED",
+      "decisionReason": "ENTITLEMENT_MISMATCH",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "ENTERPRISE_ACCESS",
+        "segment": "REGISTERED",
+        "mismatch": true,
+        "reason": "SEGMENT_NOT_AUTHORIZED_FOR_ENTITLEMENT"
+      },
+      "channel": {
+        "declaredChannels": [
+          "ENTERPRISE_DIRECT"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": false,
+        "pricingDecision": "PRICE_REVIEW_REQUIRED",
+        "recommendedPrice": null,
+        "grossMargin": null,
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN",
+        "reason": "PRICING_POLICY_UNAVAILABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": "UNKNOWN",
+        "estimatedCost": "UNKNOWN",
+        "grossMargin": "UNKNOWN",
+        "contributionMargin": "UNKNOWN",
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-4119953a",
+        "productId": "kidults-enterprise-report-v1",
+        "segment": "REGISTERED",
+        "monetizationMode": "ENTERPRISE_LICENSE",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "ENTERPRISE_ACCESS",
+        "commercialRationale": "ENTITLEMENT_MISMATCH",
+        "marginEstimate": {
+          "estimatedRevenue": "UNKNOWN",
+          "estimatedCost": "UNKNOWN",
+          "grossMargin": "UNKNOWN",
+          "contributionMargin": "UNKNOWN",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "COMMERCIAL_BLOCKED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [
+          "ENTITLEMENT_MISMATCH"
+        ],
+        "criticalAnomalies": [
+          "ENTITLEMENT_MISMATCH"
+        ],
+        "hasCriticalAnomaly": true
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "ENTITLEMENT_MISMATCH_BLOCKED",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "ENTERPRISE_ACCESS",
+          "segment": "REGISTERED",
+          "mismatch": true,
+          "reason": "SEGMENT_NOT_AUTHORIZED_FOR_ENTITLEMENT"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_REVIEW_REQUIRED",
+          "grossMargin": null
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [
+            "ENTITLEMENT_MISMATCH"
+          ],
+          "criticalAnomalies": [
+            "ENTITLEMENT_MISMATCH"
+          ]
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "COMMERCIAL_BLOCKED",
+          "offerDecision": "COMMERCIAL_BLOCKED",
+          "reason": "ENTITLEMENT_MISMATCH"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "COMMERCIAL_BLOCKED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "FREE_PRODUCT_ALLOWED",
+      "category": "POSITIVE",
+      "commercialState": "COMMERCIAL_READY",
+      "offerDecision": "OFFER_RECOMMENDED",
+      "decisionReason": "FREE_PRODUCT_COMMERCIAL_READY",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PUBLIC_ACCESS",
+        "segment": "PUBLIC",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_ACCEPTABLE",
+        "proposedPrice": 0,
+        "totalCost": 0,
+        "grossMargin": 0,
+        "marginClass": "FREE_PRODUCT",
+        "economicViability": "VIABLE",
+        "recommendedPrice": 0,
+        "reason": "FREE_PRODUCT_NO_MARGIN_REQUIREMENT"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 0,
+        "estimatedCost": 0,
+        "grossMargin": 0,
+        "contributionMargin": -1,
+        "marginClass": "FREE_PRODUCT",
+        "economicViability": "VIABLE"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-9df53e2e",
+        "productId": "kidults-public-summary-v1",
+        "segment": "PUBLIC",
+        "monetizationMode": "FREE",
+        "recommendedPrice": 0,
+        "currency": "USD",
+        "validityWindow": "SIMULATION_ONLY",
+        "entitlement": "PUBLIC_ACCESS",
+        "commercialRationale": "FREE_PRODUCT_COMMERCIAL_READY",
+        "marginEstimate": {
+          "estimatedRevenue": 0,
+          "estimatedCost": 0,
+          "grossMargin": 0,
+          "contributionMargin": -1,
+          "marginClass": "FREE_PRODUCT",
+          "economicViability": "VIABLE"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [
+          "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json"
+        ],
+        "decision": "OFFER_RECOMMENDED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_READY",
+          "actual": "COMMERCIAL_READY"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "OFFER_RECOMMENDED",
+          "actual": "OFFER_RECOMMENDED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "FREE_PRODUCT_ALLOWED",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PUBLIC_ACCESS",
+          "segment": "PUBLIC",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_ACCEPTABLE",
+          "grossMargin": 0
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "COMMERCIAL_READY",
+          "offerDecision": "OFFER_RECOMMENDED",
+          "reason": "FREE_PRODUCT_COMMERCIAL_READY"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "FREE_PRODUCT",
+          "economicViability": "VIABLE"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "OFFER_RECOMMENDED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "HEALTHY_PRODUCT_COMMERCIAL_READY",
+      "category": "POSITIVE",
+      "commercialState": "MONETIZATION_ELIGIBLE",
+      "offerDecision": "OFFER_RECOMMENDED",
+      "decisionReason": "ALL_COMMERCIAL_CHECKS_PASSED",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB",
+          "REPORT_DOWNLOAD"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_ACCEPTABLE",
+        "proposedPrice": 250,
+        "totalCost": 160,
+        "grossMargin": 0.36,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE",
+        "recommendedPrice": 250,
+        "reason": "PRICE_ACCEPTABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 250,
+        "estimatedCost": 160,
+        "grossMargin": 0.36,
+        "contributionMargin": 0.296,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-18373bca",
+        "productId": "kidults-intelligence-report-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": 250,
+        "currency": "USD",
+        "validityWindow": "SIMULATION_ONLY",
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "ALL_COMMERCIAL_CHECKS_PASSED",
+        "marginEstimate": {
+          "estimatedRevenue": 250,
+          "estimatedCost": 160,
+          "grossMargin": 0.36,
+          "contributionMargin": 0.296,
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [
+          "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json"
+        ],
+        "decision": "OFFER_RECOMMENDED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "MONETIZATION_ELIGIBLE",
+          "actual": "MONETIZATION_ELIGIBLE"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "OFFER_RECOMMENDED",
+          "actual": "OFFER_RECOMMENDED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "HEALTHY_PRODUCT_COMMERCIAL_READY",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_ACCEPTABLE",
+          "grossMargin": 0.36
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "MONETIZATION_ELIGIBLE",
+          "offerDecision": "OFFER_RECOMMENDED",
+          "reason": "ALL_COMMERCIAL_CHECKS_PASSED"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "OFFER_RECOMMENDED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "LICENSE_CONFLICT_BLOCKS_COMMERCIALIZATION",
+      "category": "NEGATIVE",
+      "commercialState": "COMMERCIAL_BLOCKED",
+      "offerDecision": "COMMERCIAL_BLOCKED",
+      "decisionReason": "LICENSING_RIGHTS_BLOCK_COMMERCIALIZATION",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "PROVIDER_TERMS_PROHIBIT_RESALE",
+        "isBlocking": true,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_TOO_LOW",
+        "proposedPrice": 299,
+        "totalCost": 300,
+        "grossMargin": -0.003,
+        "marginClass": "NEGATIVE",
+        "economicViability": "NOT_VIABLE",
+        "recommendedPrice": 462,
+        "reason": "PRICE_TOO_LOW"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 299,
+        "estimatedCost": 300,
+        "grossMargin": -0.003,
+        "contributionMargin": -0.154,
+        "marginClass": "NEGATIVE",
+        "economicViability": "NOT_VIABLE"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-3e39a527",
+        "productId": "kidults-report-license-conflict-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "DATA_ACCESS",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "LICENSING_RIGHTS_BLOCK_COMMERCIALIZATION",
+        "marginEstimate": {
+          "estimatedRevenue": 299,
+          "estimatedCost": 300,
+          "grossMargin": -0.003,
+          "contributionMargin": -0.154,
+          "marginClass": "NEGATIVE",
+          "economicViability": "NOT_VIABLE"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "COMMERCIAL_BLOCKED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [
+          "LICENSE_SCOPE_CONFLICT",
+          "PRICE_BELOW_MARGIN_FLOOR"
+        ],
+        "criticalAnomalies": [
+          "LICENSE_SCOPE_CONFLICT"
+        ],
+        "hasCriticalAnomaly": true
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "LICENSE_CONFLICT_BLOCKS_COMMERCIALIZATION",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "PROVIDER_TERMS_PROHIBIT_RESALE",
+          "isBlocking": true,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_TOO_LOW",
+          "grossMargin": -0.003
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [
+            "LICENSE_SCOPE_CONFLICT",
+            "PRICE_BELOW_MARGIN_FLOOR"
+          ],
+          "criticalAnomalies": [
+            "LICENSE_SCOPE_CONFLICT"
+          ]
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "COMMERCIAL_BLOCKED",
+          "offerDecision": "COMMERCIAL_BLOCKED",
+          "reason": "LICENSING_RIGHTS_BLOCK_COMMERCIALIZATION"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "NEGATIVE",
+          "economicViability": "NOT_VIABLE"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "COMMERCIAL_BLOCKED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "LOW_PRICE_REQUIRES_OPTIMIZATION",
+      "category": "NEGATIVE",
+      "commercialState": "PRICE_REVIEW_REQUIRED",
+      "offerDecision": "PRICE_REVIEW_REQUIRED",
+      "decisionReason": "PRICE_BELOW_MINIMUM_MARGIN_FLOOR",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_TOO_LOW",
+        "proposedPrice": 150,
+        "totalCost": 130,
+        "grossMargin": 0.133,
+        "marginClass": "BELOW_FLOOR",
+        "economicViability": "BELOW_MINIMUM",
+        "recommendedPrice": 200,
+        "reason": "PRICE_TOO_LOW"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 150,
+        "estimatedCost": 130,
+        "grossMargin": 0.133,
+        "contributionMargin": 0.047,
+        "marginClass": "BELOW_FLOOR",
+        "economicViability": "BELOW_MINIMUM"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-8ec60826",
+        "productId": "kidults-report-underpriced-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "PRICE_BELOW_MINIMUM_MARGIN_FLOOR",
+        "marginEstimate": {
+          "estimatedRevenue": 150,
+          "estimatedCost": 130,
+          "grossMargin": 0.133,
+          "contributionMargin": 0.047,
+          "marginClass": "BELOW_FLOOR",
+          "economicViability": "BELOW_MINIMUM"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "PRICE_REVIEW_REQUIRED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [
+          "PRICE_BELOW_MARGIN_FLOOR"
+        ],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "PRICE_REVIEW_REQUIRED",
+          "actual": "PRICE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "PRICE_REVIEW_REQUIRED",
+          "actual": "PRICE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "LOW_PRICE_REQUIRES_OPTIMIZATION",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_TOO_LOW",
+          "grossMargin": 0.133
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [
+            "PRICE_BELOW_MARGIN_FLOOR"
+          ],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "PRICE_REVIEW_REQUIRED",
+          "offerDecision": "PRICE_REVIEW_REQUIRED",
+          "reason": "PRICE_BELOW_MINIMUM_MARGIN_FLOOR"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "BELOW_FLOOR",
+          "economicViability": "BELOW_MINIMUM"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "PRICE_REVIEW_REQUIRED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "NEGATIVE_MARGIN_BLOCKS_COMMERCIALIZATION",
+      "category": "NEGATIVE",
+      "commercialState": "COMMERCIAL_BLOCKED",
+      "offerDecision": "COMMERCIAL_BLOCKED",
+      "decisionReason": "NEGATIVE_MARGIN_BLOCKS_COMMERCIALIZATION",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_TOO_LOW",
+        "proposedPrice": 99,
+        "totalCost": 800,
+        "grossMargin": -7.081,
+        "marginClass": "NEGATIVE",
+        "economicViability": "NOT_VIABLE",
+        "recommendedPrice": 1231,
+        "reason": "PRICE_TOO_LOW"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 99,
+        "estimatedCost": 800,
+        "grossMargin": -7.081,
+        "contributionMargin": -8.697,
+        "marginClass": "NEGATIVE",
+        "economicViability": "NOT_VIABLE"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-86de14ad",
+        "productId": "kidults-report-negative-margin-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "NEGATIVE_MARGIN_BLOCKS_COMMERCIALIZATION",
+        "marginEstimate": {
+          "estimatedRevenue": 99,
+          "estimatedCost": 800,
+          "grossMargin": -7.081,
+          "contributionMargin": -8.697,
+          "marginClass": "NEGATIVE",
+          "economicViability": "NOT_VIABLE"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "COMMERCIAL_BLOCKED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [
+          "PRICE_BELOW_MARGIN_FLOOR"
+        ],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "NEGATIVE_MARGIN_BLOCKS_COMMERCIALIZATION",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_TOO_LOW",
+          "grossMargin": -7.081
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [
+            "PRICE_BELOW_MARGIN_FLOOR"
+          ],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "COMMERCIAL_BLOCKED",
+          "offerDecision": "COMMERCIAL_BLOCKED",
+          "reason": "NEGATIVE_MARGIN_BLOCKS_COMMERCIALIZATION"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "NEGATIVE",
+          "economicViability": "NOT_VIABLE"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "COMMERCIAL_BLOCKED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "PAYMENT_MUTATION_ATTEMPT_BLOCKED",
+      "category": "NEGATIVE",
+      "commercialState": "FAILED_CLOSED",
+      "offerDecision": "COMMERCIAL_BLOCKED",
+      "decisionReason": "PAYMENT_MUTATION_PROHIBITED",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": false,
+        "pricingDecision": "PRICE_REVIEW_REQUIRED",
+        "recommendedPrice": null,
+        "grossMargin": null,
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN",
+        "reason": "PRICING_POLICY_UNAVAILABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": "UNKNOWN",
+        "estimatedCost": "UNKNOWN",
+        "grossMargin": "UNKNOWN",
+        "contributionMargin": "UNKNOWN",
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-a2033a7d",
+        "productId": "kidults-report-payment-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "PAYMENT_MUTATION_PROHIBITED",
+        "marginEstimate": {
+          "estimatedRevenue": "UNKNOWN",
+          "estimatedCost": "UNKNOWN",
+          "grossMargin": "UNKNOWN",
+          "contributionMargin": "UNKNOWN",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "COMMERCIAL_BLOCKED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "COMMERCIAL_BLOCKED",
+          "actual": "COMMERCIAL_BLOCKED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "PAYMENT_MUTATION_ATTEMPT_BLOCKED",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_REVIEW_REQUIRED",
+          "grossMargin": null
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "FAILED_CLOSED",
+          "offerDecision": "COMMERCIAL_BLOCKED",
+          "reason": "PAYMENT_MUTATION_PROHIBITED"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "COMMERCIAL_BLOCKED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "PREMIUM_PRODUCT_REQUIRES_ENTITLEMENT",
+      "category": "POSITIVE",
+      "commercialState": "MONETIZATION_ELIGIBLE",
+      "offerDecision": "OFFER_RECOMMENDED",
+      "decisionReason": "ALL_COMMERCIAL_CHECKS_PASSED",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB",
+          "SUBSCRIPTION"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_ACCEPTABLE",
+        "proposedPrice": 310,
+        "totalCost": 200,
+        "grossMargin": 0.355,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE",
+        "recommendedPrice": 310,
+        "reason": "PRICE_ACCEPTABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 310,
+        "estimatedCost": 200,
+        "grossMargin": 0.355,
+        "contributionMargin": 0.277,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-73c37595",
+        "productId": "kidults-premium-analytics-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": 310,
+        "currency": "USD",
+        "validityWindow": "SIMULATION_ONLY",
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "ALL_COMMERCIAL_CHECKS_PASSED",
+        "marginEstimate": {
+          "estimatedRevenue": 310,
+          "estimatedCost": 200,
+          "grossMargin": 0.355,
+          "contributionMargin": 0.277,
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [
+          "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json"
+        ],
+        "decision": "OFFER_RECOMMENDED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "MONETIZATION_ELIGIBLE",
+          "actual": "MONETIZATION_ELIGIBLE"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "OFFER_RECOMMENDED",
+          "actual": "OFFER_RECOMMENDED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "PREMIUM_PRODUCT_REQUIRES_ENTITLEMENT",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_ACCEPTABLE",
+          "grossMargin": 0.355
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "MONETIZATION_ELIGIBLE",
+          "offerDecision": "OFFER_RECOMMENDED",
+          "reason": "ALL_COMMERCIAL_CHECKS_PASSED"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "OFFER_RECOMMENDED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "REPEATED_IDENTICAL_EVALUATION_IS_IDEMPOTENT",
+      "category": "IDEMPOTENCY",
+      "commercialState": "MONETIZATION_ELIGIBLE",
+      "offerDecision": "OFFER_RECOMMENDED",
+      "decisionReason": "ALL_COMMERCIAL_CHECKS_PASSED",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB",
+          "REPORT_DOWNLOAD"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_ACCEPTABLE",
+        "proposedPrice": 250,
+        "totalCost": 160,
+        "grossMargin": 0.36,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE",
+        "recommendedPrice": 250,
+        "reason": "PRICE_ACCEPTABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 250,
+        "estimatedCost": 160,
+        "grossMargin": 0.36,
+        "contributionMargin": 0.296,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-10e5a5ae",
+        "productId": "kidults-intelligence-report-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": 250,
+        "currency": "USD",
+        "validityWindow": "SIMULATION_ONLY",
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "ALL_COMMERCIAL_CHECKS_PASSED",
+        "marginEstimate": {
+          "estimatedRevenue": 250,
+          "estimatedCost": 160,
+          "grossMargin": 0.36,
+          "contributionMargin": 0.296,
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [
+          "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json"
+        ],
+        "decision": "OFFER_RECOMMENDED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "MONETIZATION_ELIGIBLE",
+          "actual": "MONETIZATION_ELIGIBLE"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "OFFER_RECOMMENDED",
+          "actual": "OFFER_RECOMMENDED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "idempotencyVerified": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "REPEATED_IDENTICAL_EVALUATION_IS_IDEMPOTENT",
+          "category": "IDEMPOTENCY",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_ACCEPTABLE",
+          "grossMargin": 0.36
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "MONETIZATION_ELIGIBLE",
+          "offerDecision": "OFFER_RECOMMENDED",
+          "reason": "ALL_COMMERCIAL_CHECKS_PASSED"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "OFFER_RECOMMENDED",
+          "bindingOfferDispatched": false
+        },
+        {
+          "step": "IDEMPOTENCY_CHECK",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "scenarioId": "UNKNOWN_CHANNEL_REQUIRES_REVIEW",
+      "category": "NEGATIVE",
+      "commercialState": "CHANNEL_REVIEW_REQUIRED",
+      "offerDecision": "PRICE_REVIEW_REQUIRED",
+      "decisionReason": "CHANNEL_ELIGIBILITY_UNKNOWN",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": false,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": false,
+        "failedChecks": [
+          "channelEligibilityKnown"
+        ]
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [],
+        "channelUnknown": true,
+        "channelBlocked": false,
+        "channelAnalysis": {
+          "channel": "UNKNOWN",
+          "eligibility": "UNKNOWN",
+          "marginRequirement": null,
+          "legalStatus": "UNKNOWN",
+          "deliveryCapability": "UNKNOWN"
+        },
+        "requiresChannelReview": true
+      },
+      "pricing": {
+        "available": false,
+        "pricingDecision": "PRICE_REVIEW_REQUIRED",
+        "recommendedPrice": null,
+        "grossMargin": null,
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN",
+        "reason": "PRICING_POLICY_UNAVAILABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": "UNKNOWN",
+        "estimatedCost": "UNKNOWN",
+        "grossMargin": "UNKNOWN",
+        "contributionMargin": "UNKNOWN",
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-51d72ea5",
+        "productId": "kidults-report-unknown-channel-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "CHANNEL_ELIGIBILITY_UNKNOWN",
+        "marginEstimate": {
+          "estimatedRevenue": "UNKNOWN",
+          "estimatedCost": "UNKNOWN",
+          "grossMargin": "UNKNOWN",
+          "contributionMargin": "UNKNOWN",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "PRICE_REVIEW_REQUIRED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [
+          "CHANNEL_POLICY_MISMATCH"
+        ],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "CHANNEL_REVIEW_REQUIRED",
+          "actual": "CHANNEL_REVIEW_REQUIRED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "PRICE_REVIEW_REQUIRED",
+          "actual": "PRICE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "UNKNOWN_CHANNEL_REQUIRES_REVIEW",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": false,
+          "failedChecks": [
+            "channelEligibilityKnown"
+          ]
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": true
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_REVIEW_REQUIRED",
+          "grossMargin": null
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [
+            "CHANNEL_POLICY_MISMATCH"
+          ],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "CHANNEL_REVIEW_REQUIRED",
+          "offerDecision": "PRICE_REVIEW_REQUIRED",
+          "reason": "CHANNEL_ELIGIBILITY_UNKNOWN"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "PRICE_REVIEW_REQUIRED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "UNKNOWN_COST_REQUIRES_REVIEW",
+      "category": "NEGATIVE",
+      "commercialState": "EXECUTIVE_REVIEW_REQUIRED",
+      "offerDecision": "EXECUTIVE_REVIEW_REQUIRED",
+      "decisionReason": "UNKNOWN_COST_CANNOT_COMMERCIALIZE",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "EXECUTIVE_REVIEW_REQUIRED",
+        "recommendedPrice": null,
+        "grossMargin": null,
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN",
+        "reason": "UNKNOWN_COST_CANNOT_COMPUTE_MARGIN"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": "UNKNOWN",
+        "estimatedCost": "UNKNOWN",
+        "grossMargin": "UNKNOWN",
+        "contributionMargin": "UNKNOWN",
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-d2328638",
+        "productId": "kidults-report-unknown-cost-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "UNKNOWN_COST_CANNOT_COMMERCIALIZE",
+        "marginEstimate": {
+          "estimatedRevenue": "UNKNOWN",
+          "estimatedCost": "UNKNOWN",
+          "grossMargin": "UNKNOWN",
+          "contributionMargin": "UNKNOWN",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        "approvalRequired": true,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "EXECUTIVE_REVIEW_REQUIRED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "UNKNOWN_COST_REQUIRES_REVIEW",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "EXECUTIVE_REVIEW_REQUIRED",
+          "grossMargin": null
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "EXECUTIVE_REVIEW_REQUIRED",
+          "offerDecision": "EXECUTIVE_REVIEW_REQUIRED",
+          "reason": "UNKNOWN_COST_CANNOT_COMMERCIALIZE"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "EXECUTIVE_REVIEW_REQUIRED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "UNKNOWN_PRICE_REQUIRES_REVIEW",
+      "category": "NEGATIVE",
+      "commercialState": "PRICE_REVIEW_REQUIRED",
+      "offerDecision": "PRICE_REVIEW_REQUIRED",
+      "decisionReason": "PRICING_POLICY_UNAVAILABLE",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": false,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": false,
+        "failedChecks": [
+          "pricingPolicyAvailable"
+        ]
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": false,
+        "pricingDecision": "PRICE_REVIEW_REQUIRED",
+        "recommendedPrice": null,
+        "grossMargin": null,
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN",
+        "reason": "PRICING_POLICY_UNAVAILABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": "UNKNOWN",
+        "estimatedCost": "UNKNOWN",
+        "grossMargin": "UNKNOWN",
+        "contributionMargin": "UNKNOWN",
+        "marginClass": "UNKNOWN",
+        "economicViability": "UNKNOWN"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-0a72c911",
+        "productId": "kidults-report-unknown-price-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "PRICING_POLICY_UNAVAILABLE",
+        "marginEstimate": {
+          "estimatedRevenue": "UNKNOWN",
+          "estimatedCost": "UNKNOWN",
+          "grossMargin": "UNKNOWN",
+          "contributionMargin": "UNKNOWN",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [],
+        "decision": "PRICE_REVIEW_REQUIRED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "PRICE_REVIEW_REQUIRED",
+          "actual": "PRICE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "PRICE_REVIEW_REQUIRED",
+          "actual": "PRICE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "UNKNOWN_PRICE_REQUIRES_REVIEW",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": false,
+          "failedChecks": [
+            "pricingPolicyAvailable"
+          ]
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_REVIEW_REQUIRED",
+          "grossMargin": null
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "PRICE_REVIEW_REQUIRED",
+          "offerDecision": "PRICE_REVIEW_REQUIRED",
+          "reason": "PRICING_POLICY_UNAVAILABLE"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "UNKNOWN",
+          "economicViability": "UNKNOWN"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "PRICE_REVIEW_REQUIRED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "UNKNOWN_RIGHTS_REQUIRES_LEGAL_REVIEW",
+      "category": "NEGATIVE",
+      "commercialState": "LEGAL_REVIEW_REQUIRED",
+      "offerDecision": "LEGAL_REVIEW_REQUIRED",
+      "decisionReason": "UNKNOWN_LICENSING_RIGHTS",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": false,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": false,
+        "failedChecks": [
+          "licensingRightsKnown"
+        ]
+      },
+      "legalRights": {
+        "rightsState": "UNKNOWN",
+        "isBlocking": true,
+        "isUnknown": true,
+        "requiresLegalReview": true
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_TOO_LOW",
+        "proposedPrice": 199,
+        "totalCost": 130,
+        "grossMargin": 0.347,
+        "marginClass": "BELOW_FLOOR",
+        "economicViability": "BELOW_MINIMUM",
+        "recommendedPrice": 200,
+        "reason": "PRICE_TOO_LOW"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 199,
+        "estimatedCost": 130,
+        "grossMargin": 0.347,
+        "contributionMargin": 0.281,
+        "marginClass": "BELOW_FLOOR",
+        "economicViability": "BELOW_MINIMUM"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-3819d2d1",
+        "productId": "kidults-report-unknown-rights-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": null,
+        "currency": "USD",
+        "validityWindow": null,
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "UNKNOWN_LICENSING_RIGHTS",
+        "marginEstimate": {
+          "estimatedRevenue": 199,
+          "estimatedCost": 130,
+          "grossMargin": 0.347,
+          "contributionMargin": 0.281,
+          "marginClass": "BELOW_FLOOR",
+          "economicViability": "BELOW_MINIMUM"
+        },
+        "approvalRequired": true,
+        "legalReviewRequired": true,
+        "evidenceReferences": [],
+        "decision": "LEGAL_REVIEW_REQUIRED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [
+          "RIGHTS_UNKNOWN",
+          "PRICE_BELOW_MARGIN_FLOOR"
+        ],
+        "criticalAnomalies": [
+          "RIGHTS_UNKNOWN"
+        ],
+        "hasCriticalAnomaly": true
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "LEGAL_REVIEW_REQUIRED",
+          "actual": "LEGAL_REVIEW_REQUIRED"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "LEGAL_REVIEW_REQUIRED",
+          "actual": "LEGAL_REVIEW_REQUIRED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "UNKNOWN_RIGHTS_REQUIRES_LEGAL_REVIEW",
+          "category": "NEGATIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": false,
+          "failedChecks": [
+            "licensingRightsKnown"
+          ]
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "UNKNOWN",
+          "isBlocking": true,
+          "isUnknown": true,
+          "requiresLegalReview": true
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_TOO_LOW",
+          "grossMargin": 0.347
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [
+            "RIGHTS_UNKNOWN",
+            "PRICE_BELOW_MARGIN_FLOOR"
+          ],
+          "criticalAnomalies": [
+            "RIGHTS_UNKNOWN"
+          ]
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "LEGAL_REVIEW_REQUIRED",
+          "offerDecision": "LEGAL_REVIEW_REQUIRED",
+          "reason": "UNKNOWN_LICENSING_RIGHTS"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "BELOW_FLOOR",
+          "economicViability": "BELOW_MINIMUM"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "LEGAL_REVIEW_REQUIRED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "VALID_CHANNEL_ELIGIBLE",
+      "category": "POSITIVE",
+      "commercialState": "MONETIZATION_ELIGIBLE",
+      "offerDecision": "OFFER_RECOMMENDED",
+      "decisionReason": "ALL_COMMERCIAL_CHECKS_PASSED",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "ENTERPRISE_ACCESS",
+        "segment": "ENTERPRISE",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "API",
+          "ENTERPRISE_DIRECT"
+        ],
+        "channelUnknown": false,
+        "channelBlocked": false,
+        "channelAnalysis": {
+          "channel": "API",
+          "eligibility": "ELIGIBLE",
+          "marginRequirement": 0.35,
+          "legalStatus": "CLEARED",
+          "deliveryCapability": "CONFIRMED"
+        },
+        "requiresChannelReview": false
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_ACCEPTABLE",
+        "proposedPrice": 1200,
+        "totalCost": 650,
+        "grossMargin": 0.458,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE",
+        "recommendedPrice": 1200,
+        "reason": "PRICE_ACCEPTABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 1200,
+        "estimatedCost": 650,
+        "grossMargin": 0.458,
+        "contributionMargin": 0.35,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-d8e81c4a",
+        "productId": "kidults-api-product-v1",
+        "segment": "ENTERPRISE",
+        "monetizationMode": "API_ACCESS",
+        "recommendedPrice": 1200,
+        "currency": "USD",
+        "validityWindow": "SIMULATION_ONLY",
+        "entitlement": "ENTERPRISE_ACCESS",
+        "commercialRationale": "ALL_COMMERCIAL_CHECKS_PASSED",
+        "marginEstimate": {
+          "estimatedRevenue": 1200,
+          "estimatedCost": 650,
+          "grossMargin": 0.458,
+          "contributionMargin": 0.35,
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [
+          "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json"
+        ],
+        "decision": "OFFER_RECOMMENDED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "MONETIZATION_ELIGIBLE",
+          "actual": "MONETIZATION_ELIGIBLE"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "OFFER_RECOMMENDED",
+          "actual": "OFFER_RECOMMENDED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "VALID_CHANNEL_ELIGIBLE",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "ENTERPRISE_ACCESS",
+          "segment": "ENTERPRISE",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": false
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_ACCEPTABLE",
+          "grossMargin": 0.458
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "MONETIZATION_ELIGIBLE",
+          "offerDecision": "OFFER_RECOMMENDED",
+          "reason": "ALL_COMMERCIAL_CHECKS_PASSED"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "OFFER_RECOMMENDED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    },
+    {
+      "scenarioId": "VALID_PRICE_ACCEPTED",
+      "category": "POSITIVE",
+      "commercialState": "MONETIZATION_ELIGIBLE",
+      "offerDecision": "OFFER_RECOMMENDED",
+      "decisionReason": "ALL_COMMERCIAL_CHECKS_PASSED",
+      "commercialReadiness": {
+        "checks": {
+          "a36CertifiedEconomicEvidence": true,
+          "productIdentityKnown": true,
+          "publicationStatusValid": true,
+          "qualityFreshnessThresholdsMet": true,
+          "entitlementModelKnown": true,
+          "licensingRightsKnown": true,
+          "channelEligibilityKnown": true,
+          "pricingPolicyAvailable": true,
+          "legalComplianceStateKnown": true,
+          "noActiveSecurityBlock": true,
+          "noCriticalIncident": true,
+          "noProhibitedRestriction": true,
+          "costEconomicsAvailable": true
+        },
+        "ready": true,
+        "failedChecks": []
+      },
+      "legalRights": {
+        "rightsState": "OWNED_FULL_RIGHTS",
+        "isBlocking": false,
+        "isUnknown": false,
+        "requiresLegalReview": false
+      },
+      "entitlement": {
+        "entitlement": "PREMIUM_ACCESS",
+        "segment": "PREMIUM",
+        "mismatch": false,
+        "reason": "ENTITLEMENT_ALLOWED"
+      },
+      "channel": {
+        "declaredChannels": [
+          "DIRECT_WEB"
+        ],
+        "channelUnknown": null,
+        "channelBlocked": null,
+        "channelAnalysis": null,
+        "requiresChannelReview": null
+      },
+      "pricing": {
+        "available": true,
+        "pricingDecision": "PRICE_ACCEPTABLE",
+        "proposedPrice": 200,
+        "totalCost": 130,
+        "grossMargin": 0.35,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE",
+        "recommendedPrice": 200,
+        "reason": "PRICE_ACCEPTABLE"
+      },
+      "discount": {
+        "requested": false,
+        "blocked": false,
+        "reason": "NO_DISCOUNT_REQUESTED"
+      },
+      "marginAnalysis": {
+        "estimatedRevenue": 200,
+        "estimatedCost": 130,
+        "grossMargin": 0.35,
+        "contributionMargin": 0.285,
+        "marginClass": "ACCEPTABLE",
+        "economicViability": "VIABLE"
+      },
+      "offerRecommendation": {
+        "offerId": "offer-91a2abb6",
+        "productId": "kidults-report-standard-v1",
+        "segment": "PREMIUM",
+        "monetizationMode": "PREMIUM_REPORT",
+        "recommendedPrice": 200,
+        "currency": "USD",
+        "validityWindow": "SIMULATION_ONLY",
+        "entitlement": "PREMIUM_ACCESS",
+        "commercialRationale": "ALL_COMMERCIAL_CHECKS_PASSED",
+        "marginEstimate": {
+          "estimatedRevenue": 200,
+          "estimatedCost": 130,
+          "grossMargin": 0.35,
+          "contributionMargin": 0.285,
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        "approvalRequired": false,
+        "legalReviewRequired": false,
+        "evidenceReferences": [
+          "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json"
+        ],
+        "decision": "OFFER_RECOMMENDED",
+        "bindingOfferDispatched": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "tests": [
+        {
+          "name": "commercialStateMatch",
+          "passed": true,
+          "expected": "MONETIZATION_ELIGIBLE",
+          "actual": "MONETIZATION_ELIGIBLE"
+        },
+        {
+          "name": "offerDecisionMatch",
+          "passed": true,
+          "expected": "OFFER_RECOMMENDED",
+          "actual": "OFFER_RECOMMENDED"
+        },
+        {
+          "name": "a36CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noCommercialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "bindingOfferNotDispatched",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "contractNotAccepted",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "paymentNotCollected",
+          "passed": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "name": "bindingOfferAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "contractAcceptanceAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "paymentMutationAttemptFails",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownRightsCannotCommercialize",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "entitlementMismatchBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "negativeMarginBlocks",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "discountPolicyEnforced",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noCommercialMutation": true,
+      "bindingOfferDispatched": false,
+      "contractAccepted": false,
+      "paymentCollected": false,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/commercial-governance/a37-commercial-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "VALID_PRICE_ACCEPTED",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:23:36.737Z"
+        },
+        {
+          "step": "A36_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COMMERCIAL_READINESS",
+          "ready": true,
+          "failedChecks": []
+        },
+        {
+          "step": "LEGAL_RIGHTS_EVALUATION",
+          "rightsState": "OWNED_FULL_RIGHTS",
+          "isBlocking": false,
+          "isUnknown": false,
+          "requiresLegalReview": false
+        },
+        {
+          "step": "ENTITLEMENT_EVALUATION",
+          "entitlement": "PREMIUM_ACCESS",
+          "segment": "PREMIUM",
+          "mismatch": false,
+          "reason": "ENTITLEMENT_ALLOWED"
+        },
+        {
+          "step": "CHANNEL_EVALUATION",
+          "channelUnknown": null
+        },
+        {
+          "step": "PRICING_GOVERNANCE",
+          "pricingDecision": "PRICE_ACCEPTABLE",
+          "grossMargin": 0.35
+        },
+        {
+          "step": "DISCOUNT_GOVERNANCE",
+          "blocked": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": []
+        },
+        {
+          "step": "COMMERCIAL_DECISION_DERIVED",
+          "state": "MONETIZATION_ELIGIBLE",
+          "offerDecision": "OFFER_RECOMMENDED",
+          "reason": "ALL_COMMERCIAL_CHECKS_PASSED"
+        },
+        {
+          "step": "MARGIN_ANALYSIS",
+          "marginClass": "ACCEPTABLE",
+          "economicViability": "VIABLE"
+        },
+        {
+          "step": "OFFER_RECOMMENDATION",
+          "decision": "OFFER_RECOMMENDED",
+          "bindingOfferDispatched": false
+        }
+      ]
+    }
+  ],
+  "invariants": {
+    "a36CertifiedEconomicEvidenceRequired": true,
+    "noAutonomousContractAcceptance": true,
+    "noAutonomousBindingOfferDispatch": true,
+    "noAutonomousPaymentCollection": true,
+    "noAutonomousRefundMutation": true,
+    "noUnrestrictedDiscounting": true,
+    "noEntitlementBypass": true,
+    "noRightsAssumption": true,
+    "unknownRightsCannotCommercialize": true,
+    "unknownCriticalPriceCannotCommercialize": true,
+    "unknownCostCannotCreateBindingOffer": true,
+    "minimumMarginPolicyCannotBeBypassed": true,
+    "enterpriseEntitlementCannotLeakToPublicTier": true,
+    "securityHardStopsPreserved": true,
+    "legalComplianceHardStopsPreserved": true,
+    "executiveAuthorityCannotBypassSecurityOrRightsHardStops": true,
+    "everyCommercialDecisionEmitsEvidence": true,
+    "repeatedEvaluationsAreIdempotent": true,
+    "certificationCausesZeroExternalCommercialMutation": true,
+    "allA15ToA36ControlsPreserved": true,
+    "healthyProductCommercialReady": true,
+    "freeProductAllowed": true,
+    "premiumRequiresEntitlement": true,
+    "enterpriseBlockedForPublic": true,
+    "validPriceAccepted": true,
+    "lowPriceRequiresOptimization": true,
+    "licenseConflictBlocks": true,
+    "discountWithinPolicyRecommended": true,
+    "discountOverLimitBlocked": true,
+    "entitlementMismatchBlocked": true,
+    "validChannelEligible": true,
+    "unknownChannelRequiresReview": true,
+    "bindingOfferAttemptBlocked": true,
+    "contractAcceptanceAttemptBlocked": true,
+    "paymentMutationAttemptBlocked": true
+  },
+  "invariantPassCount": 35,
+  "invariantTotal": 35,
+  "certification": {
+    "allScenariosPassed": true,
+    "allInvariantsPassed": true,
+    "certificationPassed": true
+  },
+  "commercialAuthorityBoundary": {
+    "noContractAcceptance": true,
+    "noBindingOfferDispatch": true,
+    "noPaymentCollection": true,
+    "noRefundInitiation": true,
+    "noPaymentProcessorChange": true,
+    "noUnrestrictedDiscount": true,
+    "noExternalFinancialCommitment": true,
+    "noCustomerConfidentialDataExposure": true,
+    "noLegalObligationCreation": true
+  },
+  "noCommercialMutation": true,
+  "completedAt": "2026-08-09T05:23:36.746Z"
+}

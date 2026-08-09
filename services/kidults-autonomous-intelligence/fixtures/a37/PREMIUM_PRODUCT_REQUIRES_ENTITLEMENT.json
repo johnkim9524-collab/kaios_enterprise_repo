@@ -1,0 +1,49 @@
+{
+  "scenarioId": "PREMIUM_PRODUCT_REQUIRES_ENTITLEMENT",
+  "category": "POSITIVE",
+  "description": "Premium product with PREMIUM_ACCESS entitlement is eligible only for PREMIUM customers.",
+  "a36CertificationPassed": true,
+  "productId": "kidults-premium-analytics-v1",
+  "productClass": "PREMIUM_REPORT",
+  "publicationStatus": "PUBLISHED",
+  "qualityScore": 0.91,
+  "freshnessScore": 0.88,
+  "entitlementModel": "PREMIUM_ACCESS",
+  "licensingRights": "OWNED_FULL_RIGHTS",
+  "channelEligibility": [
+    "DIRECT_WEB",
+    "SUBSCRIPTION"
+  ],
+  "pricingPolicyAvailable": true,
+  "legalComplianceState": "CLEARED",
+  "securityBlock": false,
+  "criticalIncident": false,
+  "prohibitedRestriction": false,
+  "monetizationModes": [
+    "PREMIUM_REPORT",
+    "SUBSCRIPTION"
+  ],
+  "customerSegment": "PREMIUM",
+  "pricingInputs": {
+    "productClass": "PREMIUM_REPORT",
+    "customerSegment": "PREMIUM",
+    "valueTier": "HIGH",
+    "freshness": 0.88,
+    "exclusivity": 0.75,
+    "dataCoverage": 0.88,
+    "productionCost": 150,
+    "providerCost": 50,
+    "supportBurden": 0.12,
+    "commercialPrecedent": 299,
+    "minimumMarginPolicy": 0.35,
+    "strategicValue": "HIGH",
+    "channelConstraints": [],
+    "proposedPrice": 310
+  },
+  "anomalies": [],
+  "bindingOfferAttempted": false,
+  "contractAcceptanceAttempted": false,
+  "paymentMutationAttempted": false,
+  "expectedCommercialState": "MONETIZATION_ELIGIBLE",
+  "expectedOfferDecision": "OFFER_RECOMMENDED"
+}

@@ -1,0 +1,49 @@
+{
+  "scenarioId": "HEALTHY_PRODUCT_COMMERCIAL_READY",
+  "category": "POSITIVE",
+  "description": "All commercial readiness checks pass; product is COMMERCIAL_READY and MONETIZATION_ELIGIBLE.",
+  "a36CertificationPassed": true,
+  "productId": "kidults-intelligence-report-v1",
+  "productClass": "PREMIUM_REPORT",
+  "publicationStatus": "PUBLISHED",
+  "qualityScore": 0.95,
+  "freshnessScore": 0.92,
+  "entitlementModel": "PREMIUM_ACCESS",
+  "licensingRights": "OWNED_FULL_RIGHTS",
+  "channelEligibility": [
+    "DIRECT_WEB",
+    "REPORT_DOWNLOAD"
+  ],
+  "pricingPolicyAvailable": true,
+  "legalComplianceState": "CLEARED",
+  "securityBlock": false,
+  "criticalIncident": false,
+  "prohibitedRestriction": false,
+  "monetizationModes": [
+    "PREMIUM_REPORT",
+    "SUBSCRIPTION"
+  ],
+  "customerSegment": "PREMIUM",
+  "pricingInputs": {
+    "productClass": "PREMIUM_REPORT",
+    "customerSegment": "PREMIUM",
+    "valueTier": "HIGH",
+    "freshness": 0.92,
+    "exclusivity": 0.8,
+    "dataCoverage": 0.9,
+    "productionCost": 120,
+    "providerCost": 40,
+    "supportBurden": 0.1,
+    "commercialPrecedent": 199,
+    "minimumMarginPolicy": 0.35,
+    "strategicValue": "HIGH",
+    "channelConstraints": [],
+    "proposedPrice": 250
+  },
+  "anomalies": [],
+  "bindingOfferAttempted": false,
+  "contractAcceptanceAttempted": false,
+  "paymentMutationAttempted": false,
+  "expectedCommercialState": "MONETIZATION_ELIGIBLE",
+  "expectedOfferDecision": "OFFER_RECOMMENDED"
+}

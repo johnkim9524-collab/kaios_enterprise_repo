@@ -1,0 +1,53 @@
+{
+  "scenarioId": "DISCOUNT_WITHIN_POLICY_RECOMMENDED",
+  "category": "POSITIVE",
+  "description": "Discount within policy bounds and above minimum margin; discount recommendation is valid.",
+  "a36CertificationPassed": true,
+  "productId": "kidults-report-discounted-v1",
+  "productClass": "PREMIUM_REPORT",
+  "publicationStatus": "PUBLISHED",
+  "qualityScore": 0.88,
+  "freshnessScore": 0.85,
+  "entitlementModel": "PREMIUM_ACCESS",
+  "licensingRights": "OWNED_FULL_RIGHTS",
+  "channelEligibility": [
+    "DIRECT_WEB"
+  ],
+  "pricingPolicyAvailable": true,
+  "legalComplianceState": "CLEARED",
+  "securityBlock": false,
+  "criticalIncident": false,
+  "prohibitedRestriction": false,
+  "monetizationModes": [
+    "PREMIUM_REPORT"
+  ],
+  "customerSegment": "PREMIUM",
+  "pricingInputs": {
+    "productClass": "PREMIUM_REPORT",
+    "customerSegment": "PREMIUM",
+    "valueTier": "HIGH",
+    "freshness": 0.85,
+    "exclusivity": 0.7,
+    "dataCoverage": 0.85,
+    "productionCost": 100,
+    "providerCost": 30,
+    "supportBurden": 0.1,
+    "commercialPrecedent": 199,
+    "minimumMarginPolicy": 0.35,
+    "proposedPrice": 200,
+    "strategicValue": "HIGH",
+    "channelConstraints": []
+  },
+  "discountRequest": {
+    "discountPct": 0.1,
+    "maxDiscountPolicy": 0.2,
+    "executiveApprovalThreshold": 0.2,
+    "reason": "PARTNER_PROMOTION"
+  },
+  "anomalies": [],
+  "bindingOfferAttempted": false,
+  "contractAcceptanceAttempted": false,
+  "paymentMutationAttempted": false,
+  "expectedCommercialState": "MONETIZATION_ELIGIBLE",
+  "expectedOfferDecision": "OFFER_RECOMMENDED"
+}
