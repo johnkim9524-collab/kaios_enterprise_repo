@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Run autonomous operations
         run: node apps/kidults-enterprise-staging/scripts/run-a13-b16-autonomous-operations.mjs
