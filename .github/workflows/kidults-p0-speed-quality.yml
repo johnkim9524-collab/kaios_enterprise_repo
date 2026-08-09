@@ -14,7 +14,7 @@ concurrency:
 jobs:
   engineering-quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     permissions:
       contents: read
 
@@ -31,6 +31,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Repository quality audit before dependency install
+        run: node scripts/p0-engineering-quality-audit.mjs
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
@@ -40,7 +43,16 @@ jobs:
       - name: Runtime smoke
         run: npm run runtime:smoke
 
-      - name: Engineering quality audit
+      - name: Truth-layer unit tests
+        run: node --test test/*.test.mjs
+
+      - name: Truth-layer coverage
+        run: node --experimental-test-coverage --test test/*.test.mjs
+
+      - name: Truth-layer acceptance gate
+        run: node scripts/p0-real-data-truth-gate.mjs
+
+      - name: Engineering quality audit after validation
         if: always()
         run: node scripts/p0-engineering-quality-audit.mjs
 
@@ -51,4 +63,13 @@ jobs:
           name: kidults-p0-engineering-quality-audit
           path: services/kidults-autonomous-intelligence/reports/engineering-hardening/quality-audit-latest.json
           retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error
+
+      - name: Upload truth-layer evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-p0-truth-layer-evidence
+          path: services/kidults-autonomous-intelligence/reports/truth-layer/truth-gate-latest.json
+          retention-days: 30
+          if-no-files-found: error
