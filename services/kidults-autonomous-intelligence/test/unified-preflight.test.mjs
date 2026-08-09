@@ -61,3 +61,38 @@ test('HUMAN_APPROVAL_REQUIRED outranks warnings and canary', () => {
   });
   assert.equal(result.outcome, 'HUMAN_APPROVAL_REQUIRED');
 });
+
+test('READY_WITH_LIMITS on non-blocking warning', () => {
+  const result = evaluateUnifiedPreflight({
+    domains: { ...passDomains, cost: { status: 'WARN', evidence: ['cost-near-threshold'] } },
+    liveOperationalCertified: true,
+    commercialRightsCertified: true,
+  });
+  assert.equal(result.outcome, 'READY_WITH_LIMITS');
+  assert.deepEqual(result.warnings, ['cost']);
+});
+
+test('NOT_APPLICABLE domain may omit evidence', () => {
+  const result = evaluateUnifiedPreflight({
+    domains: { ...passDomains, entitlement: { status: 'NOT_APPLICABLE', evidence: [] } },
+  });
+  assert.equal(result.domains.entitlement.evidenceComplete, true);
+  assert.equal(result.outcome, 'READY');
+});
+
+test('invalid status normalizes to UNKNOWN and holds', () => {
+  const result = evaluateUnifiedPreflight({
+    domains: { ...passDomains, provider: { status: 'MAYBE', evidence: ['provider-evidence'] } },
+  });
+  assert.equal(result.domains.provider.status, 'UNKNOWN');
+  assert.equal(result.outcome, 'HOLD');
+});
+
+test('custom critical domain set is supported', () => {
+  const result = evaluateUnifiedPreflight({
+    criticalDomains: ['engineering'],
+    domains: { engineering: { status: 'PASS', evidence: ['engineering-evidence'] } },
+  });
+  assert.equal(result.outcome, 'READY');
+  assert.deepEqual(Object.keys(result.domains), ['engineering']);
+});
