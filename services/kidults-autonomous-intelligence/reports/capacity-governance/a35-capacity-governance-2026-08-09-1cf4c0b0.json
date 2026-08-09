@@ -1,0 +1,2323 @@
+{
+  "optimizationRunId": "a35-2026-08-09-37747085e964",
+  "stage": "A35",
+  "mode": "SIMULATION",
+  "title": "Autonomous Production Optimization & Capacity Governance",
+  "generatedAt": "2026-08-09T04:47:37.555Z",
+  "policyVersion": "a35-capacity-governance-policy.v1",
+  "sourceA34Evidence": {
+    "evidenceId": "a34-2026-08-09-61a57461d874",
+    "certificationPassed": true,
+    "generatedAt": "2026-08-09T04:16:35.765Z"
+  },
+  "optimizationStateModel": [
+    "UNASSESSED",
+    "ASSESSING",
+    "OPTIMAL",
+    "UNDERUTILIZED",
+    "CAPACITY_PRESSURE",
+    "SATURATED",
+    "THROTTLED",
+    "REBALANCING",
+    "DEFERRED",
+    "EXECUTIVE_REVIEW_REQUIRED",
+    "FAILED_CLOSED"
+  ],
+  "decisionClasses": [
+    "MAINTAIN",
+    "OBSERVE",
+    "REBALANCE",
+    "SCALE_UP_RECOMMENDED",
+    "SCALE_DOWN_RECOMMENDED",
+    "THROTTLE",
+    "DEFER_NONCRITICAL",
+    "SHIFT_WORKLOAD",
+    "CAPACITY_RESERVATION_REQUIRED",
+    "EXECUTIVE_REVIEW_REQUIRED",
+    "FAILED_CLOSED"
+  ],
+  "capacityDimensionStatuses": [
+    "PASS",
+    "WARN",
+    "FAIL",
+    "UNKNOWN"
+  ],
+  "providerStates": [
+    "PROVIDER_HEALTHY",
+    "PROVIDER_DEGRADED",
+    "PROVIDER_RATE_LIMITED",
+    "PROVIDER_UNAVAILABLE",
+    "PROVIDER_UNKNOWN"
+  ],
+  "costClasses": [
+    "COST_ACCEPTABLE",
+    "COST_OPTIMIZATION_OPPORTUNITY",
+    "COST_PRESSURE",
+    "EXECUTIVE_REVIEW_REQUIRED"
+  ],
+  "priorityClasses": [
+    "P0_CRITICAL",
+    "P1_HIGH",
+    "P2_STANDARD",
+    "P3_BACKGROUND"
+  ],
+  "forecastRiskLevels": [
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "CRITICAL",
+    "UNKNOWN"
+  ],
+  "headroomPolicy": {
+    "minRollbackHeadroomPct": 10,
+    "minRecoveryReservePct": 10,
+    "minCapacityHeadroomPct": 15,
+    "sustainedUnderutilizationThreshold": 3
+  },
+  "scenarioCount": 17,
+  "positiveCount": 9,
+  "failClosedCount": 8,
+  "passedCount": 17,
+  "failedCount": 0,
+  "scenarios": [
+    {
+      "scenarioId": "ACTIVE_INCIDENT_PREVENTS_UNSAFE_OPTIMIZATION",
+      "category": "FAIL_CLOSED",
+      "optimizationState": "EXECUTIVE_REVIEW_REQUIRED",
+      "decision": "EXECUTIVE_REVIEW_REQUIRED",
+      "decisionReason": "ACTIVE_INCIDENT_HARD_STOP",
+      "costSignal": "COST_PRESSURE",
+      "dimensions": {
+        "requestVolume": "WARN",
+        "throughput": "WARN",
+        "queueDepth": "WARN",
+        "concurrency": "WARN",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "WARN",
+        "providerCapacity": "PROVIDER_DEGRADED",
+        "providerRateLimits": "WARN",
+        "latency": "WARN",
+        "errorRate": "WARN",
+        "saturation": "WARN",
+        "workloadBacklog": "WARN",
+        "freshnessObligations": "FAIL",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "WARN",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 22,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "MEDIUM",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "HIGH"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-active-incident-prevents-unsafe-optimization-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 1,
+          "warnCount": 11,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "HIGH",
+          "expectedDemand": "MEDIUM"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "EXECUTIVE_REVIEW_REQUIRED",
+          "decision": "EXECUTIVE_REVIEW_REQUIRED",
+          "reason": "ACTIVE_INCIDENT_HARD_STOP"
+        }
+      ]
+    },
+    {
+      "scenarioId": "BACKGROUND_WORKLOAD_DEFERS_FIRST",
+      "category": "POSITIVE",
+      "optimizationState": "CAPACITY_PRESSURE",
+      "decision": "DEFER_NONCRITICAL",
+      "decisionReason": "P0_PROTECTED_P3_DEFERRED",
+      "costSignal": "COST_ACCEPTABLE",
+      "dimensions": {
+        "requestVolume": "WARN",
+        "throughput": "PASS",
+        "queueDepth": "FAIL",
+        "concurrency": "WARN",
+        "cpuUtilization": "WARN",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "WARN",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "PASS",
+        "errorRate": "PASS",
+        "saturation": "WARN",
+        "workloadBacklog": "WARN",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "WARN",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 18,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "MEDIUM",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "NEAR_LIMIT",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "MEDIUM"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "CAPACITY_PRESSURE",
+          "actual": "CAPACITY_PRESSURE"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "DEFER_NONCRITICAL",
+          "actual": "DEFER_NONCRITICAL"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-background-workload-defers-first-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 1,
+          "warnCount": 7,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "MEDIUM",
+          "expectedDemand": "MEDIUM"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "CAPACITY_PRESSURE",
+          "decision": "DEFER_NONCRITICAL",
+          "reason": "P0_PROTECTED_P3_DEFERRED"
+        }
+      ]
+    },
+    {
+      "scenarioId": "BILLING_REQUIRED_ESCALATES",
+      "category": "FAIL_CLOSED",
+      "optimizationState": "EXECUTIVE_REVIEW_REQUIRED",
+      "decision": "CAPACITY_RESERVATION_REQUIRED",
+      "decisionReason": "BILLING_MUTATION_REQUIRED",
+      "costSignal": "COST_PRESSURE",
+      "dimensions": {
+        "requestVolume": "FAIL",
+        "throughput": "WARN",
+        "queueDepth": "WARN",
+        "concurrency": "WARN",
+        "cpuUtilization": "FAIL",
+        "memoryUtilization": "WARN",
+        "storageUtilization": "PASS",
+        "databasePressure": "WARN",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "WARN",
+        "errorRate": "WARN",
+        "saturation": "FAIL",
+        "workloadBacklog": "FAIL",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "FAIL",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 5,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": false,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "HIGH",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "EXPANSION_REQUIRED",
+        "headroomRequirement": "INSUFFICIENT",
+        "riskLevel": "CRITICAL"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "CAPACITY_RESERVATION_REQUIRED",
+          "actual": "CAPACITY_RESERVATION_REQUIRED"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-billing-required-escalates-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 5,
+          "warnCount": 7,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "CRITICAL",
+          "expectedDemand": "HIGH"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "EXECUTIVE_REVIEW_REQUIRED",
+          "decision": "CAPACITY_RESERVATION_REQUIRED",
+          "reason": "BILLING_MUTATION_REQUIRED"
+        }
+      ]
+    },
+    {
+      "scenarioId": "CAPACITY_PRESSURE_RECOMMENDS_SCALE_UP",
+      "category": "POSITIVE",
+      "optimizationState": "CAPACITY_PRESSURE",
+      "decision": "SCALE_UP_RECOMMENDED",
+      "decisionReason": "VERIFIED_CAPACITY_PRESSURE",
+      "costSignal": "COST_PRESSURE",
+      "dimensions": {
+        "requestVolume": "FAIL",
+        "throughput": "WARN",
+        "queueDepth": "WARN",
+        "concurrency": "WARN",
+        "cpuUtilization": "WARN",
+        "memoryUtilization": "WARN",
+        "storageUtilization": "PASS",
+        "databasePressure": "WARN",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "WARN",
+        "errorRate": "WARN",
+        "saturation": "WARN",
+        "workloadBacklog": "WARN",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "FAIL",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 12,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": false,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "HIGH",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "NEAR_LIMIT",
+        "headroomRequirement": "INSUFFICIENT",
+        "riskLevel": "HIGH"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "CAPACITY_PRESSURE",
+          "actual": "CAPACITY_PRESSURE"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "SCALE_UP_RECOMMENDED",
+          "actual": "SCALE_UP_RECOMMENDED"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-capacity-pressure-recommends-scale-up-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 2,
+          "warnCount": 10,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "HIGH",
+          "expectedDemand": "HIGH"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "CAPACITY_PRESSURE",
+          "decision": "SCALE_UP_RECOMMENDED",
+          "reason": "VERIFIED_CAPACITY_PRESSURE"
+        }
+      ]
+    },
+    {
+      "scenarioId": "HEALTHY_CAPACITY_MAINTAINS",
+      "category": "POSITIVE",
+      "optimizationState": "OPTIMAL",
+      "decision": "MAINTAIN",
+      "decisionReason": "CAPACITY_OPTIMAL",
+      "costSignal": "COST_ACCEPTABLE",
+      "dimensions": {
+        "requestVolume": "PASS",
+        "throughput": "PASS",
+        "queueDepth": "PASS",
+        "concurrency": "PASS",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "PASS",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "PASS",
+        "errorRate": "PASS",
+        "saturation": "PASS",
+        "workloadBacklog": "PASS",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "PASS",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 55,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "LOW",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "LOW"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "OPTIMAL",
+          "actual": "OPTIMAL"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "MAINTAIN",
+          "actual": "MAINTAIN"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-healthy-capacity-maintains-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 0,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "LOW",
+          "expectedDemand": "LOW"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "OPTIMAL",
+          "decision": "MAINTAIN",
+          "reason": "CAPACITY_OPTIMAL"
+        }
+      ]
+    },
+    {
+      "scenarioId": "IMMINENT_PEAK_PREVENTS_SCALE_DOWN",
+      "category": "FAIL_CLOSED",
+      "optimizationState": "DEFERRED",
+      "decision": "OBSERVE",
+      "decisionReason": "IMMINENT_PEAK_WINDOW",
+      "costSignal": "COST_OPTIMIZATION_OPPORTUNITY",
+      "dimensions": {
+        "requestVolume": "WARN",
+        "throughput": "PASS",
+        "queueDepth": "PASS",
+        "concurrency": "PASS",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "PASS",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "PASS",
+        "errorRate": "PASS",
+        "saturation": "PASS",
+        "workloadBacklog": "PASS",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "PASS",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 72,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "PEAK_WINDOW",
+        "expectedDemand": "LOW",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "MEDIUM"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "DEFERRED",
+          "actual": "DEFERRED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "OBSERVE",
+          "actual": "OBSERVE"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-imminent-peak-prevents-scale-down-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 1,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "MEDIUM",
+          "expectedDemand": "LOW"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "DEFERRED",
+          "decision": "OBSERVE",
+          "reason": "IMMINENT_PEAK_WINDOW"
+        }
+      ]
+    },
+    {
+      "scenarioId": "LOW_UTILIZATION_OBSERVES",
+      "category": "POSITIVE",
+      "optimizationState": "UNDERUTILIZED",
+      "decision": "OBSERVE",
+      "decisionReason": "LOW_UTILIZATION_OBSERVE",
+      "costSignal": "COST_OPTIMIZATION_OPPORTUNITY",
+      "dimensions": {
+        "requestVolume": "WARN",
+        "throughput": "PASS",
+        "queueDepth": "PASS",
+        "concurrency": "PASS",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "PASS",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "PASS",
+        "errorRate": "PASS",
+        "saturation": "PASS",
+        "workloadBacklog": "PASS",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "PASS",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 80,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "LOW",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "LOW"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "UNDERUTILIZED",
+          "actual": "UNDERUTILIZED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "OBSERVE",
+          "actual": "OBSERVE"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-low-utilization-observes-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 1,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "LOW",
+          "expectedDemand": "LOW"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "UNDERUTILIZED",
+          "decision": "OBSERVE",
+          "reason": "LOW_UTILIZATION_OBSERVE"
+        }
+      ]
+    },
+    {
+      "scenarioId": "P0_CAPACITY_IS_PROTECTED",
+      "category": "POSITIVE",
+      "optimizationState": "CAPACITY_PRESSURE",
+      "decision": "DEFER_NONCRITICAL",
+      "decisionReason": "P0_PROTECTED_P3_DEFERRED",
+      "costSignal": "COST_PRESSURE",
+      "dimensions": {
+        "requestVolume": "FAIL",
+        "throughput": "WARN",
+        "queueDepth": "WARN",
+        "concurrency": "WARN",
+        "cpuUtilization": "WARN",
+        "memoryUtilization": "WARN",
+        "storageUtilization": "PASS",
+        "databasePressure": "WARN",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "WARN",
+        "errorRate": "WARN",
+        "saturation": "FAIL",
+        "workloadBacklog": "WARN",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "FAIL",
+        "capacityHeadroom": "FAIL",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 8,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": false,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "HIGH",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "NEAR_LIMIT",
+        "headroomRequirement": "INSUFFICIENT",
+        "riskLevel": "HIGH"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "CAPACITY_PRESSURE",
+          "actual": "CAPACITY_PRESSURE"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "DEFER_NONCRITICAL",
+          "actual": "DEFER_NONCRITICAL"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-p0-capacity-is-protected-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 4,
+          "warnCount": 9,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "HIGH",
+          "expectedDemand": "HIGH"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "CAPACITY_PRESSURE",
+          "decision": "DEFER_NONCRITICAL",
+          "reason": "P0_PROTECTED_P3_DEFERRED"
+        }
+      ]
+    },
+    {
+      "scenarioId": "PROVIDER_RATE_LIMIT_SHIFTS_OR_THROTTLES",
+      "category": "POSITIVE",
+      "optimizationState": "REBALANCING",
+      "decision": "SHIFT_WORKLOAD",
+      "decisionReason": "PROVIDER_RATE_LIMITED",
+      "costSignal": "COST_ACCEPTABLE",
+      "dimensions": {
+        "requestVolume": "WARN",
+        "throughput": "WARN",
+        "queueDepth": "WARN",
+        "concurrency": "PASS",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "PASS",
+        "providerCapacity": "PROVIDER_RATE_LIMITED",
+        "providerRateLimits": "FAIL",
+        "latency": "WARN",
+        "errorRate": "WARN",
+        "saturation": "PASS",
+        "workloadBacklog": "WARN",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "PASS",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 40,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "LOW",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "MEDIUM"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "REBALANCING",
+          "actual": "REBALANCING"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "SHIFT_WORKLOAD",
+          "actual": "SHIFT_WORKLOAD"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-provider-rate-limit-shifts-or-throttles-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 1,
+          "warnCount": 6,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "MEDIUM",
+          "expectedDemand": "LOW"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "REBALANCING",
+          "decision": "SHIFT_WORKLOAD",
+          "reason": "PROVIDER_RATE_LIMITED"
+        }
+      ]
+    },
+    {
+      "scenarioId": "PROVIDER_UNAVAILABLE_FAILS_CLOSED_OR_CONTAINS",
+      "category": "FAIL_CLOSED",
+      "optimizationState": "FAILED_CLOSED",
+      "decision": "FAILED_CLOSED",
+      "decisionReason": "PROVIDER_UNAVAILABLE_OR_UNKNOWN",
+      "costSignal": "COST_PRESSURE",
+      "dimensions": {
+        "requestVolume": "FAIL",
+        "throughput": "FAIL",
+        "queueDepth": "FAIL",
+        "concurrency": "FAIL",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "FAIL",
+        "providerCapacity": "PROVIDER_UNAVAILABLE",
+        "providerRateLimits": "FAIL",
+        "latency": "FAIL",
+        "errorRate": "FAIL",
+        "saturation": "PASS",
+        "workloadBacklog": "FAIL",
+        "freshnessObligations": "FAIL",
+        "priorityWorkloadShare": "FAIL",
+        "capacityHeadroom": "FAIL",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 10,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": false,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "LOW",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "INSUFFICIENT",
+        "riskLevel": "CRITICAL"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-provider-unavailable-fails-closed-or-contains-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 12,
+          "warnCount": 0,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "CRITICAL",
+          "expectedDemand": "LOW"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "FAILED_CLOSED",
+          "decision": "FAILED_CLOSED",
+          "reason": "PROVIDER_UNAVAILABLE_OR_UNKNOWN"
+        }
+      ]
+    },
+    {
+      "scenarioId": "RECOVERY_RESERVE_CANNOT_BE_CONSUMED",
+      "category": "FAIL_CLOSED",
+      "optimizationState": "EXECUTIVE_REVIEW_REQUIRED",
+      "decision": "EXECUTIVE_REVIEW_REQUIRED",
+      "decisionReason": "RESERVE_VIOLATION",
+      "costSignal": "COST_OPTIMIZATION_OPPORTUNITY",
+      "dimensions": {
+        "requestVolume": "WARN",
+        "throughput": "PASS",
+        "queueDepth": "PASS",
+        "concurrency": "PASS",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "PASS",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "PASS",
+        "errorRate": "PASS",
+        "saturation": "PASS",
+        "workloadBacklog": "PASS",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "PASS",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "FAIL"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 4,
+        "capacityHeadroomPct": 68,
+        "rollbackProtected": true,
+        "recoveryProtected": false,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": true,
+        "reserveViolation": true
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "LOW",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "LOW"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-recovery-reserve-cannot-be-consumed-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 1,
+          "warnCount": 1,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": false
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "LOW",
+          "expectedDemand": "LOW"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "EXECUTIVE_REVIEW_REQUIRED",
+          "decision": "EXECUTIVE_REVIEW_REQUIRED",
+          "reason": "RESERVE_VIOLATION"
+        }
+      ]
+    },
+    {
+      "scenarioId": "REPEATED_IDENTICAL_EVALUATION_IS_IDEMPOTENT",
+      "category": "POSITIVE",
+      "optimizationState": "OPTIMAL",
+      "decision": "MAINTAIN",
+      "decisionReason": "CAPACITY_OPTIMAL",
+      "costSignal": "COST_ACCEPTABLE",
+      "dimensions": {
+        "requestVolume": "PASS",
+        "throughput": "PASS",
+        "queueDepth": "PASS",
+        "concurrency": "PASS",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "PASS",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "PASS",
+        "errorRate": "PASS",
+        "saturation": "PASS",
+        "workloadBacklog": "PASS",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "PASS",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 55,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "LOW",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "LOW"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "OPTIMAL",
+          "actual": "OPTIMAL"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "MAINTAIN",
+          "actual": "MAINTAIN"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "idempotencyVerified": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-repeated-identical-evaluation-is-idempotent-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 0,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "LOW",
+          "expectedDemand": "LOW"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "OPTIMAL",
+          "decision": "MAINTAIN",
+          "reason": "CAPACITY_OPTIMAL"
+        }
+      ]
+    },
+    {
+      "scenarioId": "ROLLBACK_RESERVE_CANNOT_BE_CONSUMED",
+      "category": "FAIL_CLOSED",
+      "optimizationState": "EXECUTIVE_REVIEW_REQUIRED",
+      "decision": "EXECUTIVE_REVIEW_REQUIRED",
+      "decisionReason": "RESERVE_VIOLATION",
+      "costSignal": "COST_OPTIMIZATION_OPPORTUNITY",
+      "dimensions": {
+        "requestVolume": "WARN",
+        "throughput": "PASS",
+        "queueDepth": "PASS",
+        "concurrency": "PASS",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "PASS",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "PASS",
+        "errorRate": "PASS",
+        "saturation": "PASS",
+        "workloadBacklog": "PASS",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "PASS",
+        "rollbackHeadroom": "FAIL",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 5,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 70,
+        "rollbackProtected": false,
+        "recoveryProtected": true,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": true,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": true
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "LOW",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "LOW"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-rollback-reserve-cannot-be-consumed-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 1,
+          "warnCount": 1,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": false,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "LOW",
+          "expectedDemand": "LOW"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "EXECUTIVE_REVIEW_REQUIRED",
+          "decision": "EXECUTIVE_REVIEW_REQUIRED",
+          "reason": "RESERVE_VIOLATION"
+        }
+      ]
+    },
+    {
+      "scenarioId": "SATURATION_THROTTLES_NONCRITICAL",
+      "category": "POSITIVE",
+      "optimizationState": "SATURATED",
+      "decision": "THROTTLE",
+      "decisionReason": "SATURATION_DETECTED",
+      "costSignal": "COST_PRESSURE",
+      "dimensions": {
+        "requestVolume": "FAIL",
+        "throughput": "FAIL",
+        "queueDepth": "FAIL",
+        "concurrency": "FAIL",
+        "cpuUtilization": "FAIL",
+        "memoryUtilization": "FAIL",
+        "storageUtilization": "WARN",
+        "databasePressure": "FAIL",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "WARN",
+        "errorRate": "WARN",
+        "saturation": "FAIL",
+        "workloadBacklog": "FAIL",
+        "freshnessObligations": "FAIL",
+        "priorityWorkloadShare": "FAIL",
+        "capacityHeadroom": "FAIL",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 3,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": false,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "HIGH",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "EXPANSION_REQUIRED",
+        "headroomRequirement": "INSUFFICIENT",
+        "riskLevel": "CRITICAL"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "SATURATED",
+          "actual": "SATURATED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "THROTTLE",
+          "actual": "THROTTLE"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-saturation-throttles-noncritical-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 12,
+          "warnCount": 3,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "CRITICAL",
+          "expectedDemand": "HIGH"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "SATURATED",
+          "decision": "THROTTLE",
+          "reason": "SATURATION_DETECTED"
+        }
+      ]
+    },
+    {
+      "scenarioId": "SECURITY_BLOCK_PREVENTS_OPTIMIZATION",
+      "category": "FAIL_CLOSED",
+      "optimizationState": "FAILED_CLOSED",
+      "decision": "FAILED_CLOSED",
+      "decisionReason": "SECURITY_HARD_STOP",
+      "costSignal": "COST_ACCEPTABLE",
+      "dimensions": {
+        "requestVolume": "PASS",
+        "throughput": "PASS",
+        "queueDepth": "PASS",
+        "concurrency": "PASS",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "PASS",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "PASS",
+        "errorRate": "PASS",
+        "saturation": "PASS",
+        "workloadBacklog": "PASS",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "PASS",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 50,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "LOW",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "LOW"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-security-block-prevents-optimization-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 0,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "LOW",
+          "expectedDemand": "LOW"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "FAILED_CLOSED",
+          "decision": "FAILED_CLOSED",
+          "reason": "SECURITY_HARD_STOP"
+        }
+      ]
+    },
+    {
+      "scenarioId": "SUSTAINED_UNDERUTILIZATION_RECOMMENDS_SCALE_DOWN",
+      "category": "POSITIVE",
+      "optimizationState": "UNDERUTILIZED",
+      "decision": "SCALE_DOWN_RECOMMENDED",
+      "decisionReason": "SUSTAINED_UNDERUTILIZATION",
+      "costSignal": "COST_OPTIMIZATION_OPPORTUNITY",
+      "dimensions": {
+        "requestVolume": "WARN",
+        "throughput": "PASS",
+        "queueDepth": "PASS",
+        "concurrency": "PASS",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "PASS",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "PASS",
+        "errorRate": "PASS",
+        "saturation": "PASS",
+        "workloadBacklog": "PASS",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "PASS",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 75,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "LOW",
+        "confidence": "MEDIUM",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "LOW"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "UNDERUTILIZED",
+          "actual": "UNDERUTILIZED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "SCALE_DOWN_RECOMMENDED",
+          "actual": "SCALE_DOWN_RECOMMENDED"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-sustained-underutilization-recommends-scale-down-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 1,
+          "unknownCritical": false
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "LOW",
+          "expectedDemand": "LOW"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "UNDERUTILIZED",
+          "decision": "SCALE_DOWN_RECOMMENDED",
+          "reason": "SUSTAINED_UNDERUTILIZATION"
+        }
+      ]
+    },
+    {
+      "scenarioId": "UNKNOWN_CAPACITY_STATE_FAILS_CLOSED",
+      "category": "FAIL_CLOSED",
+      "optimizationState": "FAILED_CLOSED",
+      "decision": "FAILED_CLOSED",
+      "decisionReason": "UNKNOWN_CRITICAL_DIMENSION",
+      "costSignal": "COST_ACCEPTABLE",
+      "dimensions": {
+        "requestVolume": "UNKNOWN",
+        "throughput": "PASS",
+        "queueDepth": "PASS",
+        "concurrency": "PASS",
+        "cpuUtilization": "PASS",
+        "memoryUtilization": "PASS",
+        "storageUtilization": "PASS",
+        "databasePressure": "PASS",
+        "providerCapacity": "PROVIDER_HEALTHY",
+        "providerRateLimits": "PASS",
+        "latency": "PASS",
+        "errorRate": "PASS",
+        "saturation": "PASS",
+        "workloadBacklog": "PASS",
+        "freshnessObligations": "PASS",
+        "priorityWorkloadShare": "PASS",
+        "capacityHeadroom": "PASS",
+        "rollbackHeadroom": "PASS",
+        "recoveryReserve": "PASS"
+      },
+      "headroom": {
+        "rollbackHeadroomPct": 20,
+        "recoveryReservePct": 15,
+        "capacityHeadroomPct": 50,
+        "rollbackProtected": true,
+        "recoveryProtected": true,
+        "headroomSufficient": true,
+        "wouldConsumeRollbackReserve": false,
+        "wouldConsumeRecoveryReserve": false,
+        "reserveViolation": false
+      },
+      "forecast": {
+        "window": "CURRENT",
+        "expectedDemand": "LOW",
+        "confidence": "LOW",
+        "capacityRequirement": "ADEQUATE",
+        "headroomRequirement": "SUFFICIENT",
+        "riskLevel": "UNKNOWN"
+      },
+      "tests": [
+        {
+          "name": "optimizationStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "a34CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noBillingMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "incidentBlockHonored",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noProductionMutation": true,
+      "evidenceRef": "a35-scenario-unknown-capacity-state-fails-closed-2026-08-09",
+      "auditTrail": [
+        {
+          "step": "A34_ASSURANCE_CHECK",
+          "certified": true
+        },
+        {
+          "step": "DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 0,
+          "unknownCritical": true
+        },
+        {
+          "step": "HEADROOM_EVALUATION",
+          "rollbackProtected": true,
+          "recoveryProtected": true
+        },
+        {
+          "step": "DEMAND_FORECAST",
+          "riskLevel": "UNKNOWN",
+          "expectedDemand": "LOW"
+        },
+        {
+          "step": "DECISION_DERIVED",
+          "state": "FAILED_CLOSED",
+          "decision": "FAILED_CLOSED",
+          "reason": "UNKNOWN_CRITICAL_DIMENSION"
+        }
+      ]
+    }
+  ],
+  "invariants": {
+    "a34AssuranceEvidenceRequired": true,
+    "p0CapacityProtected": true,
+    "rollbackReserveProtected": true,
+    "recoveryReserveProtected": true,
+    "criticalUnknownStateFailsClosed": true,
+    "billingMutationProhibited": true,
+    "procurementMutationProhibited": true,
+    "providerContactProhibitedDuringCertification": true,
+    "externalInfrastructureMutationProhibited": true,
+    "scaleDownCannotViolateMinimumHeadroom": true,
+    "scaleUpCannotBypassExecutiveBillingBoundary": true,
+    "securityHardStopsNonOverridable": true,
+    "incidentHardStopsPreserved": true,
+    "repeatedEvaluationsAreIdempotent": true,
+    "everyDecisionEmitsEvidence": true,
+    "allA15ToA34ControlsPreserved": true,
+    "healthyCapacityMaintains": true,
+    "lowUtilizationObserves": true,
+    "sustainedUnderutilizationRecommendsScaleDown": true,
+    "capacityPressureRecommendsScaleUp": true,
+    "saturationThrottlesNoncritical": true,
+    "backgroundWorkloadDefersFirst": true,
+    "providerRateLimitShiftsOrThrottles": true,
+    "providerUnavailableFailsClosedOrContains": true
+  },
+  "invariantPassCount": 24,
+  "invariantTotal": 24,
+  "certification": {
+    "allScenariosPassed": true,
+    "allInvariantsPassed": true,
+    "certificationPassed": true
+  },
+  "safetyBoundaries": {
+    "noBillingMutation": true,
+    "noProcurementMutation": true,
+    "noProviderContact": true,
+    "noExternalInfrastructureMutation": true,
+    "noRollbackReserveConsumption": true,
+    "noRecoveryReserveConsumption": true,
+    "securityHardStopsEnforced": true,
+    "incidentHardStopsEnforced": true
+  },
+  "noProductionMutation": true,
+  "completedAt": "2026-08-09T04:47:37.565Z"
+}
