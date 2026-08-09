@@ -1,0 +1,3876 @@
+{
+  "economicRunId": "a36-2026-08-09-5e5c3897b680",
+  "stage": "A36",
+  "mode": "SIMULATION",
+  "title": "Autonomous Cost, Budget & Economic Governance",
+  "generatedAt": "2026-08-09T05:05:31.119Z",
+  "policyVersion": "a36-economic-governance-policy.v1",
+  "sourceA35Evidence": {
+    "evidenceId": "a35-2026-08-09-bb4b7d4d1f50",
+    "certificationPassed": true,
+    "generatedAt": "2026-08-09T04:48:53.905Z"
+  },
+  "economicStateModel": [
+    "UNASSESSED",
+    "ASSESSING",
+    "WITHIN_BUDGET",
+    "COST_PRESSURE",
+    "BUDGET_PRESSURE",
+    "ECONOMICALLY_INEFFICIENT",
+    "OPTIMIZATION_RECOMMENDED",
+    "APPROVAL_REQUIRED",
+    "SPEND_BLOCKED",
+    "EXECUTIVE_REVIEW_REQUIRED",
+    "FAILED_CLOSED"
+  ],
+  "decisionClasses": [
+    "MAINTAIN",
+    "OBSERVE",
+    "OPTIMIZE",
+    "DEFER_NONCRITICAL",
+    "REDUCE_OPTIONAL_WORKLOAD",
+    "APPROVAL_REQUIRED",
+    "EXECUTIVE_REVIEW_REQUIRED",
+    "SPEND_BLOCKED",
+    "FAILED_CLOSED"
+  ],
+  "costDimensionStatuses": [
+    "PASS",
+    "WARN",
+    "FAIL",
+    "UNKNOWN"
+  ],
+  "budgetPeriods": [
+    "DAILY",
+    "MONTHLY",
+    "QUARTERLY"
+  ],
+  "anomalyTypes": [
+    "UNEXPECTED_COST_SPIKE",
+    "BUDGET_BURN_ACCELERATION",
+    "COST_PER_OUTPUT_REGRESSION",
+    "IDLE_CAPACITY_COST",
+    "PROVIDER_COST_ANOMALY",
+    "EGRESS_COST_ANOMALY",
+    "STORAGE_GROWTH_ANOMALY",
+    "UNKNOWN_COST_SOURCE"
+  ],
+  "prohibitedFinancialActions": [
+    "PAYMENT",
+    "PURCHASING",
+    "SUBSCRIPTION_CREATION",
+    "SUBSCRIPTION_UPGRADE",
+    "PROVIDER_PLAN_CHANGE",
+    "CONTRACT_ACCEPTANCE",
+    "CREDIT_CARD_USE",
+    "INVOICE_APPROVAL",
+    "FINANCIAL_TRANSFER",
+    "PAID_RESOURCE_PROVISIONING"
+  ],
+  "thresholds": {
+    "warningUtilizationThreshold": 0.7,
+    "approvalUtilizationThreshold": 0.8,
+    "hardStopUtilizationThreshold": 0.9
+  },
+  "scenarioCount": 18,
+  "passedCount": 18,
+  "failedCount": 0,
+  "scenarios": [
+    {
+      "scenarioId": "BACKGROUND_WORKLOAD_DEFERRED_FOR_COST",
+      "category": "POSITIVE",
+      "economicState": "BUDGET_PRESSURE",
+      "decision": "DEFER_NONCRITICAL",
+      "decisionReason": "BUDGET_PRESSURE_DEFER_NONCRITICAL",
+      "costDimensions": {
+        "currentOperatingCost": "WARN",
+        "projectedOperatingCost": "FAIL",
+        "marginalCost": "WARN",
+        "workloadCost": "WARN",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "WARN",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "WARN",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "WARN",
+        "budgetUtilization": "FAIL",
+        "remainingBudgetHeadroom": "WARN"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 8000,
+        "observedSpend": 8100,
+        "projectedSpend": 8600,
+        "remainingHeadroom": 1900,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.81,
+        "atWarning": true,
+        "atApproval": true,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 8100,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "MARGINAL"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "BUDGET_PRESSURE",
+          "actual": "BUDGET_PRESSURE"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "DEFER_NONCRITICAL",
+          "actual": "DEFER_NONCRITICAL"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "BACKGROUND_WORKLOAD_DEFERRED_FOR_COST",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 2,
+          "warnCount": 7,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.81,
+          "atWarning": true,
+          "atApproval": true,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "BUDGET_PRESSURE",
+          "decision": "DEFER_NONCRITICAL",
+          "reason": "BUDGET_PRESSURE_DEFER_NONCRITICAL"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "MARGINAL"
+        }
+      ]
+    },
+    {
+      "scenarioId": "BUDGET_WARNING_OBSERVES",
+      "category": "POSITIVE",
+      "economicState": "COST_PRESSURE",
+      "decision": "OBSERVE",
+      "decisionReason": "BUDGET_WARNING_THRESHOLD",
+      "costDimensions": {
+        "currentOperatingCost": "PASS",
+        "projectedOperatingCost": "WARN",
+        "marginalCost": "PASS",
+        "workloadCost": "PASS",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "PASS",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "PASS",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "WARN",
+        "budgetUtilization": "WARN",
+        "remainingBudgetHeadroom": "WARN"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 7200,
+        "observedSpend": 7100,
+        "projectedSpend": 7500,
+        "remainingHeadroom": 2500,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.71,
+        "atWarning": true,
+        "atApproval": false,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 7100,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "MARGINAL"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "COST_PRESSURE",
+          "actual": "COST_PRESSURE"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "OBSERVE",
+          "actual": "OBSERVE"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "BUDGET_WARNING_OBSERVES",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 4,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.71,
+          "atWarning": true,
+          "atApproval": false,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "COST_PRESSURE",
+          "decision": "OBSERVE",
+          "reason": "BUDGET_WARNING_THRESHOLD"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "MARGINAL"
+        }
+      ]
+    },
+    {
+      "scenarioId": "FINANCIAL_TRANSACTION_ATTEMPT_BLOCKED",
+      "category": "SAFETY",
+      "economicState": "FAILED_CLOSED",
+      "decision": "FAILED_CLOSED",
+      "decisionReason": "PROHIBITED_FINANCIAL_TRANSACTION",
+      "costDimensions": {
+        "currentOperatingCost": "PASS",
+        "projectedOperatingCost": "PASS",
+        "marginalCost": "PASS",
+        "workloadCost": "PASS",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "PASS",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "PASS",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "PASS",
+        "budgetUtilization": "PASS",
+        "remainingBudgetHeadroom": "PASS"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 4000,
+        "observedSpend": 3800,
+        "projectedSpend": 4500,
+        "remainingHeadroom": 5500,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.38,
+        "atWarning": false,
+        "atApproval": false,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": true,
+        "transactionType": "PAYMENT",
+        "isProhibited": true
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 3800,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "EFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "FINANCIAL_TRANSACTION_ATTEMPT_BLOCKED",
+          "category": "SAFETY",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 0,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.38,
+          "atWarning": false,
+          "atApproval": false,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": true,
+          "transactionType": "PAYMENT",
+          "isProhibited": true
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "FAILED_CLOSED",
+          "decision": "FAILED_CLOSED",
+          "reason": "PROHIBITED_FINANCIAL_TRANSACTION"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "EFFICIENT"
+        }
+      ]
+    },
+    {
+      "scenarioId": "HARD_BUDGET_LIMIT_BLOCKS_SPEND",
+      "category": "SAFETY",
+      "economicState": "SPEND_BLOCKED",
+      "decision": "SPEND_BLOCKED",
+      "decisionReason": "HARD_BUDGET_LIMIT_REACHED",
+      "costDimensions": {
+        "currentOperatingCost": "FAIL",
+        "projectedOperatingCost": "FAIL",
+        "marginalCost": "FAIL",
+        "workloadCost": "FAIL",
+        "providerCostExposure": "WARN",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "FAIL",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "FAIL",
+        "costPerSuccessfulOutput": "FAIL",
+        "costTrend": "FAIL",
+        "budgetUtilization": "FAIL",
+        "remainingBudgetHeadroom": "FAIL"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 9200,
+        "observedSpend": 9100,
+        "projectedSpend": 9600,
+        "remainingHeadroom": 400,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.91,
+        "atWarning": true,
+        "atApproval": true,
+        "atHardStop": true
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 9100,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "INEFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "SPEND_BLOCKED",
+          "actual": "SPEND_BLOCKED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "SPEND_BLOCKED",
+          "actual": "SPEND_BLOCKED"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "HARD_BUDGET_LIMIT_BLOCKS_SPEND",
+          "category": "SAFETY",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 10,
+          "warnCount": 1,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.91,
+          "atWarning": true,
+          "atApproval": true,
+          "atHardStop": true
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "SPEND_BLOCKED",
+          "decision": "SPEND_BLOCKED",
+          "reason": "HARD_BUDGET_LIMIT_REACHED"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "INEFFICIENT"
+        }
+      ]
+    },
+    {
+      "scenarioId": "HEALTHY_BUDGET_MAINTAINS",
+      "category": "POSITIVE",
+      "economicState": "WITHIN_BUDGET",
+      "decision": "MAINTAIN",
+      "decisionReason": "HEALTHY_BUDGET",
+      "costDimensions": {
+        "currentOperatingCost": "PASS",
+        "projectedOperatingCost": "PASS",
+        "marginalCost": "PASS",
+        "workloadCost": "PASS",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "PASS",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "PASS",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "PASS",
+        "budgetUtilization": "PASS",
+        "remainingBudgetHeadroom": "PASS"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 3000,
+        "observedSpend": 2800,
+        "projectedSpend": 3200,
+        "remainingHeadroom": 6800,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.28,
+        "atWarning": false,
+        "atApproval": false,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 2800,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "EFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "WITHIN_BUDGET",
+          "actual": "WITHIN_BUDGET"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "MAINTAIN",
+          "actual": "MAINTAIN"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "HEALTHY_BUDGET_MAINTAINS",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 0,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.28,
+          "atWarning": false,
+          "atApproval": false,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "WITHIN_BUDGET",
+          "decision": "MAINTAIN",
+          "reason": "HEALTHY_BUDGET"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "EFFICIENT"
+        }
+      ]
+    },
+    {
+      "scenarioId": "MISSING_BUDGET_FAILS_CLOSED",
+      "category": "SAFETY",
+      "economicState": "FAILED_CLOSED",
+      "decision": "FAILED_CLOSED",
+      "decisionReason": "MISSING_AUTHORITATIVE_BUDGET",
+      "costDimensions": {
+        "currentOperatingCost": "UNKNOWN",
+        "projectedOperatingCost": "UNKNOWN",
+        "marginalCost": "UNKNOWN",
+        "workloadCost": "UNKNOWN",
+        "providerCostExposure": "UNKNOWN",
+        "storageCostExposure": "UNKNOWN",
+        "computeCostExposure": "UNKNOWN",
+        "databaseCostExposure": "UNKNOWN",
+        "networkEgressCostExposure": "UNKNOWN",
+        "reservedCapacityCost": "UNKNOWN",
+        "recoveryReserveCost": "UNKNOWN",
+        "rollbackReserveCost": "UNKNOWN",
+        "costPerWorkloadUnit": "UNKNOWN",
+        "costPerSuccessfulOutput": "UNKNOWN",
+        "costTrend": "UNKNOWN",
+        "budgetUtilization": "UNKNOWN",
+        "remainingBudgetHeadroom": "UNKNOWN"
+      },
+      "budgetEnvelope": {
+        "present": false,
+        "utilization": null,
+        "atWarning": false,
+        "atApproval": false,
+        "atHardStop": false,
+        "period": null
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": "UNKNOWN",
+        "estimatedBenefit": "UNKNOWN",
+        "marginalCost": "UNKNOWN",
+        "utilizationBenefit": "UNKNOWN",
+        "reliabilityBenefit": "UNKNOWN",
+        "freshnessBenefit": "UNKNOWN",
+        "protectedCapacityImpact": "UNKNOWN",
+        "economicEfficiency": "UNKNOWN"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "MISSING_BUDGET_FAILS_CLOSED",
+          "category": "SAFETY",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 0,
+          "unknownCritical": true
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": false,
+          "utilization": null,
+          "atWarning": false,
+          "atApproval": false,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "FAILED_CLOSED",
+          "decision": "FAILED_CLOSED",
+          "reason": "MISSING_AUTHORITATIVE_BUDGET"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "UNKNOWN"
+        }
+      ]
+    },
+    {
+      "scenarioId": "P0_CAPACITY_NOT_REDUCED_FOR_COST",
+      "category": "SAFETY",
+      "economicState": "BUDGET_PRESSURE",
+      "decision": "OPTIMIZE",
+      "decisionReason": "RESERVE_REDUCTION_REJECTED_OPTIMIZE_ELSEWHERE",
+      "costDimensions": {
+        "currentOperatingCost": "WARN",
+        "projectedOperatingCost": "FAIL",
+        "marginalCost": "WARN",
+        "workloadCost": "WARN",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "WARN",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "WARN",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "WARN",
+        "budgetUtilization": "FAIL",
+        "remainingBudgetHeadroom": "WARN"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 8500,
+        "observedSpend": 8300,
+        "projectedSpend": 8900,
+        "remainingHeadroom": 1100,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.83,
+        "atWarning": true,
+        "atApproval": true,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": false,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": true
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 8300,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "INEFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "BUDGET_PRESSURE",
+          "actual": "BUDGET_PRESSURE"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "OPTIMIZE",
+          "actual": "OPTIMIZE"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "P0_CAPACITY_NOT_REDUCED_FOR_COST",
+          "category": "SAFETY",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 2,
+          "warnCount": 7,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.83,
+          "atWarning": true,
+          "atApproval": true,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": false,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": true
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "BUDGET_PRESSURE",
+          "decision": "OPTIMIZE",
+          "reason": "RESERVE_REDUCTION_REJECTED_OPTIMIZE_ELSEWHERE"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "INEFFICIENT"
+        }
+      ]
+    },
+    {
+      "scenarioId": "PROJECTED_BUDGET_PRESSURE_OPTIMIZES",
+      "category": "POSITIVE",
+      "economicState": "BUDGET_PRESSURE",
+      "decision": "OPTIMIZE",
+      "decisionReason": "BUDGET_PRESSURE_OPTIMIZE",
+      "costDimensions": {
+        "currentOperatingCost": "WARN",
+        "projectedOperatingCost": "FAIL",
+        "marginalCost": "WARN",
+        "workloadCost": "WARN",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "WARN",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "WARN",
+        "costPerSuccessfulOutput": "WARN",
+        "costTrend": "FAIL",
+        "budgetUtilization": "FAIL",
+        "remainingBudgetHeadroom": "WARN"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 8100,
+        "observedSpend": 8100,
+        "projectedSpend": 8800,
+        "remainingHeadroom": 1900,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.81,
+        "atWarning": true,
+        "atApproval": true,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 8100,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "MARGINAL"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "BUDGET_PRESSURE",
+          "actual": "BUDGET_PRESSURE"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "OPTIMIZE",
+          "actual": "OPTIMIZE"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "PROJECTED_BUDGET_PRESSURE_OPTIMIZES",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 3,
+          "warnCount": 7,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.81,
+          "atWarning": true,
+          "atApproval": true,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "BUDGET_PRESSURE",
+          "decision": "OPTIMIZE",
+          "reason": "BUDGET_PRESSURE_OPTIMIZE"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "MARGINAL"
+        }
+      ]
+    },
+    {
+      "scenarioId": "PROVIDER_COST_ANOMALY_ESCALATES",
+      "category": "ANOMALY",
+      "economicState": "EXECUTIVE_REVIEW_REQUIRED",
+      "decision": "EXECUTIVE_REVIEW_REQUIRED",
+      "decisionReason": "PROVIDER_COST_ANOMALY_ESCALATION",
+      "costDimensions": {
+        "currentOperatingCost": "PASS",
+        "projectedOperatingCost": "WARN",
+        "marginalCost": "PASS",
+        "workloadCost": "PASS",
+        "providerCostExposure": "FAIL",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "PASS",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "PASS",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "WARN",
+        "budgetUtilization": "PASS",
+        "remainingBudgetHeadroom": "PASS"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 5500,
+        "observedSpend": 5300,
+        "projectedSpend": 7800,
+        "remainingHeadroom": 2200,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.53,
+        "atWarning": false,
+        "atApproval": false,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [
+          "PROVIDER_COST_ANOMALY"
+        ],
+        "criticalAnomalies": [
+          "PROVIDER_COST_ANOMALY"
+        ],
+        "hasCriticalAnomaly": true
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 5300,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "EFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "PROVIDER_COST_ANOMALY_ESCALATES",
+          "category": "ANOMALY",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 1,
+          "warnCount": 2,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.53,
+          "atWarning": false,
+          "atApproval": false,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [
+            "PROVIDER_COST_ANOMALY"
+          ],
+          "criticalAnomalies": [
+            "PROVIDER_COST_ANOMALY"
+          ],
+          "hasCriticalAnomaly": true
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "EXECUTIVE_REVIEW_REQUIRED",
+          "decision": "EXECUTIVE_REVIEW_REQUIRED",
+          "reason": "PROVIDER_COST_ANOMALY_ESCALATION"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "EFFICIENT"
+        }
+      ]
+    },
+    {
+      "scenarioId": "RECOVERY_RESERVE_NOT_REDUCED_FOR_COST",
+      "category": "SAFETY",
+      "economicState": "BUDGET_PRESSURE",
+      "decision": "OPTIMIZE",
+      "decisionReason": "RESERVE_REDUCTION_REJECTED_OPTIMIZE_ELSEWHERE",
+      "costDimensions": {
+        "currentOperatingCost": "WARN",
+        "projectedOperatingCost": "FAIL",
+        "marginalCost": "PASS",
+        "workloadCost": "PASS",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "WARN",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "PASS",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "WARN",
+        "budgetUtilization": "FAIL",
+        "remainingBudgetHeadroom": "WARN"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 8200,
+        "observedSpend": 8000,
+        "projectedSpend": 8700,
+        "remainingHeadroom": 1300,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.8,
+        "atWarning": true,
+        "atApproval": true,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": false,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": true
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 8000,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "MARGINAL"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "BUDGET_PRESSURE",
+          "actual": "BUDGET_PRESSURE"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "OPTIMIZE",
+          "actual": "OPTIMIZE"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "RECOVERY_RESERVE_NOT_REDUCED_FOR_COST",
+          "category": "SAFETY",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 2,
+          "warnCount": 4,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.8,
+          "atWarning": true,
+          "atApproval": true,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": false,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": true
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "BUDGET_PRESSURE",
+          "decision": "OPTIMIZE",
+          "reason": "RESERVE_REDUCTION_REJECTED_OPTIMIZE_ELSEWHERE"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "MARGINAL"
+        }
+      ]
+    },
+    {
+      "scenarioId": "REPEATED_IDENTICAL_EVALUATION_IS_IDEMPOTENT",
+      "category": "INVARIANT",
+      "economicState": "WITHIN_BUDGET",
+      "decision": "MAINTAIN",
+      "decisionReason": "HEALTHY_BUDGET",
+      "costDimensions": {
+        "currentOperatingCost": "PASS",
+        "projectedOperatingCost": "PASS",
+        "marginalCost": "PASS",
+        "workloadCost": "PASS",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "PASS",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "PASS",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "PASS",
+        "budgetUtilization": "PASS",
+        "remainingBudgetHeadroom": "PASS"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 3000,
+        "observedSpend": 2800,
+        "projectedSpend": 3200,
+        "remainingHeadroom": 6800,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.28,
+        "atWarning": false,
+        "atApproval": false,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 2800,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "EFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "WITHIN_BUDGET",
+          "actual": "WITHIN_BUDGET"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "MAINTAIN",
+          "actual": "MAINTAIN"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "idempotencyVerified": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "REPEATED_IDENTICAL_EVALUATION_IS_IDEMPOTENT",
+          "category": "INVARIANT",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 0,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.28,
+          "atWarning": false,
+          "atApproval": false,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "WITHIN_BUDGET",
+          "decision": "MAINTAIN",
+          "reason": "HEALTHY_BUDGET"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "EFFICIENT"
+        },
+        {
+          "step": "IDEMPOTENCY_CHECK",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "scenarioId": "ROLLBACK_RESERVE_NOT_REDUCED_FOR_COST",
+      "category": "SAFETY",
+      "economicState": "BUDGET_PRESSURE",
+      "decision": "OPTIMIZE",
+      "decisionReason": "RESERVE_REDUCTION_REJECTED_OPTIMIZE_ELSEWHERE",
+      "costDimensions": {
+        "currentOperatingCost": "WARN",
+        "projectedOperatingCost": "FAIL",
+        "marginalCost": "PASS",
+        "workloadCost": "PASS",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "WARN",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "PASS",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "WARN",
+        "budgetUtilization": "FAIL",
+        "remainingBudgetHeadroom": "WARN"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 8200,
+        "observedSpend": 8000,
+        "projectedSpend": 8700,
+        "remainingHeadroom": 1300,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.8,
+        "atWarning": true,
+        "atApproval": true,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": false,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": true
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 8000,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "MARGINAL"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "BUDGET_PRESSURE",
+          "actual": "BUDGET_PRESSURE"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "OPTIMIZE",
+          "actual": "OPTIMIZE"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "ROLLBACK_RESERVE_NOT_REDUCED_FOR_COST",
+          "category": "SAFETY",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 2,
+          "warnCount": 4,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.8,
+          "atWarning": true,
+          "atApproval": true,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": false,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": true
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "BUDGET_PRESSURE",
+          "decision": "OPTIMIZE",
+          "reason": "RESERVE_REDUCTION_REJECTED_OPTIMIZE_ELSEWHERE"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "MARGINAL"
+        }
+      ]
+    },
+    {
+      "scenarioId": "SCALE_DOWN_ECONOMICALLY_SUPPORTED",
+      "category": "POSITIVE",
+      "economicState": "OPTIMIZATION_RECOMMENDED",
+      "decision": "OPTIMIZE",
+      "decisionReason": "SCALE_DOWN_ECONOMICALLY_SUPPORTED",
+      "costDimensions": {
+        "currentOperatingCost": "PASS",
+        "projectedOperatingCost": "PASS",
+        "marginalCost": "PASS",
+        "workloadCost": "PASS",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "PASS",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "WARN",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "PASS",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "PASS",
+        "budgetUtilization": "PASS",
+        "remainingBudgetHeadroom": "PASS"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 6000,
+        "observedSpend": 5800,
+        "projectedSpend": 5500,
+        "remainingHeadroom": 4500,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.58,
+        "atWarning": false,
+        "atApproval": false,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 5800,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "EFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "OPTIMIZATION_RECOMMENDED",
+          "actual": "OPTIMIZATION_RECOMMENDED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "OPTIMIZE",
+          "actual": "OPTIMIZE"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "SCALE_DOWN_ECONOMICALLY_SUPPORTED",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 1,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.58,
+          "atWarning": false,
+          "atApproval": false,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "OPTIMIZATION_RECOMMENDED",
+          "decision": "OPTIMIZE",
+          "reason": "SCALE_DOWN_ECONOMICALLY_SUPPORTED"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "EFFICIENT"
+        }
+      ]
+    },
+    {
+      "scenarioId": "SCALE_UP_OVER_BUDGET_BLOCKED",
+      "category": "SAFETY",
+      "economicState": "SPEND_BLOCKED",
+      "decision": "SPEND_BLOCKED",
+      "decisionReason": "HARD_BUDGET_LIMIT_REACHED",
+      "costDimensions": {
+        "currentOperatingCost": "FAIL",
+        "projectedOperatingCost": "FAIL",
+        "marginalCost": "FAIL",
+        "workloadCost": "FAIL",
+        "providerCostExposure": "FAIL",
+        "storageCostExposure": "FAIL",
+        "computeCostExposure": "FAIL",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "FAIL",
+        "costPerSuccessfulOutput": "FAIL",
+        "costTrend": "FAIL",
+        "budgetUtilization": "FAIL",
+        "remainingBudgetHeadroom": "FAIL"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 9500,
+        "observedSpend": 9400,
+        "projectedSpend": 9900,
+        "remainingHeadroom": 100,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.94,
+        "atWarning": true,
+        "atApproval": true,
+        "atHardStop": true
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 9400,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "INEFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "SPEND_BLOCKED",
+          "actual": "SPEND_BLOCKED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "SPEND_BLOCKED",
+          "actual": "SPEND_BLOCKED"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "SCALE_UP_OVER_BUDGET_BLOCKED",
+          "category": "SAFETY",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 12,
+          "warnCount": 0,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.94,
+          "atWarning": true,
+          "atApproval": true,
+          "atHardStop": true
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "SPEND_BLOCKED",
+          "decision": "SPEND_BLOCKED",
+          "reason": "HARD_BUDGET_LIMIT_REACHED"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "INEFFICIENT"
+        }
+      ]
+    },
+    {
+      "scenarioId": "SCALE_UP_WITHIN_BUDGET_REQUIRES_APPROVAL",
+      "category": "POSITIVE",
+      "economicState": "WITHIN_BUDGET",
+      "decision": "APPROVAL_REQUIRED",
+      "decisionReason": "SCALE_UP_ALWAYS_REQUIRES_APPROVAL",
+      "costDimensions": {
+        "currentOperatingCost": "PASS",
+        "projectedOperatingCost": "PASS",
+        "marginalCost": "WARN",
+        "workloadCost": "PASS",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "WARN",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "PASS",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "PASS",
+        "budgetUtilization": "PASS",
+        "remainingBudgetHeadroom": "PASS"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 5000,
+        "observedSpend": 4800,
+        "projectedSpend": 5500,
+        "remainingHeadroom": 4500,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.48,
+        "atWarning": false,
+        "atApproval": false,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 4800,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "EFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "WITHIN_BUDGET",
+          "actual": "WITHIN_BUDGET"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "APPROVAL_REQUIRED",
+          "actual": "APPROVAL_REQUIRED"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "SCALE_UP_WITHIN_BUDGET_REQUIRES_APPROVAL",
+          "category": "POSITIVE",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 2,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.48,
+          "atWarning": false,
+          "atApproval": false,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "WITHIN_BUDGET",
+          "decision": "APPROVAL_REQUIRED",
+          "reason": "SCALE_UP_ALWAYS_REQUIRES_APPROVAL"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "EFFICIENT"
+        }
+      ]
+    },
+    {
+      "scenarioId": "SECURITY_CAPACITY_NOT_REDUCED_FOR_COST",
+      "category": "SAFETY",
+      "economicState": "BUDGET_PRESSURE",
+      "decision": "OPTIMIZE",
+      "decisionReason": "RESERVE_REDUCTION_REJECTED_OPTIMIZE_ELSEWHERE",
+      "costDimensions": {
+        "currentOperatingCost": "WARN",
+        "projectedOperatingCost": "FAIL",
+        "marginalCost": "PASS",
+        "workloadCost": "PASS",
+        "providerCostExposure": "PASS",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "WARN",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "PASS",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "WARN",
+        "budgetUtilization": "FAIL",
+        "remainingBudgetHeadroom": "WARN"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 8500,
+        "observedSpend": 8300,
+        "projectedSpend": 8900,
+        "remainingHeadroom": 1100,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.83,
+        "atWarning": true,
+        "atApproval": true,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": false,
+        "reserveViolationAttempted": true
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 8300,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "INEFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "BUDGET_PRESSURE",
+          "actual": "BUDGET_PRESSURE"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "OPTIMIZE",
+          "actual": "OPTIMIZE"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "SECURITY_CAPACITY_NOT_REDUCED_FOR_COST",
+          "category": "SAFETY",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 2,
+          "warnCount": 4,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.83,
+          "atWarning": true,
+          "atApproval": true,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": false,
+          "reserveViolationAttempted": true
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "BUDGET_PRESSURE",
+          "decision": "OPTIMIZE",
+          "reason": "RESERVE_REDUCTION_REJECTED_OPTIMIZE_ELSEWHERE"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "INEFFICIENT"
+        }
+      ]
+    },
+    {
+      "scenarioId": "UNEXPECTED_COST_SPIKE_BLOCKS_DISCRETIONARY_SPEND",
+      "category": "ANOMALY",
+      "economicState": "SPEND_BLOCKED",
+      "decision": "SPEND_BLOCKED",
+      "decisionReason": "CRITICAL_COST_ANOMALY_DETECTED",
+      "costDimensions": {
+        "currentOperatingCost": "WARN",
+        "projectedOperatingCost": "FAIL",
+        "marginalCost": "FAIL",
+        "workloadCost": "WARN",
+        "providerCostExposure": "WARN",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "WARN",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "FAIL",
+        "costPerSuccessfulOutput": "FAIL",
+        "costTrend": "FAIL",
+        "budgetUtilization": "PASS",
+        "remainingBudgetHeadroom": "PASS"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 6000,
+        "observedSpend": 5800,
+        "projectedSpend": 7500,
+        "remainingHeadroom": 2500,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.58,
+        "atWarning": false,
+        "atApproval": false,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [
+          "UNEXPECTED_COST_SPIKE",
+          "BUDGET_BURN_ACCELERATION"
+        ],
+        "criticalAnomalies": [
+          "UNEXPECTED_COST_SPIKE",
+          "BUDGET_BURN_ACCELERATION"
+        ],
+        "hasCriticalAnomaly": true
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 5800,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "EFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "SPEND_BLOCKED",
+          "actual": "SPEND_BLOCKED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "SPEND_BLOCKED",
+          "actual": "SPEND_BLOCKED"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "UNEXPECTED_COST_SPIKE_BLOCKS_DISCRETIONARY_SPEND",
+          "category": "ANOMALY",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 5,
+          "warnCount": 4,
+          "unknownCritical": false
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.58,
+          "atWarning": false,
+          "atApproval": false,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [
+            "UNEXPECTED_COST_SPIKE",
+            "BUDGET_BURN_ACCELERATION"
+          ],
+          "criticalAnomalies": [
+            "UNEXPECTED_COST_SPIKE",
+            "BUDGET_BURN_ACCELERATION"
+          ],
+          "hasCriticalAnomaly": true
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "SPEND_BLOCKED",
+          "decision": "SPEND_BLOCKED",
+          "reason": "CRITICAL_COST_ANOMALY_DETECTED"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "EFFICIENT"
+        }
+      ]
+    },
+    {
+      "scenarioId": "UNKNOWN_PRICE_REQUIRES_REVIEW",
+      "category": "SAFETY",
+      "economicState": "EXECUTIVE_REVIEW_REQUIRED",
+      "decision": "EXECUTIVE_REVIEW_REQUIRED",
+      "decisionReason": "UNKNOWN_CRITICAL_PRICE_WITH_SCALE_REQUEST",
+      "costDimensions": {
+        "currentOperatingCost": "PASS",
+        "projectedOperatingCost": "UNKNOWN",
+        "marginalCost": "UNKNOWN",
+        "workloadCost": "PASS",
+        "providerCostExposure": "UNKNOWN",
+        "storageCostExposure": "PASS",
+        "computeCostExposure": "UNKNOWN",
+        "databaseCostExposure": "PASS",
+        "networkEgressCostExposure": "PASS",
+        "reservedCapacityCost": "PASS",
+        "recoveryReserveCost": "PASS",
+        "rollbackReserveCost": "PASS",
+        "costPerWorkloadUnit": "PASS",
+        "costPerSuccessfulOutput": "PASS",
+        "costTrend": "PASS",
+        "budgetUtilization": "PASS",
+        "remainingBudgetHeadroom": "PASS"
+      },
+      "budgetEnvelope": {
+        "present": true,
+        "period": "MONTHLY",
+        "budgetLimit": 10000,
+        "committedAmount": 4000,
+        "observedSpend": 3800,
+        "projectedSpend": 4200,
+        "remainingHeadroom": 5800,
+        "currency": "USD",
+        "evidenceTimestamp": "2026-08-01T00:00:00Z",
+        "utilization": 0.38,
+        "atWarning": false,
+        "atApproval": false,
+        "atHardStop": false
+      },
+      "protectedReserves": {
+        "rollbackReserveIntact": true,
+        "recoveryReserveIntact": true,
+        "p0CapacityIntact": true,
+        "securityCapacityIntact": true,
+        "reserveViolationAttempted": false
+      },
+      "anomalyDetection": {
+        "detected": [],
+        "criticalAnomalies": [],
+        "hasCriticalAnomaly": false
+      },
+      "financialBoundary": {
+        "financialTransactionAttempted": false,
+        "transactionType": null,
+        "isProhibited": false
+      },
+      "costValueAnalysis": {
+        "estimatedCost": 3800,
+        "estimatedBenefit": "SIMULATION_ONLY",
+        "marginalCost": "SIMULATION_ONLY",
+        "utilizationBenefit": "SIMULATION_ONLY",
+        "reliabilityBenefit": "SIMULATION_ONLY",
+        "freshnessBenefit": "SIMULATION_ONLY",
+        "protectedCapacityImpact": "SIMULATION_ONLY",
+        "economicEfficiency": "EFFICIENT"
+      },
+      "tests": [
+        {
+          "name": "economicStateMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "a35CertificationPresent",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "noFinancialMutation",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "prohibitedTransactionBlocked",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "missingBudgetFailsClosed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "unknownCriticalCannotAuthorizeSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "hardBudgetLimitCannotBeBypassed",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "rollbackReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "recoveryReserveProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "p0CapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "securityCapacityProtected",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "name": "criticalAnomalyBlocksSpend",
+          "passed": true,
+          "expected": true,
+          "actual": true
+        }
+      ],
+      "passed": true,
+      "noFinancialMutation": true,
+      "evidenceRef": "/home/runner/work/kaios_enterprise_repo/kaios_enterprise_repo/services/kidults-autonomous-intelligence/reports/economic-governance/a36-economic-governance-2026-08-09-<runId>.json",
+      "auditTrail": [
+        {
+          "step": "SCENARIO_START",
+          "scenarioId": "UNKNOWN_PRICE_REQUIRES_REVIEW",
+          "category": "SAFETY",
+          "timestamp": "2026-08-09T05:05:31.119Z"
+        },
+        {
+          "step": "A35_CERTIFICATION_CHECK",
+          "certified": true
+        },
+        {
+          "step": "COST_DIMENSION_EVALUATION",
+          "failCount": 0,
+          "warnCount": 0,
+          "unknownCritical": true
+        },
+        {
+          "step": "BUDGET_ENVELOPE_EVALUATION",
+          "present": true,
+          "utilization": 0.38,
+          "atWarning": false,
+          "atApproval": false,
+          "atHardStop": false
+        },
+        {
+          "step": "PROTECTED_RESERVES_CHECK",
+          "rollbackReserveIntact": true,
+          "recoveryReserveIntact": true,
+          "p0CapacityIntact": true,
+          "securityCapacityIntact": true,
+          "reserveViolationAttempted": false
+        },
+        {
+          "step": "ANOMALY_DETECTION",
+          "detected": [],
+          "criticalAnomalies": [],
+          "hasCriticalAnomaly": false
+        },
+        {
+          "step": "FINANCIAL_BOUNDARY_CHECK",
+          "financialTransactionAttempted": false,
+          "transactionType": null,
+          "isProhibited": false
+        },
+        {
+          "step": "ECONOMIC_DECISION_DERIVED",
+          "state": "EXECUTIVE_REVIEW_REQUIRED",
+          "decision": "EXECUTIVE_REVIEW_REQUIRED",
+          "reason": "UNKNOWN_CRITICAL_PRICE_WITH_SCALE_REQUEST"
+        },
+        {
+          "step": "COST_VALUE_ANALYSIS",
+          "economicEfficiency": "EFFICIENT"
+        }
+      ]
+    }
+  ],
+  "invariants": {
+    "a35CertifiedEvidenceRequired": true,
+    "noAutonomousPayment": true,
+    "noAutonomousProcurement": true,
+    "noAutonomousSubscriptionChange": true,
+    "noAutonomousProviderPlanChange": true,
+    "noAutonomousFinancialCommitment": true,
+    "missingAuthoritativeBudgetFailsClosed": true,
+    "unknownCriticalPriceCannotAuthorizeSpend": true,
+    "hardBudgetLimitCannotBeBypassed": true,
+    "p0CapacityRemainsProtected": true,
+    "rollbackReserveRemainsProtected": true,
+    "recoveryReserveRemainsProtected": true,
+    "securityCapacityRemainsProtected": true,
+    "executiveAuthorityCannotBypassSecurityHardStops": true,
+    "economicOptimizationCannotWeakenA15ToA35Controls": true,
+    "everyEconomicDecisionEmitsEvidence": true,
+    "repeatedEvaluationIsIdempotent": true,
+    "certificationCausesNoExternalFinancialMutation": true,
+    "healthyBudgetMaintains": true,
+    "budgetWarningObserves": true,
+    "projectedBudgetPressureOptimizes": true,
+    "hardBudgetLimitBlocksSpend": true,
+    "scaleUpWithinBudgetRequiresApproval": true,
+    "scaleUpOverBudgetBlocked": true,
+    "scaleDownEconomicallySupported": true,
+    "backgroundWorkloadDeferredForCost": true,
+    "unexpectedCostSpikeBlocksDiscretionarySpend": true,
+    "providerCostAnomalyEscalates": true,
+    "financialTransactionAttemptBlocked": true
+  },
+  "invariantPassCount": 29,
+  "invariantTotal": 29,
+  "certification": {
+    "allScenariosPassed": true,
+    "allInvariantsPassed": true,
+    "certificationPassed": true
+  },
+  "financialAuthorityBoundary": {
+    "noPayment": true,
+    "noPurchasing": true,
+    "noSubscriptionCreation": true,
+    "noSubscriptionUpgrade": true,
+    "noProviderPlanChange": true,
+    "noContractAcceptance": true,
+    "noCreditCardUse": true,
+    "noInvoiceApproval": true,
+    "noFinancialTransfer": true,
+    "noPaidResourceProvisioning": true
+  },
+  "noFinancialMutation": true,
+  "completedAt": "2026-08-09T05:05:31.133Z"
+}
