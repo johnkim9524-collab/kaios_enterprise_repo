@@ -1,0 +1,323 @@
+{
+  "evidenceId": "a31-control-tower-gateway-2026-08-09-25d045ba",
+  "stage": "A31",
+  "mode": "EVIDENCE",
+  "title": "Executive Control Tower Live Integration & Governed Action Gateway",
+  "generatedAt": "2026-08-09T01:23:57.918Z",
+  "policyVersion": "a31-gateway-policy.v1",
+  "canonicalInputs": {
+    "a28SnapshotId": "a28-control-tower-2026-08-08-fb016f40",
+    "a29EvidenceId": "a29-executive-decision-2026-08-08-a25fdc06"
+  },
+  "liveAdapters": [
+    "A28 control tower snapshot",
+    "A29 active executive decisions",
+    "A27 incident/SLO state (when available)",
+    "A26 recovery state (when available)",
+    "A25 runtime state (when available)",
+    "A24 activation state (when available)",
+    "A23 commercial state (when available)",
+    "A22 publication state (when available)",
+    "provider state",
+    "security state"
+  ],
+  "routes": [
+    "GET /control-tower/snapshot",
+    "GET /control-tower/decisions",
+    "GET /control-tower/decisions/:id",
+    "POST /control-tower/decisions/:id/action",
+    "GET /control-tower/actions/:requestId"
+  ],
+  "supportedActions": [
+    "ACKNOWLEDGE",
+    "APPROVE",
+    "APPROVE_LIMITED_SCOPE",
+    "REJECT",
+    "DEFER",
+    "MAINTAIN_FREEZE",
+    "RELEASE_FREEZE",
+    "ALLOW_DEGRADED_OPERATION",
+    "HALT_SCOPE",
+    "RESUME_SCOPE"
+  ],
+  "dataModes": [
+    "LIVE",
+    "EVIDENCE",
+    "DEMO"
+  ],
+  "freshnessClasses": [
+    "FRESH",
+    "AGING",
+    "STALE",
+    "UNKNOWN"
+  ],
+  "freshnessChecks": {
+    "current": "STALE",
+    "staleBlocksAction": true,
+    "unknownBlocksAction": true,
+    "freshWindowMs": 300000,
+    "agingWindowMs": 900000,
+    "staleCutoffMs": 1800000
+  },
+  "authorityChecks": {
+    "clientAuthorityAdvisoryOnly": true,
+    "serverPolicyAuthoritative": true,
+    "authorityNotSelfElevatable": true
+  },
+  "idempotency": {
+    "keyRequired": true,
+    "minKeyLength": 8,
+    "duplicateReturnsCanonicialResult": true
+  },
+  "locking": {
+    "oneActiveRequestPerDecision": true,
+    "concurrentRequestsReturnInProgress": true
+  },
+  "positiveTests": [
+    {
+      "name": "1. LIVE snapshot loads",
+      "passed": true
+    },
+    {
+      "name": "2. evidence freshness displayed",
+      "passed": true
+    },
+    {
+      "name": "3. decision detail loads",
+      "passed": true
+    },
+    {
+      "name": "4. approve limited scope accepted",
+      "passed": true
+    },
+    {
+      "name": "5. duplicate request returns canonical result",
+      "passed": true
+    },
+    {
+      "name": "6. preflight progress visible",
+      "passed": true
+    },
+    {
+      "name": "7. execution state visible",
+      "passed": true
+    },
+    {
+      "name": "8. verification result visible",
+      "passed": true
+    },
+    {
+      "name": "9. rollback result visible",
+      "passed": true
+    },
+    {
+      "name": "10. UI refreshes after action",
+      "passed": true
+    },
+    {
+      "name": "11. business-readable gateway error shown",
+      "passed": true
+    },
+    {
+      "name": "12. mobile action flow works",
+      "passed": true
+    }
+  ],
+  "failClosedTests": [
+    {
+      "name": "1. stale evidence blocks action",
+      "passed": true
+    },
+    {
+      "name": "2. unknown evidence blocks action",
+      "passed": true
+    },
+    {
+      "name": "3. insufficient authority (server-side validated)",
+      "passed": true
+    },
+    {
+      "name": "4. expired decision blocked",
+      "passed": true
+    },
+    {
+      "name": "5. superseded decision blocked",
+      "passed": true
+    },
+    {
+      "name": "6. arbitrary action blocked",
+      "passed": true
+    },
+    {
+      "name": "7. arbitrary payload blocked (no arbitrary command field)",
+      "passed": true
+    },
+    {
+      "name": "8. direct publication mutation attempt blocked",
+      "passed": true
+    },
+    {
+      "name": "9. direct commercial mutation attempt blocked",
+      "passed": true
+    },
+    {
+      "name": "10. direct provider mutation attempt blocked",
+      "passed": true
+    },
+    {
+      "name": "11. direct billing mutation attempt blocked",
+      "passed": true
+    },
+    {
+      "name": "12. credential request blocked",
+      "passed": true
+    },
+    {
+      "name": "13. missing idempotency key blocked",
+      "passed": true
+    },
+    {
+      "name": "14. duplicate concurrent mutation blocked (lock)",
+      "passed": true
+    },
+    {
+      "name": "15. policy unknown blocks action",
+      "passed": true
+    },
+    {
+      "name": "16. freeze blocked",
+      "passed": true
+    },
+    {
+      "name": "17. preflight failed blocks execution",
+      "passed": true
+    },
+    {
+      "name": "18. verification failed captured and returned to UI",
+      "passed": true
+    }
+  ],
+  "securityChecks": [
+    {
+      "name": "no API keys in output",
+      "passed": true
+    },
+    {
+      "name": "no credentials in output",
+      "passed": true
+    },
+    {
+      "name": "no raw tokens in output",
+      "passed": true
+    },
+    {
+      "name": "no arbitrary shell execution",
+      "passed": true
+    },
+    {
+      "name": "no arbitrary SQL execution",
+      "passed": true
+    },
+    {
+      "name": "client authority not trusted",
+      "passed": true
+    },
+    {
+      "name": "server-side authority enforced",
+      "passed": true
+    }
+  ],
+  "uiIntegration": {
+    "components": [
+      "LiveStatusBadge",
+      "FreshnessIndicator",
+      "ActionSubmissionState",
+      "PreflightProgress",
+      "ExecutionProgress",
+      "VerificationResult",
+      "RollbackResult",
+      "GatewayError",
+      "RefreshStatus"
+    ],
+    "businessReadableErrors": true,
+    "mobileResponsive": true,
+    "accessible": true,
+    "confirmationRequired": true,
+    "dataModeBadgeVisible": true
+  },
+  "audit": {
+    "eventTypes": [
+      "SNAPSHOT_READ",
+      "DECISION_READ",
+      "ACTION_REQUESTED",
+      "ACTION_ACCEPTED",
+      "ACTION_REJECTED",
+      "AUTHORITY_DENIED",
+      "PREFLIGHT_STARTED",
+      "PREFLIGHT_RESULT",
+      "EXECUTION_STARTED",
+      "EXECUTION_RESULT",
+      "VERIFICATION_RESULT",
+      "ROLLBACK_RESULT",
+      "UI_REFRESHED"
+    ],
+    "eventsRecorded": 12,
+    "noSecretsLogged": true
+  },
+  "metrics": {
+    "control_tower_snapshot_read": 1,
+    "control_tower_live_refresh": 1,
+    "executive_action_request": 12,
+    "executive_action_accepted": 12,
+    "executive_action_rejected": 18,
+    "gateway_error_count": 0
+  },
+  "invariants": {
+    "a28CanonicalInputPreserved": true,
+    "a29CanonicalActionLifecyclePreserved": true,
+    "a30UiPreserved": true,
+    "liveModeExplicit": true,
+    "demoModeExplicit": true,
+    "evidenceModeExplicit": true,
+    "noSilentModeFallback": true,
+    "freshnessEnforced": true,
+    "staleEvidenceBlocksAction": true,
+    "unknownEvidenceBlocksAction": true,
+    "authorityValidatedServerSide": true,
+    "clientAuthorityNotTrusted": true,
+    "idempotencyEnforced": true,
+    "duplicateMutationPrevented": true,
+    "requestLockingEnforced": true,
+    "expiredDecisionBlocked": true,
+    "supersededDecisionBlocked": true,
+    "noDirectPublicationMutation": true,
+    "noDirectCommercialMutation": true,
+    "noDirectProviderMutation": true,
+    "noDirectBillingMutation": true,
+    "noCredentialExposure": true,
+    "noArbitraryCommand": true,
+    "a29GatewayRequired": true,
+    "verificationReturnedToUi": true,
+    "rollbackReturnedToUi": true,
+    "auditComplete": true,
+    "mobileResponsive": true,
+    "accessible": true
+  },
+  "certification": {
+    "positiveTestsPassed": 12,
+    "positiveTestsTotal": 12,
+    "failClosedTestsPassed": 18,
+    "failClosedTestsTotal": 18,
+    "securityChecksPassed": 7,
+    "securityChecksTotal": 7,
+    "invariantsPassed": 29,
+    "invariantsTotal": 29,
+    "allPositivePassed": true,
+    "allFailClosedPassed": true,
+    "allSecurityPassed": true,
+    "allInvariantsPassed": true,
+    "certificationPassed": true
+  },
+  "completedAt": "2026-08-09T01:23:57.921Z",
+  "status": "CERTIFIED"
+}
