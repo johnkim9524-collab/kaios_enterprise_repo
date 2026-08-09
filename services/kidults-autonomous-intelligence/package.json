@@ -102,7 +102,10 @@
     "a36:finalize": "npm run a36:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A36",
     "a37:gate": "node scripts/a37-commercial-governance.mjs",
     "a37:certify": "npm run typecheck && npm run a37:gate",
-    "a37:finalize": "npm run a37:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A37"
+    "a37:finalize": "npm run a37:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A37",
+    "a38:gate": "node scripts/a38-customer-value-delivery.mjs",
+    "a38:certify": "npm run typecheck && npm run a38:gate",
+    "a38:finalize": "npm run a38:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A38"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260808.1",

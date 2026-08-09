@@ -1,0 +1,115 @@
+{
+  "scenarioId": "BINDING_OFFER_EXECUTION_ATTEMPT_BLOCKED",
+  "category": "NEGATIVE",
+  "description": "Binding commercial execution attempts are blocked during certification.",
+  "a37CertificationPassed": true,
+  "a37CommercialState": "OFFER_ELIGIBLE",
+  "customerContext": {
+    "customerContextId": "ctx-a38-16",
+    "segment": "PREMIUM_SUBSCRIBER",
+    "entitlementClass": "PREMIUM",
+    "geography": "US",
+    "organizationClass": null,
+    "channelEligibility": [
+      "WEB"
+    ],
+    "privacyConstraints": {
+      "allowedGeographies": [
+        "US"
+      ],
+      "restrictedPersonalDataAllowed": false,
+      "customerIsolationRequired": true,
+      "explicitEnterpriseLicense": false
+    },
+    "commercialRestrictions": [],
+    "approvalRequirements": [
+      "COMMERCIAL_APPROVAL"
+    ],
+    "explicitAuthorizedScopes": []
+  },
+  "valuePackage": {
+    "productId": "premium-offer-attempt",
+    "productVersion": "2026.08",
+    "intelligenceAssetIds": [
+      "premium-offer-attempt-asset"
+    ],
+    "valueTier": "HIGH",
+    "freshnessClass": "CURRENT",
+    "exclusivityClass": "STANDARD",
+    "entitlementRequirement": "PREMIUM",
+    "deliveryChannel": "WEB",
+    "recommendedCommercialTerms": {
+      "simulationOnly": true,
+      "bindingOffer": false,
+      "explicitEnterpriseLicense": false,
+      "customerSpecificLegalTerms": false
+    },
+    "pricingReference": {
+      "state": "PRICE_ADMISSIBLE",
+      "customPricing": false,
+      "aboveCustomPricingThreshold": false
+    },
+    "rightsReference": {
+      "state": "RIGHTS_CONFIRMED",
+      "restrictedDistribution": false,
+      "channelRestrictions": [],
+      "authorizedScopeKey": "premium-offer-attempt"
+    },
+    "legalState": "CLEARED",
+    "privacyState": "KNOWN_SAFE",
+    "securityState": "SAFE",
+    "validityWindow": {
+      "startsAt": "2026-08-09T00:00:00Z",
+      "endsAt": "2026-12-31T23:59:59Z"
+    },
+    "evidenceReferences": [
+      "reports/commercial-governance/latest-certified.json"
+    ]
+  },
+  "deliveryRequest": {
+    "intendedChannel": "WEB",
+    "prepareDelivery": false,
+    "deliveryPurpose": "COMMERCIAL_RECOMMENDATION",
+    "requireAuthorizedOperatorHandoff": false,
+    "externalMessageSendAttempted": false,
+    "contractExecutionAttempted": false,
+    "paymentActivationAttempted": false,
+    "refundAttempted": false,
+    "paidAccessProvisioningAttempted": false,
+    "billingMutationAttempted": false,
+    "bindingCommitmentAttempted": true,
+    "externalCrmMutationAttempted": false,
+    "externalProviderMutationAttempted": false
+  },
+  "productEvidence": {
+    "identityAuthoritative": true,
+    "freshnessAcceptable": true,
+    "noActiveHardStopIncident": true,
+    "activeHardStopIncident": false,
+    "embargoed": false
+  },
+  "contentProfile": {
+    "includedFields": [
+      "productSummary",
+      "recommendedBenefits",
+      "pricingSummary"
+    ],
+    "restrictedFields": [],
+    "minimizationPossible": true,
+    "containsInternalAuditInternals": false,
+    "containsSecuritySensitiveData": false,
+    "containsCredentials": false,
+    "containsProviderSecrets": false,
+    "containsInternalGovernanceData": false,
+    "containsUnrelatedCustomerInformation": false,
+    "containsRestrictedSourceMaterial": false,
+    "crossAccountDataRisk": false,
+    "purposeCompatible": true,
+    "restrictedPersonalData": false,
+    "retentionCompatible": true,
+    "disclosureRestricted": false
+  },
+  "approvals": {},
+  "expectedDeliveryState": "DELIVERY_BLOCKED",
+  "expectedNextPermittedAction": "BLOCK_DELIVERY"
+}

@@ -1,0 +1,76 @@
+name: Kidults A38 Customer Value Delivery & Commercial Execution Control
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'services/kidults-autonomous-intelligence/scripts/a38-customer-value-delivery.mjs'
+      - 'services/kidults-autonomous-intelligence/fixtures/a38/**'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'docs/kidults/A38_CUSTOMER_VALUE_DELIVERY_COMMERCIAL_EXECUTION_CONTROL.md'
+      - '.github/workflows/kidults-a38-customer-value-delivery.yml'
+
+concurrency:
+  group: kidults-a38-customer-value-delivery
+  cancel-in-progress: false
+
+jobs:
+  a38-customer-value-delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm install
+
+      - name: Verify A38 package scripts exist
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf-8'));
+            const required = ['a38:gate', 'a38:certify', 'a38:finalize'];
+            const missing = required.filter((name) => !pkg.scripts[name]);
+            if (missing.length) { console.error('MISSING SCRIPTS:', missing.join(', ')); process.exit(1); }
+            console.log('A38 scripts present:', required.join(', '));
+          "
+
+      - name: Typecheck
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+
+      - name: Run upstream A37 certification
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a37:certify
+        env:
+          A37_MODE: SIMULATION
+
+      - name: Run A38 gate
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a38:gate
+        env:
+          A38_MODE: SIMULATION
+
+      - name: Run A38 certify
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a38:certify
+        env:
+          A38_MODE: SIMULATION
+
+      - name: Upload A38 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: a38-customer-value-delivery-evidence
+          path: services/kidults-autonomous-intelligence/reports/customer-value-delivery/
+          retention-days: 90
+          if-no-files-found: error
