@@ -29,13 +29,15 @@ jobs:
           cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
-      - name: Collect and validate actual external open data
+      - name: Collect and validate 100-plus Kidult operational universe
         run: node scripts/live-open-data-operation.mjs
       - name: Upload live external-data evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kidults-live-open-data-evidence
-          path: services/kidults-autonomous-intelligence/reports/live-open-data/live-open-data-latest.json
+          path: |
+            services/kidults-autonomous-intelligence/reports/live-open-data/live-open-data-latest.json
+            services/kidults-autonomous-intelligence/reports/live-open-data/kidult-100-universe-latest.json
           retention-days: 30
           if-no-files-found: error
