@@ -21,9 +21,108 @@ export const CONTROL_TOWER_SCENARIOS: readonly ControlTowerScenario[] = [
   'critical-halt',
 ] as const;
 
+type A28Fixture = {
+  snapshotId: string;
+  generatedAt: string;
+  platform: {
+    platformStatus: string;
+    summary: string;
+    executiveActionRequired: boolean;
+    highestRisk: string;
+    activeDecisionCount: number;
+    activeIncidentCount: number;
+    degradedScopeCount: number;
+    haltedScopeCount: number;
+  };
+  metrics: {
+    activeDecisionCount: number;
+    activeIncidentCount: number;
+    degradedScopeCount: number;
+    haltedScopeCount: number;
+  };
+  operations: { changeFreezeActive: boolean; changeFreezeReason: string | null };
+  freezes: {
+    state: string;
+    reason: string | null;
+    scope: string[];
+    initiatedAt: string | null;
+    releaseConditions: string[];
+    releaseEligible: boolean;
+  };
+  risk: {
+    operationalRisk: string;
+    securityRisk: string;
+    providerRisk: string;
+    dataRisk: string;
+    publicationRisk: string;
+    commercialRisk: string;
+    financialRisk: string;
+    dependencyRisk: string;
+    continuityRisk: string;
+  };
+  products: Array<{
+    productId: string;
+    readiness: string;
+    runtimeStatus: string;
+    publicationStatus: string;
+    commercialStatus: string;
+    dependencyStatus: string;
+    sloStatus: string;
+    executiveDecisionRequired: boolean;
+  }>;
+  providers: Array<{
+    providerId: string;
+    health: string;
+    dependencyLevel: string;
+    affectedProducts: string[];
+    contractStatus: string;
+    credentialStatus: string;
+    costRisk: string;
+    decisionRequired: boolean;
+  }>;
+  publication: {
+    publicationState: string;
+    eligibleProducts: string[];
+    blockedProducts: string[];
+    channels: string[];
+    blockedReasons: Record<string, string>;
+    activeFreeze: boolean;
+    decisionRequired: boolean;
+  };
+  commercial: {
+    commercialState: string;
+    eligibleProducts: string[];
+    eligibleChannels: string[];
+    blockedChannels: string[];
+    providerDependencies: string[];
+    billingDependencies: string[];
+    contractDependencies: string[];
+    commercialRisk: string;
+    decisionRequired: boolean;
+  };
+  security: {
+    securityStatus: string;
+    activeSecurityIncidents: number;
+    credentialRisk: string;
+    policyViolations: string[];
+    changeFreeze: boolean;
+    recommendedExecutiveAction: string | null;
+  };
+  incidents: { activeCount: number; summaries: string[] };
+  evidenceRefs: Array<{ stage: string; evidenceId: string; producedAt: string }>;
+};
+
+type A29Fixture = {
+  evidenceId: string;
+  generatedAt: string;
+  policyVersion: string;
+  decisionContracts: Array<Record<string, unknown>>;
+  auditLog: Array<{ timestamp: string; detail: string }>;
+};
+
 const now = '2026-08-08T20:33:39.945Z';
 
-const baseA28 = {
+const baseA28: A28Fixture = {
   snapshotId: 'a28-control-tower-demo',
   generatedAt: now,
   platform: {
@@ -89,11 +188,11 @@ const baseA28 = {
   }],
 };
 
-const baseA29 = {
+const baseA29: A29Fixture = {
   evidenceId: 'a29-executive-decision-demo',
   generatedAt: now,
   policyVersion: 'a29-executive-decision-orchestration-policy.v1',
-  decisionContracts: [] as Array<Record<string, unknown>>,
+  decisionContracts: [],
   auditLog: [
     { timestamp: '2026-08-08T10:01:00.000Z', detail: 'Decision generated' },
     { timestamp: '2026-08-08T10:02:00.000Z', detail: 'Preflight passed' },
@@ -102,8 +201,8 @@ const baseA29 = {
 };
 
 export function buildControlTowerFixture(scenario: ControlTowerScenario) {
-  const a28 = structuredClone(baseA28) as any;
-  const a29 = structuredClone(baseA29) as any;
+  const a28: A28Fixture = structuredClone(baseA28);
+  const a29: A29Fixture = structuredClone(baseA29);
 
   if (scenario === 'decision-required') {
     a28.platform.executiveActionRequired = true;
