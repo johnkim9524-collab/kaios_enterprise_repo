@@ -1,0 +1,85 @@
+name: Kidults A34 Autonomous Production Assurance & Continuous Verification
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'services/kidults-autonomous-intelligence/scripts/a34-production-assurance.mjs'
+      - 'services/kidults-autonomous-intelligence/fixtures/a34/**'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - '.github/workflows/kidults-a34-production-assurance.yml'
+
+concurrency:
+  group: kidults-a34-production-assurance
+  cancel-in-progress: false
+
+jobs:
+  a34-production-assurance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm install
+
+      - name: Verify A34 package scripts exist
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json','utf-8'));
+            const required = ['a34:gate', 'a34:certify', 'a34:finalize'];
+            const missing = required.filter(s => !pkg.scripts[s]);
+            if (missing.length) { console.error('MISSING SCRIPTS:', missing.join(', ')); process.exit(1); }
+            console.log('A34 scripts present:', required.join(', '));
+          "
+
+      - name: Typecheck
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+
+      - name: Run A34 production assurance gate
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a34:gate
+        env:
+          A34_MODE: SIMULATION
+
+      - name: Run A34 certify
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a34:certify
+        env:
+          A34_MODE: SIMULATION
+
+      - name: Run upstream A33 certification
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a33:certify
+        env:
+          A33_MODE: SIMULATION
+
+      - name: Run upstream A32 certification
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a32:certify
+        env:
+          A32_MODE: SIMULATION
+
+      - name: List package scripts
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run
+
+      - name: Upload A34 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: a34-production-assurance-evidence
+          path: services/kidults-autonomous-intelligence/reports/production-assurance/
+          retention-days: 90
+          if-no-files-found: error
