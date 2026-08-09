@@ -6,9 +6,16 @@ const sourcePath = path.join(ROOT, 'scripts', 'a40-ga-certification.mjs');
 const helperPath = path.join(ROOT, 'scripts', 'lib', 'a40-ga-static-config.mjs');
 
 const importAnchor = "import { fileURLToPath } from 'node:url';\n";
-const importLine = "import { DIRECT_CONTINUITY_RESOLVERS, FAILURE_CLASSIFICATIONS, STAGE_DEFINITIONS } from './lib/a40-ga-static-config.mjs';\n";
-const startMarker = 'const STAGE_DEFINITIONS = [';
+const importLine = "import { DIRECT_CONTINUITY_RESOLVERS, FAILURE_CLASSIFICATIONS, FINAL_DECISIONS, GA_STATES, STAGE_DEFINITIONS } from './lib/a40-ga-static-config.mjs';\n";
+const startMarker = 'const GA_STATES = [';
 const endMarker = 'function stableSerialize(value) {';
+const exportedNames = [
+  'GA_STATES',
+  'FINAL_DECISIONS',
+  'STAGE_DEFINITIONS',
+  'DIRECT_CONTINUITY_RESOLVERS',
+  'FAILURE_CLASSIFICATIONS',
+];
 
 const source = await fs.readFile(sourcePath, 'utf8');
 
@@ -27,17 +34,18 @@ if (!source.includes(importAnchor)) {
 }
 
 const staticBlock = source.slice(start, end).trimEnd();
-for (const requiredName of ['STAGE_DEFINITIONS', 'DIRECT_CONTINUITY_RESOLVERS', 'FAILURE_CLASSIFICATIONS']) {
+for (const requiredName of exportedNames) {
   if (!staticBlock.includes(`const ${requiredName} =`)) {
     throw new Error(`A40 static block is missing ${requiredName}.`);
   }
 }
 
+const exportPattern = new RegExp(`^const (${exportedNames.join('|')}) =`, 'gm');
 const helperBody = `${[
   '// Static A40 certification metadata extracted from the executable gate.',
   '// Keep this module declarative: no I/O, no environment mutation, no authority changes.',
   '',
-  staticBlock.replace(/^const (STAGE_DEFINITIONS|DIRECT_CONTINUITY_RESOLVERS|FAILURE_CLASSIFICATIONS) =/gm, 'export const $1 ='),
+  staticBlock.replace(exportPattern, 'export const $1 ='),
   '',
 ].join('\n')}`;
 
