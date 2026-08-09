@@ -7,6 +7,7 @@ on:
       - 'services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs'
       - 'services/kidults-autonomous-intelligence/fixtures/a40/**'
       - 'services/kidults-autonomous-intelligence/package.json'
+      - 'services/kidults-autonomous-intelligence/package-lock.json'
       - 'docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md'
       - '.github/workflows/kidults-a40-ga-certification.yml'
       - 'services/kidults-autonomous-intelligence/reports/**'
@@ -30,10 +31,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
 
-      - name: Install dependencies
+      - name: Install locked dependencies
         working-directory: services/kidults-autonomous-intelligence
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Verify A40 package scripts exist
         working-directory: services/kidults-autonomous-intelligence
