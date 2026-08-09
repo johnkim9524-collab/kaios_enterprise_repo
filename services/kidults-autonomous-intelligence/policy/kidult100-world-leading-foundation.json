@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "program": "KIDULT100_WORLD_LEADING_INTELLIGENCE_FOUNDATION",
+  "principle": "VALUE_BEFORE_DATA",
+  "candidateUniverse": {
+    "hardMinimum": 300,
+    "preferredMinimum": 400,
+    "preferredMaximum": 500,
+    "publishedConstituents": 100
+  },
+  "customerValues": [
+    "DISCOVERY", "WHY", "VALUE", "TIMING", "CONVICTION", "RELATIVE_VALUE",
+    "SCARCITY", "LIQUIDITY", "CANON", "RISK", "PORTFOLIO_INTELLIGENCE", "FUTURE_CANON"
+  ],
+  "intelligencePrimitives": [
+    "IDENTITY_PROVENANCE", "SCARCITY_SUPPLY", "TRANSACTION_PRICE_COMPARABLE",
+    "LIQUIDITY_DEPTH", "DEMAND_ATTENTION", "CANON_INSTITUTIONAL_CULTURAL", "RISK_CONFIDENCE"
+  ],
+  "sourceActivationGates": [
+    "INTELLIGENCE_VALUE_MAPPED", "LEGAL_BASIS_RECORDED", "ALLOWED_FIELDS_RECORDED",
+    "COLLECTION_METHOD_ALLOWED", "RATE_REFRESH_LIMITS_KNOWN", "PROVENANCE_DEFINED",
+    "VOLUME_QUALITY_PROFILED", "ECONOMICS_ACCEPTABLE", "FAILURE_FALLBACK_DEFINED",
+    "RETENTION_DERIVED_RIGHTS_UNDERSTOOD"
+  ],
+  "sourceTiers": [
+    "FIRST_PARTY_EXPLICIT_RIGHTS", "OPEN_ACCESS_PUBLIC_API", "GOVERNMENT_OPEN_DATA",
+    "OFFICIAL_BRAND_INSTITUTION", "AUCTION_MARKETPLACE_DEALER_GRADING",
+    "SEARCH_TREND_COMMUNITY_SOCIAL", "EDITORIAL_RESEARCH_CULTURAL", "KIDULTS_DERIVED"
+  ],
+  "qualityTargets": {
+    "indexEntityResolutionMin": 0.995,
+    "criticalProvenanceCoverage": 1,
+    "rightsClassificationCoverage": 1,
+    "duplicateContaminationMax": 0.005,
+    "criticalStaleInvalidRejectionAccuracy": 1,
+    "askingVsSoldClassificationAccuracy": 1,
+    "currencyTimeNormalizationAccuracy": 1,
+    "materialMovementWhyCoverage": 1,
+    "derivedMaterialSignalConfidenceCoverage": 1
+  },
+  "initialVolumeModel": {
+    "candidateCount": 300,
+    "decisionGradeObservationsPerEntityPerMonthMin": 5,
+    "decisionGradeObservationsPerEntityPerMonthMax": 20,
+    "monthlyObservationsMin": 1500,
+    "monthlyObservationsMax": 6000,
+    "annualObservationsMin": 18000,
+    "annualObservationsMax": 72000,
+    "marketFeedExpansionAnnualRange": [500000, 5000000]
+  },
+  "pipeline": [
+    "INGEST", "RIGHTS_PREFLIGHT", "NORMALIZE", "ENTITY_RESOLUTION", "DEDUP", "PROVENANCE",
+    "QUALITY", "TIME_SERIES_STORE", "SIGNAL_EXTRACTION", "COMPARABLE_GRAPH", "WHY_GRAPH",
+    "FACTOR_SCORES", "KIDULT100_DECISION", "POST_PUBLISH_MONITOR", "RECOVERY"
+  ],
+  "whyContract": [
+    "WHAT_CHANGED", "CAUSE_CANDIDATES", "SUPPORTING_EVIDENCE", "COUNTER_EVIDENCE",
+    "LEAD_LAG", "CONFIDENCE", "ALTERNATIVE_EXPLANATION", "SO_WHAT", "WHAT_NEXT", "INVALIDATION_CONDITIONS"
+  ],
+  "leadershipMoat": [
+    "HISTORICAL_OBSERVATION_SERIES", "CANONICAL_ENTITY_COMPARABLE_GRAPH", "RIGHTS_AWARE_PROVENANCE",
+    "CROSS_CATEGORY_NORMALIZATION", "WHY_COUNTER_EVIDENCE_GRAPH", "CONFIDENCE_HISTORY",
+    "LONGITUDINAL_SIGNAL_RELATIONSHIPS", "BENCHMARK_DECISION_HISTORY"
+  ]
+}
