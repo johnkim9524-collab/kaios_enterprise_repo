@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "policyId": "kidults-p0-sre-reliability-baseline",
+  "status": "HARDENING_BASELINE",
+  "scope": "KIDULTS autonomous intelligence runtime and certification control plane",
+  "principles": {
+    "failClosedOnUnknownCriticalState": true,
+    "criticalSilentFailureAllowed": false,
+    "strategicLegalFinancialAuthorityRemainsHuman": true,
+    "syntheticEvidenceDoesNotEqualLiveProof": true
+  },
+  "serviceLevelObjectives": {
+    "availabilityTargetPercent": 99.9,
+    "criticalDecisionIntegrityPercent": 100,
+    "criticalProvenanceCoveragePercent": 100,
+    "criticalSilentFailureCount": 0,
+    "routineHumanInterventionTargetPercent": 1,
+    "autonomousRecoveryTargetPercent": 95,
+    "autonomousRecoveryStretchPercent": 99
+  },
+  "errorBudget": {
+    "windowDays": 30,
+    "availabilityBudgetPercent": 0.1,
+    "criticalGovernanceBudget": 0,
+    "criticalProvenanceBudget": 0,
+    "exhaustionAction": "FREEZE_OR_DEGRADE_AND_ESCALATE"
+  },
+  "recoveryObjectives": {
+    "targetRtoMinutes": 15,
+    "targetRpoMinutes": 5,
+    "rollbackRequiredForVerificationFailure": true,
+    "providerIsolationRequiredForProviderFailure": true,
+    "quarantineRequiredForStaleOrInvalidData": true
+  },
+  "providerResilience": {
+    "timeoutPolicyRequired": true,
+    "boundedRetryRequired": true,
+    "backoffRequired": true,
+    "rateLimitHandlingRequired": true,
+    "providerIsolationRequired": true,
+    "fallbackEvidenceRequiredBeforeLiveCertification": true
+  },
+  "observability": {
+    "structuredLogsRequired": true,
+    "sliEvaluationRequired": true,
+    "incidentEvidenceRequired": true,
+    "auditTimelineRequired": true,
+    "executiveExceptionQueueRequired": true
+  },
+  "certificationBoundary": {
+    "simulationCanCertifyControlLogic": true,
+    "simulationCanCertifyLiveOperations": false,
+    "liveOperationalCertified": false,
+    "liveOperationalEvidenceRequired": true
+  }
+}
