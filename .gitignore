@@ -43,6 +43,7 @@ dist/
 # Node dependencies and lockfiles
 node_modules/
 package-lock.json
+!services/kidults-autonomous-intelligence/package-lock.json
 
 # KAIOS runtime-transient data
 data/raw/
