@@ -1,0 +1,49 @@
+{
+  "scenarioId": "LOW_PRICE_REQUIRES_OPTIMIZATION",
+  "category": "NEGATIVE",
+  "description": "Proposed price is below margin floor; PRICE_TOO_LOW / PRICE_OPTIMIZATION_RECOMMENDED.",
+  "a36CertificationPassed": true,
+  "productId": "kidults-report-underpriced-v1",
+  "productClass": "PREMIUM_REPORT",
+  "publicationStatus": "PUBLISHED",
+  "qualityScore": 0.88,
+  "freshnessScore": 0.85,
+  "entitlementModel": "PREMIUM_ACCESS",
+  "licensingRights": "OWNED_FULL_RIGHTS",
+  "channelEligibility": [
+    "DIRECT_WEB"
+  ],
+  "pricingPolicyAvailable": true,
+  "legalComplianceState": "CLEARED",
+  "securityBlock": false,
+  "criticalIncident": false,
+  "prohibitedRestriction": false,
+  "monetizationModes": [
+    "PREMIUM_REPORT"
+  ],
+  "customerSegment": "PREMIUM",
+  "pricingInputs": {
+    "productClass": "PREMIUM_REPORT",
+    "customerSegment": "PREMIUM",
+    "valueTier": "HIGH",
+    "freshness": 0.85,
+    "exclusivity": 0.7,
+    "dataCoverage": 0.85,
+    "productionCost": 100,
+    "providerCost": 30,
+    "supportBurden": 0.1,
+    "commercialPrecedent": 199,
+    "minimumMarginPolicy": 0.35,
+    "proposedPrice": 150,
+    "strategicValue": "HIGH",
+    "channelConstraints": []
+  },
+  "anomalies": [
+    "PRICE_BELOW_MARGIN_FLOOR"
+  ],
+  "bindingOfferAttempted": false,
+  "contractAcceptanceAttempted": false,
+  "paymentMutationAttempted": false,
+  "expectedCommercialState": "PRICE_REVIEW_REQUIRED",
+  "expectedOfferDecision": "PRICE_REVIEW_REQUIRED"
+}

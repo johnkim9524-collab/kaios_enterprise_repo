@@ -1,0 +1,50 @@
+{
+  "scenarioId": "REPEATED_IDENTICAL_EVALUATION_IS_IDEMPOTENT",
+  "category": "IDEMPOTENCY",
+  "description": "Running the same evaluation twice produces the same commercial state and offer decision.",
+  "a36CertificationPassed": true,
+  "productId": "kidults-intelligence-report-v1",
+  "productClass": "PREMIUM_REPORT",
+  "publicationStatus": "PUBLISHED",
+  "qualityScore": 0.95,
+  "freshnessScore": 0.92,
+  "entitlementModel": "PREMIUM_ACCESS",
+  "licensingRights": "OWNED_FULL_RIGHTS",
+  "channelEligibility": [
+    "DIRECT_WEB",
+    "REPORT_DOWNLOAD"
+  ],
+  "pricingPolicyAvailable": true,
+  "legalComplianceState": "CLEARED",
+  "securityBlock": false,
+  "criticalIncident": false,
+  "prohibitedRestriction": false,
+  "monetizationModes": [
+    "PREMIUM_REPORT",
+    "SUBSCRIPTION"
+  ],
+  "customerSegment": "PREMIUM",
+  "pricingInputs": {
+    "productClass": "PREMIUM_REPORT",
+    "customerSegment": "PREMIUM",
+    "valueTier": "HIGH",
+    "freshness": 0.92,
+    "exclusivity": 0.8,
+    "dataCoverage": 0.9,
+    "productionCost": 120,
+    "providerCost": 40,
+    "supportBurden": 0.1,
+    "commercialPrecedent": 199,
+    "minimumMarginPolicy": 0.35,
+    "proposedPrice": 250,
+    "strategicValue": "HIGH",
+    "channelConstraints": []
+  },
+  "anomalies": [],
+  "bindingOfferAttempted": false,
+  "contractAcceptanceAttempted": false,
+  "paymentMutationAttempted": false,
+  "idempotencyRepeatCount": 2,
+  "expectedCommercialState": "MONETIZATION_ELIGIBLE",
+  "expectedOfferDecision": "OFFER_RECOMMENDED"
+}

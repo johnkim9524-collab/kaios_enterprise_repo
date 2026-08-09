@@ -1,0 +1,47 @@
+{
+  "scenarioId": "FREE_PRODUCT_ALLOWED",
+  "category": "POSITIVE",
+  "description": "Free product with PUBLIC entitlement is COMMERCIAL_READY (FREE mode is allowed).",
+  "a36CertificationPassed": true,
+  "productId": "kidults-public-summary-v1",
+  "productClass": "FREE",
+  "publicationStatus": "PUBLISHED",
+  "qualityScore": 0.8,
+  "freshnessScore": 0.85,
+  "entitlementModel": "PUBLIC_ACCESS",
+  "licensingRights": "OWNED_FULL_RIGHTS",
+  "channelEligibility": [
+    "DIRECT_WEB"
+  ],
+  "pricingPolicyAvailable": true,
+  "legalComplianceState": "CLEARED",
+  "securityBlock": false,
+  "criticalIncident": false,
+  "prohibitedRestriction": false,
+  "monetizationModes": [
+    "FREE"
+  ],
+  "customerSegment": "PUBLIC",
+  "pricingInputs": {
+    "productClass": "FREE",
+    "customerSegment": "PUBLIC",
+    "valueTier": "STANDARD",
+    "freshness": 0.85,
+    "exclusivity": 0.0,
+    "dataCoverage": 0.7,
+    "productionCost": 0,
+    "providerCost": 0,
+    "supportBurden": 0.05,
+    "commercialPrecedent": 0,
+    "minimumMarginPolicy": 0.0,
+    "strategicValue": "STANDARD",
+    "channelConstraints": [],
+    "proposedPrice": 0
+  },
+  "anomalies": [],
+  "bindingOfferAttempted": false,
+  "contractAcceptanceAttempted": false,
+  "paymentMutationAttempted": false,
+  "expectedCommercialState": "COMMERCIAL_READY",
+  "expectedOfferDecision": "OFFER_RECOMMENDED"
+}
