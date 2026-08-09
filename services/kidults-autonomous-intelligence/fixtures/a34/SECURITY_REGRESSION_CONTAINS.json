@@ -1,0 +1,33 @@
+{
+  "scenarioId": "SECURITY_REGRESSION_CONTAINS",
+  "category": "FAIL_CLOSED",
+  "description": "Security posture dimension detects regression; containment activated.",
+  "a32CertificationPassed": true,
+  "a33DeploymentApproved": true,
+  "artifactIdentityMatch": true,
+  "configurationDriftClassification": "NONE",
+  "policyDriftDetected": false,
+  "schemaDriftDetected": false,
+  "availabilityPct": 99.9,
+  "latencyP99Ms": 155,
+  "errorRatePct": 0.08,
+  "saturationPct": 42,
+  "functionalVerification": "PASS",
+  "securityPosture": "FAIL",
+  "securityDriftType": "SECURITY_DRIFT",
+  "securityDriftDetails": {
+    "finding": "CRITICAL_VULNERABILITY_DETECTED",
+    "cve": "CVE-2026-XXXXX",
+    "affectedComponent": "kidults-core-lib",
+    "hardStop": true
+  },
+  "incidentActive": false,
+  "evidenceFresh": true,
+  "dataFresh": true,
+  "providerHealth": "PASS",
+  "rollbackTargetExists": true,
+  "sloComplianceStatus": "PASS",
+  "unknownCriticalDimension": false,
+  "expectedAssuranceState": "CONTAINED",
+  "expectedDecision": "CONTAIN"
+}

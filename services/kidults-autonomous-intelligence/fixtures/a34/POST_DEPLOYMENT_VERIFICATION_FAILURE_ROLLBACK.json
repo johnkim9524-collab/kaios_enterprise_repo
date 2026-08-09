@@ -1,0 +1,32 @@
+{
+  "scenarioId": "POST_DEPLOYMENT_VERIFICATION_FAILURE_ROLLBACK",
+  "category": "FAIL_CLOSED",
+  "description": "Post-deployment functional verification fails; rollback triggered.",
+  "a32CertificationPassed": true,
+  "a33DeploymentApproved": true,
+  "artifactIdentityMatch": true,
+  "postDeploymentVerification": "FAIL",
+  "postDeploymentVerificationDetails": {
+    "checks": ["smoke-test", "functional-check", "slo-snapshot"],
+    "failedChecks": ["functional-check"],
+    "reason": "Critical function returned unexpected response"
+  },
+  "configurationDriftClassification": "NONE",
+  "policyDriftDetected": false,
+  "schemaDriftDetected": false,
+  "availabilityPct": 98.5,
+  "latencyP99Ms": 250,
+  "errorRatePct": 3.0,
+  "saturationPct": 55,
+  "functionalVerification": "FAIL",
+  "securityPosture": "PASS",
+  "incidentActive": false,
+  "evidenceFresh": true,
+  "dataFresh": true,
+  "providerHealth": "PASS",
+  "rollbackTargetExists": true,
+  "sloComplianceStatus": "WARN",
+  "unknownCriticalDimension": false,
+  "expectedAssuranceState": "ROLLBACK_REQUIRED",
+  "expectedDecision": "ROLLBACK"
+}

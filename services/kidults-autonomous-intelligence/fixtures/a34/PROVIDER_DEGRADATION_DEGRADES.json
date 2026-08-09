@@ -1,0 +1,32 @@
+{
+  "scenarioId": "PROVIDER_DEGRADATION_DEGRADES",
+  "category": "POSITIVE",
+  "description": "External provider reports degradation; system enters DEGRADED state with reduced capability.",
+  "a32CertificationPassed": true,
+  "a33DeploymentApproved": true,
+  "artifactIdentityMatch": true,
+  "configurationDriftClassification": "NONE",
+  "policyDriftDetected": false,
+  "schemaDriftDetected": false,
+  "availabilityPct": 99.9,
+  "latencyP99Ms": 180,
+  "errorRatePct": 0.1,
+  "saturationPct": 45,
+  "functionalVerification": "WARN",
+  "securityPosture": "PASS",
+  "incidentActive": false,
+  "evidenceFresh": true,
+  "dataFresh": true,
+  "providerHealth": "FAIL",
+  "providerDriftType": "PROVIDER_DRIFT",
+  "providerDriftDetails": {
+    "provider": "kidults-data-provider",
+    "status": "DEGRADED",
+    "affectedOperations": ["data-fetch", "enrichment"]
+  },
+  "rollbackTargetExists": true,
+  "sloComplianceStatus": "WARN",
+  "unknownCriticalDimension": false,
+  "expectedAssuranceState": "DEGRADED",
+  "expectedDecision": "DEGRADE"
+}

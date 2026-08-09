@@ -1,0 +1,2784 @@
+{
+  "assuranceRunId": "a34-2026-08-09-b4322b5a9595",
+  "stage": "A34",
+  "mode": "SIMULATION",
+  "title": "Autonomous Production Assurance & Continuous Verification",
+  "generatedAt": "2026-08-09T04:18:10.789Z",
+  "policyVersion": "a34-production-assurance-policy.v1",
+  "sourceA32Evidence": {
+    "evidenceId": "a32-2026-08-09-b7c10b7d",
+    "certificationPassed": true,
+    "generatedAt": "2026-08-09T03:19:37.976Z"
+  },
+  "sourceA33DeploymentEvidence": {
+    "evidenceId": "a33-2026-08-09-a6da35b3",
+    "certificationPassed": true,
+    "generatedAt": "2026-08-09T03:56:14.075Z"
+  },
+  "assuranceStateModel": [
+    "UNVERIFIED",
+    "VERIFYING",
+    "HEALTHY",
+    "OBSERVING",
+    "DEGRADED",
+    "CONTAINED",
+    "ROLLBACK_REQUIRED",
+    "FROZEN",
+    "EXECUTIVE_REVIEW_REQUIRED",
+    "FAILED_CLOSED"
+  ],
+  "driftTypes": [
+    "CONFIG_DRIFT",
+    "POLICY_DRIFT",
+    "SCHEMA_DRIFT",
+    "ARTIFACT_DRIFT",
+    "DEPENDENCY_DRIFT",
+    "PROVIDER_DRIFT",
+    "DATA_FRESHNESS_DRIFT",
+    "EVIDENCE_FRESHNESS_DRIFT",
+    "SLO_DRIFT",
+    "SECURITY_DRIFT",
+    "RUNTIME_BEHAVIOR_DRIFT"
+  ],
+  "decisions": [
+    "CONTINUE",
+    "OBSERVE",
+    "DEGRADE",
+    "CONTAIN",
+    "ROLLBACK",
+    "FREEZE",
+    "EXECUTIVE_REVIEW_REQUIRED",
+    "FAILED_CLOSED"
+  ],
+  "scenarioCount": 16,
+  "positiveCount": 6,
+  "failClosedCount": 10,
+  "passedCount": 16,
+  "failedCount": 0,
+  "scenarios": [
+    {
+      "scenarioId": "CONFIG_DRIFT_CONTAINS",
+      "category": "FAIL_CLOSED",
+      "assuranceState": "CONTAINED",
+      "decision": "CONTAIN",
+      "decisionReason": "CRITICAL_CONFIG_DRIFT",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "CONTAINED",
+          "actual": "CONTAINED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "CONTAIN",
+          "actual": "CONTAIN"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "availability": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "latency": {
+          "status": "PASS",
+          "value": 200
+        },
+        "errorRate": {
+          "status": "PASS",
+          "value": 0.2
+        },
+        "saturation": {
+          "status": "PASS",
+          "value": 50
+        },
+        "functionalVerification": {
+          "status": "PASS"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "FAIL",
+          "classification": "CRITICAL"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "PASS",
+          "raw": "PASS",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [
+        {
+          "driftType": "CONFIG_DRIFT",
+          "expected": "{ \"maxConcurrent\": 100 }",
+          "observed": "{ \"maxConcurrent\": 9999 }",
+          "severity": "CRITICAL",
+          "source": "configuration-baseline-comparator",
+          "detectedAt": "2026-08-09T04:18:10.793Z",
+          "firstSeenAt": "2026-08-09T04:18:10.793Z",
+          "persistence": 1,
+          "confidence": 0.99,
+          "recommendedAction": "CONTAIN"
+        }
+      ],
+      "containmentActions": [
+        {
+          "action": "ISOLATE_AFFECTED_TARGET",
+          "simulated": true,
+          "target": "current-deployment"
+        },
+        {
+          "action": "DISABLE_UNSAFE_AUTONOMOUS_ACTION_PATH",
+          "simulated": true
+        },
+        {
+          "action": "BLOCK_FURTHER_DEPLOYMENT",
+          "simulated": true
+        }
+      ],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "CONFIG_DRIFT_CONTAINS",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 1
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "CONTAIN",
+          "targetState": "CONTAINED",
+          "reason": "CRITICAL_CONFIG_DRIFT"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "CONTAINED"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "CRITICAL_SLO_BREACH_ROLLS_BACK",
+      "category": "FAIL_CLOSED",
+      "assuranceState": "ROLLBACK_REQUIRED",
+      "decision": "ROLLBACK",
+      "decisionReason": "CRITICAL_SLO_BREACH",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "ROLLBACK_REQUIRED",
+          "actual": "ROLLBACK_REQUIRED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "ROLLBACK",
+          "actual": "ROLLBACK"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "FAIL",
+          "value": 94
+        },
+        "availability": {
+          "status": "FAIL",
+          "value": 94
+        },
+        "latency": {
+          "status": "FAIL",
+          "value": 3200
+        },
+        "errorRate": {
+          "status": "FAIL",
+          "value": 12
+        },
+        "saturation": {
+          "status": "FAIL",
+          "value": 95
+        },
+        "functionalVerification": {
+          "status": "FAIL"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "WARN",
+          "active": true
+        },
+        "sloCompliance": {
+          "status": "FAIL",
+          "raw": "FAIL",
+          "hardBreach": true
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [],
+      "containmentActions": [
+        {
+          "action": "REQUEST_ROLLBACK",
+          "simulated": true
+        },
+        {
+          "action": "BLOCK_FURTHER_DEPLOYMENT",
+          "simulated": true
+        }
+      ],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "CRITICAL_SLO_BREACH_ROLLS_BACK",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 0
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "ROLLBACK",
+          "targetState": "ROLLBACK_REQUIRED",
+          "reason": "CRITICAL_SLO_BREACH"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "ROLLBACK_REQUIRED"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "HEALTHY_PRODUCTION_CONTINUES",
+      "category": "POSITIVE",
+      "assuranceState": "HEALTHY",
+      "decision": "CONTINUE",
+      "decisionReason": "ALL_CRITICAL_PASS",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "HEALTHY",
+          "actual": "HEALTHY"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "CONTINUE",
+          "actual": "CONTINUE"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "PASS",
+          "value": 99.95
+        },
+        "availability": {
+          "status": "PASS",
+          "value": 99.95
+        },
+        "latency": {
+          "status": "PASS",
+          "value": 180
+        },
+        "errorRate": {
+          "status": "PASS",
+          "value": 0.05
+        },
+        "saturation": {
+          "status": "PASS",
+          "value": 42
+        },
+        "functionalVerification": {
+          "status": "PASS"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "PASS",
+          "raw": "PASS",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [],
+      "containmentActions": [],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "HEALTHY_PRODUCTION_CONTINUES",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 0
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "CONTINUE",
+          "targetState": "HEALTHY",
+          "reason": "ALL_CRITICAL_PASS"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "HEALTHY"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "PERSISTENT_SLO_DRIFT_DEGRADES",
+      "category": "POSITIVE",
+      "assuranceState": "DEGRADED",
+      "decision": "DEGRADE",
+      "decisionReason": "PERSISTENT_SLO_DRIFT",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "DEGRADED",
+          "actual": "DEGRADED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "DEGRADE",
+          "actual": "DEGRADE"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "PASS",
+          "value": 99.5
+        },
+        "availability": {
+          "status": "PASS",
+          "value": 99.5
+        },
+        "latency": {
+          "status": "WARN",
+          "value": 600
+        },
+        "errorRate": {
+          "status": "WARN",
+          "value": 2.5
+        },
+        "saturation": {
+          "status": "WARN",
+          "value": 78
+        },
+        "functionalVerification": {
+          "status": "WARN"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "BENIGN"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "WARN",
+          "raw": "WARN",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [
+        {
+          "driftType": "SLO_DRIFT",
+          "expected": "SLO_COMPLIANT",
+          "observed": "SLO_DRIFTING",
+          "severity": "HIGH",
+          "source": "slo-monitor",
+          "detectedAt": "2026-08-09T04:18:10.794Z",
+          "firstSeenAt": "2026-08-09T04:18:10.794Z",
+          "persistence": 4,
+          "confidence": 0.97,
+          "recommendedAction": "DEGRADE"
+        }
+      ],
+      "containmentActions": [
+        {
+          "action": "SUSPEND_PROVIDER_DEPENDENT_OPERATION",
+          "simulated": true
+        },
+        {
+          "action": "FORCE_READ_ONLY_MODE",
+          "simulated": true
+        }
+      ],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "PERSISTENT_SLO_DRIFT_DEGRADES",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 1
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "DEGRADE",
+          "targetState": "DEGRADED",
+          "reason": "PERSISTENT_SLO_DRIFT"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "DEGRADED"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "POLICY_DRIFT_FAILS_CLOSED",
+      "category": "FAIL_CLOSED",
+      "assuranceState": "FAILED_CLOSED",
+      "decision": "FAILED_CLOSED",
+      "decisionReason": "CRITICAL_POLICY_DRIFT",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "availability": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "latency": {
+          "status": "PASS",
+          "value": 150
+        },
+        "errorRate": {
+          "status": "PASS",
+          "value": 0.1
+        },
+        "saturation": {
+          "status": "PASS",
+          "value": 40
+        },
+        "functionalVerification": {
+          "status": "PASS"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "FAIL",
+          "detected": true,
+          "details": {
+            "canonicalSource": "kidults-policy-engine.v1",
+            "expectedVersion": "2.4.1",
+            "observedVersion": "2.3.0",
+            "stage": "production"
+          }
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "PASS",
+          "raw": "PASS",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [
+        {
+          "driftType": "POLICY_DRIFT",
+          "expected": "2.4.1",
+          "observed": "2.3.0",
+          "severity": "CRITICAL",
+          "source": "kidults-policy-engine.v1",
+          "detectedAt": "2026-08-09T04:18:10.794Z",
+          "firstSeenAt": "2026-08-09T04:18:10.794Z",
+          "persistence": 1,
+          "confidence": 1,
+          "recommendedAction": "FAIL_CLOSED"
+        }
+      ],
+      "containmentActions": [
+        {
+          "action": "DISABLE_UNSAFE_AUTONOMOUS_ACTION_PATH",
+          "simulated": true
+        },
+        {
+          "action": "BLOCK_FURTHER_DEPLOYMENT",
+          "simulated": true
+        }
+      ],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "POLICY_DRIFT_FAILS_CLOSED",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 1
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "FAILED_CLOSED",
+          "targetState": "FAILED_CLOSED",
+          "reason": "CRITICAL_POLICY_DRIFT"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "FAILED_CLOSED"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "POST_DEPLOYMENT_VERIFICATION_FAILURE_ROLLBACK",
+      "category": "FAIL_CLOSED",
+      "assuranceState": "ROLLBACK_REQUIRED",
+      "decision": "ROLLBACK",
+      "decisionReason": "POST_DEPLOYMENT_VERIFICATION_FAIL",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "ROLLBACK_REQUIRED",
+          "actual": "ROLLBACK_REQUIRED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "ROLLBACK",
+          "actual": "ROLLBACK"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "WARN",
+          "value": 98.5
+        },
+        "availability": {
+          "status": "WARN",
+          "value": 98.5
+        },
+        "latency": {
+          "status": "PASS",
+          "value": 250
+        },
+        "errorRate": {
+          "status": "WARN",
+          "value": 3
+        },
+        "saturation": {
+          "status": "PASS",
+          "value": 55
+        },
+        "functionalVerification": {
+          "status": "FAIL"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "WARN",
+          "raw": "WARN",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        },
+        "postDeploymentVerification": {
+          "status": "FAIL",
+          "details": {
+            "checks": [
+              "smoke-test",
+              "functional-check",
+              "slo-snapshot"
+            ],
+            "failedChecks": [
+              "functional-check"
+            ],
+            "reason": "Critical function returned unexpected response"
+          }
+        }
+      },
+      "driftDetections": [],
+      "containmentActions": [
+        {
+          "action": "REQUEST_ROLLBACK",
+          "simulated": true
+        },
+        {
+          "action": "BLOCK_FURTHER_DEPLOYMENT",
+          "simulated": true
+        }
+      ],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "POST_DEPLOYMENT_VERIFICATION_FAILURE_ROLLBACK",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 20
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 0
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "ROLLBACK",
+          "targetState": "ROLLBACK_REQUIRED",
+          "reason": "POST_DEPLOYMENT_VERIFICATION_FAIL"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "ROLLBACK_REQUIRED"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "PROVIDER_DEGRADATION_DEGRADES",
+      "category": "POSITIVE",
+      "assuranceState": "DEGRADED",
+      "decision": "DEGRADE",
+      "decisionReason": "PROVIDER_DEGRADATION",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "DEGRADED",
+          "actual": "DEGRADED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "DEGRADE",
+          "actual": "DEGRADE"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "availability": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "latency": {
+          "status": "PASS",
+          "value": 180
+        },
+        "errorRate": {
+          "status": "PASS",
+          "value": 0.1
+        },
+        "saturation": {
+          "status": "PASS",
+          "value": 45
+        },
+        "functionalVerification": {
+          "status": "WARN"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "FAIL",
+          "raw": "FAIL"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "WARN",
+          "raw": "WARN",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [
+        {
+          "driftType": "PROVIDER_DRIFT",
+          "expected": "HEALTHY",
+          "observed": "FAIL",
+          "severity": "HIGH",
+          "source": "kidults-data-provider",
+          "detectedAt": "2026-08-09T04:18:10.795Z",
+          "firstSeenAt": "2026-08-09T04:18:10.795Z",
+          "persistence": 1,
+          "confidence": 0.98,
+          "recommendedAction": "DEGRADE"
+        }
+      ],
+      "containmentActions": [
+        {
+          "action": "SUSPEND_PROVIDER_DEPENDENT_OPERATION",
+          "simulated": true
+        },
+        {
+          "action": "FORCE_READ_ONLY_MODE",
+          "simulated": true
+        }
+      ],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "PROVIDER_DEGRADATION_DEGRADES",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 1
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "DEGRADE",
+          "targetState": "DEGRADED",
+          "reason": "PROVIDER_DEGRADATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "DEGRADED"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "RECOVERY_EXHAUSTED_ESCALATES",
+      "category": "FAIL_CLOSED",
+      "assuranceState": "EXECUTIVE_REVIEW_REQUIRED",
+      "decision": "EXECUTIVE_REVIEW_REQUIRED",
+      "decisionReason": "RECOVERY_EXHAUSTED:RECOVERY_EXHAUSTED",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "EXECUTIVE_REVIEW_REQUIRED",
+          "actual": "EXECUTIVE_REVIEW_REQUIRED"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "FAIL",
+          "value": 93
+        },
+        "availability": {
+          "status": "FAIL",
+          "value": 93
+        },
+        "latency": {
+          "status": "FAIL",
+          "value": 2500
+        },
+        "errorRate": {
+          "status": "FAIL",
+          "value": 9.5
+        },
+        "saturation": {
+          "status": "FAIL",
+          "value": 88
+        },
+        "functionalVerification": {
+          "status": "FAIL"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "WARN",
+          "raw": "WARN"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "WARN",
+          "active": true
+        },
+        "sloCompliance": {
+          "status": "FAIL",
+          "raw": "FAIL",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [],
+      "containmentActions": [],
+      "escalation": {
+        "escalated": true,
+        "reason": "RECOVERY_EXHAUSTED",
+        "availableDecisions": [
+          "ACKNOWLEDGE",
+          "CONTINUE_OBSERVATION",
+          "AUTHORIZE_BOUNDED_RECOVERY",
+          "APPROVE_ROLLBACK",
+          "ACTIVATE_FREEZE"
+        ],
+        "hardStopsNonOverridable": true,
+        "note": "Executive decisions may NOT bypass security hard stops, unknown critical state, missing rollback target, failed A32 certification, or unverifiable artifact identity."
+      },
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "RECOVERY_EXHAUSTED_ESCALATES",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 0
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "EXECUTIVE_REVIEW_REQUIRED",
+          "targetState": "EXECUTIVE_REVIEW_REQUIRED",
+          "reason": "RECOVERY_EXHAUSTED:RECOVERY_EXHAUSTED"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "EXECUTIVE_REVIEW_REQUIRED"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "RECOVERY_SUCCESS_RETURNS_HEALTHY",
+      "category": "POSITIVE",
+      "assuranceState": "HEALTHY",
+      "decision": "CONTINUE",
+      "decisionReason": "ALL_CRITICAL_PASS",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "HEALTHY",
+          "actual": "HEALTHY"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "CONTINUE",
+          "actual": "CONTINUE"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "PASS",
+          "value": 99.92
+        },
+        "availability": {
+          "status": "PASS",
+          "value": 99.92
+        },
+        "latency": {
+          "status": "PASS",
+          "value": 165
+        },
+        "errorRate": {
+          "status": "PASS",
+          "value": 0.04
+        },
+        "saturation": {
+          "status": "PASS",
+          "value": 41
+        },
+        "functionalVerification": {
+          "status": "PASS"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "PASS",
+          "raw": "PASS",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [],
+      "containmentActions": [],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "RECOVERY_SUCCESS_RETURNS_HEALTHY",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 0
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "CONTINUE",
+          "targetState": "HEALTHY",
+          "reason": "ALL_CRITICAL_PASS"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "HEALTHY"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "REPEATED_IDENTICAL_EVALUATION_IS_IDEMPOTENT",
+      "category": "POSITIVE",
+      "assuranceState": "HEALTHY",
+      "decision": "CONTINUE",
+      "decisionReason": "ALL_CRITICAL_PASS",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "HEALTHY",
+          "actual": "HEALTHY"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "CONTINUE",
+          "actual": "CONTINUE"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        },
+        {
+          "name": "idempotencyVerified",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "PASS",
+          "value": 99.95
+        },
+        "availability": {
+          "status": "PASS",
+          "value": 99.95
+        },
+        "latency": {
+          "status": "PASS",
+          "value": 180
+        },
+        "errorRate": {
+          "status": "PASS",
+          "value": 0.05
+        },
+        "saturation": {
+          "status": "PASS",
+          "value": 42
+        },
+        "functionalVerification": {
+          "status": "PASS"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "PASS",
+          "raw": "PASS",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [],
+      "containmentActions": [],
+      "escalation": null,
+      "idempotencyVerified": true,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "REPEATED_IDENTICAL_EVALUATION_IS_IDEMPOTENT",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 0
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "CONTINUE",
+          "targetState": "HEALTHY",
+          "reason": "ALL_CRITICAL_PASS"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "HEALTHY"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "ROLLBACK_TARGET_MISSING_FAILS_CLOSED",
+      "category": "FAIL_CLOSED",
+      "assuranceState": "FAILED_CLOSED",
+      "decision": "FAILED_CLOSED",
+      "decisionReason": "ROLLBACK_TARGET_MISSING_AND_CRITICAL_BREACH",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "FAIL",
+          "value": 90
+        },
+        "availability": {
+          "status": "FAIL",
+          "value": 90
+        },
+        "latency": {
+          "status": "FAIL",
+          "value": 2800
+        },
+        "errorRate": {
+          "status": "FAIL",
+          "value": 8
+        },
+        "saturation": {
+          "status": "FAIL",
+          "value": 90
+        },
+        "functionalVerification": {
+          "status": "FAIL"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "WARN",
+          "active": true
+        },
+        "sloCompliance": {
+          "status": "FAIL",
+          "raw": "FAIL",
+          "hardBreach": true
+        },
+        "rollbackReadiness": {
+          "status": "FAIL",
+          "targetExists": false
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [],
+      "containmentActions": [
+        {
+          "action": "DISABLE_UNSAFE_AUTONOMOUS_ACTION_PATH",
+          "simulated": true
+        },
+        {
+          "action": "BLOCK_FURTHER_DEPLOYMENT",
+          "simulated": true
+        }
+      ],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "ROLLBACK_TARGET_MISSING_FAILS_CLOSED",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 0
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "FAILED_CLOSED",
+          "targetState": "FAILED_CLOSED",
+          "reason": "ROLLBACK_TARGET_MISSING_AND_CRITICAL_BREACH"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "FAILED_CLOSED"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "SECURITY_REGRESSION_CONTAINS",
+      "category": "FAIL_CLOSED",
+      "assuranceState": "CONTAINED",
+      "decision": "CONTAIN",
+      "decisionReason": "SECURITY_REGRESSION",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "CONTAINED",
+          "actual": "CONTAINED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "CONTAIN",
+          "actual": "CONTAIN"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "availability": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "latency": {
+          "status": "PASS",
+          "value": 155
+        },
+        "errorRate": {
+          "status": "PASS",
+          "value": 0.08
+        },
+        "saturation": {
+          "status": "PASS",
+          "value": 42
+        },
+        "functionalVerification": {
+          "status": "PASS"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "FAIL",
+          "raw": "FAIL",
+          "details": {
+            "finding": "CRITICAL_VULNERABILITY_DETECTED",
+            "cve": "CVE-2026-XXXXX",
+            "affectedComponent": "kidults-core-lib",
+            "hardStop": true
+          }
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "PASS",
+          "raw": "PASS",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [
+        {
+          "driftType": "SECURITY_DRIFT",
+          "expected": "SECURE",
+          "observed": "CRITICAL_VULNERABILITY_DETECTED",
+          "severity": "CRITICAL",
+          "source": "security-posture-monitor",
+          "detectedAt": "2026-08-09T04:18:10.795Z",
+          "firstSeenAt": "2026-08-09T04:18:10.795Z",
+          "persistence": 1,
+          "confidence": 1,
+          "recommendedAction": "CONTAIN"
+        }
+      ],
+      "containmentActions": [
+        {
+          "action": "ISOLATE_AFFECTED_TARGET",
+          "simulated": true,
+          "target": "current-deployment"
+        },
+        {
+          "action": "DISABLE_UNSAFE_AUTONOMOUS_ACTION_PATH",
+          "simulated": true
+        },
+        {
+          "action": "BLOCK_FURTHER_DEPLOYMENT",
+          "simulated": true
+        }
+      ],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "SECURITY_REGRESSION_CONTAINS",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 1
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "CONTAIN",
+          "targetState": "CONTAINED",
+          "reason": "SECURITY_REGRESSION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "CONTAINED"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "STALE_EVIDENCE_FAILS_CLOSED",
+      "category": "FAIL_CLOSED",
+      "assuranceState": "FAILED_CLOSED",
+      "decision": "FAILED_CLOSED",
+      "decisionReason": "EVIDENCE_FRESHNESS_FAIL",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "availability": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "latency": {
+          "status": "PASS",
+          "value": 150
+        },
+        "errorRate": {
+          "status": "PASS",
+          "value": 0.05
+        },
+        "saturation": {
+          "status": "PASS",
+          "value": 40
+        },
+        "functionalVerification": {
+          "status": "PASS"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "FAIL",
+          "fresh": false,
+          "ageHours": 96,
+          "maxAgeHours": 24
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "PASS",
+          "raw": "PASS",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [
+        {
+          "driftType": "EVIDENCE_FRESHNESS_DRIFT",
+          "expected": "<= 24h",
+          "observed": "96h",
+          "severity": "CRITICAL",
+          "source": "evidence-freshness-monitor",
+          "detectedAt": "2026-08-09T04:18:10.796Z",
+          "firstSeenAt": "2026-08-09T04:18:10.796Z",
+          "persistence": 1,
+          "confidence": 1,
+          "recommendedAction": "FAIL_CLOSED"
+        }
+      ],
+      "containmentActions": [
+        {
+          "action": "DISABLE_UNSAFE_AUTONOMOUS_ACTION_PATH",
+          "simulated": true
+        },
+        {
+          "action": "BLOCK_FURTHER_DEPLOYMENT",
+          "simulated": true
+        }
+      ],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "STALE_EVIDENCE_FAILS_CLOSED",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 1
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "FAILED_CLOSED",
+          "targetState": "FAILED_CLOSED",
+          "reason": "EVIDENCE_FRESHNESS_FAIL"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "FAILED_CLOSED"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "TRANSIENT_WARNING_OBSERVES",
+      "category": "POSITIVE",
+      "assuranceState": "OBSERVING",
+      "decision": "OBSERVE",
+      "decisionReason": "NON_CRITICAL_WARN",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "OBSERVING",
+          "actual": "OBSERVING"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "OBSERVE",
+          "actual": "OBSERVE"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "PASS",
+          "value": 99.8
+        },
+        "availability": {
+          "status": "PASS",
+          "value": 99.8
+        },
+        "latency": {
+          "status": "PASS",
+          "value": 320
+        },
+        "errorRate": {
+          "status": "PASS",
+          "value": 0.8
+        },
+        "saturation": {
+          "status": "PASS",
+          "value": 65
+        },
+        "functionalVerification": {
+          "status": "WARN"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "BENIGN"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "WARN",
+          "raw": "WARN"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "WARN",
+          "raw": "WARN",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [],
+      "containmentActions": [],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "TRANSIENT_WARNING_OBSERVES",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 0
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "OBSERVE",
+          "targetState": "OBSERVING",
+          "reason": "NON_CRITICAL_WARN"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "OBSERVING"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "UNAUTHORIZED_ARTIFACT_CHANGE_FREEZES",
+      "category": "FAIL_CLOSED",
+      "assuranceState": "FROZEN",
+      "decision": "FREEZE",
+      "decisionReason": "UNAUTHORIZED_ARTIFACT_CHANGE",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "FROZEN",
+          "actual": "FROZEN"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "FREEZE",
+          "actual": "FREEZE"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "availability": {
+          "status": "PASS",
+          "value": 99.9
+        },
+        "latency": {
+          "status": "PASS",
+          "value": 150
+        },
+        "errorRate": {
+          "status": "PASS",
+          "value": 0.05
+        },
+        "saturation": {
+          "status": "PASS",
+          "value": 40
+        },
+        "functionalVerification": {
+          "status": "PASS"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "FAIL",
+          "match": false
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "PASS",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "PASS",
+          "raw": "PASS"
+        },
+        "securityPosture": {
+          "status": "PASS",
+          "raw": "PASS",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "PASS",
+          "raw": "PASS",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [
+        {
+          "driftType": "ARTIFACT_DRIFT",
+          "expected": "sha256:abc123def456",
+          "observed": "sha256:999badbeef00",
+          "severity": "CRITICAL",
+          "source": "artifact-identity-verifier",
+          "detectedAt": "2026-08-09T04:18:10.796Z",
+          "firstSeenAt": "2026-08-09T04:18:10.796Z",
+          "persistence": 1,
+          "confidence": 1,
+          "recommendedAction": "FREEZE"
+        }
+      ],
+      "containmentActions": [
+        {
+          "action": "FREEZE_CHANGE_LIFECYCLE",
+          "simulated": true
+        },
+        {
+          "action": "BLOCK_PUBLICATION",
+          "simulated": true
+        },
+        {
+          "action": "BLOCK_FURTHER_DEPLOYMENT",
+          "simulated": true
+        }
+      ],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "UNAUTHORIZED_ARTIFACT_CHANGE_FREEZES",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 1
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "FREEZE",
+          "targetState": "FROZEN",
+          "reason": "UNAUTHORIZED_ARTIFACT_CHANGE"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "FROZEN"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    },
+    {
+      "scenarioId": "UNKNOWN_CRITICAL_HEALTH_FAILS_CLOSED",
+      "category": "FAIL_CLOSED",
+      "assuranceState": "FAILED_CLOSED",
+      "decision": "FAILED_CLOSED",
+      "decisionReason": "UNKNOWN_CRITICAL_DIMENSION:runtimeHealth",
+      "passed": true,
+      "tests": [
+        {
+          "name": "assuranceStateMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "decisionMatch",
+          "passed": true,
+          "expected": "FAILED_CLOSED",
+          "actual": "FAILED_CLOSED"
+        },
+        {
+          "name": "evidenceEmitted",
+          "passed": true
+        },
+        {
+          "name": "noProductionMutation",
+          "passed": true
+        },
+        {
+          "name": "criticalDriftNotSilent",
+          "passed": true
+        }
+      ],
+      "dimensions": {
+        "runtimeHealth": {
+          "status": "UNKNOWN",
+          "note": "health telemetry unavailable"
+        },
+        "availability": {
+          "status": "UNKNOWN",
+          "value": null
+        },
+        "latency": {
+          "status": "UNKNOWN",
+          "value": null
+        },
+        "errorRate": {
+          "status": "UNKNOWN",
+          "value": null
+        },
+        "saturation": {
+          "status": "UNKNOWN",
+          "value": null
+        },
+        "functionalVerification": {
+          "status": "UNKNOWN"
+        },
+        "deploymentIdentity": {
+          "status": "PASS",
+          "a33Approved": true
+        },
+        "artifactIdentity": {
+          "status": "PASS",
+          "match": true
+        },
+        "configurationDrift": {
+          "status": "PASS",
+          "classification": "NONE"
+        },
+        "policyDrift": {
+          "status": "PASS",
+          "detected": false,
+          "details": null
+        },
+        "schemaDrift": {
+          "status": "PASS",
+          "detected": false
+        },
+        "evidenceFreshness": {
+          "status": "UNKNOWN",
+          "fresh": true,
+          "ageHours": null,
+          "maxAgeHours": null
+        },
+        "dataFreshness": {
+          "status": "PASS",
+          "fresh": true
+        },
+        "providerHealth": {
+          "status": "UNKNOWN",
+          "raw": "UNKNOWN"
+        },
+        "securityPosture": {
+          "status": "UNKNOWN",
+          "raw": "UNKNOWN",
+          "details": null
+        },
+        "incidentState": {
+          "status": "PASS",
+          "active": false
+        },
+        "sloCompliance": {
+          "status": "UNKNOWN",
+          "raw": "UNKNOWN",
+          "hardBreach": false
+        },
+        "rollbackReadiness": {
+          "status": "PASS",
+          "targetExists": true
+        },
+        "auditContinuity": {
+          "status": "PASS",
+          "a32Certified": true
+        }
+      },
+      "driftDetections": [],
+      "containmentActions": [
+        {
+          "action": "DISABLE_UNSAFE_AUTONOMOUS_ACTION_PATH",
+          "simulated": true
+        },
+        {
+          "action": "BLOCK_FURTHER_DEPLOYMENT",
+          "simulated": true
+        }
+      ],
+      "escalation": null,
+      "noProductionMutation": true,
+      "auditTrail": [
+        {
+          "event": "SCENARIO_START",
+          "scenarioId": "UNKNOWN_CRITICAL_HEALTH_FAILS_CLOSED",
+          "mode": "SIMULATION"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "UNVERIFIED",
+          "toState": "VERIFYING"
+        },
+        {
+          "event": "DIMENSIONS_EVALUATED",
+          "dimensionCount": 19
+        },
+        {
+          "event": "DRIFT_DETECTED",
+          "driftCount": 0
+        },
+        {
+          "event": "DECISION_DERIVED",
+          "decision": "FAILED_CLOSED",
+          "targetState": "FAILED_CLOSED",
+          "reason": "UNKNOWN_CRITICAL_DIMENSION:runtimeHealth"
+        },
+        {
+          "event": "STATE_TRANSITION",
+          "fromState": "VERIFYING",
+          "toState": "FAILED_CLOSED"
+        }
+      ],
+      "evidenceRef": "a34-2026-08-09-b4322b5a9595",
+      "policyVersion": "a34-production-assurance-policy.v1"
+    }
+  ],
+  "invariants": {
+    "a32CertificationIsMandatory": true,
+    "a33DeploymentEvidenceIsMandatory": true,
+    "activeArtifactMustMatchApprovedArtifact": true,
+    "criticalPolicyDriftCannotContinueSilently": true,
+    "criticalConfigDriftCannotContinueSilently": true,
+    "unknownCriticalStateFailsClosed": true,
+    "rollbackReadinessIsMandatory": true,
+    "securityHardStopsAreNonOverridable": true,
+    "executiveControlCannotBypassHardStops": true,
+    "repeatedEvaluationsAreIdempotent": true,
+    "everyDecisionEmitsEvidence": true,
+    "noIrreversibleProductionMutationDuringCertification": true,
+    "a15ToA33ControlsPreserved": true,
+    "healthyProductionContinues": true,
+    "transientWarnObserves": true,
+    "persistentSloDrift": true,
+    "criticalSloBreachRollsBack": true,
+    "postDeploymentFailureRollsBack": true,
+    "recoverySuccessReturnsHealthy": true,
+    "recoveryExhaustedEscalates": true
+  },
+  "invariantPassCount": 20,
+  "invariantTotal": 20,
+  "certification": {
+    "allScenariosPassed": true,
+    "allInvariantsPassed": true,
+    "certificationPassed": true
+  },
+  "noProductionMutation": true,
+  "completedAt": "2026-08-09T04:18:10.796Z"
+}

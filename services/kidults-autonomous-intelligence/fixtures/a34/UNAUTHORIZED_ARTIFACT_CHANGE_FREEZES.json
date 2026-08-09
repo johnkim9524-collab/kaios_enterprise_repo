@@ -1,0 +1,32 @@
+{
+  "scenarioId": "UNAUTHORIZED_ARTIFACT_CHANGE_FREEZES",
+  "category": "FAIL_CLOSED",
+  "description": "Deployed artifact does not match approved artifact; change lifecycle frozen.",
+  "a32CertificationPassed": true,
+  "a33DeploymentApproved": true,
+  "artifactIdentityMatch": false,
+  "artifactDriftType": "ARTIFACT_DRIFT",
+  "artifactDriftDetails": {
+    "approvedDigest": "sha256:abc123def456",
+    "observedDigest": "sha256:999badbeef00",
+    "unauthorizedMutation": true
+  },
+  "configurationDriftClassification": "NONE",
+  "policyDriftDetected": false,
+  "schemaDriftDetected": false,
+  "availabilityPct": 99.9,
+  "latencyP99Ms": 150,
+  "errorRatePct": 0.05,
+  "saturationPct": 40,
+  "functionalVerification": "PASS",
+  "securityPosture": "PASS",
+  "incidentActive": false,
+  "evidenceFresh": true,
+  "dataFresh": true,
+  "providerHealth": "PASS",
+  "rollbackTargetExists": true,
+  "sloComplianceStatus": "PASS",
+  "unknownCriticalDimension": false,
+  "expectedAssuranceState": "FROZEN",
+  "expectedDecision": "FREEZE"
+}
