@@ -48,14 +48,17 @@ jobs:
       - name: Runtime smoke
         run: npm run runtime:smoke
 
-      - name: Truth-layer unit tests
+      - name: Unit tests
         run: npm test
 
-      - name: Truth-layer coverage threshold gate
+      - name: Coverage threshold gate
         run: node scripts/p0-coverage-gate.mjs
 
-      - name: Truth-layer acceptance gate
+      - name: Truth-layer synthetic acceptance gate
         run: npm run truth:gate
+
+      - name: Unified autonomous preflight with real public data
+        run: node scripts/p0-unified-preflight-gate.mjs
 
       - name: A25-A40 simulation regression
         env:
@@ -116,11 +119,13 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      - name: Upload truth-layer evidence
+      - name: Upload truth and preflight evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kidults-p0-truth-layer-evidence
-          path: services/kidults-autonomous-intelligence/reports/truth-layer/truth-gate-latest.json
+          name: kidults-p0-truth-preflight-evidence
+          path: |
+            services/kidults-autonomous-intelligence/reports/truth-layer/truth-gate-latest.json
+            services/kidults-autonomous-intelligence/reports/preflight/unified-preflight-latest.json
           retention-days: 30
           if-no-files-found: error
