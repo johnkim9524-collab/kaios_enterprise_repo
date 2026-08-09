@@ -1,0 +1,22 @@
+{
+  "scenarioId": "EXECUTIVE_APPROVE",
+  "mode": "SIMULATION",
+  "description": "Executive approves promotion of healthy canary — deployment proceeds.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "canaryHealth": "HEALTHY",
+  "executiveDecision": "APPROVE_PROMOTION",
+  "postPromotionVerification": "PASS",
+  "expectedEligibilityState": "READY_FOR_CANARY",
+  "expectedFinalState": "PROMOTED",
+  "expectedPromotionDecision": "PROMOTE",
+  "expectedBusinessOutcome": "EXECUTIVE_APPROVE_AND_PROMOTE"
+}

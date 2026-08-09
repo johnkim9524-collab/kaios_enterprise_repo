@@ -1,0 +1,20 @@
+{
+  "scenarioId": "CANARY_DEGRADED_DEFERS",
+  "mode": "SIMULATION",
+  "description": "Canary health degrades — promotion is deferred, no rollback required.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "canaryHealth": "DEGRADED",
+  "expectedEligibilityState": "READY_FOR_CANARY",
+  "expectedFinalState": "DEFERRED",
+  "expectedPromotionDecision": "DEFER",
+  "expectedBusinessOutcome": "PROMOTION_DEFERRED_DUE_TO_DEGRADATION"
+}

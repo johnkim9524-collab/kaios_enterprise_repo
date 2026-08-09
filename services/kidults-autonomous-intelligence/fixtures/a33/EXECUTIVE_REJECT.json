@@ -1,0 +1,21 @@
+{
+  "scenarioId": "EXECUTIVE_REJECT",
+  "mode": "SIMULATION",
+  "description": "Executive rejects promotion — deployment is blocked with audit trail.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "canaryHealth": "HEALTHY",
+  "executiveDecision": "REJECT_PROMOTION",
+  "expectedEligibilityState": "READY_FOR_CANARY",
+  "expectedFinalState": "BLOCKED",
+  "expectedPromotionDecision": "BLOCK",
+  "expectedBusinessOutcome": "EXECUTIVE_REJECTION_APPLIED"
+}

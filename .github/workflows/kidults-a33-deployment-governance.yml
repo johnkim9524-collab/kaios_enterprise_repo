@@ -1,0 +1,79 @@
+name: Kidults A33 Production Deployment, Canary & Rollback Governance
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'services/kidults-autonomous-intelligence/scripts/a33-deployment-governance.mjs'
+      - 'services/kidults-autonomous-intelligence/fixtures/a33/**'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - '.github/workflows/kidults-a33-deployment-governance.yml'
+
+concurrency:
+  group: kidults-a33-deployment-governance
+  cancel-in-progress: false
+
+jobs:
+  a33-deployment-governance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm install
+
+      - name: Verify A33 package scripts exist
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json','utf-8'));
+            const required = ['a33:gate', 'a33:certify', 'a33:finalize'];
+            const missing = required.filter(s => !pkg.scripts[s]);
+            if (missing.length) { console.error('MISSING SCRIPTS:', missing.join(', ')); process.exit(1); }
+            console.log('A33 scripts present:', required.join(', '));
+          "
+
+      - name: Typecheck
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+
+      - name: Run A33 deployment governance gate
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a33:gate
+        env:
+          A33_MODE: SIMULATION
+
+      - name: Run A33 certify
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a33:certify
+        env:
+          A33_MODE: SIMULATION
+
+      - name: Run upstream A32 certification tests
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a32:certify
+        env:
+          A32_MODE: SIMULATION
+
+      - name: List package scripts
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run
+
+      - name: Upload A33 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: a33-deployment-governance-evidence
+          path: services/kidults-autonomous-intelligence/reports/deployment-governance/
+          retention-days: 90
+          if-no-files-found: error

@@ -1,0 +1,19 @@
+{
+  "scenarioId": "PROVIDER_UNAVAILABLE_BLOCKS",
+  "mode": "SIMULATION",
+  "description": "Required provider is unavailable — deployment is blocked.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": false,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "expectedEligibilityState": "BLOCKED",
+  "expectedFinalState": "BLOCKED",
+  "expectedPromotionDecision": "BLOCK",
+  "expectedBusinessOutcome": "PROVIDER_UNAVAILABLE_DEPLOYMENT_BLOCKED"
+}

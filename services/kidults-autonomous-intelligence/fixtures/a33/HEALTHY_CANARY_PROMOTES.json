@@ -1,0 +1,21 @@
+{
+  "scenarioId": "HEALTHY_CANARY_PROMOTES",
+  "mode": "SIMULATION",
+  "description": "Canary deploys successfully, passes all health checks, and is promoted to production.",
+  "a32CertificationPassed": true,
+  "policyEvidenceFresh": true,
+  "providerAvailable": true,
+  "changeFreezeActive": false,
+  "activeSev1Incident": false,
+  "sloHardBreach": false,
+  "securityBlock": false,
+  "executiveRejection": false,
+  "artifactIdKnown": true,
+  "rollbackTargetExists": true,
+  "canaryHealth": "HEALTHY",
+  "postPromotionVerification": "PASS",
+  "expectedEligibilityState": "READY_FOR_CANARY",
+  "expectedFinalState": "PROMOTED",
+  "expectedPromotionDecision": "PROMOTE",
+  "expectedBusinessOutcome": "DEPLOYMENT_PROMOTED_TO_PRODUCTION"
+}
