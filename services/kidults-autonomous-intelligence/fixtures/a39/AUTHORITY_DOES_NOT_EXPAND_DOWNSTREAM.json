@@ -1,0 +1,17 @@
+{
+  "scenarioId": "AUTHORITY_DOES_NOT_EXPAND_DOWNSTREAM",
+  "category": "AUTHORITY",
+  "description": "Authority must fail closed if downstream state attempts to expand beyond authoritative approval.",
+  "expectedState": "FAILED_CLOSED",
+  "expectedDecision": "FAILED_CLOSED",
+  "expectedFailureCodes": ["AUTHORITY_EXPANSION_ATTEMPT"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "AUTHORITY_EXPANSION_ATTEMPT",
+        "stage": "A29",
+        "detail": "recommendation_cannot_become_execution"
+      }
+    ]
+  }
+}

@@ -1,0 +1,77 @@
+name: Kidults A39 Enterprise Autonomous Operations Acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'services/kidults-autonomous-intelligence/scripts/a39-enterprise-acceptance.mjs'
+      - 'services/kidults-autonomous-intelligence/fixtures/a39/**'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md'
+      - '.github/workflows/kidults-a39-enterprise-acceptance.yml'
+      - 'services/kidults-autonomous-intelligence/reports/**'
+
+concurrency:
+  group: kidults-a39-enterprise-acceptance
+  cancel-in-progress: false
+
+jobs:
+  a39-enterprise-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm install
+
+      - name: Verify A39 package scripts exist
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf-8'));
+            const required = ['a39:gate', 'a39:certify', 'a39:finalize'];
+            const missing = required.filter((name) => !pkg.scripts[name]);
+            if (missing.length) { console.error('MISSING SCRIPTS:', missing.join(', ')); process.exit(1); }
+            console.log('A39 scripts present:', required.join(', '));
+          "
+
+      - name: Typecheck
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+
+      - name: Refresh upstream A38 certification
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a38:certify
+        env:
+          A38_MODE: SIMULATION
+
+      - name: Run A39 gate
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a39:gate
+        env:
+          A39_MODE: SIMULATION
+
+      - name: Run A39 certify
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a39:certify
+        env:
+          A39_MODE: SIMULATION
+
+      - name: Upload A39 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: a39-enterprise-acceptance-evidence
+          path: services/kidults-autonomous-intelligence/reports/enterprise-acceptance/
+          retention-days: 90
+          if-no-files-found: error

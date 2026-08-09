@@ -1,0 +1,15 @@
+{
+  "scenarioId": "UNCERTIFIED_STAGE_BLOCKS_ACCEPTANCE",
+  "category": "CERTIFICATION",
+  "description": "Any uncertified critical stage must block acceptance.",
+  "expectedState": "ACCEPTANCE_BLOCKED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["UNCERTIFIED_STAGE"],
+  "mutations": {
+    "stageOverrides": {
+      "A37": {
+        "certificationPassed": false
+      }
+    }
+  }
+}

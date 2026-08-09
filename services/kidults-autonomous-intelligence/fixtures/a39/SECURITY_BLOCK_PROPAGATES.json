@@ -1,0 +1,17 @@
+{
+  "scenarioId": "SECURITY_BLOCK_PROPAGATES",
+  "category": "SECURITY",
+  "description": "Security hard stops must propagate and fail closed.",
+  "expectedState": "FAILED_CLOSED",
+  "expectedDecision": "FAILED_CLOSED",
+  "expectedFailureCodes": ["SECURITY_BLOCK"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "SECURITY_BLOCK",
+        "stage": "A33",
+        "detail": "security_block_non_overridable"
+      }
+    ]
+  }
+}

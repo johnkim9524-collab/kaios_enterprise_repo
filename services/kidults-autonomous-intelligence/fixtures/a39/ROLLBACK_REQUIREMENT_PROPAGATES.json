@@ -1,0 +1,17 @@
+{
+  "scenarioId": "ROLLBACK_REQUIREMENT_PROPAGATES",
+  "category": "ASSURANCE",
+  "description": "Rollback requirements must remain preserved downstream.",
+  "expectedState": "CHAIN_DEGRADED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["ROLLBACK_REQUIREMENT"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "ROLLBACK_REQUIREMENT",
+        "stage": "A34",
+        "detail": "rollback_required_after_assurance_failure"
+      }
+    ]
+  }
+}

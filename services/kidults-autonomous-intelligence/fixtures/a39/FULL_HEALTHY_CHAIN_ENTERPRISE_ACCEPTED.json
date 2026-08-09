@@ -1,0 +1,9 @@
+{
+  "scenarioId": "FULL_HEALTHY_CHAIN_ENTERPRISE_ACCEPTED",
+  "category": "HAPPY_PATH",
+  "description": "A fully certified healthy chain must be enterprise accepted without external mutation.",
+  "expectedState": "ENTERPRISE_ACCEPTED",
+  "expectedDecision": "ENTERPRISE_ACCEPTED",
+  "expectedFailureCodes": [],
+  "idempotencyRepeatCount": 2
+}

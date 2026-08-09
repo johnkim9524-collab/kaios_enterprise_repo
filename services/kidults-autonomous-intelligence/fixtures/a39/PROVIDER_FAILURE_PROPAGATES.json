@@ -1,0 +1,17 @@
+{
+  "scenarioId": "PROVIDER_FAILURE_PROPAGATES",
+  "category": "PROVIDER_GOVERNANCE",
+  "description": "Provider failure must remain visible downstream.",
+  "expectedState": "CHAIN_DEGRADED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["PROVIDER_FAILURE"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "PROVIDER_FAILURE",
+        "stage": "A35",
+        "detail": "provider_unavailable"
+      }
+    ]
+  }
+}

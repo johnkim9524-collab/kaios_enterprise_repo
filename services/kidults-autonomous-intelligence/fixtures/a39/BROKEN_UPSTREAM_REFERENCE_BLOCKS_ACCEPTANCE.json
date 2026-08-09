@@ -1,0 +1,15 @@
+{
+  "scenarioId": "BROKEN_UPSTREAM_REFERENCE_BLOCKS_ACCEPTANCE",
+  "category": "CHAIN_CONTINUITY",
+  "description": "Broken upstream references must block acceptance.",
+  "expectedState": "ACCEPTANCE_BLOCKED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["BROKEN_UPSTREAM_REFERENCE"],
+  "mutations": {
+    "stageOverrides": {
+      "A36": {
+        "upstreamEvidenceReferences": ["BROKEN_REFERENCE"]
+      }
+    }
+  }
+}

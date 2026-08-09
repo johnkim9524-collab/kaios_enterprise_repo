@@ -1,0 +1,11 @@
+{
+  "scenarioId": "MISSING_CRITICAL_STAGE_EVIDENCE_FAILS_CLOSED",
+  "category": "EVIDENCE_DISCOVERY",
+  "description": "Missing critical evidence must fail closed.",
+  "expectedState": "FAILED_CLOSED",
+  "expectedDecision": "FAILED_CLOSED",
+  "expectedFailureCodes": ["MISSING_CRITICAL_STAGE_EVIDENCE"],
+  "mutations": {
+    "removeStages": ["A24"]
+  }
+}

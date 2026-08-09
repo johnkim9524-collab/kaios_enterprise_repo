@@ -1,0 +1,17 @@
+{
+  "scenarioId": "ENTITLEMENT_MISMATCH_BLOCKS_DELIVERY",
+  "category": "CUSTOMER_VALUE",
+  "description": "Entitlement mismatches must block delivery preparation.",
+  "expectedState": "CHAIN_DEGRADED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["ENTITLEMENT_MISMATCH"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "ENTITLEMENT_MISMATCH",
+        "stage": "A38",
+        "detail": "delivery_entitlement_mismatch"
+      }
+    ]
+  }
+}

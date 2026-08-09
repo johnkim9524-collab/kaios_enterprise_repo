@@ -1,0 +1,17 @@
+{
+  "scenarioId": "UNKNOWN_COST_CANNOT_AUTHORIZE_SPEND",
+  "category": "ECONOMIC_GOVERNANCE",
+  "description": "Unknown cost must not authorize spend.",
+  "expectedState": "CHAIN_DEGRADED",
+  "expectedDecision": "ACCEPTANCE_BLOCKED",
+  "expectedFailureCodes": ["UNKNOWN_COST"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "UNKNOWN_COST",
+        "stage": "A36",
+        "detail": "unknown_cost_cannot_authorize_spend"
+      }
+    ]
+  }
+}
