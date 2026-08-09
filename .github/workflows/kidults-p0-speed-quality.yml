@@ -58,10 +58,7 @@ jobs:
       - name: Truth-layer synthetic acceptance gate
         run: npm run truth:gate
 
-      - name: Unified autonomous preflight with real public data
-        run: node scripts/p0-unified-preflight-gate.mjs
-
-      - name: Real external open-data operational run
+      - name: Real external open-data operational run + unified preflight
         run: node scripts/live-open-data-operation.mjs
 
       - name: A25-A40 simulation regression
@@ -123,14 +120,13 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      - name: Upload truth, preflight and live-open-data evidence
+      - name: Upload truth and live-open-data preflight evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kidults-p0-truth-preflight-evidence
           path: |
             services/kidults-autonomous-intelligence/reports/truth-layer/truth-gate-latest.json
-            services/kidults-autonomous-intelligence/reports/preflight/unified-preflight-latest.json
             services/kidults-autonomous-intelligence/reports/live-open-data/live-open-data-latest.json
           retention-days: 30
           if-no-files-found: error
