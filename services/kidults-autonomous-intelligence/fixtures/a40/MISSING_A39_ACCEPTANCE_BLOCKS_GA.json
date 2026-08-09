@@ -1,0 +1,11 @@
+{
+  "scenarioId": "MISSING_A39_ACCEPTANCE_BLOCKS_GA",
+  "category": "CERTIFICATION_CHAIN",
+  "description": "Missing A39 acceptance evidence must block GA certification.",
+  "expectedState": "GA_BLOCKED",
+  "expectedDecision": "GA_BLOCKED",
+  "expectedFailureCodes": ["MISSING_A39_ACCEPTANCE"],
+  "mutations": {
+    "removeStages": ["A39"]
+  }
+}

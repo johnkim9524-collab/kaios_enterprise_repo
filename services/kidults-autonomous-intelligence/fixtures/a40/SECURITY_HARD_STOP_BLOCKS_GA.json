@@ -1,0 +1,17 @@
+{
+  "scenarioId": "SECURITY_HARD_STOP_BLOCKS_GA",
+  "category": "GOVERNANCE_BOUNDARY",
+  "description": "Security hard stops remain fatal and must fail closed.",
+  "expectedState": "FAILED_CLOSED",
+  "expectedDecision": "FAILED_CLOSED",
+  "expectedFailureCodes": ["SECURITY_HARD_STOP"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "SECURITY_HARD_STOP",
+        "stage": "A33",
+        "detail": "security hard stop preserved"
+      }
+    ]
+  }
+}

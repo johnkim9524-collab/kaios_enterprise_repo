@@ -1,0 +1,15 @@
+{
+  "scenarioId": "NON_MAIN_BRANCH_BLOCKS_OR_REQUIRES_REVIEW",
+  "category": "REPOSITORY_BASELINE",
+  "description": "A non-main branch must not be treated as GA-certifiable.",
+  "expectedState": "GA_BLOCKED",
+  "expectedDecision": "GA_BLOCKED",
+  "expectedFailureCodes": ["NON_MAIN_BRANCH"],
+  "mutations": {
+    "repositoryOverrides": {
+      "branch": "release/a40-candidate",
+      "synchronizedWithOriginMain": false,
+      "syncState": "OUT_OF_SYNC"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "scenarioId": "RECOVERY_READINESS_VALID",
+  "category": "RECOVERY_READINESS",
+  "description": "Recovery readiness remains deterministic and bounded.",
+  "expectedState": "GA_CERTIFIED",
+  "expectedDecision": "GA_CERTIFIED",
+  "expectedFailureCodes": []
+}

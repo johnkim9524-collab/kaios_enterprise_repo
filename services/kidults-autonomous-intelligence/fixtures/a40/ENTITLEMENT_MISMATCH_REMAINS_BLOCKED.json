@@ -1,0 +1,17 @@
+{
+  "scenarioId": "ENTITLEMENT_MISMATCH_REMAINS_BLOCKED",
+  "category": "LEGAL_COMMERCIAL_BOUNDARY",
+  "description": "Entitlement mismatch remains blocked.",
+  "expectedState": "GA_BLOCKED",
+  "expectedDecision": "GA_BLOCKED",
+  "expectedFailureCodes": ["ENTITLEMENT_MISMATCH"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "ENTITLEMENT_MISMATCH",
+        "stage": "A38",
+        "detail": "entitlement mismatch"
+      }
+    ]
+  }
+}

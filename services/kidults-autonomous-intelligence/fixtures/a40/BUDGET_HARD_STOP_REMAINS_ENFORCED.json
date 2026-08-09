@@ -1,0 +1,17 @@
+{
+  "scenarioId": "BUDGET_HARD_STOP_REMAINS_ENFORCED",
+  "category": "FAILURE_READINESS",
+  "description": "Budget hard stop remains enforced and blocks GA readiness.",
+  "expectedState": "GA_BLOCKED",
+  "expectedDecision": "GA_BLOCKED",
+  "expectedFailureCodes": ["BUDGET_HARD_STOP"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "BUDGET_HARD_STOP",
+        "stage": "A36",
+        "detail": "hard budget limit reached"
+      }
+    ]
+  }
+}

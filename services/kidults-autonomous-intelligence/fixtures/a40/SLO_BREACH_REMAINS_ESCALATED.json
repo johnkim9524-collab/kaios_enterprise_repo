@@ -1,0 +1,17 @@
+{
+  "scenarioId": "SLO_BREACH_REMAINS_ESCALATED",
+  "category": "FAILURE_READINESS",
+  "description": "SLO breach remains escalated and blocks GA readiness.",
+  "expectedState": "GA_BLOCKED",
+  "expectedDecision": "GA_BLOCKED",
+  "expectedFailureCodes": ["SLO_BREACH"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "SLO_BREACH",
+        "stage": "A34",
+        "detail": "critical SLO breach"
+      }
+    ]
+  }
+}

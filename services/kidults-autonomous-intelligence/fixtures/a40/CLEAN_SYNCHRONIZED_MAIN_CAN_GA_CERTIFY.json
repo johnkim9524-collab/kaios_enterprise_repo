@@ -1,0 +1,9 @@
+{
+  "scenarioId": "CLEAN_SYNCHRONIZED_MAIN_CAN_GA_CERTIFY",
+  "category": "HAPPY_PATH",
+  "description": "A clean synchronized main baseline with complete certified evidence can reach GA certification.",
+  "expectedState": "GA_CERTIFIED",
+  "expectedDecision": "GA_CERTIFIED",
+  "expectedFailureCodes": [],
+  "idempotencyRepeatCount": 2
+}

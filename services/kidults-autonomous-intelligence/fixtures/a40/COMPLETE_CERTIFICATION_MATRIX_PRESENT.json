@@ -1,0 +1,8 @@
+{
+  "scenarioId": "COMPLETE_CERTIFICATION_MATRIX_PRESENT",
+  "category": "EVIDENCE_ARCHIVE",
+  "description": "The A40 certification matrix includes all required A15-A39 stages and metadata.",
+  "expectedState": "GA_CERTIFIED",
+  "expectedDecision": "GA_CERTIFIED",
+  "expectedFailureCodes": []
+}

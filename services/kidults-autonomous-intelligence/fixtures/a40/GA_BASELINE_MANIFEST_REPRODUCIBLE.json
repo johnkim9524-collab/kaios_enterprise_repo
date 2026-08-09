@@ -1,0 +1,9 @@
+{
+  "scenarioId": "GA_BASELINE_MANIFEST_REPRODUCIBLE",
+  "category": "REPRODUCIBILITY",
+  "description": "The GA baseline manifest remains reproducible from the same authoritative repository state.",
+  "expectedState": "GA_CERTIFIED",
+  "expectedDecision": "GA_CERTIFIED",
+  "expectedFailureCodes": [],
+  "idempotencyRepeatCount": 2
+}

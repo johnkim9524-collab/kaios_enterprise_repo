@@ -1,0 +1,17 @@
+{
+  "scenarioId": "UNKNOWN_RIGHTS_CANNOT_COMMERCIALIZE",
+  "category": "LEGAL_COMMERCIAL_BOUNDARY",
+  "description": "Unknown rights cannot be commercialized.",
+  "expectedState": "GA_BLOCKED",
+  "expectedDecision": "GA_BLOCKED",
+  "expectedFailureCodes": ["RIGHTS_UNKNOWN"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "RIGHTS_UNKNOWN",
+        "stage": "A37",
+        "detail": "rights status unknown"
+      }
+    ]
+  }
+}

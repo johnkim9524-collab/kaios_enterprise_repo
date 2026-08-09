@@ -1,0 +1,17 @@
+{
+  "scenarioId": "PROVIDER_FAILURE_REMAINS_CONTAINED",
+  "category": "FAILURE_READINESS",
+  "description": "Provider failure remains contained and blocks GA readiness.",
+  "expectedState": "GA_BLOCKED",
+  "expectedDecision": "GA_BLOCKED",
+  "expectedFailureCodes": ["PROVIDER_FAILURE"],
+  "mutations": {
+    "injectedFailures": [
+      {
+        "code": "PROVIDER_FAILURE",
+        "stage": "A32",
+        "detail": "provider unavailable"
+      }
+    ]
+  }
+}

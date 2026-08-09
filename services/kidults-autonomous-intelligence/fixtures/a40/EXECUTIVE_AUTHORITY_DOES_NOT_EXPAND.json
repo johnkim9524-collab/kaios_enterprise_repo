@@ -1,0 +1,8 @@
+{
+  "scenarioId": "EXECUTIVE_AUTHORITY_DOES_NOT_EXPAND",
+  "category": "EXECUTIVE_BOUNDARY",
+  "description": "Executive authority remains explicit and does not expand autonomously.",
+  "expectedState": "GA_CERTIFIED",
+  "expectedDecision": "GA_CERTIFIED",
+  "expectedFailureCodes": []
+}

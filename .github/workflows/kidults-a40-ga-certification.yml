@@ -1,0 +1,77 @@
+name: Kidults A40 GA Certification & Production Baseline Freeze
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'services/kidults-autonomous-intelligence/scripts/a40-ga-certification.mjs'
+      - 'services/kidults-autonomous-intelligence/fixtures/a40/**'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'docs/kidults/A40_GA_CERTIFICATION_PRODUCTION_BASELINE_FREEZE.md'
+      - '.github/workflows/kidults-a40-ga-certification.yml'
+      - 'services/kidults-autonomous-intelligence/reports/**'
+
+concurrency:
+  group: kidults-a40-ga-certification
+  cancel-in-progress: false
+
+jobs:
+  a40-ga-certification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm install
+
+      - name: Verify A40 package scripts exist
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf-8'));
+            const required = ['a40:gate', 'a40:certify', 'a40:finalize'];
+            const missing = required.filter((name) => !pkg.scripts[name]);
+            if (missing.length) { console.error('MISSING SCRIPTS:', missing.join(', ')); process.exit(1); }
+            console.log('A40 scripts present:', required.join(', '));
+          "
+
+      - name: Typecheck
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+
+      - name: Refresh upstream A39 certification
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a39:certify
+        env:
+          A39_MODE: SIMULATION
+
+      - name: Run A40 gate
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a40:gate
+        env:
+          A40_MODE: SIMULATION
+
+      - name: Run A40 certify
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run a40:certify
+        env:
+          A40_MODE: SIMULATION
+
+      - name: Upload A40 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: a40-ga-certification-evidence
+          path: services/kidults-autonomous-intelligence/reports/ga-certification/
+          retention-days: 90
+          if-no-files-found: error

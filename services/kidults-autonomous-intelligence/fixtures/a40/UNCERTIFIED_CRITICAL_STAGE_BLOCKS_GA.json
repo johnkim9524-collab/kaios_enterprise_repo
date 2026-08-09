@@ -1,0 +1,15 @@
+{
+  "scenarioId": "UNCERTIFIED_CRITICAL_STAGE_BLOCKS_GA",
+  "category": "CERTIFICATION_CHAIN",
+  "description": "Any uncertified critical stage must block GA certification.",
+  "expectedState": "GA_BLOCKED",
+  "expectedDecision": "GA_BLOCKED",
+  "expectedFailureCodes": ["UNCERTIFIED_CRITICAL_STAGE"],
+  "mutations": {
+    "stageOverrides": {
+      "A35": {
+        "certificationPassed": false
+      }
+    }
+  }
+}
