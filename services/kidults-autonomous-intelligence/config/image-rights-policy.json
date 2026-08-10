@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0.0",
+  "policyId": "kidults-image-rights-policy-v1",
+  "principle": "Use product/object imagery as an eye-catching intelligence surface only when legal display rights are evidenced.",
+  "defaultDecision": "BLOCK",
+  "allowedDecisions": ["ALLOW", "ALLOW_WITH_ATTRIBUTION", "BLOCK", "HOLD_LEGAL_REVIEW"],
+  "requiredFields": [
+    "imageUrl",
+    "sourceUrl",
+    "rightsBasis",
+    "commercialUseAllowed",
+    "displayAllowed",
+    "observedAt"
+  ],
+  "preferredRightsBasis": [
+    "KIDULTS_OWNED",
+    "DIRECT_LICENSE",
+    "CC0",
+    "PUBLIC_DOMAIN_CONFIRMED",
+    "OPEN_ACCESS_COMMERCIAL_REUSE",
+    "PARTNER_LICENSE"
+  ],
+  "rules": {
+    "commercialUseAllowedMustBeTrue": true,
+    "displayAllowedMustBeTrue": true,
+    "unknownRightsBlocked": true,
+    "fairUseIsNotDefaultSupplyStrategy": true,
+    "trademarkPublicityPrivacyRemainSeparate": true,
+    "attributionMustBeRenderedWhenRequired": true,
+    "expiredLicenseBlocksDisplay": true
+  },
+  "portalBehavior": {
+    "rightsClearedImage": "DISPLAY",
+    "rightsUnclear": "USE_NEUTRAL_OBJECT_PLACEHOLDER",
+    "attributionRequired": "DISPLAY_WITH_SOURCE_CREDIT",
+    "rightsRevokedOrExpired": "REMOVE_AND_REPLACE_AUTOMATICALLY"
+  },
+  "trackedMetadata": [
+    "imageSource",
+    "copyrightOwner",
+    "license",
+    "rightsBasis",
+    "commercialUseAllowed",
+    "displayAllowed",
+    "attributionRequired",
+    "derivativeAllowed",
+    "licenseExpiry",
+    "evidenceUrl",
+    "sourceUrl",
+    "payloadHash",
+    "lastVerifiedAt"
+  ]
+}
