@@ -2,6 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const API = process.env.KIDULTS_PREVIEW_API || 'https://kidults-autonomous-intelligence.john-kim9524.workers.dev';
+const TOKEN = process.env.KIDULTS_INGEST_TOKEN || '';
+if (!TOKEN) throw new Error('KIDULTS_INGEST_TOKEN is required; do not disable Worker authentication');
+const authHeaders = { 'content-type': 'application/json', authorization: `Bearer ${TOKEN}` };
+
 const file = path.resolve('reports/kidult100-wave1/wave1-live-latest.json');
 if (!fs.existsSync(file)) throw new Error(`missing Wave1 report: ${file}`);
 const report = JSON.parse(fs.readFileSync(file,'utf8'));
@@ -19,7 +23,7 @@ for (const r of records) {
     metrics:[{key:'discovery_presence',value:1,unit:'record',confidence:r.source==='WIKIDATA_CC0'?80:90}]
   };
   try {
-    const res=await fetch(`${API}/internal/ingest`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
+    const res=await fetch(`${API}/internal/ingest`,{method:'POST',headers:authHeaders,body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
     const out=await res.json().catch(()=>({}));
     if(!res.ok){failed++; console.error('FAIL',r.source,r.sourceRecordId,res.status,out); continue;}
     if(out.duplicate) duplicates++; else accepted++;
@@ -30,7 +34,7 @@ if(failed) {
   process.exit(1);
 }
 
-const publishRes=await fetch(`${API}/internal/publish`,{method:'POST',headers:{'content-type':'application/json'},signal:AbortSignal.timeout(30000)});
+const publishRes=await fetch(`${API}/internal/publish`,{method:'POST',headers:authHeaders,signal:AbortSignal.timeout(30000)});
 const publish=await publishRes.json().catch(()=>({}));
 const previewRes=await fetch(`${API}/v1/intelligence/preview`,{signal:AbortSignal.timeout(20000)});
 const preview=await previewRes.json().catch(()=>({}));
