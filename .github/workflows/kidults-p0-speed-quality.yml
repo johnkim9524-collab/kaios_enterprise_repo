@@ -56,6 +56,8 @@ jobs:
         run: node scripts/kidult100-poc-live.mjs
       - name: Open CC0 Scarcity + Demand evidence collection
         run: node scripts/kidult100-open-right-data-evidence.mjs
+      - name: Market provider onboarding preflight
+        run: node scripts/kidult100-market-provider-onboarding-preflight.mjs
       - name: Rights-first market provider adapter normalization
         run: node scripts/kidult100-market-adapter-normalize.mjs
       - name: Provider evidence contract validation
@@ -135,6 +137,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-wave1/wave1-live-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-poc-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/open-evidence-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-provider-onboarding-preflight-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/normalized-market-provider-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/validated-provider-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/right-data-latest.json
