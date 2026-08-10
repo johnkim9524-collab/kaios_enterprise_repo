@@ -7,11 +7,12 @@ const CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'kidult100-p
 const OUT_DIR = path.join(ROOT, 'reports', 'kidult100-poc');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-const UA = 'KIDULTS-Kidult100-POC/2.4 (two-stage-semantic-gate; resilient-wikidata-discovery)';
+const CONTACT_URL = 'https://github.com/johnkim9524-collab/kaios_enterprise_repo';
+const UA = `KIDULTS-Kidult100-Bot/2.5 (${CONTACT_URL}; two-stage semantic discovery)`;
 const WIKIDATA_MIN_INTERVAL_MS = 700;
 const WIKIDATA_MAX_RETRIES = 4;
 let lastWikidataRequestAt = 0;
-const wikidataRuntime = { requests: 0, retries: 0, rateLimits: 0 };
+const wikidataRuntime = { requests: 0, retries: 0, rateLimits: 0, contactUrl: CONTACT_URL };
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -218,8 +219,6 @@ function semanticTwoStage(item) {
   const hasVerticalContext = verticalContextHits.length > 0;
   const sourceNativeEntity = item.source === 'wikidata' && /^Q\d+$/.test(String(item.sourceRecordId || ''));
 
-  // Stage A: maximize recall. A candidate survives when there is at least one defensible anchor,
-  // vertical context, or a source-native Wikidata entity returned directly for the discovery query.
   const stageAReasons = [];
   if (exactTitleQuery) stageAReasons.push('EXACT_TITLE_QUERY');
   if (queryPhraseInTitle) stageAReasons.push('QUERY_PHRASE_IN_TITLE');
@@ -232,7 +231,6 @@ function semanticTwoStage(item) {
 
   const stageAPassed = stageAReasons.length > 0;
 
-  // Stage B: precision verification. Only obvious archive false positives are removed.
   const stageBReasons = [];
   let stageBPassed = stageAPassed;
   const institutionalArchive = item.sourceClass === 'INSTITUTION_ARCHIVE';
@@ -353,7 +351,7 @@ const rightsClassificationCoverage = candidates.length ? candidates.filter((c) =
 const semanticRelevanceCoverage = candidates.length ? relevantCandidates.length / candidates.length : 0;
 
 const report = {
-  schemaVersion: '2.4.0',
+  schemaVersion: '2.5.0',
   mode: CONFIG.mode,
   generatedAt: new Date().toISOString(),
   target: {
@@ -367,7 +365,13 @@ const report = {
     stageB: 'PRECISION_VERIFIER',
     archiveTitleOnlyAccepted: false,
     archiveObjectMismatchAccepted: false,
-    principle: 'Recover defensible recall first, then reject only explicit archive/title/object mismatches.',
+    principle: 'Recover defensible recall first, then reject only explicit archive title-only and object-type mismatches.',
+  },
+  accessPolicy: {
+    descriptiveBotUserAgent: true,
+    contactUrl: CONTACT_URL,
+    wikidataMinimumIntervalMs: WIKIDATA_MIN_INTERVAL_MS,
+    wikidataMaximumRetries: WIKIDATA_MAX_RETRIES,
   },
   metrics: {
     rawObservations: raw.length,
@@ -406,7 +410,7 @@ const report = {
 };
 
 fs.writeFileSync(path.join(OUT_DIR, 'kidult100-poc-latest.json'), JSON.stringify(report, null, 2));
-console.log(`Kidult100 candidate build v2.4: raw=${raw.length} unique=${candidates.length} recall=${recallCandidates.length} precisionRejected=${precisionRejectedCandidates.length} relevant=${relevantCandidates.length} errors=${sourceErrors.length}`);
+console.log(`Kidult100 candidate build v2.5: raw=${raw.length} unique=${candidates.length} recall=${recallCandidates.length} precisionRejected=${precisionRejectedCandidates.length} relevant=${relevantCandidates.length} errors=${sourceErrors.length}`);
 console.log(`provenance=${provenanceCoverage} rights=${rightsClassificationCoverage} semantic=${semanticRelevanceCoverage}`);
 console.log(`rawDuplicateObservationRate=${rawDuplicateObservationRate} acceptedDuplicateContamination=${acceptedDuplicateContamination}`);
 console.log(`recallVerticals=${JSON.stringify(recallByVertical)}`);
