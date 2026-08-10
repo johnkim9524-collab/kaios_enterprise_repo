@@ -1,0 +1,51 @@
+name: KIDULTS Global Standard Preview Deploy
+
+on:
+  push:
+    branches:
+      - hardening/p0-speed-quality
+    paths:
+      - 'apps/kidults-enterprise-staging/public/global-standard.html'
+      - 'apps/kidults-global-standard-preview/**'
+      - '.github/workflows/kidults-global-standard-preview-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-global-standard-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: kidults-poc-preview
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Validate locked final portal binding
+        run: |
+          grep -q 'Objects worth' apps/kidults-enterprise-staging/public/global-standard.html
+          grep -q 'kidults-autonomous-intelligence.john-kim9524.workers.dev' apps/kidults-enterprise-staging/public/global-standard.html
+          grep -q '/v1/intelligence/preview' apps/kidults-enterprise-staging/public/global-standard.html
+          grep -q 'PRODUCTION_PROMOTION_AUTHORIZED' apps/kidults-global-standard-preview/wrangler.jsonc
+
+      - name: Deploy preview Worker only
+        working-directory: apps/kidults-global-standard-preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.120.0 deploy --config wrangler.jsonc
+
+      - name: Verify preview portal
+        run: |
+          curl --fail --retry 5 --retry-delay 3 --max-time 20 https://kidults-global-standard-preview.john-kim9524.workers.dev/health
+          curl --fail --retry 5 --retry-delay 3 --max-time 20 https://kidults-global-standard-preview.john-kim9524.workers.dev/global-standard | grep -q 'Objects worth'
