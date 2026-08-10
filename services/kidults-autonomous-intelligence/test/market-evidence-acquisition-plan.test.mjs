@@ -110,8 +110,8 @@ test('validated market evidence is credited only to matching relevant candidates
   assert.equal(toys.currentTransactionComparableCandidates, 2);
   assert.equal(toys.currentLiquidityCandidates, 2);
   assert.equal(toys.candidateCoverageGap, 8);
-  assert.equal(toys.verifiedTransactionsInTargetSet, 4);
-  assert.equal(toys.remainingCompletedTransactionFloor, 14);
+  assert.equal(toys.verifiedTransactionsInTargetSet, 5);
+  assert.equal(toys.remainingCompletedTransactionFloor, 13);
   assert.equal(toys.remainingLiquidityObservationFloor, 7);
 });
 
