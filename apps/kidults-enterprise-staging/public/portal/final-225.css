@@ -1,0 +1,32 @@
+/* KIDULTS portal v225 — match the approved final reference image. */
+@media (min-width:1101px){
+  .hero{grid-template-columns:24% 76%;gap:12px;margin-bottom:14px}
+  .moment{min-height:318px;background:linear-gradient(180deg,#fbfaf7 0%,#faf9f6 100%)}
+  .hero-asset{width:48%!important;height:230px!important;right:7%!important;bottom:26px!important;object-fit:contain!important;transform:none!important;transform-origin:center bottom!important}
+  .moment-copy{left:24px;top:66px}
+  .moment>.eyebrow{left:24px;top:16px}
+  .dots{left:24px;bottom:18px}
+  .detail-link{right:24px;bottom:16px}
+  .hero-copy h1{font-size:44px;line-height:1.03;margin:30px 0 18px}
+  .hero-copy>p:not(.eyebrow){font-size:12px;line-height:1.55}
+}
+/* The approved reference has one evidence/metrics row before the method layer. */
+.evidence-strip{display:none!important}
+.process{margin-bottom:10px}
+.benchmark{margin-bottom:10px}
+.rank-card img{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;height:96px!important;object-fit:contain!important;margin:6px 0 4px!important}
+.rank-card{padding:10px 12px 9px!important}
+.rank-card>p{margin:7px 0 0!important}
+.rank-card footer{min-height:26px!important}
+.donut{overflow:hidden!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important}
+.donut b,.donut span{position:relative!important;z-index:2!important;display:block!important;text-align:center!important;width:60px!important;max-width:60px!important;white-space:nowrap!important;overflow:hidden!important;line-height:1!important}
+.donut b{font-size:12px!important;margin:0 auto 3px!important}
+.donut span{font-size:5.2px!important;margin:0 auto!important;letter-spacing:0!important}
+@media(max-width:1100px){
+  .evidence-strip{display:none!important}
+  .hero-asset{object-fit:contain!important;transform:none!important}
+}
+@media(max-width:760px){
+  .rank-card img{height:84px!important}
+  .donut b,.donut span{width:58px!important;max-width:58px!important}
+}
