@@ -60,6 +60,29 @@ function run(p = policy(), candidates = []) {
   return { result, report };
 }
 
+function runWithFiles(p, candidates) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-rank-gap-files-'));
+  const policyPath = path.join(tmp, 'policy.json');
+  const dataPath = path.join(tmp, 'right-data.json');
+  const out = path.join(tmp, 'out.json');
+  fs.writeFileSync(policyPath, JSON.stringify(p));
+  fs.writeFileSync(dataPath, JSON.stringify({ candidates }));
+  const env = {
+    ...process.env,
+    KIDULTS_RANKABILITY_POLICY_JSON: policyPath,
+    KIDULTS_RANKABILITY_RIGHT_DATA_JSON: dataPath,
+    KIDULTS_RANKABILITY_GAP_OUTPUT: out,
+  };
+  const result = spawnSync(process.execPath, ['scripts/kidult100-rankability-gap-plan.mjs'], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    env,
+  });
+  const report = fs.existsSync(out) ? JSON.parse(fs.readFileSync(out, 'utf8')) : null;
+  fs.rmSync(tmp, { recursive: true, force: true });
+  return { result, report };
+}
+
 test('market-only acquisition cannot unlock a risk-only candidate under 95 percent scoring coverage', () => {
   const rows = [evidence('RISK_CONFIDENCE', { score: 0.9 })];
   const { result, report } = run(policy(), [candidate('risk-only', rows)]);
@@ -119,6 +142,37 @@ test('already rankable candidate is reported without changing the gate', () => {
   assert.equal(report.metrics.currentRankableCandidates, 1);
   assert.equal(report.disposition, 'RANKABILITY_GATE_MET');
   assert.equal(report.claims.rankabilityCertified, true);
+});
+
+test('file inputs and deterministic priority sorting cover every non-market gap comparison', () => {
+  const fullyNonMarketReady = [
+    evidence('SCARCITY', { normalizedScore: 0.7 }),
+    evidence('DEMAND_ATTENTION', { normalizedScore: 0.6 }),
+    evidence('CANON_CULTURAL_STRENGTH', { normalizedScore: 0.8 }),
+    evidence('RISK_CONFIDENCE', { score: 0.9 }),
+  ];
+  const rawHeavy = [
+    evidence('SCARCITY', { totalProduced: 1000 }),
+    evidence('DEMAND_ATTENTION', { sitelinkCount: 20 }),
+    evidence('RISK_CONFIDENCE', { score: 0.9 }),
+  ];
+  const riskOnly = [evidence('RISK_CONFIDENCE', { score: 0.9 })];
+  const rows = [
+    candidate('z-risk', riskOnly),
+    candidate('a-market-ready', fullyNonMarketReady),
+    candidate('b-raw-heavy', rawHeavy),
+    candidate('a-risk', riskOnly),
+    candidate('no-risk', []),
+  ];
+  const { result, report } = runWithFiles(policy(), rows);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.deepEqual(report.candidatePriorities.map((row) => row.candidateKey), [
+    'a-market-ready',
+    'b-raw-heavy',
+    'a-risk',
+    'z-risk',
+    'no-risk',
+  ]);
 });
 
 test('invalid scoring policy fails closed', () => {
