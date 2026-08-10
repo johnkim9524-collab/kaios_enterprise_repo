@@ -204,7 +204,11 @@ export default {
       if (!snapshot) return json({ mode:'LIVE_PREVIEW', certified:false, error:'no portal snapshot available yet' }, 404, cors);
       let payload: unknown;
       try { payload = JSON.parse(snapshot.payload_json); } catch { payload = snapshot.payload_json; }
+      const uiPayload = payload && typeof payload === 'object' && !Array.isArray(payload)
+        ? payload as Record<string, unknown>
+        : {};
       return json({
+        ...uiPayload,
         mode:'LIVE_PREVIEW',
         certified:false,
         productionPromoted:snapshot.status === 'published',
