@@ -1,10 +1,9 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.0.0",
   "policy": "FAIL_CLOSED_PROVIDER_EVIDENCE_VALIDATION",
   "input": {
     "environmentVariable": "KIDULTS_RIGHT_DATA_EVIDENCE_JSON",
     "optionalSnapshotFiles": [
-      "reports/kidult100-right-data/normalized-market-provider-evidence-latest.json",
       "data/right-data/provider-evidence.json"
     ]
   },
