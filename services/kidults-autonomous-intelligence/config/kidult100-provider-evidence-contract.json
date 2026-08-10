@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_PROVIDER_EVIDENCE_VALIDATION",
+  "input": {
+    "environmentVariable": "KIDULTS_RIGHT_DATA_EVIDENCE_JSON",
+    "optionalSnapshotFiles": [
+      "data/right-data/provider-evidence.json"
+    ]
+  },
+  "output": "reports/kidult100-right-data/validated-provider-evidence-latest.json",
+  "baseRequiredFields": [
+    "candidateKey",
+    "primitive",
+    "source",
+    "sourceUrl",
+    "rightsClass",
+    "observedAt",
+    "payloadHash",
+    "evidenceClass"
+  ],
+  "allowedEvidenceClasses": [
+    "AUTHORITATIVE_IDENTITY_PROVENANCE",
+    "TRANSACTION_MARKET_EVIDENCE",
+    "INDEPENDENT_VERIFICATION",
+    "DEMAND_CULTURAL_SIGNAL",
+    "DERIVED_INTERNAL_CONFIDENCE"
+  ],
+  "marketEvidence": {
+    "primitives": [
+      "TRANSACTION_PRICE_COMPARABLE",
+      "LIQUIDITY"
+    ],
+    "requiredEvidenceClass": "TRANSACTION_MARKET_EVIDENCE",
+    "allowedRightsClasses": [
+      "LICENSED_COMMERCIAL_DATA",
+      "OPEN_COMMERCIAL_REUSE",
+      "PUBLIC_DOMAIN_MARKET_DATA",
+      "CONTRACTUALLY_AUTHORIZED_DATA"
+    ],
+    "transactionPriceComparable": {
+      "requiredValueFields": [
+        "transactionId",
+        "venue",
+        "transactionAt",
+        "currency",
+        "price",
+        "transactionType"
+      ],
+      "allowedTransactionTypes": [
+        "AUCTION_HAMMER",
+        "AUCTION_SOLD_PRICE",
+        "MARKETPLACE_COMPLETED_SALE",
+        "DEALER_CONFIRMED_SALE",
+        "EXCHANGE_EXECUTED_TRADE"
+      ],
+      "disallowedTransactionTypes": [
+        "LISTING_PRICE",
+        "ASK_PRICE",
+        "ESTIMATE",
+        "APPRAISAL",
+        "GUIDE_PRICE",
+        "MODELLED_PRICE"
+      ]
+    },
+    "liquidity": {
+      "requiredValueFields": [
+        "windowStart",
+        "windowEnd",
+        "completedTransactions",
+        "venue",
+        "derivationMethod",
+        "supportingTransactionIds"
+      ],
+      "minimumCompletedTransactions": 2,
+      "allowedDerivationMethods": [
+        "COUNT_COMPLETED_TRANSACTIONS",
+        "ROLLING_COMPLETED_SALES_FREQUENCY",
+        "EXECUTED_TRADE_FREQUENCY"
+      ]
+    }
+  },
+  "safety": {
+    "syntheticMarketEvidenceAllowed": false,
+    "estimatedMarketEvidenceAllowed": false,
+    "listingPriceAsTransactionAllowed": false,
+    "liquidityWithoutCompletedTransactionsAllowed": false,
+    "unknownRightsClassForMarketEvidenceAllowed": false
+  }
+}
