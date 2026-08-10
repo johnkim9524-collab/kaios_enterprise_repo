@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "NO_MARKET_SOURCE_WITHOUT_EXPLICIT_RIGHTS",
+  "authorizationStatuses": [
+    "APPROVED",
+    "PENDING",
+    "REJECTED",
+    "SUSPENDED"
+  ],
+  "acceptedRightsClasses": [
+    "LICENSED_COMMERCIAL_DATA",
+    "OPEN_COMMERCIAL_REUSE",
+    "PUBLIC_DOMAIN_MARKET_DATA",
+    "CONTRACTUALLY_AUTHORIZED_DATA"
+  ],
+  "rules": {
+    "approvedStatusRequiredForEvidence": true,
+    "sourceHostAllowlistRequired": true,
+    "rightsClassMustMatchRegistry": true,
+    "authorizationIdRequired": true,
+    "providerMustBeEnabled": true,
+    "providerRegistryIsAuthoritative": true,
+    "listingOrEstimatedPriceCannotBeTransaction": true,
+    "liquidityMustBeBackedByCompletedTransactions": true
+  },
+  "providers": []
+}
