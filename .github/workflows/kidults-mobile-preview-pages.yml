@@ -1,0 +1,41 @@
+name: Kidults Mobile Preview Portal
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/kidults-enterprise-staging/public/a13/**'
+      - 'apps/kidults-enterprise-staging/public/data/**'
+      - '.github/workflows/kidults-mobile-preview-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: kidults-mobile-preview-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Kidults staging portal
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/kidults-enterprise-staging/public
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
