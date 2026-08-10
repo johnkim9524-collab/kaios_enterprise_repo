@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "mode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "candidateTarget": 300,
   "stage2Gate": {
@@ -37,12 +37,12 @@
     {
       "id": "automobiles-mobility",
       "label": "Automobiles & Mobility",
-      "discoveryQueries": ["Ferrari F40", "Porsche 911", "Lamborghini Countach", "Toyota 2000GT", "Mercedes 300SL", "classic automobile"]
+      "discoveryQueries": ["Ferrari F40", "Porsche 911", "Lamborghini Countach", "Toyota 2000GT", "Mercedes 300SL", "classic automobile", "McLaren F1", "Jaguar E-Type", "BMW M1", "Ford GT40"]
     },
     {
       "id": "fashion-accessories",
       "label": "Fashion & Accessories",
-      "discoveryQueries": ["Hermes Birkin", "Chanel handbag", "Air Jordan 1", "Louis Vuitton trunk", "archive fashion", "sneaker"]
+      "discoveryQueries": ["Hermes Birkin", "Chanel handbag", "Air Jordan 1", "Louis Vuitton trunk", "archive fashion", "sneaker", "Dior Saddle Bag", "Gucci Jackie bag", "Nike Dunk", "Adidas Yeezy", "Supreme box logo"]
     },
     {
       "id": "design-furniture",
