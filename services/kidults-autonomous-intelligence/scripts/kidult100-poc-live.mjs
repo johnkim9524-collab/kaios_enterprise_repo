@@ -7,26 +7,67 @@ const CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'kidult100-p
 const OUT_DIR = path.join(ROOT, 'reports', 'kidult100-poc');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-const UA = 'KIDULTS-Kidult100-POC/2.3 (semantic-relevance-v2.1; candidate-universe build)';
-const SEMANTIC_THRESHOLD = 0.46;
+const UA = 'KIDULTS-Kidult100-POC/2.4 (two-stage-semantic-gate; resilient-wikidata-discovery)';
+const WIKIDATA_MIN_INTERVAL_MS = 700;
+const WIKIDATA_MAX_RETRIES = 4;
+let lastWikidataRequestAt = 0;
+const wikidataRuntime = { requests: 0, retries: 0, rateLimits: 0 };
 
-async function getJson(url) {
-  const started = Date.now();
-  const response = await fetch(url, {
-    headers: { accept: 'application/json', 'user-agent': UA, 'AIC-User-Agent': UA },
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!response.ok) throw new Error(`HTTP_${response.status}:${url}`);
-  return { body: await response.json(), latencyMs: Date.now() - started };
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function hash(value) {
   return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 
+async function getJson(url, { wikidata = false } = {}) {
+  if (!wikidata) {
+    const started = Date.now();
+    const response = await fetch(url, {
+      headers: { accept: 'application/json', 'user-agent': UA, 'AIC-User-Agent': UA },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) throw new Error(`HTTP_${response.status}:${url}`);
+    return { body: await response.json(), latencyMs: Date.now() - started };
+  }
+
+  for (let attempt = 0; attempt <= WIKIDATA_MAX_RETRIES; attempt += 1) {
+    const elapsed = Date.now() - lastWikidataRequestAt;
+    if (elapsed < WIKIDATA_MIN_INTERVAL_MS) await sleep(WIKIDATA_MIN_INTERVAL_MS - elapsed);
+
+    const started = Date.now();
+    lastWikidataRequestAt = Date.now();
+    wikidataRuntime.requests += 1;
+    const response = await fetch(url, {
+      headers: { accept: 'application/json', 'user-agent': UA },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (response.ok) return { body: await response.json(), latencyMs: Date.now() - started };
+
+    if (response.status === 429 || response.status >= 500) {
+      if (response.status === 429) wikidataRuntime.rateLimits += 1;
+      if (attempt < WIKIDATA_MAX_RETRIES) {
+        wikidataRuntime.retries += 1;
+        const retryAfterSeconds = Number(response.headers.get('retry-after'));
+        const retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+          ? retryAfterSeconds * 1000
+          : Math.min(10000, 900 * (2 ** attempt));
+        await sleep(retryAfterMs);
+        continue;
+      }
+    }
+
+    throw new Error(`HTTP_${response.status}:${url}`);
+  }
+
+  throw new Error(`WIKIDATA_RETRY_EXHAUSTED:${url}`);
+}
+
 async function searchWikidata(query, vertical) {
   const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&limit=8&origin=*`;
-  const { body, latencyMs } = await getJson(url);
+  const { body, latencyMs } = await getJson(url, { wikidata: true });
   const rows = Array.isArray(body.search) ? body.search : [];
   return rows.map((row) => ({
     candidateKey: `wikidata:${row.id}`,
@@ -36,6 +77,8 @@ async function searchWikidata(query, vertical) {
     sourceRecordId: row.id,
     canonicalTitle: row.label || null,
     description: row.description || null,
+    creator: null,
+    objectDate: null,
     sourceUrl: row.concepturi || `https://www.wikidata.org/wiki/${row.id}`,
     observedAt: new Date().toISOString(),
     rightsClass: 'CC0_STRUCTURED_DATA',
@@ -131,7 +174,7 @@ const VERTICAL_CONTEXT = {
 
 const ARCHIVE_NEGATIVE_OBJECT_TERMS = new Set([
   'textile', 'painting', 'drawing', 'print', 'photograph', 'sculpture', 'vessel', 'fragment', 'manuscript',
-  'costume', 'dress', 'tapestry', 'ceramic', 'glass', 'coin', 'medal', 'armor', 'weapon',
+  'tapestry', 'ceramic', 'glass', 'coin', 'medal', 'armor', 'weapon',
 ]);
 
 function containsPhrase(haystack, phrase) {
@@ -140,84 +183,117 @@ function containsPhrase(haystack, phrase) {
   return normalizedPhrase.length > 0 && normalizedHaystack.includes(` ${normalizedPhrase} `);
 }
 
-function semanticRelevanceV21(item) {
+function semanticTwoStage(item) {
   const query = normalize(item.query);
   const title = normalize(item.canonicalTitle);
   const description = normalize(item.description);
   const creator = normalize(item.creator);
-  if (!query || !title) return { relevant: false, score: 0, reasons: ['MISSING_QUERY_OR_TITLE'], version: 'SEMANTIC_V2_1' };
+  if (!query || !title) {
+    return {
+      relevant: false,
+      score: 0,
+      version: 'SEMANTIC_V2_2_TWO_STAGE',
+      stageA: { passed: false, reasons: ['MISSING_QUERY_OR_TITLE'] },
+      stageB: { passed: false, reasons: ['NOT_EVALUATED'] },
+    };
+  }
 
   const queryTokens = tokens(query);
-  const anchors = queryTokens.filter((token) => !GENERIC_QUERY_TOKENS.has(token));
-  const effectiveAnchors = anchors.length ? anchors : queryTokens;
+  const informativeAnchors = queryTokens.filter((token) => !GENERIC_QUERY_TOKENS.has(token));
+  const anchors = informativeAnchors.length ? informativeAnchors : queryTokens;
   const titleTokens = new Set(tokens(title));
   const descriptionTokens = new Set(tokens(description));
   const creatorTokens = new Set(tokens(creator));
 
-  const titleAnchorHits = effectiveAnchors.filter((token) => titleTokens.has(token)).length;
-  const descriptionAnchorHits = effectiveAnchors.filter((token) => descriptionTokens.has(token)).length;
-  const creatorAnchorHits = effectiveAnchors.filter((token) => creatorTokens.has(token)).length;
+  const titleAnchorHits = anchors.filter((token) => titleTokens.has(token));
+  const descriptionAnchorHits = anchors.filter((token) => descriptionTokens.has(token));
+  const creatorAnchorHits = anchors.filter((token) => creatorTokens.has(token));
   const exactTitleQuery = title === query;
-  const queryContainedInTitle = containsPhrase(title, query);
-  const allAnchorsInTitle = effectiveAnchors.length > 0 && effectiveAnchors.every((token) => titleTokens.has(token));
+  const queryPhraseInTitle = containsPhrase(title, query);
+  const allAnchorsInTitle = anchors.length > 0 && anchors.every((token) => titleTokens.has(token));
 
   const contextPhrases = VERTICAL_CONTEXT[item.vertical] || [];
   const contextText = `${item.canonicalTitle || ''} ${item.description || ''} ${item.creator || ''}`;
   const verticalContextHits = contextPhrases.filter((phrase) => containsPhrase(contextText, phrase));
   const hasVerticalContext = verticalContextHits.length > 0;
+  const sourceNativeEntity = item.source === 'wikidata' && /^Q\d+$/.test(String(item.sourceRecordId || ''));
+
+  // Stage A: maximize recall. A candidate survives when there is at least one defensible anchor,
+  // vertical context, or a source-native Wikidata entity returned directly for the discovery query.
+  const stageAReasons = [];
+  if (exactTitleQuery) stageAReasons.push('EXACT_TITLE_QUERY');
+  if (queryPhraseInTitle) stageAReasons.push('QUERY_PHRASE_IN_TITLE');
+  if (allAnchorsInTitle) stageAReasons.push('ALL_ANCHORS_IN_TITLE');
+  if (titleAnchorHits.length > 0) stageAReasons.push('TITLE_ANCHOR');
+  if (descriptionAnchorHits.length > 0) stageAReasons.push('DESCRIPTION_ANCHOR');
+  if (creatorAnchorHits.length > 0) stageAReasons.push('CREATOR_ANCHOR');
+  if (hasVerticalContext) stageAReasons.push('VERTICAL_CONTEXT');
+  if (sourceNativeEntity) stageAReasons.push('SOURCE_NATIVE_WIKIDATA');
+
+  const stageAPassed = stageAReasons.length > 0;
+
+  // Stage B: precision verification. Only obvious archive false positives are removed.
+  const stageBReasons = [];
+  let stageBPassed = stageAPassed;
+  const institutionalArchive = item.sourceClass === 'INSTITUTION_ARCHIVE';
+  const negativeArchiveObjectTerms = [...ARCHIVE_NEGATIVE_OBJECT_TERMS].filter((term) => containsPhrase(description, term));
+  const archiveHasIndependentContext = hasVerticalContext || descriptionAnchorHits.length > 0 || creatorAnchorHits.length > 0;
+  const archiveTitleOnly = institutionalArchive && !archiveHasIndependentContext && (exactTitleQuery || queryPhraseInTitle || titleAnchorHits.length > 0);
+  const archiveObjectMismatch = institutionalArchive
+    && negativeArchiveObjectTerms.length > 0
+    && !hasVerticalContext
+    && descriptionAnchorHits.length === 0
+    && creatorAnchorHits.length === 0;
+
+  if (!stageAPassed) {
+    stageBPassed = false;
+    stageBReasons.push('NO_DEFENSIBLE_RECALL_SIGNAL');
+  } else if (archiveObjectMismatch) {
+    stageBPassed = false;
+    stageBReasons.push('ARCHIVE_OBJECT_TYPE_MISMATCH');
+  } else if (archiveTitleOnly) {
+    stageBPassed = false;
+    stageBReasons.push('ARCHIVE_TITLE_ONLY_FALSE_POSITIVE_RISK');
+  } else {
+    stageBReasons.push('PRECISION_VERIFIED');
+  }
 
   let score = 0;
-  const reasons = [];
-  if (exactTitleQuery) { score += 0.42; reasons.push('EXACT_TITLE_QUERY'); }
-  else if (queryContainedInTitle) { score += 0.36; reasons.push('QUERY_PHRASE_IN_TITLE'); }
-  else if (allAnchorsInTitle) { score += 0.31; reasons.push('ALL_ANCHORS_IN_TITLE'); }
-  else if (titleAnchorHits > 0) { score += Math.min(0.28, 0.14 * titleAnchorHits); reasons.push('PARTIAL_TITLE_ANCHOR'); }
-
-  if (descriptionAnchorHits > 0) { score += Math.min(0.14, 0.07 * descriptionAnchorHits); reasons.push('DESCRIPTION_ANCHOR'); }
-  if (creatorAnchorHits > 0) { score += Math.min(0.10, 0.05 * creatorAnchorHits); reasons.push('CREATOR_ANCHOR'); }
-  if (hasVerticalContext) { score += 0.22; reasons.push('VERTICAL_CONTEXT'); }
-
-  if (item.sourceClass === 'REFERENCE_PUBLIC_DATA') {
-    score += 0.18;
-    reasons.push('REFERENCE_SOURCE');
-    if (item.source === 'wikidata' && /^Q\d+$/.test(String(item.sourceRecordId || ''))) {
-      score += 0.08;
-      reasons.push('SOURCE_NATIVE_ENTITY');
-    }
-  }
-
-  const institutionalArchive = item.sourceClass === 'INSTITUTION_ARCHIVE';
-  const negativeArchiveObject = [...ARCHIVE_NEGATIVE_OBJECT_TERMS].some((term) => containsPhrase(description, term));
-  if (institutionalArchive) {
-    const archiveContextConfirmed = hasVerticalContext || descriptionAnchorHits > 0 || creatorAnchorHits > 0;
-    if (!archiveContextConfirmed) {
-      score = Math.min(score, 0.39);
-      reasons.push('ARCHIVE_TITLE_ONLY_CAPPED');
-    } else {
-      score += 0.04;
-      reasons.push('ARCHIVE_CONTEXT_CONFIRMED');
-    }
-    if (negativeArchiveObject && !hasVerticalContext && descriptionAnchorHits === 0) {
-      score = Math.min(score, 0.34);
-      reasons.push('ARCHIVE_OBJECT_MISMATCH_CAPPED');
-    }
-  }
-
+  if (exactTitleQuery) score += 0.35;
+  else if (queryPhraseInTitle) score += 0.30;
+  else if (allAnchorsInTitle) score += 0.26;
+  else if (titleAnchorHits.length > 0) score += Math.min(0.24, 0.12 * titleAnchorHits.length);
+  if (descriptionAnchorHits.length > 0) score += Math.min(0.16, 0.08 * descriptionAnchorHits.length);
+  if (creatorAnchorHits.length > 0) score += Math.min(0.10, 0.05 * creatorAnchorHits.length);
+  if (hasVerticalContext) score += 0.22;
+  if (sourceNativeEntity) score += 0.18;
+  if (item.sourceClass === 'REFERENCE_PUBLIC_DATA') score += 0.08;
+  if (stageBPassed) score += 0.08;
   score = Math.max(0, Math.min(1, Number(score.toFixed(4))));
-  const relevant = score >= SEMANTIC_THRESHOLD;
-  if (!relevant) reasons.push('BELOW_V2_1_THRESHOLD');
+
   return {
-    relevant,
+    relevant: stageAPassed && stageBPassed,
     score,
-    threshold: SEMANTIC_THRESHOLD,
-    version: 'SEMANTIC_V2_1',
-    reasons,
+    version: 'SEMANTIC_V2_2_TWO_STAGE',
+    stageA: {
+      name: 'BROAD_RECALL_GATE',
+      passed: stageAPassed,
+      reasons: stageAReasons,
+    },
+    stageB: {
+      name: 'PRECISION_VERIFIER',
+      passed: stageBPassed,
+      reasons: stageBReasons,
+    },
     diagnostics: {
       titleAnchorHits,
       descriptionAnchorHits,
       creatorAnchorHits,
       verticalContextHits,
-      negativeArchiveObject,
+      negativeArchiveObjectTerms,
+      archiveTitleOnly,
+      archiveObjectMismatch,
+      sourceNativeEntity,
     },
   };
 }
@@ -249,21 +325,26 @@ for (const item of raw) {
 }
 
 const candidates = [...deduped.values()].map((item) => {
-  const semantic = semanticRelevanceV21(item);
+  const semantic = semanticTwoStage(item);
   return {
     ...item,
     semanticRelevant: semantic.relevant,
     semanticRelevanceScore: semantic.score,
     semanticRelevanceVersion: semantic.version,
-    semanticRelevanceReasons: semantic.reasons,
+    semanticStageA: semantic.stageA,
+    semanticStageB: semantic.stageB,
     semanticRelevanceDiagnostics: semantic.diagnostics,
   };
 });
+
 const acceptedKeyCount = new Set(candidates.map((c) => c.candidateKey)).size;
 const acceptedDuplicateContamination = candidates.length ? (candidates.length - acceptedKeyCount) / candidates.length : 0;
+const recallCandidates = candidates.filter((candidate) => candidate.semanticStageA?.passed);
 const relevantCandidates = candidates.filter((candidate) => candidate.semanticRelevant);
+const precisionRejectedCandidates = recallCandidates.filter((candidate) => !candidate.semanticStageB?.passed);
 
 const byVertical = Object.fromEntries(CONFIG.coreVerticals.map((v) => [v.id, candidates.filter((c) => c.vertical === v.id).length]));
+const recallByVertical = Object.fromEntries(CONFIG.coreVerticals.map((v) => [v.id, recallCandidates.filter((c) => c.vertical === v.id).length]));
 const relevantByVertical = Object.fromEntries(CONFIG.coreVerticals.map((v) => [v.id, relevantCandidates.filter((c) => c.vertical === v.id).length]));
 const bySource = Object.fromEntries(CONFIG.sources.map((s) => [s.id, candidates.filter((c) => c.source === s.id).length]));
 const relevantBySource = Object.fromEntries(CONFIG.sources.map((s) => [s.id, relevantCandidates.filter((c) => c.source === s.id).length]));
@@ -272,7 +353,7 @@ const rightsClassificationCoverage = candidates.length ? candidates.filter((c) =
 const semanticRelevanceCoverage = candidates.length ? relevantCandidates.length / candidates.length : 0;
 
 const report = {
-  schemaVersion: '2.3.0',
+  schemaVersion: '2.4.0',
   mode: CONFIG.mode,
   generatedAt: new Date().toISOString(),
   target: {
@@ -281,16 +362,18 @@ const report = {
     minimumCandidatesPerVertical: CONFIG.stage2Gate.minimumCandidatesPerVertical,
   },
   semanticPolicy: {
-    version: 'SEMANTIC_V2_1',
-    threshold: SEMANTIC_THRESHOLD,
-    institutionalArchiveTitleOnlyAccepted: false,
-    archiveTitleOnlyCap: 0.39,
-    archiveObjectMismatchCap: 0.34,
-    principle: 'Recover high-signal brand/model and source-native entity recall without accepting archive title-only false positives.',
+    version: 'SEMANTIC_V2_2_TWO_STAGE',
+    stageA: 'BROAD_RECALL_GATE',
+    stageB: 'PRECISION_VERIFIER',
+    archiveTitleOnlyAccepted: false,
+    archiveObjectMismatchAccepted: false,
+    principle: 'Recover defensible recall first, then reject only explicit archive/title/object mismatches.',
   },
   metrics: {
     rawObservations: raw.length,
     uniqueNormalizedCandidates: candidates.length,
+    semanticRecallCandidates: recallCandidates.length,
+    semanticPrecisionRejectedCandidates: precisionRejectedCandidates.length,
     semanticRelevantCandidates: relevantCandidates.length,
     provenanceCoverage,
     rightsClassificationCoverage,
@@ -299,18 +382,20 @@ const report = {
     acceptedDuplicateContamination,
     sourceErrorCount: sourceErrors.length,
     byVertical,
+    recallByVertical,
     relevantByVertical,
     bySource,
     relevantBySource,
+    wikidataRuntime,
   },
   candidateBuild: {
     outcome: 'BUILT_NOT_CERTIFIED',
-    note: 'Stage 2 certification occurs only after Right Data enrichment. Semantic Relevance v2.1 balances recall while preserving archive mismatch caps.',
+    note: 'Stage A maximizes defensible recall. Stage B removes explicit archive title-only and object-type mismatches. Stage 2 certification remains downstream.',
   },
   claims: {
     liveExternalNetworkCollection: true,
     normalizedCandidateUniverseBuilt: true,
-    semanticRelevanceV21Applied: true,
+    twoStageSemanticGateApplied: true,
     decisionGradeRightDataCertified: false,
     finalKidult100Certified: false,
     marketPriceIntelligenceCertified: false,
@@ -321,8 +406,10 @@ const report = {
 };
 
 fs.writeFileSync(path.join(OUT_DIR, 'kidult100-poc-latest.json'), JSON.stringify(report, null, 2));
-console.log(`Kidult100 candidate build v2.3: raw=${raw.length} unique=${candidates.length} relevant=${relevantCandidates.length} errors=${sourceErrors.length}`);
+console.log(`Kidult100 candidate build v2.4: raw=${raw.length} unique=${candidates.length} recall=${recallCandidates.length} precisionRejected=${precisionRejectedCandidates.length} relevant=${relevantCandidates.length} errors=${sourceErrors.length}`);
 console.log(`provenance=${provenanceCoverage} rights=${rightsClassificationCoverage} semantic=${semanticRelevanceCoverage}`);
 console.log(`rawDuplicateObservationRate=${rawDuplicateObservationRate} acceptedDuplicateContamination=${acceptedDuplicateContamination}`);
+console.log(`recallVerticals=${JSON.stringify(recallByVertical)}`);
 console.log(`relevantVerticals=${JSON.stringify(relevantByVertical)}`);
 console.log(`relevantSources=${JSON.stringify(relevantBySource)}`);
+console.log(`wikidataRuntime=${JSON.stringify(wikidataRuntime)}`);
