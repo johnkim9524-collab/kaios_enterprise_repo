@@ -25,5 +25,14 @@ for (const r of records) {
     if(out.duplicate) duplicates++; else accepted++;
   } catch(e) { failed++; console.error('FAIL',r.source,r.sourceRecordId,String(e)); }
 }
-console.log(JSON.stringify({mode:'WAVE1_D1_PREVIEW_BRIDGE',records:records.length,accepted,duplicates,failed,api:API},null,2));
-if(failed) process.exit(1);
+if(failed) {
+  console.log(JSON.stringify({mode:'WAVE1_D1_PREVIEW_BRIDGE',records:records.length,accepted,duplicates,failed,api:API},null,2));
+  process.exit(1);
+}
+
+const publishRes=await fetch(`${API}/internal/publish`,{method:'POST',headers:{'content-type':'application/json'},signal:AbortSignal.timeout(30000)});
+const publish=await publishRes.json().catch(()=>({}));
+const previewRes=await fetch(`${API}/v1/intelligence/preview`,{signal:AbortSignal.timeout(20000)});
+const preview=await previewRes.json().catch(()=>({}));
+console.log(JSON.stringify({mode:'WAVE1_D1_PREVIEW_BRIDGE',records:records.length,accepted,duplicates,failed,api:API,publishHttp:publishRes.status,publish,previewHttp:previewRes.status,preview},null,2));
+if(!publishRes.ok || !previewRes.ok) process.exit(1);
