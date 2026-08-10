@@ -1,0 +1,16 @@
+/* KIDULTS portal visual hotfix 223 — requested 2026-08-11. Scope: desktop Hero width/slimness, Kidult 100 figure cache-bust/visibility, Evidence Composition center containment only. */
+@media (min-width:1101px){
+  .hero{grid-template-columns:22.5% 77.5%;gap:12px}
+  .hero-asset{width:66%;height:238px;right:1.2%;bottom:34px;object-fit:fill;transform:scaleY(.84);transform-origin:center bottom}
+}
+.rank-card img{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;height:92px!important;object-fit:contain!important}
+.rank-card:nth-child(1) img{content:url('../a13/assets/k100-mobility-3d.svg?v=223')}
+.rank-card:nth-child(2) img{content:url('../a13/assets/k100-time-3d.svg?v=223')}
+.rank-card:nth-child(3) img{content:url('../a13/assets/k100-footwear-3d.svg?v=223')}
+.rank-card:nth-child(4) img{content:url('../a13/assets/k100-character-3d.svg?v=223')}
+.rank-card:nth-child(5) img{content:url('../a13/assets/k100-design-3d.svg?v=223')}
+.donut{overflow:hidden}
+.donut b,.donut span{position:relative;z-index:2;display:block;text-align:center;width:64px;max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:clip;line-height:1}
+.donut b{font-size:12px;margin:0 auto 3px}
+.donut span{font-size:5.2px;margin:0 auto;letter-spacing:0}
+@media(max-width:760px){.rank-card img{height:84px!important}.donut b,.donut span{width:62px;max-width:62px}}
