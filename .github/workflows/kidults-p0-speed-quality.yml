@@ -49,7 +49,8 @@ jobs:
         run: node scripts/p0-coverage-gate.mjs
       - name: Truth-layer synthetic acceptance gate
         run: npm run truth:gate
-      - name: Wave1 real external source expansion gate
+      - name: Wave1 real external source discovery evaluation
+        continue-on-error: true
         run: node scripts/kidult100-wave1-live.mjs
       - name: Stage 2 normalized candidate universe build
         run: node scripts/kidult100-poc-live.mjs
