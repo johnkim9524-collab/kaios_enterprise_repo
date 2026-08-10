@@ -55,7 +55,10 @@ jobs:
         run: node scripts/kidult100-poc-live.mjs
       - name: Stage 2 Right Data enrichment
         run: node scripts/kidult100-right-data-enrich.mjs
-      - name: Stage 2 300+ decision-grade Right Data certification gate
+      - name: Experimental live Kidult100 POC ranking evaluation
+        continue-on-error: true
+        run: node scripts/kidult100-experimental-ranking.mjs
+      - name: Production 300+ decision-grade Right Data certification gate
         run: node scripts/kidult100-stage2-right-data-gate.mjs
       - name: Real external open-data operational run + unified preflight
         run: node scripts/live-open-data-operation.mjs
@@ -125,6 +128,8 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/right-data-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/right-data-gap-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/stage2-certification-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-experimental-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-experimental-gap-latest.json
             services/kidults-autonomous-intelligence/reports/live-open-data/live-open-data-latest.json
           retention-days: 30
           if-no-files-found: error
