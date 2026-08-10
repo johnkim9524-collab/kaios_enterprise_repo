@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_SOURCE_QUALIFICATION_NO_AUTO_ONBOARDING",
+  "lastVerifiedAt": "2026-08-11",
+  "verificationMethod": "OFFICIAL_PRIMARY_DOCUMENTATION_REVIEW",
+  "qualificationRequirements": {
+    "explicitCommercialReuseRightsRequired": true,
+    "documentedAutomatedAccessRequired": true,
+    "completedTransactionSemanticsRequired": true,
+    "transactionBackedLiquiditySemanticsRequired": true,
+    "providerAuthorizationRequiredWhenTermsRequireIt": true,
+    "listingOrEstimateAcceptedAsTransaction": false,
+    "syntheticOrEstimatedEvidenceAllowed": false,
+    "automaticProviderActivationAllowed": false
+  },
+  "candidates": [
+    {
+      "sourceId": "wikidata",
+      "displayName": "Wikidata",
+      "sourceClass": "REFERENCE_PUBLIC_DATA",
+      "rightsStatus": "EXPLICIT_CC0",
+      "automationAccess": "PUBLIC_DOCUMENTED_DATA_ACCESS",
+      "marketSemantics": {
+        "completedTransactions": "NOT_A_COMPLETED_TRANSACTION_FEED",
+        "transactionBackedLiquidity": "NOT_AVAILABLE_AS_REQUIRED_MARKET_PRIMITIVE"
+      },
+      "qualification": "NOT_QUALIFIED_MARKET_SEMANTICS",
+      "blockingReasons": [
+        "NO_AUTHORITATIVE_COMPLETED_SALE_EVENT_FEED",
+        "NO_TRANSACTION_BACKED_LIQUIDITY_FEED"
+      ],
+      "evidenceLinks": [
+        "https://www.wikidata.org/wiki/Wikidata:Licensing",
+        "https://www.wikidata.org/wiki/Help:Data_access"
+      ]
+    },
+    {
+      "sourceId": "met",
+      "displayName": "The Metropolitan Museum of Art Open Access",
+      "sourceClass": "INSTITUTION_ARCHIVE",
+      "rightsStatus": "EXPLICIT_CC0_OPEN_ACCESS",
+      "automationAccess": "PUBLIC_DOCUMENTED_API",
+      "marketSemantics": {
+        "completedTransactions": "NOT_PROVIDED",
+        "transactionBackedLiquidity": "NOT_PROVIDED"
+      },
+      "qualification": "NOT_QUALIFIED_MARKET_SEMANTICS",
+      "blockingReasons": [
+        "COLLECTION_METADATA_NOT_MARKET_TRANSACTION_DATA",
+        "NO_TRANSACTION_BACKED_LIQUIDITY_FEED"
+      ],
+      "evidenceLinks": [
+        "https://www.metmuseum.org/hubs/open-access",
+        "https://www.metmuseum.org/policies/terms-and-conditions"
+      ]
+    },
+    {
+      "sourceId": "aic",
+      "displayName": "Art Institute of Chicago Open Access API",
+      "sourceClass": "INSTITUTION_ARCHIVE",
+      "rightsStatus": "EXPLICIT_CC0_OPEN_ACCESS",
+      "automationAccess": "PUBLIC_DOCUMENTED_API",
+      "marketSemantics": {
+        "completedTransactions": "NOT_PROVIDED",
+        "transactionBackedLiquidity": "NOT_PROVIDED"
+      },
+      "qualification": "NOT_QUALIFIED_MARKET_SEMANTICS",
+      "blockingReasons": [
+        "COLLECTION_METADATA_NOT_MARKET_TRANSACTION_DATA",
+        "NO_TRANSACTION_BACKED_LIQUIDITY_FEED"
+      ],
+      "evidenceLinks": [
+        "https://www.artic.edu/open-access",
+        "https://api.artic.edu/docs/"
+      ]
+    },
+    {
+      "sourceId": "ebay-api",
+      "displayName": "eBay Developer APIs",
+      "sourceClass": "MARKETPLACE_API",
+      "rightsStatus": "API_LICENSE_AND_USE_TERMS_REQUIRED",
+      "automationAccess": "PRODUCTION_APPROVAL_AND_AUTHORIZATION_REQUIRED",
+      "marketSemantics": {
+        "completedTransactions": "AUTHORIZED_TRANSACTION_APIS_EXIST",
+        "transactionBackedLiquidity": "NOT_ESTABLISHED_FOR_KIDULTS_PROVIDER_CONTRACT"
+      },
+      "qualification": "NOT_QUALIFIED_AUTHORIZATION_REQUIRED",
+      "blockingReasons": [
+        "NO_CURRENT_KIDULTS_EBAY_API_AUTHORIZATION",
+        "PRODUCTION_ACCESS_NOT_APPROVED",
+        "BROAD_TRANSACTION_BACKED_LIQUIDITY_RIGHTS_NOT_ESTABLISHED"
+      ],
+      "evidenceLinks": [
+        "https://developer.ebay.com/join/api-license-agreement",
+        "https://developer.ebay.com/api-docs/buy/static/buy-requirements.html",
+        "https://developer.ebay.com/api-docs/user-guides/static/trading-user-guide/manage-fulfill-complete-sale-data.html"
+      ]
+    },
+    {
+      "sourceId": "gsa-auctions",
+      "displayName": "GSA Auctions",
+      "sourceClass": "GOVERNMENT_AUCTION",
+      "rightsStatus": "AUTOMATED_COMMERCIAL_REUSE_NOT_EXPLICITLY_QUALIFIED",
+      "automationAccess": "NO_DOCUMENTED_QUALIFIED_TRANSACTION_API",
+      "marketSemantics": {
+        "completedTransactions": "PUBLIC_AUCTION_PROCESS_EXISTS_BUT_STRUCTURED_FEED_NOT_QUALIFIED",
+        "transactionBackedLiquidity": "NOT_PROVIDED_AS_REQUIRED_MARKET_PRIMITIVE"
+      },
+      "qualification": "NOT_QUALIFIED_RIGHTS_AND_INTERFACE",
+      "blockingReasons": [
+        "NO_EXPLICIT_AUTOMATED_COMMERCIAL_REUSE_CLEARANCE_FOR_REQUIRED_FEED",
+        "NO_DOCUMENTED_COMPLETED_TRANSACTION_API_QUALIFIED_FOR_PIPELINE",
+        "INSUFFICIENT_EIGHT_VERTICAL_MARKET_COVERAGE"
+      ],
+      "evidenceLinks": [
+        "https://www.gsa.gov/buy-through-us/government-property-for-sale-or-lease/office-of-personal-property-management/for-citizens-seeking-surplus-property/methods-of-sales",
+        "https://www.gsa.gov/website-information/website-policies"
+      ]
+    }
+  ]
+}
