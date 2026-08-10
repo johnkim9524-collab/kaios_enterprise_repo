@@ -1,0 +1,188 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "CANONICAL_WORKING_CONTRACT",
+  "program": "KIDULT100",
+  "primeDirective": "Collect only signals that explain what matters, why it matters, what it is worth, what to do now, and what may matter next.",
+  "valueBeforeData": true,
+  "whyMandatory": true,
+  "publishedIndexSize": 100,
+  "candidateUniverse": {
+    "minimum": 300,
+    "operatingTargetMin": 400,
+    "operatingTargetMax": 500,
+    "futureScaleTarget": 1000
+  },
+  "customerValues": [
+    "DISCOVER",
+    "WHY",
+    "VALUE",
+    "TIMING",
+    "CONVICTION",
+    "RELATIVE_VALUE",
+    "SCARCITY",
+    "LIQUIDITY",
+    "CANON",
+    "RISK",
+    "PORTFOLIO_INTELLIGENCE",
+    "FUTURE_CANON"
+  ],
+  "whyContract": [
+    "WHAT_CHANGED",
+    "WHY",
+    "SUPPORTING_EVIDENCE",
+    "COUNTER_EVIDENCE",
+    "CONFIDENCE",
+    "SO_WHAT",
+    "WHAT_NEXT",
+    "INVALIDATION_CONDITION"
+  ],
+  "coreCategories": [
+    "TOYS_MODELS",
+    "WATCHES_JEWELRY",
+    "AUTOMOBILES_MOBILITY",
+    "FASHION_ACCESSORIES",
+    "DESIGN_FURNITURE",
+    "TECHNOLOGY_CAMERAS",
+    "GAMING_MUSIC_SCREEN_CULTURE",
+    "CARDS_COMICS_MEMORABILIA"
+  ],
+  "categoryPolicy": {
+    "model": "EIGHT_CORE_PLUS_DYNAMIC_EXPANSION",
+    "permanentClosedUniverse": false,
+    "newCategoryGates": [
+      "CULTURAL_SIGNIFICANCE",
+      "PERSISTENT_COLLECTOR_BEHAVIOR",
+      "STRUCTURAL_SCARCITY",
+      "OBSERVABLE_SECONDARY_MARKET",
+      "DATA_OBSERVABILITY",
+      "CROSS_GENERATION_PERSISTENCE"
+    ],
+    "equalCategoryQuotaRequired": false,
+    "selectionModel": "MERIT_BASED_WITH_DIVERSIFICATION_CONSTRAINTS"
+  },
+  "sourceClasses": [
+    "S1_MANUFACTURER_BRAND",
+    "S2_DESIGNER_CREATOR_IP_OWNER",
+    "S3_PRIMARY_RETAIL_AUTHORIZED_DISTRIBUTION",
+    "S4_SECONDARY_MARKETPLACE",
+    "S5_AUCTION_HOUSE",
+    "S6_DEALER_SPECIALIST_BROKER",
+    "S7_AUTHENTICATION_GRADING_REGISTRY",
+    "S8_INSTITUTION_MUSEUM_ARCHIVE",
+    "S9_COMMUNITY_COLLECTOR_NETWORK",
+    "S10_SEARCH_SOCIAL_ATTENTION",
+    "S11_NEWS_MAGAZINE_EDITORIAL",
+    "S12_REFERENCE_RESEARCH_GOVERNMENT_PUBLIC_DATA",
+    "S13_KIDULTS_DERIVED_INTELLIGENCE"
+  ],
+  "sourceAuthorityTiers": {
+    "A_AUTHORITATIVE_TRUTH": ["identity", "production", "authenticity", "institutional_recognition"],
+    "B_TRANSACTION_TRUTH": ["price", "comparable", "liquidity"],
+    "C_MARKET_STATE": ["availability", "asking_structure", "supply_pressure"],
+    "D_DEMAND_CULTURE": ["attention", "narrative", "cultural_momentum"]
+  },
+  "intelligencePrimitives": [
+    "IDENTITY_PROVENANCE",
+    "SCARCITY_SUPPLY",
+    "TRANSACTION_PRICE_COMPARABLE",
+    "LIQUIDITY",
+    "DEMAND_ATTENTION",
+    "CANON_INSTITUTIONAL_CULTURAL",
+    "RISK_CONFIDENCE"
+  ],
+  "sourceActivationGate": [
+    "INTELLIGENCE_VALUE",
+    "LEGAL_BASIS",
+    "ALLOWED_FIELDS",
+    "ALLOWED_COLLECTION_METHOD",
+    "REFRESH_RATE",
+    "PROVENANCE",
+    "VOLUME_QUALITY",
+    "ECONOMICS",
+    "FALLBACK",
+    "RETENTION_DERIVED_RIGHTS"
+  ],
+  "unclearRightsOutcome": "HOLD",
+  "qualityTargets": {
+    "entityResolutionMin": 0.995,
+    "criticalProvenance": 1.0,
+    "rightsClassification": 1.0,
+    "duplicateContaminationMax": 0.005,
+    "criticalStaleInvalidRejection": 1.0,
+    "askingVsSoldClassification": 1.0,
+    "currencyTimeNormalization": 1.0,
+    "materialRankScoreWhyCoverage": 1.0,
+    "derivedSignalConfidenceCoverage": 1.0
+  },
+  "processingPipeline": [
+    "INGEST",
+    "RIGHTS_PREFLIGHT",
+    "NORMALIZE",
+    "ENTITY_RESOLUTION",
+    "DEDUP",
+    "PROVENANCE",
+    "QUALITY",
+    "TIME_SERIES",
+    "VERTICAL_SIGNALS",
+    "COMPARABLE_GRAPH",
+    "WHY_GRAPH",
+    "VERTICAL_SCORE",
+    "CROSS_CATEGORY_NORMALIZATION",
+    "KIDULT100",
+    "MONITOR",
+    "RECOVERY"
+  ],
+  "scoring": {
+    "stage1": "VERTICAL_SCORE",
+    "stage2": "CROSS_CATEGORY_NORMALIZATION",
+    "universalRawWeightsRequired": false
+  },
+  "verticalArchitecture": {
+    "model": "COMMON_CORE_PLUS_VERTICAL_INTELLIGENCE_DNA",
+    "requiredPerVertical": [
+      "INTELLIGENCE_DNA",
+      "SOURCE_GRAPH",
+      "FACTOR_MODEL",
+      "WHY_CAUSAL_MODEL",
+      "NORMALIZATION_RULES"
+    ]
+  },
+  "moatAssets": [
+    "HISTORICAL_OBSERVATION_SERIES",
+    "CANONICAL_ENTITY_GRAPH",
+    "COMPARABLE_GRAPH",
+    "RIGHTS_AWARE_PROVENANCE_HISTORY",
+    "VERTICAL_INTELLIGENCE_DNA",
+    "CROSS_CATEGORY_NORMALIZATION_METHODOLOGY",
+    "WHY_COUNTER_EVIDENCE_GRAPH",
+    "CONFIDENCE_INVALIDATION_HISTORY",
+    "SCARCITY_LIQUIDITY_DEMAND_CANON_LEAD_LAG_HISTORY",
+    "KIDULT100_DECISION_HISTORY"
+  ],
+  "implementationOrder": [
+    "CANDIDATE_REGISTRY_300_PLUS",
+    "EIGHT_VERTICAL_INTELLIGENCE_DNA_CONTRACTS",
+    "SOURCE_CLASS_BY_VERTICAL_REGISTRY",
+    "CANDIDATE_PRIMITIVE_SOURCE_RIGHTS_FIELD_MATRIX",
+    "VERTICAL_WHY_AND_COUNTER_EVIDENCE_SCHEMA",
+    "DATA_SHAPE_CAPACITY_VALIDATION",
+    "LEGAL_RIGHTS_ACTIVATION_GATES",
+    "LIVE_COLLECTION_APPROVED_HIGH_VALUE_SOURCES_ONLY",
+    "HISTORICAL_OBSERVATION_ACCUMULATION",
+    "VERTICAL_SCORING_AND_CROSS_CATEGORY_NORMALIZATION",
+    "KIDULT100_PRODUCTION_METHODOLOGY",
+    "CONTINUOUS_ADAPTIVE_GOVERNANCE"
+  ],
+  "nonNegotiables": [
+    "SPEED_X_QUALITY",
+    "VALUE_BEFORE_DATA",
+    "WHY_IS_MANDATORY",
+    "EVIDENCE_BEFORE_CONFIDENCE",
+    "RIGHTS_BEFORE_COLLECTION",
+    "CATEGORY_SPECIFICITY_WITH_CROSS_CATEGORY_COMPARABILITY",
+    "NO_FORCED_DATA_COMPLETION",
+    "NO_SYNTHETIC_LIVE_CONFUSION",
+    "NO_UNCONTROLLED_EXTERNAL_MUTATION",
+    "COMPOUND_LONGITUDINAL_INTELLIGENCE_ASSETS"
+  ]
+}
