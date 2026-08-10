@@ -8,12 +8,22 @@ const DEFAULT_CURRENT_RIGHT_DATA = path.join(ROOT, 'reports', 'kidult100-right-d
 const DEFAULT_OUT = path.join(ROOT, 'reports', 'live-open-data', 'collection-delta-kpi-latest.json');
 
 function resolveInput(value, fallbackPath, { optional = false } = {}) {
-  const raw = value == null || String(value).trim() === '' ? fallbackPath : String(value).trim();
+  const supplied = value != null && String(value).trim() !== '';
+  const raw = supplied ? String(value).trim() : String(fallbackPath || '').trim();
+  if (!raw) {
+    if (optional) return null;
+    throw new Error('Missing required JSON input');
+  }
   if (raw.startsWith('{') || raw.startsWith('[')) return JSON.parse(raw);
   const resolved = path.isAbsolute(raw) ? raw : path.join(ROOT, raw);
   if (!fs.existsSync(resolved)) {
     if (optional) return null;
     throw new Error(`Missing JSON input: ${resolved}`);
+  }
+  const stat = fs.statSync(resolved);
+  if (!stat.isFile()) {
+    if (optional) return null;
+    throw new Error(`JSON input is not a file: ${resolved}`);
   }
   return JSON.parse(fs.readFileSync(resolved, 'utf8'));
 }
