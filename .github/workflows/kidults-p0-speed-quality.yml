@@ -66,6 +66,8 @@ jobs:
         env:
           KIDULTS_RIGHT_DATA_EVIDENCE_JSON: reports/kidult100-right-data/normalized-market-provider-evidence-latest.json
         run: node scripts/kidult100-provider-evidence-validate.mjs
+      - name: Market evidence acquisition plan
+        run: node scripts/kidult100-market-evidence-acquisition-plan.mjs
       - name: Stage 2 Right Data enrichment
         run: node scripts/kidult100-right-data-enrich.mjs
       - name: Experimental live Kidult100 POC ranking evaluation
@@ -143,6 +145,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-source-qualification-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/normalized-market-provider-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/validated-provider-evidence-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-evidence-acquisition-plan-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/right-data-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/right-data-gap-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/stage2-certification-latest.json
