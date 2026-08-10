@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "policy": "FAIL_CLOSED_NO_SYNTHETIC_MARKET_EVIDENCE",
   "requiredPrimitives": [
     "IDENTITY",
@@ -13,6 +13,7 @@
   "providerEvidence": {
     "environmentVariable": "KIDULTS_RIGHT_DATA_EVIDENCE_JSON",
     "optionalSnapshotFiles": [
+      "reports/kidult100-right-data/open-evidence-latest.json",
       "data/right-data/provider-evidence.json"
     ],
     "acceptedEvidenceClasses": [
@@ -42,6 +43,22 @@
       "semanticRelevance": 0.25,
       "sourceClass": 0.15,
       "freshness": 0.1
+    }
+  },
+  "openEvidencePolicy": {
+    "allowedRightsClasses": [
+      "CC0_STRUCTURED_DATA"
+    ],
+    "scarcity": {
+      "wikidataProperty": "P1092",
+      "label": "total produced",
+      "allowInferredScarcityScore": false
+    },
+    "demandAttention": {
+      "unitsSoldProperty": "P2664",
+      "allowCulturalAttentionProxy": true,
+      "minimumSitelinksForCulturalAttentionProxy": 3,
+      "culturalAttentionProxyIsMarketDemand": false
     }
   },
   "marketEvidenceDefinition": {
