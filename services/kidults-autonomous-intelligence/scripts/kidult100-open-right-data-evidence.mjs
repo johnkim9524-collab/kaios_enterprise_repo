@@ -7,7 +7,8 @@ const CANDIDATE_PATH = path.join(ROOT, 'reports', 'kidult100-poc', 'kidult100-po
 const OUT_DIR = path.join(ROOT, 'reports', 'kidult100-right-data');
 const OUT_PATH = path.join(OUT_DIR, 'open-evidence-latest.json');
 const CACHE_PATH = path.join(OUT_DIR, 'wikidata-resolution-cache.json');
-const UA = 'KIDULTS-Kidult100-Open-Right-Data/1.2 (CC0; throttled resilient client)';
+const CONTACT_URL = 'https://github.com/johnkim9524-collab/kaios_enterprise_repo';
+const UA = `KIDULTS-Kidult100-Bot/1.3 (${CONTACT_URL}; rights-classified CC0 evidence client)`;
 const MIN_REQUEST_INTERVAL_MS = 650;
 const MAX_RETRIES = 4;
 
@@ -284,7 +285,7 @@ const nativeLinks = [...entityLinks.values()].filter((link) => link.method === '
 const exactTitleLinks = [...entityLinks.values()].filter((link) => link.method === 'EXACT_NORMALIZED_LABEL').length;
 
 const output = {
-  schemaVersion: '1.2.0',
+  schemaVersion: '1.3.0',
   mode: 'KIDULT100_OPEN_RIGHT_DATA_EVIDENCE',
   generatedAt: new Date().toISOString(),
   policy: {
@@ -302,6 +303,8 @@ const output = {
       retry429: true,
       exponentialBackoff: true,
       persistentTitleCache: true,
+      descriptiveBotUserAgent: true,
+      contactUrl: CONTACT_URL,
     },
   },
   source: {
@@ -332,7 +335,7 @@ const output = {
 };
 
 fs.writeFileSync(OUT_PATH, JSON.stringify(output, null, 2));
-console.log(`Open Right Data v1.2: relevant=${relevantCandidates.length} linked=${entityLinks.size} entities=${entityById.size} evidence=${evidence.length}`);
+console.log(`Open Right Data v1.3: relevant=${relevantCandidates.length} linked=${entityLinks.size} entities=${entityById.size} evidence=${evidence.length}`);
 console.log(`nativeLinks=${nativeLinks} exactTitleLinks=${exactTitleLinks} scarcity=${scarcityCount} demandAttention=${demandCount} errors=${sourceErrors.length}`);
 console.log(`requests=${requestMetrics.httpRequests} retries=${requestMetrics.retries} rateLimits=${requestMetrics.rateLimitResponses} cacheHits=${requestMetrics.cacheHits} cacheMisses=${requestMetrics.cacheMisses}`);
 console.log('No inferred scarcity, transaction comparable or liquidity evidence was fabricated.');
