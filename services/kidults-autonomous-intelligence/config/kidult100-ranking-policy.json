@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.0.0",
+  "mode": "KIDULT100_EXPERIMENTAL_LIVE_POC",
+  "publicationLabel": "EXPERIMENTAL_NOT_FINAL_CERTIFIED",
+  "pocGate": {
+    "minimumSemanticRelevantCandidates": 120,
+    "requiredCoreVerticalCoverage": 8,
+    "minimumProvenanceCoverage": 1,
+    "minimumRightsClassificationCoverage": 1,
+    "maximumAcceptedDuplicateContamination": 0,
+    "minimumRequiredRightDataCoverage": 0.75,
+    "minimumMarketEvidenceCoverage": 0.70,
+    "minimumRankableCandidates": 100,
+    "failureDisposition": "FAIL_CLOSED"
+  },
+  "productionGateReference": {
+    "minimumUniqueCandidates": 300,
+    "minimumCandidatesPerVertical": 25,
+    "minimumRequiredRightDataCoverage": 0.90,
+    "minimumMarketEvidenceCoverage": 0.90
+  },
+  "scoring": {
+    "minimumEvidenceWeightCoverage": 0.95,
+    "weights": {
+      "MARKET_TRANSACTION_STRENGTH": 0.25,
+      "SCARCITY": 0.20,
+      "DEMAND_ATTENTION": 0.15,
+      "LIQUIDITY": 0.15,
+      "CANON_CULTURAL_STRENGTH": 0.15,
+      "MOMENTUM": 0.05,
+      "RISK_CONFIDENCE": 0.05
+    },
+    "evidenceMapping": {
+      "MARKET_TRANSACTION_STRENGTH": {
+        "primitive": "TRANSACTION_PRICE_COMPARABLE",
+        "scoreField": "normalizedScore"
+      },
+      "SCARCITY": {
+        "primitive": "SCARCITY",
+        "scoreField": "normalizedScore"
+      },
+      "DEMAND_ATTENTION": {
+        "primitive": "DEMAND_ATTENTION",
+        "scoreField": "normalizedScore"
+      },
+      "LIQUIDITY": {
+        "primitive": "LIQUIDITY",
+        "scoreField": "normalizedScore"
+      },
+      "CANON_CULTURAL_STRENGTH": {
+        "primitive": "CANON_CULTURAL_STRENGTH",
+        "scoreField": "normalizedScore"
+      },
+      "MOMENTUM": {
+        "primitive": "TRANSACTION_PRICE_COMPARABLE",
+        "scoreField": "momentumScore"
+      },
+      "RISK_CONFIDENCE": {
+        "primitive": "RISK_CONFIDENCE",
+        "scoreField": "score"
+      }
+    }
+  },
+  "claims": {
+    "syntheticScoreAllowed": false,
+    "estimatedMarketPriceAllowed": false,
+    "missingEvidenceScoreImputationAllowed": false,
+    "finalKidult100Certified": false
+  }
+}
