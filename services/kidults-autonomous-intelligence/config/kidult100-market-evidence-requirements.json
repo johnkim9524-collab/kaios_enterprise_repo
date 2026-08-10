@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_MARKET_EVIDENCE_ONBOARDING_PREFLIGHT",
+  "global": {
+    "minimumCandidateCoverage": 0.9,
+    "requiredPrimitives": ["TRANSACTION_PRICE_COMPARABLE", "LIQUIDITY"],
+    "minimumCompletedTransactionsForLiquidity": 2,
+    "requiresExplicitCommercialRights": true,
+    "requiresApprovedProviderRegistryEntry": true,
+    "requiresHttpsSourceUrl": true,
+    "requiresTransactionId": true,
+    "requiresVenue": true,
+    "requiresCurrency": true,
+    "requiresTransactionTimestamp": true,
+    "listingOrEstimateAcceptedAsTransaction": false,
+    "syntheticOrEstimatedEvidenceAllowed": false
+  },
+  "verticals": [
+    {"id":"toys-models","minimumCoverage":0.9,"minimumCompletedTransactionsPerCandidate":2},
+    {"id":"watches-jewelry","minimumCoverage":0.9,"minimumCompletedTransactionsPerCandidate":2},
+    {"id":"automobiles-mobility","minimumCoverage":0.9,"minimumCompletedTransactionsPerCandidate":2},
+    {"id":"fashion-accessories","minimumCoverage":0.9,"minimumCompletedTransactionsPerCandidate":2},
+    {"id":"design-furniture","minimumCoverage":0.9,"minimumCompletedTransactionsPerCandidate":2},
+    {"id":"technology-cameras","minimumCoverage":0.9,"minimumCompletedTransactionsPerCandidate":2},
+    {"id":"gaming-music-screen","minimumCoverage":0.9,"minimumCompletedTransactionsPerCandidate":2},
+    {"id":"cards-comics-memorabilia","minimumCoverage":0.9,"minimumCompletedTransactionsPerCandidate":2}
+  ]
+}
