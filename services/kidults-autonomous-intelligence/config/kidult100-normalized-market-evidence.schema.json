@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.com/schemas/kidult100-normalized-market-evidence-v1.json",
+  "title": "KIDULT100 Normalized Market Evidence",
+  "type": "object",
+  "required": [
+    "candidateKey",
+    "primitive",
+    "source",
+    "sourceUrl",
+    "rightsClass",
+    "observedAt",
+    "payloadHash",
+    "evidenceClass",
+    "providerAuthorization",
+    "safety",
+    "value"
+  ],
+  "properties": {
+    "candidateKey": { "type": "string", "minLength": 1 },
+    "primitive": {
+      "enum": ["TRANSACTION_PRICE_COMPARABLE", "LIQUIDITY"]
+    },
+    "source": { "type": "string", "minLength": 1 },
+    "sourceClass": { "const": "MARKET_PROVIDER" },
+    "sourceUrl": { "type": "string", "format": "uri" },
+    "rightsClass": {
+      "enum": [
+        "LICENSED_COMMERCIAL_DATA",
+        "OPEN_COMMERCIAL_REUSE",
+        "PUBLIC_DOMAIN_MARKET_DATA",
+        "CONTRACTUALLY_AUTHORIZED_DATA"
+      ]
+    },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "payloadHash": { "type": "string", "minLength": 1 },
+    "evidenceClass": { "const": "TRANSACTION_MARKET_EVIDENCE" },
+    "providerAuthorization": {
+      "type": "object",
+      "required": ["providerId", "authorizationId", "registryVersion", "verified"],
+      "properties": {
+        "providerId": { "type": "string", "minLength": 1 },
+        "authorizationId": { "type": "string", "minLength": 1 },
+        "registryVersion": { "type": "string", "minLength": 1 },
+        "verified": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "safety": {
+      "type": "object",
+      "required": ["synthetic", "estimated", "listingOnly"],
+      "properties": {
+        "synthetic": { "const": false },
+        "estimated": { "const": false },
+        "listingOnly": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    "value": { "type": "object" }
+  },
+  "additionalProperties": true
+}
