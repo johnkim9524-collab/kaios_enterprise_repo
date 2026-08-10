@@ -1,0 +1,15 @@
+{
+  "$schema": "../../services/kidults-autonomous-intelligence/node_modules/wrangler/config-schema.json",
+  "name": "kidults-global-standard-preview",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "assets": {
+    "directory": "../kidults-enterprise-staging/public",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "KIDULTS_ENV": "poc-preview",
+    "PRODUCTION_PROMOTION_AUTHORIZED": "false"
+  }
+}
