@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_RIGHTS_FIRST_MARKET_ADAPTER_REGISTRY",
+  "input": {
+    "environmentVariable": "KIDULTS_MARKET_PROVIDER_EVENTS_JSON",
+    "optionalSnapshotFiles": [
+      "data/right-data/market-provider-events.json"
+    ]
+  },
+  "output": "reports/kidult100-right-data/normalized-market-provider-evidence-latest.json",
+  "providers": [],
+  "providerContract": {
+    "requiredFields": [
+      "providerId",
+      "displayName",
+      "enabled",
+      "authorizationStatus",
+      "authorizationId",
+      "rightsClass",
+      "allowedHosts",
+      "adapterVersion"
+    ],
+    "requiredAuthorizationStatus": "APPROVED",
+    "allowedRightsClasses": [
+      "LICENSED_COMMERCIAL_DATA",
+      "OPEN_COMMERCIAL_REUSE",
+      "PUBLIC_DOMAIN_MARKET_DATA",
+      "CONTRACTUALLY_AUTHORIZED_DATA"
+    ],
+    "sourceClass": "MARKET_PROVIDER"
+  },
+  "eventContract": {
+    "requiredFields": [
+      "providerId",
+      "candidateKey",
+      "sourceUrl",
+      "rightsClass",
+      "observedAt",
+      "payloadHash",
+      "eventType",
+      "value"
+    ],
+    "allowedEventTypes": [
+      "EXECUTED_TRANSACTION",
+      "LIQUIDITY_OBSERVATION"
+    ]
+  },
+  "safety": {
+    "unregisteredProviderAllowed": false,
+    "disabledProviderAllowed": false,
+    "pendingAuthorizationAllowed": false,
+    "rightsClassMismatchAllowed": false,
+    "unapprovedSourceHostAllowed": false,
+    "syntheticOrEstimatedMarketEvidenceAllowed": false,
+    "normalizationCertifiesLiveEvidence": false
+  }
+}
