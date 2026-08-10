@@ -1,7 +1,28 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "mode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "candidateTarget": 300,
+  "stage2Gate": {
+    "minimumUniqueCandidates": 300,
+    "requiredCoreVerticalCoverage": 8,
+    "minimumCandidatesPerVertical": 25,
+    "minimumProvenanceCoverage": 1,
+    "minimumRightsClassificationCoverage": 1,
+    "maximumExactDuplicateContamination": 0,
+    "minimumSemanticRelevanceCoverage": 0.9,
+    "minimumRequiredRightDataCoverage": 0.9,
+    "minimumMarketEvidenceCoverage": 0.9,
+    "failureDisposition": "FAIL_CLOSED"
+  },
+  "requiredRightDataPrimitives": [
+    "IDENTITY",
+    "SCARCITY",
+    "TRANSACTION_PRICE_COMPARABLE",
+    "LIQUIDITY",
+    "DEMAND_ATTENTION",
+    "CANON_CULTURAL_STRENGTH",
+    "RISK_CONFIDENCE"
+  ],
   "coreVerticals": [
     {
       "id": "toys-models",
