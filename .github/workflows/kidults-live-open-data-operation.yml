@@ -15,6 +15,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      actions: read
 
     defaults:
       run:
@@ -29,8 +30,30 @@ jobs:
           cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
+      - name: Restore previous live collection snapshot when available
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p reports/live-open-data/previous
+          artifact_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=kidults-live-open-data-evidence&per_page=20" --jq '.artifacts[] | select(.expired == false) | .id' | head -n 1 || true)"
+          if [ -z "${artifact_id}" ]; then
+            echo "No prior live evidence artifact found; delta KPI will establish a baseline."
+            exit 0
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > /tmp/kidults-live-previous.zip
+          unzip -q /tmp/kidults-live-previous.zip -d reports/live-open-data/previous
+          previous_universe="$(find reports/live-open-data/previous -name 'kidult-100-universe-latest.json' -type f | head -n 1 || true)"
+          if [ -n "${previous_universe}" ]; then
+            echo "KIDULTS_PREVIOUS_UNIVERSE_JSON=${previous_universe}" >> "${GITHUB_ENV}"
+            echo "Previous live universe restored from artifact ${artifact_id}."
+          else
+            echo "Prior artifact had no universe snapshot; delta KPI will establish a baseline."
+          fi
       - name: Collect and validate 100-plus Kidult operational universe
         run: node scripts/live-open-data-operation.mjs
+      - name: Compute cross-run collection delta KPI
+        run: node scripts/live-open-data-delta-kpi.mjs
       - name: Upload live external-data evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -39,5 +62,6 @@ jobs:
           path: |
             services/kidults-autonomous-intelligence/reports/live-open-data/live-open-data-latest.json
             services/kidults-autonomous-intelligence/reports/live-open-data/kidult-100-universe-latest.json
+            services/kidults-autonomous-intelligence/reports/live-open-data/collection-delta-kpi-latest.json
           retention-days: 30
           if-no-files-found: error
