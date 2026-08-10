@@ -3,8 +3,10 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 const OUT = path.resolve('reports/kidult100-wave1');
+const PORTAL = path.resolve('../../apps/kidults-enterprise-staging/public/data');
 fs.mkdirSync(OUT, { recursive: true });
-const UA = 'KIDULTS-Wave1/1.0 (internal intelligence validation)';
+fs.mkdirSync(PORTAL, { recursive: true });
+const UA = 'KIDULTS-Wave1/1.1 (internal intelligence validation)';
 const hash = (x) => crypto.createHash('sha256').update(JSON.stringify(x)).digest('hex');
 
 async function json(url) {
@@ -34,11 +36,15 @@ async function vpic() {
   runs.push({source:'NHTSA_VPIC',category:'Automobiles & Mobility',url,count:xs.length,latencyMs});
 }
 
-async function wikidata(category, query) {
-  const url=`https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&limit=50&origin=*`;
-  const {body,latencyMs}=await json(url); const xs=Array.isArray(body.search)?body.search:[];
-  for (const x of xs) add('WIKIDATA_CC0',category,x,x.id,x.label,`https://www.wikidata.org/wiki/${x.id}`,'CC0_STRUCTURED_DATA',{description:x.description||null});
-  runs.push({source:'WIKIDATA_CC0',category,url,count:xs.length,latencyMs});
+async function wikidata(category, queries) {
+  let total=0;
+  for (const query of queries) {
+    const url=`https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&limit=50&origin=*`;
+    const {body,latencyMs}=await json(url); const xs=Array.isArray(body.search)?body.search:[];
+    for (const x of xs) add('WIKIDATA_CC0',category,x,x.id,x.label,`https://www.wikidata.org/wiki/${x.id}`,'CC0_STRUCTURED_DATA',{description:x.description||null,discoveryQuery:query});
+    total+=xs.length; runs.push({source:'WIKIDATA_CC0',category,url,count:xs.length,latencyMs});
+  }
+  return total;
 }
 
 const jobs=[
@@ -47,9 +53,9 @@ const jobs=[
  ()=>loc('Technology & Cameras','camera'),
  ()=>loc('Fashion & Accessories','fashion design'),
  ()=>vpic(),
- ()=>wikidata('Design & Furniture','designer furniture'),
- ()=>wikidata('Toys & Models','collectible toy'),
- ()=>wikidata('Watches & Jewelry','wristwatch'),
+ ()=>wikidata('Design & Furniture',['furniture design','designer chair','industrial design furniture','modern furniture']),
+ ()=>wikidata('Toys & Models',['collectible toy','model car toy','designer toy']),
+ ()=>wikidata('Watches & Jewelry',['wristwatch','luxury watch','mechanical watch']),
 ];
 for (const job of jobs) { try { await job(); } catch(e) { errors.push(String(e?.message||e)); } }
 
@@ -58,8 +64,12 @@ const values=[...unique.values()]; const counts={}; for(const r of values) count
 const verticals=['Toys & Models','Watches & Jewelry','Automobiles & Mobility','Fashion & Accessories','Design & Furniture','Technology & Cameras','Gaming / Music / Screen Culture','Cards / Comics / Memorabilia'];
 const covered=verticals.filter(v=>(counts[v]||0)>0);
 const provenance=values.length?values.filter(r=>r.sourceUrl&&r.license&&r.payloadHash&&r.observedAt).length/values.length:0;
-const report={schemaVersion:'1.0.0',mode:'REAL_EXTERNAL_WAVE1_SOURCE_EXPANSION',generatedAt:new Date().toISOString(),runs,errors,metrics:{uniqueCandidates:values.length,verticalsCovered:covered.length,verticalCoverage:covered,categoryCounts:counts,provenanceCoverage:provenance},records:values,claims:{stage1AtLeast100:values.length>=100,eightVerticalCoverage:covered.length===8,provenanceComplete:provenance===1,marketTransactionCertified:false,finalKidult100Certified:false}};
+const report={schemaVersion:'1.1.0',mode:'REAL_EXTERNAL_WAVE1_SOURCE_EXPANSION',generatedAt:new Date().toISOString(),runs,errors,metrics:{uniqueCandidates:values.length,verticalsCovered:covered.length,verticalCoverage:covered,categoryCounts:counts,provenanceCoverage:provenance},records:values,claims:{stage1AtLeast100:values.length>=100,eightVerticalCoverage:covered.length===8,provenanceComplete:provenance===1,marketTransactionCertified:false,finalKidult100Certified:false}};
 fs.writeFileSync(path.join(OUT,'wave1-live-latest.json'),JSON.stringify(report,null,2));
+
+const topCandidates=verticals.flatMap((category)=>values.filter(r=>r.category===category).slice(0,5).map((r,i)=>({category,title:r.canonicalTitle,source:r.source,sourceUrl:r.sourceUrl,license:r.license,rankWithinVertical:i+1,observedAt:r.observedAt})));
+const portal={schemaVersion:'1.0.0',mode:'LIVE_POC',generatedAt:report.generatedAt,truth:{label:'LIVE POC',provenanceCoverage:provenance,rightsClassified:values.length?values.filter(r=>Boolean(r.license)).length/values.length:0,verticalsCovered:covered.length,totalVerticals:8,uniqueCandidates:values.length,marketTransactionCertified:false,finalKidult100Certified:false},verticals:verticals.map((name)=>({name,count:counts[name]||0,status:(counts[name]||0)>0?'LIVE':'GAP'})),candidates:topCandidates};
+fs.writeFileSync(path.join(PORTAL,'kidults-live.json'),JSON.stringify(portal,null,2));
 console.log(`Wave1 live: unique=${values.length} verticals=${covered.length}/8 provenance=${provenance}`);
 console.log(JSON.stringify(counts));
 if(values.length<100||covered.length<8||provenance!==1) process.exit(1);
