@@ -6,7 +6,8 @@
   "workers_dev": true,
   "assets": {
     "directory": "../kidults-enterprise-staging/public",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": true
   },
   "vars": {
     "KIDULTS_ENV": "poc-preview",
