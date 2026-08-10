@@ -6,7 +6,10 @@ const ROOT = process.cwd();
 const CANDIDATE_PATH = path.join(ROOT, 'reports', 'kidult100-poc', 'kidult100-poc-latest.json');
 const OUT_DIR = path.join(ROOT, 'reports', 'kidult100-right-data');
 const OUT_PATH = path.join(OUT_DIR, 'open-evidence-latest.json');
-const UA = 'KIDULTS-Kidult100-Open-Right-Data/1.1 (CC0 evidence only)';
+const CACHE_PATH = path.join(OUT_DIR, 'wikidata-resolution-cache.json');
+const UA = 'KIDULTS-Kidult100-Open-Right-Data/1.2 (CC0; throttled resilient client)';
+const MIN_REQUEST_INTERVAL_MS = 650;
+const MAX_RETRIES = 4;
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
 if (!fs.existsSync(CANDIDATE_PATH)) throw new Error(`Missing candidate report: ${CANDIDATE_PATH}`);
@@ -27,14 +30,80 @@ function normalize(value) {
     .trim();
 }
 
-async function getJson(url) {
-  const response = await fetch(url, {
-    headers: { accept: 'application/json', 'user-agent': UA },
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!response.ok) throw new Error(`HTTP_${response.status}:${url}`);
-  return response.json();
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+let lastRequestAt = 0;
+const requestMetrics = {
+  httpRequests: 0,
+  retries: 0,
+  rateLimitResponses: 0,
+  cacheHits: 0,
+  cacheMisses: 0,
+};
+
+async function waitForRequestSlot() {
+  const elapsed = Date.now() - lastRequestAt;
+  const waitMs = Math.max(0, MIN_REQUEST_INTERVAL_MS - elapsed);
+  if (waitMs > 0) await sleep(waitMs);
+  lastRequestAt = Date.now();
+}
+
+function retryDelayMs(response, attempt) {
+  const retryAfter = Number(response?.headers?.get?.('retry-after'));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return Math.min(15000, retryAfter * 1000);
+  return Math.min(12000, 1000 * (2 ** attempt));
+}
+
+async function getJson(url) {
+  let lastError;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    await waitForRequestSlot();
+    requestMetrics.httpRequests += 1;
+    try {
+      const response = await fetch(url, {
+        headers: { accept: 'application/json', 'user-agent': UA },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (response.ok) return response.json();
+
+      if (response.status === 429 || response.status >= 500) {
+        if (response.status === 429) requestMetrics.rateLimitResponses += 1;
+        if (attempt < MAX_RETRIES) {
+          requestMetrics.retries += 1;
+          await sleep(retryDelayMs(response, attempt));
+          continue;
+        }
+      }
+      throw new Error(`HTTP_${response.status}:${url}`);
+    } catch (error) {
+      lastError = error;
+      const message = String(error?.message || error);
+      const transient = /HTTP_(429|5\d\d)|timeout|fetch failed|ECONNRESET|ETIMEDOUT/i.test(message);
+      if (transient && attempt < MAX_RETRIES) {
+        requestMetrics.retries += 1;
+        await sleep(Math.min(12000, 1000 * (2 ** attempt)));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError || new Error(`REQUEST_FAILED:${url}`);
+}
+
+function loadResolutionCache() {
+  if (!fs.existsSync(CACHE_PATH)) return {};
+  try {
+    const parsed = JSON.parse(fs.readFileSync(CACHE_PATH, 'utf8'));
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+const persistedCache = loadResolutionCache();
+const runResolutionCache = new Map();
 
 async function resolveWikidataId(candidate) {
   const existingId = String(candidate.sourceRecordId || '');
@@ -44,19 +113,40 @@ async function resolveWikidataId(candidate) {
 
   const title = String(candidate.canonicalTitle || '').trim();
   if (!title) return null;
+  const cacheKey = normalize(title);
+  if (!cacheKey) return null;
+
+  if (runResolutionCache.has(cacheKey)) {
+    requestMetrics.cacheHits += 1;
+    return runResolutionCache.get(cacheKey);
+  }
+  if (Object.prototype.hasOwnProperty.call(persistedCache, cacheKey)) {
+    requestMetrics.cacheHits += 1;
+    const cached = persistedCache[cacheKey]?.resolved ?? null;
+    runResolutionCache.set(cacheKey, cached);
+    return cached;
+  }
+
+  requestMetrics.cacheMisses += 1;
   const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(title)}&language=en&format=json&limit=5&origin=*`;
   const body = await getJson(url);
   const target = normalize(title);
   const rows = Array.isArray(body.search) ? body.search : [];
   const exact = rows.find((row) => /^Q\d+$/.test(String(row.id || '')) && normalize(row.label) === target);
-  if (!exact) return null;
-  return {
+  const resolved = exact ? {
     id: exact.id,
     method: 'EXACT_NORMALIZED_LABEL',
     confidence: 0.95,
     matchedLabel: exact.label || null,
     description: exact.description || null,
+  } : null;
+
+  runResolutionCache.set(cacheKey, resolved);
+  persistedCache[cacheKey] = {
+    resolved,
+    cachedAt: new Date().toISOString(),
   };
+  return resolved;
 }
 
 function bestQuantity(entity, propertyId) {
@@ -107,25 +197,22 @@ function evidenceRecord(candidate, primitive, entityId, evidenceClass, value, en
 
 const sourceErrors = [];
 const entityLinks = new Map();
-const titleResolutionCache = new Map();
 
 for (const candidate of relevantCandidates) {
   try {
-    const cacheKey = normalize(candidate.canonicalTitle);
-    let resolved;
-    if (candidate.source === 'wikidata' && /^Q\d+$/.test(String(candidate.sourceRecordId || ''))) {
-      resolved = await resolveWikidataId(candidate);
-    } else if (titleResolutionCache.has(cacheKey)) {
-      resolved = titleResolutionCache.get(cacheKey);
-    } else {
-      resolved = await resolveWikidataId(candidate);
-      titleResolutionCache.set(cacheKey, resolved);
-    }
+    const resolved = await resolveWikidataId(candidate);
     if (resolved) entityLinks.set(candidate.candidateKey, resolved);
   } catch (error) {
-    sourceErrors.push({ candidateKey: candidate.candidateKey, stage: 'ENTITY_RESOLUTION', error: String(error?.message || error) });
+    sourceErrors.push({
+      candidateKey: candidate.candidateKey,
+      canonicalTitle: candidate.canonicalTitle || null,
+      stage: 'ENTITY_RESOLUTION',
+      error: String(error?.message || error),
+    });
   }
 }
+
+fs.writeFileSync(CACHE_PATH, JSON.stringify(persistedCache, null, 2));
 
 const ids = [...new Set([...entityLinks.values()].map((link) => link.id))];
 const entityById = new Map();
@@ -150,9 +237,6 @@ for (const candidate of relevantCandidates) {
   if (!entity || entity.missing !== undefined) continue;
 
   const candidateEvidence = [];
-
-  // SCARCITY: only explicit total-produced quantity (P1092) is accepted.
-  // Broad quantity, age, discontinued status, price, title, brand and model-year proxies are not promoted to scarcity.
   const totalProduced = bestQuantity(entity, 'P1092');
   if (totalProduced && totalProduced.amount > 0) {
     candidateEvidence.push(evidenceRecord(candidate, 'SCARCITY', entityLink.id, 'INDEPENDENT_VERIFICATION', {
@@ -163,8 +247,6 @@ for (const candidate of relevantCandidates) {
     }, entityLink));
   }
 
-  // DEMAND_ATTENTION: P2664 is a structured sales-reference signal when present.
-  // Otherwise sitelink breadth may be used only as cultural attention, never as market demand or liquidity.
   const unitsSold = bestQuantity(entity, 'P2664');
   const sitelinkCount = Object.keys(entity.sitelinks || {}).length;
   if (unitsSold && unitsSold.amount > 0) {
@@ -186,6 +268,7 @@ for (const candidate of relevantCandidates) {
   candidateEvidenceSummary.push({
     candidateKey: candidate.candidateKey,
     canonicalTitle: candidate.canonicalTitle,
+    semanticRelevanceScore: candidate.semanticRelevanceScore ?? null,
     wikidataId: entityLink.id,
     entityLinkMethod: entityLink.method,
     entityLinkConfidence: entityLink.confidence,
@@ -201,7 +284,7 @@ const nativeLinks = [...entityLinks.values()].filter((link) => link.method === '
 const exactTitleLinks = [...entityLinks.values()].filter((link) => link.method === 'EXACT_NORMALIZED_LABEL').length;
 
 const output = {
-  schemaVersion: '1.1.0',
+  schemaVersion: '1.2.0',
   mode: 'KIDULT100_OPEN_RIGHT_DATA_EVIDENCE',
   generatedAt: new Date().toISOString(),
   policy: {
@@ -213,6 +296,13 @@ const output = {
     inferredScarcityAllowed: false,
     demandAttentionProxyMayRepresentMarketDemand: false,
     entityLinking: 'SOURCE_NATIVE_OR_EXACT_NORMALIZED_LABEL_ONLY',
+    requestPolicy: {
+      minimumIntervalMs: MIN_REQUEST_INTERVAL_MS,
+      maximumRetries: MAX_RETRIES,
+      retry429: true,
+      exponentialBackoff: true,
+      persistentTitleCache: true,
+    },
   },
   source: {
     id: 'wikidata',
@@ -234,6 +324,7 @@ const output = {
     scarcityEvidenceRecords: scarcityCount,
     demandAttentionEvidenceRecords: demandCount,
     sourceErrorCount: sourceErrors.length,
+    requestMetrics,
   },
   evidence,
   candidateEvidenceSummary,
@@ -241,6 +332,7 @@ const output = {
 };
 
 fs.writeFileSync(OUT_PATH, JSON.stringify(output, null, 2));
-console.log(`Open Right Data v1.1: relevant=${relevantCandidates.length} linked=${entityLinks.size} entities=${entityById.size} evidence=${evidence.length}`);
+console.log(`Open Right Data v1.2: relevant=${relevantCandidates.length} linked=${entityLinks.size} entities=${entityById.size} evidence=${evidence.length}`);
 console.log(`nativeLinks=${nativeLinks} exactTitleLinks=${exactTitleLinks} scarcity=${scarcityCount} demandAttention=${demandCount} errors=${sourceErrors.length}`);
+console.log(`requests=${requestMetrics.httpRequests} retries=${requestMetrics.retries} rateLimits=${requestMetrics.rateLimitResponses} cacheHits=${requestMetrics.cacheHits} cacheMisses=${requestMetrics.cacheMisses}`);
 console.log('No inferred scarcity, transaction comparable or liquidity evidence was fabricated.');
