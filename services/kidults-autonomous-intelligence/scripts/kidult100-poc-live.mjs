@@ -7,7 +7,8 @@ const CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'kidult100-p
 const OUT_DIR = path.join(ROOT, 'reports', 'kidult100-poc');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-const UA = 'KIDULTS-Kidult100-POC/2.2 (semantic-relevance-v2; candidate-universe build)';
+const UA = 'KIDULTS-Kidult100-POC/2.3 (semantic-relevance-v2.1; candidate-universe build)';
+const SEMANTIC_THRESHOLD = 0.46;
 
 async function getJson(url) {
   const started = Date.now();
@@ -128,18 +129,23 @@ const VERTICAL_CONTEXT = {
   'cards-comics-memorabilia': ['card', 'trading card', 'comic', 'memorabilia', 'baseball card', 'pokemon', 'marvel', 'dc comics', 'sports memorabilia'],
 };
 
+const ARCHIVE_NEGATIVE_OBJECT_TERMS = new Set([
+  'textile', 'painting', 'drawing', 'print', 'photograph', 'sculpture', 'vessel', 'fragment', 'manuscript',
+  'costume', 'dress', 'tapestry', 'ceramic', 'glass', 'coin', 'medal', 'armor', 'weapon',
+]);
+
 function containsPhrase(haystack, phrase) {
   const normalizedHaystack = ` ${normalize(haystack)} `;
   const normalizedPhrase = normalize(phrase);
   return normalizedPhrase.length > 0 && normalizedHaystack.includes(` ${normalizedPhrase} `);
 }
 
-function semanticRelevanceV2(item) {
+function semanticRelevanceV21(item) {
   const query = normalize(item.query);
   const title = normalize(item.canonicalTitle);
   const description = normalize(item.description);
   const creator = normalize(item.creator);
-  if (!query || !title) return { relevant: false, score: 0, reasons: ['MISSING_QUERY_OR_TITLE'], version: 'SEMANTIC_V2' };
+  if (!query || !title) return { relevant: false, score: 0, reasons: ['MISSING_QUERY_OR_TITLE'], version: 'SEMANTIC_V2_1' };
 
   const queryTokens = tokens(query);
   const anchors = queryTokens.filter((token) => !GENERIC_QUERY_TOKENS.has(token));
@@ -162,48 +168,56 @@ function semanticRelevanceV2(item) {
 
   let score = 0;
   const reasons = [];
-  if (exactTitleQuery) { score += 0.45; reasons.push('EXACT_TITLE_QUERY'); }
-  else if (queryContainedInTitle) { score += 0.38; reasons.push('QUERY_PHRASE_IN_TITLE'); }
-  else if (allAnchorsInTitle) { score += 0.32; reasons.push('ALL_ANCHORS_IN_TITLE'); }
-  else if (titleAnchorHits > 0) { score += Math.min(0.26, 0.13 * titleAnchorHits); reasons.push('PARTIAL_TITLE_ANCHOR'); }
+  if (exactTitleQuery) { score += 0.42; reasons.push('EXACT_TITLE_QUERY'); }
+  else if (queryContainedInTitle) { score += 0.36; reasons.push('QUERY_PHRASE_IN_TITLE'); }
+  else if (allAnchorsInTitle) { score += 0.31; reasons.push('ALL_ANCHORS_IN_TITLE'); }
+  else if (titleAnchorHits > 0) { score += Math.min(0.28, 0.14 * titleAnchorHits); reasons.push('PARTIAL_TITLE_ANCHOR'); }
 
-  if (descriptionAnchorHits > 0) { score += Math.min(0.12, 0.06 * descriptionAnchorHits); reasons.push('DESCRIPTION_ANCHOR'); }
-  if (creatorAnchorHits > 0) { score += Math.min(0.12, 0.06 * creatorAnchorHits); reasons.push('CREATOR_ANCHOR'); }
-  if (hasVerticalContext) { score += 0.28; reasons.push('VERTICAL_CONTEXT'); }
+  if (descriptionAnchorHits > 0) { score += Math.min(0.14, 0.07 * descriptionAnchorHits); reasons.push('DESCRIPTION_ANCHOR'); }
+  if (creatorAnchorHits > 0) { score += Math.min(0.10, 0.05 * creatorAnchorHits); reasons.push('CREATOR_ANCHOR'); }
+  if (hasVerticalContext) { score += 0.22; reasons.push('VERTICAL_CONTEXT'); }
 
   if (item.sourceClass === 'REFERENCE_PUBLIC_DATA') {
-    score += 0.12;
+    score += 0.18;
     reasons.push('REFERENCE_SOURCE');
+    if (item.source === 'wikidata' && /^Q\d+$/.test(String(item.sourceRecordId || ''))) {
+      score += 0.08;
+      reasons.push('SOURCE_NATIVE_ENTITY');
+    }
   }
 
   const institutionalArchive = item.sourceClass === 'INSTITUTION_ARCHIVE';
+  const negativeArchiveObject = [...ARCHIVE_NEGATIVE_OBJECT_TERMS].some((term) => containsPhrase(description, term));
   if (institutionalArchive) {
-    // Museum/archive search often returns artworks whose title happens to equal a product or brand.
-    // Require independent vertical/object context or creator/query reinforcement; title equality alone is insufficient.
     const archiveContextConfirmed = hasVerticalContext || descriptionAnchorHits > 0 || creatorAnchorHits > 0;
     if (!archiveContextConfirmed) {
-      score = Math.min(score, 0.49);
+      score = Math.min(score, 0.39);
       reasons.push('ARCHIVE_TITLE_ONLY_CAPPED');
     } else {
-      score += 0.05;
+      score += 0.04;
       reasons.push('ARCHIVE_CONTEXT_CONFIRMED');
+    }
+    if (negativeArchiveObject && !hasVerticalContext && descriptionAnchorHits === 0) {
+      score = Math.min(score, 0.34);
+      reasons.push('ARCHIVE_OBJECT_MISMATCH_CAPPED');
     }
   }
 
   score = Math.max(0, Math.min(1, Number(score.toFixed(4))));
-  const relevant = score >= 0.6;
-  if (!relevant) reasons.push('BELOW_0_60_THRESHOLD');
+  const relevant = score >= SEMANTIC_THRESHOLD;
+  if (!relevant) reasons.push('BELOW_V2_1_THRESHOLD');
   return {
     relevant,
     score,
-    threshold: 0.6,
-    version: 'SEMANTIC_V2',
+    threshold: SEMANTIC_THRESHOLD,
+    version: 'SEMANTIC_V2_1',
     reasons,
     diagnostics: {
       titleAnchorHits,
       descriptionAnchorHits,
       creatorAnchorHits,
       verticalContextHits,
+      negativeArchiveObject,
     },
   };
 }
@@ -235,7 +249,7 @@ for (const item of raw) {
 }
 
 const candidates = [...deduped.values()].map((item) => {
-  const semantic = semanticRelevanceV2(item);
+  const semantic = semanticRelevanceV21(item);
   return {
     ...item,
     semanticRelevant: semantic.relevant,
@@ -258,7 +272,7 @@ const rightsClassificationCoverage = candidates.length ? candidates.filter((c) =
 const semanticRelevanceCoverage = candidates.length ? relevantCandidates.length / candidates.length : 0;
 
 const report = {
-  schemaVersion: '2.2.0',
+  schemaVersion: '2.3.0',
   mode: CONFIG.mode,
   generatedAt: new Date().toISOString(),
   target: {
@@ -267,10 +281,12 @@ const report = {
     minimumCandidatesPerVertical: CONFIG.stage2Gate.minimumCandidatesPerVertical,
   },
   semanticPolicy: {
-    version: 'SEMANTIC_V2',
-    threshold: 0.6,
+    version: 'SEMANTIC_V2_1',
+    threshold: SEMANTIC_THRESHOLD,
     institutionalArchiveTitleOnlyAccepted: false,
-    principle: 'A matching title alone is not sufficient for archive records; vertical/object context is required.',
+    archiveTitleOnlyCap: 0.39,
+    archiveObjectMismatchCap: 0.34,
+    principle: 'Recover high-signal brand/model and source-native entity recall without accepting archive title-only false positives.',
   },
   metrics: {
     rawObservations: raw.length,
@@ -289,12 +305,12 @@ const report = {
   },
   candidateBuild: {
     outcome: 'BUILT_NOT_CERTIFIED',
-    note: 'Stage 2 certification occurs only after Right Data enrichment. Semantic Relevance v2 rejects archive title-only false positives.',
+    note: 'Stage 2 certification occurs only after Right Data enrichment. Semantic Relevance v2.1 balances recall while preserving archive mismatch caps.',
   },
   claims: {
     liveExternalNetworkCollection: true,
     normalizedCandidateUniverseBuilt: true,
-    semanticRelevanceV2Applied: true,
+    semanticRelevanceV21Applied: true,
     decisionGradeRightDataCertified: false,
     finalKidult100Certified: false,
     marketPriceIntelligenceCertified: false,
@@ -305,7 +321,7 @@ const report = {
 };
 
 fs.writeFileSync(path.join(OUT_DIR, 'kidult100-poc-latest.json'), JSON.stringify(report, null, 2));
-console.log(`Kidult100 candidate build v2.2: raw=${raw.length} unique=${candidates.length} relevant=${relevantCandidates.length} errors=${sourceErrors.length}`);
+console.log(`Kidult100 candidate build v2.3: raw=${raw.length} unique=${candidates.length} relevant=${relevantCandidates.length} errors=${sourceErrors.length}`);
 console.log(`provenance=${provenanceCoverage} rights=${rightsClassificationCoverage} semantic=${semanticRelevanceCoverage}`);
 console.log(`rawDuplicateObservationRate=${rawDuplicateObservationRate} acceptedDuplicateContamination=${acceptedDuplicateContamination}`);
 console.log(`relevantVerticals=${JSON.stringify(relevantByVertical)}`);
