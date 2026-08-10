@@ -1,0 +1,89 @@
+{
+  "version": "2026-08-10-wave1",
+  "objective": {
+    "from": {"liveCandidates": 41, "representedCoreVerticals": 3},
+    "to": {"liveCandidatesMin": 100, "representedCoreVerticals": 8}
+  },
+  "activationRule": ["VALUE", "RIGHTS", "PROVENANCE", "COMPARABILITY", "ECONOMICS", "ACTIVATE"],
+  "sources": [
+    {
+      "id": "cooper-hewitt-api",
+      "name": "Cooper Hewitt Collections API",
+      "status": "ACTIVE",
+      "sourceClass": "INSTITUTION_MUSEUM_ARCHIVE",
+      "access": "PUBLIC_GRAPHQL_RATE_LIMITED",
+      "rights": "CC0_OBJECTS_AND_OPEN_API",
+      "verticals": ["TOYS_MODELS", "FASHION_ACCESSORIES", "DESIGN_FURNITURE", "TECHNOLOGY_CAMERAS"],
+      "primitives": ["IDENTITY_PROVENANCE", "CANON_INSTITUTIONAL_CULTURAL", "RISK_CONFIDENCE"]
+    },
+    {
+      "id": "library-of-congress-api",
+      "name": "Library of Congress loc.gov JSON/YAML API",
+      "status": "ACTIVE_METADATA_ONLY",
+      "sourceClass": "INSTITUTION_LIBRARY_PUBLIC_RESEARCH",
+      "access": "PUBLIC_NO_KEY_RATE_LIMITED",
+      "rights": "METADATA_ALLOWED_MEDIA_PER_ITEM_RIGHTS",
+      "verticals": ["FASHION_ACCESSORIES", "TECHNOLOGY_CAMERAS", "GAMING_MUSIC_SCREEN", "CARDS_COMICS_MEMORABILIA"],
+      "primitives": ["IDENTITY_PROVENANCE", "CANON_INSTITUTIONAL_CULTURAL", "DEMAND_ATTENTION", "RISK_CONFIDENCE"]
+    },
+    {
+      "id": "nhtsa-vpic",
+      "name": "NHTSA vPIC Vehicle API",
+      "status": "ACTIVE_IDENTITY_SPEC_METADATA",
+      "sourceClass": "GOVERNMENT_PUBLIC_DATA",
+      "access": "PUBLIC_API_RATE_CONTROLLED",
+      "rights": "PUBLIC_USE_METADATA_LICENSE_UNSPECIFIED",
+      "verticals": ["AUTOMOBILES_MOBILITY"],
+      "primitives": ["IDENTITY_PROVENANCE", "RISK_CONFIDENCE"]
+    },
+    {
+      "id": "wikidata",
+      "name": "Wikidata Structured Data",
+      "status": "ACTIVE",
+      "sourceClass": "REFERENCE_RESEARCH_PUBLIC_DATA",
+      "access": "PUBLIC",
+      "rights": "CC0_STRUCTURED_DATA",
+      "verticals": ["TOYS_MODELS", "WATCHES_JEWELRY", "AUTOMOBILES_MOBILITY", "FASHION_ACCESSORIES", "DESIGN_FURNITURE", "TECHNOLOGY_CAMERAS", "GAMING_MUSIC_SCREEN", "CARDS_COMICS_MEMORABILIA"],
+      "primitives": ["IDENTITY_PROVENANCE", "CANON_INSTITUTIONAL_CULTURAL", "RISK_CONFIDENCE"]
+    },
+    {
+      "id": "smithsonian-open-access",
+      "name": "Smithsonian Open Access",
+      "status": "ACTIVE_OPEN_REPOSITORY",
+      "sourceClass": "INSTITUTION_MUSEUM_ARCHIVE",
+      "access": "WEEKLY_GITHUB_JSON_OR_API_KEY",
+      "rights": "CC0_DESIGNATED_ITEMS_ONLY",
+      "verticals": ["TOYS_MODELS", "AUTOMOBILES_MOBILITY", "FASHION_ACCESSORIES", "DESIGN_FURNITURE", "TECHNOLOGY_CAMERAS", "GAMING_MUSIC_SCREEN"],
+      "primitives": ["IDENTITY_PROVENANCE", "CANON_INSTITUTIONAL_CULTURAL", "RISK_CONFIDENCE"]
+    },
+    {
+      "id": "europeana",
+      "name": "Europeana APIs",
+      "status": "READY_FOR_KEY",
+      "sourceClass": "CULTURAL_HERITAGE_AGGREGATOR",
+      "access": "API_KEY_REQUIRED",
+      "rights": "CC0_METADATA_MEDIA_PER_RECORD_RIGHTS",
+      "verticals": ["FASHION_ACCESSORIES", "DESIGN_FURNITURE", "TECHNOLOGY_CAMERAS", "GAMING_MUSIC_SCREEN", "CARDS_COMICS_MEMORABILIA"],
+      "primitives": ["IDENTITY_PROVENANCE", "CANON_INSTITUTIONAL_CULTURAL", "RISK_CONFIDENCE"]
+    },
+    {
+      "id": "vam-collections-api",
+      "name": "Victoria and Albert Museum Collections API",
+      "status": "HOLD_RIGHTS_REVIEW",
+      "sourceClass": "INSTITUTION_MUSEUM_ARCHIVE",
+      "access": "PUBLIC_API",
+      "rights": "TERMS_GOVERNED_REVIEW_REQUIRED",
+      "verticals": ["TOYS_MODELS", "FASHION_ACCESSORIES", "DESIGN_FURNITURE", "TECHNOLOGY_CAMERAS"],
+      "primitives": ["IDENTITY_PROVENANCE", "CANON_INSTITUTIONAL_CULTURAL"]
+    }
+  ],
+  "stage1Gate": {
+    "uniqueLiveCandidatesMin": 100,
+    "coreVerticalsRepresented": 8,
+    "rightsClassification": 1.0,
+    "provenanceCoverage": 1.0,
+    "primitiveMapping": 1.0,
+    "duplicateContaminationMax": 0.005,
+    "unsupportedCausalClaimsMax": 0
+  }
+}
