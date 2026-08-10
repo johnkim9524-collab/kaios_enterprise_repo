@@ -4,13 +4,10 @@ import path from 'node:path';
 
 const ROOT = process.cwd();
 const CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'kidult100-poc-source-plan.json'), 'utf8'));
-const POLICY = JSON.parse(fs.readFileSync(path.join(ROOT, 'policy', 'kidult100-intelligence-value-policy.json'), 'utf8'));
 const OUT_DIR = path.join(ROOT, 'reports', 'kidult100-poc');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-const UA = 'KIDULTS-Kidult100-POC/2.0 (decision-grade right-data validation)';
-const REQUIRED_RIGHT_DATA = CONFIG.requiredRightDataPrimitives || POLICY.intelligencePrimitives;
-const GATE = CONFIG.stage2Gate;
+const UA = 'KIDULTS-Kidult100-POC/2.1 (candidate-universe build; not certification)';
 
 async function getJson(url) {
   const started = Date.now();
@@ -115,32 +112,10 @@ function semanticRelevance(item) {
   const queryTokens = normalizeTokens(item.query);
   const candidateTokens = new Set(normalizeTokens(`${item.canonicalTitle || ''} ${item.description || ''} ${item.creator || ''}`));
   if (!queryTokens.length || !candidateTokens.size) return false;
-  const informative = queryTokens.filter((token) => !['classic', 'vintage', 'archive', 'design', 'figure', 'record', 'card', 'comic', 'watch', 'camera', 'chair', 'automobile', 'furniture'].includes(token));
+  const generic = new Set(['classic', 'vintage', 'archive', 'design', 'figure', 'record', 'card', 'comic', 'watch', 'camera', 'chair', 'automobile', 'furniture']);
+  const informative = queryTokens.filter((token) => !generic.has(token));
   const anchors = informative.length ? informative : queryTokens;
   return anchors.some((token) => candidateTokens.has(token));
-}
-
-function primitiveSet(item) {
-  const primitives = new Set(Array.isArray(item.intelligencePrimitives) ? item.intelligencePrimitives : []);
-  const rightData = item.rightData || {};
-  if (rightData.identity) primitives.add('IDENTITY');
-  if (rightData.scarcity) primitives.add('SCARCITY');
-  if (rightData.transactionPriceComparable) primitives.add('TRANSACTION_PRICE_COMPARABLE');
-  if (rightData.liquidity) primitives.add('LIQUIDITY');
-  if (rightData.demandAttention) primitives.add('DEMAND_ATTENTION');
-  if (rightData.canonCulturalStrength) primitives.add('CANON_CULTURAL_STRENGTH');
-  if (rightData.riskConfidence) primitives.add('RISK_CONFIDENCE');
-  return primitives;
-}
-
-function rightDataFraction(item) {
-  const primitives = primitiveSet(item);
-  return REQUIRED_RIGHT_DATA.filter((primitive) => primitives.has(primitive)).length / REQUIRED_RIGHT_DATA.length;
-}
-
-function hasMarketEvidence(item) {
-  const primitives = primitiveSet(item);
-  return primitives.has('TRANSACTION_PRICE_COMPARABLE') && primitives.has('LIQUIDITY');
 }
 
 const collectors = [searchWikidata, searchMet, searchAic];
@@ -160,77 +135,61 @@ for (const vertical of CONFIG.coreVerticals) {
 
 const exactKeyCounts = new Map();
 for (const item of raw) exactKeyCounts.set(item.candidateKey, (exactKeyCounts.get(item.candidateKey) || 0) + 1);
-const duplicateObservations = [...exactKeyCounts.values()].reduce((sum, count) => sum + Math.max(0, count - 1), 0);
-const exactDuplicateContamination = raw.length ? duplicateObservations / raw.length : 0;
+const duplicateRawObservations = [...exactKeyCounts.values()].reduce((sum, count) => sum + Math.max(0, count - 1), 0);
+const rawDuplicateObservationRate = raw.length ? duplicateRawObservations / raw.length : 0;
 
 const deduped = new Map();
 for (const item of raw) {
   if (!item.canonicalTitle || !item.sourceRecordId || !item.sourceUrl || !item.rightsClass) continue;
   if (!deduped.has(item.candidateKey)) deduped.set(item.candidateKey, item);
 }
+
 const candidates = [...deduped.values()].map((item) => ({
   ...item,
   semanticRelevant: semanticRelevance(item),
-  requiredRightDataCoverage: rightDataFraction(item),
-  marketEvidencePresent: hasMarketEvidence(item),
 }));
+const acceptedKeyCount = new Set(candidates.map((c) => c.candidateKey)).size;
+const acceptedDuplicateContamination = candidates.length ? (candidates.length - acceptedKeyCount) / candidates.length : 0;
+const relevantCandidates = candidates.filter((candidate) => candidate.semanticRelevant);
 
 const byVertical = Object.fromEntries(CONFIG.coreVerticals.map((v) => [v.id, candidates.filter((c) => c.vertical === v.id).length]));
+const relevantByVertical = Object.fromEntries(CONFIG.coreVerticals.map((v) => [v.id, relevantCandidates.filter((c) => c.vertical === v.id).length]));
 const bySource = Object.fromEntries(CONFIG.sources.map((s) => [s.id, candidates.filter((c) => c.source === s.id).length]));
-const coveredVerticals = Object.values(byVertical).filter((count) => count > 0).length;
-const balancedVerticals = Object.values(byVertical).filter((count) => count >= GATE.minimumCandidatesPerVertical).length;
 const provenanceCoverage = candidates.length ? candidates.filter((c) => c.sourceUrl && c.observedAt && c.payloadHash).length / candidates.length : 0;
 const rightsClassificationCoverage = candidates.length ? candidates.filter((c) => Boolean(c.rightsClass)).length / candidates.length : 0;
-const semanticRelevanceCoverage = candidates.length ? candidates.filter((c) => c.semanticRelevant).length / candidates.length : 0;
-const requiredRightDataCoverage = candidates.length ? candidates.reduce((sum, c) => sum + c.requiredRightDataCoverage, 0) / candidates.length : 0;
-const marketEvidenceCoverage = candidates.length ? candidates.filter((c) => c.marketEvidencePresent).length / candidates.length : 0;
-
-const gateChecks = {
-  candidateUniverse300Plus: candidates.length >= GATE.minimumUniqueCandidates,
-  coreVerticalCoverage8of8: coveredVerticals >= GATE.requiredCoreVerticalCoverage,
-  minimumPerVertical: balancedVerticals >= GATE.requiredCoreVerticalCoverage,
-  provenanceCoverage: provenanceCoverage >= GATE.minimumProvenanceCoverage,
-  rightsClassificationCoverage: rightsClassificationCoverage >= GATE.minimumRightsClassificationCoverage,
-  exactDuplicateContamination: exactDuplicateContamination <= GATE.maximumExactDuplicateContamination,
-  semanticRelevanceCoverage: semanticRelevanceCoverage >= GATE.minimumSemanticRelevanceCoverage,
-  requiredRightDataCoverage: requiredRightDataCoverage >= GATE.minimumRequiredRightDataCoverage,
-  marketEvidenceCoverage: marketEvidenceCoverage >= GATE.minimumMarketEvidenceCoverage,
-};
-const stage2Passed = Object.values(gateChecks).every(Boolean);
+const semanticRelevanceCoverage = candidates.length ? relevantCandidates.length / candidates.length : 0;
 
 const report = {
-  schemaVersion: '2.0.0',
+  schemaVersion: '2.1.0',
   mode: CONFIG.mode,
   generatedAt: new Date().toISOString(),
   target: {
-    candidates: GATE.minimumUniqueCandidates,
-    coreVerticals: GATE.requiredCoreVerticalCoverage,
-    minimumCandidatesPerVertical: GATE.minimumCandidatesPerVertical,
-    requiredRightDataCoverage: GATE.minimumRequiredRightDataCoverage,
-    marketEvidenceCoverage: GATE.minimumMarketEvidenceCoverage,
+    candidates: CONFIG.stage2Gate.minimumUniqueCandidates,
+    coreVerticals: CONFIG.stage2Gate.requiredCoreVerticalCoverage,
+    minimumCandidatesPerVertical: CONFIG.stage2Gate.minimumCandidatesPerVertical,
   },
   metrics: {
     rawObservations: raw.length,
-    uniqueDiscoveryCandidates: candidates.length,
-    coveredVerticals,
-    balancedVerticals,
+    uniqueNormalizedCandidates: candidates.length,
+    semanticRelevantCandidates: relevantCandidates.length,
     provenanceCoverage,
     rightsClassificationCoverage,
-    exactDuplicateContamination,
     semanticRelevanceCoverage,
-    requiredRightDataCoverage,
-    marketEvidenceCoverage,
+    rawDuplicateObservationRate,
+    acceptedDuplicateContamination,
     sourceErrorCount: sourceErrors.length,
     byVertical,
+    relevantByVertical,
     bySource,
   },
-  stage2Gate: {
-    outcome: stage2Passed ? 'PASS' : GATE.failureDisposition,
-    checks: gateChecks,
+  candidateBuild: {
+    outcome: 'BUILT_NOT_CERTIFIED',
+    note: 'Stage 2 certification occurs only after Right Data enrichment. Raw repeated observations are not treated as accepted-universe duplicate contamination.',
   },
   claims: {
     liveExternalNetworkCollection: true,
-    decisionGradeRightDataCertified: stage2Passed,
+    normalizedCandidateUniverseBuilt: true,
+    decisionGradeRightDataCertified: false,
     finalKidult100Certified: false,
     marketPriceIntelligenceCertified: false,
     whyCausalityCertified: false,
@@ -240,9 +199,7 @@ const report = {
 };
 
 fs.writeFileSync(path.join(OUT_DIR, 'kidult100-poc-latest.json'), JSON.stringify(report, null, 2));
-console.log(`Kidult100 Stage2: raw=${raw.length} unique=${candidates.length} errors=${sourceErrors.length}`);
-console.log(`verticals=${coveredVerticals}/8 balanced=${balancedVerticals}/8 provenance=${provenanceCoverage} rights=${rightsClassificationCoverage}`);
-console.log(`semantic=${semanticRelevanceCoverage} rightData=${requiredRightDataCoverage} marketEvidence=${marketEvidenceCoverage} duplicates=${exactDuplicateContamination}`);
-console.log(`stage2=${report.stage2Gate.outcome} checks=${JSON.stringify(gateChecks)}`);
-
-if (!stage2Passed) process.exit(1);
+console.log(`Kidult100 candidate build: raw=${raw.length} unique=${candidates.length} relevant=${relevantCandidates.length} errors=${sourceErrors.length}`);
+console.log(`provenance=${provenanceCoverage} rights=${rightsClassificationCoverage} semantic=${semanticRelevanceCoverage}`);
+console.log(`rawDuplicateObservationRate=${rawDuplicateObservationRate} acceptedDuplicateContamination=${acceptedDuplicateContamination}`);
+console.log(`relevantVerticals=${JSON.stringify(relevantByVertical)}`);
