@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.2.0",
+  "schemaVersion": "1.3.0",
   "mode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "candidateTarget": 300,
   "stage2Gate": {
@@ -32,7 +32,7 @@
     {
       "id": "watches-jewelry",
       "label": "Watches & Jewelry",
-      "discoveryQueries": ["Rolex Daytona", "Omega Speedmaster", "Cartier watch", "Patek Philippe", "Audemars Piguet", "vintage wristwatch"]
+      "discoveryQueries": ["Rolex Daytona", "Omega Speedmaster", "Cartier watch", "Patek Philippe", "Audemars Piguet", "vintage wristwatch", "TAG Heuer Monaco", "Seiko diver watch"]
     },
     {
       "id": "automobiles-mobility",
@@ -47,12 +47,12 @@
     {
       "id": "design-furniture",
       "label": "Design & Furniture",
-      "discoveryQueries": ["Eames chair", "Le Corbusier furniture", "Arne Jacobsen chair", "Ettore Sottsass", "mid-century design", "industrial design"]
+      "discoveryQueries": ["Eames chair", "Le Corbusier furniture", "Arne Jacobsen chair", "Ettore Sottsass", "mid-century design", "industrial design", "Noguchi table"]
     },
     {
       "id": "technology-cameras",
       "label": "Technology & Cameras",
-      "discoveryQueries": ["Leica camera", "Polaroid camera", "Apple Macintosh", "Sony Walkman", "Braun design", "vintage camera"]
+      "discoveryQueries": ["Leica camera", "Polaroid camera", "Apple Macintosh", "Sony Walkman", "Braun design", "vintage camera", "Nikon F", "Canon AE-1"]
     },
     {
       "id": "gaming-music-screen",
@@ -62,7 +62,7 @@
     {
       "id": "cards-comics-memorabilia",
       "label": "Cards / Comics / Memorabilia",
-      "discoveryQueries": ["Pokemon card", "baseball card", "Marvel comic", "DC comic", "sports memorabilia", "trading card"]
+      "discoveryQueries": ["Pokemon card", "baseball card", "Marvel comic", "DC comic", "sports memorabilia", "trading card", "Magic the Gathering card"]
     }
   ],
   "sources": [
