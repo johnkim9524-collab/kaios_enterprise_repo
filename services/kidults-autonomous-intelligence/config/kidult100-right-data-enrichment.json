@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_NO_SYNTHETIC_MARKET_EVIDENCE",
+  "requiredPrimitives": [
+    "IDENTITY",
+    "SCARCITY",
+    "TRANSACTION_PRICE_COMPARABLE",
+    "LIQUIDITY",
+    "DEMAND_ATTENTION",
+    "CANON_CULTURAL_STRENGTH",
+    "RISK_CONFIDENCE"
+  ],
+  "providerEvidence": {
+    "environmentVariable": "KIDULTS_RIGHT_DATA_EVIDENCE_JSON",
+    "optionalSnapshotFiles": [
+      "data/right-data/provider-evidence.json"
+    ],
+    "acceptedEvidenceClasses": [
+      "AUTHORITATIVE_IDENTITY_PROVENANCE",
+      "TRANSACTION_MARKET_EVIDENCE",
+      "INDEPENDENT_VERIFICATION",
+      "DEMAND_CULTURAL_SIGNAL",
+      "DERIVED_INTERNAL_CONFIDENCE"
+    ],
+    "requiredFields": [
+      "candidateKey",
+      "primitive",
+      "source",
+      "sourceUrl",
+      "rightsClass",
+      "observedAt",
+      "payloadHash",
+      "evidenceClass"
+    ]
+  },
+  "confidenceModel": {
+    "version": "RISK_CONFIDENCE_V1",
+    "minimumScoreToAssertPrimitive": 0.75,
+    "weights": {
+      "provenance": 0.3,
+      "rightsClassification": 0.2,
+      "semanticRelevance": 0.25,
+      "sourceClass": 0.15,
+      "freshness": 0.1
+    }
+  },
+  "marketEvidenceDefinition": {
+    "requires": [
+      "TRANSACTION_PRICE_COMPARABLE",
+      "LIQUIDITY"
+    ],
+    "syntheticOrEstimatedTransactionEvidenceAllowed": false
+  }
+}
