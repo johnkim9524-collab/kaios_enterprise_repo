@@ -56,6 +56,8 @@ jobs:
         run: node scripts/kidult100-poc-live.mjs
       - name: Open CC0 Scarcity + Demand evidence collection
         run: node scripts/kidult100-open-right-data-evidence.mjs
+      - name: Provider evidence contract validation
+        run: node scripts/kidult100-provider-evidence-validate.mjs
       - name: Stage 2 Right Data enrichment
         run: node scripts/kidult100-right-data-enrich.mjs
       - name: Experimental live Kidult100 POC ranking evaluation
@@ -129,6 +131,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-wave1/wave1-live-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-poc-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/open-evidence-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-right-data/validated-provider-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/right-data-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/right-data-gap-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/stage2-certification-latest.json
