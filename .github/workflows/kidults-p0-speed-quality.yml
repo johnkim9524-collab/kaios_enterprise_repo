@@ -21,52 +21,40 @@ jobs:
     timeout-minutes: 55
     permissions:
       contents: read
-
     defaults:
       run:
         working-directory: services/kidults-autonomous-intelligence
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
-
       - name: Critical CI determinism audit
         run: node scripts/p0-critical-ci-audit.mjs
-
       - name: Repository quality audit before dependency install
         run: npm run quality:audit
-
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
-
       - name: Typecheck
         run: npm run typecheck
-
       - name: Runtime smoke
         run: npm run runtime:smoke
-
       - name: Unit tests
         run: npm test
-
       - name: Coverage threshold gate
         run: node scripts/p0-coverage-gate.mjs
-
       - name: Truth-layer synthetic acceptance gate
         run: npm run truth:gate
-
+      - name: Wave1 real external source expansion gate
+        run: node scripts/kidult100-wave1-live.mjs
       - name: Real external open-data operational run + unified preflight
         run: node scripts/live-open-data-operation.mjs
-
       - name: Kidult 100 live value-before-data POC
         run: node scripts/kidult100-poc-live.mjs
-
       - name: A25-A40 simulation regression
         env:
           A25_MODE: SIMULATION
@@ -102,17 +90,13 @@ jobs:
           npm run a38:certify
           npm run a39:certify
           npm run a40:certify
-
       - name: SRE and reliability baseline audit
         run: node scripts/p0-sre-readiness-audit.mjs
-
       - name: 120 governance baseline audit
         run: node scripts/p0-120-governance-baseline-audit.mjs
-
       - name: Engineering quality audit after validation
         if: always()
         run: npm run quality:audit
-
       - name: Upload engineering audits
         if: always()
         uses: actions/upload-artifact@v4
@@ -125,7 +109,6 @@ jobs:
             services/kidults-autonomous-intelligence/reports/engineering-hardening/governance-baseline-latest.json
           retention-days: 30
           if-no-files-found: error
-
       - name: Upload truth and live POC evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -133,6 +116,7 @@ jobs:
           name: kidults-p0-truth-preflight-evidence
           path: |
             services/kidults-autonomous-intelligence/reports/truth-layer/truth-gate-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-wave1/wave1-live-latest.json
             services/kidults-autonomous-intelligence/reports/live-open-data/live-open-data-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-poc-latest.json
           retention-days: 30
