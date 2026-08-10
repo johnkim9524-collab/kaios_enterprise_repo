@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.3.0",
+  "schemaVersion": "1.4.0",
   "mode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "candidateTarget": 300,
   "stage2Gate": {
@@ -42,7 +42,7 @@
     {
       "id": "fashion-accessories",
       "label": "Fashion & Accessories",
-      "discoveryQueries": ["Hermes Birkin", "Chanel handbag", "Air Jordan 1", "Louis Vuitton trunk", "archive fashion", "sneaker", "Dior Saddle Bag", "Gucci Jackie bag", "Nike Dunk", "Adidas Yeezy", "Supreme box logo"]
+      "discoveryQueries": ["Hermes Birkin", "Chanel handbag", "Air Jordan 1", "Louis Vuitton trunk", "archive fashion", "sneaker", "Dior Saddle Bag", "Gucci Jackie bag", "Nike Dunk", "Adidas Yeezy", "Supreme box logo", "Hermes Kelly bag", "Fendi Baguette", "Prada nylon bag", "Balenciaga City bag", "Louis Vuitton Speedy", "Nike Air Force 1", "Converse Chuck Taylor"]
     },
     {
       "id": "design-furniture",
