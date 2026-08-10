@@ -1,10 +1,11 @@
-name: Kidults Mobile Preview Portal
+name: Kidults Final Portal
 
 on:
   push:
     branches: [main]
     paths:
-      - 'apps/kidults-enterprise-staging/public/a13/**'
+      - 'apps/kidults-enterprise-staging/public/portal/**'
+      - 'apps/kidults-enterprise-staging/public/a13/assets/**'
       - 'apps/kidults-enterprise-staging/public/data/**'
       - '.github/workflows/kidults-mobile-preview-pages.yml'
   workflow_dispatch:
@@ -15,7 +16,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: kidults-mobile-preview-pages
+  group: kidults-final-portal-pages
   cancel-in-progress: true
 
 jobs:
@@ -31,7 +32,7 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload Kidults staging portal
+      - name: Upload Kidults portal
         uses: actions/upload-pages-artifact@v3
         with:
           path: apps/kidults-enterprise-staging/public
