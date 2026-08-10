@@ -59,6 +59,8 @@ jobs:
       - name: Rights-first market provider adapter normalization
         run: node scripts/kidult100-market-adapter-normalize.mjs
       - name: Provider evidence contract validation
+        env:
+          KIDULTS_RIGHT_DATA_EVIDENCE_JSON: reports/kidult100-right-data/normalized-market-provider-evidence-latest.json
         run: node scripts/kidult100-provider-evidence-validate.mjs
       - name: Stage 2 Right Data enrichment
         run: node scripts/kidult100-right-data-enrich.mjs
