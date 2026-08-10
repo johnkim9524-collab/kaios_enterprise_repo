@@ -32,7 +32,7 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload Kidults portal
+      - name: Upload Kidults portal v226
         uses: actions/upload-pages-artifact@v3
         with:
           path: apps/kidults-enterprise-staging/public
