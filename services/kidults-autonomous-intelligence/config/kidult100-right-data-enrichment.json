@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "policy": "FAIL_CLOSED_NO_SYNTHETIC_MARKET_EVIDENCE",
   "requiredPrimitives": [
     "IDENTITY",
@@ -11,10 +11,10 @@
     "RISK_CONFIDENCE"
   ],
   "providerEvidence": {
-    "environmentVariable": "KIDULTS_RIGHT_DATA_EVIDENCE_JSON",
+    "environmentVariable": null,
     "optionalSnapshotFiles": [
       "reports/kidult100-right-data/open-evidence-latest.json",
-      "data/right-data/provider-evidence.json"
+      "reports/kidult100-right-data/validated-provider-evidence-latest.json"
     ],
     "acceptedEvidenceClasses": [
       "AUTHORITATIVE_IDENTITY_PROVENANCE",
@@ -32,7 +32,8 @@
       "observedAt",
       "payloadHash",
       "evidenceClass"
-    ]
+    ],
+    "marketEvidenceMustPassProviderContract": true
   },
   "confidenceModel": {
     "version": "RISK_CONFIDENCE_V1",
@@ -66,6 +67,8 @@
       "TRANSACTION_PRICE_COMPARABLE",
       "LIQUIDITY"
     ],
-    "syntheticOrEstimatedTransactionEvidenceAllowed": false
+    "syntheticOrEstimatedTransactionEvidenceAllowed": false,
+    "listingPriceAsTransactionAllowed": false,
+    "validatedProviderContractRequired": true
   }
 }
