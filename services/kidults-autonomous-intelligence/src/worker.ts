@@ -19,13 +19,24 @@ interface PublishResult {
   [key: string]: unknown;
 }
 
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body, null, 2), {
+const json = (body: unknown, status = 200, extraHeaders: Record<string,string> = {}) => new Response(JSON.stringify(body, null, 2), {
   status,
-  headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+  headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...extraHeaders },
 });
 
 const nowIso = () => new Date().toISOString();
 const makeId = (prefix: string) => `${prefix}_${crypto.randomUUID().replaceAll('-', '')}`;
+
+function previewCors(request: Request) {
+  const origin = request.headers.get('origin') || '';
+  const allowed = origin === 'https://kidults.com' || origin === 'https://www.kidults.com' || origin.endsWith('.workers.dev');
+  return {
+    'access-control-allow-origin': allowed ? origin : 'https://kidults.com',
+    'access-control-allow-methods': 'GET, OPTIONS',
+    'access-control-allow-headers': 'content-type',
+    'vary': 'origin',
+  };
+}
 
 function internalRequest(path: string, env: Env, body?: unknown) {
   const headers = new Headers({ 'content-type': 'application/json' });
@@ -148,6 +159,9 @@ async function autonomousCycle(env: Env) {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    if (request.method === 'OPTIONS' && url.pathname === '/v1/intelligence/preview') {
+      return new Response(null, { status: 204, headers: previewCors(request) });
+    }
     if (isControlTowerRoute(url.pathname)) {
       return handleControlTowerRequest(request);
     }
@@ -179,6 +193,25 @@ export default {
       try { return json(await autonomousCycle(env)); }
       catch (error) { return json({ error: 'cycle_failed', message: error instanceof Error ? error.message : String(error) }, 500); }
     }
+    if (request.method === 'GET' && url.pathname === '/v1/intelligence/preview') {
+      const snapshot = await env.DB.prepare(`
+        SELECT id,run_id,status,payload_json,payload_hash,created_at,published_at
+        FROM publication_snapshots
+        WHERE channel='portal'
+        ORDER BY created_at DESC LIMIT 1
+      `).first<{ id:string; run_id:string; status:string; payload_json:string; payload_hash:string; created_at:string; published_at:string|null }>();
+      const cors = previewCors(request);
+      if (!snapshot) return json({ mode:'LIVE_PREVIEW', certified:false, error:'no portal snapshot available yet' }, 404, cors);
+      let payload: unknown;
+      try { payload = JSON.parse(snapshot.payload_json); } catch { payload = snapshot.payload_json; }
+      return json({
+        mode:'LIVE_PREVIEW',
+        certified:false,
+        productionPromoted:snapshot.status === 'published',
+        snapshot:{ id:snapshot.id, runId:snapshot.run_id, status:snapshot.status, payloadHash:snapshot.payload_hash, createdAt:snapshot.created_at, publishedAt:snapshot.published_at },
+        payload
+      }, 200, { ...cors, 'x-kidults-preview':'true', 'x-kidults-snapshot-status':snapshot.status });
+    }
     if (request.method === 'GET' && url.pathname === '/v1/intelligence/current') {
       const state = await env.DB.prepare(`
         SELECT p.payload_json,p.payload_hash,p.published_at
@@ -188,7 +221,7 @@ export default {
       if (!state) return json({ error: 'no promoted production snapshot' }, 404);
       return new Response(state.payload_json, { headers: {
         'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=60',
-        'etag': `"${state.payload_hash}"`, 'x-kidults-published-at': state.published_at,
+        'etag': `\"${state.payload_hash}\"`, 'x-kidults-published-at': state.published_at,
       }});
     }
     return baseWorker.fetch(request, env);
