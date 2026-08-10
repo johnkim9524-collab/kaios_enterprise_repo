@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "CANONICAL_PROTOTYPE_BASELINE",
+  "principles": [
+    "DATA_DOES_NOT_DEFINE_NAVIGATION",
+    "VALUE_BEFORE_DATA",
+    "WHY_IS_MANDATORY_FOR_MATERIAL_INSIGHTS",
+    "MISSING_DATA_CHANGES_MODULE_STATE_NOT_PAGE_STRUCTURE",
+    "NEW_PRODUCTS_REGISTER_INTO_STABLE_SLOTS",
+    "MOBILE_PRESERVES_INFORMATION_HIERARCHY"
+  ],
+  "navigation": ["DISCOVER","KIDULT_100","MARKETS","OBJECTS","COMPARE","WHY","CANON","COLLECTIONS","INSTITUTIONS","RESEARCH"],
+  "utilities": ["SEARCH","ASK_KIDULTS","WATCHLIST","PORTFOLIO","ALERTS","SAVED_RESEARCH","PROFILE"],
+  "slots": {
+    "HOME": ["WHAT_MATTERS_NOW","WHY_IT_MATTERS","KIDULT_100_PULSE","EMERGING_ICONS","CATEGORY_ROTATION","CANON_SIGNALS","WATCHLIST_CHANGES","INSTITUTIONAL_MOVES","RESEARCH"],
+    "KIDULT_100": ["BENCHMARK_HISTORY","CONSTITUENTS","MOVERS","REGIME_CHANGES","CATEGORY_COMPOSITION","METHODOLOGY","CONFIDENCE"],
+    "OBJECT": ["IDENTITY","SCORES","WHY_NOW","VALUE_COMPARABLES","SCARCITY","LIQUIDITY","DEMAND","CANON","RISK_CONFIDENCE","TIMELINE","EVIDENCE","WHAT_NEXT"],
+    "COMPARE": ["NORMALIZED_FACTORS","VERTICAL_FACTORS","WHY_DIFFERENCES","VALUE_CONTEXT","CONFIDENCE"],
+    "DISCOVER": ["EMERGING_ICONS","UNDERFOLLOWED","STRUCTURAL_BREAKOUTS","RE_ENTRY","OVERHEATED","CANON_CANDIDATES","CATEGORY_ROTATION"],
+    "COLLECTIONS": ["INVENTORY","VALUE_HISTORY","CONCENTRATION","LIQUIDITY_RISK","CANON_COVERAGE","MISSING_ICONS","WATCHLIST_ALERTS","COLLECTION_NARRATIVE"],
+    "INSTITUTIONS": ["INSTITUTIONAL_RELEVANCE","ACQUISITION_WATCH","COLLECTION_GAPS","PROVENANCE_DESK","PRESERVATION_PRIORITY","COMPARATIVE_CANON","RESEARCH_EXPORTS"],
+    "RESEARCH": ["MONTHLY_INTELLIGENCE","METHODOLOGY","HISTORICAL_INDEX","VERTICAL_REPORTS","SOURCE_PROVENANCE","GOVERNED_EXPORTS"]
+  },
+  "evidenceStates": ["DEMO_SYNTHETIC","REAL_OPEN_DATA","RIGHTS_CLEARED_MARKET_DATA","PRODUCTION_INTELLIGENCE"],
+  "moduleStates": ["READY","PARTIAL","HELD","UNAVAILABLE","STALE","LOW_CONFIDENCE"],
+  "productContractRequiredFields": ["productId","customer","questionAnswered","decisionValue","requiredPrimitives","supportedVerticals","confidenceRequirement","rightsRequirement","portalSlot","entitlement","updateCadence","evidenceLink"],
+  "initialProducts": [
+    {"productId":"KIDULT_100","customer":"both","portalSlot":"KIDULT_100","questionAnswered":"What objects matter most across collectible culture now?","decisionValue":"benchmark","requiredPrimitives":["IDENTITY_PROVENANCE","SCARCITY_SUPPLY","TRANSACTION_PRICE_COMPARABLE","LIQUIDITY","DEMAND_ATTENTION","CANON_INSTITUTIONAL_CULTURAL","RISK_CONFIDENCE"]},
+    {"productId":"WHY_NOW","customer":"both","portalSlot":"OBJECT","questionAnswered":"Why does this object matter or move now?","decisionValue":"explanation_and_conviction","requiredPrimitives":["IDENTITY_PROVENANCE","SCARCITY_SUPPLY","TRANSACTION_PRICE_COMPARABLE","DEMAND_ATTENTION","CANON_INSTITUTIONAL_CULTURAL","RISK_CONFIDENCE"]},
+    {"productId":"EMERGING_ICONS","customer":"both","portalSlot":"DISCOVER","questionAnswered":"What may matter before consensus?","decisionValue":"discovery","requiredPrimitives":["DEMAND_ATTENTION","CANON_INSTITUTIONAL_CULTURAL","SCARCITY_SUPPLY","RISK_CONFIDENCE"]},
+    {"productId":"COMPARE_LAB","customer":"both","portalSlot":"COMPARE","questionAnswered":"Which object is stronger and why?","decisionValue":"relative_value","requiredPrimitives":["TRANSACTION_PRICE_COMPARABLE","SCARCITY_SUPPLY","LIQUIDITY","CANON_INSTITUTIONAL_CULTURAL","RISK_CONFIDENCE"]},
+    {"productId":"COLLECTION_OS","customer":"collector","portalSlot":"COLLECTIONS","questionAnswered":"How strong, liquid, canonical and balanced is my collection?","decisionValue":"portfolio_intelligence","requiredPrimitives":["IDENTITY_PROVENANCE","TRANSACTION_PRICE_COMPARABLE","LIQUIDITY","CANON_INSTITUTIONAL_CULTURAL","RISK_CONFIDENCE"]},
+    {"productId":"INSTITUTION_DESK","customer":"institution","portalSlot":"INSTITUTIONS","questionAnswered":"What should an institution watch, acquire, preserve or research?","decisionValue":"institutional_decision_support","requiredPrimitives":["IDENTITY_PROVENANCE","CANON_INSTITUTIONAL_CULTURAL","SCARCITY_SUPPLY","RISK_CONFIDENCE"]}
+  ]
+}
