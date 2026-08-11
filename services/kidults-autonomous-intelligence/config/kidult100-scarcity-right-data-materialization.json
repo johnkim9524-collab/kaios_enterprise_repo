@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_SCARCITY_RIGHT_DATA_MATERIALIZATION",
+  "requiredPromotionMode": "KIDULT100_SCARCITY_PROMOTION_ENVELOPE",
+  "requiredRightDataMode": "KIDULT100_RIGHT_DATA_ENRICHMENT",
+  "requiredPromotionStatus": "PROMOTION_ENVELOPE_READY_NOT_MATERIALIZED",
+  "requiredPrimitive": "SCARCITY",
+  "requiredSignalType": "TOTAL_PRODUCED",
+  "requiredUnit": "UNITS",
+  "output": {
+    "mode": "KIDULT100_SCARCITY_MATERIALIZED_EVIDENCE",
+    "evidenceClass": "INDEPENDENT_VERIFICATION",
+    "source": "KIDULTS_VERIFIED_SCARCITY_CHAIN"
+  },
+  "rules": {
+    "promotionDigestMustMatchPayload": true,
+    "candidateIdentityRequired": true,
+    "primaryAndVerificationHashesRequired": true,
+    "primaryAndVerificationProvenanceRequired": true,
+    "commercialReuseRightsMustBePreserved": true,
+    "documentedAutomatedAccessMustBePreserved": true,
+    "explicitPositiveIntegerQuantityRequired": true,
+    "duplicateCandidateForbidden": true,
+    "existingEligibleScarcityDuplicateForbidden": true,
+    "syntheticEstimatedOrInferredQuantityForbidden": true,
+    "normalizedScoreGenerationForbidden": true,
+    "productionScoringActivationForbidden": true,
+    "marketEvidenceClaimForbidden": true
+  }
+}
