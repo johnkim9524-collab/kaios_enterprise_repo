@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_SCARCITY_SOURCE_ATTESTATION_INTAKE",
+  "requiredInputMode": "KIDULT100_SCARCITY_SOURCE_DISCOVERY_PLAN",
+  "requiredSignalType": "TOTAL_PRODUCED",
+  "allowedSourceTiers": [
+    "OFFICIAL_MANUFACTURER_OR_BRAND_ARCHIVE",
+    "OFFICIAL_FOUNDATION_MUSEUM_OR_CORPORATE_ARCHIVE",
+    "GOVERNMENT_OR_REGULATORY_PUBLIC_RECORD",
+    "OPEN_RIGHTS_INSTITUTIONAL_DATASET",
+    "RIGHTS_DOCUMENTED_STRUCTURED_DATASET"
+  ],
+  "requiredEvidenceFields": [
+    "candidateKey",
+    "canonicalTitle",
+    "vertical",
+    "sourceTier",
+    "sourceUrl",
+    "rightsClass",
+    "rightsUrl",
+    "automatedAccessUrl",
+    "signalType",
+    "quantity",
+    "unit",
+    "observedAt",
+    "payloadHash"
+  ],
+  "rules": {
+    "exactEntityMatchRequired": true,
+    "explicitTotalProducedQuantityRequired": true,
+    "httpsOnly": true,
+    "explicitCommercialReuseRightsRequired": true,
+    "documentedAutomatedAccessRequired": true,
+    "payloadHashRequired": true,
+    "discoveryResultIsNotEvidence": true,
+    "searchSnippetIsNotEvidence": true,
+    "estimatedOrSyntheticQuantityForbidden": true,
+    "automaticQualificationForbidden": true
+  },
+  "attestations": []
+}
