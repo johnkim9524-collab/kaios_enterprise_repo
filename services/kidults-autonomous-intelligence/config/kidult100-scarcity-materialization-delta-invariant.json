@@ -16,6 +16,8 @@
     "materializedEvidencePayloadMustMatchPostRightData": true,
     "nonMaterializedCandidatesMayNotGainScarcity": true,
     "existingScarcityMayNotDisappear": true,
+    "providerEvidenceAcceptedDeltaMustMatchMaterializedEvidence": true,
+    "providerEvidenceRejectedMustRemainStable": true,
     "nonScarcityPrimitiveCoverageMustRemainStable": true,
     "marketEvidenceCoverageMustRemainStable": true,
     "requiredRightDataCoverageDeltaMustMatchMaterializedEvidence": true,
