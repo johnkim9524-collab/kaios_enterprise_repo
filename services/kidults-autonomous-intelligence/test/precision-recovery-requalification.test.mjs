@@ -173,3 +173,23 @@ test('proof refresh preserves an already relevant candidate and only replaces se
   assert.equal(proof.recoveryQuery, 'Cartier Tank watch');
   assert.equal(proof.recoveryObservedAt, '2026-08-11T12:00:00Z');
 });
+
+test('precision recovery fails closed if source identity changes during materialization', () => {
+  const unstable = candidate();
+  let reads = 0;
+  Object.defineProperty(unstable, 'sourceUrl', {
+    enumerable: true,
+    configurable: true,
+    get() {
+      reads += 1;
+      return reads === 1
+        ? 'https://www.wikidata.org/wiki/Q1'
+        : 'https://example.invalid/mutated-source';
+    },
+  });
+
+  assert.throws(
+    () => requalifyExistingCandidate(unstable, 'Cartier Tank watch', acceptedEvaluation()),
+    /Precision recovery mutated source identity/,
+  );
+});
