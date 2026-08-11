@@ -131,7 +131,7 @@ test('already relevant and ineligible Stage E records are preserved without requ
   const rows = [
     candidate({ semanticRelevant: true, semanticStageE: { passed: true, reasons: ['WIKIDATA_DIRECT_P31_PRODUCT_TYPE_CONFIRMED'], proof: { directTypeIds: ['Q900'] } } }),
     candidate({ candidateKey: 'wikidata:Q101', sourceRecordId: 'Q101', payloadHash: 'b'.repeat(64), semanticStageE: { passed: false, reasons: ['WIKIDATA_DIRECT_P31_DISALLOWED_TYPE'], proof: { directTypeIds: ['Q901'] } } }),
-    candidate({ candidateKey: 'wikidata:Q102', sourceRecordId: 'Q102', payloadHash: 'c'.repeat(64), semanticStageD: { passed: false, diagnostics: { allAnchorsMatched: false } }),
+    candidate({ candidateKey: 'wikidata:Q102', sourceRecordId: 'Q102', payloadHash: 'c'.repeat(64), semanticStageD: { passed: false, diagnostics: { allAnchorsMatched: false } } }),
   ];
   const { result, verified } = run(rows, { fixture: {} });
   assert.equal(result.status, 0, result.stderr);
