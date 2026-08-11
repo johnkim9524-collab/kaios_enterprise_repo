@@ -74,26 +74,38 @@ if (result.status !== 0) {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  const coverageRows = diagnosticLines
+  const parsedRows = diagnosticLines
     .filter((line) => line.includes('|'))
     .map((line) => ({
       raw: line,
       fields: line.replace(/^#\s*/, '').split('|').map((field) => field.trim()),
     }))
-    .filter(({ fields }) => fields.length >= 4 && fields[0] && !/^(file|all files)$/i.test(fields[0]));
+    .filter(({ fields }) => fields.length >= 4 && fields[0]);
+  const totalRow = parsedRows.find(({ fields }) => /^all files$/i.test(fields[0]));
+  const totalMetrics = totalRow ? {
+    lines: Number(totalRow.fields[1]),
+    branches: Number(totalRow.fields[2]),
+    functions: Number(totalRow.fields[3]),
+  } : null;
+  const failedDimensions = {
+    lines: Number.isFinite(totalMetrics?.lines) && totalMetrics.lines < thresholds.lines,
+    branches: Number.isFinite(totalMetrics?.branches) && totalMetrics.branches < thresholds.branches,
+    functions: Number.isFinite(totalMetrics?.functions) && totalMetrics.functions < thresholds.functions,
+  };
+  const coverageRows = parsedRows.filter(({ fields }) => !/^(file|all files)$/i.test(fields[0]));
   const failingRows = coverageRows.filter(({ fields }) => {
     const linePct = Number(fields[1]);
     const branchPct = Number(fields[2]);
     const functionPct = Number(fields[3]);
-    return (Number.isFinite(linePct) && linePct < thresholds.lines)
-      || (Number.isFinite(branchPct) && branchPct < thresholds.branches)
-      || (Number.isFinite(functionPct) && functionPct < thresholds.functions);
+    return (failedDimensions.lines && Number.isFinite(linePct) && linePct < thresholds.lines)
+      || (failedDimensions.branches && Number.isFinite(branchPct) && branchPct < thresholds.branches)
+      || (failedDimensions.functions && Number.isFinite(functionPct) && functionPct < thresholds.functions);
   });
-  const totalLine = diagnosticLines.find((line) => /all files/i.test(line));
+  const totalLine = totalRow?.raw || diagnosticLines.find((line) => /all files/i.test(line));
   const fallbackLine = diagnosticLines.find((line) => /coverage/i.test(line) && /fail|threshold|does not meet/i.test(line))
     || diagnosticLines.slice(-1)[0]
     || `test runner exited with status ${result.status}`;
-  const coverageDetail = [totalLine, ...failingRows.slice(0, 8).map(({ raw }) => raw)]
+  const coverageDetail = [totalLine, ...failingRows.slice(0, 12).map(({ raw }) => raw)]
     .filter(Boolean)
     .join(' || ')
     || fallbackLine;
