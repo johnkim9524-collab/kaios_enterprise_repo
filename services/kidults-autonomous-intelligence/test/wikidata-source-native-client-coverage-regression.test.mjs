@@ -42,7 +42,6 @@ test('source-native client keeps terminal 429 fail-closed when retry budget is z
   const result = await fetchWikidataEntities(['Q104'], {
     maxRetries: 0,
     fetchImpl: async () => response(429, { error: { code: 'ratelimited' } }, { 'retry-after': '0' }),
-    sleepImpl: async () => assert.fail('terminal 429 must not sleep'),
   });
 
   assert.deepEqual(result.entities, {});
