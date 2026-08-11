@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_SCARCITY_SOURCE_QUALIFICATION_MATRIX",
+  "primitive": "SCARCITY",
+  "requiredSignalType": "TOTAL_PRODUCED",
+  "scope": {
+    "requirePhysicalOrEditionedCollectibleFit": true,
+    "ambiguousTargetsAutomaticallyQualified": false,
+    "clearNonTargetEntitiesAutomaticallyQualified": false
+  },
+  "sourceQualification": {
+    "explicitQuantityRequired": true,
+    "explicitCommercialReuseRightsRequired": true,
+    "httpsSourceUrlRequired": true,
+    "provenanceRequired": true,
+    "structuredOrDocumentedAutomationAccessRequired": true,
+    "automaticSourceQualificationAllowed": false,
+    "existingReferenceSourceWithoutEligibleQuantityCountsAsQualified": false
+  },
+  "safety": {
+    "syntheticAllowed": false,
+    "estimatedAllowed": false,
+    "inferredScarcityAllowed": false,
+    "listingOrMarketingLanguageAcceptedAsQuantity": false,
+    "unauthorizedScrapingAllowed": false,
+    "paidProviderProcurementAllowed": false,
+    "contractExecutionAllowed": false,
+    "automaticProductionScoringActivationAllowed": false
+  },
+  "verticalSignals": {
+    "toys-models": {
+      "positive": ["toy", "doll", "action figure", "figure", "scale model", "model car", "construction toy", "building set", "miniature"],
+      "hardBlock": ["video game", "television series", "media franchise", "fictional robot", "manufacturer", "village"]
+    },
+    "watches-jewelry": {
+      "positive": ["watch", "wristwatch", "pocket watch", "timepiece", "chronograph", "jewelry", "jewellery", "bracelet", "ring", "necklace"],
+      "hardBlock": ["museum", "manufacturer", "company", "archive", "song", "painting", "lithograph", "photograph", "oil on canvas"]
+    },
+    "automobiles-mobility": {
+      "positive": ["car", "automobile", "motor vehicle", "vehicle", "roadster", "coupe", "racing car", "sports car", "concept car"],
+      "hardBlock": ["song", "disambiguation page"]
+    },
+    "fashion-accessories": {
+      "positive": ["handbag", "bag", "trunk", "shoe", "sneaker", "footwear", "coat", "clothing", "tote"],
+      "hardBlock": ["band", "video game", "publishing imprint", "company", "painting", "woodcut", "daguerreotype"]
+    },
+    "design-furniture": {
+      "positive": ["furniture", "chair", "table", "chaise", "typewriter", "lamp", "radio", "room divider", "stool", "desk", "sofa"],
+      "hardBlock": ["legal protection", "faculty", "designer", "architect", "exhibition", "encyclopedia article", "subproject", "new york times article", "book published", "act of the"]
+    },
+    "technology-cameras": {
+      "positive": ["camera", "computer", "portable audio player", "cassette player", "display", "walkman", "music player", "electronics", "device"],
+      "hardBlock": ["museum", "company", "film festival", "file format", "compression scheme", "trademark", "experiment"]
+    },
+    "gaming-music-screen": {
+      "positive": ["game console", "video game console", "handheld game console", "home video game console", "arcade game", "arcade machine", "video game machine", "vinyl record", "hardware clone", "record"],
+      "hardBlock": ["digital media store", "manga series", "file format"]
+    },
+    "cards-comics-memorabilia": {
+      "positive": ["trading card", "baseball card", "comic book", "graphic novel", "card set", "collectible card", "memorabilia"],
+      "hardBlock": ["shared universe", "fictional universe", "fictional location", "fictitious place", "publisher", "company", "novel series", "online database", "reference guide", "video game"]
+    }
+  }
+}
