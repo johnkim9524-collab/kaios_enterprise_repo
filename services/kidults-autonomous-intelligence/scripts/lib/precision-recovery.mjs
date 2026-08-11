@@ -19,6 +19,70 @@ function hasModelSpecificity(value) {
     || /\b(model|series|mark|mk)\b/i.test(raw);
 }
 
+function stableIdentity(candidate) {
+  return {
+    candidateKey: candidate.candidateKey,
+    source: candidate.source,
+    sourceClass: candidate.sourceClass,
+    sourceRecordId: candidate.sourceRecordId,
+    sourceUrl: candidate.sourceUrl,
+    rightsClass: candidate.rightsClass,
+    observedAt: candidate.observedAt,
+    payloadHash: candidate.payloadHash,
+  };
+}
+
+function isEligibleWikidataCandidate(candidate, vertical, evaluation) {
+  return Boolean(
+    candidate
+    && candidate.vertical === vertical
+    && candidate.source === 'wikidata'
+    && candidate.sourceClass === 'REFERENCE_PUBLIC_DATA'
+    && candidate.rightsClass === 'CC0_STRUCTURED_DATA'
+    && evaluation?.accepted === true
+  );
+}
+
+function applyRecoveryContext(candidate, query, evaluation, action) {
+  const identity = stableIdentity(candidate);
+  const recoveryQuery = evaluation?.modelSpecificNoDescription ? candidate.canonicalTitle : query;
+  const updated = {
+    ...candidate,
+    query: recoveryQuery,
+    semanticRelevant: true,
+    semanticRelevanceScore: 1,
+    semanticRelevanceVersion: action === 'REFRESH'
+      ? 'SEMANTIC_V2_8_WIKIDATA_EXACT_QUERY_PROOF_REFRESH'
+      : 'SEMANTIC_V2_6_WIKIDATA_EXACT_QUERY_REQUALIFICATION',
+    semanticStageA: { name: 'BROAD_RECALL_GATE', passed: true, reasons: ['RECOVERY_DISTINCTIVE_QUERY_ANCHORS_ALL_MATCHED'] },
+    semanticStageB: { name: 'PRECISION_VERIFIER', passed: true, reasons: ['RECOVERY_EXACT_CURATED_PRODUCT_QUERY_MATCH'] },
+    semanticRelevanceDiagnostics: {
+      ...(candidate.semanticRelevanceDiagnostics || {}),
+      precisionRecovery: {
+        requalifiedExistingCandidate: action === 'REQUALIFY',
+        refreshedExistingRelevantCandidate: action === 'REFRESH',
+        semanticSearchContextOnlyNotEvidence: true,
+        originalQuery: candidate.query || null,
+        recoveryQuery: query,
+        recoverySearchPayloadHash: evaluation.recoverySearchPayloadHash || null,
+        recoveryObservedAt: evaluation.recoveryObservedAt || null,
+        anchors: evaluation.anchors,
+        anchorHits: evaluation.anchorHits,
+        allDistinctiveAnchorsMatched: evaluation.allDistinctiveAnchorsMatched,
+        productHits: evaluation.productHits,
+        queryProductHits: evaluation.queryProductHits,
+        disallowedHits: evaluation.disallowedHits,
+        modelSpecificNoDescription: evaluation.modelSpecificNoDescription,
+        exactCuratedProductQueryMatch: evaluation.exactCuratedProductQueryMatch,
+      },
+    },
+  };
+  if (JSON.stringify(identity) !== JSON.stringify(stableIdentity(updated))) {
+    throw new Error(`Precision recovery mutated source identity: ${candidate.candidateKey}`);
+  }
+  return updated;
+}
+
 export function evaluatePrecisionRecoveryRow({ query, row, productTerms, disallowedTerms, stopTokens }) {
   const context = `${row?.label || ''} ${row?.description || ''}`;
   const contextTokens = new Set(tokens(context));
@@ -53,64 +117,17 @@ export function evaluatePrecisionRecoveryRow({ query, row, productTerms, disallo
 }
 
 export function canRequalifyExistingCandidate(candidate, vertical, evaluation) {
-  return Boolean(
-    candidate
-    && candidate.semanticRelevant !== true
-    && candidate.vertical === vertical
-    && candidate.source === 'wikidata'
-    && candidate.sourceClass === 'REFERENCE_PUBLIC_DATA'
-    && candidate.rightsClass === 'CC0_STRUCTURED_DATA'
-    && evaluation?.accepted === true
-  );
+  return isEligibleWikidataCandidate(candidate, vertical, evaluation) && candidate.semanticRelevant !== true;
+}
+
+export function canRefreshExistingRelevantCandidate(candidate, vertical, evaluation) {
+  return isEligibleWikidataCandidate(candidate, vertical, evaluation) && candidate.semanticRelevant === true;
 }
 
 export function requalifyExistingCandidate(candidate, query, evaluation) {
-  const identity = {
-    candidateKey: candidate.candidateKey,
-    source: candidate.source,
-    sourceClass: candidate.sourceClass,
-    sourceRecordId: candidate.sourceRecordId,
-    sourceUrl: candidate.sourceUrl,
-    rightsClass: candidate.rightsClass,
-    observedAt: candidate.observedAt,
-    payloadHash: candidate.payloadHash,
-  };
-  const recoveryQuery = evaluation?.modelSpecificNoDescription ? candidate.canonicalTitle : query;
-  const updated = {
-    ...candidate,
-    query: recoveryQuery,
-    semanticRelevant: true,
-    semanticRelevanceScore: 1,
-    semanticRelevanceVersion: 'SEMANTIC_V2_6_WIKIDATA_EXACT_QUERY_REQUALIFICATION',
-    semanticStageA: { name: 'BROAD_RECALL_GATE', passed: true, reasons: ['RECOVERY_DISTINCTIVE_QUERY_ANCHORS_ALL_MATCHED'] },
-    semanticStageB: { name: 'PRECISION_VERIFIER', passed: true, reasons: ['RECOVERY_EXACT_CURATED_PRODUCT_QUERY_MATCH'] },
-    semanticRelevanceDiagnostics: {
-      ...(candidate.semanticRelevanceDiagnostics || {}),
-      precisionRecovery: {
-        requalifiedExistingCandidate: true,
-        originalQuery: candidate.query || null,
-        recoveryQuery: query,
-        anchors: evaluation.anchors,
-        anchorHits: evaluation.anchorHits,
-        allDistinctiveAnchorsMatched: evaluation.allDistinctiveAnchorsMatched,
-        productHits: evaluation.productHits,
-        queryProductHits: evaluation.queryProductHits,
-        disallowedHits: evaluation.disallowedHits,
-        modelSpecificNoDescription: evaluation.modelSpecificNoDescription,
-        exactCuratedProductQueryMatch: evaluation.exactCuratedProductQueryMatch,
-      },
-    },
-  };
-  const updatedIdentity = {
-    candidateKey: updated.candidateKey,
-    source: updated.source,
-    sourceClass: updated.sourceClass,
-    sourceRecordId: updated.sourceRecordId,
-    sourceUrl: updated.sourceUrl,
-    rightsClass: updated.rightsClass,
-    observedAt: updated.observedAt,
-    payloadHash: updated.payloadHash,
-  };
-  if (JSON.stringify(identity) !== JSON.stringify(updatedIdentity)) throw new Error(`Precision recovery mutated source identity: ${candidate.candidateKey}`);
-  return updated;
+  return applyRecoveryContext(candidate, query, evaluation, 'REQUALIFY');
+}
+
+export function refreshExistingRelevantCandidate(candidate, query, evaluation) {
+  return applyRecoveryContext(candidate, query, evaluation, 'REFRESH');
 }
