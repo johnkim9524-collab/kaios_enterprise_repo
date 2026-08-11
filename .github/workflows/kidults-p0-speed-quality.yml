@@ -56,6 +56,8 @@ jobs:
         run: node scripts/kidult100-poc-live.mjs
       - name: Open CC0 Scarcity + Demand evidence collection
         run: node scripts/kidult100-open-right-data-evidence.mjs
+      - name: Wikimedia Analytics CC0 demand-attention supplement
+        run: node scripts/kidult100-wikimedia-demand-evidence.mjs
       - name: Canon evidence recordization from existing rights-classified metadata
         run: node scripts/kidult100-canon-evidence-recordize.mjs
       - name: Market provider onboarding preflight
@@ -151,6 +153,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-wave1/wave1-live-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-poc-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/open-evidence-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-right-data/wikimedia-demand-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/canon-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-provider-onboarding-preflight-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-source-qualification-latest.json
