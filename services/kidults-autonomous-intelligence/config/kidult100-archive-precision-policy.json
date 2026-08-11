@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "policy": "FAIL_CLOSED_STAGE2_ARCHIVE_PRECISION_HARDENING",
   "requiredInputMode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "targetSourceClass": "INSTITUTION_ARCHIVE",
@@ -9,9 +9,12 @@
     "chair", "automobile", "furniture", "toy", "toys", "model", "models", "memorabilia", "sports", "movie",
     "prop", "game", "gaming", "music", "screen", "fashion", "accessories", "sneaker", "industrial", "mid", "century"
   ],
-  "hardNegativeDescriptionTerms": [
-    "painting", "drawing", "print", "photograph", "sculpture", "vessel", "fragment", "manuscript",
-    "tapestry", "ceramic", "glass", "armor", "weapon", "textile"
+  "absoluteMediaDescriptionTerms": [
+    "painting", "drawing", "drawings", "print", "photograph", "photography", "lithograph", "etching", "engraving",
+    "woodcut", "daguerreotype", "oil on canvas", "gelatin silver", "albumen print", "tempera", "sculpture", "manuscript"
+  ],
+  "contextualObjectNegativeDescriptionTerms": [
+    "vessel", "fragment", "tapestry", "ceramic", "glass", "armor", "weapon", "textile"
   ],
   "productObjectTermsByVertical": {
     "toys-models": ["toy", "doll", "action figure", "scale model", "construction set", "building set", "model kit", "miniature", "die-cast", "diecast", "toy car"],
@@ -26,7 +29,8 @@
   "rules": {
     "neverUpgradePreviouslyIrrelevant": true,
     "creatorOnlyAnchorInsufficient": true,
-    "hardNegativeDescriptionRequiresMatchingProductDescription": true,
+    "absoluteMediaDescriptionAlwaysRejected": true,
+    "contextualNegativeRequiresMatchingProductDescription": true,
     "partialMultiTokenQueryInsufficientWithoutProductContext": true,
     "modelSpecificExactTitleMayPassWithoutDescriptionProductTerm": true,
     "preserveRightsAndProvenance": true,
