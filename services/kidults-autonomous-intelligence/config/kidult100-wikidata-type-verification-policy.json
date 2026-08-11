@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.1.1",
+  "schemaVersion": "1.2.0",
   "policy": "FAIL_CLOSED_STAGE2_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFICATION",
   "requiredInputMode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "targetSource": "wikidata",
@@ -8,6 +8,7 @@
   "semanticStage": "WIKIDATA_SOURCE_NATIVE_TYPE_VERIFIER",
   "eligiblePriorReason": "REFERENCE_PRODUCT_OBJECT_CONTEXT_MISSING",
   "eligibleDisallowedContextReason": "REFERENCE_DISALLOWED_ENTITY_OR_MEDIA_CONTEXT",
+  "eligibleAnchorMismatchReason": "REFERENCE_QUERY_ANCHOR_MISMATCH",
   "directTypeProperty": "P31",
   "allowedTypeTermsByVertical": {
     "toys-models": ["construction toy", "toy", "fashion doll", "doll", "scale model", "model car", "action figure", "figurine", "model kit", "collectible figure", "product model"],
@@ -29,6 +30,10 @@
     "onlyRequalifyStageDContextMissingOrStrictDisallowed": true,
     "disallowedContextRequiresExactTitleOrModelSpecific": true,
     "requireAllQueryAnchorsMatched": true,
+    "anchorMismatchOverrideIsNarrowException": true,
+    "anchorMismatchRequiresNonGenericQuery": true,
+    "anchorMismatchRequiresExistingVerticalProductContext": true,
+    "anchorMismatchRequiresDirectP31VerticalProductType": true,
     "requireSourceNativeQid": true,
     "directP31Only": true,
     "typeLabelOrDescriptionMustMatchVerticalProductTerms": true,
