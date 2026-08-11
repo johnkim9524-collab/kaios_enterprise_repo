@@ -73,6 +73,7 @@ for (const definition of dimensionDefs) {
     const candidates = relevant.filter((candidate) => candidate.vertical === vertical);
     let primitivePresentCandidates = 0;
     let rawEvidenceCandidates = 0;
+    let allowedSignalCandidates = 0;
     let calibrationEligibleCandidates = 0;
     let scoreReadyCandidates = 0;
     let allowedSignalRecords = 0;
@@ -93,6 +94,7 @@ for (const definition of dimensionDefs) {
       }
       if (records.some((row) => validScore(row?.value?.[definition.scoreField]))) scoreReadyCandidates += 1;
 
+      let candidateAllowed = false;
       let candidateEligible = false;
       for (const record of records) {
         const signalType = record?.value?.signalType;
@@ -104,6 +106,7 @@ for (const definition of dimensionDefs) {
           disallowedSignalRecords += 1;
           continue;
         }
+        candidateAllowed = true;
         allowedSignalRecords += 1;
         signalTypes.add(signalType);
         dimensionSignalTypes.add(signalType);
@@ -115,6 +118,7 @@ for (const definition of dimensionDefs) {
         if (safeReal) safeRealAllowedRecords += 1;
         if (rightsOk && provenanceOk && safeReal) candidateEligible = true;
       }
+      if (candidateAllowed) allowedSignalCandidates += 1;
       if (candidateEligible) {
         calibrationEligibleCandidates += 1;
         dimensionCandidatesWithEligibleEvidence.add(candidate.candidateKey);
@@ -128,7 +132,8 @@ for (const definition of dimensionDefs) {
     let priority = 'METHOD_DESIGN_HOLD';
     if (primitivePresentCandidates > 0 && rawEvidenceCandidates === 0) priority = 'EXPLICIT_EVIDENCE_RECORDIZATION';
     else if (allowedSignalRecords === 0) priority = 'ALLOWED_RAW_SIGNAL_ACQUISITION';
-    else if (calibrationEligibleCandidates < rawEvidenceCandidates) priority = 'RIGHTS_PROVENANCE_SAFETY_REPAIR';
+    else if (allowedSignalCandidates < rawEvidenceCandidates) priority = 'RAW_SIGNAL_CONTRACT_REPAIR';
+    else if (calibrationEligibleCandidates < allowedSignalCandidates) priority = 'RIGHTS_PROVENANCE_SAFETY_REPAIR';
     else if (operationalReferenceGap > 0) priority = 'ELIGIBLE_EVIDENCE_SUPPLY_EXPANSION';
 
     cells.push({
@@ -138,6 +143,7 @@ for (const definition of dimensionDefs) {
       relevantCandidates: candidates.length,
       primitivePresentCandidates,
       rawEvidenceCandidates,
+      allowedSignalCandidates,
       primitiveOnlyCandidates,
       calibrationEligibleCandidates,
       scoreReadyCandidates,
