@@ -82,7 +82,11 @@ jobs:
         run: node scripts/kidult100-non-market-evidence-acquisition-priority.mjs
       - name: Scarcity explicit-quantity acquisition target queue
         run: node scripts/kidult100-scarcity-evidence-target-queue.mjs
+      - name: Scarcity target queue scope hardening
+        run: node scripts/kidult100-scarcity-target-queue-harden.mjs
       - name: Scarcity rights-first source qualification matrix
+        env:
+          KIDULTS_SCARCITY_TARGET_QUEUE_JSON: reports/kidult100-ranking/kidult100-scarcity-evidence-target-queue-hardened-latest.json
         run: node scripts/kidult100-scarcity-source-qualification.mjs
       - name: Rankability gap plan
         run: node scripts/kidult100-rankability-gap-plan.mjs
@@ -171,6 +175,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-calibration-evidence-shape-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-non-market-evidence-acquisition-priority-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-evidence-target-queue-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-evidence-target-queue-hardened-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-source-qualification-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-rankability-gap-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-experimental-latest.json
