@@ -16,9 +16,10 @@ const CONFIG_PATH = path.join(ROOT, 'config', 'kidult100-precision-recovery-quer
 const REFERENCE_POLICY_PATH = path.join(ROOT, 'config', 'kidult100-reference-precision-policy.json');
 const AUDIT_PATH = path.join(ROOT, 'reports', 'kidult100-poc', 'kidult100-precision-recovery-latest.json');
 const CONTACT_URL = 'https://github.com/johnkim9524-collab/kaios_enterprise_repo';
-const UA = `KIDULTS-Kidult100-Bot/2.8 (${CONTACT_URL}; Wikidata-only precision recovery)`;
-const MIN_INTERVAL_MS = 700;
+const UA = `KIDULTS-Kidult100-Bot/2.9 (${CONTACT_URL}; Wikidata-only precision recovery)`;
+const MIN_INTERVAL_MS = 0;
 const MAX_RETRIES = 4;
+const MAXLAG_SECONDS = 5;
 const WIKIDATA_SEARCH_LIMIT = 8;
 let lastRequestAt = 0;
 
@@ -93,6 +94,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     requests: 0,
     retries: 0,
     rateLimits: 0,
+    maxlagResponses: 0,
     errors: 0,
     traceEligibleQueries: completeSameRunTrace.size,
     traceReusedQueries: 0,
@@ -100,34 +102,45 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     existingCandidateResolvedQueries: 0,
     existingCandidateReusedRows: 0,
     networkQueries: 0,
+    pacingMode: 'SERIAL_SERVER_DRIVEN_BACKPRESSURE',
+    fixedInterRequestDelayMs: MIN_INTERVAL_MS,
+    maxlagSeconds: MAXLAG_SECONDS,
+    gzipRequested: true,
   };
 
   async function search(query) {
     runtime.networkQueries += 1;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
       const elapsed = Date.now() - lastRequestAt;
-      if (elapsed < MIN_INTERVAL_MS) await sleep(MIN_INTERVAL_MS - elapsed);
+      if (MIN_INTERVAL_MS > 0 && elapsed < MIN_INTERVAL_MS) await sleep(MIN_INTERVAL_MS - elapsed);
       lastRequestAt = Date.now();
       runtime.requests += 1;
-      const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&limit=${WIKIDATA_SEARCH_LIMIT}&origin=*`;
+      const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&limit=${WIKIDATA_SEARCH_LIMIT}&origin=*&maxlag=${MAXLAG_SECONDS}`;
       const response = await fetch(url, {
-        headers: { accept: 'application/json', 'user-agent': UA },
+        headers: { accept: 'application/json', 'accept-encoding': 'gzip,deflate', 'user-agent': UA },
         signal: AbortSignal.timeout(15000),
       });
-      if (response.ok) {
-        const body = await response.json();
-        return Array.isArray(body.search) ? body.search : [];
-      }
-      if (response.status === 429 || response.status >= 500) {
+      const body = await response.json().catch(() => null);
+      const maxlag = body?.error?.code === 'maxlag';
+      if (response.ok && !maxlag) return Array.isArray(body?.search) ? body.search : [];
+
+      if (maxlag) runtime.maxlagResponses += 1;
+      if (maxlag || response.status === 429 || response.status >= 500) {
         if (response.status === 429) runtime.rateLimits += 1;
         if (attempt < MAX_RETRIES) {
           runtime.retries += 1;
           const retryAfterSeconds = Number(response.headers.get('retry-after'));
-          await sleep(Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds * 1000 : Math.min(10000, 900 * (2 ** attempt)));
+          const reportedLagSeconds = Number(body?.error?.lag);
+          const waitMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+            ? retryAfterSeconds * 1000
+            : maxlag && Number.isFinite(reportedLagSeconds) && reportedLagSeconds > 0
+              ? Math.ceil(reportedLagSeconds * 1000)
+              : Math.min(10000, 900 * (2 ** attempt));
+          await sleep(waitMs);
           continue;
         }
       }
-      throw new Error(`HTTP_${response.status}`);
+      throw new Error(maxlag ? 'WIKIDATA_MAXLAG' : `HTTP_${response.status}`);
     }
     throw new Error('WIKIDATA_RETRY_EXHAUSTED');
   }
@@ -290,7 +303,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     candidateBuild: {
       ...(report.candidateBuild || {}),
       outcome: 'BUILT_WITH_WIKIDATA_PRECISION_RECOVERY_NOT_CERTIFIED',
-      note: 'Wikidata-only recovery first reuses an already observed same-vertical CC0 source-native candidate only when that row passes the identical exact-query recovery evaluator. Complete same-run eight-row traces remain reusable for exact query identity. Otherwise the workflow falls back to the official Wikidata API. Reuse never creates new evidence or mutates source identity, and downstream fail-closed archive/reference precision hardening remains authoritative.',
+      note: 'Wikidata-only recovery first reuses an already observed same-vertical CC0 source-native candidate only when that row passes the identical exact-query recovery evaluator. Complete same-run eight-row traces remain reusable for exact query identity. Otherwise the workflow falls back to the official Wikidata API using serial requests with server-driven maxlag/Retry-After backpressure. Reuse never creates new evidence or mutates source identity, and downstream fail-closed archive/reference precision hardening remains authoritative.',
     },
     claims: {
       ...(report.claims || {}),
@@ -307,7 +320,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   };
 
   const audit = {
-    schemaVersion: '1.3.0',
+    schemaVersion: '1.4.0',
     mode: 'KIDULT100_WIKIDATA_PRECISION_RECOVERY_AUDIT',
     generatedAt: new Date().toISOString(),
     metrics: {
@@ -325,6 +338,11 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       source: 'wikidata',
       rightsClass: 'CC0_STRUCTURED_DATA',
       officialApiOnly: true,
+      serialReadRequests: true,
+      serverDrivenBackpressure: true,
+      maxlagSeconds: MAXLAG_SECONDS,
+      fixedInterRequestDelayMs: MIN_INTERVAL_MS,
+      gzipRequested: true,
       sameRunTraceReuseOnlyWhenCompleteEightUniqueRows: true,
       existingCandidateReuseOnlyWhenSameRecoveryEvaluatorPasses: true,
       existingCandidateReuseCreatesEvidence: false,
