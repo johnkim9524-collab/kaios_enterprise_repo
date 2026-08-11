@@ -120,12 +120,47 @@ test('decision-grade gain is reported only when both snapshots exist', () => {
   assert.equal(second.report.metrics.decisionGradeGain, 2);
 });
 
+test('decision-grade fallback counts only relevant fully-covered market-evidence candidates', () => {
+  const candidateRightData = {
+    candidates: [
+      { semanticRelevant: true, rightData: { requiredCoverage: 1, marketEvidencePresent: true } },
+      { semanticRelevant: true, rightData: { requiredCoverage: 0.89, marketEvidencePresent: true } },
+      { semanticRelevant: false, rightData: { requiredCoverage: 1, marketEvidencePresent: true } },
+      { semanticRelevant: true, rightData: { requiredCoverage: 1, marketEvidencePresent: false } },
+    ],
+  };
+  const { result, report } = run({ current: universe([record('1')]), currentRightData: candidateRightData });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(report.metrics.decisionGradeCandidates, 1);
+});
+
 test('invalid or duplicate constituent identities fail closed', () => {
-  const missing = run({ current: universe([{ source: 'TEST', sourceRecordId: '1' }]) });
-  assert.notEqual(missing.result.status, 0);
-  assert.match(missing.result.stderr, /without identity\/payloadHash/);
+  const missingHash = run({ current: universe([{ source: 'TEST', sourceRecordId: '1' }]) });
+  assert.notEqual(missingHash.result.status, 0);
+  assert.match(missingHash.result.stderr, /without identity\/payloadHash/);
+
+  const missingIdentity = run({ current: universe([null, { sourceRecordId: '2', payloadHash: 'h' }, { source: 'TEST', payloadHash: 'h2' }]) });
+  assert.notEqual(missingIdentity.result.status, 0);
+  assert.match(missingIdentity.result.stderr, /without identity\/payloadHash/);
 
   const duplicate = run({ current: universe([record('1'), record('1')]) });
   assert.notEqual(duplicate.result.status, 0);
   assert.match(duplicate.result.stderr, /Duplicate constituent identity/);
+});
+
+test('required JSON input that resolves to a directory fails closed before parsing', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-delta-dir-'));
+  const out = path.join(tmp, 'out.json');
+  const result = spawnSync(process.execPath, ['scripts/live-open-data-delta-kpi.mjs'], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      KIDULTS_CURRENT_UNIVERSE_JSON: tmp,
+      KIDULTS_COLLECTION_DELTA_KPI_OUTPUT: out,
+    },
+  });
+  fs.rmSync(tmp, { recursive: true, force: true });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /JSON input is not a file/);
 });
