@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.0.1",
   "policy": "FAIL_CLOSED_STAGE2_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFICATION",
   "requiredInputMode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "targetSource": "wikidata",
@@ -29,6 +29,7 @@
     "requireSourceNativeQid": true,
     "directP31Only": true,
     "typeLabelOrDescriptionMustMatchVerticalProductTerms": true,
+    "disallowedTypeMustMatchTypeLabel": true,
     "disallowedTypeOverridesAllowedType": true,
     "preserveRightsAndProvenance": true,
     "verificationProofSeparateFromCandidatePayloadHash": true,
