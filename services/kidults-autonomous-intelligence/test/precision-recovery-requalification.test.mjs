@@ -65,7 +65,7 @@ test('exact curated recovery requires all distinctive anchors and source product
 test('model-specific no-description row can use exact curated query without inventing evidence', () => {
   const result = evaluatePrecisionRecoveryRow({
     query: 'Apple Macintosh 128K computer',
-    row: { label: 'Macintosh 128K', description: null },
+    row: { label: 'Apple Macintosh 128K', description: null },
     productTerms: ['personal computer', 'computer'],
     disallowedTerms: ['company', 'file format'],
     stopTokens,
