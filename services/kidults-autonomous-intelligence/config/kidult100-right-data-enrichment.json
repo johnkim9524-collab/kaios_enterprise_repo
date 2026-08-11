@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.4.0",
+  "schemaVersion": "1.5.0",
   "policy": "FAIL_CLOSED_NO_SYNTHETIC_MARKET_EVIDENCE",
   "requiredPrimitives": [
     "IDENTITY",
@@ -16,7 +16,8 @@
       "reports/kidult100-right-data/open-evidence-latest.json",
       "reports/kidult100-right-data/wikimedia-demand-evidence-latest.json",
       "reports/kidult100-right-data/canon-evidence-latest.json",
-      "reports/kidult100-right-data/validated-provider-evidence-latest.json"
+      "reports/kidult100-right-data/validated-provider-evidence-latest.json",
+      "reports/kidult100-right-data/scarcity-materialized-evidence-latest.json"
     ],
     "acceptedEvidenceClasses": [
       "AUTHORITATIVE_IDENTITY_PROVENANCE",
