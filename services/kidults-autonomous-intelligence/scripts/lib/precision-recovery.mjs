@@ -12,6 +12,13 @@ function includesPhrase(text, phrase) {
   return needle.length > 0 && haystack.includes(` ${needle} `);
 }
 
+function hasModelSpecificity(value) {
+  const raw = String(value || '');
+  return /\b[A-Za-z]{1,8}[- ]?\d{1,5}[A-Za-z]?\b/.test(raw)
+    || /\b\d{2,4}[-–]\d{2,4}\b/.test(raw)
+    || /\b(model|series|mark|mk)\b/i.test(raw);
+}
+
 export function evaluatePrecisionRecoveryRow({ query, row, productTerms, disallowedTerms, stopTokens }) {
   const context = `${row?.label || ''} ${row?.description || ''}`;
   const contextTokens = new Set(tokens(context));
@@ -22,7 +29,15 @@ export function evaluatePrecisionRecoveryRow({ query, row, productTerms, disallo
   const productHits = (productTerms || []).filter((term) => includesPhrase(context, term));
   const queryProductHits = (productTerms || []).filter((term) => includesPhrase(query, term));
   const disallowedHits = (disallowedTerms || []).filter((term) => includesPhrase(row?.description, term));
-  const exactCuratedProductQueryMatch = allDistinctiveAnchorsMatched && queryProductHits.length > 0 && disallowedHits.length === 0;
+  const noDescription = normalize(row?.description).length === 0;
+  const modelSpecificNoDescription = allDistinctiveAnchorsMatched
+    && queryProductHits.length > 0
+    && disallowedHits.length === 0
+    && noDescription
+    && hasModelSpecificity(row?.label);
+  const exactCuratedProductQueryMatch = allDistinctiveAnchorsMatched
+    && disallowedHits.length === 0
+    && (productHits.length > 0 || modelSpecificNoDescription);
   return {
     accepted: exactCuratedProductQueryMatch,
     anchors,
@@ -31,6 +46,8 @@ export function evaluatePrecisionRecoveryRow({ query, row, productTerms, disallo
     productHits,
     queryProductHits,
     disallowedHits,
+    noDescription,
+    modelSpecificNoDescription,
     exactCuratedProductQueryMatch,
   };
 }
@@ -58,9 +75,10 @@ export function requalifyExistingCandidate(candidate, query, evaluation) {
     observedAt: candidate.observedAt,
     payloadHash: candidate.payloadHash,
   };
+  const recoveryQuery = evaluation?.modelSpecificNoDescription ? candidate.canonicalTitle : query;
   const updated = {
     ...candidate,
-    query,
+    query: recoveryQuery,
     semanticRelevant: true,
     semanticRelevanceScore: 1,
     semanticRelevanceVersion: 'SEMANTIC_V2_6_WIKIDATA_EXACT_QUERY_REQUALIFICATION',
@@ -71,12 +89,14 @@ export function requalifyExistingCandidate(candidate, query, evaluation) {
       precisionRecovery: {
         requalifiedExistingCandidate: true,
         originalQuery: candidate.query || null,
+        recoveryQuery: query,
         anchors: evaluation.anchors,
         anchorHits: evaluation.anchorHits,
         allDistinctiveAnchorsMatched: evaluation.allDistinctiveAnchorsMatched,
         productHits: evaluation.productHits,
         queryProductHits: evaluation.queryProductHits,
         disallowedHits: evaluation.disallowedHits,
+        modelSpecificNoDescription: evaluation.modelSpecificNoDescription,
         exactCuratedProductQueryMatch: evaluation.exactCuratedProductQueryMatch,
       },
     },
