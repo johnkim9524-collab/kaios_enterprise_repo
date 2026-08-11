@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.1",
+  "schemaVersion": "1.0.2",
   "policy": "FAIL_CLOSED_STAGE2_REFERENCE_PRODUCT_PRECISION_HARDENING",
   "requiredInputMode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "targetSourceClass": "REFERENCE_PUBLIC_DATA",
@@ -36,6 +36,7 @@
     "queryAnchorRequired": true,
     "productObjectContextRequired": true,
     "modelSpecificExactTitleMayPassWithoutDescription": true,
+    "modelSpecificAllAnchorsMayPassWithoutDescription": true,
     "preserveRightsAndProvenance": true,
     "rewriteGeneratedPocReportOnly": true
   },
