@@ -27,7 +27,7 @@ function candidate(overrides = {}) {
   };
 }
 
-test('exact curated product query accepts only when every distinctive anchor matches', () => {
+test('exact curated recovery requires all distinctive anchors and source product context', () => {
   const pass = evaluatePrecisionRecoveryRow({
     query: 'Cartier Tank watch',
     row: { label: 'Cartier Tank', description: 'iconic wristwatch line' },
@@ -38,21 +38,45 @@ test('exact curated product query accepts only when every distinctive anchor mat
   assert.equal(pass.accepted, true);
   assert.equal(pass.allDistinctiveAnchorsMatched, true);
   assert.deepEqual(pass.anchorHits, ['cartier', 'tank']);
+  assert.ok(pass.productHits.includes('wristwatch'));
   assert.ok(pass.queryProductHits.includes('watch'));
 
-  const fail = evaluatePrecisionRecoveryRow({
+  const partial = evaluatePrecisionRecoveryRow({
     query: 'Cartier Tank watch',
-    row: { label: 'Cartier', description: 'Swiss watch company' },
+    row: { label: 'Cartier', description: 'wristwatch line' },
+    productTerms: ['wristwatch', 'watch'],
+    disallowedTerms: ['company'],
+    stopTokens,
+  });
+  assert.equal(partial.accepted, false);
+  assert.equal(partial.allDistinctiveAnchorsMatched, false);
+
+  const disallowed = evaluatePrecisionRecoveryRow({
+    query: 'Cartier Tank watch',
+    row: { label: 'Cartier Tank', description: 'watch company' },
     productTerms: ['watch'],
     disallowedTerms: ['company'],
     stopTokens,
   });
-  assert.equal(fail.accepted, false);
-  assert.equal(fail.allDistinctiveAnchorsMatched, false);
-  assert.ok(fail.disallowedHits.includes('company'));
+  assert.equal(disallowed.accepted, false);
+  assert.ok(disallowed.disallowedHits.includes('company'));
 });
 
-test('curated query product type can scope a precise entity without creating evidence', () => {
+test('model-specific no-description row can use exact curated query without inventing evidence', () => {
+  const result = evaluatePrecisionRecoveryRow({
+    query: 'Apple Macintosh 128K computer',
+    row: { label: 'Macintosh 128K', description: null },
+    productTerms: ['personal computer', 'computer'],
+    disallowedTerms: ['company', 'file format'],
+    stopTokens,
+  });
+  assert.equal(result.accepted, true);
+  assert.equal(result.modelSpecificNoDescription, true);
+  assert.equal(result.productHits.length, 0);
+  assert.ok(result.queryProductHits.includes('computer'));
+});
+
+test('query product type alone is insufficient when source context is neither product nor model-specific', () => {
   const result = evaluatePrecisionRecoveryRow({
     query: 'Nintendo GameCube video game console',
     row: { label: 'Nintendo GameCube', description: 'sixth-generation Nintendo system' },
@@ -60,10 +84,9 @@ test('curated query product type can scope a precise entity without creating evi
     disallowedTerms: ['brand owned', 'file format'],
     stopTokens,
   });
-  assert.equal(result.accepted, true);
-  assert.deepEqual(result.anchorHits, ['nintendo', 'gamecube']);
+  assert.equal(result.accepted, false);
   assert.equal(result.productHits.length, 0);
-  assert.ok(result.queryProductHits.includes('video game console'));
+  assert.equal(result.modelSpecificNoDescription, false);
 });
 
 test('existing candidate requalification is restricted to same vertical Wikidata CC0 records', () => {
@@ -88,6 +111,7 @@ test('requalification preserves source identity and records semantic-only recove
     productHits: ['wristwatch'],
     queryProductHits: ['watch'],
     disallowedHits: [],
+    modelSpecificNoDescription: false,
     exactCuratedProductQueryMatch: true,
   };
   const updated = requalifyExistingCandidate(original, 'Cartier Tank watch', evaluation);
@@ -99,4 +123,12 @@ test('requalification preserves source identity and records semantic-only recove
   assert.equal(updated.rightsClass, original.rightsClass);
   assert.equal(updated.semanticRelevanceDiagnostics.precisionRecovery.originalQuery, 'Cartier');
   assert.equal(updated.semanticRelevanceDiagnostics.precisionRecovery.exactCuratedProductQueryMatch, true);
+
+  const noDescription = requalifyExistingCandidate(
+    candidate({ canonicalTitle: 'Macintosh 128K', description: null }),
+    'Apple Macintosh 128K computer',
+    { ...evaluation, modelSpecificNoDescription: true },
+  );
+  assert.equal(noDescription.query, 'Macintosh 128K');
+  assert.equal(noDescription.semanticRelevanceDiagnostics.precisionRecovery.recoveryQuery, 'Apple Macintosh 128K computer');
 });
