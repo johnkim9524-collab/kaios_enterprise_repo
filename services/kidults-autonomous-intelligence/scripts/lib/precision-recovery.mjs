@@ -43,6 +43,10 @@ function isEligibleWikidataCandidate(candidate, vertical, evaluation) {
   );
 }
 
+function traceKey(vertical, query) {
+  return `${String(vertical || '')}\u0000${String(query || '')}`;
+}
+
 function applyRecoveryContext(candidate, query, evaluation, action) {
   const identity = stableIdentity(candidate);
   const recoveryQuery = evaluation?.modelSpecificNoDescription ? candidate.canonicalTitle : query;
@@ -81,6 +85,50 @@ function applyRecoveryContext(candidate, query, evaluation, action) {
     throw new Error(`Precision recovery mutated source identity: ${candidate.candidateKey}`);
   }
   return updated;
+}
+
+export function buildCompleteWikidataQueryTrace(candidates, expectedLimit = 8) {
+  if (!Number.isInteger(expectedLimit) || expectedLimit <= 0) throw new Error('Precision recovery trace limit must be a positive integer');
+  const grouped = new Map();
+  for (const candidate of Array.isArray(candidates) ? candidates : []) {
+    if (
+      candidate?.source !== 'wikidata'
+      || candidate?.sourceClass !== 'REFERENCE_PUBLIC_DATA'
+      || candidate?.rightsClass !== 'CC0_STRUCTURED_DATA'
+      || !candidate?.vertical
+      || !candidate?.query
+      || !candidate?.sourceRecordId
+      || !candidate?.canonicalTitle
+      || !candidate?.sourceUrl
+      || !candidate?.payloadHash
+      || !candidate?.observedAt
+    ) continue;
+    const key = traceKey(candidate.vertical, candidate.query);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(candidate);
+  }
+
+  const complete = new Map();
+  for (const [key, rows] of grouped.entries()) {
+    if (rows.length !== expectedLimit) continue;
+    if (new Set(rows.map((row) => row.sourceRecordId)).size !== expectedLimit) continue;
+    complete.set(key, rows.map((row) => ({
+      id: row.sourceRecordId,
+      label: row.canonicalTitle,
+      description: row.description || null,
+      concepturi: row.sourceUrl,
+      payloadHash: row.payloadHash,
+      observedAt: row.observedAt,
+      traceSource: 'POC_COMPLETE_QUERY_RESULT_SET',
+    })));
+  }
+  return complete;
+}
+
+export function getCompleteWikidataTraceRows(trace, vertical, query) {
+  if (!(trace instanceof Map)) return null;
+  const rows = trace.get(traceKey(vertical, query));
+  return Array.isArray(rows) ? rows.map((row) => ({ ...row })) : null;
 }
 
 export function evaluatePrecisionRecoveryRow({ query, row, productTerms, disallowedTerms, stopTokens }) {
