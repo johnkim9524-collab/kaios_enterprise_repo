@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.8.0",
+  "schemaVersion": "1.9.0",
   "mode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "candidateTarget": 300,
   "stage2Gate": {
@@ -27,42 +27,66 @@
     {
       "id": "toys-models",
       "label": "Toys & Models",
-      "discoveryQueries": ["LEGO", "Barbie", "Hot Wheels", "Gundam", "Star Wars toy", "action figure"]
+      "discoveryQueries": [
+        "LEGO", "Barbie", "Hot Wheels", "Gundam", "Star Wars toy", "action figure",
+        "LEGO 10179 Millennium Falcon set", "LEGO 75192 Millennium Falcon set", "LEGO 21309 NASA Apollo Saturn V set", "LEGO 10276 Colosseum set", "LEGO 10294 Titanic set", "LEGO 10307 Eiffel Tower set", "LEGO minifigure toy", "Teddy bear toy", "Beanie Babies toy", "American Girl doll", "Bratz doll", "Blythe doll", "Cabbage Patch Kids doll", "Monster High doll", "Pullip doll", "Licca-chan doll", "Sindy doll", "Ken doll", "GI Joe action figure", "Funko Pop figurine", "Playmobil toy", "Sylvanian Families toy", "My Little Pony toy", "Matchbox model car", "Micro Machines model car", "Dinky Toys model car", "Corgi Toys model car", "Tomica model car", "Majorette model car", "Siku model car", "Mego action figure", "Big Jim action figure", "Action Man action figure", "Mighty Max toy", "Polly Pocket toy"
+      ]
     },
     {
       "id": "watches-jewelry",
       "label": "Watches & Jewelry",
-      "discoveryQueries": ["Rolex Daytona", "Omega Speedmaster", "Cartier watch", "Patek Philippe", "Audemars Piguet", "vintage wristwatch", "TAG Heuer Monaco", "Seiko diver watch", "Rolex Submariner watch", "Cartier Tank watch", "Omega Seamaster watch", "Rolex GMT-Master watch", "Jaeger-LeCoultre Reverso watch", "Breitling Navitimer watch", "Casio G-Shock watch", "Tudor Black Bay watch", "IWC Portugieser watch", "Seiko 5 watch"]
+      "discoveryQueries": [
+        "Rolex Daytona", "Omega Speedmaster", "Cartier watch", "Patek Philippe", "Audemars Piguet", "vintage wristwatch", "TAG Heuer Monaco", "Seiko diver watch", "Rolex Submariner watch", "Cartier Tank watch", "Omega Seamaster watch", "Rolex GMT-Master watch", "Jaeger-LeCoultre Reverso watch", "Breitling Navitimer watch", "Casio G-Shock watch", "Tudor Black Bay watch", "IWC Portugieser watch", "Seiko 5 watch",
+        "Rolex Datejust watch", "Rolex Explorer watch", "Rolex Sea-Dweller watch", "Rolex Oyster Perpetual watch", "Omega Constellation watch", "Patek Philippe Nautilus watch", "Patek Philippe Calatrava watch", "Audemars Piguet Royal Oak watch", "Vacheron Constantin Overseas watch", "Cartier Santos watch", "Panerai Luminor watch", "Longines Lindbergh watch", "Zenith El Primero watch", "Citizen Promaster watch", "Seiko Alpinist watch"
+      ]
     },
     {
       "id": "automobiles-mobility",
       "label": "Automobiles & Mobility",
-      "discoveryQueries": ["Ferrari F40", "Porsche 911", "Lamborghini Countach", "Toyota 2000GT", "Mercedes 300SL", "classic automobile", "McLaren F1", "Jaguar E-Type", "BMW M1", "Ford GT40"]
+      "discoveryQueries": [
+        "Ferrari F40", "Porsche 911", "Lamborghini Countach", "Toyota 2000GT", "Mercedes 300SL", "classic automobile", "McLaren F1", "Jaguar E-Type", "BMW M1", "Ford GT40",
+        "Ferrari 250 GTO", "Ferrari Testarossa", "Ferrari Enzo", "Porsche 959", "Porsche Carrera GT", "Lamborghini Miura", "Lamborghini Diablo", "Lancia Stratos", "Alfa Romeo 33 Stradale", "Aston Martin DB5", "Shelby Cobra", "Toyota Supra A80", "Nissan Skyline GT-R R34", "Honda NSX", "Mazda RX-7 FD"
+      ]
     },
     {
       "id": "fashion-accessories",
       "label": "Fashion & Accessories",
-      "discoveryQueries": ["Hermes Birkin", "Chanel handbag", "Air Jordan 1", "Louis Vuitton trunk", "archive fashion", "sneaker", "Dior Saddle Bag", "Gucci Jackie bag", "Nike Dunk", "Adidas Yeezy", "Supreme box logo", "Hermes Kelly bag", "Fendi Baguette", "Prada nylon bag", "Balenciaga City bag", "Louis Vuitton Speedy", "Nike Air Force 1", "Converse Chuck Taylor", "Chanel 2.55 handbag", "Hermes Constance bag", "Nike Air Max 1 sneaker", "Gucci Horsebit bag", "Lady Dior handbag", "Chanel Classic Flap handbag", "Gucci Bamboo bag", "Gucci Dionysus bag", "Bottega Veneta Cassette bag", "Adidas Stan Smith shoe", "Adidas Superstar shoe", "Vans Old Skool shoe", "Nike Cortez shoe", "Reebok Pump shoe", "New Balance 990 shoe", "Dr Martens 1460 boot", "Puma Suede shoe", "Nike Blazer shoe", "Birkin bag", "Kelly bag", "Chanel 2.55", "Dior Saddle bag", "Fendi Baguette bag", "Balenciaga City", "Nike Air Max 1", "Adidas Stan Smith", "Adidas Superstar", "Vans Old Skool", "Nike Cortez", "Reebok Pump", "New Balance 990", "Dr. Martens 1460", "Puma Suede", "Nike Blazer", "Chuck Taylor All-Stars", "Air Force 1"]
+      "discoveryQueries": [
+        "Hermes Birkin", "Chanel handbag", "Air Jordan 1", "Louis Vuitton trunk", "archive fashion", "sneaker", "Dior Saddle Bag", "Gucci Jackie bag", "Nike Dunk", "Adidas Yeezy", "Supreme box logo", "Hermes Kelly bag", "Fendi Baguette", "Prada nylon bag", "Balenciaga City bag", "Louis Vuitton Speedy", "Nike Air Force 1", "Converse Chuck Taylor", "Chanel 2.55 handbag", "Hermes Constance bag", "Nike Air Max 1 sneaker", "Gucci Horsebit bag", "Lady Dior handbag", "Chanel Classic Flap handbag", "Gucci Bamboo bag", "Gucci Dionysus bag", "Bottega Veneta Cassette bag", "Adidas Stan Smith shoe", "Adidas Superstar shoe", "Vans Old Skool shoe", "Nike Cortez shoe", "Reebok Pump shoe", "New Balance 990 shoe", "Dr Martens 1460 boot", "Puma Suede shoe", "Nike Blazer shoe", "Birkin bag", "Kelly bag", "Chanel 2.55", "Dior Saddle bag", "Fendi Baguette bag", "Balenciaga City", "Nike Air Max 1", "Adidas Stan Smith", "Adidas Superstar", "Vans Old Skool", "Nike Cortez", "Reebok Pump", "New Balance 990", "Dr. Martens 1460", "Puma Suede", "Nike Blazer", "Chuck Taylor All-Stars", "Air Force 1",
+        "Air Jordan 3 shoe", "Air Jordan 4 shoe", "Nike Air Max 90 shoe", "Nike Air Max 95 shoe", "Nike Air Max 97 shoe", "Nike Dunk Low shoe", "Converse One Star shoe", "Gucci Horsebit 1955 handbag", "Loewe Puzzle bag", "Celine Luggage bag"
+      ]
     },
     {
       "id": "design-furniture",
       "label": "Design & Furniture",
-      "discoveryQueries": ["Eames chair", "Le Corbusier furniture", "Arne Jacobsen chair", "Ettore Sottsass", "mid-century design", "industrial design", "Noguchi table", "Barcelona chair", "Wassily chair"]
+      "discoveryQueries": [
+        "Eames chair", "Le Corbusier furniture", "Arne Jacobsen chair", "Ettore Sottsass", "mid-century design", "industrial design", "Noguchi table", "Barcelona chair", "Wassily chair",
+        "Eames Lounge Chair", "Eames Molded Plastic Chair", "Eames LCW chair", "Eames DSW chair", "Panton Chair", "Egg Chair", "Swan Chair", "Wishbone Chair", "Cesca Chair", "Red and Blue Chair", "Zig-Zag Chair", "LC4 chaise longue chair", "Tulip Chair", "Ball Chair", "Bubble Chair", "Diamond Chair", "Bertoia Side Chair", "E-1027 table", "Arco lamp", "Anglepoise lamp", "Tizio lamp", "Tolomeo lamp", "PH Artichoke lamp", "Louis Poulsen PH5 lamp", "Componibili cabinet", "USM Haller furniture", "String furniture shelving", "Alvar Aalto Stool 60", "Thonet No. 14 chair", "Louis Ghost chair", "Hill House chair", "Mackintosh high-backed chair", "Marshmallow sofa", "Bocca sofa", "Camaleonda sofa"
+      ]
     },
     {
       "id": "technology-cameras",
       "label": "Technology & Cameras",
-      "discoveryQueries": ["Leica camera", "Polaroid camera", "Apple Macintosh", "Sony Walkman", "Braun design", "vintage camera", "Nikon F", "Canon AE-1"]
+      "discoveryQueries": [
+        "Leica camera", "Polaroid camera", "Apple Macintosh", "Sony Walkman", "Braun design", "vintage camera", "Nikon F", "Canon AE-1",
+        "Macintosh 128K computer", "Macintosh SE computer", "iMac G3 computer", "Power Macintosh G3 computer", "Apple Lisa computer", "Apple II computer", "NeXT Computer", "Sony TPS-L2 Walkman", "Sony WM-2 Walkman", "Sony Discman portable audio player", "Leica M3 camera", "Leica M6 camera", "Leica M9 camera", "Leica M11 camera", "Nikon F2 camera", "Nikon F3 camera", "Nikon FM2 camera", "Canon F-1 camera", "Canon A-1 camera", "Polaroid SX-70 camera", "Kodak Brownie camera", "Hasselblad 500C camera", "Contax G2 camera", "Rolleiflex camera", "Minox camera"
+      ]
     },
     {
       "id": "gaming-music-screen",
       "label": "Gaming / Music / Screen Culture",
-      "discoveryQueries": ["Nintendo Game Boy", "Nintendo Entertainment System", "PlayStation", "vinyl record", "movie prop", "arcade game"]
+      "discoveryQueries": [
+        "Nintendo Game Boy", "Nintendo Entertainment System", "PlayStation", "vinyl record", "movie prop", "arcade game",
+        "Game Boy Color console", "Game Boy Advance console", "Game Boy Advance SP console", "Nintendo 64 console", "Nintendo GameCube console", "Super Nintendo Entertainment System console", "Nintendo Switch console", "Nintendo DS console", "Nintendo 3DS console", "Sega Mega Drive console", "Sega Saturn console", "Sega Dreamcast console", "Sega Master System console", "Atari 2600 console", "Atari 5200 console", "Atari 7800 console", "Neo Geo console", "Neo Geo Pocket console", "PlayStation 2 console", "PlayStation 3 console", "PlayStation 4 console", "PlayStation Portable console", "PlayStation Vita console", "Xbox console", "Xbox 360 console", "Xbox One console", "TurboGrafx-16 console", "Intellivision console", "ColecoVision console", "Vectrex console"
+      ]
     },
     {
       "id": "cards-comics-memorabilia",
       "label": "Cards / Comics / Memorabilia",
-      "discoveryQueries": ["Pokemon card", "baseball card", "Marvel comic", "DC comic", "sports memorabilia", "trading card", "Magic the Gathering card", "Charizard trading card", "Michael Jordan trading card", "Action Comics comic book", "Black Lotus trading card", "Topps baseball card", "Mickey Mantle baseball card"]
+      "discoveryQueries": [
+        "Pokemon card", "baseball card", "Marvel comic", "DC comic", "sports memorabilia", "trading card", "Magic the Gathering card", "Charizard trading card", "Michael Jordan trading card", "Action Comics comic book", "Black Lotus trading card", "Topps baseball card", "Mickey Mantle baseball card",
+        "Action Comics 1 comic book", "Detective Comics 27 comic book", "Amazing Fantasy 15 comic book", "The Incredible Hulk 181 comic book", "X-Men 1 comic book", "Batman 1 comic book", "Superman 1 comic book", "Fantastic Four 1 comic book", "The Amazing Spider-Man 1 comic book", "The Amazing Spider-Man 129 comic book", "Giant-Size X-Men 1 comic book", "The Walking Dead 1 comic book", "Teenage Mutant Ninja Turtles 1 comic book", "Marvel Comics 1 comic book", "All Star Comics 8 comic book", "Sensation Comics 1 comic book", "Captain America Comics 1 comic book", "Tales of Suspense 39 comic book", "Journey into Mystery 83 comic book", "Avengers 1 comic book", "Daredevil 1 comic book", "T206 Honus Wagner baseball card", "1952 Topps Mickey Mantle baseball card", "Pikachu Illustrator trading card", "Mox Sapphire trading card", "Mox Jet trading card", "Mox Ruby trading card", "Mox Emerald trading card", "Mox Pearl trading card", "Time Walk trading card", "Ancestral Recall trading card", "Timetwister trading card", "Michael Jordan Fleer rookie card", "Babe Ruth baseball card", "Shohei Ohtani rookie card"
+      ]
     }
   ],
   "sources": [
