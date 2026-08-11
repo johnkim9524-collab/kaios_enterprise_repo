@@ -42,7 +42,7 @@ function validatePolicy(policy) {
   if (!policy?.allowedTypeTermsByVertical || !Array.isArray(policy?.disallowedDirectTypeTerms)) throw new Error('Wikidata type verification requires type controls');
   const requiredRules = [
     'onlyRequalifyStageDContextMissing', 'requireAllQueryAnchorsMatched', 'requireSourceNativeQid', 'directP31Only',
-    'typeLabelOrDescriptionMustMatchVerticalProductTerms', 'disallowedTypeOverridesAllowedType', 'preserveRightsAndProvenance',
+    'typeLabelOrDescriptionMustMatchVerticalProductTerms', 'disallowedTypeMustMatchTypeLabel', 'disallowedTypeOverridesAllowedType', 'preserveRightsAndProvenance',
     'verificationProofSeparateFromCandidatePayloadHash', 'rewriteGeneratedPocReportOnly',
   ];
   for (const key of requiredRules) if (policy?.rules?.[key] !== true) throw new Error(`Unsafe Wikidata type verification rule: ${key}`);
@@ -163,7 +163,7 @@ const candidates = report.candidates.map((candidate) => {
   const disallowedHits = [];
   for (const type of directTypes) {
     for (const term of allowedTerms) if (includesPhrase(type.combined, term)) allowedHits.push({ typeId: type.id, term, label: type.label || null });
-    for (const term of policy.disallowedDirectTypeTerms) if (includesPhrase(type.combined, term)) disallowedHits.push({ typeId: type.id, term, label: type.label || null });
+    for (const term of policy.disallowedDirectTypeTerms) if (includesPhrase(type.label, term)) disallowedHits.push({ typeId: type.id, term, label: type.label || null });
   }
 
   const proof = {
@@ -230,13 +230,13 @@ const recoveredByVertical = Object.fromEntries(verticalIds.map((vertical) => [ve
 
 const verified = {
   ...report,
-  schemaVersion: '2.8.0',
+  schemaVersion: '2.8.1',
   semanticPolicy: {
     ...(report.semanticPolicy || {}),
-    version: 'SEMANTIC_V2_5_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFIED',
+    version: 'SEMANTIC_V2_5_1_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFIED',
     stageE: policy.semanticStage,
-    sourceNativeTypeVerification: 'DIRECT_P31_ENGLISH_LABEL_OR_DESCRIPTION_ONLY',
-    principle: 'Stage E may requalify only Stage-D context-missing Wikidata CC0 records whose full query anchors matched and whose direct P31 type is source-natively product/object specific for the target vertical. It never infers a type and never rewrites rights/provenance identity.',
+    sourceNativeTypeVerification: 'DIRECT_P31_ENGLISH_PRODUCT_PROOF_WITH_LABEL_SCOPED_DISALLOWED_TYPES',
+    principle: 'Stage E may requalify only Stage-D context-missing Wikidata CC0 records whose full query anchors matched and whose direct P31 type is source-natively product/object specific for the target vertical. Allowed product proof may use the type label or description; a disallowed type must be identified by its own type label, preventing descriptive mentions such as “associated with a brand” from reclassifying a car-model type as a brand. Rights/provenance identity is never rewritten.',
   },
   metrics: {
     ...(report.metrics || {}),
@@ -248,7 +248,7 @@ const verified = {
   candidateBuild: {
     ...(report.candidateBuild || {}),
     outcome: 'BUILT_SOURCE_NATIVE_TYPE_VERIFIED_NOT_CERTIFIED',
-    note: 'Stage E only requalifies directly verified Wikidata P31 product/object types; unavailable, ambiguous, non-product or disallowed types remain rejected.',
+    note: 'Stage E only requalifies directly verified Wikidata P31 product/object types; unavailable, ambiguous, non-product or explicitly disallowed type labels remain rejected.',
   },
   claims: {
     ...(report.claims || {}),
@@ -260,7 +260,7 @@ const verified = {
 };
 
 const audit = {
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.0.1',
   mode: 'KIDULT100_STAGE2_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFICATION',
   generatedAt: new Date().toISOString(),
   policy: policy.policy,
