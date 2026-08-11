@@ -9,10 +9,6 @@ const ROOT = process.cwd();
 const SCRIPT = path.join(ROOT, 'scripts', 'kidult100-stage2-wikidata-subclass-verify.mjs');
 const POLICY_PATH = path.join(ROOT, 'config', 'kidult100-wikidata-subclass-verification-policy.json');
 
-function claim(property, ids) {
-  return { claims: { [property]: ids.map((id) => ({ mainsnak: { datavalue: { value: { id } } } })) } };
-}
-
 function type(label, description = '', superIds = []) {
   return {
     labels: { en: { value: label } },
