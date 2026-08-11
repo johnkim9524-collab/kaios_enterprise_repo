@@ -183,3 +183,67 @@ test('source-native client tolerates malformed JSON as empty successful payload 
   assert.deepEqual(empty.errors, []);
   assert.equal(empty.requestCount, 0);
 });
+
+test('source-native client caps exponential retry delay while preserving explicit-backpressure-only retries', async () => {
+  let attempts = 0;
+  const sleeps = [];
+  const result = await fetchWikidataEntities(['Q100'], {
+    maxRetries: 5,
+    baseBackoffMs: 900,
+    fetchImpl: async () => {
+      attempts += 1;
+      if (attempts <= 5) return response(429, { error: { code: 'ratelimited' } });
+      return response(200, { entities: { Q100: { id: 'Q100' } } });
+    },
+    sleepImpl: async (ms) => sleeps.push(ms),
+  });
+  assert.equal(result.entities.Q100.id, 'Q100');
+  assert.equal(result.requestCount, 6);
+  assert.equal(result.retries, 5);
+  assert.equal(result.rateLimits, 5);
+  assert.deepEqual(sleeps, [900, 1800, 3600, 7200, 10000]);
+});
+
+test('source-native client falls back from invalid maxlag delay and missing headers without widening retry classes', async () => {
+  let attempts = 0;
+  const sleeps = [];
+  const result = await fetchWikidataEntities(['Q101'], {
+    maxRetries: 1,
+    baseBackoffMs: 321,
+    fetchImpl: async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        return {
+          ok: true,
+          status: 200,
+          async json() { return { error: { code: 'maxlag', lag: 'not-a-number' } }; },
+        };
+      }
+      return response(200, { entities: { Q101: { id: 'Q101' } } });
+    },
+    sleepImpl: async (ms) => sleeps.push(ms),
+  });
+  assert.equal(result.entities.Q101.id, 'Q101');
+  assert.equal(result.maxlagResponses, 1);
+  assert.deepEqual(sleeps, [321]);
+});
+
+test('source-native client clamps unsafe numeric options, handles non-array ids, and records non-Error transport failures', async () => {
+  const empty = await fetchWikidataEntities(null, {
+    batchSize: -5,
+    maxRetries: -2,
+    maxlagSeconds: -3,
+    baseBackoffMs: -4,
+    fetchImpl: async () => assert.fail('non-array ids must not fetch'),
+  });
+  assert.equal(empty.requestCount, 0);
+  assert.equal(empty.accessPolicy.maxRetries, 0);
+  assert.equal(empty.accessPolicy.maxlagSeconds, 1);
+
+  const thrown = await fetchWikidataEntities(['Q102'], {
+    maxRetries: 0,
+    fetchImpl: async () => { throw 'plain transport failure'; },
+  });
+  assert.deepEqual(thrown.errors, [{ ids: ['Q102'], error: 'plain transport failure' }]);
+  assert.equal(thrown.retries, 0);
+});
