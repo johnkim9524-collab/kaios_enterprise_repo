@@ -72,6 +72,19 @@ function priority() {
 function rightData() {
   return {
     mode: 'KIDULT100_RIGHT_DATA_ENRICHMENT',
+    metrics: {
+      semanticRelevantCandidates: 3,
+      requiredRightDataCoverage: 10 / 21,
+      primitiveCoverage: {
+        IDENTITY: 1,
+        SCARCITY: 0,
+        TRANSACTION_PRICE_COMPARABLE: 0,
+        LIQUIDITY: 0,
+        DEMAND_ATTENTION: 2 / 3,
+        CANON_CULTURAL_STRENGTH: 1,
+        RISK_CONFIDENCE: 1,
+      },
+    },
     claims: { syntheticMarketEvidenceUsed: false, estimatedTransactionEvidenceUsed: false },
     candidates: [
       { candidateKey: 'c-a', canonicalTitle: 'A', rightData: { primitives: ['DEMAND_ATTENTION', 'CANON_CULTURAL_STRENGTH'] } },
@@ -109,18 +122,38 @@ function envInputs(p = policy(), d = discovery(), pri = priority(), rd = rightDa
   };
 }
 
-test('prioritizes zero-supply verticals and existing support without claiming source feasibility', () => {
+test('prioritizes zero-supply verticals and bounds conditional Right Data gain without claiming evidence', () => {
   const { result, report } = run(envInputs(), true);
   assert.equal(result.status, 0);
+  assert.equal(report.schemaVersion, '1.1.0');
   assert.equal(report.metrics.prioritizedTargets, 3);
   assert.equal(report.metrics.zeroEligibleSupplyTargets, 2);
   assert.equal(report.metrics.demandAndCanonSupportedTargets, 1);
   assert.equal(report.metrics.conditionalMaxScarcityPrimitiveGain, 3);
+  assert.equal(report.metrics.semanticRelevantCandidates, 3);
+  assert.equal(report.metrics.requiredPrimitiveCount, 7);
+  assert.equal(report.metrics.currentRequiredRightDataCoverage, 10 / 21);
+  assert.equal(report.metrics.conditionalRequiredRightDataCoverageDeltaPerFullyVerifiedCandidate, 1 / 21);
+  assert.equal(report.metrics.conditionalMaxRequiredRightDataCoverageDelta, 3 / 21);
+  assert.equal(report.metrics.conditionalMaxRequiredRightDataCoverage, 13 / 21);
+  assert.equal(report.metrics.conditionalScarcityPacketsAloneCanReachNinetyPercentRightData, false);
   assert.deepEqual(report.priorities.map((row) => row.candidateKey), ['c-a', 'c-c', 'c-b']);
+  assert.equal(report.priorities[0].conditionalRequiredRightDataCoverageDeltaIfFullyVerified, 1 / 21);
   assert.equal(report.priorities[0].sourceFeasibility, 'UNASSESSED_REQUIRES_RIGHTS_QUALIFIED_DISCOVERY');
   assert.equal(report.priorities[0].qualificationStatus, 'NOT_QUALIFIED');
   assert.equal(report.claims.scarcityEvidenceCreated, false);
   assert.equal(report.claims.conditionalGainIsNotEvidence, true);
+  assert.equal(report.claims.conditionalCoverageProjectionIsNotCertifiedRightData, true);
+});
+
+test('conditional projection is bounded at one and may report a ninety-percent path without certifying it', () => {
+  const rd = rightData();
+  rd.metrics.requiredRightDataCoverage = 0.9;
+  const { result, report } = run(envInputs(policy(), discovery(), priority(), rd));
+  assert.equal(result.status, 0);
+  assert.equal(report.metrics.conditionalMaxRequiredRightDataCoverage, 1);
+  assert.equal(report.metrics.conditionalScarcityPacketsAloneCanReachNinetyPercentRightData, true);
+  assert.equal(report.claims.conditionalCoverageProjectionIsNotCertifiedRightData, true);
 });
 
 test('empty discovery produces a safe no-target result', () => {
@@ -130,18 +163,23 @@ test('empty discovery produces a safe no-target result', () => {
   assert.equal(report.disposition, 'NO_DISCOVERY_READY_TARGETS');
 });
 
-test('duplicate or incomplete upstream identities fail closed deterministically', () => {
+test('duplicate incomplete or already-scarce upstream identities fail closed deterministically', () => {
   const d = discovery([
     { candidateKey: 'c-a', vertical: 'v-zero', currentReference: {} },
     { candidateKey: 'c-a', vertical: 'v-zero', currentReference: {} },
     { candidateKey: 'missing-right-data', vertical: 'v-zero', currentReference: {} },
     { candidateKey: 'missing-vertical', vertical: 'unknown', currentReference: {} },
+    { candidateKey: 'already-scarce', vertical: 'v-zero', currentReference: {} },
     { candidateKey: null, vertical: 'v-zero', currentReference: {} },
   ]);
   const pri = priority();
   pri.priorities.push({ dimension: 'SCARCITY', vertical: 'v-zero', operationalReferenceGap: 25, calibrationEligibleCandidates: 0 });
   const rd = rightData();
-  rd.candidates.push({ candidateKey: 'c-a', rightData: { primitives: [] } }, { candidateKey: null, rightData: { primitives: [] } });
+  rd.candidates.push(
+    { candidateKey: 'c-a', rightData: { primitives: [] } },
+    { candidateKey: 'already-scarce', rightData: { primitives: ['SCARCITY'] } },
+    { candidateKey: null, rightData: { primitives: [] } },
+  );
   const { result, report } = run(envInputs(policy(), d, pri, rd));
   assert.equal(result.status, 1);
   assert.ok(report.structuralErrors.some((x) => x.startsWith('DUPLICATE_SCARCITY_VERTICAL:')));
@@ -151,6 +189,7 @@ test('duplicate or incomplete upstream identities fail closed deterministically'
   assert.ok(report.structuralErrors.includes('INVALID_DISCOVERY_PACKET'));
   assert.ok(report.structuralErrors.some((x) => x.startsWith('MISSING_RIGHT_DATA_CANDIDATE:')));
   assert.ok(report.structuralErrors.some((x) => x.startsWith('MISSING_SCARCITY_VERTICAL:')));
+  assert.ok(report.structuralErrors.includes('DISCOVERY_CANDIDATE_ALREADY_HAS_SCARCITY:already-scarce'));
   assert.equal(report.disposition, 'FAIL_CLOSED_INVALID_SCARCITY_DISCOVERY_TRIAGE');
 });
 
@@ -179,11 +218,19 @@ test('unsafe modes policies metrics and claims are rejected before triage', () =
   }
 });
 
-test('invalid scarcity cell metrics are reported fail-closed rather than estimated', () => {
+test('invalid scarcity cell and Right Data coverage metrics are reported fail-closed rather than estimated', () => {
   const pri = priority();
   pri.priorities = [{ dimension: 'SCARCITY', vertical: '', operationalReferenceGap: 25, calibrationEligibleCandidates: 0 }, { dimension: 'SCARCITY', vertical: 'v-zero', operationalReferenceGap: -1, calibrationEligibleCandidates: 'x' }];
-  const { result, report } = run(envInputs(policy(), discovery([{ candidateKey: 'c-a', vertical: 'v-zero', currentReference: {} }]), pri, rightData()));
+  const rd = rightData();
+  rd.metrics.semanticRelevantCandidates = 0;
+  rd.metrics.requiredRightDataCoverage = 2;
+  rd.metrics.primitiveCoverage = {};
+  const { result, report } = run(envInputs(policy(), discovery([{ candidateKey: 'c-a', vertical: 'v-zero', currentReference: {} }]), pri, rd));
   assert.equal(result.status, 1);
+  assert.ok(report.structuralErrors.includes('INVALID_RIGHT_DATA_RELEVANT_CANDIDATE_COUNT'));
+  assert.ok(report.structuralErrors.includes('INVALID_RIGHT_DATA_REQUIRED_COVERAGE'));
+  assert.ok(report.structuralErrors.includes('INVALID_RIGHT_DATA_REQUIRED_PRIMITIVE_COUNT'));
   assert.ok(report.structuralErrors.includes('INVALID_SCARCITY_VERTICAL'));
   assert.ok(report.structuralErrors.includes('INVALID_SCARCITY_CELL_METRICS:v-zero'));
+  assert.equal(report.metrics.conditionalMaxRequiredRightDataCoverage, null);
 });
