@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_SCARCITY_TOTAL_PRODUCED_TARGET_QUEUE",
+  "primitive": "SCARCITY",
+  "requiredSignalType": "TOTAL_PRODUCED",
+  "operationalReferenceSource": "stage2Gate.minimumCandidatesPerVertical",
+  "selection": {
+    "prioritizeExistingDemandEvidence": true,
+    "prioritizeExistingCanonEvidence": true,
+    "prioritizeHigherSemanticRelevance": true,
+    "preserveVerticalGapAllocation": true,
+    "selectOnlyCandidatesWithoutEligibleScarcity": true
+  },
+  "evidenceRequirements": {
+    "explicitQuantityRequired": true,
+    "rightsClassRequired": true,
+    "httpsSourceUrlRequired": true,
+    "observedAtRequired": true,
+    "payloadHashRequired": true,
+    "syntheticAllowed": false,
+    "estimatedAllowed": false,
+    "inferredScarcityAllowed": false,
+    "listingOrMarketingLanguageAcceptedAsQuantity": false,
+    "unauthorizedScrapingAllowed": false,
+    "paidProviderProcurementAllowed": false,
+    "automaticProductionScoringActivationAllowed": false
+  }
+}
