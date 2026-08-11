@@ -74,6 +74,8 @@ jobs:
         run: node scripts/kidult100-market-evidence-acquisition-plan.mjs
       - name: Stage 2 Right Data enrichment
         run: node scripts/kidult100-right-data-enrich.mjs
+      - name: Snapshot Right Data before verified scarcity materialization
+        run: cp reports/kidult100-right-data/right-data-latest.json reports/kidult100-right-data/right-data-pre-scarcity-materialization.json
       - name: Non-market scoring evidence + normalization preflight
         run: node scripts/kidult100-non-market-scoring-preflight.mjs
       - name: Calibration evidence shape plan
@@ -100,6 +102,8 @@ jobs:
         run: node scripts/kidult100-scarcity-right-data-materialize.mjs
       - name: Stage 2 Right Data refresh after verified scarcity materialization
         run: node scripts/kidult100-right-data-enrich.mjs
+      - name: Scarcity materialization delta invariant gate
+        run: node scripts/kidult100-scarcity-materialization-delta-invariant.mjs
       - name: Non-market scoring preflight refresh after verified scarcity materialization
         run: node scripts/kidult100-non-market-scoring-preflight.mjs
       - name: Calibration evidence shape refresh after verified scarcity materialization
@@ -187,6 +191,8 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/validated-provider-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-evidence-acquisition-plan-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/scarcity-materialized-evidence-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-right-data/right-data-pre-scarcity-materialization.json
+            services/kidults-autonomous-intelligence/reports/kidult100-right-data/scarcity-materialization-delta-invariant-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/right-data-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/right-data-gap-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/stage2-certification-latest.json
