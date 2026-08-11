@@ -107,13 +107,15 @@ test('planner separates primitive presence from explicit rights-qualified eviden
 
   const demandV1 = report.priorities.find((row) => row.dimension === 'DEMAND_ATTENTION' && row.vertical === 'v1');
   assert.equal(demandV1.allowedSignalRecords, 1);
+  assert.equal(demandV1.allowedSignalCandidates, 1);
   assert.equal(demandV1.calibrationEligibleCandidates, 0);
   assert.equal(demandV1.priority, 'RIGHTS_PROVENANCE_SAFETY_REPAIR');
 
   const scarcityV1 = report.priorities.find((row) => row.dimension === 'SCARCITY' && row.vertical === 'v1');
   assert.equal(scarcityV1.calibrationEligibleCandidates, 1);
+  assert.equal(scarcityV1.allowedSignalCandidates, 1);
   assert.equal(scarcityV1.disallowedSignalRecords, 1);
-  assert.equal(scarcityV1.priority, 'ELIGIBLE_EVIDENCE_SUPPLY_EXPANSION');
+  assert.equal(scarcityV1.priority, 'RAW_SIGNAL_CONTRACT_REPAIR');
   assert.equal(report.claims.operationalReferenceClaimedAsStatisticalSufficiency, false);
 });
 
