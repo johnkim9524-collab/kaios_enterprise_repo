@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
   buildCompleteWikidataQueryTrace,
   getCompleteWikidataTraceRows,
+  getReusableExistingWikidataRows,
   evaluatePrecisionRecoveryRow,
   canRequalifyExistingCandidate,
   requalifyExistingCandidate,
@@ -84,6 +85,10 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   ];
 
   const completeSameRunTrace = buildCompleteWikidataQueryTrace(report.candidates, WIKIDATA_SEARCH_LIMIT);
+  const reusableExistingRowsByVertical = new Map(verticalIds.map((vertical) => [
+    vertical,
+    getReusableExistingWikidataRows(report.candidates, vertical),
+  ]));
   const runtime = {
     requests: 0,
     retries: 0,
@@ -91,6 +96,9 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     errors: 0,
     traceEligibleQueries: completeSameRunTrace.size,
     traceReusedQueries: 0,
+    existingCandidateEligibleRows: [...reusableExistingRowsByVertical.values()].reduce((total, rows) => total + rows.length, 0),
+    existingCandidateResolvedQueries: 0,
+    existingCandidateReusedRows: 0,
     networkQueries: 0,
   };
 
@@ -143,12 +151,26 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       if (rows) {
         runtime.traceReusedQueries += 1;
       } else {
-        try {
-          rows = await search(query);
-        } catch (error) {
-          runtime.errors += 1;
-          errors.push({ vertical, query, error: String(error?.message || error) });
-          continue;
+        const existingRows = reusableExistingRowsByVertical.get(vertical) || [];
+        const locallyResolvedRows = existingRows.filter((row) => evaluatePrecisionRecoveryRow({
+          query,
+          row,
+          productTerms,
+          disallowedTerms,
+          stopTokens,
+        }).accepted === true);
+        if (locallyResolvedRows.length > 0) {
+          rows = locallyResolvedRows;
+          runtime.existingCandidateResolvedQueries += 1;
+          runtime.existingCandidateReusedRows += locallyResolvedRows.length;
+        } else {
+          try {
+            rows = await search(query);
+          } catch (error) {
+            runtime.errors += 1;
+            errors.push({ vertical, query, error: String(error?.message || error) });
+            continue;
+          }
         }
       }
       for (const row of rows) {
@@ -245,12 +267,13 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   const relevantBySource = Object.fromEntries(sourceIds.map((source) => [source, relevant.filter((candidate) => candidate.source === source).length]));
   const hardened = {
     ...report,
-    schemaVersion: '2.8.0',
+    schemaVersion: '2.9.0',
     semanticPolicy: {
       ...(report.semanticPolicy || {}),
-      precisionRecovery: 'WIKIDATA_ONLY_EXACT_PRODUCT_QUERY_RECOVERY_WITH_COMPLETE_SAME_RUN_TRACE_REUSE',
+      precisionRecovery: 'WIKIDATA_ONLY_EXACT_PRODUCT_QUERY_RECOVERY_WITH_SOURCE_NATIVE_LOCAL_FIRST_REUSE',
       precisionRecoveryDoesNotBypassDownstreamReferenceHardening: true,
       traceReuseRequiresCompleteEightUniqueRowPOCResultSet: true,
+      existingCandidateReuseRequiresSameRecoveryEvaluator: true,
     },
     metrics: {
       ...(report.metrics || {}),
@@ -267,13 +290,14 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     candidateBuild: {
       ...(report.candidateBuild || {}),
       outcome: 'BUILT_WITH_WIKIDATA_PRECISION_RECOVERY_NOT_CERTIFIED',
-      note: 'Wikidata-only recovery reuses same-run search context only when the POC retained the complete eight-row unique result set for the exact vertical/query. Incomplete traces fall back to the official Wikidata API. Recovery can add or requalify only exact query-anchored product-object candidates while preserving existing source identity. Downstream fail-closed archive/reference precision hardening remains authoritative.',
+      note: 'Wikidata-only recovery first reuses an already observed same-vertical CC0 source-native candidate only when that row passes the identical exact-query recovery evaluator. Complete same-run eight-row traces remain reusable for exact query identity. Otherwise the workflow falls back to the official Wikidata API. Reuse never creates new evidence or mutates source identity, and downstream fail-closed archive/reference precision hardening remains authoritative.',
     },
     claims: {
       ...(report.claims || {}),
       precisionRecoveryApplied: true,
       precisionRecoveryExistingCandidateRequalificationApplied: requalified.length > 0,
       precisionRecoveryCompleteTraceReuseApplied: runtime.traceReusedQueries > 0,
+      precisionRecoveryExistingCandidateReuseApplied: runtime.existingCandidateResolvedQueries > 0,
       rightsOrProvenanceRelaxed: false,
       finalKidult100Certified: false,
       decisionGradeRightDataCertified: false,
@@ -283,7 +307,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   };
 
   const audit = {
-    schemaVersion: '1.2.0',
+    schemaVersion: '1.3.0',
     mode: 'KIDULT100_WIKIDATA_PRECISION_RECOVERY_AUDIT',
     generatedAt: new Date().toISOString(),
     metrics: {
@@ -302,7 +326,9 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       rightsClass: 'CC0_STRUCTURED_DATA',
       officialApiOnly: true,
       sameRunTraceReuseOnlyWhenCompleteEightUniqueRows: true,
-      incompleteTraceFallsBackToOfficialApi: true,
+      existingCandidateReuseOnlyWhenSameRecoveryEvaluatorPasses: true,
+      existingCandidateReuseCreatesEvidence: false,
+      incompleteTraceOrUnresolvedCandidateFallsBackToOfficialApi: true,
       traceReuseCreatesEvidence: false,
       sourceIdentityMutationAllowed: false,
       syntheticEvidenceCreated: false,
@@ -317,7 +343,6 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     },
     disposition: additions.length + requalified.length > 0 ? 'PRECISION_SAFE_CANDIDATE_SUPPLY_RECOVERED' : 'NO_NEW_PRECISION_SAFE_CANDIDATES_FOUND',
   };
-
   fs.writeFileSync(POC_PATH, JSON.stringify(hardened, null, 2));
   fs.writeFileSync(AUDIT_PATH, JSON.stringify(audit, null, 2));
   console.log(`Wikidata precision recovery: input=${report.candidates.length} added=${additions.length} requalified=${requalified.length} rejected=${rejected.length} output=${candidates.length}`);
