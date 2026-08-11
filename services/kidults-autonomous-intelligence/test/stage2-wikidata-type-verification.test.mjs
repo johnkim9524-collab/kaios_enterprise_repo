@@ -114,6 +114,37 @@ test('requalifies only direct P31 product types and preserves source identity', 
   assert.equal(audit.safety.unauthorizedScrapingRequested, false);
 });
 
+test('soft trademark classification can coexist only with a separate explicit product type', () => {
+  const fixture = {
+    Q100: entity(['Q901', 'Q902']),
+    Q901: type('trademark'),
+    Q902: type('athletic shoe', 'type of shoe'),
+    Q101: entity(['Q901']),
+    Q102: entity(['Q903', 'Q904']),
+    Q903: type('Wikimedia duplicated page'),
+    Q904: type('product model'),
+  };
+  const rows = [
+    candidate({ canonicalTitle: 'Adidas Superstar', vertical: 'fashion-accessories', query: 'Adidas Superstar' }),
+    candidate({ candidateKey: 'wikidata:Q101', sourceRecordId: 'Q101', canonicalTitle: 'Trademark Only', vertical: 'fashion-accessories', payloadHash: 'b'.repeat(64) }),
+    candidate({ candidateKey: 'wikidata:Q102', sourceRecordId: 'Q102', canonicalTitle: 'Duplicated Product Page', vertical: 'gaming-music-screen', payloadHash: 'c'.repeat(64) }),
+  ];
+  const { result, verified, audit } = run(rows, { fixture });
+  assert.equal(result.status, 0, result.stderr);
+  const dual = verified.candidates[0];
+  assert.equal(dual.semanticRelevant, true);
+  assert.equal(dual.semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_PRODUCT_TYPE_CONFIRMED_WITH_SOFT_CLASSIFICATION');
+  assert.equal(dual.semanticStageE.proof.softDisallowedHits[0].term, 'trademark');
+  assert.equal(dual.semanticStageE.proof.hardDisallowedHits.length, 0);
+  assert.equal(verified.candidates[1].semanticRelevant, false);
+  assert.equal(verified.candidates[1].semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_DISALLOWED_TYPE');
+  assert.equal(verified.candidates[2].semanticRelevant, false);
+  assert.equal(verified.candidates[2].semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_DISALLOWED_TYPE');
+  assert.equal(audit.metrics.recoveredCandidates, 1);
+  assert.equal(audit.safety.hardDisallowedEntityOrMediaTypeCanBeOverridden, false);
+  assert.equal(audit.safety.softClassificationAloneCanQualify, false);
+});
+
 test('valid direct P31 with no allowed vertical type remains rejected', () => {
   const fixture = { Q100: entity(['Q910']), Q910: type('media franchise', 'entertainment franchise') };
   const { result, verified } = run([candidate({ vertical: 'toys-models', canonicalTitle: 'Gundam' })], { fixture });
@@ -167,6 +198,11 @@ test('unsafe policy and malformed inputs fail before materialization', () => {
   const bad = run([candidate()], { fixture: defaultFixture, policy: badPolicy });
   assert.notEqual(bad.result.status, 0);
   assert.match(bad.result.stderr, /direct P31/i);
+
+  const badSoft = { ...policy, softDisallowedDirectTypeTerms: ['not-in-disallowed-list'] };
+  const unsafeSoft = run([candidate()], { fixture: defaultFixture, policy: badSoft });
+  assert.notEqual(unsafeSoft.result.status, 0);
+  assert.match(unsafeSoft.result.stderr, /Soft disallowed type is not in disallowed controls/i);
 
   const duplicate = run([candidate(), candidate()], { fixture: defaultFixture });
   assert.notEqual(duplicate.result.status, 0);
