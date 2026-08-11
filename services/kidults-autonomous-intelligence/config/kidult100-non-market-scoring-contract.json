@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_NON_MARKET_SCORING_ACTIVATION",
+  "global": {
+    "requiredDimensions": [
+      "SCARCITY",
+      "DEMAND_ATTENTION",
+      "CANON_CULTURAL_STRENGTH"
+    ],
+    "requiredVerticals": [
+      "toys-models",
+      "watches-jewelry",
+      "automobiles-mobility",
+      "fashion-accessories",
+      "design-furniture",
+      "technology-cameras",
+      "gaming-music-screen",
+      "cards-comics-memorabilia"
+    ],
+    "scoreRange": [0, 1],
+    "requiresVerticalSpecificNormalization": true,
+    "requiresVersionedMethodology": true,
+    "requiresCalibrationEvidence": true,
+    "requiresOutOfSampleValidation": true,
+    "requiresRightsClassifiedInputs": true,
+    "requiresProvenance": true,
+    "rawPrimitivePresenceMayBeCreditedAsScore": false,
+    "rawEvidenceMayBeCreditedWithoutRequiredScoreField": false,
+    "syntheticCalibrationMayActivateProductionScoring": false,
+    "automaticActivationAllowed": false
+  },
+  "dimensions": [
+    {
+      "id": "SCARCITY",
+      "primitive": "SCARCITY",
+      "scoreField": "normalizedScore",
+      "allowedRawSignalTypes": ["TOTAL_PRODUCED"],
+      "methodologyStatus": "NOT_VALIDATED",
+      "methodologyVersion": null,
+      "normalizationMethod": null,
+      "calibrationEvidence": null,
+      "outOfSampleValidationEvidence": null,
+      "productionActivation": false,
+      "notes": "Explicit production quantity may be retained as raw scarcity evidence. No scarcity score may be inferred until a vertical-specific methodology is calibrated and independently validated."
+    },
+    {
+      "id": "DEMAND_ATTENTION",
+      "primitive": "DEMAND_ATTENTION",
+      "scoreField": "normalizedScore",
+      "allowedRawSignalTypes": ["UNITS_SOLD_REFERENCE", "CULTURAL_ATTENTION_PROXY"],
+      "methodologyStatus": "NOT_VALIDATED",
+      "methodologyVersion": null,
+      "normalizationMethod": null,
+      "calibrationEvidence": null,
+      "outOfSampleValidationEvidence": null,
+      "productionActivation": false,
+      "notes": "Cultural attention proxies remain distinct from market demand. Raw sitelink breadth or units-sold references are not scoring-ready without validated vertical normalization."
+    },
+    {
+      "id": "CANON_CULTURAL_STRENGTH",
+      "primitive": "CANON_CULTURAL_STRENGTH",
+      "scoreField": "normalizedScore",
+      "allowedRawSignalTypes": ["INSTITUTIONAL_RECOGNITION", "REFERENCE_CANON_SIGNAL"],
+      "methodologyStatus": "NOT_VALIDATED",
+      "methodologyVersion": null,
+      "normalizationMethod": null,
+      "calibrationEvidence": null,
+      "outOfSampleValidationEvidence": null,
+      "productionActivation": false,
+      "notes": "Primitive presence or archive/reference membership alone is not a normalized canon score."
+    }
+  ],
+  "verticals": [
+    {"id":"toys-models","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"watches-jewelry","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"automobiles-mobility","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"fashion-accessories","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"design-furniture","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"technology-cameras","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"gaming-music-screen","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"cards-comics-memorabilia","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null}
+  ]
+}
