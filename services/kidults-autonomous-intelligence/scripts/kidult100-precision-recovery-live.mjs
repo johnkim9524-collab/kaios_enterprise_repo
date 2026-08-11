@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
+  buildCompleteWikidataQueryTrace,
+  getCompleteWikidataTraceRows,
   evaluatePrecisionRecoveryRow,
   canRequalifyExistingCandidate,
   requalifyExistingCandidate,
@@ -13,9 +15,10 @@ const CONFIG_PATH = path.join(ROOT, 'config', 'kidult100-precision-recovery-quer
 const REFERENCE_POLICY_PATH = path.join(ROOT, 'config', 'kidult100-reference-precision-policy.json');
 const AUDIT_PATH = path.join(ROOT, 'reports', 'kidult100-poc', 'kidult100-precision-recovery-latest.json');
 const CONTACT_URL = 'https://github.com/johnkim9524-collab/kaios_enterprise_repo';
-const UA = `KIDULTS-Kidult100-Bot/2.7 (${CONTACT_URL}; Wikidata-only precision recovery)`;
+const UA = `KIDULTS-Kidult100-Bot/2.8 (${CONTACT_URL}; Wikidata-only precision recovery)`;
 const MIN_INTERVAL_MS = 700;
 const MAX_RETRIES = 4;
+const WIKIDATA_SEARCH_LIMIT = 8;
 let lastRequestAt = 0;
 
 function readJson(file) {
@@ -80,14 +83,25 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     'camera', 'computer', 'console', 'game', 'video', 'handheld', 'comic', 'book', 'card', 'trading', 'baseball',
   ];
 
-  const runtime = { requests: 0, retries: 0, rateLimits: 0, errors: 0 };
+  const completeSameRunTrace = buildCompleteWikidataQueryTrace(report.candidates, WIKIDATA_SEARCH_LIMIT);
+  const runtime = {
+    requests: 0,
+    retries: 0,
+    rateLimits: 0,
+    errors: 0,
+    traceEligibleQueries: completeSameRunTrace.size,
+    traceReusedQueries: 0,
+    networkQueries: 0,
+  };
+
   async function search(query) {
+    runtime.networkQueries += 1;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
       const elapsed = Date.now() - lastRequestAt;
       if (elapsed < MIN_INTERVAL_MS) await sleep(MIN_INTERVAL_MS - elapsed);
       lastRequestAt = Date.now();
       runtime.requests += 1;
-      const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&limit=8&origin=*`;
+      const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&limit=${WIKIDATA_SEARCH_LIMIT}&origin=*`;
       const response = await fetch(url, {
         headers: { accept: 'application/json', 'user-agent': UA },
         signal: AbortSignal.timeout(15000),
@@ -125,18 +139,24 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       if (genericExact.has(normalize(query))) throw new Error(`Generic query entered precision recovery lane: ${query}`);
       const anchors = tokens(query).filter((token) => !new Set(stopTokens).has(token));
       if (anchors.length === 0) throw new Error(`Recovery query lacks distinctive anchor: ${query}`);
-      let rows;
-      try {
-        rows = await search(query);
-      } catch (error) {
-        runtime.errors += 1;
-        errors.push({ vertical, query, error: String(error?.message || error) });
-        continue;
+      let rows = getCompleteWikidataTraceRows(completeSameRunTrace, vertical, query);
+      if (rows) {
+        runtime.traceReusedQueries += 1;
+      } else {
+        try {
+          rows = await search(query);
+        } catch (error) {
+          runtime.errors += 1;
+          errors.push({ vertical, query, error: String(error?.message || error) });
+          continue;
+        }
       }
       for (const row of rows) {
         if (!row?.id || !row?.label) continue;
         const candidateKey = `wikidata:${row.id}`;
         const evaluation = evaluatePrecisionRecoveryRow({ query, row, productTerms, disallowedTerms, stopTokens });
+        evaluation.recoverySearchPayloadHash = row.payloadHash || hash(row);
+        evaluation.recoveryObservedAt = row.observedAt || new Date().toISOString();
         const existingIndex = candidateIndex.get(candidateKey);
 
         if (existingIndex !== undefined) {
@@ -145,7 +165,15 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
           if (canRequalifyExistingCandidate(current, vertical, evaluation)) {
             const updated = requalifyExistingCandidate(current, query, evaluation);
             candidates[existingIndex] = updated;
-            requalified.push({ candidateKey, vertical, query, label: row.label, productHits: evaluation.productHits, modelSpecificNoDescription: evaluation.modelSpecificNoDescription });
+            requalified.push({
+              candidateKey,
+              vertical,
+              query,
+              label: row.label,
+              productHits: evaluation.productHits,
+              modelSpecificNoDescription: evaluation.modelSpecificNoDescription,
+              searchContextSource: row.traceSource || 'LIVE_WIKIDATA_SEARCH',
+            });
           } else if (!evaluation.accepted) {
             rejected.push({ candidateKey, vertical, query, label: row.label, anchorHits: evaluation.anchorHits, productHits: evaluation.productHits, disallowedHits: evaluation.disallowedHits, reason: 'EXISTING_CANDIDATE_NOT_PRECISION_RECOVERABLE' });
           } else {
@@ -159,7 +187,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
           continue;
         }
 
-        const observedAt = new Date().toISOString();
+        const observedAt = row.observedAt || new Date().toISOString();
         const addition = {
           candidateKey,
           vertical,
@@ -176,16 +204,20 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
           intelligencePrimitives: ['IDENTITY', 'CANON_CULTURAL_STRENGTH'],
           query: evaluation.modelSpecificNoDescription ? row.label : query,
           latencyMs: null,
-          payloadHash: hash(row),
+          payloadHash: row.payloadHash || hash(row),
           semanticRelevant: true,
           semanticRelevanceScore: 1,
-          semanticRelevanceVersion: 'SEMANTIC_V2_7_WIKIDATA_PRECISION_RECOVERY',
+          semanticRelevanceVersion: 'SEMANTIC_V2_8_WIKIDATA_PRECISION_RECOVERY',
           semanticStageA: { name: 'BROAD_RECALL_GATE', passed: true, reasons: ['RECOVERY_DISTINCTIVE_QUERY_ANCHORS_ALL_MATCHED'] },
           semanticStageB: { name: 'PRECISION_VERIFIER', passed: true, reasons: ['RECOVERY_EXACT_CURATED_PRODUCT_QUERY_MATCH'] },
           semanticRelevanceDiagnostics: {
             precisionRecovery: {
               requalifiedExistingCandidate: false,
+              semanticSearchContextOnlyNotEvidence: true,
               recoveryQuery: query,
+              recoverySearchPayloadHash: evaluation.recoverySearchPayloadHash,
+              recoveryObservedAt: evaluation.recoveryObservedAt,
+              searchContextSource: row.traceSource || 'LIVE_WIKIDATA_SEARCH',
               anchors: evaluation.anchors,
               anchorHits: evaluation.anchorHits,
               allDistinctiveAnchorsMatched: evaluation.allDistinctiveAnchorsMatched,
@@ -213,11 +245,12 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   const relevantBySource = Object.fromEntries(sourceIds.map((source) => [source, relevant.filter((candidate) => candidate.source === source).length]));
   const hardened = {
     ...report,
-    schemaVersion: '2.7.0',
+    schemaVersion: '2.8.0',
     semanticPolicy: {
       ...(report.semanticPolicy || {}),
-      precisionRecovery: 'WIKIDATA_ONLY_EXACT_PRODUCT_QUERY_RECOVERY_WITH_EXISTING_REQUALIFICATION',
+      precisionRecovery: 'WIKIDATA_ONLY_EXACT_PRODUCT_QUERY_RECOVERY_WITH_COMPLETE_SAME_RUN_TRACE_REUSE',
       precisionRecoveryDoesNotBypassDownstreamReferenceHardening: true,
+      traceReuseRequiresCompleteEightUniqueRowPOCResultSet: true,
     },
     metrics: {
       ...(report.metrics || {}),
@@ -234,12 +267,13 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     candidateBuild: {
       ...(report.candidateBuild || {}),
       outcome: 'BUILT_WITH_WIKIDATA_PRECISION_RECOVERY_NOT_CERTIFIED',
-      note: 'Wikidata-only recovery can add or requalify only exact query-anchored product-object candidates while preserving existing source identity. Downstream fail-closed archive/reference precision hardening remains authoritative.',
+      note: 'Wikidata-only recovery reuses same-run search context only when the POC retained the complete eight-row unique result set for the exact vertical/query. Incomplete traces fall back to the official Wikidata API. Recovery can add or requalify only exact query-anchored product-object candidates while preserving existing source identity. Downstream fail-closed archive/reference precision hardening remains authoritative.',
     },
     claims: {
       ...(report.claims || {}),
       precisionRecoveryApplied: true,
       precisionRecoveryExistingCandidateRequalificationApplied: requalified.length > 0,
+      precisionRecoveryCompleteTraceReuseApplied: runtime.traceReusedQueries > 0,
       rightsOrProvenanceRelaxed: false,
       finalKidult100Certified: false,
       decisionGradeRightDataCertified: false,
@@ -249,7 +283,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   };
 
   const audit = {
-    schemaVersion: '1.1.0',
+    schemaVersion: '1.2.0',
     mode: 'KIDULT100_WIKIDATA_PRECISION_RECOVERY_AUDIT',
     generatedAt: new Date().toISOString(),
     metrics: {
@@ -267,6 +301,9 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       source: 'wikidata',
       rightsClass: 'CC0_STRUCTURED_DATA',
       officialApiOnly: true,
+      sameRunTraceReuseOnlyWhenCompleteEightUniqueRows: true,
+      incompleteTraceFallsBackToOfficialApi: true,
+      traceReuseCreatesEvidence: false,
       sourceIdentityMutationAllowed: false,
       syntheticEvidenceCreated: false,
       marketEvidenceCreated: false,
