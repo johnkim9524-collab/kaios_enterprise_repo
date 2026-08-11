@@ -62,6 +62,8 @@ jobs:
         run: node scripts/kidult100-stage2-reference-precision-harden.mjs
       - name: Stage 2 Wikidata source-native type verification
         run: node scripts/kidult100-stage2-wikidata-type-verify.mjs
+      - name: Stage 2 Wikidata one-hop subclass verification
+        run: node scripts/kidult100-stage2-wikidata-subclass-verify.mjs
       - name: Open CC0 Scarcity + Demand evidence collection
         run: node scripts/kidult100-open-right-data-evidence.mjs
       - name: Wikimedia Analytics CC0 demand-attention supplement
@@ -195,6 +197,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-poc-precision-hardening-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-reference-precision-hardening-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-wikidata-type-verification-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-wikidata-subclass-verification-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-precision-recovery-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/open-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/wikimedia-demand-evidence-latest.json
