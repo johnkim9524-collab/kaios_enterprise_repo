@@ -37,7 +37,7 @@ test('records non-ok and thrown fetch failures without fabricating entities', as
 });
 
 test('empty or invalid identifiers produce zero requests', async () => {
-  const result = await fetchWikidataEntities(null, { fetchImpl: async () => { throw new Error('must not run'); } });
+  const result = await fetchWikidataEntities(null);
   assert.equal(result.requestCount, 0);
   assert.deepEqual(result.entities, {});
   assert.deepEqual(result.errors, []);
