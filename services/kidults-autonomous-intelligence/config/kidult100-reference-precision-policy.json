@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.0.1",
   "policy": "FAIL_CLOSED_STAGE2_REFERENCE_PRODUCT_PRECISION_HARDENING",
   "requiredInputMode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "targetSourceClass": "REFERENCE_PUBLIC_DATA",
@@ -15,7 +15,7 @@
     "automobiles-mobility": ["car model", "sports car", "racing car", "concept car", "motor vehicle", "automobile", "roadster", "coupe", "motorcycle", "bicycle", "scooter", "scale model car"],
     "fashion-accessories": ["handbag", "tote bag", "leather handbag", "bag", "athletic shoe", "shoe", "shoes", "sneaker", "boot", "apparel", "garment", "clothing line"],
     "design-furniture": ["chair", "furniture", "coffee table", "table", "stool", "desk", "sofa", "lamp", "cabinet", "armchair"],
-    "technology-cameras": ["camera model", "camera", "personal computer", "computer", "portable audio player", "portable music player", "cassette player", "walkman", "electronics", "photographic equipment"],
+    "technology-cameras": ["camera model", "camera", "personal computer", "personal computers", "computer", "computers", "portable audio player", "portable music player", "cassette player", "walkman", "electronics", "photographic equipment"],
     "gaming-music-screen": ["video game console", "game console", "handheld game console", "home video game console", "portable game console", "video game", "arcade video game", "game cartridge", "cartridge", "record album", "vinyl album"],
     "cards-comics-memorabilia": ["trading card", "collectible trading card", "baseball card", "sports card", "comic book issue", "comic book series", "comic book", "graphic novel", "memorabilia"]
   },
