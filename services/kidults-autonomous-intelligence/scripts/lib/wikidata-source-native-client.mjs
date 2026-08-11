@@ -46,7 +46,6 @@ export async function fetchWikidataEntities(ids, options = {}) {
     url.searchParams.set('origin', '*');
     url.searchParams.set('maxlag', String(maxlagSeconds));
 
-    let completed = false;
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
       requestCount += 1;
       try {
@@ -58,34 +57,25 @@ export async function fetchWikidataEntities(ids, options = {}) {
         const maxlag = body?.error?.code === 'maxlag';
         if (response.ok && !maxlag) {
           Object.assign(entities, body?.entities || {});
-          completed = true;
           break;
         }
 
         if (maxlag) maxlagResponses += 1;
         if (response.status === 429) rateLimits += 1;
-        const retryable = maxlag || response.status === 429 || response.status >= 500;
-        if (retryable && attempt < maxRetries) {
+        const explicitBackpressure = maxlag || response.status === 429;
+        if (explicitBackpressure && attempt < maxRetries) {
           retries += 1;
           await sleepImpl(retryDelayMs(response, body, attempt, baseBackoffMs));
           continue;
         }
 
         errors.push({ ids: batch, error: maxlag ? 'WIKIDATA_MAXLAG' : `HTTP_${response.status}` });
-        completed = true;
         break;
       } catch (error) {
-        if (attempt < maxRetries) {
-          retries += 1;
-          await sleepImpl(Math.min(10000, baseBackoffMs * (2 ** attempt)));
-          continue;
-        }
         errors.push({ ids: batch, error: String(error?.message || error) });
-        completed = true;
         break;
       }
     }
-    if (!completed) errors.push({ ids: batch, error: 'WIKIDATA_RETRY_EXHAUSTED' });
   }
 
   return {
@@ -99,6 +89,7 @@ export async function fetchWikidataEntities(ids, options = {}) {
       officialEndpoint: endpoint === OFFICIAL_ENDPOINT,
       serialRequests: true,
       serverDrivenBackpressure: true,
+      retriesOnlyOnExplicitBackpressure: true,
       maxRetries,
       maxlagSeconds,
       gzipRequested: true,
