@@ -1,0 +1,67 @@
+{
+  "edition": "2026.08",
+  "methodology": "K100-1.0-preview",
+  "canon_strength": "Emerging",
+  "items": [
+    {
+      "id": "mobility-01",
+      "rank": 1,
+      "category": "MOBILITY",
+      "title": "Mobility Sculpture 01",
+      "asset": "assets/kidult100/mobility-v500.webp",
+      "score": 88.2,
+      "confidence": 94,
+      "freshness": "2h",
+      "status": "Preview score",
+      "provenance": "Preview score based on the current public evidence baseline."
+    },
+    {
+      "id": "time-01",
+      "rank": 2,
+      "category": "TIME",
+      "title": "Mechanical Time 01",
+      "asset": "assets/kidult100/time-v500.webp",
+      "score": 86.4,
+      "confidence": 92,
+      "freshness": "2h",
+      "status": "Preview score",
+      "provenance": "Preview score with separated confidence and freshness."
+    },
+    {
+      "id": "footwear-01",
+      "rank": 3,
+      "category": "FOOTWEAR",
+      "title": "Archive Runner 01",
+      "asset": "assets/kidult100/footwear-v500.webp",
+      "score": 84.9,
+      "confidence": 91,
+      "freshness": "3h",
+      "status": "Preview score",
+      "provenance": "Preview score; publication remains evidence-gated."
+    },
+    {
+      "id": "character-01",
+      "rank": 4,
+      "category": "CHARACTER",
+      "title": "Koala Sculpture 01",
+      "asset": "assets/kidult100/character-v500.webp",
+      "score": null,
+      "confidence": 78,
+      "freshness": "Building",
+      "status": "Evidence building",
+      "provenance": "No public score until evidence thresholds are complete."
+    },
+    {
+      "id": "design-01",
+      "rank": 5,
+      "category": "DESIGN",
+      "title": "Lounge Chair 01",
+      "asset": "assets/kidult100/design-v500.webp",
+      "score": null,
+      "confidence": 76,
+      "freshness": "Building",
+      "status": "Evidence building",
+      "provenance": "No public score until evidence thresholds are complete."
+    }
+  ]
+}
