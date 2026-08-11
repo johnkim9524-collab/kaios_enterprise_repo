@@ -1,0 +1,105 @@
+{
+  "updated_at": "2026-08-11T12:30:00+09:00",
+  "signals": [
+    {
+      "id": "mobility-momentum",
+      "category": "MOBILITY",
+      "title": "Cultural momentum",
+      "value": "+5.8",
+      "unit": "30D",
+      "change": "+1.2 vs prior",
+      "confidence": 94,
+      "sources": 12,
+      "updated": "12 min ago",
+      "series": [
+        58,
+        61,
+        60,
+        64,
+        67,
+        69,
+        74,
+        77,
+        81,
+        86,
+        88,
+        94
+      ]
+    },
+    {
+      "id": "time-liquidity",
+      "category": "TIME",
+      "title": "Liquidity strength",
+      "value": "86.4",
+      "unit": "INDEX",
+      "change": "+0.8 vs prior",
+      "confidence": 92,
+      "sources": 9,
+      "updated": "18 min ago",
+      "series": [
+        72,
+        74,
+        73,
+        76,
+        78,
+        79,
+        80,
+        82,
+        82,
+        84,
+        85,
+        86
+      ]
+    },
+    {
+      "id": "footwear-velocity",
+      "category": "FOOTWEAR",
+      "title": "Collector velocity",
+      "value": "84.9",
+      "unit": "INDEX",
+      "change": "+0.4 vs prior",
+      "confidence": 91,
+      "sources": 8,
+      "updated": "24 min ago",
+      "series": [
+        69,
+        71,
+        72,
+        74,
+        73,
+        76,
+        78,
+        80,
+        81,
+        83,
+        84,
+        85
+      ]
+    },
+    {
+      "id": "character-maturity",
+      "category": "CHARACTER",
+      "title": "Evidence maturity",
+      "value": "BUILDING",
+      "unit": "STATUS",
+      "change": "2 new sources",
+      "confidence": 78,
+      "sources": 6,
+      "updated": "31 min ago",
+      "series": [
+        42,
+        44,
+        48,
+        47,
+        50,
+        54,
+        57,
+        59,
+        63,
+        67,
+        72,
+        78
+      ]
+    }
+  ]
+}
