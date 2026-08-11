@@ -8,11 +8,22 @@ const OUT_DIR = path.join(ROOT, 'reports', 'kidult100-poc');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const CONTACT_URL = 'https://github.com/johnkim9524-collab/kaios_enterprise_repo';
-const UA = `KIDULTS-Kidult100-Bot/2.6 (${CONTACT_URL}; two-stage semantic discovery)`;
-const WIKIDATA_MIN_INTERVAL_MS = 700;
+const UA = `KIDULTS-Kidult100-Bot/2.7 (${CONTACT_URL}; two-stage semantic discovery)`;
+const WIKIDATA_MIN_INTERVAL_MS = 0;
 const WIKIDATA_MAX_RETRIES = 4;
+const WIKIDATA_MAXLAG_SECONDS = 5;
 let lastWikidataRequestAt = 0;
-const wikidataRuntime = { requests: 0, retries: 0, rateLimits: 0, contactUrl: CONTACT_URL };
+const wikidataRuntime = {
+  requests: 0,
+  retries: 0,
+  rateLimits: 0,
+  maxlagResponses: 0,
+  contactUrl: CONTACT_URL,
+  pacingMode: 'SERIAL_SERVER_DRIVEN_BACKPRESSURE',
+  fixedInterRequestDelayMs: WIKIDATA_MIN_INTERVAL_MS,
+  maxlagSeconds: WIKIDATA_MAXLAG_SECONDS,
+  gzipRequested: true,
+};
 const sourceAccessRuntime = Object.fromEntries((CONFIG.sources || []).map((source) => [source.id, {
   configuredActive: source.active !== false,
   attempts: 0,
@@ -41,39 +52,45 @@ async function getJson(url, { wikidata = false } = {}) {
 
   for (let attempt = 0; attempt <= WIKIDATA_MAX_RETRIES; attempt += 1) {
     const elapsed = Date.now() - lastWikidataRequestAt;
-    if (elapsed < WIKIDATA_MIN_INTERVAL_MS) await sleep(WIKIDATA_MIN_INTERVAL_MS - elapsed);
+    if (WIKIDATA_MIN_INTERVAL_MS > 0 && elapsed < WIKIDATA_MIN_INTERVAL_MS) await sleep(WIKIDATA_MIN_INTERVAL_MS - elapsed);
 
     const started = Date.now();
     lastWikidataRequestAt = Date.now();
     wikidataRuntime.requests += 1;
     const response = await fetch(url, {
-      headers: { accept: 'application/json', 'user-agent': UA },
+      headers: { accept: 'application/json', 'accept-encoding': 'gzip,deflate', 'user-agent': UA },
       signal: AbortSignal.timeout(15000),
     });
+    const body = await response.json().catch(() => null);
+    const maxlag = body?.error?.code === 'maxlag';
 
-    if (response.ok) return { body: await response.json(), latencyMs: Date.now() - started };
+    if (response.ok && !maxlag) return { body, latencyMs: Date.now() - started };
 
-    if (response.status === 429 || response.status >= 500) {
+    if (maxlag) wikidataRuntime.maxlagResponses += 1;
+    if (maxlag || response.status === 429 || response.status >= 500) {
       if (response.status === 429) wikidataRuntime.rateLimits += 1;
       if (attempt < WIKIDATA_MAX_RETRIES) {
         wikidataRuntime.retries += 1;
         const retryAfterSeconds = Number(response.headers.get('retry-after'));
+        const reportedLagSeconds = Number(body?.error?.lag);
         const retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
           ? retryAfterSeconds * 1000
-          : Math.min(10000, 900 * (2 ** attempt));
+          : maxlag && Number.isFinite(reportedLagSeconds) && reportedLagSeconds > 0
+            ? Math.ceil(reportedLagSeconds * 1000)
+            : Math.min(10000, 900 * (2 ** attempt));
         await sleep(retryAfterMs);
         continue;
       }
     }
 
-    throw new Error(`HTTP_${response.status}:${url}`);
+    throw new Error(maxlag ? `WIKIDATA_MAXLAG:${url}` : `HTTP_${response.status}:${url}`);
   }
 
   throw new Error(`WIKIDATA_RETRY_EXHAUSTED:${url}`);
 }
 
 async function searchWikidata(query, vertical) {
-  const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&limit=8&origin=*`;
+  const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&limit=8&origin=*&maxlag=${WIKIDATA_MAXLAG_SECONDS}`;
   const { body, latencyMs } = await getJson(url, { wikidata: true });
   const rows = Array.isArray(body.search) ? body.search : [];
   return rows.map((row) => ({
@@ -374,7 +391,7 @@ const rightsClassificationCoverage = candidates.length ? candidates.filter((c) =
 const semanticRelevanceCoverage = candidates.length ? relevantCandidates.length / candidates.length : 0;
 
 const report = {
-  schemaVersion: '2.6.0',
+  schemaVersion: '2.7.0',
   mode: CONFIG.mode,
   generatedAt: new Date().toISOString(),
   target: {
@@ -395,6 +412,10 @@ const report = {
     contactUrl: CONTACT_URL,
     wikidataMinimumIntervalMs: WIKIDATA_MIN_INTERVAL_MS,
     wikidataMaximumRetries: WIKIDATA_MAX_RETRIES,
+    wikidataMaxlagSeconds: WIKIDATA_MAXLAG_SECONDS,
+    serialWikidataReadRequests: true,
+    serverDrivenBackpressure: true,
+    gzipRequested: true,
     sourceConfigurationRespected: true,
     accessDenialCircuitBreaker: true,
     accessDenialStatuses: [401, 403],
@@ -421,7 +442,7 @@ const report = {
   },
   candidateBuild: {
     outcome: 'BUILT_NOT_CERTIFIED',
-    note: 'Stage A maximizes defensible recall. Stage B removes explicit archive title-only and object-type mismatches. Access-denied sources are stopped for the remainder of the run. Stage 2 certification remains downstream.',
+    note: 'Stage A maximizes defensible recall. Stage B removes explicit archive title-only and object-type mismatches. Wikidata reads remain serial and defer to maxlag/Retry-After server backpressure instead of an unconditional client sleep. Access-denied sources are stopped for the remainder of the run. Stage 2 certification remains downstream.',
   },
   claims: {
     liveExternalNetworkCollection: true,
@@ -437,7 +458,7 @@ const report = {
 };
 
 fs.writeFileSync(path.join(OUT_DIR, 'kidult100-poc-latest.json'), JSON.stringify(report, null, 2));
-console.log(`Kidult100 candidate build v2.6: raw=${raw.length} unique=${candidates.length} recall=${recallCandidates.length} precisionRejected=${precisionRejectedCandidates.length} relevant=${relevantCandidates.length} errors=${sourceErrors.length}`);
+console.log(`Kidult100 candidate build v2.7: raw=${raw.length} unique=${candidates.length} recall=${recallCandidates.length} precisionRejected=${precisionRejectedCandidates.length} relevant=${relevantCandidates.length} errors=${sourceErrors.length}`);
 console.log(`provenance=${provenanceCoverage} rights=${rightsClassificationCoverage} semantic=${semanticRelevanceCoverage}`);
 console.log(`rawDuplicateObservationRate=${rawDuplicateObservationRate} acceptedDuplicateContamination=${acceptedDuplicateContamination}`);
 console.log(`recallVerticals=${JSON.stringify(recallByVertical)}`);
