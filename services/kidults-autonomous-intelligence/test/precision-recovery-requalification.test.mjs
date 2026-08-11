@@ -64,16 +64,16 @@ test('exact curated recovery requires all distinctive anchors and source product
 
 test('model-specific no-description row can use exact curated query without inventing evidence', () => {
   const result = evaluatePrecisionRecoveryRow({
-    query: 'Apple Macintosh 128K computer',
-    row: { label: 'Apple Macintosh 128K', description: null },
-    productTerms: ['personal computer', 'computer'],
-    disallowedTerms: ['company', 'file format'],
+    query: 'Leica M3 camera',
+    row: { label: 'Leica M3', description: null },
+    productTerms: ['camera model', 'camera'],
+    disallowedTerms: ['company', 'museum'],
     stopTokens,
   });
   assert.equal(result.accepted, true);
   assert.equal(result.modelSpecificNoDescription, true);
   assert.equal(result.productHits.length, 0);
-  assert.ok(result.queryProductHits.includes('computer'));
+  assert.ok(result.queryProductHits.includes('camera'));
 });
 
 test('query product type alone is insufficient when source context is neither product nor model-specific', () => {
@@ -125,10 +125,10 @@ test('requalification preserves source identity and records semantic-only recove
   assert.equal(updated.semanticRelevanceDiagnostics.precisionRecovery.exactCuratedProductQueryMatch, true);
 
   const noDescription = requalifyExistingCandidate(
-    candidate({ canonicalTitle: 'Macintosh 128K', description: null }),
-    'Apple Macintosh 128K computer',
+    candidate({ canonicalTitle: 'Leica M3', description: null }),
+    'Leica M3 camera',
     { ...evaluation, modelSpecificNoDescription: true },
   );
-  assert.equal(noDescription.query, 'Macintosh 128K');
-  assert.equal(noDescription.semanticRelevanceDiagnostics.precisionRecovery.recoveryQuery, 'Apple Macintosh 128K computer');
+  assert.equal(noDescription.query, 'Leica M3');
+  assert.equal(noDescription.semanticRelevanceDiagnostics.precisionRecovery.recoveryQuery, 'Leica M3 camera');
 });
