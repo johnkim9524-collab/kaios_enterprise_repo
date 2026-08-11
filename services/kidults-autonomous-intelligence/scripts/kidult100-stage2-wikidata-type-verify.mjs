@@ -39,10 +39,14 @@ function validatePolicy(policy) {
   if (policy?.policy !== 'FAIL_CLOSED_STAGE2_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFICATION') throw new Error('Invalid Wikidata type verification policy');
   if (!policy?.requiredInputMode || !policy?.targetSource || !policy?.targetSourceClass || !policy?.requiredRightsClass || !policy?.semanticStage) throw new Error('Incomplete Wikidata type verification policy identity');
   if (policy?.directTypeProperty !== 'P31') throw new Error('Wikidata type verification must use direct P31');
-  if (!policy?.allowedTypeTermsByVertical || !Array.isArray(policy?.disallowedDirectTypeTerms)) throw new Error('Wikidata type verification requires type controls');
+  if (!policy?.allowedTypeTermsByVertical || !Array.isArray(policy?.disallowedDirectTypeTerms) || !Array.isArray(policy?.softDisallowedDirectTypeTerms)) throw new Error('Wikidata type verification requires type controls');
+  for (const term of policy.softDisallowedDirectTypeTerms) {
+    if (!policy.disallowedDirectTypeTerms.includes(term)) throw new Error(`Soft disallowed type is not in disallowed controls: ${term}`);
+  }
   const requiredRules = [
     'onlyRequalifyStageDContextMissing', 'requireAllQueryAnchorsMatched', 'requireSourceNativeQid', 'directP31Only',
-    'typeLabelOrDescriptionMustMatchVerticalProductTerms', 'disallowedTypeMustMatchTypeLabel', 'disallowedTypeOverridesAllowedType', 'preserveRightsAndProvenance',
+    'typeLabelOrDescriptionMustMatchVerticalProductTerms', 'disallowedTypeMustMatchTypeLabel', 'disallowedTypeOverridesAllowedType',
+    'softDisallowedMayCoexistWithExplicitAllowedProductType', 'softDisallowedAloneNeverQualifies', 'preserveRightsAndProvenance',
     'verificationProofSeparateFromCandidatePayloadHash', 'rewriteGeneratedPocReportOnly',
   ];
   for (const key of requiredRules) if (policy?.rules?.[key] !== true) throw new Error(`Unsafe Wikidata type verification rule: ${key}`);
@@ -131,6 +135,7 @@ const evaluated = [];
 const recovered = [];
 const retainedRejected = [];
 let structuralErrors = 0;
+const softDisallowedTerms = new Set(policy.softDisallowedDirectTypeTerms.map(normalize));
 
 const candidates = report.candidates.map((candidate) => {
   if (candidate.semanticRelevant) {
@@ -165,6 +170,8 @@ const candidates = report.candidates.map((candidate) => {
     for (const term of allowedTerms) if (includesPhrase(type.combined, term)) allowedHits.push({ typeId: type.id, term, label: type.label || null });
     for (const term of policy.disallowedDirectTypeTerms) if (includesPhrase(type.label, term)) disallowedHits.push({ typeId: type.id, term, label: type.label || null });
   }
+  const softDisallowedHits = disallowedHits.filter((hit) => softDisallowedTerms.has(normalize(hit.term)));
+  const hardDisallowedHits = disallowedHits.filter((hit) => !softDisallowedTerms.has(normalize(hit.term)));
 
   const proof = {
     entityId: candidate.sourceRecordId,
@@ -175,6 +182,8 @@ const candidates = report.candidates.map((candidate) => {
     directTypes,
     allowedHits,
     disallowedHits,
+    softDisallowedHits,
+    hardDisallowedHits,
   };
   proof.verificationPayloadHash = hash({ entityId: proof.entityId, directTypeProperty: proof.directTypeProperty, directTypes: proof.directTypes });
 
@@ -184,11 +193,15 @@ const candidates = report.candidates.map((candidate) => {
     reasons = ['WIKIDATA_ENTITY_UNAVAILABLE'];
   } else if (typeIds.length === 0) {
     reasons = ['WIKIDATA_DIRECT_P31_MISSING'];
-  } else if (disallowedHits.length > 0) {
+  } else if (hardDisallowedHits.length > 0) {
     reasons = ['WIKIDATA_DIRECT_P31_DISALLOWED_TYPE'];
   } else if (allowedHits.length > 0) {
     passed = true;
-    reasons = ['WIKIDATA_DIRECT_P31_PRODUCT_TYPE_CONFIRMED'];
+    reasons = softDisallowedHits.length > 0
+      ? ['WIKIDATA_DIRECT_P31_PRODUCT_TYPE_CONFIRMED_WITH_SOFT_CLASSIFICATION']
+      : ['WIKIDATA_DIRECT_P31_PRODUCT_TYPE_CONFIRMED'];
+  } else if (softDisallowedHits.length > 0) {
+    reasons = ['WIKIDATA_DIRECT_P31_DISALLOWED_TYPE'];
   } else {
     reasons = ['WIKIDATA_DIRECT_P31_PRODUCT_TYPE_NOT_CONFIRMED'];
   }
@@ -230,13 +243,13 @@ const recoveredByVertical = Object.fromEntries(verticalIds.map((vertical) => [ve
 
 const verified = {
   ...report,
-  schemaVersion: '2.8.1',
+  schemaVersion: '2.8.2',
   semanticPolicy: {
     ...(report.semanticPolicy || {}),
-    version: 'SEMANTIC_V2_5_1_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFIED',
+    version: 'SEMANTIC_V2_5_2_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFIED',
     stageE: policy.semanticStage,
-    sourceNativeTypeVerification: 'DIRECT_P31_ENGLISH_PRODUCT_PROOF_WITH_LABEL_SCOPED_DISALLOWED_TYPES',
-    principle: 'Stage E may requalify only Stage-D context-missing Wikidata CC0 records whose full query anchors matched and whose direct P31 type is source-natively product/object specific for the target vertical. Allowed product proof may use the type label or description; a disallowed type must be identified by its own type label, preventing descriptive mentions such as “associated with a brand” from reclassifying a car-model type as a brand. Rights/provenance identity is never rewritten.',
+    sourceNativeTypeVerification: 'DIRECT_P31_ENGLISH_PRODUCT_PROOF_WITH_HARD_AND_SOFT_LABEL_SCOPED_DISALLOWED_TYPES',
+    principle: 'Stage E may requalify only Stage-D context-missing Wikidata CC0 records whose full query anchors matched and whose direct P31 type is source-natively product/object specific for the target vertical. Hard disallowed entity/media types always override product proof. A narrowly enumerated soft classification such as trademark may coexist only when a separate explicit allowed product P31 is present; the soft classification alone never qualifies a candidate. Rights/provenance identity is never rewritten.',
   },
   metrics: {
     ...(report.metrics || {}),
@@ -248,7 +261,7 @@ const verified = {
   candidateBuild: {
     ...(report.candidateBuild || {}),
     outcome: 'BUILT_SOURCE_NATIVE_TYPE_VERIFIED_NOT_CERTIFIED',
-    note: 'Stage E only requalifies directly verified Wikidata P31 product/object types; unavailable, ambiguous, non-product or explicitly disallowed type labels remain rejected.',
+    note: 'Stage E only requalifies directly verified Wikidata P31 product/object types. Hard entity/media classifications remain rejected. Soft trademark classification can coexist only with a distinct explicit product type; unavailable, ambiguous or non-product types remain rejected.',
   },
   claims: {
     ...(report.claims || {}),
@@ -260,7 +273,7 @@ const verified = {
 };
 
 const audit = {
-  schemaVersion: '1.0.1',
+  schemaVersion: '1.0.2',
   mode: 'KIDULT100_STAGE2_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFICATION',
   generatedAt: new Date().toISOString(),
   policy: policy.policy,
@@ -285,6 +298,8 @@ const audit = {
     rightsClassificationRelaxed: false,
     provenanceRelaxed: false,
     candidatePayloadHashRewritten: false,
+    hardDisallowedEntityOrMediaTypeCanBeOverridden: false,
+    softClassificationAloneCanQualify: false,
     unauthorizedScrapingRequested: false,
     paidProviderProcurementRequested: false,
     contractExecutionRequested: false,
