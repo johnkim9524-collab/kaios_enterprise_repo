@@ -91,7 +91,7 @@ function evaluate(candidate, policy) {
   } else if (disallowedHits.length > 0) {
     passed = false;
     reasons.push('REFERENCE_DISALLOWED_ENTITY_OR_MEDIA_CONTEXT');
-  } else if (!query.allAnchorsMatched) {
+  } else if (query.anchorHits.length === 0) {
     passed = false;
     reasons.push('REFERENCE_QUERY_ANCHOR_MISMATCH');
   } else if (productDescriptionHits.length > 0) {
@@ -209,7 +209,7 @@ const hardened = {
     version: 'SEMANTIC_V2_4_REFERENCE_PRECISION_HARDENED',
     stageD: policy.semanticStage,
     sourceNativeReferenceAcceptedWithoutObjectProof: false,
-    principle: 'Reference-public search results require query-anchor and vertical product-object proof; related people, media, companies, places and generic classes do not count as candidate supply.',
+    principle: 'Reference-public search results require at least one query anchor plus vertical product-object proof; related people, media, companies, places and generic classes do not count as candidate supply.',
   },
   metrics: {
     ...(report.metrics || {}),
