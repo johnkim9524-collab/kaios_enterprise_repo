@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.7.0",
+  "schemaVersion": "1.8.0",
   "mode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "candidateTarget": 300,
   "stage2Gate": {
@@ -42,7 +42,7 @@
     {
       "id": "fashion-accessories",
       "label": "Fashion & Accessories",
-      "discoveryQueries": ["Hermes Birkin", "Chanel handbag", "Air Jordan 1", "Louis Vuitton trunk", "archive fashion", "sneaker", "Dior Saddle Bag", "Gucci Jackie bag", "Nike Dunk", "Adidas Yeezy", "Supreme box logo", "Hermes Kelly bag", "Fendi Baguette", "Prada nylon bag", "Balenciaga City bag", "Louis Vuitton Speedy", "Nike Air Force 1", "Converse Chuck Taylor", "Chanel 2.55 handbag", "Hermes Constance bag", "Nike Air Max 1 sneaker", "Gucci Horsebit bag", "Lady Dior handbag", "Chanel Classic Flap handbag", "Gucci Bamboo bag", "Gucci Dionysus bag", "Bottega Veneta Cassette bag", "Adidas Stan Smith shoe", "Adidas Superstar shoe", "Vans Old Skool shoe", "Nike Cortez shoe", "Reebok Pump shoe", "New Balance 990 shoe", "Dr Martens 1460 boot", "Puma Suede shoe", "Nike Blazer shoe"]
+      "discoveryQueries": ["Hermes Birkin", "Chanel handbag", "Air Jordan 1", "Louis Vuitton trunk", "archive fashion", "sneaker", "Dior Saddle Bag", "Gucci Jackie bag", "Nike Dunk", "Adidas Yeezy", "Supreme box logo", "Hermes Kelly bag", "Fendi Baguette", "Prada nylon bag", "Balenciaga City bag", "Louis Vuitton Speedy", "Nike Air Force 1", "Converse Chuck Taylor", "Chanel 2.55 handbag", "Hermes Constance bag", "Nike Air Max 1 sneaker", "Gucci Horsebit bag", "Lady Dior handbag", "Chanel Classic Flap handbag", "Gucci Bamboo bag", "Gucci Dionysus bag", "Bottega Veneta Cassette bag", "Adidas Stan Smith shoe", "Adidas Superstar shoe", "Vans Old Skool shoe", "Nike Cortez shoe", "Reebok Pump shoe", "New Balance 990 shoe", "Dr Martens 1460 boot", "Puma Suede shoe", "Nike Blazer shoe", "Birkin bag", "Kelly bag", "Chanel 2.55", "Dior Saddle bag", "Fendi Baguette bag", "Balenciaga City", "Nike Air Max 1", "Adidas Stan Smith", "Adidas Superstar", "Vans Old Skool", "Nike Cortez", "Reebok Pump", "New Balance 990", "Dr. Martens 1460", "Puma Suede", "Nike Blazer", "Chuck Taylor All-Stars", "Air Force 1"]
     },
     {
       "id": "design-furniture",
