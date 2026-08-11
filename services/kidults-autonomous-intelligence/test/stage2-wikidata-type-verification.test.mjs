@@ -63,7 +63,8 @@ function run(candidates, options = {}) {
   if (options.policy !== undefined) env.KIDULTS_WIKIDATA_TYPE_POLICY_JSON = JSON.stringify(options.policy);
   if (options.liveEntities) {
     const mockPath = path.join(dir, 'mock-fetch.mjs');
-    fs.writeFileSync(mockPath, `const entities=${JSON.stringify(options.liveEntities)}; globalThis.fetch=async (url)=>{ const ids=(new URL(url)).searchParams.get('ids').split('|'); return {ok:true,status:200,json:async()=>({entities:Object.fromEntries(ids.map((id)=>[id,entities[id] ?? {id,missing:''}]))})}; };`);
+    const failCall = Number(options.failCall || 0);
+    fs.writeFileSync(mockPath, `const entities=${JSON.stringify(options.liveEntities)}; let call=0; const failCall=${failCall}; globalThis.fetch=async (url)=>{ call+=1; if (call===failCall) return {ok:false,status:503,json:async()=>({})}; const ids=(new URL(url)).searchParams.get('ids').split('|'); return {ok:true,status:200,json:async()=>({entities:Object.fromEntries(ids.map((id)=>[id,entities[id] ?? {id,missing:''}]))})}; };`);
     env.NODE_OPTIONS = `${process.env.NODE_OPTIONS || ''} --import=${mockPath}`.trim();
   }
   const result = spawnSync(process.execPath, [SCRIPT], { cwd: ROOT, encoding: 'utf8', env });
@@ -128,6 +129,28 @@ test('live path uses bounded official-style entity fetch and records request met
   assert.equal(verified.candidates[0].semanticRelevant, true);
   assert.equal(audit.metrics.requestCount, 2);
   assert.equal(audit.metrics.sourceErrorCount, 0);
+});
+
+test('live candidate-entity fetch failure is recorded and remains fail-closed', () => {
+  const liveEntities = { Q100: entity(['Q900']), Q900: type('car model') };
+  const { result, verified, audit } = run([candidate()], { liveEntities, failCall: 1 });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(verified.candidates[0].semanticRelevant, false);
+  assert.equal(verified.candidates[0].semanticStageE.reasons[0], 'WIKIDATA_ENTITY_UNAVAILABLE');
+  assert.equal(audit.metrics.requestCount, 1);
+  assert.equal(audit.metrics.sourceErrorCount, 1);
+  assert.equal(audit.sourceErrors[0].stage, 'CANDIDATE_ENTITY_FETCH');
+});
+
+test('live direct-type fetch failure is recorded and cannot requalify', () => {
+  const liveEntities = { Q100: entity(['Q900']), Q900: type('car model') };
+  const { result, verified, audit } = run([candidate()], { liveEntities, failCall: 2 });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(verified.candidates[0].semanticRelevant, false);
+  assert.equal(verified.candidates[0].semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_PRODUCT_TYPE_NOT_CONFIRMED');
+  assert.equal(audit.metrics.requestCount, 2);
+  assert.equal(audit.metrics.sourceErrorCount, 1);
+  assert.equal(audit.sourceErrors[0].stage, 'DIRECT_TYPE_FETCH');
 });
 
 test('unknown vertical is structural and fails closed', () => {
