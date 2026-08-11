@@ -131,6 +131,31 @@ export function getCompleteWikidataTraceRows(trace, vertical, query) {
   return Array.isArray(rows) ? rows.map((row) => ({ ...row })) : null;
 }
 
+export function getReusableExistingWikidataRows(candidates, vertical) {
+  if (!Array.isArray(candidates) || !vertical) return [];
+  return candidates
+    .filter((candidate) => (
+      candidate?.vertical === vertical
+      && candidate?.source === 'wikidata'
+      && candidate?.sourceClass === 'REFERENCE_PUBLIC_DATA'
+      && candidate?.rightsClass === 'CC0_STRUCTURED_DATA'
+      && candidate?.sourceRecordId
+      && candidate?.canonicalTitle
+      && candidate?.sourceUrl
+      && candidate?.payloadHash
+      && candidate?.observedAt
+    ))
+    .map((candidate) => ({
+      id: candidate.sourceRecordId,
+      label: candidate.canonicalTitle,
+      description: candidate.description || null,
+      concepturi: candidate.sourceUrl,
+      payloadHash: candidate.payloadHash,
+      observedAt: candidate.observedAt,
+      traceSource: 'POC_EXISTING_SOURCE_NATIVE_CANDIDATE',
+    }));
+}
+
 export function evaluatePrecisionRecoveryRow({ query, row, productTerms, disallowedTerms, stopTokens }) {
   const context = `${row?.label || ''} ${row?.description || ''}`;
   const contextTokens = new Set(tokens(context));
