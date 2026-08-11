@@ -1,0 +1,30 @@
+.institution-section{background:var(--warm);border-top:1px solid rgba(221,217,209,.7)}
+.institution-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.institution-card{min-height:365px;padding:32px;border:1px solid var(--line);border-radius:15px;background:var(--card);display:flex;flex-direction:column}
+.institution-icon{font-size:31px;line-height:1;color:var(--forest);margin-bottom:28px}
+.institution-card h3{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1.18;color:var(--forest);margin:28px 0 16px}
+.institution-card>p:not(.eyebrow){font-size:13.5px;line-height:1.7;color:var(--secondary);margin:0}
+.institution-card ul{padding:0;margin:4px 0 20px;list-style:none}
+.institution-card li{font-size:12.5px;color:var(--secondary);margin:9px 0;padding-left:17px;position:relative}
+.institution-card li::before{content:"";position:absolute;left:0;top:.65em;width:6px;height:6px;border-radius:50%;background:var(--forest)}
+.access-pills{display:flex;gap:8px;flex-wrap:wrap;margin:25px 0 20px}
+.access-pills span{border:1px solid var(--line);border-radius:999px;padding:7px 10px;font-size:10.5px;color:var(--secondary)}
+.partner-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:30px 0 22px}
+.partner-grid span{border-top:1px solid var(--line);padding-top:12px;text-align:center;font-size:10.5px;color:var(--secondary)}
+.institution-card .text-link{margin-top:auto;align-self:flex-start}
+.site-footer{border-top:1px solid var(--line);background:#f7f4ee}
+.footer-inner{min-height:96px;display:grid;grid-template-columns:1fr 1.5fr 1fr;align-items:center;gap:28px}
+.footer-brand{display:flex;align-items:center;gap:14px}
+.footer-brand strong{font-size:13px;letter-spacing:.34em}
+.footer-brand span{max-width:180px;font-size:9.5px;line-height:1.3;letter-spacing:.08em;color:var(--muted)}
+.site-footer nav{display:flex;justify-content:center;gap:22px;font-family:var(--serif);font-size:11.5px;white-space:nowrap}
+.site-footer>div>span{justify-self:end;font-size:10.5px;color:var(--muted)}
+dialog{width:min(620px,calc(100vw - 32px));border:1px solid var(--line);border-radius:18px;background:var(--card);padding:36px;color:var(--ink);box-shadow:0 40px 120px rgba(20,30,26,.24)}
+dialog::backdrop{background:rgba(8,17,14,.28);backdrop-filter:blur(5px)}
+dialog h2{font-family:var(--serif);font-size:34px;font-weight:400;line-height:1.15;color:var(--forest);margin:18px 0}
+.dialog-close{position:absolute;right:16px;top:12px;border:0;background:transparent;font-size:28px;line-height:1;cursor:pointer}
+.dialog-body{font-size:14px;line-height:1.75;color:var(--secondary)}
+.dialog-body dl{margin:24px 0 0}
+.dialog-body div{display:grid;grid-template-columns:120px 1fr;gap:18px;padding:11px 0;border-top:1px solid var(--line)}
+.dialog-body dt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.dialog-body dd{margin:0}
