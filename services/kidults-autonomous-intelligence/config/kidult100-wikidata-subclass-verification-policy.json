@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_STAGE2_WIKIDATA_ONE_HOP_SUBCLASS_VERIFICATION",
+  "requiredInputMode": "KIDULT100_VALUE_BEFORE_DATA_POC",
+  "targetSource": "wikidata",
+  "targetSourceClass": "REFERENCE_PUBLIC_DATA",
+  "requiredRightsClass": "CC0_STRUCTURED_DATA",
+  "semanticStage": "WIKIDATA_ONE_HOP_SUBCLASS_VERIFIER",
+  "eligibleStageEReason": "WIKIDATA_DIRECT_P31_PRODUCT_TYPE_NOT_CONFIRMED",
+  "subclassProperty": "P279",
+  "maxSubclassDepth": 1,
+  "allowedTypeTermsByVertical": {
+    "toys-models": ["construction toy", "toy", "fashion doll", "doll", "scale model", "model car", "action figure", "figurine", "model kit", "collectible figure", "product model"],
+    "watches-jewelry": ["wristwatch", "watch", "watch model", "chronograph", "timepiece", "pocket watch", "jewelry", "jewellery", "product model"],
+    "automobiles-mobility": ["car model", "vehicle model", "sports car", "racing car", "concept car", "motor vehicle", "automobile", "roadster", "coupe", "motorcycle", "bicycle", "scooter", "product model"],
+    "fashion-accessories": ["handbag", "bag", "athletic shoe", "shoe", "sneaker", "boot", "apparel", "garment", "clothing", "product model"],
+    "design-furniture": ["chair", "furniture", "coffee table", "table", "stool", "desk", "sofa", "lamp", "cabinet", "armchair", "product model"],
+    "technology-cameras": ["camera model", "camera", "personal computer", "computer", "portable audio player", "portable music player", "cassette player", "walkman", "electronics", "photographic equipment", "product model"],
+    "gaming-music-screen": ["video game console", "game console", "handheld game console", "home video game console", "portable game console", "video game", "arcade video game", "game cartridge", "cartridge", "record album", "vinyl record", "product model"],
+    "cards-comics-memorabilia": ["trading card", "collectible trading card", "baseball card", "sports card", "comic book issue", "comic book series", "comic book", "graphic novel", "memorabilia", "product model"]
+  },
+  "disallowedTypeTerms": [
+    "wikimedia duplicated page", "wikimedia disambiguation page", "trademark", "human", "person", "organization", "company",
+    "business enterprise", "manufacturer", "media franchise", "family name", "given name", "village", "news article", "wikinews article",
+    "newspaper article", "scholarly article", "publisher", "brand", "fictional character", "fictional universe"
+  ],
+  "rules": {
+    "onlyRequalifyStageENotConfirmed": true,
+    "requireStageEProof": true,
+    "requireAllQueryAnchorsMatched": true,
+    "oneHopP279Only": true,
+    "recursiveTraversalForbidden": true,
+    "disallowedSuperclassOverridesAllowedSuperclass": true,
+    "preserveRightsAndProvenance": true,
+    "verificationProofSeparateFromCandidatePayloadHash": true,
+    "rewriteGeneratedPocReportOnly": true
+  },
+  "safety": {
+    "syntheticEvidenceCreated": false,
+    "liveEvidenceClaimCreated": false,
+    "marketEvidenceCreated": false,
+    "normalizedScoreCreated": false,
+    "rightsClassificationRelaxed": false,
+    "provenanceRelaxed": false,
+    "unauthorizedScrapingRequested": false,
+    "paidProviderProcurementRequested": false,
+    "contractExecutionRequested": false
+  }
+}
