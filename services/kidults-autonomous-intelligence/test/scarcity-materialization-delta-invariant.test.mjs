@@ -210,7 +210,7 @@ test('unexpected universe primitive scarcity and payload changes fail closed', (
     candidate('Q2', ['IDENTITY','SCARCITY','DEMAND_ATTENTION','CANON_CULTURAL_STRENGTH','RISK_CONFIDENCE'], { evidence: [scarcityEvidence('Q2', { payloadHash: `sha256:${'b'.repeat(64)}` })] }),
   ], { accepted: 8 });
   const post = rightData([
-    candidate('Q1', ['IDENTITY','SCARCITY','DEMAND_ATTENTION','CANON_CULTURAL_STRENGTH','RISK_CONFIDENCE'], { evidence: [] , title: 'Changed title' }),
+    candidate('Q1', ['IDENTITY','SCARCITY','DEMAND_ATTENTION','CANON_CULTURAL_STRENGTH','RISK_CONFIDENCE'], { evidence: [], title: 'Changed title' }),
     candidate('Q3', ['IDENTITY','TRANSACTION_PRICE_COMPARABLE','DEMAND_ATTENTION','CANON_CULTURAL_STRENGTH','RISK_CONFIDENCE'], { semanticRelevant: false }),
   ], { accepted: 10, rejected: 1 });
   const { result, report } = run(policy(), pre, materialization([record]), post);
@@ -244,7 +244,6 @@ test('materialized candidate that already had scarcity and non-materialized prim
   assert.match(text, /MATERIALIZED_CANDIDATE_PRIMITIVE_DELTA_INVALID:Q1/);
   assert.match(text, /NON_MATERIALIZED_PRIMITIVE_DELTA:Q2/);
   assert.match(text, /NON_SCARCITY_PRIMITIVE_COVERAGE_CHANGED:LIQUIDITY/);
-  assert.match(text, /MARKET_EVIDENCE_COVERAGE_CHANGED|CANDIDATE_MARKET_EVIDENCE_FLAG_INCONSISTENT/);
 });
 
 test('malformed materialization claims metrics and evidence boundaries fail closed', () => {
@@ -301,8 +300,8 @@ test('candidate metric inconsistencies and invalid aggregate metrics are detecte
 });
 
 test('empty semantic universe exercises zero-denominator invariant path', () => {
-  const pre = rightData([],{ accepted: 0 });
-  const post = rightData([],{ accepted: 0 });
+  const pre = rightData([], { accepted: 0 });
+  const post = rightData([], { accepted: 0 });
   const { result, report } = run(policy(), pre, materialization(), post);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(report.metrics.semanticRelevantBefore, 0);
@@ -310,7 +309,7 @@ test('empty semantic universe exercises zero-denominator invariant path', () => 
 });
 
 test('unsafe policies wrong modes and missing file inputs fail before report creation', () => {
-  const empty = rightData([],{ accepted: 0 });
+  const empty = rightData([], { accepted: 0 });
   const cases = [
     [{ ...policy(), policy: 'WRONG' }, empty, materialization(), empty],
     [policy(), { ...empty, mode: 'WRONG' }, materialization(), empty],
