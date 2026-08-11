@@ -37,15 +37,16 @@ function hash(value) {
 
 function validatePolicy(policy) {
   if (policy?.policy !== 'FAIL_CLOSED_STAGE2_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFICATION') throw new Error('Invalid Wikidata type verification policy');
-  if (!policy?.requiredInputMode || !policy?.targetSource || !policy?.targetSourceClass || !policy?.requiredRightsClass || !policy?.semanticStage || !policy?.eligiblePriorReason || !policy?.eligibleDisallowedContextReason) throw new Error('Incomplete Wikidata type verification policy identity');
+  if (!policy?.requiredInputMode || !policy?.targetSource || !policy?.targetSourceClass || !policy?.requiredRightsClass || !policy?.semanticStage || !policy?.eligiblePriorReason || !policy?.eligibleDisallowedContextReason || !policy?.eligibleAnchorMismatchReason) throw new Error('Incomplete Wikidata type verification policy identity');
   if (policy?.directTypeProperty !== 'P31') throw new Error('Wikidata type verification must use direct P31');
   if (!policy?.allowedTypeTermsByVertical || !Array.isArray(policy?.disallowedDirectTypeTerms) || !Array.isArray(policy?.softDisallowedDirectTypeTerms)) throw new Error('Wikidata type verification requires type controls');
   for (const term of policy.softDisallowedDirectTypeTerms) {
     if (!policy.disallowedDirectTypeTerms.includes(term)) throw new Error(`Soft disallowed type is not in disallowed controls: ${term}`);
   }
   const requiredRules = [
-    'onlyRequalifyStageDContextMissingOrStrictDisallowed', 'disallowedContextRequiresExactTitleOrModelSpecific', 'requireAllQueryAnchorsMatched', 'requireSourceNativeQid', 'directP31Only',
-    'typeLabelOrDescriptionMustMatchVerticalProductTerms', 'disallowedTypeMustMatchTypeLabel', 'disallowedTypeOverridesAllowedType',
+    'onlyRequalifyStageDContextMissingOrStrictDisallowed', 'disallowedContextRequiresExactTitleOrModelSpecific', 'requireAllQueryAnchorsMatched',
+    'anchorMismatchOverrideIsNarrowException', 'anchorMismatchRequiresNonGenericQuery', 'anchorMismatchRequiresExistingVerticalProductContext', 'anchorMismatchRequiresDirectP31VerticalProductType',
+    'requireSourceNativeQid', 'directP31Only', 'typeLabelOrDescriptionMustMatchVerticalProductTerms', 'disallowedTypeMustMatchTypeLabel', 'disallowedTypeOverridesAllowedType',
     'softDisallowedMayCoexistWithExplicitAllowedProductType', 'softDisallowedAloneNeverQualifies', 'preserveRightsAndProvenance',
     'verificationProofSeparateFromCandidatePayloadHash', 'rewriteGeneratedPocReportOnly',
   ];
@@ -77,19 +78,30 @@ function englishText(entity) {
   return { label, description, combined: `${label} ${description}`.trim() };
 }
 
+function hasExistingVerticalProductContext(diagnostics) {
+  const titleHits = Array.isArray(diagnostics?.productTitleHits) ? diagnostics.productTitleHits : [];
+  const descriptionHits = Array.isArray(diagnostics?.productDescriptionHits) ? diagnostics.productDescriptionHits : [];
+  return titleHits.length + descriptionHits.length > 0;
+}
+
 function stageDEligible(candidate, policy) {
   const reasons = Array.isArray(candidate?.semanticStageD?.reasons) ? candidate.semanticStageD.reasons : [];
   const diagnostics = candidate?.semanticStageD?.diagnostics || {};
   const priorReason = reasons.length === 1 ? reasons[0] : null;
+  const anchorMismatchOverride = priorReason === policy.eligibleAnchorMismatchReason
+    && diagnostics.genericQuery === false
+    && hasExistingVerticalProductContext(diagnostics);
   const supportedReason = priorReason === policy.eligiblePriorReason
-    || (priorReason === policy.eligibleDisallowedContextReason && (diagnostics.exactTitleQuery === true || diagnostics.modelSpecific === true));
+    || (priorReason === policy.eligibleDisallowedContextReason && (diagnostics.exactTitleQuery === true || diagnostics.modelSpecific === true))
+    || anchorMismatchOverride;
+  const anchorRequirementSatisfied = anchorMismatchOverride || diagnostics.allAnchorsMatched === true;
   return candidate?.semanticRelevant === false
     && candidate?.source === policy.targetSource
     && candidate?.sourceClass === policy.targetSourceClass
     && candidate?.rightsClass === policy.requiredRightsClass
     && /^Q\d+$/.test(String(candidate?.sourceRecordId || ''))
     && supportedReason
-    && diagnostics.allAnchorsMatched === true;
+    && anchorRequirementSatisfied;
 }
 
 const policy = readJsonInput(process.env.KIDULTS_WIKIDATA_TYPE_POLICY_JSON, DEFAULT_POLICY);
@@ -114,6 +126,7 @@ const inputRelevant = report.candidates.filter((candidate) => candidate.semantic
 const eligible = report.candidates.filter((candidate) => stageDEligible(candidate, policy));
 const eligibleContextMissing = eligible.filter((candidate) => candidate.semanticStageD?.reasons?.[0] === policy.eligiblePriorReason);
 const eligibleStrictDisallowed = eligible.filter((candidate) => candidate.semanticStageD?.reasons?.[0] === policy.eligibleDisallowedContextReason);
+const eligibleAnchorMismatch = eligible.filter((candidate) => candidate.semanticStageD?.reasons?.[0] === policy.eligibleAnchorMismatchReason);
 const eligibleIds = [...new Set(eligible.map((candidate) => candidate.sourceRecordId))];
 let entityMap = {};
 const sourceErrors = [];
@@ -247,29 +260,31 @@ const verticalIds = Object.keys(policy.allowedTypeTermsByVertical);
 const relevantByVertical = Object.fromEntries(verticalIds.map((vertical) => [vertical, relevantCandidates.filter((candidate) => candidate.vertical === vertical).length]));
 const recoveredByVertical = Object.fromEntries(verticalIds.map((vertical) => [vertical, recovered.filter((row) => row.vertical === vertical).length]));
 const recoveredStrictDisallowed = recovered.filter((row) => row.priorStageDReason === policy.eligibleDisallowedContextReason);
+const recoveredAnchorMismatch = recovered.filter((row) => row.priorStageDReason === policy.eligibleAnchorMismatchReason);
 
 const verified = {
   ...report,
-  schemaVersion: '2.8.3',
+  schemaVersion: '2.8.4',
   semanticPolicy: {
     ...(report.semanticPolicy || {}),
-    version: 'SEMANTIC_V2_5_3_WIKIDATA_SOURCE_NATIVE_STRICT_DISALLOWED_OVERRIDE',
+    version: 'SEMANTIC_V2_5_4_WIKIDATA_SOURCE_NATIVE_BOUNDED_ANCHOR_OVERRIDE',
     stageE: policy.semanticStage,
-    sourceNativeTypeVerification: 'DIRECT_P31_ENGLISH_PRODUCT_PROOF_WITH_STRICT_STAGE_D_DISALLOWED_CONTEXT_OVERRIDE',
-    principle: 'Stage E may requalify Stage-D context-missing Wikidata CC0 records with full query-anchor match, plus a narrowly bounded Stage-D disallowed-context lane only when the title is exact or model-specific and full anchors match. In both lanes direct P31 must provide source-native product/object proof for the target vertical. Hard disallowed P31 entity/media types always override product proof. Soft trademark classification may coexist only with a separate explicit allowed product P31. Rights/provenance identity is never rewritten.',
+    sourceNativeTypeVerification: 'DIRECT_P31_ENGLISH_PRODUCT_PROOF_WITH_BOUNDED_STAGE_D_OVERRIDES',
+    principle: 'Stage E may requalify Stage-D context-missing Wikidata CC0 records with full query-anchor match, plus narrowly bounded Stage-D disallowed-context records with exact/model identity, and anchor-mismatch records only when the original non-generic Stage-D result already carried vertical product context. Every lane still requires direct P31 source-native product/object proof for the target vertical. Hard disallowed P31 entity/media types always override product proof. Soft trademark classification may coexist only with a separate explicit allowed product P31. Rights/provenance identity is never rewritten.',
   },
   metrics: {
     ...(report.metrics || {}),
     semanticRelevantCandidates: relevantCandidates.length,
     semanticSourceNativeTypeRecoveredCandidates: recovered.length,
     semanticSourceNativeStrictDisallowedRecoveredCandidates: recoveredStrictDisallowed.length,
+    semanticSourceNativeAnchorMismatchRecoveredCandidates: recoveredAnchorMismatch.length,
     semanticRelevanceCoverage: candidates.length ? relevantCandidates.length / candidates.length : 0,
     relevantByVertical,
   },
   candidateBuild: {
     ...(report.candidateBuild || {}),
     outcome: 'BUILT_SOURCE_NATIVE_TYPE_VERIFIED_NOT_CERTIFIED',
-    note: 'Stage E requalifies only directly verified Wikidata P31 product/object types. Strict Stage-D disallowed-context recovery additionally requires exact-title or model-specific identity plus full query-anchor match. Hard P31 entity/media classifications remain rejected; unavailable, ambiguous or non-product types remain rejected.',
+    note: 'Stage E requalifies only directly verified Wikidata P31 product/object types. Strict Stage-D disallowed-context recovery requires exact-title or model-specific identity plus full query-anchor match. The bounded anchor-mismatch lane is non-generic and requires pre-existing vertical product context before direct P31 can requalify it. Hard P31 entity/media classifications remain rejected; unavailable, ambiguous or non-product types remain rejected.',
   },
   claims: {
     ...(report.claims || {}),
@@ -281,7 +296,7 @@ const verified = {
 };
 
 const audit = {
-  schemaVersion: '1.1.0',
+  schemaVersion: '1.2.0',
   mode: 'KIDULT100_STAGE2_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFICATION',
   generatedAt: new Date().toISOString(),
   policy: policy.policy,
@@ -290,9 +305,11 @@ const audit = {
     inputRelevantCandidates: inputRelevant,
     eligibleStageDContextMissingCandidates: eligibleContextMissing.length,
     eligibleStageDStrictDisallowedContextCandidates: eligibleStrictDisallowed.length,
+    eligibleStageDAnchorMismatchCandidates: eligibleAnchorMismatch.length,
     evaluatedCandidates: evaluated.length,
     recoveredCandidates: recovered.length,
     recoveredStrictDisallowedContextCandidates: recoveredStrictDisallowed.length,
+    recoveredAnchorMismatchCandidates: recoveredAnchorMismatch.length,
     retainedRejectedCandidates: retainedRejected.length,
     outputRelevantCandidates: relevantCandidates.length,
     sourceErrorCount: sourceErrors.length,
@@ -309,6 +326,8 @@ const audit = {
     provenanceRelaxed: false,
     candidatePayloadHashRewritten: false,
     stageDDisallowedContextCanQualifyWithoutExactOrModelIdentity: false,
+    anchorMismatchCanQualifyWithoutExistingVerticalProductContext: false,
+    anchorMismatchCanQualifyWithoutDirectP31VerticalProductType: false,
     hardDisallowedEntityOrMediaTypeCanBeOverridden: false,
     softClassificationAloneCanQualify: false,
     unauthorizedScrapingRequested: false,
@@ -326,6 +345,6 @@ fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.mkdirSync(path.dirname(auditPath), { recursive: true });
 fs.writeFileSync(outputPath, JSON.stringify(verified, null, 2));
 fs.writeFileSync(auditPath, JSON.stringify(audit, null, 2));
-console.log(`Stage2 Wikidata source-native type verification: eligible=${eligible.length} strictDisallowed=${eligibleStrictDisallowed.length} evaluated=${evaluated.length} recovered=${recovered.length} recoveredStrictDisallowed=${recoveredStrictDisallowed.length} outputRelevant=${relevantCandidates.length}`);
+console.log(`Stage2 Wikidata source-native type verification: eligible=${eligible.length} strictDisallowed=${eligibleStrictDisallowed.length} anchorMismatch=${eligibleAnchorMismatch.length} evaluated=${evaluated.length} recovered=${recovered.length} recoveredStrictDisallowed=${recoveredStrictDisallowed.length} recoveredAnchorMismatch=${recoveredAnchorMismatch.length} outputRelevant=${relevantCandidates.length}`);
 console.log(`recoveredByVertical=${JSON.stringify(recoveredByVertical)} sourceErrors=${sourceErrors.length} requests=${requestCount}`);
 console.log(`disposition=${audit.disposition}`);
