@@ -52,7 +52,7 @@ function validatePolicy(policy) {
   const requiredRules = [
     'neverUpgradePreviouslyIrrelevant', 'genericQueryResultsRejected', 'disallowedDescriptionOverridesProductTerm',
     'queryAnchorRequired', 'productObjectContextRequired', 'modelSpecificExactTitleMayPassWithoutDescription',
-    'preserveRightsAndProvenance', 'rewriteGeneratedPocReportOnly',
+    'modelSpecificAllAnchorsMayPassWithoutDescription', 'preserveRightsAndProvenance', 'rewriteGeneratedPocReportOnly',
   ];
   for (const key of requiredRules) if (policy?.rules?.[key] !== true) throw new Error(`Unsafe reference precision rule: ${key}`);
   for (const [key, value] of Object.entries(policy?.safety || {})) if (value !== false) throw new Error(`Unsafe reference precision safety flag: ${key}`);
@@ -100,6 +100,8 @@ function evaluate(candidate, policy) {
     reasons.push('REFERENCE_PRODUCT_TITLE_CONFIRMED');
   } else if (query.exactTitleQuery && modelSpecific && !candidate.description) {
     reasons.push('REFERENCE_MODEL_SPECIFIC_EXACT_TITLE_CONFIRMED');
+  } else if (query.allAnchorsMatched && modelSpecific && !candidate.description) {
+    reasons.push('REFERENCE_MODEL_SPECIFIC_ALL_QUERY_ANCHORS_CONFIRMED');
   } else {
     passed = false;
     reasons.push('REFERENCE_PRODUCT_OBJECT_CONTEXT_MISSING');
@@ -203,13 +205,13 @@ const downgradedByVertical = Object.fromEntries(verticalIds.map((vertical) => [v
 
 const hardened = {
   ...report,
-  schemaVersion: '2.7.0',
+  schemaVersion: '2.7.1',
   semanticPolicy: {
     ...(report.semanticPolicy || {}),
     version: 'SEMANTIC_V2_4_REFERENCE_PRECISION_HARDENED',
     stageD: policy.semanticStage,
     sourceNativeReferenceAcceptedWithoutObjectProof: false,
-    principle: 'Reference-public search results require at least one query anchor plus vertical product-object proof; related people, media, companies, places and generic classes do not count as candidate supply.',
+    principle: 'Reference-public search results require at least one query anchor plus vertical product-object proof; model-specific no-description variants may pass only when every distinctive query anchor matches; related people, media, companies, places and generic classes do not count as candidate supply.',
   },
   metrics: {
     ...(report.metrics || {}),
@@ -223,7 +225,7 @@ const hardened = {
   candidateBuild: {
     ...(report.candidateBuild || {}),
     outcome: 'BUILT_REFERENCE_PRECISION_HARDENED_NOT_CERTIFIED',
-    note: 'Stage D only downgrades reference-public false positives; it does not create evidence, scores, or weaken provenance/rights.',
+    note: 'Stage D only downgrades reference-public false positives or retains high-specificity anchored model variants; it does not create evidence, scores, or weaken provenance/rights.',
   },
   claims: {
     ...(report.claims || {}),
@@ -235,7 +237,7 @@ const hardened = {
 };
 
 const audit = {
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.0.1',
   mode: 'KIDULT100_STAGE2_REFERENCE_PRODUCT_PRECISION_HARDENING',
   generatedAt: new Date().toISOString(),
   policy: policy.policy,
