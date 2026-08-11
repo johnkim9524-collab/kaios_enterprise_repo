@@ -54,6 +54,8 @@ jobs:
         run: node scripts/kidult100-wave1-live.mjs
       - name: Stage 2 normalized candidate universe build
         run: node scripts/kidult100-poc-live.mjs
+      - name: Stage 2 Wikidata-only precision recovery
+        run: node scripts/kidult100-precision-recovery-live.mjs
       - name: Stage 2 institutional archive product-object precision hardening
         run: node scripts/kidult100-stage2-archive-precision-harden.mjs
       - name: Stage 2 reference-public product-object precision hardening
@@ -190,6 +192,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-poc-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-poc-precision-hardening-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-reference-precision-hardening-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-poc/kidult100-precision-recovery-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/open-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/wikimedia-demand-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/canon-evidence-latest.json
