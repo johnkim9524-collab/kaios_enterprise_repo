@@ -63,7 +63,8 @@ const poc = readJsonInput(process.env.KIDULTS_SCARCITY_HARDEN_POC_JSON, DEFAULT_
 const rightData = readJsonInput(process.env.KIDULTS_SCARCITY_HARDEN_RIGHT_DATA_JSON, DEFAULT_RIGHT_DATA);
 const outputRaw = process.env.KIDULTS_SCARCITY_HARDEN_OUTPUT || DEFAULT_OUT;
 const outputPath = path.isAbsolute(outputRaw) ? outputRaw : path.join(ROOT, outputRaw);
-const diagnosticContinuation = process.env.KIDULTS_SCARCITY_SCOPE_SHORTFALL_DIAGNOSTIC_CONTINUE === 'true';
+const diagnosticContinuation = Number(queue?.metrics?.calibrationReferenceShortfall || 0) > 0
+  || process.env.KIDULTS_SCARCITY_SCOPE_SHORTFALL_DIAGNOSTIC_CONTINUE === 'true';
 
 if (queue?.mode !== 'KIDULT100_SCARCITY_EVIDENCE_TARGET_QUEUE' || Number(queue?.metrics?.targetShortfall || 0) !== 0) {
   throw new Error('Unsafe or incomplete scarcity target queue');
