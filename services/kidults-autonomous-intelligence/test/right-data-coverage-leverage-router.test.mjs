@@ -13,7 +13,7 @@ function rightData() {
     mode: 'KIDULT100_RIGHT_DATA_ENRICHMENT',
     metrics: {
       semanticRelevantCandidates: 4,
-      requiredRightDataCoverage: 4.75 / 7,
+      requiredRightDataCoverage: 3.75 / 7,
       primitiveCoverage: {
         IDENTITY: 1,
         SCARCITY: 0.25,
@@ -74,8 +74,8 @@ test('routes bounded safe internal leverage without creating or certifying evide
   assert.equal(report.schemaVersion, '1.0.0');
   assert.equal(report.metrics.semanticRelevantCandidates, 4);
   assert.equal(report.metrics.requiredPrimitiveCount, 7);
-  assert.equal(report.metrics.currentRequiredRightDataCoverage, 4.75 / 7);
-  assert.equal(report.metrics.recomputedRequiredRightDataCoverage, 4.75 / 7);
+  assert.equal(report.metrics.currentRequiredRightDataCoverage, 3.75 / 7);
+  assert.equal(report.metrics.recomputedRequiredRightDataCoverage, 3.75 / 7);
   assert.equal(report.metrics.scarcityDiscoveryReadyTargets, 2);
   assert.equal(report.metrics.safeInternalConditionalRequiredRightDataCoverageDelta, (2 / 28) + (0.5 / 7));
   assert.equal(report.metrics.nextSafeLane, 'DEMAND_ATTENTION');
@@ -98,10 +98,9 @@ test('routes bounded safe internal leverage without creating or certifying evide
   assert.equal(report.claims.rightsOrProvenanceRequirementsWeakened, false);
 });
 
-test('declares no safe automatic route for an uncovered non-market primitive and may conditionally reach target without certification', () => {
+test('declares no safe automatic route for an uncovered non-market primitive', () => {
   const rd = rightData();
   rd.metrics.primitiveCoverage.IDENTITY = 0.5;
-  rd.metrics.DUMMY = undefined;
   rd.metrics.requiredRightDataCoverage = (0.5 + 0.25 + 0 + 0 + 1 + 1 + 1) / 7;
   rd.metrics.primitiveCoverage.DEMAND_ATTENTION = 1;
   const scarcity = scarcityTriage();
@@ -111,6 +110,20 @@ test('declares no safe automatic route for an uncovered non-market primitive and
   const identity = report.lanes.find((lane) => lane.primitive === 'IDENTITY');
   assert.equal(identity.route, 'NO_SAFE_AUTOMATIC_ROUTE_DECLARED');
   assert.equal(identity.boundedSafeInternalRequiredRightDataCoverageDelta, 0);
+  assert.equal(report.claims.conditionalProjectionIsNotCertifiedRightData, true);
+});
+
+test('may conditionally reach target while remaining explicitly uncertified', () => {
+  const rd = rightData();
+  rd.metrics.primitiveCoverage = { SCARCITY: 0.8, DEMAND_ATTENTION: 0.9 };
+  rd.metrics.requiredRightDataCoverage = 0.85;
+  const scarcity = scarcityTriage();
+  scarcity.metrics.conditionalMaxRequiredRightDataCoverageDelta = 0.1;
+  const { result, report } = run(rd, scarcity);
+  assert.equal(result.status, 0);
+  assert.equal(report.metrics.safeInternalConditionalMaxRequiredRightDataCoverage, 1);
+  assert.equal(report.metrics.remainingGapToNinetyPercentAfterSafeInternalLanes, 0);
+  assert.equal(report.disposition, 'SAFE_INTERNAL_LANES_CONDITIONALLY_REACH_TARGET_NOT_CERTIFIED');
   assert.equal(report.claims.conditionalProjectionIsNotCertifiedRightData, true);
 });
 
@@ -144,6 +157,13 @@ test('fails closed on invalid modes claims coverage metrics and upstream structu
   assert.ok(report.structuralErrors.includes('UPSTREAM_SCARCITY_TRIAGE_HAS_STRUCTURAL_ERRORS'));
   assert.ok(report.structuralErrors.includes('INVALID_PRIMITIVE_COVERAGE:SCARCITY'));
   assert.equal(report.disposition, 'FAIL_CLOSED_INVALID_RIGHT_DATA_LEVERAGE_INPUTS');
+
+  const noPrimitives = rightData();
+  noPrimitives.metrics.primitiveCoverage = {};
+  noPrimitives.metrics.requiredRightDataCoverage = 0;
+  const empty = run(noPrimitives, scarcityTriage());
+  assert.equal(empty.result.status, 1);
+  assert.ok(empty.report.structuralErrors.includes('INVALID_RIGHT_DATA_REQUIRED_PRIMITIVE_COUNT'));
 });
 
 test('fails closed when reported Right Data coverage is not the primitive coverage mean', () => {
