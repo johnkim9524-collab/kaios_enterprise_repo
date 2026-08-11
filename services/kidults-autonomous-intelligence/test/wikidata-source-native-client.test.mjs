@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { fetchWikidataEntities } from '../scripts/lib/wikidata-source-native-client.mjs';
 
+const unexpectedCall = assert.fail.bind(null, 'unexpected callback invocation');
+
 function response(status, body, headers = {}) {
   return {
     ok: status >= 200 && status < 300,
@@ -29,7 +31,7 @@ test('source-native client preserves serial batching and filters duplicate/inval
       const id = new URL(url).searchParams.get('ids');
       return response(200, { entities: { [id]: { id } } });
     },
-    sleepImpl: async () => assert.fail('successful requests must not sleep'),
+    sleepImpl: unexpectedCall,
   });
 
   assert.deepEqual(Object.keys(result.entities), ['Q1', 'Q2']);
@@ -126,7 +128,7 @@ test('source-native client honors HTTP-200 maxlag body and reported lag before r
 test('source-native client keeps 5xx and non-retryable HTTP failures terminal and fail-closed', async () => {
   const serverFailure = await fetchWikidataEntities(['Q7'], {
     fetchImpl: async () => response(503, { error: { code: 'unavailable' } }),
-    sleepImpl: async () => assert.fail('5xx is terminal in this bounded verification client'),
+    sleepImpl: unexpectedCall,
   });
   assert.equal(serverFailure.requestCount, 1);
   assert.equal(serverFailure.retries, 0);
@@ -135,7 +137,7 @@ test('source-native client keeps 5xx and non-retryable HTTP failures terminal an
   const clientFailure = await fetchWikidataEntities(['Q8'], {
     maxRetries: 0,
     fetchImpl: async () => response(400, { error: { code: 'badrequest' } }),
-    sleepImpl: async () => assert.fail('non-retryable failure must not sleep'),
+    sleepImpl: unexpectedCall,
   });
   assert.equal(clientFailure.entities.Q8, undefined);
   assert.deepEqual(clientFailure.errors, [{ ids: ['Q8'], error: 'HTTP_400' }]);
@@ -145,7 +147,7 @@ test('source-native client records terminal maxlag without fabricating entities'
   const result = await fetchWikidataEntities(['Q9'], {
     maxRetries: 0,
     fetchImpl: async () => response(200, { error: { code: 'maxlag', lag: 3 } }),
-    sleepImpl: async () => assert.fail('terminal maxlag must not sleep'),
+    sleepImpl: unexpectedCall,
   });
   assert.equal(result.entities.Q9, undefined);
   assert.deepEqual(result.errors, [{ ids: ['Q9'], error: 'WIKIDATA_MAXLAG' }]);
@@ -155,7 +157,7 @@ test('source-native client records terminal maxlag without fabricating entities'
 test('source-native client records transport failures immediately without fabricating entities', async () => {
   const result = await fetchWikidataEntities(['Q10'], {
     fetchImpl: async () => { throw new Error('transport failure'); },
-    sleepImpl: async () => assert.fail('transport failures remain terminal'),
+    sleepImpl: unexpectedCall,
   });
   assert.equal(result.requestCount, 1);
   assert.equal(result.retries, 0);
@@ -167,17 +169,16 @@ test('source-native client tolerates malformed JSON as empty successful payload 
     fetchImpl: async () => ({
       ok: true,
       status: 200,
-      headers: { get: () => null },
       async json() { throw new Error('bad json'); },
     }),
-    sleepImpl: async () => assert.fail('successful HTTP response must not sleep'),
+    sleepImpl: unexpectedCall,
   });
   assert.deepEqual(malformed.entities, {});
   assert.deepEqual(malformed.errors, []);
 
   const empty = await fetchWikidataEntities(['bad', '', null], {
-    fetchImpl: async () => assert.fail('empty valid QID set must not fetch'),
-    sleepImpl: async () => assert.fail('empty valid QID set must not sleep'),
+    fetchImpl: unexpectedCall,
+    sleepImpl: unexpectedCall,
   });
   assert.deepEqual(empty.entities, {});
   assert.deepEqual(empty.errors, []);
@@ -234,7 +235,7 @@ test('source-native client clamps unsafe numeric options, handles non-array ids,
     maxRetries: -2,
     maxlagSeconds: -3,
     baseBackoffMs: -4,
-    fetchImpl: async () => assert.fail('non-array ids must not fetch'),
+    fetchImpl: unexpectedCall,
   });
   assert.equal(empty.requestCount, 0);
   assert.equal(empty.accessPolicy.maxRetries, 0);
