@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_SCARCITY_MATERIALIZATION_DELTA_INVARIANT",
+  "requiredPreMode": "KIDULT100_RIGHT_DATA_ENRICHMENT",
+  "requiredPostMode": "KIDULT100_RIGHT_DATA_ENRICHMENT",
+  "requiredMaterializationMode": "KIDULT100_SCARCITY_MATERIALIZED_EVIDENCE",
+  "requiredPrimitive": "SCARCITY",
+  "requiredSignalType": "TOTAL_PRODUCED",
+  "requiredEvidenceClass": "INDEPENDENT_VERIFICATION",
+  "requiredMaterializationStatus": "RAW_RIGHT_DATA_EVIDENCE_MATERIALIZED_NOT_SCORED",
+  "rules": {
+    "candidateUniverseMustRemainStable": true,
+    "semanticRelevanceMustRemainStable": true,
+    "materializedCandidatesMustBeSemanticRelevant": true,
+    "materializedCandidatesMustGainExactlyOneScarcityPrimitive": true,
+    "materializedEvidencePayloadMustMatchPostRightData": true,
+    "nonMaterializedCandidatesMayNotGainScarcity": true,
+    "existingScarcityMayNotDisappear": true,
+    "nonScarcityPrimitiveCoverageMustRemainStable": true,
+    "marketEvidenceCoverageMustRemainStable": true,
+    "requiredRightDataCoverageDeltaMustMatchMaterializedEvidence": true,
+    "decisionGradeDeltaMustMatchCandidateLevelTransition": true,
+    "normalizedScoreGenerationForbidden": true,
+    "productionScoringActivationForbidden": true,
+    "marketEvidenceCreationForbidden": true
+  }
+}
