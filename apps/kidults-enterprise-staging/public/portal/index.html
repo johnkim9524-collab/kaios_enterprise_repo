@@ -4,78 +4,95 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#faf9f6">
+  <meta name="description" content="KIDULTS — Global Collectibles Intelligence Standard">
   <title>KIDULTS — Global Collectibles Intelligence Standard</title>
-  <link rel="stylesheet" href="styles.css?v=228">
-  <link rel="stylesheet" href="final-228.css?v=228">
-  <script src="app.js?v=228" defer></script>
-  <script src="portal-v228.js?v=228" defer></script>
+  <link rel="stylesheet" href="portal-v300.css?v=300">
+  <script src="portal-v300.js?v=300" defer></script>
 </head>
 <body>
-<a class="skip" href="#main">Skip to content</a>
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
-  <a class="wordmark" href="#main" aria-label="KIDULTS home">KIDULTS</a>
-  <nav aria-label="Primary">
-    <a href="#discover">Discover</a><a href="#why">WHY</a><a href="#k100">Kidult 100</a><a href="#markets">Markets</a><a href="#collector">Collector</a><a href="#institution">Institution</a><a href="#why">Research</a><a href="#k100">Archive</a>
-  </nav>
-  <span class="live"><i></i> LIVE PREVIEW</span>
+  <div class="shell header-inner">
+    <a class="wordmark" href="#discover" aria-label="KIDULTS home">KIDULTS</a>
+    <nav class="primary-nav" id="primary-nav" aria-label="Primary navigation">
+      <a href="#discover">Discover</a><a href="#why">WHY</a><a href="#k100">Kidult 100</a><a href="#markets">Markets</a><a href="#research">Research</a><a href="#archive">Archive</a><a href="#institution">Institution</a>
+    </nav>
+    <div class="header-actions"><span class="preview-pill"><i></i> LIVE PREVIEW</span><button class="menu-toggle" type="button" aria-controls="primary-nav" aria-expanded="false" data-menu-toggle>Menu</button></div>
+  </div>
 </header>
+
 <main id="main">
-  <section class="hero" id="discover">
-    <div class="hero-copy">
-      <p class="eyebrow">THE GLOBAL STANDARD FOR COLLECTIBLES INTELLIGENCE</p>
-      <h1>Objects worth<br>knowing before<br>everyone else.</h1>
-      <span class="rule"></span>
-      <p>Culture creates value long before price reacts.<br>Kidults discovers the signal, explains WHY,<br>and proves it with evidence.</p>
-      <div class="actions"><a class="primary" href="#k100">Explore Kidult 100 →</a><a class="secondary" href="#why">See WHY it matters</a></div>
-    </div>
-    <article class="moment">
-      <p class="eyebrow"><i></i> ICON OF THE MOMENT</p>
-      <div class="moment-copy"><h2>Mobility Sculpture 01</h2><p>Vision. Material. Direction.</p><span class="rule"></span><small>KIDULTS ORIGINAL VISUAL<br>RIGHTS-GATED</small></div>
-      <img class="hero-asset" src="assets/hero-canvas-v228.webp?v=228" alt="Kidults original mobility sculpture">
-      <div class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-      <button class="detail-link" type="button" data-dialog="hero">View details →</button>
-    </article>
-  </section>
-
-  <section class="top-metrics" id="markets">
-    <article><small>LIVE EVIDENCE</small><strong data-live-evidence>—</strong><p>Items analyzed</p></article>
-    <article><small>SOURCE FAMILIES</small><strong data-source-families>—</strong><p>Verified families</p></article>
-    <article><small>QUALIFIED SIGNALS</small><strong data-signals>—</strong><p>Data points</p></article>
-    <article><small>CONFIDENCE ENGINE</small><strong data-model-confidence>—</strong><p>Model confidence</p></article>
-    <article><small>COVERAGE</small><strong data-entities>500+</strong><p>Tracked Entities</p></article>
-    <article><small>UPDATE FREQUENCY</small><strong>Real-time</strong><p>Live intelligence</p></article>
-  </section>
-
-  <section class="process" id="why">
-    <div class="manifest"><p class="eyebrow">◆ &nbsp; INSTITUTIONAL INTELLIGENCE LAYER</p><h2>We do not show objects.<br>We prove why they matter.</h2><small>EVIDENCE · METHODOLOGY · PROVENANCE · TRANSPARENCY</small></div>
-    <div class="steps">
-      <div><b>1. SIGNAL</b><span>◎</span><p>Cultural and market signals are detected continuously.</p></div><em>›</em>
-      <div><b>2. VERIFY</b><span>☑</span><p>Identity, provenance, and authenticity are verified.</p></div><em>›</em>
-      <div><b>3. ANALYZE</b><span>⌘</span><p>Multi-model analysis explains WHY value emerges.</p></div><em>›</em>
-      <div><b>4. BENCHMARK</b><span>▥</span><p>Signals are compared with Kidult 100 and global peers.</p></div><em>›</em>
-      <div><b>5. PUBLISH</b><span>▤</span><p>Findings publish with evidence and confidence.</p></div>
+  <section class="hero section" id="discover" aria-labelledby="hero-title">
+    <div class="shell hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">THE GLOBAL STANDARD FOR COLLECTIBLES INTELLIGENCE</p>
+        <h1 id="hero-title">Objects worth<br>knowing<br>before<br>everyone else.</h1>
+        <span class="short-rule" aria-hidden="true"></span>
+        <p class="hero-lede">Culture creates value long before price reacts. Kidults discovers the signal, explains <em>why</em>, and proves it with evidence.</p>
+        <div class="hero-actions"><a class="button button-primary" href="#k100">Explore Kidult 100 <span>→</span></a><a class="button button-secondary" href="#why">See WHY it matters</a></div>
+        <div class="hero-proof"><span>Evidence</span><i></i><span>Methodology</span><i></i><span>Provenance</span></div>
+      </div>
+      <article class="moment-card">
+        <img class="moment-image" src="assets/hero-canvas-v228.webp?v=300" alt="Kidults original mobility sculpture on an ivory studio canvas">
+        <div class="moment-shade" aria-hidden="true"></div>
+        <div class="moment-topline"><i></i><span>ICON OF THE MOMENT</span></div>
+        <div class="moment-copy"><h2>Mobility Sculpture 01</h2><p>Vision. Material. Direction.</p><span class="short-rule"></span><small>KIDULTS ORIGINAL VISUAL<br>RIGHTS-GATED</small></div>
+        <div class="moment-footer"><div class="carousel-dots" aria-hidden="true"><i class="active"></i><i></i><i></i><i></i></div><button class="text-link" type="button" data-dialog="hero">View details <span>→</span></button></div>
+      </article>
     </div>
   </section>
 
-  <section class="benchmark" id="k100">
-    <article class="benchmark-intro"><small>GLOBAL BENCHMARK</small><h2>Kidult 100.</h2><p>The definitive benchmark<br>for collectible objects.<br>Ranked by evidence,<br>not opinion.</p><a href="../methodology.html">View Methodology →</a></article>
-    <div class="rankings" data-k100-cards></div>
-    <article class="canon"><small>CANON STRENGTH</small><ul><li data-canon="Canonical">Canonical</li><li data-canon="Established">Established</li><li class="active" data-canon="Emerging">Emerging</li><li data-canon="Building">Building</li></ul><p>Evidence maturity<br>of Kidult 100 universe</p><a href="#why">Learn more →</a></article>
+  <section class="section section-compact" id="markets" aria-label="Executive intelligence metrics"><div class="shell"><div class="metrics-grid" data-metrics-grid></div></div></section>
+
+  <section class="section intelligence-section" id="why" aria-labelledby="why-title">
+    <div class="shell">
+      <div class="section-heading split-heading"><div><p class="eyebrow">INSTITUTIONAL INTELLIGENCE LAYER</p><h2 id="why-title">We do not show objects.<br>We prove why they matter.</h2></div><p>Every object moves through a governed chain of evidence before it becomes a published intelligence output.</p></div>
+      <div class="pipeline-grid">
+        <article class="pipeline-card"><div class="pipeline-index">01</div><div class="pipeline-icon">◎</div><h3>Signal</h3><p>Cultural and market signals are detected continuously across qualified source families.</p></article>
+        <article class="pipeline-card"><div class="pipeline-index">02</div><div class="pipeline-icon">☑</div><h3>Verify</h3><p>Identity, provenance, source quality and authenticity are systematically checked.</p></article>
+        <article class="pipeline-card"><div class="pipeline-index">03</div><div class="pipeline-icon">⌘</div><h3>Analyze</h3><p>Multi-model analysis combines evidence with human review to explain why value emerges.</p></article>
+        <article class="pipeline-card"><div class="pipeline-index">04</div><div class="pipeline-icon">▥</div><h3>Benchmark</h3><p>Signals are compared with Kidult 100 and global object-level comparables.</p></article>
+        <article class="pipeline-card"><div class="pipeline-index">05</div><div class="pipeline-icon">▤</div><h3>Publish</h3><p>Findings publish with explicit evidence, confidence and access controls.</p></article>
+      </div>
+      <div class="evidence-principles"><span>Evidence first</span><i></i><span>Source-aware</span><i></i><span>Confidence separated</span><i></i><span>Rights-gated</span></div>
+    </div>
   </section>
 
-  <section class="lower">
-    <article><small>GLOBAL DATA COVERAGE (ACTIVE INGEST)</small><div class="coverage-numbers"><strong><b data-countries>—</b><span>Countries</span></strong><strong><b data-markets>—</b><span>Markets</span></strong><strong><b data-languages>—</b><span>Languages</span></strong></div><p>Actively collecting. Expanding daily.</p><button data-prov="coverage">See coverage map →</button></article>
-    <article><small>EVIDENCE COMPOSITION (360° VIEW)</small><div class="composition"><div class="donut"><b data-signals>—</b><span>Total Signals</span></div><ul><li>Market Data <b>42%</b></li><li>Auction Data <b>24%</b></li><li>News & Media <b>15%</b></li><li>Social & Sentiment <b>11%</b></li><li>Other Sources <b>8%</b></li></ul></div><button data-prov="signals">Provenance →</button></article>
-    <article><small>OUR METHODOLOGY</small><p>Proprietary multi-model framework combining AI, human insight, and institutional data to explain the WHY behind value.</p><div class="method-icons"><span>⚙<b>AI Models</b></span><span>♙<b>Human Analysts</b></span><span>▤<b>Institutional Data</b></span><span>⊗<b>Provenance Layer</b></span></div><a href="../methodology.html">Explore methodology →</a></article>
+  <section class="section operational-section" aria-labelledby="operations-title"><div class="shell"><div class="section-heading split-heading"><div><p class="eyebrow">OPERATIONAL EVIDENCE</p><h2 id="operations-title">A visible control layer,<br>not a black box.</h2></div><p>Scale, data quality, access and production status are separated so preview values are never mistaken for verified live outputs.</p></div><div class="operations-grid" data-operations-grid></div></div></section>
+
+  <section class="section k100-section" id="k100" aria-labelledby="k100-title">
+    <div class="shell">
+      <div class="section-heading split-heading"><div><p class="eyebrow">GLOBAL BENCHMARK</p><h2 id="k100-title">Kidult 100.</h2></div><p>The definitive evidence benchmark for collectible objects—ranked by signals, confidence and comparables, not opinion.</p></div>
+      <div class="k100-frame">
+        <article class="k100-intro"><p class="eyebrow">K100 · PREVIEW EDITION</p><h3>Five objects.<br>One evidence language.</h3><p>Rights-safe editorial objects demonstrate how the index compares value across fundamentally different categories.</p><button class="button button-secondary" type="button" data-dialog="methodology">View methodology <span>→</span></button></article>
+        <div class="k100-cards" data-k100-cards></div>
+        <aside class="canon-panel"><p class="eyebrow">CANON STRENGTH</p><ul class="canon-scale"><li data-canon="Canonical"><i></i>Canonical</li><li data-canon="Established"><i></i>Established</li><li data-canon="Emerging" class="active"><i></i>Emerging</li><li data-canon="Building"><i></i>Building</li></ul><p>Evidence maturity of the Kidult 100 universe.</p><button class="text-link" type="button" data-dialog="canon">Learn more <span>→</span></button></aside>
+      </div>
+    </div>
   </section>
 
-  <section class="institution" id="institution">
-    <article id="collector"><p class="eyebrow">◇ &nbsp; INSTITUTIONAL ACCESS</p><h3>This content is rights-gated.<br>Access requires institutional<br>or collector verification.</h3><div class="pills"><span>Public (Preview)</span><span>Collector</span><span>Institutional</span></div><button data-dialog="access">Learn about access →</button></article>
-    <article><p class="eyebrow">⚙ &nbsp; RIGHTS & GOVERNANCE</p><h3>All visuals on this platform are<br>KIDULTS Original Editorial Objects.</h3><ul><li>● No third-party product photos</li><li>● No brand logos or trade dress</li><li>● No endorsements implied</li><li>● Original design system</li><li>● Rights-gated content pipeline</li></ul><button data-dialog="rights">View rights manifesto →</button></article>
-    <article><p class="eyebrow">▥ &nbsp; INSTITUTIONAL ECOSYSTEM</p><h3>Designed for institutional workflows<br>in culture, finance, and data.</h3><div class="ecosystem"><span>♜<b>Culture<br>Institutions</b></span><span>▥<b>Financial<br>Institutions</b></span><span>◎<b>Data<br>Partners</b></span><span>◇<b>Research<br>Partners</b></span></div><button data-dialog="ecosystem">Ecosystem inquiries →</button></article>
+  <section class="section market-signals-section" aria-labelledby="signals-title"><div class="shell"><div class="section-heading split-heading"><div><p class="eyebrow">LIVE MARKET SIGNALS</p><h2 id="signals-title">From cultural momentum<br>to evidence maturity.</h2></div><p>Preview signals translate raw activity into an institutional reading of movement, confidence and market structure.</p></div><div class="signal-grid" data-signal-grid></div></div></section>
+
+  <section class="section evidence-section" aria-labelledby="evidence-title">
+    <div class="shell">
+      <div class="section-heading split-heading"><div><p class="eyebrow">EVIDENCE LANDSCAPE</p><h2 id="evidence-title">Coverage, composition<br>and methodology.</h2></div><p>Three views of the same intelligence system: where the data reaches, what it is made of, and how evidence becomes a finding.</p></div>
+      <div class="evidence-grid">
+        <article class="evidence-card coverage-card"><p class="eyebrow">GLOBAL DATA COVERAGE</p><div class="coverage-values"><div><strong data-countries>—</strong><span>Countries</span></div><div><strong data-markets>—</strong><span>Markets</span></div><div><strong data-languages>—</strong><span>Languages</span></div></div><p>Actively collecting across global marketplaces, institutions and cultural ecosystems.</p><button class="text-link" type="button" data-prov="coverage">See coverage map <span>→</span></button></article>
+        <article class="evidence-card composition-card"><p class="eyebrow">EVIDENCE COMPOSITION · 360° VIEW</p><div class="composition-layout"><div class="donut" data-donut><div class="donut-center"><strong data-signals>—</strong><span>Total signals</span></div></div><ul class="composition-list" data-composition-list></ul></div><button class="text-link" type="button" data-prov="signals">View provenance <span>→</span></button></article>
+        <article class="evidence-card methodology-card"><p class="eyebrow">OUR METHODOLOGY</p><h3>Evidence becomes useful only when its limits are visible.</h3><p>Kidults combines AI models, human analysts, institutional data and a provenance layer to explain the why behind value.</p><div class="methodology-icons"><span><i>⚙</i><b>AI Models</b></span><span><i>♙</i><b>Human Analysts</b></span><span><i>▤</i><b>Institutional Data</b></span><span><i>⊗</i><b>Provenance Layer</b></span></div><button class="text-link" type="button" data-dialog="methodology">Explore methodology <span>→</span></button></article>
+      </div>
+    </div>
   </section>
+
+  <section class="section research-section" id="research" aria-labelledby="research-title"><div class="shell"><div class="section-heading split-heading"><div><p class="eyebrow">RESEARCH & INTELLIGENCE</p><h2 id="research-title">The latest reading<br>of collectible culture.</h2></div><p>Monthly intelligence translates market pulse, liquidity, category movement and risk into an editorial research layer.</p></div><div class="research-layout"><article class="research-feature"><div class="research-meta"><span data-research-issue>2026.08</span><span>MONTHLY INTELLIGENCE</span></div><h3 data-research-title>Monthly Intelligence Issue 01</h3><p class="research-subtitle" data-research-subtitle>Global Collectibles Market Signals</p><p class="research-summary" data-research-summary></p><button class="button button-primary" type="button" data-dialog="research">Open research brief <span>→</span></button></article><div class="research-notes" data-research-notes></div></div></div></section>
+
+  <section class="section archive-section" id="archive" aria-labelledby="archive-title"><div class="shell archive-shell"><div class="archive-intro"><p class="eyebrow">INTELLIGENCE ARCHIVE</p><h2 id="archive-title">A durable record<br>of how the market changed.</h2><p>Every edition preserves its evidence context, methodology version and publication status.</p></div><div class="archive-list" data-archive-list></div></div></section>
+
+  <section class="section institution-section" id="institution" aria-labelledby="institution-title"><div class="shell"><div class="section-heading split-heading"><div><p class="eyebrow">INSTITUTIONAL LAYER</p><h2 id="institution-title">Built for governed access,<br>rights and collaboration.</h2></div><p>The public preview shows the framework. Deeper evidence, comparables and workflow tools remain access-controlled.</p></div><div class="institution-grid"><article class="institution-card" id="access"><div class="institution-icon">◇</div><p class="eyebrow">INSTITUTIONAL ACCESS</p><h3>This content is rights-gated.</h3><p>Access requires collector or institutional verification and is granted by evidence depth.</p><div class="access-pills"><span>Public Preview</span><span>Collector</span><span>Institutional</span></div><button class="text-link" type="button" data-dialog="access">Learn about access <span>→</span></button></article><article class="institution-card"><div class="institution-icon">⚙</div><p class="eyebrow">RIGHTS & GOVERNANCE</p><h3>Original visuals. Explicit controls.</h3><ul><li>No third-party product photos</li><li>No brand logos or trade dress</li><li>No implied endorsements</li><li>Rights-gated content pipeline</li></ul><button class="text-link" type="button" data-dialog="rights">View rights manifesto <span>→</span></button></article><article class="institution-card"><div class="institution-icon">▥</div><p class="eyebrow">INSTITUTIONAL ECOSYSTEM</p><h3>Designed for high-trust workflows.</h3><p>Built for culture institutions, financial institutions, data partners and research partners.</p><div class="partner-grid"><span>Culture</span><span>Finance</span><span>Data</span><span>Research</span></div><button class="text-link" type="button" data-dialog="ecosystem">Ecosystem inquiries <span>→</span></button></article></div></div></section>
 </main>
-<footer><div class="footer-brand"><strong>KIDULTS</strong><span>GLOBAL COLLECTIBLES INTELLIGENCE STANDARD</span></div><nav><a href="#markets">Evidence</a><a href="#why">Provenance</a><a href="#k100">Comparables</a><a href="#why">WHY</a><a href="#k100">Canon</a><a href="#collector">Collector</a><a href="#institution">Institution</a></nav><span>© 2026 KIDULTS. All rights reserved.</span></footer>
-<dialog id="portal-dialog"><button class="close" aria-label="Close">×</button><p class="eyebrow" data-dialog-eyebrow>KIDULTS INTELLIGENCE</p><h2 data-dialog-title>Details</h2><div data-dialog-body></div></dialog>
+
+<footer class="site-footer"><div class="shell footer-inner"><div class="footer-brand"><strong>KIDULTS</strong><span>GLOBAL COLLECTIBLES INTELLIGENCE STANDARD</span></div><nav aria-label="Footer navigation"><a href="#markets">Evidence</a><a href="#why">Provenance</a><a href="#k100">Comparables</a><a href="#research">Research</a><a href="#archive">Archive</a><a href="#institution">Institution</a></nav><span>© 2026 KIDULTS. All rights reserved.</span></div></footer>
+
+<dialog id="portal-dialog" aria-labelledby="dialog-title"><button class="dialog-close" type="button" aria-label="Close dialog">×</button><p class="eyebrow" data-dialog-eyebrow>KIDULTS INTELLIGENCE</p><h2 id="dialog-title" data-dialog-title>Details</h2><div class="dialog-body" data-dialog-body></div></dialog>
 </body>
 </html>
