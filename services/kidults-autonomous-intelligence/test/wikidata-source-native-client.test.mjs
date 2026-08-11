@@ -89,6 +89,21 @@ test('source-native client uses bounded fallback backoff for 429 without server 
   assert.deepEqual(sleeps, [125]);
 });
 
+test('source-native client default sleeper handles bounded server backpressure', async () => {
+  let attempts = 0;
+  const result = await fetchWikidataEntities(['Q44'], {
+    maxRetries: 1,
+    fetchImpl: async () => {
+      attempts += 1;
+      if (attempts === 1) return response(429, { error: { code: 'ratelimited' } }, { 'retry-after': '0.001' });
+      return response(200, { entities: { Q44: { id: 'Q44' } } });
+    },
+  });
+  assert.equal(result.entities.Q44.id, 'Q44');
+  assert.equal(result.retries, 1);
+  assert.equal(result.rateLimits, 1);
+});
+
 test('source-native client honors HTTP-200 maxlag body and reported lag before retry', async () => {
   let attempts = 0;
   const sleeps = [];
