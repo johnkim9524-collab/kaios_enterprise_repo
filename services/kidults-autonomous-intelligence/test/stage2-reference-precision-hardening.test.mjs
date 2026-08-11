@@ -81,7 +81,7 @@ test('rejects generic discovery queries rather than counting category classes or
   assert.ok(hardened.candidates.every((x) => x.semanticStageD.reasons.includes('REFERENCE_GENERIC_QUERY_NOT_ENTITY_CANDIDATE')));
 });
 
-test('requires all meaningful query anchors, preventing related but different models and entities from entering supply', () => {
+test('requires a meaningful query anchor plus product context and rejects disallowed related entities', () => {
   const rows = [
     candidate({ candidateKey: 'mclaren-car', vertical: 'automobiles-mobility', query: 'McLaren F1', canonicalTitle: 'McLaren F1 GTR', description: 'racing car developed by McLaren Cars' }),
     candidate({ candidateKey: 'mclaren-team', vertical: 'automobiles-mobility', query: 'McLaren F1', canonicalTitle: 'McLaren', description: 'British Formula One team' }),
@@ -91,7 +91,7 @@ test('requires all meaningful query anchors, preventing related but different mo
   assert.equal(result.status, 0, result.stderr);
   assert.equal(audit.metrics.referenceRelevantRetained, 1);
   assert.equal(hardened.candidates.find((x) => x.candidateKey === 'mclaren-car').semanticRelevant, true);
-  assert.ok(hardened.candidates.find((x) => x.candidateKey === 'mclaren-team').semanticStageD.reasons.includes('REFERENCE_QUERY_ANCHOR_MISMATCH'));
+  assert.ok(hardened.candidates.find((x) => x.candidateKey === 'mclaren-team').semanticStageD.reasons.includes('REFERENCE_DISALLOWED_ENTITY_OR_MEDIA_CONTEXT'));
   assert.equal(hardened.candidates.find((x) => x.candidateKey === 'bmw-engine').semanticRelevant, false);
 });
 
