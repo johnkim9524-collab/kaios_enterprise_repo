@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {
   evaluatePrecisionRecoveryRow,
   canRequalifyExistingCandidate,
+  canRefreshExistingRelevantCandidate,
   requalifyExistingCandidate,
+  refreshExistingRelevantCandidate,
 } from '../scripts/lib/precision-recovery.mjs';
 
 const stopTokens = ['watch', 'watches', 'handbag', 'bag', 'shoe', 'shoes', 'computer', 'camera', 'console', 'game', 'comic', 'book', 'card', 'trading'];
@@ -23,6 +25,23 @@ function candidate(overrides = {}) {
     payloadHash: 'abc',
     query: 'Cartier',
     semanticRelevant: false,
+    ...overrides,
+  };
+}
+
+function acceptedEvaluation(overrides = {}) {
+  return {
+    accepted: true,
+    anchors: ['cartier', 'tank'],
+    anchorHits: ['cartier', 'tank'],
+    allDistinctiveAnchorsMatched: true,
+    productHits: ['wristwatch'],
+    queryProductHits: ['watch'],
+    disallowedHits: [],
+    modelSpecificNoDescription: false,
+    exactCuratedProductQueryMatch: true,
+    recoverySearchPayloadHash: 'search-hash',
+    recoveryObservedAt: '2026-08-11T12:00:00Z',
     ...overrides,
   };
 }
@@ -89,31 +108,30 @@ test('query product type alone is insufficient when source context is neither pr
   assert.equal(result.modelSpecificNoDescription, false);
 });
 
-test('existing candidate requalification is restricted to same vertical Wikidata CC0 records', () => {
+test('existing candidate recovery actions are mutually exclusive and rights scoped', () => {
   const evaluation = { accepted: true };
-  assert.equal(canRequalifyExistingCandidate(candidate(), 'watches-jewelry', evaluation), true);
-  assert.equal(canRequalifyExistingCandidate(candidate({ semanticRelevant: true }), 'watches-jewelry', evaluation), false);
-  assert.equal(canRequalifyExistingCandidate(candidate({ vertical: 'fashion-accessories' }), 'watches-jewelry', evaluation), false);
-  assert.equal(canRequalifyExistingCandidate(candidate({ source: 'met' }), 'watches-jewelry', evaluation), false);
-  assert.equal(canRequalifyExistingCandidate(candidate({ sourceClass: 'INSTITUTION_ARCHIVE' }), 'watches-jewelry', evaluation), false);
-  assert.equal(canRequalifyExistingCandidate(candidate({ rightsClass: 'RIGHTS_UNKNOWN' }), 'watches-jewelry', evaluation), false);
-  assert.equal(canRequalifyExistingCandidate(candidate(), 'watches-jewelry', { accepted: false }), false);
-  assert.equal(canRequalifyExistingCandidate(null, 'watches-jewelry', evaluation), false);
+  const irrelevant = candidate();
+  const relevant = candidate({ semanticRelevant: true });
+  assert.equal(canRequalifyExistingCandidate(irrelevant, 'watches-jewelry', evaluation), true);
+  assert.equal(canRefreshExistingRelevantCandidate(irrelevant, 'watches-jewelry', evaluation), false);
+  assert.equal(canRequalifyExistingCandidate(relevant, 'watches-jewelry', evaluation), false);
+  assert.equal(canRefreshExistingRelevantCandidate(relevant, 'watches-jewelry', evaluation), true);
+
+  for (const unsafe of [
+    candidate({ semanticRelevant: true, vertical: 'fashion-accessories' }),
+    candidate({ semanticRelevant: true, source: 'met' }),
+    candidate({ semanticRelevant: true, sourceClass: 'INSTITUTION_ARCHIVE' }),
+    candidate({ semanticRelevant: true, rightsClass: 'RIGHTS_UNKNOWN' }),
+  ]) {
+    assert.equal(canRefreshExistingRelevantCandidate(unsafe, 'watches-jewelry', evaluation), false);
+  }
+  assert.equal(canRefreshExistingRelevantCandidate(relevant, 'watches-jewelry', { accepted: false }), false);
+  assert.equal(canRefreshExistingRelevantCandidate(null, 'watches-jewelry', evaluation), false);
 });
 
 test('requalification preserves source identity and records semantic-only recovery provenance', () => {
   const original = candidate();
-  const evaluation = {
-    accepted: true,
-    anchors: ['cartier', 'tank'],
-    anchorHits: ['cartier', 'tank'],
-    allDistinctiveAnchorsMatched: true,
-    productHits: ['wristwatch'],
-    queryProductHits: ['watch'],
-    disallowedHits: [],
-    modelSpecificNoDescription: false,
-    exactCuratedProductQueryMatch: true,
-  };
+  const evaluation = acceptedEvaluation();
   const updated = requalifyExistingCandidate(original, 'Cartier Tank watch', evaluation);
   assert.equal(updated.semanticRelevant, true);
   assert.equal(updated.query, 'Cartier Tank watch');
@@ -121,14 +139,37 @@ test('requalification preserves source identity and records semantic-only recove
   assert.equal(updated.payloadHash, original.payloadHash);
   assert.equal(updated.observedAt, original.observedAt);
   assert.equal(updated.rightsClass, original.rightsClass);
+  assert.equal(updated.semanticRelevanceDiagnostics.precisionRecovery.requalifiedExistingCandidate, true);
+  assert.equal(updated.semanticRelevanceDiagnostics.precisionRecovery.refreshedExistingRelevantCandidate, false);
+  assert.equal(updated.semanticRelevanceDiagnostics.precisionRecovery.semanticSearchContextOnlyNotEvidence, true);
+  assert.equal(updated.semanticRelevanceDiagnostics.precisionRecovery.recoverySearchPayloadHash, 'search-hash');
   assert.equal(updated.semanticRelevanceDiagnostics.precisionRecovery.originalQuery, 'Cartier');
-  assert.equal(updated.semanticRelevanceDiagnostics.precisionRecovery.exactCuratedProductQueryMatch, true);
 
   const noDescription = requalifyExistingCandidate(
     candidate({ canonicalTitle: 'Leica M3', description: null }),
     'Leica M3 camera',
-    { ...evaluation, modelSpecificNoDescription: true },
+    acceptedEvaluation({ modelSpecificNoDescription: true }),
   );
   assert.equal(noDescription.query, 'Leica M3');
-  assert.equal(noDescription.semanticRelevanceDiagnostics.precisionRecovery.recoveryQuery, 'Leica M3 camera');
+});
+
+test('proof refresh preserves an already relevant candidate and only replaces semantic query context', () => {
+  const original = candidate({ semanticRelevant: true, query: 'watch' });
+  const updated = refreshExistingRelevantCandidate(original, 'Cartier Tank watch', acceptedEvaluation());
+  assert.equal(updated.semanticRelevant, true);
+  assert.equal(updated.query, 'Cartier Tank watch');
+  assert.equal(updated.semanticRelevanceVersion, 'SEMANTIC_V2_8_WIKIDATA_EXACT_QUERY_PROOF_REFRESH');
+  assert.equal(updated.candidateKey, original.candidateKey);
+  assert.equal(updated.sourceRecordId, original.sourceRecordId);
+  assert.equal(updated.sourceUrl, original.sourceUrl);
+  assert.equal(updated.rightsClass, original.rightsClass);
+  assert.equal(updated.observedAt, original.observedAt);
+  assert.equal(updated.payloadHash, original.payloadHash);
+  const proof = updated.semanticRelevanceDiagnostics.precisionRecovery;
+  assert.equal(proof.requalifiedExistingCandidate, false);
+  assert.equal(proof.refreshedExistingRelevantCandidate, true);
+  assert.equal(proof.semanticSearchContextOnlyNotEvidence, true);
+  assert.equal(proof.originalQuery, 'watch');
+  assert.equal(proof.recoveryQuery, 'Cartier Tank watch');
+  assert.equal(proof.recoveryObservedAt, '2026-08-11T12:00:00Z');
 });
