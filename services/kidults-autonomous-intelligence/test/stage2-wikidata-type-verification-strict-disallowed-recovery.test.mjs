@@ -10,18 +10,18 @@ const SCRIPT = path.join(ROOT, 'scripts', 'kidult100-stage2-wikidata-type-verify
 
 function candidate(overrides = {}) {
   return {
-    candidateKey: 'wikidata:Q531870',
-    canonicalTitle: 'Chanel 2.55',
+    candidateKey: 'wikidata:Q100',
+    canonicalTitle: 'Exact Product Model',
     description: 'company',
     vertical: 'fashion-accessories',
     source: 'wikidata',
     sourceClass: 'REFERENCE_PUBLIC_DATA',
-    sourceRecordId: 'Q531870',
-    sourceUrl: 'http://www.wikidata.org/entity/Q531870',
+    sourceRecordId: 'Q100',
+    sourceUrl: 'http://www.wikidata.org/entity/Q100',
     rightsClass: 'CC0_STRUCTURED_DATA',
     observedAt: '2026-08-11T00:00:00Z',
     payloadHash: 'a'.repeat(64),
-    query: 'Chanel 2.55',
+    query: 'Exact Product Model',
     semanticRelevant: false,
     semanticStageD: {
       passed: false,
@@ -69,20 +69,29 @@ function run(candidates, fixture) {
   return { result, verified, audit: auditReport };
 }
 
-test('strict disallowed-context lane recovers only exact/model-specific QIDs with explicit allowed P31 product proof', () => {
+test('strict disallowed-context lane requires clean explicit product P31 and rejects business/company conflicts', () => {
   const rows = [
     candidate(),
+    candidate({
+      candidateKey: 'wikidata:Q531870',
+      sourceRecordId: 'Q531870',
+      canonicalTitle: 'Chanel 2.55',
+      query: 'Chanel 2.55',
+      payloadHash: 'b'.repeat(64),
+    }),
     candidate({
       candidateKey: 'wikidata:Q200',
       sourceRecordId: 'Q200',
       canonicalTitle: 'Company Product',
-      payloadHash: 'b'.repeat(64),
+      query: 'Company Product',
+      payloadHash: 'c'.repeat(64),
     }),
     candidate({
       candidateKey: 'wikidata:Q201',
       sourceRecordId: 'Q201',
       canonicalTitle: 'Weak Identity',
-      payloadHash: 'c'.repeat(64),
+      query: 'Weak Identity',
+      payloadHash: 'd'.repeat(64),
       semanticStageD: {
         passed: false,
         reasons: ['REFERENCE_DISALLOWED_ENTITY_OR_MEDIA_CONTEXT'],
@@ -91,9 +100,10 @@ test('strict disallowed-context lane recovers only exact/model-specific QIDs wit
     }),
   ];
   const fixture = {
+    Q100: entity(['Q301']),
+    Q301: type('handbag'),
     Q531870: entity(['Q300', 'Q301']),
     Q300: type('business'),
-    Q301: type('handbag'),
     Q200: entity(['Q302', 'Q301']),
     Q302: type('company'),
     Q201: entity(['Q301']),
@@ -108,15 +118,21 @@ test('strict disallowed-context lane recovers only exact/model-specific QIDs wit
   assert.equal(recovered.payloadHash, 'a'.repeat(64));
   assert.equal(recovered.rightsClass, 'CC0_STRUCTURED_DATA');
 
-  const hardDisallowed = verified.candidates[1];
-  assert.equal(hardDisallowed.semanticRelevant, false);
-  assert.equal(hardDisallowed.semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_DISALLOWED_TYPE');
+  const businessConflict = verified.candidates[1];
+  assert.equal(businessConflict.semanticRelevant, false);
+  assert.equal(businessConflict.semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_DISALLOWED_TYPE');
+  assert.equal(businessConflict.semanticStageE.proof.allowedHits.some((hit) => hit.term === 'handbag'), true);
+  assert.equal(businessConflict.semanticStageE.proof.hardDisallowedHits.some((hit) => hit.term === 'business'), true);
 
-  const weakIdentity = verified.candidates[2];
+  const companyConflict = verified.candidates[2];
+  assert.equal(companyConflict.semanticRelevant, false);
+  assert.equal(companyConflict.semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_DISALLOWED_TYPE');
+
+  const weakIdentity = verified.candidates[3];
   assert.equal(weakIdentity.semanticRelevant, false);
   assert.equal(weakIdentity.semanticStageE.disposition, 'NOT_ELIGIBLE_FOR_SOURCE_NATIVE_REQUALIFICATION');
 
-  assert.equal(audit.metrics.eligibleStageDStrictDisallowedContextCandidates, 2);
+  assert.equal(audit.metrics.eligibleStageDStrictDisallowedContextCandidates, 3);
   assert.equal(audit.metrics.recoveredStrictDisallowedContextCandidates, 1);
   assert.equal(audit.safety.stageDDisallowedContextCanQualifyWithoutExactOrModelIdentity, false);
   assert.equal(audit.safety.hardDisallowedEntityOrMediaTypeCanBeOverridden, false);
