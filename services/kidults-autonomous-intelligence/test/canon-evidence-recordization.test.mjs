@@ -69,6 +69,35 @@ test('recordizes supported reference and institutional canon signals without gen
   assert.equal(report.claims.sourceRightsReclassified, false);
 });
 
+test('official Wikidata HTTP concept URI is canonicalized to HTTPS while original URI is preserved', () => {
+  const wikidata = candidate('wikidata-Q42', 'REFERENCE_PUBLIC_DATA', {
+    sourceRecordId: 'Q42',
+    sourceUrl: 'http://www.wikidata.org/entity/Q42',
+  });
+  const { result, report } = run({ candidates: [wikidata] });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(report.metrics.canonEvidenceRecords, 1);
+  assert.equal(report.metrics.canonicalizedSourceUrls, 1);
+  assert.equal(report.evidence[0].sourceUrl, 'https://www.wikidata.org/wiki/Q42');
+  assert.equal(report.evidence[0].value.originalSourceUrl, 'http://www.wikidata.org/entity/Q42');
+  assert.equal(report.evidence[0].safety.sourceUrlCanonicalizedToHttps, true);
+  assert.equal(report.claims.sourceProvenanceOriginChanged, false);
+  assert.equal(report.claims.originalNonHttpsSourceUrlPreservedWhenCanonicalized, true);
+});
+
+test('arbitrary HTTP sources remain fail-closed and are never upgraded', () => {
+  const unsafe = candidate('wikidata-Q1', 'REFERENCE_PUBLIC_DATA', {
+    sourceRecordId: 'Q1',
+    sourceUrl: 'http://example.test/entity/Q1',
+  });
+  const { result, report } = run({ candidates: [unsafe] });
+  assert.notEqual(result.status, 0);
+  assert.equal(report.metrics.canonEvidenceRecords, 0);
+  assert.equal(report.metrics.structuralErrorCount, 1);
+  assert.match(report.structuralErrors[0], /sourceUrl/);
+  assert.equal(report.claims.arbitraryHttpSourceAccepted, false);
+});
+
 test('unsupported source classes are rejected but never converted into canon evidence', () => {
   const { result, report } = run({ candidates: [candidate('market-1', 'MARKET_PROVIDER')] }, { useFile: true });
   assert.equal(result.status, 0, result.stderr || result.stdout);
