@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_SCARCITY_DISCOVERY_TRIAGE",
+  "requiredDiscoveryMode": "KIDULT100_SCARCITY_SOURCE_DISCOVERY_PLAN",
+  "requiredPriorityMode": "KIDULT100_NON_MARKET_EVIDENCE_ACQUISITION_PRIORITY",
+  "requiredRightDataMode": "KIDULT100_RIGHT_DATA_ENRICHMENT",
+  "requiredDimension": "SCARCITY",
+  "conditionalPrimitiveGainPerFullyVerifiedCandidate": 1,
+  "priorityOrder": [
+    "ZERO_ELIGIBLE_SUPPLY_FIRST",
+    "LARGER_VERTICAL_OPERATIONAL_GAP_FIRST",
+    "EXISTING_DEMAND_AND_CANON_SUPPORT_FIRST",
+    "RIGHTS_CLASSIFIED_REFERENCE_CONTEXT_FIRST",
+    "CANDIDATE_KEY_STABLE_TIE_BREAK"
+  ],
+  "safety": {
+    "sourceDiscoveryPerformed": false,
+    "sourceFeasibilityProbabilityEstimated": false,
+    "sourceQualifiedAutomatically": false,
+    "scarcityEvidenceCreated": false,
+    "syntheticOrEstimatedQuantityCreated": false,
+    "searchSnippetAcceptedAsEvidence": false,
+    "unauthorizedScrapingRequested": false,
+    "paidProviderProcurementRequested": false,
+    "contractExecutionRequested": false,
+    "rightsOrProvenanceRequirementsWeakened": false,
+    "productionScoringActivated": false
+  }
+}
