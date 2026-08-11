@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.5.0",
+  "schemaVersion": "1.6.0",
   "mode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "candidateTarget": 300,
   "stage2Gate": {
@@ -32,7 +32,7 @@
     {
       "id": "watches-jewelry",
       "label": "Watches & Jewelry",
-      "discoveryQueries": ["Rolex Daytona", "Omega Speedmaster", "Cartier watch", "Patek Philippe", "Audemars Piguet", "vintage wristwatch", "TAG Heuer Monaco", "Seiko diver watch", "Rolex Submariner watch", "Cartier Tank watch", "Omega Seamaster watch"]
+      "discoveryQueries": ["Rolex Daytona", "Omega Speedmaster", "Cartier watch", "Patek Philippe", "Audemars Piguet", "vintage wristwatch", "TAG Heuer Monaco", "Seiko diver watch", "Rolex Submariner watch", "Cartier Tank watch", "Omega Seamaster watch", "Rolex GMT-Master watch", "Jaeger-LeCoultre Reverso watch", "Breitling Navitimer watch", "Casio G-Shock watch", "Tudor Black Bay watch", "IWC Portugieser watch", "Seiko 5 watch"]
     },
     {
       "id": "automobiles-mobility",
