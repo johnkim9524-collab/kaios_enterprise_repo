@@ -63,6 +63,7 @@ const poc = readJsonInput(process.env.KIDULTS_SCARCITY_HARDEN_POC_JSON, DEFAULT_
 const rightData = readJsonInput(process.env.KIDULTS_SCARCITY_HARDEN_RIGHT_DATA_JSON, DEFAULT_RIGHT_DATA);
 const outputRaw = process.env.KIDULTS_SCARCITY_HARDEN_OUTPUT || DEFAULT_OUT;
 const outputPath = path.isAbsolute(outputRaw) ? outputRaw : path.join(ROOT, outputRaw);
+const diagnosticContinuation = process.env.KIDULTS_SCARCITY_SCOPE_SHORTFALL_DIAGNOSTIC_CONTINUE === 'true';
 
 if (queue?.mode !== 'KIDULT100_SCARCITY_EVIDENCE_TARGET_QUEUE' || Number(queue?.metrics?.targetShortfall || 0) !== 0) {
   throw new Error('Unsafe or incomplete scarcity target queue');
@@ -110,6 +111,7 @@ const targets = [];
 const byVertical = {};
 let clearMismatchExcluded = 0;
 let targetShortfall = 0;
+let scopeSafeReferenceShortfall = 0;
 let scopeReadySelected = 0;
 let reviewRequiredSelected = 0;
 
@@ -155,9 +157,12 @@ for (const vertical of verticals) {
       || b.semanticRelevanceScore - a.semanticRelevanceScore
       || String(a.candidateKey).localeCompare(String(b.candidateKey)));
 
-  const selected = safePool.slice(0, desired);
-  const shortfall = Math.max(0, desired - selected.length);
+  const boundedDesired = diagnosticContinuation ? Math.min(desired, safePool.length) : desired;
+  const selected = safePool.slice(0, boundedDesired);
+  const shortfall = Math.max(0, boundedDesired - selected.length);
+  const preservedScopeShortfall = Math.max(0, desired - boundedDesired);
   targetShortfall += shortfall;
+  scopeSafeReferenceShortfall += preservedScopeShortfall;
   scopeReadySelected += selected.filter((row) => row.scopeStatus === 'TARGET_SCOPE_READY').length;
   reviewRequiredSelected += selected.filter((row) => row.scopeStatus === 'ENTITY_SCOPE_REVIEW_REQUIRED').length;
   targets.push(...selected.map((row, index) => ({ ...row, verticalPriority: index + 1 })));
@@ -168,21 +173,25 @@ for (const vertical of verticals) {
     clearMismatchExcluded: mismatches.length,
     scopeReadyAvailable: safePool.filter((row) => row.scopeStatus === 'TARGET_SCOPE_READY').length,
     reviewRequiredAvailable: safePool.filter((row) => row.scopeStatus === 'ENTITY_SCOPE_REVIEW_REQUIRED').length,
+    boundedAcquisitionTarget: boundedDesired,
     selectedTargets: selected.length,
     targetShortfall: shortfall,
+    scopeSafeReferenceShortfall: preservedScopeShortfall,
   };
 }
 
 const disposition = targetShortfall > 0
   ? 'FAIL_CLOSED_INSUFFICIENT_SCOPE_SAFE_TARGET_SUPPLY'
-  : reviewRequiredSelected > 0
-    ? 'QUEUE_HARDENED_REVIEW_TARGETS_RETAINED_BLOCKED'
-    : 'QUEUE_HARDENED_SCOPE_READY';
+  : scopeSafeReferenceShortfall > 0
+    ? 'QUEUE_HARDENED_SCOPE_SAFE_REFERENCE_SHORTFALL_RETAINED'
+    : reviewRequiredSelected > 0
+      ? 'QUEUE_HARDENED_REVIEW_TARGETS_RETAINED_BLOCKED'
+      : 'QUEUE_HARDENED_SCOPE_READY';
 
 const report = {
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.1.0',
   mode: 'KIDULT100_SCARCITY_EVIDENCE_TARGET_QUEUE',
-  queueVersion: 'HARDENED_SCOPE_V1',
+  queueVersion: 'HARDENED_SCOPE_V1_1',
   generatedAt: new Date().toISOString(),
   policy: queue.policy || null,
   thresholds: queue.thresholds || {},
@@ -190,6 +199,7 @@ const report = {
     ...(queue.metrics || {}),
     targetCandidates: targets.length,
     targetShortfall,
+    scopeSafeReferenceShortfall,
     clearMismatchExcluded,
     scopeReadySelected,
     reviewRequiredSelected,
@@ -202,6 +212,8 @@ const report = {
     scopeReadyPreferredBeforeReview: true,
     sourceQualificationPerformed: false,
     normalizedScoreGenerated: false,
+    diagnosticContinuationEnabled: diagnosticContinuation,
+    scopeSafeReferenceShortfallPreserved: true,
   },
   targets,
   disposition,
@@ -211,11 +223,13 @@ const report = {
     ambiguousTargetAutomaticallyQualified: false,
     sourceAutomaticallyQualified: false,
     productionScoringActivated: false,
+    scopeSafeReferenceSatisfied: scopeSafeReferenceShortfall === 0,
+    scopeSafeReferenceShortfallPreserved: true,
   },
 };
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, JSON.stringify(report, null, 2));
-console.log(`Scarcity queue hardening: targets=${targets.length} ready=${scopeReadySelected} review=${reviewRequiredSelected} excludedMismatch=${clearMismatchExcluded} shortfall=${targetShortfall}`);
+console.log(`Scarcity queue hardening: targets=${targets.length} ready=${scopeReadySelected} review=${reviewRequiredSelected} excludedMismatch=${clearMismatchExcluded} acquisitionShortfall=${targetShortfall} scopeSafeReferenceShortfall=${scopeSafeReferenceShortfall}`);
 console.log(`disposition=${disposition}`);
 if (targetShortfall > 0) process.exitCode = 1;
