@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { computeScarcityTargetCapacity } from './lib/scarcity-target-capacity.mjs';
 
 const ROOT = process.cwd();
 const POLICY_PATH = path.join(ROOT, 'config', 'kidult100-scarcity-target-policy.json');
@@ -79,10 +80,11 @@ function supportingState(candidate) {
 const byVertical = {};
 const targets = [];
 let targetShortfall = 0;
+let calibrationReferenceShortfall = 0;
+let candidateSupplyBoundedVerticals = 0;
 
 for (const vertical of verticals) {
   const cell = scarcityCells.get(vertical);
-  const gap = Math.max(0, operationalReference - Number(cell?.calibrationEligibleCandidates || 0));
   const candidates = relevant
     .filter((candidate) => candidate.vertical === vertical && !eligibleScarcity(candidate))
     .map((candidate) => {
@@ -108,15 +110,26 @@ for (const vertical of verticals) {
       || Number(b.demandEvidenceReady) - Number(a.demandEvidenceReady)
       || b.semanticRelevanceScore - a.semanticRelevanceScore
       || String(a.candidateKey).localeCompare(String(b.candidateKey)));
-  const selected = candidates.slice(0, gap);
-  const shortfall = Math.max(0, gap - selected.length);
+
+  const capacity = computeScarcityTargetCapacity({
+    operationalReference,
+    currentEligible: Number(cell?.calibrationEligibleCandidates || 0),
+    availableTargets: candidates.length,
+  });
+  const selected = candidates.slice(0, capacity.acquisitionTargetGap);
+  const shortfall = Math.max(0, capacity.acquisitionTargetGap - selected.length);
   targetShortfall += shortfall;
+  calibrationReferenceShortfall += capacity.calibrationReferenceShortfall;
+  candidateSupplyBoundedVerticals += Number(capacity.candidateSupplyBounded);
   targets.push(...selected.map((row, index) => ({ ...row, verticalPriority: index + 1 })));
   byVertical[vertical] = {
     relevantCandidates: relevant.filter((candidate) => candidate.vertical === vertical).length,
     currentEligibleScarcity: Number(cell?.calibrationEligibleCandidates || 0),
     operationalReference,
-    targetGap: gap,
+    calibrationTargetGap: capacity.calibrationTargetGap,
+    targetGap: capacity.acquisitionTargetGap,
+    calibrationReferenceShortfall: capacity.calibrationReferenceShortfall,
+    candidateSupplyBounded: capacity.candidateSupplyBounded,
     availableEligibleTargets: candidates.length,
     selectedTargets: selected.length,
     targetShortfall: shortfall,
@@ -124,13 +137,15 @@ for (const vertical of verticals) {
 }
 
 const disposition = targetShortfall > 0
-  ? 'FAIL_CLOSED_INSUFFICIENT_CANDIDATE_TARGET_SUPPLY'
-  : targets.length === 0
-    ? 'SCARCITY_OPERATIONAL_REFERENCE_FILLED_METHOD_VALIDATION_STILL_REQUIRED'
-    : 'SCARCITY_RIGHTS_QUALIFIED_TOTAL_PRODUCED_ACQUISITION_QUEUE_READY';
+  ? 'FAIL_CLOSED_INTERNAL_TARGET_SELECTION_SHORTFALL'
+  : calibrationReferenceShortfall > 0
+    ? 'SCARCITY_ACQUISITION_QUEUE_READY_CALIBRATION_REFERENCE_SHORTFALL_RETAINED'
+    : targets.length === 0
+      ? 'SCARCITY_OPERATIONAL_REFERENCE_FILLED_METHOD_VALIDATION_STILL_REQUIRED'
+      : 'SCARCITY_RIGHTS_QUALIFIED_TOTAL_PRODUCED_ACQUISITION_QUEUE_READY';
 
 const report = {
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.1.0',
   mode: 'KIDULT100_SCARCITY_EVIDENCE_TARGET_QUEUE',
   generatedAt: new Date().toISOString(),
   policy: policy.policy,
@@ -143,6 +158,8 @@ const report = {
     currentEligibleScarcityCandidates: [...scarcityCells.values()].reduce((sum, row) => sum + Number(row?.calibrationEligibleCandidates || 0), 0),
     targetCandidates: targets.length,
     targetShortfall,
+    calibrationReferenceShortfall,
+    candidateSupplyBoundedVerticals,
     verticals: verticals.length,
     byVertical,
   },
@@ -167,12 +184,14 @@ const report = {
     providerProcurementRequested: false,
     unauthorizedScrapingRequested: false,
     productionScoringActivated: false,
-    operationalReferenceClaimedAsStatisticalSufficiency: false
+    operationalReferenceClaimedAsStatisticalSufficiency: false,
+    calibrationReferenceSatisfied: calibrationReferenceShortfall === 0,
+    calibrationReferenceShortfallPreserved: true,
   }
 };
 
 fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
 fs.writeFileSync(OUT_PATH, JSON.stringify(report, null, 2));
-console.log(`Scarcity target queue: relevant=${relevant.length} currentEligible=${report.metrics.currentEligibleScarcityCandidates} targets=${targets.length} shortfall=${targetShortfall}`);
+console.log(`Scarcity target queue: relevant=${relevant.length} currentEligible=${report.metrics.currentEligibleScarcityCandidates} targets=${targets.length} acquisitionShortfall=${targetShortfall} calibrationShortfall=${calibrationReferenceShortfall}`);
 console.log(`disposition=${disposition}`);
 if (targetShortfall > 0) process.exitCode = 1;
