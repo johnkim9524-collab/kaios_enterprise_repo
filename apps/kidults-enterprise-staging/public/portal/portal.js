@@ -10,7 +10,22 @@ import {
 } from "./components/renderers.js";
 import { setupNavigation, setupDialogs, setupReveal } from "./components/interactions.js";
 
+/* V501 is intentionally a small post-release polish layer. Keeping it in a
+   separate stylesheet makes the approved V500 design baseline auditable. */
+function activateV501Polish() {
+  document.documentElement.dataset.release = "v501";
+
+  if (document.querySelector('link[data-kidults-polish="v501"]')) return;
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "portal-v501-polish.css?v=501";
+  link.dataset.kidultsPolish = "v501";
+  document.head.append(link);
+}
+
 async function init() {
+  activateV501Polish();
   setupNavigation();
 
   try {
