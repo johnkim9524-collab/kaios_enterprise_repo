@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "RIGHTS_QUALIFIED_CC0_WIKIMEDIA_ANALYTICS_DEMAND_SUPPLEMENT",
+  "source": {
+    "id": "wikimedia-analytics",
+    "apiBase": "https://wikimedia.org/api/rest_v1",
+    "documentationUrl": "https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/reference/page-views.html",
+    "accessPolicyUrl": "https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/documentation/access-policy.html",
+    "license": "CC0-1.0",
+    "rightsClass": "CC0_WIKIMEDIA_ANALYTICS_DATA",
+    "requiresUserAgent": true,
+    "sequentialRequests": true,
+    "unauthorizedScrapingAllowed": false,
+    "paidProviderRequired": false
+  },
+  "evidence": {
+    "primitive": "DEMAND_ATTENTION",
+    "evidenceClass": "DEMAND_CULTURAL_SIGNAL",
+    "signalType": "CULTURAL_ATTENTION_PROXY",
+    "metric": "WIKIPEDIA_PAGEVIEWS_28D",
+    "windowDays": 28,
+    "loadLagDays": 2,
+    "access": "all-access",
+    "agent": "user",
+    "granularity": "daily",
+    "minimumViews": 1,
+    "marketDemandClaimAllowed": false,
+    "transactionOrLiquidityClaimAllowed": false,
+    "normalizedScoreAllowed": false,
+    "syntheticOrEstimatedEvidenceAllowed": false
+  }
+}
