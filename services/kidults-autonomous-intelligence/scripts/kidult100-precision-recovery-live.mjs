@@ -1,6 +1,11 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  evaluatePrecisionRecoveryRow,
+  canRequalifyExistingCandidate,
+  requalifyExistingCandidate,
+} from './lib/precision-recovery.mjs';
 
 const ROOT = process.cwd();
 const POC_PATH = path.join(ROOT, 'reports', 'kidult100-poc', 'kidult100-poc-latest.json');
@@ -8,7 +13,7 @@ const CONFIG_PATH = path.join(ROOT, 'config', 'kidult100-precision-recovery-quer
 const REFERENCE_POLICY_PATH = path.join(ROOT, 'config', 'kidult100-reference-precision-policy.json');
 const AUDIT_PATH = path.join(ROOT, 'reports', 'kidult100-poc', 'kidult100-precision-recovery-latest.json');
 const CONTACT_URL = 'https://github.com/johnkim9524-collab/kaios_enterprise_repo';
-const UA = `KIDULTS-Kidult100-Bot/2.6 (${CONTACT_URL}; Wikidata-only precision recovery)`;
+const UA = `KIDULTS-Kidult100-Bot/2.7 (${CONTACT_URL}; Wikidata-only precision recovery)`;
 const MIN_INTERVAL_MS = 700;
 const MAX_RETRIES = 4;
 let lastRequestAt = 0;
@@ -24,12 +29,6 @@ function normalize(value) {
 
 function tokens(value) {
   return normalize(value).split(/\s+/).filter((token) => token.length >= 2);
-}
-
-function includesPhrase(text, phrase) {
-  const haystack = ` ${normalize(text)} `;
-  const needle = normalize(phrase);
-  return needle.length > 0 && haystack.includes(` ${needle} `);
 }
 
 function hash(value) {
@@ -75,11 +74,11 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   }
 
   const genericExact = new Set((referencePolicy.genericQueries || []).map(normalize));
-  const stopTokens = new Set([
+  const stopTokens = [
     ...(referencePolicy.queryStopTokens || []).map(normalize),
     'toy', 'doll', 'watch', 'wristwatch', 'shoe', 'shoes', 'sneaker', 'boot', 'handbag', 'bag',
     'camera', 'computer', 'console', 'game', 'video', 'handheld', 'comic', 'book', 'card', 'trading', 'baseball',
-  ]);
+  ];
 
   const runtime = { requests: 0, retries: 0, rateLimits: 0, errors: 0 };
   async function search(query) {
@@ -111,8 +110,11 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     throw new Error('WIKIDATA_RETRY_EXHAUSTED');
   }
 
-  const existing = new Set(report.candidates.map((candidate) => candidate.candidateKey));
+  const candidates = report.candidates.map((candidate) => ({ ...candidate }));
+  const candidateIndex = new Map(candidates.map((candidate, index) => [candidate.candidateKey, index]));
+  const existing = new Set(candidateIndex.keys());
   const additions = [];
+  const requalified = [];
   const rejected = [];
   const errors = [];
 
@@ -121,7 +123,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     const disallowedTerms = referencePolicy.disallowedDescriptionTermsByVertical?.[vertical] || [];
     for (const query of config.verticals[vertical]) {
       if (genericExact.has(normalize(query))) throw new Error(`Generic query entered precision recovery lane: ${query}`);
-      const anchors = tokens(query).filter((token) => !stopTokens.has(token));
+      const anchors = tokens(query).filter((token) => !new Set(stopTokens).has(token));
       if (anchors.length === 0) throw new Error(`Recovery query lacks distinctive anchor: ${query}`);
       let rows;
       try {
@@ -134,19 +136,31 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       for (const row of rows) {
         if (!row?.id || !row?.label) continue;
         const candidateKey = `wikidata:${row.id}`;
-        if (existing.has(candidateKey)) continue;
-        const context = `${row.label || ''} ${row.description || ''}`;
-        const contextTokens = new Set(tokens(context));
-        const anchorHits = anchors.filter((token) => contextTokens.has(token));
-        const productHits = productTerms.filter((term) => includesPhrase(context, term));
-        const disallowedHits = disallowedTerms.filter((term) => includesPhrase(row.description, term));
-        const accepted = anchorHits.length > 0 && productHits.length > 0 && disallowedHits.length === 0;
-        if (!accepted) {
-          rejected.push({ candidateKey, vertical, query, label: row.label, anchorHits, productHits, disallowedHits });
+        const evaluation = evaluatePrecisionRecoveryRow({ query, row, productTerms, disallowedTerms, stopTokens });
+        const existingIndex = candidateIndex.get(candidateKey);
+
+        if (existingIndex !== undefined) {
+          const current = candidates[existingIndex];
+          if (current.semanticRelevant === true) continue;
+          if (canRequalifyExistingCandidate(current, vertical, evaluation)) {
+            const updated = requalifyExistingCandidate(current, query, evaluation);
+            candidates[existingIndex] = updated;
+            requalified.push({ candidateKey, vertical, query, label: row.label, productHits: evaluation.productHits, modelSpecificNoDescription: evaluation.modelSpecificNoDescription });
+          } else if (!evaluation.accepted) {
+            rejected.push({ candidateKey, vertical, query, label: row.label, anchorHits: evaluation.anchorHits, productHits: evaluation.productHits, disallowedHits: evaluation.disallowedHits, reason: 'EXISTING_CANDIDATE_NOT_PRECISION_RECOVERABLE' });
+          } else {
+            rejected.push({ candidateKey, vertical, query, label: row.label, reason: 'EXISTING_CANDIDATE_IDENTITY_OR_VERTICAL_NOT_ELIGIBLE' });
+          }
           continue;
         }
+
+        if (!evaluation.accepted) {
+          rejected.push({ candidateKey, vertical, query, label: row.label, anchorHits: evaluation.anchorHits, productHits: evaluation.productHits, disallowedHits: evaluation.disallowedHits, reason: 'NEW_ROW_NOT_PRECISION_RECOVERABLE' });
+          continue;
+        }
+
         const observedAt = new Date().toISOString();
-        additions.push({
+        const addition = {
           candidateKey,
           vertical,
           source: 'wikidata',
@@ -160,22 +174,37 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
           observedAt,
           rightsClass: 'CC0_STRUCTURED_DATA',
           intelligencePrimitives: ['IDENTITY', 'CANON_CULTURAL_STRENGTH'],
-          query,
+          query: evaluation.modelSpecificNoDescription ? row.label : query,
           latencyMs: null,
           payloadHash: hash(row),
           semanticRelevant: true,
           semanticRelevanceScore: 1,
-          semanticRelevanceVersion: 'SEMANTIC_V2_5_WIKIDATA_PRECISION_RECOVERY',
-          semanticStageA: { name: 'BROAD_RECALL_GATE', passed: true, reasons: ['RECOVERY_DISTINCTIVE_QUERY_ANCHOR'] },
-          semanticStageB: { name: 'PRECISION_VERIFIER', passed: true, reasons: ['RECOVERY_PRODUCT_OBJECT_CONTEXT'] },
-          semanticRelevanceDiagnostics: { precisionRecovery: true, anchorHits, productHits, disallowedHits },
-        });
+          semanticRelevanceVersion: 'SEMANTIC_V2_7_WIKIDATA_PRECISION_RECOVERY',
+          semanticStageA: { name: 'BROAD_RECALL_GATE', passed: true, reasons: ['RECOVERY_DISTINCTIVE_QUERY_ANCHORS_ALL_MATCHED'] },
+          semanticStageB: { name: 'PRECISION_VERIFIER', passed: true, reasons: ['RECOVERY_EXACT_CURATED_PRODUCT_QUERY_MATCH'] },
+          semanticRelevanceDiagnostics: {
+            precisionRecovery: {
+              requalifiedExistingCandidate: false,
+              recoveryQuery: query,
+              anchors: evaluation.anchors,
+              anchorHits: evaluation.anchorHits,
+              allDistinctiveAnchorsMatched: evaluation.allDistinctiveAnchorsMatched,
+              productHits: evaluation.productHits,
+              queryProductHits: evaluation.queryProductHits,
+              disallowedHits: evaluation.disallowedHits,
+              modelSpecificNoDescription: evaluation.modelSpecificNoDescription,
+              exactCuratedProductQueryMatch: evaluation.exactCuratedProductQueryMatch,
+            },
+          },
+        };
+        additions.push(addition);
+        candidates.push(addition);
+        candidateIndex.set(candidateKey, candidates.length - 1);
         existing.add(candidateKey);
       }
     }
   }
 
-  const candidates = [...report.candidates, ...additions];
   const relevant = candidates.filter((candidate) => candidate.semanticRelevant === true);
   const recall = candidates.filter((candidate) => candidate.semanticStageA?.passed === true);
   const sourceIds = [...new Set(candidates.map((candidate) => candidate.source).filter(Boolean))];
@@ -184,10 +213,10 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   const relevantBySource = Object.fromEntries(sourceIds.map((source) => [source, relevant.filter((candidate) => candidate.source === source).length]));
   const hardened = {
     ...report,
-    schemaVersion: '2.6.1',
+    schemaVersion: '2.7.0',
     semanticPolicy: {
       ...(report.semanticPolicy || {}),
-      precisionRecovery: 'WIKIDATA_ONLY_EXACT_PRODUCT_QUERY_RECOVERY',
+      precisionRecovery: 'WIKIDATA_ONLY_EXACT_PRODUCT_QUERY_RECOVERY_WITH_EXISTING_REQUALIFICATION',
       precisionRecoveryDoesNotBypassDownstreamReferenceHardening: true,
     },
     metrics: {
@@ -199,16 +228,18 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       relevantByVertical,
       relevantBySource,
       precisionRecoveryAddedCandidates: additions.length,
+      precisionRecoveryRequalifiedCandidates: requalified.length,
       precisionRecoveryRuntime: runtime,
     },
     candidateBuild: {
       ...(report.candidateBuild || {}),
       outcome: 'BUILT_WITH_WIKIDATA_PRECISION_RECOVERY_NOT_CERTIFIED',
-      note: 'Wikidata-only recovery adds only query-anchored product-object candidates. Downstream fail-closed archive/reference precision hardening remains authoritative.',
+      note: 'Wikidata-only recovery can add or requalify only exact query-anchored product-object candidates while preserving existing source identity. Downstream fail-closed archive/reference precision hardening remains authoritative.',
     },
     claims: {
       ...(report.claims || {}),
       precisionRecoveryApplied: true,
+      precisionRecoveryExistingCandidateRequalificationApplied: requalified.length > 0,
       rightsOrProvenanceRelaxed: false,
       finalKidult100Certified: false,
       decisionGradeRightDataCertified: false,
@@ -218,22 +249,25 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   };
 
   const audit = {
-    schemaVersion: '1.0.0',
+    schemaVersion: '1.1.0',
     mode: 'KIDULT100_WIKIDATA_PRECISION_RECOVERY_AUDIT',
     generatedAt: new Date().toISOString(),
     metrics: {
       inputCandidates: report.candidates.length,
       addedCandidates: additions.length,
+      requalifiedExistingCandidates: requalified.length,
       rejectedSearchRows: rejected.length,
       outputCandidates: candidates.length,
       outputRelevantCandidates: relevant.length,
       addedByVertical: Object.fromEntries(verticalIds.map((vertical) => [vertical, additions.filter((candidate) => candidate.vertical === vertical).length])),
+      requalifiedByVertical: Object.fromEntries(verticalIds.map((vertical) => [vertical, requalified.filter((candidate) => candidate.vertical === vertical).length])),
       runtime,
     },
     safety: {
       source: 'wikidata',
       rightsClass: 'CC0_STRUCTURED_DATA',
       officialApiOnly: true,
+      sourceIdentityMutationAllowed: false,
       syntheticEvidenceCreated: false,
       marketEvidenceCreated: false,
       normalizedScoreCreated: false,
@@ -244,11 +278,11 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       contractExecutionRequested: false,
       productionGateRelaxed: false,
     },
-    disposition: additions.length > 0 ? 'PRECISION_SAFE_CANDIDATE_SUPPLY_RECOVERED' : 'NO_NEW_PRECISION_SAFE_CANDIDATES_FOUND',
+    disposition: additions.length + requalified.length > 0 ? 'PRECISION_SAFE_CANDIDATE_SUPPLY_RECOVERED' : 'NO_NEW_PRECISION_SAFE_CANDIDATES_FOUND',
   };
 
   fs.writeFileSync(POC_PATH, JSON.stringify(hardened, null, 2));
   fs.writeFileSync(AUDIT_PATH, JSON.stringify(audit, null, 2));
-  console.log(`Wikidata precision recovery: input=${report.candidates.length} added=${additions.length} rejected=${rejected.length} output=${candidates.length}`);
-  console.log(`addedByVertical=${JSON.stringify(audit.metrics.addedByVertical)} runtime=${JSON.stringify(runtime)}`);
+  console.log(`Wikidata precision recovery: input=${report.candidates.length} added=${additions.length} requalified=${requalified.length} rejected=${rejected.length} output=${candidates.length}`);
+  console.log(`addedByVertical=${JSON.stringify(audit.metrics.addedByVertical)} requalifiedByVertical=${JSON.stringify(audit.metrics.requalifiedByVertical)} runtime=${JSON.stringify(runtime)}`);
 }
