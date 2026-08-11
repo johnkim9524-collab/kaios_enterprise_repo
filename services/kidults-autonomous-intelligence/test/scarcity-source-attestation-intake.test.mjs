@@ -54,16 +54,15 @@ function run(policy, discovery, options = {}) {
     policyInput = policyPath;
     discoveryInput = discoveryPath;
   }
-  const result = spawnSync(process.execPath, [SCRIPT], {
-    cwd: ROOT,
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      KIDULTS_SCARCITY_SOURCE_ATTESTATION_JSON: policyInput,
-      KIDULTS_SCARCITY_SOURCE_DISCOVERY_JSON: discoveryInput,
-      KIDULTS_SCARCITY_SOURCE_ATTESTATION_OUTPUT: out,
-    },
-  });
+  const env = {
+    ...process.env,
+    KIDULTS_SCARCITY_SOURCE_ATTESTATION_JSON: policyInput,
+    KIDULTS_SCARCITY_SOURCE_DISCOVERY_JSON: discoveryInput,
+    KIDULTS_SCARCITY_SOURCE_ATTESTATION_OUTPUT: out,
+  };
+  if (options.policyInput !== undefined) env.KIDULTS_SCARCITY_SOURCE_ATTESTATION_JSON = options.policyInput;
+  if (options.discoveryInput !== undefined) env.KIDULTS_SCARCITY_SOURCE_DISCOVERY_JSON = options.discoveryInput;
+  const result = spawnSync(process.execPath, [SCRIPT], { cwd: ROOT, encoding: 'utf8', env });
   const report = fs.existsSync(out) ? JSON.parse(fs.readFileSync(out, 'utf8')) : null;
   fs.rmSync(dir, { recursive: true, force: true });
   return { result, report };
@@ -154,6 +153,16 @@ test('unsafe or malformed attestation fails closed across rights provenance iden
   assert.ok(reasons.includes('INVALID_OBSERVED_AT'));
 });
 
+test('empty attestation object covers null-safe field handling and remains rejected', () => {
+  const { result, report } = run(basePolicy([{}]), { mode: 'KIDULT100_SCARCITY_SOURCE_DISCOVERY_PLAN' });
+  assert.equal(result.status, 1);
+  assert.equal(report.metrics.discoveryReadyTargets, 0);
+  assert.equal(report.metrics.rejectedAttestations, 1);
+  assert.equal(report.rejectedAttestations[0].candidateKey, null);
+  assert.ok(report.rejectedAttestations[0].reasons.includes('MISSING_CANDIDATEKEY'));
+  assert.ok(report.rejectedAttestations[0].reasons.includes('CANDIDATE_NOT_IN_DISCOVERY_WORK_PACKETS'));
+});
+
 test('missing required fields duplicate candidates and packet metadata mismatch fail closed', () => {
   const first = validAttestation();
   const duplicate = validAttestation({ canonicalTitle: 'Wrong title', vertical: 'wrong-vertical', rightsClass: '' });
@@ -191,4 +200,13 @@ test('non-array attestations safely normalize to an empty pending intake', () =>
   assert.equal(result.status, 0);
   assert.equal(report.metrics.submittedAttestations, 0);
   assert.equal(report.metrics.pendingDiscoveryTargets, 2);
+});
+
+test('missing and directory JSON inputs fail closed before evidence intake', () => {
+  const missing = run(basePolicy(), baseDiscovery(), { policyInput: '/tmp/definitely-missing-kidults-attestation.json' });
+  assert.equal(missing.result.status, 1);
+  assert.equal(missing.report, null);
+  const directory = run(basePolicy(), baseDiscovery(), { discoveryInput: ROOT });
+  assert.equal(directory.result.status, 1);
+  assert.equal(directory.report, null);
 });
