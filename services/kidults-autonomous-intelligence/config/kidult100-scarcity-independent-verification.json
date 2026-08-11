@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_SCARCITY_INDEPENDENT_VERIFICATION",
+  "requiredInputMode": "KIDULT100_SCARCITY_SOURCE_ATTESTATION_INTAKE",
+  "requiredSignalType": "TOTAL_PRODUCED",
+  "requiredVerificationFields": [
+    "candidateKey",
+    "primaryPayloadHash",
+    "verificationSourceUrl",
+    "verificationRightsUrl",
+    "verificationAccessUrl",
+    "signalType",
+    "verifiedQuantity",
+    "unit",
+    "verifiedAt",
+    "verificationPayloadHash"
+  ],
+  "rules": {
+    "acceptedAttestationRequired": true,
+    "independentSourceRequired": true,
+    "httpsOnly": true,
+    "exactEntityMatchRequired": true,
+    "quantityMatchRequired": true,
+    "primaryPayloadHashMatchRequired": true,
+    "commercialReuseRightsConfirmationRequired": true,
+    "documentedAutomatedAccessConfirmationRequired": true,
+    "verificationPayloadHashRequired": true,
+    "syntheticEstimatedOrInferredForbidden": true,
+    "automaticProductionScoringForbidden": true
+  },
+  "verifications": []
+}
