@@ -98,6 +98,18 @@ test('arbitrary HTTP sources remain fail-closed and are never upgraded', () => {
   assert.equal(report.claims.arbitraryHttpSourceAccepted, false);
 });
 
+test('malformed Wikidata source URL remains fail-closed without bypassing provenance validation', () => {
+  const malformedUrl = candidate('wikidata-Q2', 'REFERENCE_PUBLIC_DATA', {
+    sourceRecordId: 'Q2',
+    sourceUrl: 'not-a-url',
+  });
+  const { result, report } = run({ candidates: [malformedUrl] });
+  assert.notEqual(result.status, 0);
+  assert.equal(report.metrics.canonEvidenceRecords, 0);
+  assert.equal(report.metrics.structuralErrorCount, 1);
+  assert.match(report.structuralErrors[0], /sourceUrl/);
+});
+
 test('unsupported source classes are rejected but never converted into canon evidence', () => {
   const { result, report } = run({ candidates: [candidate('market-1', 'MARKET_PROVIDER')] }, { useFile: true });
   assert.equal(result.status, 0, result.stderr || result.stdout);
