@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildCompleteWikidataQueryTrace,
+  getCompleteWikidataTraceRows,
   evaluatePrecisionRecoveryRow,
   canRequalifyExistingCandidate,
   canRefreshExistingRelevantCandidate,
@@ -45,6 +47,64 @@ function acceptedEvaluation(overrides = {}) {
     ...overrides,
   };
 }
+
+test('complete same-run Wikidata query trace is reusable only when all eight unique rows survived dedupe', () => {
+  const rows = Array.from({ length: 8 }, (_, index) => candidate({
+    candidateKey: `wikidata:Q${index + 1}`,
+    sourceRecordId: `Q${index + 1}`,
+    canonicalTitle: `Rolex Model ${index + 1}`,
+    sourceUrl: `https://www.wikidata.org/wiki/Q${index + 1}`,
+    payloadHash: `hash-${index + 1}`,
+    query: 'Rolex Daytona 6239 watch',
+  }));
+  const trace = buildCompleteWikidataQueryTrace(rows);
+  const reused = getCompleteWikidataTraceRows(trace, 'watches-jewelry', 'Rolex Daytona 6239 watch');
+  assert.equal(trace.size, 1);
+  assert.equal(reused.length, 8);
+  assert.equal(reused[0].id, 'Q1');
+  assert.equal(reused[0].traceSource, 'POC_COMPLETE_QUERY_RESULT_SET');
+  assert.equal(reused[0].payloadHash, 'hash-1');
+  assert.equal(getCompleteWikidataTraceRows(trace, 'fashion-accessories', 'Rolex Daytona 6239 watch'), null);
+  reused[0].label = 'mutated copy';
+  assert.notEqual(getCompleteWikidataTraceRows(trace, 'watches-jewelry', 'Rolex Daytona 6239 watch')[0].label, 'mutated copy');
+});
+
+test('partial duplicate or unsafe POC result groups never qualify as complete reusable traces', () => {
+  const seven = Array.from({ length: 7 }, (_, index) => candidate({
+    candidateKey: `wikidata:Q${index + 1}`,
+    sourceRecordId: `Q${index + 1}`,
+    canonicalTitle: `Model ${index + 1}`,
+    sourceUrl: `https://www.wikidata.org/wiki/Q${index + 1}`,
+    payloadHash: `hash-${index + 1}`,
+    query: 'Leica M3 camera',
+    vertical: 'technology-cameras',
+  }));
+  assert.equal(buildCompleteWikidataQueryTrace(seven).size, 0);
+
+  const duplicate = [...seven, candidate({
+    candidateKey: 'wikidata:Q1-copy',
+    sourceRecordId: 'Q1',
+    canonicalTitle: 'Duplicate Q1',
+    sourceUrl: 'https://www.wikidata.org/wiki/Q1',
+    payloadHash: 'dup-hash',
+    query: 'Leica M3 camera',
+    vertical: 'technology-cameras',
+  })];
+  assert.equal(buildCompleteWikidataQueryTrace(duplicate).size, 0);
+
+  const unsafe = Array.from({ length: 8 }, (_, index) => candidate({
+    candidateKey: `wikidata:Q${index + 20}`,
+    sourceRecordId: `Q${index + 20}`,
+    canonicalTitle: `Unsafe ${index}`,
+    sourceUrl: `https://www.wikidata.org/wiki/Q${index + 20}`,
+    payloadHash: `unsafe-${index}`,
+    query: 'Cartier Santos watch',
+    rightsClass: index === 7 ? 'RIGHTS_UNKNOWN' : 'CC0_STRUCTURED_DATA',
+  }));
+  assert.equal(buildCompleteWikidataQueryTrace(unsafe).size, 0);
+  assert.equal(getCompleteWikidataTraceRows({}, 'watches-jewelry', 'Cartier Santos watch'), null);
+  assert.throws(() => buildCompleteWikidataQueryTrace([], 0), /positive integer/);
+});
 
 test('exact curated recovery requires all distinctive anchors and source product context', () => {
   const pass = evaluatePrecisionRecoveryRow({
