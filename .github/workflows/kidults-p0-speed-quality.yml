@@ -80,6 +80,8 @@ jobs:
         run: node scripts/kidult100-calibration-evidence-shape-plan.mjs
       - name: Non-market evidence acquisition priority plan
         run: node scripts/kidult100-non-market-evidence-acquisition-priority.mjs
+      - name: Scarcity explicit-quantity acquisition target queue
+        run: node scripts/kidult100-scarcity-evidence-target-queue.mjs
       - name: Rankability gap plan
         run: node scripts/kidult100-rankability-gap-plan.mjs
       - name: Experimental live Kidult100 POC ranking evaluation
@@ -166,6 +168,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-non-market-scoring-preflight-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-calibration-evidence-shape-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-non-market-evidence-acquisition-priority-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-evidence-target-queue-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-rankability-gap-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-experimental-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-experimental-gap-latest.json
