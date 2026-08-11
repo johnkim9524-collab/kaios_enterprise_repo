@@ -38,27 +38,29 @@ function queue(gaps = {}) {
   };
 }
 
+function evidence(primitive, signalType, key, overrides = {}) {
+  return {
+    primitive,
+    value: { signalType, ...(overrides.value || {}) },
+    rightsClass: overrides.rightsClass === undefined ? 'CC0' : overrides.rightsClass,
+    sourceUrl: overrides.sourceUrl === undefined ? 'https://example.test/evidence' : overrides.sourceUrl,
+    payloadHash: overrides.payloadHash === undefined ? `${key}-${primitive}` : overrides.payloadHash,
+    observedAt: overrides.observedAt === undefined ? '2026-08-11T00:00:00Z' : overrides.observedAt,
+    safety: overrides.safety === undefined ? { synthetic: false, estimated: false } : overrides.safety,
+  };
+}
+
 function record(key, vertical, title, { description = '', scarcity = false, support = true } = {}) {
-  const evidence = [];
+  const rows = [];
   if (support) {
-    for (const primitive of ['DEMAND_ATTENTION', 'CANON_CULTURAL_STRENGTH']) {
-      evidence.push({
-        primitive,
-        value: { signalType: primitive === 'DEMAND_ATTENTION' ? 'CULTURAL_ATTENTION_PROXY' : 'REFERENCE_CANON_SIGNAL' },
-        rightsClass: 'CC0', sourceUrl: 'https://example.test/evidence', payloadHash: `${key}-${primitive}`,
-        observedAt: '2026-08-11T00:00:00Z', safety: { synthetic: false, estimated: false },
-      });
-    }
+    rows.push(evidence('DEMAND_ATTENTION', 'CULTURAL_ATTENTION_PROXY', key));
+    rows.push(evidence('CANON_CULTURAL_STRENGTH', 'REFERENCE_CANON_SIGNAL', key));
   }
-  if (scarcity) evidence.push({
-    primitive: 'SCARCITY', value: { signalType: 'TOTAL_PRODUCED', quantity: 100 }, rightsClass: 'CC0',
-    sourceUrl: 'https://example.test/scarcity', payloadHash: `${key}-scarcity`, observedAt: '2026-08-11T00:00:00Z',
-    safety: { synthetic: false, estimated: false },
-  });
+  if (scarcity) rows.push(evidence('SCARCITY', 'TOTAL_PRODUCED', key, { value: { quantity: 100 } }));
   return {
     candidateKey: key, vertical, canonicalTitle: title, semanticRelevant: true, semanticRelevanceScore: 0.9,
     source: 'wikidata', sourceClass: 'REFERENCE_PUBLIC_DATA', sourceUrl: 'https://www.wikidata.org/wiki/Q1', rightsClass: 'CC0',
-    description, rightData: { evidence },
+    description, rightData: { evidence: rows },
   };
 }
 
@@ -167,13 +169,29 @@ test('unsafe policy, unsafe queue and duplicate candidate identities fail closed
   badPolicy.scope.clearNonTargetEntitiesAutomaticallyQualified = true;
   assert.match(run({ ...f, pol: badPolicy }).result.stderr, /Unsafe scarcity scope-hardening policy/);
 
+  const badAmbiguous = policy();
+  badAmbiguous.scope.ambiguousTargetsAutomaticallyQualified = true;
+  assert.match(run({ ...f, pol: badAmbiguous }).result.stderr, /Unsafe scarcity scope-hardening policy/);
+
   const badQueue = queue();
   badQueue.metrics.targetShortfall = 1;
   assert.match(run({ ...f, q: badQueue }).result.stderr, /Unsafe or incomplete scarcity target queue/);
 
+  const badMode = queue();
+  badMode.mode = 'OTHER';
+  assert.match(run({ ...f, q: badMode }).result.stderr, /Unsafe or incomplete scarcity target queue/);
+
   const badName = policy();
   badName.policy = 'OTHER';
   assert.match(run({ ...f, pol: badName }).result.stderr, /Invalid scarcity scope-hardening policy/);
+
+  const badPrimitive = policy();
+  badPrimitive.primitive = 'DEMAND_ATTENTION';
+  assert.match(run({ ...f, pol: badPrimitive }).result.stderr, /Invalid scarcity scope-hardening policy/);
+
+  const badSignal = policy();
+  badSignal.requiredSignalType = 'PROXY';
+  assert.match(run({ ...f, pol: badSignal }).result.stderr, /Invalid scarcity scope-hardening policy/);
 
   const seven = policy();
   delete seven.verticalSignals['cards-comics-memorabilia'];
@@ -182,8 +200,103 @@ test('unsafe policy, unsafe queue and duplicate candidate identities fail closed
   const duplicatePoc = { candidates: [f.p.candidates[0], f.p.candidates[0]] };
   assert.match(run({ ...f, p: duplicatePoc }).result.stderr, /Invalid or duplicate POC candidate key/);
 
+  const missingPocKey = { candidates: [{ description: 'object' }] };
+  assert.match(run({ ...f, p: missingPocKey }).result.stderr, /Invalid or duplicate POC candidate key/);
+
   const duplicateRight = { candidates: [f.r.candidates[0], f.r.candidates[0]] };
   assert.match(run({ ...f, r: duplicateRight }).result.stderr, /Invalid or duplicate Right Data candidate key/);
+
+  const missingRightKey = { candidates: [{ ...f.r.candidates[0], candidateKey: '' }] };
+  assert.match(run({ ...f, r: missingRightKey }).result.stderr, /Invalid or duplicate Right Data candidate key/);
+});
+
+test('invalid target gaps fail closed before selection', () => {
+  const f = fixtures();
+  f.q.metrics.byVertical['toys-models'].targetGap = -1;
+  assert.match(run(f).result.stderr, /Invalid target gap/);
+
+  const g = fixtures();
+  g.q.metrics.byVertical['toys-models'].targetGap = 1.5;
+  assert.match(run(g).result.stderr, /Invalid target gap/);
+});
+
+test('zero target gap selects nothing for that vertical without weakening other gaps', () => {
+  const gaps = { 'toys-models': 0 };
+  const f = fixtures({ gaps });
+  const { result, report } = run(f);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(report.targets.some((row) => row.vertical === 'toys-models'), false);
+  assert.equal(report.metrics.byVertical['toys-models'].selectedTargets, 0);
+  assert.equal(report.metrics.byVertical['toys-models'].targetShortfall, 0);
+});
+
+test('unsafe or incomplete scarcity evidence is never treated as already eligible', () => {
+  const variants = [
+    evidence('SCARCITY', 'OTHER', 'wrong-signal'),
+    evidence('SCARCITY', 'TOTAL_PRODUCED', 'no-rights', { rightsClass: '' }),
+    evidence('SCARCITY', 'TOTAL_PRODUCED', 'http-source', { sourceUrl: 'http://example.test/scarcity' }),
+    evidence('SCARCITY', 'TOTAL_PRODUCED', 'no-hash', { payloadHash: '' }),
+    evidence('SCARCITY', 'TOTAL_PRODUCED', 'bad-date', { observedAt: 'not-a-date' }),
+    evidence('SCARCITY', 'TOTAL_PRODUCED', 'synthetic', { safety: { synthetic: true, estimated: false } }),
+    evidence('SCARCITY', 'TOTAL_PRODUCED', 'estimated', { safety: { synthetic: false, estimated: true } }),
+  ];
+  for (const [index, scarcityEvidence] of variants.entries()) {
+    const row = record(`toy-unsafe-${index}`, 'toys-models', 'Toy Figure', { description: 'toy figure', support: false });
+    row.rightData.evidence.push(scarcityEvidence);
+    const f = fixtures({ toyRows: [row] });
+    const { result, report } = run(f);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.equal(report.targets.some((target) => target.candidateKey === row.candidateKey), true);
+  }
+});
+
+test('missing or unsafe demand and canon evidence contributes no acquisition priority support', () => {
+  const row = record('toy-no-support', 'toys-models', 'Toy Figure', { description: 'toy figure', support: false });
+  row.rightData.evidence.push(evidence('DEMAND_ATTENTION', '', 'empty-demand'));
+  row.rightData.evidence.push(evidence('CANON_CULTURAL_STRENGTH', 'REFERENCE_CANON_SIGNAL', 'unsafe-canon', {
+    safety: { synthetic: true, estimated: false },
+  }));
+  const f = fixtures({ toyRows: [row] });
+  const { result, report } = run(f);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const selected = report.targets.find((target) => target.candidateKey === row.candidateKey);
+  assert.equal(selected.supportingNonMarketSignals, 0);
+  assert.equal(selected.demandEvidenceReady, false);
+  assert.equal(selected.canonEvidenceReady, false);
+});
+
+test('original queue metadata safely backfills missing candidate source fields without qualifying the source', () => {
+  const row = record('toy-fallback', 'toys-models', 'Toy Figure', { description: 'toy figure' });
+  row.source = null;
+  row.sourceClass = null;
+  row.sourceUrl = null;
+  row.rightsClass = null;
+  const f = fixtures({ toyRows: [row] });
+  f.q.targets = [{
+    candidateKey: row.candidateKey,
+    source: 'wikidata', sourceClass: 'REFERENCE_PUBLIC_DATA',
+    sourceUrl: 'https://www.wikidata.org/wiki/Q1', rightsClass: 'CC0', semanticRelevanceScore: 0.5,
+  }];
+  const { result, report } = run(f);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const selected = report.targets.find((target) => target.candidateKey === row.candidateKey);
+  assert.equal(selected.source, 'wikidata');
+  assert.equal(selected.sourceClass, 'REFERENCE_PUBLIC_DATA');
+  assert.equal(selected.sourceUrl, 'https://www.wikidata.org/wiki/Q1');
+  assert.equal(selected.rightsClass, 'CC0');
+  assert.equal(report.claims.sourceAutomaticallyQualified, false);
+});
+
+test('non-relevant and unknown-vertical records are ignored rather than entering scarcity targets', () => {
+  const f = fixtures();
+  f.r.candidates.push({ ...record('irrelevant', 'toys-models', 'Toy Figure', { description: 'toy figure' }), semanticRelevant: false });
+  f.r.candidates.push(record('unknown', 'unknown-vertical', 'Object', { description: 'object' }));
+  f.p.candidates.push({ candidateKey: 'irrelevant', description: 'toy figure', creator: '' });
+  f.p.candidates.push({ candidateKey: 'unknown', description: 'object', creator: '' });
+  const { result, report } = run(f);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(report.targets.some((target) => target.candidateKey === 'irrelevant'), false);
+  assert.equal(report.targets.some((target) => target.candidateKey === 'unknown'), false);
 });
 
 test('missing file input fails closed before queue hardening', () => {
