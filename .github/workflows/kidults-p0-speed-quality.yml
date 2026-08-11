@@ -90,6 +90,8 @@ jobs:
         run: node scripts/kidult100-scarcity-source-qualification.mjs
       - name: Scarcity entity-specific source discovery work packets
         run: node scripts/kidult100-scarcity-source-discovery-plan.mjs
+      - name: Scarcity source attestation intake
+        run: node scripts/kidult100-scarcity-source-attestation-intake.mjs
       - name: Rankability gap plan
         run: node scripts/kidult100-rankability-gap-plan.mjs
       - name: Experimental live Kidult100 POC ranking evaluation
@@ -180,6 +182,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-evidence-target-queue-hardened-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-source-qualification-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-source-discovery-plan-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-source-attestation-intake-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-rankability-gap-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-experimental-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-experimental-gap-latest.json
