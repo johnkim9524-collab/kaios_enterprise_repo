@@ -8,11 +8,17 @@ const OUT_DIR = path.join(ROOT, 'reports', 'kidult100-poc');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const CONTACT_URL = 'https://github.com/johnkim9524-collab/kaios_enterprise_repo';
-const UA = `KIDULTS-Kidult100-Bot/2.5 (${CONTACT_URL}; two-stage semantic discovery)`;
+const UA = `KIDULTS-Kidult100-Bot/2.6 (${CONTACT_URL}; two-stage semantic discovery)`;
 const WIKIDATA_MIN_INTERVAL_MS = 700;
 const WIKIDATA_MAX_RETRIES = 4;
 let lastWikidataRequestAt = 0;
 const wikidataRuntime = { requests: 0, retries: 0, rateLimits: 0, contactUrl: CONTACT_URL };
+const sourceAccessRuntime = Object.fromEntries((CONFIG.sources || []).map((source) => [source.id, {
+  configuredActive: source.active !== false,
+  attempts: 0,
+  blockedForRun: false,
+  blockedReason: null,
+}]));
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -296,16 +302,33 @@ function semanticTwoStage(item) {
   };
 }
 
-const collectors = [searchWikidata, searchMet, searchAic];
+const collectors = [
+  { id: 'wikidata', run: searchWikidata },
+  { id: 'met', run: searchMet },
+  { id: 'aic', run: searchAic },
+];
+const configuredActiveSources = new Set((CONFIG.sources || []).filter((source) => source.active !== false).map((source) => source.id));
+const blockedSources = new Set();
 const sourceErrors = [];
 const raw = [];
 for (const vertical of CONFIG.coreVerticals) {
   for (const query of vertical.discoveryQueries) {
     for (const collector of collectors) {
+      if (!configuredActiveSources.has(collector.id) || blockedSources.has(collector.id)) continue;
+      if (!sourceAccessRuntime[collector.id]) {
+        sourceAccessRuntime[collector.id] = { configuredActive: true, attempts: 0, blockedForRun: false, blockedReason: null };
+      }
+      sourceAccessRuntime[collector.id].attempts += 1;
       try {
-        raw.push(...await collector(query, vertical.id));
+        raw.push(...await collector.run(query, vertical.id));
       } catch (error) {
-        sourceErrors.push({ vertical: vertical.id, query, collector: collector.name, error: String(error?.message || error) });
+        const message = String(error?.message || error);
+        sourceErrors.push({ vertical: vertical.id, query, collector: collector.run.name, source: collector.id, error: message });
+        if (/^HTTP_(401|403):/.test(message)) {
+          blockedSources.add(collector.id);
+          sourceAccessRuntime[collector.id].blockedForRun = true;
+          sourceAccessRuntime[collector.id].blockedReason = message.split(':', 1)[0];
+        }
       }
     }
   }
@@ -351,7 +374,7 @@ const rightsClassificationCoverage = candidates.length ? candidates.filter((c) =
 const semanticRelevanceCoverage = candidates.length ? relevantCandidates.length / candidates.length : 0;
 
 const report = {
-  schemaVersion: '2.5.0',
+  schemaVersion: '2.6.0',
   mode: CONFIG.mode,
   generatedAt: new Date().toISOString(),
   target: {
@@ -372,6 +395,9 @@ const report = {
     contactUrl: CONTACT_URL,
     wikidataMinimumIntervalMs: WIKIDATA_MIN_INTERVAL_MS,
     wikidataMaximumRetries: WIKIDATA_MAX_RETRIES,
+    sourceConfigurationRespected: true,
+    accessDenialCircuitBreaker: true,
+    accessDenialStatuses: [401, 403],
   },
   metrics: {
     rawObservations: raw.length,
@@ -391,10 +417,11 @@ const report = {
     bySource,
     relevantBySource,
     wikidataRuntime,
+    sourceAccessRuntime,
   },
   candidateBuild: {
     outcome: 'BUILT_NOT_CERTIFIED',
-    note: 'Stage A maximizes defensible recall. Stage B removes explicit archive title-only and object-type mismatches. Stage 2 certification remains downstream.',
+    note: 'Stage A maximizes defensible recall. Stage B removes explicit archive title-only and object-type mismatches. Access-denied sources are stopped for the remainder of the run. Stage 2 certification remains downstream.',
   },
   claims: {
     liveExternalNetworkCollection: true,
@@ -410,10 +437,11 @@ const report = {
 };
 
 fs.writeFileSync(path.join(OUT_DIR, 'kidult100-poc-latest.json'), JSON.stringify(report, null, 2));
-console.log(`Kidult100 candidate build v2.5: raw=${raw.length} unique=${candidates.length} recall=${recallCandidates.length} precisionRejected=${precisionRejectedCandidates.length} relevant=${relevantCandidates.length} errors=${sourceErrors.length}`);
+console.log(`Kidult100 candidate build v2.6: raw=${raw.length} unique=${candidates.length} recall=${recallCandidates.length} precisionRejected=${precisionRejectedCandidates.length} relevant=${relevantCandidates.length} errors=${sourceErrors.length}`);
 console.log(`provenance=${provenanceCoverage} rights=${rightsClassificationCoverage} semantic=${semanticRelevanceCoverage}`);
 console.log(`rawDuplicateObservationRate=${rawDuplicateObservationRate} acceptedDuplicateContamination=${acceptedDuplicateContamination}`);
 console.log(`recallVerticals=${JSON.stringify(recallByVertical)}`);
 console.log(`relevantVerticals=${JSON.stringify(relevantByVertical)}`);
 console.log(`relevantSources=${JSON.stringify(relevantBySource)}`);
 console.log(`wikidataRuntime=${JSON.stringify(wikidataRuntime)}`);
+console.log(`sourceAccessRuntime=${JSON.stringify(sourceAccessRuntime)}`);
