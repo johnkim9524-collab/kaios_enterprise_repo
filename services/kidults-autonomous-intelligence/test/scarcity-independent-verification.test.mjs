@@ -191,15 +191,16 @@ test('malformed verification fails closed across identity hash source rights qua
   assert.equal(report.disposition, 'FAIL_CLOSED_VERIFICATION_REJECTIONS_PRESENT');
 });
 
-test('same-host source quantity mismatch and duplicate verification are rejected deterministically', () => {
+test('rejected verification does not block a later valid retry for the same candidate', () => {
   const first = verification({ verificationSourceUrl: 'https://primary.example/independent-document', verifiedQuantity: 999 });
-  const duplicate = verification({ verificationSourceUrl: 'https://other.example/document' });
-  const { result, report } = run(policy([first, duplicate]), intake([primary()]));
+  const retry = verification({ verificationSourceUrl: 'https://other.example/document' });
+  const { result, report } = run(policy([first, retry]), intake([primary()]));
   assert.equal(result.status, 1);
-  assert.equal(report.metrics.rejectedVerifications, 2);
+  assert.equal(report.metrics.rejectedVerifications, 1);
+  assert.equal(report.metrics.independentlyVerified, 1);
   assert.ok(report.rejectedVerifications[0].reasons.includes('INDEPENDENT_SOURCE_NOT_DISTINCT'));
   assert.ok(report.rejectedVerifications[0].reasons.includes('VERIFIED_QUANTITY_DIFFERS_FROM_PRIMARY'));
-  assert.ok(report.rejectedVerifications[1].reasons.includes('DUPLICATE_CANDIDATE_VERIFICATION') === false);
+  assert.equal(report.verifiedAttestations[0].candidateKey, 'wikidata:Q1');
 });
 
 test('duplicate is detected after one valid verification has been accepted', () => {
