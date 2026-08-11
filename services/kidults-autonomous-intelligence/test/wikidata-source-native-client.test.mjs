@@ -41,6 +41,7 @@ test('source-native client preserves serial batching and filters duplicate/inval
   assert.equal(result.accessPolicy.officialEndpoint, false);
   assert.equal(result.accessPolicy.serialRequests, true);
   assert.equal(result.accessPolicy.serverDrivenBackpressure, true);
+  assert.equal(result.accessPolicy.retriesOnlyOnExplicitBackpressure, true);
   assert.equal(result.accessPolicy.maxRetries, 4);
   assert.equal(result.accessPolicy.maxlagSeconds, 5);
   assert.equal(result.accessPolicy.gzipRequested, true);
@@ -72,6 +73,22 @@ test('source-native client retries 429 using Retry-After then succeeds without d
   assert.deepEqual(sleeps, [2000]);
 });
 
+test('source-native client uses bounded fallback backoff for 429 without server delay', async () => {
+  let attempts = 0;
+  const sleeps = [];
+  const result = await fetchWikidataEntities(['Q43'], {
+    baseBackoffMs: 125,
+    fetchImpl: async () => {
+      attempts += 1;
+      if (attempts === 1) return response(429, { error: { code: 'ratelimited' } });
+      return response(200, { entities: { Q43: { id: 'Q43' } } });
+    },
+    sleepImpl: async (ms) => sleeps.push(ms),
+  });
+  assert.equal(result.entities.Q43.id, 'Q43');
+  assert.deepEqual(sleeps, [125]);
+});
+
 test('source-native client honors HTTP-200 maxlag body and reported lag before retry', async () => {
   let attempts = 0;
   const sleeps = [];
@@ -91,30 +108,22 @@ test('source-native client honors HTTP-200 maxlag body and reported lag before r
   assert.deepEqual(sleeps, [1250]);
 });
 
-test('source-native client retries 5xx with exponential backoff and records terminal HTTP failures fail-closed', async () => {
-  let attempts = 0;
-  const sleeps = [];
-  const recovered = await fetchWikidataEntities(['Q7'], {
-    maxRetries: 1,
-    baseBackoffMs: 100,
-    fetchImpl: async () => {
-      attempts += 1;
-      if (attempts === 1) return response(503, { error: { code: 'unavailable' } });
-      return response(200, { entities: { Q7: { id: 'Q7' } } });
-    },
-    sleepImpl: async (ms) => sleeps.push(ms),
+test('source-native client keeps 5xx and non-retryable HTTP failures terminal and fail-closed', async () => {
+  const serverFailure = await fetchWikidataEntities(['Q7'], {
+    fetchImpl: async () => response(503, { error: { code: 'unavailable' } }),
+    sleepImpl: async () => assert.fail('5xx is terminal in this bounded verification client'),
   });
-  assert.equal(recovered.entities.Q7.id, 'Q7');
-  assert.equal(recovered.retries, 1);
-  assert.deepEqual(sleeps, [100]);
+  assert.equal(serverFailure.requestCount, 1);
+  assert.equal(serverFailure.retries, 0);
+  assert.deepEqual(serverFailure.errors, [{ ids: ['Q7'], error: 'HTTP_503' }]);
 
-  const terminal = await fetchWikidataEntities(['Q8'], {
+  const clientFailure = await fetchWikidataEntities(['Q8'], {
     maxRetries: 0,
     fetchImpl: async () => response(400, { error: { code: 'badrequest' } }),
     sleepImpl: async () => assert.fail('non-retryable failure must not sleep'),
   });
-  assert.equal(terminal.entities.Q8, undefined);
-  assert.deepEqual(terminal.errors, [{ ids: ['Q8'], error: 'HTTP_400' }]);
+  assert.equal(clientFailure.entities.Q8, undefined);
+  assert.deepEqual(clientFailure.errors, [{ ids: ['Q8'], error: 'HTTP_400' }]);
 });
 
 test('source-native client records terminal maxlag without fabricating entities', async () => {
@@ -128,29 +137,14 @@ test('source-native client records terminal maxlag without fabricating entities'
   assert.equal(result.maxlagResponses, 1);
 });
 
-test('source-native client retries transient fetch exceptions and records exhausted transport failures', async () => {
-  let attempts = 0;
-  const sleeps = [];
-  const recovered = await fetchWikidataEntities(['Q10'], {
-    maxRetries: 1,
-    baseBackoffMs: 100,
-    fetchImpl: async () => {
-      attempts += 1;
-      if (attempts === 1) throw new Error('temporary transport failure');
-      return response(200, { entities: { Q10: { id: 'Q10' } } });
-    },
-    sleepImpl: async (ms) => sleeps.push(ms),
+test('source-native client records transport failures immediately without fabricating entities', async () => {
+  const result = await fetchWikidataEntities(['Q10'], {
+    fetchImpl: async () => { throw new Error('transport failure'); },
+    sleepImpl: async () => assert.fail('transport failures remain terminal'),
   });
-  assert.equal(recovered.entities.Q10.id, 'Q10');
-  assert.equal(recovered.retries, 1);
-  assert.deepEqual(sleeps, [100]);
-
-  const exhausted = await fetchWikidataEntities(['Q11'], {
-    maxRetries: 0,
-    fetchImpl: async () => { throw new Error('permanent transport failure'); },
-    sleepImpl: async () => assert.fail('terminal transport failure must not sleep'),
-  });
-  assert.deepEqual(exhausted.errors, [{ ids: ['Q11'], error: 'permanent transport failure' }]);
+  assert.equal(result.requestCount, 1);
+  assert.equal(result.retries, 0);
+  assert.deepEqual(result.errors, [{ ids: ['Q10'], error: 'transport failure' }]);
 });
 
 test('source-native client tolerates malformed JSON as empty successful payload and handles empty input without network access', async () => {
