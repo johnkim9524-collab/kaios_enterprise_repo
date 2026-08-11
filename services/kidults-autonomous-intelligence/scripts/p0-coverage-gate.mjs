@@ -70,6 +70,19 @@ if (result.error) {
 }
 
 if (result.status !== 0) {
+  const diagnosticLines = `${result.stdout || ''}\n${result.stderr || ''}`
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const coverageLine = diagnosticLines.find((line) => /all files/i.test(line))
+    || diagnosticLines.find((line) => /coverage/i.test(line) && /fail|threshold|does not meet/i.test(line))
+    || diagnosticLines.slice(-1)[0]
+    || `test runner exited with status ${result.status}`;
+  const annotation = coverageLine
+    .replaceAll('%', '%25')
+    .replaceAll('\r', '%0D')
+    .replaceAll('\n', '%0A');
+  console.error(`::error title=KIDULTS P0 coverage gate::${annotation}`);
   console.error(`Coverage gate FAIL: test runner exited with status ${result.status}.`);
   process.exit(result.status ?? 1);
 }
