@@ -74,11 +74,30 @@ if (result.status !== 0) {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  const coverageLine = diagnosticLines.find((line) => /all files/i.test(line))
-    || diagnosticLines.find((line) => /coverage/i.test(line) && /fail|threshold|does not meet/i.test(line))
+  const coverageRows = diagnosticLines
+    .filter((line) => line.includes('|'))
+    .map((line) => ({
+      raw: line,
+      fields: line.replace(/^#\s*/, '').split('|').map((field) => field.trim()),
+    }))
+    .filter(({ fields }) => fields.length >= 4 && fields[0] && !/^(file|all files)$/i.test(fields[0]));
+  const failingRows = coverageRows.filter(({ fields }) => {
+    const linePct = Number(fields[1]);
+    const branchPct = Number(fields[2]);
+    const functionPct = Number(fields[3]);
+    return (Number.isFinite(linePct) && linePct < thresholds.lines)
+      || (Number.isFinite(branchPct) && branchPct < thresholds.branches)
+      || (Number.isFinite(functionPct) && functionPct < thresholds.functions);
+  });
+  const totalLine = diagnosticLines.find((line) => /all files/i.test(line));
+  const fallbackLine = diagnosticLines.find((line) => /coverage/i.test(line) && /fail|threshold|does not meet/i.test(line))
     || diagnosticLines.slice(-1)[0]
     || `test runner exited with status ${result.status}`;
-  const annotation = coverageLine
+  const coverageDetail = [totalLine, ...failingRows.slice(0, 8).map(({ raw }) => raw)]
+    .filter(Boolean)
+    .join(' || ')
+    || fallbackLine;
+  const annotation = coverageDetail
     .replaceAll('%', '%25')
     .replaceAll('\r', '%0D')
     .replaceAll('\n', '%0A');
