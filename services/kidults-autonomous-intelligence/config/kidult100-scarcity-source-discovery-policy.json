@@ -1,0 +1,108 @@
+{
+  "schemaVersion": "1.0.0",
+  "policy": "FAIL_CLOSED_SCARCITY_SOURCE_DISCOVERY_WORK_PACKETS",
+  "requiredInputMode": "KIDULT100_SCARCITY_SOURCE_QUALIFICATION_MATRIX",
+  "eligibleQualificationStatus": "RIGHTS_QUALIFIED_SOURCE_DISCOVERY_REQUIRED",
+  "requiredSignalType": "TOTAL_PRODUCED",
+  "specificity": {
+    "genericExactTitles": [
+      "toy",
+      "action figure",
+      "doll or action figure character",
+      "doll or action figure model",
+      "reissued action figure",
+      "action figure line",
+      "watch",
+      "sneaker",
+      "sneaker collecting",
+      "athletic shoe",
+      "bag",
+      "coat",
+      "chaise longue",
+      "screen",
+      "vinyl record",
+      "arcade game",
+      "arcade video game",
+      "trading card",
+      "baseball card",
+      "sports memorabilia",
+      "collectible card game",
+      "trading card set"
+    ],
+    "unsafeDescriptionPhrases": [
+      "sketch from saturday night live",
+      "scientific article",
+      "film by",
+      "presentation drawing",
+      "sketchbook",
+      "collage",
+      "photograph",
+      "fictional character",
+      "person who collects",
+      "game creation system",
+      "video game developed",
+      "1988 video game",
+      "2016 video game",
+      "drawings (visual works)"
+    ],
+    "institutionalArchiveRequiresModelSpecificity": true
+  },
+  "sourceTiers": [
+    {
+      "id": "OFFICIAL_MANUFACTURER_OR_BRAND_ARCHIVE",
+      "priority": 1,
+      "requiresExplicitQuantity": true,
+      "requiresCommercialReuseRights": true,
+      "requiresDocumentedAutomatedAccess": true
+    },
+    {
+      "id": "OFFICIAL_FOUNDATION_MUSEUM_OR_CORPORATE_ARCHIVE",
+      "priority": 2,
+      "requiresExplicitQuantity": true,
+      "requiresCommercialReuseRights": true,
+      "requiresDocumentedAutomatedAccess": true
+    },
+    {
+      "id": "GOVERNMENT_OR_REGULATORY_PUBLIC_RECORD",
+      "priority": 3,
+      "requiresExplicitQuantity": true,
+      "requiresCommercialReuseRights": true,
+      "requiresDocumentedAutomatedAccess": true
+    },
+    {
+      "id": "OPEN_RIGHTS_INSTITUTIONAL_DATASET",
+      "priority": 4,
+      "requiresExplicitQuantity": true,
+      "requiresCommercialReuseRights": true,
+      "requiresDocumentedAutomatedAccess": true
+    },
+    {
+      "id": "RIGHTS_DOCUMENTED_STRUCTURED_DATASET",
+      "priority": 5,
+      "requiresExplicitQuantity": true,
+      "requiresCommercialReuseRights": true,
+      "requiresDocumentedAutomatedAccess": true
+    }
+  ],
+  "evidenceChecklist": [
+    "EXACT_ENTITY_MATCH",
+    "EXPLICIT_TOTAL_PRODUCED_QUANTITY",
+    "HTTPS_SOURCE_URL",
+    "EXPLICIT_COMMERCIAL_REUSE_RIGHTS",
+    "DOCUMENTED_AUTOMATED_ACCESS",
+    "OBSERVED_AT",
+    "PAYLOAD_HASH"
+  ],
+  "safety": {
+    "automaticQualificationAllowed": false,
+    "searchResultSnippetAcceptedAsEvidence": false,
+    "genericWebPageAcceptedWithoutRights": false,
+    "listingOrMarketplaceAcceptedAsQuantity": false,
+    "marketingLanguageAcceptedAsQuantity": false,
+    "syntheticOrEstimatedQuantityAllowed": false,
+    "unauthorizedScrapingAllowed": false,
+    "paidProviderProcurementAllowed": false,
+    "contractExecutionAllowed": false,
+    "productionScoringActivationAllowed": false
+  }
+}
