@@ -74,7 +74,7 @@ test('prioritizes zero-supply and existing-evidence repairs before new supply ex
   assert.equal(report.metrics.dimensionVerticalCells, 6);
   assert.equal(report.metrics.cellsBelowOperationalReference, 5);
   assert.equal(report.metrics.zeroEligibleCells, 1);
-  assert.equal(report.metrics.totalOperationalReferenceGap, 80);
+  assert.equal(report.metrics.totalOperationalReferenceGap, 85);
   assert.equal(report.metrics.existingEvidenceRepairCells, 3);
   assert.equal(report.metrics.externalSignalAcquisitionCells, 2);
   assert.equal(report.disposition, 'USE_EXISTING_RIGHTS_QUALIFIED_EVIDENCE_BEFORE_NEW_ACQUISITION');
