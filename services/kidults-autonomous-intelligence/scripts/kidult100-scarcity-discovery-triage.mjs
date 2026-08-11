@@ -21,6 +21,11 @@ function nonNegativeInteger(value) {
   return Number.isInteger(number) && number >= 0 ? number : null;
 }
 
+function boundedCoverage(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 && number <= 1 ? number : null;
+}
+
 const policy = readJsonInput(process.env.KIDULTS_SCARCITY_DISCOVERY_TRIAGE_POLICY_JSON, DEFAULT_POLICY);
 const discovery = readJsonInput(process.env.KIDULTS_SCARCITY_DISCOVERY_TRIAGE_DISCOVERY_JSON, DEFAULT_DISCOVERY);
 const priority = readJsonInput(process.env.KIDULTS_SCARCITY_DISCOVERY_TRIAGE_PRIORITY_JSON, DEFAULT_PRIORITY);
@@ -47,6 +52,16 @@ if (priority?.claims?.syntheticOrEstimatedEvidenceCreated !== false || priority?
 if (rightData?.claims?.syntheticMarketEvidenceUsed !== false || rightData?.claims?.estimatedTransactionEvidenceUsed !== false) throw new Error('Unsafe Right Data evidence state');
 
 const structuralErrors = [];
+const semanticRelevantCandidates = nonNegativeInteger(rightData?.metrics?.semanticRelevantCandidates);
+const currentRequiredRightDataCoverage = boundedCoverage(rightData?.metrics?.requiredRightDataCoverage);
+const requiredPrimitiveCount = Object.keys(rightData?.metrics?.primitiveCoverage || {}).length;
+if (!(semanticRelevantCandidates > 0)) structuralErrors.push('INVALID_RIGHT_DATA_RELEVANT_CANDIDATE_COUNT');
+if (currentRequiredRightDataCoverage == null) structuralErrors.push('INVALID_RIGHT_DATA_REQUIRED_COVERAGE');
+if (!(requiredPrimitiveCount > 0)) structuralErrors.push('INVALID_RIGHT_DATA_REQUIRED_PRIMITIVE_COUNT');
+const conditionalCoverageDeltaPerFullyVerifiedCandidate = semanticRelevantCandidates > 0 && requiredPrimitiveCount > 0
+  ? 1 / (semanticRelevantCandidates * requiredPrimitiveCount)
+  : 0;
+
 const scarcityByVertical = new Map();
 for (const cell of Array.isArray(priority?.priorities) ? priority.priorities : []) {
   if (cell?.dimension !== 'SCARCITY') continue;
@@ -87,6 +102,10 @@ for (const packet of Array.isArray(discovery?.workPackets) ? discovery.workPacke
     continue;
   }
   const primitives = new Set(candidate?.rightData?.primitives || []);
+  if (primitives.has('SCARCITY')) {
+    structuralErrors.push(`DISCOVERY_CANDIDATE_ALREADY_HAS_SCARCITY:${packet.candidateKey}`);
+    continue;
+  }
   const demandSupport = primitives.has('DEMAND_ATTENTION');
   const canonSupport = primitives.has('CANON_CULTURAL_STRENGTH');
   const referenceContext = Boolean(packet?.currentReference?.sourceClass && packet?.currentReference?.rightsClass && packet?.currentReference?.sourceUrl);
@@ -102,6 +121,7 @@ for (const packet of Array.isArray(discovery?.workPackets) ? discovery.workPacke
     sourceFeasibility: 'UNASSESSED_REQUIRES_RIGHTS_QUALIFIED_DISCOVERY',
     qualificationStatus: 'NOT_QUALIFIED',
     conditionalScarcityPrimitiveGainIfFullyVerified: 1,
+    conditionalRequiredRightDataCoverageDeltaIfFullyVerified: conditionalCoverageDeltaPerFullyVerifiedCandidate,
     automaticQualificationAllowed: false,
   });
 }
@@ -122,12 +142,18 @@ for (const row of rows) {
     zeroEligibleScarcitySupply: row.zeroEligibleScarcitySupply,
     demandAndCanonSupportedTargets: 0,
     conditionalMaxScarcityPrimitiveGain: 0,
+    conditionalMaxRequiredRightDataCoverageDelta: 0,
   };
   byVertical[row.vertical].prioritizedTargets += 1;
   byVertical[row.vertical].demandAndCanonSupportedTargets += Number(row.existingSupport.both);
   byVertical[row.vertical].conditionalMaxScarcityPrimitiveGain += 1;
+  byVertical[row.vertical].conditionalMaxRequiredRightDataCoverageDelta += conditionalCoverageDeltaPerFullyVerifiedCandidate;
 }
 
+const conditionalMaxRequiredRightDataCoverageDelta = rows.length * conditionalCoverageDeltaPerFullyVerifiedCandidate;
+const conditionalMaxRequiredRightDataCoverage = currentRequiredRightDataCoverage == null
+  ? null
+  : Math.min(1, currentRequiredRightDataCoverage + conditionalMaxRequiredRightDataCoverageDelta);
 const disposition = structuralErrors.length > 0
   ? 'FAIL_CLOSED_INVALID_SCARCITY_DISCOVERY_TRIAGE'
   : rows.length > 0
@@ -135,7 +161,7 @@ const disposition = structuralErrors.length > 0
     : 'NO_DISCOVERY_READY_TARGETS';
 
 const report = {
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.1.0',
   mode: 'KIDULT100_SCARCITY_DISCOVERY_TRIAGE',
   generatedAt: new Date().toISOString(),
   policy: policy.policy,
@@ -146,6 +172,13 @@ const report = {
     demandAndCanonSupportedTargets: rows.filter((row) => row.existingSupport.both).length,
     rightsClassifiedReferenceContextTargets: rows.filter((row) => row.rightsClassifiedReferenceContextAvailable).length,
     conditionalMaxScarcityPrimitiveGain: rows.length,
+    semanticRelevantCandidates,
+    requiredPrimitiveCount,
+    currentRequiredRightDataCoverage,
+    conditionalRequiredRightDataCoverageDeltaPerFullyVerifiedCandidate: conditionalCoverageDeltaPerFullyVerifiedCandidate,
+    conditionalMaxRequiredRightDataCoverageDelta,
+    conditionalMaxRequiredRightDataCoverage,
+    conditionalScarcityPacketsAloneCanReachNinetyPercentRightData: conditionalMaxRequiredRightDataCoverage == null ? false : conditionalMaxRequiredRightDataCoverage >= 0.9,
     structuralErrorCount: structuralErrors.length,
     byVertical,
   },
@@ -165,6 +198,7 @@ const report = {
     contractExecutionRequested: false,
     rightsOrProvenanceRequirementsWeakened: false,
     conditionalGainIsNotEvidence: true,
+    conditionalCoverageProjectionIsNotCertifiedRightData: true,
   },
   priorities: rows,
 };
@@ -172,5 +206,6 @@ const report = {
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, JSON.stringify(report, null, 2));
 console.log(`Scarcity discovery triage: ready=${report.metrics.discoveryReadyTargets} prioritized=${rows.length} zeroSupply=${report.metrics.zeroEligibleSupplyTargets} bothSupport=${report.metrics.demandAndCanonSupportedTargets} conditionalMaxGain=${report.metrics.conditionalMaxScarcityPrimitiveGain}`);
+console.log(`conditionalRightDataDelta=${report.metrics.conditionalMaxRequiredRightDataCoverageDelta} conditionalRightDataMax=${report.metrics.conditionalMaxRequiredRightDataCoverage} canReach90=${report.metrics.conditionalScarcityPacketsAloneCanReachNinetyPercentRightData}`);
 console.log(`disposition=${disposition}`);
 if (structuralErrors.length > 0) process.exitCode = 1;
