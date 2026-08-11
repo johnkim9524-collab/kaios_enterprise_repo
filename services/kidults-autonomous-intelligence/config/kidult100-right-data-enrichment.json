@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.2.0",
+  "schemaVersion": "1.3.0",
   "policy": "FAIL_CLOSED_NO_SYNTHETIC_MARKET_EVIDENCE",
   "requiredPrimitives": [
     "IDENTITY",
@@ -14,6 +14,7 @@
     "environmentVariable": null,
     "optionalSnapshotFiles": [
       "reports/kidult100-right-data/open-evidence-latest.json",
+      "reports/kidult100-right-data/canon-evidence-latest.json",
       "reports/kidult100-right-data/validated-provider-evidence-latest.json"
     ],
     "acceptedEvidenceClasses": [
@@ -21,6 +22,7 @@
       "TRANSACTION_MARKET_EVIDENCE",
       "INDEPENDENT_VERIFICATION",
       "DEMAND_CULTURAL_SIGNAL",
+      "CANON_REFERENCE_EVIDENCE",
       "DERIVED_INTERNAL_CONFIDENCE"
     ],
     "requiredFields": [
@@ -34,6 +36,17 @@
       "evidenceClass"
     ],
     "marketEvidenceMustPassProviderContract": true
+  },
+  "canonEvidencePolicy": {
+    "evidenceClass": "CANON_REFERENCE_EVIDENCE",
+    "requiredPrimitive": "CANON_CULTURAL_STRENGTH",
+    "allowedSignalTypes": [
+      "INSTITUTIONAL_RECOGNITION",
+      "REFERENCE_CANON_SIGNAL"
+    ],
+    "normalizedScoreAllowed": false,
+    "requiresPreservedRightsClass": true,
+    "requiresPreservedProvenance": true
   },
   "confidenceModel": {
     "version": "RISK_CONFIDENCE_V1",
