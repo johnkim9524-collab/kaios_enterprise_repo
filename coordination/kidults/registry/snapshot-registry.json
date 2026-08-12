@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0.0",
+  "status": "BOOTSTRAPPING",
+  "current_snapshot_id": null,
+  "records": [],
+  "rule": "Candidate, assessment, release and QA must share one immutable snapshot_id. No identifier is inferred or synthesized."
+}
