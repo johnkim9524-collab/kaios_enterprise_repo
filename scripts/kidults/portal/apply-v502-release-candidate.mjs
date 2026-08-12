@@ -36,6 +36,15 @@ for (const [relative, content] of Object.entries(files)) {
   console.log(`WRITE ${relative}`);
 }
 
+// Operational registry records require immutable creation metadata.
+const trackCPath = path.join(
+  root,
+  "coordination/kidults/registry/track/records/track-c-portal-v502-experience-layer.json"
+);
+const trackC = JSON.parse(fs.readFileSync(trackCPath, "utf8"));
+trackC.created_by ??= "Atlas";
+fs.writeFileSync(trackCPath, `${JSON.stringify(trackC, null, 2)}\n`, "utf8");
+
 for (const relative of [
   "scripts/kidults/portal/apply-v502-release-candidate.mjs",
   ".github/workflows/kidults-apply-v502.yml"
