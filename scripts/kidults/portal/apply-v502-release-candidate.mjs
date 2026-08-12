@@ -57,16 +57,14 @@ missionValidator = missionValidator.replace(
 );
 fs.writeFileSync(missionValidatorPath, missionValidator, "utf8");
 
-for (const relative of [
-  "scripts/kidults/portal/apply-v502-release-candidate.mjs",
-  ".github/workflows/kidults-apply-v502.yml"
-]) {
-  const absolute = path.join(root, relative);
-  if (fs.existsSync(absolute)) fs.rmSync(absolute, { force: true });
+// GitHub Actions tokens cannot create workflow files. The validated V502
+// workflow is installed separately by the KPMO connector after this commit.
+const generatedWorkflowPath = path.join(
+  root,
+  ".github/workflows/kidults-portal-v502-validate.yml"
+);
+if (fs.existsSync(generatedWorkflowPath)) {
+  fs.rmSync(generatedWorkflowPath, { force: true });
 }
 
-if (fs.existsSync(chunkRoot)) {
-  fs.rmSync(chunkRoot, { recursive: true, force: true });
-}
-
-console.log(`Applied ${Object.keys(files).length} V502 files and removed bootstrap artifacts.`);
+console.log(`Prepared ${Object.keys(files).length - 1} V502 implementation files for commit.`);
