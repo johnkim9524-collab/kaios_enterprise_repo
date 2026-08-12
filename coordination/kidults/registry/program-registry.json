@@ -1,0 +1,79 @@
+{
+  "registry_version": "1.0.0",
+  "effective_at": "2026-08-12T00:00:00+09:00",
+  "time_zone": "Asia/Seoul",
+  "program": {
+    "program_id": "kidults-integrated-intelligence-program",
+    "display_name": "KIDULTS Integrated Intelligence Program",
+    "mission": "Build a provider-aware, evidence-driven, scalable and increasingly autonomous global collectibles intelligence operating system under the 120 Standard.",
+    "program_owner": "johnkim9524-collab",
+    "integration_conductor": "Atlas",
+    "canonical_board_issue": 234,
+    "integration_gate_issue": 238,
+    "status": "active"
+  },
+  "official_books": [
+    "Master Book",
+    "Baseline Book",
+    "Architecture Book"
+  ],
+  "tracks": [
+    {
+      "track_id": "A",
+      "track_key": "kidults-120-score",
+      "display_name": "Kidults 120 Score",
+      "role": "PoC intelligence producer and current-readiness measurement",
+      "canonical_issue": 235,
+      "working_room": "https://chatgpt.com/c/6a793227-3324-83ee-9d73-1a39d1d8923a?messageId=finalAgentTurnStart",
+      "official_output": "snapshot-candidate.json"
+    },
+    {
+      "track_id": "B",
+      "track_key": "rankability-gate",
+      "display_name": "Rankability Gate",
+      "role": "Independent validation before market-data spend and Production promotion",
+      "canonical_issue": 236,
+      "working_room": "https://chatgpt.com/c/6a7a5db1-920c-83ee-abed-19feba5cca59?messageId=finalAgentTurnStart",
+      "official_output": "rankability-assessment.json"
+    },
+    {
+      "track_id": "C",
+      "track_key": "portal-v502-data-connection",
+      "display_name": "Portal V502 & Data Connection",
+      "role": "Published-snapshot consumer, presentation layer and portal QA",
+      "canonical_issue": 237,
+      "working_room": "https://chatgpt.com/c/6a7a13b4-d30c-83ee-b4a8-6256e413aebd",
+      "official_output": "portal-release-manifest.json"
+    }
+  ],
+  "official_sources": {
+    "coordination_root": "coordination/kidults/",
+    "operations_documents": "docs/operations/",
+    "canonical_issues": [234, 235, 236, 237, 238],
+    "merged_repository_state": true,
+    "chat_rooms_are_canonical": false
+  },
+  "artifact_chain": [
+    "snapshot-candidate.json",
+    "rankability-assessment.json",
+    "portal-release-manifest.json",
+    "portal-qa-result.json",
+    "production-decision.json"
+  ],
+  "required_common_keys": [
+    "snapshot_id",
+    "methodology_version",
+    "generated_at",
+    "source_mode",
+    "evidence_lineage_version"
+  ],
+  "operating_principles": [
+    "One Program. One Language. One Standard. One Source of Truth.",
+    "Structure is stable; intelligence is dynamic.",
+    "Proof before procurement.",
+    "Generate, validate, approve and publish are separate responsibilities.",
+    "The Portal renders published intelligence and does not calculate it.",
+    "No material doctrine is official when it exists only inside a chat session.",
+    "All current measurements are conditional on explicit data, methodology and source assumptions and do not claim permanent superiority."
+  ]
+}
