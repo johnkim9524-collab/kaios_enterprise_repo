@@ -1,0 +1,8 @@
+{
+  "schema_version": "1.0.0",
+  "status": "BOOTSTRAPPING",
+  "records": [],
+  "lifecycle": ["RESEARCHING","SHADOW","APPROVED","REJECTED","CONTRACTED","OFFBOARDED"],
+  "policy": "Proof before Procurement",
+  "safety": {"auto_procurement":false,"auto_contract_execution":false,"unauthorized_scraping":false,"baseline_overwrite":false}
+}
