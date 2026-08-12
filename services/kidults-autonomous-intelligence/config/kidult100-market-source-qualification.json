@@ -198,6 +198,34 @@
         "https://support.discogs.com/hc/en-us/articles/360009334593-API-Terms-of-Use",
         "https://support.discogs.com/hc/en-us/articles/360009334333-Terms-of-Service"
       ]
+    },
+    {
+      "sourceId": "stockx-api",
+      "displayName": "StockX Developer API",
+      "sourceClass": "MARKETPLACE_API",
+      "rightsStatus": "API_LICENSE_INTERNAL_USE_ONLY_NONTRANSFERABLE",
+      "automationAccess": "API_KEY_JWT_AND_LICENSE_ACCEPTANCE_REQUIRED",
+      "marketSemantics": {
+        "completedTransactions": "SELLER_ACCOUNT_ORDER_DATA_ONLY_NOT_BROAD_MARKET_COMPLETED_TRANSACTION_FEED",
+        "transactionBackedLiquidity": "HIGHEST_BID_LOWEST_ASK_AVAILABLE_BUT_NOT_TRANSACTION_BACKED_LIQUIDITY"
+      },
+      "primarySourceFindings": {
+        "completedTransactionSemanticsDocumented": false,
+        "transactionBackedLiquiditySemanticsDocumented": false,
+        "commercialReuseAuthorizationRequired": true
+      },
+      "qualification": "NOT_QUALIFIED_AUTHORIZATION_REQUIRED",
+      "blockingReasons": [
+        "NO_CURRENT_KIDULTS_STOCKX_API_AUTHORIZATION",
+        "LICENSE_LIMITS_DATA_USE_TO_INTERNAL_INTEGRATION",
+        "NO_BROAD_COMPLETED_TRANSACTION_FEED_CONFIRMED",
+        "BID_ASK_MARKET_DATA_NOT_TRANSACTION_BACKED_LIQUIDITY",
+        "CATEGORY_COVERAGE_DOES_NOT_SATISFY_EIGHT_VERTICAL_REQUIREMENT"
+      ],
+      "evidenceLinks": [
+        "https://developer.stockx.com/portal/license-agreement",
+        "https://developer.stockx.com/portal/api-reference"
+      ]
     }
   ]
 }
