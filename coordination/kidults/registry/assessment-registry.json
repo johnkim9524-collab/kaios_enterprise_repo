@@ -1,5 +1,5 @@
 {
-  "registry_version": "1.0.0",
+  "registry_version": "1.1.0",
   "owner": "ATLAS_KPMO",
   "track_b_access": "READ_ONLY_REQUEST_REGISTRATION",
   "status": "BOOTSTRAPPING",
@@ -7,12 +7,32 @@
   "current_assessment_id": null,
   "current_snapshot_id": null,
   "entries": [],
+  "archive": [],
   "allowed_recommendations": ["BLOCKED", "CONDITIONAL", "PUBLISHABLE"],
   "allowed_confidence": ["LOW", "MEDIUM", "HIGH"],
+  "required_traceability_fields": [
+    "assessment_id",
+    "snapshot_id",
+    "assessment_version",
+    "registry_version",
+    "methodology_version",
+    "evidence_lineage_version",
+    "generated_at",
+    "assessment_status"
+  ],
+  "required_recommendation_justification_fields": [
+    "metric",
+    "observed_value",
+    "required_threshold",
+    "comparison_result",
+    "evidence_reference"
+  ],
   "rules": [
     "Each assessment references exactly one snapshot_id.",
-    "Issued assessments are immutable.",
+    "Issued assessments are immutable and are never deleted.",
     "Changed evaluations require a new assessment_id and archival of the prior assessment.",
+    "The same snapshot_id and identical Evidence Package must reproduce the same assessment; any divergence requires a recorded cause.",
+    "Every recommendation requires quantitative justification and an Evidence Reference.",
     "Track B may request registration but does not modify this registry.",
     "Assessment generation requires snapshot registration, evidence package availability, and registry validation pass.",
     "If trigger conditions are incomplete, Track B remains WAITING FOR SNAPSHOT."
