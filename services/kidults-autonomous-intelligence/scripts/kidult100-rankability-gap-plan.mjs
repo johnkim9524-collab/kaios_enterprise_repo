@@ -15,8 +15,55 @@ function readJsonInput(value, fallbackPath) {
   return JSON.parse(fs.readFileSync(resolved, 'utf8'));
 }
 
+function classifyNonMarketPreflight(preflight, semanticRelevantCandidates) {
+  if (!preflight) {
+    return {
+      available: false,
+      state: 'UNAVAILABLE',
+      disposition: null,
+      productionScoringCertified: null,
+    };
+  }
+
+  const errors = [];
+  const structuralErrors = Array.isArray(preflight.structuralErrors) ? preflight.structuralErrors : null;
+  if (preflight.mode !== 'KIDULT100_NON_MARKET_SCORING_PREFLIGHT') errors.push('MODE_MISMATCH');
+  if (!structuralErrors) errors.push('STRUCTURAL_ERRORS_MISSING');
+  else if (structuralErrors.length > 0) errors.push('STRUCTURAL_ERRORS_PRESENT');
+  if (Number(preflight?.metrics?.structuralErrorCount) !== 0) errors.push('STRUCTURAL_ERROR_COUNT_NONZERO');
+  if (Number(preflight?.metrics?.semanticRelevantCandidates) !== semanticRelevantCandidates) errors.push('CANDIDATE_COUNT_MISMATCH');
+
+  let state = null;
+  if (preflight.disposition === 'NON_MARKET_SCORING_METHODOLOGY_REQUIRED') {
+    state = 'METHODOLOGY_REQUIRED';
+    if (preflight?.claims?.productionScoringCertified !== false) errors.push('METHODOLOGY_STATE_CERTIFICATION_MISMATCH');
+  } else if (preflight.disposition === 'NON_MARKET_SCORING_CALIBRATION_REQUIRED') {
+    state = 'CALIBRATION_REQUIRED';
+    if (preflight?.claims?.methodologyDesignComplete !== true
+      || preflight?.claims?.calibrationStillRequired !== true
+      || preflight?.claims?.productionScoringCertified !== false) {
+      errors.push('CALIBRATION_STATE_CLAIM_MISMATCH');
+    }
+  } else if (preflight.disposition === 'NON_MARKET_SCORING_CONTRACT_READY') {
+    state = 'READY';
+    if (preflight?.claims?.productionScoringCertified !== true) errors.push('READY_STATE_CERTIFICATION_MISMATCH');
+  } else {
+    errors.push('UNSUPPORTED_DISPOSITION');
+  }
+
+  if (errors.length > 0) throw new Error(`Invalid non-market scoring preflight: ${errors.join(',')}`);
+  return {
+    available: true,
+    state,
+    disposition: preflight.disposition,
+    productionScoringCertified: preflight.claims.productionScoringCertified,
+  };
+}
+
 const policy = readJsonInput(process.env.KIDULTS_RANKABILITY_POLICY_JSON, DEFAULT_POLICY);
 const rightData = readJsonInput(process.env.KIDULTS_RANKABILITY_RIGHT_DATA_JSON, DEFAULT_RIGHT_DATA);
+const nonMarketPreflightInput = String(process.env.KIDULTS_RANKABILITY_NON_MARKET_PREFLIGHT_JSON || '').trim();
+const nonMarketPreflight = nonMarketPreflightInput ? readJsonInput(nonMarketPreflightInput, null) : null;
 const outPath = process.env.KIDULTS_RANKABILITY_GAP_OUTPUT
   ? (path.isAbsolute(process.env.KIDULTS_RANKABILITY_GAP_OUTPUT)
       ? process.env.KIDULTS_RANKABILITY_GAP_OUTPUT
@@ -59,6 +106,7 @@ function dimensionState(candidate, dimension) {
 }
 
 const relevant = (rightData.candidates || []).filter((candidate) => candidate?.semanticRelevant === true);
+const nonMarketScoringPreflight = classifyNonMarketPreflight(nonMarketPreflight, relevant.length);
 const dimensionReadiness = Object.fromEntries(dimensions.map((dimension) => [dimension, {
   primitive: mapping[dimension].primitive,
   scoreField: mapping[dimension].scoreField,
@@ -124,15 +172,23 @@ const marketDependentWeight = dimensions
   .filter((dimension) => MARKET_PRIMITIVES.has(mapping[dimension].primitive))
   .reduce((sum, dimension) => sum + Number(weights[dimension]), 0);
 const minimumNonMarketWeightRequiredWithAllMarketDimensions = Math.max(0, minCoverage - marketDependentWeight);
+const preflightBlocksProductionScoring = nonMarketScoringPreflight.available && nonMarketScoringPreflight.state !== 'READY';
 
-const disposition = currentRankableCandidates >= minRankable
-  ? 'RANKABILITY_GATE_MET'
-  : marketOnlyCouldReachRankableCandidates >= minRankable
-    ? 'MARKET_EVIDENCE_CAN_UNLOCK_RANKABILITY_TARGET_WITH_CURRENT_NON_MARKET_SCORING'
-    : 'NON_MARKET_SCORING_CONTRACT_REQUIRED_BEFORE_MARKET_ONLY_ACQUISITION_CAN_UNLOCK_TARGET';
+const disposition = nonMarketScoringPreflight.state === 'CALIBRATION_REQUIRED'
+  ? 'NON_MARKET_CALIBRATION_AND_VALIDATION_EVIDENCE_REQUIRED_BEFORE_MARKET_ONLY_ACQUISITION_CAN_UNLOCK_TARGET'
+  : nonMarketScoringPreflight.state === 'METHODOLOGY_REQUIRED'
+    ? 'NON_MARKET_SCORING_METHODOLOGY_REQUIRED_BEFORE_MARKET_ONLY_ACQUISITION_CAN_UNLOCK_TARGET'
+    : currentRankableCandidates >= minRankable && !preflightBlocksProductionScoring
+      ? 'RANKABILITY_GATE_MET'
+      : marketOnlyCouldReachRankableCandidates >= minRankable && !preflightBlocksProductionScoring
+        ? 'MARKET_EVIDENCE_CAN_UNLOCK_RANKABILITY_TARGET_WITH_CURRENT_NON_MARKET_SCORING'
+        : nonMarketScoringPreflight.state === 'READY'
+          ? 'NON_MARKET_SCORING_EVIDENCE_COVERAGE_REQUIRED_BEFORE_MARKET_ONLY_ACQUISITION_CAN_UNLOCK_TARGET'
+          : 'NON_MARKET_SCORING_CONTRACT_REQUIRED_BEFORE_MARKET_ONLY_ACQUISITION_CAN_UNLOCK_TARGET';
 
+const rankabilityCertified = currentRankableCandidates >= minRankable && !preflightBlocksProductionScoring;
 const report = {
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.1.0',
   mode: 'KIDULT100_RANKABILITY_GAP_PLAN',
   generatedAt: new Date().toISOString(),
   policyReference: policy.mode || null,
@@ -148,13 +204,15 @@ const report = {
     marketOnlyCouldReachRankableCandidates,
     candidatesStillNeedingNonMarketScoringAfterFullMarketEvidence: candidates.filter((candidate) => !candidate.marketOnlyCouldReachRankable).length,
     dimensionReadiness,
+    nonMarketScoringPreflight,
   },
   disposition,
   claims: {
     syntheticScoreUsed: false,
     estimatedMarketEvidenceUsed: false,
     hypotheticalMarketEvidenceCreditedAsCurrent: false,
-    rankabilityCertified: currentRankableCandidates >= minRankable,
+    nonMarketCalibrationBypassed: false,
+    rankabilityCertified,
   },
   candidatePriorities: candidates,
 };
@@ -163,4 +221,4 @@ fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, JSON.stringify(report, null, 2));
 console.log(`Rankability gap: relevant=${candidates.length} currentRankable=${currentRankableCandidates} marketOnlyPotential=${marketOnlyCouldReachRankableCandidates}`);
 console.log(`marketWeight=${report.thresholds.marketDependentWeight} minimumNonMarketWeight=${report.thresholds.minimumNonMarketWeightRequiredWithAllMarketDimensions}`);
-console.log(`disposition=${disposition}`);
+console.log(`nonMarketPreflight=${nonMarketScoringPreflight.state} disposition=${disposition}`);
