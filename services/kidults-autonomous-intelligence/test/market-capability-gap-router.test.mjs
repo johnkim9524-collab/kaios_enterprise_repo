@@ -97,11 +97,12 @@ test('routes current no-procurement bottleneck to open completed-transaction and
   ];
   const { result, report } = run(manifest(candidates), qualification(rows), requirements(), { useFiles: true });
   assert.equal(result.status, 0);
-  assert.equal(report.schemaVersion, '1.1.0');
+  assert.equal(report.schemaVersion, '1.2.0');
   assert.equal(report.metrics.candidates, 5);
   assert.equal(report.metrics.openRightsNearFitSources, 3);
   assert.equal(report.metrics.authorizationRequiredSources, 1);
   assert.equal(report.metrics.jointMarketSemanticGapSources, 5);
+  assert.equal(report.metrics.documentedCompletedTransactionSources, 0);
   assert.equal(report.capabilitySummary.DOCUMENTED_AUTOMATED_ACCESS.pass, 3);
   assert.equal(report.capabilitySummary.DOCUMENTED_AUTOMATED_ACCESS.authorizationRequired, 1);
   assert.equal(report.capabilitySummary.DOCUMENTED_AUTOMATED_ACCESS.missing, 1);
@@ -119,9 +120,46 @@ test('routes current no-procurement bottleneck to open completed-transaction and
   assert.ok(report.sourceDiscoveryWorkPacket.prohibitedActions.includes('UNAUTHORIZED_SCRAPING'));
   assert.ok(report.sourceDiscoveryWorkPacket.prohibitedActions.includes('PAID_PROVIDER_PROCUREMENT'));
   assert.equal(report.sourceDiscoveryWorkPacket.existingNearFitsAreNotMarketEvidenceSources, true);
+  assert.equal(report.sourceDiscoveryWorkPacket.documentedButAuthorizationBlockedSemanticsAreNotMarketEvidence, true);
   assert.equal(report.claims.evidenceProduced, false);
   assert.equal(report.claims.providerProcured, false);
   assert.equal(report.downstreamEvidenceContract.requiresTransactionId, true);
+});
+
+test('documented sale events remain unusable when commercial reuse authorization is required', () => {
+  const candidates = [{
+    sourceId: 'opensea-api',
+    displayName: 'OpenSea API',
+    sourceClass: 'MARKETPLACE_API',
+    primarySourceFindings: {
+      completedTransactionSemanticsDocumented: true,
+      transactionBackedLiquiditySemanticsDocumented: false,
+      commercialReuseAuthorizationRequired: true,
+    },
+    blockingReasons: ['COMMERCIAL_PERMISSION_REQUIRED'],
+    evidenceLinks: ['https://docs.opensea.io/reference/list_events', 'https://opensea.io/tos?embed=false'],
+  }];
+  const rows = [{
+    sourceId: 'opensea-api',
+    status: 'REQUIRES_AUTHORIZATION_NO_ACTION_TAKEN',
+    publicDocumentedAccess: false,
+    explicitReuseRights: false,
+    completedTransactionsQualified: false,
+    liquidityQualified: false,
+    authorizationRequired: true,
+  }];
+  const { result, report } = run(manifest(candidates), qualification(rows), requirements());
+  assert.equal(result.status, 0);
+  assert.equal(report.metrics.documentedCompletedTransactionSources, 1);
+  assert.equal(report.metrics.documentedCompletedTransactionButAuthorizationBlockedSources, 1);
+  assert.equal(report.metrics.documentedTransactionBackedLiquiditySources, 0);
+  assert.deepEqual(report.sourceDiscoveryWorkPacket.documentedCompletedTransactionSourceIds, ['opensea-api']);
+  assert.deepEqual(report.sourceDiscoveryWorkPacket.authorizationBlockedCompletedTransactionSourceIds, ['opensea-api']);
+  assert.deepEqual(report.sourceDiscoveryWorkPacket.documentedTransactionBackedLiquiditySourceIds, []);
+  assert.equal(report.rankedSources[0].documentedCompletedTransactionSemantics, true);
+  assert.equal(report.rankedSources[0].capabilities.COMPLETED_TRANSACTION_SEMANTICS, 'MISSING');
+  assert.equal(report.claims.marketEvidenceCoverageIncreased, false);
+  assert.equal(report.claims.authorizationRequested, false);
 });
 
 test('qualified open source routes only to downstream evidence-contract validation without certification', () => {
