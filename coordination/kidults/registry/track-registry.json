@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "status": "ACTIVE",
   "tracks": [
     {
@@ -13,22 +13,61 @@
       "track_id": "B",
       "name": "Rankability & Validation Gate",
       "authority_model": "INDEPENDENT_VALIDATION_AUTHORITY",
-      "mission": "Independently validate the exact Track A snapshot_id and determine whether its evidence is sufficient for rankability, stability, exit criteria and further validation recommendations.",
+      "operating_rules_status": "LOCKED",
+      "mission": "Independently validate one exact Track A snapshot_id and determine whether its evidence is sufficient for rankability, stability, exit criteria and further validation recommendations.",
+      "official_input": "snapshot-candidate.json",
       "official_output": "rankability-assessment.json",
       "snapshot_scope": "EXACTLY_ONE_EXISTING_SNAPSHOT_ID",
-      "evidence_policy": {
+      "snapshot_isolation": {
+        "one_snapshot_per_assessment": true,
+        "combined_snapshot_assessment_allowed": false,
+        "historical_current_merge_allowed": false,
+        "required_sequence": ["ONE_SNAPSHOT", "ONE_ASSESSMENT", "ONE_RECOMMENDATION"]
+      },
+      "assessment_policy": {
+        "creates_snapshot": false,
+        "creates_registry": false,
+        "creates_portal_release": false,
+        "creates_production_decision": false,
+        "creates_business_decision": false,
         "creates_new_evidence": false,
         "evaluates_track_a_evidence_only": true,
         "required_sequence": ["EVIDENCE", "ASSESSMENT", "RECOMMENDATION"],
-        "insufficient_evidence_dispositions": ["NOT_RANKABLE", "BLOCKED"]
+        "insufficient_evidence_dispositions": ["NOT_RANKABLE", "BLOCKED"],
+        "immutable_after_issue": true,
+        "revision_model": "NEW_ASSESSMENT_NEW_ID_ARCHIVE_PRIOR",
+        "assessment_id_example": ["assessment-r001", "assessment-r002"]
+      },
+      "recommendation_policy": {
+        "allowed": ["BLOCKED", "CONDITIONAL", "PUBLISHABLE"],
+        "must_include_confidence": true,
+        "confidence_levels": ["LOW", "MEDIUM", "HIGH"],
+        "confidence_requires_assessment_evidence": true,
+        "may_specify": ["REQUIRED_EVIDENCE", "EXIT_CRITERIA", "ADDITIONAL_VALIDATION"]
+      },
+      "independence_preservation": {
+        "decision_basis": ["SNAPSHOT", "EVIDENCE", "ASSESSMENT"],
+        "must_ignore": ["TRACK_A_SPEED", "PORTAL_SCHEDULE", "PROVIDER_CONTRACT_SCHEDULE", "BUSINESS_PRIORITY", "PRODUCTION_SCHEDULE"]
+      },
+      "assessment_trigger": {
+        "required_conditions": [
+          "SNAPSHOT_ID_EXISTS",
+          "SNAPSHOT_REGISTRY_REGISTRATION_COMPLETED",
+          "EVIDENCE_PACKAGE_AVAILABLE",
+          "REGISTRY_VALIDATION_PASSED"
+        ],
+        "when_all_true": "GENERATE_RANKABILITY_ASSESSMENT",
+        "otherwise": "WAITING_FOR_SNAPSHOT"
       },
       "registry_access": {
         "mode": "READ_ONLY",
         "may_request_assessment_registration": true,
+        "assessment_registration_owner": "ATLAS_KPMO",
         "governance_owner": "ATLAS_KPMO"
       },
       "may": [
         "INDEPENDENT_ASSESSMENT",
+        "GENERATE_RANKABILITY_ASSESSMENT",
         "RECOMMEND_BLOCKED",
         "RECOMMEND_CONDITIONAL",
         "RECOMMEND_PUBLISHABLE",
@@ -42,9 +81,13 @@
         "GOVERN_REGISTRY",
         "MODIFY_REGISTRY",
         "CREATE_SNAPSHOT",
+        "COMBINE_SNAPSHOTS",
+        "MERGE_HISTORICAL_AND_CURRENT_SNAPSHOTS",
+        "MODIFY_ISSUED_ASSESSMENT",
         "MODIFY_SOURCE_OR_120_METRIC",
         "CREATE_NEW_EVIDENCE",
         "MODIFY_PORTAL",
+        "CREATE_PORTAL_RELEASE",
         "DESIGN_OPERATING_SYSTEM",
         "SELECT_PORTAL_VISUAL",
         "RECOMMEND_FINAL_RANKING",
@@ -57,9 +100,10 @@
       ],
       "directive": {
         "name": "Track B Additional Operating Directive",
-        "version": "v1.0",
-        "status": "APPROVED",
-        "effective": "IMMEDIATELY"
+        "version": "v1.1",
+        "status": "APPROVED_LOCKED",
+        "effective": "IMMEDIATELY",
+        "prior_version": "v1.0"
       }
     },
     {
