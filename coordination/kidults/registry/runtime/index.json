@@ -1,0 +1,15 @@
+{
+  "registry_id":"kidults-runtime-registry",
+  "registry_name":"Runtime Registry",
+  "registry_version":"1.0.0",
+  "schema_version":"1.0.0",
+  "owner":"Track D",
+  "custodian":"Atlas",
+  "status":"FOUNDATION_PREPARATION",
+  "effective_at":"2026-08-12T12:00:00+09:00",
+  "record_directory":"records",
+  "record_count":0,
+  "current_runtime_id":null,
+  "production_input_state":"WAITING_FOR_APPROVED_SNAPSHOT",
+  "records":[]
+}

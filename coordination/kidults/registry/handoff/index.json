@@ -1,0 +1,15 @@
+{
+  "registry_id":"kidults-handoff-registry",
+  "registry_name":"Handoff Registry",
+  "registry_version":"1.0.0",
+  "schema_version":"1.0.0",
+  "owner":"KPMO",
+  "custodian":"Atlas",
+  "status":"ACTIVE",
+  "effective_at":"2026-08-12T12:00:00+09:00",
+  "record_directory":"records",
+  "record_count":0,
+  "current_record_id":null,
+  "allowed_states":["DRAFT","SUBMITTED","ACCEPTED","REJECTED","CORRECTION_REQUESTED","CLOSED"],
+  "records":[]
+}

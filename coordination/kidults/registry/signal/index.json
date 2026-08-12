@@ -1,0 +1,14 @@
+{
+  "registry_id":"kidults-signal-registry",
+  "registry_name":"Signal Registry",
+  "registry_version":"1.0.0",
+  "schema_version":"1.0.0",
+  "owner":"Track A",
+  "custodian":"Atlas",
+  "status":"BOOTSTRAPPING",
+  "effective_at":"2026-08-12T12:00:00+09:00",
+  "record_directory":"records",
+  "record_count":0,
+  "current_record_id":null,
+  "records":[]
+}

@@ -1,0 +1,14 @@
+{
+  "registry_id":"kidults-vertical-registry",
+  "registry_name":"Core Vertical Registry",
+  "registry_version":"1.0.0",
+  "schema_version":"1.0.0",
+  "owner":"Architecture",
+  "custodian":"Atlas",
+  "status":"BOOTSTRAPPING",
+  "effective_at":"2026-08-12T12:00:00+09:00",
+  "record_directory":"records",
+  "record_count":0,
+  "current_record_id":null,
+  "records":[]
+}
