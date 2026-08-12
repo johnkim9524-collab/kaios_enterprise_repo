@@ -46,6 +46,8 @@ jobs:
           node --check apps/kidults-enterprise-staging/public/portal/components/data-store.js
           node --check apps/kidults-enterprise-staging/public/portal/components/renderers.js
           node --check apps/kidults-enterprise-staging/public/portal/components/interactions.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/living-pulse.js
+          node --check scripts/kidults/portal/validate-living-pulse.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -61,3 +63,6 @@ jobs:
 
       - name: Validate Portal V502 Release Candidate
         run: node scripts/kidults/portal/validate-v502-portal.mjs
+
+      - name: Validate Living Pulse Engine
+        run: node scripts/kidults/portal/validate-living-pulse.mjs

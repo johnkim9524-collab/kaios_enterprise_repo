@@ -1,0 +1,46 @@
+{
+  "engine_id": "kidults-living-pulse",
+  "engine_name": "KIDULTS Living Pulse",
+  "version": "0.1.0",
+  "status": "ACTIVE",
+  "poll_interval_ms": 60000,
+  "clock_interval_ms": 30000,
+  "freshness_thresholds_minutes": {
+    "fresh": 15,
+    "current": 360
+  },
+  "allowed_states": [
+    "FRESH",
+    "CURRENT",
+    "STALE",
+    "WAITING",
+    "NOT_AVAILABLE"
+  ],
+  "source_contracts": [
+    {
+      "id": "registry_projection",
+      "path": "data/registry-view.json",
+      "timestamp_field": "freshness.as_of",
+      "required": true
+    },
+    {
+      "id": "market_signal_snapshot",
+      "path": "data/market-signals.json",
+      "timestamp_field": "updated_at",
+      "required": true
+    },
+    {
+      "id": "portal_release",
+      "path": "data/v502-manifest.json",
+      "timestamp_field": "build_at",
+      "required": true
+    }
+  ],
+  "truth_policy": {
+    "claim_live_when_stale": false,
+    "invent_relative_time": false,
+    "missing_to_zero": false,
+    "display_unregistered_candidate": false,
+    "display_unregistered_assessment": false
+  }
+}
