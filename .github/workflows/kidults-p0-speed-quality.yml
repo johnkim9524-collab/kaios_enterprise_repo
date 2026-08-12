@@ -51,7 +51,20 @@ jobs:
         run: node scripts/kidults-integrated-program-registry-gate.mjs
       - name: Wave1 real external source discovery evaluation
         continue-on-error: true
-        run: node scripts/kidult100-wave1-live.mjs
+        run: |
+          start=$(date +%s)
+          set +e
+          timeout --signal=TERM --kill-after=10s 90s node scripts/kidult100-wave1-live.mjs
+          code=$?
+          set -e
+          end=$(date +%s)
+          elapsed=$((end-start))
+          mkdir -p reports/engineering-hardening
+          node -e 'const fs=require("fs"); const [exitCode,elapsedSeconds,headSha]=process.argv.slice(1); const code=Number(exitCode); const report={stage:"WAVE1_REAL_EXTERNAL_SOURCE_DISCOVERY_EVALUATION",status:code===0?"PASS":code===124?"TIMEOUT_ADVISORY":"FAIL_ADVISORY",exitCode:code,elapsedSeconds:Number(elapsedSeconds),timeoutSeconds:90,headSha,partialEvidenceAccepted:false}; fs.writeFileSync("reports/engineering-hardening/wave1-latency-latest.json",JSON.stringify(report,null,2)+"\n");' "$code" "$elapsed" "$GITHUB_SHA"
+          if [ "$code" -ne 0 ]; then
+            rm -f reports/kidult100-wave1/wave1-live-latest.json ../../apps/kidults-enterprise-staging/public/data/kidults-live.json
+          fi
+          exit "$code"
       - name: Stage 2 normalized candidate universe build
         run: |
           start=$(date +%s)
@@ -204,6 +217,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/engineering-hardening/quality-audit-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/critical-ci-audit-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/integrated-program-registry-gate-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/wave1-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/stage2-candidate-build-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/sre-readiness-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/governance-baseline-latest.json
