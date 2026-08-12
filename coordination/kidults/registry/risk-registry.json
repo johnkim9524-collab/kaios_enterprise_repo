@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0.0",
+  "status": "BOOTSTRAPPING",
+  "records": [],
+  "lifecycle": ["OPEN","MITIGATING","ACCEPTED","RESOLVED","ARCHIVED"],
+  "rule": "Residual risk acceptance is reserved for the Program Owner."
+}
