@@ -31,6 +31,11 @@ const REQUIRED_PROGRAM_TRACKS = ['A', 'B', 'C', 'D'];
 const REQUIRED_COMPATIBILITY_TRACKS = ['A', 'B', 'C'];
 const TRACK_B_OFFICIAL_INPUTS = ['snapshot-candidate.json', 'EVIDENCE_PACKAGE'];
 const TRACK_B_OFFICIAL_OUTPUT = 'rankability-assessment.json';
+const ACCEPTED_HANDOFF_STATES = new Set(['accepted', 'completed']);
+const TRACK_ALIASES = {
+  A: new Set(['A', 'track-a-120-intelligence-factory']),
+  B: new Set(['B', 'track-b-rankability-validation-gate']),
+};
 const REQUIRED_ARTIFACT_CHAIN = [
   'snapshot-candidate.json',
   'Evidence Package',
@@ -50,6 +55,32 @@ function readJson(filePath) {
 
 function requireCondition(condition, code, failures) {
   if (!condition) failures.push(code);
+}
+
+function artifactReferenceMatches(reference, expected) {
+  if (typeof reference !== 'string') return false;
+  const normalized = reference.replaceAll('\\', '/').replace(/\/+$/, '');
+  return normalized === expected || normalized.endsWith(`/${expected}`);
+}
+
+function trackMatches(value, trackId) {
+  return typeof value === 'string' && TRACK_ALIASES[trackId]?.has(value);
+}
+
+function findAcceptedHandoff(handoffs, snapshotId, artifactReference) {
+  if (!snapshotId) return null;
+  const entries = Array.isArray(handoffs?.entries) ? handoffs.entries : [];
+  return entries.find((row) =>
+    row?.snapshot_id === snapshotId
+    && trackMatches(row?.from_track, 'A')
+    && trackMatches(row?.to_track, 'B')
+    && artifactReferenceMatches(row?.artifact_reference, artifactReference)
+    && ACCEPTED_HANDOFF_STATES.has(String(row?.state ?? '').toLowerCase())
+  ) ?? null;
+}
+
+function handoffId(row) {
+  return row?.handoff_id ?? row?.id ?? null;
 }
 
 const failures = [];
@@ -108,12 +139,24 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
 }
 
 const currentSnapshotId = registries['snapshot-registry.json']?.current_candidate_snapshot_id ?? registries['snapshot-registry.json']?.current_published_snapshot_id ?? null;
+const handoffs = registries['handoff-registry.json'];
+const snapshotCandidateHandoff = findAcceptedHandoff(handoffs, currentSnapshotId, TRACK_B_OFFICIAL_INPUTS[0]);
+const evidencePackageHandoff = findAcceptedHandoff(handoffs, currentSnapshotId, TRACK_B_OFFICIAL_INPUTS[1]);
 const trackBBoundaryFailures = failures.filter((code) => String(code).startsWith('TRACK_B_'));
-const trackBWaitingState = currentSnapshotId == null ? 'WAITING_FOR_SNAPSHOT' : 'WAITING_FOR_EVIDENCE';
-const trackBAssessmentPermitted = false;
+const bothOfficialInputsAccepted = snapshotCandidateHandoff != null && evidencePackageHandoff != null;
+const trackBAssessmentPermitted = failures.length === 0 && currentSnapshotId != null && bothOfficialInputsAccepted;
+
+let trackBWaitingState = 'WAITING_FOR_SNAPSHOT';
+let trackBReadinessReason = 'OFFICIAL_SNAPSHOT_CANDIDATE_NOT_REGISTERED';
+if (currentSnapshotId != null) {
+  trackBWaitingState = bothOfficialInputsAccepted ? 'READY_FOR_ASSESSMENT' : 'WAITING_FOR_EVIDENCE';
+  trackBReadinessReason = bothOfficialInputsAccepted
+    ? (failures.length === 0 ? 'BOTH_OFFICIAL_INPUTS_ACCEPTED_FOR_EXACT_SNAPSHOT' : 'INTEGRATED_PROGRAM_GATE_NOT_CLEAN')
+    : 'EVIDENCE_PACKAGE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF';
+}
 
 const report = {
-  schema_version: '1.3.0',
+  schema_version: '1.4.0',
   mode: 'KIDULTS_INTEGRATED_PROGRAM_REGISTRY_GATE',
   generated_at: new Date().toISOString(),
   status: failures.length === 0 ? 'PASS_BOOTSTRAPPING' : 'FAIL_CLOSED',
@@ -129,17 +172,22 @@ const report = {
     boundary_validation_passed: trackBBoundaryFailures.length === 0 && trackB != null,
     assessment_permitted: trackBAssessmentPermitted,
     waiting_state: trackBWaitingState,
-    reason: currentSnapshotId == null
-      ? 'OFFICIAL_SNAPSHOT_CANDIDATE_NOT_REGISTERED'
-      : 'EVIDENCE_PACKAGE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF',
+    reason: trackBReadinessReason,
     creates_or_modifies_evidence: false,
     registry_access_mode: trackB?.registry_access?.mode ?? null,
+    canonical_handoff_proof: {
+      snapshot_candidate_handoff_id: handoffId(snapshotCandidateHandoff),
+      evidence_package_handoff_id: handoffId(evidencePackageHandoff),
+      exact_snapshot_match_required: true,
+      accepted_states: [...ACCEPTED_HANDOFF_STATES],
+    },
   },
   failures,
   claims: {
     operating_baseline_loaded: failures.length === 0,
     registry_is_single_source_of_truth: failures.length === 0,
     track_b_final_locked_v1_3_verified: trackBBoundaryFailures.length === 0 && trackB != null,
+    track_b_assessment_permitted: trackBAssessmentPermitted,
     track_b_assessment_started: false,
     production_ready: false,
     g0_g5_complete: false,
