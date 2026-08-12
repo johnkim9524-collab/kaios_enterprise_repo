@@ -12,6 +12,15 @@ const esc = value =>
 const formatPct = value =>
   Number.isFinite(Number(value)) ? `${Number(value).toFixed(2).replace(/\.00$/, "")}%` : "NOT REGISTERED";
 
+const formatDate = value => {
+  const parsed = Date.parse(value ?? "");
+  if (!Number.isFinite(parsed)) return "NOT AVAILABLE";
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(parsed));
+};
+
 const stateToken = value =>
   String(value ?? "NOT_AVAILABLE").trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_");
 
@@ -33,7 +42,7 @@ export function renderHero(manifest) {
     image.hidden = true;
   }, { once: true });
 
-  image.src = `${hero.asset}?v=502`;
+  image.src = `${hero.asset}?v=651`;
   image.alt = hero.alt;
   target("[data-hero-eyebrow]").textContent = hero.eyebrow;
   target("[data-hero-title]").textContent = hero.title;
@@ -41,31 +50,21 @@ export function renderHero(manifest) {
   target("[data-hero-rights]").innerHTML = esc(hero.rights_label).replace(/\n/g, "<br>");
   target("[data-hero-vertical]").textContent = hero.vertical_name;
   target("[data-hero-status]").textContent = hero.asset_status.replaceAll("_", " ");
-  target("[data-release-label]").textContent = manifest.version.toUpperCase();
+  target("[data-release-label]").textContent = manifest.experience_label ?? "V6 RC";
 }
 
 export function renderRegistryRibbon(registry, manifest) {
   const ribbon = target("[data-registry-ribbon]");
   const items = [
     {
-      label: "Release",
-      value: manifest.status.replaceAll("_", " "),
-      state: manifest.status
-    },
-    {
       label: "Baseline",
       value: registry.snapshot.baseline_id,
       state: "BASELINE"
     },
     {
-      label: "Candidate",
-      value: registry.snapshot.candidate_id ?? "WAITING",
-      state: registry.snapshot.candidate_status
-    },
-    {
-      label: "Assessment",
-      value: registry.assessment.current_id ?? registry.assessment.status,
-      state: registry.assessment.status
+      label: "Data contract",
+      value: manifest.version.toUpperCase(),
+      state: manifest.status
     },
     {
       label: "Source",
@@ -85,17 +84,20 @@ export function renderRegistryRibbon(registry, manifest) {
       <b>${esc(item.label)}</b>
       <span>${esc(item.value)}</span>
     </span>
-  `).join("") + '<button class="registry-details-button" type="button" data-dialog="registry">Traceability →</button>';
+  `).join("") + '<button class="registry-details-button" type="button" data-dialog="registry">System traceability →</button>';
 }
 
 export function renderSnapshot(summary) {
   const node = target("[data-snapshot-grid]");
   node.innerHTML = summary.metrics.map(metric => `
     <article class="snapshot-card reveal" data-source-record="${esc(summary.snapshot_id)}">
-      <small>${esc(metric.label)}</small>
+      <header class="snapshot-card-header">
+        <small>${esc(metric.label)}</small>
+        <div class="why-slot" data-why-slot></div>
+      </header>
       <strong>${esc(metric.value)}</strong>
       <p>${esc(metric.caption)}</p>
-      <span>${esc(metric.state)}</span>
+      <span class="snapshot-state">${esc(metric.state)}</span>
     </article>`).join("");
 }
 
@@ -107,7 +109,10 @@ export function renderOperations(summary) {
       <span class="operation-label">${esc(item.label)}</span>
       <strong>${esc(item.value)}</strong>
       <p>${esc(item.caption)}</p>
-      <small>${esc(item.detail)}</small>
+      <div class="operation-footer">
+        <small>${esc(item.detail)}</small>
+        <div class="why-slot" data-why-slot></div>
+      </div>
     </article>`).join("");
 }
 
@@ -152,7 +157,10 @@ export function renderVerticals(verticalData) {
             <div class="coverage-bar" aria-hidden="true"><i></i></div>
             <div class="vertical-card-footer">
               <small>${esc(visualState)}</small>
-              <a href="vertical.html?id=${encodeURIComponent(vertical.id)}">Explore <span>→</span></a>
+              <div class="vertical-card-actions">
+                <div class="why-slot" data-why-slot></div>
+                <a href="vertical.html?id=${encodeURIComponent(vertical.id)}">Explore <span>→</span></a>
+              </div>
             </div>
           </div>
         </article>`;
@@ -180,11 +188,14 @@ export function renderK100(k100) {
           <span class="k100-category">${esc(item.category)}</span>
         </header>
         <h3>${esc(item.title)}</h3>
-        <div class="k100-figure"><img src="${esc(item.asset)}?v=502" alt="${esc(item.title)}" loading="lazy"></div>
+        <div class="k100-figure"><img src="${esc(item.asset)}?v=651" alt="${esc(item.title)}" loading="lazy"></div>
         <div class="k100-score${item.score === null ? " score-gated" : ""}">
           <strong>${score}</strong>
           <p>${detail}</p>
-          <a class="text-link" href="object.html?id=${encodeURIComponent(item.id)}">Provenance <span>→</span></a>
+          <div class="k100-card-actions">
+            <a class="text-link" href="object.html?id=${encodeURIComponent(item.id)}">Provenance <span>→</span></a>
+            <div class="why-slot" data-why-slot></div>
+          </div>
         </div>
       </article>`;
   }).join("");
@@ -192,27 +203,60 @@ export function renderK100(k100) {
 
 export function renderSignals(signalData) {
   const node = target("[data-signal-grid]");
+  const snapshotTime = formatDate(signalData.updated_at);
+
   node.innerHTML = signalData.signals.map(signal => `
     <article class="signal-card reveal">
-      <header><strong>${esc(signal.category)}</strong><span>${esc(signal.change)}</span></header>
+      <header>
+        <strong>${esc(signal.category)}</strong>
+        <div class="signal-card-tools">
+          <span>${esc(signal.change)}</span>
+          <div class="why-slot" data-why-slot></div>
+        </div>
+      </header>
       <div class="signal-main">
         <div><h3>${esc(signal.title)}</h3><div class="signal-value"><strong>${esc(signal.value)}</strong><span>${esc(signal.unit)}</span></div></div>
       </div>
-      <div class="sparkline">${sparklineSvg(signal.series, `${signal.title} recent trend`)}</div>
+      <div class="sparkline">${sparklineSvg(signal.series, `${signal.title} recent registered trend`)}</div>
       <div class="signal-meta">
-        <div><b>${esc(signal.confidence)}%</b><span>Confidence</span></div>
+        <div><b>${esc(signal.confidence)}%</b><span>Registered confidence</span></div>
         <div><b>${esc(signal.sources)}</b><span>Source count</span></div>
-        <div><b>${esc(signal.updated)}</b><span>Last updated</span></div>
+        <div><b>${esc(snapshotTime)}</b><span>Snapshot as of</span></div>
       </div>
     </article>`).join("");
 }
 
-export function renderEvidence(summary) {
+export function renderEvidence(summary, k100) {
   target("[data-countries]").textContent = summary.coverage.countries;
   target("[data-markets]").textContent = summary.coverage.markets;
   target("[data-languages]").textContent = summary.coverage.languages;
-  target("[data-total-signals]").textContent =
-    summary.metrics.find(metric => metric.id === "qualifiedSignals")?.value ?? "—";
+
+  const qualifiedSignals = summary.metrics.find(metric => metric.id === "qualifiedSignals");
+  const trackedEntities = summary.metrics.find(metric => metric.id === "trackedEntities");
+  const evidenceObjects = summary.operations.find(item => item.label === "EVIDENCE OBJECTS");
+
+  target("[data-total-signals]").textContent = qualifiedSignals?.value ?? "—";
+
+  const funnel = target("[data-data-funnel]");
+  if (funnel) {
+    const layers = [
+      [qualifiedSignals?.value ?? "—", "Normalized signals", qualifiedSignals?.state ?? "NOT AVAILABLE"],
+      [trackedEntities?.value ?? "—", "Tracked entities", trackedEntities?.state ?? "NOT AVAILABLE"],
+      [evidenceObjects?.value ?? "—", "Registered evidence objects", evidenceObjects?.state ?? "NOT AVAILABLE"],
+      [String(k100?.items?.length ?? 0), "Current editorial slice", k100?.selection_type ?? "PUBLIC PREVIEW"],
+      ["BUILDING", "Kidult 100", "Evidence-gated benchmark"]
+    ];
+
+    funnel.innerHTML = layers.map(([value, label, state], index) => `
+      <div class="data-funnel__layer">
+        <span>${String(index + 1).padStart(2, "0")}</span>
+        <strong>${esc(value)}</strong>
+        <b>${esc(label)}</b>
+        <small>${esc(humanState(state))}</small>
+      </div>
+      ${index < layers.length - 1 ? '<i aria-hidden="true">→</i>' : ""}
+    `).join("");
+  }
 
   const stops = [];
   let position = 0;
@@ -226,6 +270,10 @@ export function renderEvidence(summary) {
     summary.composition.map(item => `
       <li><span><i style="background:${esc(item.color)}"></i>${esc(item.label)}</span><strong>${esc(item.value)}%</strong></li>
     `).join("");
+}
+
+function humanState(value) {
+  return String(value ?? "NOT AVAILABLE").replaceAll("_", " ");
 }
 
 export function renderResearch(research) {
@@ -254,13 +302,13 @@ export function renderArchive(archive) {
 export function renderReleaseBaseline(registry, manifest) {
   const node = target("[data-release-baseline]");
   const rows = [
-    ["Release", manifest.version],
-    ["Snapshot", registry.snapshot.candidate_id ?? "WAITING"],
-    ["Assessment", registry.assessment.current_id ?? "WAITING"],
+    ["Experience", manifest.experience_label ?? "V6 RC"],
+    ["Data contract", manifest.version.toUpperCase()],
+    ["Candidate", registry.snapshot.candidate_id ?? registry.snapshot.candidate_status ?? "WAITING"],
     ["Production", registry.release.status]
   ];
   node.innerHTML = rows.map(([label, value]) => `
-    <div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>
+    <div><dt>${esc(label)}</dt><dd>${esc(humanState(value))}</dd></div>
   `).join("");
 }
 
@@ -268,7 +316,7 @@ export function renderPortalError(error) {
   const message = error instanceof Error ? error.message : String(error);
   document.body.insertAdjacentHTML("afterbegin", `
     <div class="portal-error" role="alert">
-      <strong>V502 fail-closed.</strong>
+      <strong>V6 fail-closed.</strong>
       Required portal data could not be loaded. ${esc(message)}
     </div>
   `);
