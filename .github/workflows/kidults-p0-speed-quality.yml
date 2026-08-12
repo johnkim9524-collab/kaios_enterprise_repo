@@ -74,6 +74,8 @@ jobs:
         run: node scripts/kidult100-market-provider-onboarding-preflight.mjs
       - name: Market source qualification audit
         run: node scripts/kidult100-market-source-qualification-audit.mjs
+      - name: No-procurement market evidence qualification lane
+        run: node scripts/kidult100-market-no-procurement-qualification.mjs
       - name: Rights-first market provider adapter normalization
         run: node scripts/kidult100-market-adapter-normalize.mjs
       - name: Provider evidence contract validation
@@ -122,6 +124,8 @@ jobs:
         run: node scripts/kidult100-calibration-evidence-shape-plan.mjs
       - name: Non-market evidence priority refresh after verified scarcity materialization
         run: node scripts/kidult100-non-market-evidence-acquisition-priority.mjs
+      - name: Right Data coverage leverage router
+        run: node scripts/kidult100-right-data-coverage-leverage-router.mjs
       - name: Rankability gap plan
         run: node scripts/kidult100-rankability-gap-plan.mjs
       - name: Experimental live Kidult100 POC ranking evaluation
@@ -204,6 +208,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/canon-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-provider-onboarding-preflight-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-source-qualification-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-no-procurement-qualification-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/normalized-market-provider-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/validated-provider-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-evidence-acquisition-plan-latest.json
@@ -224,6 +229,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-source-attestation-intake-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-independent-verification-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-evidence-promotion-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-right-data-coverage-leverage-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-rankability-gap-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-experimental-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-experimental-gap-latest.json
