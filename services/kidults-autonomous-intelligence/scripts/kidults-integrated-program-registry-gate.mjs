@@ -27,12 +27,18 @@ const REQUIRED_REGISTRIES = [
 ];
 
 const REQUIRED_RELEASE_GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5'];
+const REQUIRED_PROGRAM_TRACKS = ['A', 'B', 'C', 'D'];
+const REQUIRED_COMPATIBILITY_TRACKS = ['A', 'B', 'C'];
 const REQUIRED_ARTIFACT_CHAIN = [
   'snapshot-candidate.json',
+  'Evidence Package',
   'rankability-assessment.json',
   'portal-release-manifest.json',
+  'runtime-readiness-record.json',
   'portal-qa-result.json',
   'production-decision.json',
+  'published-snapshot.json',
+  'production-release-record.json',
 ];
 
 function readJson(filePath) {
@@ -62,7 +68,9 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
   const providers = registries['provider-registry.json'];
   const releases = registries['release-registry.json'];
   const programTrackIds = Array.isArray(program?.tracks) ? program.tracks.map((row) => row?.track_id) : [];
-  const trackRegistryIds = Array.isArray(tracks?.tracks) ? tracks.tracks.map((row) => row?.track_id) : [];
+  const trackRows = Array.isArray(tracks?.tracks) ? tracks.tracks : [];
+  const trackRegistryIds = trackRows.map((row) => row?.track_id);
+  const trackB = trackRows.find((row) => row?.track_id === 'B');
   const registeredSnapshotIds = new Set();
   if (snapshots?.baseline_snapshot_id) registeredSnapshotIds.add(snapshots.baseline_snapshot_id);
   const snapshotEntries = Array.isArray(snapshots?.entries) ? snapshots.entries : [];
@@ -75,10 +83,15 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
   requireCondition(governance.status === 'FINAL_SHARED_OPERATING_BASELINE_REGISTRY_BOOTSTRAPPING', 'GOVERNANCE_STATUS_INVALID', failures);
   requireCondition(governance.effective_at === '2026-08-12T12:00:00+09:00', 'GOVERNANCE_EFFECTIVE_TIME_INVALID', failures);
   requireCondition(governance.principle === 'One Program. One Language. One Registry. One Source of Truth.', 'PROGRAM_PRINCIPLE_MISMATCH', failures);
-  requireCondition(program?.registry_version === '1.0.0' && program?.program?.status === 'active', 'PROGRAM_STATUS_INVALID', failures);
+  requireCondition(program?.registry_version === '1.1.0' && program?.program?.status === 'active', 'PROGRAM_STATUS_INVALID', failures);
+  requireCondition(program?.migration_note === 'Compatibility registry. Canonical target is registry/program/index.json plus immutable records.', 'PROGRAM_MIGRATION_CONTRACT_INVALID', failures);
   requireCondition(program?.program?.integration_conductor === 'Atlas', 'INTEGRATION_CONDUCTOR_INVALID', failures);
-  requireCondition(JSON.stringify(programTrackIds) === JSON.stringify(['A', 'B', 'C']), 'PROGRAM_TRACK_TOPOLOGY_INVALID', failures);
-  requireCondition(JSON.stringify(trackRegistryIds) === JSON.stringify(['A', 'B', 'C']), 'TRACK_REGISTRY_TOPOLOGY_INVALID', failures);
+  requireCondition(JSON.stringify(programTrackIds) === JSON.stringify(REQUIRED_PROGRAM_TRACKS), 'PROGRAM_TRACK_TOPOLOGY_INVALID', failures);
+  requireCondition(JSON.stringify(trackRegistryIds) === JSON.stringify(REQUIRED_COMPATIBILITY_TRACKS), 'TRACK_REGISTRY_TOPOLOGY_INVALID', failures);
+  requireCondition(trackB?.operating_rules_status === 'FINAL_LOCKED_V1_3', 'TRACK_B_RULE_STATUS_INVALID', failures);
+  requireCondition(JSON.stringify(trackB?.official_inputs) === JSON.stringify(['snapshot-candidate.json', 'EVIDENCE_PACKAGE']), 'TRACK_B_INPUT_BOUNDARY_INVALID', failures);
+  requireCondition(trackB?.official_output === 'rankability-assessment.json', 'TRACK_B_OUTPUT_BOUNDARY_INVALID', failures);
+  requireCondition(trackB?.assessment_policy?.creates_new_evidence === false && trackB?.assessment_policy?.evaluates_track_a_evidence_only === true, 'TRACK_B_EVIDENCE_BOUNDARY_INVALID', failures);
   requireCondition(JSON.stringify(program?.artifact_chain) === JSON.stringify(REQUIRED_ARTIFACT_CHAIN), 'ARTIFACT_CHAIN_INVALID', failures);
   requireCondition(Array.isArray(program?.official_books) && program.official_books.length === 3 && program.official_books.includes('Master Book') && program.official_books.includes('Baseline Book') && program.official_books.includes('Architecture Book'), 'OFFICIAL_BOOK_TOPOLOGY_INVALID', failures);
   requireCondition(currentSnapshotId == null || registeredSnapshotIds.has(currentSnapshotId), 'CURRENT_SNAPSHOT_NOT_REGISTERED', failures);
@@ -90,18 +103,20 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
 
 const currentSnapshotId = registries['snapshot-registry.json']?.current_candidate_snapshot_id ?? registries['snapshot-registry.json']?.current_published_snapshot_id ?? null;
 const report = {
-  schema_version: '1.1.0',
+  schema_version: '1.2.0',
   mode: 'KIDULTS_INTEGRATED_PROGRAM_REGISTRY_GATE',
   generated_at: new Date().toISOString(),
   status: failures.length === 0 ? 'PASS_BOOTSTRAPPING' : 'FAIL_CLOSED',
   coordination_root: path.relative(REPO_ROOT, COORDINATION_ROOT) || '.',
   required_registry_count: REQUIRED_REGISTRIES.length,
   loaded_registry_count: Object.keys(registries).length,
+  program_registry_version: registries['program-registry.json']?.registry_version ?? null,
   current_snapshot_id: currentSnapshotId,
   failures,
   claims: {
     operating_baseline_loaded: failures.length === 0,
     registry_is_single_source_of_truth: failures.length === 0,
+    track_b_final_locked_v1_3_verified: failures.length === 0,
     production_ready: false,
     g0_g5_complete: false,
     snapshot_id_inferred_or_synthesized: false,
@@ -115,5 +130,5 @@ const report = {
 
 fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
 fs.writeFileSync(OUTPUT_PATH, JSON.stringify(report, null, 2));
-console.log(`Integrated Program registry gate: ${report.status}; registries=${report.loaded_registry_count}/${report.required_registry_count}; snapshot=${report.current_snapshot_id ?? 'null'}; failures=${failures.length}`);
+console.log(`Integrated Program registry gate: ${report.status}; registries=${report.loaded_registry_count}/${report.required_registry_count}; program=${report.program_registry_version ?? 'null'}; snapshot=${report.current_snapshot_id ?? 'null'}; failures=${failures.length}`);
 if (failures.length > 0) process.exitCode = 1;
