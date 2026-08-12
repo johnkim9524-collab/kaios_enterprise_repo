@@ -1,3 +1,5 @@
+import { startDetailMobileReconstruction } from "./components/mobile-reconstruction.js";
+
 const esc = value =>
   String(value ?? "").replace(/[&<>"']/g, character => ({
     "&": "&amp;",
@@ -27,7 +29,7 @@ function traceability(data) {
 
 function visualMarkup(asset, label, order) {
   if (asset) {
-    return `<div class="detail-visual"><img src="${esc(asset)}?v=502" alt="${esc(label)}" loading="eager"></div>`;
+    return `<div class="detail-visual"><img src="${esc(asset)}?v=652" alt="${esc(label)}" loading="eager"></div>`;
   }
 
   return `<div class="detail-visual"><div class="detail-visual-placeholder" aria-label="Editorial visual pending">${esc(order)}</div></div>`;
@@ -138,20 +140,22 @@ function renderObject(root, k100, manifest, id) {
 }
 
 async function init() {
+  startDetailMobileReconstruction();
   const root = document.querySelector("[data-detail-root]");
   const type = document.documentElement.dataset.detailType;
   const id = new URLSearchParams(window.location.search).get("id");
 
   try {
     const [manifest, verticals, k100] = await Promise.all([
-      getJson("data/v502-manifest.json?v=502"),
-      getJson("data/verticals.json?v=502"),
-      getJson("data/kidult100.json?v=502")
+      getJson("data/v502-manifest.json?v=652"),
+      getJson("data/verticals.json?v=652"),
+      getJson("data/kidult100.json?v=652")
     ]);
 
     if (type === "vertical") renderVertical(root, verticals, manifest, id);
     else if (type === "object") renderObject(root, k100, manifest, id);
     else throw new Error(`Unsupported detail type: ${type}`);
+    window.setTimeout(() => window.KIDULTS_MOBILE?.audit?.(), 80);
   } catch (error) {
     root.innerHTML = `
       <section class="detail-loading">
