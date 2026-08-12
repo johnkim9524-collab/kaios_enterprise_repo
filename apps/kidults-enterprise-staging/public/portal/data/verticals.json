@@ -1,6 +1,6 @@
 {
   "release": "KIDULTS_PORTAL_V502_RC1",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "source_snapshot_id": "baseline-provider-independent-v1",
   "source_registry": "coordination/kidults/registry/snapshot/records/baseline-provider-independent-v1.json",
   "source_mode": "SELF_COLLECTED_PROVIDER_INDEPENDENT",
@@ -38,8 +38,8 @@
       "demand_evidence_pct": 50.9,
       "scarcity_evidence_count": 0,
       "featured": true,
-      "visual_asset": "assets/kidult100/art-toy-v501.webp",
-      "visual_status": "PUBLIC_PREVIEW_ORIGINAL"
+      "visual_asset": null,
+      "visual_status": "VISUAL_WITHHELD_PENDING_EVIDENCE"
     },
     {
       "id": "vertical-watches-jewelry",
