@@ -1,0 +1,26 @@
+name: KIDULTS P0 Hardening Branch Dispatch
+
+on:
+  push:
+    branches:
+      - hardening/p0-speed-quality
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-p0-speed-quality.yml'
+      - '.github/workflows/kidults-p0-hardening-branch-dispatch.yml'
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch-p0:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch existing P0 workflow on hardening branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+        run: |
+          gh workflow run kidults-p0-speed-quality.yml --repo "$REPO" --ref "$REF"
