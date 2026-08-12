@@ -47,6 +47,19 @@ test('authorization-gated marketplace sources remain outside the production regi
   assert.ok(gated.length >= 1);
   assert.equal((registry.providers || []).length, 0);
   for (const candidate of gated) {
-    assert.ok(candidate.blockingReasons.some((reason) => reason.includes('AUTHORIZATION') || reason.includes('APPROVED')));
+    assert.ok(candidate.blockingReasons.some((reason) => reason.includes('AUTHORIZATION') || reason.includes('APPROVED') || reason.includes('PERMISSION') || reason.includes('PROHIBITED')));
   }
+});
+
+test('public auction sold pages never bypass explicit anti-scraping and commercial reuse restrictions', () => {
+  const heritage = candidates.find((candidate) => candidate.sourceId === 'heritage-auctions');
+  assert.ok(heritage);
+  assert.equal(heritage.primarySourceFindings.completedTransactionSemanticsDocumented, true);
+  assert.equal(heritage.primarySourceFindings.transactionBackedLiquiditySemanticsDocumented, false);
+  assert.equal(heritage.primarySourceFindings.commercialReuseAuthorizationRequired, true);
+  assert.equal(heritage.automationAccess, 'AUTOMATED_COLLECTION_EXPRESSLY_PROHIBITED');
+  assert.equal(heritage.qualification, 'NOT_QUALIFIED_AUTHORIZATION_REQUIRED');
+  assert.ok(heritage.blockingReasons.includes('AUTOMATED_COLLECTION_EXPRESSLY_PROHIBITED'));
+  assert.ok(heritage.blockingReasons.includes('COMMERCIAL_REUSE_REQUIRES_WRITTEN_PERMISSION'));
+  assert.equal((registry.providers || []).some((provider) => provider.providerId === 'heritage-auctions'), false);
 });
