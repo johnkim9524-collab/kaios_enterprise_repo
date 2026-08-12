@@ -1,0 +1,48 @@
+{
+  "engine_id": "kidults-why-engine",
+  "version": "0.1.0",
+  "release": "V6_EXPLAINABILITY_MVP",
+  "status": "RELEASE_CANDIDATE",
+  "supported_targets": [
+    "metric",
+    "operation",
+    "vertical",
+    "object",
+    "signal"
+  ],
+  "drawer_sections": [
+    "summary",
+    "confidence",
+    "current_facts",
+    "evidence",
+    "baseline_composition",
+    "traceability_timeline",
+    "known_limitations",
+    "source_traceability"
+  ],
+  "traceability_fields": [
+    "source_record",
+    "snapshot_id",
+    "candidate_id",
+    "assessment_id",
+    "methodology_version",
+    "evidence_lineage_version",
+    "source_mode",
+    "registry_as_of"
+  ],
+  "truth_rules": {
+    "allow_fabricated_values": false,
+    "allow_unregistered_assessment": false,
+    "allow_unregistered_methodology_claim": false,
+    "missing_to_zero": false,
+    "require_snapshot_traceability": true,
+    "require_limitations": true,
+    "baseline_composition_is_score_formula": false
+  },
+  "failure_states": [
+    "WAITING",
+    "NOT_REGISTERED",
+    "NOT_AVAILABLE",
+    "STALE"
+  ]
+}
