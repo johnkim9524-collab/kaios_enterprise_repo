@@ -1,15 +1,29 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "artifact": "rankability-assessment.json",
   "producer": "TRACK_B",
   "registry_owner": "ATLAS_KPMO",
-  "input": {
-    "artifact": "snapshot-candidate.json",
-    "snapshot_count": 1,
-    "requires_registered_snapshot": true,
-    "requires_evidence_package": true,
-    "requires_registry_validation_pass": true
-  },
+  "official_inputs": [
+    {
+      "artifact": "snapshot-candidate.json",
+      "required": true,
+      "snapshot_count": 1,
+      "requires_registered_snapshot": true
+    },
+    {
+      "artifact": "EVIDENCE_PACKAGE",
+      "required": true,
+      "requires_registry_validation_pass": true
+    }
+  ],
+  "non_official_inputs": [
+    "PORTAL_RESULT",
+    "BUSINESS_REQUEST",
+    "PROVIDER_REQUIREMENT",
+    "ESTIMATE",
+    "VERBAL_EXPLANATION",
+    "CHAT_ONLY_INFORMATION"
+  ],
   "required_fields": [
     "assessment_id",
     "snapshot_id",
@@ -23,6 +37,19 @@
     "confidence",
     "quantitative_justifications",
     "evidence_references"
+  ],
+  "assessment_status_values": ["INCOMPLETE", "COMPLETE"],
+  "complete_requires_all": [
+    "SNAPSHOT_ID_VERIFIED",
+    "EVIDENCE_PACKAGE_VERIFIED",
+    "ASSESSMENT_CONTRACT_VALIDATION_PASSED",
+    "REGISTRY_TRACEABILITY_COMPLETED"
+  ],
+  "official_waiting_states": [
+    "WAITING_FOR_SNAPSHOT",
+    "WAITING_FOR_EVIDENCE",
+    "WAITING_FOR_REGISTRY",
+    "WAITING_FOR_VALIDATION"
   ],
   "recommendation_values": ["BLOCKED", "CONDITIONAL", "PUBLISHABLE"],
   "confidence_values": ["LOW", "MEDIUM", "HIGH"],
@@ -43,9 +70,23 @@
     "same_snapshot_and_same_evidence_requires_same_assessment": true,
     "divergence_requires_recorded_cause": true
   },
+  "output_boundary": {
+    "only_official_output": "rankability-assessment.json",
+    "must_not_generate": [
+      "snapshot-candidate.json",
+      "PORTAL_RELEASE",
+      "REGISTRY_CHANGE",
+      "PRODUCTION_DECISION",
+      "BUSINESS_RECOMMENDATION",
+      "FINAL_RANKING"
+    ]
+  },
   "fail_closed": {
-    "missing_trigger_condition": "WAITING_FOR_SNAPSHOT",
+    "temporary_assessment_allowed": false,
+    "estimated_assessment_allowed": false,
     "insufficient_evidence": ["NOT_RANKABLE", "BLOCKED"],
-    "opinion_only_recommendation_allowed": false
-  }
+    "opinion_only_recommendation_allowed": false,
+    "incomplete_completion_conditions": "INCOMPLETE"
+  },
+  "rule_status": "FINAL_LOCKED_V1_3"
 }
