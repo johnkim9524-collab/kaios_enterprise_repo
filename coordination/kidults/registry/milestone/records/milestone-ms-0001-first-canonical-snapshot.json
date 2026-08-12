@@ -1,0 +1,32 @@
+{
+  "id": "milestone-ms-0001-first-canonical-snapshot",
+  "record_type": "milestone",
+  "version": "1.0.0",
+  "status": "IN_PROGRESS",
+  "milestone_id": "MS-0001",
+  "name": "First Canonical Snapshot",
+  "objective": "Register the missing canonical versions, publish the first immutable Track A snapshot candidate and Evidence Package, and hand the exact snapshot_id to Track B.",
+  "owner_track_id": "track-a-120-intelligence-factory",
+  "program_phase": "PHASE_0_EXECUTION",
+  "entry_criteria": [
+    "Operational Registry validation PASS",
+    "Four Track records registered",
+    "Provider-independent baseline preserved"
+  ],
+  "exit_criteria": [
+    "methodology_version registered",
+    "evidence_lineage_version registered",
+    "snapshot-candidate.json registered as immutable Candidate",
+    "Evidence Package registered",
+    "Track A to Track B handoff accepted"
+  ],
+  "blocking_record_ids": ["blocker-no-canonical-candidate"],
+  "created_at": "2026-08-12T17:17:03+09:00",
+  "created_by": "Atlas",
+  "approved_by": "John",
+  "references": [
+    "baseline-provider-independent-v1",
+    "track-a-120-intelligence-factory",
+    "handoff-track-a-to-b-first-candidate"
+  ]
+}

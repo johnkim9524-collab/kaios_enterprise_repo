@@ -1,0 +1,14 @@
+{
+  "registry_id":"kidults-digital-twin-registry",
+  "registry_name":"Digital Twin Registry",
+  "registry_version":"1.0.0",
+  "schema_version":"1.0.0",
+  "owner":"KPMO / Executive Control Tower",
+  "custodian":"Atlas",
+  "status":"ACTIVE",
+  "effective_at":"2026-08-12T12:00:00+09:00",
+  "record_directory":"records",
+  "record_count":1,
+  "current_record_id":"twin-current-program-state-v1",
+  "records":[{"id":"twin-current-program-state-v1","path":"records/twin-current-program-state-v1.json","version":"1.0.0","status":"CURRENT"}]
+}

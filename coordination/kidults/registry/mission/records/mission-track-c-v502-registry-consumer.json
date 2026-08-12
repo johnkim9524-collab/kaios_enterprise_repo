@@ -1,0 +1,17 @@
+{
+  "id": "mission-track-c-v502-registry-consumer",
+  "record_type": "mission",
+  "version": "1.0.0",
+  "status": "WAITING_ROLE_ACCEPTANCE",
+  "mission_id": "MISSION-0003",
+  "track_id": "track-c-portal-v502-experience-layer",
+  "milestone_id": "milestone-ms-0001-first-canonical-snapshot",
+  "objective": "Complete formal Track C acceptance and implement the V502 published-snapshot and asset-registry consumer boundary.",
+  "inputs": ["Published Snapshot Contract", "Asset Registry", "Rights Registry"],
+  "required_outputs": ["Track C role acceptance", "V502 registry mapping", "portal-release-manifest contract readiness"],
+  "dependency_ids": [],
+  "blocker_ids": ["blocker-track-c-role-acceptance-pending"],
+  "created_at": "2026-08-12T17:17:03+09:00",
+  "created_by": "Atlas",
+  "approved_by": "John"
+}

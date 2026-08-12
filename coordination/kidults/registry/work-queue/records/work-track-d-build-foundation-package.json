@@ -1,0 +1,14 @@
+{
+  "id":"work-track-d-build-foundation-package",
+  "record_type":"work_item",
+  "version":"1.0.0",
+  "status":"IN_PROGRESS",
+  "work_id":"WORK-0006",
+  "track_id":"track-d-data-platform-production-reliability",
+  "mission_id":"mission-track-d-foundation-implementation",
+  "objective":"Prepare the Track D Foundation Implementation Package without Production mutation.",
+  "dependency_ids":[],
+  "created_at":"2026-08-12T17:17:03+09:00",
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

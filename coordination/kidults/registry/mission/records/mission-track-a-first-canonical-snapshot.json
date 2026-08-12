@@ -1,0 +1,25 @@
+{
+  "id": "mission-track-a-first-canonical-snapshot",
+  "record_type": "mission",
+  "version": "1.0.0",
+  "status": "IN_PROGRESS",
+  "mission_id": "MISSION-0001",
+  "track_id": "track-a-120-intelligence-factory",
+  "milestone_id": "milestone-ms-0001-first-canonical-snapshot",
+  "objective": "Produce the first canonical immutable snapshot candidate and Evidence Package without inventing missing versions.",
+  "inputs": ["baseline-provider-independent-v1", "kidults-operational-registry"],
+  "required_outputs": [
+    "methodology_version registry record",
+    "evidence_lineage_version registry record",
+    "snapshot-candidate.json",
+    "Evidence Package",
+    "Signal Package",
+    "Track A to Track B handoff"
+  ],
+  "dependency_ids": [],
+  "blocker_ids": [],
+  "next_handoff_to": "track-b-rankability-validation-gate",
+  "created_at": "2026-08-12T17:17:03+09:00",
+  "created_by": "Atlas",
+  "approved_by": "John"
+}
