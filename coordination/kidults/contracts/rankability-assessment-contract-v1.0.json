@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0.0",
+  "artifact": "rankability-assessment.json",
+  "producer": "TRACK_B",
+  "registry_owner": "ATLAS_KPMO",
+  "input": {
+    "artifact": "snapshot-candidate.json",
+    "snapshot_count": 1,
+    "requires_registered_snapshot": true,
+    "requires_evidence_package": true,
+    "requires_registry_validation_pass": true
+  },
+  "required_fields": [
+    "assessment_id",
+    "snapshot_id",
+    "assessment_version",
+    "registry_version",
+    "methodology_version",
+    "evidence_lineage_version",
+    "generated_at",
+    "assessment_status",
+    "recommendation",
+    "confidence",
+    "quantitative_justifications",
+    "evidence_references"
+  ],
+  "recommendation_values": ["BLOCKED", "CONDITIONAL", "PUBLISHABLE"],
+  "confidence_values": ["LOW", "MEDIUM", "HIGH"],
+  "quantitative_justification_required_fields": [
+    "metric",
+    "observed_value",
+    "required_threshold",
+    "comparison_result",
+    "evidence_reference"
+  ],
+  "immutability": {
+    "modify_after_issue": false,
+    "delete_after_issue": false,
+    "changed_evaluation_requires_new_assessment_id": true,
+    "archive_prior_assessment": true
+  },
+  "reproducibility": {
+    "same_snapshot_and_same_evidence_requires_same_assessment": true,
+    "divergence_requires_recorded_cause": true
+  },
+  "fail_closed": {
+    "missing_trigger_condition": "WAITING_FOR_SNAPSHOT",
+    "insufficient_evidence": ["NOT_RANKABLE", "BLOCKED"],
+    "opinion_only_recommendation_allowed": false
+  }
+}
