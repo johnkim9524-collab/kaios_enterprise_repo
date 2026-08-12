@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.2.0",
+  "schema_version": "1.3.0",
   "status": "ACTIVE",
   "tracks": [
     {
@@ -13,7 +13,7 @@
       "track_id": "B",
       "name": "Rankability & Validation Gate",
       "authority_model": "INDEPENDENT_VALIDATION_AUTHORITY",
-      "operating_rules_status": "LOCKED",
+      "operating_rules_status": "LOCKED_FINAL_V1_2",
       "mission": "Independently validate one exact Track A snapshot_id and determine whether its evidence is sufficient for rankability, stability, exit criteria and further validation recommendations.",
       "official_input": "snapshot-candidate.json",
       "official_output": "rankability-assessment.json",
@@ -32,17 +32,34 @@
         "creates_business_decision": false,
         "creates_new_evidence": false,
         "evaluates_track_a_evidence_only": true,
-        "required_sequence": ["EVIDENCE", "ASSESSMENT", "RECOMMENDATION"],
+        "required_sequence": ["SNAPSHOT", "EVIDENCE", "ASSESSMENT"],
         "insufficient_evidence_dispositions": ["NOT_RANKABLE", "BLOCKED"],
         "immutable_after_issue": true,
         "revision_model": "NEW_ASSESSMENT_NEW_ID_ARCHIVE_PRIOR",
-        "assessment_id_example": ["assessment-r001", "assessment-r002"]
+        "assessment_id_example": ["assessment-r001", "assessment-r002", "assessment-r003"],
+        "reproducibility": {
+          "same_snapshot_and_same_evidence_must_produce_same_assessment": true,
+          "different_result_requires_recorded_cause": true
+        },
+        "required_traceability_fields": [
+          "assessment_id",
+          "snapshot_id",
+          "assessment_version",
+          "registry_version",
+          "methodology_version",
+          "evidence_lineage_version",
+          "generated_at",
+          "assessment_status"
+        ]
       },
       "recommendation_policy": {
         "allowed": ["BLOCKED", "CONDITIONAL", "PUBLISHABLE"],
         "must_include_confidence": true,
         "confidence_levels": ["LOW", "MEDIUM", "HIGH"],
         "confidence_requires_assessment_evidence": true,
+        "must_include_quantitative_justification": true,
+        "quantitative_justification_fields": ["metric", "observed_value", "required_threshold", "comparison_result", "evidence_reference"],
+        "opinion_only_recommendation_allowed": false,
         "may_specify": ["REQUIRED_EVIDENCE", "EXIT_CRITERIA", "ADDITIONAL_VALIDATION"]
       },
       "independence_preservation": {
@@ -58,6 +75,12 @@
         ],
         "when_all_true": "GENERATE_RANKABILITY_ASSESSMENT",
         "otherwise": "WAITING_FOR_SNAPSHOT"
+      },
+      "archive_policy": {
+        "delete_assessment_allowed": false,
+        "modify_issued_assessment_allowed": false,
+        "new_assessment_required_for_changed_evaluation": true,
+        "prior_assessment_destination": "ASSESSMENT_ARCHIVE_REGISTRY"
       },
       "registry_access": {
         "mode": "READ_ONLY",
@@ -84,6 +107,7 @@
         "COMBINE_SNAPSHOTS",
         "MERGE_HISTORICAL_AND_CURRENT_SNAPSHOTS",
         "MODIFY_ISSUED_ASSESSMENT",
+        "DELETE_ASSESSMENT",
         "MODIFY_SOURCE_OR_120_METRIC",
         "CREATE_NEW_EVIDENCE",
         "MODIFY_PORTAL",
@@ -96,14 +120,17 @@
         "PRODUCTION_APPROVAL",
         "PRODUCTION_RELEASE",
         "PORTAL_DESIGN",
-        "BUSINESS_DECISION"
+        "BUSINESS_DECISION",
+        "ISSUE_OPINION_ONLY_RECOMMENDATION"
       ],
       "directive": {
         "name": "Track B Additional Operating Directive",
-        "version": "v1.1",
-        "status": "APPROVED_LOCKED",
+        "version": "v1.2",
+        "status": "APPROVED_LOCKED_FINAL",
         "effective": "IMMEDIATELY",
-        "prior_version": "v1.0"
+        "prior_version": "v1.1",
+        "future_operating_rule_expansion_allowed": false,
+        "next_official_work": "GENERATE_FIRST_RANKABILITY_ASSESSMENT_WHEN_TRIGGERED"
       }
     },
     {
