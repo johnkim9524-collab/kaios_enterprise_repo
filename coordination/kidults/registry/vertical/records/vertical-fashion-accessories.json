@@ -1,0 +1,13 @@
+{
+  "id":"vertical-fashion-accessories",
+  "record_type":"core_vertical",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "order":4,
+  "display_name":"Fashion & Accessories",
+  "slug":"fashion-accessories",
+  "representative_scope":["Hermes Birkin","Hermes Kelly","Chanel 2.55","Dior Saddle","Fendi Baguette","Gucci Jackie","Air Jordan","Nike Dunk","Nike Air Max","Adidas Yeezy"],
+  "stable_structure":true,
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

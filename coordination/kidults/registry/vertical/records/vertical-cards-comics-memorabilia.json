@@ -1,0 +1,13 @@
+{
+  "id":"vertical-cards-comics-memorabilia",
+  "record_type":"core_vertical",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "order":8,
+  "display_name":"Cards / Comics / Memorabilia",
+  "slug":"cards-comics-memorabilia",
+  "representative_scope":["Pokemon","Magic: The Gathering","Sports Cards","Action Comics #1","Amazing Fantasy #15","Batman #1","Black Lotus","Michael Jordan Rookie Card"],
+  "stable_structure":true,
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

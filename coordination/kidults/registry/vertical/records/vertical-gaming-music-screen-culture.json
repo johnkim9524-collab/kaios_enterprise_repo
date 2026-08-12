@@ -1,0 +1,13 @@
+{
+  "id":"vertical-gaming-music-screen-culture",
+  "record_type":"core_vertical",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "order":7,
+  "display_name":"Gaming / Music / Screen Culture",
+  "slug":"gaming-music-screen-culture",
+  "representative_scope":["Game Boy","NES","SNES","Nintendo 64","PlayStation","Sega","Atari","Neo Geo","Xbox","Vinyl Records","Arcade Games","Movie Props"],
+  "stable_structure":true,
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

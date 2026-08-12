@@ -1,0 +1,13 @@
+{
+  "id":"vertical-technology-cameras",
+  "record_type":"core_vertical",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "order":6,
+  "display_name":"Technology & Cameras",
+  "slug":"technology-cameras",
+  "representative_scope":["Leica M3","Leica M6","Nikon F","Nikon F3","Canon AE-1","Canon F-1","Polaroid SX-70","Macintosh 128K","Apple II","Sony Walkman"],
+  "stable_structure":true,
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

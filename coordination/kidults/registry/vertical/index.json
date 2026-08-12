@@ -1,14 +1,24 @@
 {
   "registry_id":"kidults-vertical-registry",
   "registry_name":"Core Vertical Registry",
-  "registry_version":"1.0.0",
+  "registry_version":"1.1.0",
   "schema_version":"1.0.0",
   "owner":"Architecture",
   "custodian":"Atlas",
-  "status":"BOOTSTRAPPING",
+  "status":"ACTIVE",
   "effective_at":"2026-08-12T12:00:00+09:00",
   "record_directory":"records",
-  "record_count":0,
+  "record_count":8,
   "current_record_id":null,
-  "records":[]
+  "records":[
+    {"id":"vertical-toys-models","path":"records/vertical-toys-models.json","order":1,"status":"ACTIVE"},
+    {"id":"vertical-watches-jewelry","path":"records/vertical-watches-jewelry.json","order":2,"status":"ACTIVE"},
+    {"id":"vertical-automobiles-mobility","path":"records/vertical-automobiles-mobility.json","order":3,"status":"ACTIVE"},
+    {"id":"vertical-fashion-accessories","path":"records/vertical-fashion-accessories.json","order":4,"status":"ACTIVE"},
+    {"id":"vertical-design-furniture","path":"records/vertical-design-furniture.json","order":5,"status":"ACTIVE"},
+    {"id":"vertical-technology-cameras","path":"records/vertical-technology-cameras.json","order":6,"status":"ACTIVE"},
+    {"id":"vertical-gaming-music-screen-culture","path":"records/vertical-gaming-music-screen-culture.json","order":7,"status":"ACTIVE"},
+    {"id":"vertical-cards-comics-memorabilia","path":"records/vertical-cards-comics-memorabilia.json","order":8,"status":"ACTIVE"}
+  ],
+  "change_history":[{"version":"1.1.0","changed_at":"2026-08-12T15:45:00+09:00","changed_by":"Atlas","change":"Registered eight official PoC Core Verticals."}]
 }

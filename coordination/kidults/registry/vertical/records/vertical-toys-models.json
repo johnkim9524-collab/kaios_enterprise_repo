@@ -1,0 +1,13 @@
+{
+  "id":"vertical-toys-models",
+  "record_type":"core_vertical",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "order":1,
+  "display_name":"Toys & Models",
+  "slug":"toys-models",
+  "representative_scope":["LEGO","Barbie","Hot Wheels","Gundam","Star Wars Toys","Action Figures","Funko Pop","Beanie Babies","Tomica"],
+  "stable_structure":true,
+  "created_by":"Atlas",
+  "approved_by":"John"
+}
