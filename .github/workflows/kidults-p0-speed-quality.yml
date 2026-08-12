@@ -53,9 +53,9 @@ jobs:
         continue-on-error: true
         run: node scripts/kidult100-wave1-live.mjs
       - name: Stage 2 normalized candidate universe build
-        run: node scripts/kidult100-poc-live.mjs
+        run: timeout --signal=TERM --kill-after=10s 240s node scripts/kidult100-poc-live.mjs
       - name: Stage 2 Wikidata-only precision recovery
-        run: node scripts/kidult100-precision-recovery-live.mjs
+        run: timeout --signal=TERM --kill-after=10s 120s node scripts/kidult100-precision-recovery-live.mjs
       - name: Stage 2 institutional archive product-object precision hardening
         run: node scripts/kidult100-stage2-archive-precision-harden.mjs
       - name: Stage 2 reference-public product-object precision hardening
