@@ -1,0 +1,20 @@
+{
+  "registry_version": "1.0.0",
+  "owner": "ATLAS_KPMO",
+  "track_b_access": "READ_ONLY_REQUEST_REGISTRATION",
+  "status": "BOOTSTRAPPING",
+  "current_track_b_state": "WAITING_FOR_SNAPSHOT",
+  "current_assessment_id": null,
+  "current_snapshot_id": null,
+  "entries": [],
+  "allowed_recommendations": ["BLOCKED", "CONDITIONAL", "PUBLISHABLE"],
+  "allowed_confidence": ["LOW", "MEDIUM", "HIGH"],
+  "rules": [
+    "Each assessment references exactly one snapshot_id.",
+    "Issued assessments are immutable.",
+    "Changed evaluations require a new assessment_id and archival of the prior assessment.",
+    "Track B may request registration but does not modify this registry.",
+    "Assessment generation requires snapshot registration, evidence package availability, and registry validation pass.",
+    "If trigger conditions are incomplete, Track B remains WAITING FOR SNAPSHOT."
+  ]
+}
