@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kidults://registry-engine/work-item-record.schema.json",
+  "title": "KIDULTS Work Item Record",
+  "type": "object",
+  "required": ["id","record_type","version","status","work_id","track_id","mission_id","objective","dependency_ids","created_by"],
+  "properties": {
+    "record_type": {"const":"work_item"},
+    "work_id": {"type":"string","pattern":"^WORK-[0-9]{4}$"},
+    "status": {"enum":["OPEN","IN_PROGRESS","BLOCKED","WAITING_FOR_SNAPSHOT","COMPLETED","ARCHIVED"]}
+  },
+  "additionalProperties": true
+}

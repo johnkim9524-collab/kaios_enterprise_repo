@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kidults://registry-engine/blocker-record.schema.json",
+  "title": "KIDULTS Blocker Record",
+  "type": "object",
+  "required": ["id","record_type","version","status","blocker_id","severity","title","owner_track_id","impact_tracks","condition","exit_criteria","created_by"],
+  "properties": {
+    "record_type": {"const":"blocker"},
+    "blocker_id": {"type":"string","pattern":"^BLOCKER-[0-9]{4}$"},
+    "severity": {"enum":["CRITICAL","HIGH","MEDIUM","LOW"]},
+    "status": {"enum":["OPEN","MITIGATING","RESOLVED","ACCEPTED","ARCHIVED"]}
+  },
+  "additionalProperties": true
+}

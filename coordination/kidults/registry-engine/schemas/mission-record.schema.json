@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kidults://registry-engine/mission-record.schema.json",
+  "title": "KIDULTS Mission Record",
+  "type": "object",
+  "required": ["id","record_type","version","status","mission_id","track_id","milestone_id","objective","required_outputs","dependency_ids","blocker_ids","created_by"],
+  "properties": {
+    "record_type": {"const":"mission"},
+    "mission_id": {"type":"string","pattern":"^MISSION-[0-9]{4}$"},
+    "status": {"enum":["PLANNED","IN_PROGRESS","BLOCKED","WAITING_ROLE_ACCEPTANCE","COMPLETED","ARCHIVED"]},
+    "dependency_ids": {"type":"array","items":{"type":"string"}},
+    "blocker_ids": {"type":"array","items":{"type":"string"}}
+  },
+  "additionalProperties": true
+}
