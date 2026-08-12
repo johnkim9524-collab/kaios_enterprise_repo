@@ -31,6 +31,24 @@ const REQUIRED_PROGRAM_TRACKS = ['A', 'B', 'C', 'D'];
 const REQUIRED_COMPATIBILITY_TRACKS = ['A', 'B', 'C'];
 const TRACK_B_OFFICIAL_INPUTS = ['snapshot-candidate.json', 'EVIDENCE_PACKAGE'];
 const TRACK_B_OFFICIAL_OUTPUT = 'rankability-assessment.json';
+const TRACK_B_REQUIRED_SEQUENCE = ['SNAPSHOT', 'EVIDENCE', 'ASSESSMENT'];
+const TRACK_B_REQUIRED_ISOLATION_SEQUENCE = ['ONE_SNAPSHOT', 'ONE_ASSESSMENT', 'ONE_RECOMMENDATION'];
+const TRACK_B_COMPLETION_REQUIREMENTS = [
+  'SNAPSHOT_ID_VERIFIED',
+  'EVIDENCE_PACKAGE_VERIFIED',
+  'ASSESSMENT_CONTRACT_VALIDATION_PASSED',
+  'REGISTRY_TRACEABILITY_COMPLETED',
+];
+const TRACK_B_REQUIRED_TRACEABILITY_FIELDS = [
+  'assessment_id',
+  'snapshot_id',
+  'assessment_version',
+  'registry_version',
+  'methodology_version',
+  'evidence_lineage_version',
+  'generated_at',
+  'assessment_status',
+];
 const REQUIRED_HANDOFF_FIELDS = [
   'handoff_id',
   'from_track',
@@ -148,6 +166,36 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
   requireCondition(trackB?.official_output === TRACK_B_OFFICIAL_OUTPUT, 'TRACK_B_OUTPUT_BOUNDARY_INVALID', failures);
   requireCondition(trackB?.assessment_policy?.creates_new_evidence === false && trackB?.assessment_policy?.evaluates_track_a_evidence_only === true, 'TRACK_B_EVIDENCE_BOUNDARY_INVALID', failures);
   requireCondition(trackB?.input_boundary?.both_official_inputs_required_before_assessment === true, 'TRACK_B_BOTH_INPUTS_REQUIRED_INVALID', failures);
+  requireCondition(trackB?.snapshot_scope === 'EXACTLY_ONE_EXISTING_SNAPSHOT_ID', 'TRACK_B_SNAPSHOT_SCOPE_INVALID', failures);
+  requireCondition(
+    trackB?.snapshot_isolation?.one_snapshot_per_assessment === true
+    && trackB?.snapshot_isolation?.combined_snapshot_assessment_allowed === false
+    && trackB?.snapshot_isolation?.historical_current_merge_allowed === false,
+    'TRACK_B_SNAPSHOT_ISOLATION_INVALID',
+    failures,
+  );
+  requireCondition(JSON.stringify(trackB?.snapshot_isolation?.required_sequence) === JSON.stringify(TRACK_B_REQUIRED_ISOLATION_SEQUENCE), 'TRACK_B_SNAPSHOT_ISOLATION_SEQUENCE_INVALID', failures);
+  requireCondition(JSON.stringify(trackB?.assessment_policy?.required_sequence) === JSON.stringify(TRACK_B_REQUIRED_SEQUENCE), 'TRACK_B_ASSESSMENT_SEQUENCE_INVALID', failures);
+  requireCondition(
+    trackB?.assessment_policy?.reproducibility?.same_snapshot_and_same_evidence_must_produce_same_assessment === true
+    && trackB?.assessment_policy?.reproducibility?.different_result_requires_recorded_cause === true,
+    'TRACK_B_REPRODUCIBILITY_CONTRACT_INVALID',
+    failures,
+  );
+  requireCondition(
+    trackB?.assessment_policy?.immutable_after_issue === true
+    && trackB?.assessment_policy?.revision_model === 'NEW_ASSESSMENT_NEW_ID_ARCHIVE_PRIOR',
+    'TRACK_B_IMMUTABILITY_CONTRACT_INVALID',
+    failures,
+  );
+  requireCondition(JSON.stringify(trackB?.assessment_policy?.required_traceability_fields) === JSON.stringify(TRACK_B_REQUIRED_TRACEABILITY_FIELDS), 'TRACK_B_TRACEABILITY_CONTRACT_INVALID', failures);
+  requireCondition(
+    JSON.stringify(trackB?.assessment_completion?.complete_requires_all) === JSON.stringify(TRACK_B_COMPLETION_REQUIREMENTS)
+    && trackB?.assessment_completion?.when_all_true === 'COMPLETE'
+    && trackB?.assessment_completion?.otherwise === 'INCOMPLETE',
+    'TRACK_B_COMPLETION_CONTRACT_INVALID',
+    failures,
+  );
   requireCondition(trackB?.temporary_or_estimated_assessment_allowed === false, 'TRACK_B_TEMPORARY_ASSESSMENT_POLICY_INVALID', failures);
   requireCondition(trackB?.registry_access?.mode === 'READ_ONLY', 'TRACK_B_REGISTRY_ACCESS_INVALID', failures);
   requireCondition(JSON.stringify(handoffs?.required_fields) === JSON.stringify(REQUIRED_HANDOFF_FIELDS), 'HANDOFF_REQUIRED_FIELDS_INVALID', failures);
