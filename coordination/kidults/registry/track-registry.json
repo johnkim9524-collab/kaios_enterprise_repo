@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.3.0",
+  "schema_version": "1.4.0",
   "status": "ACTIVE",
   "tracks": [
     {
@@ -13,10 +13,32 @@
       "track_id": "B",
       "name": "Rankability & Validation Gate",
       "authority_model": "INDEPENDENT_VALIDATION_AUTHORITY",
-      "operating_rules_status": "LOCKED_FINAL_V1_2",
-      "mission": "Independently validate one exact Track A snapshot_id and determine whether its evidence is sufficient for rankability, stability, exit criteria and further validation recommendations.",
-      "official_input": "snapshot-candidate.json",
+      "operating_rules_status": "FINAL_LOCKED_V1_3",
+      "mission": "Receive one registered Track A Snapshot Candidate, validate its Evidence Package, generate one immutable rankability-assessment.json, and hand it to the Integration Gate.",
+      "official_inputs": ["snapshot-candidate.json", "EVIDENCE_PACKAGE"],
       "official_output": "rankability-assessment.json",
+      "input_boundary": {
+        "both_official_inputs_required_before_assessment": true,
+        "non_official_inputs": [
+          "PORTAL_RESULT",
+          "BUSINESS_REQUEST",
+          "PROVIDER_REQUIREMENT",
+          "ESTIMATE",
+          "VERBAL_EXPLANATION",
+          "CHAT_ONLY_INFORMATION"
+        ]
+      },
+      "output_boundary": {
+        "only_official_output": "rankability-assessment.json",
+        "must_not_generate": [
+          "snapshot-candidate.json",
+          "PORTAL_RELEASE",
+          "REGISTRY_CHANGE",
+          "PRODUCTION_DECISION",
+          "BUSINESS_RECOMMENDATION",
+          "FINAL_RANKING"
+        ]
+      },
       "snapshot_scope": "EXACTLY_ONE_EXISTING_SNAPSHOT_ID",
       "snapshot_isolation": {
         "one_snapshot_per_assessment": true,
@@ -52,6 +74,23 @@
           "assessment_status"
         ]
       },
+      "assessment_completion": {
+        "complete_requires_all": [
+          "SNAPSHOT_ID_VERIFIED",
+          "EVIDENCE_PACKAGE_VERIFIED",
+          "ASSESSMENT_CONTRACT_VALIDATION_PASSED",
+          "REGISTRY_TRACEABILITY_COMPLETED"
+        ],
+        "when_all_true": "COMPLETE",
+        "otherwise": "INCOMPLETE"
+      },
+      "official_waiting_states": [
+        "WAITING_FOR_SNAPSHOT",
+        "WAITING_FOR_EVIDENCE",
+        "WAITING_FOR_REGISTRY",
+        "WAITING_FOR_VALIDATION"
+      ],
+      "temporary_or_estimated_assessment_allowed": false,
       "recommendation_policy": {
         "allowed": ["BLOCKED", "CONDITIONAL", "PUBLISHABLE"],
         "must_include_confidence": true,
@@ -70,11 +109,17 @@
         "required_conditions": [
           "SNAPSHOT_ID_EXISTS",
           "SNAPSHOT_REGISTRY_REGISTRATION_COMPLETED",
+          "SNAPSHOT_CANDIDATE_AVAILABLE",
           "EVIDENCE_PACKAGE_AVAILABLE",
           "REGISTRY_VALIDATION_PASSED"
         ],
         "when_all_true": "GENERATE_RANKABILITY_ASSESSMENT",
-        "otherwise": "WAITING_FOR_SNAPSHOT"
+        "waiting_state_resolution": {
+          "snapshot_missing": "WAITING_FOR_SNAPSHOT",
+          "evidence_missing": "WAITING_FOR_EVIDENCE",
+          "registry_registration_missing": "WAITING_FOR_REGISTRY",
+          "registry_or_contract_validation_pending": "WAITING_FOR_VALIDATION"
+        }
       },
       "archive_policy": {
         "delete_assessment_allowed": false,
@@ -121,16 +166,20 @@
         "PRODUCTION_RELEASE",
         "PORTAL_DESIGN",
         "BUSINESS_DECISION",
-        "ISSUE_OPINION_ONLY_RECOMMENDATION"
+        "ISSUE_OPINION_ONLY_RECOMMENDATION",
+        "USE_NON_OFFICIAL_INPUT_AS_ASSESSMENT_INPUT",
+        "CREATE_TEMPORARY_ASSESSMENT",
+        "CREATE_ESTIMATED_ASSESSMENT"
       ],
       "directive": {
         "name": "Track B Additional Operating Directive",
-        "version": "v1.2",
-        "status": "APPROVED_LOCKED_FINAL",
+        "version": "v1.3",
+        "status": "APPROVED",
+        "rule_status": "FINAL_LOCKED",
         "effective": "IMMEDIATELY",
-        "prior_version": "v1.1",
+        "prior_version": "v1.2",
         "future_operating_rule_expansion_allowed": false,
-        "next_official_work": "GENERATE_FIRST_RANKABILITY_ASSESSMENT_WHEN_TRIGGERED"
+        "next_official_work": "RECEIVE_SNAPSHOT_VALIDATE_EVIDENCE_GENERATE_ASSESSMENT_HANDOFF_TO_INTEGRATION_GATE"
       }
     },
     {
