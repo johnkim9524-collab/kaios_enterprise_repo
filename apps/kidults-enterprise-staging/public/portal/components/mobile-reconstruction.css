@@ -1,0 +1,929 @@
+html[data-mobile-reconstruction=v1] #living-workspace-title span{
+  display:inline
+}
+html[data-mobile-reconstruction=v1] #living-workspace-title span+span::before{
+  content:" "
+}
+html[data-mobile-reconstruction=v1] .living-pulse__mobile-state{
+  display:none;
+  margin:0;
+  font-style:normal
+}
+html[data-mobile-reconstruction=v1] [id]{
+  scroll-margin-top:88px
+}
+
+@media(max-width:1024px){
+  html[data-mobile-reconstruction=v1] .living-workspace__title,
+  html[data-mobile-reconstruction=v1] .living-workspace__navigation,
+  html[data-mobile-reconstruction=v1] .living-workspace__panel[data-workspace-panel=ask] .kidults-copilot__intro,
+  html[data-mobile-reconstruction=v1] .compare-engine__intro,
+  html[data-mobile-reconstruction=v1] .decision-engine__intro,
+  html[data-mobile-reconstruction=v1] .decision-engine__overview{
+    grid-template-columns:1fr
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__title>p:last-child,
+  html[data-mobile-reconstruction=v1] .compare-engine__intro>p,
+  html[data-mobile-reconstruction=v1] .decision-engine__intro>p{
+    max-width:700px;
+    margin-top:14px
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__queue{
+    grid-template-columns:repeat(2,minmax(0,1fr))
+  }
+  html[data-mobile-reconstruction=v1] .data-funnel{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    overflow:visible
+  }
+  html[data-mobile-reconstruction=v1] .data-funnel>i{
+    display:none
+  }
+}
+
+@media(max-width:768px){
+  html[data-mobile-reconstruction=v1]{
+    scroll-padding-top:72px
+  }
+  html[data-mobile-reconstruction=v1] body{
+    min-width:0
+  }
+  html[data-mobile-reconstruction=v1] body.mobile-pulse-open,
+  html[data-mobile-reconstruction=v1] body.mobile-dialog-open{
+    overflow:hidden
+  }
+  html[data-mobile-reconstruction=v1] [id]{
+    scroll-margin-top:76px
+  }
+  html[data-mobile-reconstruction=v1] button,
+  html[data-mobile-reconstruction=v1] a,
+  html[data-mobile-reconstruction=v1] input,
+  html[data-mobile-reconstruction=v1] select,
+  html[data-mobile-reconstruction=v1] summary{
+    touch-action:manipulation
+  }
+
+  /* Header */
+  html[data-mobile-reconstruction=v1] .header-inner{
+    min-width:0;
+    height:64px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px
+  }
+  html[data-mobile-reconstruction=v1] .wordmark{
+    min-width:0;
+    max-width:calc(100vw - 116px);
+    overflow:hidden;
+    font-size:17px;
+    letter-spacing:.28em;
+    text-overflow:ellipsis
+  }
+  html[data-mobile-reconstruction=v1] .header-actions{
+    flex:0 0 auto;
+    gap:7px
+  }
+  html[data-mobile-reconstruction=v1] .search-trigger,
+  html[data-mobile-reconstruction=v1] .menu-toggle{
+    width:44px;
+    min-width:44px;
+    height:44px;
+    min-height:44px;
+    display:grid;
+    place-items:center;
+    padding:0;
+    border-radius:50%
+  }
+  html[data-mobile-reconstruction=v1] .search-trigger>span:first-child{
+    font-size:20px
+  }
+  html[data-mobile-reconstruction=v1] .search-label,
+  html[data-mobile-reconstruction=v1] .preview-pill{
+    display:none!important
+  }
+  html[data-mobile-reconstruction=v1] .primary-nav{
+    inset:64px 0 0 0;
+    max-height:calc(100dvh - 64px);
+    overflow-y:auto;
+    padding-bottom:calc(34px + env(safe-area-inset-bottom))
+  }
+  html[data-mobile-reconstruction=v1] .primary-nav a{
+    min-height:50px;
+    display:flex;
+    align-items:center
+  }
+
+  /* Living Pulse becomes one compact status bar and a bottom sheet. */
+  html[data-mobile-reconstruction=v1] .living-pulse__bar{
+    min-width:0;
+    min-height:64px;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:10px;
+    padding-top:10px;
+    padding-bottom:10px
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__identity{
+    min-width:0;
+    min-height:44px
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__identity>span:nth-child(2){
+    min-width:0
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__identity small{
+    font-size:8px
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__identity b{
+    overflow:hidden;
+    max-width:100%;
+    font-size:15px;
+    white-space:nowrap;
+    text-overflow:ellipsis
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__mobile-state{
+    display:block;
+    margin-left:auto;
+    padding-left:10px;
+    font-size:8px;
+    line-height:1.35;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-align:right;
+    color:#f0ce83;
+    white-space:nowrap
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__metrics{
+    display:none
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__changes-button{
+    min-width:44px;
+    min-height:44px;
+    padding:0 10px;
+    font-size:0
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__changes-button::before{
+    content:"Status";
+    font-size:8px;
+    font-weight:800;
+    letter-spacing:.08em
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__changes-button strong{
+    min-width:20px;
+    padding:3px 5px;
+    font-size:9px
+  }
+  html[data-mobile-reconstruction=v1] body.mobile-pulse-open::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:220;
+    background:rgba(3,18,14,.6);
+    backdrop-filter:blur(4px)
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse.is-open{
+    z-index:230
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__panel{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:231;
+    width:100%;
+    max-width:none;
+    max-height:88dvh;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    margin:0;
+    padding:30px var(--gutter) calc(28px + env(safe-area-inset-bottom));
+    border:1px solid rgba(255,255,255,.16);
+    border-bottom:0;
+    border-radius:22px 22px 0 0;
+    background:#073d2d;
+    box-shadow:0 -24px 80px rgba(0,0,0,.28)
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__panel::before{
+    content:"";
+    position:absolute;
+    top:10px;
+    left:50%;
+    width:42px;
+    height:4px;
+    border-radius:999px;
+    background:rgba(255,255,255,.32);
+    transform:translateX(-50%)
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__panel-head{
+    gap:16px;
+    margin-bottom:20px
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__panel-head h2{
+    font-size:29px
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__close{
+    min-width:44px;
+    min-height:44px;
+    display:grid;
+    place-items:center;
+    padding:0
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__detail-grid{
+    grid-template-columns:1fr
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__detail-grid article{
+    min-height:0;
+    padding:18px
+  }
+
+  /* Workspace */
+  html[data-mobile-reconstruction=v1] .living-workspace__header-inner{
+    padding-top:32px;
+    padding-bottom:16px
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__title{
+    display:block!important
+  }
+  html[data-mobile-reconstruction=v1] #living-workspace-title{
+    max-width:100%;
+    margin-top:8px;
+    overflow-wrap:anywhere;
+    font-size:clamp(38px,11.2vw,48px);
+    line-height:.94;
+    letter-spacing:-.045em
+  }
+  html[data-mobile-reconstruction=v1] #living-workspace-title span{
+    display:block
+  }
+  html[data-mobile-reconstruction=v1] #living-workspace-title span+span::before{
+    content:none
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__title>p:last-child{
+    max-width:34em;
+    margin-top:14px;
+    font-size:12px
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__navigation{
+    display:block;
+    padding-bottom:14px
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__tabs{
+    width:100%;
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:7px;
+    overflow:visible!important;
+    padding:0
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__tabs button{
+    min-width:0;
+    min-height:48px;
+    display:grid;
+    grid-template-columns:1fr;
+    place-items:center;
+    flex-basis:auto!important;
+    gap:0;
+    padding:10px 7px;
+    text-align:center
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__tabs button>span,
+  html[data-mobile-reconstruction=v1] .living-workspace__tabs button>small{
+    display:none
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__tabs button>b{
+    overflow:visible;
+    font-size:0;
+    white-space:normal
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__tabs button>b::after{
+    content:attr(data-mobile-label);
+    font-size:9.5px;
+    line-height:1.2;
+    letter-spacing:.07em
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__truth{
+    display:none
+  }
+
+  /* Ask */
+  html[data-mobile-reconstruction=v1] .kidults-copilot__shell{
+    padding-top:30px;
+    padding-bottom:36px
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__intro{
+    grid-template-columns:1fr!important;
+    gap:14px!important;
+    margin-bottom:18px!important
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__intro h2{
+    font-size:clamp(38px,10.8vw,48px)!important
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__form{
+    min-height:0!important;
+    grid-template-columns:1fr;
+    border-radius:14px
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__form input{
+    min-height:54px;
+    padding:15px 16px!important;
+    font-size:16px
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__form button{
+    min-height:48px
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__suggestions{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+    overflow:visible;
+    padding:0
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__suggestions button{
+    min-width:0;
+    min-height:44px;
+    display:flex;
+    align-items:center;
+    padding:10px 11px;
+    text-align:left;
+    white-space:normal
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__status{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:7px
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__answer{
+    padding:20px 15px
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__answer-grid{
+    grid-template-columns:1fr
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__actions button,
+  html[data-mobile-reconstruction=v1] .kidults-copilot__actions a{
+    min-height:44px
+  }
+
+  /* Discover hero becomes copy, contained visual, then metadata. */
+  html[data-mobile-reconstruction=v1] .hero{
+    padding-top:34px
+  }
+  html[data-mobile-reconstruction=v1] .hero-copy{
+    padding-top:0
+  }
+  html[data-mobile-reconstruction=v1] .hero-copy h1{
+    max-width:100%;
+    font-size:clamp(44px,12vw,56px);
+    overflow-wrap:anywhere
+  }
+  html[data-mobile-reconstruction=v1] .moment-card{
+    min-height:0!important;
+    display:grid;
+    grid-template-rows:auto auto minmax(230px,68vw) auto;
+    overflow:hidden
+  }
+  html[data-mobile-reconstruction=v1] .moment-shade{
+    display:none
+  }
+  html[data-mobile-reconstruction=v1] .moment-topline,
+  html[data-mobile-reconstruction=v1] .moment-copy,
+  html[data-mobile-reconstruction=v1] .moment-footer,
+  html[data-mobile-reconstruction=v1] .moment-image{
+    position:relative;
+    inset:auto;
+    left:auto;
+    right:auto;
+    top:auto;
+    bottom:auto
+  }
+  html[data-mobile-reconstruction=v1] .moment-topline{
+    grid-row:1;
+    padding:22px 22px 0
+  }
+  html[data-mobile-reconstruction=v1] .moment-copy{
+    grid-row:2;
+    max-width:none;
+    padding:26px 22px 18px
+  }
+  html[data-mobile-reconstruction=v1] .moment-copy h2{
+    font-size:30px
+  }
+  html[data-mobile-reconstruction=v1] .moment-copy .short-rule{
+    margin:18px 0
+  }
+  html[data-mobile-reconstruction=v1] .moment-image{
+    grid-row:3;
+    z-index:0;
+    width:100%;
+    height:100%;
+    object-fit:contain!important;
+    object-position:center bottom!important;
+    padding:0 12px 8px;
+    background:linear-gradient(180deg,#fffefa,#f4f2ec)
+  }
+  html[data-mobile-reconstruction=v1] .moment-footer{
+    grid-row:4;
+    z-index:2;
+    min-height:66px;
+    padding:16px 22px 18px;
+    border-top:1px solid var(--line);
+    background:#fffefa
+  }
+  html[data-mobile-reconstruction=v1] .moment-footer .text-link{
+    min-height:44px
+  }
+
+  /* Core cards */
+  html[data-mobile-reconstruction=v1] .vertical-card-actions{
+    min-width:0;
+    display:grid;
+    grid-template-columns:auto auto;
+    align-items:center;
+    gap:8px
+  }
+  html[data-mobile-reconstruction=v1] .vertical-card-actions a{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    white-space:nowrap
+  }
+  html[data-mobile-reconstruction=v1] .why-slot .why-trigger{
+    min-width:44px;
+    min-height:44px!important
+  }
+  html[data-mobile-reconstruction=v1] .k100-card-actions{
+    align-items:center!important;
+    flex-direction:row!important
+  }
+  html[data-mobile-reconstruction=v1] .k100-card-actions .text-link{
+    min-height:44px
+  }
+  html[data-mobile-reconstruction=v1] .signal-card{
+    min-height:0;
+    padding:22px 18px
+  }
+  html[data-mobile-reconstruction=v1] .signal-card header{
+    align-items:flex-start
+  }
+  html[data-mobile-reconstruction=v1] .signal-card-tools{
+    min-width:0;
+    align-items:flex-end!important;
+    flex-direction:column!important;
+    gap:7px
+  }
+  html[data-mobile-reconstruction=v1] .signal-card-tools>span{
+    max-width:145px;
+    overflow-wrap:anywhere;
+    text-align:right
+  }
+  html[data-mobile-reconstruction=v1] .signal-meta{
+    grid-template-columns:1fr
+  }
+  html[data-mobile-reconstruction=v1] .signal-meta div{
+    min-width:0;
+    border-right:0;
+    border-bottom:1px solid var(--line);
+    padding:10px 0
+  }
+  html[data-mobile-reconstruction=v1] .signal-meta div:last-child{
+    border-bottom:0
+  }
+  html[data-mobile-reconstruction=v1] .signal-meta b{
+    max-width:100%;
+    overflow-wrap:anywhere;
+    font-size:17px
+  }
+
+  /* Data funnel stacks; no hidden horizontal rail. */
+  html[data-mobile-reconstruction=v1] .data-funnel{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:8px;
+    overflow:visible;
+    padding:10px
+  }
+  html[data-mobile-reconstruction=v1] .data-funnel__layer{
+    min-width:0;
+    width:100%
+  }
+  html[data-mobile-reconstruction=v1] .data-funnel>i{
+    display:block;
+    justify-self:center;
+    transform:rotate(90deg)
+  }
+
+  /* Compare is rebuilt as metric cards instead of a desktop table rail. */
+  html[data-mobile-reconstruction=v1] .compare-engine__shell{
+    padding-top:38px;
+    padding-bottom:48px
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__intro h2{
+    font-size:clamp(38px,10.7vw,48px)
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__controls{
+    grid-template-columns:1fr!important;
+    padding:14px
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__controls select,
+  html[data-mobile-reconstruction=v1] .compare-engine__apply{
+    min-height:48px
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__swap{
+    width:44px;
+    height:44px;
+    justify-self:center;
+    transform:rotate(90deg)
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__result{
+    padding:19px 14px
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__profiles{
+    grid-template-columns:1fr
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__profile-actions button,
+  html[data-mobile-reconstruction=v1] .compare-engine__profile-actions a{
+    min-height:44px
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__table{
+    overflow:visible;
+    border:0;
+    border-radius:0;
+    background:transparent
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__table-head{
+    display:none
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__row{
+    min-width:0!important;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin-top:12px;
+    padding:15px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:#fff
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__row>*{
+    min-width:0;
+    border:0!important;
+    padding:0!important
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__metric{
+    grid-column:1/-1;
+    padding-bottom:12px!important;
+    border-bottom:1px solid var(--line)!important
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__value{
+    min-height:78px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    border:1px solid var(--line)!important;
+    border-radius:11px;
+    padding:12px!important;
+    background:#fbfaf7
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__value::before,
+  html[data-mobile-reconstruction=v1] .compare-engine__delta::before{
+    content:attr(data-mobile-label);
+    display:block;
+    margin-bottom:7px;
+    font-size:7.5px;
+    line-height:1.3;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:#85847e
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__delta{
+    grid-column:1/-1;
+    min-height:58px;
+    display:block;
+    padding:12px!important;
+    border-radius:11px;
+    background:#f3efe4;
+    text-align:left
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__traceability dl>div{
+    grid-template-columns:1fr;
+    gap:4px
+  }
+
+  /* Decision becomes a single review sequence. */
+  html[data-mobile-reconstruction=v1] .decision-engine__shell{
+    padding-top:42px;
+    padding-bottom:52px
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__intro h2{
+    font-size:clamp(39px,10.9vw,50px)
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__overview,
+  html[data-mobile-reconstruction=v1] .decision-engine__queue{
+    grid-template-columns:1fr!important
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__primary{
+    min-height:0;
+    padding:22px 16px
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__primary-top{
+    display:grid
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__primary-metrics{
+    grid-template-columns:1fr
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__primary-metrics>div,
+  html[data-mobile-reconstruction=v1] .decision-engine__primary-metrics>div+div{
+    padding:13px 0;
+    border-right:0;
+    border-bottom:1px solid rgba(255,255,255,.1)
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__primary-metrics>div:last-child{
+    border-bottom:0
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__section-head{
+    display:grid;
+    align-items:start
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__limitations ul{
+    columns:1
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__traceability dl>div,
+  html[data-mobile-reconstruction=v1] .decision-engine__gates dl>div{
+    grid-template-columns:1fr;
+    gap:4px
+  }
+  html[data-mobile-reconstruction=v1] .decision-engine__actions button,
+  html[data-mobile-reconstruction=v1] .decision-engine__actions a{
+    min-height:44px
+  }
+
+  /* Full-screen, single-scroll dialogs and WHY. */
+  html[data-mobile-reconstruction=v1] dialog.search-dialog,
+  html[data-mobile-reconstruction=v1] #portal-dialog{
+    width:100vw;
+    max-width:none;
+    height:100dvh;
+    max-height:none;
+    margin:0;
+    border:0;
+    border-radius:0;
+    padding:calc(22px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom));
+    overscroll-behavior:contain
+  }
+  html[data-mobile-reconstruction=v1] dialog.search-dialog[open]{
+    display:grid;
+    grid-template-rows:auto auto auto auto minmax(0,1fr)
+  }
+  html[data-mobile-reconstruction=v1] .search-dialog h2{
+    margin:12px 0 20px;
+    padding-right:48px;
+    font-size:36px
+  }
+  html[data-mobile-reconstruction=v1] .search-field{
+    min-width:0
+  }
+  html[data-mobile-reconstruction=v1] .search-field input{
+    min-width:0;
+    font-size:25px
+  }
+  html[data-mobile-reconstruction=v1] .search-results{
+    min-height:0;
+    max-height:none;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding-right:0
+  }
+  html[data-mobile-reconstruction=v1] .search-result{
+    min-width:0;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:8px;
+    padding:14px
+  }
+  html[data-mobile-reconstruction=v1] .dialog-close{
+    width:44px;
+    height:44px;
+    right:10px;
+    top:calc(8px + env(safe-area-inset-top))
+  }
+  html[data-mobile-reconstruction=v1] .why-engine{
+    width:100vw;
+    height:100dvh;
+    margin:0;
+    border-radius:0
+  }
+  html[data-mobile-reconstruction=v1] .why-engine__header{
+    padding:calc(22px + env(safe-area-inset-top)) 18px 18px
+  }
+  html[data-mobile-reconstruction=v1] .why-engine__close{
+    min-width:44px;
+    min-height:44px
+  }
+  html[data-mobile-reconstruction=v1] .why-engine__scroll{
+    padding:0 18px 30px
+  }
+  html[data-mobile-reconstruction=v1] .why-engine__footer{
+    padding:10px 18px calc(10px + env(safe-area-inset-bottom))
+  }
+  html[data-mobile-reconstruction=v1] .why-engine__provenance,
+  html[data-mobile-reconstruction=v1] .why-engine__copy{
+    min-height:44px
+  }
+
+  /* Detail routes */
+  html[data-mobile-reconstruction=v1] .detail-header-inner{
+    height:64px;
+    display:flex;
+    justify-content:space-between;
+    gap:12px
+  }
+  html[data-mobile-reconstruction=v1] .detail-back{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:flex-end;
+    font-size:12px;
+    white-space:nowrap
+  }
+  html[data-mobile-reconstruction=v1] .detail-header-inner .release-pill{
+    display:none
+  }
+  html[data-mobile-reconstruction=v1] .detail-main{
+    padding-top:34px;
+    padding-bottom:54px
+  }
+  html[data-mobile-reconstruction=v1] .detail-hero{
+    grid-template-columns:1fr;
+    gap:26px
+  }
+  html[data-mobile-reconstruction=v1] .detail-loading h1,
+  html[data-mobile-reconstruction=v1] .detail-hero h1{
+    max-width:100%;
+    font-size:clamp(42px,12vw,56px);
+    overflow-wrap:anywhere
+  }
+  html[data-mobile-reconstruction=v1] .detail-intro{
+    font-size:15px
+  }
+  html[data-mobile-reconstruction=v1] .detail-visual{
+    position:relative;
+    top:auto;
+    width:100%;
+    min-height:0;
+    aspect-ratio:4/3;
+    border-radius:18px
+  }
+  html[data-mobile-reconstruction=v1] .detail-visual img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    padding:18px
+  }
+  html[data-mobile-reconstruction=v1] .detail-section{
+    margin-top:48px;
+    padding-top:28px
+  }
+  html[data-mobile-reconstruction=v1] .detail-section h2{
+    font-size:30px
+  }
+  html[data-mobile-reconstruction=v1] .detail-metric-grid,
+  html[data-mobile-reconstruction=v1] .scope-list,
+  html[data-mobile-reconstruction=v1] .traceability-panel dl{
+    grid-template-columns:1fr
+  }
+  html[data-mobile-reconstruction=v1] .detail-metric-card{
+    min-height:0
+  }
+
+  /* Release and footer */
+  html[data-mobile-reconstruction=v1] .release-baseline-inner{
+    grid-template-columns:1fr;
+    gap:28px
+  }
+  html[data-mobile-reconstruction=v1] .release-baseline dl{
+    grid-template-columns:1fr
+  }
+  html[data-mobile-reconstruction=v1] .footer-inner{
+    grid-template-columns:1fr
+  }
+}
+
+@media(max-width:480px){
+  html[data-mobile-reconstruction=v1] #living-workspace-title{
+    font-size:clamp(36px,12vw,43px)
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__mobile-state{
+    max-width:112px;
+    overflow:hidden;
+    text-overflow:ellipsis
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__suggestions{
+    grid-template-columns:1fr
+  }
+  html[data-mobile-reconstruction=v1] .moment-card{
+    grid-template-rows:auto auto minmax(220px,75vw) auto
+  }
+  html[data-mobile-reconstruction=v1] .moment-footer{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:8px
+  }
+  html[data-mobile-reconstruction=v1] .vertical-card-footer{
+    align-items:flex-start;
+    flex-direction:column
+  }
+  html[data-mobile-reconstruction=v1] .vertical-card-actions{
+    width:100%;
+    grid-template-columns:auto 1fr
+  }
+  html[data-mobile-reconstruction=v1] .vertical-card-actions a{
+    justify-self:end
+  }
+  html[data-mobile-reconstruction=v1] .operation-footer,
+  html[data-mobile-reconstruction=v1] .k100-card-actions{
+    width:100%;
+    align-items:center!important;
+    flex-direction:row!important
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__row{
+    grid-template-columns:1fr
+  }
+  html[data-mobile-reconstruction=v1] .compare-engine__metric,
+  html[data-mobile-reconstruction=v1] .compare-engine__delta{
+    grid-column:1
+  }
+  html[data-mobile-reconstruction=v1] .search-result p{
+    display:block
+  }
+}
+
+@media(max-width:390px){
+  html[data-mobile-reconstruction=v1] .header-inner{
+    padding-inline:14px
+  }
+  html[data-mobile-reconstruction=v1] .wordmark{
+    font-size:16px;
+    letter-spacing:.24em
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__bar{
+    padding-inline:14px
+  }
+  html[data-mobile-reconstruction=v1] .living-pulse__mobile-state{
+    display:none
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__tabs button{
+    padding-inline:4px
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__tabs button>b::after{
+    font-size:8.5px
+  }
+  html[data-mobile-reconstruction=v1] .hero-copy h1{
+    font-size:43px
+  }
+  html[data-mobile-reconstruction=v1] .moment-copy h2{
+    font-size:27px
+  }
+  html[data-mobile-reconstruction=v1] .signal-card-tools>span{
+    max-width:110px
+  }
+  html[data-mobile-reconstruction=v1] .coverage-values{
+    grid-template-columns:1fr;
+    gap:18px;
+    margin:34px 0 26px
+  }
+  html[data-mobile-reconstruction=v1] .methodology-icons{
+    grid-template-columns:1fr
+  }
+  html[data-mobile-reconstruction=v1] .partner-grid{
+    grid-template-columns:1fr
+  }
+}
+
+@media(max-width:360px){
+  html[data-mobile-reconstruction=v1] .living-pulse__changes-button strong{
+    display:none
+  }
+  html[data-mobile-reconstruction=v1] #living-workspace-title{
+    font-size:35px
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__tabs{
+    gap:5px
+  }
+  html[data-mobile-reconstruction=v1] .living-workspace__tabs button{
+    min-height:46px
+  }
+  html[data-mobile-reconstruction=v1] .kidults-copilot__intro h2{
+    font-size:38px!important
+  }
+  html[data-mobile-reconstruction=v1] .moment-card{
+    grid-template-rows:auto auto minmax(210px,78vw) auto
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  html[data-mobile-reconstruction=v1] *,
+  html[data-mobile-reconstruction=v1] *::before,
+  html[data-mobile-reconstruction=v1] *::after{
+    scroll-behavior:auto!important;
+    animation:none!important;
+    transition:none!important
+  }
+}

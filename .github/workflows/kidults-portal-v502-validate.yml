@@ -56,6 +56,7 @@ jobs:
           node --check apps/kidults-enterprise-staging/public/portal/components/workspace.js
           node --check apps/kidults-enterprise-staging/public/portal/components/integrity-hardening.js
           node --check apps/kidults-enterprise-staging/public/portal/components/k100-integrity-reset.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/mobile-reconstruction.js
           node --check scripts/kidults/portal/validate-living-pulse.mjs
           node --check scripts/kidults/portal/validate-why-engine.mjs
           node --check scripts/kidults/portal/validate-copilot.mjs
@@ -65,6 +66,7 @@ jobs:
           node --check scripts/kidults/portal/validate-integrity-hardening.mjs
           node --check scripts/kidults/portal/validate-v502-portal.mjs
           node --check scripts/kidults/portal/validate-k100-integrity-reset.mjs
+          node --check scripts/kidults/portal/validate-mobile-reconstruction.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -104,3 +106,6 @@ jobs:
 
       - name: Validate K100 Integrity Reset
         run: node scripts/kidults/portal/validate-k100-integrity-reset.mjs
+
+      - name: Validate V6 Mobile Reconstruction
+        run: node scripts/kidults/portal/validate-mobile-reconstruction.mjs
