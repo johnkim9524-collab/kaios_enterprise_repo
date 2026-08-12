@@ -57,6 +57,7 @@ jobs:
           node --check apps/kidults-enterprise-staging/public/portal/components/integrity-hardening.js
           node --check apps/kidults-enterprise-staging/public/portal/components/k100-integrity-reset.js
           node --check apps/kidults-enterprise-staging/public/portal/components/mobile-reconstruction.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/mobile-hero-visibility.js
           node --check scripts/kidults/portal/validate-living-pulse.mjs
           node --check scripts/kidults/portal/validate-why-engine.mjs
           node --check scripts/kidults/portal/validate-copilot.mjs
@@ -68,6 +69,7 @@ jobs:
           node --check scripts/kidults/portal/validate-k100-integrity-reset.mjs
           node --check scripts/kidults/portal/validate-mobile-reconstruction.mjs
           node --check scripts/kidults/portal/validate-320-overflow-hotfix.mjs
+          node --check scripts/kidults/portal/validate-mobile-hero-visibility.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -113,3 +115,6 @@ jobs:
 
       - name: Validate 320px Overflow Hotfix
         run: node scripts/kidults/portal/validate-320-overflow-hotfix.mjs
+
+      - name: Validate Mobile Hero Visibility
+        run: node scripts/kidults/portal/validate-mobile-hero-visibility.mjs

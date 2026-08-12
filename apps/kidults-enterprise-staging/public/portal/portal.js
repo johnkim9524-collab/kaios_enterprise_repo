@@ -8,6 +8,7 @@ import { startWorkspace } from "./components/workspace.js";
 import { startIntegrityHardening } from "./components/integrity-hardening.js";
 import { startK100IntegrityReset } from "./components/k100-integrity-reset.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
+import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=654";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -21,7 +22,7 @@ import {
   renderArchive,
   renderReleaseBaseline,
   renderPortalError
-} from "./components/renderers.js";
+} from "./components/renderers.js?v=654";
 import {
   setupNavigation,
   setupDialogs,
@@ -97,6 +98,7 @@ async function init() {
     setupReveal();
 
     startMobileReconstruction();
+    startMobileHeroVisibility({ manifest: data.manifest });
 
     document.documentElement.dataset.dataState = determineDataState(data);
     window.KIDULTS_V502 = Object.freeze({
@@ -114,7 +116,8 @@ async function init() {
       workspace: data.workspace.version,
       integrity: window.KIDULTS_INTEGRITY?.version ?? "NOT AVAILABLE",
       k100Integrity: window.KIDULTS_K100_INTEGRITY?.version ?? "NOT AVAILABLE",
-      mobileReconstruction: window.KIDULTS_MOBILE?.version ?? "NOT AVAILABLE"
+      mobileReconstruction: window.KIDULTS_MOBILE?.version ?? "NOT AVAILABLE",
+      mobileHeroVisibility: window.KIDULTS_MOBILE_HERO?.version ?? "NOT AVAILABLE"
     });
   } catch (error) {
     console.error("KIDULTS V6 portal initialization failed.", error);
