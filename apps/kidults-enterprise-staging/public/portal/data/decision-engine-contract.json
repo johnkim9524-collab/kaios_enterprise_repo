@@ -1,0 +1,38 @@
+{
+  "engine_id": "kidults-decision-engine",
+  "version": "0.1.0",
+  "mode": "PORTAL_REVIEW_GUIDANCE",
+  "max_items": 5,
+  "priority_basis": "current_observation_order",
+  "guidance_states": [
+    "REVIEW_FIRST",
+    "REVIEW",
+    "OBSERVE",
+    "WAITING"
+  ],
+  "gate_states": [
+    "CURRENT",
+    "WAITING_FOR_CANDIDATE",
+    "WAITING_FOR_ASSESSMENT",
+    "PREVIEW_ONLY",
+    "NOT_AVAILABLE"
+  ],
+  "truth_rules": {
+    "allow_investment_language": false,
+    "allow_final_decision": false,
+    "allow_registry_mutation": false,
+    "allow_rankability_claims": false,
+    "allow_missing_to_zero": false,
+    "require_snapshot_traceability": true,
+    "require_gate_disclosure": true,
+    "require_limitations": true
+  },
+  "fail_closed_states": [
+    "WAITING",
+    "NOT_REGISTERED",
+    "NOT_AVAILABLE",
+    "STALE",
+    "WAITING_FOR_CANDIDATE",
+    "WAITING_FOR_ASSESSMENT"
+  ]
+}
