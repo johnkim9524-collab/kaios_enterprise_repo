@@ -56,7 +56,7 @@ if (!portal.includes('import { startMobileHeroVisibility } from "./components/mo
   errors.push("portal.js does not import the versioned Mobile Hero Visibility runtime.");
 }
 if (!portal.includes("startMobileHeroVisibility({ manifest: data.manifest });")) {
-  errors.push("portal.js does not start Mobile Hero Visibility after rendering the hero.");
+  errors.push("portal.js does not start Mobile Hero Visibility after mobile reconstruction.");
 }
 if (!portal.includes("mobileHeroVisibility: window.KIDULTS_MOBILE_HERO?.version")) {
   errors.push("portal.js does not publish the Mobile Hero Visibility version.");
@@ -64,8 +64,11 @@ if (!portal.includes("mobileHeroVisibility: window.KIDULTS_MOBILE_HERO?.version"
 if (!portal.includes('from "./components/renderers.js?v=654"')) {
   errors.push("portal.js does not cache-bust the hero renderer module.");
 }
-if (!portal.includes('from "./components/mobile-reconstruction.js?v=654"')) {
-  errors.push("portal.js does not cache-bust the mobile reconstruction module.");
+if (!portal.includes('import { startMobileReconstruction } from "./components/mobile-reconstruction.js";')) {
+  errors.push("portal.js no longer preserves the established Mobile Reconstruction import contract.");
+}
+if (portal.indexOf("startMobileHeroVisibility({ manifest: data.manifest });") < portal.indexOf("startMobileReconstruction();")) {
+  errors.push("Mobile Hero Visibility must start after Mobile Reconstruction appends its stylesheets.");
 }
 
 for (const prohibited of [
