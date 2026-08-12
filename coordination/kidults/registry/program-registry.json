@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "program_id": "KIDULTS_INTEGRATED_PROGRAM",
+  "name": "KIDULTS Integrated Intelligence Program",
+  "status": "ACTIVE_BOOTSTRAPPING",
+  "phase": "PHASE_0_OPERATING_FRAMEWORK_LAUNCH",
+  "effective_at": "2026-08-12T12:00:00+09:00",
+  "program_owner": "John",
+  "integration_conductor": "Atlas",
+  "single_source_of_truth": "coordination/kidults/registry",
+  "principle": "One Program. One Language. One Registry. One Source of Truth.",
+  "current_snapshot_id": null,
+  "tracks": ["A", "B", "C"],
+  "official_books": ["Master Book", "Baseline Book", "Architecture Book"],
+  "production_state": "FAIL_CLOSED_UNTIL_G0_G5_COMPLETE"
+}
