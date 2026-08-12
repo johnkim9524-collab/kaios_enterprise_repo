@@ -26,13 +26,13 @@ const REQUIRED_REGISTRIES = [
   'release-registry.json',
 ];
 
-const REQUIRED_RELEASE_GATES = [
-  'G0_BASELINE_LOCKED',
-  'G1_SNAPSHOT_VALID',
-  'G2_RANKABILITY_COMPLETE',
-  'G3_ASSET_RIGHTS_READY',
-  'G4_PORTAL_QA_PASS',
-  'G5_PROGRAM_OWNER_APPROVAL',
+const REQUIRED_RELEASE_GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5'];
+const REQUIRED_ARTIFACT_CHAIN = [
+  'snapshot-candidate.json',
+  'rankability-assessment.json',
+  'portal-release-manifest.json',
+  'portal-qa-result.json',
+  'production-decision.json',
 ];
 
 function readJson(filePath) {
@@ -61,33 +61,41 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
   const snapshots = registries['snapshot-registry.json'];
   const providers = registries['provider-registry.json'];
   const releases = registries['release-registry.json'];
-  const trackIds = Array.isArray(tracks?.tracks) ? tracks.tracks.map((row) => row?.track_id) : [];
-  const registeredSnapshotIds = new Set(Array.isArray(snapshots?.records) ? snapshots.records.map((row) => row?.snapshot_id).filter(Boolean) : []);
+  const programTrackIds = Array.isArray(program?.tracks) ? program.tracks.map((row) => row?.track_id) : [];
+  const trackRegistryIds = Array.isArray(tracks?.tracks) ? tracks.tracks.map((row) => row?.track_id) : [];
+  const registeredSnapshotIds = new Set([
+    snapshots?.baseline_snapshot_id,
+    ...(Array.isArray(snapshots?.entries) ? snapshots.entries.map((row) => row?.snapshot_id) : []),
+  ].filter(Boolean));
+  const currentSnapshotId = snapshots?.current_candidate_snapshot_id ?? snapshots?.current_published_snapshot_id ?? null;
 
   requireCondition(governance.version === 'v1.0', 'GOVERNANCE_VERSION_MISMATCH', failures);
   requireCondition(governance.status === 'FINAL_SHARED_OPERATING_BASELINE_REGISTRY_BOOTSTRAPPING', 'GOVERNANCE_STATUS_INVALID', failures);
+  requireCondition(governance.effective_at === '2026-08-12T12:00:00+09:00', 'GOVERNANCE_EFFECTIVE_TIME_INVALID', failures);
   requireCondition(governance.principle === 'One Program. One Language. One Registry. One Source of Truth.', 'PROGRAM_PRINCIPLE_MISMATCH', failures);
-  requireCondition(program?.status === 'ACTIVE_BOOTSTRAPPING', 'PROGRAM_STATUS_INVALID', failures);
-  requireCondition(program?.phase === 'PHASE_0_OPERATING_FRAMEWORK_LAUNCH', 'PROGRAM_PHASE_INVALID', failures);
-  requireCondition(program?.production_state === 'FAIL_CLOSED_UNTIL_G0_G5_COMPLETE', 'PRODUCTION_FAIL_CLOSED_STATE_INVALID', failures);
-  requireCondition(JSON.stringify(trackIds) === JSON.stringify(['A', 'B', 'C']), 'TRACK_TOPOLOGY_INVALID', failures);
-  requireCondition(program?.current_snapshot_id === snapshots?.current_snapshot_id, 'CURRENT_SNAPSHOT_ID_MISMATCH', failures);
-  requireCondition(program?.current_snapshot_id == null || registeredSnapshotIds.has(program.current_snapshot_id), 'CURRENT_SNAPSHOT_NOT_REGISTERED', failures);
-  requireCondition(Array.isArray(releases?.required_gates) && JSON.stringify(releases.required_gates) === JSON.stringify(REQUIRED_RELEASE_GATES), 'RELEASE_GATE_TOPOLOGY_INVALID', failures);
-  requireCondition(releases?.production_default === 'FAIL_CLOSED', 'RELEASE_DEFAULT_NOT_FAIL_CLOSED', failures);
+  requireCondition(program?.registry_version === '1.0.0' && program?.program?.status === 'active', 'PROGRAM_STATUS_INVALID', failures);
+  requireCondition(program?.program?.integration_conductor === 'Atlas', 'INTEGRATION_CONDUCTOR_INVALID', failures);
+  requireCondition(JSON.stringify(programTrackIds) === JSON.stringify(['A', 'B', 'C']), 'PROGRAM_TRACK_TOPOLOGY_INVALID', failures);
+  requireCondition(JSON.stringify(trackRegistryIds) === JSON.stringify(['A', 'B', 'C']), 'TRACK_REGISTRY_TOPOLOGY_INVALID', failures);
+  requireCondition(JSON.stringify(program?.artifact_chain) === JSON.stringify(REQUIRED_ARTIFACT_CHAIN), 'ARTIFACT_CHAIN_INVALID', failures);
+  requireCondition(Array.isArray(program?.official_books) && program.official_books.length === 3 && program.official_books.includes('Master Book') && program.official_books.includes('Baseline Book') && program.official_books.includes('Architecture Book'), 'OFFICIAL_BOOK_TOPOLOGY_INVALID', failures);
+  requireCondition(currentSnapshotId == null || registeredSnapshotIds.has(currentSnapshotId), 'CURRENT_SNAPSHOT_NOT_REGISTERED', failures);
+  requireCondition(Array.isArray(releases?.required_gate_sequence) && JSON.stringify(releases.required_gate_sequence) === JSON.stringify(REQUIRED_RELEASE_GATES), 'RELEASE_GATE_TOPOLOGY_INVALID', failures);
+  requireCondition(releases?.current_production_release_id == null, 'UNAPPROVED_PRODUCTION_RELEASE_PRESENT', failures);
   requireCondition(providers?.policy === 'Proof before Procurement', 'PROVIDER_POLICY_INVALID', failures);
   requireCondition(providers?.safety?.auto_procurement === false && providers?.safety?.auto_contract_execution === false && providers?.safety?.unauthorized_scraping === false && providers?.safety?.baseline_overwrite === false, 'PROVIDER_SAFETY_BOUNDARY_INVALID', failures);
 }
 
+const currentSnapshotId = registries['snapshot-registry.json']?.current_candidate_snapshot_id ?? registries['snapshot-registry.json']?.current_published_snapshot_id ?? null;
 const report = {
-  schema_version: '1.0.0',
+  schema_version: '1.1.0',
   mode: 'KIDULTS_INTEGRATED_PROGRAM_REGISTRY_GATE',
   generated_at: new Date().toISOString(),
   status: failures.length === 0 ? 'PASS_BOOTSTRAPPING' : 'FAIL_CLOSED',
   coordination_root: path.relative(REPO_ROOT, COORDINATION_ROOT) || '.',
   required_registry_count: REQUIRED_REGISTRIES.length,
   loaded_registry_count: Object.keys(registries).length,
-  current_snapshot_id: registries['program-registry.json']?.current_snapshot_id ?? null,
+  current_snapshot_id: currentSnapshotId,
   failures,
   claims: {
     operating_baseline_loaded: failures.length === 0,
