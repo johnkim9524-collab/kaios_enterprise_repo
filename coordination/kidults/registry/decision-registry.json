@@ -1,0 +1,76 @@
+{
+  "registry_version": "1.0.0",
+  "entries": [
+    {
+      "decision_id": "DEC-2026-08-12-001",
+      "title": "Operate KIDULTS as one integrated program with three independent tracks",
+      "status": "approved_pending_merge",
+      "owner": "John",
+      "proposed_by": "Atlas",
+      "effective_at": "2026-08-12T00:00:00+09:00",
+      "decision": "Track A creates snapshot candidates, Track B independently validates rankability, Track C renders released snapshots, and Production approval remains with the Program Owner.",
+      "reason": "Prevent isolated chat projects, duplicated assumptions and untraceable handoffs.",
+      "evidence_references": [
+        "issue:234",
+        "issue:235",
+        "issue:236",
+        "issue:237",
+        "issue:238",
+        "pr:239"
+      ],
+      "books": [
+        "Master Book",
+        "Baseline Book",
+        "Architecture Book"
+      ]
+    },
+    {
+      "decision_id": "DEC-2026-08-12-002",
+      "title": "Separate stable Core Vertical coverage from dynamic Featured selection",
+      "status": "approved_pending_merge",
+      "owner": "John",
+      "proposed_by": "Atlas",
+      "effective_at": "2026-08-12T00:00:00+09:00",
+      "decision": "The eight Core Verticals remain the stable coverage structure. Featured Set, Hero, representative objects, market signals and research are dynamic and snapshot-specific.",
+      "reason": "Data can change and must drive Portal content without forcing structural redesign.",
+      "evidence_references": [
+        "registry:core-verticals",
+        "issue:234"
+      ],
+      "books": [
+        "Master Book",
+        "Baseline Book",
+        "Architecture Book"
+      ]
+    },
+    {
+      "decision_id": "DEC-2026-08-12-003",
+      "title": "Proof before procurement",
+      "status": "approved_pending_merge",
+      "owner": "John",
+      "proposed_by": "Atlas",
+      "effective_at": "2026-08-12T00:00:00+09:00",
+      "decision": "Provider contact and spend are justified by measured gaps against the provider-independent baseline and independent rankability findings.",
+      "reason": "Avoid buying data before Right Data scope, stress readiness and measurable provider value are defined.",
+      "evidence_references": [
+        "issue:236",
+        "issue:238"
+      ],
+      "books": [
+        "Master Book",
+        "Baseline Book",
+        "Architecture Book"
+      ]
+    }
+  ],
+  "required_fields": [
+    "decision_id",
+    "title",
+    "status",
+    "owner",
+    "effective_at",
+    "decision",
+    "reason",
+    "evidence_references"
+  ]
+}

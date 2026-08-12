@@ -1,0 +1,71 @@
+{
+  "registry_version": "1.0.0",
+  "entries": [
+    {
+      "risk_id": "RISK-2026-08-12-001",
+      "title": "Track divergence across isolated chat sessions",
+      "category": "program-governance",
+      "severity": "critical",
+      "likelihood": "high",
+      "owner_role": "integration-conductor",
+      "status": "mitigating",
+      "mitigation": "Use GitHub coordination artifacts, canonical issues, stable IDs, handoff contracts and daily integrated digest.",
+      "trigger": "A material claim, term or result exists only in one chat or conflicts with another track.",
+      "escalation_issue": 234
+    },
+    {
+      "risk_id": "RISK-2026-08-12-002",
+      "title": "Provider spend before rankability and Right Data gaps are proven",
+      "category": "commercial",
+      "severity": "high",
+      "likelihood": "medium",
+      "owner_role": "program-owner",
+      "status": "controlled",
+      "mitigation": "Require provider-gap evidence from Track A and Rankability Gate assessment from Track B before commitment.",
+      "trigger": "Provider outreach or contract request without a measured gap and exit criterion.",
+      "escalation_issue": 238
+    },
+    {
+      "risk_id": "RISK-2026-08-12-003",
+      "title": "Portal hardcodes rankings or Featured content",
+      "category": "architecture",
+      "severity": "high",
+      "likelihood": "high",
+      "owner_role": "track-c-portal-v502",
+      "status": "open",
+      "mitigation": "V502 consumes published snapshot and registries; Portal never calculates readiness or selects Featured independently.",
+      "trigger": "Portal source contains fixed intelligence outcomes not supplied by a versioned snapshot.",
+      "escalation_issue": 237
+    },
+    {
+      "risk_id": "RISK-2026-08-12-004",
+      "title": "Prototype or uncleared editorial assets reach Production",
+      "category": "rights-and-brand",
+      "severity": "high",
+      "likelihood": "medium",
+      "owner_role": "editorial-rights-reviewer",
+      "status": "open",
+      "mitigation": "Enforce Prototype → Editorial Approved → Rights Cleared → Production Ready lifecycle and asset registry.",
+      "trigger": "Portal release references an asset below Production Ready.",
+      "escalation_issue": 238
+    },
+    {
+      "risk_id": "RISK-2026-08-12-005",
+      "title": "Snapshot or methodology mismatch between tracks",
+      "category": "integration",
+      "severity": "critical",
+      "likelihood": "medium",
+      "owner_role": "integration-conductor",
+      "status": "controlled",
+      "mitigation": "Validate common identifiers and fail closed at G1/G2/G4.",
+      "trigger": "snapshot_id, methodology_version or evidence_lineage_version differs across artifact chain.",
+      "escalation_issue": 238
+    }
+  ],
+  "severity_order": [
+    "low",
+    "medium",
+    "high",
+    "critical"
+  ]
+}

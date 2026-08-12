@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.example/schemas/workstream-update.schema.json",
+  "title": "KIDULTS Workstream Update",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "update_id",
+    "track_id",
+    "reported_at",
+    "report_type",
+    "objective",
+    "completed_deliverables",
+    "key_findings",
+    "evidence_references",
+    "blockers_and_risks",
+    "decisions_requested",
+    "handoffs",
+    "next_actions"
+  ],
+  "properties": {
+    "update_id": {"type": "string", "minLength": 1},
+    "track_id": {"enum": ["A", "B", "C", "INTEGRATION"]},
+    "snapshot_id": {"type": ["string", "null"]},
+    "reported_at": {"type": "string", "format": "date-time"},
+    "report_type": {"enum": ["hourly", "daily", "material_event", "gate_change", "release", "integrated_digest"]},
+    "objective": {"type": "string"},
+    "completed_deliverables": {"type": "array", "items": {"type": "string"}},
+    "key_findings": {"type": "array", "items": {"type": "string"}},
+    "evidence_references": {"type": "array", "items": {"type": "string"}},
+    "blockers_and_risks": {"type": "array", "items": {"type": "string"}},
+    "decisions_requested": {"type": "array", "items": {"type": "string"}},
+    "handoffs": {"type": "array", "items": {"type": "string"}},
+    "next_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["action", "owner", "target_at"],
+        "properties": {
+          "action": {"type": "string"},
+          "owner": {"type": "string"},
+          "target_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    }
+  }
+}

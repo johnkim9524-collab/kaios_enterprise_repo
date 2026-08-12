@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.example/schemas/snapshot-candidate.schema.json",
+  "title": "Kidults 120 Snapshot Candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "snapshot_id",
+    "status",
+    "generated_at",
+    "source_mode",
+    "provider_mode",
+    "methodology_version",
+    "evidence_lineage_version",
+    "interpretation",
+    "core_verticals",
+    "featured_candidate",
+    "hero_candidate",
+    "quality_summary",
+    "stress_scale_summary",
+    "evidence_references"
+  ],
+  "properties": {
+    "snapshot_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["draft", "internal", "candidate", "blocked"]},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "source_mode": {"enum": ["self-collected", "provider-assisted", "mixed"]},
+    "provider_mode": {"enum": ["provider-independent", "shadow", "connected"]},
+    "methodology_version": {"type": "string"},
+    "evidence_lineage_version": {"type": "string"},
+    "interpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measurement_type", "absolute_superiority_claimed", "assumptions"],
+      "properties": {
+        "measurement_type": {"const": "current-observability-and-readiness"},
+        "absolute_superiority_claimed": {"const": false},
+        "assumptions": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "core_verticals": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": [
+          "vertical_id",
+          "relevant_count",
+          "right_data_coverage_pct",
+          "demand_evidence_count",
+          "demand_evidence_pct",
+          "scarcity_evidence_count",
+          "readiness_state"
+        ],
+        "properties": {
+          "vertical_id": {"type": "string"},
+          "relevant_count": {"type": "integer", "minimum": 0},
+          "right_data_coverage_pct": {"type": "number", "minimum": 0, "maximum": 100},
+          "demand_evidence_count": {"type": "integer", "minimum": 0},
+          "demand_evidence_pct": {"type": "number", "minimum": 0, "maximum": 100},
+          "scarcity_evidence_count": {"type": "integer", "minimum": 0},
+          "readiness_state": {"enum": ["experimental", "observable", "qualified", "publishable", "blocked"]}
+        }
+      }
+    },
+    "featured_candidate": {"type": "array", "items": {"type": "string"}},
+    "hero_candidate": {"type": ["string", "null"]},
+    "quality_summary": {"type": "object"},
+    "stress_scale_summary": {"type": "object"},
+    "provider_gaps": {"type": "array", "items": {"type": "object"}},
+    "evidence_references": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+  }
+}

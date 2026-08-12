@@ -1,0 +1,137 @@
+{
+  "registry_version": "1.0.0",
+  "effective_at": "2026-08-12T00:00:00+09:00",
+  "interpretation_rule": "The eight Core Verticals define stable program coverage. Current readiness, ordering, Featured selection and Hero selection are dynamic and snapshot-specific; they do not claim permanent or absolute superiority.",
+  "verticals": [
+    {
+      "vertical_id": "toys-models",
+      "display_name": "Toys & Models",
+      "ordinal": 1,
+      "status": "active",
+      "examples": [
+        "LEGO",
+        "Barbie",
+        "Hot Wheels",
+        "Gundam",
+        "Star Wars Toy",
+        "Action Figures",
+        "Funko Pop",
+        "Beanie Babies",
+        "Tomica"
+      ]
+    },
+    {
+      "vertical_id": "watches-jewelry",
+      "display_name": "Watches & Jewelry",
+      "ordinal": 2,
+      "status": "active",
+      "examples": [
+        "Rolex Daytona",
+        "Rolex Submariner",
+        "Omega Speedmaster",
+        "Patek Philippe",
+        "Audemars Piguet Royal Oak",
+        "Cartier Tank"
+      ]
+    },
+    {
+      "vertical_id": "automobiles-mobility",
+      "display_name": "Automobiles & Mobility",
+      "ordinal": 3,
+      "status": "active",
+      "examples": [
+        "Ferrari F40",
+        "Ferrari 250 GTO",
+        "Porsche 911",
+        "Lamborghini Countach",
+        "McLaren F1",
+        "Toyota 2000GT",
+        "Mercedes 300SL",
+        "Skyline R34"
+      ]
+    },
+    {
+      "vertical_id": "fashion-accessories",
+      "display_name": "Fashion & Accessories",
+      "ordinal": 4,
+      "status": "active",
+      "examples": [
+        "Hermès Birkin",
+        "Chanel 2.55",
+        "Dior Saddle",
+        "Fendi Baguette",
+        "Air Jordan",
+        "Nike Dunk",
+        "Adidas Yeezy"
+      ]
+    },
+    {
+      "vertical_id": "design-furniture",
+      "display_name": "Design & Furniture",
+      "ordinal": 5,
+      "status": "active",
+      "examples": [
+        "Eames",
+        "Le Corbusier",
+        "Arne Jacobsen",
+        "Noguchi",
+        "Panton",
+        "Wassily",
+        "Barcelona Chair",
+        "Arco Lamp",
+        "USM Haller"
+      ]
+    },
+    {
+      "vertical_id": "technology-cameras",
+      "display_name": "Technology & Cameras",
+      "ordinal": 6,
+      "status": "active",
+      "examples": [
+        "Leica M3",
+        "Leica M6",
+        "Nikon F",
+        "Canon AE-1",
+        "Polaroid SX-70",
+        "Macintosh 128K",
+        "Apple II",
+        "Sony Walkman"
+      ]
+    },
+    {
+      "vertical_id": "gaming-music-screen",
+      "display_name": "Gaming / Music / Screen Culture",
+      "ordinal": 7,
+      "status": "active",
+      "examples": [
+        "Game Boy",
+        "NES",
+        "SNES",
+        "Nintendo 64",
+        "PlayStation",
+        "Sega",
+        "Atari",
+        "Neo Geo",
+        "Vinyl Records",
+        "Arcade Games",
+        "Movie Props"
+      ]
+    },
+    {
+      "vertical_id": "cards-comics-memorabilia",
+      "display_name": "Cards / Comics / Memorabilia",
+      "ordinal": 8,
+      "status": "active",
+      "examples": [
+        "Pokémon",
+        "Magic: The Gathering",
+        "Sports Cards",
+        "Action Comics #1",
+        "Amazing Fantasy #15",
+        "Batman #1",
+        "Black Lotus",
+        "Jordan Rookie Card"
+      ]
+    }
+  ]
+}
