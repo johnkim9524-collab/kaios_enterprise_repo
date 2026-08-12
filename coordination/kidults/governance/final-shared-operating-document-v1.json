@@ -1,0 +1,14 @@
+{
+  "document_name": "KIDULTS Integrated Program Final Shared Operating Document",
+  "version": "v1.0",
+  "status": "FINAL_SHARED_OPERATING_BASELINE_REGISTRY_BOOTSTRAPPING",
+  "effective_at": "2026-08-12T12:00:00+09:00",
+  "program_owner": "John",
+  "integration_conductor": "Atlas",
+  "source_artifact": "KIDULTS Final Shared Operating Document v1.0.docx",
+  "source_sha256": "4ebcae69f408798effd69254cd0adb7ab720ddf9762cb79fee4b152ea985d02c",
+  "source_size_bytes": 56950,
+  "governs": ["Track A — 120 Intelligence Factory","Track B — Rankability & Validation Gate","Track C — Portal V502 & Experience Layer","KPMO","Shared Registry","Master Book","Baseline Book","Architecture Book"],
+  "canonical_pr": 209,
+  "principle": "One Program. One Language. One Registry. One Source of Truth."
+}
