@@ -1,0 +1,31 @@
+{
+  "registry_version": "1.0.0",
+  "entries": [],
+  "allowed_states": [
+    "requested",
+    "accepted",
+    "rejected",
+    "correction_requested",
+    "completed",
+    "cancelled"
+  ],
+  "required_fields": [
+    "handoff_id",
+    "from_track",
+    "to_track",
+    "snapshot_id",
+    "artifact_reference",
+    "artifact_version",
+    "requested_action",
+    "deadline",
+    "known_limitations",
+    "acceptance_criteria",
+    "state"
+  ],
+  "rules": [
+    "Silence is not acceptance.",
+    "The receiver does not rewrite the producer artifact.",
+    "A handoff without a snapshot_id is invalid.",
+    "Material handoffs are summarized on issue #234."
+  ]
+}

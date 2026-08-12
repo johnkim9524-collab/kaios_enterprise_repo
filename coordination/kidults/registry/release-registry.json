@@ -1,0 +1,30 @@
+{
+  "registry_version": "1.0.0",
+  "current_production_release_id": null,
+  "previous_production_release_id": null,
+  "entries": [],
+  "required_gate_sequence": [
+    "G0",
+    "G1",
+    "G2",
+    "G3",
+    "G4",
+    "G5"
+  ],
+  "release_states": [
+    "draft",
+    "candidate",
+    "qa_passed",
+    "approved",
+    "production",
+    "rolled_back",
+    "archived"
+  ],
+  "rules": [
+    "Every Production release references one published snapshot_id.",
+    "Every Production release has a previous rollback target.",
+    "A release is blocked when Rankability is blocked.",
+    "Program Owner approval is required for G5.",
+    "Release manifests list only intended files and artifacts."
+  ]
+}
