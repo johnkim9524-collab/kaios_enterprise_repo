@@ -1,0 +1,14 @@
+{
+  "id":"work-track-b-assess-first-candidate",
+  "record_type":"work_item",
+  "version":"1.0.0",
+  "status":"WAITING_FOR_SNAPSHOT",
+  "work_id":"WORK-0004",
+  "track_id":"track-b-rankability-validation-gate",
+  "mission_id":"mission-track-b-first-independent-assessment",
+  "objective":"Assess the exact first candidate after Registry and Evidence validation.",
+  "dependency_ids":["work-track-a-publish-first-candidate"],
+  "created_at":"2026-08-12T17:17:03+09:00",
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

@@ -1,0 +1,21 @@
+{
+  "registry_id": "kidults-work-queue-registry",
+  "registry_name": "Work Queue Registry",
+  "registry_version": "1.0.0",
+  "schema_version": "1.0.0",
+  "owner": "KPMO / Track Owners",
+  "custodian": "Atlas",
+  "status": "ACTIVE",
+  "effective_at": "2026-08-12T12:00:00+09:00",
+  "record_directory": "records",
+  "record_count": 6,
+  "current_record_id": "work-track-a-register-methodology",
+  "records": [
+    {"id":"work-track-a-register-methodology","path":"records/work-track-a-register-methodology.json","version":"1.0.0","status":"OPEN"},
+    {"id":"work-track-a-register-evidence-lineage","path":"records/work-track-a-register-evidence-lineage.json","version":"1.0.0","status":"BLOCKED"},
+    {"id":"work-track-a-publish-first-candidate","path":"records/work-track-a-publish-first-candidate.json","version":"1.0.0","status":"BLOCKED"},
+    {"id":"work-track-b-assess-first-candidate","path":"records/work-track-b-assess-first-candidate.json","version":"1.0.0","status":"WAITING_FOR_SNAPSHOT"},
+    {"id":"work-track-c-complete-role-acceptance","path":"records/work-track-c-complete-role-acceptance.json","version":"1.0.0","status":"OPEN"},
+    {"id":"work-track-d-build-foundation-package","path":"records/work-track-d-build-foundation-package.json","version":"1.0.0","status":"IN_PROGRESS"}
+  ]
+}

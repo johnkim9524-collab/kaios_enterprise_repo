@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kidults://registry-engine/milestone-record.schema.json",
+  "title": "KIDULTS Milestone Record",
+  "type": "object",
+  "required": ["id","record_type","version","status","milestone_id","name","objective","owner_track_id","entry_criteria","exit_criteria","created_by"],
+  "properties": {
+    "id": {"type":"string","minLength":1},
+    "record_type": {"const":"milestone"},
+    "version": {"type":"string","pattern":"^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "status": {"enum":["PLANNED","IN_PROGRESS","BLOCKED","COMPLETED","ARCHIVED"]},
+    "milestone_id": {"type":"string","pattern":"^MS-[0-9]{4}$"},
+    "name": {"type":"string","minLength":1},
+    "objective": {"type":"string","minLength":1},
+    "owner_track_id": {"type":"string","minLength":1},
+    "entry_criteria": {"type":"array","items":{"type":"string"}},
+    "exit_criteria": {"type":"array","items":{"type":"string"}},
+    "created_by": {"type":"string","minLength":1}
+  },
+  "additionalProperties": true
+}

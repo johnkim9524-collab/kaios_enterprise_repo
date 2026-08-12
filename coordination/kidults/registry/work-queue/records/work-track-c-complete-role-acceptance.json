@@ -1,0 +1,14 @@
+{
+  "id":"work-track-c-complete-role-acceptance",
+  "record_type":"work_item",
+  "version":"1.0.0",
+  "status":"OPEN",
+  "work_id":"WORK-0005",
+  "track_id":"track-c-portal-v502-experience-layer",
+  "mission_id":"mission-track-c-v502-registry-consumer",
+  "objective":"Complete formal Track C role acceptance and V502 consumer mapping.",
+  "dependency_ids":[],
+  "created_at":"2026-08-12T17:17:03+09:00",
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

@@ -1,0 +1,14 @@
+{
+  "id":"work-track-a-register-evidence-lineage",
+  "record_type":"work_item",
+  "version":"1.0.0",
+  "status":"BLOCKED",
+  "work_id":"WORK-0002",
+  "track_id":"track-a-120-intelligence-factory",
+  "mission_id":"mission-track-a-first-canonical-snapshot",
+  "objective":"Register evidence_lineage_version after methodology registration.",
+  "dependency_ids":["work-track-a-register-methodology"],
+  "created_at":"2026-08-12T17:17:03+09:00",
+  "created_by":"Atlas",
+  "approved_by":"John"
+}
