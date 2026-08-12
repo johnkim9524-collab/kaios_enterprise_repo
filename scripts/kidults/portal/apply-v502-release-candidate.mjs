@@ -45,6 +45,18 @@ const trackC = JSON.parse(fs.readFileSync(trackCPath, "utf8"));
 trackC.created_by ??= "Atlas";
 fs.writeFileSync(trackCPath, `${JSON.stringify(trackC, null, 2)}\n`, "utf8");
 
+// Mission Control must permit the queue to grow beyond its six bootstrap records.
+const missionValidatorPath = path.join(
+  root,
+  "scripts/kidults/mission-control/validate-mission-control.mjs"
+);
+let missionValidator = fs.readFileSync(missionValidatorPath, "utf8");
+missionValidator = missionValidator.replace(
+  "assert(workQueue?.record_count === 6, 'Work Queue must contain six initial work items.');",
+  "assert(workQueue?.record_count >= 6, 'Work Queue must retain at least six bootstrap work items.');"
+);
+fs.writeFileSync(missionValidatorPath, missionValidator, "utf8");
+
 for (const relative of [
   "scripts/kidults/portal/apply-v502-release-candidate.mjs",
   ".github/workflows/kidults-apply-v502.yml"
