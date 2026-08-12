@@ -56,6 +56,23 @@ function chooseWikipediaSitelink(sitelinks) {
   return entries[0] || null;
 }
 
+function wikipediaActionApi(project) {
+  const match = String(project || '').match(/^([a-z][a-z0-9-]{1,20}|simple)\.wikipedia\.org$/i);
+  return match ? `https://${match[0].toLowerCase()}/w/api.php` : null;
+}
+
+function buildPageviewUrl(apiBase, sitelink, evidencePolicy, window, title = sitelink.title) {
+  const article = encodeURIComponent(String(title).replaceAll(' ', '_'));
+  return `${apiBase}/metrics/pageviews/per-article/${encodeURIComponent(sitelink.project)}/${evidencePolicy.access}/${evidencePolicy.agent}/${article}/${evidencePolicy.granularity}/${window.start}/${window.end}`;
+}
+
+function resolvedWikipediaTitle(body) {
+  const pages = Array.isArray(body?.query?.pages) ? body.query.pages : [];
+  const page = pages[0];
+  if (!page || page.missing === true || typeof page.title !== 'string' || !page.title.trim()) return null;
+  return page.title.trim();
+}
+
 async function fetchJson(url, { allow404 = false } = {}) {
   let lastError;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
@@ -129,6 +146,10 @@ let pageviewRequests = 0;
 let pageview404 = 0;
 let noWikipediaSitelink = 0;
 let zeroViewResponses = 0;
+let titleResolutionRequests = 0;
+let pageviewResolutionRetries = 0;
+let pageview404Recovered = 0;
+let pageview404AfterResolution = 0;
 
 for (const row of missingDemand) {
   const entity = entityById.get(row.wikidataId);
@@ -137,15 +158,43 @@ for (const row of missingDemand) {
     noWikipediaSitelink += 1;
     continue;
   }
-  const article = encodeURIComponent(sitelink.title.replaceAll(' ', '_'));
-  const url = `${source.apiBase}/metrics/pageviews/per-article/${encodeURIComponent(sitelink.project)}/${evidencePolicy.access}/${evidencePolicy.agent}/${article}/${evidencePolicy.granularity}/${window.start}/${window.end}`;
+
+  const originalTitle = sitelink.title;
+  let evidenceTitle = originalTitle;
+  let pageviewUrl = buildPageviewUrl(source.apiBase, sitelink, evidencePolicy, window, evidenceTitle);
   try {
     pageviewRequests += 1;
-    const response = await fetchJson(url, { allow404: true });
+    let response = await fetchJson(pageviewUrl, { allow404: true });
     if (response.status === 404) {
       pageview404 += 1;
-      continue;
+      const actionApi = wikipediaActionApi(sitelink.project);
+      if (!actionApi) {
+        sourceErrors.push({ stage: 'WIKIPEDIA_TITLE_RESOLUTION_PROJECT_REJECTED', candidateKey: row.candidateKey, project: sitelink.project, title: originalTitle });
+        continue;
+      }
+
+      const resolutionUrl = `${actionApi}?action=query&titles=${encodeURIComponent(originalTitle)}&redirects=1&format=json&formatversion=2&origin=*`;
+      try {
+        titleResolutionRequests += 1;
+        const resolution = await fetchJson(resolutionUrl);
+        const resolvedTitle = resolvedWikipediaTitle(resolution.body);
+        if (!resolvedTitle || resolvedTitle === originalTitle) continue;
+        evidenceTitle = resolvedTitle;
+        pageviewUrl = buildPageviewUrl(source.apiBase, sitelink, evidencePolicy, window, evidenceTitle);
+        pageviewResolutionRetries += 1;
+        pageviewRequests += 1;
+        response = await fetchJson(pageviewUrl, { allow404: true });
+        if (response.status === 404) {
+          pageview404AfterResolution += 1;
+          continue;
+        }
+        pageview404Recovered += 1;
+      } catch (error) {
+        sourceErrors.push({ stage: 'WIKIPEDIA_TITLE_RESOLUTION', candidateKey: row.candidateKey, project: sitelink.project, title: originalTitle, error: String(error?.message || error) });
+        continue;
+      }
     }
+
     const items = Array.isArray(response.body?.items) ? response.body.items : [];
     const totalViews = items.reduce((sum, item) => sum + (Number.isFinite(Number(item?.views)) ? Number(item.views) : 0), 0);
     if (totalViews < Number(evidencePolicy.minimumViews)) {
@@ -156,21 +205,23 @@ for (const row of missingDemand) {
       candidateKey: row.candidateKey,
       primitive: evidencePolicy.primitive,
       source: source.id,
-      sourceUrl: url,
+      sourceUrl: pageviewUrl,
       rightsClass: source.rightsClass,
       observedAt: new Date().toISOString(),
-      payloadHash: hash({ project: sitelink.project, title: sitelink.title, window, items }),
+      payloadHash: hash({ project: sitelink.project, title: evidenceTitle, originalTitle, window, items }),
       evidenceClass: evidencePolicy.evidenceClass,
       value: {
         signalType: evidencePolicy.signalType,
         metric: evidencePolicy.metric,
         project: sitelink.project,
-        articleTitle: sitelink.title,
+        articleTitle: evidenceTitle,
+        originalArticleTitle: evidenceTitle === originalTitle ? null : originalTitle,
         wikidataId: row.wikidataId,
         totalPageviews: totalViews,
         reportedDays: items.length,
         windowStart: window.start,
         windowEnd: window.end,
+        titleResolutionViaOfficialMediaWikiApi: evidenceTitle !== originalTitle,
         interpretation: 'Wikimedia reader-attention signal only; not market demand, transaction volume, liquidity, price or willingness-to-pay.',
       },
       safety: {
@@ -180,15 +231,16 @@ for (const row of missingDemand) {
         marketTransactionClaim: false,
         marketDemandClaim: false,
         sourceLicense: source.license,
+        titleResolutionEvidenceOnly: false,
       },
     });
   } catch (error) {
-    sourceErrors.push({ stage: 'WIKIMEDIA_PAGEVIEWS', candidateKey: row.candidateKey, project: sitelink.project, title: sitelink.title, error: String(error?.message || error) });
+    sourceErrors.push({ stage: 'WIKIMEDIA_PAGEVIEWS', candidateKey: row.candidateKey, project: sitelink.project, title: evidenceTitle, error: String(error?.message || error) });
   }
 }
 
 const output = {
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.1.0',
   mode: 'KIDULT100_WIKIMEDIA_ANALYTICS_DEMAND_EVIDENCE',
   generatedAt: new Date().toISOString(),
   policy: config.policy,
@@ -205,6 +257,10 @@ const output = {
     pageview404,
     noWikipediaSitelink,
     zeroViewResponses,
+    titleResolutionRequests,
+    pageviewResolutionRetries,
+    pageview404Recovered,
+    pageview404AfterResolution,
     newDemandEvidenceRecords: evidence.length,
     sourceErrorCount: sourceErrors.length,
   },
@@ -217,6 +273,8 @@ const output = {
     syntheticOrEstimatedEvidenceUsed: false,
     unauthorizedScrapingUsed: false,
     paidProviderUsed: false,
+    titleResolutionUsesOfficialWikipediaApiOnly: true,
+    titleResolutionCreatesEvidenceByItself: false,
   },
   evidence,
   sourceErrors,
@@ -225,4 +283,4 @@ const output = {
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, JSON.stringify(output, null, 2));
 console.log(`Wikimedia demand supplement: linked=${linked.length} missingDemand=${missingDemand.length} pageviewRequests=${pageviewRequests} newEvidence=${evidence.length}`);
-console.log(`noWikipediaSitelink=${noWikipediaSitelink} pageview404=${pageview404} errors=${sourceErrors.length} window=${window.start}-${window.end}`);
+console.log(`noWikipediaSitelink=${noWikipediaSitelink} pageview404=${pageview404} resolved404=${pageview404Recovered} titleResolutionRequests=${titleResolutionRequests} errors=${sourceErrors.length} window=${window.start}-${window.end}`);
