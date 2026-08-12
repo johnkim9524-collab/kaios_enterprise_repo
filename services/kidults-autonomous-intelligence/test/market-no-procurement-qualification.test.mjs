@@ -25,16 +25,28 @@ function audit(assessed) {
   };
 }
 
-function run(manifestInput, auditInput) {
+function run(manifestInput, auditInput, options = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'market-no-procurement-'));
   const out = path.join(dir, 'out.json');
+  let manifestValue = JSON.stringify(manifestInput);
+  let auditValue = JSON.stringify(auditInput);
+  if (options.useFiles) {
+    const manifestPath = path.join(dir, 'manifest.json');
+    const auditPath = path.join(dir, 'audit.json');
+    fs.writeFileSync(manifestPath, JSON.stringify(manifestInput));
+    fs.writeFileSync(auditPath, JSON.stringify(auditInput));
+    manifestValue = manifestPath;
+    auditValue = auditPath;
+  }
+  if (options.manifestRaw !== undefined) manifestValue = options.manifestRaw;
+  if (options.auditRaw !== undefined) auditValue = options.auditRaw;
   const result = spawnSync(process.execPath, [SCRIPT], {
     cwd: ROOT,
     encoding: 'utf8',
     env: {
       ...process.env,
-      KIDULTS_MARKET_NO_PROCUREMENT_MANIFEST_JSON: JSON.stringify(manifestInput),
-      KIDULTS_MARKET_NO_PROCUREMENT_AUDIT_JSON: JSON.stringify(auditInput),
+      KIDULTS_MARKET_NO_PROCUREMENT_MANIFEST_JSON: manifestValue,
+      KIDULTS_MARKET_NO_PROCUREMENT_AUDIT_JSON: auditValue,
       KIDULTS_MARKET_NO_PROCUREMENT_OUTPUT: out,
     },
   });
@@ -60,7 +72,7 @@ test('separates open qualified, authorization required, and rejected sources wit
     { sourceId: 'licensed', rightsReusable: false, completedTransactionsQualified: true, liquidityQualified: false },
     { sourceId: 'archive', rightsReusable: true, completedTransactionsQualified: false, liquidityQualified: false },
   ];
-  const { result, report } = run(manifest(candidates), audit(assessed));
+  const { result, report } = run(manifest(candidates), audit(assessed), { useFiles: true });
   assert.equal(result.status, 0);
   assert.equal(report.metrics.qualifiedOpenNoProcurementSources, 1);
   assert.equal(report.metrics.authorizationRequiredSources, 1);
@@ -92,4 +104,26 @@ test('missing audit rows and unsafe upstream claims fail closed', () => {
   const unsafe = run(manifest([candidate]), unsafeAudit);
   assert.notEqual(unsafe.result.status, 0);
   assert.equal(unsafe.report, null);
+});
+
+test('malformed audit identities are reported fail-closed without producing evidence', () => {
+  const malformedAudit = audit([{}, { sourceId: 'dup' }, { sourceId: 'dup' }]);
+  const { result, report } = run(manifest([]), malformedAudit);
+  assert.equal(result.status, 1);
+  assert.ok(report.structuralErrors.includes('AUDIT_SOURCE_ID_MISSING'));
+  assert.ok(report.structuralErrors.includes('DUPLICATE_AUDIT_SOURCE_ID:dup'));
+  assert.equal(report.claims.evidenceProduced, false);
+});
+
+test('missing or directory JSON inputs fail closed before qualification', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'market-no-procurement-input-'));
+  const missingPath = path.join(dir, 'missing.json');
+  const missing = run(manifest([]), audit([]), { manifestRaw: missingPath });
+  assert.notEqual(missing.result.status, 0);
+  assert.equal(missing.report, null);
+
+  const directory = run(manifest([]), audit([]), { auditRaw: dir });
+  assert.notEqual(directory.result.status, 0);
+  assert.equal(directory.report, null);
+  fs.rmSync(dir, { recursive: true, force: true });
 });
