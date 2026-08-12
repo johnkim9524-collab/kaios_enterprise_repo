@@ -48,17 +48,27 @@ test('missing registry root fails closed and still emits a diagnostic report', (
   assert.match(report.failures[0], /^MISSING_FILE:/);
 });
 
-test('unapproved production release is rejected without changing canonical registry data', () => {
+test('registered snapshot iteration is accepted while an unapproved production release still fails closed', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-program-copy-'));
   fs.cpSync(LIVE_COORDINATION_ROOT, tempRoot, { recursive: true });
+
+  const snapshotPath = path.join(tempRoot, 'registry', 'snapshot-registry.json');
+  const snapshots = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+  snapshots.current_candidate_snapshot_id = 'fixture-candidate';
+  snapshots.entries = [{ snapshot_id: 'fixture-candidate', status: 'draft' }];
+  fs.writeFileSync(snapshotPath, JSON.stringify(snapshots, null, 2));
+
   const releasePath = path.join(tempRoot, 'registry', 'release-registry.json');
   const release = JSON.parse(fs.readFileSync(releasePath, 'utf8'));
   release.current_production_release_id = 'unsafe-unapproved-release';
   fs.writeFileSync(releasePath, JSON.stringify(release, null, 2));
+
   const { result, report } = run(tempRoot);
   fs.rmSync(tempRoot, { recursive: true, force: true });
   assert.equal(result.status, 1);
   assert.equal(report.status, 'FAIL_CLOSED');
+  assert.equal(report.current_snapshot_id, 'fixture-candidate');
   assert.ok(report.failures.includes('UNAPPROVED_PRODUCTION_RELEASE_PRESENT'));
+  assert.equal(report.failures.includes('CURRENT_SNAPSHOT_NOT_REGISTERED'), false);
   assert.equal(report.claims.production_ready, false);
 });
