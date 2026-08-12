@@ -76,6 +76,8 @@ jobs:
         run: node scripts/kidult100-market-source-qualification-audit.mjs
       - name: No-procurement market evidence qualification lane
         run: node scripts/kidult100-market-no-procurement-qualification.mjs
+      - name: Market capability gap router
+        run: node scripts/kidult100-market-capability-gap-router.mjs
       - name: Rights-first market provider adapter normalization
         run: node scripts/kidult100-market-adapter-normalize.mjs
       - name: Provider evidence contract validation
@@ -209,6 +211,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-provider-onboarding-preflight-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-source-qualification-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-no-procurement-qualification-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-capability-gap-router-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/normalized-market-provider-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/validated-provider-evidence-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-right-data/market-evidence-acquisition-plan-latest.json
