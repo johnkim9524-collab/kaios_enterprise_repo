@@ -68,3 +68,4 @@ if (fs.existsSync(generatedWorkflowPath)) {
 }
 
 console.log(`Prepared ${Object.keys(files).length - 1} V502 implementation files for commit.`);
+console.log("V502 push retry requested after transient GitHub server failure.");
