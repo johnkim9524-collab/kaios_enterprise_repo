@@ -7,6 +7,7 @@ import { startDecisionEngine } from "./components/decision-engine.js";
 import { startWorkspace } from "./components/workspace.js";
 import { startIntegrityHardening } from "./components/integrity-hardening.js";
 import { startK100IntegrityReset } from "./components/k100-integrity-reset.js";
+import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -95,6 +96,8 @@ async function init() {
     setupSearch(data.searchIndex);
     setupReveal();
 
+    startMobileReconstruction();
+
     document.documentElement.dataset.dataState = determineDataState(data);
     window.KIDULTS_V502 = Object.freeze({
       release: data.manifest.version,
@@ -110,7 +113,8 @@ async function init() {
       decisionEngine: data.decision.version,
       workspace: data.workspace.version,
       integrity: window.KIDULTS_INTEGRITY?.version ?? "NOT AVAILABLE",
-      k100Integrity: window.KIDULTS_K100_INTEGRITY?.version ?? "NOT AVAILABLE"
+      k100Integrity: window.KIDULTS_K100_INTEGRITY?.version ?? "NOT AVAILABLE",
+      mobileReconstruction: window.KIDULTS_MOBILE?.version ?? "NOT AVAILABLE"
     });
   } catch (error) {
     console.error("KIDULTS V6 portal initialization failed.", error);
