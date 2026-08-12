@@ -29,6 +29,9 @@ jobs:
       - name: Validate Integrated Program operating invariants
         working-directory: services/kidults-autonomous-intelligence
         run: node scripts/kidults-integrated-program-registry-gate.mjs
+      - name: Verify Track B fail-closed readiness semantics
+        working-directory: services/kidults-autonomous-intelligence
+        run: node --test test/integrated-program-registry-gate.test.mjs
       - name: Upload registry gate evidence
         if: always()
         uses: actions/upload-artifact@v4
