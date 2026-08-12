@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const policy = JSON.parse(fs.readFileSync('config/kidult100-scarcity-target-policy.json', 'utf8'));
+const scoringContract = JSON.parse(fs.readFileSync('config/kidult100-non-market-scoring-contract.json', 'utf8'));
 
 test('scarcity target queue requires explicit rights-qualified TOTAL_PRODUCED and never scoring proxies', () => {
   assert.equal(policy.policy, 'FAIL_CLOSED_SCARCITY_TOTAL_PRODUCED_TARGET_QUEUE');
@@ -22,4 +23,14 @@ test('scarcity target queue requires explicit rights-qualified TOTAL_PRODUCED an
   assert.equal(policy.evidenceRequirements.unauthorizedScrapingAllowed, false);
   assert.equal(policy.evidenceRequirements.paidProviderProcurementAllowed, false);
   assert.equal(policy.evidenceRequirements.automaticProductionScoringActivationAllowed, false);
+});
+
+test('design-ready scarcity methodology remains production-inactive while raw evidence acquisition continues', () => {
+  const scarcity = scoringContract.dimensions.find((row) => row.id === 'SCARCITY');
+  assert.ok(scarcity);
+  assert.equal(scarcity.methodologyStatus, 'DESIGN_READY');
+  assert.equal(scarcity.productionActivation, false);
+  assert.deepEqual(scarcity.allowedRawSignalTypes, ['TOTAL_PRODUCED']);
+  assert.equal(scarcity.calibrationEvidence, null);
+  assert.equal(scarcity.outOfSampleValidationEvidence, null);
 });
