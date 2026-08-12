@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.2.0",
+  "schemaVersion": "1.3.0",
   "policy": "FAIL_CLOSED_SOURCE_QUALIFICATION_NO_AUTO_ONBOARDING",
   "lastVerifiedAt": "2026-08-12",
   "verificationMethod": "OFFICIAL_PRIMARY_DOCUMENTATION_REVIEW",
@@ -252,6 +252,35 @@
       "evidenceLinks": [
         "https://www.ha.com/c/ref/website-use-agreement.zx?ic=footer-website-use-agreement-121117",
         "https://comics.ha.com/c/contact-us.zx?topicId=27"
+      ]
+    },
+    {
+      "sourceId": "liveauctioneers",
+      "displayName": "LiveAuctioneers Auction Price Results",
+      "sourceClass": "AUCTION_ARCHIVE",
+      "rightsStatus": "PERSONAL_NONCOMMERCIAL_USE_ONLY_EXPRESS_WRITTEN_PERMISSION_REQUIRED_FOR_COMMERCIAL_REUSE",
+      "automationAccess": "ROBOT_SPIDER_SCRAPER_AUTOMATED_ACCESS_REQUIRES_EXPRESS_WRITTEN_PERMISSION",
+      "marketSemantics": {
+        "completedTransactions": "PUBLIC_AUCTION_PRICE_RESULTS_AND_SOLD_OUTCOMES_DOCUMENTED",
+        "transactionBackedLiquidity": "NO_QUALIFIED_TRANSACTION_BACKED_LIQUIDITY_FEED"
+      },
+      "primarySourceFindings": {
+        "completedTransactionSemanticsDocumented": true,
+        "transactionBackedLiquiditySemanticsDocumented": false,
+        "commercialReuseAuthorizationRequired": true
+      },
+      "qualification": "NOT_QUALIFIED_AUTHORIZATION_REQUIRED",
+      "blockingReasons": [
+        "AUTOMATED_ACCESS_REQUIRES_EXPRESS_WRITTEN_PERMISSION",
+        "COMMERCIAL_REUSE_NOT_GRANTED_BY_STANDARD_TERMS",
+        "ROBOT_SPIDER_SCRAPER_ACCESS_PROHIBITED_WITHOUT_PERMISSION",
+        "NO_DOCUMENTED_PUBLIC_TRANSACTION_API_QUALIFIED_FOR_PIPELINE",
+        "NO_TRANSACTION_BACKED_LIQUIDITY_FEED"
+      ],
+      "evidenceLinks": [
+        "https://www.liveauctioneers.com/termsandconditions",
+        "https://www.liveauctioneers.com/intellectualproperty",
+        "https://www.liveauctioneers.com/auction-results"
       ]
     }
   ]
