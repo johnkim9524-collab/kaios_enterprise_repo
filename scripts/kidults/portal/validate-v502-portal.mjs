@@ -4,7 +4,6 @@ import process from "node:process";
 
 const root = process.cwd();
 const portalRoot = path.join(root, "apps", "kidults-enterprise-staging", "public", "portal");
-const registryRoot = path.join(root, "coordination", "kidults", "registry");
 const errors = [];
 const warnings = [];
 
@@ -65,8 +64,8 @@ const css = readText("apps/kidults-enterprise-staging/public/portal/portal-v502.
 
 for (const marker of [
   'data-release="v502"',
-  'portal-v502.css?v=502',
-  'portal.js?v=502',
+  'portal-v502.css?v=651',
+  'portal.js?v=651',
   'id="verticals"',
   'data-vertical-grid',
   'id="search-dialog"',
@@ -129,6 +128,7 @@ if (manifest) {
   if (manifest.assessment_id !== null) errors.push("V502 must not fabricate an assessment.");
   if (manifest.display_policy?.core_vertical_count !== 8) errors.push("V502 must declare eight Core Verticals.");
   if (manifest.display_policy?.missing_to_zero !== false) errors.push("V502 must forbid missing-to-zero conversion.");
+  if (manifest.experience_label !== "V6 RC") errors.push("V6 experience label must remain separate from the V502 data contract.");
 }
 
 if (verticalData) {
