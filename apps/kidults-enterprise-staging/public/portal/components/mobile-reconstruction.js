@@ -218,7 +218,8 @@ function scheduleHashRestore() {
 
   window.addEventListener("hashchange", restore, { passive: true });
   window.addEventListener("load", restore, { once: true, passive: true });
-  document.fonts?.ready?.then(restore).catch(() => {});
+  const fontsReady = document.fonts?.ready;
+  if (fontsReady?.then) fontsReady.then(restore).catch(() => {});
   window.setTimeout(restore, 80);
   window.setTimeout(restore, 260);
   return restore;
@@ -236,6 +237,7 @@ function auditOverflow() {
     return [];
   }
 
+  const documentWidth = document.documentElement.scrollWidth;
   const viewport = document.documentElement.clientWidth;
   const offenders = [...document.body.querySelectorAll("*")].filter(element => {
     if (!(element instanceof HTMLElement)) return false;
@@ -243,9 +245,11 @@ function auditOverflow() {
     const style = window.getComputedStyle(element);
     if (style.position === "fixed" && element.hidden) return false;
     const rect = element.getBoundingClientRect();
-    return rect.width > viewport + 1 || rect.left < -1 || rect.right > viewport + 1;
+    const intrinsicOverflow = element.scrollWidth > element.clientWidth + 1 && !["auto", "scroll"].includes(style.overflowX);
+    return intrinsicOverflow || rect.width > viewport + 1 || rect.left < -1 || rect.right > viewport + 1;
   }).map(elementLabel);
 
+  if (documentWidth > viewport + 1) offenders.unshift("document.documentElement");
   const unique = [...new Set(offenders)].slice(0, 20);
   document.documentElement.dataset.mobileOverflow = unique.length ? "detected" : "clear";
   if (unique.length) {
