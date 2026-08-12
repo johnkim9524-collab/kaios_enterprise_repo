@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0.0",
+  "status": "BOOTSTRAPPING",
+  "records": [],
+  "signal_types": ["COVERAGE","DEMAND","SCARCITY","FRESHNESS","CONFIDENCE"],
+  "lifecycle": ["CANDIDATE","QUALIFIED","PUBLISHED","ARCHIVED"]
+}
