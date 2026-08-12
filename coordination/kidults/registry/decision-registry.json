@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "status": "ACTIVE_BOOTSTRAPPING",
+  "records": [
+    {
+      "decision_id": "KIDULTS-IP-20260812-001",
+      "title": "Launch KIDULTS Integrated Intelligence Program Phase 0",
+      "effective_at": "2026-08-12T12:00:00+09:00",
+      "owners": ["John","Atlas"],
+      "status": "APPROVED_ACTIVE",
+      "decision": "Operate Tracks A, B and C under one shared Registry, immutable Snapshot ID contract, common gates and three-book system.",
+      "principle": "One Program. One Language. One Registry. One Source of Truth."
+    }
+  ]
+}
