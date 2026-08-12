@@ -128,6 +128,8 @@ jobs:
         run: node scripts/kidult100-non-market-evidence-acquisition-priority.mjs
       - name: Calibration discovery work packets from final Right Data state
         run: node scripts/kidult100-calibration-discovery-work-packets.mjs
+      - name: Calibration source feasibility and candidate supply router
+        run: node scripts/kidult100-calibration-source-feasibility-router.mjs
       - name: Right Data coverage leverage router
         run: node scripts/kidult100-right-data-coverage-leverage-router.mjs
       - name: Rankability gap plan
@@ -227,6 +229,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-calibration-evidence-shape-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-non-market-evidence-acquisition-priority-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-calibration-discovery-work-packets-latest.json
+            services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-calibration-source-feasibility-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-evidence-target-queue-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-evidence-target-queue-hardened-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-scarcity-source-qualification-latest.json
