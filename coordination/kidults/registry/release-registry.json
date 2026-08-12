@@ -1,0 +1,8 @@
+{
+  "schema_version": "1.0.0",
+  "status": "BOOTSTRAPPING",
+  "records": [],
+  "lifecycle": ["DRAFT","CANDIDATE","APPROVED","PRODUCTION","ROLLED_BACK","ARCHIVED"],
+  "required_gates": ["G0_BASELINE_LOCKED","G1_SNAPSHOT_VALID","G2_RANKABILITY_COMPLETE","G3_ASSET_RIGHTS_READY","G4_PORTAL_QA_PASS","G5_PROGRAM_OWNER_APPROVAL"],
+  "production_default": "FAIL_CLOSED"
+}
