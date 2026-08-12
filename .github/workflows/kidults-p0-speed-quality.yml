@@ -49,6 +49,8 @@ jobs:
         run: node scripts/p0-coverage-gate.mjs
       - name: Truth-layer synthetic acceptance gate
         run: npm run truth:gate
+      - name: Track B integrated registry readiness gate
+        run: node scripts/kidults-integrated-program-registry-gate.mjs
       - name: Wave1 real external source discovery evaluation
         continue-on-error: true
         run: node scripts/kidult100-wave1-live.mjs
@@ -193,6 +195,7 @@ jobs:
           path: |
             services/kidults-autonomous-intelligence/reports/engineering-hardening/quality-audit-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/critical-ci-audit-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/integrated-program-registry-gate-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/sre-readiness-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/governance-baseline-latest.json
           retention-days: 30
