@@ -1,5 +1,6 @@
 const STYLE_ID = "kidults-mobile-reconstruction-style";
-const VERSION = "1.0.0";
+const HOTFIX_STYLE_ID = "kidults-mobile-overflow-hotfix-style";
+const VERSION = "1.0.1";
 const MOBILE_QUERY = "(max-width: 768px)";
 const WORKSPACE_HASHES = new Set([
   "ask-kidults",
@@ -35,6 +36,8 @@ const DEFAULT_CONTRACT = Object.freeze({
   }
 });
 
+let lastAuditSignature = "";
+
 function normalizeContract(contract) {
   const candidate = contract && typeof contract === "object" ? contract : {};
   return {
@@ -51,13 +54,32 @@ function normalizeContract(contract) {
   };
 }
 
-function ensureStylesheet() {
-  if (document.getElementById(STYLE_ID)) return;
-  const link = document.createElement("link");
-  link.id = STYLE_ID;
-  link.rel = "stylesheet";
-  link.href = "components/mobile-reconstruction.css?v=652";
-  document.head.append(link);
+function appendStylesheet(id, href) {
+  const existing = document.getElementById(id);
+  if (existing) {
+    if (existing.getAttribute("href") !== href) existing.setAttribute("href", href);
+    return Promise.resolve(existing);
+  }
+
+  return new Promise(resolve => {
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = href;
+    link.addEventListener("load", () => resolve(link), { once: true });
+    link.addEventListener("error", () => resolve(link), { once: true });
+    document.head.append(link);
+  });
+}
+
+function ensureStylesheets() {
+  return Promise.all([
+    appendStylesheet(STYLE_ID, "components/mobile-reconstruction.css?v=653"),
+    appendStylesheet(HOTFIX_STYLE_ID, "components/mobile-overflow-hotfix.css?v=653")
+  ]).then(links => {
+    document.documentElement.dataset.mobileStyles = "ready";
+    return links;
+  });
 }
 
 function isMobile() {
@@ -231,40 +253,103 @@ function elementLabel(element) {
   return `${element.tagName.toLowerCase()}${id}${classes}`;
 }
 
+function isAuditExcluded(element) {
+  if (element.matches("script,style,template,[hidden],.sr-only")) return true;
+  if (element.matches(".living-pulse__orb,.vertical-glyph")) return true;
+  if (element.closest("dialog:not([open])")) return true;
+  return false;
+}
+
+function isClippedByAncestor(element) {
+  const elementRect = element.getBoundingClientRect();
+  let ancestor = element.parentElement;
+
+  while (ancestor && ancestor !== document.body) {
+    const style = window.getComputedStyle(ancestor);
+    if (["hidden", "clip"].includes(style.overflowX)) {
+      const ancestorRect = ancestor.getBoundingClientRect();
+      if (elementRect.left < ancestorRect.left - 1 || elementRect.right > ancestorRect.right + 1) {
+        return true;
+      }
+    }
+    ancestor = ancestor.parentElement;
+  }
+  return false;
+}
+
 function auditOverflow() {
   if (!isMobile()) {
     document.documentElement.dataset.mobileOverflow = "not-applicable";
+    document.documentElement.dataset.mobileOverflowPx = "0";
+    lastAuditSignature = "";
     return [];
   }
 
-  const documentWidth = document.documentElement.scrollWidth;
   const viewport = document.documentElement.clientWidth;
-  const offenders = [...document.body.querySelectorAll("*")].filter(element => {
-    if (!(element instanceof HTMLElement)) return false;
-    if (element.closest("dialog:not([open])")) return false;
+  const documentWidth = Math.max(
+    document.documentElement.scrollWidth,
+    document.body?.scrollWidth ?? 0
+  );
+  const rootOverflowPx = Math.max(0, Math.ceil(documentWidth - viewport));
+  document.documentElement.dataset.mobileOverflowPx = String(rootOverflowPx);
+
+  if (rootOverflowPx <= 1) {
+    document.documentElement.dataset.mobileOverflow = "clear";
+    lastAuditSignature = "";
+    return [];
+  }
+
+  const offenderElements = [...document.body.querySelectorAll("*")].filter(element => {
+    if (!(element instanceof HTMLElement) || isAuditExcluded(element)) return false;
+
     const style = window.getComputedStyle(element);
     if (style.position === "fixed" && element.hidden) return false;
-    const rect = element.getBoundingClientRect();
-    const intrinsicOverflow = element.scrollWidth > element.clientWidth + 1 && !["auto", "scroll"].includes(style.overflowX);
-    return intrinsicOverflow || rect.width > viewport + 1 || rect.left < -1 || rect.right > viewport + 1;
-  }).map(elementLabel);
 
-  if (documentWidth > viewport + 1) offenders.unshift("document.documentElement");
-  const unique = [...new Set(offenders)].slice(0, 20);
-  document.documentElement.dataset.mobileOverflow = unique.length ? "detected" : "clear";
-  if (unique.length) {
-    console.warn("KIDULTS mobile overflow audit detected:", unique);
+    const rect = element.getBoundingClientRect();
+    const overflowMode = style.overflowX;
+    const intrinsicOverflow =
+      element.clientWidth > 0 &&
+      element.scrollWidth > element.clientWidth + 1 &&
+      !["auto", "scroll", "hidden", "clip"].includes(overflowMode);
+    const viewportOverflow =
+      rect.width > viewport + 1 ||
+      rect.left < -1 ||
+      rect.right > viewport + 1;
+
+    if (!intrinsicOverflow && !viewportOverflow) return false;
+    return !isClippedByAncestor(element);
+  });
+
+  const offenderSet = new Set(offenderElements);
+  const leafOffenders = offenderElements.filter(element =>
+    ![...element.children].some(child => offenderSet.has(child))
+  );
+  const unique = [...new Set(leafOffenders.map(elementLabel))].slice(0, 20);
+  if (!unique.length) unique.push("document.documentElement");
+
+  document.documentElement.dataset.mobileOverflow = "detected";
+  const signature = `${rootOverflowPx}:${unique.join("|")}`;
+  if (signature !== lastAuditSignature) {
+    console.warn(`KIDULTS mobile overflow audit detected ${rootOverflowPx}px of real document overflow:`, unique);
+    lastAuditSignature = signature;
   }
   return unique;
 }
 
-function setupResponsiveState() {
+function setupResponsiveState(stylesReady) {
   const media = window.matchMedia(MOBILE_QUERY);
+  let ready = false;
+
   const update = () => {
     document.documentElement.dataset.mobileViewport = media.matches ? "compact" : "wide";
     syncOverlayState();
-    window.requestAnimationFrame(auditOverflow);
+    if (ready) window.requestAnimationFrame(auditOverflow);
   };
+
+  stylesReady.finally(() => {
+    ready = true;
+    update();
+  });
   media.addEventListener?.("change", update);
   window.addEventListener("resize", () => window.requestAnimationFrame(update), { passive: true });
   update();
@@ -272,7 +357,7 @@ function setupResponsiveState() {
 }
 
 function initializeShared() {
-  ensureStylesheet();
+  const stylesReady = ensureStylesheets();
   document.documentElement.dataset.mobileReconstruction = "v1";
   annotateWorkspaceHeading();
   annotateWorkspaceTabs();
@@ -280,17 +365,20 @@ function initializeShared() {
   const compareObserver = setupCompareCards();
   const dialogObservers = setupDialogSheets();
   const restore = scheduleHashRestore();
-  const refresh = setupResponsiveState();
+  const refresh = setupResponsiveState(stylesReady);
 
-  window.setTimeout(auditOverflow, 120);
-  window.setTimeout(auditOverflow, 420);
+  stylesReady.finally(() => {
+    window.setTimeout(auditOverflow, 160);
+    window.setTimeout(auditOverflow, 520);
+  });
 
   return {
     pulseObserver,
     compareObserver,
     dialogObservers,
     restore,
-    refresh
+    refresh,
+    stylesReady
   };
 }
 
