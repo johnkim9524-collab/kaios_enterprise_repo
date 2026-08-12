@@ -10,7 +10,7 @@ const registry = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'kidult100
 const candidates = manifest.candidates || [];
 
 test('source qualification manifest never auto-qualifies reviewed candidates', () => {
-  assert.ok(candidates.length >= 5);
+  assert.ok(candidates.length >= 10);
   assert.equal(candidates.some((candidate) => candidate.qualification === 'QUALIFIED_FOR_PROVIDER_ONBOARDING'), false);
   assert.equal(manifest.qualificationRequirements.automaticProviderActivationAllowed, false);
   assert.equal(manifest.qualificationRequirements.syntheticOrEstimatedEvidenceAllowed, false);
@@ -61,5 +61,18 @@ test('public auction sold pages never bypass explicit anti-scraping and commerci
   assert.equal(heritage.qualification, 'NOT_QUALIFIED_AUTHORIZATION_REQUIRED');
   assert.ok(heritage.blockingReasons.includes('AUTOMATED_COLLECTION_EXPRESSLY_PROHIBITED'));
   assert.ok(heritage.blockingReasons.includes('COMMERCIAL_REUSE_REQUIRES_WRITTEN_PERMISSION'));
+  assert.equal((registry.providers || []).length, 0);
+});
+
+test('LiveAuctioneers price results remain terms-blocked despite documented sold outcomes', () => {
+  const liveAuctioneers = candidates.find((candidate) => candidate.sourceId === 'liveauctioneers');
+  assert.ok(liveAuctioneers);
+  assert.equal(liveAuctioneers.primarySourceFindings.completedTransactionSemanticsDocumented, true);
+  assert.equal(liveAuctioneers.primarySourceFindings.transactionBackedLiquiditySemanticsDocumented, false);
+  assert.equal(liveAuctioneers.primarySourceFindings.commercialReuseAuthorizationRequired, true);
+  assert.equal(liveAuctioneers.qualification, 'NOT_QUALIFIED_AUTHORIZATION_REQUIRED');
+  assert.ok(liveAuctioneers.blockingReasons.includes('AUTOMATED_ACCESS_REQUIRES_EXPRESS_WRITTEN_PERMISSION'));
+  assert.ok(liveAuctioneers.blockingReasons.includes('ROBOT_SPIDER_SCRAPER_ACCESS_PROHIBITED_WITHOUT_PERMISSION'));
+  assert.ok(liveAuctioneers.blockingReasons.includes('NO_TRANSACTION_BACKED_LIQUIDITY_FEED'));
   assert.equal((registry.providers || []).length, 0);
 });
