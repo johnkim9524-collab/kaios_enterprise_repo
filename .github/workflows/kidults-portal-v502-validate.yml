@@ -52,12 +52,14 @@ jobs:
           node --check apps/kidults-enterprise-staging/public/portal/components/compare-engine.js
           node --check apps/kidults-enterprise-staging/public/portal/components/decision-engine.js
           node --check apps/kidults-enterprise-staging/public/portal/components/workspace.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/integrity-hardening.js
           node --check scripts/kidults/portal/validate-living-pulse.mjs
           node --check scripts/kidults/portal/validate-why-engine.mjs
           node --check scripts/kidults/portal/validate-copilot.mjs
           node --check scripts/kidults/portal/validate-compare-engine.mjs
           node --check scripts/kidults/portal/validate-decision-engine.mjs
           node --check scripts/kidults/portal/validate-workspace.mjs
+          node --check scripts/kidults/portal/validate-integrity-hardening.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -91,3 +93,6 @@ jobs:
 
       - name: Validate Living Intelligence Workspace
         run: node scripts/kidults/portal/validate-workspace.mjs
+
+      - name: Validate V6 Integrity Hardening
+        run: node scripts/kidults/portal/validate-integrity-hardening.mjs

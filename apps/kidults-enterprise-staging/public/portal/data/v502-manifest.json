@@ -2,6 +2,8 @@
   "release_id": "KIDULTS_PORTAL_V502_RC1",
   "release_name": "KIDULTS Portal V502 Release Candidate 1",
   "version": "5.0.2-rc.1",
+  "experience_version": "6.0-rc.1",
+  "experience_label": "V6 RC",
   "status": "RELEASE_CANDIDATE",
   "production": false,
   "registered_at": "2026-08-12T15:45:00+09:00",
@@ -53,5 +55,5 @@
       "path": "object.html?id={object_id}"
     }
   ],
-  "build_at": "2026-08-12T23:10:00+09:00"
+  "build_at": "2026-08-13T05:15:00+09:00"
 }

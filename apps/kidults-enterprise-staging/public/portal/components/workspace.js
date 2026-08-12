@@ -44,9 +44,6 @@ const esc = value =>
     "'": "&#039;"
   }[character]));
 
-const human = value =>
-  String(value ?? "NOT AVAILABLE").replaceAll("_", " ");
-
 function normalizeContract(contract) {
   const candidate = contract && typeof contract === "object" ? contract : {};
   const panels = Array.isArray(candidate.panels) && candidate.panels.length
@@ -89,16 +86,6 @@ function badgeFor(panel, data) {
   return "Current";
 }
 
-function statusItems(data) {
-  const registry = data.registry ?? {};
-  return [
-    ["Snapshot", data.manifest?.snapshot_id ?? registry.snapshot?.baseline_id ?? "NOT AVAILABLE"],
-    ["Candidate", registry.snapshot?.candidate_id ?? registry.snapshot?.candidate_status ?? "WAITING"],
-    ["Assessment", registry.assessment?.current_id ?? registry.assessment?.status ?? "WAITING"],
-    ["Decision gate", window.KIDULTS_DECISION?.gateState ?? "NOT AVAILABLE"]
-  ];
-}
-
 function createRoot(contract, data) {
   const existing = document.getElementById(ROOT_ID);
   if (existing) return existing;
@@ -119,16 +106,12 @@ function createRoot(contract, data) {
     <header class="living-workspace__header">
       <div class="shell living-workspace__header-inner">
         <div class="living-workspace__title">
-          <p class="eyebrow">LIVING INTELLIGENCE WORKSPACE</p>
-          <h2 id="living-workspace-title">Observe. Understand. Decide.</h2>
+          <div>
+            <p class="eyebrow">LIVING INTELLIGENCE WORKSPACE</p>
+            <h2 id="living-workspace-title">Observe. Understand. Decide.</h2>
+          </div>
           <p>One governed workspace for Registry-grounded questions, comparison and review guidance.</p>
         </div>
-
-        <dl class="living-workspace__status">
-          ${statusItems(data).map(([label, value]) => `
-            <div><dt>${esc(label)}</dt><dd>${esc(human(value))}</dd></div>
-          `).join("")}
-        </dl>
       </div>
 
       <div class="shell living-workspace__navigation">
@@ -149,7 +132,7 @@ function createRoot(contract, data) {
             </button>
           `).join("")}
         </div>
-        <p class="living-workspace__truth">The workspace changes navigation—not source truth, Registry state or engine contracts.</p>
+        <p class="living-workspace__truth">Navigation changes; source truth, Registry state and engine contracts remain unchanged.</p>
       </div>
     </header>
 

@@ -19,7 +19,7 @@
       "label": "TRACKED ENTITIES",
       "value": "500+",
       "caption": "Cross-category objects and entities",
-      "state": "Active ingest"
+      "state": "Current baseline"
     },
     {
       "id": "countries",
@@ -40,8 +40,8 @@
     {
       "label": "EVIDENCE OBJECTS",
       "value": "417",
-      "caption": "Live evidence objects",
-      "detail": "Updated hourly",
+      "caption": "Registered evidence objects",
+      "detail": "Current Registry projection",
       "state": "PREVIEW",
       "tone": "preview"
     },
@@ -81,7 +81,7 @@
       "label": "KIDULT 100",
       "value": "BUILDING",
       "caption": "Evidence benchmark",
-      "detail": "Monthly ranking cycle",
+      "detail": "Monthly review cycle",
       "state": "BUILDING",
       "tone": "building"
     }

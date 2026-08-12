@@ -1,0 +1,320 @@
+html[data-integrity-hardening=v651] .registry-ribbon{
+  display:none
+}
+
+/* WHY controls live in governed card tool slots, never over content. */
+html[data-integrity-hardening=v651] .why-slot{
+  min-width:max-content;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex:0 0 auto
+}
+html[data-integrity-hardening=v651] .why-slot .why-trigger{
+  position:static!important;
+  inset:auto!important;
+  z-index:auto!important;
+  min-height:30px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  margin:0!important;
+  padding:6px 10px!important;
+  border:1px solid rgba(7,61,45,.2);
+  border-radius:999px;
+  background:rgba(255,255,255,.76);
+  color:var(--forest);
+  font:800 8.5px/1 var(--sans);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  box-shadow:none;
+  backdrop-filter:none;
+  transform:none!important
+}
+html[data-integrity-hardening=v651] .why-slot .why-trigger::before{
+  content:"?";
+  width:15px;
+  height:15px;
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  border:1px solid currentColor;
+  border-radius:50%;
+  font-size:9px;
+  line-height:1;
+  letter-spacing:0
+}
+html[data-integrity-hardening=v651] .why-slot .why-trigger:hover{
+  border-color:rgba(7,61,45,.46);
+  background:#fff
+}
+
+.snapshot-card-header,
+.operation-footer,
+.vertical-card-actions,
+.k100-card-actions,
+.signal-card-tools{
+  display:flex;
+  align-items:center;
+  gap:10px
+}
+.snapshot-card-header{
+  justify-content:space-between;
+  min-height:32px
+}
+.snapshot-card-header small{
+  min-width:0;
+  padding-right:8px
+}
+.snapshot-card .snapshot-state{
+  margin-top:auto;
+  padding-top:24px;
+  font-size:10.5px;
+  color:var(--muted)
+}
+.snapshot-card .snapshot-state::before{
+  content:"";
+  display:inline-block;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#9b8e72;
+  margin-right:8px
+}
+.snapshot-card-header .why-slot,
+.snapshot-card-header .why-trigger{
+  margin:0!important;
+  padding-top:0
+}
+.snapshot-card-header .why-slot::before,
+.snapshot-card-header .why-trigger::after{
+  content:none!important
+}
+
+.operation-footer{
+  justify-content:space-between;
+  margin-top:auto;
+  padding-top:22px
+}
+.operation-footer small{
+  min-width:0;
+  margin:0;
+  padding:0;
+  font-size:11px;
+  color:var(--muted)
+}
+.vertical-card-actions{
+  justify-content:flex-end
+}
+.k100-card-actions{
+  justify-content:space-between;
+  margin-top:18px
+}
+.k100-card-actions .text-link{
+  margin-top:0!important
+}
+.signal-card-tools{
+  justify-content:flex-end;
+  flex-wrap:wrap
+}
+.signal-card-tools>span{
+  margin:0
+}
+.signal-card .signal-meta b{
+  overflow-wrap:anywhere
+}
+
+/* V6 Workspace: one compact status layer, then the core action. */
+html[data-integrity-hardening=v651] .living-workspace__header-inner{
+  grid-template-columns:1fr;
+  align-items:start;
+  gap:0;
+  padding-top:clamp(30px,3.6vw,48px);
+  padding-bottom:18px
+}
+html[data-integrity-hardening=v651] .living-workspace__title{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(280px,.52fr);
+  align-items:end;
+  gap:clamp(26px,5vw,72px)
+}
+html[data-integrity-hardening=v651] .living-workspace__title h2{
+  max-width:760px;
+  font-size:clamp(40px,4.6vw,60px)
+}
+html[data-integrity-hardening=v651] .living-workspace__title>p:last-child{
+  max-width:520px;
+  margin:0 0 5px
+}
+html[data-integrity-hardening=v651] .living-workspace__status{
+  display:none
+}
+html[data-integrity-hardening=v651] .living-workspace__navigation{
+  grid-template-columns:minmax(0,1fr) minmax(230px,.34fr);
+  gap:22px;
+  padding-bottom:16px
+}
+html[data-integrity-hardening=v651] .living-workspace__tabs button{
+  min-height:54px
+}
+html[data-integrity-hardening=v651] .living-workspace__panels{
+  min-height:0
+}
+html[data-integrity-hardening=v651] .living-workspace__panel[data-workspace-panel=ask] .kidults-copilot__shell{
+  padding-top:clamp(26px,3vw,38px);
+  padding-bottom:clamp(30px,3.5vw,44px)
+}
+html[data-integrity-hardening=v651] .living-workspace__panel[data-workspace-panel=ask] .kidults-copilot__intro{
+  grid-template-columns:minmax(0,1fr) minmax(320px,.7fr);
+  gap:clamp(24px,4vw,60px);
+  margin-bottom:18px
+}
+html[data-integrity-hardening=v651] .living-workspace__panel[data-workspace-panel=ask] .kidults-copilot__intro h2{
+  font-size:clamp(40px,4.6vw,58px)
+}
+html[data-integrity-hardening=v651] .living-workspace__panel[data-workspace-panel=ask] .kidults-copilot__form{
+  min-height:66px
+}
+html[data-integrity-hardening=v651] .living-workspace__panel[data-workspace-panel=ask] .kidults-copilot__form input{
+  padding-block:18px
+}
+html[data-integrity-hardening=v651] .living-workspace__panel[data-workspace-panel=ask] .kidults-copilot__suggestions{
+  margin-top:12px
+}
+html[data-integrity-hardening=v651] .living-workspace__panel[data-workspace-panel=ask] .kidults-copilot__status{
+  margin-top:13px;
+  padding-top:13px
+}
+
+/* Data scale is shown as related publication layers, not as a fake lossless pipeline. */
+.data-funnel{
+  display:flex;
+  align-items:stretch;
+  gap:8px;
+  margin:-10px 0 30px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:rgba(255,255,255,.52);
+  overflow-x:auto;
+  scrollbar-width:thin
+}
+.data-funnel__layer{
+  min-width:170px;
+  flex:1 0 0;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:4px 10px;
+  align-content:start;
+  padding:15px 16px;
+  border:1px solid rgba(7,61,45,.11);
+  border-radius:13px;
+  background:#fffefa
+}
+.data-funnel__layer>span{
+  grid-row:1/4;
+  font-family:var(--serif);
+  font-size:16px;
+  color:#9a978f
+}
+.data-funnel__layer>strong{
+  font-family:var(--serif);
+  font-size:25px;
+  line-height:1;
+  font-weight:400;
+  color:var(--forest)
+}
+.data-funnel__layer>b{
+  font-size:9.5px;
+  line-height:1.35;
+  letter-spacing:.06em;
+  text-transform:uppercase
+}
+.data-funnel__layer>small{
+  font-size:8.5px;
+  line-height:1.35;
+  letter-spacing:.05em;
+  color:var(--muted);
+  text-transform:uppercase
+}
+.data-funnel>i{
+  align-self:center;
+  flex:0 0 auto;
+  color:#9b9a94;
+  font-family:var(--serif);
+  font-style:normal;
+  font-size:20px
+}
+.data-funnel-note{
+  margin:-18px 0 38px;
+  font-size:10px;
+  line-height:1.55;
+  color:var(--muted)
+}
+
+/* Public version and release language. */
+html[data-integrity-hardening=v651] .release-pill{
+  min-width:88px;
+  justify-content:center
+}
+html[data-integrity-hardening=v651] .release-baseline-inner{
+  min-height:214px;
+  padding-block:46px
+}
+html[data-integrity-hardening=v651] .release-baseline h2{
+  max-width:720px
+}
+
+@media(max-width:1020px){
+  html[data-integrity-hardening=v651] .living-workspace__title,
+  html[data-integrity-hardening=v651] .living-workspace__navigation,
+  html[data-integrity-hardening=v651] .living-workspace__panel[data-workspace-panel=ask] .kidults-copilot__intro{
+    grid-template-columns:1fr
+  }
+  html[data-integrity-hardening=v651] .living-workspace__title>p:last-child{
+    margin-top:12px
+  }
+}
+@media(max-width:760px){
+  html[data-integrity-hardening=v651] .why-slot .why-trigger{
+    min-height:29px;
+    padding:5px 8px!important
+  }
+  .operation-footer,
+  .k100-card-actions{
+    align-items:flex-end
+  }
+  .signal-card-tools{
+    align-items:flex-end;
+    flex-direction:column
+  }
+  .data-funnel{
+    margin-top:0
+  }
+  .data-funnel__layer{
+    min-width:190px
+  }
+}
+@media(max-width:420px){
+  .vertical-card-footer{
+    align-items:flex-start;
+    flex-direction:column
+  }
+  .vertical-card-actions{
+    width:100%;
+    justify-content:space-between
+  }
+  .operation-footer,
+  .k100-card-actions{
+    align-items:flex-start;
+    flex-direction:column
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  html[data-integrity-hardening=v651] *,
+  html[data-integrity-hardening=v651] *::before,
+  html[data-integrity-hardening=v651] *::after{
+    scroll-behavior:auto!important
+  }
+}
