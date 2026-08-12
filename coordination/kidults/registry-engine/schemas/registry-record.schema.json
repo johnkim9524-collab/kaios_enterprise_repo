@@ -1,0 +1,20 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://kidults.com/schemas/registry-record.schema.json",
+  "title":"KIDULTS Registry Record",
+  "type":"object",
+  "required":["id","record_type","version","status","created_by"],
+  "properties":{
+    "id":{"type":"string","minLength":1},
+    "record_type":{"type":"string","minLength":1},
+    "version":{"type":"string","pattern":"^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "status":{"type":"string","minLength":1},
+    "created_at":{"type":"string"},
+    "updated_at":{"type":"string"},
+    "created_by":{"type":"string","minLength":1},
+    "approved_by":{"type":["string","null"]},
+    "snapshot_id":{"type":["string","null"]},
+    "references":{"type":"array","items":{"type":"string"}}
+  },
+  "additionalProperties":true
+}
