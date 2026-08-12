@@ -1,0 +1,36 @@
+{
+  "engine_id": "kidults-copilot",
+  "version": "0.1.0",
+  "mode": "DETERMINISTIC_REGISTRY_GROUNDED_MVP",
+  "suggested_questions": [
+    "Why is Mobility leading?",
+    "What changed today?",
+    "Compare Mobility and Watches.",
+    "Show current evidence.",
+    "What should I review today?"
+  ],
+  "supported_intents": [
+    "why-leading",
+    "what-changed",
+    "compare-verticals",
+    "show-evidence",
+    "review-today",
+    "explain-target"
+  ],
+  "truth_rules": {
+    "allow_external_llm": false,
+    "allow_fabricated_values": false,
+    "allow_unregistered_change_claims": false,
+    "missing_to_zero": false,
+    "require_snapshot_traceability": true,
+    "require_limitations": true,
+    "allow_investment_language": false
+  },
+  "fail_closed_states": [
+    "WAITING",
+    "NOT_REGISTERED",
+    "NOT_AVAILABLE",
+    "STALE",
+    "LIMITED"
+  ]
+}

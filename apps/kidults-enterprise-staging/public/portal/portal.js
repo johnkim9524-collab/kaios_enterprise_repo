@@ -1,6 +1,7 @@
 import { loadPortalData } from "./components/data-store.js";
 import { startLivingPulse } from "./components/living-pulse.js";
 import { startWhyEngine } from "./components/why-engine.js";
+import { startCopilot } from "./components/copilot.js";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -61,6 +62,11 @@ async function init() {
       contract: data.why
     });
 
+    startCopilot({
+      data,
+      contract: data.copilot
+    });
+
     setupDialogs(data);
     setupVerticalFilter();
     setupSearch(data.searchIndex);
@@ -74,7 +80,8 @@ async function init() {
       assessmentId: data.manifest.assessment_id,
       sourceMode: data.manifest.source_mode,
       livingPulse: data.pulse.version,
-      whyEngine: data.why.version
+      whyEngine: data.why.version,
+      copilotEngine: data.copilot.version
     });
   } catch (error) {
     console.error("KIDULTS V502 portal initialization failed.", error);

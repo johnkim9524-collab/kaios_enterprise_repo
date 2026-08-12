@@ -48,8 +48,10 @@ jobs:
           node --check apps/kidults-enterprise-staging/public/portal/components/interactions.js
           node --check apps/kidults-enterprise-staging/public/portal/components/living-pulse.js
           node --check apps/kidults-enterprise-staging/public/portal/components/why-engine.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/copilot.js
           node --check scripts/kidults/portal/validate-living-pulse.mjs
           node --check scripts/kidults/portal/validate-why-engine.mjs
+          node --check scripts/kidults/portal/validate-copilot.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -71,3 +73,6 @@ jobs:
 
       - name: Validate WHY Engine
         run: node scripts/kidults/portal/validate-why-engine.mjs
+
+      - name: Validate Copilot Engine
+        run: node scripts/kidults/portal/validate-copilot.mjs
