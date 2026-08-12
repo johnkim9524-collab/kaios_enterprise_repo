@@ -1,7 +1,7 @@
 {
   "registry_id": "kidults-mission-registry",
   "registry_name": "Mission Registry",
-  "registry_version": "1.0.0",
+  "registry_version": "1.1.0",
   "schema_version": "1.0.0",
   "owner": "KPMO / Autonomous Orchestrator",
   "custodian": "Atlas",
@@ -9,11 +9,39 @@
   "effective_at": "2026-08-12T12:00:00+09:00",
   "record_directory": "records",
   "record_count": 4,
-  "current_record_id": "mission-track-a-first-canonical-snapshot",
+  "current_record_id": "mission-track-c-v502-registry-consumer",
   "records": [
-    {"id":"mission-track-a-first-canonical-snapshot","path":"records/mission-track-a-first-canonical-snapshot.json","version":"1.0.0","status":"IN_PROGRESS"},
-    {"id":"mission-track-b-first-independent-assessment","path":"records/mission-track-b-first-independent-assessment.json","version":"1.0.0","status":"BLOCKED"},
-    {"id":"mission-track-c-v502-registry-consumer","path":"records/mission-track-c-v502-registry-consumer.json","version":"1.0.0","status":"WAITING_ROLE_ACCEPTANCE"},
-    {"id":"mission-track-d-foundation-implementation","path":"records/mission-track-d-foundation-implementation.json","version":"1.0.0","status":"IN_PROGRESS"}
+    {
+      "id": "mission-track-a-first-canonical-snapshot",
+      "path": "records/mission-track-a-first-canonical-snapshot.json",
+      "version": "1.0.0",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "mission-track-b-first-independent-assessment",
+      "path": "records/mission-track-b-first-independent-assessment.json",
+      "version": "1.0.0",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "mission-track-c-v502-registry-consumer",
+      "path": "records/mission-track-c-v502-registry-consumer.json",
+      "version": "1.1.0",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "mission-track-d-foundation-implementation",
+      "path": "records/mission-track-d-foundation-implementation.json",
+      "version": "1.0.0",
+      "status": "IN_PROGRESS"
+    }
+  ],
+  "change_history": [
+    {
+      "version": "1.1.0",
+      "changed_at": "2026-08-12T23:10:00+09:00",
+      "changed_by": "Atlas",
+      "change": "Activated Track C V502 Release Candidate mission."
+    }
   ]
 }

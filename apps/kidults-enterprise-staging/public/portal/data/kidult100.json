@@ -1,67 +1,81 @@
 {
   "edition": "2026.08",
-  "methodology": "K100-1.0-preview",
+  "release": "V502_RC1",
+  "methodology": "NOT_YET_REGISTERED",
+  "snapshot_id": "baseline-provider-independent-v1",
+  "selection_type": "CURRENT_EDITORIAL_SLICE",
+  "selection_note": "Five public-preview objects selected from the current eight-vertical structure. This is not a permanent ranking.",
   "canon_strength": "Emerging",
   "items": [
     {
       "id": "mobility-01",
       "rank": 1,
-      "category": "MOBILITY",
+      "category": "AUTOMOBILES & MOBILITY",
+      "vertical_id": "vertical-automobiles-mobility",
       "title": "Mobility Sculpture 01",
-      "asset": "assets/kidult100/mobility-v500.webp",
+      "asset": "assets/kidult100/mobility-v501.webp",
       "score": 88.2,
       "confidence": 94,
       "freshness": "2h",
       "status": "Preview score",
-      "provenance": "Preview score based on the current public evidence baseline."
+      "provenance": "Preview score based on the current public evidence baseline. It is not a canonical or permanent ranking.",
+      "asset_status": "PUBLIC_PREVIEW_ORIGINAL"
     },
     {
       "id": "time-01",
       "rank": 2,
-      "category": "TIME",
+      "category": "WATCHES & JEWELRY",
+      "vertical_id": "vertical-watches-jewelry",
       "title": "Mechanical Time 01",
-      "asset": "assets/kidult100/time-v500.webp",
+      "asset": "assets/kidult100/time-v501.webp",
       "score": 86.4,
       "confidence": 92,
       "freshness": "2h",
       "status": "Preview score",
-      "provenance": "Preview score with separated confidence and freshness."
+      "provenance": "Preview score with separated confidence and freshness. Publication remains evidence-gated.",
+      "asset_status": "PUBLIC_PREVIEW_ORIGINAL"
     },
     {
       "id": "footwear-01",
       "rank": 3,
-      "category": "FOOTWEAR",
+      "category": "FASHION & ACCESSORIES",
+      "vertical_id": "vertical-fashion-accessories",
       "title": "Archive Runner 01",
-      "asset": "assets/kidult100/footwear-v500.webp",
+      "asset": "assets/kidult100/footwear-v501.webp",
       "score": 84.9,
       "confidence": 91,
       "freshness": "3h",
       "status": "Preview score",
-      "provenance": "Preview score; publication remains evidence-gated."
+      "provenance": "Preview score; publication remains evidence- and rights-gated.",
+      "asset_status": "PUBLIC_PREVIEW_ORIGINAL"
     },
     {
-      "id": "character-01",
+      "id": "art-toy-01",
       "rank": 4,
-      "category": "CHARACTER",
-      "title": "Koala Sculpture 01",
-      "asset": "assets/kidult100/character-v500.webp",
+      "category": "TOYS & MODELS",
+      "vertical_id": "vertical-toys-models",
+      "title": "Original Art Figure 01",
+      "asset": "assets/kidult100/art-toy-v501.webp",
       "score": null,
       "confidence": 78,
       "freshness": "Building",
       "status": "Evidence building",
-      "provenance": "No public score until evidence thresholds are complete."
+      "provenance": "No public score until evidence thresholds and methodology registration are complete.",
+      "asset_status": "PUBLIC_PREVIEW_ORIGINAL"
     },
     {
       "id": "design-01",
       "rank": 5,
-      "category": "DESIGN",
+      "category": "DESIGN & FURNITURE",
+      "vertical_id": "vertical-design-furniture",
       "title": "Lounge Chair 01",
-      "asset": "assets/kidult100/design-v500.webp",
+      "asset": "assets/kidult100/design-v501.webp",
       "score": null,
       "confidence": 76,
       "freshness": "Building",
       "status": "Evidence building",
-      "provenance": "No public score until evidence thresholds are complete."
+      "provenance": "No public score until evidence thresholds and methodology registration are complete.",
+      "asset_status": "PUBLIC_PREVIEW_ORIGINAL"
     }
   ]
 }

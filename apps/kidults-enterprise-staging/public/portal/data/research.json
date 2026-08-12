@@ -1,8 +1,10 @@
 {
   "issue": "2026.08",
+  "release": "V502_RC1",
+  "snapshot_id": "baseline-provider-independent-v1",
   "title": "Monthly Intelligence Issue 01",
   "subtitle": "Global Collectibles Market Signals",
-  "summary": "Designer objects and premium collectible categories continue to lead cultural momentum, while liquidity remains strongest where evidence, global recognition and active secondary markets converge.",
+  "summary": "Eight Core Verticals define the stable coverage structure. Current observability is strongest in mobility, fashion, gaming/screen culture, toys and memorabilia under the provider-independent baseline, while all results remain conditional on the current evidence and methodology state.",
   "sections": [
     {
       "index": "01",
@@ -11,18 +13,18 @@
     },
     {
       "index": "02",
-      "title": "Category Intelligence",
-      "summary": "Mobility and time lead the current public preview, followed by footwear and character-forming evidence."
+      "title": "Eight-Vertical Intelligence",
+      "summary": "The coverage architecture is fixed at eight Core Verticals while Featured objects and current observation order remain dynamic."
     },
     {
       "index": "03",
-      "title": "Liquidity",
-      "summary": "High-confidence categories show healthy turnover, while long-tail assets remain more fragmented."
+      "title": "Current Observability",
+      "summary": "Mobility, fashion, gaming/screen culture, toys and memorabilia form the current top-five observability slice; this is not permanent superiority."
     },
     {
       "index": "04",
       "title": "Risk Watch",
-      "summary": "Preview values remain subject to live-source verification and methodology certification."
+      "summary": "Preview values remain subject to methodology registration, evidence-lineage certification, provider comparison and independent rankability assessment."
     }
   ]
 }

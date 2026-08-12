@@ -1,0 +1,40 @@
+{
+  "release_id": "portal-v502-rc1",
+  "record_type": "portal_release_manifest",
+  "version": "1.0.0",
+  "status": "RELEASE_CANDIDATE",
+  "production": false,
+  "track_id": "track-c-portal-v502-experience-layer",
+  "snapshot_id": "baseline-provider-independent-v1",
+  "candidate_snapshot_id": null,
+  "assessment_id": null,
+  "source_mode": "SELF_COLLECTED_PROVIDER_INDEPENDENT",
+  "portal_contract_version": "v502-rc1",
+  "registry_system_version": "1.1.0",
+  "release_scope": [
+    "Eight Core Vertical architecture",
+    "Dynamic Featured Slice",
+    "Modular Hero asset binding",
+    "Registry traceability ribbon",
+    "Search across verticals, objects, research and archive",
+    "Vertical and object detail routes",
+    "Desktop, tablet and mobile responsive baseline",
+    "Fail-closed public preview states"
+  ],
+  "validation_mode": "PORTAL_COMPLETION_BASELINE",
+  "validation_ready": true,
+  "provider_validation_started": false,
+  "poc_validation_started": false,
+  "production_gate": "HOLD",
+  "known_limitations": [
+    "No canonical candidate snapshot is registered.",
+    "No rankability assessment is registered.",
+    "Methodology and evidence-lineage versions are not registered.",
+    "Three verticals do not yet have approved editorial visual assets.",
+    "The current metrics are provider-independent observability values and not permanent rankings."
+  ],
+  "rollback_target": "V501",
+  "created_by": "Track C",
+  "approved_by": "John",
+  "created_at": "2026-08-12T23:10:00+09:00"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "work-track-c-build-v502-release-candidate",
+  "record_type": "work_item",
+  "version": "1.0.0",
+  "status": "IN_PROGRESS",
+  "work_id": "WORK-0007",
+  "track_id": "track-c-portal-v502-experience-layer",
+  "mission_id": "mission-track-c-v502-registry-consumer",
+  "objective": "Build, validate and freeze the V502 Portal Release Candidate as the provider and PoC validation baseline.",
+  "dependency_ids": [],
+  "required_outputs": [
+    "V502 index and responsive style layer",
+    "Eight Core Vertical data and UI",
+    "Modular Hero and Featured Slice",
+    "Registry traceability projection",
+    "Search and detail routes",
+    "Portal release manifest",
+    "V502 validation workflow"
+  ],
+  "started_at": "2026-08-12T23:10:00+09:00",
+  "created_by": "Atlas",
+  "approved_by": "John"
+}
