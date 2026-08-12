@@ -31,6 +31,22 @@ const REQUIRED_PROGRAM_TRACKS = ['A', 'B', 'C', 'D'];
 const REQUIRED_COMPATIBILITY_TRACKS = ['A', 'B', 'C'];
 const TRACK_B_OFFICIAL_INPUTS = ['snapshot-candidate.json', 'EVIDENCE_PACKAGE'];
 const TRACK_B_OFFICIAL_OUTPUT = 'rankability-assessment.json';
+const TRACK_B_NON_OFFICIAL_INPUTS = [
+  'PORTAL_RESULT',
+  'BUSINESS_REQUEST',
+  'PROVIDER_REQUIREMENT',
+  'ESTIMATE',
+  'VERBAL_EXPLANATION',
+  'CHAT_ONLY_INFORMATION',
+];
+const TRACK_B_OUTPUT_MUST_NOT_GENERATE = [
+  'snapshot-candidate.json',
+  'PORTAL_RELEASE',
+  'REGISTRY_CHANGE',
+  'PRODUCTION_DECISION',
+  'BUSINESS_RECOMMENDATION',
+  'FINAL_RANKING',
+];
 const TRACK_B_REQUIRED_SEQUENCE = ['SNAPSHOT', 'EVIDENCE', 'ASSESSMENT'];
 const TRACK_B_REQUIRED_ISOLATION_SEQUENCE = ['ONE_SNAPSHOT', 'ONE_ASSESSMENT', 'ONE_RECOMMENDATION'];
 const TRACK_B_COMPLETION_REQUIREMENTS = [
@@ -49,6 +65,44 @@ const TRACK_B_REQUIRED_TRACEABILITY_FIELDS = [
   'generated_at',
   'assessment_status',
 ];
+const TRACK_B_INSUFFICIENT_EVIDENCE_DISPOSITIONS = ['NOT_RANKABLE', 'BLOCKED'];
+const TRACK_B_WAITING_STATES = [
+  'WAITING_FOR_SNAPSHOT',
+  'WAITING_FOR_EVIDENCE',
+  'WAITING_FOR_REGISTRY',
+  'WAITING_FOR_VALIDATION',
+];
+const TRACK_B_RECOMMENDATIONS = ['BLOCKED', 'CONDITIONAL', 'PUBLISHABLE'];
+const TRACK_B_CONFIDENCE_LEVELS = ['LOW', 'MEDIUM', 'HIGH'];
+const TRACK_B_QUANTITATIVE_JUSTIFICATION_FIELDS = [
+  'metric',
+  'observed_value',
+  'required_threshold',
+  'comparison_result',
+  'evidence_reference',
+];
+const TRACK_B_RECOMMENDATION_MAY_SPECIFY = ['REQUIRED_EVIDENCE', 'EXIT_CRITERIA', 'ADDITIONAL_VALIDATION'];
+const TRACK_B_DECISION_BASIS = ['SNAPSHOT', 'EVIDENCE', 'ASSESSMENT'];
+const TRACK_B_INDEPENDENCE_MUST_IGNORE = [
+  'TRACK_A_SPEED',
+  'PORTAL_SCHEDULE',
+  'PROVIDER_CONTRACT_SCHEDULE',
+  'BUSINESS_PRIORITY',
+  'PRODUCTION_SCHEDULE',
+];
+const TRACK_B_ASSESSMENT_TRIGGER_CONDITIONS = [
+  'SNAPSHOT_ID_EXISTS',
+  'SNAPSHOT_REGISTRY_REGISTRATION_COMPLETED',
+  'SNAPSHOT_CANDIDATE_AVAILABLE',
+  'EVIDENCE_PACKAGE_AVAILABLE',
+  'REGISTRY_VALIDATION_PASSED',
+];
+const TRACK_B_TRIGGER_WAITING_STATE_RESOLUTION = {
+  snapshot_missing: 'WAITING_FOR_SNAPSHOT',
+  evidence_missing: 'WAITING_FOR_EVIDENCE',
+  registry_registration_missing: 'WAITING_FOR_REGISTRY',
+  registry_or_contract_validation_pending: 'WAITING_FOR_VALIDATION',
+};
 const REQUIRED_HANDOFF_FIELDS = [
   'handoff_id',
   'from_track',
@@ -164,8 +218,29 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
   requireCondition(trackB?.operating_rules_status === 'FINAL_LOCKED_V1_3', 'TRACK_B_RULE_STATUS_INVALID', failures);
   requireCondition(JSON.stringify(trackB?.official_inputs) === JSON.stringify(TRACK_B_OFFICIAL_INPUTS), 'TRACK_B_INPUT_BOUNDARY_INVALID', failures);
   requireCondition(trackB?.official_output === TRACK_B_OFFICIAL_OUTPUT, 'TRACK_B_OUTPUT_BOUNDARY_INVALID', failures);
-  requireCondition(trackB?.assessment_policy?.creates_new_evidence === false && trackB?.assessment_policy?.evaluates_track_a_evidence_only === true, 'TRACK_B_EVIDENCE_BOUNDARY_INVALID', failures);
-  requireCondition(trackB?.input_boundary?.both_official_inputs_required_before_assessment === true, 'TRACK_B_BOTH_INPUTS_REQUIRED_INVALID', failures);
+  requireCondition(
+    trackB?.input_boundary?.both_official_inputs_required_before_assessment === true
+    && JSON.stringify(trackB?.input_boundary?.non_official_inputs) === JSON.stringify(TRACK_B_NON_OFFICIAL_INPUTS),
+    'TRACK_B_INPUT_POLICY_INVALID',
+    failures,
+  );
+  requireCondition(
+    trackB?.output_boundary?.only_official_output === TRACK_B_OFFICIAL_OUTPUT
+    && JSON.stringify(trackB?.output_boundary?.must_not_generate) === JSON.stringify(TRACK_B_OUTPUT_MUST_NOT_GENERATE),
+    'TRACK_B_OUTPUT_POLICY_INVALID',
+    failures,
+  );
+  requireCondition(
+    trackB?.assessment_policy?.creates_snapshot === false
+    && trackB?.assessment_policy?.creates_registry === false
+    && trackB?.assessment_policy?.creates_portal_release === false
+    && trackB?.assessment_policy?.creates_production_decision === false
+    && trackB?.assessment_policy?.creates_business_decision === false
+    && trackB?.assessment_policy?.creates_new_evidence === false
+    && trackB?.assessment_policy?.evaluates_track_a_evidence_only === true,
+    'TRACK_B_MUTATION_AND_EVIDENCE_BOUNDARY_INVALID',
+    failures,
+  );
   requireCondition(trackB?.snapshot_scope === 'EXACTLY_ONE_EXISTING_SNAPSHOT_ID', 'TRACK_B_SNAPSHOT_SCOPE_INVALID', failures);
   requireCondition(
     trackB?.snapshot_isolation?.one_snapshot_per_assessment === true
@@ -176,6 +251,7 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
   );
   requireCondition(JSON.stringify(trackB?.snapshot_isolation?.required_sequence) === JSON.stringify(TRACK_B_REQUIRED_ISOLATION_SEQUENCE), 'TRACK_B_SNAPSHOT_ISOLATION_SEQUENCE_INVALID', failures);
   requireCondition(JSON.stringify(trackB?.assessment_policy?.required_sequence) === JSON.stringify(TRACK_B_REQUIRED_SEQUENCE), 'TRACK_B_ASSESSMENT_SEQUENCE_INVALID', failures);
+  requireCondition(JSON.stringify(trackB?.assessment_policy?.insufficient_evidence_dispositions) === JSON.stringify(TRACK_B_INSUFFICIENT_EVIDENCE_DISPOSITIONS), 'TRACK_B_INSUFFICIENT_EVIDENCE_POLICY_INVALID', failures);
   requireCondition(
     trackB?.assessment_policy?.reproducibility?.same_snapshot_and_same_evidence_must_produce_same_assessment === true
     && trackB?.assessment_policy?.reproducibility?.different_result_requires_recorded_cause === true,
@@ -196,8 +272,61 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
     'TRACK_B_COMPLETION_CONTRACT_INVALID',
     failures,
   );
+  requireCondition(JSON.stringify(trackB?.official_waiting_states) === JSON.stringify(TRACK_B_WAITING_STATES), 'TRACK_B_WAITING_STATE_CONTRACT_INVALID', failures);
   requireCondition(trackB?.temporary_or_estimated_assessment_allowed === false, 'TRACK_B_TEMPORARY_ASSESSMENT_POLICY_INVALID', failures);
-  requireCondition(trackB?.registry_access?.mode === 'READ_ONLY', 'TRACK_B_REGISTRY_ACCESS_INVALID', failures);
+  requireCondition(
+    JSON.stringify(trackB?.recommendation_policy?.allowed) === JSON.stringify(TRACK_B_RECOMMENDATIONS)
+    && trackB?.recommendation_policy?.must_include_confidence === true
+    && JSON.stringify(trackB?.recommendation_policy?.confidence_levels) === JSON.stringify(TRACK_B_CONFIDENCE_LEVELS)
+    && trackB?.recommendation_policy?.confidence_requires_assessment_evidence === true
+    && trackB?.recommendation_policy?.must_include_quantitative_justification === true
+    && JSON.stringify(trackB?.recommendation_policy?.quantitative_justification_fields) === JSON.stringify(TRACK_B_QUANTITATIVE_JUSTIFICATION_FIELDS)
+    && trackB?.recommendation_policy?.opinion_only_recommendation_allowed === false
+    && JSON.stringify(trackB?.recommendation_policy?.may_specify) === JSON.stringify(TRACK_B_RECOMMENDATION_MAY_SPECIFY),
+    'TRACK_B_RECOMMENDATION_CONTRACT_INVALID',
+    failures,
+  );
+  requireCondition(
+    JSON.stringify(trackB?.independence_preservation?.decision_basis) === JSON.stringify(TRACK_B_DECISION_BASIS)
+    && JSON.stringify(trackB?.independence_preservation?.must_ignore) === JSON.stringify(TRACK_B_INDEPENDENCE_MUST_IGNORE),
+    'TRACK_B_INDEPENDENCE_CONTRACT_INVALID',
+    failures,
+  );
+  requireCondition(
+    JSON.stringify(trackB?.assessment_trigger?.required_conditions) === JSON.stringify(TRACK_B_ASSESSMENT_TRIGGER_CONDITIONS)
+    && trackB?.assessment_trigger?.when_all_true === 'GENERATE_RANKABILITY_ASSESSMENT'
+    && JSON.stringify(trackB?.assessment_trigger?.waiting_state_resolution) === JSON.stringify(TRACK_B_TRIGGER_WAITING_STATE_RESOLUTION),
+    'TRACK_B_ASSESSMENT_TRIGGER_CONTRACT_INVALID',
+    failures,
+  );
+  requireCondition(
+    trackB?.archive_policy?.delete_assessment_allowed === false
+    && trackB?.archive_policy?.modify_issued_assessment_allowed === false
+    && trackB?.archive_policy?.new_assessment_required_for_changed_evaluation === true
+    && trackB?.archive_policy?.prior_assessment_destination === 'ASSESSMENT_ARCHIVE_REGISTRY',
+    'TRACK_B_ARCHIVE_CONTRACT_INVALID',
+    failures,
+  );
+  requireCondition(
+    trackB?.registry_access?.mode === 'READ_ONLY'
+    && trackB?.registry_access?.may_request_assessment_registration === true
+    && trackB?.registry_access?.assessment_registration_owner === 'ATLAS_KPMO'
+    && trackB?.registry_access?.governance_owner === 'ATLAS_KPMO',
+    'TRACK_B_REGISTRY_ACCESS_INVALID',
+    failures,
+  );
+  requireCondition(
+    trackB?.directive?.name === 'Track B Additional Operating Directive'
+    && trackB?.directive?.version === 'v1.3'
+    && trackB?.directive?.status === 'APPROVED'
+    && trackB?.directive?.rule_status === 'FINAL_LOCKED'
+    && trackB?.directive?.effective === 'IMMEDIATELY'
+    && trackB?.directive?.prior_version === 'v1.2'
+    && trackB?.directive?.future_operating_rule_expansion_allowed === false
+    && trackB?.directive?.next_official_work === 'RECEIVE_SNAPSHOT_VALIDATE_EVIDENCE_GENERATE_ASSESSMENT_HANDOFF_TO_INTEGRATION_GATE',
+    'TRACK_B_DIRECTIVE_CONTRACT_INVALID',
+    failures,
+  );
   requireCondition(JSON.stringify(handoffs?.required_fields) === JSON.stringify(REQUIRED_HANDOFF_FIELDS), 'HANDOFF_REQUIRED_FIELDS_INVALID', failures);
   requireCondition(JSON.stringify(program?.artifact_chain) === JSON.stringify(REQUIRED_ARTIFACT_CHAIN), 'ARTIFACT_CHAIN_INVALID', failures);
   requireCondition(Array.isArray(program?.official_books) && program.official_books.length === 3 && program.official_books.includes('Master Book') && program.official_books.includes('Baseline Book') && program.official_books.includes('Architecture Book'), 'OFFICIAL_BOOK_TOPOLOGY_INVALID', failures);
