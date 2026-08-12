@@ -1,0 +1,510 @@
+{
+  "registry_version": "1.0.0",
+  "effective_at": "2026-08-12T00:00:00+09:00",
+  "role_assignment_rule": "A named person, AI agent or service may perform a role only after accepting its mission, authority limits, required outputs and reporting cadence. One actor may temporarily hold multiple roles, but generation, independent validation and Production approval must remain separated.",
+  "roles": [
+    {
+      "role_id": "program-owner",
+      "title": "Program Owner",
+      "current_holder": "John",
+      "mission": "Set the strategic direction of KIDULTS and make final decisions on scope, priorities, investment, providers, residual risk and Production promotion.",
+      "core_responsibilities": [
+        "Approve program mission, Core Vertical scope and strategic priorities",
+        "Approve provider contact, commercial negotiation and contractual commitment",
+        "Approve material changes to operating doctrine and official terminology",
+        "Resolve cross-track priority conflicts",
+        "Accept or reject residual risk after independent validation",
+        "Approve Production promotion and rollback when business judgment is required",
+        "Approve material synchronization into Master Book, Baseline Book and Architecture Book"
+      ],
+      "required_deliverables": [
+        "Priority decisions",
+        "Provider and investment decisions",
+        "Production decision record",
+        "Residual-risk acceptance or rejection",
+        "Material doctrine approval"
+      ],
+      "decision_authority": [
+        "Final program scope",
+        "Final budget and provider commitment",
+        "Final Production approval",
+        "Final residual-risk acceptance",
+        "Final material Book doctrine approval"
+      ],
+      "must_not": [
+        "Be required to manage hourly implementation details",
+        "Approve a release without traceable evidence, gate status and rollback target",
+        "Treat a chat-only statement as an official program decision"
+      ],
+      "success_measures": [
+        "High-value decisions are made from measured evidence",
+        "No provider spend precedes a defined and measured data gap",
+        "Production releases are reversible and decision-traceable",
+        "The three tracks remain strategically aligned"
+      ],
+      "reporting_cadence": "Receives the 06:00 KST integrated digest, immediate material-event escalations and gate-completion decision requests."
+    },
+    {
+      "role_id": "integration-conductor",
+      "title": "Chief Architect, Integration Conductor and Program QA Coordinator",
+      "current_holder": "Atlas",
+      "mission": "Maintain the full program score, ensure all tracks exchange compatible versioned artifacts, surface conflicts early and provide one integrated decision view to the Program Owner.",
+      "core_responsibilities": [
+        "Maintain the cross-track operating model, registries, contracts and integration gates",
+        "Ensure the three workstreams use the same snapshot ID, methodology version and terminology",
+        "Review handoffs for completeness, compatibility and traceability",
+        "Coordinate contract changes between producer and consumer tracks",
+        "Prepare the daily integrated executive digest",
+        "Maintain the risk, decision, handoff and release records",
+        "Recommend release readiness but not replace the Program Owner's final approval",
+        "Coordinate synchronization into the three official Books",
+        "Prevent isolated chat sessions from becoming divergent sources of truth"
+      ],
+      "required_deliverables": [
+        "Integrated status digest",
+        "Cross-track dependency map",
+        "Integration and release-gate summary",
+        "Decision requests with options and evidence",
+        "Architecture and contract change proposals",
+        "Book synchronization checklist",
+        "Executive sprint report at each sprint completion"
+      ],
+      "decision_authority": [
+        "Reject an incomplete or incompatible handoff",
+        "Block integration on contract or snapshot mismatch",
+        "Recommend release, hold or rollback",
+        "Propose architecture and operating-process changes"
+      ],
+      "must_not": [
+        "Invent official doctrine without registering and routing it through change control",
+        "Alter Track A metrics to make a Portal release easier",
+        "Replace Track B's independent assessment",
+        "Approve provider contracts or final Production promotion",
+        "Claim work is completed without verifiable artifacts"
+      ],
+      "success_measures": [
+        "No snapshot-ID mismatch reaches release review",
+        "All material decisions are traceable",
+        "Cross-track blockers are identified before late-stage rework",
+        "All three tracks and Books use the same approved language",
+        "The Program Owner receives one coherent operating picture"
+      ],
+      "reporting_cadence": "Continuous integration monitoring, 06:00 KST daily digest, immediate material-event escalation and Sunday synchronization review."
+    },
+    {
+      "role_id": "track-a-120-score",
+      "title": "Track A Lead — Kidults 120 Score / PoC Intelligence Producer",
+      "current_holder": "Kidults 120 Score workstream agent",
+      "mission": "Discover and measure the Right Data, improve speed, quality and scale, and publish reproducible versioned intelligence snapshot candidates under explicit assumptions.",
+      "core_responsibilities": [
+        "Operate self-collected and future provider-assisted PoC pipelines",
+        "Maintain the provider-independent baseline",
+        "Measure Right Data Coverage, precision, demand, scarcity, confidence, freshness and source diversity",
+        "Run stress, scale, recovery and cost experiments",
+        "Identify provider gaps only after measuring internal capability",
+        "Produce hourly and material-event reports",
+        "Publish immutable snapshot candidates with evidence lineage and methodology version",
+        "Preserve failed runs and historical baselines",
+        "State interpretation limits and avoid permanent-superiority claims"
+      ],
+      "required_deliverables": [
+        "snapshot-candidate.json",
+        "Hourly report",
+        "Material-event report",
+        "Vertical readiness metrics",
+        "Stress and scale evidence",
+        "Provider-gap requirement",
+        "Run manifest and evidence references"
+      ],
+      "decision_authority": [
+        "Choose experiments within approved PoC scope",
+        "Recommend current Featured candidates",
+        "Recommend collection and scoring priorities",
+        "Mark a candidate as experimental, observable, qualified or blocked before independent assessment"
+      ],
+      "must_not": [
+        "Publish directly to the Portal",
+        "Self-approve Production",
+        "Claim absolute or permanent market superiority",
+        "Overwrite historical baselines",
+        "Convert unknown or missing data into zero",
+        "Approve provider spend or contract terms",
+        "Modify Rankability assessment results"
+      ],
+      "success_measures": [
+        "Reproducibility",
+        "Right Data Coverage improvement",
+        "Precision and evidence density",
+        "Freshness and source diversity",
+        "Stress and scale readiness",
+        "Measured reduction of provider uncertainty",
+        "Timely, evidence-linked reporting"
+      ],
+      "reporting_cadence": "Hourly, immediately on a material event, and a daily candidate-status handoff before the integrated digest."
+    },
+    {
+      "role_id": "track-b-rankability",
+      "title": "Track B Lead — Independent Rankability Reviewer",
+      "current_holder": "Rankability workstream agent",
+      "mission": "Independently determine whether an exact 120 snapshot candidate is sufficiently complete, differentiated, stable and defensible for ranking, provider spend consideration or release promotion.",
+      "core_responsibilities": [
+        "Assess one immutable snapshot ID at a time",
+        "Evaluate rankability, separation, stability, sensitivity and evidence sufficiency",
+        "Identify bottlenecks before external market-data spend",
+        "Publish measurable exit criteria for each blocker",
+        "Classify the gate as blocked, conditional or publishable",
+        "Provide recommendations to Track A without altering its data",
+        "Report immediately when gate state changes"
+      ],
+      "required_deliverables": [
+        "rankability-assessment.json",
+        "Blocking-dimension analysis",
+        "Exit criteria",
+        "Sensitivity and stability findings",
+        "Provider-spend readiness recommendation",
+        "Gate-change event report"
+      ],
+      "decision_authority": [
+        "Set the independent Rankability Gate state",
+        "Block release when rankability evidence is inadequate",
+        "Recommend conditional promotion with explicit residual risks",
+        "Request additional evidence from Track A"
+      ],
+      "must_not": [
+        "Change source records or Track A metrics",
+        "Choose Portal visuals or layout",
+        "Approve provider contracts",
+        "Reuse an assessment for a different snapshot ID",
+        "Treat current observability as permanent superiority",
+        "Approve final Production promotion"
+      ],
+      "success_measures": [
+        "Early identification of non-rankable conditions",
+        "Low false confidence before market-data spend",
+        "Clear measurable exit criteria",
+        "Snapshot-specific and reproducible assessments",
+        "Independence from Track A and Track C incentives"
+      ],
+      "reporting_cadence": "For every material snapshot candidate, immediately on gate change, and a daily status handoff before the integrated digest."
+    },
+    {
+      "role_id": "track-c-portal-v502",
+      "title": "Track C Lead — Portal V502 & Data Connection",
+      "current_holder": "Portal V502 workstream agent",
+      "mission": "Build and operate a modular premium intelligence interface that consumes only approved versioned snapshots and replaceable editorial assets.",
+      "core_responsibilities": [
+        "Implement the published-snapshot contract",
+        "Render all eight Core Verticals and the dynamic current Featured Set",
+        "Build registry-based Hero, object and editorial-asset selection",
+        "Maintain desktop, tablet and mobile responsiveness",
+        "Expose data mode, snapshot ID, freshness, confidence and interpretation limits",
+        "Produce Portal release manifests and QA evidence",
+        "Report contract, asset, rendering and performance failures back to the producing tracks",
+        "Maintain rollback-compatible releases"
+      ],
+      "required_deliverables": [
+        "portal-release-manifest.json",
+        "Portal implementation",
+        "Contract validation result",
+        "Desktop/tablet/mobile QA result",
+        "Performance and accessibility result",
+        "Release notes and rollback target",
+        "Asset and rights readiness references"
+      ],
+      "decision_authority": [
+        "Choose implementation details that preserve approved contracts and design system",
+        "Block a Portal release on contract, asset, rights, responsive or performance failure",
+        "Request contract clarification or missing assets",
+        "Recommend release readiness"
+      ],
+      "must_not": [
+        "Calculate vertical rankings or readiness",
+        "Select Featured items independently",
+        "Read raw PoC or provider data directly",
+        "Silently convert missing values to zero",
+        "Publish prototype or uncleared assets as Production",
+        "Modify the intelligence result to fit the design"
+      ],
+      "success_measures": [
+        "Contract fidelity",
+        "Snapshot and registry modularity",
+        "Responsive quality",
+        "Performance and accessibility",
+        "Release reversibility",
+        "No hidden calculation or data distortion",
+        "Consistent luxury institutional presentation"
+      ],
+      "reporting_cadence": "On every material contract or release change, immediately on rendering/asset/contract failure, and daily before the integrated digest."
+    },
+    {
+      "role_id": "snapshot-publisher",
+      "title": "Snapshot Publisher",
+      "current_holder": "Integration function; assignable to an automated service after validation",
+      "mission": "Package a valid candidate and its assessment into a controlled, immutable, auditable release artifact without altering the intelligence content.",
+      "core_responsibilities": [
+        "Validate snapshot and assessment schema",
+        "Verify snapshot-ID and methodology-version consistency",
+        "Move artifacts through Draft, Internal, QA Passed, Approved, Published and Archived states",
+        "Maintain current and previous published pointers",
+        "Write release lineage and rollback references",
+        "Fail closed on incomplete or mismatched artifacts"
+      ],
+      "required_deliverables": [
+        "Published snapshot package",
+        "Publication record",
+        "Rollback pointer",
+        "Archive record",
+        "Validation log"
+      ],
+      "decision_authority": [
+        "Reject technically invalid publication requests",
+        "Publish only after all required approvals are present",
+        "Restore the previous approved snapshot during an authorized rollback"
+      ],
+      "must_not": [
+        "Change ranking, Featured Set or metrics",
+        "Waive a missing approval",
+        "Publish a blocked snapshot",
+        "Delete the previous rollback target"
+      ],
+      "success_measures": [
+        "Artifact consistency",
+        "Publication reproducibility",
+        "Rollback speed",
+        "No unauthorized publication",
+        "Complete lineage"
+      ],
+      "reporting_cadence": "Every candidate publication, failure, rollback and archive event."
+    },
+    {
+      "role_id": "registry-custodian",
+      "title": "Registry Custodian",
+      "current_holder": "Atlas until delegated",
+      "mission": "Maintain the shared program memory so all people, AI agents, code, Portal and Books use the same approved identifiers, roles, decisions and states.",
+      "core_responsibilities": [
+        "Maintain program, role, cadence, decision, risk, snapshot, evidence, object, asset, rights, provider and release registries",
+        "Validate stable IDs and version changes",
+        "Reject duplicate, ambiguous or chat-only official terms",
+        "Maintain history rather than destructive overwrite",
+        "Ensure registry updates link to evidence and approval",
+        "Publish change summaries to the canonical board"
+      ],
+      "required_deliverables": [
+        "Versioned registry files",
+        "Registry change log",
+        "Identifier and terminology conflict report",
+        "Registry validation result"
+      ],
+      "decision_authority": [
+        "Reject malformed or conflicting registry entries",
+        "Request approval evidence",
+        "Deprecate but not erase superseded identifiers"
+      ],
+      "must_not": [
+        "Approve material doctrine alone",
+        "Rewrite history",
+        "Make a track result official without required evidence and gate state"
+      ],
+      "success_measures": [
+        "Identifier uniqueness",
+        "Cross-track terminology consistency",
+        "Traceable version history",
+        "Low handoff ambiguity"
+      ],
+      "reporting_cadence": "On every material registry change and in the daily integrated digest."
+    },
+    {
+      "role_id": "editorial-rights-reviewer",
+      "title": "Editorial & Rights Reviewer",
+      "current_holder": "Function awaiting named assignment; Program Owner retains final rights-risk authority",
+      "mission": "Ensure every Production editorial asset is category-representative, visually consistent, high quality and legally safe for its intended use.",
+      "core_responsibilities": [
+        "Review Original Editorial Visual quality and category relevance",
+        "Verify logo, trademark, trade-dress, copyright and licensing risk",
+        "Classify assets as Prototype, Editorial Approved, Rights Cleared or Production Ready",
+        "Maintain Hero, Gallery, Mobile, Research and Thumbnail variants",
+        "Confirm asset metadata, ownership, approval and replacement history",
+        "Block uncleared or low-quality assets from Production"
+      ],
+      "required_deliverables": [
+        "Asset approval record",
+        "Rights review record",
+        "Variant completeness report",
+        "Replacement and deprecation record"
+      ],
+      "decision_authority": [
+        "Block an asset from Production",
+        "Approve editorial quality within established standards",
+        "Request redesign, regeneration or replacement"
+      ],
+      "must_not": [
+        "Choose Featured Verticals based on aesthetics",
+        "Use a third-party brand asset without rights basis",
+        "Approve a Prototype asset as Production without required gates"
+      ],
+      "success_measures": [
+        "Rights incidents avoided",
+        "Visual consistency",
+        "4K master and required variants available",
+        "Fast asset replacement without Portal redesign"
+      ],
+      "reporting_cadence": "At every asset approval, rejection, replacement or rights event."
+    },
+    {
+      "role_id": "qa-release-manager",
+      "title": "QA & Release Manager",
+      "current_holder": "Integration function; independent review required for Production",
+      "mission": "Verify that a proposed release satisfies contract, functional, responsive, performance, accessibility, monitoring and rollback requirements.",
+      "core_responsibilities": [
+        "Validate release against G0–G5 gates",
+        "Run contract, data, desktop, tablet, mobile, accessibility and performance checks",
+        "Verify rollback snapshot and deployment workflow",
+        "Confirm no unrelated files are included in the release",
+        "Produce release recommendation and residual-risk summary",
+        "Monitor the initial Production window and initiate authorized rollback"
+      ],
+      "required_deliverables": [
+        "portal-qa-result.json",
+        "Release checklist",
+        "Residual-risk summary",
+        "Rollback verification",
+        "Initial monitoring report"
+      ],
+      "decision_authority": [
+        "Block release on failed quality gates",
+        "Recommend go, conditional go or no-go",
+        "Trigger pre-authorized technical rollback"
+      ],
+      "must_not": [
+        "Approve business residual risk",
+        "Waive missing rights or lineage",
+        "Hide failed tests",
+        "Expand release scope without review"
+      ],
+      "success_measures": [
+        "Low escape-defect rate",
+        "Responsive and accessibility conformance",
+        "Successful rollback drills",
+        "No unrelated-change contamination",
+        "Fast incident detection"
+      ],
+      "reporting_cadence": "Every release candidate, deployment, monitoring window and rollback."
+    },
+    {
+      "role_id": "documentation-sync",
+      "title": "Documentation & Three-Book Synchronization Lead",
+      "current_holder": "Atlas until delegated",
+      "mission": "Keep operational reality, official terminology, GitHub documentation and the three Books synchronized without creating a fourth parallel doctrine.",
+      "core_responsibilities": [
+        "Classify approved content into Master Book, Baseline Book or Architecture Book",
+        "Maintain decision and terminology traceability",
+        "Update current baselines after approved snapshots",
+        "Update architecture after approved contract or operating-model changes",
+        "Prevent stale or contradictory official documentation",
+        "Prepare weekly synchronization review"
+      ],
+      "required_deliverables": [
+        "Book synchronization checklist",
+        "Documentation delta summary",
+        "Terminology and glossary updates",
+        "Staleness and contradiction report"
+      ],
+      "decision_authority": [
+        "Reject undocumented material changes from official release",
+        "Request clarification before Book synchronization",
+        "Propose correct Book placement"
+      ],
+      "must_not": [
+        "Create a fourth official Book",
+        "Turn unapproved chat discussion into doctrine",
+        "Rewrite measured baseline as aspiration"
+      ],
+      "success_measures": [
+        "No material contradiction among code, registry and Books",
+        "Fast onboarding of new people and AI agents",
+        "Clear separation of philosophy, current baseline and implementation"
+      ],
+      "reporting_cadence": "Sunday integrated review and every material doctrine or architecture release."
+    },
+    {
+      "role_id": "incident-manager",
+      "title": "Incident & Escalation Manager",
+      "current_holder": "Integration function during PoC; assignable for Production operations",
+      "mission": "Coordinate rapid, traceable and reversible response to data, provider, rights, release and Portal incidents.",
+      "core_responsibilities": [
+        "Open and classify material incidents",
+        "Coordinate containment, rollback and stakeholder communication",
+        "Preserve evidence and timeline",
+        "Assign root-cause and corrective-action owners",
+        "Track remediation to verified closure",
+        "Feed lessons learned into risk, decision, baseline and architecture records"
+      ],
+      "required_deliverables": [
+        "Incident record",
+        "Timeline",
+        "Containment and rollback record",
+        "Root-cause analysis",
+        "Corrective and preventive action record"
+      ],
+      "decision_authority": [
+        "Declare an incident",
+        "Activate pre-authorized containment and rollback",
+        "Request immediate track reports"
+      ],
+      "must_not": [
+        "Delete or alter incident evidence",
+        "Close an incident without verified corrective action",
+        "Accept business residual risk on behalf of the Program Owner"
+      ],
+      "success_measures": [
+        "Detection speed",
+        "Containment speed",
+        "Rollback success",
+        "Recurrence reduction",
+        "Complete incident evidence"
+      ],
+      "reporting_cadence": "Immediate on incident declaration, periodic updates during response and closure report after verification."
+    },
+    {
+      "role_id": "program-participant",
+      "title": "Program Participant — Human, AI Agent or Service",
+      "current_holder": "All current and future contributors",
+      "mission": "Execute assigned work using the official shared language, contracts, registries and decision structure.",
+      "core_responsibilities": [
+        "Read the coordination hub and role registry before work begins",
+        "Declare the role and track being performed",
+        "Use canonical IDs and official terminology",
+        "Attach evidence to claims and handoffs",
+        "Record material decisions, risks and blockers in GitHub",
+        "Protect secrets, rights and data lineage",
+        "Escalate conflicts instead of creating isolated workarounds",
+        "Leave the shared record more complete than it was found"
+      ],
+      "required_deliverables": [
+        "Role-specific artifacts",
+        "Evidence-linked status updates",
+        "Clear handoff and next action",
+        "Disclosure of uncertainty, failure or missing data"
+      ],
+      "decision_authority": [
+        "Execute within assigned scope",
+        "Stop work and escalate on safety, rights, data-loss or contract concerns"
+      ],
+      "must_not": [
+        "Create private official terminology",
+        "Claim completion without evidence",
+        "Bypass a required gate",
+        "Modify another track's owned artifact without approved handoff",
+        "Treat memory from a separate chat as official truth"
+      ],
+      "success_measures": [
+        "Artifact quality",
+        "Handoff clarity",
+        "Registry and terminology compliance",
+        "Evidence traceability",
+        "Low rework caused by isolated assumptions"
+      ],
+      "reporting_cadence": "As defined by the assigned role and immediately on material risk or conflict."
+    }
+  ]
+}
