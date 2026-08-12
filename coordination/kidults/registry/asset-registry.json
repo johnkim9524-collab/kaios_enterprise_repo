@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0.0",
+  "status": "BOOTSTRAPPING",
+  "records": [],
+  "lifecycle": ["PROTOTYPE","EDITORIAL_APPROVED","RIGHTS_CLEARED","PRODUCTION_READY","RETIRED"],
+  "rule": "Portal may consume only production-ready asset IDs; prototype or uncleared assets must not be published."
+}
