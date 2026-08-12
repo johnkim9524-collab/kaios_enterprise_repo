@@ -1,5 +1,6 @@
 import { loadPortalData } from "./components/data-store.js";
 import { startLivingPulse } from "./components/living-pulse.js";
+import { startWhyEngine } from "./components/why-engine.js";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -31,7 +32,7 @@ function determineDataState(data) {
 
 async function init() {
   document.documentElement.dataset.release = "v502";
-  document.documentElement.dataset.experience = "living-pulse-v0-1";
+  document.documentElement.dataset.experience = "living-intelligence-v6";
   setupNavigation();
 
   try {
@@ -55,6 +56,11 @@ async function init() {
       contract: data.pulse
     });
 
+    startWhyEngine({
+      data,
+      contract: data.why
+    });
+
     setupDialogs(data);
     setupVerticalFilter();
     setupSearch(data.searchIndex);
@@ -67,7 +73,8 @@ async function init() {
       candidateSnapshotId: data.manifest.candidate_snapshot_id,
       assessmentId: data.manifest.assessment_id,
       sourceMode: data.manifest.source_mode,
-      livingPulse: data.pulse.version
+      livingPulse: data.pulse.version,
+      whyEngine: data.why.version
     });
   } catch (error) {
     console.error("KIDULTS V502 portal initialization failed.", error);
