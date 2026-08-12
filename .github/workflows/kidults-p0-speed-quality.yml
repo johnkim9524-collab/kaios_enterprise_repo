@@ -43,9 +43,7 @@ jobs:
         run: npm run typecheck
       - name: Runtime smoke
         run: npm run runtime:smoke
-      - name: Unit tests
-        run: npm test
-      - name: Coverage threshold gate
+      - name: Unit tests + coverage threshold gate
         run: node scripts/p0-coverage-gate.mjs
       - name: Truth-layer synthetic acceptance gate
         run: npm run truth:gate
