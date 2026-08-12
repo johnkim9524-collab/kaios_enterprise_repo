@@ -47,7 +47,6 @@ async function init() {
     const data = await loadPortalData();
 
     renderHero(data.manifest);
-    startMobileHeroVisibility({ manifest: data.manifest });
     renderRegistryRibbon(data.registry, data.manifest);
     renderSnapshot(data.summary);
     renderOperations(data.summary);
@@ -99,6 +98,7 @@ async function init() {
     setupReveal();
 
     startMobileReconstruction();
+    startMobileHeroVisibility({ manifest: data.manifest });
 
     document.documentElement.dataset.dataState = determineDataState(data);
     window.KIDULTS_V502 = Object.freeze({
