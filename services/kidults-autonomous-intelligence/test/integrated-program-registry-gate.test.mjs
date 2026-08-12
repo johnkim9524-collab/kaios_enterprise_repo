@@ -38,6 +38,23 @@ function fixtureWithSnapshot() {
   return tempRoot;
 }
 
+function canonicalHandoff(overrides = {}) {
+  return {
+    handoff_id: 'fixture-handoff',
+    from_track: 'A',
+    to_track: 'B',
+    snapshot_id: 'fixture-candidate',
+    artifact_reference: 'snapshot-candidate.json',
+    artifact_version: '1.0.0',
+    requested_action: 'VALIDATE',
+    deadline: null,
+    known_limitations: [],
+    acceptance_criteria: [],
+    state: 'accepted',
+    ...overrides,
+  };
+}
+
 test('current integrated program registry bootstraps safely without inventing snapshot or production readiness', () => {
   const { result, report } = run(LIVE_COORDINATION_ROOT);
   assert.equal(result.status, 0);
@@ -76,7 +93,7 @@ test('missing registry root fails closed and still emits a diagnostic report', (
   assert.equal(report.track_b_readiness.assessment_permitted, false);
 });
 
-test('registered snapshot without proven Evidence Package keeps Track B in WAITING_FOR_EVIDENCE', () => {
+test('registered snapshot without canonical snapshot-candidate handoff keeps Track B in WAITING_FOR_SNAPSHOT', () => {
   const tempRoot = fixtureWithSnapshot();
 
   const { result, report } = run(tempRoot);
@@ -85,11 +102,28 @@ test('registered snapshot without proven Evidence Package keeps Track B in WAITI
   assert.equal(report.status, 'PASS_BOOTSTRAPPING');
   assert.equal(report.current_snapshot_id, 'fixture-candidate');
   assert.equal(report.track_b_readiness.assessment_permitted, false);
-  assert.equal(report.track_b_readiness.waiting_state, 'WAITING_FOR_EVIDENCE');
-  assert.equal(report.track_b_readiness.reason, 'EVIDENCE_PACKAGE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF');
+  assert.equal(report.track_b_readiness.waiting_state, 'WAITING_FOR_SNAPSHOT');
+  assert.equal(report.track_b_readiness.reason, 'SNAPSHOT_CANDIDATE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF');
   assert.equal(report.track_b_readiness.canonical_handoff_proof.snapshot_candidate_handoff_id, null);
   assert.equal(report.track_b_readiness.canonical_handoff_proof.evidence_package_handoff_id, null);
   assert.equal(report.claims.track_b_assessment_started, false);
+});
+
+test('canonical snapshot-candidate handoff without Evidence Package keeps Track B in WAITING_FOR_EVIDENCE', () => {
+  const tempRoot = fixtureWithSnapshot();
+  const handoffPath = path.join(tempRoot, 'registry', 'handoff-registry.json');
+  const handoffs = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
+  handoffs.entries = [canonicalHandoff({ handoff_id: 'fixture-snapshot-handoff' })];
+  fs.writeFileSync(handoffPath, JSON.stringify(handoffs, null, 2));
+
+  const { result, report } = run(tempRoot);
+  fs.rmSync(tempRoot, { recursive: true, force: true });
+  assert.equal(result.status, 0);
+  assert.equal(report.track_b_readiness.assessment_permitted, false);
+  assert.equal(report.track_b_readiness.waiting_state, 'WAITING_FOR_EVIDENCE');
+  assert.equal(report.track_b_readiness.reason, 'EVIDENCE_PACKAGE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF');
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.snapshot_candidate_handoff_id, 'fixture-snapshot-handoff');
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.evidence_package_handoff_id, null);
 });
 
 test('Track B becomes assessment-ready only when both official inputs are accepted for the exact snapshot', () => {
@@ -98,22 +132,17 @@ test('Track B becomes assessment-ready only when both official inputs are accept
   const handoffPath = path.join(tempRoot, 'registry', 'handoff-registry.json');
   const handoffs = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
   handoffs.entries = [
-    {
+    canonicalHandoff({
       handoff_id: 'fixture-snapshot-handoff',
-      from_track: 'A',
-      to_track: 'B',
-      snapshot_id: 'fixture-candidate',
       artifact_reference: 'snapshots/fixture-candidate/snapshot-candidate.json',
-      state: 'accepted',
-    },
-    {
+    }),
+    canonicalHandoff({
       handoff_id: 'fixture-evidence-handoff',
       from_track: 'track-a-120-intelligence-factory',
       to_track: 'track-b-rankability-validation-gate',
-      snapshot_id: 'fixture-candidate',
       artifact_reference: 'EVIDENCE_PACKAGE',
       state: 'completed',
-    },
+    }),
   ];
   fs.writeFileSync(handoffPath, JSON.stringify(handoffs, null, 2));
 
@@ -136,22 +165,12 @@ test('accepted Evidence Package for a different snapshot cannot unlock Track B a
   const handoffPath = path.join(tempRoot, 'registry', 'handoff-registry.json');
   const handoffs = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
   handoffs.entries = [
-    {
-      handoff_id: 'fixture-snapshot-handoff',
-      from_track: 'A',
-      to_track: 'B',
-      snapshot_id: 'fixture-candidate',
-      artifact_reference: 'snapshot-candidate.json',
-      state: 'accepted',
-    },
-    {
+    canonicalHandoff({ handoff_id: 'fixture-snapshot-handoff' }),
+    canonicalHandoff({
       handoff_id: 'wrong-snapshot-evidence-handoff',
-      from_track: 'A',
-      to_track: 'B',
       snapshot_id: 'different-candidate',
       artifact_reference: 'EVIDENCE_PACKAGE',
-      state: 'accepted',
-    },
+    }),
   ];
   fs.writeFileSync(handoffPath, JSON.stringify(handoffs, null, 2));
 
@@ -163,6 +182,77 @@ test('accepted Evidence Package for a different snapshot cannot unlock Track B a
   assert.equal(report.track_b_readiness.canonical_handoff_proof.snapshot_candidate_handoff_id, 'fixture-snapshot-handoff');
   assert.equal(report.track_b_readiness.canonical_handoff_proof.evidence_package_handoff_id, null);
   assert.equal(report.claims.track_b_assessment_started, false);
+});
+
+test('accepted handoff missing canonical required fields cannot unlock Track B assessment', () => {
+  const tempRoot = fixtureWithSnapshot();
+
+  const handoffPath = path.join(tempRoot, 'registry', 'handoff-registry.json');
+  const handoffs = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
+  handoffs.entries = [
+    {
+      handoff_id: 'incomplete-snapshot-handoff',
+      from_track: 'A',
+      to_track: 'B',
+      snapshot_id: 'fixture-candidate',
+      artifact_reference: 'snapshot-candidate.json',
+      state: 'accepted',
+    },
+    canonicalHandoff({ handoff_id: 'fixture-evidence-handoff', artifact_reference: 'EVIDENCE_PACKAGE' }),
+  ];
+  fs.writeFileSync(handoffPath, JSON.stringify(handoffs, null, 2));
+
+  const { result, report } = run(tempRoot);
+  fs.rmSync(tempRoot, { recursive: true, force: true });
+  assert.equal(result.status, 0);
+  assert.equal(report.track_b_readiness.assessment_permitted, false);
+  assert.equal(report.track_b_readiness.waiting_state, 'WAITING_FOR_SNAPSHOT');
+  assert.equal(report.track_b_readiness.reason, 'SNAPSHOT_CANDIDATE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF');
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.snapshot_candidate_handoff_id, null);
+});
+
+test('duplicate accepted official-input handoffs remain fail-closed as ambiguous', () => {
+  const tempRoot = fixtureWithSnapshot();
+
+  const handoffPath = path.join(tempRoot, 'registry', 'handoff-registry.json');
+  const handoffs = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
+  handoffs.entries = [
+    canonicalHandoff({ handoff_id: 'snapshot-handoff-1' }),
+    canonicalHandoff({ handoff_id: 'snapshot-handoff-2' }),
+    canonicalHandoff({ handoff_id: 'fixture-evidence-handoff', artifact_reference: 'EVIDENCE_PACKAGE' }),
+  ];
+  fs.writeFileSync(handoffPath, JSON.stringify(handoffs, null, 2));
+
+  const { result, report } = run(tempRoot);
+  fs.rmSync(tempRoot, { recursive: true, force: true });
+  assert.equal(result.status, 0);
+  assert.equal(report.track_b_readiness.assessment_permitted, false);
+  assert.equal(report.track_b_readiness.waiting_state, 'WAITING_FOR_VALIDATION');
+  assert.equal(report.track_b_readiness.reason, 'OFFICIAL_INPUT_HANDOFF_AMBIGUOUS');
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.snapshot_candidate_handoff_id, null);
+  assert.equal(report.claims.track_b_assessment_started, false);
+});
+
+test('tampered handoff required-field contract fails closed before Track B assessment', () => {
+  const tempRoot = fixtureWithSnapshot();
+
+  const handoffPath = path.join(tempRoot, 'registry', 'handoff-registry.json');
+  const handoffs = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
+  handoffs.required_fields = handoffs.required_fields.filter((field) => field !== 'acceptance_criteria');
+  handoffs.entries = [
+    canonicalHandoff({ handoff_id: 'fixture-snapshot-handoff' }),
+    canonicalHandoff({ handoff_id: 'fixture-evidence-handoff', artifact_reference: 'EVIDENCE_PACKAGE' }),
+  ];
+  fs.writeFileSync(handoffPath, JSON.stringify(handoffs, null, 2));
+
+  const { result, report } = run(tempRoot);
+  fs.rmSync(tempRoot, { recursive: true, force: true });
+  assert.equal(result.status, 1);
+  assert.equal(report.status, 'FAIL_CLOSED');
+  assert.ok(report.failures.includes('HANDOFF_REQUIRED_FIELDS_INVALID'));
+  assert.equal(report.track_b_readiness.assessment_permitted, false);
+  assert.equal(report.track_b_readiness.waiting_state, 'WAITING_FOR_VALIDATION');
+  assert.equal(report.track_b_readiness.reason, 'INTEGRATED_PROGRAM_GATE_NOT_CLEAN');
 });
 
 test('registered snapshot iteration is accepted while an unapproved production release still fails closed', () => {

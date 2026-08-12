@@ -31,6 +31,19 @@ const REQUIRED_PROGRAM_TRACKS = ['A', 'B', 'C', 'D'];
 const REQUIRED_COMPATIBILITY_TRACKS = ['A', 'B', 'C'];
 const TRACK_B_OFFICIAL_INPUTS = ['snapshot-candidate.json', 'EVIDENCE_PACKAGE'];
 const TRACK_B_OFFICIAL_OUTPUT = 'rankability-assessment.json';
+const REQUIRED_HANDOFF_FIELDS = [
+  'handoff_id',
+  'from_track',
+  'to_track',
+  'snapshot_id',
+  'artifact_reference',
+  'artifact_version',
+  'requested_action',
+  'deadline',
+  'known_limitations',
+  'acceptance_criteria',
+  'state',
+];
 const ACCEPTED_HANDOFF_STATES = new Set(['accepted', 'completed']);
 const TRACK_ALIASES = {
   A: new Set(['A', 'track-a-120-intelligence-factory']),
@@ -67,16 +80,23 @@ function trackMatches(value, trackId) {
   return typeof value === 'string' && TRACK_ALIASES[trackId]?.has(value);
 }
 
-function findAcceptedHandoff(handoffs, snapshotId, artifactReference) {
-  if (!snapshotId) return null;
+function hasCanonicalHandoffFields(row) {
+  if (row == null || typeof row !== 'object' || Array.isArray(row)) return false;
+  if (!REQUIRED_HANDOFF_FIELDS.every((field) => Object.prototype.hasOwnProperty.call(row, field))) return false;
+  return typeof row.handoff_id === 'string' && row.handoff_id.trim().length > 0;
+}
+
+function findAcceptedHandoffs(handoffs, snapshotId, artifactReference) {
+  if (!snapshotId) return [];
   const entries = Array.isArray(handoffs?.entries) ? handoffs.entries : [];
-  return entries.find((row) =>
-    row?.snapshot_id === snapshotId
+  return entries.filter((row) =>
+    hasCanonicalHandoffFields(row)
+    && row?.snapshot_id === snapshotId
     && trackMatches(row?.from_track, 'A')
     && trackMatches(row?.to_track, 'B')
     && artifactReferenceMatches(row?.artifact_reference, artifactReference)
     && ACCEPTED_HANDOFF_STATES.has(String(row?.state ?? '').toLowerCase())
-  ) ?? null;
+  );
 }
 
 function handoffId(row) {
@@ -100,6 +120,7 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
   const tracks = registries['track-registry.json'];
   const snapshots = registries['snapshot-registry.json'];
   const providers = registries['provider-registry.json'];
+  const handoffs = registries['handoff-registry.json'];
   const releases = registries['release-registry.json'];
   const programTrackIds = Array.isArray(program?.tracks) ? program.tracks.map((row) => row?.track_id) : [];
   const trackRows = Array.isArray(tracks?.tracks) ? tracks.tracks : [];
@@ -129,6 +150,7 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
   requireCondition(trackB?.input_boundary?.both_official_inputs_required_before_assessment === true, 'TRACK_B_BOTH_INPUTS_REQUIRED_INVALID', failures);
   requireCondition(trackB?.temporary_or_estimated_assessment_allowed === false, 'TRACK_B_TEMPORARY_ASSESSMENT_POLICY_INVALID', failures);
   requireCondition(trackB?.registry_access?.mode === 'READ_ONLY', 'TRACK_B_REGISTRY_ACCESS_INVALID', failures);
+  requireCondition(JSON.stringify(handoffs?.required_fields) === JSON.stringify(REQUIRED_HANDOFF_FIELDS), 'HANDOFF_REQUIRED_FIELDS_INVALID', failures);
   requireCondition(JSON.stringify(program?.artifact_chain) === JSON.stringify(REQUIRED_ARTIFACT_CHAIN), 'ARTIFACT_CHAIN_INVALID', failures);
   requireCondition(Array.isArray(program?.official_books) && program.official_books.length === 3 && program.official_books.includes('Master Book') && program.official_books.includes('Baseline Book') && program.official_books.includes('Architecture Book'), 'OFFICIAL_BOOK_TOPOLOGY_INVALID', failures);
   requireCondition(currentSnapshotId == null || registeredSnapshotIds.has(currentSnapshotId), 'CURRENT_SNAPSHOT_NOT_REGISTERED', failures);
@@ -140,19 +162,34 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
 
 const currentSnapshotId = registries['snapshot-registry.json']?.current_candidate_snapshot_id ?? registries['snapshot-registry.json']?.current_published_snapshot_id ?? null;
 const handoffs = registries['handoff-registry.json'];
-const snapshotCandidateHandoff = findAcceptedHandoff(handoffs, currentSnapshotId, TRACK_B_OFFICIAL_INPUTS[0]);
-const evidencePackageHandoff = findAcceptedHandoff(handoffs, currentSnapshotId, TRACK_B_OFFICIAL_INPUTS[1]);
+const snapshotCandidateHandoffs = findAcceptedHandoffs(handoffs, currentSnapshotId, TRACK_B_OFFICIAL_INPUTS[0]);
+const evidencePackageHandoffs = findAcceptedHandoffs(handoffs, currentSnapshotId, TRACK_B_OFFICIAL_INPUTS[1]);
+const snapshotCandidateHandoff = snapshotCandidateHandoffs.length === 1 ? snapshotCandidateHandoffs[0] : null;
+const evidencePackageHandoff = evidencePackageHandoffs.length === 1 ? evidencePackageHandoffs[0] : null;
 const trackBBoundaryFailures = failures.filter((code) => String(code).startsWith('TRACK_B_'));
+const officialInputHandoffAmbiguous = snapshotCandidateHandoffs.length > 1 || evidencePackageHandoffs.length > 1;
 const bothOfficialInputsAccepted = snapshotCandidateHandoff != null && evidencePackageHandoff != null;
-const trackBAssessmentPermitted = failures.length === 0 && currentSnapshotId != null && bothOfficialInputsAccepted;
+const trackBAssessmentPermitted = failures.length === 0 && currentSnapshotId != null && bothOfficialInputsAccepted && !officialInputHandoffAmbiguous;
 
 let trackBWaitingState = 'WAITING_FOR_SNAPSHOT';
 let trackBReadinessReason = 'OFFICIAL_SNAPSHOT_CANDIDATE_NOT_REGISTERED';
 if (currentSnapshotId != null) {
-  trackBWaitingState = bothOfficialInputsAccepted ? 'READY_FOR_ASSESSMENT' : 'WAITING_FOR_EVIDENCE';
-  trackBReadinessReason = bothOfficialInputsAccepted
-    ? (failures.length === 0 ? 'BOTH_OFFICIAL_INPUTS_ACCEPTED_FOR_EXACT_SNAPSHOT' : 'INTEGRATED_PROGRAM_GATE_NOT_CLEAN')
-    : 'EVIDENCE_PACKAGE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF';
+  if (officialInputHandoffAmbiguous) {
+    trackBWaitingState = 'WAITING_FOR_VALIDATION';
+    trackBReadinessReason = 'OFFICIAL_INPUT_HANDOFF_AMBIGUOUS';
+  } else if (snapshotCandidateHandoff == null) {
+    trackBWaitingState = 'WAITING_FOR_SNAPSHOT';
+    trackBReadinessReason = 'SNAPSHOT_CANDIDATE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF';
+  } else if (evidencePackageHandoff == null) {
+    trackBWaitingState = 'WAITING_FOR_EVIDENCE';
+    trackBReadinessReason = 'EVIDENCE_PACKAGE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF';
+  } else if (failures.length > 0) {
+    trackBWaitingState = 'WAITING_FOR_VALIDATION';
+    trackBReadinessReason = 'INTEGRATED_PROGRAM_GATE_NOT_CLEAN';
+  } else {
+    trackBWaitingState = 'READY_FOR_ASSESSMENT';
+    trackBReadinessReason = 'BOTH_OFFICIAL_INPUTS_ACCEPTED_FOR_EXACT_SNAPSHOT';
+  }
 }
 
 const report = {
