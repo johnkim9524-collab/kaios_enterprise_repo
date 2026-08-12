@@ -1,0 +1,63 @@
+name: KIDULTS Portal V502 Validate
+
+on:
+  pull_request:
+    paths:
+      - 'apps/kidults-enterprise-staging/public/portal/**'
+      - 'coordination/kidults/registry/track/**'
+      - 'coordination/kidults/registry/blocker/**'
+      - 'coordination/kidults/registry/mission/**'
+      - 'coordination/kidults/registry/work-queue/**'
+      - 'coordination/kidults/registry/digital-twin/**'
+      - 'scripts/kidults/portal/**'
+      - '.github/workflows/kidults-portal-v502-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/kidults-enterprise-staging/public/portal/**'
+      - 'coordination/kidults/registry/track/**'
+      - 'coordination/kidults/registry/blocker/**'
+      - 'coordination/kidults/registry/mission/**'
+      - 'coordination/kidults/registry/work-queue/**'
+      - 'coordination/kidults/registry/digital-twin/**'
+      - 'scripts/kidults/portal/**'
+      - '.github/workflows/kidults-portal-v502-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Syntax-check V502 JavaScript
+        run: |
+          node --check apps/kidults-enterprise-staging/public/portal/portal.js
+          node --check apps/kidults-enterprise-staging/public/portal/detail.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/data-store.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/renderers.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/interactions.js
+
+      - name: Validate shared coordination
+        run: node scripts/kidults/coordination/validate-coordination.mjs
+
+      - name: Validate operational registry
+        run: node scripts/kidults/registry/validate-operational-registry.mjs
+
+      - name: Validate mission control
+        run: node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Validate V502 Registry projection
+        run: node scripts/kidults/portal/build-v502-registry-view.mjs
+
+      - name: Validate Portal V502 Release Candidate
+        run: node scripts/kidults/portal/validate-v502-portal.mjs
