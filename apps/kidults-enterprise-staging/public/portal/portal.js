@@ -5,6 +5,7 @@ import { startCopilot } from "./components/copilot.js";
 import { startCompareEngine } from "./components/compare-engine.js";
 import { startDecisionEngine } from "./components/decision-engine.js";
 import { startWorkspace } from "./components/workspace.js";
+import { startIntegrityHardening } from "./components/integrity-hardening.js";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -49,7 +50,7 @@ async function init() {
     renderVerticals(data.verticals);
     renderK100(data.k100);
     renderSignals(data.signals);
-    renderEvidence(data.summary);
+    renderEvidence(data.summary, data.k100);
     renderResearch(data.research);
     renderArchive(data.archive);
     renderReleaseBaseline(data.registry, data.manifest);
@@ -85,6 +86,8 @@ async function init() {
       contract: data.workspace
     });
 
+    startIntegrityHardening({ data });
+
     setupDialogs(data);
     setupVerticalFilter();
     setupSearch(data.searchIndex);
@@ -93,6 +96,7 @@ async function init() {
     document.documentElement.dataset.dataState = determineDataState(data);
     window.KIDULTS_V502 = Object.freeze({
       release: data.manifest.version,
+      experience: data.manifest.experience_label ?? "V6 RC",
       snapshotId: data.manifest.snapshot_id,
       candidateSnapshotId: data.manifest.candidate_snapshot_id,
       assessmentId: data.manifest.assessment_id,
@@ -102,10 +106,11 @@ async function init() {
       copilotEngine: data.copilot.version,
       compareEngine: data.compare.version,
       decisionEngine: data.decision.version,
-      workspace: data.workspace.version
+      workspace: data.workspace.version,
+      integrity: window.KIDULTS_INTEGRITY?.version ?? "NOT AVAILABLE"
     });
   } catch (error) {
-    console.error("KIDULTS V502 portal initialization failed.", error);
+    console.error("KIDULTS V6 portal initialization failed.", error);
     document.documentElement.dataset.dataState = "error";
     renderPortalError(error);
   }
