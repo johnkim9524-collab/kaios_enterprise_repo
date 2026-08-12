@@ -67,6 +67,7 @@ jobs:
           node --check scripts/kidults/portal/validate-v502-portal.mjs
           node --check scripts/kidults/portal/validate-k100-integrity-reset.mjs
           node --check scripts/kidults/portal/validate-mobile-reconstruction.mjs
+          node --check scripts/kidults/portal/validate-320-overflow-hotfix.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -109,3 +110,6 @@ jobs:
 
       - name: Validate V6 Mobile Reconstruction
         run: node scripts/kidults/portal/validate-mobile-reconstruction.mjs
+
+      - name: Validate 320px Overflow Hotfix
+        run: node scripts/kidults/portal/validate-320-overflow-hotfix.mjs
