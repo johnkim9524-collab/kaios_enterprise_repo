@@ -1,0 +1,8 @@
+{
+  "schema_version": "1.0.0",
+  "status": "BOOTSTRAPPING",
+  "records": [],
+  "required_fields": ["source","lineage","field","confidence","timestamp"],
+  "lifecycle": ["COLLECTED","NORMALIZED","QUALIFIED","ARCHIVED"],
+  "safety": {"synthetic_as_live_forbidden":true,"missing_to_zero_forbidden":true,"rights_required":true,"provenance_required":true}
+}
