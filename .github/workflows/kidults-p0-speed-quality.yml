@@ -119,7 +119,37 @@ jobs:
       - name: Open CC0 Scarcity + Demand evidence collection
         run: node scripts/kidult100-open-right-data-evidence.mjs
       - name: Wikimedia Analytics CC0 demand-attention supplement
-        run: node scripts/kidult100-wikimedia-demand-evidence.mjs
+        run: |
+          rm -f reports/kidult100-right-data/wikimedia-demand-evidence-latest.json
+          start=$(date +%s)
+          set +e
+          timeout --signal=TERM --kill-after=10s 90s node scripts/kidult100-wikimedia-demand-evidence.mjs
+          code=$?
+          set -e
+          end=$(date +%s)
+          elapsed=$((end-start))
+          mkdir -p reports/engineering-hardening
+          node -e 'const fs=require("fs"); const [exitCode,elapsedSeconds,headSha]=process.argv.slice(1); const code=Number(exitCode); const report={stage:"WIKIMEDIA_ANALYTICS_DEMAND_ATTENTION_SUPPLEMENT",status:code===0?"PASS":code===124?"TIMEOUT_FAIL_CLOSED":"FAIL_CLOSED",exitCode:code,elapsedSeconds:Number(elapsedSeconds),timeoutSeconds:90,headSha,partialEvidenceAccepted:false,staleOutputPurgedBeforeRun:true}; fs.writeFileSync("reports/engineering-hardening/wikimedia-demand-latency-latest.json",JSON.stringify(report,null,2)+"\n");' "$code" "$elapsed" "$GITHUB_SHA"
+          if [ "$code" -ne 0 ]; then
+            rm -f reports/kidult100-right-data/wikimedia-demand-evidence-latest.json
+            rm -f reports/kidult100-right-data/canon-evidence-latest.json
+            rm -f reports/kidult100-right-data/market-provider-onboarding-preflight-latest.json
+            rm -f reports/kidult100-right-data/market-source-qualification-latest.json
+            rm -f reports/kidult100-right-data/market-no-procurement-qualification-latest.json
+            rm -f reports/kidult100-right-data/market-capability-gap-router-latest.json
+            rm -f reports/kidult100-right-data/normalized-market-provider-evidence-latest.json
+            rm -f reports/kidult100-right-data/validated-provider-evidence-latest.json
+            rm -f reports/kidult100-right-data/market-evidence-acquisition-plan-latest.json
+            rm -f reports/kidult100-right-data/scarcity-materialized-evidence-latest.json
+            rm -f reports/kidult100-right-data/right-data-pre-scarcity-materialization.json
+            rm -f reports/kidult100-right-data/scarcity-materialization-delta-invariant-latest.json
+            rm -f reports/kidult100-right-data/right-data-latest.json
+            rm -f reports/kidult100-right-data/right-data-gap-latest.json
+            rm -f reports/kidult100-right-data/stage2-certification-latest.json
+            rm -f reports/kidult100-ranking/*.json
+            rm -f reports/live-open-data/live-open-data-latest.json
+          fi
+          exit "$code"
       - name: Canon evidence recordization from existing rights-classified metadata
         run: node scripts/kidult100-canon-evidence-recordize.mjs
       - name: Market provider onboarding preflight
@@ -249,6 +279,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/engineering-hardening/wave1-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/stage2-candidate-build-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/stage2-precision-recovery-latency-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/wikimedia-demand-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/sre-readiness-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/governance-baseline-latest.json
           retention-days: 30
