@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0.0",
+  "status": "ACTIVE",
+  "tracks": [
+    {"track_id":"A","name":"120 Intelligence Factory","mission":"Create reproducible Snapshot Candidates from Right Data with measured speed, quality, scale and recovery.","may":["CREATE_CANDIDATE","RUN_POC_EXPERIMENTS"],"must_not":["DIRECT_PORTAL_DEPLOY","PRODUCTION_APPROVAL","ABSOLUTE_SUPERIORITY_CLAIM","OVERWRITE_BASELINE","MISSING_TO_ZERO"]},
+    {"track_id":"B","name":"Rankability & Validation Gate","mission":"Independently assess the exact Snapshot ID for rankability, stability, blocker exit criteria and provider-spend readiness.","may":["INDEPENDENT_GATE_DECISION","REQUEST_CORRECTION"],"must_not":["MODIFY_SOURCE_OR_120_METRIC","PORTAL_VISUAL_SELECTION","PROVIDER_CONTRACT","PRODUCTION_APPROVAL"]},
+    {"track_id":"C","name":"Portal V502 & Experience Layer","mission":"Render only approved Published Intelligence and production-ready assets through the Snapshot Contract.","may":["RENDER_UX","REPORT_CONTRACT_ERROR"],"must_not":["CALCULATE_RANKING","CALCULATE_FEATURED","ACCESS_RAW_PROVIDER_DATA","MISSING_TO_ZERO","PUBLISH_UNAPPROVED_ASSET"]}
+  ]
+}
