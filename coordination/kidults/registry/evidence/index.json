@@ -1,7 +1,7 @@
 {
   "registry_id":"kidults-evidence-registry",
   "registry_name":"Evidence Registry",
-  "registry_version":"1.1.0",
+  "registry_version":"1.1.1",
   "schema_version":"1.0.0",
   "owner":"Track A",
   "custodian":"Atlas",
@@ -9,8 +9,9 @@
   "effective_at":"2026-08-12T12:00:00+09:00",
   "record_directory":"records",
   "record_count":0,
-  "current_baseline_snapshot_id":"baseline-provider-independent-v1",
   "current_evidence_package_id":null,
+  "related_baseline_snapshot_id":"baseline-provider-independent-v1",
   "records":[],
-  "required_next_action":"Track A must register methodology_version, evidence_lineage_version and the immutable Evidence Package before creating a canonical candidate."
+  "required_next_action":"Track A must register methodology_version, evidence_lineage_version and the immutable Evidence Package before creating a canonical candidate.",
+  "change_history":[{"version":"1.1.1","changed_at":"2026-08-12T15:55:00+09:00","changed_by":"Atlas","change":"Classified baseline snapshot as an external registry reference rather than a local evidence-record pointer."}]
 }
