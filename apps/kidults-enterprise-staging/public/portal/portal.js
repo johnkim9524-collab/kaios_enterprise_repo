@@ -6,6 +6,7 @@ import { startCompareEngine } from "./components/compare-engine.js";
 import { startDecisionEngine } from "./components/decision-engine.js";
 import { startWorkspace } from "./components/workspace.js";
 import { startIntegrityHardening } from "./components/integrity-hardening.js";
+import { startK100IntegrityReset } from "./components/k100-integrity-reset.js";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -87,6 +88,7 @@ async function init() {
     });
 
     startIntegrityHardening({ data });
+    startK100IntegrityReset({ data });
 
     setupDialogs(data);
     setupVerticalFilter();
@@ -107,7 +109,8 @@ async function init() {
       compareEngine: data.compare.version,
       decisionEngine: data.decision.version,
       workspace: data.workspace.version,
-      integrity: window.KIDULTS_INTEGRITY?.version ?? "NOT AVAILABLE"
+      integrity: window.KIDULTS_INTEGRITY?.version ?? "NOT AVAILABLE",
+      k100Integrity: window.KIDULTS_K100_INTEGRITY?.version ?? "NOT AVAILABLE"
     });
   } catch (error) {
     console.error("KIDULTS V6 portal initialization failed.", error);

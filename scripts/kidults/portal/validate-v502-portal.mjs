@@ -41,6 +41,8 @@ const requiredFiles = [
   "apps/kidults-enterprise-staging/public/portal/components/data-store.js",
   "apps/kidults-enterprise-staging/public/portal/components/renderers.js",
   "apps/kidults-enterprise-staging/public/portal/components/interactions.js",
+  "apps/kidults-enterprise-staging/public/portal/components/k100-integrity-reset.js",
+  "apps/kidults-enterprise-staging/public/portal/components/k100-integrity-reset.css",
   "apps/kidults-enterprise-staging/public/portal/data/v502-manifest.json",
   "apps/kidults-enterprise-staging/public/portal/data/registry-view.json",
   "apps/kidults-enterprise-staging/public/portal/data/verticals.json",
@@ -81,7 +83,8 @@ for (const marker of [
   "renderVerticals",
   "renderReleaseBaseline",
   "setupSearch",
-  "setupVerticalFilter"
+  "setupVerticalFilter",
+  "startK100IntegrityReset"
 ]) {
   if (!portalJs.includes(marker)) errors.push(`portal.js missing integration: ${marker}`);
 }
@@ -127,6 +130,8 @@ if (manifest) {
   if (manifest.candidate_snapshot_id !== null) errors.push("V502 must not fabricate a candidate snapshot.");
   if (manifest.assessment_id !== null) errors.push("V502 must not fabricate an assessment.");
   if (manifest.display_policy?.core_vertical_count !== 8) errors.push("V502 must declare eight Core Verticals.");
+  if (manifest.display_policy?.featured_slice_count !== 4) errors.push("V6 public editorial slice must declare four evidence-aligned objects.");
+  if (manifest.display_policy?.unverified_visual_policy !== "WITHHOLD") errors.push("Unverified visuals must be withheld.");
   if (manifest.display_policy?.missing_to_zero !== false) errors.push("V502 must forbid missing-to-zero conversion.");
   if (manifest.experience_label !== "V6 RC") errors.push("V6 experience label must remain separate from the V502 data contract.");
 }
@@ -146,16 +151,34 @@ if (verticalData) {
     if (!Number.isFinite(item.demand_evidence_pct)) errors.push(`${item.id}: missing numeric Demand Evidence.`);
     if (!Array.isArray(item.representative_scope) || item.representative_scope.length < 4) errors.push(`${item.id}: insufficient representative scope.`);
   }
+
+  const toys = verticals.find(item => item.id === "vertical-toys-models");
+  if (toys?.visual_asset !== null) errors.push("Toys & Models visual must remain withheld until entity verification.");
+  if (toys?.visual_status !== "VISUAL_WITHHELD_PENDING_EVIDENCE") errors.push("Toys & Models visual status must declare evidence-pending withholding.");
 }
 
 if (k100) {
-  if (k100.items?.length !== 5) errors.push("V502 Featured Slice must contain exactly five public-preview objects.");
+  const items = k100.items ?? [];
+  if (items.length !== 4) errors.push("V6 Featured Slice must contain exactly four evidence-aligned public-preview objects.");
   if (k100.snapshot_id !== manifest?.snapshot_id) errors.push("Kidult 100 and V502 manifest snapshot IDs differ.");
-  for (const item of k100.items ?? []) {
+  if (k100.asset_standard?.unverified_visual_policy !== "WITHHOLD") errors.push("K100 must withhold unverified visuals.");
+
+  const ranks = items.map(item => item.rank).sort((a, b) => a - b);
+  if (ranks.join(",") !== "1,2,3,4") errors.push(`K100 editorial ranks must be 1–4; found ${ranks.join(",")}.`);
+
+  for (const item of items) {
+    if (!item.asset) {
+      errors.push(`${item.id}: public editorial object is missing its registered asset.`);
+      continue;
+    }
     const assetPath = path.join(portalRoot, item.asset);
     if (!fs.existsSync(assetPath)) errors.push(`Missing Featured Slice asset: ${item.asset}`);
+    if (item.visual_role !== "EDITORIAL_INTERPRETATION") errors.push(`${item.id}: visual role must identify editorial interpretation.`);
   }
-  if ((k100.items ?? []).some(item => /koala/i.test(item.title))) errors.push("Temporary Koala object must not appear in V502.");
+
+  if (items.some(item => /koala|original art figure/i.test(item.title))) errors.push("Unverified Koala / Original Art Figure must not appear in K100.");
+  if (items.some(item => item.id === "art-toy-01" || item.id === "character-01")) errors.push("Retired unverified Toys object ID remains in K100.");
+  if (items.find(item => item.id === "footwear-01")?.title !== "Archive Sneaker 01") errors.push("Footwear editorial object must be named Archive Sneaker 01.");
 }
 
 if (summary?.snapshot_id !== manifest?.snapshot_id) errors.push("Portal summary and V502 manifest snapshot IDs differ.");
@@ -182,7 +205,8 @@ for (const relative of [
   "apps/kidults-enterprise-staging/public/portal/detail.js",
   "apps/kidults-enterprise-staging/public/portal/components/data-store.js",
   "apps/kidults-enterprise-staging/public/portal/components/renderers.js",
-  "apps/kidults-enterprise-staging/public/portal/components/interactions.js"
+  "apps/kidults-enterprise-staging/public/portal/components/interactions.js",
+  "apps/kidults-enterprise-staging/public/portal/components/k100-integrity-reset.js"
 ]) {
   const text = readText(relative);
   if (/\bundefined\b\s*[:=]/.test(text)) warnings.push(`${relative}: explicit undefined assignment detected.`);
@@ -195,5 +219,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`KIDULTS Portal V502 validation: PASS (${requiredFiles.length} required files, 8 verticals, 5 featured objects)`);
+console.log(`KIDULTS Portal V502 validation: PASS (${requiredFiles.length} required files, 8 verticals, 4 featured objects)`);
 for (const warning of warnings) console.warn(`WARN: ${warning}`);

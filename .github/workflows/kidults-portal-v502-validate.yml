@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'apps/kidults-enterprise-staging/public/portal/**'
+      - 'apps/kidults-enterprise-staging/public/data/portal-k100.json'
       - 'coordination/kidults/registry/track/**'
       - 'coordination/kidults/registry/blocker/**'
       - 'coordination/kidults/registry/mission/**'
@@ -15,6 +16,7 @@ on:
     branches: [main]
     paths:
       - 'apps/kidults-enterprise-staging/public/portal/**'
+      - 'apps/kidults-enterprise-staging/public/data/portal-k100.json'
       - 'coordination/kidults/registry/track/**'
       - 'coordination/kidults/registry/blocker/**'
       - 'coordination/kidults/registry/mission/**'
@@ -53,6 +55,7 @@ jobs:
           node --check apps/kidults-enterprise-staging/public/portal/components/decision-engine.js
           node --check apps/kidults-enterprise-staging/public/portal/components/workspace.js
           node --check apps/kidults-enterprise-staging/public/portal/components/integrity-hardening.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/k100-integrity-reset.js
           node --check scripts/kidults/portal/validate-living-pulse.mjs
           node --check scripts/kidults/portal/validate-why-engine.mjs
           node --check scripts/kidults/portal/validate-copilot.mjs
@@ -60,6 +63,8 @@ jobs:
           node --check scripts/kidults/portal/validate-decision-engine.mjs
           node --check scripts/kidults/portal/validate-workspace.mjs
           node --check scripts/kidults/portal/validate-integrity-hardening.mjs
+          node --check scripts/kidults/portal/validate-v502-portal.mjs
+          node --check scripts/kidults/portal/validate-k100-integrity-reset.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -96,3 +101,6 @@ jobs:
 
       - name: Validate V6 Integrity Hardening
         run: node scripts/kidults/portal/validate-integrity-hardening.mjs
+
+      - name: Validate K100 Integrity Reset
+        run: node scripts/kidults/portal/validate-k100-integrity-reset.mjs

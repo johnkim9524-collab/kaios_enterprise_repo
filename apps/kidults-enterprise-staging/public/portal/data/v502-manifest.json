@@ -29,8 +29,9 @@
   },
   "display_policy": {
     "core_vertical_count": 8,
-    "featured_slice_count": 5,
+    "featured_slice_count": 4,
     "featured_slice_dynamic": true,
+    "unverified_visual_policy": "WITHHOLD",
     "candidate_data_public": false,
     "assessment_data_public": false,
     "missing_value_states": [
