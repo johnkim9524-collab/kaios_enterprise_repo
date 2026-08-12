@@ -1,0 +1,8 @@
+{
+  "schema_version": "1.0.0",
+  "status": "BOOTSTRAPPING",
+  "records": [
+    {"id":"person-john","name":"John","type":"human","role":"Program Owner","status":"ACTIVE"},
+    {"id":"ai-atlas","name":"Atlas","type":"ai","role":"Chief Architect / Integration Conductor / Registry Custodian","status":"ACTIVE"}
+  ]
+}
