@@ -1,0 +1,13 @@
+{
+  "id":"agent-track-c",
+  "record_type":"ai_agent",
+  "version":"1.0.0",
+  "status":"ROLE_ACCEPTANCE_PENDING",
+  "display_name":"Track C Agent",
+  "role_ids":["role-track-c"],
+  "working_room_name":"C. KIDULTS | Portal V502 & Experience Layer",
+  "canonical_issue":237,
+  "created_by":"Atlas",
+  "approved_by":"John",
+  "known_limitation":"Track C role was defined by KPMO but a separate formal agent acceptance has not yet been registered."
+}

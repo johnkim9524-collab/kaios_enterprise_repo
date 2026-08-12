@@ -1,0 +1,11 @@
+{
+  "id":"<stable-id>",
+  "record_type":"<record-type>",
+  "version":"1.0.0",
+  "status":"DRAFT",
+  "created_at":"<ISO-8601>",
+  "created_by":"<producer>",
+  "approved_by":null,
+  "snapshot_id":null,
+  "references":[]
+}

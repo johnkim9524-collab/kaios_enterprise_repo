@@ -1,0 +1,12 @@
+{
+  "id":"role-program-owner",
+  "record_type":"role",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "title":"Program Owner",
+  "holder_id":"person-john",
+  "mission":"Set strategic direction and make final decisions on scope, providers, residual risk and Production.",
+  "authority":["FINAL_SCOPE","FINAL_BUDGET","PROVIDER_CONTRACT","PRODUCTION_APPROVAL","RESIDUAL_RISK_ACCEPTANCE"],
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

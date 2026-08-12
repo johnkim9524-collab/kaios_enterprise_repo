@@ -1,0 +1,46 @@
+{
+  "id":"baseline-provider-independent-v1",
+  "snapshot_id":"baseline-provider-independent-v1",
+  "record_type":"snapshot",
+  "version":"1.0.0",
+  "status":"BASELINE_LOCKED_PENDING_ARTIFACT",
+  "governance_classification":"APPROVED_BASELINE",
+  "source_mode":"SELF_COLLECTED_PROVIDER_INDEPENDENT",
+  "provider_connected":false,
+  "methodology_version":"NOT_YET_REGISTERED",
+  "evidence_lineage_version":"NOT_YET_REGISTERED",
+  "portal_contract_version":"NOT_YET_REGISTERED",
+  "generated_at":"NOT_YET_REGISTERED",
+  "registered_at":"2026-08-12T15:45:00+09:00",
+  "created_by":"Track A",
+  "registered_by":"Atlas",
+  "approved_by":"John",
+  "interpretation":{
+    "type":"CURRENT_OBSERVABILITY_AND_READINESS",
+    "absolute_or_permanent_superiority_claimed":false,
+    "statement":"This baseline represents current observability under the available self-collected data and current assumptions. It does not represent permanent or absolute market superiority."
+  },
+  "core_vertical_count":8,
+  "vertical_metrics":[
+    {"vertical_id":"vertical-automobiles-mobility","current_observation_order":1,"relevant":48,"right_data_coverage_pct":51.79,"demand_evidence_count":27,"demand_denominator":48,"demand_evidence_pct":56.3,"scarcity_evidence_count":3},
+    {"vertical_id":"vertical-fashion-accessories","current_observation_order":2,"relevant":34,"right_data_coverage_pct":51.26,"demand_evidence_count":20,"demand_denominator":34,"demand_evidence_pct":58.8,"scarcity_evidence_count":0},
+    {"vertical_id":"vertical-gaming-music-screen-culture","current_observation_order":3,"relevant":43,"right_data_coverage_pct":50.50,"demand_evidence_count":23,"demand_denominator":43,"demand_evidence_pct":53.5,"scarcity_evidence_count":0},
+    {"vertical_id":"vertical-toys-models","current_observation_order":4,"relevant":53,"right_data_coverage_pct":50.13,"demand_evidence_count":27,"demand_denominator":53,"demand_evidence_pct":50.9,"scarcity_evidence_count":0},
+    {"vertical_id":"vertical-cards-comics-memorabilia","current_observation_order":5,"relevant":32,"right_data_coverage_pct":49.11,"demand_evidence_count":14,"demand_denominator":32,"demand_evidence_pct":43.8,"scarcity_evidence_count":0},
+    {"vertical_id":"vertical-watches-jewelry","current_observation_order":6,"relevant":34,"right_data_coverage_pct":48.74,"demand_evidence_count":14,"demand_denominator":34,"demand_evidence_pct":41.2,"scarcity_evidence_count":0},
+    {"vertical_id":"vertical-technology-cameras","current_observation_order":7,"relevant":39,"right_data_coverage_pct":48.72,"demand_evidence_count":16,"demand_denominator":39,"demand_evidence_pct":41.0,"scarcity_evidence_count":0},
+    {"vertical_id":"vertical-design-furniture","current_observation_order":8,"relevant":36,"right_data_coverage_pct":46.03,"demand_evidence_count":8,"demand_denominator":36,"demand_evidence_pct":22.2,"scarcity_evidence_count":0}
+  ],
+  "evidence_package_status":"NOT_YET_REGISTERED",
+  "rankability_status":"NOT_ASSESSED",
+  "current_candidate":false,
+  "published":false,
+  "known_limitations":[
+    "External Providers are not connected.",
+    "Methodology version is pending Track A registration.",
+    "Evidence lineage version is pending Track A registration.",
+    "The active P0 precision/scarcity/demand enrichment may change later observations.",
+    "The baseline cannot be used as a Track B candidate until the immutable artifact and Evidence Package are registered."
+  ],
+  "references":["decision-phase0-operating-framework-launch"]
+}

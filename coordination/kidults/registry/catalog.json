@@ -1,0 +1,30 @@
+{
+  "registry_system_id": "kidults-operational-registry",
+  "registry_system_version": "1.0.0",
+  "effective_at": "2026-08-12T12:00:00+09:00",
+  "status": "BOOTSTRAPPING",
+  "custodian": "Atlas",
+  "program_owner": "John",
+  "architecture": "INDEX_PLUS_IMMUTABLE_RECORDS",
+  "canonical_root": "coordination/kidults/registry",
+  "registries": [
+    {"registry_key":"program","path":"program/index.json","owner":"KPMO"},
+    {"registry_key":"people-ai","path":"people-ai/index.json","owner":"KPMO"},
+    {"registry_key":"role","path":"role/index.json","owner":"KPMO"},
+    {"registry_key":"track","path":"track/index.json","owner":"KPMO"},
+    {"registry_key":"vertical","path":"vertical/index.json","owner":"Architecture"},
+    {"registry_key":"snapshot","path":"snapshot/index.json","owner":"Track A / Snapshot Publisher"},
+    {"registry_key":"evidence","path":"evidence/index.json","owner":"Track A"},
+    {"registry_key":"assessment","path":"assessment/index.json","owner":"KPMO; Track B producer with read-only registry access"},
+    {"registry_key":"decision","path":"decision/index.json","owner":"Program Owner / KPMO"},
+    {"registry_key":"object","path":"object/index.json","owner":"Architecture"},
+    {"registry_key":"asset","path":"asset/index.json","owner":"Editorial & Rights"},
+    {"registry_key":"rights","path":"rights/index.json","owner":"Editorial & Rights"},
+    {"registry_key":"signal","path":"signal/index.json","owner":"Track A"},
+    {"registry_key":"provider","path":"provider/index.json","owner":"Program Owner / Provider Lead"},
+    {"registry_key":"runtime","path":"runtime/index.json","owner":"Track D"},
+    {"registry_key":"release","path":"release/index.json","owner":"Track D / QA"},
+    {"registry_key":"handoff","path":"handoff/index.json","owner":"KPMO"},
+    {"registry_key":"audit","path":"audit/index.json","owner":"Track D"}
+  ]
+}

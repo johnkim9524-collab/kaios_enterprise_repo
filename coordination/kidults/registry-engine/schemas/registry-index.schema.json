@@ -1,0 +1,22 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://kidults.com/schemas/registry-index.schema.json",
+  "title":"KIDULTS Registry Index",
+  "type":"object",
+  "required":["registry_id","registry_name","registry_version","schema_version","owner","custodian","status","record_directory","record_count","records"],
+  "properties":{
+    "registry_id":{"type":"string","minLength":1},
+    "registry_name":{"type":"string","minLength":1},
+    "registry_version":{"type":"string","pattern":"^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "schema_version":{"type":"string","pattern":"^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "owner":{"type":"string","minLength":1},
+    "custodian":{"type":"string","minLength":1},
+    "status":{"type":"string","minLength":1},
+    "effective_at":{"type":"string"},
+    "record_directory":{"const":"records"},
+    "record_count":{"type":"integer","minimum":0},
+    "current_record_id":{"type":["string","null"]},
+    "records":{"type":"array","items":{"type":"object","required":["id","path","status"],"properties":{"id":{"type":"string","minLength":1},"path":{"type":"string","pattern":"^records/.+\\.json$"},"version":{"type":"string"},"status":{"type":"string","minLength":1}}}}
+  },
+  "additionalProperties":true
+}

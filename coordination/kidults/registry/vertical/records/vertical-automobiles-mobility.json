@@ -1,0 +1,13 @@
+{
+  "id":"vertical-automobiles-mobility",
+  "record_type":"core_vertical",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "order":3,
+  "display_name":"Automobiles & Mobility",
+  "slug":"automobiles-mobility",
+  "representative_scope":["Ferrari F40","Ferrari 250 GTO","Porsche 911","Porsche 959","Lamborghini Countach","Lamborghini Miura","McLaren F1","Toyota 2000GT","Mercedes 300SL","Skyline R34"],
+  "stable_structure":true,
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

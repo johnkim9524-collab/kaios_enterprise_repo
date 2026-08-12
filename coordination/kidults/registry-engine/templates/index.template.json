@@ -1,0 +1,15 @@
+{
+  "registry_id":"kidults-<key>-registry",
+  "registry_name":"<Name> Registry",
+  "registry_version":"1.0.0",
+  "schema_version":"1.0.0",
+  "owner":"<owner>",
+  "custodian":"Atlas",
+  "status":"BOOTSTRAPPING",
+  "effective_at":"<ISO-8601>",
+  "record_directory":"records",
+  "record_count":0,
+  "current_record_id":null,
+  "records":[],
+  "change_history":[]
+}

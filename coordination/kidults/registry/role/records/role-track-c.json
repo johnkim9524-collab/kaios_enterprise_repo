@@ -1,0 +1,14 @@
+{
+  "id":"role-track-c",
+  "record_type":"role",
+  "version":"1.0.0",
+  "status":"DEFINED_ACCEPTANCE_PENDING",
+  "title":"Track C Lead — Portal V502 & Experience Layer",
+  "holder_id":"agent-track-c",
+  "mission":"Faithfully communicate approved intelligence through a modular premium experience.",
+  "official_input":["Published Snapshot","Production-ready Assets","Rights Cleared Registry"],
+  "official_output":["portal-release-manifest.json","Portal QA Result","Experience Release Note"],
+  "must_not":["RANKING_CALCULATION","FEATURED_SELECTION","RAW_POC_ACCESS","MISSING_TO_ZERO","PROTOTYPE_ASSET_PUBLICATION","INTELLIGENCE_ALTERATION"],
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

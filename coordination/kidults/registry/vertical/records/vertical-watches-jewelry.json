@@ -1,0 +1,13 @@
+{
+  "id":"vertical-watches-jewelry",
+  "record_type":"core_vertical",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "order":2,
+  "display_name":"Watches & Jewelry",
+  "slug":"watches-jewelry",
+  "representative_scope":["Rolex Daytona","Rolex Submariner","Rolex GMT","Omega Speedmaster","Omega Seamaster","Patek Philippe","AP Royal Oak","Cartier Tank","Cartier Santos","TAG Heuer Monaco"],
+  "stable_structure":true,
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

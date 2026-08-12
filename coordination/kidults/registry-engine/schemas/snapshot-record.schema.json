@@ -1,0 +1,22 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://kidults.com/schemas/snapshot-record.schema.json",
+  "title":"KIDULTS Snapshot Record",
+  "type":"object",
+  "required":["id","snapshot_id","record_type","version","status","source_mode","methodology_version","evidence_lineage_version","interpretation","core_vertical_count","vertical_metrics","known_limitations"],
+  "properties":{
+    "id":{"type":"string"},
+    "snapshot_id":{"type":"string"},
+    "record_type":{"const":"snapshot"},
+    "version":{"type":"string"},
+    "status":{"type":"string"},
+    "source_mode":{"type":"string"},
+    "methodology_version":{"type":"string"},
+    "evidence_lineage_version":{"type":"string"},
+    "core_vertical_count":{"const":8},
+    "vertical_metrics":{"type":"array","minItems":8,"maxItems":8},
+    "known_limitations":{"type":"array","minItems":1},
+    "interpretation":{"type":"object","required":["absolute_or_permanent_superiority_claimed"],"properties":{"absolute_or_permanent_superiority_claimed":{"const":false}}}
+  },
+  "additionalProperties":true
+}

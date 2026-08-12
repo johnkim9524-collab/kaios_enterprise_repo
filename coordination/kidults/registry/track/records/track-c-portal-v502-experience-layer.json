@@ -1,0 +1,15 @@
+{
+  "id":"track-c-portal-v502-experience-layer",
+  "record_type":"track",
+  "version":"1.0.0",
+  "status":"ROLE_ACCEPTANCE_PENDING",
+  "display_name":"C. KIDULTS | Portal V502 & Experience Layer",
+  "role_id":"role-track-c",
+  "canonical_issue":237,
+  "current_release_manifest_id":null,
+  "current_published_snapshot_id":null,
+  "current_phase":"V502_REGISTRY_CONSUMER_FOUNDATION",
+  "known_limitation":"Formal Track C agent acceptance is not yet registered.",
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

@@ -1,0 +1,16 @@
+{
+  "registry_id":"kidults-release-registry",
+  "registry_name":"Release Registry",
+  "registry_version":"1.1.0",
+  "schema_version":"1.0.0",
+  "owner":"Track D / QA",
+  "custodian":"Atlas",
+  "status":"HOLD",
+  "effective_at":"2026-08-12T12:00:00+09:00",
+  "record_directory":"records",
+  "record_count":1,
+  "current_release_id":"release-foundation-hold-v1",
+  "current_rollback_target_id":null,
+  "production_decision_state":"NOT_REQUESTED",
+  "records":[{"id":"release-foundation-hold-v1","path":"records/release-foundation-hold-v1.json","version":"1.0.0","status":"HOLD"}]
+}

@@ -1,0 +1,21 @@
+{
+  "registry_id":"kidults-role-registry",
+  "registry_name":"Role Registry",
+  "registry_version":"1.1.0",
+  "schema_version":"1.0.0",
+  "owner":"KPMO",
+  "custodian":"Atlas",
+  "status":"ACTIVE",
+  "effective_at":"2026-08-12T12:00:00+09:00",
+  "record_directory":"records",
+  "record_count":6,
+  "current_record_id":null,
+  "records":[
+    {"id":"role-program-owner","path":"records/role-program-owner.json","status":"ACTIVE"},
+    {"id":"role-integration-conductor","path":"records/role-integration-conductor.json","status":"ACTIVE"},
+    {"id":"role-track-a","path":"records/role-track-a.json","status":"FINAL_LOCKED"},
+    {"id":"role-track-b","path":"records/role-track-b.json","status":"FINAL_LOCKED"},
+    {"id":"role-track-c","path":"records/role-track-c.json","status":"DEFINED_ACCEPTANCE_PENDING"},
+    {"id":"role-track-d","path":"records/role-track-d.json","status":"FINAL_LOCKED"}
+  ]
+}
