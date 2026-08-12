@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "policy": "FAIL_CLOSED_SOURCE_QUALIFICATION_NO_AUTO_ONBOARDING",
   "lastVerifiedAt": "2026-08-12",
   "verificationMethod": "OFFICIAL_PRIMARY_DOCUMENTATION_REVIEW",
@@ -225,6 +225,33 @@
       "evidenceLinks": [
         "https://developer.stockx.com/portal/license-agreement",
         "https://developer.stockx.com/portal/api-reference"
+      ]
+    },
+    {
+      "sourceId": "heritage-auctions",
+      "displayName": "Heritage Auctions Permanent Auction Archives",
+      "sourceClass": "AUCTION_ARCHIVE",
+      "rightsStatus": "COMMERCIAL_REUSE_REQUIRES_WRITTEN_PERMISSION",
+      "automationAccess": "AUTOMATED_COLLECTION_EXPRESSLY_PROHIBITED",
+      "marketSemantics": {
+        "completedTransactions": "PUBLIC_PRICES_REALIZED_AND_SOLD_LOT_ARCHIVE_DOCUMENTED",
+        "transactionBackedLiquidity": "NO_QUALIFIED_TRANSACTION_BACKED_LIQUIDITY_FEED"
+      },
+      "primarySourceFindings": {
+        "completedTransactionSemanticsDocumented": true,
+        "transactionBackedLiquiditySemanticsDocumented": false,
+        "commercialReuseAuthorizationRequired": true
+      },
+      "qualification": "NOT_QUALIFIED_AUTHORIZATION_REQUIRED",
+      "blockingReasons": [
+        "AUTOMATED_COLLECTION_EXPRESSLY_PROHIBITED",
+        "COMMERCIAL_REUSE_REQUIRES_WRITTEN_PERMISSION",
+        "NO_DOCUMENTED_PUBLIC_TRANSACTION_API",
+        "NO_TRANSACTION_BACKED_LIQUIDITY_FEED"
+      ],
+      "evidenceLinks": [
+        "https://www.ha.com/c/ref/website-use-agreement.zx?ic=footer-website-use-agreement-121117",
+        "https://comics.ha.com/c/contact-us.zx?topicId=27"
       ]
     }
   ]
