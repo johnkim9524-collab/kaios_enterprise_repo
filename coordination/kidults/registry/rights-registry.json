@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0.0",
+  "status": "BOOTSTRAPPING",
+  "records": [],
+  "lifecycle": ["UNKNOWN","REVIEW","CLEARED","RESTRICTED","BLOCKED"],
+  "rule": "No asset or evidence is production-eligible without explicit rights classification."
+}
