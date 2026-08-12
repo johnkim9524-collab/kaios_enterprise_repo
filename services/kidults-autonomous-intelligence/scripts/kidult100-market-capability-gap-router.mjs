@@ -80,20 +80,51 @@ const capabilitySummary = Object.fromEntries(capabilityNames.map((capability) =>
   authorizationRequired: routed.filter((row) => row.capabilities[capability] === 'AUTHORIZATION_REQUIRED').length,
   missing: routed.filter((row) => row.capabilities[capability] === 'MISSING').length,
 }]));
+const capabilityDeficitRanking = capabilityNames
+  .map((capability) => ({
+    capability,
+    pass: capabilitySummary[capability].pass,
+    authorizationRequired: capabilitySummary[capability].authorizationRequired,
+    missing: capabilitySummary[capability].missing,
+    unresolved: capabilitySummary[capability].authorizationRequired + capabilitySummary[capability].missing,
+  }))
+  .sort((a, b) => b.unresolved - a.unresolved || a.capability.localeCompare(b.capability));
 const qualifiedOpen = routed.filter((row) => row.qualificationStatus === 'QUALIFIED_OPEN_NO_PROCUREMENT_SOURCE');
 const authorizationRequired = routed.filter((row) => row.qualificationStatus === 'REQUIRES_AUTHORIZATION_NO_ACTION_TAKEN');
 const rejected = routed.filter((row) => row.qualificationStatus === 'REJECTED_NO_QUALIFIED_MARKET_SEMANTICS');
 const openRightsNearFits = routed.filter((row) => row.authorizationRequired === false && row.capabilities.DOCUMENTED_AUTOMATED_ACCESS === 'PASS' && row.capabilities.EXPLICIT_COMMERCIAL_REUSE_RIGHTS === 'PASS' && (row.capabilities.COMPLETED_TRANSACTION_SEMANTICS !== 'PASS' || row.capabilities.TRANSACTION_BACKED_LIQUIDITY !== 'PASS'));
+const jointMarketSemanticGapSources = routed.filter((row) => row.capabilities.COMPLETED_TRANSACTION_SEMANTICS !== 'PASS' && row.capabilities.TRANSACTION_BACKED_LIQUIDITY !== 'PASS');
 const rankedSources = [...routed].sort((a, b) => a.automaticGapCount - b.automaticGapCount || Number(a.authorizationRequired) - Number(b.authorizationRequired) || a.sourceId.localeCompare(b.sourceId));
 const nextSafeLane = qualifiedOpen.length > 0
   ? 'VALIDATE_OPEN_SOURCE_AGAINST_TRANSACTION_ID_VENUE_CURRENCY_TIMESTAMP_CONTRACT'
   : openRightsNearFits.length > 0
     ? 'DISCOVER_OPEN_RIGHTS_QUALIFIED_COMPLETED_TRANSACTION_AND_LIQUIDITY_SOURCE'
     : 'EXPAND_RIGHTS_QUALIFIED_MARKET_SOURCE_DISCOVERY_WITHOUT_PROCUREMENT';
+const sourceDiscoveryWorkPacket = {
+  schemaVersion: '1.0.0',
+  status: qualifiedOpen.length > 0 ? 'NOT_REQUIRED_QUALIFIED_OPEN_SOURCE_PRESENT' : 'READY_FOR_OPEN_SOURCE_DISCOVERY',
+  objective: 'FIND_OPEN_RIGHTS_QUALIFIED_COMPLETED_TRANSACTION_AND_LIQUIDITY_SOURCE',
+  priorityCapabilities: capabilityDeficitRanking.map((row) => row.capability),
+  jointMarketSemanticGapSourceCount: jointMarketSemanticGapSources.length,
+  openRightsNearFitSourceIds: openRightsNearFits.map((row) => row.sourceId),
+  acceptanceContract: {
+    documentedAutomatedAccessRequired: true,
+    explicitCommercialReuseRightsRequired: true,
+    completedTransactionSemanticsRequired: true,
+    transactionBackedLiquidityRequired: true,
+    transactionIdentityFieldsRequired: ['transactionId', 'venue', 'currency', 'transactionTimestamp'],
+    minimumCompletedTransactionsForLiquidity: requirements.global.minimumCompletedTransactionsForLiquidity,
+    listingOrEstimateAcceptedAsTransaction: false,
+    syntheticOrEstimatedEvidenceAllowed: false,
+  },
+  prohibitedActions: ['PAID_PROVIDER_PROCUREMENT', 'CONTRACT_EXECUTION', 'AUTHORIZATION_REQUEST', 'UNAUTHORIZED_SCRAPING', 'LISTING_OR_ESTIMATE_SUBSTITUTION', 'SYNTHETIC_OR_ESTIMATED_EVIDENCE'],
+  promotionRule: 'DISCOVERY_ONLY_REQUIRES_SEPARATE_SOURCE_QUALIFICATION_AND_EVIDENCE_VALIDATION',
+  existingNearFitsAreNotMarketEvidenceSources: true,
+};
 const disposition = structuralErrors.length > 0 ? 'FAIL_CLOSED_MARKET_CAPABILITY_INPUT_INVALID' : 'MARKET_CAPABILITY_GAPS_ROUTED_NO_EVIDENCE_CREATED';
 
 const report = {
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.1.0',
   mode: 'KIDULT100_MARKET_CAPABILITY_GAP_ROUTER',
   generatedAt: new Date().toISOString(),
   metrics: {
@@ -102,10 +133,13 @@ const report = {
     authorizationRequiredSources: authorizationRequired.length,
     rejectedSources: rejected.length,
     openRightsNearFitSources: openRightsNearFits.length,
+    jointMarketSemanticGapSources: jointMarketSemanticGapSources.length,
     structuralErrorCount: structuralErrors.length,
   },
   capabilitySummary,
+  capabilityDeficitRanking,
   rankedSources,
+  sourceDiscoveryWorkPacket,
   nextSafeLane,
   disposition,
   downstreamEvidenceContract: {
@@ -134,6 +168,6 @@ const report = {
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, JSON.stringify(report, null, 2));
-console.log(`Market capability router: candidates=${routed.length} openQualified=${qualifiedOpen.length} authRequired=${authorizationRequired.length} rejected=${rejected.length} nearFits=${openRightsNearFits.length} errors=${structuralErrors.length}`);
+console.log(`Market capability router: candidates=${routed.length} openQualified=${qualifiedOpen.length} authRequired=${authorizationRequired.length} rejected=${rejected.length} nearFits=${openRightsNearFits.length} jointMarketGap=${jointMarketSemanticGapSources.length} errors=${structuralErrors.length}`);
 console.log(`capabilitySummary=${JSON.stringify(capabilitySummary)} nextSafeLane=${nextSafeLane}`);
 if (structuralErrors.length > 0) process.exitCode = 1;
