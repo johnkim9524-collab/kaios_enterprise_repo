@@ -12,6 +12,14 @@ const requiredFiles = [
   "coordination/kidults/registry/risk-registry.json",
   "coordination/kidults/registry/handoff-registry.json",
   "coordination/kidults/registry/release-registry.json",
+  "coordination/kidults/registry/catalog.json",
+  "coordination/kidults/registry/program/index.json",
+  "coordination/kidults/registry/track/index.json",
+  "coordination/kidults/registry/vertical/index.json",
+  "coordination/kidults/registry/snapshot/index.json",
+  "coordination/kidults/registry/assessment/index.json",
+  "coordination/kidults/registry/runtime/index.json",
+  "coordination/kidults/registry/release/index.json",
   "coordination/kidults/schemas/workstream-update.schema.json",
   "coordination/kidults/schemas/handoff.schema.json",
   "coordination/kidults/schemas/snapshot-candidate.schema.json",
@@ -38,7 +46,7 @@ for (const relative of requiredFiles) {
 const program = parsed.get("coordination/kidults/registry/program-registry.json");
 if (program) {
   const trackIds = new Set(program.tracks?.map((track) => track.track_id));
-  for (const id of ["A", "B", "C"]) {
+  for (const id of ["A", "B", "C", "D"]) {
     if (!trackIds.has(id)) errors.push(`Program registry missing Track ${id}`);
   }
   if ((program.official_books ?? []).join("|") !== "Master Book|Baseline Book|Architecture Book") {
@@ -53,19 +61,21 @@ if (verticals) {
   if (new Set(ids).size !== ids.length) errors.push("Core Vertical IDs must be unique.");
 }
 
+const trackIndex = parsed.get("coordination/kidults/registry/track/index.json");
+if (trackIndex) {
+  const operationalTrackIds = new Set(trackIndex.records?.map((track) => track.id));
+  for (const id of ["track-a-120-intelligence-factory","track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability"]) {
+    if (!operationalTrackIds.has(id)) errors.push(`Operational Track Registry missing ${id}`);
+  }
+}
+
+const operationalVerticals = parsed.get("coordination/kidults/registry/vertical/index.json");
+if (operationalVerticals?.record_count !== 8) errors.push("Operational Core Vertical Registry must contain exactly 8 records.");
+
 const roles = parsed.get("coordination/kidults/registry/roles-and-responsibilities.json");
 if (roles) {
   const roleIds = new Set(roles.roles?.map((role) => role.role_id));
-  for (const id of [
-    "program-owner",
-    "integration-conductor",
-    "track-a-120-score",
-    "track-b-rankability",
-    "track-c-portal-v502",
-    "registry-custodian",
-    "snapshot-publisher",
-    "qa-release-manager"
-  ]) {
+  for (const id of ["program-owner","integration-conductor","track-a-120-score","track-b-rankability","track-c-portal-v502","registry-custodian","snapshot-publisher","qa-release-manager"]) {
     if (!roleIds.has(id)) errors.push(`Role registry missing ${id}`);
   }
 }
@@ -76,4 +86,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`KIDULTS coordination validation passed (${requiredFiles.length} required JSON files).`);
+console.log(`KIDULTS coordination validation passed (${requiredFiles.length} required JSON files; four tracks registered).`);

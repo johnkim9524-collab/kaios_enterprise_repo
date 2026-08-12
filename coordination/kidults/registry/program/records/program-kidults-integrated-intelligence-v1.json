@@ -1,7 +1,7 @@
 {
   "id":"program-kidults-integrated-intelligence-v1",
   "record_type":"program",
-  "version":"1.0.0",
+  "version":"1.1.0",
   "status":"ACTIVE",
   "effective_at":"2026-08-12T12:00:00+09:00",
   "created_by":"Atlas",
@@ -14,17 +14,9 @@
   "integration_conductor_id":"agent-atlas",
   "track_ids":["track-a-120-intelligence-factory","track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability"],
   "official_books":["Master Book","Baseline Book","Architecture Book"],
-  "canonical_issues":[234,235,236,237,238],
-  "operating_flow":["snapshot-candidate.json","rankability-assessment.json","integration-gate","portal-release-manifest.json","production-decision","published-snapshot"],
-  "operating_principles":[
-    "One Program. One Language. One Registry. One Source of Truth.",
-    "Generate, validate, approve and publish are separate responsibilities.",
-    "Structure is stable; intelligence is dynamic.",
-    "Current measurements describe current observability, not permanent superiority.",
-    "Portal is a consumer of published intelligence.",
-    "Proof before procurement.",
-    "Fail closed on incomplete evidence, rights, contracts or rollback."
-  ],
+  "canonical_issues":[234,235,236,237,238,240],
+  "operating_flow":["snapshot-candidate.json","Evidence Package","rankability-assessment.json","integration-gate-g0-g2","portal-release-candidate-and-runtime-readiness","integration-gate-g3-g4","production-decision","published-snapshot","production-release"],
+  "operating_principles":["One Program. One Language. One Registry. One Source of Truth.","Generate, validate, approve and publish are separate responsibilities.","Structure is stable; intelligence is dynamic.","Current measurements describe current observability, not permanent superiority.","Portal is a consumer of published intelligence.","Track D makes approved intelligence operational.","Proof before procurement.","Fail closed on incomplete evidence, rights, contracts or rollback."],
   "baseline_commit":"c88eaf9c23ca03b0aa80932d0a76199fbcefd9c9",
-  "references":["coordination/kidults/README.md","docs/operations/KIDULTS_SHARED_PROGRAM_ANNOUNCEMENT_V1.md"]
+  "references":["coordination/kidults/README.md","coordination/kidults/registry/catalog.json","https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/240"]
 }

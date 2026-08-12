@@ -1,0 +1,18 @@
+{
+  "id":"handoff-a-to-b-first-candidate",
+  "record_type":"handoff",
+  "version":"1.0.0",
+  "status":"DRAFT",
+  "created_by":"Atlas",
+  "approved_by":"John",
+  "from_track":"track-a-120-intelligence-factory",
+  "to_track":"track-b-rankability-validation-gate",
+  "snapshot_id":null,
+  "artifact_reference":null,
+  "artifact_version":null,
+  "requested_action":"Independent rankability assessment of the first canonical immutable snapshot candidate.",
+  "deadline":null,
+  "known_limitations":["Candidate snapshot has not yet been registered.","Evidence Package has not yet been registered.","Methodology and evidence-lineage versions remain pending Track A registration."],
+  "acceptance_criteria":["snapshot-candidate.json registered","Evidence Package registered","Registry validation passed","exact snapshot_id supplied"],
+  "next_state":"SUBMITTED_AFTER_TRACK_A_REGISTRATION"
+}

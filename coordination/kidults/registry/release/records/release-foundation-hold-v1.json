@@ -1,0 +1,17 @@
+{
+  "id":"release-foundation-hold-v1",
+  "record_type":"release_state",
+  "version":"1.0.0",
+  "status":"HOLD",
+  "created_by":"Track D",
+  "approved_by":"John",
+  "registered_by":"Atlas",
+  "snapshot_id":null,
+  "release_id":null,
+  "rollback_target_id":null,
+  "production_decision":"NOT_REQUESTED",
+  "blocking_conditions":["Approved Snapshot not received","Portal QA not available","Rollback target not verified","G5 Production approval not requested"],
+  "required_conditions":["Approved Snapshot","Approved Assets","Rights Cleared","Portal QA Passed","Rollback Ready","Rollback Target Verified","Registry Validation Passed","Configuration Review Passed","Secret Validation Passed","Audit Logging Ready","Production Freeze CLEARED","Production Decision APPROVED"],
+  "next_state":"WAITING_FOR_APPROVED_SNAPSHOT",
+  "references":["runtime-foundation-v1"]
+}
