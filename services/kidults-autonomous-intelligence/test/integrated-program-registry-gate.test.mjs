@@ -48,17 +48,17 @@ test('missing registry root fails closed and still emits a diagnostic report', (
   assert.match(report.failures[0], /^MISSING_FILE:/);
 });
 
-test('unsafe production state is rejected without changing any registry data', () => {
+test('unapproved production release is rejected without changing canonical registry data', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-program-copy-'));
   fs.cpSync(LIVE_COORDINATION_ROOT, tempRoot, { recursive: true });
-  const programPath = path.join(tempRoot, 'registry', 'program-registry.json');
-  const program = JSON.parse(fs.readFileSync(programPath, 'utf8'));
-  program.production_state = 'PRODUCTION_READY';
-  fs.writeFileSync(programPath, JSON.stringify(program, null, 2));
+  const releasePath = path.join(tempRoot, 'registry', 'release-registry.json');
+  const release = JSON.parse(fs.readFileSync(releasePath, 'utf8'));
+  release.current_production_release_id = 'unsafe-unapproved-release';
+  fs.writeFileSync(releasePath, JSON.stringify(release, null, 2));
   const { result, report } = run(tempRoot);
   fs.rmSync(tempRoot, { recursive: true, force: true });
   assert.equal(result.status, 1);
   assert.equal(report.status, 'FAIL_CLOSED');
-  assert.ok(report.failures.includes('PRODUCTION_FAIL_CLOSED_STATE_INVALID'));
+  assert.ok(report.failures.includes('UNAPPROVED_PRODUCTION_RELEASE_PRESENT'));
   assert.equal(report.claims.production_ready, false);
 });
