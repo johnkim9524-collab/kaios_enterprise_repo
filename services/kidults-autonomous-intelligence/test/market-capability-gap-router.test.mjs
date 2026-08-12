@@ -163,12 +163,27 @@ test('documented sale events remain unusable when commercial reuse authorization
 });
 
 test('qualified open source routes only to downstream evidence-contract validation without certification', () => {
-  const candidates = [{ sourceId: 'open-market', displayName: 'Open Market', sourceClass: 'PUBLIC_API', blockingReasons: [], evidenceLinks: ['https://example.org/api'] }];
+  const candidates = [{
+    sourceId: 'open-market',
+    displayName: 'Open Market',
+    sourceClass: 'PUBLIC_API',
+    primarySourceFindings: {
+      completedTransactionSemanticsDocumented: true,
+      transactionBackedLiquiditySemanticsDocumented: true,
+      commercialReuseAuthorizationRequired: false,
+    },
+    blockingReasons: [],
+    evidenceLinks: ['https://example.org/api'],
+  }];
   const rows = [{ sourceId: 'open-market', status: 'QUALIFIED_OPEN_NO_PROCUREMENT_SOURCE', publicDocumentedAccess: true, explicitReuseRights: true, completedTransactionsQualified: true, liquidityQualified: true, authorizationRequired: false }];
   const { result, report } = run(manifest(candidates), qualification(rows), requirements());
   assert.equal(result.status, 0);
   assert.equal(report.metrics.qualifiedOpenNoProcurementSources, 1);
   assert.equal(report.metrics.jointMarketSemanticGapSources, 0);
+  assert.equal(report.metrics.documentedCompletedTransactionSources, 1);
+  assert.equal(report.metrics.documentedTransactionBackedLiquiditySources, 1);
+  assert.deepEqual(report.sourceDiscoveryWorkPacket.documentedCompletedTransactionSourceIds, ['open-market']);
+  assert.deepEqual(report.sourceDiscoveryWorkPacket.documentedTransactionBackedLiquiditySourceIds, ['open-market']);
   assert.equal(report.rankedSources[0].automaticGapCount, 0);
   assert.equal(report.nextSafeLane, 'VALIDATE_OPEN_SOURCE_AGAINST_TRANSACTION_ID_VENUE_CURRENCY_TIMESTAMP_CONTRACT');
   assert.equal(report.sourceDiscoveryWorkPacket.status, 'NOT_REQUIRED_QUALIFIED_OPEN_SOURCE_PRESENT');
