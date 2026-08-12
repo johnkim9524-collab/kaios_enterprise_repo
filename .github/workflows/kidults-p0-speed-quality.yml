@@ -53,7 +53,17 @@ jobs:
         continue-on-error: true
         run: node scripts/kidult100-wave1-live.mjs
       - name: Stage 2 normalized candidate universe build
-        run: timeout --signal=TERM --kill-after=10s 240s node scripts/kidult100-poc-live.mjs
+        run: |
+          start=$(date +%s)
+          set +e
+          timeout --signal=TERM --kill-after=10s 240s node scripts/kidult100-poc-live.mjs
+          code=$?
+          set -e
+          end=$(date +%s)
+          elapsed=$((end-start))
+          mkdir -p reports/engineering-hardening
+          node -e 'const fs=require("fs"); const [exitCode,elapsedSeconds,headSha]=process.argv.slice(1); const code=Number(exitCode); const report={stage:"STAGE2_NORMALIZED_CANDIDATE_UNIVERSE_BUILD",status:code===0?"PASS":code===124?"TIMEOUT_FAIL_CLOSED":"FAIL_CLOSED",exitCode:code,elapsedSeconds:Number(elapsedSeconds),timeoutSeconds:240,headSha,partialEvidenceAccepted:false}; fs.writeFileSync("reports/engineering-hardening/stage2-candidate-build-latency-latest.json",JSON.stringify(report,null,2)+"\n");' "$code" "$elapsed" "$GITHUB_SHA"
+          exit "$code"
       - name: Stage 2 Wikidata-only precision recovery
         run: timeout --signal=TERM --kill-after=10s 120s node scripts/kidult100-precision-recovery-live.mjs
       - name: Stage 2 institutional archive product-object precision hardening
@@ -194,6 +204,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/engineering-hardening/quality-audit-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/critical-ci-audit-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/integrated-program-registry-gate-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/stage2-candidate-build-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/sre-readiness-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/governance-baseline-latest.json
           retention-days: 30
