@@ -63,10 +63,12 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
   const releases = registries['release-registry.json'];
   const programTrackIds = Array.isArray(program?.tracks) ? program.tracks.map((row) => row?.track_id) : [];
   const trackRegistryIds = Array.isArray(tracks?.tracks) ? tracks.tracks.map((row) => row?.track_id) : [];
-  const registeredSnapshotIds = new Set([
-    snapshots?.baseline_snapshot_id,
-    ...(Array.isArray(snapshots?.entries) ? snapshots.entries.map((row) => row?.snapshot_id) : []),
-  ].filter(Boolean));
+  const registeredSnapshotIds = new Set();
+  if (snapshots?.baseline_snapshot_id) registeredSnapshotIds.add(snapshots.baseline_snapshot_id);
+  const snapshotEntries = Array.isArray(snapshots?.entries) ? snapshots.entries : [];
+  for (const row of snapshotEntries) {
+    if (row?.snapshot_id) registeredSnapshotIds.add(row.snapshot_id);
+  }
   const currentSnapshotId = snapshots?.current_candidate_snapshot_id ?? snapshots?.current_published_snapshot_id ?? null;
 
   requireCondition(governance.version === 'v1.0', 'GOVERNANCE_VERSION_MISMATCH', failures);
