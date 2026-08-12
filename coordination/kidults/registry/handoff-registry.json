@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0.0",
+  "status": "BOOTSTRAPPING",
+  "records": [],
+  "required_fields": ["handoff_id","from_track","to_track","snapshot_id","artifact_reference","artifact_version","requested_action","deadline","known_limitations","acceptance_criteria","status"],
+  "statuses": ["draft","submitted","accepted","rejected","correction_requested","closed"]
+}
