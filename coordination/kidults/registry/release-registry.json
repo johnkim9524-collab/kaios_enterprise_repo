@@ -1,8 +1,30 @@
 {
-  "schema_version": "1.0.0",
-  "status": "BOOTSTRAPPING",
-  "records": [],
-  "lifecycle": ["DRAFT","CANDIDATE","APPROVED","PRODUCTION","ROLLED_BACK","ARCHIVED"],
-  "required_gates": ["G0_BASELINE_LOCKED","G1_SNAPSHOT_VALID","G2_RANKABILITY_COMPLETE","G3_ASSET_RIGHTS_READY","G4_PORTAL_QA_PASS","G5_PROGRAM_OWNER_APPROVAL"],
-  "production_default": "FAIL_CLOSED"
+  "registry_version": "1.0.0",
+  "current_production_release_id": null,
+  "previous_production_release_id": null,
+  "entries": [],
+  "required_gate_sequence": [
+    "G0",
+    "G1",
+    "G2",
+    "G3",
+    "G4",
+    "G5"
+  ],
+  "release_states": [
+    "draft",
+    "candidate",
+    "qa_passed",
+    "approved",
+    "production",
+    "rolled_back",
+    "archived"
+  ],
+  "rules": [
+    "Every Production release references one published snapshot_id.",
+    "Every Production release has a previous rollback target.",
+    "A release is blocked when Rankability is blocked.",
+    "Program Owner approval is required for G5.",
+    "Release manifests list only intended files and artifacts."
+  ]
 }
