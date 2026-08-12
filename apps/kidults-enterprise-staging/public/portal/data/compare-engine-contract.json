@@ -1,0 +1,31 @@
+{
+  "engine_id": "kidults-compare-engine",
+  "version": "0.1.0",
+  "scope": "CORE_VERTICALS",
+  "default_left_id": "vertical-automobiles-mobility",
+  "default_right_id": "vertical-watches-jewelry",
+  "metrics": [
+    "right_data_coverage_pct",
+    "demand_evidence_pct",
+    "relevant",
+    "demand_evidence_count",
+    "scarcity_evidence_count",
+    "current_observation_order",
+    "structural_order",
+    "featured"
+  ],
+  "truth_rules": {
+    "allow_rankability_claims": false,
+    "allow_investment_language": false,
+    "allow_missing_to_zero": false,
+    "require_snapshot_traceability": true,
+    "require_limitations": true,
+    "separate_observation_from_rank": true
+  },
+  "fail_closed_states": [
+    "WAITING",
+    "NOT_REGISTERED",
+    "NOT_AVAILABLE",
+    "STALE"
+  ]
+}
