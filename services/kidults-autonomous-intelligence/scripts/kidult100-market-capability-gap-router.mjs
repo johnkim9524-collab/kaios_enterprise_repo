@@ -60,6 +60,10 @@ for (const candidate of candidates) {
   const capabilities = { DOCUMENTED_AUTOMATED_ACCESS: access, EXPLICIT_COMMERCIAL_REUSE_RIGHTS: rights, COMPLETED_TRANSACTION_SEMANTICS: completedTransactions, TRANSACTION_BACKED_LIQUIDITY: liquidity };
   const missingCapabilities = Object.entries(capabilities).filter(([, status]) => status !== 'PASS').map(([capability]) => capability);
   const automaticGapCount = missingCapabilities.length;
+  const primarySourceFindings = candidate?.primarySourceFindings && typeof candidate.primarySourceFindings === 'object' ? candidate.primarySourceFindings : {};
+  const documentedCompletedTransactionSemantics = primarySourceFindings.completedTransactionSemanticsDocumented === true;
+  const documentedTransactionBackedLiquiditySemantics = primarySourceFindings.transactionBackedLiquiditySemanticsDocumented === true;
+  const commercialReuseAuthorizationRequired = primarySourceFindings.commercialReuseAuthorizationRequired === true;
   routed.push({
     sourceId,
     displayName: candidate.displayName || row.displayName || null,
@@ -69,6 +73,9 @@ for (const candidate of candidates) {
     missingCapabilities,
     automaticGapCount,
     authorizationRequired: row.authorizationRequired === true,
+    documentedCompletedTransactionSemantics,
+    documentedTransactionBackedLiquiditySemantics,
+    commercialReuseAuthorizationRequired,
     blockingReasons: Array.isArray(candidate.blockingReasons) ? candidate.blockingReasons : [],
     evidenceLinks: Array.isArray(candidate.evidenceLinks) ? candidate.evidenceLinks : [],
   });
@@ -94,6 +101,9 @@ const authorizationRequired = routed.filter((row) => row.qualificationStatus ===
 const rejected = routed.filter((row) => row.qualificationStatus === 'REJECTED_NO_QUALIFIED_MARKET_SEMANTICS');
 const openRightsNearFits = routed.filter((row) => row.authorizationRequired === false && row.capabilities.DOCUMENTED_AUTOMATED_ACCESS === 'PASS' && row.capabilities.EXPLICIT_COMMERCIAL_REUSE_RIGHTS === 'PASS' && (row.capabilities.COMPLETED_TRANSACTION_SEMANTICS !== 'PASS' || row.capabilities.TRANSACTION_BACKED_LIQUIDITY !== 'PASS'));
 const jointMarketSemanticGapSources = routed.filter((row) => row.capabilities.COMPLETED_TRANSACTION_SEMANTICS !== 'PASS' && row.capabilities.TRANSACTION_BACKED_LIQUIDITY !== 'PASS');
+const documentedCompletedTransactionSources = routed.filter((row) => row.documentedCompletedTransactionSemantics === true);
+const documentedCompletedTransactionButAuthorizationBlockedSources = documentedCompletedTransactionSources.filter((row) => row.commercialReuseAuthorizationRequired === true || row.authorizationRequired === true);
+const documentedTransactionBackedLiquiditySources = routed.filter((row) => row.documentedTransactionBackedLiquiditySemantics === true);
 const rankedSources = [...routed].sort((a, b) => a.automaticGapCount - b.automaticGapCount || Number(a.authorizationRequired) - Number(b.authorizationRequired) || a.sourceId.localeCompare(b.sourceId));
 const nextSafeLane = qualifiedOpen.length > 0
   ? 'VALIDATE_OPEN_SOURCE_AGAINST_TRANSACTION_ID_VENUE_CURRENCY_TIMESTAMP_CONTRACT'
@@ -101,12 +111,15 @@ const nextSafeLane = qualifiedOpen.length > 0
     ? 'DISCOVER_OPEN_RIGHTS_QUALIFIED_COMPLETED_TRANSACTION_AND_LIQUIDITY_SOURCE'
     : 'EXPAND_RIGHTS_QUALIFIED_MARKET_SOURCE_DISCOVERY_WITHOUT_PROCUREMENT';
 const sourceDiscoveryWorkPacket = {
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.1.0',
   status: qualifiedOpen.length > 0 ? 'NOT_REQUIRED_QUALIFIED_OPEN_SOURCE_PRESENT' : 'READY_FOR_OPEN_SOURCE_DISCOVERY',
   objective: 'FIND_OPEN_RIGHTS_QUALIFIED_COMPLETED_TRANSACTION_AND_LIQUIDITY_SOURCE',
   priorityCapabilities: capabilityDeficitRanking.map((row) => row.capability),
   jointMarketSemanticGapSourceCount: jointMarketSemanticGapSources.length,
   openRightsNearFitSourceIds: openRightsNearFits.map((row) => row.sourceId),
+  documentedCompletedTransactionSourceIds: documentedCompletedTransactionSources.map((row) => row.sourceId),
+  authorizationBlockedCompletedTransactionSourceIds: documentedCompletedTransactionButAuthorizationBlockedSources.map((row) => row.sourceId),
+  documentedTransactionBackedLiquiditySourceIds: documentedTransactionBackedLiquiditySources.map((row) => row.sourceId),
   acceptanceContract: {
     documentedAutomatedAccessRequired: true,
     explicitCommercialReuseRightsRequired: true,
@@ -120,11 +133,12 @@ const sourceDiscoveryWorkPacket = {
   prohibitedActions: ['PAID_PROVIDER_PROCUREMENT', 'CONTRACT_EXECUTION', 'AUTHORIZATION_REQUEST', 'UNAUTHORIZED_SCRAPING', 'LISTING_OR_ESTIMATE_SUBSTITUTION', 'SYNTHETIC_OR_ESTIMATED_EVIDENCE'],
   promotionRule: 'DISCOVERY_ONLY_REQUIRES_SEPARATE_SOURCE_QUALIFICATION_AND_EVIDENCE_VALIDATION',
   existingNearFitsAreNotMarketEvidenceSources: true,
+  documentedButAuthorizationBlockedSemanticsAreNotMarketEvidence: true,
 };
 const disposition = structuralErrors.length > 0 ? 'FAIL_CLOSED_MARKET_CAPABILITY_INPUT_INVALID' : 'MARKET_CAPABILITY_GAPS_ROUTED_NO_EVIDENCE_CREATED';
 
 const report = {
-  schemaVersion: '1.1.0',
+  schemaVersion: '1.2.0',
   mode: 'KIDULT100_MARKET_CAPABILITY_GAP_ROUTER',
   generatedAt: new Date().toISOString(),
   metrics: {
@@ -134,6 +148,9 @@ const report = {
     rejectedSources: rejected.length,
     openRightsNearFitSources: openRightsNearFits.length,
     jointMarketSemanticGapSources: jointMarketSemanticGapSources.length,
+    documentedCompletedTransactionSources: documentedCompletedTransactionSources.length,
+    documentedCompletedTransactionButAuthorizationBlockedSources: documentedCompletedTransactionButAuthorizationBlockedSources.length,
+    documentedTransactionBackedLiquiditySources: documentedTransactionBackedLiquiditySources.length,
     structuralErrorCount: structuralErrors.length,
   },
   capabilitySummary,
@@ -168,6 +185,6 @@ const report = {
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, JSON.stringify(report, null, 2));
-console.log(`Market capability router: candidates=${routed.length} openQualified=${qualifiedOpen.length} authRequired=${authorizationRequired.length} rejected=${rejected.length} nearFits=${openRightsNearFits.length} jointMarketGap=${jointMarketSemanticGapSources.length} errors=${structuralErrors.length}`);
+console.log(`Market capability router: candidates=${routed.length} openQualified=${qualifiedOpen.length} authRequired=${authorizationRequired.length} rejected=${rejected.length} nearFits=${openRightsNearFits.length} jointMarketGap=${jointMarketSemanticGapSources.length} documentedSales=${documentedCompletedTransactionSources.length} authBlockedSales=${documentedCompletedTransactionButAuthorizationBlockedSources.length} documentedLiquidity=${documentedTransactionBackedLiquiditySources.length} errors=${structuralErrors.length}`);
 console.log(`capabilitySummary=${JSON.stringify(capabilitySummary)} nextSafeLane=${nextSafeLane}`);
 if (structuralErrors.length > 0) process.exitCode = 1;
