@@ -84,7 +84,30 @@ jobs:
           fi
           exit "$code"
       - name: Stage 2 Wikidata-only precision recovery
-        run: timeout --signal=TERM --kill-after=10s 120s node scripts/kidult100-precision-recovery-live.mjs
+        run: |
+          cp reports/kidult100-poc/kidult100-poc-latest.json /tmp/kidult100-poc-pre-precision-recovery.json
+          start=$(date +%s)
+          set +e
+          timeout --signal=TERM --kill-after=10s 120s node scripts/kidult100-precision-recovery-live.mjs
+          code=$?
+          set -e
+          end=$(date +%s)
+          elapsed=$((end-start))
+          mkdir -p reports/engineering-hardening
+          node -e 'const fs=require("fs"); const [exitCode,elapsedSeconds,headSha]=process.argv.slice(1); const code=Number(exitCode); const report={stage:"STAGE2_WIKIDATA_PRECISION_RECOVERY",status:code===0?"PASS":code===124?"TIMEOUT_FAIL_CLOSED":"FAIL_CLOSED",exitCode:code,elapsedSeconds:Number(elapsedSeconds),timeoutSeconds:120,headSha,partialEvidenceAccepted:false,preRecoveryCandidateUniverseRestoredOnFailure:code!==0}; fs.writeFileSync("reports/engineering-hardening/stage2-precision-recovery-latency-latest.json",JSON.stringify(report,null,2)+"\n");' "$code" "$elapsed" "$GITHUB_SHA"
+          if [ "$code" -ne 0 ]; then
+            cp /tmp/kidult100-poc-pre-precision-recovery.json reports/kidult100-poc/kidult100-poc-latest.json
+            rm -f reports/kidult100-poc/kidult100-precision-recovery-latest.json
+            rm -f reports/kidult100-poc/kidult100-poc-precision-hardening-latest.json
+            rm -f reports/kidult100-poc/kidult100-reference-precision-hardening-latest.json
+            rm -f reports/kidult100-poc/kidult100-wikidata-type-verification-latest.json
+            rm -f reports/kidult100-poc/kidult100-wikidata-subclass-verification-latest.json
+            rm -f reports/kidult100-right-data/*.json
+            rm -f reports/kidult100-ranking/*.json
+            rm -f reports/live-open-data/live-open-data-latest.json
+          fi
+          rm -f /tmp/kidult100-poc-pre-precision-recovery.json
+          exit "$code"
       - name: Stage 2 institutional archive product-object precision hardening
         run: node scripts/kidult100-stage2-archive-precision-harden.mjs
       - name: Stage 2 reference-public product-object precision hardening
@@ -225,6 +248,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/engineering-hardening/integrated-program-registry-gate-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/wave1-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/stage2-candidate-build-latency-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/stage2-precision-recovery-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/sre-readiness-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/governance-baseline-latest.json
           retention-days: 30
