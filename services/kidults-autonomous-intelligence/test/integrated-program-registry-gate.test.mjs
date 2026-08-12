@@ -39,6 +39,21 @@ test('current integrated program registry bootstraps safely without inventing sn
   assert.equal(report.claims.provider_procured, false);
 });
 
+test('Track B remains waiting for both official inputs and never starts an assessment from registry state alone', () => {
+  const { result, report } = run(LIVE_COORDINATION_ROOT);
+  assert.equal(result.status, 0);
+  assert.equal(report.track_b_readiness.operating_rules_status, 'FINAL_LOCKED_V1_3');
+  assert.deepEqual(report.track_b_readiness.official_inputs, ['snapshot-candidate.json', 'EVIDENCE_PACKAGE']);
+  assert.equal(report.track_b_readiness.official_output, 'rankability-assessment.json');
+  assert.equal(report.track_b_readiness.boundary_validation_passed, true);
+  assert.equal(report.track_b_readiness.assessment_permitted, false);
+  assert.equal(report.track_b_readiness.waiting_state, 'WAITING_FOR_SNAPSHOT');
+  assert.equal(report.track_b_readiness.reason, 'OFFICIAL_SNAPSHOT_CANDIDATE_NOT_REGISTERED');
+  assert.equal(report.track_b_readiness.creates_or_modifies_evidence, false);
+  assert.equal(report.track_b_readiness.registry_access_mode, 'READ_ONLY');
+  assert.equal(report.claims.track_b_assessment_started, false);
+});
+
 test('missing registry root fails closed and still emits a diagnostic report', () => {
   const missingRoot = path.join(os.tmpdir(), `kidults-missing-${process.pid}-${Date.now()}`);
   const { result, report } = run(missingRoot);
@@ -46,6 +61,28 @@ test('missing registry root fails closed and still emits a diagnostic report', (
   assert.equal(report.status, 'FAIL_CLOSED');
   assert.equal(report.loaded_registry_count, 0);
   assert.match(report.failures[0], /^MISSING_FILE:/);
+  assert.equal(report.track_b_readiness.assessment_permitted, false);
+});
+
+test('registered snapshot without proven Evidence Package keeps Track B in WAITING_FOR_EVIDENCE', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-track-b-readiness-'));
+  fs.cpSync(LIVE_COORDINATION_ROOT, tempRoot, { recursive: true });
+
+  const snapshotPath = path.join(tempRoot, 'registry', 'snapshot-registry.json');
+  const snapshots = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+  snapshots.current_candidate_snapshot_id = 'fixture-candidate';
+  snapshots.entries = [{ snapshot_id: 'fixture-candidate', status: 'draft' }];
+  fs.writeFileSync(snapshotPath, JSON.stringify(snapshots, null, 2));
+
+  const { result, report } = run(tempRoot);
+  fs.rmSync(tempRoot, { recursive: true, force: true });
+  assert.equal(result.status, 0);
+  assert.equal(report.status, 'PASS_BOOTSTRAPPING');
+  assert.equal(report.current_snapshot_id, 'fixture-candidate');
+  assert.equal(report.track_b_readiness.assessment_permitted, false);
+  assert.equal(report.track_b_readiness.waiting_state, 'WAITING_FOR_EVIDENCE');
+  assert.equal(report.track_b_readiness.reason, 'EVIDENCE_PACKAGE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF');
+  assert.equal(report.claims.track_b_assessment_started, false);
 });
 
 test('registered snapshot iteration is accepted while an unapproved production release still fails closed', () => {
@@ -70,5 +107,6 @@ test('registered snapshot iteration is accepted while an unapproved production r
   assert.equal(report.current_snapshot_id, 'fixture-candidate');
   assert.ok(report.failures.includes('UNAPPROVED_PRODUCTION_RELEASE_PRESENT'));
   assert.equal(report.failures.includes('CURRENT_SNAPSHOT_NOT_REGISTERED'), false);
+  assert.equal(report.track_b_readiness.assessment_permitted, false);
   assert.equal(report.claims.production_ready, false);
 });
