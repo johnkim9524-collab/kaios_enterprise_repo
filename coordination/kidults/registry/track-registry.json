@@ -1,9 +1,73 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "status": "ACTIVE",
   "tracks": [
-    {"track_id":"A","name":"120 Intelligence Factory","mission":"Create reproducible Snapshot Candidates from Right Data with measured speed, quality, scale and recovery.","may":["CREATE_CANDIDATE","RUN_POC_EXPERIMENTS"],"must_not":["DIRECT_PORTAL_DEPLOY","PRODUCTION_APPROVAL","ABSOLUTE_SUPERIORITY_CLAIM","OVERWRITE_BASELINE","MISSING_TO_ZERO"]},
-    {"track_id":"B","name":"Rankability & Validation Gate","mission":"Independently assess the exact Snapshot ID for rankability, stability, blocker exit criteria and provider-spend readiness.","may":["INDEPENDENT_GATE_DECISION","REQUEST_CORRECTION"],"must_not":["MODIFY_SOURCE_OR_120_METRIC","PORTAL_VISUAL_SELECTION","PROVIDER_CONTRACT","PRODUCTION_APPROVAL"]},
-    {"track_id":"C","name":"Portal V502 & Experience Layer","mission":"Render only approved Published Intelligence and production-ready assets through the Snapshot Contract.","may":["RENDER_UX","REPORT_CONTRACT_ERROR"],"must_not":["CALCULATE_RANKING","CALCULATE_FEATURED","ACCESS_RAW_PROVIDER_DATA","MISSING_TO_ZERO","PUBLISH_UNAPPROVED_ASSET"]}
+    {
+      "track_id": "A",
+      "name": "120 Intelligence Factory",
+      "mission": "Create reproducible Snapshot Candidates from Right Data with measured speed, quality, scale and recovery.",
+      "may": ["CREATE_CANDIDATE", "RUN_POC_EXPERIMENTS"],
+      "must_not": ["DIRECT_PORTAL_DEPLOY", "PRODUCTION_APPROVAL", "ABSOLUTE_SUPERIORITY_CLAIM", "OVERWRITE_BASELINE", "MISSING_TO_ZERO"]
+    },
+    {
+      "track_id": "B",
+      "name": "Rankability & Validation Gate",
+      "authority_model": "INDEPENDENT_VALIDATION_AUTHORITY",
+      "mission": "Independently validate the exact Track A snapshot_id and determine whether its evidence is sufficient for rankability, stability, exit criteria and further validation recommendations.",
+      "official_output": "rankability-assessment.json",
+      "snapshot_scope": "EXACTLY_ONE_EXISTING_SNAPSHOT_ID",
+      "evidence_policy": {
+        "creates_new_evidence": false,
+        "evaluates_track_a_evidence_only": true,
+        "required_sequence": ["EVIDENCE", "ASSESSMENT", "RECOMMENDATION"],
+        "insufficient_evidence_dispositions": ["NOT_RANKABLE", "BLOCKED"]
+      },
+      "registry_access": {
+        "mode": "READ_ONLY",
+        "may_request_assessment_registration": true,
+        "governance_owner": "ATLAS_KPMO"
+      },
+      "may": [
+        "INDEPENDENT_ASSESSMENT",
+        "RECOMMEND_BLOCKED",
+        "RECOMMEND_CONDITIONAL",
+        "RECOMMEND_PUBLISHABLE",
+        "SPECIFY_REQUIRED_EVIDENCE",
+        "DEFINE_EXIT_CRITERIA",
+        "REQUEST_ADDITIONAL_VALIDATION",
+        "REQUEST_ASSESSMENT_REGISTRATION"
+      ],
+      "must_not": [
+        "CREATE_REGISTRY",
+        "GOVERN_REGISTRY",
+        "MODIFY_REGISTRY",
+        "CREATE_SNAPSHOT",
+        "MODIFY_SOURCE_OR_120_METRIC",
+        "CREATE_NEW_EVIDENCE",
+        "MODIFY_PORTAL",
+        "DESIGN_OPERATING_SYSTEM",
+        "SELECT_PORTAL_VISUAL",
+        "RECOMMEND_FINAL_RANKING",
+        "DECLARE_FINAL_TRUTH",
+        "PROVIDER_CONTRACT",
+        "PRODUCTION_APPROVAL",
+        "PRODUCTION_RELEASE",
+        "PORTAL_DESIGN",
+        "BUSINESS_DECISION"
+      ],
+      "directive": {
+        "name": "Track B Additional Operating Directive",
+        "version": "v1.0",
+        "status": "APPROVED",
+        "effective": "IMMEDIATELY"
+      }
+    },
+    {
+      "track_id": "C",
+      "name": "Portal V502 & Experience Layer",
+      "mission": "Render only approved Published Intelligence and production-ready assets through the Snapshot Contract.",
+      "may": ["RENDER_UX", "REPORT_CONTRACT_ERROR"],
+      "must_not": ["CALCULATE_RANKING", "CALCULATE_FEATURED", "ACCESS_RAW_PROVIDER_DATA", "MISSING_TO_ZERO", "PUBLISH_UNAPPROVED_ASSET"]
+    }
   ]
 }
