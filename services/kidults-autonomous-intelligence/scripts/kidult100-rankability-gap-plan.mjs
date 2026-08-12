@@ -4,6 +4,7 @@ import path from 'node:path';
 const ROOT = process.cwd();
 const DEFAULT_POLICY = path.join(ROOT, 'config', 'kidult100-ranking-policy.json');
 const DEFAULT_RIGHT_DATA = path.join(ROOT, 'reports', 'kidult100-right-data', 'right-data-latest.json');
+const DEFAULT_NON_MARKET_PREFLIGHT = path.join(ROOT, 'reports', 'kidult100-ranking', 'kidult100-non-market-scoring-preflight-latest.json');
 const DEFAULT_OUT = path.join(ROOT, 'reports', 'kidult100-ranking', 'kidult100-rankability-gap-latest.json');
 const MARKET_PRIMITIVES = new Set(['TRANSACTION_PRICE_COMPARABLE', 'LIQUIDITY']);
 
@@ -62,7 +63,8 @@ function classifyNonMarketPreflight(preflight, semanticRelevantCandidates) {
 
 const policy = readJsonInput(process.env.KIDULTS_RANKABILITY_POLICY_JSON, DEFAULT_POLICY);
 const rightData = readJsonInput(process.env.KIDULTS_RANKABILITY_RIGHT_DATA_JSON, DEFAULT_RIGHT_DATA);
-const nonMarketPreflightInput = String(process.env.KIDULTS_RANKABILITY_NON_MARKET_PREFLIGHT_JSON || '').trim();
+const explicitNonMarketPreflight = String(process.env.KIDULTS_RANKABILITY_NON_MARKET_PREFLIGHT_JSON || '').trim();
+const nonMarketPreflightInput = explicitNonMarketPreflight || (fs.existsSync(DEFAULT_NON_MARKET_PREFLIGHT) ? DEFAULT_NON_MARKET_PREFLIGHT : '');
 const nonMarketPreflight = nonMarketPreflightInput ? readJsonInput(nonMarketPreflightInput, null) : null;
 const outPath = process.env.KIDULTS_RANKABILITY_GAP_OUTPUT
   ? (path.isAbsolute(process.env.KIDULTS_RANKABILITY_GAP_OUTPUT)
