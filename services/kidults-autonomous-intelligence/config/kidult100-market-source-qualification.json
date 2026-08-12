@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "policy": "FAIL_CLOSED_SOURCE_QUALIFICATION_NO_AUTO_ONBOARDING",
-  "lastVerifiedAt": "2026-08-11",
+  "lastVerifiedAt": "2026-08-12",
   "verificationMethod": "OFFICIAL_PRIMARY_DOCUMENTATION_REVIEW",
   "qualificationRequirements": {
     "explicitCommercialReuseRightsRequired": true,
@@ -24,6 +24,11 @@
         "completedTransactions": "NOT_A_COMPLETED_TRANSACTION_FEED",
         "transactionBackedLiquidity": "NOT_AVAILABLE_AS_REQUIRED_MARKET_PRIMITIVE"
       },
+      "primarySourceFindings": {
+        "completedTransactionSemanticsDocumented": false,
+        "transactionBackedLiquiditySemanticsDocumented": false,
+        "commercialReuseAuthorizationRequired": false
+      },
       "qualification": "NOT_QUALIFIED_MARKET_SEMANTICS",
       "blockingReasons": [
         "NO_AUTHORITATIVE_COMPLETED_SALE_EVENT_FEED",
@@ -43,6 +48,11 @@
       "marketSemantics": {
         "completedTransactions": "NOT_PROVIDED",
         "transactionBackedLiquidity": "NOT_PROVIDED"
+      },
+      "primarySourceFindings": {
+        "completedTransactionSemanticsDocumented": false,
+        "transactionBackedLiquiditySemanticsDocumented": false,
+        "commercialReuseAuthorizationRequired": false
       },
       "qualification": "NOT_QUALIFIED_MARKET_SEMANTICS",
       "blockingReasons": [
@@ -64,6 +74,11 @@
         "completedTransactions": "NOT_PROVIDED",
         "transactionBackedLiquidity": "NOT_PROVIDED"
       },
+      "primarySourceFindings": {
+        "completedTransactionSemanticsDocumented": false,
+        "transactionBackedLiquiditySemanticsDocumented": false,
+        "commercialReuseAuthorizationRequired": false
+      },
       "qualification": "NOT_QUALIFIED_MARKET_SEMANTICS",
       "blockingReasons": [
         "COLLECTION_METADATA_NOT_MARKET_TRANSACTION_DATA",
@@ -84,6 +99,11 @@
         "completedTransactions": "AUTHORIZED_TRANSACTION_APIS_EXIST",
         "transactionBackedLiquidity": "NOT_ESTABLISHED_FOR_KIDULTS_PROVIDER_CONTRACT"
       },
+      "primarySourceFindings": {
+        "completedTransactionSemanticsDocumented": true,
+        "transactionBackedLiquiditySemanticsDocumented": false,
+        "commercialReuseAuthorizationRequired": true
+      },
       "qualification": "NOT_QUALIFIED_AUTHORIZATION_REQUIRED",
       "blockingReasons": [
         "NO_CURRENT_KIDULTS_EBAY_API_AUTHORIZATION",
@@ -93,7 +113,8 @@
       "evidenceLinks": [
         "https://developer.ebay.com/join/api-license-agreement",
         "https://developer.ebay.com/api-docs/buy/static/buy-requirements.html",
-        "https://developer.ebay.com/api-docs/user-guides/static/trading-user-guide/manage-fulfill-complete-sale-data.html"
+        "https://developer.ebay.com/devzone/XML/docs/Reference/eBay/types/GetMyeBaySellingResponseType.html",
+        "https://www.ebay.com/help/default/default/user-agreement?id=4259"
       ]
     },
     {
@@ -106,6 +127,11 @@
         "completedTransactions": "PUBLIC_AUCTION_PROCESS_EXISTS_BUT_STRUCTURED_FEED_NOT_QUALIFIED",
         "transactionBackedLiquidity": "NOT_PROVIDED_AS_REQUIRED_MARKET_PRIMITIVE"
       },
+      "primarySourceFindings": {
+        "completedTransactionSemanticsDocumented": false,
+        "transactionBackedLiquiditySemanticsDocumented": false,
+        "commercialReuseAuthorizationRequired": false
+      },
       "qualification": "NOT_QUALIFIED_RIGHTS_AND_INTERFACE",
       "blockingReasons": [
         "NO_EXPLICIT_AUTOMATED_COMMERCIAL_REUSE_CLEARANCE_FOR_REQUIRED_FEED",
@@ -115,6 +141,62 @@
       "evidenceLinks": [
         "https://www.gsa.gov/buy-through-us/government-property-for-sale-or-lease/office-of-personal-property-management/for-citizens-seeking-surplus-property/methods-of-sales",
         "https://www.gsa.gov/website-information/website-policies"
+      ]
+    },
+    {
+      "sourceId": "opensea-api",
+      "displayName": "OpenSea API",
+      "sourceClass": "MARKETPLACE_API",
+      "rightsStatus": "COMMERCIAL_API_DATA_USE_REQUIRES_EXPRESS_WRITTEN_PERMISSION",
+      "automationAccess": "COMMERCIAL_PRODUCTION_AUTHORIZATION_REQUIRED",
+      "marketSemantics": {
+        "completedTransactions": "DOCUMENTED_SALE_EVENT_API_COMMERCIAL_REUSE_AUTHORIZATION_REQUIRED",
+        "transactionBackedLiquidity": "SALES_AND_VOLUME_STATS_DOCUMENTED_BUT_TRANSACTION_BACKED_LIQUIDITY_NOT_QUALIFIED"
+      },
+      "primarySourceFindings": {
+        "completedTransactionSemanticsDocumented": true,
+        "transactionBackedLiquiditySemanticsDocumented": false,
+        "commercialReuseAuthorizationRequired": true
+      },
+      "qualification": "NOT_QUALIFIED_AUTHORIZATION_REQUIRED",
+      "blockingReasons": [
+        "COMMERCIAL_API_DATA_USE_REQUIRES_EXPRESS_WRITTEN_PERMISSION",
+        "NO_CURRENT_KIDULTS_OPENSEA_COMMERCIAL_API_AUTHORIZATION",
+        "TRANSACTION_BACKED_LIQUIDITY_CONTRACT_NOT_QUALIFIED",
+        "DIGITAL_ASSET_ONLY_COVERAGE_DOES_NOT_SATISFY_EIGHT_VERTICAL_REQUIREMENT"
+      ],
+      "evidenceLinks": [
+        "https://docs.opensea.io/reference/api-overview",
+        "https://docs.opensea.io/reference/list_events",
+        "https://docs.opensea.io/reference/api-keys",
+        "https://opensea.io/tos?embed=false"
+      ]
+    },
+    {
+      "sourceId": "discogs-api",
+      "displayName": "Discogs API",
+      "sourceClass": "MARKETPLACE_API",
+      "rightsStatus": "MIXED_CC0_AND_RESTRICTED_API_DATA_FIELD_LEVEL_REVIEW_REQUIRED",
+      "automationAccess": "DOCUMENTED_API_TERMS_AND_ENDPOINT_AUTH_MAY_APPLY",
+      "marketSemantics": {
+        "completedTransactions": "MARKETPLACE_API_DOCUMENTED_BUT_COMPLETED_TRANSACTION_HISTORY_NOT_CONFIRMED",
+        "transactionBackedLiquidity": "MARKETPLACE_STATS_NOT_CONFIRMED_AS_TRANSACTION_BACKED_LIQUIDITY"
+      },
+      "primarySourceFindings": {
+        "completedTransactionSemanticsDocumented": false,
+        "transactionBackedLiquiditySemanticsDocumented": false,
+        "commercialReuseAuthorizationRequired": false
+      },
+      "qualification": "NOT_QUALIFIED_RIGHTS_AND_MARKET_SEMANTICS",
+      "blockingReasons": [
+        "FIELD_LEVEL_CC0_VS_RESTRICTED_DATA_CLASSIFICATION_REQUIRED",
+        "NO_COMPLETED_TRANSACTION_FEED_CONFIRMED",
+        "NO_TRANSACTION_BACKED_LIQUIDITY_SEMANTICS_CONFIRMED",
+        "MUSIC_FOCUSED_COVERAGE_DOES_NOT_SATISFY_EIGHT_VERTICAL_REQUIREMENT"
+      ],
+      "evidenceLinks": [
+        "https://support.discogs.com/hc/en-us/articles/360009334593-API-Terms-of-Use",
+        "https://support.discogs.com/hc/en-us/articles/360009334333-Terms-of-Service"
       ]
     }
   ]
