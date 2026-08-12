@@ -6,7 +6,7 @@ const DEFAULT_CONTRACT = path.join(ROOT, 'config', 'kidult100-non-market-scoring
 const DEFAULT_RANKING = path.join(ROOT, 'config', 'kidult100-ranking-policy.json');
 const DEFAULT_RIGHT_DATA = path.join(ROOT, 'reports', 'kidult100-right-data', 'right-data-latest.json');
 const DEFAULT_OUT = path.join(ROOT, 'reports', 'kidult100-ranking', 'kidult100-non-market-scoring-preflight-latest.json');
-const ALLOWED_STATUS = new Set(['NOT_VALIDATED', 'VALIDATED']);
+const ALLOWED_STATUS = new Set(['NOT_VALIDATED', 'DESIGN_READY', 'VALIDATED']);
 
 function readJsonInput(value, fallbackPath) {
   const raw = value == null || String(value).trim() === '' ? fallbackPath : String(value).trim();
@@ -40,6 +40,15 @@ function exactSet(values) {
 function scoreValue(value) {
   const number = Number(value);
   return Number.isFinite(number) && number >= 0 && number <= 1;
+}
+
+function hasMethodologyMetadata(row) {
+  return typeof row?.methodologyVersion === 'string' && row.methodologyVersion.length > 0
+    && typeof row?.normalizationMethod === 'string' && row.normalizationMethod.length > 0;
+}
+
+function hasVerticalMethodologyMetadata(row) {
+  return typeof row?.normalizationMethod === 'string' && row.normalizationMethod.length > 0;
 }
 
 const contract = readJsonInput(process.env.KIDULTS_NON_MARKET_SCORING_CONTRACT_JSON, DEFAULT_CONTRACT);
@@ -89,10 +98,12 @@ for (const dimension of dimensions) {
 
   const calibration = resolveEvidenceReference(dimension.calibrationEvidence);
   const validation = resolveEvidenceReference(dimension.outOfSampleValidationEvidence);
-  const methodMetadataReady = dimension.methodologyStatus === 'VALIDATED'
-    && typeof dimension.methodologyVersion === 'string' && dimension.methodologyVersion.length > 0
-    && typeof dimension.normalizationMethod === 'string' && dimension.normalizationMethod.length > 0;
-  const activationReady = methodMetadataReady && calibration.valid && validation.valid;
+  const designMetadataReady = ['DESIGN_READY', 'VALIDATED'].includes(dimension.methodologyStatus)
+    && hasMethodologyMetadata(dimension);
+  const validatedMethodMetadataReady = dimension.methodologyStatus === 'VALIDATED'
+    && hasMethodologyMetadata(dimension);
+  if (dimension.methodologyStatus === 'DESIGN_READY' && !designMetadataReady) errors.push('DESIGN_METADATA_INCOMPLETE');
+  const activationReady = validatedMethodMetadataReady && calibration.valid && validation.valid;
   if (dimension.productionActivation === true && !activationReady) errors.push('ACTIVATION_EVIDENCE_INCOMPLETE');
   if (errors.length) structuralErrors.push(...errors.map((error) => `${id}:${error}`));
 
@@ -101,7 +112,8 @@ for (const dimension of dimensions) {
     scoreField: dimension.scoreField,
     methodologyStatus: dimension.methodologyStatus,
     productionActivation: dimension.productionActivation,
-    methodMetadataReady,
+    designMetadataReady,
+    methodMetadataReady: validatedMethodMetadataReady,
     calibrationEvidenceValid: calibration.valid,
     calibrationEvidenceReason: calibration.reason,
     outOfSampleValidationEvidenceValid: validation.valid,
@@ -118,14 +130,18 @@ for (const vertical of verticals) {
   if (!ALLOWED_STATUS.has(vertical.status)) errors.push('INVALID_VERTICAL_STATUS');
   const calibration = resolveEvidenceReference(vertical.calibrationEvidence);
   const validation = resolveEvidenceReference(vertical.outOfSampleValidationEvidence);
-  const methodMetadataReady = vertical.status === 'VALIDATED'
-    && typeof vertical.normalizationMethod === 'string' && vertical.normalizationMethod.length > 0;
-  const ready = methodMetadataReady && calibration.valid && validation.valid;
+  const designMetadataReady = ['DESIGN_READY', 'VALIDATED'].includes(vertical.status)
+    && hasVerticalMethodologyMetadata(vertical);
+  const validatedMethodMetadataReady = vertical.status === 'VALIDATED'
+    && hasVerticalMethodologyMetadata(vertical);
+  if (vertical.status === 'DESIGN_READY' && !designMetadataReady) errors.push('DESIGN_METADATA_INCOMPLETE');
+  const ready = validatedMethodMetadataReady && calibration.valid && validation.valid;
   if (vertical.status === 'VALIDATED' && !ready) errors.push('VALIDATED_VERTICAL_EVIDENCE_INCOMPLETE');
   if (errors.length) structuralErrors.push(...errors.map((error) => `${id}:${error}`));
   verticalAudit[id] = {
     status: vertical.status,
-    methodMetadataReady,
+    designMetadataReady,
+    methodMetadataReady: validatedMethodMetadataReady,
     calibrationEvidenceValid: calibration.valid,
     outOfSampleValidationEvidenceValid: validation.valid,
     ready,
@@ -175,22 +191,30 @@ for (const dimension of dimensions) {
 if (prematureScoringCandidates > 0) structuralErrors.push('UNVALIDATED_NON_MARKET_SCORE_RECORDS_PRESENT');
 const activatedDimensions = Object.values(evidenceMetrics).filter((row) => row.productionScoringActivated).length;
 const validatedVerticals = Object.values(verticalAudit).filter((row) => row.ready).length;
+const designReadyDimensions = Object.values(dimensionAudit).filter((row) => row.designMetadataReady).length;
+const designReadyVerticals = Object.values(verticalAudit).filter((row) => row.designMetadataReady).length;
+const methodologyDesignComplete = designReadyDimensions === requiredDimensions.length
+  && designReadyVerticals === requiredVerticals.length;
 const disposition = structuralErrors.length > 0
   ? 'FAIL_CLOSED_INVALID_NON_MARKET_SCORING_STATE'
   : activatedDimensions === requiredDimensions.length && validatedVerticals === requiredVerticals.length
     ? 'NON_MARKET_SCORING_CONTRACT_READY'
-    : 'NON_MARKET_SCORING_METHODOLOGY_REQUIRED';
+    : methodologyDesignComplete
+      ? 'NON_MARKET_SCORING_CALIBRATION_REQUIRED'
+      : 'NON_MARKET_SCORING_METHODOLOGY_REQUIRED';
 
 const report = {
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.1.0',
   mode: 'KIDULT100_NON_MARKET_SCORING_PREFLIGHT',
   generatedAt: new Date().toISOString(),
   policy: contract?.policy || null,
   metrics: {
     semanticRelevantCandidates: relevant.length,
     requiredDimensions: requiredDimensions.length,
+    designReadyDimensions,
     activatedDimensions,
     requiredVerticals: requiredVerticals.length,
+    designReadyVerticals,
     validatedVerticals,
     prematureScoringCandidates,
     structuralErrorCount: structuralErrors.length,
@@ -201,6 +225,8 @@ const report = {
   structuralErrors,
   disposition,
   claims: {
+    methodologyDesignComplete,
+    calibrationStillRequired: disposition === 'NON_MARKET_SCORING_CALIBRATION_REQUIRED',
     normalizedScoresGeneratedByThisAudit: false,
     rawEvidenceCreditedAsNormalizedScore: false,
     primitivePresenceCreditedAsNormalizedScore: false,
@@ -212,7 +238,7 @@ const report = {
 
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, JSON.stringify(report, null, 2));
-console.log(`Non-market scoring preflight: relevant=${relevant.length} dimensions=${activatedDimensions}/${requiredDimensions.length} verticals=${validatedVerticals}/${requiredVerticals.length}`);
+console.log(`Non-market scoring preflight: relevant=${relevant.length} design=${designReadyDimensions}/${requiredDimensions.length} dimensions=${activatedDimensions}/${requiredDimensions.length} verticalDesign=${designReadyVerticals}/${requiredVerticals.length} verticals=${validatedVerticals}/${requiredVerticals.length}`);
 console.log(`prematureScores=${prematureScoringCandidates} structuralErrors=${structuralErrors.length} disposition=${disposition}`);
 
 if (structuralErrors.length > 0) process.exitCode = 1;
