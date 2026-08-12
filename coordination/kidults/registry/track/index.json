@@ -1,14 +1,19 @@
 {
   "registry_id":"kidults-track-registry",
   "registry_name":"Track Registry",
-  "registry_version":"1.0.0",
+  "registry_version":"1.1.0",
   "schema_version":"1.0.0",
   "owner":"KPMO",
   "custodian":"Atlas",
-  "status":"BOOTSTRAPPING",
+  "status":"ACTIVE",
   "effective_at":"2026-08-12T12:00:00+09:00",
   "record_directory":"records",
-  "record_count":0,
+  "record_count":4,
   "current_record_id":null,
-  "records":[]
+  "records":[
+    {"id":"track-a-120-intelligence-factory","path":"records/track-a-120-intelligence-factory.json","status":"ACTIVE"},
+    {"id":"track-b-rankability-validation-gate","path":"records/track-b-rankability-validation-gate.json","status":"WAITING_FOR_SNAPSHOT"},
+    {"id":"track-c-portal-v502-experience-layer","path":"records/track-c-portal-v502-experience-layer.json","status":"ROLE_ACCEPTANCE_PENDING"},
+    {"id":"track-d-data-platform-production-reliability","path":"records/track-d-data-platform-production-reliability.json","status":"FOUNDATION_PREPARATION"}
+  ]
 }

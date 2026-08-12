@@ -1,15 +1,18 @@
 {
   "registry_id":"kidults-program-registry",
   "registry_name":"Program Registry",
-  "registry_version":"1.0.0",
+  "registry_version":"1.1.0",
   "schema_version":"1.0.0",
   "owner":"KPMO",
   "custodian":"Atlas",
-  "status":"BOOTSTRAPPING",
+  "status":"ACTIVE",
   "effective_at":"2026-08-12T12:00:00+09:00",
   "record_directory":"records",
-  "record_count":0,
-  "current_record_id":null,
-  "records":[],
-  "change_history":[{"version":"1.0.0","changed_at":"2026-08-12T12:00:00+09:00","changed_by":"Atlas","change":"Registry index created."}]
+  "record_count":1,
+  "current_record_id":"program-kidults-integrated-intelligence-v1",
+  "records":[{"id":"program-kidults-integrated-intelligence-v1","path":"records/program-kidults-integrated-intelligence-v1.json","version":"1.0.0","status":"ACTIVE"}],
+  "change_history":[
+    {"version":"1.0.0","changed_at":"2026-08-12T12:00:00+09:00","changed_by":"Atlas","change":"Registry index created."},
+    {"version":"1.1.0","changed_at":"2026-08-12T15:30:00+09:00","changed_by":"Atlas","change":"Registered the four-track KIDULTS Integrated Intelligence Program."}
+  ]
 }

@@ -1,14 +1,14 @@
 {
   "registry_id":"kidults-decision-registry",
   "registry_name":"Decision Registry",
-  "registry_version":"1.0.0",
+  "registry_version":"1.1.0",
   "schema_version":"1.0.0",
   "owner":"Program Owner / KPMO",
   "custodian":"Atlas",
-  "status":"BOOTSTRAPPING",
+  "status":"ACTIVE",
   "effective_at":"2026-08-12T12:00:00+09:00",
   "record_directory":"records",
-  "record_count":0,
-  "current_record_id":null,
-  "records":[]
+  "record_count":1,
+  "current_record_id":"decision-phase0-operating-framework-launch",
+  "records":[{"id":"decision-phase0-operating-framework-launch","path":"records/decision-phase0-operating-framework-launch.json","version":"1.0.0","status":"APPROVED"}]
 }

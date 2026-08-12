@@ -1,0 +1,15 @@
+{
+  "id":"role-track-b",
+  "record_type":"role",
+  "version":"1.3.0",
+  "status":"FINAL_LOCKED",
+  "title":"Track B Lead — Rankability & Validation Gate",
+  "holder_id":"agent-track-b",
+  "mission":"Independently validate one exact immutable snapshot and Evidence Package.",
+  "official_input":["snapshot-candidate.json","Evidence Package"],
+  "official_output":["rankability-assessment.json"],
+  "allowed_recommendations":["BLOCKED","CONDITIONAL","PUBLISHABLE","REQUIRED_EVIDENCE","EXIT_CRITERIA","ADDITIONAL_VALIDATION"],
+  "must_not":["SOURCE_DATA_CHANGE","REGISTRY_GOVERNANCE","PORTAL_VISUAL_SELECTION","PROVIDER_CONTRACT","FINAL_RANKING","PRODUCTION_APPROVAL"],
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

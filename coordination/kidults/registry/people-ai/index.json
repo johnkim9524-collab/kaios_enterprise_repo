@@ -1,14 +1,21 @@
 {
   "registry_id":"kidults-people-ai-registry",
   "registry_name":"People & AI Registry",
-  "registry_version":"1.0.0",
+  "registry_version":"1.1.0",
   "schema_version":"1.0.0",
   "owner":"KPMO",
   "custodian":"Atlas",
-  "status":"BOOTSTRAPPING",
+  "status":"ACTIVE",
   "effective_at":"2026-08-12T12:00:00+09:00",
   "record_directory":"records",
-  "record_count":0,
+  "record_count":6,
   "current_record_id":null,
-  "records":[]
+  "records":[
+    {"id":"person-john","path":"records/person-john.json","status":"ACTIVE"},
+    {"id":"agent-atlas","path":"records/agent-atlas.json","status":"ACTIVE"},
+    {"id":"agent-track-a","path":"records/agent-track-a.json","status":"ACTIVE"},
+    {"id":"agent-track-b","path":"records/agent-track-b.json","status":"ACTIVE"},
+    {"id":"agent-track-c","path":"records/agent-track-c.json","status":"ROLE_ACCEPTANCE_PENDING"},
+    {"id":"agent-track-d","path":"records/agent-track-d.json","status":"ACTIVE"}
+  ]
 }

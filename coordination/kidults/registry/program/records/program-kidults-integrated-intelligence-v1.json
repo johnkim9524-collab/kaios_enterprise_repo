@@ -1,0 +1,30 @@
+{
+  "id":"program-kidults-integrated-intelligence-v1",
+  "record_type":"program",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "effective_at":"2026-08-12T12:00:00+09:00",
+  "created_by":"Atlas",
+  "approved_by":"John",
+  "display_name":"KIDULTS Integrated Intelligence Program",
+  "mission":"Build an evidence-driven, provider-aware, scalable and increasingly autonomous global collectibles intelligence operating system under the 120 Standard.",
+  "program_phase":"PHASE_0_OPERATING_FRAMEWORK",
+  "registry_state":"BOOTSTRAPPING",
+  "program_owner_id":"person-john",
+  "integration_conductor_id":"agent-atlas",
+  "track_ids":["track-a-120-intelligence-factory","track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability"],
+  "official_books":["Master Book","Baseline Book","Architecture Book"],
+  "canonical_issues":[234,235,236,237,238],
+  "operating_flow":["snapshot-candidate.json","rankability-assessment.json","integration-gate","portal-release-manifest.json","production-decision","published-snapshot"],
+  "operating_principles":[
+    "One Program. One Language. One Registry. One Source of Truth.",
+    "Generate, validate, approve and publish are separate responsibilities.",
+    "Structure is stable; intelligence is dynamic.",
+    "Current measurements describe current observability, not permanent superiority.",
+    "Portal is a consumer of published intelligence.",
+    "Proof before procurement.",
+    "Fail closed on incomplete evidence, rights, contracts or rollback."
+  ],
+  "baseline_commit":"c88eaf9c23ca03b0aa80932d0a76199fbcefd9c9",
+  "references":["coordination/kidults/README.md","docs/operations/KIDULTS_SHARED_PROGRAM_ANNOUNCEMENT_V1.md"]
+}

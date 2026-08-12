@@ -1,0 +1,12 @@
+{
+  "id":"agent-track-a",
+  "record_type":"ai_agent",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "display_name":"Track A Agent",
+  "role_ids":["role-track-a"],
+  "working_room_name":"A. KIDULTS | 120 Intelligence Factory",
+  "canonical_issue":235,
+  "created_by":"Atlas",
+  "approved_by":"John"
+}
