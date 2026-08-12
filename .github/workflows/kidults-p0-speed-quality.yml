@@ -76,6 +76,12 @@ jobs:
           elapsed=$((end-start))
           mkdir -p reports/engineering-hardening
           node -e 'const fs=require("fs"); const [exitCode,elapsedSeconds,headSha]=process.argv.slice(1); const code=Number(exitCode); const report={stage:"STAGE2_NORMALIZED_CANDIDATE_UNIVERSE_BUILD",status:code===0?"PASS":code===124?"TIMEOUT_FAIL_CLOSED":"FAIL_CLOSED",exitCode:code,elapsedSeconds:Number(elapsedSeconds),timeoutSeconds:240,headSha,partialEvidenceAccepted:false}; fs.writeFileSync("reports/engineering-hardening/stage2-candidate-build-latency-latest.json",JSON.stringify(report,null,2)+"\n");' "$code" "$elapsed" "$GITHUB_SHA"
+          if [ "$code" -ne 0 ]; then
+            rm -f reports/kidult100-poc/*.json
+            rm -f reports/kidult100-right-data/*.json
+            rm -f reports/kidult100-ranking/*.json
+            rm -f reports/live-open-data/live-open-data-latest.json
+          fi
           exit "$code"
       - name: Stage 2 Wikidata-only precision recovery
         run: timeout --signal=TERM --kill-after=10s 120s node scripts/kidult100-precision-recovery-live.mjs
@@ -271,6 +277,6 @@ jobs:
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-rankability-gap-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-experimental-latest.json
             services/kidults-autonomous-intelligence/reports/kidult100-ranking/kidult100-experimental-gap-latest.json
-            services/kidults-autonomous-intelligence/reports/live-open-data/live-open-data-latest.json
+            services/live-open-data/live-open-data-latest.json
           retention-days: 30
           if-no-files-found: error
