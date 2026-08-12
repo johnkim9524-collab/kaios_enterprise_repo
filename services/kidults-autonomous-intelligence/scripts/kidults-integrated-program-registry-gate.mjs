@@ -29,6 +29,8 @@ const REQUIRED_REGISTRIES = [
 const REQUIRED_RELEASE_GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5'];
 const REQUIRED_PROGRAM_TRACKS = ['A', 'B', 'C', 'D'];
 const REQUIRED_COMPATIBILITY_TRACKS = ['A', 'B', 'C'];
+const TRACK_B_OFFICIAL_INPUTS = ['snapshot-candidate.json', 'EVIDENCE_PACKAGE'];
+const TRACK_B_OFFICIAL_OUTPUT = 'rankability-assessment.json';
 const REQUIRED_ARTIFACT_CHAIN = [
   'snapshot-candidate.json',
   'Evidence Package',
@@ -53,6 +55,7 @@ function requireCondition(condition, code, failures) {
 const failures = [];
 const registries = {};
 let governance = null;
+let trackB = null;
 
 try {
   for (const fileName of REQUIRED_REGISTRIES) registries[fileName] = readJson(path.join(REGISTRY_DIR, fileName));
@@ -70,7 +73,7 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
   const programTrackIds = Array.isArray(program?.tracks) ? program.tracks.map((row) => row?.track_id) : [];
   const trackRows = Array.isArray(tracks?.tracks) ? tracks.tracks : [];
   const trackRegistryIds = trackRows.map((row) => row?.track_id);
-  const trackB = trackRows.find((row) => row?.track_id === 'B');
+  trackB = trackRows.find((row) => row?.track_id === 'B') ?? null;
   const registeredSnapshotIds = new Set();
   if (snapshots?.baseline_snapshot_id) registeredSnapshotIds.add(snapshots.baseline_snapshot_id);
   const snapshotEntries = Array.isArray(snapshots?.entries) ? snapshots.entries : [];
@@ -89,9 +92,12 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
   requireCondition(JSON.stringify(programTrackIds) === JSON.stringify(REQUIRED_PROGRAM_TRACKS), 'PROGRAM_TRACK_TOPOLOGY_INVALID', failures);
   requireCondition(JSON.stringify(trackRegistryIds) === JSON.stringify(REQUIRED_COMPATIBILITY_TRACKS), 'TRACK_REGISTRY_TOPOLOGY_INVALID', failures);
   requireCondition(trackB?.operating_rules_status === 'FINAL_LOCKED_V1_3', 'TRACK_B_RULE_STATUS_INVALID', failures);
-  requireCondition(JSON.stringify(trackB?.official_inputs) === JSON.stringify(['snapshot-candidate.json', 'EVIDENCE_PACKAGE']), 'TRACK_B_INPUT_BOUNDARY_INVALID', failures);
-  requireCondition(trackB?.official_output === 'rankability-assessment.json', 'TRACK_B_OUTPUT_BOUNDARY_INVALID', failures);
+  requireCondition(JSON.stringify(trackB?.official_inputs) === JSON.stringify(TRACK_B_OFFICIAL_INPUTS), 'TRACK_B_INPUT_BOUNDARY_INVALID', failures);
+  requireCondition(trackB?.official_output === TRACK_B_OFFICIAL_OUTPUT, 'TRACK_B_OUTPUT_BOUNDARY_INVALID', failures);
   requireCondition(trackB?.assessment_policy?.creates_new_evidence === false && trackB?.assessment_policy?.evaluates_track_a_evidence_only === true, 'TRACK_B_EVIDENCE_BOUNDARY_INVALID', failures);
+  requireCondition(trackB?.input_boundary?.both_official_inputs_required_before_assessment === true, 'TRACK_B_BOTH_INPUTS_REQUIRED_INVALID', failures);
+  requireCondition(trackB?.temporary_or_estimated_assessment_allowed === false, 'TRACK_B_TEMPORARY_ASSESSMENT_POLICY_INVALID', failures);
+  requireCondition(trackB?.registry_access?.mode === 'READ_ONLY', 'TRACK_B_REGISTRY_ACCESS_INVALID', failures);
   requireCondition(JSON.stringify(program?.artifact_chain) === JSON.stringify(REQUIRED_ARTIFACT_CHAIN), 'ARTIFACT_CHAIN_INVALID', failures);
   requireCondition(Array.isArray(program?.official_books) && program.official_books.length === 3 && program.official_books.includes('Master Book') && program.official_books.includes('Baseline Book') && program.official_books.includes('Architecture Book'), 'OFFICIAL_BOOK_TOPOLOGY_INVALID', failures);
   requireCondition(currentSnapshotId == null || registeredSnapshotIds.has(currentSnapshotId), 'CURRENT_SNAPSHOT_NOT_REGISTERED', failures);
@@ -102,8 +108,12 @@ if (governance && Object.keys(registries).length === REQUIRED_REGISTRIES.length)
 }
 
 const currentSnapshotId = registries['snapshot-registry.json']?.current_candidate_snapshot_id ?? registries['snapshot-registry.json']?.current_published_snapshot_id ?? null;
+const trackBBoundaryFailures = failures.filter((code) => String(code).startsWith('TRACK_B_'));
+const trackBWaitingState = currentSnapshotId == null ? 'WAITING_FOR_SNAPSHOT' : 'WAITING_FOR_EVIDENCE';
+const trackBAssessmentPermitted = false;
+
 const report = {
-  schema_version: '1.2.0',
+  schema_version: '1.3.0',
   mode: 'KIDULTS_INTEGRATED_PROGRAM_REGISTRY_GATE',
   generated_at: new Date().toISOString(),
   status: failures.length === 0 ? 'PASS_BOOTSTRAPPING' : 'FAIL_CLOSED',
@@ -112,11 +122,25 @@ const report = {
   loaded_registry_count: Object.keys(registries).length,
   program_registry_version: registries['program-registry.json']?.registry_version ?? null,
   current_snapshot_id: currentSnapshotId,
+  track_b_readiness: {
+    operating_rules_status: trackB?.operating_rules_status ?? null,
+    official_inputs: trackB?.official_inputs ?? null,
+    official_output: trackB?.official_output ?? null,
+    boundary_validation_passed: trackBBoundaryFailures.length === 0 && trackB != null,
+    assessment_permitted: trackBAssessmentPermitted,
+    waiting_state: trackBWaitingState,
+    reason: currentSnapshotId == null
+      ? 'OFFICIAL_SNAPSHOT_CANDIDATE_NOT_REGISTERED'
+      : 'EVIDENCE_PACKAGE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF',
+    creates_or_modifies_evidence: false,
+    registry_access_mode: trackB?.registry_access?.mode ?? null,
+  },
   failures,
   claims: {
     operating_baseline_loaded: failures.length === 0,
     registry_is_single_source_of_truth: failures.length === 0,
-    track_b_final_locked_v1_3_verified: failures.length === 0,
+    track_b_final_locked_v1_3_verified: trackBBoundaryFailures.length === 0 && trackB != null,
+    track_b_assessment_started: false,
     production_ready: false,
     g0_g5_complete: false,
     snapshot_id_inferred_or_synthesized: false,
@@ -130,5 +154,5 @@ const report = {
 
 fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
 fs.writeFileSync(OUTPUT_PATH, JSON.stringify(report, null, 2));
-console.log(`Integrated Program registry gate: ${report.status}; registries=${report.loaded_registry_count}/${report.required_registry_count}; program=${report.program_registry_version ?? 'null'}; snapshot=${report.current_snapshot_id ?? 'null'}; failures=${failures.length}`);
+console.log(`Integrated Program registry gate: ${report.status}; registries=${report.loaded_registry_count}/${report.required_registry_count}; program=${report.program_registry_version ?? 'null'}; snapshot=${report.current_snapshot_id ?? 'null'}; trackB=${report.track_b_readiness.waiting_state}; failures=${failures.length}`);
 if (failures.length > 0) process.exitCode = 1;
