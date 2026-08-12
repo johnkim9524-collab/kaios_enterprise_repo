@@ -61,5 +61,5 @@ test('public auction sold pages never bypass explicit anti-scraping and commerci
   assert.equal(heritage.qualification, 'NOT_QUALIFIED_AUTHORIZATION_REQUIRED');
   assert.ok(heritage.blockingReasons.includes('AUTOMATED_COLLECTION_EXPRESSLY_PROHIBITED'));
   assert.ok(heritage.blockingReasons.includes('COMMERCIAL_REUSE_REQUIRES_WRITTEN_PERMISSION'));
-  assert.equal((registry.providers || []).some((provider) => provider.providerId === 'heritage-auctions'), false);
+  assert.equal((registry.providers || []).length, 0);
 });
