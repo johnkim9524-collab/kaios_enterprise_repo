@@ -2,6 +2,7 @@
   "workspace_id": "kidults-living-intelligence-workspace",
   "version": "0.1.0",
   "default_panel": "ask",
+  "public_truth_statement": "The workspace changes navigation—not source truth, Registry state or engine contracts.",
   "panels": [
     {
       "id": "ask",
