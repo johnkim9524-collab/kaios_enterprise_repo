@@ -9,6 +9,7 @@ const SOURCE_PLAN_PATH = path.join(ROOT, 'config', 'kidult100-poc-source-plan.js
 const RIGHT_DATA_PATH = path.join(ROOT, 'reports', 'kidult100-right-data', 'right-data-latest.json');
 const SHAPE_PATH = path.join(ROOT, 'reports', 'kidult100-ranking', 'kidult100-calibration-evidence-shape-latest.json');
 const OUT_PATH = path.join(ROOT, 'reports', 'kidult100-ranking', 'kidult100-scarcity-evidence-target-queue-latest.json');
+const INACTIVE_SCARCITY_METHODOLOGY_STATUSES = new Set(['NOT_VALIDATED', 'DESIGN_READY']);
 
 function readJson(file) {
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) throw new Error(`Missing JSON input: ${file}`);
@@ -43,7 +44,9 @@ for (const field of ['syntheticAllowed', 'estimatedAllowed', 'inferredScarcityAl
 }
 
 const scarcityDefinition = (contract?.dimensions || []).find((row) => row?.id === 'SCARCITY');
-if (!scarcityDefinition || scarcityDefinition.methodologyStatus !== 'NOT_VALIDATED' || scarcityDefinition.productionActivation !== false) throw new Error('Scarcity scoring must remain inactive');
+if (!scarcityDefinition
+  || !INACTIVE_SCARCITY_METHODOLOGY_STATUSES.has(scarcityDefinition.methodologyStatus)
+  || scarcityDefinition.productionActivation !== false) throw new Error('Scarcity scoring must remain inactive');
 if (JSON.stringify(scarcityDefinition.allowedRawSignalTypes) !== JSON.stringify(['TOTAL_PRODUCED'])) throw new Error('Scarcity raw signal contract changed');
 
 const verticals = (sourcePlan?.coreVerticals || []).map((row) => row?.id).filter(Boolean);
