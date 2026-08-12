@@ -25,9 +25,35 @@ test('Stage 2 precision recovery remains bounded and fail-closed', () => {
     /timeout --signal=TERM --kill-after=10s 120s node scripts\/kidult100-precision-recovery-live\.mjs/,
   );
   assert.doesNotMatch(block, /continue-on-error:\s*true/);
+  assert.match(block, /partialEvidenceAccepted:false/);
 });
 
-test('precision recovery evidence is uploaded only as a diagnostic artifact, not a production certification bypass', () => {
+test('precision recovery failure restores the fresh pre-recovery candidate universe and purges stale downstream evidence', () => {
+  const block = stageBlock(
+    'Stage 2 Wikidata-only precision recovery',
+    'Stage 2 institutional archive product-object precision hardening',
+  );
+
+  assert.match(
+    block,
+    /cp reports\/kidult100-poc\/kidult100-poc-latest\.json \/tmp\/kidult100-poc-pre-precision-recovery\.json/,
+  );
+  assert.match(
+    block,
+    /cp \/tmp\/kidult100-poc-pre-precision-recovery\.json reports\/kidult100-poc\/kidult100-poc-latest\.json/,
+  );
+  assert.match(block, /rm -f reports\/kidult100-poc\/kidult100-precision-recovery-latest\.json/);
+  assert.match(block, /rm -f reports\/kidult100-right-data\/\*\.json/);
+  assert.match(block, /rm -f reports\/kidult100-ranking\/\*\.json/);
+  assert.match(block, /rm -f reports\/live-open-data\/live-open-data-latest\.json/);
+  assert.match(block, /preRecoveryCandidateUniverseRestoredOnFailure:code!==0/);
+});
+
+test('precision recovery latency is measured as diagnostic evidence without creating a production bypass', () => {
+  assert.match(
+    workflow,
+    /services\/kidults-autonomous-intelligence\/reports\/engineering-hardening\/stage2-precision-recovery-latency-latest\.json/,
+  );
   assert.match(
     workflow,
     /services\/kidults-autonomous-intelligence\/reports\/kidult100-poc\/kidult100-precision-recovery-latest\.json/,
