@@ -1,0 +1,39 @@
+name: KIDULTS Integrated Program Registry Gate
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/**'
+      - 'docs/operations/KIDULTS_*.md'
+      - 'services/kidults-autonomous-intelligence/scripts/kidults-integrated-program-registry-gate.mjs'
+      - 'services/kidults-autonomous-intelligence/test/integrated-program-registry-gate.test.mjs'
+      - '.github/workflows/kidults-integrated-program-registry-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  registry-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate canonical coordination registry
+        run: node scripts/kidults/coordination/validate-coordination.mjs
+      - name: Validate Integrated Program operating invariants
+        working-directory: services/kidults-autonomous-intelligence
+        run: node scripts/kidults-integrated-program-registry-gate.mjs
+      - name: Upload registry gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-integrated-program-registry-gate
+          path: services/kidults-autonomous-intelligence/reports/engineering-hardening/integrated-program-registry-gate-latest.json
+          retention-days: 30
+          if-no-files-found: error
