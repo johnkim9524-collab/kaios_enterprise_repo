@@ -1,4 +1,5 @@
 {
+  "release": "V502_RC1",
   "editions": [
     {
       "edition": "2026.08",
@@ -17,6 +18,12 @@
       "title": "Kidult 100 Methodology 1.0",
       "subtitle": "Scoring, confidence and provenance rules",
       "status": "ARCHIVE"
+    },
+    {
+      "edition": "2026.08 RC",
+      "title": "Portal V502 Release Candidate",
+      "subtitle": "Eight-vertical structure, modular assets and registry traceability",
+      "status": "RELEASE CANDIDATE"
     }
   ]
 }

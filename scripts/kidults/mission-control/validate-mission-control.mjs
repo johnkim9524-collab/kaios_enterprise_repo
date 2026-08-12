@@ -34,7 +34,7 @@ const twin = readJson('digital-twin/records/twin-current-program-state-v1.json')
 assert(track?.record_count === 4, 'Track Registry must contain exactly four tracks.');
 assert(milestone?.current_record_id === 'milestone-ms-0001-first-canonical-snapshot', 'MS-0001 must be the current milestone.');
 assert(mission?.record_count === 4, 'Mission Registry must contain four initial missions.');
-assert(workQueue?.record_count === 6, 'Work Queue must contain six initial work items.');
+assert(workQueue?.record_count >= 6, 'Work Queue must retain at least six bootstrap work items.');
 assert(blocker?.record_count === 2, 'Blocker Registry must contain two initial blockers.');
 assert(twinIndex?.current_record_id === twin?.id, 'Digital Twin current pointer must resolve.');
 

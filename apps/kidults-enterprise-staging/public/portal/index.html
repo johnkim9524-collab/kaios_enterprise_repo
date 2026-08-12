@@ -1,13 +1,16 @@
 <!doctype html>
-<html lang="en" data-release="v500">
+<html lang="en" data-release="v502" data-data-state="loading">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#faf9f6">
-  <meta name="description" content="KIDULTS — Global Collectibles Intelligence Standard">
-  <title>KIDULTS — Global Collectibles Intelligence Standard</title>
-  <link rel="stylesheet" href="portal.css?v=500">
-  <script type="module" src="portal.js?v=500"></script>
+  <meta name="description" content="KIDULTS V502 — the evidence-led global collectibles intelligence reference portal.">
+  <meta name="robots" content="index,follow">
+  <title>KIDULTS V502 — Global Collectibles Intelligence</title>
+  <link rel="stylesheet" href="portal.css?v=502">
+  <link rel="stylesheet" href="portal-v501-polish.css?v=501">
+  <link rel="stylesheet" href="portal-v502.css?v=502">
+  <script type="module" src="portal.js?v=502"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -17,6 +20,7 @@
     <a class="wordmark" href="#discover" aria-label="KIDULTS home">KIDULTS</a>
     <nav class="primary-nav" id="primary-nav" aria-label="Primary navigation">
       <a href="#discover">Discover</a>
+      <a href="#verticals">Verticals</a>
       <a href="#why">WHY</a>
       <a href="#k100">Kidult 100</a>
       <a href="#markets">Markets</a>
@@ -25,11 +29,20 @@
       <a href="#institution">Institution</a>
     </nav>
     <div class="header-actions">
-      <span class="preview-pill"><i></i> LIVE PREVIEW</span>
+      <button class="search-trigger" type="button" data-search-open aria-haspopup="dialog">
+        <span aria-hidden="true">⌕</span><span class="search-label">Search</span>
+      </button>
+      <span class="preview-pill release-pill"><i></i><span data-release-label>V502 RC</span></span>
       <button class="menu-toggle" type="button" aria-controls="primary-nav" aria-expanded="false" data-menu-toggle>Menu</button>
     </div>
   </div>
 </header>
+
+<section class="registry-ribbon" aria-label="Portal data status">
+  <div class="shell registry-ribbon-inner" data-registry-ribbon>
+    <span class="registry-loading">Loading registry status…</span>
+  </div>
+</section>
 
 <main id="main">
   <section class="hero section" id="discover" aria-labelledby="hero-title">
@@ -40,24 +53,27 @@
         <span class="short-rule" aria-hidden="true"></span>
         <p class="hero-lede">Culture creates value long before price reacts. KIDULTS discovers the signal, explains <strong>WHY</strong>, and proves it with evidence.</p>
         <div class="hero-actions">
-          <a class="button button-primary" href="#k100">Explore Kidult 100 <span>→</span></a>
-          <a class="button button-secondary" href="#why">See WHY it matters</a>
+          <a class="button button-primary" href="#verticals">Explore 8 Verticals <span>→</span></a>
+          <a class="button button-secondary" href="#k100">See the Featured Slice</a>
         </div>
         <div class="hero-proof"><span>Evidence</span><i></i><span>Methodology</span><i></i><span>Provenance</span></div>
       </div>
 
-      <article class="moment-card">
-        <img class="moment-image" src="assets/hero/mobility-sculpture-v500.webp" alt="KIDULTS original white mobility sculpture in a wide ivory studio">
+      <article class="moment-card" data-hero-card>
+        <img class="moment-image" data-hero-image src="assets/hero/mobility-sculpture-v501.webp" alt="KIDULTS original white mobility sculpture in a wide ivory studio">
         <div class="moment-shade" aria-hidden="true"></div>
-        <div class="moment-topline"><i></i><span>ICON OF THE MOMENT</span></div>
+        <div class="moment-topline"><i></i><span data-hero-eyebrow>ICON OF THE MOMENT</span></div>
         <div class="moment-copy">
-          <h2>Mobility Sculpture 01</h2>
-          <p>Vision. Material. Direction.</p>
+          <h2 data-hero-title>Mobility Sculpture 01</h2>
+          <p data-hero-subtitle>Vision. Material. Direction.</p>
           <span class="short-rule"></span>
-          <small>KIDULTS ORIGINAL VISUAL<br>RIGHTS-GATED</small>
+          <small data-hero-rights>KIDULTS ORIGINAL VISUAL<br>RIGHTS-GATED</small>
         </div>
         <div class="moment-footer">
-          <div class="carousel-dots" aria-hidden="true"><i class="active"></i><i></i><i></i><i></i></div>
+          <div class="hero-source">
+            <span data-hero-vertical>Automobiles &amp; Mobility</span>
+            <small data-hero-status>PUBLIC PREVIEW</small>
+          </div>
           <button class="text-link" type="button" data-dialog="hero">View details <span>→</span></button>
         </div>
       </article>
@@ -68,9 +84,29 @@
     <div class="shell">
       <div class="section-heading split-heading">
         <div><p class="eyebrow">PLATFORM SNAPSHOT</p><h2 id="snapshot-title">Scale without ambiguity.</h2></div>
-        <p>Snapshot metrics describe platform reach. Operational status is shown separately, so scale never masquerades as verified production readiness.</p>
+        <p>Scale, readiness and publication state are separated. Every public number carries a source state so preview never masquerades as verified Production intelligence.</p>
       </div>
       <div class="snapshot-grid" data-snapshot-grid></div>
+    </div>
+  </section>
+
+  <section class="section verticals-section" id="verticals" aria-labelledby="verticals-title">
+    <div class="shell">
+      <div class="section-heading split-heading">
+        <div>
+          <p class="eyebrow">OFFICIAL COVERAGE STRUCTURE</p>
+          <h2 id="verticals-title">Eight Core Verticals.<br>One flexible intelligence system.</h2>
+        </div>
+        <div class="verticals-intro">
+          <p>The eight verticals are stable. Their current observability, featured status and representative objects are dynamic and change only through versioned data.</p>
+          <div class="view-switch" role="group" aria-label="Vertical display filter">
+            <button type="button" class="is-active" data-vertical-filter="all" aria-pressed="true">All 8</button>
+            <button type="button" data-vertical-filter="featured" aria-pressed="false">Current Featured 5</button>
+          </div>
+        </div>
+      </div>
+      <div class="vertical-grid" data-vertical-grid aria-live="polite"></div>
+      <div class="interpretation-note" data-vertical-interpretation></div>
     </div>
   </section>
 
@@ -104,8 +140,13 @@
   <section class="section k100-section" id="k100" aria-labelledby="k100-title">
     <div class="shell">
       <div class="section-heading split-heading">
-        <div><p class="eyebrow">GLOBAL BENCHMARK</p><h2 id="k100-title">Kidult 100.</h2></div>
-        <p>The evidence-ranked benchmark for collectible objects—presented as an editorial gallery, not a product grid.</p>
+        <div><p class="eyebrow">CURRENT FEATURED SLICE</p><h2 id="k100-title">Kidult 100 preview.</h2></div>
+        <p>This is a selected editorial slice, not the eight-vertical structure and not a permanent ranking. Publication remains evidence- and rights-gated.</p>
+      </div>
+      <div class="featured-slice-status">
+        <span><b>Structure</b> 8 Core Verticals</span>
+        <span><b>Current slice</b> 5 editorial objects</span>
+        <span><b>Source</b> Provider-independent baseline</span>
       </div>
       <div class="k100-gallery" data-k100-gallery></div>
       <aside class="canon-panel">
@@ -208,12 +249,24 @@
       </div>
     </div>
   </section>
+
+  <section class="release-baseline" aria-label="V502 release baseline">
+    <div class="shell release-baseline-inner">
+      <div><p class="eyebrow">V502 RELEASE CANDIDATE</p><h2>Complete the portal. Freeze the baseline. Then validate.</h2></div>
+      <dl data-release-baseline>
+        <div><dt>Release</dt><dd>V502 RC</dd></div>
+        <div><dt>Snapshot</dt><dd>WAITING</dd></div>
+        <div><dt>Assessment</dt><dd>WAITING</dd></div>
+        <div><dt>Production</dt><dd>HOLD</dd></div>
+      </dl>
+    </div>
+  </section>
 </main>
 
 <footer class="site-footer">
   <div class="shell footer-inner">
-    <div class="footer-brand"><strong>KIDULTS</strong><span>GLOBAL COLLECTIBLES INTELLIGENCE STANDARD</span></div>
-    <nav aria-label="Footer navigation"><a href="#markets">Evidence</a><a href="#why">Provenance</a><a href="#k100">Comparables</a><a href="#research">Research</a><a href="#archive">Archive</a><a href="#institution">Institution</a></nav>
+    <div class="footer-brand"><strong>KIDULTS</strong><span>GLOBAL COLLECTIBLES INTELLIGENCE STANDARD · V502 RC</span></div>
+    <nav aria-label="Footer navigation"><a href="#verticals">Verticals</a><a href="#markets">Evidence</a><a href="#why">Provenance</a><a href="#k100">Comparables</a><a href="#research">Research</a><a href="#archive">Archive</a></nav>
     <span>© 2026 KIDULTS. All rights reserved.</span>
   </div>
 </footer>
@@ -223,6 +276,19 @@
   <p class="eyebrow" data-dialog-eyebrow>KIDULTS INTELLIGENCE</p>
   <h2 id="dialog-title" data-dialog-title>Details</h2>
   <div class="dialog-body" data-dialog-body></div>
+</dialog>
+
+<dialog id="search-dialog" class="search-dialog" aria-labelledby="search-dialog-title">
+  <button class="dialog-close" type="button" aria-label="Close search" data-search-close>×</button>
+  <p class="eyebrow">SEARCH THE INTELLIGENCE LAYER</p>
+  <h2 id="search-dialog-title">Find a vertical, object or report.</h2>
+  <label class="search-field">
+    <span class="sr-only">Search</span>
+    <input type="search" autocomplete="off" placeholder="Search mobility, watches, reports…" data-search-input>
+    <kbd>ESC</kbd>
+  </label>
+  <div class="search-meta" data-search-meta>Type to search the V502 public preview.</div>
+  <div class="search-results" data-search-results></div>
 </dialog>
 </body>
 </html>

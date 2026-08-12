@@ -1,9 +1,11 @@
 {
   "updated_at": "2026-08-11T12:30:00+09:00",
+  "release": "V502_RC1",
+  "status": "PUBLIC_PREVIEW",
   "signals": [
     {
       "id": "mobility-momentum",
-      "category": "MOBILITY",
+      "category": "AUTOMOBILES & MOBILITY",
       "title": "Cultural momentum",
       "value": "+5.8",
       "unit": "30D",
@@ -28,7 +30,7 @@
     },
     {
       "id": "time-liquidity",
-      "category": "TIME",
+      "category": "WATCHES & JEWELRY",
       "title": "Liquidity strength",
       "value": "86.4",
       "unit": "INDEX",
@@ -52,8 +54,8 @@
       ]
     },
     {
-      "id": "footwear-velocity",
-      "category": "FOOTWEAR",
+      "id": "fashion-velocity",
+      "category": "FASHION & ACCESSORIES",
       "title": "Collector velocity",
       "value": "84.9",
       "unit": "INDEX",
@@ -77,8 +79,8 @@
       ]
     },
     {
-      "id": "character-maturity",
-      "category": "CHARACTER",
+      "id": "toys-maturity",
+      "category": "TOYS & MODELS",
       "title": "Evidence maturity",
       "value": "BUILDING",
       "unit": "STATUS",

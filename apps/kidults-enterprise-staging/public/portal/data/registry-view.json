@@ -1,0 +1,47 @@
+{
+  "projection_id": "portal-v502-registry-view-001",
+  "projection_version": "1.0.0",
+  "generated_from": [
+    "coordination/kidults/registry/catalog.json",
+    "coordination/kidults/registry/track/index.json",
+    "coordination/kidults/registry/snapshot/index.json",
+    "coordination/kidults/registry/assessment/index.json",
+    "coordination/kidults/registry/release/index.json"
+  ],
+  "generated_at": "2026-08-12T14:44:27.952Z",
+  "registry_system_version": "1.1.0",
+  "program_status": "ACTIVE",
+  "track_states": {
+    "A": "ACTIVE",
+    "B": "WAITING_FOR_SNAPSHOT",
+    "C": "ACTIVE",
+    "D": "FOUNDATION_PREPARATION"
+  },
+  "snapshot": {
+    "baseline_id": "baseline-provider-independent-v1",
+    "baseline_status": "BASELINE_LOCKED_PENDING_ARTIFACT",
+    "candidate_id": null,
+    "candidate_status": "WAITING",
+    "published_id": null,
+    "published_status": "NOT_AVAILABLE"
+  },
+  "assessment": {
+    "current_id": null,
+    "status": "WAITING_FOR_SNAPSHOT"
+  },
+  "release": {
+    "current_id": "release-foundation-hold-v1",
+    "status": "HOLD",
+    "production_decision": "NOT_REQUESTED",
+    "rollback_target_id": null
+  },
+  "versions": {
+    "methodology": "NOT_YET_REGISTERED",
+    "evidence_lineage": "NOT_YET_REGISTERED",
+    "portal_contract": "v502-rc1"
+  },
+  "freshness": {
+    "status": "CURRENT",
+    "as_of": "2026-08-12T14:44:27.952Z"
+  }
+}

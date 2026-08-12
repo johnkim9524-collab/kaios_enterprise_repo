@@ -1,15 +1,19 @@
 const LOCAL = {
-  summary: "data/portal-summary.json?v=500",
-  k100: "data/kidult100.json?v=500",
-  signals: "data/market-signals.json?v=500",
-  research: "data/research.json?v=500",
-  archive: "data/archive.json?v=500",
-  provenance: "data/provenance.json?v=500"
+  manifest: "data/v502-manifest.json?v=502",
+  registry: "data/registry-view.json?v=502",
+  release: "data/portal-release-manifest-v502.json?v=502",
+  verticals: "data/verticals.json?v=502",
+  summary: "data/portal-summary.json?v=502",
+  k100: "data/kidult100.json?v=502",
+  signals: "data/market-signals.json?v=502",
+  research: "data/research.json?v=502",
+  archive: "data/archive.json?v=502",
+  provenance: "data/provenance.json?v=502"
 };
 
 const UPSTREAM = {
-  quality: "../data/quality-status.json?v=500",
-  monthly: "../data/monthly-intelligence.json?v=500"
+  quality: "../data/quality-status.json?v=502",
+  monthly: "../data/monthly-intelligence.json?v=502"
 };
 
 const isNumber = value =>
@@ -18,13 +22,18 @@ const isNumber = value =>
   value !== "" &&
   Number.isFinite(Number(value));
 
-async function getJson(path) {
-  const response = await fetch(path, {
-    cache: "no-store",
-    headers: { Accept: "application/json" }
-  });
-  if (!response.ok) throw new Error(`${response.status} ${path}`);
-  return response.json();
+async function getJson(path, { optional = false } = {}) {
+  try {
+    const response = await fetch(path, {
+      cache: "no-store",
+      headers: { Accept: "application/json" }
+    });
+    if (!response.ok) throw new Error(`${response.status} ${path}`);
+    return await response.json();
+  } catch (error) {
+    if (optional) return null;
+    throw error;
+  }
 }
 
 function findMetric(summary, id) {
@@ -94,8 +103,61 @@ function overlayVerified(summary, quality, monthly) {
   return verified;
 }
 
+function buildSearchIndex({ verticals, k100, research, archive }) {
+  const records = [];
+
+  for (const vertical of verticals.verticals) {
+    records.push({
+      type: "Vertical",
+      title: vertical.name,
+      description: `${vertical.summary} ${vertical.representative_scope.join(" ")}`,
+      href: `vertical.html?id=${encodeURIComponent(vertical.id)}`,
+      keywords: [vertical.short_name, vertical.slug, ...vertical.representative_scope]
+    });
+  }
+
+  for (const item of k100.items) {
+    records.push({
+      type: "Object",
+      title: item.title,
+      description: `${item.category}. ${item.status}. ${item.provenance}`,
+      href: `object.html?id=${encodeURIComponent(item.id)}`,
+      keywords: [item.category, item.vertical_id, item.status]
+    });
+  }
+
+  records.push({
+    type: "Research",
+    title: research.title,
+    description: `${research.subtitle}. ${research.summary}`,
+    href: "#research",
+    keywords: research.sections.flatMap(section => [section.title, section.summary])
+  });
+
+  for (const edition of archive.editions) {
+    records.push({
+      type: "Archive",
+      title: edition.title,
+      description: `${edition.edition}. ${edition.subtitle}. ${edition.status}`,
+      href: "#archive",
+      keywords: [edition.edition, edition.status]
+    });
+  }
+
+  return records.map(record => ({
+    ...record,
+    searchText: [record.title, record.description, ...(record.keywords || [])]
+      .join(" ")
+      .toLocaleLowerCase()
+  }));
+}
+
 export async function loadPortalData() {
   const required = await Promise.all([
+    getJson(LOCAL.manifest),
+    getJson(LOCAL.registry),
+    getJson(LOCAL.release),
+    getJson(LOCAL.verticals),
     getJson(LOCAL.summary),
     getJson(LOCAL.k100),
     getJson(LOCAL.signals),
@@ -104,29 +166,45 @@ export async function loadPortalData() {
     getJson(LOCAL.provenance)
   ]);
 
-  const [summary, k100, signals, research, archive, provenance] = required;
-  const [qualityResult, monthlyResult] = await Promise.allSettled([
-    getJson(UPSTREAM.quality),
-    getJson(UPSTREAM.monthly)
+  const [
+    manifest,
+    registry,
+    release,
+    verticals,
+    summary,
+    k100,
+    signals,
+    research,
+    archive,
+    provenance
+  ] = required;
+
+  const [quality, monthly] = await Promise.all([
+    getJson(UPSTREAM.quality, { optional: true }),
+    getJson(UPSTREAM.monthly, { optional: true })
   ]);
 
-  const verifiedFields = overlayVerified(
-    summary,
-    qualityResult.status === "fulfilled" ? qualityResult.value : null,
-    monthlyResult.status === "fulfilled" ? monthlyResult.value : null
-  );
+  const verifiedFields = overlayVerified(summary, quality, monthly);
+  const searchIndex = buildSearchIndex({ verticals, k100, research, archive });
 
   return {
+    manifest,
+    registry,
+    release,
+    verticals,
     summary,
     k100,
     signals,
     research,
     archive,
     provenance,
+    searchIndex,
     meta: {
       verifiedFields,
-      qualityConnected: qualityResult.status === "fulfilled",
-      monthlyConnected: monthlyResult.status === "fulfilled"
+      qualityConnected: Boolean(quality),
+      monthlyConnected: Boolean(monthly),
+      registryProjectionConnected: Boolean(registry),
+      releaseCandidate: manifest.status === "RELEASE_CANDIDATE"
     }
   };
 }

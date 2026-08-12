@@ -1,17 +1,35 @@
 {
-  "registry_id":"kidults-blocker-registry",
-  "registry_name":"Blocker Registry",
-  "registry_version":"1.0.0",
-  "schema_version":"1.0.0",
-  "owner":"KPMO",
-  "custodian":"Atlas",
-  "status":"ACTIVE",
-  "effective_at":"2026-08-12T12:00:00+09:00",
-  "record_directory":"records",
-  "record_count":2,
-  "current_record_id":"blocker-no-canonical-candidate",
-  "records":[
-    {"id":"blocker-no-canonical-candidate","path":"records/blocker-no-canonical-candidate.json","version":"1.0.0","status":"OPEN"},
-    {"id":"blocker-track-c-role-acceptance-pending","path":"records/blocker-track-c-role-acceptance-pending.json","version":"1.0.0","status":"OPEN"}
+  "registry_id": "kidults-blocker-registry",
+  "registry_name": "Blocker Registry",
+  "registry_version": "1.1.0",
+  "schema_version": "1.0.0",
+  "owner": "KPMO",
+  "custodian": "Atlas",
+  "status": "ACTIVE",
+  "effective_at": "2026-08-12T12:00:00+09:00",
+  "record_directory": "records",
+  "record_count": 2,
+  "current_record_id": "blocker-no-canonical-candidate",
+  "records": [
+    {
+      "id": "blocker-no-canonical-candidate",
+      "path": "records/blocker-no-canonical-candidate.json",
+      "version": "1.0.0",
+      "status": "OPEN"
+    },
+    {
+      "id": "blocker-track-c-role-acceptance-pending",
+      "path": "records/blocker-track-c-role-acceptance-pending.json",
+      "version": "1.1.0",
+      "status": "RESOLVED"
+    }
+  ],
+  "change_history": [
+    {
+      "version": "1.1.0",
+      "changed_at": "2026-08-12T23:10:00+09:00",
+      "changed_by": "Atlas",
+      "change": "Resolved Track C role-acceptance blocker."
+    }
   ]
 }
