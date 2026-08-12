@@ -27,6 +27,10 @@ const wikidataRuntime = {
 const sourceAccessRuntime = Object.fromEntries((CONFIG.sources || []).map((source) => [source.id, {
   configuredActive: source.active !== false,
   attempts: 0,
+  successfulAttempts: 0,
+  failedAttempts: 0,
+  elapsedMs: 0,
+  maxAttemptMs: 0,
   blockedForRun: false,
   blockedReason: null,
 }]));
@@ -333,18 +337,38 @@ for (const vertical of CONFIG.coreVerticals) {
     for (const collector of collectors) {
       if (!configuredActiveSources.has(collector.id) || blockedSources.has(collector.id)) continue;
       if (!sourceAccessRuntime[collector.id]) {
-        sourceAccessRuntime[collector.id] = { configuredActive: true, attempts: 0, blockedForRun: false, blockedReason: null };
+        sourceAccessRuntime[collector.id] = {
+          configuredActive: true,
+          attempts: 0,
+          successfulAttempts: 0,
+          failedAttempts: 0,
+          elapsedMs: 0,
+          maxAttemptMs: 0,
+          blockedForRun: false,
+          blockedReason: null,
+        };
       }
-      sourceAccessRuntime[collector.id].attempts += 1;
+      const runtime = sourceAccessRuntime[collector.id];
+      runtime.attempts += 1;
+      const attemptStarted = Date.now();
       try {
-        raw.push(...await collector.run(query, vertical.id));
+        const collected = await collector.run(query, vertical.id);
+        const attemptElapsedMs = Date.now() - attemptStarted;
+        runtime.successfulAttempts += 1;
+        runtime.elapsedMs += attemptElapsedMs;
+        runtime.maxAttemptMs = Math.max(runtime.maxAttemptMs, attemptElapsedMs);
+        raw.push(...collected);
       } catch (error) {
+        const attemptElapsedMs = Date.now() - attemptStarted;
+        runtime.failedAttempts += 1;
+        runtime.elapsedMs += attemptElapsedMs;
+        runtime.maxAttemptMs = Math.max(runtime.maxAttemptMs, attemptElapsedMs);
         const message = String(error?.message || error);
         sourceErrors.push({ vertical: vertical.id, query, collector: collector.run.name, source: collector.id, error: message });
         if (/^HTTP_(401|403):/.test(message)) {
           blockedSources.add(collector.id);
-          sourceAccessRuntime[collector.id].blockedForRun = true;
-          sourceAccessRuntime[collector.id].blockedReason = message.split(':', 1)[0];
+          runtime.blockedForRun = true;
+          runtime.blockedReason = message.split(':', 1)[0];
         }
       }
     }
