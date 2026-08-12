@@ -162,6 +162,22 @@ test('stale or mismatched non-market preflight fails closed', () => {
   assert.match(result.stderr, /Invalid non-market scoring preflight: CANDIDATE_COUNT_MISMATCH/);
 });
 
+test('inconsistent calibration and ready preflight claims fail closed', () => {
+  const calibration = nonMarketPreflight('NON_MARKET_SCORING_CALIBRATION_REQUIRED');
+  calibration.claims.calibrationStillRequired = false;
+  const first = run(policy(), [candidate('calibration-claim-mismatch')], calibration);
+  assert.notEqual(first.result.status, 0);
+  assert.equal(first.report, null);
+  assert.match(first.result.stderr, /CALIBRATION_STATE_CLAIM_MISMATCH/);
+
+  const ready = nonMarketPreflight('NON_MARKET_SCORING_CONTRACT_READY');
+  ready.claims.productionScoringCertified = false;
+  const second = run(policy(), [candidate('ready-claim-mismatch')], ready);
+  assert.notEqual(second.result.status, 0);
+  assert.equal(second.report, null);
+  assert.match(second.result.stderr, /READY_STATE_CERTIFICATION_MISMATCH/);
+});
+
 test('candidate with scoring-ready scarcity demand canon and risk can be unlocked by compliant market scoring', () => {
   const rows = [
     evidence('SCARCITY', { normalizedScore: 0.7 }),
