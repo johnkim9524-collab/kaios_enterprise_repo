@@ -41,7 +41,24 @@ function candidate(key, rows = []) {
   };
 }
 
-function run(p = policy(), candidates = []) {
+function nonMarketPreflight(disposition, semanticRelevantCandidates = 1) {
+  return {
+    mode: 'KIDULT100_NON_MARKET_SCORING_PREFLIGHT',
+    metrics: {
+      semanticRelevantCandidates,
+      structuralErrorCount: 0,
+    },
+    structuralErrors: [],
+    disposition,
+    claims: {
+      methodologyDesignComplete: disposition !== 'NON_MARKET_SCORING_METHODOLOGY_REQUIRED',
+      calibrationStillRequired: disposition === 'NON_MARKET_SCORING_CALIBRATION_REQUIRED',
+      productionScoringCertified: disposition === 'NON_MARKET_SCORING_CONTRACT_READY',
+    },
+  };
+}
+
+function run(p = policy(), candidates = [], preflight = null) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-rank-gap-'));
   const out = path.join(tmp, 'out.json');
   const env = {
@@ -49,6 +66,7 @@ function run(p = policy(), candidates = []) {
     KIDULTS_RANKABILITY_POLICY_JSON: JSON.stringify(p),
     KIDULTS_RANKABILITY_RIGHT_DATA_JSON: JSON.stringify({ candidates }),
     KIDULTS_RANKABILITY_GAP_OUTPUT: out,
+    ...(preflight ? { KIDULTS_RANKABILITY_NON_MARKET_PREFLIGHT_JSON: JSON.stringify(preflight) } : {}),
   };
   const result = spawnSync(process.execPath, ['scripts/kidult100-rankability-gap-plan.mjs'], {
     cwd: process.cwd(),
@@ -94,6 +112,54 @@ test('market-only acquisition cannot unlock a risk-only candidate under 95 perce
   assert.equal(row.marketOnlyCouldReachRankable, false);
   assert.equal(report.disposition, 'NON_MARKET_SCORING_CONTRACT_REQUIRED_BEFORE_MARKET_ONLY_ACQUISITION_CAN_UNLOCK_TARGET');
   assert.equal(report.claims.hypotheticalMarketEvidenceCreditedAsCurrent, false);
+});
+
+test('design-ready non-market methodology routes to real calibration and validation evidence instead of a missing contract', () => {
+  const rows = [
+    evidence('SCARCITY', { totalProduced: 1000 }),
+    evidence('DEMAND_ATTENTION', { sitelinkCount: 20 }),
+    evidence('RISK_CONFIDENCE', { score: 0.9 }),
+  ];
+  const preflight = nonMarketPreflight('NON_MARKET_SCORING_CALIBRATION_REQUIRED');
+  const { result, report } = run(policy(), [candidate('calibration-needed', rows)], preflight);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(report.metrics.nonMarketScoringPreflight.state, 'CALIBRATION_REQUIRED');
+  assert.equal(report.disposition, 'NON_MARKET_CALIBRATION_AND_VALIDATION_EVIDENCE_REQUIRED_BEFORE_MARKET_ONLY_ACQUISITION_CAN_UNLOCK_TARGET');
+  assert.equal(report.claims.nonMarketCalibrationBypassed, false);
+  assert.equal(report.claims.rankabilityCertified, false);
+});
+
+test('methodology-required preflight stays fail-closed before market-only acquisition', () => {
+  const rows = [evidence('RISK_CONFIDENCE', { score: 0.9 })];
+  const preflight = nonMarketPreflight('NON_MARKET_SCORING_METHODOLOGY_REQUIRED');
+  const { result, report } = run(policy(), [candidate('methodology-needed', rows)], preflight);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(report.metrics.nonMarketScoringPreflight.state, 'METHODOLOGY_REQUIRED');
+  assert.equal(report.disposition, 'NON_MARKET_SCORING_METHODOLOGY_REQUIRED_BEFORE_MARKET_ONLY_ACQUISITION_CAN_UNLOCK_TARGET');
+  assert.equal(report.claims.rankabilityCertified, false);
+});
+
+test('production-certified preflight permits existing score readiness logic without inventing evidence', () => {
+  const rows = [
+    evidence('SCARCITY', { normalizedScore: 0.7 }),
+    evidence('DEMAND_ATTENTION', { normalizedScore: 0.6 }),
+    evidence('CANON_CULTURAL_STRENGTH', { normalizedScore: 0.8 }),
+    evidence('RISK_CONFIDENCE', { score: 0.9 }),
+  ];
+  const preflight = nonMarketPreflight('NON_MARKET_SCORING_CONTRACT_READY');
+  const { result, report } = run(policy(), [candidate('ready-with-preflight', rows)], preflight);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(report.metrics.nonMarketScoringPreflight.state, 'READY');
+  assert.equal(report.disposition, 'MARKET_EVIDENCE_CAN_UNLOCK_RANKABILITY_TARGET_WITH_CURRENT_NON_MARKET_SCORING');
+  assert.equal(report.claims.rankabilityCertified, false);
+});
+
+test('stale or mismatched non-market preflight fails closed', () => {
+  const preflight = nonMarketPreflight('NON_MARKET_SCORING_CALIBRATION_REQUIRED', 2);
+  const { result, report } = run(policy(), [candidate('one-candidate')], preflight);
+  assert.notEqual(result.status, 0);
+  assert.equal(report, null);
+  assert.match(result.stderr, /Invalid non-market scoring preflight: CANDIDATE_COUNT_MISMATCH/);
 });
 
 test('candidate with scoring-ready scarcity demand canon and risk can be unlocked by compliant market scoring', () => {
