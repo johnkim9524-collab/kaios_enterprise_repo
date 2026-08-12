@@ -106,12 +106,14 @@ test('missing audit rows and unsafe upstream claims fail closed', () => {
   assert.equal(unsafe.report, null);
 });
 
-test('malformed audit identities are reported fail-closed without producing evidence', () => {
+test('malformed audit and manifest identities are reported fail-closed without producing evidence', () => {
   const malformedAudit = audit([{}, { sourceId: 'dup' }, { sourceId: 'dup' }]);
-  const { result, report } = run(manifest([]), malformedAudit);
+  const malformedManifest = manifest([{}, null]);
+  const { result, report } = run(malformedManifest, malformedAudit);
   assert.equal(result.status, 1);
   assert.ok(report.structuralErrors.includes('AUDIT_SOURCE_ID_MISSING'));
   assert.ok(report.structuralErrors.includes('DUPLICATE_AUDIT_SOURCE_ID:dup'));
+  assert.ok(report.structuralErrors.includes('MANIFEST_SOURCE_ID_MISSING'));
   assert.equal(report.claims.evidenceProduced, false);
 });
 
