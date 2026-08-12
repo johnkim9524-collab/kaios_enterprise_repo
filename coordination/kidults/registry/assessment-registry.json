@@ -1,5 +1,5 @@
 {
-  "registry_version": "1.1.0",
+  "registry_version": "1.2.0",
   "owner": "ATLAS_KPMO",
   "track_b_access": "READ_ONLY_REQUEST_REGISTRATION",
   "status": "BOOTSTRAPPING",
@@ -8,6 +8,21 @@
   "current_snapshot_id": null,
   "entries": [],
   "archive": [],
+  "official_inputs": ["snapshot-candidate.json", "EVIDENCE_PACKAGE"],
+  "official_output": "rankability-assessment.json",
+  "official_waiting_states": [
+    "WAITING_FOR_SNAPSHOT",
+    "WAITING_FOR_EVIDENCE",
+    "WAITING_FOR_REGISTRY",
+    "WAITING_FOR_VALIDATION"
+  ],
+  "allowed_assessment_statuses": ["INCOMPLETE", "COMPLETE"],
+  "complete_requires_all": [
+    "SNAPSHOT_ID_VERIFIED",
+    "EVIDENCE_PACKAGE_VERIFIED",
+    "ASSESSMENT_CONTRACT_VALIDATION_PASSED",
+    "REGISTRY_TRACEABILITY_COMPLETED"
+  ],
   "allowed_recommendations": ["BLOCKED", "CONDITIONAL", "PUBLISHABLE"],
   "allowed_confidence": ["LOW", "MEDIUM", "HIGH"],
   "required_traceability_fields": [
@@ -28,13 +43,18 @@
     "evidence_reference"
   ],
   "rules": [
+    "Track B official inputs are exactly snapshot-candidate.json and the Evidence Package.",
+    "Portal results, business requests, provider requirements, estimates, verbal explanations, and chat-only information are not official assessment inputs.",
+    "Track B official output is exactly rankability-assessment.json.",
     "Each assessment references exactly one snapshot_id.",
     "Issued assessments are immutable and are never deleted.",
     "Changed evaluations require a new assessment_id and archival of the prior assessment.",
     "The same snapshot_id and identical Evidence Package must reproduce the same assessment; any divergence requires a recorded cause.",
     "Every recommendation requires quantitative justification and an Evidence Reference.",
     "Track B may request registration but does not modify this registry.",
-    "Assessment generation requires snapshot registration, evidence package availability, and registry validation pass.",
-    "If trigger conditions are incomplete, Track B remains WAITING FOR SNAPSHOT."
+    "Assessment is COMPLETE only when snapshot_id, Evidence Package, Assessment Contract, and Registry traceability are all verified.",
+    "If completion conditions are not all satisfied, assessment_status remains INCOMPLETE.",
+    "If trigger conditions are incomplete, Track B uses only an official WAITING state and does not create a temporary or estimated assessment.",
+    "Track B operating rules are FINAL LOCKED at Directive v1.3."
   ]
 }
