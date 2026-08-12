@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "policy": "FAIL_CLOSED_NON_MARKET_SCORING_ACTIVATION",
   "global": {
     "requiredDimensions": [
@@ -27,7 +27,9 @@
     "rawPrimitivePresenceMayBeCreditedAsScore": false,
     "rawEvidenceMayBeCreditedWithoutRequiredScoreField": false,
     "syntheticCalibrationMayActivateProductionScoring": false,
-    "automaticActivationAllowed": false
+    "automaticActivationAllowed": false,
+    "designReadyDoesNotImplyValidated": true,
+    "designReadyDoesNotActivateProductionScoring": true
   },
   "dimensions": [
     {
@@ -35,49 +37,72 @@
       "primitive": "SCARCITY",
       "scoreField": "normalizedScore",
       "allowedRawSignalTypes": ["TOTAL_PRODUCED"],
-      "methodologyStatus": "NOT_VALIDATED",
-      "methodologyVersion": null,
-      "normalizationMethod": null,
+      "methodologyStatus": "DESIGN_READY",
+      "methodologyVersion": "kidults-non-market-methodology-design-v1",
+      "normalizationMethod": "VERTICAL_SIGNAL_TYPE_EMPIRICAL_PERCENTILE_PENDING_CALIBRATION",
+      "design": {
+        "direction": "LOWER_RAW_QUANTITY_HIGHER_SCORE",
+        "comparisonScope": "WITHIN_VERTICAL_AND_SIGNAL_TYPE",
+        "crossSignalMixingBeforeCalibration": false,
+        "minimumCalibrationEvidence": "REQUIRED_BEFORE_VALIDATION",
+        "outOfSampleValidation": "REQUIRED_BEFORE_VALIDATION"
+      },
       "calibrationEvidence": null,
       "outOfSampleValidationEvidence": null,
       "productionActivation": false,
-      "notes": "Explicit production quantity may be retained as raw scarcity evidence. No scarcity score may be inferred until a vertical-specific methodology is calibrated and independently validated."
+      "notes": "Explicit production quantity may be retained as raw scarcity evidence. The transform shape is designed but no percentile, score or production activation is permitted until real rights-classified calibration and independent out-of-sample validation are supplied."
     },
     {
       "id": "DEMAND_ATTENTION",
       "primitive": "DEMAND_ATTENTION",
       "scoreField": "normalizedScore",
       "allowedRawSignalTypes": ["UNITS_SOLD_REFERENCE", "CULTURAL_ATTENTION_PROXY"],
-      "methodologyStatus": "NOT_VALIDATED",
-      "methodologyVersion": null,
-      "normalizationMethod": null,
+      "methodologyStatus": "DESIGN_READY",
+      "methodologyVersion": "kidults-non-market-methodology-design-v1",
+      "normalizationMethod": "VERTICAL_SIGNAL_TYPE_EMPIRICAL_PERCENTILE_PENDING_CALIBRATION",
+      "design": {
+        "direction": "HIGHER_RAW_SIGNAL_HIGHER_SCORE",
+        "comparisonScope": "WITHIN_VERTICAL_AND_SIGNAL_TYPE",
+        "crossSignalMixingBeforeCalibration": false,
+        "marketDemandAndCulturalAttentionRemainDistinct": true,
+        "minimumCalibrationEvidence": "REQUIRED_BEFORE_VALIDATION",
+        "outOfSampleValidation": "REQUIRED_BEFORE_VALIDATION"
+      },
       "calibrationEvidence": null,
       "outOfSampleValidationEvidence": null,
       "productionActivation": false,
-      "notes": "Cultural attention proxies remain distinct from market demand. Raw sitelink breadth or units-sold references are not scoring-ready without validated vertical normalization."
+      "notes": "Cultural attention proxies remain distinct from market demand. The transform shape is designed, but raw sitelink breadth or units-sold references are not scoring-ready until real vertical- and signal-specific calibration is independently validated."
     },
     {
       "id": "CANON_CULTURAL_STRENGTH",
       "primitive": "CANON_CULTURAL_STRENGTH",
       "scoreField": "normalizedScore",
       "allowedRawSignalTypes": ["INSTITUTIONAL_RECOGNITION", "REFERENCE_CANON_SIGNAL"],
-      "methodologyStatus": "NOT_VALIDATED",
-      "methodologyVersion": null,
-      "normalizationMethod": null,
+      "methodologyStatus": "DESIGN_READY",
+      "methodologyVersion": "kidults-non-market-methodology-design-v1",
+      "normalizationMethod": "VERTICAL_SIGNAL_TYPE_EMPIRICAL_PERCENTILE_PENDING_CALIBRATION",
+      "design": {
+        "direction": "HIGHER_VERIFIED_SIGNAL_HIGHER_SCORE",
+        "comparisonScope": "WITHIN_VERTICAL_AND_SIGNAL_TYPE",
+        "crossSignalMixingBeforeCalibration": false,
+        "binaryPresenceMayBeCreditedAsNormalizedScore": false,
+        "minimumCalibrationEvidence": "REQUIRED_BEFORE_VALIDATION",
+        "outOfSampleValidation": "REQUIRED_BEFORE_VALIDATION"
+      },
       "calibrationEvidence": null,
       "outOfSampleValidationEvidence": null,
       "productionActivation": false,
-      "notes": "Primitive presence or archive/reference membership alone is not a normalized canon score."
+      "notes": "Primitive presence or archive/reference membership alone is not a normalized canon score. The methodology shape is designed but remains inactive pending real calibration and independent validation."
     }
   ],
   "verticals": [
-    {"id":"toys-models","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
-    {"id":"watches-jewelry","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
-    {"id":"automobiles-mobility","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
-    {"id":"fashion-accessories","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
-    {"id":"design-furniture","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
-    {"id":"technology-cameras","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
-    {"id":"gaming-music-screen","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null},
-    {"id":"cards-comics-memorabilia","status":"NOT_VALIDATED","normalizationMethod":null,"calibrationEvidence":null,"outOfSampleValidationEvidence":null}
+    {"id":"toys-models","status":"DESIGN_READY","normalizationMethod":"WITHIN_VERTICAL_SIGNAL_TYPE_CALIBRATION_PENDING","calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"watches-jewelry","status":"DESIGN_READY","normalizationMethod":"WITHIN_VERTICAL_SIGNAL_TYPE_CALIBRATION_PENDING","calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"automobiles-mobility","status":"DESIGN_READY","normalizationMethod":"WITHIN_VERTICAL_SIGNAL_TYPE_CALIBRATION_PENDING","calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"fashion-accessories","status":"DESIGN_READY","normalizationMethod":"WITHIN_VERTICAL_SIGNAL_TYPE_CALIBRATION_PENDING","calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"design-furniture","status":"DESIGN_READY","normalizationMethod":"WITHIN_VERTICAL_SIGNAL_TYPE_CALIBRATION_PENDING","calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"technology-cameras","status":"DESIGN_READY","normalizationMethod":"WITHIN_VERTICAL_SIGNAL_TYPE_CALIBRATION_PENDING","calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"gaming-music-screen","status":"DESIGN_READY","normalizationMethod":"WITHIN_VERTICAL_SIGNAL_TYPE_CALIBRATION_PENDING","calibrationEvidence":null,"outOfSampleValidationEvidence":null},
+    {"id":"cards-comics-memorabilia","status":"DESIGN_READY","normalizationMethod":"WITHIN_VERTICAL_SIGNAL_TYPE_CALIBRATION_PENDING","calibrationEvidence":null,"outOfSampleValidationEvidence":null}
   ]
 }
