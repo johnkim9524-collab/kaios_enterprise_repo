@@ -1,0 +1,42 @@
+name: KIDULTS Operational Registry Validate
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/registry/**'
+      - 'coordination/kidults/registry-engine/**'
+      - 'coordination/kidults/bootstrap/**'
+      - 'scripts/kidults/registry/**'
+      - 'scripts/kidults/coordination/**'
+      - '.github/workflows/kidults-operational-registry-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/registry/**'
+      - 'coordination/kidults/registry-engine/**'
+      - 'coordination/kidults/bootstrap/**'
+      - 'scripts/kidults/registry/**'
+      - 'scripts/kidults/coordination/**'
+      - '.github/workflows/kidults-operational-registry-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate shared coordination baseline
+        run: node scripts/kidults/coordination/validate-coordination.mjs
+
+      - name: Validate operational registry indexes and records
+        run: node scripts/kidults/registry/validate-operational-registry.mjs
