@@ -27,13 +27,17 @@
   transform-origin:right center;
   filter:saturate(.97) contrast(1.012)
 }
+html[data-data-state="loading"] .moment-image[data-hero-image][src*="mobility-sculpture-v501"]{
+  opacity:0
+}
 .moment-image[data-hero-image][src*="racing-roadster-v654"]{
   object-fit:contain;
   object-position:center bottom;
   transform:none;
   transform-origin:center bottom;
   filter:saturate(1.01) contrast(1.012);
-  background:#fffefa
+  background:#fffefa;
+  opacity:1
 }
 .moment-shade{z-index:2}
 .moment-topline,.moment-copy,.moment-footer{z-index:3}
