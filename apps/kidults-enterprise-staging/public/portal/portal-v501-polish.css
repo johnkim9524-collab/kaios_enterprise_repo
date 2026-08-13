@@ -27,6 +27,14 @@
   transform-origin:right center;
   filter:saturate(.97) contrast(1.012)
 }
+.moment-image[data-hero-image][src*="racing-roadster-v654"]{
+  object-fit:contain;
+  object-position:center bottom;
+  transform:none;
+  transform-origin:center bottom;
+  filter:saturate(1.01) contrast(1.012);
+  background:#fffefa
+}
 .moment-shade{z-index:2}
 .moment-topline,.moment-copy,.moment-footer{z-index:3}
 
@@ -70,6 +78,7 @@
   .hero-grid{grid-template-columns:1fr}
   .moment-card{min-height:530px}
   .moment-image{transform:scale(.97);transform-origin:right center}
+  .moment-image[data-hero-image][src*="racing-roadster-v654"]{transform:none;transform-origin:center bottom}
 }
 @media(max-width:760px){
   .hero-copy h1{line-height:.97}
