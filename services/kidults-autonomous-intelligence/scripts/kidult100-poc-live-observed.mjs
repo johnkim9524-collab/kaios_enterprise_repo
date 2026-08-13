@@ -22,6 +22,9 @@ let failedRequests = 0;
 const sourceRuntime = {};
 const slowRequests = [];
 const wikidataRetryGaps = [];
+let observedWikidataRetryGapCount = 0;
+let observedWikidataRetryGapTotalMs = 0;
+let observedWikidataRetryGapMaxMs = 0;
 let lastCompletedRequest = null;
 
 function classifySource(url) {
@@ -55,6 +58,11 @@ function cloneRuntime() {
 function buildRequestVolumeObservation(stageElapsedMs) {
   const totalRawFetchElapsedMs = Object.values(sourceRuntime)
     .reduce((sum, runtime) => sum + runtime.elapsedMs, 0);
+  const estimatedNonFetchElapsedMs = Math.max(0, stageElapsedMs - totalRawFetchElapsedMs);
+  const estimatedResidualNonFetchElapsedMs = Math.max(
+    0,
+    estimatedNonFetchElapsedMs - observedWikidataRetryGapTotalMs,
+  );
   const sources = Object.fromEntries(Object.entries(sourceRuntime).map(([source, runtime]) => [source, {
     attempts: runtime.attempts,
     completed: runtime.completed,
@@ -72,10 +80,14 @@ function buildRequestVolumeObservation(stageElapsedMs) {
     observationalOnly: true,
     productionInput: false,
     autoOptimizationAllowed: false,
-    interpretation: 'Request-volume diagnostics separate cumulative raw fetch time from stage elapsed time. They are not evidence, a score, or authority to prune, parallelize, or disable a source.',
+    interpretation: 'Request-volume diagnostics separate cumulative raw fetch time, observed same-query Wikidata retry gaps, and residual non-fetch time. They are not evidence, a score, or authority to prune, parallelize, or disable a source.',
     totalRequests: requestSequence,
     totalRawFetchElapsedMs,
-    estimatedNonFetchElapsedMs: Math.max(0, stageElapsedMs - totalRawFetchElapsedMs),
+    estimatedNonFetchElapsedMs,
+    observedWikidataRetryGapCount,
+    observedWikidataRetryGapTotalMs,
+    observedWikidataRetryGapMaxMs,
+    estimatedResidualNonFetchElapsedMs,
     sources,
   };
 }
@@ -89,6 +101,9 @@ function recordSlowRequest(request) {
 }
 
 function recordWikidataRetryGap(gap) {
+  observedWikidataRetryGapCount += 1;
+  observedWikidataRetryGapTotalMs += gap.gapMs;
+  observedWikidataRetryGapMaxMs = Math.max(observedWikidataRetryGapMaxMs, gap.gapMs);
   wikidataRetryGaps.push(gap);
   wikidataRetryGaps.sort((a, b) => b.gapMs - a.gapMs);
   if (wikidataRetryGaps.length > RETRY_GAP_LIMIT) {
@@ -99,7 +114,7 @@ function recordWikidataRetryGap(gap) {
 function writeProgress(phase, current = null) {
   const elapsedMs = Date.now() - stageStartedAt;
   const report = {
-    schemaVersion: '1.2.0',
+    schemaVersion: '1.3.0',
     stage: 'STAGE2_NORMALIZED_CANDIDATE_UNIVERSE_BUILD',
     generatedAt: new Date().toISOString(),
     elapsedMs,
@@ -118,7 +133,11 @@ function writeProgress(phase, current = null) {
       observationalOnly: true,
       productionInput: false,
       autoOptimizationAllowed: false,
-      interpretation: 'A consecutive same-query Wikidata raw fetch is treated as an observed retry. gapMs measures time between the prior raw fetch completion and retry start; it may include server-driven backpressure plus minimal local orchestration and is not production evidence.',
+      interpretation: 'A consecutive same-query Wikidata raw fetch is treated as an observed retry. Aggregate gap metrics include every observed retry gap; events retains only the slowest bounded examples. gapMs may include server-driven backpressure plus minimal local orchestration and is not production evidence.',
+      observedCount: observedWikidataRetryGapCount,
+      observedTotalMs: observedWikidataRetryGapTotalMs,
+      observedMaxMs: observedWikidataRetryGapMaxMs,
+      retainedEventLimit: RETRY_GAP_LIMIT,
       events: wikidataRetryGaps.map((gap) => ({ ...gap })),
     },
   };
