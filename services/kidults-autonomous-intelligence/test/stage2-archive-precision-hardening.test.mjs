@@ -165,6 +165,70 @@ test('retains contextual fashion textile only when the description itself establ
   assert.ok(hardened.candidates[1].semanticStageC.reasons.includes('ARCHIVE_CONTEXTUAL_OBJECT_WITHOUT_PRODUCT_DESCRIPTION'));
 });
 
+test('requires distinctive archive query anchors when generic product description would otherwise retain a false positive', () => {
+  const rows = [
+    candidate({
+      candidateKey: 'met:eames-barwa', source: 'met', sourceClass: 'INSTITUTION_ARCHIVE', sourceRecordId: '10',
+      sourceUrl: 'https://www.metmuseum.org/art/collection/search/10', rightsClass: 'OPEN_ACCESS_PUBLIC_METADATA',
+      vertical: 'design-furniture', query: 'Eames Lounge Chair', canonicalTitle: 'Barwa Lounge Chair', description: 'Chair', creator: null,
+    }),
+    candidate({
+      candidateKey: 'met:leica-graflex', source: 'met', sourceClass: 'INSTITUTION_ARCHIVE', sourceRecordId: '11',
+      sourceUrl: 'https://www.metmuseum.org/art/collection/search/11', rightsClass: 'OPEN_ACCESS_PUBLIC_METADATA',
+      vertical: 'technology-cameras', query: 'Leica camera', canonicalTitle: 'National Graflex Camera', description: 'Camera', creator: null,
+    }),
+    candidate({
+      candidateKey: 'met:usm-chess', source: 'met', sourceClass: 'INSTITUTION_ARCHIVE', sourceRecordId: '12',
+      sourceUrl: 'https://www.metmuseum.org/art/collection/search/12', rightsClass: 'OPEN_ACCESS_PUBLIC_METADATA',
+      vertical: 'design-furniture', query: 'USM Haller furniture', canonicalTitle: 'Chess Table', description: 'Table', creator: null,
+    }),
+    candidate({
+      candidateKey: 'met:monster-terracotta', source: 'met', sourceClass: 'INSTITUTION_ARCHIVE', sourceRecordId: '13',
+      sourceUrl: 'https://www.metmuseum.org/art/collection/search/13', rightsClass: 'OPEN_ACCESS_PUBLIC_METADATA',
+      vertical: 'toys-models', query: 'Monster High doll', canonicalTitle: 'Terracotta limbless doll', description: 'Doll', creator: null,
+    }),
+    candidate({
+      candidateKey: 'met:barcelona', source: 'met', sourceClass: 'INSTITUTION_ARCHIVE', sourceRecordId: '14',
+      sourceUrl: 'https://www.metmuseum.org/art/collection/search/14', rightsClass: 'OPEN_ACCESS_PUBLIC_METADATA',
+      vertical: 'design-furniture', query: 'Barcelona chair', canonicalTitle: 'Barcelona Chair', description: 'Chair', creator: null,
+    }),
+    candidate({
+      candidateKey: 'met:zig-zag', source: 'met', sourceClass: 'INSTITUTION_ARCHIVE', sourceRecordId: '15',
+      sourceUrl: 'https://www.metmuseum.org/art/collection/search/15', rightsClass: 'OPEN_ACCESS_PUBLIC_METADATA',
+      vertical: 'design-furniture', query: 'Zig-Zag chair', canonicalTitle: 'Zig-Zag Chair', description: 'Chair', creator: null,
+    }),
+    candidate({
+      candidateKey: 'met:diamond', source: 'met', sourceClass: 'INSTITUTION_ARCHIVE', sourceRecordId: '16',
+      sourceUrl: 'https://www.metmuseum.org/art/collection/search/16', rightsClass: 'OPEN_ACCESS_PUBLIC_METADATA',
+      vertical: 'design-furniture', query: 'Diamond chair', canonicalTitle: 'Diamond Chair', description: 'Chair', creator: null,
+    }),
+  ];
+  const { result, hardened, audit } = run(report(rows));
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(audit.metrics.archiveRelevantEvaluated, 7);
+  assert.equal(audit.metrics.archiveFalsePositivesDowngraded, 4);
+  assert.equal(audit.metrics.archiveRelevantRetained, 3);
+  for (const key of ['met:eames-barwa', 'met:leica-graflex', 'met:usm-chess', 'met:monster-terracotta']) {
+    const row = hardened.candidates.find((candidate) => candidate.candidateKey === key);
+    assert.equal(row.semanticRelevant, false, key);
+    assert.ok(row.semanticStageC.reasons.includes('ARCHIVE_DISTINCTIVE_QUERY_ANCHOR_MISMATCH'), key);
+  }
+  for (const key of ['met:barcelona', 'met:zig-zag', 'met:diamond']) {
+    const row = hardened.candidates.find((candidate) => candidate.candidateKey === key);
+    assert.equal(row.semanticRelevant, true, key);
+    assert.ok(row.semanticStageC.reasons.includes('ARCHIVE_PRODUCT_OBJECT_DESCRIPTION_CONFIRMED'), key);
+  }
+  const mismatch = hardened.candidates.find((row) => row.candidateKey === 'met:eames-barwa');
+  assert.deepEqual(mismatch.semanticStageC.diagnostics.distinctiveAnchors, ['eames', 'lounge']);
+  assert.deepEqual(mismatch.semanticStageC.diagnostics.distinctiveAnchorHits, ['lounge']);
+  assert.equal(mismatch.semanticStageC.diagnostics.allDistinctiveAnchorsMatched, false);
+  assert.equal(mismatch.rightsClass, rows[0].rightsClass);
+  assert.equal(mismatch.payloadHash, rows[0].payloadHash);
+  assert.equal(audit.safety.syntheticEvidenceCreated, false);
+  assert.equal(audit.safety.rightsClassificationRelaxed, false);
+  assert.equal(audit.safety.provenanceRelaxed, false);
+});
+
 test('never reactivates a candidate already rejected upstream', () => {
   const rows = [candidate({ semanticRelevant: false, semanticStageB: { passed: false } })];
   const { result, hardened, audit } = run(report(rows));
@@ -177,11 +241,14 @@ test('never reactivates a candidate already rejected upstream', () => {
 
 test('fails closed on wrong mode, unsafe policy, duplicate identities, unknown vertical, and non-array candidate topology', () => {
   const valid = report([candidate()]);
+  const missingDistinctiveRule = JSON.parse(JSON.stringify(DEFAULT_POLICY));
+  delete missingDistinctiveRule.rules.distinctiveQueryAnchorsRequiredForDescriptionProductRetain;
   const cases = [
     [{ ...valid, mode: 'WRONG_MODE' }, DEFAULT_POLICY],
     [valid, { ...DEFAULT_POLICY, rules: { ...DEFAULT_POLICY.rules, preserveRightsAndProvenance: false } }],
+    [valid, missingDistinctiveRule],
     [report([candidate(), candidate()]), DEFAULT_POLICY],
-    [report([candidate({ candidateKey: 'met:unknown', source: 'met', sourceClass: 'INSTITUTION_ARCHIVE', sourceRecordId: '10', vertical: 'unknown', sourceUrl: 'https://example.com/10' })]), DEFAULT_POLICY],
+    [report([candidate({ candidateKey: 'met:unknown', source: 'met', sourceClass: 'INSTITUTION_ARCHIVE', sourceRecordId: '17', vertical: 'unknown', sourceUrl: 'https://example.com/17' })]), DEFAULT_POLICY],
     [{ ...valid, candidates: null }, DEFAULT_POLICY],
   ];
   for (const [input, policy] of cases) {
