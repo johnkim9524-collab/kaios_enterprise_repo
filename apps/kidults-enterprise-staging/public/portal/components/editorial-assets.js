@@ -1,6 +1,6 @@
 import roadsterBase64 from "./assets/racing-roadster-v655.js";
 
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 const ROADSTER_KEY = "racing-roadster-v655";
 const ROADSTER_SOURCE = `${["data", "image/webp;base64"].join(":")},${roadsterBase64}`;
 const WATCH_SOURCE = "assets/kidult100/watch-v655.webp?v=655";
@@ -17,6 +17,9 @@ function bindRoadster() {
   image.fetchPriority = "high";
   image.style.objectFit = "contain";
   image.style.objectPosition = "center bottom";
+  image.style.transform = "none";
+  image.style.transformOrigin = "center bottom";
+  image.style.filter = "saturate(1.01) contrast(1.012)";
   image.style.background = "#fffefa";
   if (image.src !== ROADSTER_SOURCE) image.src = ROADSTER_SOURCE;
   card.dataset.assetState = "ready";
