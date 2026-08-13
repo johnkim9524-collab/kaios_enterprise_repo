@@ -52,6 +52,34 @@ function cloneRuntime() {
   return Object.fromEntries(Object.entries(sourceRuntime).map(([source, runtime]) => [source, { ...runtime }]));
 }
 
+function buildRequestVolumeObservation(stageElapsedMs) {
+  const totalRawFetchElapsedMs = Object.values(sourceRuntime)
+    .reduce((sum, runtime) => sum + runtime.elapsedMs, 0);
+  const sources = Object.fromEntries(Object.entries(sourceRuntime).map(([source, runtime]) => [source, {
+    attempts: runtime.attempts,
+    completed: runtime.completed,
+    failed: runtime.failed,
+    elapsedMs: runtime.elapsedMs,
+    averageAttemptMs: runtime.attempts > 0
+      ? Math.round((runtime.elapsedMs / runtime.attempts) * 1000) / 1000
+      : 0,
+    requestShare: requestSequence > 0
+      ? Math.round((runtime.attempts / requestSequence) * 1_000_000) / 1_000_000
+      : 0,
+  }]));
+
+  return {
+    observationalOnly: true,
+    productionInput: false,
+    autoOptimizationAllowed: false,
+    interpretation: 'Request-volume diagnostics separate cumulative raw fetch time from stage elapsed time. They are not evidence, a score, or authority to prune, parallelize, or disable a source.',
+    totalRequests: requestSequence,
+    totalRawFetchElapsedMs,
+    estimatedNonFetchElapsedMs: Math.max(0, stageElapsedMs - totalRawFetchElapsedMs),
+    sources,
+  };
+}
+
 function recordSlowRequest(request) {
   slowRequests.push(request);
   slowRequests.sort((a, b) => b.elapsedMs - a.elapsedMs);
@@ -69,11 +97,12 @@ function recordWikidataRetryGap(gap) {
 }
 
 function writeProgress(phase, current = null) {
+  const elapsedMs = Date.now() - stageStartedAt;
   const report = {
-    schemaVersion: '1.1.0',
+    schemaVersion: '1.2.0',
     stage: 'STAGE2_NORMALIZED_CANDIDATE_UNIVERSE_BUILD',
     generatedAt: new Date().toISOString(),
-    elapsedMs: Date.now() - stageStartedAt,
+    elapsedMs,
     phase,
     observationalOnly: true,
     productionInput: false,
@@ -83,6 +112,7 @@ function writeProgress(phase, current = null) {
     failedRequests,
     current,
     sourceRuntime: cloneRuntime(),
+    requestVolumeObservation: buildRequestVolumeObservation(elapsedMs),
     slowestRequests: slowRequests.map((request) => ({ ...request })),
     wikidataRetryGapObservation: {
       observationalOnly: true,
