@@ -1,152 +1,160 @@
 # KIDULTS Visual Color Policy
 
-Status: Approved
-Scope: KIDULTS public, provider, enterprise, methodology, archive, report, operations and data-visualization surfaces
+Status: FINAL MASTER — APPROVED
+Effective date: 2026-08-11
+Scope: KIDULTS public, responsive portal, preview, methodology, archive, report, operations and data-visualization surfaces.
 Owner: Intelligence Holdings / KIDULTS
+Canonical master: `docs/design/KIDULTS_FINAL_MASTER_DESIGN.md`
 
 ## 1. Purpose
 
-This policy defines the official KIDULTS visual color system. Its purpose is to keep every page, chart, dashboard, report and provider-review surface visually consistent, premium, legible and suitable for a global enterprise intelligence platform.
+This policy defines the official KIDULTS visual color system. The system is designed for a premium global intelligence platform: restrained, evidence-led, editorial, legible and institutionally credible.
 
-## 2. Core Principle
+## 2. Core rule
 
-KIDULTS uses a restrained Forest Green system. Color communicates hierarchy, state and data relationships without becoming decorative, playful or visually loud.
+KIDULTS does not use color as decoration. Color communicates hierarchy, intelligence state and data relationships.
 
-The system must:
+The public master is built around warm ivory surfaces, deep ink, Forest Intelligence and restrained muted neutrals. Gold is not part of the default public-master UI language and must not be introduced merely to signal luxury.
 
-- preserve a calm editorial-luxury character;
-- use one coherent green family across product surfaces;
-- rely primarily on lightness and tonal depth rather than high saturation;
-- reserve gold for editorial emphasis and selected calls to action;
-- reserve red only for negative movement, risk, error or critical status;
-- maintain sufficient contrast for text, chart labels and interactive controls;
-- render consistently on desktop and mobile.
+## 3. Official typography color hierarchy
 
-## 3. Official Brand Palette
+| Tier | Token | Hex | Primary use |
+|---|---|---|---|
+| 1 | Primary Ink | `#0B1713` | KIDULTS wordmark, primary labels, core numbers, major navigation |
+| 2 | Forest Intelligence | `#073D2D` | Hero editorial emphasis, verified/active intelligence, primary CTA, active state |
+| 3 | Secondary Ink | `#303733` | Body copy, explanatory text, secondary labels |
+| 4 | Muted Evidence | `#70756F` | Metadata, captions, timestamps, lower-priority evidence text |
 
-### Primary Forest
+### Semantic rule
 
-| Token | Hex | Primary use |
-|---|---|---|
-| Forest 950 | `#082F27` | Dark panels, enterprise surfaces, chart tooltips |
-| Forest 900 | `#123F35` | Primary chart segment, major buttons, status panels |
-| Forest 750 | `#356456` | Secondary chart segment, secondary emphasis |
-| Forest 600 | `#5F8174` | Tertiary chart segment, supporting data |
-| Forest 400 | `#8FA69D` | Low-emphasis chart segment, secondary fills |
-| Forest 200 | `#C6C7B8` | Quiet chart segment, inactive or residual share |
+Forest Intelligence means one of the following:
 
-### Editorial Gold
+- verified;
+- active;
+- intelligence-bearing;
+- selected/current;
+- primary action.
 
-| Token | Hex | Primary use |
-|---|---|---|
-| Gold 600 | `#9B7438` | Section labels, selected editorial emphasis |
-| Gold 400 | `#C19A54` | Premium CTA accents and limited highlights |
+Forest Green must not be used indiscriminately for ordinary body text.
 
-Gold must not be used as a general chart palette color unless a chart specifically represents an editorial or benchmark category.
-
-### Neutral System
+## 4. Surface and border system
 
 | Token | Hex | Primary use |
 |---|---|---|
-| Ink | `#101816` | Primary text |
-| Muted | `#5F6965` | Secondary text, metadata |
-| Paper | `#F4F0E7` | Main background |
-| Paper 2 | `#F8F5EE` | Cards and chart surfaces |
-| Line | `#D8D2C7` | Borders, dividers and chart tracks |
+| Paper | `#FAF9F6` | Main page canvas |
+| Paper Warm | `#FAF8F4` | Secondary surface/footer |
+| Paper Card | `#FBFAF7` | Cards, dialogs, elevated editorial surfaces |
+| Line | `#DDD9D2` | Borders, dividers, quiet chart tracks |
+| Line Soft | `#E3DFD8` | Secondary separators |
 
-### State Colors
+The master must remain visually light. Avoid heavy dark panels on the public homepage unless a future owner-approved design revision explicitly introduces them.
+
+## 5. State colors
 
 | State | Hex | Rule |
 |---|---|---|
-| Positive / Live | `#0B6B52` | Positive movement, live pulse, validated status |
-| Warning | `#9B7438` | Pending review, incomplete validation |
-| Risk / Negative | `#9E312D` | Negative movement, risk, error or critical status only |
+| Verified / Active / Emerging | `#073D2D` | Approved active/verified state |
+| Pending / Building / Inactive | `#A3A7A3` | Quiet neutral state |
+| Warning | `#9B7438` | Use only for genuine review/pending warnings, not decoration |
+| Risk / Negative | `#9E312D` | Negative movement, error, legal or critical status only |
 
-State colors must never replace the primary Forest palette for ordinary data categories.
+Color must never be the sole carrier of meaning. State labels, icons or values must accompany state color.
 
-## 4. Data-Visualization Policy
+## 6. Data-visualization policy
 
-### 4.1 Distribution and Composition Charts
+### 6.1 Default composition sequence
 
-Donut, pie, semi-donut and stacked composition charts must use the official muted Forest sequence:
+For donut, stacked and composition charts, use a restrained sequence that stays inside the master visual language:
 
-1. `#123F35`
-2. `#356456`
+1. `#073D2D`
+2. `#315144`
 3. `#5F8174`
-4. `#8FA69D`
-5. `#C6C7B8`
+4. `#A3A7A3`
+5. `#D7D4CD`
 
-The sequence must remain consistent between the chart and its legend.
+Legends must follow the same order as the visualization.
 
-### 4.2 Percent and Score Scaling
+### 6.2 Percentage and score scaling
 
-- Percent data must always use a 0–100 scale.
-- Score data must always use the defined score maximum, normally 100.
-- Group maxima must not be silently rescaled to 100%.
-- Composition charts must validate their total and clearly indicate when the total is not 100%.
-- Change rates must not share the same scale as index scores.
+- Percent data uses a true 0–100 scale.
+- Score data uses the declared score maximum.
+- Group maxima must never be silently normalized to 100%.
+- Composition charts must validate totals.
+- Change rates must not share the same semantic scale as scores.
 
-### 4.3 Trend Charts
+### 6.3 Trend charts
 
-- Primary trend line: Forest 900 or the main Forest token.
-- Area fill: low-opacity Forest gradient.
-- Current point: filled Forest 900.
-- Historical points: Paper fill with Forest outline.
-- Hover state: controlled Gold accent only.
-- Negative trend or critical exception: Risk Red only when analytically justified.
+- Primary trend: Forest Intelligence.
+- Historical/supporting trend: Secondary Ink or muted neutral.
+- Positive/verified current point: Forest Intelligence.
+- Negative/risk exception: Risk Red only when analytically justified.
+- Decorative gold trend lines are prohibited.
 
-### 4.4 Correlation and Heatmaps
+### 6.4 Donut/radial center labels
 
-Use a sequential Forest scale for magnitude. Diverging red/green scales may be used only when the data has a true positive and negative midpoint and the legend explicitly defines it.
+- Numeric value is primary.
+- Descriptor is smaller and quieter.
+- Labels must remain readable at 320px viewport width.
+- Center text must never overflow the chart.
 
-### 4.5 Chart Center Typography
+## 7. Component rules
 
-In donut and radial charts:
+- Header and footer `K I D U L T S` wordmarks use Primary Ink.
+- Hero editorial headline uses Forest Intelligence.
+- Primary CTA uses Forest Intelligence with a high-contrast light label.
+- Navigation defaults to Primary Ink.
+- Body copy defaults to Secondary Ink.
+- Metadata/captions default to Muted Evidence.
+- Verified/active states use Forest Intelligence.
+- Building/pending states use muted neutral unless a genuine warning exists.
+- Do not introduce lime, teal, bright mint, khaki, bright blue or decorative gold into the public master.
+- New components must use shared tokens rather than local arbitrary colors.
 
-- the numeric value is primary;
-- the descriptor such as `A + B`, `Covered` or `North America` is secondary;
-- the descriptor must be smaller, lighter and visually quieter than the numeric value;
-- descriptor text must remain readable at 320px viewport width;
-- labels must not overflow the chart center.
+## 8. Rights-safe visual object palette
 
-## 5. Page and Component Rules
+Kidult 100 editorial objects should stay primarily within:
 
-- Public, provider, enterprise, methodology, archive, monthly intelligence and operations pages must use the same Forest, Paper, Ink, Gold and state tokens.
-- Dark panels must use Forest 950 or Forest 900, not unrelated black, blue or green values.
-- Buttons must use Forest 900 by default; Gold is limited to premium editorial emphasis.
-- Decorative mint, lime, teal, khaki or beige values outside this policy are not permitted.
-- Gradients must stay inside the official palette and remain subtle.
-- All new components must consume shared tokens instead of introducing local hard-coded colors.
+- ivory;
+- warm white;
+- pale stone;
+- restrained charcoal/black accents;
+- low-saturation neutral shadows.
 
-## 6. Accessibility
+Do not use branded colorways or high-saturation product-identifying combinations solely for visual appeal.
 
-- Body text and essential labels must meet WCAG AA contrast requirements.
-- Color must not be the sole carrier of meaning; labels, values, icons or patterns must also communicate state.
-- Interactive focus states must remain visible on both Paper and Forest backgrounds.
-- Charts must include accessible labels or equivalent text summaries.
+## 9. Accessibility
 
-## 7. Governance
+- Essential text must meet WCAG AA contrast requirements.
+- Interactive focus states must remain visible on Paper and Forest surfaces.
+- Color is never the only information channel.
+- Charts require accessible labels or equivalent text summaries.
 
-Any exception requires an explicit design decision record containing:
+## 10. Governance
 
-- the business or analytical reason;
-- the affected surfaces;
+Any exception requires a design decision record with:
+
+- business or analytical reason;
+- affected surfaces;
 - accessibility review;
-- duration of the exception;
+- risk/legal review when relevant;
+- duration if temporary;
 - approval by the KIDULTS design-system owner.
 
-New KIDULTS releases must include a visual QA check confirming compliance with this policy across desktop and mobile.
+## 11. Canonical CSS tokens
 
-## 8. Current Approved Visualization Palette
-
-```js
-const KIDULTS_VISUALIZATION_PALETTE = [
-  '#123F35',
-  '#356456',
-  '#5F8174',
-  '#8FA69D',
-  '#C6C7B8'
-];
+```css
+:root {
+  --kidults-primary-ink: #0B1713;
+  --kidults-forest-intelligence: #073D2D;
+  --kidults-secondary-ink: #303733;
+  --kidults-muted-evidence: #70756F;
+  --kidults-paper: #FAF9F6;
+  --kidults-paper-warm: #FAF8F4;
+  --kidults-paper-card: #FBFAF7;
+  --kidults-line: #DDD9D2;
+  --kidults-line-soft: #E3DFD8;
+  --kidults-risk: #9E312D;
+}
 ```
 
-This palette is the canonical default for confidence, source-composition and geographic-distribution visualizations.
+This policy supersedes earlier public-master color guidance where it conflicts with the 2026-08-11 Final Master.

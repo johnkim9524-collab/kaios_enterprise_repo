@@ -1,0 +1,49 @@
+name: KIDULTS Mission Control Validate
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/registry/milestone/**'
+      - 'coordination/kidults/registry/mission/**'
+      - 'coordination/kidults/registry/work-queue/**'
+      - 'coordination/kidults/registry/blocker/**'
+      - 'coordination/kidults/registry/digital-twin/**'
+      - 'coordination/kidults/registry/catalog.json'
+      - 'scripts/kidults/mission-control/**'
+      - '.github/workflows/kidults-mission-control-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/registry/milestone/**'
+      - 'coordination/kidults/registry/mission/**'
+      - 'coordination/kidults/registry/work-queue/**'
+      - 'coordination/kidults/registry/blocker/**'
+      - 'coordination/kidults/registry/digital-twin/**'
+      - 'coordination/kidults/registry/catalog.json'
+      - 'scripts/kidults/mission-control/**'
+      - '.github/workflows/kidults-mission-control-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate operational registry
+        run: node scripts/kidults/registry/validate-operational-registry.mjs
+
+      - name: Validate mission control and digital twin
+        run: node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Build current-state projection
+        run: node scripts/kidults/mission-control/build-current-state.mjs

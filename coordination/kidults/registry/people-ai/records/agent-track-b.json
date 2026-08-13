@@ -1,0 +1,12 @@
+{
+  "id":"agent-track-b",
+  "record_type":"ai_agent",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "display_name":"Track B Agent",
+  "role_ids":["role-track-b"],
+  "working_room_name":"B. KIDULTS | Rankability & Validation Gate",
+  "canonical_issue":236,
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

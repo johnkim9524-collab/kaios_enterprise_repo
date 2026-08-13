@@ -1,0 +1,13 @@
+{
+  "id":"person-john",
+  "record_type":"person",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "display_name":"John",
+  "github_login":"johnkim9524-collab",
+  "role_ids":["role-program-owner"],
+  "authority":["PROGRAM_SCOPE","BUDGET","PROVIDER_COMMITMENT","RESIDUAL_RISK","PRODUCTION_APPROVAL","MATERIAL_BOOK_DOCTRINE"],
+  "created_by":"Atlas",
+  "approved_by":"John",
+  "references":["coordination/kidults/registry/role/records/role-program-owner.json"]
+}

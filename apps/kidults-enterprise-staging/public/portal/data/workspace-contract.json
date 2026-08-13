@@ -1,0 +1,34 @@
+{
+  "workspace_id": "kidults-living-intelligence-workspace",
+  "version": "0.1.0",
+  "default_panel": "ask",
+  "public_truth_statement": "The workspace changes navigation—not source truth, Registry state or engine contracts.",
+  "panels": [
+    {
+      "id": "ask",
+      "label": "Ask",
+      "source_id": "kidults-copilot",
+      "hash": "ask-kidults"
+    },
+    {
+      "id": "compare",
+      "label": "Compare",
+      "source_id": "kidults-compare-engine",
+      "hash": "compare-intelligence"
+    },
+    {
+      "id": "decision",
+      "label": "Decide",
+      "source_id": "kidults-decision-engine",
+      "hash": "decision-support"
+    }
+  ],
+  "truth_rules": {
+    "allow_data_mutation": false,
+    "allow_registry_mutation": false,
+    "preserve_engine_contracts": true,
+    "preserve_fail_closed_states": true,
+    "require_keyboard_navigation": true,
+    "require_deep_links": true
+  }
+}

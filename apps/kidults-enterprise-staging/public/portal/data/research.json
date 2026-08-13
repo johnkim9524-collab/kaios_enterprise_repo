@@ -1,0 +1,30 @@
+{
+  "issue": "2026.08",
+  "release": "V502_RC1",
+  "snapshot_id": "baseline-provider-independent-v1",
+  "title": "Monthly Intelligence Issue 01",
+  "subtitle": "Global Collectibles Market Signals",
+  "summary": "Eight Core Verticals define the stable coverage structure. Current observability is strongest in mobility, fashion, gaming/screen culture, toys and memorabilia under the provider-independent baseline, while all results remain conditional on the current evidence and methodology state.",
+  "sections": [
+    {
+      "index": "01",
+      "title": "Market Pulse",
+      "summary": "Demand remains concentrated in premium categories with strong recognition and active secondary markets."
+    },
+    {
+      "index": "02",
+      "title": "Eight-Vertical Intelligence",
+      "summary": "The coverage architecture is fixed at eight Core Verticals while Featured objects and current observation order remain dynamic."
+    },
+    {
+      "index": "03",
+      "title": "Current Observability",
+      "summary": "Mobility, fashion, gaming/screen culture, toys and memorabilia form the current top-five observability slice; this is not permanent superiority."
+    },
+    {
+      "index": "04",
+      "title": "Risk Watch",
+      "summary": "Preview values remain subject to methodology registration, evidence-lineage certification, provider comparison and independent rankability assessment."
+    }
+  ]
+}

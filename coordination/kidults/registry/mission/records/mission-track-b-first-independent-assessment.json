@@ -1,0 +1,18 @@
+{
+  "id": "mission-track-b-first-independent-assessment",
+  "record_type": "mission",
+  "version": "1.0.0",
+  "status": "BLOCKED",
+  "mission_id": "MISSION-0002",
+  "track_id": "track-b-rankability-validation-gate",
+  "milestone_id": "milestone-ms-0001-first-canonical-snapshot",
+  "objective": "Generate the first immutable rankability-assessment.json for one exact registered snapshot_id.",
+  "inputs": ["snapshot-candidate.json", "Evidence Package"],
+  "required_outputs": ["rankability-assessment.json", "blocked conditional or publishable gate", "quantitative exit criteria"],
+  "dependency_ids": ["mission-track-a-first-canonical-snapshot"],
+  "blocker_ids": ["blocker-no-canonical-candidate"],
+  "waiting_state": "WAITING_FOR_SNAPSHOT",
+  "created_at": "2026-08-12T17:17:03+09:00",
+  "created_by": "Atlas",
+  "approved_by": "John"
+}

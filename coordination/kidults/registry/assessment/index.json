@@ -1,0 +1,18 @@
+{
+  "registry_id":"kidults-assessment-registry",
+  "registry_name":"Assessment Registry",
+  "registry_version":"1.0.0",
+  "schema_version":"1.0.0",
+  "owner":"KPMO",
+  "producer":"Track B",
+  "producer_registry_access":"READ_ONLY",
+  "custodian":"Atlas",
+  "status":"WAITING_FOR_SNAPSHOT",
+  "effective_at":"2026-08-12T12:00:00+09:00",
+  "record_directory":"records",
+  "record_count":0,
+  "current_assessment_id":null,
+  "current_snapshot_id":null,
+  "allowed_waiting_states":["WAITING_FOR_SNAPSHOT","WAITING_FOR_EVIDENCE","WAITING_FOR_REGISTRY","WAITING_FOR_VALIDATION"],
+  "records":[]
+}

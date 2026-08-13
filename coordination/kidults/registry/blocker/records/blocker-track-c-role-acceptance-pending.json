@@ -1,0 +1,23 @@
+{
+  "id": "blocker-track-c-role-acceptance-pending",
+  "record_type": "blocker",
+  "version": "1.1.0",
+  "status": "RESOLVED",
+  "blocker_id": "BLOCKER-0002",
+  "severity": "HIGH",
+  "title": "Track C formal role acceptance pending",
+  "owner_track_id": "track-c-portal-v502-experience-layer",
+  "impact_tracks": [
+    "track-c-portal-v502-experience-layer"
+  ],
+  "condition": "Track C registry status was ROLE_ACCEPTANCE_PENDING.",
+  "exit_criteria": [
+    "Track C role acceptance registered",
+    "V502 registry consumer boundary acknowledged"
+  ],
+  "resolution": "Track C role acceptance registered and V502 Release Candidate implementation activated.",
+  "resolved_at": "2026-08-12T23:10:00+09:00",
+  "created_at": "2026-08-12T17:17:03+09:00",
+  "created_by": "Atlas",
+  "approved_by": "John"
+}

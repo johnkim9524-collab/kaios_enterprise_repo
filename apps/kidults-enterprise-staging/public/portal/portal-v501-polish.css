@@ -1,0 +1,97 @@
+/* KIDULTS Portal V501 — post-release luxury polish.
+   Scope is intentionally limited to the five approved corrections. */
+
+/* 1. Hero: slightly wider canvas, tighter editorial headline,
+      smaller optical vehicle scale and a more grounded studio shadow. */
+.hero-grid{grid-template-columns:minmax(310px,29%) minmax(0,71%)}
+.hero-copy h1{line-height:.955}
+.moment-card{
+  min-height:570px;
+  box-shadow:0 30px 90px rgba(18,36,28,.082),0 8px 24px rgba(18,36,28,.035)
+}
+.moment-card::before{
+  content:"";
+  position:absolute;
+  right:5.5%;
+  bottom:10.5%;
+  width:57%;
+  height:9%;
+  z-index:1;
+  pointer-events:none;
+  background:radial-gradient(ellipse at center,rgba(15,27,22,.18) 0%,rgba(15,27,22,.075) 44%,rgba(15,27,22,0) 74%);
+  filter:blur(12px);
+  transform:scaleX(1.08)
+}
+.moment-image{
+  transform:scale(.96);
+  transform-origin:right center;
+  filter:saturate(.97) contrast(1.012)
+}
+html[data-data-state="loading"] .moment-image[data-hero-image][src*="mobility-sculpture-v501"]{
+  opacity:0
+}
+.moment-image[data-hero-image][src*="racing-roadster-v654"]{
+  object-fit:contain;
+  object-position:center bottom;
+  transform:none;
+  transform-origin:center bottom;
+  filter:saturate(1.01) contrast(1.012);
+  background:#fffefa;
+  opacity:1
+}
+.moment-shade{z-index:2}
+.moment-topline,.moment-copy,.moment-footer{z-index:3}
+
+/* 2. Kidult 100: move approved figures upward and increase their
+      optical presence without changing the underlying assets. */
+.k100-figure{
+  height:245px;
+  margin:10px -18px 20px;
+  overflow:hidden
+}
+.k100-figure img{
+  width:128%;
+  max-width:none;
+  height:100%;
+  transform:translateY(-9px);
+  transform-origin:center center
+}
+.k100-card:hover .k100-figure img{transform:translateY(-11px) scale(1.025)}
+
+/* 3. Research: restrained editorial top accent. */
+.research-feature{position:relative;overflow:hidden}
+.research-feature::before{
+  content:"";
+  position:absolute;
+  left:46px;
+  right:46%;
+  top:0;
+  height:2px;
+  background:linear-gradient(90deg,var(--forest),rgba(7,61,45,.28),rgba(7,61,45,0))
+}
+
+/* 4. Footer: improve the supporting brand line's legibility. */
+.footer-brand span{
+  font-size:10.5px;
+  line-height:1.45;
+  letter-spacing:.025em
+}
+
+/* Responsive preservation. */
+@media(max-width:1020px){
+  .hero-grid{grid-template-columns:1fr}
+  .moment-card{min-height:530px}
+  .moment-image{transform:scale(.97);transform-origin:right center}
+  .moment-image[data-hero-image][src*="racing-roadster-v654"]{transform:none;transform-origin:center bottom}
+}
+@media(max-width:760px){
+  .hero-copy h1{line-height:.97}
+  .moment-card{min-height:440px}
+  .moment-image{transform:none}
+  .moment-card::before{right:3%;bottom:11%;width:72%;height:8%;opacity:.6}
+  .k100-figure{height:250px;margin:6px -18px 18px}
+  .k100-figure img{width:122%;transform:translateY(-7px)}
+  .k100-card:hover .k100-figure img{transform:translateY(-7px)}
+  .research-feature::before{left:28px;right:28px}
+  .footer-brand span{font-size:10.25px}
+}

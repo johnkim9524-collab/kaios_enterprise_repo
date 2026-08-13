@@ -1,0 +1,88 @@
+@media(max-width:768px){
+  html[data-mobile-reconstruction=v1] .moment-card{
+    grid-template-rows:auto auto auto auto!important
+  }
+
+  html[data-mobile-reconstruction=v1] .moment-image,
+  html[data-mobile-reconstruction=v1] .moment-image[hidden]{
+    grid-row:3;
+    display:block!important;
+    visibility:visible!important;
+    width:100%!important;
+    max-width:100%!important;
+    height:auto!important;
+    min-height:220px;
+    aspect-ratio:4/3;
+    opacity:1!important;
+    object-fit:cover!important;
+    object-position:58% 76%!important;
+    padding:0!important;
+    background:linear-gradient(180deg,#fffefa,#f1eee6)
+  }
+
+  html[data-mobile-reconstruction=v1] .moment-image[data-hero-image][src*="racing-roadster-v654"],
+  html[data-mobile-reconstruction=v1] .moment-image[data-hero-image][src*="racing-roadster-v654"][hidden]{
+    object-fit:contain!important;
+    object-position:center bottom!important;
+    padding:0!important;
+    background:#fffefa
+  }
+
+  html[data-mobile-reconstruction=v1] .moment-card[data-asset-state=loading] .moment-image{
+    opacity:.42!important
+  }
+
+  html[data-mobile-reconstruction=v1] .moment-card[data-asset-state=retrying] .moment-image,
+  html[data-mobile-reconstruction=v1] .moment-card[data-asset-state=alternate] .moment-image{
+    opacity:.86!important
+  }
+
+  html[data-mobile-reconstruction=v1] .moment-card[data-asset-state=fallback-loading] .moment-image,
+  html[data-mobile-reconstruction=v1] .moment-card[data-asset-state=fallback] .moment-image{
+    min-height:210px;
+    object-fit:contain!important;
+    object-position:center!important;
+    padding:12px!important;
+    opacity:1!important
+  }
+
+  html[data-mobile-reconstruction=v1] .moment-card[data-mobile-hero-state=ready] .moment-image,
+  html[data-mobile-reconstruction=v1] .moment-card[data-mobile-hero-state=alternate] .moment-image,
+  html[data-mobile-reconstruction=v1] .moment-card[data-mobile-hero-state=fallback] .moment-image{
+    opacity:1!important
+  }
+}
+
+@media(max-width:390px){
+  html[data-mobile-reconstruction=v1] .moment-image,
+  html[data-mobile-reconstruction=v1] .moment-image[hidden]{
+    min-height:205px;
+    aspect-ratio:5/4;
+    object-position:60% 78%!important
+  }
+
+  html[data-mobile-reconstruction=v1] .moment-image[data-hero-image][src*="racing-roadster-v654"],
+  html[data-mobile-reconstruction=v1] .moment-image[data-hero-image][src*="racing-roadster-v654"][hidden]{
+    object-position:center bottom!important
+  }
+}
+
+@media(max-width:360px){
+  html[data-mobile-reconstruction=v1] .moment-image,
+  html[data-mobile-reconstruction=v1] .moment-image[hidden]{
+    min-height:196px;
+    aspect-ratio:6/5;
+    object-position:61% 79%!important
+  }
+
+  html[data-mobile-reconstruction=v1] .moment-image[data-hero-image][src*="racing-roadster-v654"],
+  html[data-mobile-reconstruction=v1] .moment-image[data-hero-image][src*="racing-roadster-v654"][hidden]{
+    object-position:center bottom!important
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  html[data-mobile-reconstruction=v1] .moment-image{
+    transition:none!important
+  }
+}

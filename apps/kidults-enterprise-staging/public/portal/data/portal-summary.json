@@ -1,0 +1,121 @@
+{
+  "release": "KIDULTS_PORTAL_V502_RC1",
+  "version": "5.0.2-rc.1",
+  "status": "release-candidate",
+  "as_of": "2026-08-12T15:45:00+09:00",
+  "snapshot_id": "baseline-provider-independent-v1",
+  "source_mode": "SELF_COLLECTED_PROVIDER_INDEPENDENT",
+  "interpretation": "Current public-preview metrics are separated from production readiness and do not claim permanent or absolute market superiority.",
+  "metrics": [
+    {
+      "id": "qualifiedSignals",
+      "label": "QUALIFIED SIGNALS",
+      "value": "18.7M+",
+      "caption": "Normalized intelligence signals",
+      "state": "Preview baseline"
+    },
+    {
+      "id": "trackedEntities",
+      "label": "TRACKED ENTITIES",
+      "value": "500+",
+      "caption": "Cross-category objects and entities",
+      "state": "Current baseline"
+    },
+    {
+      "id": "countries",
+      "label": "GLOBAL COVERAGE",
+      "value": "73",
+      "caption": "Countries represented",
+      "state": "Preview baseline"
+    },
+    {
+      "id": "markets",
+      "label": "ACTIVE MARKETS",
+      "value": "126",
+      "caption": "Markets and marketplaces",
+      "state": "Preview baseline"
+    }
+  ],
+  "operations": [
+    {
+      "label": "EVIDENCE OBJECTS",
+      "value": "417",
+      "caption": "Registered evidence objects",
+      "detail": "Current Registry projection",
+      "state": "PREVIEW",
+      "tone": "preview"
+    },
+    {
+      "label": "SOURCE FAMILIES",
+      "value": "4",
+      "caption": "Verified source families",
+      "detail": "Multi-source verification",
+      "state": "PREVIEW",
+      "tone": "preview"
+    },
+    {
+      "label": "MODEL CONFIDENCE",
+      "value": "94%",
+      "caption": "Model · Evidence · Human",
+      "detail": "Separated confidence layers",
+      "state": "PREVIEW",
+      "tone": "preview"
+    },
+    {
+      "label": "ACCESS STATUS",
+      "value": "LOCKED",
+      "caption": "Public preview gated",
+      "detail": "Rights-controlled access",
+      "state": "CONTROLLED",
+      "tone": "controlled"
+    },
+    {
+      "label": "PRODUCTION",
+      "value": "HOLD",
+      "caption": "No published snapshot",
+      "detail": "Gates remain fail-closed",
+      "state": "CONTROLLED",
+      "tone": "controlled"
+    },
+    {
+      "label": "KIDULT 100",
+      "value": "BUILDING",
+      "caption": "Evidence benchmark",
+      "detail": "Monthly review cycle",
+      "state": "BUILDING",
+      "tone": "building"
+    }
+  ],
+  "coverage": {
+    "countries": 73,
+    "markets": 126,
+    "languages": 15
+  },
+  "composition": [
+    {
+      "label": "Market Data",
+      "value": 42,
+      "color": "#123f35"
+    },
+    {
+      "label": "Auction Data",
+      "value": 24,
+      "color": "#356456"
+    },
+    {
+      "label": "News & Media",
+      "value": 15,
+      "color": "#5f8174"
+    },
+    {
+      "label": "Social & Sentiment",
+      "value": 11,
+      "color": "#8fa69d"
+    },
+    {
+      "label": "Other Sources",
+      "value": 8,
+      "color": "#c6c7b8"
+    }
+  ]
+}

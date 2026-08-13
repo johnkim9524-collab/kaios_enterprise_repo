@@ -1,0 +1,33 @@
+name: KIDULTS Coordination Validate
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/**'
+      - 'docs/operations/KIDULTS_*.md'
+      - 'scripts/kidults/coordination/**'
+      - '.github/workflows/kidults-coordination-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/**'
+      - 'docs/operations/KIDULTS_*.md'
+      - 'scripts/kidults/coordination/**'
+      - '.github/workflows/kidults-coordination-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate KIDULTS coordination registry
+        run: node scripts/kidults/coordination/validate-coordination.mjs

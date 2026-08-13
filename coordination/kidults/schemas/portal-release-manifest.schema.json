@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.example/schemas/portal-release-manifest.schema.json",
+  "title": "KIDULTS Portal V502 Release Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "release_id",
+    "portal_version",
+    "snapshot_id",
+    "rankability_assessment_id",
+    "generated_at",
+    "gate_state",
+    "core_vertical_registry_version",
+    "asset_registry_version",
+    "rights_registry_version",
+    "featured_set",
+    "hero_asset_id",
+    "qa",
+    "rollback_release_id",
+    "included_files"
+  ],
+  "properties": {
+    "release_id": {"type": "string"},
+    "portal_version": {"type": "string", "pattern": "^v[0-9]+$"},
+    "snapshot_id": {"type": "string"},
+    "rankability_assessment_id": {"type": "string"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "gate_state": {"enum": ["conditional", "publishable"]},
+    "core_vertical_registry_version": {"type": "string"},
+    "asset_registry_version": {"type": "string"},
+    "rights_registry_version": {"type": "string"},
+    "featured_set": {"type": "array", "items": {"type": "string"}},
+    "hero_asset_id": {"type": ["string", "null"]},
+    "qa": {
+      "type": "object",
+      "required": ["contract", "desktop", "tablet", "mobile", "accessibility", "performance", "rollback"],
+      "properties": {
+        "contract": {"type": "boolean"},
+        "desktop": {"type": "boolean"},
+        "tablet": {"type": "boolean"},
+        "mobile": {"type": "boolean"},
+        "accessibility": {"type": "boolean"},
+        "performance": {"type": "boolean"},
+        "rollback": {"type": "boolean"}
+      }
+    },
+    "rollback_release_id": {"type": ["string", "null"]},
+    "included_files": {"type": "array", "items": {"type": "string"}}
+  }
+}

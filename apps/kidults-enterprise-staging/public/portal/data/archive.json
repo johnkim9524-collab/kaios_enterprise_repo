@@ -1,0 +1,29 @@
+{
+  "release": "V502_RC1",
+  "editions": [
+    {
+      "edition": "2026.08",
+      "title": "Monthly Intelligence Issue 01",
+      "subtitle": "Global Collectibles Market Signals",
+      "status": "CURRENT"
+    },
+    {
+      "edition": "2026.07",
+      "title": "Data Coverage Baseline",
+      "subtitle": "Coverage, source families and freshness controls",
+      "status": "ARCHIVE"
+    },
+    {
+      "edition": "2026.06",
+      "title": "Kidult 100 Methodology 1.0",
+      "subtitle": "Scoring, confidence and provenance rules",
+      "status": "ARCHIVE"
+    },
+    {
+      "edition": "2026.08 RC",
+      "title": "Portal V502 Release Candidate",
+      "subtitle": "Eight-vertical structure, modular assets and registry traceability",
+      "status": "RELEASE CANDIDATE"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id":"role-track-a",
+  "record_type":"role",
+  "version":"1.2.0",
+  "status":"FINAL_LOCKED",
+  "title":"Track A Lead — 120 Intelligence Factory",
+  "holder_id":"agent-track-a",
+  "mission":"Produce measured intelligence and immutable snapshot candidates from registered evidence.",
+  "official_input":["approved taxonomy","registered methodology","prior immutable baseline"],
+  "official_output":["snapshot-candidate.json","Evidence Package"],
+  "operating_order":["Registry Check","Evidence Collection","Metric Calculation","Interpretation","Immutable Snapshot Candidate","Track B Handoff"],
+  "must_not":["PORTAL_RELEASE","PRODUCTION_APPROVAL","PERMANENT_RANKING","MISSING_TO_ZERO","BASELINE_OVERWRITE"],
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

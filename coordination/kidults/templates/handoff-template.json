@@ -1,0 +1,20 @@
+{
+  "handoff_id": "HO-YYYYMMDD-001",
+  "from_track": "A",
+  "to_track": "B",
+  "snapshot_id": "replace-me",
+  "artifact_reference": "path-or-url",
+  "artifact_version": "1.0.0",
+  "requested_action": "Assess this exact snapshot candidate.",
+  "deadline": "2026-08-12T06:00:00+09:00",
+  "known_limitations": [],
+  "acceptance_criteria": [
+    "Schema validates",
+    "Snapshot ID matches",
+    "Evidence references resolve"
+  ],
+  "state": "requested",
+  "created_at": "2026-08-12T00:00:00+09:00",
+  "response_at": null,
+  "response_note": null
+}

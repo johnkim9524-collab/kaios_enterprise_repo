@@ -1,0 +1,219 @@
+{
+  "registry_version": "1.0.0",
+  "effective_at": "2026-08-12T00:00:00+09:00",
+  "time_zone": "Asia/Seoul",
+  "daily_cutoffs": {
+    "track_status_due": "05:30",
+    "integrated_digest_publish": "06:00",
+    "same_day_priority_lock": "06:15"
+  },
+  "cadence": [
+    {
+      "activity_id": "track-a-hourly-report",
+      "owner_role": "track-a-120-score",
+      "frequency": "hourly",
+      "required_contents": [
+        "objective",
+        "completed_work",
+        "current_metrics",
+        "evidence_references",
+        "blockers",
+        "material_changes",
+        "next_hour_plan",
+        "handoff_requests"
+      ],
+      "destination": "GitHub Issue #235"
+    },
+    {
+      "activity_id": "track-a-material-event",
+      "owner_role": "track-a-120-score",
+      "frequency": "immediate",
+      "trigger_examples": [
+        "snapshot candidate created",
+        "featured-set composition changes",
+        "coverage changes by 3 percentage points or more",
+        "precision or evidence density materially changes",
+        "stress or scale test fails",
+        "provider gap materially changes",
+        "data loss, schema drift or source-family loss"
+      ],
+      "destination": "GitHub Issues #235 and #234"
+    },
+    {
+      "activity_id": "track-b-assessment",
+      "owner_role": "track-b-rankability",
+      "frequency": "every material snapshot candidate",
+      "required_contents": [
+        "snapshot_id",
+        "assessment_state",
+        "blocking_dimensions",
+        "exit_criteria",
+        "stability_and_sensitivity",
+        "provider_spend_readiness",
+        "residual_risks",
+        "handoff_to_track_a_and_integration"
+      ],
+      "destination": "GitHub Issue #236"
+    },
+    {
+      "activity_id": "track-b-gate-change",
+      "owner_role": "track-b-rankability",
+      "frequency": "immediate",
+      "trigger_examples": [
+        "blocked to conditional",
+        "conditional to publishable",
+        "publishable to blocked",
+        "new critical rankability bottleneck",
+        "assessment invalidated by snapshot change"
+      ],
+      "destination": "GitHub Issues #236, #238 and #234"
+    },
+    {
+      "activity_id": "track-c-release-status",
+      "owner_role": "track-c-portal-v502",
+      "frequency": "every material contract or release change",
+      "required_contents": [
+        "snapshot_id",
+        "contract_version",
+        "portal_release_version",
+        "asset_registry_version",
+        "rights_status",
+        "responsive_qa_status",
+        "performance_status",
+        "rollback_target",
+        "blockers_and_handoffs"
+      ],
+      "destination": "GitHub Issue #237"
+    },
+    {
+      "activity_id": "track-c-material-event",
+      "owner_role": "track-c-portal-v502",
+      "frequency": "immediate",
+      "trigger_examples": [
+        "snapshot contract failure",
+        "asset or rights failure",
+        "rendering failure",
+        "production deployment failure",
+        "mobile or desktop regression",
+        "missing data silently converted or displayed incorrectly",
+        "rollback activation"
+      ],
+      "destination": "GitHub Issues #237, #238 and #234"
+    },
+    {
+      "activity_id": "integrated-daily-digest",
+      "owner_role": "integration-conductor",
+      "frequency": "daily at 06:00 KST",
+      "required_contents": [
+        "executive_summary",
+        "latest_snapshot_id",
+        "track_a_status",
+        "track_b_gate_status",
+        "track_c_release_status",
+        "integration_gate_status",
+        "top_blockers",
+        "decisions_required_from_program_owner",
+        "next_24_hour_handoffs",
+        "risks_and_incidents",
+        "book_sync_implications"
+      ],
+      "destination": "GitHub Issue #234"
+    },
+    {
+      "activity_id": "weekly-integration-review",
+      "owner_role": "integration-conductor",
+      "frequency": "Sunday integrated review",
+      "required_contents": [
+        "weekly_outcomes",
+        "baseline_changes",
+        "architecture_changes",
+        "provider_readiness",
+        "production_readiness",
+        "open_decisions",
+        "three_book_sync",
+        "next_week_priorities"
+      ],
+      "destination": "GitHub Issue #234 and official documentation"
+    },
+    {
+      "activity_id": "release-gate-review",
+      "owner_role": "qa-release-manager",
+      "frequency": "on completion of G0 through G4",
+      "required_contents": [
+        "gate_results",
+        "failed_checks",
+        "residual_risk",
+        "rollback_verification",
+        "release_recommendation",
+        "program_owner_decision_request"
+      ],
+      "destination": "GitHub Issue #238"
+    },
+    {
+      "activity_id": "book-synchronization",
+      "owner_role": "documentation-sync",
+      "frequency": "weekly and on every material doctrine or architecture release",
+      "required_contents": [
+        "master_book_delta",
+        "baseline_book_delta",
+        "architecture_book_delta",
+        "terminology_delta",
+        "stale_document_warning",
+        "approval_required"
+      ],
+      "destination": "Official documentation and Issue #234"
+    }
+  ],
+  "handoff_protocol": {
+    "required_fields": [
+      "handoff_id",
+      "from_track",
+      "to_track",
+      "snapshot_id",
+      "artifact_path_or_issue_reference",
+      "artifact_version",
+      "decision_or_action_requested",
+      "deadline",
+      "known_limitations",
+      "acceptance_criteria"
+    ],
+    "acceptance_rule": "The receiving track explicitly accepts, rejects or requests correction. Silence is not acceptance.",
+    "mutation_rule": "The receiving track does not modify the producer-owned artifact. Corrections are requested from the owner or introduced through a versioned contract change.",
+    "snapshot_rule": "A handoff is invalid when its snapshot_id differs from the artifact chain under review.",
+    "evidence_rule": "Claims without an evidence reference are treated as provisional and cannot satisfy a release gate."
+  },
+  "material_event_escalation": {
+    "notify": [
+      "program-owner",
+      "integration-conductor",
+      "affected-track-lead",
+      "incident-manager when applicable"
+    ],
+    "immediate_block_conditions": [
+      "data loss",
+      "snapshot ID mismatch",
+      "lineage loss",
+      "schema drift affecting interpretation",
+      "rights or trade-dress concern",
+      "rankability state becomes blocked",
+      "production deployment failure",
+      "no valid rollback target",
+      "provider outage affecting published output",
+      "critical cost or scale anomaly"
+    ]
+  },
+  "report_template": {
+    "sections": [
+      "Objective",
+      "Completed Deliverables",
+      "Key Findings",
+      "Evidence References",
+      "Metrics and State Changes",
+      "Blockers and Risks",
+      "Decisions Requested",
+      "Cross-Track Handoffs",
+      "Next Actions",
+      "Expected Timing"
+    ]
+  }
+}

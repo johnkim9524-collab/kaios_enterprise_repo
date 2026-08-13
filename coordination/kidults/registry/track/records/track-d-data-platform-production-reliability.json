@@ -1,0 +1,21 @@
+{
+  "id":"track-d-data-platform-production-reliability",
+  "record_type":"track",
+  "version":"1.1.0",
+  "status":"FOUNDATION_PREPARATION",
+  "display_name":"D. KIDULTS | Data Platform & Production Reliability",
+  "role_id":"role-track-d",
+  "canonical_issue":240,
+  "current_runtime":"NOT_STARTED",
+  "current_deployment":"NONE",
+  "current_published_snapshot_id":null,
+  "production_input_state":"WAITING_FOR_APPROVED_SNAPSHOT",
+  "release_status":"HOLD",
+  "foundation_readiness":"READY",
+  "foundation_implementation":"NOT_STARTED",
+  "production_readiness":"NOT_YET_ASSESSED",
+  "rule_status":"FINAL_LOCKED_AT_V1.3",
+  "next_stage":"FOUNDATION_IMPLEMENTATION_PACKAGE",
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

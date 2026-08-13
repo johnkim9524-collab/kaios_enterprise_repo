@@ -1,0 +1,42 @@
+{
+  "version": "3.0",
+  "environment": "preview",
+  "status": "editorial_preview",
+  "as_of": "2026-08-11T01:00:00Z",
+  "metrics": {
+    "live_evidence": {"display": "417", "label": "Evidence objects", "status": "preview"},
+    "source_families": {"display": "4", "label": "Verified families", "status": "preview"},
+    "qualified_signals": {"display": "18.7M+", "label": "Signals indexed", "status": "preview"},
+    "model_confidence": {"display": "94%", "label": "Model confidence", "status": "preview"},
+    "tracked_entities": {"display": "500+", "label": "Tracked entities", "status": "preview"},
+    "update_frequency": {"display": "Real-time", "label": "Target cadence", "status": "target"}
+  },
+  "coverage": {"countries": 73, "markets": 126, "languages": 15, "status": "preview"},
+  "composition": [
+    {"label": "Market Data", "value": 42},
+    {"label": "Auction Data", "value": 24},
+    {"label": "News & Media", "value": 15},
+    {"label": "Social & Sentiment", "value": 11},
+    {"label": "Other Sources", "value": 8}
+  ],
+  "operations": [
+    {"id": "evidence", "eyebrow": "EVIDENCE OBJECTS", "value": "417", "description": "Live evidence", "detail": "Updated hourly", "state": "preview"},
+    {"id": "sources", "eyebrow": "SOURCE FAMILIES", "value": "4", "description": "Verified families", "detail": "Multi-source verification", "state": "preview"},
+    {"id": "signals", "eyebrow": "QUALIFIED SIGNALS", "value": "18.7M+", "description": "Signals indexed", "detail": "Continuously normalized", "state": "preview"},
+    {"id": "confidence", "eyebrow": "MODEL CONFIDENCE", "value": "94%", "description": "Model · Evidence · Human", "detail": "Separated confidence layers", "state": "preview"},
+    {"id": "access", "eyebrow": "ACCESS STATUS", "value": "LOCKED", "description": "Public preview gated", "detail": "Collector and institutional tiers", "state": "controlled"},
+    {"id": "production", "eyebrow": "PRODUCTION", "value": "GATED", "description": "Institution pipeline", "detail": "Quality controlled", "state": "controlled"},
+    {"id": "k100", "eyebrow": "KIDULT 100", "value": "BUILDING", "description": "Evidence benchmark", "detail": "Ranking in progress", "state": "building"}
+  ],
+  "signals": [
+    {"category": "MOBILITY", "title": "Cultural momentum", "value": "+5.8", "unit": "30D", "confidence": 94, "status": "preview"},
+    {"category": "TIME", "title": "Liquidity strength", "value": "86.4", "unit": "INDEX", "confidence": 92, "status": "preview"},
+    {"category": "FOOTWEAR", "title": "Collector velocity", "value": "84.9", "unit": "INDEX", "confidence": 91, "status": "preview"},
+    {"category": "CHARACTER", "title": "Evidence maturity", "value": "BUILDING", "unit": "STATUS", "confidence": 78, "status": "building"}
+  ],
+  "archive": [
+    {"edition": "2026.08", "title": "Monthly Intelligence Issue 01", "summary": "Global Collectibles Market Signals", "status": "Current"},
+    {"edition": "2026.07", "title": "Data Coverage Baseline", "summary": "Coverage, source families and freshness controls", "status": "Archive"},
+    {"edition": "2026.06", "title": "Kidult 100 Methodology 0.9", "summary": "Scoring, confidence and provenance rules", "status": "Archive"}
+  ]
+}

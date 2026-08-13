@@ -1,0 +1,243 @@
+html[data-mobile-reconstruction=v1]{
+  --mobile-safe-gutter:clamp(12px,4.5vw,18px)
+}
+
+@media(max-width:768px){
+  html[data-mobile-reconstruction=v1],
+  html[data-mobile-reconstruction=v1] body{
+    width:100%;
+    max-width:100%;
+    min-width:0
+  }
+
+  html[data-mobile-reconstruction=v1] .site-header,
+  html[data-mobile-reconstruction=v1] .living-pulse,
+  html[data-mobile-reconstruction=v1] #main,
+  html[data-mobile-reconstruction=v1] #main>section,
+  html[data-mobile-reconstruction=v1] .site-footer,
+  html[data-mobile-reconstruction=v1] .shell{
+    width:100%;
+    max-width:100%;
+    min-width:0
+  }
+
+  html[data-mobile-reconstruction=v1] .shell{
+    margin-inline:0;
+    padding-left:var(--mobile-safe-gutter);
+    padding-right:var(--mobile-safe-gutter)
+  }
+
+  html[data-mobile-reconstruction=v1] #main>section>*,
+  html[data-mobile-reconstruction=v1] .shell>*,
+  html[data-mobile-reconstruction=v1] .section-heading>*,
+  html[data-mobile-reconstruction=v1] .hero-grid>*,
+  html[data-mobile-reconstruction=v1] .split-heading>*,
+  html[data-mobile-reconstruction=v1] .archive-shell>*,
+  html[data-mobile-reconstruction=v1] .research-layout>*,
+  html[data-mobile-reconstruction=v1] .evidence-grid>*,
+  html[data-mobile-reconstruction=v1] .institution-grid>*,
+  html[data-mobile-reconstruction=v1] .operations-grid>*,
+  html[data-mobile-reconstruction=v1] .snapshot-grid>*,
+  html[data-mobile-reconstruction=v1] .vertical-grid>*,
+  html[data-mobile-reconstruction=v1] .k100-gallery>*,
+  html[data-mobile-reconstruction=v1] .signal-grid>*{
+    min-width:0;
+    max-width:100%
+  }
+
+  html[data-mobile-reconstruction=v1] img,
+  html[data-mobile-reconstruction=v1] svg,
+  html[data-mobile-reconstruction=v1] canvas,
+  html[data-mobile-reconstruction=v1] video{
+    max-width:100%
+  }
+
+  html[data-mobile-reconstruction=v1] .sr-only{
+    left:0!important;
+    top:0!important;
+    margin:-1px!important;
+    clip-path:inset(50%)!important;
+    transform:none!important
+  }
+
+  html[data-mobile-reconstruction=v1] .living-pulse__identity{
+    min-width:0;
+    overflow:hidden
+  }
+
+  html[data-mobile-reconstruction=v1] .living-pulse__orb{
+    width:12px;
+    height:12px;
+    max-width:12px;
+    flex:0 0 12px;
+    transform:none!important
+  }
+
+  html[data-mobile-reconstruction=v1] .snapshot-grid,
+  html[data-mobile-reconstruction=v1] .operations-grid,
+  html[data-mobile-reconstruction=v1] .pipeline-grid,
+  html[data-mobile-reconstruction=v1] .vertical-grid,
+  html[data-mobile-reconstruction=v1] .k100-gallery,
+  html[data-mobile-reconstruction=v1] .signal-grid,
+  html[data-mobile-reconstruction=v1] .evidence-grid,
+  html[data-mobile-reconstruction=v1] .research-layout,
+  html[data-mobile-reconstruction=v1] .archive-shell,
+  html[data-mobile-reconstruction=v1] .institution-grid{
+    width:100%;
+    max-width:100%;
+    min-width:0
+  }
+
+  html[data-mobile-reconstruction=v1] .vertical-card,
+  html[data-mobile-reconstruction=v1] .k100-card,
+  html[data-mobile-reconstruction=v1] .operation-card,
+  html[data-mobile-reconstruction=v1] .signal-card,
+  html[data-mobile-reconstruction=v1] .evidence-card,
+  html[data-mobile-reconstruction=v1] .research-feature,
+  html[data-mobile-reconstruction=v1] .research-note,
+  html[data-mobile-reconstruction=v1] .institution-card{
+    width:100%;
+    max-width:100%;
+    min-width:0
+  }
+
+  html[data-mobile-reconstruction=v1] .vertical-card{
+    contain:layout paint
+  }
+
+  html[data-mobile-reconstruction=v1] .vertical-glyph{
+    right:18px;
+    max-width:68px
+  }
+
+  html[data-mobile-reconstruction=v1] .k100-figure{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    margin-left:0!important;
+    margin-right:0!important;
+    contain:layout paint
+  }
+
+  html[data-mobile-reconstruction=v1] .k100-figure img{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    transform:none!important
+  }
+
+  html[data-mobile-reconstruction=v1] .market-signals-section,
+  html[data-mobile-reconstruction=v1] .signal-grid,
+  html[data-mobile-reconstruction=v1] .signal-card,
+  html[data-mobile-reconstruction=v1] .signal-main,
+  html[data-mobile-reconstruction=v1] .signal-value,
+  html[data-mobile-reconstruction=v1] .signal-meta,
+  html[data-mobile-reconstruction=v1] .sparkline{
+    width:100%;
+    max-width:100%;
+    min-width:0
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-grid{
+    grid-template-columns:minmax(0,1fr)!important
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-card{
+    overflow:hidden
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-card header{
+    min-width:0;
+    max-width:100%;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:start
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-card header>*,
+  html[data-mobile-reconstruction=v1] .signal-card-tools,
+  html[data-mobile-reconstruction=v1] .signal-main>*,
+  html[data-mobile-reconstruction=v1] .signal-meta>div{
+    min-width:0;
+    max-width:100%
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-main{
+    overflow:hidden
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-value{
+    flex-wrap:wrap
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-change{
+    max-width:100%;
+    white-space:normal
+  }
+
+  html[data-mobile-reconstruction=v1] .sparkline{
+    overflow:hidden
+  }
+
+  html[data-mobile-reconstruction=v1] .sparkline svg{
+    display:block;
+    width:100%;
+    max-width:100%;
+    overflow:hidden
+  }
+
+  html[data-mobile-reconstruction=v1] .data-funnel,
+  html[data-mobile-reconstruction=v1] .canon-panel,
+  html[data-mobile-reconstruction=v1] .composition-layout,
+  html[data-mobile-reconstruction=v1] .coverage-values,
+  html[data-mobile-reconstruction=v1] .methodology-icons,
+  html[data-mobile-reconstruction=v1] .partner-grid{
+    width:100%;
+    max-width:100%;
+    min-width:0
+  }
+}
+
+@media(max-width:360px){
+  html[data-mobile-reconstruction=v1]{
+    --mobile-safe-gutter:12px
+  }
+
+  html[data-mobile-reconstruction=v1] .header-inner,
+  html[data-mobile-reconstruction=v1] .living-pulse__bar{
+    padding-left:12px!important;
+    padding-right:12px!important
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-card{
+    padding-left:16px;
+    padding-right:16px
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-card header{
+    grid-template-columns:1fr;
+    gap:10px
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-card-tools{
+    width:100%;
+    max-width:100%;
+    align-items:center!important;
+    flex-direction:row!important;
+    flex-wrap:wrap;
+    justify-content:flex-start
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-card-tools>span{
+    max-width:100%;
+    text-align:left
+  }
+
+  html[data-mobile-reconstruction=v1] .signal-value strong{
+    font-size:clamp(40px,14vw,47px)
+  }
+
+  html[data-mobile-reconstruction=v1] .vertical-glyph{
+    right:14px
+  }
+}

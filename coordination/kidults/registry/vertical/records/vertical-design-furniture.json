@@ -1,0 +1,13 @@
+{
+  "id":"vertical-design-furniture",
+  "record_type":"core_vertical",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "order":5,
+  "display_name":"Design & Furniture",
+  "slug":"design-furniture",
+  "representative_scope":["Eames","Le Corbusier","Arne Jacobsen","Noguchi","Panton","Wassily Chair","Barcelona Chair","Arco Lamp","USM Haller"],
+  "stable_structure":true,
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

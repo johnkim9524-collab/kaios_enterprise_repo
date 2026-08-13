@@ -1,0 +1,14 @@
+{
+  "id":"work-track-a-register-methodology",
+  "record_type":"work_item",
+  "version":"1.0.0",
+  "status":"OPEN",
+  "work_id":"WORK-0001",
+  "track_id":"track-a-120-intelligence-factory",
+  "mission_id":"mission-track-a-first-canonical-snapshot",
+  "objective":"Register methodology_version without inventing a value.",
+  "dependency_ids":[],
+  "created_at":"2026-08-12T17:17:03+09:00",
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

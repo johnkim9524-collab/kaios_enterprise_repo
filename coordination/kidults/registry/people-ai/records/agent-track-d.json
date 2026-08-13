@@ -1,0 +1,12 @@
+{
+  "id":"agent-track-d",
+  "record_type":"ai_agent",
+  "version":"1.1.0",
+  "status":"ACTIVE",
+  "display_name":"Track D Agent",
+  "role_ids":["role-track-d"],
+  "working_room_name":"D. KIDULTS | Data Platform & Production Reliability",
+  "canonical_issue":240,
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

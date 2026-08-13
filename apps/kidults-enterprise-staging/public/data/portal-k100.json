@@ -1,0 +1,52 @@
+{
+  "version": "3.3",
+  "status": "editorial_candidate",
+  "index_name": "Kidult 100",
+  "methodology_version": "NOT_YET_REGISTERED",
+  "updated_at": "2026-08-13T11:20:00Z",
+  "selection_count": 4,
+  "unverified_visual_policy": "WITHHOLD",
+  "selection_note": "Current Impact Slice presentation order: Sneaker, Camera, Robot, Watch. This is not Track A Market Signal ordering or an evidence-backed numerical Kidult 100 ranking.",
+  "items": [
+    {
+      "rank": 1,
+      "id": "footwear-01",
+      "name": "Archive Sneaker 01",
+      "category": "FASHION",
+      "score": null,
+      "confidence": null,
+      "status": "editorial_candidate",
+      "visual_role": "EDITORIAL_INTERPRETATION"
+    },
+    {
+      "rank": 2,
+      "id": "camera-editorial-01",
+      "name": "Precision Camera 01",
+      "category": "TECHNOLOGY",
+      "score": null,
+      "confidence": null,
+      "status": "editorial_candidate",
+      "visual_role": "EDITORIAL_INTERPRETATION"
+    },
+    {
+      "rank": 3,
+      "id": "toys-editorial-01",
+      "name": "Cobalt Robot 01",
+      "category": "TOYS",
+      "score": null,
+      "confidence": null,
+      "status": "editorial_candidate",
+      "visual_role": "EDITORIAL_INTERPRETATION"
+    },
+    {
+      "rank": 4,
+      "id": "time-01",
+      "name": "Mechanical Time 01",
+      "category": "TIME",
+      "score": null,
+      "confidence": null,
+      "status": "editorial_candidate",
+      "visual_role": "EDITORIAL_INTERPRETATION"
+    }
+  ]
+}

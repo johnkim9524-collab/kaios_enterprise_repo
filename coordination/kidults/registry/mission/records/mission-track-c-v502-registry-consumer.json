@@ -1,0 +1,31 @@
+{
+  "id": "mission-track-c-v502-registry-consumer",
+  "record_type": "mission",
+  "version": "1.1.0",
+  "status": "IN_PROGRESS",
+  "mission_id": "MISSION-0003",
+  "track_id": "track-c-portal-v502-experience-layer",
+  "milestone_id": "milestone-ms-0001-first-canonical-snapshot",
+  "objective": "Complete KIDULTS Portal V502 as the Release Candidate and freeze it as the provider and PoC validation baseline.",
+  "inputs": [
+    "Approved eight-Core-Vertical registry",
+    "Provider-independent baseline snapshot",
+    "Approved public-preview editorial assets",
+    "Portal V502 design and fail-closed contracts"
+  ],
+  "required_outputs": [
+    "Portal V502 Release Candidate",
+    "Eight-vertical architecture",
+    "Dynamic Featured Slice",
+    "Registry traceability projection",
+    "Search and detail routes",
+    "Responsive Portal QA",
+    "portal-release-manifest-v502.json"
+  ],
+  "dependency_ids": [],
+  "blocker_ids": [],
+  "started_at": "2026-08-12T23:10:00+09:00",
+  "created_at": "2026-08-12T17:17:03+09:00",
+  "created_by": "Atlas",
+  "approved_by": "John"
+}

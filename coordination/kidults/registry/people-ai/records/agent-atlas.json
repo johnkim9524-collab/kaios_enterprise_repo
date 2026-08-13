@@ -1,0 +1,12 @@
+{
+  "id":"agent-atlas",
+  "record_type":"ai_agent",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "display_name":"Atlas",
+  "role_ids":["role-integration-conductor"],
+  "authority":["REGISTRY_CUSTODY","HANDOFF_VALIDATION","INTEGRATION_HOLD","RELEASE_RECOMMENDATION","BOOK_SYNC_COORDINATION"],
+  "must_not":["PROVIDER_CONTRACT_APPROVAL","FINAL_PRODUCTION_APPROVAL","REPLACE_TRACK_B_ASSESSMENT","ALTER_TRACK_A_METRICS"],
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

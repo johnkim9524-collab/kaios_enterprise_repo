@@ -1,34 +1,37 @@
 # A13-B10 Baseline Lock
 
-Status: staging design baseline
+Status: SUPERSEDED FOR PUBLIC VISUAL DESIGN
+Superseded by: `docs/design/KIDULTS_FINAL_MASTER_DESIGN.md`
+Effective supersession date: 2026-08-11
 
-## Locked visual decisions
+A13-B10 remains a historical implementation baseline and may still be useful for responsive/technical reference. It is no longer the visual authority for the KIDULTS public portal.
 
-- Hero copy: `Objects become / CULTURE / before consensus.`
-- Desktop header: left-aligned KIDULTS brand with right-aligned navigation and access action.
-- Mobile header: KIDULTS brand and Enterprise Access only.
-- Display type: Cormorant Garamond.
-- Premium numbers: Bodoni Moda.
-- Interface and data UI: Inter.
-- Palette: ivory, paper, ink, muted gold, restrained forest and risk red.
-- Kidult 100 score ring: 12 o'clock start, clockwise progress, square line caps.
-- Individual digit DOM splitting and per-digit transforms are prohibited.
+## Historical decisions retained only where compatible
 
-## Locked responsive decisions
+The following technical principles remain valid unless the Final Master says otherwise:
 
-- Supported review widths: 320, 360, 390, 768, 1024, 1280, 1536 and 1920.
-- No horizontal page scrolling.
-- Mobile hero uses explicit line elements rather than browser-dependent word wrapping.
-- Mobile sections use one-column editorial flow.
-- Hero proof items stack vertically on mobile.
-- Hero metrics use a 2 by 2 mobile grid.
-- Benchmark controls use a mobile-safe grid.
-- Signal Queue uses a dedicated mobile row layout.
-- Watchlist, Evidence and Research use single-column mobile cards.
+- no horizontal page scrolling;
+- mobile uses responsive adaptation rather than a separate product concept;
+- supported review widths include 320, 360/375, 390, 430, 768, 1024, 1280, 1536/1600 and 1920;
+- production remains untouched until review and CI pass;
+- illustrative/staging values must not be represented as validated production evidence.
 
-## Release gates
+## Visual decisions that are explicitly superseded
 
-- Production remains untouched until PR review and CI pass.
-- Staging values remain illustrative until API contracts are connected.
-- The portal must visibly disclose `STAGING · ILLUSTRATIVE DATA` before merge.
-- Final architecture target: one HTML, one CSS and one JS file under `/a13-b10/`.
+The following A13-B10 decisions must not override the Final Master:
+
+- old hero copy `Objects become / CULTURE / before consensus.`;
+- serif/legacy wordmark treatments;
+- muted-gold public-master palette assumptions;
+- older score-ring-centered visual hierarchy;
+- any object imagery that differs from the approved five rights-safe Kidult 100 preview forms.
+
+## Current authority
+
+Use the following files for all new implementation and QA decisions:
+
+- `docs/design/KIDULTS_FINAL_MASTER_DESIGN.md`
+- `docs/design/KIDULTS_DESIGN_FREEZE_V1.md`
+- `docs/design/KIDULTS_VISUAL_COLOR_POLICY.md`
+
+Where historical documents conflict with these files, the 2026-08-11 Final Master wins.

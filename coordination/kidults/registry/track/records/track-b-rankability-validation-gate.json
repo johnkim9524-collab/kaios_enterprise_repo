@@ -1,0 +1,15 @@
+{
+  "id":"track-b-rankability-validation-gate",
+  "record_type":"track",
+  "version":"1.0.0",
+  "status":"WAITING_FOR_SNAPSHOT",
+  "display_name":"B. KIDULTS | Rankability & Validation Gate",
+  "role_id":"role-track-b",
+  "canonical_issue":236,
+  "current_snapshot_id":null,
+  "current_assessment_id":null,
+  "rule_status":"FINAL_LOCKED_AT_V1.3",
+  "next_stage":"FIRST_INDEPENDENT_RANKABILITY_ASSESSMENT",
+  "created_by":"Atlas",
+  "approved_by":"John"
+}

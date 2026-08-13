@@ -1,0 +1,48 @@
+{
+  "asset_set_id": "K100-V655-CURRENT-IMPACT-SLICE-01",
+  "track": "C",
+  "portal_state": "STAGING_CANDIDATE",
+  "snapshot_id": "baseline-provider-independent-v1",
+  "selection_basis": "Founder-approved Current Impact Slice: market-impact intent plus cross-category visual balance. This does not replace or alter Track A Market Signal ordering and does not publish unregistered scores.",
+  "rights_state": "REVIEW_REQUIRED",
+  "production_state": "HOLD",
+  "legal_position": "No zero-risk representation is made. Visible logos, brand names and direct product identifiers are intentionally absent where applicable; final whole-design rights clearance remains a G3 requirement.",
+  "assets": [
+    {
+      "asset_id": "asset-k100-footwear-v654",
+      "display_order": 1,
+      "vertical_id": "vertical-fashion-accessories",
+      "file": "assets/kidult100/footwear-v654.webp",
+      "role": "EDITORIAL_INTERPRETATION",
+      "rights_status": "REVIEW_REQUIRED",
+      "production_status": "HOLD"
+    },
+    {
+      "asset_id": "asset-k100-camera-v654",
+      "display_order": 2,
+      "vertical_id": "vertical-technology-cameras",
+      "file": "assets/kidult100/camera-v654.webp",
+      "role": "EDITORIAL_INTERPRETATION",
+      "rights_status": "REVIEW_REQUIRED",
+      "production_status": "HOLD"
+    },
+    {
+      "asset_id": "asset-k100-toys-v654",
+      "display_order": 3,
+      "vertical_id": "vertical-toys-models",
+      "file": "assets/kidult100/toys-v654.webp",
+      "role": "EDITORIAL_INTERPRETATION",
+      "rights_status": "REVIEW_REQUIRED",
+      "production_status": "HOLD"
+    },
+    {
+      "asset_id": "asset-k100-watch-v655",
+      "display_order": 4,
+      "vertical_id": "vertical-watches-jewelry",
+      "file": "assets/kidult100/watch-v655.webp",
+      "role": "EDITORIAL_INTERPRETATION",
+      "rights_status": "REVIEW_REQUIRED",
+      "production_status": "HOLD"
+    }
+  ]
+}
