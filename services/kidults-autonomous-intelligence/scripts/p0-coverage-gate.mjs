@@ -121,8 +121,11 @@ if (result.status !== 0) {
       || (displayedAtThreshold.lines && Number.isFinite(linePct) && /\d/.test(uncoveredLineDetail));
   });
   const diagnosticRows = failingRows.length > 0 ? failingRows : roundedThresholdSuspects;
+  const tapSummary = diagnosticLines.filter((line) => /^#\s+(tests|suites|pass|fail|cancelled|skipped|todo|duration_ms)\b/i.test(line));
+  const failureMarkers = diagnosticLines.filter((line) => /^(not ok\b|#\s*error\b)|ERR_ASSERTION|AssertionError|test failed|coverage.*(?:does not meet|threshold|fail)/i.test(line));
   const totalLine = totalRow?.raw || diagnosticLines.find((line) => /all files/i.test(line));
   const fallbackLine = diagnosticLines.find((line) => /coverage/i.test(line) && /fail|threshold|does not meet/i.test(line))
+    || failureMarkers[0]
     || diagnosticLines.slice(-1)[0]
     || `test runner exited with status ${result.status}`;
   const coverageDetail = [totalLine, ...diagnosticRows.slice(0, 12).map(({ raw }) => raw)]
@@ -134,6 +137,9 @@ if (result.status !== 0) {
     .replaceAll('\r', '%0D')
     .replaceAll('\n', '%0A');
   console.error(`::error title=KIDULTS P0 coverage gate::${annotation}`);
+  console.error(`Coverage diagnostic TAP summary: ${tapSummary.join(' | ') || 'none'}`);
+  console.error(`Coverage diagnostic failure markers: ${failureMarkers.slice(0, 12).join(' || ') || 'none'}`);
+  console.error(`Coverage diagnostic numeric suspect rows: ${diagnosticRows.slice(0, 12).map(({ raw }) => raw).join(' || ') || 'none'}`);
   console.error(`Coverage gate FAIL: test runner exited with status ${result.status}.`);
   process.exit(result.status ?? 1);
 }
