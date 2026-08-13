@@ -67,18 +67,62 @@ jobs:
                 --argjson main "$main_files" \
                 --argjson head "$head_files" \
                 '$head | map(select(. as $file | $main | index($file))) | unique')
+              sensitive_pattern='(^|/)(registry|governance|decision|handoff)|track-b|portal|\.github/workflows'
               sensitive_overlap=$(jq -cn \
                 --argjson overlap "$overlap_files" \
-                '$overlap | map(select(test("(^|/)(registry|governance|decision|handoff)|track-b|portal|\\.github/workflows"; "i"))) | unique')
+                --arg pattern "$sensitive_pattern" \
+                '$overlap | map(select(test($pattern; "i"))) | unique')
+
+              identical_overlap='[]'
+              divergent_overlap='[]'
+              unresolved_overlap='[]'
+              while IFS= read -r file; do
+                main_blob=""
+                head_blob=""
+                if main_meta=$(gh api --method GET "repos/$REPO/contents/$file" -f ref="$main_sha" 2>/dev/null); then
+                  main_blob=$(jq -r '.sha // empty' <<<"$main_meta")
+                fi
+                if head_meta=$(gh api --method GET "repos/$REPO/contents/$file" -f ref="$HEAD_SHA" 2>/dev/null); then
+                  head_blob=$(jq -r '.sha // empty' <<<"$head_meta")
+                fi
+
+                if [ -n "$main_blob" ] && [ -n "$head_blob" ] && [ "$main_blob" = "$head_blob" ]; then
+                  identical_overlap=$(jq -c --arg file "$file" '. + [$file] | unique' <<<"$identical_overlap")
+                elif [ -n "$main_blob" ] && [ -n "$head_blob" ]; then
+                  divergent_overlap=$(jq -c --arg file "$file" '. + [$file] | unique' <<<"$divergent_overlap")
+                else
+                  unresolved_overlap=$(jq -c --arg file "$file" '. + [$file] | unique' <<<"$unresolved_overlap")
+                fi
+              done < <(jq -r '.[]' <<<"$overlap_files")
+
+              sensitive_identical_overlap=$(jq -cn \
+                --argjson files "$identical_overlap" \
+                --arg pattern "$sensitive_pattern" \
+                '$files | map(select(test($pattern; "i"))) | unique')
+              sensitive_divergent_overlap=$(jq -cn \
+                --argjson files "$divergent_overlap" \
+                --arg pattern "$sensitive_pattern" \
+                '$files | map(select(test($pattern; "i"))) | unique')
+              sensitive_unresolved_overlap=$(jq -cn \
+                --argjson files "$unresolved_overlap" \
+                --arg pattern "$sensitive_pattern" \
+                '$files | map(select(test($pattern; "i"))) | unique')
 
               main_file_count=$(jq 'length' <<<"$main_files")
               head_file_count=$(jq 'length' <<<"$head_files")
               overlap_count=$(jq 'length' <<<"$overlap_files")
               sensitive_overlap_count=$(jq 'length' <<<"$sensitive_overlap")
+              identical_overlap_count=$(jq 'length' <<<"$identical_overlap")
+              divergent_overlap_count=$(jq 'length' <<<"$divergent_overlap")
+              unresolved_overlap_count=$(jq 'length' <<<"$unresolved_overlap")
+              sensitive_identical_overlap_count=$(jq 'length' <<<"$sensitive_identical_overlap")
+              sensitive_divergent_overlap_count=$(jq 'length' <<<"$sensitive_divergent_overlap")
+              sensitive_unresolved_overlap_count=$(jq 'length' <<<"$sensitive_unresolved_overlap")
               main_commit_count=$(jq -r '.ahead_by // -1' <<<"$main_compare")
               head_commit_count=$(jq -r '.ahead_by // -1' <<<"$head_compare")
               main_files_possibly_truncated=$([ "$main_file_count" -ge 300 ] && printf true || printf false)
               head_files_possibly_truncated=$([ "$head_file_count" -ge 300 ] && printf true || printf false)
+              byte_identity_complete=$([ "$unresolved_overlap_count" -eq 0 ] && printf true || printf false)
 
               jq -n \
                 --arg stage "P0_HARDENING_INTEGRATION_RECONCILIATION" \
@@ -87,21 +131,34 @@ jobs:
                 --arg mainSha "$main_sha" \
                 --arg mergeBaseSha "$merge_base_sha" \
                 --arg nextSafeAction "OWNER_LED_CONFLICT_AWARE_RECONCILIATION" \
-                --arg sensitivePattern '(^|/)(registry|governance|decision|handoff)|track-b|portal|\.github/workflows' \
+                --arg sensitivePattern "$sensitive_pattern" \
                 --argjson mainCommitCount "$main_commit_count" \
                 --argjson headCommitCount "$head_commit_count" \
                 --argjson mainChangedFileCount "$main_file_count" \
                 --argjson headChangedFileCount "$head_file_count" \
                 --argjson overlapChangedFileCount "$overlap_count" \
                 --argjson sensitiveOverlapCount "$sensitive_overlap_count" \
+                --argjson identicalOverlapCount "$identical_overlap_count" \
+                --argjson divergentOverlapCount "$divergent_overlap_count" \
+                --argjson unresolvedOverlapCount "$unresolved_overlap_count" \
+                --argjson sensitiveIdenticalOverlapCount "$sensitive_identical_overlap_count" \
+                --argjson sensitiveDivergentOverlapCount "$sensitive_divergent_overlap_count" \
+                --argjson sensitiveUnresolvedOverlapCount "$sensitive_unresolved_overlap_count" \
                 --argjson mainFileListPossiblyTruncated "$main_files_possibly_truncated" \
                 --argjson headFileListPossiblyTruncated "$head_files_possibly_truncated" \
+                --argjson byteIdentityClassificationComplete "$byte_identity_complete" \
                 --argjson overlapFiles "$overlap_files" \
                 --argjson sensitiveOverlapFiles "$sensitive_overlap" \
-                '{stage:$stage,status:$status,headSha:$headSha,mainSha:$mainSha,mergeBaseSha:$mergeBaseSha,mainCommitCount:$mainCommitCount,headCommitCount:$headCommitCount,mainChangedFileCount:$mainChangedFileCount,headChangedFileCount:$headChangedFileCount,overlapChangedFileCount:$overlapChangedFileCount,sensitiveOverlapCount:$sensitiveOverlapCount,mainFileListPossiblyTruncated:$mainFileListPossiblyTruncated,headFileListPossiblyTruncated:$headFileListPossiblyTruncated,overlapFiles:$overlapFiles,sensitiveOverlapFiles:$sensitiveOverlapFiles,sensitiveClassificationPattern:$sensitivePattern,nextSafeAction:$nextSafeAction,automaticMergeAttempted:false,automaticConflictResolutionAttempted:false,governanceSemanticResolutionAttempted:false,partialEvidenceAccepted:false,evidenceSemanticsModified:false,rightsProvenanceModified:false,productionGateWeakened:false}' \
+                --argjson identicalOverlapFiles "$identical_overlap" \
+                --argjson divergentOverlapFiles "$divergent_overlap" \
+                --argjson unresolvedOverlapFiles "$unresolved_overlap" \
+                --argjson sensitiveIdenticalOverlapFiles "$sensitive_identical_overlap" \
+                --argjson sensitiveDivergentOverlapFiles "$sensitive_divergent_overlap" \
+                --argjson sensitiveUnresolvedOverlapFiles "$sensitive_unresolved_overlap" \
+                '{stage:$stage,status:$status,headSha:$headSha,mainSha:$mainSha,mergeBaseSha:$mergeBaseSha,mainCommitCount:$mainCommitCount,headCommitCount:$headCommitCount,mainChangedFileCount:$mainChangedFileCount,headChangedFileCount:$headChangedFileCount,overlapChangedFileCount:$overlapChangedFileCount,sensitiveOverlapCount:$sensitiveOverlapCount,identicalOverlapCount:$identicalOverlapCount,divergentOverlapCount:$divergentOverlapCount,unresolvedOverlapCount:$unresolvedOverlapCount,sensitiveIdenticalOverlapCount:$sensitiveIdenticalOverlapCount,sensitiveDivergentOverlapCount:$sensitiveDivergentOverlapCount,sensitiveUnresolvedOverlapCount:$sensitiveUnresolvedOverlapCount,mainFileListPossiblyTruncated:$mainFileListPossiblyTruncated,headFileListPossiblyTruncated:$headFileListPossiblyTruncated,byteIdentityClassificationComplete:$byteIdentityClassificationComplete,overlapFiles:$overlapFiles,sensitiveOverlapFiles:$sensitiveOverlapFiles,identicalOverlapFiles:$identicalOverlapFiles,divergentOverlapFiles:$divergentOverlapFiles,unresolvedOverlapFiles:$unresolvedOverlapFiles,sensitiveIdenticalOverlapFiles:$sensitiveIdenticalOverlapFiles,sensitiveDivergentOverlapFiles:$sensitiveDivergentOverlapFiles,sensitiveUnresolvedOverlapFiles:$sensitiveUnresolvedOverlapFiles,sensitiveClassificationPattern:$sensitivePattern,nextSafeAction:$nextSafeAction,byteIdentityUsedForAutomaticResolution:false,automaticMergeAttempted:false,automaticConflictResolutionAttempted:false,governanceSemanticResolutionAttempted:false,partialEvidenceAccepted:false,evidenceSemanticsModified:false,rightsProvenanceModified:false,productionGateWeakened:false}' \
                 > integration-reconciliation-diagnostic.json
 
-              echo "Integration reconciliation: main_files=$main_file_count head_files=$head_file_count overlap=$overlap_count sensitive_overlap=$sensitive_overlap_count"
+              echo "Integration reconciliation: main_files=$main_file_count head_files=$head_file_count overlap=$overlap_count sensitive_overlap=$sensitive_overlap_count identical=$identical_overlap_count divergent=$divergent_overlap_count unresolved=$unresolved_overlap_count sensitive_divergent=$sensitive_divergent_overlap_count"
             else
               jq -n \
                 --arg stage "P0_HARDENING_INTEGRATION_RECONCILIATION" \
