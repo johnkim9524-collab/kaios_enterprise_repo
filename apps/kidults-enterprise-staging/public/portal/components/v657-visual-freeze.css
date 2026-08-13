@@ -1,0 +1,123 @@
+/* KIDULTS V657 visual freeze
+   Founder-approved Roadster scale, mobile full-object framing,
+   and one museum-editorial image format for the Current Impact Slice. */
+
+/* Hero — desktop optical target: approximately 78–80% vehicle presence. */
+.moment-card[data-hero-asset="racing-roadster-v657"]{
+  background:#e7dfd3
+}
+.moment-card[data-hero-asset="racing-roadster-v657"]::before{
+  opacity:.34
+}
+.moment-image[data-hero-asset="racing-roadster-v657"],
+.moment-image[data-hero-asset="racing-roadster-v657"][hidden]{
+  display:block!important;
+  visibility:visible!important;
+  width:100%!important;
+  max-width:none!important;
+  height:100%!important;
+  opacity:1!important;
+  object-fit:cover!important;
+  object-position:center 57%!important;
+  padding:0!important;
+  background:#e7dfd3!important;
+  transform:scale(1.065)!important;
+  transform-origin:56% 72%!important;
+  filter:saturate(1.01) contrast(1.018)!important
+}
+
+/* Tablet — reduce the desktop optical scale by about four percent. */
+@media(min-width:769px) and (max-width:1279px){
+  .moment-image[data-hero-asset="racing-roadster-v657"],
+  .moment-image[data-hero-asset="racing-roadster-v657"][hidden]{
+    transform:scale(1.02)!important;
+    transform-origin:56% 72%!important
+  }
+}
+
+/* Mobile — full vehicle is mandatory; no lateral or vertical crop. */
+@media(max-width:768px){
+  html[data-mobile-reconstruction=v1] .moment-card[data-hero-asset="racing-roadster-v657"]{
+    grid-template-rows:auto auto auto auto!important;
+    min-height:0!important
+  }
+  html[data-mobile-reconstruction=v1] .moment-image[data-hero-asset="racing-roadster-v657"],
+  html[data-mobile-reconstruction=v1] .moment-image[data-hero-asset="racing-roadster-v657"][hidden]{
+    position:relative!important;
+    inset:auto!important;
+    grid-row:3;
+    display:block!important;
+    visibility:visible!important;
+    width:100%!important;
+    max-width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    aspect-ratio:4/3!important;
+    object-fit:contain!important;
+    object-position:center bottom!important;
+    padding:0!important;
+    opacity:1!important;
+    background:#e7dfd3!important;
+    transform:none!important;
+    filter:saturate(1.01) contrast(1.012)!important
+  }
+}
+
+@media(max-width:390px){
+  html[data-mobile-reconstruction=v1] .moment-image[data-hero-asset="racing-roadster-v657"],
+  html[data-mobile-reconstruction=v1] .moment-image[data-hero-asset="racing-roadster-v657"][hidden]{
+    aspect-ratio:4/3!important;
+    object-position:center bottom!important
+  }
+}
+
+/* Kidult 100 — one full-bleed 4:3 museum-editorial format, based on Watch. */
+html[data-k100-integrity=v1] .k100-card[data-image-format="museum-editorial-v657"] .k100-figure{
+  width:100%;
+  height:auto;
+  aspect-ratio:4/3;
+  margin:20px 0 16px;
+  padding:0!important;
+  overflow:hidden;
+  border:1px solid rgba(7,61,45,.08);
+  border-radius:14px;
+  background:#e7dfd3
+}
+html[data-k100-integrity=v1] .k100-card[data-image-format="museum-editorial-v657"] .k100-figure img{
+  display:block!important;
+  width:100%!important;
+  max-width:none!important;
+  height:100%!important;
+  padding:0!important;
+  border-radius:13px;
+  object-fit:cover!important;
+  object-position:center!important;
+  transform:none!important;
+  filter:saturate(1.005) contrast(1.008);
+  transition:transform .25s ease
+}
+html[data-k100-integrity=v1] .k100-card[data-image-format="museum-editorial-v657"]:hover .k100-figure img{
+  transform:scale(1.012)!important
+}
+html[data-k100-integrity=v1] .k100-card[data-image-format="museum-editorial-v657"] .k100-figure::after{
+  left:11px;
+  bottom:10px
+}
+
+@media(max-width:760px){
+  html[data-k100-integrity=v1] .k100-card[data-image-format="museum-editorial-v657"] .k100-figure{
+    aspect-ratio:4/3;
+    margin-inline:0
+  }
+  html[data-k100-integrity=v1] .k100-card[data-image-format="museum-editorial-v657"] .k100-figure img{
+    object-fit:cover!important;
+    padding:0!important
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .moment-image[data-hero-asset="racing-roadster-v657"],
+  html[data-k100-integrity=v1] .k100-card[data-image-format="museum-editorial-v657"] .k100-figure img{
+    transition:none!important
+  }
+}
