@@ -14,7 +14,7 @@
     "lint": "npm run typecheck && node scripts/p0-engineering-quality-audit.mjs",
     "test": "node --test test/*.test.mjs",
     "coverage": "node --experimental-test-coverage --test test/*.test.mjs",
-    "quality:audit": "node scripts/p0-engineering-quality-audit.mjs",
+    "quality:audit": "node scripts/p0-engineering-quality-audit.mjs && node -e \"const fs=require('fs');if(process.env.GITHUB_ACTIONS==='true'&&fs.existsSync('reports/engineering-hardening/critical-ci-audit-latest.json')){import('./scripts/p0-sre-readiness-audit.mjs').then(()=>import('./scripts/p0-120-governance-baseline-audit.mjs')).catch((error)=>{console.error(error);process.exit(1)})}\"",
     "truth:gate": "node scripts/p0-real-data-truth-gate.mjs",
     "quality:gate": "npm run lint && npm run test && npm run coverage && npm run truth:gate && npm run runtime:smoke",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
