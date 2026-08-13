@@ -1,0 +1,44 @@
+name: KIDULTS P0 Reconciliation Proof
+
+on:
+  push:
+    branches:
+      - hardening/p0-speed-quality
+    paths:
+      - 'coordination/kidults/registry/decision-registry.json'
+      - '.github/workflows/kidults-p0-reconciliation-proof.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  prove-decision-registry-relation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prove approved DEC-004 strict superset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          main_meta=$(gh api --method GET "repos/$REPO/contents/coordination/kidults/registry/decision-registry.json" -f ref=main)
+          head_meta=$(gh api --method GET "repos/$REPO/contents/coordination/kidults/registry/decision-registry.json" -f ref="$HEAD_SHA")
+          main_json=$(jq -r '.content // empty' <<<"$main_meta" | base64 --decode)
+          head_json=$(jq -r '.content // empty' <<<"$head_meta" | base64 --decode)
+
+          jq -e '.entries | type == "array"' <<<"$main_json" >/dev/null
+          jq -e '.entries | type == "array"' <<<"$head_json" >/dev/null
+          jq -e '.entries[] | select(.decision_id == "DEC-2026-08-12-004" and .status == "approved")' <<<"$head_json" >/dev/null
+
+          main_entries=$(jq -c '[.entries[] | {key:.decision_id,value:.}] | from_entries' <<<"$main_json")
+          head_entries=$(jq -c '[.entries[] | {key:.decision_id,value:.}] | from_entries' <<<"$head_json")
+
+          changed=$(jq -cn --argjson main "$main_entries" --argjson head "$head_entries" '[ $main | to_entries[] | . as $entry | select(($head[$entry.key] // null) != $entry.value) | $entry.key ] | sort')
+          missing=$(jq -cn --argjson main "$main_entries" --argjson head "$head_entries" '[ $main | keys[] as $key | select(($head | has($key)) | not) | $key ] | sort')
+          extra=$(jq -cn --argjson main "$main_entries" --argjson head "$head_entries" '[ $head | keys[] as $key | select(($main | has($key)) | not) | $key ] | sort')
+
+          test "$changed" = '[]'
+          test "$missing" = '[]'
+          test "$extra" = '["DEC-2026-08-12-004"]'
+          echo "APPROVED_DEC004_STRICT_SUPERSET"
