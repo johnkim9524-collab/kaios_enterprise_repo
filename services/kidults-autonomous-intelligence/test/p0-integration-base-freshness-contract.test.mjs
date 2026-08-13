@@ -32,3 +32,17 @@ test('integration drift diagnostic preserves evidence and governance safety clai
   assert.match(workflow, /productionGateWeakened:false/);
   assert.doesNotMatch(workflow, /continue-on-error:\s*true/);
 });
+
+test('integration reconciliation diagnostic keeps exact overlap scope visible without automatic resolution', () => {
+  assert.match(workflow, /integration-reconciliation-diagnostic\.json/);
+  assert.match(workflow, /mainChangedFileCount/);
+  assert.match(workflow, /headChangedFileCount/);
+  assert.match(workflow, /overlapChangedFileCount/);
+  assert.match(workflow, /sensitiveOverlapCount/);
+  assert.match(workflow, /overlapFiles/);
+  assert.match(workflow, /sensitiveOverlapFiles/);
+  assert.match(workflow, /OWNER_LED_CONFLICT_AWARE_RECONCILIATION/);
+  assert.match(workflow, /automaticMergeAttempted:false/);
+  assert.match(workflow, /automaticConflictResolutionAttempted:false/);
+  assert.match(workflow, /governanceSemanticResolutionAttempted:false/);
+});
