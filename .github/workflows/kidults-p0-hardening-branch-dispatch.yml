@@ -59,6 +59,15 @@ jobs:
             exit 1
           fi
 
+          if [ "$behind" -eq 0 ]; then
+            decision_meta=$(gh api --method GET "repos/$REPO/contents/coordination/kidults/registry/decision-registry.json" -f ref="$HEAD_SHA")
+            decision_json=$(jq -r '.content // empty' <<<"$decision_meta" | base64 --decode)
+            if ! jq -e '.entries[]? | select(.decision_id == "DEC-2026-08-12-004" and .status == "approved")' <<<"$decision_json" >/dev/null; then
+              echo "::error::Canonical DEC-2026-08-12-004 approval is missing; P0 dispatch remains fail-closed."
+              exit 1
+            fi
+          fi
+
           if [ "$behind" -ne 0 ]; then
             if main_compare=$(gh api "repos/$REPO/compare/$merge_base_sha...main") && \
                head_compare=$(gh api "repos/$REPO/compare/$merge_base_sha...$HEAD_SHA"); then
