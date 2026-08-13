@@ -16,16 +16,18 @@
   "evidence_lineage_version": "NOT_YET_REGISTERED",
   "portal_contract_version": "v502-rc1",
   "hero": {
-    "id": "hero-mobility-01",
+    "id": "hero-racing-roadster-01",
     "eyebrow": "ICON OF THE MOMENT",
-    "title": "Mobility Sculpture 01",
-    "subtitle": "Vision. Material. Direction.",
+    "title": "Racing Roadster",
+    "subtitle": "Racing heritage. Timeless design. Enduring value.",
     "vertical_id": "vertical-automobiles-mobility",
     "vertical_name": "Automobiles & Mobility",
-    "asset": "assets/hero/mobility-sculpture-v501.webp",
-    "alt": "KIDULTS original white mobility sculpture in a wide ivory studio",
+    "asset": "assets/hero/racing-roadster-v654.webp",
+    "alt": "KIDULTS original deep green racing roadster in a warm ivory studio",
     "rights_label": "KIDULTS ORIGINAL VISUAL\nRIGHTS-GATED",
-    "asset_status": "PUBLIC_PREVIEW_ORIGINAL"
+    "asset_status": "EDITORIAL_APPROVED_CANDIDATE",
+    "rights_status": "REVIEW_REQUIRED",
+    "production_status": "HOLD"
   },
   "display_policy": {
     "core_vertical_count": 8,
@@ -56,5 +58,5 @@
       "path": "object.html?id={object_id}"
     }
   ],
-  "build_at": "2026-08-13T05:15:00+09:00"
+  "build_at": "2026-08-13T20:20:00+09:00"
 }

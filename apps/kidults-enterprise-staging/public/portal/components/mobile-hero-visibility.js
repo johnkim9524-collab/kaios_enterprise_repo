@@ -1,7 +1,7 @@
 const STYLE_ID = "kidults-mobile-hero-visibility-style";
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 const ASSET_VERSION = "654";
-const RETRY_ASSET = "assets/hero/mobility-sculpture-v500.webp";
+const RETRY_ASSET = null;
 
 function ensureStylesheet() {
   const href = `components/mobile-hero-visibility.css?v=${ASSET_VERSION}`;
@@ -25,7 +25,7 @@ function stripQuery(value) {
 
 function fallbackSvgDataUri() {
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="KIDULTS mobility sculpture fallback visual">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="KIDULTS mobility fallback visual">
       <defs>
         <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0" stop-color="#fffefa"/>
@@ -122,9 +122,9 @@ export function startMobileHeroVisibility({ manifest } = {}) {
 
     const source = sources[sourceIndex];
     sourceIndex += 1;
-    pendingState = sourceIndex === 1 ? "ready" : "alternate";
-    card.dataset.assetState = sourceIndex === 1 ? "loading" : "retrying";
-    card.dataset.mobileHeroState = sourceIndex === 1 ? "loading" : "retrying";
+    pendingState = "ready";
+    card.dataset.assetState = "loading";
+    card.dataset.mobileHeroState = "loading";
     image.hidden = false;
     image.removeAttribute("hidden");
     image.src = cacheBusted(source, sourceIndex);
