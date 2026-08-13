@@ -69,7 +69,7 @@ jobs:
         run: |
           start=$(date +%s)
           set +e
-          timeout --signal=TERM --kill-after=10s 240s node scripts/kidult100-poc-live.mjs
+          timeout --signal=TERM --kill-after=10s 240s node scripts/kidult100-poc-live-observed.mjs
           code=$?
           set -e
           end=$(date +%s)
@@ -278,6 +278,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/engineering-hardening/integrated-program-registry-gate-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/wave1-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/stage2-candidate-build-latency-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/stage2-source-progress-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/stage2-precision-recovery-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/wikimedia-demand-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/sre-readiness-latest.json
