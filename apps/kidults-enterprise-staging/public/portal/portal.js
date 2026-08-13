@@ -8,8 +8,8 @@ import { startWorkspace } from "./components/workspace.js";
 import { startIntegrityHardening } from "./components/integrity-hardening.js";
 import { startK100IntegrityReset } from "./components/k100-integrity-reset.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
-import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=654";
-import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=655";
+import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=657";
+import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=657";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -23,7 +23,7 @@ import {
   renderArchive,
   renderReleaseBaseline,
   renderPortalError
-} from "./components/renderers.js?v=654";
+} from "./components/renderers.js?v=657";
 import {
   setupNavigation,
   setupDialogs,
@@ -48,6 +48,7 @@ async function init() {
     const data = await loadPortalData();
 
     renderHero(data.manifest);
+    startAssetBindingHotfix();
     renderRegistryRibbon(data.registry, data.manifest);
     renderSnapshot(data.summary);
     renderOperations(data.summary);
@@ -76,7 +77,6 @@ async function init() {
 
     startMobileReconstruction();
     startMobileHeroVisibility({ manifest: data.manifest });
-    startAssetBindingHotfix();
 
     document.documentElement.dataset.dataState = determineDataState(data);
     window.KIDULTS_V502 = Object.freeze({
