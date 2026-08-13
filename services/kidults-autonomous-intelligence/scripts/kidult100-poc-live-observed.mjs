@@ -5,6 +5,7 @@ const ROOT = process.cwd();
 const DIAGNOSTIC_DIR = path.join(ROOT, 'reports', 'engineering-hardening');
 const PROGRESS_PATH = path.join(DIAGNOSTIC_DIR, 'stage2-source-progress-latest.json');
 const TEMP_PROGRESS_PATH = `${PROGRESS_PATH}.tmp`;
+const SLOW_REQUEST_LIMIT = 5;
 const stageStartedAt = Date.now();
 const originalFetch = globalThis.fetch;
 
@@ -18,6 +19,7 @@ let requestSequence = 0;
 let completedRequests = 0;
 let failedRequests = 0;
 const sourceRuntime = {};
+const slowRequests = [];
 
 function classifySource(url) {
   try {
@@ -47,6 +49,14 @@ function cloneRuntime() {
   return Object.fromEntries(Object.entries(sourceRuntime).map(([source, runtime]) => [source, { ...runtime }]));
 }
 
+function recordSlowRequest(request) {
+  slowRequests.push(request);
+  slowRequests.sort((a, b) => b.elapsedMs - a.elapsedMs);
+  if (slowRequests.length > SLOW_REQUEST_LIMIT) {
+    slowRequests.splice(SLOW_REQUEST_LIMIT);
+  }
+}
+
 function writeProgress(phase, current = null) {
   const report = {
     schemaVersion: '1.0.0',
@@ -62,6 +72,7 @@ function writeProgress(phase, current = null) {
     failedRequests,
     current,
     sourceRuntime: cloneRuntime(),
+    slowestRequests: slowRequests.map((request) => ({ ...request })),
   };
 
   fs.writeFileSync(TEMP_PROGRESS_PATH, `${JSON.stringify(report, null, 2)}\n`);
@@ -107,6 +118,14 @@ globalThis.fetch = async (input, init) => {
     sourceRuntime[source].elapsedMs += elapsedMs;
     sourceRuntime[source].maxAttemptMs = Math.max(sourceRuntime[source].maxAttemptMs, elapsedMs);
     sourceRuntime[source].lastHttpStatus = response.status;
+    recordSlowRequest({
+      sequence,
+      source,
+      query,
+      elapsedMs,
+      httpStatus: response.status,
+      outcome: 'COMPLETED',
+    });
     writeProgress('REQUEST_COMPLETED', {
       sequence,
       source,
@@ -121,12 +140,21 @@ globalThis.fetch = async (input, init) => {
     sourceRuntime[source].failed += 1;
     sourceRuntime[source].elapsedMs += elapsedMs;
     sourceRuntime[source].maxAttemptMs = Math.max(sourceRuntime[source].maxAttemptMs, elapsedMs);
+    const errorName = error instanceof Error ? error.name : 'NON_ERROR_THROWN';
+    recordSlowRequest({
+      sequence,
+      source,
+      query,
+      elapsedMs,
+      errorName,
+      outcome: 'FAILED',
+    });
     writeProgress('REQUEST_FAILED', {
       sequence,
       source,
       query,
       elapsedMs,
-      errorName: error instanceof Error ? error.name : 'NON_ERROR_THROWN',
+      errorName,
     });
     throw error;
   }
