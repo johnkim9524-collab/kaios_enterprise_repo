@@ -17,6 +17,51 @@ jobs:
   dispatch-p0:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify integration base freshness before P0 dispatch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          compare_json=$(gh api "repos/$REPO/compare/main...$HEAD_SHA")
+          status=$(jq -r '.status // "unknown"' <<<"$compare_json")
+          ahead=$(jq -r '.ahead_by // -1' <<<"$compare_json")
+          behind=$(jq -r '.behind_by // -1' <<<"$compare_json")
+          main_sha=$(jq -r '.base_commit.sha // "unknown"' <<<"$compare_json")
+          merge_base_sha=$(jq -r '.merge_base_commit.sha // "unknown"' <<<"$compare_json")
+
+          jq -n \
+            --arg stage "P0_HARDENING_INTEGRATION_BASE_FRESHNESS" \
+            --arg status "$status" \
+            --arg headSha "$HEAD_SHA" \
+            --arg mainSha "$main_sha" \
+            --arg mergeBaseSha "$merge_base_sha" \
+            --argjson aheadBy "$ahead" \
+            --argjson behindBy "$behind" \
+            --argjson fresh "$([ "$behind" = "0" ] && printf true || printf false)" \
+            '{stage:$stage,status:$status,headSha:$headSha,mainSha:$mainSha,mergeBaseSha:$mergeBaseSha,aheadBy:$aheadBy,behindBy:$behindBy,integrationBaseFresh:$fresh,partialEvidenceAccepted:false,evidenceSemanticsModified:false,rightsProvenanceModified:false,productionGateWeakened:false}' \
+            > integration-base-drift.json
+
+          echo "Integration base: status=$status ahead=$ahead behind=$behind main=$main_sha merge_base=$merge_base_sha"
+          if [ "$behind" -lt 0 ]; then
+            echo "::error::Unable to determine integration-base freshness; P0 dispatch remains fail-closed."
+            exit 1
+          fi
+          if [ "$behind" -ne 0 ]; then
+            echo "::error::hardening/p0-speed-quality is $behind commits behind main; synchronize the branch before dispatching another production-readiness P0 run."
+            exit 1
+          fi
+
+      - name: Upload integration-base drift diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-p0-integration-base-drift
+          path: integration-base-drift.json
+          retention-days: 30
+          if-no-files-found: error
+
       - name: Dispatch existing P0 workflow on hardening branch
         env:
           GH_TOKEN: ${{ github.token }}
