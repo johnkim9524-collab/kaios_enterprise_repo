@@ -1,0 +1,77 @@
+name: KIDULTS P0 Reconciliation Readiness
+
+on:
+  push:
+    branches:
+      - hardening/p0-speed-quality
+    paths:
+      - 'coordination/kidults/registry/decision-registry.json'
+      - '.github/workflows/kidults-p0-reconciliation-readiness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-decision-registry-relation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate approved DEC-004 strict-superset relation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          main_meta=$(gh api --method GET "repos/$REPO/contents/coordination/kidults/registry/decision-registry.json" -f ref=main)
+          head_meta=$(gh api --method GET "repos/$REPO/contents/coordination/kidults/registry/decision-registry.json" -f ref="$HEAD_SHA")
+          main_json=$(jq -r '.content // empty' <<<"$main_meta" | base64 --decode)
+          head_json=$(jq -r '.content // empty' <<<"$head_meta" | base64 --decode)
+
+          jq -e '.entries | type == "array"' <<<"$main_json" >/dev/null
+          jq -e '.entries | type == "array"' <<<"$head_json" >/dev/null
+
+          if ! jq -e '.entries[]? | select(.decision_id == "DEC-2026-08-12-004" and .status == "approved")' <<<"$head_json" >/dev/null; then
+            echo "::error::Approved DEC-2026-08-12-004 is missing from the hardening branch."
+            exit 1
+          fi
+
+          main_entries=$(jq -c '[.entries[] | {key:.decision_id,value:.}] | from_entries' <<<"$main_json")
+          head_entries=$(jq -c '[.entries[] | {key:.decision_id,value:.}] | from_entries' <<<"$head_json")
+
+          changed_main_ids=$(jq -cn --argjson main "$main_entries" --argjson head "$head_entries" '
+            [$main | to_entries[] | select(($head[.key] // null) != .value) | .key] | sort')
+          missing_main_ids=$(jq -cn --argjson main "$main_entries" --argjson head "$head_entries" '
+            [$main | keys[] | select(($head | has(.)) | not)] | sort')
+          extra_head_ids=$(jq -cn --argjson main "$main_entries" --argjson head "$head_entries" '
+            [$head | keys[] | select(($main | has(.)) | not)] | sort')
+
+          if [ "$(jq 'length' <<<"$changed_main_ids")" -ne 0 ] || [ "$(jq 'length' <<<"$missing_main_ids")" -ne 0 ]; then
+            echo "::error::Main decision semantics are not preserved byte-for-byte at the JSON-object level."
+            exit 1
+          fi
+
+          if [ "$extra_head_ids" != '["DEC-2026-08-12-004"]' ]; then
+            echo "::error::Hardening decision registry is not the approved one-decision strict superset of main."
+            exit 1
+          fi
+
+          jq -n \
+            --arg stage "P0_RECONCILIATION_DECISION_REGISTRY_RELATION" \
+            --arg status "APPROVED_DEC004_STRICT_SUPERSET" \
+            --arg headSha "$HEAD_SHA" \
+            --argjson changedMainDecisionIds "$changed_main_ids" \
+            --argjson missingMainDecisionIds "$missing_main_ids" \
+            --argjson extraHeadDecisionIds "$extra_head_ids" \
+            '{stage:$stage,status:$status,headSha:$headSha,changedMainDecisionIds:$changedMainDecisionIds,missingMainDecisionIds:$missingMainDecisionIds,extraHeadDecisionIds:$extraHeadDecisionIds,automaticMergeAttempted:false,automaticConflictResolutionAttempted:false,governanceSemanticResolutionAttempted:false,partialEvidenceAccepted:false,evidenceSemanticsModified:false,rightsProvenanceModified:false,productionGateWeakened:false}' \
+            > reconciliation-decision-registry-relation.json
+
+          echo "Decision registry relation: APPROVED_DEC004_STRICT_SUPERSET"
+
+      - name: Upload reconciliation readiness diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-p0-reconciliation-readiness
+          path: reconciliation-decision-registry-relation.json
+          retention-days: 30
+          if-no-files-found: error
