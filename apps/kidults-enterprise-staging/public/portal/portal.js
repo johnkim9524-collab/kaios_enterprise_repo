@@ -1,15 +1,15 @@
 import { loadPortalData } from "./components/data-store.js";
 import { startLivingPulse } from "./components/living-pulse.js";
 import { startWhyEngine } from "./components/why-engine.js";
-import { startCopilot } from "./components/copilot.js";
+import { startCopilotEngine } from "./components/copilot.js";
 import { startCompareEngine } from "./components/compare-engine.js";
 import { startDecisionEngine } from "./components/decision-engine.js";
 import { startWorkspace } from "./components/workspace.js";
 import { startIntegrityHardening } from "./components/integrity-hardening.js";
 import { startK100IntegrityReset } from "./components/k100-integrity-reset.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
-import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=654";
-import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=655";
+import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=657";
+import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=657";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -61,7 +61,7 @@ async function init() {
 
     startLivingPulse({ data, reload: loadPortalData, contract: data.pulse });
     startWhyEngine({ data, contract: data.why });
-    startCopilot({ data, contract: data.copilot });
+    startCopilotEngine({ data, contract: data.copilot });
     startCompareEngine({ data, contract: data.compare });
     startDecisionEngine({ data, contract: data.decision });
     startWorkspace({ data, contract: data.workspace });
@@ -75,8 +75,8 @@ async function init() {
     setupReveal();
 
     startMobileReconstruction();
-    startMobileHeroVisibility({ manifest: data.manifest });
     startAssetBindingHotfix();
+    startMobileHeroVisibility({ manifest: data.manifest });
 
     document.documentElement.dataset.dataState = determineDataState(data);
     window.KIDULTS_V502 = Object.freeze({
