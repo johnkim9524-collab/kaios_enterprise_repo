@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "policy": "FAIL_CLOSED_STAGE2_ARCHIVE_PRECISION_HARDENING",
   "requiredInputMode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "targetSourceClass": "INSTITUTION_ARCHIVE",
@@ -32,6 +32,7 @@
     "absoluteMediaDescriptionAlwaysRejected": true,
     "contextualNegativeRequiresMatchingProductDescription": true,
     "partialMultiTokenQueryInsufficientWithoutProductContext": true,
+    "distinctiveQueryAnchorsRequiredForDescriptionProductRetain": true,
     "modelSpecificExactTitleMayPassWithoutDescriptionProductTerm": true,
     "preserveRightsAndProvenance": true,
     "rewriteGeneratedPocReportOnly": true
