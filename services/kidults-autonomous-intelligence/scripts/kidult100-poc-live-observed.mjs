@@ -6,6 +6,7 @@ const DIAGNOSTIC_DIR = path.join(ROOT, 'reports', 'engineering-hardening');
 const PROGRESS_PATH = path.join(DIAGNOSTIC_DIR, 'stage2-source-progress-latest.json');
 const TEMP_PROGRESS_PATH = `${PROGRESS_PATH}.tmp`;
 const SLOW_REQUEST_LIMIT = 5;
+const RETRY_GAP_LIMIT = 5;
 const stageStartedAt = Date.now();
 const originalFetch = globalThis.fetch;
 
@@ -20,6 +21,8 @@ let completedRequests = 0;
 let failedRequests = 0;
 const sourceRuntime = {};
 const slowRequests = [];
+const wikidataRetryGaps = [];
+let lastCompletedRequest = null;
 
 function classifySource(url) {
   try {
@@ -57,9 +60,17 @@ function recordSlowRequest(request) {
   }
 }
 
+function recordWikidataRetryGap(gap) {
+  wikidataRetryGaps.push(gap);
+  wikidataRetryGaps.sort((a, b) => b.gapMs - a.gapMs);
+  if (wikidataRetryGaps.length > RETRY_GAP_LIMIT) {
+    wikidataRetryGaps.splice(RETRY_GAP_LIMIT);
+  }
+}
+
 function writeProgress(phase, current = null) {
   const report = {
-    schemaVersion: '1.0.0',
+    schemaVersion: '1.1.0',
     stage: 'STAGE2_NORMALIZED_CANDIDATE_UNIVERSE_BUILD',
     generatedAt: new Date().toISOString(),
     elapsedMs: Date.now() - stageStartedAt,
@@ -73,6 +84,13 @@ function writeProgress(phase, current = null) {
     current,
     sourceRuntime: cloneRuntime(),
     slowestRequests: slowRequests.map((request) => ({ ...request })),
+    wikidataRetryGapObservation: {
+      observationalOnly: true,
+      productionInput: false,
+      autoOptimizationAllowed: false,
+      interpretation: 'A consecutive same-query Wikidata raw fetch is treated as an observed retry. gapMs measures time between the prior raw fetch completion and retry start; it may include server-driven backpressure plus minimal local orchestration and is not production evidence.',
+      events: wikidataRetryGaps.map((gap) => ({ ...gap })),
+    },
   };
 
   fs.writeFileSync(TEMP_PROGRESS_PATH, `${JSON.stringify(report, null, 2)}\n`);
@@ -91,6 +109,20 @@ globalThis.fetch = async (input, init) => {
   const query = extractQuery(url);
   const sequence = ++requestSequence;
   const startedAt = Date.now();
+
+  if (
+    source === 'wikidata'
+    && lastCompletedRequest?.source === 'wikidata'
+    && lastCompletedRequest.query === query
+  ) {
+    recordWikidataRetryGap({
+      previousSequence: lastCompletedRequest.sequence,
+      sequence,
+      source,
+      query,
+      gapMs: Math.max(0, startedAt - lastCompletedRequest.completedAt),
+    });
+  }
 
   if (!sourceRuntime[source]) {
     sourceRuntime[source] = {
@@ -112,7 +144,8 @@ globalThis.fetch = async (input, init) => {
 
   try {
     const response = await originalFetch(input, init);
-    const elapsedMs = Date.now() - startedAt;
+    const completedAt = Date.now();
+    const elapsedMs = completedAt - startedAt;
     completedRequests += 1;
     sourceRuntime[source].completed += 1;
     sourceRuntime[source].elapsedMs += elapsedMs;
@@ -126,6 +159,13 @@ globalThis.fetch = async (input, init) => {
       httpStatus: response.status,
       outcome: 'COMPLETED',
     });
+    lastCompletedRequest = {
+      sequence,
+      source,
+      query,
+      completedAt,
+      httpStatus: response.status,
+    };
     writeProgress('REQUEST_COMPLETED', {
       sequence,
       source,
@@ -135,7 +175,8 @@ globalThis.fetch = async (input, init) => {
     });
     return response;
   } catch (error) {
-    const elapsedMs = Date.now() - startedAt;
+    const completedAt = Date.now();
+    const elapsedMs = completedAt - startedAt;
     failedRequests += 1;
     sourceRuntime[source].failed += 1;
     sourceRuntime[source].elapsedMs += elapsedMs;
@@ -149,6 +190,13 @@ globalThis.fetch = async (input, init) => {
       errorName,
       outcome: 'FAILED',
     });
+    lastCompletedRequest = {
+      sequence,
+      source,
+      query,
+      completedAt,
+      errorName,
+    };
     writeProgress('REQUEST_FAILED', {
       sequence,
       source,
