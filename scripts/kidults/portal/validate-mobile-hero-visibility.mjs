@@ -26,7 +26,7 @@ const workflow = read(workflowPath);
 
 for (const marker of [
   "startMobileHeroVisibility",
-  "mobility-sculpture-v500.webp",
+  "const RETRY_ASSET = null",
   "fallbackSvgDataUri",
   "fetchPriority = \"high\"",
   "image.hidden = false",
@@ -46,6 +46,9 @@ for (const marker of [
   "aspect-ratio:4/3",
   "object-fit:cover!important",
   "object-position:58% 76%!important",
+  'src*="racing-roadster-v654"',
+  "object-fit:contain!important",
+  "object-position:center bottom!important",
   "data-asset-state=fallback",
   "@media(max-width:360px)"
 ]) {
@@ -94,4 +97,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS Mobile Hero Visibility validation: PASS (primary, retry asset and inline SVG fallback)");
+console.log("KIDULTS Mobile Hero Visibility validation: PASS (Roadster primary, responsive contain framing, neutral inline SVG fallback)");
