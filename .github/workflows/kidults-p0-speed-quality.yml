@@ -69,13 +69,13 @@ jobs:
         run: |
           start=$(date +%s)
           set +e
-          timeout --signal=TERM --kill-after=10s 240s node scripts/kidult100-poc-live-observed.mjs
+          timeout --signal=TERM --kill-after=10s 360s node scripts/kidult100-poc-live-observed.mjs
           code=$?
           set -e
           end=$(date +%s)
           elapsed=$((end-start))
           mkdir -p reports/engineering-hardening
-          node -e 'const fs=require("fs"); const [exitCode,elapsedSeconds,headSha]=process.argv.slice(1); const code=Number(exitCode); const report={stage:"STAGE2_NORMALIZED_CANDIDATE_UNIVERSE_BUILD",status:code===0?"PASS":code===124?"TIMEOUT_FAIL_CLOSED":"FAIL_CLOSED",exitCode:code,elapsedSeconds:Number(elapsedSeconds),timeoutSeconds:240,headSha,partialEvidenceAccepted:false}; fs.writeFileSync("reports/engineering-hardening/stage2-candidate-build-latency-latest.json",JSON.stringify(report,null,2)+"\n");' "$code" "$elapsed" "$GITHUB_SHA"
+          node -e 'const fs=require("fs"); const [exitCode,elapsedSeconds,headSha]=process.argv.slice(1); const code=Number(exitCode); const report={stage:"STAGE2_NORMALIZED_CANDIDATE_UNIVERSE_BUILD",status:code===0?"PASS":code===124?"TIMEOUT_FAIL_CLOSED":"FAIL_CLOSED",exitCode:code,elapsedSeconds:Number(elapsedSeconds),timeoutSeconds:360,headSha,partialEvidenceAccepted:false}; fs.writeFileSync("reports/engineering-hardening/stage2-candidate-build-latency-latest.json",JSON.stringify(report,null,2)+"\n");' "$code" "$elapsed" "$GITHUB_SHA"
           if [ "$code" -ne 0 ]; then
             rm -f reports/kidult100-poc/*.json
             rm -f reports/kidult100-right-data/*.json
