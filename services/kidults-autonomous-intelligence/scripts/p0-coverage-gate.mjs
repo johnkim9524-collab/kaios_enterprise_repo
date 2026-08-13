@@ -81,11 +81,12 @@ if (result.status !== 0) {
       fields: line.replace(/^#\s*/, '').split('|').map((field) => field.trim()),
     }))
     .filter(({ fields }) => fields.length >= 4 && fields[0]);
+  const parseCoverageMetric = (value) => value?.trim() ? Number(value) : Number.NaN;
   const totalRow = parsedRows.find(({ fields }) => /^all files$/i.test(fields[0]));
   const totalMetrics = totalRow ? {
-    lines: Number(totalRow.fields[1]),
-    branches: Number(totalRow.fields[2]),
-    functions: Number(totalRow.fields[3]),
+    lines: parseCoverageMetric(totalRow.fields[1]),
+    branches: parseCoverageMetric(totalRow.fields[2]),
+    functions: parseCoverageMetric(totalRow.fields[3]),
   } : null;
   const failedDimensions = {
     lines: Number.isFinite(totalMetrics?.lines) && totalMetrics.lines < thresholds.lines,
@@ -97,24 +98,27 @@ if (result.status !== 0) {
     branches: Number.isFinite(totalMetrics?.branches) && totalMetrics.branches === thresholds.branches,
     functions: Number.isFinite(totalMetrics?.functions) && totalMetrics.functions === thresholds.functions,
   };
-  const coverageRows = parsedRows.filter(({ fields }) => !/^(file|all files)$/i.test(fields[0]));
+  const coverageRows = parsedRows.filter(({ fields }) => {
+    if (/^(file|all files)$/i.test(fields[0])) return false;
+    return [fields[1], fields[2], fields[3]].some((value) => Number.isFinite(parseCoverageMetric(value)));
+  });
   const failingRows = coverageRows.filter(({ fields }) => {
-    const linePct = Number(fields[1]);
-    const branchPct = Number(fields[2]);
-    const functionPct = Number(fields[3]);
+    const linePct = parseCoverageMetric(fields[1]);
+    const branchPct = parseCoverageMetric(fields[2]);
+    const functionPct = parseCoverageMetric(fields[3]);
     return (failedDimensions.lines && Number.isFinite(linePct) && linePct < thresholds.lines)
       || (failedDimensions.branches && Number.isFinite(branchPct) && branchPct < thresholds.branches)
       || (failedDimensions.functions && Number.isFinite(functionPct) && functionPct < thresholds.functions);
   });
   const roundedThresholdSuspects = coverageRows.filter(({ fields }) => {
-    const linePct = Number(fields[1]);
-    const branchPct = Number(fields[2]);
-    const functionPct = Number(fields[3]);
+    const linePct = parseCoverageMetric(fields[1]);
+    const branchPct = parseCoverageMetric(fields[2]);
+    const functionPct = parseCoverageMetric(fields[3]);
     const uncoveredLineDetail = fields.slice(4).join(' | ');
     return (displayedAtThreshold.lines && Number.isFinite(linePct) && linePct < thresholds.lines)
       || (displayedAtThreshold.branches && Number.isFinite(branchPct) && branchPct < thresholds.branches)
       || (displayedAtThreshold.functions && Number.isFinite(functionPct) && functionPct < thresholds.functions)
-      || (displayedAtThreshold.lines && /\d/.test(uncoveredLineDetail));
+      || (displayedAtThreshold.lines && Number.isFinite(linePct) && /\d/.test(uncoveredLineDetail));
   });
   const diagnosticRows = failingRows.length > 0 ? failingRows : roundedThresholdSuspects;
   const totalLine = totalRow?.raw || diagnosticLines.find((line) => /all files/i.test(line));
