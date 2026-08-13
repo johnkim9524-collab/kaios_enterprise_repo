@@ -42,3 +42,50 @@ jobs:
           test "$missing" = '[]'
           test "$extra" = '["DEC-2026-08-12-004"]'
           echo "APPROVED_DEC004_STRICT_SUPERSET"
+
+      - name: Prove reconciliation candidate has zero divergent overlap
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+          CANDIDATE_REF: reconcile-p0-dec004
+          DECISION_PATH: coordination/kidults/registry/decision-registry.json
+        run: |
+          set -euo pipefail
+
+          main_sha=$(gh api "repos/$REPO/branches/main" --jq '.commit.sha')
+          candidate_sha=$(gh api "repos/$REPO/branches/$CANDIDATE_REF" --jq '.commit.sha')
+          head_compare=$(gh api "repos/$REPO/compare/$main_sha...$HEAD_SHA")
+          merge_base=$(jq -r '.merge_base_commit.sha' <<<"$head_compare")
+
+          # Candidate must be current main plus exactly one governance-preservation commit.
+          candidate_delta=$(gh api "repos/$REPO/compare/$main_sha...$candidate_sha")
+          test "$(jq -r '.behind_by' <<<"$candidate_delta")" = "0"
+          test "$(jq -r '.ahead_by' <<<"$candidate_delta")" = "1"
+          candidate_delta_files=$(jq -c '[.files[].filename] | sort' <<<"$candidate_delta")
+          test "$candidate_delta_files" = "[\"$DECISION_PATH\"]"
+
+          # The candidate's governance file must be byte-identical to hardening.
+          head_decision_sha=$(gh api --method GET "repos/$REPO/contents/$DECISION_PATH" -f ref="$HEAD_SHA" --jq '.sha')
+          candidate_decision_sha=$(gh api --method GET "repos/$REPO/contents/$DECISION_PATH" -f ref="$candidate_sha" --jq '.sha')
+          test "$head_decision_sha" = "$candidate_decision_sha"
+
+          # All paths changed on both sides of the merge base must now be byte-identical.
+          head_from_base=$(gh api "repos/$REPO/compare/$merge_base...$HEAD_SHA")
+          candidate_from_base=$(gh api "repos/$REPO/compare/$merge_base...$candidate_sha")
+          mapfile -t overlap < <(comm -12 \
+            <(jq -r '.files[].filename' <<<"$head_from_base" | sort -u) \
+            <(jq -r '.files[].filename' <<<"$candidate_from_base" | sort -u))
+
+          divergent=0
+          for path in "${overlap[@]}"; do
+            head_sha=$(gh api --method GET "repos/$REPO/contents/$path" -f ref="$HEAD_SHA" --jq '.sha')
+            candidate_path_sha=$(gh api --method GET "repos/$REPO/contents/$path" -f ref="$candidate_sha" --jq '.sha')
+            if [ "$head_sha" != "$candidate_path_sha" ]; then
+              echo "DIVERGENT_OVERLAP $path head=$head_sha candidate=$candidate_path_sha" >&2
+              divergent=$((divergent + 1))
+            fi
+          done
+
+          test "$divergent" -eq 0
+          echo "RECONCILIATION_CANDIDATE_ZERO_DIVERGENT_OVERLAP overlap=${#overlap[@]} main=$main_sha candidate=$candidate_sha"
