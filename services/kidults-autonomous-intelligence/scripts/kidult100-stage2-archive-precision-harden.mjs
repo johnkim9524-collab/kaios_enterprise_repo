@@ -61,6 +61,7 @@ function validatePolicy(policy) {
     'absoluteMediaDescriptionAlwaysRejected',
     'contextualNegativeRequiresMatchingProductDescription',
     'partialMultiTokenQueryInsufficientWithoutProductContext',
+    'distinctiveQueryAnchorsRequiredForDescriptionProductRetain',
     'modelSpecificExactTitleMayPassWithoutDescriptionProductTerm',
     'preserveRightsAndProvenance',
     'rewriteGeneratedPocReportOnly',
@@ -69,35 +70,43 @@ function validatePolicy(policy) {
   for (const [key, value] of Object.entries(policy?.safety || {})) if (value !== false) throw new Error(`Unsafe archive precision safety flag: ${key}`);
 }
 
-function queryDiagnostics(candidate, genericTokens) {
+function queryDiagnostics(candidate, genericTokens, productTerms = []) {
   const query = normalize(candidate.query);
   const title = normalize(candidate.canonicalTitle);
   const description = normalize(candidate.description);
   const creator = normalize(candidate.creator);
   const queryTokens = tokens(query);
   const generic = new Set((genericTokens || []).map(normalize));
+  const productTokens = new Set((productTerms || []).flatMap((term) => tokens(term)));
   const informative = queryTokens.filter((token) => !generic.has(token));
   const anchors = informative.length > 0 ? informative : queryTokens;
+  const distinctiveAnchors = queryTokens.filter((token) => !generic.has(token) && !productTokens.has(token));
   const titleTokens = new Set(tokens(title));
   const descriptionTokens = new Set(tokens(description));
   const creatorTokens = new Set(tokens(creator));
+  const identityTokens = new Set([...titleTokens, ...descriptionTokens]);
   const titleAnchorHits = anchors.filter((token) => titleTokens.has(token));
   const descriptionAnchorHits = anchors.filter((token) => descriptionTokens.has(token));
   const creatorAnchorHits = anchors.filter((token) => creatorTokens.has(token));
+  const distinctiveAnchorHits = distinctiveAnchors.filter((token) => identityTokens.has(token));
   const exactTitleQuery = query.length > 0 && title === query;
   const queryPhraseInTitle = query.length > 0 && includesPhrase(title, query);
   const allAnchorsInTitle = anchors.length > 0 && anchors.every((token) => titleTokens.has(token));
+  const allDistinctiveAnchorsMatched = distinctiveAnchors.length === 0 || distinctiveAnchors.every((token) => identityTokens.has(token));
   const strongTitleMatch = exactTitleQuery || queryPhraseInTitle || allAnchorsInTitle;
   const partialTitleMatch = titleAnchorHits.length > 0 && !strongTitleMatch;
   const creatorOnlyAnchor = creatorAnchorHits.length > 0 && titleAnchorHits.length === 0 && descriptionAnchorHits.length === 0;
   return {
     anchors,
+    distinctiveAnchors,
     titleAnchorHits,
     descriptionAnchorHits,
     creatorAnchorHits,
+    distinctiveAnchorHits,
     exactTitleQuery,
     queryPhraseInTitle,
     allAnchorsInTitle,
+    allDistinctiveAnchorsMatched,
     strongTitleMatch,
     partialTitleMatch,
     creatorOnlyAnchor,
@@ -115,7 +124,7 @@ function evaluateArchiveCandidate(candidate, policy) {
     };
   }
 
-  const query = queryDiagnostics(candidate, policy.genericQueryTokens);
+  const query = queryDiagnostics(candidate, policy.genericQueryTokens, productTerms);
   const titleProductHits = phraseHits(candidate.canonicalTitle, productTerms);
   const descriptionProductHits = phraseHits(candidate.description, productTerms);
   const absoluteMediaHits = phraseHits(candidate.description, policy.absoluteMediaDescriptionTerms);
@@ -134,7 +143,12 @@ function evaluateArchiveCandidate(candidate, policy) {
     passed = false;
     reasons.push('ARCHIVE_CREATOR_ONLY_QUERY_ANCHOR');
   } else if (descriptionProductHits.length > 0) {
-    reasons.push('ARCHIVE_PRODUCT_OBJECT_DESCRIPTION_CONFIRMED');
+    if (query.distinctiveAnchors.length > 0 && !query.allDistinctiveAnchorsMatched) {
+      passed = false;
+      reasons.push('ARCHIVE_DISTINCTIVE_QUERY_ANCHOR_MISMATCH');
+    } else {
+      reasons.push('ARCHIVE_PRODUCT_OBJECT_DESCRIPTION_CONFIRMED');
+    }
   } else if (query.strongTitleMatch && titleProductHits.length > 0) {
     reasons.push('ARCHIVE_PRODUCT_OBJECT_TITLE_CONFIRMED');
   } else if (query.exactTitleQuery && modelSpecific) {
@@ -275,7 +289,8 @@ const hardened = {
     creatorOnlyAnchorAcceptedForArchive: false,
     archiveMediaObjectsAccepted: false,
     archivePartialQueryOnlyAccepted: false,
-    principle: 'Institutional archive metadata must represent the target product object, not an artwork, creator-name homograph, or partial query coincidence.',
+    archiveDistinctiveQueryAnchorsRequiredForDescriptionProductRetain: true,
+    principle: 'Institutional archive metadata must represent the target product object and preserve distinctive query identity, not an artwork, creator-name homograph, generic product-word collision, or partial query coincidence.',
   },
   metrics: {
     ...(report.metrics || {}),
