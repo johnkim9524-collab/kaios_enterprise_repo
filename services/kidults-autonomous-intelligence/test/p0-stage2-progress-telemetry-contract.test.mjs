@@ -18,6 +18,16 @@ test('Stage 2 source progress telemetry is atomic, observational, and never prod
   assert.match(observedRunner, /fs\.renameSync\(TEMP_PROGRESS_PATH, PROGRESS_PATH\)/);
 });
 
+test('Stage 2 slow-request diagnostics stay bounded and observational', () => {
+  assert.match(observedRunner, /SLOW_REQUEST_LIMIT = 5/);
+  assert.match(observedRunner, /slowestRequests:/);
+  assert.match(observedRunner, /slowRequests\.sort\(\(a, b\) => b\.elapsedMs - a\.elapsedMs\)/);
+  assert.match(observedRunner, /slowRequests\.splice\(SLOW_REQUEST_LIMIT\)/);
+  assert.match(observedRunner, /outcome: 'COMPLETED'/);
+  assert.match(observedRunner, /outcome: 'FAILED'/);
+  assert.doesNotMatch(observedRunner, /autoPrune|autoDisable|productionEligible/);
+});
+
 test('Stage 2 observed runner forwards fetch semantics and delegates candidate construction unchanged', () => {
   assert.match(observedRunner, /const response = await originalFetch\(input, init\)/);
   assert.match(observedRunner, /return response/);
