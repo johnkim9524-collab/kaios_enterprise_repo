@@ -220,3 +220,40 @@ test('existing file input and relative output paths exercise filesystem-safe bra
   fs.rmSync(auditPath, { force: true });
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('toys-models rejects zine homographs even when the query and title say doll, while preserving a real doll object', () => {
+  const { result, hardened, audit } = run([
+    row({
+      candidateKey: 'american-girl-zine',
+      vertical: 'toys-models',
+      query: 'American Girl doll',
+      canonicalTitle: 'American Girl Doll Vol. 3',
+      description: 'third volume in a series of trans portrait zines',
+      sourceRecordId: 'Q129841010',
+      sourceUrl: 'https://www.wikidata.org/wiki/Q129841010',
+      payloadHash: 'z'.repeat(64),
+    }),
+    row({
+      candidateKey: 'american-girl-doll',
+      vertical: 'toys-models',
+      query: 'American Girl doll',
+      canonicalTitle: 'American Girl Doll',
+      description: 'fashion doll and collectible toy',
+      sourceRecordId: 'REAL-DOLL',
+      sourceUrl: 'https://www.wikidata.org/wiki/REAL-DOLL',
+      payloadHash: 't'.repeat(64),
+    }),
+  ]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(audit.metrics.referenceRelevantRetained, 1);
+  assert.equal(audit.metrics.referenceFalsePositivesDowngraded, 1);
+  const zine = hardened.candidates.find((candidate) => candidate.candidateKey === 'american-girl-zine');
+  const doll = hardened.candidates.find((candidate) => candidate.candidateKey === 'american-girl-doll');
+  assert.equal(zine.semanticRelevant, false);
+  assert.ok(zine.semanticStageD.reasons.includes('REFERENCE_DISALLOWED_ENTITY_OR_MEDIA_CONTEXT'));
+  assert.ok(zine.semanticStageD.diagnostics.disallowedHits.includes('zines'));
+  assert.equal(zine.rightsClass, 'CC0_STRUCTURED_DATA');
+  assert.equal(zine.sourceRecordId, 'Q129841010');
+  assert.equal(doll.semanticRelevant, true);
+  assert.ok(doll.semanticStageD.reasons.includes('REFERENCE_PRODUCT_DESCRIPTION_CONFIRMED'));
+});
