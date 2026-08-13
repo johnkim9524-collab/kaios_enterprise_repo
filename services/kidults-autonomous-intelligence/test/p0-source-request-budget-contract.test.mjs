@@ -18,7 +18,7 @@ test('Stage 2 external source requests retain bounded fail-closed budgets', () =
   assert.match(source, /if \(attempt < WIKIDATA_MAX_RETRIES\)/);
   assert.match(source, /Math\.min\(10000, 900 \* \(2 \*\* attempt\)\)/);
 
-  assert.match(workflow, /timeout --signal=TERM --kill-after=10s 240s node scripts\/kidult100-poc-live\.mjs/);
+  assert.match(workflow, /timeout --signal=TERM --kill-after=10s 240s node scripts\/kidult100-poc-live-observed\.mjs/);
   assert.match(workflow, /partialEvidenceAccepted:false/);
   assert.doesNotMatch(source, /Promise\.all\(collectors/);
   assert.doesNotMatch(source, /decisionGradeRightDataCertified:\s*true/);
