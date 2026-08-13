@@ -1,7 +1,7 @@
-import roadsterBase64 from "./assets/racing-roadster-v655.js";
+import roadsterBase64 from "./assets/racing-roadster-v655.js?v=657";
 
-const VERSION = "1.1.0";
-const ROADSTER_KEY = "racing-roadster-v655";
+const VERSION = "1.2.0";
+const ROADSTER_KEY = "racing-roadster-v657";
 const ROADSTER_SOURCE = `${["data", "image/webp;base64"].join(":")},${roadsterBase64}`;
 const WATCH_SOURCE = "assets/kidult100/watch-v655.webp?v=655";
 
