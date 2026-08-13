@@ -1,5 +1,5 @@
 {
-  "asset_set_id": "K100-V654-CURRENT-IMPACT-SLICE-02",
+  "asset_set_id": "K100-V655-CURRENT-IMPACT-SLICE-01",
   "track": "C",
   "portal_state": "STAGING_CANDIDATE",
   "snapshot_id": "baseline-provider-independent-v1",
@@ -36,10 +36,10 @@
       "production_status": "HOLD"
     },
     {
-      "asset_id": "asset-k100-time-v501",
+      "asset_id": "asset-k100-watch-v655",
       "display_order": 4,
       "vertical_id": "vertical-watches-jewelry",
-      "file": "assets/kidult100/time-v501.webp",
+      "file": "assets/kidult100/watch-v655.webp",
       "role": "EDITORIAL_INTERPRETATION",
       "rights_status": "REVIEW_REQUIRED",
       "production_status": "HOLD"

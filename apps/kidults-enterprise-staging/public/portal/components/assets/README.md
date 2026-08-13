@@ -1,0 +1,1 @@
+This directory contains runtime-safe embedded editorial asset fragments used only when a binary asset cannot be delivered reliably through the portal release pipeline.
