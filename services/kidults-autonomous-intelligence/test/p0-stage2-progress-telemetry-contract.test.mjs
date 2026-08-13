@@ -28,6 +28,17 @@ test('Stage 2 slow-request diagnostics stay bounded and observational', () => {
   assert.doesNotMatch(observedRunner, /autoPrune|autoDisable|productionEligible/);
 });
 
+test('Stage 2 observes same-query Wikidata retry gaps without changing source behavior', () => {
+  assert.match(observedRunner, /RETRY_GAP_LIMIT = 5/);
+  assert.match(observedRunner, /wikidataRetryGapObservation:/);
+  assert.match(observedRunner, /lastCompletedRequest\.query === query/);
+  assert.match(observedRunner, /gapMs: Math\.max\(0, startedAt - lastCompletedRequest\.completedAt\)/);
+  assert.match(observedRunner, /autoOptimizationAllowed:\s*false/);
+  assert.match(observedRunner, /productionInput:\s*false/);
+  assert.match(observedRunner, /observationalOnly:\s*true/);
+  assert.doesNotMatch(observedRunner, /retryGap[^\n]*(?:blockedSources|semanticRelevant|rightsClass|normalizedScore)/i);
+});
+
 test('Stage 2 observed runner forwards fetch semantics and delegates candidate construction unchanged', () => {
   assert.match(observedRunner, /const response = await originalFetch\(input, init\)/);
   assert.match(observedRunner, /return response/);
