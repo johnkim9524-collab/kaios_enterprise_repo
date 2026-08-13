@@ -7,12 +7,96 @@ const CANDIDATE_PATH = path.join(ROOT, 'reports', 'kidult100-poc', 'kidult100-po
 const OUT_DIR = path.join(ROOT, 'reports', 'kidult100-right-data');
 const OUT_PATH = path.join(OUT_DIR, 'open-evidence-latest.json');
 const CACHE_PATH = path.join(OUT_DIR, 'wikidata-resolution-cache.json');
+const ENGINEERING_DIR = path.join(ROOT, 'reports', 'engineering-hardening');
+const LATENCY_PATH = path.join(ENGINEERING_DIR, 'open-right-data-latency-latest.json');
+const RANKING_DIR = path.join(ROOT, 'reports', 'kidult100-ranking');
+const LIVE_OPEN_DATA_PATH = path.join(ROOT, 'reports', 'live-open-data', 'live-open-data-latest.json');
 const CONTACT_URL = 'https://github.com/johnkim9524-collab/kaios_enterprise_repo';
 const UA = `KIDULTS-Kidult100-Bot/1.3 (${CONTACT_URL}; rights-classified CC0 evidence client)`;
 const MIN_REQUEST_INTERVAL_MS = 650;
 const MAX_RETRIES = 4;
+const STAGE_TIMEOUT_MS = 90_000;
+const STAGE_STARTED_AT = Date.now();
+let stageSettled = false;
+let stageTimer;
+
+function removeFile(filePath) {
+  try {
+    fs.rmSync(filePath, { force: true });
+  } catch {
+    // Cleanup is best-effort; the process still exits fail-closed.
+  }
+}
+
+function purgeDownstreamEvidence() {
+  const rightDataFiles = [
+    'open-evidence-latest.json',
+    'wikimedia-demand-evidence-latest.json',
+    'canon-evidence-latest.json',
+    'market-provider-onboarding-preflight-latest.json',
+    'market-source-qualification-latest.json',
+    'market-no-procurement-qualification-latest.json',
+    'market-capability-gap-router-latest.json',
+    'normalized-market-provider-evidence-latest.json',
+    'validated-provider-evidence-latest.json',
+    'market-evidence-acquisition-plan-latest.json',
+    'scarcity-materialized-evidence-latest.json',
+    'right-data-pre-scarcity-materialization.json',
+    'scarcity-materialization-delta-invariant-latest.json',
+    'right-data-latest.json',
+    'right-data-gap-latest.json',
+    'stage2-certification-latest.json',
+  ];
+  for (const fileName of rightDataFiles) removeFile(path.join(OUT_DIR, fileName));
+
+  try {
+    for (const entry of fs.readdirSync(RANKING_DIR)) {
+      if (entry.endsWith('.json')) removeFile(path.join(RANKING_DIR, entry));
+    }
+  } catch {
+    // Directory may not exist yet in a clean CI checkout.
+  }
+  removeFile(LIVE_OPEN_DATA_PATH);
+}
+
+function writeLatencyDiagnostic(status, exitCode) {
+  fs.mkdirSync(ENGINEERING_DIR, { recursive: true });
+  const elapsedMs = Date.now() - STAGE_STARTED_AT;
+  const diagnostic = {
+    stage: 'OPEN_CC0_SCARCITY_DEMAND_EVIDENCE_COLLECTION',
+    status,
+    exitCode,
+    elapsedMs,
+    elapsedSeconds: Number((elapsedMs / 1000).toFixed(3)),
+    timeoutSeconds: STAGE_TIMEOUT_MS / 1000,
+    partialEvidenceAccepted: false,
+    staleOutputPurgedBeforeRun: true,
+    staleDownstreamPurgedOnFailure: exitCode !== 0,
+  };
+  fs.writeFileSync(LATENCY_PATH, `${JSON.stringify(diagnostic, null, 2)}\n`);
+}
+
+function failClosed(status, exitCode, error) {
+  if (stageSettled) return;
+  stageSettled = true;
+  if (stageTimer) clearTimeout(stageTimer);
+  purgeDownstreamEvidence();
+  writeLatencyDiagnostic(status, exitCode);
+  console.error(`Open Right Data stage ${status}: ${String(error?.message || error || 'unknown failure')}`);
+  process.exit(exitCode);
+}
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
+fs.mkdirSync(ENGINEERING_DIR, { recursive: true });
+removeFile(OUT_PATH);
+stageTimer = setTimeout(
+  () => failClosed('TIMEOUT_FAIL_CLOSED', 124, new Error(`stage exceeded ${STAGE_TIMEOUT_MS}ms hard budget`)),
+  STAGE_TIMEOUT_MS,
+);
+stageTimer.unref();
+process.on('uncaughtException', (error) => failClosed('FAIL_CLOSED', 1, error));
+process.on('unhandledRejection', (error) => failClosed('FAIL_CLOSED', 1, error));
+
 if (!fs.existsSync(CANDIDATE_PATH)) throw new Error(`Missing candidate report: ${CANDIDATE_PATH}`);
 
 const report = JSON.parse(fs.readFileSync(CANDIDATE_PATH, 'utf8'));
@@ -335,7 +419,11 @@ const output = {
 };
 
 fs.writeFileSync(OUT_PATH, JSON.stringify(output, null, 2));
+if (stageTimer) clearTimeout(stageTimer);
+stageSettled = true;
+writeLatencyDiagnostic('PASS', 0);
 console.log(`Open Right Data v1.3: relevant=${relevantCandidates.length} linked=${entityLinks.size} entities=${entityById.size} evidence=${evidence.length}`);
 console.log(`nativeLinks=${nativeLinks} exactTitleLinks=${exactTitleLinks} scarcity=${scarcityCount} demandAttention=${demandCount} errors=${sourceErrors.length}`);
 console.log(`requests=${requestMetrics.httpRequests} retries=${requestMetrics.retries} rateLimits=${requestMetrics.rateLimitResponses} cacheHits=${requestMetrics.cacheHits} cacheMisses=${requestMetrics.cacheMisses}`);
+console.log(`Open Right Data stage latency: ${(Date.now() - STAGE_STARTED_AT) / 1000}s / ${STAGE_TIMEOUT_MS / 1000}s hard budget`);
 console.log('No inferred scarcity, transaction comparable or liquidity evidence was fabricated.');
