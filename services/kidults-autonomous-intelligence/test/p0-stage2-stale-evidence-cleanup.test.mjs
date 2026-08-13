@@ -20,7 +20,7 @@ test('Stage 2 failure purges stale downstream evidence before failing closed', (
     'Stage 2 Wikidata-only precision recovery',
   );
 
-  assert.match(block, /timeout --signal=TERM --kill-after=10s 240s node scripts\/kidult100-poc-live-observed\.mjs/);
+  assert.match(block, /timeout --signal=TERM --kill-after=10s 360s node scripts\/kidult100-poc-live-observed\.mjs/);
   assert.match(block, /partialEvidenceAccepted:false/);
   assert.match(block, /if \[ "\$code" -ne 0 \]; then/);
   assert.match(block, /rm -f reports\/kidult100-poc\/\*\.json/);
