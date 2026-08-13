@@ -49,8 +49,8 @@ test('Stage 2 observed runner forwards fetch semantics and delegates candidate c
   assert.doesNotMatch(observedRunner, /normalizedScore/);
 });
 
-test('P0 retains the 240 second hard fail-closed budget and uploads timeout progress diagnostics', () => {
-  assert.match(workflow, /timeout --signal=TERM --kill-after=10s 240s node scripts\/kidult100-poc-live-observed\.mjs/);
+test('P0 retains the 360 second hard fail-closed budget and uploads timeout progress diagnostics', () => {
+  assert.match(workflow, /timeout --signal=TERM --kill-after=10s 360s node scripts\/kidult100-poc-live-observed\.mjs/);
   assert.match(workflow, /stage2-source-progress-latest\.json/);
   assert.match(workflow, /partialEvidenceAccepted:false/);
   assert.doesNotMatch(workflow, /Stage 2 normalized candidate universe build\n\s+continue-on-error:\s+true/);
