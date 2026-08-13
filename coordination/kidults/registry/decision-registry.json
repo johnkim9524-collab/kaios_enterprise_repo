@@ -1,5 +1,5 @@
 {
-  "registry_version": "1.0.0",
+  "registry_version": "1.1.0",
   "entries": [
     {
       "decision_id": "DEC-2026-08-12-001",
@@ -55,6 +55,29 @@
       "evidence_references": [
         "issue:236",
         "issue:238"
+      ],
+      "books": [
+        "Master Book",
+        "Baseline Book",
+        "Architecture Book"
+      ]
+    },
+    {
+      "decision_id": "DEC-2026-08-12-004",
+      "title": "Preserve canonical Integrated Program Governance during PR #209 conflict resolution",
+      "status": "approved",
+      "owner": "John",
+      "proposed_by": "Atlas",
+      "effective_at": "2026-08-12T17:19:00+09:00",
+      "decision": "Keep the current KIDULTS Integrated Program Registry and approved governance directives, including Track B v1.3 FINAL LOCKED boundaries, as the canonical baseline. Integrate non-conflicting main changes selectively. Do not automatically override Registry or Governance semantics. Escalate any semantic governance conflict before resolution. This approval is a conflict-resolution policy approval and is not approval to merge PR #209.",
+      "reason": "Resolve branch divergence without allowing Git conflict mechanics to redefine program authority, track boundaries, snapshot/assessment contracts, Registry ownership, or Production decision rights.",
+      "evidence_references": [
+        "pr:209",
+        "governance:final-shared-operating-document-v1",
+        "governance:track-b-additional-operating-directive-v1.3",
+        "registry:track-registry",
+        "registry:snapshot-registry",
+        "registry:assessment-registry"
       ],
       "books": [
         "Master Book",
