@@ -43,22 +43,89 @@ jobs:
             '{stage:$stage,status:$status,headSha:$headSha,mainSha:$mainSha,mergeBaseSha:$mergeBaseSha,aheadBy:$aheadBy,behindBy:$behindBy,integrationBaseFresh:$fresh,partialEvidenceAccepted:false,evidenceSemanticsModified:false,rightsProvenanceModified:false,productionGateWeakened:false}' \
             > integration-base-drift.json
 
+          jq -n \
+            --arg stage "P0_HARDENING_INTEGRATION_RECONCILIATION" \
+            --arg status "NOT_REQUIRED_INTEGRATION_BASE_FRESH" \
+            --arg headSha "$HEAD_SHA" \
+            --arg mainSha "$main_sha" \
+            --arg mergeBaseSha "$merge_base_sha" \
+            '{stage:$stage,status:$status,headSha:$headSha,mainSha:$mainSha,mergeBaseSha:$mergeBaseSha,automaticMergeAttempted:false,automaticConflictResolutionAttempted:false,governanceSemanticResolutionAttempted:false,partialEvidenceAccepted:false,evidenceSemanticsModified:false,rightsProvenanceModified:false,productionGateWeakened:false}' \
+            > integration-reconciliation-diagnostic.json
+
           echo "Integration base: status=$status ahead=$ahead behind=$behind main=$main_sha merge_base=$merge_base_sha"
           if [ "$behind" -lt 0 ]; then
             echo "::error::Unable to determine integration-base freshness; P0 dispatch remains fail-closed."
             exit 1
           fi
+
           if [ "$behind" -ne 0 ]; then
+            if main_compare=$(gh api "repos/$REPO/compare/$merge_base_sha...main") && \
+               head_compare=$(gh api "repos/$REPO/compare/$merge_base_sha...$HEAD_SHA"); then
+              main_files=$(jq -c '[.files[]?.filename] | unique' <<<"$main_compare")
+              head_files=$(jq -c '[.files[]?.filename] | unique' <<<"$head_compare")
+              overlap_files=$(jq -cn \
+                --argjson main "$main_files" \
+                --argjson head "$head_files" \
+                '$head | map(select(. as $file | $main | index($file))) | unique')
+              sensitive_overlap=$(jq -cn \
+                --argjson overlap "$overlap_files" \
+                '$overlap | map(select(test("(^|/)(registry|governance|decision|handoff)|track-b|portal|\\.github/workflows"; "i"))) | unique')
+
+              main_file_count=$(jq 'length' <<<"$main_files")
+              head_file_count=$(jq 'length' <<<"$head_files")
+              overlap_count=$(jq 'length' <<<"$overlap_files")
+              sensitive_overlap_count=$(jq 'length' <<<"$sensitive_overlap")
+              main_commit_count=$(jq -r '.ahead_by // -1' <<<"$main_compare")
+              head_commit_count=$(jq -r '.ahead_by // -1' <<<"$head_compare")
+              main_files_possibly_truncated=$([ "$main_file_count" -ge 300 ] && printf true || printf false)
+              head_files_possibly_truncated=$([ "$head_file_count" -ge 300 ] && printf true || printf false)
+
+              jq -n \
+                --arg stage "P0_HARDENING_INTEGRATION_RECONCILIATION" \
+                --arg status "OWNER_RECONCILIATION_REQUIRED" \
+                --arg headSha "$HEAD_SHA" \
+                --arg mainSha "$main_sha" \
+                --arg mergeBaseSha "$merge_base_sha" \
+                --arg nextSafeAction "OWNER_LED_CONFLICT_AWARE_RECONCILIATION" \
+                --arg sensitivePattern '(^|/)(registry|governance|decision|handoff)|track-b|portal|\.github/workflows' \
+                --argjson mainCommitCount "$main_commit_count" \
+                --argjson headCommitCount "$head_commit_count" \
+                --argjson mainChangedFileCount "$main_file_count" \
+                --argjson headChangedFileCount "$head_file_count" \
+                --argjson overlapChangedFileCount "$overlap_count" \
+                --argjson sensitiveOverlapCount "$sensitive_overlap_count" \
+                --argjson mainFileListPossiblyTruncated "$main_files_possibly_truncated" \
+                --argjson headFileListPossiblyTruncated "$head_files_possibly_truncated" \
+                --argjson overlapFiles "$overlap_files" \
+                --argjson sensitiveOverlapFiles "$sensitive_overlap" \
+                '{stage:$stage,status:$status,headSha:$headSha,mainSha:$mainSha,mergeBaseSha:$mergeBaseSha,mainCommitCount:$mainCommitCount,headCommitCount:$headCommitCount,mainChangedFileCount:$mainChangedFileCount,headChangedFileCount:$headChangedFileCount,overlapChangedFileCount:$overlapChangedFileCount,sensitiveOverlapCount:$sensitiveOverlapCount,mainFileListPossiblyTruncated:$mainFileListPossiblyTruncated,headFileListPossiblyTruncated:$headFileListPossiblyTruncated,overlapFiles:$overlapFiles,sensitiveOverlapFiles:$sensitiveOverlapFiles,sensitiveClassificationPattern:$sensitivePattern,nextSafeAction:$nextSafeAction,automaticMergeAttempted:false,automaticConflictResolutionAttempted:false,governanceSemanticResolutionAttempted:false,partialEvidenceAccepted:false,evidenceSemanticsModified:false,rightsProvenanceModified:false,productionGateWeakened:false}' \
+                > integration-reconciliation-diagnostic.json
+
+              echo "Integration reconciliation: main_files=$main_file_count head_files=$head_file_count overlap=$overlap_count sensitive_overlap=$sensitive_overlap_count"
+            else
+              jq -n \
+                --arg stage "P0_HARDENING_INTEGRATION_RECONCILIATION" \
+                --arg status "DIAGNOSTIC_FETCH_FAILED_FAIL_CLOSED" \
+                --arg headSha "$HEAD_SHA" \
+                --arg mainSha "$main_sha" \
+                --arg mergeBaseSha "$merge_base_sha" \
+                '{stage:$stage,status:$status,headSha:$headSha,mainSha:$mainSha,mergeBaseSha:$mergeBaseSha,nextSafeAction:"OWNER_LED_CONFLICT_AWARE_RECONCILIATION",automaticMergeAttempted:false,automaticConflictResolutionAttempted:false,governanceSemanticResolutionAttempted:false,partialEvidenceAccepted:false,evidenceSemanticsModified:false,rightsProvenanceModified:false,productionGateWeakened:false}' \
+                > integration-reconciliation-diagnostic.json
+              echo "::warning::Unable to build complete integration reconciliation diagnostic; P0 dispatch still remains fail-closed."
+            fi
+
             echo "::error::hardening/p0-speed-quality is $behind commits behind main; synchronize the branch before dispatching another production-readiness P0 run."
             exit 1
           fi
 
-      - name: Upload integration-base drift diagnostic
+      - name: Upload integration-base diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kidults-p0-integration-base-drift
-          path: integration-base-drift.json
+          name: kidults-p0-integration-base-diagnostics
+          path: |
+            integration-base-drift.json
+            integration-reconciliation-diagnostic.json
           retention-days: 30
           if-no-files-found: error
 
