@@ -92,6 +92,11 @@ if (result.status !== 0) {
     branches: Number.isFinite(totalMetrics?.branches) && totalMetrics.branches < thresholds.branches,
     functions: Number.isFinite(totalMetrics?.functions) && totalMetrics.functions < thresholds.functions,
   };
+  const displayedAtThreshold = {
+    lines: Number.isFinite(totalMetrics?.lines) && totalMetrics.lines === thresholds.lines,
+    branches: Number.isFinite(totalMetrics?.branches) && totalMetrics.branches === thresholds.branches,
+    functions: Number.isFinite(totalMetrics?.functions) && totalMetrics.functions === thresholds.functions,
+  };
   const coverageRows = parsedRows.filter(({ fields }) => !/^(file|all files)$/i.test(fields[0]));
   const failingRows = coverageRows.filter(({ fields }) => {
     const linePct = Number(fields[1]);
@@ -101,11 +106,22 @@ if (result.status !== 0) {
       || (failedDimensions.branches && Number.isFinite(branchPct) && branchPct < thresholds.branches)
       || (failedDimensions.functions && Number.isFinite(functionPct) && functionPct < thresholds.functions);
   });
+  const roundedThresholdSuspects = coverageRows.filter(({ fields }) => {
+    const linePct = Number(fields[1]);
+    const branchPct = Number(fields[2]);
+    const functionPct = Number(fields[3]);
+    const uncoveredLineDetail = fields.slice(4).join(' | ');
+    return (displayedAtThreshold.lines && Number.isFinite(linePct) && linePct < thresholds.lines)
+      || (displayedAtThreshold.branches && Number.isFinite(branchPct) && branchPct < thresholds.branches)
+      || (displayedAtThreshold.functions && Number.isFinite(functionPct) && functionPct < thresholds.functions)
+      || (displayedAtThreshold.lines && /\d/.test(uncoveredLineDetail));
+  });
+  const diagnosticRows = failingRows.length > 0 ? failingRows : roundedThresholdSuspects;
   const totalLine = totalRow?.raw || diagnosticLines.find((line) => /all files/i.test(line));
   const fallbackLine = diagnosticLines.find((line) => /coverage/i.test(line) && /fail|threshold|does not meet/i.test(line))
     || diagnosticLines.slice(-1)[0]
     || `test runner exited with status ${result.status}`;
-  const coverageDetail = [totalLine, ...failingRows.slice(0, 12).map(({ raw }) => raw)]
+  const coverageDetail = [totalLine, ...diagnosticRows.slice(0, 12).map(({ raw }) => raw)]
     .filter(Boolean)
     .join(' || ')
     || fallbackLine;
