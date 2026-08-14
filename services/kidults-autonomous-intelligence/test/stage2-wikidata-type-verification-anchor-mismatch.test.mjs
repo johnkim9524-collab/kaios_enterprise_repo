@@ -85,6 +85,10 @@ test('query-anchor mismatch cannot be requalified by product context or direct P
       candidateKey: 'wikidata:Q104', sourceRecordId: 'Q104', canonicalTitle: 'Verified Car Model', payloadHash: 'e'.repeat(64),
       semanticStageD: { passed: false, reasons: ['REFERENCE_PRODUCT_OBJECT_CONTEXT_MISSING'], diagnostics: { allAnchorsMatched: true } },
     }),
+    candidate({
+      candidateKey: 'wikidata:Q105', sourceRecordId: 'Q105', canonicalTitle: 'Disabled Sentinel Probe', payloadHash: 'f'.repeat(64),
+      semanticStageD: { passed: false, reasons: ['REFERENCE_QUERY_ANCHOR_MISMATCH__REQUALIFICATION_DISABLED'], diagnostics: { genericQuery: false, allAnchorsMatched: false, productTitleHits: [], productDescriptionHits: [] } },
+    }),
   ];
   const fixture = {
     Q100: entity(['Q900']), Q900: type('car model', 'automobile product model'),
@@ -108,6 +112,8 @@ test('query-anchor mismatch cannot be requalified by product context or direct P
   assert.equal(output.candidates[3].semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_DISALLOWED_TYPE');
   assert.equal(output.candidates[4].semanticRelevant, true);
   assert.equal(output.candidates[4].semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_PRODUCT_TYPE_CONFIRMED');
+  assert.equal(output.candidates[5].semanticRelevant, false);
+  assert.equal(output.candidates[5].semanticStageE.disposition, 'NOT_ELIGIBLE_FOR_SOURCE_NATIVE_REQUALIFICATION');
   assert.equal(audit.metrics.recoveredCandidates, 1);
   assert.equal(audit.safety.rightsClassificationRelaxed, false);
   assert.equal(audit.safety.provenanceRelaxed, false);
