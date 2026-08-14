@@ -1,0 +1,4 @@
+KIDULTS Portal V658 final visual freeze
+Hero desktop: racing-roadster-v658-desktop.webp
+Hero mobile: racing-roadster-v658-mobile.webp
+K100: unified museum-editorial 4:3 full-bleed format
