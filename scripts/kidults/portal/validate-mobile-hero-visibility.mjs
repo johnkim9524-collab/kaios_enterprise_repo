@@ -16,11 +16,15 @@ function read(relative) {
 
 const runtimePath = "apps/kidults-enterprise-staging/public/portal/components/mobile-hero-visibility.js";
 const cssPath = "apps/kidults-enterprise-staging/public/portal/components/mobile-hero-visibility.css";
+const visualFreezePath = "apps/kidults-enterprise-staging/public/portal/components/v657-visual-freeze.css";
+const editorialPath = "apps/kidults-enterprise-staging/public/portal/components/editorial-assets.js";
 const portalPath = "apps/kidults-enterprise-staging/public/portal/portal.js";
 const workflowPath = ".github/workflows/kidults-portal-v502-validate.yml";
 
 const runtime = read(runtimePath);
 const css = read(cssPath);
+const visualFreeze = read(visualFreezePath);
+const editorial = read(editorialPath);
 const portal = read(portalPath);
 const workflow = read(workflowPath);
 
@@ -33,8 +37,9 @@ for (const marker of [
   "image.removeAttribute(\"hidden\")",
   "card.dataset.mobileHeroState",
   "hero_attempt",
+  "preferredSource",
   "KIDULTS_MOBILE_HERO",
-  "ASSET_VERSION = \"654\""
+  "ASSET_VERSION = \"657\""
 ]) {
   if (!runtime.includes(marker)) errors.push(`Hero visibility runtime missing marker: ${marker}`);
 }
@@ -44,9 +49,7 @@ for (const marker of [
   "display:block!important",
   "visibility:visible!important",
   "aspect-ratio:4/3",
-  "object-fit:cover!important",
-  "object-position:58% 76%!important",
-  'src*="racing-roadster-v654"',
+  'data-hero-asset="racing-roadster-v657"',
   "object-fit:contain!important",
   "object-position:center bottom!important",
   "data-asset-state=fallback",
@@ -55,23 +58,47 @@ for (const marker of [
   if (!css.includes(marker)) errors.push(`Hero visibility CSS missing marker: ${marker}`);
 }
 
-if (!portal.includes('import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=654";')) {
-  errors.push("portal.js does not import the versioned Mobile Hero Visibility runtime.");
+for (const marker of [
+  'data-hero-asset="racing-roadster-v657"',
+  "transform:scale(1.065)!important",
+  "@media(min-width:769px) and (max-width:1279px)",
+  "object-fit:contain!important",
+  "museum-editorial-v657"
+]) {
+  if (!visualFreeze.includes(marker)) errors.push(`V657 visual freeze CSS missing marker: ${marker}`);
+}
+
+for (const marker of [
+  'from "./assets/racing-roadster-v657.js"',
+  'ROADSTER_KEY = "racing-roadster-v657"',
+  'STYLE_ID = "kidults-v657-visual-freeze-style"'
+]) {
+  if (!editorial.includes(marker)) errors.push(`Editorial asset runtime missing marker: ${marker}`);
+}
+
+if (!portal.includes('import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=657";')) {
+  errors.push("portal.js does not import the V657 Mobile Hero Visibility runtime.");
+}
+if (!portal.includes('import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=657";')) {
+  errors.push("portal.js does not import the V657 Editorial Asset runtime.");
 }
 if (!portal.includes("startMobileHeroVisibility({ manifest: data.manifest });")) {
-  errors.push("portal.js does not start Mobile Hero Visibility after mobile reconstruction.");
+  errors.push("portal.js does not start Mobile Hero Visibility.");
 }
 if (!portal.includes("mobileHeroVisibility: window.KIDULTS_MOBILE_HERO?.version")) {
   errors.push("portal.js does not publish the Mobile Hero Visibility version.");
 }
 if (!portal.includes('from "./components/renderers.js?v=654"')) {
-  errors.push("portal.js does not cache-bust the hero renderer module.");
+  errors.push("portal.js no longer preserves the registered hero renderer contract.");
 }
 if (!portal.includes('import { startMobileReconstruction } from "./components/mobile-reconstruction.js";')) {
   errors.push("portal.js no longer preserves the established Mobile Reconstruction import contract.");
 }
-if (portal.indexOf("startMobileHeroVisibility({ manifest: data.manifest });") < portal.indexOf("startMobileReconstruction();")) {
-  errors.push("Mobile Hero Visibility must start after Mobile Reconstruction appends its stylesheets.");
+const reconstructionIndex = portal.indexOf("startMobileReconstruction();");
+const assetIndex = portal.indexOf("startAssetBindingHotfix();");
+const visibilityIndex = portal.indexOf("startMobileHeroVisibility({ manifest: data.manifest });");
+if (!(reconstructionIndex >= 0 && assetIndex > reconstructionIndex && visibilityIndex > assetIndex)) {
+  errors.push("V657 initialization order must be Mobile Reconstruction → Asset Binding → Mobile Hero Visibility.");
 }
 
 for (const prohibited of [
@@ -97,4 +124,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS Mobile Hero Visibility validation: PASS (Roadster primary, responsive contain framing, neutral inline SVG fallback)");
+console.log("KIDULTS Mobile Hero Visibility validation: PASS (V657 Roadster, desktop optical scale, tablet reduction, mobile full-object framing)");
