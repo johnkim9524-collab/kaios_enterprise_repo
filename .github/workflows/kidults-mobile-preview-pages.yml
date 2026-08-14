@@ -29,10 +29,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Stamp V659 visual cache revision
+        run: |
+          find apps/kidults-enterprise-staging/public/portal -type f \( -name '*.html' -o -name '*.js' \) -print0 \
+            | xargs -0 sed -i 's/?v=658/?v=659/g'
+          grep -q 'v658-visual-freeze.css?v=659' apps/kidults-enterprise-staging/public/portal/index.html
+          grep -q 'k100-integrity-reset.css?v=659' apps/kidults-enterprise-staging/public/portal/components/k100-integrity-reset.js
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload Kidults portal v226
+      - name: Upload Kidults portal v659
         uses: actions/upload-pages-artifact@v3
         with:
           path: apps/kidults-enterprise-staging/public
