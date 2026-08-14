@@ -24,18 +24,42 @@ const failures = [];
 const browser = await chromium.launch({ headless: true });
 
 async function createPage(viewport, label) {
-  const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport, deviceScaleFactor: 1, reducedMotion: "reduce" });
   const runtimeErrors = [];
   page.on("pageerror", error => runtimeErrors.push(`pageerror: ${error.message}`));
   page.on("console", message => {
     if (message.type() === "error") runtimeErrors.push(`console: ${message.text()}`);
   });
   page.on("response", response => {
-    if (response.status() >= 400 && response.url().startsWith(baseUrl)) {
+    if (response.status() >= 400 && response.url().startsWith(baseUrl) && !response.url().endsWith("/favicon.ico")) {
       runtimeErrors.push(`http ${response.status()}: ${response.url()}`);
     }
   });
   return { page, runtimeErrors, label };
+}
+
+async function revealWholePage(page) {
+  await page.evaluate(async () => {
+    const pause = milliseconds => new Promise(resolve => window.setTimeout(resolve, milliseconds));
+    const step = Math.max(280, Math.floor(window.innerHeight * .72));
+    let previousHeight = 0;
+
+    for (let pass = 0; pass < 3; pass += 1) {
+      const currentHeight = document.documentElement.scrollHeight;
+      for (let y = 0; y <= currentHeight; y += step) {
+        window.scrollTo(0, y);
+        await pause(55);
+      }
+      window.scrollTo(0, currentHeight);
+      await pause(120);
+      const nextHeight = document.documentElement.scrollHeight;
+      if (nextHeight === previousHeight || nextHeight === currentHeight) break;
+      previousHeight = nextHeight;
+    }
+
+    window.scrollTo(0, 0);
+    await pause(350);
+  });
 }
 
 for (const viewport of viewports) {
@@ -49,7 +73,7 @@ for (const viewport of viewports) {
       const image = document.querySelector("[data-hero-image]");
       return Boolean(image?.complete && image.naturalWidth > 0 && !image.src.startsWith("data:"));
     }, null, { timeout: 15_000 });
-    await page.waitForTimeout(500);
+    await revealWholePage(page);
 
     const metrics = await page.evaluate(() => {
       const root = document.documentElement;
@@ -61,9 +85,27 @@ for (const viewport of viewports) {
       const institution = document.querySelector("#institution");
       const main = document.querySelector("#main");
       const heroRect = heroImage?.getBoundingClientRect();
+      const revealNodes = [...document.querySelectorAll(".reveal")];
+      const countChildren = selector => document.querySelector(selector)?.children.length ?? 0;
+      const visible = node => {
+        if (!node) return false;
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        return !node.hidden && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0;
+      };
+      const sectionSelectors = [
+        "[data-snapshot-grid]",
+        "[data-vertical-grid]",
+        "[data-k100-gallery]",
+        "[data-signal-grid]",
+        "[data-operations-grid]",
+        "[data-research-notes]",
+        "[data-archive-list]"
+      ];
       return {
         scrollWidth: root.scrollWidth,
         clientWidth: root.clientWidth,
+        scrollHeight: root.scrollHeight,
         dataState: root.dataset.dataState,
         homepageStructure: root.dataset.homepageStructure,
         heroAsset: heroCard?.dataset.heroAsset,
@@ -74,8 +116,17 @@ for (const viewport of viewports) {
         heroObjectFit: heroImage ? getComputedStyle(heroImage).objectFit : null,
         heroObjectPosition: heroImage ? getComputedStyle(heroImage).objectPosition : null,
         heroVisible: Boolean(heroRect && heroRect.width > 0 && heroRect.height > 0 && getComputedStyle(heroImage).visibility !== "hidden"),
+        snapshotCards: countChildren("[data-snapshot-grid]"),
+        verticalCards: countChildren("[data-vertical-grid]"),
         k100Cards: cards.length,
+        signalCards: countChildren("[data-signal-grid]"),
+        operationCards: countChildren("[data-operations-grid]"),
+        researchNotes: countChildren("[data-research-notes]"),
+        archiveItems: countChildren("[data-archive-list]"),
         k100Formats: [...new Set(cards.map(card => card.dataset.imageFormat))],
+        revealCount: revealNodes.length,
+        unrevealedCount: revealNodes.filter(node => !node.classList.contains("is-visible") || !visible(node)).length,
+        invisibleSectionCount: sectionSelectors.filter(selector => !visible(document.querySelector(selector))).length,
         releaseIsLast: main?.lastElementChild === release,
         workspaceBeforeInstitution: Boolean(workspaceEntry && institution && (workspaceEntry.compareDocumentPosition(institution) & Node.DOCUMENT_POSITION_FOLLOWING))
       };
@@ -89,14 +140,22 @@ for (const viewport of viewports) {
     if (metrics.heroNaturalWidth < 1200 || metrics.heroNaturalHeight < 675) localFailures.push(`hero dimensions=${metrics.heroNaturalWidth}x${metrics.heroNaturalHeight}`);
     if (metrics.heroObjectFit !== "contain") localFailures.push(`hero object-fit=${metrics.heroObjectFit}`);
     if (!metrics.heroVisible) localFailures.push("hero is not visible");
+    if (metrics.snapshotCards !== 4) localFailures.push(`snapshot cards=${metrics.snapshotCards}`);
+    if (metrics.verticalCards !== 8) localFailures.push(`vertical cards=${metrics.verticalCards}`);
     if (metrics.k100Cards !== 4) localFailures.push(`K100 cards=${metrics.k100Cards}`);
+    if (metrics.signalCards < 1) localFailures.push(`signal cards=${metrics.signalCards}`);
+    if (metrics.operationCards < 1) localFailures.push(`operation cards=${metrics.operationCards}`);
+    if (metrics.researchNotes < 1) localFailures.push(`research notes=${metrics.researchNotes}`);
+    if (metrics.archiveItems < 1) localFailures.push(`archive items=${metrics.archiveItems}`);
     if (metrics.k100Formats.some(value => value !== "museum-editorial-v662")) localFailures.push(`K100 formats=${metrics.k100Formats.join(",")}`);
+    if (metrics.unrevealedCount !== 0) localFailures.push(`unrevealed content=${metrics.unrevealedCount}/${metrics.revealCount}`);
+    if (metrics.invisibleSectionCount !== 0) localFailures.push(`invisible data sections=${metrics.invisibleSectionCount}`);
     if (!metrics.releaseIsLast) localFailures.push("Release Baseline is not last");
     if (!metrics.workspaceBeforeInstitution) localFailures.push("Workspace entry order is incorrect");
     if (runtimeErrors.length) localFailures.push(...runtimeErrors);
 
     const screenshot = path.join(outputDir, `homepage-${viewport.width}.png`);
-    await page.screenshot({ path: screenshot, fullPage: true });
+    await page.screenshot({ path: screenshot, fullPage: true, animations: "disabled" });
     report.homepage.push({ viewport, screenshot, metrics, failures: localFailures });
     for (const failure of localFailures) failures.push(`homepage ${label}: ${failure}`);
   } catch (error) {
@@ -144,7 +203,7 @@ for (const viewport of [viewports[1], viewports[3]]) {
     if (runtimeErrors.length) localFailures.push(...runtimeErrors);
 
     const screenshot = path.join(outputDir, `workspace-${viewport.width}.png`);
-    await page.screenshot({ path: screenshot, fullPage: true });
+    await page.screenshot({ path: screenshot, fullPage: true, animations: "disabled" });
     report.workspace.push({ viewport, screenshot, metrics, failures: localFailures });
     for (const failure of localFailures) failures.push(`workspace ${label}: ${failure}`);
   } catch (error) {
@@ -164,4 +223,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`KIDULTS V662 visual validation: PASS (${viewports.map(item => item.width).join("/")}px homepage, 390/1440px Workspace)`);
+console.log(`KIDULTS V662 visual validation: PASS (${viewports.map(item => item.width).join("/")}px homepage with full-page reveal, 390/1440px Workspace)`);
