@@ -43,6 +43,22 @@ test('new gaming aliases preserve exact product identity', () => {
   assert.equal(nearby.accepted, false);
 });
 
+test('gaming gate aliases require exact Wii U and Sega Saturn identities', () => {
+  for (const [query, nearby] of [
+    ['Wii U', 'Wii U GamePad'],
+    ['Sega Saturn', 'Sega Saturn 2'],
+  ]) {
+    const exact = evaluate(query, query, 'home video game console', ['video game console', 'game console', 'video game']);
+    const variant = evaluate(query, nearby, 'home video game console', ['video game console', 'game console', 'video game']);
+    assert.equal(exact.exactTitleRequired, true);
+    assert.equal(exact.exactTitleMatched, true);
+    assert.equal(exact.accepted, true);
+    assert.equal(variant.exactTitleRequired, true);
+    assert.equal(variant.exactTitleMatched, false);
+    assert.equal(variant.accepted, false);
+  }
+});
+
 test('untyped canonical aliases reject meaningful plus-suffix variants', () => {
   const exact = evaluate('Atari 2600', 'Atari 2600', 'home video game console', ['video game console', 'video game']);
   const variant = evaluate('Atari 2600', 'Atari 2600+', 'home video game console', ['video game console', 'video game']);
