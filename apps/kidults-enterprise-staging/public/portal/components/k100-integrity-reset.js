@@ -5,7 +5,7 @@ function ensureStylesheet() {
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
-  link.href = "components/k100-integrity-reset.css?v=652";
+  link.href = "components/k100-integrity-reset.css?v=657";
   document.head.append(link);
 }
 
@@ -64,7 +64,7 @@ export function startK100IntegrityReset({ data } = {}) {
   });
 
   window.KIDULTS_K100_INTEGRITY = Object.freeze({
-    version: "1.0.0",
+    version: "1.1.0",
     selectionCount: items.length,
     itemIds: items.map(item => item.id),
     unverifiedVisualPolicy: data.k100?.asset_standard?.unverified_visual_policy ?? "WITHHOLD",
