@@ -101,6 +101,9 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     existingCandidateEligibleRows: [...reusableExistingRowsByVertical.values()].reduce((total, rows) => total + rows.length, 0),
     existingCandidateResolvedQueries: 0,
     existingCandidateReusedRows: 0,
+    sameRunAcceptedCandidateRowsCached: 0,
+    sameRunAcceptedCandidateResolvedQueries: 0,
+    sameRunAcceptedCandidateReusedRows: 0,
     networkQueries: 0,
     pacingMode: 'SERIAL_SERVER_DRIVEN_BACKPRESSURE',
     fixedInterRequestDelayMs: MIN_INTERVAL_MS,
@@ -176,6 +179,9 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
           rows = locallyResolvedRows;
           runtime.existingCandidateResolvedQueries += 1;
           runtime.existingCandidateReusedRows += locallyResolvedRows.length;
+          const sameRunRows = locallyResolvedRows.filter((row) => row.traceSource === 'PRECISION_RECOVERY_SAME_RUN_ACCEPTED_CANDIDATE');
+          if (sameRunRows.length > 0) runtime.sameRunAcceptedCandidateResolvedQueries += 1;
+          runtime.sameRunAcceptedCandidateReusedRows += sameRunRows.length;
         } else {
           try {
             rows = await search(query);
@@ -268,6 +274,12 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
         candidates.push(addition);
         candidateIndex.set(candidateKey, candidates.length - 1);
         existing.add(candidateKey);
+
+        const [reusableAdditionRow] = getReusableExistingWikidataRows([addition], vertical);
+        if (!reusableAdditionRow) throw new Error(`Accepted precision recovery candidate is not safely reusable: ${candidateKey}`);
+        reusableAdditionRow.traceSource = 'PRECISION_RECOVERY_SAME_RUN_ACCEPTED_CANDIDATE';
+        reusableExistingRowsByVertical.get(vertical).push(reusableAdditionRow);
+        runtime.sameRunAcceptedCandidateRowsCached += 1;
       }
     }
   }
@@ -280,13 +292,14 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   const relevantBySource = Object.fromEntries(sourceIds.map((source) => [source, relevant.filter((candidate) => candidate.source === source).length]));
   const hardened = {
     ...report,
-    schemaVersion: '2.9.0',
+    schemaVersion: '2.9.1',
     semanticPolicy: {
       ...(report.semanticPolicy || {}),
-      precisionRecovery: 'WIKIDATA_ONLY_EXACT_PRODUCT_QUERY_RECOVERY_WITH_SOURCE_NATIVE_LOCAL_FIRST_REUSE',
+      precisionRecovery: 'WIKIDATA_ONLY_EXACT_PRODUCT_QUERY_RECOVERY_WITH_SOURCE_NATIVE_LOCAL_FIRST_AND_SAME_RUN_ACCEPTED_REUSE',
       precisionRecoveryDoesNotBypassDownstreamReferenceHardening: true,
       traceReuseRequiresCompleteEightUniqueRowPOCResultSet: true,
       existingCandidateReuseRequiresSameRecoveryEvaluator: true,
+      sameRunAcceptedCandidateReuseRequiresSameRecoveryEvaluator: true,
     },
     metrics: {
       ...(report.metrics || {}),
@@ -303,7 +316,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     candidateBuild: {
       ...(report.candidateBuild || {}),
       outcome: 'BUILT_WITH_WIKIDATA_PRECISION_RECOVERY_NOT_CERTIFIED',
-      note: 'Wikidata-only recovery first reuses an already observed same-vertical CC0 source-native candidate only when that row passes the identical exact-query recovery evaluator. Complete same-run eight-row traces remain reusable for exact query identity. Otherwise the workflow falls back to the official Wikidata API using serial requests with server-driven maxlag/Retry-After backpressure. Reuse never creates new evidence or mutates source identity, and downstream fail-closed archive/reference precision hardening remains authoritative.',
+      note: 'Wikidata-only recovery first reuses an already observed same-vertical CC0 source-native candidate only when that row passes the identical exact-query recovery evaluator. Newly accepted same-run CC0 candidates are cached only as source-native search context and may satisfy a later exact recovery query only through that same evaluator. Complete same-run eight-row traces remain reusable for exact query identity. Otherwise the workflow falls back to the official Wikidata API using serial requests with server-driven maxlag/Retry-After backpressure. Reuse never creates new evidence or mutates source identity, and downstream fail-closed archive/reference precision hardening remains authoritative.',
     },
     claims: {
       ...(report.claims || {}),
@@ -311,6 +324,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       precisionRecoveryExistingCandidateRequalificationApplied: requalified.length > 0,
       precisionRecoveryCompleteTraceReuseApplied: runtime.traceReusedQueries > 0,
       precisionRecoveryExistingCandidateReuseApplied: runtime.existingCandidateResolvedQueries > 0,
+      precisionRecoverySameRunAcceptedCandidateReuseApplied: runtime.sameRunAcceptedCandidateResolvedQueries > 0,
       rightsOrProvenanceRelaxed: false,
       finalKidult100Certified: false,
       decisionGradeRightDataCertified: false,
@@ -320,7 +334,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   };
 
   const audit = {
-    schemaVersion: '1.4.0',
+    schemaVersion: '1.5.0',
     mode: 'KIDULT100_WIKIDATA_PRECISION_RECOVERY_AUDIT',
     generatedAt: new Date().toISOString(),
     metrics: {
@@ -346,6 +360,8 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       sameRunTraceReuseOnlyWhenCompleteEightUniqueRows: true,
       existingCandidateReuseOnlyWhenSameRecoveryEvaluatorPasses: true,
       existingCandidateReuseCreatesEvidence: false,
+      sameRunAcceptedCandidateReuseOnlyWhenSameRecoveryEvaluatorPasses: true,
+      sameRunAcceptedCandidateReuseCreatesEvidence: false,
       incompleteTraceOrUnresolvedCandidateFallsBackToOfficialApi: true,
       traceReuseCreatesEvidence: false,
       sourceIdentityMutationAllowed: false,
