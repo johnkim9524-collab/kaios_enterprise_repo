@@ -23,8 +23,24 @@ test('precision recovery keeps exact aliases while pruning stop-token-equivalent
       redundant: ['Cabbage Patch Kids doll'],
     },
     'watches-jewelry': {
-      canonical: ['Rolex Cosmograph Daytona', 'Cartier Tank', 'Audemars Piguet Royal Oak', 'Jaeger-LeCoultre Reverso', 'Breitling Navitimer'],
-      redundant: ['Rolex Cosmograph Daytona watch', 'Cartier Tank watch', 'Audemars Piguet Royal Oak watch', 'Jaeger-LeCoultre Reverso watch', 'Breitling Navitimer watch'],
+      canonical: [
+        'Rolex Cosmograph Daytona',
+        'Cartier Tank',
+        'Audemars Piguet Royal Oak',
+        'Jaeger-LeCoultre Reverso',
+        'Breitling Navitimer',
+        'Rolex Milgauss',
+        'Cartier Santos',
+      ],
+      redundant: [
+        'Rolex Cosmograph Daytona watch',
+        'Cartier Tank watch',
+        'Audemars Piguet Royal Oak watch',
+        'Jaeger-LeCoultre Reverso watch',
+        'Breitling Navitimer watch',
+        'Rolex Milgauss watch',
+        'Cartier Santos watch',
+      ],
     },
     'technology-cameras': {
       canonical: ['Polaroid SX-70'],
