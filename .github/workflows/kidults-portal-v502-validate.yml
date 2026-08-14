@@ -44,10 +44,12 @@ jobs:
       - name: Syntax-check V502 JavaScript
         run: |
           node --check apps/kidults-enterprise-staging/public/portal/portal.js
+          node --check apps/kidults-enterprise-staging/public/portal/workspace-page.js
           node --check apps/kidults-enterprise-staging/public/portal/detail.js
           node --check apps/kidults-enterprise-staging/public/portal/components/data-store.js
           node --check apps/kidults-enterprise-staging/public/portal/components/renderers.js
           node --check apps/kidults-enterprise-staging/public/portal/components/interactions.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/homepage-structure.js
           node --check apps/kidults-enterprise-staging/public/portal/components/living-pulse.js
           node --check apps/kidults-enterprise-staging/public/portal/components/why-engine.js
           node --check apps/kidults-enterprise-staging/public/portal/components/copilot.js
@@ -70,6 +72,7 @@ jobs:
           node --check scripts/kidults/portal/validate-mobile-reconstruction.mjs
           node --check scripts/kidults/portal/validate-320-overflow-hotfix.mjs
           node --check scripts/kidults/portal/validate-mobile-hero-visibility.mjs
+          node --check scripts/kidults/portal/validate-final-entry-structure.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -103,6 +106,9 @@ jobs:
 
       - name: Validate Living Intelligence Workspace
         run: node scripts/kidults/portal/validate-workspace.mjs
+
+      - name: Validate final homepage and workspace structure
+        run: node scripts/kidults/portal/validate-final-entry-structure.mjs
 
       - name: Validate V6 Integrity Hardening
         run: node scripts/kidults/portal/validate-integrity-hardening.mjs
