@@ -66,37 +66,49 @@ function invoke(candidates, fixture) {
   return { result, output, audit };
 }
 
-test('bounded anchor-mismatch lane requires prior vertical product context and direct P31 product proof', () => {
+test('query-anchor mismatch cannot be requalified by product context or direct P31 product type alone', () => {
   const rows = [
     candidate(),
     candidate({
-      candidateKey: 'wikidata:Q101', sourceRecordId: 'Q101', canonicalTitle: 'No Product Context', payloadHash: 'b'.repeat(64),
-      semanticStageD: { passed: false, reasons: ['REFERENCE_QUERY_ANCHOR_MISMATCH'], diagnostics: { genericQuery: false, allAnchorsMatched: false, productTitleHits: [], productDescriptionHits: [] } },
+      candidateKey: 'wikidata:Q101', sourceRecordId: 'Q101', canonicalTitle: 'NES Remix', vertical: 'gaming-music-screen', query: 'Nintendo Entertainment System', payloadHash: 'b'.repeat(64),
+      semanticStageD: { passed: false, reasons: ['REFERENCE_QUERY_ANCHOR_MISMATCH'], diagnostics: { genericQuery: false, allAnchorsMatched: false, productTitleHits: [], productDescriptionHits: ['video game'] } },
     }),
     candidate({
       candidateKey: 'wikidata:Q102', sourceRecordId: 'Q102', canonicalTitle: 'Generic Query Candidate', payloadHash: 'c'.repeat(64),
       semanticStageD: { passed: false, reasons: ['REFERENCE_QUERY_ANCHOR_MISMATCH'], diagnostics: { genericQuery: true, allAnchorsMatched: false, productTitleHits: [], productDescriptionHits: ['sports car'] } },
     }),
-    candidate({ candidateKey: 'wikidata:Q103', sourceRecordId: 'Q103', canonicalTitle: 'Wrong Entity Type', payloadHash: 'd'.repeat(64) }),
+    candidate({
+      candidateKey: 'wikidata:Q103', sourceRecordId: 'Q103', canonicalTitle: 'Wrong Entity Type', payloadHash: 'd'.repeat(64),
+      semanticStageD: { passed: false, reasons: ['REFERENCE_PRODUCT_OBJECT_CONTEXT_MISSING'], diagnostics: { allAnchorsMatched: true } },
+    }),
+    candidate({
+      candidateKey: 'wikidata:Q104', sourceRecordId: 'Q104', canonicalTitle: 'Verified Car Model', payloadHash: 'e'.repeat(64),
+      semanticStageD: { passed: false, reasons: ['REFERENCE_PRODUCT_OBJECT_CONTEXT_MISSING'], diagnostics: { allAnchorsMatched: true } },
+    }),
   ];
   const fixture = {
     Q100: entity(['Q900']), Q900: type('car model', 'automobile product model'),
-    Q101: entity(['Q900']), Q102: entity(['Q900']),
-    Q103: entity(['Q901']), Q901: type('human'),
+    Q101: entity(['Q901']), Q901: type('video game compilation', 'multiple video games sold as a single product'),
+    Q102: entity(['Q900']),
+    Q103: entity(['Q902']), Q902: type('human'),
+    Q104: entity(['Q900']),
   };
   const { result, output, audit } = invoke(rows, fixture);
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(audit.metrics.eligibleStageDAnchorMismatchCandidates, 2);
-  assert.equal(audit.metrics.recoveredAnchorMismatchCandidates, 1);
-  assert.equal(output.candidates[0].semanticRelevant, true);
-  assert.equal(output.candidates[0].semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_PRODUCT_TYPE_CONFIRMED');
+  assert.equal(audit.metrics.eligibleStageDAnchorMismatchCandidates, 0);
+  assert.equal(audit.metrics.recoveredAnchorMismatchCandidates, 0);
+  assert.equal(output.candidates[0].semanticRelevant, false);
+  assert.equal(output.candidates[0].semanticStageE.disposition, 'NOT_ELIGIBLE_FOR_SOURCE_NATIVE_REQUALIFICATION');
   assert.equal(output.candidates[0].payloadHash, 'a'.repeat(64));
+  assert.equal(output.candidates[1].semanticRelevant, false);
   assert.equal(output.candidates[1].semanticStageE.disposition, 'NOT_ELIGIBLE_FOR_SOURCE_NATIVE_REQUALIFICATION');
+  assert.equal(output.candidates[2].semanticRelevant, false);
   assert.equal(output.candidates[2].semanticStageE.disposition, 'NOT_ELIGIBLE_FOR_SOURCE_NATIVE_REQUALIFICATION');
   assert.equal(output.candidates[3].semanticRelevant, false);
   assert.equal(output.candidates[3].semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_DISALLOWED_TYPE');
-  assert.equal(audit.safety.anchorMismatchCanQualifyWithoutExistingVerticalProductContext, false);
-  assert.equal(audit.safety.anchorMismatchCanQualifyWithoutDirectP31VerticalProductType, false);
+  assert.equal(output.candidates[4].semanticRelevant, true);
+  assert.equal(output.candidates[4].semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_PRODUCT_TYPE_CONFIRMED');
+  assert.equal(audit.metrics.recoveredCandidates, 1);
   assert.equal(audit.safety.rightsClassificationRelaxed, false);
   assert.equal(audit.safety.provenanceRelaxed, false);
 });
