@@ -14,7 +14,8 @@ test('Stage 2 source latency telemetry remains observational and cannot auto-pru
   assert.match(source, /runtime\.maxAttemptMs = Math\.max\(runtime\.maxAttemptMs, attemptElapsedMs\)/);
   assert.match(source, /metrics:\s*\{[\s\S]*sourceAccessRuntime/);
 
-  assert.match(source, /if \(\/\^HTTP_\(401\|403\):\/\.test\(message\)\) \{[\s\S]*blockedSources\.add\(collector\.id\)/);
+  assert.match(source, /const circuitReason = \/\^HTTP_\(401\|403\):\/\.test\(message\)[\s\S]*WIKIDATA_BACKPRESSURE_CIRCUIT_OPEN/);
+  assert.match(source, /if \(circuitReason\) \{[\s\S]*blockedSources\.add\(collector\.id\)/);
   assert.doesNotMatch(source, /if\s*\([^)]*(?:elapsedMs|maxAttemptMs)/);
   assert.doesNotMatch(source, /blockedSources\.add\([^)]*\)[\s\S]{0,160}(?:elapsedMs|maxAttemptMs)/);
   assert.doesNotMatch(source, /Promise\.all\(collectors/);
