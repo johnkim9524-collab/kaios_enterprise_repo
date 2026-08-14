@@ -22,7 +22,7 @@
     "subtitle": "Racing heritage. Timeless design. Enduring value.",
     "vertical_id": "vertical-automobiles-mobility",
     "vertical_name": "Automobiles & Mobility",
-    "asset": "assets/hero/racing-roadster-v660-master.webp",
+    "asset": "assets/hero/racing-roadster-v662.webp",
     "alt": "KIDULTS original deep green racing roadster in one warm editorial studio",
     "rights_label": "KIDULTS ORIGINAL VISUAL\nRIGHTS-GATED",
     "asset_status": "EDITORIAL_APPROVED_CANDIDATE",
@@ -48,6 +48,10 @@
     {
       "id": "home",
       "path": "index.html"
+    },
+    {
+      "id": "workspace",
+      "path": "workspace.html"
     },
     {
       "id": "vertical-detail",

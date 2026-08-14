@@ -1,4 +1,4 @@
-name: Kidults Final Portal
+name: Kidults V662 Stable Portal
 
 on:
   push:
@@ -29,26 +29,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Stamp V661 final structure and visual revision
+      - name: Verify V662 source freeze
         run: |
-          find apps/kidults-enterprise-staging/public/portal -type f \( -name '*.html' -o -name '*.js' -o -name '*.css' -o -name '*.json' \) -print0 \
-            | xargs -0 sed -i \
-              -e 's/?v=658/?v=661/g' \
-              -e 's/?v=659/?v=661/g' \
-              -e 's/?v=660/?v=661/g' \
-              -e 's/racing-roadster-v658-desktop.webp/racing-roadster-v660-master.webp/g'
-          grep -q 'portal.js?v=661' apps/kidults-enterprise-staging/public/portal/index.html
-          grep -q 'homepage-structure.js?v=661' apps/kidults-enterprise-staging/public/portal/portal.js
-          grep -q 'workspace-page.js?v=661' apps/kidults-enterprise-staging/public/portal/workspace.html
-          grep -q 'workspace-page.css?v=661' apps/kidults-enterprise-staging/public/portal/workspace.html
-          grep -q 'v661-final-freeze.css?v=661' apps/kidults-enterprise-staging/public/portal/components/homepage-structure.js
-          grep -q 'racing-roadster-v660-master.webp?v=661' apps/kidults-enterprise-staging/public/portal/index.html
-          test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v658-mobile.webp
+          grep -q 'portal.js?v=662' apps/kidults-enterprise-staging/public/portal/index.html
+          grep -q 'v662-stability-freeze.css?v=662' apps/kidults-enterprise-staging/public/portal/index.html
+          grep -q 'homepage-structure.js?v=662' apps/kidults-enterprise-staging/public/portal/portal.js
+          grep -q 'editorial-assets.js?v=662' apps/kidults-enterprise-staging/public/portal/portal.js
+          grep -q 'workspace-page.js?v=662' apps/kidults-enterprise-staging/public/portal/workspace.html
+          grep -q 'workspace-page.css?v=662' apps/kidults-enterprise-staging/public/portal/workspace.html
+          grep -q 'racing-roadster-v662.webp?v=662' apps/kidults-enterprise-staging/public/portal/index.html
+          grep -q 'racing-roadster-v662.webp' apps/kidults-enterprise-staging/public/portal/data/v502-manifest.json
+          test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v654.webp
+          test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v658-desktop.webp
+          test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v660-master.webp
+          python3 - <<'PY'
+          from pathlib import Path
+          asset = Path('apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v662.webp')
+          data = asset.read_bytes()
+          assert data[:4] == b'RIFF', 'Roadster asset is not a RIFF file'
+          assert data[8:12] == b'WEBP', 'Roadster asset is not a WebP file'
+          assert len(data) > 40_000, 'Roadster asset is unexpectedly small'
+          print(f'V662 Roadster verified: {len(data)} bytes')
+          PY
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload Kidults portal v661
+      - name: Upload Kidults portal V662
         uses: actions/upload-pages-artifact@v3
         with:
           path: apps/kidults-enterprise-staging/public

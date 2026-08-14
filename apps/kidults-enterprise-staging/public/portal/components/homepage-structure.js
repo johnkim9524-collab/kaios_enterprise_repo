@@ -1,16 +1,16 @@
-const STYLE_ID = "kidults-v661-final-freeze-style";
-const VERSION = "1.0.0";
+const STYLE_ID = "kidults-v662-stability-freeze-style";
+const VERSION = "2.0.0";
 
 function ensureStylesheet() {
-  const href = "components/v661-final-freeze.css?v=661";
-  const existing = document.getElementById(STYLE_ID);
-  if (existing) {
-    if (existing.getAttribute("href") !== href) existing.setAttribute("href", href);
-    return existing;
+  document.querySelectorAll('link[href*="v661-final-freeze.css"],link[href*="v658-visual-freeze.css"]').forEach(link => link.remove());
+
+  const href = "components/v662-stability-freeze.css?v=662";
+  let link = document.getElementById(STYLE_ID);
+  if (!link) {
+    link = document.createElement("link");
+    link.id = STYLE_ID;
+    link.rel = "stylesheet";
   }
-  const link = document.createElement("link");
-  link.id = STYLE_ID;
-  link.rel = "stylesheet";
   link.href = href;
   document.head.append(link);
   return link;
@@ -27,45 +27,34 @@ function updatePrimaryNavigation() {
     why.href = "workspace.html";
     why.textContent = "Workspace";
   }
-  nav.dataset.finalNavigation = "v661";
+  nav.dataset.finalNavigation = "v662";
+}
+
+function removeHomepageWorkspaceRuntime() {
+  [
+    "kidults-living-workspace",
+    "kidults-copilot",
+    "kidults-compare-engine",
+    "kidults-decision-engine"
+  ].forEach(id => document.getElementById(id)?.remove());
 }
 
 function createWorkspaceEntry() {
-  const existing = document.getElementById("workspace-entry");
-  if (existing) return existing;
+  document.querySelectorAll(".workspace-entry-section").forEach(section => section.remove());
 
   const section = document.createElement("section");
   section.id = "workspace-entry";
   section.className = "section workspace-entry-section";
   section.setAttribute("aria-labelledby", "workspace-entry-title");
   section.innerHTML = `
-    <div class="shell">
-      <div class="section-heading split-heading workspace-entry-heading">
-        <div>
-          <p class="eyebrow">KIDULTS INTELLIGENCE WORKSPACE</p>
-          <h2 id="workspace-entry-title">Move from evidence<br>to action.</h2>
+    <div class="shell workspace-entry-compact">
+      <div class="workspace-entry-copy">
+        <p class="eyebrow">KIDULTS INTELLIGENCE WORKSPACE</p>
+        <h2 id="workspace-entry-title">Move from evidence to action.</h2>
+        <p>Ask Registry-grounded questions, compare objects and categories, or review structured decision support in a dedicated environment.</p>
+        <div class="workspace-entry-modes" aria-label="Workspace modes">
+          <span>Ask</span><i></i><span>Compare</span><i></i><span>Decide</span>
         </div>
-        <p>Enter a dedicated, Registry-grounded workspace after exploring the platform. Ask questions, compare objects and categories, or review structured decision support without losing source traceability.</p>
-      </div>
-      <div class="workspace-entry-grid">
-        <a class="workspace-entry-card" href="workspace.html?mode=ask">
-          <span>01</span>
-          <h3>Ask</h3>
-          <p>Question the current evidence baseline and receive bounded, source-traceable answers.</p>
-          <b>Open Ask <i>→</i></b>
-        </a>
-        <a class="workspace-entry-card" href="workspace.html?mode=compare">
-          <span>02</span>
-          <h3>Compare</h3>
-          <p>Compare objects, categories and markets across the same governed data context.</p>
-          <b>Open Compare <i>→</i></b>
-        </a>
-        <a class="workspace-entry-card" href="workspace.html?mode=decide">
-          <span>03</span>
-          <h3>Decide</h3>
-          <p>Review alternatives, limitations and evidence gaps before taking the next action.</p>
-          <b>Open Decide <i>→</i></b>
-        </a>
       </div>
       <a class="button button-primary workspace-entry-button" href="workspace.html">Open Intelligence Workspace <span>→</span></a>
     </div>
@@ -77,7 +66,9 @@ function reorderHomepage() {
   const main = document.getElementById("main");
   if (!main) return;
 
+  removeHomepageWorkspaceRuntime();
   const workspaceEntry = createWorkspaceEntry();
+  const release = main.querySelector(".release-baseline");
   const ordered = [
     document.getElementById("discover"),
     main.querySelector(".snapshot-section"),
@@ -90,23 +81,25 @@ function reorderHomepage() {
     document.getElementById("research"),
     document.getElementById("archive"),
     workspaceEntry,
-    document.getElementById("institution")
+    document.getElementById("institution"),
+    release
   ].filter(Boolean);
 
   ordered.forEach(section => main.append(section));
-  main.dataset.finalStructure = "v661";
+  main.dataset.finalStructure = "v662";
 }
 
 export function startHomepageStructure() {
-  ensureStylesheet();
   updatePrimaryNavigation();
   reorderHomepage();
-  document.documentElement.dataset.homepageStructure = "v661";
+  ensureStylesheet();
+  document.documentElement.dataset.homepageStructure = "v662";
 
   window.KIDULTS_HOMEPAGE_STRUCTURE = Object.freeze({
     version: VERSION,
     entry: "HOME",
     workspaceRoute: "workspace.html",
+    workspaceMountedOnHome: false,
     order: [
       "Hero",
       "Platform Snapshot",
@@ -119,7 +112,8 @@ export function startHomepageStructure() {
       "Research",
       "Archive",
       "Workspace Entry",
-      "Institution"
+      "Institution",
+      "Release Baseline"
     ]
   });
   return window.KIDULTS_HOMEPAGE_STRUCTURE;

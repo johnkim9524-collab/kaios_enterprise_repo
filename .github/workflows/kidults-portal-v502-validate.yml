@@ -1,4 +1,4 @@
-name: KIDULTS Portal V502 Validate
+name: KIDULTS Portal V502 / V662 Validate
 
 on:
   pull_request:
@@ -41,7 +41,7 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Syntax-check V502 JavaScript
+      - name: Syntax-check V502 / V662 JavaScript
         run: |
           node --check apps/kidults-enterprise-staging/public/portal/portal.js
           node --check apps/kidults-enterprise-staging/public/portal/workspace-page.js
@@ -50,6 +50,7 @@ jobs:
           node --check apps/kidults-enterprise-staging/public/portal/components/renderers.js
           node --check apps/kidults-enterprise-staging/public/portal/components/interactions.js
           node --check apps/kidults-enterprise-staging/public/portal/components/homepage-structure.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/editorial-assets.js
           node --check apps/kidults-enterprise-staging/public/portal/components/living-pulse.js
           node --check apps/kidults-enterprise-staging/public/portal/components/why-engine.js
           node --check apps/kidults-enterprise-staging/public/portal/components/copilot.js
@@ -73,6 +74,8 @@ jobs:
           node --check scripts/kidults/portal/validate-320-overflow-hotfix.mjs
           node --check scripts/kidults/portal/validate-mobile-hero-visibility.mjs
           node --check scripts/kidults/portal/validate-final-entry-structure.mjs
+          node --check scripts/kidults/portal/validate-v662-stability-recovery.mjs
+          node --check scripts/kidults/portal/capture-v662-visual-check.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -86,7 +89,7 @@ jobs:
       - name: Validate V502 Registry projection
         run: node scripts/kidults/portal/build-v502-registry-view.mjs
 
-      - name: Validate Portal V502 Release Candidate
+      - name: Validate Portal V502 / V662 Release Candidate
         run: node scripts/kidults/portal/validate-v502-portal.mjs
 
       - name: Validate Living Pulse Engine
@@ -107,7 +110,7 @@ jobs:
       - name: Validate Living Intelligence Workspace
         run: node scripts/kidults/portal/validate-workspace.mjs
 
-      - name: Validate final homepage and workspace structure
+      - name: Validate final homepage and Workspace structure
         run: node scripts/kidults/portal/validate-final-entry-structure.mjs
 
       - name: Validate V6 Integrity Hardening
@@ -124,3 +127,49 @@ jobs:
 
       - name: Validate Mobile Hero Visibility
         run: node scripts/kidults/portal/validate-mobile-hero-visibility.mjs
+
+      - name: Validate V662 Stability Recovery
+        run: node scripts/kidults/portal/validate-v662-stability-recovery.mjs
+
+  visual:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Playwright Chromium
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start local KIDULTS portal
+        run: |
+          python3 -m http.server 4173 --directory apps/kidults-enterprise-staging/public > /tmp/kidults-v662-server.log 2>&1 &
+          echo $! > /tmp/kidults-v662-server.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/portal/index.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kidults-v662-server.log
+          exit 1
+
+      - name: Capture and validate 320 / 390 / 768 / 1440
+        run: node scripts/kidults/portal/capture-v662-visual-check.mjs
+
+      - name: Upload V662 visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-v662-visual-evidence
+          path: artifacts/kidults-v662-visual
+          if-no-files-found: warn
+          retention-days: 14

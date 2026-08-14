@@ -43,46 +43,22 @@ body[data-page="workspace"]{
   min-height:70vh
 }
 
-.workspace-page-intro{
-  padding:86px 0 58px
-}
-
-.workspace-page-intro-grid{
-  display:grid;
-  grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);
-  gap:72px;
-  align-items:end
-}
-
-.workspace-page-intro h1{
-  max-width:760px;
-  margin:18px 0 0;
-  color:var(--forest);
-  font-family:var(--serif);
-  font-size:clamp(48px,6vw,86px);
-  font-weight:500;
-  line-height:.98;
-  letter-spacing:-.045em
-}
-
-.workspace-page-intro-copy{
-  max-width:520px;
-  margin:0;
-  color:var(--muted);
-  font-size:15px;
-  line-height:1.8
+.workspace-page-status-section{
+  padding:34px 0;
+  border-bottom:1px solid rgba(7,61,45,.08);
+  background:#faf9f6
 }
 
 .workspace-page-status{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
   gap:12px;
-  margin-top:46px
+  margin:0
 }
 
 .workspace-page-status div{
-  min-height:104px;
-  padding:20px;
+  min-height:92px;
+  padding:18px 20px;
   border:1px solid rgba(7,61,45,.09);
   border-radius:16px;
   background:#fffefa
@@ -97,7 +73,7 @@ body[data-page="workspace"]{
 }
 
 .workspace-page-status dd{
-  margin:16px 0 0;
+  margin:14px 0 0;
   overflow-wrap:anywhere;
   color:var(--forest);
   font-family:var(--serif);
@@ -113,7 +89,7 @@ body[data-page="workspace"] .living-workspace{
 }
 
 body[data-page="workspace"] .living-workspace__header{
-  border-top:1px solid rgba(7,61,45,.08)
+  border-top:0
 }
 
 .workspace-page-footer{
@@ -141,11 +117,6 @@ body[data-page="workspace"] .living-workspace__header{
 }
 
 @media(max-width:900px){
-  .workspace-page-intro-grid{
-    grid-template-columns:1fr;
-    gap:28px
-  }
-
   .workspace-page-status{
     grid-template-columns:repeat(2,minmax(0,1fr))
   }
@@ -160,22 +131,17 @@ body[data-page="workspace"] .living-workspace__header{
     display:none
   }
 
-  .workspace-page-intro{
-    padding:58px 0 38px
-  }
-
-  .workspace-page-intro h1{
-    font-size:clamp(46px,14vw,68px)
+  .workspace-page-status-section{
+    padding:24px 0
   }
 
   .workspace-page-status{
     grid-template-columns:1fr 1fr;
-    gap:9px;
-    margin-top:32px
+    gap:9px
   }
 
   .workspace-page-status div{
-    min-height:94px;
+    min-height:88px;
     padding:16px
   }
 
