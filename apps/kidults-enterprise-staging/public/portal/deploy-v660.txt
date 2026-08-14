@@ -1,0 +1,5 @@
+KIDULTS Portal V660 final visual freeze
+Hero master: racing-roadster-v660-master.webp
+Desktop and mobile: one canonical Roadster, responsive framing only
+K100: unified museum-editorial 4:3 full-bleed format
+Second/mobile-specific Roadster: RETIRED
