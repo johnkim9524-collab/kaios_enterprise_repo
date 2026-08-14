@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.2",
+  "schemaVersion": "1.0.3",
   "mode": "KIDULT100_WIKIDATA_PRECISION_RECOVERY",
   "source": "wikidata",
   "sourceClass": "REFERENCE_PUBLIC_DATA",
@@ -26,7 +26,7 @@
     ],
     "fashion-accessories": [
       "Nike Air Jordan 1 shoe", "Nike Air Jordan 2 shoe", "Nike Air Jordan 3 shoe", "Nike Air Jordan 4 shoe", "Nike Air Jordan 5 shoe", "Nike Air Jordan 6 shoe", "Nike Air Max 90 shoe", "Nike Air Max 95 shoe", "Nike Air Max 97 shoe", "Nike Air Max Plus shoe", "Nike Dunk Low shoe", "Nike Cortez shoe", "Nike Blazer shoe", "Nike Air Force 1 shoe", "Adidas Stan Smith shoe", "Adidas Superstar shoe", "Adidas Samba shoe", "Adidas Gazelle shoe", "Puma Suede shoe", "Reebok Pump shoe", "Vans Old Skool shoe", "Vans Authentic shoe", "Converse Chuck Taylor All-Stars shoe", "Converse One Star shoe", "New Balance 990 shoe", "Dr Martens 1460 boot", "Hermes Birkin handbag", "Hermes Kelly handbag", "Chanel 2.55 handbag", "Lady Dior handbag", "Fendi Baguette handbag", "Loewe Puzzle handbag",
-      "Air Jordan 1", "Air Jordan 4", "Air Max 90", "Chanel 2.55", "Adidas Samba", "Adidas Superstar", "Adidas Gazelle", "Air Force 1"
+      "Air Jordan 1", "Air Jordan 4", "Air Max 90", "Nike Air Max 90", "Nike Air Max 97", "Chanel 2.55", "Adidas Samba", "Adidas Superstar", "Adidas Gazelle", "Air Force 1"
     ],
     "technology-cameras": [
       "Apple Macintosh 128K computer", "Apple Macintosh Plus computer", "Apple Macintosh SE computer", "Apple Macintosh Classic computer", "Apple PowerBook 100 computer", "Apple iMac G3 computer", "Apple Power Mac G4 Cube computer", "Apple iBook G3 computer", "Apple Lisa computer", "Apple II computer", "NeXTcube computer", "Sony TPS-L2 Walkman", "Sony WM-2 Walkman", "Sony WM-DD9 Walkman", "Sony Discman D-50 portable audio player", "Leica M3 camera", "Leica M4 camera", "Leica M5 camera", "Leica M6 camera", "Leica M7 camera", "Nikon F camera", "Nikon F2 camera", "Nikon F3 camera", "Nikon F4 camera", "Nikon FM2 camera", "Canon AE-1 camera", "Canon A-1 camera", "Canon F-1 camera", "Polaroid SX-70 camera", "Hasselblad 500C camera",
