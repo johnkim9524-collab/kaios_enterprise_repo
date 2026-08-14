@@ -17,7 +17,7 @@ function hasDistinctiveShape(value) {
 }
 
 test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
-  assert.equal(config.schemaVersion, '1.0.4');
+  assert.equal(config.schemaVersion, '1.0.5');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
