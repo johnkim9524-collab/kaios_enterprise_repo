@@ -31,6 +31,7 @@ test('precision recovery keeps exact aliases while pruning stop-token-equivalent
         'Breitling Navitimer',
         'Rolex Milgauss',
         'Cartier Santos',
+        'TAG Heuer Monaco',
       ],
       redundant: [
         'Rolex Cosmograph Daytona watch',
@@ -40,6 +41,7 @@ test('precision recovery keeps exact aliases while pruning stop-token-equivalent
         'Breitling Navitimer watch',
         'Rolex Milgauss watch',
         'Cartier Santos watch',
+        'TAG Heuer Monaco watch',
       ],
     },
     'technology-cameras': {
@@ -47,8 +49,8 @@ test('precision recovery keeps exact aliases while pruning stop-token-equivalent
       redundant: ['Polaroid SX-70 camera'],
     },
     'gaming-music-screen': {
-      canonical: ['Nintendo Switch', 'Nintendo 64', 'Nintendo GameCube', 'Atari 2600', 'Nintendo DS', 'Nintendo 3DS', 'Game Boy Color', 'Game Boy Advance SP', 'Atari 7800', 'PlayStation 5', 'Xbox 360'],
-      redundant: ['Nintendo Switch video game console', 'Nintendo 64 video game console', 'Nintendo GameCube video game console', 'Atari 2600 video game console', 'Nintendo DS handheld game console', 'Nintendo 3DS handheld game console', 'Game Boy Color handheld game console', 'Game Boy Advance SP handheld game console', 'Atari 7800 video game console', 'PlayStation 5 video game console', 'Xbox 360 video game console'],
+      canonical: ['Nintendo Switch', 'Nintendo 64', 'Nintendo GameCube', 'Atari 2600', 'Nintendo DS', 'Nintendo 3DS', 'Game Boy Color', 'Game Boy Advance SP', 'Atari 7800', 'PlayStation 5', 'Xbox 360', 'Sega Saturn'],
+      redundant: ['Nintendo Switch video game console', 'Nintendo 64 video game console', 'Nintendo GameCube video game console', 'Atari 2600 video game console', 'Nintendo DS handheld game console', 'Nintendo 3DS handheld game console', 'Game Boy Color handheld game console', 'Game Boy Advance SP handheld game console', 'Atari 7800 video game console', 'PlayStation 5 video game console', 'Xbox 360 video game console', 'Sega Saturn video game console'],
     },
     'cards-comics-memorabilia': {
       canonical: ['Action Comics #1', 'Detective Comics #27', 'Pikachu Illustrator', 'Black Lotus', 'T206 Honus Wagner'],
