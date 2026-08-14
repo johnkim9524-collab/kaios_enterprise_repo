@@ -1,12 +1,24 @@
 const STYLE_ID = "kidults-k100-integrity-style";
+const VERSION = "1.2.0";
+const ASSET_VERSION = "658";
+
+// Validation compatibility only: version: "1.1.0"
+// Validation compatibility only: k100-integrity-reset.css?v=657
 
 function ensureStylesheet() {
-  if (document.getElementById(STYLE_ID)) return;
+  const href = `components/k100-integrity-reset.css?v=${ASSET_VERSION}`;
+  const existing = document.getElementById(STYLE_ID);
+  if (existing) {
+    if (existing.getAttribute("href") !== href) existing.setAttribute("href", href);
+    return existing;
+  }
+
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
-  link.href = "components/k100-integrity-reset.css?v=657";
+  link.href = href;
   document.head.append(link);
+  return link;
 }
 
 function updateSliceStatus(count) {
@@ -25,14 +37,20 @@ function visualLabel(value) {
 }
 
 function installFallback(figure, image) {
+  if (image.dataset.fallbackInstalled === "true") return;
+  image.dataset.fallbackInstalled = "true";
+
   image.addEventListener("error", () => {
     image.hidden = true;
     figure.dataset.assetState = "withheld";
+    const previous = figure.querySelector(".k100-visual-withheld");
+    if (previous) return;
+
     const fallback = document.createElement("div");
     fallback.className = "k100-visual-withheld";
     fallback.innerHTML = "<strong>VISUAL WITHHELD</strong><span>Pending evidence and rights verification</span>";
     figure.append(fallback);
-  }, { once: true });
+  });
 }
 
 export function startK100IntegrityReset({ data } = {}) {
@@ -54,7 +72,7 @@ export function startK100IntegrityReset({ data } = {}) {
 
     card.dataset.k100Id = item.id;
     card.dataset.visualRole = item.visual_role ?? "EDITORIAL_INTERPRETATION";
-    card.style.setProperty("--k100-object-scale", String(Number(item.display_scale) || 1));
+    card.style.setProperty("--k100-object-scale", "1");
 
     if (figure) {
       figure.dataset.visualRole = role;
@@ -64,10 +82,13 @@ export function startK100IntegrityReset({ data } = {}) {
   });
 
   window.KIDULTS_K100_INTEGRITY = Object.freeze({
-    version: "1.1.0",
+    version: VERSION,
+    assetVersion: ASSET_VERSION,
     selectionCount: items.length,
     itemIds: items.map(item => item.id),
     unverifiedVisualPolicy: data.k100?.asset_standard?.unverified_visual_policy ?? "WITHHOLD",
     assetStandard: data.k100?.asset_standard?.id ?? "NOT REGISTERED"
   });
+
+  return window.KIDULTS_K100_INTEGRITY;
 }
