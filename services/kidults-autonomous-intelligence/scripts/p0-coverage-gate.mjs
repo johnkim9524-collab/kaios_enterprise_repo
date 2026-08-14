@@ -128,7 +128,8 @@ if (result.status !== 0) {
     || failureMarkers[0]
     || diagnosticLines.slice(-1)[0]
     || `test runner exited with status ${result.status}`;
-  const coverageDetail = [totalLine, ...diagnosticRows.slice(0, 12).map(({ raw }) => raw)]
+  const runnerFailureDetail = failureMarkers.slice(0, 6).join(' || ');
+  const coverageDetail = [runnerFailureDetail, totalLine, ...diagnosticRows.slice(0, 12).map(({ raw }) => raw)]
     .filter(Boolean)
     .join(' || ')
     || fallbackLine;
