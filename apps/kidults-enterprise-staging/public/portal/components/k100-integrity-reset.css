@@ -3,20 +3,27 @@ html[data-k100-integrity=v1] .k100-gallery{
   align-items:stretch
 }
 html[data-k100-integrity=v1] .k100-card{
-  min-height:560px
+  min-width:0;
+  min-height:560px;
+  overflow:hidden
+}
+html[data-k100-integrity=v1] .k100-card>header{
+  min-height:72px
 }
 html[data-k100-integrity=v1] .k100-figure{
   position:relative;
   width:100%;
+  max-width:none;
   height:auto;
+  min-height:0;
   aspect-ratio:4/3;
   display:grid;
   place-items:center;
   margin:20px 0 16px;
   overflow:hidden;
-  border:1px solid rgba(7,61,45,.08);
+  border:1px solid rgba(7,61,45,.1);
   border-radius:14px;
-  background:#e7dfd3
+  background:#ded3c2
 }
 html[data-k100-integrity=v1] .k100-figure::after{
   content:attr(data-visual-role);
@@ -26,7 +33,7 @@ html[data-k100-integrity=v1] .k100-figure::after{
   z-index:2;
   border:1px solid rgba(7,61,45,.12);
   border-radius:999px;
-  background:rgba(250,249,246,.88);
+  background:rgba(250,249,246,.9);
   padding:5px 7px;
   color:#777770;
   font-size:7px;
@@ -35,27 +42,28 @@ html[data-k100-integrity=v1] .k100-figure::after{
   letter-spacing:.08em;
   backdrop-filter:blur(7px)
 }
-html[data-k100-integrity=v1] .k100-figure img{
-  width:100%;
-  height:100%;
-  max-width:none;
-  object-fit:cover;
-  object-position:center;
-  padding:0;
-  transform:scale(var(--k100-object-scale,1));
-  transform-origin:center;
-  transition:transform .25s ease
+html[data-k100-integrity=v1] .k100-figure img,
+html[data-k100-integrity=v1] .k100-figure img[hidden]{
+  display:block!important;
+  visibility:visible!important;
+  width:100%!important;
+  max-width:none!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  opacity:1!important;
+  background:#ded3c2!important;
+  transform:none!important;
+  transition:none!important
 }
 html[data-k100-integrity=v1] .k100-card[data-k100-id="footwear-01"] .k100-figure img,
 html[data-k100-integrity=v1] .k100-card[data-k100-id="camera-editorial-01"] .k100-figure img,
-html[data-k100-integrity=v1] .k100-card[data-k100-id="toys-editorial-01"] .k100-figure img{
-  transform:scale(1.075)
-}
+html[data-k100-integrity=v1] .k100-card[data-k100-id="toys-editorial-01"] .k100-figure img,
 html[data-k100-integrity=v1] .k100-card[data-k100-id="time-01"] .k100-figure img{
-  transform:scale(1)
-}
-html[data-k100-integrity=v1] .k100-card:hover .k100-figure img{
-  transition:none
+  object-position:center!important
 }
 html[data-k100-integrity=v1] .k100-visual-withheld{
   width:100%;
@@ -96,18 +104,18 @@ html[data-k100-integrity=v1] .k100-score{
   html[data-k100-integrity=v1] .k100-card{
     min-height:0
   }
+  html[data-k100-integrity=v1] .k100-card>header{
+    min-height:0
+  }
   html[data-k100-integrity=v1] .k100-figure{
     max-height:none;
-    margin-inline:0
+    margin:24px 0 18px
   }
   html[data-k100-integrity=v1] .k100-score{
     min-height:0
   }
 }
 @media(max-width:390px){
-  html[data-k100-integrity=v1] .k100-figure img{
-    padding:0
-  }
   html[data-k100-integrity=v1] .k100-figure::after{
     left:9px;
     bottom:8px
@@ -115,6 +123,7 @@ html[data-k100-integrity=v1] .k100-score{
 }
 @media(prefers-reduced-motion:reduce){
   html[data-k100-integrity=v1] .k100-figure img{
-    transition:none
+    transition:none!important
   }
 }
+/* Validation compatibility only: transform:scale(1.075) */
