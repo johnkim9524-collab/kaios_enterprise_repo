@@ -20,6 +20,7 @@ const UA = `KIDULTS-Kidult100-Bot/2.9 (${CONTACT_URL}; Wikidata-only precision r
 const MIN_INTERVAL_MS = 0;
 const MAX_RETRIES = 4;
 const MAXLAG_SECONDS = 5;
+const WIKIDATA_BACKPRESSURE_CIRCUIT_THRESHOLD = 3;
 const WIKIDATA_SEARCH_LIMIT = 8;
 let lastRequestAt = 0;
 
@@ -95,6 +96,12 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     retries: 0,
     rateLimits: 0,
     maxlagResponses: 0,
+    backpressureSignals: 0,
+    consecutiveBackpressureSignals: 0,
+    maxConsecutiveBackpressureSignals: 0,
+    backpressureCircuitThreshold: WIKIDATA_BACKPRESSURE_CIRCUIT_THRESHOLD,
+    backpressureCircuitOpened: false,
+    backpressureCircuitReason: null,
     errors: 0,
     traceEligibleQueries: completeSameRunTrace.size,
     traceReusedQueries: 0,
@@ -108,10 +115,14 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     pacingMode: 'SERIAL_SERVER_DRIVEN_BACKPRESSURE',
     fixedInterRequestDelayMs: MIN_INTERVAL_MS,
     maxlagSeconds: MAXLAG_SECONDS,
+    retriesOnlyOnExplicitBackpressure: true,
     gzipRequested: true,
   };
 
   async function search(query) {
+    if (runtime.backpressureCircuitOpened) {
+      throw new Error(`WIKIDATA_BACKPRESSURE_CIRCUIT_OPEN:${runtime.backpressureCircuitReason || 'UNKNOWN'}`);
+    }
     runtime.networkQueries += 1;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
       const elapsed = Date.now() - lastRequestAt;
@@ -125,11 +136,26 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       });
       const body = await response.json().catch(() => null);
       const maxlag = body?.error?.code === 'maxlag';
-      if (response.ok && !maxlag) return Array.isArray(body?.search) ? body.search : [];
+      if (response.ok && !maxlag) {
+        runtime.consecutiveBackpressureSignals = 0;
+        return Array.isArray(body?.search) ? body.search : [];
+      }
 
       if (maxlag) runtime.maxlagResponses += 1;
-      if (maxlag || response.status === 429 || response.status >= 500) {
+      if (maxlag || response.status === 429) {
         if (response.status === 429) runtime.rateLimits += 1;
+        runtime.backpressureSignals += 1;
+        runtime.consecutiveBackpressureSignals += 1;
+        runtime.maxConsecutiveBackpressureSignals = Math.max(
+          runtime.maxConsecutiveBackpressureSignals,
+          runtime.consecutiveBackpressureSignals,
+        );
+        if (runtime.consecutiveBackpressureSignals >= WIKIDATA_BACKPRESSURE_CIRCUIT_THRESHOLD) {
+          const reason = maxlag ? 'MAXLAG' : `HTTP_${response.status}`;
+          runtime.backpressureCircuitOpened = true;
+          runtime.backpressureCircuitReason = reason;
+          throw new Error(`WIKIDATA_BACKPRESSURE_CIRCUIT_OPEN:${reason}`);
+        }
         if (attempt < MAX_RETRIES) {
           runtime.retries += 1;
           const retryAfterSeconds = Number(response.headers.get('retry-after'));
@@ -316,7 +342,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
     candidateBuild: {
       ...(report.candidateBuild || {}),
       outcome: 'BUILT_WITH_WIKIDATA_PRECISION_RECOVERY_NOT_CERTIFIED',
-      note: 'Wikidata-only recovery first reuses an already observed same-vertical CC0 source-native candidate only when that row passes the identical exact-query recovery evaluator. Newly accepted same-run CC0 candidates are cached only as source-native search context and may satisfy a later exact recovery query only through that same evaluator. Complete same-run eight-row traces remain reusable for exact query identity. Otherwise the workflow falls back to the official Wikidata API using serial requests with server-driven maxlag/Retry-After backpressure. Reuse never creates new evidence or mutates source identity, and downstream fail-closed archive/reference precision hardening remains authoritative.',
+      note: 'Wikidata-only recovery first reuses an already observed same-vertical CC0 source-native candidate only when that row passes the identical exact-query recovery evaluator. Newly accepted same-run CC0 candidates are cached only as source-native search context and may satisfy a later exact recovery query only through that same evaluator. Complete same-run eight-row traces remain reusable for exact query identity. Otherwise the workflow falls back to the official Wikidata API using serial requests with server-driven maxlag/Retry-After backpressure. Repeated explicit maxlag/429 signals open a bounded run-level circuit; ordinary 5xx responses are terminal for that query. Missing source data remains missing, reuse never creates new evidence or mutates source identity, and downstream fail-closed archive/reference precision hardening remains authoritative.',
     },
     claims: {
       ...(report.claims || {}),
@@ -334,7 +360,7 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   };
 
   const audit = {
-    schemaVersion: '1.5.0',
+    schemaVersion: '1.6.0',
     mode: 'KIDULT100_WIKIDATA_PRECISION_RECOVERY_AUDIT',
     generatedAt: new Date().toISOString(),
     metrics: {
@@ -354,6 +380,12 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       officialApiOnly: true,
       serialReadRequests: true,
       serverDrivenBackpressure: true,
+      wikidataRetriesOnlyOnExplicitBackpressure: true,
+      wikidataBackpressureCircuitBreaker: true,
+      wikidataBackpressureCircuitThreshold: WIKIDATA_BACKPRESSURE_CIRCUIT_THRESHOLD,
+      latencyBasedSourcePruning: false,
+      missingSourceDataRemainsMissing: true,
+      partialEvidenceAccepted: false,
       maxlagSeconds: MAXLAG_SECONDS,
       fixedInterRequestDelayMs: MIN_INTERVAL_MS,
       gzipRequested: true,
