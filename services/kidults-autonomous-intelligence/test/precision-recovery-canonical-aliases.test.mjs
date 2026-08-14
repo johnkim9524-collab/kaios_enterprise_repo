@@ -17,7 +17,7 @@ function hasDistinctiveShape(value) {
 }
 
 test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
-  assert.equal(config.schemaVersion, '1.0.3');
+  assert.equal(config.schemaVersion, '1.0.4');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
@@ -65,7 +65,6 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
     'fashion-accessories': [
       'Air Jordan 1',
       'Air Jordan 4',
-      'Air Max 90',
       'Nike Air Max 90',
       'Nike Air Max 97',
       'Chanel 2.55',
@@ -113,4 +112,33 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
       assert.ok(hasDistinctiveShape(alias), `${vertical} alias lacks a distinctive exact-name shape: ${alias}`);
     }
   }
+});
+
+test('fashion recovery prunes typed searches already covered by stricter canonical aliases', () => {
+  const queries = config.verticals['fashion-accessories'];
+  const canonical = [
+    'Air Jordan 1',
+    'Air Jordan 4',
+    'Nike Air Max 90',
+    'Nike Air Max 97',
+    'Chanel 2.55',
+    'Adidas Samba',
+    'Adidas Superstar',
+    'Adidas Gazelle',
+  ];
+  const redundant = [
+    'Nike Air Jordan 1 shoe',
+    'Nike Air Jordan 4 shoe',
+    'Nike Air Max 90 shoe',
+    'Nike Air Max 97 shoe',
+    'Air Max 90',
+    'Chanel 2.55 handbag',
+    'Adidas Samba shoe',
+    'Adidas Superstar shoe',
+    'Adidas Gazelle shoe',
+  ];
+
+  for (const alias of canonical) assert.ok(queries.includes(alias), `missing retained canonical alias: ${alias}`);
+  for (const query of redundant) assert.equal(queries.includes(query), false, `redundant fashion recovery query returned: ${query}`);
+  assert.ok(queries.length >= 20, 'fashion recovery buffer fell below the fail-closed minimum');
 });
