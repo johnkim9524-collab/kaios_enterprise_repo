@@ -35,6 +35,8 @@ const paths = {
   css: "apps/kidults-enterprise-staging/public/portal/components/compare-engine.css",
   contract: "apps/kidults-enterprise-staging/public/portal/data/compare-engine-contract.json",
   portal: "apps/kidults-enterprise-staging/public/portal/portal.js",
+  workspacePage: "apps/kidults-enterprise-staging/public/portal/workspace-page.js",
+  workspaceHtml: "apps/kidults-enterprise-staging/public/portal/workspace.html",
   store: "apps/kidults-enterprise-staging/public/portal/components/data-store.js",
   why: "apps/kidults-enterprise-staging/public/portal/components/why-engine.js",
   verticals: "apps/kidults-enterprise-staging/public/portal/data/verticals.json"
@@ -43,6 +45,8 @@ const paths = {
 const engine = readText(paths.engine);
 const css = readText(paths.css);
 const portal = readText(paths.portal);
+const workspacePage = readText(paths.workspacePage);
+const workspaceHtml = readText(paths.workspaceHtml);
 const store = readText(paths.store);
 const why = readText(paths.why);
 const contract = readJson(paths.contract);
@@ -87,14 +91,20 @@ for (const marker of [
   if (!css.includes(marker)) errors.push(`Compare Engine CSS missing marker: ${marker}`);
 }
 
-if (!portal.includes('import { startCompareEngine } from "./components/compare-engine.js";')) {
-  errors.push("portal.js does not import startCompareEngine.");
+if (!workspacePage.includes('import { startCompareEngine } from "./components/compare-engine.js";')) {
+  errors.push("workspace-page.js does not import startCompareEngine.");
 }
-if (!portal.includes("startCompareEngine({")) {
-  errors.push("portal.js does not start Compare Engine.");
+if (!workspacePage.includes("startCompareEngine({ data, contract: data.compare })")) {
+  errors.push("workspace-page.js does not start Compare Engine on the dedicated route.");
 }
-if (!portal.includes("compareEngine")) {
-  errors.push("portal.js does not publish the Compare Engine version.");
+if (portal.includes('import { startCompareEngine } from "./components/compare-engine.js";') || portal.includes("startCompareEngine({")) {
+  errors.push("Homepage portal.js must not mount Compare Engine.");
+}
+if (!portal.includes('compareEngine: "DEDICATED_ROUTE"')) {
+  errors.push("portal.js does not publish Compare Engine as DEDICATED_ROUTE.");
+}
+if (!portal.includes('workspaceRoute: "workspace.html"') || !workspaceHtml.includes('data-page="workspace"')) {
+  errors.push("Dedicated Workspace route for Compare Engine is unavailable.");
 }
 if (!store.includes('compare: "data/compare-engine-contract.json?v=630"')) {
   errors.push("data-store.js does not register the Compare Engine contract.");
@@ -201,5 +211,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS Compare Engine validation: PASS (8 verticals, 8 metrics, truth-first)");
+console.log("KIDULTS Compare Engine validation: PASS (dedicated Workspace route, 8 verticals, 8 metrics, truth-first)");
 for (const warning of warnings) console.warn(`WARN: ${warning}`);

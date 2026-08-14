@@ -1,7 +1,7 @@
-const VERSION = "2.1.0";
-const ASSET_VERSION = "660";
-const ROADSTER_KEY = "racing-roadster-v660";
-const ROADSTER_SOURCE = `assets/hero/racing-roadster-v660-master.webp?v=${ASSET_VERSION}`;
+const VERSION = "3.0.0";
+const ASSET_VERSION = "662";
+const ROADSTER_KEY = "racing-roadster-v662";
+const ROADSTER_SOURCE = `assets/hero/racing-roadster-v662.webp?v=${ASSET_VERSION}`;
 const WATCH_SOURCE = `assets/kidult100/watch-v655.webp?v=${ASSET_VERSION}`;
 
 function bindRoadster() {
@@ -43,7 +43,7 @@ function bindWatch() {
 
 function markK100Format() {
   document.querySelectorAll("[data-k100-gallery] .k100-card").forEach(card => {
-    card.dataset.imageFormat = "museum-editorial-v660";
+    card.dataset.imageFormat = "museum-editorial-v662";
   });
 }
 
@@ -66,6 +66,11 @@ export function startAssetBindingHotfix() {
   image?.addEventListener("load", () => {
     if (image.naturalWidth > 0) card.dataset.assetState = "ready";
   });
+  image?.addEventListener("error", () => {
+    card.dataset.assetState = "error";
+    image.hidden = false;
+    image.removeAttribute("hidden");
+  });
 
   apply();
   requestAnimationFrame(apply);
@@ -86,7 +91,7 @@ export function startAssetBindingHotfix() {
     roadsterKey: ROADSTER_KEY,
     roadsterSource: ROADSTER_SOURCE,
     watchSource: WATCH_SOURCE,
-    imageFormat: "MUSEUM_EDITORIAL_V660",
+    imageFormat: "MUSEUM_EDITORIAL_V662",
     rebind: apply
   });
   return window.KIDULTS_ASSET_BINDING_HOTFIX;

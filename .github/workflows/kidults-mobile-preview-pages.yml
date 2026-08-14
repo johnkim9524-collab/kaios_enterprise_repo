@@ -1,4 +1,4 @@
-name: Kidults Final Portal
+name: Kidults V662 Stable Portal
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - 'apps/kidults-enterprise-staging/public/portal/**'
       - 'apps/kidults-enterprise-staging/public/a13/assets/**'
       - 'apps/kidults-enterprise-staging/public/data/**'
+      - 'scripts/kidults/portal/capture-v662-visual-check.mjs'
       - '.github/workflows/kidults-mobile-preview-pages.yml'
   workflow_dispatch:
 
@@ -24,31 +25,40 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Stamp V661 final structure and visual revision
+      - name: Verify V662 source freeze
         run: |
-          find apps/kidults-enterprise-staging/public/portal -type f \( -name '*.html' -o -name '*.js' -o -name '*.css' -o -name '*.json' \) -print0 \
-            | xargs -0 sed -i \
-              -e 's/?v=658/?v=661/g' \
-              -e 's/?v=659/?v=661/g' \
-              -e 's/?v=660/?v=661/g' \
-              -e 's/racing-roadster-v658-desktop.webp/racing-roadster-v660-master.webp/g'
-          grep -q 'portal.js?v=661' apps/kidults-enterprise-staging/public/portal/index.html
-          grep -q 'homepage-structure.js?v=661' apps/kidults-enterprise-staging/public/portal/portal.js
-          grep -q 'workspace-page.js?v=661' apps/kidults-enterprise-staging/public/portal/workspace.html
-          grep -q 'workspace-page.css?v=661' apps/kidults-enterprise-staging/public/portal/workspace.html
-          grep -q 'v661-final-freeze.css?v=661' apps/kidults-enterprise-staging/public/portal/components/homepage-structure.js
-          grep -q 'racing-roadster-v660-master.webp?v=661' apps/kidults-enterprise-staging/public/portal/index.html
-          test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v658-mobile.webp
+          grep -q 'portal.js?v=662' apps/kidults-enterprise-staging/public/portal/index.html
+          grep -q 'v662-stability-freeze.css?v=662' apps/kidults-enterprise-staging/public/portal/index.html
+          grep -q 'homepage-structure.js?v=662' apps/kidults-enterprise-staging/public/portal/portal.js
+          grep -q 'editorial-assets.js?v=662' apps/kidults-enterprise-staging/public/portal/portal.js
+          grep -q 'workspace-page.js?v=662' apps/kidults-enterprise-staging/public/portal/workspace.html
+          grep -q 'workspace-page.css?v=662' apps/kidults-enterprise-staging/public/portal/workspace.html
+          grep -q 'racing-roadster-v662.webp?v=662' apps/kidults-enterprise-staging/public/portal/index.html
+          grep -q 'racing-roadster-v662.webp' apps/kidults-enterprise-staging/public/portal/data/v502-manifest.json
+          test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v654.webp
+          test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v658-desktop.webp
+          test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v660-master.webp
+          python3 - <<'PY'
+          from pathlib import Path
+          asset = Path('apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v662.webp')
+          data = asset.read_bytes()
+          assert data[:4] == b'RIFF', 'Roadster asset is not a RIFF file'
+          assert data[8:12] == b'WEBP', 'Roadster asset is not a WebP file'
+          assert len(data) > 40_000, 'Roadster asset is unexpectedly small'
+          print(f'V662 Roadster verified: {len(data)} bytes')
+          PY
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload Kidults portal v661
+      - name: Upload Kidults portal V662
         uses: actions/upload-pages-artifact@v3
         with:
           path: apps/kidults-enterprise-staging/public
@@ -56,3 +66,97 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  live-smoke:
+    name: Verify deployed V662 portal
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Wait for the exact V662 artifact at the public Pages URL
+        env:
+          KIDULTS_BASE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          base="${KIDULTS_BASE_URL%/}"
+
+          for attempt in $(seq 1 30); do
+            echo "Live verification attempt ${attempt}/30: ${base}"
+            if curl --fail --silent --show-error --location \
+              --header 'Cache-Control: no-cache' \
+              "${base}/portal/index.html?deployment=${GITHUB_SHA}" \
+              --output /tmp/kidults-v662-live-index.html; then
+              if grep -q 'portal.js?v=662' /tmp/kidults-v662-live-index.html \
+                && grep -q 'v662-stability-freeze.css?v=662' /tmp/kidults-v662-live-index.html \
+                && grep -q 'racing-roadster-v662.webp?v=662' /tmp/kidults-v662-live-index.html; then
+                echo "V662 HTML is active at the public Pages URL."
+                break
+              fi
+            fi
+
+            if [ "$attempt" -eq 30 ]; then
+              echo "The public Pages URL did not expose the V662 artifact within the retry window."
+              cat /tmp/kidults-v662-live-index.html 2>/dev/null || true
+              exit 1
+            fi
+            sleep 5
+          done
+
+          curl --fail --silent --show-error --location \
+            --header 'Cache-Control: no-cache' \
+            "${base}/portal/workspace.html?deployment=${GITHUB_SHA}" \
+            --output /tmp/kidults-v662-live-workspace.html
+          grep -q 'workspace-page.js?v=662' /tmp/kidults-v662-live-workspace.html
+          grep -q 'workspace-page.css?v=662' /tmp/kidults-v662-live-workspace.html
+
+          curl --fail --silent --show-error --location \
+            --header 'Cache-Control: no-cache' \
+            "${base}/portal/assets/hero/racing-roadster-v662.webp?v=662&deployment=${GITHUB_SHA}" \
+            --output /tmp/racing-roadster-v662.webp
+
+          python3 - <<'PY'
+          from pathlib import Path
+          asset = Path('/tmp/racing-roadster-v662.webp')
+          data = asset.read_bytes()
+          assert data[:4] == b'RIFF', 'Live Roadster is not a RIFF file'
+          assert data[8:12] == b'WEBP', 'Live Roadster is not a WebP file'
+          assert len(data) > 40_000, 'Live Roadster is unexpectedly small'
+          print(f'Live V662 Roadster verified: {len(data)} bytes')
+          PY
+
+          for retired in \
+            racing-roadster-v654.webp \
+            racing-roadster-v658-desktop.webp \
+            racing-roadster-v660-master.webp \
+            racing-roadster-v658-mobile.webp; do
+            status="$(curl --silent --location --output /dev/null --write-out '%{http_code}' \
+              "${base}/portal/assets/hero/${retired}?deployment=${GITHUB_SHA}")"
+            test "$status" = "404"
+          done
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Validate the public Pages URL at 320 / 390 / 768 / 1440
+        env:
+          KIDULTS_BASE_URL: ${{ needs.deploy.outputs.page_url }}
+          KIDULTS_VISUAL_OUTPUT: artifacts/kidults-v662-live
+        run: node scripts/kidults/portal/capture-v662-visual-check.mjs
+
+      - name: Upload live V662 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-v662-live-evidence
+          path: artifacts/kidults-v662-live
+          if-no-files-found: warn
+          retention-days: 14

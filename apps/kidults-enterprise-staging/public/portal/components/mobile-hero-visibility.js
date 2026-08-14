@@ -1,6 +1,7 @@
 const STYLE_ID = "kidults-mobile-hero-visibility-style";
-const VERSION = "1.3.0";
-const ASSET_VERSION = "660";
+const VERSION = "2.0.0";
+const ASSET_VERSION = "662";
+const HERO_KEY = "racing-roadster-v662";
 const RETRY_ASSET = null;
 
 function ensureStylesheet() {
@@ -39,6 +40,9 @@ export function startMobileHeroVisibility({ manifest } = {}) {
   const card = document.querySelector("[data-hero-card]");
   const image = document.querySelector("[data-hero-image]");
   if (!card || !image) return null;
+
+  card.dataset.heroAsset = HERO_KEY;
+  image.dataset.heroAsset = HERO_KEY;
 
   const primary = stripQuery(manifest?.hero?.asset || image.getAttribute("src"));
   const sources = [...new Set([primary, RETRY_ASSET].filter(Boolean))];
@@ -109,6 +113,7 @@ export function startMobileHeroVisibility({ manifest } = {}) {
   window.KIDULTS_MOBILE_HERO = Object.freeze({
     version: VERSION,
     assetVersion: ASSET_VERSION,
+    heroKey: HERO_KEY,
     canonicalSource: primary,
     retrySources: sources.slice(),
     state() { return card.dataset.mobileHeroState ?? "NOT AVAILABLE"; },

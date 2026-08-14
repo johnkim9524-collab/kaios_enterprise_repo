@@ -6,47 +6,84 @@ const root = process.cwd();
 const errors = [];
 const read = relative => {
   const file = path.join(root, relative);
-  if (!fs.existsSync(file)) { errors.push(`Missing required file: ${relative}`); return ""; }
+  if (!fs.existsSync(file)) {
+    errors.push(`Missing required file: ${relative}`);
+    return "";
+  }
   return fs.readFileSync(file, "utf8");
 };
 
-const runtime = read("apps/kidults-enterprise-staging/public/portal/components/mobile-hero-visibility.js");
-const css = read("apps/kidults-enterprise-staging/public/portal/components/v658-visual-freeze.css");
-const portal = read("apps/kidults-enterprise-staging/public/portal/portal.js");
-const manifest = JSON.parse(read("apps/kidults-enterprise-staging/public/portal/data/v502-manifest.json") || "{}");
-const masterPath = "apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v660-master.webp";
-const retiredMobilePath = "apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v658-mobile.webp";
+const portalRoot = "apps/kidults-enterprise-staging/public/portal";
+const runtime = read(`${portalRoot}/components/mobile-hero-visibility.js`);
+const mobileCss = read(`${portalRoot}/components/mobile-hero-visibility.css`);
+const stabilityCss = read(`${portalRoot}/components/v662-stability-freeze.css`);
+const portal = read(`${portalRoot}/portal.js`);
+const editorial = read(`${portalRoot}/components/editorial-assets.js`);
+const manifest = JSON.parse(read(`${portalRoot}/data/v502-manifest.json`) || "{}");
+const canonicalPath = `${portalRoot}/assets/hero/racing-roadster-v662.webp`;
 
 for (const marker of [
   "startMobileHeroVisibility",
-  'ASSET_VERSION = "660"',
+  'ASSET_VERSION = "662"',
+  'HERO_KEY = "racing-roadster-v662"',
   "canonicalSource",
   "fallbackSvgDataUri",
   'fetchPriority = "high"',
   'image.hidden = false',
   'image.removeAttribute("hidden")',
   "KIDULTS_MOBILE_HERO"
-]) if (!runtime.includes(marker)) errors.push(`Mobile Hero runtime missing marker: ${marker}`);
-
+]) {
+  if (!runtime.includes(marker)) errors.push(`Mobile Hero runtime missing marker: ${marker}`);
+}
 if (runtime.includes("mobile_asset")) errors.push("Mobile Hero runtime still contains a second mobile-specific Roadster source.");
 
 for (const marker of [
-  'data-hero-asset="racing-roadster-v660"',
+  'data-hero-asset="racing-roadster-v662"',
   "aspect-ratio:4/3",
-  "object-fit:cover!important",
-  "object-position:right center!important",
-  "@media(max-width:390px)"
-]) if (!css.includes(marker)) errors.push(`V660 Hero CSS missing marker: ${marker}`);
+  "object-fit:contain!important",
+  "object-position:center center!important",
+  "@media(max-width:768px)",
+  "@media(max-width:340px)"
+]) {
+  if (!stabilityCss.includes(marker)) errors.push(`V662 Hero CSS missing marker: ${marker}`);
+}
+for (const marker of ["@media(max-width:768px)", "@media(max-width:390px)", "@media(max-width:360px)"]) {
+  if (!mobileCss.includes(marker)) errors.push(`Mobile support CSS missing marker: ${marker}`);
+}
 
 for (const marker of [
-  "mobile-hero-visibility.js",
-  "editorial-assets.js",
-  "renderers.js"
-]) if (!portal.includes(marker)) errors.push(`portal.js missing Hero integration: ${marker}`);
+  'mobile-hero-visibility.js?v=662',
+  'editorial-assets.js?v=662',
+  'renderers.js?v=662'
+]) {
+  if (!portal.includes(marker)) errors.push(`portal.js missing V662 Hero integration: ${marker}`);
+}
+for (const marker of [
+  'ROADSTER_KEY = "racing-roadster-v662"',
+  'racing-roadster-v662.webp?v=${ASSET_VERSION}',
+  'museum-editorial-v662'
+]) {
+  if (!editorial.includes(marker)) errors.push(`Editorial asset binding missing marker: ${marker}`);
+}
 
-if (!fs.existsSync(path.join(root, masterPath))) errors.push("Canonical V660 Roadster master is missing.");
-if (fs.existsSync(path.join(root, retiredMobilePath))) errors.push("Retired second/mobile Roadster image still exists.");
-if (manifest.hero?.asset !== "assets/hero/racing-roadster-v660-master.webp") errors.push("Canonical Hero asset mismatch.");
+const absoluteCanonical = path.join(root, canonicalPath);
+if (!fs.existsSync(absoluteCanonical)) {
+  errors.push("Canonical V662 Roadster is missing.");
+} else {
+  const data = fs.readFileSync(absoluteCanonical);
+  if (data.subarray(0, 4).toString("ascii") !== "RIFF") errors.push("Canonical Roadster is not RIFF.");
+  if (data.subarray(8, 12).toString("ascii") !== "WEBP") errors.push("Canonical Roadster is not WEBP.");
+  if (data.length < 40_000) errors.push(`Canonical Roadster is unexpectedly small: ${data.length} bytes.`);
+}
+for (const retired of [
+  "racing-roadster-v654.webp",
+  "racing-roadster-v658-desktop.webp",
+  "racing-roadster-v660-master.webp",
+  "racing-roadster-v658-mobile.webp"
+]) {
+  if (fs.existsSync(path.join(root, `${portalRoot}/assets/hero/${retired}`))) errors.push(`Retired Roadster still exists: ${retired}`);
+}
+if (manifest.hero?.asset !== "assets/hero/racing-roadster-v662.webp") errors.push("Canonical Hero asset mismatch.");
 if (Object.prototype.hasOwnProperty.call(manifest.hero ?? {}, "mobile_asset")) errors.push("Manifest still registers a second mobile-specific Roadster.");
 
 if (errors.length) {
@@ -54,4 +91,4 @@ if (errors.length) {
   for (const error of errors) console.error(`ERROR: ${error}`);
   process.exit(1);
 }
-console.log("KIDULTS Mobile Hero Visibility validation: PASS (one V660 Roadster master, desktop and mobile responsive framing)");
+console.log("KIDULTS Mobile Hero Visibility validation: PASS (one verified V662 Roadster, full-image desktop and mobile framing)");

@@ -35,6 +35,8 @@ const paths = {
   css: "apps/kidults-enterprise-staging/public/portal/components/copilot.css",
   contract: "apps/kidults-enterprise-staging/public/portal/data/copilot-contract.json",
   portal: "apps/kidults-enterprise-staging/public/portal/portal.js",
+  workspacePage: "apps/kidults-enterprise-staging/public/portal/workspace-page.js",
+  workspaceHtml: "apps/kidults-enterprise-staging/public/portal/workspace.html",
   store: "apps/kidults-enterprise-staging/public/portal/components/data-store.js",
   why: "apps/kidults-enterprise-staging/public/portal/components/why-engine.js"
 };
@@ -42,6 +44,8 @@ const paths = {
 const engine = readText(paths.engine);
 const css = readText(paths.css);
 const portal = readText(paths.portal);
+const workspacePage = readText(paths.workspacePage);
+const workspaceHtml = readText(paths.workspaceHtml);
 const store = readText(paths.store);
 const why = readText(paths.why);
 const contract = readJson(paths.contract);
@@ -85,14 +89,20 @@ for (const marker of [
   if (!css.includes(marker)) errors.push(`Copilot CSS missing marker: ${marker}`);
 }
 
-if (!portal.includes('import { startCopilot } from "./components/copilot.js";')) {
-  errors.push("portal.js does not import startCopilot.");
+if (!workspacePage.includes('import { startCopilot } from "./components/copilot.js";')) {
+  errors.push("workspace-page.js does not import startCopilot.");
 }
-if (!portal.includes("startCopilot({")) {
-  errors.push("portal.js does not start Copilot.");
+if (!workspacePage.includes("startCopilot({ data, contract: data.copilot })")) {
+  errors.push("workspace-page.js does not start Copilot on the dedicated route.");
 }
-if (!portal.includes("copilotEngine")) {
-  errors.push("portal.js does not publish the Copilot version.");
+if (portal.includes('import { startCopilot } from "./components/copilot.js";') || portal.includes("startCopilot({")) {
+  errors.push("Homepage portal.js must not mount Copilot.");
+}
+if (!portal.includes('copilotEngine: "DEDICATED_ROUTE"')) {
+  errors.push("portal.js does not publish Copilot as DEDICATED_ROUTE.");
+}
+if (!portal.includes('workspaceRoute: "workspace.html"') || !workspaceHtml.includes('data-page="workspace"')) {
+  errors.push("Dedicated Workspace route for Copilot is unavailable.");
 }
 if (!store.includes('copilot: "data/copilot-contract.json?v=620"')) {
   errors.push("data-store.js does not register the Copilot contract.");
@@ -171,5 +181,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS Copilot validation: PASS (6 intents, Registry-grounded, fail-closed)");
+console.log("KIDULTS Copilot validation: PASS (dedicated Workspace route, 6 intents, Registry-grounded, fail-closed)");
 for (const warning of warnings) console.warn(`WARN: ${warning}`);
