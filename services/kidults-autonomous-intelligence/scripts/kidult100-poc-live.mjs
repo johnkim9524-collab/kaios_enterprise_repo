@@ -12,12 +12,19 @@ const UA = `KIDULTS-Kidult100-Bot/2.7 (${CONTACT_URL}; two-stage semantic discov
 const WIKIDATA_MIN_INTERVAL_MS = 0;
 const WIKIDATA_MAX_RETRIES = 4;
 const WIKIDATA_MAXLAG_SECONDS = 5;
+const WIKIDATA_BACKPRESSURE_CIRCUIT_THRESHOLD = 3;
 let lastWikidataRequestAt = 0;
 const wikidataRuntime = {
   requests: 0,
   retries: 0,
   rateLimits: 0,
   maxlagResponses: 0,
+  backpressureSignals: 0,
+  consecutiveBackpressureSignals: 0,
+  maxConsecutiveBackpressureSignals: 0,
+  backpressureCircuitThreshold: WIKIDATA_BACKPRESSURE_CIRCUIT_THRESHOLD,
+  backpressureCircuitOpened: false,
+  backpressureCircuitReason: null,
   contactUrl: CONTACT_URL,
   pacingMode: 'SERIAL_SERVER_DRIVEN_BACKPRESSURE',
   fixedInterRequestDelayMs: WIKIDATA_MIN_INTERVAL_MS,
@@ -69,11 +76,26 @@ async function getJson(url, { wikidata = false } = {}) {
     const body = await response.json().catch(() => null);
     const maxlag = body?.error?.code === 'maxlag';
 
-    if (response.ok && !maxlag) return { body, latencyMs: Date.now() - started };
+    if (response.ok && !maxlag) {
+      wikidataRuntime.consecutiveBackpressureSignals = 0;
+      return { body, latencyMs: Date.now() - started };
+    }
 
     if (maxlag) wikidataRuntime.maxlagResponses += 1;
     if (maxlag || response.status === 429) {
       if (response.status === 429) wikidataRuntime.rateLimits += 1;
+      wikidataRuntime.backpressureSignals += 1;
+      wikidataRuntime.consecutiveBackpressureSignals += 1;
+      wikidataRuntime.maxConsecutiveBackpressureSignals = Math.max(
+        wikidataRuntime.maxConsecutiveBackpressureSignals,
+        wikidataRuntime.consecutiveBackpressureSignals,
+      );
+      if (wikidataRuntime.consecutiveBackpressureSignals >= WIKIDATA_BACKPRESSURE_CIRCUIT_THRESHOLD) {
+        const reason = maxlag ? 'MAXLAG' : `HTTP_${response.status}`;
+        wikidataRuntime.backpressureCircuitOpened = true;
+        wikidataRuntime.backpressureCircuitReason = reason;
+        throw new Error(`WIKIDATA_BACKPRESSURE_CIRCUIT_OPEN:${reason}:${url}`);
+      }
       if (attempt < WIKIDATA_MAX_RETRIES) {
         wikidataRuntime.retries += 1;
         const retryAfterSeconds = Number(response.headers.get('retry-after'));
@@ -366,10 +388,15 @@ for (const vertical of CONFIG.coreVerticals) {
         runtime.maxAttemptMs = Math.max(runtime.maxAttemptMs, attemptElapsedMs);
         const message = String(error?.message || error);
         sourceErrors.push({ vertical: vertical.id, query, collector: collector.run.name, source: collector.id, error: message });
-        if (/^HTTP_(401|403):/.test(message)) {
+        const circuitReason = /^HTTP_(401|403):/.test(message)
+          ? message.split(':', 1)[0]
+          : /^WIKIDATA_BACKPRESSURE_CIRCUIT_OPEN:/.test(message)
+            ? 'WIKIDATA_BACKPRESSURE_CIRCUIT_OPEN'
+            : null;
+        if (circuitReason) {
           blockedSources.add(collector.id);
           runtime.blockedForRun = true;
-          runtime.blockedReason = message.split(':', 1)[0];
+          runtime.blockedReason = circuitReason;
         }
       }
     }
@@ -441,6 +468,8 @@ const report = {
     serialWikidataReadRequests: true,
     serverDrivenBackpressure: true,
     wikidataRetriesOnlyOnExplicitBackpressure: true,
+    wikidataBackpressureCircuitBreaker: true,
+    wikidataBackpressureCircuitThreshold: WIKIDATA_BACKPRESSURE_CIRCUIT_THRESHOLD,
     gzipRequested: true,
     sourceConfigurationRespected: true,
     accessDenialCircuitBreaker: true,
@@ -468,7 +497,7 @@ const report = {
   },
   candidateBuild: {
     outcome: 'BUILT_NOT_CERTIFIED',
-    note: 'Stage A maximizes defensible recall. Stage B removes explicit archive title-only and object-type mismatches. Wikidata reads remain serial and defer to maxlag/Retry-After server backpressure instead of an unconditional client sleep. Access-denied sources are stopped for the remainder of the run. Stage 2 certification remains downstream.',
+    note: 'Stage A maximizes defensible recall. Stage B removes explicit archive title-only and object-type mismatches. Wikidata reads remain serial, retry only explicit maxlag/429 server backpressure, and stop Wikidata for the run after repeated consecutive backpressure instead of consuming the full Stage 2 budget. Access-denied sources are also stopped for the remainder of the run. Missing source data remains missing and Stage 2 certification remains downstream.',
   },
   claims: {
     liveExternalNetworkCollection: true,
