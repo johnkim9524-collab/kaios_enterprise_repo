@@ -21,7 +21,7 @@ function evaluate(query, label, description) {
 
 test('zero-yield Air Yeezy stays pruned while Nike Dunk remains inside the exact official Wikidata CC0 lane', () => {
   const queries = config.verticals['fashion-accessories'];
-  assert.equal(config.schemaVersion, '1.0.9');
+  assert.equal(config.schemaVersion, '1.0.10');
   assert.equal(queries.includes('Nike Air Yeezy'), false);
   assert.equal(queries.includes('Nike Mag'), false);
   assert.ok(queries.includes('Nike Dunk'));
