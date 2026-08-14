@@ -17,7 +17,7 @@ function hasDistinctiveShape(value) {
 }
 
 test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
-  assert.equal(config.schemaVersion, '1.0.5');
+  assert.equal(config.schemaVersion, '1.0.6');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
@@ -92,6 +92,8 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
       'Atari 7800',
       'PlayStation 5',
       'Xbox 360',
+      'Wii U',
+      'Sega Saturn',
     ],
     'cards-comics-memorabilia': [
       'Action Comics #1',
@@ -141,4 +143,21 @@ test('fashion recovery prunes typed searches already covered by stricter canonic
   for (const alias of canonical) assert.ok(queries.includes(alias), `missing retained canonical alias: ${alias}`);
   for (const query of redundant) assert.equal(queries.includes(query), false, `redundant fashion recovery query returned: ${query}`);
   assert.ok(queries.length >= 20, 'fashion recovery buffer fell below the fail-closed minimum');
+});
+
+test('exact-alias covered technology and gaming searches stay pruned to preserve the precision budget', () => {
+  const technology = config.verticals['technology-cameras'];
+  const gaming = config.verticals['gaming-music-screen'];
+
+  for (const alias of ['Macintosh Plus', 'iMac G3', 'Power Mac G4 Cube']) {
+    assert.ok(technology.includes(alias), `missing retained technology exact alias: ${alias}`);
+  }
+  for (const query of ['Apple Macintosh Plus computer', 'Apple iMac G3 computer', 'Apple Power Mac G4 Cube computer']) {
+    assert.equal(technology.includes(query), false, `redundant technology recovery query returned: ${query}`);
+  }
+
+  assert.ok(gaming.includes('Dreamcast'), 'missing retained Dreamcast exact alias');
+  assert.equal(gaming.includes('Sega Dreamcast video game console'), false, 'redundant Dreamcast typed query returned');
+  assert.ok(gaming.includes('Wii U'), 'missing Wii U exact alias');
+  assert.ok(gaming.includes('Sega Saturn'), 'missing Sega Saturn exact alias');
 });
