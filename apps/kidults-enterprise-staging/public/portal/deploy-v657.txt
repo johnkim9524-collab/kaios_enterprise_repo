@@ -1,0 +1,6 @@
+KIDULTS Portal V657 visual normalization
+
+Hero: refined Racing Roadster master
+Mobile: full-object 4:3 contain framing
+Kidult 100: full-bleed watch-format image frames
+Cache generation: 657
