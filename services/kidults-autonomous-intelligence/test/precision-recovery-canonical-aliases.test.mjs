@@ -17,7 +17,7 @@ function hasDistinctiveShape(value) {
 }
 
 test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
-  assert.equal(config.schemaVersion, '1.0.7');
+  assert.equal(config.schemaVersion, '1.0.8');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
@@ -72,7 +72,7 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
       'Adidas Superstar',
       'Adidas Gazelle',
       'Air Force 1',
-      'Nike Mag',
+      'Nike Air Yeezy',
     ],
     'technology-cameras': [
       'Macintosh 128K',
@@ -143,6 +143,7 @@ test('fashion recovery prunes typed searches already covered by stricter canonic
 
   for (const alias of canonical) assert.ok(queries.includes(alias), `missing retained canonical alias: ${alias}`);
   for (const query of redundant) assert.equal(queries.includes(query), false, `redundant fashion recovery query returned: ${query}`);
+  assert.equal(queries.includes('Nike Mag'), false, 'zero-yield Nike Mag query returned to the request budget');
   assert.ok(queries.length >= 20, 'fashion recovery buffer fell below the fail-closed minimum');
 });
 
