@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.4",
+  "schemaVersion": "1.0.5",
   "policy": "FAIL_CLOSED_STAGE2_REFERENCE_PRODUCT_PRECISION_HARDENING",
   "requiredInputMode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "targetSourceClass": "REFERENCE_PUBLIC_DATA",
@@ -66,6 +66,7 @@
     "fashion-accessories": [
       "handbag",
       "tote bag",
+      "tote bags",
       "leather handbag",
       "bag",
       "athletic shoe",
