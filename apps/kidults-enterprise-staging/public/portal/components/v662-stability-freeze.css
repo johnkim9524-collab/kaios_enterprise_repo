@@ -1,5 +1,11 @@
 /* KIDULTS V662 — stability recovery and final responsive freeze. */
 
+html[data-homepage-structure="v662"],
+html[data-homepage-structure="v662"] body{
+  max-width:100%;
+  overflow-x:clip;
+}
+
 html[data-homepage-structure="v662"] .hero-copy h1{
   line-height:.965;
 }
@@ -14,6 +20,7 @@ html[data-homepage-structure="v662"] .button-secondary{
 
 html[data-homepage-structure="v662"] [data-hero-card]{
   overflow:hidden;
+  isolation:isolate;
   background:#eee6db!important;
   box-shadow:0 30px 82px rgba(20,36,29,.055),0 7px 18px rgba(20,36,29,.022)!important;
 }
@@ -39,8 +46,8 @@ html[data-homepage-structure="v662"] [data-hero-card][data-hero-asset="racing-ro
   height:100%!important;
   padding:0!important;
   margin:0!important;
-  object-fit:cover!important;
-  object-position:68% center!important;
+  object-fit:contain!important;
+  object-position:center center!important;
   transform:none!important;
   background:#eee6db!important;
   filter:saturate(1.01) contrast(1.01)!important;
@@ -52,6 +59,7 @@ html[data-homepage-structure="v662"] .k100-section{
 }
 
 html[data-homepage-structure="v662"] .k100-card{
+  min-width:0;
   box-shadow:0 22px 58px rgba(20,36,29,.038),0 4px 13px rgba(20,36,29,.016)!important;
 }
 
@@ -103,6 +111,7 @@ html[data-homepage-structure="v662"] .workspace-entry-compact{
 }
 
 html[data-homepage-structure="v662"] .workspace-entry-copy{
+  min-width:0;
   max-width:820px;
 }
 
@@ -127,6 +136,7 @@ html[data-homepage-structure="v662"] .workspace-entry-copy>p:not(.eyebrow){
 html[data-homepage-structure="v662"] .workspace-entry-modes{
   display:flex;
   align-items:center;
+  flex-wrap:wrap;
   gap:12px;
   margin-top:24px;
   color:#687069;
@@ -167,10 +177,12 @@ html[data-homepage-structure="v662"] .release-baseline dl{
 }
 
 html[data-homepage-structure="v662"] .release-baseline dl div{
+  min-width:0;
   padding:15px 16px!important;
 }
 
 html[data-homepage-structure="v662"] .release-baseline dd{
+  overflow-wrap:anywhere;
   font-size:15px!important;
 }
 
@@ -257,8 +269,23 @@ html[data-homepage-structure="v662"] .archive-section + .workspace-entry-section
     font-size:36px;
   }
 
+  html[data-homepage-structure="v662"] .workspace-entry-modes{
+    gap:9px;
+  }
+
   html[data-homepage-structure="v662"] .release-baseline dl{
     grid-template-columns:1fr!important;
+  }
+}
+
+@media(max-width:340px){
+  html[data-homepage-structure="v662"] .workspace-entry-copy h2{
+    font-size:32px;
+  }
+
+  html[data-homepage-structure="v662"] .workspace-entry-button{
+    padding-inline:16px;
+    font-size:10px;
   }
 }
 
