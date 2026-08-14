@@ -1,20 +1,14 @@
-const VERSION = "2.0.0";
-const ROADSTER_KEY = "racing-roadster-v658";
-const DESKTOP_SOURCE = "assets/hero/racing-roadster-v658-desktop.webp?v=658";
-const MOBILE_SOURCE = "assets/hero/racing-roadster-v658-mobile.webp?v=658";
-const WATCH_SOURCE = "assets/kidult100/watch-v655.webp?v=658";
-const MOBILE_QUERY = "(max-width: 768px)";
-
-function roadsterSource() {
-  return window.matchMedia(MOBILE_QUERY).matches ? MOBILE_SOURCE : DESKTOP_SOURCE;
-}
+const VERSION = "2.1.0";
+const ASSET_VERSION = "660";
+const ROADSTER_KEY = "racing-roadster-v660";
+const ROADSTER_SOURCE = `assets/hero/racing-roadster-v660-master.webp?v=${ASSET_VERSION}`;
+const WATCH_SOURCE = `assets/kidult100/watch-v655.webp?v=${ASSET_VERSION}`;
 
 function bindRoadster() {
   const card = document.querySelector("[data-hero-card]");
   const image = document.querySelector("[data-hero-image]");
   if (!card || !image) return false;
 
-  const source = roadsterSource();
   card.dataset.heroAsset = ROADSTER_KEY;
   card.dataset.assetState = "loading";
   image.dataset.heroAsset = ROADSTER_KEY;
@@ -23,9 +17,9 @@ function bindRoadster() {
   image.loading = "eager";
   image.decoding = "async";
   image.fetchPriority = "high";
-  image.alt = "KIDULTS original deep green racing roadster in a warm limestone studio";
+  image.alt = "KIDULTS original deep green racing roadster in one warm editorial studio";
 
-  if (image.getAttribute("src") !== source) image.setAttribute("src", source);
+  if (image.getAttribute("src") !== ROADSTER_SOURCE) image.setAttribute("src", ROADSTER_SOURCE);
   if (image.complete && image.naturalWidth > 0) card.dataset.assetState = "ready";
   return true;
 }
@@ -40,7 +34,7 @@ function bindWatch() {
   if (!card || !image) return false;
 
   card.dataset.k100Id = "time-01";
-  image.dataset.assetVersion = "658";
+  image.dataset.assetVersion = ASSET_VERSION;
   if (!image.getAttribute("src")?.includes("watch-v655.webp")) image.setAttribute("src", WATCH_SOURCE);
   image.hidden = false;
   image.removeAttribute("hidden");
@@ -49,7 +43,7 @@ function bindWatch() {
 
 function markK100Format() {
   document.querySelectorAll("[data-k100-gallery] .k100-card").forEach(card => {
-    card.dataset.imageFormat = "museum-editorial-v658";
+    card.dataset.imageFormat = "museum-editorial-v660";
   });
 }
 
@@ -77,7 +71,6 @@ export function startAssetBindingHotfix() {
   requestAnimationFrame(apply);
   window.setTimeout(apply, 180);
   window.setTimeout(apply, 900);
-  window.matchMedia(MOBILE_QUERY).addEventListener?.("change", apply);
 
   const observer = new MutationObserver(apply);
   observer.observe(document.documentElement, {
@@ -89,11 +82,11 @@ export function startAssetBindingHotfix() {
 
   window.KIDULTS_ASSET_BINDING_HOTFIX = Object.freeze({
     version: VERSION,
+    assetVersion: ASSET_VERSION,
     roadsterKey: ROADSTER_KEY,
-    desktopSource: DESKTOP_SOURCE,
-    mobileSource: MOBILE_SOURCE,
+    roadsterSource: ROADSTER_SOURCE,
     watchSource: WATCH_SOURCE,
-    imageFormat: "MUSEUM_EDITORIAL_V658",
+    imageFormat: "MUSEUM_EDITORIAL_V660",
     rebind: apply
   });
   return window.KIDULTS_ASSET_BINDING_HOTFIX;

@@ -1,6 +1,6 @@
 const STYLE_ID = "kidults-mobile-hero-visibility-style";
-const VERSION = "1.2.0";
-const ASSET_VERSION = "658";
+const VERSION = "1.3.0";
+const ASSET_VERSION = "660";
 const RETRY_ASSET = null;
 
 function ensureStylesheet() {
@@ -23,7 +23,7 @@ function stripQuery(value) {
 }
 
 function fallbackSvgDataUri() {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="KIDULTS mobility visual unavailable"><rect width="1200" height="900" fill="#e8dfd2"/><text x="600" y="455" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" letter-spacing="4" fill="#073d2d">VISUAL TEMPORARILY UNAVAILABLE</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="KIDULTS mobility visual unavailable"><rect width="1200" height="900" fill="#f1ebe2"/><text x="600" y="455" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" letter-spacing="4" fill="#073d2d">VISUAL TEMPORARILY UNAVAILABLE</text></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
@@ -40,10 +40,7 @@ export function startMobileHeroVisibility({ manifest } = {}) {
   const image = document.querySelector("[data-hero-image]");
   if (!card || !image) return null;
 
-  const preferred = window.matchMedia("(max-width: 768px)").matches
-    ? (manifest?.hero?.mobile_asset || manifest?.hero?.asset)
-    : manifest?.hero?.asset;
-  const primary = stripQuery(preferred || image.getAttribute("src"));
+  const primary = stripQuery(manifest?.hero?.asset || image.getAttribute("src"));
   const sources = [...new Set([primary, RETRY_ASSET].filter(Boolean))];
   let sourceIndex = 0;
   let fallbackActive = false;
@@ -112,6 +109,7 @@ export function startMobileHeroVisibility({ manifest } = {}) {
   window.KIDULTS_MOBILE_HERO = Object.freeze({
     version: VERSION,
     assetVersion: ASSET_VERSION,
+    canonicalSource: primary,
     retrySources: sources.slice(),
     state() { return card.dataset.mobileHeroState ?? "NOT AVAILABLE"; },
     retry() {
