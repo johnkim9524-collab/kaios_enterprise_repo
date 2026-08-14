@@ -32,6 +32,17 @@ test('untyped canonical aliases require exact normalized source title identity',
   }
 });
 
+test('new gaming aliases preserve exact product identity', () => {
+  const exact = evaluate('Game Boy Advance SP', 'Game Boy Advance SP', 'handheld game console by Nintendo', ['handheld game console', 'game console', 'video game']);
+  const nearby = evaluate('Game Boy Advance SP', 'Game Boy Advance SP 2', 'handheld game console by Nintendo', ['handheld game console', 'game console', 'video game']);
+  assert.equal(exact.exactTitleRequired, true);
+  assert.equal(exact.exactTitleMatched, true);
+  assert.equal(exact.accepted, true);
+  assert.equal(nearby.exactTitleRequired, true);
+  assert.equal(nearby.exactTitleMatched, false);
+  assert.equal(nearby.accepted, false);
+});
+
 test('untyped canonical aliases reject meaningful plus-suffix variants', () => {
   const exact = evaluate('Atari 2600', 'Atari 2600', 'home video game console', ['video game console', 'video game']);
   const variant = evaluate('Atari 2600', 'Atari 2600+', 'home video game console', ['video game console', 'video game']);
