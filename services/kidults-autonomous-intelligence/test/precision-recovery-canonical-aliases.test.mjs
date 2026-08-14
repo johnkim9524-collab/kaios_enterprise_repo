@@ -12,6 +12,7 @@ function normalize(value) {
 }
 
 test('canonical toy recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
+  assert.equal(config.schemaVersion, '1.0.1');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
