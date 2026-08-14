@@ -17,7 +17,7 @@ function hasDistinctiveShape(value) {
 }
 
 test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
-  assert.equal(config.schemaVersion, '1.0.6');
+  assert.equal(config.schemaVersion, '1.0.7');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
@@ -72,6 +72,7 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
       'Adidas Superstar',
       'Adidas Gazelle',
       'Air Force 1',
+      'Nike Mag',
     ],
     'technology-cameras': [
       'Macintosh 128K',
