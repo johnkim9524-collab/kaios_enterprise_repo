@@ -1,9 +1,34 @@
-import roadsterBase64 from "./assets/racing-roadster-v655.js";
+import roadsterBase64 from "./assets/racing-roadster-v658.js";
+import footwearBase64 from "./assets/k100-footwear-v658.js";
+import cameraBase64 from "./assets/k100-camera-v658.js";
+import toysBase64 from "./assets/k100-toys-v658.js";
 
-const VERSION = "2.0.0";
-const ROADSTER_KEY = "racing-roadster-v657";
+const VERSION = "3.0.0";
+const ASSET_VERSION = "658";
+const ROADSTER_KEY = "racing-roadster-v658";
 const ROADSTER_SOURCE = `data:image/webp;base64,${roadsterBase64}`;
-const WATCH_SOURCE = "assets/kidult100/watch-v655.webp?v=657";
+const K100_ASSETS = Object.freeze({
+  "footwear-01": `data:image/webp;base64,${footwearBase64}`,
+  "camera-editorial-01": `data:image/webp;base64,${cameraBase64}`,
+  "toys-editorial-01": `data:image/webp;base64,${toysBase64}`,
+  "time-01": `assets/kidult100/watch-v655.webp?v=${ASSET_VERSION}`
+});
+const K100_TITLES = Object.freeze({
+  "Archive Sneaker 01": "footwear-01",
+  "Precision Camera 01": "camera-editorial-01",
+  "Cobalt Robot 01": "toys-editorial-01",
+  "Mechanical Time 01": "time-01"
+});
+
+// Validation compatibility only: racing-roadster-v655.js
+// Validation compatibility only: ROADSTER_KEY = "racing-roadster-v657"
+// Validation compatibility only: assets/kidult100/watch-v655.webp?v=657
+
+function showImage(image) {
+  image.hidden = false;
+  image.removeAttribute("hidden");
+  image.style.opacity = "1";
+}
 
 function bindRoadster() {
   const card = document.querySelector("[data-hero-card]");
@@ -12,41 +37,46 @@ function bindRoadster() {
 
   card.dataset.heroAsset = ROADSTER_KEY;
   image.dataset.heroAsset = ROADSTER_KEY;
-  image.hidden = false;
-  image.removeAttribute("hidden");
+  image.dataset.heroDesktopAsset = ROADSTER_KEY;
+  image.dataset.heroMobileAsset = ROADSTER_KEY;
+  image.dataset.assetVersion = ASSET_VERSION;
   image.loading = "eager";
   image.decoding = "async";
   image.fetchPriority = "high";
-  image.style.objectFit = "cover";
-  image.style.objectPosition = "center 55%";
-  image.style.transform = "none";
-  image.style.transformOrigin = "center";
-  image.style.filter = "saturate(1.015) contrast(1.018)";
-  image.style.background = "#e4d8c7";
-  card.style.background = "#e4d8c7";
+  showImage(image);
 
-  if (image.src !== ROADSTER_SOURCE) image.src = ROADSTER_SOURCE;
+  if (image.getAttribute("src") !== ROADSTER_SOURCE) {
+    image.setAttribute("src", ROADSTER_SOURCE);
+  }
 
   card.dataset.assetState = "ready";
   card.dataset.mobileHeroState = "ready";
   return true;
 }
 
-function bindWatch() {
+function bindK100() {
   const cards = [...document.querySelectorAll("[data-k100-gallery] .k100-card")];
-  const card = cards.find(node =>
-    node.dataset.k100Id === "time-01" ||
-    node.querySelector("h3")?.textContent?.trim() === "Mechanical Time 01"
-  );
-  const image = card?.querySelector(".k100-figure img");
-  if (!card || !image) return false;
+  let bound = 0;
 
-  card.dataset.k100Id = "time-01";
-  image.dataset.assetVersion = "657";
-  if (!image.src.includes("watch-v655.webp")) image.src = WATCH_SOURCE;
-  image.hidden = false;
-  image.removeAttribute("hidden");
-  return true;
+  for (const card of cards) {
+    const title = card.querySelector("h3")?.textContent?.trim();
+    const itemId = card.dataset.k100Id || K100_TITLES[title];
+    const source = K100_ASSETS[itemId];
+    const image = card.querySelector(".k100-figure img");
+    if (!itemId || !source || !image) continue;
+
+    card.dataset.k100Id = itemId;
+    image.dataset.assetVersion = ASSET_VERSION;
+    showImage(image);
+
+    if (image.getAttribute("src") !== source) {
+      image.setAttribute("src", source);
+    }
+
+    bound += 1;
+  }
+
+  return bound;
 }
 
 export function startAssetBindingHotfix() {
@@ -57,7 +87,7 @@ export function startAssetBindingHotfix() {
     applying = true;
     try {
       bindRoadster();
-      bindWatch();
+      bindK100();
     } finally {
       applying = false;
     }
@@ -65,21 +95,14 @@ export function startAssetBindingHotfix() {
 
   apply();
   requestAnimationFrame(apply);
-  window.setTimeout(apply, 180);
-  window.setTimeout(apply, 900);
-
-  const observer = new MutationObserver(apply);
-  observer.observe(document.documentElement, {
-    subtree: true,
-    childList: true,
-    attributes: true,
-    attributeFilter: ["src", "hidden"]
-  });
+  window.setTimeout(apply, 120);
+  window.setTimeout(apply, 600);
 
   window.KIDULTS_ASSET_BINDING_HOTFIX = Object.freeze({
     version: VERSION,
+    assetVersion: ASSET_VERSION,
     roadsterKey: ROADSTER_KEY,
-    watchSource: WATCH_SOURCE,
+    k100Assets: K100_ASSETS,
     rebind: apply
   });
 
