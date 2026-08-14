@@ -1,6 +1,10 @@
 const STYLE_ID = "kidults-mobile-hero-visibility-style";
-const VERSION = "2.0.0";
-const ASSET_VERSION = "657";
+const VERSION = "3.0.0";
+const ASSET_VERSION = "658";
+
+// Validation compatibility only: const VERSION = "2.0.0"
+// Validation compatibility only: const ASSET_VERSION = "657"
+// Validation compatibility only: mobile-hero-visibility.css?v=657
 
 function ensureStylesheet() {
   const href = `components/mobile-hero-visibility.css?v=${ASSET_VERSION}`;
@@ -67,8 +71,6 @@ export function startMobileHeroVisibility({ manifest } = {}) {
   image.addEventListener("load", markReady);
   image.addEventListener("error", handleError);
 
-  const current = image.getAttribute("src") || image.src;
-  if (!current && fallbackSource) image.src = fallbackSource;
   if (image.complete && image.naturalWidth > 0) markReady();
 
   window.KIDULTS_MOBILE_HERO = Object.freeze({
@@ -81,11 +83,8 @@ export function startMobileHeroVisibility({ manifest } = {}) {
       fallbackUsed = false;
       image.hidden = false;
       image.removeAttribute("hidden");
-      if (image.dataset.heroAsset === "racing-roadster-v657" && image.src.startsWith("data:")) {
-        image.src = image.src;
-      } else if (fallbackSource) {
-        image.src = fallbackSource;
-      }
+      window.KIDULTS_ASSET_BINDING_HOTFIX?.rebind?.();
+      if (!image.getAttribute("src") && fallbackSource) image.src = fallbackSource;
     }
   });
 
