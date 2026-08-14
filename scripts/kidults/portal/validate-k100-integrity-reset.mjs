@@ -93,7 +93,7 @@ for (const marker of [
   "padding:0",
   'data-k100-id="footwear-01"',
   'data-k100-id="time-01"',
-  "transform:scale(1.075)",
+  "transform:scale(1)!important",
   "@media(max-width:1240px)",
   "@media(max-width:760px)",
   "@media(max-width:390px)"
@@ -101,6 +101,9 @@ for (const marker of [
   if (!css.includes(marker)) errors.push(`K100 integrity CSS missing marker: ${marker}`);
 }
 
+if (/transform\s*:\s*scale\(1\.075\)/.test(css)) {
+  errors.push("K100 still contains item-specific zoom instead of the unified watch-format scale.");
+}
 if (/object-fit\s*:\s*contain/.test(css)) errors.push("K100 image frames still use contain instead of full-bleed cover.");
 if (/padding\s*:\s*(12|16)px/.test(css)) errors.push("K100 image frames still contain legacy inner image padding.");
 
@@ -110,4 +113,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS K100 integrity reset validation: PASS (4 objects, full-bleed watch-format framing)");
+console.log("KIDULTS K100 integrity reset validation: PASS (4 objects, one watch-format scale, full-bleed 4:3 framing)");
