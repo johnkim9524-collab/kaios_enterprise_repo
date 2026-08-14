@@ -35,6 +35,8 @@ const paths = {
   css: "apps/kidults-enterprise-staging/public/portal/components/decision-engine.css",
   contract: "apps/kidults-enterprise-staging/public/portal/data/decision-engine-contract.json",
   portal: "apps/kidults-enterprise-staging/public/portal/portal.js",
+  workspacePage: "apps/kidults-enterprise-staging/public/portal/workspace-page.js",
+  workspaceHtml: "apps/kidults-enterprise-staging/public/portal/workspace.html",
   store: "apps/kidults-enterprise-staging/public/portal/components/data-store.js",
   why: "apps/kidults-enterprise-staging/public/portal/components/why-engine.js",
   copilot: "apps/kidults-enterprise-staging/public/portal/components/copilot.js",
@@ -46,6 +48,8 @@ const paths = {
 const engine = readText(paths.engine);
 const css = readText(paths.css);
 const portal = readText(paths.portal);
+const workspacePage = readText(paths.workspacePage);
+const workspaceHtml = readText(paths.workspaceHtml);
 const store = readText(paths.store);
 const why = readText(paths.why);
 const copilot = readText(paths.copilot);
@@ -96,14 +100,20 @@ for (const marker of [
   if (!css.includes(marker)) errors.push(`Decision Engine CSS missing marker: ${marker}`);
 }
 
-if (!portal.includes('import { startDecisionEngine } from "./components/decision-engine.js";')) {
-  errors.push("portal.js does not import startDecisionEngine.");
+if (!workspacePage.includes('import { startDecisionEngine } from "./components/decision-engine.js";')) {
+  errors.push("workspace-page.js does not import startDecisionEngine.");
 }
-if (!portal.includes("startDecisionEngine({")) {
-  errors.push("portal.js does not start Decision Engine.");
+if (!workspacePage.includes("startDecisionEngine({ data, contract: data.decision })")) {
+  errors.push("workspace-page.js does not start Decision Engine on the dedicated route.");
 }
-if (!portal.includes("decisionEngine")) {
-  errors.push("portal.js does not publish the Decision Engine version.");
+if (portal.includes('import { startDecisionEngine } from "./components/decision-engine.js";') || portal.includes("startDecisionEngine({")) {
+  errors.push("Homepage portal.js must not mount Decision Engine.");
+}
+if (!portal.includes('decisionEngine: "DEDICATED_ROUTE"')) {
+  errors.push("portal.js does not publish Decision Engine as DEDICATED_ROUTE.");
+}
+if (!portal.includes('workspaceRoute: "workspace.html"') || !workspaceHtml.includes('data-page="workspace"')) {
+  errors.push("Dedicated Workspace route for Decision Engine is unavailable.");
 }
 if (!store.includes('decision: "data/decision-engine-contract.json?v=640"')) {
   errors.push("data-store.js does not register the Decision Engine contract.");
@@ -221,5 +231,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS Decision Engine validation: PASS (5 priorities, 5 gate states, truth-first)");
+console.log("KIDULTS Decision Engine validation: PASS (dedicated Workspace route, 5 priorities, 5 gate states, truth-first)");
 for (const warning of warnings) console.warn(`WARN: ${warning}`);
