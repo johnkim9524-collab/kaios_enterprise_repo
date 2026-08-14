@@ -29,7 +29,14 @@ function evaluate(query, label, description) {
 
 test('exact watch aliases remain inside the official Wikidata CC0 fail-closed recovery lane', () => {
   const queries = config.verticals[vertical];
-  for (const query of ['Rolex Submariner', 'Omega Seamaster', 'G-Shock']) {
+  for (const query of [
+    'Rolex Submariner',
+    'Omega Seamaster',
+    'G-Shock',
+    'Rolex Datejust',
+    'TAG Heuer Monaco',
+    'Rolex GMT Master II',
+  ]) {
     assert.ok(queries.includes(query));
   }
   assert.equal(new Set(queries).size, queries.length);
@@ -49,6 +56,9 @@ test('watch recovery uses the same reference precision evaluator as production a
     ['Rolex Submariner', "mechanical diver's watch"],
     ['Omega Seamaster', 'line of mechanical and quartz diving watches'],
     ['G-Shock', 'watch model series manufactured by Casio'],
+    ['Rolex Datejust', 'wristwatch manufactured by Rolex'],
+    ['TAG Heuer Monaco', 'automatic chronograph wristwatches'],
+    ['Rolex GMT Master II', 'watch by Rolex'],
   ];
 
   for (const [query, description] of cases) {
