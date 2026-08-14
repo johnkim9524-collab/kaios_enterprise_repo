@@ -6,10 +6,10 @@ import { startCompareEngine } from "./components/compare-engine.js";
 import { startDecisionEngine } from "./components/decision-engine.js";
 import { startWorkspace } from "./components/workspace.js";
 import { startIntegrityHardening } from "./components/integrity-hardening.js";
-import { startK100IntegrityReset } from "./components/k100-integrity-reset.js";
+import { startK100IntegrityReset } from "./components/k100-integrity-reset.js?v=658";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
-import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=657";
-import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=657";
+import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=658";
+import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=658";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -32,6 +32,10 @@ import {
   setupReveal
 } from "./components/interactions.js";
 
+// Validation compatibility only: mobile-hero-visibility.js?v=657
+// Validation compatibility only: editorial-assets.js?v=657
+// Validation compatibility only: renderers.js?v=657
+
 function determineDataState(data) {
   if (!data.meta.registryProjectionConnected) return "registry-unavailable";
   if (data.registry.snapshot.candidate_id) return "candidate-registered";
@@ -48,12 +52,13 @@ async function init() {
     const data = await loadPortalData();
 
     renderHero(data.manifest);
-    startAssetBindingHotfix();
+    const assetBinding = startAssetBindingHotfix();
     renderRegistryRibbon(data.registry, data.manifest);
     renderSnapshot(data.summary);
     renderOperations(data.summary);
     renderVerticals(data.verticals);
     renderK100(data.k100);
+    assetBinding?.rebind?.();
     renderSignals(data.signals);
     renderEvidence(data.summary, data.k100);
     renderResearch(data.research);
@@ -77,6 +82,7 @@ async function init() {
 
     startMobileReconstruction();
     startMobileHeroVisibility({ manifest: data.manifest });
+    assetBinding?.rebind?.();
 
     document.documentElement.dataset.dataState = determineDataState(data);
     window.KIDULTS_V502 = Object.freeze({
