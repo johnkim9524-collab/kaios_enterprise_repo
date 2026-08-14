@@ -1,4 +1,4 @@
-import { loadPortalData } from "./components/data-store.js";
+import { loadPortalData } from "./components/data-store.js?v=658";
 import { startLivingPulse } from "./components/living-pulse.js";
 import { startWhyEngine } from "./components/why-engine.js";
 import { startCopilot } from "./components/copilot.js";
@@ -6,10 +6,10 @@ import { startCompareEngine } from "./components/compare-engine.js";
 import { startDecisionEngine } from "./components/decision-engine.js";
 import { startWorkspace } from "./components/workspace.js";
 import { startIntegrityHardening } from "./components/integrity-hardening.js";
-import { startK100IntegrityReset } from "./components/k100-integrity-reset.js";
+import { startK100IntegrityReset } from "./components/k100-integrity-reset.js?v=658";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
-import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=657";
-import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=657";
+import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=658";
+import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=658";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -23,7 +23,7 @@ import {
   renderArchive,
   renderReleaseBaseline,
   renderPortalError
-} from "./components/renderers.js?v=657";
+} from "./components/renderers.js?v=658";
 import {
   setupNavigation,
   setupDialogs,
