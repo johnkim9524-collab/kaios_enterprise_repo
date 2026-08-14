@@ -2,6 +2,15 @@ function normalize(value) {
   return String(value || '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+function normalizeExactTitle(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/\+/g, ' plus ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
 function tokens(value) {
   return normalize(value).split(/\s+/).filter((token) => token.length >= 2);
 }
@@ -168,7 +177,7 @@ export function evaluatePrecisionRecoveryRow({ query, row, productTerms, disallo
   const disallowedHits = (disallowedTerms || []).filter((term) => includesPhrase(row?.description, term));
   const noDescription = normalize(row?.description).length === 0;
   const exactTitleRequired = queryProductHits.length === 0;
-  const exactTitleMatched = normalize(row?.label) === normalize(query);
+  const exactTitleMatched = normalizeExactTitle(row?.label) === normalizeExactTitle(query);
   const modelSpecificNoDescription = allDistinctiveAnchorsMatched
     && queryProductHits.length > 0
     && disallowedHits.length === 0
