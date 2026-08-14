@@ -17,7 +17,9 @@ const portalRoot = "apps/kidults-enterprise-staging/public/portal";
 const index = read(`${portalRoot}/index.html`);
 const portal = read(`${portalRoot}/portal.js`);
 const homepage = read(`${portalRoot}/components/homepage-structure.js`);
+const assets = read(`${portalRoot}/components/editorial-assets.js`);
 const finalCss = read(`${portalRoot}/components/v662-stability-freeze.css`);
+const mobileCss = read(`${portalRoot}/components/mobile-hero-visibility.css`);
 const workspaceHtml = read(`${portalRoot}/workspace.html`);
 const workspacePage = read(`${portalRoot}/workspace-page.js`);
 const workspaceCss = read(`${portalRoot}/workspace-page.css`);
@@ -89,19 +91,48 @@ for (const marker of [
 }
 
 for (const marker of [
+  'CACHE_REVISION = "visual95"',
+  'VISUAL_SYSTEM = "single-studio-v662-visual95"',
+  'footwear-v654.webp',
+  'camera-v654.webp',
+  'toys-v654.webp',
+  'watch-v655.webp',
+  'bindK100()'
+]) {
+  if (!assets.includes(marker)) errors.push(`Visual95 asset-binding marker missing: ${marker}`);
+}
+
+for (const marker of [
   'data-hero-asset="racing-roadster-v662"',
   'data-image-format="museum-editorial-v662"',
+  'data-visual-system="single-studio-v662-visual95"',
   'object-fit:contain!important',
   'aspect-ratio:4/3',
-  'transform:scale(1.04)!important',
-  'transform:scale(1.09)!important',
+  'transform:scale(1)!important',
   '.workspace-entry-compact',
   'border-width:.75px',
   'line-height:.965',
+  '#f3f1ec',
+  'filter:saturate(.94)',
   '@media(max-width:340px)'
 ]) {
-  if (!finalCss.includes(marker)) errors.push(`V662 visual marker missing: ${marker}`);
+  if (!finalCss.includes(marker)) errors.push(`V662 Visual95 marker missing: ${marker}`);
 }
+
+if (finalCss.includes('transform:scale(1.04)!important') || finalCss.includes('transform:scale(1.09)!important')) {
+  errors.push("Retired per-object K100 enlargement remains; Visual95 requires one unified frame treatment.");
+}
+
+for (const marker of [
+  'object-fit:contain!important',
+  'object-position:center center!important',
+  'background:#f3f1ec!important',
+  '@media(max-width:390px)',
+  '@media(max-width:360px)'
+]) {
+  if (!mobileCss.includes(marker)) errors.push(`Mobile Visual95 marker missing: ${marker}`);
+}
+if (mobileCss.includes("object-position:right center")) errors.push("Mobile Hero still uses the retired right-biased position.");
 
 for (const marker of [
   '.workspace-page-status-section',
@@ -112,8 +143,26 @@ for (const marker of [
   if (!workspaceCss.includes(marker)) errors.push(`Workspace page CSS marker missing: ${marker}`);
 }
 
-const canonical = path.join(root, `${portalRoot}/assets/hero/racing-roadster-v662.webp`);
-if (!fs.existsSync(canonical)) errors.push("Canonical V662 Roadster asset is missing.");
+const requiredAssets = [
+  `${portalRoot}/assets/hero/racing-roadster-v662.webp`,
+  `${portalRoot}/assets/kidult100/footwear-v654.webp`,
+  `${portalRoot}/assets/kidult100/camera-v654.webp`,
+  `${portalRoot}/assets/kidult100/toys-v654.webp`,
+  `${portalRoot}/assets/kidult100/watch-v655.webp`
+];
+for (const relative of requiredAssets) {
+  const absolute = path.join(root, relative);
+  if (!fs.existsSync(absolute)) {
+    errors.push(`Required Visual95 asset is missing: ${relative}`);
+    continue;
+  }
+  const data = fs.readFileSync(absolute);
+  if (data.subarray(0, 4).toString("ascii") !== "RIFF" || data.subarray(8, 12).toString("ascii") !== "WEBP") {
+    errors.push(`Required Visual95 asset is not a valid WebP: ${relative}`);
+  }
+  if (data.length < 12_000) errors.push(`Required Visual95 asset is unexpectedly small: ${relative} (${data.length} bytes)`);
+}
+
 for (const retired of [
   "racing-roadster-v654.webp",
   "racing-roadster-v658-desktop.webp",
@@ -124,9 +173,9 @@ for (const retired of [
 }
 
 if (errors.length) {
-  console.error(`KIDULTS V662 final entry structure validation: FAIL (${errors.length} error(s))`);
+  console.error(`KIDULTS V662 Visual95 final entry validation: FAIL (${errors.length} error(s))`);
   errors.forEach(error => console.error(`ERROR: ${error}`));
   process.exit(1);
 }
 
-console.log("KIDULTS V662 final entry structure validation: PASS (homepage first, dedicated Workspace, one canonical Roadster, responsive freeze)");
+console.log("KIDULTS V662 Visual95 final entry validation: PASS (homepage first, dedicated Workspace, neutral Hero, unified K100 studio, responsive freeze)");
