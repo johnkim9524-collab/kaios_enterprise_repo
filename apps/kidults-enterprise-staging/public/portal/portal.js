@@ -4,9 +4,9 @@ import { startWhyEngine } from "./components/why-engine.js";
 import { startIntegrityHardening } from "./components/integrity-hardening.js";
 import { startK100IntegrityReset } from "./components/k100-integrity-reset.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
-import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=662";
-import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=662";
-import { startHomepageStructure } from "./components/homepage-structure.js?v=662";
+import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=662-visual95";
+import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=662-visual95";
+import { startHomepageStructure } from "./components/homepage-structure.js?v=662-visual95";
 import {
   renderHero,
   renderRegistryRibbon,

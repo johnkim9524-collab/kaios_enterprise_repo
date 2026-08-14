@@ -21,7 +21,7 @@ html[data-homepage-structure="v662"] .button-secondary{
 html[data-homepage-structure="v662"] [data-hero-card]{
   overflow:hidden;
   isolation:isolate;
-  background:#eee6db!important;
+  background:#f3f1ec!important;
   box-shadow:0 30px 82px rgba(20,36,29,.055),0 7px 18px rgba(20,36,29,.022)!important;
 }
 
@@ -49,8 +49,8 @@ html[data-homepage-structure="v662"] [data-hero-card][data-hero-asset="racing-ro
   object-fit:contain!important;
   object-position:center center!important;
   transform:none!important;
-  background:#eee6db!important;
-  filter:saturate(1.01) contrast(1.01)!important;
+  background:#f3f1ec!important;
+  filter:saturate(.94) contrast(.985) brightness(1.012)!important;
   transition:none!important;
 }
 
@@ -72,7 +72,7 @@ html[data-homepage-structure="v662"] .k100-card[data-image-format="museum-editor
   overflow:hidden;
   border:1px solid rgba(7,61,45,.075);
   border-radius:14px;
-  background:#ded3c3;
+  background:#dfd0bd;
 }
 
 html[data-homepage-structure="v662"] .k100-card[data-image-format="museum-editorial-v662"] .k100-figure img{
@@ -89,11 +89,11 @@ html[data-homepage-structure="v662"] .k100-card[data-image-format="museum-editor
 }
 
 html[data-homepage-structure="v662"] .k100-card[data-k100-id="footwear-01"] .k100-figure img{
-  transform:scale(1.04)!important;
+  transform:scale(1)!important;
 }
 
 html[data-homepage-structure="v662"] .k100-card[data-k100-id="toys-editorial-01"] .k100-figure img{
-  transform:scale(1.09)!important;
+  transform:scale(1)!important;
 }
 
 html[data-homepage-structure="v662"] .workspace-entry-section{
@@ -209,7 +209,7 @@ html[data-homepage-structure="v662"] .archive-section + .workspace-entry-section
 
 @media(max-width:768px){
   html[data-homepage-structure="v662"] [data-hero-card]{
-    background:#eee6db!important;
+    background:#f3f1ec!important;
   }
 
   html[data-homepage-structure="v662"] [data-hero-card][data-hero-asset="racing-roadster-v662"]{
@@ -234,12 +234,12 @@ html[data-homepage-structure="v662"] .archive-section + .workspace-entry-section
     object-fit:contain!important;
     object-position:center center!important;
     transform:none!important;
-    background:#eee6db!important;
+    background:#f3f1ec!important;
   }
 
   html[data-homepage-structure="v662"] [data-hero-card] .moment-topline,
   html[data-homepage-structure="v662"] [data-hero-card] .moment-copy{
-    background:#eee6db!important;
+    background:#f3f1ec!important;
   }
 
   html[data-homepage-structure="v662"] .workspace-entry-section{
@@ -293,5 +293,49 @@ html[data-homepage-structure="v662"] .archive-section + .workspace-entry-section
   html[data-homepage-structure="v662"] [data-hero-card] .moment-image,
   html[data-homepage-structure="v662"] .k100-card .k100-figure img{
     transition:none!important;
+  }
+}
+
+/* KIDULTS V662 VISUAL95 — Founder-approved final visual freeze. */
+html[data-homepage-structure="v662"] [data-hero-card][data-visual-system="single-studio-v662-visual95"]{
+  background:#f3f1ec!important;
+  box-shadow:0 32px 84px rgba(20,36,29,.045),0 7px 18px rgba(20,36,29,.018)!important;
+}
+html[data-homepage-structure="v662"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image,
+html[data-homepage-structure="v662"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image[hidden]{
+  object-fit:contain!important;
+  object-position:center center!important;
+  transform:none!important;
+  background:#f3f1ec!important;
+  filter:saturate(.94) contrast(.985) brightness(1.012)!important;
+}
+html[data-homepage-structure="v662"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-topline,
+html[data-homepage-structure="v662"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-copy{
+  background:transparent!important;
+}
+html[data-homepage-structure="v662"] .k100-card[data-visual-system="single-studio-v662-visual95"] .k100-figure{
+  aspect-ratio:4/3!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border-color:rgba(7,61,45,.065)!important;
+  background:#dfd0bd!important;
+}
+html[data-homepage-structure="v662"] .k100-card[data-visual-system="single-studio-v662-visual95"] .k100-figure img{
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  padding:0!important;
+  object-fit:cover!important;
+  object-position:center center!important;
+  transform:none!important;
+  filter:saturate(.97) contrast(.99) brightness(1.005)!important;
+}
+@media(max-width:768px){
+  html[data-mobile-reconstruction="v1"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image,
+  html[data-mobile-reconstruction="v1"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image[hidden]{
+    object-fit:contain!important;
+    object-position:center center!important;
+    transform:none!important;
+    background:#f3f1ec!important;
   }
 }

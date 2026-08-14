@@ -1,8 +1,45 @@
-const VERSION = "3.0.0";
+const VERSION = "4.0.0";
 const ASSET_VERSION = "662";
+const CACHE_REVISION = "visual95";
+const ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}`;
 const ROADSTER_KEY = "racing-roadster-v662";
-const ROADSTER_SOURCE = `assets/hero/racing-roadster-v662.webp?v=${ASSET_VERSION}`;
-const WATCH_SOURCE = `assets/kidult100/watch-v655.webp?v=${ASSET_VERSION}`;
+const ROADSTER_SOURCE = `assets/hero/racing-roadster-v662.webp?v=${ASSET_QUERY}`;
+const IMAGE_FORMAT = "museum-editorial-v662";
+const VISUAL_SYSTEM = "single-studio-v662-visual95";
+
+const K100_ASSETS = Object.freeze({
+  "footwear-01": {
+    title: "Archive Sneaker 01",
+    source: `assets/kidult100/footwear-v654.webp?v=${ASSET_QUERY}`,
+    alt: "KIDULTS original dark green editorial sneaker in a neutral warm limestone studio"
+  },
+  "camera-editorial-01": {
+    title: "Precision Camera 01",
+    source: `assets/kidult100/camera-v654.webp?v=${ASSET_QUERY}`,
+    alt: "KIDULTS original rangefinder camera editorial visual in a neutral warm limestone studio"
+  },
+  "toys-editorial-01": {
+    title: "Cobalt Robot 01",
+    source: `assets/kidult100/toys-v654.webp?v=${ASSET_QUERY}`,
+    alt: "KIDULTS original cobalt robot editorial visual in a neutral warm limestone studio"
+  },
+  "time-01": {
+    title: "Mechanical Time 01",
+    source: `assets/kidult100/watch-v655.webp?v=${ASSET_QUERY}`,
+    alt: "KIDULTS original mechanical watch editorial visual in a neutral warm limestone studio"
+  }
+});
+
+function prepareImage(image, source, alt) {
+  image.hidden = false;
+  image.removeAttribute("hidden");
+  image.decoding = "async";
+  image.loading = "eager";
+  image.dataset.assetVersion = ASSET_QUERY;
+  image.dataset.visualSystem = VISUAL_SYSTEM;
+  image.alt = alt;
+  if (image.getAttribute("src") !== source) image.setAttribute("src", source);
+}
 
 function bindRoadster() {
   const card = document.querySelector("[data-hero-card]");
@@ -10,41 +47,42 @@ function bindRoadster() {
   if (!card || !image) return false;
 
   card.dataset.heroAsset = ROADSTER_KEY;
+  card.dataset.visualSystem = VISUAL_SYSTEM;
   card.dataset.assetState = "loading";
   image.dataset.heroAsset = ROADSTER_KEY;
-  image.hidden = false;
-  image.removeAttribute("hidden");
   image.loading = "eager";
   image.decoding = "async";
   image.fetchPriority = "high";
-  image.alt = "KIDULTS original deep green racing roadster in one warm editorial studio";
-
-  if (image.getAttribute("src") !== ROADSTER_SOURCE) image.setAttribute("src", ROADSTER_SOURCE);
+  prepareImage(
+    image,
+    ROADSTER_SOURCE,
+    "KIDULTS original deep green racing roadster in a neutral warm limestone editorial studio"
+  );
   if (image.complete && image.naturalWidth > 0) card.dataset.assetState = "ready";
   return true;
 }
 
-function bindWatch() {
+function findK100Card(id, title) {
   const cards = [...document.querySelectorAll("[data-k100-gallery] .k100-card")];
-  const card = cards.find(node =>
-    node.dataset.k100Id === "time-01" ||
-    node.querySelector("h3")?.textContent?.trim() === "Mechanical Time 01"
+  return cards.find(card =>
+    card.dataset.k100Id === id ||
+    card.querySelector("h3")?.textContent?.trim() === title
   );
-  const image = card?.querySelector(".k100-figure img");
-  if (!card || !image) return false;
-
-  card.dataset.k100Id = "time-01";
-  image.dataset.assetVersion = ASSET_VERSION;
-  if (!image.getAttribute("src")?.includes("watch-v655.webp")) image.setAttribute("src", WATCH_SOURCE);
-  image.hidden = false;
-  image.removeAttribute("hidden");
-  return true;
 }
 
-function markK100Format() {
-  document.querySelectorAll("[data-k100-gallery] .k100-card").forEach(card => {
-    card.dataset.imageFormat = "museum-editorial-v662";
-  });
+function bindK100() {
+  let count = 0;
+  for (const [id, asset] of Object.entries(K100_ASSETS)) {
+    const card = findK100Card(id, asset.title);
+    const image = card?.querySelector(".k100-figure img");
+    if (!card || !image) continue;
+    card.dataset.k100Id = id;
+    card.dataset.imageFormat = IMAGE_FORMAT;
+    card.dataset.visualSystem = VISUAL_SYSTEM;
+    prepareImage(image, asset.source, asset.alt);
+    count += 1;
+  }
+  return count;
 }
 
 export function startAssetBindingHotfix() {
@@ -54,8 +92,7 @@ export function startAssetBindingHotfix() {
     applying = true;
     try {
       bindRoadster();
-      bindWatch();
-      markK100Format();
+      bindK100();
     } finally {
       applying = false;
     }
@@ -88,10 +125,12 @@ export function startAssetBindingHotfix() {
   window.KIDULTS_ASSET_BINDING_HOTFIX = Object.freeze({
     version: VERSION,
     assetVersion: ASSET_VERSION,
+    cacheRevision: CACHE_REVISION,
     roadsterKey: ROADSTER_KEY,
     roadsterSource: ROADSTER_SOURCE,
-    watchSource: WATCH_SOURCE,
-    imageFormat: "MUSEUM_EDITORIAL_V662",
+    k100Sources: K100_ASSETS,
+    imageFormat: IMAGE_FORMAT,
+    visualSystem: VISUAL_SYSTEM,
     rebind: apply
   });
   return window.KIDULTS_ASSET_BINDING_HOTFIX;
