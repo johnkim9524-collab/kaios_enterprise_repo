@@ -9,6 +9,7 @@ const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 const MAX_FILE_LINES_WARN = 700;
 const MAX_FILE_LINES_FAIL = 1500;
 const AUDIT_IMPLEMENTATION = 'scripts/p0-engineering-quality-audit.mjs';
+const CORE_SOURCE_READINESS_REL = 'reports/engineering-hardening/stage2-core-source-readiness-latest.json';
 
 async function exists(p) {
   try { await fs.access(p); return true; } catch { return false; }
@@ -120,6 +121,22 @@ if (!nodeEngine) {
   add('P1', 'NODE_ENGINE_INCOMPATIBLE', 'package.json', null, `declared Node engine does not clearly include Node 22+: ${nodeEngine}`);
 }
 
+let coreSourceReadiness = null;
+const coreSourceReadinessPath = path.join(ROOT, CORE_SOURCE_READINESS_REL);
+if (await exists(coreSourceReadinessPath)) {
+  try {
+    coreSourceReadiness = JSON.parse(await fs.readFile(coreSourceReadinessPath, 'utf8'));
+  } catch (error) {
+    add(
+      'P1',
+      'INVALID_CORE_SOURCE_READINESS_DIAGNOSTIC',
+      CORE_SOURCE_READINESS_REL,
+      null,
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+}
+
 const counts = findings.reduce((acc, finding) => {
   acc[finding.severity] = (acc[finding.severity] ?? 0) + 1;
   return acc;
@@ -127,12 +144,18 @@ const counts = findings.reduce((acc, finding) => {
 
 const status = (counts.P0 ?? 0) > 0 ? 'FAIL' : 'PASS_WITH_FINDINGS';
 const report = {
-  schemaVersion: '1.1.0',
+  schemaVersion: '1.2.0',
   generatedAt: new Date().toISOString(),
   objective: 'Speed x Quality engineering hardening baseline',
   status,
   thresholds: { maxFileLinesWarn: MAX_FILE_LINES_WARN, maxFileLinesFail: MAX_FILE_LINES_FAIL },
   repositoryChecks: { trackedLockfile: trackedLockfile || null, nodeEngine: nodeEngine || null },
+  runtimeDiagnostics: {
+    stage2CoreSourceReadiness: coreSourceReadiness,
+    stage2CoreSourceReadinessPath: CORE_SOURCE_READINESS_REL,
+    diagnosticsAreProductionEvidence: false,
+    diagnosticsCanRelaxProductionGate: false,
+  },
   stats,
   findingCounts: counts,
   findings: findings.sort((a, b) => (a.severity + a.code + a.file).localeCompare(b.severity + b.code + b.file)),
@@ -147,6 +170,7 @@ console.log(`Files: ${stats.filesScanned}, lines: ${stats.linesScanned}`);
 console.log(`Findings: P0=${counts.P0 ?? 0} P1=${counts.P1 ?? 0} P2=${counts.P2 ?? 0} P3=${counts.P3 ?? 0}`);
 console.log(`Tracked lockfile: ${trackedLockfile || 'NONE'}`);
 console.log(`Node engine: ${nodeEngine || 'UNDECLARED'}`);
+console.log(`Stage 2 core-source readiness diagnostic: ${coreSourceReadiness ? coreSourceReadiness.status || 'PRESENT' : 'NOT_AVAILABLE'}`);
 console.log('Report: reports/engineering-hardening/quality-audit-latest.json');
 
 if (status === 'FAIL') process.exit(1);
