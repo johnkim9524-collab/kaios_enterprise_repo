@@ -42,3 +42,10 @@ test('Stage2 discovery uses the same serial server-driven Wikidata backpressure 
   assert.match(STAGE2_SCRIPT, /serialWikidataReadRequests: true/);
   assert.match(STAGE2_SCRIPT, /accessDenialCircuitBreaker: true/);
 });
+
+test('Stage2 discovery retries only explicit Wikidata backpressure and keeps generic 5xx terminal', () => {
+  assert.match(STAGE2_SCRIPT, /if \(maxlag \|\| response\.status === 429\)/);
+  assert.match(STAGE2_SCRIPT, /retriesOnlyOnExplicitBackpressure: true/);
+  assert.match(STAGE2_SCRIPT, /wikidataRetriesOnlyOnExplicitBackpressure: true/);
+  assert.doesNotMatch(STAGE2_SCRIPT, /response\.status >= 500/);
+});
