@@ -17,7 +17,7 @@ function hasDistinctiveShape(value) {
 }
 
 test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
-  assert.equal(config.schemaVersion, '1.0.10');
+  assert.equal(config.schemaVersion, '1.0.11');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
@@ -63,6 +63,7 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
       'Omega Speedmaster',
       'Rolex Milgauss',
       'Cartier Santos',
+      'G-Shock',
     ],
     'fashion-accessories': [
       'Air Jordan 1',
@@ -130,6 +131,7 @@ test('fashion recovery prunes typed searches already covered by stricter canonic
     'Adidas Samba',
     'Adidas Superstar',
     'Adidas Gazelle',
+    'Air Force 1',
   ];
   const redundant = [
     'Nike Air Jordan 1 shoe',
@@ -141,6 +143,7 @@ test('fashion recovery prunes typed searches already covered by stricter canonic
     'Adidas Samba shoe',
     'Adidas Superstar shoe',
     'Adidas Gazelle shoe',
+    'Nike Air Force 1 shoe',
   ];
 
   for (const alias of canonical) assert.ok(queries.includes(alias), `missing retained canonical alias: ${alias}`);
@@ -165,5 +168,6 @@ test('exact-alias covered technology and gaming searches stay pruned to preserve
   assert.ok(gaming.includes('Dreamcast'), 'missing retained Dreamcast exact alias');
   assert.equal(gaming.includes('Sega Dreamcast video game console'), false, 'redundant Dreamcast typed query returned');
   assert.ok(gaming.includes('Wii U'), 'missing Wii U exact alias');
+  assert.equal(gaming.includes('Nintendo Wii U video game console'), false, 'redundant Wii U typed query returned');
   assert.ok(gaming.includes('Sega Saturn'), 'missing Sega Saturn exact alias');
 });
