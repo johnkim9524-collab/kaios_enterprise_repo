@@ -106,7 +106,7 @@ test('Stage 2 candidate build and precision recovery retain hard bounded failure
     'Stage 2 institutional archive product-object precision hardening',
   );
 
-  assert.match(stage2, /timeout --signal=TERM --kill-after=10s 240s node scripts\/kidult100-poc-live-observed\.mjs/);
+  assert.match(stage2, /timeout --signal=TERM --kill-after=10s 360s node scripts\/kidult100-poc-live-observed\.mjs/);
   assert.match(stage2, /partialEvidenceAccepted:false/);
   assert.doesNotMatch(stage2, /continue-on-error:\s*true/);
 
