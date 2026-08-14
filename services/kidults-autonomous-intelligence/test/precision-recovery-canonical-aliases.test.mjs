@@ -17,7 +17,7 @@ function hasDistinctiveShape(value) {
 }
 
 test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
-  assert.equal(config.schemaVersion, '1.0.2');
+  assert.equal(config.schemaVersion, '1.0.3');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
@@ -66,6 +66,8 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
       'Air Jordan 1',
       'Air Jordan 4',
       'Air Max 90',
+      'Nike Air Max 90',
+      'Nike Air Max 97',
       'Chanel 2.55',
       'Adidas Samba',
       'Adidas Superstar',
