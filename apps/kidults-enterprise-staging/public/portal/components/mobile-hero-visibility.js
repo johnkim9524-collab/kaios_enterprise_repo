@@ -1,6 +1,6 @@
 const STYLE_ID = "kidults-mobile-hero-visibility-style";
-const VERSION = "2.0.0";
-const ASSET_VERSION = "657";
+const VERSION = "2.1.0";
+const ASSET_VERSION = "658";
 
 function ensureStylesheet() {
   const href = `components/mobile-hero-visibility.css?v=${ASSET_VERSION}`;
@@ -9,7 +9,6 @@ function ensureStylesheet() {
     if (existing.getAttribute("href") !== href) existing.setAttribute("href", href);
     return existing;
   }
-
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
@@ -18,22 +17,12 @@ function ensureStylesheet() {
   return link;
 }
 
-function versioned(source) {
-  const value = String(source ?? "");
-  if (!value || value.startsWith("data:")) return value;
-  const clean = value.split("?")[0].split("#")[0];
-  return `${clean}?v=${ASSET_VERSION}`;
-}
-
-export function startMobileHeroVisibility({ manifest } = {}) {
+export function startMobileHeroVisibility() {
   ensureStylesheet();
 
   const card = document.querySelector("[data-hero-card]");
   const image = document.querySelector("[data-hero-image]");
   if (!card || !image) return null;
-
-  const fallbackSource = versioned(manifest?.hero?.asset);
-  let fallbackUsed = false;
 
   image.loading = "eager";
   image.decoding = "async";
@@ -50,25 +39,14 @@ export function startMobileHeroVisibility({ manifest } = {}) {
     card.dataset.mobileHeroState = "ready";
   };
 
-  const handleError = () => {
+  image.addEventListener("load", markReady);
+  image.addEventListener("error", () => {
     image.hidden = false;
     image.removeAttribute("hidden");
-    if (!fallbackUsed && fallbackSource && !image.src.includes(fallbackSource)) {
-      fallbackUsed = true;
-      card.dataset.assetState = "retrying";
-      card.dataset.mobileHeroState = "retrying";
-      image.src = fallbackSource;
-      return;
-    }
     card.dataset.assetState = "missing";
     card.dataset.mobileHeroState = "missing";
-  };
+  });
 
-  image.addEventListener("load", markReady);
-  image.addEventListener("error", handleError);
-
-  const current = image.getAttribute("src") || image.src;
-  if (!current && fallbackSource) image.src = fallbackSource;
   if (image.complete && image.naturalWidth > 0) markReady();
 
   window.KIDULTS_MOBILE_HERO = Object.freeze({
@@ -78,14 +56,9 @@ export function startMobileHeroVisibility({ manifest } = {}) {
       return card.dataset.mobileHeroState ?? "NOT AVAILABLE";
     },
     retry() {
-      fallbackUsed = false;
       image.hidden = false;
       image.removeAttribute("hidden");
-      if (image.dataset.heroAsset === "racing-roadster-v657" && image.src.startsWith("data:")) {
-        image.src = image.src;
-      } else if (fallbackSource) {
-        image.src = fallbackSource;
-      }
+      if (image.src.startsWith("data:image/webp")) image.src = image.src;
     }
   });
 
