@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.3.0",
+  "schemaVersion": "1.3.1",
   "policy": "FAIL_CLOSED_STAGE2_WIKIDATA_SOURCE_NATIVE_TYPE_VERIFICATION",
   "requiredInputMode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "targetSource": "wikidata",
@@ -24,7 +24,7 @@
   "disallowedDirectTypeTerms": [
     "wikimedia duplicated page", "wikimedia disambiguation page", "trademark", "human", "person", "organization", "company",
     "business", "business enterprise", "manufacturer", "media franchise", "family name", "given name", "village", "news article", "wikinews article",
-    "newspaper article", "scholarly article", "publisher", "brand", "fictional character", "fictional universe"
+    "newspaper article", "scholarly article", "publisher", "brand", "fictional character", "fictional universe", "subscription"
   ],
   "softDisallowedDirectTypeTerms": ["trademark"],
   "rules": {
