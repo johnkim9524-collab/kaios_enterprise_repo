@@ -10,6 +10,7 @@ import { startK100IntegrityReset } from "./components/k100-integrity-reset.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=658";
 import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=658";
+import { startHomepageStructure } from "./components/homepage-structure.js?v=661";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -39,6 +40,15 @@ function determineDataState(data) {
   return "preview-baseline";
 }
 
+function startDedicatedWorkspace(data) {
+  if (document.body.dataset.page !== "workspace") return false;
+  startCopilot({ data, contract: data.copilot });
+  startCompareEngine({ data, contract: data.compare });
+  startDecisionEngine({ data, contract: data.decision });
+  startWorkspace({ data, contract: data.workspace });
+  return true;
+}
+
 async function init() {
   document.documentElement.dataset.release = "v502";
   document.documentElement.dataset.experience = "living-intelligence-v6";
@@ -62,10 +72,7 @@ async function init() {
 
     startLivingPulse({ data, reload: loadPortalData, contract: data.pulse });
     startWhyEngine({ data, contract: data.why });
-    startCopilot({ data, contract: data.copilot });
-    startCompareEngine({ data, contract: data.compare });
-    startDecisionEngine({ data, contract: data.decision });
-    startWorkspace({ data, contract: data.workspace });
+    const workspaceMounted = startDedicatedWorkspace(data);
 
     startIntegrityHardening({ data });
     startK100IntegrityReset({ data });
@@ -73,6 +80,7 @@ async function init() {
     setupDialogs(data);
     setupVerticalFilter();
     setupSearch(data.searchIndex);
+    startHomepageStructure();
     setupReveal();
 
     startMobileReconstruction();
@@ -88,10 +96,13 @@ async function init() {
       sourceMode: data.manifest.source_mode,
       livingPulse: data.pulse.version,
       whyEngine: data.why.version,
-      copilotEngine: data.copilot.version,
-      compareEngine: data.compare.version,
-      decisionEngine: data.decision.version,
+      copilotEngine: workspaceMounted ? data.copilot.version : "DEDICATED_ROUTE",
+      compareEngine: workspaceMounted ? data.compare.version : "DEDICATED_ROUTE",
+      decisionEngine: workspaceMounted ? data.decision.version : "DEDICATED_ROUTE",
       workspace: data.workspace.version,
+      workspaceMounted,
+      workspaceRoute: "workspace.html",
+      homepageStructure: window.KIDULTS_HOMEPAGE_STRUCTURE?.version ?? "NOT AVAILABLE",
       integrity: window.KIDULTS_INTEGRITY?.version ?? "NOT AVAILABLE",
       k100Integrity: window.KIDULTS_K100_INTEGRITY?.version ?? "NOT AVAILABLE",
       mobileReconstruction: window.KIDULTS_MOBILE?.version ?? "NOT AVAILABLE",
