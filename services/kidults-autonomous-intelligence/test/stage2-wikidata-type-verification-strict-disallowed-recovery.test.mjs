@@ -139,3 +139,40 @@ test('strict disallowed-context lane requires clean explicit product P31 and rej
   assert.equal(audit.safety.rightsClassificationRelaxed, false);
   assert.equal(audit.safety.provenanceRelaxed, false);
 });
+
+test('subscription P31 cannot requalify a console-query result even when a video-game type also matches', () => {
+  const row = candidate({
+    candidateKey: 'wikidata:Q60986256',
+    sourceRecordId: 'Q60986256',
+    canonicalTitle: 'Nintendo Entertainment System – Nintendo Classics',
+    description: null,
+    vertical: 'gaming-music-screen',
+    query: 'Nintendo Entertainment System',
+    payloadHash: 'e'.repeat(64),
+    semanticStageD: {
+      passed: false,
+      reasons: ['REFERENCE_PRODUCT_OBJECT_CONTEXT_MISSING'],
+      diagnostics: { allAnchorsMatched: true, exactTitleQuery: false, modelSpecific: false },
+    },
+  });
+  const fixture = {
+    Q60986256: entity(['Q322948', 'Q16070115']),
+    Q322948: type('subscription', 'recurring payment at regular intervals for access to a product'),
+    Q16070115: type('video game compilation', 'multiple computer and video games sold as a single product'),
+  };
+
+  const { result, verified, audit } = run([row], fixture);
+  assert.equal(result.status, 0, result.stderr);
+
+  const rejected = verified.candidates[0];
+  assert.equal(rejected.semanticRelevant, false);
+  assert.equal(rejected.semanticStageE.reasons[0], 'WIKIDATA_DIRECT_P31_DISALLOWED_TYPE');
+  assert.equal(rejected.semanticStageE.proof.allowedHits.some((hit) => hit.term === 'video game'), true);
+  assert.equal(rejected.semanticStageE.proof.hardDisallowedHits.some((hit) => hit.term === 'subscription'), true);
+  assert.equal(rejected.payloadHash, 'e'.repeat(64));
+  assert.equal(rejected.rightsClass, 'CC0_STRUCTURED_DATA');
+  assert.equal(audit.metrics.recoveredCandidates, 0);
+  assert.equal(audit.safety.hardDisallowedEntityOrMediaTypeCanBeOverridden, false);
+  assert.equal(audit.safety.rightsClassificationRelaxed, false);
+  assert.equal(audit.safety.provenanceRelaxed, false);
+});
