@@ -1,4 +1,4 @@
-import roadsterBase64 from "./assets/racing-roadster-v657.js";
+import roadsterBase64 from "./assets/racing-roadster-v655.js";
 
 const VERSION = "2.0.0";
 const ROADSTER_KEY = "racing-roadster-v657";
