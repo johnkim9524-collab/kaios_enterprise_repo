@@ -11,8 +11,8 @@ function normalize(value) {
   return String(value || '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-test('canonical toy recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
-  assert.equal(config.schemaVersion, '1.0.1');
+test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
+  assert.equal(config.schemaVersion, '1.0.2');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
@@ -44,5 +44,51 @@ test('canonical toy aliases are distinctive, non-generic, and duplicate-free', (
     assert.ok(queries.includes(alias), `missing canonical recovery alias: ${alias}`);
     assert.equal(generic.has(normalize(alias)), false, `canonical alias became generic: ${alias}`);
     assert.ok(normalize(alias).split(/\s+/).some((token) => token.length >= 4), `alias lacks a distinctive token: ${alias}`);
+  }
+});
+
+test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-free', () => {
+  const expected = {
+    'watches-jewelry': [
+      'Cartier Tank',
+      'Audemars Piguet Royal Oak',
+      'Jaeger-LeCoultre Reverso',
+      'Breitling Navitimer',
+    ],
+    'fashion-accessories': [
+      'Air Jordan 1',
+      'Air Jordan 4',
+      'Air Max 90',
+      'Chanel 2.55',
+    ],
+    'technology-cameras': [
+      'Macintosh 128K',
+      'iMac G3',
+      'Power Mac G4 Cube',
+      'Polaroid SX-70',
+    ],
+    'gaming-music-screen': [
+      'Nintendo Switch',
+      'Nintendo 64',
+      'Nintendo GameCube',
+      'Atari 2600',
+    ],
+    'cards-comics-memorabilia': [
+      'Action Comics #1',
+      'Detective Comics #27',
+      'Pikachu Illustrator',
+      'Black Lotus',
+    ],
+  };
+  const generic = new Set((referencePolicy.genericQueries || []).map(normalize));
+
+  for (const [vertical, aliases] of Object.entries(expected)) {
+    const queries = config.verticals[vertical];
+    assert.equal(new Set(queries.map(normalize)).size, queries.length, `${vertical} query set contains a normalized duplicate`);
+    for (const alias of aliases) {
+      assert.ok(queries.includes(alias), `missing ${vertical} canonical recovery alias: ${alias}`);
+      assert.equal(generic.has(normalize(alias)), false, `${vertical} canonical alias became generic: ${alias}`);
+      assert.ok(normalize(alias).split(/\s+/).some((token) => token.length >= 4), `${vertical} alias lacks a distinctive token: ${alias}`);
+    }
   }
 });
