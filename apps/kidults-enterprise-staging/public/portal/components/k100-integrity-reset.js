@@ -1,18 +1,23 @@
 const STYLE_ID = "kidults-k100-integrity-style";
 
 function ensureStylesheet() {
-  if (document.getElementById(STYLE_ID)) return;
+  const href = "components/k100-integrity-reset.css?v=658";
+  const existing = document.getElementById(STYLE_ID);
+  if (existing) {
+    if (existing.getAttribute("href") !== href) existing.setAttribute("href", href);
+    return existing;
+  }
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
-  link.href = "components/k100-integrity-reset.css?v=657";
+  link.href = href;
   document.head.append(link);
+  return link;
 }
 
 function updateSliceStatus(count) {
   const status = document.querySelector(".featured-slice-status span:nth-child(2)");
   if (!status) return;
-
   const label = document.createElement("b");
   label.textContent = "Current slice";
   status.replaceChildren(label, document.createTextNode(` ${count} editorial objects`));
@@ -54,19 +59,24 @@ export function startK100IntegrityReset({ data } = {}) {
 
     card.dataset.k100Id = item.id;
     card.dataset.visualRole = item.visual_role ?? "EDITORIAL_INTERPRETATION";
+    card.dataset.imageFormat = "museum-editorial-v658";
     card.style.setProperty("--k100-object-scale", String(Number(item.display_scale) || 1));
 
     if (figure) {
       figure.dataset.visualRole = role;
       figure.dataset.assetState = item.asset ? "registered" : "withheld";
     }
-    if (figure && image) installFallback(figure, image);
+    if (figure && image) {
+      image.dataset.assetVersion = "658";
+      installFallback(figure, image);
+    }
   });
 
   window.KIDULTS_K100_INTEGRITY = Object.freeze({
-    version: "1.1.0",
+    version: "1.2.0",
     selectionCount: items.length,
     itemIds: items.map(item => item.id),
+    imageFormat: "MUSEUM_EDITORIAL_V658",
     unverifiedVisualPolicy: data.k100?.asset_standard?.unverified_visual_policy ?? "WITHHOLD",
     assetStandard: data.k100?.asset_standard?.id ?? "NOT REGISTERED"
   });
