@@ -59,12 +59,18 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
       'Audemars Piguet Royal Oak',
       'Jaeger-LeCoultre Reverso',
       'Breitling Navitimer',
+      'Rolex Cosmograph Daytona',
+      'Omega Speedmaster',
     ],
     'fashion-accessories': [
       'Air Jordan 1',
       'Air Jordan 4',
       'Air Max 90',
       'Chanel 2.55',
+      'Adidas Samba',
+      'Adidas Superstar',
+      'Adidas Gazelle',
+      'Air Force 1',
     ],
     'technology-cameras': [
       'Macintosh 128K',
@@ -83,6 +89,7 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
       'Detective Comics #27',
       'Pikachu Illustrator',
       'Black Lotus',
+      'T206 Honus Wagner',
     ],
   };
   const generic = new Set((referencePolicy.genericQueries || []).map(normalize));
