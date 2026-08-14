@@ -42,7 +42,7 @@ export function renderHero(manifest) {
     image.hidden = true;
   }, { once: true });
 
-  image.src = `${hero.asset}?v=651`;
+  image.src = `${hero.asset}?v=658`;
   image.alt = hero.alt;
   target("[data-hero-eyebrow]").textContent = hero.eyebrow;
   target("[data-hero-title]").textContent = hero.title;
@@ -188,7 +188,7 @@ export function renderK100(k100) {
           <span class="k100-category">${esc(item.category)}</span>
         </header>
         <h3>${esc(item.title)}</h3>
-        <div class="k100-figure"><img src="${esc(item.asset)}?v=651" alt="${esc(item.title)}" loading="lazy"></div>
+        <div class="k100-figure"><img src="${esc(item.asset)}?v=658" alt="${esc(item.title)}" loading="lazy"></div>
         <div class="k100-score${item.score === null ? " score-gated" : ""}">
           <strong>${score}</strong>
           <p>${detail}</p>

@@ -1,62 +1,63 @@
 {
-  "release_id": "KIDULTS_PORTAL_V502_RC1",
-  "release_name": "KIDULTS Portal V502 Release Candidate 1",
-  "version": "5.0.2-rc.1",
-  "experience_version": "6.0-rc.1",
-  "experience_label": "V6 RC",
-  "status": "RELEASE_CANDIDATE",
-  "production": false,
-  "registered_at": "2026-08-12T15:45:00+09:00",
-  "source_mode": "SELF_COLLECTED_PROVIDER_INDEPENDENT",
-  "snapshot_id": "baseline-provider-independent-v1",
-  "candidate_snapshot_id": null,
-  "assessment_id": null,
-  "registry_system_version": "1.1.0",
-  "methodology_version": "NOT_YET_REGISTERED",
-  "evidence_lineage_version": "NOT_YET_REGISTERED",
-  "portal_contract_version": "v502-rc1",
-  "hero": {
-    "id": "hero-racing-roadster-01",
-    "eyebrow": "ICON OF THE MOMENT",
-    "title": "Racing Roadster",
-    "subtitle": "Racing heritage. Timeless design. Enduring value.",
-    "vertical_id": "vertical-automobiles-mobility",
-    "vertical_name": "Automobiles & Mobility",
-    "asset": "assets/hero/racing-roadster-v654.webp",
-    "alt": "KIDULTS original deep green racing roadster in a warm ivory studio",
-    "rights_label": "KIDULTS ORIGINAL VISUAL\nRIGHTS-GATED",
-    "asset_status": "EDITORIAL_APPROVED_CANDIDATE",
-    "rights_status": "REVIEW_REQUIRED",
-    "production_status": "HOLD"
-  },
-  "display_policy": {
-    "core_vertical_count": 8,
-    "featured_slice_count": 4,
-    "featured_slice_dynamic": true,
-    "unverified_visual_policy": "WITHHOLD",
-    "candidate_data_public": false,
-    "assessment_data_public": false,
-    "missing_value_states": [
-      "WAITING",
-      "NOT_REGISTERED",
-      "NOT_AVAILABLE",
-      "STALE"
-    ],
-    "missing_to_zero": false
-  },
-  "routes": [
-    {
-      "id": "home",
-      "path": "index.html"
-    },
-    {
-      "id": "vertical-detail",
-      "path": "vertical.html?id={vertical_id}"
-    },
-    {
-      "id": "object-detail",
-      "path": "object.html?id={object_id}"
-    }
-  ],
-  "build_at": "2026-08-13T20:20:00+09:00"
+    "release_id":  "KIDULTS_PORTAL_V502_RC1",
+    "release_name":  "KIDULTS Portal V502 Release Candidate 1",
+    "version":  "5.0.2-rc.1",
+    "experience_version":  "6.0-rc.1",
+    "experience_label":  "V6 RC",
+    "status":  "RELEASE_CANDIDATE",
+    "production":  false,
+    "registered_at":  "2026-08-12T15:45:00+09:00",
+    "source_mode":  "SELF_COLLECTED_PROVIDER_INDEPENDENT",
+    "snapshot_id":  "baseline-provider-independent-v1",
+    "candidate_snapshot_id":  null,
+    "assessment_id":  null,
+    "registry_system_version":  "1.1.0",
+    "methodology_version":  "NOT_YET_REGISTERED",
+    "evidence_lineage_version":  "NOT_YET_REGISTERED",
+    "portal_contract_version":  "v502-rc1",
+    "hero":  {
+                 "id":  "hero-racing-roadster-01",
+                 "eyebrow":  "ICON OF THE MOMENT",
+                 "title":  "Racing Roadster",
+                 "subtitle":  "Racing heritage. Timeless design. Enduring value.",
+                 "vertical_id":  "vertical-automobiles-mobility",
+                 "vertical_name":  "Automobiles \u0026 Mobility",
+                 "asset":  "assets/hero/racing-roadster-v658-desktop.webp",
+                 "alt":  "KIDULTS original deep green racing roadster in a warm limestone studio",
+                 "rights_label":  "KIDULTS ORIGINAL VISUAL\nRIGHTS-GATED",
+                 "asset_status":  "EDITORIAL_APPROVED_CANDIDATE",
+                 "rights_status":  "REVIEW_REQUIRED",
+                 "production_status":  "HOLD",
+                 "mobile_asset":  "assets/hero/racing-roadster-v658-mobile.webp"
+             },
+    "display_policy":  {
+                           "core_vertical_count":  8,
+                           "featured_slice_count":  4,
+                           "featured_slice_dynamic":  true,
+                           "unverified_visual_policy":  "WITHHOLD",
+                           "candidate_data_public":  false,
+                           "assessment_data_public":  false,
+                           "missing_value_states":  [
+                                                        "WAITING",
+                                                        "NOT_REGISTERED",
+                                                        "NOT_AVAILABLE",
+                                                        "STALE"
+                                                    ],
+                           "missing_to_zero":  false
+                       },
+    "routes":  [
+                   {
+                       "id":  "home",
+                       "path":  "index.html"
+                   },
+                   {
+                       "id":  "vertical-detail",
+                       "path":  "vertical.html?id={vertical_id}"
+                   },
+                   {
+                       "id":  "object-detail",
+                       "path":  "object.html?id={object_id}"
+                   }
+               ],
+    "build_at":  "2026-08-14T12:02:14+09:00"
 }

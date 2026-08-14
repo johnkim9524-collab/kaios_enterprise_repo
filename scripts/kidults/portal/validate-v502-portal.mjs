@@ -63,16 +63,16 @@ const css = readText("apps/kidults-enterprise-staging/public/portal/portal-v502.
 
 for (const marker of [
   'data-release="v502"',
-  'portal-v502.css?v=657',
-  'portal.js?v=657',
-  'racing-roadster-v654.webp?v=657',
+  'portal-v502.css?v=658',
+  'portal.js?v=658',
+  'racing-roadster-v658-desktop.webp?v=658',
   'id="verticals"',
   'data-vertical-grid',
   'id="search-dialog"',
   'data-registry-ribbon',
   'data-release-baseline'
 ]) {
-  if (!html.includes(marker)) errors.push(`index.html missing V657/V502 marker: ${marker}`);
+  if (!html.includes(marker)) errors.push(`index.html missing V658/V502 marker: ${marker}`);
 }
 
 for (const marker of [
@@ -88,9 +88,9 @@ for (const marker of [
 ]) {
   if (!portalJs.includes(marker)) errors.push(`portal.js missing integration: ${marker}`);
 }
-if (!portalJs.includes('mobile-hero-visibility.js?v=657')) errors.push("portal.js does not cache-bust Mobile Hero Visibility at V657.");
-if (!portalJs.includes('editorial-assets.js?v=657')) errors.push("portal.js does not cache-bust editorial assets at V657.");
-if (!portalJs.includes('renderers.js?v=657')) errors.push("portal.js does not cache-bust renderers at V657.");
+if (!portalJs.includes('mobile-hero-visibility.js?v=658')) errors.push("portal.js does not cache-bust Mobile Hero Visibility at V657.");
+if (!portalJs.includes('editorial-assets.js?v=658')) errors.push("portal.js does not cache-bust editorial assets at V657.");
+if (!portalJs.includes('renderers.js?v=658')) errors.push("portal.js does not cache-bust renderers at V657.");
 
 for (const marker of ["v502-manifest.json", "registry-view.json", "verticals.json", "portal-release-manifest-v502.json"]) {
   if (!dataStore.includes(marker)) errors.push(`data-store.js missing source: ${marker}`);
@@ -184,5 +184,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`KIDULTS Portal V502 validation: PASS (${requiredFiles.length} required files, 8 verticals, 4 featured objects, V657 cache generation)`);
+console.log(`KIDULTS Portal V502 validation: PASS (${requiredFiles.length} required files, 8 verticals, 4 featured objects, V658 cache generation)`);
 for (const warning of warnings) console.warn(`WARN: ${warning}`);

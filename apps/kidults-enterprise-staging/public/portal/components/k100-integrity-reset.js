@@ -5,7 +5,7 @@ function ensureStylesheet() {
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
-  link.href = "components/k100-integrity-reset.css?v=657";
+  link.href = "components/k100-integrity-reset.css?v=658";
   document.head.append(link);
 }
 
