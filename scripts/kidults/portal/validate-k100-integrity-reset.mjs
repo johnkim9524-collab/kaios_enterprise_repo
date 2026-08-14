@@ -81,7 +81,7 @@ for (const marker of [
   "--k100-object-scale",
   "KIDULTS_K100_INTEGRITY",
   'version: "1.1.0"',
-  'k100-integrity-reset.css?v=657'
+  'k100-integrity-reset.css?v=658'
 ]) {
   if (!runtime.includes(marker)) errors.push(`K100 integrity runtime missing marker: ${marker}`);
 }
