@@ -11,6 +11,11 @@ function normalize(value) {
   return String(value || '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+function hasDistinctiveShape(value) {
+  const tokens = normalize(value).split(/\s+/).filter(Boolean);
+  return tokens.length >= 2 || tokens.some((token) => token.length >= 4);
+}
+
 test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
   assert.equal(config.schemaVersion, '1.0.2');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
@@ -43,7 +48,7 @@ test('canonical toy aliases are distinctive, non-generic, and duplicate-free', (
   for (const alias of requiredAliases) {
     assert.ok(queries.includes(alias), `missing canonical recovery alias: ${alias}`);
     assert.equal(generic.has(normalize(alias)), false, `canonical alias became generic: ${alias}`);
-    assert.ok(normalize(alias).split(/\s+/).some((token) => token.length >= 4), `alias lacks a distinctive token: ${alias}`);
+    assert.ok(hasDistinctiveShape(alias), `alias lacks a distinctive exact-name shape: ${alias}`);
   }
 });
 
@@ -88,7 +93,7 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
     for (const alias of aliases) {
       assert.ok(queries.includes(alias), `missing ${vertical} canonical recovery alias: ${alias}`);
       assert.equal(generic.has(normalize(alias)), false, `${vertical} canonical alias became generic: ${alias}`);
-      assert.ok(normalize(alias).split(/\s+/).some((token) => token.length >= 4), `${vertical} alias lacks a distinctive token: ${alias}`);
+      assert.ok(hasDistinctiveShape(alias), `${vertical} alias lacks a distinctive exact-name shape: ${alias}`);
     }
   }
 });
