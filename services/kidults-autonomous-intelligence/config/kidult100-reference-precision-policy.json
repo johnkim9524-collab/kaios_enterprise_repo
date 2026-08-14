@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.3",
+  "schemaVersion": "1.0.4",
   "policy": "FAIL_CLOSED_STAGE2_REFERENCE_PRODUCT_PRECISION_HARDENING",
   "requiredInputMode": "KIDULT100_VALUE_BEFORE_DATA_POC",
   "targetSourceClass": "REFERENCE_PUBLIC_DATA",
@@ -199,6 +199,8 @@
     ],
     "gaming-music-screen": [
       "file format",
+      "cartridge format",
+      "media format",
       "digital media store",
       "brand owned",
       "experiment",
