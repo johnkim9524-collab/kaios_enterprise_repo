@@ -6,11 +6,12 @@ import assert from 'node:assert/strict';
 const ROOT = process.cwd();
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'kidult100-precision-recovery-queries.json'), 'utf8'));
 
-test('zero-yield Nike Mag query stays pruned without relaxing recovery safety', () => {
+test('zero-yield Nike Mag and Air Yeezy queries stay pruned without relaxing recovery safety', () => {
   const queries = config.verticals['fashion-accessories'];
-  assert.equal(config.schemaVersion, '1.0.8');
+  assert.equal(config.schemaVersion, '1.0.9');
   assert.equal(queries.includes('Nike Mag'), false);
-  assert.ok(queries.includes('Nike Air Yeezy'));
+  assert.equal(queries.includes('Nike Air Yeezy'), false);
+  assert.ok(queries.includes('Nike Dunk'));
   assert.equal(new Set(queries).size, queries.length);
 
   assert.equal(config.source, 'wikidata');
