@@ -6,10 +6,16 @@ import { evaluatePrecisionRecoveryRow } from '../scripts/lib/precision-recovery.
 
 const ROOT = process.cwd();
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'kidult100-precision-recovery-queries.json'), 'utf8'));
+const referencePolicy = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'kidult100-reference-precision-policy.json'), 'utf8'));
 
-const productTerms = ['watch', 'wristwatch', 'diving watch', 'mechanical watch', 'model series'];
-const disallowedTerms = ['company', 'museum', 'subscription', 'album', 'film'];
-const stopTokens = ['watch', 'wristwatch'];
+const vertical = 'watches-jewelry';
+const productTerms = referencePolicy.productObjectTermsByVertical[vertical];
+const disallowedTerms = referencePolicy.disallowedDescriptionTermsByVertical[vertical];
+const stopTokens = [
+  ...referencePolicy.queryStopTokens,
+  'toy', 'doll', 'watch', 'wristwatch', 'shoe', 'shoes', 'sneaker', 'boot', 'handbag', 'bag',
+  'camera', 'computer', 'console', 'game', 'video', 'handheld', 'comic', 'book', 'card', 'trading', 'baseball',
+];
 
 function evaluate(query, label, description) {
   return evaluatePrecisionRecoveryRow({
@@ -22,7 +28,7 @@ function evaluate(query, label, description) {
 }
 
 test('exact watch aliases remain inside the official Wikidata CC0 fail-closed recovery lane', () => {
-  const queries = config.verticals['watches-jewelry'];
+  const queries = config.verticals[vertical];
   for (const query of ['Rolex Submariner', 'Omega Seamaster', 'G-Shock']) {
     assert.ok(queries.includes(query));
   }
@@ -38,7 +44,7 @@ test('exact watch aliases remain inside the official Wikidata CC0 fail-closed re
   assert.equal(config.safety.productionGateRelaxationAllowed, false);
 });
 
-test('watch recovery accepts exact canonical identities and rejects nearby variants', () => {
+test('watch recovery uses the same reference precision evaluator as production and rejects nearby variants', () => {
   const cases = [
     ['Rolex Submariner', "mechanical diver's watch"],
     ['Omega Seamaster', 'line of mechanical and quartz diving watches'],
