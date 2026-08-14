@@ -5,6 +5,8 @@ const ROOT = process.cwd();
 const DIAGNOSTIC_DIR = path.join(ROOT, 'reports', 'engineering-hardening');
 const PROGRESS_PATH = path.join(DIAGNOSTIC_DIR, 'stage2-source-progress-latest.json');
 const TEMP_PROGRESS_PATH = `${PROGRESS_PATH}.tmp`;
+const CORE_SOURCE_READINESS_PATH = path.join(DIAGNOSTIC_DIR, 'stage2-core-source-readiness-latest.json');
+const CANDIDATE_REPORT_PATH = path.join(ROOT, 'reports', 'kidult100-poc', 'kidult100-poc-latest.json');
 const SLOW_REQUEST_LIMIT = 5;
 const RETRY_GAP_LIMIT = 5;
 const stageStartedAt = Date.now();
@@ -146,6 +148,41 @@ function writeProgress(phase, current = null) {
   fs.renameSync(TEMP_PROGRESS_PATH, PROGRESS_PATH);
 }
 
+function enforceCoreSourceReadiness() {
+  const candidateReport = JSON.parse(fs.readFileSync(CANDIDATE_REPORT_PATH, 'utf8'));
+  const wikidata = candidateReport?.metrics?.sourceAccessRuntime?.wikidata || null;
+  const configuredActive = wikidata?.configuredActive === true;
+  const successfulAttempts = Number(wikidata?.successfulAttempts || 0);
+  const blockedForRun = wikidata?.blockedForRun === true;
+  const blockedReason = wikidata?.blockedReason || null;
+  const failClosed = configuredActive && blockedForRun && successfulAttempts === 0;
+  const diagnostic = {
+    schemaVersion: '1.0.0',
+    stage: 'STAGE2_CORE_REFERENCE_SOURCE_READINESS',
+    generatedAt: new Date().toISOString(),
+    status: failClosed ? 'FAIL_CLOSED_CORE_SOURCE_UNAVAILABLE' : 'PASS',
+    coreSource: 'wikidata',
+    configuredActive,
+    successfulAttempts,
+    failedAttempts: Number(wikidata?.failedAttempts || 0),
+    blockedForRun,
+    blockedReason,
+    sourceDataMissing: failClosed,
+    partialEvidenceAccepted: false,
+    productionInput: false,
+    syntheticFallbackAllowed: false,
+    staleFallbackAllowed: false,
+    productionGateWeakened: false,
+    interpretation: failClosed
+      ? 'The configured core reference source was blocked for the run before any successful source attempt. Downstream candidate scoring is not authoritative, so Stage 2 fails closed without fabricating or reusing evidence.'
+      : 'The core-source zero-success blocked condition was not observed. This diagnostic does not certify data completeness or production readiness.',
+  };
+  fs.writeFileSync(CORE_SOURCE_READINESS_PATH, `${JSON.stringify(diagnostic, null, 2)}\n`);
+  if (failClosed) {
+    throw new Error(`STAGE2_CORE_REFERENCE_SOURCE_UNAVAILABLE:${blockedReason || 'BLOCKED_ZERO_SUCCESS'}`);
+  }
+}
+
 writeProgress('STARTED');
 
 globalThis.fetch = async (input, init) => {
@@ -259,6 +296,7 @@ globalThis.fetch = async (input, init) => {
 
 try {
   await import('./kidult100-poc-live.mjs');
+  enforceCoreSourceReadiness();
   writeProgress('COMPLETED');
 } finally {
   globalThis.fetch = originalFetch;
