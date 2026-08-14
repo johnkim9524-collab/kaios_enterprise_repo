@@ -22,6 +22,7 @@ const wikidataRuntime = {
   pacingMode: 'SERIAL_SERVER_DRIVEN_BACKPRESSURE',
   fixedInterRequestDelayMs: WIKIDATA_MIN_INTERVAL_MS,
   maxlagSeconds: WIKIDATA_MAXLAG_SECONDS,
+  retriesOnlyOnExplicitBackpressure: true,
   gzipRequested: true,
 };
 const sourceAccessRuntime = Object.fromEntries((CONFIG.sources || []).map((source) => [source.id, {
@@ -71,7 +72,7 @@ async function getJson(url, { wikidata = false } = {}) {
     if (response.ok && !maxlag) return { body, latencyMs: Date.now() - started };
 
     if (maxlag) wikidataRuntime.maxlagResponses += 1;
-    if (maxlag || response.status === 429 || response.status >= 500) {
+    if (maxlag || response.status === 429) {
       if (response.status === 429) wikidataRuntime.rateLimits += 1;
       if (attempt < WIKIDATA_MAX_RETRIES) {
         wikidataRuntime.retries += 1;
@@ -439,6 +440,7 @@ const report = {
     wikidataMaxlagSeconds: WIKIDATA_MAXLAG_SECONDS,
     serialWikidataReadRequests: true,
     serverDrivenBackpressure: true,
+    wikidataRetriesOnlyOnExplicitBackpressure: true,
     gzipRequested: true,
     sourceConfigurationRespected: true,
     accessDenialCircuitBreaker: true,
