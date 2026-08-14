@@ -16,7 +16,7 @@ html[data-k100-integrity=v1] .k100-figure{
   overflow:hidden;
   border:1px solid rgba(7,61,45,.08);
   border-radius:14px;
-  background:#e7dfd3
+  background:#d6c9b7
 }
 html[data-k100-integrity=v1] .k100-figure::after{
   content:attr(data-visual-role);
@@ -35,26 +35,24 @@ html[data-k100-integrity=v1] .k100-figure::after{
   letter-spacing:.08em;
   backdrop-filter:blur(7px)
 }
-html[data-k100-integrity=v1] .k100-figure img{
+html[data-k100-integrity=v1] .k100-figure img,
+html[data-k100-integrity=v1] .k100-card[data-k100-id="footwear-01"] .k100-figure img,
+html[data-k100-integrity=v1] .k100-card[data-k100-id="camera-editorial-01"] .k100-figure img,
+html[data-k100-integrity=v1] .k100-card[data-k100-id="toys-editorial-01"] .k100-figure img,
+html[data-k100-integrity=v1] .k100-card[data-k100-id="time-01"] .k100-figure img{
+  display:block;
   width:100%;
   height:100%;
   max-width:none;
   object-fit:cover;
   object-position:center;
   padding:0;
-  transform:scale(var(--k100-object-scale,1));
+  transform:scale(1)!important;
   transform-origin:center;
-  transition:transform .25s ease
-}
-html[data-k100-integrity=v1] .k100-card[data-k100-id="footwear-01"] .k100-figure img,
-html[data-k100-integrity=v1] .k100-card[data-k100-id="camera-editorial-01"] .k100-figure img,
-html[data-k100-integrity=v1] .k100-card[data-k100-id="toys-editorial-01"] .k100-figure img{
-  transform:scale(1.075)
-}
-html[data-k100-integrity=v1] .k100-card[data-k100-id="time-01"] .k100-figure img{
-  transform:scale(1)
+  transition:none
 }
 html[data-k100-integrity=v1] .k100-card:hover .k100-figure img{
+  transform:scale(1)!important;
   transition:none
 }
 html[data-k100-integrity=v1] .k100-visual-withheld{
@@ -98,7 +96,8 @@ html[data-k100-integrity=v1] .k100-score{
   }
   html[data-k100-integrity=v1] .k100-figure{
     max-height:none;
-    margin-inline:0
+    margin-inline:0;
+    aspect-ratio:4/3
   }
   html[data-k100-integrity=v1] .k100-score{
     min-height:0
@@ -106,7 +105,8 @@ html[data-k100-integrity=v1] .k100-score{
 }
 @media(max-width:390px){
   html[data-k100-integrity=v1] .k100-figure img{
-    padding:0
+    padding:0;
+    transform:scale(1)!important
   }
   html[data-k100-integrity=v1] .k100-figure::after{
     left:9px;
