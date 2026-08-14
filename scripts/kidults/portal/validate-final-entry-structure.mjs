@@ -3,6 +3,7 @@ import path from "node:path";
 import process from "node:process";
 
 const root = process.cwd();
+const portalRoot = "apps/kidults-enterprise-staging/public/portal";
 const errors = [];
 const read = relative => {
   const absolute = path.join(root, relative);
@@ -12,8 +13,8 @@ const read = relative => {
   }
   return fs.readFileSync(absolute, "utf8");
 };
+const exists = relative => fs.existsSync(path.join(root, relative));
 
-const portalRoot = "apps/kidults-enterprise-staging/public/portal";
 const index = read(`${portalRoot}/index.html`);
 const portal = read(`${portalRoot}/portal.js`);
 const homepage = read(`${portalRoot}/components/homepage-structure.js`);
@@ -25,10 +26,10 @@ const workspacePage = read(`${portalRoot}/workspace-page.js`);
 const workspaceCss = read(`${portalRoot}/workspace-page.css`);
 
 for (const marker of [
-  'src="portal.js?v=662"',
+  'src="portal.js?v=662-visual95"',
   'data-homepage-structure="v662"',
-  'href="components/v662-stability-freeze.css?v=662"',
-  'src="assets/hero/racing-roadster-v662.webp?v=662"',
+  'href="components/v662-stability-freeze.css?v=662-visual95"',
+  'src="assets/hero/racing-roadster-v662.webp?v=662-visual95"',
   'data-hero-asset="racing-roadster-v662"',
   'href="workspace.html"',
   'id="discover"',
@@ -43,11 +44,13 @@ for (const marker of [
 }
 
 for (const marker of [
-  "startHomepageStructure",
+  'mobile-hero-visibility.js?v=662-visual95',
+  'editorial-assets.js?v=662-visual95',
+  'homepage-structure.js?v=662-visual95',
   'workspaceRoute: "workspace.html"',
-  "workspaceMounted: false",
+  'workspaceMounted: false',
   'homepageStructure: "v662"',
-  "workspace: data.workspace.version"
+  'workspace: data.workspace.version'
 ]) {
   if (!portal.includes(marker)) errors.push(`Homepage runtime marker missing: ${marker}`);
 }
@@ -118,7 +121,6 @@ for (const marker of [
 ]) {
   if (!finalCss.includes(marker)) errors.push(`V662 Visual95 marker missing: ${marker}`);
 }
-
 if (finalCss.includes('transform:scale(1.04)!important') || finalCss.includes('transform:scale(1.09)!important')) {
   errors.push("Retired per-object K100 enlargement remains; Visual95 requires one unified frame treatment.");
 }
@@ -151,16 +153,15 @@ const requiredAssets = [
   `${portalRoot}/assets/kidult100/watch-v655.webp`
 ];
 for (const relative of requiredAssets) {
-  const absolute = path.join(root, relative);
-  if (!fs.existsSync(absolute)) {
+  if (!exists(relative)) {
     errors.push(`Required Visual95 asset is missing: ${relative}`);
     continue;
   }
-  const data = fs.readFileSync(absolute);
+  const data = fs.readFileSync(path.join(root, relative));
   if (data.subarray(0, 4).toString("ascii") !== "RIFF" || data.subarray(8, 12).toString("ascii") !== "WEBP") {
     errors.push(`Required Visual95 asset is not a valid WebP: ${relative}`);
   }
-  if (data.length < 12_000) errors.push(`Required Visual95 asset is unexpectedly small: ${relative} (${data.length} bytes)`);
+  if (data.length < 25_000) errors.push(`Required Visual95 asset is unexpectedly small: ${relative} (${data.length} bytes)`);
 }
 
 for (const retired of [
@@ -169,7 +170,7 @@ for (const retired of [
   "racing-roadster-v660-master.webp",
   "racing-roadster-v658-mobile.webp"
 ]) {
-  if (fs.existsSync(path.join(root, `${portalRoot}/assets/hero/${retired}`))) errors.push(`Retired Roadster asset still exists: ${retired}`);
+  if (exists(`${portalRoot}/assets/hero/${retired}`)) errors.push(`Retired Roadster asset still exists: ${retired}`);
 }
 
 if (errors.length) {
