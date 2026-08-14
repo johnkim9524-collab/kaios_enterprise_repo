@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.0.1",
   "mode": "KIDULT100_WIKIDATA_PRECISION_RECOVERY",
   "source": "wikidata",
   "sourceClass": "REFERENCE_PUBLIC_DATA",
@@ -17,7 +17,8 @@
   },
   "verticals": {
     "toys-models": [
-      "LEGO 10181 Eiffel Tower toy", "LEGO 10189 Taj Mahal toy", "LEGO 10214 Tower Bridge toy", "LEGO 10221 Super Star Destroyer toy", "LEGO 10256 Taj Mahal toy", "LEGO 10261 Roller Coaster toy", "LEGO 10272 Old Trafford toy", "LEGO 10276 Colosseum toy", "LEGO 10294 Titanic toy", "LEGO 10303 Loop Coaster toy", "LEGO 10307 Eiffel Tower toy", "LEGO 21042 Statue of Liberty toy", "LEGO 21318 Tree House toy", "LEGO 21323 Grand Piano toy", "LEGO 21330 Home Alone toy", "LEGO 42083 Bugatti Chiron toy", "LEGO 42115 Lamborghini Sian toy", "LEGO 75159 Death Star toy", "LEGO 75252 Imperial Star Destroyer toy", "LEGO 75313 AT-AT toy", "Barbie fashion doll", "Ken fashion doll", "American Girl doll", "Blythe fashion doll", "Licca-chan fashion doll", "Sindy fashion doll", "Pullip fashion doll", "Monster High doll", "Bratz fashion doll", "Cabbage Patch Kids doll"
+      "LEGO 10181 Eiffel Tower toy", "LEGO 10189 Taj Mahal toy", "LEGO 10214 Tower Bridge toy", "LEGO 10221 Super Star Destroyer toy", "LEGO 10256 Taj Mahal toy", "LEGO 10261 Roller Coaster toy", "LEGO 10272 Old Trafford toy", "LEGO 10276 Colosseum toy", "LEGO 10294 Titanic toy", "LEGO 10303 Loop Coaster toy", "LEGO 10307 Eiffel Tower toy", "LEGO 21042 Statue of Liberty toy", "LEGO 21318 Tree House toy", "LEGO 21323 Grand Piano toy", "LEGO 21330 Home Alone toy", "LEGO 42083 Bugatti Chiron toy", "LEGO 42115 Lamborghini Sian toy", "LEGO 75159 Death Star toy", "LEGO 75252 Imperial Star Destroyer toy", "LEGO 75313 AT-AT toy", "Barbie fashion doll", "Ken fashion doll", "American Girl doll", "Blythe fashion doll", "Licca-chan fashion doll", "Sindy fashion doll", "Pullip fashion doll", "Monster High doll", "Bratz fashion doll", "Cabbage Patch Kids doll",
+      "Furby", "Tamagotchi", "Bratz", "Cabbage Patch Kids", "Funko Pop", "Polly Pocket", "Sylvanian Families", "Matchbox"
     ],
     "watches-jewelry": [
       "Rolex Cosmograph Daytona watch", "Rolex Explorer II watch", "Rolex Yacht-Master watch", "Rolex Milgauss watch", "Rolex Air-King watch", "Omega Speedmaster Professional watch", "Omega Seamaster Diver 300M watch", "Omega Railmaster watch", "Omega De Ville watch", "Cartier Tank watch", "Cartier Santos watch", "Cartier Panthere watch", "Patek Philippe Nautilus watch", "Patek Philippe Aquanaut watch", "Patek Philippe Calatrava watch", "Audemars Piguet Royal Oak watch", "Audemars Piguet Royal Oak Offshore watch", "Vacheron Constantin Overseas watch", "Jaeger-LeCoultre Reverso watch", "IWC Portugieser watch", "IWC Pilot watch", "Breitling Navitimer watch", "TAG Heuer Monaco watch", "TAG Heuer Carrera watch", "Zenith El Primero watch", "Panerai Luminor watch", "Tudor Black Bay watch", "Grand Seiko watch", "Seiko Prospex watch", "Casio G-Shock watch", "Longines Legend Diver watch", "Hamilton Khaki Field watch"
