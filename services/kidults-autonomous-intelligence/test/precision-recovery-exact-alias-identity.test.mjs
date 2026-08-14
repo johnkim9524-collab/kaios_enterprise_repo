@@ -32,6 +32,18 @@ test('untyped canonical aliases require exact normalized source title identity',
   }
 });
 
+test('untyped canonical aliases reject meaningful plus-suffix variants', () => {
+  const exact = evaluate('Atari 2600', 'Atari 2600', 'home video game console', ['video game console', 'video game']);
+  const variant = evaluate('Atari 2600', 'Atari 2600+', 'home video game console', ['video game console', 'video game']);
+  assert.equal(exact.exactTitleRequired, true);
+  assert.equal(exact.exactTitleMatched, true);
+  assert.equal(exact.accepted, true);
+  assert.equal(variant.allDistinctiveAnchorsMatched, true);
+  assert.equal(variant.exactTitleRequired, true);
+  assert.equal(variant.exactTitleMatched, false);
+  assert.equal(variant.accepted, false);
+});
+
 test('numeric comic aliases do not admit nearby issue numbers after normalization', () => {
   const exact = evaluate('Action Comics #1', 'Action Comics #1', 'comic book issue', ['comic book', 'comic']);
   const nearby = evaluate('Action Comics #1', 'Action Comics #1000', 'comic book issue', ['comic book', 'comic']);
