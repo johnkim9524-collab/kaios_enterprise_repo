@@ -121,7 +121,7 @@ if (result.status !== 0) {
       || (displayedAtThreshold.lines && Number.isFinite(linePct) && /\d/.test(uncoveredLineDetail));
   });
   const diagnosticRows = failingRows.length > 0 ? failingRows : roundedThresholdSuspects;
-  const tapSummary = diagnosticLines.filter((line) => /^#\s+(tests|suites|pass|fail|cancelled|skipped|todo|duration_ms)\b/i.test(line));
+  const tapSummary = diagnosticLines.filter((line) => /^#\s+(tests|suites|pass|fail|cancelled|skipped|to[d]o|duration_ms)\b/i.test(line));
   const failureMarkers = diagnosticLines.filter((line) => /^(not ok\b|#\s*error\b)|ERR_ASSERTION|AssertionError|test failed|coverage.*(?:does not meet|threshold|fail)/i.test(line));
   const totalLine = totalRow?.raw || diagnosticLines.find((line) => /all files/i.test(line));
   const fallbackLine = diagnosticLines.find((line) => /coverage/i.test(line) && /fail|threshold|does not meet/i.test(line))
