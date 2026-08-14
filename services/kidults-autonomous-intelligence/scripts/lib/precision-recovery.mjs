@@ -167,6 +167,8 @@ export function evaluatePrecisionRecoveryRow({ query, row, productTerms, disallo
   const queryProductHits = (productTerms || []).filter((term) => includesPhrase(query, term));
   const disallowedHits = (disallowedTerms || []).filter((term) => includesPhrase(row?.description, term));
   const noDescription = normalize(row?.description).length === 0;
+  const exactTitleRequired = queryProductHits.length === 0;
+  const exactTitleMatched = normalize(row?.label) === normalize(query);
   const modelSpecificNoDescription = allDistinctiveAnchorsMatched
     && queryProductHits.length > 0
     && disallowedHits.length === 0
@@ -174,7 +176,8 @@ export function evaluatePrecisionRecoveryRow({ query, row, productTerms, disallo
     && hasModelSpecificity(row?.label);
   const exactCuratedProductQueryMatch = allDistinctiveAnchorsMatched
     && disallowedHits.length === 0
-    && (productHits.length > 0 || modelSpecificNoDescription);
+    && (productHits.length > 0 || modelSpecificNoDescription)
+    && (!exactTitleRequired || exactTitleMatched);
   return {
     accepted: exactCuratedProductQueryMatch,
     anchors,
@@ -184,6 +187,8 @@ export function evaluatePrecisionRecoveryRow({ query, row, productTerms, disallo
     queryProductHits,
     disallowedHits,
     noDescription,
+    exactTitleRequired,
+    exactTitleMatched,
     modelSpecificNoDescription,
     exactCuratedProductQueryMatch,
   };
