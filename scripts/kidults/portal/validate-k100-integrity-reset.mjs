@@ -4,7 +4,6 @@ import process from "node:process";
 
 const root = process.cwd();
 const errors = [];
-
 const paths = {
   portalK100: "apps/kidults-enterprise-staging/public/portal/data/kidult100.json",
   canonicalK100: "apps/kidults-enterprise-staging/public/data/portal-k100.json",
@@ -23,13 +22,11 @@ function readText(relative) {
   }
   return fs.readFileSync(absolute, "utf8");
 }
-
 function readJson(relative) {
   const text = readText(relative);
   if (!text) return null;
-  try {
-    return JSON.parse(text);
-  } catch (error) {
+  try { return JSON.parse(text); }
+  catch (error) {
     errors.push(`Invalid JSON: ${relative}: ${error.message}`);
     return null;
   }
@@ -42,20 +39,13 @@ const manifest = readJson(paths.manifest);
 const runtime = readText(paths.runtime);
 const css = readText(paths.css);
 
-if (fs.existsSync(path.join(root, paths.retiredAsset))) {
-  errors.push("Retired unverified Koala asset still exists in the public portal.");
-}
-
+if (fs.existsSync(path.join(root, paths.retiredAsset))) errors.push("Retired unverified Koala asset still exists in the public portal.");
 for (const [label, data] of [["portal", portalK100], ["canonical", canonicalK100]]) {
   const items = data?.items ?? [];
   if (items.length !== 4) errors.push(`${label} K100 must contain exactly four public-preview objects.`);
-  if (items.some(item => /koala|original art figure/i.test(item.title ?? item.name ?? ""))) {
-    errors.push(`${label} K100 still contains an unverified Koala / Original Art Figure.`);
-  }
+  if (items.some(item => /koala|original art figure/i.test(item.title ?? item.name ?? ""))) errors.push(`${label} K100 still contains an unverified Koala / Original Art Figure.`);
   const footwear = items.find(item => item.id === "footwear-01");
-  if ((footwear?.title ?? footwear?.name) !== "Archive Sneaker 01") {
-    errors.push(`${label} K100 footwear title must be Archive Sneaker 01.`);
-  }
+  if ((footwear?.title ?? footwear?.name) !== "Archive Sneaker 01") errors.push(`${label} K100 footwear title must be Archive Sneaker 01.`);
   const ranks = items.map(item => item.rank).sort((a, b) => a - b).join(",");
   if (ranks !== "1,2,3,4") errors.push(`${label} K100 ranks must be exactly 1,2,3,4; found ${ranks}.`);
 }
@@ -80,12 +70,12 @@ for (const marker of [
   "updateSliceStatus",
   "--k100-object-scale",
   "KIDULTS_K100_INTEGRITY",
-  'version: "1.1.0"',
-  'k100-integrity-reset.css?v=657'
+  'version: "1.2.0"',
+  'k100-integrity-reset.css?v=658',
+  'museum-editorial-v658'
 ]) {
   if (!runtime.includes(marker)) errors.push(`K100 integrity runtime missing marker: ${marker}`);
 }
-
 for (const marker of [
   "grid-template-columns:repeat(4",
   "aspect-ratio:4/3",
@@ -100,7 +90,6 @@ for (const marker of [
 ]) {
   if (!css.includes(marker)) errors.push(`K100 integrity CSS missing marker: ${marker}`);
 }
-
 if (/object-fit\s*:\s*contain/.test(css)) errors.push("K100 image frames still use contain instead of full-bleed cover.");
 if (/padding\s*:\s*(12|16)px/.test(css)) errors.push("K100 image frames still contain legacy inner image padding.");
 
@@ -109,5 +98,4 @@ if (errors.length) {
   for (const error of errors) console.error(`ERROR: ${error}`);
   process.exit(1);
 }
-
-console.log("KIDULTS K100 integrity reset validation: PASS (4 objects, full-bleed watch-format framing)");
+console.log("KIDULTS K100 integrity reset validation: PASS (V658 four-card watch-format framing)");
