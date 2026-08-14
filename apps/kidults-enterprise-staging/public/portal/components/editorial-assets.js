@@ -1,9 +1,9 @@
-import roadsterBase64 from "./assets/racing-roadster-v655.js";
+import roadsterBase64 from "./assets/racing-roadster-v655.js?v=658";
 
-const VERSION = "2.0.0";
-const ROADSTER_KEY = "racing-roadster-v657";
+const VERSION = "2.1.0";
+const ROADSTER_KEY = "racing-roadster-v658";
 const ROADSTER_SOURCE = `data:image/webp;base64,${roadsterBase64}`;
-const WATCH_SOURCE = "assets/kidult100/watch-v655.webp?v=657";
+const WATCH_SOURCE = "assets/kidult100/watch-v655.webp?v=658";
 
 function bindRoadster() {
   const card = document.querySelector("[data-hero-card]");
@@ -11,75 +11,83 @@ function bindRoadster() {
   if (!card || !image) return false;
 
   card.dataset.heroAsset = ROADSTER_KEY;
+  card.dataset.assetState = "loading";
   image.dataset.heroAsset = ROADSTER_KEY;
   image.hidden = false;
   image.removeAttribute("hidden");
   image.loading = "eager";
   image.decoding = "async";
   image.fetchPriority = "high";
+  image.alt = "KIDULTS original deep green Racing Roadster in a warm limestone studio";
   image.style.objectFit = "cover";
-  image.style.objectPosition = "center 55%";
+  image.style.objectPosition = "right center";
   image.style.transform = "none";
   image.style.transformOrigin = "center";
-  image.style.filter = "saturate(1.015) contrast(1.018)";
-  image.style.background = "#e4d8c7";
-  card.style.background = "#e4d8c7";
+  image.style.filter = "saturate(1.01) contrast(1.012)";
+  image.style.background = "#e7dfd3";
+  card.style.background = "#e7dfd3";
 
-  if (image.src !== ROADSTER_SOURCE) image.src = ROADSTER_SOURCE;
+  image.addEventListener("load", () => {
+    card.dataset.assetState = "ready";
+    card.dataset.mobileHeroState = "ready";
+    image.dataset.heroVisible = "true";
+  }, { once: true });
 
-  card.dataset.assetState = "ready";
-  card.dataset.mobileHeroState = "ready";
+  if (image.getAttribute("src") !== ROADSTER_SOURCE) {
+    image.setAttribute("src", ROADSTER_SOURCE);
+  } else if (image.complete && image.naturalWidth > 0) {
+    card.dataset.assetState = "ready";
+    card.dataset.mobileHeroState = "ready";
+  }
   return true;
 }
 
-function bindWatch() {
+function bindK100() {
   const cards = [...document.querySelectorAll("[data-k100-gallery] .k100-card")];
-  const card = cards.find(node =>
-    node.dataset.k100Id === "time-01" ||
-    node.querySelector("h3")?.textContent?.trim() === "Mechanical Time 01"
-  );
-  const image = card?.querySelector(".k100-figure img");
-  if (!card || !image) return false;
+  cards.forEach(card => {
+    card.dataset.imageFormat = "museum-editorial-v658";
+    const image = card.querySelector(".k100-figure img");
+    if (image) image.dataset.assetVersion = "658";
+  });
 
-  card.dataset.k100Id = "time-01";
-  image.dataset.assetVersion = "657";
-  if (!image.src.includes("watch-v655.webp")) image.src = WATCH_SOURCE;
-  image.hidden = false;
-  image.removeAttribute("hidden");
-  return true;
+  const watchCard = cards.find(card =>
+    card.dataset.k100Id === "time-01" ||
+    card.querySelector("h3")?.textContent?.trim() === "Mechanical Time 01"
+  );
+  const watchImage = watchCard?.querySelector(".k100-figure img");
+  if (watchCard && watchImage) {
+    watchCard.dataset.k100Id = "time-01";
+    if (!watchImage.getAttribute("src")?.includes("watch-v655.webp")) {
+      watchImage.setAttribute("src", WATCH_SOURCE);
+    }
+    watchImage.hidden = false;
+    watchImage.removeAttribute("hidden");
+  }
+  return cards.length > 0;
 }
 
 export function startAssetBindingHotfix() {
-  let applying = false;
-
   const apply = () => {
-    if (applying) return;
-    applying = true;
-    try {
-      bindRoadster();
-      bindWatch();
-    } finally {
-      applying = false;
-    }
+    bindRoadster();
+    bindK100();
   };
 
   apply();
   requestAnimationFrame(apply);
-  window.setTimeout(apply, 180);
-  window.setTimeout(apply, 900);
+  window.setTimeout(apply, 120);
+  window.setTimeout(apply, 600);
 
-  const observer = new MutationObserver(apply);
-  observer.observe(document.documentElement, {
-    subtree: true,
-    childList: true,
-    attributes: true,
-    attributeFilter: ["src", "hidden"]
-  });
+  const gallery = document.querySelector("[data-k100-gallery]");
+  if (gallery) {
+    const observer = new MutationObserver(bindK100);
+    observer.observe(gallery, { subtree: true, childList: true });
+  }
 
   window.KIDULTS_ASSET_BINDING_HOTFIX = Object.freeze({
     version: VERSION,
     roadsterKey: ROADSTER_KEY,
     watchSource: WATCH_SOURCE,
+    imageFormat: "MUSEUM_EDITORIAL_V658",
     rebind: apply
   });
 
