@@ -36,6 +36,8 @@ test('exact watch aliases remain inside the official Wikidata CC0 fail-closed re
     'Rolex Datejust',
     'TAG Heuer Monaco',
     'Rolex GMT Master II',
+    'Rolex Milgauss',
+    'Cartier Santos',
   ]) {
     assert.ok(queries.includes(query));
   }
@@ -59,6 +61,8 @@ test('watch recovery uses the same reference precision evaluator as production a
     ['Rolex Datejust', 'wristwatch manufactured by Rolex'],
     ['TAG Heuer Monaco', 'automatic chronograph wristwatches'],
     ['Rolex GMT Master II', 'watch by Rolex'],
+    ['Rolex Milgauss', 'antimagnetic wristwatch model by Rolex'],
+    ['Cartier Santos', 'wristwatch created by Cartier'],
   ];
 
   for (const [query, description] of cases) {
