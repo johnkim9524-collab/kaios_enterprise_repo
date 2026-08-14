@@ -121,10 +121,13 @@ if (!errors.length) {
     "racing-roadster-v658-mobile.webp"
   ]) if (exists(`${portalRoot}/assets/hero/${retired}`)) errors.push(`Retired Roadster remains: ${retired}`);
 
-  if (deploy.includes("sed -i") || deploy.includes("racing-roadster-v660")) {
-    errors.push("Deployment still mutates source paths or references the corrupt V660 asset.");
+  if (deploy.includes("sed -i") || deploy.includes("s/racing-roadster-")) {
+    errors.push("Deployment still mutates source paths.");
   }
   if (!deploy.includes("Verify V662 source freeze")) errors.push("Deployment does not verify the V662 source freeze.");
+  if (!deploy.includes("test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v660-master.webp")) {
+    errors.push("Deployment does not verify removal of the corrupt V660 asset.");
+  }
 
   if (!errors.length) console.log(`KIDULTS V662 stability recovery: PASS (${size.width}x${size.height}, ${buffer.length} bytes, one Roadster, one Workspace intro)`);
 }
