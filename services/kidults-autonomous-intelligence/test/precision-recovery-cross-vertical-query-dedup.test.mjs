@@ -9,7 +9,7 @@ const config = JSON.parse(fs.readFileSync(
 ));
 
 test('precision recovery keeps exact aliases while pruning stop-token-equivalent typed queries', () => {
-  assert.equal(config.schemaVersion, '1.0.8');
+  assert.equal(config.schemaVersion, '1.0.9');
   assert.equal(config.safety.wikidataOnly, true);
   assert.equal(config.safety.officialApiOnly, true);
   assert.equal(config.safety.unauthorizedScrapingAllowed, false);
