@@ -58,6 +58,20 @@ jobs:
           node --check apps/kidults-enterprise-staging/public/portal/components/k100-integrity-reset.js
           node --check apps/kidults-enterprise-staging/public/portal/components/mobile-reconstruction.js
           node --check apps/kidults-enterprise-staging/public/portal/components/mobile-hero-visibility.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/editorial-assets.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/racing-roadster-v658.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/racing-roadster-v658-part1.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/racing-roadster-v658-part2.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/racing-roadster-v658-part3.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/k100-footwear-v658.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/k100-footwear-v658-part1.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/k100-footwear-v658-part2.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/k100-footwear-v658-part3.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/k100-camera-v658.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/k100-toys-v658.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/k100-toys-v658-part1.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/k100-toys-v658-part2.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/assets/k100-toys-v658-part3.js
           node --check scripts/kidults/portal/validate-living-pulse.mjs
           node --check scripts/kidults/portal/validate-why-engine.mjs
           node --check scripts/kidults/portal/validate-copilot.mjs
@@ -70,6 +84,7 @@ jobs:
           node --check scripts/kidults/portal/validate-mobile-reconstruction.mjs
           node --check scripts/kidults/portal/validate-320-overflow-hotfix.mjs
           node --check scripts/kidults/portal/validate-mobile-hero-visibility.mjs
+          node --check scripts/kidults/portal/validate-v658-visual-assets.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -118,3 +133,14 @@ jobs:
 
       - name: Validate Mobile Hero Visibility
         run: node scripts/kidults/portal/validate-mobile-hero-visibility.mjs
+
+      - name: Validate V658 Visual Assets
+        run: node scripts/kidults/portal/validate-v658-visual-assets.mjs
+
+      - name: Upload V658 portal for visual QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-v658-portal
+          path: apps/kidults-enterprise-staging/public/portal
+          if-no-files-found: error
+          retention-days: 3
