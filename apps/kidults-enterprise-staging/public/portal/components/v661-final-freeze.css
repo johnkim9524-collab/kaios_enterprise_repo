@@ -1,0 +1,217 @@
+/* KIDULTS V661 — final information architecture and visual freeze. */
+
+html[data-homepage-structure="v661"] .hero-copy h1{
+  line-height:.965!important
+}
+
+html[data-homepage-structure="v661"] .button{
+  border-radius:999px
+}
+
+html[data-homepage-structure="v661"] .button-secondary{
+  border-width:.75px!important
+}
+
+html[data-homepage-structure="v661"] [data-hero-card]{
+  overflow:hidden;
+  background:#e9e1d6!important;
+  box-shadow:0 34px 86px rgba(20,36,29,.055),0 8px 20px rgba(20,36,29,.025)!important
+}
+
+html[data-homepage-structure="v661"] [data-hero-card]::before,
+html[data-homepage-structure="v661"] [data-hero-card] .moment-shade{
+  display:none!important;
+  background:none!important
+}
+
+html[data-homepage-structure="v661"] [data-hero-card] .moment-topline,
+html[data-homepage-structure="v661"] [data-hero-card] .moment-copy{
+  background:transparent!important
+}
+
+html[data-homepage-structure="v661"] [data-hero-card] .moment-image[data-hero-image],
+html[data-homepage-structure="v661"] [data-hero-card] .moment-image[data-hero-image][hidden]{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  width:100%!important;
+  max-width:100%!important;
+  height:100%!important;
+  padding:0!important;
+  object-fit:cover!important;
+  object-position:center center!important;
+  transform:translateX(-4.5%)!important;
+  transform-origin:center!important;
+  background:#e9e1d6!important;
+  filter:saturate(1.01) contrast(1.012)!important
+}
+
+html[data-homepage-structure="v661"] .k100-section{
+  border-top:1px solid rgba(7,61,45,.075)
+}
+
+html[data-homepage-structure="v661"] .k100-card{
+  box-shadow:0 24px 65px rgba(20,36,29,.042),0 5px 16px rgba(20,36,29,.018)!important
+}
+
+html[data-homepage-structure="v661"] .k100-card .k100-figure{
+  aspect-ratio:4/3!important;
+  overflow:hidden!important;
+  border-radius:14px!important;
+  background:#ded3c3!important
+}
+
+html[data-homepage-structure="v661"] .k100-card .k100-figure img{
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  padding:0!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  transform:scale(1)!important;
+  transform-origin:center!important;
+  transition:none!important
+}
+
+html[data-homepage-structure="v661"] .k100-card[data-k100-id="footwear-01"] .k100-figure img{
+  transform:scale(1.04)!important
+}
+
+html[data-homepage-structure="v661"] .k100-card[data-k100-id="toys-editorial-01"] .k100-figure img{
+  transform:scale(1.09)!important
+}
+
+html[data-homepage-structure="v661"] .workspace-entry-section{
+  position:relative;
+  background:linear-gradient(180deg,#f7f4ee 0%,#f0ebe2 100%);
+  border-top:1px solid rgba(7,61,45,.07);
+  border-bottom:1px solid rgba(7,61,45,.07)
+}
+
+html[data-homepage-structure="v661"] .workspace-entry-heading{
+  align-items:end
+}
+
+html[data-homepage-structure="v661"] .workspace-entry-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:18px;
+  margin-top:42px
+}
+
+html[data-homepage-structure="v661"] .workspace-entry-card{
+  min-height:278px;
+  display:flex;
+  flex-direction:column;
+  padding:30px;
+  border:1px solid rgba(7,61,45,.105);
+  border-radius:22px;
+  background:rgba(255,254,250,.84);
+  color:var(--ink);
+  text-decoration:none;
+  box-shadow:0 24px 64px rgba(20,36,29,.035);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease
+}
+
+html[data-homepage-structure="v661"] .workspace-entry-card:hover,
+html[data-homepage-structure="v661"] .workspace-entry-card:focus-visible{
+  transform:translateY(-3px);
+  border-color:rgba(7,61,45,.26);
+  box-shadow:0 30px 72px rgba(20,36,29,.055)
+}
+
+html[data-homepage-structure="v661"] .workspace-entry-card>span{
+  color:var(--forest);
+  font-family:var(--serif);
+  font-size:25px
+}
+
+html[data-homepage-structure="v661"] .workspace-entry-card h3{
+  margin:42px 0 12px;
+  font-family:var(--serif);
+  font-size:34px;
+  font-weight:500;
+  color:var(--forest)
+}
+
+html[data-homepage-structure="v661"] .workspace-entry-card p{
+  margin:0;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.7
+}
+
+html[data-homepage-structure="v661"] .workspace-entry-card b{
+  margin-top:auto;
+  padding-top:28px;
+  font-size:12px;
+  letter-spacing:.04em
+}
+
+html[data-homepage-structure="v661"] .workspace-entry-card i{
+  font-style:normal
+}
+
+html[data-homepage-structure="v661"] .workspace-entry-button{
+  width:max-content;
+  margin-top:28px
+}
+
+@media(min-width:769px) and (max-width:1180px){
+  html[data-homepage-structure="v661"] [data-hero-card] .moment-image[data-hero-image],
+  html[data-homepage-structure="v661"] [data-hero-card] .moment-image[data-hero-image][hidden]{
+    transform:translateX(-3.5%)!important
+  }
+}
+
+@media(max-width:768px){
+  html[data-homepage-structure="v661"] [data-hero-card]{
+    background:#e9e1d6!important
+  }
+
+  html[data-homepage-structure="v661"] [data-hero-card] .moment-image[data-hero-image],
+  html[data-homepage-structure="v661"] [data-hero-card] .moment-image[data-hero-image][hidden]{
+    width:100%!important;
+    max-width:100%!important;
+    height:auto!important;
+    aspect-ratio:4/3!important;
+    object-fit:contain!important;
+    object-position:center center!important;
+    transform:translate(-3.5%,-12px)!important;
+    background:#e9e1d6!important
+  }
+
+  html[data-homepage-structure="v661"] .workspace-entry-grid{
+    grid-template-columns:1fr;
+    gap:14px;
+    margin-top:28px
+  }
+
+  html[data-homepage-structure="v661"] .workspace-entry-card{
+    min-height:220px;
+    padding:24px
+  }
+
+  html[data-homepage-structure="v661"] .workspace-entry-card h3{
+    margin-top:28px;
+    font-size:30px
+  }
+
+  html[data-homepage-structure="v661"] .workspace-entry-button{
+    width:100%;
+    justify-content:center
+  }
+}
+
+@media(max-width:390px){
+  html[data-homepage-structure="v661"] [data-hero-card] .moment-image[data-hero-image],
+  html[data-homepage-structure="v661"] [data-hero-card] .moment-image[data-hero-image][hidden]{
+    transform:translate(-3%,-10px)!important
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  html[data-homepage-structure="v661"] .workspace-entry-card{
+    transition:none!important
+  }
+}
