@@ -1,4 +1,4 @@
-name: KIDULTS Portal V502 / V662 Visual95 Validate
+name: KIDULTS Portal V502 / V663 Hero Validate
 
 on:
   pull_request:
@@ -43,7 +43,7 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Syntax-check V502 / V662 Visual95 JavaScript
+      - name: Syntax-check V502 / V663 JavaScript
         run: |
           node --check apps/kidults-enterprise-staging/public/portal/portal.js
           node --check apps/kidults-enterprise-staging/public/portal/workspace-page.js
@@ -78,6 +78,7 @@ jobs:
           node --check scripts/kidults/portal/validate-final-entry-structure.mjs
           node --check scripts/kidults/portal/validate-v662-stability-recovery.mjs
           node --check scripts/kidults/portal/validate-v662-final-visual95.mjs
+          node --check scripts/kidults/portal/validate-v663-hero-layout.mjs
           node --check scripts/kidults/portal/capture-v662-visual-check.mjs
 
       - name: Validate shared coordination
@@ -137,6 +138,9 @@ jobs:
       - name: Validate V662 Visual95 final assets
         run: node scripts/kidults/portal/validate-v662-final-visual95.mjs
 
+      - name: Validate V663 integrated Hero footer
+        run: node scripts/kidults/portal/validate-v663-hero-layout.mjs
+
   visual:
     needs: validate
     runs-on: ubuntu-latest
@@ -157,25 +161,27 @@ jobs:
 
       - name: Start local KIDULTS portal
         run: |
-          python3 -m http.server 4173 --directory apps/kidults-enterprise-staging/public > /tmp/kidults-v662-server.log 2>&1 &
-          echo $! > /tmp/kidults-v662-server.pid
+          python3 -m http.server 4173 --directory apps/kidults-enterprise-staging/public > /tmp/kidults-v663-server.log 2>&1 &
+          echo $! > /tmp/kidults-v663-server.pid
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:4173/portal/index.html >/dev/null; then
               exit 0
             fi
             sleep 1
           done
-          cat /tmp/kidults-v662-server.log
+          cat /tmp/kidults-v663-server.log
           exit 1
 
       - name: Capture and validate 320 / 390 / 768 / 1440
+        env:
+          KIDULTS_VISUAL_OUTPUT: artifacts/kidults-v663-visual
         run: node scripts/kidults/portal/capture-v662-visual-check.mjs
 
-      - name: Upload V662 Visual95 evidence
+      - name: Upload V663 Hero evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kidults-v662-visual95-evidence
-          path: artifacts/kidults-v662-visual
+          name: kidults-v663-hero-evidence
+          path: artifacts/kidults-v663-visual
           if-no-files-found: warn
           retention-days: 14
