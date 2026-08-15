@@ -1,4 +1,4 @@
-name: Kidults V663 Hero Clean Portal
+name: Kidults V665 Experience Freeze
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
       - 'apps/kidults-enterprise-staging/public/data/**'
       - 'scripts/kidults/portal/capture-v662-visual-check.mjs'
       - 'scripts/kidults/portal/validate-v663-hero-layout.mjs'
+      - 'scripts/kidults/portal/validate-v664-hero-visual.mjs'
       - '.github/workflows/kidults-mobile-preview-pages.yml'
   workflow_dispatch:
 
@@ -33,28 +34,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify V662 Visual95 source freeze + V663 Hero layout
+      - name: Verify V665 public-experience freeze
         run: |
           set -euo pipefail
           portal='apps/kidults-enterprise-staging/public/portal'
-          grep -q 'portal.js?v=662-visual95-final' "$portal/index.html"
+          grep -q 'portal.js?v=665' "$portal/index.html"
+          grep -q 'data-visual-freeze="v665"' "$portal/index.html"
           grep -q 'v662-stability-freeze.css?v=662-visual95-final' "$portal/index.html"
           grep -q 'racing-roadster-v662.webp?v=662-visual95-final' "$portal/index.html"
           grep -q 'data-portal-version="v663"' "$portal/index.html"
           grep -q 'v663-hero-integrated-footer.css?v=663' "$portal/index.html"
+          grep -q 'v664-visible-hero-footer.css?v=665' "$portal/index.html"
           grep -q 'data-hero-layout="v663-integrated-footer"' "$portal/index.html"
+          grep -q 'data-hero-surface="v665-single-surface"' "$portal/index.html"
           grep -q 'homepage-structure.js?v=662-visual95-final' "$portal/portal.js"
           grep -q 'editorial-assets.js?v=662-visual95-final' "$portal/portal.js"
           grep -q 'mobile-hero-visibility.js?v=662-visual95-final' "$portal/portal.js"
+          grep -q 'visualFreeze: "v665"' "$portal/portal.js"
+          grep -q 'timeZone: "UTC"' "$portal/portal.js"
           grep -q 'CACHE_REVISION = "visual95"' "$portal/components/editorial-assets.js"
           grep -q 'FINAL_TUNE_REVISION = "final"' "$portal/components/editorial-assets.js"
           grep -q 'single-studio-v662-visual95' "$portal/components/editorial-assets.js"
           grep -q '#f4f2ee' "$portal/components/v663-hero-integrated-footer.css"
-          grep -q 'background:rgba(244,242,238,.97)!important' "$portal/components/v663-hero-integrated-footer.css"
+          grep -q 'V665 single-surface experience freeze' "$portal/components/v664-visible-hero-footer.css"
+          grep -q 'mix-blend-mode:multiply!important' "$portal/components/v664-visible-hero-footer.css"
+          grep -q 'border-top:0!important' "$portal/components/v664-visible-hero-footer.css"
           grep -q 'workspace-page.js?v=662' "$portal/workspace.html"
           grep -q 'workspace-page.css?v=662' "$portal/workspace.html"
           grep -q 'racing-roadster-v662.webp' "$portal/data/v502-manifest.json"
           node scripts/kidults/portal/validate-v663-hero-layout.mjs
+          node scripts/kidults/portal/validate-v662-stability-recovery.mjs
           test ! -e "$portal/assets/hero/racing-roadster-v654.webp"
           test ! -e "$portal/assets/hero/racing-roadster-v658-desktop.webp"
           test ! -e "$portal/assets/hero/racing-roadster-v660-master.webp"
@@ -75,13 +84,13 @@ jobs:
               assert data[:4] == b'RIFF', f'{asset} is not a RIFF file'
               assert data[8:12] == b'WEBP', f'{asset} is not a WebP file'
               assert len(data) > 25_000, f'{asset} is unexpectedly small: {len(data)}'
-              print(f'V663 asset verified: {asset} ({len(data)} bytes)')
+              print(f'V665 asset verified: {asset} ({len(data)} bytes)')
           PY
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload Kidults portal V663
+      - name: Upload Kidults portal V665
         uses: actions/upload-pages-artifact@v3
         with:
           path: apps/kidults-enterprise-staging/public
@@ -91,7 +100,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
   live-smoke:
-    name: Verify deployed V663 Hero portal
+    name: Verify deployed V665 portal
     needs: deploy
     runs-on: ubuntu-latest
     steps:
@@ -103,7 +112,7 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Wait for the exact V663 artifact at the public Pages URL
+      - name: Wait for the exact V665 artifact at the public Pages URL
         env:
           KIDULTS_BASE_URL: ${{ needs.deploy.outputs.page_url }}
         run: |
@@ -111,23 +120,25 @@ jobs:
           base="${KIDULTS_BASE_URL%/}"
 
           for attempt in $(seq 1 30); do
-            echo "Live V663 verification attempt ${attempt}/30: ${base}"
+            echo "Live V665 verification attempt ${attempt}/30: ${base}"
             if curl --fail --silent --show-error --location \
               --header 'Cache-Control: no-cache' \
-              "${base}/portal/index.html?deployment=${GITHUB_SHA}" \
-              --output /tmp/kidults-v663-live-index.html; then
-              if grep -q 'portal.js?v=662-visual95-final' /tmp/kidults-v663-live-index.html \
-                && grep -q 'data-portal-version="v663"' /tmp/kidults-v663-live-index.html \
-                && grep -q 'v663-hero-integrated-footer.css?v=663' /tmp/kidults-v663-live-index.html \
-                && grep -q 'data-hero-layout="v663-integrated-footer"' /tmp/kidults-v663-live-index.html; then
-                echo "V663 Hero HTML is active at the public Pages URL."
+              "${base}/portal/index.html?v=665&deployment=${GITHUB_SHA}" \
+              --output /tmp/kidults-v665-live-index.html; then
+              if grep -q 'portal.js?v=665' /tmp/kidults-v665-live-index.html \
+                && grep -q 'data-visual-freeze="v665"' /tmp/kidults-v665-live-index.html \
+                && grep -q 'data-portal-version="v663"' /tmp/kidults-v665-live-index.html \
+                && grep -q 'v663-hero-integrated-footer.css?v=663' /tmp/kidults-v665-live-index.html \
+                && grep -q 'v664-visible-hero-footer.css?v=665' /tmp/kidults-v665-live-index.html \
+                && grep -q 'data-hero-surface="v665-single-surface"' /tmp/kidults-v665-live-index.html; then
+                echo "V665 HTML is active at the public Pages URL."
                 break
               fi
             fi
 
             if [ "$attempt" -eq 30 ]; then
-              echo "The public Pages URL did not expose the V663 artifact within the retry window."
-              cat /tmp/kidults-v663-live-index.html 2>/dev/null || true
+              echo "The public Pages URL did not expose the V665 artifact within the retry window."
+              cat /tmp/kidults-v665-live-index.html 2>/dev/null || true
               exit 1
             fi
             sleep 5
@@ -135,40 +146,48 @@ jobs:
 
           curl --fail --silent --show-error --location \
             --header 'Cache-Control: no-cache' \
-            "${base}/portal/components/v663-hero-integrated-footer.css?v=663&deployment=${GITHUB_SHA}" \
-            --output /tmp/kidults-v663-hero.css
-          grep -q '#f4f2ee' /tmp/kidults-v663-hero.css
-          grep -q 'background:rgba(244,242,238,.97)!important' /tmp/kidults-v663-hero.css
+            "${base}/portal/components/v664-visible-hero-footer.css?v=665&deployment=${GITHUB_SHA}" \
+            --output /tmp/kidults-v665-hero.css
+          grep -q '#f4f2ee' /tmp/kidults-v665-hero.css
+          grep -q 'mix-blend-mode:multiply!important' /tmp/kidults-v665-hero.css
+          grep -q 'border-top:0!important' /tmp/kidults-v665-hero.css
+
+          curl --fail --silent --show-error --location \
+            --header 'Cache-Control: no-cache' \
+            "${base}/portal/portal.js?v=665&deployment=${GITHUB_SHA}" \
+            --output /tmp/kidults-v665-portal.js
+          grep -q 'visualFreeze: "v665"' /tmp/kidults-v665-portal.js
+          grep -q 'timeZone: "UTC"' /tmp/kidults-v665-portal.js
 
           curl --fail --silent --show-error --location \
             --header 'Cache-Control: no-cache' \
             "${base}/portal/workspace.html?deployment=${GITHUB_SHA}" \
-            --output /tmp/kidults-v663-live-workspace.html
-          grep -q 'workspace-page.js?v=662' /tmp/kidults-v663-live-workspace.html
-          grep -q 'workspace-page.css?v=662' /tmp/kidults-v663-live-workspace.html
+            --output /tmp/kidults-v665-live-workspace.html
+          grep -q 'workspace-page.js?v=662' /tmp/kidults-v665-live-workspace.html
+          grep -q 'workspace-page.css?v=662' /tmp/kidults-v665-live-workspace.html
 
-          mkdir -p /tmp/kidults-v663-assets
+          mkdir -p /tmp/kidults-v665-assets
           for relative in \
             'assets/hero/racing-roadster-v662.webp' \
             'assets/kidult100/footwear-v654.webp' \
             'assets/kidult100/camera-v654.webp' \
             'assets/kidult100/toys-v654.webp' \
             'assets/kidult100/watch-v655.webp'; do
-            target="/tmp/kidults-v663-assets/$(basename "$relative")"
+            target="/tmp/kidults-v665-assets/$(basename "$relative")"
             curl --fail --silent --show-error --location \
               --header 'Cache-Control: no-cache' \
-              "${base}/portal/${relative}?v=663&deployment=${GITHUB_SHA}" \
+              "${base}/portal/${relative}?v=665&deployment=${GITHUB_SHA}" \
               --output "$target"
           done
 
           python3 - <<'PY'
           from pathlib import Path
-          for asset in Path('/tmp/kidults-v663-assets').glob('*.webp'):
+          for asset in Path('/tmp/kidults-v665-assets').glob('*.webp'):
               data = asset.read_bytes()
               assert data[:4] == b'RIFF', f'{asset} is not RIFF'
               assert data[8:12] == b'WEBP', f'{asset} is not WebP'
               assert len(data) > 25_000, f'{asset} is unexpectedly small: {len(data)}'
-              print(f'Live V663 asset verified: {asset.name} ({len(data)} bytes)')
+              print(f'Live V665 asset verified: {asset.name} ({len(data)} bytes)')
           PY
 
           for retired in \
@@ -186,18 +205,17 @@ jobs:
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Validate the public V663 Pages URL at 320 / 390 / 768 / 1440
+      - name: Validate the public V665 Pages URL at 320 / 390 / 768 / 1440
         env:
           KIDULTS_BASE_URL: ${{ needs.deploy.outputs.page_url }}
-          KIDULTS_VISUAL_OUTPUT: artifacts/kidults-v663-live
+          KIDULTS_VISUAL_OUTPUT: artifacts/kidults-v665-live
         run: node scripts/kidults/portal/capture-v662-visual-check.mjs
 
-      - name: Upload live V663 evidence
+      - name: Upload live V665 evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          # Compatibility marker: kidults-v662-visual95-final-live-evidence
-          name: kidults-v663-hero-live-evidence
-          path: artifacts/kidults-v663-live
+          name: kidults-v665-live-evidence
+          path: artifacts/kidults-v665-live
           if-no-files-found: warn
           retention-days: 14
