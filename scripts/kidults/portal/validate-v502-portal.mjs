@@ -63,7 +63,7 @@ const requiredFiles = [
   `${portalRoot}/components/k100-integrity-reset.js`,
   `${portalRoot}/components/k100-integrity-reset.css`,
   `${portalRoot}/assets/hero/racing-roadster-v662.webp`,
-  `${portalRoot}/assets/hero/racing-roadster-v666.svg`,
+  `${portalRoot}/assets/hero/racing-roadster-v662.webp`,
   `${portalRoot}/data/v502-manifest.json`,
   `${portalRoot}/data/registry-view.json`,
   `${portalRoot}/data/verticals.json`,
@@ -102,7 +102,7 @@ for (const marker of [
   'v663-hero-integrated-footer.css?v=663',
   'v664-visible-hero-footer.css?v=664',
   'v666-experience-closure.css?v=666',
-  'racing-roadster-v666.svg?v=666',
+  'racing-roadster-v662.webp?v=666-surface',
   'data-hero-asset="racing-roadster-v666"',
   'data-hero-layout="v663-integrated-footer"',
   'data-hero-revision="v666-experience-closure"',
@@ -171,7 +171,7 @@ if (!interactions.includes("setupSearch")) errors.push("Search interaction is no
 if (!homepage.includes('main.dataset.finalStructure = "v662"')) errors.push("Homepage structure is not frozen at V662.");
 for (const marker of [
   'ROADSTER_KEY = "racing-roadster-v666"',
-  'racing-roadster-v666.svg',
+  'racing-roadster-v662.webp',
   'museum-editorial-v662',
   'single-surface-v666'
 ]) {
@@ -226,7 +226,7 @@ if (manifest) {
   if (manifest.display_policy?.unverified_visual_policy !== "WITHHOLD") errors.push("Unverified visuals must be withheld.");
   if (manifest.display_policy?.missing_to_zero !== false) errors.push("V502 must forbid missing-to-zero conversion.");
   if (manifest.experience_label !== "V6 RC") errors.push("V6 label must remain separate from V502 contract.");
-  if (manifest.hero?.asset !== "assets/hero/racing-roadster-v666.svg") errors.push("Manifest active Roadster surface asset mismatch.");
+  if (manifest.hero?.asset !== "assets/hero/racing-roadster-v662.webp") errors.push("Manifest active Roadster surface asset mismatch.");
   if (manifest.hero?.production_status !== "HOLD") errors.push("Hero asset must remain on Production HOLD.");
   if (!(manifest.routes ?? []).some(route => route.id === "workspace" && route.path === "workspace.html")) {
     errors.push("Manifest does not register the dedicated Workspace route.");

@@ -4,7 +4,7 @@ const CACHE_REVISION = "visual95";
 const FINAL_TUNE_REVISION = "final";
 const ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}-${FINAL_TUNE_REVISION}`;
 const ROADSTER_KEY = "racing-roadster-v666";
-const ROADSTER_SOURCE = "assets/hero/racing-roadster-v666.svg?v=666";
+const ROADSTER_SOURCE = "assets/hero/racing-roadster-v662.webp?v=666-surface";
 const IMAGE_FORMAT = "museum-editorial-v662";
 const VISUAL_SYSTEM = "single-studio-v662-visual95";
 const HERO_VISUAL_SYSTEM = "single-surface-v666";

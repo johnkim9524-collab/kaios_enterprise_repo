@@ -42,7 +42,7 @@ const required = [
   `${portalRoot}/components/v664-visible-hero-footer.css`,
   `${portalRoot}/components/v666-experience-closure.css`,
   `${portalRoot}/assets/hero/racing-roadster-v662.webp`,
-  `${portalRoot}/assets/hero/racing-roadster-v666.svg`,
+  `${portalRoot}/assets/hero/racing-roadster-v662.webp`,
   `${portalRoot}/assets/kidult100/footwear-v654.webp`,
   `${portalRoot}/assets/kidult100/camera-v654.webp`,
   `${portalRoot}/assets/kidult100/toys-v654.webp`,
@@ -84,7 +84,7 @@ if (!errors.length) {
       'v663-hero-integrated-footer.css?v=663',
       'v664-visible-hero-footer.css?v=664',
       'v666-experience-closure.css?v=666',
-      'racing-roadster-v666.svg?v=666',
+      'racing-roadster-v662.webp?v=666-surface',
       'data-hero-asset="racing-roadster-v666"'
     ]],
     [portal, "portal", [
@@ -98,7 +98,7 @@ if (!errors.length) {
     ]],
     [assets, "asset binding", [
       'ROADSTER_KEY = "racing-roadster-v666"',
-      'ROADSTER_SOURCE = "assets/hero/racing-roadster-v666.svg?v=666"',
+      'ROADSTER_SOURCE = "assets/hero/racing-roadster-v662.webp?v=666-surface"',
       'CACHE_REVISION = "visual95"',
       'VISUAL_SYSTEM = "single-studio-v662-visual95"',
       'HERO_VISUAL_SYSTEM = "single-surface-v666"',
@@ -151,7 +151,7 @@ if (!errors.length) {
   }
   if (!homepage.includes('main.dataset.finalStructure = "v662"')) errors.push("Homepage final structure is not V662.");
   if (!homepage.includes("collectors and institutions")) errors.push("Workspace positioning does not identify collectors and institutions.");
-  if (manifest.hero?.asset !== "assets/hero/racing-roadster-v666.svg") errors.push("Manifest does not bind the active V666 surface asset.");
+  if (manifest.hero?.asset !== "assets/hero/racing-roadster-v662.webp") errors.push("Manifest does not bind the active V666 surface asset.");
   if (manifest.hero?.production_status !== "HOLD") errors.push("Hero Production status must remain HOLD.");
   if (Object.prototype.hasOwnProperty.call(manifest.hero ?? {}, "mobile_asset")) errors.push("Manifest registers a second mobile Roadster.");
 

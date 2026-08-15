@@ -1,0 +1,25 @@
+{
+  "name": "kaios_enterprise_repo",
+  "version": "1.0.0",
+  "description": "KAIOS is the production repository for the KIDULTS Autonomous Intelligence Operating System.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnkim9524-collab/kaios_enterprise_repo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues"
+  },
+  "homepage": "https://github.com/johnkim9524-collab/kaios_enterprise_repo#readme"
+}

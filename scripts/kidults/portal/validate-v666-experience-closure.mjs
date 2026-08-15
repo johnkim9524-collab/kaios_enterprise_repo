@@ -34,12 +34,12 @@ const sourceMarkers = [
   [index, 'data-portal-hotfix="v666"', "index V666 hotfix"],
   [index, 'v666-experience-closure.css?v=666', "index V666 CSS"],
   [index, 'portal.js?v=666', "index V666 JS"],
-  [index, 'racing-roadster-v666.svg?v=666', "index V666 Hero"],
+  [index, 'racing-roadster-v662.webp?v=666-surface', "index V666 Hero"],
   [portalJs, 'dataset.portalHotfix = "v666"', "runtime V666 dataset"],
   [portalJs, 'ensureExperienceClosureStylesheet', "runtime style ordering"],
   [editorial, 'single-surface-v666', "Hero visual contract"],
   [mobile, 'racing-roadster-v666', "mobile Hero contract"],
-  [manifest, 'racing-roadster-v666.svg', "manifest Hero contract"],
+  [manifest, 'racing-roadster-v662.webp', "manifest Hero contract"],
   [homepage, 'collectors and institutions', "playground positioning"],
   [css, '--v666-hero-surface:#f4f2ee', "single-surface token"],
   [css, 'border-top:0!important', "footer divider removal"],
@@ -49,7 +49,7 @@ const sourceMarkers = [
 for (const [haystack, marker, label] of sourceMarkers) {
   if (!haystack.includes(marker)) failures.push(`SOURCE: ${label} missing (${marker})`);
 }
-if (!fs.existsSync(svgPath)) failures.push("SOURCE: racing-roadster-v666.svg missing");
+if (!fs.existsSync(svgPath)) failures.push("SOURCE: racing-roadster-v662.webp missing");
 if (css.includes("transform:scale(")) failures.push("SOURCE: Hero enlargement is prohibited in V666");
 report.source = { markers: sourceMarkers.length, svgExists: fs.existsSync(svgPath) };
 
@@ -204,7 +204,7 @@ for (const viewport of viewports) {
     const mobileViewport = viewport.width <= 768;
     if (metrics.hotfix !== "v666" || metrics.closure !== "v666") issues.push(`runtime=${metrics.hotfix}/${metrics.closure}`);
     if (metrics.scrollWidth > metrics.clientWidth + 1) issues.push(`horizontal overflow ${metrics.scrollWidth - metrics.clientWidth}px`);
-    if (!metrics.hero.source.includes("racing-roadster-v666.svg")) issues.push(`Hero source ${metrics.hero.source}`);
+    if (!metrics.hero.source.includes("racing-roadster-v662.webp")) issues.push(`Hero source ${metrics.hero.source}`);
     if (metrics.hero.naturalWidth !== 1600 || metrics.hero.naturalHeight !== 900) issues.push(`Hero dimensions ${metrics.hero.naturalWidth}x${metrics.hero.naturalHeight}`);
     if (metrics.hero.pixelProbe?.error) issues.push(`Hero pixel probe ${metrics.hero.pixelProbe.error}`);
     if ((metrics.hero.pixelProbe?.contrastRatio ?? 0) < 0.035) issues.push(`Hero visually blank: contrast ratio ${metrics.hero.pixelProbe?.contrastRatio ?? 0}`);

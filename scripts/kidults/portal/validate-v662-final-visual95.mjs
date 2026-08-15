@@ -42,7 +42,7 @@ for (const marker of [
   'VISUAL_SYSTEM = "single-studio-v662-visual95"',
   'HERO_VISUAL_SYSTEM = "single-surface-v666"',
   'ROADSTER_KEY = "racing-roadster-v666"',
-  'ROADSTER_SOURCE = "assets/hero/racing-roadster-v666.svg?v=666"',
+  'ROADSTER_SOURCE = "assets/hero/racing-roadster-v662.webp?v=666-surface"',
   'footwear-v654.webp',
   'camera-v654.webp',
   'toys-v654.webp',
@@ -76,7 +76,7 @@ for (const marker of [
   'dataset.portalHotfix = "v666"'
 ]) if (!portalJs.includes(marker)) errors.push(`Portal V666 integration marker missing: ${marker}`);
 
-if (manifest.hero?.asset !== "assets/hero/racing-roadster-v666.svg") errors.push("Manifest active Hero asset mismatch.");
+if (manifest.hero?.asset !== "assets/hero/racing-roadster-v662.webp") errors.push("Manifest active Hero asset mismatch.");
 if (manifest.hero?.production_status !== "HOLD") errors.push("Hero Production status must remain HOLD.");
 
 if (errors.length) {

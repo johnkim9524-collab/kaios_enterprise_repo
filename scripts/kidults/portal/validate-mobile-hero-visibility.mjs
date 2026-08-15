@@ -84,7 +84,7 @@ for (const marker of [
 }
 for (const marker of [
   'ROADSTER_KEY = "racing-roadster-v666"',
-  'ROADSTER_SOURCE = "assets/hero/racing-roadster-v666.svg?v=666"',
+  'ROADSTER_SOURCE = "assets/hero/racing-roadster-v662.webp?v=666-surface"',
   'CACHE_REVISION = "visual95"',
   'museum-editorial-v662',
   'single-studio-v662-visual95',
@@ -113,7 +113,7 @@ for (const retired of [
 ]) {
   if (fs.existsSync(path.join(root, `${portalRoot}/assets/hero/${retired}`))) errors.push(`Retired Roadster still exists: ${retired}`);
 }
-if (manifest.hero?.asset !== "assets/hero/racing-roadster-v666.svg") errors.push("Active V666 Hero surface asset mismatch.");
+if (manifest.hero?.asset !== "assets/hero/racing-roadster-v662.webp") errors.push("Active V666 Hero surface asset mismatch.");
 if (manifest.hero?.production_status !== "HOLD") errors.push("Hero Production status must remain HOLD.");
 if (Object.prototype.hasOwnProperty.call(manifest.hero ?? {}, "mobile_asset")) errors.push("Manifest still registers a second mobile-specific Roadster.");
 
