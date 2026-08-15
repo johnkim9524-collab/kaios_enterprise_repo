@@ -34,3 +34,11 @@ test('precision recovery circuit stops further network calls without widening ev
   assert.doesNotMatch(source, /decisionGradeRightDataCertified:\s*true/);
   assert.doesNotMatch(source, /finalKidult100Certified:\s*true/);
 });
+
+test('precision recovery circuit fails closed before incomplete results can become authoritative', () => {
+  assert.match(source, /const circuitBlockedQueries = errors\.filter/);
+  assert.match(source, /const precisionRecoveryIncomplete = runtime\.backpressureCircuitOpened && circuitBlockedQueries > 0;/);
+  assert.match(source, /status: precisionRecoveryIncomplete \? 'FAIL_CLOSED_PRECISION_RECOVERY_INCOMPLETE' : 'PASS'/);
+  assert.match(source, /authoritativeMeasurementPermitted: !precisionRecoveryIncomplete/);
+  assert.match(source, /if \(precisionRecoveryIncomplete\) \{[\s\S]*process\.exitCode = 2;[\s\S]*\} else \{[\s\S]*fs\.writeFileSync\(POC_PATH/);
+});
