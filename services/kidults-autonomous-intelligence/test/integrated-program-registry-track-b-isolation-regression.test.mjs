@@ -44,6 +44,14 @@ function canonicalHandoff(overrides = {}) {
   };
 }
 
+function materializeOfficialInputs(tempRoot) {
+  fs.writeFileSync(
+    path.join(tempRoot, 'snapshot-candidate.json'),
+    JSON.stringify({ snapshot_id: 'fixture-candidate' }),
+  );
+  fs.writeFileSync(path.join(tempRoot, 'EVIDENCE_PACKAGE'), '{}');
+}
+
 function fixtureReadyForAssessment() {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-track-b-isolation-fixture-'));
   fs.cpSync(LIVE_COORDINATION_ROOT, tempRoot, { recursive: true });
@@ -53,6 +61,7 @@ function fixtureReadyForAssessment() {
   snapshots.current_candidate_snapshot_id = 'fixture-candidate';
   snapshots.entries = [{ snapshot_id: 'fixture-candidate', status: 'draft' }];
   fs.writeFileSync(snapshotPath, JSON.stringify(snapshots, null, 2));
+  materializeOfficialInputs(tempRoot);
 
   const handoffPath = path.join(tempRoot, 'registry', 'handoff-registry.json');
   const handoffs = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
