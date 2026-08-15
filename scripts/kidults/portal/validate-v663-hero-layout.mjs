@@ -16,17 +16,22 @@ function read(relative) {
 }
 
 const index = read(`${portal}/index.html`);
-const css = read(`${portal}/components/v663-hero-integrated-footer.css`);
+const v663 = read(`${portal}/components/v663-hero-integrated-footer.css`);
+const v664 = read(`${portal}/components/v664-visible-hero-footer.css`);
 
 for (const marker of [
   'data-portal-version="v663"',
+  'data-portal-hotfix="v664"',
+  'kidults-hotfix-version" content="664"',
   'v663-hero-integrated-footer.css?v=663',
+  'v664-visible-hero-footer.css?v=664',
   'data-hero-layout="v663-integrated-footer"',
+  'data-hero-revision="v664-visible-footer"',
   'data-hero-vertical>Automobiles &amp; Mobility',
   'data-hero-status>EDITORIAL APPROVED CANDIDATE',
   'data-dialog="hero">View details'
 ]) {
-  if (!index.includes(marker)) errors.push(`V663 homepage marker missing: ${marker}`);
+  if (!index.includes(marker)) errors.push(`V664 homepage marker missing: ${marker}`);
 }
 
 const articleStart = index.indexOf('<article class="moment-card"');
@@ -40,26 +45,36 @@ for (const marker of [
   "KIDULTS Portal V663",
   "#f4f2ee",
   'data-hero-layout="v663-integrated-footer"',
-  "left:0!important",
-  "right:0!important",
-  "bottom:0!important",
-  "border-radius:0 0 20px 20px",
-  "background:rgba(244,242,238,.97)!important",
-  "@media(max-width:768px)",
-  "@media(max-width:420px)",
-  "@media(max-width:340px)",
   "grid-row:4!important"
 ]) {
-  if (!css.includes(marker)) errors.push(`V663 Hero CSS marker missing: ${marker}`);
+  if (!v663.includes(marker)) errors.push(`V663 foundation marker missing: ${marker}`);
 }
 
-if (css.includes("object-position:right")) errors.push("V663 Hero reintroduces a right-biased image position.");
-if (css.includes("transform:scale(")) errors.push("V663 Hero must not enlarge the Roadster.");
+for (const marker of [
+  "KIDULTS Portal V664",
+  'data-portal-hotfix="v664"',
+  "--v664-hero-surface:#f4f2ee",
+  "align-items:start!important",
+  "height:560px!important",
+  "inset:0 0 64px 0!important",
+  "background:var(--v664-hero-surface)!important",
+  "@media(max-width:768px)",
+  "Mobile footer is deliberately simple",
+  '[data-hero-status]{',
+  "display:none!important"
+]) {
+  if (!v664.includes(marker)) errors.push(`V664 Hero CSS marker missing: ${marker}`);
+}
+
+if (v664.includes("object-position:right")) errors.push("V664 Hero reintroduces a right-biased image position.");
+if (v664.includes("transform:scale(")) errors.push("V664 Hero must not enlarge the Roadster.");
+if (!v664.includes("min-width:1021px")) errors.push("V664 desktop viewport guard is missing.");
+if (!v664.includes("min-width:769px) and (max-width:1020px")) errors.push("V664 mid-width guard is missing.");
 
 if (errors.length) {
-  console.error(`KIDULTS V663 Hero layout validation: FAIL (${errors.length} error(s))`);
+  console.error(`KIDULTS V664 Hero layout validation: FAIL (${errors.length} error(s))`);
   for (const error of errors) console.error(`ERROR: ${error}`);
   process.exit(1);
 }
 
-console.log("KIDULTS V663 Hero layout validation: PASS (one #f4f2ee card surface, integrated internal metadata footer, responsive 320–1440 preservation)");
+console.log("KIDULTS V664 Hero layout validation: PASS (viewport-stable internal footer, one #f4f2ee surface, simplified mobile metadata, V662/V663 contracts preserved)");
