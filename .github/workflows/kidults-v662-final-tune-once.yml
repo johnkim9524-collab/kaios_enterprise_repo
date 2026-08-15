@@ -152,7 +152,7 @@ jobs:
               )
           mobile_path.write_text(mobile, encoding='utf-8')
 
-          # Align validators and Pages deployment with the final cache generation.
+          # Align validators and Pages deployment with final cache URLs while preserving the visual-system ID.
           validation_files = (
               Path('scripts/kidults/portal/validate-final-entry-structure.mjs'),
               Path('scripts/kidults/portal/validate-mobile-hero-visibility.mjs'),
@@ -163,6 +163,7 @@ jobs:
           for path in validation_files:
               text = path.read_text(encoding='utf-8')
               text = text.replace('662-visual95', '662-visual95-final')
+              text = text.replace('single-studio-v662-visual95-final', 'single-studio-v662-visual95')
               path.write_text(text, encoding='utf-8')
           PY
 
