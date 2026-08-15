@@ -88,6 +88,25 @@ test('typed curated queries retain bounded product-context recovery behavior', (
   assert.equal(result.accepted, true);
 });
 
+test('Nike Air Max exact recovery rejects model variants while preserving the canonical line entity', () => {
+  const exact = evaluate('Nike Air Max', 'Nike Air Max', 'line of shoes released by Nike', ['athletic shoe', 'shoe', 'shoes', 'sneaker', 'sneakers']);
+  const nearby = evaluate('Nike Air Max', 'Nike Air Max 90', 'line of shoes released by Nike', ['athletic shoe', 'shoe', 'shoes', 'sneaker', 'sneakers']);
+  const company = evaluate('Nike Air Max', 'Nike Air Max', 'footwear company', ['athletic shoe', 'shoe', 'shoes', 'sneaker', 'sneakers']);
+
+  assert.equal(exact.exactTitleRequired, true);
+  assert.equal(exact.exactTitleMatched, true);
+  assert.equal(exact.accepted, true);
+
+  assert.equal(nearby.allDistinctiveAnchorsMatched, true);
+  assert.equal(nearby.exactTitleRequired, true);
+  assert.equal(nearby.exactTitleMatched, false);
+  assert.equal(nearby.accepted, false);
+
+  assert.equal(company.exactTitleRequired, true);
+  assert.equal(company.exactTitleMatched, true);
+  assert.equal(company.accepted, false);
+});
+
 test('Vans Authentic exact recovery stays identity-bound after request-budget substitution', () => {
   const exact = evaluate('Vans Authentic', 'Vans Authentic', 'shoes', ['athletic shoe', 'shoe', 'shoes', 'sneaker', 'sneakers']);
   const nearby = evaluate('Vans Authentic', 'Vans Authentic Platform 2.0', 'shoes', ['athletic shoe', 'shoe', 'shoes', 'sneaker', 'sneakers']);
