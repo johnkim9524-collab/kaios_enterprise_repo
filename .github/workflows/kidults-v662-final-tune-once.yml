@@ -1,0 +1,173 @@
+name: KIDULTS V662 Final Tune Once
+
+on:
+  push:
+    branches:
+      - fix/kidults-v662-final-tune
+    paths:
+      - '.github/workflows/kidults-v662-final-tune-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  tune:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout final-tune branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install image tooling
+        run: python -m pip install --disable-pip-version-check pillow numpy scipy
+
+      - name: Apply V662 final image and cache tuning
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageFilter
+          import numpy as np
+          from scipy import ndimage
+
+          root = Path('apps/kidults-enterprise-staging/public/portal')
+          target = np.array([244.0, 242.0, 238.0], dtype=np.float32)  # #f4f2ee
+
+          def connected_background_mask(arr):
+              mx = arr.max(axis=2)
+              mn = arr.min(axis=2)
+              mean = arr.mean(axis=2)
+              saturation = (mx - mn) / np.maximum(mx, 1.0)
+              candidate = (mean > 145.0) & (saturation < 0.31)
+              labels, _ = ndimage.label(candidate)
+              border = np.unique(np.concatenate((labels[0], labels[-1], labels[:, 0], labels[:, -1])))
+              border = border[border != 0]
+              mask = np.isin(labels, border).astype(np.float32)
+              mask_image = Image.fromarray((mask * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(18))
+              return np.asarray(mask_image, dtype=np.float32) / 255.0
+
+          def tune_asset(path, strength=0.90, hero=False):
+              image = Image.open(path).convert('RGB')
+              arr = np.asarray(image, dtype=np.float32)
+              mask = connected_background_mask(arr)
+              selected = mask > 0.72
+              mean = arr[selected].mean(axis=0) if selected.any() else arr.reshape(-1, 3).mean(axis=0)
+              delta = (target - mean) * strength
+              tuned = arr + mask[..., None] * delta
+
+              # Remove the remaining red/sepiatone from the studio only.
+              tuned[..., 0] -= mask * 1.8
+              tuned[..., 1] += mask * 0.7
+              tuned[..., 2] += mask * 1.4
+
+              if hero:
+                  # Restrain only the residual right-side halo; keep the Roadster unchanged.
+                  x = np.linspace(0.0, 1.0, arr.shape[1], dtype=np.float32)
+                  right = np.clip((x - 0.56) / 0.44, 0.0, 1.0)[None, :]
+                  halo = mask * right
+                  tuned[..., 0] -= halo * 4.5
+                  tuned[..., 1] -= halo * 4.0
+                  tuned[..., 2] -= halo * 3.5
+
+              output = Image.fromarray(np.clip(tuned, 0, 255).astype(np.uint8))
+              output.save(path, 'WEBP', quality=92, method=6)
+
+          tune_asset(root / 'assets/hero/racing-roadster-v662.webp', strength=0.84, hero=True)
+          for relative in (
+              'assets/kidult100/footwear-v654.webp',
+              'assets/kidult100/camera-v654.webp',
+              'assets/kidult100/toys-v654.webp',
+              'assets/kidult100/watch-v655.webp',
+          ):
+              tune_asset(root / relative, strength=0.96, hero=False)
+
+          css_path = root / 'components/v662-stability-freeze.css'
+          css = css_path.read_text(encoding='utf-8')
+          marker = '/* KIDULTS V662 FINAL TUNE — watch-master neutral studio and restrained Hero halo. */'
+          if marker not in css:
+              css += f'''
+
+          {marker}
+          html[data-homepage-structure="v662"] [data-hero-card][data-visual-system="single-studio-v662-visual95"]{{
+            background:#f4f2ee!important;
+          }}
+          html[data-homepage-structure="v662"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image,
+          html[data-homepage-structure="v662"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image[hidden]{{
+            background:#f4f2ee!important;
+            filter:saturate(.93) contrast(.985) brightness(1.006)!important;
+          }}
+          html[data-homepage-structure="v662"] .k100-card[data-visual-system="single-studio-v662-visual95"] .k100-figure{{
+            background:#f4f2ee!important;
+          }}
+          html[data-homepage-structure="v662"] .k100-card[data-visual-system="single-studio-v662-visual95"] .k100-figure img{{
+            background:#f4f2ee!important;
+            filter:saturate(.955) contrast(.99) brightness(1.012)!important;
+          }}
+          @media(max-width:768px){{
+            html[data-mobile-reconstruction="v1"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image,
+            html[data-mobile-reconstruction="v1"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image[hidden]{{
+              background:#f4f2ee!important;
+            }}
+          }}
+          '''
+              css_path.write_text(css, encoding='utf-8')
+
+          for relative in ('index.html', 'portal.js', 'components/homepage-structure.js'):
+              path = root / relative
+              text = path.read_text(encoding='utf-8').replace('662-visual95-final', '662-visual95-final')
+              text = text.replace('662-visual95', '662-visual95-final')
+              path.write_text(text, encoding='utf-8')
+
+          editorial_path = root / 'components/editorial-assets.js'
+          editorial = editorial_path.read_text(encoding='utf-8')
+          editorial = editorial.replace('const VERSION = "4.0.0";', 'const VERSION = "4.1.0";')
+          if 'const FINAL_TUNE_REVISION = "final";' not in editorial:
+              editorial = editorial.replace(
+                  'const CACHE_REVISION = "visual95";\nconst ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}`;',
+                  'const CACHE_REVISION = "visual95";\nconst FINAL_TUNE_REVISION = "final";\nconst ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}-${FINAL_TUNE_REVISION}`;'
+              )
+          editorial_path.write_text(editorial, encoding='utf-8')
+
+          mobile_path = root / 'components/mobile-hero-visibility.js'
+          mobile = mobile_path.read_text(encoding='utf-8')
+          mobile = mobile.replace('const VERSION = "2.0.0";', 'const VERSION = "2.1.0";')
+          if 'const FINAL_TUNE_REVISION = "final";' not in mobile:
+              mobile = mobile.replace(
+                  'const CACHE_REVISION = "visual95";\nconst HERO_KEY',
+                  'const CACHE_REVISION = "visual95";\nconst FINAL_TUNE_REVISION = "final";\nconst ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}-${FINAL_TUNE_REVISION}`;\nconst HERO_KEY'
+              )
+              mobile = mobile.replace(
+                  'components/mobile-hero-visibility.css?v=${ASSET_VERSION}-${CACHE_REVISION}',
+                  'components/mobile-hero-visibility.css?v=${ASSET_QUERY}'
+              )
+              mobile = mobile.replace(
+                  'v=${ASSET_VERSION}-${CACHE_REVISION}&hero_attempt=${attempt}',
+                  'v=${ASSET_QUERY}&hero_attempt=${attempt}'
+              )
+          mobile_path.write_text(mobile, encoding='utf-8')
+          PY
+
+      - name: Validate final tune
+        run: |
+          node --check apps/kidults-enterprise-staging/public/portal/portal.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/editorial-assets.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/mobile-hero-visibility.js
+          node scripts/kidults/portal/validate-final-entry-structure.mjs
+          node scripts/kidults/portal/validate-mobile-hero-visibility.mjs
+          node scripts/kidults/portal/validate-v662-stability-recovery.mjs
+          node scripts/kidults/portal/validate-v662-final-visual95.mjs
+
+      - name: Commit final V662 tune
+        run: |
+          rm -f .github/workflows/kidults-v662-final-tune-once.yml
+          git config user.name 'johnkim9524-collab'
+          git config user.email 'john.kim9524@gmail.com'
+          git add -A
+          git commit -m 'fix(kidults): complete V662 final neutral studio tune'
+          git push origin HEAD:${{ github.ref_name }}
