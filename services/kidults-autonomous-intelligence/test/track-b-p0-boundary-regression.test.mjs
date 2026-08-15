@@ -113,3 +113,32 @@ test('Stage 2 candidate build and precision recovery retain hard bounded failure
   assert.match(precision, /timeout --signal=TERM --kill-after=10s 120s node scripts\/kidult100-precision-recovery-live\.mjs/);
   assert.doesNotMatch(precision, /continue-on-error:\s*true/);
 });
+
+test('engineering diagnostics remain isolated from the truth/Track B artifact lane', () => {
+  const workflow = readWorkflow();
+  const engineeringUpload = workflowStep(
+    workflow,
+    'Upload engineering audits',
+    'Upload truth and live POC evidence',
+  );
+  const truthStart = workflow.indexOf('      - name: Upload truth and live POC evidence');
+
+  assert.notEqual(truthStart, -1, 'truth evidence upload step is missing');
+  const truthUpload = workflow.slice(truthStart);
+
+  assert.match(
+    engineeringUpload,
+    /reports\/engineering-hardening\/quality-audit-latest\.json/,
+    'engineering diagnostics must stay in the engineering audit artifact lane',
+  );
+  assert.doesNotMatch(
+    truthUpload,
+    /reports\/engineering-hardening/,
+    'engineering diagnostics must not be uploaded as truth/live POC evidence',
+  );
+  assert.doesNotMatch(
+    truthUpload,
+    /precision-query-yield-diagnostic/i,
+    'observational precision query diagnostics must not enter the truth evidence artifact lane',
+  );
+});
