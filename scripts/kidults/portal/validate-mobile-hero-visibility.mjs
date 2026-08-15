@@ -63,7 +63,7 @@ for (const marker of [
   'mobile-hero-visibility.js?v=662-visual95-final',
   'editorial-assets.js?v=662-visual95-final',
   'homepage-structure.js?v=662-visual95-final',
-  'renderers.js?v=662'
+  'renderers.js?v=665'
 ]) {
   if (!portal.includes(marker)) errors.push(`portal.js missing Visual95 Hero integration: ${marker}`);
 }
