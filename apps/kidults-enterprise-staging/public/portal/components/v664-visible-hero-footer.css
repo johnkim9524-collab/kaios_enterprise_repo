@@ -163,18 +163,21 @@ html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card]
   }
 }
 
+/* At 320px the footer collapses to the single primary action. */
 @media(max-width:340px){
   html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
-    column-gap:7px!important;
+    grid-template-columns:1fr!important;
+    justify-items:end!important;
     padding-inline:14px!important;
   }
 
-  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] [data-hero-vertical]{
-    font-size:7.75px!important;
-    letter-spacing:.035em!important;
+  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .hero-source{
+    display:none!important;
   }
 
   html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer .text-link{
+    grid-column:1!important;
+    justify-self:end!important;
     font-size:11px!important;
   }
 }
