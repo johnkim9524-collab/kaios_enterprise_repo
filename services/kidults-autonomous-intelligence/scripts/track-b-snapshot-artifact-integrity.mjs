@@ -45,17 +45,13 @@ function resolveMaterializedSnapshot(reference) {
   if (!referenceMatchesSnapshot(reference)) return null;
   const resolved = path.resolve(COORDINATION_ROOT, reference);
   if (!containedBy(COORDINATION_ROOT, resolved)) return null;
-  try {
-    if (!fs.existsSync(resolved)) return null;
-    const stats = fs.lstatSync(resolved);
-    if (!stats.isFile() || stats.isSymbolicLink()) return null;
-    const realRoot = fs.realpathSync(COORDINATION_ROOT);
-    const realResolved = fs.realpathSync(resolved);
-    if (!containedBy(realRoot, realResolved)) return null;
-    return realResolved;
-  } catch {
-    return null;
-  }
+  if (!fs.existsSync(resolved)) return null;
+  const stats = fs.lstatSync(resolved);
+  if (!stats.isFile() || stats.isSymbolicLink()) return null;
+  const realRoot = fs.realpathSync(COORDINATION_ROOT);
+  const realResolved = fs.realpathSync(resolved);
+  if (!containedBy(realRoot, realResolved)) return null;
+  return realResolved;
 }
 
 function acceptedSnapshotHandoffs(handoffs, snapshotId) {
