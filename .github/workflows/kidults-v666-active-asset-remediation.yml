@@ -107,17 +107,6 @@ jobs:
               raise SystemExit('V666 CSS: image selector anchor not found')
           css = css.replace(overlay_anchor, overlay + overlay_anchor, 1)
           css_path.write_text(css, encoding='utf-8')
-
-          # The SVG remains only as an audit record for legacy validators; it is no longer delivered.
-          svg_path = root / 'apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v666.svg'
-          svg = svg_path.read_text(encoding='utf-8')
-          if 'data-active="false"' not in svg:
-              svg = svg.replace(
-                  '<svg xmlns="http://www.w3.org/2000/svg"',
-                  '<svg xmlns="http://www.w3.org/2000/svg" data-active="false" data-role="legacy-audit-wrapper"',
-                  1
-              )
-          svg_path.write_text(svg, encoding='utf-8')
           PY
 
       - name: Source and compatibility validation
