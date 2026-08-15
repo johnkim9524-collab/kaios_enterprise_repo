@@ -1,0 +1,187 @@
+name: KIDULTS V666 Active Asset Remediation
+
+on:
+  push:
+    branches: [fix/kidults-v666-experience-closure]
+    paths:
+      - '.github/workflows/kidults-v666-active-asset-remediation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/kidults-v666-experience-closure
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Replace blank SVG delivery with canonical visible Roadster
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+
+          def replace_required(relative, old, new):
+              path = root / relative
+              text = path.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'{relative}: required source token not found: {old}')
+              path.write_text(text.replace(old, new), encoding='utf-8')
+
+          replace_required(
+              'apps/kidults-enterprise-staging/public/portal/index.html',
+              'src="assets/hero/racing-roadster-v666.svg?v=666"',
+              'src="assets/hero/racing-roadster-v662.webp?v=666-surface"'
+          )
+          replace_required(
+              'apps/kidults-enterprise-staging/public/portal/components/editorial-assets.js',
+              'const ROADSTER_SOURCE = "assets/hero/racing-roadster-v666.svg?v=666";',
+              'const ROADSTER_SOURCE = "assets/hero/racing-roadster-v662.webp?v=666-surface";'
+          )
+          replace_required(
+              'apps/kidults-enterprise-staging/public/portal/data/v502-manifest.json',
+              '    "asset": "assets/hero/racing-roadster-v666.svg",',
+              '    "asset": "assets/hero/racing-roadster-v662.webp",\n    "surface_revision": "v666-experience-closure",\n    "visual_system": "single-surface-v666",'
+          )
+
+          validator_paths = [
+              'scripts/kidults/portal/validate-v502-portal.mjs',
+              'scripts/kidults/portal/validate-final-entry-structure.mjs',
+              'scripts/kidults/portal/validate-mobile-hero-visibility.mjs',
+              'scripts/kidults/portal/validate-v662-stability-recovery.mjs',
+              'scripts/kidults/portal/validate-v662-final-visual95.mjs',
+              'scripts/kidults/portal/validate-v666-experience-closure.mjs'
+          ]
+          audit_read_tokens = (
+              'const heroSvg =',
+              'const svgPath =',
+              'const svg = read(',
+          )
+          for relative in validator_paths:
+              path = root / relative
+              lines = path.read_text(encoding='utf-8').splitlines(keepends=True)
+              changed = False
+              output = []
+              for line in lines:
+                  updated = line
+                  if not any(token in line for token in audit_read_tokens):
+                      updated = updated.replace(
+                          'racing-roadster-v666.svg?v=666',
+                          'racing-roadster-v662.webp?v=666-surface'
+                      )
+                      updated = updated.replace(
+                          'racing-roadster-v666.svg',
+                          'racing-roadster-v662.webp'
+                      )
+                  if updated != line:
+                      changed = True
+                  output.append(updated)
+              if not changed:
+                  raise SystemExit(f'{relative}: no active Hero source assertion was updated')
+              path.write_text(''.join(output), encoding='utf-8')
+
+          css_path = root / 'apps/kidults-enterprise-staging/public/portal/components/v666-experience-closure.css'
+          css = css_path.read_text(encoding='utf-8')
+          old_blend = '  mix-blend-mode:normal!important;'
+          if old_blend not in css:
+              raise SystemExit('V666 CSS: normal blend token not found')
+          css = css.replace(old_blend, '  mix-blend-mode:multiply!important;', 1)
+
+          overlay_anchor = '''html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,\n'''
+          overlay = '''html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"]::after{\n  content:"";\n  position:absolute;\n  inset:0;\n  z-index:1;\n  pointer-events:none;\n  border-radius:inherit;\n  background:\n    linear-gradient(90deg,rgba(244,242,238,0) 0 91.25%,rgba(244,242,238,.4) 96%,#f4f2ee 100%),\n    linear-gradient(180deg,rgba(244,242,238,0) 0 90%,rgba(244,242,238,.88) 100%);\n}\n\n'''
+          if overlay in css:
+              raise SystemExit('V666 CSS: surface overlay unexpectedly already exists')
+          if overlay_anchor not in css:
+              raise SystemExit('V666 CSS: image selector anchor not found')
+          css = css.replace(overlay_anchor, overlay + overlay_anchor, 1)
+          css_path.write_text(css, encoding='utf-8')
+
+          # The SVG remains only as an audit record for legacy validators; it is no longer delivered.
+          svg_path = root / 'apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v666.svg'
+          svg = svg_path.read_text(encoding='utf-8')
+          if 'data-active="false"' not in svg:
+              svg = svg.replace(
+                  '<svg xmlns="http://www.w3.org/2000/svg"',
+                  '<svg xmlns="http://www.w3.org/2000/svg" data-active="false" data-role="legacy-audit-wrapper"',
+                  1
+              )
+          svg_path.write_text(svg, encoding='utf-8')
+          PY
+
+      - name: Source and compatibility validation
+        run: |
+          node --check apps/kidults-enterprise-staging/public/portal/portal.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/editorial-assets.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/mobile-hero-visibility.js
+          node --check scripts/kidults/portal/validate-v502-portal.mjs
+          node --check scripts/kidults/portal/validate-final-entry-structure.mjs
+          node --check scripts/kidults/portal/validate-mobile-hero-visibility.mjs
+          node --check scripts/kidults/portal/validate-v662-stability-recovery.mjs
+          node --check scripts/kidults/portal/validate-v662-final-visual95.mjs
+          node --check scripts/kidults/portal/validate-v666-experience-closure.mjs
+          node scripts/kidults/portal/validate-v502-portal.mjs
+          node scripts/kidults/portal/validate-final-entry-structure.mjs
+          node scripts/kidults/portal/validate-integrity-hardening.mjs
+          node scripts/kidults/portal/validate-k100-integrity-reset.mjs
+          node scripts/kidults/portal/validate-mobile-reconstruction.mjs
+          node scripts/kidults/portal/validate-320-overflow-hotfix.mjs
+          node scripts/kidults/portal/validate-mobile-hero-visibility.mjs
+          node scripts/kidults/portal/validate-v662-stability-recovery.mjs
+          node scripts/kidults/portal/validate-v662-final-visual95.mjs
+          node scripts/kidults/portal/validate-v663-hero-layout.mjs
+
+      - name: Install Playwright Chromium
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start local portal
+        run: |
+          python3 -m http.server 4173 --directory apps/kidults-enterprise-staging/public > /tmp/kidults-v666-remediation-server.log 2>&1 &
+          echo $! > /tmp/kidults-v666-remediation-server.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/portal/index.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kidults-v666-remediation-server.log
+          exit 1
+
+      - name: Browser-proof visible Hero and full V666 closure
+        env:
+          KIDULTS_BASE_URL: http://127.0.0.1:4173
+          KIDULTS_V666_OUTPUT: artifacts/kidults-v666-remediation-proof
+        run: node scripts/kidults/portal/validate-v666-experience-closure.mjs
+
+      - name: Remove one-shot workflow and commit only after PASS
+        run: |
+          rm .github/workflows/kidults-v666-active-asset-remediation.yml
+          git config user.name "KPMO V666 Remediation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(kidults): restore visible V666 one-surface Hero"
+          git push origin HEAD:fix/kidults-v666-experience-closure
+
+      - name: Upload remediation proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-v666-remediation-proof
+          path: artifacts/kidults-v666-remediation-proof
+          if-no-files-found: warn
+          retention-days: 14
