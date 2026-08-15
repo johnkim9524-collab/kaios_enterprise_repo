@@ -60,9 +60,9 @@ for (const marker of [
 if (mobileCss.includes("object-position:right center")) errors.push("Mobile Hero remains right-biased.");
 
 for (const marker of [
-  'mobile-hero-visibility.js?v=662-visual95',
-  'editorial-assets.js?v=662-visual95',
-  'homepage-structure.js?v=662-visual95',
+  'mobile-hero-visibility.js?v=662-visual95-final',
+  'editorial-assets.js?v=662-visual95-final',
+  'homepage-structure.js?v=662-visual95-final',
   'renderers.js?v=662'
 ]) {
   if (!portal.includes(marker)) errors.push(`portal.js missing Visual95 Hero integration: ${marker}`);
@@ -70,7 +70,7 @@ for (const marker of [
 for (const marker of [
   'ROADSTER_KEY = "racing-roadster-v662"',
   'CACHE_REVISION = "visual95"',
-  'ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}`',
+  'ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}-${FINAL_TUNE_REVISION}`',
   'racing-roadster-v662.webp?v=${ASSET_QUERY}',
   'museum-editorial-v662',
   'single-studio-v662-visual95'

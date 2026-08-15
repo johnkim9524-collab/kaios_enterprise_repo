@@ -50,7 +50,7 @@ for (const marker of [
 
 if (mobile.includes("object-position:right center")) errors.push("Mobile Hero remains right-biased.");
 if (!mobile.includes("object-position:center center")) errors.push("Mobile Hero center correction missing.");
-if (!portalJs.includes("editorial-assets.js?v=662-visual95")) errors.push("Portal asset module cache revision missing.");
+if (!portalJs.includes("editorial-assets.js?v=662-visual95-final")) errors.push("Portal asset module cache revision missing.");
 
 if (errors.length) {
   console.error(`KIDULTS V662 Visual95: FAIL (${errors.length})`);
