@@ -15,10 +15,14 @@ const formatPct = value =>
 const formatDate = value => {
   const parsed = Date.parse(value ?? "");
   if (!Number.isFinite(parsed)) return "NOT AVAILABLE";
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(new Date(parsed));
+  const date = new Date(parsed);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = months[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+  const hour = String(date.getUTCHours()).padStart(2, "0");
+  const minute = String(date.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${month} ${year}, ${hour}:${minute} UTC`;
 };
 
 const stateToken = value =>
