@@ -13,13 +13,13 @@
     height:auto!important;
     min-height:0!important;
     aspect-ratio:4/3!important;
-    object-fit:cover!important;
-    object-position:right center!important;
+    object-fit:contain!important;
+    object-position:center center!important;
     padding:0!important;
     margin:0!important;
     opacity:1!important;
     transform:none!important;
-    background:#f1ebe2!important
+    background:#f3f1ec!important
   }
 
   html[data-mobile-reconstruction=v1] .moment-card[data-asset-state=loading] .moment-image,
@@ -36,7 +36,7 @@
   html[data-mobile-reconstruction=v1] .moment-image[data-hero-image],
   html[data-mobile-reconstruction=v1] .moment-image[data-hero-image][hidden]{
     aspect-ratio:4/3!important;
-    object-position:right center!important
+    object-position:center center!important
   }
 }
 
@@ -44,7 +44,7 @@
   html[data-mobile-reconstruction=v1] .moment-image[data-hero-image],
   html[data-mobile-reconstruction=v1] .moment-image[data-hero-image][hidden]{
     aspect-ratio:4/3!important;
-    object-position:right center!important
+    object-position:center center!important
   }
 }
 
