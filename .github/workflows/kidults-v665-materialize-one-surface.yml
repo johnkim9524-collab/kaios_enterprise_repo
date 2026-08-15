@@ -1,0 +1,330 @@
+name: KIDULTS V665 Materialize One-Surface Hero
+
+on:
+  push:
+    branches: [fix/kidults-v665-one-surface-playground]
+    paths:
+      - 'scripts/kidults/portal/build-v665-one-surface-hero.py'
+      - 'apps/kidults-enterprise-staging/public/portal/components/v665-one-surface-playground.css'
+      - '.github/workflows/kidults-v665-materialize-one-surface.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: ${{ !contains(github.event.head_commit.message, '[v665-materialized]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/kidults-v665-one-surface-playground
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deterministic image dependencies
+        run: pip install --disable-pip-version-check pillow numpy opencv-python-headless
+
+      - name: Generate transparent Roadster and apply V665 contracts
+        run: |
+          set -euo pipefail
+          python3 scripts/kidults/portal/build-v665-one-surface-hero.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import textwrap
+
+          root = Path.cwd()
+          portal = root / 'apps/kidults-enterprise-staging/public/portal'
+
+          def rep(path, old, new, expected=None):
+              path = Path(path)
+              text = path.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count == 0:
+                  raise RuntimeError(f'Marker not found in {path}: {old[:100]!r}')
+              if expected is not None and count != expected:
+                  raise RuntimeError(f'Unexpected count in {path}: {count} != {expected} for {old[:80]!r}')
+              path.write_text(text.replace(old, new), encoding='utf-8')
+
+          def write(path, content):
+              path = Path(path)
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text(textwrap.dedent(content).lstrip(), encoding='utf-8')
+
+          index = portal / 'index.html'
+          rep(index, 'data-portal-hotfix="v664"', 'data-portal-hotfix="v665"', 1)
+          rep(index, '<meta name="kidults-hotfix-version" content="664">', '<meta name="kidults-hotfix-version" content="665">', 1)
+          rep(index, '<meta name="description" content="KIDULTS V6 RC — the evidence-led Living Intelligence workspace for global collectibles.">', '<meta name="description" content="KIDULTS V6 RC — a governed intelligence playground for collectors and institutions.">', 1)
+          rep(index, '  <link id="kidults-v664-visible-footer-style" rel="stylesheet" href="components/v664-visible-hero-footer.css?v=664">\n', '  <link id="kidults-v664-visible-footer-style" rel="stylesheet" href="components/v664-visible-hero-footer.css?v=664">\n  <link id="kidults-v665-one-surface-style" rel="stylesheet" href="components/v665-one-surface-playground.css?v=665">\n', 1)
+          rep(index, '<script type="module" src="portal.js?v=662-visual95-final"></script>', '<script type="module" src="portal.js?v=665"></script>', 1)
+          rep(index, 'data-hero-asset="racing-roadster-v662"', 'data-hero-asset="racing-roadster-v665-alpha"', 1)
+          rep(index, 'data-hero-revision="v664-visible-footer"', 'data-hero-revision="v665-one-surface"', 1)
+          rep(index, 'src="assets/hero/racing-roadster-v662.webp?v=662-visual95-final" alt="KIDULTS original deep green racing roadster in a warm limestone studio"', 'src="assets/hero/racing-roadster-v665-alpha.webp?v=665-one-surface" alt="KIDULTS original deep green racing roadster on one neutral warm limestone surface"', 1)
+          rep(index, 'We do not show objects.<br>We prove why they matter.', 'We do not just show objects.<br>We prove why they matter.', 1)
+
+          manifest_path = portal / 'data/v502-manifest.json'
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          manifest['hero']['asset'] = 'assets/hero/racing-roadster-v665-alpha.webp'
+          manifest['hero']['alt'] = 'KIDULTS original deep green racing roadster on one neutral warm limestone surface'
+          manifest['build_at'] = '2026-08-15T14:30:00+09:00'
+          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          editorial = portal / 'components/editorial-assets.js'
+          rep(editorial, 'const VERSION = "4.1.0";', 'const VERSION = "4.2.0";', 1)
+          rep(editorial, 'const ROADSTER_KEY = "racing-roadster-v662";', 'const ROADSTER_KEY = "racing-roadster-v665-alpha";', 1)
+          rep(editorial, 'const ROADSTER_SOURCE = `assets/hero/racing-roadster-v662.webp?v=${ASSET_QUERY}`;', 'const ROADSTER_SOURCE = `assets/hero/racing-roadster-v665-alpha.webp?v=665-one-surface`;', 1)
+          rep(editorial, 'KIDULTS original deep green racing roadster in a neutral warm limestone editorial studio', 'KIDULTS original deep green racing roadster on one neutral warm limestone surface', 1)
+
+          mobile = portal / 'components/mobile-hero-visibility.js'
+          rep(mobile, 'const VERSION = "2.1.0";', 'const VERSION = "2.2.0";', 1)
+          rep(mobile, 'const ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}-${FINAL_TUNE_REVISION}`;', 'const ASSET_QUERY = "665-one-surface";', 1)
+          rep(mobile, 'const HERO_KEY = "racing-roadster-v662";', 'const HERO_KEY = "racing-roadster-v665-alpha";', 1)
+          rep(mobile, 'const RETRY_ASSET = null;', 'const RETRY_ASSET = "assets/hero/racing-roadster-v662.webp";', 1)
+          rep(mobile, 'fill="#f1ebe2"', 'fill="#f4f2ee"', 1)
+
+          mobile_css = portal / 'components/mobile-hero-visibility.css'
+          rep(mobile_css, 'background:#f3f1ec!important', 'background:transparent!important', 1)
+
+          portal_js = portal / 'portal.js'
+          for old, new in [
+              ('mobile-hero-visibility.js?v=662-visual95-final', 'mobile-hero-visibility.js?v=665'),
+              ('editorial-assets.js?v=662-visual95-final', 'editorial-assets.js?v=665'),
+              ('homepage-structure.js?v=662-visual95-final', 'homepage-structure.js?v=665'),
+              ('renderers.js?v=662', 'renderers.js?v=665'),
+          ]:
+              rep(portal_js, old, new, 1)
+
+          renderers = portal / 'components/renderers.js'
+          rep(renderers, '''  return new Intl.DateTimeFormat(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short"
+          }).format(new Date(parsed));''', '''  return new Intl.DateTimeFormat("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+            timeZone: "UTC",
+            timeZoneName: "short"
+          }).format(new Date(parsed));''', 1)
+          rep(renderers, 'image.src = `${hero.asset}?v=658`;', 'image.src = `${hero.asset}?v=665-one-surface`;', 1)
+
+          homepage = portal / 'components/homepage-structure.js'
+          rep(homepage, 'const VERSION = "2.0.0";', 'const VERSION = "2.1.0";', 1)
+          rep(homepage, 'Ask Registry-grounded questions, compare objects and categories, or review structured decision support in a dedicated environment.', 'A shared intelligence playground for collectors and institutions—explore signals, compare objects and turn evidence into action in one governed environment.', 1)
+
+          write(root / 'scripts/kidults/portal/validate-v663-hero-layout.mjs', r'''
+          import fs from "node:fs";
+          import path from "node:path";
+          import process from "node:process";
+          const root = process.cwd();
+          const portal = "apps/kidults-enterprise-staging/public/portal";
+          const errors = [];
+          const read = relative => {
+            const absolute = path.join(root, relative);
+            if (!fs.existsSync(absolute)) { errors.push(`Missing required file: ${relative}`); return ""; }
+            return fs.readFileSync(absolute, "utf8");
+          };
+          const index = read(`${portal}/index.html`);
+          const manifest = read(`${portal}/data/v502-manifest.json`);
+          const editorial = read(`${portal}/components/editorial-assets.js`);
+          const mobile = read(`${portal}/components/mobile-hero-visibility.js`);
+          const mobileCss = read(`${portal}/components/mobile-hero-visibility.css`);
+          const v665 = read(`${portal}/components/v665-one-surface-playground.css`);
+          const heroAsset = path.join(root, portal, "assets/hero/racing-roadster-v665-alpha.webp");
+          for (const marker of [
+            'data-portal-hotfix="v665"', 'kidults-hotfix-version" content="665"',
+            'v665-one-surface-playground.css?v=665', 'portal.js?v=665',
+            'data-hero-revision="v665-one-surface"', 'data-hero-asset="racing-roadster-v665-alpha"',
+            'racing-roadster-v665-alpha.webp?v=665-one-surface', 'We do not just show objects.',
+            'data-hero-vertical>Automobiles &amp; Mobility', 'data-dialog="hero">View details'
+          ]) if (!index.includes(marker)) errors.push(`V665 homepage marker missing: ${marker}`);
+          for (const marker of [
+            'KIDULTS Portal V665', '--v665-hero-surface:#f4f2ee',
+            'background:transparent!important', 'border-top:0!important',
+            'backdrop-filter:none!important', 'height:560px!important', '@media(max-width:340px)'
+          ]) if (!v665.includes(marker)) errors.push(`V665 CSS marker missing: ${marker}`);
+          for (const marker of ['racing-roadster-v665-alpha.webp', 'racing-roadster-v665-alpha', '665-one-surface']) {
+            if (!(manifest + editorial + mobile).includes(marker)) errors.push(`V665 asset contract marker missing: ${marker}`);
+          }
+          if (!mobileCss.includes('background:transparent!important')) errors.push('Mobile Hero still declares an opaque second surface.');
+          if (!fs.existsSync(heroAsset)) errors.push('V665 transparent Hero asset is missing.');
+          if (v665.includes('transform:scale(')) errors.push('V665 must not enlarge the Roadster.');
+          if (errors.length) {
+            console.error(`KIDULTS V665 Hero layout validation: FAIL (${errors.length} error(s))`);
+            for (const error of errors) console.error(`ERROR: ${error}`);
+            process.exit(1);
+          }
+          console.log('KIDULTS V665 Hero layout validation: PASS (true transparent Roadster, one #f4f2ee surface, simple mobile footer, collector/institution playground copy)');
+          ''')
+
+          write(root / 'scripts/kidults/portal/validate-v664-hero-visual.mjs', r'''
+          import fs from "node:fs";
+          import path from "node:path";
+          import process from "node:process";
+          import { chromium } from "playwright";
+          const baseUrl = (process.env.KIDULTS_BASE_URL ?? "http://127.0.0.1:4173").replace(/\/$/, "");
+          const outputDir = path.resolve(process.env.KIDULTS_V664_OUTPUT ?? "artifacts/kidults-v665-one-surface");
+          fs.mkdirSync(outputDir, { recursive: true });
+          const viewports = [
+            { label: "desktop-short", width: 1366, height: 768 },
+            { label: "desktop-standard", width: 1440, height: 900 },
+            { label: "mobile-390", width: 390, height: 844 },
+            { label: "mobile-320", width: 320, height: 740 }
+          ];
+          const failures = [];
+          const report = { generatedAt: new Date().toISOString(), baseUrl, results: [] };
+          const browser = await chromium.launch({ headless: true });
+          for (const viewport of viewports) {
+            const page = await browser.newPage({ viewport, deviceScaleFactor: 1, reducedMotion: "reduce" });
+            const runtimeErrors = [];
+            page.on("pageerror", error => runtimeErrors.push(`pageerror: ${error.message}`));
+            page.on("console", message => { if (message.type() === "error") runtimeErrors.push(`console: ${message.text()}`); });
+            try {
+              await page.goto(`${baseUrl}/portal/index.html?v=665&check=${Date.now()}`, { waitUntil: "networkidle", timeout: 45000 });
+              await page.waitForFunction(() => document.documentElement.dataset.portalHotfix === "v665", null, { timeout: 20000 });
+              await page.waitForFunction(() => { const image = document.querySelector("[data-hero-image]"); return Boolean(image?.complete && image.naturalWidth > 0); }, null, { timeout: 20000 });
+              await page.waitForTimeout(450);
+              const metrics = await page.evaluate(() => {
+                const card = document.querySelector("[data-hero-card]");
+                const image = card?.querySelector("[data-hero-image]");
+                const footer = card?.querySelector(".moment-footer");
+                const status = card?.querySelector("[data-hero-status]");
+                const vertical = card?.querySelector("[data-hero-vertical]");
+                const action = card?.querySelector(".moment-footer .text-link");
+                const cardRect = card?.getBoundingClientRect();
+                const footerRect = footer?.getBoundingClientRect();
+                const visible = node => { if (!node) return false; const style = getComputedStyle(node); const rect = node.getBoundingClientRect(); return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0; };
+                const canvas = document.createElement("canvas");
+                canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+                const context = canvas.getContext("2d", { willReadFrequently: true });
+                context.drawImage(image, 0, 0);
+                return {
+                  hotfix: document.documentElement.dataset.portalHotfix,
+                  scrollWidth: document.documentElement.scrollWidth,
+                  clientWidth: document.documentElement.clientWidth,
+                  heroRevision: card?.dataset.heroRevision,
+                  heroAsset: card?.dataset.heroAsset,
+                  heroSource: image?.currentSrc || image?.src,
+                  dimensions: `${image?.naturalWidth}x${image?.naturalHeight}`,
+                  cornerAlpha: context.getImageData(8, 8, 1, 1).data[3],
+                  cardBackground: getComputedStyle(card).backgroundColor,
+                  imageBackground: getComputedStyle(image).backgroundColor,
+                  footerBackground: getComputedStyle(footer).backgroundColor,
+                  footerBorder: getComputedStyle(footer).borderTopWidth,
+                  cardHeight: cardRect?.height ?? 0,
+                  footerHeight: footerRect?.height ?? 0,
+                  footerVisible: visible(footer),
+                  footerContained: Boolean(cardRect && footerRect && footerRect.left >= cardRect.left - 1 && footerRect.right <= cardRect.right + 1 && footerRect.top >= cardRect.top - 1 && footerRect.bottom <= cardRect.bottom + 1),
+                  footerInViewport: Boolean(footerRect && footerRect.bottom <= innerHeight + 1),
+                  statusVisible: visible(status), verticalVisible: visible(vertical), actionVisible: visible(action),
+                  whyCopy: document.querySelector("#why-title")?.textContent?.replace(/\s+/g, " ").trim(),
+                  workspaceCopy: document.querySelector(".workspace-entry-copy > p:not(.eyebrow)")?.textContent?.trim(),
+                  signalDates: [...document.querySelectorAll(".signal-meta b")].map(node => node.textContent.trim())
+                };
+              });
+              const issues = [];
+              const mobile = viewport.width <= 768;
+              if (metrics.hotfix !== "v665") issues.push(`hotfix=${metrics.hotfix}`);
+              if (metrics.heroRevision !== "v665-one-surface") issues.push(`revision=${metrics.heroRevision}`);
+              if (metrics.heroAsset !== "racing-roadster-v665-alpha") issues.push(`asset=${metrics.heroAsset}`);
+              if (!metrics.heroSource.includes("racing-roadster-v665-alpha.webp")) issues.push(`source=${metrics.heroSource}`);
+              if (metrics.dimensions !== "1600x900") issues.push(`dimensions=${metrics.dimensions}`);
+              if (metrics.cornerAlpha !== 0) issues.push(`cornerAlpha=${metrics.cornerAlpha}`);
+              if (metrics.scrollWidth > metrics.clientWidth + 1) issues.push(`overflow=${metrics.scrollWidth - metrics.clientWidth}px`);
+              if (metrics.cardBackground !== "rgb(244, 242, 238)") issues.push(`cardBackground=${metrics.cardBackground}`);
+              if (metrics.imageBackground !== "rgba(0, 0, 0, 0)") issues.push(`imageBackground=${metrics.imageBackground}`);
+              if (metrics.footerBackground !== "rgba(0, 0, 0, 0)") issues.push(`footerBackground=${metrics.footerBackground}`);
+              if (metrics.footerBorder !== "0px") issues.push(`footerBorder=${metrics.footerBorder}`);
+              if (!metrics.footerVisible || !metrics.footerContained || !metrics.actionVisible) issues.push('footer/action incomplete');
+              if (!metrics.whyCopy?.includes('We do not just show objects.')) issues.push(`WHY=${metrics.whyCopy}`);
+              if (!metrics.workspaceCopy?.includes('collectors and institutions')) issues.push(`workspace=${metrics.workspaceCopy}`);
+              if (metrics.signalDates.some(value => /오전|오후/.test(value))) issues.push('Korean date token remains');
+              if (mobile) {
+                if (metrics.statusVisible) issues.push('mobile status visible');
+                if (metrics.footerHeight > 58) issues.push(`mobile footer=${metrics.footerHeight}`);
+                if (viewport.width <= 340 && metrics.verticalVisible) issues.push('320 category visible');
+                if (viewport.width > 340 && !metrics.verticalVisible) issues.push('390 category missing');
+              } else {
+                if (!metrics.statusVisible || !metrics.verticalVisible) issues.push('desktop metadata incomplete');
+                if (Math.abs(metrics.cardHeight - 560) > 2) issues.push(`cardHeight=${metrics.cardHeight}`);
+                if (viewport.height <= 800 && !metrics.footerInViewport) issues.push('desktop footer below viewport');
+              }
+              issues.push(...runtimeErrors);
+              if (mobile) { await page.locator("[data-hero-card]").scrollIntoViewIfNeeded(); await page.waitForTimeout(120); }
+              const screenshot = path.join(outputDir, `${viewport.label}.png`);
+              await page.screenshot({ path: screenshot, fullPage: false, animations: "disabled" });
+              report.results.push({ viewport, metrics, screenshot, failures: issues });
+              for (const issue of issues) failures.push(`${viewport.label}: ${issue}`);
+            } catch (error) {
+              failures.push(`${viewport.label}: ${error.message}`);
+            } finally { await page.close(); }
+          }
+          await browser.close();
+          fs.writeFileSync(path.join(outputDir, "visual-report.json"), `${JSON.stringify(report, null, 2)}\n`);
+          if (failures.length) { console.error(`KIDULTS V665 one-surface validation: FAIL (${failures.length})`); failures.forEach(item => console.error(`ERROR: ${item}`)); process.exit(1); }
+          console.log('KIDULTS V665 one-surface validation: PASS');
+          ''')
+
+          visual = root / 'scripts/kidults/portal/capture-v662-visual-check.mjs'
+          rep(visual, 'racing-roadster-v662', 'racing-roadster-v665-alpha')
+          rep(visual, 'KIDULTS V662 visual validation', 'KIDULTS V665 visual validation')
+
+          validation_workflow = root / '.github/workflows/kidults-v664-hero-validate.yml'
+          text = validation_workflow.read_text(encoding='utf-8')
+          text = text.replace('KIDULTS Portal V664 Hero Validate', 'KIDULTS Portal V665 One-Surface Hero Validate')
+          text = text.replace("'apps/kidults-enterprise-staging/public/portal/components/v664-visible-hero-footer.css'", "'apps/kidults-enterprise-staging/public/portal/components/v664-visible-hero-footer.css'\n      - 'apps/kidults-enterprise-staging/public/portal/components/v665-one-surface-playground.css'\n      - 'apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v665-alpha.webp'")
+          text = text.replace('Validate V664 source contract', 'Validate V665 source contract')
+          text = text.replace('Validate V664 at 1366x768, 1440x900, 390x844 and 320x740', 'Validate V665 at 1366x768, 1440x900, 390x844 and 320x740')
+          text = text.replace('V664 Hero evidence', 'V665 Hero evidence')
+          text = text.replace('kidults-v664-hero-evidence', 'kidults-v665-one-surface-evidence')
+          text = text.replace("url='https://johnkim9524-collab.github.io/kaios_enterprise_repo/portal/index.html?v=664'", "url='https://johnkim9524-collab.github.io/kaios_enterprise_repo/portal/index.html?v=665'")
+          text = text.replace('V664 public check', 'V665 public check')
+          text = text.replace('data-portal-hotfix="v664"', 'data-portal-hotfix="v665"')
+          text = text.replace('v664-visible-hero-footer.css?v=664', 'v665-one-surface-playground.css?v=665')
+          text = text.replace('data-hero-revision="v664-visible-footer"', 'data-hero-revision="v665-one-surface"')
+          text = text.replace('Validate public V664 Hero', 'Validate public V665 Hero')
+          text = text.replace('public V664 evidence', 'public V665 evidence')
+          text = text.replace('kidults-v664-hero-live-evidence', 'kidults-v665-one-surface-live-evidence')
+          validation_workflow.write_text(text, encoding='utf-8')
+
+          pages = root / '.github/workflows/kidults-mobile-preview-pages.yml'
+          text = pages.read_text(encoding='utf-8')
+          text = text.replace('Kidults V663 Hero Clean Portal', 'Kidults V665 Collector & Institution Playground')
+          text = text.replace('Verify V662 Visual95 source freeze + V663 Hero layout', 'Verify V665 one-surface Hero and V662 data structure')
+          text = text.replace('portal.js?v=662-visual95-final', 'portal.js?v=665')
+          text = text.replace('racing-roadster-v662.webp?v=662-visual95-final', 'racing-roadster-v665-alpha.webp?v=665-one-surface')
+          text = text.replace('homepage-structure.js?v=662-visual95-final', 'homepage-structure.js?v=665')
+          text = text.replace('editorial-assets.js?v=662-visual95-final', 'editorial-assets.js?v=665')
+          text = text.replace('mobile-hero-visibility.js?v=662-visual95-final', 'mobile-hero-visibility.js?v=665')
+          text = text.replace("grep -q 'data-portal-version=\"v663\"' \"$portal/index.html\"", "grep -q 'data-portal-version=\"v663\"' \"$portal/index.html\"\n          grep -q 'data-portal-hotfix=\"v665\"' \"$portal/index.html\"\n          grep -q 'v665-one-surface-playground.css?v=665' \"$portal/index.html\"")
+          text = text.replace("portal / 'assets/hero/racing-roadster-v662.webp'", "portal / 'assets/hero/racing-roadster-v665-alpha.webp'")
+          text = text.replace("'assets/hero/racing-roadster-v662.webp'", "'assets/hero/racing-roadster-v665-alpha.webp'")
+          text = text.replace('Upload Kidults portal V663', 'Upload Kidults portal V665')
+          text = text.replace('Verify deployed V663 Hero portal', 'Verify deployed V665 playground')
+          text = text.replace('Live V663 verification attempt', 'Live V665 verification attempt')
+          text = text.replace('V663 Hero HTML is active', 'V665 Hero HTML is active')
+          text = text.replace('V663 asset verified', 'V665 asset verified')
+          text = text.replace('Live V663 asset verified', 'Live V665 asset verified')
+          text = text.replace('kidults-v663-hero-live-evidence', 'kidults-v665-playground-live-evidence')
+          text = text.replace('artifacts/kidults-v663-live', 'artifacts/kidults-v665-live')
+          pages.write_text(text, encoding='utf-8')
+
+          (root / '.github/workflows/kidults-v665-materialize-one-surface.yml').unlink()
+          PY
+
+      - name: Commit generated V665 release
+        run: |
+          set -euo pipefail
+          git config user.name 'KIDULTS Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix(kidults): materialize true one-surface Hero [v665-materialized]'
+          git push origin HEAD:fix/kidults-v665-one-surface-playground
