@@ -73,6 +73,29 @@ test('Track B snapshot integrity guard accepts only exact internal snapshot iden
   assert.equal(report.claims.internal_snapshot_id_exact_match_required, true);
 });
 
+test('Track B snapshot integrity guard stays waiting when canonical handoff artifact is not materialized', () => {
+  const root = fixture();
+  fs.rmSync(path.join(root, 'snapshot-candidate.json'));
+  const { result, report } = run(root);
+  fs.rmSync(root, { recursive: true, force: true });
+
+  assert.equal(result.status, 0);
+  assert.equal(report.status, 'WAITING');
+  assert.equal(report.reason, 'MATERIALIZED_CANONICAL_SNAPSHOT_HANDOFF_NOT_AVAILABLE');
+  assert.equal(report.claims.registry_reference_alone_sufficient, false);
+});
+
+test('Track B snapshot integrity guard fails closed when materialized snapshot omits internal snapshot id', () => {
+  const root = fixture({ artifactText: '{}' });
+  const { result, report } = run(root);
+  fs.rmSync(root, { recursive: true, force: true });
+
+  assert.equal(result.status, 1);
+  assert.equal(report.status, 'FAIL_CLOSED');
+  assert.equal(report.reason, 'SNAPSHOT_ARTIFACT_ID_MISSING');
+  assert.equal(report.artifact_snapshot_id, null);
+});
+
 test('Track B snapshot integrity guard fails closed on internal snapshot id mismatch', () => {
   const root = fixture({ artifactText: '{"snapshot_id":"different-candidate"}' });
   const { result, report } = run(root);
@@ -103,4 +126,16 @@ test('Track B snapshot integrity guard fails closed on ambiguous accepted snapsh
   assert.equal(result.status, 1);
   assert.equal(report.status, 'FAIL_CLOSED');
   assert.equal(report.reason, 'AMBIGUOUS_CANONICAL_SNAPSHOT_HANDOFF');
+});
+
+test('Track B snapshot integrity guard fails closed when canonical registry input disappears', () => {
+  const root = fixture();
+  fs.rmSync(path.join(root, 'registry', 'snapshot-registry.json'));
+  const { result, report } = run(root);
+  fs.rmSync(root, { recursive: true, force: true });
+
+  assert.equal(result.status, 1);
+  assert.equal(report.status, 'FAIL_CLOSED');
+  assert.match(report.reason, /^MISSING_FILE:/);
+  assert.equal(report.claims.assessment_generated, false);
 });
