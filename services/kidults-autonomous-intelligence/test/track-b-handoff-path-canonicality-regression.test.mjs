@@ -27,6 +27,15 @@ function canonicalHandoff(overrides = {}) {
   };
 }
 
+function materializeCanonicalInputs(coordinationRoot) {
+  const snapshotArtifact = path.join(coordinationRoot, 'snapshots', 'fixture-candidate', 'snapshot-candidate.json');
+  const evidenceArtifact = path.join(coordinationRoot, 'evidence', 'fixture-candidate', 'EVIDENCE_PACKAGE');
+  fs.mkdirSync(path.dirname(snapshotArtifact), { recursive: true });
+  fs.mkdirSync(path.dirname(evidenceArtifact), { recursive: true });
+  fs.writeFileSync(snapshotArtifact, JSON.stringify({ snapshot_id: 'fixture-candidate' }));
+  fs.writeFileSync(evidenceArtifact, '{}');
+}
+
 function runWithReferences(snapshotReference, evidenceReference) {
   const coordinationRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-handoff-canonicality-'));
   fs.cpSync(LIVE_COORDINATION_ROOT, coordinationRoot, { recursive: true });
@@ -36,6 +45,7 @@ function runWithReferences(snapshotReference, evidenceReference) {
   snapshots.current_candidate_snapshot_id = 'fixture-candidate';
   snapshots.entries = [{ snapshot_id: 'fixture-candidate', status: 'draft' }];
   fs.writeFileSync(snapshotPath, JSON.stringify(snapshots, null, 2));
+  materializeCanonicalInputs(coordinationRoot);
 
   const handoffPath = path.join(coordinationRoot, 'registry', 'handoff-registry.json');
   const handoffs = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
@@ -73,13 +83,13 @@ test('Track B matcher rejects dot-segment and denormalized official-input refere
   const cases = [
     {
       snapshot: './snapshot-candidate.json',
-      evidence: 'EVIDENCE_PACKAGE',
+      evidence: 'evidence/fixture-candidate/EVIDENCE_PACKAGE',
       waitingState: 'WAITING_FOR_SNAPSHOT',
       reason: 'SNAPSHOT_CANDIDATE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF',
     },
     {
       snapshot: 'snapshots//fixture-candidate/snapshot-candidate.json',
-      evidence: 'EVIDENCE_PACKAGE',
+      evidence: 'evidence/fixture-candidate/EVIDENCE_PACKAGE',
       waitingState: 'WAITING_FOR_SNAPSHOT',
       reason: 'SNAPSHOT_CANDIDATE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF',
     },
@@ -121,7 +131,7 @@ test('Track B matcher rejects dot-segment and denormalized official-input refere
   }
 });
 
-test('canonical official-input references remain eligible for exact-snapshot assessment readiness', () => {
+test('canonical materialized official-input references remain eligible for exact-snapshot assessment readiness', () => {
   const { result, report } = runWithReferences(
     'snapshots/fixture-candidate/snapshot-candidate.json',
     'evidence/fixture-candidate/EVIDENCE_PACKAGE',
@@ -133,5 +143,6 @@ test('canonical official-input references remain eligible for exact-snapshot ass
   assert.equal(report.track_b_readiness.waiting_state, 'READY_FOR_ASSESSMENT');
   assert.equal(report.track_b_readiness.reason, 'BOTH_OFFICIAL_INPUTS_ACCEPTED_FOR_EXACT_SNAPSHOT');
   assert.equal(report.track_b_readiness.canonical_handoff_proof.ambiguous_artifact_reference_paths_rejected, true);
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.materialized_official_inputs_required, true);
   assert.equal(report.claims.track_b_assessment_started, false);
 });
