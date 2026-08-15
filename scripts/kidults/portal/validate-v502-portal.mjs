@@ -129,7 +129,7 @@ for (const marker of [
   'homepage-structure.js?v=662',
   'mobile-hero-visibility.js?v=662',
   'editorial-assets.js?v=662',
-  'renderers.js?v=662'
+  'renderers.js?v=665'
 ]) {
   if (!portalJs.includes(marker)) errors.push(`portal.js missing V662 integration: ${marker}`);
 }
