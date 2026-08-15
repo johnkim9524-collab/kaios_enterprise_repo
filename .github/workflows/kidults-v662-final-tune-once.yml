@@ -61,7 +61,7 @@ jobs:
               delta = (target - mean) * strength
               tuned = arr + mask[..., None] * delta
 
-              # Remove the remaining red/sepiatone from the studio only.
+              # Remove residual red/sepiatone from the studio only.
               tuned[..., 0] -= mask * 1.8
               tuned[..., 1] += mask * 0.7
               tuned[..., 2] += mask * 1.4
@@ -120,7 +120,7 @@ jobs:
 
           for relative in ('index.html', 'portal.js', 'components/homepage-structure.js'):
               path = root / relative
-              text = path.read_text(encoding='utf-8').replace('662-visual95-final', '662-visual95-final')
+              text = path.read_text(encoding='utf-8')
               text = text.replace('662-visual95', '662-visual95-final')
               path.write_text(text, encoding='utf-8')
 
@@ -151,6 +151,19 @@ jobs:
                   'v=${ASSET_QUERY}&hero_attempt=${attempt}'
               )
           mobile_path.write_text(mobile, encoding='utf-8')
+
+          # Align validators and Pages deployment with the final cache generation.
+          validation_files = (
+              Path('scripts/kidults/portal/validate-final-entry-structure.mjs'),
+              Path('scripts/kidults/portal/validate-mobile-hero-visibility.mjs'),
+              Path('scripts/kidults/portal/validate-v662-stability-recovery.mjs'),
+              Path('scripts/kidults/portal/validate-v662-final-visual95.mjs'),
+              Path('.github/workflows/kidults-mobile-preview-pages.yml'),
+          )
+          for path in validation_files:
+              text = path.read_text(encoding='utf-8')
+              text = text.replace('662-visual95', '662-visual95-final')
+              path.write_text(text, encoding='utf-8')
           PY
 
       - name: Validate final tune
