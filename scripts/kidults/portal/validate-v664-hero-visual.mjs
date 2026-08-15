@@ -4,7 +4,7 @@ import process from "node:process";
 import { chromium } from "playwright";
 
 const baseUrl = (process.env.KIDULTS_BASE_URL ?? "http://127.0.0.1:4173").replace(/\/$/, "");
-const outputDir = path.resolve(process.env.KIDULTS_V664_OUTPUT ?? "artifacts/kidults-v664-hero");
+const outputDir = path.resolve(process.env.KIDULTS_V664_OUTPUT ?? "artifacts/kidults-v665-experience");
 fs.mkdirSync(outputDir, { recursive: true });
 
 const viewports = [
@@ -15,7 +15,7 @@ const viewports = [
 ];
 
 const failures = [];
-const report = { generatedAt: new Date().toISOString(), baseUrl, results: [] };
+const report = { generatedAt: new Date().toISOString(), baseUrl, release: "v665", results: [] };
 const browser = await chromium.launch({ headless: true });
 
 for (const viewport of viewports) {
@@ -32,38 +32,46 @@ for (const viewport of viewports) {
   });
 
   try {
-    await page.goto(`${baseUrl}/portal/index.html?v=664&check=${Date.now()}`, { waitUntil: "networkidle", timeout: 45_000 });
+    await page.goto(`${baseUrl}/portal/index.html?v=665&check=${Date.now()}`, { waitUntil: "networkidle", timeout: 45_000 });
     await page.waitForFunction(() => document.documentElement.dataset.portalHotfix === "v664", null, { timeout: 20_000 });
+    await page.waitForFunction(() => document.documentElement.dataset.visualFreeze === "v665", null, { timeout: 20_000 });
     await page.waitForFunction(() => {
       const image = document.querySelector("[data-hero-image]");
       return Boolean(image?.complete && image.naturalWidth > 0);
     }, null, { timeout: 20_000 });
-    await page.waitForTimeout(450);
+    await page.waitForFunction(() => document.querySelectorAll(".signal-meta").length > 0, null, { timeout: 20_000 });
+    await page.waitForTimeout(500);
 
     const metrics = await page.evaluate(() => {
       const root = document.documentElement;
       const card = document.querySelector("[data-hero-card]");
+      const image = card?.querySelector("[data-hero-image]");
       const footer = card?.querySelector(".moment-footer");
       const source = card?.querySelector(".hero-source");
       const status = card?.querySelector("[data-hero-status]");
       const vertical = card?.querySelector("[data-hero-vertical]");
       const action = card?.querySelector(".moment-footer .text-link");
+      const whyTitle = document.querySelector("#why-title");
       const cardRect = card?.getBoundingClientRect();
       const footerRect = footer?.getBoundingClientRect();
       const sourceRect = source?.getBoundingClientRect();
       const statusRect = status?.getBoundingClientRect();
       const verticalRect = vertical?.getBoundingClientRect();
       const actionRect = action?.getBoundingClientRect();
+      const cardStyle = card ? getComputedStyle(card) : null;
+      const imageStyle = image ? getComputedStyle(image) : null;
       const footerStyle = footer ? getComputedStyle(footer) : null;
       const sourceStyle = source ? getComputedStyle(source) : null;
       const statusStyle = status ? getComputedStyle(status) : null;
       const verticalStyle = vertical ? getComputedStyle(vertical) : null;
       const actionStyle = action ? getComputedStyle(action) : null;
       const isVisible = (style, rect) => Boolean(style && rect && style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0);
+      const snapshotTimes = [...document.querySelectorAll(".signal-meta div:last-child b")].map(node => node.textContent.trim());
 
       return {
         portalHotfix: root.dataset.portalHotfix,
         portalVersion: root.dataset.portalVersion,
+        visualFreeze: root.dataset.visualFreeze,
         scrollWidth: root.scrollWidth,
         clientWidth: root.clientWidth,
         viewportHeight: window.innerHeight,
@@ -72,12 +80,18 @@ for (const viewport of viewports) {
         cardHeight: cardRect?.height ?? 0,
         cardTop: cardRect?.top ?? 0,
         cardBottom: cardRect?.bottom ?? 0,
-        cardBackground: card ? getComputedStyle(card).backgroundColor : null,
+        cardBackground: cardStyle?.backgroundColor ?? null,
+        cardIsolation: cardStyle?.isolation ?? null,
+        imageBackground: imageStyle?.backgroundColor ?? null,
+        imageBlendMode: imageStyle?.mixBlendMode ?? null,
+        imageOpacity: imageStyle?.opacity ?? null,
+        imageFilter: imageStyle?.filter ?? null,
         footerVisible: isVisible(footerStyle, footerRect),
         footerHeight: footerRect?.height ?? 0,
         footerTop: footerRect?.top ?? 0,
         footerBottom: footerRect?.bottom ?? 0,
         footerBackground: footerStyle?.backgroundColor ?? null,
+        footerBorderTopWidth: footerStyle?.borderTopWidth ?? null,
         footerContained: Boolean(cardRect && footerRect && footerRect.left >= cardRect.left - 1 && footerRect.right <= cardRect.right + 1 && footerRect.top >= cardRect.top - 1 && footerRect.bottom <= cardRect.bottom + 1),
         footerInInitialViewport: Boolean(footerRect && footerRect.bottom <= window.innerHeight + 1),
         sourceVisible: isVisible(sourceStyle, sourceRect),
@@ -85,7 +99,9 @@ for (const viewport of viewports) {
         verticalVisible: isVisible(verticalStyle, verticalRect),
         actionVisible: isVisible(actionStyle, actionRect),
         statusDisplay: statusStyle?.display ?? null,
-        sourceDisplay: sourceStyle?.display ?? null
+        sourceDisplay: sourceStyle?.display ?? null,
+        whyTitleText: whyTitle?.textContent.replace(/\s+/g, " ").trim() ?? "",
+        snapshotTimes
       };
     });
 
@@ -93,6 +109,7 @@ for (const viewport of viewports) {
     const mobile = viewport.width <= 768;
     const compactMobile = viewport.width <= 340;
     if (metrics.portalHotfix !== "v664") localFailures.push(`portalHotfix=${metrics.portalHotfix}`);
+    if (metrics.visualFreeze !== "v665") localFailures.push(`visualFreeze=${metrics.visualFreeze}`);
     if (metrics.heroRevision !== "v664-visible-footer") localFailures.push(`heroRevision=${metrics.heroRevision}`);
     if (metrics.heroLayout !== "v663-integrated-footer") localFailures.push(`heroLayout=${metrics.heroLayout}`);
     if (metrics.scrollWidth > metrics.clientWidth + 1) localFailures.push(`horizontal overflow=${metrics.scrollWidth - metrics.clientWidth}px`);
@@ -101,6 +118,14 @@ for (const viewport of viewports) {
     if (!metrics.actionVisible) localFailures.push("Hero View details action is not visible");
     if (metrics.cardBackground !== "rgb(244, 242, 238)") localFailures.push(`card background=${metrics.cardBackground}`);
     if (metrics.footerBackground !== "rgb(244, 242, 238)") localFailures.push(`footer background=${metrics.footerBackground}`);
+    if (metrics.footerBorderTopWidth !== "0px") localFailures.push(`footer border=${metrics.footerBorderTopWidth}`);
+    if (metrics.cardIsolation !== "isolate") localFailures.push(`card isolation=${metrics.cardIsolation}`);
+    if (metrics.imageBackground !== "rgba(0, 0, 0, 0)") localFailures.push(`image background=${metrics.imageBackground}`);
+    if (metrics.imageBlendMode !== "multiply") localFailures.push(`image blend mode=${metrics.imageBlendMode}`);
+    if (!metrics.whyTitleText.startsWith("We do not just show objects.")) localFailures.push(`WHY headline=${metrics.whyTitleText}`);
+    if (!metrics.snapshotTimes.length || metrics.snapshotTimes.some(value => !value.includes("UTC") || /[가-힣]/.test(value))) {
+      localFailures.push(`global snapshot time=${metrics.snapshotTimes.join(" | ")}`);
+    }
 
     if (mobile) {
       if (metrics.statusVisible || metrics.statusDisplay !== "none") localFailures.push(`mobile status must be hidden (display=${metrics.statusDisplay})`);
@@ -141,9 +166,9 @@ await browser.close();
 fs.writeFileSync(path.join(outputDir, "visual-report.json"), `${JSON.stringify(report, null, 2)}\n`);
 
 if (failures.length) {
-  console.error(`KIDULTS V664 Hero visual validation: FAIL (${failures.length} issue(s))`);
+  console.error(`KIDULTS V665 experience validation: FAIL (${failures.length} issue(s))`);
   for (const failure of failures) console.error(`ERROR: ${failure}`);
   process.exit(1);
 }
 
-console.log("KIDULTS V664 Hero visual validation: PASS (short desktop viewport footer visible, internal one-surface card, category + CTA at 390px, CTA-only at 320px)");
+console.log("KIDULTS V665 experience validation: PASS (single #f4f2ee Hero surface, bitmap blend integrated, simplified mobile footer, global UTC timestamps, collector/institution copy polish)");
