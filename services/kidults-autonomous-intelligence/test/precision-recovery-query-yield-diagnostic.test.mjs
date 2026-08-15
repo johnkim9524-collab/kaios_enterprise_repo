@@ -31,7 +31,7 @@ function candidate(vertical, query, id, title) {
   };
 }
 
-test('query yield telemetry is bounded, observational, and never a production input', () => {
+test('query yield telemetry is bounded, observational, and never a production or Track B assessment input', () => {
   const poc = {
     candidates: [
       candidate('cards-comics-memorabilia', 'Amazing Fantasy #15', 'Q1', 'Amazing Fantasy #15'),
@@ -59,6 +59,11 @@ test('query yield telemetry is bounded, observational, and never a production in
   assert.equal(result.safety.productionInput, false);
   assert.equal(result.safety.scoreInput, false);
   assert.equal(result.safety.evidenceCreated, false);
+  assert.equal(result.safety.officialTrackBInput, false);
+  assert.equal(result.safety.assessmentInput, false);
+  assert.equal(result.safety.canUnlockTrackBAssessment, false);
+  assert.equal(result.safety.rankabilityAssessmentMutationAllowed, false);
+  assert.equal(result.safety.upstreamEvidenceMutationAllowed, false);
   assert.equal(result.safety.autoPruningAllowed, false);
   assert.equal(result.safety.autoOptimizationAllowed, false);
   assert.equal(result.safety.networkRequestsAdded, 0);
@@ -85,12 +90,15 @@ test('incomplete precision recovery never analyzes potentially stale POC data', 
   assert.equal(result.reason, 'MAXLAG');
   assert.equal('byVertical' in result, false);
   assert.equal(result.safety.partialEvidenceAccepted, false);
+  assert.equal(result.safety.officialTrackBInput, false);
+  assert.equal(result.safety.canUnlockTrackBAssessment, false);
 });
 
 test('invalid or missing inputs remain not measured instead of being inferred', () => {
   const missingAudit = buildPrecisionQueryYieldDiagnostic({ config, precisionAudit: null, poc: { candidates: [] } });
   assert.equal(missingAudit.status, 'NOT_MEASURED_PRECISION_AUDIT_UNAVAILABLE');
   assert.equal(missingAudit.reason, 'PRECISION_AUDIT_UNAVAILABLE_OR_INVALID');
+  assert.equal(missingAudit.safety.officialTrackBInput, false);
 
   const invalidConfig = buildPrecisionQueryYieldDiagnostic({
     config: { ...config, source: 'other' },
@@ -99,10 +107,12 @@ test('invalid or missing inputs remain not measured instead of being inferred', 
   });
   assert.equal(invalidConfig.status, 'NOT_MEASURED_CONFIG_IDENTITY_INVALID');
   assert.equal(invalidConfig.reason, 'PRECISION_RECOVERY_CONFIG_IDENTITY_INVALID');
+  assert.equal(invalidConfig.safety.assessmentInput, false);
 
   const missingPoc = buildPrecisionQueryYieldDiagnostic({ config, precisionAudit: passAudit, poc: null });
   assert.equal(missingPoc.status, 'NOT_MEASURED_POC_UNAVAILABLE');
   assert.equal(missingPoc.reason, 'POC_CANDIDATE_ARRAY_UNAVAILABLE');
+  assert.equal(missingPoc.safety.upstreamEvidenceMutationAllowed, false);
 });
 
 test('sample limit is clamped and absent aggregate rejection count stays explicit', () => {
@@ -116,4 +126,5 @@ test('sample limit is clamped and absent aggregate rejection count stays explici
   assert.deepEqual(result.scope, ['toys-models']);
   assert.equal(result.safety.boundedSampleLimit, 5);
   assert.equal(result.summary.aggregateRejectedSearchRows, null);
+  assert.equal(result.safety.rankabilityAssessmentMutationAllowed, false);
 });
