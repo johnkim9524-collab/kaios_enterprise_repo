@@ -1,0 +1,76 @@
+name: KIDULTS V663 Build Once
+
+on:
+  push:
+    branches:
+      - fix/kidults-v663-hero-integrated-footer
+    paths:
+      - '.github/workflows/kidults-v663-build-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout V663 branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Apply V663 homepage markers
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/kidults-enterprise-staging/public/portal/index.html')
+          text = path.read_text(encoding='utf-8')
+
+          old_html = '<html lang="en" data-release="v502" data-data-state="loading" data-homepage-structure="v662">'
+          new_html = '<html lang="en" data-release="v502" data-data-state="loading" data-homepage-structure="v662" data-portal-version="v663">'
+          if old_html in text:
+              text = text.replace(old_html, new_html, 1)
+          elif new_html not in text:
+              raise SystemExit('V663 html marker insertion point not found')
+
+          meta_marker = '  <meta name="theme-color" content="#faf9f6">\n'
+          meta_line = '  <meta name="kidults-presentation-version" content="663">\n'
+          if meta_line not in text:
+              if meta_marker not in text:
+                  raise SystemExit('V663 meta insertion point not found')
+              text = text.replace(meta_marker, meta_marker + meta_line, 1)
+
+          css_marker = '  <link id="kidults-v662-stability-freeze-style" rel="stylesheet" href="components/v662-stability-freeze.css?v=662-visual95-final">\n'
+          css_line = '  <link id="kidults-v663-hero-integrated-style" rel="stylesheet" href="components/v663-hero-integrated-footer.css?v=663">\n'
+          if css_line not in text:
+              if css_marker not in text:
+                  raise SystemExit('V663 stylesheet insertion point not found')
+              text = text.replace(css_marker, css_marker + css_line, 1)
+
+          old_article = '<article class="moment-card" data-hero-card data-hero-asset="racing-roadster-v662">'
+          new_article = '<article class="moment-card" data-hero-card data-hero-asset="racing-roadster-v662" data-hero-layout="v663-integrated-footer">'
+          if old_article in text:
+              text = text.replace(old_article, new_article, 1)
+          elif new_article not in text:
+              raise SystemExit('V663 Hero card insertion point not found')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate V663 source
+        run: |
+          node scripts/kidults/portal/validate-v663-hero-layout.mjs
+          node scripts/kidults/portal/validate-final-entry-structure.mjs
+          node scripts/kidults/portal/validate-mobile-hero-visibility.mjs
+          node scripts/kidults/portal/validate-v662-stability-recovery.mjs
+          node scripts/kidults/portal/validate-v662-final-visual95.mjs
+
+      - name: Commit V663 homepage
+        run: |
+          git config user.name 'johnkim9524-collab'
+          git config user.email 'john.kim9524@gmail.com'
+          git add apps/kidults-enterprise-staging/public/portal/index.html
+          git commit -m 'feat(kidults): establish Portal V663 Hero layout'
+          git push origin HEAD:${{ github.ref_name }}
