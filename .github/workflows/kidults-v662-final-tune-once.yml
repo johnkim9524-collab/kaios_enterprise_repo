@@ -152,13 +152,12 @@ jobs:
               )
           mobile_path.write_text(mobile, encoding='utf-8')
 
-          # Align validators and Pages deployment with final cache URLs while preserving the visual-system ID.
+          # Align code validators with final cache URLs while preserving the visual-system ID.
           validation_files = (
               Path('scripts/kidults/portal/validate-final-entry-structure.mjs'),
               Path('scripts/kidults/portal/validate-mobile-hero-visibility.mjs'),
               Path('scripts/kidults/portal/validate-v662-stability-recovery.mjs'),
               Path('scripts/kidults/portal/validate-v662-final-visual95.mjs'),
-              Path('.github/workflows/kidults-mobile-preview-pages.yml'),
           )
           for path in validation_files:
               text = path.read_text(encoding='utf-8')
@@ -183,7 +182,6 @@ jobs:
 
       - name: Commit final V662 tune
         run: |
-          rm -f .github/workflows/kidults-v662-final-tune-once.yml
           git config user.name 'johnkim9524-collab'
           git config user.email 'john.kim9524@gmail.com'
           git add -A
