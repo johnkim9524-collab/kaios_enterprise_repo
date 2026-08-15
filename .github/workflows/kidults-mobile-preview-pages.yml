@@ -50,14 +50,15 @@ jobs:
           grep -q 'homepage-structure.js?v=662-visual95-final' "$portal/portal.js"
           grep -q 'editorial-assets.js?v=662-visual95-final' "$portal/portal.js"
           grep -q 'mobile-hero-visibility.js?v=662-visual95-final' "$portal/portal.js"
+          grep -q 'renderers.js?v=665' "$portal/portal.js"
           grep -q 'visualFreeze: "v665"' "$portal/portal.js"
-          grep -q 'timeZone: "UTC"' "$portal/portal.js"
+          grep -q 'getUTCHours' "$portal/portal.js"
           grep -q 'CACHE_REVISION = "visual95"' "$portal/components/editorial-assets.js"
           grep -q 'FINAL_TUNE_REVISION = "final"' "$portal/components/editorial-assets.js"
           grep -q 'single-studio-v662-visual95' "$portal/components/editorial-assets.js"
           grep -q '#f4f2ee' "$portal/components/v663-hero-integrated-footer.css"
-          grep -q 'V665 single-surface experience freeze' "$portal/components/v664-visible-hero-footer.css"
-          grep -q 'mix-blend-mode:multiply!important' "$portal/components/v664-visible-hero-footer.css"
+          grep -q 'V665 extends the foundation' "$portal/components/v664-visible-hero-footer.css"
+          grep -q 'mix-blend-mode:darken!important' "$portal/components/v664-visible-hero-footer.css"
           grep -q 'border-top:0!important' "$portal/components/v664-visible-hero-footer.css"
           grep -q 'workspace-page.js?v=662' "$portal/workspace.html"
           grep -q 'workspace-page.css?v=662' "$portal/workspace.html"
@@ -149,7 +150,7 @@ jobs:
             "${base}/portal/components/v664-visible-hero-footer.css?v=665&deployment=${GITHUB_SHA}" \
             --output /tmp/kidults-v665-hero.css
           grep -q '#f4f2ee' /tmp/kidults-v665-hero.css
-          grep -q 'mix-blend-mode:multiply!important' /tmp/kidults-v665-hero.css
+          grep -q 'mix-blend-mode:darken!important' /tmp/kidults-v665-hero.css
           grep -q 'border-top:0!important' /tmp/kidults-v665-hero.css
 
           curl --fail --silent --show-error --location \
@@ -157,7 +158,8 @@ jobs:
             "${base}/portal/portal.js?v=665&deployment=${GITHUB_SHA}" \
             --output /tmp/kidults-v665-portal.js
           grep -q 'visualFreeze: "v665"' /tmp/kidults-v665-portal.js
-          grep -q 'timeZone: "UTC"' /tmp/kidults-v665-portal.js
+          grep -q 'renderers.js?v=665' /tmp/kidults-v665-portal.js
+          grep -q 'getUTCHours' /tmp/kidults-v665-portal.js
 
           curl --fail --silent --show-error --location \
             --header 'Cache-Control: no-cache' \
