@@ -22,16 +22,20 @@ const v664 = read(`${portal}/components/v664-visible-hero-footer.css`);
 for (const marker of [
   'data-portal-version="v663"',
   'data-portal-hotfix="v664"',
+  'data-visual-freeze="v665"',
   'kidults-hotfix-version" content="664"',
+  'kidults-visual-freeze-version" content="665"',
   'v663-hero-integrated-footer.css?v=663',
-  'v664-visible-hero-footer.css?v=664',
+  'v664-visible-hero-footer.css?v=665',
+  'portal.js?v=665',
   'data-hero-layout="v663-integrated-footer"',
   'data-hero-revision="v664-visible-footer"',
+  'data-hero-surface="v665-single-surface"',
   'data-hero-vertical>Automobiles &amp; Mobility',
   'data-hero-status>EDITORIAL APPROVED CANDIDATE',
   'data-dialog="hero">View details'
 ]) {
-  if (!index.includes(marker)) errors.push(`V664 homepage marker missing: ${marker}`);
+  if (!index.includes(marker)) errors.push(`V665 homepage marker missing: ${marker}`);
 }
 
 const articleStart = index.indexOf('<article class="moment-card"');
@@ -57,24 +61,29 @@ for (const marker of [
   "align-items:start!important",
   "height:560px!important",
   "inset:0 0 64px 0!important",
-  "background:var(--v664-hero-surface)!important",
   "@media(max-width:768px)",
   "Mobile footer is deliberately simple",
   '[data-hero-status]{',
-  "display:none!important"
+  "display:none!important",
+  "V665 single-surface experience freeze",
+  "isolation:isolate!important",
+  "mix-blend-mode:multiply!important",
+  "background:transparent!important",
+  "background:#f4f2ee!important",
+  "border-top:0!important"
 ]) {
-  if (!v664.includes(marker)) errors.push(`V664 Hero CSS marker missing: ${marker}`);
+  if (!v664.includes(marker)) errors.push(`V665 Hero CSS marker missing: ${marker}`);
 }
 
-if (v664.includes("object-position:right")) errors.push("V664 Hero reintroduces a right-biased image position.");
-if (v664.includes("transform:scale(")) errors.push("V664 Hero must not enlarge the Roadster.");
+if (v664.includes("object-position:right")) errors.push("V665 Hero reintroduces a right-biased image position.");
+if (v664.includes("transform:scale(")) errors.push("V665 Hero must not enlarge the Roadster.");
 if (!v664.includes("min-width:1021px")) errors.push("V664 desktop viewport guard is missing.");
 if (!v664.includes("min-width:769px) and (max-width:1020px")) errors.push("V664 mid-width guard is missing.");
 
 if (errors.length) {
-  console.error(`KIDULTS V664 Hero layout validation: FAIL (${errors.length} error(s))`);
+  console.error(`KIDULTS V665 Hero layout validation: FAIL (${errors.length} error(s))`);
   for (const error of errors) console.error(`ERROR: ${error}`);
   process.exit(1);
 }
 
-console.log("KIDULTS V664 Hero layout validation: PASS (viewport-stable internal footer, one #f4f2ee surface, simplified mobile metadata, V662/V663 contracts preserved)");
+console.log("KIDULTS V665 Hero layout validation: PASS (one #f4f2ee surface, bitmap blend integration, viewport-stable internal footer, simplified mobile metadata, V662/V663/V664 contracts preserved)");
