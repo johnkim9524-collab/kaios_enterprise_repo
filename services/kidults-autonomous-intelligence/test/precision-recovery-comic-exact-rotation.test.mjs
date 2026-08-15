@@ -10,18 +10,16 @@ function normalize(value) {
   return String(value || '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-test('comic recovery rotates verified issue labels without expanding the request budget', () => {
+test('comic recovery rotates only unambiguous verified issue labels without expanding the request budget', () => {
   const queries = config.verticals['cards-comics-memorabilia'];
   const exact = [
     'Amazing Fantasy #15',
     'Fantastic Four #1',
-    'X-Men #1',
     'Giant-Size X-Men #1',
   ];
   const replaced = [
     'Amazing Fantasy 15 comic book',
     'Fantastic Four 1 comic book',
-    'X-Men 1 comic book',
     'Giant-Size X-Men 1 comic book',
   ];
 
@@ -29,6 +27,11 @@ test('comic recovery rotates verified issue labels without expanding the request
   assert.equal(new Set(queries.map(normalize)).size, queries.length, 'comic recovery contains a normalized duplicate');
   for (const alias of exact) assert.ok(queries.includes(alias), `missing exact comic recovery alias: ${alias}`);
   for (const query of replaced) assert.equal(queries.includes(query), false, `typed comic query returned: ${query}`);
+
+  // Same-title Wikidata entities can represent different issue identities. Keep this query
+  // in the typed fail-closed lane until source-native identity disambiguation is available.
+  assert.equal(queries.includes('X-Men #1'), false, 'ambiguous exact X-Men alias must stay quarantined');
+  assert.equal(queries.includes('X-Men 1 comic book'), true, 'typed X-Men fallback must stay in the bounded request budget');
 });
 
 test('comic exact rotation preserves the existing official-Wikidata fail-closed boundary', () => {
