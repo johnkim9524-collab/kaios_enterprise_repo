@@ -39,8 +39,20 @@ test('exact watch aliases remain inside the official Wikidata CC0 fail-closed re
     'Rolex GMT Master II',
     'Rolex Milgauss',
     'Cartier Santos',
+    'Breitling Superocean',
+    'Grand Seiko Hi-Beat',
+    'Cartier Tonneau',
+    'Cartier Tortue',
   ]) {
     assert.ok(queries.includes(query));
+  }
+  for (const zeroYieldTypedQuery of [
+    'Rolex Yacht-Master watch',
+    'Rolex Air-King watch',
+    'Omega Railmaster watch',
+    'Omega De Ville watch',
+  ]) {
+    assert.equal(queries.includes(zeroYieldTypedQuery), false, `zero-yield watch query returned: ${zeroYieldTypedQuery}`);
   }
   assert.equal(queries.includes('Rolex Explorer II watch'), false);
   assert.equal(new Set(queries).size, queries.length);
@@ -66,6 +78,10 @@ test('watch recovery uses the same reference precision evaluator as production a
     ['Rolex GMT Master II', 'watch by Rolex'],
     ['Rolex Milgauss', 'antimagnetic wristwatch model by Rolex'],
     ['Cartier Santos', 'wristwatch created by Cartier'],
+    ['Breitling Superocean', 'product model wristwatch'],
+    ['Grand Seiko Hi-Beat', 'watch model series luxury wristwatch'],
+    ['Cartier Tonneau', 'product model wristwatch'],
+    ['Cartier Tortue', 'product model wristwatch'],
   ];
 
   for (const [query, description] of cases) {
