@@ -39,31 +39,43 @@ if (runtime.includes("mobile_asset")) errors.push("Mobile Hero runtime still con
 
 for (const marker of [
   'data-hero-asset="racing-roadster-v662"',
+  "single-studio-v662-visual95",
   "aspect-ratio:4/3",
   "object-fit:contain!important",
   "object-position:center center!important",
   "@media(max-width:768px)",
   "@media(max-width:340px)"
 ]) {
-  if (!stabilityCss.includes(marker)) errors.push(`V662 Hero CSS missing marker: ${marker}`);
+  if (!stabilityCss.includes(marker)) errors.push(`V662 Visual95 Hero CSS missing marker: ${marker}`);
 }
-for (const marker of ["@media(max-width:768px)", "@media(max-width:390px)", "@media(max-width:360px)"]) {
+for (const marker of [
+  "@media(max-width:768px)",
+  "@media(max-width:390px)",
+  "@media(max-width:360px)",
+  "object-fit:contain!important",
+  "object-position:center center!important"
+]) {
   if (!mobileCss.includes(marker)) errors.push(`Mobile support CSS missing marker: ${marker}`);
 }
+if (mobileCss.includes("object-position:right center")) errors.push("Mobile Hero remains right-biased.");
 
 for (const marker of [
-  'mobile-hero-visibility.js?v=662',
-  'editorial-assets.js?v=662',
+  'mobile-hero-visibility.js?v=662-visual95',
+  'editorial-assets.js?v=662-visual95',
+  'homepage-structure.js?v=662-visual95',
   'renderers.js?v=662'
 ]) {
-  if (!portal.includes(marker)) errors.push(`portal.js missing V662 Hero integration: ${marker}`);
+  if (!portal.includes(marker)) errors.push(`portal.js missing Visual95 Hero integration: ${marker}`);
 }
 for (const marker of [
   'ROADSTER_KEY = "racing-roadster-v662"',
-  'racing-roadster-v662.webp?v=${ASSET_VERSION}',
-  'museum-editorial-v662'
+  'CACHE_REVISION = "visual95"',
+  'ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}`',
+  'racing-roadster-v662.webp?v=${ASSET_QUERY}',
+  'museum-editorial-v662',
+  'single-studio-v662-visual95'
 ]) {
-  if (!editorial.includes(marker)) errors.push(`Editorial asset binding missing marker: ${marker}`);
+  if (!editorial.includes(marker)) errors.push(`Editorial Visual95 asset binding missing marker: ${marker}`);
 }
 
 const absoluteCanonical = path.join(root, canonicalPath);
@@ -91,4 +103,4 @@ if (errors.length) {
   for (const error of errors) console.error(`ERROR: ${error}`);
   process.exit(1);
 }
-console.log("KIDULTS Mobile Hero Visibility validation: PASS (one verified V662 Roadster, full-image desktop and mobile framing)");
+console.log("KIDULTS Mobile Hero Visibility validation: PASS (Visual95 cache generation, one verified Roadster, centered full-image desktop and mobile framing)");
