@@ -33,6 +33,7 @@ const required = [
   `${portalRoot}/index.html`,
   `${portalRoot}/workspace.html`,
   `${portalRoot}/portal.js`,
+  `${portalRoot}/components/renderers.js`,
   `${portalRoot}/components/editorial-assets.js`,
   `${portalRoot}/components/mobile-hero-visibility.js`,
   `${portalRoot}/components/mobile-hero-visibility.css`,
@@ -53,6 +54,7 @@ if (!errors.length) {
   const index = read(`${portalRoot}/index.html`);
   const workspace = read(`${portalRoot}/workspace.html`);
   const portal = read(`${portalRoot}/portal.js`);
+  const renderers = read(`${portalRoot}/components/renderers.js`);
   const assets = read(`${portalRoot}/components/editorial-assets.js`);
   const mobile = read(`${portalRoot}/components/mobile-hero-visibility.js`);
   const mobileCss = read(`${portalRoot}/components/mobile-hero-visibility.css`);
@@ -85,9 +87,15 @@ if (!errors.length) {
       'mobile-hero-visibility.js?v=662-visual95-final',
       'editorial-assets.js?v=662-visual95-final',
       'homepage-structure.js?v=662-visual95-final',
+      'renderers.js?v=665',
       'workspaceRoute: "workspace.html"',
       'workspaceMounted: false',
-      'visualFreeze: "v665"'
+      'visualFreeze: "v665"',
+      'getUTCHours'
+    ]],
+    [renderers, "renderers", [
+      'getUTCHours',
+      'UTC`'
     ]],
     [assets, "asset binding", [
       'ROADSTER_KEY = "racing-roadster-v662"',
@@ -119,10 +127,12 @@ if (!errors.length) {
       '@media(max-width:340px)'
     ]],
     [heroCss, "V665 Hero surface", [
-      "V665 single-surface experience freeze",
-      "mix-blend-mode:multiply!important",
+      "V665 extends the foundation",
+      "Darken compositing",
+      "mix-blend-mode:darken!important",
       "background:transparent!important",
-      "background:#f4f2ee!important",
+      "--v664-hero-surface:#f4f2ee",
+      "background:var(--v664-hero-surface)!important",
       "border-top:0!important"
     ]]
   ];
@@ -164,6 +174,7 @@ if (!errors.length) {
   for (const marker of [
     "Verify V665 public-experience freeze",
     "portal.js?v=665",
+    "renderers.js?v=665",
     "v664-visible-hero-footer.css?v=665",
     "racing-roadster-v662.webp?v=662-visual95-final",
     "kidults-v665-live-evidence"
