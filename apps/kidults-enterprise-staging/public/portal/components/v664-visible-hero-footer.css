@@ -1,0 +1,152 @@
+/* KIDULTS Portal V664 — viewport-stable integrated Hero footer.
+   Keeps the V662/V663 visual assets and data contracts unchanged. */
+
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+  --v664-hero-surface:#f4f2ee;
+  background:var(--v664-hero-surface)!important;
+  border-color:rgba(7,61,45,.09)!important;
+  box-shadow:0 30px 78px rgba(20,36,29,.042),0 7px 18px rgba(20,36,29,.016)!important;
+}
+
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"]::before,
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-shade{
+  display:none!important;
+  background:none!important;
+}
+
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+  background:var(--v664-hero-surface)!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  transform:none!important;
+  filter:saturate(.93) contrast(.985) brightness(1.006)!important;
+}
+
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+  z-index:5!important;
+  border-top:1px solid rgba(7,61,45,.065)!important;
+  background:var(--v664-hero-surface)!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+
+/* Desktop: prevent the four-line headline from stretching the Hero card.
+   The footer remains inside the card and within the opening viewport. */
+@media(min-width:1021px){
+  html[data-portal-hotfix="v664"] .hero{
+    padding-top:28px;
+  }
+
+  html[data-portal-hotfix="v664"] .hero-grid{
+    align-items:start!important;
+  }
+
+  html[data-portal-hotfix="v664"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+    align-self:start!important;
+    min-height:560px!important;
+    height:560px!important;
+  }
+
+  html[data-portal-hotfix="v664"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-hotfix="v664"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+    inset:0 0 64px 0!important;
+    width:100%!important;
+    height:auto!important;
+  }
+
+  html[data-portal-hotfix="v664"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    position:absolute!important;
+    inset:auto 0 0 0!important;
+    min-height:64px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:24px;
+    padding:13px 28px 14px!important;
+    border-radius:0 0 20px 20px!important;
+  }
+}
+
+/* Mid-width desktop/tablet keeps the V663 structure but uses one surface. */
+@media(min-width:769px) and (max-width:1020px){
+  html[data-portal-hotfix="v664"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+    min-height:530px!important;
+    height:530px!important;
+  }
+
+  html[data-portal-hotfix="v664"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    position:absolute!important;
+    inset:auto 0 0 0!important;
+    min-height:62px!important;
+    padding:13px 24px 14px!important;
+    border-radius:0 0 20px 20px!important;
+  }
+}
+
+/* Mobile footer is deliberately simple: category + one action, no status line. */
+@media(max-width:768px){
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+    background:var(--v664-hero-surface)!important;
+  }
+
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-topline,
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-copy,
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden],
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    background:var(--v664-hero-surface)!important;
+  }
+
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    position:relative!important;
+    inset:auto!important;
+    grid-row:4!important;
+    min-height:58px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:12px!important;
+    padding:12px 18px 14px!important;
+    border-radius:0 0 18px 18px!important;
+  }
+
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] [data-hero-status]{
+    display:none!important;
+  }
+
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .hero-source{
+    min-width:0;
+    display:block!important;
+  }
+
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] [data-hero-vertical]{
+    display:block;
+    overflow:hidden;
+    font-size:9px!important;
+    line-height:1.2!important;
+    letter-spacing:.065em!important;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer .text-link{
+    flex:0 0 auto;
+    min-height:38px!important;
+    padding:5px 0!important;
+    font-size:12px!important;
+    white-space:nowrap;
+  }
+}
+
+@media(max-width:340px){
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    padding-inline:16px!important;
+    gap:8px!important;
+  }
+
+  html[data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] [data-hero-vertical]{
+    font-size:8.25px!important;
+    letter-spacing:.045em!important;
+  }
+}
