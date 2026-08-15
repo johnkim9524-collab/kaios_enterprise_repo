@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.13",
+  "schemaVersion": "1.0.14",
   "mode": "KIDULT100_WIKIDATA_PRECISION_RECOVERY",
   "source": "wikidata",
   "sourceClass": "REFERENCE_PUBLIC_DATA",
@@ -57,8 +57,8 @@
     ],
     "watches-jewelry": [
       "Rolex Explorer II",
-      "Omega Speedmaster Professional watch",
-      "Omega Seamaster Diver 300M watch",
+      "Rolex Sea Dweller",
+      "Casio F-91W",
       "Cartier Panthere watch",
       "Patek Philippe Nautilus watch",
       "Patek Philippe Aquanaut watch",
@@ -71,7 +71,7 @@
       "Zenith El Primero watch",
       "Panerai Luminor watch",
       "Tudor Black Bay watch",
-      "Grand Seiko watch",
+      "Casio CA-53W",
       "Seiko Prospex watch",
       "Longines Legend Diver watch",
       "Hamilton Khaki Field watch",
