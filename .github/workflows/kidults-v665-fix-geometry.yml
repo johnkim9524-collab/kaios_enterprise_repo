@@ -1,0 +1,87 @@
+name: KIDULTS V665 Fix Hero Geometry
+
+on:
+  push:
+    branches: [fix/kidults-v665-one-surface-playground]
+    paths:
+      - '.github/workflows/kidults-v665-fix-geometry.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/kidults-v665-one-surface-playground
+          fetch-depth: 0
+
+      - name: Add authoritative V665 geometry overrides
+        run: |
+          cat >> apps/kidults-enterprise-staging/public/portal/components/v665-one-surface-playground.css <<'CSS'
+
+/* V665 authoritative geometry closure.
+   Beats legacy 100%-height and mobile reconstruction declarations without
+   changing the approved Roadster scale or position. */
+@media(min-width:1021px){
+  html[data-portal-version="v663"][data-portal-hotfix="v665"][data-homepage-structure="v662"] .hero .hero-grid > [data-hero-card][data-hero-layout="v663-integrated-footer"].moment-card{
+    box-sizing:border-box!important;
+    align-self:start!important;
+    width:100%!important;
+    height:560px!important;
+    min-height:560px!important;
+    max-height:560px!important;
+    block-size:560px!important;
+    min-block-size:560px!important;
+    max-block-size:560px!important;
+    padding:0!important;
+    margin:0!important;
+  }
+}
+
+@media(min-width:769px) and (max-width:1020px){
+  html[data-portal-version="v663"][data-portal-hotfix="v665"][data-homepage-structure="v662"] .hero .hero-grid > [data-hero-card][data-hero-layout="v663-integrated-footer"].moment-card{
+    box-sizing:border-box!important;
+    align-self:start!important;
+    width:100%!important;
+    height:530px!important;
+    min-height:530px!important;
+    max-height:530px!important;
+    block-size:530px!important;
+    min-block-size:530px!important;
+    max-block-size:530px!important;
+    padding:0!important;
+    margin:0!important;
+  }
+}
+
+@media(max-width:340px){
+  html[data-portal-version="v663"][data-portal-hotfix="v665"][data-homepage-structure="v662"][data-mobile-reconstruction="v1"] .hero [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer .hero-source{
+    display:none!important;
+    visibility:hidden!important;
+    width:0!important;
+    max-width:0!important;
+    height:0!important;
+    overflow:hidden!important;
+    margin:0!important;
+    padding:0!important;
+  }
+
+  html[data-portal-version="v663"][data-portal-hotfix="v665"][data-homepage-structure="v662"][data-mobile-reconstruction="v1"] .hero [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    grid-template-columns:1fr!important;
+    justify-items:end!important;
+  }
+}
+CSS
+          rm .github/workflows/kidults-v665-fix-geometry.yml
+
+      - name: Commit geometry fix
+        run: |
+          git config user.name 'KIDULTS Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix(kidults): close V665 Hero geometry and 320px footer'
+          git push origin HEAD:fix/kidults-v665-one-surface-playground
