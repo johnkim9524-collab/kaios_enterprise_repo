@@ -26,11 +26,14 @@ const workspacePage = read(`${portalRoot}/workspace-page.js`);
 const workspaceCss = read(`${portalRoot}/workspace-page.css`);
 
 for (const marker of [
-  'src="portal.js?v=662-visual95-final"',
+  'src="portal.js?v=665"',
   'data-homepage-structure="v662"',
+  'data-visual-freeze="v665"',
   'href="components/v662-stability-freeze.css?v=662-visual95-final"',
+  'href="components/v664-visible-hero-footer.css?v=665"',
   'src="assets/hero/racing-roadster-v662.webp?v=662-visual95-final"',
   'data-hero-asset="racing-roadster-v662"',
+  'data-hero-surface="v665-single-surface"',
   'href="workspace.html"',
   'id="discover"',
   'id="verticals"',
@@ -50,6 +53,7 @@ for (const marker of [
   'workspaceRoute: "workspace.html"',
   'workspaceMounted: false',
   'homepageStructure: "v662"',
+  'visualFreeze: "v665"',
   'workspace: data.workspace.version'
 ]) {
   if (!portal.includes(marker)) errors.push(`Homepage runtime marker missing: ${marker}`);
@@ -174,9 +178,9 @@ for (const retired of [
 }
 
 if (errors.length) {
-  console.error(`KIDULTS V662 Visual95 final entry validation: FAIL (${errors.length} error(s))`);
+  console.error(`KIDULTS V665 final entry validation: FAIL (${errors.length} error(s))`);
   errors.forEach(error => console.error(`ERROR: ${error}`));
   process.exit(1);
 }
 
-console.log("KIDULTS V662 Visual95 final entry validation: PASS (homepage first, dedicated Workspace, neutral Hero, unified K100 studio, responsive freeze)");
+console.log("KIDULTS V665 final entry validation: PASS (homepage first, dedicated Workspace, single-surface Hero, unified K100 studio, global public-experience freeze)");
