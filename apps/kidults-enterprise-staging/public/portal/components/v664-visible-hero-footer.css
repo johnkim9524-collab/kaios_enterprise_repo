@@ -181,3 +181,50 @@ html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card]
     font-size:11px!important;
   }
 }
+
+/* V665 single-surface experience freeze.
+   The Roadster WebP contains its own pale studio field. A CSS background alone cannot
+   recolour those bitmap pixels, which is why V664 still showed an image rectangle.
+   Multiplying the bitmap into the exact card surface removes that double background. */
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+  isolation:isolate!important;
+  background:#f4f2ee!important;
+  border-color:rgba(7,61,45,.085)!important;
+  box-shadow:0 28px 72px rgba(20,36,29,.038),0 6px 16px rgba(20,36,29,.014)!important;
+}
+
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+  background:transparent!important;
+  mix-blend-mode:multiply!important;
+  opacity:.985!important;
+  filter:saturate(.925) contrast(.975) brightness(1.025)!important;
+}
+
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-topline,
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-copy{
+  background:transparent!important;
+}
+
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+  background:#f4f2ee!important;
+  border-top:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+
+@media(max-width:768px){
+  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+    background:transparent!important;
+    mix-blend-mode:multiply!important;
+    opacity:.985!important;
+    filter:saturate(.925) contrast(.975) brightness(1.025)!important;
+  }
+
+  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    background:#f4f2ee!important;
+    border-top:0!important;
+  }
+}
