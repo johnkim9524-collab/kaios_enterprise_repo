@@ -9,7 +9,7 @@ const config = JSON.parse(fs.readFileSync(
 ));
 
 test('precision recovery keeps exact aliases while pruning stop-token-equivalent typed queries', () => {
-  assert.equal(config.schemaVersion, '1.0.13');
+  assert.equal(config.schemaVersion, '1.0.14');
   assert.equal(config.safety.wikidataOnly, true);
   assert.equal(config.safety.officialApiOnly, true);
   assert.equal(config.safety.unauthorizedScrapingAllowed, false);
@@ -33,6 +33,9 @@ test('precision recovery keeps exact aliases while pruning stop-token-equivalent
         'Cartier Santos',
         'TAG Heuer Monaco',
         'G-Shock',
+        'Rolex Sea Dweller',
+        'Casio F-91W',
+        'Casio CA-53W',
       ],
       redundant: [
         'Rolex Cosmograph Daytona watch',
@@ -44,6 +47,9 @@ test('precision recovery keeps exact aliases while pruning stop-token-equivalent
         'Cartier Santos watch',
         'TAG Heuer Monaco watch',
         'Casio G-Shock watch',
+        'Omega Speedmaster Professional watch',
+        'Omega Seamaster Diver 300M watch',
+        'Grand Seiko watch',
       ],
     },
     'fashion-accessories': {
