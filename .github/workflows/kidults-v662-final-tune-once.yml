@@ -164,6 +164,10 @@ jobs:
               text = path.read_text(encoding='utf-8')
               text = text.replace('662-visual95', '662-visual95-final')
               text = text.replace('single-studio-v662-visual95-final', 'single-studio-v662-visual95')
+              text = text.replace(
+                  'ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}`',
+                  'ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}-${FINAL_TUNE_REVISION}`'
+              )
               path.write_text(text, encoding='utf-8')
           PY
 
