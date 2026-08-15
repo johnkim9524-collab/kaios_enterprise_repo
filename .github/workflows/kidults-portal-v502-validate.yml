@@ -1,4 +1,4 @@
-name: KIDULTS Portal V502 / V662 Validate
+name: KIDULTS Portal V502 / V662 Visual95 Validate
 
 on:
   pull_request:
@@ -12,6 +12,7 @@ on:
       - 'coordination/kidults/registry/digital-twin/**'
       - 'scripts/kidults/portal/**'
       - '.github/workflows/kidults-portal-v502-validate.yml'
+      - '.github/workflows/kidults-mobile-preview-pages.yml'
   push:
     branches: [main]
     paths:
@@ -24,6 +25,7 @@ on:
       - 'coordination/kidults/registry/digital-twin/**'
       - 'scripts/kidults/portal/**'
       - '.github/workflows/kidults-portal-v502-validate.yml'
+      - '.github/workflows/kidults-mobile-preview-pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -41,7 +43,7 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Syntax-check V502 / V662 JavaScript
+      - name: Syntax-check V502 / V662 Visual95 JavaScript
         run: |
           node --check apps/kidults-enterprise-staging/public/portal/portal.js
           node --check apps/kidults-enterprise-staging/public/portal/workspace-page.js
@@ -75,6 +77,7 @@ jobs:
           node --check scripts/kidults/portal/validate-mobile-hero-visibility.mjs
           node --check scripts/kidults/portal/validate-final-entry-structure.mjs
           node --check scripts/kidults/portal/validate-v662-stability-recovery.mjs
+          node --check scripts/kidults/portal/validate-v662-final-visual95.mjs
           node --check scripts/kidults/portal/capture-v662-visual-check.mjs
 
       - name: Validate shared coordination
@@ -131,6 +134,9 @@ jobs:
       - name: Validate V662 Stability Recovery
         run: node scripts/kidults/portal/validate-v662-stability-recovery.mjs
 
+      - name: Validate V662 Visual95 final assets
+        run: node scripts/kidults/portal/validate-v662-final-visual95.mjs
+
   visual:
     needs: validate
     runs-on: ubuntu-latest
@@ -165,11 +171,11 @@ jobs:
       - name: Capture and validate 320 / 390 / 768 / 1440
         run: node scripts/kidults/portal/capture-v662-visual-check.mjs
 
-      - name: Upload V662 visual evidence
+      - name: Upload V662 Visual95 evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kidults-v662-visual-evidence
+          name: kidults-v662-visual95-evidence
           path: artifacts/kidults-v662-visual
           if-no-files-found: warn
           retention-days: 14
