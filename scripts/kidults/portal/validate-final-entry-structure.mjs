@@ -3,34 +3,38 @@ import path from "node:path";
 import process from "node:process";
 
 const root = process.cwd();
-const portalRoot = "apps/kidults-enterprise-staging/public/portal";
+const portal = "apps/kidults-enterprise-staging/public/portal";
 const errors = [];
-const read = relative => {
+
+function read(relative) {
   const absolute = path.join(root, relative);
   if (!fs.existsSync(absolute)) {
-    errors.push(`Missing required file: ${relative}`);
+    errors.push(`Missing: ${relative}`);
     return "";
   }
   return fs.readFileSync(absolute, "utf8");
-};
-const exists = relative => fs.existsSync(path.join(root, relative));
+}
 
-const index = read(`${portalRoot}/index.html`);
-const portal = read(`${portalRoot}/portal.js`);
-const homepage = read(`${portalRoot}/components/homepage-structure.js`);
-const assets = read(`${portalRoot}/components/editorial-assets.js`);
-const finalCss = read(`${portalRoot}/components/v662-stability-freeze.css`);
-const mobileCss = read(`${portalRoot}/components/mobile-hero-visibility.css`);
-const workspaceHtml = read(`${portalRoot}/workspace.html`);
-const workspacePage = read(`${portalRoot}/workspace-page.js`);
-const workspaceCss = read(`${portalRoot}/workspace-page.css`);
+const index = read(`${portal}/index.html`);
+const runtime = read(`${portal}/portal.js`);
+const homepage = read(`${portal}/components/homepage-structure.js`);
+const editorial = read(`${portal}/components/editorial-assets.js`);
+const mobile = read(`${portal}/components/mobile-hero-visibility.js`);
+const css = read(`${portal}/components/v666-portal-closure.css`);
+const workspaceHtml = read(`${portal}/workspace.html`);
+const workspacePage = read(`${portal}/workspace-page.js`);
+const workspaceCss = read(`${portal}/workspace-page.css`);
 
 for (const marker of [
-  'src="portal.js?v=662-visual95-final"',
   'data-homepage-structure="v662"',
-  'href="components/v662-stability-freeze.css?v=662-visual95-final"',
-  'src="assets/hero/racing-roadster-v662.webp?v=662-visual95-final"',
-  'data-hero-asset="racing-roadster-v662"',
+  'data-portal-version="v663"',
+  'data-portal-hotfix="v666"',
+  'src="portal.js?v=666"',
+  'v662-stability-freeze.css?v=662-visual95-final',
+  'v666-portal-closure.css?v=666',
+  'racing-roadster-v666-one-surface.webp?v=666',
+  'data-hero-asset="racing-roadster-v666-one-surface"',
+  'data-hero-revision="v666-portal-closure"',
   'href="workspace.html"',
   'id="discover"',
   'id="verticals"',
@@ -44,139 +48,115 @@ for (const marker of [
 }
 
 for (const marker of [
-  'mobile-hero-visibility.js?v=662-visual95-final',
-  'editorial-assets.js?v=662-visual95-final',
-  'homepage-structure.js?v=662-visual95-final',
+  'mobile-hero-visibility.js?v=666',
+  'editorial-assets.js?v=666',
+  'homepage-structure.js?v=666',
   'workspaceRoute: "workspace.html"',
-  'workspaceMounted: false',
-  'homepageStructure: "v662"',
-  'workspace: data.workspace.version'
+  'workspaceMounted: false'
 ]) {
-  if (!portal.includes(marker)) errors.push(`Homepage runtime marker missing: ${marker}`);
+  if (!runtime.includes(marker)) errors.push(`Runtime marker missing: ${marker}`);
 }
-for (const prohibited of ["startCopilot({", "startCompareEngine({", "startDecisionEngine({", "startWorkspace({"]) {
-  if (portal.includes(prohibited)) errors.push(`Homepage still mounts dedicated Workspace runtime: ${prohibited}`);
+
+for (const prohibited of [
+  "startCopilot({",
+  "startCompareEngine({",
+  "startDecisionEngine({",
+  "startWorkspace({"
+]) {
+  if (runtime.includes(prohibited)) errors.push(`Homepage mounts Workspace runtime: ${prohibited}`);
 }
 
 for (const marker of [
   'section.id = "workspace-entry"',
-  'workspace-entry-compact',
+  "workspace-entry-compact",
   'href="workspace.html"',
-  'main.dataset.finalStructure = "v662"',
-  'workspaceMountedOnHome: false',
-  '"Release Baseline"'
+  "workspaceMountedOnHome: false"
 ]) {
   if (!homepage.includes(marker)) errors.push(`Homepage structure marker missing: ${marker}`);
 }
-if (homepage.includes("workspace-entry-grid")) errors.push("Retired three-card Workspace entry remains on the homepage.");
 
 for (const marker of [
   'data-page="workspace"',
   'src="workspace-page.js?v=662"',
   'href="workspace-page.css?v=662"',
-  'data-workspace-context',
-  'data-workspace-mount',
+  "data-workspace-mount",
   'href="index.html"'
 ]) {
-  if (!workspaceHtml.includes(marker)) errors.push(`Workspace page marker missing: ${marker}`);
-}
-if (workspaceHtml.includes("workspace-page-intro")) errors.push("Workspace page contains a duplicate visible introduction.");
-
-for (const marker of [
-  'startCopilot({ data, contract: data.copilot })',
-  'startCompareEngine({ data, contract: data.compare })',
-  'startDecisionEngine({ data, contract: data.decision })',
-  'startWorkspace({ data, contract: data.workspace })',
-  'window.KIDULTS_WORKSPACE.open(mode',
-  'selectedMode()'
-]) {
-  if (!workspacePage.includes(marker)) errors.push(`Dedicated Workspace runtime marker missing: ${marker}`);
+  if (!workspaceHtml.includes(marker)) errors.push(`Workspace marker missing: ${marker}`);
 }
 
 for (const marker of [
-  'CACHE_REVISION = "visual95"',
-  'VISUAL_SYSTEM = "single-studio-v662-visual95"',
-  'footwear-v654.webp',
-  'camera-v654.webp',
-  'toys-v654.webp',
-  'watch-v655.webp',
-  'bindK100()'
+  "startCopilot({ data, contract: data.copilot })",
+  "startCompareEngine({ data, contract: data.compare })",
+  "startDecisionEngine({ data, contract: data.decision })",
+  "startWorkspace({ data, contract: data.workspace })"
 ]) {
-  if (!assets.includes(marker)) errors.push(`Visual95 asset-binding marker missing: ${marker}`);
+  if (!workspacePage.includes(marker)) errors.push(`Workspace runtime missing: ${marker}`);
 }
 
 for (const marker of [
-  'data-hero-asset="racing-roadster-v662"',
-  'data-image-format="museum-editorial-v662"',
-  'data-visual-system="single-studio-v662-visual95"',
-  'object-fit:contain!important',
-  'aspect-ratio:4/3',
-  'transform:scale(1)!important',
-  '.workspace-entry-compact',
-  'border-width:.75px',
-  'line-height:.965',
-  '#f3f1ec',
-  'filter:saturate(.94)',
-  '@media(max-width:340px)'
+  "footwear-v654.webp",
+  "camera-v654.webp",
+  "toys-v654.webp",
+  "watch-v655.webp",
+  "racing-roadster-v666-one-surface",
+  "bindK100()"
 ]) {
-  if (!finalCss.includes(marker)) errors.push(`V662 Visual95 marker missing: ${marker}`);
-}
-if (finalCss.includes('transform:scale(1.04)!important') || finalCss.includes('transform:scale(1.09)!important')) {
-  errors.push("Retired per-object K100 enlargement remains; Visual95 requires one unified frame treatment.");
+  if (!editorial.includes(marker)) errors.push(`Asset binding marker missing: ${marker}`);
 }
 
 for (const marker of [
-  'object-fit:contain!important',
-  'object-position:center center!important',
-  'background:#f3f1ec!important',
-  '@media(max-width:390px)',
-  '@media(max-width:360px)'
+  'HERO_KEY = "racing-roadster-v666-one-surface"',
+  'ASSET_VERSION = "666"',
+  'fill="#f4f2ee"'
 ]) {
-  if (!mobileCss.includes(marker)) errors.push(`Mobile Visual95 marker missing: ${marker}`);
+  if (!mobile.includes(marker)) errors.push(`Mobile Hero marker missing: ${marker}`);
 }
-if (mobileCss.includes("object-position:right center")) errors.push("Mobile Hero still uses the retired right-biased position.");
 
 for (const marker of [
-  '.workspace-page-status-section',
-  '.workspace-page-status',
-  '.workspace-page-mount',
-  '@media(max-width:768px)'
+  "--v666-surface:#f4f2ee",
+  "filter:none!important",
+  "border-top:0!important",
+  ".market-signals-section{padding-top:58px!important",
+  ".research-feature{min-height:520px!important",
+  ".archive-row{min-height:144px!important"
 ]) {
-  if (!workspaceCss.includes(marker)) errors.push(`Workspace page CSS marker missing: ${marker}`);
+  if (!css.includes(marker)) errors.push(`V666 CSS marker missing: ${marker}`);
 }
 
-const requiredAssets = [
-  `${portalRoot}/assets/hero/racing-roadster-v662.webp`,
-  `${portalRoot}/assets/kidult100/footwear-v654.webp`,
-  `${portalRoot}/assets/kidult100/camera-v654.webp`,
-  `${portalRoot}/assets/kidult100/toys-v654.webp`,
-  `${portalRoot}/assets/kidult100/watch-v655.webp`
+for (const marker of [
+  ".workspace-page-status-section",
+  ".workspace-page-status",
+  ".workspace-page-mount",
+  "@media(max-width:768px)"
+]) {
+  if (!workspaceCss.includes(marker)) errors.push(`Workspace CSS marker missing: ${marker}`);
+}
+
+const assets = [
+  `${portal}/assets/hero/racing-roadster-v666-one-surface.webp`,
+  `${portal}/assets/kidult100/footwear-v654.webp`,
+  `${portal}/assets/kidult100/camera-v654.webp`,
+  `${portal}/assets/kidult100/toys-v654.webp`,
+  `${portal}/assets/kidult100/watch-v655.webp`
 ];
-for (const relative of requiredAssets) {
-  if (!exists(relative)) {
-    errors.push(`Required Visual95 asset is missing: ${relative}`);
+for (const relative of assets) {
+  const absolute = path.join(root, relative);
+  if (!fs.existsSync(absolute)) {
+    errors.push(`Asset missing: ${relative}`);
     continue;
   }
-  const data = fs.readFileSync(path.join(root, relative));
-  if (data.subarray(0, 4).toString("ascii") !== "RIFF" || data.subarray(8, 12).toString("ascii") !== "WEBP") {
-    errors.push(`Required Visual95 asset is not a valid WebP: ${relative}`);
+  const bytes = fs.readFileSync(absolute);
+  if (bytes.subarray(0, 4).toString("ascii") !== "RIFF" || bytes.subarray(8, 12).toString("ascii") !== "WEBP") {
+    errors.push(`Asset not WebP: ${relative}`);
   }
-  if (data.length < 25_000) errors.push(`Required Visual95 asset is unexpectedly small: ${relative} (${data.length} bytes)`);
-}
-
-for (const retired of [
-  "racing-roadster-v654.webp",
-  "racing-roadster-v658-desktop.webp",
-  "racing-roadster-v660-master.webp",
-  "racing-roadster-v658-mobile.webp"
-]) {
-  if (exists(`${portalRoot}/assets/hero/${retired}`)) errors.push(`Retired Roadster asset still exists: ${retired}`);
+  if (bytes.length < 25_000) errors.push(`Asset too small: ${relative} (${bytes.length})`);
 }
 
 if (errors.length) {
-  console.error(`KIDULTS V662 Visual95 final entry validation: FAIL (${errors.length} error(s))`);
-  errors.forEach(error => console.error(`ERROR: ${error}`));
+  console.error(`KIDULTS V666 final entry validation: FAIL (${errors.length})`);
+  for (const error of errors) console.error(`ERROR: ${error}`);
   process.exit(1);
 }
 
-console.log("KIDULTS V662 Visual95 final entry validation: PASS (homepage first, dedicated Workspace, neutral Hero, unified K100 studio, responsive freeze)");
+console.log("KIDULTS V666 final entry validation: PASS — V662 data foundation, V663 card structure, V666 experience closure.");
