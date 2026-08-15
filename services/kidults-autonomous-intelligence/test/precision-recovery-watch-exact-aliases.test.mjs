@@ -31,6 +31,9 @@ test('exact watch aliases remain inside the official Wikidata CC0 fail-closed re
   const queries = config.verticals[vertical];
   for (const query of [
     'Rolex Explorer II',
+    'Rolex Sea Dweller',
+    'Casio F-91W',
+    'Casio CA-53W',
     'Rolex Submariner',
     'Omega Seamaster',
     'G-Shock',
@@ -51,6 +54,9 @@ test('exact watch aliases remain inside the official Wikidata CC0 fail-closed re
     'Rolex Air-King watch',
     'Omega Railmaster watch',
     'Omega De Ville watch',
+    'Omega Speedmaster Professional watch',
+    'Omega Seamaster Diver 300M watch',
+    'Grand Seiko watch',
   ]) {
     assert.equal(queries.includes(zeroYieldTypedQuery), false, `zero-yield watch query returned: ${zeroYieldTypedQuery}`);
   }
@@ -70,6 +76,9 @@ test('exact watch aliases remain inside the official Wikidata CC0 fail-closed re
 test('watch recovery uses the same reference precision evaluator as production and rejects nearby variants', () => {
   const cases = [
     ['Rolex Explorer II', 'self-winding wristwatch manufactured by Rolex'],
+    ['Rolex Sea Dweller', "Professional diver's watch"],
+    ['Casio F-91W', 'digital watch manufactured by Casio'],
+    ['Casio CA-53W', 'digital watch manufactured by Casio'],
     ['Rolex Submariner', "mechanical diver's watch"],
     ['Omega Seamaster', 'line of mechanical and quartz diving watches'],
     ['G-Shock', 'watch model series manufactured by Casio'],
