@@ -24,11 +24,13 @@ test('comic recovery rotates only unambiguous verified issue labels without expa
     'Amazing Fantasy #15',
     'Fantastic Four #1',
     'Giant-Size X-Men #1',
+    'Captain America Comics #1',
   ];
   const replaced = [
     'Amazing Fantasy 15 comic book',
     'Fantastic Four 1 comic book',
     'Giant-Size X-Men 1 comic book',
+    'Captain America Comics 1 comic book',
   ];
 
   assert.equal(queries.length, 32, 'comic recovery request budget changed');
@@ -67,6 +69,32 @@ test('X-Men recovery requires the 1963 source-native issue discriminator', () =>
   assert.equal(originalIssue.accepted, true);
   assert.equal(laterSameTitleIssue.allDistinctiveAnchorsMatched, false);
   assert.equal(laterSameTitleIssue.accepted, false);
+});
+
+test('Captain America Comics #1 exact recovery rejects nearby issue identities', () => {
+  const productTerms = referencePolicy.productObjectTermsByVertical['cards-comics-memorabilia'];
+  const disallowedTerms = referencePolicy.disallowedDescriptionTermsByVertical['cards-comics-memorabilia'];
+  const query = 'Captain America Comics #1';
+
+  const issueOne = evaluatePrecisionRecoveryRow({
+    query,
+    row: { label: 'Captain America Comics #1', description: '1940 comic book issue' },
+    productTerms,
+    disallowedTerms,
+    stopTokens: runtimeStopTokens,
+  });
+  const issueTen = evaluatePrecisionRecoveryRow({
+    query,
+    row: { label: 'Captain America Comics #10', description: '1942 comic book issue' },
+    productTerms,
+    disallowedTerms,
+    stopTokens: runtimeStopTokens,
+  });
+
+  assert.equal(issueOne.allDistinctiveAnchorsMatched, true);
+  assert.equal(issueOne.accepted, true);
+  assert.equal(issueTen.allDistinctiveAnchorsMatched, false);
+  assert.equal(issueTen.accepted, false);
 });
 
 test('comic exact rotation preserves the existing official-Wikidata fail-closed boundary', () => {
