@@ -316,6 +316,10 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   const allVerticals = ['toys-models', 'watches-jewelry', 'automobiles-mobility', 'fashion-accessories', 'design-furniture', 'technology-cameras', 'gaming-music-screen', 'cards-comics-memorabilia'];
   const relevantByVertical = Object.fromEntries(allVerticals.map((vertical) => [vertical, relevant.filter((candidate) => candidate.vertical === vertical).length]));
   const relevantBySource = Object.fromEntries(sourceIds.map((source) => [source, relevant.filter((candidate) => candidate.source === source).length]));
+  const circuitBlockedQueries = errors.filter((row) => String(row.error || '').startsWith('WIKIDATA_BACKPRESSURE_CIRCUIT_OPEN:')).length;
+  const precisionRecoveryIncomplete = runtime.backpressureCircuitOpened && circuitBlockedQueries > 0;
+  runtime.circuitBlockedQueries = circuitBlockedQueries;
+
   const hardened = {
     ...report,
     schemaVersion: '2.9.1',
@@ -360,9 +364,15 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
   };
 
   const audit = {
-    schemaVersion: '1.6.0',
+    schemaVersion: '1.7.0',
     mode: 'KIDULT100_WIKIDATA_PRECISION_RECOVERY_AUDIT',
     generatedAt: new Date().toISOString(),
+    readiness: {
+      status: precisionRecoveryIncomplete ? 'FAIL_CLOSED_PRECISION_RECOVERY_INCOMPLETE' : 'PASS',
+      authoritativeMeasurementPermitted: !precisionRecoveryIncomplete,
+      reason: precisionRecoveryIncomplete ? `WIKIDATA_BACKPRESSURE_CIRCUIT_OPEN:${runtime.backpressureCircuitReason || 'UNKNOWN'}` : null,
+      circuitBlockedQueries,
+    },
     metrics: {
       inputCandidates: report.candidates.length,
       addedCandidates: additions.length,
@@ -407,10 +417,20 @@ if (process.env.KIDULTS_ARCHIVE_PRECISION_INPUT_JSON) {
       contractExecutionRequested: false,
       productionGateRelaxed: false,
     },
-    disposition: additions.length + requalified.length > 0 ? 'PRECISION_SAFE_CANDIDATE_SUPPLY_RECOVERED' : 'NO_NEW_PRECISION_SAFE_CANDIDATES_FOUND',
+    disposition: precisionRecoveryIncomplete
+      ? 'FAIL_CLOSED_PRECISION_RECOVERY_INCOMPLETE'
+      : additions.length + requalified.length > 0
+        ? 'PRECISION_SAFE_CANDIDATE_SUPPLY_RECOVERED'
+        : 'NO_NEW_PRECISION_SAFE_CANDIDATES_FOUND',
   };
-  fs.writeFileSync(POC_PATH, JSON.stringify(hardened, null, 2));
+
   fs.writeFileSync(AUDIT_PATH, JSON.stringify(audit, null, 2));
-  console.log(`Wikidata precision recovery: input=${report.candidates.length} added=${additions.length} requalified=${requalified.length} rejected=${rejected.length} output=${candidates.length}`);
-  console.log(`addedByVertical=${JSON.stringify(audit.metrics.addedByVertical)} requalifiedByVertical=${JSON.stringify(audit.metrics.requalifiedByVertical)} runtime=${JSON.stringify(runtime)}`);
+  if (precisionRecoveryIncomplete) {
+    console.error(`Wikidata precision recovery incomplete: circuit=${runtime.backpressureCircuitReason || 'UNKNOWN'} blockedQueries=${circuitBlockedQueries}`);
+    process.exitCode = 2;
+  } else {
+    fs.writeFileSync(POC_PATH, JSON.stringify(hardened, null, 2));
+    console.log(`Wikidata precision recovery: input=${report.candidates.length} added=${additions.length} requalified=${requalified.length} rejected=${rejected.length} output=${candidates.length}`);
+    console.log(`addedByVertical=${JSON.stringify(audit.metrics.addedByVertical)} requalifiedByVertical=${JSON.stringify(audit.metrics.requalifiedByVertical)} runtime=${JSON.stringify(runtime)}`);
+  }
 }
