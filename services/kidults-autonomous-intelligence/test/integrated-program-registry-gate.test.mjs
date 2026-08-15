@@ -27,7 +27,21 @@ function run(coordinationRoot) {
   return { result, report };
 }
 
-function fixtureWithSnapshot() {
+function writeArtifact(root, reference, content) {
+  const artifactPath = path.join(root, reference);
+  fs.mkdirSync(path.dirname(artifactPath), { recursive: true });
+  fs.writeFileSync(artifactPath, content);
+}
+
+function materializeOfficialInputs(root) {
+  const snapshot = JSON.stringify({ snapshot_id: 'fixture-candidate' });
+  writeArtifact(root, 'snapshot-candidate.json', snapshot);
+  writeArtifact(root, 'EVIDENCE_PACKAGE', '{}');
+  writeArtifact(root, 'snapshots/fixture-candidate/snapshot-candidate.json', snapshot);
+  writeArtifact(root, 'evidence/fixture-candidate/EVIDENCE_PACKAGE', '{}');
+}
+
+function fixtureWithSnapshot({ materializeOfficialInputs: shouldMaterialize = true } = {}) {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-track-b-readiness-'));
   fs.cpSync(LIVE_COORDINATION_ROOT, tempRoot, { recursive: true });
   const snapshotPath = path.join(tempRoot, 'registry', 'snapshot-registry.json');
@@ -35,6 +49,7 @@ function fixtureWithSnapshot() {
   snapshots.current_candidate_snapshot_id = 'fixture-candidate';
   snapshots.entries = [{ snapshot_id: 'fixture-candidate', status: 'draft' }];
   fs.writeFileSync(snapshotPath, JSON.stringify(snapshots, null, 2));
+  if (shouldMaterialize) materializeOfficialInputs(tempRoot);
   return tempRoot;
 }
 
@@ -126,7 +141,30 @@ test('canonical snapshot-candidate handoff without Evidence Package keeps Track 
   assert.equal(report.track_b_readiness.canonical_handoff_proof.evidence_package_handoff_id, null);
 });
 
-test('Track B becomes assessment-ready only when both official inputs are accepted for the exact snapshot', () => {
+test('accepted registry references without materialized official inputs cannot unlock Track B assessment', () => {
+  const tempRoot = fixtureWithSnapshot({ materializeOfficialInputs: false });
+  const handoffPath = path.join(tempRoot, 'registry', 'handoff-registry.json');
+  const handoffs = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
+  handoffs.entries = [
+    canonicalHandoff({ handoff_id: 'fixture-snapshot-handoff' }),
+    canonicalHandoff({ handoff_id: 'fixture-evidence-handoff', artifact_reference: 'EVIDENCE_PACKAGE' }),
+  ];
+  fs.writeFileSync(handoffPath, JSON.stringify(handoffs, null, 2));
+
+  const { result, report } = run(tempRoot);
+  fs.rmSync(tempRoot, { recursive: true, force: true });
+  assert.equal(result.status, 0);
+  assert.equal(report.status, 'PASS_BOOTSTRAPPING');
+  assert.equal(report.track_b_readiness.assessment_permitted, false);
+  assert.equal(report.track_b_readiness.waiting_state, 'WAITING_FOR_SNAPSHOT');
+  assert.equal(report.track_b_readiness.reason, 'SNAPSHOT_CANDIDATE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF');
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.materialized_official_inputs_required, true);
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.registry_reference_alone_cannot_unlock_assessment, true);
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.snapshot_candidate_handoff_id, null);
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.evidence_package_handoff_id, null);
+});
+
+test('Track B becomes assessment-ready only when both official inputs are accepted and materialized for the exact snapshot', () => {
   const tempRoot = fixtureWithSnapshot();
 
   const handoffPath = path.join(tempRoot, 'registry', 'handoff-registry.json');
@@ -155,6 +193,7 @@ test('Track B becomes assessment-ready only when both official inputs are accept
   assert.equal(report.track_b_readiness.reason, 'BOTH_OFFICIAL_INPUTS_ACCEPTED_FOR_EXACT_SNAPSHOT');
   assert.equal(report.track_b_readiness.canonical_handoff_proof.snapshot_candidate_handoff_id, 'fixture-snapshot-handoff');
   assert.equal(report.track_b_readiness.canonical_handoff_proof.evidence_package_handoff_id, 'fixture-evidence-handoff');
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.materialized_official_inputs_required, true);
   assert.equal(report.claims.track_b_assessment_permitted, true);
   assert.equal(report.claims.track_b_assessment_started, false);
 });
