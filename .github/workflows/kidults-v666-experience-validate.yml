@@ -1,0 +1,66 @@
+name: KIDULTS Portal V666 Experience Closure Validate
+
+on:
+  push:
+    branches: [fix/kidults-v666-experience-closure]
+    paths:
+      - 'apps/kidults-enterprise-staging/public/portal/**'
+      - 'scripts/kidults/portal/validate-v666-experience-closure.mjs'
+      - '.github/workflows/kidults-v666-experience-validate.yml'
+  pull_request:
+    paths:
+      - 'apps/kidults-enterprise-staging/public/portal/**'
+      - 'scripts/kidults/portal/validate-v666-experience-closure.mjs'
+      - '.github/workflows/kidults-v666-experience-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start portal server
+        run: |
+          python3 -m http.server 4173 --directory apps/kidults-enterprise-staging/public > /tmp/kidults-v666-server.log 2>&1 &
+          echo $! > /tmp/kidults-v666-server.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/portal/index.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kidults-v666-server.log
+          exit 1
+
+      - name: Validate V666 experience closure
+        env:
+          KIDULTS_BASE_URL: http://127.0.0.1:4173
+          KIDULTS_V666_OUTPUT: artifacts/kidults-v666-experience-closure
+        run: node scripts/kidults/portal/validate-v666-experience-closure.mjs
+
+      - name: Upload V666 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-v666-experience-closure-evidence
+          path: artifacts/kidults-v666-experience-closure
+          if-no-files-found: warn
+          retention-days: 14
