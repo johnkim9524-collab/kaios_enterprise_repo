@@ -153,6 +153,52 @@ test('Track B rejects percent-encoded official-input leaf aliases fail closed', 
   }
 });
 
+test('Track B accepts only plain repository-relative official-input references', () => {
+  const cases = [
+    {
+      snapshot: 'snapshots\\fixture-candidate\\snapshot-candidate.json',
+      evidence: CANONICAL_EVIDENCE,
+      waitingState: 'WAITING_FOR_SNAPSHOT',
+      reason: 'SNAPSHOT_CANDIDATE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF',
+    },
+    {
+      snapshot: 'file:/snapshots/fixture-candidate/snapshot-candidate.json',
+      evidence: CANONICAL_EVIDENCE,
+      waitingState: 'WAITING_FOR_SNAPSHOT',
+      reason: 'SNAPSHOT_CANDIDATE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF',
+    },
+    {
+      snapshot: 'C:/snapshots/fixture-candidate/snapshot-candidate.json',
+      evidence: CANONICAL_EVIDENCE,
+      waitingState: 'WAITING_FOR_SNAPSHOT',
+      reason: 'SNAPSHOT_CANDIDATE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF',
+    },
+    {
+      snapshot: 'snapshots/%2e%2e/fixture-candidate/snapshot-candidate.json',
+      evidence: CANONICAL_EVIDENCE,
+      waitingState: 'WAITING_FOR_SNAPSHOT',
+      reason: 'SNAPSHOT_CANDIDATE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF',
+    },
+    {
+      snapshot: CANONICAL_SNAPSHOT,
+      evidence: ' evidence/fixture-candidate/EVIDENCE_PACKAGE',
+      waitingState: 'WAITING_FOR_EVIDENCE',
+      reason: 'EVIDENCE_PACKAGE_AVAILABILITY_NOT_PROVEN_BY_CANONICAL_HANDOFF',
+    },
+  ];
+
+  for (const entry of cases) {
+    const { result, report } = runWithReferences(entry.snapshot, entry.evidence);
+    assert.equal(result.status, 0, `${entry.snapshot} :: ${entry.evidence}`);
+    assert.equal(report.status, 'PASS_BOOTSTRAPPING');
+    assert.equal(report.track_b_readiness.assessment_permitted, false);
+    assert.equal(report.track_b_readiness.waiting_state, entry.waitingState);
+    assert.equal(report.track_b_readiness.reason, entry.reason);
+    assert.equal(report.track_b_readiness.canonical_handoff_proof.plain_repository_relative_artifact_references_required, true);
+    assert.equal(report.claims.track_b_assessment_started, false);
+  }
+});
+
 test('canonical repository-relative Track B references remain assessment-eligible', () => {
   const { result, report } = runWithReferences(CANONICAL_SNAPSHOT, CANONICAL_EVIDENCE);
 
@@ -161,6 +207,7 @@ test('canonical repository-relative Track B references remain assessment-eligibl
   assert.equal(report.track_b_readiness.assessment_permitted, true);
   assert.equal(report.track_b_readiness.waiting_state, 'READY_FOR_ASSESSMENT');
   assert.equal(report.track_b_readiness.reason, 'BOTH_OFFICIAL_INPUTS_ACCEPTED_FOR_EXACT_SNAPSHOT');
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.plain_repository_relative_artifact_references_required, true);
   assert.equal(report.claims.track_b_assessment_started, false);
   assert.equal(report.claims.operational_runtime_evidence_used_as_track_b_official_input, false);
 });
