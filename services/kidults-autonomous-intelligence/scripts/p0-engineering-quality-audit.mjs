@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { buildPrecisionQueryYieldDiagnostic } from './lib/precision-query-yield-diagnostic.mjs';
 
 const ROOT = process.cwd();
 const SCAN_ROOTS = ['src', 'scripts'];
@@ -10,6 +11,9 @@ const MAX_FILE_LINES_WARN = 700;
 const MAX_FILE_LINES_FAIL = 1500;
 const AUDIT_IMPLEMENTATION = 'scripts/p0-engineering-quality-audit.mjs';
 const CORE_SOURCE_READINESS_REL = 'reports/engineering-hardening/stage2-core-source-readiness-latest.json';
+const PRECISION_AUDIT_REL = 'reports/kidult100-poc/kidult100-precision-recovery-latest.json';
+const PRECISION_CONFIG_REL = 'config/kidult100-precision-recovery-queries.json';
+const PRECISION_POC_REL = 'reports/kidult100-poc/kidult100-poc-latest.json';
 
 async function exists(p) {
   try { await fs.access(p); return true; } catch { return false; }
@@ -137,6 +141,28 @@ if (await exists(coreSourceReadinessPath)) {
   }
 }
 
+let precisionQueryYield = null;
+const precisionAuditPath = path.join(ROOT, PRECISION_AUDIT_REL);
+const precisionConfigPath = path.join(ROOT, PRECISION_CONFIG_REL);
+const precisionPocPath = path.join(ROOT, PRECISION_POC_REL);
+if (await exists(precisionAuditPath) && await exists(precisionConfigPath) && await exists(precisionPocPath)) {
+  try {
+    precisionQueryYield = buildPrecisionQueryYieldDiagnostic({
+      precisionAudit: JSON.parse(await fs.readFile(precisionAuditPath, 'utf8')),
+      config: JSON.parse(await fs.readFile(precisionConfigPath, 'utf8')),
+      poc: JSON.parse(await fs.readFile(precisionPocPath, 'utf8')),
+    });
+  } catch (error) {
+    add(
+      'P1',
+      'INVALID_PRECISION_QUERY_YIELD_DIAGNOSTIC_INPUT',
+      PRECISION_AUDIT_REL,
+      null,
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+}
+
 const counts = findings.reduce((acc, finding) => {
   acc[finding.severity] = (acc[finding.severity] ?? 0) + 1;
   return acc;
@@ -144,7 +170,7 @@ const counts = findings.reduce((acc, finding) => {
 
 const status = (counts.P0 ?? 0) > 0 ? 'FAIL' : 'PASS_WITH_FINDINGS';
 const report = {
-  schemaVersion: '1.2.0',
+  schemaVersion: '1.3.0',
   generatedAt: new Date().toISOString(),
   objective: 'Speed x Quality engineering hardening baseline',
   status,
@@ -153,6 +179,8 @@ const report = {
   runtimeDiagnostics: {
     stage2CoreSourceReadiness: coreSourceReadiness,
     stage2CoreSourceReadinessPath: CORE_SOURCE_READINESS_REL,
+    precisionQueryYield,
+    precisionQueryYieldInputs: [PRECISION_CONFIG_REL, PRECISION_AUDIT_REL, PRECISION_POC_REL],
     diagnosticsAreProductionEvidence: false,
     diagnosticsCanRelaxProductionGate: false,
   },
@@ -171,6 +199,7 @@ console.log(`Findings: P0=${counts.P0 ?? 0} P1=${counts.P1 ?? 0} P2=${counts.P2 
 console.log(`Tracked lockfile: ${trackedLockfile || 'NONE'}`);
 console.log(`Node engine: ${nodeEngine || 'UNDECLARED'}`);
 console.log(`Stage 2 core-source readiness diagnostic: ${coreSourceReadiness ? coreSourceReadiness.status || 'PRESENT' : 'NOT_AVAILABLE'}`);
+console.log(`Precision query yield diagnostic: ${precisionQueryYield ? precisionQueryYield.status : 'NOT_AVAILABLE'}`);
 console.log('Report: reports/engineering-hardening/quality-audit-latest.json');
 
 if (status === 'FAIL') process.exit(1);
