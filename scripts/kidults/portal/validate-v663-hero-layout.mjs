@@ -65,11 +65,12 @@ for (const marker of [
   "Mobile footer is deliberately simple",
   '[data-hero-status]{',
   "display:none!important",
-  "V665 single-surface experience freeze",
+  "V665 extends the foundation",
+  "Darken compositing",
   "isolation:isolate!important",
-  "mix-blend-mode:multiply!important",
+  "mix-blend-mode:darken!important",
   "background:transparent!important",
-  "background:#f4f2ee!important",
+  "background:var(--v664-hero-surface)!important",
   "border-top:0!important"
 ]) {
   if (!v664.includes(marker)) errors.push(`V665 Hero CSS marker missing: ${marker}`);
@@ -86,4 +87,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS V665 Hero layout validation: PASS (one #f4f2ee surface, bitmap blend integration, viewport-stable internal footer, simplified mobile metadata, V662/V663/V664 contracts preserved)");
+console.log("KIDULTS V665 Hero layout validation: PASS (one #f4f2ee surface, darken bitmap integration, viewport-stable internal footer, simplified mobile metadata, V662/V663/V664 contracts preserved)");
