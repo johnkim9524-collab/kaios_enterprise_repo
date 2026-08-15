@@ -1,0 +1,212 @@
+/* KIDULTS Portal V665 — true one-surface Hero.
+   Collector energy + institutional trust, without changing the approved car,
+   V662 structure, K100 assets, Registry, Assessment or Production gates. */
+
+html[data-portal-hotfix="v665"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+  --v665-hero-surface:#f4f2ee;
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  background:var(--v665-hero-surface)!important;
+  border-color:rgba(7,61,45,.085)!important;
+  box-shadow:0 30px 78px rgba(20,36,29,.04),0 7px 18px rgba(20,36,29,.014)!important;
+}
+
+html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"]::before,
+html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-shade{
+  display:none!important;
+  content:none!important;
+  background:none!important;
+}
+
+/* The V665 asset carries only the Roadster and its real floor shadow.
+   Every surrounding pixel is transparent, so the card itself is the studio. */
+html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+  background:transparent!important;
+  background-color:transparent!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  transform:none!important;
+  mix-blend-mode:normal!important;
+  filter:saturate(.94) contrast(.99) brightness(1.004)!important;
+}
+
+html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-topline,
+html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-copy,
+html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+  background:transparent!important;
+  background-color:transparent!important;
+}
+
+html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+  z-index:5!important;
+  border-top:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+
+/* Desktop: preserve the approved V664 optical balance and keep the metadata
+   inside the first viewport. No car enlargement and no right-biased transform. */
+@media(min-width:1021px){
+  html[data-portal-hotfix="v665"] .hero{
+    padding-top:28px;
+  }
+
+  html[data-portal-hotfix="v665"] .hero-grid{
+    align-items:start!important;
+  }
+
+  html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+    align-self:start!important;
+    min-height:560px!important;
+    height:560px!important;
+  }
+
+  html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+    position:absolute!important;
+    inset:0 0 62px 0!important;
+    width:100%!important;
+    height:auto!important;
+  }
+
+  html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    position:absolute!important;
+    inset:auto 0 0 0!important;
+    min-height:62px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:24px!important;
+    padding:12px 28px 14px!important;
+    border-radius:0 0 20px 20px!important;
+  }
+}
+
+@media(min-width:769px) and (max-width:1020px){
+  html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+    min-height:530px!important;
+    height:530px!important;
+  }
+
+  html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+    position:absolute!important;
+    inset:0 0 60px 0!important;
+    width:100%!important;
+    height:auto!important;
+  }
+
+  html[data-portal-hotfix="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    position:absolute!important;
+    inset:auto 0 0 0!important;
+    min-height:60px!important;
+    padding:12px 24px 13px!important;
+    border-radius:0 0 20px 20px!important;
+  }
+}
+
+/* Mobile remains intentionally simple. The entire card, image field and footer
+   share one surface. 390px shows category + CTA; 320px shows CTA only. */
+@media(max-width:768px){
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+    background:var(--v665-hero-surface)!important;
+  }
+
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-topline,
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-copy,
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden],
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    background:transparent!important;
+    background-color:transparent!important;
+  }
+
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+    padding:0!important;
+    object-position:center center!important;
+  }
+
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    position:relative!important;
+    inset:auto!important;
+    grid-row:4!important;
+    width:100%!important;
+    height:52px!important;
+    min-height:52px!important;
+    max-height:52px!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-rows:1fr!important;
+    align-items:center!important;
+    justify-content:stretch!important;
+    column-gap:10px!important;
+    row-gap:0!important;
+    padding:5px 16px 6px!important;
+    overflow:hidden!important;
+    border-radius:0 0 18px 18px!important;
+  }
+
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] [data-hero-status]{
+    display:none!important;
+  }
+
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] .hero-source{
+    grid-column:1!important;
+    grid-row:1!important;
+    min-width:0!important;
+    display:block!important;
+    align-self:center!important;
+    margin:0!important;
+    padding:0!important;
+  }
+
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] [data-hero-vertical]{
+    display:block!important;
+    overflow:hidden!important;
+    margin:0!important;
+    font-size:8.5px!important;
+    line-height:1.1!important;
+    letter-spacing:.055em!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] .moment-footer .text-link{
+    grid-column:2!important;
+    grid-row:1!important;
+    justify-self:end!important;
+    align-self:center!important;
+    width:auto!important;
+    min-width:0!important;
+    height:34px!important;
+    min-height:34px!important;
+    max-height:34px!important;
+    padding:4px 0!important;
+    margin:0!important;
+    font-size:11.5px!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+  }
+}
+
+@media(max-width:340px){
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] .moment-footer{
+    grid-template-columns:1fr!important;
+    justify-items:end!important;
+    padding-inline:14px!important;
+  }
+
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] .hero-source{
+    display:none!important;
+  }
+
+  html[data-portal-hotfix="v665"][data-mobile-reconstruction="v1"] .moment-footer .text-link{
+    grid-column:1!important;
+    justify-self:end!important;
+    font-size:11px!important;
+  }
+}
