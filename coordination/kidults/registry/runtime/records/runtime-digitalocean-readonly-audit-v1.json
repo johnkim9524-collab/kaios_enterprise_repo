@@ -1,0 +1,48 @@
+{
+  "id": "runtime-digitalocean-readonly-audit-v1",
+  "record_type": "runtime_observation_contract",
+  "version": "1.0.0",
+  "status": "NOT_VERIFIED",
+  "created_at": "2026-08-16T04:30:00+09:00",
+  "created_by": "Track D / KPMO",
+  "approved_by": "John",
+  "environment": "PRODUCTION_REFERENCE",
+  "provider": "DigitalOcean",
+  "connection_mode": "READ_ONLY_AUDIT",
+  "public_base_url": "https://kaios.kidults.com",
+  "public_health_path": "/api/health",
+  "digitalocean_api_connection": "NOT_CONFIGURED",
+  "required_secret_names": [
+    "DIGITALOCEAN_READ_TOKEN"
+  ],
+  "required_variable_names": [
+    "DIGITALOCEAN_DROPLET_ID",
+    "KIDULTS_MONITORED_BASE_URL"
+  ],
+  "allowed_operations": [
+    "DNS resolve",
+    "TLS inspect",
+    "HTTP GET",
+    "DigitalOcean API GET droplet metadata"
+  ],
+  "prohibited_operations": [
+    "deploy",
+    "restart",
+    "resize",
+    "snapshot restore",
+    "firewall mutation",
+    "DNS mutation",
+    "SSH",
+    "database write"
+  ],
+  "last_observed_at": null,
+  "health_state": "NOT_VERIFIED",
+  "mutation_performed": false,
+  "production_connection_authorized": false,
+  "production_state": "HOLD",
+  "evidence_workflow": ".github/workflows/digitalocean-readonly-audit.yml",
+  "references": [
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/240",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/294"
+  ]
+}

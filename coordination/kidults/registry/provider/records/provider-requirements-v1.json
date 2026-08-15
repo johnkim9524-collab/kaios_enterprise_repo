@@ -1,0 +1,83 @@
+{
+  "id": "provider-requirements-v1",
+  "record_type": "provider_requirements",
+  "version": "1.0.0",
+  "status": "RESEARCHING",
+  "created_at": "2026-08-16T04:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "production_connection": false,
+  "credentials_registered": false,
+  "provider_selection": "NOT_STARTED",
+  "source_of_truth": "apps/kidults-enterprise-staging/public/portal/data/provider-gap-matrix-v1.json",
+  "required_capabilities": [
+    {
+      "dimension": "sold-transaction-pricing",
+      "minimum_fields": [
+        "transaction_id",
+        "sold_price",
+        "currency",
+        "sold_at",
+        "venue",
+        "lot_id"
+      ],
+      "freshness": "DAILY_INCREMENTAL",
+      "rights": "COMMERCIAL_LICENSE_REQUIRED"
+    },
+    {
+      "dimension": "auction-private-sale",
+      "minimum_fields": [
+        "event_id",
+        "venue",
+        "estimate_low",
+        "estimate_high",
+        "outcome",
+        "sale_type",
+        "event_at"
+      ],
+      "freshness": "EVENT_DRIVEN",
+      "rights": "COMMERCIAL_LICENSE_REQUIRED"
+    },
+    {
+      "dimension": "provenance-event-history",
+      "minimum_fields": [
+        "object_id",
+        "event_type",
+        "event_at",
+        "actor",
+        "location",
+        "evidence_reference"
+      ],
+      "freshness": "EVENT_DRIVEN",
+      "rights": "DEFENSIBLE_LICENSE_REQUIRED"
+    },
+    {
+      "dimension": "authentication-condition",
+      "minimum_fields": [
+        "object_id",
+        "assessment_type",
+        "grade",
+        "assessor",
+        "assessed_at",
+        "evidence_reference"
+      ],
+      "freshness": "EVENT_DRIVEN",
+      "rights": "SPECIALIST_LICENSE_REQUIRED"
+    }
+  ],
+  "activation_gates": [
+    "Provider identity and contract registered",
+    "Rights and permitted uses registered",
+    "Schema contract certified",
+    "Shadow ingestion passes",
+    "Evidence lineage is immutable",
+    "Track A quantifies incremental value",
+    "Track B validates exact Candidate impact",
+    "Program Owner approves spend",
+    "Production connection remains separately G5-gated"
+  ],
+  "references": [
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/294",
+    "services/kidults-autonomous-intelligence/docs/A19-DATA-COVERAGE-PRODUCTIZATION-GAP.md"
+  ]
+}

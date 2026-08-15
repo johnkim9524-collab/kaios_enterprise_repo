@@ -1,21 +1,24 @@
 {
   "projection_id": "portal-v502-registry-view-001",
-  "projection_version": "1.0.0",
+  "projection_version": "1.1.0",
   "generated_from": [
     "coordination/kidults/registry/catalog.json",
     "coordination/kidults/registry/track/index.json",
     "coordination/kidults/registry/snapshot/index.json",
     "coordination/kidults/registry/assessment/index.json",
+    "coordination/kidults/registry/provider/index.json",
+    "coordination/kidults/registry/runtime/index.json",
     "coordination/kidults/registry/release/index.json"
   ],
-  "generated_at": "2026-08-12T14:44:27.952Z",
+  "generated_at": "2026-08-15T19:30:00.000Z",
   "registry_system_version": "1.1.0",
   "program_status": "ACTIVE",
   "track_states": {
     "A": "ACTIVE",
     "B": "WAITING_FOR_SNAPSHOT",
     "C": "ACTIVE",
-    "D": "FOUNDATION_PREPARATION"
+    "D": "FOUNDATION_PREPARATION",
+    "E": "PARTIALLY_IMPLEMENTED"
   },
   "snapshot": {
     "baseline_id": "baseline-provider-independent-v1",
@@ -28,6 +31,20 @@
   "assessment": {
     "current_id": null,
     "status": "WAITING_FOR_SNAPSHOT"
+  },
+  "provider": {
+    "registry_status": "ACTIVE",
+    "current_record_id": "provider-requirements-v1",
+    "connection_state": "RESEARCHING",
+    "production_connection": "PROHIBITED"
+  },
+  "runtime": {
+    "current_id": "runtime-foundation-v1",
+    "status": "FOUNDATION_PREPARATION",
+    "production_input_state": "WAITING_FOR_APPROVED_SNAPSHOT",
+    "digitalocean_audit_id": "runtime-digitalocean-readonly-audit-v1",
+    "digitalocean_state": "NOT_VERIFIED",
+    "production_connection": false
   },
   "release": {
     "current_id": "release-foundation-hold-v1",
@@ -42,6 +59,6 @@
   },
   "freshness": {
     "status": "CURRENT",
-    "as_of": "2026-08-12T14:44:27.952Z"
+    "as_of": "2026-08-15T19:30:00.000Z"
   }
 }

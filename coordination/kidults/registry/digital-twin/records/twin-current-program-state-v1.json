@@ -1,11 +1,11 @@
 {
   "id": "twin-current-program-state-v1",
   "record_type": "digital_twin",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "CURRENT",
   "twin_id": "TWIN-0001",
   "program_status": "ACTIVE",
-  "program_phase": "PHASE_0_EXECUTION",
+  "program_phase": "PHASE_1_CONTENT_DATA_PROVIDER_FOUNDATION",
   "registry_health": "PASS",
   "registry_system_version": "1.1.0",
   "current_milestone_id": "milestone-ms-0001-first-canonical-snapshot",
@@ -13,33 +13,40 @@
   "current_candidate_snapshot_id": null,
   "current_assessment_id": null,
   "production_state": "HOLD",
+  "data_connection_state": "SHADOW_CONNECTED",
+  "provider_state": "RESEARCHING",
+  "digitalocean_observation_state": "NOT_VERIFIED",
   "track_states": {
     "A": "ACTIVE",
     "B": "WAITING_FOR_SNAPSHOT",
     "C": "ACTIVE",
-    "D": "FOUNDATION_PREPARATION"
+    "D": "FOUNDATION_PREPARATION",
+    "E": "PARTIALLY_IMPLEMENTED"
   },
   "mission_states": {
     "MISSION-0001": "IN_PROGRESS",
     "MISSION-0002": "BLOCKED",
     "MISSION-0003": "IN_PROGRESS",
-    "MISSION-0004": "IN_PROGRESS"
+    "MISSION-0004": "IN_PROGRESS",
+    "MISSION-E-0001": "IN_PROGRESS"
   },
   "critical_blocker_ids": [
     "blocker-no-canonical-candidate"
   ],
   "high_blocker_ids": [],
   "open_decision_count": 0,
-  "generated_at": "2026-08-12T23:10:00+09:00",
+  "generated_at": "2026-08-16T04:30:00+09:00",
   "generated_from": [
     "track/index.json",
     "snapshot/index.json",
     "assessment/index.json",
     "release/index.json",
+    "provider/index.json",
+    "runtime/index.json",
     "milestone/index.json",
     "mission/index.json",
     "blocker/index.json"
   ],
-  "created_by": "Atlas",
+  "created_by": "KPMO / Atlas",
   "approved_by": "John"
 }

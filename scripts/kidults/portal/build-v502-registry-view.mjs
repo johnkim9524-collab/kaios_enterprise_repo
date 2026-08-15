@@ -16,7 +16,10 @@ const track = read("track/index.json");
 const snapshot = read("snapshot/index.json");
 const assessment = read("assessment/index.json");
 const release = read("release/index.json");
+const provider = read("provider/index.json");
+const runtime = read("runtime/index.json");
 const baseline = read(`snapshot/records/${snapshot.current_baseline_snapshot_id}.json`);
+const digitalOcean = read("runtime/records/runtime-digitalocean-readonly-audit-v1.json");
 
 function trackState(letter) {
   const record = track.records.find(item => item.id.startsWith(`track-${letter.toLowerCase()}-`));
@@ -26,12 +29,14 @@ function trackState(letter) {
 const now = new Date().toISOString();
 const projection = {
   projection_id: "portal-v502-registry-view-001",
-  projection_version: "1.0.0",
+  projection_version: "1.1.0",
   generated_from: [
     "coordination/kidults/registry/catalog.json",
     "coordination/kidults/registry/track/index.json",
     "coordination/kidults/registry/snapshot/index.json",
     "coordination/kidults/registry/assessment/index.json",
+    "coordination/kidults/registry/provider/index.json",
+    "coordination/kidults/registry/runtime/index.json",
     "coordination/kidults/registry/release/index.json"
   ],
   generated_at: now,
@@ -41,7 +46,8 @@ const projection = {
     A: trackState("A"),
     B: trackState("B"),
     C: trackState("C"),
-    D: trackState("D")
+    D: trackState("D"),
+    E: trackState("E")
   },
   snapshot: {
     baseline_id: snapshot.current_baseline_snapshot_id,
@@ -54,6 +60,20 @@ const projection = {
   assessment: {
     current_id: assessment.current_assessment_id,
     status: assessment.status
+  },
+  provider: {
+    registry_status: provider.status,
+    current_record_id: provider.current_record_id,
+    connection_state: provider.records[0]?.status ?? "NOT_REGISTERED",
+    production_connection: "PROHIBITED"
+  },
+  runtime: {
+    current_id: runtime.current_runtime_id,
+    status: runtime.status,
+    production_input_state: runtime.production_input_state,
+    digitalocean_audit_id: digitalOcean.id,
+    digitalocean_state: digitalOcean.status,
+    production_connection: digitalOcean.production_connection_authorized
   },
   release: {
     current_id: release.current_release_id,

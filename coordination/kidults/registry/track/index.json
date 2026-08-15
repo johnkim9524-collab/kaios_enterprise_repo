@@ -1,15 +1,15 @@
 {
   "registry_id": "kidults-track-registry",
   "registry_name": "Track Registry",
-  "registry_version": "1.2.0",
+  "registry_version": "1.3.0",
   "schema_version": "1.0.0",
   "owner": "KPMO",
   "custodian": "Atlas",
   "status": "ACTIVE",
-  "effective_at": "2026-08-12T12:00:00+09:00",
+  "effective_at": "2026-08-16T04:30:00+09:00",
   "record_directory": "records",
-  "record_count": 4,
-  "current_record_id": "track-c-portal-v502-experience-layer",
+  "record_count": 5,
+  "current_record_id": "track-e-executive-operating-system",
   "records": [
     {
       "id": "track-a-120-intelligence-factory",
@@ -30,6 +30,11 @@
       "id": "track-d-data-platform-production-reliability",
       "path": "records/track-d-data-platform-production-reliability.json",
       "status": "FOUNDATION_PREPARATION"
+    },
+    {
+      "id": "track-e-executive-operating-system",
+      "path": "records/track-e-executive-operating-system.json",
+      "status": "PARTIALLY_IMPLEMENTED"
     }
   ],
   "change_history": [
@@ -38,6 +43,12 @@
       "changed_at": "2026-08-12T23:10:00+09:00",
       "changed_by": "Atlas",
       "change": "Registered Track C role acceptance and activated V502 Release Candidate implementation."
+    },
+    {
+      "version": "1.3.0",
+      "changed_at": "2026-08-16T04:30:00+09:00",
+      "changed_by": "KPMO / Atlas",
+      "change": "Registered Track E as a read-only Executive Operating System consumer with evidence-backed PARTIALLY_IMPLEMENTED state."
     }
   ]
 }
