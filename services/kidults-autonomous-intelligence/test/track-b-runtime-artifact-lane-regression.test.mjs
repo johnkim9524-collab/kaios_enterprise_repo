@@ -76,6 +76,7 @@ test('DigitalOcean/runtime operational evidence cannot impersonate Track B offic
   for (const reference of canonicalReferences) {
     assert.equal(isNonOfficialArtifactLane(reference), false, reference);
   }
+  assert.equal(isNonOfficialArtifactLane(null), false);
 });
 
 test('ambiguous dot-segment paths are not acceptable Track B handoff references', () => {
@@ -97,25 +98,44 @@ test('ambiguous dot-segment paths are not acceptable Track B handoff references'
   for (const reference of canonicalReferences) {
     assert.equal(hasAmbiguousPathSegments(reference), false, reference);
   }
+  assert.equal(hasAmbiguousPathSegments(null), false);
+
+  assert.equal(resemblesTrackBOfficialInput('snapshot-candidate.json'), true);
+  assert.equal(resemblesTrackBOfficialInput('snapshots/candidate-p0-001/snapshot-candidate.json'), true);
+  assert.equal(resemblesTrackBOfficialInput('EVIDENCE_PACKAGE'), true);
+  assert.equal(resemblesTrackBOfficialInput('evidence/candidate-p0-001/EVIDENCE_PACKAGE'), true);
+  assert.equal(resemblesTrackBOfficialInput('portal-release-manifest.json'), false);
+  assert.equal(resemblesTrackBOfficialInput(null), false);
 });
 
 test('canonical handoff registry contains no accepted Track A to B official-input path ambiguity', () => {
   const registry = JSON.parse(fs.readFileSync(HANDOFF_REGISTRY_PATH, 'utf8'));
   const entries = Array.isArray(registry?.entries) ? registry.entries : [];
-  const acceptedTrackBInputs = entries.filter((row) => {
+  const syntheticControl = {
+    handoff_id: '__coverage_control__',
+    from_track: 'A',
+    to_track: 'B',
+    state: 'accepted',
+    artifact_reference: 'evidence/candidate-control/EVIDENCE_PACKAGE',
+  };
+  let syntheticControlChecked = false;
+
+  for (const row of [...entries, syntheticControl]) {
     const fromTrack = String(row?.from_track ?? '');
     const toTrack = String(row?.to_track ?? '');
     const state = String(row?.state ?? '').toLowerCase();
-    return (fromTrack === 'A' || fromTrack === 'track-a-120-intelligence-factory')
+    const acceptedTrackBInput = (fromTrack === 'A' || fromTrack === 'track-a-120-intelligence-factory')
       && (toTrack === 'B' || toTrack === 'track-b-rankability-validation-gate')
       && (state === 'accepted' || state === 'completed')
       && resemblesTrackBOfficialInput(row?.artifact_reference);
-  });
+    if (!acceptedTrackBInput) continue;
 
-  for (const row of acceptedTrackBInputs) {
     assert.equal(hasAmbiguousPathSegments(row.artifact_reference), false, row.artifact_reference);
     assert.equal(isNonOfficialArtifactLane(row.artifact_reference), false, row.artifact_reference);
+    if (row.handoff_id === syntheticControl.handoff_id) syntheticControlChecked = true;
   }
+
+  assert.equal(syntheticControlChecked, true);
 });
 
 test('Integrated Program gate enforces the runtime-lane exclusion on accepted Track A to B handoffs', () => {
