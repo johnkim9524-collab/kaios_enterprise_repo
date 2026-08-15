@@ -4,10 +4,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const SERVICE_ROOT = process.cwd();
+const REPO_ROOT = path.resolve(SERVICE_ROOT, '..', '..');
 const GATE_SOURCE_PATH = path.join(
   SERVICE_ROOT,
   'scripts',
   'kidults-integrated-program-registry-gate.mjs',
+);
+const HANDOFF_REGISTRY_PATH = path.join(
+  REPO_ROOT,
+  'coordination',
+  'kidults',
+  'registry',
+  'handoff-registry.json',
 );
 
 const NON_OFFICIAL_ARTIFACT_LANES = [
@@ -17,18 +25,36 @@ const NON_OFFICIAL_ARTIFACT_LANES = [
   'registry/runtime',
 ];
 
+function normalizeReference(reference) {
+  return typeof reference === 'string'
+    ? reference.replaceAll('\\', '/').replace(/\/+$/, '')
+    : '';
+}
+
 function isNonOfficialArtifactLane(reference) {
   if (typeof reference !== 'string') return false;
-  const normalized = reference
-    .replaceAll('\\', '/')
+  const normalized = normalizeReference(reference)
     .replace(/^\.\//, '')
-    .replace(/\/+$/, '')
     .toLowerCase();
   return NON_OFFICIAL_ARTIFACT_LANES.some((lane) =>
     normalized === lane
     || normalized.startsWith(`${lane}/`)
     || normalized.includes(`/${lane}/`)
   );
+}
+
+function hasAmbiguousPathSegments(reference) {
+  const normalized = normalizeReference(reference);
+  if (!normalized) return false;
+  return normalized.split('/').some((segment) => segment === '.' || segment === '..');
+}
+
+function resemblesTrackBOfficialInput(reference) {
+  const normalized = normalizeReference(reference);
+  return normalized === 'snapshot-candidate.json'
+    || normalized.endsWith('/snapshot-candidate.json')
+    || normalized === 'EVIDENCE_PACKAGE'
+    || normalized.endsWith('/EVIDENCE_PACKAGE');
 }
 
 test('DigitalOcean/runtime operational evidence cannot impersonate Track B official inputs', () => {
@@ -49,6 +75,46 @@ test('DigitalOcean/runtime operational evidence cannot impersonate Track B offic
   ];
   for (const reference of canonicalReferences) {
     assert.equal(isNonOfficialArtifactLane(reference), false, reference);
+  }
+});
+
+test('ambiguous dot-segment paths are not acceptable Track B handoff references', () => {
+  const ambiguousReferences = [
+    './EVIDENCE_PACKAGE',
+    'evidence/../EVIDENCE_PACKAGE',
+    'reports/./runtime/digitalocean-staging/EVIDENCE_PACKAGE',
+    'snapshots/candidate-p0-001/../candidate-p0-002/snapshot-candidate.json',
+  ];
+  for (const reference of ambiguousReferences) {
+    assert.equal(hasAmbiguousPathSegments(reference), true, reference);
+  }
+
+  const canonicalReferences = [
+    'EVIDENCE_PACKAGE',
+    'evidence/candidate-p0-001/EVIDENCE_PACKAGE',
+    'snapshots/candidate-p0-001/snapshot-candidate.json',
+  ];
+  for (const reference of canonicalReferences) {
+    assert.equal(hasAmbiguousPathSegments(reference), false, reference);
+  }
+});
+
+test('canonical handoff registry contains no accepted Track A to B official-input path ambiguity', () => {
+  const registry = JSON.parse(fs.readFileSync(HANDOFF_REGISTRY_PATH, 'utf8'));
+  const entries = Array.isArray(registry?.entries) ? registry.entries : [];
+  const acceptedTrackBInputs = entries.filter((row) => {
+    const fromTrack = String(row?.from_track ?? '');
+    const toTrack = String(row?.to_track ?? '');
+    const state = String(row?.state ?? '').toLowerCase();
+    return (fromTrack === 'A' || fromTrack === 'track-a-120-intelligence-factory')
+      && (toTrack === 'B' || toTrack === 'track-b-rankability-validation-gate')
+      && (state === 'accepted' || state === 'completed')
+      && resemblesTrackBOfficialInput(row?.artifact_reference);
+  });
+
+  for (const row of acceptedTrackBInputs) {
+    assert.equal(hasAmbiguousPathSegments(row.artifact_reference), false, row.artifact_reference);
+    assert.equal(isNonOfficialArtifactLane(row.artifact_reference), false, row.artifact_reference);
   }
 });
 
