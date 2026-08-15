@@ -1,11 +1,12 @@
 /* KIDULTS Portal V664 — viewport-stable integrated Hero footer.
-   Keeps the V662/V663 visual assets and data contracts unchanged. */
+   V665 extends the foundation into one visible #f4f2ee museum-grade surface. */
 
 html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
   --v664-hero-surface:#f4f2ee;
+  isolation:isolate!important;
   background:var(--v664-hero-surface)!important;
-  border-color:rgba(7,61,45,.09)!important;
-  box-shadow:0 30px 78px rgba(20,36,29,.042),0 7px 18px rgba(20,36,29,.016)!important;
+  border-color:rgba(7,61,45,.085)!important;
+  box-shadow:0 28px 72px rgba(20,36,29,.038),0 6px 16px rgba(20,36,29,.014)!important;
 }
 
 html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"]::before,
@@ -14,21 +15,34 @@ html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card]
   background:none!important;
 }
 
+/* The approved Roadster WebP contains an opaque pale studio field.
+   Darken compositing turns every near-white bitmap pixel into the exact
+   #f4f2ee card surface while retaining the car, contact shadow and detail. */
 html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
 html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
-  background:var(--v664-hero-surface)!important;
+  background:transparent!important;
   object-fit:contain!important;
   object-position:center center!important;
   transform:none!important;
-  filter:saturate(.93) contrast(.985) brightness(1.006)!important;
+  mix-blend-mode:darken!important;
+  opacity:1!important;
+  filter:saturate(.94) contrast(1.01) brightness(1.035)!important;
+}
+
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-topline,
+html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-copy{
+  position:relative;
+  z-index:2;
+  background:transparent!important;
 }
 
 html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
   z-index:5!important;
-  border-top:1px solid rgba(7,61,45,.065)!important;
   background:var(--v664-hero-surface)!important;
+  border-top:0!important;
   box-shadow:none!important;
   backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
 }
 
 /* Desktop: prevent the four-line headline from stretching the Hero card.
@@ -75,6 +89,13 @@ html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card]
     height:530px!important;
   }
 
+  html[data-portal-hotfix="v664"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-hotfix="v664"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+    inset:0 0 62px 0!important;
+    width:100%!important;
+    height:auto!important;
+  }
+
   html[data-portal-hotfix="v664"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
     position:absolute!important;
     inset:auto 0 0 0!important;
@@ -92,10 +113,16 @@ html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card]
 
   html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-topline,
   html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-copy,
-  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
-  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden],
   html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
     background:var(--v664-hero-surface)!important;
+  }
+
+  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+    background:transparent!important;
+    mix-blend-mode:darken!important;
+    opacity:1!important;
+    filter:saturate(.94) contrast(1.01) brightness(1.035)!important;
   }
 
   html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
@@ -115,6 +142,7 @@ html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card]
     row-gap:0!important;
     padding:5px 16px 6px!important;
     overflow:hidden!important;
+    border-top:0!important;
     border-radius:0 0 18px 18px!important;
   }
 
@@ -179,52 +207,5 @@ html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card]
     grid-column:1!important;
     justify-self:end!important;
     font-size:11px!important;
-  }
-}
-
-/* V665 single-surface experience freeze.
-   The Roadster WebP contains its own pale studio field. A CSS background alone cannot
-   recolour those bitmap pixels, which is why V664 still showed an image rectangle.
-   Multiplying the bitmap into the exact card surface removes that double background. */
-html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
-  isolation:isolate!important;
-  background:#f4f2ee!important;
-  border-color:rgba(7,61,45,.085)!important;
-  box-shadow:0 28px 72px rgba(20,36,29,.038),0 6px 16px rgba(20,36,29,.014)!important;
-}
-
-html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
-html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
-  background:transparent!important;
-  mix-blend-mode:multiply!important;
-  opacity:.985!important;
-  filter:saturate(.925) contrast(.975) brightness(1.025)!important;
-}
-
-html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-topline,
-html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-copy{
-  background:transparent!important;
-}
-
-html[data-portal-hotfix="v664"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
-  background:#f4f2ee!important;
-  border-top:0!important;
-  box-shadow:none!important;
-  backdrop-filter:none!important;
-  -webkit-backdrop-filter:none!important;
-}
-
-@media(max-width:768px){
-  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
-  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
-    background:transparent!important;
-    mix-blend-mode:multiply!important;
-    opacity:.985!important;
-    filter:saturate(.925) contrast(.975) brightness(1.025)!important;
-  }
-
-  html[data-portal-version="v663"][data-portal-hotfix="v664"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
-    background:#f4f2ee!important;
-    border-top:0!important;
   }
 }
