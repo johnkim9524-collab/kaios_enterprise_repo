@@ -149,15 +149,20 @@ function requireCondition(condition, code, failures) {
 }
 
 function hasAmbiguousArtifactReferencePath(reference) {
-  const normalized = reference.replaceAll('\\', '/');
-  return normalized.split('/').some((segment) => segment === '.' || segment === '..' || segment.length === 0);
+  return reference.split('/').some((segment) => segment === '.' || segment === '..' || segment.length === 0);
+}
+
+function isCanonicalRepositoryRelativeArtifactReference(reference) {
+  if (typeof reference !== 'string' || reference.length === 0 || reference !== reference.trim()) return false;
+  if (reference.includes('\\') || reference.includes('%') || reference.includes('?') || reference.includes('#')) return false;
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(reference)) return false;
+  if (/[\u0000-\u001F\u007F]/.test(reference)) return false;
+  return !hasAmbiguousArtifactReferencePath(reference);
 }
 
 function artifactReferenceMatches(reference, expected) {
-  if (typeof reference !== 'string') return false;
-  if (hasAmbiguousArtifactReferencePath(reference)) return false;
-  const normalized = reference.replaceAll('\\', '/');
-  return normalized === expected || normalized.endsWith(`/${expected}`);
+  if (!isCanonicalRepositoryRelativeArtifactReference(reference)) return false;
+  return reference === expected || reference.endsWith(`/${expected}`);
 }
 
 function isTrackBNonOfficialArtifactLane(reference) {
@@ -423,6 +428,7 @@ const report = {
       accepted_states: [...ACCEPTED_HANDOFF_STATES],
       non_official_artifact_lanes_rejected: true,
       ambiguous_artifact_reference_paths_rejected: true,
+      plain_repository_relative_artifact_references_required: true,
     },
   },
   failures,
