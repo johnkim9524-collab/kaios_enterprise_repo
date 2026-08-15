@@ -105,7 +105,9 @@ for (const marker of [
   "Observe. Explain. Decide—with evidence.",
   "GLOBAL COLLECTIBLES INTELLIGENCE STANDARD · V6 RC",
   "DATA CONTRACT 5.0.2-RC.1",
-  "portal.js?v=662"
+  "portal.js?v=666",
+  'data-portal-hotfix="v666"',
+  'data-hero-revision="v666-experience-closure"'
 ]) {
   if (!html.includes(marker)) errors.push(`Public V6 marker missing: ${marker}`);
 }
