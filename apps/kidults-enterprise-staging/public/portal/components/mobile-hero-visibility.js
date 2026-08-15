@@ -1,11 +1,12 @@
 const STYLE_ID = "kidults-mobile-hero-visibility-style";
 const VERSION = "2.0.0";
 const ASSET_VERSION = "662";
+const CACHE_REVISION = "visual95";
 const HERO_KEY = "racing-roadster-v662";
 const RETRY_ASSET = null;
 
 function ensureStylesheet() {
-  const href = `components/mobile-hero-visibility.css?v=${ASSET_VERSION}`;
+  const href = `components/mobile-hero-visibility.css?v=${ASSET_VERSION}-${CACHE_REVISION}`;
   const existing = document.getElementById(STYLE_ID);
   if (existing) {
     if (existing.getAttribute("href") !== href) existing.setAttribute("href", href);
@@ -31,7 +32,7 @@ function fallbackSvgDataUri() {
 function cacheBusted(source, attempt) {
   if (source.startsWith("data:")) return source;
   const separator = source.includes("?") ? "&" : "?";
-  return `${source}${separator}v=${ASSET_VERSION}&hero_attempt=${attempt}`;
+  return `${source}${separator}v=${ASSET_VERSION}-${CACHE_REVISION}&hero_attempt=${attempt}`;
 }
 
 export function startMobileHeroVisibility({ manifest } = {}) {
@@ -113,6 +114,7 @@ export function startMobileHeroVisibility({ manifest } = {}) {
   window.KIDULTS_MOBILE_HERO = Object.freeze({
     version: VERSION,
     assetVersion: ASSET_VERSION,
+    cacheRevision: CACHE_REVISION,
     heroKey: HERO_KEY,
     canonicalSource: primary,
     retrySources: sources.slice(),

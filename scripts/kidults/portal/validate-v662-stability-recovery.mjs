@@ -11,10 +11,7 @@ const exists = relative => fs.existsSync(path.join(root, relative));
 function dimensions(buffer) {
   const chunk = buffer.subarray(12, 16).toString("ascii");
   if (chunk === "VP8X" && buffer.length >= 30) {
-    return {
-      width: 1 + buffer.readUIntLE(24, 3),
-      height: 1 + buffer.readUIntLE(27, 3)
-    };
+    return { width: 1 + buffer.readUIntLE(24, 3), height: 1 + buffer.readUIntLE(27, 3) };
   }
   if (chunk === "VP8 " && buffer.length >= 30) {
     const marker = buffer.indexOf(Buffer.from([0x9d, 0x01, 0x2a]), 20);
@@ -27,10 +24,7 @@ function dimensions(buffer) {
   }
   if (chunk === "VP8L" && buffer.length >= 25 && buffer[20] === 0x2f) {
     const bits = buffer.readUInt32LE(21);
-    return {
-      width: 1 + (bits & 0x3fff),
-      height: 1 + ((bits >> 14) & 0x3fff)
-    };
+    return { width: 1 + (bits & 0x3fff), height: 1 + ((bits >> 14) & 0x3fff) };
   }
   return { width: 0, height: 0 };
 }
@@ -41,13 +35,18 @@ const required = [
   `${portalRoot}/portal.js`,
   `${portalRoot}/components/editorial-assets.js`,
   `${portalRoot}/components/mobile-hero-visibility.js`,
+  `${portalRoot}/components/mobile-hero-visibility.css`,
   `${portalRoot}/components/homepage-structure.js`,
   `${portalRoot}/components/v662-stability-freeze.css`,
   `${portalRoot}/assets/hero/racing-roadster-v662.webp`,
+  `${portalRoot}/assets/kidult100/footwear-v654.webp`,
+  `${portalRoot}/assets/kidult100/camera-v654.webp`,
+  `${portalRoot}/assets/kidult100/toys-v654.webp`,
+  `${portalRoot}/assets/kidult100/watch-v655.webp`,
   `${portalRoot}/data/v502-manifest.json`,
   ".github/workflows/kidults-mobile-preview-pages.yml"
 ];
-for (const file of required) if (!exists(file)) errors.push(`Missing required V662 file: ${file}`);
+for (const file of required) if (!exists(file)) errors.push(`Missing required V662 Visual95 file: ${file}`);
 
 if (!errors.length) {
   const index = read(`${portalRoot}/index.html`);
@@ -55,64 +54,91 @@ if (!errors.length) {
   const portal = read(`${portalRoot}/portal.js`);
   const assets = read(`${portalRoot}/components/editorial-assets.js`);
   const mobile = read(`${portalRoot}/components/mobile-hero-visibility.js`);
+  const mobileCss = read(`${portalRoot}/components/mobile-hero-visibility.css`);
   const homepage = read(`${portalRoot}/components/homepage-structure.js`);
   const css = read(`${portalRoot}/components/v662-stability-freeze.css`);
   const manifest = JSON.parse(read(`${portalRoot}/data/v502-manifest.json`));
   const deploy = read(".github/workflows/kidults-mobile-preview-pages.yml");
 
-  const assetPath = `${portalRoot}/assets/hero/racing-roadster-v662.webp`;
-  const buffer = fs.readFileSync(path.join(root, assetPath));
-  if (buffer.subarray(0, 4).toString("ascii") !== "RIFF") errors.push("Roadster header is not RIFF.");
-  if (buffer.subarray(8, 12).toString("ascii") !== "WEBP") errors.push("Roadster header is not WEBP.");
-  const size = dimensions(buffer);
+  const heroPath = `${portalRoot}/assets/hero/racing-roadster-v662.webp`;
+  const hero = fs.readFileSync(path.join(root, heroPath));
+  if (hero.subarray(0, 4).toString("ascii") !== "RIFF") errors.push("Roadster header is not RIFF.");
+  if (hero.subarray(8, 12).toString("ascii") !== "WEBP") errors.push("Roadster header is not WEBP.");
+  const size = dimensions(hero);
   if (size.width < 1200 || size.height < 675) errors.push(`Roadster dimensions are below baseline: ${size.width}x${size.height}.`);
-  if (buffer.length < 40_000) errors.push(`Roadster binary is unexpectedly small: ${buffer.length} bytes.`);
+  if (hero.length < 40_000) errors.push(`Roadster binary is unexpectedly small: ${hero.length} bytes.`);
 
-  for (const marker of [
-    'data-homepage-structure="v662"',
-    'portal.js?v=662',
-    'v662-stability-freeze.css?v=662',
-    'racing-roadster-v662.webp?v=662',
-    'data-hero-asset="racing-roadster-v662"'
-  ]) if (!index.includes(marker)) errors.push(`V662 index marker missing: ${marker}`);
+  const markerGroups = [
+    [index, "index", [
+      'data-homepage-structure="v662"',
+      'portal.js?v=662-visual95',
+      'v662-stability-freeze.css?v=662-visual95',
+      'racing-roadster-v662.webp?v=662-visual95',
+      'data-hero-asset="racing-roadster-v662"'
+    ]],
+    [portal, "portal", [
+      'mobile-hero-visibility.js?v=662-visual95',
+      'editorial-assets.js?v=662-visual95',
+      'homepage-structure.js?v=662-visual95',
+      'workspaceRoute: "workspace.html"',
+      'workspaceMounted: false'
+    ]],
+    [assets, "asset binding", [
+      'ROADSTER_KEY = "racing-roadster-v662"',
+      'ASSET_VERSION = "662"',
+      'CACHE_REVISION = "visual95"',
+      'VISUAL_SYSTEM = "single-studio-v662-visual95"',
+      'museum-editorial-v662',
+      'footwear-v654.webp',
+      'camera-v654.webp',
+      'toys-v654.webp',
+      'watch-v655.webp'
+    ]],
+    [mobile, "mobile runtime", [
+      'HERO_KEY = "racing-roadster-v662"',
+      'ASSET_VERSION = "662"',
+      'fallbackSvgDataUri',
+      'canonicalSource'
+    ]],
+    [css, "Visual95 CSS", [
+      'data-hero-asset="racing-roadster-v662"',
+      'data-image-format="museum-editorial-v662"',
+      'single-studio-v662-visual95',
+      'object-fit:contain!important',
+      'aspect-ratio:4/3',
+      '#f3f1ec',
+      'saturate(.94)',
+      '@media(max-width:768px)',
+      '@media(max-width:420px)',
+      '@media(max-width:340px)'
+    ]]
+  ];
+  for (const [source, label, markers] of markerGroups) {
+    for (const marker of markers) if (!source.includes(marker)) errors.push(`${label} marker missing: ${marker}`);
+  }
 
-  for (const marker of [
-    'mobile-hero-visibility.js?v=662',
-    'editorial-assets.js?v=662',
-    'homepage-structure.js?v=662',
-    'workspaceRoute: "workspace.html"',
-    'workspaceMounted: false'
-  ]) if (!portal.includes(marker)) errors.push(`V662 portal marker missing: ${marker}`);
-
-  for (const marker of [
-    'ROADSTER_KEY = "racing-roadster-v662"',
-    'ASSET_VERSION = "662"',
-    'museum-editorial-v662'
-  ]) if (!assets.includes(marker)) errors.push(`V662 asset marker missing: ${marker}`);
-
-  for (const marker of [
-    'HERO_KEY = "racing-roadster-v662"',
-    'ASSET_VERSION = "662"',
-    'fallbackSvgDataUri',
-    'canonicalSource'
-  ]) if (!mobile.includes(marker)) errors.push(`V662 mobile marker missing: ${marker}`);
-
-  for (const marker of [
-    'data-hero-asset="racing-roadster-v662"',
-    'data-image-format="museum-editorial-v662"',
-    'object-fit:contain!important',
-    'aspect-ratio:4/3',
-    '@media(max-width:768px)',
-    '@media(max-width:420px)',
-    '@media(max-width:340px)'
-  ]) if (!css.includes(marker)) errors.push(`V662 CSS marker missing: ${marker}`);
-
+  if (mobileCss.includes("object-position:right center")) errors.push("Mobile Hero remains right-biased.");
+  if (!mobileCss.includes("object-position:center center")) errors.push("Mobile Hero center correction is missing.");
   if (workspace.includes("workspace-page-intro")) errors.push("Workspace duplicate introduction is still present.");
   if (!workspace.includes('workspace-page.js?v=662') || !workspace.includes('workspace-page.css?v=662')) {
     errors.push("Workspace cache generation is not V662.");
   }
   if (!homepage.includes('main.dataset.finalStructure = "v662"')) errors.push("Homepage final structure is not V662.");
   if (manifest.hero?.asset !== "assets/hero/racing-roadster-v662.webp") errors.push("Manifest does not bind the canonical V662 Roadster.");
+  if (Object.prototype.hasOwnProperty.call(manifest.hero ?? {}, "mobile_asset")) errors.push("Manifest registers a second mobile Roadster.");
+
+  for (const image of [
+    `${portalRoot}/assets/kidult100/footwear-v654.webp`,
+    `${portalRoot}/assets/kidult100/camera-v654.webp`,
+    `${portalRoot}/assets/kidult100/toys-v654.webp`,
+    `${portalRoot}/assets/kidult100/watch-v655.webp`
+  ]) {
+    const data = fs.readFileSync(path.join(root, image));
+    if (data.subarray(0, 4).toString("ascii") !== "RIFF" || data.subarray(8, 12).toString("ascii") !== "WEBP") {
+      errors.push(`Kidult 100 asset is not WebP: ${image}`);
+    }
+    if (data.length < 25_000) errors.push(`Kidult 100 asset is unexpectedly small: ${image} (${data.length} bytes)`);
+  }
 
   for (const retired of [
     "racing-roadster-v654.webp",
@@ -121,19 +147,21 @@ if (!errors.length) {
     "racing-roadster-v658-mobile.webp"
   ]) if (exists(`${portalRoot}/assets/hero/${retired}`)) errors.push(`Retired Roadster remains: ${retired}`);
 
-  if (deploy.includes("sed -i") || deploy.includes("s/racing-roadster-")) {
-    errors.push("Deployment still mutates source paths.");
-  }
-  if (!deploy.includes("Verify V662 source freeze")) errors.push("Deployment does not verify the V662 source freeze.");
-  if (!deploy.includes("test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v660-master.webp")) {
-    errors.push("Deployment does not verify removal of the corrupt V660 asset.");
-  }
+  if (deploy.includes("sed -i")) errors.push("Deployment still mutates source files.");
+  for (const marker of [
+    "Verify V662 Visual95 source freeze",
+    "portal.js?v=662-visual95",
+    "racing-roadster-v662.webp?v=662-visual95",
+    "kidults-v662-visual95-live-evidence"
+  ]) if (!deploy.includes(marker)) errors.push(`Visual95 deployment marker missing: ${marker}`);
 
-  if (!errors.length) console.log(`KIDULTS V662 stability recovery: PASS (${size.width}x${size.height}, ${buffer.length} bytes, one Roadster, one Workspace intro)`);
+  if (!errors.length) {
+    console.log(`KIDULTS V662 Visual95 stability recovery: PASS (${size.width}x${size.height}, ${hero.length} bytes, one Roadster, unified K100, one Workspace intro)`);
+  }
 }
 
 if (errors.length) {
-  console.error(`KIDULTS V662 stability recovery: FAIL (${errors.length} error(s))`);
+  console.error(`KIDULTS V662 Visual95 stability recovery: FAIL (${errors.length} error(s))`);
   for (const error of errors) console.error(`ERROR: ${error}`);
   process.exit(1);
 }

@@ -1,0 +1,1 @@
+KIDULTS Visual95 embedded asset bundle.
