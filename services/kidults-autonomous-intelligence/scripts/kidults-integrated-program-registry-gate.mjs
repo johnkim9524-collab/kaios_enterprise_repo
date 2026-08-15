@@ -165,6 +165,32 @@ function artifactReferenceMatches(reference, expected) {
   return reference === expected || reference.endsWith(`/${expected}`);
 }
 
+function isPathContainedByRoot(root, target) {
+  const relative = path.relative(root, target);
+  return relative.length > 0 && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+}
+
+function isMaterializedTrackBOfficialInput(reference, expected) {
+  if (!artifactReferenceMatches(reference, expected)) return false;
+  const resolved = path.resolve(COORDINATION_ROOT, reference);
+  if (!isPathContainedByRoot(COORDINATION_ROOT, resolved)) return false;
+
+  try {
+    if (!fs.existsSync(resolved)) return false;
+    const stats = fs.lstatSync(resolved);
+    if (stats.isSymbolicLink()) return false;
+
+    const realRoot = fs.realpathSync(COORDINATION_ROOT);
+    const realResolved = fs.realpathSync(resolved);
+    if (!isPathContainedByRoot(realRoot, realResolved)) return false;
+
+    if (expected === TRACK_B_OFFICIAL_INPUTS[0]) return stats.isFile();
+    return stats.isFile() || stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 function isTrackBNonOfficialArtifactLane(reference) {
   if (typeof reference !== 'string') return false;
   const normalized = reference
@@ -198,6 +224,7 @@ function findAcceptedHandoffs(handoffs, snapshotId, artifactReference) {
     && trackMatches(row?.from_track, 'A')
     && trackMatches(row?.to_track, 'B')
     && artifactReferenceMatches(row?.artifact_reference, artifactReference)
+    && isMaterializedTrackBOfficialInput(row?.artifact_reference, artifactReference)
     && !isTrackBNonOfficialArtifactLane(row?.artifact_reference)
     && ACCEPTED_HANDOFF_STATES.has(String(row?.state ?? '').toLowerCase())
   );
@@ -429,6 +456,9 @@ const report = {
       non_official_artifact_lanes_rejected: true,
       ambiguous_artifact_reference_paths_rejected: true,
       plain_repository_relative_artifact_references_required: true,
+      materialized_official_inputs_required: true,
+      registry_reference_alone_cannot_unlock_assessment: true,
+      symlinked_or_outside_root_official_inputs_rejected: true,
     },
   },
   failures,
