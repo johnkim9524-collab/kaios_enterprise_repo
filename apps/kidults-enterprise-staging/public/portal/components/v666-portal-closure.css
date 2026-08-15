@@ -1,0 +1,173 @@
+/* KIDULTS Portal V666 — experience closure.
+   Scope: true one-surface Hero, measured section rhythm, balanced editorial density.
+   Data, rankings, rights, Registry, Assessment and Workspace contracts remain unchanged. */
+
+html[data-portal-hotfix="v666"]{--v666-surface:#f4f2ee}
+
+html[data-portal-hotfix="v666"][data-homepage-structure="v662"] [data-hero-card][data-hero-asset="racing-roadster-v666-one-surface"]{
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  background:var(--v666-surface)!important;
+  border-color:rgba(7,61,45,.085)!important;
+  box-shadow:0 26px 68px rgba(20,36,29,.038),0 5px 15px rgba(20,36,29,.014)!important;
+}
+html[data-portal-hotfix="v666"] [data-hero-card]::before,
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-shade{
+  display:none!important;
+  content:none!important;
+  background:none!important;
+}
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-image,
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden],
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-topline,
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-copy,
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
+  background:var(--v666-surface)!important;
+  background-color:var(--v666-surface)!important;
+}
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-image,
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden]{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  transform:none!important;
+  filter:none!important;
+  mix-blend-mode:normal!important;
+  transition:none!important;
+}
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
+  z-index:5!important;
+  border-top:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+
+@media(min-width:1021px){
+  html[data-portal-hotfix="v666"] .hero{padding-top:28px!important;padding-bottom:72px!important}
+  html[data-portal-hotfix="v666"] .hero-grid{align-items:start!important}
+  html[data-portal-hotfix="v666"] [data-hero-card]{
+    align-self:start!important;
+    width:100%!important;
+    height:560px!important;
+    min-height:560px!important;
+    max-height:560px!important;
+  }
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image,
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden]{
+    position:absolute!important;
+    inset:0 0 62px 0!important;
+    width:100%!important;
+    height:auto!important;
+  }
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
+    position:absolute!important;
+    inset:auto 0 0 0!important;
+    min-height:62px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:24px!important;
+    padding:12px 28px 14px!important;
+    border-radius:0 0 20px 20px!important;
+  }
+
+  html[data-portal-hotfix="v666"] .k100-section{padding-top:76px!important;padding-bottom:44px!important}
+  html[data-portal-hotfix="v666"] .market-signals-section{padding-top:58px!important;padding-bottom:52px!important}
+  html[data-portal-hotfix="v666"] .evidence-section{padding-top:64px!important;padding-bottom:58px!important}
+  html[data-portal-hotfix="v666"] .operations-section{padding-top:68px!important;padding-bottom:68px!important}
+  html[data-portal-hotfix="v666"] .research-section{padding-top:68px!important;padding-bottom:50px!important}
+  html[data-portal-hotfix="v666"] .archive-section{padding-top:58px!important;padding-bottom:64px!important}
+  html[data-portal-hotfix="v666"] .k100-section,
+  html[data-portal-hotfix="v666"] .market-signals-section,
+  html[data-portal-hotfix="v666"] .evidence-section,
+  html[data-portal-hotfix="v666"] .operations-section,
+  html[data-portal-hotfix="v666"] .research-section,
+  html[data-portal-hotfix="v666"] .archive-section{
+    min-height:0!important;
+    height:auto!important;
+  }
+  html[data-portal-hotfix="v666"] .market-signals-section .section-heading,
+  html[data-portal-hotfix="v666"] .evidence-section .section-heading,
+  html[data-portal-hotfix="v666"] .operations-section .section-heading,
+  html[data-portal-hotfix="v666"] .research-section .section-heading{margin-bottom:36px!important}
+
+  html[data-portal-hotfix="v666"] .evidence-card{min-height:382px!important;padding:30px 32px!important}
+  html[data-portal-hotfix="v666"] .coverage-values{margin:40px 0 28px!important}
+  html[data-portal-hotfix="v666"] .composition-layout{margin:34px 0 24px!important}
+  html[data-portal-hotfix="v666"] .methodology-icons{margin:20px 0!important}
+  html[data-portal-hotfix="v666"] .methodology-icons span{min-height:62px!important}
+
+  html[data-portal-hotfix="v666"] .research-layout{align-items:stretch!important;gap:20px!important}
+  html[data-portal-hotfix="v666"] .research-feature{min-height:520px!important;padding:38px 42px!important}
+  html[data-portal-hotfix="v666"] .research-feature>div:nth-child(2){margin:42px 0 34px!important}
+  html[data-portal-hotfix="v666"] .research-notes{grid-template-rows:repeat(4,minmax(0,1fr))!important;gap:12px!important}
+  html[data-portal-hotfix="v666"] .research-note{min-height:0!important;padding:21px 23px!important}
+
+  html[data-portal-hotfix="v666"] .archive-shell{gap:clamp(56px,6vw,88px)!important}
+  html[data-portal-hotfix="v666"] .archive-row{min-height:144px!important;padding-block:18px!important}
+}
+
+@media(min-width:769px) and (max-width:1020px){
+  html[data-portal-hotfix="v666"] [data-hero-card]{height:530px!important;min-height:530px!important;max-height:530px!important}
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image,
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden]{position:absolute!important;inset:0 0 60px 0!important;width:100%!important;height:auto!important}
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{position:absolute!important;inset:auto 0 0 0!important;min-height:60px!important;padding:12px 24px 13px!important;border-radius:0 0 20px 20px!important}
+  html[data-portal-hotfix="v666"] .k100-section,
+  html[data-portal-hotfix="v666"] .market-signals-section,
+  html[data-portal-hotfix="v666"] .evidence-section,
+  html[data-portal-hotfix="v666"] .operations-section,
+  html[data-portal-hotfix="v666"] .research-section,
+  html[data-portal-hotfix="v666"] .archive-section{padding-block:58px!important;min-height:0!important;height:auto!important}
+  html[data-portal-hotfix="v666"] .research-feature{min-height:500px!important}
+  html[data-portal-hotfix="v666"] .archive-row{min-height:140px!important}
+}
+
+@media(max-width:768px){
+  html[data-portal-hotfix="v666"] [data-hero-card],
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-topline,
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-copy,
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image,
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden],
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{background:var(--v666-surface)!important}
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
+    position:relative!important;
+    inset:auto!important;
+    grid-row:4!important;
+    width:100%!important;
+    height:52px!important;
+    min-height:52px!important;
+    max-height:52px!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:center!important;
+    gap:10px!important;
+    padding:5px 16px 6px!important;
+    overflow:hidden!important;
+    border-radius:0 0 18px 18px!important;
+  }
+  html[data-portal-hotfix="v666"] [data-hero-status]{display:none!important}
+  html[data-portal-hotfix="v666"] .hero-source{display:block!important;min-width:0!important;margin:0!important;padding:0!important}
+  html[data-portal-hotfix="v666"] [data-hero-vertical]{display:block!important;overflow:hidden!important;font-size:8.5px!important;line-height:1.1!important;letter-spacing:.055em!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  html[data-portal-hotfix="v666"] .moment-footer .text-link{justify-self:end!important;min-height:34px!important;height:34px!important;padding:4px 0!important;margin:0!important;font-size:11.5px!important;white-space:nowrap!important}
+
+  html[data-portal-hotfix="v666"] .k100-section,
+  html[data-portal-hotfix="v666"] .market-signals-section,
+  html[data-portal-hotfix="v666"] .evidence-section,
+  html[data-portal-hotfix="v666"] .operations-section,
+  html[data-portal-hotfix="v666"] .research-section,
+  html[data-portal-hotfix="v666"] .archive-section{padding-block:48px!important;min-height:0!important;height:auto!important}
+  html[data-portal-hotfix="v666"] .section-heading{margin-bottom:30px!important}
+  html[data-portal-hotfix="v666"] .research-feature{min-height:0!important;padding:28px!important}
+  html[data-portal-hotfix="v666"] .research-feature>div:nth-child(2){margin:34px 0 28px!important}
+  html[data-portal-hotfix="v666"] .archive-row{min-height:0!important;padding-block:24px!important}
+}
+
+@media(max-width:340px){
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{grid-template-columns:1fr!important;justify-items:end!important;padding-inline:14px!important}
+  html[data-portal-hotfix="v666"] [data-hero-card] .hero-source{display:none!important}
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer .text-link{grid-column:1!important;justify-self:end!important;font-size:11px!important}
+}
