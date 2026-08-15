@@ -12,10 +12,11 @@ html[data-portal-hotfix="v666"]{
 
 /* ─────────────────────────────────────────────────────────────
    1. TRUE ONE-SURFACE HERO
-   The card itself is the studio. Image, copy and footer are transparent
-   layers on the same #f4f2ee plane; no internal canvas or footer strip.
+   V663 established the integrated footer with deliberately strong selectors.
+   V666 therefore uses the complete active contract selector—not order alone—
+   so image, copy and footer resolve to transparent layers on one card surface.
    ───────────────────────────────────────────────────────────── */
-html[data-portal-hotfix="v666"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
   position:relative!important;
   isolation:isolate!important;
   overflow:hidden!important;
@@ -25,16 +26,16 @@ html[data-portal-hotfix="v666"][data-homepage-structure="v662"] [data-hero-card]
   box-shadow:0 28px 72px rgba(20,36,29,.038),0 6px 16px rgba(20,36,29,.014)!important;
 }
 
-html[data-portal-hotfix="v666"] [data-hero-card]::before,
-html[data-portal-hotfix="v666"] [data-hero-card] .moment-shade{
+html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"]::before,
+html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-shade{
   display:none!important;
   content:none!important;
   background:none!important;
   opacity:0!important;
 }
 
-html[data-portal-hotfix="v666"] [data-hero-card] .moment-image,
-html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden]{
+html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
   display:block!important;
   visibility:visible!important;
   opacity:1!important;
@@ -47,23 +48,24 @@ html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden]{
   object-position:center center!important;
   transform:none!important;
   background:transparent!important;
-  background-color:transparent!important;
+  background-color:rgba(0,0,0,0)!important;
   filter:none!important;
   mix-blend-mode:normal!important;
   transition:none!important;
 }
 
-html[data-portal-hotfix="v666"] [data-hero-card] .moment-topline,
-html[data-portal-hotfix="v666"] [data-hero-card] .moment-copy,
-html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer,
-html[data-portal-hotfix="v666"] [data-hero-card] .hero-source{
+html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-topline,
+html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-copy,
+html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer,
+html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .hero-source{
   background:transparent!important;
-  background-color:transparent!important;
+  background-color:rgba(0,0,0,0)!important;
 }
 
-html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
+html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
   z-index:5!important;
   border-top:0!important;
+  border-top-width:0!important;
   border-block-start:0!important;
   box-shadow:none!important;
   backdrop-filter:none!important;
@@ -80,7 +82,7 @@ html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
     align-items:start!important;
   }
 
-  html[data-portal-hotfix="v666"] .hero-grid > [data-hero-card][data-hero-layout="v663-integrated-footer"].moment-card{
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] .hero-grid > [data-hero-card][data-hero-layout="v663-integrated-footer"].moment-card{
     box-sizing:border-box!important;
     align-self:start!important;
     width:100%!important;
@@ -94,13 +96,13 @@ html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
     margin:0!important;
   }
 
-  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image,
-  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden]{
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
     position:absolute!important;
     inset:0!important;
   }
 
-  html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
     position:absolute!important;
     inset:auto 0 0 0!important;
     min-height:62px!important;
@@ -114,7 +116,7 @@ html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
 }
 
 @media(min-width:769px) and (max-width:1020px){
-  html[data-portal-hotfix="v666"] .hero-grid > [data-hero-card][data-hero-layout="v663-integrated-footer"].moment-card{
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] .hero-grid > [data-hero-card][data-hero-layout="v663-integrated-footer"].moment-card{
     box-sizing:border-box!important;
     height:530px!important;
     min-height:530px!important;
@@ -123,13 +125,13 @@ html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
     padding:0!important;
   }
 
-  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image,
-  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden]{
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
     position:absolute!important;
     inset:0!important;
   }
 
-  html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
     position:absolute!important;
     inset:auto 0 0 0!important;
     min-height:60px!important;
@@ -140,23 +142,23 @@ html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
 
 /* Mobile: one uninterrupted surface and a deliberately simple footer. */
 @media(max-width:768px){
-  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
     min-height:0!important;
     background:var(--v666-hero-surface)!important;
     grid-template-rows:auto auto auto auto!important;
   }
 
-  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-topline,
-  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-copy,
-  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-image,
-  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-image[hidden],
-  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-footer{
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-topline,
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-copy,
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden],
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
     background:transparent!important;
-    background-color:transparent!important;
+    background-color:rgba(0,0,0,0)!important;
   }
 
-  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-image,
-  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-image[hidden]{
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
     position:relative!important;
     inset:auto!important;
     grid-row:3!important;
@@ -168,7 +170,7 @@ html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
     object-position:center center!important;
   }
 
-  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-footer{
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
     position:relative!important;
     inset:auto!important;
     grid-row:4!important;
@@ -227,7 +229,7 @@ html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
 }
 
 @media(max-width:340px){
-  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-footer{
+  html[data-portal-version="v663"][data-homepage-structure="v662"][data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
     grid-template-columns:1fr!important;
     justify-items:end!important;
     padding-inline:14px!important;
@@ -282,7 +284,7 @@ html[data-portal-hotfix="v666"] .archive-section{
 }
 
 html[data-portal-hotfix="v666"] .workspace-entry-section{
-  padding:clamp(48px,4vw,58px) 0!important;
+  padding:clamp(30px,2.4vw,36px) 0!important;
 }
 
 html[data-portal-hotfix="v666"] .institution-section{
@@ -290,40 +292,86 @@ html[data-portal-hotfix="v666"] .institution-section{
 }
 
 /* ─────────────────────────────────────────────────────────────
-   3. EDITORIAL DENSITY — use the available canvas with intention.
+   3. EDITORIAL DENSITY — remove stretch-created blank space while
+   preserving every word, control and evidence object.
    ───────────────────────────────────────────────────────────── */
+html[data-portal-hotfix="v666"] .evidence-grid{
+  align-items:start!important;
+}
+
 html[data-portal-hotfix="v666"] .evidence-card{
-  min-height:390px!important;
-  padding:30px!important;
+  min-height:0!important;
+  padding:26px!important;
 }
 
 html[data-portal-hotfix="v666"] .coverage-values{
-  margin:44px 0 28px!important;
+  margin:32px 0 20px!important;
 }
 
 html[data-portal-hotfix="v666"] .composition-layout{
-  margin:34px 0 24px!important;
+  margin:26px 0 18px!important;
 }
 
 html[data-portal-hotfix="v666"] .methodology-card h3{
-  margin:32px 0 16px!important;
+  margin:18px 0 10px!important;
+  font-size:28px!important;
+  line-height:1.12!important;
+}
+
+html[data-portal-hotfix="v666"] .methodology-card>p:not(.eyebrow){
+  font-size:12.5px!important;
+  line-height:1.55!important;
 }
 
 html[data-portal-hotfix="v666"] .methodology-icons{
-  margin:22px 0!important;
+  gap:8px!important;
+  margin:12px 0!important;
+}
+
+html[data-portal-hotfix="v666"] .methodology-icons span{
+  min-height:52px!important;
+  padding:10px 12px!important;
+  gap:10px!important;
+}
+
+html[data-portal-hotfix="v666"] .research-layout{
+  align-items:start!important;
 }
 
 html[data-portal-hotfix="v666"] .research-feature{
-  min-height:520px!important;
-  padding:38px!important;
+  min-height:0!important;
+  padding:32px!important;
 }
 
 html[data-portal-hotfix="v666"] .research-feature > div:nth-child(2){
-  margin:42px 0 28px!important;
+  margin:26px 0 18px!important;
+}
+
+html[data-portal-hotfix="v666"] .research-feature .button{
+  margin-top:auto!important;
+}
+
+html[data-portal-hotfix="v666"] .research-notes{
+  gap:12px!important;
 }
 
 html[data-portal-hotfix="v666"] .research-note{
-  padding:22px 24px!important;
+  min-height:0!important;
+  padding:16px 18px!important;
+  grid-template-columns:32px minmax(0,1fr)!important;
+  gap:10px!important;
+  align-items:center!important;
+}
+
+html[data-portal-hotfix="v666"] .research-note h3{
+  margin:0 0 5px!important;
+  font-size:20px!important;
+  line-height:1.12!important;
+}
+
+html[data-portal-hotfix="v666"] .research-note p{
+  font-size:11.5px!important;
+  line-height:1.45!important;
 }
 
 html[data-portal-hotfix="v666"] .archive-shell{
@@ -336,16 +384,49 @@ html[data-portal-hotfix="v666"] .archive-row{
 }
 
 html[data-portal-hotfix="v666"] .workspace-entry-compact{
-  gap:48px!important;
+  gap:40px!important;
 }
 
-@media(max-width:1020px){
-  html[data-portal-hotfix="v666"] .research-feature{
-    min-height:500px!important;
+html[data-portal-hotfix="v666"] .workspace-entry-copy h2{
+  margin:8px 0!important;
+  font-size:clamp(38px,3.5vw,48px)!important;
+  line-height:.98!important;
+}
+
+html[data-portal-hotfix="v666"] .workspace-entry-copy>p:not(.eyebrow){
+  font-size:13.5px!important;
+  line-height:1.55!important;
+}
+
+html[data-portal-hotfix="v666"] .workspace-entry-modes{
+  margin-top:14px!important;
+}
+
+@media(min-width:1021px){
+  html[data-portal-hotfix="v666"] .evidence-card{
+    box-sizing:border-box!important;
+    height:400px!important;
+    min-height:400px!important;
+    max-height:400px!important;
+    overflow:visible!important;
   }
 
+  html[data-portal-hotfix="v666"] .research-feature,
+  html[data-portal-hotfix="v666"] .research-notes{
+    box-sizing:border-box!important;
+    height:520px!important;
+    min-height:520px!important;
+    max-height:520px!important;
+  }
+
+  html[data-portal-hotfix="v666"] .research-notes{
+    grid-template-rows:repeat(4,minmax(0,1fr))!important;
+  }
+}
+
+@media(max-width:1100px){
   html[data-portal-hotfix="v666"] .workspace-entry-compact{
-    gap:26px!important;
+    gap:22px!important;
   }
 }
 
@@ -361,13 +442,25 @@ html[data-portal-hotfix="v666"] .workspace-entry-compact{
     padding-bottom:52px!important;
   }
 
+  html[data-portal-hotfix="v666"] .workspace-entry-section{
+    padding:44px 0!important;
+  }
+
   html[data-portal-hotfix="v666"] .evidence-card{
     min-height:0!important;
+    height:auto!important;
+    max-height:none!important;
     padding:26px!important;
   }
 
-  html[data-portal-hotfix="v666"] .research-feature{
+  html[data-portal-hotfix="v666"] .research-feature,
+  html[data-portal-hotfix="v666"] .research-notes{
     min-height:0!important;
+    height:auto!important;
+    max-height:none!important;
+  }
+
+  html[data-portal-hotfix="v666"] .research-feature{
     padding:28px!important;
   }
 
