@@ -60,6 +60,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kidults-v666-experience-closure-evidence
-          path: artifacts/kidults-v666-experience-closure
+          path: |
+            artifacts/kidults-v666-experience-closure
+            apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v662.webp
+            apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v666.svg
           if-no-files-found: warn
           retention-days: 14
