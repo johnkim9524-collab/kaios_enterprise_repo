@@ -73,6 +73,9 @@ const projection = {
     production_input_state: runtime.production_input_state,
     digitalocean_audit_id: digitalOcean.id,
     digitalocean_state: digitalOcean.status,
+    public_health_state: digitalOcean.health_state,
+    last_observed_at: digitalOcean.last_observed_at,
+    evidence_artifact_id: digitalOcean.evidence_artifact_id ?? null,
     production_connection: digitalOcean.production_connection_authorized
   },
   release: {

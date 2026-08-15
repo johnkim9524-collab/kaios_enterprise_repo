@@ -1,9 +1,10 @@
 {
   "id": "runtime-digitalocean-readonly-audit-v1",
   "record_type": "runtime_observation_contract",
-  "version": "1.0.0",
-  "status": "NOT_VERIFIED",
+  "version": "1.1.0",
+  "status": "PUBLIC_ENDPOINT_OBSERVED",
   "created_at": "2026-08-16T04:30:00+09:00",
+  "updated_at": "2026-08-16T04:44:32+09:00",
   "created_by": "Track D / KPMO",
   "approved_by": "John",
   "environment": "PRODUCTION_REFERENCE",
@@ -11,6 +12,15 @@
   "connection_mode": "READ_ONLY_AUDIT",
   "public_base_url": "https://kaios.kidults.com",
   "public_health_path": "/api/health",
+  "public_observation": {
+    "observed_at": "2026-08-15T19:44:32.305003Z",
+    "dns_state": "OBSERVED",
+    "tls_state": "OBSERVED",
+    "tls_not_after": "2026-10-03T08:58:49Z",
+    "root_http_status": 403,
+    "health_http_status": 403,
+    "interpretation": "Public DNS and TLS are observable. Edge HTTP 403 prevents application health verification."
+  },
   "digitalocean_api_connection": "NOT_CONFIGURED",
   "required_secret_names": [
     "DIGITALOCEAN_READ_TOKEN"
@@ -35,14 +45,17 @@
     "SSH",
     "database write"
   ],
-  "last_observed_at": null,
-  "health_state": "NOT_VERIFIED",
+  "last_observed_at": "2026-08-15T19:44:32.305003Z",
+  "health_state": "EDGE_ACCESS_BLOCKED_403",
   "mutation_performed": false,
   "production_connection_authorized": false,
   "production_state": "HOLD",
-  "evidence_workflow": ".github/workflows/digitalocean-readonly-audit.yml",
+  "evidence_workflow": ".github/workflows/kidults-phase2-data-connection-validate.yml",
+  "evidence_run_id": 31904765488,
+  "evidence_artifact_id": 9252030451,
   "references": [
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/240",
-    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/294"
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/294",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/pull/295"
   ]
 }

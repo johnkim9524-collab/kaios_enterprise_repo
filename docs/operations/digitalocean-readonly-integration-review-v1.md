@@ -22,6 +22,30 @@ The existing autonomous DigitalOcean adapter is a generic synthetic readiness ad
 
 These are references, not current health claims.
 
+## Current read-only observation
+
+Evidence run `31904765488` / artifact `9252030451` observed:
+
+| Check | Result |
+|---|---|
+| DNS | OBSERVED |
+| TLS | OBSERVED; certificate expires 2026-10-03 |
+| `/` | HTTP 403 |
+| `/api/health` | HTTP 403 |
+| DigitalOcean API metadata | NOT CONFIGURED |
+| Mutation | NONE |
+
+Official interpretation:
+
+```text
+PUBLIC_ENDPOINT_OBSERVED
+
+DNS and TLS are reachable.
+Application health is NOT VERIFIED because the edge returns HTTP 403.
+DigitalOcean resource identity is NOT VERIFIED because the read-only API
+token and Droplet ID are not configured.
+```
+
 ## Approved Phase 2 connection
 
 Only a read-only audit is permitted:

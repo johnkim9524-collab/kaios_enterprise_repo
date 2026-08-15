@@ -121,7 +121,10 @@ if (!errors.length) {
   const projection = json("apps/kidults-enterprise-staging/public/portal/data/registry-view.json");
   if (!projection.track_states?.E) errors.push("Portal Registry projection does not include Track E.");
   if (projection.provider?.connection_state !== "RESEARCHING") errors.push("Provider state projection mismatch.");
-  if (projection.runtime?.digitalocean_state !== "NOT_VERIFIED") errors.push("DigitalOcean state must start NOT_VERIFIED.");
+  if (!["NOT_VERIFIED", "PUBLIC_ENDPOINT_OBSERVED", "READ_ONLY_CONNECTION_VERIFIED"].includes(projection.runtime?.digitalocean_state)) {
+    errors.push(`Unsupported DigitalOcean observation state: ${projection.runtime?.digitalocean_state}`);
+  }
+  if (projection.runtime?.production_connection !== false) errors.push("DigitalOcean Production connection must remain false.");
 }
 
 if (errors.length) {

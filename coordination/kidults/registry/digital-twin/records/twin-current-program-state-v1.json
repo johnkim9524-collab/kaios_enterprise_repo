@@ -1,7 +1,7 @@
 {
   "id": "twin-current-program-state-v1",
   "record_type": "digital_twin",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "status": "CURRENT",
   "twin_id": "TWIN-0001",
   "program_status": "ACTIVE",
@@ -15,7 +15,7 @@
   "production_state": "HOLD",
   "data_connection_state": "SHADOW_CONNECTED",
   "provider_state": "RESEARCHING",
-  "digitalocean_observation_state": "NOT_VERIFIED",
+  "digitalocean_observation_state": "PUBLIC_ENDPOINT_OBSERVED",
   "track_states": {
     "A": "ACTIVE",
     "B": "WAITING_FOR_SNAPSHOT",
@@ -35,7 +35,7 @@
   ],
   "high_blocker_ids": [],
   "open_decision_count": 0,
-  "generated_at": "2026-08-16T04:30:00+09:00",
+  "generated_at": "2026-08-16T04:44:32+09:00",
   "generated_from": [
     "track/index.json",
     "snapshot/index.json",
