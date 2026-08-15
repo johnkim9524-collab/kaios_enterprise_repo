@@ -1,11 +1,11 @@
 const STYLE_ID = "kidults-mobile-hero-visibility-style";
-const VERSION = "2.1.0";
-const ASSET_VERSION = "662";
-const CACHE_REVISION = "visual95";
-const FINAL_TUNE_REVISION = "final";
+const VERSION = "2.2.0";
+const ASSET_VERSION = "666";
+const CACHE_REVISION = "experience-closure";
+const FINAL_TUNE_REVISION = "single-surface";
 const ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}-${FINAL_TUNE_REVISION}`;
-const HERO_KEY = "racing-roadster-v662";
-const RETRY_ASSET = null;
+const HERO_KEY = "racing-roadster-v666";
+const RETRY_ASSET = "assets/hero/racing-roadster-v662.webp";
 
 function ensureStylesheet() {
   const href = `components/mobile-hero-visibility.css?v=${ASSET_QUERY}`;
@@ -27,7 +27,7 @@ function stripQuery(value) {
 }
 
 function fallbackSvgDataUri() {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="KIDULTS mobility visual unavailable"><rect width="1200" height="900" fill="#f1ebe2"/><text x="600" y="455" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" letter-spacing="4" fill="#073d2d">VISUAL TEMPORARILY UNAVAILABLE</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="KIDULTS mobility visual unavailable"><rect width="1200" height="900" fill="#f4f2ee"/><text x="600" y="455" text-anchor="middle" font-family="Arial,sans-serif" font-size="26" letter-spacing="4" fill="#073d2d">VISUAL TEMPORARILY UNAVAILABLE</text></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 

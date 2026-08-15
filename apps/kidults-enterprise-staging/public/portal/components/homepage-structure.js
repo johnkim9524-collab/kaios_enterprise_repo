@@ -1,5 +1,5 @@
 const STYLE_ID = "kidults-v662-stability-freeze-style";
-const VERSION = "2.0.0";
+const VERSION = "2.1.0";
 
 function ensureStylesheet() {
   document.querySelectorAll('link[href*="v661-final-freeze.css"],link[href*="v658-visual-freeze.css"]').forEach(link => link.remove());
@@ -51,7 +51,7 @@ function createWorkspaceEntry() {
       <div class="workspace-entry-copy">
         <p class="eyebrow">KIDULTS INTELLIGENCE WORKSPACE</p>
         <h2 id="workspace-entry-title">Move from evidence to action.</h2>
-        <p>Ask Registry-grounded questions, compare objects and categories, or review structured decision support in a dedicated environment.</p>
+        <p>A shared intelligence playground for collectors and institutions—explore signals, compare objects and turn governed evidence into action.</p>
         <div class="workspace-entry-modes" aria-label="Workspace modes">
           <span>Ask</span><i></i><span>Compare</span><i></i><span>Decide</span>
         </div>

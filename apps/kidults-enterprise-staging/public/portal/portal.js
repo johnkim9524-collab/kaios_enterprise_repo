@@ -4,9 +4,9 @@ import { startWhyEngine } from "./components/why-engine.js";
 import { startIntegrityHardening } from "./components/integrity-hardening.js";
 import { startK100IntegrityReset } from "./components/k100-integrity-reset.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
-import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=662-visual95-final";
-import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=662-visual95-final";
-import { startHomepageStructure } from "./components/homepage-structure.js?v=662-visual95-final";
+import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=666";
+import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=666";
+import { startHomepageStructure } from "./components/homepage-structure.js?v=666";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -20,7 +20,7 @@ import {
   renderArchive,
   renderReleaseBaseline,
   renderPortalError
-} from "./components/renderers.js?v=662";
+} from "./components/renderers.js?v=666";
 import {
   setupNavigation,
   setupDialogs,
@@ -28,6 +28,21 @@ import {
   setupSearch,
   setupReveal
 } from "./components/interactions.js";
+
+const EXPERIENCE_STYLE_ID = "kidults-v666-experience-closure-style";
+
+function ensureExperienceClosureStylesheet() {
+  const href = "components/v666-experience-closure.css?v=666";
+  let link = document.getElementById(EXPERIENCE_STYLE_ID);
+  if (!link) {
+    link = document.createElement("link");
+    link.id = EXPERIENCE_STYLE_ID;
+    link.rel = "stylesheet";
+  }
+  link.href = href;
+  document.head.append(link);
+  return link;
+}
 
 function determineDataState(data) {
   if (!data.meta.registryProjectionConnected) return "registry-unavailable";
@@ -40,6 +55,9 @@ async function init() {
   document.documentElement.dataset.release = "v502";
   document.documentElement.dataset.experience = "living-intelligence-v6";
   document.documentElement.dataset.homepageStructure = "v662";
+  document.documentElement.dataset.portalHotfix = "v666";
+  document.documentElement.dataset.experienceClosure = "v666";
+  ensureExperienceClosureStylesheet();
   setupNavigation();
 
   try {
@@ -71,6 +89,8 @@ async function init() {
     startMobileReconstruction();
     startMobileHeroVisibility({ manifest: data.manifest });
     startHomepageStructure();
+    ensureExperienceClosureStylesheet();
+    requestAnimationFrame(ensureExperienceClosureStylesheet);
 
     document.documentElement.dataset.dataState = determineDataState(data);
     window.KIDULTS_V502 = Object.freeze({
@@ -93,7 +113,8 @@ async function init() {
       k100Integrity: window.KIDULTS_K100_INTEGRITY?.version ?? "NOT AVAILABLE",
       mobileReconstruction: window.KIDULTS_MOBILE?.version ?? "NOT AVAILABLE",
       mobileHeroVisibility: window.KIDULTS_MOBILE_HERO?.version ?? "NOT AVAILABLE",
-      assetBindingHotfix: window.KIDULTS_ASSET_BINDING_HOTFIX?.version ?? "NOT AVAILABLE"
+      assetBindingHotfix: window.KIDULTS_ASSET_BINDING_HOTFIX?.version ?? "NOT AVAILABLE",
+      experienceClosure: "v666"
     });
   } catch (error) {
     console.error("KIDULTS V6 portal initialization failed.", error);

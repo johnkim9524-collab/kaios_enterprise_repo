@@ -1,12 +1,13 @@
-const VERSION = "4.1.0";
+const VERSION = "4.2.0";
 const ASSET_VERSION = "662";
 const CACHE_REVISION = "visual95";
 const FINAL_TUNE_REVISION = "final";
 const ASSET_QUERY = `${ASSET_VERSION}-${CACHE_REVISION}-${FINAL_TUNE_REVISION}`;
-const ROADSTER_KEY = "racing-roadster-v662";
-const ROADSTER_SOURCE = `assets/hero/racing-roadster-v662.webp?v=${ASSET_QUERY}`;
+const ROADSTER_KEY = "racing-roadster-v666";
+const ROADSTER_SOURCE = "assets/hero/racing-roadster-v666.svg?v=666";
 const IMAGE_FORMAT = "museum-editorial-v662";
 const VISUAL_SYSTEM = "single-studio-v662-visual95";
+const HERO_VISUAL_SYSTEM = "single-surface-v666";
 
 const K100_ASSETS = Object.freeze({
   "footwear-01": {
@@ -31,13 +32,13 @@ const K100_ASSETS = Object.freeze({
   }
 });
 
-function prepareImage(image, source, alt) {
+function prepareImage(image, source, alt, visualSystem = VISUAL_SYSTEM) {
   image.hidden = false;
   image.removeAttribute("hidden");
   image.decoding = "async";
   image.loading = "eager";
   image.dataset.assetVersion = ASSET_QUERY;
-  image.dataset.visualSystem = VISUAL_SYSTEM;
+  image.dataset.visualSystem = visualSystem;
   image.alt = alt;
   if (image.getAttribute("src") !== source) image.setAttribute("src", source);
 }
@@ -57,8 +58,11 @@ function bindRoadster() {
   prepareImage(
     image,
     ROADSTER_SOURCE,
-    "KIDULTS original deep green racing roadster in a neutral warm limestone editorial studio"
+    "KIDULTS original deep green racing roadster on one neutral warm limestone surface",
+    HERO_VISUAL_SYSTEM
   );
+  card.dataset.visualSystem = HERO_VISUAL_SYSTEM;
+  card.dataset.heroRevision = "v666-experience-closure";
   if (image.complete && image.naturalWidth > 0) card.dataset.assetState = "ready";
   return true;
 }
@@ -132,6 +136,7 @@ export function startAssetBindingHotfix() {
     k100Sources: K100_ASSETS,
     imageFormat: IMAGE_FORMAT,
     visualSystem: VISUAL_SYSTEM,
+    heroVisualSystem: HERO_VISUAL_SYSTEM,
     rebind: apply
   });
   return window.KIDULTS_ASSET_BINDING_HOTFIX;
