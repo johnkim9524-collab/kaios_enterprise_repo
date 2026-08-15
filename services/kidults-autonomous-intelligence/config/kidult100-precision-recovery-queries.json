@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.12",
+  "schemaVersion": "1.0.13",
   "mode": "KIDULT100_WIKIDATA_PRECISION_RECOVERY",
   "source": "wikidata",
   "sourceClass": "REFERENCE_PUBLIC_DATA",
@@ -99,7 +99,7 @@
       "Nike Air Jordan 3 shoe",
       "Nike Air Jordan 5 shoe",
       "Nike Air Jordan 6 shoe",
-      "Nike Air Max 95",
+      "Nike Air Max",
       "Nike Air Max Plus",
       "Nike Dunk Low",
       "Nike Cortez shoe",
