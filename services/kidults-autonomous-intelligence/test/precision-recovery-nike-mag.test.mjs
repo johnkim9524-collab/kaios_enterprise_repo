@@ -8,7 +8,7 @@ const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'kidult100-p
 
 test('zero-yield Nike Mag and Air Yeezy queries stay pruned without relaxing recovery safety', () => {
   const queries = config.verticals['fashion-accessories'];
-  assert.equal(config.schemaVersion, '1.0.13');
+  assert.equal(config.schemaVersion, '1.0.14');
   assert.equal(queries.includes('Nike Mag'), false);
   assert.equal(queries.includes('Nike Air Yeezy'), false);
   assert.ok(queries.includes('Nike Dunk'));
