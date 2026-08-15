@@ -70,6 +70,14 @@ for (const viewport of viewports) {
   page.on("console", message => {
     if (message.type() === "error") runtimeErrors.push(`console: ${message.text()}`);
   });
+  page.on("requestfailed", request => {
+    if (request.url().startsWith(baseUrl)) runtimeErrors.push(`request failed: ${request.url()} — ${request.failure()?.errorText ?? "unknown"}`);
+  });
+  page.on("response", response => {
+    if (response.status() >= 400 && response.url().startsWith(baseUrl) && !response.url().endsWith("/favicon.ico")) {
+      runtimeErrors.push(`http ${response.status()}: ${response.url()}`);
+    }
+  });
 
   try {
     await page.goto(`${baseUrl}/portal/index.html?v=666&qa=${Date.now()}`, {
@@ -109,6 +117,49 @@ for (const viewport of viewports) {
       const cardBox = card?.getBoundingClientRect();
       const footerBox = footer?.getBoundingClientRect();
 
+      const pixelProbe = (() => {
+        if (!(image instanceof HTMLImageElement) || !image.complete || image.naturalWidth < 1) {
+          return { error: "Hero image is not ready" };
+        }
+        try {
+          const width = 160;
+          const height = 90;
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext("2d", { willReadFrequently: true });
+          if (!context) return { error: "Canvas context unavailable" };
+          context.drawImage(image, 0, 0, width, height);
+          const pixels = context.getImageData(0, 0, width, height).data;
+          const surface = [244, 242, 238];
+          let opaque = 0;
+          let contrast = 0;
+          let dark = 0;
+          for (let offset = 0; offset < pixels.length; offset += 4) {
+            const red = pixels[offset];
+            const green = pixels[offset + 1];
+            const blue = pixels[offset + 2];
+            const alpha = pixels[offset + 3];
+            if (alpha < 200) continue;
+            opaque += 1;
+            const surfaceDistance = Math.abs(red - surface[0]) + Math.abs(green - surface[1]) + Math.abs(blue - surface[2]);
+            if (surfaceDistance > 45) contrast += 1;
+            if ((red + green + blue) / 3 < 175) dark += 1;
+          }
+          return {
+            sampleWidth: width,
+            sampleHeight: height,
+            opaquePixels: opaque,
+            contrastPixels: contrast,
+            darkPixels: dark,
+            contrastRatio: opaque ? Number((contrast / opaque).toFixed(4)) : 0,
+            darkRatio: opaque ? Number((dark / opaque).toFixed(4)) : 0
+          };
+        } catch (error) {
+          return { error: error instanceof Error ? error.message : String(error) };
+        }
+      })();
+
       return {
         hotfix: document.documentElement.dataset.portalHotfix,
         closure: document.documentElement.dataset.experienceClosure,
@@ -129,7 +180,8 @@ for (const viewport of viewports) {
           footerContained: Boolean(cardBox && footerBox && footerBox.left >= cardBox.left - 1 && footerBox.right <= cardBox.right + 1 && footerBox.top >= cardBox.top - 1 && footerBox.bottom <= cardBox.bottom + 1),
           statusVisible: visible(status),
           verticalVisible: visible(vertical),
-          actionVisible: visible(action)
+          actionVisible: visible(action),
+          pixelProbe
         },
         rhythm: {
           canonToSignals: gap(".canon-panel", ".market-signals-section .section-heading"),
@@ -154,6 +206,9 @@ for (const viewport of viewports) {
     if (metrics.scrollWidth > metrics.clientWidth + 1) issues.push(`horizontal overflow ${metrics.scrollWidth - metrics.clientWidth}px`);
     if (!metrics.hero.source.includes("racing-roadster-v666.svg")) issues.push(`Hero source ${metrics.hero.source}`);
     if (metrics.hero.naturalWidth !== 1600 || metrics.hero.naturalHeight !== 900) issues.push(`Hero dimensions ${metrics.hero.naturalWidth}x${metrics.hero.naturalHeight}`);
+    if (metrics.hero.pixelProbe?.error) issues.push(`Hero pixel probe ${metrics.hero.pixelProbe.error}`);
+    if ((metrics.hero.pixelProbe?.contrastRatio ?? 0) < 0.035) issues.push(`Hero visually blank: contrast ratio ${metrics.hero.pixelProbe?.contrastRatio ?? 0}`);
+    if ((metrics.hero.pixelProbe?.darkRatio ?? 0) < 0.005) issues.push(`Hero subject missing: dark-pixel ratio ${metrics.hero.pixelProbe?.darkRatio ?? 0}`);
     if (metrics.hero.cardBackground !== "rgb(244, 242, 238)") issues.push(`card bg ${metrics.hero.cardBackground}`);
     if (metrics.hero.imageBackground !== "rgba(0, 0, 0, 0)") issues.push(`image bg ${metrics.hero.imageBackground}`);
     if (metrics.hero.footerBackground !== "rgba(0, 0, 0, 0)") issues.push(`footer bg ${metrics.hero.footerBackground}`);
@@ -207,4 +262,4 @@ if (failures.length) {
 }
 
 console.log("KIDULTS V666 experience closure: PASS");
-console.log("PASS: one-surface Hero, five rhythm transitions, editorial density, 320/390/768/1366/1440 responsive QA");
+console.log("PASS: visible one-surface Hero pixels, five rhythm transitions, editorial density, 320/390/768/1366/1440 responsive QA");
