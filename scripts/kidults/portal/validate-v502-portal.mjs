@@ -55,11 +55,15 @@ const requiredFiles = [
   `${portalRoot}/components/editorial-assets.js`,
   `${portalRoot}/components/homepage-structure.js`,
   `${portalRoot}/components/v662-stability-freeze.css`,
+  `${portalRoot}/components/v663-hero-integrated-footer.css`,
+  `${portalRoot}/components/v664-visible-hero-footer.css`,
+  `${portalRoot}/components/v666-experience-closure.css`,
   `${portalRoot}/components/mobile-hero-visibility.js`,
   `${portalRoot}/components/mobile-hero-visibility.css`,
   `${portalRoot}/components/k100-integrity-reset.js`,
   `${portalRoot}/components/k100-integrity-reset.css`,
   `${portalRoot}/assets/hero/racing-roadster-v662.webp`,
+  `${portalRoot}/assets/hero/racing-roadster-v666.svg`,
   `${portalRoot}/data/v502-manifest.json`,
   `${portalRoot}/data/registry-view.json`,
   `${portalRoot}/data/verticals.json`,
@@ -83,15 +87,25 @@ const interactions = readText(`${portalRoot}/components/interactions.js`);
 const homepage = readText(`${portalRoot}/components/homepage-structure.js`);
 const editorialAssets = readText(`${portalRoot}/components/editorial-assets.js`);
 const v662Css = readText(`${portalRoot}/components/v662-stability-freeze.css`);
+const v666Css = readText(`${portalRoot}/components/v666-experience-closure.css`);
+const heroSvg = readText(`${portalRoot}/assets/hero/racing-roadster-v666.svg`);
 const css = readText(`${portalRoot}/portal-v502.css`);
 
 for (const marker of [
   'data-release="v502"',
   'data-homepage-structure="v662"',
-  'portal.js?v=662',
+  'data-portal-version="v663"',
+  'data-portal-hotfix="v666"',
+  'kidults-hotfix-version" content="666"',
+  'portal.js?v=666',
   'v662-stability-freeze.css?v=662',
-  'racing-roadster-v662.webp?v=662',
-  'data-hero-asset="racing-roadster-v662"',
+  'v663-hero-integrated-footer.css?v=663',
+  'v664-visible-hero-footer.css?v=664',
+  'v666-experience-closure.css?v=666',
+  'racing-roadster-v666.svg?v=666',
+  'data-hero-asset="racing-roadster-v666"',
+  'data-hero-layout="v663-integrated-footer"',
+  'data-hero-revision="v666-experience-closure"',
   'href="workspace.html"',
   'id="verticals"',
   'data-vertical-grid',
@@ -99,7 +113,7 @@ for (const marker of [
   'data-registry-ribbon',
   'data-release-baseline'
 ]) {
-  if (!html.includes(marker)) errors.push(`index.html missing V662/V502 marker: ${marker}`);
+  if (!html.includes(marker)) errors.push(`index.html missing V502/V666 marker: ${marker}`);
 }
 
 for (const marker of [
@@ -123,12 +137,15 @@ for (const marker of [
   "startMobileHeroVisibility",
   "startAssetBindingHotfix",
   "startHomepageStructure",
-  'homepage-structure.js?v=662',
-  'mobile-hero-visibility.js?v=662',
-  'editorial-assets.js?v=662',
-  'renderers.js?v=662'
+  'homepage-structure.js?v=666',
+  'mobile-hero-visibility.js?v=666',
+  'editorial-assets.js?v=666',
+  'renderers.js?v=666',
+  'dataset.portalHotfix = "v666"',
+  'dataset.experienceClosure = "v666"',
+  "ensureExperienceClosureStylesheet"
 ]) {
-  if (!portalJs.includes(marker)) errors.push(`portal.js missing V662 integration: ${marker}`);
+  if (!portalJs.includes(marker)) errors.push(`portal.js missing V666 integration: ${marker}`);
 }
 for (const retired of ["startCopilot", "startCompareEngine", "startDecisionEngine", "startWorkspace"]) {
   if (portalJs.includes(retired)) errors.push(`Homepage must not mount dedicated Workspace runtime: ${retired}`);
@@ -153,11 +170,12 @@ if (!renderers.includes("current_observation_order")) errors.push("Vertical rend
 if (!interactions.includes("setupSearch")) errors.push("Search interaction is not implemented.");
 if (!homepage.includes('main.dataset.finalStructure = "v662"')) errors.push("Homepage structure is not frozen at V662.");
 for (const marker of [
-  'ROADSTER_KEY = "racing-roadster-v662"',
-  'racing-roadster-v662.webp',
-  'museum-editorial-v662'
+  'ROADSTER_KEY = "racing-roadster-v666"',
+  'racing-roadster-v666.svg',
+  'museum-editorial-v662',
+  'single-surface-v666'
 ]) {
-  if (!editorialAssets.includes(marker)) errors.push(`V662 asset runtime missing: ${marker}`);
+  if (!editorialAssets.includes(marker)) errors.push(`V666 asset runtime missing: ${marker}`);
 }
 for (const marker of [
   'data-hero-asset="racing-roadster-v662"',
@@ -167,6 +185,22 @@ for (const marker of [
   "@media(max-width:340px)"
 ]) {
   if (!v662Css.includes(marker)) errors.push(`V662 stability CSS missing: ${marker}`);
+}
+for (const marker of [
+  "KIDULTS Portal V666",
+  "--v666-hero-surface:#f4f2ee",
+  "background:transparent!important",
+  "border-top:0!important",
+  ".archive-row"
+]) {
+  if (!v666Css.includes(marker)) errors.push(`V666 closure CSS missing: ${marker}`);
+}
+for (const marker of [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"',
+  'href="racing-roadster-v662.webp',
+  '#f4f2ee'
+]) {
+  if (!heroSvg.includes(marker)) errors.push(`V666 Hero surface asset missing marker: ${marker}`);
 }
 if (/Koala Sculpture/i.test([html, renderers, dataStore].join("\n"))) errors.push("Retired temporary Koala remains in V502 code.");
 
@@ -192,7 +226,8 @@ if (manifest) {
   if (manifest.display_policy?.unverified_visual_policy !== "WITHHOLD") errors.push("Unverified visuals must be withheld.");
   if (manifest.display_policy?.missing_to_zero !== false) errors.push("V502 must forbid missing-to-zero conversion.");
   if (manifest.experience_label !== "V6 RC") errors.push("V6 label must remain separate from V502 contract.");
-  if (manifest.hero?.asset !== "assets/hero/racing-roadster-v662.webp") errors.push("Manifest canonical Roadster asset mismatch.");
+  if (manifest.hero?.asset !== "assets/hero/racing-roadster-v666.svg") errors.push("Manifest active Roadster surface asset mismatch.");
+  if (manifest.hero?.production_status !== "HOLD") errors.push("Hero asset must remain on Production HOLD.");
   if (!(manifest.routes ?? []).some(route => route.id === "workspace" && route.path === "workspace.html")) {
     errors.push("Manifest does not register the dedicated Workspace route.");
   }
@@ -261,11 +296,11 @@ for (const relative of [
 }
 
 if (errors.length) {
-  console.error(`KIDULTS Portal V502/V662 validation: FAIL (${errors.length} error(s), ${warnings.length} warning(s))`);
+  console.error(`KIDULTS Portal V502/V666 validation: FAIL (${errors.length} error(s), ${warnings.length} warning(s))`);
   for (const error of errors) console.error(`ERROR: ${error}`);
   for (const warning of warnings) console.warn(`WARN: ${warning}`);
   process.exit(1);
 }
 
-console.log(`KIDULTS Portal V502/V662 validation: PASS (${requiredFiles.length} required files, one verified Roadster, 8 verticals, 4 featured objects)`);
+console.log(`KIDULTS Portal V502/V666 validation: PASS (${requiredFiles.length} required files, canonical V662 Roadster preserved, V666 surface active, 8 verticals, 4 featured objects, Production HOLD)`);
 for (const warning of warnings) console.warn(`WARN: ${warning}`);
