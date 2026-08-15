@@ -91,9 +91,14 @@ test('Captain America Comics #1 exact recovery rejects nearby issue identities',
     stopTokens: runtimeStopTokens,
   });
 
-  assert.equal(issueOne.allDistinctiveAnchorsMatched, true);
+  assert.equal(issueOne.exactTitleRequired, true);
+  assert.equal(issueOne.exactTitleMatched, true);
   assert.equal(issueOne.accepted, true);
-  assert.equal(issueTen.allDistinctiveAnchorsMatched, false);
+  // Single-digit issue numbers are intentionally not distinctive anchors because one-character
+  // tokens are excluded. Exact-title matching is therefore the fail-closed identity boundary.
+  assert.equal(issueTen.allDistinctiveAnchorsMatched, true);
+  assert.equal(issueTen.exactTitleRequired, true);
+  assert.equal(issueTen.exactTitleMatched, false);
   assert.equal(issueTen.accepted, false);
 });
 
