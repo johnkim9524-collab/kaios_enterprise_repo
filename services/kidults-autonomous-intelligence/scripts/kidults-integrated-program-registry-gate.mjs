@@ -148,9 +148,15 @@ function requireCondition(condition, code, failures) {
   if (!condition) failures.push(code);
 }
 
+function hasAmbiguousArtifactReferencePath(reference) {
+  const normalized = reference.replaceAll('\\', '/');
+  return normalized.split('/').some((segment) => segment === '.' || segment === '..' || segment.length === 0);
+}
+
 function artifactReferenceMatches(reference, expected) {
   if (typeof reference !== 'string') return false;
-  const normalized = reference.replaceAll('\\', '/').replace(/\/+$/, '');
+  if (hasAmbiguousArtifactReferencePath(reference)) return false;
+  const normalized = reference.replaceAll('\\', '/');
   return normalized === expected || normalized.endsWith(`/${expected}`);
 }
 
@@ -416,6 +422,7 @@ const report = {
       exact_snapshot_match_required: true,
       accepted_states: [...ACCEPTED_HANDOFF_STATES],
       non_official_artifact_lanes_rejected: true,
+      ambiguous_artifact_reference_paths_rejected: true,
     },
   },
   failures,
