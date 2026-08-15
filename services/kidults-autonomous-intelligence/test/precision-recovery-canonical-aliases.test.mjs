@@ -17,7 +17,7 @@ function hasDistinctiveShape(value) {
 }
 
 test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
-  assert.equal(config.schemaVersion, '1.0.13');
+  assert.equal(config.schemaVersion, '1.0.14');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
@@ -64,6 +64,9 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
       'Rolex Milgauss',
       'Cartier Santos',
       'G-Shock',
+      'Rolex Sea Dweller',
+      'Casio F-91W',
+      'Casio CA-53W',
     ],
     'fashion-accessories': [
       'Air Jordan 1',
