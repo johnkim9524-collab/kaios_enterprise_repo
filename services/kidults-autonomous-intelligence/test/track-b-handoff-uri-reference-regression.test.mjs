@@ -27,6 +27,18 @@ function canonicalHandoff(overrides = {}) {
   };
 }
 
+const CANONICAL_SNAPSHOT = 'snapshots/fixture-candidate/snapshot-candidate.json';
+const CANONICAL_EVIDENCE = 'evidence/fixture-candidate/EVIDENCE_PACKAGE';
+
+function materializeCanonicalInputs(coordinationRoot) {
+  const snapshotArtifact = path.join(coordinationRoot, CANONICAL_SNAPSHOT);
+  const evidenceArtifact = path.join(coordinationRoot, CANONICAL_EVIDENCE);
+  fs.mkdirSync(path.dirname(snapshotArtifact), { recursive: true });
+  fs.mkdirSync(path.dirname(evidenceArtifact), { recursive: true });
+  fs.writeFileSync(snapshotArtifact, JSON.stringify({ snapshot_id: 'fixture-candidate' }));
+  fs.writeFileSync(evidenceArtifact, '{}');
+}
+
 function runWithReferences(snapshotReference, evidenceReference) {
   const coordinationRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-handoff-uri-'));
   fs.cpSync(LIVE_COORDINATION_ROOT, coordinationRoot, { recursive: true });
@@ -36,6 +48,7 @@ function runWithReferences(snapshotReference, evidenceReference) {
   snapshots.current_candidate_snapshot_id = 'fixture-candidate';
   snapshots.entries = [{ snapshot_id: 'fixture-candidate', status: 'draft' }];
   fs.writeFileSync(snapshotPath, JSON.stringify(snapshots, null, 2));
+  materializeCanonicalInputs(coordinationRoot);
 
   const handoffPath = path.join(coordinationRoot, 'registry', 'handoff-registry.json');
   const handoffs = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
@@ -68,9 +81,6 @@ function runWithReferences(snapshotReference, evidenceReference) {
   fs.rmSync(outputDir, { recursive: true, force: true });
   return { result, report };
 }
-
-const CANONICAL_SNAPSHOT = 'snapshots/fixture-candidate/snapshot-candidate.json';
-const CANONICAL_EVIDENCE = 'evidence/fixture-candidate/EVIDENCE_PACKAGE';
 
 test('Track B rejects URL-shaped official-input references fail closed', () => {
   const cases = [
@@ -199,7 +209,7 @@ test('Track B accepts only plain repository-relative official-input references',
   }
 });
 
-test('canonical repository-relative Track B references remain assessment-eligible', () => {
+test('canonical materialized repository-relative Track B references remain assessment-eligible', () => {
   const { result, report } = runWithReferences(CANONICAL_SNAPSHOT, CANONICAL_EVIDENCE);
 
   assert.equal(result.status, 0);
@@ -208,6 +218,7 @@ test('canonical repository-relative Track B references remain assessment-eligibl
   assert.equal(report.track_b_readiness.waiting_state, 'READY_FOR_ASSESSMENT');
   assert.equal(report.track_b_readiness.reason, 'BOTH_OFFICIAL_INPUTS_ACCEPTED_FOR_EXACT_SNAPSHOT');
   assert.equal(report.track_b_readiness.canonical_handoff_proof.plain_repository_relative_artifact_references_required, true);
+  assert.equal(report.track_b_readiness.canonical_handoff_proof.materialized_official_inputs_required, true);
   assert.equal(report.claims.track_b_assessment_started, false);
   assert.equal(report.claims.operational_runtime_evidence_used_as_track_b_official_input, false);
 });
