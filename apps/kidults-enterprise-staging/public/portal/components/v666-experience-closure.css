@@ -1,0 +1,384 @@
+/* KIDULTS Portal V666 — Experience Closure
+   1) true single-surface Hero
+   2) disciplined vertical rhythm
+   3) balanced editorial density
+   Data, Registry, Snapshot, Assessment, Rights and Production gates remain unchanged. */
+
+html[data-portal-hotfix="v666"]{
+  --v666-hero-surface:#f4f2ee;
+  --v666-section-tight:clamp(52px,4.5vw,72px);
+  --v666-section-medium:clamp(60px,5.1vw,82px);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   1. TRUE ONE-SURFACE HERO
+   The card itself is the studio. Image, copy and footer are transparent
+   layers on the same #f4f2ee plane; no internal canvas or footer strip.
+   ───────────────────────────────────────────────────────────── */
+html[data-portal-hotfix="v666"][data-homepage-structure="v662"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  background:var(--v666-hero-surface)!important;
+  background-color:var(--v666-hero-surface)!important;
+  border-color:rgba(7,61,45,.085)!important;
+  box-shadow:0 28px 72px rgba(20,36,29,.038),0 6px 16px rgba(20,36,29,.014)!important;
+}
+
+html[data-portal-hotfix="v666"] [data-hero-card]::before,
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-shade{
+  display:none!important;
+  content:none!important;
+  background:none!important;
+  opacity:0!important;
+}
+
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-image,
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden]{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  width:100%!important;
+  max-width:none!important;
+  height:100%!important;
+  padding:0!important;
+  margin:0!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  transform:none!important;
+  background:transparent!important;
+  background-color:transparent!important;
+  filter:none!important;
+  mix-blend-mode:normal!important;
+  transition:none!important;
+}
+
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-topline,
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-copy,
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer,
+html[data-portal-hotfix="v666"] [data-hero-card] .hero-source{
+  background:transparent!important;
+  background-color:transparent!important;
+}
+
+html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
+  z-index:5!important;
+  border-top:0!important;
+  border-block-start:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+
+@media(min-width:1021px){
+  html[data-portal-hotfix="v666"] .hero{
+    padding-top:28px!important;
+    padding-bottom:clamp(64px,5.3vw,84px)!important;
+  }
+
+  html[data-portal-hotfix="v666"] .hero-grid{
+    align-items:start!important;
+  }
+
+  html[data-portal-hotfix="v666"] .hero-grid > [data-hero-card][data-hero-layout="v663-integrated-footer"].moment-card{
+    box-sizing:border-box!important;
+    align-self:start!important;
+    width:100%!important;
+    height:560px!important;
+    min-height:560px!important;
+    max-height:560px!important;
+    block-size:560px!important;
+    min-block-size:560px!important;
+    max-block-size:560px!important;
+    padding:0!important;
+    margin:0!important;
+  }
+
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image,
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden]{
+    position:absolute!important;
+    inset:0!important;
+  }
+
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
+    position:absolute!important;
+    inset:auto 0 0 0!important;
+    min-height:62px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:24px!important;
+    padding:12px 28px 14px!important;
+    border-radius:0 0 20px 20px!important;
+  }
+}
+
+@media(min-width:769px) and (max-width:1020px){
+  html[data-portal-hotfix="v666"] .hero-grid > [data-hero-card][data-hero-layout="v663-integrated-footer"].moment-card{
+    box-sizing:border-box!important;
+    height:530px!important;
+    min-height:530px!important;
+    max-height:530px!important;
+    block-size:530px!important;
+    padding:0!important;
+  }
+
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image,
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-image[hidden]{
+    position:absolute!important;
+    inset:0!important;
+  }
+
+  html[data-portal-hotfix="v666"] [data-hero-card] .moment-footer{
+    position:absolute!important;
+    inset:auto 0 0 0!important;
+    min-height:60px!important;
+    padding:12px 24px 13px!important;
+    border-radius:0 0 20px 20px!important;
+  }
+}
+
+/* Mobile: one uninterrupted surface and a deliberately simple footer. */
+@media(max-width:768px){
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+    min-height:0!important;
+    background:var(--v666-hero-surface)!important;
+    grid-template-rows:auto auto auto auto!important;
+  }
+
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-topline,
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-copy,
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-image,
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-image[hidden],
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-footer{
+    background:transparent!important;
+    background-color:transparent!important;
+  }
+
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-image,
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-image[hidden]{
+    position:relative!important;
+    inset:auto!important;
+    grid-row:3!important;
+    width:100%!important;
+    max-width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    aspect-ratio:4/3!important;
+    object-position:center center!important;
+  }
+
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-footer{
+    position:relative!important;
+    inset:auto!important;
+    grid-row:4!important;
+    width:100%!important;
+    height:52px!important;
+    min-height:52px!important;
+    max-height:52px!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:center!important;
+    column-gap:10px!important;
+    padding:5px 16px 6px!important;
+    overflow:hidden!important;
+    border-radius:0 0 18px 18px!important;
+  }
+
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-status]{
+    display:none!important;
+  }
+
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] .hero-source{
+    grid-column:1!important;
+    min-width:0!important;
+    display:block!important;
+    align-self:center!important;
+    margin:0!important;
+    padding:0!important;
+  }
+
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-vertical]{
+    display:block!important;
+    overflow:hidden!important;
+    margin:0!important;
+    font-size:8.5px!important;
+    line-height:1.1!important;
+    letter-spacing:.055em!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] .moment-footer .text-link{
+    grid-column:2!important;
+    justify-self:end!important;
+    align-self:center!important;
+    width:auto!important;
+    min-width:0!important;
+    height:34px!important;
+    min-height:34px!important;
+    max-height:34px!important;
+    padding:4px 0!important;
+    margin:0!important;
+    font-size:11.5px!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+  }
+}
+
+@media(max-width:340px){
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-footer{
+    grid-template-columns:1fr!important;
+    justify-items:end!important;
+    padding-inline:14px!important;
+  }
+
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .hero-source{
+    display:none!important;
+    visibility:hidden!important;
+    width:0!important;
+    height:0!important;
+    overflow:hidden!important;
+  }
+
+  html[data-portal-hotfix="v666"][data-mobile-reconstruction="v1"] [data-hero-card] .moment-footer .text-link{
+    grid-column:1!important;
+    justify-self:end!important;
+    font-size:11px!important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   2. VERTICAL RHYTHM — remove dead bands without flattening luxury spacing.
+   ───────────────────────────────────────────────────────────── */
+html[data-portal-hotfix="v666"] .k100-section{
+  padding-top:var(--v666-section-medium)!important;
+  padding-bottom:clamp(42px,3.6vw,58px)!important;
+}
+
+html[data-portal-hotfix="v666"] .market-signals-section{
+  padding-top:clamp(50px,4vw,66px)!important;
+  padding-bottom:clamp(46px,3.8vw,62px)!important;
+}
+
+html[data-portal-hotfix="v666"] .evidence-section{
+  padding-top:clamp(50px,4.2vw,68px)!important;
+  padding-bottom:clamp(52px,4.3vw,70px)!important;
+}
+
+html[data-portal-hotfix="v666"] .operations-section{
+  padding-top:clamp(52px,4.3vw,70px)!important;
+  padding-bottom:clamp(54px,4.5vw,72px)!important;
+}
+
+html[data-portal-hotfix="v666"] .research-section{
+  padding-top:clamp(58px,4.8vw,76px)!important;
+  padding-bottom:clamp(44px,3.6vw,58px)!important;
+}
+
+html[data-portal-hotfix="v666"] .archive-section{
+  padding-top:clamp(50px,4vw,66px)!important;
+  padding-bottom:clamp(42px,3.5vw,56px)!important;
+}
+
+html[data-portal-hotfix="v666"] .workspace-entry-section{
+  padding:clamp(48px,4vw,58px) 0!important;
+}
+
+html[data-portal-hotfix="v666"] .institution-section{
+  padding-top:clamp(58px,4.8vw,76px)!important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   3. EDITORIAL DENSITY — use the available canvas with intention.
+   ───────────────────────────────────────────────────────────── */
+html[data-portal-hotfix="v666"] .evidence-card{
+  min-height:390px!important;
+  padding:30px!important;
+}
+
+html[data-portal-hotfix="v666"] .coverage-values{
+  margin:44px 0 28px!important;
+}
+
+html[data-portal-hotfix="v666"] .composition-layout{
+  margin:34px 0 24px!important;
+}
+
+html[data-portal-hotfix="v666"] .methodology-card h3{
+  margin:32px 0 16px!important;
+}
+
+html[data-portal-hotfix="v666"] .methodology-icons{
+  margin:22px 0!important;
+}
+
+html[data-portal-hotfix="v666"] .research-feature{
+  min-height:520px!important;
+  padding:38px!important;
+}
+
+html[data-portal-hotfix="v666"] .research-feature > div:nth-child(2){
+  margin:42px 0 28px!important;
+}
+
+html[data-portal-hotfix="v666"] .research-note{
+  padding:22px 24px!important;
+}
+
+html[data-portal-hotfix="v666"] .archive-shell{
+  gap:clamp(48px,7vw,110px)!important;
+}
+
+html[data-portal-hotfix="v666"] .archive-row{
+  min-height:152px!important;
+  grid-template-columns:124px minmax(0,1fr) auto!important;
+}
+
+html[data-portal-hotfix="v666"] .workspace-entry-compact{
+  gap:48px!important;
+}
+
+@media(max-width:1020px){
+  html[data-portal-hotfix="v666"] .research-feature{
+    min-height:500px!important;
+  }
+
+  html[data-portal-hotfix="v666"] .workspace-entry-compact{
+    gap:26px!important;
+  }
+}
+
+@media(max-width:760px){
+  html[data-portal-hotfix="v666"] .k100-section,
+  html[data-portal-hotfix="v666"] .market-signals-section,
+  html[data-portal-hotfix="v666"] .evidence-section,
+  html[data-portal-hotfix="v666"] .operations-section,
+  html[data-portal-hotfix="v666"] .research-section,
+  html[data-portal-hotfix="v666"] .archive-section,
+  html[data-portal-hotfix="v666"] .institution-section{
+    padding-top:52px!important;
+    padding-bottom:52px!important;
+  }
+
+  html[data-portal-hotfix="v666"] .evidence-card{
+    min-height:0!important;
+    padding:26px!important;
+  }
+
+  html[data-portal-hotfix="v666"] .research-feature{
+    min-height:0!important;
+    padding:28px!important;
+  }
+
+  html[data-portal-hotfix="v666"] .research-feature > div:nth-child(2){
+    margin:34px 0 24px!important;
+  }
+
+  html[data-portal-hotfix="v666"] .archive-row{
+    min-height:0!important;
+    grid-template-columns:1fr!important;
+    gap:8px!important;
+    padding-block:22px!important;
+  }
+}
