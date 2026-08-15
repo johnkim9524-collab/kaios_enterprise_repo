@@ -54,3 +54,18 @@ jobs:
         run: |
           node scripts/kidults/portal/validate-phase2-data-connections.mjs
           node scripts/kidults/portal/build-v502-registry-view.mjs
+
+      - name: Observe current public runtime without credentials
+        env:
+          KIDULTS_MONITORED_BASE_URL: https://kaios.kidults.com
+          KIDULTS_AUDIT_OUTPUT: artifacts/digitalocean-readonly-audit
+        run: python scripts/operations/digitalocean_readonly_audit.py
+
+      - name: Upload read-only runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-phase2-digitalocean-public-audit
+          path: artifacts/digitalocean-readonly-audit
+          if-no-files-found: error
+          retention-days: 30
