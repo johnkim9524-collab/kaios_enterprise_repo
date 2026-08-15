@@ -1,0 +1,54 @@
+name: Kidults P0 Assurance Continuity
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/**'
+      - '.github/workflows/kidults-p0-speed-quality.yml'
+      - '.github/workflows/kidults-p0-assurance-continuity.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: kidults-p0-assurance-continuity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  assurance-continuity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: services/kidults-autonomous-intelligence
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
+      - name: Critical CI determinism audit
+        run: node scripts/p0-critical-ci-audit.mjs
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: SRE and reliability baseline audit
+        run: node scripts/p0-sre-readiness-audit.mjs
+      - name: 120 governance baseline audit
+        run: node scripts/p0-120-governance-baseline-audit.mjs
+      - name: Engineering quality audit
+        run: npm run quality:audit
+      - name: Upload assurance continuity evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-p0-assurance-continuity
+          path: |
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/critical-ci-audit-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/sre-readiness-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/governance-baseline-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/quality-audit-latest.json
+          retention-days: 30
+          if-no-files-found: error
