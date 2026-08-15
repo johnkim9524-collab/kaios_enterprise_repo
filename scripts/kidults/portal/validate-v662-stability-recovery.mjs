@@ -71,15 +71,15 @@ if (!errors.length) {
   const markerGroups = [
     [index, "index", [
       'data-homepage-structure="v662"',
-      'portal.js?v=662-visual95',
-      'v662-stability-freeze.css?v=662-visual95',
-      'racing-roadster-v662.webp?v=662-visual95',
+      'portal.js?v=662-visual95-final',
+      'v662-stability-freeze.css?v=662-visual95-final',
+      'racing-roadster-v662.webp?v=662-visual95-final',
       'data-hero-asset="racing-roadster-v662"'
     ]],
     [portal, "portal", [
-      'mobile-hero-visibility.js?v=662-visual95',
-      'editorial-assets.js?v=662-visual95',
-      'homepage-structure.js?v=662-visual95',
+      'mobile-hero-visibility.js?v=662-visual95-final',
+      'editorial-assets.js?v=662-visual95-final',
+      'homepage-structure.js?v=662-visual95-final',
       'workspaceRoute: "workspace.html"',
       'workspaceMounted: false'
     ]],
@@ -150,9 +150,9 @@ if (!errors.length) {
   if (deploy.includes("sed -i")) errors.push("Deployment still mutates source files.");
   for (const marker of [
     "Verify V662 Visual95 source freeze",
-    "portal.js?v=662-visual95",
-    "racing-roadster-v662.webp?v=662-visual95",
-    "kidults-v662-visual95-live-evidence"
+    "portal.js?v=662-visual95-final",
+    "racing-roadster-v662.webp?v=662-visual95-final",
+    "kidults-v662-visual95-final-live-evidence"
   ]) if (!deploy.includes(marker)) errors.push(`Visual95 deployment marker missing: ${marker}`);
 
   if (!errors.length) {
