@@ -121,7 +121,8 @@ for (const viewport of viewports) {
     if (metrics.footerBorderTopWidth !== "0px") localFailures.push(`footer border=${metrics.footerBorderTopWidth}`);
     if (metrics.cardIsolation !== "isolate") localFailures.push(`card isolation=${metrics.cardIsolation}`);
     if (metrics.imageBackground !== "rgba(0, 0, 0, 0)") localFailures.push(`image background=${metrics.imageBackground}`);
-    if (metrics.imageBlendMode !== "multiply") localFailures.push(`image blend mode=${metrics.imageBlendMode}`);
+    if (metrics.imageBlendMode !== "darken") localFailures.push(`image blend mode=${metrics.imageBlendMode}`);
+    if (metrics.imageOpacity !== "1") localFailures.push(`image opacity=${metrics.imageOpacity}`);
     if (!metrics.whyTitleText.startsWith("We do not just show objects.")) localFailures.push(`WHY headline=${metrics.whyTitleText}`);
     if (!metrics.snapshotTimes.length || metrics.snapshotTimes.some(value => !value.includes("UTC") || /[가-힣]/.test(value))) {
       localFailures.push(`global snapshot time=${metrics.snapshotTimes.join(" | ")}`);
@@ -171,4 +172,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS V665 experience validation: PASS (single #f4f2ee Hero surface, bitmap blend integrated, simplified mobile footer, global UTC timestamps, collector/institution copy polish)");
+console.log("KIDULTS V665 experience validation: PASS (single #f4f2ee Hero surface, darken-composited bitmap, simplified mobile footer, global UTC timestamps, collector/institution copy polish)");
