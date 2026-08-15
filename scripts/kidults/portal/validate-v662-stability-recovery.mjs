@@ -38,6 +38,7 @@ const required = [
   `${portalRoot}/components/mobile-hero-visibility.css`,
   `${portalRoot}/components/homepage-structure.js`,
   `${portalRoot}/components/v662-stability-freeze.css`,
+  `${portalRoot}/components/v664-visible-hero-footer.css`,
   `${portalRoot}/assets/hero/racing-roadster-v662.webp`,
   `${portalRoot}/assets/kidult100/footwear-v654.webp`,
   `${portalRoot}/assets/kidult100/camera-v654.webp`,
@@ -46,7 +47,7 @@ const required = [
   `${portalRoot}/data/v502-manifest.json`,
   ".github/workflows/kidults-mobile-preview-pages.yml"
 ];
-for (const file of required) if (!exists(file)) errors.push(`Missing required V662 Visual95 file: ${file}`);
+for (const file of required) if (!exists(file)) errors.push(`Missing required V665 file: ${file}`);
 
 if (!errors.length) {
   const index = read(`${portalRoot}/index.html`);
@@ -57,6 +58,7 @@ if (!errors.length) {
   const mobileCss = read(`${portalRoot}/components/mobile-hero-visibility.css`);
   const homepage = read(`${portalRoot}/components/homepage-structure.js`);
   const css = read(`${portalRoot}/components/v662-stability-freeze.css`);
+  const heroCss = read(`${portalRoot}/components/v664-visible-hero-footer.css`);
   const manifest = JSON.parse(read(`${portalRoot}/data/v502-manifest.json`));
   const deploy = read(".github/workflows/kidults-mobile-preview-pages.yml");
 
@@ -71,17 +73,21 @@ if (!errors.length) {
   const markerGroups = [
     [index, "index", [
       'data-homepage-structure="v662"',
-      'portal.js?v=662-visual95-final',
+      'data-visual-freeze="v665"',
+      'portal.js?v=665',
       'v662-stability-freeze.css?v=662-visual95-final',
+      'v664-visible-hero-footer.css?v=665',
       'racing-roadster-v662.webp?v=662-visual95-final',
-      'data-hero-asset="racing-roadster-v662"'
+      'data-hero-asset="racing-roadster-v662"',
+      'data-hero-surface="v665-single-surface"'
     ]],
     [portal, "portal", [
       'mobile-hero-visibility.js?v=662-visual95-final',
       'editorial-assets.js?v=662-visual95-final',
       'homepage-structure.js?v=662-visual95-final',
       'workspaceRoute: "workspace.html"',
-      'workspaceMounted: false'
+      'workspaceMounted: false',
+      'visualFreeze: "v665"'
     ]],
     [assets, "asset binding", [
       'ROADSTER_KEY = "racing-roadster-v662"',
@@ -111,6 +117,13 @@ if (!errors.length) {
       '@media(max-width:768px)',
       '@media(max-width:420px)',
       '@media(max-width:340px)'
+    ]],
+    [heroCss, "V665 Hero surface", [
+      "V665 single-surface experience freeze",
+      "mix-blend-mode:multiply!important",
+      "background:transparent!important",
+      "background:#f4f2ee!important",
+      "border-top:0!important"
     ]]
   ];
   for (const [source, label, markers] of markerGroups) {
@@ -149,19 +162,20 @@ if (!errors.length) {
 
   if (deploy.includes("sed -i")) errors.push("Deployment still mutates source files.");
   for (const marker of [
-    "Verify V662 Visual95 source freeze",
-    "portal.js?v=662-visual95-final",
+    "Verify V665 public-experience freeze",
+    "portal.js?v=665",
+    "v664-visible-hero-footer.css?v=665",
     "racing-roadster-v662.webp?v=662-visual95-final",
-    "kidults-v662-visual95-final-live-evidence"
-  ]) if (!deploy.includes(marker)) errors.push(`Visual95 deployment marker missing: ${marker}`);
+    "kidults-v665-live-evidence"
+  ]) if (!deploy.includes(marker)) errors.push(`V665 deployment marker missing: ${marker}`);
 
   if (!errors.length) {
-    console.log(`KIDULTS V662 Visual95 stability recovery: PASS (${size.width}x${size.height}, ${hero.length} bytes, one Roadster, unified K100, one Workspace intro)`);
+    console.log(`KIDULTS V665 stability recovery: PASS (${size.width}x${size.height}, ${hero.length} bytes, one Roadster, single Hero surface, unified K100, one Workspace intro)`);
   }
 }
 
 if (errors.length) {
-  console.error(`KIDULTS V662 Visual95 stability recovery: FAIL (${errors.length} error(s))`);
+  console.error(`KIDULTS V665 stability recovery: FAIL (${errors.length} error(s))`);
   for (const error of errors) console.error(`ERROR: ${error}`);
   process.exit(1);
 }
