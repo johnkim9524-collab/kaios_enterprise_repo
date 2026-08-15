@@ -20,7 +20,7 @@ import {
   renderArchive,
   renderReleaseBaseline,
   renderPortalError
-} from "./components/renderers.js?v=662";
+} from "./components/renderers.js?v=665";
 import {
   setupNavigation,
   setupDialogs,
@@ -39,16 +39,14 @@ function determineDataState(data) {
 function formatGlobalSnapshotTime(value) {
   const parsed = Date.parse(value ?? "");
   if (!Number.isFinite(parsed)) return "NOT AVAILABLE";
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "UTC",
-    timeZoneName: "short"
-  }).format(new Date(parsed));
+  const date = new Date(parsed);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = months[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+  const hour = String(date.getUTCHours()).padStart(2, "0");
+  const minute = String(date.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${month} ${year}, ${hour}:${minute} UTC`;
 }
 
 function applyPublicExperiencePolish(data) {
@@ -88,7 +86,6 @@ async function init() {
     renderResearch(data.research);
     renderArchive(data.archive);
     renderReleaseBaseline(data.registry, data.manifest);
-    applyPublicExperiencePolish(data);
 
     startLivingPulse({ data, reload: loadPortalData, contract: data.pulse });
     startWhyEngine({ data, contract: data.why });
@@ -103,6 +100,7 @@ async function init() {
     startMobileReconstruction();
     startMobileHeroVisibility({ manifest: data.manifest });
     startHomepageStructure();
+    applyPublicExperiencePolish(data);
 
     document.documentElement.dataset.dataState = determineDataState(data);
     window.KIDULTS_V502 = Object.freeze({
