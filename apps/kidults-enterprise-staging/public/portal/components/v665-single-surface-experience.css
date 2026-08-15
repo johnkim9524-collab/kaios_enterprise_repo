@@ -1,0 +1,99 @@
+/* KIDULTS Portal V665 — final public-experience freeze before content and data integration.
+   Purpose: make the Hero read as one museum-grade warm-limestone object card,
+   while preserving the approved V662 Roadster asset, V663 internal footer and V664 viewport stability. */
+
+html[data-visual-freeze="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"]{
+  --v665-hero-surface:#f4f2ee;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  background:var(--v665-hero-surface)!important;
+  border-color:rgba(7,61,45,.085)!important;
+  box-shadow:0 28px 72px rgba(20,36,29,.038),0 6px 16px rgba(20,36,29,.014)!important;
+}
+
+html[data-visual-freeze="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"]::before,
+html[data-visual-freeze="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-shade{
+  display:none!important;
+  background:none!important;
+}
+
+/* The approved Roadster master includes a pale studio field in the bitmap.
+   Multiplying it into the exact card surface removes the visible white image rectangle
+   without recolouring the vehicle or introducing a second synthetic background. */
+html[data-visual-freeze="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+html[data-visual-freeze="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+  z-index:0!important;
+  background:transparent!important;
+  mix-blend-mode:multiply!important;
+  opacity:.985!important;
+  filter:saturate(.925) contrast(.975) brightness(1.025)!important;
+}
+
+html[data-visual-freeze="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-topline,
+html[data-visual-freeze="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-copy{
+  z-index:2!important;
+  background:transparent!important;
+}
+
+/* The footer is metadata within the same card, not a separate strip. */
+html[data-visual-freeze="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+  z-index:3!important;
+  background:transparent!important;
+  border-top:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+
+html[data-visual-freeze="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  background:var(--v665-hero-surface);
+  pointer-events:none;
+}
+
+/* Keep metadata legible while retaining the single-surface impression. */
+html[data-visual-freeze="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] [data-hero-status]{
+  color:#777d78!important;
+}
+
+@media(min-width:769px){
+  html[data-visual-freeze="v665"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    min-height:62px!important;
+    padding-top:11px!important;
+    padding-bottom:12px!important;
+  }
+}
+
+@media(max-width:768px){
+  html[data-visual-freeze="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"],
+  html[data-visual-freeze="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-topline,
+  html[data-visual-freeze="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-copy,
+  html[data-visual-freeze="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    background:var(--v665-hero-surface)!important;
+  }
+
+  html[data-visual-freeze="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image,
+  html[data-visual-freeze="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-image[hidden]{
+    background:transparent!important;
+    mix-blend-mode:multiply!important;
+    opacity:.985!important;
+    filter:saturate(.925) contrast(.975) brightness(1.025)!important;
+  }
+
+  html[data-visual-freeze="v665"][data-mobile-reconstruction="v1"] [data-hero-card][data-hero-layout="v663-integrated-footer"] .moment-footer{
+    border-top:0!important;
+    box-shadow:none!important;
+  }
+}
+
+/* A collector-and-institution portal should feel generous, but not disconnected.
+   These small reductions remove dead air without changing the established layout system. */
+html[data-visual-freeze="v665"] .snapshot-section,
+html[data-visual-freeze="v665"] .market-signals-section,
+html[data-visual-freeze="v665"] .evidence-section,
+html[data-visual-freeze="v665"] .operations-section{
+  scroll-margin-top:104px;
+}
