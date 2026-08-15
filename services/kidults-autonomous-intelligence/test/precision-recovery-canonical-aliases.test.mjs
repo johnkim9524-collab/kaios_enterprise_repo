@@ -17,7 +17,7 @@ function hasDistinctiveShape(value) {
 }
 
 test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
-  assert.equal(config.schemaVersion, '1.0.12');
+  assert.equal(config.schemaVersion, '1.0.13');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
@@ -68,9 +68,9 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
     'fashion-accessories': [
       'Air Jordan 1',
       'Air Jordan 4',
+      'Nike Air Max',
       'Nike Air Max 90',
       'Nike Air Max 97',
-      'Nike Air Max 95',
       'Nike Air Max Plus',
       'Nike Dunk Low',
       'Vans Old Skool',
@@ -130,9 +130,9 @@ test('fashion recovery prunes typed searches already covered by stricter canonic
   const canonical = [
     'Air Jordan 1',
     'Air Jordan 4',
+    'Nike Air Max',
     'Nike Air Max 90',
     'Nike Air Max 97',
-    'Nike Air Max 95',
     'Nike Air Max Plus',
     'Nike Dunk Low',
     'Vans Old Skool',
@@ -163,6 +163,7 @@ test('fashion recovery prunes typed searches already covered by stricter canonic
 
   for (const alias of canonical) assert.ok(queries.includes(alias), `missing retained canonical alias: ${alias}`);
   for (const query of redundant) assert.equal(queries.includes(query), false, `redundant fashion recovery query returned: ${query}`);
+  assert.equal(queries.includes('Nike Air Max 95'), false, 'zero-yield Nike Air Max 95 exact query returned to the request budget');
   assert.equal(queries.includes('Nike Mag'), false, 'zero-yield Nike Mag query returned to the request budget');
   assert.equal(queries.includes('Nike Air Yeezy'), false, 'zero-yield Nike Air Yeezy query returned to the request budget');
   assert.ok(queries.includes('Nike Dunk'), 'exact Nike Dunk recovery alias is missing');
