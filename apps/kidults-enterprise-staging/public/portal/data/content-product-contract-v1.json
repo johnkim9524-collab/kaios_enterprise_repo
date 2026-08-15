@@ -1,0 +1,61 @@
+{
+  "contract_id": "kidults-content-product-contract-v1",
+  "version": "1.0.0",
+  "status": "FOUNDATION_ACTIVE",
+  "effective_at": "2026-08-16T04:30:00+09:00",
+  "publication_state_order": [
+    "DRAFT",
+    "INTERNAL",
+    "QA_PASSED",
+    "APPROVED",
+    "PUBLISHED",
+    "ARCHIVED"
+  ],
+  "required_metadata": [
+    "content_id",
+    "content_type",
+    "snapshot_id",
+    "methodology_version",
+    "evidence_lineage_version",
+    "rights_status",
+    "publication_state",
+    "as_of"
+  ],
+  "products": [
+    {
+      "id": "monthly-intelligence",
+      "content_type": "RESEARCH",
+      "portal_route": "#research",
+      "official_source": "monthly_intelligence",
+      "minimum_state": "QA_PASSED"
+    },
+    {
+      "id": "vertical-intelligence",
+      "content_type": "VERTICAL",
+      "portal_route": "vertical.html",
+      "official_source": "published_snapshot",
+      "minimum_state": "APPROVED"
+    },
+    {
+      "id": "object-intelligence",
+      "content_type": "OBJECT",
+      "portal_route": "object.html",
+      "official_source": "published_snapshot",
+      "minimum_state": "APPROVED"
+    },
+    {
+      "id": "kidult-100",
+      "content_type": "RANKING",
+      "portal_route": "#k100",
+      "official_source": "published_snapshot_and_assessment",
+      "minimum_state": "APPROVED"
+    }
+  ],
+  "rules": {
+    "evidence_before_metric": true,
+    "unassessed_candidate_public": false,
+    "missing_to_zero": false,
+    "rights_clearance_required": true,
+    "portal_calculation_allowed": false
+  }
+}

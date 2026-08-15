@@ -1,0 +1,12 @@
+{
+  "shadow_id": "kidults-provider-shadow-v1",
+  "version": "1.0.0",
+  "status": "WAITING_FOR_PROVIDER_REGISTRATION",
+  "access": "INTERNAL_ONLY",
+  "publication_eligible": false,
+  "provider_record_count": 0,
+  "active_provider_ids": [],
+  "credentials_present": false,
+  "production_connection": false,
+  "note": "Provider payloads are isolated from the public Portal. Only contract and connection status may be projected."
+}

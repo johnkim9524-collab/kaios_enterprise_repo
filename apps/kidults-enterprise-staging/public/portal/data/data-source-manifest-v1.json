@@ -1,0 +1,135 @@
+{
+  "manifest_id": "kidults-portal-data-source-manifest-v1",
+  "version": "1.0.0",
+  "status": "FOUNDATION_ACTIVE",
+  "generated_at": "2026-08-16T04:30:00+09:00",
+  "baseline_snapshot_id": "baseline-provider-independent-v1",
+  "production_eligible": false,
+  "rules": {
+    "same_origin_only": true,
+    "raw_provider_data_to_portal": "PROHIBITED",
+    "missing_to_zero": false,
+    "candidate_requires_assessment": true,
+    "internal_payload_exposure": "PROHIBITED"
+  },
+  "sources": [
+    {
+      "id": "registry_projection",
+      "role": "CANONICAL_STATUS",
+      "path": "data/registry-view.json?v=phase2-1",
+      "required": true,
+      "access": "PUBLIC_PAYLOAD",
+      "publication_policy": "STATUS_ONLY",
+      "snapshot_binding": "BASELINE",
+      "snapshot_path": "snapshot.baseline_id",
+      "required_metadata": [
+        "registry_system_version",
+        "versions.portal_contract"
+      ],
+      "accepted_statuses": []
+    },
+    {
+      "id": "content_contract",
+      "role": "CONTENT_PRODUCT_CONTRACT",
+      "path": "data/content-product-contract-v1.json?v=phase2-1",
+      "required": true,
+      "access": "PUBLIC_PAYLOAD",
+      "publication_policy": "STATUS_ONLY",
+      "snapshot_binding": "NONE",
+      "required_metadata": [
+        "version",
+        "status"
+      ],
+      "accepted_statuses": [
+        "FOUNDATION_ACTIVE"
+      ]
+    },
+    {
+      "id": "provider_gap_matrix",
+      "role": "PROVIDER_REQUIREMENTS",
+      "path": "data/provider-gap-matrix-v1.json?v=phase2-1",
+      "required": true,
+      "access": "PUBLIC_PAYLOAD",
+      "publication_policy": "STATUS_ONLY",
+      "snapshot_binding": "NONE",
+      "required_metadata": [
+        "version",
+        "status"
+      ],
+      "accepted_statuses": [
+        "FOUNDATION_ACTIVE"
+      ]
+    },
+    {
+      "id": "quality_feed",
+      "role": "VERIFIED_QUALITY_OVERLAY",
+      "path": "../data/quality-status.json?v=phase2-1",
+      "required": false,
+      "access": "PUBLIC_PAYLOAD",
+      "publication_policy": "CONTRACT_GATED",
+      "snapshot_binding": "BASELINE",
+      "snapshot_path": "snapshot_id",
+      "status_path": "status",
+      "required_metadata": [
+        "snapshot_id",
+        "methodology_version",
+        "evidence_lineage_version",
+        "evaluated_at"
+      ],
+      "accepted_statuses": [
+        "VERIFIED",
+        "QA_PASSED",
+        "APPROVED"
+      ]
+    },
+    {
+      "id": "monthly_intelligence",
+      "role": "MONTHLY_CONTENT_OVERLAY",
+      "path": "../data/monthly-intelligence.json?v=phase2-1",
+      "required": false,
+      "access": "PUBLIC_PAYLOAD",
+      "publication_policy": "CONTRACT_GATED",
+      "snapshot_binding": "BASELINE",
+      "snapshot_path": "snapshot_id",
+      "status_path": "status",
+      "required_metadata": [
+        "snapshot_id",
+        "methodology_version",
+        "evidence_lineage_version",
+        "published_at"
+      ],
+      "accepted_statuses": [
+        "QA_PASSED",
+        "APPROVED",
+        "PUBLISHED"
+      ]
+    },
+    {
+      "id": "provider_shadow",
+      "role": "INTERNAL_PROVIDER_SHADOW",
+      "path": "data/provider-shadow.json?v=phase2-1",
+      "required": false,
+      "access": "INTERNAL_ONLY",
+      "publication_policy": "NEVER",
+      "snapshot_binding": "NONE",
+      "status_path": "status",
+      "required_metadata": [],
+      "accepted_statuses": []
+    },
+    {
+      "id": "runtime_health",
+      "role": "RUNTIME_STATUS_ONLY",
+      "path": "data/runtime-health-projection.json?v=phase2-1",
+      "required": false,
+      "access": "PUBLIC_STATUS_ONLY",
+      "publication_policy": "STATUS_ONLY",
+      "snapshot_binding": "NONE",
+      "status_path": "status",
+      "required_metadata": [
+        "version",
+        "production_state"
+      ],
+      "accepted_statuses": []
+    }
+  ]
+}
