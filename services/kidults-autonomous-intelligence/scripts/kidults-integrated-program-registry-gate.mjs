@@ -39,6 +39,12 @@ const TRACK_B_NON_OFFICIAL_INPUTS = [
   'VERBAL_EXPLANATION',
   'CHAT_ONLY_INFORMATION',
 ];
+const TRACK_B_NON_OFFICIAL_ARTIFACT_LANES = [
+  'reports/engineering-hardening',
+  'reports/execution-control',
+  'reports/runtime',
+  'registry/runtime',
+];
 const TRACK_B_OUTPUT_MUST_NOT_GENERATE = [
   'snapshot-candidate.json',
   'PORTAL_RELEASE',
@@ -148,6 +154,20 @@ function artifactReferenceMatches(reference, expected) {
   return normalized === expected || normalized.endsWith(`/${expected}`);
 }
 
+function isTrackBNonOfficialArtifactLane(reference) {
+  if (typeof reference !== 'string') return false;
+  const normalized = reference
+    .replaceAll('\\', '/')
+    .replace(/^\.\//, '')
+    .replace(/\/+$/, '')
+    .toLowerCase();
+  return TRACK_B_NON_OFFICIAL_ARTIFACT_LANES.some((lane) =>
+    normalized === lane
+    || normalized.startsWith(`${lane}/`)
+    || normalized.includes(`/${lane}/`)
+  );
+}
+
 function trackMatches(value, trackId) {
   return typeof value === 'string' && TRACK_ALIASES[trackId]?.has(value);
 }
@@ -167,6 +187,7 @@ function findAcceptedHandoffs(handoffs, snapshotId, artifactReference) {
     && trackMatches(row?.from_track, 'A')
     && trackMatches(row?.to_track, 'B')
     && artifactReferenceMatches(row?.artifact_reference, artifactReference)
+    && !isTrackBNonOfficialArtifactLane(row?.artifact_reference)
     && ACCEPTED_HANDOFF_STATES.has(String(row?.state ?? '').toLowerCase())
   );
 }
@@ -394,6 +415,7 @@ const report = {
       evidence_package_handoff_id: handoffId(evidencePackageHandoff),
       exact_snapshot_match_required: true,
       accepted_states: [...ACCEPTED_HANDOFF_STATES],
+      non_official_artifact_lanes_rejected: true,
     },
   },
   failures,
@@ -411,6 +433,7 @@ const report = {
     unauthorized_scraping_used: false,
     rights_or_provenance_weakened: false,
     production_gate_weakened: false,
+    operational_runtime_evidence_used_as_track_b_official_input: false,
   },
 };
 
