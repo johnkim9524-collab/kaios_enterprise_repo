@@ -1,9 +1,10 @@
-name: KIDULTS Portal V664 Hero Validate
+name: KIDULTS Portal V665 Experience Validate
 
 on:
   pull_request:
     paths:
       - 'apps/kidults-enterprise-staging/public/portal/index.html'
+      - 'apps/kidults-enterprise-staging/public/portal/portal.js'
       - 'apps/kidults-enterprise-staging/public/portal/components/v663-hero-integrated-footer.css'
       - 'apps/kidults-enterprise-staging/public/portal/components/v664-visible-hero-footer.css'
       - 'scripts/kidults/portal/validate-v663-hero-layout.mjs'
@@ -13,6 +14,7 @@ on:
     branches: [main]
     paths:
       - 'apps/kidults-enterprise-staging/public/portal/index.html'
+      - 'apps/kidults-enterprise-staging/public/portal/portal.js'
       - 'apps/kidults-enterprise-staging/public/portal/components/v663-hero-integrated-footer.css'
       - 'apps/kidults-enterprise-staging/public/portal/components/v664-visible-hero-footer.css'
       - 'scripts/kidults/portal/validate-v663-hero-layout.mjs'
@@ -35,7 +37,7 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Validate V664 source contract
+      - name: Validate V665 source contract
         run: |
           node --check scripts/kidults/portal/validate-v663-hero-layout.mjs
           node --check scripts/kidults/portal/validate-v664-hero-visual.mjs
@@ -48,28 +50,28 @@ jobs:
 
       - name: Start local KIDULTS portal
         run: |
-          python3 -m http.server 4173 --directory apps/kidults-enterprise-staging/public > /tmp/kidults-v664-server.log 2>&1 &
-          echo $! > /tmp/kidults-v664-server.pid
+          python3 -m http.server 4173 --directory apps/kidults-enterprise-staging/public > /tmp/kidults-v665-server.log 2>&1 &
+          echo $! > /tmp/kidults-v665-server.pid
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:4173/portal/index.html >/dev/null; then
               exit 0
             fi
             sleep 1
           done
-          cat /tmp/kidults-v664-server.log
+          cat /tmp/kidults-v665-server.log
           exit 1
 
-      - name: Validate V664 at 1366x768, 1440x900, 390x844 and 320x740
+      - name: Validate V665 at 1366x768, 1440x900, 390x844 and 320x740
         env:
-          KIDULTS_V664_OUTPUT: artifacts/kidults-v664-hero
+          KIDULTS_V664_OUTPUT: artifacts/kidults-v665-experience
         run: node scripts/kidults/portal/validate-v664-hero-visual.mjs
 
-      - name: Upload V664 Hero evidence
+      - name: Upload V665 experience evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kidults-v664-hero-evidence
-          path: artifacts/kidults-v664-hero
+          name: kidults-v665-experience-evidence
+          path: artifacts/kidults-v665-experience
           if-no-files-found: warn
           retention-days: 14
 
@@ -86,22 +88,23 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Wait for public V664 deployment
+      - name: Wait for public V665 deployment
         run: |
           set -euo pipefail
-          url='https://johnkim9524-collab.github.io/kaios_enterprise_repo/portal/index.html?v=664'
+          url='https://johnkim9524-collab.github.io/kaios_enterprise_repo/portal/index.html?v=665'
           for attempt in $(seq 1 36); do
-            echo "V664 public check ${attempt}/36"
-            if curl --fail --silent --show-error --location --header 'Cache-Control: no-cache' "${url}&deployment=${GITHUB_SHA}" --output /tmp/kidults-v664-live.html; then
-              if grep -q 'data-portal-hotfix="v664"' /tmp/kidults-v664-live.html \
-                && grep -q 'v664-visible-hero-footer.css?v=664' /tmp/kidults-v664-live.html \
-                && grep -q 'data-hero-revision="v664-visible-footer"' /tmp/kidults-v664-live.html; then
+            echo "V665 public check ${attempt}/36"
+            if curl --fail --silent --show-error --location --header 'Cache-Control: no-cache' "${url}&deployment=${GITHUB_SHA}" --output /tmp/kidults-v665-live.html; then
+              if grep -q 'data-visual-freeze="v665"' /tmp/kidults-v665-live.html \
+                && grep -q 'v664-visible-hero-footer.css?v=665' /tmp/kidults-v665-live.html \
+                && grep -q 'portal.js?v=665' /tmp/kidults-v665-live.html \
+                && grep -q 'data-hero-surface="v665-single-surface"' /tmp/kidults-v665-live.html; then
                 exit 0
               fi
             fi
             sleep 5
           done
-          cat /tmp/kidults-v664-live.html 2>/dev/null || true
+          cat /tmp/kidults-v665-live.html 2>/dev/null || true
           exit 1
 
       - name: Install Playwright Chromium
@@ -109,17 +112,17 @@ jobs:
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Validate public V664 Hero
+      - name: Validate public V665 experience
         env:
           KIDULTS_BASE_URL: https://johnkim9524-collab.github.io/kaios_enterprise_repo
-          KIDULTS_V664_OUTPUT: artifacts/kidults-v664-live
+          KIDULTS_V664_OUTPUT: artifacts/kidults-v665-live
         run: node scripts/kidults/portal/validate-v664-hero-visual.mjs
 
-      - name: Upload public V664 evidence
+      - name: Upload public V665 evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kidults-v664-hero-live-evidence
-          path: artifacts/kidults-v664-live
+          name: kidults-v665-experience-live-evidence
+          path: artifacts/kidults-v665-live
           if-no-files-found: warn
           retention-days: 14
