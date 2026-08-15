@@ -18,10 +18,6 @@ const failures = [];
 const report = { generatedAt: new Date().toISOString(), baseUrl, results: [] };
 const browser = await chromium.launch({ headless: true });
 
-function visible(style, rect) {
-  return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0;
-}
-
 for (const viewport of viewports) {
   const page = await browser.newPage({ viewport, deviceScaleFactor: 1, reducedMotion: "reduce" });
   const runtimeErrors = [];
@@ -84,19 +80,20 @@ for (const viewport of viewports) {
         statusVisible: isVisible(statusStyle, statusRect),
         verticalVisible: isVisible(verticalStyle, verticalRect),
         actionVisible: isVisible(actionStyle, actionRect),
-        statusDisplay: statusStyle?.display ?? null
+        statusDisplay: statusStyle?.display ?? null,
+        verticalDisplay: verticalStyle?.display ?? null
       };
     });
 
     const localFailures = [];
     const mobile = viewport.width <= 768;
+    const compactMobile = viewport.width <= 340;
     if (metrics.portalHotfix !== "v664") localFailures.push(`portalHotfix=${metrics.portalHotfix}`);
     if (metrics.heroRevision !== "v664-visible-footer") localFailures.push(`heroRevision=${metrics.heroRevision}`);
     if (metrics.heroLayout !== "v663-integrated-footer") localFailures.push(`heroLayout=${metrics.heroLayout}`);
     if (metrics.scrollWidth > metrics.clientWidth + 1) localFailures.push(`horizontal overflow=${metrics.scrollWidth - metrics.clientWidth}px`);
     if (!metrics.footerVisible) localFailures.push("Hero footer is not visible");
     if (!metrics.footerContained) localFailures.push("Hero footer is not contained inside the Hero card");
-    if (!metrics.verticalVisible) localFailures.push("Hero vertical label is not visible");
     if (!metrics.actionVisible) localFailures.push("Hero View details action is not visible");
     if (metrics.cardBackground !== "rgb(244, 242, 238)") localFailures.push(`card background=${metrics.cardBackground}`);
     if (metrics.footerBackground !== "rgb(244, 242, 238)") localFailures.push(`footer background=${metrics.footerBackground}`);
@@ -104,7 +101,15 @@ for (const viewport of viewports) {
     if (mobile) {
       if (metrics.statusVisible || metrics.statusDisplay !== "none") localFailures.push(`mobile status must be hidden (display=${metrics.statusDisplay})`);
       if (metrics.footerHeight > 72) localFailures.push(`mobile footer too tall=${metrics.footerHeight}px`);
+      if (compactMobile) {
+        if (metrics.verticalVisible || metrics.verticalDisplay !== "none") {
+          localFailures.push(`320px category must be hidden (display=${metrics.verticalDisplay})`);
+        }
+      } else if (!metrics.verticalVisible) {
+        localFailures.push("390px Hero category is not visible");
+      }
     } else {
+      if (!metrics.verticalVisible) localFailures.push("desktop Hero vertical label is not visible");
       if (!metrics.statusVisible) localFailures.push("desktop editorial status is not visible");
       if (viewport.width >= 1021 && Math.abs(metrics.cardHeight - 560) > 2) localFailures.push(`desktop card height=${metrics.cardHeight}px`);
       if (viewport.height <= 800 && !metrics.footerInInitialViewport) localFailures.push(`desktop footer below initial viewport (bottom=${metrics.footerBottom}, viewport=${metrics.viewportHeight})`);
@@ -137,4 +142,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS V664 Hero visual validation: PASS (short desktop viewport footer visible, internal one-surface card, simplified 320/390 mobile footer)");
+console.log("KIDULTS V664 Hero visual validation: PASS (short desktop viewport footer visible, internal one-surface card, category + CTA at 390px, CTA-only at 320px)");
