@@ -4,7 +4,7 @@ const VERSION = "2.0.0";
 function ensureStylesheet() {
   document.querySelectorAll('link[href*="v661-final-freeze.css"],link[href*="v658-visual-freeze.css"]').forEach(link => link.remove());
 
-  const href = "components/v662-stability-freeze.css?v=662-visual95";
+  const href = "components/v662-stability-freeze.css?v=662-visual95-final";
   let link = document.getElementById(STYLE_ID);
   if (!link) {
     link = document.createElement("link");

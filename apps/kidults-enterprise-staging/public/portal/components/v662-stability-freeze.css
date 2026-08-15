@@ -339,3 +339,27 @@ html[data-homepage-structure="v662"] .k100-card[data-visual-system="single-studi
     background:#f3f1ec!important;
   }
 }
+
+
+/* KIDULTS V662 FINAL TUNE — watch-master neutral studio and restrained Hero halo. */
+html[data-homepage-structure="v662"] [data-hero-card][data-visual-system="single-studio-v662-visual95"]{
+  background:#f4f2ee!important;
+}
+html[data-homepage-structure="v662"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image,
+html[data-homepage-structure="v662"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image[hidden]{
+  background:#f4f2ee!important;
+  filter:saturate(.93) contrast(.985) brightness(1.006)!important;
+}
+html[data-homepage-structure="v662"] .k100-card[data-visual-system="single-studio-v662-visual95"] .k100-figure{
+  background:#f4f2ee!important;
+}
+html[data-homepage-structure="v662"] .k100-card[data-visual-system="single-studio-v662-visual95"] .k100-figure img{
+  background:#f4f2ee!important;
+  filter:saturate(.955) contrast(.99) brightness(1.012)!important;
+}
+@media(max-width:768px){
+  html[data-mobile-reconstruction="v1"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image,
+  html[data-mobile-reconstruction="v1"] [data-hero-card][data-visual-system="single-studio-v662-visual95"] .moment-image[hidden]{
+    background:#f4f2ee!important;
+  }
+}
