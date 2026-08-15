@@ -44,15 +44,18 @@ for (const viewport of viewports) {
       const root = document.documentElement;
       const card = document.querySelector("[data-hero-card]");
       const footer = card?.querySelector(".moment-footer");
+      const source = card?.querySelector(".hero-source");
       const status = card?.querySelector("[data-hero-status]");
       const vertical = card?.querySelector("[data-hero-vertical]");
       const action = card?.querySelector(".moment-footer .text-link");
       const cardRect = card?.getBoundingClientRect();
       const footerRect = footer?.getBoundingClientRect();
+      const sourceRect = source?.getBoundingClientRect();
       const statusRect = status?.getBoundingClientRect();
       const verticalRect = vertical?.getBoundingClientRect();
       const actionRect = action?.getBoundingClientRect();
       const footerStyle = footer ? getComputedStyle(footer) : null;
+      const sourceStyle = source ? getComputedStyle(source) : null;
       const statusStyle = status ? getComputedStyle(status) : null;
       const verticalStyle = vertical ? getComputedStyle(vertical) : null;
       const actionStyle = action ? getComputedStyle(action) : null;
@@ -77,11 +80,12 @@ for (const viewport of viewports) {
         footerBackground: footerStyle?.backgroundColor ?? null,
         footerContained: Boolean(cardRect && footerRect && footerRect.left >= cardRect.left - 1 && footerRect.right <= cardRect.right + 1 && footerRect.top >= cardRect.top - 1 && footerRect.bottom <= cardRect.bottom + 1),
         footerInInitialViewport: Boolean(footerRect && footerRect.bottom <= window.innerHeight + 1),
+        sourceVisible: isVisible(sourceStyle, sourceRect),
         statusVisible: isVisible(statusStyle, statusRect),
         verticalVisible: isVisible(verticalStyle, verticalRect),
         actionVisible: isVisible(actionStyle, actionRect),
         statusDisplay: statusStyle?.display ?? null,
-        verticalDisplay: verticalStyle?.display ?? null
+        sourceDisplay: sourceStyle?.display ?? null
       };
     });
 
@@ -102,8 +106,8 @@ for (const viewport of viewports) {
       if (metrics.statusVisible || metrics.statusDisplay !== "none") localFailures.push(`mobile status must be hidden (display=${metrics.statusDisplay})`);
       if (metrics.footerHeight > 72) localFailures.push(`mobile footer too tall=${metrics.footerHeight}px`);
       if (compactMobile) {
-        if (metrics.verticalVisible || metrics.verticalDisplay !== "none") {
-          localFailures.push(`320px category must be hidden (display=${metrics.verticalDisplay})`);
+        if (metrics.sourceVisible || metrics.sourceDisplay !== "none") {
+          localFailures.push(`320px source block must be hidden (display=${metrics.sourceDisplay})`);
         }
       } else if (!metrics.verticalVisible) {
         localFailures.push("390px Hero category is not visible");
