@@ -15,7 +15,7 @@ test('fashion precision recovery keeps latest measured zero-yield typed queries 
 });
 
 test('zero-yield pruning does not broaden source, rights, evidence, or production authority', () => {
-  assert.equal(config.schemaVersion, '1.0.13');
+  assert.equal(config.schemaVersion, '1.0.14');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.rightsClass, 'CC0_STRUCTURED_DATA');
   assert.equal(config.safety.wikidataOnly, true);
