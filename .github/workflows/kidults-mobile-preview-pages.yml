@@ -32,7 +32,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify V662 final-tune source freeze
+      - name: Verify V662 Visual95 source freeze
         run: |
           set -euo pipefail
           portal='apps/kidults-enterprise-staging/public/portal'
@@ -181,7 +181,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kidults-v662-final-tune-live-evidence
+          name: kidults-v662-visual95-final-live-evidence
           path: artifacts/kidults-v662-live
           if-no-files-found: warn
           retention-days: 14
