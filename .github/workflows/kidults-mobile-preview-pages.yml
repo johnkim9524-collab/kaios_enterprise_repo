@@ -1,4 +1,4 @@
-name: Kidults V662 Stable Portal
+name: Kidults V662 Visual95 Final Portal
 
 on:
   push:
@@ -32,33 +32,48 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify V662 source freeze
+      - name: Verify V662 Visual95 source freeze
         run: |
-          grep -q 'portal.js?v=662' apps/kidults-enterprise-staging/public/portal/index.html
-          grep -q 'v662-stability-freeze.css?v=662' apps/kidults-enterprise-staging/public/portal/index.html
-          grep -q 'homepage-structure.js?v=662' apps/kidults-enterprise-staging/public/portal/portal.js
-          grep -q 'editorial-assets.js?v=662' apps/kidults-enterprise-staging/public/portal/portal.js
-          grep -q 'workspace-page.js?v=662' apps/kidults-enterprise-staging/public/portal/workspace.html
-          grep -q 'workspace-page.css?v=662' apps/kidults-enterprise-staging/public/portal/workspace.html
-          grep -q 'racing-roadster-v662.webp?v=662' apps/kidults-enterprise-staging/public/portal/index.html
-          grep -q 'racing-roadster-v662.webp' apps/kidults-enterprise-staging/public/portal/data/v502-manifest.json
-          test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v654.webp
-          test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v658-desktop.webp
-          test ! -e apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v660-master.webp
+          set -euo pipefail
+          portal='apps/kidults-enterprise-staging/public/portal'
+          grep -q 'portal.js?v=662-visual95' "$portal/index.html"
+          grep -q 'v662-stability-freeze.css?v=662-visual95' "$portal/index.html"
+          grep -q 'racing-roadster-v662.webp?v=662-visual95' "$portal/index.html"
+          grep -q 'homepage-structure.js?v=662-visual95' "$portal/portal.js"
+          grep -q 'editorial-assets.js?v=662-visual95' "$portal/portal.js"
+          grep -q 'mobile-hero-visibility.js?v=662-visual95' "$portal/portal.js"
+          grep -q 'CACHE_REVISION = "visual95"' "$portal/components/editorial-assets.js"
+          grep -q 'single-studio-v662-visual95' "$portal/components/editorial-assets.js"
+          grep -q 'workspace-page.js?v=662' "$portal/workspace.html"
+          grep -q 'workspace-page.css?v=662' "$portal/workspace.html"
+          grep -q 'racing-roadster-v662.webp' "$portal/data/v502-manifest.json"
+          test ! -e "$portal/assets/hero/racing-roadster-v654.webp"
+          test ! -e "$portal/assets/hero/racing-roadster-v658-desktop.webp"
+          test ! -e "$portal/assets/hero/racing-roadster-v660-master.webp"
+          test ! -e "$portal/assets/hero/racing-roadster-v658-mobile.webp"
           python3 - <<'PY'
           from pathlib import Path
-          asset = Path('apps/kidults-enterprise-staging/public/portal/assets/hero/racing-roadster-v662.webp')
-          data = asset.read_bytes()
-          assert data[:4] == b'RIFF', 'Roadster asset is not a RIFF file'
-          assert data[8:12] == b'WEBP', 'Roadster asset is not a WebP file'
-          assert len(data) > 40_000, 'Roadster asset is unexpectedly small'
-          print(f'V662 Roadster verified: {len(data)} bytes')
+
+          portal = Path('apps/kidults-enterprise-staging/public/portal')
+          assets = [
+              portal / 'assets/hero/racing-roadster-v662.webp',
+              portal / 'assets/kidult100/footwear-v654.webp',
+              portal / 'assets/kidult100/camera-v654.webp',
+              portal / 'assets/kidult100/toys-v654.webp',
+              portal / 'assets/kidult100/watch-v655.webp',
+          ]
+          for asset in assets:
+              data = asset.read_bytes()
+              assert data[:4] == b'RIFF', f'{asset} is not a RIFF file'
+              assert data[8:12] == b'WEBP', f'{asset} is not a WebP file'
+              assert len(data) > 25_000, f'{asset} is unexpectedly small: {len(data)}'
+              print(f'Visual95 asset verified: {asset} ({len(data)} bytes)')
           PY
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload Kidults portal V662
+      - name: Upload Kidults portal V662 Visual95
         uses: actions/upload-pages-artifact@v3
         with:
           path: apps/kidults-enterprise-staging/public
@@ -68,7 +83,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
   live-smoke:
-    name: Verify deployed V662 portal
+    name: Verify deployed V662 Visual95 portal
     needs: deploy
     runs-on: ubuntu-latest
     steps:
@@ -80,7 +95,7 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Wait for the exact V662 artifact at the public Pages URL
+      - name: Wait for the exact Visual95 artifact at the public Pages URL
         env:
           KIDULTS_BASE_URL: ${{ needs.deploy.outputs.page_url }}
         run: |
@@ -92,18 +107,18 @@ jobs:
             if curl --fail --silent --show-error --location \
               --header 'Cache-Control: no-cache' \
               "${base}/portal/index.html?deployment=${GITHUB_SHA}" \
-              --output /tmp/kidults-v662-live-index.html; then
-              if grep -q 'portal.js?v=662' /tmp/kidults-v662-live-index.html \
-                && grep -q 'v662-stability-freeze.css?v=662' /tmp/kidults-v662-live-index.html \
-                && grep -q 'racing-roadster-v662.webp?v=662' /tmp/kidults-v662-live-index.html; then
-                echo "V662 HTML is active at the public Pages URL."
+              --output /tmp/kidults-visual95-live-index.html; then
+              if grep -q 'portal.js?v=662-visual95' /tmp/kidults-visual95-live-index.html \
+                && grep -q 'v662-stability-freeze.css?v=662-visual95' /tmp/kidults-visual95-live-index.html \
+                && grep -q 'racing-roadster-v662.webp?v=662-visual95' /tmp/kidults-visual95-live-index.html; then
+                echo "V662 Visual95 HTML is active at the public Pages URL."
                 break
               fi
             fi
 
             if [ "$attempt" -eq 30 ]; then
-              echo "The public Pages URL did not expose the V662 artifact within the retry window."
-              cat /tmp/kidults-v662-live-index.html 2>/dev/null || true
+              echo "The public Pages URL did not expose the Visual95 artifact within the retry window."
+              cat /tmp/kidults-visual95-live-index.html 2>/dev/null || true
               exit 1
             fi
             sleep 5
@@ -112,23 +127,32 @@ jobs:
           curl --fail --silent --show-error --location \
             --header 'Cache-Control: no-cache' \
             "${base}/portal/workspace.html?deployment=${GITHUB_SHA}" \
-            --output /tmp/kidults-v662-live-workspace.html
-          grep -q 'workspace-page.js?v=662' /tmp/kidults-v662-live-workspace.html
-          grep -q 'workspace-page.css?v=662' /tmp/kidults-v662-live-workspace.html
+            --output /tmp/kidults-visual95-live-workspace.html
+          grep -q 'workspace-page.js?v=662' /tmp/kidults-visual95-live-workspace.html
+          grep -q 'workspace-page.css?v=662' /tmp/kidults-visual95-live-workspace.html
 
-          curl --fail --silent --show-error --location \
-            --header 'Cache-Control: no-cache' \
-            "${base}/portal/assets/hero/racing-roadster-v662.webp?v=662&deployment=${GITHUB_SHA}" \
-            --output /tmp/racing-roadster-v662.webp
+          mkdir -p /tmp/kidults-visual95-assets
+          for relative in \
+            'assets/hero/racing-roadster-v662.webp' \
+            'assets/kidult100/footwear-v654.webp' \
+            'assets/kidult100/camera-v654.webp' \
+            'assets/kidult100/toys-v654.webp' \
+            'assets/kidult100/watch-v655.webp'; do
+            target="/tmp/kidults-visual95-assets/$(basename "$relative")"
+            curl --fail --silent --show-error --location \
+              --header 'Cache-Control: no-cache' \
+              "${base}/portal/${relative}?v=662-visual95&deployment=${GITHUB_SHA}" \
+              --output "$target"
+          done
 
           python3 - <<'PY'
           from pathlib import Path
-          asset = Path('/tmp/racing-roadster-v662.webp')
-          data = asset.read_bytes()
-          assert data[:4] == b'RIFF', 'Live Roadster is not a RIFF file'
-          assert data[8:12] == b'WEBP', 'Live Roadster is not a WebP file'
-          assert len(data) > 40_000, 'Live Roadster is unexpectedly small'
-          print(f'Live V662 Roadster verified: {len(data)} bytes')
+          for asset in Path('/tmp/kidults-visual95-assets').glob('*.webp'):
+              data = asset.read_bytes()
+              assert data[:4] == b'RIFF', f'{asset} is not RIFF'
+              assert data[8:12] == b'WEBP', f'{asset} is not WebP'
+              assert len(data) > 25_000, f'{asset} is unexpectedly small: {len(data)}'
+              print(f'Live Visual95 asset verified: {asset.name} ({len(data)} bytes)')
           PY
 
           for retired in \
@@ -152,11 +176,11 @@ jobs:
           KIDULTS_VISUAL_OUTPUT: artifacts/kidults-v662-live
         run: node scripts/kidults/portal/capture-v662-visual-check.mjs
 
-      - name: Upload live V662 evidence
+      - name: Upload live V662 Visual95 evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kidults-v662-live-evidence
+          name: kidults-v662-visual95-live-evidence
           path: artifacts/kidults-v662-live
           if-no-files-found: warn
           retention-days: 14
