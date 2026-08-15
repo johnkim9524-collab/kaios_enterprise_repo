@@ -17,7 +17,7 @@ function hasDistinctiveShape(value) {
 }
 
 test('canonical recovery aliases stay scoped to the existing Wikidata-only fail-closed lane', () => {
-  assert.equal(config.schemaVersion, '1.0.11');
+  assert.equal(config.schemaVersion, '1.0.12');
   assert.equal(config.mode, 'KIDULT100_WIKIDATA_PRECISION_RECOVERY');
   assert.equal(config.source, 'wikidata');
   assert.equal(config.sourceClass, 'REFERENCE_PUBLIC_DATA');
@@ -70,6 +70,11 @@ test('cross-vertical exact aliases remain narrow, distinctive, and duplicate-fre
       'Air Jordan 4',
       'Nike Air Max 90',
       'Nike Air Max 97',
+      'Nike Air Max 95',
+      'Nike Air Max Plus',
+      'Nike Dunk Low',
+      'Vans Old Skool',
+      'Vans Authentic',
       'Chanel 2.55',
       'Adidas Samba',
       'Adidas Superstar',
@@ -127,6 +132,11 @@ test('fashion recovery prunes typed searches already covered by stricter canonic
     'Air Jordan 4',
     'Nike Air Max 90',
     'Nike Air Max 97',
+    'Nike Air Max 95',
+    'Nike Air Max Plus',
+    'Nike Dunk Low',
+    'Vans Old Skool',
+    'Vans Authentic',
     'Chanel 2.55',
     'Adidas Samba',
     'Adidas Superstar',
@@ -138,6 +148,11 @@ test('fashion recovery prunes typed searches already covered by stricter canonic
     'Nike Air Jordan 4 shoe',
     'Nike Air Max 90 shoe',
     'Nike Air Max 97 shoe',
+    'Nike Air Max 95 shoe',
+    'Nike Air Max Plus shoe',
+    'Nike Dunk Low shoe',
+    'Vans Old Skool shoe',
+    'Vans Authentic shoe',
     'Air Max 90',
     'Chanel 2.55 handbag',
     'Adidas Samba shoe',
