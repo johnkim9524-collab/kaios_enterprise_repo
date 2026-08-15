@@ -6,7 +6,9 @@ on:
       - 'coordination/kidults/**'
       - 'docs/operations/KIDULTS_*.md'
       - 'services/kidults-autonomous-intelligence/scripts/kidults-integrated-program-registry-gate.mjs'
+      - 'services/kidults-autonomous-intelligence/scripts/track-b-snapshot-artifact-integrity.mjs'
       - 'services/kidults-autonomous-intelligence/test/integrated-program-registry-gate.test.mjs'
+      - 'services/kidults-autonomous-intelligence/test/track-b-snapshot-artifact-integrity.test.mjs'
       - '.github/workflows/kidults-integrated-program-registry-gate.yml'
   workflow_dispatch:
 
@@ -29,14 +31,19 @@ jobs:
       - name: Validate Integrated Program operating invariants
         working-directory: services/kidults-autonomous-intelligence
         run: node scripts/kidults-integrated-program-registry-gate.mjs
+      - name: Validate materialized Track B snapshot artifact identity
+        working-directory: services/kidults-autonomous-intelligence
+        run: node scripts/track-b-snapshot-artifact-integrity.mjs
       - name: Verify Track B fail-closed readiness semantics
         working-directory: services/kidults-autonomous-intelligence
-        run: node --test test/integrated-program-registry-gate.test.mjs
+        run: node --test test/integrated-program-registry-gate.test.mjs test/track-b-snapshot-artifact-integrity.test.mjs
       - name: Upload registry gate evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kidults-integrated-program-registry-gate
-          path: services/kidults-autonomous-intelligence/reports/engineering-hardening/integrated-program-registry-gate-latest.json
+          path: |
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/integrated-program-registry-gate-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/track-b-snapshot-artifact-integrity-latest.json
           retention-days: 30
           if-no-files-found: error
