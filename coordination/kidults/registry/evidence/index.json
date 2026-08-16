@@ -1,17 +1,38 @@
 {
-  "registry_id":"kidults-evidence-registry",
-  "registry_name":"Evidence Registry",
-  "registry_version":"1.1.1",
-  "schema_version":"1.0.0",
-  "owner":"Track A",
-  "custodian":"Atlas",
-  "status":"WAITING_FOR_TRACK_A_REGISTRATION",
-  "effective_at":"2026-08-12T12:00:00+09:00",
-  "record_directory":"records",
-  "record_count":0,
-  "current_evidence_package_id":null,
-  "related_baseline_snapshot_id":"baseline-provider-independent-v1",
-  "records":[],
-  "required_next_action":"Track A must register methodology_version, evidence_lineage_version and the immutable Evidence Package before creating a canonical candidate.",
-  "change_history":[{"version":"1.1.1","changed_at":"2026-08-12T15:55:00+09:00","changed_by":"Atlas","change":"Classified baseline snapshot as an external registry reference rather than a local evidence-record pointer."}]
+  "registry_id": "kidults-evidence-registry",
+  "registry_name": "Evidence Registry",
+  "registry_version": "1.2.0",
+  "schema_version": "1.0.0",
+  "owner": "Track A",
+  "custodian": "Atlas",
+  "status": "POC_EVIDENCE_AVAILABLE",
+  "effective_at": "2026-08-16T10:25:55+09:00",
+  "record_directory": "records",
+  "record_count": 1,
+  "current_evidence_package_id": null,
+  "current_poc_evidence_id": "evidence-met-costume-open-access-poc-r1",
+  "related_baseline_snapshot_id": "baseline-provider-independent-v1",
+  "records": [
+    {
+      "id": "evidence-met-costume-open-access-poc-r1",
+      "path": "records/evidence-met-costume-open-access-poc-r1.json",
+      "version": "1.0.0",
+      "status": "POC_EVIDENCE_NOT_CANDIDATE"
+    }
+  ],
+  "required_next_action": "Track A must add independent source families, register the canonical snapshot methodology and evidence lineage, and produce an immutable Candidate Evidence Package.",
+  "change_history": [
+    {
+      "version": "1.1.1",
+      "changed_at": "2026-08-12T15:55:00+09:00",
+      "changed_by": "Atlas",
+      "change": "Classified baseline snapshot as an external registry reference rather than a local evidence-record pointer."
+    },
+    {
+      "version": "1.2.0",
+      "changed_at": "2026-08-16T10:25:55+09:00",
+      "changed_by": "Track A / KPMO",
+      "change": "Registered the first bounded-live metadata Evidence Package from The Met Open Access API. The package is PoC-only, single-source and not Candidate eligible."
+    }
+  ]
 }
