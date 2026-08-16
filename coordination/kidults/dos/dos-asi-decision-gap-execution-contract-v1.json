@@ -64,6 +64,20 @@
       "MACRO_CONTEXT": 10
     }
   },
+  "lane_model": {
+    "collection_scopes": 32,
+    "mandatory_source_roles": 7,
+    "mandatory_scope_source_role_lanes": 224,
+    "supplemental_source_roles": 3,
+    "supplemental_scope_source_role_lanes": 96,
+    "total_structural_lanes": 320,
+    "supplemental_roles": [
+      "AUCTION_PRIVATE_SALE",
+      "INDEPENDENT_VERIFICATION",
+      "MACRO_CONTEXT"
+    ],
+    "supplemental_lane_state": "BACKLOG_VALUE_TRACEABLE_NOT_IN_BATCH_1_MANDATORY_FLOOR"
+  },
   "asi_batch_1": {
     "unique_source_endpoint_discovery_target": 2000,
     "deep_assessment_target": 200,
@@ -85,6 +99,7 @@
     "EVERY_CORE_DOMAIN_CATEGORY_RECEIVES_ONE_INITIAL_BOUNDED_ADAPTER_TARGET",
     "REMAINING_CAPACITY_FOLLOWS_THE_VERSIONED_STRUCTURAL_PRIORITY_ORDER",
     "ADAPTER_TARGETS_MUST_ALSO_HAVE_DEEP_ASSESSMENT_AND_PREFLIGHT_TARGETS",
+    "SUPPLEMENTAL_SOURCE_ROLE_LANES_REMAIN_VALUE_TRACEABLE_BACKLOG_UNLESS_EXPLICITLY_PROMOTED",
     "TARGET_ALLOCATION_DOES_NOT_ASSERT_ACTUAL_SOURCE_AVAILABILITY_OR_READINESS"
   ],
   "required_outputs": [
