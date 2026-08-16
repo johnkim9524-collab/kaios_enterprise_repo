@@ -152,7 +152,8 @@ test('Stage 2 candidate build and precision recovery retain hard bounded failure
   assert.match(stage2, /partialEvidenceAccepted:false/);
   assert.doesNotMatch(stage2, /continue-on-error:\s*true/);
 
-  assert.match(precision, /timeout --signal=TERM --kill-after=10s 120s node scripts\/kidult100-precision-recovery-live\.mjs/);
+  assert.match(precision, /timeout --signal=TERM --kill-after=10s 150s node scripts\/kidult100-precision-recovery-live\.mjs/);
+  assert.match(precision, /partialEvidenceAccepted:false/);
   assert.doesNotMatch(precision, /continue-on-error:\s*true/);
 });
 
