@@ -1,0 +1,132 @@
+{
+  "id": "category-adaptive-scale-floor-contract-v2",
+  "record_type": "category_adaptive_scale_contract",
+  "version": "2.0.0",
+  "status": "APPROVED_ACTIVE",
+  "created_at": "2026-08-16T20:23:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "supersedes": "category-1000-scale-contract-v1",
+  "first_value": "AUTONOMOUS",
+  "governing_value": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_VALUE",
+  "founder_clarification": "ONE_THOUSAND_QUALIFIED_OBJECTS_PER_CATEGORY_IS_A_MINIMUM_FLOOR_NOT_A_TARGET_NOT_A_CAP",
+  "scale_definition": {
+    "current_core_domain_category_count": 8,
+    "minimum_qualified_objects_per_category": 1000,
+    "minimum_qualified_objects_across_current_categories": 8000,
+    "upper_cap": null,
+    "upper_cap_status": "NO_FIXED_CAP",
+    "fixed_index_quota": false,
+    "category_floor_is_index_quota": false,
+    "collection_scope_planning_target_is_floor": false,
+    "dynamic_verticals_remain_downstream_market_discoveries": true,
+    "raw_record_volume_is_not_success_metric": true
+  },
+  "scale_governor": {
+    "engine": "AUTONOMOUS_CATEGORY_SCALE_GOVERNOR",
+    "purpose": "Continuously determine the next qualified-object acquisition wave from customer-value coverage, market breadth, uncertainty, bias and marginal intelligence gain rather than stopping at an arbitrary count.",
+    "minimum_gate": "CATEGORY_FLOOR_1000",
+    "post_floor_behavior": "CONTINUE_SCALING_WHILE_CRITICAL_VALUE_COVERAGE_OR_REPRESENTATIVENESS_GAPS_REMAIN",
+    "inputs": [
+      "CUSTOMER_VALUE_PRODUCT_COVERAGE",
+      "COLLECTION_SCOPE_BREADTH",
+      "CANONICAL_OBJECT_DISCOVERY_RATE",
+      "INDEPENDENT_SOURCE_ROLE_COVERAGE",
+      "REGIONAL_COVERAGE",
+      "TIME_DEPTH",
+      "PRICE_BAND_COVERAGE",
+      "CONDITION_AND_GRADE_COVERAGE",
+      "COMMON_VS_SCARCE_BALANCE",
+      "PRIMARY_VS_SECONDARY_MARKET_BALANCE",
+      "SOURCE_CONCENTRATION",
+      "BIAS_AND_MISSINGNESS",
+      "IDENTITY_CONFLICT_RATE",
+      "FIELD_LEVEL_UNCERTAINTY",
+      "PROVIDER_INCREMENTAL_VALUE",
+      "MARGINAL_INTELLIGENCE_GAIN_PER_ACQUISITION_WAVE",
+      "RUNTIME_AND_COST_CAPACITY"
+    ],
+    "outputs": [
+      "NEXT_QUALIFIED_OBJECT_FLOOR",
+      "NEXT_COLLECTION_SCOPE_ALLOCATION",
+      "SOURCE_ROLE_PRIORITY",
+      "REGION_TIME_PRICE_CONDITION_GAP_PLAN",
+      "PROVIDER_VS_SELF_COLLECTION_ALLOCATION",
+      "EXPECTED_INCREMENTAL_VALUE",
+      "COST_AND_RUNTIME_BUDGET",
+      "SCALE_CONTINUE_HOLD_OR_STOP_RECOMMENDATION"
+    ],
+    "numeric_stop_thresholds": null,
+    "numeric_stop_thresholds_status": "NOT_CALIBRATED",
+    "stop_rule": "NO_CATEGORY_MAY_STOP_AT_1000_MERELY_BECAUSE_THE_FLOOR_WAS_REACHED",
+    "stop_requires": [
+      "CRITICAL_CUSTOMER_VALUE_COVERAGE_PASS",
+      "REQUIRED_SOURCE_ROLE_COVERAGE_PASS",
+      "REPRESENTATIVE_SAMPLING_PASS",
+      "BIAS_AND_CONCENTRATION_PASS_OR_EXPLICITLY_BOUNDED",
+      "IDENTITY_AND_EVIDENCE_UNCERTAINTY_WITHIN_CALIBRATED_LIMITS",
+      "SOURCE_REMOVAL_SENSITIVITY_PASS_OR_EXPLICITLY_BOUNDED",
+      "MARGINAL_INTELLIGENCE_GAIN_BELOW_CALIBRATED_THRESHOLD",
+      "TRACK_B_INDEPENDENT_RECOMMENDATION"
+    ]
+  },
+  "planning_waves": {
+    "note": "Planning waves are operating checkpoints, not fixed quotas or publication gates.",
+    "waves": [
+      {
+        "wave": "FLOOR",
+        "minimum_qualified_objects_per_category": 1000,
+        "purpose": "Minimum representative Market Data PoC foundation."
+      },
+      {
+        "wave": "EXPANSION",
+        "minimum_qualified_objects_per_category": null,
+        "minimum_status": "DYNAMIC_FROM_SCALE_GOVERNOR",
+        "purpose": "Close Scope, Source Role, geography, time, price, condition and long-tail gaps discovered after the floor."
+      },
+      {
+        "wave": "GLOBAL_LEADERSHIP",
+        "minimum_qualified_objects_per_category": null,
+        "minimum_status": "DYNAMIC_NO_FIXED_CAP",
+        "purpose": "Maintain the breadth, depth, freshness and explainability required for irreplaceable global intelligence."
+      }
+    ]
+  },
+  "qualified_object_rule": {
+    "must_pass": [
+      "SCHEMA_VALID",
+      "SOURCE_RECORD_ID_EXPLICIT",
+      "PROVENANCE_REFERENCE_COMPLETE",
+      "RIGHTS_STATE_EXPLICIT",
+      "FRESHNESS_STATE_EXPLICIT",
+      "PHYSICAL_OBJECT_AND_CANONICAL_DESIGN_SEPARATED",
+      "DUPLICATE_GATE",
+      "SOURCE_QUALIFIED_IDENTITY",
+      "PUBLICATION_STATE_EXPLICIT"
+    ],
+    "provider_record_alone_is_qualified_object": false,
+    "raw_page_is_qualified_object": false,
+    "unverified_listing_is_qualified_object": false,
+    "provider_id_is_canonical_id": false
+  },
+  "provider_and_self_collection": {
+    "self_collected_data_role": "INDEPENDENT_ANCHOR_CHALLENGER_AND_CROSS_VALIDATION_BASE",
+    "provider_data_role": "BREADTH_DEPTH_LATENCY_AND_SPECIALIST_ACCELERATOR",
+    "provider_data_can_contribute_after_gates": true,
+    "provider_overwrites_self_collected_truth": false,
+    "provider_direct_to_portal": false,
+    "provider_direct_to_index": false,
+    "provider_id_promoted_to_canonical_id": false
+  },
+  "program_effect": {
+    "category_1000_label": "MINIMUM_FLOOR_ONLY",
+    "total_8000_label": "MINIMUM_CURRENT_EIGHT_CATEGORY_FLOOR_ONLY",
+    "asi_10k": "ACTIVE_CRITICAL_PATH",
+    "category_scale_execution": "STARTS_AFTER_SCOPE_SOURCE_POOL_READINESS",
+    "candidate_r2": "SECONDARY_UNTIL_SCALE_AND_SOURCE_INTELLIGENCE_GATES_PASS",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "public_market_claim": "PROHIBITED",
+    "production": "HOLD"
+  }
+}
