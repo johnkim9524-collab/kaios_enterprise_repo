@@ -1,0 +1,80 @@
+name: KIDULTS Track B First Independent Assessment
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/candidates/candidate-structural-20260816-r1/**"
+      - "coordination/kidults/registry/assessment/**"
+      - "coordination/kidults/registry/handoff/**"
+      - "coordination/kidults/registry/track/**"
+      - "coordination/kidults/registry/mission/**"
+      - "coordination/kidults/registry/digital-twin/**"
+      - "coordination/kidults/schemas/rankability-assessment.schema.json"
+      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
+      - "scripts/kidults/assessment/**"
+      - "scripts/kidults/candidate/validate-structural-candidate-r1.mjs"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - ".github/workflows/kidults-track-b-first-assessment.yml"
+  pull_request:
+    paths:
+      - "coordination/kidults/candidates/candidate-structural-20260816-r1/**"
+      - "coordination/kidults/registry/assessment/**"
+      - "coordination/kidults/registry/handoff/**"
+      - "coordination/kidults/registry/track/**"
+      - "coordination/kidults/registry/mission/**"
+      - "coordination/kidults/registry/digital-twin/**"
+      - "coordination/kidults/schemas/rankability-assessment.schema.json"
+      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
+      - "scripts/kidults/assessment/**"
+      - "scripts/kidults/candidate/validate-structural-candidate-r1.mjs"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - ".github/workflows/kidults-track-b-first-assessment.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/assessment/build-first-rankability-assessment.mjs
+          node --check scripts/kidults/assessment/validate-first-rankability-assessment.mjs
+          node --check scripts/kidults/candidate/validate-structural-candidate-r1.mjs
+          node --check scripts/kidults/portal/build-v502-registry-view.mjs
+
+      - name: Validate immutable Track A input
+        run: node scripts/kidults/candidate/validate-structural-candidate-r1.mjs
+
+      - name: Prove same-input same-output reproducibility
+        run: |
+          ASSESSMENT_GENERATED_AT="$(node -e "const a=require('./coordination/kidults/registry/assessment/records/assessment-candidate-structural-20260816-r1-v1.json');process.stdout.write(a.generated_at)")"
+          export ASSESSMENT_GENERATED_AT
+          node scripts/kidults/assessment/build-first-rankability-assessment.mjs > /tmp/assessment-1.json
+          node scripts/kidults/assessment/build-first-rankability-assessment.mjs > /tmp/assessment-2.json
+          cmp /tmp/assessment-1.json /tmp/assessment-2.json
+
+      - name: Validate first independent Assessment
+        run: |
+          node scripts/kidults/assessment/build-first-rankability-assessment.mjs --validate
+          node scripts/kidults/assessment/validate-first-rankability-assessment.mjs
+
+      - name: Validate Registry and Mission Control
+        run: |
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+          node scripts/kidults/portal/build-v502-registry-view.mjs
