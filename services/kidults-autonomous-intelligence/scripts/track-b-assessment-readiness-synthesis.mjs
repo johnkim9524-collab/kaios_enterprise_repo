@@ -34,11 +34,22 @@ try {
 }
 
 const report = {
-  schema_version: '1.0.0',
+  schema_version: '1.1.0',
   mode: 'TRACK_B_ASSESSMENT_READINESS_SYNTHESIS',
   generated_at: new Date().toISOString(),
   registry_scope: 'CURRENT_CHECKOUT_ONLY',
   program_state_authority: 'KPMO_INTEGRATED_CANONICAL_BRANCH_REQUIRED',
+  planning_context: {
+    external_governance_reference: 'KPMO_ISSUE_307_PROGRAM_RESET',
+    successor_execution_reference: 'KPMO_ISSUE_308_ASI_10K',
+    references_are_outside_current_checkout: true,
+    legacy_p0_measurement_role: 'CURRENT_CHECKOUT_ENGINEERING_COMPARATOR_ONLY',
+    legacy_production_gate_enforcement: 'UNCHANGED_FAIL_CLOSED',
+    legacy_300_plus_and_fixed_vertical_quota_is_canonical_forward_target: false,
+    canonical_forward_path: 'M2_ASI_10K_TO_CATEGORY_1000_TO_CANDIDATE_R2_TO_TRACK_B_INTERNAL_INDEX',
+    canonical_metric_reclassification_permitted: false,
+    requires_kpmo_integrated_canonical_branch_before_gate_reclassification: true,
+  },
   ...result,
   proof_sources: {
     integrated_program_gate: path.relative(SERVICE_ROOT, INTEGRATED_PATH),
@@ -55,6 +66,9 @@ const report = {
     registry_mutated: false,
     rights_or_provenance_weakened: false,
     production_gate_weakened: false,
+    production_input: false,
+    production_evidence: false,
+    legacy_production_gate_semantics_changed: false,
     all_three_readiness_proofs_required_before_assessment_permission: true,
     branch_local_registry_view_only: true,
     cross_branch_canonical_state_not_inferred: true,
@@ -63,5 +77,5 @@ const report = {
 
 fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
 fs.writeFileSync(OUTPUT_PATH, JSON.stringify(report, null, 2));
-console.log(`Track B assessment readiness synthesis: ${report.status}; snapshot=${report.current_snapshot_id ?? 'null'}; permitted=${report.assessment_permitted}; reason=${report.reason}; scope=${report.registry_scope}`);
+console.log(`Track B assessment readiness synthesis: ${report.status}; snapshot=${report.current_snapshot_id ?? 'null'}; permitted=${report.assessment_permitted}; reason=${report.reason}; scope=${report.registry_scope}; role=${report.planning_context.legacy_p0_measurement_role}`);
 if (report.status === 'FAIL_CLOSED') process.exitCode = 1;
