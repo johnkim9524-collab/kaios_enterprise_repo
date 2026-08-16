@@ -31,7 +31,13 @@ const evidenceIndex = read(path.join(registryRoot, "evidence", "index.json"));
 const methodology = read(path.join(registryRoot, "methodology", "index.json"));
 const lineage = read(path.join(registryRoot, "evidence-lineage", "index.json"));
 const handoff = read(path.join(registryRoot, "handoff", "records", "handoff-a-to-b-first-candidate.json"));
-const assessment = read(path.join(registryRoot, "assessment", "index.json"));
+const assessmentIndex = read(path.join(registryRoot, "assessment", "index.json"));
+const assessmentRef = assessmentIndex?.records?.find(
+  record => record.id === assessmentIndex.current_assessment_id
+);
+const assessmentRecord = assessmentRef
+  ? read(path.join(registryRoot, "assessment", assessmentRef.path))
+  : null;
 
 assert(candidate?.snapshot_id === candidateId, "Candidate snapshot_id mismatch.");
 assert(candidate?.status === "internal", "Candidate must remain internal.");
@@ -49,11 +55,28 @@ assert(snapshotRecord?.artifact_reference?.endsWith("/snapshot-candidate.json"),
 assert(baseline?.snapshot_id === "baseline-provider-independent-v1", "Baseline ID changed.");
 assert(baseline?.current_candidate === false, "Baseline was mutated into a Candidate.");
 assert(evidenceIndex?.current_evidence_package_id === evidence?.evidence_package_id, "Evidence Registry pointer mismatch.");
-assert(handoff?.status === "SUBMITTED" && handoff?.snapshot_id === candidateId, "Track A handoff was not submitted for the exact Candidate.");
+assert(["SUBMITTED", "ACCEPTED", "CLOSED"].includes(handoff?.status),
+  "Track A handoff is not in an allowed post-submission state.");
+assert(handoff?.snapshot_id === candidateId, "Handoff Candidate mismatch.");
 assert(handoff?.evidence_package_id === evidence?.evidence_package_id, "Handoff Evidence Package mismatch.");
-assert(assessment?.current_snapshot_id === candidateId, "Assessment Registry input pointer mismatch.");
-assert(assessment?.current_assessment_id === null, "Assessment must not exist before Track B produces it.");
-assert(assessment?.status === "WAITING_FOR_VALIDATION", "Assessment Registry must wait for validation.");
+assert(assessmentIndex?.current_snapshot_id === candidateId, "Assessment Registry input pointer mismatch.");
+
+if (assessmentIndex?.current_assessment_id === null) {
+  assert(assessmentIndex?.status === "WAITING_FOR_VALIDATION",
+    "Assessment Registry must wait for validation before an Assessment exists.");
+} else {
+  assert(Boolean(assessmentRecord), "Current Assessment record does not resolve.");
+  assert(assessmentRecord?.snapshot_id === candidateId,
+    "Current Assessment does not reference the exact Candidate.");
+  assert(assessmentRecord?.evidence_package_id === evidence?.evidence_package_id,
+    "Current Assessment Evidence Package mismatch.");
+  assert(assessmentRecord?.gate_state === "blocked",
+    "Structural Candidate Assessment must preserve the blocked gate.");
+  assert(assessmentRecord?.overall_rankability === false,
+    "Structural Candidate must not become rankable after Assessment.");
+  assert(assessmentRecord?.publication_eligible === false,
+    "Assessment must preserve publication prohibition.");
+}
 
 assert(Array.isArray(candidate?.core_verticals) && candidate.core_verticals.length === 8,
   "Candidate must contain exactly eight Core Verticals.");
@@ -117,4 +140,4 @@ console.log(`Evidence records: ${evidence.metrics.record_count}`);
 console.log("Unsupported metrics: NULL / NOT_VERIFIED");
 console.log("Publication: PROHIBITED");
 console.log("Production: HOLD");
-console.log("Track B input state: WAITING_FOR_VALIDATION");
+console.log(`Track B state: ${assessmentIndex.current_assessment_id ? assessmentIndex.status : "WAITING_FOR_VALIDATION"}`);
