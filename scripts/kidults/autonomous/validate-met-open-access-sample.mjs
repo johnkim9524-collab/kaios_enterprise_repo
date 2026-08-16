@@ -28,6 +28,7 @@ const quality = read("quality-report.json");
 assert(manifest?.mode === "BOUNDED_LIVE_METADATA_POC", "Run mode mismatch.");
 assert(manifest?.status === "COMPLETED", "Bounded live run did not complete.");
 assert(manifest?.source_id === "met-costume-institute-open-access", "Source identity mismatch.");
+assert(manifest?.rights_model?.metadata === "CC0_COLLECTION_METADATA", "Metadata rights state mismatch.");
 assert(manifest?.credential_used === false, "Credentials must not be used.");
 assert(manifest?.paid_access_used === false, "Paid access must not be used.");
 assert(manifest?.image_downloaded === false, "Image download is prohibited.");
@@ -44,9 +45,13 @@ for (const record of records ?? []) {
   assert(record.source_id === "met-costume-institute-open-access", `${record.evidence_id}: source mismatch.`);
   assert(record.source_tier === 1, `${record.evidence_id}: source tier mismatch.`);
   assert(record.evidence_class === "PRIMARY_AUTHORITY", `${record.evidence_id}: evidence class mismatch.`);
-  assert(record.is_public_domain === true, `${record.evidence_id}: public-domain gate failed.`);
+  assert(typeof record.is_public_domain === "boolean", `${record.evidence_id}: object public-domain flag is missing.`);
+  assert(record.metadata_rights_state === "CC0_COLLECTION_METADATA", `${record.evidence_id}: metadata rights state mismatch.`);
+  assert(
+    ["PUBLIC_DOMAIN_FLAG_TRUE_NOT_INGESTED", "NOT_PUBLIC_DOMAIN_OR_UNAVAILABLE_NOT_INGESTED"].includes(record.image_rights_state),
+    `${record.evidence_id}: image rights state mismatch.`
+  );
   assert(record.image_state === "NOT_INGESTED", `${record.evidence_id}: image state mismatch.`);
-  assert(record.rights_state === "CC0_COLLECTION_METADATA", `${record.evidence_id}: rights state mismatch.`);
   assert(/^https:\/\/collectionapi\.metmuseum\.org\//.test(record.evidence_reference),
     `${record.evidence_id}: provenance URL is missing or outside the allowlist.`);
   assert(/^[a-f0-9]{64}$/.test(record.source_payload_sha256), `${record.evidence_id}: payload hash is invalid.`);
@@ -66,6 +71,7 @@ assert(evidence?.status === "POC_EVIDENCE_NOT_CANDIDATE", "Evidence Package must
 assert(evidence?.snapshot_id === null, "PoC Evidence Package must not invent a Snapshot ID.");
 assert(evidence?.record_count === records?.length, "Evidence Package record count mismatch.");
 assert(evidence?.production_eligible === false, "Evidence Package must not be Production eligible.");
+assert(quality?.metadata_rights_state === "CC0_COLLECTION_METADATA", "Quality report metadata-rights state mismatch.");
 assert(quality?.duplicate_record_count === 0, "Duplicate contamination must be zero in the bounded sample.");
 assert(quality?.provenance_reference_coverage === 1, "Provenance coverage must be 100%.");
 assert(quality?.image_ingestion_count === 0, "Image ingestion count must remain zero.");
@@ -79,7 +85,9 @@ if (errors.length) {
 
 console.log("KIDULTS Met Open Access Sample: PASS");
 console.log(`Records: ${records.length}`);
+console.log(`Public-domain image flag true: ${quality.public_domain_record_count}`);
 console.log(`Average critical-field completeness: ${quality.average_critical_field_completeness}`);
+console.log("Metadata rights: CC0");
 console.log("Provenance coverage: 100%");
 console.log("Images ingested: 0");
 console.log("Candidate eligible: NO");
