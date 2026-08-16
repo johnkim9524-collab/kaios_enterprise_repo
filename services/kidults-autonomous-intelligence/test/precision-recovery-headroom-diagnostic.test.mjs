@@ -9,15 +9,25 @@ test('precision recovery headroom diagnostic classifies healthy, watch and high-
   assert.equal(healthy.headroomStatus, 'HEALTHY');
   assert.equal(healthy.budgetUtilizationPercent, 50);
   assert.equal(healthy.remainingHeadroomSeconds, 60);
+  assert.equal(healthy.escalationRecommended, false);
+  assert.equal(healthy.escalationRoute, null);
+  assert.equal(healthy.recommendedAction, 'CONTINUE_OBSERVATION');
 
   const watch = buildPrecisionRecoveryHeadroomDiagnostic({ status: 'PASS', elapsedSeconds: 90, timeoutSeconds: 120 });
   assert.equal(watch.headroomStatus, 'WATCH');
   assert.equal(watch.budgetUtilizationPercent, 75);
+  assert.equal(watch.escalationRecommended, false);
+  assert.equal(watch.recommendedAction, 'CONTINUE_OBSERVATION');
 
   const high = buildPrecisionRecoveryHeadroomDiagnostic({ status: 'PASS', elapsedSeconds: 110, timeoutSeconds: 120 });
   assert.equal(high.headroomStatus, 'HIGH_UTILIZATION_WATCH');
   assert.equal(high.budgetUtilizationPercent, 91.67);
   assert.equal(high.remainingHeadroomSeconds, 10);
+  assert.equal(high.escalationRecommended, true);
+  assert.equal(high.escalationRoute, 'KPMO_TRACK_A_CI_RELIABILITY_REVIEW');
+  assert.equal(high.recommendedAction, 'ROUTE_BOUNDED_PERFORMANCE_INVESTIGATION_VIA_KPMO');
+  assert.equal(high.escalationIsAdvisoryOnly, true);
+  assert.equal(high.automaticCrossTrackActionAllowed, false);
   assert.equal(high.observationalOnly, true);
   assert.equal(high.productionInput, false);
   assert.equal(high.productionEvidence, false);
@@ -36,6 +46,8 @@ test('precision recovery headroom diagnostic preserves stage status and clamps n
   assert.equal(timeout.status, 'TIMEOUT_FAIL_CLOSED');
   assert.equal(timeout.remainingHeadroomSeconds, 0);
   assert.equal(timeout.headroomStatus, 'HIGH_UTILIZATION_WATCH');
+  assert.equal(timeout.escalationRecommended, true);
+  assert.equal(timeout.automaticCrossTrackActionAllowed, false);
 });
 
 test('precision recovery headroom diagnostic rejects malformed timing inputs', () => {
