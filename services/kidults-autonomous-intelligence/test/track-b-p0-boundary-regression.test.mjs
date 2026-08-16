@@ -42,20 +42,23 @@ test('P0 executes the Track B registry readiness gate before live candidate and 
   assert.equal(gateIndex < stage2Index, true, 'Track B readiness gate must precede candidate build');
 });
 
-test('P0 enforces materialized Track B snapshot and Evidence Package identity before live work', () => {
+test('P0 enforces materialized Track B input identity and final readiness synthesis before live work', () => {
   const workflow = readWorkflow();
   const registryIndex = workflow.indexOf('Track B integrated registry readiness gate');
   const snapshotIndex = workflow.indexOf('Track B snapshot artifact identity guard');
   const evidenceIndex = workflow.indexOf('Track B evidence package registry identity guard');
+  const synthesisIndex = workflow.indexOf('Track B assessment readiness synthesis');
   const wave1Index = workflow.indexOf('Wave1 real external source discovery evaluation');
 
   assert.notEqual(registryIndex, -1, 'Track B readiness gate is missing from P0');
   assert.notEqual(snapshotIndex, -1, 'Track B snapshot identity guard is missing from P0');
   assert.notEqual(evidenceIndex, -1, 'Track B Evidence Package identity guard is missing from P0');
+  assert.notEqual(synthesisIndex, -1, 'Track B assessment readiness synthesis is missing from P0');
   assert.notEqual(wave1Index, -1, 'Wave1 live step is missing from P0');
   assert.equal(registryIndex < snapshotIndex, true, 'registry readiness must precede snapshot identity');
   assert.equal(snapshotIndex < evidenceIndex, true, 'snapshot identity must precede Evidence Package identity');
-  assert.equal(evidenceIndex < wave1Index, true, 'Track B input integrity must precede live upstream work');
+  assert.equal(evidenceIndex < synthesisIndex, true, 'input identity guards must precede final readiness synthesis');
+  assert.equal(synthesisIndex < wave1Index, true, 'final Track B readiness synthesis must precede live upstream work');
 
   const snapshotStep = workflowStep(
     workflow,
@@ -65,6 +68,11 @@ test('P0 enforces materialized Track B snapshot and Evidence Package identity be
   const evidenceStep = workflowStep(
     workflow,
     'Track B evidence package registry identity guard',
+    'Track B assessment readiness synthesis',
+  );
+  const synthesisStep = workflowStep(
+    workflow,
+    'Track B assessment readiness synthesis',
     'Wave1 real external source discovery evaluation',
   );
 
@@ -72,6 +80,8 @@ test('P0 enforces materialized Track B snapshot and Evidence Package identity be
   assert.doesNotMatch(snapshotStep, /continue-on-error:\s*true/);
   assert.match(evidenceStep, /run: node scripts\/track-b-evidence-package-registry-integrity\.mjs/);
   assert.doesNotMatch(evidenceStep, /continue-on-error:\s*true/);
+  assert.match(synthesisStep, /run: node scripts\/track-b-assessment-readiness-synthesis\.mjs/);
+  assert.doesNotMatch(synthesisStep, /continue-on-error:\s*true/);
 });
 
 test('P0 cannot synthesize Track B official inputs or its sole official output', () => {
@@ -173,6 +183,11 @@ test('engineering diagnostics remain isolated from the truth/Track B artifact la
     /reports\/engineering-hardening\/track-b-evidence-package-registry-integrity-latest\.json/,
     'Evidence Package integrity diagnostics must stay in the engineering audit artifact lane',
   );
+  assert.match(
+    engineeringUpload,
+    /reports\/engineering-hardening\/track-b-assessment-readiness-latest\.json/,
+    'Track B readiness synthesis must stay in the engineering audit artifact lane',
+  );
   assert.doesNotMatch(
     truthUpload,
     /reports\/engineering-hardening/,
@@ -182,5 +197,10 @@ test('engineering diagnostics remain isolated from the truth/Track B artifact la
     truthUpload,
     /precision-query-yield-diagnostic/i,
     'observational precision query diagnostics must not enter the truth evidence artifact lane',
+  );
+  assert.doesNotMatch(
+    truthUpload,
+    /track-b-assessment-readiness-latest\.json/,
+    'Track B readiness synthesis must not enter the truth/live POC evidence lane',
   );
 });
