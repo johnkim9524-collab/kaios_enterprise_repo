@@ -37,11 +37,14 @@ const createdAt = existing?.created_at ?? generatedAt;
 
 const catalog = read("catalog.json");
 const autonomous = record("autonomous");
+const engineContract = record("engine", "engine-agci-os-v2-contract-v1").value;
+const engineRun = record("engine", "engine-foundation-preflight-r1");
+const quarantinePolicy = record("raw-quarantine", "raw-quarantine-policy-v1").value;
+const quarantineReport = record("raw-quarantine", "raw-quarantine-preflight-r1");
 const universe = record("universe");
 const coreDomain = record("core-domain");
 const dynamicVertical = record("dynamic-vertical");
 const providerMapping = record("provider-mapping");
-const indexRegistry = read("index/index.json");
 const verticalIndex = record("index", "index-vertical-intelligence-template-v1").value;
 const kidult500 = record("index", "index-kidult-500-v1").value;
 const kidult100 = record("index", "index-kidult-100-v2").value;
@@ -64,26 +67,64 @@ const release = read("release/index.json");
 const projection = {
   id: "projection-agci-os-current-v1",
   record_type: "agci_os_projection",
-  version: "1.0.0",
+  version: "1.1.0",
   status: "INTERNAL_CURRENT",
   created_at: createdAt,
   created_by: "Track C / Projection Engine",
   approved_by: null,
   projection_id: "AGCI-OS-PROJECTION-001",
-  projection_contract_version: "agci-os-projection-v1",
+  projection_contract_version: "agci-os-projection-v1.1",
   source_registry_system_version: catalog.registry_system_version,
+  source_catalog_revision: catalog.catalog_revision ?? catalog.registry_system_version,
   program_status: "ACTIVE",
   autonomous: {
     first_value: autonomous.value.first_value,
     operating_contract_id: autonomous.value.id,
-    routine_loop_state: "FOUNDATION_REGISTERED_NOT_RUNNING",
+    engine_contract_id: engineContract.id,
+    routine_loop_state: "FOUNDATION_PREFLIGHT_PASS_NOT_LIVE",
     human_intervention_target: autonomous.value.routine_human_intervention_target
+  },
+  engine_v2: {
+    registry_status: engineRun.index.status,
+    contract_id: engineContract.id,
+    current_run_id: engineRun.value.id,
+    status: engineRun.value.state,
+    run_mode: engineRun.value.run_mode,
+    deterministic_rerun: engineRun.value.deterministic_rerun,
+    fail_closed: engineRun.value.fail_closed,
+    input_record_count: engineRun.value.input_record_count,
+    admitted_record_count: engineRun.value.admitted_record_count,
+    quarantined_record_count: engineRun.value.quarantined_record_count,
+    manual_review_count: engineRun.value.manual_review_count,
+    market_event_count: engineRun.value.market_event_count,
+    sold_transaction_count: engineRun.value.sold_transaction_count,
+    listing_count: engineRun.value.listing_count,
+    discovered_cluster_count: engineRun.value.discovered_cluster_count,
+    approved_dynamic_vertical_count: engineRun.value.approved_dynamic_vertical_count,
+    indexes_computed: 0,
+    run_fingerprint: engineRun.value.run_fingerprint,
+    publication_eligible: engineRun.value.publication_eligible,
+    production_eligible: engineRun.value.production_eligible,
+    mutation_performed: engineRun.value.mutation_performed
+  },
+  raw_quarantine: {
+    registry_status: quarantineReport.index.status,
+    policy_id: quarantinePolicy.id,
+    current_report_id: quarantineReport.value.id,
+    input_record_count: quarantineReport.value.input_record_count,
+    quarantined_record_count: quarantineReport.value.quarantined_record_count,
+    admitted_record_count: quarantineReport.value.admitted_record_count,
+    reason_counts: quarantineReport.value.reason_counts,
+    index_eligible_quarantined_records: quarantineReport.value.index_eligible_quarantined_records,
+    direct_portal_projection: quarantinePolicy.direct_portal_projection,
+    production_eligible: quarantineReport.value.production_eligible
   },
   universe: {
     universe_id: universe.value.id,
     status: universe.value.status,
     object_count: universe.value.object_count,
-    object_count_status: universe.value.object_count_status
+    object_count_status: universe.value.object_count_status,
+    contract_fixture_records_included: false
   },
   core_domains: {
     set_id: coreDomain.value.id,
@@ -93,7 +134,9 @@ const projection = {
   dynamic_verticals: {
     registry_status: dynamicVertical.index.status,
     approved_count: dynamicVertical.index.approved_vertical_count,
-    emerging_count: dynamicVertical.index.emerging_vertical_count
+    emerging_count: dynamicVertical.index.emerging_vertical_count,
+    fixture_discovered_count: engineRun.value.discovered_cluster_count,
+    fixture_discoveries_public: false
   },
   indexes: {
     vertical_intelligence: {
@@ -174,12 +217,16 @@ const projection = {
     methodology: candidate?.methodology_version ?? "NOT_REGISTERED",
     evidence_lineage: candidate?.evidence_lineage_version ?? "NOT_REGISTERED",
     portal_contract: candidate?.portal_contract_version ?? "v502-rc1",
-    registry_system: catalog.registry_system_version
+    registry_system: catalog.registry_system_version,
+    catalog_revision: catalog.catalog_revision ?? catalog.registry_system_version,
+    engine_registry: engineRun.index.registry_version,
+    raw_quarantine_registry: quarantineReport.index.registry_version
   },
   publication: {
     public_index_projection: "NOT_AVAILABLE",
     candidate_publication: "PROHIBITED",
     provider_publication: "PROHIBITED",
+    fixture_publication: "PROHIBITED",
     production: release.status
   },
   generated_at: generatedAt
@@ -200,7 +247,10 @@ if (!existing || JSON.stringify(comparable(existing)) !== JSON.stringify(compara
 console.log("AGCI-OS Projection Engine: PASS");
 console.log(`Projection: ${projection.id}`);
 console.log(`Registry system: ${projection.source_registry_system_version}`);
+console.log(`Catalog revision: ${projection.source_catalog_revision}`);
 console.log(`Autonomous first: ${projection.autonomous.first_value}`);
+console.log(`Engine v2: ${projection.engine_v2.status}`);
+console.log(`Quarantined: ${projection.raw_quarantine.quarantined_record_count}`);
 console.log(`Candidate: ${projection.snapshot.candidate_id ?? "NONE"}`);
 console.log(`Assessment: ${projection.assessment.current_id ?? "NONE"}`);
 console.log(`KIDULT 500: ${projection.indexes.kidult_500.status}`);
