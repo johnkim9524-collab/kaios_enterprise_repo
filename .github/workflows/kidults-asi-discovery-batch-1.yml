@@ -6,6 +6,9 @@ on:
       - "feat/kidults-phase2-content-data-provider-foundation"
     paths:
       - "coordination/kidults/source-intelligence/asi-discovery-batch-001-contract-v1.json"
+      - "scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs"
+      - "scripts/kidults/source-intelligence/asi-discovery-live-v1.mjs"
+      - "scripts/kidults/source-intelligence/asi-discovery-compiler-v1.mjs"
       - "scripts/kidults/source-intelligence/run-asi-discovery-batch-1.mjs"
       - "scripts/kidults/source-intelligence/validate-asi-discovery-batch-1.mjs"
       - ".github/workflows/kidults-asi-discovery-batch-1.yml"
@@ -34,6 +37,9 @@ jobs:
 
       - name: Syntax check
         run: |
+          node --check scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-discovery-live-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-discovery-compiler-v1.mjs
           node --check scripts/kidults/source-intelligence/run-asi-discovery-batch-1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-discovery-batch-1.mjs
           node --check scripts/kidults/dos/build-dos-v1.mjs
