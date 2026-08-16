@@ -1,0 +1,76 @@
+{
+  "contract_id": "getty-provenance-sale-r1",
+  "version": "1.0.0",
+  "status": "APPROVED_FOR_BOUNDED_POC",
+  "created_at": "2026-08-16T18:10:00+09:00",
+  "owner": "Track A / Autonomous Source Discovery",
+  "source_id": "getty-provenance-index-sale-activity",
+  "source_tier": 1,
+  "source_class": "RIGHTS_CLEARED_HISTORICAL_TRANSACTION_OPEN_DATA",
+  "api_base_url": "https://data.getty.edu/provenance",
+  "access_mode": "PUBLIC_LINKED_OPEN_DATA_REST_API_NO_KEY",
+  "rights_state": "CC0",
+  "collection_mode": "DOCUMENTED_SALE_ACTIVITY_SEED_NO_MEDIA",
+  "seed_entity_ids": [
+    "fbc91494-294c-30a6-b6dc-885f3ea074ed"
+  ],
+  "expected_event_fields": [
+    "market_event_id",
+    "event_type",
+    "event_at",
+    "sold_price",
+    "currency",
+    "venue",
+    "object_references",
+    "buyer_references",
+    "seller_references",
+    "buyer_premium_state",
+    "condition_state",
+    "authentication_state",
+    "rights_state",
+    "provenance_reference"
+  ],
+  "bounded_limits": {
+    "maximum_seed_entities": 10,
+    "maximum_requests": 10,
+    "retry_attempts": 3,
+    "request_timeout_ms": 15000
+  },
+  "required_outputs": [
+    "run-manifest.json",
+    "sanitized-raw-records.json",
+    "normalized-market-events.json",
+    "evidence-package.json",
+    "quality-report.json"
+  ],
+  "autonomous_controls": [
+    "official-host allowlist",
+    "documented entity seed allowlist",
+    "bounded request budget",
+    "timeout and retry with backoff",
+    "Linked Art recursive extraction",
+    "exact event ID preservation",
+    "listing and sale distinction",
+    "raw payload hashing",
+    "field-level NOT_AVAILABLE states",
+    "provenance reference",
+    "fail-closed minimum event gate"
+  ],
+  "prohibited_operations": [
+    "image or media ingestion",
+    "invented price or currency",
+    "listing treated as sale",
+    "source mutation",
+    "Provider ID promotion to canonical object ID",
+    "Portal publication",
+    "Candidate publication",
+    "Index computation",
+    "Production mutation"
+  ],
+  "production_eligible": false,
+  "references": [
+    "https://data.getty.edu/provenance/docs/",
+    "https://data.getty.edu/provenance/fbc91494-294c-30a6-b6dc-885f3ea074ed",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/303"
+  ]
+}
