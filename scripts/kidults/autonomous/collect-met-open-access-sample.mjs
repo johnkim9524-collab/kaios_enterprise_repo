@@ -123,6 +123,7 @@ function normalizeRecord(record, fetchedAt, fullPayloadHash) {
     object_url: record.objectURL || null
   };
   const present = Object.values(criticalFields).filter(value => value !== null && value !== "").length;
+  const isPublicDomain = record.isPublicDomain === true;
 
   return {
     evidence_id: `met:${sourceObjectId}`,
@@ -153,9 +154,10 @@ function normalizeRecord(record, fetchedAt, fullPayloadHash) {
     region: record.region || null,
     city: record.city || null,
     credit_line: record.creditLine || null,
-    is_public_domain: record.isPublicDomain === true,
+    is_public_domain: isPublicDomain,
     object_url: record.objectURL || null,
-    rights_state: "CC0_COLLECTION_METADATA",
+    metadata_rights_state: "CC0_COLLECTION_METADATA",
+    image_rights_state: isPublicDomain ? "PUBLIC_DOMAIN_FLAG_TRUE_NOT_INGESTED" : "NOT_PUBLIC_DOMAIN_OR_UNAVAILABLE_NOT_INGESTED",
     image_state: "NOT_INGESTED",
     fetched_at: fetchedAt,
     evidence_reference: evidenceReference,
@@ -197,7 +199,6 @@ for (const objectId of objectIds) {
     const response = await requestJson(objectUrl, config, requestLog);
     const record = response.payload;
     if (record?.department !== "The Costume Institute") continue;
-    if (record?.isPublicDomain !== true) continue;
 
     const fetchedAt = new Date().toISOString();
     const payloadHash = sha256(stableJson(record));
@@ -224,7 +225,7 @@ const minimumGatePassed = normalizedRecords.length >= config.minimumRecords;
 const runManifest = {
   run_id: `met-costume-open-access-${completedAt.replace(/[:.]/g, "-")}`,
   contract_id: "met-costume-open-access-r1",
-  version: "1.0.0",
+  version: "1.1.0",
   status: minimumGatePassed ? "COMPLETED" : "FAILED_MINIMUM_RECORD_GATE",
   started_at: startedAt,
   completed_at: completedAt,
@@ -242,6 +243,10 @@ const runManifest = {
   minimum_records: config.minimumRecords,
   normalized_records: normalizedRecords.length,
   failed_object_requests: failures.length,
+  rights_model: {
+    metadata: "CC0_COLLECTION_METADATA",
+    images: "NOT_INGESTED; OBJECT_PUBLIC_DOMAIN_FLAG_RETAINED_AS_METADATA_ONLY"
+  },
   credential_used: false,
   paid_access_used: false,
   image_downloaded: false,
@@ -257,10 +262,12 @@ const qualityReport = {
   unique_record_count: uniqueIds.size,
   duplicate_record_count: normalizedRecords.length - uniqueIds.size,
   public_domain_record_count: normalizedRecords.filter(record => record.is_public_domain).length,
+  non_public_domain_or_unavailable_count: normalizedRecords.filter(record => !record.is_public_domain).length,
   average_critical_field_completeness: Number(averageCompleteness.toFixed(4)),
   provenance_reference_coverage: normalizedRecords.length
     ? normalizedRecords.filter(record => Boolean(record.evidence_reference)).length / normalizedRecords.length
     : 0,
+  metadata_rights_state: "CC0_COLLECTION_METADATA",
   image_ingestion_count: 0,
   minimum_record_gate: minimumGatePassed ? "PASS" : "FAIL",
   candidate_eligible: false,
@@ -273,7 +280,7 @@ const qualityReport = {
 
 const evidencePackage = {
   evidence_package_id: `evidence-${runManifest.run_id}`,
-  version: "1.0.0",
+  version: "1.1.0",
   status: "POC_EVIDENCE_NOT_CANDIDATE",
   generated_at: completedAt,
   snapshot_id: null,
@@ -297,6 +304,7 @@ console.log(JSON.stringify({
   status: runManifest.status,
   run_id: runManifest.run_id,
   normalized_records: normalizedRecords.length,
+  public_domain_records: qualityReport.public_domain_record_count,
   average_completeness: qualityReport.average_critical_field_completeness,
   output: config.output
 }));
