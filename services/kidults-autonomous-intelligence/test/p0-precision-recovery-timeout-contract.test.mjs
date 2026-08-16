@@ -14,7 +14,7 @@ function stageBlock(name, nextName) {
   return workflow.slice(start, end);
 }
 
-test('Stage 2 precision recovery remains bounded and fail-closed', () => {
+test('Stage 2 precision recovery remains bounded and fail-closed with measured reliability headroom', () => {
   const block = stageBlock(
     'Stage 2 Wikidata-only precision recovery',
     'Stage 2 institutional archive product-object precision hardening',
@@ -22,8 +22,9 @@ test('Stage 2 precision recovery remains bounded and fail-closed', () => {
 
   assert.match(
     block,
-    /timeout --signal=TERM --kill-after=10s 120s node scripts\/kidult100-precision-recovery-live\.mjs/,
+    /timeout --signal=TERM --kill-after=10s 150s node scripts\/kidult100-precision-recovery-live\.mjs/,
   );
+  assert.match(block, /timeoutSeconds:150/);
   assert.doesNotMatch(block, /continue-on-error:\s*true/);
   assert.match(block, /partialEvidenceAccepted:false/);
 });
