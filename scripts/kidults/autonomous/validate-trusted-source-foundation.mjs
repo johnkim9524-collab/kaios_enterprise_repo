@@ -3,7 +3,6 @@ import path from "node:path";
 import process from "node:process";
 
 const root = process.cwd();
-const registryRoot = path.join(root, "coordination", "kidults", "registry");
 const errors = [];
 
 function readJson(relative) {
@@ -30,10 +29,10 @@ assert(catalog?.registries?.some(entry => entry.registry_key === "trusted-source
   "Operational Registry catalog must include trusted-source.");
 assert(index?.record_count === 8, "Trusted Source Registry must contain exactly eight vertical records.");
 assert(index?.production_connection === false, "Trusted Source Registry must not activate Production.");
-assert(run?.network_collection_performed === false, "R1 is discovery-only and must not claim network collection.");
-assert(run?.credential_used === false, "R1 must not use credentials.");
+assert(run?.network_collection_performed === false, "R1 discovery record must not claim network collection.");
+assert(run?.credential_used === false, "R1 discovery must not use credentials.");
 assert(run?.production_mutation === false, "R1 must not mutate Production.");
-assert(run?.candidate_source_count === 24, "R1 must register 24 candidate sources.");
+assert(run?.candidate_source_count === 25, "R1 must register 25 candidate sources after adding V&A.");
 
 const expectedVerticals = new Set((core?.verticals ?? []).map(item => item.vertical_id));
 const actualVerticals = new Set();
@@ -72,8 +71,12 @@ for (const ref of index?.records ?? []) {
 assert(expectedVerticals.size === 8, "Core Vertical Registry must define eight verticals.");
 assert(actualVerticals.size === expectedVerticals.size && [...expectedVerticals].every(id => actualVerticals.has(id)),
   "Trusted Source Registry verticals must exactly match the eight Core Verticals.");
-assert(sourceCount === 24, `Expected 24 sources; found ${sourceCount}.`);
-assert(tier12Count === 24, `All R1 candidates are expected to be Tier 1/2; found ${tier12Count}.`);
+assert(sourceCount === 25, `Expected 25 sources; found ${sourceCount}.`);
+assert(tier12Count === 25, `All R1 candidates are expected to be Tier 1/2; found ${tier12Count}.`);
+
+const fashion = readJson("coordination/kidults/registry/trusted-source/records/trusted-source-fashion-accessories-r1.json");
+assert(fashion?.source_candidates?.filter(source => source.source_tier === 1).length >= 2,
+  "Fashion & Accessories must include at least two independent Tier 1 authority sources.");
 
 const pilot = golden?.phases?.find(phase => phase.phase_id === "PILOT_80");
 assert(pilot?.object_target === 80 && pilot?.objects_per_vertical === 10,

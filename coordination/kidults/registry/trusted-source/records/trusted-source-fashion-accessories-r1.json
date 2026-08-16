@@ -1,14 +1,14 @@
 {
   "id": "trusted-source-fashion-accessories-r1",
   "record_type": "trusted_source_vertical_set",
-  "version": "1.1.0",
-  "status": "BOUNDED_SAMPLE_IN_PROGRESS",
+  "version": "1.2.0",
+  "status": "SECOND_AUTHORITY_SAMPLE_PENDING",
   "created_at": "2026-08-16T10:10:00+09:00",
-  "updated_at": "2026-08-16T10:25:55+09:00",
+  "updated_at": "2026-08-16T10:35:00+09:00",
   "created_by": "Track A / Autonomous Source Discovery",
   "approved_by": null,
   "vertical_id": "fashion-accessories",
-  "source_candidate_count": 3,
+  "source_candidate_count": 4,
   "minimum_tier_coverage_met": true,
   "source_candidates": [
     {
@@ -18,10 +18,10 @@
       "source_class": "MUSEUM_AUTHORITY_OPEN_DATA",
       "primary_roles": ["identity-canon", "designer-history", "culture-attention"],
       "official_url": "https://www.metmuseum.org/about-the-met/collection-areas/the-costume-institute",
-      "evidence_url": "https://www.metmuseum.org/art/collection/search/108014",
+      "evidence_url": "https://metmuseum.github.io/",
       "access_mode": "OPEN_ACCESS_API_AND_WEB",
       "api_state": "PUBLIC_API_AVAILABLE",
-      "authority_basis": "Museum collection and research authority with open-access metadata and object-level rights flags.",
+      "authority_basis": "Museum collection and research authority with CC0 collection metadata and object-level image flags.",
       "coverage_scope": "Historic and contemporary fashion and accessories",
       "freshness_expectation": "CURATED_PERIODIC",
       "historical_depth": "CENTURIES",
@@ -45,7 +45,32 @@
         "images_ingested": 0,
         "candidate_eligible": false
       },
-      "next_action": "Add a second independent authority source and a rights-cleared transaction source before Candidate use."
+      "next_action": "Cross-match with V&A records; add a rights-cleared transaction source before Candidate use."
+    },
+    {
+      "source_id": "vam-collections-api-fashion",
+      "display_name": "Victoria and Albert Museum Collections API",
+      "source_tier": 1,
+      "source_class": "MUSEUM_AUTHORITY_PUBLIC_API",
+      "primary_roles": ["identity-canon", "designer-history", "object-taxonomy", "provenance-context"],
+      "official_url": "https://developers.vam.ac.uk/",
+      "evidence_url": "https://developers.vam.ac.uk/guide/v2/quick-start.html",
+      "access_mode": "PUBLIC_REST_API_NO_KEY",
+      "api_state": "PUBLIC_API_AVAILABLE",
+      "authority_basis": "Official V&A machine-readable collections API covering more than one million art and design records.",
+      "coverage_scope": "Fashion, textiles, jewellery, accessories, design and decorative arts",
+      "freshness_expectation": "CURATED_PERIODIC",
+      "historical_depth": "MULTI_CENTURY",
+      "rights_state": "V_AND_A_TERMS_SECTION_9_3_REVIEWED; INTERNAL_NONCOMMERCIAL_POC_ONLY",
+      "commercial_use_state": "NOT_CLEARED",
+      "provenance_state": "CURATORIAL_PRIMARY_RECORD",
+      "schema_stability": "HIGH",
+      "replaceability": "LOW",
+      "risk_level": "MEDIUM_HIGH",
+      "trust_score_provisional": 92,
+      "score_status": "PROVISIONAL_NOT_TRACK_B_VALIDATED",
+      "verification_state": "OFFICIAL_API_VERIFIED_SAMPLE_PENDING",
+      "next_action": "Run a bounded metadata-only sample, then cross-match accession, title, maker, date and object type against The Met."
     },
     {
       "source_id": "sothebys-handbags-results",
@@ -100,6 +125,8 @@
   ],
   "references": [
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/296",
-    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/31919540302"
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/31919540302",
+    "https://developers.vam.ac.uk/guide/v2/welcome.html",
+    "https://www.vam.ac.uk/info/va-websites-terms-conditions"
   ]
 }
