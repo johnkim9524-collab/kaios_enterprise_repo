@@ -73,8 +73,18 @@ for (const entry of catalog.registries ?? []) {
     globalIds.set(record.id, path.relative(repoRoot, recordPath));
   }
 
-  const pointers = ['current_record_id', 'current_baseline_snapshot_id', 'current_candidate_snapshot_id', 'current_published_snapshot_id', 'current_assessment_id', 'current_snapshot_id', 'current_runtime_id', 'current_release_id'];
-  for (const pointer of pointers) {
+  // These pointers resolve within their own Registry. Cross-Registry references
+  // such as Assessment.current_snapshot_id are validated explicitly below.
+  const localPointers = [
+    'current_record_id',
+    'current_baseline_snapshot_id',
+    'current_candidate_snapshot_id',
+    'current_published_snapshot_id',
+    'current_assessment_id',
+    'current_runtime_id',
+    'current_release_id'
+  ];
+  for (const pointer of localPointers) {
     if (pointer in index && index[pointer] !== null && !localIds.has(index[pointer])) {
       errors.push(`${label}: pointer '${pointer}' references unknown ID '${index[pointer]}'.`);
     }
@@ -90,7 +100,8 @@ const expectedTracks = new Set([
   'track-a-120-intelligence-factory',
   'track-b-rankability-validation-gate',
   'track-c-portal-v502-experience-layer',
-  'track-d-data-platform-production-reliability'
+  'track-d-data-platform-production-reliability',
+  'track-e-executive-operating-system'
 ]);
 for (const trackId of expectedTracks) {
   if (!trackIndex?.records?.some((record) => record.id === trackId)) errors.push(`Track Registry: missing '${trackId}'.`);
@@ -105,9 +116,15 @@ if (snapshotIndex?.current_baseline_snapshot_id && !snapshotIndex.records.some((
 }
 
 const assessmentIndex = getIndex('assessment');
+const assessmentSnapshotId = assessmentIndex?.current_snapshot_id ?? null;
+if (assessmentSnapshotId !== null && !snapshotIndex?.records?.some((record) => record.id === assessmentSnapshotId)) {
+  errors.push(`Assessment Registry current_snapshot_id '${assessmentSnapshotId}' does not resolve in Snapshot Registry.`);
+}
 if (!snapshotIndex?.current_candidate_snapshot_id) {
   if (assessmentIndex?.current_assessment_id !== null) errors.push('Assessment must be null when no candidate snapshot exists.');
   if (assessmentIndex?.status !== 'WAITING_FOR_SNAPSHOT') warnings.push(`Assessment status is '${assessmentIndex?.status}', expected WAITING_FOR_SNAPSHOT while candidate is null.`);
+} else if (assessmentSnapshotId !== snapshotIndex.current_candidate_snapshot_id) {
+  errors.push(`Assessment Registry current_snapshot_id '${assessmentSnapshotId}' does not match current Candidate '${snapshotIndex.current_candidate_snapshot_id}'.`);
 }
 
 if (errors.length) {
