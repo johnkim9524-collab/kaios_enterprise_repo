@@ -1,0 +1,62 @@
+{
+  "contract_id": "smithsonian-open-access-r1",
+  "version": "1.0.0",
+  "status": "APPROVED_FOR_BOUNDED_POC",
+  "created_at": "2026-08-16T17:55:00+09:00",
+  "owner": "Track A / Autonomous Source Discovery",
+  "source_id": "smithsonian-open-access-art-design",
+  "source_tier": 1,
+  "core_domain_hint": "design-furniture",
+  "source_class": "MULTI_INSTITUTION_AUTHORITY_OPEN_DATA",
+  "api_base_url": "https://api.si.edu/openaccess/api/v1.0",
+  "category": "art_design",
+  "access_mode": "API_DATA_GOV_KEY_WITH_DEMO_KEY_FALLBACK_FOR_BOUNDED_POC",
+  "rights_state": "SMITHSONIAN_OPEN_ACCESS_METADATA_CC0_PORTIONS; RECORD_LEVEL_MEDIA_LIMITS",
+  "collection_mode": "STRICT_METADATA_ALLOWLIST_NO_MEDIA_DOWNLOAD",
+  "query": "design",
+  "bounded_limits": {
+    "normalized_record_target": 12,
+    "minimum_successful_records": 8,
+    "maximum_search_rows": 50,
+    "maximum_requests": 1,
+    "retry_attempts": 3,
+    "request_timeout_ms": 15000
+  },
+  "required_outputs": [
+    "run-manifest.json",
+    "sanitized-raw-records.json",
+    "normalized-evidence-records.json",
+    "evidence-package.json",
+    "quality-report.json"
+  ],
+  "autonomous_controls": [
+    "official-host allowlist",
+    "API key redaction from logs and artifacts",
+    "bounded request budget",
+    "timeout and retry with backoff",
+    "strict metadata field allowlist",
+    "media field exclusion",
+    "raw payload hashing",
+    "source-qualified deduplication",
+    "critical-field completeness",
+    "provenance reference",
+    "fail-closed minimum record gate"
+  ],
+  "prohibited_operations": [
+    "API key persistence",
+    "API key logging",
+    "image or media download",
+    "paid access",
+    "source mutation",
+    "Provider ID promotion to canonical ID",
+    "Portal publication",
+    "Candidate publication",
+    "Production mutation"
+  ],
+  "production_eligible": false,
+  "references": [
+    "https://www.si.edu/openaccess/devtools",
+    "https://github.com/Smithsonian/smithsonian-openaccess",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/303"
+  ]
+}
