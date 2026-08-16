@@ -16,6 +16,10 @@ export function buildPrecisionRecoveryHeadroomDiagnostic(latency) {
     : budgetUtilization >= 0.75
       ? 'WATCH'
       : 'HEALTHY';
+  const escalationRecommended = headroomStatus === 'HIGH_UTILIZATION_WATCH';
+  const recommendedAction = escalationRecommended
+    ? 'ROUTE_BOUNDED_PERFORMANCE_INVESTIGATION_VIA_KPMO'
+    : 'CONTINUE_OBSERVATION';
 
   return {
     status: latency?.status ?? 'UNKNOWN',
@@ -25,6 +29,11 @@ export function buildPrecisionRecoveryHeadroomDiagnostic(latency) {
     budgetUtilizationPercent: Number((budgetUtilization * 100).toFixed(2)),
     remainingHeadroomSeconds,
     headroomStatus,
+    escalationRecommended,
+    escalationRoute: escalationRecommended ? 'KPMO_TRACK_A_CI_RELIABILITY_REVIEW' : null,
+    recommendedAction,
+    escalationIsAdvisoryOnly: true,
+    automaticCrossTrackActionAllowed: false,
     observationalOnly: true,
     productionInput: false,
     productionEvidence: false,
