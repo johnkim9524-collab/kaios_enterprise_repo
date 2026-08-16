@@ -44,7 +44,10 @@ for (const marker of [
   "localStorage",
   "registry.freshness",
   "No approved change detected",
-  "NOT_AVAILABLE"
+  "NOT_AVAILABLE",
+  'living-pulse.css?v=667',
+  'root.dataset.mobileDesign = "v667"',
+  'design: root.dataset.mobileDesign'
 ]) {
   if (!component.includes(marker)) errors.push(`Living Pulse component missing marker: ${marker}`);
 }
@@ -55,16 +58,27 @@ for (const marker of [
   ".living-object-state",
   ".living-freshness-badge",
   "@media(max-width:760px)",
-  "prefers-reduced-motion"
+  "prefers-reduced-motion",
+  "KIDULTS Mobile Living Intelligence V667",
+  '"identity changes"',
+  '"metrics metrics"',
+  "Signals move. We observe. You stay ahead.",
+  "WHAT CHANGED"
 ]) {
   if (!style.includes(marker)) errors.push(`Living Pulse stylesheet missing marker: ${marker}`);
 }
 
-if (!portal.includes('import { startLivingPulse } from "./components/living-pulse.js";')) {
-  errors.push("portal.js does not import the Living Pulse component.");
+if (!portal.includes('import { startLivingPulse } from "./components/living-pulse.js?v=667";')) {
+  errors.push("portal.js does not import the V667 Living Pulse component.");
 }
 if (!portal.includes("startLivingPulse({")) {
   errors.push("portal.js does not start the Living Pulse engine.");
+}
+if (!portal.includes('dataset.mobileLivingIntelligence = "v667"')) {
+  errors.push("portal.js does not expose the V667 mobile Living Intelligence state.");
+}
+if (!portal.includes("livingPulseDesign: window.KIDULTS_LIVING_PULSE?.design")) {
+  errors.push("portal.js does not publish the Living Pulse design version.");
 }
 if (!dataStore.includes("living-pulse-contract.json")) {
   errors.push("data-store.js does not load the Living Pulse contract.");
@@ -91,7 +105,7 @@ if (contract) {
   }
 }
 
-for (const prohibited of ["127 Sources", "2m ago", "Today's Changes +3"]) {
+for (const prohibited of ["127 Sources", "287 ACTIVE", "2m ago", "Today's Changes +3"]) {
   if ([component, portal, dataStore].some(text => text.includes(prohibited))) {
     errors.push(`Hardcoded demo value is prohibited: ${prohibited}`);
   }
@@ -103,7 +117,7 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS Living Pulse validation: PASS");
+console.log("KIDULTS Living Pulse validation: PASS (V667 mobile intelligence card, fail-closed states preserved)");
 console.log(`Engine: ${contract.engine_id} ${contract.version}`);
 console.log(`Polling: ${contract.poll_interval_ms}ms`);
 console.log(`States: ${contract.allowed_states.join(", ")}`);
