@@ -50,3 +50,12 @@ test('engineering diagnostics preserve workflow SHA while binding headSha to sou
   assert.equal(normalized.diagnosticsCanRelaxProductionGate, false);
   assert.equal(normalized.partialEvidenceAccepted, false);
 });
+
+test('engineering diagnostic normalization fails closed for non-object inputs', () => {
+  for (const diagnostic of [null, undefined, 'diagnostic', 42, [], true]) {
+    assert.throws(
+      () => normalizeEngineeringDiagnosticTraceability(diagnostic, null),
+      { name: 'TypeError', message: 'engineering diagnostic must be an object' },
+    );
+  }
+});
