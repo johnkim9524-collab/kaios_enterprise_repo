@@ -37,6 +37,8 @@ jobs:
         run: |
           node --check scripts/kidults/value/build-irreplaceable-value-alignment-v1.mjs
           node --check scripts/kidults/value/validate-irreplaceable-value-alignment-v1.mjs
+          node --check scripts/kidults/data-scope/build-program-reset-v2.mjs
+          node --check scripts/kidults/data-scope/validate-program-reset-v2.mjs
 
       - name: Build Irreplaceable Value alignment
         run: |
@@ -80,7 +82,11 @@ jobs:
 
       - name: Validate existing AGCI-OS governance
         run: |
-          node scripts/kidults/data-scope/validate-program-reset-v2.mjs artifacts/agci-os/program-reset-category-1000-v1 || true
+          node scripts/kidults/data-scope/build-program-reset-v2.mjs \
+            --output artifacts/agci-os/program-reset-category-1000-v1 \
+            --write
+          node scripts/kidults/data-scope/validate-program-reset-v2.mjs \
+            artifacts/agci-os/program-reset-category-1000-v1
           node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
           node scripts/kidults/registry/validate-operational-registry.mjs
           node scripts/kidults/mission-control/validate-mission-control.mjs
