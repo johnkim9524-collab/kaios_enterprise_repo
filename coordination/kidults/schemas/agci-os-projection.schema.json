@@ -1,1 +1,104 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://kidults.example/schemas/agci-os-projection.schema.json","title":"AGCI-OS Governed Projection","type":"object","required":["id","record_type","version","status","created_by","projection_id","source_registry_system_version","source_catalog_revision","autonomous","engine_v2","raw_quarantine","universe","core_domains","dynamic_verticals","indexes","snapshot","assessment","provider","runtime","release","publication","generated_at"],"properties":{"record_type":{"const":"agci_os_projection"},"status":{"const":"INTERNAL_CURRENT"},"autonomous":{"type":"object","required":["first_value","engine_contract_id","routine_loop_state"]},"engine_v2":{"type":"object","required":["current_run_id","status","run_mode","deterministic_rerun","fail_closed","quarantined_record_count","approved_dynamic_vertical_count","indexes_computed","production_eligible","mutation_performed"]},"raw_quarantine":{"type":"object","required":["policy_id","current_report_id","quarantined_record_count","index_eligible_quarantined_records","direct_portal_projection"]},"provider":{"type":"object","required":["role","direct_portal_path"]},"publication":{"type":"object","required":["public_index_projection","fixture_publication","production"]}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.example/schemas/agci-os-projection.schema.json",
+  "title": "AGCI-OS Governed Projection",
+  "type": "object",
+  "required": [
+    "id",
+    "record_type",
+    "version",
+    "status",
+    "created_by",
+    "projection_id",
+    "source_registry_system_version",
+    "source_catalog_revision",
+    "autonomous",
+    "engine_v2",
+    "memory",
+    "raw_quarantine",
+    "universe",
+    "core_domains",
+    "dynamic_verticals",
+    "indexes",
+    "snapshot",
+    "assessment",
+    "provider",
+    "runtime",
+    "release",
+    "publication",
+    "generated_at"
+  ],
+  "properties": {
+    "record_type": {"const": "agci_os_projection"},
+    "status": {"const": "INTERNAL_CURRENT"},
+    "autonomous": {
+      "type": "object",
+      "required": ["first_value", "engine_contract_id", "routine_loop_state"]
+    },
+    "engine_v2": {
+      "type": "object",
+      "required": [
+        "current_run_id",
+        "status",
+        "run_mode",
+        "deterministic_rerun",
+        "fail_closed",
+        "quarantined_record_count",
+        "approved_dynamic_vertical_count",
+        "indexes_computed",
+        "production_eligible",
+        "mutation_performed"
+      ]
+    },
+    "memory": {
+      "type": "object",
+      "required": [
+        "policy_id",
+        "current_run_id",
+        "status",
+        "run_mode",
+        "storage_model",
+        "deterministic_replay",
+        "input_entry_count",
+        "admitted_entry_count",
+        "quarantined_entry_count",
+        "review_required_count",
+        "supersession_chain_count",
+        "replay_snapshot_count",
+        "bitemporal_coverage",
+        "append_only",
+        "in_place_correction",
+        "direct_memory_to_portal",
+        "direct_memory_to_index",
+        "fixture_entries_in_global_universe",
+        "public_projection",
+        "indexes_computed",
+        "production_eligible",
+        "run_fingerprint"
+      ]
+    },
+    "raw_quarantine": {
+      "type": "object",
+      "required": [
+        "policy_id",
+        "current_report_id",
+        "quarantined_record_count",
+        "index_eligible_quarantined_records",
+        "direct_portal_projection"
+      ]
+    },
+    "provider": {
+      "type": "object",
+      "required": ["role", "direct_portal_path"]
+    },
+    "publication": {
+      "type": "object",
+      "required": [
+        "public_index_projection",
+        "fixture_publication",
+        "memory_fixture_publication",
+        "production"
+      ]
+    }
+  }
+}
