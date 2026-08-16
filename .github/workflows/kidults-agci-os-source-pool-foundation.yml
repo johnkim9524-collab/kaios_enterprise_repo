@@ -1,0 +1,92 @@
+name: KIDULTS AGCI-OS Scope Source Pool Foundation
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/data-scope/category-1000-scale-contract-v1.json"
+      - "coordination/kidults/data-scope/collection-scope-registry-v1.json"
+      - "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
+      - "coordination/kidults/source-intelligence/scope-source-pool-readiness-contract-v1.json"
+      - "coordination/kidults/registry/trusted-source/**"
+      - "coordination/kidults/autonomous/source-discovery/contracts/**"
+      - "scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs"
+      - ".github/workflows/kidults-agci-os-source-pool-foundation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-agci-os-source-pool-foundation
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs
+
+      - name: Build Scope Source Pool and 10K discovery plans
+        run: |
+          node scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs \
+            --output artifacts/agci-os/scope-source-pool-foundation-v1 \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          node --input-type=module <<'NODE' > /tmp/source-pool-1.json
+          import { buildScopeSourcePoolReadiness } from './scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs';
+          process.stdout.write(JSON.stringify(buildScopeSourcePoolReadiness()));
+          NODE
+          node --input-type=module <<'NODE' > /tmp/source-pool-2.json
+          import { buildScopeSourcePoolReadiness } from './scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs';
+          process.stdout.write(JSON.stringify(buildScopeSourcePoolReadiness()));
+          NODE
+          cmp /tmp/source-pool-1.json /tmp/source-pool-2.json
+
+      - name: Validate Scope Source Pool foundation
+        run: |
+          node scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs \
+            artifacts/agci-os/scope-source-pool-foundation-v1
+
+      - name: Validate program reset and Collection Scope foundation
+        run: |
+          node scripts/kidults/data-scope/build-program-reset-v2.mjs \
+            --output artifacts/agci-os/program-reset-category-1000-v1 \
+            --write
+          node scripts/kidults/data-scope/validate-program-reset-v2.mjs \
+            artifacts/agci-os/program-reset-category-1000-v1
+          node scripts/kidults/data-scope/validate-collection-scope-registry-v1.mjs
+
+      - name: Validate existing AGCI-OS governance
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload Scope Source Pool evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-agci-os-scope-source-pool-foundation-v1
+          path: |
+            artifacts/agci-os/scope-source-pool-foundation-v1
+            artifacts/agci-os/program-reset-category-1000-v1
+          if-no-files-found: error
+          retention-days: 30
