@@ -1,0 +1,34 @@
+{
+  "registry_id": "kidults-trusted-source-registry",
+  "registry_name": "Trusted Source Registry",
+  "registry_version": "1.0.0",
+  "schema_version": "1.0.0",
+  "owner": "Track A / Autonomous Source Discovery",
+  "custodian": "Atlas",
+  "status": "FOUNDATION_ACTIVE",
+  "effective_at": "2026-08-16T10:10:00+09:00",
+  "record_directory": "records",
+  "record_count": 8,
+  "current_record_id": null,
+  "current_discovery_run_id": "autonomous-source-discovery-r1-20260816",
+  "production_connection": false,
+  "records": [
+    {"id":"trusted-source-toys-models-r1","path":"records/trusted-source-toys-models-r1.json","version":"1.0.0","status":"DISCOVERY_CANDIDATES"},
+    {"id":"trusted-source-watches-jewelry-r1","path":"records/trusted-source-watches-jewelry-r1.json","version":"1.0.0","status":"DISCOVERY_CANDIDATES"},
+    {"id":"trusted-source-automobiles-mobility-r1","path":"records/trusted-source-automobiles-mobility-r1.json","version":"1.0.0","status":"DISCOVERY_CANDIDATES"},
+    {"id":"trusted-source-fashion-accessories-r1","path":"records/trusted-source-fashion-accessories-r1.json","version":"1.0.0","status":"DISCOVERY_CANDIDATES"},
+    {"id":"trusted-source-design-furniture-r1","path":"records/trusted-source-design-furniture-r1.json","version":"1.0.0","status":"DISCOVERY_CANDIDATES"},
+    {"id":"trusted-source-technology-cameras-r1","path":"records/trusted-source-technology-cameras-r1.json","version":"1.0.0","status":"DISCOVERY_CANDIDATES"},
+    {"id":"trusted-source-gaming-music-screen-r1","path":"records/trusted-source-gaming-music-screen-r1.json","version":"1.0.0","status":"DISCOVERY_CANDIDATES"},
+    {"id":"trusted-source-cards-comics-memorabilia-r1","path":"records/trusted-source-cards-comics-memorabilia-r1.json","version":"1.0.0","status":"DISCOVERY_CANDIDATES"}
+  ],
+  "rules": {
+    "autonomous_first": true,
+    "trust_before_coverage": true,
+    "single_source_volume_substitutes_for_independence": false,
+    "rights_review_required_before_collection": true,
+    "credentials_in_registry": false,
+    "raw_provider_data_to_portal": "PROHIBITED",
+    "production_activation": "PROHIBITED"
+  }
+}

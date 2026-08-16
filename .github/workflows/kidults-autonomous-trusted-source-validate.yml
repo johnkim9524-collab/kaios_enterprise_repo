@@ -1,0 +1,50 @@
+name: KIDULTS Autonomous Trusted Source Validate
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/registry/trusted-source/**"
+      - "coordination/kidults/registry/catalog.json"
+      - "coordination/kidults/methodology/**"
+      - "coordination/kidults/golden-dataset/**"
+      - "coordination/kidults/autonomous/source-discovery/**"
+      - "coordination/kidults/schemas/trusted-source-vertical-set.schema.json"
+      - "scripts/kidults/autonomous/validate-trusted-source-foundation.mjs"
+      - ".github/workflows/kidults-autonomous-trusted-source-validate.yml"
+  pull_request:
+    paths:
+      - "coordination/kidults/registry/trusted-source/**"
+      - "coordination/kidults/registry/catalog.json"
+      - "coordination/kidults/methodology/**"
+      - "coordination/kidults/golden-dataset/**"
+      - "coordination/kidults/autonomous/source-discovery/**"
+      - "coordination/kidults/schemas/trusted-source-vertical-set.schema.json"
+      - "scripts/kidults/autonomous/validate-trusted-source-foundation.mjs"
+      - ".github/workflows/kidults-autonomous-trusted-source-validate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: node --check scripts/kidults/autonomous/validate-trusted-source-foundation.mjs
+
+      - name: Validate Trusted Source Foundation
+        run: |
+          node scripts/kidults/autonomous/validate-trusted-source-foundation.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs

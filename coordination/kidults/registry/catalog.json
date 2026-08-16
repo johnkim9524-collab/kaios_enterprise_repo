@@ -1,7 +1,7 @@
 {
   "registry_system_id": "kidults-operational-registry",
-  "registry_system_version": "1.1.0",
-  "effective_at": "2026-08-12T12:00:00+09:00",
+  "registry_system_version": "1.2.0",
+  "effective_at": "2026-08-16T10:10:00+09:00",
   "status": "BOOTSTRAPPING",
   "custodian": "Atlas",
   "program_owner": "John",
@@ -15,6 +15,7 @@
     {"registry_key":"vertical","path":"vertical/index.json","owner":"Architecture"},
     {"registry_key":"snapshot","path":"snapshot/index.json","owner":"Track A / Snapshot Publisher"},
     {"registry_key":"evidence","path":"evidence/index.json","owner":"Track A"},
+    {"registry_key":"trusted-source","path":"trusted-source/index.json","owner":"Track A / Autonomous Source Discovery"},
     {"registry_key":"assessment","path":"assessment/index.json","owner":"KPMO; Track B producer with read-only registry access"},
     {"registry_key":"decision","path":"decision/index.json","owner":"Program Owner / KPMO"},
     {"registry_key":"object","path":"object/index.json","owner":"Architecture"},
@@ -31,5 +32,13 @@
     {"registry_key":"work-queue","path":"work-queue/index.json","owner":"KPMO / Track Owners"},
     {"registry_key":"blocker","path":"blocker/index.json","owner":"KPMO"},
     {"registry_key":"digital-twin","path":"digital-twin/index.json","owner":"KPMO / Executive Control Tower"}
+  ],
+  "change_history": [
+    {
+      "version": "1.2.0",
+      "changed_at": "2026-08-16T10:10:00+09:00",
+      "changed_by": "KPMO / Track A",
+      "change": "Registered the Autonomous-First Trusted Source Registry as a canonical operational registry."
+    }
   ]
 }
