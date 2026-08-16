@@ -22,6 +22,8 @@ function readText(relative) {
 const paths = {
   runtime: "apps/kidults-enterprise-staging/public/portal/components/mobile-reconstruction.js",
   css: "apps/kidults-enterprise-staging/public/portal/components/mobile-reconstruction.css",
+  pulseRuntime: "apps/kidults-enterprise-staging/public/portal/components/living-pulse.js",
+  pulseCss: "apps/kidults-enterprise-staging/public/portal/components/living-pulse.css",
   portal: "apps/kidults-enterprise-staging/public/portal/portal.js",
   detail: "apps/kidults-enterprise-staging/public/portal/detail.js",
   workflow: ".github/workflows/kidults-portal-v502-validate.yml"
@@ -29,6 +31,8 @@ const paths = {
 
 const runtime = readText(paths.runtime);
 const css = readText(paths.css);
+const pulseRuntime = readText(paths.pulseRuntime);
+const pulseCss = readText(paths.pulseCss);
 const portal = readText(paths.portal);
 const detail = readText(paths.detail);
 const workflow = readText(paths.workflow);
@@ -83,6 +87,39 @@ for (const marker of [
   "scroll-margin-top:76px"
 ]) {
   if (!css.includes(marker)) errors.push(`Mobile CSS missing marker: ${marker}`);
+}
+
+for (const marker of [
+  'version: "0.2.0"',
+  'living-pulse.css?v=667',
+  'root.dataset.mobileDesign = "v667"',
+  'design: root.dataset.mobileDesign'
+]) {
+  if (!pulseRuntime.includes(marker)) errors.push(`Living Intelligence runtime missing V667 marker: ${marker}`);
+}
+
+for (const marker of [
+  "KIDULTS Mobile Living Intelligence V667",
+  '"identity changes"',
+  '"metrics metrics"',
+  ".living-pulse__metrics",
+  "display:grid!important",
+  "white-space:normal!important",
+  "WHAT CHANGED",
+  "Signals move. We observe. You stay ahead.",
+  "@media(max-width:340px)"
+]) {
+  if (!pulseCss.includes(marker)) errors.push(`Living Intelligence CSS missing V667 marker: ${marker}`);
+}
+
+if (!portal.includes('import { startLivingPulse } from "./components/living-pulse.js?v=667";')) {
+  errors.push("portal.js does not bind the V667 Living Intelligence runtime.");
+}
+if (!portal.includes('dataset.mobileLivingIntelligence = "v667"')) {
+  errors.push("portal.js does not expose the V667 Living Intelligence dataset.");
+}
+if (!portal.includes('livingPulseDesign: window.KIDULTS_LIVING_PULSE?.design')) {
+  errors.push("portal.js does not publish the Living Intelligence design contract.");
 }
 
 if (!portal.includes('import { startMobileReconstruction } from "./components/mobile-reconstruction.js";')) {
@@ -171,5 +208,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS Mobile Reconstruction validation: PASS (320/390/768/1024 contract, no masked horizontal overflow)");
+console.log("KIDULTS Mobile Reconstruction validation: PASS (V667 Living Intelligence, 320/390/768/1024, no masked horizontal overflow)");
 for (const warning of warnings) console.warn(`WARN: ${warning}`);
