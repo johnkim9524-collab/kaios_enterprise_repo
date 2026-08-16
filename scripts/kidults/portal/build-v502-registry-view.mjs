@@ -21,7 +21,7 @@ const now = writeMode ? new Date().toISOString() : (existing?.generated_at ?? ne
 
 const projection = {
   projection_id: "portal-v502-registry-view-001",
-  projection_version: "2.1.0",
+  projection_version: "2.2.0",
   source_projection_id: source.id,
   source_projection_contract_version: source.projection_contract_version,
   generated_from: [
@@ -39,6 +39,7 @@ const projection = {
   },
   autonomous: source.autonomous,
   engine_v2: source.engine_v2,
+  memory: source.memory,
   raw_quarantine: source.raw_quarantine,
   universe: source.universe,
   core_domains: source.core_domains,
@@ -81,6 +82,8 @@ if (JSON.stringify(comparable(current)) !== JSON.stringify(comparable(projection
 
 console.log("Portal consumes the canonical AGCI-OS Projection Registry: PASS");
 console.log(`Engine v2: ${projection.engine_v2.status}`);
+console.log(`Memory: ${projection.memory.status}`);
+console.log(`Memory replay snapshots: ${projection.memory.replay_snapshot_count}`);
 console.log(`Raw Quarantine: ${projection.raw_quarantine.quarantined_record_count} isolated`);
 console.log(`KIDULT 500: ${projection.indexes.kidult_500.status}`);
 console.log(`KIDULT 100: ${projection.indexes.kidult_100.status}`);
