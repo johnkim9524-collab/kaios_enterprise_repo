@@ -70,7 +70,7 @@ assert(raw?.content_acquired === false, "Live discovery must not acquire content
 assert(raw?.acquisition_authorized === false, "Raw discovery must not authorize acquisition.");
 assert(raw?.production === "HOLD", "Raw discovery Production must remain HOLD.");
 assert((raw?.raw_record_count ?? 0) === (raw?.records?.length ?? -1), "Raw record count mismatch.");
-assert(Object.keys(raw?.discovery_provider_counts ?? {}).length >= 2,
+assert(Object.values(raw?.discovery_provider_counts ?? {}).filter(value => Number(value) > 0).length >= 2,
   "At least two discovery providers must return metadata records.");
 
 assert(manifest?.status === "ASI_DISCOVERY_BATCH_001_TARGET_PASS",
