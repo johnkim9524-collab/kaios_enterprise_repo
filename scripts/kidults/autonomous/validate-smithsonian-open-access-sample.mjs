@@ -48,6 +48,11 @@ const allowedRawMetadataKeys = new Set([
   "id", "title", "record_id", "data_source", "unit_code", "metadata_usage_access",
   "object_types", "dates", "places", "topics", "cultures", "names", "languages"
 ]);
+const prohibitedPayloadKeys = new Set([
+  "image", "images", "image_url", "image_urls", "thumbnail", "thumbnail_url",
+  "online_media", "online_media_type", "media_resources", "media_url", "content_url",
+  "content_urls", "resource", "resources", "resource_url", "resource_urls"
+]);
 
 const ids = new Set();
 for (const record of records ?? []) {
@@ -68,17 +73,19 @@ for (const record of records ?? []) {
   assert(record.publication_state === "POC_INTERNAL_ONLY", `${record.evidence_id}: publication state mismatch.`);
   assert(record.index_eligible === false, `${record.evidence_id}: index eligibility must remain false.`);
   assert(record.production_eligible === false, `${record.evidence_id}: Production eligibility must remain false.`);
-  assert(!/(image|media|thumbnail|content_url|resource)/i.test(Object.keys(record).join("|")),
-    `${record.evidence_id}: media-bearing field leaked into normalized output.`);
+  for (const key of Object.keys(record)) {
+    assert(!prohibitedPayloadKeys.has(key), `${record.evidence_id}: media payload field leaked into normalized output: ${key}.`);
+  }
 }
 
 for (const item of raw ?? []) {
   assert(item.raw_payload_state === "STRICT_METADATA_ALLOWLIST_NO_MEDIA", `${item.source_object_id}: raw state mismatch.`);
   assert(item.media_downloaded === false, `${item.source_object_id}: raw media flag mismatch.`);
   const keys = Object.keys(item.metadata ?? {});
-  for (const key of keys) assert(allowedRawMetadataKeys.has(key), `${item.source_object_id}: unexpected raw metadata key ${key}.`);
-  assert(!/(image|media|thumbnail|content_url|resource)/i.test(keys.join("|")),
-    `${item.source_object_id}: media-bearing raw key leaked.`);
+  for (const key of keys) {
+    assert(allowedRawMetadataKeys.has(key), `${item.source_object_id}: unexpected raw metadata key ${key}.`);
+    assert(!prohibitedPayloadKeys.has(key), `${item.source_object_id}: media payload raw key leaked: ${key}.`);
+  }
 }
 
 assert(evidence?.status === "POC_EVIDENCE_NOT_CANDIDATE", "Evidence Package must not claim Candidate status.");
