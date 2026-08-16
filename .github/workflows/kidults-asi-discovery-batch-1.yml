@@ -1,0 +1,98 @@
+name: KIDULTS ASI Discovery Batch 001
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/source-intelligence/asi-discovery-batch-001-contract-v1.json"
+      - "scripts/kidults/source-intelligence/run-asi-discovery-batch-1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-discovery-batch-1.mjs"
+      - ".github/workflows/kidults-asi-discovery-batch-1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-discovery-batch-001
+  cancel-in-progress: true
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/run-asi-discovery-batch-1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-discovery-batch-1.mjs
+          node --check scripts/kidults/dos/build-dos-v1.mjs
+          node --check scripts/kidults/dos/build-dos-asi-execution-v1.mjs
+
+      - name: Execute live metadata-only Source discovery
+        env:
+          GITHUB_DISCOVERY_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/kidults/source-intelligence/run-asi-discovery-batch-1.mjs \
+            --live \
+            --output artifacts/agci-os/asi-discovery-batch-001 \
+            --write
+
+      - name: Prove deterministic replay from immutable raw snapshot
+        run: |
+          node scripts/kidults/source-intelligence/run-asi-discovery-batch-1.mjs \
+            --replay artifacts/agci-os/asi-discovery-batch-001/raw-discovery-snapshot.json \
+            --output /tmp/asi-replay-1 \
+            --write
+          node scripts/kidults/source-intelligence/run-asi-discovery-batch-1.mjs \
+            --replay artifacts/agci-os/asi-discovery-batch-001/raw-discovery-snapshot.json \
+            --output /tmp/asi-replay-2 \
+            --write
+          for file in \
+            global-source-universe-batch-001.json \
+            endpoint-deduplication-report.json \
+            source-classification-report.json \
+            scope-role-coverage-matrix.json \
+            source-utility-scorecard.json \
+            source-risk-register.json \
+            rights-access-cost-preflight.json \
+            adapter-contract-queue.json \
+            acquisition-priority-plan.json \
+            batch-run-manifest.json; do
+            cmp "/tmp/asi-replay-1/$file" "/tmp/asi-replay-2/$file"
+            cmp "artifacts/agci-os/asi-discovery-batch-001/$file" "/tmp/asi-replay-1/$file"
+          done
+
+      - name: Validate discovery, deduplication, classification and boundaries
+        run: |
+          node scripts/kidults/source-intelligence/validate-asi-discovery-batch-1.mjs \
+            artifacts/agci-os/asi-discovery-batch-001
+
+      - name: Revalidate DOS, DOS-to-ASI and AGCI-OS governance
+        run: |
+          node scripts/kidults/dos/build-dos-v1.mjs --output /tmp/dos-v1 --write
+          node scripts/kidults/dos/validate-dos-v1.mjs /tmp/dos-v1
+          node scripts/kidults/dos/build-dos-asi-execution-v1.mjs --output /tmp/dos-asi-v1 --write
+          node scripts/kidults/dos/validate-dos-asi-execution-v1.mjs /tmp/dos-asi-v1
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload immutable Batch 001 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-asi-discovery-batch-001
+          path: artifacts/agci-os/asi-discovery-batch-001
+          if-no-files-found: error
+          retention-days: 30
