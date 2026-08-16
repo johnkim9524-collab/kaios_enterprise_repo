@@ -1,0 +1,84 @@
+{
+  "id": "evidence-fashion-authority-cross-source-r1",
+  "record_type": "cross_source_evidence_validation",
+  "version": "1.0.0",
+  "status": "CROSS_SOURCE_EVIDENCE_NOT_CANDIDATE",
+  "created_at": "2026-08-16T10:40:16+09:00",
+  "created_by": "Track A / Autonomous Evidence Factory",
+  "approved_by": null,
+  "snapshot_id": null,
+  "comparison_id": "fashion-authority-cross-source-r1",
+  "vertical_id": "fashion-accessories",
+  "methodology_references": [
+    "source-trust-methodology-v1",
+    "evidence-density-methodology-v1"
+  ],
+  "source_families": [
+    {
+      "source_id": "met-costume-institute-open-access",
+      "run_id": "met-costume-open-access-2026-08-16T01-40-14-007Z",
+      "record_count": 12,
+      "rights_state": "CC0_COLLECTION_METADATA"
+    },
+    {
+      "source_id": "vam-collections-api-fashion",
+      "run_id": "vam-fashion-collections-2026-08-16T01-40-15-176Z",
+      "record_count": 12,
+      "rights_state": "INTERNAL_NONCOMMERCIAL_POC_ONLY"
+    }
+  ],
+  "run": {
+    "workflow_run_id": 31920084612,
+    "artifact_id": 9256092424,
+    "artifact_digest": "sha256:3000159c9f1e9f4f1f0d9f13df861fb9c6824ca5fdf81d2ac2e6b5b053618be8"
+  },
+  "metrics": {
+    "source_family_count": 2,
+    "record_count": 24,
+    "unique_source_record_count": 24,
+    "provenance_reference_coverage": 1.0,
+    "average_critical_field_completeness": 0.9583,
+    "image_ingestion_count": 0,
+    "credential_use_count": 0,
+    "paid_access_count": 0,
+    "mutation_count": 0,
+    "strong_entity_match_candidates": 0
+  },
+  "schema_intersection": [
+    "source_id",
+    "source_object_id",
+    "object_type",
+    "title",
+    "maker_or_artist",
+    "production_or_object_date",
+    "evidence_reference",
+    "source_payload_sha256",
+    "critical_field_completeness"
+  ],
+  "entity_resolution_state": "NO_STRONG_SAME_OBJECT_MATCH_IN_BOUNDED_SAMPLES",
+  "entity_resolution_interpretation": "No strong same-object match was found. This is expected for independent museum holdings and must not be misreported as an entity-resolution failure.",
+  "source_removal_sensitivity": {
+    "remove_met": "FAIL_SOURCE_DIVERSITY",
+    "remove_vam": "FAIL_SOURCE_DIVERSITY"
+  },
+  "candidate_eligible": false,
+  "candidate_blockers": [
+    "Two source families are below the Evidence Density minimum of four.",
+    "No rights-cleared transaction evidence is present.",
+    "Object-level entity resolution has not been validated against a Golden Dataset.",
+    "Commercial-publication rights are not aligned across sources.",
+    "Track B has not validated trust, density or source-removal sensitivity methodology."
+  ],
+  "next_actions": [
+    "Add at least two additional independent source families.",
+    "Select Golden Dataset objects with a realistic probability of cross-source identity overlap.",
+    "Add transaction evidence after legal and commercial rights review.",
+    "Submit the scoring and source-removal methods to Track B before Candidate promotion."
+  ],
+  "production_eligible": false,
+  "references": [
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/31920084612",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/235",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/296"
+  ]
+}
