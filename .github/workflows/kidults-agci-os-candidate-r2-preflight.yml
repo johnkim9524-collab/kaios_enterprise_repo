@@ -18,6 +18,8 @@ on:
       - "scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs"
       - "scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs"
       - "scripts/kidults/engine-v2/validate-candidate-r2-preflight.mjs"
+      - "scripts/kidults/golden-dataset/build-golden-dataset-v1-candidate.mjs"
+      - "scripts/kidults/golden-dataset/validate-golden-dataset-v1-candidate.mjs"
       - ".github/workflows/kidults-agci-os-candidate-r2-preflight.yml"
   schedule:
     - cron: "5 0 * * 3,6"
@@ -56,6 +58,8 @@ jobs:
           node --check scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs
           node --check scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs
           node --check scripts/kidults/engine-v2/validate-candidate-r2-preflight.mjs
+          node --check scripts/kidults/golden-dataset/build-golden-dataset-v1-candidate.mjs
+          node --check scripts/kidults/golden-dataset/validate-golden-dataset-v1-candidate.mjs
 
       - name: Collect Smithsonian authority sample
         run: |
@@ -96,7 +100,7 @@ jobs:
             --output artifacts/agci-os/candidate-r2-preflight-r1 \
             --write
 
-      - name: Prove same-input same-output
+      - name: Prove preflight same-input same-output
         run: |
           node --input-type=module <<'NODE' > /tmp/candidate-r2-preflight-1.json
           import { buildCandidateR2Preflight, loadCandidateR2PreflightInput } from './scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs';
@@ -127,6 +131,30 @@ jobs:
           node scripts/kidults/engine-v2/validate-candidate-r2-preflight.mjs \
             artifacts/agci-os/candidate-r2-preflight-r1
 
+      - name: Build Golden Dataset v1 labeling queue
+        run: |
+          node scripts/kidults/golden-dataset/build-golden-dataset-v1-candidate.mjs \
+            --preflight-dir artifacts/agci-os/candidate-r2-preflight-r1 \
+            --output artifacts/agci-os/golden-dataset-v1-candidate \
+            --write
+
+      - name: Prove Golden Dataset same-input same-output
+        run: |
+          node --input-type=module <<'NODE' > /tmp/golden-dataset-v1-1.json
+          import { buildGoldenDatasetCandidate } from './scripts/kidults/golden-dataset/build-golden-dataset-v1-candidate.mjs';
+          process.stdout.write(JSON.stringify(buildGoldenDatasetCandidate('artifacts/agci-os/candidate-r2-preflight-r1')));
+          NODE
+          node --input-type=module <<'NODE' > /tmp/golden-dataset-v1-2.json
+          import { buildGoldenDatasetCandidate } from './scripts/kidults/golden-dataset/build-golden-dataset-v1-candidate.mjs';
+          process.stdout.write(JSON.stringify(buildGoldenDatasetCandidate('artifacts/agci-os/candidate-r2-preflight-r1')));
+          NODE
+          cmp /tmp/golden-dataset-v1-1.json /tmp/golden-dataset-v1-2.json
+
+      - name: Validate Golden Dataset v1 labeling queue
+        run: |
+          node scripts/kidults/golden-dataset/validate-golden-dataset-v1-candidate.mjs \
+            artifacts/agci-os/golden-dataset-v1-candidate
+
       - name: Validate existing AGCI-OS governance
         run: |
           node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
@@ -140,6 +168,7 @@ jobs:
           name: kidults-agci-os-candidate-r2-five-source-preflight
           path: |
             artifacts/agci-os/candidate-r2-preflight-r1
+            artifacts/agci-os/golden-dataset-v1-candidate
             artifacts/autonomous-source-samples/smithsonian-open-access-r1
             artifacts/autonomous-source-samples/artic-design-open-access-r1
             artifacts/autonomous-source-samples/getty-provenance-sale-r1
