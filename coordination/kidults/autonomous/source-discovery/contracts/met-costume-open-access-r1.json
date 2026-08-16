@@ -1,0 +1,60 @@
+{
+  "contract_id": "met-costume-open-access-r1",
+  "version": "1.0.0",
+  "status": "APPROVED_FOR_BOUNDED_POC",
+  "created_at": "2026-08-16T10:20:00+09:00",
+  "owner": "Track A / Autonomous Source Discovery",
+  "source_id": "met-costume-institute-open-access",
+  "source_tier": 1,
+  "vertical_id": "fashion-accessories",
+  "source_class": "MUSEUM_AUTHORITY_OPEN_DATA",
+  "api_base_url": "https://collectionapi.metmuseum.org/public/collection/v1",
+  "department_id": 8,
+  "department_name": "The Costume Institute",
+  "access_mode": "PUBLIC_REST_API_NO_KEY",
+  "rights_state": "CC0_COLLECTION_METADATA; IMAGE_USE_REQUIRES_OBJECT_PUBLIC_DOMAIN_FLAG",
+  "collection_mode": "METADATA_ONLY_NO_IMAGE_DOWNLOAD",
+  "query": "dress",
+  "bounded_limits": {
+    "normalized_record_target": 12,
+    "minimum_successful_records": 8,
+    "maximum_object_requests": 50,
+    "maximum_requests_per_second": 4,
+    "retry_attempts": 3,
+    "request_timeout_ms": 15000
+  },
+  "required_outputs": [
+    "run-manifest.json",
+    "sanitized-raw-records.json",
+    "normalized-evidence-records.json",
+    "evidence-package.json",
+    "quality-report.json"
+  ],
+  "autonomous_controls": [
+    "official-host allowlist",
+    "bounded request budget",
+    "timeout",
+    "retry with backoff",
+    "metadata sanitization",
+    "raw payload hashing",
+    "deduplication",
+    "critical-field completeness",
+    "provenance reference",
+    "fail-closed minimum record gate"
+  ],
+  "prohibited_operations": [
+    "credential use",
+    "image download",
+    "paid access",
+    "provider mutation",
+    "Portal publication",
+    "Candidate publication",
+    "Production mutation"
+  ],
+  "production_eligible": false,
+  "references": [
+    "https://metmuseum.github.io/",
+    "https://github.com/metmuseum/openaccess",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/296"
+  ]
+}
