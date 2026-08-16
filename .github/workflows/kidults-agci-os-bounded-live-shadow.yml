@@ -1,0 +1,77 @@
+name: KIDULTS AGCI-OS Bounded-Live Authority Shadow
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/engine-v2/shadow-inputs/**"
+      - "coordination/kidults/registry/engine/**"
+      - "coordination/kidults/registry/raw-quarantine/**"
+      - "coordination/kidults/registry/universe/**"
+      - "coordination/kidults/registry/entity/**"
+      - "coordination/kidults/registry/evidence/**"
+      - "coordination/kidults/registry/market-graph/**"
+      - "coordination/kidults/registry/cluster/**"
+      - "coordination/kidults/registry/projection/**"
+      - "scripts/kidults/engine-v2/run-bounded-live-shadow.mjs"
+      - "scripts/kidults/engine-v2/validate-bounded-live-shadow*.mjs"
+      - ".github/workflows/kidults-agci-os-bounded-live-shadow.yml"
+  pull_request:
+    paths:
+      - "coordination/kidults/engine-v2/shadow-inputs/**"
+      - "coordination/kidults/registry/**"
+      - "scripts/kidults/engine-v2/run-bounded-live-shadow.mjs"
+      - "scripts/kidults/engine-v2/validate-bounded-live-shadow*.mjs"
+      - ".github/workflows/kidults-agci-os-bounded-live-shadow.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/engine-v2/run-bounded-live-shadow.mjs
+          node --check scripts/kidults/engine-v2/validate-bounded-live-shadow.mjs
+          node --check scripts/kidults/engine-v2/validate-bounded-live-shadow-registry.mjs
+      - name: Build deterministic bounded-live Shadow evidence
+        run: node scripts/kidults/engine-v2/run-bounded-live-shadow.mjs --write
+      - name: Prove same-input same-output
+        run: |
+          node --input-type=module <<'NODE' > /tmp/shadow-1.json
+          import { buildAuthorityShadow, loadAuthorityShadowInput } from './scripts/kidults/engine-v2/run-bounded-live-shadow.mjs';
+          process.stdout.write(JSON.stringify(buildAuthorityShadow(loadAuthorityShadowInput())));
+          NODE
+          node --input-type=module <<'NODE' > /tmp/shadow-2.json
+          import { buildAuthorityShadow, loadAuthorityShadowInput } from './scripts/kidults/engine-v2/run-bounded-live-shadow.mjs';
+          process.stdout.write(JSON.stringify(buildAuthorityShadow(loadAuthorityShadowInput())));
+          NODE
+          cmp /tmp/shadow-1.json /tmp/shadow-2.json
+      - name: Validate Engine outputs and fail-closed boundaries
+        run: node scripts/kidults/engine-v2/validate-bounded-live-shadow.mjs
+      - name: Validate Registry and Projection alignment
+        run: node scripts/kidults/engine-v2/validate-bounded-live-shadow-registry.mjs
+      - name: Validate existing governance
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+      - name: Upload bounded-live Shadow evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-agci-os-bounded-live-authority-shadow-r1
+          path: artifacts/agci-os/authority-shadow-r1
+          if-no-files-found: error
+          retention-days: 30
