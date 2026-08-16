@@ -1,41 +1,24 @@
 {
-  "registry_id": "kidults-projection-registry",
-  "registry_name": "AGCI-OS Projection Registry",
-  "registry_version": "2.2.0",
-  "schema_version": "1.2.0",
-  "owner": "Track C / Projection Engine",
-  "custodian": "Atlas",
-  "status": "ACTIVE_INTERNAL_MEMORY_FOUNDATION",
-  "effective_at": "2026-08-16T15:40:00+09:00",
-  "record_directory": "records",
-  "record_count": 1,
-  "current_record_id": "projection-agci-os-current-v1",
-  "records": [
-    {
-      "id": "projection-agci-os-current-v1",
-      "path": "records/projection-agci-os-current-v1.json",
-      "version": "1.2.0",
-      "status": "INTERNAL_CURRENT"
-    }
+  "registry_id":"kidults-projection-registry",
+  "registry_name":"AGCI-OS Projection Registry",
+  "registry_version":"2.3.0",
+  "schema_version":"1.2.0",
+  "owner":"Track C / Projection Engine",
+  "custodian":"Atlas",
+  "status":"ACTIVE_INTERNAL_MEMORY_FOUNDATION",
+  "effective_at":"2026-08-16T16:20:00+09:00",
+  "record_directory":"records",
+  "record_count":2,
+  "current_record_id":"projection-agci-os-current-v1",
+  "current_shadow_projection_id":"projection-agci-os-authority-shadow-r1",
+  "records":[
+    {"id":"projection-agci-os-current-v1","path":"records/projection-agci-os-current-v1.json","version":"1.2.0","status":"INTERNAL_CURRENT"},
+    {"id":"projection-agci-os-authority-shadow-r1","path":"records/projection-agci-os-authority-shadow-r1.json","version":"1.0.0","status":"INTERNAL_SHADOW_CURRENT"}
   ],
-  "change_history": [
-    {
-      "version": "2.0.0",
-      "changed_at": "2026-08-16T14:10:00+09:00",
-      "changed_by": "KPMO / Track C",
-      "change": "Registered the first governed AGCI-OS Projection as the sole Portal and Executive consumption boundary."
-    },
-    {
-      "version": "2.1.0",
-      "changed_at": "2026-08-16T14:30:00+09:00",
-      "changed_by": "KPMO / Track C",
-      "change": "Projected the deterministic Engine v2 and Raw Quarantine foundation state while preserving all public Indexes as NOT_COMPUTED and Production as HOLD."
-    },
-    {
-      "version": "2.2.0",
-      "changed_at": "2026-08-16T15:40:00+09:00",
-      "changed_by": "KPMO / Track C",
-      "change": "Projected append-only bitemporal Memory state, replay and correction lineage through the governed Projection boundary; no direct Memory-to-Portal path was introduced."
-    }
+  "change_history":[
+    {"version":"2.0.0","changed_at":"2026-08-16T14:10:00+09:00","changed_by":"KPMO / Track C","change":"Registered the first governed AGCI-OS Projection as the sole Portal and Executive consumption boundary."},
+    {"version":"2.1.0","changed_at":"2026-08-16T14:30:00+09:00","changed_by":"KPMO / Track C","change":"Projected the deterministic Engine v2 and Raw Quarantine foundation state while preserving all public Indexes as NOT_COMPUTED and Production as HOLD."},
+    {"version":"2.2.0","changed_at":"2026-08-16T15:40:00+09:00","changed_by":"KPMO / Track C","change":"Projected append-only bitemporal Memory state, replay and correction lineage through the governed Projection boundary; no direct Memory-to-Portal path was introduced."},
+    {"version":"2.3.0","changed_at":"2026-08-16T16:20:00+09:00","changed_by":"KPMO / Track C","change":"Registered a separate internal bounded-live authority Shadow Projection. It does not replace the Portal current projection, compute Indexes or authorize publication."}
   ]
 }
