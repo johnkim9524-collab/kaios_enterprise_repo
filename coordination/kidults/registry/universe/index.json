@@ -1,1 +1,22 @@
-{"registry_id":"kidults-universe-registry","registry_name":"Global Collectibles Universe Registry","registry_version":"2.0.0","schema_version":"1.0.0","owner":"Track A / Universe Engine","custodian":"Atlas","status":"ACTIVE_FOUNDATION","effective_at":"2026-08-16T14:10:00+09:00","record_directory":"records","record_count":1,"current_record_id":"universe-global-collectibles-v1","records":[{"id":"universe-global-collectibles-v1","path":"records/universe-global-collectibles-v1.json","version":"1.0.0","status":"ACTIVE_FOUNDATION"}],"change_history":[{"version":"2.0.0","changed_at":"2026-08-16T14:10:00+09:00","changed_by":"KPMO / Atlas","change":"Registered one global, Provider-independent Collectibles Universe as the root business boundary."}]}
+{
+  "registry_id":"kidults-universe-registry",
+  "registry_name":"Global Collectibles Universe Registry",
+  "registry_version":"2.1.0",
+  "schema_version":"1.0.0",
+  "owner":"Track A / Universe Engine",
+  "custodian":"Atlas",
+  "status":"ACTIVE_FOUNDATION",
+  "effective_at":"2026-08-16T16:20:00+09:00",
+  "record_directory":"records",
+  "record_count":2,
+  "current_record_id":"universe-global-collectibles-v1",
+  "current_admission_report_id":"universe-admission-authority-shadow-r1",
+  "records":[
+    {"id":"universe-global-collectibles-v1","path":"records/universe-global-collectibles-v1.json","version":"1.0.0","status":"ACTIVE_FOUNDATION"},
+    {"id":"universe-admission-authority-shadow-r1","path":"records/universe-admission-authority-shadow-r1.json","version":"1.0.0","status":"INTERNAL_ADMISSION_CANDIDATES_READY"}
+  ],
+  "change_history":[
+    {"version":"2.0.0","changed_at":"2026-08-16T14:10:00+09:00","changed_by":"KPMO / Atlas","change":"Registered one global, Provider-independent Collectibles Universe as the root business boundary."},
+    {"version":"2.1.0","changed_at":"2026-08-16T16:20:00+09:00","changed_by":"KPMO / Track A","change":"Registered 24 internal Universe admission candidates from two authority source families without changing the verified Global Universe object count."}
+  ]
+}
