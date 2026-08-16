@@ -1,0 +1,36 @@
+{
+  "registry_id": "kidults-agci-memory-registry",
+  "registry_name": "AGCI Memory Registry",
+  "registry_version": "1.0.0",
+  "schema_version": "1.0.0",
+  "owner": "Track A / AGCI Memory Engine",
+  "custodian": "Atlas",
+  "status": "MEMORY_FOUNDATION_PASS",
+  "effective_at": "2026-08-16T15:40:00+09:00",
+  "record_directory": "records",
+  "record_count": 2,
+  "current_record_id": "memory-foundation-run-r1",
+  "current_policy_id": "memory-policy-v1",
+  "records": [
+    {
+      "id": "memory-policy-v1",
+      "path": "records/memory-policy-v1.json",
+      "version": "1.0.0",
+      "status": "ACTIVE_FOUNDATION"
+    },
+    {
+      "id": "memory-foundation-run-r1",
+      "path": "records/memory-foundation-run-r1.json",
+      "version": "1.0.0",
+      "status": "MEMORY_FOUNDATION_PASS"
+    }
+  ],
+  "change_history": [
+    {
+      "version": "1.0.0",
+      "changed_at": "2026-08-16T15:40:00+09:00",
+      "changed_by": "KPMO / Atlas",
+      "change": "Registered the append-only bitemporal AGCI Memory policy and deterministic historical replay foundation without inflating the Global Universe, computing Indexes or mutating Production."
+    }
+  ]
+}
