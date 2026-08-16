@@ -1,5 +1,5 @@
 import { loadPortalData } from "./components/data-store.js";
-import { startLivingPulse } from "./components/living-pulse.js";
+import { startLivingPulse } from "./components/living-pulse.js?v=667";
 import { startWhyEngine } from "./components/why-engine.js";
 import { startIntegrityHardening } from "./components/integrity-hardening.js";
 import { startK100IntegrityReset } from "./components/k100-integrity-reset.js";
@@ -57,6 +57,7 @@ async function init() {
   document.documentElement.dataset.homepageStructure = "v662";
   document.documentElement.dataset.portalHotfix = "v666";
   document.documentElement.dataset.experienceClosure = "v666";
+  document.documentElement.dataset.mobileLivingIntelligence = "v667";
   ensureExperienceClosureStylesheet();
   setupNavigation();
 
@@ -101,6 +102,7 @@ async function init() {
       assessmentId: data.manifest.assessment_id,
       sourceMode: data.manifest.source_mode,
       livingPulse: data.pulse.version,
+      livingPulseDesign: window.KIDULTS_LIVING_PULSE?.design ?? "NOT AVAILABLE",
       whyEngine: data.why.version,
       copilotEngine: "DEDICATED_ROUTE",
       compareEngine: "DEDICATED_ROUTE",
