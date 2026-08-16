@@ -1,0 +1,60 @@
+name: KIDULTS Autonomous Getty Provenance Sale Sample
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/autonomous/source-discovery/contracts/getty-provenance-sale-r1.json"
+      - "scripts/kidults/autonomous/collect-getty-provenance-sale-sample.mjs"
+      - "scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs"
+      - ".github/workflows/kidults-autonomous-getty-sale-sample.yml"
+  schedule:
+    - cron: "40 23 * * 2,5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-autonomous-getty-sale-sample
+  cancel-in-progress: true
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/autonomous/collect-getty-provenance-sale-sample.mjs
+          node --check scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs
+
+      - name: Collect bounded rights-cleared sale activity
+        run: |
+          node scripts/kidults/autonomous/collect-getty-provenance-sale-sample.mjs \
+            --output artifacts/autonomous-source-samples/getty-provenance-sale-r1 \
+            --minimum-events 1
+
+      - name: Validate Market Event and safety gates
+        run: |
+          node scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs \
+            artifacts/autonomous-source-samples/getty-provenance-sale-r1
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-getty-provenance-sale-bounded-sample
+          path: artifacts/autonomous-source-samples/getty-provenance-sale-r1
+          if-no-files-found: error
+          retention-days: 30
