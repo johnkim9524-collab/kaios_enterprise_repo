@@ -8,10 +8,13 @@ on:
       - 'services/kidults-autonomous-intelligence/scripts/kidults-integrated-program-registry-gate.mjs'
       - 'services/kidults-autonomous-intelligence/scripts/track-b-snapshot-artifact-integrity.mjs'
       - 'services/kidults-autonomous-intelligence/scripts/track-b-evidence-package-registry-integrity.mjs'
+      - 'services/kidults-autonomous-intelligence/scripts/track-b-assessment-readiness-synthesis.mjs'
+      - 'services/kidults-autonomous-intelligence/scripts/lib/track-b-assessment-readiness.mjs'
       - 'services/kidults-autonomous-intelligence/test/integrated-program-registry-gate.test.mjs'
       - 'services/kidults-autonomous-intelligence/test/track-b-snapshot-artifact-integrity.test.mjs'
       - 'services/kidults-autonomous-intelligence/test/track-b-evidence-package-registry-integrity.test.mjs'
       - 'services/kidults-autonomous-intelligence/test/track-b-evidence-package-registry-integrity-failure-paths.test.mjs'
+      - 'services/kidults-autonomous-intelligence/test/track-b-assessment-readiness-synthesis.test.mjs'
       - '.github/workflows/kidults-integrated-program-registry-gate.yml'
   workflow_dispatch:
 
@@ -40,9 +43,12 @@ jobs:
       - name: Validate materialized Track B evidence package registry identity
         working-directory: services/kidults-autonomous-intelligence
         run: node scripts/track-b-evidence-package-registry-integrity.mjs
+      - name: Synthesize final Track B assessment readiness
+        working-directory: services/kidults-autonomous-intelligence
+        run: node scripts/track-b-assessment-readiness-synthesis.mjs
       - name: Verify Track B fail-closed readiness semantics
         working-directory: services/kidults-autonomous-intelligence
-        run: node --test test/integrated-program-registry-gate.test.mjs test/track-b-snapshot-artifact-integrity.test.mjs test/track-b-evidence-package-registry-integrity.test.mjs test/track-b-evidence-package-registry-integrity-failure-paths.test.mjs
+        run: node --test test/integrated-program-registry-gate.test.mjs test/track-b-snapshot-artifact-integrity.test.mjs test/track-b-evidence-package-registry-integrity.test.mjs test/track-b-evidence-package-registry-integrity-failure-paths.test.mjs test/track-b-assessment-readiness-synthesis.test.mjs
       - name: Upload registry gate evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -52,5 +58,6 @@ jobs:
             services/kidults-autonomous-intelligence/reports/engineering-hardening/integrated-program-registry-gate-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/track-b-snapshot-artifact-integrity-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/track-b-evidence-package-registry-integrity-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/track-b-assessment-readiness-latest.json
           retention-days: 30
           if-no-files-found: error
