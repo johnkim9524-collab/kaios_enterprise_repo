@@ -1,0 +1,119 @@
+{
+  "id": "irreplaceable-value-to-data-scope-contract-v2",
+  "record_type": "value_to_data_scope_contract",
+  "version": "2.0.0",
+  "status": "APPROVED_ACTIVE",
+  "created_at": "2026-08-16T19:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "supersedes": "value-to-data-scope-contract-v1",
+  "first_value": "AUTONOMOUS",
+  "governing_principle": "IRREPLACEABLE_VALUE_DETERMINES_DATA_SCOPE",
+  "definition": {
+    "irreplaceable_value": "A decision advantage that cannot be reproduced from any single Provider feed, marketplace price list, public website or generic model because it is created from governed multi-source identity, market, memory, risk, confidence and explanation.",
+    "data_scope": "The exact object universe, fields, evidence roles, sampling frame, time depth, geography, condition, rights and confidence needed to deliver the Irreplaceable Value.",
+    "provider_data": "An accelerator for breadth, depth, latency or specialist evidence; never the platform product or sole truth."
+  },
+  "canonical_flow": [
+    "CUSTOMER",
+    "HIGH_VALUE_DECISION",
+    "IRREPLACEABLE_VALUE_HYPOTHESIS",
+    "INTELLIGENCE_PRODUCT",
+    "EXPLAINABLE_ASSERTION",
+    "REQUIRED_DATA_DIMENSIONS",
+    "COLLECTION_SCOPE",
+    "REPRESENTATIVE_SAMPLING_FRAME",
+    "SOURCE_ROLE_REQUIREMENTS",
+    "GLOBAL_SOURCE_POOL",
+    "RIGHTS_RISK_COST_GATE",
+    "SELF_COLLECTION_AND_PROVIDER_ACQUISITION",
+    "CANONICAL_IDENTITY",
+    "EVIDENCE_AND_MARKET_GRAPH",
+    "MEMORY_AND_COMPARISON",
+    "FUSION_AND_CONFIDENCE",
+    "GOVERNED_PROJECTION"
+  ],
+  "irreplaceability_tests": [
+    "SINGLE_PROVIDER_CANNOT_REPRODUCE",
+    "SINGLE_MARKETPLACE_CANNOT_REPRODUCE",
+    "VALUE_REQUIRES_CROSS_SOURCE_INDEPENDENCE",
+    "VALUE_REQUIRES_CANONICAL_IDENTITY",
+    "VALUE_REQUIRES_TIME_OR_MEMORY",
+    "VALUE_REQUIRES_RISK_AND_CONFIDENCE",
+    "VALUE_CAN_BE_EXPLAINED_TO_CUSTOMER_OR_INSTITUTION",
+    "VALUE_CHANGES_A_REAL_DECISION"
+  ],
+  "data_selection_rule": {
+    "collect_when": [
+      "TRACEABLE_TO_CUSTOMER_DECISION",
+      "REQUIRED_BY_INTELLIGENCE_PRODUCT",
+      "INCREMENTAL_TO_EXISTING_EVIDENCE",
+      "RIGHTS_AND_PROVENANCE_EXPLICIT",
+      "REPRESENTATIVE_OR_BIAS_MEASURABLE",
+      "FUSION_VALUE_POSITIVE"
+    ],
+    "reject_or_hold_when": [
+      "NO_CUSTOMER_DECISION_TRACEABILITY",
+      "DUPLICATES_EXISTING_SOURCE_WITHOUT_INCREMENTAL_VALUE",
+      "RIGHTS_OR_PROVENANCE_UNCLEAR",
+      "SOURCE_BIAS_NOT_MEASURABLE",
+      "COST_EXCEEDS_INCREMENTAL_VALUE",
+      "SCOPE_NOT_READY",
+      "MARKET_CLAIM_WOULD_EXCEED_EVIDENCE"
+    ]
+  },
+  "value_products": [
+    {
+      "id": "OBJECT_INTELLIGENCE_PASSPORT",
+      "decisions": ["VERIFY_OBJECT","UNDERSTAND_EDITION_VARIANT","ASSESS_PROVENANCE_AND_CONDITION"],
+      "required_dimensions": ["IDENTITY_CANON","CONDITION_AUTHENTICATION","PROVENANCE_RIGHTS","SOURCE_CONFIDENCE"]
+    },
+    {
+      "id": "COMPARABLE_MARKET_VIEW",
+      "decisions": ["HOW_MUCH_TO_PAY","WHAT_IS_TRULY_COMPARABLE","BUY_OR_SELL"],
+      "required_dimensions": ["IDENTITY_CANON","SOLD_TRANSACTION","LISTING_SUPPLY","CONDITION_NORMALIZATION","REGION_CURRENCY_TIME"]
+    },
+    {
+      "id": "SCARCITY_AND_AVAILABILITY_VIEW",
+      "decisions": ["WHAT_IS_RARE","WHAT_IS_AVAILABLE","WHICH_VARIANT_MATTERS"],
+      "required_dimensions": ["RELEASE_EDITION","SUPPLY","SOLD_FREQUENCY","GEOGRAPHY","AUTHENTICATION"]
+    },
+    {
+      "id": "LIQUIDITY_AND_EXIT_RISK",
+      "decisions": ["CAN_I_EXIT","HOW_LONG_WILL_IT_TAKE","WHAT_DISCOUNT_IS_REQUIRED"],
+      "required_dimensions": ["TRANSACTION_DEPTH","TIME_ON_MARKET","SPREAD","TURNOVER","MARKET_MEMORY","SOURCE_BIAS"]
+    },
+    {
+      "id": "MARKET_MOMENTUM_AND_OPPORTUNITY",
+      "decisions": ["WHAT_TO_FOLLOW","WHERE_TO_ALLOCATE","WHICH_MARKET_IS_EMERGING"],
+      "required_dimensions": ["TRANSACTION_CHANGE","SUPPLY_CHANGE","ATTENTION_CHANGE","REGIONAL_CHANGE","MEMORY_BASELINE"]
+    },
+    {
+      "id": "DYNAMIC_MARKET_STRUCTURE",
+      "decisions": ["WHICH_VERTICAL_EXISTS","WHAT_TO_SPLIT_OR_MERGE","WHICH_CATEGORY_TO_ENTER"],
+      "required_dimensions": ["ENTITY_GRAPH","MARKET_GRAPH","CULTURE_ATTENTION","SOURCE_COVERAGE","CLUSTER_STABILITY"]
+    }
+  ],
+  "scale_contracts": [
+    "category-1000-scale-contract-v1",
+    "provider-fusion-contract-v1"
+  ],
+  "prohibited": [
+    "EASY_SOURCE_FIRST",
+    "DATA_FIRST_SCOPE_LATER",
+    "RAW_RECORD_VOLUME_AS_VALUE",
+    "PROVIDER_CATEGORY_AS_PERMANENT_VERTICAL",
+    "PROVIDER_DATA_AS_PLATFORM_TRUTH",
+    "UNEXPLAINABLE_INDEX",
+    "MISSING_TO_ZERO",
+    "PUBLICATION_BEFORE_INDEPENDENT_VALIDATION"
+  ],
+  "current_state": {
+    "market_data_collection": "HOLD_UNTIL_SCOPE_READY",
+    "controlled_adapter_tests": "ALLOWED",
+    "candidate_r2": "SECONDARY",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
