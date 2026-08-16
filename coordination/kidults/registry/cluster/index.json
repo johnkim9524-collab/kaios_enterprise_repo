@@ -1,1 +1,22 @@
-{"registry_id":"kidults-cluster-registry","registry_name":"Autonomous Cluster Registry","registry_version":"2.0.0","schema_version":"1.0.0","owner":"Track A / Cluster Discovery Engine","custodian":"Atlas","status":"CONTRACT_REGISTERED","effective_at":"2026-08-16T14:10:00+09:00","record_directory":"records","record_count":1,"current_record_id":"cluster-discovery-contract-v1","records":[{"id":"cluster-discovery-contract-v1","path":"records/cluster-discovery-contract-v1.json","version":"1.0.0","status":"REGISTERED_NOT_CALIBRATED"}],"change_history":[{"version":"2.0.0","changed_at":"2026-08-16T14:10:00+09:00","changed_by":"KPMO / Track A","change":"Registered Autonomous Cluster Discovery without inventing uncalibrated thresholds or market clusters."}]}
+{
+  "registry_id":"kidults-cluster-registry",
+  "registry_name":"Autonomous Cluster Registry",
+  "registry_version":"2.1.0",
+  "schema_version":"1.0.0",
+  "owner":"Track A / Cluster Discovery Engine",
+  "custodian":"Atlas",
+  "status":"CONTRACT_REGISTERED",
+  "effective_at":"2026-08-16T16:20:00+09:00",
+  "record_directory":"records",
+  "record_count":2,
+  "current_record_id":"cluster-discovery-contract-v1",
+  "current_shadow_preflight_id":"cluster-discovery-authority-shadow-r1",
+  "records":[
+    {"id":"cluster-discovery-contract-v1","path":"records/cluster-discovery-contract-v1.json","version":"1.0.0","status":"REGISTERED_NOT_CALIBRATED"},
+    {"id":"cluster-discovery-authority-shadow-r1","path":"records/cluster-discovery-authority-shadow-r1.json","version":"1.0.0","status":"PREFLIGHT_DISCOVERY_ONLY"}
+  ],
+  "change_history":[
+    {"version":"2.0.0","changed_at":"2026-08-16T14:10:00+09:00","changed_by":"KPMO / Track A","change":"Registered Autonomous Cluster Discovery without inventing uncalibrated thresholds or market clusters."},
+    {"version":"2.1.0","changed_at":"2026-08-16T16:20:00+09:00","changed_by":"KPMO / Track A","change":"Registered one discovery-only authority-context cluster candidate. Confidence remains NOT_CALIBRATED and Dynamic Vertical promotion remains false."}
+  ]
+}
