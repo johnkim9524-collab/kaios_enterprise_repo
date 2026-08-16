@@ -15,11 +15,13 @@ const projectionIndex = read("projection/index.json");
 const projectionRef = projectionIndex.records.find(item => item.id === projectionIndex.current_record_id);
 if (!projectionRef) throw new Error("Projection Registry current pointer does not resolve.");
 const source = read(`projection/${projectionRef.path}`);
-const now = new Date().toISOString();
+const writeMode = process.argv.includes("--write");
+const existing = fs.existsSync(outputPath) ? JSON.parse(fs.readFileSync(outputPath, "utf8")) : null;
+const now = writeMode ? new Date().toISOString() : (existing?.generated_at ?? new Date().toISOString());
 
 const projection = {
   projection_id: "portal-v502-registry-view-001",
-  projection_version: "2.0.0",
+  projection_version: "2.1.0",
   source_projection_id: source.id,
   source_projection_contract_version: source.projection_contract_version,
   generated_from: [
@@ -28,6 +30,7 @@ const projection = {
   ],
   generated_at: now,
   registry_system_version: source.source_registry_system_version,
+  catalog_revision: source.source_catalog_revision,
   program_status: source.program_status,
   architecture: {
     product: "Autonomous Global Collectibles Intelligence Operating System",
@@ -35,6 +38,8 @@ const projection = {
     boundary: "PROJECTION_CONSUMER_ONLY"
   },
   autonomous: source.autonomous,
+  engine_v2: source.engine_v2,
+  raw_quarantine: source.raw_quarantine,
   universe: source.universe,
   core_domains: source.core_domains,
   dynamic_verticals: source.dynamic_verticals,
@@ -54,7 +59,7 @@ const projection = {
   }
 };
 
-if (process.argv.includes("--write")) {
+if (writeMode) {
   fs.writeFileSync(outputPath, `${JSON.stringify(projection, null, 2)}\n`);
   console.log(`Wrote ${path.relative(root, outputPath)}`);
   process.exit(0);
@@ -75,3 +80,7 @@ if (JSON.stringify(comparable(current)) !== JSON.stringify(comparable(projection
 }
 
 console.log("Portal consumes the canonical AGCI-OS Projection Registry: PASS");
+console.log(`Engine v2: ${projection.engine_v2.status}`);
+console.log(`Raw Quarantine: ${projection.raw_quarantine.quarantined_record_count} isolated`);
+console.log(`KIDULT 500: ${projection.indexes.kidult_500.status}`);
+console.log(`KIDULT 100: ${projection.indexes.kidult_100.status}`);
