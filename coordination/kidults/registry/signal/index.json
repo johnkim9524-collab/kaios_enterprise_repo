@@ -1,14 +1,1 @@
-{
-  "registry_id":"kidults-signal-registry",
-  "registry_name":"Signal Registry",
-  "registry_version":"1.0.0",
-  "schema_version":"1.0.0",
-  "owner":"Track A",
-  "custodian":"Atlas",
-  "status":"BOOTSTRAPPING",
-  "effective_at":"2026-08-12T12:00:00+09:00",
-  "record_directory":"records",
-  "record_count":0,
-  "current_record_id":null,
-  "records":[]
-}
+{"registry_id":"kidults-signal-registry","registry_name":"Signal Registry","registry_version":"1.1.0","schema_version":"1.0.0","owner":"Track A","custodian":"Atlas","status":"CANDIDATE_SIGNAL_PACKAGE_REGISTERED","effective_at":"2026-08-16T11:30:00+09:00","record_directory":"records","record_count":1,"current_record_id":"signal-candidate-structural-20260816-r1","records":[{"id":"signal-candidate-structural-20260816-r1","path":"records/signal-candidate-structural-20260816-r1.json","version":"1.0.0","status":"NO_VERIFIED_MARKET_SIGNAL"}],"change_history":[{"version":"1.1.0","changed_at":"2026-08-16T11:30:00+09:00","changed_by":"Track A / KPMO","change":"Registered an exact Candidate-bound Signal Package with all unsupported market dimensions preserved as NOT_VERIFIED."}]}

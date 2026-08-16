@@ -18,7 +18,13 @@ const assessment = read("assessment/index.json");
 const release = read("release/index.json");
 const provider = read("provider/index.json");
 const runtime = read("runtime/index.json");
+const evidence = read("evidence/index.json");
+const methodology = read("methodology/index.json");
+const lineage = read("evidence-lineage/index.json");
 const baseline = read(`snapshot/records/${snapshot.current_baseline_snapshot_id}.json`);
+const candidate = snapshot.current_candidate_snapshot_id
+  ? read(`snapshot/records/${snapshot.current_candidate_snapshot_id}.json`)
+  : null;
 const digitalOcean = read("runtime/records/runtime-digitalocean-readonly-audit-v1.json");
 
 function trackState(letter) {
@@ -29,11 +35,14 @@ function trackState(letter) {
 const now = new Date().toISOString();
 const projection = {
   projection_id: "portal-v502-registry-view-001",
-  projection_version: "1.1.0",
+  projection_version: "1.2.0",
   generated_from: [
     "coordination/kidults/registry/catalog.json",
     "coordination/kidults/registry/track/index.json",
+    "coordination/kidults/registry/methodology/index.json",
+    "coordination/kidults/registry/evidence-lineage/index.json",
     "coordination/kidults/registry/snapshot/index.json",
+    "coordination/kidults/registry/evidence/index.json",
     "coordination/kidults/registry/assessment/index.json",
     "coordination/kidults/registry/provider/index.json",
     "coordination/kidults/registry/runtime/index.json",
@@ -53,12 +62,19 @@ const projection = {
     baseline_id: snapshot.current_baseline_snapshot_id,
     baseline_status: baseline.status,
     candidate_id: snapshot.current_candidate_snapshot_id,
-    candidate_status: snapshot.current_candidate_snapshot_id ? "CURRENT" : "WAITING",
+    candidate_status: candidate?.status ?? "WAITING",
+    candidate_class: candidate?.governance_classification ?? "NOT_AVAILABLE",
+    candidate_publication_eligible: candidate?.publication_eligible ?? false,
     published_id: snapshot.current_published_snapshot_id,
     published_status: snapshot.current_published_snapshot_id ? "CURRENT" : "NOT_AVAILABLE"
   },
+  evidence: {
+    current_package_id: evidence.current_evidence_package_id,
+    status: evidence.status
+  },
   assessment: {
     current_id: assessment.current_assessment_id,
+    current_snapshot_id: assessment.current_snapshot_id,
     status: assessment.status
   },
   provider: {
@@ -85,9 +101,9 @@ const projection = {
     rollback_target_id: release.current_rollback_target_id
   },
   versions: {
-    methodology: baseline.methodology_version,
-    evidence_lineage: baseline.evidence_lineage_version,
-    portal_contract: "v502-rc1"
+    methodology: methodology.current_record_id,
+    evidence_lineage: lineage.current_record_id,
+    portal_contract: candidate?.portal_contract_version ?? "v502-rc1"
   },
   freshness: {
     status: "CURRENT",

@@ -1,18 +1,1 @@
-{
-  "registry_id":"kidults-assessment-registry",
-  "registry_name":"Assessment Registry",
-  "registry_version":"1.0.0",
-  "schema_version":"1.0.0",
-  "owner":"KPMO",
-  "producer":"Track B",
-  "producer_registry_access":"READ_ONLY",
-  "custodian":"Atlas",
-  "status":"WAITING_FOR_SNAPSHOT",
-  "effective_at":"2026-08-12T12:00:00+09:00",
-  "record_directory":"records",
-  "record_count":0,
-  "current_assessment_id":null,
-  "current_snapshot_id":null,
-  "allowed_waiting_states":["WAITING_FOR_SNAPSHOT","WAITING_FOR_EVIDENCE","WAITING_FOR_REGISTRY","WAITING_FOR_VALIDATION"],
-  "records":[]
-}
+{"registry_id":"kidults-assessment-registry","registry_name":"Assessment Registry","registry_version":"1.1.0","schema_version":"1.0.0","owner":"KPMO","producer":"Track B","producer_registry_access":"READ_ONLY","custodian":"Atlas","status":"WAITING_FOR_VALIDATION","effective_at":"2026-08-16T11:30:00+09:00","record_directory":"records","record_count":0,"current_assessment_id":null,"current_snapshot_id":"candidate-structural-20260816-r1","allowed_waiting_states":["WAITING_FOR_SNAPSHOT","WAITING_FOR_EVIDENCE","WAITING_FOR_REGISTRY","WAITING_FOR_VALIDATION"],"records":[],"change_history":[{"version":"1.1.0","changed_at":"2026-08-16T11:30:00+09:00","changed_by":"KPMO / Atlas","change":"Bound Track B input validation to exact snapshot candidate-structural-20260816-r1; no Assessment has been created."}]}

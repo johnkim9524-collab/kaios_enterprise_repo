@@ -1,18 +1,1 @@
-{
-  "id":"handoff-a-to-b-first-candidate",
-  "record_type":"handoff",
-  "version":"1.0.0",
-  "status":"DRAFT",
-  "created_by":"Atlas",
-  "approved_by":"John",
-  "from_track":"track-a-120-intelligence-factory",
-  "to_track":"track-b-rankability-validation-gate",
-  "snapshot_id":null,
-  "artifact_reference":null,
-  "artifact_version":null,
-  "requested_action":"Independent rankability assessment of the first canonical immutable snapshot candidate.",
-  "deadline":null,
-  "known_limitations":["Candidate snapshot has not yet been registered.","Evidence Package has not yet been registered.","Methodology and evidence-lineage versions remain pending Track A registration."],
-  "acceptance_criteria":["snapshot-candidate.json registered","Evidence Package registered","Registry validation passed","exact snapshot_id supplied"],
-  "next_state":"SUBMITTED_AFTER_TRACK_A_REGISTRATION"
-}
+{"id":"handoff-a-to-b-first-candidate","record_type":"handoff","version":"1.1.0","status":"SUBMITTED","created_by":"Atlas","approved_by":"John","from_track":"track-a-120-intelligence-factory","to_track":"track-b-rankability-validation-gate","snapshot_id":"candidate-structural-20260816-r1","artifact_reference":"coordination/kidults/candidates/candidate-structural-20260816-r1/snapshot-candidate.json","artifact_version":"1.0.0","evidence_package_id":"evidence-candidate-structural-20260816-r1","evidence_package_reference":"coordination/kidults/candidates/candidate-structural-20260816-r1/evidence-package.json","requested_action":"Independent input alignment and rankability assessment of the first immutable internal structural Candidate.","submitted_at":"2026-08-16T11:30:00+09:00","deadline":"2026-08-16T20:00:00+09:00","known_limitations":["Only one of eight Core Verticals has direct Evidence in this Candidate.","Only two independent source families are present; the target for rankability is at least four.","No rights-cleared market transaction Evidence is present.","No demand, scarcity, valuation, liquidity or confidence metric is verified.","Source-removal sensitivity fails the minimum source-diversity gate.","Canonical-design entity resolution has not been calibrated against a Golden Dataset."],"acceptance_criteria":["snapshot-candidate.json resolves","Exact Evidence Package resolves","Methodology and Evidence Lineage records resolve","Same snapshot_id across all inputs","Unsupported metrics remain null and NOT_VERIFIED","Baseline remains immutable"],"next_state":"ACCEPTED_OR_CORRECTION_REQUESTED_BY_TRACK_B"}
