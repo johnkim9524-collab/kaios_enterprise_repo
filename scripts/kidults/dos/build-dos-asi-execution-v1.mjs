@@ -167,7 +167,7 @@ function buildLane({ queueItem, scope, sourceRole, mandatory, decisionRecords, g
       : 0,
     known_risks_and_limitations: unique(relevantRecords.flatMap(record => record.risk_and_limitations)),
     query_templates: mandatory ? queueItem.query_templates : supplementalQueryTemplates(scope, sourceRole),
-    known_domain_seed_hints: mandatory ? queueItem.known_domain_seed_hints : [],
+    known_domain_seed_hints: mandatory ? (queueItem.known_domain_seed_hints ?? []) : [],
     structural_priority_state: "STRUCTURAL_ONLY_EMPIRICAL_VALUE_NOT_CALIBRATED",
     actual_source_candidates: null,
     actual_source_candidates_status: "NOT_MEASURED",
