@@ -39,6 +39,8 @@ const catalog = read("catalog.json");
 const autonomous = record("autonomous");
 const engineContract = record("engine", "engine-agci-os-v2-contract-v1").value;
 const engineRun = record("engine", "engine-foundation-preflight-r1");
+const memoryPolicy = record("memory", "memory-policy-v1").value;
+const memoryRun = record("memory", "memory-foundation-run-r1");
 const quarantinePolicy = record("raw-quarantine", "raw-quarantine-policy-v1").value;
 const quarantineReport = record("raw-quarantine", "raw-quarantine-preflight-r1");
 const universe = record("universe");
@@ -67,13 +69,13 @@ const release = read("release/index.json");
 const projection = {
   id: "projection-agci-os-current-v1",
   record_type: "agci_os_projection",
-  version: "1.1.0",
+  version: "1.2.0",
   status: "INTERNAL_CURRENT",
   created_at: createdAt,
   created_by: "Track C / Projection Engine",
   approved_by: null,
   projection_id: "AGCI-OS-PROJECTION-001",
-  projection_contract_version: "agci-os-projection-v1.1",
+  projection_contract_version: "agci-os-projection-v1.2",
   source_registry_system_version: catalog.registry_system_version,
   source_catalog_revision: catalog.catalog_revision ?? catalog.registry_system_version,
   program_status: "ACTIVE",
@@ -81,7 +83,7 @@ const projection = {
     first_value: autonomous.value.first_value,
     operating_contract_id: autonomous.value.id,
     engine_contract_id: engineContract.id,
-    routine_loop_state: "FOUNDATION_PREFLIGHT_PASS_NOT_LIVE",
+    routine_loop_state: "MEMORY_FOUNDATION_PASS_NOT_LIVE",
     human_intervention_target: autonomous.value.routine_human_intervention_target
   },
   engine_v2: {
@@ -106,6 +108,36 @@ const projection = {
     publication_eligible: engineRun.value.publication_eligible,
     production_eligible: engineRun.value.production_eligible,
     mutation_performed: engineRun.value.mutation_performed
+  },
+  memory: {
+    registry_status: memoryRun.index.status,
+    policy_id: memoryPolicy.id,
+    current_run_id: memoryRun.value.id,
+    status: memoryRun.value.status,
+    run_mode: memoryRun.value.run_mode,
+    storage_model: memoryRun.value.storage_model,
+    deterministic_replay: memoryRun.value.deterministic_replay,
+    input_entry_count: memoryRun.value.input_entry_count,
+    admitted_entry_count: memoryRun.value.admitted_entry_count,
+    quarantined_entry_count: memoryRun.value.quarantined_entry_count,
+    review_required_count: memoryRun.value.review_required_count,
+    supersession_chain_count: memoryRun.value.supersession_chain_count,
+    replay_snapshot_count: memoryRun.value.replay_snapshot_count,
+    memory_type_count: memoryRun.value.memory_type_count,
+    provenance_coverage: memoryRun.value.provenance_coverage,
+    rights_coverage: memoryRun.value.rights_coverage,
+    bitemporal_coverage: memoryRun.value.bitemporal_coverage,
+    latest_replay_id: memoryRun.value.latest_replay_id,
+    latest_replay_fingerprint: memoryRun.value.latest_replay_fingerprint,
+    append_only: memoryPolicy.correction_model.in_place_overwrite === false,
+    in_place_correction: memoryPolicy.correction_model.in_place_overwrite,
+    direct_memory_to_portal: memoryPolicy.direct_memory_to_portal,
+    direct_memory_to_index: memoryPolicy.direct_memory_to_index,
+    fixture_entries_in_global_universe: memoryRun.value.fixture_entries_in_global_universe,
+    public_projection: memoryRun.value.public_projection,
+    indexes_computed: memoryRun.value.indexes_computed,
+    production_eligible: memoryRun.value.production_eligible,
+    run_fingerprint: memoryRun.value.run_fingerprint
   },
   raw_quarantine: {
     registry_status: quarantineReport.index.status,
@@ -220,6 +252,7 @@ const projection = {
     registry_system: catalog.registry_system_version,
     catalog_revision: catalog.catalog_revision ?? catalog.registry_system_version,
     engine_registry: engineRun.index.registry_version,
+    memory_registry: memoryRun.index.registry_version,
     raw_quarantine_registry: quarantineReport.index.registry_version
   },
   publication: {
@@ -227,6 +260,7 @@ const projection = {
     candidate_publication: "PROHIBITED",
     provider_publication: "PROHIBITED",
     fixture_publication: "PROHIBITED",
+    memory_fixture_publication: "PROHIBITED",
     production: release.status
   },
   generated_at: generatedAt
@@ -250,6 +284,8 @@ console.log(`Registry system: ${projection.source_registry_system_version}`);
 console.log(`Catalog revision: ${projection.source_catalog_revision}`);
 console.log(`Autonomous first: ${projection.autonomous.first_value}`);
 console.log(`Engine v2: ${projection.engine_v2.status}`);
+console.log(`Memory: ${projection.memory.status}`);
+console.log(`Replay snapshots: ${projection.memory.replay_snapshot_count}`);
 console.log(`Quarantined: ${projection.raw_quarantine.quarantined_record_count}`);
 console.log(`Candidate: ${projection.snapshot.candidate_id ?? "NONE"}`);
 console.log(`Assessment: ${projection.assessment.current_id ?? "NONE"}`);
