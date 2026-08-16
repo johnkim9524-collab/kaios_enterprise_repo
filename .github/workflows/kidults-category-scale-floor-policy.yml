@@ -1,0 +1,46 @@
+name: KIDULTS Category Scale Floor Policy
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/data-scope/category-scale-floor-policy-v1.json"
+      - "coordination/kidults/data-scope/category-1000-scale-contract-v1.json"
+      - "scripts/kidults/data-scope/validate-category-scale-floor-policy-v1.mjs"
+      - ".github/workflows/kidults-category-scale-floor-policy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-category-scale-floor-policy
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: node --check scripts/kidults/data-scope/validate-category-scale-floor-policy-v1.mjs
+
+      - name: Validate Category Scale Floor Policy
+        run: node scripts/kidults/data-scope/validate-category-scale-floor-policy-v1.mjs
+
+      - name: Validate Program Reset and Scope Foundation
+        run: |
+          node scripts/kidults/data-scope/validate-collection-scope-registry-v1.mjs
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
