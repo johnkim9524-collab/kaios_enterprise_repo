@@ -1,0 +1,111 @@
+name: KIDULTS DOS-to-ASI Execution Bridge v1
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/dos/**"
+      - "coordination/kidults/value/**"
+      - "coordination/kidults/data-scope/**"
+      - "coordination/kidults/source-intelligence/**"
+      - "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json"
+      - "scripts/kidults/dos/**"
+      - "scripts/kidults/source-intelligence/**"
+      - ".github/workflows/kidults-dos-asi-execution-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-dos-asi-execution-v1
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/dos/build-dos-v1.mjs
+          node --check scripts/kidults/dos/validate-dos-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs
+          node --check scripts/kidults/dos/build-dos-asi-execution-v1.mjs
+          node --check scripts/kidults/dos/validate-dos-asi-execution-v1.mjs
+
+      - name: Build and validate DOS foundation
+        run: |
+          node scripts/kidults/dos/build-dos-v1.mjs \
+            --output artifacts/agci-os/dos-v1 \
+            --write
+          node scripts/kidults/dos/validate-dos-v1.mjs \
+            artifacts/agci-os/dos-v1
+
+      - name: Build and validate Scope Source Pool foundation
+        run: |
+          node scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs \
+            --output artifacts/agci-os/scope-source-pool-foundation-v1 \
+            --write
+          node scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs \
+            artifacts/agci-os/scope-source-pool-foundation-v1
+
+      - name: Build DOS-to-ASI execution bridge
+        run: |
+          node scripts/kidults/dos/build-dos-asi-execution-v1.mjs \
+            --output artifacts/agci-os/dos-asi-execution-v1 \
+            --write
+
+      - name: Prove DOS-to-ASI same-input same-output
+        run: |
+          node --input-type=module <<'NODE' > /tmp/dos-asi-1.json
+          import { buildDosAsiExecutionV1 } from './scripts/kidults/dos/build-dos-asi-execution-v1.mjs';
+          process.stdout.write(JSON.stringify(buildDosAsiExecutionV1()));
+          NODE
+          node --input-type=module <<'NODE' > /tmp/dos-asi-2.json
+          import { buildDosAsiExecutionV1 } from './scripts/kidults/dos/build-dos-asi-execution-v1.mjs';
+          process.stdout.write(JSON.stringify(buildDosAsiExecutionV1()));
+          NODE
+          cmp /tmp/dos-asi-1.json /tmp/dos-asi-2.json
+
+      - name: Validate Decision DNA, ASI allocations and DigitalOcean workload
+        run: |
+          node scripts/kidults/dos/validate-dos-asi-execution-v1.mjs \
+            artifacts/agci-os/dos-asi-execution-v1
+
+      - name: Validate existing Irreplaceable Value and AGCI-OS governance
+        run: |
+          node scripts/kidults/value/build-irreplaceable-value-alignment-v1.mjs \
+            --output artifacts/agci-os/irreplaceable-value-alignment-v1 \
+            --write
+          node scripts/kidults/value/validate-irreplaceable-value-alignment-v1.mjs \
+            artifacts/agci-os/irreplaceable-value-alignment-v1
+          node scripts/kidults/data-scope/build-program-reset-v2.mjs \
+            --output artifacts/agci-os/program-reset-category-1000-v1 \
+            --write
+          node scripts/kidults/data-scope/validate-program-reset-v2.mjs \
+            artifacts/agci-os/program-reset-category-1000-v1
+          node scripts/kidults/data-scope/validate-collection-scope-registry-v1.mjs
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload DOS-to-ASI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-dos-asi-execution-bridge-v1
+          path: artifacts/agci-os/dos-asi-execution-v1
+          if-no-files-found: error
+          retention-days: 30
