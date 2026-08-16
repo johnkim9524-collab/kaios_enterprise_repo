@@ -284,7 +284,6 @@ function ensureRoot() {
         <span>
           <small>OBSERVING</small>
           <b>Living Intelligence</b>
-          <span class="living-pulse__promise">Signals move. We observe. You stay ahead.</span>
         </span>
       </button>
 
