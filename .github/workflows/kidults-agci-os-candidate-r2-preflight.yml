@@ -1,0 +1,147 @@
+name: KIDULTS AGCI-OS Candidate R2 Five-Source Preflight
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/autonomous/source-discovery/contracts/smithsonian-open-access-r1.json"
+      - "coordination/kidults/autonomous/source-discovery/contracts/artic-design-open-access-r1.json"
+      - "coordination/kidults/autonomous/source-discovery/contracts/getty-provenance-sale-r1.json"
+      - "coordination/kidults/engine-v2/shadow-inputs/authority-shadow-met-records-r1.json"
+      - "coordination/kidults/engine-v2/shadow-inputs/authority-shadow-vam-records-r1.json"
+      - "scripts/kidults/autonomous/collect-smithsonian-open-access-sample.mjs"
+      - "scripts/kidults/autonomous/validate-smithsonian-open-access-sample.mjs"
+      - "scripts/kidults/autonomous/collect-artic-design-sample.mjs"
+      - "scripts/kidults/autonomous/validate-artic-design-sample.mjs"
+      - "scripts/kidults/autonomous/collect-getty-provenance-sale-sample.mjs"
+      - "scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs"
+      - "scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs"
+      - "scripts/kidults/engine-v2/validate-candidate-r2-preflight.mjs"
+      - ".github/workflows/kidults-agci-os-candidate-r2-preflight.yml"
+  schedule:
+    - cron: "5 0 * * 3,6"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-agci-os-candidate-r2-preflight
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SMITHSONIAN_API_KEY: ${{ secrets.SMITHSONIAN_API_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/autonomous/collect-smithsonian-open-access-sample.mjs
+          node --check scripts/kidults/autonomous/validate-smithsonian-open-access-sample.mjs
+          node --check scripts/kidults/autonomous/collect-artic-design-sample.mjs
+          node --check scripts/kidults/autonomous/validate-artic-design-sample.mjs
+          node --check scripts/kidults/autonomous/collect-getty-provenance-sale-sample.mjs
+          node --check scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs
+          node --check scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs
+          node --check scripts/kidults/engine-v2/validate-candidate-r2-preflight.mjs
+
+      - name: Collect Smithsonian authority sample
+        run: |
+          node scripts/kidults/autonomous/collect-smithsonian-open-access-sample.mjs \
+            --output artifacts/autonomous-source-samples/smithsonian-open-access-r1 \
+            --query design \
+            --rows 50 \
+            --limit 12 \
+            --minimum-records 8
+          node scripts/kidults/autonomous/validate-smithsonian-open-access-sample.mjs \
+            artifacts/autonomous-source-samples/smithsonian-open-access-r1
+
+      - name: Collect Art Institute authority sample
+        run: |
+          node scripts/kidults/autonomous/collect-artic-design-sample.mjs \
+            --output artifacts/autonomous-source-samples/artic-design-open-access-r1 \
+            --query design \
+            --search-limit 50 \
+            --limit 12 \
+            --minimum-records 8
+          node scripts/kidults/autonomous/validate-artic-design-sample.mjs \
+            artifacts/autonomous-source-samples/artic-design-open-access-r1
+
+      - name: Collect Getty rights-cleared sale activity
+        run: |
+          node scripts/kidults/autonomous/collect-getty-provenance-sale-sample.mjs \
+            --output artifacts/autonomous-source-samples/getty-provenance-sale-r1 \
+            --minimum-events 1
+          node scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs \
+            artifacts/autonomous-source-samples/getty-provenance-sale-r1
+
+      - name: Build five-source Candidate R2 preflight
+        run: |
+          node scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs \
+            --smithsonian-dir artifacts/autonomous-source-samples/smithsonian-open-access-r1 \
+            --artic-dir artifacts/autonomous-source-samples/artic-design-open-access-r1 \
+            --getty-dir artifacts/autonomous-source-samples/getty-provenance-sale-r1 \
+            --output artifacts/agci-os/candidate-r2-preflight-r1 \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          node --input-type=module <<'NODE' > /tmp/candidate-r2-preflight-1.json
+          import { buildCandidateR2Preflight, loadCandidateR2PreflightInput } from './scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs';
+          const input = loadCandidateR2PreflightInput({
+            smithsonianDir: 'artifacts/autonomous-source-samples/smithsonian-open-access-r1',
+            articDir: 'artifacts/autonomous-source-samples/artic-design-open-access-r1',
+            gettyDir: 'artifacts/autonomous-source-samples/getty-provenance-sale-r1',
+            output: 'artifacts/agci-os/candidate-r2-preflight-r1',
+            freshnessMaxAgeDays: 7
+          });
+          process.stdout.write(JSON.stringify(buildCandidateR2Preflight(input)));
+          NODE
+          node --input-type=module <<'NODE' > /tmp/candidate-r2-preflight-2.json
+          import { buildCandidateR2Preflight, loadCandidateR2PreflightInput } from './scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs';
+          const input = loadCandidateR2PreflightInput({
+            smithsonianDir: 'artifacts/autonomous-source-samples/smithsonian-open-access-r1',
+            articDir: 'artifacts/autonomous-source-samples/artic-design-open-access-r1',
+            gettyDir: 'artifacts/autonomous-source-samples/getty-provenance-sale-r1',
+            output: 'artifacts/agci-os/candidate-r2-preflight-r1',
+            freshnessMaxAgeDays: 7
+          });
+          process.stdout.write(JSON.stringify(buildCandidateR2Preflight(input)));
+          NODE
+          cmp /tmp/candidate-r2-preflight-1.json /tmp/candidate-r2-preflight-2.json
+
+      - name: Validate Candidate R2 preflight boundaries
+        run: |
+          node scripts/kidults/engine-v2/validate-candidate-r2-preflight.mjs \
+            artifacts/agci-os/candidate-r2-preflight-r1
+
+      - name: Validate existing AGCI-OS governance
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload Candidate R2 preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-agci-os-candidate-r2-five-source-preflight
+          path: |
+            artifacts/agci-os/candidate-r2-preflight-r1
+            artifacts/autonomous-source-samples/smithsonian-open-access-r1
+            artifacts/autonomous-source-samples/artic-design-open-access-r1
+            artifacts/autonomous-source-samples/getty-provenance-sale-r1
+          if-no-files-found: error
+          retention-days: 30
