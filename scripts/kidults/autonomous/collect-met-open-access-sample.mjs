@@ -198,7 +198,8 @@ for (const objectId of objectIds) {
   try {
     const response = await requestJson(objectUrl, config, requestLog);
     const record = response.payload;
-    if (record?.department !== "The Costume Institute") continue;
+    const departmentLabel = String(record?.department ?? "");
+    if (departmentLabel && !/costume institute/i.test(departmentLabel)) continue;
 
     const fetchedAt = new Date().toISOString();
     const payloadHash = sha256(stableJson(record));
@@ -207,6 +208,8 @@ for (const objectId of objectIds) {
       fetched_at: fetchedAt,
       source_payload_sha256: payloadHash,
       source_url: objectUrl,
+      search_department_id: config.departmentId,
+      source_department_label: departmentLabel || null,
       ...sanitizeRawRecord(record)
     });
     normalizedRecords.push(normalizeRecord(record, fetchedAt, payloadHash));
@@ -225,7 +228,7 @@ const minimumGatePassed = normalizedRecords.length >= config.minimumRecords;
 const runManifest = {
   run_id: `met-costume-open-access-${completedAt.replace(/[:.]/g, "-")}`,
   contract_id: "met-costume-open-access-r1",
-  version: "1.1.0",
+  version: "1.2.0",
   status: minimumGatePassed ? "COMPLETED" : "FAILED_MINIMUM_RECORD_GATE",
   started_at: startedAt,
   completed_at: completedAt,
@@ -280,7 +283,7 @@ const qualityReport = {
 
 const evidencePackage = {
   evidence_package_id: `evidence-${runManifest.run_id}`,
-  version: "1.1.0",
+  version: "1.2.0",
   status: "POC_EVIDENCE_NOT_CANDIDATE",
   generated_at: completedAt,
   snapshot_id: null,
