@@ -1,0 +1,294 @@
+{
+  "id": "value-to-data-scope-contract-v1",
+  "record_type": "value_to_data_scope_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "created_at": "2026-08-16T18:45:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "governing_principle": "DATA_SCOPE_DETERMINES_CUSTOMER_VALUE",
+  "canonical_flow": [
+    "CUSTOMER",
+    "CUSTOMER_DECISION",
+    "VALUE_PROMISE",
+    "INTELLIGENCE_PRODUCT",
+    "METRIC_OR_ASSERTION",
+    "DATA_FIELD",
+    "COLLECTION_SCOPE",
+    "SOURCE_ROLE",
+    "SOURCE_POOL",
+    "RIGHTS_RISK_GATE",
+    "ACQUISITION",
+    "EVIDENCE",
+    "MARKET_INTELLIGENCE",
+    "PROJECTION"
+  ],
+  "prohibited_flow": [
+    "LOW_RISK_SITE_FIRST_WITHOUT_VALUE_SCOPE",
+    "DATA_FIRST_THEN_INVENT_SCOPE",
+    "SOURCE_VOLUME_AS_SUBSTITUTE_FOR_REPRESENTATIVENESS",
+    "PROVIDER_CATEGORY_AS_PERMANENT_VERTICAL",
+    "UNVERIFIED_SIGNAL_TO_PUBLIC_INDEX",
+    "RAW_SOURCE_TO_PORTAL"
+  ],
+  "customer_value_maps": [
+    {
+      "customer_segment": "COLLECTOR",
+      "primary_decisions": [
+        "WHAT_TO_FOLLOW",
+        "WHAT_TO_COMPARE",
+        "WHEN_TO_BUY_OR_SELL",
+        "HOW_MUCH_TO_PAY",
+        "HOW_TO_VERIFY_AUTHENTICITY_AND_PROVENANCE",
+        "HOW_TO_MANAGE_COLLECTION_RISK"
+      ],
+      "required_intelligence_products": [
+        "OBJECT_INTELLIGENCE_PASSPORT",
+        "COMPARABLE_MARKET_VIEW",
+        "PRICE_AND_LIQUIDITY_RANGE",
+        "SCARCITY_AND_AVAILABILITY_VIEW",
+        "AUTHENTICITY_CONDITION_PROVENANCE_VIEW",
+        "MARKET_MOMENTUM_AND_ATTENTION_VIEW",
+        "KIDULT_100_AND_KIDULT_500_EXPLANATION"
+      ]
+    },
+    {
+      "customer_segment": "INSTITUTION",
+      "primary_decisions": [
+        "MARKET_ALLOCATION",
+        "VALUATION_AND_MARK_TO_MARKET",
+        "LIQUIDITY_AND_EXIT_RISK",
+        "PROVENANCE_AND_COMPLIANCE",
+        "CATEGORY_AND_GEOGRAPHIC_EXPOSURE",
+        "EMERGING_MARKET_DISCOVERY"
+      ],
+      "required_intelligence_products": [
+        "VERTICAL_INTELLIGENCE_INDEX",
+        "MARKET_BREADTH_AND_DEPTH",
+        "TRANSACTION_AND_LISTING_QUALITY",
+        "LIQUIDITY_RISK_MODEL",
+        "PROVENANCE_AND_RIGHTS_RISK",
+        "SOURCE_CONFIDENCE_AND_COVERAGE",
+        "DYNAMIC_VERTICAL_DISCOVERY"
+      ]
+    },
+    {
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "primary_decisions": [
+        "PRODUCT_AND_CATEGORY_STRATEGY",
+        "DEMAND_DISCOVERY",
+        "PRICING_AND_INVENTORY",
+        "MARKET_ENTRY",
+        "PARTNERSHIP_AND_DATA_LICENSING",
+        "CUSTOMER_SEGMENTATION"
+      ],
+      "required_intelligence_products": [
+        "CATEGORY_OPPORTUNITY_MAP",
+        "DEMAND_AND_SUPPLY_SIGNAL",
+        "REGIONAL_AND_CHANNEL_COMPARISON",
+        "PRODUCT_FAMILY_AND_EDITION_PERFORMANCE",
+        "SOURCE_AND_PROVIDER_GAP_ANALYSIS",
+        "MARKET_STRUCTURE_EVOLUTION"
+      ]
+    },
+    {
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "primary_decisions": [
+        "WHERE_TO_INVEST_COLLECTION_CAPACITY",
+        "WHICH_SOURCE_OR_PROVIDER_TO_CONNECT",
+        "WHICH_SCOPE_TO_EXPAND_OR_STOP",
+        "WHICH_RISK_TO_ACCEPT",
+        "WHICH_DYNAMIC_VERTICAL_TO_APPROVE",
+        "WHEN_TO_PUBLISH_OR_HOLD"
+      ],
+      "required_intelligence_products": [
+        "SOURCE_UNIVERSE_HEALTH",
+        "SCOPE_READINESS",
+        "COVERAGE_AND_BIAS_GAPS",
+        "SOURCE_ROI",
+        "RIGHTS_AND_OPERATIONAL_RISK",
+        "DECISION_QUEUE",
+        "PUBLICATION_AND_PRODUCTION_GATES"
+      ]
+    }
+  ],
+  "data_scope_dimensions": [
+    {
+      "dimension": "IDENTITY_CANON",
+      "required_fields": [
+        "source_record_id",
+        "physical_object_id",
+        "canonical_design_id",
+        "maker_or_brand",
+        "model_or_product_family",
+        "edition_or_variant",
+        "release_date_or_period",
+        "category_and_collection_scope",
+        "identifiers"
+      ]
+    },
+    {
+      "dimension": "MARKET_EVENT",
+      "required_fields": [
+        "market_event_id",
+        "event_type",
+        "listing_or_sold_state",
+        "price",
+        "currency",
+        "event_at",
+        "venue",
+        "lot_or_transaction_id",
+        "buyer_premium_state",
+        "region"
+      ]
+    },
+    {
+      "dimension": "SUPPLY_LIQUIDITY",
+      "required_fields": [
+        "active_listing_count",
+        "sold_count",
+        "time_on_market",
+        "bid_or_offer_depth",
+        "spread",
+        "turnover",
+        "availability_state",
+        "geographic_distribution"
+      ]
+    },
+    {
+      "dimension": "CONDITION_AUTHENTICATION",
+      "required_fields": [
+        "condition",
+        "grade",
+        "grading_company",
+        "authentication_state",
+        "assessor",
+        "assessed_at",
+        "restoration_or_modification_state"
+      ]
+    },
+    {
+      "dimension": "PROVENANCE_RIGHTS",
+      "required_fields": [
+        "provenance_event",
+        "actor",
+        "location",
+        "event_at",
+        "rights_state",
+        "commercial_use_state",
+        "evidence_reference",
+        "source_payload_hash"
+      ]
+    },
+    {
+      "dimension": "CULTURE_ATTENTION",
+      "required_fields": [
+        "attention_signal",
+        "source_family",
+        "region",
+        "language",
+        "observed_at",
+        "audience_or_community",
+        "signal_quality"
+      ]
+    },
+    {
+      "dimension": "CONTEXT_AND_RISK",
+      "required_fields": [
+        "exchange_rate_context",
+        "inflation_context",
+        "regulatory_context",
+        "counterfeit_risk",
+        "source_bias",
+        "coverage_bias",
+        "data_freshness",
+        "confidence"
+      ]
+    }
+  ],
+  "collection_scope_contract": {
+    "scope_is_collection_unit_not_permanent_vertical": true,
+    "required_scope_fields": [
+      "scope_id",
+      "parent_core_domain_hint",
+      "customer_value_supported",
+      "object_universe_definition",
+      "inclusion_criteria",
+      "exclusion_criteria",
+      "identity_model",
+      "geographic_scope",
+      "time_scope",
+      "price_bands",
+      "condition_and_grade_bands",
+      "brand_or_maker_strata",
+      "edition_or_variant_strata",
+      "required_data_dimensions",
+      "minimum_source_roles",
+      "sampling_frame",
+      "coverage_targets",
+      "known_biases",
+      "fallback_sources",
+      "publication_constraints"
+    ]
+  },
+  "source_role_taxonomy": [
+    "PRIMARY_AUTHORITY",
+    "CATALOG_REFERENCE",
+    "LISTING_SUPPLY",
+    "SOLD_TRANSACTION",
+    "AUCTION_PRIVATE_SALE",
+    "AUTHENTICATION_CONDITION",
+    "PROVENANCE_HISTORY",
+    "CULTURE_ATTENTION",
+    "MACRO_CONTEXT",
+    "INDEPENDENT_VERIFICATION"
+  ],
+  "autonomous_source_intelligence_engines": [
+    "SOURCE_DISCOVERY_ENGINE",
+    "SOURCE_CLASSIFICATION_ENGINE",
+    "UTILITY_AND_VALUE_SCORING_ENGINE",
+    "RIGHTS_AND_COMPLIANCE_RISK_ENGINE",
+    "TECHNICAL_ACCESS_AND_SCHEMA_RISK_ENGINE",
+    "COVERAGE_AND_BIAS_ENGINE",
+    "INDEPENDENCE_AND_REDUNDANCY_ENGINE",
+    "FRESHNESS_AND_STABILITY_ENGINE",
+    "SOURCE_COST_AND_ROI_ENGINE",
+    "ACQUISITION_PLANNER",
+    "SOURCE_POOL_EVOLUTION_ENGINE"
+  ],
+  "asi_poc_targets": {
+    "source_channels_discovered_minimum": 10000,
+    "basic_classification_coverage": 1.0,
+    "deep_assessment_target": 1000,
+    "rights_and_access_preflight_target": 250,
+    "bounded_live_adapter_target": 50,
+    "minimum_collection_scopes_for_first_market_poc": 24,
+    "minimum_source_candidates_per_collection_scope": 8,
+    "preferred_source_candidates_per_collection_scope": 12,
+    "minimum_independent_source_roles_per_scope": 5,
+    "notes": "Discovery and classification at scale do not authorize bulk content acquisition. Actual collection remains subject to rights, terms, technical and sampling gates."
+  },
+  "readiness_gate": {
+    "required": [
+      "CUSTOMER_VALUE_DEFINED",
+      "DECISION_USE_CASE_DEFINED",
+      "COLLECTION_SCOPE_DEFINED",
+      "SOURCE_ROLE_COVERAGE_DEFINED",
+      "SOURCE_POOL_READY",
+      "RIGHTS_AND_ACCESS_EXPLICIT",
+      "SAMPLING_FRAME_READY",
+      "BIAS_AND_GAP_RISKS_IDENTIFIED",
+      "FALLBACK_SOURCES_IDENTIFIED",
+      "ACQUISITION_BUDGET_DEFINED"
+    ],
+    "failure_state": "HOLD_SCOPE_NOT_READY"
+  },
+  "program_effect": {
+    "candidate_r2_priority": "SECONDARY_UNTIL_VALUE_TO_SCOPE_FOUNDATION_READY",
+    "track_b_golden_dataset_review": "CONTINUE_AS_PARALLEL_ENGINE_CALIBRATION",
+    "ad_hoc_low_risk_collection": "PAUSED_EXCEPT_FOR_CONTROLLED_ADAPTER_TESTS",
+    "public_index": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
