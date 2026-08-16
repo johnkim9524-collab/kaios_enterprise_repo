@@ -53,6 +53,8 @@ jobs:
         run: node scripts/track-b-snapshot-artifact-integrity.mjs
       - name: Track B evidence package registry identity guard
         run: node scripts/track-b-evidence-package-registry-integrity.mjs
+      - name: Track B assessment readiness synthesis
+        run: node scripts/track-b-assessment-readiness-synthesis.mjs
       - name: Wave1 real external source discovery evaluation
         continue-on-error: true
         run: |
@@ -282,6 +284,7 @@ jobs:
             services/kidults-autonomous-intelligence/reports/engineering-hardening/integrated-program-registry-gate-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/track-b-snapshot-artifact-integrity-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/track-b-evidence-package-registry-integrity-latest.json
+            services/kidults-autonomous-intelligence/reports/engineering-hardening/track-b-assessment-readiness-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/wave1-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/stage2-candidate-build-latency-latest.json
             services/kidults-autonomous-intelligence/reports/engineering-hardening/stage2-source-progress-latest.json
