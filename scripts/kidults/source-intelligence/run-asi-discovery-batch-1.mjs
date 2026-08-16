@@ -6,6 +6,7 @@ import { buildDosAsiExecutionV1 } from "../dos/build-dos-asi-execution-v1.mjs";
 import { readJson, writeJsonDirectory } from "./asi-discovery-common-v1.mjs";
 import { runLiveDiscovery } from "./asi-discovery-live-v1.mjs";
 import { compileDiscovery } from "./asi-discovery-compiler-v1.mjs";
+import { applyCuratedAdapterQueue } from "./asi-curated-adapter-queue-v1.mjs";
 
 const root = process.cwd();
 const contractPath = path.join(
@@ -16,6 +17,7 @@ const contractPath = path.join(
   "asi-discovery-batch-001-contract-v1.json"
 );
 const defaultOutput = path.join(root, "artifacts", "agci-os", "asi-discovery-batch-001");
+const trustedSourceRoot = path.join(root, "coordination", "kidults", "registry", "trusted-source");
 
 function parseArgs(argv) {
   const config = {
@@ -43,16 +45,26 @@ function parseArgs(argv) {
   return config;
 }
 
+function loadTrustedSources() {
+  const index = readJson(path.join(trustedSourceRoot, "index.json"));
+  return {
+    index,
+    records: index.records.map(reference => readJson(path.join(trustedSourceRoot, reference.path)))
+  };
+}
+
 export function loadDiscoveryInputs() {
   return {
     contract: readJson(contractPath),
     dos: buildDosV1(),
-    bridge: buildDosAsiExecutionV1()
+    bridge: buildDosAsiExecutionV1(),
+    trustedSources: loadTrustedSources()
   };
 }
 
 export function buildFromSnapshot(snapshot, inputs = loadDiscoveryInputs()) {
-  return compileDiscovery(snapshot, inputs.contract, inputs.bridge, inputs.dos);
+  const outputs = compileDiscovery(snapshot, inputs.contract, inputs.bridge, inputs.dos);
+  return applyCuratedAdapterQueue(outputs, inputs.trustedSources);
 }
 
 async function main() {
@@ -65,14 +77,17 @@ async function main() {
   const snapshot = config.live
     ? await runLiveDiscovery(inputs.contract, inputs.bridge)
     : readJson(config.replay);
-  const outputs = compileDiscovery(snapshot, inputs.contract, inputs.bridge, inputs.dos);
+  const outputs = applyCuratedAdapterQueue(
+    compileDiscovery(snapshot, inputs.contract, inputs.bridge, inputs.dos),
+    inputs.trustedSources
+  );
   if (config.write) writeJsonDirectory(config.output, outputs);
 
   const manifest = outputs["batch-run-manifest.json"];
   console.log(`KIDULTS ASI Discovery Batch 001: ${manifest.status}`);
   console.log(`Raw / unique endpoints: ${manifest.raw_records} / ${manifest.unique_source_endpoints}`);
   console.log(`Mandatory lane coverage: ${manifest.mandatory_lanes_with_candidate_coverage} / ${manifest.mandatory_lane_count}`);
-  console.log(`Deep / preflight / adapter candidates: ${manifest.deep_assessments} / ${manifest.preflight_records} / ${manifest.adapter_contract_candidates}`);
+  console.log(`Deep / preflight / curated adapter candidates: ${manifest.deep_assessments} / ${manifest.preflight_records} / ${manifest.adapter_contract_candidates}`);
   console.log(`Provider errors: ${manifest.provider_errors}`);
   console.log("Content acquisition: false");
   console.log("KIDULT 500 / KIDULT 100: NOT_COMPUTED");
