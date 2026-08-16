@@ -4,7 +4,7 @@ const ROOT_ID = "kidults-living-pulse";
 
 const DEFAULT_CONTRACT = Object.freeze({
   engine_id: "kidults-living-pulse",
-  version: "0.1.0",
+  version: "0.2.0",
   poll_interval_ms: 60_000,
   clock_interval_ms: 30_000,
   freshness_thresholds_minutes: {
@@ -254,12 +254,17 @@ function buildModel(data, contract, previousObservation, now = Date.now()) {
 }
 
 function ensureStylesheet() {
-  if (document.getElementById(STYLE_ID)) return;
+  const href = "components/living-pulse.css?v=667";
+  const existing = document.getElementById(STYLE_ID);
+  if (existing) {
+    if (existing.getAttribute("href") !== href) existing.setAttribute("href", href);
+    return;
+  }
 
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
-  link.href = "components/living-pulse.css?v=600";
+  link.href = href;
   document.head.append(link);
 }
 
@@ -270,6 +275,7 @@ function ensureRoot() {
   const root = document.createElement("section");
   root.id = ROOT_ID;
   root.className = "living-pulse";
+  root.dataset.mobileDesign = "v667";
   root.setAttribute("aria-label", "Living Intelligence status");
   root.innerHTML = `
     <div class="shell living-pulse__bar">
@@ -278,6 +284,7 @@ function ensureRoot() {
         <span>
           <small>OBSERVING</small>
           <b>Living Intelligence</b>
+          <span class="living-pulse__promise">Signals move. We observe. You stay ahead.</span>
         </span>
       </button>
 
@@ -518,6 +525,7 @@ export function startLivingPulse({
 
   window.KIDULTS_LIVING_PULSE = Object.freeze({
     version: contract.version,
+    design: root.dataset.mobileDesign,
     refresh,
     stop() {
       window.clearInterval(pollTimer);
