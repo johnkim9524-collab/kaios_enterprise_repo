@@ -37,6 +37,8 @@ const report = {
   schema_version: '1.0.0',
   mode: 'TRACK_B_ASSESSMENT_READINESS_SYNTHESIS',
   generated_at: new Date().toISOString(),
+  registry_scope: 'CURRENT_CHECKOUT_ONLY',
+  program_state_authority: 'KPMO_INTEGRATED_CANONICAL_BRANCH_REQUIRED',
   ...result,
   proof_sources: {
     integrated_program_gate: path.relative(SERVICE_ROOT, INTEGRATED_PATH),
@@ -54,10 +56,12 @@ const report = {
     rights_or_provenance_weakened: false,
     production_gate_weakened: false,
     all_three_readiness_proofs_required_before_assessment_permission: true,
+    branch_local_registry_view_only: true,
+    cross_branch_canonical_state_not_inferred: true,
   },
 };
 
 fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
 fs.writeFileSync(OUTPUT_PATH, JSON.stringify(report, null, 2));
-console.log(`Track B assessment readiness synthesis: ${report.status}; snapshot=${report.current_snapshot_id ?? 'null'}; permitted=${report.assessment_permitted}; reason=${report.reason}`);
+console.log(`Track B assessment readiness synthesis: ${report.status}; snapshot=${report.current_snapshot_id ?? 'null'}; permitted=${report.assessment_permitted}; reason=${report.reason}; scope=${report.registry_scope}`);
 if (report.status === 'FAIL_CLOSED') process.exitCode = 1;
