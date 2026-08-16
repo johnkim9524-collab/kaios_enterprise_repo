@@ -1,1 +1,22 @@
-{"registry_id":"kidults-market-graph-registry","registry_name":"Market Graph Registry","registry_version":"2.0.0","schema_version":"1.0.0","owner":"Track A / Market Graph Engine","custodian":"Atlas","status":"CONTRACT_REGISTERED","effective_at":"2026-08-16T14:10:00+09:00","record_directory":"records","record_count":1,"current_record_id":"market-graph-contract-v1","records":[{"id":"market-graph-contract-v1","path":"records/market-graph-contract-v1.json","version":"1.0.0","status":"REGISTERED_NOT_COMPUTED"}],"change_history":[{"version":"2.0.0","changed_at":"2026-08-16T14:10:00+09:00","changed_by":"KPMO / Track A","change":"Registered the graph boundary that precedes cluster and market-structure discovery."}]}
+{
+  "registry_id":"kidults-market-graph-registry",
+  "registry_name":"Market Graph Registry",
+  "registry_version":"2.1.0",
+  "schema_version":"1.0.0",
+  "owner":"Track A / Market Graph Engine",
+  "custodian":"Atlas",
+  "status":"CONTRACT_REGISTERED",
+  "effective_at":"2026-08-16T16:20:00+09:00",
+  "record_directory":"records",
+  "record_count":2,
+  "current_record_id":"market-graph-contract-v1",
+  "current_shadow_graph_id":"market-graph-authority-shadow-r1",
+  "records":[
+    {"id":"market-graph-contract-v1","path":"records/market-graph-contract-v1.json","version":"1.0.0","status":"REGISTERED_NOT_COMPUTED"},
+    {"id":"market-graph-authority-shadow-r1","path":"records/market-graph-authority-shadow-r1.json","version":"1.0.0","status":"AUTHORITY_CONTEXT_ONLY_NO_MARKET_EVENTS"}
+  ],
+  "change_history":[
+    {"version":"2.0.0","changed_at":"2026-08-16T14:10:00+09:00","changed_by":"KPMO / Track A","change":"Registered the graph boundary that precedes cluster and market-structure discovery."},
+    {"version":"2.1.0","changed_at":"2026-08-16T16:20:00+09:00","changed_by":"KPMO / Track A","change":"Registered authority-context edges for 22 design candidates; no museum record was converted into a listing, sold transaction or market metric."}
+  ]
+}
