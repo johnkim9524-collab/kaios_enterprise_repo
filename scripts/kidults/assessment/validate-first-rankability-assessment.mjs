@@ -124,8 +124,11 @@ assert(assessment?.quantitative_summary?.verified_market_metrics === 0,
 for (const metric of ["demand", "scarcity", "valuation", "liquidity", "confidence"]) {
   assert(assessment?.metric_status?.[metric] === "NOT_VERIFIED",
     `${metric} must remain NOT_VERIFIED.`);
-  assert(signal?.dimensions?.[metric]?.value === null,
-    `${metric} signal value must remain null.`);
+  const signalDimension = signal?.dimensions?.[metric];
+  if (signalDimension) {
+    assert(signalDimension.value === null && signalDimension.status === "NOT_VERIFIED",
+      `${metric} signal must remain null and NOT_VERIFIED.`);
+  }
 }
 
 assert(sensitivity?.gate === "FAIL_SOURCE_DIVERSITY",
