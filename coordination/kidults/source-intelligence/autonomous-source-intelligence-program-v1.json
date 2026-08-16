@@ -1,0 +1,234 @@
+{
+  "id": "autonomous-source-intelligence-program-v1",
+  "record_type": "source_intelligence_program_contract",
+  "version": "1.0.0",
+  "status": "ACTIVE_P0",
+  "created_at": "2026-08-16T18:10:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "problem_statement": "The current low-volume authority-source PoCs validate ingestion, rights, provenance and graph mechanics, but they do not define the platform-wide data scope, map the global source universe, measure source utility and risk at scale, or provide a representative basis for market signals and customer trust.",
+  "current_poc_reclassification": {
+    "classification": "PHASE_0_ENGINEERING_AND_GOVERNANCE_POC",
+    "market_signal_claim_authorized": false,
+    "customer_trust_claim_authorized": false,
+    "candidate_r2_authorized": false,
+    "index_computation_authorized": false
+  },
+  "north_star": "Discover, classify, risk-score, select, collect and continuously reassess global collectible-market sources against a precisely versioned data scope before producing market signals.",
+  "canonical_flow": [
+    "Decision and Product Requirements",
+    "Data Scope Registry",
+    "Collection Scope Registry",
+    "Global Source Universe Discovery",
+    "Source Intelligence Graph",
+    "Source Utility and Risk Scoring",
+    "Coverage and Sampling Optimizer",
+    "Rights-Aware Collection Orchestrator",
+    "Raw Quarantine",
+    "Entity Resolution",
+    "Evidence Graph",
+    "Market Graph",
+    "Bias and Stability Tests",
+    "Signal and Index Eligibility Gate",
+    "Projection"
+  ],
+  "data_scope": {
+    "required_layers": [
+      "entity_scope",
+      "event_scope",
+      "signal_scope",
+      "metric_scope",
+      "geography_scope",
+      "time_scope",
+      "price_scope",
+      "condition_and_grade_scope",
+      "rights_and_provenance_scope",
+      "inclusion_and_exclusion_rules"
+    ],
+    "entity_classes": [
+      "SOURCE_RECORD",
+      "PHYSICAL_OBJECT",
+      "CANONICAL_DESIGN",
+      "EDITION_OR_VARIANT",
+      "MARKET_EVENT",
+      "ACTOR",
+      "VENUE",
+      "EVIDENCE_ASSERTION"
+    ],
+    "event_classes": [
+      "RELEASE",
+      "LISTING",
+      "SOLD_TRANSACTION",
+      "AUCTION_RESULT",
+      "PRIVATE_SALE",
+      "GRADING",
+      "AUTHENTICATION",
+      "CONDITION_ASSESSMENT",
+      "PROVENANCE_CHANGE",
+      "EXHIBITION_OR_INSTITUTIONAL_RECOGNITION",
+      "CULTURAL_ATTENTION_EVENT"
+    ],
+    "metric_families": [
+      "IDENTITY_CONFIDENCE",
+      "DEMAND",
+      "SUPPLY",
+      "LIQUIDITY",
+      "PRICE_LEVEL",
+      "PRICE_MOMENTUM",
+      "VOLATILITY",
+      "SCARCITY",
+      "AUTHENTICATION_AND_CONDITION",
+      "CULTURAL_ATTENTION",
+      "INSTITUTIONAL_IMPORTANCE",
+      "PROVENANCE_STRENGTH"
+    ]
+  },
+  "source_roles": [
+    "PRIMARY_MANUFACTURER_OR_CREATOR",
+    "INSTITUTIONAL_AUTHORITY",
+    "REFERENCE_CATALOG",
+    "MARKETPLACE_LISTING",
+    "SOLD_TRANSACTION",
+    "AUCTION_OR_PRIVATE_SALE",
+    "AUTHENTICATION_OR_GRADING",
+    "PROVENANCE_OR_OWNERSHIP",
+    "CULTURE_AND_ATTENTION",
+    "MACRO_CONTEXT",
+    "INDEPENDENT_CORROBORATION"
+  ],
+  "source_intelligence_engines": [
+    {
+      "engine": "DATA_SCOPE_COMPILER",
+      "purpose": "Translate product and decision requirements into versioned entities, events, fields, metrics, inclusion rules and collection scopes."
+    },
+    {
+      "engine": "SOURCE_UNIVERSE_DISCOVERY",
+      "purpose": "Discover and deduplicate public, licensed and potential-provider channels across domains, APIs, datasets, marketplaces, auction houses, manufacturers, institutions, specialist databases and communities."
+    },
+    {
+      "engine": "SOURCE_INTELLIGENCE_GRAPH",
+      "purpose": "Model ownership, jurisdiction, source family, role, coverage, overlap, dependency, access mode and corroboration relationships."
+    },
+    {
+      "engine": "SOURCE_UTILITY_SCORER",
+      "purpose": "Score market relevance, coverage, uniqueness, granularity, freshness, verifiability, independence and expected signal contribution."
+    },
+    {
+      "engine": "SOURCE_RISK_ENGINE",
+      "purpose": "Identify and score rights, terms, robots, privacy, IP, commercial-use, rate-limit, security, fraud, manipulation, provenance, stability, bias, jurisdiction, cost and vendor-lock risks."
+    },
+    {
+      "engine": "COVERAGE_AND_SAMPLING_OPTIMIZER",
+      "purpose": "Select source mixes and stratified samples across collection scope, geography, time, price, condition, rarity and source family while minimizing blind spots and concentration."
+    },
+    {
+      "engine": "COLLECTION_ORCHESTRATOR",
+      "purpose": "Execute bounded, rights-aware, rate-limited, auditable and recoverable collection plans."
+    },
+    {
+      "engine": "BIAS_DRIFT_AND_STABILITY_ENGINE",
+      "purpose": "Measure source concentration, missingness, survivorship, geography, price-tier, platform, seller, temporal and algorithmic bias plus source-removal sensitivity and drift."
+    }
+  ],
+  "poc_scale_targets": {
+    "source_candidates_discovered_minimum": 25000,
+    "unique_source_endpoints_classified_minimum": 10000,
+    "sources_deep_risk_scored_minimum": 1000,
+    "sources_terms_and_access_preflighted_minimum": 250,
+    "shadow_source_adapters_minimum": 40,
+    "raw_records_collected_minimum": 100000,
+    "admitted_records_minimum": 50000,
+    "independent_source_families_minimum": 20,
+    "priority_collection_scopes_minimum": 12,
+    "geographic_regions_minimum": 5,
+    "public_images_ingested": 0,
+    "production_mutations": 0
+  },
+  "readiness_gates": {
+    "data_scope_defined": 1.0,
+    "field_level_rights_state_coverage": 1.0,
+    "critical_provenance_coverage": 1.0,
+    "unresolved_critical_source_risk": 0,
+    "duplicate_contamination_maximum": 0.01,
+    "stale_record_admission": 0,
+    "rights_missing_admission": 0,
+    "provider_id_promoted_to_canonical": 0,
+    "automatic_dynamic_vertical_promotion": 0,
+    "missing_to_zero": 0,
+    "deterministic_rerun": 1.0,
+    "source_concentration_disclosed": 1.0,
+    "bias_report_required": true,
+    "source_removal_sensitivity_required": true
+  },
+  "signal_publication_gate": {
+    "minimum_independent_source_families_per_signal": 3,
+    "minimum_rights_and_provenance_coverage": 1.0,
+    "minimum_sample_and_coverage_thresholds": "DEFINED_PER_COLLECTION_SCOPE_BEFORE_COLLECTION",
+    "bias_and_concentration_report": "PASS_OR_EXPLICITLY_BOUNDED",
+    "contradiction_test": "PASS",
+    "source_removal_test": "PASS_OR_EXPLICITLY_BOUNDED",
+    "confidence_classification_required": true,
+    "unsupported_metric_state": "NOT_VERIFIED",
+    "public_signal_authorized": false
+  },
+  "execution_phases": [
+    {
+      "phase": "P0A_DATA_SCOPE_FOUNDATION",
+      "deliverables": [
+        "data-scope-registry.json",
+        "collection-scope-registry.json",
+        "field-contracts/",
+        "inclusion-exclusion-rules/",
+        "metric-evidence-map.json"
+      ]
+    },
+    {
+      "phase": "P0B_SOURCE_UNIVERSE_AND_RISK",
+      "deliverables": [
+        "source-universe-registry.json",
+        "source-intelligence-graph.json",
+        "source-risk-register.json",
+        "source-utility-scorecard.json",
+        "rights-access-cost-matrix.json"
+      ]
+    },
+    {
+      "phase": "P0C_100K_RECORD_SHADOW_POC",
+      "deliverables": [
+        "collection-plan.json",
+        "sampling-frame.json",
+        "raw-quarantine-report.json",
+        "coverage-and-bias-report.json",
+        "evidence-graph-shadow.json",
+        "market-graph-shadow.json",
+        "source-removal-sensitivity.json",
+        "contradiction-report.json",
+        "run-manifest.json"
+      ]
+    },
+    {
+      "phase": "P0D_SIGNAL_ELIGIBILITY",
+      "deliverables": [
+        "signal-eligibility-assessment.json",
+        "provider-gap-quantification.json",
+        "candidate-r2-readiness.json"
+      ]
+    }
+  ],
+  "critical_path_change": {
+    "previous": "Golden Dataset and Candidate R2 progression",
+    "new": "Data Scope Foundation plus Autonomous Source Intelligence plus 100k-record representative Shadow PoC",
+    "golden_dataset_track_b": "CONTINUE_IN_PARALLEL",
+    "candidate_r2": "BLOCKED_UNTIL_SOURCE_INTELLIGENCE_AND_SCOPE_GATES_PASS"
+  },
+  "boundaries": {
+    "ad_hoc_low_risk_source_collection_as_market_poc": false,
+    "candidate_r2_creation": false,
+    "kidult_500_computation": false,
+    "kidult_100_computation": false,
+    "public_market_signal": false,
+    "public_dynamic_vertical": false,
+    "production": "HOLD"
+  }
+}
