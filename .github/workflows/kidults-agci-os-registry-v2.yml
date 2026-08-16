@@ -1,0 +1,80 @@
+name: KIDULTS AGCI-OS Registry v2
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/architecture/**"
+      - "coordination/kidults/registry/autonomous/**"
+      - "coordination/kidults/registry/universe/**"
+      - "coordination/kidults/registry/core-domain/**"
+      - "coordination/kidults/registry/entity/**"
+      - "coordination/kidults/registry/market-event/**"
+      - "coordination/kidults/registry/market-graph/**"
+      - "coordination/kidults/registry/cluster/**"
+      - "coordination/kidults/registry/dynamic-vertical/**"
+      - "coordination/kidults/registry/index/**"
+      - "coordination/kidults/registry/provider-mapping/**"
+      - "coordination/kidults/registry/projection/**"
+      - "coordination/kidults/registry/catalog.json"
+      - "coordination/kidults/schemas/*v2*.json"
+      - "coordination/kidults/schemas/agci-os-projection.schema.json"
+      - "coordination/kidults/schemas/autonomous-operating-contract.schema.json"
+      - "coordination/kidults/schemas/global-universe.schema.json"
+      - "coordination/kidults/schemas/dynamic-vertical-lifecycle.schema.json"
+      - "coordination/kidults/schemas/provider-mapping-contract.schema.json"
+      - "scripts/kidults/architecture/**"
+      - "scripts/kidults/projection/**"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
+      - ".github/workflows/kidults-agci-os-registry-v2.yml"
+  pull_request:
+    paths:
+      - "coordination/kidults/architecture/**"
+      - "coordination/kidults/registry/**"
+      - "coordination/kidults/schemas/**"
+      - "scripts/kidults/architecture/**"
+      - "scripts/kidults/projection/**"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
+      - ".github/workflows/kidults-agci-os-registry-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/projection/build-agci-os-projection.mjs
+          node --check scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node --check scripts/kidults/portal/build-v502-registry-view.mjs
+
+      - name: Validate Projection Engine
+        run: node scripts/kidults/projection/build-agci-os-projection.mjs
+
+      - name: Validate AGCI-OS Registry v2
+        run: node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+
+      - name: Validate existing operational governance
+        run: |
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Validate Portal projection boundary
+        run: |
+          node scripts/kidults/portal/build-v502-registry-view.mjs
+          node scripts/kidults/portal/validate-phase2-data-connections.mjs
