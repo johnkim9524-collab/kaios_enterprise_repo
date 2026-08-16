@@ -25,6 +25,9 @@ const baseline = read(`snapshot/records/${snapshot.current_baseline_snapshot_id}
 const candidate = snapshot.current_candidate_snapshot_id
   ? read(`snapshot/records/${snapshot.current_candidate_snapshot_id}.json`)
   : null;
+const assessmentRecord = assessment.current_assessment_id
+  ? read(`assessment/records/${assessment.current_assessment_id}.json`)
+  : null;
 const digitalOcean = read("runtime/records/runtime-digitalocean-readonly-audit-v1.json");
 
 function trackState(letter) {
@@ -33,21 +36,26 @@ function trackState(letter) {
 }
 
 const now = new Date().toISOString();
+const generatedFrom = [
+  "coordination/kidults/registry/catalog.json",
+  "coordination/kidults/registry/track/index.json",
+  "coordination/kidults/registry/methodology/index.json",
+  "coordination/kidults/registry/evidence-lineage/index.json",
+  "coordination/kidults/registry/snapshot/index.json",
+  "coordination/kidults/registry/evidence/index.json",
+  "coordination/kidults/registry/assessment/index.json",
+  ...(assessment.current_assessment_id
+    ? [`coordination/kidults/registry/assessment/records/${assessment.current_assessment_id}.json`]
+    : []),
+  "coordination/kidults/registry/provider/index.json",
+  "coordination/kidults/registry/runtime/index.json",
+  "coordination/kidults/registry/release/index.json"
+];
+
 const projection = {
   projection_id: "portal-v502-registry-view-001",
-  projection_version: "1.2.0",
-  generated_from: [
-    "coordination/kidults/registry/catalog.json",
-    "coordination/kidults/registry/track/index.json",
-    "coordination/kidults/registry/methodology/index.json",
-    "coordination/kidults/registry/evidence-lineage/index.json",
-    "coordination/kidults/registry/snapshot/index.json",
-    "coordination/kidults/registry/evidence/index.json",
-    "coordination/kidults/registry/assessment/index.json",
-    "coordination/kidults/registry/provider/index.json",
-    "coordination/kidults/registry/runtime/index.json",
-    "coordination/kidults/registry/release/index.json"
-  ],
+  projection_version: "1.3.0",
+  generated_from: generatedFrom,
   generated_at: now,
   registry_system_version: catalog.registry_system_version,
   program_status: "ACTIVE",
@@ -75,7 +83,11 @@ const projection = {
   assessment: {
     current_id: assessment.current_assessment_id,
     current_snapshot_id: assessment.current_snapshot_id,
-    status: assessment.status
+    status: assessment.status,
+    gate_state: assessmentRecord?.gate_state ?? "WAITING",
+    recommendation: assessmentRecord?.recommendation ?? "WAITING",
+    overall_rankability: assessmentRecord?.overall_rankability ?? false,
+    publication_eligible: assessmentRecord?.publication_eligible ?? false
   },
   provider: {
     registry_status: provider.status,
