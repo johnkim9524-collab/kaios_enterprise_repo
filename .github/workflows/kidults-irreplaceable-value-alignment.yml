@@ -1,0 +1,95 @@
+name: KIDULTS Irreplaceable Value Alignment
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/value/**"
+      - "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json"
+      - "coordination/kidults/strategy/agci-os-total-program-strategy-reset-v2.json"
+      - "scripts/kidults/value/**"
+      - ".github/workflows/kidults-irreplaceable-value-alignment.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-irreplaceable-value-alignment
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/value/build-irreplaceable-value-alignment-v1.mjs
+          node --check scripts/kidults/value/validate-irreplaceable-value-alignment-v1.mjs
+
+      - name: Build Irreplaceable Value alignment
+        run: |
+          node scripts/kidults/value/build-irreplaceable-value-alignment-v1.mjs \
+            --output artifacts/agci-os/irreplaceable-value-alignment-v1 \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          node --input-type=module <<'NODE' > /tmp/iv-alignment-1.json
+          import { buildIrreplaceableValueAlignment } from './scripts/kidults/value/build-irreplaceable-value-alignment-v1.mjs';
+          process.stdout.write(JSON.stringify(buildIrreplaceableValueAlignment()));
+          NODE
+          node --input-type=module <<'NODE' > /tmp/iv-alignment-2.json
+          import { buildIrreplaceableValueAlignment } from './scripts/kidults/value/build-irreplaceable-value-alignment-v1.mjs';
+          process.stdout.write(JSON.stringify(buildIrreplaceableValueAlignment()));
+          NODE
+          cmp /tmp/iv-alignment-1.json /tmp/iv-alignment-2.json
+
+      - name: Validate all features, engines and processes
+        run: |
+          node scripts/kidults/value/validate-irreplaceable-value-alignment-v1.mjs \
+            artifacts/agci-os/irreplaceable-value-alignment-v1
+
+      - name: Validate DigitalOcean Value runtime foundation
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const contract = JSON.parse(fs.readFileSync('coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json', 'utf8'));
+          if (contract.governing_value !== 'IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE') throw new Error('DigitalOcean runtime is not Value aligned.');
+          if (contract.commercial_relationship.state !== 'FOUNDER_CONFIRMED_CONTRACTED') throw new Error('DigitalOcean commercial state mismatch.');
+          if (contract.commercial_relationship.technical_resource_binding !== 'NOT_VERIFIED') throw new Error('Technical binding must not be fabricated.');
+          if (contract.read_only_connection_contract.success_state !== 'READ_ONLY_CONNECTION_VERIFIED') throw new Error('Read-only success state mismatch.');
+          if (contract.production !== 'HOLD') throw new Error('Production must remain HOLD.');
+          console.log('DigitalOcean Irreplaceable Value Runtime Foundation: PASS');
+          console.log('Commercial: CONTRACTED');
+          console.log('Technical binding: NOT_VERIFIED');
+          console.log('Mode: READ_ONLY FOUNDATION');
+          console.log('Production: HOLD');
+          NODE
+
+      - name: Validate existing AGCI-OS governance
+        run: |
+          node scripts/kidults/data-scope/validate-program-reset-v2.mjs artifacts/agci-os/program-reset-category-1000-v1 || true
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload alignment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-irreplaceable-value-alignment-v1
+          path: artifacts/agci-os/irreplaceable-value-alignment-v1
+          if-no-files-found: error
+          retention-days: 30
