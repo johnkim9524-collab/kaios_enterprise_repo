@@ -37,6 +37,15 @@ function fixture() {
   snapshots.entries = [{ snapshot_id: 'fixture-candidate', status: 'draft' }];
   fs.writeFileSync(snapshotRegistryPath, JSON.stringify(snapshots, null, 2));
 
+  // Isolate this fixture from whichever canonical Evidence pointer is active on main.
+  // Individual tests opt back into a pointer/record through registerEvidence().
+  const evidenceIndexPath = path.join(root, 'registry', 'evidence', 'index.json');
+  const evidenceIndex = JSON.parse(fs.readFileSync(evidenceIndexPath, 'utf8'));
+  evidenceIndex.current_evidence_package_id = null;
+  evidenceIndex.record_count = 0;
+  evidenceIndex.records = [];
+  fs.writeFileSync(evidenceIndexPath, JSON.stringify(evidenceIndex, null, 2));
+
   const evidenceArtifact = path.join(root, 'evidence', 'fixture-candidate', 'EVIDENCE_PACKAGE');
   fs.mkdirSync(path.dirname(evidenceArtifact), { recursive: true });
   fs.writeFileSync(evidenceArtifact, '{}');
