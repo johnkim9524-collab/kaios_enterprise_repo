@@ -28,7 +28,9 @@ test('Track B precision comparison is allowed only for identical sample, provena
   assert.equal(result.comparable, true);
   assert.deepEqual(result.reasons, []);
   assert.equal(result.sampleIdentical, true);
+  assert.equal(result.reviewContractVersionComplete, true);
   assert.equal(result.reviewContractIdentical, true);
+  assert.equal(result.adjudicationSemanticsVersionComplete, true);
   assert.equal(result.adjudicationSemanticsIdentical, true);
   assert.equal(result.comparisonProvenanceComplete, true);
   assert.equal(result.sampleFingerprintIdentical, true);
@@ -124,12 +126,20 @@ test('changing evidence checks inside an otherwise identical blind sample makes 
   assert.equal(result.improvementClaimAllowed, false);
 });
 
-test('missing review versions normalize to null and remain comparable when provenance is explicit', () => {
-  const baseline = assessment({ review_contract_version: undefined, adjudication_semantics_version: undefined, records: [] });
+test('missing review or adjudication versions fail closed even when other provenance is explicit', () => {
+  const baseline = assessment({ review_contract_version: undefined, adjudication_semantics_version: '   ', records: [] });
   const current = assessment({ review_contract_version: undefined, adjudication_semantics_version: undefined, records: [], top50_precision: undefined });
   const result = buildTrackBAssessmentComparabilityDiagnostic({ baseline, current });
 
-  assert.equal(result.comparable, true);
+  assert.equal(result.comparable, false);
+  assert.deepEqual(result.reasons, [
+    'REVIEW_CONTRACT_VERSION_MISSING',
+    'ADJUDICATION_SEMANTICS_VERSION_MISSING',
+  ]);
+  assert.equal(result.reviewContractVersionComplete, false);
+  assert.equal(result.reviewContractIdentical, false);
+  assert.equal(result.adjudicationSemanticsVersionComplete, false);
+  assert.equal(result.adjudicationSemanticsIdentical, false);
   assert.equal(result.comparisonProvenanceComplete, true);
   assert.equal(result.currentPrecision, null);
   assert.equal(result.precisionDelta, null);
