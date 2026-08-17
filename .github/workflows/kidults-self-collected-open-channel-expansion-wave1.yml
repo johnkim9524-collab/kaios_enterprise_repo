@@ -1,0 +1,34 @@
+name: KIDULTS Self-Collected Open Channel Expansion Wave 1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/scope-data/self-collected-open-channel-topology-v1.json'
+      - 'scripts/kidults/scope/run-self-collected-open-channel-expansion-v1.mjs'
+      - 'scripts/kidults/scope/validate-self-collected-open-channel-expansion-v1.mjs'
+      - '.github/workflows/kidults-self-collected-open-channel-expansion-wave1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  open-channel-wave1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute requirement-driven open channels
+        run: node scripts/kidults/scope/run-self-collected-open-channel-expansion-v1.mjs coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json coordination/kidults/scope-data/self-collected-open-channel-topology-v1.json scope-open-wave1-out
+      - name: Validate rights and traceability invariants
+        run: node scripts/kidults/scope/validate-self-collected-open-channel-expansion-v1.mjs scope-open-wave1-out
+      - name: Upload immutable Wave 1 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-self-collected-open-channel-expansion-wave1
+          path: scope-open-wave1-out/
+          if-no-files-found: error
+          retention-days: 90
