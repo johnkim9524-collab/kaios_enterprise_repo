@@ -1,0 +1,121 @@
+name: KIDULTS Representative Product Foundation v1
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/representative-products/**"
+      - "coordination/kidults/data-scope/collection-scope-registry-v1.json"
+      - "coordination/kidults/source-intelligence/autonomous-collection-cadence-policy-v1.json"
+      - "scripts/kidults/representative-products/build-representative-product-foundation-v1.mjs"
+      - "scripts/kidults/representative-products/validate-representative-product-foundation-v1.mjs"
+      - "scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs"
+      - ".github/workflows/kidults-representative-product-foundation-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: kidults-representative-product-foundation-v1
+  cancel-in-progress: true
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/representative-products/build-representative-product-foundation-v1.mjs
+          node --check scripts/kidults/representative-products/validate-representative-product-foundation-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs
+
+      - name: Build named Representative Product foundation
+        run: |
+          node scripts/kidults/representative-products/build-representative-product-foundation-v1.mjs \
+            --output artifacts/agci-os/representative-product-foundation-v1 \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          node scripts/kidults/representative-products/build-representative-product-foundation-v1.mjs \
+            --output /tmp/representative-product-foundation-1 \
+            --write
+          node scripts/kidults/representative-products/build-representative-product-foundation-v1.mjs \
+            --output /tmp/representative-product-foundation-2 \
+            --write
+          for file in \
+            category-representative-product-registry-v1.json \
+            representative-product-gap-matrix-v1.json \
+            representative-product-evidence-plan-v1.json \
+            representative-product-asi-expansion-queue-v1.json \
+            representative-product-engine-alignment-v1.json \
+            representative-product-source-sufficiency-driver-v1.json \
+            run-manifest.json; do
+            cmp "/tmp/representative-product-foundation-1/$file" "/tmp/representative-product-foundation-2/$file"
+            cmp "artifacts/agci-os/representative-product-foundation-v1/$file" "/tmp/representative-product-foundation-1/$file"
+          done
+
+      - name: Validate named products, Evidence targets and fail-closed boundaries
+        run: |
+          node scripts/kidults/representative-products/validate-representative-product-foundation-v1.mjs \
+            artifacts/agci-os/representative-product-foundation-v1
+
+      - name: Revalidate DOS and AGCI-OS governance
+        run: |
+          node scripts/kidults/dos/build-dos-v1.mjs --output /tmp/dos-v1 --write
+          node scripts/kidults/dos/validate-dos-v1.mjs /tmp/dos-v1
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Publish issue summary
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE' > /tmp/representative-product-summary.md
+          const fs = require('fs');
+          const dir = 'artifacts/agci-os/representative-product-foundation-v1';
+          const run = JSON.parse(fs.readFileSync(`${dir}/run-manifest.json`, 'utf8'));
+          console.log('# Representative Product Foundation v1 — PASS');
+          console.log();
+          console.log(`**HEAD:** \`${process.env.GITHUB_SHA}\`  `);
+          console.log(`**Workflow Run:** \`${process.env.GITHUB_RUN_ID}\`  `);
+          console.log('**Production:** `HOLD`');
+          console.log();
+          console.log('```text');
+          console.log(`Categories / Collection Scopes       ${run.categories} / ${run.collection_scopes}`);
+          console.log(`Named product anchors                ${run.named_anchor_products}`);
+          console.log(`Named product gap to current floor   ${run.named_product_gap_to_floor}`);
+          console.log(`Representative Qualified products    ${run.representative_qualified_products}`);
+          console.log(`Anchor Evidence / Market plan         ${run.planned_anchor_validated_evidence_assertions} / ${run.planned_anchor_market_observations}`);
+          console.log(`Full floor Evidence / Market target   ${run.full_floor_validated_evidence_assertions} / ${run.full_floor_market_observations}`);
+          console.log(`Anonymous Evidence work items         ${run.anonymous_product_evidence_work_items}`);
+          console.log('```');
+          console.log();
+          console.log('The 160 records are explicit named global anchor products: five per Collection Scope and twenty per category. They are not yet Representative Qualified, Index constituents or acquisition-authorized products. ASI expansion now has an explicit 7,840-product named-universe gap instead of anonymous numeric slots.');
+          NODE
+          cat /tmp/representative-product-summary.md >> "$GITHUB_STEP_SUMMARY"
+          gh issue comment 338 --repo "johnkim9524-collab/kaios_enterprise_repo" --body-file /tmp/representative-product-summary.md
+
+      - name: Upload Representative Product evidence package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-representative-product-foundation-v1
+          path: artifacts/agci-os/representative-product-foundation-v1
+          if-no-files-found: error
+          retention-days: 30
