@@ -1,0 +1,193 @@
+{
+  "id": "representative-product-evidence-policy-v2",
+  "record_type": "representative_product_evidence_policy",
+  "version": "2.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T20:15:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "supersedes": {
+    "policy_id": "representative-product-evidence-policy-v1",
+    "reason": "The v1 range of 24–32 assertions and 36–72 market observations per product is useful as an anchor-qualification seed but too shallow as the minimum Global Market Intelligence PoC floor. v2 adds named-product gating, ten Evidence dimensions, twelve-month multi-region depth and category-specific market velocity.",
+    "historical_v1_preserved": true
+  },
+  "governing_rule": "NO_NAMED_REPRESENTATIVE_PRODUCT_NO_EXECUTABLE_PRODUCT_LEVEL_EVIDENCE_PLAN",
+  "target_model": {
+    "fixed_global_evidence_target": null,
+    "policy": "NAMED_PRODUCT_LINKED_CATEGORY_COMPLEXITY_AND_MARKET_VELOCITY_DERIVED",
+    "base_validated_evidence_assertions_per_product": 32,
+    "base_market_observations_per_product": 72,
+    "minimum_time_depth_months": 12,
+    "minimum_regions_per_product": 3,
+    "minimum_independent_source_families_for_critical_assertion": 3,
+    "minimum_independent_source_families_per_representative_product": 5,
+    "full_mandatory_source_role_count": 7,
+    "unknown_is_zero": false
+  },
+  "validated_assertion_dimensions": [
+    {"dimension":"CANONICAL_IDENTITY_MODEL_REFERENCE_EDITION_AND_REGION","base_assertions":6},
+    {"dimension":"PRIMARY_AUTHORITY_AND_CATALOG_REFERENCE","base_assertions":4},
+    {"dimension":"AUTHENTICATION_CONDITION_GRADE_AND_VARIANT","base_assertions":4},
+    {"dimension":"PROVENANCE_HISTORY_RIGHTS_AND_OWNERSHIP","base_assertions":4},
+    {"dimension":"SUPPLY_SCARCITY_AVAILABILITY_AND_LIQUIDITY","base_assertions":4},
+    {"dimension":"SOLD_TRANSACTION_COMPARABLE_AND_NORMALIZED_VALUE","base_assertions":4},
+    {"dimension":"CULTURE_ATTENTION_AND_MARKET_CONTEXT","base_assertions":2},
+    {"dimension":"CONTRADICTION_CONFIDENCE_RISK_AND_LIMITATION","base_assertions":4}
+  ],
+  "market_observation_definition": {
+    "counting_unit": "SOURCE_QUALIFIED_TIME_STAMPED_PRODUCT_LINKED_MARKET_EVENT_OR_SNAPSHOT",
+    "includes": [
+      "LISTING_OR_SUPPLY_SNAPSHOT",
+      "SOLD_TRANSACTION_OR_AUCTION_RESULT",
+      "BID_ASK_OR_DEALER_INVENTORY_STATE",
+      "REGION_CURRENCY_AND_TIME_NORMALIZED_PRICE_STATE",
+      "CONDITION_OR_GRADE_LINKED_MARKET_STATE",
+      "ATTENTION_OR_DEMAND_SIGNAL_WHEN_DECISION_RELEVANT"
+    ],
+    "does_not_include": [
+      "DUPLICATE_URL",
+      "UNRESOLVED_PRODUCT_MATCH",
+      "UNVERIFIED_PROVIDER_RECORD",
+      "REPEATED_SNAPSHOT_WITHOUT_STATE_OR_TIME_VALUE",
+      "SOURCE_WITH_UNKNOWN_RIGHTS_USED_AS_ALLOWED"
+    ]
+  },
+  "category_targets": [
+    {
+      "category_id":"toys-models",
+      "evidence_complexity_multiplier":1.125,
+      "market_velocity_multiplier":1.666667,
+      "validated_evidence_assertions_per_product":36,
+      "market_observations_per_product":120,
+      "representative_product_floor":1000,
+      "planning_validated_evidence_target":36000,
+      "planning_market_observation_target":120000
+    },
+    {
+      "category_id":"watches-jewelry",
+      "evidence_complexity_multiplier":1.25,
+      "market_velocity_multiplier":1.333333,
+      "validated_evidence_assertions_per_product":40,
+      "market_observations_per_product":96,
+      "representative_product_floor":1000,
+      "planning_validated_evidence_target":40000,
+      "planning_market_observation_target":96000
+    },
+    {
+      "category_id":"automobiles-mobility",
+      "evidence_complexity_multiplier":1.5,
+      "market_velocity_multiplier":0.833333,
+      "validated_evidence_assertions_per_product":48,
+      "market_observations_per_product":60,
+      "representative_product_floor":1000,
+      "planning_validated_evidence_target":48000,
+      "planning_market_observation_target":60000
+    },
+    {
+      "category_id":"fashion-accessories",
+      "evidence_complexity_multiplier":1.125,
+      "market_velocity_multiplier":2.5,
+      "validated_evidence_assertions_per_product":36,
+      "market_observations_per_product":180,
+      "representative_product_floor":1000,
+      "planning_validated_evidence_target":36000,
+      "planning_market_observation_target":180000
+    },
+    {
+      "category_id":"design-furniture",
+      "evidence_complexity_multiplier":1.375,
+      "market_velocity_multiplier":0.833333,
+      "validated_evidence_assertions_per_product":44,
+      "market_observations_per_product":60,
+      "representative_product_floor":1000,
+      "planning_validated_evidence_target":44000,
+      "planning_market_observation_target":60000
+    },
+    {
+      "category_id":"technology-cameras",
+      "evidence_complexity_multiplier":1.125,
+      "market_velocity_multiplier":1.333333,
+      "validated_evidence_assertions_per_product":36,
+      "market_observations_per_product":96,
+      "representative_product_floor":1000,
+      "planning_validated_evidence_target":36000,
+      "planning_market_observation_target":96000
+    },
+    {
+      "category_id":"gaming-music-screen",
+      "evidence_complexity_multiplier":1.125,
+      "market_velocity_multiplier":1.666667,
+      "validated_evidence_assertions_per_product":36,
+      "market_observations_per_product":120,
+      "representative_product_floor":1000,
+      "planning_validated_evidence_target":36000,
+      "planning_market_observation_target":120000
+    },
+    {
+      "category_id":"cards-comics-memorabilia",
+      "evidence_complexity_multiplier":1.25,
+      "market_velocity_multiplier":2.5,
+      "validated_evidence_assertions_per_product":40,
+      "market_observations_per_product":180,
+      "representative_product_floor":1000,
+      "planning_validated_evidence_target":40000,
+      "planning_market_observation_target":180000
+    }
+  ],
+  "current_eight_category_floor_projection": {
+    "named_representative_product_floor": 8000,
+    "validated_evidence_assertions": 316000,
+    "market_observations": 912000,
+    "former_v1_validated_evidence_assertions": 212000,
+    "former_v1_market_observations": 432000,
+    "former_legacy_validated_evidence_assertions": 40000,
+    "former_legacy_market_observations": 40000
+  },
+  "current_anchor_projection": {
+    "named_anchor_products":160,
+    "validated_evidence_assertions":6320,
+    "market_observations":18240,
+    "state":"PLANNING_ONLY_CANONICAL_IDENTITY_AND_SOURCE_GATES_REQUIRED"
+  },
+  "low_liquidity_exception": {
+    "allowed": true,
+    "required_state": "EXPLICIT_LOW_LIQUIDITY_OR_UNIQUE_OBJECT_LIMITATION",
+    "substitute_evidence": [
+      "AUCTION_CATALOG_AND_ESTIMATE_HISTORY",
+      "COMPARABLE_PRODUCT_FAMILY_OBSERVATIONS",
+      "PROVENANCE_AND_INSTITUTIONAL_REFERENCE_DEPTH",
+      "EVENT_DRIVEN_MARKET_OBSERVATIONS"
+    ],
+    "minimum_market_observation_target_may_be_reduced_only_by": "TRACK_B_VALIDATED_PRODUCT_SPECIFIC_EXCEPTION"
+  },
+  "product_state_rules": {
+    "ANCHOR_DEFINED": "PLANNING_TARGET_ONLY_NO_COLLECTION",
+    "CANONICAL_IDENTITY_RESOLVED": "SOURCE_REQUIREMENT_MAY_BE_COMPILED",
+    "EVIDENCE_ELIGIBLE": "BOUNDED_COLLECTION_PLAN_MAY_BE_CREATED",
+    "REPRESENTATIVE_QUALIFIED": "GLOBAL_POC_EVIDENCE_MAY_COUNT_AFTER_TRACK_B",
+    "ACTIVE": "CADENCE_AND_TRUST_DECAY_MONITORING_REQUIRED"
+  },
+  "recalculation_triggers": [
+    "CATEGORY_ADDED_OR_REMOVED",
+    "REPRESENTATIVE_PRODUCT_FLOOR_CHANGED",
+    "NAMED_PRODUCT_REGISTRY_CHANGED",
+    "PRODUCT_STATE_CHANGED",
+    "EVIDENCE_DIMENSION_CHANGED",
+    "MARKET_VELOCITY_CHANGED",
+    "TIME_OR_REGION_DEPTH_CHANGED",
+    "SOURCE_PRODUCTIVITY_CHANGED",
+    "ATTRITION_CHANGED"
+  ],
+  "boundaries": {
+    "planning_target_is_collected_evidence": false,
+    "anchor_is_representative_qualified": false,
+    "anchor_authorizes_acquisition": false,
+    "unknown_rights_is_allowed": false,
+    "source_pool_promotions": 0,
+    "candidate_r2": "BLOCKED",
+    "production": "HOLD"
+  }
+}
