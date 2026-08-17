@@ -1,0 +1,85 @@
+{
+  "id": "kpmo-representative-product-execution-directive-v1",
+  "record_type": "kpmo_execution_directive",
+  "version": "1.0.0",
+  "status": "OFFICIAL_ACTIVE",
+  "effective_at": "2026-08-17T20:35:00+09:00",
+  "program_owner": "John",
+  "authority": "KPMO",
+  "priority": "P0_CRITICAL_PATH",
+  "production": "HOLD",
+  "governing_issue": 340,
+  "governing_pr": 341,
+  "supersedes_execution_patterns": [
+    "ANONYMOUS_PRODUCT_COUNT_TO_EVIDENCE",
+    "SOURCE_FIRST_REPRESENTATIVENESS",
+    "PORTAL_FIRST_PRODUCT_TRUTH",
+    "FAME_ONLY_ANCHOR_SELECTION",
+    "ONE_FIXED_OBSERVATION_COUNT_FOR_ALL_PRODUCTS"
+  ],
+  "mandatory_sequence": [
+    "REPRESENTATIVE_PRODUCT_FAMILY",
+    "CANONICAL_NAMED_ANCHOR",
+    "SET_LEVEL_COVERAGE_ROLE_AUDIT",
+    "DECISION_RELEVANT_MARKET_CELLS",
+    "ASSERTION_CLASS_AND_EVIDENCE_INTENSITY",
+    "SOURCE_ROLE_AND_INDEPENDENT_FAMILY_DEMAND",
+    "REGION_LANGUAGE_RIGHTS_ACCESS_COST",
+    "TARGETED_ASI_DISCOVERY",
+    "TRACK_B_REPRESENTATIVENESS_AND_EVIDENCE_VALIDATION",
+    "RUNTIME_AND_GOVERNED_PROJECTION"
+  ],
+  "immediate_inputs": [
+    "representative-product-model-v2",
+    "representative-market-cell-contract-v1",
+    "representative-product-selection-policy-v1",
+    "representative-evidence-demand-policy-v1",
+    "category-representative-product-anchor-registry-v1",
+    "collection-scope-registry-v1"
+  ],
+  "current_truth": {
+    "categories": 8,
+    "collection_scopes": 32,
+    "named_bootstrap_anchors": 160,
+    "named_product_gap_to_current_floor": 7840,
+    "representative_qualified_products": 0,
+    "market_cells_defined": 0,
+    "track_b_representativeness_approved": 0,
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "candidate_r2": "BLOCKED"
+  },
+  "execution_gates": {
+    "product_family_mapping": "REQUIRED_100_PERCENT",
+    "canonical_boundary": "REQUIRED_100_PERCENT",
+    "coverage_role_assignment": "REQUIRED_100_PERCENT_PROVISIONAL_THEN_TRACK_B",
+    "market_cell_policy": "REQUIRED_100_PERCENT",
+    "evidence_demand_profile": "REQUIRED_100_PERCENT",
+    "source_demand_mapping": "REQUIRED_100_PERCENT",
+    "scope_set_bias_audit": "REQUIRED_32_OF_32",
+    "track_b_review_package": "REQUIRED",
+    "direct_anchor_to_index_or_portal": 0
+  },
+  "workflow_hold_rules": [
+    "SOURCE_SUFFICIENCY_V3_FINALIZATION_HELD_UNTIL_PRODUCT_CELL_DEMAND_EXISTS",
+    "NEW_BROAD_SOURCE_DISCOVERY_HELD",
+    "PRODUCT_SPECIFIC_ASI_QUERY_REQUIRES_PRODUCT_ID_ASSERTION_CLASS_AND_SOURCE_ROLE",
+    "CONTENT_COLLECTION_REQUIRES_PRODUCT_SOURCE_RIGHTS_ADAPTER_AND_RUNTIME_GATES",
+    "INDEX_PORTAL_AND_CANDIDATE_R2_REMAIN_BLOCKED"
+  ],
+  "reporting": {
+    "progress_reports_to": "KPMO",
+    "report_on_every_gate_change": true,
+    "required_status_fields": [
+      "head_sha",
+      "workflow_run",
+      "product_family_mapping",
+      "anchor_boundary_coverage",
+      "market_cell_policy_coverage",
+      "evidence_demand_coverage",
+      "source_demand_coverage",
+      "track_b_status",
+      "production"
+    ]
+  }
+}
