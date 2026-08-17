@@ -1,0 +1,141 @@
+{
+  "id": "kidults-collectibles-platform-impact-map-v1",
+  "record_type": "semantic_platform_impact_map",
+  "version": "1.0.0",
+  "status": "KPMO_DEFINED_PENDING_MAIN_INTEGRATION",
+  "semantic_core": [
+    "kidults-platform-definition-v1",
+    "collectibles-universe-definition-v1",
+    "collectible-universe-admission-policy-v1"
+  ],
+  "governing_order": [
+    "CUSTOMER_OR_INSTITUTIONAL_DECISION",
+    "KIDULTS_MARKET_RELEVANCE",
+    "COLLECTIBLES_UNIVERSE_ADMISSION",
+    "COLLECTION_SCOPE",
+    "REPRESENTATIVE_PRODUCT_FAMILY",
+    "NAMED_REPRESENTATIVE_ANCHOR",
+    "MARKET_CELL",
+    "EVIDENCE_DEMAND",
+    "SOURCE_DEMAND",
+    "CANONICAL_EVIDENCE_MARKET_GRAPH",
+    "TRACK_B_VALIDATION",
+    "DYNAMIC_VERTICAL_OR_INDEX",
+    "PROJECTION_PORTAL_EOS"
+  ],
+  "impacts": {
+    "DOS": {
+      "change": "Replace toy/adult-demographic assumptions with decision-market semantics.",
+      "required_outputs": [
+        "OWNERSHIP_DECISION",
+        "ACQUISITION_DECISION",
+        "AUTHENTICATION_DECISION",
+        "COMPARABLE_AND_VALUE_CONTEXT",
+        "SCARCITY_AND_LIQUIDITY_DECISION",
+        "PROVENANCE_DECISION",
+        "TIMING_AND_MARKET_STRUCTURE_DECISION",
+        "CULTURAL_SIGNIFICANCE_DECISION"
+      ]
+    },
+    "COLLECTION_SCOPE": {
+      "change": "Every Scope must declare its collectible thesis and admission logic before product planning.",
+      "new_required_fields": [
+        "collectible_thesis",
+        "collectible_qualification_policy_id",
+        "commodity_boundary",
+        "authentication_provenance_model",
+        "condition_grade_model"
+      ]
+    },
+    "REPRESENTATIVE_PRODUCT": {
+      "change": "Representative Product eligibility requires COLLECTIBLE_QUALIFIED upstream state.",
+      "new_required_field": "collectible_qualification_state"
+    },
+    "ASI": {
+      "change": "Do not use generic KIDULTS/category keyword expansion as the authoritative strategy. Generate source demand from qualified Product × Market Cell × Assertion gaps.",
+      "prohibited": [
+        "GENERIC_KIDULT_KEYWORD_AS_TRUST_SIGNAL",
+        "SOURCE_AVAILABILITY_DEFINES_UNIVERSE",
+        "URL_VOLUME_DEFINES_MARKET_COVERAGE"
+      ]
+    },
+    "EVIDENCE_ENGINE": {
+      "change": "Evidence may need to prove both object truth and collectible thesis.",
+      "new_assertion_classes": [
+        "COLLECTIBLE_IDENTITY_PERSISTENCE",
+        "COLLECTIBLE_DIFFERENTIATION",
+        "COLLECTIBLE_SCARCITY_OR_SIGNIFICANCE",
+        "COLLECTIBLE_MARKET_OR_INSTITUTIONAL_RECOGNITION"
+      ]
+    },
+    "MARKET_GRAPH": {
+      "change": "Separate commodity resale events from collectible-market events.",
+      "required_event_field": "market_context_class",
+      "allowed_context_classes": [
+        "COLLECTIBLE_MARKET_EVENT",
+        "COMMODITY_CONTEXT_EVENT",
+        "PRIMARY_RETAIL_CONTEXT",
+        "NOT_VERIFIED"
+      ]
+    },
+    "DYNAMIC_VERTICAL_ENGINE": {
+      "change": "Only qualified Collectible objects and market cells may seed approved market-structure discovery.",
+      "traffic_or_keyword_cluster_alone_may_promote_vertical": false
+    },
+    "INDEX_ENGINE": {
+      "change": "KIDULT 500 / 100 eligibility requires Collectible qualification before Representative Product, Evidence, Market and Track B gates.",
+      "minimum_chain": [
+        "COLLECTIBLE_QUALIFIED",
+        "REPRESENTATIVE_QUALIFIED",
+        "EVIDENCE_SUFFICIENT",
+        "MARKET_SUFFICIENT_OR_EXPLICIT_NOT_VERIFIED",
+        "TRACK_B_APPROVED",
+        "INDEX_ELIGIBLE"
+      ],
+      "investment_recommendation": false
+    },
+    "PORTAL_TRACK_C": {
+      "change": "KIDULTS brand may be emotionally accessible, but canonical framing remains premium, cultural and intelligence-led across all approved object domains.",
+      "must_not_imply": [
+        "TOY_ONLY_PLATFORM",
+        "CHILDISH_ADULT_CONSUMPTION_AS_MARKET_DEFINITION",
+        "VISUAL_POPULARITY_EQUALS_REPRESENTATIVENESS"
+      ]
+    },
+    "TRACK_B": {
+      "new_gates": [
+        "COLLECTIBLE_QUALIFICATION_BOUNDARY",
+        "COMMODITY_CONTAMINATION_RATE",
+        "SCOPE_CREEP",
+        "REPRESENTATIVE_SET_BIAS",
+        "COLLECTIBLE_THESIS_EVIDENCE_SUFFICIENCY"
+      ]
+    },
+    "TRACK_D": {
+      "change": "Capacity planning denominator changes from discovered URLs to qualified Products, Market Cells, required assertions and target observations."
+    },
+    "TRACK_E": {
+      "change": "IH-EOS must project lifecycle states from DISCOVERED_OBJECT through PUBLISHED without collapsing them.",
+      "states": [
+        "DISCOVERED_OBJECT",
+        "COLLECTIBLE_CANDIDATE",
+        "COLLECTIBLE_QUALIFIED",
+        "REPRESENTATIVE_CANDIDATE",
+        "REPRESENTATIVE_QUALIFIED",
+        "INDEX_ELIGIBLE",
+        "PUBLISHED",
+        "HOLD_OR_ARCHIVED"
+      ]
+    }
+  },
+  "system_invariants": [
+    "KIDULTS_IS_NOT_A_TOY_TAXONOMY",
+    "COLLECTIBLE_IS_NOT_ANY_COLLECTED_OBJECT",
+    "COLLECTIBLE_QUALIFICATION_PRECEDES_REPRESENTATIVE_PRODUCT",
+    "REPRESENTATIVE_PRODUCT_PRECEDES_EVIDENCE_AND_SOURCE_DEMAND",
+    "COMMODITY_EVENTS_DO_NOT_SILENTLY_ENTER_COLLECTIBLE_METRICS",
+    "COLLECTIBLE_DOES_NOT_EQUAL_INVESTMENT_PRODUCT",
+    "PORTAL_FRAMING_DOES_NOT_OVERRIDE_CANONICAL_TRUTH"
+  ],
+  "production": "HOLD"
+}

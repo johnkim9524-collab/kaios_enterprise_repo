@@ -1,0 +1,70 @@
+{
+  "id": "kidults-platform-definition-v1",
+  "record_type": "platform_semantic_definition",
+  "version": "1.0.0",
+  "status": "KPMO_DEFINED_PENDING_MAIN_INTEGRATION",
+  "semantic_term": "KIDULTS",
+  "definition": "KIDULTS is the market-intelligence lens for adult passion-driven ownership and collecting behavior in which objects acquire durable economic, cultural, identity, nostalgia, design, fandom or status value beyond ordinary functional utility.",
+  "is_demographic_only": false,
+  "is_toy_category": false,
+  "is_object_ontology_class": false,
+  "is_customer_self_identity_requirement": false,
+  "platform_role": "BRAND_AND_MARKET_INTELLIGENCE_LENS",
+  "semantic_components": [
+    "ADULT_DISCRETIONARY_ATTENTION_OR_OWNERSHIP",
+    "PASSION_IDENTITY_CULTURE_NOSTALGIA_DESIGN_FANDOM_OR_STATUS",
+    "PERSISTENT_OBJECT_SPECIFIC_DIFFERENTIATION",
+    "COLLECTING_OR_SECONDARY_MARKET_BEHAVIOR",
+    "DECISION_DEMAND_FOR_TRUST_EVIDENCE_AND_MARKET_INTELLIGENCE"
+  ],
+  "included_behavioral_conditions": [
+    "COLLECTING",
+    "CURATION",
+    "OWNERSHIP_AND_STEWARDSHIP",
+    "ACQUISITION_AND_EXIT_DECISIONS",
+    "AUTHENTICITY_AND_PROVENANCE_DECISIONS",
+    "COMPARABLE_AND_VALUE_CONTEXT_DECISIONS",
+    "CULTURAL_AND_CANONICAL_INTERPRETATION"
+  ],
+  "customer_segments_are_independent_from_term": [
+    "COLLECTOR",
+    "INSTITUTION",
+    "ENTERPRISE_AND_PROVIDER",
+    "FOUNDER_AND_EXECUTIVE"
+  ],
+  "brand_voice": {
+    "required": [
+      "PREMIUM",
+      "CULTURAL",
+      "EVIDENCE_LED",
+      "INTELLIGENCE_FIRST",
+      "GLOBAL",
+      "NON_INFANTILIZING"
+    ],
+    "prohibited": [
+      "TOY_ONLY_FRAMING",
+      "CHILDISH_CONSUMER_FRAMING",
+      "AGE_STEREOTYPE_AS_MARKET_TRUTH",
+      "HYPE_AS_EVIDENCE"
+    ]
+  },
+  "platform_boundary": {
+    "toys_may_qualify": true,
+    "toys_define_kidults": false,
+    "watches_cars_fashion_design_technology_media_memorabilia_may_qualify": true,
+    "qualification_requires_collectibles_admission": true
+  },
+  "downstream_requirements": {
+    "dos": "Frame decisions around acquisition, verification, comparability, provenance, scarcity, liquidity, timing, market structure and cultural significance rather than adult-toy consumption.",
+    "portal": "Use KIDULTS as a premium intelligence brand; do not imply that the platform is a toy marketplace or a demographic novelty site.",
+    "index": "KIDULT 500 and KIDULT 100 are intelligence products derived from qualified Collectibles, not popularity lists of stereotypical kidult goods.",
+    "dynamic_verticals": "Verticals are evidence-derived market structures, not semantic children of the word KIDULTS."
+  },
+  "non_equivalences": {
+    "TOY_EQUALS_KIDULTS": false,
+    "ADULT_BUYER_EQUALS_KIDULT": false,
+    "KIDULTS_EQUALS_COLLECTIBLES": false,
+    "KIDULTS_EQUALS_INVESTMENT_PRODUCT": false
+  },
+  "production": "HOLD"
+}
