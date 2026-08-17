@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+const dir=process.env.OUTPUT_DIR||process.argv[2]||'out';
+const read=n=>JSON.parse(fs.readFileSync(path.join(dir,n),'utf8'));
+const e=read('evidence-package.json');
+const b=read('track-b-assessment.json');
+const p=read('projection.json');
+const fail=m=>{throw new Error(m)};
+if(e.status!=='PARTIAL_METADATA_ONLY_NOT_QUALIFIED') fail('evidence package must remain partial');
+if(e.evidence?.length!==1) fail('expected one bounded reference evidence item');
+if(e.evidence[0].admission_state!=='ADMITTED_BOUNDED_STRUCTURED_METADATA_ONLY') fail('metadata admission state regression');
+if(e.evidence[0].qualification_weight!=='REFERENCE_ONLY_NOT_PRIMARY_AUTHORITY') fail('Wikidata authority inflation');
+if(e.required_source_role_gaps?.length!==4) fail('expected four explicit source-role gaps');
+if(b.recommendation!=='BLOCKED'||b.publication_eligibility!==false||b.index_eligibility!==false) fail('Track B fail-closed regression');
+if(p.track_b_assessment_state!=='BLOCKED'||p.publication_eligibility!==false||p.index_eligibility!==false) fail('Projection promotion regression');
+if(p.portal_render_state!=='PARTIAL_NOT_VERIFIED'||p.eos_state!=='BLOCKED_EVIDENCE_GAPS') fail('consumer transparency regression');
+if(p.provider_direct_access!==false||p.missing_to_zero!==false) fail('consumer boundary regression');
+for(const x of [e,b,p]) if(x.production!=='HOLD') fail('Production must remain HOLD');
+console.log(JSON.stringify({status:'PASS',product:e.representative_product_id,missing_roles:e.required_source_role_gaps,track_b:b.recommendation,portal:p.portal_render_state,eos:p.eos_state,production:p.production},null,2));
