@@ -1,0 +1,19 @@
+name: KIDULTS Scope Data Requirement Matrix v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/scope-data/**'
+      - 'scripts/kidults/validate-scope-data-requirement-matrix-v1.mjs'
+      - '.github/workflows/kidults-scope-data-requirement-matrix-v1.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate 32-Scope Matrix
+        run: node scripts/kidults/validate-scope-data-requirement-matrix-v1.mjs
