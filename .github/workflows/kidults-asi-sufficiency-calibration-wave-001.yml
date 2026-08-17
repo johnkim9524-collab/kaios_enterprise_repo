@@ -1,0 +1,192 @@
+name: KIDULTS ASI Sufficiency Calibration Wave 001
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/source-intelligence/asi-sufficiency-calibration-wave-001-execution-contract-v1.json"
+      - "scripts/kidults/source-intelligence/execute-asi-sufficiency-calibration-wave-001.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-sufficiency-calibration-wave-001.mjs"
+      - "scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs"
+      - "coordination/kidults/data-scope/collection-scope-registry-v1.json"
+      - ".github/workflows/kidults-asi-sufficiency-calibration-wave-001.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+concurrency:
+  group: kidults-asi-sufficiency-calibration-wave-001
+  cancel-in-progress: true
+
+jobs:
+  execute:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/execute-asi-sufficiency-calibration-wave-001.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-sufficiency-calibration-wave-001.mjs
+          node --check scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs
+
+      - name: Download immutable ASI inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p \
+            artifacts/input/global-source-sufficiency-v1 \
+            artifacts/input/asi-discovery-batch-001 \
+            artifacts/input/source-precision-ranking-v2-final \
+            artifacts/input/targeted-high-authority-source-expansion-v1-fixed \
+            artifacts/input/source-sufficiency-calculation-v2
+
+          gh run download 32010180729 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-global-source-sufficiency-v1 \
+            --dir artifacts/input/global-source-sufficiency-v1
+
+          gh run download 31960423954 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-asi-discovery-batch-001 \
+            --dir artifacts/input/asi-discovery-batch-001
+
+          gh run download 31986434921 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-source-precision-ranking-v2-final \
+            --dir artifacts/input/source-precision-ranking-v2-final
+
+          gh run download 31990288099 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-targeted-high-authority-source-expansion-v1-fixed \
+            --dir artifacts/input/targeted-high-authority-source-expansion-v1-fixed
+
+          gh run download 32011144264 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-source-sufficiency-calculation-v2 \
+            --dir artifacts/input/source-sufficiency-calculation-v2
+
+          find artifacts/input/global-source-sufficiency-v1 -name asi-sufficiency-calibration-wave-001-work-queue.json -print -quit | grep .
+          find artifacts/input/asi-discovery-batch-001 -name global-source-universe-batch-001.json -print -quit | grep .
+          find artifacts/input/source-precision-ranking-v2-final -name precision-ranked-universe-v2.json -print -quit | grep .
+          find artifacts/input/targeted-high-authority-source-expansion-v1-fixed -name targeted-high-authority-source-candidate-registry-v1.json -print -quit | grep .
+          find artifacts/input/source-sufficiency-calculation-v2 -name source-sufficiency-calculation-v2.json -print -quit | grep .
+
+      - name: Execute 4,480 autonomous Source pre-assessments
+        run: |
+          node scripts/kidults/source-intelligence/execute-asi-sufficiency-calibration-wave-001.mjs \
+            --queue-input artifacts/input/global-source-sufficiency-v1 \
+            --batch-input artifacts/input/asi-discovery-batch-001 \
+            --precision-input artifacts/input/source-precision-ranking-v2-final \
+            --targeted-input artifacts/input/targeted-high-authority-source-expansion-v1-fixed \
+            --sufficiency-input artifacts/input/source-sufficiency-calculation-v2 \
+            --output artifacts/agci-os/asi-sufficiency-calibration-wave-001 \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          COMMON_ARGS="--queue-input artifacts/input/global-source-sufficiency-v1 --batch-input artifacts/input/asi-discovery-batch-001 --precision-input artifacts/input/source-precision-ranking-v2-final --targeted-input artifacts/input/targeted-high-authority-source-expansion-v1-fixed --sufficiency-input artifacts/input/source-sufficiency-calculation-v2"
+
+          node scripts/kidults/source-intelligence/execute-asi-sufficiency-calibration-wave-001.mjs $COMMON_ARGS --output /tmp/asi-wave-001-1 --write
+          node scripts/kidults/source-intelligence/execute-asi-sufficiency-calibration-wave-001.mjs $COMMON_ARGS --output /tmp/asi-wave-001-2 --write
+
+          for file in \
+            asi-sufficiency-calibration-wave-001-assessments.json \
+            lane-survival-and-yield-v1.json \
+            source-family-resolution-v1.json \
+            global-diversity-and-concentration-v1.json \
+            source-attrition-taxonomy-v1.json \
+            source-sufficiency-empirical-calibration-candidate-v1.json \
+            next-autonomous-source-work-wave-v1.json \
+            run-manifest.json; do
+            cmp "/tmp/asi-wave-001-1/$file" "/tmp/asi-wave-001-2/$file"
+            cmp "artifacts/agci-os/asi-sufficiency-calibration-wave-001/$file" "/tmp/asi-wave-001-1/$file"
+          done
+
+      - name: Validate ASI execution and fail-closed boundaries
+        run: |
+          node scripts/kidults/source-intelligence/validate-asi-sufficiency-calibration-wave-001.mjs \
+            artifacts/agci-os/asi-sufficiency-calibration-wave-001 \
+            --queue-input artifacts/input/global-source-sufficiency-v1 \
+            --batch-input artifacts/input/asi-discovery-batch-001 \
+            --precision-input artifacts/input/source-precision-ranking-v2-final \
+            --targeted-input artifacts/input/targeted-high-authority-source-expansion-v1-fixed \
+            --sufficiency-input artifacts/input/source-sufficiency-calculation-v2
+
+      - name: Revalidate linked Source sufficiency and governance
+        run: |
+          node scripts/kidults/source-intelligence/build-source-sufficiency-calculation-v2.mjs --output /tmp/source-sufficiency-v2 --write
+          node scripts/kidults/source-intelligence/validate-source-sufficiency-calculation-v2.mjs /tmp/source-sufficiency-v2
+          node scripts/kidults/dos/build-dos-v1.mjs --output /tmp/dos-v1 --write
+          node scripts/kidults/dos/validate-dos-v1.mjs /tmp/dos-v1
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Publish execution summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE' > /tmp/asi-wave-summary.md
+          const fs = require('fs');
+          const dir = 'artifacts/agci-os/asi-sufficiency-calibration-wave-001';
+          const run = JSON.parse(fs.readFileSync(`${dir}/run-manifest.json`, 'utf8'));
+          const lanes = JSON.parse(fs.readFileSync(`${dir}/lane-survival-and-yield-v1.json`, 'utf8'));
+          const attrition = JSON.parse(fs.readFileSync(`${dir}/source-attrition-taxonomy-v1.json`, 'utf8'));
+          const diversity = JSON.parse(fs.readFileSync(`${dir}/global-diversity-and-concentration-v1.json`, 'utf8'));
+          console.log(`# ASI Sufficiency Calibration Wave 001 — EXECUTION PASS`);
+          console.log();
+          console.log(`**HEAD:** \`${process.env.GITHUB_SHA}\`  `);
+          console.log(`**Workflow Run:** \`${process.env.GITHUB_RUN_ID}\`  `);
+          console.log(`**Production:** \`HOLD\``);
+          console.log();
+          console.log('```text');
+          console.log(`Work items processed                   ${run.work_items_processed}`);
+          console.log(`Scope-role lanes                       ${run.scope_role_lanes}`);
+          console.log(`Candidate pool                          ${run.candidate_pool_size}`);
+          console.log(`Assigned / explicit unfilled            ${run.assigned_candidate_assessments} / ${run.explicit_unfilled_slots}`);
+          console.log(`Unique independent families             ${run.unique_independent_families}`);
+          console.log(`Provisional high-authority families     ${run.provisional_high_authority_families}`);
+          console.log(`Automated provisional survival          ${run.automated_provisional_survival_rate}`);
+          console.log(`Next-wave lanes H / M / N               ${run.high_priority_next_wave_lanes} / ${run.medium_priority_next_wave_lanes} / ${run.normal_priority_next_wave_lanes}`);
+          console.log(`Next additional assessment target       ${run.next_wave_total_additional_assessments}`);
+          console.log('```');
+          console.log();
+          console.log(`Automated attrition state: **${attrition.status}**. Diversity state: **${diversity.status}**.`);
+          console.log();
+          console.log('The output is an autonomous metadata pre-assessment and empirical-calibration candidate. It is not Track B trust qualification, rights clearance, Adapter approval or acquisition authorization.');
+          console.log();
+          console.log('```text');
+          console.log('Track B validation complete          false');
+          console.log('Official empirical profile updated  false');
+          console.log('Source Pool promotions                  0');
+          console.log('Acquisition authorized               false');
+          console.log('Candidate R2                         BLOCKED');
+          console.log('Production                           HOLD');
+          console.log('```');
+          NODE
+
+          cat /tmp/asi-wave-summary.md >> "$GITHUB_STEP_SUMMARY"
+          gh issue comment 336 --repo "johnkim9524-collab/kaios_enterprise_repo" --body-file /tmp/asi-wave-summary.md
+          gh issue comment 330 --repo "johnkim9524-collab/kaios_enterprise_repo" --body-file /tmp/asi-wave-summary.md
+
+      - name: Upload ASI calibration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-asi-sufficiency-calibration-wave-001
+          path: artifacts/agci-os/asi-sufficiency-calibration-wave-001
+          if-no-files-found: error
+          retention-days: 30
