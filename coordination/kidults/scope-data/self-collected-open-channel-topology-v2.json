@@ -1,0 +1,36 @@
+{
+  "id": "kidults-self-collected-open-channel-topology-v2",
+  "version": "2.0.0",
+  "status": "EXECUTION_CANDIDATE",
+  "principle": "Requirement-driven official institutional APIs only; no generic discovery and no source-count optimization.",
+  "channels": [
+    {
+      "channel_id": "VAM_COLLECTIONS_API",
+      "owner": "Victoria and Albert Museum",
+      "access": "PUBLIC_COLLECTIONS_API_NO_KEY",
+      "rights_state": "OFFICIAL_COLLECTION_METADATA_REUSE_SUBJECT_TO_VAM_TERMS",
+      "source_family": "VAM_COLLECTIONS_API",
+      "roles": ["CATALOG_REFERENCE", "PROVENANCE_HISTORY", "CULTURE_ATTENTION"],
+      "scopes": ["fine_jewelry","designer_jewelry","designer_garments","eyewear","seating","tables_storage","lighting","decorative_design_objects","musical_instruments_artist_gear","historical_cultural_memorabilia"],
+      "commercial_metadata_use": "FIELD_LEVEL_RIGHTS_REVIEW_REQUIRED_BEFORE_PUBLICATION",
+      "media_use": "NOT_ACQUIRED"
+    },
+    {
+      "channel_id": "AIC_COLLECTION_API",
+      "owner": "Art Institute of Chicago",
+      "access": "PUBLIC_API_NO_AUTH_60_RPM",
+      "rights_state": "API_ARTWORK_DATA_CC0_WITH_TERMS_AND_ITEM_LEVEL_MEDIA_RIGHTS",
+      "source_family": "ART_INSTITUTE_CHICAGO_API",
+      "roles": ["CATALOG_REFERENCE", "PROVENANCE_HISTORY", "CULTURE_ATTENTION"],
+      "scopes": ["fine_jewelry","designer_jewelry","designer_garments","seating","tables_storage","lighting","decorative_design_objects","historical_cultural_memorabilia"],
+      "commercial_metadata_use": "CC0_ARTWORK_DATA_PERMITTED_SUBJECT_TO_TERMS",
+      "media_use": "PUBLIC_DOMAIN_ONLY_AND_NOT_ACQUIRED_IN_THIS_WAVE"
+    }
+  ],
+  "credential_later_open_channels": [
+    {"channel_id":"SMITHSONIAN_OPEN_ACCESS_API","credential":"FREE_API_KEY_REQUIRED","provider_negotiation":false},
+    {"channel_id":"EUROPEANA_API","credential":"API_KEY_REQUIRED","provider_negotiation":false}
+  ],
+  "provider_contact_authorized": false,
+  "production": "HOLD"
+}
