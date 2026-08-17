@@ -6,6 +6,9 @@ function assessment(overrides = {}) {
   return {
     review_contract_version: 'v1',
     adjudication_semantics_version: 'blind-evidence-only-v1',
+    sample_fingerprint: 'sha256:sample-a',
+    selection_method_version: 'blind-top50-selection-v1',
+    input_artifact_digest: 'sha256:input-a',
     top50_precision: 0.7,
     records: [
       { endpoint_id: 'A', evidence_checks: { scope: true, role: true } },
@@ -15,7 +18,7 @@ function assessment(overrides = {}) {
   };
 }
 
-test('Track B precision comparison is allowed only for identical sample and adjudication semantics', () => {
+test('Track B precision comparison is allowed only for identical sample, provenance, and adjudication semantics', () => {
   const result = buildTrackBAssessmentComparabilityDiagnostic({
     baseline: assessment(),
     current: assessment({ top50_precision: 0.8 }),
@@ -27,6 +30,10 @@ test('Track B precision comparison is allowed only for identical sample and adju
   assert.equal(result.sampleIdentical, true);
   assert.equal(result.reviewContractIdentical, true);
   assert.equal(result.adjudicationSemanticsIdentical, true);
+  assert.equal(result.comparisonProvenanceComplete, true);
+  assert.equal(result.sampleFingerprintIdentical, true);
+  assert.equal(result.selectionMethodIdentical, true);
+  assert.equal(result.inputArtifactIdentical, true);
   assert.deepEqual(result.evidenceCheckMutations, []);
   assert.equal(result.precisionDelta, 0.10000000000000009);
   assert.equal(result.improvementClaimAllowed, true);
@@ -60,6 +67,38 @@ test('sample, contract, or adjudication changes fail closed for precision-improv
   assert.equal(result.improvementClaimAllowed, false);
 });
 
+test('comparison provenance must be explicit and identical before precision improvement may be claimed', () => {
+  const missing = buildTrackBAssessmentComparabilityDiagnostic({
+    baseline: assessment({ sample_fingerprint: undefined }),
+    current: assessment({ top50_precision: 0.9 }),
+  });
+  assert.equal(missing.comparable, false);
+  assert.deepEqual(missing.reasons, ['COMPARISON_PROVENANCE_MISSING']);
+  assert.equal(missing.comparisonProvenanceComplete, false);
+  assert.equal(missing.improvementClaimAllowed, false);
+
+  const changed = buildTrackBAssessmentComparabilityDiagnostic({
+    baseline: assessment(),
+    current: assessment({
+      sample_fingerprint: 'sha256:sample-b',
+      selection_method_version: 'targeted-high-authority-v3',
+      input_artifact_digest: 'sha256:input-b',
+      top50_precision: 1,
+    }),
+  });
+  assert.equal(changed.comparable, false);
+  assert.deepEqual(changed.reasons, [
+    'SAMPLE_FINGERPRINT_CHANGED',
+    'SELECTION_METHOD_CHANGED',
+    'INPUT_ARTIFACT_CHANGED',
+  ]);
+  assert.equal(changed.comparisonProvenanceComplete, true);
+  assert.equal(changed.sampleFingerprintIdentical, false);
+  assert.equal(changed.selectionMethodIdentical, false);
+  assert.equal(changed.inputArtifactIdentical, false);
+  assert.equal(changed.improvementClaimAllowed, false);
+});
+
 test('changing evidence checks inside an otherwise identical blind sample makes results non-comparable', () => {
   const result = buildTrackBAssessmentComparabilityDiagnostic({
     baseline: assessment({ top50_precision: 'not-measured' }),
@@ -85,12 +124,13 @@ test('changing evidence checks inside an otherwise identical blind sample makes 
   assert.equal(result.improvementClaimAllowed, false);
 });
 
-test('missing versions normalize to null and remain comparable when both sides omit them', () => {
+test('missing review versions normalize to null and remain comparable when provenance is explicit', () => {
   const baseline = assessment({ review_contract_version: undefined, adjudication_semantics_version: undefined, records: [] });
   const current = assessment({ review_contract_version: undefined, adjudication_semantics_version: undefined, records: [], top50_precision: undefined });
   const result = buildTrackBAssessmentComparabilityDiagnostic({ baseline, current });
 
   assert.equal(result.comparable, true);
+  assert.equal(result.comparisonProvenanceComplete, true);
   assert.equal(result.currentPrecision, null);
   assert.equal(result.precisionDelta, null);
   assert.equal(result.improvementClaimAllowed, false);
