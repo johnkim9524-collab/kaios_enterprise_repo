@@ -1,0 +1,73 @@
+{
+  "id": "product-linked-source-sufficiency-v3",
+  "version": "3.0.0",
+  "status": "CANDIDATE_CANONICAL",
+  "governing_unit": [
+    "representative_product_id",
+    "market_cell_id",
+    "assertion_id_or_evidence_gap_class",
+    "required_source_role"
+  ],
+  "legacy_execution": {
+    "fixed_representative_object_floor": "DISABLED",
+    "anonymous_scope_role_lane_count": "PLANNING_HISTORY_ONLY",
+    "fixed_global_source_target": "DISABLED"
+  },
+  "sufficiency_rule": {
+    "primary_counting_unit": "INDEPENDENT_SOURCE_FAMILY",
+    "required_family_floor": "ASSERTION_CRITICALITY_AND_EVIDENCE_POLICY_DERIVED",
+    "adjusters": [
+      "observed_qualification_attrition",
+      "rights_access_attrition",
+      "technical_freshness_attrition",
+      "region_language_coverage",
+      "owner_lineage_concentration",
+      "continuity_and_source_removal_reserve"
+    ],
+    "unknown_empirical_parameter_policy": "NOT_MEASURED_NO_TRUST_PROMOTION"
+  },
+  "hard_boundaries": {
+    "source_availability_defines_product": false,
+    "source_availability_defines_representativeness": false,
+    "provider_id_equals_canonical_id": false,
+    "listing_equals_sold": false,
+    "missing_equals_zero": false,
+    "rights_unknown_can_promote": false,
+    "same_owner_aliases_inflate_family_count": false
+  },
+  "north_star": {
+    "autonomous": {
+      "required": true,
+      "tests": [
+        "demand_is_machine_compilable_from_product_cell_assertion",
+        "replenishment_can_be_triggered_from_gap_or_source_removal",
+        "no_manual_fixed_source_count_required"
+      ]
+    },
+    "global": {
+      "required": true,
+      "tests": [
+        "region_and_language_requirements_are_explicit_or_not_applicable",
+        "owner_provider_concentration_is_measured",
+        "market_cell_geographic_blind_spots_are_explicit"
+      ]
+    },
+    "irreplaceable_value": {
+      "required": true,
+      "tests": [
+        "every_demand_traces_to_a_decision_relevant_assertion",
+        "no_source_is_collected_only_because_it_is_available",
+        "critical_assertions_require_independent_corroboration"
+      ]
+    }
+  },
+  "execution": {
+    "planning": "AUTHORIZED",
+    "targeted_discovery": "AUTHORIZED_FROM_COMPILED_DEMAND",
+    "rights_preflight": "AUTHORIZED_READ_ONLY",
+    "acquisition": "HOLD",
+    "index": "HOLD",
+    "public_claims": "HOLD",
+    "production": "HOLD"
+  }
+}

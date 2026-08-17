@@ -1,0 +1,63 @@
+{
+  "id": "autonomous-global-irreplaceable-value-gate-v1",
+  "version": "1.0.0",
+  "status": "CANDIDATE_CANONICAL",
+  "applies_to": [
+    "semantic_core",
+    "collectibles_admission",
+    "representative_product",
+    "market_cell",
+    "evidence_demand",
+    "source_demand",
+    "asi",
+    "canonical_identity",
+    "evidence_graph",
+    "market_graph",
+    "memory",
+    "track_b",
+    "index",
+    "projection",
+    "portal",
+    "runtime",
+    "ih_eos"
+  ],
+  "gate": {
+    "autonomous": {
+      "pass_when": [
+        "machine_repeatable_state_transition_exists",
+        "manual_intervention_is_exception_not_operating_model",
+        "failure_recovery_or_replenishment_path_is_defined",
+        "human_judgment_boundaries_are_explicit_and_auditable"
+      ]
+    },
+    "global": {
+      "pass_when": [
+        "market_scope_is_not_single_region_by_accident",
+        "region_language_owner_lineage_bias_is_measured",
+        "global_claims_are_bounded_by_observed_coverage",
+        "local_market_cells_can_coexist_without_forced_homogenization"
+      ]
+    },
+    "irreplaceable_value": {
+      "pass_when": [
+        "output_improves_a_defined_customer_or_institutional_decision",
+        "value_depends_on_canonical_identity_evidence_graph_market_graph_memory_or_independent_fusion",
+        "output_is_not_merely_a_repackaged_public_listing_or_search_result",
+        "limitations_confidence_and_provenance_are_preserved"
+      ]
+    }
+  },
+  "regression_policy": {
+    "any_fail": "P0_CORRECTIVE_ACTION",
+    "unknown": "AMBER_HOLD_FOR_CLAIMS",
+    "threshold_relaxation_without_kpmo_decision": "PROHIBITED"
+  },
+  "reporting_block": [
+    "AUTONOMOUS_PASS_AMBER_FAIL",
+    "GLOBAL_PASS_AMBER_FAIL",
+    "IRREPLACEABLE_VALUE_PASS_AMBER_FAIL",
+    "REGRESSION_DETECTED_YES_NO",
+    "CORRECTIVE_ACTION"
+  ],
+  "production": "HOLD"
+}
