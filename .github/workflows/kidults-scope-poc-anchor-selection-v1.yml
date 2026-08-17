@@ -1,0 +1,17 @@
+name: KIDULTS Scope PoC Anchor Selection v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json'
+      - 'scripts/kidults/validate-scope-poc-anchor-selection-v1.mjs'
+      - '.github/workflows/kidults-scope-poc-anchor-selection-v1.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/kidults/validate-scope-poc-anchor-selection-v1.mjs
