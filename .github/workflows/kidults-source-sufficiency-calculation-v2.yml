@@ -1,0 +1,156 @@
+name: KIDULTS Source Sufficiency Calculation v2
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/source-intelligence/source-sufficiency-calculation-contract-v2.json"
+      - "coordination/kidults/source-intelligence/source-sufficiency-driver-profile-v1.json"
+      - "coordination/kidults/data-scope/collection-scope-registry-v1.json"
+      - "scripts/kidults/source-intelligence/build-source-sufficiency-calculation-v2.mjs"
+      - "scripts/kidults/source-intelligence/validate-source-sufficiency-calculation-v2.mjs"
+      - "scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs"
+      - ".github/workflows/kidults-source-sufficiency-calculation-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-source-sufficiency-calculation-v2
+  cancel-in-progress: true
+
+jobs:
+  calculate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/build-source-sufficiency-calculation-v2.mjs
+          node --check scripts/kidults/source-intelligence/validate-source-sufficiency-calculation-v2.mjs
+          node --check scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs
+
+      - name: Build linked Source sufficiency calculation
+        run: |
+          node scripts/kidults/source-intelligence/build-source-sufficiency-calculation-v2.mjs \
+            --output artifacts/agci-os/source-sufficiency-calculation-v2 \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          node scripts/kidults/source-intelligence/build-source-sufficiency-calculation-v2.mjs \
+            --output /tmp/source-sufficiency-v2-1 \
+            --write
+          node scripts/kidults/source-intelligence/build-source-sufficiency-calculation-v2.mjs \
+            --output /tmp/source-sufficiency-v2-2 \
+            --write
+          for file in \
+            source-sufficiency-calculation-v2.json \
+            category-source-requirement-matrix-v2.json \
+            source-sufficiency-driver-linkage-v2.json \
+            source-sufficiency-sensitivity-v2.json \
+            global-source-sufficiency-admission-v2.json \
+            run-manifest.json; do
+            cmp "/tmp/source-sufficiency-v2-1/$file" "/tmp/source-sufficiency-v2-2/$file"
+            cmp "artifacts/agci-os/source-sufficiency-calculation-v2/$file" "/tmp/source-sufficiency-v2-1/$file"
+          done
+
+      - name: Prove linked driver recalculation
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const profilePath = 'coordination/kidults/source-intelligence/source-sufficiency-driver-profile-v1.json';
+          const registryPath = 'coordination/kidults/data-scope/collection-scope-registry-v1.json';
+          const profile = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
+          const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
+
+          const products = structuredClone(profile);
+          products.categories[0].representative_products += 100;
+          fs.writeFileSync('/tmp/profile-products.json', JSON.stringify(products, null, 2));
+
+          const evidence = structuredClone(profile);
+          evidence.categories[0].target_validated_evidence_assertions += 1000;
+          evidence.categories[0].target_market_observations += 1000;
+          fs.writeFileSync('/tmp/profile-evidence.json', JSON.stringify(evidence, null, 2));
+
+          const attrition = structuredClone(profile);
+          attrition.global_parameters.total_attrition_rate += 0.05;
+          fs.writeFileSync('/tmp/profile-attrition.json', JSON.stringify(attrition, null, 2));
+
+          const category = structuredClone(profile);
+          const template = structuredClone(profile.categories[0]);
+          template.category_id = 'linked-test-category';
+          template.category_name = 'Linked Test Category';
+          category.categories.push(template);
+          fs.writeFileSync('/tmp/profile-category.json', JSON.stringify(category, null, 2));
+
+          const categoryRegistry = structuredClone(registry);
+          const scopeTemplates = registry.records.filter(record => record.parent_core_domain === profile.categories[0].category_id).slice(0, 4);
+          for (const [index, scope] of scopeTemplates.entries()) {
+            const copy = structuredClone(scope);
+            copy.scope_id = `scope-linked-test-${index + 1}`;
+            copy.name = `Linked Test Scope ${index + 1}`;
+            copy.parent_core_domain = 'linked-test-category';
+            categoryRegistry.records.push(copy);
+          }
+          categoryRegistry.scope_count = categoryRegistry.records.length;
+          categoryRegistry.core_domain_count += 1;
+          fs.writeFileSync('/tmp/registry-category.json', JSON.stringify(categoryRegistry, null, 2));
+          NODE
+
+          node scripts/kidults/source-intelligence/build-source-sufficiency-calculation-v2.mjs --profile /tmp/profile-products.json --output /tmp/output-products --write
+          node scripts/kidults/source-intelligence/build-source-sufficiency-calculation-v2.mjs --profile /tmp/profile-evidence.json --output /tmp/output-evidence --write
+          node scripts/kidults/source-intelligence/build-source-sufficiency-calculation-v2.mjs --profile /tmp/profile-attrition.json --output /tmp/output-attrition --write
+          node scripts/kidults/source-intelligence/build-source-sufficiency-calculation-v2.mjs --profile /tmp/profile-category.json --scope-registry /tmp/registry-category.json --output /tmp/output-category --write
+
+          node <<'NODE'
+          const fs = require('fs');
+          const load = directory => JSON.parse(fs.readFileSync(`${directory}/run-manifest.json`, 'utf8'));
+          const base = load('artifacts/agci-os/source-sufficiency-calculation-v2');
+          const products = load('/tmp/output-products');
+          const evidence = load('/tmp/output-evidence');
+          const attrition = load('/tmp/output-attrition');
+          const category = load('/tmp/output-category');
+
+          if (products.total_representative_products !== base.total_representative_products + 100) throw new Error('Representative-product linkage failed.');
+          if (products.calculated_independent_source_families < base.calculated_independent_source_families) throw new Error('Product increase reduced Source requirement.');
+          if (evidence.total_target_validated_evidence_assertions !== base.total_target_validated_evidence_assertions + 1000) throw new Error('Evidence linkage failed.');
+          if (evidence.calculated_independent_source_families < base.calculated_independent_source_families) throw new Error('Evidence increase reduced Source requirement.');
+          if (attrition.calculated_independent_source_families <= base.calculated_independent_source_families) throw new Error('Attrition increase did not increase Source requirement.');
+          if (category.category_count !== base.category_count + 1) throw new Error('Category-count linkage failed.');
+          if (category.calculated_independent_source_families <= base.calculated_independent_source_families) throw new Error('Category increase did not increase Source requirement.');
+          console.log('Linked driver recalculation: PASS');
+          NODE
+
+      - name: Validate linked calculation and fail-closed boundaries
+        run: |
+          node scripts/kidults/source-intelligence/validate-source-sufficiency-calculation-v2.mjs \
+            artifacts/agci-os/source-sufficiency-calculation-v2
+
+      - name: Revalidate DOS and AGCI-OS governance
+        run: |
+          node scripts/kidults/dos/build-dos-v1.mjs --output /tmp/dos-v1 --write
+          node scripts/kidults/dos/validate-dos-v1.mjs /tmp/dos-v1
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload linked Source sufficiency evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-source-sufficiency-calculation-v2
+          path: artifacts/agci-os/source-sufficiency-calculation-v2
+          if-no-files-found: error
+          retention-days: 30
