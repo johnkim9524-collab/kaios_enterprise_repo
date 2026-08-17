@@ -1,0 +1,297 @@
+{
+  "id": "global-source-acquisition-and-asi-operating-strategy-v1",
+  "record_type": "global_source_acquisition_and_asi_operating_strategy",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T16:40:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "governing_contract": "global-high-trust-source-sufficiency-contract-v1",
+  "strategy_statement": "Build and continuously maintain the smallest defensible, diverse and resilient global Source Universe that satisfies representative-object, Source-role, geography, language, rights, precision and source-removal requirements. Source quantity is calculated from evidence sufficiency and observed attrition, not fixed in advance.",
+  "operating_principles": [
+    "VALUE_AND_DECISION_GAPS_DRIVE_DISCOVERY",
+    "SCOPE_AND_ROLE_GAPS_DRIVE_PRIORITY",
+    "INDEPENDENT_SOURCE_FAMILY_IS_THE_PRIMARY_SUFFICIENCY_UNIT",
+    "GLOBAL_DIVERSITY_IS_A_GATE_NOT_A_REPORTING_DECORATION",
+    "UNKNOWN_REMAINS_UNKNOWN",
+    "TRUST_QUALIFICATION_IS_SEPARATE_FROM_RIGHTS_CLEARANCE",
+    "HIGH_RECALL_DISCOVERY_IS_SEPARATE_FROM_HIGH_PRECISION_ADMISSION",
+    "NO_GENERIC_DISCOVERY_REOPENING_WITHOUT_A_MEASURED_GAP",
+    "PROVIDER_DATA_ACCELERATES_BUT_DOES_NOT_DEFINE_TRUTH",
+    "SOURCE_REMOVAL_AND_REPLACEMENT_RESILIENCE_IS_REQUIRED",
+    "AUTONOMOUS_REPLENISHMENT_MAINTAINS_SUFFICIENCY_OVER_TIME"
+  ],
+  "global_discovery_axes": {
+    "source_families": [
+      "PRIMARY_MANUFACTURER_OR_CREATOR",
+      "MUSEUM_OR_INSTITUTIONAL_COLLECTION",
+      "REFERENCE_CATALOG_OR_REGISTRY",
+      "MARKETPLACE_LISTING_OR_DEALER_INVENTORY",
+      "SOLD_TRANSACTION_OR_AUCTION_ARCHIVE",
+      "AUTHENTICATION_GRADING_OR_CERTIFICATION",
+      "PROVENANCE_OWNERSHIP_OR_HERITAGE_ARCHIVE",
+      "CULTURE_COMMUNITY_MEDIA_OR_ATTENTION",
+      "MACRO_REGULATORY_INSURANCE_OR_CUSTOMS_CONTEXT",
+      "INDEPENDENT_RESEARCH_OR_VERIFICATION",
+      "COMMERCIAL_PROVIDER_OR_PARTNER_DATASET"
+    ],
+    "geographies": [
+      "NORTH_AMERICA",
+      "EUROPE",
+      "UNITED_KINGDOM_AND_IRELAND",
+      "EAST_ASIA",
+      "SOUTHEAST_ASIA_AND_OCEANIA",
+      "MIDDLE_EAST_AFRICA_AND_LATIN_AMERICA"
+    ],
+    "language_strategy": "QUERY_AND_CLASSIFY_IN_LOCAL_LANGUAGE_PLUS_ENGLISH; PRESERVE ORIGINAL-LANGUAGE EVIDENCE",
+    "jurisdiction_strategy": "RECORD OPERATOR, HOSTING, TERMS, DATA-SUBJECT AND COMMERCIAL-USE JURISDICTIONS SEPARATELY",
+    "regional_bias_rule": "A GLOBAL CLAIM REQUIRES MULTI-REGION SUPPORT OR AN EXPLICIT REGIONAL LIMITATION"
+  },
+  "core_domain_strategies": [
+    {
+      "core_domain_id": "toys-models",
+      "priority_source_families": [
+        "OFFICIAL_MANUFACTURER_CATALOG_AND_INSTRUCTIONS",
+        "SPECIALIST_PRODUCT_REFERENCE_DATABASE",
+        "RETAIL_AND_SECONDARY_MARKET_LISTINGS",
+        "SOLD_AUCTION_AND_SPECIALIST_DEALER_ARCHIVES",
+        "COLLECTOR_COMMUNITY_AND_EVENT_ARCHIVES",
+        "CONDITION_PACKAGING_AND_COUNTERFEIT_REFERENCE"
+      ],
+      "priority_roles": ["PRIMARY_AUTHORITY", "CATALOG_REFERENCE", "LISTING_SUPPLY", "SOLD_TRANSACTION", "CULTURE_ATTENTION"],
+      "identity_focus": ["product_code", "set_or_model_number", "franchise", "grade_or_scale", "release", "reissue", "region", "packaging_variant"],
+      "global_diversity_focus": ["JAPAN", "UNITED_STATES", "EUROPE", "CHINA_AND_HONG_KONG", "SOUTHEAST_ASIA"],
+      "dominant_risks": ["REISSUE_CONFUSION", "UNLICENSED_RECASTS", "REGIONAL_EXCLUSIVES", "PACKAGING_CONDITION", "HYPE_AND_EVENT_EXCLUSIVITY"],
+      "source_removal_requirement": "NO_SINGLE_MANUFACTURER_OR_MARKETPLACE_MAY_DEFINE MARKET VALUE"
+    },
+    {
+      "core_domain_id": "watches-jewelry",
+      "priority_source_families": [
+        "OFFICIAL_BRAND_ARCHIVE_AND_REFERENCE",
+        "AUCTION_RESULT_AND_SPECIALIST_DEALER_ARCHIVE",
+        "GRADING_GEMOLOGY_HALLMARK_AND_CERTIFICATION",
+        "SERIAL_REFERENCE_AND_PROVENANCE_DATABASE",
+        "LISTING_MARKETPLACE_AND_VALUATION_PROVIDER",
+        "MUSEUM_AND_DESIGN_HISTORY_COLLECTION"
+      ],
+      "priority_roles": ["PRIMARY_AUTHORITY", "CATALOG_REFERENCE", "SOLD_TRANSACTION", "AUTHENTICATION_CONDITION", "PROVENANCE_HISTORY"],
+      "identity_focus": ["reference_number", "serial_or_case_number", "movement", "material", "gem_certificate", "hallmark", "production_period", "service_parts"],
+      "global_diversity_focus": ["SWITZERLAND", "UNITED_STATES", "UNITED_KINGDOM", "EUROPE", "JAPAN", "HONG_KONG_AND_SINGAPORE", "MIDDLE_EAST"],
+      "dominant_risks": ["COUNTERFEIT", "SERVICE_PARTS_AND_FRANKENWATCH", "PRIVATE_SALE_OPACITY", "GEM_CERTIFICATE_DEPENDENCY", "CONDITION_AND_POLISHING"],
+      "source_removal_requirement": "PRICE_AND_IDENTITY_MUST_SURVIVE LOSS_OF_ONE_AUCTION_OR_VALUATION_PROVIDER"
+    },
+    {
+      "core_domain_id": "automobiles-mobility",
+      "priority_source_families": [
+        "MANUFACTURER_HERITAGE_AND_TECHNICAL_ARCHIVE",
+        "VIN_CHASSIS_TITLE_AND_REGISTRATION_REFERENCE",
+        "SPECIALIST_AUCTION_RESULTS",
+        "CLASSIFIED_LISTINGS_AND_DEALER_INVENTORY",
+        "OWNER_CLUB_REGISTRY_AND_MODEL_HISTORY",
+        "PARTS_CATALOG_AND_RESTORATION_REFERENCE",
+        "MOTORSPORT_AND_PROVENANCE_ARCHIVE"
+      ],
+      "priority_roles": ["PRIMARY_AUTHORITY", "CATALOG_REFERENCE", "LISTING_SUPPLY", "SOLD_TRANSACTION", "PROVENANCE_HISTORY"],
+      "identity_focus": ["vin_or_chassis", "make", "model", "model_year", "region_specification", "engine", "trim", "mileage", "restoration", "title_history"],
+      "global_diversity_focus": ["NORTH_AMERICA", "EUROPE", "UNITED_KINGDOM", "JAPAN", "AUSTRALIA", "MIDDLE_EAST"],
+      "dominant_risks": ["VIN_AND_CHASSIS_AMBIGUITY", "RESTORATION_AND_MODIFICATION", "REGIONAL_SPEC_FRAGMENTATION", "MILEAGE_AND_TITLE_HISTORY", "SURVIVORSHIP_BIAS"],
+      "source_removal_requirement": "NO_SINGLE_AUCTION_PLATFORM_MAY_DEFINE LIQUIDITY_OR_PRICE"
+    },
+    {
+      "core_domain_id": "fashion-accessories",
+      "priority_source_families": [
+        "BRAND_ARCHIVE_AND_OFFICIAL_PRODUCT_CATALOG",
+        "MUSEUM_COSTUME_AND_DESIGN_COLLECTION",
+        "AUTHENTICATED_RESALE_MARKETPLACE",
+        "AUCTION_AND_LUXURY_DEALER_RESULTS",
+        "AUTHENTICATION_AND_COUNTERFEIT_REFERENCE",
+        "RUNWAY_EDITORIAL_AND_CULTURE_ARCHIVE",
+        "REGIONAL_RETAIL_AND_RELEASE_DATABASE"
+      ],
+      "priority_roles": ["PRIMARY_AUTHORITY", "CATALOG_REFERENCE", "LISTING_SUPPLY", "AUTHENTICATION_CONDITION", "CULTURE_ATTENTION"],
+      "identity_focus": ["brand", "model", "sku", "season", "colorway", "size", "material", "region", "release", "authentication", "condition"],
+      "global_diversity_focus": ["UNITED_STATES", "EUROPE", "UNITED_KINGDOM", "JAPAN", "SOUTH_KOREA", "CHINA", "SOUTHEAST_ASIA"],
+      "dominant_risks": ["COUNTERFEIT", "SIZE_AND_COLORWAY_FRAGMENTATION", "SEASON_AND_REGION_SKU_DIFFERENCE", "PLATFORM_HYPE", "CONDITION_SUBJECTIVITY"],
+      "source_removal_requirement": "DEMAND_SIGNAL_MUST_SURVIVE LOSS_OF_ONE_RESALE_MARKETPLACE"
+    },
+    {
+      "core_domain_id": "design-furniture",
+      "priority_source_families": [
+        "DESIGN_MUSEUM_AND_INSTITUTIONAL_COLLECTION",
+        "MAKER_MANUFACTURER_AND_DESIGNER_ARCHIVE",
+        "AUCTION_RESULT_ARCHIVE",
+        "SPECIALIST_DEALER_INVENTORY",
+        "CATALOG_RAISONNE_AND_REFERENCE_PUBLICATION",
+        "PROVENANCE_EXHIBITION_AND_ARCHITECTURE_ARCHIVE"
+      ],
+      "priority_roles": ["PRIMARY_AUTHORITY", "CATALOG_REFERENCE", "SOLD_TRANSACTION", "PROVENANCE_HISTORY", "INDEPENDENT_VERIFICATION"],
+      "identity_focus": ["designer", "manufacturer", "model", "production_period", "edition", "material", "dimensions", "marks", "restoration", "provenance"],
+      "global_diversity_focus": ["EUROPE", "UNITED_STATES", "UNITED_KINGDOM", "SCANDINAVIA", "ITALY", "JAPAN"],
+      "dominant_risks": ["ATTRIBUTION", "REISSUE_AND_LICENSED_REPRODUCTION", "RESTORATION", "MAKER_VS_DESIGNER_IDENTITY", "PROVENANCE_GAPS"],
+      "source_removal_requirement": "IDENTITY_MUST_BE_SUPPORTED_BY_INSTITUTIONAL_OR_MAKER_EVIDENCE_BEYOND_MARKET_LISTINGS"
+    },
+    {
+      "core_domain_id": "technology-cameras",
+      "priority_source_families": [
+        "MANUFACTURER_MODEL_AND_TECHNICAL_ARCHIVE",
+        "MUSEUM_AND_COMPUTING_HISTORY_COLLECTION",
+        "SERIAL_AND_MODEL_REFERENCE_DATABASE",
+        "SPECIALIST_AUCTION_RESULTS",
+        "USED_MARKETPLACE_AND_DEALER_INVENTORY",
+        "REPAIR_SERVICE_AND_COMPONENT_REFERENCE",
+        "INDEPENDENT_TECHNICAL_RESEARCH"
+      ],
+      "priority_roles": ["PRIMARY_AUTHORITY", "CATALOG_REFERENCE", "LISTING_SUPPLY", "SOLD_TRANSACTION", "AUTHENTICATION_CONDITION"],
+      "identity_focus": ["manufacturer", "model", "serial", "release_date", "region", "technical_specification", "accessories", "firmware", "working_condition", "completeness"],
+      "global_diversity_focus": ["JAPAN", "UNITED_STATES", "EUROPE", "UNITED_KINGDOM", "CHINA", "SOUTH_KOREA"],
+      "dominant_risks": ["REGIONAL_VARIANTS", "FUNCTIONAL_CONDITION", "ACCESSORY_COMPLETENESS", "OBSOLETE_PLATFORM_DEPENDENCY", "FIRMWARE_AND_COMPONENT_REPLACEMENT"],
+      "source_removal_requirement": "TECHNICAL_IDENTITY_AND_MARKET_VALUE_MUST_NOT_DEPEND_ON_ONE_COMMUNITY_DATABASE"
+    },
+    {
+      "core_domain_id": "gaming-music-screen",
+      "priority_source_families": [
+        "PUBLISHER_LABEL_STUDIO_AND_RELEASE_CATALOG",
+        "STRUCTURED_GAME_MUSIC_AND_MEDIA_DATABASE",
+        "GRADING_AND_AUTHENTICATION_REFERENCE",
+        "AUCTION_PROP_AND_MEMORABILIA_ARCHIVE",
+        "MARKETPLACE_LISTING_AND_SOLD_HISTORY",
+        "LIBRARY_ARCHIVE_AND_PRODUCTION_HISTORY",
+        "CULTURE_MEDIA_AND_ATTENTION_SOURCE"
+      ],
+      "priority_roles": ["PRIMARY_AUTHORITY", "CATALOG_REFERENCE", "LISTING_SUPPLY", "SOLD_TRANSACTION", "PROVENANCE_HISTORY", "CULTURE_ATTENTION"],
+      "identity_focus": ["title", "publisher_or_label", "platform_or_format", "catalog_number", "region", "edition", "pressing_or_reissue", "screen_match", "provenance", "condition"],
+      "global_diversity_focus": ["UNITED_STATES", "JAPAN", "EUROPE", "UNITED_KINGDOM", "SOUTH_KOREA", "LATIN_AMERICA"],
+      "dominant_risks": ["BOOTLEG_AND_UNOFFICIAL_RELEASE", "PRESSING_AND_REISSUE_CONFUSION", "DIGITAL_VS_PHYSICAL_SCOPE", "SCREEN_USED_PROVENANCE", "FORMAT_FRAGMENTATION"],
+      "source_removal_requirement": "CULTURE_SIGNAL_AND_MARKET_SIGNAL_REQUIRE_INDEPENDENT_SOURCE_FAMILIES"
+    },
+    {
+      "core_domain_id": "cards-comics-memorabilia",
+      "priority_source_families": [
+        "PUBLISHER_LEAGUE_SET_AND_CHECKLIST_REFERENCE",
+        "GRADING_CERTIFICATION_AND_POPULATION_REPORT",
+        "AUCTION_AND_SOLD_TRANSACTION_ARCHIVE",
+        "MARKETPLACE_LISTING_AND_DEALER_INVENTORY",
+        "AUTHENTICATION_PROVENANCE_AND_HOLOGRAM_REFERENCE",
+        "MUSEUM_LIBRARY_AND_HISTORICAL_ARCHIVE",
+        "SPORTS_ENTERTAINMENT_AND_CULTURE_ATTENTION_SOURCE"
+      ],
+      "priority_roles": ["CATALOG_REFERENCE", "LISTING_SUPPLY", "SOLD_TRANSACTION", "AUTHENTICATION_CONDITION", "PROVENANCE_HISTORY", "CULTURE_ATTENTION"],
+      "identity_focus": ["set", "card_or_issue_number", "variant", "print_run", "grade", "certification", "population", "restoration", "autograph_or_game_use", "provenance"],
+      "global_diversity_focus": ["UNITED_STATES", "JAPAN", "EUROPE", "UNITED_KINGDOM", "SOUTH_KOREA", "CHINA_AND_HONG_KONG"],
+      "dominant_risks": ["GRADE_INFLATION", "POPULATION_CHANGE", "COUNTERFEIT", "VARIANT_AND_PRINTING_CONFUSION", "RESTORATION", "MARKET_MANIPULATION"],
+      "source_removal_requirement": "SCARCITY_AND_VALUE_MUST_SURVIVE_LOSS_OF_ONE_GRADING_OR_AUCTION_PROVIDER"
+    }
+  ],
+  "autonomous_priority_function": {
+    "objective": "MAXIMIZE_INCREMENTAL_IRREPLACEABLE_VALUE_PER_UNIT_COST_AND_RISK",
+    "priority_factors": [
+      "DECISION_DNA_GAP_SEVERITY",
+      "SCOPE_ROLE_LANE_COVERAGE_GAP",
+      "REGION_LANGUAGE_AND_PRICE_TIER_GAP",
+      "UNIQUE_DATA_CONTRIBUTION",
+      "INDEPENDENCE_AND_CORROBORATION_GAIN",
+      "EXPECTED_ATTRITION_ADJUSTED_YIELD",
+      "SOURCE_REMOVAL_RESILIENCE_GAIN",
+      "RIGHTS_AND_TECHNICAL_FEASIBILITY",
+      "COST_PER_INCREMENTAL_VALUE",
+      "CONTINUITY_AND_REPLACEMENT_DEPTH"
+    ],
+    "hard_blocks": [
+      "NO_SCOPE_OR_VALUE_LINKAGE",
+      "OWNER_OR_LINEAGE_UNRESOLVED",
+      "KNOWN_GENERIC_OR_KEYWORD_COLLISION",
+      "UNKNOWN_PROMOTED_AS_LOW_RISK",
+      "DUPLICATE_OWNER_LINEAGE_INFLATION",
+      "DIRECT_SOURCE_TO_PORTAL_OR_INDEX_PATH"
+    ]
+  },
+  "trust_qualification_model": {
+    "dimensions": [
+      "OWNER_AND_OPERATOR_IDENTITY",
+      "OFFICIAL_OR_INDEPENDENTLY_VERIFIABLE_ENDPOINT",
+      "UNDERLYING_DATA_LINEAGE",
+      "SCOPE_RELEVANCE",
+      "SOURCE_ROLE_RELEVANCE",
+      "DECISION_AND_VALUE_CONTRIBUTION",
+      "AUTHORITY_AND_VERIFIABILITY",
+      "INDEPENDENCE_AND_CORROBORATION",
+      "FRESHNESS_AND_HISTORICAL_DEPTH",
+      "GEOGRAPHIC_AND_LANGUAGE_CONTRIBUTION",
+      "BIAS_AND_MANIPULATION_RISK",
+      "CONTINUITY_AND_REPLACEMENT_DEPTH",
+      "RIGHTS_ACCESS_AND_COMMERCIAL_STATE_EXPLICITNESS"
+    ],
+    "states": [
+      "DISCOVERED",
+      "NORMALIZED",
+      "DEEP_ASSESSED",
+      "TRUST_QUALIFIED",
+      "PREFLIGHT_COMPLETE",
+      "ADAPTER_READY",
+      "ACTIVE_EVIDENCE_CONTRIBUTOR",
+      "TRUST_DECAY_HOLD",
+      "REMOVED_OR_REPLACED"
+    ],
+    "state_separation": "TRUST_QUALIFIED_NEVER_IMPLIES_RIGHTS_CLEARED_OR_ACQUISITION_AUTHORIZED"
+  },
+  "track_b_validation_strategy": {
+    "method": "STRATIFIED_CALIBRATION_RISK_WEIGHTED_EXCEPTION_AND_RANDOM_HOLDOUT",
+    "manual_review_all_sources": false,
+    "required_controls": [
+      "400_CASE_GOLD_CALIBRATION",
+      "EXACT_TOP_200_ADJUDICATION",
+      "PER_SCOPE_AND_PER_REGION_RANDOM_HOLDOUT",
+      "FALSE_POSITIVE_AND_FALSE_NEGATIVE_MEASUREMENT",
+      "OWNER_LINEAGE_CONCENTRATION_AUDIT",
+      "RIGHTS_STATE_INTEGRITY_AUDIT",
+      "TRUST_DECAY_AND_REPLACEMENT_AUDIT",
+      "DETERMINISTIC_RECALCULATION"
+    ]
+  },
+  "runtime_strategy": {
+    "platform": "DIGITALOCEAN_DEV_AND_STAGING",
+    "components": [
+      "PRIORITY_QUEUE",
+      "DISCOVERY_WORKERS",
+      "NORMALIZATION_AND_LINEAGE_WORKERS",
+      "TRUST_AND_RISK_SCORING_WORKERS",
+      "RAW_QUARANTINE",
+      "SOURCE_REGISTRY_AND_LINEAGE_STORE",
+      "DEAD_LETTER_AND_RETRY_LEDGER",
+      "COST_AND_THROUGHPUT_LEDGER",
+      "BACKUP_RESTORE_AND_ROLLBACK"
+    ],
+    "production": "HOLD"
+  },
+  "immediate_execution": {
+    "wave": "ASI-SUFFICIENCY-CALIBRATION-WAVE-001",
+    "scope_role_lanes": 224,
+    "initial_targeted_candidate_assessments_per_lane": 20,
+    "initial_total_assessments": 4480,
+    "sequential_sampling": true,
+    "parallel_tracks": [
+      "TRACK_B_400_CASE_CALIBRATION",
+      "RIGHTS_ACCESS_COST_PREFLIGHT",
+      "DIGITALOCEAN_DEV_STAGING_CAPACITY"
+    ],
+    "first_outputs": [
+      "LANE_LEVEL_SURVIVAL_AND_COVERAGE_PARAMETERS",
+      "GLOBAL_DIVERSITY_AND_CONCENTRATION_MATRIX",
+      "EMPIRICALLY_CALCULATED_SOURCE_SUFFICIENCY_RANGE",
+      "PRIORITIZED_NEXT_WAVE_QUEUE"
+    ]
+  },
+  "boundaries": {
+    "fixed_global_source_target": null,
+    "broad_generic_discovery": "CLOSED_UNLESS_MEASURED_GAP_JUSTIFIES_REOPENING",
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
