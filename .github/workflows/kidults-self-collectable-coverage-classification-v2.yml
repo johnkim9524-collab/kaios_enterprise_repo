@@ -1,0 +1,39 @@
+name: KIDULTS Self-Collectable Coverage Classification v2
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/scope/compile-self-collectable-coverage-classification-v2.mjs'
+      - 'scripts/kidults/scope/validate-self-collectable-coverage-classification-v2.mjs'
+      - '.github/workflows/kidults-self-collectable-coverage-classification-v2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download immutable closure + Wave 1 + Wave 2 artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p closure wave1 wave2 coverage-v2-out
+          gh api -H 'Accept: application/vnd.github+json' /repos/${{ github.repository }}/actions/artifacts/9304814238/zip > closure.zip
+          gh api -H 'Accept: application/vnd.github+json' /repos/${{ github.repository }}/actions/artifacts/9304988483/zip > wave1.zip
+          gh api -H 'Accept: application/vnd.github+json' /repos/${{ github.repository }}/actions/artifacts/9305092664/zip > wave2.zip
+          unzip -q closure.zip -d closure
+          unzip -q wave1.zip -d wave1
+          unzip -q wave2.zip -d wave2
+      - name: Compile self-collectable coverage and Track B classification
+        run: node scripts/kidults/scope/compile-self-collectable-coverage-classification-v2.mjs closure wave1 wave2 coverage-v2-out
+      - name: Validate immutable classification invariants
+        run: node scripts/kidults/scope/validate-self-collectable-coverage-classification-v2.mjs coverage-v2-out
+      - name: Upload immutable classification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-self-collectable-coverage-classification-v2
+          path: coverage-v2-out/
+          if-no-files-found: error
+          retention-days: 90
