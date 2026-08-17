@@ -18,13 +18,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p input
+          mkdir -p input queue-input queue
           gh api repos/${{ github.repository }}/actions/artifacts/9290027789/zip > /tmp/pilot.zip
           unzip -q /tmp/pilot.zip -d input
           test -f input/bounded-live-discovery.json
-      - name: Compile preflight and connector gaps
-        run: node scripts/kidults/source-intelligence/build-preflight-gap-queues-v1.mjs input/bounded-live-discovery.json out
-      - name: Validate fail-closed queues
+      - name: Rebuild canonical Product-linked Targeted ASI queue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/artifacts/9286462549/zip > /tmp/anchors.zip
+          unzip -q /tmp/anchors.zip -d queue-input
+          INPUT_DIR=queue-input OUTPUT_DIR=queue node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs
+          OUTPUT_DIR=queue node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs
+      - name: Compile preflight and traceable connector gaps
+        run: node scripts/kidults/source-intelligence/build-preflight-gap-queues-v1.mjs input/bounded-live-discovery.json queue out
+      - name: Validate fail-closed queues and North-Star traceability
         run: node scripts/kidults/source-intelligence/validate-preflight-gap-queues-v1.mjs out
       - name: Upload immutable output
         uses: actions/upload-artifact@v4
