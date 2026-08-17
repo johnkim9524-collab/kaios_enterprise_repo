@@ -2,44 +2,20 @@
   "id": "collectibles-universe-definition-v1",
   "record_type": "collectibles_universe_semantic_definition",
   "version": "1.0.0",
-  "status": "KPMO_DEFINED_PENDING_MAIN_INTEGRATION",
+  "status": "CANONICAL_ACTIVE",
   "semantic_term": "COLLECTIBLE",
   "definition": "A Collectible is an identifiable and differentiable ownable object or product-class whose value and market behavior are materially influenced by scarcity, identity, authenticity, provenance, condition, cultural significance, historical significance, design authorship, edition or variant structure, or collector demand beyond ordinary functional utility.",
   "universe_definition": "The KIDULTS Collectibles Universe is an evidence-qualified market ontology of collectible-qualified product families, named products, physical objects, market events and evidence assertions. It is not an open-ended list of goods that somebody happens to collect.",
   "primary_object_mode": "PHYSICAL_OR_PHYSICAL_RIGHTS_BEARING",
   "core_properties": [
-    {
-      "id": "IDENTITY_PERSISTENCE",
-      "meaning": "Stable model, reference, edition, series, generation or provenance identity can be resolved."
-    },
-    {
-      "id": "DIFFERENTIABILITY",
-      "meaning": "The object or product family is materially distinguishable from commodity substitutes."
-    },
-    {
-      "id": "COLLECTOR_PREMIUM_OR_SIGNIFICANCE",
-      "meaning": "Economic, cultural, historical, design or institutional significance exists beyond ordinary utility alone."
-    },
-    {
-      "id": "SCARCITY_OR_BOUNDED_VARIATION",
-      "meaning": "Production, edition, survival, configuration, variant or availability differentiation is material."
-    },
-    {
-      "id": "AUTHENTICITY_OR_PROVENANCE_MATERIALITY",
-      "meaning": "Authenticity, originality or provenance can materially change trust, identity or value."
-    },
-    {
-      "id": "CONDITION_SENSITIVITY",
-      "meaning": "Condition, originality, completeness or grade may materially alter market behavior."
-    },
-    {
-      "id": "SECONDARY_MARKET_OR_INSTITUTIONAL_RECOGNITION",
-      "meaning": "A specialist transfer market, archival record, collector ecosystem or institutional recognition exists."
-    },
-    {
-      "id": "PERSISTENT_DEMAND_OR_CANON",
-      "meaning": "Demand or significance is supported by more than one isolated transaction or transient keyword spike."
-    }
+    {"id":"IDENTITY_PERSISTENCE","meaning":"Stable model, reference, edition, series, generation or provenance identity can be resolved."},
+    {"id":"DIFFERENTIABILITY","meaning":"The object or product family is materially distinguishable from commodity substitutes."},
+    {"id":"COLLECTOR_PREMIUM_OR_SIGNIFICANCE","meaning":"Economic, cultural, historical, design or institutional significance exists beyond ordinary utility alone."},
+    {"id":"SCARCITY_OR_BOUNDED_VARIATION","meaning":"Production, edition, survival, configuration, variant or availability differentiation is material."},
+    {"id":"AUTHENTICITY_OR_PROVENANCE_MATERIALITY","meaning":"Authenticity, originality or provenance can materially change trust, identity or value."},
+    {"id":"CONDITION_SENSITIVITY","meaning":"Condition, originality, completeness or grade may materially alter market behavior."},
+    {"id":"SECONDARY_MARKET_OR_INSTITUTIONAL_RECOGNITION","meaning":"A specialist transfer market, archival record, collector ecosystem or institutional recognition exists."},
+    {"id":"PERSISTENT_DEMAND_OR_CANON","meaning":"Demand or significance is supported by more than one isolated transaction or transient keyword spike."}
   ],
   "default_inclusions": [
     "PHYSICAL_COLLECTIBLE_PRODUCTS",
