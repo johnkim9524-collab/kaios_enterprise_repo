@@ -1,0 +1,40 @@
+{
+  "id": "value-chain-independent-validation-contract-v1",
+  "record_type": "track_b_value_chain_validation_contract",
+  "version": "1.0.0",
+  "status": "CANDIDATE_ON_CANONICAL_VALUE_CHAIN",
+  "parent_mission": 347,
+  "official_inputs_only": [
+    "collectible-admission-package",
+    "representative-product-package",
+    "market-cell-package",
+    "product-evidence-demand-graph",
+    "product-source-demand-graph"
+  ],
+  "validation_dimensions": [
+    "COLLECTIBLE_QUALIFICATION",
+    "COMMODITY_CONTAMINATION",
+    "CANONICAL_PRODUCT_BOUNDARY",
+    "REPRESENTATIVE_SET_BIAS",
+    "MARKET_CELL_COMPLETENESS",
+    "EVIDENCE_SUFFICIENCY",
+    "SOURCE_INDEPENDENCE_AND_CONCENTRATION",
+    "INDEX_ELIGIBILITY"
+  ],
+  "hard_fail_rules": [
+    "UNKNOWN_TO_APPROVED",
+    "COMMODITY_ONLY_TO_COLLECTIBLE",
+    "UNQUALIFIED_ANCHOR_TO_REPRESENTATIVE",
+    "EVIDENCE_INSUFFICIENT_TO_INDEX_ELIGIBLE",
+    "HIDDEN_PROVIDER_CONCENTRATION",
+    "PORTAL_OR_MARKETING_INPUT_USED_AS_TRUTH"
+  ],
+  "required_coverage": {
+    "rationale": 1.0,
+    "evidence_references": 1.0,
+    "reproducibility": "PASS"
+  },
+  "upstream_mutation": false,
+  "output_mode": "IMMUTABLE_ASSESSMENT_ONLY",
+  "production": "HOLD"
+}
