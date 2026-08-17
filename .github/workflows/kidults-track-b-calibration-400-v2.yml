@@ -1,0 +1,108 @@
+name: KIDULTS Track B Calibration 400 v2
+
+on:
+  pull_request:
+    paths:
+      - "scripts/kidults/source-intelligence/build-track-b-calibration-batches-02-08-v2.mjs"
+      - "scripts/kidults/source-intelligence/validate-track-b-calibration-batch-assessment-v2.mjs"
+      - "scripts/kidults/source-intelligence/validate-track-b-calibration-400-v2.mjs"
+      - ".github/workflows/kidults-track-b-calibration-400-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: kidults-track-b-calibration-400-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/build-track-b-calibration-batches-02-08-v2.mjs
+          node --check scripts/kidults/source-intelligence/validate-track-b-calibration-batch-assessment-v2.mjs
+          node --check scripts/kidults/source-intelligence/validate-track-b-calibration-400-v2.mjs
+
+      - name: Download immutable evidence-only reviewer input
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/input/track-b-calibration-v2.3
+          gh run download 32006503565 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-track-b-calibration-readiness-v2-blind \
+            --dir artifacts/input/track-b-calibration-v2.3
+
+      - name: Download immutable Batch 01 assessment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/input/track-b-calibration-batch-01
+          gh run download 32007023907 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-track-b-calibration-assessment-batch-01-v2 \
+            --dir artifacts/input/track-b-calibration-batch-01
+
+      - name: Build Batches 02-08 and aggregate 400-case assessment
+        run: |
+          node scripts/kidults/source-intelligence/build-track-b-calibration-batches-02-08-v2.mjs \
+            --input artifacts/input/track-b-calibration-v2.3 \
+            --batch01 artifacts/input/track-b-calibration-batch-01 \
+            --output artifacts/agci-os/track-b-calibration-400-v2 \
+            --write
+
+      - name: Prove deterministic same-input same-output
+        run: |
+          for attempt in 1 2; do
+            node scripts/kidults/source-intelligence/build-track-b-calibration-batches-02-08-v2.mjs \
+              --input artifacts/input/track-b-calibration-v2.3 \
+              --batch01 artifacts/input/track-b-calibration-batch-01 \
+              --output "/tmp/track-b-calibration-400-$attempt" \
+              --write
+          done
+          for batch in 02 03 04 05 06 07 08; do
+            cmp "/tmp/track-b-calibration-400-1/track-b-calibration-assessment-batch-${batch}-v2.json" "/tmp/track-b-calibration-400-2/track-b-calibration-assessment-batch-${batch}-v2.json"
+            cmp "artifacts/agci-os/track-b-calibration-400-v2/track-b-calibration-assessment-batch-${batch}-v2.json" "/tmp/track-b-calibration-400-1/track-b-calibration-assessment-batch-${batch}-v2.json"
+          done
+          cmp /tmp/track-b-calibration-400-1/track-b-calibration-assessment-400-v2.json /tmp/track-b-calibration-400-2/track-b-calibration-assessment-400-v2.json
+          cmp /tmp/track-b-calibration-400-1/run-manifest.json /tmp/track-b-calibration-400-2/run-manifest.json
+
+      - name: Validate Batches 02-08
+        run: |
+          for batch in 02 03 04 05 06 07 08; do
+            node scripts/kidults/source-intelligence/validate-track-b-calibration-batch-assessment-v2.mjs \
+              artifacts/agci-os/track-b-calibration-400-v2 \
+              "track-b-calibration-assessment-batch-${batch}-v2.json"
+          done
+
+      - name: Validate 400-case aggregate
+        run: |
+          node scripts/kidults/source-intelligence/validate-track-b-calibration-400-v2.mjs artifacts/agci-os/track-b-calibration-400-v2
+
+      - name: Revalidate canonical governance
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload 400-case assessment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-track-b-calibration-assessment-400-v2
+          path: artifacts/agci-os/track-b-calibration-400-v2
+          if-no-files-found: error
+          retention-days: 30
