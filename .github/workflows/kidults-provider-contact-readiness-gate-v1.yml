@@ -1,0 +1,17 @@
+name: KIDULTS Provider Contact Readiness Gate v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/provider/provider-contact-readiness-gate-v1.json'
+      - 'scripts/kidults/provider/validate-provider-contact-readiness-gate-v1.mjs'
+      - '.github/workflows/kidults-provider-contact-readiness-gate-v1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Program Owner contact gate
+        run: node scripts/kidults/provider/validate-provider-contact-readiness-gate-v1.mjs
