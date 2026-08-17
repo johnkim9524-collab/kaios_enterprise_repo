@@ -1,0 +1,72 @@
+{
+  "id": "asi-v2-1-official-preflight-observation-v1",
+  "record_type": "official_source_preflight_observation",
+  "version": "1.0.0",
+  "status": "CANONICAL_CANDIDATE",
+  "parent_issue": 373,
+  "input_artifact_id": 9290027789,
+  "observations": [
+    {
+      "candidate_id": "BMW_R90S_WIKIDATA",
+      "representative_product_id": "rp-automobiles-mobility-bmw-r90s",
+      "endpoint_url": "https://www.wikidata.org/wiki/Q380874",
+      "source_family": "WIKIDATA_KNOWLEDGE_GRAPH",
+      "source_role_fit": ["CATALOG_REFERENCE", "INDEPENDENT_VERIFICATION"],
+      "primary_authority": false,
+      "rights_state": "VERIFIED_CC0_STRUCTURED_DATA",
+      "commercial_use_state": "PERMITTED_BY_CC0_FOR_STRUCTURED_DATA",
+      "field_level_reuse_state": "STRUCTURED_DATA_ONLY_NOT_UPSTREAM_SOURCE_CONTENT",
+      "access_state": "PUBLIC_DATA_ACCESS_SUPPORTED",
+      "owner_lineage_state": "WIKIMEDIA_WIKIDATA_FAMILY_IDENTIFIED_UPSTREAM_FACT_LINEAGE_PER_STATEMENT_REQUIRED",
+      "cost_state": "NO_INCREMENTAL_LICENSE_FEE_OBSERVED_FOR_PUBLIC_STRUCTURED_DATA",
+      "continuity_state": "PUBLIC_PROJECT_CONTINUITY_NOT_GUARANTEED",
+      "qualification_state": "PREFLIGHT_PASS_METADATA_ONLY_NOT_SOURCE_QUALIFIED",
+      "acquisition_authorized": false,
+      "official_evidence": [
+        "https://www.wikidata.org/wiki/Wikidata:Licensing",
+        "https://www.wikidata.org/wiki/Wikidata:Data_access/en"
+      ]
+    },
+    {
+      "candidate_id": "STADIUM_EVENTS_ZENODO_DATACITE",
+      "representative_product_id": "rp-gaming-music-screen-bandai-stadium-events-for-nes",
+      "endpoint_url": "https://zenodo.org/doi/10.5281/zenodo.18453154",
+      "source_family": "ZENODO_DATACITE_RESEARCH_RECORD",
+      "source_role_fit": ["CATALOG_REFERENCE", "INDEPENDENT_VERIFICATION"],
+      "primary_authority": false,
+      "rights_state": "METADATA_CC0_CONTENT_LICENSE_CONFLICT_REVIEW_REQUIRED",
+      "commercial_use_state": "METADATA_REUSE_OK_CONTENT_NOT_CLEARED",
+      "field_level_reuse_state": "ZENODO_METADATA_CC0_RECORD_CONTENT_SUBJECT_TO_DEPOSIT_LICENSE",
+      "access_state": "PUBLIC_METADATA_OBSERVED_CONTENT_USE_SUBJECT_TO_RECORD_LICENSE",
+      "owner_lineage_state": "ZENODO_HOST_NOT_CONTENT_OWNER_UPLOADER_LINEAGE_REVIEW_REQUIRED",
+      "cost_state": "PUBLIC_METADATA_ACCESS_NO_INCREMENTAL_FEE_OBSERVED",
+      "continuity_state": "ZENODO_RECORD_PERSISTENCE_POLICY_EXISTS_CONTENT_MAY_BE_WITHDRAWN_OR_RESTRICTED",
+      "qualification_state": "HOLD_CONTENT_RIGHTS_AND_LINEAGE_REVIEW_REQUIRED",
+      "record_rights_metadata_observed": [
+        "Creative Commons Attribution 4.0 International",
+        "In Copyright"
+      ],
+      "acquisition_authorized": false,
+      "official_evidence": [
+        "https://about.zenodo.org/terms/",
+        "https://about.zenodo.org/policies/",
+        "https://help.zenodo.org/docs/deposit/describe-records/licenses/"
+      ]
+    }
+  ],
+  "summary": {
+    "preflighted": 2,
+    "metadata_only_pass": 1,
+    "content_rights_hold": 1,
+    "source_qualified": 0,
+    "acquisition_authorized": 0,
+    "unknown_promoted_as_trusted": 0
+  },
+  "north_star": {
+    "autonomous": "PASS",
+    "global_planning": "PASS",
+    "global_empirical": "PENDING",
+    "irreplaceable_value": "PASS"
+  },
+  "production": "HOLD"
+}
