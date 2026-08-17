@@ -1,0 +1,50 @@
+{
+  "id": "portal-semantic-product-consumer-contract-v1",
+  "record_type": "portal_projection_consumer_contract",
+  "version": "1.0.0",
+  "status": "CANDIDATE_ON_CANONICAL_VALUE_CHAIN",
+  "parent_mission": 348,
+  "semantic_inputs": [
+    "kidults-platform-definition-v1",
+    "collectibles-universe-definition-v1",
+    "kidults-end-to-end-value-chain-contract-v1"
+  ],
+  "portal_role": "READ_ONLY_EXPERIENCE_CONSUMER",
+  "required_projection_fields": [
+    "collectible_family_id",
+    "representative_product_id",
+    "market_cell_id",
+    "product_state",
+    "collectible_qualification_state",
+    "representative_qualification_state",
+    "evidence_sufficiency_state",
+    "index_eligibility_state",
+    "confidence",
+    "confidence_classification",
+    "freshness_state",
+    "provenance_references",
+    "limitations"
+  ],
+  "experience_sections": [
+    "KIDULTS_MARKET_LENS",
+    "COLLECTIBLES_UNIVERSE",
+    "REPRESENTATIVE_PRODUCTS",
+    "MARKET_CELLS",
+    "WHY_EVIDENCE_CONFIDENCE_LIMITATION",
+    "LIVING_INTELLIGENCE",
+    "RESEARCH",
+    "ARCHIVE",
+    "WORKSPACE"
+  ],
+  "prohibited": [
+    "PORTAL_SIDE_COLLECTIBLE_QUALIFICATION",
+    "PORTAL_SIDE_REPRESENTATIVE_QUALIFICATION",
+    "PORTAL_SIDE_INDEX_RANKING",
+    "RAW_PROVIDER_DATA",
+    "MISSING_TO_ZERO",
+    "TOY_ONLY_BRAND_FRAMING",
+    "UNQUALIFIED_PRODUCT_MARKET_CLAIM"
+  ],
+  "responsive_floor_px": 320,
+  "production": "HOLD"
+}
