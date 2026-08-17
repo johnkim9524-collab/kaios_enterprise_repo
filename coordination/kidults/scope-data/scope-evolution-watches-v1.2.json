@@ -1,0 +1,16 @@
+{
+  "id":"kidults-scope-evolution-watches-v1.2",
+  "version":"1.2.0",
+  "status":"TRACK_B_APPROVED_MIGRATION_CANDIDATE",
+  "issue":418,
+  "from_scope":{"scope_id":"vintage_digital_watches","name":"Vintage & Digital Watches","version":"1.1"},
+  "to_scope":{"scope_id":"vintage_neo_vintage_watches","name":"Vintage & Neo-Vintage Watches","domain":"watches_jewelry","archetype":"SERIALIZED_REFERENCE","identity_extensions":["brand","reference","serial_range","movement_caliber","case_reference","dial_configuration","bezel","bracelet","material","production_period","market_destination"],"collectible_qualification_extensions":["reference_correctness","movement_case_match","dial_originality","case_originality","service_parts","polishing","box_papers","provenance"],"market_cell_extensions":["reference","production_period","dial_variant","material","region","condition","full_set_state"],"irreplaceable_metrics":["originality_confidence","reference_scarcity","condition_premium","comparable_quality","liquidity_depth","market_momentum"],"condition_extensions":["reference_revision_correctness","original_components","service_or_repair_state","functionality_if_applicable","cosmetic_condition"],"self_collectable_priority":["identity_authority_metadata","open_catalog_reference","public_provenance_reference","public_market_signal"],"provider_candidate_after_poc":["licensed_sold_transactions","licensed_authentication_population","deep_historical_market_depth","licensed_proprietary_provenance"],"regions":["North America","Europe","East Asia"],"language_rule":"English + local market language when material","freshness":{"authority_days":90,"market_days":7,"signal_days":7},"north_star":["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"]},
+  "anchor_migration":[
+    {"representative_product_id":"rp-watches-jewelry-rolex-cosmograph-daytona-6263","from_scope_id":"vintage_digital_watches","to_scope_id":"vintage_neo_vintage_watches"},
+    {"representative_product_id":"rp-watches-jewelry-rolex-gmt-master-1675","from_scope_id":"vintage_digital_watches","to_scope_id":"vintage_neo_vintage_watches"}
+  ],
+  "digital_watch_policy":{"canonical_scope":"NOT_CREATED_IN_V1_2","parent_scope_id":"collectible_electronics","state":"DYNAMIC_VERTICAL_CANDIDATE","promotion_gate":"Distinct customer decision + identity grammar + condition model + empirical market behavior + Track B + KPMO"},
+  "historical_preservation":{"rewrite_v1_1":false,"rewrite_prior_observations":false,"migration_alias_required":true,"alias":{"vintage_digital_watches":"vintage_neo_vintage_watches"}},
+  "track_b":{"semantic_alignment":"PASS","anchor_alignment":"PASS","cross_scope_comparability":"PASS","historical_immutability":"PASS","digital_watch_independent_scope":"NOT_JUSTIFIED_BY_CURRENT_EVIDENCE","recommendation":"APPROVE_VERSIONED_SCOPE_MIGRATION"},
+  "production":"HOLD"
+}

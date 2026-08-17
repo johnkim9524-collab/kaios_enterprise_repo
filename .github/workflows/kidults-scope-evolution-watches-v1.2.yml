@@ -1,0 +1,27 @@
+name: KIDULTS Scope Evolution Watches v1.2
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/scope-data/scope-evolution-watches-v1.2.json'
+      - 'scripts/kidults/scope/compile-scope-evolution-watches-v1.2.mjs'
+      - 'scripts/kidults/scope/validate-scope-evolution-watches-v1.2.mjs'
+      - '.github/workflows/kidults-scope-evolution-watches-v1.2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evolve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile versioned v1.2 matrix and migrated anchors
+        run: node scripts/kidults/scope/compile-scope-evolution-watches-v1.2.mjs coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json coordination/kidults/scope-data/scope-evolution-watches-v1.2.json scope-evolution-v1.2-out
+      - name: Validate Track B migration invariants
+        run: node scripts/kidults/scope/validate-scope-evolution-watches-v1.2.mjs scope-evolution-v1.2-out
+      - name: Upload immutable v1.2 migration artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-scope-evolution-watches-v1.2
+          path: scope-evolution-v1.2-out/
+          if-no-files-found: error
+          retention-days: 90
