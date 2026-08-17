@@ -1,0 +1,179 @@
+{
+  "id": "global-high-trust-source-sufficiency-contract-v1",
+  "record_type": "global_source_sufficiency_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T16:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "governing_change": {
+    "fixed_high_trust_source_target": null,
+    "previous_rough_10000_figure": "REMOVED_AS_GOVERNING_TARGET",
+    "reason": "The required Source quantity must be derived from representative-object coverage, Source-role depth, observed attrition, diversity, independence, concentration and resilience rather than fixed in advance.",
+    "historical_records": "PRESERVED_BUT_SUPERSEDED_FOR_CURRENT_EXECUTION"
+  },
+  "source_target_policy": "ADAPTIVE_OUTCOME_DERIVED_NO_FIXED_CAP",
+  "base_operating_universe": {
+    "core_domains": 8,
+    "collection_scopes": 32,
+    "representative_object_floor_per_core_domain": 1000,
+    "representative_object_floor_total": 8000,
+    "object_floor_is_minimum_not_cap": true,
+    "core_domains_are_provider_facing_compatibility_interfaces": true,
+    "core_domains_are_not_permanent_vertical_quotas": true
+  },
+  "mandatory_source_roles": [
+    "PRIMARY_AUTHORITY",
+    "CATALOG_REFERENCE",
+    "LISTING_SUPPLY",
+    "SOLD_TRANSACTION",
+    "AUTHENTICATION_CONDITION",
+    "PROVENANCE_HISTORY",
+    "CULTURE_ATTENTION"
+  ],
+  "preferred_source_roles": [
+    "AUCTION_PRIVATE_SALE",
+    "MACRO_CONTEXT",
+    "INDEPENDENT_VERIFICATION"
+  ],
+  "canonical_counting_units": {
+    "raw_url": "DISCOVERY_SIGNAL_ONLY",
+    "normalized_endpoint": "CHANNEL_CANDIDATE",
+    "source_channel": "VERIFIED_ENDPOINT_WITH_OWNER_AND_LINEAGE",
+    "independent_source_family": "PRIMARY_SUFFICIENCY_UNIT",
+    "active_evidence_source": "RIGHTS_AND_TECHNICALLY_ADMISSIBLE_SOURCE_CONTRIBUTING_TO_POC",
+    "same_owner_same_underlying_dataset": "ONE_FAMILY_NOT_MULTIPLE_INDEPENDENT_SOURCES",
+    "provider_alias_or_regional_mirror": "NO_INDEPENDENCE_INFLATION"
+  },
+  "adaptive_calculation_model": {
+    "primary_unit": "INDEPENDENT_SOURCE_FAMILY_PER_SCOPE_ROLE_LANE",
+    "per_lane_formula": "CEIL((REPRESENTATIVE_OBJECTS * ROLE_COVERAGE_REQUIREMENT / EFFECTIVE_OBJECT_ROLE_COVERAGE_PER_ACTIVE_FAMILY) / COMBINED_SURVIVAL_RATE * DIVERSITY_RESERVE * CONTINUITY_RESERVE * CONCENTRATION_RESERVE)",
+    "combined_survival_rate": "TRUST_SURVIVAL * RIGHTS_SURVIVAL * TECHNICAL_SURVIVAL * FRESHNESS_SURVIVAL * CONTINUITY_SURVIVAL",
+    "required_inputs": [
+      "representative_objects_by_scope",
+      "role_coverage_requirement_by_scope_role",
+      "effective_object_role_coverage_per_active_family",
+      "trust_qualification_survival_rate",
+      "rights_and_access_survival_rate",
+      "technical_access_survival_rate",
+      "freshness_survival_rate",
+      "continuity_survival_rate",
+      "regional_and_language_diversity_reserve",
+      "owner_and_provider_concentration_reserve",
+      "channels_per_independent_family"
+    ],
+    "missing_parameter_policy": "NOT_MEASURED_AND_TRIGGER_AUTONOMOUS_CALIBRATION",
+    "source_target_output": "CALCULATED_RANGE_WITH_CONFIDENCE_INTERVAL_NOT_SINGLE_UNSUPPORTED_NUMBER",
+    "recalculation_triggers": [
+      "NEW_PROVIDER_CONNECTED",
+      "SOURCE_ATTRITION_RATE_CHANGED",
+      "CATEGORY_OR_SCOPE_EXPANDED",
+      "REPRESENTATIVE_OBJECT_UNIVERSE_CHANGED",
+      "REGION_OR_LANGUAGE_GAP_DETECTED",
+      "OWNER_CONCENTRATION_THRESHOLD_BREACHED",
+      "SOURCE_REMOVAL_TEST_FAILED",
+      "TRUST_DECAY_DETECTED"
+    ]
+  },
+  "minimum_outcome_gates": {
+    "core_domain_coverage": "8_OF_8",
+    "collection_scope_coverage": "32_OF_32",
+    "mandatory_scope_role_lane_coverage": "224_OF_224",
+    "critical_assertion_independent_family_floor": 3,
+    "critical_scope_role_lane_independent_family_floor": 5,
+    "global_macro_regions_minimum": 6,
+    "countries_or_jurisdictions_minimum": 25,
+    "languages_minimum": 12,
+    "single_owner_concentration_maximum": 0.05,
+    "single_provider_family_concentration_maximum": 0.10,
+    "rights_and_access_state_explicit": 1.0,
+    "owner_and_lineage_identity_coverage": 1.0,
+    "unknown_promoted_as_trusted": 0,
+    "duplicate_owner_lineage_inflation": 0,
+    "source_removal_test": "PASS_OR_EXPLICITLY_BOUNDED",
+    "bias_and_concentration_report": "PASS_OR_EXPLICITLY_BOUNDED",
+    "track_b_top50_precision_minimum": 0.95,
+    "track_b_top200_precision_minimum": 0.90
+  },
+  "autonomous_calibration_wave": {
+    "wave_id": "ASI-SUFFICIENCY-CALIBRATION-WAVE-001",
+    "purpose": "Measure real lane-level yield, attrition, coverage and diversity before setting the Global Market PoC Source quantity.",
+    "scope_role_lanes": 224,
+    "initial_candidate_assessments_per_lane": 20,
+    "initial_candidate_assessment_total": 4480,
+    "sequential_sampling": true,
+    "lane_extension_rule": "CONTINUE_UNTIL_SURVIVAL_AND_EFFECTIVE_COVERAGE_CONFIDENCE_IS_ACTIONABLE_OR_LANE_MAXIMUM_IS_REACHED",
+    "initial_lane_maximum": 50,
+    "high_risk_or_low_yield_lane_maximum": 100,
+    "calibration_outputs": [
+      "lane-level-trust-survival-rate",
+      "lane-level-rights-survival-rate",
+      "lane-level-technical-survival-rate",
+      "lane-level-effective-object-role-coverage",
+      "lane-level-owner-concentration",
+      "lane-level-region-language-coverage",
+      "lane-level-replacement-depth",
+      "calculated-global-source-sufficiency-range"
+    ],
+    "broad_generic_discovery_reopened": false,
+    "targeted_official_and_specialist_discovery": true
+  },
+  "autonomous_source_intelligence_loop": [
+    "DECISION_AND_VALUE_GAP_DETECTION",
+    "SCOPE_ROLE_REGION_LANGUAGE_GAP_DETECTION",
+    "TARGETED_GLOBAL_SOURCE_DISCOVERY",
+    "ENDPOINT_OWNER_AND_LINEAGE_RESOLUTION",
+    "SCOPE_AND_SOURCE_ROLE_CLASSIFICATION",
+    "AUTHORITY_RELEVANCE_UTILITY_SCORING",
+    "RIGHTS_ACCESS_RISK_AND_COST_CLASSIFICATION",
+    "DIVERSITY_AND_CONCENTRATION_CONTROL",
+    "HIGH_TRUST_PROMOTION_OR_HOLD_OR_REJECT",
+    "ACTIVE_EVIDENCE_CONTRIBUTION_MEASUREMENT",
+    "TRUST_DECAY_AND_SOURCE_REMOVAL_MONITORING",
+    "AUTONOMOUS_REPLACEMENT_AND_REPLENISHMENT",
+    "SUFFICIENCY_TARGET_RECALCULATION"
+  ],
+  "parallel_execution_lanes": {
+    "lane_a_global_source_sufficiency": "ACTIVE",
+    "lane_b_track_b_precision_calibration": "ACTIVE",
+    "lane_c_rights_access_and_adapter_readiness": "ACTIVE",
+    "lane_d_digitalocean_dev_staging_runtime": "ACTIVE",
+    "lane_dependency_policy": "PARALLEL_UNLESS_EXPLICIT_GATE_REQUIRES_HANDOFF"
+  },
+  "global_market_poc_admission": {
+    "fixed_source_count_required": false,
+    "admission_basis": "OUTCOME_SUFFICIENCY_AND_EMPIRICALLY_DERIVED_SOURCE_DEPTH",
+    "required": [
+      "REPRESENTATIVE_OBJECT_FLOORS_MET",
+      "ALL_SCOPE_ROLE_LANES_COVERED",
+      "INDEPENDENT_FAMILY_DEPTH_MET_PER_CRITICAL_LANE",
+      "GLOBAL_REGION_LANGUAGE_AND_JURISDICTION_DIVERSITY_MET",
+      "OWNER_AND_PROVIDER_CONCENTRATION_WITHIN_LIMITS",
+      "OBSERVED_ATTRITION_RESERVE_SUFFICIENT",
+      "RIGHTS_AND_ACCESS_STATES_EXPLICIT",
+      "SOURCE_REMOVAL_AND_REPLACEMENT_RESILIENCE_PASS",
+      "TRACK_B_PRECISION_GATES_PASS",
+      "REPRESENTATIVE_ACQUISITION_PLAN_PASS",
+      "DIGITALOCEAN_DEV_STAGING_CAPACITY_PASS"
+    ],
+    "label_before_gate": "ENGINEERING_GOVERNANCE_PRECISION_OR_RUNTIME_POC",
+    "label_after_gate": "GLOBAL_MARKET_INTELLIGENCE_POC"
+  },
+  "boundaries": {
+    "raw_endpoint_count_is_value": false,
+    "fixed_rough_number_is_governing_target": false,
+    "trust_qualified_equals_rights_cleared": false,
+    "rights_cleared_equals_adapter_ready": false,
+    "adapter_ready_equals_acquisition_authorized": false,
+    "provider_id_equals_canonical_id": false,
+    "source_to_portal_direct_path": false,
+    "source_to_index_direct_path": false,
+    "candidate_r2": "BLOCKED_UNTIL_ADMISSION_GATES_PASS",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
