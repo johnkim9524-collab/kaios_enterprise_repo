@@ -1,4 +1,4 @@
-name: KIDULTS Track B Calibration Blindness v2.2
+name: KIDULTS Track B Calibration Blindness v2.3
 
 on:
   pull_request:
@@ -51,7 +51,7 @@ jobs:
           gh run download 31986434921 --repo "johnkim9524-collab/kaios_enterprise_repo" --name kidults-source-precision-ranking-v2-final --dir artifacts/input/source-precision-ranking-v2-final
           gh run download 31990288099 --repo "johnkim9524-collab/kaios_enterprise_repo" --name kidults-targeted-high-authority-source-expansion-v1-fixed --dir artifacts/input/targeted-high-authority-source-expansion-v1-fixed
 
-      - name: Build evidence-only blindness-hardened calibration package
+      - name: Build blindness-hardened calibration package
         run: |
           node scripts/kidults/source-intelligence/build-track-b-calibration-readiness-v2-blind.mjs \
             --precision-input artifacts/input/source-relevance-precision-v1 \
@@ -83,7 +83,7 @@ jobs:
             cmp "artifacts/agci-os/track-b-calibration-readiness-v2-blind/$file" "/tmp/track-b-calibration-blind-1/$file"
           done
 
-      - name: Validate evidence-only blind boundary and fail-closed invariants
+      - name: Validate blind boundary and fail-closed invariants
         run: |
           node scripts/kidults/source-intelligence/validate-track-b-calibration-readiness-v2-blind.mjs artifacts/agci-os/track-b-calibration-readiness-v2-blind
 
