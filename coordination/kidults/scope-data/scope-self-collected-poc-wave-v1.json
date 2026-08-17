@@ -1,0 +1,73 @@
+{
+  "version":"1.0",
+  "status":"READY_AFTER_MATRIX_VALIDATION",
+  "objective":"Quantify what KIDULTS can collect and verify autonomously before any provider negotiation.",
+  "scope_count":32,
+  "products_per_scope":2,
+  "total_product_floor":64,
+  "selection_policy":{
+    "anchor_a":"canonical/liquid/identity-rich representative product",
+    "anchor_b":"scarcity/emerging/provenance-sensitive representative product",
+    "source":"current canonical Representative Product registry; no new product invented solely for PoC"
+  },
+  "parallel_packets":[
+    {"packet":"P1_TOYS_MODELS","scopes":["designer_toys","diecast_scale_models","vintage_character_toys","construction_mechanical_sets"]},
+    {"packet":"P2_WATCHES_JEWELRY","scopes":["mechanical_watches","vintage_digital_watches","fine_jewelry","designer_jewelry"]},
+    {"packet":"P3_AUTOMOBILES_MOBILITY","scopes":["collector_cars","modern_classics","collector_motorcycles","automotive_memorabilia"]},
+    {"packet":"P4_FASHION_ACCESSORIES","scopes":["sneakers","handbags","designer_garments","eyewear"]},
+    {"packet":"P5_DESIGN_FURNITURE","scopes":["seating","tables_storage","lighting","decorative_design_objects"]},
+    {"packet":"P6_TECHNOLOGY_CAMERAS","scopes":["cameras_lenses","hifi_audio","vintage_computing","collectible_electronics"]},
+    {"packet":"P7_GAMING_MUSIC_SCREEN","scopes":["video_games_consoles","vinyl_recorded_music","musical_instruments_artist_gear","film_tv_props"]},
+    {"packet":"P8_CARDS_COMICS_MEMORABILIA","scopes":["trading_cards","comic_books","sports_memorabilia","historical_cultural_memorabilia"]}
+  ],
+  "self_collection_order":[
+    "PRIMARY_AUTHORITY_AND_OPEN_IDENTITY",
+    "OPEN_CATALOG_REFERENCE",
+    "PUBLIC_PROVENANCE_HISTORY",
+    "OPEN_AUTHENTICATION_OR_POPULATION_WHERE_RIGHTS_ALLOW",
+    "PUBLIC_MARKET_SIGNALS",
+    "RIGHTS_CLEARED_SOLD_EVENTS_ONLY_IF_AVAILABLE"
+  ],
+  "mandatory_measurements_per_scope":[
+    "identity_field_coverage_pct",
+    "collectible_qualification_field_coverage_pct",
+    "market_cell_field_coverage_pct",
+    "evidence_class_coverage_pct",
+    "independent_source_family_count",
+    "rights_clear_field_coverage_pct",
+    "regional_coverage",
+    "language_coverage",
+    "freshness_coverage",
+    "autonomous_refresh_coverage_pct",
+    "provider_only_gap_pct",
+    "irreplaceable_output_computability"
+  ],
+  "gap_classes":[
+    "SELF_COLLECTABLE_COMPLETE",
+    "SELF_COLLECTABLE_PARTIAL",
+    "RIGHTS_LIMITED",
+    "AUTHENTICATION_PROVIDER_GAP",
+    "TRANSACTION_PROVIDER_GAP",
+    "PROVENANCE_PROVIDER_GAP",
+    "REGION_LANGUAGE_GAP",
+    "FRESHNESS_GAP",
+    "NOT_VERIFIED"
+  ],
+  "scope_exit":{
+    "products_reviewed":2,
+    "critical_identity_completeness_pct_min":95,
+    "provenance_coverage_pct":100,
+    "rights_state_coverage_pct":100,
+    "independent_source_families_min":3,
+    "explicit_provider_gap_map":true,
+    "no_provider_contact_required_for_exit":true
+  },
+  "program_exit":{
+    "scopes_complete":32,
+    "products_min":64,
+    "provider_requirement_specification_generated":true,
+    "provider_negotiation":"HOLD_UNTIL_PROGRAM_EXIT"
+  },
+  "north_star":["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"],
+  "production":"HOLD"
+}
