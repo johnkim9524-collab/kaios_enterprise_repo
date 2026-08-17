@@ -28,17 +28,34 @@ function refingerprint(value) {
 }
 
 function blindKey(record) {
-  return hashId("blind-order", `${record.endpoint_id}|${record.source_id}|${record.endpoint_url}|track-b-calibration-v2.1`);
+  return hashId("blind-order", `${record.endpoint_id}|${record.source_id}|${record.endpoint_url}|track-b-calibration-v2.3`);
 }
 
 function opaqueOriginalCaseId(record) {
   return hashId("blind-src", `${record.endpoint_id}|${record.source_id}|${record.endpoint_url}|source-calibration-v1`);
 }
 
+function sanitizeEvidenceMatch(value) {
+  if (!value || typeof value !== "object") return value;
+  const copy = structuredClone(value);
+  delete copy.score;
+  delete copy.channel_bonus;
+  if (Array.isArray(copy.token_hits)) {
+    copy.token_hits = copy.token_hits.map(hit => {
+      const sanitized = { ...hit };
+      delete sanitized.weight;
+      return sanitized;
+    });
+  }
+  return copy;
+}
+
 function hardenReviewCases(records) {
   const sanitized = records.map(record => ({
     ...record,
-    original_case_id: opaqueOriginalCaseId(record)
+    original_case_id: opaqueOriginalCaseId(record),
+    best_scope_evidence: sanitizeEvidenceMatch(record.best_scope_evidence),
+    best_source_role_evidence: sanitizeEvidenceMatch(record.best_source_role_evidence)
   }));
   sanitized.sort((a, b) => blindKey(a).localeCompare(blindKey(b)) || a.endpoint_id.localeCompare(b.endpoint_id));
   return sanitized.map((record, index) => ({
@@ -66,8 +83,8 @@ function buildBatches(records, baseBatches) {
 function buildAssessmentTemplate(records, baseTemplate) {
   return {
     ...baseTemplate,
-    version: "2.1.0",
-    status: "EMPTY_TEMPLATE_REVIEW_REQUIRED_BLINDNESS_HARDENED",
+    version: "2.3.0",
+    status: "EMPTY_TEMPLATE_REVIEW_REQUIRED_EVIDENCE_ONLY_BLINDNESS_HARDENED",
     required_records: records.length,
     completed_records: 0,
     unresolved_records: records.length,
@@ -105,8 +122,8 @@ export function buildTrackBCalibrationReadinessBlind(inputs = {}) {
   const reviewCases = hardenReviewCases(baseReview.records);
   outputs[reviewName] = refingerprint({
     ...baseReview,
-    version: "2.1.0",
-    status: "READY_FOR_400_CASE_INDEPENDENT_REVIEW_BLINDNESS_HARDENED",
+    version: "2.3.0",
+    status: "READY_FOR_400_CASE_INDEPENDENT_REVIEW_EVIDENCE_ONLY_BLINDNESS_HARDENED",
     records: reviewCases,
     numeric_score_visible_to_reviewer: false,
     provisional_bucket_visible_to_reviewer: false,
@@ -114,15 +131,18 @@ export function buildTrackBCalibrationReadinessBlind(inputs = {}) {
       original_bucket_identifiers_exposed: false,
       original_case_ids_opaque: true,
       deterministic_blind_shuffle: true,
-      reviewer_case_ids_regenerated_after_shuffle: true
+      reviewer_case_ids_regenerated_after_shuffle: true,
+      automated_match_scores_exposed: false,
+      token_weights_exposed: false,
+      channel_bonus_exposed: false
     }
   });
 
   const baseBatches = outputs[batchesName];
   outputs[batchesName] = refingerprint({
     ...baseBatches,
-    version: "2.1.0",
-    status: "EIGHT_DETERMINISTIC_BLIND_REVIEW_BATCHES_READY",
+    version: "2.3.0",
+    status: "EIGHT_DETERMINISTIC_EVIDENCE_ONLY_BLIND_REVIEW_BATCHES_READY",
     batches: buildBatches(reviewCases, baseBatches.batches)
   });
 
@@ -130,14 +150,17 @@ export function buildTrackBCalibrationReadinessBlind(inputs = {}) {
 
   const manifest = structuredClone(outputs[manifestName]);
   delete manifest.run_fingerprint;
-  manifest.version = "2.1.0";
-  manifest.status = "READINESS_FOUNDATION_PASS_BLINDNESS_HARDENED_REVIEW_AND_SOURCE_EXPANSION_ACTIVE";
+  manifest.version = "2.3.0";
+  manifest.status = "READINESS_FOUNDATION_PASS_EVIDENCE_ONLY_BLINDNESS_HARDENED_REVIEW_AND_SOURCE_EXPANSION_ACTIVE";
   manifest.outputs[reviewName] = outputs[reviewName].fingerprint;
   manifest.outputs[batchesName] = outputs[batchesName].fingerprint;
   manifest.outputs[templateName] = outputs[templateName].fingerprint;
   manifest.calibration_blindness_hardening = "PASS";
   manifest.original_bucket_identifiers_exposed = false;
   manifest.deterministic_blind_shuffle = true;
+  manifest.automated_match_scores_exposed = false;
+  manifest.token_weights_exposed = false;
+  manifest.channel_bonus_exposed = false;
   manifest.run_fingerprint = fingerprint(manifest);
   outputs[manifestName] = manifest;
   return outputs;
@@ -152,7 +175,7 @@ async function main() {
   });
   if (config.write) writeJsonDirectory(config.output, outputs);
   const manifest = outputs["run-manifest.json"];
-  console.log("KIDULTS Track B Calibration Readiness v2.1 Blindness Hardening: PASS");
+  console.log("KIDULTS Track B Calibration Readiness v2.3 Evidence-Only Blindness Hardening: PASS");
   console.log(`Calibration cases / batches: ${manifest.calibration_cases_packaged} / ${manifest.calibration_batches}`);
   console.log(`Blindness hardening: ${manifest.calibration_blindness_hardening}`);
   console.log(`Direct Top-200 ready: ${manifest.direct_top200_ready}`);
