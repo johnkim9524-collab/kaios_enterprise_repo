@@ -31,6 +31,10 @@ function sorted(values) {
   return [...values].sort();
 }
 
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 export function buildTrackBAssessmentComparabilityDiagnostic({ baseline, current } = {}) {
   requireAssessment(baseline, 'baseline');
   requireAssessment(current, 'current');
@@ -42,6 +46,21 @@ export function buildTrackBAssessmentComparabilityDiagnostic({ baseline, current
   const sampleIdentical = JSON.stringify(baselineIds) === JSON.stringify(currentIds);
   const reviewContractIdentical = (baseline.review_contract_version ?? null) === (current.review_contract_version ?? null);
   const adjudicationSemanticsIdentical = (baseline.adjudication_semantics_version ?? null) === (current.adjudication_semantics_version ?? null);
+
+  const comparisonProvenanceComplete = [
+    baseline.sample_fingerprint,
+    current.sample_fingerprint,
+    baseline.selection_method_version,
+    current.selection_method_version,
+    baseline.input_artifact_digest,
+    current.input_artifact_digest,
+  ].every(nonEmptyString);
+  const sampleFingerprintIdentical = comparisonProvenanceComplete
+    && baseline.sample_fingerprint === current.sample_fingerprint;
+  const selectionMethodIdentical = comparisonProvenanceComplete
+    && baseline.selection_method_version === current.selection_method_version;
+  const inputArtifactIdentical = comparisonProvenanceComplete
+    && baseline.input_artifact_digest === current.input_artifact_digest;
 
   const evidenceCheckMutations = [];
   for (const id of baselineIds.filter(value => currentRecords.has(value))) {
@@ -58,6 +77,13 @@ export function buildTrackBAssessmentComparabilityDiagnostic({ baseline, current
   if (!sampleIdentical) reasons.push('REVIEW_SAMPLE_CHANGED');
   if (!reviewContractIdentical) reasons.push('REVIEW_CONTRACT_CHANGED');
   if (!adjudicationSemanticsIdentical) reasons.push('ADJUDICATION_SEMANTICS_CHANGED');
+  if (!comparisonProvenanceComplete) {
+    reasons.push('COMPARISON_PROVENANCE_MISSING');
+  } else {
+    if (!sampleFingerprintIdentical) reasons.push('SAMPLE_FINGERPRINT_CHANGED');
+    if (!selectionMethodIdentical) reasons.push('SELECTION_METHOD_CHANGED');
+    if (!inputArtifactIdentical) reasons.push('INPUT_ARTIFACT_CHANGED');
+  }
   if (evidenceCheckMutations.length > 0) reasons.push('EVIDENCE_CHECKS_MUTATED_BETWEEN_ASSESSMENTS');
 
   const baselinePrecision = finiteMetric(baseline.top50_precision);
@@ -74,6 +100,10 @@ export function buildTrackBAssessmentComparabilityDiagnostic({ baseline, current
     sampleIdentical,
     reviewContractIdentical,
     adjudicationSemanticsIdentical,
+    comparisonProvenanceComplete,
+    sampleFingerprintIdentical,
+    selectionMethodIdentical,
+    inputArtifactIdentical,
     evidenceCheckMutations,
     baselinePrecision,
     currentPrecision,
