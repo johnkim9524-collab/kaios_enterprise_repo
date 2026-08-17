@@ -44,8 +44,19 @@ export function buildTrackBAssessmentComparabilityDiagnostic({ baseline, current
   const baselineIds = sorted(baselineRecords.keys());
   const currentIds = sorted(currentRecords.keys());
   const sampleIdentical = JSON.stringify(baselineIds) === JSON.stringify(currentIds);
-  const reviewContractIdentical = (baseline.review_contract_version ?? null) === (current.review_contract_version ?? null);
-  const adjudicationSemanticsIdentical = (baseline.adjudication_semantics_version ?? null) === (current.adjudication_semantics_version ?? null);
+
+  const reviewContractVersionComplete = [
+    baseline.review_contract_version,
+    current.review_contract_version,
+  ].every(nonEmptyString);
+  const adjudicationSemanticsVersionComplete = [
+    baseline.adjudication_semantics_version,
+    current.adjudication_semantics_version,
+  ].every(nonEmptyString);
+  const reviewContractIdentical = reviewContractVersionComplete
+    && baseline.review_contract_version === current.review_contract_version;
+  const adjudicationSemanticsIdentical = adjudicationSemanticsVersionComplete
+    && baseline.adjudication_semantics_version === current.adjudication_semantics_version;
 
   const comparisonProvenanceComplete = [
     baseline.sample_fingerprint,
@@ -75,8 +86,10 @@ export function buildTrackBAssessmentComparabilityDiagnostic({ baseline, current
 
   const reasons = [];
   if (!sampleIdentical) reasons.push('REVIEW_SAMPLE_CHANGED');
-  if (!reviewContractIdentical) reasons.push('REVIEW_CONTRACT_CHANGED');
-  if (!adjudicationSemanticsIdentical) reasons.push('ADJUDICATION_SEMANTICS_CHANGED');
+  if (!reviewContractVersionComplete) reasons.push('REVIEW_CONTRACT_VERSION_MISSING');
+  else if (!reviewContractIdentical) reasons.push('REVIEW_CONTRACT_CHANGED');
+  if (!adjudicationSemanticsVersionComplete) reasons.push('ADJUDICATION_SEMANTICS_VERSION_MISSING');
+  else if (!adjudicationSemanticsIdentical) reasons.push('ADJUDICATION_SEMANTICS_CHANGED');
   if (!comparisonProvenanceComplete) {
     reasons.push('COMPARISON_PROVENANCE_MISSING');
   } else {
@@ -98,7 +111,9 @@ export function buildTrackBAssessmentComparabilityDiagnostic({ baseline, current
     comparable,
     reasons,
     sampleIdentical,
+    reviewContractVersionComplete,
     reviewContractIdentical,
+    adjudicationSemanticsVersionComplete,
     adjudicationSemanticsIdentical,
     comparisonProvenanceComplete,
     sampleFingerprintIdentical,
