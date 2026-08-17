@@ -1,0 +1,122 @@
+{
+  "id": "autonomous-source-intelligence-program-v3",
+  "record_type": "source_intelligence_program_contract",
+  "version": "3.0.0",
+  "status": "ACTIVE_P0",
+  "effective_at": "2026-08-17T19:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "supersedes": {
+    "program_id": "autonomous-source-intelligence-program-v2",
+    "reason": "Adds canonical cadence, dynamic Evidence sufficiency and downstream workflow linkage while preserving the adaptive no-fixed-cap Source policy.",
+    "historical_v2_preserved": true
+  },
+  "governing_contracts": [
+    "autonomous-collection-cadence-policy-v1",
+    "global-evidence-sufficiency-policy-v1",
+    "source-sufficiency-calculation-contract-v2",
+    "global-high-trust-source-sufficiency-contract-v1",
+    "global-source-acquisition-and-asi-operating-strategy-v1",
+    "decision-operating-system-contract-v1",
+    "collection-scope-registry-v1"
+  ],
+  "program_objective": "Continuously maintain enough diverse, independent and rights-aware global Source capacity and Evidence depth to satisfy Decision DNA and Irreplaceable Value requirements under adaptive cadence.",
+  "canonical_operating_loop": [
+    "DECISION_AND_VALUE_GAP_DETECTION",
+    "EVIDENCE_SUFFICIENCY_TARGET_CALCULATION",
+    "SOURCE_SUFFICIENCY_REVERSE_CALCULATION",
+    "SCOPE_ROLE_REGION_LANGUAGE_GAP_DETECTION",
+    "TARGETED_GLOBAL_SOURCE_DISCOVERY",
+    "OWNER_LINEAGE_RESOLUTION",
+    "TRUST_RIGHTS_TECHNICAL_COST_AND_CONTINUITY_ASSESSMENT",
+    "TRACK_B_STRATIFIED_VALIDATION",
+    "BOUNDED_ADAPTER_AND_SHADOW_RUNTIME",
+    "ADAPTIVE_COLLECTION_CADENCE_ASSIGNMENT",
+    "EVIDENCE_GRAPH_AND_MARKET_GRAPH_CONTRIBUTION_MEASUREMENT",
+    "TRUST_DECAY_REMOVAL_AND_REPLACEMENT",
+    "CADENCE_AND_SUFFICIENCY_RECALCULATION"
+  ],
+  "runtime_model": {
+    "digitalocean_workers": "24X7_DEV_STAGING",
+    "priority_controller_hours": 6,
+    "daily_immutable_snapshot": true,
+    "weekly_diversity_rebalance": true,
+    "monthly_sufficiency_recalibration": true,
+    "github_primary_role": "CONTRACT_CI_AUDIT_POLICY_AND_SNAPSHOT",
+    "production": "HOLD"
+  },
+  "downstream_workflow_chain": [
+    {
+      "stage": 1,
+      "workflow": "KIDULTS Autonomous Collection Policy Integration v1",
+      "output": "CADENCE_EVIDENCE_AND_GENERATED_DRIVER_PROFILE"
+    },
+    {
+      "stage": 2,
+      "workflow": "KIDULTS Source Sufficiency Calculation v2",
+      "output": "RECALCULATED_SOURCE_FAMILY_AND_CHANNEL_RANGE"
+    },
+    {
+      "stage": 3,
+      "workflow": "ASI TARGETED GLOBAL DISCOVERY WAVES",
+      "output": "SCOPE_ROLE_REGION_LANGUAGE_CANDIDATE_UNIVERSE"
+    },
+    {
+      "stage": 4,
+      "workflow": "TRACK B CALIBRATION_AND_QUALIFICATION",
+      "output": "VALIDATED_SOURCE_AND_EVIDENCE_PRECISION"
+    },
+    {
+      "stage": 5,
+      "workflow": "RIGHTS_ACCESS_COST_AND_ADAPTER",
+      "output": "BOUNDED_ADAPTER_READY_SOURCE_SET"
+    },
+    {
+      "stage": 6,
+      "workflow": "DIGITALOCEAN DEV_STAGING RUNTIME",
+      "output": "CONTINUOUS_COLLECTION_CAPACITY_AND_COST_BASELINE"
+    },
+    {
+      "stage": 7,
+      "workflow": "EVIDENCE_AND_MARKET_GRAPH",
+      "output": "VALIDATED_EVIDENCE_AND_MARKET_OBSERVATIONS"
+    },
+    {
+      "stage": 8,
+      "workflow": "CANDIDATE_R2_AND_INDEX",
+      "output": "BLOCKED_UNTIL_ALL_GATES_PASS"
+    }
+  ],
+  "evidence_baseline": {
+    "validated_evidence_assertions_per_product": 20,
+    "market_observations_per_product": 48,
+    "critical_assertion_independent_families": 3,
+    "critical_lane_independent_families": 5,
+    "state": "PLANNING_BASELINE_EMPIRICAL_REPLACEMENT_REQUIRED"
+  },
+  "cadence_baseline": {
+    "continuous_workers": true,
+    "priority_replanning_hours": 6,
+    "immutable_snapshot_hours": 24,
+    "diversity_rebalance_days": 7,
+    "sufficiency_recalibration_days": 30,
+    "content_collection_before_gate": false
+  },
+  "boundaries": {
+    "planning_evidence_equals_actual_evidence": false,
+    "metadata_discovery_equals_content_collection": false,
+    "automated_preassessment_equals_track_b_qualification": false,
+    "trust_qualified_equals_rights_cleared": false,
+    "direct_source_to_portal": false,
+    "direct_source_to_index": false,
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
