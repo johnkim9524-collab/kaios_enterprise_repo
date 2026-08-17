@@ -1,0 +1,20 @@
+{
+  "id": "kpmo-cross-track-alignment-status-v1",
+  "version": "1.0.0",
+  "status": "ALIGNMENT_LOCK_CANDIDATE",
+  "canonical_master": 344,
+  "tracks": {
+    "TRACK_A": {"lane_issue": 345, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
+    "TRACK_B": {"lane_issue": 347, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
+    "TRACK_C": {"lane_issue": 348, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
+    "TRACK_D": {"lane_issue": 349, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
+    "TRACK_E": {"lane_issue": 349, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"}
+  },
+  "shared_semantics": "CANONICAL_ACTIVE",
+  "shared_product_model": "CANONICAL_ACTIVE",
+  "shared_source_strategy": "PRODUCT_MARKET_CELL_ASSERTION_DRIVEN",
+  "shared_north_star": ["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"],
+  "execution_rule": "ANY_TRACK_ALIGNMENT_BELOW_100_PERCENT_STOPS_NEW_IMPLEMENTATION_FOR_THAT_TRACK",
+  "legacy_board_rule": "LEGACY_BOARD_TEXT_IS_CONTEXT_ONLY_WHEN_CONFLICTING_WITH_MASTER_344_AND_LANES_345_349",
+  "production": "HOLD"
+}
