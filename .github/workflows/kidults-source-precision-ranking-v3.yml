@@ -1,0 +1,131 @@
+name: KIDULTS Source Precision Ranking v3
+
+on:
+  pull_request:
+    paths:
+      - "scripts/kidults/source-intelligence/build-source-precision-ranking-v3.mjs"
+      - "scripts/kidults/source-intelligence/validate-source-precision-ranking-v3.mjs"
+      - ".github/workflows/kidults-source-precision-ranking-v3.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: kidults-source-precision-ranking-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ranking-v3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/build-source-precision-ranking-v3.mjs
+          node --check scripts/kidults/source-intelligence/validate-source-precision-ranking-v3.mjs
+
+      - name: Download immutable precision-v1 universe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/input/source-relevance-precision-v1
+          gh run download 31983701963 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-source-relevance-precision-v1 \
+            --dir artifacts/input/source-relevance-precision-v1
+
+      - name: Download immutable Ranking v2
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/input/source-precision-ranking-v2-final
+          gh run download 31986434921 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-source-precision-ranking-v2-final \
+            --dir artifacts/input/source-precision-ranking-v2-final
+
+      - name: Download immutable Track B 400-case calibration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/input/track-b-calibration-400-v2
+          gh run download 32008239744 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-track-b-calibration-assessment-400-v2 \
+            --dir artifacts/input/track-b-calibration-400-v2
+
+      - name: Download immutable targeted high-authority expansion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/input/targeted-high-authority-source-expansion-v1-fixed
+          gh run download 31990288099 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-targeted-high-authority-source-expansion-v1-fixed \
+            --dir artifacts/input/targeted-high-authority-source-expansion-v1-fixed
+
+      - name: Build Source Precision Ranking v3
+        run: |
+          node scripts/kidults/source-intelligence/build-source-precision-ranking-v3.mjs \
+            --precision-v1 artifacts/input/source-relevance-precision-v1 \
+            --v2 artifacts/input/source-precision-ranking-v2-final \
+            --calibration artifacts/input/track-b-calibration-400-v2 \
+            --targeted artifacts/input/targeted-high-authority-source-expansion-v1-fixed \
+            --output artifacts/agci-os/source-precision-ranking-v3 \
+            --write
+
+      - name: Prove deterministic same-input same-output
+        run: |
+          for attempt in 1 2; do
+            node scripts/kidults/source-intelligence/build-source-precision-ranking-v3.mjs \
+              --precision-v1 artifacts/input/source-relevance-precision-v1 \
+              --v2 artifacts/input/source-precision-ranking-v2-final \
+              --calibration artifacts/input/track-b-calibration-400-v2 \
+              --targeted artifacts/input/targeted-high-authority-source-expansion-v1-fixed \
+              --output "/tmp/source-precision-ranking-v3-$attempt" \
+              --write
+          done
+          for file in \
+            source-precision-ranking-v3.json \
+            source-precision-v3-candidate-buffer.json \
+            direct-top200-candidate-queue-v3.json \
+            source-family-deduplication-v3.json \
+            scope-role-depth-v3.json \
+            calibration-feature-ledger-v3.json \
+            v3-residual-source-gap.json \
+            run-manifest.json; do
+            cmp "/tmp/source-precision-ranking-v3-1/$file" "/tmp/source-precision-ranking-v3-2/$file"
+            cmp "artifacts/agci-os/source-precision-ranking-v3/$file" "/tmp/source-precision-ranking-v3-1/$file"
+          done
+
+      - name: Validate Source Precision Ranking v3
+        run: |
+          node scripts/kidults/source-intelligence/validate-source-precision-ranking-v3.mjs \
+            artifacts/agci-os/source-precision-ranking-v3 \
+            artifacts/input/track-b-calibration-400-v2 \
+            artifacts/input/targeted-high-authority-source-expansion-v1-fixed
+
+      - name: Revalidate canonical governance
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload Ranking v3 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-source-precision-ranking-v3
+          path: artifacts/agci-os/source-precision-ranking-v3
+          if-no-files-found: error
+          retention-days: 30
