@@ -1,0 +1,88 @@
+name: KIDULTS Global Source Sufficiency v1
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/source-intelligence/global-high-trust-source-sufficiency-contract-v1.json"
+      - "coordination/kidults/data-scope/collection-scope-registry-v1.json"
+      - "scripts/kidults/source-intelligence/build-global-source-sufficiency-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-global-source-sufficiency-v1.mjs"
+      - "scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs"
+      - ".github/workflows/kidults-global-source-sufficiency-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-global-source-sufficiency-v1
+  cancel-in-progress: true
+
+jobs:
+  sufficiency:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/build-global-source-sufficiency-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-global-source-sufficiency-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs
+
+      - name: Build adaptive Global Source sufficiency foundation
+        run: |
+          node scripts/kidults/source-intelligence/build-global-source-sufficiency-v1.mjs \
+            --output artifacts/agci-os/global-source-sufficiency-v1 \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          node scripts/kidults/source-intelligence/build-global-source-sufficiency-v1.mjs \
+            --output /tmp/global-source-sufficiency-v1-1 \
+            --write
+          node scripts/kidults/source-intelligence/build-global-source-sufficiency-v1.mjs \
+            --output /tmp/global-source-sufficiency-v1-2 \
+            --write
+          for file in \
+            adaptive-global-source-sufficiency-plan-v1.json \
+            asi-sufficiency-calibration-wave-001-work-queue.json \
+            source-sufficiency-parameter-register-v1.json \
+            global-source-sufficiency-gap-matrix-v1.json \
+            global-market-poc-admission-gate-v2.json \
+            run-manifest.json; do
+            cmp "/tmp/global-source-sufficiency-v1-1/$file" "/tmp/global-source-sufficiency-v1-2/$file"
+            cmp "artifacts/agci-os/global-source-sufficiency-v1/$file" "/tmp/global-source-sufficiency-v1-1/$file"
+          done
+
+      - name: Validate adaptive Source sufficiency and fail-closed boundaries
+        run: |
+          node scripts/kidults/source-intelligence/validate-global-source-sufficiency-v1.mjs \
+            artifacts/agci-os/global-source-sufficiency-v1
+
+      - name: Revalidate DOS and AGCI-OS governance
+        run: |
+          node scripts/kidults/dos/build-dos-v1.mjs --output /tmp/dos-v1 --write
+          node scripts/kidults/dos/validate-dos-v1.mjs /tmp/dos-v1
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload adaptive Source sufficiency evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-global-source-sufficiency-v1
+          path: artifacts/agci-os/global-source-sufficiency-v1
+          if-no-files-found: error
+          retention-days: 30
