@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chmodSync, existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -15,6 +15,7 @@ function makeHarness(mode) {
   const outputPath = path.join(dir, 'artifact.zip');
   const ghPath = path.join(binDir, 'gh');
 
+  mkdirSync(binDir, { recursive: true });
   writeFileSync(counterPath, '0\n');
   writeFileSync(ghPath, `#!/usr/bin/env bash\nset -u\ncount=$(cat "$FAKE_GH_COUNTER")\ncount=$((count + 1))\necho "$count" > "$FAKE_GH_COUNTER"\ncase "$FAKE_GH_MODE" in\n  success) printf 'ZIPDATA' ;;\n  transient-then-success)\n    if [[ "$count" -lt 3 ]]; then echo 'No server available (HTTP 503)' >&2; exit 1; fi\n    printf 'ZIPDATA'\n    ;;\n  not-found) echo 'artifact missing (HTTP 404)' >&2; exit 1 ;;\n  always-503) echo 'temporary outage (HTTP 503)' >&2; exit 1 ;;\n  empty-success) exit 0 ;;\n  *) echo 'unexpected fake mode' >&2; exit 2 ;;\nesac\n`);
   chmodSync(ghPath, 0o755);
