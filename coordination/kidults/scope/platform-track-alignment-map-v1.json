@@ -1,0 +1,74 @@
+{
+  "contract": "kidults-platform-track-alignment",
+  "version": "1.0.0",
+  "status": "CANONICAL_CANDIDATE",
+  "canonical_scope_baseline": 32,
+  "scope_baseline_is_permanent": false,
+  "north_star": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
+  "shared_chain": [
+    "KIDULTS_MARKET_LENS",
+    "COLLECTIBLES_UNIVERSE",
+    "GLOBAL_COMMON_CORE",
+    "MARKET_ARCHETYPE",
+    "CANONICAL_COLLECTION_SCOPE",
+    "REPRESENTATIVE_PRODUCT",
+    "MARKET_CELL",
+    "ASSERTION",
+    "EVIDENCE",
+    "SOURCE",
+    "CANONICAL_EVIDENCE_MARKET_GRAPH",
+    "TRACK_B",
+    "PROJECTION",
+    "PORTAL_EOS_API"
+  ],
+  "separation_rules": {
+    "canonical_scope_equals_portal_category": false,
+    "canonical_scope_equals_dynamic_vertical": false,
+    "customer_signal_equals_market_truth": false,
+    "provider_equals_business_truth": false
+  },
+  "tracks": {
+    "A": {
+      "owns": ["scope_data_requirement_refinement", "self_collected_poc", "evidence_admission", "canonical_identity", "evidence_graph", "market_graph"],
+      "must_not": ["source_first_design", "self_approve_rankability", "promote_not_verified"]
+    },
+    "B": {
+      "owns": ["scope_sufficiency_validation", "collectible_validation", "representative_bias_validation", "market_cell_validation", "evidence_sufficiency", "source_independence", "scope_drift_validation", "index_eligibility"],
+      "must_not": ["consume_portal_as_truth", "mutate_track_a_snapshot"]
+    },
+    "C": {
+      "owns": ["projection_consumption", "dynamic_vertical_ux", "customer_decision_signals", "evidence_confidence_limitation_ux"],
+      "must_not": ["create_canonical_scope", "calculate_market_truth", "qualify_product", "rank_from_raw_provider_data"]
+    },
+    "D": {
+      "owns": ["runtime", "observability", "capacity", "cost", "backup_restore", "rollback", "audit"],
+      "capacity_basis": "PRODUCT_X_MARKET_CELL_X_EVIDENCE_DEMAND_X_REFRESH",
+      "production": "HOLD_UNTIL_G5"
+    },
+    "E": {
+      "owns": ["canonical_lifecycle_projection", "scope_drift_projection", "decision_queue", "blocker_projection", "governance_event_projection"],
+      "must_not": ["create_market_truth", "create_registry_truth"]
+    }
+  },
+  "scope_evolution": {
+    "path": ["SIGNAL", "DYNAMIC_VERTICAL", "EVIDENCE_ACCUMULATION", "SCOPE_CANDIDATE", "TRACK_B", "KPMO", "NEW_CANONICAL_SCOPE_VERSION"],
+    "direct_autonomous_promotion": false,
+    "rewrite_historical_observations": false
+  },
+  "provider_resume_conditions": [
+    "SCOPE_REQUIREMENTS_32_OF_32_REFINED",
+    "SELF_COLLECTED_POC_AVAILABLE",
+    "EXACT_GAPS_QUANTIFIED",
+    "PROVIDER_REQUIREMENT_SPEC_FROZEN"
+  ],
+  "fail_closed": [
+    "NO_MISSING_TO_ZERO",
+    "NO_LISTING_TO_SOLD",
+    "NO_PROVIDER_ID_TO_CANONICAL_ID",
+    "NO_UNKNOWN_RIGHTS_TO_PASS",
+    "NO_SOURCE_COUNT_TO_QUALITY_CLAIM",
+    "NO_PORTAL_SIDE_QUALIFICATION",
+    "NO_HISTORY_OVERWRITE",
+    "NO_PRODUCTION_WITHOUT_G5"
+  ]
+}
