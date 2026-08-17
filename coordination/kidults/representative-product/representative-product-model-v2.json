@@ -1,0 +1,131 @@
+{
+  "id": "representative-product-model-v2",
+  "record_type": "representative_product_model_contract",
+  "version": "2.0.0",
+  "status": "PROPOSED_CANONICAL",
+  "effective_at": "2026-08-17T20:16:00+09:00",
+  "production": "HOLD",
+  "governing_principle": "REPRESENTATIVENESS_PRECEDES_SOURCE_AVAILABILITY",
+  "definition": "A Representative Product is a canonical named market anchor that improves a defined customer decision and contributes non-redundant coverage to a Representative Product Set. It is neither an individual physical object nor a Portal presentation asset.",
+  "hierarchy": [
+    "CORE_DOMAIN",
+    "COLLECTION_SCOPE",
+    "REPRESENTATIVE_PRODUCT_FAMILY",
+    "NAMED_REPRESENTATIVE_PRODUCT_ANCHOR",
+    "REPRESENTATIVE_MARKET_CELL",
+    "PHYSICAL_OBJECT_OR_MARKET_EVENT"
+  ],
+  "unit_definitions": {
+    "representative_product_family": {
+      "definition": "A stable collector/economic family of closely comparable or substitutable products, narrower than a brand/category and broader than one exact physical object.",
+      "must_define": [
+        "family_id",
+        "core_domain_id",
+        "collection_scope_id",
+        "family_name",
+        "identity_boundary",
+        "included_generations_or_series",
+        "excluded_generations_or_series",
+        "substitution_logic",
+        "primary_customer_decisions"
+      ]
+    },
+    "named_representative_product_anchor": {
+      "definition": "A named model, generation, edition or series used as the canonical Evidence and market-comparison anchor.",
+      "must_define": [
+        "representative_product_id",
+        "family_id",
+        "canonical_name",
+        "maker_brand_creator",
+        "model_generation_edition_series",
+        "production_window",
+        "canonical_identity_boundary",
+        "variant_inclusion_rules",
+        "variant_exclusion_rules",
+        "primary_geographies",
+        "value_band_profile",
+        "liquidity_regime",
+        "scarcity_regime",
+        "condition_grade_dimensions",
+        "authentication_risk",
+        "provenance_sensitivity",
+        "coverage_roles",
+        "decision_value_links",
+        "market_cell_policy_id",
+        "evidence_demand_profile_id",
+        "state"
+      ],
+      "not_allowed_as_anchor": [
+        "GENERIC_CATEGORY_ONLY",
+        "BRAND_ONLY",
+        "ONE_SERIAL_NUMBER_PHYSICAL_OBJECT",
+        "ONE_LISTING_OR_ONE_AUCTION_LOT",
+        "PORTAL_HERO_IMAGE_SELECTION",
+        "SOURCE_AVAILABLE_THEREFORE_REPRESENTATIVE"
+      ]
+    },
+    "physical_object": {
+      "definition": "A specific real-world specimen with object-level identity. It may populate Evidence and Market Cells but does not inherit Representative status from observation alone."
+    }
+  },
+  "anchor_eligibility_gates": [
+    "DECISION_RELEVANCE_PASS",
+    "CANONICAL_IDENTITY_RESOLVABLE",
+    "STABLE_PRODUCT_BOUNDARY",
+    "MATERIAL_MARKET_OR_COLLECTOR_RELEVANCE",
+    "NON_REDUNDANT_COVERAGE_CONTRIBUTION",
+    "PRODUCT_FAMILY_MAPPING_PASS",
+    "COLLECTION_SCOPE_MAPPING_PASS",
+    "TRACK_C_FRAMING_SEPARATED_FROM_CANONICAL_TRUTH"
+  ],
+  "coverage_roles": [
+    "CANONICAL_HERITAGE_BENCHMARK",
+    "LIQUIDITY_PRICE_DISCOVERY_BENCHMARK",
+    "SCARCITY_PREMIUM_BENCHMARK",
+    "EMERGING_CULTURAL_MOMENTUM_BENCHMARK",
+    "ACCESSIBLE_BREADTH_OR_REGIONAL_BENCHMARK"
+  ],
+  "representativeness_dimensions": [
+    "CANON_HERITAGE",
+    "LIQUIDITY_PRICE_DISCOVERY",
+    "SCARCITY_PREMIUM",
+    "CULTURAL_ATTENTION",
+    "ACCESSIBILITY_BREADTH",
+    "REGIONAL_DIVERSITY",
+    "MAKER_BRAND_DIVERSITY",
+    "ERA_GENERATION_DIVERSITY",
+    "VALUE_BAND_DIVERSITY",
+    "CONDITION_GRADE_SENSITIVITY",
+    "AUTHENTICATION_PROVENANCE_RISK",
+    "MARKET_CHANNEL_DIVERSITY"
+  ],
+  "lifecycle": [
+    "PROPOSED",
+    "CANONICAL_IDENTITY_CONFIRMED",
+    "COVERAGE_ROLE_ASSIGNED",
+    "MARKET_CELLS_DEFINED",
+    "EVIDENCE_TARGETED",
+    "EVIDENCE_SUFFICIENT",
+    "TRACK_B_REPRESENTATIVENESS_APPROVED",
+    "ACTIVE",
+    "HOLD",
+    "REPLACED",
+    "ARCHIVED"
+  ],
+  "source_boundary": {
+    "source_availability_can_nominate": false,
+    "source_availability_can_define_representativeness": false,
+    "source_demand_is_derived_after_product_definition": true
+  },
+  "experience_boundary": {
+    "track_c_can_nominate": true,
+    "track_c_can_define_canonical_identity": false,
+    "portal_visual_asset_is_product_truth": false,
+    "portal_direct_anchor_to_index": false
+  },
+  "activation_rule": "No named anchor enters Index calculation, public intelligence or Production solely because it appears in the bootstrap registry.",
+  "immutability": {
+    "activated_version_overwrite": false,
+    "replacement_requires_new_version_or_state_transition": true
+  }
+}
