@@ -1,0 +1,17 @@
+name: KIDULTS External Capability Evaluation Wave 1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/provider/external-capability-evaluation-wave1.json'
+      - 'scripts/kidults/provider/validate-external-capability-evaluation-wave1.mjs'
+      - '.github/workflows/kidults-external-capability-evaluation-wave1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate external capability evaluation
+        run: node scripts/kidults/provider/validate-external-capability-evaluation-wave1.mjs
