@@ -85,7 +85,8 @@ jobs:
           for batch in 02 03 04 05 06 07 08; do
             node scripts/kidults/source-intelligence/validate-track-b-calibration-batch-assessment-v2.mjs \
               artifacts/agci-os/track-b-calibration-400-v2 \
-              "track-b-calibration-assessment-batch-${batch}-v2.json"
+              "track-b-calibration-assessment-batch-${batch}-v2.json" \
+              --assessment-only
           done
 
       - name: Validate 400-case aggregate
