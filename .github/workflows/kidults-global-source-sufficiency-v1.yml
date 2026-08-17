@@ -6,9 +6,12 @@ on:
       - "feat/kidults-phase2-content-data-provider-foundation"
     paths:
       - "coordination/kidults/source-intelligence/global-high-trust-source-sufficiency-contract-v1.json"
+      - "coordination/kidults/source-intelligence/global-source-acquisition-and-asi-operating-strategy-v1.json"
+      - "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v2.json"
       - "coordination/kidults/data-scope/collection-scope-registry-v1.json"
       - "scripts/kidults/source-intelligence/build-global-source-sufficiency-v1.mjs"
       - "scripts/kidults/source-intelligence/validate-global-source-sufficiency-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-global-source-acquisition-strategy-v1.mjs"
       - "scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs"
       - ".github/workflows/kidults-global-source-sufficiency-v1.yml"
   workflow_dispatch:
@@ -38,7 +41,12 @@ jobs:
         run: |
           node --check scripts/kidults/source-intelligence/build-global-source-sufficiency-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-global-source-sufficiency-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-global-source-acquisition-strategy-v1.mjs
           node --check scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs
+
+      - name: Validate global category-aligned Source and ASI strategy
+        run: |
+          node scripts/kidults/source-intelligence/validate-global-source-acquisition-strategy-v1.mjs
 
       - name: Build adaptive Global Source sufficiency foundation
         run: |
