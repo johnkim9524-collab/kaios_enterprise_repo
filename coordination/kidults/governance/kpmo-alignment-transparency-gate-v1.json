@@ -1,0 +1,110 @@
+{
+  "id": "kpmo-alignment-transparency-gate-v1",
+  "version": "1.0.0",
+  "status": "CANONICAL_CANDIDATE",
+  "applies_to": ["KPMO","TRACK_A","TRACK_B","TRACK_C","TRACK_D","TRACK_E"],
+  "canonical_value_chain": [
+    "KIDULTS_MARKET_LENS",
+    "COLLECTIBLES_UNIVERSE_ADMISSION",
+    "REPRESENTATIVE_PRODUCT_FAMILY",
+    "NAMED_REPRESENTATIVE_PRODUCT",
+    "MARKET_CELL",
+    "ASSERTION",
+    "EVIDENCE_DEMAND",
+    "SOURCE_DEMAND",
+    "RIGHTS_ACCESS_COST",
+    "CANONICAL_IDENTITY",
+    "EVIDENCE_MARKET_MEMORY",
+    "TRACK_B_VALIDATION",
+    "INDEX_ELIGIBILITY",
+    "PROJECTION",
+    "PORTAL_EOS_API_REPORTS"
+  ],
+  "north_star": {
+    "AUTONOMOUS": "REQUIRED",
+    "GLOBAL": "REQUIRED",
+    "IRREPLACEABLE_VALUE": "REQUIRED",
+    "TRANSPARENT": "REQUIRED"
+  },
+  "alignment_rule": {
+    "required_score_percent": 100,
+    "unaligned_execution_allowed": false,
+    "unknown_alignment_state": "HOLD_ALIGNMENT_NOT_VERIFIED",
+    "regression_state": "HOLD_ALIGNMENT_REGRESSION",
+    "production": "HOLD_UNLESS_G5"
+  },
+  "required_shared_contracts": [
+    "kidults-platform-definition-v1",
+    "collectibles-universe-definition-v1",
+    "collectible-universe-admission-policy-v1",
+    "representative-product-model-v2",
+    "representative-market-cell-policy",
+    "representative-evidence-demand-policy",
+    "product-linked-source-sufficiency-v3",
+    "product-linked-targeted-asi-queue",
+    "track-b-end-to-end-validation",
+    "portal-semantic-product-consumer",
+    "product-centric-runtime-eos"
+  ],
+  "canonical_ids": [
+    "collectible_family_id",
+    "representative_product_id",
+    "market_cell_id",
+    "assertion_id",
+    "evidence_requirement_id",
+    "source_demand_id",
+    "source_family_id",
+    "evidence_id",
+    "market_event_id",
+    "snapshot_id",
+    "assessment_id",
+    "projection_id"
+  ],
+  "transparency": {
+    "principle": "Every intelligence asset, claim, score, state transition and published projection must be explainable, traceable, reproducible and limitation-aware.",
+    "required": [
+      "SOURCE_PROVENANCE",
+      "OWNER_AND_LINEAGE",
+      "RIGHTS_AND_COMMERCIAL_USE_STATE",
+      "OBSERVED_AT_AND_FRESHNESS",
+      "CANONICAL_IDENTITY_TRACEABILITY",
+      "EVIDENCE_REFERENCES",
+      "ASSERTION_TO_EVIDENCE_MAPPING",
+      "DECISION_AND_IRREPLACEABLE_VALUE_TRACEABILITY",
+      "CONFIDENCE_AND_CLASSIFICATION",
+      "METHODOLOGY_AND_VERSION",
+      "KNOWN_LIMITATIONS",
+      "CONTRADICTIONS_AND_UNRESOLVED_STATES",
+      "MISSING_NOT_COERCED_TO_ZERO",
+      "CHANGE_AND_AUDIT_HISTORY",
+      "TRACK_B_ASSESSMENT_REFERENCE_FOR_APPROVED_INTELLIGENCE"
+    ],
+    "prohibited": [
+      "BLACK_BOX_SCORE_WITHOUT_EVIDENCE",
+      "UNSOURCED_MARKET_CLAIM",
+      "HIDDEN_PROVIDER_CONCENTRATION",
+      "HIDDEN_RIGHTS_UNCERTAINTY",
+      "HIDDEN_DATA_FRESHNESS",
+      "HIDDEN_CONTRADICTION",
+      "PORTAL_SIDE_INFERENCE_OF_MARKET_TRUTH",
+      "UNKNOWN_PROMOTED_AS_VERIFIED",
+      "MISSING_TO_ZERO",
+      "RETROACTIVE_SNAPSHOT_MUTATION"
+    ]
+  },
+  "track_alignment": {
+    "TRACK_A": ["SEMANTIC_CORE","COLLECTIBLE_ADMISSION","REPRESENTATIVE_PRODUCT","MARKET_CELL","EVIDENCE_DEMAND","SOURCE_DEMAND","TRANSPARENCY_METADATA"],
+    "TRACK_B": ["IMMUTABLE_INPUTS_ONLY","INDEPENDENT_VALIDATION","TRANSPARENCY_COMPLETENESS","REPRODUCIBILITY","BIAS_AND_CONCENTRATION"],
+    "TRACK_C": ["PROJECTION_ONLY","NO_LOCAL_MARKET_TRUTH","VISIBLE_PROVENANCE_CONFIDENCE_FRESHNESS_LIMITATION","SEMANTIC_ALIGNMENT"],
+    "TRACK_D": ["PRODUCT_CENTRIC_WORKLOAD","AUDITABILITY","VERSIONED_CONFIG","READ_ONLY_UNTIL_AUTHORIZED","RUNTIME_TRANSPARENCY"],
+    "TRACK_E": ["REGISTRY_PROJECTION_CONSUMER","VISIBLE_STATE_LINEAGE","DECISION_AUDIT","NO_DIRECT_REGISTRY_MUTATION"]
+  },
+  "exit_gate": {
+    "alignment_percent": 100,
+    "north_star_all_non_fail": true,
+    "transparency_critical_fields_percent": 100,
+    "cross_track_canonical_id_drift": 0,
+    "legacy_authority_conflicts": 0,
+    "production": "HOLD"
+  }
+}
