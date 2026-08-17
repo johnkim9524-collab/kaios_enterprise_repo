@@ -1,0 +1,97 @@
+name: KIDULTS Golden Dataset Blind Review v1
+
+on:
+  pull_request:
+    paths:
+      - "scripts/kidults/golden-dataset/build-golden-dataset-blind-review-v1.mjs"
+      - "scripts/kidults/golden-dataset/validate-golden-dataset-blind-review-v1.mjs"
+      - ".github/workflows/kidults-golden-dataset-blind-review-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: kidults-golden-dataset-blind-review-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  blind-review-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/golden-dataset/build-golden-dataset-blind-review-v1.mjs
+          node --check scripts/kidults/golden-dataset/validate-golden-dataset-blind-review-v1.mjs
+
+      - name: Download immutable five-source preflight input
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/input/candidate-r2-five-source-preflight
+          gh run download 31939060074 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-agci-os-candidate-r2-five-source-preflight \
+            --dir artifacts/input/candidate-r2-five-source-preflight
+          test -f artifacts/input/candidate-r2-five-source-preflight/agci-os/golden-dataset-v1-candidate/golden-dataset-v1-candidate.json
+          test -f artifacts/input/candidate-r2-five-source-preflight/agci-os/golden-dataset-v1-candidate/label-review-queue.json
+
+      - name: Build blind reviewer and hidden lineage packages
+        run: |
+          node scripts/kidults/golden-dataset/build-golden-dataset-blind-review-v1.mjs \
+            --input artifacts/input/candidate-r2-five-source-preflight/agci-os/golden-dataset-v1-candidate \
+            --output artifacts/agci-os/golden-dataset-blind-review-v1 \
+            --write
+
+      - name: Prove deterministic same-input same-output
+        run: |
+          for attempt in 1 2; do
+            node scripts/kidults/golden-dataset/build-golden-dataset-blind-review-v1.mjs \
+              --input artifacts/input/candidate-r2-five-source-preflight/agci-os/golden-dataset-v1-candidate \
+              --output "/tmp/golden-dataset-blind-$attempt" \
+              --write
+          done
+          for lane in reviewer lineage; do
+            for file in $(cd "/tmp/golden-dataset-blind-1/$lane" && find . -maxdepth 1 -type f -printf '%f\n' | sort); do
+              cmp "/tmp/golden-dataset-blind-1/$lane/$file" "/tmp/golden-dataset-blind-2/$lane/$file"
+              cmp "artifacts/agci-os/golden-dataset-blind-review-v1/$lane/$file" "/tmp/golden-dataset-blind-1/$lane/$file"
+            done
+          done
+
+      - name: Validate blind reviewer boundary and hidden lineage separation
+        run: |
+          node scripts/kidults/golden-dataset/validate-golden-dataset-blind-review-v1.mjs artifacts/agci-os/golden-dataset-blind-review-v1
+
+      - name: Revalidate canonical governance
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload reviewer-safe artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-golden-dataset-blind-reviewer-v1
+          path: artifacts/agci-os/golden-dataset-blind-review-v1/reviewer
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload hidden aggregation-only lineage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-golden-dataset-blind-lineage-v1
+          path: artifacts/agci-os/golden-dataset-blind-review-v1/lineage
+          if-no-files-found: error
+          retention-days: 30
