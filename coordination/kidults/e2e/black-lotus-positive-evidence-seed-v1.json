@@ -1,0 +1,100 @@
+{
+  "id": "black-lotus-positive-evidence-seed-v1",
+  "record_type": "bounded_official_reference_evidence_seed",
+  "version": "1.0.0",
+  "parent_issue": 388,
+  "representative_product_id": "rp-cards-comics-memorabilia-wizards-of-the-coast-magic-the-gathering-alpha-black-lotus",
+  "product_name": "Magic: The Gathering Alpha Black Lotus",
+  "collection_scope_id": "scope-trading-cards",
+  "observation_date": "2026-08-17",
+  "source_families": [
+    {
+      "source_family": "WIZARDS_OF_THE_COAST_OFFICIAL",
+      "owner": "Wizards of the Coast LLC",
+      "source_role_fit": ["PRIMARY_AUTHORITY", "PROVENANCE_HISTORY", "CULTURE_ATTENTION", "AUTHENTICATION_CONDITION"],
+      "rights_state": "REFERENCE_ONLY_NO_CONTENT_REPUBLICATION",
+      "acquisition_authorized": false,
+      "references": [
+        {
+          "url": "https://magic.wizards.com/en/news/announcements/official-reprint-policy",
+          "assertions": ["BLACK_LOTUS_ON_RESERVED_LIST", "PHYSICAL_REPRINT_RESTRICTION_EXISTS"]
+        },
+        {
+          "url": "https://magic.wizards.com/en/news/feature/power-nine-2003-10-15",
+          "assertions": ["BLACK_LOTUS_IS_POWER_NINE"]
+        },
+        {
+          "url": "https://magic.wizards.com/en/news/feature/top-50-artifacts-all-time-2005-02-28",
+          "assertions": ["BLACK_LOTUS_CANONICAL_ARTIFACT_BENCHMARK"]
+        },
+        {
+          "url": "https://magic.wizards.com/en/news/feature/buyer-beware-2004-04-26",
+          "assertions": ["BLACK_LOTUS_COUNTERFEIT_RISK_MATERIAL"]
+        }
+      ]
+    },
+    {
+      "source_family": "PSA_COLLECTORS",
+      "owner": "Collectors Holdings / PSA",
+      "source_role_fit": ["AUTHENTICATION_CONDITION", "SOLD_TRANSACTION", "CATALOG_REFERENCE"],
+      "rights_state": "PUBLIC_REFERENCE_ONLY_AUTOMATED_CONTENT_ACQUISITION_NOT_AUTHORIZED_BY_THIS_SEED",
+      "acquisition_authorized": false,
+      "references": [
+        {
+          "url": "https://www.psacard.com/cardfacts/non-sports-cards/1993-magic-gathering-alpha/black-lotus/576543",
+          "assertions": [
+            "PSA_IDENTIFIES_1993_ALPHA_BLACK_LOTUS",
+            "PSA_GRADE_10_POPULATION_OBSERVED_3",
+            "PSA_GRADE_10_PRICE_GUIDE_OBSERVED_425000_USD",
+            "PSA_GRADE_9_PRICE_GUIDE_OBSERVED_200000_USD",
+            "PSA_GRADE_8_PRICE_GUIDE_OBSERVED_110000_USD",
+            "PSA_AUCTION_RESULT_2021_01_28_OBSERVED_511100_USD"
+          ]
+        },
+        {
+          "url": "https://www.psacard.com/cert/40413252/psa",
+          "assertions": ["PSA_CERT_40413252_IDENTIFIES_ALPHA_BLACK_LOTUS_GEM_MT_10"]
+        },
+        {
+          "url": "https://www.psacard.com/publicapi/documentation",
+          "assertions": ["PSA_PUBLIC_CERT_VERIFICATION_API_EXISTS", "PSA_API_REQUIRES_AUTH_TOKEN"]
+        }
+      ]
+    },
+    {
+      "source_family": "MTGJSON",
+      "owner": "MTGJSON Project",
+      "source_role_fit": ["CATALOG_REFERENCE", "INDEPENDENT_VERIFICATION", "LISTING_SUPPLY"],
+      "rights_state": "VERIFIED_MIT_FOR_MTGJSON_SOFTWARE_AND_CONTENT_SUBJECT_TO_UPSTREAM_FIELD_RIGHTS",
+      "license_url": "https://www.mtgjson.com/license/",
+      "data_url": "https://mtgjson.com/api/v5/LEA.json",
+      "acquisition_authorized": true
+    },
+    {
+      "source_family": "SCRYFALL",
+      "owner": "Scryfall",
+      "source_role_fit": ["CATALOG_REFERENCE", "INDEPENDENT_VERIFICATION"],
+      "rights_state": "BOUNDED_METADATA_ONLY_NO_IMAGES_NO_ORACLE_TEXT",
+      "access_policy": "RATE_LIMITED_API_UNDER_10_REQUESTS_PER_SECOND",
+      "data_url": "https://api.scryfall.com/cards/named?exact=Black%20Lotus&set=lea",
+      "acquisition_authorized": true
+    },
+    {
+      "source_family": "WIKIDATA",
+      "owner": "Wikimedia Foundation / Wikidata community",
+      "source_role_fit": ["CATALOG_REFERENCE", "INDEPENDENT_VERIFICATION"],
+      "rights_state": "VERIFIED_CC0_STRUCTURED_DATA",
+      "data_url": "https://www.wikidata.org/wiki/Special:EntityData/Q2258369.json",
+      "acquisition_authorized": true
+    }
+  ],
+  "prohibitions": [
+    "NO_CARD_IMAGES",
+    "NO_ORACLE_TEXT_REPUBLICATION",
+    "NO_WIZARDS_PAGE_CONTENT_REPUBLICATION",
+    "NO_PSA_PAGE_BULK_EXTRACTION",
+    "NO_DISCOVERY_TO_QUALIFICATION_SHORTCUT",
+    "NO_INDEX_PASS_FROM_SINGLE_TRANSACTION_FAMILY"
+  ],
+  "production": "HOLD"
+}
