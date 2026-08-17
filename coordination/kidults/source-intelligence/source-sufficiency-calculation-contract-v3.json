@@ -1,0 +1,100 @@
+{
+  "id": "source-sufficiency-calculation-contract-v3",
+  "record_type": "source_sufficiency_calculation_contract",
+  "version": "3.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T20:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "supersedes": {
+    "contract_id": "source-sufficiency-calculation-contract-v2",
+    "reason": "Source demand must be reverse-calculated from explicit named Representative Products and v2 product-level Evidence targets, while planning-floor and executable-qualified demand remain separate.",
+    "historical_v2_preserved": true
+  },
+  "governing_contracts": [
+    "representative-product-universe-contract-v1",
+    "representative-product-evidence-policy-v2",
+    "global-evidence-sufficiency-policy-v2",
+    "category-representative-product-registry-v1",
+    "representative-product-source-sufficiency-driver-v1"
+  ],
+  "primary_counting_unit": "INDEPENDENT_SOURCE_FAMILY",
+  "derived_counting_unit": "VERIFIED_SOURCE_CHANNEL",
+  "demand_planes": {
+    "full_floor_planning": "ALL_8000_MINIMUM_NAMED_REPRESENTATIVE_PRODUCTS_AT_APPROVED_EVIDENCE_DEPTH",
+    "current_named_anchor_planning": "CURRENT_160_NAMED_ANCHORS_AT_APPROVED_EVIDENCE_DEPTH",
+    "executable_qualified": "ONLY_EVIDENCE_ELIGIBLE_AND_REPRESENTATIVE_QUALIFIED_PRODUCTS",
+    "global_poc_admission": "FULL_FLOOR_AND_ALL_QUALITY_DIVERSITY_RIGHTS_RUNTIME_GATES"
+  },
+  "category_formula": {
+    "product_role_demand_units": "REPRESENTATIVE_PRODUCTS_X_EVIDENCE_ROLES_PER_PRODUCT",
+    "active_families_by_product_coverage": "CEIL(PRODUCT_ROLE_DEMAND_UNITS / EFFECTIVE_PRODUCT_ROLE_UNITS_PER_ACTIVE_FAMILY)",
+    "active_families_by_evidence_volume": "CEIL(TARGET_VALIDATED_EVIDENCE_ASSERTIONS / EFFECTIVE_VALIDATED_EVIDENCE_ASSERTIONS_PER_ACTIVE_FAMILY)",
+    "active_families_by_market_observations": "CEIL(TARGET_MARKET_OBSERVATIONS / EFFECTIVE_MARKET_OBSERVATIONS_PER_ACTIVE_FAMILY)",
+    "active_family_floor_by_role_diversity": "MANDATORY_SOURCE_ROLES_X_MINIMUM_INDEPENDENT_FAMILIES_PER_ROLE",
+    "required_active_independent_families": "MAX(PRODUCT_COVERAGE,EVIDENCE_VOLUME,MARKET_OBSERVATIONS,ROLE_DIVERSITY)",
+    "required_high_trust_independent_families": "CEIL(REQUIRED_ACTIVE_FAMILIES / SURVIVAL_RATE X DIVERSITY_RESERVE X CONTINUITY_RESERVE X CONCENTRATION_RESERVE)",
+    "required_verified_source_channels": "HIGH_TRUST_FAMILIES_X_CHANNELS_PER_FAMILY_RANGE"
+  },
+  "current_planning_parameters": {
+    "total_attrition_rate": 0.6,
+    "survival_rate": 0.4,
+    "diversity_reserve_multiplier": 1.25,
+    "continuity_reserve_multiplier": 1.0,
+    "concentration_reserve_multiplier": 1.0,
+    "channels_per_independent_family_min": 1.6,
+    "channels_per_independent_family_max": 2.0,
+    "effective_product_role_units_per_active_family": 20,
+    "effective_validated_evidence_assertions_per_active_family": 100,
+    "effective_market_observations_per_active_family": 250,
+    "mandatory_source_roles": 7,
+    "minimum_independent_families_per_role": 5,
+    "state": "PLANNING_BASELINE_REPLACE_WITH_ASI_TRACK_B_RIGHTS_AND_ACTIVE_EVIDENCE_MEASUREMENTS"
+  },
+  "recalculation_triggers": [
+    "CATEGORY_ADDED_OR_REMOVED",
+    "NAMED_REPRESENTATIVE_PRODUCT_ADDED_REMOVED_OR_REPLACED",
+    "REPRESENTATIVE_PRODUCT_STATE_CHANGED",
+    "REPRESENTATIVE_PRODUCT_FLOOR_CHANGED",
+    "PRODUCT_EVIDENCE_TARGET_CHANGED",
+    "SOURCE_PRODUCTIVITY_CHANGED",
+    "ATTRITION_CHANGED",
+    "DIVERSITY_CONTINUITY_OR_CONCENTRATION_RESERVE_CHANGED",
+    "CHANNELS_PER_FAMILY_CHANGED"
+  ],
+  "required_outputs": [
+    "source-sufficiency-calculation-v3.json",
+    "category-source-requirement-matrix-v3.json",
+    "named-product-source-linkage-v1.json",
+    "source-sufficiency-sensitivity-v3.json",
+    "global-source-sufficiency-admission-v3.json",
+    "run-manifest.json"
+  ],
+  "acceptance": {
+    "categories": 8,
+    "collection_scopes": 32,
+    "named_anchors": 160,
+    "full_floor_products": 8000,
+    "full_floor_validated_evidence_assertions": 316000,
+    "full_floor_market_observations": 912000,
+    "same_input_same_output": true,
+    "anonymous_product_demand_records": 0,
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "production": "HOLD"
+  },
+  "boundaries": {
+    "planning_source_requirement_is_qualified_source_count": false,
+    "named_anchor_source_requirement_authorizes_collection": false,
+    "executable_source_requirement_above_zero_before_product_qualification": false,
+    "trust_qualified_equals_rights_cleared": false,
+    "source_pool_promotions": 0,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
