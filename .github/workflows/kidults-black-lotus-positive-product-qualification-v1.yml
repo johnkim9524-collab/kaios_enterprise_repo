@@ -1,0 +1,74 @@
+name: KIDULTS Black Lotus Positive Product Qualification v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/e2e/black-lotus-positive-evidence-seed-v1.json'
+      - 'scripts/kidults/e2e/build-black-lotus-positive-slice-v1.mjs'
+      - 'scripts/kidults/e2e/assess-black-lotus-track-b-v1.mjs'
+      - 'scripts/kidults/e2e/build-black-lotus-projection-v1.mjs'
+      - 'scripts/kidults/e2e/validate-black-lotus-positive-slice-v1.mjs'
+      - '.github/workflows/kidults-black-lotus-positive-product-qualification-v1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build live/open + bounded-reference Product Evidence Package
+        run: node scripts/kidults/e2e/build-black-lotus-positive-slice-v1.mjs coordination/kidults/e2e/black-lotus-positive-evidence-seed-v1.json out/evidence
+      - uses: actions/upload-artifact@v4
+        with:
+          name: black-lotus-product-evidence-package-v1
+          path: out/evidence/product-evidence-package.json
+
+  track-b-assessment:
+    needs: evidence-package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/download-artifact@v4
+        with:
+          name: black-lotus-product-evidence-package-v1
+          path: input
+      - name: Independent Track B assessment
+        run: node scripts/kidults/e2e/assess-black-lotus-track-b-v1.mjs input/product-evidence-package.json out/assessment
+      - uses: actions/upload-artifact@v4
+        with:
+          name: black-lotus-track-b-assessment-v1
+          path: out/assessment/track-b-assessment.json
+
+  projection-and-validation:
+    needs: [evidence-package, track-b-assessment]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/download-artifact@v4
+        with:
+          name: black-lotus-product-evidence-package-v1
+          path: input
+      - uses: actions/download-artifact@v4
+        with:
+          name: black-lotus-track-b-assessment-v1
+          path: input
+      - name: Build Projection Registry slice
+        run: node scripts/kidults/e2e/build-black-lotus-projection-v1.mjs input/product-evidence-package.json input/track-b-assessment.json out/projection
+      - name: Validate Product PASS / Index HOLD split
+        run: node scripts/kidults/e2e/validate-black-lotus-positive-slice-v1.mjs input/product-evidence-package.json input/track-b-assessment.json out/projection/projection.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: black-lotus-positive-product-qualification-slice-v1
+          path: |
+            input/product-evidence-package.json
+            input/track-b-assessment.json
+            out/projection/projection.json
