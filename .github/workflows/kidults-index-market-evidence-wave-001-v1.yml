@@ -1,0 +1,22 @@
+name: KIDULTS Index Market Evidence Wave 001 v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/index/market-evidence-provider-rights-matrix-v1.json'
+      - 'coordination/kidults/index/index-market-observation-contract-v1.json'
+      - 'coordination/kidults/index/provider-authorization-action-queue-v1.json'
+      - 'scripts/kidults/index/validate-market-evidence-wave-001-v1.mjs'
+      - '.github/workflows/kidults-index-market-evidence-wave-001-v1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-market-evidence-wave:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate rights matrix, market contract and external authorization queue
+        run: node scripts/kidults/index/validate-market-evidence-wave-001-v1.mjs

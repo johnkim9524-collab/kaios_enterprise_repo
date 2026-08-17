@@ -1,0 +1,46 @@
+{
+  "id": "provider-authorization-action-queue-v1",
+  "version": "1.0.0",
+  "status": "CANONICAL_CANDIDATE",
+  "product_id": "rp-cards-comics-memorabilia-wizards-of-the-coast-magic-the-gathering-alpha-black-lotus",
+  "actions": [
+    {
+      "priority": 1,
+      "provider": "PSA",
+      "goal": "Confirm Public API token scope and written permission for transaction-level Auction Prices Realized fields in commercial intelligence/index use",
+      "required_external_input": ["PSA_API_TOKEN_OR_PARTNER_ACCESS", "FIELD_LEVEL_REUSE_CONFIRMATION"],
+      "allowed_after_approval": ["CERTIFICATION", "POPULATION", "AUTHORIZED_AUCTION_RESULT_FIELDS"],
+      "state": "WAITING_EXTERNAL_PROVIDER_AUTHORIZATION"
+    },
+    {
+      "priority": 2,
+      "provider": "eBay",
+      "goal": "Apply for approved partner access to Marketplace Insights sold-history capability",
+      "required_external_input": ["EBAY_DEVELOPER_ACCOUNT", "MARKETPLACE_INSIGHTS_APPROVAL", "PRODUCTION_KEYSET"],
+      "allowed_after_approval": ["AUTHORIZED_SOLD_HISTORY_FIELDS"],
+      "state": "WAITING_LIMITED_RELEASE_APPROVAL"
+    },
+    {
+      "priority": 3,
+      "provider": "Cardmarket",
+      "goal": "Obtain prior written agreement for price/sales data use in KIDULTS commercial intelligence",
+      "required_external_input": ["CARDMARKET_WRITTEN_DATA_USE_AGREEMENT", "API_CREDENTIALS"],
+      "allowed_after_approval": ["AGREEMENT_SCOPED_PUBLIC_PRICE_OR_SALES_FIELDS"],
+      "state": "WAITING_WRITTEN_AGREEMENT"
+    },
+    {
+      "priority": 4,
+      "provider": "TCGplayer",
+      "goal": "Determine whether an existing eligible Developer Key is available; do not assume new access can be obtained",
+      "required_external_input": ["EXISTING_TCGPLAYER_DEVELOPER_KEY_IF_ANY", "API_TERMS_SCOPE_REVIEW"],
+      "allowed_after_approval": ["API_SCOPED_CATALOG_AND_PRICING_FIELDS"],
+      "state": "WAITING_EXISTING_ACCESS_CHECK"
+    }
+  ],
+  "automatic_resume_rule": {
+    "minimum_authorized_transaction_families_to_start_bounded_collection": 1,
+    "minimum_independent_transaction_families_for_index_pass": 3,
+    "on_credential_binding": "RUN_DEV_BOUNDED_COLLECTION_THEN_TRACK_B",
+    "production": "HOLD"
+  }
+}

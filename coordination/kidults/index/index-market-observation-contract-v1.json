@@ -1,0 +1,47 @@
+{
+  "id": "index-market-observation-contract-v1",
+  "version": "1.0.0",
+  "status": "CANONICAL_CANDIDATE",
+  "required_fields": [
+    "market_observation_id",
+    "representative_product_id",
+    "market_cell_id",
+    "provider_family",
+    "provider_event_id",
+    "sold_at",
+    "observed_at",
+    "currency",
+    "sold_price",
+    "sale_type",
+    "condition_or_grade",
+    "region",
+    "language",
+    "rights_state",
+    "commercial_use_state",
+    "owner_lineage_state",
+    "provenance_pointer"
+  ],
+  "event_rules": {
+    "listing_is_sold": false,
+    "price_guide_is_transaction": false,
+    "provider_alias_is_independent_family": false,
+    "unknown_rights_promotable": false,
+    "missing_value_becomes_zero": false
+  },
+  "index_gate": {
+    "min_verified_sold_observations": 180,
+    "min_empirical_regions": 3,
+    "min_time_depth_months": 12,
+    "min_independent_transaction_families": 3,
+    "unresolved_rights": 0,
+    "track_b_independent_pass_required": true
+  },
+  "collector_behavior": {
+    "credentials_from_secret_manager_only": true,
+    "provider_terms_must_be_verified_before_first_write": true,
+    "retry_and_rate_limit_required": true,
+    "bitemporal_history_append_only": true,
+    "raw_quarantine_before_admission": true,
+    "production": "HOLD"
+  }
+}
