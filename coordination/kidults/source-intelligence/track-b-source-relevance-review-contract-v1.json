@@ -1,0 +1,108 @@
+{
+  "id": "track-b-source-relevance-review-contract-v1",
+  "record_type": "track_b_source_relevance_review_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T10:10:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "review_owner": "Track B / Independent Scope, Evidence & Rankability Validation",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "official_inputs": [
+    {
+      "name": "source-relevance-calibration-candidates-v1.json",
+      "artifact_id": 9273114506,
+      "required_records": 400,
+      "purpose": "Four-bucket calibration and error-analysis set."
+    },
+    {
+      "name": "provisional-top-200-review-queue-v1.json",
+      "artifact_id": 9273114506,
+      "required_records": 200,
+      "purpose": "Mandatory adjudication set for direct Top-200 precision measurement."
+    },
+    {
+      "name": "scope-and-role-lexicon-v1.json",
+      "artifact_id": 9273114506,
+      "purpose": "Versioned Scope and Source-role interpretation context."
+    },
+    {
+      "name": "source-relevance-precision-report-v1.json",
+      "artifact_id": 9273114506,
+      "purpose": "Automated preliminary state and truthful non-claim boundary."
+    }
+  ],
+  "input_boundary": "NO_OTHER_SOURCE_LIST_OR_AUTOMATED_SCORE_IS_AN_OFFICIAL_REVIEW_INPUT",
+  "review_units": {
+    "calibration_cases": 400,
+    "top_200_cases": 200,
+    "deduplicate_overlapping_endpoint_ids_before_assignment": true,
+    "all_top_200_must_receive_direct_labels": true
+  },
+  "required_case_output": [
+    "endpoint_id",
+    "review_set_membership",
+    "scope_relevance_label",
+    "scope_relevance_rationale",
+    "source_role_label",
+    "corrected_source_roles",
+    "channel_suitability_label",
+    "owner_and_lineage_label",
+    "generic_code_or_keyword_collision_label",
+    "decision_value_contribution_label",
+    "evidence_references",
+    "reviewer",
+    "reviewed_at",
+    "resolution_state"
+  ],
+  "allowed_scope_relevance_labels": [
+    "RELEVANT",
+    "NOT_RELEVANT",
+    "INSUFFICIENT_EVIDENCE_REQUIRES_ADJUDICATION"
+  ],
+  "allowed_source_role_labels": [
+    "CORRECT",
+    "PARTIALLY_CORRECT",
+    "WRONG_ROLE",
+    "NOT_APPLICABLE"
+  ],
+  "resolution_rule": "NO_CASE_MAY_REMAIN_UNRESOLVED_IN_FINAL_ASSESSMENT; INSUFFICIENT_EVIDENCE_CASES_REQUIRE SECOND REVIEW OR EXPLICIT REJECTION FROM THE QUALIFICATION POOL",
+  "required_metrics": [
+    "TOP_200_PRECISION",
+    "TOP_50_PRECISION",
+    "TOP_200_GENERIC_CODE_CONTAMINATION",
+    "SCOPE_EVIDENCE_COVERAGE",
+    "SOURCE_ROLE_EVIDENCE_COVERAGE",
+    "ROLE_CONFUSION_MATRIX",
+    "PROVIDER_CHANNEL_PRECISION",
+    "CORE_DOMAIN_PRECISION",
+    "FALSE_POSITIVE_TAXONOMY"
+  ],
+  "acceptance": {
+    "calibration_cases_reviewed": 400,
+    "top_200_cases_reviewed": 200,
+    "unresolved_cases": 0,
+    "top_200_precision_minimum": 0.9,
+    "top_50_precision_minimum": 0.95,
+    "top_200_generic_code_contamination_maximum": 0.05,
+    "scope_evidence_coverage": 1.0,
+    "source_role_evidence_coverage": 1.0,
+    "unknown_promoted_as_relevant": 0,
+    "deterministic_recalculation": true
+  },
+  "single_official_output": "source-relevance-label-assessment-v1.json",
+  "output_boundary": "NO_SOURCE_POOL_PROMOTION_OR_ACQUISITION_AUTHORIZATION_IS_EMITTED_BY_THIS ASSESSMENT",
+  "current_state": {
+    "calibration_cases_reviewed": 0,
+    "top_200_cases_reviewed": 0,
+    "approved_gold_labels": 0,
+    "empirical_precision": "NOT_MEASURED",
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
