@@ -1,0 +1,42 @@
+{
+  "id": "product-centric-runtime-eos-contract-v1",
+  "record_type": "runtime_eos_value_chain_contract",
+  "version": "1.0.0",
+  "status": "CANDIDATE_ON_CANONICAL_VALUE_CHAIN",
+  "parent_mission": 349,
+  "runtime_workload_formula": [
+    "PRODUCT_UNIVERSE",
+    "MARKET_CELLS",
+    "EVIDENCE_DEMAND",
+    "ACQUISITION_FREQUENCY",
+    "REFRESH_RETENTION_RECOVERY"
+  ],
+  "executive_lifecycle_states": [
+    "DISCOVERED_OBJECT",
+    "COLLECTIBLE_CANDIDATE",
+    "COLLECTIBLE_QUALIFIED",
+    "REPRESENTATIVE_CANDIDATE",
+    "REPRESENTATIVE_QUALIFIED",
+    "EVIDENCE_SUFFICIENT",
+    "INDEX_ELIGIBLE",
+    "PUBLISHED"
+  ],
+  "integration_chain": [
+    "LANE1_PRODUCT_REGISTRY",
+    "LANE2_EVIDENCE_SOURCE_GRAPH",
+    "LANE3_ASSESSMENT",
+    "PROJECTION_REGISTRY",
+    "PORTAL_AND_IH_EOS"
+  ],
+  "prohibited": [
+    "LEGACY_URL_COUNT_AS_AUTHORITY",
+    "TRACK_E_REGISTRY_MUTATION",
+    "PORTAL_OR_EOS_DIRECT_PROVIDER_ACCESS",
+    "MISSING_TO_ZERO",
+    "PRODUCTION_MUTATION_WITHOUT_G5"
+  ],
+  "digitalocean_mode": "READ_ONLY_DEV_STAGING_PREPARATION",
+  "rollback_target_required": true,
+  "production": "HOLD",
+  "g5": "NOT_REQUESTED"
+}
