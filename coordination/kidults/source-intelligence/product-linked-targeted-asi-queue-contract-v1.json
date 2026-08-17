@@ -1,0 +1,66 @@
+{
+  "id": "product-linked-targeted-asi-queue-contract-v1",
+  "version": "1.0.0",
+  "status": "CANDIDATE_CANONICAL",
+  "record_key": [
+    "representative_product_id",
+    "market_cell_id",
+    "assertion_id",
+    "required_source_role",
+    "demand_instance_id"
+  ],
+  "required_fields": [
+    "representative_product_id",
+    "market_cell_id",
+    "assertion_id",
+    "evidence_gap_class",
+    "required_source_role",
+    "independent_family_floor",
+    "target_regions",
+    "target_languages",
+    "rights_requirement",
+    "owner_lineage_diversity_requirement",
+    "freshness_requirement",
+    "decision_traceability",
+    "irreplaceable_value_traceability",
+    "queue_state"
+  ],
+  "queue_states": [
+    "DEMAND_COMPILED",
+    "DISCOVERY_READY",
+    "DISCOVERY_ACTIVE",
+    "CANDIDATES_FOUND",
+    "PREFLIGHT_REQUIRED",
+    "PREFLIGHT_PASS",
+    "PREFLIGHT_HOLD",
+    "EVIDENCE_ACQUISITION_ELIGIBLE",
+    "SATISFIED",
+    "REPLENISHMENT_REQUIRED",
+    "REJECTED"
+  ],
+  "priority_rule": [
+    "customer_decision_materiality",
+    "assertion_criticality",
+    "representative_market_coverage_gap",
+    "evidence_gap_severity",
+    "global_blind_spot_severity",
+    "source_concentration_risk",
+    "freshness_or_removal_risk"
+  ],
+  "fail_closed": {
+    "unknown_rights": "PREFLIGHT_HOLD",
+    "unknown_owner_lineage": "PREFLIGHT_HOLD",
+    "insufficient_independent_families": "REPLENISHMENT_REQUIRED",
+    "missing_decision_traceability": "REJECTED",
+    "missing_irreplaceable_value_traceability": "REJECTED",
+    "generic_discovery_without_demand": "PROHIBITED"
+  },
+  "global_controls": {
+    "region": "DERIVED_FROM_MARKET_CELL_AND_ASSERTION",
+    "language": "DERIVED_FROM_REGION_SOURCE_TOPOLOGY_AND_ASSERTION",
+    "single_owner_concentration": "MEASURE_AND_BOUND",
+    "single_provider_family_concentration": "MEASURE_AND_BOUND",
+    "cross_region_independence": "REQUIRED_WHERE_DECISION_MATERIAL"
+  },
+  "production": "HOLD"
+}
