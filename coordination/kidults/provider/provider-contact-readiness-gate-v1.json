@@ -1,0 +1,38 @@
+{
+  "id":"kidults-provider-contact-readiness-gate-v1",
+  "version":"1.0.0",
+  "status":"PROGRAM_OWNER_DECISION_READY",
+  "canonical_input":"main@58d8af7da193cb6d0183aa5f7be709fd7bca6b5d",
+  "contact_authorized":false,
+  "groups":{
+    "HIGH_FIT_APPLICATION_OR_LICENSE_INQUIRY":[
+      {"provider":"GIA","capability":"AUTHENTICATION_CONDITION","scopes":["fine_jewelry"],"ask":["Report Results API eligibility for intelligence platform use","commercial reuse/display rights for derived intelligence","sandbox and production key path","rate limits and pricing","revocation/retention terms"],"reason":"Direct grading/analysis report data fit"},
+      {"provider":"CLASSIC.COM","capability":"SOLD_TRANSACTION_HISTORY","scopes":["collector_cars","modern_classics"],"ask":["Licensed Bundle 3 Sales History access","transaction fields and sold/high-bid semantics","commercial derived-index rights","geographic/time-depth coverage","API pricing and bounded DEV trial"],"reason":"Licensed specialty-car sales history API"},
+      {"provider":"PSA","capability":"AUTHENTICATION_CONDITION_AND_SOLD_CONTEXT","scopes":["trading_cards"],"ask":["Public API production eligibility and scope","population/certification fields","auction prices realized fields and lineage","commercial derived-intelligence rights","rate limits/cost/retention"],"reason":"Direct card certification/population and auction context fit"}
+    ],
+    "RIGHTS_OR_BULK_ACCESS_INQUIRY":[
+      {"provider":"CGC","capability":"AUTHENTICATION_CONDITION","scopes":["comic_books","trading_cards","video_games_consoles"],"ask":["Whether official bulk/API certification verification access exists","commercial use rights for grade/certification data","population data access","rate limits/pricing","scope by collectible type"],"reason":"Strong public certification semantics but bulk rights/API not verified"},
+      {"provider":"Discogs","capability":"SOLD_TRANSACTION_HISTORY","scopes":["vinyl_recorded_music"],"ask":["License path for Restricted Marketplace sales-history data","per-field reuse and derived intelligence rights","time depth and geography","rate limits and pricing"],"reason":"Sales history exists but is Restricted Data"},
+      {"provider":"Cardmarket","capability":"SOLD_TRANSACTION_HISTORY","scopes":["trading_cards"],"ask":["Written agreement path for sales/price data use","transaction-level field availability","commercial derived intelligence rights","coverage/time depth/pricing"],"reason":"Sales-data candidate requires written agreement"},
+      {"provider":"eBay","capability":"SOLD_TRANSACTION_HISTORY","scopes":["ALL_32_SCOPE_COVERAGE_TO_BE_PROVEN"],"ask":["Eligibility for Marketplace Insights or equivalent sold-history access","business case approval requirements","marketplace/geographic coverage","transaction-level fields/time depth","commercial derived intelligence rights and retention"],"reason":"Broad sold-history capability but Marketplace Insights restricted/not open to new users"},
+      {"provider":"StockX","capability":"AUTHENTICATION_CONDITION","scopes":["sneakers","collectible_electronics","trading_cards"],"ask":["Developer access eligibility","whether authenticationDetails can be used beyond own-order context","commercial aggregated intelligence rights","coverage/rate limits/pricing"],"reason":"Authentication fields exist but account-context and reuse scope require confirmation"}
+    ],
+    "REJECT_FOR_SOLD_TRANSACTION_EVIDENCE":[
+      {"provider":"StockX Market Data","reason":"Highest Bid / Lowest Ask and pricing signals are not a sold-event corpus"},
+      {"provider":"TCGplayer Pricing API","reason":"Pricing/catalog endpoints are not transaction-level sold events"}
+    ],
+    "DISCOVERY_GAP_REMAINS":[
+      "toys_models: authentication",
+      "watches_jewelry: watches authentication + sold transaction beyond generic eBay",
+      "automobiles_mobility: motorcycles authentication/sold specialization",
+      "fashion_accessories: handbags/garments/eyewear authentication and sold specialization",
+      "design_furniture: authentication and specialized sold history",
+      "technology_cameras: cameras/hifi/vintage computing authentication and specialized sold history",
+      "gaming_music_screen: musical instruments/props authentication and specialized sold history",
+      "cards_comics_memorabilia: sports/historical memorabilia authentication and specialized sold history"
+    ]
+  },
+  "program_owner_decision":{"required":true,"allowed_decisions":["AUTHORIZE_SELECTED_CONTACTS","HOLD_ALL_CONTACTS","AUTHORIZE_APPLICATIONS_ONLY","AUTHORIZE_RIGHTS_INQUIRIES_ONLY"],"default":"HOLD_ALL_CONTACTS"},
+  "guards":{"no_contact_without_owner_decision":true,"no_contract_commitment_without_separate_approval":true,"no_credentials_in_registry":true,"no_production":true},
+  "production":"HOLD"
+}
