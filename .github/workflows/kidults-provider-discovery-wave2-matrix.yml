@@ -1,0 +1,17 @@
+name: KIDULTS Provider Discovery Wave 2 Matrix
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/provider/provider-discovery-wave2-matrix.json'
+      - 'scripts/kidults/provider/validate-provider-discovery-wave2-matrix.mjs'
+      - '.github/workflows/kidults-provider-discovery-wave2-matrix.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate provider discovery semantics and rights boundaries
+        run: node scripts/kidults/provider/validate-provider-discovery-wave2-matrix.mjs
