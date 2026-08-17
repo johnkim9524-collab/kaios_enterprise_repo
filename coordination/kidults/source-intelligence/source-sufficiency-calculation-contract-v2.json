@@ -1,0 +1,191 @@
+{
+  "id": "source-sufficiency-calculation-contract-v2",
+  "record_type": "source_sufficiency_calculation_contract",
+  "version": "2.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T15:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "governing_contract": "global-high-trust-source-sufficiency-contract-v1",
+  "purpose": "Derive the required Global Source universe from operating-category count, representative-product universe, evidence and market-observation targets, Source productivity, attrition, diversity and resilience inputs. No manually fixed global Source number is permitted.",
+  "primary_counting_unit": "INDEPENDENT_SOURCE_FAMILY",
+  "derived_counting_unit": "VERIFIED_SOURCE_CHANNEL",
+  "source_count_policy": "OUTPUT_OF_LINKED_REVERSE_CALCULATION_NOT_FIXED_INPUT",
+  "linked_drivers": [
+    {
+      "driver": "CATEGORY_COUNT",
+      "source": "PROFILE_CATEGORIES_LENGTH",
+      "downstream": [
+        "TOTAL_REPRESENTATIVE_PRODUCTS",
+        "TOTAL_PRODUCT_ROLE_DEMAND",
+        "TOTAL_EVIDENCE_TARGET",
+        "TOTAL_MARKET_OBSERVATION_TARGET",
+        "GLOBAL_INDEPENDENT_FAMILY_REQUIREMENT",
+        "GLOBAL_SOURCE_CHANNEL_RANGE"
+      ]
+    },
+    {
+      "driver": "REPRESENTATIVE_PRODUCTS_PER_CATEGORY",
+      "source": "CATEGORY_PROFILE",
+      "downstream": [
+        "PRODUCT_ROLE_DEMAND_UNITS",
+        "ACTIVE_FAMILIES_REQUIRED_BY_PRODUCT_COVERAGE",
+        "CATEGORY_SOURCE_REQUIREMENT",
+        "GLOBAL_SOURCE_REQUIREMENT"
+      ]
+    },
+    {
+      "driver": "EVIDENCE_ROLES_PER_PRODUCT",
+      "source": "CATEGORY_PROFILE",
+      "downstream": [
+        "PRODUCT_ROLE_DEMAND_UNITS",
+        "ACTIVE_FAMILIES_REQUIRED_BY_PRODUCT_COVERAGE"
+      ]
+    },
+    {
+      "driver": "TARGET_VALIDATED_EVIDENCE_ASSERTIONS",
+      "source": "CATEGORY_PROFILE",
+      "downstream": [
+        "ACTIVE_FAMILIES_REQUIRED_BY_EVIDENCE_VOLUME",
+        "CATEGORY_SOURCE_REQUIREMENT",
+        "GLOBAL_SOURCE_REQUIREMENT"
+      ]
+    },
+    {
+      "driver": "TARGET_MARKET_OBSERVATIONS",
+      "source": "CATEGORY_PROFILE",
+      "downstream": [
+        "ACTIVE_FAMILIES_REQUIRED_BY_MARKET_OBSERVATIONS",
+        "CATEGORY_SOURCE_REQUIREMENT",
+        "GLOBAL_SOURCE_REQUIREMENT"
+      ]
+    },
+    {
+      "driver": "EFFECTIVE_SOURCE_PRODUCTIVITY",
+      "source": "CATEGORY_PROFILE_OR_EMPIRICAL_ASI_MEASUREMENT",
+      "downstream": [
+        "ACTIVE_FAMILY_REQUIREMENTS"
+      ]
+    },
+    {
+      "driver": "ATTRITION_RATE",
+      "source": "GLOBAL_OR_CATEGORY_OVERRIDE",
+      "downstream": [
+        "SURVIVAL_RATE",
+        "HIGH_TRUST_INDEPENDENT_FAMILY_REQUIREMENT",
+        "DISCOVERY_CANDIDATE_REQUIREMENT"
+      ]
+    },
+    {
+      "driver": "DIVERSITY_CONTINUITY_AND_CONCENTRATION_RESERVES",
+      "source": "GLOBAL_OR_CATEGORY_OVERRIDE",
+      "downstream": [
+        "HIGH_TRUST_INDEPENDENT_FAMILY_REQUIREMENT",
+        "SOURCE_REMOVAL_RESILIENCE"
+      ]
+    },
+    {
+      "driver": "CHANNELS_PER_INDEPENDENT_FAMILY",
+      "source": "GLOBAL_PROFILE_OR_EMPIRICAL_ASI_MEASUREMENT",
+      "downstream": [
+        "VERIFIED_SOURCE_CHANNEL_RANGE"
+      ]
+    },
+    {
+      "driver": "CROSS_CATEGORY_REUSE_RATE",
+      "source": "GLOBAL_PROFILE_OR_EMPIRICAL_OWNER_LINEAGE_GRAPH",
+      "downstream": [
+        "GLOBAL_UNIQUE_FAMILY_REQUIREMENT_AFTER_DEDUPLICATION"
+      ]
+    }
+  ],
+  "category_calculation": {
+    "product_role_demand_units": "representative_products * evidence_roles_per_product * required_role_coverage_ratio",
+    "active_families_by_product_coverage": "CEIL(product_role_demand_units / effective_product_role_units_per_active_family)",
+    "active_families_by_evidence_volume": "CEIL(target_validated_evidence_assertions / effective_validated_evidence_assertions_per_active_family)",
+    "active_families_by_market_observations": "CEIL(target_market_observations / effective_market_observations_per_active_family)",
+    "active_family_floor_by_role_diversity": "mandatory_source_roles * minimum_independent_families_per_role",
+    "required_active_independent_families": "MAX(active_families_by_product_coverage, active_families_by_evidence_volume, active_families_by_market_observations, active_family_floor_by_role_diversity)",
+    "survival_rate": "1 - total_attrition_rate when attrition_mode=TOTAL; PRODUCT(stage_survival_rates) when attrition_mode=STAGED",
+    "required_high_trust_independent_families": "CEIL(required_active_independent_families / survival_rate * diversity_reserve_multiplier * continuity_reserve_multiplier * concentration_reserve_multiplier * category_complexity_multiplier)",
+    "required_verified_source_channels_min": "CEIL(required_high_trust_independent_families * channels_per_independent_family_min)",
+    "required_verified_source_channels_max": "CEIL(required_high_trust_independent_families * channels_per_independent_family_max)"
+  },
+  "global_calculation": {
+    "gross_independent_family_requirement": "SUM(category.required_high_trust_independent_families)",
+    "global_unique_independent_family_requirement": "CEIL(gross_independent_family_requirement * (1 - cross_category_reuse_rate))",
+    "global_verified_source_channels_min": "CEIL(global_unique_independent_family_requirement * channels_per_independent_family_min)",
+    "global_verified_source_channels_max": "CEIL(global_unique_independent_family_requirement * channels_per_independent_family_max)",
+    "discovery_candidate_requirement": "CEIL(global_unique_independent_family_requirement / discovery_to_high_trust_survival_rate) when measured; otherwise NOT_MEASURED"
+  },
+  "attrition_model": {
+    "allowed_modes": [
+      "TOTAL",
+      "STAGED"
+    ],
+    "total_mode_required_field": "total_attrition_rate",
+    "staged_mode_required_fields": [
+      "scope_relevance_survival_rate",
+      "owner_lineage_dedup_survival_rate",
+      "rights_access_survival_rate",
+      "technical_access_survival_rate",
+      "freshness_survival_rate",
+      "continuity_survival_rate"
+    ],
+    "valid_range": "0_TO_LESS_THAN_1",
+    "unknown_policy": "NOT_MEASURED_NOT_ZERO"
+  },
+  "decision_rule": {
+    "category_requirement_uses_maximum_of": [
+      "PRODUCT_ROLE_COVERAGE",
+      "VALIDATED_EVIDENCE_VOLUME",
+      "MARKET_OBSERVATION_VOLUME",
+      "SOURCE_ROLE_DIVERSITY_FLOOR"
+    ],
+    "reason": "No single volume metric may substitute for identity, market, evidence and diversity sufficiency."
+  },
+  "automatic_recalculation_events": [
+    "CATEGORY_ADDED_OR_REMOVED",
+    "REPRESENTATIVE_PRODUCT_TARGET_CHANGED",
+    "EVIDENCE_ROLE_TARGET_CHANGED",
+    "VALIDATED_EVIDENCE_TARGET_CHANGED",
+    "MARKET_OBSERVATION_TARGET_CHANGED",
+    "SOURCE_PRODUCTIVITY_MEASUREMENT_CHANGED",
+    "ATTRITION_RATE_CHANGED",
+    "DIVERSITY_OR_RESILIENCE_RESERVE_CHANGED",
+    "CHANNELS_PER_FAMILY_CHANGED",
+    "CROSS_CATEGORY_REUSE_CHANGED"
+  ],
+  "required_outputs": [
+    "source-sufficiency-calculation-v2.json",
+    "category-source-requirement-matrix-v2.json",
+    "source-sufficiency-driver-linkage-v2.json",
+    "source-sufficiency-sensitivity-v2.json",
+    "global-source-sufficiency-admission-v2.json",
+    "run-manifest.json"
+  ],
+  "validation_rules": {
+    "category_count_equals_profile_records": true,
+    "all_categories_have_positive_representative_products": true,
+    "all_categories_have_positive_evidence_and_market_targets": true,
+    "all_survival_rates_greater_than_zero": true,
+    "channels_per_family_min_not_greater_than_max": true,
+    "same_input_same_output": true,
+    "missing_to_zero": false,
+    "fixed_global_source_target": false,
+    "duplicate_owner_lineage_inflation": false
+  },
+  "boundaries": {
+    "calculated_source_requirement_is_qualified_source_count": false,
+    "calculated_source_requirement_authorizes_acquisition": false,
+    "trust_qualified_equals_rights_cleared": false,
+    "provider_id_equals_canonical_id": false,
+    "source_pool_promotions": 0,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
