@@ -1,0 +1,104 @@
+{
+  "id": "representative-product-selection-policy-v1",
+  "record_type": "representative_product_selection_and_coverage_policy",
+  "version": "1.0.0",
+  "status": "PROPOSED_CANONICAL",
+  "effective_at": "2026-08-17T20:16:00+09:00",
+  "production": "HOLD",
+  "bootstrap": {
+    "core_domains": 8,
+    "collection_scopes": 32,
+    "minimum_named_anchors_per_scope": 5,
+    "minimum_named_bootstrap_anchors": 160,
+    "floor_not_cap": true,
+    "equal_index_weighting_implied": false
+  },
+  "set_level_principle": "Representativeness is assessed on the full anchor set within a Collection Scope. Individual popularity alone cannot satisfy representativeness.",
+  "default_scope_coverage_constraints": {
+    "minimum_distinct_product_families": 3,
+    "maximum_single_product_family_share": 0.4,
+    "minimum_value_bands_when_supported": 3,
+    "minimum_liquidity_regimes_when_supported": 2,
+    "minimum_scarcity_regimes_when_supported": 2,
+    "minimum_era_bands_unless_intrinsically_single_era": 2,
+    "minimum_primary_geographies_for_global_scope": 2,
+    "requires_high_liquidity_benchmark_when_applicable": true,
+    "requires_authentication_or_provenance_sensitive_anchor_when_applicable": true
+  },
+  "mandatory_sampling_roles": [
+    "CANONICAL_HERITAGE_BENCHMARK",
+    "LIQUIDITY_PRICE_DISCOVERY_BENCHMARK",
+    "SCARCITY_PREMIUM_BENCHMARK",
+    "EMERGING_CULTURAL_MOMENTUM_BENCHMARK",
+    "ACCESSIBLE_BREADTH_OR_REGIONAL_BENCHMARK"
+  ],
+  "selection_method": {
+    "stage_1": "Apply hard anchor eligibility gates; reject generic, unstable, redundant or source-driven candidates.",
+    "stage_2": "Assign candidate anchors to sampling roles and representativeness dimensions.",
+    "stage_3": "Optimize the Scope set for coverage and concentration, not fame or Source availability.",
+    "stage_4": "Define Market Cells only for decision-relevant heterogeneity.",
+    "stage_5": "Derive Evidence demand and Source demand from the accepted anchor/cell set.",
+    "stage_6": "Track B independently validates set-level representativeness, concentration, omissions and bias."
+  },
+  "source_availability_policy": {
+    "can_exclude_non_material_product_only_because_data_is_hard": false,
+    "can_delay_activation_for_evidence_feasibility": true,
+    "can_replace_representative_truth_with_easy_source_product": false,
+    "hard_to_observe_but_material_products_require_gap_state": "REPRESENTATIVE_GAP_EVIDENCE_INSUFFICIENT"
+  },
+  "track_c_input_policy": {
+    "customer_recognition_signal": "ALLOWED_INPUT",
+    "visual_consistency_signal": "ALLOWED_INPUT",
+    "product_family_framing": "ALLOWED_INPUT",
+    "market_representativeness_certification": "NOT_AUTHORIZED",
+    "canonical_identity_authority": "NOT_AUTHORIZED"
+  },
+  "evidence_intensity_drivers": [
+    "IDENTITY_VARIANT_COMPLEXITY",
+    "AUTHENTICATION_COUNTERFEIT_RISK",
+    "CONDITION_GRADE_SENSITIVITY",
+    "PROVENANCE_SENSITIVITY",
+    "VALUE_AT_RISK",
+    "LIQUIDITY_TRANSACTION_FREQUENCY",
+    "REGIONAL_DISPERSION",
+    "MARKET_CHANNEL_FRAGMENTATION",
+    "HISTORICAL_DEPTH",
+    "SOURCE_FRAGMENTATION"
+  ],
+  "evidence_intensity_classes": [
+    "STANDARD",
+    "ELEVATED",
+    "HIGH",
+    "CRITICAL"
+  ],
+  "critical_assertion_topology": {
+    "single_provider_family_sufficient": false,
+    "independent_corroboration_required": true,
+    "primary_authority_preferred_for_identity": true,
+    "rights_state_required": true,
+    "provenance_state_required": true
+  },
+  "replacement_policy": {
+    "anchor_can_be_replaced": true,
+    "replacement_requires_reason": true,
+    "replacement_reasons": [
+      "MARKET_STRUCTURE_CHANGE",
+      "REPRESENTATIVENESS_GAP",
+      "IDENTITY_BOUNDARY_FAILURE",
+      "EVIDENCE_PERSISTENTLY_INSUFFICIENT",
+      "REDUNDANCY",
+      "BIAS_REDUCTION",
+      "NEW_MARKET_CELL_MATERIALITY"
+    ],
+    "historical_anchor_version_preserved": true
+  },
+  "fail_closed": [
+    "NAMED_ANCHOR_IS_NOT_ACTIVE_BY_DEFAULT",
+    "REPRESENTATIVE_IS_NOT_INDEX_CONSTITUENT_BY_DEFAULT",
+    "PORTAL_SELECTION_IS_NOT_CANONICAL_SELECTION",
+    "SOURCE_AVAILABILITY_IS_NOT_REPRESENTATIVENESS",
+    "MISSING_COVERAGE_IS_NOT_ZERO",
+    "INSUFFICIENT_EVIDENCE_IS_NOT_NEGATIVE_EVIDENCE",
+    "PRODUCTION_REMAINS_HOLD"
+  ]
+}
