@@ -1,0 +1,45 @@
+{
+  "id": "representative-anchor-planning-unblock-policy-v1",
+  "record_type": "representative_anchor_planning_unblock_policy",
+  "version": "1.0.0",
+  "status": "CANONICAL_CANDIDATE",
+  "parent_mission": 344,
+  "objective": "Remove the 160-anchor critical-path wait without fabricating Evidence or weakening Collectible/Representative qualification.",
+  "authorized_planning_outputs": [
+    "PROVISIONAL_PRODUCT_FAMILY_MAPPING",
+    "PROVISIONAL_MARKET_CELL_POLICY",
+    "PRODUCT_ASSERTION_DEMAND",
+    "PLANNING_EVIDENCE_DEMAND",
+    "PLANNING_SOURCE_ROLE_DEMAND",
+    "RUNTIME_WORKLOAD_ESTIMATE",
+    "PORTAL_NON_MARKET_CLAIM_PLACEHOLDER_PROJECTION"
+  ],
+  "authorization_condition": "STRUCTURAL_INPUT_PASS",
+  "forbidden_promotions": [
+    "COLLECTIBLE_QUALIFIED",
+    "REPRESENTATIVE_QUALIFIED",
+    "EVIDENCE_SUFFICIENT",
+    "INDEX_ELIGIBLE",
+    "PUBLISHED"
+  ],
+  "planning_state_labels": {
+    "product_family": "PROVISIONAL_PLANNING_ONLY",
+    "market_cell": "PROVISIONAL_PLANNING_ONLY",
+    "evidence_demand": "PLANNING_NOT_COLLECTED",
+    "source_demand": "PLANNING_NOT_AUTHORIZED_FOR_ACQUISITION",
+    "portal": "EXPLANATORY_ONLY_NO_MARKET_CLAIM"
+  },
+  "handoff": {
+    "lane_1_to_lane_2": "Structural-pass anchors may compile planning Evidence demand immediately.",
+    "lane_1_to_lane_3": "Official Track B Collectible/Representative assessment waits for Evidence-bearing packages.",
+    "lane_1_to_lane_4": "Portal may implement lifecycle and explanatory UX but may not display unqualified anchors as market truth.",
+    "lane_1_to_lane_5": "Runtime/EOS may size and model provisional workloads while preserving qualification states."
+  },
+  "fail_closed": {
+    "missing_evidence_becomes_qualified": false,
+    "planning_state_becomes_public_claim": false,
+    "source_demand_becomes_acquisition_authority": false,
+    "portal_side_qualification": false,
+    "production": "HOLD"
+  }
+}
