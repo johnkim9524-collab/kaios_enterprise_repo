@@ -1,0 +1,33 @@
+name: KIDULTS ASI v2.1 Preflight Gap Compiler
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-preflight-gap-queues-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-preflight-gap-queues-v1.mjs'
+      - '.github/workflows/kidults-asi-v2-1-preflight-gap-compiler.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  compile-preflight-and-gaps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download immutable bounded-live pilot artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p input
+          gh api repos/${{ github.repository }}/actions/artifacts/9290027789/zip > /tmp/pilot.zip
+          unzip -q /tmp/pilot.zip -d input
+          test -f input/bounded-live-discovery.json
+      - name: Compile preflight and connector gaps
+        run: node scripts/kidults/source-intelligence/build-preflight-gap-queues-v1.mjs input/bounded-live-discovery.json out
+      - name: Validate fail-closed queues
+        run: node scripts/kidults/source-intelligence/validate-preflight-gap-queues-v1.mjs out
+      - name: Upload immutable output
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-asi-v2-1-preflight-gap-queues
+          path: out
