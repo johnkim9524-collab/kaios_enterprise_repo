@@ -1,0 +1,82 @@
+{
+  "id": "kidults-end-to-end-value-chain-contract-v1",
+  "record_type": "canonical_value_chain_contract",
+  "version": "1.0.0",
+  "status": "CANONICAL_CANDIDATE",
+  "parent_mission": 344,
+  "canonical_semantic_inputs": [
+    "kidults-platform-definition-v1",
+    "collectibles-universe-definition-v1",
+    "collectible-universe-admission-policy-v1",
+    "representative-product-model-v2",
+    "representative-market-cell-contract-v1"
+  ],
+  "chain": [
+    "KIDULTS_MARKET_LENS",
+    "COLLECTIBLES_UNIVERSE_ADMISSION",
+    "COLLECTION_SCOPE",
+    "REPRESENTATIVE_PRODUCT_FAMILY",
+    "NAMED_REPRESENTATIVE_PRODUCT",
+    "REPRESENTATIVE_MARKET_CELL",
+    "REQUIRED_ASSERTION",
+    "EVIDENCE_DEMAND",
+    "SOURCE_DEMAND",
+    "RIGHTS_ACCESS_COST_GATE",
+    "CANONICAL_IDENTITY",
+    "EVIDENCE_GRAPH",
+    "MARKET_GRAPH",
+    "BITEMPORAL_MEMORY",
+    "PROVIDER_FUSION",
+    "TRACK_B_INDEPENDENT_VALIDATION",
+    "INDEX_ELIGIBILITY",
+    "PROJECTION_REGISTRY",
+    "PORTAL_EOS_API_REPORTS"
+  ],
+  "canonical_ids": [
+    "collectible_family_id",
+    "representative_product_id",
+    "market_cell_id",
+    "assertion_id",
+    "evidence_requirement_id",
+    "source_demand_id",
+    "source_family_id",
+    "evidence_id",
+    "market_event_id",
+    "snapshot_id",
+    "assessment_id",
+    "projection_id"
+  ],
+  "state_chain": [
+    "DISCOVERED_OBJECT",
+    "COLLECTIBLE_CANDIDATE",
+    "COLLECTIBLE_QUALIFIED",
+    "REPRESENTATIVE_CANDIDATE",
+    "REPRESENTATIVE_QUALIFIED",
+    "EVIDENCE_TARGETED",
+    "EVIDENCE_SUFFICIENT",
+    "TRACK_B_APPROVED",
+    "INDEX_ELIGIBLE",
+    "PUBLISHED"
+  ],
+  "fail_closed_invariants": {
+    "kidults_is_toy_taxonomy": false,
+    "any_object_is_collectible": false,
+    "collectible_is_representative": false,
+    "representative_is_index_constituent": false,
+    "collectible_is_investment_recommendation": false,
+    "provider_id_is_canonical_id": false,
+    "listing_is_sold_transaction": false,
+    "missing_becomes_zero": false,
+    "portal_defines_market_truth": false,
+    "source_availability_defines_representativeness": false
+  },
+  "track_ownership": {
+    "A": ["PRODUCT_EVIDENCE_DEMAND", "SOURCE_DEMAND", "CANONICAL_EVIDENCE_PRODUCTION"],
+    "B": ["INDEPENDENT_QUALIFICATION", "REPRESENTATIVENESS", "EVIDENCE_SUFFICIENCY", "INDEX_ELIGIBILITY_RECOMMENDATION"],
+    "C": ["CUSTOMER_EXPERIENCE", "PORTAL_PROJECTION_CONSUMPTION", "CUSTOMER_RECOGNITION_INPUT"],
+    "D": ["DEV_STAGING_RUNTIME", "CAPACITY", "RECOVERY", "COST", "PRODUCTION_RELIABILITY"],
+    "E": ["READ_ONLY_EXECUTIVE_PROJECTION", "EXECUTIVE_COMMAND_ROUTING", "VALUE_CHAIN_HEALTH"]
+  },
+  "production": "HOLD",
+  "g5": "NOT_REQUESTED"
+}
