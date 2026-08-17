@@ -7,15 +7,14 @@ function fail(errors, message) { errors.push(message); }
 
 export function validateCalibration400(directory) {
   const errors = [];
-  const batchRecords = [];
   const batchFingerprints = {};
   for (let batch = 2; batch <= 8; batch += 1) {
     const name = `track-b-calibration-assessment-batch-${String(batch).padStart(2, "0")}-v2.json`;
-    errors.push(...validateBatchAssessment(directory, name).map(error => `batch-${String(batch).padStart(2, "0")}: ${error}`));
+    errors.push(...validateBatchAssessment(directory, name, { validateManifest: false }).map(error => `batch-${String(batch).padStart(2, "0")}: ${error}`));
     const assessment = readJson(path.join(directory, name));
-    batchRecords.push(...assessment.records);
     batchFingerprints[assessment.batch_id] = assessment.fingerprint;
   }
+
   const aggregate = readJson(path.join(directory, "track-b-calibration-assessment-400-v2.json"));
   const manifest = readJson(path.join(directory, "run-manifest.json"));
   if (aggregate.version !== "2.3.0") fail(errors, "Aggregate must use reviewer input v2.3.0.");
@@ -30,16 +29,19 @@ export function validateCalibration400(directory) {
   if (aggregate.direct_top200_review_complete !== false || aggregate.final_gold_assessment !== false) fail(errors, "400-case calibration must not claim final Top-200 or final Gold completion.");
   if (aggregate.source_pool_promotions !== 0 || aggregate.acquisition_authorized !== false || aggregate.candidate_r2 !== "BLOCKED" || aggregate.production !== "HOLD") fail(errors, "Aggregate fail-closed boundary violated.");
   if (aggregate.external_human_review !== false || aggregate.legal_opinion !== false) fail(errors, "Aggregate must disclose model-assisted scope accurately.");
+
   const copy = structuredClone(aggregate);
   const stored = copy.fingerprint;
   delete copy.fingerprint;
   if (stored !== fingerprint(copy)) fail(errors, "Aggregate fingerprint mismatch.");
+
   const manifestCopy = structuredClone(manifest);
   const storedRun = manifestCopy.run_fingerprint;
   delete manifestCopy.run_fingerprint;
   if (storedRun !== fingerprint(manifestCopy)) fail(errors, "Aggregate run-manifest fingerprint mismatch.");
   if (manifest.aggregate_assessment_fingerprint !== aggregate.fingerprint || manifest.reviewed_records !== 400 || manifest.unresolved_records !== 0 || manifest.batches_completed !== 8) fail(errors, "Run manifest does not reconcile with aggregate assessment.");
   if (manifest.direct_top200_review_complete !== false || manifest.source_pool_promotions !== 0 || manifest.acquisition_authorized !== false || manifest.candidate_r2 !== "BLOCKED" || manifest.production !== "HOLD") fail(errors, "Run manifest fail-closed boundary violated.");
+
   for (const [batchId, value] of Object.entries(batchFingerprints)) {
     if (aggregate.batch_assessment_fingerprints[batchId] !== value) fail(errors, `${batchId}: aggregate fingerprint pointer mismatch.`);
   }
