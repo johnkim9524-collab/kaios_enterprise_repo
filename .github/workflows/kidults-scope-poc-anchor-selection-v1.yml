@@ -1,0 +1,29 @@
+name: KIDULTS Scope PoC Anchor Selection v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json'
+      - 'scripts/kidults/validate-scope-poc-anchor-selection-v1.mjs'
+      - 'scripts/kidults/validate-scope-poc-anchor-selection-against-artifact-v1.mjs'
+      - '.github/workflows/kidults-scope-poc-anchor-selection-v1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/kidults/validate-scope-poc-anchor-selection-v1.mjs
+      - name: Download immutable 160-anchor foundation artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p input
+          gh api -H 'Accept: application/vnd.github+json' /repos/${{ github.repository }}/actions/artifacts/9286462549/zip > anchor-foundation.zip
+          unzip -q anchor-foundation.zip -d input
+      - run: node scripts/kidults/validate-scope-poc-anchor-selection-against-artifact-v1.mjs input
