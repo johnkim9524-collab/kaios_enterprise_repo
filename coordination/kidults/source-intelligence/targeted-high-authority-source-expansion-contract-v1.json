@@ -1,0 +1,104 @@
+{
+  "id": "targeted-high-authority-source-expansion-contract-v1",
+  "record_type": "targeted_source_expansion_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T11:45:00+09:00",
+  "created_by": "KPMO / Track A / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "parent_issue": 316,
+  "input_file": "targeted-high-authority-source-expansion-v1.psv",
+  "delimiter": "|",
+  "row_schema": [
+    "source_id",
+    "display_name",
+    "core_domain",
+    "collection_scope_ids",
+    "source_roles",
+    "official_endpoint",
+    "official_documentation_url",
+    "authority_basis",
+    "channel_type",
+    "access_mode"
+  ],
+  "targets": {
+    "candidate_count": 64,
+    "core_domain_count": 8,
+    "minimum_candidates_per_core_domain": 8,
+    "blind_top50_count": 50,
+    "blind_top50_precision_minimum": 0.95
+  },
+  "role_to_decision_and_value": {
+    "PRIMARY_AUTHORITY": {
+      "decisions": ["VERIFY_IDENTITY", "VERIFY_AUTHENTICITY", "SOURCE_VARIANT", "ASSESS_PROVENANCE"],
+      "value_scopes": ["VS_OBJECT_TRUST", "VS_SCARCITY_AVAILABILITY", "VS_MARKET_STRUCTURE"]
+    },
+    "CATALOG_REFERENCE": {
+      "decisions": ["VERIFY_IDENTITY", "SELECT_COMPARABLES", "ASSESS_SCARCITY", "SOURCE_VARIANT"],
+      "value_scopes": ["VS_OBJECT_TRUST", "VS_SCARCITY_AVAILABILITY", "VS_MARKET_STRUCTURE"]
+    },
+    "LISTING_SUPPLY": {
+      "decisions": ["DETERMINE_FAIR_VALUE", "BUY_OR_WAIT", "SELL_OR_HOLD", "PLAN_EXIT", "TRACK_MOMENTUM"],
+      "value_scopes": ["VS_PRICE_COMPARABILITY", "VS_LIQUIDITY_EXIT", "VS_MOMENTUM_OPPORTUNITY", "VS_MARKET_STRUCTURE"]
+    },
+    "SOLD_TRANSACTION": {
+      "decisions": ["DETERMINE_FAIR_VALUE", "BUY_OR_WAIT", "SELL_OR_HOLD", "PLAN_EXIT", "TRACK_MOMENTUM"],
+      "value_scopes": ["VS_PRICE_COMPARABILITY", "VS_LIQUIDITY_EXIT", "VS_MOMENTUM_OPPORTUNITY", "VS_MARKET_STRUCTURE"]
+    },
+    "AUCTION_PRIVATE_SALE": {
+      "decisions": ["DETERMINE_FAIR_VALUE", "SELL_OR_HOLD", "PLAN_EXIT", "ASSESS_PROVENANCE"],
+      "value_scopes": ["VS_PRICE_COMPARABILITY", "VS_LIQUIDITY_EXIT", "VS_OBJECT_TRUST"]
+    },
+    "AUTHENTICATION_CONDITION": {
+      "decisions": ["VERIFY_AUTHENTICITY", "ASSESS_CONDITION", "ASSESS_SCARCITY"],
+      "value_scopes": ["VS_OBJECT_TRUST", "VS_SCARCITY_AVAILABILITY"]
+    },
+    "PROVENANCE_HISTORY": {
+      "decisions": ["VERIFY_IDENTITY", "ASSESS_PROVENANCE", "SELECT_COMPARABLES"],
+      "value_scopes": ["VS_OBJECT_TRUST", "VS_MARKET_STRUCTURE"]
+    },
+    "CULTURE_ATTENTION": {
+      "decisions": ["IDENTIFY_OPPORTUNITY", "TRACK_MOMENTUM", "CATEGORY_ENTRY"],
+      "value_scopes": ["VS_MOMENTUM_OPPORTUNITY", "VS_MARKET_STRUCTURE"]
+    },
+    "MACRO_CONTEXT": {
+      "decisions": ["IDENTIFY_OPPORTUNITY", "TRACK_MOMENTUM", "CATEGORY_ENTRY", "MARKET_STRUCTURE"],
+      "value_scopes": ["VS_MOMENTUM_OPPORTUNITY", "VS_MARKET_STRUCTURE"]
+    },
+    "INDEPENDENT_VERIFICATION": {
+      "decisions": ["VERIFY_IDENTITY", "VERIFY_AUTHENTICITY", "ASSESS_PROVENANCE", "MARKET_STRUCTURE"],
+      "value_scopes": ["VS_OBJECT_TRUST", "VS_MARKET_STRUCTURE"]
+    }
+  },
+  "default_states": {
+    "rights_state": "UNKNOWN_REQUIRES_OFFICIAL_TERMS_AND_FIELD_LEVEL_PREFLIGHT",
+    "commercial_use_state": "NOT_CLEARED",
+    "jurisdiction_state": "UNKNOWN_REQUIRES_PREFLIGHT",
+    "verification_state": "PRIMARY_OFFICIAL_OR_SPECIALIST_ENDPOINT_REGISTERED_MANUAL_AND_RUNTIME_VERIFICATION_PENDING",
+    "source_pool_promoted": false,
+    "acquisition_authorized": false,
+    "public_projection": false,
+    "production": "HOLD"
+  },
+  "truth_rules": [
+    "CANDIDATE_IS_NOT_QUALIFIED_SOURCE",
+    "OFFICIAL_ENDPOINT_IS_NOT_COMMERCIAL_RIGHTS",
+    "SPECIALIST_DATABASE_IS_NOT_INDEPENDENT_TRUTH",
+    "UNKNOWN_NEVER_BECOMES_ALLOWED",
+    "NO_QUERY_TEXT_ONLY_PROMOTION",
+    "NO_GENERIC_SOFTWARE_REPOSITORY",
+    "NO_TANGENTIAL_RESEARCH_PROMOTION"
+  ],
+  "boundaries": {
+    "source_pool_promotions": 0,
+    "preflight_passes": 0,
+    "implemented_adapters": 0,
+    "acquisition_authorized": false,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
