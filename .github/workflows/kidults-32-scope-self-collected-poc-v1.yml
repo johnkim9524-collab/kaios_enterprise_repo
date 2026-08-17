@@ -1,0 +1,49 @@
+name: KIDULTS 32-Scope Self-Collected PoC v1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json'
+      - 'scripts/kidults/scope-data/build-scope-poc-targeted-queue-v1.mjs'
+      - 'scripts/kidults/scope-data/run-scope-self-collected-poc-live-v1.mjs'
+      - 'scripts/kidults/scope-data/compile-scope-poc-gap-map-v1.mjs'
+      - 'scripts/kidults/scope-data/validate-scope-self-collected-poc-v1.mjs'
+      - '.github/workflows/kidults-32-scope-self-collected-poc-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  execute-32-scope-poc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download immutable 160-anchor foundation artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p input queue160 queue64 poc-out
+          gh api -H 'Accept: application/vnd.github+json' /repos/${{ github.repository }}/actions/artifacts/9286462549/zip > anchor-foundation.zip
+          unzip -q anchor-foundation.zip -d input
+      - name: Build canonical 160-product demand queue
+        run: node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input queue160
+      - name: Validate canonical demand queue
+        run: node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs queue160
+      - name: Materialize 64-product / 32-scope PoC queue
+        run: node scripts/kidults/scope-data/build-scope-poc-targeted-queue-v1.mjs queue160 queue64 coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json
+      - name: Execute bounded self-collected live PoC
+        run: node scripts/kidults/scope-data/run-scope-self-collected-poc-live-v1.mjs queue64 poc-out
+      - name: Compile gap map, provider requirement candidate, Track B and projection
+        run: node scripts/kidults/scope-data/compile-scope-poc-gap-map-v1.mjs poc-out/scope-self-collected-poc-live.json poc-out
+      - name: Validate fail-closed end-to-end outputs
+        run: node scripts/kidults/scope-data/validate-scope-self-collected-poc-v1.mjs poc-out
+      - name: Upload immutable PoC artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-32-scope-self-collected-poc-v1
+          path: poc-out/
+          if-no-files-found: error
+          retention-days: 90
