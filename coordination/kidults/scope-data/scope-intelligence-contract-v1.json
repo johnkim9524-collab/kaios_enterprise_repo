@@ -1,0 +1,84 @@
+{
+  "version":"1.0",
+  "status":"KPMO_DESIGN_CANDIDATE",
+  "execution_order":[
+    "customer_decision",
+    "decision_failure",
+    "irreplaceable_question",
+    "irreplaceable_output",
+    "metric_or_assertion",
+    "evidence_requirement",
+    "data_requirement",
+    "source_requirement",
+    "poc",
+    "gap_analysis",
+    "provider_requirement_specification"
+  ],
+  "required_scope_fields":[
+    "scope_id",
+    "customer_decisions",
+    "decision_failures",
+    "irreplaceable_question",
+    "irreplaceable_outputs",
+    "primary_archetype",
+    "scope_specific_identity_extension",
+    "condition_grade_model",
+    "provenance_authentication_model",
+    "market_cell_dimensions",
+    "scope_specific_metrics",
+    "cross_scope_metrics",
+    "assertions",
+    "evidence_classes",
+    "required_source_roles",
+    "minimum_independent_families",
+    "time_depth",
+    "freshness_sla",
+    "regions",
+    "languages",
+    "rights_constraints",
+    "self_collectable_fields",
+    "provider_candidate_fields",
+    "not_verified_policy",
+    "poc_exit_criteria"
+  ],
+  "common_cross_scope_metrics":[
+    "identity_confidence",
+    "authenticity_originality_confidence",
+    "normalized_scarcity",
+    "normalized_liquidity",
+    "market_depth",
+    "price_dispersion",
+    "momentum",
+    "canon_significance",
+    "evidence_confidence"
+  ],
+  "comparables_contract":{
+    "inputs":["canonical_identity","variant_specification","condition_grade","provenance","region","channel","time"],
+    "output":"comparable_eligibility_score",
+    "rule":"same model name alone is never sufficient for a valid comparable"
+  },
+  "scarcity_contract":{
+    "components":["production","survival","condition","authenticated_population","market_availability","regional"],
+    "rule":"structural scarcity and market scarcity must remain distinguishable"
+  },
+  "liquidity_contract":{
+    "components":["transaction_frequency","time_to_sale","market_depth","price_dispersion","channel_concentration","regional_concentration","turnover_stability"],
+    "rule":"asking prices never substitute for sold-event liquidity"
+  },
+  "north_star_gate":{
+    "AUTONOMOUS":"refresh, stale detection, contradiction and source fallback must be machine-operable where rights permit",
+    "GLOBAL":"region/language/price-discovery bias must be explicit and empirically testable",
+    "IRREPLACEABLE_VALUE":"every required field/assertion must trace to a customer decision and an output not sufficiently solved by generic search, a single marketplace or a single provider",
+    "TRANSPARENT":"provenance, rights, confidence, freshness, limitation and NOT_VERIFIED state must remain visible"
+  },
+  "anti_patterns":[
+    "data field without customer-decision trace",
+    "metric proliferation without output value",
+    "32 independent bespoke schemas with no common grammar",
+    "provider data defining the product universe",
+    "missing converted to zero",
+    "listing converted to sold transaction",
+    "unsupported global claim",
+    "scope completeness claimed before PoC"
+  ]
+}
