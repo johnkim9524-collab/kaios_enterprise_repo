@@ -1,5 +1,6 @@
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 import { fingerprint, readJson, unique } from "./asi-discovery-common-v1.mjs";
 
 const ALLOWED_SCOPE = new Set(["RELEVANT", "NOT_RELEVANT", "INSUFFICIENT_EVIDENCE_REQUIRES_ADJUDICATION"]);
@@ -41,14 +42,18 @@ export function validateBatchAssessment(directory, assessmentFile, { validateMan
   return errors;
 }
 
-const directory = path.resolve(process.argv[2] ?? "");
-const assessmentFile = process.argv[3] ?? "track-b-calibration-assessment-batch-01-v2.json";
-const assessmentOnly = process.argv.includes("--assessment-only");
-const errors = validateBatchAssessment(directory, assessmentFile, { validateManifest: !assessmentOnly });
-if (errors.length) {
-  console.error(`KIDULTS Track B Calibration Batch Assessment: FAIL (${errors.length})`);
-  for (const error of errors) console.error(`ERROR: ${error}`);
-  process.exit(1);
+async function main() {
+  const directory = path.resolve(process.argv[2] ?? "");
+  const assessmentFile = process.argv[3] ?? "track-b-calibration-assessment-batch-01-v2.json";
+  const assessmentOnly = process.argv.includes("--assessment-only");
+  const errors = validateBatchAssessment(directory, assessmentFile, { validateManifest: !assessmentOnly });
+  if (errors.length) {
+    console.error(`KIDULTS Track B Calibration Batch Assessment: FAIL (${errors.length})`);
+    for (const error of errors) console.error(`ERROR: ${error}`);
+    process.exit(1);
+  }
+  console.log("KIDULTS Track B Calibration Batch Assessment: PASS");
+  console.log(`Reviewed 50/50; unresolved 0; manifest validation ${assessmentOnly ? "DEFERRED_TO_AGGREGATE" : "PASS"}; Source Pool promotions 0; Acquisition BLOCKED; Production HOLD`);
 }
-console.log("KIDULTS Track B Calibration Batch Assessment: PASS");
-console.log(`Reviewed 50/50; unresolved 0; manifest validation ${assessmentOnly ? "DEFERRED_TO_AGGREGATE" : "PASS"}; Source Pool promotions 0; Acquisition BLOCKED; Production HOLD`);
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();
