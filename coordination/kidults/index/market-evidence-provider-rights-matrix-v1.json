@@ -1,0 +1,69 @@
+{
+  "id": "market-evidence-provider-rights-matrix-v1",
+  "version": "1.0.0",
+  "status": "CANONICAL_CANDIDATE",
+  "product_id": "rp-cards-comics-memorabilia-wizards-of-the-coast-magic-the-gathering-alpha-black-lotus",
+  "purpose": "Provider authorization truth for Index Market Evidence Wave 001",
+  "providers": [
+    {
+      "provider": "PSA",
+      "source_family": "PSA_COLLECTORS",
+      "official_capability": ["PUBLIC_API", "AUCTION_PRICES_REALIZED", "AUTHENTICATION_POPULATION"],
+      "transaction_level_market_data_observed": true,
+      "commercial_reuse_authorized_for_index_pipeline": false,
+      "authorization_state": "HOLD_API_SCOPE_AND_REUSE_RIGHTS_CONFIRMATION",
+      "official_pointers": [
+        "https://api.psacard.com/publicapi/swagger/ui/index",
+        "https://www.psacard.com/auctionprices"
+      ]
+    },
+    {
+      "provider": "eBay",
+      "source_family": "EBAY_MARKETPLACE",
+      "official_capability": ["MARKETPLACE_INSIGHTS_SOLD_HISTORY"],
+      "transaction_level_market_data_observed": true,
+      "commercial_reuse_authorized_for_index_pipeline": false,
+      "authorization_state": "HOLD_LIMITED_RELEASE_PARTNER_APPROVAL_REQUIRED",
+      "official_pointers": [
+        "https://developer.ebay.com/develop/get-started/get-started-on-a-buying-application",
+        "https://developer.ebay.com/api-docs/buy/static/ref-buy-browse-filters.html"
+      ]
+    },
+    {
+      "provider": "TCGplayer",
+      "source_family": "TCGPLAYER_MARKETPLACE",
+      "official_capability": ["PRICING_API", "CATALOG_API"],
+      "transaction_level_market_data_observed": false,
+      "commercial_reuse_authorized_for_index_pipeline": false,
+      "authorization_state": "HOLD_NEW_API_ACCESS_NOT_GRANTED_EXISTING_KEY_REQUIRED",
+      "official_pointers": [
+        "https://docs.tcgplayer.com/docs/getting-started",
+        "https://docs.tcgplayer.com/reference/pricing_getproductprices-1"
+      ]
+    },
+    {
+      "provider": "Cardmarket",
+      "source_family": "CARDMARKET_MARKETPLACE",
+      "official_capability": ["API_PUBLIC_DATA", "SALES_DATA_FOR_AUTHORIZED_USER_CONTEXT"],
+      "transaction_level_market_data_observed": true,
+      "commercial_reuse_authorized_for_index_pipeline": false,
+      "authorization_state": "HOLD_PRIOR_WRITTEN_AGREEMENT_REQUIRED_FOR_PRICE_PRESENTATION_OR_OTHER_USE",
+      "official_pointers": [
+        "https://www.cardmarket.com/en/Policies/GeneralTermsAndConditions/IT"
+      ]
+    }
+  ],
+  "summary": {
+    "candidate_transaction_families": 4,
+    "currently_authorized_transaction_families": 0,
+    "index_gate_state": "HOLD_EXTERNAL_PROVIDER_AUTHORIZATION",
+    "acquisition_authorized": false,
+    "production": "HOLD"
+  },
+  "north_star": {
+    "AUTONOMOUS": "READY_WHEN_CREDENTIALS_AND_RIGHTS_BIND",
+    "GLOBAL": "TOPOLOGY_READY_EMPIRICAL_DATA_PENDING",
+    "IRREPLACEABLE_VALUE": "PASS",
+    "TRANSPARENT": "PASS"
+  }
+}
