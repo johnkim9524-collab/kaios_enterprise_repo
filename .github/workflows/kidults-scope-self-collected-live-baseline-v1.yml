@@ -4,25 +4,28 @@ on:
     paths:
       - 'coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json'
       - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
-      - 'scripts/kidults/scope/run-scope-self-collected-live-baseline-v1.mjs'
+      - 'scripts/kidults/scope/run-scope-self-collected-live-baseline-v1.1.mjs'
       - 'scripts/kidults/scope/validate-scope-self-collected-live-baseline-v1.mjs'
       - 'scripts/kidults/scope/compile-scope-self-collection-gap-queue-v1.mjs'
       - 'scripts/kidults/scope/validate-scope-self-collection-gap-queue-v1.mjs'
       - '.github/workflows/kidults-scope-self-collected-live-baseline-v1.yml'
   workflow_dispatch:
+concurrency:
+  group: kidults-scope-self-collected-live-baseline-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
   live-baseline:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Run 32-scope / 64-product open-metadata baseline
-        run: node scripts/kidults/scope/run-scope-self-collected-live-baseline-v1.mjs coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json scope-poc-live-out
+      - name: Run 32-scope / 64-product bounded-concurrency open-metadata baseline
+        run: node scripts/kidults/scope/run-scope-self-collected-live-baseline-v1.1.mjs coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json scope-poc-live-out
       - name: Validate fail-closed baseline
         run: node scripts/kidults/scope/validate-scope-self-collected-live-baseline-v1.mjs scope-poc-live-out
       - name: Compile next self-collection gap queue
