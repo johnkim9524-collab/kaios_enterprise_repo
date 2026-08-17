@@ -1,0 +1,85 @@
+{
+  "id": "collectibles-universe-definition-v1",
+  "record_type": "collectibles_universe_semantic_definition",
+  "version": "1.0.0",
+  "status": "KPMO_DEFINED_PENDING_MAIN_INTEGRATION",
+  "semantic_term": "COLLECTIBLE",
+  "definition": "A Collectible is an identifiable and differentiable ownable object or product-class whose value and market behavior are materially influenced by scarcity, identity, authenticity, provenance, condition, cultural significance, historical significance, design authorship, edition or variant structure, or collector demand beyond ordinary functional utility.",
+  "universe_definition": "The KIDULTS Collectibles Universe is an evidence-qualified market ontology of collectible-qualified product families, named products, physical objects, market events and evidence assertions. It is not an open-ended list of goods that somebody happens to collect.",
+  "primary_object_mode": "PHYSICAL_OR_PHYSICAL_RIGHTS_BEARING",
+  "core_properties": [
+    {
+      "id": "IDENTITY_PERSISTENCE",
+      "meaning": "Stable model, reference, edition, series, generation or provenance identity can be resolved."
+    },
+    {
+      "id": "DIFFERENTIABILITY",
+      "meaning": "The object or product family is materially distinguishable from commodity substitutes."
+    },
+    {
+      "id": "COLLECTOR_PREMIUM_OR_SIGNIFICANCE",
+      "meaning": "Economic, cultural, historical, design or institutional significance exists beyond ordinary utility alone."
+    },
+    {
+      "id": "SCARCITY_OR_BOUNDED_VARIATION",
+      "meaning": "Production, edition, survival, configuration, variant or availability differentiation is material."
+    },
+    {
+      "id": "AUTHENTICITY_OR_PROVENANCE_MATERIALITY",
+      "meaning": "Authenticity, originality or provenance can materially change trust, identity or value."
+    },
+    {
+      "id": "CONDITION_SENSITIVITY",
+      "meaning": "Condition, originality, completeness or grade may materially alter market behavior."
+    },
+    {
+      "id": "SECONDARY_MARKET_OR_INSTITUTIONAL_RECOGNITION",
+      "meaning": "A specialist transfer market, archival record, collector ecosystem or institutional recognition exists."
+    },
+    {
+      "id": "PERSISTENT_DEMAND_OR_CANON",
+      "meaning": "Demand or significance is supported by more than one isolated transaction or transient keyword spike."
+    }
+  ],
+  "default_inclusions": [
+    "PHYSICAL_COLLECTIBLE_PRODUCTS",
+    "IDENTIFIABLE_LIMITED_OR_HISTORICALLY_SIGNIFICANT_VARIANTS",
+    "PROVENANCE_DEPENDENT_MEMORABILIA",
+    "SECONDARY_MARKET_OBJECTS_WITH_COLLECTIBLE_DIFFERENTIATION",
+    "INSTITUTIONALLY_RECOGNIZED_DESIGN_OR_CULTURAL_OBJECTS_WITH_DEFINED_SCOPE"
+  ],
+  "default_exclusions": [
+    "ORDINARY_USED_GOODS",
+    "COMMODITY_ONLY_GOODS",
+    "GENERIC_MASS_MARKET_GOODS_WITHOUT_COLLECTIBLE_DIFFERENTIATION",
+    "DIGITAL_ONLY_OBJECTS_UNLESS_SEPARATELY_APPROVED_SCOPE",
+    "COUNTERFEITS_AS_CANONICAL_ORIGINALS",
+    "REPLICAS_AS_CANONICAL_ORIGINALS",
+    "ILLEGAL_OR_NON_TRANSFERABLE_COMMERCIAL_MARKET_OBJECTS",
+    "UNVERIFIED_PROVENANCE_AS_VERIFIED_FACT"
+  ],
+  "fine_art_boundary": {
+    "standalone_fine_art_automatically_included": false,
+    "rule": "Standalone fine art requires an explicit approved Collection Scope rather than automatic admission into KIDULTS v1. Collectible design objects, memorabilia and adjacent objects may qualify under their approved Scopes."
+  },
+  "important_non_equivalences": {
+    "EXPENSIVE_EQUALS_COLLECTIBLE": false,
+    "OLD_EQUALS_COLLECTIBLE": false,
+    "RARE_EQUALS_COLLECTIBLE": false,
+    "POPULAR_EQUALS_COLLECTIBLE": false,
+    "SOMEONE_COLLECTS_IT_EQUALS_COLLECTIBLE": false,
+    "MARKETPLACE_LISTED_EQUALS_COLLECTIBLE": false,
+    "COLLECTIBLE_EQUALS_INVESTMENT_PRODUCT": false
+  },
+  "state_model": [
+    "DISCOVERED_OBJECT",
+    "COLLECTIBLE_CANDIDATE",
+    "COLLECTIBLE_QUALIFIED",
+    "REPRESENTATIVE_CANDIDATE",
+    "REPRESENTATIVE_QUALIFIED",
+    "INDEX_ELIGIBLE",
+    "PUBLISHED",
+    "HOLD_OR_ARCHIVED"
+  ],
+  "production": "HOLD"
+}
