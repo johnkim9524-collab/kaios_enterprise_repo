@@ -1,0 +1,198 @@
+{
+  "id": "autonomous-source-intelligence-program-v2",
+  "record_type": "source_intelligence_program_contract",
+  "version": "2.0.0",
+  "status": "ACTIVE_P0",
+  "effective_at": "2026-08-17T16:45:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "supersedes": {
+    "program_id": "autonomous-source-intelligence-program-v1",
+    "scope": "CURRENT_GLOBAL_MARKET_POC_SOURCE_SCALE_AND_OPERATING_STRATEGY",
+    "reason": "Fixed numeric Source-scale targets are replaced by an adaptive sufficiency model derived from representative-object coverage, Source-role depth, observed attrition, diversity, independence, concentration and resilience.",
+    "historical_v1_preserved": true
+  },
+  "governing_contracts": [
+    "global-high-trust-source-sufficiency-contract-v1",
+    "global-source-acquisition-and-asi-operating-strategy-v1",
+    "collection-scope-registry-v1",
+    "decision-operating-system-contract-v1"
+  ],
+  "program_objective": "Autonomously discover, classify, qualify, risk-score, diversify, select, monitor, remove and replace global collectible-market Source families until all evidence-sufficiency and Global Market PoC admission gates pass.",
+  "source_target_policy": {
+    "fixed_global_source_count": null,
+    "policy": "ADAPTIVE_OUTCOME_DERIVED_NO_FIXED_CAP",
+    "primary_unit": "INDEPENDENT_SOURCE_FAMILY_PER_SCOPE_ROLE_LANE",
+    "quantity_is_output_of_asi": true,
+    "unknown_parameter_state": "NOT_MEASURED",
+    "unsupported_fixed_target": "PROHIBITED"
+  },
+  "operating_universe": {
+    "core_domains": 8,
+    "collection_scopes": 32,
+    "mandatory_source_roles": 7,
+    "scope_role_lanes": 224,
+    "representative_object_floor_per_core_domain": 1000,
+    "representative_object_floor_total": 8000,
+    "object_floor_is_minimum_not_cap": true
+  },
+  "canonical_flow": [
+    "DECISION_AND_IRREPLACEABLE_VALUE_REQUIREMENTS",
+    "DATA_AND_COLLECTION_SCOPE_REGISTRIES",
+    "SCOPE_ROLE_REGION_LANGUAGE_GAP_DETECTION",
+    "TARGETED_GLOBAL_SOURCE_DISCOVERY",
+    "ENDPOINT_NORMALIZATION",
+    "OWNER_OPERATOR_AND_LINEAGE_RESOLUTION",
+    "SCOPE_AND_SOURCE_ROLE_CLASSIFICATION",
+    "AUTHORITY_RELEVANCE_UTILITY_AND_INDEPENDENCE_SCORING",
+    "RIGHTS_ACCESS_RISK_COST_AND_CONTINUITY_CLASSIFICATION",
+    "GLOBAL_DIVERSITY_AND_CONCENTRATION_CONTROL",
+    "TRUST_QUALIFICATION_OR_HOLD_OR_REJECT",
+    "PREFLIGHT_AND_BOUNDED_ADAPTER_READINESS",
+    "RAW_QUARANTINE_AND_EVIDENCE_GRAPH",
+    "ACTIVE_EVIDENCE_CONTRIBUTION_MEASUREMENT",
+    "BIAS_DRIFT_SOURCE_REMOVAL_AND_REPLACEMENT_TESTS",
+    "SOURCE_SUFFICIENCY_RECALCULATION",
+    "GLOBAL_MARKET_POC_ADMISSION_GATE",
+    "GOVERNED_PROJECTION"
+  ],
+  "engine_system": [
+    {
+      "engine": "DECISION_AND_VALUE_GAP_ENGINE",
+      "purpose": "Prioritize Source work by unmet customer Decision DNA and Irreplaceable Value requirements."
+    },
+    {
+      "engine": "GLOBAL_SOURCE_DISCOVERY_ENGINE",
+      "purpose": "Discover official, institutional, specialist, transaction, authentication, provenance, cultural and commercial-provider channels using local-language and global search strategies."
+    },
+    {
+      "engine": "OWNER_LINEAGE_RESOLUTION_ENGINE",
+      "purpose": "Resolve organizations, endpoints, mirrors, Provider aliases and underlying datasets into independent Source families."
+    },
+    {
+      "engine": "SCOPE_ROLE_CLASSIFICATION_ENGINE",
+      "purpose": "Map each Source candidate to Collection Scopes, Source Roles, Decision DNA and Value contribution with explicit evidence."
+    },
+    {
+      "engine": "TRUST_UTILITY_AND_INDEPENDENCE_ENGINE",
+      "purpose": "Measure authority, relevance, uniqueness, effective coverage, corroboration, independence and incremental decision value."
+    },
+    {
+      "engine": "RIGHTS_ACCESS_RISK_AND_COST_ENGINE",
+      "purpose": "Represent Terms, commercial use, IP, database rights, privacy, access, rate limits, retention, cost, continuity and vendor lock."
+    },
+    {
+      "engine": "DIVERSITY_AND_CONCENTRATION_ENGINE",
+      "purpose": "Control region, language, jurisdiction, category, price, condition, owner and Provider concentration."
+    },
+    {
+      "engine": "ADAPTIVE_SOURCE_SUFFICIENCY_ENGINE",
+      "purpose": "Calculate required independent Source-family depth from observed coverage yield, attrition and resilience instead of a fixed Source count."
+    },
+    {
+      "engine": "AUTONOMOUS_COLLECTION_ORCHESTRATOR",
+      "purpose": "Execute only rights-aware, bounded, rate-limited, auditable DEV/STAGING collection plans."
+    },
+    {
+      "engine": "TRUST_DECAY_REPLACEMENT_AND_REPLENISHMENT_ENGINE",
+      "purpose": "Monitor stale, removed, blocked, dependent or low-utility Sources and autonomously replenish gaps."
+    }
+  ],
+  "trust_state_machine": [
+    "DISCOVERED",
+    "NORMALIZED",
+    "DEEP_ASSESSED",
+    "TRUST_QUALIFIED",
+    "PREFLIGHT_COMPLETE",
+    "ADAPTER_READY",
+    "ACTIVE_EVIDENCE_CONTRIBUTOR",
+    "TRUST_DECAY_HOLD",
+    "REMOVED_OR_REPLACED"
+  ],
+  "state_boundary": "TRUST_QUALIFIED_NEVER_IMPLIES_RIGHTS_CLEARED_ADAPTER_READY_OR_ACQUISITION_AUTHORIZED",
+  "global_diversity_gates": {
+    "core_domains": "8_OF_8",
+    "collection_scopes": "32_OF_32",
+    "mandatory_scope_role_lanes": "224_OF_224",
+    "critical_assertion_independent_family_floor": 3,
+    "critical_lane_independent_family_floor": 5,
+    "macro_regions_minimum": 6,
+    "countries_or_jurisdictions_minimum": 25,
+    "languages_minimum": 12,
+    "single_owner_concentration_maximum": 0.05,
+    "single_provider_family_concentration_maximum": 0.10
+  },
+  "precision_and_validation": {
+    "track_b_calibration_cases": 400,
+    "exact_top200_adjudication": 200,
+    "top50_precision_minimum": 0.95,
+    "top200_precision_minimum": 0.90,
+    "unknown_promoted_as_relevant": 0,
+    "duplicate_owner_lineage_inflation": 0,
+    "validation_mode": "STRATIFIED_GOLD_CALIBRATION_RISK_WEIGHTED_EXCEPTION_AND_RANDOM_HOLDOUT"
+  },
+  "immediate_execution": {
+    "wave_id": "ASI-SUFFICIENCY-CALIBRATION-WAVE-001",
+    "scope_role_lanes": 224,
+    "initial_targeted_candidate_assessments_per_lane": 20,
+    "initial_total_candidate_assessments": 4480,
+    "sequential_sampling": true,
+    "normal_lane_maximum": 50,
+    "high_risk_or_low_yield_lane_maximum": 100,
+    "broad_generic_discovery": "CLOSED",
+    "targeted_official_and_specialist_discovery": "ACTIVE",
+    "outputs": [
+      "LANE_LEVEL_SURVIVAL_RATES",
+      "EFFECTIVE_OBJECT_ROLE_COVERAGE_PER_FAMILY",
+      "GLOBAL_DIVERSITY_AND_CONCENTRATION_MATRIX",
+      "SOURCE_REPLACEMENT_DEPTH",
+      "EMPIRICALLY_CALCULATED_SOURCE_SUFFICIENCY_RANGE",
+      "NEXT_AUTONOMOUS_WORK_WAVE"
+    ]
+  },
+  "parallel_execution": {
+    "global_source_sufficiency": "ACTIVE",
+    "track_b_precision_calibration": "ACTIVE",
+    "rights_access_and_adapter_readiness": "ACTIVE",
+    "digitalocean_dev_staging_runtime": "ACTIVE",
+    "dependency_policy": "PARALLEL_UNLESS_EXPLICIT_GATE_REQUIRES_HANDOFF"
+  },
+  "global_market_poc_gate": {
+    "fixed_source_count": null,
+    "admission_basis": "EMPIRICAL_OUTCOME_SUFFICIENCY",
+    "admitted": false,
+    "pre_gate_label": "ENGINEERING_GOVERNANCE_PRECISION_OR_RUNTIME_POC",
+    "post_gate_label": "GLOBAL_MARKET_INTELLIGENCE_POC"
+  },
+  "runtime": {
+    "platform": "DIGITALOCEAN",
+    "environment": "DEV_AND_STAGING_ONLY",
+    "production": "HOLD",
+    "required_components": [
+      "PRIORITY_QUEUE",
+      "DISCOVERY_AND_ASSESSMENT_WORKERS",
+      "OWNER_LINEAGE_STORE",
+      "RAW_QUARANTINE",
+      "TRUST_RISK_AND_COST_LEDGER",
+      "RETRY_AND_DEAD_LETTER",
+      "OBSERVABILITY",
+      "BACKUP_RESTORE_AND_ROLLBACK"
+    ]
+  },
+  "boundaries": {
+    "ad_hoc_low_volume_source_set_as_global_market_poc": false,
+    "raw_url_count_as_trust": false,
+    "provider_id_as_canonical_id": false,
+    "direct_source_to_portal": false,
+    "direct_source_to_index": false,
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
