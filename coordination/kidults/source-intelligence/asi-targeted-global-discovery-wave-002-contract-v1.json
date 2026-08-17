@@ -1,0 +1,342 @@
+{
+  "id": "asi-targeted-global-discovery-wave-002-contract-v1",
+  "record_type": "autonomous_targeted_global_source_discovery_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T18:45:00+09:00",
+  "observed_at": "2026-08-17T18:45:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "issue": 337,
+  "parent_issue": 336,
+  "program_gate_issue": 330,
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "purpose": "Execute the exact 20,440 next-wave Source result slots through region-aware Wikidata entity and official-website metadata discovery, then compile a deterministic Scope-role candidate universe, Track B risk-weighted sample and next targeted gap wave without authorizing collection or Source promotion.",
+  "official_inputs": [
+    {
+      "name": "ASI_SUFFICIENCY_CALIBRATION_WAVE_001_V2",
+      "workflow_run_id": 32015662662,
+      "artifact_id": 9283396402,
+      "artifact_name": "kidults-asi-sufficiency-calibration-wave-001-v2",
+      "required_file": "next-autonomous-source-work-wave-v1.json"
+    },
+    {
+      "name": "COLLECTION_SCOPE_REGISTRY_V1",
+      "repository_path": "coordination/kidults/data-scope/collection-scope-registry-v1.json"
+    }
+  ],
+  "discovery_provider": {
+    "provider_id": "WIKIDATA_ENTITY_AND_OFFICIAL_WEBSITE_METADATA",
+    "api": "https://www.wikidata.org/w/api.php",
+    "search_action": "wbsearchentities",
+    "entity_action": "wbgetentities",
+    "official_website_property": "P856",
+    "country_property": "P17",
+    "headquarters_property": "P159",
+    "instance_of_property": "P31",
+    "content_acquisition": false,
+    "rights_interpretation": "An entity match or official website claim is discovery evidence only and never collection, caching or commercial-use permission.",
+    "request_concurrency": 2,
+    "minimum_worker_interval_ms": 200,
+    "search_language": "en",
+    "entity_languages": [
+      "en",
+      "ja",
+      "de",
+      "fr",
+      "it",
+      "es",
+      "ko",
+      "zh",
+      "pt",
+      "nl",
+      "ar",
+      "ru"
+    ],
+    "entity_batch_size": 50,
+    "retry_attempts": 4
+  },
+  "priority_sampling": {
+    "P0_HIGH_RISK_OR_LOW_YIELD": {
+      "query_count": 4,
+      "results_per_query": 25,
+      "planned_result_slots_per_lane": 100
+    },
+    "P1_MEDIUM_YIELD_GAP": {
+      "query_count": 2,
+      "results_per_query": 25,
+      "planned_result_slots_per_lane": 50
+    },
+    "P2_NORMAL_SEQUENTIAL_SAMPLE": {
+      "query_count": 1,
+      "results_per_query": 20,
+      "planned_result_slots_per_lane": 20
+    }
+  },
+  "expected_plan": {
+    "scope_role_lanes": 224,
+    "high_priority_lanes": 189,
+    "medium_priority_lanes": 28,
+    "normal_priority_lanes": 7,
+    "planned_queries": 819,
+    "planned_result_slots": 20440
+  },
+  "target_markets": [
+    {
+      "market_id": "US",
+      "market_name": "United States",
+      "query_term": "United States",
+      "macro_region": "NORTH_AMERICA"
+    },
+    {
+      "market_id": "GB",
+      "market_name": "United Kingdom",
+      "query_term": "United Kingdom",
+      "macro_region": "WESTERN_EUROPE"
+    },
+    {
+      "market_id": "DE",
+      "market_name": "Germany",
+      "query_term": "Germany",
+      "macro_region": "WESTERN_EUROPE"
+    },
+    {
+      "market_id": "FR",
+      "market_name": "France",
+      "query_term": "France",
+      "macro_region": "WESTERN_EUROPE"
+    },
+    {
+      "market_id": "IT",
+      "market_name": "Italy",
+      "query_term": "Italy",
+      "macro_region": "SOUTHERN_EUROPE"
+    },
+    {
+      "market_id": "ES",
+      "market_name": "Spain",
+      "query_term": "Spain",
+      "macro_region": "SOUTHERN_EUROPE"
+    },
+    {
+      "market_id": "JP",
+      "market_name": "Japan",
+      "query_term": "Japan",
+      "macro_region": "EAST_ASIA"
+    },
+    {
+      "market_id": "CN",
+      "market_name": "China",
+      "query_term": "China",
+      "macro_region": "EAST_ASIA"
+    },
+    {
+      "market_id": "KR",
+      "market_name": "South Korea",
+      "query_term": "South Korea",
+      "macro_region": "EAST_ASIA"
+    },
+    {
+      "market_id": "IN",
+      "market_name": "India",
+      "query_term": "India",
+      "macro_region": "SOUTH_ASIA"
+    },
+    {
+      "market_id": "BR",
+      "market_name": "Brazil",
+      "query_term": "Brazil",
+      "macro_region": "LATIN_AMERICA"
+    },
+    {
+      "market_id": "MX",
+      "market_name": "Mexico",
+      "query_term": "Mexico",
+      "macro_region": "LATIN_AMERICA"
+    },
+    {
+      "market_id": "AE",
+      "market_name": "United Arab Emirates",
+      "query_term": "United Arab Emirates",
+      "macro_region": "MIDDLE_EAST"
+    },
+    {
+      "market_id": "ZA",
+      "market_name": "South Africa",
+      "query_term": "South Africa",
+      "macro_region": "AFRICA"
+    },
+    {
+      "market_id": "AU",
+      "market_name": "Australia",
+      "query_term": "Australia",
+      "macro_region": "OCEANIA"
+    }
+  ],
+  "source_role_query_phrases": {
+    "PRIMARY_AUTHORITY": "official museum manufacturer archive",
+    "CATALOG_REFERENCE": "catalog database archive reference",
+    "LISTING_SUPPLY": "specialist marketplace dealer inventory",
+    "SOLD_TRANSACTION": "auction results sold prices",
+    "AUTHENTICATION_CONDITION": "grading certification authentication",
+    "PROVENANCE_HISTORY": "provenance ownership history archive",
+    "CULTURE_ATTENTION": "collector community publication exhibition"
+  },
+  "authority_description_terms": [
+    "museum",
+    "archive",
+    "library",
+    "manufacturer",
+    "company",
+    "auction house",
+    "marketplace",
+    "dealer",
+    "foundation",
+    "association",
+    "institute",
+    "institution",
+    "collection",
+    "registry",
+    "grading",
+    "certification",
+    "publisher",
+    "magazine"
+  ],
+  "source_role_evidence_terms": {
+    "PRIMARY_AUTHORITY": [
+      "official",
+      "manufacturer",
+      "museum",
+      "institution",
+      "archive",
+      "foundation"
+    ],
+    "CATALOG_REFERENCE": [
+      "catalog",
+      "catalogue",
+      "database",
+      "registry",
+      "archive",
+      "reference"
+    ],
+    "LISTING_SUPPLY": [
+      "marketplace",
+      "dealer",
+      "inventory",
+      "retailer",
+      "shop",
+      "listing"
+    ],
+    "SOLD_TRANSACTION": [
+      "auction",
+      "sale",
+      "sold",
+      "price",
+      "transaction",
+      "market"
+    ],
+    "AUTHENTICATION_CONDITION": [
+      "grading",
+      "certification",
+      "authentication",
+      "appraisal",
+      "condition",
+      "conservation"
+    ],
+    "PROVENANCE_HISTORY": [
+      "provenance",
+      "history",
+      "archive",
+      "collection",
+      "heritage",
+      "ownership"
+    ],
+    "CULTURE_ATTENTION": [
+      "community",
+      "magazine",
+      "publication",
+      "exhibition",
+      "festival",
+      "association",
+      "museum"
+    ]
+  },
+  "hard_negative_terms": [
+    "software framework",
+    "programming library",
+    "task manager",
+    "demo application",
+    "sample ecommerce",
+    "course project",
+    "homework",
+    "awesome list"
+  ],
+  "preassessment_outcomes": [
+    "PROVISIONAL_OFFICIAL_SPECIALIST_CANDIDATE_NOT_QUALIFIED",
+    "HOLD_OFFICIAL_WEBSITE_SCOPE_OR_ROLE_EVIDENCE_REQUIRED",
+    "HOLD_ENTITY_ONLY_OFFICIAL_ENDPOINT_REQUIRED",
+    "REJECT_AUTOMATED_SCOPE_OR_ROLE_MISMATCH",
+    "NO_SEARCH_RESULT_AVAILABLE"
+  ],
+  "track_b_sample": {
+    "target_cases": 400,
+    "strata": [
+      "PROVISIONAL_OFFICIAL_SPECIALIST_CANDIDATE_NOT_QUALIFIED",
+      "HOLD_OFFICIAL_WEBSITE_SCOPE_OR_ROLE_EVIDENCE_REQUIRED",
+      "HOLD_ENTITY_ONLY_OFFICIAL_ENDPOINT_REQUIRED",
+      "REJECT_AUTOMATED_SCOPE_OR_ROLE_MISMATCH"
+    ],
+    "target_per_stratum": 100,
+    "review_boundary": "MODEL_ASSISTED_AUTOMATED_PREASSESSMENT_NOT_TRACK_B_LABEL"
+  },
+  "next_wave_policy": {
+    "critical_provisional_family_floor_per_lane": 5,
+    "high_priority_additional_result_slots": 100,
+    "medium_priority_additional_result_slots": 50,
+    "normal_additional_result_slots": 20,
+    "broad_generic_discovery": "CLOSED",
+    "targeted_region_aware_official_specialist_discovery": "ACTIVE"
+  },
+  "required_outputs": [
+    "asi-targeted-global-wave-002-raw-snapshot.json",
+    "asi-targeted-global-wave-002-candidate-universe.json",
+    "asi-targeted-global-wave-002-assessments.json",
+    "asi-targeted-global-wave-002-lane-coverage.json",
+    "asi-targeted-global-wave-002-family-ledger.json",
+    "asi-targeted-global-wave-002-region-diversity.json",
+    "asi-targeted-global-wave-002-attrition.json",
+    "asi-targeted-global-wave-002-track-b-sample-queue.json",
+    "asi-targeted-global-wave-003-gap-queue.json",
+    "run-manifest.json"
+  ],
+  "acceptance": {
+    "scope_role_lanes": 224,
+    "planned_queries": 819,
+    "planned_result_slots": 20440,
+    "processed_result_slots": 20440,
+    "unfilled_slots_explicit_rate": 1.0,
+    "duplicate_family_within_lane": 0,
+    "same_snapshot_same_compiled_output": true,
+    "unknown_rights_promoted_as_allowed": 0,
+    "track_b_qualification_created": 0,
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "production": "HOLD"
+  },
+  "boundaries": {
+    "entity_search_result_is_source": false,
+    "official_website_claim_is_rights_clearance": false,
+    "automated_preassessment_is_track_b_assessment": false,
+    "provisional_candidate_is_trust_qualified": false,
+    "direct_source_to_portal": false,
+    "direct_source_to_index": false,
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
