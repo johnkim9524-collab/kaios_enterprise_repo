@@ -1,0 +1,36 @@
+{
+  "contract": "kidults-scope-evolution-governance-v1",
+  "status": "CANDIDATE_FOR_CANONICAL",
+  "principle": "The current 32 scopes are a versioned canonical baseline, not a permanent category count. Market and customer change may alter scopes without rewriting historical truth.",
+  "three_speed_architecture": {
+    "stable_core": ["KIDULTS_SEMANTIC_CORE", "COLLECTIBLES_DEFINITION", "CANONICAL_IDENTITY_PRINCIPLES", "EVIDENCE_GRAMMAR"],
+    "adaptive_market_model": ["MARKET_ARCHETYPES", "COLLECTION_SCOPES", "NORMALIZATION_MODELS"],
+    "dynamic_market_layer": ["REPRESENTATIVE_PRODUCTS", "MARKET_CELLS", "DYNAMIC_VERTICALS", "CUSTOMER_DECISIONS", "SOURCE_DEMAND"]
+  },
+  "scope_lifecycle": ["EMERGING", "CANDIDATE", "VALIDATED", "CANONICAL", "MATURE", "DECLINING", "MERGE_CANDIDATE", "SPLIT_CANDIDATE", "ARCHIVED"],
+  "separation_rules": [
+    "CANONICAL_COLLECTION_SCOPE != PORTAL_CATEGORY",
+    "CANONICAL_COLLECTION_SCOPE != DYNAMIC_VERTICAL",
+    "CUSTOMER_SIGNAL != MARKET_TRUTH",
+    "AUTOMATED_RECOMMENDATION != CANONICAL_PROMOTION"
+  ],
+  "new_scope_admission": {
+    "required": ["DISTINCT_CUSTOMER_DECISION", "DISTINCT_IDENTITY_GRAMMAR", "DISTINCT_CONDITION_OR_PROVENANCE_LOGIC", "DISTINCT_MARKET_BEHAVIOR", "DISTINCT_INTELLIGENCE_OUTPUT", "SUFFICIENT_GLOBAL_MARKET", "PERSISTENT_DEMAND"],
+    "default_path": "SIGNAL -> DYNAMIC_VERTICAL -> OBSERVATION -> SCOPE_CANDIDATE -> TRACK_B -> KPMO -> CANONICAL_VERSION"
+  },
+  "scope_drift_score": {
+    "identity_divergence": 0.20,
+    "market_behavior_divergence": 0.20,
+    "customer_decision_divergence": 0.20,
+    "source_topology_divergence": 0.15,
+    "condition_provenance_divergence": 0.15,
+    "regional_divergence": 0.10,
+    "bands": {"STABLE": "<30", "MONITOR": "30-49", "REVIEW": "50-69", "SPLIT_OR_NEW_SCOPE_CANDIDATE": ">=70"}
+  },
+  "change_signals": ["SEARCH_ATTENTION_GROWTH", "TRANSACTION_GROWTH", "UNIQUE_PRODUCT_GROWTH", "PRICE_DISPERSION", "LIQUIDITY_CHANGE", "NEW_SOURCE_EMERGENCE", "REGIONAL_EXPANSION", "CUSTOMER_SEARCH_BEHAVIOR", "PORTAL_ENGAGEMENT", "WATCHLIST_ACTIVITY", "EVIDENCE_DENSITY", "AUTHENTICATION_INFRASTRUCTURE_CHANGE"],
+  "versioning": {"overwrite_prohibited": true, "required_fields": ["scope_version", "effective_from", "effective_to", "supersedes", "change_reason", "migration_rule"]},
+  "historical_truth": {"rewrite_prohibited": true, "preserve_observed_under_scope_version": true, "allow_current_interpretation_mapping": true},
+  "irreplaceable_value_revalidation": {"required": true, "questions": ["CAN_GENERIC_AI_NOW_ANSWER", "CAN_MARKETPLACE_NOW_PROVIDE", "CAN_ONE_PROVIDER_REPLICATE", "CAN_OPEN_DATA_REPLICATE"], "action_if_degraded": "DEEPEN_OR_REDESIGN_OUTPUT"},
+  "north_star": {"AUTONOMOUS": "REQUIRED", "GLOBAL": "REQUIRED", "IRREPLACEABLE_VALUE": "REQUIRED", "TRANSPARENT": "REQUIRED"},
+  "production": "HOLD"
+}
