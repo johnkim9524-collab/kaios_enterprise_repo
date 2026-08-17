@@ -1,0 +1,230 @@
+{
+  "id": "autonomous-collection-cadence-policy-v1",
+  "record_type": "autonomous_collection_cadence_policy",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T19:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "purpose": "Unify Source discovery, qualification, health monitoring and rights-aware data acquisition cadence under one adaptive policy. GitHub governs contracts, CI, snapshots and audit; DigitalOcean executes continuous DEV/STAGING queues. Production remains gated.",
+  "governing_distinction": {
+    "source_intelligence_cadence": "DISCOVER_ASSESS_MONITOR_REMOVE_REPLACE",
+    "data_acquisition_cadence": "COLLECT_ONLY_AFTER_PREFLIGHT_AND_BOUNDED_ADAPTER_PASS",
+    "source_discovery_is_content_acquisition": false,
+    "trust_qualified_is_rights_cleared": false,
+    "adapter_ready_is_acquisition_authorized": false
+  },
+  "control_plane": {
+    "continuous_workers": "24X7_DIGITALOCEAN_DEV_STAGING",
+    "priority_replanning_interval_hours": 6,
+    "priority_replanning_utc": [
+      "00:17",
+      "06:17",
+      "12:17",
+      "18:17"
+    ],
+    "immutable_source_snapshot_interval_hours": 24,
+    "global_diversity_rebalance_interval_days": 7,
+    "source_sufficiency_recalibration_interval_days": 30,
+    "event_triggered_replanning": true,
+    "github_role": "CONTRACT_CI_AUDIT_SNAPSHOT_AND_POLICY_CONTROLLER",
+    "digitalocean_role": "CONTINUOUS_QUEUE_WORKER_STORAGE_OBSERVABILITY_AND_RECOVERY_RUNTIME",
+    "production": "HOLD"
+  },
+  "source_intelligence_priority_cadence": [
+    {
+      "priority": "P0_HIGH_RISK_OR_LOW_YIELD",
+      "discovery_revisit_hours": 6,
+      "assessment_extension": "UP_TO_100_PER_LANE",
+      "reason": "Critical coverage, trust, diversity or rights gaps."
+    },
+    {
+      "priority": "P1_MEDIUM_YIELD_GAP",
+      "discovery_revisit_hours": 12,
+      "assessment_extension": "UP_TO_50_PER_LANE",
+      "reason": "Material but noncritical Source sufficiency gap."
+    },
+    {
+      "priority": "P2_NORMAL_SEQUENTIAL_SAMPLE",
+      "discovery_revisit_hours": 24,
+      "assessment_extension": "UP_TO_20_PER_LANE",
+      "reason": "Normal replenishment and change detection."
+    }
+  ],
+  "source_role_collection_cadence": [
+    {
+      "source_role": "PRIMARY_AUTHORITY",
+      "default_delta_minutes": 1440,
+      "full_reconcile_minutes": 10080,
+      "event_trigger": "OFFICIAL_RELEASE_ARCHIVE_OR_SCHEMA_CHANGE"
+    },
+    {
+      "source_role": "CATALOG_REFERENCE",
+      "default_delta_minutes": 1440,
+      "full_reconcile_minutes": 10080,
+      "event_trigger": "CATALOG_VERSION_OR_IDENTITY_CHANGE"
+    },
+    {
+      "source_role": "LISTING_SUPPLY",
+      "default_delta_minutes": 60,
+      "minimum_minutes": 15,
+      "maximum_minutes": 360,
+      "event_trigger": "SUPPLY_PRICE_OR_INVENTORY_SPIKE"
+    },
+    {
+      "source_role": "SOLD_TRANSACTION",
+      "default_delta_minutes": 60,
+      "minimum_minutes": 5,
+      "maximum_minutes": 180,
+      "event_trigger": "SALE_AUCTION_CLOSE_OR_TRANSACTION_EVENT"
+    },
+    {
+      "source_role": "AUTHENTICATION_CONDITION",
+      "default_delta_minutes": 1440,
+      "minimum_minutes": 360,
+      "maximum_minutes": 10080,
+      "event_trigger": "CERTIFICATION_POPULATION_OR_STANDARD_CHANGE"
+    },
+    {
+      "source_role": "PROVENANCE_HISTORY",
+      "default_delta_minutes": 10080,
+      "minimum_minutes": 1440,
+      "maximum_minutes": 43200,
+      "event_trigger": "OWNERSHIP_ARCHIVE_OR_EXHIBITION_CHANGE"
+    },
+    {
+      "source_role": "CULTURE_ATTENTION",
+      "default_delta_minutes": 360,
+      "minimum_minutes": 30,
+      "maximum_minutes": 1440,
+      "event_trigger": "ATTENTION_RELEASE_EXHIBITION_OR_COMMUNITY_SPIKE"
+    },
+    {
+      "source_role": "AUCTION_PRIVATE_SALE",
+      "default_delta_minutes": 60,
+      "minimum_minutes": 5,
+      "maximum_minutes": 360,
+      "event_trigger": "LOT_OPEN_CLOSE_RESULT_OR_REVISION"
+    },
+    {
+      "source_role": "MACRO_CONTEXT",
+      "default_delta_minutes": 1440,
+      "minimum_minutes": 360,
+      "maximum_minutes": 10080,
+      "event_trigger": "REGULATION_INSURANCE_CUSTOMS_OR_MACRO_EVENT"
+    },
+    {
+      "source_role": "INDEPENDENT_VERIFICATION",
+      "default_delta_minutes": 10080,
+      "minimum_minutes": 1440,
+      "maximum_minutes": 43200,
+      "event_trigger": "NEW_DATASET_RESEARCH_REVISION_OR_RETRACTION"
+    }
+  ],
+  "adaptive_cadence_engine": {
+    "inputs": [
+      "DECISION_CRITICALITY",
+      "SIGNAL_DECAY_SPEED",
+      "MARKET_VOLATILITY",
+      "SOURCE_CHANGE_PROBABILITY",
+      "CURRENT_SCOPE_ROLE_REGION_LANGUAGE_GAP",
+      "FRESHNESS_SLA",
+      "PROVIDER_RELIABILITY",
+      "RATE_LIMIT_PRESSURE",
+      "COLLECTION_COST",
+      "FAILURE_AND_RETRY_RATE",
+      "DUPLICATE_YIELD",
+      "INCREMENTAL_IRREPLACEABLE_VALUE"
+    ],
+    "shorten_when": [
+      "VOLATILITY_OR_TRANSACTION_ACTIVITY_INCREASES",
+      "FRESHNESS_SLA_AT_RISK",
+      "COVERAGE_GAP_WIDENS",
+      "PROVIDER_OR_SCHEMA_CHANGE_DETECTED",
+      "HIGH_VALUE_EVENT_DETECTED"
+    ],
+    "lengthen_when": [
+      "NO_MEANINGFUL_CHANGE",
+      "DUPLICATE_RATE_INCREASES",
+      "INCREMENTAL_VALUE_DECLINES",
+      "COST_OR_RATE_LIMIT_PRESSURE_INCREASES",
+      "SOURCE_IS_HISTORICAL_OR_LOW_VOLATILITY"
+    ],
+    "minimum_collection_interval_minutes": 5,
+    "maximum_collection_interval_minutes": 43200,
+    "out_of_bound_policy": "TRACK_D_AND_KPMO_REVIEW"
+  },
+  "health_and_governance_cadence": [
+    {
+      "check": "ENDPOINT_API_FEED_HEALTH",
+      "interval_minutes": 15,
+      "adaptive_maximum_minutes": 60
+    },
+    {
+      "check": "SCHEMA_DRIFT",
+      "interval": "EVERY_COLLECTION_PLUS_DAILY_SUMMARY"
+    },
+    {
+      "check": "TERMS_LICENSE_ROBOTS_CHANGE",
+      "interval_minutes": 1440
+    },
+    {
+      "check": "OWNER_LINEAGE_CHANGE",
+      "interval_minutes": 10080,
+      "event_triggered": true
+    },
+    {
+      "check": "SOURCE_UTILITY_AND_VALUE_CONTRIBUTION",
+      "interval_minutes": 10080
+    },
+    {
+      "check": "OWNER_PROVIDER_CONCENTRATION",
+      "interval_minutes": 10080
+    },
+    {
+      "check": "TRUST_SCORE_RECALCULATION",
+      "interval_minutes": 1440
+    },
+    {
+      "check": "SOURCE_REMOVAL_RESILIENCE",
+      "interval_minutes": 43200
+    },
+    {
+      "check": "BACKUP_SOURCE_FAILOVER_DRILL",
+      "interval_minutes": 129600
+    }
+  ],
+  "acquisition_gate": [
+    "VALUE_AND_DECISION_LINKAGE_PASS",
+    "SCOPE_AND_SOURCE_ROLE_PASS",
+    "TRACK_B_REQUIRED_VALIDATION_PASS",
+    "RIGHTS_ACCESS_COST_PREFLIGHT_PASS",
+    "BOUNDED_ADAPTER_CONTRACT_PASS",
+    "DEV_SHADOW_PASS",
+    "STAGING_SHADOW_PASS",
+    "EXPLICIT_ACQUISITION_AUTHORIZATION"
+  ],
+  "schedule_boundary": {
+    "github_schedule_is_policy_controller_not_primary_collection_runtime": true,
+    "github_actions_may_execute_metadata_only_discovery_and_validation": true,
+    "continuous_content_collection_in_github_actions": false,
+    "production_collection_before_g5": false
+  },
+  "required_outputs": [
+    "collection-cadence-plan-v1.json",
+    "source-role-freshness-sla-v1.json",
+    "digitalocean-continuous-runtime-plan-v1.json",
+    "collection-policy-gate-v1.json"
+  ],
+  "boundaries": {
+    "content_acquisition_authorized": false,
+    "source_pool_promotions": 0,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
