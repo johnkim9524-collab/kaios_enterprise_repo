@@ -49,8 +49,15 @@ for (const p of registry.records || []) {
     const rec = {
       demand_instance_id: `demand:${p.representative_product_id}:${gap.toLowerCase()}`,
       representative_product_id: p.representative_product_id,
+      maker_or_brand: p.maker_or_brand,
+      product_name: p.product_name,
+      display_name: p.display_name,
+      identity_level: p.identity_level,
+      release_or_era: p.release_or_era,
       category_id: p.category_id,
+      category_name: p.category_name,
       collection_scope_id: p.collection_scope_id,
+      collection_scope_name: p.collection_scope_name,
       market_cell_id: `pmc:${p.representative_product_id}:global-planning-v1`,
       market_cell_state: 'PLANNING_TOPOLOGY_BOUND_NOT_QUALIFIED',
       assertion_id: `assertion:${p.representative_product_id}:${gap.toLowerCase()}`,
@@ -79,7 +86,7 @@ let total = 0, roleAssignments = 0, floorSum = 0;
 const shards = [];
 for (const [categoryId, records] of [...byCategory.entries()].sort()) {
   const payload = {
-    id: `product-linked-targeted-asi-queue-${categoryId}-v1`, version:'1.2.0', category_id: categoryId,
+    id: `product-linked-targeted-asi-queue-${categoryId}-v1`, version:'1.3.0', category_id: categoryId,
     status:'DISCOVERY_READY_GLOBAL_PLANNING_TOPOLOGY_BOUND', record_count: records.length, records,
     acquisition_authorized:false, production:'HOLD'
   };
@@ -100,12 +107,13 @@ if (shards.length !== 8) throw new Error(`Expected 8 category shards, got ${shar
 if (scopeIds.size !== 32) throw new Error(`Expected 32 scope bindings, got ${scopeIds.size}`);
 
 const manifest = {
-  id:'product-linked-targeted-asi-queue-bootstrap-manifest-v1', version:'1.2.0',
+  id:'product-linked-targeted-asi-queue-bootstrap-manifest-v1', version:'1.3.0',
   status:'MATERIALIZED_DISCOVERY_READY_GLOBAL_PLANNING_TOPOLOGY_BOUND',
   input_registry_id: registry.id, input_registry_fingerprint: registry.fingerprint,
   global_topology_id: topology.id,
   named_products: expectedProducts, planning_market_cells: expectedProducts, bound_scopes:scopeIds.size,
   demand_records: total, required_source_role_assignments: roleAssignments,
+  product_identity_context_rows: total,
   naive_independent_family_floor_sum_not_deduplicated: floorSum,
   note:'The family-floor sum is workload demand, not a Source target. Empirical Global representativeness remains pending discovery and qualification.',
   north_star:{autonomous:'PASS',global:'PASS_PLANNING_TOPOLOGY_EMPIRICAL_PENDING',irreplaceable_value:'PASS'},
@@ -115,4 +123,4 @@ const manifest = {
   discovery_active:true, acquisition_authorized:false, production:'HOLD', shards
 };
 fs.writeFileSync(path.join(outputDir,'manifest.json'), JSON.stringify(manifest,null,2));
-console.log(JSON.stringify({products:expectedProducts,bound_scopes:scopeIds.size,demand_records:total,region_language_bound_rows:total,north_star:manifest.north_star,discovery_active:manifest.discovery_active,shards:shards.length},null,2));
+console.log(JSON.stringify({products:expectedProducts,bound_scopes:scopeIds.size,demand_records:total,product_identity_context_rows:total,region_language_bound_rows:total,north_star:manifest.north_star,discovery_active:manifest.discovery_active,shards:shards.length},null,2));
