@@ -1,0 +1,112 @@
+{
+  "id": "collectible-universe-admission-policy-v1",
+  "record_type": "collectible_universe_admission_policy",
+  "version": "1.0.0",
+  "status": "KPMO_DEFINED_PENDING_MAIN_INTEGRATION",
+  "upstream_definition_ids": [
+    "kidults-platform-definition-v1",
+    "collectibles-universe-definition-v1"
+  ],
+  "purpose": "Prevent commodity, popularity, age-stereotype, source-availability and marketplace-listing signals from entering the canonical Collectibles Universe without an evidence-backed collectible thesis.",
+  "admission_unit": "PRODUCT_FAMILY_OR_EXPLICIT_OBJECT_CLASS",
+  "required_gates": [
+    {
+      "gate": "IDENTITY_RESOLVABLE",
+      "required_state": "PASS",
+      "evidence": "Stable product/model/reference/edition/series/generation or provenance boundary."
+    },
+    {
+      "gate": "COLLECTIBLE_THESIS_EXPLICIT",
+      "required_state": "PASS",
+      "evidence": "Why the family has durable collectible significance beyond ordinary functional utility."
+    },
+    {
+      "gate": "NON_UTILITY_DIFFERENTIATION",
+      "required_state": "PASS",
+      "evidence": "Economic, cultural, historical, design, fandom, identity or status differentiation."
+    },
+    {
+      "gate": "SCARCITY_OR_SIGNIFICANCE_AXIS",
+      "required_state": "PASS",
+      "evidence": "At least one durable production, survival, edition, variant, canon, provenance or cultural-significance axis."
+    },
+    {
+      "gate": "AUTHENTICITY_PROVENANCE_MODEL",
+      "required_state": "DEFINED",
+      "evidence": "Authentication/originality/provenance fields and failure states are explicit."
+    },
+    {
+      "gate": "CONDITION_GRADE_MODEL",
+      "required_state": "DEFINED_OR_EXPLICIT_NA",
+      "evidence": "Condition/originality/completeness/grade model or bounded rationale for N/A."
+    },
+    {
+      "gate": "MARKET_OR_INSTITUTIONAL_EVIDENCE",
+      "required_state": "PRESENT",
+      "evidence": "Specialist secondary-market, archival, institutional or durable collector evidence."
+    },
+    {
+      "gate": "COMMODITY_ONLY",
+      "required_state": false,
+      "evidence": "The product is not admitted solely as an ordinary used or commodity good."
+    },
+    {
+      "gate": "ILLEGAL_OR_NON_TRANSFERABLE_EXCLUSION",
+      "required_state": false,
+      "evidence": "No prohibited commercial-market state."
+    },
+    {
+      "gate": "CANONICAL_BOUNDARY",
+      "required_state": "DEFINED",
+      "evidence": "Product-family and variant boundary is explicit before Representative Product nomination."
+    }
+  ],
+  "collectible_thesis_evidence_classes": [
+    "PRIMARY_AUTHORITY_IDENTITY",
+    "INDEPENDENT_REFERENCE",
+    "SECONDARY_MARKET_BEHAVIOR",
+    "AUTHENTICATION_OR_GRADING_EVIDENCE",
+    "PROVENANCE_OR_ARCHIVAL_EVIDENCE",
+    "INSTITUTIONAL_OR_CULTURAL_RECOGNITION",
+    "SCARCITY_OR_PRODUCTION_EVIDENCE"
+  ],
+  "minimum_policy": {
+    "all_required_gates_must_be_resolved": true,
+    "unknown_promoted_to_pass": false,
+    "marketplace_listing_alone_is_sufficient": false,
+    "price_level_alone_is_sufficient": false,
+    "age_alone_is_sufficient": false,
+    "rarity_claim_alone_is_sufficient": false,
+    "portal_visual_selection_is_sufficient": false,
+    "source_availability_is_sufficient": false
+  },
+  "failure_states": [
+    "HOLD_NOT_YET_COLLECTIBLE_QUALIFIED",
+    "HOLD_IDENTITY_UNRESOLVED",
+    "HOLD_COMMODITY_CONTAMINATION",
+    "HOLD_INSUFFICIENT_MARKET_OR_INSTITUTIONAL_EVIDENCE",
+    "REJECT_NON_COLLECTIBLE",
+    "REJECT_ILLEGAL_OR_NON_TRANSFERABLE"
+  ],
+  "downstream_authorization": {
+    "on_collectible_qualified": [
+      "MAY_ENTER_REPRESENTATIVE_PRODUCT_CANDIDATE_POOL",
+      "MAY_RECEIVE_PRODUCT_LEVEL_EVIDENCE_DEMAND",
+      "MAY_RECEIVE_TARGETED_SOURCE_DEMAND"
+    ],
+    "not_authorized": [
+      "INDEX_INCLUSION",
+      "PUBLICATION",
+      "PRODUCTION",
+      "INVESTMENT_RECOMMENDATION"
+    ]
+  },
+  "track_b_required_validation": [
+    "COLLECTIBLE_QUALIFICATION_BOUNDARY",
+    "COMMODITY_CONTAMINATION",
+    "SCOPE_CREEP",
+    "REPRESENTATIVE_SET_BIAS",
+    "EVIDENCE_SUFFICIENCY"
+  ],
+  "production": "HOLD"
+}
