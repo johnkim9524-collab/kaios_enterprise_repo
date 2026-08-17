@@ -1,0 +1,191 @@
+{
+  "id": "asi-sufficiency-calibration-wave-001-execution-contract-v1",
+  "record_type": "autonomous_source_sufficiency_calibration_execution_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T18:10:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "issue": 336,
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "purpose": "Execute all 4,480 adaptive Source-sufficiency calibration work items through autonomous metadata-only pre-assessment, measure lane-level attrition and candidate yield, and generate the next targeted Source work wave without misrepresenting automated output as Track B qualification or rights clearance.",
+  "official_inputs": [
+    {
+      "name": "GLOBAL_SOURCE_SUFFICIENCY_FOUNDATION",
+      "workflow_run_id": 32010180729,
+      "artifact_id": 9281458657,
+      "artifact_name": "kidults-global-source-sufficiency-v1",
+      "required_file": "asi-sufficiency-calibration-wave-001-work-queue.json"
+    },
+    {
+      "name": "ASI_DISCOVERY_BATCH_001",
+      "workflow_run_id": 31960423954,
+      "artifact_id": 9267228533,
+      "artifact_name": "kidults-asi-discovery-batch-001",
+      "required_file": "global-source-universe-batch-001.json"
+    },
+    {
+      "name": "SOURCE_PRECISION_RANKING_V2_FINAL",
+      "workflow_run_id": 31986434921,
+      "artifact_id": 9273918009,
+      "artifact_name": "kidults-source-precision-ranking-v2-final",
+      "required_file": "precision-ranked-universe-v2.json"
+    },
+    {
+      "name": "TARGETED_HIGH_AUTHORITY_SOURCE_EXPANSION",
+      "workflow_run_id": 31990288099,
+      "artifact_id": 9275079709,
+      "artifact_name": "kidults-targeted-high-authority-source-expansion-v1-fixed",
+      "required_file": "targeted-high-authority-source-candidate-registry-v1.json"
+    },
+    {
+      "name": "LINKED_SOURCE_SUFFICIENCY_CALCULATION_V2",
+      "workflow_run_id": 32011144264,
+      "artifact_id": 9281790449,
+      "artifact_name": "kidults-source-sufficiency-calculation-v2",
+      "required_file": "source-sufficiency-calculation-v2.json"
+    }
+  ],
+  "execution_mode": "AUTONOMOUS_METADATA_ONLY_PREASSESSMENT",
+  "review_boundary": "AUTOMATED_PREASSESSMENT_IS_NOT_TRACK_B_VALIDATED_TRUST_QUALIFICATION",
+  "queue": {
+    "wave_id": "ASI-SUFFICIENCY-CALIBRATION-WAVE-001",
+    "scope_role_lanes": 224,
+    "candidate_assessments_per_lane": 20,
+    "total_work_items": 4480,
+    "unfilled_slot_policy": "EXPLICIT_NO_CANDIDATE_AVAILABLE_NEVER_PAD_WITH_REJECTED_OR_DUPLICATE_FAMILY",
+    "sequential_sampling": true
+  },
+  "candidate_priority": [
+    "TARGETED_HIGH_AUTHORITY_EXACT_SCOPE_ROLE",
+    "PRECISION_V2_TRUSTED_OR_BOUNDED_ANCHOR_EXACT_SCOPE_ROLE",
+    "PRECISION_V2_HOLD_WITH_EXPLICIT_SCOPE_AND_CHANNEL_EVIDENCE",
+    "PRECISION_V2_OTHER_EXACT_SCOPE_ROLE_FOR_ATTRITION_MEASUREMENT",
+    "BATCH_001_EXACT_SCOPE_ROLE_FOR_ATTRITION_MEASUREMENT"
+  ],
+  "positive_padding_prohibited_states": [
+    "REJECT_V2_HARD_GATE",
+    "REJECT_V2_INSUFFICIENT_SCOPE_OR_CHANNEL_EVIDENCE",
+    "TRACK_B_PILOT_FALSE_POSITIVE",
+    "GENERIC_SOFTWARE_OR_KEYWORD_COLLISION"
+  ],
+  "independent_family_resolution": {
+    "preferred_keys": [
+      "UNDERLYING_WORK_KEY",
+      "NORMALIZED_OWNER_PLUS_REGISTERABLE_HOST",
+      "NORMALIZED_OWNER_PLUS_ENDPOINT_HOST"
+    ],
+    "endpoint_aliases_count_as_independent_families": false,
+    "same_family_within_one_lane_allowed": false,
+    "provisional_resolution_state": "OWNER_ENDPOINT_PROXY_REQUIRES_FINAL_LINEAGE_VALIDATION"
+  },
+  "automated_stage_checks": [
+    "CANDIDATE_AVAILABLE",
+    "NORMALIZED_ENDPOINT_PRESENT",
+    "EXACT_COLLECTION_SCOPE_ASSIGNMENT",
+    "EXACT_SOURCE_ROLE_ASSIGNMENT",
+    "OWNER_IDENTITY_PRESENT",
+    "INDEPENDENT_FAMILY_KEY_PRESENT",
+    "OFFICIAL_OR_SPECIALIST_CHANNEL_EVIDENCE",
+    "EXPLICIT_CHANNEL_SUITABILITY",
+    "DECISION_AND_VALUE_LINKAGE_PRESENT_OR_LANE_DERIVED",
+    "RIGHTS_STATE_EXPLICIT",
+    "TECHNICAL_ACCESS_STATE_EXPLICIT",
+    "FRESHNESS_STATE_EXPLICIT",
+    "CONTINUITY_STATE_EXPLICIT",
+    "JURISDICTION_STATE_EXPLICIT",
+    "LANGUAGE_STATE_EXPLICIT"
+  ],
+  "automated_outcomes": [
+    "PROVISIONAL_HIGH_AUTHORITY_CANDIDATE_NOT_QUALIFIED",
+    "HOLD_RIGHTS_OR_TECHNICAL_PREFLIGHT_REQUIRED",
+    "HOLD_SCOPE_ROLE_OR_CHANNEL_EVIDENCE_REQUIRED",
+    "REJECT_KNOWN_FALSE_POSITIVE_CLASS",
+    "NO_CANDIDATE_AVAILABLE"
+  ],
+  "provisional_high_authority_rule": {
+    "allowed_origins": [
+      "TARGETED_HIGH_AUTHORITY",
+      "PRECISION_V2_TRUSTED_SOURCE_REGISTRY",
+      "PRECISION_V2_BOUNDED_ADAPTER_CONTRACT"
+    ],
+    "required": [
+      "EXACT_SCOPE_ROLE",
+      "OWNER_AND_FAMILY_PRESENT",
+      "OFFICIAL_OR_SPECIALIST_CHANNEL_EVIDENCE",
+      "CHANNEL_SUITABILITY_EXPLICIT",
+      "NO_HARD_REJECTION"
+    ],
+    "state": "NOT_TRACK_B_VALIDATED_NOT_RIGHTS_CLEARED"
+  },
+  "lane_metrics": [
+    "ASSIGNED_CANDIDATE_COUNT",
+    "UNFILLED_SLOT_COUNT",
+    "UNIQUE_INDEPENDENT_FAMILY_COUNT",
+    "PROVISIONAL_HIGH_AUTHORITY_COUNT",
+    "AUTOMATED_SCOPE_ROLE_EVIDENCE_SURVIVAL_RATE",
+    "OWNER_LINEAGE_RESOLUTION_RATE",
+    "RIGHTS_STATE_EXPLICIT_RATE",
+    "TECHNICAL_STATE_EXPLICIT_RATE",
+    "FRESHNESS_STATE_EXPLICIT_RATE",
+    "CONTINUITY_STATE_EXPLICIT_RATE",
+    "PROVISIONAL_HIGH_AUTHORITY_SURVIVAL_RATE",
+    "OWNER_CONCENTRATION",
+    "NEXT_WAVE_PRIORITY"
+  ],
+  "next_wave_policy": {
+    "critical_family_floor_per_lane": 5,
+    "high_priority_when_provisional_families_below": 5,
+    "medium_priority_when_provisional_families_below": 10,
+    "normal_additional_assessment_target": 20,
+    "medium_additional_assessment_target": 50,
+    "high_risk_or_low_yield_assessment_target": 100,
+    "broad_generic_discovery": "CLOSED",
+    "targeted_official_specialist_local_language_discovery": "ACTIVE"
+  },
+  "empirical_parameter_boundary": {
+    "automated_metrics_may_replace_official_planning_profile": false,
+    "track_b_sample_validation_required": true,
+    "rights_and_access_preflight_required": true,
+    "label": "EMPIRICAL_CALIBRATION_CANDIDATE_NOT_OFFICIAL_PARAMETER"
+  },
+  "required_outputs": [
+    "asi-sufficiency-calibration-wave-001-assessments.json",
+    "lane-survival-and-yield-v1.json",
+    "source-family-resolution-v1.json",
+    "global-diversity-and-concentration-v1.json",
+    "source-attrition-taxonomy-v1.json",
+    "source-sufficiency-empirical-calibration-candidate-v1.json",
+    "next-autonomous-source-work-wave-v1.json",
+    "run-manifest.json"
+  ],
+  "acceptance": {
+    "work_items_processed": 4480,
+    "scope_role_lanes": 224,
+    "candidate_assessments_per_lane": 20,
+    "unfilled_slots_explicit_rate": 1.0,
+    "duplicate_family_within_lane": 0,
+    "same_input_same_output": true,
+    "lane_metric_records": 224,
+    "next_wave_records": 224,
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "production": "HOLD"
+  },
+  "boundaries": {
+    "automated_preassessment_is_track_b_assessment": false,
+    "provisional_high_authority_is_trust_qualified": false,
+    "trust_qualified_is_rights_cleared": false,
+    "preassessment_authorizes_adapter": false,
+    "direct_source_to_portal": false,
+    "direct_source_to_index": false,
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
