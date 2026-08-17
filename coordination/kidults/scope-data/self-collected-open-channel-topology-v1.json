@@ -1,0 +1,63 @@
+{
+  "id": "kidults-self-collected-open-channel-topology-v1",
+  "version": "1.0.0",
+  "status": "EXECUTION_CANDIDATE",
+  "principle": "Only query an open/institutional channel where its authority and data grammar can satisfy a frozen Scope requirement. No generic source count optimization.",
+  "channels": [
+    {
+      "channel_id": "MET_OPEN_ACCESS",
+      "owner": "The Metropolitan Museum of Art",
+      "access": "PUBLIC_COLLECTION_API_OR_CC0_DATASET",
+      "rights_state": "CC0_COLLECTION_DATASET_METADATA",
+      "source_family": "MET_COLLECTION_OPEN_ACCESS",
+      "roles": ["CATALOG_REFERENCE", "PROVENANCE_HISTORY", "CULTURE_ATTENTION"],
+      "scopes": ["fine_jewelry","designer_jewelry","designer_garments","seating","tables_storage","lighting","decorative_design_objects","musical_instruments_artist_gear","historical_cultural_memorabilia"],
+      "commercial_metadata_use": "PERMITTED_FOR_CC0_DATASET",
+      "media_use": "ITEM_LEVEL_CC0_ONLY"
+    },
+    {
+      "channel_id": "LOC_JSON_API",
+      "owner": "Library of Congress",
+      "access": "PUBLIC_JSON_API_NO_KEY_RATE_LIMITED",
+      "rights_state": "METADATA_ACCESS_PUBLIC_ITEM_REUSE_RIGHTS_MUST_REMAIN_ITEM_LEVEL",
+      "source_family": "LIBRARY_OF_CONGRESS_DIGITAL_COLLECTIONS",
+      "roles": ["CATALOG_REFERENCE", "PROVENANCE_HISTORY", "CULTURE_ATTENTION"],
+      "scopes": ["automotive_memorabilia","designer_garments","vintage_computing","collectible_electronics","vinyl_recorded_music","musical_instruments_artist_gear","film_tv_props","sports_memorabilia","historical_cultural_memorabilia"],
+      "commercial_metadata_use": "REFERENCE_METADATA_ONLY_UNTIL_FIELD_RIGHTS_REVIEW",
+      "media_use": "ITEM_LEVEL_RIGHTS_REQUIRED"
+    },
+    {
+      "channel_id": "MUSICBRAINZ_CORE",
+      "owner": "MetaBrainz Foundation",
+      "access": "PUBLIC_WEBSERVICE_RATE_LIMITED",
+      "rights_state": "CORE_DATA_CC0_SUPPLEMENTARY_DATA_EXCLUDED",
+      "source_family": "MUSICBRAINZ_CORE_CC0",
+      "roles": ["CATALOG_REFERENCE", "INDEPENDENT_VERIFICATION"],
+      "scopes": ["vinyl_recorded_music"],
+      "commercial_metadata_use": "CC0_CORE_PERMITTED",
+      "media_use": "NOT_INCLUDED"
+    }
+  ],
+  "credential_later_open_channels": [
+    {
+      "channel_id": "SMITHSONIAN_OPEN_ACCESS_API",
+      "rights_state": "CC0_OPEN_ACCESS_ITEMS_METADATA_AND_MEDIA_WITH_THIRD_PARTY_CAVEATS",
+      "credential": "FREE_API_KEY_REQUIRED",
+      "provider_negotiation": false
+    },
+    {
+      "channel_id": "EUROPEANA_API",
+      "rights_state": "AGGREGATED_METADATA_CC0_DIGITAL_OBJECT_RIGHTS_ITEM_LEVEL",
+      "credential": "API_KEY_REQUIRED",
+      "provider_negotiation": false
+    }
+  ],
+  "north_star": {
+    "AUTONOMOUS": "PASS_DECLARATIVE_SCOPE_CHANNEL_ROUTING",
+    "GLOBAL": "AMBER_US_EU_INSTITUTIONAL_WAVE1_MORE_REGIONS_REQUIRED",
+    "IRREPLACEABLE_VALUE": "PASS_REQUIREMENT_DRIVEN_NOT_SOURCE_COUNT_DRIVEN",
+    "TRANSPARENT": "PASS_RIGHTS_STATES_EXPLICIT"
+  },
+  "provider_contact_authorized": false,
+  "production": "HOLD"
+}
