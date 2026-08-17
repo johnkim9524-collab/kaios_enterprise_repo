@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "archetypes": [
+    {
+      "archetype_id": "SERIALIZED_REFERENCE",
+      "inherited_identity_fields": ["maker_brand","model_reference","serial_or_revision","production_period","configuration","originality","condition"]
+    },
+    {
+      "archetype_id": "VEHICLE_MECHANICAL_ASSET",
+      "inherited_identity_fields": ["manufacturer","model_generation","vin_chassis","engine","factory_spec","matching_numbers","mileage","restoration_history","condition"]
+    },
+    {
+      "archetype_id": "GRADED_POPULATION",
+      "inherited_identity_fields": ["set_issue","printing_edition","variant","language_region","grade","certification_id","population","condition"]
+    },
+    {
+      "archetype_id": "PROVENANCE_UNIQUE_OBJECT",
+      "inherited_identity_fields": ["object_identity","maker_or_attribution","ownership_history","event_person_link","authenticity","documentation","condition"]
+    },
+    {
+      "archetype_id": "VARIANT_RELEASE_HEAVY",
+      "inherited_identity_fields": ["brand_maker","model_style","sku_or_season","color_material","size_or_dimension","release_region","authenticity","condition"]
+    },
+    {
+      "archetype_id": "DESIGNER_MAKER_EDITION",
+      "inherited_identity_fields": ["designer","maker","model","edition","material","production_period","originality","restoration","condition"]
+    },
+    {
+      "archetype_id": "PRESSING_EDITION_MEDIA",
+      "inherited_identity_fields": ["title_work","format","pressing_edition","matrix_catalog_no","region","release_date","variant","condition"]
+    }
+  ]
+}

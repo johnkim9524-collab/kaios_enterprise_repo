@@ -1,0 +1,47 @@
+{
+  "version":"1.0",
+  "scope_count":32,
+  "inheritance":"Global Common Core + Market Archetype + Scope Extension",
+  "scope_contract":"Every Scope inherits common decisions, cross-scope metrics, evidence semantics, rights/freshness/provenance controls and NOT_VERIFIED behavior; Scope entries define distinct market grammar and irreplaceable question.",
+  "scopes":[
+    {"id":"designer_toys","name":"Designer Toys","domain":"toys_models","archetype":"DESIGNER_MAKER_EDITION","question":"Is this an authentic edition-correct artist object, and how scarce/liquid is this exact release?"},
+    {"id":"diecast_scale_models","name":"Die-cast & Scale Models","domain":"toys_models","archetype":"SERIALIZED_REFERENCE","question":"Which maker/scale/edition/packaging variant is this, and what is its condition-adjusted market?"},
+    {"id":"vintage_character_toys","name":"Vintage & Character Toys","domain":"toys_models","archetype":"PROVENANCE_UNIQUE_OBJECT","question":"Is this period-correct, complete and authentic, and how rare is survival in comparable condition?"},
+    {"id":"construction_mechanical_sets","name":"Construction & Mechanical Sets","domain":"toys_models","archetype":"SERIALIZED_REFERENCE","question":"Which exact version is this, how complete/original is it, and what premium does completeness command?"},
+
+    {"id":"mechanical_watches","name":"Mechanical Watches","domain":"watches_jewelry","archetype":"SERIALIZED_REFERENCE","question":"Do visually similar references represent the same collectible once originality, configuration and condition are controlled?"},
+    {"id":"vintage_digital_watches","name":"Vintage & Digital Watches","domain":"watches_jewelry","archetype":"SERIALIZED_REFERENCE","question":"Which generation/configuration is this, is electronics/originality intact, and is scarcity structural or nostalgic?"},
+    {"id":"fine_jewelry","name":"Fine Jewelry","domain":"watches_jewelry","archetype":"PROVENANCE_UNIQUE_OBJECT","question":"Is attribution/material/provenance defensible and what comparable market exists for this exact quality tier?"},
+    {"id":"designer_jewelry","name":"Designer Jewelry","domain":"watches_jewelry","archetype":"DESIGNER_MAKER_EDITION","question":"Which designer/collection/era is this, is it authentic, and how strong are canon and secondary liquidity?"},
+
+    {"id":"collector_cars","name":"Collector Cars","domain":"automobiles_mobility","archetype":"VEHICLE_MECHANICAL_ASSET","question":"Is the valuation gap explained by specification, originality, provenance, restoration and market liquidity?"},
+    {"id":"modern_classics","name":"Modern Classics","domain":"automobiles_mobility","archetype":"VEHICLE_MECHANICAL_ASSET","question":"Which specification/mileage/condition combinations are becoming collectible rather than ordinary used vehicles?"},
+    {"id":"collector_motorcycles","name":"Collector Motorcycles","domain":"automobiles_mobility","archetype":"VEHICLE_MECHANICAL_ASSET","question":"Are frame/engine/specification and restoration correct, and how does originality affect scarcity and liquidity?"},
+    {"id":"automotive_memorabilia","name":"Automotive Memorabilia","domain":"automobiles_mobility","archetype":"PROVENANCE_UNIQUE_OBJECT","question":"Can provenance to marque/driver/event be defended and how does that affect rarity and price?"},
+
+    {"id":"sneakers","name":"Sneakers","domain":"fashion_accessories","archetype":"VARIANT_RELEASE_HEAVY","question":"What is the exact SKU/colorway/size/release, is it authentic, and what is size-condition-adjusted liquidity?"},
+    {"id":"handbags","name":"Handbags","domain":"fashion_accessories","archetype":"VARIANT_RELEASE_HEAVY","question":"Is the bag authentic and correctly identified by model/material/season, and what drives regional/condition premium?"},
+    {"id":"designer_garments","name":"Designer Garments","domain":"fashion_accessories","archetype":"VARIANT_RELEASE_HEAVY","question":"Is this the exact collection/runway/archive piece, and how do provenance, condition and cultural canon affect value?"},
+    {"id":"eyewear","name":"Eyewear","domain":"fashion_accessories","archetype":"VARIANT_RELEASE_HEAVY","question":"Is this the correct model/era/material and does design or cultural association create durable collectible demand?"},
+
+    {"id":"seating","name":"Seating","domain":"design_furniture","archetype":"DESIGNER_MAKER_EDITION","question":"Is this authentic period/maker production or later production/restoration, and how does that alter value?"},
+    {"id":"tables_storage","name":"Tables & Storage","domain":"design_furniture","archetype":"DESIGNER_MAKER_EDITION","question":"Which maker/edition/material/period is this and how do originality, restoration and provenance affect comparability?"},
+    {"id":"lighting","name":"Lighting","domain":"design_furniture","archetype":"DESIGNER_MAKER_EDITION","question":"Is designer/maker/model attribution correct and are electrical/restoration changes value-destructive or acceptable?"},
+    {"id":"decorative_design_objects","name":"Decorative Design Objects","domain":"design_furniture","archetype":"DESIGNER_MAKER_EDITION","question":"Is attribution/edition/material defensible and where does the object sit within design canon and market depth?"},
+
+    {"id":"cameras_lenses","name":"Cameras & Lenses","domain":"technology_cameras","archetype":"SERIALIZED_REFERENCE","question":"Which serial/revision/configuration is this, what is optical/mechanical condition, and how does rarity affect liquidity?"},
+    {"id":"hifi_audio","name":"Hi-Fi & Audio","domain":"technology_cameras","archetype":"SERIALIZED_REFERENCE","question":"Which version/circuit/component configuration is original and how do service/condition affect audiophile market value?"},
+    {"id":"vintage_computing","name":"Vintage Computing","domain":"technology_cameras","archetype":"SERIALIZED_REFERENCE","question":"Which revision/configuration is this, how complete/working/original is it, and what is tech-historical scarcity?"},
+    {"id":"collectible_electronics","name":"Collectible Electronics & Devices","domain":"technology_cameras","archetype":"SERIALIZED_REFERENCE","question":"When does a device move from used commodity to collectible based on design, variant and survival state?"},
+
+    {"id":"video_games_consoles","name":"Video Games & Consoles","domain":"gaming_music_screen","archetype":"GRADED_POPULATION","question":"Which release/region/version/seal/grade is this and what is population-adjusted scarcity and liquidity?"},
+    {"id":"vinyl_recorded_music","name":"Vinyl & Recorded Music","domain":"gaming_music_screen","archetype":"PRESSING_EDITION_MEDIA","question":"Which exact pressing/matrix/region/edition is this and what premium comes from pressing and condition?"},
+    {"id":"musical_instruments_artist_gear","name":"Musical Instruments & Artist Gear","domain":"gaming_music_screen","archetype":"PROVENANCE_UNIQUE_OBJECT","question":"Is serial/specification/originality correct and is artist provenance defensible enough to change market value?"},
+    {"id":"film_tv_props","name":"Film / TV Props & Screen Objects","domain":"gaming_music_screen","archetype":"PROVENANCE_UNIQUE_OBJECT","question":"Can screen-use provenance be established and does scene/character significance create durable scarcity premium?"},
+
+    {"id":"trading_cards","name":"Trading Cards","domain":"cards_comics_memorabilia","archetype":"GRADED_POPULATION","question":"What is the exact printing/language/variant/grade and what is grade-population-adjusted scarcity and liquidity?"},
+    {"id":"comic_books","name":"Comic Books","domain":"cards_comics_memorabilia","archetype":"GRADED_POPULATION","question":"Which issue/printing/variant/grade/restoration state is this and how scarce/liquid is it relative to census?"},
+    {"id":"sports_memorabilia","name":"Sports Memorabilia","domain":"cards_comics_memorabilia","archetype":"PROVENANCE_UNIQUE_OBJECT","question":"Can athlete/event/game-use/signature provenance be independently defended and how does that affect marketability?"},
+    {"id":"historical_cultural_memorabilia","name":"Historical & Cultural Memorabilia","domain":"cards_comics_memorabilia","archetype":"PROVENANCE_UNIQUE_OBJECT","question":"Can provenance/attribution/event linkage withstand institutional scrutiny and what market exists for comparable significance?"}
+  ]
+}

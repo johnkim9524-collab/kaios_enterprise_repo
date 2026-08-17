@@ -1,0 +1,61 @@
+{
+  "version": "1.0",
+  "status": "KPMO_DESIGN_CANDIDATE",
+  "principle": "Customer Decision → Irreplaceable Output → Metric/Assertion → Evidence → Data → Source",
+  "common_core": {
+    "canonical_entities": [
+      "product_family",
+      "representative_product",
+      "variant",
+      "physical_object",
+      "market_cell",
+      "market_event",
+      "evidence_assertion",
+      "source_family"
+    ],
+    "common_metrics": [
+      "identity_confidence",
+      "authenticity_originality_confidence",
+      "scarcity",
+      "liquidity",
+      "market_depth",
+      "momentum",
+      "evidence_confidence"
+    ],
+    "scarcity_decomposition": [
+      "production_scarcity",
+      "survival_scarcity",
+      "condition_scarcity",
+      "authenticated_population_scarcity",
+      "market_availability_scarcity",
+      "regional_scarcity"
+    ],
+    "liquidity_decomposition": [
+      "transaction_frequency",
+      "time_to_sale",
+      "market_depth",
+      "price_dispersion",
+      "channel_concentration",
+      "regional_concentration",
+      "turnover_stability"
+    ],
+    "north_star": [
+      "AUTONOMOUS",
+      "GLOBAL",
+      "IRREPLACEABLE_VALUE",
+      "TRANSPARENT"
+    ]
+  },
+  "quality_gate": {
+    "decision_relevance_min": 9,
+    "irreplaceable_output_min": 9,
+    "identity_precision_min": 9,
+    "evidence_defensibility_min": 9,
+    "market_usefulness_min": 8,
+    "global_representativeness_min": 8,
+    "autonomous_refreshability_min": 8,
+    "provider_independence_min": 8,
+    "cross_scope_comparability_min": 8,
+    "overall_min": 85
+  }
+}
