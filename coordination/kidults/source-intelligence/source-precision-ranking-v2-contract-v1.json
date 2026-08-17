@@ -1,0 +1,155 @@
+{
+  "id": "source-precision-ranking-v2-contract-v1",
+  "record_type": "source_precision_ranking_contract",
+  "version": "2.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T10:35:00+09:00",
+  "created_by": "KPMO / Track A / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "parent_issue": 315,
+  "purpose": "Rebuild Source relevance ranking from immutable ASI Batch 001 evidence after the independent Top-50 pilot measured 20 percent precision. The v2 gate requires explicit collectible-domain evidence, reusable data-channel suitability, corrected Source roles and underlying-work deduplication before any candidate can enter qualification.",
+  "official_inputs": [
+    {
+      "name": "source-classification-report.json",
+      "workflow_run": 31960423954,
+      "artifact_name": "kidults-asi-discovery-batch-001"
+    },
+    {
+      "name": "raw-discovery-snapshot.json",
+      "workflow_run": 31960423954,
+      "artifact_name": "kidults-asi-discovery-batch-001"
+    },
+    {
+      "name": "provisional-precision-ranked-universe-v1.json",
+      "workflow_run": 31983701963,
+      "artifact_name": "kidults-source-relevance-precision-v1"
+    },
+    {
+      "name": "source-relevance-top50-pilot-assessment-v1.json",
+      "workflow_run": 31984766496,
+      "artifact_name": "kidults-track-b-source-relevance-top50-pilot-v1"
+    }
+  ],
+  "input_boundary": "DISCOVERY_QUERY_TEXT_AND_PROVISIONAL_NUMERIC_SCORE_ARE_NOT_RELEVANCE_EVIDENCE",
+  "canonical_flow": [
+    "IMMUTABLE_BATCH_001_CANDIDATES",
+    "PILOT_FALSE_POSITIVE_TAXONOMY",
+    "COLLECTIBLE_SCOPE_DISAMBIGUATION",
+    "REUSABLE_DATA_CHANNEL_GATE",
+    "BUSINESS_LEGAL_AND_GENERIC_CODE_REJECTION",
+    "SOURCE_ROLE_CORRECTION",
+    "UNDERLYING_WORK_LINEAGE_DEDUPLICATION",
+    "PRECISION_RANKING_V2",
+    "BLIND_TOP_50_RECHECK",
+    "TRACK_B_FINAL_CALIBRATION"
+  ],
+  "hard_reject_classes": [
+    "LICENSE_FRANCHISE_OR_BUSINESS_TRANSFER_WITHOUT_OBJECT_OR_MARKET_DATA",
+    "GENERIC_SOFTWARE_FRAMEWORK_SDK_OR_DEMO",
+    "CONSTRUCTION_INDUSTRY_SOFTWARE_MAPPED_TO_CONSTRUCTION_TOYS",
+    "HUMAN_SEATING_OR_ERGONOMICS_RESEARCH_MAPPED_TO_COLLECTIBLE_SEATING",
+    "DATABASE_SQL_TABLE_TERMINOLOGY_MAPPED_TO_FURNITURE_TABLES",
+    "DIGITAL_STEAM_OR_VIRTUAL_CARD_TOOLING_MAPPED_TO_PHYSICAL_TRADING_CARDS",
+    "GAME_ENGINE_OR_DEVELOPER_TOOL_MAPPED_TO_COLLECTIBLE_VIDEO_GAMES",
+    "CAMERA_DRIVER_OR_COMPUTER_VISION_MODEL_MAPPED_TO_COLLECTIBLE_CAMERAS",
+    "SINGLE_KEYWORD_MATCH_WITHOUT_NON_QUERY_SCOPE_EVIDENCE",
+    "PROJECT_HOMEPAGE_WITHOUT_REUSABLE_DATA_CHANNEL_OR_AUTHORITY_VALUE"
+  ],
+  "required_promotion_evidence": [
+    "EXPLICIT_NON_QUERY_COLLECTION_SCOPE_EVIDENCE",
+    "EXPLICIT_REUSABLE_DATA_CHANNEL_OR_PRIMARY_AUTHORITY_EVIDENCE",
+    "SOURCE_ROLE_EVIDENCE",
+    "OWNER_OR_PUBLISHER_IDENTITY",
+    "DECISION_DNA_AND_IRREPLACEABLE_VALUE_LINKAGE",
+    "NO_ACTIVE_HARD_REJECT_CLASS",
+    "UNDERLYING_WORK_LINEAGE_ID"
+  ],
+  "approved_channel_classes": [
+    "PRIMARY_AUTHORITY_OFFICIAL_SITE",
+    "OFFICIAL_API_OR_MACHINE_READABLE_DATASET",
+    "STRUCTURED_CATALOG_REFERENCE_DATABASE",
+    "AUCTION_OR_SOLD_TRANSACTION_ARCHIVE",
+    "AUTHENTICATION_GRADING_OR_POPULATION_REGISTRY",
+    "PROVENANCE_OR_INSTITUTIONAL_ARCHIVE",
+    "DIRECTLY_USEFUL_INDEPENDENT_DATASET_OR_RESEARCH_EVIDENCE",
+    "SPECIALIST_COMMUNITY_OR_ATTENTION_CHANNEL_WITH_EXPLICIT_SCOPE_VALUE"
+  ],
+  "source_role_corrections": [
+    "ACADEMIC_OR_DOI_RESEARCH_DEFAULTS_TO_INDEPENDENT_VERIFICATION_OR_MACRO_CONTEXT_NOT_CATALOG_REFERENCE",
+    "OFFICIAL_WEBSITE_CLAIM_MAY_SUPPORT_PRIMARY_AUTHORITY_BUT_NEVER_AUTHORIZES_COLLECTION",
+    "GITHUB_REPOSITORY_REQUIRES_EXPLICIT_DATASET_API_CATALOG_SCHEMA_OR_ARCHIVE_EVIDENCE",
+    "MARKETPLACE_LISTING_IS_NOT_SOLD_TRANSACTION",
+    "AUCTION_RESULT_MAY_SUPPORT_SOLD_TRANSACTION_AND_AUCTION_PRIVATE_SALE",
+    "GENERAL_MEDIA_IS_CULTURE_ATTENTION_NOT_PRIMARY_AUTHORITY"
+  ],
+  "underlying_work_deduplication": {
+    "keys": [
+      "NORMALIZED_TITLE",
+      "PUBLISHER_OR_OWNER",
+      "DOI_ROOT_OR_CANONICAL_PROJECT",
+      "DATA_LINEAGE_HINT"
+    ],
+    "different_file_urls_are_independent_sources": false,
+    "different_versions_of_same_doi_are_independent_sources": false,
+    "same_owner_same_underlying_dataset_is_independent_corroboration": false
+  },
+  "v2_ranking": {
+    "query_text_weight": 0,
+    "minimum_scope_evidence_score": 12,
+    "minimum_channel_suitability_score": 14,
+    "minimum_source_role_score": 7,
+    "minimum_total_score_for_promotion": 58,
+    "unknown_relevance_promoted": false,
+    "hard_reject_overrides_positive_score": true,
+    "pilot_negative_endpoint_repromotion_without_new_evidence": false
+  },
+  "interim_blind_recheck": {
+    "review_count": 50,
+    "exclude_previous_pilot_endpoint_ids": true,
+    "review_input_excludes_numeric_rank_score": true,
+    "review_input_excludes_previous_label": true,
+    "interim_precision_minimum": 0.8,
+    "final_track_b_precision_minimum": 0.95,
+    "interpretation": "The v2 blind recheck is a model-assisted evidence-only recovery checkpoint, not external human Gold-label ratification and not the final Track B assessment."
+  },
+  "required_outputs": [
+    "precision-ranked-universe-v2.json",
+    "precision-top-200-review-queue-v2.json",
+    "precision-v2-rejected-and-held-register.json",
+    "underlying-work-deduplication-report-v1.json",
+    "source-role-correction-report-v1.json",
+    "blind-top50-review-package-v2.json",
+    "blind-top50-review-assessment-v2.json",
+    "precision-v2-gap-report.json",
+    "run-manifest.json"
+  ],
+  "acceptance": {
+    "same_input_same_output": true,
+    "query_text_used_as_relevance_evidence": 0,
+    "license_franchise_false_positives_in_blind_top50": 0,
+    "known_semantic_collision_false_positives_in_blind_top50": 0,
+    "duplicate_underlying_works_in_blind_top50": 0,
+    "explicit_scope_evidence_coverage": 1.0,
+    "explicit_channel_suitability_coverage": 1.0,
+    "unknown_promoted_as_relevant": 0,
+    "blind_top50_reviewed": 50,
+    "interim_blind_top50_precision": 0.8,
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "production_mutations": 0
+  },
+  "boundaries": {
+    "old_top_200_qualification_use": "PROHIBITED",
+    "v2_queue_is_final_gold": false,
+    "v2_queue_authorizes_preflight": false,
+    "v2_queue_authorizes_acquisition": false,
+    "provider_direct_to_portal": false,
+    "provider_direct_to_index": false,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
