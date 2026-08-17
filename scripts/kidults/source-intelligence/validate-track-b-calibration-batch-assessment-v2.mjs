@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fingerprint, readJson, unique } from "./asi-discovery-common-v1.mjs";
@@ -8,10 +7,9 @@ const ALLOWED_ROLE = new Set(["CORRECT", "PARTIALLY_CORRECT", "WRONG_ROLE", "NOT
 
 function fail(errors, message) { errors.push(message); }
 
-export function validateBatchAssessment(directory, assessmentFile) {
+export function validateBatchAssessment(directory, assessmentFile, { validateManifest = true } = {}) {
   const errors = [];
   const assessment = readJson(path.join(directory, assessmentFile));
-  const manifest = readJson(path.join(directory, "run-manifest.json"));
   if (assessment.version !== "2.3.0") fail(errors, "Assessment must use v2.3.0 sanitized input contract.");
   if (assessment.reviewed_records !== 50 || assessment.records.length !== 50) fail(errors, "Assessment must contain exactly 50 reviewed cases.");
   if (unique(assessment.records.map(record => record.review_case_id)).length !== 50) fail(errors, "Review case IDs must be unique.");
@@ -30,22 +28,27 @@ export function validateBatchAssessment(directory, assessmentFile) {
   const stored = copy.fingerprint;
   delete copy.fingerprint;
   if (stored !== fingerprint(copy)) fail(errors, "Assessment fingerprint mismatch.");
-  const manifestCopy = structuredClone(manifest);
-  const storedRun = manifestCopy.run_fingerprint;
-  delete manifestCopy.run_fingerprint;
-  if (storedRun !== fingerprint(manifestCopy)) fail(errors, "Run manifest fingerprint mismatch.");
-  if (manifest.assessment_fingerprint !== assessment.fingerprint || manifest.reviewed_records !== 50 || manifest.unresolved_records !== 0) fail(errors, "Run manifest does not reconcile with assessment.");
-  if (manifest.source_pool_promotions !== 0 || manifest.acquisition_authorized !== false || manifest.production !== "HOLD") fail(errors, "Manifest fail-closed boundary violated.");
+
+  if (validateManifest) {
+    const manifest = readJson(path.join(directory, "run-manifest.json"));
+    const manifestCopy = structuredClone(manifest);
+    const storedRun = manifestCopy.run_fingerprint;
+    delete manifestCopy.run_fingerprint;
+    if (storedRun !== fingerprint(manifestCopy)) fail(errors, "Run manifest fingerprint mismatch.");
+    if (manifest.assessment_fingerprint !== assessment.fingerprint || manifest.reviewed_records !== 50 || manifest.unresolved_records !== 0) fail(errors, "Run manifest does not reconcile with assessment.");
+    if (manifest.source_pool_promotions !== 0 || manifest.acquisition_authorized !== false || manifest.production !== "HOLD") fail(errors, "Manifest fail-closed boundary violated.");
+  }
   return errors;
 }
 
 const directory = path.resolve(process.argv[2] ?? "");
 const assessmentFile = process.argv[3] ?? "track-b-calibration-assessment-batch-01-v2.json";
-const errors = validateBatchAssessment(directory, assessmentFile);
+const assessmentOnly = process.argv.includes("--assessment-only");
+const errors = validateBatchAssessment(directory, assessmentFile, { validateManifest: !assessmentOnly });
 if (errors.length) {
   console.error(`KIDULTS Track B Calibration Batch Assessment: FAIL (${errors.length})`);
   for (const error of errors) console.error(`ERROR: ${error}`);
   process.exit(1);
 }
 console.log("KIDULTS Track B Calibration Batch Assessment: PASS");
-console.log("Reviewed 50/50; unresolved 0; Source Pool promotions 0; Acquisition BLOCKED; Production HOLD");
+console.log(`Reviewed 50/50; unresolved 0; manifest validation ${assessmentOnly ? "DEFERRED_TO_AGGREGATE" : "PASS"}; Source Pool promotions 0; Acquisition BLOCKED; Production HOLD`);
