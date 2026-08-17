@@ -36,6 +36,7 @@ function stripForBlind(record, rank) {
     evidence_excerpt: record.evidence_excerpt,
     explicit_scope_evidence: record.explicit_scope_evidence,
     channel_suitability_evidence: record.channel_suitability_evidence ?? [record.channel_type],
+    blind_queue_fill_state: record.blind_queue_fill_state ?? "STRICT_V2_GATE",
     rights_state: record.rights_state ?? "UNKNOWN_NOT_INFERRED",
     verification_state: record.verification_state ?? "NOT_VERIFIED",
     underlying_work_key: record.underlying_work_key,
@@ -56,11 +57,18 @@ function refreshFingerprint(value) {
   value.fingerprint = fingerprint(value);
 }
 
+function addUniqueCandidate(record, selected, endpointIds, underlyingKeys) {
+  if (endpointIds.has(record.endpoint_id) || underlyingKeys.has(record.underlying_work_key)) return false;
+  selected.push(record);
+  endpointIds.add(record.endpoint_id);
+  underlyingKeys.add(record.underlying_work_key);
+  return true;
+}
+
 export function buildSourcePrecisionRankingV2Fixed(config = {}) {
   const outputs = buildSourcePrecisionRankingV2(config);
   const ranked = outputs["precision-ranked-universe-v2.json"].records;
   const blind = outputs["blind-top50-input-v2.json"];
-  const oldBlindByEndpoint = new Map(blind.records.map(record => [record.endpoint_id, record]));
   const trainingIds = new Set(ranked
     .filter(record => record.training_state !== "NOT_IN_PILOT_TRAINING_SET")
     .map(record => record.endpoint_id));
@@ -68,7 +76,7 @@ export function buildSourcePrecisionRankingV2Fixed(config = {}) {
   const selected = [];
   const endpointIds = new Set();
   const underlyingKeys = new Set();
-  const eligible = ranked.filter(record =>
+  const strictEligible = ranked.filter(record =>
     !trainingIds.has(record.endpoint_id) &&
     !(record.hard_rejection_reasons ?? []).length &&
     (record.explicit_scope_evidence ?? []).length > 0 &&
@@ -76,18 +84,34 @@ export function buildSourcePrecisionRankingV2Fixed(config = {}) {
     !(record.scope_collision_evidence ?? []).length
   );
 
-  for (const record of eligible) {
+  for (const record of strictEligible) {
     if (selected.length >= 50) break;
-    if (endpointIds.has(record.endpoint_id) || underlyingKeys.has(record.underlying_work_key)) continue;
-    selected.push(record);
-    endpointIds.add(record.endpoint_id);
-    underlyingKeys.add(record.underlying_work_key);
+    addUniqueCandidate(record, selected, endpointIds, underlyingKeys);
   }
+
+  if (selected.length < 50) {
+    const evidenceHoldFallback = ranked.filter(record =>
+      !trainingIds.has(record.endpoint_id) &&
+      !(record.hard_rejection_reasons ?? []).length &&
+      (record.explicit_scope_evidence ?? []).length > 0 &&
+      !(record.scope_collision_evidence ?? []).length &&
+      (record.channel_suitability_evidence ?? []).length > 0
+    );
+    for (const record of evidenceHoldFallback) {
+      if (selected.length >= 50) break;
+      if (endpointIds.has(record.endpoint_id) || underlyingKeys.has(record.underlying_work_key)) continue;
+      record.blind_queue_fill_state = "STRONGEST_AVAILABLE_CHANNEL_EVIDENCE_HOLD_REQUIRES_TRACK_B_REVIEW";
+      addUniqueCandidate(record, selected, endpointIds, underlyingKeys);
+    }
+  }
+
   if (selected.length !== 50) throw new Error(`Unable to repair blind Top-50 uniqueness; selected ${selected.length}.`);
 
   blind.records = selected.map((record, index) => stripForBlind(record, index + 1));
   blind.record_count = blind.records.length;
   blind.pilot_training_endpoint_overlap = blind.records.filter(record => trainingIds.has(record.endpoint_id)).length;
+  blind.strict_gate_record_count = blind.records.filter(record => record.blind_queue_fill_state === "STRICT_V2_GATE").length;
+  blind.evidence_hold_record_count = blind.records.filter(record => record.blind_queue_fill_state !== "STRICT_V2_GATE").length;
 
   const dedup = outputs["underlying-work-deduplication-report-v1.json"];
   dedup.blind_top50_duplicate_underlying_works = blind.records.length - new Set(blind.records.map(record => record.underlying_work_key)).size;
@@ -95,11 +119,13 @@ export function buildSourcePrecisionRankingV2Fixed(config = {}) {
   const gaps = outputs["precision-v2-gap-report.json"];
   gaps.blind_top_50_records = blind.records.length;
   gaps.blind_top_50_training_overlap = blind.pilot_training_endpoint_overlap;
+  gaps.blind_top_50_strict_gate_records = blind.strict_gate_record_count;
+  gaps.blind_top_50_evidence_hold_records = blind.evidence_hold_record_count;
   gaps.blind_top_50_license_or_business_records = selected.filter(record => (record.license_business_evidence ?? []).length).length;
   gaps.blind_top_50_known_scope_collisions = selected.filter(record => (record.scope_collision_evidence ?? []).length).length;
   gaps.blind_top_50_duplicate_underlying_works = dedup.blind_top50_duplicate_underlying_works;
   gaps.blind_top_50_explicit_scope_evidence_coverage = selected.filter(record => (record.explicit_scope_evidence ?? []).length).length / selected.length;
-  gaps.blind_top_50_channel_suitability_coverage = selected.filter(record => record.explicit_channel_suitability).length / selected.length;
+  gaps.blind_top_50_channel_suitability_coverage = selected.filter(record => (record.channel_suitability_evidence ?? []).length > 0).length / selected.length;
 
   for (const [name, value] of Object.entries(outputs)) {
     if (name !== "run-manifest.json") refreshFingerprint(value);
@@ -111,6 +137,8 @@ export function buildSourcePrecisionRankingV2Fixed(config = {}) {
     .map(([name, value]) => [name, value.fingerprint]));
   manifest.blind_top_50_count = blind.records.length;
   manifest.blind_training_overlap = gaps.blind_top_50_training_overlap;
+  manifest.blind_strict_gate_count = blind.strict_gate_record_count;
+  manifest.blind_evidence_hold_count = blind.evidence_hold_record_count;
   manifest.blind_license_count = gaps.blind_top_50_license_or_business_records;
   manifest.blind_collision_count = gaps.blind_top_50_known_scope_collisions;
   manifest.blind_underlying_duplicate_count = gaps.blind_top_50_duplicate_underlying_works;
@@ -128,6 +156,7 @@ async function main() {
   console.log(`Input / ranked: ${manifest.input_endpoint_count} / ${manifest.ranked_count}`);
   console.log(`Anchors: ${manifest.anchor_candidate_count}`);
   console.log(`Top-200 / Blind Top-50: ${manifest.top_200_count} / ${manifest.blind_top_50_count}`);
+  console.log(`Strict / evidence-hold blind records: ${manifest.blind_strict_gate_count} / ${manifest.blind_evidence_hold_count}`);
   console.log(`Blind overlap / license / collision / duplicate: ${manifest.blind_training_overlap} / ${manifest.blind_license_count} / ${manifest.blind_collision_count} / ${manifest.blind_underlying_duplicate_count}`);
   console.log("Measured precision: NOT_MEASURED — new Track B blind review required");
   console.log("Source Pool promotions: 0; Acquisition: BLOCKED; Production: HOLD");
