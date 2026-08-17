@@ -6,6 +6,8 @@ on:
       - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
       - 'scripts/kidults/scope/run-scope-self-collected-live-baseline-v1.mjs'
       - 'scripts/kidults/scope/validate-scope-self-collected-live-baseline-v1.mjs'
+      - 'scripts/kidults/scope/compile-scope-self-collection-gap-queue-v1.mjs'
+      - 'scripts/kidults/scope/validate-scope-self-collection-gap-queue-v1.mjs'
       - '.github/workflows/kidults-scope-self-collected-live-baseline-v1.yml'
   workflow_dispatch:
 permissions:
@@ -23,6 +25,10 @@ jobs:
         run: node scripts/kidults/scope/run-scope-self-collected-live-baseline-v1.mjs coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json scope-poc-live-out
       - name: Validate fail-closed baseline
         run: node scripts/kidults/scope/validate-scope-self-collected-live-baseline-v1.mjs scope-poc-live-out
+      - name: Compile next self-collection gap queue
+        run: node scripts/kidults/scope/compile-scope-self-collection-gap-queue-v1.mjs scope-poc-live-out coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json
+      - name: Validate self-collection gap queue
+        run: node scripts/kidults/scope/validate-scope-self-collection-gap-queue-v1.mjs scope-poc-live-out
       - name: Upload immutable PoC baseline artifact
         uses: actions/upload-artifact@v4
         with:
