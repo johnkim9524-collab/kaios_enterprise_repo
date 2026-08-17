@@ -1,0 +1,96 @@
+{
+  "id": "representative-market-cell-contract-v1",
+  "record_type": "representative_market_cell_contract",
+  "version": "1.0.0",
+  "status": "PROPOSED_CANONICAL",
+  "effective_at": "2026-08-17T20:16:00+09:00",
+  "production": "HOLD",
+  "definition": "A Representative Market Cell is the smallest decision-relevant market slice for a named Representative Product Anchor that materially changes price, liquidity, scarcity, risk, comparability or evidence requirements.",
+  "required_dimensions": [
+    "representative_product_id",
+    "geography_or_market_region",
+    "time_regime",
+    "condition_or_grade_regime",
+    "variant_or_edition_regime",
+    "transaction_channel_class",
+    "value_band_or_currency_normalization_regime"
+  ],
+  "optional_dimensions": [
+    "authentication_state",
+    "provenance_state",
+    "scarcity_regime",
+    "buyer_segment",
+    "language_market",
+    "tax_or_buyer_premium_regime"
+  ],
+  "creation_rule": "Do not generate Cartesian-product cells. Create a cell only when at least one customer decision, Evidence target, market-comparison rule or risk profile changes materially.",
+  "cell_record_minimum": [
+    "market_cell_id",
+    "representative_product_id",
+    "cell_dimensions",
+    "decision_use_cases",
+    "required_assertions",
+    "required_source_roles",
+    "minimum_independent_source_families",
+    "market_event_requirements",
+    "freshness_window",
+    "rights_requirements",
+    "known_biases",
+    "fallback_logic",
+    "metric_eligibility",
+    "state"
+  ],
+  "liquidity_regime_defaults": {
+    "HIGH_LIQUIDITY": {
+      "sold_event_target": 50,
+      "lookback_months": 12,
+      "rule": "Use when the market normally provides adequate event density; target is a starting operating default, not a forced publication threshold."
+    },
+    "MEDIUM_LIQUIDITY": {
+      "sold_event_target": 20,
+      "lookback_months": 24
+    },
+    "LOW_LIQUIDITY": {
+      "sold_event_target": 8,
+      "lookback_months": 60
+    },
+    "ULTRA_RARE_OR_TROPHY": {
+      "sold_event_target": null,
+      "lookback_months": null,
+      "rule": "Collect all verified events. Liquidity/current valuation remains NOT_VERIFIED when the sample is not decision-grade."
+    }
+  },
+  "metric_fail_closed_rules": [
+    "INSUFFICIENT_EVENT_DENSITY_TO_ZERO_PROHIBITED",
+    "LISTING_PRICE_AS_SOLD_PRICE_PROHIBITED",
+    "CROSS_REGION_PRICE_MERGE_WITHOUT_NORMALIZATION_PROHIBITED",
+    "CONDITION_GRADE_MIXING_WITHOUT_MODEL_PROHIBITED",
+    "UNKNOWN_BUYER_PREMIUM_AS_ZERO_PROHIBITED",
+    "SINGLE_PROVIDER_FAMILY_AS_CRITICAL_CORROBORATION_PROHIBITED"
+  ],
+  "market_event_minimum_fields": [
+    "market_event_id",
+    "physical_object_id_or_bounded_design_reference",
+    "event_type",
+    "venue",
+    "event_time",
+    "price_or_value",
+    "currency",
+    "listing_or_sold_state",
+    "condition_or_grade",
+    "authentication_state",
+    "buyer_premium_state",
+    "provenance_reference",
+    "source_family_id",
+    "rights_state"
+  ],
+  "activation_state_model": [
+    "PROPOSED",
+    "EVIDENCE_DEMAND_DEFINED",
+    "SOURCE_DEMAND_DEFINED",
+    "OBSERVATION_ACTIVE",
+    "METRIC_ELIGIBLE",
+    "HOLD",
+    "ARCHIVED"
+  ]
+}
