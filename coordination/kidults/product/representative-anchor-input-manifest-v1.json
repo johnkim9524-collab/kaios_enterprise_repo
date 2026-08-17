@@ -1,0 +1,43 @@
+{
+  "id": "representative-anchor-input-manifest-v1",
+  "record_type": "representative_anchor_input_manifest",
+  "version": "1.0.0",
+  "status": "CANONICAL_ACTIVE",
+  "parent_mission": 344,
+  "lane": 1,
+  "source": {
+    "workflow_run_id": 32024231380,
+    "artifact_id": 9286462549,
+    "artifact_name": "kidults-representative-product-foundation-v1",
+    "artifact_digest": "sha256:ab69820f3d98ca4acafc29bc03a5910afc79944556bc30ca6a50467cec4736c7",
+    "validated_head": "17364306cd21daafe70841db648df3be708144a2",
+    "source_branch": "feat/kidults-phase2-content-data-provider-foundation"
+  },
+  "official_input_files": [
+    "category-representative-product-registry-v1.json",
+    "representative-product-evidence-plan-v1.json",
+    "representative-product-gap-matrix-v1.json",
+    "representative-product-engine-alignment-v1.json",
+    "representative-product-source-sufficiency-driver-v1.json",
+    "run-manifest.json"
+  ],
+  "input_counts": {
+    "categories": 8,
+    "collection_scopes": 32,
+    "named_anchor_products": 160,
+    "anchors_per_scope": 5,
+    "representative_qualified_products": 0
+  },
+  "governance": {
+    "artifact_is_immutable_official_input": true,
+    "legacy_branch_is_runtime_dependency": false,
+    "artifact_may_seed_structural_preflight": true,
+    "artifact_may_seed_market_cell_planning": true,
+    "artifact_may_seed_evidence_demand_planning": true,
+    "artifact_may_self_qualify_collectible": false,
+    "artifact_may_self_qualify_representative": false,
+    "artifact_may_authorize_source_acquisition": false,
+    "artifact_may_authorize_index_or_publication": false
+  },
+  "production": "HOLD"
+}
