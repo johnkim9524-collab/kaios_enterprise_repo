@@ -1,0 +1,8 @@
+{
+  "version": "1.1",
+  "status": "CANDIDATE_FOR_CANONICAL",
+  "scope_count": 32,
+  "design": "Global Common Core + Market Archetype + Scope-specific Extension",
+  "traceability": "Customer Decision → Irreplaceable Output → Metric/Assertion → Evidence → Data → Source → PoC → Gap Map → Provider Requirement",
+  "provider_rule": "Provider negotiation remains HOLD until 32/32 self-collected PoCs expose exact provider-only gaps.",
+  "scopes": " + "[]
