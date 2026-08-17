@@ -1,0 +1,14 @@
+name: KIDULTS ASI v2.1 Official Preflight Validate
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-v2-1-official-preflight-observation-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-official-preflight-observation-v1.mjs'
+      - '.github/workflows/kidults-asi-v2-1-official-preflight.yml'
+  workflow_dispatch:
+jobs:
+  validate-official-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/kidults/source-intelligence/validate-official-preflight-observation-v1.mjs
