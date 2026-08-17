@@ -1,0 +1,107 @@
+name: KIDULTS Source Precision Ranking v2 Final
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "scripts/kidults/source-intelligence/build-source-precision-ranking-v2-final.mjs"
+      - ".github/workflows/kidults-source-precision-ranking-v2-final.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: kidults-source-precision-ranking-v2-final
+  cancel-in-progress: true
+
+jobs:
+  rank:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/build-source-precision-ranking-v2.mjs
+          node --check scripts/kidults/source-intelligence/build-source-precision-ranking-v2-fixed.mjs
+          node --check scripts/kidults/source-intelligence/build-source-precision-ranking-v2-final.mjs
+          node --check scripts/kidults/source-intelligence/validate-source-precision-ranking-v2.mjs
+
+      - name: Download immutable precision and pilot evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/input/source-relevance-precision-v1
+          mkdir -p artifacts/input/track-b-top50-pilot-v1
+          gh run download 31983701963 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-source-relevance-precision-v1 \
+            --dir artifacts/input/source-relevance-precision-v1
+          gh run download 31984766496 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-track-b-source-relevance-top50-pilot-v1 \
+            --dir artifacts/input/track-b-top50-pilot-v1
+
+      - name: Build final Source Precision Ranking v2
+        run: |
+          node scripts/kidults/source-intelligence/build-source-precision-ranking-v2-final.mjs \
+            --precision-input artifacts/input/source-relevance-precision-v1 \
+            --pilot-input artifacts/input/track-b-top50-pilot-v1 \
+            --output artifacts/agci-os/source-precision-ranking-v2-final \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          node scripts/kidults/source-intelligence/build-source-precision-ranking-v2-final.mjs \
+            --precision-input artifacts/input/source-relevance-precision-v1 \
+            --pilot-input artifacts/input/track-b-top50-pilot-v1 \
+            --output /tmp/source-precision-v2-final-1 \
+            --write
+          node scripts/kidults/source-intelligence/build-source-precision-ranking-v2-final.mjs \
+            --precision-input artifacts/input/source-relevance-precision-v1 \
+            --pilot-input artifacts/input/track-b-top50-pilot-v1 \
+            --output /tmp/source-precision-v2-final-2 \
+            --write
+          for file in \
+            precision-ranked-universe-v2.json \
+            precision-top-200-review-queue-v2.json \
+            blind-top50-input-v2.json \
+            precision-v2-rejected-and-held-register.json \
+            underlying-work-deduplication-report-v1.json \
+            source-role-correction-report-v1.json \
+            precision-v2-gap-report.json \
+            run-manifest.json; do
+            cmp "/tmp/source-precision-v2-final-1/$file" "/tmp/source-precision-v2-final-2/$file"
+            cmp "artifacts/agci-os/source-precision-ranking-v2-final/$file" "/tmp/source-precision-v2-final-1/$file"
+          done
+
+      - name: Validate final v2 ranking and blind-review boundary
+        run: |
+          node scripts/kidults/source-intelligence/validate-source-precision-ranking-v2.mjs \
+            artifacts/agci-os/source-precision-ranking-v2-final
+
+      - name: Revalidate AGCI-OS governance
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload final Source Precision Ranking v2 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-source-precision-ranking-v2-final
+          path: artifacts/agci-os/source-precision-ranking-v2-final
+          if-no-files-found: error
+          retention-days: 30
