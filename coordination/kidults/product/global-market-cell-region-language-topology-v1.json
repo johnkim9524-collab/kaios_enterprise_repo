@@ -1,0 +1,61 @@
+{
+  "id": "global-market-cell-region-language-topology-v1",
+  "version": "1.0.0",
+  "status": "CANDIDATE_CANONICAL_PLANNING_TOPOLOGY",
+  "purpose": "Provide explicit initial region/language discovery topology for Product-linked Market Cells without claiming empirical global representativeness.",
+  "macro_regions": ["NORTH_AMERICA","EUROPE_UK","JAPAN","GREATER_CHINA_HK","KOREA","MIDDLE_EAST_GCC","OCEANIA","LATIN_AMERICA"],
+  "language_codes": ["en","ja","de","fr","it","zh-Hant","zh-Hans","ko","ar","es","pt"],
+  "rules": {
+    "topology_is_market_share_claim": false,
+    "all_regions_required_for_every_product": false,
+    "scope_topology_may_be_narrowed_or_expanded_by_evidence": true,
+    "unsupported_global_claim_before_empirical_coverage": false,
+    "region_language_unknown_promoted_to_covered": false
+  },
+  "scopes": {
+    "scope-designer-toys-action-figures":{"regions":["NORTH_AMERICA","JAPAN","GREATER_CHINA_HK","EUROPE_UK","KOREA"],"languages":["en","ja","zh-Hant","zh-Hans","ko"]},
+    "scope-diecast-scale-vehicles":{"regions":["NORTH_AMERICA","EUROPE_UK","JAPAN","GREATER_CHINA_HK"],"languages":["en","de","fr","it","ja","zh-Hant"]},
+    "scope-model-kits-mecha":{"regions":["JAPAN","NORTH_AMERICA","EUROPE_UK","GREATER_CHINA_HK","KOREA"],"languages":["ja","en","zh-Hant","zh-Hans","ko"]},
+    "scope-construction-systems":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN","GREATER_CHINA_HK"],"languages":["en","de","fr","ja","zh-Hans"]},
+
+    "scope-mechanical-watches":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN","GREATER_CHINA_HK","MIDDLE_EAST_GCC"],"languages":["en","de","fr","it","ja","zh-Hant","zh-Hans","ar"]},
+    "scope-vintage-neo-vintage-watches":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN","GREATER_CHINA_HK"],"languages":["en","de","fr","it","ja","zh-Hant"]},
+    "scope-fine-jewelry":{"regions":["EUROPE_UK","NORTH_AMERICA","GREATER_CHINA_HK","JAPAN","MIDDLE_EAST_GCC"],"languages":["en","fr","it","zh-Hant","zh-Hans","ja","ar"]},
+    "scope-designer-collectible-jewelry":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN","GREATER_CHINA_HK","KOREA"],"languages":["en","fr","it","ja","zh-Hant","ko"]},
+
+    "scope-collector-cars":{"regions":["NORTH_AMERICA","EUROPE_UK","JAPAN","MIDDLE_EAST_GCC","OCEANIA"],"languages":["en","de","fr","it","ja","ar"]},
+    "scope-modern-classics":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN","GREATER_CHINA_HK","OCEANIA"],"languages":["en","de","fr","it","ja","zh-Hant"]},
+    "scope-motorcycles-scooters":{"regions":["EUROPE_UK","JAPAN","NORTH_AMERICA","OCEANIA"],"languages":["en","de","fr","it","ja"]},
+    "scope-automotive-memorabilia-parts":{"regions":["NORTH_AMERICA","EUROPE_UK","JAPAN"],"languages":["en","de","fr","it","ja"]},
+
+    "scope-designer-garments":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN","GREATER_CHINA_HK","KOREA"],"languages":["en","fr","it","ja","zh-Hant","zh-Hans","ko"]},
+    "scope-handbags-leather-goods":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN","GREATER_CHINA_HK","KOREA","MIDDLE_EAST_GCC"],"languages":["en","fr","it","ja","zh-Hant","zh-Hans","ko","ar"]},
+    "scope-sneakers-footwear":{"regions":["NORTH_AMERICA","EUROPE_UK","JAPAN","GREATER_CHINA_HK","KOREA"],"languages":["en","ja","zh-Hant","zh-Hans","ko"]},
+    "scope-eyewear-accessories":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN","GREATER_CHINA_HK","KOREA"],"languages":["en","fr","it","ja","zh-Hant","ko"]},
+
+    "scope-seating":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN"],"languages":["en","de","fr","it","ja"]},
+    "scope-lighting":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN"],"languages":["en","de","fr","it","ja"]},
+    "scope-tables-storage":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN"],"languages":["en","de","fr","it","ja"]},
+    "scope-decorative-design-objects":{"regions":["EUROPE_UK","NORTH_AMERICA","JAPAN","GREATER_CHINA_HK"],"languages":["en","de","fr","it","ja","zh-Hant"]},
+
+    "scope-cameras-lenses":{"regions":["JAPAN","NORTH_AMERICA","EUROPE_UK","GREATER_CHINA_HK"],"languages":["ja","en","de","fr","zh-Hant"]},
+    "scope-personal-computers":{"regions":["NORTH_AMERICA","EUROPE_UK","JAPAN"],"languages":["en","de","fr","ja"]},
+    "scope-audio-hifi":{"regions":["JAPAN","NORTH_AMERICA","EUROPE_UK","GREATER_CHINA_HK"],"languages":["ja","en","de","fr","zh-Hant"]},
+    "scope-mobile-consumer-electronics":{"regions":["NORTH_AMERICA","JAPAN","EUROPE_UK","GREATER_CHINA_HK","KOREA"],"languages":["en","ja","de","zh-Hant","zh-Hans","ko"]},
+
+    "scope-video-games-consoles":{"regions":["JAPAN","NORTH_AMERICA","EUROPE_UK","KOREA","GREATER_CHINA_HK"],"languages":["ja","en","ko","zh-Hant"]},
+    "scope-vinyl-audio-media":{"regions":["NORTH_AMERICA","EUROPE_UK","JAPAN","KOREA"],"languages":["en","ja","de","fr","ko"]},
+    "scope-film-tv-props-posters":{"regions":["NORTH_AMERICA","EUROPE_UK","JAPAN"],"languages":["en","fr","de","ja"]},
+    "scope-music-instruments-memorabilia":{"regions":["NORTH_AMERICA","EUROPE_UK","JAPAN"],"languages":["en","de","fr","ja"]},
+
+    "scope-trading-cards":{"regions":["NORTH_AMERICA","JAPAN","EUROPE_UK","KOREA","GREATER_CHINA_HK"],"languages":["en","ja","ko","zh-Hant","zh-Hans"]},
+    "scope-comics-graphic-narratives":{"regions":["NORTH_AMERICA","EUROPE_UK","JAPAN"],"languages":["en","fr","de","ja"]},
+    "scope-sports-memorabilia":{"regions":["NORTH_AMERICA","EUROPE_UK","JAPAN","LATIN_AMERICA"],"languages":["en","es","pt","ja"]},
+    "scope-historical-entertainment-memorabilia":{"regions":["NORTH_AMERICA","EUROPE_UK","JAPAN"],"languages":["en","fr","de","ja"]}
+  },
+  "north_star": {
+    "global_planning_topology": "PASS_WHEN_ALL_32_SCOPES_BOUND",
+    "global_empirical_coverage": "PENDING_UNTIL_DISCOVERY_AND_QUALIFICATION"
+  },
+  "production": "HOLD"
+}
