@@ -1,0 +1,220 @@
+{
+  "id": "source-sufficiency-driver-profile-v1",
+  "record_type": "source_sufficiency_driver_profile",
+  "version": "1.0.0",
+  "status": "ACTIVE_PLANNING_BASELINE",
+  "effective_at": "2026-08-17T15:30:00+09:00",
+  "calculation_contract_id": "source-sufficiency-calculation-contract-v2",
+  "governing_source_strategy": "global-source-acquisition-and-asi-operating-strategy-v1",
+  "profile_state": "REVERSE_CALCULATION_BASELINE_REPLACE_WITH_EMPIRICAL_ASI_MEASUREMENTS",
+  "target_market": "GLOBAL",
+  "active_scenario_id": "GLOBAL_POC_MINIMUM_DECISION_EVIDENCE",
+  "global_parameters": {
+    "attrition_mode": "TOTAL",
+    "total_attrition_rate": 0.6,
+    "stage_survival_rates": null,
+    "diversity_reserve_multiplier": 1.25,
+    "continuity_reserve_multiplier": 1.0,
+    "concentration_reserve_multiplier": 1.0,
+    "channels_per_independent_family_min": 1.6,
+    "channels_per_independent_family_max": 2.0,
+    "cross_category_reuse_rate": 0.0,
+    "discovery_to_high_trust_survival_rate": null,
+    "global_parameter_state": "PLANNING_BASELINE_NOT_EMPIRICALLY_CALIBRATED"
+  },
+  "category_defaults": {
+    "representative_products": 1000,
+    "evidence_roles_per_product": 5,
+    "required_role_coverage_ratio": 1.0,
+    "target_validated_evidence_assertions": 5000,
+    "target_market_observations": 5000,
+    "effective_product_role_units_per_active_family": 20,
+    "effective_validated_evidence_assertions_per_active_family": 20,
+    "effective_market_observations_per_active_family": 20,
+    "mandatory_source_roles": 7,
+    "minimum_independent_families_per_role": 5,
+    "category_complexity_multiplier": 1.0,
+    "parameter_state": "PLANNING_BASELINE_NOT_EMPIRICALLY_CALIBRATED"
+  },
+  "categories": [
+    {
+      "category_id": "toys-models",
+      "category_name": "Toys & Models",
+      "representative_products": 1000,
+      "evidence_roles_per_product": 5,
+      "required_role_coverage_ratio": 1.0,
+      "target_validated_evidence_assertions": 5000,
+      "target_market_observations": 5000,
+      "effective_product_role_units_per_active_family": 20,
+      "effective_validated_evidence_assertions_per_active_family": 20,
+      "effective_market_observations_per_active_family": 20,
+      "mandatory_source_roles": 7,
+      "minimum_independent_families_per_role": 5,
+      "category_complexity_multiplier": 1.0,
+      "overrides_global_attrition": false,
+      "parameter_state": "PLANNING_BASELINE_NOT_EMPIRICALLY_CALIBRATED"
+    },
+    {
+      "category_id": "watches-jewelry",
+      "category_name": "Watches & Jewelry",
+      "representative_products": 1000,
+      "evidence_roles_per_product": 5,
+      "required_role_coverage_ratio": 1.0,
+      "target_validated_evidence_assertions": 5000,
+      "target_market_observations": 5000,
+      "effective_product_role_units_per_active_family": 20,
+      "effective_validated_evidence_assertions_per_active_family": 20,
+      "effective_market_observations_per_active_family": 20,
+      "mandatory_source_roles": 7,
+      "minimum_independent_families_per_role": 5,
+      "category_complexity_multiplier": 1.0,
+      "overrides_global_attrition": false,
+      "parameter_state": "PLANNING_BASELINE_NOT_EMPIRICALLY_CALIBRATED"
+    },
+    {
+      "category_id": "automobiles-mobility",
+      "category_name": "Automobiles & Mobility",
+      "representative_products": 1000,
+      "evidence_roles_per_product": 5,
+      "required_role_coverage_ratio": 1.0,
+      "target_validated_evidence_assertions": 5000,
+      "target_market_observations": 5000,
+      "effective_product_role_units_per_active_family": 20,
+      "effective_validated_evidence_assertions_per_active_family": 20,
+      "effective_market_observations_per_active_family": 20,
+      "mandatory_source_roles": 7,
+      "minimum_independent_families_per_role": 5,
+      "category_complexity_multiplier": 1.0,
+      "overrides_global_attrition": false,
+      "parameter_state": "PLANNING_BASELINE_NOT_EMPIRICALLY_CALIBRATED"
+    },
+    {
+      "category_id": "fashion-accessories",
+      "category_name": "Fashion & Accessories",
+      "representative_products": 1000,
+      "evidence_roles_per_product": 5,
+      "required_role_coverage_ratio": 1.0,
+      "target_validated_evidence_assertions": 5000,
+      "target_market_observations": 5000,
+      "effective_product_role_units_per_active_family": 20,
+      "effective_validated_evidence_assertions_per_active_family": 20,
+      "effective_market_observations_per_active_family": 20,
+      "mandatory_source_roles": 7,
+      "minimum_independent_families_per_role": 5,
+      "category_complexity_multiplier": 1.0,
+      "overrides_global_attrition": false,
+      "parameter_state": "PLANNING_BASELINE_NOT_EMPIRICALLY_CALIBRATED"
+    },
+    {
+      "category_id": "design-furniture",
+      "category_name": "Design & Furniture",
+      "representative_products": 1000,
+      "evidence_roles_per_product": 5,
+      "required_role_coverage_ratio": 1.0,
+      "target_validated_evidence_assertions": 5000,
+      "target_market_observations": 5000,
+      "effective_product_role_units_per_active_family": 20,
+      "effective_validated_evidence_assertions_per_active_family": 20,
+      "effective_market_observations_per_active_family": 20,
+      "mandatory_source_roles": 7,
+      "minimum_independent_families_per_role": 5,
+      "category_complexity_multiplier": 1.0,
+      "overrides_global_attrition": false,
+      "parameter_state": "PLANNING_BASELINE_NOT_EMPIRICALLY_CALIBRATED"
+    },
+    {
+      "category_id": "technology-cameras",
+      "category_name": "Technology & Cameras",
+      "representative_products": 1000,
+      "evidence_roles_per_product": 5,
+      "required_role_coverage_ratio": 1.0,
+      "target_validated_evidence_assertions": 5000,
+      "target_market_observations": 5000,
+      "effective_product_role_units_per_active_family": 20,
+      "effective_validated_evidence_assertions_per_active_family": 20,
+      "effective_market_observations_per_active_family": 20,
+      "mandatory_source_roles": 7,
+      "minimum_independent_families_per_role": 5,
+      "category_complexity_multiplier": 1.0,
+      "overrides_global_attrition": false,
+      "parameter_state": "PLANNING_BASELINE_NOT_EMPIRICALLY_CALIBRATED"
+    },
+    {
+      "category_id": "gaming-music-screen",
+      "category_name": "Gaming, Music & Screen",
+      "representative_products": 1000,
+      "evidence_roles_per_product": 5,
+      "required_role_coverage_ratio": 1.0,
+      "target_validated_evidence_assertions": 5000,
+      "target_market_observations": 5000,
+      "effective_product_role_units_per_active_family": 20,
+      "effective_validated_evidence_assertions_per_active_family": 20,
+      "effective_market_observations_per_active_family": 20,
+      "mandatory_source_roles": 7,
+      "minimum_independent_families_per_role": 5,
+      "category_complexity_multiplier": 1.0,
+      "overrides_global_attrition": false,
+      "parameter_state": "PLANNING_BASELINE_NOT_EMPIRICALLY_CALIBRATED"
+    },
+    {
+      "category_id": "cards-comics-memorabilia",
+      "category_name": "Cards, Comics & Memorabilia",
+      "representative_products": 1000,
+      "evidence_roles_per_product": 5,
+      "required_role_coverage_ratio": 1.0,
+      "target_validated_evidence_assertions": 5000,
+      "target_market_observations": 5000,
+      "effective_product_role_units_per_active_family": 20,
+      "effective_validated_evidence_assertions_per_active_family": 20,
+      "effective_market_observations_per_active_family": 20,
+      "mandatory_source_roles": 7,
+      "minimum_independent_families_per_role": 5,
+      "category_complexity_multiplier": 1.0,
+      "overrides_global_attrition": false,
+      "parameter_state": "PLANNING_BASELINE_NOT_EMPIRICALLY_CALIBRATED"
+    }
+  ],
+  "sensitivity_scenarios": [
+    {
+      "scenario_id": "BASELINE_MINIMUM_DECISION_EVIDENCE",
+      "description": "Current eight-category planning baseline using five decision-evidence roles per representative product."
+    },
+    {
+      "scenario_id": "FULL_SEVEN_ROLE_COVERAGE",
+      "description": "Same categories and evidence volumes with all seven mandatory Source roles required per representative product.",
+      "overrides": {
+        "evidence_roles_per_product": 7
+      }
+    },
+    {
+      "scenario_id": "ATTRITION_PLUS_10_POINTS",
+      "description": "Stress case increasing total attrition by ten percentage points.",
+      "overrides": {
+        "total_attrition_rate_delta": 0.1
+      }
+    },
+    {
+      "scenario_id": "REPRESENTATIVE_PRODUCTS_PLUS_50_PERCENT",
+      "description": "Scale case increasing representative products in every category by fifty percent.",
+      "overrides": {
+        "representative_products_multiplier": 1.5
+      }
+    },
+    {
+      "scenario_id": "EVIDENCE_TARGET_PLUS_100_PERCENT",
+      "description": "Evidence-depth case doubling validated Evidence and Market Observation targets in every category.",
+      "overrides": {
+        "target_validated_evidence_assertions_multiplier": 2.0,
+        "target_market_observations_multiplier": 2.0
+      }
+    }
+  ],
+  "boundaries": {
+    "profile_is_empirical_measurement": false,
+    "profile_is_fixed_global_source_target": false,
+    "source_pool_promotions": 0,
+    "acquisition_authorized": false,
+    "candidate_r2": "BLOCKED",
+    "production": "HOLD"
+  }
+}
