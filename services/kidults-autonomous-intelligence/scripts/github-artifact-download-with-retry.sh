@@ -45,7 +45,11 @@ while [[ "$attempt" -le "$max_attempts" ]]; do
 
   gh api -H 'Accept: application/vnd.github+json' "$api_path" >"$tmp_path" 2>"$err_path"
   code=$?
-  last_code="$code"
+  effective_code="$code"
+  if [[ "$effective_code" -eq 0 ]]; then
+    effective_code=1
+  fi
+  last_code="$effective_code"
 
   if [[ "$code" -eq 0 && -s "$tmp_path" ]]; then
     mv "$tmp_path" "$output_path"
@@ -64,13 +68,13 @@ while [[ "$attempt" -le "$max_attempts" ]]; do
   if [[ -n "$status" ]] && ! is_retryable_status "$status"; then
     cat "$err_path" >&2
     echo "artifact download FAIL_CLOSED non-retryable HTTP ${status}" >&2
-    exit "${code:-1}"
+    exit "$effective_code"
   fi
 
   if [[ "$attempt" -ge "$max_attempts" ]]; then
     cat "$err_path" >&2
     echo "artifact download FAIL_CLOSED after ${attempt}/${max_attempts} attempts" >&2
-    exit "${last_code:-1}"
+    exit "$last_code"
   fi
 
   delay=$((base_delay_seconds * attempt))
