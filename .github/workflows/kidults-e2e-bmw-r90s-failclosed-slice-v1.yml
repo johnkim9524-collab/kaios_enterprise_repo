@@ -1,0 +1,25 @@
+name: KIDULTS E2E BMW R90S Fail-Closed Vertical Slice v1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-v2-1-official-preflight-observation-v1.json'
+      - 'scripts/kidults/e2e/build-bmw-r90s-failclosed-vertical-slice-v1.mjs'
+      - 'scripts/kidults/e2e/validate-bmw-r90s-failclosed-vertical-slice-v1.mjs'
+      - '.github/workflows/kidults-e2e-bmw-r90s-failclosed-slice-v1.yml'
+  workflow_dispatch:
+
+jobs:
+  bmw-r90s-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/kidults/e2e/build-bmw-r90s-failclosed-vertical-slice-v1.mjs out
+      - run: node scripts/kidults/e2e/validate-bmw-r90s-failclosed-vertical-slice-v1.mjs out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-e2e-bmw-r90s-failclosed-slice-v1
+          path: out
