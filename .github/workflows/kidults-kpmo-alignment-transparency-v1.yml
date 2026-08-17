@@ -1,0 +1,21 @@
+name: KIDULTS KPMO Alignment Transparency v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/governance/kpmo-alignment-transparency-gate-v1.json'
+      - 'coordination/kidults/governance/kpmo-cross-track-alignment-status-v1.json'
+      - 'scripts/kidults/governance/validate-kpmo-alignment-transparency-v1.mjs'
+      - '.github/workflows/kidults-kpmo-alignment-transparency-v1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-alignment-transparency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate 100 percent alignment and transparency-by-design
+        run: node scripts/kidults/governance/validate-kpmo-alignment-transparency-v1.mjs
