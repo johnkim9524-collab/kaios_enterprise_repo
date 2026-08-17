@@ -1,0 +1,115 @@
+{
+  "id": "representative-evidence-demand-policy-v1",
+  "record_type": "representative_product_evidence_demand_policy",
+  "version": "1.0.0",
+  "status": "PROPOSED_CANONICAL",
+  "effective_at": "2026-08-17T20:18:00+09:00",
+  "production": "HOLD",
+  "principle": "EVIDENCE_TARGETS_ARE_DERIVED_FROM_PRODUCT_DECISIONS_AND_MARKET_CELLS_NOT_FROM_AVAILABLE_SOURCE_VOLUME",
+  "assertion_classes": [
+    "CANONICAL_IDENTITY",
+    "MODEL_GENERATION_EDITION_VARIANT",
+    "MATERIAL_SPECIFICATION",
+    "AUTHENTICATION_CONDITION_GRADE",
+    "PROVENANCE_HISTORY",
+    "SCARCITY_EDITION_SUPPLY",
+    "LISTING_SUPPLY",
+    "SOLD_TRANSACTION_PRICE",
+    "LIQUIDITY_TURNOVER",
+    "VALUE_DISPERSION_COMPARABILITY",
+    "CULTURE_ATTENTION_CANON",
+    "MACRO_MARKET_CONTEXT"
+  ],
+  "minimum_source_topology": {
+    "CANONICAL_IDENTITY": {
+      "minimum_independent_families": 2,
+      "preferred_topology": ["PRIMARY_AUTHORITY", "INDEPENDENT_CATALOG_OR_REFERENCE"],
+      "primary_authority_required_when_available": true
+    },
+    "MODEL_GENERATION_EDITION_VARIANT": {
+      "minimum_independent_families": 2,
+      "preferred_topology": ["PRIMARY_AUTHORITY", "SPECIALIST_REFERENCE"]
+    },
+    "AUTHENTICATION_CONDITION_GRADE": {
+      "minimum_independent_families": 2,
+      "preferred_topology": ["AUTHENTICATION_OR_GRADING_AUTHORITY", "INDEPENDENT_SPECIALIST_REFERENCE"],
+      "required_when_product_risk_is_high": true
+    },
+    "PROVENANCE_HISTORY": {
+      "minimum_independent_families": 2,
+      "preferred_topology": ["PROVENANCE_OR_ARCHIVAL_AUTHORITY", "INDEPENDENT_REFERENCE"]
+    },
+    "SCARCITY_EDITION_SUPPLY": {
+      "minimum_independent_families": 2,
+      "preferred_topology": ["PRIMARY_OR_CATALOG_AUTHORITY", "INDEPENDENT_MARKET_OR_SPECIALIST_SOURCE"]
+    },
+    "SOLD_TRANSACTION_PRICE": {
+      "minimum_independent_families": 2,
+      "minimum_independent_families_high_or_critical": 3,
+      "preferred_topology": ["SOLD_TRANSACTION_OR_AUCTION_FAMILY_A", "SOLD_TRANSACTION_OR_AUCTION_FAMILY_B", "OPTIONAL_INDEPENDENT_FAMILY_C"]
+    },
+    "LIQUIDITY_TURNOVER": {
+      "minimum_independent_families": 2,
+      "minimum_independent_families_high_or_critical": 3,
+      "requires_sold_listing_separation": true
+    },
+    "CULTURE_ATTENTION_CANON": {
+      "minimum_independent_families": 2,
+      "preferred_topology": ["INSTITUTIONAL_OR_SCHOLARLY_SOURCE", "INDEPENDENT_CULTURE_OR_ATTENTION_SOURCE"]
+    },
+    "MACRO_MARKET_CONTEXT": {
+      "minimum_independent_families": 1,
+      "corroboration_required_for_causal_claim": true
+    }
+  },
+  "critical_assertion_rule": {
+    "minimum_independent_source_families": 3,
+    "same_owner_or_same_underlying_dataset_counts_as_independent": false,
+    "source_removal_test_required": true,
+    "rights_state_coverage": 1.0,
+    "provenance_coverage": 1.0,
+    "unknown_promoted_as_verified": 0
+  },
+  "evidence_intensity": {
+    "STANDARD": {
+      "description": "Simple identity and market structure with low counterfeit/variant/provenance risk."
+    },
+    "ELEVATED": {
+      "triggers": ["MULTIPLE_VARIANTS", "CONDITION_SENSITIVE", "REGIONALLY_FRAGMENTED", "MODERATE_AUTHENTICATION_RISK"]
+    },
+    "HIGH": {
+      "triggers": ["HIGH_VALUE_AT_RISK", "HIGH_COUNTERFEIT_RISK", "COMPLEX_VARIANTS", "PROVENANCE_MATERIAL", "MARKET_CHANNEL_FRAGMENTED"],
+      "market_transaction_family_floor": 3,
+      "source_removal_test": true
+    },
+    "CRITICAL": {
+      "triggers": ["TROPHY_OR_ULTRA_RARE", "VERY_HIGH_VALUE_AT_RISK", "IDENTITY_DISPUTE_PRONE", "PROVENANCE_DETERMINATIVE", "EXTREME_DATA_FRAGMENTATION"],
+      "critical_assertion_family_floor": 3,
+      "market_transaction_family_floor": 3,
+      "contradiction_test": true,
+      "source_removal_test": true,
+      "manual_exception_review_allowed": true
+    }
+  },
+  "target_generation_flow": [
+    "REPRESENTATIVE_PRODUCT_ANCHOR",
+    "ACTIVE_MARKET_CELL",
+    "CUSTOMER_DECISION",
+    "REQUIRED_ASSERTION",
+    "EVIDENCE_INTENSITY_CLASS",
+    "SOURCE_ROLE_TOPOLOGY",
+    "INDEPENDENT_FAMILY_FLOOR",
+    "REGION_LANGUAGE_REQUIREMENT",
+    "RIGHTS_ACCESS_COST_REQUIREMENT",
+    "TARGETED_ASI_QUERY_AND_ADAPTER_PLAN"
+  ],
+  "source_query_rule": "Every new targeted Source query must reference at least one representative_product_id, one assertion_class and one required_source_role. Generic category-only discovery is not an executable production query under this policy.",
+  "fail_closed": [
+    "NO_EVIDENCE_TARGET_FROM_SOURCE_COUNT_ALONE",
+    "NO_LISTING_PRICE_AS_SOLD_TRANSACTION",
+    "NO_PRIMARY_AUTHORITY_SUBSTITUTION_BY_GENERIC_AGGREGATOR_WHEN_PRIMARY_EXISTS",
+    "NO_SAME_OWNER_LINEAGE_DOUBLE_COUNT",
+    "NO_UNVERIFIED_METRIC_FROM_INSUFFICIENT_EVENTS",
+    "NO_PORTAL_OR_INDEX_CLAIM_BEFORE_TRACK_B_APPROVAL"
+  ]
+}
