@@ -1,0 +1,50 @@
+{
+  "id": "collectible-admission-engine-contract-v1",
+  "record_type": "collectible_admission_engine_contract",
+  "version": "1.0.0",
+  "status": "CANDIDATE_ON_CANONICAL_VALUE_CHAIN",
+  "parent_mission": 345,
+  "input_unit": "PRODUCT_FAMILY_CANDIDATE",
+  "required_inputs": [
+    "candidate_family_id",
+    "collection_scope_id",
+    "canonical_identity_boundary",
+    "collectible_thesis",
+    "identity_evidence_refs",
+    "scarcity_or_significance_evidence_refs",
+    "authenticity_or_provenance_model",
+    "condition_or_grade_model",
+    "market_or_institutional_evidence_refs",
+    "commodity_classification",
+    "transferability_state"
+  ],
+  "gates": [
+    "IDENTITY_RESOLVABLE",
+    "COLLECTIBLE_THESIS_EXPLICIT",
+    "NON_UTILITY_DIFFERENTIATION_MATERIAL",
+    "SCARCITY_OR_SIGNIFICANCE_PRESENT",
+    "AUTHENTICITY_OR_PROVENANCE_MODEL_DEFINED",
+    "CONDITION_OR_GRADE_MODEL_DEFINED_OR_NA_WITH_RATIONALE",
+    "MARKET_OR_INSTITUTIONAL_EVIDENCE_PRESENT",
+    "COMMODITY_ONLY_FALSE",
+    "ILLEGAL_OR_NON_TRANSFERABLE_FALSE",
+    "CANONICAL_BOUNDARY_DEFINED"
+  ],
+  "output_states": [
+    "COLLECTIBLE_QUALIFIED",
+    "HOLD_NOT_YET_COLLECTIBLE_QUALIFIED",
+    "REJECT_COMMODITY_ONLY",
+    "REJECT_NON_TRANSFERABLE",
+    "REVIEW_REQUIRED_IDENTITY_CONFLICT"
+  ],
+  "prohibited_shortcuts": [
+    "EXPENSIVE_IMPLIES_COLLECTIBLE",
+    "OLD_IMPLIES_COLLECTIBLE",
+    "RARE_IMPLIES_COLLECTIBLE",
+    "POPULAR_IMPLIES_COLLECTIBLE",
+    "MARKETPLACE_LISTED_IMPLIES_COLLECTIBLE",
+    "SOURCE_RICH_IMPLIES_COLLECTIBLE"
+  ],
+  "promotion_rule": "Only COLLECTIBLE_QUALIFIED product families may become Representative Product candidates.",
+  "production": "HOLD"
+}
