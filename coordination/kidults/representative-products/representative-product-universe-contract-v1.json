@@ -1,0 +1,118 @@
+{
+  "id": "representative-product-universe-contract-v1",
+  "record_type": "representative_product_universe_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T19:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "problem_statement": "Evidence and Source targets cannot be executable or trustworthy when they are driven only by an anonymous product count. Every product-level workflow must start from an explicit named Representative Product Universe.",
+  "canonical_flow": [
+    "CATEGORY_AND_COLLECTION_SCOPE",
+    "NAMED_PRODUCT_ANCHOR",
+    "AUTONOMOUS_PRODUCT_DISCOVERY",
+    "CANONICAL_IDENTITY_RESOLUTION",
+    "PRODUCT_FAMILY_VARIANT_AND_EDITION_SEPARATION",
+    "REPRESENTATIVENESS_SCORING",
+    "EVIDENCE_ELIGIBILITY",
+    "REPRESENTATIVE_QUALIFICATION",
+    "PRODUCT_LEVEL_EVIDENCE_PLAN",
+    "SOURCE_REQUIREMENT",
+    "AUTONOMOUS_COLLECTION",
+    "TRACK_B_VALIDATION",
+    "GLOBAL_MARKET_POC_ADMISSION",
+    "GOVERNED_INDEX_AND_PORTAL_PROJECTION"
+  ],
+  "primary_units": {
+    "representative_product_anchor": "EXPLICIT_NAMED_PRODUCT_MODEL_REFERENCE_FAMILY_OR_UNIQUE_OBJECT_CLASS",
+    "representative_product_candidate": "DISCOVERED_PRODUCT_WITH_SCOPE_AND_IDENTITY_EVIDENCE",
+    "representative_qualified_product": "CANONICAL_IDENTITY_RESOLVED_AND_REPRESENTATIVENESS_GATES_PASSED",
+    "active_evidence_product": "REPRESENTATIVE_QUALIFIED_PRODUCT_WITH_EXECUTABLE_RIGHTS_AWARE_EVIDENCE_PLAN"
+  },
+  "selection_dimensions": [
+    {"dimension":"MARKET_IMPORTANCE","weight":0.18},
+    {"dimension":"GLOBAL_AND_REGIONAL_REPRESENTATION","weight":0.14},
+    {"dimension":"CANONICAL_IDENTITY_VALUE","weight":0.12},
+    {"dimension":"TRANSACTION_OR_MARKET_OBSERVABILITY","weight":0.12},
+    {"dimension":"CULTURAL_OR_DESIGN_SIGNIFICANCE","weight":0.10},
+    {"dimension":"PRICE_BAND_REPRESENTATION","weight":0.08},
+    {"dimension":"TIME_DEPTH","weight":0.08},
+    {"dimension":"CONDITION_OR_GRADE_REPRESENTATION","weight":0.06},
+    {"dimension":"COMMON_VS_SCARCE_BALANCE","weight":0.05},
+    {"dimension":"INDEPENDENT_SOURCE_AVAILABILITY","weight":0.04},
+    {"dimension":"EVIDENCE_COLLECTABILITY_AND_RIGHTS","weight":0.03}
+  ],
+  "mandatory_stratification": [
+    "COLLECTION_SCOPE",
+    "MAKER_OR_BRAND",
+    "REGION",
+    "RELEASE_OR_PRODUCTION_ERA",
+    "PRICE_BAND",
+    "CONDITION_OR_GRADE",
+    "SCARCITY",
+    "MARKET_ACTIVITY",
+    "PRIMARY_VS_SECONDARY_MARKET",
+    "COMMON_VS_LONG_TAIL"
+  ],
+  "category_floor": {
+    "minimum_representative_qualified_products_per_category": 1000,
+    "minimum_total_for_current_eight_categories": 8000,
+    "floor_is_target": false,
+    "floor_is_cap": false,
+    "post_floor_rule": "CONTINUE_WHILE_CRITICAL_VALUE_REPRESENTATIVENESS_OR_EVIDENCE_GAPS_REMAIN"
+  },
+  "admission_gates": [
+    "EXPLICIT_PRODUCT_NAME_AND_MAKER_OR_AUTHORITY",
+    "COLLECTION_SCOPE_MAPPING",
+    "CANONICAL_IDENTITY_OR_DECLARED_IDENTITY_LEVEL",
+    "PRODUCT_FAMILY_VARIANT_EDITION_SEPARATION",
+    "SELECTION_RATIONALE",
+    "GLOBAL_AND_REGIONAL_STRATUM",
+    "PRICE_CONDITION_SCARCITY_AND_ACTIVITY_STATES",
+    "MINIMUM_INDEPENDENT_SOURCE_FAMILY_COVERAGE",
+    "EVIDENCE_ELIGIBILITY",
+    "DUPLICATE_AND_ALIAS_GATE",
+    "RIGHTS_AND_PROVENANCE_STATE_EXPLICIT",
+    "TRACK_B_REPRESENTATIVENESS_VALIDATION"
+  ],
+  "engine_alignment": {
+    "DOS": "Decision DNA determines which products require Intelligence and Evidence.",
+    "DATA_SCOPE": "Collection Scope is the mandatory parent of every Representative Product.",
+    "ASI": "Source discovery and replenishment are prioritized by named-product Evidence gaps.",
+    "CANONICAL_ENGINE": "Resolves product family, model, reference, edition, region and variant identities.",
+    "EVIDENCE_ENGINE": "Creates product-level assertions only for explicit named products.",
+    "MARKET_ENGINE": "Creates market observations keyed to canonical product identity.",
+    "MEMORY_ENGINE": "Stores product identity and market state bitemporally.",
+    "PROVIDER_FUSION": "Maps Provider records to representative products without promoting Provider IDs.",
+    "TRACK_B": "Validates identity, representativeness, evidence and sampling quality.",
+    "PORTAL_AND_INDEX": "Consume only governed projections from Representative Qualified products."
+  },
+  "fail_closed_rules": [
+    "ANONYMOUS_NUMERIC_PRODUCT_SLOT_CANNOT_CREATE_EVIDENCE",
+    "ANCHOR_CANNOT_BE_TREATED_AS_REPRESENTATIVE_QUALIFIED",
+    "UNRESOLVED_PRODUCT_IDENTITY_CANNOT_CREATE_PRICE_COMPARABLE",
+    "PRODUCT_FAMILY_CANNOT_BE_MIXED_WITH_VARIANTS_WITHOUT_EXPLICIT_NORMALIZATION",
+    "NO_PRODUCT_REGISTRY_FLOOR_PASS_NO_GLOBAL_MARKET_POC",
+    "NO_DIRECT_PRODUCT_CANDIDATE_TO_INDEX_OR_PORTAL"
+  ],
+  "required_outputs": [
+    "category-representative-product-registry-v1.json",
+    "representative-product-gap-matrix-v1.json",
+    "representative-product-evidence-plan-v1.json",
+    "representative-product-asi-expansion-queue-v1.json",
+    "representative-product-engine-alignment-v1.json",
+    "run-manifest.json"
+  ],
+  "boundaries": {
+    "current_anchor_count": 160,
+    "current_representative_qualified_count": 0,
+    "acquisition_authorized": false,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}

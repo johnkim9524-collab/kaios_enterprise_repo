@@ -1,0 +1,40 @@
+{
+  "id": "category-representative-product-anchor-registry-v1",
+  "record_type": "category_representative_product_anchor_registry",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE_SEED_FOUNDATION",
+  "effective_at": "2026-08-17T19:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "purpose": "Provide explicit named product anchors for every current Category and Collection Scope so Evidence, Source discovery and canonical identity logic operate against concrete products rather than anonymous numeric slots.",
+  "category_count": 8,
+  "collection_scope_count": 32,
+  "anchors_per_scope": 5,
+  "anchors_per_category": 20,
+  "total_anchor_records": 160,
+  "minimum_representative_products_per_category": 1000,
+  "minimum_total_representative_products": 8000,
+  "records": [
+    {"category_id":"toys-models","category_name":"Toys & Models","path":"anchors/toys-models.json","anchor_count":20,"minimum_floor":1000,"gap":980},
+    {"category_id":"watches-jewelry","category_name":"Watches & Jewelry","path":"anchors/watches-jewelry.json","anchor_count":20,"minimum_floor":1000,"gap":980},
+    {"category_id":"automobiles-mobility","category_name":"Automobiles & Mobility","path":"anchors/automobiles-mobility.json","anchor_count":20,"minimum_floor":1000,"gap":980},
+    {"category_id":"fashion-accessories","category_name":"Fashion & Accessories","path":"anchors/fashion-accessories.json","anchor_count":20,"minimum_floor":1000,"gap":980},
+    {"category_id":"design-furniture","category_name":"Design & Furniture","path":"anchors/design-furniture.json","anchor_count":20,"minimum_floor":1000,"gap":980},
+    {"category_id":"technology-cameras","category_name":"Technology & Cameras","path":"anchors/technology-cameras.json","anchor_count":20,"minimum_floor":1000,"gap":980},
+    {"category_id":"gaming-music-screen","category_name":"Gaming, Music & Screen","path":"anchors/gaming-music-screen.json","anchor_count":20,"minimum_floor":1000,"gap":980},
+    {"category_id":"cards-comics-memorabilia","category_name":"Cards, Comics & Memorabilia","path":"anchors/cards-comics-memorabilia.json","anchor_count":20,"minimum_floor":1000,"gap":980}
+  ],
+  "selection_state_machine": ["ANCHOR_DEFINED","ASI_DISCOVERED_CANDIDATE","CANONICAL_IDENTITY_RESOLVED","EVIDENCE_ELIGIBLE","REPRESENTATIVE_QUALIFIED","ACTIVE","HOLD","REPLACED"],
+  "governing_rules": [
+    "NO_ANONYMOUS_PRODUCT_SLOT_MAY_CREATE_EXECUTABLE_EVIDENCE_WORK",
+    "PLANNING_FLOOR_AND_NAMED_PRODUCT_UNIVERSE_ARE_REPORTED_SEPARATELY",
+    "ONLY_NAMED_PRODUCTS_MAY_ENTER_PRODUCT_LEVEL_EVIDENCE_QUEUES",
+    "ONLY_REPRESENTATIVE_QUALIFIED_PRODUCTS_MAY_ENTER_GLOBAL_MARKET_POC_EVIDENCE",
+    "NO_PROVIDER_ID_AS_CANONICAL_PRODUCT_ID",
+    "NO_INDEX_OR_PORTAL_PUBLICATION_FROM_ANCHOR_STATE"
+  ],
+  "boundaries": {"identity_resolved_records":0,"representative_qualified_records":0,"active_evidence_products":0,"acquisition_authorized":false,"candidate_r2":"BLOCKED","production":"HOLD"}
+}

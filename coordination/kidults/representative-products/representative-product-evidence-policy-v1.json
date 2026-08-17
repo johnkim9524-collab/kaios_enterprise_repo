@@ -1,0 +1,59 @@
+{
+  "id": "representative-product-evidence-policy-v1",
+  "record_type": "representative_product_evidence_policy",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T19:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "finding": "The former floor of 5,000 Evidence assertions and 5,000 market observations per 1,000 products equals only five records per product and is insufficient for global identity, market, condition, provenance, region and time-depth decisions.",
+  "policy": "EVIDENCE_TARGETS_ARE_DERIVED_PER_NAMED_REPRESENTATIVE_PRODUCT_AND_CATEGORY_COMPLEXITY",
+  "minimum_dimensions_per_product": [
+    "CANONICAL_IDENTITY",
+    "PRIMARY_AUTHORITY_OR_CATALOG",
+    "LISTING_AND_SUPPLY",
+    "SOLD_TRANSACTION_OR_MARKET_OUTCOME",
+    "AUTHENTICATION_OR_CONDITION",
+    "PROVENANCE_OR_HISTORY",
+    "CULTURE_OR_ATTENTION",
+    "INDEPENDENT_CORROBORATION",
+    "REGION_CURRENCY_AND_TIME_NORMALIZATION",
+    "CONFIDENCE_RISK_AND_LIMITATIONS"
+  ],
+  "market_time_depth": {"minimum_months":12,"event_driven_updates":true,"missing_time_depth":"EXPLICIT_NOT_VERIFIED"},
+  "category_targets": [
+    {"category_id":"toys-models","validated_evidence_assertions_per_product":24,"market_observations_per_product":60,"reason":"High variant, reissue, packaging and marketplace activity."},
+    {"category_id":"watches-jewelry","validated_evidence_assertions_per_product":28,"market_observations_per_product":48,"reason":"Reference, condition, authenticity, provenance and auction complexity."},
+    {"category_id":"automobiles-mobility","validated_evidence_assertions_per_product":32,"market_observations_per_product":36,"reason":"VIN/chassis, specification, restoration, provenance and low-frequency transaction complexity."},
+    {"category_id":"fashion-accessories","validated_evidence_assertions_per_product":24,"market_observations_per_product":72,"reason":"High velocity, size/colorway/season variants and counterfeit exposure."},
+    {"category_id":"design-furniture","validated_evidence_assertions_per_product":28,"market_observations_per_product":36,"reason":"Maker, edition, provenance, material and attribution depth."},
+    {"category_id":"technology-cameras","validated_evidence_assertions_per_product":24,"market_observations_per_product":48,"reason":"Model revision, configuration, completeness and regional specification."},
+    {"category_id":"gaming-music-screen","validated_evidence_assertions_per_product":24,"market_observations_per_product":60,"reason":"Edition, pressing, region, media condition and culture signal complexity."},
+    {"category_id":"cards-comics-memorabilia","validated_evidence_assertions_per_product":28,"market_observations_per_product":72,"reason":"Grade, restoration, authenticity, provenance and active auction-market depth."}
+  ],
+  "planning_formula": {
+    "category_validated_evidence_target": "REPRESENTATIVE_PRODUCT_FLOOR * VALIDATED_EVIDENCE_ASSERTIONS_PER_PRODUCT",
+    "category_market_observation_target": "REPRESENTATIVE_PRODUCT_FLOOR * MARKET_OBSERVATIONS_PER_PRODUCT",
+    "executable_evidence_target": "NAMED_EVIDENCE_ELIGIBLE_PRODUCTS * PER_PRODUCT_TARGET",
+    "global_total": "SUM(CATEGORY_TARGETS)"
+  },
+  "current_eight_category_floor_projection": {
+    "representative_products": 8000,
+    "validated_evidence_assertions": 212000,
+    "market_observations": 432000,
+    "former_validated_evidence_assertions": 40000,
+    "former_market_observations": 40000,
+    "former_policy_state": "SUPERSEDED_AS_INSUFFICIENT"
+  },
+  "evidence_state_machine": ["PLANNED","SOURCE_REQUIREMENT_READY","COLLECTION_AUTHORIZED","RAW_QUARANTINED","NORMALIZED","EVIDENCE_ASSERTION_CREATED","CROSS_SOURCE_CORROBORATED","TRACK_B_VALIDATED","ACTIVE","STALE_OR_HOLD"],
+  "fail_closed_rules": [
+    "NO_NAMED_PRODUCT_NO_EXECUTABLE_EVIDENCE_QUEUE",
+    "NO_CANONICAL_IDENTITY_NO_COMPARABLE_PRICE_ASSERTION",
+    "MISSING_SOURCE_ROLE_REMAINS_GAP",
+    "UNKNOWN_RIGHTS_NEVER_BECOMES_ALLOWED",
+    "PLANNING_TARGET_NEVER_EQUALS_COLLECTED_EVIDENCE"
+  ],
+  "boundaries": {"planning_projection_is_collected_evidence":false,"anchor_product_is_evidence_eligible":false,"acquisition_authorized":false,"production":"HOLD"}
+}
