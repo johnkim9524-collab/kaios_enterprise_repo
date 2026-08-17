@@ -1,0 +1,44 @@
+name: KIDULTS Product-Linked Bounded Live Discovery v2
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-product-linked-live-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-product-linked-live-v2.mjs'
+      - '.github/workflows/kidults-product-linked-live-discovery-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  bounded-live-product-discovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download immutable 160-anchor foundation artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p input queue discovery-out
+          gh api -H 'Accept: application/vnd.github+json' \
+            /repos/${{ github.repository }}/actions/artifacts/9286462549/zip > anchor-foundation.zip
+          unzip -q anchor-foundation.zip -d input
+      - name: Build current Product-linked Targeted ASI queue
+        run: node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input queue
+      - name: Validate Targeted ASI queue
+        run: node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs queue
+      - name: Run bounded-live Product-linked discovery
+        run: node scripts/kidults/source-intelligence/asi-product-linked-live-v2.mjs queue discovery-out
+      - name: Validate bounded-live discovery
+        run: node scripts/kidults/source-intelligence/validate-asi-product-linked-live-v2.mjs discovery-out
+      - name: Upload bounded-live evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-product-linked-bounded-live-discovery-v2
+          path: discovery-out/
+          if-no-files-found: error
+          retention-days: 90
