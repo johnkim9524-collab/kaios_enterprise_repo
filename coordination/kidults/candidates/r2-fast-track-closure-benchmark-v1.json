@@ -1,0 +1,115 @@
+{
+  "id": "r2-fast-track-closure-benchmark-v1",
+  "record_type": "r2_validated_benchmark_closure",
+  "version": "1.0.0",
+  "status": "VALIDATED_BENCHMARK_NOT_PUBLISHABLE_SUPERSEDED_BY_VNEXT_RESET",
+  "effective_at": "2026-08-17T20:08:00+09:00",
+  "canonical_main_at_closure": "e98066d19061aeaa50a44b384a30376bb3229abb",
+  "production": "HOLD",
+  "g5": "NOT_REQUESTED",
+  "candidate_r2_publishable": false,
+  "candidate_r2_production_authorized": false,
+  "closure_reason": "The current R2 line has completed its learning and benchmark purpose. Continuing the legacy Source-depth, Direct Top-200, qualification and Golden Dataset review sequence would optimize a Source collection and representative-product model that is now scheduled for strategic redesign.",
+  "validated_findings": {
+    "global_discovery": {
+      "raw_metadata_records": 9733,
+      "unique_normalized_source_endpoints": 5391,
+      "mandatory_scope_source_role_coverage": "224/224",
+      "interpretation": "HIGH_RECALL_DISCOVERY_PROVEN_NOT_HIGH_PRECISION_SOURCE_INTELLIGENCE"
+    },
+    "source_relevance_calibration": {
+      "run_id": 32008239744,
+      "artifact_id": 9280785689,
+      "artifact_digest": "sha256:a7b2578c97e6753eaba5616fbff0405b84a1945e8101870a729569df89447f4f",
+      "reviewed_cases": 400,
+      "relevant_cases": 48,
+      "not_relevant_cases": 352,
+      "observed_relevance_rate": 0.12,
+      "unresolved_cases": 0,
+      "review_boundary": "MODEL_ASSISTED_EVIDENCE_ONLY_BLIND_V2_3"
+    },
+    "source_precision_v3": {
+      "canonical_commit": "e98066d19061aeaa50a44b384a30376bb3229abb",
+      "unique_candidate_families": 145,
+      "collection_scope_coverage": "32/32",
+      "direct_top200_residual_gap": 55,
+      "preferred_240_buffer_gap": 95,
+      "source_pool_promotions": 0,
+      "acquisition_authorized": false
+    },
+    "five_source_evidence_preflight": {
+      "run_id": 31939060074,
+      "artifact_id": 9261498529,
+      "source_families": 5,
+      "authority_source_families": 4,
+      "transaction_source_families": 1,
+      "authority_records": 48,
+      "rights_cleared_market_events": 1,
+      "critical_provenance_coverage": 1.0,
+      "rights_state_coverage": 1.0,
+      "current_market_metrics": "NOT_VERIFIED"
+    },
+    "golden_dataset": {
+      "candidate_cases": 200,
+      "blind_review_package": "IMPLEMENTED_AND_CANONICAL",
+      "approved_labels": 0,
+      "final_entity_resolution_accuracy": "NOT_MEASURED",
+      "decision": "PRESERVE_FOR_VNEXT_CALIBRATION_AFTER_REPRESENTATIVE_PRODUCT_MODEL_RESET"
+    }
+  },
+  "r2_terminal_state": {
+    "direct_top200": "NOT_EXECUTED_UNDER_LEGACY_STRATEGY",
+    "source_qualification_200": "NOT_EXECUTED_UNDER_LEGACY_STRATEGY",
+    "official_preflight_50": "NOT_EXECUTED_AS_FINAL_R2_GATE",
+    "bounded_adapters_8": "NOT_ACTIVATED_AS_FINAL_R2_GATE",
+    "representative_market_acquisition": "NOT_EXECUTED_UNDER_LEGACY_REPRESENTATIVE_PRODUCT_MODEL",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "publication": "PROHIBITED",
+    "production": "HOLD"
+  },
+  "preserved_canonical_assets": [
+    "AGCI_OS_REGISTRY_V2",
+    "DECISION_TO_IRREPLACEABLE_VALUE_TRACEABILITY",
+    "RAW_QUARANTINE",
+    "CANONICAL_IDENTITY_SEPARATION",
+    "EVIDENCE_GRAPH",
+    "MARKET_GRAPH_CONTRACT",
+    "BITEMPORAL_MEMORY",
+    "PROJECTION_ONLY_PORTAL_BOUNDARY",
+    "TRACK_B_INDEPENDENCE",
+    "FAIL_CLOSED_GOVERNANCE",
+    "EVIDENCE_BEFORE_METRICS",
+    "BLIND_REVIEW_INTEGRITY_CONTROLS",
+    "400_CASE_SOURCE_CALIBRATION_BENCHMARK",
+    "FIVE_SOURCE_BOUNDED_LIVE_PREFLIGHT"
+  ],
+  "superseded_legacy_assumptions": [
+    "BROAD_KEYWORD_DISCOVERY_AS_PRIMARY_SOURCE_EXPANSION",
+    "URL_OR_ENDPOINT_COUNT_AS_SOURCE_DEPTH_PROXY",
+    "FIXED_SCOPE_SOURCE_ROLE_DEPTH_AS_PRIMARY_MARKET_REPRESENTATION",
+    "SOURCE_FIRST_BEFORE_REPRESENTATIVE_PRODUCT_DEFINITION",
+    "LEGACY_TOP200_QUEUE_AS_REQUIRED_NEXT_STEP",
+    "LEGACY_REPRESENTATIVE_PRODUCT_AND_SAMPLING_CONFIGURATION"
+  ],
+  "next_program": {
+    "name": "GLOBAL_CANONICAL_OS_VNEXT",
+    "priority": "P0",
+    "required_reset_sequence": [
+      "REPRESENTATIVE_PRODUCT_MODEL",
+      "REPRESENTATIVE_MARKET_CELL_MODEL",
+      "GLOBAL_SOURCE_COLLECTION_STRATEGY",
+      "SOURCE_ADMISSION_AND_RIGHTS_STRATEGY",
+      "SAMPLING_AND_COVERAGE_ENGINE",
+      "ENTITY_AND_MARKET_EVENT_ENGINE_REBINDING",
+      "INTELLIGENCE_PRODUCT_AND_INDEX_LOGIC",
+      "PROJECTION_AND_RUNTIME_REBINDING"
+    ]
+  },
+  "immutability": {
+    "r1_preserved": true,
+    "r1_assessment_preserved": true,
+    "r2_benchmark_preserve": true,
+    "future_reset_must_use_new_versioned_contracts": true
+  }
+}
