@@ -1,0 +1,168 @@
+{
+  "id": "autonomous-collection-cadence-policy-v2",
+  "record_type": "autonomous_collection_cadence_policy",
+  "version": "2.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T20:20:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "supersedes": {
+    "policy_id": "autonomous-collection-cadence-policy-v1",
+    "reason": "Cadence is now assigned from explicit named Representative Product state, product-level Evidence gaps and category market velocity rather than Source Role alone.",
+    "historical_v1_preserved": true
+  },
+  "governing_contracts": [
+    "representative-product-universe-contract-v1",
+    "representative-product-evidence-policy-v2",
+    "global-evidence-sufficiency-policy-v2",
+    "category-representative-product-registry-v1"
+  ],
+  "two_plane_model": {
+    "product_and_source_intelligence_plane": "DISCOVER_DEFINE_RESOLVE_QUALIFY_MONITOR_REMOVE_REPLACE",
+    "data_acquisition_plane": "COLLECT_ONLY_FOR_NAMED_EVIDENCE_ELIGIBLE_PRODUCTS_AFTER_SOURCE_RIGHTS_AND_ADAPTER_GATES",
+    "anonymous_category_slot_collection": false,
+    "anchor_state_collection": false,
+    "trust_qualified_equals_rights_cleared": false
+  },
+  "product_state_cadence": [
+    {
+      "product_state":"ANCHOR_DEFINED",
+      "allowed_work":"IDENTITY_AND_SOURCE_DISCOVERY_ONLY",
+      "priority_replanning_hours":6,
+      "content_collection_allowed":false
+    },
+    {
+      "product_state":"ASI_DISCOVERED_CANDIDATE",
+      "allowed_work":"CANONICAL_IDENTITY_AND_REPRESENTATIVENESS_ASSESSMENT",
+      "priority_replanning_hours":6,
+      "content_collection_allowed":false
+    },
+    {
+      "product_state":"CANONICAL_IDENTITY_RESOLVED",
+      "allowed_work":"PRODUCT_LEVEL_SOURCE_REQUIREMENT_AND_PREFLIGHT",
+      "priority_replanning_hours":12,
+      "content_collection_allowed":false
+    },
+    {
+      "product_state":"EVIDENCE_ELIGIBLE",
+      "allowed_work":"BOUNDED_DEV_STAGING_COLLECTION_PLAN",
+      "priority_replanning_hours":6,
+      "content_collection_allowed":"ONLY_AFTER_EXPLICIT_ACQUISITION_AUTHORIZATION"
+    },
+    {
+      "product_state":"REPRESENTATIVE_QUALIFIED",
+      "allowed_work":"GLOBAL_POC_EVIDENCE_COLLECTION_AND_VALIDATION",
+      "priority_replanning_hours":6,
+      "content_collection_allowed":"ONLY_AFTER_ALL_GATES"
+    },
+    {
+      "product_state":"ACTIVE",
+      "allowed_work":"ADAPTIVE_COLLECTION_TRUST_DECAY_AND_REPLACEMENT",
+      "priority_replanning_hours":6,
+      "content_collection_allowed":"AUTHORIZED_SOURCE_AND_FIELD_ALLOWLIST_ONLY"
+    }
+  ],
+  "control_plane": {
+    "continuous_workers":"24X7_DIGITALOCEAN_DEV_STAGING",
+    "priority_replanning_interval_hours":6,
+    "product_registry_delta_check_minutes":60,
+    "immutable_product_source_evidence_snapshot_hours":24,
+    "global_diversity_rebalance_days":7,
+    "product_evidence_sufficiency_recalibration_days":7,
+    "global_source_sufficiency_recalibration_days":30,
+    "github_role":"CONTRACT_CI_AUDIT_SNAPSHOT_AND_POLICY_CONTROLLER",
+    "digitalocean_role":"CONTINUOUS_QUEUE_WORKER_STORAGE_OBSERVABILITY_AND_RECOVERY_RUNTIME",
+    "production":"HOLD"
+  },
+  "category_market_velocity_profiles": [
+    {"category_id":"toys-models","velocity_class":"HIGH","market_cadence_multiplier":0.75},
+    {"category_id":"watches-jewelry","velocity_class":"MEDIUM_HIGH","market_cadence_multiplier":0.9},
+    {"category_id":"automobiles-mobility","velocity_class":"LOW_EVENT_DRIVEN","market_cadence_multiplier":1.5},
+    {"category_id":"fashion-accessories","velocity_class":"VERY_HIGH","market_cadence_multiplier":0.5},
+    {"category_id":"design-furniture","velocity_class":"LOW_MEDIUM","market_cadence_multiplier":1.5},
+    {"category_id":"technology-cameras","velocity_class":"MEDIUM_HIGH","market_cadence_multiplier":0.9},
+    {"category_id":"gaming-music-screen","velocity_class":"HIGH","market_cadence_multiplier":0.75},
+    {"category_id":"cards-comics-memorabilia","velocity_class":"VERY_HIGH","market_cadence_multiplier":0.5}
+  ],
+  "source_role_base_cadence_minutes": [
+    {"source_role":"PRIMARY_AUTHORITY","default_delta":1440,"minimum":360,"maximum":10080},
+    {"source_role":"CATALOG_REFERENCE","default_delta":1440,"minimum":360,"maximum":10080},
+    {"source_role":"LISTING_SUPPLY","default_delta":60,"minimum":15,"maximum":360},
+    {"source_role":"SOLD_TRANSACTION","default_delta":60,"minimum":5,"maximum":180},
+    {"source_role":"AUTHENTICATION_CONDITION","default_delta":1440,"minimum":360,"maximum":10080},
+    {"source_role":"PROVENANCE_HISTORY","default_delta":10080,"minimum":1440,"maximum":43200},
+    {"source_role":"CULTURE_ATTENTION","default_delta":360,"minimum":30,"maximum":1440},
+    {"source_role":"AUCTION_PRIVATE_SALE","default_delta":60,"minimum":5,"maximum":360},
+    {"source_role":"MACRO_CONTEXT","default_delta":1440,"minimum":360,"maximum":10080},
+    {"source_role":"INDEPENDENT_VERIFICATION","default_delta":10080,"minimum":1440,"maximum":43200}
+  ],
+  "adaptive_product_cadence_formula": {
+    "planned_interval_minutes":"CLAMP(SOURCE_ROLE_BASE_X_CATEGORY_MARKET_MULTIPLIER_X_PRODUCT_SIGNAL_FACTOR_X_EVIDENCE_GAP_FACTOR_X_SOURCE_RELIABILITY_FACTOR_X_COST_RATE_LIMIT_FACTOR)",
+    "minimum_interval_minutes":5,
+    "maximum_interval_minutes":43200,
+    "required_inputs":[
+      "REPRESENTATIVE_PRODUCT_ID",
+      "PRODUCT_STATE",
+      "CATEGORY_MARKET_VELOCITY",
+      "SOURCE_ROLE",
+      "CURRENT_PRODUCT_EVIDENCE_GAP",
+      "MARKET_VOLATILITY",
+      "EVENT_CRITICALITY",
+      "SOURCE_CHANGE_PROBABILITY",
+      "FRESHNESS_SLA",
+      "SOURCE_RELIABILITY",
+      "RATE_LIMIT_AND_COST_PRESSURE",
+      "DUPLICATE_YIELD",
+      "INCREMENTAL_DECISION_VALUE"
+    ]
+  },
+  "shorten_when": [
+    "PRODUCT_EVIDENCE_GAP_WIDENS",
+    "TRANSACTION_OR_LISTING_ACTIVITY_INCREASES",
+    "HIGH_VALUE_RELEASE_AUCTION_OR_CULTURAL_EVENT_DETECTED",
+    "FRESHNESS_SLA_AT_RISK",
+    "SOURCE_OR_SCHEMA_CHANGE_DETECTED"
+  ],
+  "lengthen_when": [
+    "PRODUCT_STATE_UNCHANGED",
+    "DUPLICATE_OR_NO_CHANGE_RATE_INCREASES",
+    "LOW_LIQUIDITY_PRODUCT_EXCEPTION_VALIDATED",
+    "INCREMENTAL_DECISION_VALUE_DECLINES",
+    "RATE_LIMIT_OR_COST_PRESSURE_INCREASES"
+  ],
+  "acquisition_gate": [
+    "REPRESENTATIVE_PRODUCT_ID_EXPLICIT",
+    "CANONICAL_IDENTITY_RESOLVED",
+    "EVIDENCE_ELIGIBILITY_PASS",
+    "VALUE_AND_DECISION_LINKAGE_PASS",
+    "SCOPE_AND_SOURCE_ROLE_PASS",
+    "TRACK_B_REQUIRED_VALIDATION_PASS",
+    "RIGHTS_ACCESS_COST_PREFLIGHT_PASS",
+    "BOUNDED_ADAPTER_CONTRACT_PASS",
+    "DEV_SHADOW_PASS",
+    "STAGING_SHADOW_PASS",
+    "EXPLICIT_ACQUISITION_AUTHORIZATION"
+  ],
+  "workflow_recalculation_triggers": [
+    "NAMED_PRODUCT_ADDED_REMOVED_OR_REPLACED",
+    "PRODUCT_STATE_CHANGED",
+    "PRODUCT_EVIDENCE_TARGET_CHANGED",
+    "PRODUCT_EVIDENCE_GAP_CHANGED",
+    "CATEGORY_VELOCITY_CHANGED",
+    "SOURCE_HEALTH_RIGHTS_OR_SCHEMA_CHANGED",
+    "SOURCE_SUFFICIENCY_TARGET_CHANGED"
+  ],
+  "boundaries": {
+    "anonymous_product_collection": false,
+    "anchor_collection_authorized": false,
+    "content_acquisition_authorized": false,
+    "source_pool_promotions":0,
+    "candidate_r2":"BLOCKED",
+    "kidult_500":"NOT_COMPUTED",
+    "kidult_100":"NOT_COMPUTED",
+    "production":"HOLD"
+  }
+}
