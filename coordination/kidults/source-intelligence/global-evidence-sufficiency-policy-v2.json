@@ -1,0 +1,110 @@
+{
+  "id": "global-evidence-sufficiency-policy-v2",
+  "record_type": "global_evidence_sufficiency_policy",
+  "version": "2.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T20:15:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "target_market": "GLOBAL",
+  "supersedes": {
+    "policy_id": "global-evidence-sufficiency-policy-v1",
+    "reason": "Global Evidence sufficiency now depends on explicit named Representative Products rather than an anonymous product floor, and the minimum depth is raised to category-specific v2 levels.",
+    "historical_v1_preserved": true
+  },
+  "governing_contracts": [
+    "representative-product-universe-contract-v1",
+    "representative-product-evidence-policy-v2",
+    "category-representative-product-registry-v1",
+    "decision-operating-system-contract-v1",
+    "collection-scope-registry-v1"
+  ],
+  "canonical_formula": {
+    "category_validated_evidence_target": "SUM(NAMED_REPRESENTATIVE_PRODUCTS_X_PRODUCT_CATEGORY_ASSERTION_TARGET)",
+    "category_market_observation_target": "SUM(NAMED_REPRESENTATIVE_PRODUCTS_X_PRODUCT_CATEGORY_MARKET_TARGET)",
+    "planning_floor_projection": "REPRESENTATIVE_PRODUCT_FLOOR_X_CATEGORY_TARGET",
+    "executable_target": "CANONICAL_IDENTITY_RESOLVED_AND_EVIDENCE_ELIGIBLE_NAMED_PRODUCTS_ONLY",
+    "counted_global_poc_evidence": "REPRESENTATIVE_QUALIFIED_AND_TRACK_B_VALIDATED_PRODUCTS_ONLY"
+  },
+  "current_program_state": {
+    "current_categories": 8,
+    "current_collection_scopes": 32,
+    "named_anchor_products": 160,
+    "named_product_floor": 8000,
+    "named_product_gap": 7840,
+    "representative_qualified_products": 0,
+    "anchor_planning_validated_evidence_assertions": 6320,
+    "anchor_planning_market_observations": 18240,
+    "full_floor_planning_validated_evidence_assertions": 316000,
+    "full_floor_planning_market_observations": 912000
+  },
+  "evidence_admission_gates": [
+    "REPRESENTATIVE_PRODUCT_ID_EXPLICIT",
+    "CANONICAL_IDENTITY_RESOLVED",
+    "COLLECTION_SCOPE_MAPPING_VALID",
+    "PRODUCT_FAMILY_VARIANT_EDITION_SEPARATED",
+    "SOURCE_AND_PROVENANCE_EXPLICIT",
+    "RIGHTS_STATE_EXPLICIT",
+    "SOURCE_ROLE_COVERAGE_PASS",
+    "TIME_REGION_PRICE_AND_CONDITION_DEPTH_PASS_OR_EXPLICIT_LIMITATION",
+    "INDEPENDENT_CORROBORATION_PASS",
+    "TRACK_B_VALIDATION_PASS"
+  ],
+  "global_market_poc_gate": {
+    "named_representative_product_floor_pass": false,
+    "representative_qualified_product_floor_pass": false,
+    "validated_evidence_target_pass": false,
+    "market_observation_target_pass": false,
+    "all_32_collection_scopes_represented": true,
+    "all_224_mandatory_scope_role_lanes_represented": false,
+    "critical_assertion_three_family_floor": false,
+    "rights_and_provenance_coverage": "NOT_MEASURED",
+    "confidence_and_limitation_coverage": "NOT_MEASURED",
+    "status": "NOT_ADMITTED"
+  },
+  "workflow_effect": [
+    {
+      "workflow": "REPRESENTATIVE_PRODUCT_FOUNDATION",
+      "effect": "Defines named products, gaps, Evidence plans and ASI expansion work."
+    },
+    {
+      "workflow": "SOURCE_SUFFICIENCY_V3",
+      "effect": "Uses full-floor and executable named-product Evidence demand to reverse-calculate Source capacity."
+    },
+    {
+      "workflow": "ASI_PRODUCT_AND_SOURCE_DISCOVERY",
+      "effect": "Discovers products and Sources against explicit product, Scope, Role, region and language gaps."
+    },
+    {
+      "workflow": "CANONICAL_EVIDENCE_AND_MARKET_GRAPH",
+      "effect": "Accepts product-linked observations only after identity and rights gates."
+    },
+    {
+      "workflow": "TRACK_B",
+      "effect": "Validates product representativeness, Evidence precision and sampling bias."
+    },
+    {
+      "workflow": "INDEX_AND_PORTAL",
+      "effect": "Remains blocked until governed Representative Qualified product projections exist."
+    }
+  ],
+  "fail_closed_rules": [
+    "ANONYMOUS_PRODUCT_COUNT_CANNOT_CREATE_EXECUTABLE_EVIDENCE",
+    "ANCHOR_STATE_EVIDENCE_CANNOT_COUNT_FOR_GLOBAL_POC",
+    "PLANNING_TARGET_IS_NOT_COLLECTED_EVIDENCE",
+    "UNKNOWN_RIGHTS_IS_NOT_ALLOWED",
+    "UNRESOLVED_PRODUCT_MATCH_IS_NOT_MARKET_OBSERVATION",
+    "DIRECT_PRODUCT_CANDIDATE_TO_INDEX_OR_PORTAL_IS_PROHIBITED"
+  ],
+  "boundaries": {
+    "planning_target_is_actual_evidence": false,
+    "content_acquisition_authorized": false,
+    "source_pool_promotions": 0,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}
