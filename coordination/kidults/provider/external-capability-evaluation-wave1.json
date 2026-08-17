@@ -1,0 +1,15 @@
+{
+  "id":"kidults-external-capability-evaluation-wave1",
+  "version":"1.0.0",
+  "status":"EVALUATION_CANDIDATE_NOT_AUTHORIZED",
+  "source_classification_artifact":9305157333,
+  "capability_scope":{"AUTHENTICATION_CONDITION":32,"SOLD_TRANSACTION_HISTORY":32},
+  "providers":[
+    {"provider":"PSA","source_family":"PSA_COLLECTORS","candidate_capabilities":["AUTHENTICATION_CONDITION","SOLD_TRANSACTION_HISTORY"],"scope_fit":{"trading_cards":"DIRECT_CANDIDATE"},"commercial_reuse_authorized":false,"authorization_state":"HOLD_API_SCOPE_AND_REUSE_RIGHTS_CONFIRMATION"},
+    {"provider":"eBay","source_family":"EBAY_MARKETPLACE","candidate_capabilities":["SOLD_TRANSACTION_HISTORY"],"scope_fit":{"all_32_scopes":"MARKETPLACE_COVERAGE_CANDIDATE_SCOPE_FIT_NOT_VERIFIED"},"commercial_reuse_authorized":false,"authorization_state":"HOLD_LIMITED_RELEASE_PARTNER_APPROVAL_REQUIRED"},
+    {"provider":"TCGplayer","source_family":"TCGPLAYER_MARKETPLACE","candidate_capabilities":["CATALOG_REFERENCE","PRICING_REFERENCE"],"scope_fit":{"trading_cards":"DIRECT_CANDIDATE"},"commercial_reuse_authorized":false,"authorization_state":"HOLD_NEW_API_ACCESS_NOT_GRANTED_EXISTING_KEY_REQUIRED"},
+    {"provider":"Cardmarket","source_family":"CARDMARKET_MARKETPLACE","candidate_capabilities":["SOLD_TRANSACTION_HISTORY"],"scope_fit":{"trading_cards":"DIRECT_CANDIDATE"},"commercial_reuse_authorized":false,"authorization_state":"HOLD_PRIOR_WRITTEN_AGREEMENT_REQUIRED_FOR_PRICE_PRESENTATION_OR_OTHER_USE"}
+  ],
+  "evaluation_rules":{"vendor_preselection":false,"unknown_scope_fit":"NOT_VERIFIED","unknown_rights":"HOLD","listing_not_sold":true,"price_guide_not_transaction":true,"provider_contact_authorized":false},
+  "production":"HOLD"
+}
