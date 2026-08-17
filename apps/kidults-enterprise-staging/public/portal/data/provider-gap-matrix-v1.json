@@ -1,0 +1,117 @@
+{
+  "matrix_id": "kidults-provider-gap-matrix-v1",
+  "version": "1.0.0",
+  "status": "FOUNDATION_ACTIVE",
+  "effective_at": "2026-08-16T04:30:00+09:00",
+  "provider_registry_state": "RESEARCHING",
+  "production_connection": false,
+  "dimensions": [
+    {
+      "id": "identity-canon",
+      "strategy": "SELF_FIRST",
+      "required_fields": [
+        "canonical_id",
+        "maker",
+        "model",
+        "edition",
+        "release_year",
+        "category"
+      ],
+      "freshness": "EVENT_DRIVEN",
+      "rights": "PUBLIC_OR_OWNED",
+      "portal_use": "ELIGIBLE_AFTER_SNAPSHOT_GATE"
+    },
+    {
+      "id": "market-observation",
+      "strategy": "SELF_FIRST",
+      "required_fields": [
+        "listing_id",
+        "observed_price",
+        "currency",
+        "market",
+        "observed_at",
+        "availability_state"
+      ],
+      "freshness": "DAILY",
+      "rights": "SOURCE_TERMS_REQUIRED",
+      "portal_use": "AGGREGATED_ONLY"
+    },
+    {
+      "id": "culture-attention",
+      "strategy": "SELF_FIRST",
+      "required_fields": [
+        "signal_id",
+        "source_family",
+        "attention_value",
+        "observed_at",
+        "region"
+      ],
+      "freshness": "DAILY",
+      "rights": "AGGREGATED_OR_LICENSED",
+      "portal_use": "AGGREGATED_ONLY"
+    },
+    {
+      "id": "sold-transaction-pricing",
+      "strategy": "PROVIDER_REQUIRED",
+      "required_fields": [
+        "transaction_id",
+        "sold_price",
+        "currency",
+        "sold_at",
+        "venue",
+        "buyer_premium",
+        "lot_id"
+      ],
+      "freshness": "DAILY_INCREMENTAL",
+      "rights": "COMMERCIAL_LICENSE_REQUIRED",
+      "portal_use": "BLOCKED_PENDING_CONTRACT"
+    },
+    {
+      "id": "auction-private-sale",
+      "strategy": "HYBRID",
+      "required_fields": [
+        "event_id",
+        "venue",
+        "estimate_low",
+        "estimate_high",
+        "outcome",
+        "sale_type",
+        "event_at"
+      ],
+      "freshness": "EVENT_DRIVEN",
+      "rights": "COMMERCIAL_LICENSE_REQUIRED",
+      "portal_use": "BLOCKED_PENDING_CONTRACT"
+    },
+    {
+      "id": "provenance-event-history",
+      "strategy": "PROVIDER_REQUIRED",
+      "required_fields": [
+        "object_id",
+        "event_type",
+        "event_at",
+        "actor",
+        "location",
+        "evidence_reference"
+      ],
+      "freshness": "EVENT_DRIVEN",
+      "rights": "DEFENSIBLE_LICENSE_REQUIRED",
+      "portal_use": "BLOCKED_PENDING_CONTRACT"
+    },
+    {
+      "id": "authentication-condition",
+      "strategy": "PROVIDER_REQUIRED",
+      "required_fields": [
+        "object_id",
+        "assessment_type",
+        "grade",
+        "assessor",
+        "assessed_at",
+        "evidence_reference"
+      ],
+      "freshness": "EVENT_DRIVEN",
+      "rights": "SPECIALIST_LICENSE_REQUIRED",
+      "portal_use": "BLOCKED_PENDING_CONTRACT"
+    }
+  ],
+  "outreach_rule": "Contact providers only after the self-first pipeline quantifies the exact missing signal, fields, freshness, provenance and rights requirement."
+}

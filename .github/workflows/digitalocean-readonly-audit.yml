@@ -1,0 +1,58 @@
+name: KIDULTS DigitalOcean Read-Only Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Public KIDULTS runtime URL to observe
+        required: false
+        default: https://kaios.kidults.com
+        type: string
+  schedule:
+    - cron: "17 20 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run read-only runtime audit
+        env:
+          KIDULTS_MONITORED_BASE_URL: ${{ inputs.base_url || vars.KIDULTS_MONITORED_BASE_URL || 'https://kaios.kidults.com' }}
+          DIGITALOCEAN_READ_TOKEN: ${{ secrets.DIGITALOCEAN_READ_TOKEN }}
+          DIGITALOCEAN_DROPLET_ID: ${{ vars.DIGITALOCEAN_DROPLET_ID }}
+          KIDULTS_AUDIT_OUTPUT: artifacts/digitalocean-readonly-audit
+        run: python scripts/operations/digitalocean_readonly_audit.py
+
+      - name: Assert no mutation claim
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("artifacts/digitalocean-readonly-audit/digitalocean-readonly-audit.json").read_text())
+          assert report["mode"] == "READ_ONLY"
+          assert report["mutation_performed"] is False
+          assert report["production_connection_authorized"] is False
+          assert report["production_decision"] == "HOLD"
+          print(report["overall_state"])
+          PY
+
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-digitalocean-readonly-audit
+          path: artifacts/digitalocean-readonly-audit
+          if-no-files-found: error
+          retention-days: 30

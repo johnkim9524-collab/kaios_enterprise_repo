@@ -1,0 +1,214 @@
+{
+  "id": "irreplaceable-value-operating-contract-v1",
+  "record_type": "irreplaceable_value_operating_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-16T20:50:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "definition": "Irreplaceable Value is an explainable, evidence-backed and continuously improving decision advantage that cannot be reproduced at equivalent quality by any single Provider API, marketplace, public website, static database or generic AI model.",
+  "canonical_value_equation": [
+    "HIGH_VALUE_CUSTOMER_DECISION",
+    "MULTI_SOURCE_INDEPENDENT_EVIDENCE",
+    "CANONICAL_IDENTITY",
+    "GLOBAL_AND_REPRESENTATIVE_COVERAGE",
+    "BITEMPORAL_MEMORY_AND_CHANGE",
+    "RISK_CONFIDENCE_AND_LIMITATIONS",
+    "EXPLAINABLE_RECOMMENDATION",
+    "AUTONOMOUS_CONTINUOUS_IMPROVEMENT",
+    "RESILIENCE_TO_PROVIDER_REMOVAL"
+  ],
+  "mandatory_irreplaceability_tests": [
+    {
+      "test_id": "SINGLE_SOURCE_SUBSTITUTION_TEST",
+      "pass_when": "No single Source can reproduce the output with equivalent identity, breadth, time depth, confidence and explanation."
+    },
+    {
+      "test_id": "SINGLE_PROVIDER_SUBSTITUTION_TEST",
+      "pass_when": "Removal of any one Provider reduces coverage or latency but does not destroy the platform truth or decision logic."
+    },
+    {
+      "test_id": "GENERIC_AI_SUBSTITUTION_TEST",
+      "pass_when": "A generic model without the governed Evidence Graph, Market Graph, Memory, rights lineage and Source contribution ledger cannot reproduce the output."
+    },
+    {
+      "test_id": "DECISION_IMPACT_TEST",
+      "pass_when": "The output changes, confirms, delays or rejects a real collector, institution, enterprise or Founder decision."
+    },
+    {
+      "test_id": "EXPLAINABILITY_TEST",
+      "pass_when": "The platform can show why the conclusion exists, which Evidence supports it, what conflicts remain and what is not verified."
+    },
+    {
+      "test_id": "SOURCE_REMOVAL_RESILIENCE_TEST",
+      "pass_when": "Critical conclusions remain available or fail closed with an explicit dependency report when a Source family is removed."
+    }
+  ],
+  "value_scopes": [
+    {
+      "value_scope_id": "VS_OBJECT_TRUST",
+      "name": "Object Trust and Identity",
+      "customer_decisions": ["VERIFY_OBJECT", "UNDERSTAND_VARIANT", "ASSESS_PROVENANCE", "ASSESS_CONDITION"],
+      "intelligence_products": ["OBJECT_INTELLIGENCE_PASSPORT"],
+      "required_capabilities": ["CANONICAL_IDENTITY", "AUTHENTICATION", "CONDITION", "PROVENANCE", "SOURCE_CONFIDENCE"]
+    },
+    {
+      "value_scope_id": "VS_PRICE_COMPARABILITY",
+      "name": "True Comparable and Price Decision",
+      "customer_decisions": ["HOW_MUCH_TO_PAY", "BUY_OR_WAIT", "SELL_OR_HOLD", "SELECT_COMPARABLES"],
+      "intelligence_products": ["COMPARABLE_MARKET_VIEW"],
+      "required_capabilities": ["CANONICAL_IDENTITY", "SOLD_EVENTS", "LISTING_SUPPLY", "CONDITION_NORMALIZATION", "REGION_CURRENCY_TIME"]
+    },
+    {
+      "value_scope_id": "VS_SCARCITY_AVAILABILITY",
+      "name": "Scarcity and Availability",
+      "customer_decisions": ["WHAT_IS_RARE", "WHAT_IS_AVAILABLE", "WHICH_VARIANT_MATTERS", "WHEN_TO_SOURCE"],
+      "intelligence_products": ["SCARCITY_AND_AVAILABILITY_VIEW"],
+      "required_capabilities": ["RELEASE_EDITION", "SUPPLY", "SOLD_FREQUENCY", "GEOGRAPHIC_DISTRIBUTION", "AUTHENTICATION"]
+    },
+    {
+      "value_scope_id": "VS_LIQUIDITY_EXIT",
+      "name": "Liquidity and Exit Risk",
+      "customer_decisions": ["CAN_I_EXIT", "HOW_LONG_TO_EXIT", "WHAT_DISCOUNT_IS_REQUIRED", "HOW_MUCH_TO_ALLOCATE"],
+      "intelligence_products": ["LIQUIDITY_AND_EXIT_RISK"],
+      "required_capabilities": ["TRANSACTION_DEPTH", "TIME_ON_MARKET", "SPREAD", "TURNOVER", "MARKET_MEMORY", "SOURCE_BIAS"]
+    },
+    {
+      "value_scope_id": "VS_MOMENTUM_OPPORTUNITY",
+      "name": "Market Momentum and Opportunity",
+      "customer_decisions": ["WHAT_TO_FOLLOW", "WHERE_TO_ALLOCATE", "WHICH_MARKET_IS_EMERGING", "WHEN_TO_ENTER"],
+      "intelligence_products": ["MARKET_MOMENTUM_AND_OPPORTUNITY"],
+      "required_capabilities": ["TRANSACTION_CHANGE", "SUPPLY_CHANGE", "ATTENTION_CHANGE", "REGIONAL_CHANGE", "MEMORY_BASELINE"]
+    },
+    {
+      "value_scope_id": "VS_MARKET_STRUCTURE",
+      "name": "Dynamic Market Structure",
+      "customer_decisions": ["WHICH_VERTICAL_EXISTS", "WHAT_TO_SPLIT_OR_MERGE", "WHICH_CATEGORY_TO_ENTER", "WHICH_SCOPE_TO_EXPAND"],
+      "intelligence_products": ["DYNAMIC_MARKET_STRUCTURE", "VERTICAL_INTELLIGENCE_INDEX", "KIDULT_500", "KIDULT_100"],
+      "required_capabilities": ["ENTITY_GRAPH", "MARKET_GRAPH", "CULTURE_ATTENTION", "SOURCE_COVERAGE", "CLUSTER_STABILITY", "HUMAN_APPROVAL"]
+    },
+    {
+      "value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "name": "Source and Provider Decision Advantage",
+      "customer_decisions": ["WHICH_SOURCE_TO_CONNECT", "WHICH_PROVIDER_TO_BUY", "WHAT_TO_COLLECT_NEXT", "WHICH_DEPENDENCY_TO_REDUCE"],
+      "intelligence_products": ["SOURCE_UNIVERSE_HEALTH", "PROVIDER_ROI", "COVERAGE_AND_BIAS_GAP", "ACQUISITION_PRIORITY_PLAN"],
+      "required_capabilities": ["SOURCE_DISCOVERY", "UTILITY_SCORING", "RIGHTS_RISK", "COVERAGE_DELTA", "COST_ROI", "SOURCE_REMOVAL_SENSITIVITY"]
+    }
+  ],
+  "feature_admission_contract": {
+    "required_fields": [
+      "feature_id",
+      "customer_segment",
+      "customer_decisions",
+      "value_scope_ids",
+      "irreplaceability_mechanism",
+      "required_evidence",
+      "substitution_test",
+      "confidence_and_limitations",
+      "source_removal_behavior",
+      "owner",
+      "publication_gate"
+    ],
+    "allowed_states": ["ALIGNED", "SUPPORTING_CONTROL", "HOLD_NOT_ALIGNED", "DEPRECATE"],
+    "default_state": "HOLD_NOT_ALIGNED",
+    "no_value_linkage": "DO_NOT_BUILD_OR_HOLD",
+    "cosmetic_feature_exception": "Only permitted when it measurably improves comprehension, trust, accessibility or decision speed."
+  },
+  "engine_admission_contract": {
+    "required_fields": [
+      "engine_id",
+      "platform_layer",
+      "value_scope_ids",
+      "decision_advantage_created_or_protected",
+      "input_contract",
+      "output_contract",
+      "evidence_and_lineage",
+      "failure_state",
+      "deterministic_replay",
+      "audit_output",
+      "owner"
+    ],
+    "required_behavior": [
+      "FAIL_CLOSED",
+      "MISSING_REMAINS_NULL_NOT_ZERO",
+      "PROVENANCE_PRESERVED",
+      "RIGHTS_STATE_EXPLICIT",
+      "CONFLICTS_RETAINED",
+      "NO_DIRECT_SOURCE_OR_PROVIDER_TO_PORTAL",
+      "NO_DIRECT_SOURCE_OR_PROVIDER_TO_INDEX"
+    ]
+  },
+  "process_alignment_contract": {
+    "canonical_stages": [
+      "CUSTOMER_DECISION",
+      "VALUE_SCOPE",
+      "INTELLIGENCE_PRODUCT",
+      "ASSERTION_AND_METRIC",
+      "DATA_SCOPE",
+      "COLLECTION_SCOPE",
+      "SOURCE_UNIVERSE_AND_POOL",
+      "RISK_RIGHTS_COST_GATE",
+      "REPRESENTATIVE_ACQUISITION",
+      "RAW_QUARANTINE",
+      "CANONICAL_IDENTITY",
+      "EVIDENCE_AND_MARKET_GRAPH",
+      "BITEMPORAL_MEMORY",
+      "PROVIDER_FUSION",
+      "CONFIDENCE_AND_EXPLAINABILITY",
+      "TRACK_B_VALIDATION",
+      "GOVERNED_PROJECTION",
+      "FOUNDER_AND_PRODUCTION_GATE"
+    ],
+    "every_stage_must_define": ["VALUE_INPUT", "VALUE_OUTPUT", "QUALITY_GATE", "FAILURE_STATE", "AUDIT_RECORD", "OWNER"],
+    "prohibited_shortcuts": [
+      "SOURCE_FIRST_SCOPE_LATER",
+      "PROVIDER_FIRST_VALUE_LATER",
+      "RAW_DATA_TO_PORTAL",
+      "RAW_DATA_TO_INDEX",
+      "WEAK_EVIDENCE_TO_MARKET_CLAIM",
+      "UNEXPLAINABLE_SCORE",
+      "PUBLICATION_WITHOUT_TRACK_B",
+      "PRODUCTION_WITHOUT_G5"
+    ]
+  },
+  "runtime_alignment": {
+    "runtime_purpose": "Protect continuous generation of Irreplaceable Value through reliability, freshness, replay, recovery, cost and audit controls.",
+    "digitalocean_role": "Runtime infrastructure and scale accelerator, not a Source of business truth.",
+    "commercial_relationship_state": "FOUNDER_CONFIRMED_CONTRACTED",
+    "technical_binding_state": "NOT_VERIFIED_IN_REPOSITORY",
+    "current_mode": "READ_ONLY_OBSERVATION_AND_FOUNDATION",
+    "production": "HOLD",
+    "required_before_scale_execution": [
+      "EXACT_RESOURCE_INVENTORY",
+      "READ_ONLY_API_BINDING_VERIFIED",
+      "DEV_STAGING_PRODUCTION_SEPARATION",
+      "QUEUE_AND_WORKER_CAPACITY_BASELINE",
+      "BACKUP_RESTORE_EVIDENCE",
+      "ROLLBACK_TARGET",
+      "COST_GUARDRAILS",
+      "INCIDENT_AND_FREEZE_WORKFLOW"
+    ]
+  },
+  "organization_rule": {
+    "all_tracks_must_report": [
+      "VALUE_SCOPE_SUPPORTED",
+      "DECISION_ADVANTAGE_DELIVERED_OR_PROTECTED",
+      "EVIDENCE_OF_PROGRESS",
+      "KNOWN_LIMITATIONS",
+      "NEXT_VALUE_GATE"
+    ],
+    "work_without_value_scope": "HOLD",
+    "feature_count_is_not_progress": true,
+    "data_volume_is_not_value": true,
+    "portal_completion_is_not_value": true
+  },
+  "current_boundaries": {
+    "candidate_r2": "BLOCKED_UNTIL_VALUE_SCOPE_AND_ASI_GATES_PASS",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "public_market_claim": "PROHIBITED",
+    "production": "HOLD"
+  }
+}

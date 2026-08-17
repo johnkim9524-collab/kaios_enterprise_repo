@@ -1,16 +1,1 @@
-{
-  "id":"blocker-no-canonical-candidate",
-  "record_type":"blocker",
-  "version":"1.0.0",
-  "status":"OPEN",
-  "blocker_id":"BLOCKER-0001",
-  "severity":"CRITICAL",
-  "title":"No canonical snapshot candidate",
-  "owner_track_id":"track-a-120-intelligence-factory",
-  "impact_tracks":["track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability"],
-  "condition":"snapshot/index.json current_candidate_snapshot_id is null",
-  "exit_criteria":["methodology_version registered","evidence_lineage_version registered","valid snapshot-candidate.json registered","Evidence Package registered"],
-  "created_at":"2026-08-12T17:17:03+09:00",
-  "created_by":"Atlas",
-  "approved_by":"John"
-}
+{"id":"blocker-no-canonical-candidate","record_type":"blocker","version":"1.1.0","status":"RESOLVED","blocker_id":"BLOCKER-0001","severity":"CRITICAL","title":"No canonical snapshot candidate","owner_track_id":"track-a-120-intelligence-factory","impact_tracks":["track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability"],"condition":"snapshot/index.json current_candidate_snapshot_id is null","exit_criteria":["methodology_version registered","evidence_lineage_version registered","valid snapshot-candidate.json registered","Evidence Package registered"],"resolution_snapshot_id":"candidate-structural-20260816-r1","resolved_at":"2026-08-16T11:30:00+09:00","created_at":"2026-08-12T17:17:03+09:00","created_by":"Atlas","approved_by":"John"}

@@ -1,17 +1,1 @@
-{
-  "registry_id":"kidults-snapshot-registry",
-  "registry_name":"Snapshot Registry",
-  "registry_version":"1.1.0",
-  "schema_version":"1.0.0",
-  "owner":"Track A / Snapshot Publisher",
-  "custodian":"Atlas",
-  "status":"ACTIVE",
-  "effective_at":"2026-08-12T12:00:00+09:00",
-  "record_directory":"records",
-  "record_count":1,
-  "current_baseline_snapshot_id":"baseline-provider-independent-v1",
-  "current_candidate_snapshot_id":null,
-  "current_published_snapshot_id":null,
-  "records":[{"id":"baseline-provider-independent-v1","path":"records/baseline-provider-independent-v1.json","version":"1.0.0","status":"BASELINE_LOCKED_PENDING_ARTIFACT"}],
-  "change_history":[{"version":"1.1.0","changed_at":"2026-08-12T15:45:00+09:00","changed_by":"Atlas","change":"Registered provider-independent comparison baseline without inventing missing methodology or lineage versions."}]
-}
+{"registry_id":"kidults-snapshot-registry","registry_name":"Snapshot Registry","registry_version":"1.2.0","schema_version":"1.1.0","owner":"Track A / Snapshot Publisher","custodian":"Atlas","status":"ACTIVE","effective_at":"2026-08-16T11:30:00+09:00","record_directory":"records","record_count":2,"current_baseline_snapshot_id":"baseline-provider-independent-v1","current_candidate_snapshot_id":"candidate-structural-20260816-r1","current_published_snapshot_id":null,"records":[{"id":"baseline-provider-independent-v1","path":"records/baseline-provider-independent-v1.json","version":"1.0.0","status":"BASELINE_LOCKED_PENDING_ARTIFACT"},{"id":"candidate-structural-20260816-r1","path":"records/candidate-structural-20260816-r1.json","version":"1.0.0","status":"DRAFT_CANDIDATE_INTERNAL"}],"change_history":[{"version":"1.1.0","changed_at":"2026-08-12T15:45:00+09:00","changed_by":"Atlas","change":"Registered provider-independent comparison baseline without inventing missing methodology or lineage versions."},{"version":"1.2.0","changed_at":"2026-08-16T11:30:00+09:00","changed_by":"Track A / Atlas","change":"Registered the first immutable internal structural Candidate and preserved the provider-independent baseline."}]}

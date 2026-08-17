@@ -1,0 +1,52 @@
+{
+  "run_id": "autonomous-source-discovery-r1-20260816",
+  "version": "1.1.0",
+  "status": "COMPLETED_DISCOVERY_ONLY",
+  "started_at": "2026-08-16T09:40:00+09:00",
+  "completed_at": "2026-08-16T10:35:00+09:00",
+  "owner": "Track A / Autonomous Source Discovery",
+  "mode": "RESEARCH_AND_CLASSIFICATION_ONLY",
+  "autonomous_first": true,
+  "network_collection_performed": false,
+  "credential_used": false,
+  "paid_access_used": false,
+  "production_mutation": false,
+  "input_vertical_count": 8,
+  "candidate_source_count": 25,
+  "tier_1_count": 11,
+  "tier_2_count": 14,
+  "rights_cleared_count": 0,
+  "production_connected_count": 0,
+  "outputs": [
+    "coordination/kidults/registry/trusted-source/index.json",
+    "coordination/kidults/registry/trusted-source/records/trusted-source-toys-models-r1.json",
+    "coordination/kidults/registry/trusted-source/records/trusted-source-watches-jewelry-r1.json",
+    "coordination/kidults/registry/trusted-source/records/trusted-source-automobiles-mobility-r1.json",
+    "coordination/kidults/registry/trusted-source/records/trusted-source-fashion-accessories-r1.json",
+    "coordination/kidults/registry/trusted-source/records/trusted-source-design-furniture-r1.json",
+    "coordination/kidults/registry/trusted-source/records/trusted-source-technology-cameras-r1.json",
+    "coordination/kidults/registry/trusted-source/records/trusted-source-gaming-music-screen-r1.json",
+    "coordination/kidults/registry/trusted-source/records/trusted-source-cards-comics-memorabilia-r1.json"
+  ],
+  "findings": [
+    "Every Core Vertical has at least three provisional Tier 1 or Tier 2 source candidates.",
+    "Fashion and accessories now has two independent museum-authority API candidates for cross-source identity evidence.",
+    "Open or public metadata channels exist for design, fashion and technology, enabling early self-first adapters without paid commitments.",
+    "Transaction and authentication sources generally require terms, licensing or login review before collection.",
+    "No source has been promoted to APPROVED or connected to Production."
+  ],
+  "next_run": {
+    "run_type": "BOUNDED_SAMPLE_PREFLIGHT",
+    "scope": "One open-data or public-reference source per vertical where legally and technically permitted, followed by independent cross-source matching.",
+    "required_controls": [
+      "terms and robots review",
+      "rate-limit budget",
+      "schema capture",
+      "raw quarantine",
+      "provenance reference",
+      "deduplication test",
+      "entity-resolution test",
+      "no image ingestion without rights"
+    ]
+  }
+}

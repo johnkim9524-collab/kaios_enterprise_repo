@@ -1,0 +1,327 @@
+{
+  "id": "agci-os-total-program-strategy-reset-v2",
+  "record_type": "program_strategy",
+  "version": "2.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-16T19:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "product": {
+    "name": "Autonomous Global Collectibles Intelligence Operating System",
+    "short_name": "AGCI-OS",
+    "north_star": "CREATE_IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_VALUE",
+    "first_value": "AUTONOMOUS",
+    "success_metric": "IRREPLACEABLE_VALUE_NOT_DATA_VOLUME_NOT_PORTAL_COMPLETION"
+  },
+  "governing_doctrine": [
+    "IRREPLACEABLE_VALUE_FIRST",
+    "DATA_SCOPE_DETERMINES_VALUE",
+    "NO_SCOPE_NO_COLLECTION",
+    "NO_EVIDENCE_NO_METRIC",
+    "NO_REPRESENTATIVENESS_NO_MARKET_CLAIM",
+    "SELF_COLLECTED_EVIDENCE_IS_THE_INDEPENDENT_ANCHOR",
+    "PROVIDER_DATA_IS_AN_ACCELERATOR_NOT_THE_PRODUCT",
+    "MISSING_IS_NEVER_ZERO",
+    "PROVIDER_NEVER_BYPASSES_QUARANTINE_CANONICAL_OR_PROJECTION",
+    "PORTAL_AND_EOS_CONSUME_GOVERNED_PROJECTIONS_ONLY"
+  ],
+  "canonical_value_flow": [
+    "CUSTOMER",
+    "DECISION",
+    "IRREPLACEABLE_VALUE",
+    "INTELLIGENCE_PRODUCT",
+    "ASSERTION_AND_METRIC",
+    "DATA_SCOPE",
+    "COLLECTION_SCOPE",
+    "GLOBAL_SOURCE_UNIVERSE",
+    "SOURCE_POOL",
+    "RISK_AND_RIGHTS_GATE",
+    "ACQUISITION_PLAN",
+    "RAW_QUARANTINE",
+    "CANONICAL_IDENTITY",
+    "EVIDENCE_GRAPH",
+    "MARKET_GRAPH",
+    "MEMORY",
+    "PROVIDER_FUSION",
+    "INTELLIGENCE_AND_INDEX",
+    "PROJECTION",
+    "PORTAL_AND_EXECUTIVE"
+  ],
+  "platform_layers": [
+    {
+      "layer": "AUTONOMOUS_VALUE_INTELLIGENCE",
+      "purpose": "Translate customer decisions into irreplaceable value requirements, Intelligence Products and exact data scopes.",
+      "engines": [
+        "CUSTOMER_DECISION_ENGINE",
+        "IRREPLACEABLE_VALUE_ENGINE",
+        "INTELLIGENCE_PRODUCT_DESIGN_ENGINE",
+        "VALUE_TO_DATA_REQUIREMENT_COMPILER"
+      ]
+    },
+    {
+      "layer": "COLLECTION_SCOPE_INTELLIGENCE",
+      "purpose": "Compile stable acquisition units without turning Core Domains into permanent market Verticals.",
+      "engines": [
+        "COLLECTION_SCOPE_COMPILER",
+        "SAMPLING_FRAME_ENGINE",
+        "COVERAGE_TARGET_ENGINE",
+        "SCOPE_READINESS_ENGINE"
+      ]
+    },
+    {
+      "layer": "AUTONOMOUS_SOURCE_INTELLIGENCE",
+      "purpose": "Discover, classify, risk-score and prioritize the global Source Universe.",
+      "engines": [
+        "SOURCE_DISCOVERY_ENGINE",
+        "SOURCE_CLASSIFICATION_ENGINE",
+        "UTILITY_AND_VALUE_SCORING_ENGINE",
+        "RIGHTS_AND_COMPLIANCE_RISK_ENGINE",
+        "TECHNICAL_ACCESS_AND_SCHEMA_RISK_ENGINE",
+        "COVERAGE_AND_BIAS_ENGINE",
+        "INDEPENDENCE_AND_REDUNDANCY_ENGINE",
+        "FRESHNESS_AND_STABILITY_ENGINE",
+        "COST_AND_ROI_ENGINE",
+        "ACQUISITION_PLANNER",
+        "SOURCE_POOL_EVOLUTION_ENGINE"
+      ]
+    },
+    {
+      "layer": "DATA_ACQUISITION_AND_CONTROL",
+      "purpose": "Acquire only scope-ready, rights-explicit and representative data.",
+      "engines": [
+        "SOURCE_ADAPTER_FACTORY",
+        "REQUEST_BUDGET_CONTROLLER",
+        "RAW_QUARANTINE_ENGINE",
+        "RIGHTS_PROVENANCE_FRESHNESS_GATE",
+        "FAILURE_RECOVERY_AND_AUDIT"
+      ]
+    },
+    {
+      "layer": "CANONICAL_TRUTH_AND_MEMORY",
+      "purpose": "Separate source records, physical objects, designs, events and assertions while retaining historical truth.",
+      "engines": [
+        "ENTITY_RESOLUTION_ENGINE",
+        "CANONICAL_OBJECT_ENGINE",
+        "APPEND_ONLY_BITEMPORAL_MEMORY",
+        "CORRECTION_AND_SUPERSESSION_ENGINE"
+      ]
+    },
+    {
+      "layer": "EVIDENCE_AND_MARKET_GRAPH",
+      "purpose": "Build explainable relationships and market-state evidence without converting weak observations into market claims.",
+      "engines": [
+        "EVIDENCE_GRAPH_ENGINE",
+        "MARKET_EVENT_ENGINE",
+        "MARKET_GRAPH_ENGINE",
+        "CONFIDENCE_AND_EXPLAINABILITY_ENGINE",
+        "CLUSTER_DISCOVERY_ENGINE"
+      ]
+    },
+    {
+      "layer": "PROVIDER_FUSION",
+      "purpose": "Fuse external Provider APIs with self-collected evidence so coverage, depth and confidence accelerate immediately without surrendering independence.",
+      "engines": [
+        "PROVIDER_SCHEMA_ADAPTER",
+        "PROVIDER_DELTA_AND_COVERAGE_ENGINE",
+        "CONFLICT_AND_CORROBORATION_ENGINE",
+        "SOURCE_CONTRIBUTION_ENGINE",
+        "FUSION_CONFIDENCE_ENGINE",
+        "PROVIDER_ROI_ENGINE"
+      ]
+    },
+    {
+      "layer": "INTELLIGENCE_PRODUCTS_AND_INDEX",
+      "purpose": "Generate irreplaceable customer outputs and governed Indexes only after coverage and validation gates.",
+      "engines": [
+        "OBJECT_INTELLIGENCE_PASSPORT_ENGINE",
+        "COMPARABLE_MARKET_ENGINE",
+        "SCARCITY_AND_AVAILABILITY_ENGINE",
+        "LIQUIDITY_AND_EXIT_RISK_ENGINE",
+        "MARKET_MOMENTUM_ENGINE",
+        "OPPORTUNITY_ENGINE",
+        "VERTICAL_INTELLIGENCE_INDEX_ENGINE",
+        "KIDULT_500_ENGINE",
+        "KIDULT_100_ENGINE"
+      ]
+    },
+    {
+      "layer": "PROJECTION_AND_EXPERIENCE",
+      "purpose": "Expose governed truth to Portal, API, reports and IH-EOS.",
+      "engines": [
+        "PROJECTION_ENGINE",
+        "PORTAL_PROJECTION",
+        "EXECUTIVE_PROJECTION",
+        "API_AND_REPORT_PROJECTION"
+      ]
+    }
+  ],
+  "scale_targets": {
+    "global_source_universe_discovery": 10000,
+    "deep_source_assessments": 1000,
+    "rights_access_preflights": 250,
+    "bounded_live_adapters": 50,
+    "core_domain_categories": 8,
+    "qualified_objects_per_category": 1000,
+    "total_qualified_objects": 8000,
+    "initial_collection_scopes": 32,
+    "evidence_assertions_per_category": 5000,
+    "market_observations_per_category": 5000,
+    "fixed_index_quota": false
+  },
+  "program_reset": {
+    "preserve": [
+      "PORTAL_DESIGN_AND_RESPONSIVE_FOUNDATION",
+      "REGISTRY_V2_FOUNDATION",
+      "ENGINE_V2_FAIL_CLOSED_CONTROLS",
+      "MEMORY_LAYER",
+      "RAW_QUARANTINE",
+      "PROJECTION_BOUNDARY",
+      "TRACK_B_INDEPENDENCE",
+      "DIGITALOCEAN_READ_ONLY_OBSERVATION"
+    ],
+    "reclassify": [
+      {
+        "asset": "SMALL_SOURCE_SAMPLES_AND_FIVE_SOURCE_PREFLIGHT",
+        "new_class": "ENGINEERING_AND_GOVERNANCE_POC",
+        "not_claimed_as": "GLOBAL_MARKET_DATA_POC"
+      }
+    ],
+    "pause": [
+      "AD_HOC_LOW_RISK_SITE_COLLECTION",
+      "PUBLIC_INDEX_COMPUTATION",
+      "UNSCOPED_PROVIDER_CONNECTION",
+      "PRODUCTION_DEPLOYMENT"
+    ],
+    "critical_path": [
+      "VALUE_TO_DATA_SCOPE_FOUNDATION",
+      "COLLECTION_SCOPE_REGISTRY",
+      "AUTONOMOUS_SOURCE_INTELLIGENCE_10K",
+      "CATEGORY_1000_SCALE_POC",
+      "PROVIDER_FUSION_READINESS",
+      "CANDIDATE_R2",
+      "TRACK_B_ASSESSMENT",
+      "INTERNAL_INDEX_GENERATION",
+      "FOUNDER_ACCEPTANCE",
+      "PRODUCTION_AUTHORIZATION"
+    ]
+  },
+  "track_mandates": {
+    "TRACK_A": {
+      "name": "Autonomous Value, Source & Market Intelligence",
+      "responsibilities": [
+        "VALUE_ARCHITECTURE",
+        "DATA_SCOPE",
+        "SOURCE_UNIVERSE",
+        "COLLECTION_SCOPE",
+        "SELF_COLLECTED_DATA",
+        "PROVIDER_FUSION",
+        "EVIDENCE_AND_MARKET_GRAPH",
+        "CANDIDATE_PUBLICATION"
+      ]
+    },
+    "TRACK_B": {
+      "name": "Independent Scope, Evidence & Rankability Validation",
+      "responsibilities": [
+        "VALUE_TO_DATA_TRACEABILITY_VALIDATION",
+        "SOURCE_POOL_AND_BIAS_VALIDATION",
+        "ENTITY_RESOLUTION_CALIBRATION",
+        "EVIDENCE_AND_GRAPH_REPRODUCIBILITY",
+        "INDEX_AND_PUBLICATION_RECOMMENDATION"
+      ]
+    },
+    "TRACK_C": {
+      "name": "Projection Platform & Customer Experience",
+      "responsibilities": [
+        "PROJECTION_CONTRACTS",
+        "PORTAL_EXPERIENCE",
+        "EXPLAINABILITY",
+        "CUSTOMER_VALUE_DELIVERY",
+        "NO_BUSINESS_LOGIC_IN_PORTAL"
+      ]
+    },
+    "TRACK_D": {
+      "name": "Runtime, Reliability & Cost Control",
+      "responsibilities": [
+        "SOURCE_COLLECTION_RUNTIME",
+        "QUEUE_AND_SCHEDULER",
+        "CAPACITY_FOR_10K_SOURCES_AND_8K_OBJECTS",
+        "MONITORING_BACKUP_RECOVERY",
+        "DIGITALOCEAN_READ_ONLY_UNTIL_G5",
+        "PRODUCTION_HOLD"
+      ]
+    },
+    "TRACK_E": {
+      "name": "IH Executive Operating System",
+      "responsibilities": [
+        "VALUE_AND_SCOPE_HEALTH",
+        "SOURCE_UNIVERSE_HEALTH",
+        "CATEGORY_SCALE_PROGRESS",
+        "PROVIDER_ROI",
+        "DECISION_QUEUE",
+        "FOUNDER_APPROVAL_GATES"
+      ]
+    }
+  },
+  "milestones": [
+    {
+      "id": "M0",
+      "name": "Program Strategy Reset",
+      "exit": "VALUE_AND_SCALE_CONTRACTS_REGISTERED_AND_VALIDATED"
+    },
+    {
+      "id": "M1",
+      "name": "Value and Collection Scope Foundation",
+      "exit": "32_SCOPES_AND_CUSTOMER_VALUE_TRACEABILITY_PASS"
+    },
+    {
+      "id": "M2",
+      "name": "Global Source Universe 10K",
+      "exit": "10000_DISCOVERED_1000_DEEP_250_PREFLIGHT_50_ADAPTERS"
+    },
+    {
+      "id": "M3",
+      "name": "Category 1000 Scale PoC",
+      "exit": "8_CATEGORIES_X_1000_QUALIFIED_OBJECTS_WITH_REPRESENTATIVE_SAMPLING"
+    },
+    {
+      "id": "M4",
+      "name": "Provider Fusion Ready",
+      "exit": "PROVIDER_DATA_CAN_BE_MAPPED_DIFFED_CONFLICT_CHECKED_AND_FUSED_WITHOUT_DIRECT_PORTAL_OR_INDEX_PATH"
+    },
+    {
+      "id": "M5",
+      "name": "Immutable Candidate R2",
+      "exit": "SCOPE_SOURCE_COVERAGE_ENTITY_STRESS_AND_RIGHTS_GATES_PASS"
+    },
+    {
+      "id": "M6",
+      "name": "Internal KIDULT 500 and KIDULT 100",
+      "exit": "TRACK_B_APPROVED_INTERNAL_INDEX_WITH_EXPLAINABILITY"
+    },
+    {
+      "id": "M7",
+      "name": "Founder Acceptance and Production Gate",
+      "exit": "FOUNDER_VALUE_ACCEPTANCE_AND_G5_PRODUCTION_DECISION"
+    }
+  ],
+  "non_negotiable_boundaries": {
+    "core_domains_are_permanent_verticals": false,
+    "category_1000_is_fixed_index_quota": false,
+    "provider_data_is_platform_truth": false,
+    "provider_direct_to_portal": false,
+    "provider_direct_to_index": false,
+    "missing_to_zero": false,
+    "public_index_before_track_b": false,
+    "production_without_g5": false
+  },
+  "current_official_state": {
+    "strategy_reset": "ACTIVE",
+    "value_scope": "P0",
+    "source_universe_10k": "P0",
+    "category_1000": "P0",
+    "candidate_r2": "SECONDARY",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}

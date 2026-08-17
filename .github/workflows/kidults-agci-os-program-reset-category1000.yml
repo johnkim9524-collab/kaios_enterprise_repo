@@ -1,0 +1,78 @@
+name: KIDULTS AGCI-OS Program Reset and Category 1000 Scale
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/strategy/agci-os-total-program-strategy-reset-v2.json"
+      - "coordination/kidults/data-scope/category-1000-scale-contract-v1.json"
+      - "coordination/kidults/data-scope/provider-fusion-contract-v1.json"
+      - "coordination/kidults/data-scope/irreplaceable-value-to-data-scope-contract-v2.json"
+      - "scripts/kidults/data-scope/build-program-reset-v2.mjs"
+      - "scripts/kidults/data-scope/validate-program-reset-v2.mjs"
+      - ".github/workflows/kidults-agci-os-program-reset-category1000.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-agci-os-program-reset-category1000
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/data-scope/build-program-reset-v2.mjs
+          node --check scripts/kidults/data-scope/validate-program-reset-v2.mjs
+
+      - name: Build strategy reset and Category 1000 scale plan
+        run: |
+          node scripts/kidults/data-scope/build-program-reset-v2.mjs \
+            --output artifacts/agci-os/program-reset-category-1000-v1 \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          node --input-type=module <<'NODE' > /tmp/reset-plan-1.json
+          import { buildProgramResetPlan, loadProgramResetContracts } from './scripts/kidults/data-scope/build-program-reset-v2.mjs';
+          process.stdout.write(JSON.stringify(buildProgramResetPlan(loadProgramResetContracts())));
+          NODE
+          node --input-type=module <<'NODE' > /tmp/reset-plan-2.json
+          import { buildProgramResetPlan, loadProgramResetContracts } from './scripts/kidults/data-scope/build-program-reset-v2.mjs';
+          process.stdout.write(JSON.stringify(buildProgramResetPlan(loadProgramResetContracts())));
+          NODE
+          cmp /tmp/reset-plan-1.json /tmp/reset-plan-2.json
+
+      - name: Validate strategy, scale and Provider Fusion boundaries
+        run: |
+          node scripts/kidults/data-scope/validate-program-reset-v2.mjs \
+            artifacts/agci-os/program-reset-category-1000-v1
+
+      - name: Validate existing AGCI-OS governance
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload strategy reset evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-agci-os-program-reset-category-1000
+          path: artifacts/agci-os/program-reset-category-1000-v1
+          if-no-files-found: error
+          retention-days: 30

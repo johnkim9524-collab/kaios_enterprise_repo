@@ -1,0 +1,59 @@
+name: KIDULTS AGCI-OS Collection Scope Foundation
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/data-scope/collection-scope-registry-v1.json"
+      - "scripts/kidults/data-scope/validate-collection-scope-registry-v1.mjs"
+      - ".github/workflows/kidults-agci-os-collection-scope-foundation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-agci-os-collection-scope-foundation
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: node --check scripts/kidults/data-scope/validate-collection-scope-registry-v1.mjs
+
+      - name: Validate 32 Collection Scope foundations
+        run: node scripts/kidults/data-scope/validate-collection-scope-registry-v1.mjs
+
+      - name: Validate Program Reset and existing governance
+        run: |
+          node scripts/kidults/data-scope/build-program-reset-v2.mjs \
+            --output artifacts/agci-os/program-reset-category-1000-v1 \
+            --write
+          node scripts/kidults/data-scope/validate-program-reset-v2.mjs \
+            artifacts/agci-os/program-reset-category-1000-v1
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload Scope foundation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-agci-os-collection-scope-foundation-v1
+          path: |
+            coordination/kidults/data-scope/collection-scope-registry-v1.json
+            artifacts/agci-os/program-reset-category-1000-v1
+          if-no-files-found: error
+          retention-days: 30

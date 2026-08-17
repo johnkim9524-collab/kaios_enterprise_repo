@@ -1,0 +1,80 @@
+{
+  "contract_id": "artic-design-open-access-r1",
+  "version": "1.0.0",
+  "status": "APPROVED_FOR_BOUNDED_POC",
+  "created_at": "2026-08-16T18:00:00+09:00",
+  "owner": "Track A / Autonomous Source Discovery",
+  "source_id": "art-institute-chicago-design-api",
+  "source_tier": 1,
+  "core_domain_hint": "design-furniture",
+  "source_class": "MUSEUM_AUTHORITY_OPEN_DATA",
+  "api_base_url": "https://api.artic.edu/api/v1",
+  "access_mode": "PUBLIC_REST_API_NO_KEY",
+  "rights_state": "ARTWORK_FIELDS_CC0_EXCEPT_DESCRIPTION_CC_BY_4_0; DESCRIPTION_EXCLUDED",
+  "collection_mode": "CC0_FIELD_ALLOWLIST_NO_DESCRIPTION_NO_MEDIA",
+  "query": "design",
+  "field_allowlist": [
+    "id",
+    "title",
+    "main_reference_number",
+    "date_display",
+    "date_start",
+    "date_end",
+    "artist_display",
+    "place_of_origin",
+    "medium_display",
+    "dimensions",
+    "classification_titles",
+    "style_titles",
+    "subject_titles",
+    "department_title",
+    "api_link",
+    "timestamp"
+  ],
+  "bounded_limits": {
+    "normalized_record_target": 12,
+    "minimum_successful_records": 8,
+    "maximum_search_records": 50,
+    "maximum_requests": 1,
+    "retry_attempts": 3,
+    "request_timeout_ms": 15000,
+    "anonymous_rate_limit_per_minute": 60
+  },
+  "required_outputs": [
+    "run-manifest.json",
+    "sanitized-raw-records.json",
+    "normalized-evidence-records.json",
+    "evidence-package.json",
+    "quality-report.json"
+  ],
+  "autonomous_controls": [
+    "official-host allowlist",
+    "bounded request budget",
+    "AIC-User-Agent header",
+    "timeout and retry with backoff",
+    "description field exclusion",
+    "image and thumbnail exclusion",
+    "strict field allowlist",
+    "raw payload hashing",
+    "source-qualified deduplication",
+    "license text capture",
+    "provenance reference",
+    "fail-closed minimum record gate"
+  ],
+  "prohibited_operations": [
+    "description ingestion",
+    "image or thumbnail ingestion",
+    "paid access",
+    "source mutation",
+    "Provider ID promotion to canonical ID",
+    "Portal publication",
+    "Candidate publication",
+    "Production mutation"
+  ],
+  "production_eligible": false,
+  "references": [
+    "https://api.artic.edu/docs/",
+    "https://www.artic.edu/terms",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/303"
+  ]
+}

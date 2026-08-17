@@ -1,0 +1,59 @@
+name: KIDULTS Track A Structural Candidate Validate
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/candidates/**"
+      - "coordination/kidults/methodology/**"
+      - "coordination/kidults/registry/methodology/**"
+      - "coordination/kidults/registry/evidence-lineage/**"
+      - "coordination/kidults/registry/snapshot/**"
+      - "coordination/kidults/registry/evidence/**"
+      - "coordination/kidults/registry/signal/**"
+      - "coordination/kidults/registry/handoff/**"
+      - "coordination/kidults/registry/assessment/**"
+      - "scripts/kidults/candidate/**"
+      - ".github/workflows/kidults-track-a-structural-candidate.yml"
+  pull_request:
+    paths:
+      - "coordination/kidults/candidates/**"
+      - "coordination/kidults/methodology/**"
+      - "coordination/kidults/registry/**"
+      - "scripts/kidults/candidate/**"
+      - ".github/workflows/kidults-track-a-structural-candidate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/candidate/validate-structural-candidate-r1.mjs
+          node --check scripts/kidults/portal/build-v502-registry-view.mjs
+
+      - name: Validate exact Candidate and Evidence Package
+        run: node scripts/kidults/candidate/validate-structural-candidate-r1.mjs
+
+      - name: Validate Operational Registry
+        run: node scripts/kidults/registry/validate-operational-registry.mjs
+
+      - name: Validate Mission Control consistency
+        run: node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Validate Portal Registry projection
+        run: node scripts/kidults/portal/build-v502-registry-view.mjs

@@ -1,0 +1,21 @@
+{
+  "registry_id":"kidults-universe-registry",
+  "registry_name":"Global Collectibles Universe Registry",
+  "registry_version":"2.0.0",
+  "shadow_revision":"authority-r1",
+  "schema_version":"1.0.0",
+  "owner":"Track A / Universe Engine",
+  "custodian":"Atlas",
+  "status":"ACTIVE_FOUNDATION",
+  "effective_at":"2026-08-16T16:20:00+09:00",
+  "record_directory":"records",
+  "record_count":1,
+  "current_record_id":"universe-global-collectibles-v1",
+  "current_admission_report_id":"universe-admission-authority-shadow-r1",
+  "records":[{"id":"universe-global-collectibles-v1","path":"records/universe-global-collectibles-v1.json","version":"1.0.0","status":"ACTIVE_FOUNDATION"}],
+  "shadow_records":[{"id":"universe-admission-authority-shadow-r1","path":"records/universe-admission-authority-shadow-r1.json","version":"1.0.0","status":"INTERNAL_ADMISSION_CANDIDATES_READY"}],
+  "change_history":[
+    {"version":"2.0.0","changed_at":"2026-08-16T14:10:00+09:00","changed_by":"KPMO / Atlas","change":"Registered one global, Provider-independent Collectibles Universe as the root business boundary."},
+    {"version":"2.0.0+authority-shadow-r1","changed_at":"2026-08-16T16:20:00+09:00","changed_by":"KPMO / Track A","change":"Added 24 internal admission candidates as a non-promoting Shadow record without inflating or replacing the single canonical Global Universe."}
+  ]
+}

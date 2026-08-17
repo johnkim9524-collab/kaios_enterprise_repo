@@ -1,0 +1,109 @@
+name: KIDULTS AGCI-OS Memory Layer
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/architecture/agci-memory-layer-v1.md"
+      - "coordination/kidults/memory/**"
+      - "coordination/kidults/registry/memory/**"
+      - "coordination/kidults/registry/projection/**"
+      - "coordination/kidults/registry/catalog.json"
+      - "coordination/kidults/schemas/agci-memory-entry.schema.json"
+      - "coordination/kidults/schemas/agci-os-projection.schema.json"
+      - "scripts/kidults/memory/**"
+      - "scripts/kidults/projection/build-agci-os-projection.mjs"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - "scripts/kidults/architecture/validate-agci-os-registry-v2.mjs"
+      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
+      - ".github/workflows/kidults-agci-os-memory-layer.yml"
+  pull_request:
+    paths:
+      - "coordination/kidults/architecture/agci-memory-layer-v1.md"
+      - "coordination/kidults/memory/**"
+      - "coordination/kidults/registry/memory/**"
+      - "coordination/kidults/registry/projection/**"
+      - "coordination/kidults/registry/catalog.json"
+      - "coordination/kidults/schemas/agci-memory-entry.schema.json"
+      - "coordination/kidults/schemas/agci-os-projection.schema.json"
+      - "scripts/kidults/memory/**"
+      - "scripts/kidults/projection/build-agci-os-projection.mjs"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - "scripts/kidults/architecture/validate-agci-os-registry-v2.mjs"
+      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
+      - ".github/workflows/kidults-agci-os-memory-layer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/memory/run-memory-foundation.mjs
+          node --check scripts/kidults/memory/validate-memory-foundation.mjs
+          node --check scripts/kidults/projection/build-agci-os-projection.mjs
+          node --check scripts/kidults/portal/build-v502-registry-view.mjs
+          node --check scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+
+      - name: Build deterministic Memory evidence
+        run: |
+          node scripts/kidults/memory/run-memory-foundation.mjs --write
+          node scripts/kidults/memory/run-memory-foundation.mjs
+
+      - name: Prove same-input same-cutoff same-output
+        run: |
+          node --input-type=module <<'NODE' > /tmp/memory-run-1.json
+          import fs from 'node:fs';
+          import { buildMemoryFoundation } from './scripts/kidults/memory/run-memory-foundation.mjs';
+          const fixture = JSON.parse(fs.readFileSync('./coordination/kidults/memory/fixtures/memory-foundation-input-v1.json', 'utf8'));
+          process.stdout.write(JSON.stringify(buildMemoryFoundation(fixture)));
+          NODE
+          node --input-type=module <<'NODE' > /tmp/memory-run-2.json
+          import fs from 'node:fs';
+          import { buildMemoryFoundation } from './scripts/kidults/memory/run-memory-foundation.mjs';
+          const fixture = JSON.parse(fs.readFileSync('./coordination/kidults/memory/fixtures/memory-foundation-input-v1.json', 'utf8'));
+          process.stdout.write(JSON.stringify(buildMemoryFoundation(fixture)));
+          NODE
+          cmp /tmp/memory-run-1.json /tmp/memory-run-2.json
+
+      - name: Validate Memory admission, supersession and replay
+        run: node scripts/kidults/memory/validate-memory-foundation.mjs
+
+      - name: Validate Projection and Portal boundaries
+        run: |
+          node scripts/kidults/projection/build-agci-os-projection.mjs
+          node scripts/kidults/portal/build-v502-registry-view.mjs
+          node scripts/kidults/portal/validate-phase2-data-connections.mjs
+
+      - name: Validate Registry and Engine compatibility
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/engine-v2/validate-engine-v2-foundation.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload Memory evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-agci-os-memory-foundation
+          path: |
+            coordination/kidults/memory/runs/memory-foundation-run-r1.json
+            coordination/kidults/registry/memory/records/memory-foundation-run-r1.json
+          if-no-files-found: error
+          retention-days: 30

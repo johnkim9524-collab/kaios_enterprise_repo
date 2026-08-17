@@ -1,0 +1,99 @@
+name: KIDULTS Decision Operating System v1
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/dos/**"
+      - "coordination/kidults/value/**"
+      - "coordination/kidults/data-scope/collection-scope-registry-v1.json"
+      - "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json"
+      - "scripts/kidults/dos/**"
+      - ".github/workflows/kidults-dos-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-dos-v1
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/dos/build-dos-v1.mjs
+          node --check scripts/kidults/dos/validate-dos-v1.mjs
+          node --check scripts/kidults/value/build-irreplaceable-value-alignment-v1.mjs
+          node --check scripts/kidults/value/validate-irreplaceable-value-alignment-v1.mjs
+          node --check scripts/kidults/data-scope/build-program-reset-v2.mjs
+          node --check scripts/kidults/data-scope/validate-program-reset-v2.mjs
+
+      - name: Build Decision Operating System
+        run: |
+          node scripts/kidults/dos/build-dos-v1.mjs \
+            --output artifacts/agci-os/dos-v1 \
+            --write
+
+      - name: Prove DOS same-input same-output
+        run: |
+          node --input-type=module <<'NODE' > /tmp/dos-v1-1.json
+          import { buildDosV1 } from './scripts/kidults/dos/build-dos-v1.mjs';
+          process.stdout.write(JSON.stringify(buildDosV1()));
+          NODE
+          node --input-type=module <<'NODE' > /tmp/dos-v1-2.json
+          import { buildDosV1 } from './scripts/kidults/dos/build-dos-v1.mjs';
+          process.stdout.write(JSON.stringify(buildDosV1()));
+          NODE
+          cmp /tmp/dos-v1-1.json /tmp/dos-v1-2.json
+
+      - name: Validate DOS libraries, traceability and gates
+        run: |
+          node scripts/kidults/dos/validate-dos-v1.mjs \
+            artifacts/agci-os/dos-v1
+
+      - name: Rebuild and validate Irreplaceable Value alignment
+        run: |
+          node scripts/kidults/value/build-irreplaceable-value-alignment-v1.mjs \
+            --output artifacts/agci-os/irreplaceable-value-alignment-v1 \
+            --write
+          node scripts/kidults/value/validate-irreplaceable-value-alignment-v1.mjs \
+            artifacts/agci-os/irreplaceable-value-alignment-v1
+
+      - name: Rebuild and validate program reset
+        run: |
+          node scripts/kidults/data-scope/build-program-reset-v2.mjs \
+            --output artifacts/agci-os/program-reset-category-1000-v1 \
+            --write
+          node scripts/kidults/data-scope/validate-program-reset-v2.mjs \
+            artifacts/agci-os/program-reset-category-1000-v1
+          node scripts/kidults/data-scope/validate-collection-scope-registry-v1.mjs
+
+      - name: Validate existing AGCI-OS governance
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload DOS evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-decision-operating-system-v1
+          path: artifacts/agci-os/dos-v1
+          if-no-files-found: error
+          retention-days: 30

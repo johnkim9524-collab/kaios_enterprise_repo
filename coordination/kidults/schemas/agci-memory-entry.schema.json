@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.example/schemas/agci-memory-entry.schema.json",
+  "title": "AGCI-OS Bitemporal Memory Entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "memory_entry_id",
+    "memory_type",
+    "subject_id",
+    "claimed_subject_id",
+    "assertion_type",
+    "value",
+    "valid_from",
+    "valid_to",
+    "recorded_at",
+    "freshness_observed_at",
+    "freshness_state",
+    "supersedes",
+    "source_id",
+    "provenance_reference",
+    "rights_state",
+    "confidence_state",
+    "memory_state",
+    "immutable",
+    "index_eligible",
+    "publication_eligible",
+    "production_eligible"
+  ],
+  "properties": {
+    "memory_entry_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "memory_type": {
+      "enum": [
+        "OBSERVATION_MEMORY",
+        "ENTITY_MEMORY",
+        "MARKET_STATE_MEMORY",
+        "DECISION_MEMORY",
+        "LEARNING_MEMORY"
+      ]
+    },
+    "subject_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claimed_subject_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "assertion_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "value": {},
+    "valid_from": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_to": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "freshness_observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "freshness_state": {
+      "enum": [
+        "CURRENT_AT_ADMISSION"
+      ]
+    },
+    "supersedes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provenance_reference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rights_state": {
+      "type": "string",
+      "minLength": 1
+    },
+    "confidence_state": {
+      "type": "string",
+      "minLength": 1
+    },
+    "memory_state": {
+      "enum": [
+        "ACTIVE",
+        "SUPERSEDED_RETAINED",
+        "REVIEW_REQUIRED"
+      ]
+    },
+    "immutable": {
+      "const": true
+    },
+    "index_eligible": {
+      "const": false
+    },
+    "publication_eligible": {
+      "const": false
+    },
+    "production_eligible": {
+      "const": false
+    }
+  }
+}

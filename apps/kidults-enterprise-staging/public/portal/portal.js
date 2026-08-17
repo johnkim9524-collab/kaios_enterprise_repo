@@ -31,9 +31,33 @@ import {
 
 function determineDataState(data) {
   if (!data.meta.registryProjectionConnected) return "registry-unavailable";
+  if (data.connections.summary.requiredFailure) return "connection-degraded";
   if (data.registry.snapshot.candidate_id) return "candidate-registered";
   if (data.meta.verifiedFields > 0) return "verified-overlay";
   return "preview-baseline";
+}
+
+function publishConnectionProjection(connections) {
+  const projection = Object.freeze({
+    manifestId: connections.manifest.id,
+    manifestVersion: connections.manifest.version,
+    state: connections.summary.state,
+    verifiedCount: connections.summary.verifiedCount,
+    productionEligible: false,
+    sources: Object.freeze(connections.sources.map(source => Object.freeze({
+      id: source.id,
+      role: source.role,
+      state: source.state,
+      contractValid: source.contractValid,
+      publicationEligible: source.publicationEligible
+    })))
+  });
+
+  window.KIDULTS_DATA_CONNECTIONS = projection;
+  document.dispatchEvent(new CustomEvent("kidults:data-connections-ready", {
+    detail: projection
+  }));
+  return projection;
 }
 
 async function init() {
@@ -44,6 +68,8 @@ async function init() {
 
   try {
     const data = await loadPortalData();
+    const connectionProjection = publishConnectionProjection(data.connections);
+    document.documentElement.dataset.dataConnectionState = connectionProjection.state;
 
     renderHero(data.manifest);
     startAssetBindingHotfix();
@@ -80,6 +106,10 @@ async function init() {
       candidateSnapshotId: data.manifest.candidate_snapshot_id,
       assessmentId: data.manifest.assessment_id,
       sourceMode: data.manifest.source_mode,
+      dataConnectionState: connectionProjection.state,
+      dataConnectionManifest: connectionProjection.manifestId,
+      providerConnectionState: data.registry.provider?.connection_state ?? "NOT_REGISTERED",
+      runtimeObservationState: data.registry.runtime?.digitalocean_state ?? "NOT_VERIFIED",
       livingPulse: data.pulse.version,
       whyEngine: data.why.version,
       copilotEngine: "DEDICATED_ROUTE",
@@ -98,6 +128,7 @@ async function init() {
   } catch (error) {
     console.error("KIDULTS V6 portal initialization failed.", error);
     document.documentElement.dataset.dataState = "error";
+    document.documentElement.dataset.dataConnectionState = "DEGRADED";
     renderPortalError(error);
   }
 }

@@ -1,0 +1,183 @@
+{
+  "id": "dos-asi-decision-gap-execution-contract-v1",
+  "record_type": "dos_asi_execution_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-16T23:50:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "purpose": "Translate the Decision Operating System's Decision DNA into a deterministic, value-traceable Autonomous Source Intelligence execution queue and a DigitalOcean workload envelope before any representative acquisition begins.",
+  "official_inputs": [
+    "KIDULTS_DECISION_OPERATING_SYSTEM_V1",
+    "DECISION_LIBRARY_V1",
+    "VALUE_SCOPE_LIBRARY_V1",
+    "INTELLIGENCE_PRODUCT_LIBRARY_V1",
+    "DATA_FIELD_TO_SOURCE_ROLE_MAP_V1",
+    "COLLECTION_SCOPE_VALUE_COVERAGE_MATRIX_V1",
+    "SCOPE_SOURCE_POOL_READINESS_V1",
+    "SOURCE_ROLE_GAP_MATRIX_V1",
+    "DIGITALOCEAN_IRREPLACEABLE_VALUE_RUNTIME_FOUNDATION_V1"
+  ],
+  "canonical_flow": [
+    "DECISION_DNA",
+    "DECISION_AND_VALUE_REQUIREMENT_AGGREGATION",
+    "COLLECTION_SCOPE_AND_SOURCE_ROLE_LANE",
+    "ROLE_SPECIFIC_DATA_FIELD_REQUIREMENTS",
+    "STRUCTURAL_PRIORITY_ORDER",
+    "ASI_BATCH_ALLOCATION",
+    "DIGITALOCEAN_WORKLOAD_ENVELOPE",
+    "DISCOVERY_EXECUTION",
+    "DEEP_ASSESSMENT",
+    "RIGHTS_ACCESS_COST_PREFLIGHT",
+    "BOUNDED_ADAPTER",
+    "SOURCE_POOL_READINESS",
+    "REPRESENTATIVE_ACQUISITION"
+  ],
+  "priority_model": {
+    "model_id": "LEXICOGRAPHIC_STRUCTURAL_DEMAND_V1",
+    "empirical_market_value_score": false,
+    "empirical_customer_outcome_score": false,
+    "interpretation": "This order expresses structural Decision demand only. It must be recalibrated when real Source utility, customer outcomes, runtime cost, latency, bias and coverage evidence become available.",
+    "priority_tuple": [
+      "SOURCE_ROLE_MISSION_CRITICALITY_ASC",
+      "CUSTOMER_SEGMENT_COVERAGE_DESC",
+      "DECISION_SCOPE_COUNT_DESC",
+      "VALUE_SCOPE_COUNT_DESC",
+      "INTELLIGENCE_PRODUCT_COUNT_DESC",
+      "ROLE_SPECIFIC_DATA_FIELD_COUNT_DESC",
+      "METRIC_COUNT_DESC",
+      "SCOPE_ID_ASC",
+      "SOURCE_ROLE_ASC"
+    ],
+    "source_role_mission_criticality": {
+      "PRIMARY_AUTHORITY": 1,
+      "SOLD_TRANSACTION": 2,
+      "AUTHENTICATION_CONDITION": 3,
+      "LISTING_SUPPLY": 4,
+      "PROVENANCE_HISTORY": 5,
+      "CATALOG_REFERENCE": 6,
+      "CULTURE_ATTENTION": 7,
+      "AUCTION_PRIVATE_SALE": 8,
+      "INDEPENDENT_VERIFICATION": 9,
+      "MACRO_CONTEXT": 10
+    }
+  },
+  "lane_model": {
+    "collection_scopes": 32,
+    "mandatory_source_roles": 7,
+    "mandatory_scope_source_role_lanes": 224,
+    "supplemental_source_roles": 3,
+    "supplemental_scope_source_role_lanes": 96,
+    "total_structural_lanes": 320,
+    "supplemental_roles": [
+      "AUCTION_PRIVATE_SALE",
+      "INDEPENDENT_VERIFICATION",
+      "MACRO_CONTEXT"
+    ],
+    "supplemental_lane_state": "BACKLOG_VALUE_TRACEABLE_NOT_IN_BATCH_1_MANDATORY_FLOOR"
+  },
+  "asi_batch_1": {
+    "unique_source_endpoint_discovery_target": 2000,
+    "deep_assessment_target": 200,
+    "rights_access_cost_preflight_target": 50,
+    "bounded_adapter_contract_target": 8,
+    "mandatory_scope_source_role_lanes": 224,
+    "collection_scopes": 32,
+    "core_domain_categories": 8,
+    "discovery_lane_floor": 1,
+    "deep_assessment_scope_floor": 1,
+    "preflight_category_floor": 1,
+    "adapter_category_floor": 1,
+    "actual_execution_state": "NOT_EXECUTED"
+  },
+  "allocation_rules": [
+    "EVERY_MANDATORY_SCOPE_SOURCE_ROLE_LANE_RECEIVES_AT_LEAST_ONE_DISCOVERY_TARGET",
+    "EVERY_COLLECTION_SCOPE_RECEIVES_AT_LEAST_ONE_DEEP_ASSESSMENT_TARGET",
+    "EVERY_CORE_DOMAIN_CATEGORY_RECEIVES_AT_LEAST_ONE_PREFLIGHT_TARGET",
+    "EVERY_CORE_DOMAIN_CATEGORY_RECEIVES_ONE_INITIAL_BOUNDED_ADAPTER_TARGET",
+    "REMAINING_CAPACITY_FOLLOWS_THE_VERSIONED_STRUCTURAL_PRIORITY_ORDER",
+    "ADAPTER_TARGETS_MUST_ALSO_HAVE_DEEP_ASSESSMENT_AND_PREFLIGHT_TARGETS",
+    "SUPPLEMENTAL_SOURCE_ROLE_LANES_REMAIN_VALUE_TRACEABLE_BACKLOG_UNLESS_EXPLICITLY_PROMOTED",
+    "TARGET_ALLOCATION_DOES_NOT_ASSERT_ACTUAL_SOURCE_AVAILABILITY_OR_READINESS"
+  ],
+  "required_outputs": [
+    "decision-source-requirement-ledger-v1.json",
+    "dos-asi-priority-queue-v1.json",
+    "asi-batch-1-execution-plan-v1.json",
+    "digitalocean-asi-workload-envelope-v1.json",
+    "dos-asi-gap-register-v1.json",
+    "run-manifest.json"
+  ],
+  "execution_gates": {
+    "discovery": [
+      "DECISION_LINKAGE_100_PERCENT",
+      "VALUE_SCOPE_LINKAGE_100_PERCENT",
+      "COLLECTION_SCOPE_LINKAGE_100_PERCENT",
+      "SOURCE_ROLE_LINKAGE_100_PERCENT",
+      "DISCOVERY_PROVENANCE_REQUIRED"
+    ],
+    "deep_assessment": [
+      "SOURCE_ENDPOINT_DEDUPLICATED",
+      "OWNER_AND_JURISDICTION_IDENTIFIED_OR_EXPLICITLY_UNKNOWN",
+      "SCOPE_RELEVANCE_ASSESSED",
+      "UTILITY_AND_IRREPLACEABLE_VALUE_CONTRIBUTION_ASSESSED",
+      "UNKNOWN_RISK_NOT_COERCED_TO_LOW"
+    ],
+    "preflight": [
+      "TERMS_AND_COMMERCIAL_USE_EXPLICIT",
+      "ROBOTS_AND_ACCESS_EXPLICIT",
+      "FIELD_LEVEL_RIGHTS_EXPLICIT",
+      "RATE_LIMIT_AND_TECHNICAL_ACCESS_EXPLICIT",
+      "COST_AND_CONTINUITY_EXPLICIT"
+    ],
+    "adapter": [
+      "VERSIONED_SCHEMA_CONTRACT",
+      "BOUNDED_REQUEST_BUDGET",
+      "RAW_QUARANTINE_FIRST",
+      "FAIL_CLOSED",
+      "AUDIT_AND_RECOVERY_DEFINED",
+      "NO_DIRECT_SOURCE_OR_PROVIDER_TO_PORTAL",
+      "NO_DIRECT_SOURCE_OR_PROVIDER_TO_INDEX"
+    ]
+  },
+  "digitalocean_handoff": {
+    "commercial_state": "FOUNDER_CONFIRMED_CONTRACTED",
+    "technical_binding_state": "NOT_VERIFIED",
+    "runtime_role": "DECISION_RUNTIME_AND_SCALE_ACCELERATOR_NOT_BUSINESS_TRUTH",
+    "required_workload_metrics": [
+      "QUEUE_ITEM_COUNT",
+      "DISCOVERY_OPERATION_TARGET",
+      "DEEP_ASSESSMENT_TARGET",
+      "PREFLIGHT_TARGET",
+      "ADAPTER_TARGET",
+      "WORKER_CONCURRENCY",
+      "QUEUE_THROUGHPUT",
+      "LATENCY",
+      "RETRY_AND_DEAD_LETTER_RATE",
+      "STORAGE_GROWTH",
+      "FRESHNESS_LAG",
+      "COST_PER_1000_DISCOVERIES",
+      "COST_PER_DEEP_ASSESSMENT",
+      "RECOVERY_TIME",
+      "ROLLBACK_TIME"
+    ],
+    "resource_sizing_without_measurement": "PROHIBITED"
+  },
+  "boundaries": {
+    "plan_authorizes_discovery": true,
+    "plan_authorizes_bulk_acquisition": false,
+    "plan_authorizes_market_claim": false,
+    "plan_authorizes_candidate_r2": false,
+    "plan_authorizes_index": false,
+    "plan_authorizes_production": false,
+    "unknown_requirement_to_known": false,
+    "unknown_risk_to_low": false,
+    "provider_direct_to_portal": false,
+    "provider_direct_to_index": false,
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}

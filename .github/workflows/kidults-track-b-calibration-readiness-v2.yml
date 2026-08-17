@@ -1,0 +1,127 @@
+name: KIDULTS Track B Calibration Readiness v2
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/source-intelligence/track-b-calibration-readiness-contract-v2.json"
+      - "scripts/kidults/source-intelligence/build-track-b-calibration-readiness-v2.mjs"
+      - "scripts/kidults/source-intelligence/validate-track-b-calibration-readiness-v2.mjs"
+      - ".github/workflows/kidults-track-b-calibration-readiness-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: kidults-track-b-calibration-readiness-v2
+  cancel-in-progress: true
+
+jobs:
+  readiness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/build-track-b-calibration-readiness-v2.mjs
+          node --check scripts/kidults/source-intelligence/validate-track-b-calibration-readiness-v2.mjs
+          node --check scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs
+
+      - name: Download immutable Source calibration inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/input/source-relevance-precision-v1
+          mkdir -p artifacts/input/source-precision-ranking-v2-final
+          mkdir -p artifacts/input/targeted-high-authority-source-expansion-v1-fixed
+
+          gh run download 31983701963 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-source-relevance-precision-v1 \
+            --dir artifacts/input/source-relevance-precision-v1
+
+          gh run download 31986434921 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-source-precision-ranking-v2-final \
+            --dir artifacts/input/source-precision-ranking-v2-final
+
+          gh run download 31990288099 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-targeted-high-authority-source-expansion-v1-fixed \
+            --dir artifacts/input/targeted-high-authority-source-expansion-v1-fixed
+
+          find artifacts/input/source-relevance-precision-v1 -name source-relevance-calibration-candidates-v1.json -print -quit | grep .
+          find artifacts/input/source-precision-ranking-v2-final -name precision-ranked-universe-v2.json -print -quit | grep .
+          find artifacts/input/targeted-high-authority-source-expansion-v1-fixed -name targeted-high-authority-source-candidate-registry-v1.json -print -quit | grep .
+
+      - name: Build calibration and Source-depth readiness package
+        run: |
+          node scripts/kidults/source-intelligence/build-track-b-calibration-readiness-v2.mjs \
+            --precision-input artifacts/input/source-relevance-precision-v1 \
+            --v2-input artifacts/input/source-precision-ranking-v2-final \
+            --targeted-input artifacts/input/targeted-high-authority-source-expansion-v1-fixed \
+            --output artifacts/agci-os/track-b-calibration-readiness-v2 \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          node scripts/kidults/source-intelligence/build-track-b-calibration-readiness-v2.mjs \
+            --precision-input artifacts/input/source-relevance-precision-v1 \
+            --v2-input artifacts/input/source-precision-ranking-v2-final \
+            --targeted-input artifacts/input/targeted-high-authority-source-expansion-v1-fixed \
+            --output /tmp/track-b-calibration-readiness-v2-1 \
+            --write
+
+          node scripts/kidults/source-intelligence/build-track-b-calibration-readiness-v2.mjs \
+            --precision-input artifacts/input/source-relevance-precision-v1 \
+            --v2-input artifacts/input/source-precision-ranking-v2-final \
+            --targeted-input artifacts/input/targeted-high-authority-source-expansion-v1-fixed \
+            --output /tmp/track-b-calibration-readiness-v2-2 \
+            --write
+
+          for file in \
+            track-b-calibration-review-package-v2.json \
+            track-b-calibration-batches-v2.json \
+            track-b-label-assessment-template-v2.json \
+            high-authority-source-depth-ledger-v2.json \
+            scope-source-expansion-work-queue-v2.json \
+            source-role-depth-gap-matrix-v2.json \
+            top200-readiness-gate-v2.json \
+            run-manifest.json; do
+            cmp "/tmp/track-b-calibration-readiness-v2-1/$file" "/tmp/track-b-calibration-readiness-v2-2/$file"
+            cmp "artifacts/agci-os/track-b-calibration-readiness-v2/$file" "/tmp/track-b-calibration-readiness-v2-1/$file"
+          done
+
+      - name: Validate readiness and fail-closed boundaries
+        run: |
+          node scripts/kidults/source-intelligence/validate-track-b-calibration-readiness-v2.mjs \
+            artifacts/agci-os/track-b-calibration-readiness-v2
+
+      - name: Revalidate DOS and AGCI-OS governance
+        run: |
+          node scripts/kidults/dos/build-dos-v1.mjs --output /tmp/dos-v1 --write
+          node scripts/kidults/dos/validate-dos-v1.mjs /tmp/dos-v1
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload calibration readiness evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-track-b-calibration-readiness-v2
+          path: artifacts/agci-os/track-b-calibration-readiness-v2
+          if-no-files-found: error
+          retention-days: 30

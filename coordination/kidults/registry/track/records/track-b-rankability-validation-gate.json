@@ -1,15 +1,1 @@
-{
-  "id":"track-b-rankability-validation-gate",
-  "record_type":"track",
-  "version":"1.0.0",
-  "status":"WAITING_FOR_SNAPSHOT",
-  "display_name":"B. KIDULTS | Rankability & Validation Gate",
-  "role_id":"role-track-b",
-  "canonical_issue":236,
-  "current_snapshot_id":null,
-  "current_assessment_id":null,
-  "rule_status":"FINAL_LOCKED_AT_V1.3",
-  "next_stage":"FIRST_INDEPENDENT_RANKABILITY_ASSESSMENT",
-  "created_by":"Atlas",
-  "approved_by":"John"
-}
+{"id":"track-b-rankability-validation-gate","record_type":"track","version":"1.2.0","status":"ASSESSMENT_COMPLETE_BLOCKED","display_name":"B. KIDULTS | Rankability & Validation Gate","role_id":"role-track-b","canonical_issue":236,"current_snapshot_id":"candidate-structural-20260816-r1","current_assessment_id":"assessment-candidate-structural-20260816-r1-v1","input_evidence_package_id":"evidence-candidate-structural-20260816-r1","assessment_recommendation":"BLOCKED","rule_status":"FINAL_LOCKED_AT_V1.3","next_stage":"WAITING_FOR_NEW_IMMUTABLE_CANDIDATE_WITH_EXIT_CRITERIA_SATISFIED","created_by":"Atlas","approved_by":"John"}

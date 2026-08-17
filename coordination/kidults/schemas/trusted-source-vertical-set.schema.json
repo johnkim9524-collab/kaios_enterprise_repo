@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.com/schemas/trusted-source-vertical-set.schema.json",
+  "title": "KIDULTS Trusted Source Vertical Set",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "id",
+    "record_type",
+    "version",
+    "status",
+    "created_by",
+    "vertical_id",
+    "source_candidate_count",
+    "source_candidates"
+  ],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "record_type": {"const": "trusted_source_vertical_set"},
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "status": {"const": "DISCOVERY_CANDIDATES"},
+    "created_by": {"type": "string", "minLength": 1},
+    "vertical_id": {"type": "string", "minLength": 1},
+    "source_candidate_count": {"type": "integer", "minimum": 3},
+    "source_candidates": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "source_id",
+          "display_name",
+          "source_tier",
+          "source_class",
+          "official_url",
+          "rights_state",
+          "trust_score_provisional",
+          "score_status",
+          "verification_state",
+          "next_action"
+        ],
+        "properties": {
+          "source_id": {"type": "string", "minLength": 1},
+          "source_tier": {"type": "integer", "minimum": 1, "maximum": 4},
+          "official_url": {"type": "string", "pattern": "^https://"},
+          "trust_score_provisional": {"type": "integer", "minimum": 0, "maximum": 100},
+          "score_status": {"const": "PROVISIONAL_NOT_TRACK_B_VALIDATED"}
+        }
+      }
+    }
+  }
+}

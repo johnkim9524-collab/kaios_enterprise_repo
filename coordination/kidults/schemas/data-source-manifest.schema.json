@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://intelligence-holdings.example/schemas/kidults/data-source-manifest.schema.json",
+  "title": "KIDULTS Portal Data Source Manifest",
+  "type": "object",
+  "required": [
+    "manifest_id",
+    "version",
+    "status",
+    "baseline_snapshot_id",
+    "production_eligible",
+    "rules",
+    "sources"
+  ],
+  "properties": {
+    "manifest_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "type": "string"
+    },
+    "baseline_snapshot_id": {
+      "type": "string"
+    },
+    "production_eligible": {
+      "const": false
+    },
+    "rules": {
+      "type": "object",
+      "required": [
+        "same_origin_only",
+        "raw_provider_data_to_portal",
+        "missing_to_zero"
+      ],
+      "properties": {
+        "same_origin_only": {
+          "const": true
+        },
+        "raw_provider_data_to_portal": {
+          "const": "PROHIBITED"
+        },
+        "missing_to_zero": {
+          "const": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "role",
+          "path",
+          "required",
+          "access",
+          "publication_policy",
+          "snapshot_binding"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "not": {
+              "pattern": "^(?:https?:)?//"
+            }
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "access": {
+            "enum": [
+              "PUBLIC_PAYLOAD",
+              "PUBLIC_STATUS_ONLY",
+              "INTERNAL_ONLY"
+            ]
+          },
+          "publication_policy": {
+            "enum": [
+              "CONTRACT_GATED",
+              "STATUS_ONLY",
+              "NEVER"
+            ]
+          },
+          "snapshot_binding": {
+            "enum": [
+              "BASELINE",
+              "NONE"
+            ]
+          },
+          "required_metadata": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "accepted_statuses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}

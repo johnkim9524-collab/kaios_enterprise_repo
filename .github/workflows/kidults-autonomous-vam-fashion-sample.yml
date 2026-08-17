@@ -1,0 +1,62 @@
+name: KIDULTS Autonomous V&A Fashion Sample
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/autonomous/source-discovery/contracts/vam-fashion-collections-r1.json"
+      - "coordination/kidults/registry/trusted-source/records/trusted-source-fashion-accessories-r1.json"
+      - "scripts/kidults/autonomous/collect-vam-fashion-sample.mjs"
+      - "scripts/kidults/autonomous/validate-vam-fashion-sample.mjs"
+      - ".github/workflows/kidults-autonomous-vam-fashion-sample.yml"
+  schedule:
+    - cron: "45 22 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-autonomous-vam-fashion-sample
+  cancel-in-progress: true
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/autonomous/collect-vam-fashion-sample.mjs
+          node --check scripts/kidults/autonomous/validate-vam-fashion-sample.mjs
+
+      - name: Collect bounded V&A summary metadata sample
+        run: |
+          node scripts/kidults/autonomous/collect-vam-fashion-sample.mjs \
+            --output artifacts/autonomous-source-samples/vam-fashion-collections-r1 \
+            --query dress \
+            --limit 12 \
+            --minimum-records 8
+
+      - name: Validate evidence, rights and safety gates
+        run: |
+          node scripts/kidults/autonomous/validate-vam-fashion-sample.mjs \
+            artifacts/autonomous-source-samples/vam-fashion-collections-r1
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-vam-fashion-bounded-sample
+          path: artifacts/autonomous-source-samples/vam-fashion-collections-r1
+          if-no-files-found: error
+          retention-days: 30

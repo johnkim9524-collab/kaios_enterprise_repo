@@ -1,15 +1,37 @@
 {
-  "registry_id":"kidults-provider-registry",
-  "registry_name":"Provider Registry",
-  "registry_version":"1.0.0",
-  "schema_version":"1.0.0",
-  "owner":"Program Owner / Provider Lead",
-  "custodian":"Atlas",
-  "status":"BOOTSTRAPPING",
-  "effective_at":"2026-08-12T12:00:00+09:00",
-  "record_directory":"records",
-  "record_count":0,
-  "current_record_id":null,
-  "allowed_states":["RESEARCHING","SHADOW","APPROVED","REJECTED","CONTRACTED","OFFBOARDED"],
-  "records":[]
+  "registry_id": "kidults-provider-registry",
+  "registry_name": "Provider Registry",
+  "registry_version": "1.1.0",
+  "schema_version": "1.0.0",
+  "owner": "Program Owner / Provider Lead",
+  "custodian": "Atlas",
+  "status": "ACTIVE",
+  "effective_at": "2026-08-16T04:30:00+09:00",
+  "record_directory": "records",
+  "record_count": 1,
+  "current_record_id": "provider-requirements-v1",
+  "allowed_states": [
+    "RESEARCHING",
+    "SHADOW",
+    "APPROVED",
+    "REJECTED",
+    "CONTRACTED",
+    "OFFBOARDED"
+  ],
+  "records": [
+    {
+      "id": "provider-requirements-v1",
+      "path": "records/provider-requirements-v1.json",
+      "version": "1.0.0",
+      "status": "RESEARCHING"
+    }
+  ],
+  "change_history": [
+    {
+      "version": "1.1.0",
+      "changed_at": "2026-08-16T04:30:00+09:00",
+      "changed_by": "KPMO / Atlas",
+      "change": "Registered the provider-neutral requirements and gap matrix. No vendor, credential or Production connection was activated."
+    }
+  ]
 }

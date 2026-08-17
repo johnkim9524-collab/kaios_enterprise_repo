@@ -1,0 +1,95 @@
+name: KIDULTS Track B Source Relevance Top-50 v2 Pilot
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "scripts/kidults/source-intelligence/build-track-b-source-relevance-top50-v2-pilot.mjs"
+      - "scripts/kidults/source-intelligence/validate-track-b-source-relevance-top50-v2-pilot.mjs"
+      - ".github/workflows/kidults-track-b-source-relevance-top50-v2-pilot.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: kidults-track-b-source-relevance-top50-v2-pilot
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/build-track-b-source-relevance-top50-v2-pilot.mjs
+          node --check scripts/kidults/source-intelligence/validate-track-b-source-relevance-top50-v2-pilot.mjs
+
+      - name: Download immutable Source Precision Ranking v2 input
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/input/source-precision-ranking-v2-final
+          gh run download 31986434921 \
+            --repo "johnkim9524-collab/kaios_enterprise_repo" \
+            --name kidults-source-precision-ranking-v2-final \
+            --dir artifacts/input/source-precision-ranking-v2-final
+          test -f artifacts/input/source-precision-ranking-v2-final/blind-top50-input-v2.json
+
+      - name: Build Track B blind Top-50 v2 assessment
+        run: |
+          node scripts/kidults/source-intelligence/build-track-b-source-relevance-top50-v2-pilot.mjs \
+            --input artifacts/input/source-precision-ranking-v2-final \
+            --output artifacts/agci-os/track-b-source-relevance-top50-v2-pilot \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          node scripts/kidults/source-intelligence/build-track-b-source-relevance-top50-v2-pilot.mjs \
+            --input artifacts/input/source-precision-ranking-v2-final \
+            --output /tmp/top50-v2-1 \
+            --write
+          node scripts/kidults/source-intelligence/build-track-b-source-relevance-top50-v2-pilot.mjs \
+            --input artifacts/input/source-precision-ranking-v2-final \
+            --output /tmp/top50-v2-2 \
+            --write
+          for file in \
+            source-relevance-top50-v2-pilot-assessment.json \
+            top50-v2-error-taxonomy.json \
+            source-relevance-v3-directives.json \
+            run-manifest.json; do
+            cmp "/tmp/top50-v2-1/$file" "/tmp/top50-v2-2/$file"
+            cmp "artifacts/agci-os/track-b-source-relevance-top50-v2-pilot/$file" "/tmp/top50-v2-1/$file"
+          done
+
+      - name: Validate independent blind pilot and fail-closed boundaries
+        run: |
+          node scripts/kidults/source-intelligence/validate-track-b-source-relevance-top50-v2-pilot.mjs \
+            artifacts/agci-os/track-b-source-relevance-top50-v2-pilot
+
+      - name: Revalidate governance
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload Track B blind pilot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-track-b-source-relevance-top50-v2-pilot
+          path: artifacts/agci-os/track-b-source-relevance-top50-v2-pilot
+          if-no-files-found: error
+          retention-days: 30

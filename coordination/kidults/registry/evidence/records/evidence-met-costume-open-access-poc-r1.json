@@ -1,0 +1,68 @@
+{
+  "id": "evidence-met-costume-open-access-poc-r1",
+  "record_type": "evidence_package",
+  "version": "1.0.0",
+  "status": "POC_EVIDENCE_NOT_CANDIDATE",
+  "created_at": "2026-08-16T10:25:55+09:00",
+  "created_by": "Track A / Autonomous Source Discovery",
+  "approved_by": null,
+  "snapshot_id": null,
+  "evidence_package_id": "evidence-met-costume-open-access-2026-08-16T01-25-54-496Z",
+  "source_mode": "BOUNDED_LIVE_METADATA_POC",
+  "source_ids": [
+    "met-costume-institute-open-access"
+  ],
+  "vertical_ids": [
+    "fashion-accessories"
+  ],
+  "methodology_references": [
+    "source-trust-methodology-v1",
+    "evidence-density-methodology-v1"
+  ],
+  "evidence_lineage_version": "met-costume-open-access-lineage-r1",
+  "run": {
+    "run_id": "met-costume-open-access-2026-08-16T01-25-54-496Z",
+    "workflow_run_id": 31919540302,
+    "artifact_id": 9255917591,
+    "artifact_digest": "sha256:74d8681af12f21befc56e05931e6f4a87b5b87488f02bacd66d4b87ef2273054",
+    "contract_id": "met-costume-open-access-r1"
+  },
+  "metrics": {
+    "search_result_count": 7575,
+    "requests_executed": 13,
+    "normalized_records": 12,
+    "unique_records": 12,
+    "duplicate_records": 0,
+    "average_critical_field_completeness": 1.0,
+    "provenance_reference_coverage": 1.0,
+    "image_ingestion_count": 0,
+    "credential_used": false,
+    "paid_access_used": false,
+    "mutation_performed": false
+  },
+  "rights": {
+    "metadata_rights_state": "CC0_COLLECTION_METADATA",
+    "image_state": "NOT_INGESTED",
+    "public_domain_image_flag_true_count": 0,
+    "commercial_publication_authorized": false
+  },
+  "candidate_eligible": false,
+  "known_limitations": [
+    "The sample uses one source family and does not satisfy independent corroboration requirements.",
+    "The provisional Source Trust and Evidence Density methodologies have not been independently validated by Track B.",
+    "No canonical Track A snapshot methodology or immutable Candidate snapshot_id is registered.",
+    "The 12 sampled records are collection-identity evidence, not transaction, demand, scarcity or valuation evidence."
+  ],
+  "next_actions": [
+    "Add a second independent authority source for fashion and accessories.",
+    "Add a market transaction source after terms and rights review.",
+    "Run entity-resolution and contradiction tests across source families.",
+    "Promote only registered, independently reproducible evidence into the first Candidate."
+  ],
+  "production_eligible": false,
+  "references": [
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/31919540302",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/235",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/296"
+  ]
+}

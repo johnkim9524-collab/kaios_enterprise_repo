@@ -1,0 +1,70 @@
+{
+  "id": "evidence-vam-fashion-poc-r1",
+  "record_type": "evidence_package",
+  "version": "1.0.0",
+  "status": "POC_EVIDENCE_NOT_CANDIDATE",
+  "created_at": "2026-08-16T10:37:37+09:00",
+  "created_by": "Track A / Autonomous Source Discovery",
+  "approved_by": null,
+  "snapshot_id": null,
+  "evidence_package_id": "evidence-vam-fashion-collections-2026-08-16T01-37-36-932Z",
+  "source_mode": "BOUNDED_LIVE_METADATA_POC",
+  "source_ids": [
+    "vam-collections-api-fashion"
+  ],
+  "vertical_ids": [
+    "fashion-accessories"
+  ],
+  "methodology_references": [
+    "source-trust-methodology-v1",
+    "evidence-density-methodology-v1"
+  ],
+  "evidence_lineage_version": "vam-fashion-collections-lineage-r1",
+  "run": {
+    "run_id": "vam-fashion-collections-2026-08-16T01-37-36-932Z",
+    "workflow_run_id": 31919993657,
+    "artifact_id": 9256061480,
+    "artifact_digest": "sha256:0e35b2208dc3cace45c5fb3b1d73fb61bc06e601bbbd9d67281e5ec1cd7e69b9",
+    "contract_id": "vam-fashion-collections-r1"
+  },
+  "metrics": {
+    "search_result_count": 84652,
+    "search_records_returned": 100,
+    "requests_executed": 1,
+    "normalized_records": 12,
+    "unique_records": 12,
+    "duplicate_records": 0,
+    "average_critical_field_completeness": 0.9167,
+    "provenance_reference_coverage": 1.0,
+    "image_ingestion_count": 0,
+    "credential_used": false,
+    "paid_access_used": false,
+    "mutation_performed": false
+  },
+  "rights": {
+    "metadata_rights_state": "V_AND_A_API_TERMS_SECTION_9_3_INTERNAL_NONCOMMERCIAL_POC_ONLY",
+    "image_state": "NOT_INGESTED",
+    "commercial_publication_authorized": false
+  },
+  "candidate_eligible": false,
+  "known_limitations": [
+    "V&A terms do not provide commercial-publication clearance for this PoC.",
+    "The package contains museum-authority identity evidence, not transaction or valuation evidence.",
+    "Object-level entity resolution against The Met has not been validated against a Golden Dataset.",
+    "Source Trust and Evidence Density methodologies remain pending Track B validation."
+  ],
+  "next_actions": [
+    "Use the cross-source report to calibrate schema intersection and entity-resolution fields.",
+    "Do not expose V&A metadata in the public Portal without commercial-use clearance.",
+    "Add a rights-cleared transaction source before Candidate use.",
+    "Retain source identifiers and exact terms state in every derived record."
+  ],
+  "production_eligible": false,
+  "references": [
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/31919993657",
+    "https://developers.vam.ac.uk/guide/v2/welcome.html",
+    "https://www.vam.ac.uk/info/va-websites-terms-conditions",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/235",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/296"
+  ]
+}

@@ -1,0 +1,170 @@
+name: KIDULTS Targeted High-Authority Source Expansion Report v1
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - ".github/workflows/kidults-targeted-high-authority-source-expansion-report-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+concurrency:
+  group: kidults-targeted-high-authority-source-expansion-report-v1
+  cancel-in-progress: true
+
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Wait for latest fixed validation run
+        id: wait
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          workflow="kidults-targeted-high-authority-source-expansion-v1-fixed.yml"
+          for attempt in $(seq 1 90); do
+            json=$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow "$workflow" \
+              --branch "$GITHUB_REF_NAME" \
+              --limit 1 \
+              --json databaseId,status,conclusion,headSha,url)
+            run_id=$(printf '%s' "$json" | jq -r '.[0].databaseId // empty')
+            status=$(printf '%s' "$json" | jq -r '.[0].status // empty')
+            conclusion=$(printf '%s' "$json" | jq -r '.[0].conclusion // empty')
+            head_sha=$(printf '%s' "$json" | jq -r '.[0].headSha // empty')
+            run_url=$(printf '%s' "$json" | jq -r '.[0].url // empty')
+            if [ -n "$run_id" ] && [ "$status" = "completed" ]; then
+              echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+              echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
+              echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+              echo "run_url=$run_url" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for the fixed validation workflow." >&2
+          exit 1
+
+      - name: Comment failed validation
+        if: steps.wait.outputs.conclusion != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.wait.outputs.run_id }}
+          CONCLUSION: ${{ steps.wait.outputs.conclusion }}
+          HEAD_SHA: ${{ steps.wait.outputs.head_sha }}
+          RUN_URL: ${{ steps.wait.outputs.run_url }}
+        run: |
+          cat > /tmp/issue-comment.md <<EOF
+          # Targeted High-Authority Source Expansion — VALIDATION FAILED
+
+          **HEAD:** \`$HEAD_SHA\`  
+          **Run:** \`$RUN_ID\`  
+          **Conclusion:** \`$CONCLUSION\`
+
+          The fail-closed gate worked as designed. No Source Pool promotion, preflight PASS, Adapter implementation, acquisition authorization or Production mutation is permitted.
+
+          Inspect the workflow run and correct the evidence or implementation before retrying.
+          EOF
+          gh issue comment 316 --repo "$GITHUB_REPOSITORY" --body-file /tmp/issue-comment.md
+          exit 1
+
+      - name: Download fixed validation evidence
+        if: steps.wait.outputs.conclusion == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.wait.outputs.run_id }}
+        run: |
+          mkdir -p /tmp/targeted-source-evidence
+          gh run download "$RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name kidults-targeted-high-authority-source-expansion-v1-fixed \
+            --dir /tmp/targeted-source-evidence
+          find /tmp/targeted-source-evidence -type f -maxdepth 5 -print
+
+      - name: Read validated metrics
+        if: steps.wait.outputs.conclusion == 'success'
+        id: metrics
+        run: |
+          expansion=$(find /tmp/targeted-source-evidence -path '*targeted-high-authority-source-expansion-v1/run-manifest.json' -type f | head -n 1)
+          pilot=$(find /tmp/targeted-source-evidence -path '*track-b-targeted-high-authority-top50-pilot-v1-robust-fixed/run-manifest.json' -type f | head -n 1)
+          test -f "$expansion"
+          test -f "$pilot"
+          echo "candidate_count=$(jq -r '.candidate_count' "$expansion")" >> "$GITHUB_OUTPUT"
+          echo "core_domain_count=$(jq -r '.core_domain_count' "$expansion")" >> "$GITHUB_OUTPUT"
+          echo "blind_top50_count=$(jq -r '.blind_top50_count' "$expansion")" >> "$GITHUB_OUTPUT"
+          echo "reviewed=$(jq -r '.reviewed' "$pilot")" >> "$GITHUB_OUTPUT"
+          echo "relevant=$(jq -r '.relevant' "$pilot")" >> "$GITHUB_OUTPUT"
+          echo "not_relevant=$(jq -r '.not_relevant' "$pilot")" >> "$GITHUB_OUTPUT"
+          echo "precision=$(jq -r '.top50_precision' "$pilot")" >> "$GITHUB_OUTPUT"
+          echo "ranking_gate=$(jq -r '.ranking_gate' "$pilot")" >> "$GITHUB_OUTPUT"
+          echo "run_fingerprint=$(jq -r '.run_fingerprint' "$pilot")" >> "$GITHUB_OUTPUT"
+
+      - name: Submit official implementation update to issue 316
+        if: steps.wait.outputs.conclusion == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.wait.outputs.run_id }}
+          HEAD_SHA: ${{ steps.wait.outputs.head_sha }}
+          RUN_URL: ${{ steps.wait.outputs.run_url }}
+          CANDIDATE_COUNT: ${{ steps.metrics.outputs.candidate_count }}
+          CORE_DOMAIN_COUNT: ${{ steps.metrics.outputs.core_domain_count }}
+          BLIND_TOP50_COUNT: ${{ steps.metrics.outputs.blind_top50_count }}
+          REVIEWED: ${{ steps.metrics.outputs.reviewed }}
+          RELEVANT: ${{ steps.metrics.outputs.relevant }}
+          NOT_RELEVANT: ${{ steps.metrics.outputs.not_relevant }}
+          PRECISION: ${{ steps.metrics.outputs.precision }}
+          RANKING_GATE: ${{ steps.metrics.outputs.ranking_gate }}
+          RUN_FINGERPRINT: ${{ steps.metrics.outputs.run_fingerprint }}
+        run: |
+          cat > /tmp/issue-comment.md <<EOF
+          # Targeted High-Authority Source Expansion v1 — IMPLEMENTATION VALIDATED
+
+          **HEAD:** \`$HEAD_SHA\`  
+          **Workflow Run:** \`$RUN_ID\`  
+          **Conclusion:** \`SUCCESS\`
+
+          ## Validated structural result
+
+          \`\`\`text
+          Registered high-authority Source candidates   $CANDIDATE_COUNT
+          Core Domains represented                      $CORE_DOMAIN_COUNT / 8
+          Blind Top-50 input                            $BLIND_TOP50_COUNT
+          Track B evidence-only reviews                 $REVIEWED / 50
+          Relevant                                      $RELEVANT
+          Not relevant                                  $NOT_RELEVANT
+          Measured interim Top-50 precision             $PRECISION
+          Interim ranking gate                          $RANKING_GATE
+          \`\`\`
+
+          The targeted expansion is built from named official manufacturer, museum, institutional, specialist database, grading authority, auction and structured marketplace channels. It does not use generic repository search results as a substitute for Source quality.
+
+          ## Boundaries preserved
+
+          \`\`\`text
+          Qualified Source Pools                        0 / 32
+          Official rights/access/cost preflight PASS    0
+          Implemented adapters                          0
+          Acquisition authorized                        false
+          Final 400-case calibration                    incomplete
+          Final direct Top-200 adjudication             incomplete
+          Candidate R2                                  BLOCKED
+          KIDULT 500 / KIDULT 100                       NOT_COMPUTED
+          Production                                    HOLD
+          \`\`\`
+
+          **Run fingerprint:** \`$RUN_FINGERPRINT\`
+
+          The next gate remains final Track B calibration and direct Top-200 adjudication, followed by official Terms / rights / access / cost preflight.
+          EOF
+          gh issue comment 316 --repo "$GITHUB_REPOSITORY" --body-file /tmp/issue-comment.md

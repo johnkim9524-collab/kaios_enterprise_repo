@@ -1,0 +1,77 @@
+name: KIDULTS Autonomous Fashion Cross-Source Evidence
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "scripts/kidults/autonomous/compare-fashion-authority-samples.mjs"
+      - "scripts/kidults/autonomous/validate-fashion-authority-cross-source.mjs"
+      - "scripts/kidults/autonomous/collect-met-open-access-sample.mjs"
+      - "scripts/kidults/autonomous/collect-vam-fashion-sample.mjs"
+      - ".github/workflows/kidults-autonomous-fashion-cross-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-autonomous-fashion-cross-source
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/autonomous/collect-met-open-access-sample.mjs
+          node --check scripts/kidults/autonomous/collect-vam-fashion-sample.mjs
+          node --check scripts/kidults/autonomous/compare-fashion-authority-samples.mjs
+          node --check scripts/kidults/autonomous/validate-fashion-authority-cross-source.mjs
+
+      - name: Collect Met authority sample
+        run: |
+          node scripts/kidults/autonomous/collect-met-open-access-sample.mjs \
+            --output artifacts/autonomous-source-samples/met-costume-open-access-r1 \
+            --query dress \
+            --limit 12 \
+            --minimum-records 8
+
+      - name: Collect V&A authority sample
+        run: |
+          node scripts/kidults/autonomous/collect-vam-fashion-sample.mjs \
+            --output artifacts/autonomous-source-samples/vam-fashion-collections-r1 \
+            --query dress \
+            --limit 12 \
+            --minimum-records 8
+
+      - name: Build cross-source evidence report
+        run: |
+          node scripts/kidults/autonomous/compare-fashion-authority-samples.mjs \
+            --met-dir artifacts/autonomous-source-samples/met-costume-open-access-r1 \
+            --vam-dir artifacts/autonomous-source-samples/vam-fashion-collections-r1 \
+            --output artifacts/autonomous-source-samples/fashion-authority-cross-source-r1
+
+      - name: Validate cross-source and sensitivity gates
+        run: |
+          node scripts/kidults/autonomous/validate-fashion-authority-cross-source.mjs \
+            artifacts/autonomous-source-samples/fashion-authority-cross-source-r1
+
+      - name: Upload cross-source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-fashion-authority-cross-source-evidence
+          path: artifacts/autonomous-source-samples
+          if-no-files-found: error
+          retention-days: 30

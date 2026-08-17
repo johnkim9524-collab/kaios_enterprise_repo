@@ -1,0 +1,23 @@
+{
+  "projection_id": "kidults-runtime-health-projection-v1",
+  "version": "1.1.0",
+  "status": "PUBLIC_ENDPOINT_OBSERVED",
+  "generated_at": "2026-08-16T04:44:32+09:00",
+  "runtime_id": "runtime-foundation-v1",
+  "digitalocean_audit_id": "runtime-digitalocean-readonly-audit-v1",
+  "environment": "PRODUCTION_REFERENCE",
+  "observation_mode": "READ_ONLY",
+  "public_endpoint": "https://kaios.kidults.com",
+  "last_observed_at": "2026-08-15T19:44:32.305003Z",
+  "dns_state": "OBSERVED",
+  "tls_state": "OBSERVED",
+  "root_http_status": 403,
+  "health_http_status": 403,
+  "health_claim": "NOT_VERIFIED_EDGE_403",
+  "digitalocean_api_connection": "NOT_CONFIGURED",
+  "production_state": "HOLD",
+  "production_deployment": "NONE",
+  "mutation_performed": false,
+  "publication_eligible": false,
+  "evidence_artifact_id": 9252030451
+}

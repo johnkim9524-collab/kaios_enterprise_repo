@@ -1,6 +1,8 @@
+import { loadDataConnections, sourceIsOverlayEligible } from "./data-source-gateway.js";
+
 const LOCAL = {
   manifest: "data/v502-manifest.json?v=502",
-  registry: "data/registry-view.json?v=502",
+  registry: "data/registry-view.json?v=phase2-1",
   release: "data/portal-release-manifest-v502.json?v=502",
   pulse: "data/living-pulse-contract.json?v=600",
   why: "data/why-engine-contract.json?v=610",
@@ -14,12 +16,8 @@ const LOCAL = {
   signals: "data/market-signals.json?v=502",
   research: "data/research.json?v=502",
   archive: "data/archive.json?v=502",
-  provenance: "data/provenance.json?v=502"
-};
-
-const UPSTREAM = {
-  quality: "../data/quality-status.json?v=502",
-  monthly: "../data/monthly-intelligence.json?v=502"
+  provenance: "data/provenance.json?v=502",
+  connections: "data/data-source-manifest-v1.json?v=phase2-1"
 };
 
 const isNumber = value =>
@@ -197,10 +195,19 @@ export async function loadPortalData() {
     provenance
   ] = required;
 
-  const [quality, monthly] = await Promise.all([
-    getJson(UPSTREAM.quality, { optional: true }),
-    getJson(UPSTREAM.monthly, { optional: true })
-  ]);
+  const connections = await loadDataConnections({
+    manifestPath: LOCAL.connections,
+    baselineSnapshotId: manifest.snapshot_id
+  });
+
+  // Overlay is fail-closed: a fetched file is not enough. The source contract,
+  // exact baseline binding, evidence lineage and publication state must all pass.
+  const quality = sourceIsOverlayEligible(connections, "quality_feed")
+    ? connections.payloads.quality_feed
+    : null;
+  const monthly = sourceIsOverlayEligible(connections, "monthly_intelligence")
+    ? connections.payloads.monthly_intelligence
+    : null;
 
   const verifiedFields = overlayVerified(summary, quality, monthly);
   const searchIndex = buildSearchIndex({ verticals, k100, research, archive });
@@ -222,12 +229,16 @@ export async function loadPortalData() {
     research,
     archive,
     provenance,
+    connections,
     searchIndex,
     meta: {
       verifiedFields,
-      qualityConnected: Boolean(quality),
-      monthlyConnected: Boolean(monthly),
+      qualityConnected: connections.sources.some(source => source.id === "quality_feed" && !["ERROR", "UNAVAILABLE"].includes(source.state)),
+      qualityOverlayEligible: sourceIsOverlayEligible(connections, "quality_feed"),
+      monthlyConnected: connections.sources.some(source => source.id === "monthly_intelligence" && !["ERROR", "UNAVAILABLE"].includes(source.state)),
+      monthlyOverlayEligible: sourceIsOverlayEligible(connections, "monthly_intelligence"),
       registryProjectionConnected: Boolean(registry),
+      dataConnectionState: connections.summary.state,
       releaseCandidate: manifest.status === "RELEASE_CANDIDATE"
     }
   };

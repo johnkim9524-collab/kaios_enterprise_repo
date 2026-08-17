@@ -1,0 +1,174 @@
+{
+  "id": "digitalocean-irreplaceable-value-runtime-foundation-v1",
+  "record_type": "runtime_foundation_contract",
+  "version": "1.0.0",
+  "status": "FOUNDATION_ACTIVE_TECHNICAL_BINDING_PENDING",
+  "effective_at": "2026-08-16T21:00:00+09:00",
+  "created_by": "KPMO / Track D / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "governing_value": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "commercial_relationship": {
+    "provider": "DigitalOcean",
+    "state": "FOUNDER_CONFIRMED_CONTRACTED",
+    "commercial_contract_evidence_in_repository": "NOT_REGISTERED",
+    "technical_resource_binding": "NOT_VERIFIED",
+    "production_authorization": "HOLD"
+  },
+  "runtime_purpose": [
+    "PROTECT_VALUE_FRESHNESS",
+    "PROTECT_DETERMINISTIC_REPLAY",
+    "PROTECT_SOURCE_AND_PROVIDER_CONTINUITY",
+    "PROTECT_EVIDENCE_AND_MEMORY_INTEGRITY",
+    "PROVIDE_RECOVERABLE_ASI_AND_CATEGORY_SCALE_CAPACITY",
+    "CONTROL_COST_PER_INCREMENTAL_VALUE"
+  ],
+  "prohibited_interpretation": [
+    "INFRASTRUCTURE_AVAILABILITY_EQUALS_CUSTOMER_VALUE",
+    "DIGITALOCEAN_IS_A_SOURCE_OF_BUSINESS_TRUTH",
+    "CONTRACT_EXISTS_THEREFORE_TECHNICAL_BINDING_IS_VERIFIED",
+    "READ_ONLY_OBSERVATION_AUTHORIZES_PRODUCTION",
+    "RUNTIME_CAPACITY_AUTHORIZES_MARKET_CLAIMS"
+  ],
+  "environment_model": ["LOCAL", "DEV", "STAGING", "PRODUCTION"],
+  "current_allowed_environment": ["LOCAL", "DEV", "STAGING_FOUNDATION", "PRODUCTION_READ_ONLY_OBSERVATION"],
+  "current_prohibited_actions": [
+    "PRODUCTION_DEPLOY",
+    "PRODUCTION_RESTART",
+    "PRODUCTION_RESIZE",
+    "PRODUCTION_FIREWALL_MUTATION",
+    "PRODUCTION_DNS_MUTATION",
+    "PRODUCTION_DATABASE_WRITE",
+    "PRODUCTION_SNAPSHOT_RESTORE",
+    "UNAPPROVED_SSH",
+    "UNSCOPED_PROVIDER_PRODUCTION_CONNECTION"
+  ],
+  "technical_binding_gate": {
+    "required": [
+      "DIGITALOCEAN_PROJECT_OR_RESOURCE_INVENTORY",
+      "EXACT_DROPLET_OR_APP_PLATFORM_IDENTIFIERS",
+      "REGION_AND_RESOURCE_CLASS",
+      "READ_ONLY_API_TOKEN_IN_SECRET_MANAGER",
+      "READ_ONLY_METADATA_AUDIT_PASS",
+      "PUBLIC_ENDPOINT_DNS_TLS_HTTP_AUDIT",
+      "MONITORING_ENDPOINTS",
+      "OWNER_AND_OPERATOR",
+      "COST_BASELINE",
+      "BACKUP_TARGET",
+      "ROLLBACK_TARGET"
+    ],
+    "failure_state": "HOLD_DIGITALOCEAN_BINDING_NOT_VERIFIED"
+  },
+  "asi_batch_1_capacity_scope": {
+    "unique_source_endpoints": 2000,
+    "deep_source_assessments": 200,
+    "rights_access_cost_preflights": 50,
+    "bounded_adapter_contracts": 8,
+    "scope_role_lanes": 224,
+    "production_mutations": 0
+  },
+  "asi_10k_capacity_scope": {
+    "unique_source_endpoints": 10000,
+    "deep_source_assessments": 1000,
+    "rights_access_cost_preflights": 250,
+    "bounded_live_adapters": 50,
+    "raw_shadow_records_planning_floor": 100000,
+    "production_mutations": 0
+  },
+  "category_scale_capacity_scope": {
+    "category_count": 8,
+    "minimum_qualified_objects_per_category": 1000,
+    "operational_depth_per_category": 5000,
+    "global_leadership_depth_per_category": 10000,
+    "upper_cap": null,
+    "upper_cap_status": "NO_FIXED_CAP",
+    "current_actual_counts": null,
+    "current_actual_counts_status": "NOT_MEASURED"
+  },
+  "runtime_components": [
+    {
+      "component": "SOURCE_DISCOVERY_QUEUE",
+      "value_role": "Schedule and prioritize the Source work with the highest expected incremental Irreplaceable Value.",
+      "required_controls": ["IDEMPOTENCY", "RATE_LIMIT", "RETRY_BUDGET", "DEAD_LETTER_QUEUE", "AUDIT"]
+    },
+    {
+      "component": "ASSESSMENT_WORKERS",
+      "value_role": "Execute classification, utility, rights, risk, coverage, bias and ROI assessment reproducibly.",
+      "required_controls": ["VERSIONED_CODE", "DETERMINISTIC_INPUT", "RESOURCE_LIMIT", "TIMEOUT", "AUDIT"]
+    },
+    {
+      "component": "RAW_QUARANTINE_STORAGE",
+      "value_role": "Prevent untrusted, unlicensed, stale or malformed data from contaminating platform truth.",
+      "required_controls": ["IMMUTABLE_RAW", "HASH", "RETENTION_POLICY", "RIGHTS_TAG", "ACCESS_CONTROL"]
+    },
+    {
+      "component": "CANONICAL_AND_GRAPH_STORE",
+      "value_role": "Retain source-qualified identity, Evidence and Market relationships required for non-substitutable Intelligence.",
+      "required_controls": ["BACKUP", "POINT_IN_TIME_RECOVERY", "SCHEMA_VERSION", "CONFLICT_RETENTION", "AUDIT"]
+    },
+    {
+      "component": "BITEMPORAL_MEMORY_STORE",
+      "value_role": "Preserve market change, corrections and what the system knew at each recorded time.",
+      "required_controls": ["APPEND_ONLY", "SUPERSESSION", "HISTORICAL_REPLAY", "BACKUP", "AUDIT"]
+    },
+    {
+      "component": "PROVIDER_FUSION_RUNTIME",
+      "value_role": "Measure Provider coverage delta, conflict, corroboration, dependency and cost without direct Portal or Index paths.",
+      "required_controls": ["SHADOW_FIRST", "SOURCE_REMOVAL_TEST", "RIGHTS_GATE", "NO_DIRECT_PROJECTION", "AUDIT"]
+    },
+    {
+      "component": "OBSERVABILITY_AND_COST",
+      "value_role": "Protect value freshness, latency, recovery, Source continuity and cost per incremental decision value.",
+      "required_controls": ["AVAILABILITY", "LATENCY", "QUEUE_DEPTH", "ERROR_RATE", "FRESHNESS", "COST", "RECOVERY_TIME", "ROLLBACK_TIME"]
+    }
+  ],
+  "read_only_connection_contract": {
+    "repository_variables": ["KIDULTS_MONITORED_BASE_URL", "DIGITALOCEAN_DROPLET_ID"],
+    "repository_secrets": ["DIGITALOCEAN_READ_TOKEN"],
+    "allowed_calls": [
+      "DNS_RESOLVE",
+      "TLS_INSPECT",
+      "HTTP_GET_ROOT",
+      "HTTP_GET_HEALTH",
+      "DIGITALOCEAN_API_GET_RESOURCE_METADATA"
+    ],
+    "success_state": "READ_ONLY_CONNECTION_VERIFIED",
+    "partial_state": "PUBLIC_ENDPOINT_OBSERVED",
+    "failure_state": "NOT_VERIFIED"
+  },
+  "backup_restore_rollback_gate": {
+    "required_before_g5": [
+      "VERSIONED_BACKUP_POLICY",
+      "LAST_SUCCESSFUL_BACKUP_EVIDENCE",
+      "RESTORE_DRILL_EVIDENCE",
+      "ROLLBACK_TARGET_ID",
+      "ROLLBACK_TIME_MEASURED",
+      "RECOVERY_TIME_MEASURED",
+      "INCIDENT_FREEZE_WORKFLOW"
+    ],
+    "current_state": "NOT_VERIFIED"
+  },
+  "cost_governance": {
+    "currency": "USD",
+    "current_monthly_cost": null,
+    "current_monthly_cost_status": "NOT_REGISTERED",
+    "required_metrics": [
+      "COST_PER_1000_SOURCE_DISCOVERIES",
+      "COST_PER_DEEP_ASSESSMENT",
+      "COST_PER_PREFLIGHT",
+      "COST_PER_1000_RAW_RECORDS",
+      "COST_PER_QUALIFIED_OBJECT",
+      "COST_PER_INCREMENTAL_VALUE_POINT"
+    ],
+    "budget_change_requires": "KPMO_AND_FOUNDER_APPROVAL"
+  },
+  "next_execution": [
+    "REGISTER_EXACT_DIGITALOCEAN_RESOURCE_INVENTORY",
+    "VERIFY_READ_ONLY_API_BINDING",
+    "ESTABLISH_DEV_AND_STAGING_ASI_RUNTIME",
+    "RUN_ASI_BATCH_1_CAPACITY_BASELINE",
+    "MEASURE_COST_AND_RECOVERY",
+    "KEEP_PRODUCTION_HOLD"
+  ],
+  "production": "HOLD"
+}

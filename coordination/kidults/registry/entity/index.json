@@ -1,0 +1,22 @@
+{
+  "registry_id":"kidults-entity-registry",
+  "registry_name":"Entity Identity Registry",
+  "registry_version":"2.1.0",
+  "schema_version":"1.0.0",
+  "owner":"Track A / Entity Resolution Engine",
+  "custodian":"Atlas",
+  "status":"ACTIVE_CONTRACT",
+  "effective_at":"2026-08-16T16:20:00+09:00",
+  "record_directory":"records",
+  "record_count":2,
+  "current_record_id":"entity-identity-contract-v1",
+  "current_shadow_report_id":"entity-resolution-authority-shadow-r1",
+  "records":[
+    {"id":"entity-identity-contract-v1","path":"records/entity-identity-contract-v1.json","version":"1.0.0","status":"REGISTERED"},
+    {"id":"entity-resolution-authority-shadow-r1","path":"records/entity-resolution-authority-shadow-r1.json","version":"1.0.0","status":"PASS_WITH_REVIEW"}
+  ],
+  "change_history":[
+    {"version":"2.0.0","changed_at":"2026-08-16T14:10:00+09:00","changed_by":"KPMO / Track A","change":"Separated source record, physical object, canonical design, market event and evidence assertion identities."},
+    {"version":"2.1.0","changed_at":"2026-08-16T16:20:00+09:00","changed_by":"KPMO / Track A","change":"Resolved 24 source-qualified physical-object candidates and 22 canonical-design candidates; four records remain review-required and no auto-merge occurred."}
+  ]
+}

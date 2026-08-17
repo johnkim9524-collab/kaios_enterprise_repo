@@ -1,0 +1,190 @@
+{
+  "id": "candidate-r2-source-transaction-preflight-v1",
+  "record_type": "source_transaction_preflight",
+  "version": "1.0.0",
+  "status": "ACTIVE_P0_PREFLIGHT",
+  "created_at": "2026-08-16T17:45:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "mission_issue": 303,
+  "first_value": "AUTONOMOUS",
+  "objective": "Prepare four-or-more independent authority source families, a rights-explicit transaction lane, and an approved Golden Dataset for a new immutable Candidate R2.",
+  "source_families": [
+    {
+      "lane": "SOURCE_FAMILY_3",
+      "source_id": "smithsonian-open-access",
+      "source_name": "Smithsonian Open Access API and weekly JSON data",
+      "role": "AUTHORITY_AND_GLOBAL_UNIVERSE_SENSOR",
+      "status": "APPROVED_FOR_BOUNDED_PREFLIGHT",
+      "access": "OFFICIAL_API_KEY_OR_VERSIONED_JSON",
+      "metadata_rights_state": "CC0_OPEN_ACCESS_PORTIONS_WITH_RECORD_LEVEL_MEDIA_LIMITS",
+      "initial_field_policy": "METADATA_ALLOWLIST_ONLY",
+      "images": "NOT_INGESTED",
+      "commercial_publication": "FIELD_LEVEL_REVIEW_REQUIRED",
+      "request_budget": "BOUNDED",
+      "required_controls": [
+        "exact source record id",
+        "payload hash",
+        "record-level rights state",
+        "provenance reference",
+        "freshness timestamp",
+        "no Provider ID promotion to canonical ID"
+      ]
+    },
+    {
+      "lane": "SOURCE_FAMILY_4",
+      "source_id": "art-institute-chicago-api",
+      "source_name": "Art Institute of Chicago API",
+      "role": "AUTHORITY_AND_DESIGN_SENSOR",
+      "status": "APPROVED_FOR_BOUNDED_PREFLIGHT",
+      "access": "OFFICIAL_PUBLIC_API",
+      "metadata_rights_state": "CC0_FOR_MOST_FIELDS; DESCRIPTION_FIELD_CC_BY_4_0",
+      "initial_field_policy": "EXCLUDE_DESCRIPTION_AND_MEDIA; CC0_FIELDS_ONLY",
+      "images": "NOT_INGESTED",
+      "commercial_publication": "FIELD_LEVEL_REVIEW_REQUIRED",
+      "request_budget": "BOUNDED",
+      "required_controls": [
+        "license text captured from API response",
+        "description excluded from first run",
+        "exact source record id",
+        "payload hash",
+        "provenance reference",
+        "freshness timestamp"
+      ]
+    },
+    {
+      "lane": "AUTHORITY_BACKUP",
+      "source_id": "moma-collection-cc0",
+      "source_name": "Museum of Modern Art Collection Data",
+      "role": "VERSIONED_AUTHORITY_DATASET_AND_SCALE_BACKUP",
+      "status": "READY_AS_BACKUP",
+      "access": "OFFICIAL_VERSIONED_GITHUB_DATASET",
+      "metadata_rights_state": "CC0",
+      "initial_field_policy": "METADATA_ONLY",
+      "images": "NOT_INCLUDED",
+      "commercial_publication": "ATTRIBUTION_AND_NO_ENDORSEMENT_CONTROLS",
+      "request_budget": "DATASET_SNAPSHOT",
+      "required_controls": [
+        "commit SHA",
+        "dataset hash",
+        "curator approval state preserved",
+        "modified-data disclosure",
+        "no trademark endorsement implication"
+      ]
+    }
+  ],
+  "transaction_lanes": [
+    {
+      "lane": "TRANSACTION_EVENT_PRIMARY",
+      "source_id": "getty-provenance-index-api",
+      "source_name": "Getty Provenance Index Linked Open Data API",
+      "role": "RIGHTS_CLEARED_HISTORICAL_SALE_ACTIVITY_SENSOR",
+      "status": "APPROVED_FOR_BOUNDED_PREFLIGHT",
+      "access": "OFFICIAL_LINKED_OPEN_DATA_API",
+      "data_rights_state": "CC0",
+      "event_scope": "HISTORICAL_ART_SALES_AND_DEALER_TRANSACTIONS",
+      "expected_fields": [
+        "sale activity id",
+        "object id",
+        "event date",
+        "buyer or seller when available",
+        "price when available",
+        "currency when available",
+        "venue or catalog relationship",
+        "provenance links"
+      ],
+      "limitations": [
+        "historical art market, not contemporary all-collectibles coverage",
+        "field completeness varies by source document",
+        "does not by itself establish current demand or liquidity"
+      ],
+      "index_eligible": false,
+      "publication_eligible": false
+    },
+    {
+      "lane": "CONTEMPORARY_TRANSACTION_AGGREGATE_CANDIDATE",
+      "source_id": "bricklink-price-guide-api",
+      "source_name": "BrickLink Price Guide API",
+      "role": "CONTEMPORARY_TOYS_MODELS_SOLD_AGGREGATE_SENSOR",
+      "status": "ACCOUNT_TERMS_AND_COMMERCIAL_USE_REVIEW_REQUIRED",
+      "access": "REGISTERED_SELLER_API_WITH_OAUTH_AND_STATIC_IP",
+      "data_rights_state": "API_LICENSED_USE_SUBJECT_TO_TERMS",
+      "event_scope": "SIX_MONTH_SOLD_AND_CURRENT_INVENTORY_AGGREGATES",
+      "available_metrics": [
+        "minimum price",
+        "maximum price",
+        "average price",
+        "quantity-weighted average price",
+        "unit quantity"
+      ],
+      "limitations": [
+        "aggregate rather than individual transaction events",
+        "content freshness and caching limits apply",
+        "commercial use must remain within API Terms",
+        "cannot satisfy exact event-id requirement alone"
+      ],
+      "index_eligible": false,
+      "publication_eligible": false
+    },
+    {
+      "lane": "DEFERRED_PROVIDER",
+      "source_id": "ebay-marketplace-insights",
+      "source_name": "eBay Marketplace Insights API",
+      "role": "POTENTIAL_GLOBAL_MARKET_SENSOR",
+      "status": "DEFERRED_RESTRICTED_ACCESS",
+      "reason": "Official documentation states that the API is restricted and not open to new users.",
+      "index_eligible": false,
+      "publication_eligible": false
+    }
+  ],
+  "golden_dataset": {
+    "id": "golden-dataset-v1",
+    "status": "BUILD_NEXT",
+    "minimum_labeled_cases": 200,
+    "identity_classes": [
+      "SOURCE_RECORD",
+      "PHYSICAL_OBJECT",
+      "CANONICAL_DESIGN",
+      "MARKET_EVENT",
+      "EVIDENCE_ASSERTION"
+    ],
+    "required_case_mix": {
+      "positive_same_identity": 50,
+      "positive_same_design_different_object": 50,
+      "hard_negative_similar_metadata": 50,
+      "clear_negative": 50
+    },
+    "acceptance": {
+      "entity_resolution_accuracy_minimum": 0.99,
+      "critical_auto_merge_errors": 0,
+      "review_required_conflicts_explicit": 1.0,
+      "provider_id_promoted_to_canonical": 0,
+      "deterministic_rerun": 1.0
+    },
+    "approval_gate": "TRACK_B_INDEPENDENT_VALIDATION"
+  },
+  "execution_order": [
+    "terms and field-level rights capture",
+    "bounded source adapters",
+    "raw quarantine",
+    "canonical mapping",
+    "Golden Dataset calibration",
+    "transaction event validation",
+    "Evidence Graph and Market Graph rebuild",
+    "contradiction and stale-data tests",
+    "source-removal sensitivity",
+    "new immutable Candidate R2",
+    "Track B independent Assessment"
+  ],
+  "non_negotiable_boundaries": {
+    "baseline_overwrite": false,
+    "candidate_r1_mutation": false,
+    "assessment_v1_mutation": false,
+    "missing_to_zero": false,
+    "raw_provider_to_portal": false,
+    "raw_provider_to_index": false,
+    "automatic_dynamic_vertical_promotion": false,
+    "public_index_computation": false,
+    "production_mutation": false
+  }
+}

@@ -1,0 +1,107 @@
+name: KIDULTS AGCI-OS Engine v2 Foundation
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/architecture/agci-os-engine-v2-foundation.md"
+      - "coordination/kidults/engine-v2/**"
+      - "coordination/kidults/registry/engine/**"
+      - "coordination/kidults/registry/raw-quarantine/**"
+      - "coordination/kidults/registry/projection/**"
+      - "coordination/kidults/registry/catalog.json"
+      - "coordination/kidults/schemas/engine-run-v2.schema.json"
+      - "coordination/kidults/schemas/raw-quarantine-report-v2.schema.json"
+      - "coordination/kidults/schemas/agci-os-projection.schema.json"
+      - "scripts/kidults/engine-v2/**"
+      - "scripts/kidults/projection/build-agci-os-projection.mjs"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
+      - ".github/workflows/kidults-agci-os-engine-v2.yml"
+  pull_request:
+    paths:
+      - "coordination/kidults/architecture/agci-os-engine-v2-foundation.md"
+      - "coordination/kidults/engine-v2/**"
+      - "coordination/kidults/registry/engine/**"
+      - "coordination/kidults/registry/raw-quarantine/**"
+      - "coordination/kidults/registry/projection/**"
+      - "coordination/kidults/registry/catalog.json"
+      - "coordination/kidults/schemas/engine-run-v2.schema.json"
+      - "coordination/kidults/schemas/raw-quarantine-report-v2.schema.json"
+      - "coordination/kidults/schemas/agci-os-projection.schema.json"
+      - "scripts/kidults/engine-v2/**"
+      - "scripts/kidults/projection/build-agci-os-projection.mjs"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
+      - ".github/workflows/kidults-agci-os-engine-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/engine-v2/run-foundation-preflight.mjs
+          node --check scripts/kidults/engine-v2/validate-engine-v2-foundation.mjs
+          node --check scripts/kidults/projection/build-agci-os-projection.mjs
+          node --check scripts/kidults/portal/build-v502-registry-view.mjs
+
+      - name: Validate deterministic fixture output
+        run: node scripts/kidults/engine-v2/run-foundation-preflight.mjs
+
+      - name: Prove same-input same-output
+        run: |
+          node --input-type=module <<'NODE' > /tmp/engine-run-1.json
+          import fs from 'node:fs';
+          import { buildFoundationPreflight } from './scripts/kidults/engine-v2/run-foundation-preflight.mjs';
+          const fixture = JSON.parse(fs.readFileSync('./coordination/kidults/engine-v2/fixtures/foundation-preflight-input-v1.json', 'utf8'));
+          process.stdout.write(JSON.stringify(buildFoundationPreflight(fixture)));
+          NODE
+          node --input-type=module <<'NODE' > /tmp/engine-run-2.json
+          import fs from 'node:fs';
+          import { buildFoundationPreflight } from './scripts/kidults/engine-v2/run-foundation-preflight.mjs';
+          const fixture = JSON.parse(fs.readFileSync('./coordination/kidults/engine-v2/fixtures/foundation-preflight-input-v1.json', 'utf8'));
+          process.stdout.write(JSON.stringify(buildFoundationPreflight(fixture)));
+          NODE
+          cmp /tmp/engine-run-1.json /tmp/engine-run-2.json
+
+      - name: Validate Engine v2 and Raw Quarantine gates
+        run: node scripts/kidults/engine-v2/validate-engine-v2-foundation.mjs
+
+      - name: Validate Projection and Portal boundaries
+        run: |
+          node scripts/kidults/projection/build-agci-os-projection.mjs
+          node scripts/kidults/portal/build-v502-registry-view.mjs
+          node scripts/kidults/portal/validate-phase2-data-connections.mjs
+
+      - name: Validate existing governance
+        run: |
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload Engine v2 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-agci-os-engine-v2-foundation
+          path: |
+            coordination/kidults/engine-v2/runs/engine-foundation-preflight-r1.json
+            coordination/kidults/registry/raw-quarantine/records/raw-quarantine-preflight-r1.json
+          if-no-files-found: error
+          retention-days: 30

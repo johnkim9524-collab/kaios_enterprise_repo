@@ -1,0 +1,26 @@
+{
+  "id": "entity-resolution-authority-shadow-r1",
+  "record_type": "entity_resolution_report",
+  "version": "1.0.0",
+  "status": "PASS_WITH_REVIEW",
+  "created_at": "2026-08-16T07:20:00.000Z",
+  "created_by": "Track A / Entity Resolution Engine",
+  "run_id": "engine-authority-shadow-r1",
+  "source_record_count": 24,
+  "physical_object_candidate_count": 24,
+  "canonical_design_candidate_count": 22,
+  "auto_merge_count": 0,
+  "review_required_group_count": 2,
+  "review_required_record_count": 4,
+  "golden_dataset_accuracy": null,
+  "golden_dataset_status": "NOT_VALIDATED",
+  "review_groups": [
+    {"canonical_design_candidate_key":"hanae-mori|evening-dress|1970","source_record_ids":["met:78978","met:78979"],"record_count":2,"auto_merge":false,"state":"REVIEW_REQUIRED"},
+    {"canonical_design_candidate_key":"hanae-mori|evening-dress|1980","source_record_ids":["met:78976","met:78977"],"record_count":2,"auto_merge":false,"state":"REVIEW_REQUIRED"}
+  ],
+  "provider_id_promoted_to_canonical_id": false,
+  "public_projection": false,
+  "index_eligible": false,
+  "production_eligible": false,
+  "report_fingerprint": "sha256:6a0eaa98f297afbec056a339dbe9dee33bc0e39d67894c59679278b18d5bfeba"
+}

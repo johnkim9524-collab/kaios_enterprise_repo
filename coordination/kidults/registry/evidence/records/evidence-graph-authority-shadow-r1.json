@@ -1,0 +1,21 @@
+{
+  "id":"evidence-graph-authority-shadow-r1",
+  "record_type":"evidence_graph",
+  "version":"1.0.0",
+  "status":"INTERNAL_AUTHORITY_GRAPH_READY",
+  "created_at":"2026-08-16T07:20:00.000Z",
+  "created_by":"Track A / Evidence Graph Engine",
+  "run_id":"engine-authority-shadow-r1",
+  "source_family_count":2,
+  "node_count":96,
+  "edge_count":96,
+  "node_counts":{"CANONICAL_DESIGN_CANDIDATE":22,"EVIDENCE_ASSERTION":24,"PHYSICAL_OBJECT_CANDIDATE":24,"SOURCE":2,"SOURCE_RECORD":24},
+  "edge_counts":{"ASSERTS_PHYSICAL_OBJECT_IDENTITY":24,"CANDIDATE_DESIGN_MEMBERSHIP":24,"PUBLISHED_SOURCE_RECORD":24,"SUPPORTS_ASSERTION":24},
+  "critical_provenance_coverage":1,
+  "rights_state_coverage":1,
+  "market_metric_support":{"demand":"NOT_VERIFIED","scarcity":"NOT_VERIFIED","valuation":"NOT_VERIFIED","liquidity":"NOT_VERIFIED","confidence":"NOT_VERIFIED"},
+  "public_projection":false,
+  "index_eligible":false,
+  "production_eligible":false,
+  "graph_fingerprint":"sha256:5f877b658c6f60ab61c2fb8b3376307749f9ddf85c5b7e09e58ae86e32a89889"
+}

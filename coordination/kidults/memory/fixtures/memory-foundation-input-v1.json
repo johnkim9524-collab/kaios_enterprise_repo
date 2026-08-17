@@ -1,0 +1,247 @@
+{
+  "fixture_id": "memory-foundation-input-v1",
+  "fixture_classification": "CONTRACT_TEST_FIXTURE_ONLY",
+  "run_at": "2026-08-16T15:40:00+09:00",
+  "freshness_max_age_days": 30,
+  "replay_queries": [
+    {
+      "replay_id": "replay-before-correction",
+      "valid_at": "2026-08-10T12:00:00Z",
+      "recorded_cutoff": "2026-08-11T00:00:00Z"
+    },
+    {
+      "replay_id": "replay-after-correction",
+      "valid_at": "2026-08-10T12:00:00Z",
+      "recorded_cutoff": "2026-08-13T00:00:00Z"
+    },
+    {
+      "replay_id": "replay-later-market-state",
+      "valid_at": "2026-08-12T12:00:00Z",
+      "recorded_cutoff": "2026-08-13T00:00:00Z"
+    }
+  ],
+  "entries": [
+    {
+      "memory_entry_id": "mem-observation-001",
+      "memory_type": "OBSERVATION_MEMORY",
+      "subject_id": "entity:design:alpha",
+      "claimed_subject_id": null,
+      "assertion_type": "MARKET_OBSERVED",
+      "value": {
+        "observed": true,
+        "source_record_id": "sensor-a:obs-001"
+      },
+      "valid_from": "2026-08-10T09:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-10T09:05:00Z",
+      "freshness_observed_at": "2026-08-10T09:00:00Z",
+      "supersedes": null,
+      "source_id": "sensor-a",
+      "provenance_reference": "fixture://sensor-a/obs-001",
+      "rights_state": "INTERNAL_FIXTURE_USE",
+      "confidence_state": "STRUCTURAL_FIXTURE_ONLY"
+    },
+    {
+      "memory_entry_id": "mem-market-sale-001",
+      "memory_type": "MARKET_STATE_MEMORY",
+      "subject_id": "entity:design:alpha",
+      "claimed_subject_id": null,
+      "assertion_type": "SOLD_PRICE_USD",
+      "value": {
+        "amount": 1000,
+        "currency": "USD",
+        "event_type": "SOLD_TRANSACTION"
+      },
+      "valid_from": "2026-08-10T10:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-10T10:05:00Z",
+      "freshness_observed_at": "2026-08-10T10:00:00Z",
+      "supersedes": null,
+      "source_id": "sensor-market-a",
+      "provenance_reference": "fixture://sensor-market-a/sale-001",
+      "rights_state": "INTERNAL_FIXTURE_USE",
+      "confidence_state": "STRUCTURAL_FIXTURE_ONLY"
+    },
+    {
+      "memory_entry_id": "mem-market-sale-002",
+      "memory_type": "MARKET_STATE_MEMORY",
+      "subject_id": "entity:design:alpha",
+      "claimed_subject_id": null,
+      "assertion_type": "SOLD_PRICE_USD",
+      "value": {
+        "amount": 1100,
+        "currency": "USD",
+        "event_type": "SOLD_TRANSACTION"
+      },
+      "valid_from": "2026-08-10T10:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-12T09:00:00Z",
+      "freshness_observed_at": "2026-08-12T08:55:00Z",
+      "supersedes": "mem-market-sale-001",
+      "source_id": "sensor-market-a",
+      "provenance_reference": "fixture://sensor-market-a/sale-001-correction",
+      "rights_state": "INTERNAL_FIXTURE_USE",
+      "confidence_state": "STRUCTURAL_FIXTURE_ONLY"
+    },
+    {
+      "memory_entry_id": "mem-market-listing-001",
+      "memory_type": "MARKET_STATE_MEMORY",
+      "subject_id": "entity:design:alpha",
+      "claimed_subject_id": null,
+      "assertion_type": "LISTING_PRICE_USD",
+      "value": {
+        "amount": 1250,
+        "currency": "USD",
+        "event_type": "LISTING"
+      },
+      "valid_from": "2026-08-11T10:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-11T10:05:00Z",
+      "freshness_observed_at": "2026-08-11T10:00:00Z",
+      "supersedes": null,
+      "source_id": "sensor-market-b",
+      "provenance_reference": "fixture://sensor-market-b/listing-001",
+      "rights_state": "INTERNAL_FIXTURE_USE",
+      "confidence_state": "STRUCTURAL_FIXTURE_ONLY"
+    },
+    {
+      "memory_entry_id": "mem-entity-001",
+      "memory_type": "ENTITY_MEMORY",
+      "subject_id": "entity:design:alpha",
+      "claimed_subject_id": null,
+      "assertion_type": "CANONICAL_DESIGN_CANDIDATE",
+      "value": {
+        "maker": "Maker Alpha",
+        "model": "Design Alpha",
+        "year": 2020
+      },
+      "valid_from": "2026-08-10T08:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-10T08:05:00Z",
+      "freshness_observed_at": "2026-08-10T08:00:00Z",
+      "supersedes": null,
+      "source_id": "authority-a",
+      "provenance_reference": "fixture://authority-a/entity-alpha",
+      "rights_state": "INTERNAL_FIXTURE_USE",
+      "confidence_state": "STRUCTURAL_FIXTURE_ONLY"
+    },
+    {
+      "memory_entry_id": "mem-decision-001",
+      "memory_type": "DECISION_MEMORY",
+      "subject_id": "decision:publication:alpha",
+      "claimed_subject_id": null,
+      "assertion_type": "PUBLICATION_DECISION",
+      "value": {
+        "decision": "HOLD",
+        "reason": "FIXTURE_ONLY_NOT_PUBLIC"
+      },
+      "valid_from": "2026-08-12T10:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-12T10:01:00Z",
+      "freshness_observed_at": "2026-08-12T10:00:00Z",
+      "supersedes": null,
+      "source_id": "kpmo",
+      "provenance_reference": "fixture://kpmo/decision-001",
+      "rights_state": "INTERNAL_FIXTURE_USE",
+      "confidence_state": "GOVERNANCE_FIXTURE_ONLY"
+    },
+    {
+      "memory_entry_id": "mem-learning-001",
+      "memory_type": "LEARNING_MEMORY",
+      "subject_id": "learning:market-event-semantics",
+      "claimed_subject_id": null,
+      "assertion_type": "LEARNED_RULE",
+      "value": {
+        "listing_is_sale": false,
+        "rule_version": "fixture-v1"
+      },
+      "valid_from": "2026-08-10T07:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-10T07:01:00Z",
+      "freshness_observed_at": "2026-08-10T07:00:00Z",
+      "supersedes": null,
+      "source_id": "agci-engine",
+      "provenance_reference": "fixture://engine/learning-001",
+      "rights_state": "INTERNAL_FIXTURE_USE",
+      "confidence_state": "STRUCTURAL_FIXTURE_ONLY"
+    },
+    {
+      "memory_entry_id": "mem-stale-001",
+      "memory_type": "OBSERVATION_MEMORY",
+      "subject_id": "entity:design:stale",
+      "claimed_subject_id": null,
+      "assertion_type": "MARKET_OBSERVED",
+      "value": {
+        "observed": true
+      },
+      "valid_from": "2026-08-10T06:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-10T06:05:00Z",
+      "freshness_observed_at": "2026-06-01T00:00:00Z",
+      "supersedes": null,
+      "source_id": "sensor-stale",
+      "provenance_reference": "fixture://sensor-stale/obs-001",
+      "rights_state": "INTERNAL_FIXTURE_USE",
+      "confidence_state": "STRUCTURAL_FIXTURE_ONLY"
+    },
+    {
+      "memory_entry_id": "mem-rights-missing-001",
+      "memory_type": "OBSERVATION_MEMORY",
+      "subject_id": "entity:design:rights-missing",
+      "claimed_subject_id": null,
+      "assertion_type": "MARKET_OBSERVED",
+      "value": {
+        "observed": true
+      },
+      "valid_from": "2026-08-10T06:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-10T06:05:00Z",
+      "freshness_observed_at": "2026-08-10T06:00:00Z",
+      "supersedes": null,
+      "source_id": "sensor-rights-missing",
+      "provenance_reference": "fixture://sensor-rights-missing/obs-001",
+      "rights_state": null,
+      "confidence_state": "STRUCTURAL_FIXTURE_ONLY"
+    },
+    {
+      "memory_entry_id": "mem-provenance-missing-001",
+      "memory_type": "OBSERVATION_MEMORY",
+      "subject_id": "entity:design:provenance-missing",
+      "claimed_subject_id": null,
+      "assertion_type": "MARKET_OBSERVED",
+      "value": {
+        "observed": true
+      },
+      "valid_from": "2026-08-10T06:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-10T06:05:00Z",
+      "freshness_observed_at": "2026-08-10T06:00:00Z",
+      "supersedes": null,
+      "source_id": "sensor-provenance-missing",
+      "provenance_reference": null,
+      "rights_state": "INTERNAL_FIXTURE_USE",
+      "confidence_state": "STRUCTURAL_FIXTURE_ONLY"
+    },
+    {
+      "memory_entry_id": "mem-entity-conflict-001",
+      "memory_type": "ENTITY_MEMORY",
+      "subject_id": "entity:design:beta",
+      "claimed_subject_id": "entity:design:alpha",
+      "assertion_type": "CANONICAL_DESIGN_CANDIDATE",
+      "value": {
+        "maker": "Maker Beta",
+        "model": "Design Beta",
+        "year": 2021
+      },
+      "valid_from": "2026-08-10T08:00:00Z",
+      "valid_to": null,
+      "recorded_at": "2026-08-10T08:06:00Z",
+      "freshness_observed_at": "2026-08-10T08:00:00Z",
+      "supersedes": null,
+      "source_id": "authority-b",
+      "provenance_reference": "fixture://authority-b/entity-beta-conflict",
+      "rights_state": "INTERNAL_FIXTURE_USE",
+      "confidence_state": "STRUCTURAL_FIXTURE_ONLY"
+    }
+  ]
+}

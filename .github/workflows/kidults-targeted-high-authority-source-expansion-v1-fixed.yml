@@ -1,0 +1,111 @@
+name: KIDULTS Targeted High-Authority Source Expansion v1 Fixed
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-contract-v1.json"
+      - "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv"
+      - "coordination/kidults/source-intelligence/track-b-targeted-high-authority-source-top50-review-contract-v1.json"
+      - "scripts/kidults/source-intelligence/build-targeted-high-authority-source-expansion-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-targeted-high-authority-source-expansion-v1.mjs"
+      - "scripts/kidults/source-intelligence/build-track-b-targeted-high-authority-top50-pilot-v1.mjs"
+      - "scripts/kidults/source-intelligence/build-track-b-targeted-high-authority-top50-pilot-v1-robust.mjs"
+      - "scripts/kidults/source-intelligence/build-track-b-targeted-high-authority-top50-pilot-v1-robust-fixed.mjs"
+      - "scripts/kidults/source-intelligence/validate-track-b-targeted-high-authority-top50-pilot-v1.mjs"
+      - ".github/workflows/kidults-targeted-high-authority-source-expansion-v1-fixed.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-targeted-high-authority-source-expansion-v1-fixed
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/build-targeted-high-authority-source-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-targeted-high-authority-source-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-track-b-targeted-high-authority-top50-pilot-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-track-b-targeted-high-authority-top50-pilot-v1-robust.mjs
+          node --check scripts/kidults/source-intelligence/build-track-b-targeted-high-authority-top50-pilot-v1-robust-fixed.mjs
+          node --check scripts/kidults/source-intelligence/validate-track-b-targeted-high-authority-top50-pilot-v1.mjs
+
+      - name: Build and validate targeted Source expansion
+        run: |
+          node scripts/kidults/source-intelligence/build-targeted-high-authority-source-expansion-v1.mjs \
+            --output artifacts/agci-os/targeted-high-authority-source-expansion-v1 \
+            --write
+          node scripts/kidults/source-intelligence/validate-targeted-high-authority-source-expansion-v1.mjs \
+            artifacts/agci-os/targeted-high-authority-source-expansion-v1
+
+      - name: Prove Source expansion same-input same-output
+        run: |
+          node scripts/kidults/source-intelligence/build-targeted-high-authority-source-expansion-v1.mjs --output /tmp/targeted-expansion-1 --write
+          node scripts/kidults/source-intelligence/build-targeted-high-authority-source-expansion-v1.mjs --output /tmp/targeted-expansion-2 --write
+          for file in \
+            targeted-high-authority-source-candidate-registry-v1.json \
+            targeted-source-expansion-coverage-v1.json \
+            targeted-high-authority-blind-top50-input-v1.json \
+            targeted-high-authority-source-preflight-queue-v1.json \
+            run-manifest.json; do
+            cmp "/tmp/targeted-expansion-1/$file" "/tmp/targeted-expansion-2/$file"
+            cmp "artifacts/agci-os/targeted-high-authority-source-expansion-v1/$file" "/tmp/targeted-expansion-1/$file"
+          done
+
+      - name: Run and validate hardened Track B blind Top-50 pilot
+        run: |
+          node scripts/kidults/source-intelligence/build-track-b-targeted-high-authority-top50-pilot-v1-robust-fixed.mjs \
+            --input artifacts/agci-os/targeted-high-authority-source-expansion-v1 \
+            --output artifacts/agci-os/track-b-targeted-high-authority-top50-pilot-v1-robust-fixed \
+            --write
+          node scripts/kidults/source-intelligence/validate-track-b-targeted-high-authority-top50-pilot-v1.mjs \
+            artifacts/agci-os/track-b-targeted-high-authority-top50-pilot-v1-robust-fixed
+
+      - name: Prove hardened Track B pilot same-input same-output
+        run: |
+          node scripts/kidults/source-intelligence/build-track-b-targeted-high-authority-top50-pilot-v1-robust-fixed.mjs --input artifacts/agci-os/targeted-high-authority-source-expansion-v1 --output /tmp/targeted-top50-fixed-1 --write
+          node scripts/kidults/source-intelligence/build-track-b-targeted-high-authority-top50-pilot-v1-robust-fixed.mjs --input artifacts/agci-os/targeted-high-authority-source-expansion-v1 --output /tmp/targeted-top50-fixed-2 --write
+          for file in \
+            targeted-high-authority-top50-assessment-v1.json \
+            targeted-high-authority-top50-false-positive-taxonomy-v1.json \
+            targeted-high-authority-source-next-gate-v1.json \
+            run-manifest.json; do
+            cmp "/tmp/targeted-top50-fixed-1/$file" "/tmp/targeted-top50-fixed-2/$file"
+            cmp "artifacts/agci-os/track-b-targeted-high-authority-top50-pilot-v1-robust-fixed/$file" "/tmp/targeted-top50-fixed-1/$file"
+          done
+
+      - name: Revalidate DOS and AGCI-OS governance
+        run: |
+          node scripts/kidults/dos/build-dos-v1.mjs --output /tmp/dos-v1 --write
+          node scripts/kidults/dos/validate-dos-v1.mjs /tmp/dos-v1
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload fixed targeted Source expansion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-targeted-high-authority-source-expansion-v1-fixed
+          path: |
+            artifacts/agci-os/targeted-high-authority-source-expansion-v1
+            artifacts/agci-os/track-b-targeted-high-authority-top50-pilot-v1-robust-fixed
+          if-no-files-found: error
+          retention-days: 30

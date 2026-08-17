@@ -1,17 +1,1 @@
-{
-  "id":"track-a-120-intelligence-factory",
-  "record_type":"track",
-  "version":"1.0.0",
-  "status":"ACTIVE",
-  "display_name":"A. KIDULTS | 120 Intelligence Factory",
-  "role_id":"role-track-a",
-  "canonical_issue":235,
-  "baseline_snapshot_id":"baseline-provider-independent-v1",
-  "current_candidate_snapshot_id":null,
-  "methodology_version":"NOT_YET_REGISTERED",
-  "evidence_lineage_version":"NOT_YET_REGISTERED",
-  "current_phase":"CANONICAL_VERSION_REGISTRATION_AND_SNAPSHOT_GENERATION",
-  "next_formal_handoff":"Track A -> Track B",
-  "created_by":"Atlas",
-  "approved_by":"John"
-}
+{"id":"track-a-120-intelligence-factory","record_type":"track","version":"1.1.0","status":"CANDIDATE_SUBMITTED","display_name":"A. KIDULTS | 120 Intelligence Factory","role_id":"role-track-a","canonical_issue":235,"baseline_snapshot_id":"baseline-provider-independent-v1","current_candidate_snapshot_id":"candidate-structural-20260816-r1","methodology_version":"canonical-candidate-methodology-v1","evidence_lineage_version":"canonical-evidence-lineage-v1","current_phase":"TRACK_B_INPUT_VALIDATION_AND_CANDIDATE_0002_ENRICHMENT","next_formal_handoff":"Track B input acceptance","created_by":"Atlas","approved_by":"John"}

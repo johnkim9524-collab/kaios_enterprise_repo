@@ -1,0 +1,56 @@
+{
+  "id": "track-b-targeted-high-authority-source-top50-review-contract-v1",
+  "record_type": "track_b_source_relevance_review_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_at": "2026-08-17T11:45:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "review_owner": "Track B / Independent Scope, Evidence & Rankability Validation",
+  "parent_issue": 316,
+  "official_inputs": [
+    "targeted-high-authority-source-expansion-v1.psv",
+    "targeted-high-authority-blind-top50-input-v1.json"
+  ],
+  "input_boundary": "NO_RANK_SCORE_OR_PREVIOUS_TOP50_LABEL_IS_AN_OFFICIAL_REVIEW_INPUT",
+  "review_mode": "EVIDENCE_ONLY_MODEL_ASSISTED_DIRECT_REVIEW",
+  "required_case_checks": [
+    "OFFICIAL_OR_SPECIALIST_ENDPOINT_EXPLICIT",
+    "OFFICIAL_DOCUMENTATION_OR_PRIMARY_EVIDENCE_EXPLICIT",
+    "COLLECTION_SCOPE_RELEVANCE_EXPLICIT",
+    "SOURCE_ROLE_RELEVANCE_EXPLICIT",
+    "DATA_CHANNEL_SUITABILITY_EXPLICIT",
+    "OWNER_OR_INSTITUTION_IDENTITY_EXPLICIT",
+    "DECISION_AND_IRREPLACEABLE_VALUE_LINKAGE_EXPLICIT",
+    "GENERIC_SOFTWARE_OR_TANGENTIAL_RESEARCH_COLLISION_ABSENT",
+    "RIGHTS_AND_COMMERCIAL_STATE_NOT_INFERRED"
+  ],
+  "allowed_labels": [
+    "RELEVANT",
+    "NOT_RELEVANT",
+    "INSUFFICIENT_EVIDENCE_REQUIRES_SECOND_REVIEW"
+  ],
+  "acceptance": {
+    "reviewed": 50,
+    "unresolved": 0,
+    "top50_precision_minimum": 0.95,
+    "core_domains_represented": 8,
+    "generic_code_contamination_maximum": 0.0,
+    "scope_evidence_coverage": 1.0,
+    "source_role_evidence_coverage": 1.0,
+    "unknown_promoted_as_relevant": 0
+  },
+  "single_official_output": "targeted-high-authority-top50-assessment-v1.json",
+  "output_boundary": "NO_SOURCE_POOL_PROMOTION_OR_ACQUISITION_AUTHORIZATION_IS_EMITTED_BY_THIS_REVIEW",
+  "boundaries": {
+    "assessment_promotes_source_pool": false,
+    "assessment_authorizes_acquisition": false,
+    "assessment_is_legal_opinion": false,
+    "final_400_case_calibration_complete": false,
+    "final_top200_review_complete": false,
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id":"cluster-discovery-authority-shadow-r1",
+  "record_type":"cluster_discovery_preflight",
+  "version":"1.0.0",
+  "status":"PREFLIGHT_DISCOVERY_ONLY",
+  "created_at":"2026-08-16T07:20:00.000Z",
+  "created_by":"Track A / Cluster Discovery Engine",
+  "run_id":"engine-authority-shadow-r1",
+  "candidate_count":1,
+  "approved_dynamic_vertical_count":0,
+  "candidates":[{
+    "cluster_id":"cluster-preflight-fashion-dress-authority-r1",
+    "state":"DISCOVERED",
+    "label":"Fashion Dress Authority Context",
+    "basis":["core_domain_hint=fashion-accessories","object_type~=dress"],
+    "observation_count":24,
+    "source_family_count":2,
+    "confidence":null,
+    "confidence_status":"NOT_CALIBRATED",
+    "market_cluster_claim":false,
+    "dynamic_vertical_promotion":false,
+    "human_approval_required":true
+  }],
+  "identity_review_groups":2,
+  "public_projection":false,
+  "index_computation":false,
+  "production_eligible":false,
+  "report_fingerprint":"sha256:b00b1d7c94fbf15e24d87adeb1bfe792632b0727b3c54915c172c9d17774609a"
+}

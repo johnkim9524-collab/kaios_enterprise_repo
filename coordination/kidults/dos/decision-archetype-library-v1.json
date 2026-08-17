@@ -1,0 +1,664 @@
+{
+  "id": "kidults-decision-archetype-library-v1",
+  "record_type": "decision_archetype_library",
+  "version": "1.0.0",
+  "status": "FOUNDATION_ACTIVE",
+  "effective_at": "2026-08-16T21:20:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "scope_modes": ["ALL_COLLECTION_SCOPES", "GLOBAL_PROGRAM"],
+  "archetype_count": 64,
+  "records": [
+    {
+      "archetype_id": "COLLECTOR_VERIFY_IDENTITY",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Verify object identity",
+      "decision_consequence": "Accept, reject or hold an object identity claim before acquisition, valuation or publication.",
+      "primary_value_scope_id": "VS_OBJECT_TRUST",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Object Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_VERIFY_AUTHENTICITY",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Verify authenticity",
+      "decision_consequence": "Decide whether an object has sufficient independent authentication evidence to transact or retain.",
+      "primary_value_scope_id": "VS_OBJECT_TRUST",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Object Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_ASSESS_CONDITION",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Assess condition and restoration",
+      "decision_consequence": "Determine whether condition, grade, restoration or modification changes comparability and value.",
+      "primary_value_scope_id": "VS_OBJECT_TRUST",
+      "secondary_value_scope_ids": ["VS_PRICE_COMPARABILITY"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Object Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_ASSESS_PROVENANCE",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Assess provenance strength",
+      "decision_consequence": "Accept, discount or reject provenance claims and related risk.",
+      "primary_value_scope_id": "VS_OBJECT_TRUST",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Object Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_SELECT_COMPARABLES",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Select true comparables",
+      "decision_consequence": "Choose only identity-, condition-, region- and time-relevant market evidence for a price decision.",
+      "primary_value_scope_id": "VS_PRICE_COMPARABILITY",
+      "secondary_value_scope_ids": ["VS_OBJECT_TRUST"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Market Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_DETERMINE_FAIR_VALUE",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Determine a fair value range",
+      "decision_consequence": "Set a defensible value range rather than rely on one asking price or one sale.",
+      "primary_value_scope_id": "VS_PRICE_COMPARABILITY",
+      "secondary_value_scope_ids": ["VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Market Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_BUY_OR_WAIT",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Buy now or wait",
+      "decision_consequence": "Buy, wait, negotiate or reject based on true comparables, supply, momentum, liquidity and confidence.",
+      "primary_value_scope_id": "VS_PRICE_COMPARABILITY",
+      "secondary_value_scope_ids": ["VS_SCARCITY_AVAILABILITY", "VS_MOMENTUM_OPPORTUNITY", "VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Decision Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_SET_BID_LIMIT",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Set a bid or offer limit",
+      "decision_consequence": "Set a maximum bid or offer after fees, condition, liquidity and downside risk are normalized.",
+      "primary_value_scope_id": "VS_PRICE_COMPARABILITY",
+      "secondary_value_scope_ids": ["VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Decision Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_SELL_OR_HOLD",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Sell or hold",
+      "decision_consequence": "Sell, hold, reduce or defer based on liquidity, momentum, scarcity and opportunity cost.",
+      "primary_value_scope_id": "VS_LIQUIDITY_EXIT",
+      "secondary_value_scope_ids": ["VS_MOMENTUM_OPPORTUNITY", "VS_SCARCITY_AVAILABILITY"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Decision Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_PLAN_EXIT",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Plan an exit window",
+      "decision_consequence": "Estimate sale time, likely discount, venue and confidence before committing capital.",
+      "primary_value_scope_id": "VS_LIQUIDITY_EXIT",
+      "secondary_value_scope_ids": ["VS_PRICE_COMPARABILITY"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Liquidity Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_ASSESS_SCARCITY",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Assess real scarcity",
+      "decision_consequence": "Separate production rarity, observed availability, regional scarcity and temporary platform shortage.",
+      "primary_value_scope_id": "VS_SCARCITY_AVAILABILITY",
+      "secondary_value_scope_ids": ["VS_OBJECT_TRUST"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Scarcity Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_SOURCE_VARIANT",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Source the right edition or variant",
+      "decision_consequence": "Prioritize the variant with the strongest identity, scarcity, availability and long-term relevance.",
+      "primary_value_scope_id": "VS_SCARCITY_AVAILABILITY",
+      "secondary_value_scope_ids": ["VS_OBJECT_TRUST", "VS_PRICE_COMPARABILITY"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Scarcity Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_TRACK_MOMENTUM",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Track market momentum",
+      "decision_consequence": "Distinguish durable multi-signal momentum from temporary hype or one-platform activity.",
+      "primary_value_scope_id": "VS_MOMENTUM_OPPORTUNITY",
+      "secondary_value_scope_ids": ["VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Opportunity Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_IDENTIFY_OPPORTUNITY",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Identify an emerging opportunity",
+      "decision_consequence": "Follow, allocate, wait or reject a potential opportunity with explicit risk and evidence.",
+      "primary_value_scope_id": "VS_MOMENTUM_OPPORTUNITY",
+      "secondary_value_scope_ids": ["VS_MARKET_STRUCTURE", "VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Opportunity Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_ALLOCATE_BUDGET",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Allocate collection budget",
+      "decision_consequence": "Allocate limited capital across objects and scopes using opportunity, liquidity, scarcity and concentration risk.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_MOMENTUM_OPPORTUNITY", "VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Portfolio Intelligence"
+    },
+    {
+      "archetype_id": "COLLECTOR_DIVERSIFY_COLLECTION",
+      "customer_segment": "COLLECTOR",
+      "decision_name": "Diversify a collection",
+      "decision_consequence": "Reduce hidden concentration across makers, regions, price bands, source families and market clusters.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Portfolio Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_ASSET_ELIGIBILITY",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Determine asset eligibility",
+      "decision_consequence": "Admit, conditionally admit or reject an object or scope under institutional identity, provenance and evidence standards.",
+      "primary_value_scope_id": "VS_OBJECT_TRUST",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_AUTHENTICATION_CONTROL",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Set authentication control",
+      "decision_consequence": "Define acceptable authentication, grading and exception policies for acquisition and reporting.",
+      "primary_value_scope_id": "VS_OBJECT_TRUST",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_PROVENANCE_COMPLIANCE",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Assess provenance and compliance",
+      "decision_consequence": "Accept, escalate, hold or reject based on provenance, rights, jurisdiction and disclosure risk.",
+      "primary_value_scope_id": "VS_OBJECT_TRUST",
+      "secondary_value_scope_ids": ["VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_VALUATION_POLICY",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Set valuation policy",
+      "decision_consequence": "Choose comparable, normalization, confidence and stale-data rules for institutional valuation.",
+      "primary_value_scope_id": "VS_PRICE_COMPARABILITY",
+      "secondary_value_scope_ids": ["VS_OBJECT_TRUST"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_MARK_TO_MARKET",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Mark to market",
+      "decision_consequence": "Update, hold or fail closed on a valuation based on current comparable evidence and confidence.",
+      "primary_value_scope_id": "VS_PRICE_COMPARABILITY",
+      "secondary_value_scope_ids": ["VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_LIQUIDITY_LIMIT",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Set a liquidity limit",
+      "decision_consequence": "Set exposure ceilings according to market depth, exit time, spread and source concentration.",
+      "primary_value_scope_id": "VS_LIQUIDITY_EXIT",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_EXIT_STRESS",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Run exit stress",
+      "decision_consequence": "Estimate liquidation time, discount, venue dependence and confidence under adverse conditions.",
+      "primary_value_scope_id": "VS_LIQUIDITY_EXIT",
+      "secondary_value_scope_ids": ["VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_ALLOCATION",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Allocate to a market scope",
+      "decision_consequence": "Enter, increase, hold, reduce or exit allocation based on momentum, structure, liquidity and confidence.",
+      "primary_value_scope_id": "VS_MOMENTUM_OPPORTUNITY",
+      "secondary_value_scope_ids": ["VS_MARKET_STRUCTURE", "VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_EXPOSURE_LIMIT",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Set category and cluster exposure",
+      "decision_consequence": "Set limits by market cluster, maker, region, liquidity and source concentration.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_DIVERSIFICATION",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Diversify institutional exposure",
+      "decision_consequence": "Reduce correlated exposure and hidden dependence across dynamic market structures.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_CATEGORY_ENTRY",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Enter a category or dynamic vertical",
+      "decision_consequence": "Approve research, pilot allocation, full entry or hold according to structural and evidence readiness.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_MOMENTUM_OPPORTUNITY"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_EMERGING_MARKET",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Identify an emerging market",
+      "decision_consequence": "Initiate monitoring, due diligence, pilot exposure or rejection of an emerging market claim.",
+      "primary_value_scope_id": "VS_MOMENTUM_OPPORTUNITY",
+      "secondary_value_scope_ids": ["VS_MARKET_STRUCTURE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Institutional Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_SOURCE_CONFIDENCE",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Accept source confidence",
+      "decision_consequence": "Approve, cap, disclose or reject a metric based on source independence, rights, coverage and removal sensitivity.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track B / Independent Validation"
+    },
+    {
+      "archetype_id": "INSTITUTION_PROVIDER_SELECTION",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Select a market data provider",
+      "decision_consequence": "Contract, trial, reject or limit a provider according to incremental value, rights, cost and dependency.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Provider Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_PROVIDER_DEPENDENCY",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Limit provider dependency",
+      "decision_consequence": "Set fallback, concentration, replacement and fail-closed requirements for critical data providers.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Provider Intelligence"
+    },
+    {
+      "archetype_id": "INSTITUTION_REPORTING_CONFIDENCE",
+      "customer_segment": "INSTITUTION",
+      "decision_name": "Approve reporting confidence",
+      "decision_consequence": "Publish internally, disclose limitations, hold or reject an institutional market statement.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": ["VS_MARKET_STRUCTURE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track B / Independent Validation"
+    },
+    {
+      "archetype_id": "ENTERPRISE_CATEGORY_ENTRY",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Enter a product category",
+      "decision_consequence": "Enter, pilot, defer or reject a category based on market structure, opportunity, liquidity and evidence.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_MOMENTUM_OPPORTUNITY"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_PRODUCT_FAMILY_PRIORITY",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Prioritize a product family",
+      "decision_consequence": "Increase, maintain, reduce or stop product-family investment according to multi-source opportunity evidence.",
+      "primary_value_scope_id": "VS_MOMENTUM_OPPORTUNITY",
+      "secondary_value_scope_ids": ["VS_MARKET_STRUCTURE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_RELEASE_PRICING",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Set release or resale pricing",
+      "decision_consequence": "Set, adjust or hold price using true comparables, supply, condition and regional normalization.",
+      "primary_value_scope_id": "VS_PRICE_COMPARABILITY",
+      "secondary_value_scope_ids": ["VS_SCARCITY_AVAILABILITY"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_INVENTORY_ALLOCATION",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Allocate inventory",
+      "decision_consequence": "Allocate supply across channels and regions based on availability, demand, price and liquidity.",
+      "primary_value_scope_id": "VS_SCARCITY_AVAILABILITY",
+      "secondary_value_scope_ids": ["VS_MOMENTUM_OPPORTUNITY", "VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_REGIONAL_ENTRY",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Enter a regional market",
+      "decision_consequence": "Enter, localize, partner, defer or reject a region based on demand, structure, price and source confidence.",
+      "primary_value_scope_id": "VS_MOMENTUM_OPPORTUNITY",
+      "secondary_value_scope_ids": ["VS_MARKET_STRUCTURE", "VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_CHANNEL_SELECTION",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Select a sales or data channel",
+      "decision_consequence": "Select, diversify, cap or exit channels according to coverage, bias, cost and continuity.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": ["VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Provider Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_PARTNERSHIP_SELECTION",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Select a market partner",
+      "decision_consequence": "Contract, trial, limit or reject a partner based on incremental value, independence and dependency risk.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Provider Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_DATA_LICENSE_BUY",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Buy a data license",
+      "decision_consequence": "Buy, negotiate, trial or reject licensed data according to coverage delta and cost per incremental value.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Provider Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_COVERAGE_GAP",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Close a market-data coverage gap",
+      "decision_consequence": "Collect, license, partner, defer or accept a bounded gap based on decision impact and ROI.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": ["VS_MARKET_STRUCTURE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Source Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_DEMAND_FORECAST",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Forecast demand direction",
+      "decision_consequence": "Increase, maintain, reduce or hold capacity using transaction, supply, attention and regional change.",
+      "primary_value_scope_id": "VS_MOMENTUM_OPPORTUNITY",
+      "secondary_value_scope_ids": ["VS_SCARCITY_AVAILABILITY"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_SUPPLY_RISK",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Assess supply risk",
+      "decision_consequence": "Increase safety stock, diversify sourcing, accept scarcity or stop expansion.",
+      "primary_value_scope_id": "VS_SCARCITY_AVAILABILITY",
+      "secondary_value_scope_ids": ["VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_AUTHENTICITY_PROGRAM",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Design an authenticity program",
+      "decision_consequence": "Choose verification, grading, exception and disclosure controls for a product or market scope.",
+      "primary_value_scope_id": "VS_OBJECT_TRUST",
+      "secondary_value_scope_ids": ["VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_SECONDARY_MARKET_SUPPORT",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Support a secondary market",
+      "decision_consequence": "Provide reference, pricing, authentication or liquidity support where customer value and market integrity justify it.",
+      "primary_value_scope_id": "VS_PRICE_COMPARABILITY",
+      "secondary_value_scope_ids": ["VS_OBJECT_TRUST", "VS_LIQUIDITY_EXIT"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_AFTERMARKET_LIQUIDITY",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Improve aftermarket liquidity",
+      "decision_consequence": "Improve reference quality, channel breadth, pricing transparency or authentication where exit friction is highest.",
+      "primary_value_scope_id": "VS_LIQUIDITY_EXIT",
+      "secondary_value_scope_ids": ["VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_CUSTOMER_SEGMENT_PRIORITY",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Prioritize a customer segment",
+      "decision_consequence": "Prioritize, test, defer or stop serving a customer segment based on market and decision-value density.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_MOMENTUM_OPPORTUNITY"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "ENTERPRISE_PORTFOLIO_OPTIMIZATION",
+      "customer_segment": "ENTERPRISE_AND_PROVIDER",
+      "decision_name": "Optimize a product or data portfolio",
+      "decision_consequence": "Invest, hold, reduce or retire products, sources and providers according to value, risk and market structure.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_SOURCE_PROVIDER_ADVANTAGE", "VS_MOMENTUM_OPPORTUNITY"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Track A / Enterprise Intelligence"
+    },
+    {
+      "archetype_id": "FOUNDER_PRIORITIZE_SCOPE",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Prioritize a Collection Scope",
+      "decision_consequence": "Increase, maintain, reduce or stop investment in a Collection Scope according to value gaps and market potential.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_MOMENTUM_OPPORTUNITY", "VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "KPMO / Founder Decision Center"
+    },
+    {
+      "archetype_id": "FOUNDER_APPROVE_DYNAMIC_VERTICAL",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Approve a Dynamic Vertical",
+      "decision_consequence": "Approve, hold, split, merge or reject a discovered market structure.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Founder / KPMO"
+    },
+    {
+      "archetype_id": "FOUNDER_INVEST_RUNTIME",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Invest in runtime capacity",
+      "decision_consequence": "Approve, defer or reject infrastructure spend based on incremental decision value, resilience and cost.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "GLOBAL_PROGRAM",
+      "owner": "Founder / Track D"
+    },
+    {
+      "archetype_id": "FOUNDER_SELECT_PROVIDER",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Approve a provider contract",
+      "decision_consequence": "Contract, negotiate, trial, limit or reject a provider based on value delta, rights, cost and dependency.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Founder / KPMO"
+    },
+    {
+      "archetype_id": "FOUNDER_STOP_LOW_VALUE_SOURCE",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Stop a low-value source",
+      "decision_consequence": "Remove, downgrade or retain a source according to decision contribution, cost and removal sensitivity.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Founder / Track A"
+    },
+    {
+      "archetype_id": "FOUNDER_APPROVE_ACQUISITION_BUDGET",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Approve acquisition budget",
+      "decision_consequence": "Approve, cap, phase or reject data acquisition spend according to expected incremental value.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Founder / KPMO"
+    },
+    {
+      "archetype_id": "FOUNDER_APPROVE_SCALE_PROMOTION",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Approve category scale promotion",
+      "decision_consequence": "Promote a category from 1,000 to 5,000 to 10,000+ depth only when value, coverage and runtime gates pass.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Founder / KPMO"
+    },
+    {
+      "archetype_id": "FOUNDER_APPROVE_INDEX_GENERATION",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Approve internal Index generation",
+      "decision_consequence": "Authorize, hold or reject internal KIDULT 500 and KIDULT 100 generation after Track B validation.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "GLOBAL_PROGRAM",
+      "owner": "Founder / KPMO"
+    },
+    {
+      "archetype_id": "FOUNDER_ACCEPT_PUBLICATION_RISK",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Accept publication risk",
+      "decision_consequence": "Publish, limit, disclose, delay or reject a market statement based on evidence and residual risk.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": ["VS_MARKET_STRUCTURE", "VS_OBJECT_TRUST"],
+      "scope_mode": "GLOBAL_PROGRAM",
+      "owner": "Founder / KPMO"
+    },
+    {
+      "archetype_id": "FOUNDER_SET_VALUE_NORTH_STAR",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Set or revise the Value North Star",
+      "decision_consequence": "Approve, preserve or revise the platform's governing Irreplaceable Value doctrine.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "GLOBAL_PROGRAM",
+      "owner": "Founder / KPMO"
+    },
+    {
+      "archetype_id": "FOUNDER_PRIORITIZE_PRODUCT_ROADMAP",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Prioritize the Intelligence Product roadmap",
+      "decision_consequence": "Build, defer, stop or accelerate an Intelligence Product according to decision impact and value gaps.",
+      "primary_value_scope_id": "VS_MOMENTUM_OPPORTUNITY",
+      "secondary_value_scope_ids": ["VS_MARKET_STRUCTURE"],
+      "scope_mode": "GLOBAL_PROGRAM",
+      "owner": "Founder / KPMO"
+    },
+    {
+      "archetype_id": "FOUNDER_ALLOCATE_TEAM_CAPACITY",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Allocate team capacity",
+      "decision_consequence": "Move capacity toward the highest-value decision, scope, source and runtime gaps.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": ["VS_MOMENTUM_OPPORTUNITY"],
+      "scope_mode": "GLOBAL_PROGRAM",
+      "owner": "Founder / KPMO"
+    },
+    {
+      "archetype_id": "FOUNDER_APPROVE_RECOVERY_STRATEGY",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Approve recovery and rollback strategy",
+      "decision_consequence": "Approve, strengthen or reject recovery controls that protect decision continuity and evidence integrity.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": [],
+      "scope_mode": "GLOBAL_PROGRAM",
+      "owner": "Founder / Track D"
+    },
+    {
+      "archetype_id": "FOUNDER_APPROVE_G5",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Approve Production G5",
+      "decision_consequence": "Approve or hold Production only after Value, rights, validation, rollback and runtime gates pass.",
+      "primary_value_scope_id": "VS_SOURCE_PROVIDER_ADVANTAGE",
+      "secondary_value_scope_ids": ["VS_MARKET_STRUCTURE"],
+      "scope_mode": "GLOBAL_PROGRAM",
+      "owner": "Founder / KPMO"
+    },
+    {
+      "archetype_id": "FOUNDER_APPROVE_MARKET_ENTRY",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Approve a new market entry",
+      "decision_consequence": "Approve research, pilot, launch, partnership or hold based on Irreplaceable Value and market evidence.",
+      "primary_value_scope_id": "VS_MOMENTUM_OPPORTUNITY",
+      "secondary_value_scope_ids": ["VS_MARKET_STRUCTURE", "VS_SOURCE_PROVIDER_ADVANTAGE"],
+      "scope_mode": "ALL_COLLECTION_SCOPES",
+      "owner": "Founder / KPMO"
+    },
+    {
+      "archetype_id": "FOUNDER_REVIEW_VALUE_HEALTH",
+      "customer_segment": "FOUNDER_AND_EXECUTIVE",
+      "decision_name": "Review portfolio Value health",
+      "decision_consequence": "Continue, intervene, reallocate or stop work based on decision impact, evidence, source health and value gaps.",
+      "primary_value_scope_id": "VS_MARKET_STRUCTURE",
+      "secondary_value_scope_ids": ["VS_SOURCE_PROVIDER_ADVANTAGE", "VS_MOMENTUM_OPPORTUNITY"],
+      "scope_mode": "GLOBAL_PROGRAM",
+      "owner": "Founder / IH-EOS"
+    }
+  ],
+  "boundaries": {
+    "archetype_is_public_recommendation": false,
+    "generated_decision_dna_is_market_claim": false,
+    "actual_decision_accuracy": "NOT_MEASURED",
+    "candidate_r2": "BLOCKED",
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}

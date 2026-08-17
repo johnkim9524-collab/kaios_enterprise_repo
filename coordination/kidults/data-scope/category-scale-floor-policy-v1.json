@@ -1,0 +1,103 @@
+{
+  "id": "category-scale-floor-policy-v1",
+  "record_type": "category_scale_floor_policy",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "effective_date": "2026-08-16",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "governing_value": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_VALUE",
+  "supersedes_semantics_of": "category-1000-scale-contract-v1",
+  "governing_rule": "CATEGORY_1000_IS_A_MINIMUM_ADMISSION_FLOOR_NOT_A_COMPLETION_TARGET_OR_CAP",
+  "floor_definition": {
+    "core_domain_category_count": 8,
+    "minimum_qualified_objects_per_category": 1000,
+    "minimum_total_qualified_objects": 8000,
+    "upper_cap": null,
+    "upper_cap_status": "NO_FIXED_CAP",
+    "raw_record_volume_is_not_qualified_object_volume": true,
+    "minimum_floor_authorizes_public_index": false,
+    "minimum_floor_authorizes_publication": false
+  },
+  "scope_allocation_policy": {
+    "initial_collection_scope_count": 32,
+    "previous_250_per_scope_value": "BOOTSTRAP_PLANNING_SEED_ONLY",
+    "fixed_scope_quota": false,
+    "allocation_basis": [
+      "MARKET_SIZE",
+      "OBJECT_HETEROGENEITY",
+      "SOURCE_AVAILABILITY",
+      "CUSTOMER_VALUE_DENSITY",
+      "REGIONAL_COMPLEXITY",
+      "CONDITION_AND_IDENTITY_COMPLEXITY",
+      "PROVIDER_COVERAGE_DELTA"
+    ],
+    "dynamic_reallocation_required": true
+  },
+  "scale_ladder": [
+    {
+      "level": "L1_MINIMUM_MARKET_POC_FLOOR",
+      "qualified_objects_per_category_minimum": 1000,
+      "evidence_assertions_per_category_minimum": 5000,
+      "market_observations_per_category_minimum": 5000,
+      "minimum_independent_source_families": 4,
+      "minimum_source_roles": 7,
+      "minimum_regions": 3,
+      "eligibility": "REPRESENTATIVE_INTERNAL_MARKET_DATA_POC_ONLY"
+    },
+    {
+      "level": "L2_OPERATIONAL_DEPTH",
+      "qualified_objects_per_category_minimum": 5000,
+      "evidence_assertions_per_category_minimum": 25000,
+      "market_observations_per_category_minimum": 25000,
+      "minimum_independent_source_families": 8,
+      "minimum_source_roles": 8,
+      "minimum_regions": 5,
+      "eligibility": "INTERNAL_INTELLIGENCE_PRODUCT_CALIBRATION"
+    },
+    {
+      "level": "L3_GLOBAL_LEADERSHIP_DEPTH",
+      "qualified_objects_per_category_minimum": 10000,
+      "evidence_assertions_per_category_minimum": 50000,
+      "market_observations_per_category_minimum": 50000,
+      "minimum_independent_source_families": 12,
+      "minimum_source_roles": 9,
+      "minimum_regions": 8,
+      "eligibility": "GLOBAL_LEADERSHIP_CANDIDATE_SUBJECT_TO_TRACK_B_AND_FOUNDER_GATES"
+    },
+    {
+      "level": "L4_ADAPTIVE_UNIVERSE",
+      "qualified_objects_per_category_minimum": null,
+      "minimum_status": "COVERAGE_DRIVEN_NO_FIXED_CAP",
+      "eligibility": "CONTINUOUS_AUTONOMOUS_EXPANSION"
+    }
+  ],
+  "promotion_gates": [
+    "CUSTOMER_VALUE_TRACEABILITY_PASS",
+    "COLLECTION_SCOPE_PASS",
+    "REPRESENTATIVE_SAMPLING_PASS",
+    "SOURCE_ROLE_COVERAGE_PASS",
+    "RIGHTS_AND_PROVENANCE_100_PERCENT",
+    "DUPLICATE_AND_IDENTITY_GATE_PASS",
+    "GEOGRAPHIC_TIME_PRICE_AND_CONDITION_COVERAGE_PASS",
+    "BIAS_AND_CONCENTRATION_DISCLOSED",
+    "SOURCE_REMOVAL_SENSITIVITY_PASS_OR_EXPLICITLY_BOUNDED",
+    "TRACK_B_INDEPENDENT_VALIDATION"
+  ],
+  "provider_scale_rule": {
+    "provider_data_may_accelerate_scale": true,
+    "provider_data_counts_only_after_fusion_gates": true,
+    "provider_id_as_canonical_id": false,
+    "provider_direct_to_portal": false,
+    "provider_direct_to_index": false,
+    "self_collected_evidence_role": "INDEPENDENT_ANCHOR_AND_CHALLENGER"
+  },
+  "current_state": {
+    "actual_qualified_objects_per_category": null,
+    "actual_qualified_objects_status": "NOT_MEASURED",
+    "category_floor_reached_count": 0,
+    "public_index": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}

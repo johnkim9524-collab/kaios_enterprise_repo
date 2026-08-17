@@ -1,0 +1,61 @@
+{
+  "id": "memory-policy-v1",
+  "record_type": "memory_policy",
+  "version": "1.0.0",
+  "status": "ACTIVE_FOUNDATION",
+  "created_at": "2026-08-16T15:40:00+09:00",
+  "created_by": "KPMO / AGCI Memory Architecture",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "storage_model": "APPEND_ONLY_BITEMPORAL",
+  "memory_types": [
+    "OBSERVATION_MEMORY",
+    "ENTITY_MEMORY",
+    "MARKET_STATE_MEMORY",
+    "DECISION_MEMORY",
+    "LEARNING_MEMORY"
+  ],
+  "required_temporal_fields": [
+    "valid_from",
+    "valid_to",
+    "recorded_at"
+  ],
+  "required_evidence_fields": [
+    "source_id",
+    "provenance_reference",
+    "rights_state",
+    "freshness_state"
+  ],
+  "correction_model": {
+    "in_place_overwrite": false,
+    "supersession_required": true,
+    "prior_entry_retained": true,
+    "same_subject_and_assertion_required": true
+  },
+  "replay_contract": {
+    "inputs": [
+      "valid_at",
+      "recorded_cutoff",
+      "memory_policy_version"
+    ],
+    "same_input_same_output": true,
+    "unresolved_identity_review_excluded": true,
+    "unknown_values": "NOT_VERIFIED"
+  },
+  "admission_failures": [
+    "RIGHTS_STATE_MISSING",
+    "PROVENANCE_REFERENCE_MISSING",
+    "STALE_MEMORY_ENTRY",
+    "INVALID_VALID_TIME_INTERVAL",
+    "UNSUPPORTED_MEMORY_TYPE",
+    "DUPLICATE_MEMORY_ENTRY_ID"
+  ],
+  "identity_conflict_disposition": "REVIEW_REQUIRED_NO_AUTO_MERGE",
+  "legal_erasure_model": "AUDITABLE_TOMBSTONE_OR_REDACTION_ONLY",
+  "direct_memory_to_portal": false,
+  "direct_memory_to_index": false,
+  "fixture_entries_in_global_universe": false,
+  "public_projection": false,
+  "production_eligible": false,
+  "immutable": true
+}

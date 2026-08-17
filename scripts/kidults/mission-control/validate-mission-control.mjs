@@ -31,9 +31,9 @@ const blocker = readJson('blocker/index.json');
 const twinIndex = readJson('digital-twin/index.json');
 const twin = readJson('digital-twin/records/twin-current-program-state-v1.json');
 
-assert(track?.record_count === 4, 'Track Registry must contain exactly four tracks.');
+assert(track?.record_count === 5, 'Track Registry must contain exactly five registered tracks (A–E).');
 assert(milestone?.current_record_id === 'milestone-ms-0001-first-canonical-snapshot', 'MS-0001 must be the current milestone.');
-assert(mission?.record_count === 4, 'Mission Registry must contain four initial missions.');
+assert(mission?.record_count === 5, 'Mission Registry must contain the four initial missions plus MISSION-E-0001.');
 assert(workQueue?.record_count >= 6, 'Work Queue must retain at least six bootstrap work items.');
 assert(blocker?.record_count === 2, 'Blocker Registry must contain two initial blockers.');
 assert(twinIndex?.current_record_id === twin?.id, 'Digital Twin current pointer must resolve.');
@@ -43,11 +43,12 @@ const trackState = Object.fromEntries((track?.records ?? []).map((record) => {
     : record.id.includes('track-b-') ? 'B'
     : record.id.includes('track-c-') ? 'C'
     : record.id.includes('track-d-') ? 'D'
+    : record.id.includes('track-e-') ? 'E'
     : record.id;
   return [letter, record.status];
 }));
 
-for (const letter of ['A', 'B', 'C', 'D']) {
+for (const letter of ['A', 'B', 'C', 'D', 'E']) {
   assert(twin?.track_states?.[letter] === trackState[letter],
     `Digital Twin Track ${letter} state '${twin?.track_states?.[letter]}' does not match Track Registry '${trackState[letter]}'.`);
 }
@@ -72,6 +73,12 @@ for (const record of workQueue?.records ?? []) {
   assert(missionIds.has(task?.mission_id), `${record.id}: mission_id '${task?.mission_id}' does not resolve.`);
 }
 
+const trackE = track?.records?.find((record) => record.id === 'track-e-executive-operating-system');
+const missionE = mission?.records?.find((record) => record.id === 'mission-track-e-executive-operating-system');
+assert(trackE?.status === 'PARTIALLY_IMPLEMENTED', 'Track E must remain evidence-backed PARTIALLY_IMPLEMENTED.');
+assert(missionE?.status === 'IN_PROGRESS', 'MISSION-E-0001 must be IN_PROGRESS.');
+assert(twin?.production_state === 'HOLD', 'Phase 2 must not change Production HOLD.');
+
 if (errors.length) {
   console.error(`KIDULTS Mission Control: FAIL (${errors.length} error(s))`);
   for (const error of errors) console.error(`ERROR: ${error}`);
@@ -79,6 +86,8 @@ if (errors.length) {
 }
 
 console.log('KIDULTS Mission Control: PASS');
+console.log(`Registered tracks: ${track.record_count}`);
+console.log(`Registered missions: ${mission.record_count}`);
 console.log(`Current milestone: ${milestone.current_record_id}`);
 console.log(`Current candidate: ${snapshot.current_candidate_snapshot_id ?? 'NONE'}`);
 console.log(`Current assessment: ${assessment.current_assessment_id ?? 'NONE'}`);

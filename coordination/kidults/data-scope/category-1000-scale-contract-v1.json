@@ -1,0 +1,250 @@
+{
+  "id": "category-1000-scale-contract-v1",
+  "record_type": "category_scale_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "created_at": "2026-08-16T19:30:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "governing_value": "IRREPLACEABLE_CUSTOMER_VALUE",
+  "scale_definition": {
+    "category_for_poc": "CORE_DOMAIN_COMPATIBILITY_CATEGORY",
+    "category_count": 8,
+    "qualified_object_candidates_per_category": 1000,
+    "total_qualified_object_candidates": 8000,
+    "collection_scope_count": 32,
+    "raw_record_volume_is_not_success_metric": true,
+    "fixed_index_quota": false,
+    "dynamic_verticals_remain_downstream_discoveries": true
+  },
+  "qualified_object_definition": {
+    "must_pass": [
+      "SCHEMA_VALID",
+      "SOURCE_RECORD_ID_EXPLICIT",
+      "PROVENANCE_REFERENCE_COMPLETE",
+      "RIGHTS_STATE_EXPLICIT",
+      "FRESHNESS_STATE_EXPLICIT",
+      "PHYSICAL_OBJECT_AND_CANONICAL_DESIGN_SEPARATED",
+      "DUPLICATE_GATE",
+      "SOURCE_QUALIFIED_IDENTITY",
+      "PUBLICATION_STATE_EXPLICIT"
+    ],
+    "does_not_mean": [
+      "RAW_PAGE",
+      "UNVERIFIED_LISTING",
+      "PROVIDER_ID_PROMOTED_TO_CANONICAL_ID",
+      "DUPLICATE_OBSERVATION",
+      "UNLICENSED_CONTENT",
+      "INDEX_CONSTITUENT"
+    ]
+  },
+  "market_signal_floor": {
+    "qualified_objects_per_category": 1000,
+    "evidence_assertions_per_category": 5000,
+    "market_observations_per_category": 5000,
+    "minimum_geographic_regions": 3,
+    "minimum_time_depth": "12_MONTHS_OR_EXPLICIT_HISTORICAL_DEPTH",
+    "minimum_price_bands": 4,
+    "minimum_condition_or_grade_bands": 3,
+    "minimum_independent_source_families": 4,
+    "minimum_source_roles": 7,
+    "unsupported_dimensions": "NULL_AND_NOT_VERIFIED"
+  },
+  "source_pool_floor": {
+    "discovered_candidates_per_category": 40,
+    "deep_assessed_candidates_per_category": 12,
+    "rights_access_preflight_per_category": 8,
+    "bounded_live_adapters_per_category": 4,
+    "minimum_roles": [
+      "PRIMARY_AUTHORITY",
+      "CATALOG_REFERENCE",
+      "LISTING_SUPPLY",
+      "SOLD_TRANSACTION",
+      "AUTHENTICATION_CONDITION",
+      "PROVENANCE_HISTORY",
+      "CULTURE_ATTENTION"
+    ],
+    "preferred_additional_roles": [
+      "AUCTION_PRIVATE_SALE",
+      "MACRO_CONTEXT",
+      "INDEPENDENT_VERIFICATION"
+    ]
+  },
+  "sampling_requirements": [
+    "BRAND_OR_MAKER_STRATIFIED",
+    "REGION_STRATIFIED",
+    "TIME_STRATIFIED",
+    "PRICE_BAND_STRATIFIED",
+    "CONDITION_OR_GRADE_STRATIFIED",
+    "COMMON_AND_SCARCE_OBJECT_BALANCED",
+    "PRIMARY_AND_SECONDARY_MARKET_SEPARATED",
+    "SOURCE_BIAS_MEASURED"
+  ],
+  "core_domains": [
+    {
+      "id": "toys-models",
+      "name": "Toys & Models",
+      "qualified_object_target": 1000,
+      "minimum_evidence_assertions": 5000,
+      "minimum_market_observations": 5000,
+      "minimum_source_candidates_discovered": 40,
+      "minimum_source_candidates_deep_assessed": 12,
+      "minimum_source_roles_covered": 7,
+      "collection_scopes": [
+        {"scope_id":"scope-construction-systems","name":"Construction Systems","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-model-kits-mecha","name":"Model Kits & Mecha","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-diecast-scale-vehicles","name":"Diecast & Scale Vehicles","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-designer-toys-action-figures","name":"Designer Toys & Action Figures","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false}
+      ]
+    },
+    {
+      "id": "watches-jewelry",
+      "name": "Watches & Jewelry",
+      "qualified_object_target": 1000,
+      "minimum_evidence_assertions": 5000,
+      "minimum_market_observations": 5000,
+      "minimum_source_candidates_discovered": 40,
+      "minimum_source_candidates_deep_assessed": 12,
+      "minimum_source_roles_covered": 7,
+      "collection_scopes": [
+        {"scope_id":"scope-mechanical-watches","name":"Mechanical Watches","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-vintage-neo-vintage-watches","name":"Vintage & Neo-Vintage Watches","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-fine-jewelry","name":"Fine Jewelry","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-designer-collectible-jewelry","name":"Designer & Collectible Jewelry","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false}
+      ]
+    },
+    {
+      "id": "automobiles-mobility",
+      "name": "Automobiles & Mobility",
+      "qualified_object_target": 1000,
+      "minimum_evidence_assertions": 5000,
+      "minimum_market_observations": 5000,
+      "minimum_source_candidates_discovered": 40,
+      "minimum_source_candidates_deep_assessed": 12,
+      "minimum_source_roles_covered": 7,
+      "collection_scopes": [
+        {"scope_id":"scope-collector-cars","name":"Collector Cars","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-modern-classics","name":"Modern Classics","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-motorcycles-scooters","name":"Motorcycles & Scooters","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-automotive-memorabilia-parts","name":"Automotive Memorabilia & Parts","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false}
+      ]
+    },
+    {
+      "id": "fashion-accessories",
+      "name": "Fashion & Accessories",
+      "qualified_object_target": 1000,
+      "minimum_evidence_assertions": 5000,
+      "minimum_market_observations": 5000,
+      "minimum_source_candidates_discovered": 40,
+      "minimum_source_candidates_deep_assessed": 12,
+      "minimum_source_roles_covered": 7,
+      "collection_scopes": [
+        {"scope_id":"scope-handbags-leather-goods","name":"Handbags & Leather Goods","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-sneakers-footwear","name":"Sneakers & Footwear","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-designer-garments","name":"Designer Garments","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-eyewear-accessories","name":"Eyewear & Accessories","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false}
+      ]
+    },
+    {
+      "id": "design-furniture",
+      "name": "Design & Furniture",
+      "qualified_object_target": 1000,
+      "minimum_evidence_assertions": 5000,
+      "minimum_market_observations": 5000,
+      "minimum_source_candidates_discovered": 40,
+      "minimum_source_candidates_deep_assessed": 12,
+      "minimum_source_roles_covered": 7,
+      "collection_scopes": [
+        {"scope_id":"scope-seating","name":"Seating","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-lighting","name":"Lighting","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-tables-storage","name":"Tables & Storage","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-decorative-design-objects","name":"Decorative Design Objects","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false}
+      ]
+    },
+    {
+      "id": "technology-cameras",
+      "name": "Technology & Cameras",
+      "qualified_object_target": 1000,
+      "minimum_evidence_assertions": 5000,
+      "minimum_market_observations": 5000,
+      "minimum_source_candidates_discovered": 40,
+      "minimum_source_candidates_deep_assessed": 12,
+      "minimum_source_roles_covered": 7,
+      "collection_scopes": [
+        {"scope_id":"scope-cameras-lenses","name":"Cameras & Lenses","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-personal-computers","name":"Personal Computers","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-audio-hifi","name":"Audio & Hi-Fi","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-mobile-consumer-electronics","name":"Mobile & Consumer Electronics","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false}
+      ]
+    },
+    {
+      "id": "gaming-music-screen",
+      "name": "Gaming, Music & Screen",
+      "qualified_object_target": 1000,
+      "minimum_evidence_assertions": 5000,
+      "minimum_market_observations": 5000,
+      "minimum_source_candidates_discovered": 40,
+      "minimum_source_candidates_deep_assessed": 12,
+      "minimum_source_roles_covered": 7,
+      "collection_scopes": [
+        {"scope_id":"scope-video-games-consoles","name":"Video Games & Consoles","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-vinyl-audio-media","name":"Vinyl & Audio Media","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-film-tv-props-posters","name":"Film/TV Props & Posters","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-music-instruments-memorabilia","name":"Music Instruments & Memorabilia","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false}
+      ]
+    },
+    {
+      "id": "cards-comics-memorabilia",
+      "name": "Cards, Comics & Memorabilia",
+      "qualified_object_target": 1000,
+      "minimum_evidence_assertions": 5000,
+      "minimum_market_observations": 5000,
+      "minimum_source_candidates_discovered": 40,
+      "minimum_source_candidates_deep_assessed": 12,
+      "minimum_source_roles_covered": 7,
+      "collection_scopes": [
+        {"scope_id":"scope-trading-cards","name":"Trading Cards","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-comics-graphic-narratives","name":"Comics & Graphic Narratives","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-sports-memorabilia","name":"Sports Memorabilia","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false},
+        {"scope_id":"scope-historical-entertainment-memorabilia","name":"Historical & Entertainment Memorabilia","planning_object_target":250,"dynamic_allocation_minimum":150,"dynamic_allocation_maximum":400,"allocation_is_index_quota":false}
+      ]
+    }
+  ],
+  "provider_contribution_rule": {
+    "provider_data_can_contribute_to_scale_target": true,
+    "conditions": [
+      "PROVIDER_MAPPING_CONTRACT_PASS",
+      "RIGHTS_AND_COMMERCIAL_USE_EXPLICIT",
+      "PROVENANCE_PRESERVED",
+      "DUPLICATE_AND_CONFLICT_GATE_PASS",
+      "NO_PROVIDER_ID_AS_CANONICAL_ID",
+      "NO_DIRECT_PROVIDER_TO_PORTAL",
+      "NO_DIRECT_PROVIDER_TO_INDEX"
+    ],
+    "self_collected_data_role": "INDEPENDENT_ANCHOR_AND_CROSS_VALIDATION",
+    "provider_data_role": "COVERAGE_AND_DEPTH_ACCELERATOR"
+  },
+  "readiness_gate": {
+    "category_ready_when": [
+      "CUSTOMER_VALUE_MAP_COMPLETE",
+      "COLLECTION_SCOPE_COMPLETE",
+      "SOURCE_ROLE_COVERAGE_PASS",
+      "SOURCE_POOL_MINIMUM_PASS",
+      "SAMPLING_FRAME_PASS",
+      "RIGHTS_ACCESS_COST_EXPLICIT",
+      "COVERAGE_BIAS_RISK_EXPLICIT",
+      "FALLBACK_SOURCES_READY",
+      "ACQUISITION_BUDGET_DEFINED",
+      "ENGINE_CAPACITY_TEST_PASS"
+    ],
+    "failure_state": "HOLD_CATEGORY_SCALE_NOT_READY"
+  },
+  "publication": {
+    "qualified_object_target_authorizes_index": false,
+    "qualified_object_target_authorizes_publication": false,
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}

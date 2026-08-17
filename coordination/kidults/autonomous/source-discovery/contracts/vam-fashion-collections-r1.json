@@ -1,0 +1,61 @@
+{
+  "contract_id": "vam-fashion-collections-r1",
+  "version": "1.0.0",
+  "status": "APPROVED_FOR_BOUNDED_POC",
+  "created_at": "2026-08-16T10:35:00+09:00",
+  "owner": "Track A / Autonomous Source Discovery",
+  "source_id": "vam-collections-api-fashion",
+  "source_tier": 1,
+  "vertical_id": "fashion-accessories",
+  "source_class": "MUSEUM_AUTHORITY_PUBLIC_API",
+  "api_base_url": "https://api.vam.ac.uk/v2",
+  "access_mode": "PUBLIC_REST_API_NO_KEY",
+  "rights_state": "V_AND_A_TERMS_SECTION_9_3_REVIEWED_INTERNAL_NONCOMMERCIAL_POC_ONLY",
+  "commercial_publication_authorized": false,
+  "collection_mode": "SUMMARY_METADATA_ONLY_NO_IMAGE_DOWNLOAD",
+  "query": "dress",
+  "bounded_limits": {
+    "search_page_size": 100,
+    "normalized_record_target": 12,
+    "minimum_successful_records": 8,
+    "maximum_requests": 1,
+    "request_timeout_ms": 15000,
+    "retry_attempts": 3
+  },
+  "required_outputs": [
+    "run-manifest.json",
+    "sanitized-raw-records.json",
+    "normalized-evidence-records.json",
+    "evidence-package.json",
+    "quality-report.json"
+  ],
+  "autonomous_controls": [
+    "official-host allowlist",
+    "bounded request budget",
+    "timeout and retry",
+    "image-field stripping",
+    "raw payload hashing",
+    "deduplication",
+    "fashion relevance filter",
+    "critical-field completeness",
+    "provenance reference",
+    "fail-closed minimum record gate"
+  ],
+  "prohibited_operations": [
+    "credential use",
+    "image download",
+    "commercial publication",
+    "paid access",
+    "provider mutation",
+    "Portal publication",
+    "Candidate publication",
+    "Production mutation"
+  ],
+  "production_eligible": false,
+  "references": [
+    "https://developers.vam.ac.uk/guide/v2/welcome.html",
+    "https://developers.vam.ac.uk/guide/v2/quick-start.html",
+    "https://www.vam.ac.uk/info/va-websites-terms-conditions",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/296"
+  ]
+}

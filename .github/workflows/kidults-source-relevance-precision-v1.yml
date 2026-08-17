@@ -1,0 +1,106 @@
+name: KIDULTS Source Relevance Precision Recovery v1
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "coordination/kidults/source-intelligence/source-relevance-precision-contract-v1.json"
+      - "scripts/kidults/source-intelligence/build-source-relevance-precision-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-source-relevance-precision-v1.mjs"
+      - "scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs"
+      - ".github/workflows/kidults-source-relevance-precision-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-source-relevance-precision-v1
+  cancel-in-progress: true
+
+jobs:
+  precision:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/build-source-relevance-precision-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-source-relevance-precision-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-discovery-common-v1.mjs
+
+      - name: Download immutable ASI Batch 001 evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/input/asi-batch-001
+          gh run download 31960423954 \
+            --repo "${{ github.repository }}" \
+            --name kidults-asi-discovery-batch-001 \
+            --dir artifacts/input/asi-batch-001
+          test -f artifacts/input/asi-batch-001/source-classification-report.json
+          test -f artifacts/input/asi-batch-001/raw-discovery-snapshot.json
+
+      - name: Build precision recovery foundation
+        run: |
+          node scripts/kidults/source-intelligence/build-source-relevance-precision-v1.mjs \
+            --input artifacts/input/asi-batch-001 \
+            --output artifacts/agci-os/source-relevance-precision-v1 \
+            --write
+
+      - name: Prove same-input same-output
+        run: |
+          node scripts/kidults/source-intelligence/build-source-relevance-precision-v1.mjs \
+            --input artifacts/input/asi-batch-001 \
+            --output /tmp/source-relevance-precision-1 \
+            --write
+          node scripts/kidults/source-intelligence/build-source-relevance-precision-v1.mjs \
+            --input artifacts/input/asi-batch-001 \
+            --output /tmp/source-relevance-precision-2 \
+            --write
+          for file in \
+            scope-and-role-lexicon-v1.json \
+            source-relevance-calibration-candidates-v1.json \
+            provisional-precision-ranked-universe-v1.json \
+            provisional-top-200-review-queue-v1.json \
+            rejected-and-held-candidate-register-v1.json \
+            source-relevance-precision-report-v1.json \
+            run-manifest.json; do
+            cmp "/tmp/source-relevance-precision-1/$file" "/tmp/source-relevance-precision-2/$file"
+            cmp "artifacts/agci-os/source-relevance-precision-v1/$file" "/tmp/source-relevance-precision-1/$file"
+          done
+
+      - name: Validate precision queue and Track B boundary
+        run: |
+          node scripts/kidults/source-intelligence/validate-source-relevance-precision-v1.mjs \
+            artifacts/agci-os/source-relevance-precision-v1
+
+      - name: Revalidate DOS and AGCI-OS governance
+        run: |
+          node scripts/kidults/dos/build-dos-v1.mjs --output /tmp/dos-v1 --write
+          node scripts/kidults/dos/validate-dos-v1.mjs /tmp/dos-v1
+          node scripts/kidults/dos/build-dos-asi-execution-v1.mjs --output /tmp/dos-asi-v1 --write
+          node scripts/kidults/dos/validate-dos-asi-execution-v1.mjs /tmp/dos-asi-v1
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs
+          node scripts/kidults/mission-control/validate-mission-control.mjs
+
+      - name: Upload precision recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-source-relevance-precision-v1
+          path: artifacts/agci-os/source-relevance-precision-v1
+          if-no-files-found: error
+          retention-days: 30

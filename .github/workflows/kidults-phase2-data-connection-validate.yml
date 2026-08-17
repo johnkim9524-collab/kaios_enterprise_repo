@@ -1,0 +1,71 @@
+name: KIDULTS Phase 2 Data Connection Validate
+
+on:
+  push:
+    branches:
+      - "feat/kidults-phase2-content-data-provider-foundation"
+    paths:
+      - "apps/kidults-enterprise-staging/public/portal/**"
+      - "coordination/kidults/**"
+      - "scripts/kidults/portal/validate-phase2-data-connections.mjs"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - "scripts/operations/digitalocean_readonly_audit.py"
+      - ".github/workflows/digitalocean-readonly-audit.yml"
+      - ".github/workflows/kidults-phase2-data-connection-validate.yml"
+  pull_request:
+    paths:
+      - "apps/kidults-enterprise-staging/public/portal/**"
+      - "coordination/kidults/**"
+      - "scripts/kidults/portal/validate-phase2-data-connections.mjs"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - "scripts/operations/digitalocean_readonly_audit.py"
+      - ".github/workflows/digitalocean-readonly-audit.yml"
+      - ".github/workflows/kidults-phase2-data-connection-validate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: JavaScript syntax
+        run: |
+          node --check apps/kidults-enterprise-staging/public/portal/components/data-source-gateway.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/data-store.js
+          node --check apps/kidults-enterprise-staging/public/portal/portal.js
+          node --check scripts/kidults/portal/build-v502-registry-view.mjs
+          node --check scripts/kidults/portal/validate-phase2-data-connections.mjs
+
+      - name: Python syntax
+        run: python -m py_compile scripts/operations/digitalocean_readonly_audit.py
+
+      - name: Validate Phase 2 contracts
+        run: |
+          node scripts/kidults/portal/validate-phase2-data-connections.mjs
+          node scripts/kidults/portal/build-v502-registry-view.mjs
+
+      - name: Observe current public runtime without credentials
+        env:
+          KIDULTS_MONITORED_BASE_URL: https://kaios.kidults.com
+          KIDULTS_AUDIT_OUTPUT: artifacts/digitalocean-readonly-audit
+        run: python scripts/operations/digitalocean_readonly_audit.py
+
+      - name: Upload read-only runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-phase2-digitalocean-public-audit
+          path: artifacts/digitalocean-readonly-audit
+          if-no-files-found: error
+          retention-days: 30

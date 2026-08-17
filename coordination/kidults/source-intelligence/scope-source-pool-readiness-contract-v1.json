@@ -1,0 +1,117 @@
+{
+  "id": "scope-source-pool-readiness-contract-v1",
+  "record_type": "scope_source_pool_readiness_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE",
+  "created_at": "2026-08-16T20:10:00+09:00",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "governing_value": "IRREPLACEABLE_CUSTOMER_VALUE",
+  "purpose": "Compile the 32 Collection Scopes into executable Autonomous Source Intelligence discovery, classification, risk, coverage and acquisition-readiness queues before Category 1000 collection begins.",
+  "canonical_roles": [
+    "PRIMARY_AUTHORITY",
+    "CATALOG_REFERENCE",
+    "LISTING_SUPPLY",
+    "SOLD_TRANSACTION",
+    "AUTHENTICATION_CONDITION",
+    "PROVENANCE_HISTORY",
+    "CULTURE_ATTENTION",
+    "AUCTION_PRIVATE_SALE",
+    "MACRO_CONTEXT",
+    "INDEPENDENT_VERIFICATION"
+  ],
+  "required_roles_per_scope": [
+    "PRIMARY_AUTHORITY",
+    "CATALOG_REFERENCE",
+    "LISTING_SUPPLY",
+    "SOLD_TRANSACTION",
+    "AUTHENTICATION_CONDITION",
+    "PROVENANCE_HISTORY",
+    "CULTURE_ATTENTION"
+  ],
+  "scope_pool_funnel": {
+    "domain_seed_candidate": "Known Core Domain candidate only; does not count as Scope-ready.",
+    "scope_relevance_assessed": "Source coverage and object universe are explicitly matched to one or more Collection Scopes.",
+    "deep_assessed": "Utility, uniqueness, independence, granularity, freshness, stability, cost and replaceability are scored.",
+    "rights_access_preflighted": "Terms, robots, privacy, IP, commercial use, rate limit, jurisdiction and field-level rights are explicit.",
+    "adapter_ready": "A bounded, versioned, rate-limited, auditable and fail-closed adapter contract exists.",
+    "scope_pool_ready": "Source-role, fallback, sampling, bias, rights, cost and continuity gates all pass."
+  },
+  "minimums": {
+    "source_candidates_discovered_per_scope": 10,
+    "source_candidates_deep_assessed_per_scope": 3,
+    "rights_access_preflights_per_scope": 2,
+    "bounded_live_adapters_per_scope": 1,
+    "required_source_roles_per_scope": 7,
+    "fallback_per_critical_role": 1,
+    "scope_ready_candidates_per_scope": 8
+  },
+  "global_funnel_targets": {
+    "source_channels_discovered": 10000,
+    "deep_assessments": 1000,
+    "rights_access_preflights": 250,
+    "bounded_live_adapters": 50
+  },
+  "source_intelligence_dimensions": [
+    "CUSTOMER_VALUE_SUPPORTED",
+    "COLLECTION_SCOPE_RELEVANCE",
+    "SOURCE_ROLE",
+    "AUTHORITY",
+    "INDEPENDENCE",
+    "UNIQUENESS",
+    "COVERAGE",
+    "GRANULARITY",
+    "FRESHNESS",
+    "HISTORICAL_DEPTH",
+    "RIGHTS_AND_COMMERCIAL_USE",
+    "ROBOTS_AND_ACCESS",
+    "PRIVACY_AND_SECURITY",
+    "SCHEMA_STABILITY",
+    "BIAS_AND_MANIPULATION_RISK",
+    "JURISDICTION",
+    "COST",
+    "EXPECTED_INCREMENTAL_VALUE",
+    "REPLACEABILITY",
+    "CONTINUITY"
+  ],
+  "readiness_gate": {
+    "all_required": [
+      "CUSTOMER_VALUE_TRACEABLE",
+      "SCOPE_RELEVANCE_VALIDATED",
+      "MINIMUM_SCOPE_READY_CANDIDATES_PASS",
+      "REQUIRED_SOURCE_ROLE_COVERAGE_PASS",
+      "CRITICAL_ROLE_FALLBACK_PASS",
+      "FIELD_LEVEL_RIGHTS_EXPLICIT",
+      "ACCESS_AND_RATE_LIMIT_EXPLICIT",
+      "SAMPLING_FRAME_READY",
+      "BIAS_AND_CONCENTRATION_RISKS_EXPLICIT",
+      "COST_AND_BUDGET_EXPLICIT",
+      "ADAPTER_AND_RECOVERY_READY"
+    ],
+    "failure_state": "HOLD_SOURCE_POOL_NOT_READY"
+  },
+  "discovery_vs_acquisition": {
+    "discovery_authorizes_collection": false,
+    "classification_authorizes_collection": false,
+    "risk_score_authorizes_collection": false,
+    "acquisition_requires_scope_ready": true,
+    "bulk_collection_authorized": false
+  },
+  "provider_rule": {
+    "provider_is_market_sensor": true,
+    "provider_seed_can_enter_discovery_pool": true,
+    "provider_data_counts_only_after_mapping_rights_and_quality_gates": true,
+    "provider_id_as_canonical_id": false,
+    "provider_direct_to_portal": false,
+    "provider_direct_to_index": false,
+    "provider_overwrites_self_collected_truth": false
+  },
+  "publication": {
+    "source_pool_readiness_authorizes_market_claim": false,
+    "source_pool_readiness_authorizes_index": false,
+    "kidult_500": "NOT_COMPUTED",
+    "kidult_100": "NOT_COMPUTED",
+    "production": "HOLD"
+  }
+}

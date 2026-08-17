@@ -5,80 +5,68 @@ import process from "node:process";
 const root = process.cwd();
 const registryRoot = path.join(root, "coordination", "kidults", "registry");
 const portalData = path.join(root, "apps", "kidults-enterprise-staging", "public", "portal", "data");
-const projectionPath = path.join(portalData, "registry-view.json");
+const outputPath = path.join(portalData, "registry-view.json");
 
 function read(relative) {
   return JSON.parse(fs.readFileSync(path.join(registryRoot, relative), "utf8"));
 }
 
-const catalog = read("catalog.json");
-const track = read("track/index.json");
-const snapshot = read("snapshot/index.json");
-const assessment = read("assessment/index.json");
-const release = read("release/index.json");
-const baseline = read(`snapshot/records/${snapshot.current_baseline_snapshot_id}.json`);
+const projectionIndex = read("projection/index.json");
+const projectionRef = projectionIndex.records.find(item => item.id === projectionIndex.current_record_id);
+if (!projectionRef) throw new Error("Projection Registry current pointer does not resolve.");
+const source = read(`projection/${projectionRef.path}`);
+const writeMode = process.argv.includes("--write");
+const existing = fs.existsSync(outputPath) ? JSON.parse(fs.readFileSync(outputPath, "utf8")) : null;
+const now = writeMode ? new Date().toISOString() : (existing?.generated_at ?? new Date().toISOString());
 
-function trackState(letter) {
-  const record = track.records.find(item => item.id.startsWith(`track-${letter.toLowerCase()}-`));
-  return record?.status ?? "NOT_REGISTERED";
-}
-
-const now = new Date().toISOString();
 const projection = {
   projection_id: "portal-v502-registry-view-001",
-  projection_version: "1.0.0",
+  projection_version: "2.2.0",
+  source_projection_id: source.id,
+  source_projection_contract_version: source.projection_contract_version,
   generated_from: [
-    "coordination/kidults/registry/catalog.json",
-    "coordination/kidults/registry/track/index.json",
-    "coordination/kidults/registry/snapshot/index.json",
-    "coordination/kidults/registry/assessment/index.json",
-    "coordination/kidults/registry/release/index.json"
+    "coordination/kidults/registry/projection/index.json",
+    `coordination/kidults/registry/projection/${projectionRef.path}`
   ],
   generated_at: now,
-  registry_system_version: catalog.registry_system_version,
-  program_status: "ACTIVE",
-  track_states: {
-    A: trackState("A"),
-    B: trackState("B"),
-    C: trackState("C"),
-    D: trackState("D")
+  registry_system_version: source.source_registry_system_version,
+  catalog_revision: source.source_catalog_revision,
+  program_status: source.program_status,
+  architecture: {
+    product: "Autonomous Global Collectibles Intelligence Operating System",
+    short_name: "AGCI-OS",
+    boundary: "PROJECTION_CONSUMER_ONLY"
   },
-  snapshot: {
-    baseline_id: snapshot.current_baseline_snapshot_id,
-    baseline_status: baseline.status,
-    candidate_id: snapshot.current_candidate_snapshot_id,
-    candidate_status: snapshot.current_candidate_snapshot_id ? "CURRENT" : "WAITING",
-    published_id: snapshot.current_published_snapshot_id,
-    published_status: snapshot.current_published_snapshot_id ? "CURRENT" : "NOT_AVAILABLE"
-  },
-  assessment: {
-    current_id: assessment.current_assessment_id,
-    status: assessment.status
-  },
-  release: {
-    current_id: release.current_release_id,
-    status: release.status,
-    production_decision: release.production_decision_state,
-    rollback_target_id: release.current_rollback_target_id
-  },
-  versions: {
-    methodology: baseline.methodology_version,
-    evidence_lineage: baseline.evidence_lineage_version,
-    portal_contract: "v502-rc1"
-  },
+  autonomous: source.autonomous,
+  engine_v2: source.engine_v2,
+  memory: source.memory,
+  raw_quarantine: source.raw_quarantine,
+  universe: source.universe,
+  core_domains: source.core_domains,
+  dynamic_verticals: source.dynamic_verticals,
+  indexes: source.indexes,
+  track_states: source.track_states,
+  snapshot: source.snapshot,
+  evidence: source.evidence,
+  assessment: source.assessment,
+  provider: source.provider,
+  runtime: source.runtime,
+  release: source.release,
+  publication: source.publication,
+  versions: source.versions,
   freshness: {
     status: "CURRENT",
     as_of: now
   }
 };
 
-if (process.argv.includes("--write")) {
-  fs.writeFileSync(projectionPath, `${JSON.stringify(projection, null, 2)}\n`);
-  console.log(`Wrote ${path.relative(root, projectionPath)}`);
+if (writeMode) {
+  fs.writeFileSync(outputPath, `${JSON.stringify(projection, null, 2)}\n`);
+  console.log(`Wrote ${path.relative(root, outputPath)}`);
   process.exit(0);
 }
 
-const current = JSON.parse(fs.readFileSync(projectionPath, "utf8"));
+const current = JSON.parse(fs.readFileSync(outputPath, "utf8"));
 const comparable = value => {
   const copy = structuredClone(value);
   delete copy.generated_at;
@@ -87,9 +75,15 @@ const comparable = value => {
 };
 
 if (JSON.stringify(comparable(current)) !== JSON.stringify(comparable(projection))) {
-  console.error("V502 Registry projection is stale. Run:");
+  console.error("Portal Registry Projection is stale. Run:");
   console.error("node scripts/kidults/portal/build-v502-registry-view.mjs --write");
   process.exit(1);
 }
 
-console.log("V502 Registry projection matches canonical registries.");
+console.log("Portal consumes the canonical AGCI-OS Projection Registry: PASS");
+console.log(`Engine v2: ${projection.engine_v2.status}`);
+console.log(`Memory: ${projection.memory.status}`);
+console.log(`Memory replay snapshots: ${projection.memory.replay_snapshot_count}`);
+console.log(`Raw Quarantine: ${projection.raw_quarantine.quarantined_record_count} isolated`);
+console.log(`KIDULT 500: ${projection.indexes.kidult_500.status}`);
+console.log(`KIDULT 100: ${projection.indexes.kidult_100.status}`);
