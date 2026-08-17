@@ -1,0 +1,51 @@
+{
+  "id": "product-evidence-demand-contract-v1",
+  "record_type": "product_evidence_demand_contract",
+  "version": "1.0.0",
+  "status": "CANDIDATE_ON_CANONICAL_VALUE_CHAIN",
+  "parent_mission": 346,
+  "input_unit": "REPRESENTATIVE_PRODUCT_X_MARKET_CELL_X_ASSERTION",
+  "required_ids": [
+    "collectible_family_id",
+    "representative_product_id",
+    "market_cell_id",
+    "assertion_id"
+  ],
+  "assertion_classes": [
+    "CANONICAL_IDENTITY",
+    "MODEL_GENERATION_EDITION_VARIANT",
+    "MATERIAL_SPECIFICATION",
+    "AUTHENTICATION_CONDITION_GRADE",
+    "PROVENANCE_HISTORY",
+    "SCARCITY_EDITION_SUPPLY",
+    "LISTING_SUPPLY",
+    "SOLD_TRANSACTION_PRICE",
+    "LIQUIDITY_TURNOVER",
+    "VALUE_DISPERSION_COMPARABILITY",
+    "CULTURE_ATTENTION_CANON",
+    "MACRO_MARKET_CONTEXT"
+  ],
+  "evidence_intensity_classes": ["STANDARD","ELEVATED","HIGH","CRITICAL"],
+  "demand_dimensions": [
+    "required_source_roles",
+    "minimum_independent_source_families",
+    "region_requirements",
+    "language_requirements",
+    "rights_requirements",
+    "freshness_requirement",
+    "historical_depth_requirement",
+    "market_event_requirement",
+    "source_removal_test_requirement"
+  ],
+  "critical_assertion_minimum_independent_families": 3,
+  "prohibited": [
+    "ANONYMOUS_EXECUTABLE_EVIDENCE_WORK_ITEM",
+    "SOURCE_AVAILABILITY_DEFINES_PRODUCT",
+    "ONE_PROVIDER_FAMILY_PROVES_CRITICAL_ASSERTION",
+    "LISTING_COERCED_TO_SOLD_TRANSACTION",
+    "UNKNOWN_RIGHTS_TREATED_AS_ALLOWED",
+    "MISSING_TO_ZERO"
+  ],
+  "output": "product-evidence-demand-graph-v1",
+  "production": "HOLD"
+}
