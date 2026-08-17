@@ -1,0 +1,21 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+const e=JSON.parse(fs.readFileSync(process.argv[2]||'input/product-evidence-package.json','utf8'));
+const a=JSON.parse(fs.readFileSync(process.argv[3]||'input/track-b-assessment.json','utf8'));
+const p=JSON.parse(fs.readFileSync(process.argv[4]||'input/projection.json','utf8'));
+const req=(c,m)=>{if(!c) throw new Error(m)};
+req(e.summary.validated_assertion_count>=40,'<40 assertions');
+req(e.summary.independent_source_family_count>=5,'<5 source families');
+req(e.summary.canonical_identity_family_count>=3,'<3 identity families');
+req(a.collectible_qualification==='PASS','collectible not PASS');
+req(a.representative_product_qualification==='PASS','representative not PASS');
+req(a.index_eligibility==='HOLD_MARKET_EVIDENCE','index must remain HOLD_MARKET_EVIDENCE');
+req(a.thresholds_relaxed===false,'threshold relaxation');
+req(p.lifecycle_state==='REPRESENTATIVE_QUALIFIED','projection lifecycle mismatch');
+req(p.intelligence_state==='VERIFIED_PRODUCT_MARKET_PARTIAL','projection state mismatch');
+req(p.portal.consume_projection_only===true,'portal boundary');
+req(p.portal.local_ranking===false,'portal local ranking');
+req(p.portal.missing_to_zero===false,'missing to zero');
+req(p.publication.kidult_index===false,'index incorrectly published');
+req(e.production==='HOLD'&&a.production==='HOLD'&&p.production==='HOLD','production not HOLD');
+console.log(JSON.stringify({product:'PASS',representative:'PASS',index:'HOLD_MARKET_EVIDENCE',projection:'PASS'}));
