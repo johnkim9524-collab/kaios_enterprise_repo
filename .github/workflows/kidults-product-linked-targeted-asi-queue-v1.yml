@@ -1,0 +1,39 @@
+name: KIDULTS Product-Linked Targeted ASI Queue v1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs'
+      - '.github/workflows/kidults-product-linked-targeted-asi-queue-v1.yml'
+      - 'coordination/kidults/source-intelligence/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  materialize-targeted-asi-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download immutable 160-anchor foundation artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p input out
+          gh api -H 'Accept: application/vnd.github+json' \
+            /repos/${{ github.repository }}/actions/artifacts/9286462549/zip > anchor-foundation.zip
+          unzip -q anchor-foundation.zip -d input
+      - name: Build Product-linked Targeted ASI queue
+        run: node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input out
+      - name: Validate queue and North-Star boundaries
+        run: node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs out
+      - name: Upload immutable queue artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-product-linked-targeted-asi-queue-v1
+          path: out/
+          if-no-files-found: error
+          retention-days: 90
