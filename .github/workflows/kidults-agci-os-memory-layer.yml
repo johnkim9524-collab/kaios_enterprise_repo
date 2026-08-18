@@ -55,7 +55,7 @@ jobs:
       - name: Syntax check
         run: |
           node --check scripts/kidults/memory/run-memory-foundation.mjs
-          node --check scripts/kidults/memory/validate-memory-foundation.mjs
+          node --check scripts/kidults/memory/validate-memory-current-authority.mjs
           node --check scripts/kidults/projection/build-agci-os-projection.mjs
           node --check scripts/kidults/portal/build-v502-registry-view.mjs
           node --check scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
@@ -81,8 +81,8 @@ jobs:
           NODE
           cmp /tmp/memory-run-1.json /tmp/memory-run-2.json
 
-      - name: Validate Memory admission, supersession and replay
-        run: node scripts/kidults/memory/validate-memory-foundation.mjs
+      - name: Validate Memory admission, replay and current authority separation
+        run: node scripts/kidults/memory/validate-memory-current-authority.mjs
 
       - name: Validate Projection and Portal boundaries
         run: |
