@@ -1,0 +1,19 @@
+name: KIDULTS Market Activity Source Feasibility Wave1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/scope/market-activity-source-feasibility-wave1.json'
+      - 'scripts/kidults/scope/validate-market-activity-source-feasibility-wave1.mjs'
+      - '.github/workflows/kidults-market-activity-source-feasibility-wave1.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate market activity source feasibility
+        run: node scripts/kidults/scope/validate-market-activity-source-feasibility-wave1.mjs
