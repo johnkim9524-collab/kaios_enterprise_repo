@@ -1,0 +1,14 @@
+{
+  "id":"global-market-evidence-poc-v2-defect-framework",
+  "version":"1.0.0",
+  "status":"CANONICAL_CANDIDATE",
+  "primary_purpose":"FIND_DEFECTS_BEFORE_SCALE_OR_PROVIDER_CONTACT",
+  "success_definition":"High-quality discovery and classification of design, data, rights, bias, resilience and comparability defects with explicit remediation; not maximum PASS rate.",
+  "scale":{"scopes":32,"products_per_scope":10,"products_total":320,"evidence_demand_lanes_target_min":2560,"evidence_demand_lanes_target_max":3840},
+  "selection_mix":{"canonical_mature":3,"high_liquidity":2,"emerging_dynamic_vertical_exposed":2,"regional":1,"scarce_illiquid":1,"edge_stress":1},
+  "diagnostic_dimensions":["scope_grammar_overlap_or_missing_split","representative_product_bias","dynamic_vertical_false_positive_or_false_negative","identity_variant_failure","condition_provenance_authentication_depth","market_regime_generational_canon_cultural_momentum","regional_liquidity_language_bias","tradable_float_microstructure_value_attribution","downside_risk","evidence_aging_revalidation","market_integrity_anomaly_boundary","decision_utility","source_resilience","cross_scope_normalization_false_comparability","product_cluster_lifecycle","counterfactual_boundary","rights_commercial_use","true_external_capability_gap"],
+  "severity":{"P0":"invalidates scope metric rights or cross-scope truth","P1":"materially degrades decision utility or global representativeness","P2":"quality coverage or automation improvement","P3":"optimization"},
+  "required_outputs":["32_scope_defect_register","dynamic_vertical_stress_test","eight_core_category_stress_test","normalization_failure_map","source_resilience_map","rights_external_capability_gap_map","remediation_backlog","provider_contact_recommendation_after_defects"],
+  "guards":["NO_THRESHOLD_RELAXATION","NO_HIDING_GAPS","NO_PROVIDER_CONTACT","NO_PRODUCTION","ANOMALY_NE_FRAUD","SIMULATION_NE_OBSERVATION","ATTENTION_NE_DEMAND_NE_TRANSACTION","MISSING_NE_ZERO"],
+  "north_star":["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"]
+}
