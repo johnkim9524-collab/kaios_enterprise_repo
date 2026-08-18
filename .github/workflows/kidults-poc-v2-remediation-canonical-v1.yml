@@ -1,0 +1,20 @@
+name: KIDULTS PoC v2 Remediation Canonical v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/poc/poc-v2-remediation-canonical-contract-v1.json'
+      - 'docs/kidults/poc-v2-diagnostic-remediation-design-v1.md'
+      - 'scripts/kidults/poc/validate-poc-v2-remediation-canonical-v1.mjs'
+      - '.github/workflows/kidults-poc-v2-remediation-canonical-v1.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate PoC v2 remediation canonical contract
+        run: node scripts/kidults/poc/validate-poc-v2-remediation-canonical-v1.mjs
