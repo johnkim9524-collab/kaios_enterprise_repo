@@ -1,0 +1,9 @@
+{
+  "expected_valid": false,
+  "event": {
+    "schema_version": "market-event-v1",
+    "market_event_id": "evt-invalid-listing-sold",
+    "evidence_class": "ACTIVE_LISTING",
+    "event_state": "SOLD"
+  }
+}
