@@ -31,6 +31,12 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install locked validation dependencies
+        run: npm ci
+
+      - name: Compile and validate Market Event JSON Schema 2020-12 fixtures
+        run: npm run validate:market-event
+
       - name: Validate coordination and PoC contracts
         run: |
           node scripts/kidults/coordination/validate-coordination.mjs

@@ -1,0 +1,12 @@
+{
+  "name": "kaios-enterprise-validation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate:market-event": "node scripts/kidults/poc/validate-market-event-schema-v1.mjs"
+  },
+  "dependencies": {
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1"
+  }
+}
