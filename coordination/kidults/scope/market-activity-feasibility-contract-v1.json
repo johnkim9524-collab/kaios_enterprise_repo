@@ -1,0 +1,21 @@
+{
+  "id":"kidults-market-activity-feasibility-contract-v1",
+  "version":"1.0.0",
+  "status":"CANONICAL_CANDIDATE",
+  "purpose":"Separate public market activity signals from verified sold-event evidence and quantify self-collection feasibility before Provider contact.",
+  "evidence_classes":[
+    {"id":"PUBLIC_AVAILABILITY_LISTINGS","truth_semantics":"OBSERVED_AVAILABILITY_ONLY","may_support":["market_availability","channel_presence"],"must_not_support":["sold_transaction","liquidity","time_to_sale"]},
+    {"id":"VENUE_PRESENCE","truth_semantics":"OBSERVED_MARKET_VENUE_PRESENCE_ONLY","may_support":["channel_presence","regional_market_presence"],"must_not_support":["transaction_frequency","sold_price"]},
+    {"id":"BID_ASK_DEPTH","truth_semantics":"ORDER_BOOK_OR_QUOTE_SIGNAL_ONLY","may_support":["market_interest","quoted_depth"],"must_not_support":["verified_transaction","realized_price"]},
+    {"id":"AUCTION_RESULT_REFERENCE","truth_semantics":"RESULT_REFERENCE_REQUIRES_RIGHTS_AND_EVENT_VERIFICATION","may_support":["sold_event_candidate"],"must_not_support":["verified_sold_event_without_event_and_rights_validation"]},
+    {"id":"VERIFIED_SOLD_EVENT_HISTORY","truth_semantics":"REALIZED_TRANSACTION_EVIDENCE","may_support":["transaction_frequency","realized_price","liquidity","dispersion","time_series"],"requires":["event_identity","product_identity","sale_state","price_semantics","rights","observed_at"]},
+    {"id":"FAILED_SALE_OBSERVATION","truth_semantics":"EXPLICIT_NO_SALE_OR_WITHDRAWAL_EVENT_ONLY","may_support":["failed_sale_rate","liquidity_risk"],"must_not_support":["sold_transaction"]},
+    {"id":"TIME_TO_SALE","truth_semantics":"DERIVED_ONLY_FROM_VALID_START_AND_TERMINAL_EVENTS","requires":["listing_or_offer_start","verified_terminal_sale_or_withdrawal","same_object_identity"]},
+    {"id":"TEMPORAL_ACTIVITY_PERSISTENCE","truth_semantics":"MULTI_PERIOD_ACTIVITY_PATTERN","requires":["freshness","repeat_observation","source_lineage"]}
+  ],
+  "classification_states":["SELF_COLLECTABLE","RIGHTS_LIMITED","ACCESS_LIMITED","EXTERNAL_CAPABILITY_REQUIRED","NOT_VERIFIED"],
+  "hard_guards":["LISTING_NE_SOLD","BID_ASK_NE_TRANSACTION","ATTENTION_NE_ACTIVITY_NE_TRANSACTION","MISSING_NE_ILLIQUIDITY","HIGH_PRICE_NE_SCARCITY","AUCTION_RESULT_REFERENCE_NE_VERIFIED_SOLD_UNTIL_VALIDATED","PROVIDER_NE_TRUTH"],
+  "minimum_provider_need_test":{"rule":"External capability is justified only after rights-safe self-collection exhaustion for the exact evidence class and when customer decision utility materially depends on that class.","requires":["self_collection_attempts","rights_preflight","access_preflight","coverage_gap","decision_impact","source_resilience_analysis"]},
+  "track_alignment":{"A":"collect evidence-class-specific candidates and preserve semantics","B":"independently classify feasibility and reject substitutions","C":"render activity/sold/liquidity states separately","D":"operate observation cadence, retries, freshness and audit","E":"surface capability gaps and decisions without generating market truth"},
+  "provider_contact":"HOLD","production":"HOLD"
+}
