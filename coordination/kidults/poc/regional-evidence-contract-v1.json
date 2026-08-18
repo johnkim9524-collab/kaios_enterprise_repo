@@ -1,0 +1,43 @@
+{
+  "id": "regional-evidence-contract-v1",
+  "version": "1.0.0",
+  "status": "CANDIDATE_FOR_CANONICAL",
+  "principle": "Regional significance must be evidenced by region-specific institutional, release/distribution, venue or market/activity observations. Maker origin alone is insufficient.",
+  "required_evidence_dimensions": [
+    "REGION_OR_LANGUAGE_IDENTITY",
+    "INSTITUTIONAL_OR_OFFICIAL_SIGNIFICANCE",
+    "REGIONAL_RELEASE_OR_DISTRIBUTION",
+    "REGIONAL_VENUE_OR_MARKET_PRESENCE",
+    "REGION_SPECIFIC_ATTENTION_OR_ACTIVITY"
+  ],
+  "minimum_terminalization": {
+    "REGIONAL": {
+      "independent_source_families_min": 2,
+      "must_include_one_of": ["INSTITUTIONAL_OR_OFFICIAL_SIGNIFICANCE", "REGIONAL_RELEASE_OR_DISTRIBUTION", "REGIONAL_VENUE_OR_MARKET_PRESENCE"],
+      "must_include_region_or_language_identity": true,
+      "market_demand_claim_requires_separate_market_activity_evidence": true
+    }
+  },
+  "forbidden_substitutions": [
+    "maker origin -> regional demand",
+    "manufacturing country -> collector significance",
+    "single local listing -> regional market presence",
+    "language match -> regional demand",
+    "attention -> transaction demand"
+  ],
+  "source_topology": [
+    "regional museums/libraries/institutional collections",
+    "official brand or maker regional release archives",
+    "rights-safe regional auction/result archives",
+    "regional certification/population registries where permissible",
+    "language-specific public attention/activity channels"
+  ],
+  "governance": {
+    "evidence_before_metric": true,
+    "field_level_rights_required": true,
+    "no_auto_selection": true,
+    "missing_not_zero": true,
+    "provider_contact": "HOLD",
+    "production": "HOLD"
+  }
+}
