@@ -1,0 +1,106 @@
+{
+  "contract_id": "kidults-poc-v2-1-remediation-execution-v1",
+  "issue": 457,
+  "status": "ACTIVE_CANDIDATE",
+  "production": "HOLD",
+  "provider_contact": "HOLD",
+  "purpose": "Reduce the two remaining PoC v2 P0 defects before any broader 320-product expansion.",
+  "p0_defects": [
+    "REGIONAL_MARKET_INDEPENDENCE",
+    "SCOPE_SPECIFIC_MARKET_ACTIVITY_DEPTH"
+  ],
+  "truth_guards": [
+    "EVIDENCE_BEFORE_METRICS",
+    "MISSING_NE_ZERO",
+    "ATTENTION_NE_DEMAND_NE_TRANSACTION",
+    "LISTING_NE_SOLD_TRANSACTION",
+    "BID_ASK_NE_TRANSACTION",
+    "MAKER_ORIGIN_NE_REGIONAL_DEMAND",
+    "PUBLIC_REPRESENTATION_NE_REGIONAL_MARKET_SIGNIFICANCE",
+    "SCARCITY_NE_ILLIQUIDITY",
+    "PROVIDER_NE_TRUTH",
+    "NO_FALSE_COMPARABILITY"
+  ],
+  "regional_independence": {
+    "required_components": [
+      "REGIONAL_PUBLIC_REPRESENTATION",
+      "INDEPENDENT_REGIONAL_INSTITUTION_OR_RELEASE_OR_VENUE_EVIDENCE"
+    ],
+    "optional_components": [
+      "REGIONAL_MARKET_ACTIVITY",
+      "REGIONAL_LIQUIDITY"
+    ],
+    "minimum_independent_families": 2,
+    "prohibited_inference": [
+      "language_presence_to_demand",
+      "maker_origin_to_demand",
+      "single_listing_to_market_presence"
+    ],
+    "terminal_states": [
+      "REGIONAL_SIGNIFICANCE_VERIFIED",
+      "PARTIAL_REGIONAL_EVIDENCE",
+      "BLOCKED_BY_REGIONAL_INDEPENDENCE",
+      "NOT_VERIFIED"
+    ]
+  },
+  "market_activity": {
+    "evidence_classes": [
+      "ACTIVE_LISTING",
+      "VENUE_PRESENCE",
+      "BID_ASK_SIGNAL",
+      "AUCTION_RESULT_REFERENCE",
+      "VERIFIED_SOLD_EVENT",
+      "FAILED_SALE_EVENT",
+      "TIME_TO_SALE"
+    ],
+    "derived_metrics": [
+      "OBSERVED_MARKET_ACTIVITY",
+      "VERIFIED_TRANSACTION_ACTIVITY",
+      "LIQUIDITY",
+      "FAILED_SALE_RATE",
+      "TIME_TO_SALE"
+    ],
+    "admission_rule": "Derived market-activity metrics require evidence-class-specific references; listing or bid/ask evidence cannot satisfy verified sold-event requirements.",
+    "scope_adapter_states": [
+      "SELF_COLLECTABLE_OPEN",
+      "SELF_COLLECTABLE_CREDENTIAL_REQUIRED",
+      "RIGHTS_LIMITED",
+      "EXTERNAL_CAPABILITY_CANDIDATE",
+      "NO_DEFENSIBLE_PATH_FOUND"
+    ]
+  },
+  "challenger_reterminalization": {
+    "slot_count": 160,
+    "allowed_terminal_states": [
+      "SELECTED",
+      "PARTIAL_EVIDENCE",
+      "BLOCKED_BY_MARKET_ACTIVITY",
+      "BLOCKED_BY_REGIONAL_INDEPENDENCE",
+      "NO_DEFENSIBLE_CANDIDATE"
+    ],
+    "forced_selection": false,
+    "selection_requires_role_evidence": true
+  },
+  "scale_gate": {
+    "full_320_expansion_allowed": false,
+    "unlock_conditions": [
+      "REGIONAL_MARKET_INDEPENDENCE_P0_REDUCED_OR_EXPLICITLY_BOUNDED",
+      "SCOPE_SPECIFIC_MARKET_ACTIVITY_DEPTH_P0_REDUCED_OR_EXPLICITLY_BOUNDED",
+      "160_CHALLENGER_SLOTS_RETERMINALIZED",
+      "TRACK_B_INDEPENDENT_REVIEW_PASS_OR_BOUNDED",
+      "NO_CRITICAL_FALSE_COMPARABILITY"
+    ]
+  },
+  "provider_rule": {
+    "decision_unit": "SCOPE_X_EVIDENCE_CLASS_X_RIGHTS_X_DECISION_UTILITY_X_DEPENDENCY_RISK",
+    "broad_provider_selection": "PROHIBITED",
+    "targeted_inquiry_requires_program_owner_authorization": true
+  },
+  "track_alignment": {
+    "A": "Collect evidence and produce candidates; never self-approve truth.",
+    "B": "Independently validate evidence sufficiency, independence, semantics and normalization boundaries.",
+    "C": "Consume Projection only; render confidence, limits and gaps without local market inference.",
+    "D": "Operate DEV/STAGING adapters, retries, audit and aging jobs; no business-truth creation.",
+    "E": "Surface decisions, blockers and defect states; no Registry mutation or market-truth generation."
+  }
+}
