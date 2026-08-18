@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kaios.example/schemas/kidults/asi-market-funnel-event-v1.schema.json",
+  "title": "KIDULTS ASI Market Funnel Event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "occurred_at",
+    "observed_at",
+    "producer_engine",
+    "producer_version",
+    "correlation_id",
+    "causation_id",
+    "idempotency_key",
+    "partition",
+    "input_snapshot_ref",
+    "payload_hash",
+    "rights_state",
+    "freshness_state",
+    "payload"
+  ],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "SOURCE_DISCOVERED",
+        "SOURCE_IDENTIFIED",
+        "SOURCE_CLASSIFICATION_ASSERTED",
+        "SOURCE_QUALIFICATION_ASSERTED",
+        "SOURCE_PURPOSE_ADMISSION_DECIDED",
+        "ACQUISITION_PLANNED",
+        "SOURCE_RECORD_QUARANTINED",
+        "SOURCE_RECORD_ADMITTED",
+        "ENTITY_RESOLUTION_ASSERTED",
+        "EVIDENCE_ASSERTED",
+        "MARKET_EVENT_ASSERTED",
+        "MARKET_CELL_ANALYZED",
+        "INTELLIGENCE_ELIGIBILITY_DECIDED",
+        "ENGINE_TASK_HELD",
+        "ENGINE_TASK_DEAD_LETTERED"
+      ]
+    },
+    "event_version": {"const": "1.0.0"},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "producer_engine": {"type": "string", "minLength": 1},
+    "producer_version": {"type": "string", "minLength": 1},
+    "correlation_id": {"type": "string", "minLength": 1},
+    "causation_id": {"type": ["string", "null"]},
+    "idempotency_key": {"type": "string", "minLength": 1},
+    "partition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["channel", "region", "language", "scope_id", "source_role", "canonical_host_hash"],
+      "properties": {
+        "channel": {"type": "string", "minLength": 1},
+        "region": {"type": "string", "minLength": 1},
+        "language": {"type": "string", "minLength": 1},
+        "scope_id": {"type": "string", "minLength": 1},
+        "source_role": {"type": "string", "minLength": 1},
+        "canonical_host_hash": {"type": "string", "minLength": 1}
+      }
+    },
+    "input_snapshot_ref": {"type": "string", "minLength": 1},
+    "payload_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "rights_state": {"enum": ["ALLOW", "DENY", "UNKNOWN", "NOT_APPLICABLE"]},
+    "freshness_state": {"enum": ["CURRENT", "STALE", "EXPIRED", "UNKNOWN"]},
+    "assertion_purpose": {"type": ["string", "null"]},
+    "decision": {"enum": ["PASS", "HOLD", "REJECT", "NOT_APPLICABLE", null]},
+    "reason_codes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "trace_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "payload": {"type": "object"}
+  }
+}

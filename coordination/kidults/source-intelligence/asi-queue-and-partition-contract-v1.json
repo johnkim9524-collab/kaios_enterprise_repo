@@ -1,0 +1,74 @@
+{
+  "id": "kidults-asi-queue-and-partition-contract-v1",
+  "version": "1.0.0",
+  "status": "DECLARED_RUNTIME_IMPLEMENTATION_PENDING",
+  "event_schema": "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json",
+  "delivery_semantics": "AT_LEAST_ONCE",
+  "consumer_semantics": "IDEMPOTENT",
+  "partition_dimensions": ["channel", "region", "language", "scope_id", "source_role", "canonical_host_hash"],
+  "queue_classes": [
+    {
+      "queue_class": "DISCOVERY_TASK",
+      "producers": ["EVENT_ROUTER_AND_LEASE_SCHEDULER"],
+      "consumer_fleet_count": 12,
+      "fan_out": true
+    },
+    {
+      "queue_class": "SOURCE_IDENTITY_CLASSIFICATION_TASK",
+      "producers": ["DISCOVERY_FLEETS"],
+      "consumer_fleet_count": 4,
+      "fan_out": true
+    },
+    {
+      "queue_class": "SOURCE_QUALIFICATION_TASK",
+      "producers": ["SOURCE_IDENTITY_AND_CLASSIFICATION_FLEETS"],
+      "consumer_fleet_count": 7,
+      "fan_out": true
+    },
+    {
+      "queue_class": "PURPOSE_ADMISSION_TASK",
+      "producers": ["SOURCE_QUALIFICATION_FLEETS"],
+      "consumer_fleet_count": 2,
+      "fan_out": false,
+      "fan_in_mode": "REBUILDABLE_MATERIALIZED_VIEW_PER_SOURCE_PURPOSE_PARTITION"
+    },
+    {
+      "queue_class": "ACQUISITION_AND_MARKET_PIPELINE_TASK",
+      "producers": ["ACQUISITION_PLANNER", "SOURCE_POOL_EVOLUTION"],
+      "consumer_fleet_count": 23,
+      "fan_out": true
+    }
+  ],
+  "required_queue_controls": [
+    "LEASE",
+    "VISIBILITY_TIMEOUT",
+    "BOUNDED_RETRY",
+    "DEAD_LETTER_QUEUE",
+    "REPLAY",
+    "OUTBOX",
+    "PER_PARTITION_WATERMARK",
+    "CIRCUIT_BREAKER",
+    "RATE_AND_COST_BUDGET",
+    "AUDIT"
+  ],
+  "forbidden_patterns": [
+    "GLOBAL_QUEUE_FOR_ALL_STAGES",
+    "GLOBAL_LOCK",
+    "GLOBAL_BATCH_COMPLETION_BARRIER",
+    "SYNCHRONOUS_ENGINE_CHAIN",
+    "UNBOUNDED_RETRY",
+    "DROP_ON_CONSUMER_FAILURE",
+    "CONTROL_PLANE_MARKET_ANALYSIS"
+  ],
+  "fairness": {
+    "dimensions": ["scope_id", "region", "language", "source_role", "channel"],
+    "starvation_allowed": false,
+    "priority_policy": "DECISION_VALUE_PLUS_COVERAGE_GAP_PLUS_OLDEST_AGE_WITH_PER_DIMENSION_RESERVE"
+  },
+  "deployment": {
+    "fixed_worker_count": null,
+    "horizontal_autoscaling": true,
+    "scale_unit": "ENGINE_FLEET_PARTITION",
+    "production": "HOLD"
+  }
+}

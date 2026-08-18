@@ -1,0 +1,272 @@
+{
+  "id": "kidults-asi-market-funnel-engine-mesh-v1",
+  "record_type": "market_facing_autonomous_engine_mesh_contract",
+  "version": "1.0.0",
+  "status": "ARCHITECTURE_AND_DETERMINISTIC_PREFLIGHT_READY_RUNTIME_FLEETS_NOT_DEPLOYED",
+  "created_at": "2026-08-18T13:30:00Z",
+  "created_by": "KPMO / Atlas",
+  "approved_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "purpose": "Turn the worldwide public market into a broad-to-narrow, event-driven collection and analysis funnel whose independent engine fleets can scale, fail and recover without stopping the whole platform.",
+  "truth_boundary": {
+    "declared_engine_fleets_are_running_services": false,
+    "durable_queue_runtime_deployed": false,
+    "live_worldwide_discovery_proven": false,
+    "source_pools_ready": 0,
+    "market_indexes_computed": 0,
+    "production": "HOLD"
+  },
+  "current_state_diagnosis": {
+    "legacy_asi_engine_taxonomies": [8, 11],
+    "canonical_asi_domain_count": 11,
+    "current_active_asi_execution_modules": 1,
+    "current_live_global_source_adapters": 0,
+    "staging_golden_path_adapters": 1,
+    "current_market_analysis_runtime_functions": 1,
+    "current_durable_queue_bindings": 0,
+    "diagnosis": "MULTI_ENGINE_BLUEPRINT_BUT_EFFECTIVELY_MONOLITHIC_SERIAL_RUNTIME"
+  },
+  "architecture_rule": "ONE_POLICY_CONTROL_PLANE_MANY_INDEPENDENT_DATA_PLANE_ENGINE_FLEETS",
+  "funnel_grain_rule": "COUNTS_ARE_COMPARED_ONLY_WITHIN_THE_SAME_DECLARED_GRAIN; HOST_DEDUPLICATION_MAY_NARROW_WHILE_SCOPE_ROLE_ASSOCIATIONS_MAY_FAN_OUT",
+  "asi_funnel": {
+    "engine_fleet_contract_count": 25,
+    "stages": [
+      {
+        "stage_id": "F0_GLOBAL_MARKET_SENSING",
+        "input_grain": "DISCOVERY_FRONTIER_TASK",
+        "output_grain": "SOURCE_DISCOVERY_OBSERVATION",
+        "mode": "PARALLEL_FAN_OUT_BY_CHANNEL_REGION_LANGUAGE_SCOPE_ROLE",
+        "engine_fleets": [
+          "DISCOVERY_COMMON_CRAWL_WDC",
+          "DISCOVERY_OVERTURE_MAPS",
+          "DISCOVERY_WIKIDATA",
+          "DISCOVERY_OPENSTREETMAP",
+          "DISCOVERY_GITHUB_HOMEPAGE",
+          "DISCOVERY_DATACITE_OPEN_RESEARCH",
+          "DISCOVERY_GLOBAL_NEWS_EVENTS",
+          "DISCOVERY_GOVERNMENT_REGIONAL_CATALOGS",
+          "DISCOVERY_ICANN_PUBLIC_ZONES",
+          "DISCOVERY_INTERNET_ARCHIVE_CONTINUITY",
+          "DISCOVERY_APPROVED_DIRECTORY_OUTBOUND_FRONTIER",
+          "DISCOVERY_OPTIONAL_LICENSED_GAP_FILL"
+        ],
+        "admission_boundary": "DISCOVERY_METADATA_ONLY_NO_SOURCE_OR_MARKET_CLAIM"
+      },
+      {
+        "stage_id": "F1_SOURCE_IDENTITY_AND_CLASSIFICATION",
+        "input_grain": "SOURCE_DISCOVERY_OBSERVATION",
+        "output_grain": "CANONICAL_SOURCE_CANDIDATE_AND_SCOPE_ROLE_BINDING",
+        "mode": "PARALLEL_ANALYSIS_ASSERTIONS",
+        "engine_fleets": [
+          "SOURCE_SITE_IDENTITY_OWNER_LINEAGE",
+          "SOURCE_SCOPE_ROLE_CLASSIFICATION",
+          "SOURCE_REGION_LANGUAGE_CLASSIFICATION",
+          "SOURCE_MARKET_SEMANTICS_CLASSIFICATION"
+        ],
+        "admission_boundary": "IDENTITY_AND_CLASSIFICATION_ASSERTIONS_REMAIN_VERSIONED_AND_REVERSIBLE"
+      },
+      {
+        "stage_id": "F2_SOURCE_QUALIFICATION_ANALYSIS",
+        "input_grain": "CANONICAL_SOURCE_CANDIDATE_AND_SCOPE_ROLE_BINDING",
+        "output_grain": "PURPOSE_SPECIFIC_SOURCE_QUALIFICATION_ASSERTION",
+        "mode": "SEVEN_INDEPENDENT_FAN_OUT_ANALYSIS_FLEETS",
+        "engine_fleets": [
+          "SOURCE_UTILITY_VALUE_ANALYSIS",
+          "SOURCE_RIGHTS_COMPLIANCE_ANALYSIS",
+          "SOURCE_TECHNICAL_ACCESS_SCHEMA_ANALYSIS",
+          "SOURCE_COVERAGE_BIAS_ANALYSIS",
+          "SOURCE_INDEPENDENCE_REDUNDANCY_ANALYSIS",
+          "SOURCE_FRESHNESS_STABILITY_ANALYSIS",
+          "SOURCE_COST_ROI_ANALYSIS"
+        ],
+        "admission_boundary": "NO_SINGLE_GLOBAL_SOURCE_PASS_FAIL; EACH_PURPOSE_HAS_ITS_OWN_ELIGIBILITY"
+      },
+      {
+        "stage_id": "F3_SOURCE_PORTFOLIO_DECISION",
+        "input_grain": "PURPOSE_SPECIFIC_SOURCE_QUALIFICATION_ASSERTION",
+        "output_grain": "VERSIONED_ACQUISITION_PLAN_OR_SOURCE_POOL_DECISION",
+        "mode": "REPLICABLE_MATERIALIZED_FAN_IN",
+        "engine_fleets": [
+          "ACQUISITION_PLANNER",
+          "SOURCE_POOL_EVOLUTION"
+        ],
+        "admission_boundary": "UNKNOWN_OR_MISSING_CRITICAL_ASSERTION_HOLDS_ONLY_THE_AFFECTED_PURPOSE_SOURCE_AND_PARTITION"
+      }
+    ]
+  },
+  "downstream_market_funnel": {
+    "engine_role_count": 23,
+    "stages": [
+      {
+        "stage_id": "F4_RIGHTS_AWARE_COLLECTION_AND_CONTROL",
+        "engine_roles": [
+          "SOURCE_ADAPTER_FACTORY",
+          "REQUEST_BUDGET_CONTROLLER",
+          "RAW_QUARANTINE_ENGINE",
+          "RIGHTS_PROVENANCE_FRESHNESS_GATE",
+          "FAILURE_RECOVERY_AND_AUDIT"
+        ],
+        "output_grain": "ADMITTED_OR_QUARANTINED_SOURCE_RECORD"
+      },
+      {
+        "stage_id": "F5_CANONICAL_TRUTH_EVIDENCE_AND_MARKET_GRAPH",
+        "engine_roles": [
+          "ENTITY_RESOLUTION_ENGINE",
+          "CANONICAL_OBJECT_ENGINE",
+          "APPEND_ONLY_BITEMPORAL_MEMORY",
+          "CORRECTION_AND_SUPERSESSION_ENGINE",
+          "EVIDENCE_GRAPH_ENGINE",
+          "MARKET_EVENT_ENGINE",
+          "MARKET_GRAPH_ENGINE",
+          "CONFIDENCE_AND_EXPLAINABILITY_ENGINE",
+          "CLUSTER_DISCOVERY_ENGINE"
+        ],
+        "output_grain": "VERSIONED_EVIDENCE_ASSERTION_MARKET_EVENT_AND_MARKET_CELL"
+      },
+      {
+        "stage_id": "F6_IRREPLACEABLE_MARKET_INTELLIGENCE",
+        "engine_roles": [
+          "OBJECT_INTELLIGENCE_PASSPORT_ENGINE",
+          "COMPARABLE_MARKET_ENGINE",
+          "SCARCITY_AND_AVAILABILITY_ENGINE",
+          "LIQUIDITY_AND_EXIT_RISK_ENGINE",
+          "MARKET_MOMENTUM_ENGINE",
+          "OPPORTUNITY_ENGINE",
+          "VERTICAL_INTELLIGENCE_INDEX_ENGINE",
+          "KIDULT_500_ENGINE",
+          "KIDULT_100_ENGINE"
+        ],
+        "output_grain": "GOVERNED_INTELLIGENCE_PRODUCT_OR_NOT_RANKABLE_DECISION",
+        "projection_handoff": "PROJECTION_REGISTRY_ONLY_NO_DIRECT_PROVIDER_OR_ENGINE_TO_PORTAL_PATH"
+      }
+    ]
+  },
+  "market_semantic_extractors": [
+    "LISTING_EVENT_EXTRACTOR",
+    "SOLD_TRANSACTION_EVENT_EXTRACTOR",
+    "FAILED_SALE_AND_TIME_TO_SALE_EXTRACTOR",
+    "AUTHENTICATION_CONDITION_EVENT_EXTRACTOR",
+    "PROVENANCE_EVENT_EXTRACTOR",
+    "CULTURAL_ATTENTION_EVENT_EXTRACTOR"
+  ],
+  "semantic_invariants": [
+    "LISTING_IS_NOT_SOLD_TRANSACTION",
+    "BID_OR_ASK_IS_NOT_TRANSACTION",
+    "MUSEUM_OR_INSTITUTIONAL_PRESENCE_IS_NOT_DEMAND_OR_LIQUIDITY",
+    "HIGH_PRICE_IS_NOT_DEMAND_OR_SCARCITY",
+    "MISSING_IS_NOT_ZERO",
+    "DISCOVERY_IS_NOT_COLLECTION_AUTHORIZATION",
+    "ROBOTS_ALLOW_IS_NOT_COMMERCIAL_REUSE_AUTHORIZATION",
+    "SOURCE_CONFIDENCE_IS_NOT_OBJECT_AUTHENTICITY"
+  ],
+  "control_plane": {
+    "may_process_market_data": false,
+    "services": [
+      "ENGINE_AND_SCHEMA_REGISTRY",
+      "EVENT_ROUTER_AND_LEASE_SCHEDULER",
+      "POLICY_AND_HUMAN_GATE_CONTROLLER",
+      "RATE_COST_AND_CAPACITY_CONTROLLER",
+      "OBSERVABILITY_AND_BOTTLENECK_MONITOR",
+      "REPLAY_RECOVERY_AND_DEAD_LETTER_CONTROLLER"
+    ]
+  },
+  "partition_contract": {
+    "required_dimensions": [
+      "channel",
+      "region",
+      "language",
+      "scope_id",
+      "source_role",
+      "canonical_host_hash"
+    ],
+    "elastic_worker_instances": true,
+    "fixed_worker_count": null,
+    "global_lock_allowed": false,
+    "global_batch_barrier_allowed": false,
+    "single_shared_data_queue_allowed": false
+  },
+  "event_contract": {
+    "schema": "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json",
+    "delivery": "AT_LEAST_ONCE_WITH_IDEMPOTENT_CONSUMERS",
+    "immutable_assertions": true,
+    "outbox_required": true,
+    "replay_required": true,
+    "dead_letter_queue_required": true,
+    "per_partition_watermark_required": true,
+    "late_arrival_and_supersession_required": true
+  },
+  "anti_bottleneck_invariants": [
+    "NO_SYNCHRONOUS_ENGINE_TO_ENGINE_DATA_CALL",
+    "NO_CHANNEL_FAILURE_STOPS_OTHER_CHANNELS",
+    "NO_SCOPE_OR_REGION_FAILURE_STOPS_UNRELATED_PARTITIONS",
+    "NO_SINGLE_ANALYSIS_ENGINE_OWNS_MULTIPLE_QUALIFICATION_ASSERTION_TYPES",
+    "NO_GLOBAL_FAN_IN_WAITS_FOR_ALL_WORLDWIDE_SOURCES",
+    "ADMISSION_AGGREGATORS_ARE_REBUILDABLE_MATERIALIZED_VIEWS",
+    "TRACK_B_IS_ASYNCHRONOUS_SAMPLING_CALIBRATION_NOT_A_PER_RECORD_SERIAL_GATE",
+    "HUMAN_GATES_APPLY_ONLY_TO_CONTRACT_SPEND_RIGHTS_PUBLICATION_PRODUCTION_AND_RESIDUAL_RISK",
+    "EACH_QUEUE_HAS_LEASE_RETRY_DLQ_REPLAY_AND_CIRCUIT_BREAKER",
+    "EACH_ENGINE_FLEET_SCALES_INDEPENDENTLY"
+  ],
+  "bottleneck_telemetry": {
+    "required_per_queue": [
+      "arrival_rate",
+      "service_rate",
+      "oldest_message_age",
+      "p50_processing_latency",
+      "p95_processing_latency",
+      "retry_rate",
+      "dead_letter_rate",
+      "in_flight_count",
+      "partition_skew",
+      "admission_hold_rate"
+    ],
+    "bottleneck_condition": "SUSTAINED_ARRIVAL_RATE_GT_SERVICE_RATE_OR_OLDEST_MESSAGE_AGE_SLO_BREACH",
+    "response": "SCALE_ONLY_AFFECTED_FLEET_OR_REBALANCE_ONLY_AFFECTED_PARTITIONS"
+  },
+  "principle_enforcement": {
+    "AUTONOMOUS": [
+      "INDEPENDENT_WORKER_FLEETS",
+      "RETRY_DLQ_REPLAY",
+      "CIRCUIT_BREAKER",
+      "SELF_RECOVERY",
+      "HUMAN_EXCEPTION_ONLY"
+    ],
+    "GLOBAL": [
+      "32_CANONICAL_SCOPES",
+      "12_WORLD_REGIONS",
+      "LANGUAGE_AWARE_PARTITIONS",
+      "OPEN_ENDED_SOURCE_UNIVERSE",
+      "REGIONAL_GAP_VISIBILITY"
+    ],
+    "IRREPLACEABLE_VALUE": [
+      "SOLD_LISTING_AUTHENTICATION_MARKET_EVIDENCE_FIRST",
+      "OBJECT_PASSPORT",
+      "COMPARABLES",
+      "SCARCITY",
+      "LIQUIDITY_EXIT_RISK",
+      "MOMENTUM",
+      "OPPORTUNITY"
+    ],
+    "TRANSPARENT": [
+      "IMMUTABLE_INPUT_SNAPSHOT",
+      "VERSIONED_ENGINE_AND_SCHEMA",
+      "ASSERTION_LEVEL_LINEAGE",
+      "REJECTION_AND_HOLD_REASON",
+      "CONFIDENCE_AND_COVERAGE",
+      "AUDITABLE_REPLAY"
+    ]
+  },
+  "human_gates": [
+    "PAID_PROVIDER_OR_FINANCIAL_COMMITMENT",
+    "RIGHTS_AND_COMMERCIAL_USE_CLEARANCE",
+    "PUBLICATION",
+    "PRODUCTION_ACTIVATION",
+    "DESTRUCTIVE_INFRASTRUCTURE_CHANGE",
+    "RESIDUAL_RISK_ACCEPTANCE"
+  ],
+  "next_runtime_gate": "IMPLEMENT_DURABLE_EVENT_BUS_AND_SPLIT_THE_12_DISCOVERY_4_CLASSIFICATION_7_ANALYSIS_2_DECISION_FLEETS_BEHIND_SHADOW_QUEUES"
+}
