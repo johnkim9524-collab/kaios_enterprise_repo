@@ -39,7 +39,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p artifacts/input/candidate-r2-five-source-preflight
-          gh run download 31939060074 \
+          gh run download 32135246261 \
             --repo "johnkim9524-collab/kaios_enterprise_repo" \
             --name kidults-agci-os-candidate-r2-five-source-preflight \
             --dir artifacts/input/candidate-r2-five-source-preflight
