@@ -1,63 +1,16 @@
 {
   "id":"kidults-market-activity-source-feasibility-wave1",
-  "version":"1.0.0",
+  "version":"1.1.0",
   "status":"TRACK_B_REVIEW_CANDIDATE",
   "parent_issue":446,
-  "purpose":"Quantify what current official/public market channels can and cannot support before any Provider contact.",
+  "purpose":"Quantify what current official/public market channels can and cannot support before any Provider contact, including scope-specific authenticated developer APIs that may reduce provider dependency.",
   "sources":[
-    {
-      "id":"EBAY_BROWSE_ACTIVE_MARKET",
-      "source_family":"EBAY_MARKETPLACE",
-      "evidence_classes":["PUBLIC_AVAILABILITY_LISTINGS","VENUE_PRESENCE","BID_ASK_DEPTH"],
-      "semantics":"ACTIVE_ITEMS_AND_BID_COUNT_SIGNAL_ONLY",
-      "access":"BUY_APIS_APPROVED_PARTNER_APPLICATION_REQUIRED",
-      "rights":"USE_CASE_AND_PLATFORM_TERMS_REQUIRED",
-      "classification":"ACCESS_LIMITED",
-      "must_not_support":["VERIFIED_SOLD_EVENT_HISTORY","REALIZED_PRICE","TIME_TO_SALE"],
-      "official_evidence":"https://developer.ebay.com/api-docs/buy/static/ref-buy-browse-filters.html"
-    },
-    {
-      "id":"EBAY_MARKETPLACE_INSIGHTS",
-      "source_family":"EBAY_MARKETPLACE",
-      "evidence_classes":["VERIFIED_SOLD_EVENT_HISTORY"],
-      "semantics":"SALES_HISTORY_OF_SOLD_ITEMS",
-      "access":"LIMITED_RELEASE_NOT_OPEN_TO_NEW_USERS",
-      "rights":"APPLICATION_AND_USE_CASE_APPROVAL_REQUIRED",
-      "classification":"ACCESS_LIMITED_EXTERNAL_CAPABILITY_CANDIDATE",
-      "official_evidence":"https://developer.ebay.com/develop/get-started/get-started-on-a-buying-application"
-    },
-    {
-      "id":"DISCOGS_MARKETPLACE_HISTORY",
-      "source_family":"DISCOGS_MARKETPLACE",
-      "evidence_classes":["VERIFIED_SOLD_EVENT_HISTORY","PUBLIC_AVAILABILITY_LISTINGS"],
-      "semantics":"MARKETPLACE_DATA_INCLUDES_PRICING_AND_SALES_HISTORY",
-      "access":"API_SUBJECT_TO_TERMS",
-      "rights":"MARKETPLACE_DATA_IS_RESTRICTED_DATA_NOT_CC0_AND_NOT_FOR_COMMERCIAL_REUSE_WITHOUT_PERMISSION",
-      "classification":"RIGHTS_LIMITED",
-      "official_evidence":"https://support.discogs.com/hc/en-us/articles/360009334593-API-Terms-of-Use"
-    },
-    {
-      "id":"CLASSIC_COM_SALES_HISTORY",
-      "source_family":"CLASSIC_COM_SPECIALTY_CAR_DATA",
-      "evidence_classes":["VERIFIED_SOLD_EVENT_HISTORY","FAILED_SALE_OBSERVATION","TEMPORAL_ACTIVITY_PERSISTENCE","PUBLIC_AVAILABILITY_LISTINGS"],
-      "semantics":"LICENSED_VEHICLE_SALES_HISTORY_WITH_SOLD_NOT_SOLD_WITHDRAWN_AND_PRICE_FIELDS",
-      "access":"AUTHORIZED_THIRD_PARTY_PARTNER_LICENSED_BUNDLE",
-      "rights":"LICENSE_REQUIRED_PER_INTEGRATION",
-      "classification":"EXTERNAL_CAPABILITY_REQUIRED_FOR_CURRENT_ACCESS_MODEL",
-      "scope_fit":["collector_cars","modern_classics"],
-      "official_evidence":"https://support.classic.com/classic.com-api"
-    },
-    {
-      "id":"STOCKX_MARKET_DATA",
-      "source_family":"STOCKX_MARKETPLACE",
-      "evidence_classes":["BID_ASK_DEPTH","VENUE_PRESENCE"],
-      "semantics":"HIGHEST_BID_LOWEST_ASK_ONLY",
-      "access":"API_KEY_AND_JWT_APPROVAL",
-      "rights":"USE_CASE_APPROVAL_REQUIRED",
-      "classification":"ACCESS_LIMITED_MARKET_SIGNAL_ONLY",
-      "must_not_support":["VERIFIED_SOLD_EVENT_HISTORY","REALIZED_PRICE"],
-      "official_evidence":"https://developer.stockx.com/portal/api-reference"
-    }
+    {"id":"EBAY_BROWSE_ACTIVE_MARKET","source_family":"EBAY_MARKETPLACE","evidence_classes":["PUBLIC_AVAILABILITY_LISTINGS","VENUE_PRESENCE","BID_ASK_DEPTH"],"semantics":"ACTIVE_ITEMS_AND_BID_COUNT_SIGNAL_ONLY","access":"BUY_APIS_APPROVED_PARTNER_APPLICATION_REQUIRED","rights":"USE_CASE_AND_PLATFORM_TERMS_REQUIRED","classification":"ACCESS_LIMITED","must_not_support":["VERIFIED_SOLD_EVENT_HISTORY","REALIZED_PRICE","TIME_TO_SALE"],"official_evidence":"https://developer.ebay.com/api-docs/buy/static/ref-buy-browse-filters.html"},
+    {"id":"EBAY_MARKETPLACE_INSIGHTS","source_family":"EBAY_MARKETPLACE","evidence_classes":["VERIFIED_SOLD_EVENT_HISTORY"],"semantics":"SALES_HISTORY_OF_SOLD_ITEMS","access":"LIMITED_RELEASE_NOT_OPEN_TO_NEW_USERS","rights":"APPLICATION_AND_USE_CASE_APPROVAL_REQUIRED","classification":"ACCESS_LIMITED_EXTERNAL_CAPABILITY_CANDIDATE","official_evidence":"https://developer.ebay.com/develop/get-started/get-started-on-a-buying-application"},
+    {"id":"DISCOGS_MARKETPLACE_HISTORY","source_family":"DISCOGS_MARKETPLACE","evidence_classes":["VERIFIED_SOLD_EVENT_HISTORY","PUBLIC_AVAILABILITY_LISTINGS"],"semantics":"MARKETPLACE_DATA_INCLUDES_PRICING_AND_SALES_HISTORY","access":"API_SUBJECT_TO_TERMS","rights":"MARKETPLACE_DATA_IS_RESTRICTED_DATA_NOT_CC0_AND_NOT_FOR_COMMERCIAL_REUSE_WITHOUT_PERMISSION","classification":"RIGHTS_LIMITED","official_evidence":"https://support.discogs.com/hc/en-us/articles/360009334593-API-Terms-of-Use"},
+    {"id":"CLASSIC_COM_SALES_HISTORY","source_family":"CLASSIC_COM_SPECIALTY_CAR_DATA","evidence_classes":["VERIFIED_SOLD_EVENT_HISTORY","FAILED_SALE_OBSERVATION","TEMPORAL_ACTIVITY_PERSISTENCE","PUBLIC_AVAILABILITY_LISTINGS"],"semantics":"LICENSED_VEHICLE_SALES_HISTORY_WITH_SOLD_NOT_SOLD_WITHDRAWN_AND_PRICE_FIELDS","access":"AUTHORIZED_THIRD_PARTY_PARTNER_LICENSED_BUNDLE","rights":"LICENSE_REQUIRED_PER_INTEGRATION","classification":"EXTERNAL_CAPABILITY_REQUIRED_FOR_CURRENT_ACCESS_MODEL","scope_fit":["collector_cars","modern_classics"],"official_evidence":"https://support.classic.com/classic.com-api"},
+    {"id":"STOCKX_MARKET_DATA","source_family":"STOCKX_MARKETPLACE","evidence_classes":["BID_ASK_DEPTH","VENUE_PRESENCE"],"semantics":"HIGHEST_BID_LOWEST_ASK_ONLY","access":"API_KEY_AND_JWT_APPROVAL","rights":"USE_CASE_APPROVAL_REQUIRED","classification":"ACCESS_LIMITED_MARKET_SIGNAL_ONLY","must_not_support":["VERIFIED_SOLD_EVENT_HISTORY","REALIZED_PRICE"],"official_evidence":"https://developer.stockx.com/portal/api-reference"},
+    {"id":"BRICKLINK_PRICE_GUIDE","source_family":"BRICKLINK_MARKETPLACE","evidence_classes":["VERIFIED_SOLD_EVENT_HISTORY","TEMPORAL_ACTIVITY_PERSISTENCE","REGIONAL_ACTIVITY_SIGNAL"],"semantics":"AUTHENTICATED_PRICE_GUIDE_CAN_QUERY_RECENT_SOLD_HISTORY_AND_SALES_FREQUENCY_WITH_REGION_COUNTRY_FILTERS","access":"OAUTH_1_0_DEVELOPER_CREDENTIALS_REQUIRED","rights":"COMMERCIAL_INDEX_REUSE_NOT_YET_VERIFIED_TERMS_PREFLIGHT_REQUIRED","classification":"SELF_COLLECTABLE_CREDENTIAL_REQUIRED_RIGHTS_PREFLIGHT","scope_fit":["construction_mechanical_sets"],"time_depth":"RECENT_SIX_MONTH_PRICE_GUIDE_WINDOW","must_not_support":["PLATFORM_WIDE_SOLD_HISTORY","RIGHTS_CLEARED_PUBLICATION_UNTIL_TERMS_PREFLIGHT"],"official_evidence":"https://www.bricklink.com/v3/api.page?page=get-price-guide"}
   ],
   "current_open_institutional_topology":{"channels":["MET_OPEN_ACCESS","LOC_JSON_API","MUSICBRAINZ_CORE","VAM_COLLECTIONS_API","AIC_COLLECTION_API"],"market_activity_roles":0,"finding":"Current rights-safe institutional topology supports catalog/provenance/culture but no transaction/activity evidence class."},
   "evidence_class_disposition":{
@@ -65,13 +18,14 @@
     "VENUE_PRESENCE":"SELF_COLLECTABLE_POTENTIAL",
     "BID_ASK_DEPTH":"ACCESS_LIMITED_SIGNAL_ONLY",
     "AUCTION_RESULT_REFERENCE":"SELF_COLLECTABLE_POTENTIAL_REQUIRES_EVENT_AND_RIGHTS_VALIDATION",
-    "VERIFIED_SOLD_EVENT_HISTORY":"EXTERNAL_CAPABILITY_CANDIDATE_CURRENTLY_NO_RIGHTS_CLEAR_OPEN_CHANNEL",
+    "VERIFIED_SOLD_EVENT_HISTORY":"SCOPE_DEPENDENT_EXTERNAL_OR_AUTHENTICATED_SELF_COLLECTION_CAPABILITY; NO_UNIVERSAL_RIGHTS_CLEAR_CHANNEL",
     "FAILED_SALE_OBSERVATION":"EXTERNAL_CAPABILITY_CANDIDATE_CURRENTLY_NO_RIGHTS_CLEAR_OPEN_CHANNEL",
     "TIME_TO_SALE":"EXTERNAL_CAPABILITY_CANDIDATE_REQUIRES_LINKED_START_AND_TERMINAL_EVENTS",
     "TEMPORAL_ACTIVITY_PERSISTENCE":"PARTIAL_POTENTIAL_DEPENDS_ON_REPEAT_RIGHTS_SAFE_ACTIVITY_OBSERVATION"
   },
-  "decision":"DO_NOT_CONTACT_PROVIDER_YET_RUN_ONE_FINAL_RIGHTS_SAFE_MARKET_SOURCE_DISCOVERY_WAVE_THEN_TRACK_B_CLASSIFY_PROVIDER_NECESSITY",
-  "hard_guards":["LISTING_NE_SOLD","BID_ASK_NE_TRANSACTION","ATTENTION_NE_ACTIVITY_NE_TRANSACTION","AUCTION_RESULT_REFERENCE_NE_VERIFIED_SOLD_UNTIL_VALIDATED","PROVIDER_NE_TRUTH"],
+  "new_finding":"Provider necessity cannot be classified platform-wide. Scope-specific authenticated developer APIs may supply real sold/activity evidence without a commercial data-provider contract, but access and commercial reuse rights must be independently preflighted.",
+  "decision":"DO_NOT_CONTACT_PROVIDER_YET_RUN_ONE_FINAL_RIGHTS_SAFE_AND_AUTHENTICATED_MARKET_SOURCE_DISCOVERY_WAVE_THEN_TRACK_B_CLASSIFY_PROVIDER_NECESSITY_BY_SCOPE",
+  "hard_guards":["LISTING_NE_SOLD","BID_ASK_NE_TRANSACTION","ATTENTION_NE_ACTIVITY_NE_TRANSACTION","AUCTION_RESULT_REFERENCE_NE_VERIFIED_SOLD_UNTIL_VALIDATED","CREDENTIAL_ACCESS_NE_COMMERCIAL_REUSE_RIGHTS","PROVIDER_NE_TRUTH"],
   "provider_contact":"HOLD",
   "production":"HOLD"
 }
