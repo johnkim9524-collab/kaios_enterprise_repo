@@ -1,17 +1,17 @@
 {
   "registry_id":"kidults-blocker-registry",
   "registry_name":"Blocker Registry",
-  "registry_version":"1.3.0",
+  "registry_version":"1.4.0",
   "schema_version":"1.0.0",
   "owner":"KPMO",
   "custodian":"Atlas",
   "status":"ACTIVE",
-  "effective_at":"2026-08-19T06:45:00+09:00",
+  "effective_at":"2026-08-19T06:50:00+09:00",
   "record_directory":"records",
   "record_count":7,
-  "current_record_id":"blocker-entity-resolution-calibration-gap",
+  "current_record_id":"blocker-no-canonical-candidate",
   "records":[
-    {"id":"blocker-no-canonical-candidate","path":"records/blocker-no-canonical-candidate.json","version":"1.1.0","status":"RESOLVED","severity":"CRITICAL"},
+    {"id":"blocker-no-canonical-candidate","path":"records/blocker-no-canonical-candidate.json","version":"1.2.0","status":"OPEN","severity":"CRITICAL"},
     {"id":"blocker-track-c-role-acceptance-pending","path":"records/blocker-track-c-role-acceptance-pending.json","version":"1.1.0","status":"RESOLVED","severity":"HIGH"},
     {"id":"blocker-entity-resolution-calibration-gap","path":"records/blocker-entity-resolution-calibration-gap.json","version":"1.0.0","status":"OPEN","severity":"CRITICAL"},
     {"id":"blocker-market-activity-depth-gap","path":"records/blocker-market-activity-depth-gap.json","version":"1.0.0","status":"OPEN","severity":"CRITICAL"},
@@ -22,6 +22,7 @@
   "change_history":[
     {"version":"1.1.0","changed_at":"2026-08-12T23:10:00+09:00","changed_by":"Atlas","change":"Resolved Track C role-acceptance blocker."},
     {"version":"1.2.0","changed_at":"2026-08-16T11:30:00+09:00","changed_by":"KPMO / Atlas","change":"Resolved no-candidate blocker after internal structural candidate registration."},
-    {"version":"1.3.0","changed_at":"2026-08-19T06:45:00+09:00","changed_by":"KPMO / Atlas","change":"Registered current Holistic Review blockers so Projection/Portal/IH-EOS no longer show an empty blocker state."}
+    {"version":"1.3.0","changed_at":"2026-08-19T06:45:00+09:00","changed_by":"KPMO / Atlas","change":"Registered current Holistic Review blockers so Projection/Portal/IH-EOS no longer show an empty blocker state."},
+    {"version":"1.4.0","changed_at":"2026-08-19T06:50:00+09:00","changed_by":"KPMO / Atlas","change":"Reopened no-current-candidate blocker after the obsolete structural candidate was correctly removed from current authority; immutable history remains preserved."}
   ]
 }
