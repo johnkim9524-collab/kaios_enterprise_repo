@@ -1,0 +1,9 @@
+{
+  "id":"portal-accessibility-assurance-v1",
+  "version":"1.0.0",
+  "status":"CONTRACT_READY_TEST_EVIDENCE_PENDING",
+  "standard":"WCAG_2_2",
+  "required_checks":["keyboard_navigation","visible_focus","semantic_landmarks","form_and_control_labels","text_and_ui_contrast","responsive_reflow_320px","zoom_and_text_resize","screen_reader_name_role_value","reduced_motion_where_applicable","error_and_status_announcement"],
+  "release_rule":"PORTAL_PUBLIC_RELEASE_REQUIRES_EVIDENCE_PASS",
+  "production":"HOLD"
+}

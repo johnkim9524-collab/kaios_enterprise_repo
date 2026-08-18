@@ -1,0 +1,10 @@
+{
+  "id":"privacy-retention-minimization-contract-v1",
+  "version":"1.0.0",
+  "status":"FOUNDATION_REGISTERED",
+  "default_personal_data_disposition":"QUARANTINE_UNTIL_CLASSIFIED",
+  "required_classification":["data_category","personal_data_state","necessity","purpose","retention_period","expiry_or_deletion_rule","access_boundary","provenance_reference"],
+  "principles":["DATA_MINIMIZATION","PURPOSE_LIMITATION","RETENTION_LIMITATION","LEAST_PRIVILEGE","AUDITABILITY"],
+  "rules":{"unclassified_personal_data_admission":false,"missing_retention_rule":"HOLD","public_projection_of_personal_data":false,"raw_provider_personal_data_to_portal":false},
+  "production":"HOLD"
+}
