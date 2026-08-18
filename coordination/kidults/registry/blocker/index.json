@@ -1,1 +1,27 @@
-{"registry_id":"kidults-blocker-registry","registry_name":"Blocker Registry","registry_version":"1.2.0","schema_version":"1.0.0","owner":"KPMO","custodian":"Atlas","status":"ACTIVE","effective_at":"2026-08-16T11:30:00+09:00","record_directory":"records","record_count":2,"current_record_id":"blocker-no-canonical-candidate","records":[{"id":"blocker-no-canonical-candidate","path":"records/blocker-no-canonical-candidate.json","version":"1.1.0","status":"RESOLVED"},{"id":"blocker-track-c-role-acceptance-pending","path":"records/blocker-track-c-role-acceptance-pending.json","version":"1.1.0","status":"RESOLVED"}],"change_history":[{"version":"1.1.0","changed_at":"2026-08-12T23:10:00+09:00","changed_by":"Atlas","change":"Resolved Track C role-acceptance blocker."},{"version":"1.2.0","changed_at":"2026-08-16T11:30:00+09:00","changed_by":"KPMO / Atlas","change":"Resolved no-candidate blocker after immutable internal Candidate candidate-structural-20260816-r1 was registered."}]}
+{
+  "registry_id":"kidults-blocker-registry",
+  "registry_name":"Blocker Registry",
+  "registry_version":"1.3.0",
+  "schema_version":"1.0.0",
+  "owner":"KPMO",
+  "custodian":"Atlas",
+  "status":"ACTIVE",
+  "effective_at":"2026-08-19T06:45:00+09:00",
+  "record_directory":"records",
+  "record_count":7,
+  "current_record_id":"blocker-entity-resolution-calibration-gap",
+  "records":[
+    {"id":"blocker-no-canonical-candidate","path":"records/blocker-no-canonical-candidate.json","version":"1.1.0","status":"RESOLVED","severity":"CRITICAL"},
+    {"id":"blocker-track-c-role-acceptance-pending","path":"records/blocker-track-c-role-acceptance-pending.json","version":"1.1.0","status":"RESOLVED","severity":"HIGH"},
+    {"id":"blocker-entity-resolution-calibration-gap","path":"records/blocker-entity-resolution-calibration-gap.json","version":"1.0.0","status":"OPEN","severity":"CRITICAL"},
+    {"id":"blocker-market-activity-depth-gap","path":"records/blocker-market-activity-depth-gap.json","version":"1.0.0","status":"OPEN","severity":"CRITICAL"},
+    {"id":"blocker-asi-runtime-deployment-gap","path":"records/blocker-asi-runtime-deployment-gap.json","version":"1.0.0","status":"OPEN","severity":"HIGH"},
+    {"id":"blocker-source-pool-live-evidence-gap","path":"records/blocker-source-pool-live-evidence-gap.json","version":"1.0.0","status":"OPEN","severity":"HIGH"},
+    {"id":"blocker-live-approved-projection-gap","path":"records/blocker-live-approved-projection-gap.json","version":"1.0.0","status":"OPEN","severity":"HIGH"}
+  ],
+  "change_history":[
+    {"version":"1.1.0","changed_at":"2026-08-12T23:10:00+09:00","changed_by":"Atlas","change":"Resolved Track C role-acceptance blocker."},
+    {"version":"1.2.0","changed_at":"2026-08-16T11:30:00+09:00","changed_by":"KPMO / Atlas","change":"Resolved no-candidate blocker after internal structural candidate registration."},
+    {"version":"1.3.0","changed_at":"2026-08-19T06:45:00+09:00","changed_by":"KPMO / Atlas","change":"Registered current Holistic Review blockers so Projection/Portal/IH-EOS no longer show an empty blocker state."}
+  ]
+}
