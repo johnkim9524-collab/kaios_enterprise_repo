@@ -1,14 +1,14 @@
 {
   "registry_id":"kidults-assessment-registry",
   "registry_name":"Assessment Registry",
-  "registry_version":"1.3.0",
+  "registry_version":"1.4.0",
   "schema_version":"1.1.0",
   "owner":"KPMO",
   "producer":"Track B",
   "producer_registry_access":"READ_ONLY",
   "custodian":"Atlas",
-  "status":"WAITING_FOR_NEW_IMMUTABLE_PACKAGE",
-  "effective_at":"2026-08-19T06:45:00+09:00",
+  "status":"WAITING_FOR_SNAPSHOT",
+  "effective_at":"2026-08-19T06:50:00+09:00",
   "record_directory":"records",
   "record_count":1,
   "current_assessment_id":null,
@@ -18,10 +18,11 @@
     {"id":"assessment-candidate-structural-20260816-r1-v1","path":"records/assessment-candidate-structural-20260816-r1-v1.json","version":"1.0.0","status":"HISTORICAL_COMPLETED_BLOCKED"}
   ],
   "latest_calibration_state":"PREVIOUS_200_CASE_BLIND_REVIEW_84_PERCENT_GATE_FAIL_CRITICAL_FALSE_AUTO_MERGE_ZERO",
-  "required_next_action":"Wait for exact immutable snapshot candidate + Evidence Package produced by the bounded real PoC; independently validate without threshold relaxation.",
+  "required_next_action":"Wait for a new immutable snapshot candidate; then require its exact matching Evidence Package before assessment starts.",
   "change_history":[
     {"version":"1.1.0","changed_at":"2026-08-16T11:30:00+09:00","changed_by":"KPMO / Atlas","change":"Bound Track B input validation to structural Candidate."},
     {"version":"1.2.0","changed_at":"2026-08-16T12:05:00+09:00","changed_by":"KPMO / Atlas","change":"Registered Track B first immutable BLOCKED Assessment."},
-    {"version":"1.3.0","changed_at":"2026-08-19T06:45:00+09:00","changed_by":"KPMO / Atlas","change":"Preserved the structural assessment as history but cleared current assessment authority; Track B now waits for the next exact immutable PoC package."}
+    {"version":"1.3.0","changed_at":"2026-08-19T06:45:00+09:00","changed_by":"KPMO / Atlas","change":"Preserved structural assessment as history and cleared current authority."},
+    {"version":"1.4.0","changed_at":"2026-08-19T06:50:00+09:00","changed_by":"KPMO / Atlas","change":"Aligned current Assessment Registry state to WAITING_FOR_SNAPSHOT because no current candidate exists."}
   ]
 }
