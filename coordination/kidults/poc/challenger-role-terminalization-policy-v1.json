@@ -1,0 +1,17 @@
+{
+  "id":"kidults-challenger-role-terminalization-policy-v1",
+  "status":"CANONICAL_CANDIDATE",
+  "issue":448,
+  "roles":{
+    "EMERGING_DYNAMIC_VERTICAL":{"terminal_state":"PARTIAL_EVIDENCE","reason":"Public attention is strongly self-collectable, but independent market-activity confirmation remains unresolved.","evidence_refs":["attention-signal-poc-v1 artifact 9307483165"],"remediation":"Add independent activity/venue evidence; never promote attention to demand or transaction."},
+    "REGIONAL":{"terminal_state":"BLOCKED_BY_REGIONAL_INDEPENDENCE","reason":"Regional public representation can be probed, but the Regional contract requires >=2 independent source families plus institutional/release/venue evidence.","evidence_refs":["regional-evidence-contract-v1","regional-live-diagnostic-v1"],"remediation":"Add independent regional institution/release/venue family and validate mapping grammar."},
+    "SCARCE_ILLIQUID":{"terminal_state":"BLOCKED_BY_MARKET_ACTIVITY","reason":"Scarcity evidence and illiquidity evidence are distinct; illiquidity cannot be inferred without actual activity/availability history.","evidence_refs":["scarcity-activity-evidence-contract-v1"],"remediation":"Acquire temporal activity/availability evidence and keep missing-data != illiquidity."},
+    "HIGH_LIQUIDITY_OR_ACTIVE_MARKET":{"terminal_state":"BLOCKED_BY_MARKET_ACTIVITY","reason":"Liquidity requires verified activity/frequency evidence; listings, bid/ask and attention cannot substitute for sold/activity history.","evidence_refs":["market-activity-feasibility-contract-v1"],"remediation":"Quantify rights-safe activity sources and verified sold-event capability."},
+    "EDGE_CASE":{"terminal_state":"PARTIAL_EVIDENCE","reason":"Scope-specific identity grammar can nominate boundary stressors, but candidate-specific boundary evidence has not been independently completed for all Scopes.","evidence_refs":["scope-specific-product-discovery-grammar-v1","challenger-live-diagnostic-v1"],"remediation":"Use scope grammar to nominate and require explicit boundary-stressor evidence before SELECTED."}
+  },
+  "allowed_states":["SELECTED","PARTIAL_EVIDENCE","BLOCKED_BY_MARKET_ACTIVITY","BLOCKED_BY_REGIONAL_INDEPENDENCE","BLOCKED_BY_MAPPING","NO_DEFENSIBLE_CANDIDATE"],
+  "truth_guards":["ATTENTION_NE_DEMAND_NE_TRANSACTION","ORIGIN_NE_REGIONAL_DEMAND","MISSING_NE_ILLIQUIDITY","LISTING_NE_SOLD","BID_ASK_NE_TRANSACTION","HIGH_PRICE_NE_SCARCITY","NO_AUTO_SCOPE_PROMOTION"],
+  "poc_320_readiness":"BLOCKED_UNTIL_CHALLENGER_ROLE_EVIDENCE_REMediation",
+  "provider_contact":"HOLD",
+  "production":"HOLD"
+}
