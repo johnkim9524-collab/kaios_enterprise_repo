@@ -1,0 +1,23 @@
+name: KIDULTS Scope Product Discovery Grammar v1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/poc/compile-scope-product-discovery-grammar-v1.mjs'
+      - '.github/workflows/kidults-scope-product-discovery-grammar-v1.yml'
+permissions:
+  contents: read
+jobs:
+  compile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/kidults/poc/compile-scope-product-discovery-grammar-v1.mjs coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json tmp/scope-product-discovery-grammar-v1.json
+      - run: |
+          node -e "const x=require('./tmp/scope-product-discovery-grammar-v1.json'); if(x.scope_count!==32) throw Error('scope count'); if(x.records.some(r=>r.templates.length!==5||!r.identity_keys.length)) throw Error('grammar incomplete'); if(!x.guards.includes('NO_GENERIC_SCOPE_NAME_ONLY_QUERY')) throw Error('guard'); console.log(JSON.stringify({status:'PASS',scopes:x.scope_count,templates:x.records.reduce((n,r)=>n+r.templates.length,0)},null,2));"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-scope-product-discovery-grammar-v1
+          path: tmp/scope-product-discovery-grammar-v1.json
