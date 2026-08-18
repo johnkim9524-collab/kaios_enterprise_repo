@@ -6,8 +6,7 @@ on:
       - 'coordination/kidults/kpmo/**'
       - 'coordination/kidults/governance/**'
       - 'coordination/kidults/runtime/observability-slo-contract-v1.json'
-      - 'scripts/kidults/governance/validate-global-standard-preproduction-gate-v1.mjs'
-      - 'scripts/kidults/governance/validate-release-assurance-foundation-v1.mjs'
+      - 'scripts/kidults/governance/**'
       - '.github/workflows/kidults-global-standard-preproduction-gate.yml'
   workflow_dispatch:
 
@@ -27,7 +26,10 @@ jobs:
         run: |
           node --check scripts/kidults/governance/validate-global-standard-preproduction-gate-v1.mjs
           node --check scripts/kidults/governance/validate-release-assurance-foundation-v1.mjs
+          node --check scripts/kidults/governance/validate-value-chain-completion-scorecard-v1.mjs
       - name: Validate global-standard completion gate
         run: node scripts/kidults/governance/validate-global-standard-preproduction-gate-v1.mjs
       - name: Validate release assurance foundation
         run: node scripts/kidults/governance/validate-release-assurance-foundation-v1.mjs
+      - name: Validate evidence-based completion scorecard
+        run: node scripts/kidults/governance/validate-value-chain-completion-scorecard-v1.mjs
