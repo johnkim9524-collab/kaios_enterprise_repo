@@ -5,6 +5,9 @@ on:
     paths:
       - "scripts/kidults/golden-dataset/build-golden-dataset-blind-review-v1.mjs"
       - "scripts/kidults/golden-dataset/validate-golden-dataset-blind-review-v1.mjs"
+      - "scripts/kidults/golden-dataset/run-track-b-blind-identity-review-v1.mjs"
+      - "scripts/kidults/golden-dataset/validate-track-b-blind-identity-review-v1.mjs"
+      - "coordination/kidults/track-b/golden-dataset-v1-track-b-blind-review-r1.json"
       - ".github/workflows/kidults-golden-dataset-blind-review-v1.yml"
   workflow_dispatch:
 
@@ -33,6 +36,8 @@ jobs:
         run: |
           node --check scripts/kidults/golden-dataset/build-golden-dataset-blind-review-v1.mjs
           node --check scripts/kidults/golden-dataset/validate-golden-dataset-blind-review-v1.mjs
+          node --check scripts/kidults/golden-dataset/run-track-b-blind-identity-review-v1.mjs
+          node --check scripts/kidults/golden-dataset/validate-track-b-blind-identity-review-v1.mjs
 
       - name: Download immutable five-source preflight input
         env:
@@ -72,6 +77,15 @@ jobs:
         run: |
           node scripts/kidults/golden-dataset/validate-golden-dataset-blind-review-v1.mjs artifacts/agci-os/golden-dataset-blind-review-v1
 
+      - name: Execute and freeze Track B process-independent blind review
+        run: |
+          node scripts/kidults/golden-dataset/run-track-b-blind-identity-review-v1.mjs \
+            --reviewer artifacts/agci-os/golden-dataset-blind-review-v1/reviewer/golden-dataset-v1-blind-review-package-v1.json \
+            --lineage artifacts/agci-os/golden-dataset-blind-review-v1/lineage/golden-dataset-v1-blind-lineage-map-v1.json \
+            --output artifacts/agci-os/golden-dataset-track-b-review-r1
+          node scripts/kidults/golden-dataset/validate-track-b-blind-identity-review-v1.mjs \
+            artifacts/agci-os/golden-dataset-track-b-review-r1
+
       - name: Revalidate canonical governance
         run: |
           node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
@@ -93,5 +107,14 @@ jobs:
         with:
           name: kidults-golden-dataset-blind-lineage-v1
           path: artifacts/agci-os/golden-dataset-blind-review-v1/lineage
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Track B blind review outcome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-golden-dataset-track-b-blind-review-r1
+          path: artifacts/agci-os/golden-dataset-track-b-review-r1
           if-no-files-found: error
           retention-days: 30
