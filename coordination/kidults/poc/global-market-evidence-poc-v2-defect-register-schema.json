@@ -1,0 +1,8 @@
+{
+  "id":"global-market-evidence-poc-v2-defect-register-schema",
+  "version":"1.0.0",
+  "required_fields":["defect_id","scope_id","product_id","diagnostic_dimension","severity","evidence_refs","observed_behavior","expected_behavior","customer_decision_impact","north_star_impact","root_cause_class","remediation","owner_track","status"],
+  "root_cause_classes":["SCOPE_MODEL","REPRESENTATIVE_SELECTION","SOURCE_TOPOLOGY","RIGHTS","ENTITY_RESOLUTION","EVIDENCE_DEPTH","MARKET_MODEL","REGIONAL_BIAS","NORMALIZATION","AUTOMATION","RUNTIME","PROJECTION","GOVERNANCE","UNKNOWN"],
+  "statuses":["OPEN","CONFIRMED","REPRODUCED","REMEDIATION_READY","FIXED_RETEST_REQUIRED","CLOSED"],
+  "rule":"A PoC defect without evidence_refs is NOT VERIFIED and cannot be used to change canonical taxonomy or metrics."
+}
