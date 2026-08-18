@@ -1,0 +1,16 @@
+{
+  "id":"blocker-source-pool-live-evidence-gap",
+  "record_type":"blocker",
+  "version":"1.0.0",
+  "status":"OPEN",
+  "blocker_id":"BLOCKER-0104",
+  "severity":"HIGH",
+  "title":"Admitted Scope Source Pools and live evidence remain incomplete",
+  "owner_track_id":"track-a-120-intelligence-factory",
+  "impact_tracks":["track-b-rankability-validation-gate","track-d-data-platform-production-reliability"],
+  "condition":"Global Source Universe architecture exists, but admitted rights-qualified Scope Source Pools and live evidence are not yet sufficient for the bounded real PoC.",
+  "exit_criteria":["bounded PoC Scope Source Pools admitted","purpose-specific rights states explicit","evidence lineage/freshness recorded"],
+  "created_at":"2026-08-19T06:45:00+09:00",
+  "created_by":"KPMO / Atlas",
+  "approved_by":"John"
+}
