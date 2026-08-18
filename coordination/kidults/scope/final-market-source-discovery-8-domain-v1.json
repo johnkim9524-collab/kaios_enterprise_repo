@@ -1,0 +1,31 @@
+{
+  "id":"kidults-final-market-source-discovery-8-domain-v1",
+  "version":"1.0.0",
+  "status":"TRACK_B_REVIEW_CANDIDATE",
+  "issue":451,
+  "principle":"Provider necessity is capability- and Scope-specific; no universal provider assumption and no restricted scraping.",
+  "domains":[
+    {"domain":"toys_models","self_collection_candidates":[{"source":"BRICKLINK_PRICE_GUIDE","scope_fit":["construction_mechanical_sets"],"capability":["VERIFIED_SOLD_EVENT_HISTORY","TEMPORAL_ACTIVITY_PERSISTENCE","REGIONAL_ACTIVITY_SIGNAL"],"state":"SELF_COLLECTABLE_CREDENTIAL_REQUIRED","rights":"PREFLIGHT_REQUIRED"}],"remaining_gap":"designer_toys/diecast/vintage_character sold-depth not covered by a rights-clear official API","provider_necessity":"NOT_PROVEN_DOMAIN_WIDE_SCOPE_DEPENDENT"},
+    {"domain":"watches_jewelry","self_collection_candidates":[],"external_or_limited_candidates":[{"source":"WATCHCHARTS_API","capability":["MARKET_PRICE_HISTORY","HISTORICAL_LISTINGS","APPRAISAL"],"state":"EXTERNAL_LICENSE_REQUIRED","rights":"INTERNAL_LICENSE_STANDARD_DISTRIBUTION_OR_RESALE_LICENSE_REQUIRED_FOR_THIRD_PARTY_OUTPUT"},{"source":"EBAY_MARKETPLACE_INSIGHTS","capability":["VERIFIED_SOLD_EVENT_HISTORY"],"state":"ACCESS_LIMITED"}],"remaining_gap":"rights-clear raw sold-event depth for watches/jewelry not found","provider_necessity":"HIGH_FOR_MARKET_DEPTH_NOT_PLATFORM_FOUNDATION"},
+    {"domain":"automobiles_mobility","self_collection_candidates":[],"external_or_limited_candidates":[{"source":"CLASSIC_COM_SALES_HISTORY","scope_fit":["collector_cars","modern_classics"],"capability":["VERIFIED_SOLD_EVENT_HISTORY","FAILED_SALE_OBSERVATION","PUBLIC_AVAILABILITY_LISTINGS"],"state":"EXTERNAL_LICENSE_REQUIRED"}],"remaining_gap":"motorcycles and automotive memorabilia still lack comparable verified market-depth source","provider_necessity":"HIGH_FOR_CARS_MARKET_DEPTH_SCOPE_DEPENDENT_OTHER_SCOPES_UNRESOLVED"},
+    {"domain":"fashion_accessories","self_collection_candidates":[],"external_or_limited_candidates":[{"source":"STOCKX_MARKET_DATA","scope_fit":["sneakers"],"capability":["BID_ASK_DEPTH","VENUE_PRESENCE"],"state":"ACCESS_LIMITED_SIGNAL_ONLY"},{"source":"EBAY_MARKETPLACE_INSIGHTS","capability":["VERIFIED_SOLD_EVENT_HISTORY"],"state":"ACCESS_LIMITED"}],"remaining_gap":"no verified rights-clear sold-event corpus found for sneakers/handbags/garments/eyewear","provider_necessity":"LIKELY_HIGH_FOR_SOLD_DEPTH_SCOPE_DEPENDENT"},
+    {"domain":"design_furniture","self_collection_candidates":[],"external_or_limited_candidates":[{"source":"EBAY_MARKETPLACE_INSIGHTS","capability":["VERIFIED_SOLD_EVENT_HISTORY"],"state":"ACCESS_LIMITED"}],"remaining_gap":"auction/design-market result APIs with commercial reuse not verified","provider_necessity":"LIKELY_HIGH_FOR_SOLD_DEPTH_BUT_NOT_YET_VENDOR_SPECIFIC"},
+    {"domain":"technology_cameras","self_collection_candidates":[],"external_or_limited_candidates":[{"source":"EBAY_MARKETPLACE_INSIGHTS","capability":["VERIFIED_SOLD_EVENT_HISTORY"],"state":"ACCESS_LIMITED"}],"remaining_gap":"camera/audio/computing/electronics sold-history rights-clear official API not verified","provider_necessity":"LIKELY_HIGH_FOR_SOLD_DEPTH_SCOPE_DEPENDENT"},
+    {"domain":"gaming_music_screen","self_collection_candidates":[],"external_or_limited_candidates":[{"source":"DISCOGS_MARKETPLACE_HISTORY","scope_fit":["vinyl_recorded_music"],"capability":["VERIFIED_SOLD_EVENT_HISTORY","PUBLIC_AVAILABILITY_LISTINGS"],"state":"RIGHTS_LIMITED"},{"source":"REVERB_PRICE_GUIDE","scope_fit":["musical_instruments_artist_gear"],"capability":["PUBLIC_RECENT_SALES_PRICE_GUIDE_REFERENCE"],"state":"PUBLIC_REFERENCE_STRUCTURED_API_AND_REUSE_NOT_VERIFIED"},{"source":"EBAY_MARKETPLACE_INSIGHTS","capability":["VERIFIED_SOLD_EVENT_HISTORY"],"state":"ACCESS_LIMITED"}],"remaining_gap":"video games/props and reusable raw transaction histories remain unresolved","provider_necessity":"SCOPE_DEPENDENT_HIGH_FOR_DEEP_MARKET_EVIDENCE"},
+    {"domain":"cards_comics_memorabilia","self_collection_candidates":[],"external_or_limited_candidates":[{"source":"PSA_AUCTION_PRICES","scope_fit":["trading_cards"],"capability":["AUCTION_PRICE_REALIZED_CONTEXT"],"state":"ACCESS_AND_REUSE_RIGHTS_NOT_AUTHORIZED"},{"source":"CARDMARKET","scope_fit":["trading_cards"],"capability":["SALES_DATA_CANDIDATE"],"state":"RIGHTS_AGREEMENT_REQUIRED"},{"source":"EBAY_MARKETPLACE_INSIGHTS","capability":["VERIFIED_SOLD_EVENT_HISTORY"],"state":"ACCESS_LIMITED"}],"remaining_gap":"comics/sports/historical memorabilia verified transaction depth and rights remain incomplete","provider_necessity":"HIGH_FOR_SOLD_DEPTH_SCOPE_DEPENDENT"}
+  ],
+  "cross_domain_findings":{
+    "platform_wide_provider_required":false,
+    "identity_catalog_culture_provider_required":false,
+    "public_attention_provider_required":false,
+    "regional_public_representation_provider_required":false,
+    "verified_sold_depth":"SCOPE_DEPENDENT_EXTERNAL_OR_AUTHENTICATED_API_CAPABILITY_REQUIRED",
+    "professional_authentication_condition":"SCOPE_DEPENDENT_EXTERNAL_SPECIALIST_CAPABILITY_LIKELY_REQUIRED",
+    "universal_rights_clear_sold_source_found":false,
+    "scope_specific_self_collected_sold_candidate_found":true
+  },
+  "track_b_questions":["Does any capability remain externally necessary after scope-specific authenticated API preflight?","Which Scopes can remain provider-independent without materially degrading customer Decision Utility?","Where does provider value exceed dependency/rights/cost risk?"],
+  "recommendation":"DO_NOT_CONTACT_BROAD_PROVIDER_SET. FIRST PREFLIGHT_SCOPE_SPECIFIC_SELF_COLLECTION_CANDIDATES; THEN CONTACT_ONLY_PROVIDER_GAPS_WITH_MATERIAL_DECISION_UTILITY.",
+  "provider_contact":"HOLD",
+  "production":"HOLD"
+}
