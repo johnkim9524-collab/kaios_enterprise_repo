@@ -1,0 +1,242 @@
+{
+  "id": "kidults-global-standard-poc-hardening-contract-v1",
+  "version": "1.0.0",
+  "issue": 457,
+  "status": "CANONICAL_CANDIDATE",
+  "purpose": "Convert the global-standard PoC review into machine-enforced admission, evidence semantics, rights, freshness, missingness, identity and Track B gates without fabricating market truth.",
+  "standards_alignment": [
+    "ISO_IEC_5259_DATA_QUALITY_MEASURES",
+    "ISO_IEC_25012_DATA_QUALITY_MODEL",
+    "W3C_PROV_ENTITY_ACTIVITY_AGENT_LINEAGE",
+    "IVS_DATA_INPUT_MODEL_DOCUMENTATION_DISCIPLINE",
+    "FIX_BID_OFFER_TRADE_SEPARATION",
+    "NIST_AI_RMF_VALID_RELIABLE_TRANSPARENT_MONITORED"
+  ],
+  "analysis_unit": {
+    "id": "market_cell_id",
+    "required_dimensions": [
+      "canonical_product_or_edition",
+      "variant",
+      "condition_or_grade",
+      "region",
+      "channel",
+      "sale_mechanism",
+      "currency_basis",
+      "observation_window"
+    ],
+    "guard": "SCOPE_LEVEL_CONTEXT_MUST_NOT_BECOME_PRODUCT_LEVEL_MARKET_SCORE"
+  },
+  "identity_hierarchy": [
+    "DESIGN",
+    "EDITION",
+    "VARIANT",
+    "PHYSICAL_OBJECT",
+    "LOT",
+    "LISTING",
+    "MARKET_EVENT"
+  ],
+  "event_lifecycle": {
+    "schema": "coordination/kidults/schemas/market-event-v1.schema.json",
+    "evidence_classes": [
+      "ACTIVE_LISTING",
+      "VENUE_PRESENCE",
+      "BID_ASK_SIGNAL",
+      "AUCTION_RESULT_REFERENCE",
+      "VERIFIED_SOLD_EVENT",
+      "FAILED_SALE_EVENT",
+      "TIME_TO_SALE"
+    ],
+    "terminal_states": [
+      "SOLD",
+      "NO_SALE_RESERVE_NOT_MET",
+      "WITHDRAWN",
+      "CANCELLED",
+      "EXPIRED",
+      "DELISTED",
+      "RELISTED",
+      "UNKNOWN"
+    ],
+    "failed_sale_admissible_states": [
+      "NO_SALE_RESERVE_NOT_MET",
+      "EXPIRED"
+    ],
+    "not_automatically_failed_sale": [
+      "WITHDRAWN",
+      "CANCELLED",
+      "DELISTED",
+      "RELISTED",
+      "UNKNOWN"
+    ],
+    "time_to_sale_rule": "REQUIRES_SAME_PHYSICAL_OBJECT_AND_VALID_LISTING_START_AND_VERIFIED_TERMINAL_SALE"
+  },
+  "price_semantics": {
+    "price_types": [
+      "ASK",
+      "ESTIMATE_LOW",
+      "ESTIMATE_HIGH",
+      "HAMMER",
+      "ALL_IN_REALIZED",
+      "ACCEPTED_OFFER",
+      "BID",
+      "UNKNOWN"
+    ],
+    "required_normalization_fields": [
+      "amount",
+      "currency",
+      "fx_source",
+      "fx_date",
+      "buyer_premium_included",
+      "tax_included",
+      "shipping_included",
+      "quantity",
+      "condition_grade",
+      "authenticity_state",
+      "provenance_ref",
+      "region",
+      "sale_mechanism"
+    ],
+    "valuation_rule": "OBSERVED_PRICE_AND_FAIR_VALUE_ARE_SEPARATE_ENTITIES",
+    "prohibited_inference": [
+      "HIGH_PRICE_TO_DEMAND",
+      "HIGH_PRICE_TO_SCARCITY",
+      "ESTIMATE_TO_REALIZED_PRICE",
+      "ASK_TO_REALIZED_PRICE"
+    ]
+  },
+  "rights_admission": {
+    "granularity": "FIELD_X_EVIDENCE_CLASS_X_OUTPUT",
+    "required_actions": [
+      "collect",
+      "store",
+      "transform",
+      "display",
+      "redistribute",
+      "sell"
+    ],
+    "required_metadata": [
+      "terms_url",
+      "terms_version",
+      "review_due_at"
+    ],
+    "unknown_state": "FAIL_CLOSED",
+    "reference_only_rule": "MAY_SUPPORT_INTERNAL_CITATION_CONTEXT_BUT_NOT_COMMERCIAL_DATA_REUSE"
+  },
+  "freshness_admission": {
+    "required_fields": [
+      "event_at",
+      "observed_at",
+      "collected_at",
+      "source_updated_at",
+      "ttl_seconds",
+      "watermark_at",
+      "next_due_at",
+      "stale_reason"
+    ],
+    "states": ["CURRENT", "STALE", "EXPIRED", "NOT_VERIFIED"],
+    "stale_policy": "STALE_OR_EXPIRED_RECORDS_CANNOT_SUPPORT_CURRENT_MARKET_STATE"
+  },
+  "missingness": {
+    "value_rule": "UNOBSERVED_VALUES_REMAIN_NULL_NEVER_ZERO",
+    "reason_codes": [
+      "NOT_OBSERVED",
+      "NOT_APPLICABLE",
+      "NOT_COLLECTED_BY_DESIGN",
+      "SOURCE_UNAVAILABLE",
+      "ACCESS_DENIED",
+      "RIGHTS_RESTRICTED",
+      "PARSE_FAILED",
+      "STALE_REJECTED",
+      "CONFLICT_QUARANTINED"
+    ],
+    "observed_zero_rule": "ALLOWED_ONLY_WITH_COMPLETE_OBSERVATION_WINDOW_AND_DENOMINATOR",
+    "imputation_policy": "NONE"
+  },
+  "metric_registry": [
+    {
+      "metric": "DEMAND",
+      "required_inputs": ["VERIFIED_SOLD_EVENT", "EXPOSURE_DENOMINATOR", "REGION", "CHANNEL", "WINDOW"],
+      "prohibited_substitutes": ["ATTENTION", "VENUE_PRESENCE", "ACTIVE_LISTING"]
+    },
+    {
+      "metric": "OBSERVED_MARKET_ACTIVITY",
+      "required_inputs": ["EVIDENCE_CLASS_SPECIFIC_EVENTS", "WINDOW", "SOURCE_LINEAGE"],
+      "prohibited_substitutes": ["INSTITUTIONAL_PRESENCE"]
+    },
+    {
+      "metric": "LIQUIDITY",
+      "required_inputs": ["TRANSACTION_FREQUENCY", "TEMPORAL_PERSISTENCE", "SELL_THROUGH", "FAILED_SALE_RATE", "TIME_TO_SALE", "TRADABLE_AVAILABILITY_COVERAGE"],
+      "prohibited_substitutes": ["MANY_LISTINGS", "ONE_SALE", "BID_ASK_SIGNAL"]
+    },
+    {
+      "metric": "PRICE",
+      "required_inputs": ["IDENTITY_NORMALIZED_REALIZED_PRICE", "CONDITION_GRADE", "N", "DISPERSION", "CONFIDENCE_INTERVAL", "RECENCY"],
+      "prohibited_substitutes": ["ASK", "ESTIMATE", "UNDISCLOSED_ACCEPTED_OFFER"]
+    },
+    {
+      "metric": "SCARCITY",
+      "required_inputs": ["PRODUCTION_OR_EDITION_SIZE", "CERTIFICATION_POPULATION", "DOCUMENTED_SURVIVAL", "GRADE_VARIANT_POPULATION", "TRADABLE_FLOAT", "OBSERVED_AVAILABILITY"],
+      "prohibited_substitutes": ["FEW_LISTINGS", "HIGH_PRICE", "MISSING_DATA"]
+    }
+  ],
+  "bounded_candidate_r2": {
+    "pilot_scopes": [
+      "mechanical_watches",
+      "fine_jewelry",
+      "seating",
+      "lighting",
+      "collector_cars",
+      "sneakers",
+      "trading_cards"
+    ],
+    "products_per_scope": 2,
+    "cross_scope_ranking_allowed": false,
+    "within_cell_components_only": true,
+    "adapter_terminal_states": [
+      "SELF_COLLECTABLE_OPEN",
+      "SELF_COLLECTABLE_CREDENTIAL_REQUIRED",
+      "RIGHTS_LIMITED",
+      "EXTERNAL_CAPABILITY_CANDIDATE",
+      "NO_DEFENSIBLE_PATH_FOUND"
+    ]
+  },
+  "track_b_exit_gate": {
+    "exact_input_pair": ["snapshot-candidate.json", "Evidence Package"],
+    "projected_field_rights_coverage": 1,
+    "stale_rejection_rate": 1,
+    "golden_dataset_minimum_records": 200,
+    "identity_precision_minimum": 0.99,
+    "critical_false_auto_merge_maximum": 0,
+    "independent_source_families_minimum": 4,
+    "unresolved_critical_contradictions_maximum": 0,
+    "source_removal_rule": "CORE_CONCLUSION_MUST_NOT_COLLAPSE_AFTER_ONE_FAMILY_REMOVAL",
+    "rank_uncertainty_rule": "STRICT_RANK_ONLY_WHEN_SCORE_GAP_EXCEEDS_UNCERTAINTY_OTHERWISE_TIE_BAND_OR_NOT_RANKABLE"
+  },
+  "negative_controls": [
+    "LISTING_TO_SOLD_REJECTED",
+    "BID_ASK_TO_TRANSACTION_REJECTED",
+    "ATTENTION_TO_DEMAND_REJECTED",
+    "WITHDRAWN_TO_FAILED_SALE_REJECTED",
+    "MISSING_TO_ZERO_REJECTED",
+    "RIGHTS_UNKNOWN_REJECTED",
+    "STALE_CURRENT_STATE_REJECTED",
+    "CROSS_OBJECT_TIME_TO_SALE_REJECTED",
+    "SCOPE_CONTEXT_TO_PRODUCT_SCORE_REJECTED"
+  ],
+  "truth_guards": [
+    "EVIDENCE_BEFORE_METRICS",
+    "MISSING_NE_ZERO",
+    "ATTENTION_NE_DEMAND_NE_TRANSACTION",
+    "LISTING_NE_SOLD_TRANSACTION",
+    "BID_ASK_NE_TRANSACTION",
+    "MAKER_ORIGIN_NE_REGIONAL_DEMAND",
+    "PUBLIC_REPRESENTATION_NE_REGIONAL_MARKET_SIGNIFICANCE",
+    "SCARCITY_NE_ILLIQUIDITY",
+    "PROVIDER_NE_TRUTH",
+    "NO_FALSE_COMPARABILITY"
+  ],
+  "next_execution": "BOUNDED_MARKET_INTELLIGENCE_CANDIDATE_R2",
+  "track_b_input_eligible": false,
+  "provider_contact": "HOLD",
+  "production": "HOLD",
+  "full_320_expansion_allowed": false
+}

@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://intelligence-holdings.example/schemas/kidults/market-event-v1.schema.json",
+  "title": "KIDULTS Market Event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "market_event_id",
+    "evidence_class",
+    "event_state",
+    "source_event_id",
+    "market_cell_id",
+    "canonical_entity_id",
+    "physical_object_id",
+    "region",
+    "venue_id",
+    "event_at",
+    "observed_at",
+    "collected_at",
+    "rights",
+    "freshness",
+    "lineage",
+    "price",
+    "quantity",
+    "missingness"
+  ],
+  "properties": {
+    "market_event_id": {"type": "string", "minLength": 1},
+    "evidence_class": {
+      "enum": [
+        "ACTIVE_LISTING",
+        "VENUE_PRESENCE",
+        "BID_ASK_SIGNAL",
+        "AUCTION_RESULT_REFERENCE",
+        "VERIFIED_SOLD_EVENT",
+        "FAILED_SALE_EVENT",
+        "TIME_TO_SALE"
+      ]
+    },
+    "event_state": {
+      "enum": [
+        "ACTIVE",
+        "SOLD",
+        "NO_SALE_RESERVE_NOT_MET",
+        "WITHDRAWN",
+        "CANCELLED",
+        "EXPIRED",
+        "DELISTED",
+        "RELISTED",
+        "UNKNOWN"
+      ]
+    },
+    "source_event_id": {"type": "string", "minLength": 1},
+    "source_listing_id": {"type": ["string", "null"]},
+    "source_lot_id": {"type": ["string", "null"]},
+    "market_cell_id": {"type": "string", "minLength": 1},
+    "canonical_entity_id": {"type": "string", "minLength": 1},
+    "physical_object_id": {"type": ["string", "null"]},
+    "lot_id": {"type": ["string", "null"]},
+    "relist_parent_event_id": {"type": ["string", "null"]},
+    "cross_list_group_id": {"type": ["string", "null"]},
+    "region": {"type": "string", "minLength": 1},
+    "venue_id": {"type": "string", "minLength": 1},
+    "sale_mechanism": {
+      "enum": ["AUCTION", "FIXED_PRICE", "NEGOTIATED", "DEALER", "EXCHANGE", "UNKNOWN"]
+    },
+    "first_seen_at": {"type": ["string", "null"], "format": "date-time"},
+    "listed_at": {"type": ["string", "null"], "format": "date-time"},
+    "event_at": {"type": "string", "format": "date-time"},
+    "terminal_at": {"type": ["string", "null"], "format": "date-time"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "collected_at": {"type": "string", "format": "date-time"},
+    "source_updated_at": {"type": ["string", "null"], "format": "date-time"},
+    "quantity": {"type": ["number", "null"], "exclusiveMinimum": 0},
+    "condition_grade": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition_state", "grade", "grader", "authenticity_state"],
+      "properties": {
+        "condition_state": {"type": ["string", "null"]},
+        "grade": {"type": ["string", "null"]},
+        "grader": {"type": ["string", "null"]},
+        "authenticity_state": {"enum": ["VERIFIED", "ASSERTED", "DISPUTED", "UNKNOWN", "NOT_APPLICABLE"]},
+        "provenance_ref": {"type": ["string", "null"]}
+      }
+    },
+    "price": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "price_type",
+        "amount",
+        "currency",
+        "buyer_premium_included",
+        "tax_included",
+        "shipping_included",
+        "fx_source",
+        "fx_date",
+        "accepted_offer_disclosure"
+      ],
+      "properties": {
+        "price_type": {
+          "enum": ["ASK", "ESTIMATE_LOW", "ESTIMATE_HIGH", "HAMMER", "ALL_IN_REALIZED", "ACCEPTED_OFFER", "BID", "UNKNOWN"]
+        },
+        "amount": {"type": ["number", "null"], "minimum": 0},
+        "currency": {"type": ["string", "null"], "pattern": "^[A-Z]{3}$"},
+        "buyer_premium_included": {"type": ["boolean", "null"]},
+        "tax_included": {"type": ["boolean", "null"]},
+        "shipping_included": {"type": ["boolean", "null"]},
+        "fx_source": {"type": ["string", "null"]},
+        "fx_date": {"type": ["string", "null"], "format": "date"},
+        "accepted_offer_disclosure": {"enum": ["DISCLOSED", "UNDISCLOSED", "NOT_APPLICABLE", "UNKNOWN"]}
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["collect", "store", "transform", "display", "redistribute", "sell", "terms_url", "terms_version", "review_due_at"],
+      "properties": {
+        "collect": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "store": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "transform": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "display": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "redistribute": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "sell": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "terms_url": {"type": ["string", "null"], "format": "uri"},
+        "terms_version": {"type": ["string", "null"]},
+        "review_due_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "ttl_seconds", "watermark_at", "next_due_at", "stale_reason"],
+      "properties": {
+        "state": {"enum": ["CURRENT", "STALE", "EXPIRED", "NOT_VERIFIED"]},
+        "ttl_seconds": {"type": ["integer", "null"], "minimum": 1},
+        "watermark_at": {"type": ["string", "null"], "format": "date-time"},
+        "next_due_at": {"type": ["string", "null"], "format": "date-time"},
+        "stale_reason": {"type": ["string", "null"]}
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "source_family_id", "raw_digest", "normalized_digest", "parser_version", "transform_version"],
+      "properties": {
+        "evidence_id": {"type": "string", "minLength": 1},
+        "source_family_id": {"type": "string", "minLength": 1},
+        "raw_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "normalized_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "parser_version": {"type": "string", "minLength": 1},
+        "transform_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "missingness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "coverage_numerator", "coverage_denominator", "imputation_policy"],
+      "properties": {
+        "reason": {
+          "enum": [
+            "NONE",
+            "NOT_OBSERVED",
+            "NOT_APPLICABLE",
+            "NOT_COLLECTED_BY_DESIGN",
+            "SOURCE_UNAVAILABLE",
+            "ACCESS_DENIED",
+            "RIGHTS_RESTRICTED",
+            "PARSE_FAILED",
+            "STALE_REJECTED",
+            "CONFLICT_QUARANTINED"
+          ]
+        },
+        "coverage_numerator": {"type": "integer", "minimum": 0},
+        "coverage_denominator": {"type": "integer", "minimum": 0},
+        "imputation_policy": {"const": "NONE"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"evidence_class": {"const": "VERIFIED_SOLD_EVENT"}}},
+      "then": {
+        "properties": {
+          "event_state": {"const": "SOLD"},
+          "price": {
+            "properties": {
+              "price_type": {"enum": ["HAMMER", "ALL_IN_REALIZED", "ACCEPTED_OFFER"]},
+              "amount": {"type": "number", "exclusiveMinimum": 0},
+              "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"evidence_class": {"const": "FAILED_SALE_EVENT"}}},
+      "then": {
+        "properties": {
+          "event_state": {"enum": ["NO_SALE_RESERVE_NOT_MET", "EXPIRED"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"evidence_class": {"const": "TIME_TO_SALE"}}},
+      "then": {
+        "required": ["source_listing_id", "terminal_at", "physical_object_id"]
+      }
+    }
+  ]
+}
