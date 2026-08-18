@@ -53,14 +53,14 @@ jobs:
       - name: Syntax check
         run: |
           node --check scripts/kidults/assessment/build-first-rankability-assessment.mjs
-          node --check scripts/kidults/assessment/validate-first-rankability-assessment.mjs
+          node --check scripts/kidults/assessment/validate-first-assessment-history.mjs
           node --check scripts/kidults/candidate/validate-structural-candidate-r1.mjs
           node --check scripts/kidults/portal/build-v502-registry-view.mjs
 
-      - name: Validate immutable Track A input
+      - name: Validate immutable Track A historical input
         run: node scripts/kidults/candidate/validate-structural-candidate-r1.mjs
 
-      - name: Prove same-input same-output reproducibility
+      - name: Prove historical evaluator same-input same-output reproducibility
         run: |
           ASSESSMENT_GENERATED_AT="$(node -e "const a=require('./coordination/kidults/registry/assessment/records/assessment-candidate-structural-20260816-r1-v1.json');process.stdout.write(a.generated_at)")"
           export ASSESSMENT_GENERATED_AT
@@ -68,12 +68,10 @@ jobs:
           node scripts/kidults/assessment/build-first-rankability-assessment.mjs > /tmp/assessment-2.json
           cmp /tmp/assessment-1.json /tmp/assessment-2.json
 
-      - name: Validate first independent Assessment
-        run: |
-          node scripts/kidults/assessment/build-first-rankability-assessment.mjs --validate
-          node scripts/kidults/assessment/validate-first-rankability-assessment.mjs
+      - name: Audit first independent Assessment as immutable history
+        run: node scripts/kidults/assessment/validate-first-assessment-history.mjs
 
-      - name: Validate Registry and Mission Control
+      - name: Validate current Registry and Mission Control
         run: |
           node scripts/kidults/registry/validate-operational-registry.mjs
           node scripts/kidults/mission-control/validate-mission-control.mjs
