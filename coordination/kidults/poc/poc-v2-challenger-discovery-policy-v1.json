@@ -1,0 +1,19 @@
+{
+  "id":"poc-v2-challenger-discovery-policy-v1",
+  "version":"1.0.0",
+  "status":"CANONICAL_CANDIDATE",
+  "parent_issue":433,
+  "roles":{
+    "EMERGING_DYNAMIC_VERTICAL":{"seek":["new_canon_signal","creator_or_franchise_momentum","new_authentication_infrastructure","regional_expansion"],"reject":["attention_only_without_object_identity","single_social_spike"]},
+    "REGIONAL":{"seek":["non_default_region_significance","local_canon","regional_price_discovery","language_specific_identity"],"reject":["same_global_anchor_with_only_local_listing"]},
+    "SCARCE_ILLIQUID":{"seek":["low_tradable_float","rare_survival","thin_market","high_uncertainty"],"reject":["scarcity_claim_without_evidence"]},
+    "HIGH_LIQUIDITY_OR_ACTIVE_MARKET":{"seek":["frequent_market_observation","multiple_channels","active_price_discovery"],"reject":["asking_price_only","bid_ask_only_when_sold_evidence_is_claimed"]},
+    "EDGE_CASE":{"seek":["identity_boundary","variant_ambiguity","restoration_or_alteration_complexity","scope_overlap","normalization_stress"],"reject":["ordinary_canonical_example"]}
+  },
+  "source_priority":["PRIMARY_AUTHORITY","INSTITUTIONAL_OPEN_DATA","OFFICIAL_CATALOG_OR_REGISTRY","INDEPENDENT_REFERENCE_SAFE_SOURCE","PUBLIC_MARKET_SIGNAL"],
+  "forbidden":["GENERIC_GITHUB_REPOSITORY_SEARCH","RESTRICTED_SCRAPING","LISTING_AS_SOLD","ATTENTION_AS_DEMAND","AUTO_SCOPE_PROMOTION","AUTO_REPRESENTATIVE_QUALIFICATION"],
+  "candidate_fields":["scope_id","challenger_role","named_product","maker_or_brand","product_name","scope_hypothesis","selection_reason","evidence_refs","rights_state","regions","languages","dynamic_vertical_id","defect_hypotheses","state"],
+  "terminal_states":["SELECTED","NO_DEFENSIBLE_CANDIDATE","DISCOVERY_REQUIRED"],
+  "provider_contact":"HOLD",
+  "production":"HOLD"
+}
