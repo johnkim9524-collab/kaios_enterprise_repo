@@ -3,9 +3,11 @@ name: KIDULTS Global Standard Preproduction Gate
 on:
   pull_request:
     paths:
-      - 'coordination/kidults/kpmo/global-standard-preproduction-gate-v1.json'
-      - 'coordination/kidults/kpmo/zero-base-global-standard-review-v2.md'
+      - 'coordination/kidults/kpmo/**'
+      - 'coordination/kidults/governance/**'
+      - 'coordination/kidults/runtime/observability-slo-contract-v1.json'
       - 'scripts/kidults/governance/validate-global-standard-preproduction-gate-v1.mjs'
+      - 'scripts/kidults/governance/validate-release-assurance-foundation-v1.mjs'
       - '.github/workflows/kidults-global-standard-preproduction-gate.yml'
   workflow_dispatch:
 
@@ -22,6 +24,10 @@ jobs:
         with:
           node-version: '24'
       - name: Syntax check
-        run: node --check scripts/kidults/governance/validate-global-standard-preproduction-gate-v1.mjs
+        run: |
+          node --check scripts/kidults/governance/validate-global-standard-preproduction-gate-v1.mjs
+          node --check scripts/kidults/governance/validate-release-assurance-foundation-v1.mjs
       - name: Validate global-standard completion gate
         run: node scripts/kidults/governance/validate-global-standard-preproduction-gate-v1.mjs
+      - name: Validate release assurance foundation
+        run: node scripts/kidults/governance/validate-release-assurance-foundation-v1.mjs
