@@ -1,0 +1,23 @@
+name: KIDULTS Track B Provider Necessity Assessment v1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/track-b/provider-necessity-assessment-v1.json'
+      - 'scripts/kidults/track-b/validate-provider-necessity-assessment-v1.mjs'
+      - '.github/workflows/kidults-track-b-provider-necessity-assessment-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate independent provider necessity assessment
+        run: node scripts/kidults/track-b/validate-provider-necessity-assessment-v1.mjs
