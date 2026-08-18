@@ -4,7 +4,10 @@
   "issue": 457,
   "status": "TRACK_A_EVIDENCE_CANDIDATE",
   "observed_on": "2026-08-18",
-  "purpose": "Harden the 32-Scope regional-significance candidate so every Scope is supported by two independent official institution, release, event or venue source families rather than treating one Wikimedia lineage as the second official family.",
+  "independent_review_status": "FORMAL_INDEPENDENT_REVIEW_PENDING",
+  "reproducibility_state": "PRIMARY_URL_CLAIM_AND_ACCESS_DATE_RECORDED_IMMUTABLE_PAGE_CAPTURE_PENDING",
+  "evidence_package_state": "NOT_CREATED",
+  "purpose": "Record a 32-Scope regional-context source-pair candidate so every Scope has two publisher-independent official institution, release, event or venue references without treating Wikimedia as an official source family.",
   "claim_boundary": "REGIONAL_INSTITUTION_RELEASE_OR_VENUE_PRESENCE_ONLY_NOT_DEMAND_NOT_LIQUIDITY_NOT_TRANSACTION_NOT_GLOBAL_GENERALIZATION",
   "canonical_admission": "PENDING_IMMUTABLE_EVIDENCE_PACKAGE_CAPTURE_AND_TRACK_B_REVIEW",
   "source_records": [
@@ -17,7 +20,7 @@
       "role": "REGIONAL_INSTITUTION",
       "scope_ids": ["designer_toys"],
       "narrow_claim": "The official design-centre exhibition presented figurines, finished collectibles and designer toys by more than 20 regional designers.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -30,7 +33,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["diecast_scale_models"],
       "narrow_claim": "The official international toy fair treats die-cast 1:43, 1:18 and 1:24 models and collector items as a distinct model-construction product group.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -43,7 +46,7 @@
       "role": "REGIONAL_INSTITUTION",
       "scope_ids": ["vintage_character_toys"],
       "narrow_claim": "The specialist museum presents film, comic and animation character toys from the 1920s through the 1950s.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -56,7 +59,7 @@
       "role": "REGIONAL_INSTITUTION",
       "scope_ids": ["construction_mechanical_sets"],
       "narrow_claim": "The museum interprets the Erector Set as a historical construction system implementing mechanical and engineering principles.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -69,7 +72,7 @@
       "role": "REGIONAL_INSTITUTION",
       "scope_ids": ["mechanical_watches"],
       "narrow_claim": "The Smithsonian presents spring-driven mechanical watches within its institutional clocks-and-watches collection.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -82,7 +85,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["vintage_neo_vintage_watches"],
       "narrow_claim": "The official Hong Kong auction page explicitly includes contemporary and neo-vintage complications and wristwatches.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -95,7 +98,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["fine_jewelry"],
       "narrow_claim": "The official sale release records a regional auction covering jadeite, diamonds, gemstones, pearls and signed maison jewelry.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -108,7 +111,7 @@
       "role": "REGIONAL_INSTITUTION",
       "scope_ids": ["designer_jewelry"],
       "narrow_claim": "The museum presented approximately 30 contemporary jewelry and wearable objects during Paris Design Week.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -121,7 +124,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["collector_cars"],
       "narrow_claim": "The official Revival presents historic collector cars from the 1948-1966 period in a public regional event.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -134,7 +137,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["modern_classics"],
       "narrow_claim": "The official collector-car show includes 1980s and 1990s youngtimers within its public exhibition scope.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -147,7 +150,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["collector_motorcycles"],
       "narrow_claim": "The official auction page records a regional live classic-motorcycle sale associated with the Classic Motorcycle Mechanics Show.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -160,7 +163,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["sneakers"],
       "narrow_claim": "The official specialist department states that sneaker and contemporary-collectible auctions are conducted through London and other locations.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -173,7 +176,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["handbags"],
       "narrow_claim": "The official London location calendar lists a Handbags and Accessories auction program.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -186,7 +189,7 @@
       "role": "REGIONAL_INSTITUTION",
       "scope_ids": ["designer_garments"],
       "narrow_claim": "The official museum exhibition presents Schiaparelli designer fashion as an institutional design and cultural subject.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -199,7 +202,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["seating"],
       "narrow_claim": "The official design-event listing presents chair and sofa systems at a Copenhagen regional venue.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -212,7 +215,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["tables_storage"],
       "narrow_claim": "The official design-event listing presents worktables, wall elements and storage modules in Copenhagen.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -225,7 +228,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["lighting"],
       "narrow_claim": "The official fair page records the 2026 international lighting and building-technology event in Frankfurt.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -238,7 +241,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["decorative_design_objects"],
       "narrow_claim": "The official biennial presents contemporary craft and collectible design objects at the Grand Palais in Paris.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -251,7 +254,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["cameras_lenses"],
       "narrow_claim": "The official London event presents cameras and lenses from more than 250 brands for public experience and purchase.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -264,7 +267,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["hifi_audio"],
       "narrow_claim": "The official event presents a long-running UK hi-fi, home-cinema and headphone show with an announced future edition.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -277,7 +280,7 @@
       "role": "REGIONAL_INSTITUTION",
       "scope_ids": ["vintage_computing"],
       "narrow_claim": "The accredited independent museum presents working historic computers spanning the 1940s, mainframes and personal computing.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -290,7 +293,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["collectible_electronics"],
       "narrow_claim": "The official recurring fair presents second-hand and vintage hi-fi through a specialist collector market established in 1992.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -303,7 +306,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["video_games_consoles"],
       "narrow_claim": "The official release records the June 2026 Video Games Signature Auction and its named aggregate result; it does not establish continuous liquidity.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -316,7 +319,7 @@
       "role": "REGIONAL_RELEASE_OR_DISTRIBUTION",
       "scope_ids": ["vinyl_recorded_music"],
       "narrow_claim": "The official network describes participation by more than 300 independent shops and day-specific vinyl releases and events.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -329,7 +332,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["musical_instruments_artist_gear"],
       "narrow_claim": "The official release presents a 2026 sale and preview tour for artist-used stage and studio instruments and gear.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -342,7 +345,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["film_tv_props"],
       "narrow_claim": "The official specialist venue lists a December 2026 London live auction of film and television memorabilia.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -355,7 +358,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["trading_cards"],
       "narrow_claim": "The official release records a June 2026 trading-card-games auction and its named aggregate result; it does not establish continuous liquidity.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -368,7 +371,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["comic_books"],
       "narrow_claim": "The official calendar lists multiple 2026 comic-book and comic-art auctions and regional previews.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -381,7 +384,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["sports_memorabilia"],
       "narrow_claim": "The official auction series presents multi-era, multi-sport memorabilia in New York.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     },
@@ -394,7 +397,7 @@
       "role": "REGIONAL_VENUE_OR_MARKET_PRESENCE",
       "scope_ids": ["historical_cultural_memorabilia"],
       "narrow_claim": "The official 2026 program presents historical documents, manuscripts and American cultural objects; the claim is limited to the US and Americana segment.",
-      "verification_state": "OFFICIAL_PRIMARY_SOURCE_OBSERVED",
+      "verification_state": "PRIMARY_URL_CLAIM_RECORDED_REPRODUCIBLE_CAPTURE_PENDING",
       "rights_state": "REFERENCE_ONLY_NO_CONTENT_REUSE",
       "accessed_on": "2026-08-18"
     }

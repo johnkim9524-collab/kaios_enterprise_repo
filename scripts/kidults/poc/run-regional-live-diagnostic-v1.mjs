@@ -7,14 +7,95 @@ import path from 'node:path';
 const input = process.argv[2]
   || 'coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json';
 const outDir = process.argv[3] || 'tmp/regional-live-diagnostic-v1';
-const concurrency = Number(process.env.CONCURRENCY || 4);
-const requestTimeoutMs = Number(process.env.REQUEST_TIMEOUT_MS || 12000);
+
+function boundedInteger(name, rawValue, fallback, minimum, maximum) {
+  const value = rawValue === undefined ? fallback : Number(rawValue);
+  if (!Number.isInteger(value) || value < minimum || value > maximum) {
+    throw new Error(`${name}_MUST_BE_INTEGER_${minimum}_TO_${maximum}`);
+  }
+  return value;
+}
+
+function boundedRate(name, rawValue, fallback) {
+  const value = rawValue === undefined ? fallback : Number(rawValue);
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
+    throw new Error(`${name}_MUST_BE_NUMBER_0_TO_1`);
+  }
+  return value;
+}
+
+function retryAfterMilliseconds(value, now = Date.now()) {
+  if (!value) return 0;
+  if (/^\d+(?:\.\d+)?$/.test(value)) return Number(value) * 1000;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? Math.max(0, timestamp - now) : 0;
+}
+
+function diagnosticStatus(recordCount, rowCount, errorRecordCount, maximumErrorRate) {
+  if (recordCount <= 0 || rowCount !== recordCount) {
+    return 'DIAGNOSTIC_INCOMPLETE_FAIL_CLOSED';
+  }
+  const errorRate = errorRecordCount / recordCount;
+  return errorRecordCount < recordCount && errorRate <= maximumErrorRate
+    ? 'DIAGNOSTIC_COMPLETE_FAIL_CLOSED'
+    : 'DIAGNOSTIC_INCOMPLETE_FAIL_CLOSED';
+}
+
+function runSelfTest() {
+  const failures = [];
+  const expect = (condition, message) => { if (!condition) failures.push(message); };
+  expect(diagnosticStatus(64, 64, 0, 0.2) === 'DIAGNOSTIC_COMPLETE_FAIL_CLOSED', 'healthy run');
+  expect(diagnosticStatus(64, 64, 12, 0.2) === 'DIAGNOSTIC_COMPLETE_FAIL_CLOSED', 'bounded partial run');
+  expect(diagnosticStatus(64, 64, 13, 0.2) === 'DIAGNOSTIC_INCOMPLETE_FAIL_CLOSED', 'excess error run');
+  expect(diagnosticStatus(64, 64, 64, 0.2) === 'DIAGNOSTIC_INCOMPLETE_FAIL_CLOSED', 'total outage');
+  expect(diagnosticStatus(64, 63, 0, 0.2) === 'DIAGNOSTIC_INCOMPLETE_FAIL_CLOSED', 'row loss');
+  expect(retryAfterMilliseconds('2', 0) === 2000, 'numeric Retry-After');
+  expect(retryAfterMilliseconds('Thu, 01 Jan 1970 00:00:03 GMT', 0) === 3000, 'date Retry-After');
+  try {
+    boundedInteger('CONCURRENCY', '0', 4, 1, 16);
+    failures.push('zero concurrency accepted');
+  } catch {}
+  if (failures.length) throw new Error(`SELF_TEST_FAILED: ${failures.join(', ')}`);
+  console.log(JSON.stringify({ status: 'PASS', tests: 8 }, null, 2));
+}
+
+if (process.argv.includes('--self-test')) {
+  runSelfTest();
+  process.exit(0);
+}
+
+const concurrency = boundedInteger('CONCURRENCY', process.env.CONCURRENCY, 4, 1, 16);
+const requestTimeoutMs = boundedInteger(
+  'REQUEST_TIMEOUT_MS',
+  process.env.REQUEST_TIMEOUT_MS,
+  12000,
+  1000,
+  60000
+);
+const maximumRecordErrorRate = boundedRate(
+  'MAX_RECORD_ERROR_RATE',
+  process.env.MAX_RECORD_ERROR_RATE,
+  0.2
+);
 
 fs.mkdirSync(outDir, { recursive: true });
 
 const inputBytes = fs.readFileSync(input);
 const source = JSON.parse(inputBytes.toString('utf8'));
-const records = source.records || [];
+if (!Array.isArray(source.records) || source.records.length === 0) {
+  throw new Error('INPUT_RECORDS_REQUIRED');
+}
+const records = source.records;
+const recordIds = records.map(record => record?.representative_product_id);
+if (recordIds.some(id => typeof id !== 'string' || id.length === 0)) {
+  throw new Error('REPRESENTATIVE_PRODUCT_ID_REQUIRED');
+}
+if (new Set(recordIds).size !== recordIds.length) {
+  throw new Error('REPRESENTATIVE_PRODUCT_ID_MUST_BE_UNIQUE');
+}
+if (records.some(record => typeof record?.target_scope_id !== 'string' || record.target_scope_id.length === 0)) {
+  throw new Error('TARGET_SCOPE_ID_REQUIRED');
+}
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const targetLangs = {
   en: 'GLOBAL_EN',
@@ -37,12 +118,15 @@ async function fetchJson(url, attempt = 0) {
   try {
     const response = await fetch(url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'KIDULTS-Regional-Diagnostic/1.2' }
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'KIDULTS-Regional-Diagnostic/1.3 (+https://github.com/johnkim9524-collab/kaios_enterprise_repo)'
+      }
     });
 
     if ((response.status === 429 || response.status >= 500) && attempt < 4) {
-      const retryAfter = Number(response.headers.get('retry-after') || 0);
-      await sleep(Math.max(retryAfter * 1000, 800 * (2 ** attempt)));
+      const retryAfter = retryAfterMilliseconds(response.headers.get('retry-after'));
+      await sleep(Math.min(60000, Math.max(retryAfter, 800 * (2 ** attempt))));
       return fetchJson(url, attempt + 1);
     }
 
@@ -143,6 +227,9 @@ for (let index = 0; index < records.length; index += concurrency) {
 
 const rows = results.map(result => result.row);
 const errors = results.flatMap(result => result.errors);
+const errorRecordCount = new Set(errors.map(error => error.id)).size;
+const recordErrorRate = errorRecordCount / records.length;
+const runStatus = diagnosticStatus(records.length, rows.length, errorRecordCount, maximumRecordErrorRate);
 const mapped = rows.filter(row => row.wikipedia_title).length;
 const multi = rows.filter(row => row.regional_public_representation.length >= 2).length;
 const scopes = new Set(
@@ -153,9 +240,9 @@ const scopes = new Set(
 
 const defects = [
   {
-    id: 'REGIONAL-INDEPENDENCE-GAP',
+    id: 'WIKIMEDIA-STREAM-INDEPENDENCE-GAP',
     severity: 'P0',
-    finding: 'One Wikimedia lineage cannot satisfy the Regional contract requirement for two independent source families plus institutional/release/venue evidence.',
+    finding: 'This live diagnostic contains one Wikimedia lineage and cannot by itself satisfy the separate regional-context source-pair contract.',
     remediation: 'Add independent regional institutional/release/venue evidence family before any REGIONAL challenger selection.'
   },
   {
@@ -179,9 +266,9 @@ if (mapped < records.length * 0.7) {
 }
 
 const output = {
-  id: 'kidults-regional-live-diagnostic-v1.2',
-  version: '1.2.0',
-  status: 'DIAGNOSTIC_COMPLETE_FAIL_CLOSED',
+  id: 'kidults-regional-live-diagnostic-v1.3',
+  version: '1.3.0',
+  status: runStatus,
   observed_at: new Date().toISOString(),
   input: {
     path: input,
@@ -193,6 +280,14 @@ const output = {
   products_with_multi_region_public_representation: multi,
   scopes_with_multi_region_public_representation: scopes,
   request_errors: errors,
+  error_record_count: errorRecordCount,
+  record_error_rate: recordErrorRate,
+  successful_record_count: records.length - errorRecordCount,
+  data_completeness_state: errorRecordCount === 0
+    ? 'COMPLETE'
+    : runStatus === 'DIAGNOSTIC_COMPLETE_FAIL_CLOSED'
+      ? 'PARTIAL_WITHIN_EXPLICIT_ERROR_BUDGET'
+      : 'INCOMPLETE_ERROR_BUDGET_EXCEEDED',
   rows,
   defects,
   selected_regional_challengers: 0,
@@ -200,6 +295,7 @@ const output = {
     bounded_concurrency: concurrency,
     retry_after_backoff: true,
     request_timeout_ms: requestTimeoutMs,
+    maximum_record_error_rate: maximumRecordErrorRate,
     canonical_scope_migration_applied: true
   },
   provider_contact: 'HOLD',
@@ -218,5 +314,11 @@ console.log(JSON.stringify({
   multi_region: multi,
   scopes_multi_region: scopes,
   errors: errors.length,
+  error_records: errorRecordCount,
+  record_error_rate: recordErrorRate,
   selected: 0
 }, null, 2));
+
+if (output.status !== 'DIAGNOSTIC_COMPLETE_FAIL_CLOSED') {
+  process.exitCode = 2;
+}

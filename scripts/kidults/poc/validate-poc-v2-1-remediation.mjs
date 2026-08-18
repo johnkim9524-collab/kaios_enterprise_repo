@@ -32,7 +32,16 @@ for (const required of [
   expect(guards.has(required), `missing truth guard: ${required}`);
 }
 
-expect(contract.regional_independence?.minimum_independent_families >= 2, 'regional significance requires >=2 independent families');
+expect(contract.regional_independence?.minimum_independent_families >= 2, 'regional context candidate requires >=2 independent families');
+expect(
+  contract.regional_independence?.required_components?.length === 1
+    && contract.regional_independence.required_components[0] === 'TWO_PUBLISHER_INDEPENDENT_OFFICIAL_REGIONAL_INSTITUTION_RELEASE_EVENT_OR_VENUE_REFERENCES',
+  'regional context admission must require two publisher-independent official references'
+);
+expect(
+  contract.regional_independence?.optional_components?.includes('REGIONAL_PUBLIC_REPRESENTATION_NOT_IDENTITY_EVIDENCE'),
+  'public representation must remain optional and non-identity evidence'
+);
 expect(contract.challenger_reterminalization?.slot_count === 160, 'challenger slot count must remain 160');
 expect(contract.challenger_reterminalization?.forced_selection === false, 'forced selection must be prohibited');
 expect(contract.challenger_reterminalization?.selection_requires_role_evidence === true, 'role evidence required for selection');

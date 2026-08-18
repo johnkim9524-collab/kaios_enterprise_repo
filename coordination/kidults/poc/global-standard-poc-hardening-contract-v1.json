@@ -2,16 +2,44 @@
   "id": "kidults-global-standard-poc-hardening-contract-v1",
   "version": "1.0.0",
   "issue": 457,
-  "status": "CANONICAL_CANDIDATE",
-  "purpose": "Convert the global-standard PoC review into machine-enforced admission, evidence semantics, rights, freshness, missingness, identity and Track B gates without fabricating market truth.",
-  "standards_alignment": [
-    "ISO_IEC_5259_DATA_QUALITY_MEASURES",
-    "ISO_IEC_25012_DATA_QUALITY_MODEL",
-    "W3C_PROV_ENTITY_ACTIVITY_AGENT_LINEAGE",
-    "IVS_DATA_INPUT_MODEL_DOCUMENTATION_DISCIPLINE",
-    "FIX_BID_OFFER_TRADE_SEPARATION",
-    "NIST_AI_RMF_VALID_RELIABLE_TRANSPARENT_MONITORED"
-  ],
+  "status": "TRACK_A_PRE_CANDIDATE_HARDENING_PROPOSAL",
+  "purpose": "Declare proposed evidence and admission semantics for bounded R2 without fabricating market truth. End-to-end JSON Schema compilation, event-instance admission, field-rights enforcement and production runtime enforcement are not yet established.",
+  "standards_position": {
+    "type": "DESIGN_REFERENCE_ONLY",
+    "conformance_claimed": false,
+    "certification_claimed": false,
+    "crosswalk_status": "PENDING",
+    "references": [
+      {
+        "id": "ISO_IEC_5259_2_2024",
+        "role": "DATA_QUALITY_MEASURES_DESIGN_REFERENCE",
+        "url": "https://www.iso.org/standard/81860.html"
+      },
+      {
+        "id": "ISO_IEC_25012_2008",
+        "role": "DATA_QUALITY_MODEL_DESIGN_REFERENCE",
+        "url": "https://www.iso.org/standard/35736.html"
+      },
+      {
+        "id": "W3C_PROV_DM_2013_RECOMMENDATION",
+        "role": "PROVENANCE_DESIGN_REFERENCE_NOT_FULL_PROV_IMPLEMENTATION",
+        "url": "https://www.w3.org/TR/prov-dm/"
+      },
+      {
+        "id": "NIST_AI_RMF_1_0_2023",
+        "role": "VOLUNTARY_RISK_MANAGEMENT_DESIGN_REFERENCE",
+        "url": "https://www.nist.gov/itl/ai-risk-management-framework"
+      }
+    ]
+  },
+  "validation_scope": {
+    "json_schema_2020_12_compilation": "NOT_IMPLEMENTED",
+    "schema_structure_preflight": "IMPLEMENTED",
+    "synthetic_semantic_negative_controls": "IMPLEMENTED",
+    "runtime_event_admission": "PENDING_BOUNDED_R2",
+    "field_level_rights_enforcement": "PENDING_BOUNDED_R2",
+    "production_enforcement": "NOT_AUTHORIZED"
+  },
   "analysis_unit": {
     "id": "market_cell_id",
     "required_dimensions": [
@@ -105,6 +133,7 @@
   },
   "rights_admission": {
     "granularity": "FIELD_X_EVIDENCE_CLASS_X_OUTPUT",
+    "enforcement_state": "PROPOSED_SCHEMA_BINDINGS_RUNTIME_ADMISSION_PENDING",
     "required_actions": [
       "collect",
       "store",
@@ -127,6 +156,8 @@
       "observed_at",
       "collected_at",
       "source_updated_at",
+      "window_start",
+      "window_end",
       "ttl_seconds",
       "watermark_at",
       "next_due_at",
@@ -149,6 +180,7 @@
       "CONFLICT_QUARANTINED"
     ],
     "observed_zero_rule": "ALLOWED_ONLY_WITH_COMPLETE_OBSERVATION_WINDOW_AND_DENOMINATOR",
+    "coverage_rule": "COVERAGE_NUMERATOR_MUST_NOT_EXCEED_COVERAGE_DENOMINATOR",
     "imputation_policy": "NONE"
   },
   "metric_registry": [
@@ -200,6 +232,10 @@
     ]
   },
   "track_b_exit_gate": {
+    "owner": "TRACK_B",
+    "authority_ref": "coordination/kidults/registry/assessment/records/assessment-candidate-structural-20260816-r1-v1.json",
+    "status": "INHERITED_REFERENCE_ONLY",
+    "track_a_mutation_allowed": false,
     "exact_input_pair": ["snapshot-candidate.json", "Evidence Package"],
     "projected_field_rights_coverage": 1,
     "stale_rejection_rate": 1,
@@ -220,7 +256,12 @@
     "RIGHTS_UNKNOWN_REJECTED",
     "STALE_CURRENT_STATE_REJECTED",
     "CROSS_OBJECT_TIME_TO_SALE_REJECTED",
-    "SCOPE_CONTEXT_TO_PRODUCT_SCORE_REJECTED"
+    "SCOPE_CONTEXT_TO_PRODUCT_SCORE_REJECTED",
+    "UNDISCLOSED_ACCEPTED_OFFER_REJECTED",
+    "COVERAGE_NUMERATOR_EXCEEDS_DENOMINATOR_REJECTED",
+    "INCOMPLETE_REALIZED_PRICE_NORMALIZATION_REJECTED",
+    "RIGHTS_FIELD_BINDING_UNKNOWN_PATH_REJECTED",
+    "CURRENT_WITH_NULL_SOURCE_UPDATED_AT_REJECTED"
   ],
   "truth_guards": [
     "EVIDENCE_BEFORE_METRICS",
