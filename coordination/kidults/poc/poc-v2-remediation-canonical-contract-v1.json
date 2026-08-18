@@ -1,0 +1,22 @@
+{
+  "id":"kidults-poc-v2-remediation-canonical-contract-v1",
+  "version":"1.0.0",
+  "status":"CANONICAL_CANDIDATE",
+  "source":"PoC v2 diagnostic exit + Track B provider necessity assessment",
+  "objective":"Convert empirical PoC defects into enforceable platform rules before further scale-up.",
+  "canonical_changes":{
+    "regional_depth":{"split_required":true,"layers":["REGIONAL_PUBLIC_REPRESENTATION","REGIONAL_MARKET_SIGNIFICANCE","REGIONAL_LIQUIDITY"],"rules":["PUBLIC_REPRESENTATION_NE_MARKET_SIGNIFICANCE","MARKET_SIGNIFICANCE_NE_LIQUIDITY","REGIONAL_MARKET_SIGNIFICANCE_REQUIRES_INDEPENDENT_SOURCE_FAMILY","REGIONAL_LIQUIDITY_REQUIRES_ACTIVITY_OR_TRANSACTION_EVIDENCE"]},
+    "scarcity_liquidity":{"separate_metrics_required":true,"layers":["SUPPLY_SCARCITY","TRADABLE_AVAILABILITY","OBSERVED_MARKET_ACTIVITY","VERIFIED_TRANSACTION_ACTIVITY","LIQUIDITY","FAILED_SALE_RATE","TIME_TO_SALE"],"rules":["FEW_LISTINGS_NE_SCARCITY","MISSING_DATA_NE_ILLIQUIDITY","MANY_LISTINGS_NE_LIQUIDITY","HIGH_PRICE_NE_SCARCITY","BID_ASK_NE_TRANSACTION"]},
+    "dynamic_vertical":{"promotion_rule":"ATTENTION_PLUS_INDEPENDENT_MARKET_ACTIVITY_PLUS_TRACK_B","attention_role":"NOMINATION_AND_CULTURAL_MOMENTUM_ONLY","auto_promotion":false,"rules":["ATTENTION_NE_DEMAND","ATTENTION_NE_TRANSACTION","ATTENTION_ONLY_CANNOT_PROMOTE_VERTICAL"]},
+    "provider_strategy":{"unit_of_decision":"SCOPE_X_EVIDENCE_CLASS_X_RIGHTS_X_DECISION_UTILITY","platform_wide_provider_assumption":false,"broad_provider_contact":false,"allowed_states":["PROVIDER_NOT_REQUIRED","SELF_COLLECTABLE_CREDENTIAL_REQUIRED","RIGHTS_LIMITED_SELF_COLLECTION","EXTERNAL_LICENSE_JUSTIFIED","NOT_VERIFIED"],"contact_gate":"EXACT_CAPABILITY_GAP_AND_DECISION_UTILITY_AND_RIGHTS_AND_DEPENDENCY_AND_PROGRAM_OWNER_AUTHORIZATION"},
+    "normalization":{"confidence_required":true,"degrade_when_market_depth_uneven":true,"rules":["NO_CROSS_SCOPE_SCORE_WITHOUT_NORMALIZATION_CONFIDENCE","UNEQUAL_MARKET_ACTIVITY_DEPTH_MUST_LOWER_NORMALIZATION_CONFIDENCE"]},
+    "poc_scaling":{"full_320_gate":"ONLY_AFTER_CHALLENGER_ROLE_EVIDENCE_IS_DEFENSIBLE","forced_completion_prohibited":true,"success_definition":"DEFECT_DISCOVERY_AND_REMEDIATION_NOT_PASS_RATE","rules":["KNOWN_P0_DEFECTS_BLOCK_SCALE_UP","NO_FAKE_SELECTION_TO_MEET_SAMPLE_TARGET","UNRESOLVED_SLOT_MUST_TERMINALIZE_FAIL_CLOSED"]}
+  },
+  "empirical_baseline":{"attention":{"mapped":60,"total":64,"history_300d_plus":59,"errors":0},"regional":{"mapped":60,"total":64,"multi_region":55,"scope_coverage":31,"scope_total":32,"errors":0},"challenger":{"slots":160,"selected":0,"partial_evidence":64,"blocked_regional_independence":32,"blocked_market_activity":64}},
+  "open_p0":["REGIONAL_MARKET_INDEPENDENCE","SCOPE_SPECIFIC_MARKET_ACTIVITY_DEPTH"],
+  "resolved_or_reframed":["GENERIC_PRODUCT_DISCOVERY","DISCOVERY_THROTTLING","ATTENTION_TRANSPORT","REGIONAL_MAPPING","SCARCITY_LIQUIDITY_CONFLATION","PLATFORM_WIDE_PROVIDER_NECESSITY_ASSUMPTION"],
+  "track_alignment":{"A":"collect separate evidence classes and preserve NOT_VERIFIED; no role self-qualification","B":"independently validate role evidence, normalization and provider necessity","C":"consume projection only; display regional/market confidence separately","D":"operate bounded adapters, aging/revalidation and audit without creating business truth","E":"surface P0 defects, provider gates, drift and decisions without creating market truth"},
+  "next_cycle":"POC_V2_1_REGIONAL_INDEPENDENCE_AND_MARKET_ACTIVITY_ADAPTER_REMEDIATION",
+  "provider_contact":"HOLD",
+  "production":"HOLD"
+}
