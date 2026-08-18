@@ -15,13 +15,19 @@ const projectionIndex = read("projection/index.json");
 const projectionRef = projectionIndex.records.find(item => item.id === projectionIndex.current_record_id);
 if (!projectionRef) throw new Error("Projection Registry current pointer does not resolve.");
 const source = read(`projection/${projectionRef.path}`);
+const sourceFreshness = source.semantic_freshness?.status ?? "NOT_VERIFIED";
+const allowedFreshness = new Set(["CURRENT_CANONICAL_BASELINE", "CURRENT_APPROVED_PROJECTION"]);
+if (!allowedFreshness.has(sourceFreshness)) {
+  throw new Error(`PORTAL_SOURCE_PROJECTION_NOT_CURRENT:${sourceFreshness}`);
+}
+
 const writeMode = process.argv.includes("--write");
 const existing = fs.existsSync(outputPath) ? JSON.parse(fs.readFileSync(outputPath, "utf8")) : null;
 const now = writeMode ? new Date().toISOString() : (existing?.generated_at ?? new Date().toISOString());
 
 const projection = {
   projection_id: "portal-v502-registry-view-001",
-  projection_version: "2.2.0",
+  projection_version: "2.3.0",
   source_projection_id: source.id,
   source_projection_contract_version: source.projection_contract_version,
   generated_from: [
@@ -47,6 +53,7 @@ const projection = {
   dynamic_verticals: source.dynamic_verticals,
   indexes: source.indexes,
   track_states: source.track_states,
+  control_tower_state: source.control_tower_state,
   snapshot: source.snapshot,
   evidence: source.evidence,
   assessment: source.assessment,
@@ -56,7 +63,11 @@ const projection = {
   publication: source.publication,
   versions: source.versions,
   freshness: {
-    status: "CURRENT",
+    status: sourceFreshness,
+    source_projection_generated_at: source.generated_at,
+    source_track_registry_version: source.semantic_freshness.track_registry_version,
+    source_blocker_registry_version: source.semantic_freshness.blocker_registry_version,
+    policy_baseline: source.semantic_freshness.policy_baseline,
     as_of: now
   }
 };
@@ -81,10 +92,9 @@ if (JSON.stringify(comparable(current)) !== JSON.stringify(comparable(projection
   process.exit(1);
 }
 
-console.log("Portal consumes the canonical AGCI-OS Projection Registry: PASS");
-console.log(`Engine v2: ${projection.engine_v2.status}`);
-console.log(`Memory: ${projection.memory.status}`);
-console.log(`Memory replay snapshots: ${projection.memory.replay_snapshot_count}`);
-console.log(`Raw Quarantine: ${projection.raw_quarantine.quarantined_record_count} isolated`);
+console.log("Portal consumes a semantically current canonical AGCI-OS Projection Registry: PASS");
+console.log(`Freshness: ${projection.freshness.status}`);
+console.log(`Critical blockers: ${projection.control_tower_state.critical_blocker_ids.length}`);
+console.log(`High blockers: ${projection.control_tower_state.high_blocker_ids.length}`);
 console.log(`KIDULT 500: ${projection.indexes.kidult_500.status}`);
 console.log(`KIDULT 100: ${projection.indexes.kidult_100.status}`);

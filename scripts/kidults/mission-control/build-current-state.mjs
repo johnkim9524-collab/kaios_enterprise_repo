@@ -19,6 +19,12 @@ const projectionRef = projectionIndex.records.find(item => item.id === projectio
 if (!projectionRef) throw new Error('CURRENT_PROJECTION_REFERENCE_NOT_RESOLVED');
 const projectionPath = path.join(registryRoot,'projection',projectionRef.path);
 const projection = readJson(projectionPath);
+const sourceFreshness = projection.semantic_freshness?.status ?? 'NOT_VERIFIED';
+const allowedFreshness = new Set(['CURRENT_CANONICAL_BASELINE','CURRENT_APPROVED_PROJECTION']);
+if (!allowedFreshness.has(sourceFreshness)) {
+  throw new Error(`EOS_SOURCE_PROJECTION_NOT_CURRENT:${sourceFreshness}`);
+}
+
 const existing = fs.existsSync(twinPath) ? readJson(twinPath) : null;
 const writeMode = process.argv.includes('--write');
 const generatedAt = writeMode ? new Date().toISOString() : (existing?.generated_at ?? projection.generated_at);
@@ -26,11 +32,13 @@ const generatedAt = writeMode ? new Date().toISOString() : (existing?.generated_
 const twin = {
   id:'twin-current-program-state-v1',
   record_type:'digital_twin',
-  version:'1.7.0',
+  version:'1.8.0',
   status:'CURRENT',
   twin_id:'TWIN-0001',
   source_projection_id:projection.id,
   source_projection_version:projection.version,
+  source_freshness_status:sourceFreshness,
+  source_policy_baseline:projection.semantic_freshness.policy_baseline,
   program_status:projection.program_status,
   program_phase:projection.control_tower_state.program_phase,
   registry_health:'PASS',
@@ -72,5 +80,8 @@ if (!existing || JSON.stringify(comparable(existing)) !== JSON.stringify(compara
 
 console.log('Executive Control Tower Digital Twin Projection: PASS');
 console.log(`Projection source: ${projection.id}@${projection.version}`);
+console.log(`Freshness: ${twin.source_freshness_status}`);
+console.log(`Critical blockers: ${twin.critical_blocker_ids.length}`);
+console.log(`High blockers: ${twin.high_blocker_ids.length}`);
 console.log('Direct non-Projection inputs: 0');
 console.log(`Production: ${twin.production_state}`);

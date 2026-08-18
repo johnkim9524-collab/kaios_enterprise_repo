@@ -75,19 +75,37 @@ const blocker = read("blocker/index.json");
 const decision = read("decision/index.json");
 const marketFunnelAlignment = readRoot("coordination/kidults/architecture/platform-market-funnel-alignment-v1.json");
 
+const criticalBlockers = blocker.records
+  .filter(item => item.status === "OPEN" && item.severity === "CRITICAL")
+  .map(item => item.id);
+const highBlockers = blocker.records
+  .filter(item => item.status === "OPEN" && item.severity === "HIGH")
+  .map(item => item.id);
+
 const projection = {
   id: "projection-agci-os-current-v1",
   record_type: "agci_os_projection",
-  version: "1.3.0",
+  version: "1.4.0",
   status: "INTERNAL_CURRENT",
   created_at: createdAt,
   created_by: "Track C / Projection Engine",
   approved_by: null,
   projection_id: "AGCI-OS-PROJECTION-001",
-  projection_contract_version: "agci-os-projection-v1.3",
+  projection_contract_version: "agci-os-projection-v1.4",
   source_registry_system_version: catalog.registry_system_version,
   source_catalog_revision: catalog.catalog_revision ?? catalog.registry_system_version,
   program_status: "ACTIVE",
+  semantic_freshness: {
+    status: "CURRENT_CANONICAL_BASELINE",
+    policy_baseline: "coordination/kidults/kpmo/policy-platform-alignment-baseline-v1.md",
+    track_registry_version: track.registry_version,
+    blocker_registry_version: blocker.registry_version,
+    snapshot_registry_version: snapshot.registry_version,
+    evidence_registry_version: evidence.registry_version,
+    assessment_registry_version: assessmentIndex.registry_version,
+    generated_from_current_registry_pointers: true,
+    stale_structural_candidate_is_current: false
+  },
   market_funnel_alignment: {
     contract: "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
     platform_layers: marketFunnelAlignment.truth_boundary.logical_platform_layer_count,
@@ -222,18 +240,18 @@ const projection = {
     E: trackState(track, "E")
   },
   control_tower_state: {
-    program_phase: "PHASE_1_CONTENT_DATA_PROVIDER_FOUNDATION",
+    program_phase: "PHASE_3_FAST_IMPROVEMENT_BEFORE_REAL_POC",
     current_milestone_id: milestone.current_record_id,
     mission_states: Object.fromEntries(mission.records.map(item => [item.id,item.status])),
-    critical_blocker_ids: blocker.records.filter(item => item.status === "OPEN" && item.severity === "CRITICAL").map(item => item.id),
-    high_blocker_ids: blocker.records.filter(item => item.status === "OPEN" && item.severity === "HIGH").map(item => item.id),
+    critical_blocker_ids: criticalBlockers,
+    high_blocker_ids: highBlockers,
     open_decision_count: decision.records.filter(item => ["OPEN","PENDING","PROPOSED"].includes(item.status)).length
   },
   snapshot: {
     baseline_id: snapshot.current_baseline_snapshot_id,
     baseline_status: baseline.status,
     candidate_id: snapshot.current_candidate_snapshot_id,
-    candidate_status: candidate?.status ?? "WAITING",
+    candidate_status: candidate?.status ?? "WAITING_FOR_NEW_BOUNDED_POC_CANDIDATE",
     candidate_class: candidate?.governance_classification ?? "NOT_AVAILABLE",
     candidate_publication_eligible: candidate?.publication_eligible ?? false,
     published_id: snapshot.current_published_snapshot_id,
@@ -247,7 +265,7 @@ const projection = {
     current_id: assessmentIndex.current_assessment_id,
     current_snapshot_id: assessmentIndex.current_snapshot_id,
     status: assessmentIndex.status,
-    gate_state: assessment?.gate_state ?? "WAITING",
+    gate_state: assessment?.gate_state ?? "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE",
     recommendation: assessment?.recommendation ?? "WAITING",
     overall_rankability: assessment?.overall_rankability ?? false,
     publication_eligible: assessment?.publication_eligible ?? false
@@ -279,8 +297,8 @@ const projection = {
     rollback_target_id: release.current_rollback_target_id
   },
   versions: {
-    methodology: candidate?.methodology_version ?? "NOT_REGISTERED",
-    evidence_lineage: candidate?.evidence_lineage_version ?? "NOT_REGISTERED",
+    methodology: candidate?.methodology_version ?? "NOT_REGISTERED_FOR_CURRENT_CANDIDATE",
+    evidence_lineage: candidate?.evidence_lineage_version ?? "NOT_REGISTERED_FOR_CURRENT_CANDIDATE",
     portal_contract: candidate?.portal_contract_version ?? "v502-rc1",
     registry_system: catalog.registry_system_version,
     catalog_revision: catalog.catalog_revision ?? catalog.registry_system_version,
@@ -314,13 +332,11 @@ if (!existing || JSON.stringify(comparable(existing)) !== JSON.stringify(compara
 
 console.log("AGCI-OS Projection Engine: PASS");
 console.log(`Projection: ${projection.id}`);
-console.log(`Registry system: ${projection.source_registry_system_version}`);
-console.log(`Catalog revision: ${projection.source_catalog_revision}`);
-console.log(`Autonomous first: ${projection.autonomous.first_value}`);
-console.log(`Engine v2: ${projection.engine_v2.status}`);
-console.log(`Memory: ${projection.memory.status}`);
-console.log(`Replay snapshots: ${projection.memory.replay_snapshot_count}`);
-console.log(`Quarantined: ${projection.raw_quarantine.quarantined_record_count}`);
+console.log(`Semantic freshness: ${projection.semantic_freshness.status}`);
+console.log(`Track Registry: ${projection.semantic_freshness.track_registry_version}`);
+console.log(`Blocker Registry: ${projection.semantic_freshness.blocker_registry_version}`);
+console.log(`Critical blockers: ${projection.control_tower_state.critical_blocker_ids.length}`);
+console.log(`High blockers: ${projection.control_tower_state.high_blocker_ids.length}`);
 console.log(`Candidate: ${projection.snapshot.candidate_id ?? "NONE"}`);
 console.log(`Assessment: ${projection.assessment.current_id ?? "NONE"}`);
 console.log(`KIDULT 500: ${projection.indexes.kidult_500.status}`);

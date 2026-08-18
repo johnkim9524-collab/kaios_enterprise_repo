@@ -1,1 +1,23 @@
-{"id":"track-b-rankability-validation-gate","record_type":"track","version":"1.2.0","status":"ASSESSMENT_COMPLETE_BLOCKED","display_name":"B. KIDULTS | Rankability & Validation Gate","role_id":"role-track-b","canonical_issue":236,"current_snapshot_id":"candidate-structural-20260816-r1","current_assessment_id":"assessment-candidate-structural-20260816-r1-v1","input_evidence_package_id":"evidence-candidate-structural-20260816-r1","assessment_recommendation":"BLOCKED","rule_status":"FINAL_LOCKED_AT_V1.3","next_stage":"WAITING_FOR_NEW_IMMUTABLE_CANDIDATE_WITH_EXIT_CRITERIA_SATISFIED","created_by":"Atlas","approved_by":"John"}
+{
+  "id":"track-b-rankability-validation-gate",
+  "record_type":"track",
+  "version":"1.3.0",
+  "status":"WAITING_FOR_EXACT_IMMUTABLE_PACKAGE",
+  "display_name":"B. KIDULTS | Independent Validation Gate",
+  "role_id":"role-track-b",
+  "canonical_issue":236,
+  "current_snapshot_id":null,
+  "current_assessment_id":null,
+  "input_evidence_package_id":null,
+  "assessment_recommendation":"WAITING",
+  "rule_status":"FINAL_LOCKED_AT_V1.3",
+  "calibration_state":"PREVIOUS_200_CASE_REVIEW_84_PERCENT_GATE_FAIL",
+  "critical_false_auto_merge":0,
+  "next_stage":"WAIT_FOR_NEW_IMMUTABLE_SNAPSHOT_AND_EVIDENCE_PACKAGE",
+  "claim_rule":"CLAIM_STRENGTH_LE_EVIDENCE_STRENGTH",
+  "production":"HOLD",
+  "updated_at":"2026-08-19T06:45:00+09:00",
+  "created_by":"Atlas",
+  "updated_by":"KPMO / Atlas",
+  "approved_by":"John"
+}

@@ -1,0 +1,16 @@
+{
+  "id":"blocker-entity-resolution-calibration-gap",
+  "record_type":"blocker",
+  "version":"1.0.0",
+  "status":"OPEN",
+  "blocker_id":"BLOCKER-0101",
+  "severity":"CRITICAL",
+  "title":"Real-world Scope-stratified entity-resolution calibration below required confidence",
+  "owner_track_id":"track-b-rankability-validation-gate",
+  "impact_tracks":["track-a-120-intelligence-factory","track-c-portal-v502-experience-layer","track-e-executive-operating-system"],
+  "condition":"Latest 200-case blind review measured 84% agreement; broad rankability requires a real-world Scope-stratified successor benchmark without threshold relaxation.",
+  "exit_criteria":["real-world Scope-stratified benchmark frozen","critical false auto-merge remains 0","required accuracy/representativeness gate independently passed or explicitly bounded"],
+  "created_at":"2026-08-19T06:45:00+09:00",
+  "created_by":"KPMO / Atlas",
+  "approved_by":"John"
+}

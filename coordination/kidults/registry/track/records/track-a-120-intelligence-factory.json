@@ -1,1 +1,21 @@
-{"id":"track-a-120-intelligence-factory","record_type":"track","version":"1.1.0","status":"CANDIDATE_SUBMITTED","display_name":"A. KIDULTS | 120 Intelligence Factory","role_id":"role-track-a","canonical_issue":235,"baseline_snapshot_id":"baseline-provider-independent-v1","current_candidate_snapshot_id":"candidate-structural-20260816-r1","methodology_version":"canonical-candidate-methodology-v1","evidence_lineage_version":"canonical-evidence-lineage-v1","current_phase":"TRACK_B_INPUT_VALIDATION_AND_CANDIDATE_0002_ENRICHMENT","next_formal_handoff":"Track B input acceptance","created_by":"Atlas","approved_by":"John"}
+{
+  "id":"track-a-120-intelligence-factory",
+  "record_type":"track",
+  "version":"1.2.0",
+  "status":"READY_FOR_BOUNDED_REAL_POC",
+  "display_name":"A. KIDULTS | Intelligence Factory",
+  "role_id":"role-track-a",
+  "canonical_issue":235,
+  "baseline_snapshot_id":"baseline-provider-independent-v1",
+  "current_candidate_snapshot_id":null,
+  "methodology_version":"canonical-candidate-methodology-v1",
+  "evidence_lineage_version":"canonical-evidence-lineage-v1",
+  "current_phase":"HOLISTIC_REVIEW_FAST_IMPROVEMENT_BEFORE_REAL_POC",
+  "next_formal_handoff":"Produce new immutable snapshot candidate + Evidence Package from bounded real PoC",
+  "claim_rule":"CLAIM_STRENGTH_LE_EVIDENCE_STRENGTH",
+  "production":"HOLD",
+  "updated_at":"2026-08-19T06:45:00+09:00",
+  "created_by":"Atlas",
+  "updated_by":"KPMO / Atlas",
+  "approved_by":"John"
+}

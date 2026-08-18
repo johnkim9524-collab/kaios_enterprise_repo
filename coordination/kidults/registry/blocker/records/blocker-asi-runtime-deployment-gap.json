@@ -1,0 +1,16 @@
+{
+  "id":"blocker-asi-runtime-deployment-gap",
+  "record_type":"blocker",
+  "version":"1.0.0",
+  "status":"OPEN",
+  "blocker_id":"BLOCKER-0103",
+  "severity":"HIGH",
+  "title":"ASI processors and deployed runtime not yet operationally proven",
+  "owner_track_id":"track-d-data-platform-production-reliability",
+  "impact_tracks":["track-a-120-intelligence-factory","track-e-executive-operating-system"],
+  "condition":"25/25 transport bindings are SHADOW code-wired, but implemented ASI processors and deployed operational alignment are not yet proven.",
+  "exit_criteria":["bounded PoC processor slice runs in DEV/STAGING","retry/DLQ/replay measured","capacity/cost/recovery evidence recorded"],
+  "created_at":"2026-08-19T06:45:00+09:00",
+  "created_by":"KPMO / Atlas",
+  "approved_by":"John"
+}

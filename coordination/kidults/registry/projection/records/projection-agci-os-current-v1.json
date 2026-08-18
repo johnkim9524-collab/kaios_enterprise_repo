@@ -1,16 +1,27 @@
 {
   "id": "projection-agci-os-current-v1",
   "record_type": "agci_os_projection",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "status": "INTERNAL_CURRENT",
   "created_at": "2026-08-16T14:10:00+09:00",
   "created_by": "Track C / Projection Engine",
   "approved_by": null,
   "projection_id": "AGCI-OS-PROJECTION-001",
-  "projection_contract_version": "agci-os-projection-v1.3",
+  "projection_contract_version": "agci-os-projection-v1.4",
   "source_registry_system_version": "2.0.0",
   "source_catalog_revision": "2.2.0",
   "program_status": "ACTIVE",
+  "semantic_freshness": {
+    "status": "CURRENT_CANONICAL_BASELINE",
+    "policy_baseline": "coordination/kidults/kpmo/policy-platform-alignment-baseline-v1.md",
+    "track_registry_version": "1.6.0",
+    "blocker_registry_version": "1.4.0",
+    "snapshot_registry_version": "1.3.0",
+    "evidence_registry_version": "1.6.0",
+    "assessment_registry_version": "1.4.0",
+    "generated_from_current_registry_pointers": true,
+    "stale_structural_candidate_is_current": false
+  },
   "market_funnel_alignment": {
     "contract": "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
     "platform_layers": 9,
@@ -143,14 +154,14 @@
     }
   },
   "track_states": {
-    "A": "CANDIDATE_SUBMITTED",
-    "B": "ASSESSMENT_COMPLETE_BLOCKED",
+    "A": "READY_FOR_BOUNDED_REAL_POC",
+    "B": "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE",
     "C": "ACTIVE",
-    "D": "FOUNDATION_PREPARATION",
-    "E": "PARTIALLY_IMPLEMENTED"
+    "D": "SHADOW_RUNTIME_FOUNDATION_ACTIVE",
+    "E": "FOUNDATION_COMPLETE_INTEGRATION_ACTIVE"
   },
   "control_tower_state": {
-    "program_phase": "PHASE_1_CONTENT_DATA_PROVIDER_FOUNDATION",
+    "program_phase": "PHASE_3_FAST_IMPROVEMENT_BEFORE_REAL_POC",
     "current_milestone_id": "milestone-ms-0001-first-canonical-snapshot",
     "mission_states": {
       "mission-track-a-first-canonical-snapshot": "HANDOFF_SUBMITTED",
@@ -159,30 +170,38 @@
       "mission-track-d-foundation-implementation": "IN_PROGRESS",
       "mission-track-e-executive-operating-system": "IN_PROGRESS"
     },
-    "critical_blocker_ids": [],
-    "high_blocker_ids": [],
+    "critical_blocker_ids": [
+      "blocker-no-canonical-candidate",
+      "blocker-entity-resolution-calibration-gap",
+      "blocker-market-activity-depth-gap"
+    ],
+    "high_blocker_ids": [
+      "blocker-asi-runtime-deployment-gap",
+      "blocker-source-pool-live-evidence-gap",
+      "blocker-live-approved-projection-gap"
+    ],
     "open_decision_count": 0
   },
   "snapshot": {
     "baseline_id": "baseline-provider-independent-v1",
     "baseline_status": "BASELINE_LOCKED_PENDING_ARTIFACT",
-    "candidate_id": "candidate-structural-20260816-r1",
-    "candidate_status": "DRAFT_CANDIDATE_INTERNAL",
-    "candidate_class": "STRUCTURAL_VALIDATION_CANDIDATE",
+    "candidate_id": null,
+    "candidate_status": "WAITING_FOR_NEW_BOUNDED_POC_CANDIDATE",
+    "candidate_class": "NOT_AVAILABLE",
     "candidate_publication_eligible": false,
     "published_id": null,
     "published_status": "NOT_AVAILABLE"
   },
   "evidence": {
-    "current_package_id": "evidence-candidate-structural-20260816-r1",
-    "status": "CANDIDATE_EVIDENCE_INTERNAL_AVAILABLE"
+    "current_package_id": null,
+    "status": "WAITING_FOR_NEW_BOUNDED_POC_EVIDENCE_PACKAGE"
   },
   "assessment": {
-    "current_id": "assessment-candidate-structural-20260816-r1-v1",
-    "current_snapshot_id": "candidate-structural-20260816-r1",
-    "status": "BLOCKED",
-    "gate_state": "blocked",
-    "recommendation": "BLOCKED",
+    "current_id": null,
+    "current_snapshot_id": null,
+    "status": "WAITING_FOR_SNAPSHOT",
+    "gate_state": "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE",
+    "recommendation": "WAITING",
     "overall_rankability": false,
     "publication_eligible": false
   },
@@ -213,8 +232,8 @@
     "rollback_target_id": null
   },
   "versions": {
-    "methodology": "canonical-candidate-methodology-v1",
-    "evidence_lineage": "canonical-evidence-lineage-v1",
+    "methodology": "NOT_REGISTERED_FOR_CURRENT_CANDIDATE",
+    "evidence_lineage": "NOT_REGISTERED_FOR_CURRENT_CANDIDATE",
     "portal_contract": "v502-rc1",
     "registry_system": "2.0.0",
     "catalog_revision": "2.2.0",
@@ -231,5 +250,5 @@
     "memory_fixture_publication": "PROHIBITED",
     "production": "HOLD"
   },
-  "generated_at": "2026-08-18T16:27:16.991Z"
+  "generated_at": "2026-08-18T21:45:00.000Z"
 }

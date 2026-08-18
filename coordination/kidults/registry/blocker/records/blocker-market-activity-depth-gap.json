@@ -1,0 +1,16 @@
+{
+  "id":"blocker-market-activity-depth-gap",
+  "record_type":"blocker",
+  "version":"1.0.0",
+  "status":"OPEN",
+  "blocker_id":"BLOCKER-0102",
+  "severity":"CRITICAL",
+  "title":"Scope-specific market-activity depth incomplete",
+  "owner_track_id":"track-a-120-intelligence-factory",
+  "impact_tracks":["track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-e-executive-operating-system"],
+  "condition":"Verified SOLD/activity, failed-sale, exposure, time-to-sale, rights, freshness and identity-resolved event depth are not yet sufficient for broader market claims.",
+  "exit_criteria":["bounded real PoC terminalizes claim-specific market evidence","rights/freshness/identity admission passes","Track B independently validates exact claim sufficiency"],
+  "created_at":"2026-08-19T06:45:00+09:00",
+  "created_by":"KPMO / Atlas",
+  "approved_by":"John"
+}

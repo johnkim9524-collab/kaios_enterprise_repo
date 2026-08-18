@@ -24,7 +24,13 @@ assert(quarantine.current_shadow_report_id === "raw-quarantine-authority-shadow-
 assert(universe.current_admission_report_id === "universe-admission-authority-shadow-r1", "Universe admission pointer mismatch.");
 assert(entity.current_shadow_report_id === "entity-resolution-authority-shadow-r1", "Entity Shadow pointer mismatch.");
 assert(evidence.current_shadow_graph_id === "evidence-graph-authority-shadow-r1", "Evidence Graph pointer mismatch.");
-assert(evidence.current_evidence_package_id === "evidence-candidate-structural-20260816-r1", "Candidate Evidence pointer must remain immutable.");
+
+const historicalStructuralEvidence = evidence.records.find(item => item.id === "evidence-candidate-structural-20260816-r1");
+assert(Boolean(historicalStructuralEvidence), "Historical structural Evidence record must remain registered.");
+assert(historicalStructuralEvidence?.status === "HISTORICAL_CANDIDATE_EVIDENCE_NOT_CURRENT", "Historical structural Evidence must remain immutable history, not current authority.");
+assert(evidence.current_evidence_package_id === null, "Current Evidence Package must remain empty until the bounded real PoC creates a new immutable package.");
+assert(evidence.current_evidence_package_id !== evidence.current_shadow_graph_id, "Shadow Evidence must never become the current Candidate Evidence Package.");
+
 assert(market.current_shadow_graph_id === "market-graph-authority-shadow-r1", "Market Graph pointer mismatch.");
 assert(cluster.current_shadow_preflight_id === "cluster-discovery-authority-shadow-r1", "Cluster preflight pointer mismatch.");
 assert(projectionIndex.current_record_id === "projection-agci-os-current-v1", "Portal current Projection must not be replaced.");
@@ -33,6 +39,7 @@ assert(shadowProjection.source_run_id === engineRun.id && shadowProjection.run_f
 assert(shadowProjection.market_events === 0 && shadowProjection.indexes_computed === 0 && shadowProjection.approved_dynamic_verticals === 0, "Shadow Projection must fail closed.");
 assert(shadowProjection.public_projection === false && shadowProjection.production === "HOLD", "Shadow Projection boundary mismatch.");
 assert(portal.source_projection_id === "projection-agci-os-current-v1", "Portal must keep the governed current Projection.");
+assert(portal.freshness?.status === "CURRENT_CANONICAL_BASELINE", "Portal must consume a semantically current canonical Projection baseline.");
 assert(portal.indexes.kidult_500.status === "NOT_COMPUTED" && portal.indexes.kidult_100.status === "NOT_COMPUTED", "Portal Index state changed.");
 assert(portal.publication.production === "HOLD", "Portal Production must remain HOLD.");
 
@@ -44,4 +51,4 @@ if (errors.length) {
 console.log("AGCI-OS bounded-live Shadow Registry: PASS");
 console.log(`Shadow run: ${engineRun.id}`);
 console.log(`Projection: ${shadowProjection.id}`);
-console.log("Portal current projection unchanged; KIDULT 500/100 NOT_COMPUTED; Production HOLD.");
+console.log("Historical Candidate preserved; current Evidence Package empty; Portal semantically current; KIDULT 500/100 NOT_COMPUTED; Production HOLD.");
