@@ -1,0 +1,42 @@
+{
+  "id": "golden-dataset-v1-track-b-blind-review-r1",
+  "record_type": "golden_dataset_track_b_review_evidence",
+  "version": "1.0.0",
+  "status": "COMPLETED_CALIBRATION_THRESHOLD_FAIL",
+  "review_mode": "PROCESS_INDEPENDENT_INTERNAL_BLIND_REVIEW_NOT_EXTERNAL_AUDIT",
+  "input": {
+    "workflow_run_id": 32135696140,
+    "reviewer_artifact_id": 9323872340,
+    "reviewer_artifact_digest": "sha256:88265f6bffcb0c9a5f1b0df67b923fddd0769676cfab73a47c6245d98a432f00",
+    "hidden_lineage_artifact_id": 9323872948,
+    "hidden_lineage_artifact_digest": "sha256:6f930c46df2318bcbd086d54193b676cf3ed739296406c77f3c9b3197f97dba5"
+  },
+  "review_freeze": {
+    "completed_records": 200,
+    "unresolved_records": 0,
+    "review_fingerprint": "sha256:cb44c8be8aca24a5c1c871a85ec7ffa0e1fe90ef168728b6e1a6bba80e4fa2e1",
+    "hidden_lineage_access_before_freeze": false
+  },
+  "outcome": {
+    "correct": 168,
+    "incorrect": 32,
+    "accuracy": 0.84,
+    "required_accuracy": 0.99,
+    "critical_false_auto_merge_count": 0,
+    "outcome_fingerprint": "sha256:9fcd67aa40db4f94b6abcefae93b4fb3246fa2794d42ea296d9028cc3688dbbb",
+    "mismatch_classes": [
+      {"decision": "DIFFERENT_CANONICAL_DESIGN", "provisional": "SAME_CANONICAL_DESIGN_DIFFERENT_PHYSICAL_OBJECT", "count": 25},
+      {"decision": "DIFFERENT_PHYSICAL_OBJECT_AND_DESIGN", "provisional": "DIFFERENT_CANONICAL_DESIGN", "count": 7}
+    ]
+  },
+  "track_b_decision": {
+    "calibration_gate": "FAIL",
+    "representativeness_gate": "FAIL_SYNTHETIC_CONTROLS_FROM_48_AUTHORITY_RECORDS_NOT_SCOPE_STRATIFIED_REAL_WORLD_GOLDEN_SET",
+    "global_entity_resolution_validated": false,
+    "candidate_r2_authorized": false,
+    "required_remediation": "Replace provisional same-design labels with independently evidenced labels and build a scope-stratified real-world Golden Dataset before re-running the >=99% gate."
+  },
+  "provider_contact": "HOLD",
+  "production": "HOLD",
+  "publication_eligible": false
+}
