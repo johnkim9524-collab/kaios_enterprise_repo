@@ -1,0 +1,42 @@
+{
+  "expected_valid": true,
+  "event": {
+    "schema_version": "market-event-v1",
+    "market_event_id": "evt-active-001",
+    "evidence_class": "ACTIVE_LISTING",
+    "event_state": "ACTIVE",
+    "source_event_id": "source-001",
+    "source_listing_id": "listing-001",
+    "market_cell_id": "cell-card-us-fixed-usd-30d",
+    "market_cell_dimensions": {
+      "canonical_product_or_edition": "card-edition-001",
+      "variant": "first-edition",
+      "condition_or_grade": "PSA-9",
+      "region": "US",
+      "channel": "MARKETPLACE",
+      "sale_mechanism": "FIXED_PRICE",
+      "currency_basis": "USD",
+      "observation_window": {"window_start": "2026-07-01T00:00:00Z", "window_end": "2026-08-01T00:00:00Z", "timezone": "UTC"}
+    },
+    "canonical_entity_id": "entity-001",
+    "physical_object_id": "object-001",
+    "region": "US",
+    "venue_id": "venue-001",
+    "sale_mechanism": "FIXED_PRICE",
+    "event_at": "2026-07-15T00:00:00Z",
+    "observed_at": "2026-07-15T01:00:00Z",
+    "collected_at": "2026-07-15T01:01:00Z",
+    "source_updated_at": "2026-07-15T00:30:00Z",
+    "rights": {
+      "collect": "ALLOW", "store": "ALLOW", "transform": "ALLOW", "display": "DENY", "redistribute": "DENY", "sell": "DENY",
+      "terms_url": "https://example.test/terms", "terms_version": "2026-07-01", "review_due_at": "2026-10-01T00:00:00Z",
+      "field_bindings": [{"field_path": "/price", "output_class": "INTERNAL_ANALYSIS", "admission_state": "ALLOW"}]
+    },
+    "freshness": {"state": "CURRENT", "ttl_seconds": 86400, "window_start": "2026-07-01T00:00:00Z", "window_end": "2026-08-01T00:00:00Z", "watermark_at": "2026-07-15T01:00:00Z", "next_due_at": "2026-07-16T01:00:00Z", "stale_reason": null},
+    "lineage": {"evidence_id": "evidence-001", "source_family_id": "family-001", "raw_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "normalized_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "parser_version": "1.0.0", "transform_version": "1.0.0"},
+    "price": {"price_type": "ASK", "amount": 100, "currency": "USD", "buyer_premium_included": false, "tax_included": false, "shipping_included": false, "fx_source": null, "fx_date": null, "accepted_offer_disclosure": "NOT_APPLICABLE"},
+    "quantity": 1,
+    "condition_grade": {"condition_state": "USED", "grade": "9", "grader": "PSA", "authenticity_state": "VERIFIED"},
+    "missingness": {"reason": "NONE", "coverage_numerator": 1, "coverage_denominator": 1, "imputation_policy": "NONE", "field_states": [{"field_path": "/price", "reason": "NONE"}]}
+  }
+}
