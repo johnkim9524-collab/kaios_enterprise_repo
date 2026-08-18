@@ -1,0 +1,41 @@
+{
+  "id":"kidults-scope-depth-dynamic-vertical-contract-v1",
+  "version":"1.0.0",
+  "status":"CANONICAL_CANDIDATE",
+  "baseline":"32±N adaptive canonical scopes",
+  "principle":"Stable Scope grammar; dynamic Decision/Market layers. Market attention never equals market truth.",
+  "depth_layers":[
+    {"id":"MARKET_REGIME","required":true,"outputs":["regime_state","rotation_signal","price_dispersion","transaction_frequency","failed_sale_signal","channel_concentration"]},
+    {"id":"GENERATIONAL_CANON","required":true,"outputs":["legacy_canon","emerging_canon","generational_canon","regional_canon"]},
+    {"id":"CULTURAL_MOMENTUM","required":true,"outputs":["search_attention","media_attention","community_attention","creator_franchise_attention","institutional_attention"],"guard":"ATTENTION_NE_DEMAND_NE_TRANSACTION"},
+    {"id":"AUTHENTICATION_CONDITION_RISK","required":true,"outputs":["authenticity_confidence","alteration_risk","restoration_risk","counterfeit_risk","certification_reliability","originality_risk","condition_uncertainty"]},
+    {"id":"CONDITION_ADJUSTED_COMPARABLE","required":true,"outputs":["comparable_eligibility","condition_adjustment","variant_adjustment","region_adjustment","channel_adjustment","time_adjustment"]},
+    {"id":"REGIONAL_LIQUIDITY","required":true,"outputs":["sold_frequency","time_to_sale","market_depth","regional_premium","regional_concentration","turnover_stability"]},
+    {"id":"OWNERSHIP_FRICTION","required":"SCOPE_APPLICABLE","outputs":["maintenance","storage","insurance","transport","serviceability","repairability","parts_availability"]}
+  ],
+  "dynamic_vertical_policy":{
+    "definition":"Evidence-backed market/customer cluster below Canonical Scope, allowed to move faster than taxonomy without rewriting Scope history.",
+    "lifecycle":["SIGNAL","WATCH","EMERGING","VALIDATED_VERTICAL","SCOPE_CANDIDATE","PROMOTED_OR_ARCHIVED"],
+    "promotion_requires":["distinct_customer_decision","distinct_identity_grammar","distinct_condition_or_provenance_logic","distinct_market_behavior","distinct_intelligence_output","persistent_multi_period_signal","multi_region_or_explicit_regional_significance","track_b_pass","kpmo_approval"],
+    "never_auto_promote":true,
+    "history_immutable":true
+  },
+  "dynamic_vertical_candidates":[
+    {"id":"digital_physical_collectibles","state":"WATCH","candidate_parent_domains":["gaming_music_screen","cards_comics_memorabilia","toys_models"],"signals":["physical_digital_linkage","platform_identity","transferability","authentication","secondary_liquidity"]},
+    {"id":"contemporary_character_collectibles","state":"WATCH","candidate_parent_domains":["toys_models"],"signals":["character_momentum","drop_release_dynamics","edition_scarcity","global_resale","creator_franchise_attention"]},
+    {"id":"nineties_2000s_nostalgia_assets","state":"WATCH","candidate_parent_domains":["automobiles_mobility","technology_cameras","gaming_music_screen","fashion_accessories"],"signals":["generational_rotation","transaction_growth","canon_migration","regional_demand"]},
+    {"id":"independent_watchmaking","state":"WATCH","candidate_parent_domains":["watches_jewelry"],"signals":["maker_canon","production_scarcity","auction_attention","collector_rotation"]},
+    {"id":"japanese_modern_classics","state":"WATCH","candidate_parent_domains":["automobiles_mobility"],"signals":["regional_premium","generational_rotation","import_export_flow","liquidity"]},
+    {"id":"archival_fashion","state":"WATCH","candidate_parent_domains":["fashion_accessories"],"signals":["designer_season_canon","runway_provenance","celebrity_media_attention","secondary_liquidity"]},
+    {"id":"vintage_computing_early_technology","state":"WATCH","candidate_parent_domains":["technology_cameras"],"signals":["working_survival","completeness","historical_significance","parts_serviceability","collector_rotation"]},
+    {"id":"digital_watches","state":"WATCH","candidate_parent_domains":["technology_cameras","watches_jewelry"],"canonical_parent_scope":"collectible_electronics","signals":["module_display_identity","working_survival","nostalgia","regional_canon","serviceability"]}
+  ],
+  "category_governance":{
+    "eight_core_categories":"STABLE_BASELINE_NOT_FIXED_WEIGHT",
+    "priority_dimensions":["structural_market_depth","market_momentum","liquidity_depth","global_breadth","customer_attention","evidence_coverage"],
+    "category_change_requires":"SCOPE_DRIFT_AND_PERSISTENT_MARKET_EVIDENCE_NOT_SINGLE_WAVE_SIGNAL"
+  },
+  "north_star":{"AUTONOMOUS":"PASS","GLOBAL":"PASS_DESIGN_EMPIRICAL_CONTINUES","IRREPLACEABLE_VALUE":"PASS_OUTPUT_FIRST","TRANSPARENT":"PASS_SIGNAL_TRUTH_SEPARATION"},
+  "provider_contact":"HOLD_PENDING_GLOBAL_MARKET_EVIDENCE_POC_V2",
+  "production":"HOLD"
+}
