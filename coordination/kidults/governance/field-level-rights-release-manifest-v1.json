@@ -1,0 +1,11 @@
+{
+  "id":"field-level-rights-release-manifest-v1",
+  "version":"1.0.0",
+  "status":"CONTRACT_READY_NO_LIVE_FIELDS_AUTHORIZED",
+  "default_disposition":"HOLD",
+  "purposes":["discover","collect","store","derive","display_internal","display_public"],
+  "required_per_field":["field_name","source_family","provenance_reference","rights_state_by_purpose","freshness_state","retention_rule","public_release_disposition"],
+  "rules":{"unknown_rights":"HOLD","missing_provenance":"HOLD","public_display_requires_explicit_allow":true,"provider_contract_does_not_override_field_rights":true},
+  "live_authorized_fields":[],
+  "production":"HOLD"
+}
