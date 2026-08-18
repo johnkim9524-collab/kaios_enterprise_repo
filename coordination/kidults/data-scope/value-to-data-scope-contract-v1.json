@@ -258,7 +258,7 @@
     "SOURCE_POOL_EVOLUTION_ENGINE"
   ],
   "asi_poc_targets": {
-    "source_channels_discovered_minimum": 10000,
+    "source_channels_discovery_mode": "CONTINUOUS_OPEN_ENDED_GLOBAL_OPEN_MARKET_ENUMERATION",
     "basic_classification_coverage": 1.0,
     "deep_assessment_target": 1000,
     "rights_and_access_preflight_target": 250,

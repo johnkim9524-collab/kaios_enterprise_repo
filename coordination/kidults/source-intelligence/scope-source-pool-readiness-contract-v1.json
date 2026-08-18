@@ -48,10 +48,12 @@
     "scope_ready_candidates_per_scope": 8
   },
   "global_funnel_targets": {
-    "source_channels_discovered": 10000,
+    "source_channels_discovered": null,
+    "source_discovery_mode": "CONTINUOUS_OPEN_ENDED_GLOBAL_OPEN_MARKET_ENUMERATION",
     "deep_assessments": 1000,
     "rights_access_preflights": 250,
-    "bounded_live_adapters": 50
+    "bounded_live_adapters": 50,
+    "review_numbers_are_initial_capacity_floors_not_universe_caps": true
   },
   "source_intelligence_dimensions": [
     "CUSTOMER_VALUE_SUPPORTED",

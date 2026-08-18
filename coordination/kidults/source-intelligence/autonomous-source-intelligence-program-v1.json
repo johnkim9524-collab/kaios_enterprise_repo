@@ -131,9 +131,23 @@
       "purpose": "Measure source concentration, missingness, survivorship, geography, price-tier, platform, seller, temporal and algorithmic bias plus source-removal sensitivity and drift."
     }
   ],
+  "active_execution_modules": [
+    {
+      "module_id": "asi-global-source-universe-v1",
+      "contract": "coordination/kidults/source-intelligence/asi-global-source-universe-v1.json",
+      "builder": "scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs",
+      "validator": "scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs",
+      "candidate_compiler": "scripts/kidults/source-intelligence/compile-asi-global-open-market-candidates-v1.mjs",
+      "candidate_compiler_validator": "scripts/kidults/source-intelligence/validate-asi-global-open-market-candidate-compiler-v1.mjs",
+      "purpose": "Continuously enumerate and review the worldwide public open-market universe across 32 canonical Scopes, seven required Source roles and 12 regions without a numeric site-count completion target.",
+      "market_first_roles": ["LISTING_SUPPLY", "SOLD_TRANSACTION", "AUTHENTICATION_CONDITION"],
+      "discovery_authorizes_acquisition": false,
+      "production": "HOLD"
+    }
+  ],
   "poc_scale_targets": {
-    "source_candidates_discovered_minimum": 25000,
-    "unique_source_endpoints_classified_minimum": 10000,
+    "source_candidates_discovery_mode": "CONTINUOUS_OPEN_ENDED_GLOBAL_OPEN_MARKET_ENUMERATION",
+    "global_open_market_site_discovery_mode": "CONTINUOUS_OPEN_ENDED_NO_NUMERIC_SITE_TARGET",
     "sources_deep_risk_scored_minimum": 1000,
     "sources_terms_and_access_preflighted_minimum": 250,
     "shadow_source_adapters_minimum": 40,
