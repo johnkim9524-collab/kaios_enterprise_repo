@@ -99,38 +99,59 @@
   ],
   "source_intelligence_engines": [
     {
-      "engine": "DATA_SCOPE_COMPILER",
-      "purpose": "Translate product and decision requirements into versioned entities, events, fields, metrics, inclusion rules and collection scopes."
+      "engine": "SOURCE_DISCOVERY_ENGINE",
+      "purpose": "Coordinate open-ended global discovery through twelve independently scalable channel fleets."
     },
     {
-      "engine": "SOURCE_UNIVERSE_DISCOVERY",
-      "purpose": "Discover and deduplicate public, licensed and potential-provider channels across domains, APIs, datasets, marketplaces, auction houses, manufacturers, institutions, specialist databases and communities."
+      "engine": "SOURCE_CLASSIFICATION_ENGINE",
+      "purpose": "Produce independent site identity, owner lineage, Scope/role, region/language and market-semantic assertions."
     },
     {
-      "engine": "SOURCE_INTELLIGENCE_GRAPH",
-      "purpose": "Model ownership, jurisdiction, source family, role, coverage, overlap, dependency, access mode and corroboration relationships."
+      "engine": "UTILITY_AND_VALUE_SCORING_ENGINE",
+      "purpose": "Measure incremental contribution to customer decisions and irreplaceable market intelligence."
     },
     {
-      "engine": "SOURCE_UTILITY_SCORER",
-      "purpose": "Score market relevance, coverage, uniqueness, granularity, freshness, verifiability, independence and expected signal contribution."
+      "engine": "RIGHTS_AND_COMPLIANCE_RISK_ENGINE",
+      "purpose": "Evaluate collect, store, transform, derive, display, redistribute and sell rights per purpose and output."
     },
     {
-      "engine": "SOURCE_RISK_ENGINE",
-      "purpose": "Identify and score rights, terms, robots, privacy, IP, commercial-use, rate-limit, security, fraud, manipulation, provenance, stability, bias, jurisdiction, cost and vendor-lock risks."
+      "engine": "TECHNICAL_ACCESS_AND_SCHEMA_RISK_ENGINE",
+      "purpose": "Evaluate access mode, rate limits, schema stability, liveness and adapter feasibility."
     },
     {
-      "engine": "COVERAGE_AND_SAMPLING_OPTIMIZER",
-      "purpose": "Select source mixes and stratified samples across collection scope, geography, time, price, condition, rarity and source family while minimizing blind spots and concentration."
+      "engine": "COVERAGE_AND_BIAS_ENGINE",
+      "purpose": "Measure Scope, region, language, role, price-tier, venue and temporal gaps and bias."
     },
     {
-      "engine": "COLLECTION_ORCHESTRATOR",
-      "purpose": "Execute bounded, rights-aware, rate-limited, auditable and recoverable collection plans."
+      "engine": "INDEPENDENCE_AND_REDUNDANCY_ENGINE",
+      "purpose": "Resolve source families and owners and measure corroboration, concentration and source-removal resilience."
     },
     {
-      "engine": "BIAS_DRIFT_AND_STABILITY_ENGINE",
-      "purpose": "Measure source concentration, missingness, survivorship, geography, price-tier, platform, seller, temporal and algorithmic bias plus source-removal sensitivity and drift."
+      "engine": "FRESHNESS_AND_STABILITY_ENGINE",
+      "purpose": "Measure source freshness, drift, continuity, corrections, late arrivals and operational stability."
+    },
+    {
+      "engine": "SOURCE_COST_AND_ROI_ENGINE",
+      "purpose": "Measure acquisition cost, operational cost, dependency risk and decision utility gained."
+    },
+    {
+      "engine": "ACQUISITION_PLANNER",
+      "purpose": "Build purpose-specific, rights-aware, rate-limited and representative acquisition plans."
+    },
+    {
+      "engine": "SOURCE_POOL_EVOLUTION_ENGINE",
+      "purpose": "Continuously promote, hold, degrade, replace and retire sources using versioned evidence."
     }
   ],
+  "canonical_engine_taxonomy": {
+    "logical_domain_count": 11,
+    "execution_fleet_contract_count": 25,
+    "fixed_worker_count": null,
+    "topology_contract": "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json",
+    "queue_contract": "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json",
+    "event_schema": "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json",
+    "purpose_admission_policy": "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json"
+  },
   "active_execution_modules": [
     {
       "module_id": "asi-global-source-universe-v1",
@@ -142,6 +163,18 @@
       "purpose": "Continuously enumerate and review the worldwide public open-market universe across 32 canonical Scopes, seven required Source roles and 12 regions without a numeric site-count completion target.",
       "market_first_roles": ["LISTING_SUPPLY", "SOLD_TRANSACTION", "AUTHENTICATION_CONDITION"],
       "discovery_authorizes_acquisition": false,
+      "production": "HOLD"
+    },
+    {
+      "module_id": "asi-market-funnel-engine-mesh-v1",
+      "contract": "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json",
+      "event_schema": "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json",
+      "queue_contract": "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json",
+      "admission_policy": "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json",
+      "simulator": "scripts/kidults/source-intelligence/simulate-asi-market-funnel-v1.mjs",
+      "validator": "scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs",
+      "purpose": "Replace the serial ASI artifact chain with a broad-to-narrow market funnel of independent engine fleets, purpose-specific admission and anti-bottleneck controls.",
+      "runtime_state": "DETERMINISTIC_PREFLIGHT_ONLY_DURABLE_FLEETS_NOT_DEPLOYED",
       "production": "HOLD"
     }
   ],

@@ -1,0 +1,116 @@
+name: KIDULTS ASI Market Funnel Engine Mesh v1
+
+on:
+  pull_request:
+    paths:
+      - "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json"
+      - "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json"
+      - "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json"
+      - "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json"
+      - "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
+      - "coordination/kidults/source-intelligence/asi-global-source-universe-v1.json"
+      - "coordination/kidults/source-intelligence/scope-source-pool-readiness-contract-v1.json"
+      - "scripts/kidults/source-intelligence/simulate-asi-market-funnel-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs"
+      - "scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs"
+      - "scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs"
+      - ".github/workflows/kidults-asi-market-funnel-engine-mesh-v1.yml"
+  push:
+    branches: [main]
+    paths:
+      - "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json"
+      - "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json"
+      - "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json"
+      - "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json"
+      - "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
+      - "coordination/kidults/source-intelligence/asi-global-source-universe-v1.json"
+      - "coordination/kidults/source-intelligence/scope-source-pool-readiness-contract-v1.json"
+      - "scripts/kidults/source-intelligence/simulate-asi-market-funnel-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs"
+      - "scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs"
+      - "scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs"
+      - ".github/workflows/kidults-asi-market-funnel-engine-mesh-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-market-funnel-engine-mesh-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-market-funnel-engine-mesh:
+    name: Validate Market Funnel Engine Mesh
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Parse ASI market funnel contracts
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const files = [
+            "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json",
+            "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json",
+            "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json",
+            "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json",
+            "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
+          ];
+          for (const file of files) JSON.parse(fs.readFileSync(file, "utf8"));
+          console.log(`Parsed ${files.length} ASI market funnel contracts.`);
+          NODE
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/simulate-asi-market-funnel-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs
+
+      - name: Prove deterministic market funnel simulation
+        run: |
+          node scripts/kidults/source-intelligence/simulate-asi-market-funnel-v1.mjs \
+            --output /tmp/asi-market-funnel-run-1.json
+          node scripts/kidults/source-intelligence/simulate-asi-market-funnel-v1.mjs \
+            --output /tmp/asi-market-funnel-run-2.json
+          cmp /tmp/asi-market-funnel-run-1.json /tmp/asi-market-funnel-run-2.json
+
+      - name: Validate multi-fleet topology and anti-bottleneck controls
+        run: node scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs
+
+      - name: Revalidate Global Source Universe and Source Pool contracts
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs \
+            --output /tmp/asi-global-source-universe \
+            --write
+          node scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs \
+            /tmp/asi-global-source-universe
+          node scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs \
+            --output /tmp/asi-scope-source-pool \
+            --write
+          node scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs \
+            /tmp/asi-scope-source-pool
+
+      - name: Upload deterministic preflight evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-asi-market-funnel-engine-mesh-v1
+          path: /tmp/asi-market-funnel-run-1.json
+          if-no-files-found: error
+          retention-days: 30

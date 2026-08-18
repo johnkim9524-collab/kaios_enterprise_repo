@@ -1,0 +1,64 @@
+{
+  "id": "kidults-asi-purpose-specific-admission-policy-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_FAIL_CLOSED_POLICY_CONTRACT",
+  "rule": "A_SOURCE_NEVER_RECEIVES_ONE_GLOBAL_PASS; ELIGIBILITY_IS_DECIDED_PER_PURPOSE_EVIDENCE_CLASS_FIELD_OUTPUT_REGION_AND_TIME_WINDOW",
+  "purposes": [
+    {
+      "purpose": "DISCOVERY_METADATA_INDEX",
+      "required_assertions": ["DISCOVERY_CHANNEL_RIGHTS", "PROVENANCE", "CANONICAL_HOST"],
+      "unknown_rights_decision": "HOLD",
+      "authorizes_content_collection": false,
+      "authorizes_commercial_projection": false
+    },
+    {
+      "purpose": "INTERNAL_SOURCE_ASSESSMENT",
+      "required_assertions": ["RELEVANCE", "OWNER_LINEAGE", "SCOPE_ROLE", "ASSESSMENT_INPUT_RIGHTS", "FRESHNESS"],
+      "unknown_rights_decision": "HOLD",
+      "authorizes_content_collection": false,
+      "authorizes_commercial_projection": false
+    },
+    {
+      "purpose": "BOUNDED_SHADOW_ACQUISITION",
+      "required_assertions": ["COLLECT", "STORE", "TRANSFORM", "RETENTION", "RATE_LIMIT", "ROBOTS", "SCHEMA", "PROVENANCE", "FRESHNESS"],
+      "unknown_rights_decision": "HOLD",
+      "authorizes_content_collection": true,
+      "authorizes_commercial_projection": false
+    },
+    {
+      "purpose": "INTERNAL_MARKET_ANALYSIS",
+      "required_assertions": ["DERIVE", "MARKET_SEMANTICS", "ENTITY_RESOLUTION", "PROVENANCE", "FRESHNESS", "INDEPENDENCE"],
+      "unknown_rights_decision": "HOLD",
+      "authorizes_content_collection": false,
+      "authorizes_commercial_projection": false
+    },
+    {
+      "purpose": "PUBLIC_OR_COMMERCIAL_PROJECTION",
+      "required_assertions": ["DISPLAY", "REDISTRIBUTE", "SELL", "ATTRIBUTION", "TERRITORY", "CHANNEL", "METHODOLOGY", "CONFIDENCE", "COVERAGE"],
+      "unknown_rights_decision": "HOLD",
+      "authorizes_content_collection": false,
+      "authorizes_commercial_projection": true,
+      "human_gate_required": true
+    }
+  ],
+  "source_role_boundaries": {
+    "PRIMARY_AUTHORITY": ["IDENTITY", "RELEASE", "EDITION", "PRODUCTION", "PROVENANCE"],
+    "CATALOG_REFERENCE": ["IDENTITY", "CATALOG", "PROVENANCE"],
+    "LISTING_SUPPLY": ["ACTIVE_OFFER", "ASK", "OBSERVED_AVAILABILITY"],
+    "SOLD_TRANSACTION": ["VERIFIED_SALE", "REALIZED_PRICE", "TRANSACTION_FREQUENCY"],
+    "AUTHENTICATION_CONDITION": ["AUTHENTICATION", "GRADE", "CONDITION", "POPULATION"],
+    "PROVENANCE_HISTORY": ["OWNERSHIP", "EXHIBITION", "DOCUMENTED_HISTORY"],
+    "CULTURE_ATTENTION": ["ATTENTION", "EXHIBITION", "MEDIA_EVENT"]
+  },
+  "prohibited_substitutions": [
+    "MUSEUM_PRESENCE_FOR_DEMAND",
+    "LISTING_FOR_SOLD_TRANSACTION",
+    "ASK_FOR_REALIZED_PRICE",
+    "ATTENTION_FOR_BUYER_DEMAND",
+    "FEW_LISTINGS_FOR_SCARCITY",
+    "PUBLIC_URL_FOR_COMMERCIAL_RIGHTS",
+    "ROBOTS_ALLOW_FOR_COPYRIGHT_OR_LICENSE"
+  ],
+  "missing_assertion_state": "HOLD_NOT_ZERO_NOT_PASS",
+  "production": "HOLD"
+}
