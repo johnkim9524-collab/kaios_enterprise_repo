@@ -28,7 +28,9 @@ assert(manifest?.status === "SOURCE_POOL_FOUNDATION_READY_COLLECTION_BLOCKED",
   "Source Pool foundation run state mismatch.");
 assert(manifest?.category_count === 8, "Source Pool foundation must contain eight Core Domain categories.");
 assert(manifest?.collection_scope_count === 32, "Source Pool foundation must contain 32 Collection Scopes.");
-assert(manifest?.source_universe_target === 10000, "Global Source Universe discovery target must be 10,000.");
+assert(manifest?.source_universe_target === null, "Global Source Universe must not use a numeric site target.");
+assert(manifest?.source_universe_mode === "CONTINUOUS_OPEN_ENDED_GLOBAL_OPEN_MARKET_ENUMERATION",
+  "Global Source Universe must continuously enumerate the global open market.");
 assert(manifest?.category_qualified_object_target === 1000,
   "Qualified-object target must be 1,000 per category.");
 assert(manifest?.total_qualified_object_target === 8000,
@@ -59,16 +61,20 @@ assert(manifest?.public_projection === false,
   "Source Pool foundation must not create a public Projection.");
 assert(manifest?.production === "HOLD", "Production must remain HOLD.");
 
-assert(funnel?.targets?.source_channels_discovered === 10000,
-  "Discovery funnel target must be 10,000 channels.");
+assert(funnel?.targets?.source_channels_discovered === null,
+  "Discovery funnel must not use a numeric site target.");
+assert(funnel?.targets?.source_discovery_mode === "CONTINUOUS_OPEN_ENDED_GLOBAL_OPEN_MARKET_ENUMERATION",
+  "Discovery funnel must use continuous global open-market enumeration.");
 assert(funnel?.targets?.deep_assessments === 1000,
   "Discovery funnel deep-assessment target must be 1,000.");
 assert(funnel?.targets?.rights_access_preflights === 250,
   "Discovery funnel rights/access preflight target must be 250.");
 assert(funnel?.targets?.bounded_live_adapters === 50,
   "Discovery funnel bounded-live adapter target must be 50.");
-assert(funnel?.scope_discovery_allocation_total === 10000,
-  "Scope discovery allocations must sum to 10,000.");
+assert(funnel?.scope_discovery_allocation_total === null,
+  "Open-ended Source discovery must not be allocated as a numeric quota.");
+assert(funnel?.numeric_site_target_is_prohibited === true,
+  "Source discovery must prohibit numeric completion targets.");
 assert(funnel?.scope_deep_assessment_allocation_total === 1000,
   "Scope deep-assessment allocations must sum to 1,000.");
 assert(funnel?.scope_rights_preflight_allocation_total === 250,
@@ -165,7 +171,7 @@ if (errors.length) {
 console.log("AGCI-OS Scope Source Pool Foundation: PASS");
 console.log("Categories / Collection Scopes: 8 / 32");
 console.log(`Known Core Domain seed channels: ${manifest.known_seed_channel_candidates}`);
-console.log("Global Source funnel: 10,000 / 1,000 / 250 / 50");
+console.log("Global Source discovery: CONTINUOUS OPEN-ENDED; review capacity floors: 1,000 / 250 / 50");
 console.log("Discovery work items: 224 (32 Scopes x 7 required Source Roles)");
 console.log("Scope-validated Source Role slots: 0 / 224");
 console.log("Source Pools ready: 0; Market Data PoC-ready Scopes: 0");

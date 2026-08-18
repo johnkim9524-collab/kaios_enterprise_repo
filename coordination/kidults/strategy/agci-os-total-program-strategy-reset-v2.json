@@ -156,7 +156,8 @@
     }
   ],
   "scale_targets": {
-    "global_source_universe_discovery": 10000,
+    "global_source_universe_discovery": null,
+    "global_source_universe_discovery_mode": "CONTINUOUS_OPEN_ENDED_GLOBAL_OPEN_MARKET_ENUMERATION",
     "deep_source_assessments": 1000,
     "rights_access_preflights": 250,
     "bounded_live_adapters": 50,
@@ -275,8 +276,8 @@
     },
     {
       "id": "M2",
-      "name": "Global Source Universe 10K",
-      "exit": "10000_DISCOVERED_1000_DEEP_250_PREFLIGHT_50_ADAPTERS"
+      "name": "Continuous Global Open-Market Source Universe",
+      "exit": "ALL_32_SCOPES_GLOBAL_REGION_ROLE_CELLS_ACTIVE_WITH_CONTINUOUS_DISCOVERY_AND_REVIEW"
     },
     {
       "id": "M3",

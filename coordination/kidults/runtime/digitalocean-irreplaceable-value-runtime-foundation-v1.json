@@ -67,8 +67,9 @@
     "scope_role_lanes": 224,
     "production_mutations": 0
   },
-  "asi_10k_capacity_scope": {
-    "unique_source_endpoints": 10000,
+  "asi_global_source_universe_capacity_scope": {
+    "unique_source_endpoints": null,
+    "discovery_mode": "CONTINUOUS_OPEN_ENDED_GLOBAL_OPEN_MARKET_ENUMERATION",
     "deep_source_assessments": 1000,
     "rights_access_cost_preflights": 250,
     "bounded_live_adapters": 50,

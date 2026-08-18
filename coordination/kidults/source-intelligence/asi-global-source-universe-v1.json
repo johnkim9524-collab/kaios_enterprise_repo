@@ -1,0 +1,248 @@
+{
+  "id": "asi-global-source-universe-v1",
+  "record_type": "autonomous_global_source_universe_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE_DISCOVERY_MODULE",
+  "created_at": "2026-08-18T12:30:00Z",
+  "created_by": "KPMO / Codex",
+  "approved_by": "John",
+  "first_value": "AUTONOMOUS",
+  "governing_value": "GLOBAL_IRREPLACEABLE_CUSTOMER_VALUE",
+  "purpose": "Continuously discover and review the publicly discoverable global site universe relevant to all 32 KIDULTS Collection Scopes without treating a numerical milestone as a ceiling or treating discovery as authorization to collect or publish market claims.",
+  "universe_boundary": {
+    "open_ended": true,
+    "addressable_universe": "ALL_PUBLICLY_DISCOVERABLE_GLOBAL_OPEN_MARKETS_WITH_DIRECT_OR_POTENTIAL_RELEVANCE_TO_AT_LEAST_ONE_CANONICAL_COLLECTION_SCOPE",
+    "numeric_site_target": null,
+    "discovery_mode": "CONTINUOUS_GLOBAL_OPEN_MARKET_ENUMERATION",
+    "coverage_cell_count": 2688,
+    "coverage_cells_are_classification_and_gap_detection_axes_not_site_quotas": true,
+    "private_or_inaccessible_sources": "NOT_OBSERVED_NOT_INFERRED",
+    "completion_claim": "PROHIBITED_BECAUSE_THE_PUBLIC_WEB_AND_MARKET_SOURCE_UNIVERSE_CONTINUOUSLY_CHANGE"
+  },
+  "canonical_inputs": {
+    "current_scope_definition": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json",
+    "current_scope_question_registry": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.json",
+    "legacy_scope_registry": "coordination/kidults/data-scope/collection-scope-registry-v1.json",
+    "scope_migration_crosswalk": "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
+    "scope_pool_readiness": "coordination/kidults/source-intelligence/scope-source-pool-readiness-contract-v1.json",
+    "parent_program": "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
+  },
+  "required_source_roles": [
+    {
+      "role": "PRIMARY_AUTHORITY",
+      "market_universe_priority": "SUPPORTING_CONTEXT",
+      "review_intent": "IDENTITY_RELEASE_AND_OFFICIAL_REFERENCE"
+    },
+    {
+      "role": "CATALOG_REFERENCE",
+      "market_universe_priority": "SUPPORTING_CONTEXT",
+      "review_intent": "PRODUCT_EDITION_VARIANT_AND_REFERENCE_IDENTITY"
+    },
+    {
+      "role": "LISTING_SUPPLY",
+      "market_universe_priority": "CORE_OPEN_MARKET",
+      "review_intent": "ACTIVE_OPEN_MARKET_SUPPLY_AND_EXPOSURE"
+    },
+    {
+      "role": "SOLD_TRANSACTION",
+      "market_universe_priority": "CORE_OPEN_MARKET",
+      "review_intent": "TERMINAL_TRANSACTION_AND_FAILED_SALE_EVIDENCE"
+    },
+    {
+      "role": "AUTHENTICATION_CONDITION",
+      "market_universe_priority": "CORE_MARKET_QUALITY",
+      "review_intent": "AUTHENTICITY_GRADE_CONDITION_AND_POPULATION"
+    },
+    {
+      "role": "PROVENANCE_HISTORY",
+      "market_universe_priority": "SUPPORTING_CONTEXT",
+      "review_intent": "OWNERSHIP_ATTRIBUTION_AND_HISTORICAL_CHAIN"
+    },
+    {
+      "role": "CULTURE_ATTENTION",
+      "market_universe_priority": "SUPPORTING_SIGNAL",
+      "review_intent": "COMMUNITY_EVENT_MEDIA_AND_ATTENTION_CONTEXT"
+    }
+  ],
+  "geographic_regions": [
+    {"region_id": "NORTH_AMERICA", "name": "North America", "language_codes": ["en", "es", "fr"]},
+    {"region_id": "LATIN_AMERICA_CARIBBEAN", "name": "Latin America & Caribbean", "language_codes": ["es", "pt", "en", "fr"]},
+    {"region_id": "WESTERN_NORTHERN_EUROPE_UK", "name": "Western/Northern Europe & UK", "language_codes": ["en", "fr", "de", "it", "nl", "sv"]},
+    {"region_id": "CENTRAL_EASTERN_EUROPE", "name": "Central/Eastern Europe", "language_codes": ["pl", "cs", "hu", "ro", "uk", "ru", "en"]},
+    {"region_id": "GREATER_CHINA", "name": "Greater China", "language_codes": ["zh-hans", "zh-hant", "en"]},
+    {"region_id": "JAPAN", "name": "Japan", "language_codes": ["ja", "en"]},
+    {"region_id": "KOREA", "name": "Korea", "language_codes": ["ko", "en"]},
+    {"region_id": "SOUTH_ASIA", "name": "South Asia", "language_codes": ["en", "hi", "bn", "ur"]},
+    {"region_id": "SOUTHEAST_ASIA", "name": "Southeast Asia", "language_codes": ["en", "id", "vi", "th", "ms", "tl"]},
+    {"region_id": "MIDDLE_EAST_GCC", "name": "Middle East/GCC", "language_codes": ["ar", "en", "tr", "fa"]},
+    {"region_id": "AFRICA", "name": "Africa", "language_codes": ["en", "fr", "ar", "sw", "pt"]},
+    {"region_id": "OCEANIA", "name": "Oceania", "language_codes": ["en", "mi"]}
+  ],
+  "discovery_channel_families": [
+    {
+      "channel_id": "COMMON_CRAWL_AND_WEB_DATA_COMMONS_STRUCTURED_WEB_INDEX",
+      "access_mode": "OPEN_INDEX_OR_DATASET_METADATA_DISCOVERY",
+      "provider_required": false,
+      "site_count_rule": "COUNT_SOURCE_HOST_EXTRACTED_FROM_PRODUCT_LOCALBUSINESS_EVENT_AND_MARKET_STRUCTURED_DATA_ONCE",
+      "role_bias": ["LISTING_SUPPLY", "SOLD_TRANSACTION", "CULTURE_ATTENTION"],
+      "rights_state": "INDEX_OR_EXTRACT_DISCOVERY_RIGHTS_DO_NOT_ESTABLISH_TARGET_SITE_CONTENT_OR_COMMERCIAL_REUSE_RIGHTS",
+      "official_references": ["https://commoncrawl.org/overview", "https://commoncrawl.org/url-index", "https://webdatacommons.org/structureddata/"]
+    },
+    {
+      "channel_id": "OVERTURE_MAPS_PLACES_WEBSITE_METADATA",
+      "access_mode": "OPEN_CLOUD_GEOPARQUET_METADATA",
+      "provider_required": false,
+      "site_count_rule": "COUNT_NORMALIZED_NON_SOCIAL_WEBSITE_HOST_ONCE",
+      "role_bias": ["LISTING_SUPPLY", "AUTHENTICATION_CONDITION", "CULTURE_ATTENTION"],
+      "rights_state": "SOURCE_LICENSE_AND_ATTRIBUTION_MUST_REMAIN_BOUND_TO_EACH_ASSERTION"
+    },
+    {
+      "channel_id": "WIKIDATA_OFFICIAL_WEBSITE_GRAPH",
+      "access_mode": "PUBLIC_ACTION_OR_QUERY_API_METADATA",
+      "provider_required": false,
+      "site_count_rule": "COUNT_P856_TARGET_HOST_NOT_WIKIDATA_ENTITY_URL",
+      "role_bias": ["PRIMARY_AUTHORITY", "CATALOG_REFERENCE", "PROVENANCE_HISTORY"],
+      "rights_state": "OFFICIAL_WEBSITE_CLAIM_DOES_NOT_AUTHORIZE_TARGET_SITE_COLLECTION"
+    },
+    {
+      "channel_id": "OPENSTREETMAP_WEBSITE_TAG_GRAPH",
+      "access_mode": "PUBLIC_OVERPASS_OR_OPEN_DATA_EXTRACT_METADATA",
+      "provider_required": false,
+      "site_count_rule": "COUNT_NORMALIZED_WEBSITE_OR_CONTACT_WEBSITE_HOST_ONCE",
+      "role_bias": ["LISTING_SUPPLY", "AUTHENTICATION_CONDITION", "CULTURE_ATTENTION"],
+      "rights_state": "ODBL_ATTRIBUTION_AND_DERIVED_DATABASE_REVIEW_REQUIRED"
+    },
+    {
+      "channel_id": "GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA",
+      "access_mode": "AUTHENTICATED_PUBLIC_METADATA_SEARCH",
+      "provider_required": false,
+      "site_count_rule": "COUNT_PROJECT_HOMEPAGE_ONLY_GITHUB_REPOSITORY_URL_NOT_A_MARKET_SITE",
+      "role_bias": ["CATALOG_REFERENCE"],
+      "rights_state": "REPOSITORY_LICENSE_DOES_NOT_ESTABLISH_TARGET_SITE_OR_UNDERLYING_DATA_RIGHTS"
+    },
+    {
+      "channel_id": "DATACITE_AND_OPEN_RESEARCH_LANDING_METADATA",
+      "access_mode": "PUBLIC_METADATA_API",
+      "provider_required": false,
+      "site_count_rule": "COUNT_SOURCE_OR_REPOSITORY_HOST_DOI_RESOLVER_NOT_A_SITE",
+      "role_bias": ["CATALOG_REFERENCE", "PROVENANCE_HISTORY"],
+      "rights_state": "RETAIN_RIGHTS_METADATA_EXACTLY_UNKNOWN_REMAINS_UNKNOWN"
+    },
+    {
+      "channel_id": "GLOBAL_NEWS_AND_EVENT_DOMAIN_DISCOVERY",
+      "access_mode": "PUBLIC_DOWNLOADABLE_INDEX_OR_DOCUMENT_METADATA",
+      "provider_required": false,
+      "site_count_rule": "COUNT_SOURCE_HOST_ONLY_AS_A_DISCOVERY_CANDIDATE_NEWS_MENTION_IS_NOT_MARKET_RELEVANCE",
+      "role_bias": ["LISTING_SUPPLY", "SOLD_TRANSACTION", "CULTURE_ATTENTION"],
+      "rights_state": "NEWS_INDEX_DISCOVERY_DOES_NOT_AUTHORIZE_ARTICLE_OR_TARGET_SITE_REUSE",
+      "official_references": ["https://www.gdeltproject.org/"]
+    },
+    {
+      "channel_id": "PUBLIC_GOVERNMENT_AND_REGIONAL_DATA_CATALOGS",
+      "access_mode": "PUBLIC_CATALOG_METADATA_AND_OPEN_DATA",
+      "provider_required": false,
+      "site_count_rule": "COUNT_PUBLISHER_OR_DATASET_SOURCE_HOST_NOT_CATALOG_SEARCH_RESULT_PATH",
+      "role_bias": ["PRIMARY_AUTHORITY", "CATALOG_REFERENCE", "AUTHENTICATION_CONDITION"],
+      "rights_state": "CATALOG_METADATA_RIGHTS_AND_UNDERLYING_DATA_RIGHTS_REMAIN_SEPARATE",
+      "official_references": ["https://data.gov/", "https://data.europa.eu/"]
+    },
+    {
+      "channel_id": "ICANN_AND_PUBLIC_ZONE_DISCOVERY",
+      "access_mode": "PURPOSE_APPROVAL_OR_PUBLIC_ZONE_ACCESS_REQUIRED",
+      "provider_required": false,
+      "site_count_rule": "DOMAIN_NAME_IS_DISCOVERY_ONLY_AND_REQUIRES_LIVE_IDENTITY_AND_RELEVANCE_REVIEW",
+      "role_bias": ["LISTING_SUPPLY", "SOLD_TRANSACTION"],
+      "rights_state": "ZONE_ACCESS_TERMS_PURPOSE_AND_REGISTRY_CONDITIONS_MUST_BE_RECORDED",
+      "official_references": ["https://www.icann.org/resources/pages/czds-2014-03-03-en"]
+    },
+    {
+      "channel_id": "INTERNET_ARCHIVE_HISTORICAL_DOMAIN_CONTINUITY",
+      "access_mode": "PUBLIC_ARCHIVE_INDEX_METADATA",
+      "provider_required": false,
+      "site_count_rule": "HISTORICAL_HOST_SUPPORTS_CONTINUITY_REVIEW_BUT_DOES_NOT_COUNT_AS_A_CURRENT_LIVE_MARKET_WITHOUT_REVALIDATION",
+      "role_bias": ["PROVENANCE_HISTORY", "CATALOG_REFERENCE"],
+      "rights_state": "ARCHIVE_CAPTURE_DOES_NOT_ESTABLISH_CURRENT_OWNERSHIP_STATUS_OR_REUSE_RIGHTS",
+      "official_references": ["https://archive.org/developers/"]
+    },
+    {
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "access_mode": "TERMS_AND_ROBOTS_PREFLIGHT_REQUIRED_BEFORE_LINK_TRAVERSAL",
+      "provider_required": false,
+      "site_count_rule": "COUNT_EXTERNAL_NORMALIZED_HOST_ONCE_AFTER_PROVENANCE_CAPTURE",
+      "role_bias": ["PRIMARY_AUTHORITY", "LISTING_SUPPLY", "SOLD_TRANSACTION", "AUTHENTICATION_CONDITION", "CULTURE_ATTENTION"],
+      "rights_state": "NO_TRAVERSAL_WHILE_RIGHTS_OR_ROBOTS_STATE_IS_UNKNOWN"
+    },
+    {
+      "channel_id": "OPTIONAL_LICENSED_SEARCH_OR_DATA_PROVIDER",
+      "access_mode": "OPTIONAL_GAP_FILL_ONLY_AFTER_PROVIDER_NECESSITY_GATE",
+      "provider_required": false,
+      "site_count_rule": "SAME_SITE_COUNT_AND_PROVENANCE_RULES_AS_SELF_DISCOVERED_CHANNELS",
+      "role_bias": ["SOLD_TRANSACTION"],
+      "rights_state": "SEPARATE_CONTRACT_FIELD_RIGHTS_AND_COMMERCIAL_OUTPUT_RIGHTS_REQUIRED"
+    }
+  ],
+  "site_identity_and_counting": {
+    "counting_unit": "UNIQUE_CANONICAL_SITE_HOST",
+    "url_paths_query_strings_and_protocol_variants_count_once": true,
+    "www_alias_collapsed": true,
+    "social_profile_hosts_count_as_sites": false,
+    "search_resolver_repository_and_knowledge_graph_hosts_count_only_when_they_are_the_actual_source": false,
+    "one_site_may_map_to_multiple_scopes_roles_and_regions": true,
+    "multi_mapping_does_not_increase_unique_site_count": true,
+    "owner_and_source_family_independence_inferred_from_host": false,
+    "public_suffix_and_corporate_lineage_review_required_before_independence_claim": true
+  },
+  "autonomous_review_funnel": [
+    "DISCOVERED_SITE_CANDIDATE",
+    "SITE_IDENTITY_NORMALIZED",
+    "SCOPE_ROLE_REGION_RELEVANCE_REVIEW",
+    "OWNER_AND_SOURCE_FAMILY_REVIEW",
+    "RIGHTS_ROBOTS_ACCESS_COMMERCIAL_USE_PREFLIGHT",
+    "SEMANTIC_EVENT_AND_FIELD_REVIEW",
+    "ADAPTER_AND_CONTINUITY_REVIEW",
+    "INDEPENDENT_STRATIFIED_BLIND_REVIEW",
+    "SOURCE_POOL_ELIGIBLE"
+  ],
+  "review_requirements": {
+    "automated_direct_relevance_evidence_required": true,
+    "keyword_or_query_match_alone_is_sufficient": false,
+    "stratification_dimensions": ["SCOPE", "SOURCE_ROLE", "REGION", "LANGUAGE", "CHANNEL_FAMILY", "RISK_CLASS"],
+    "minimum_blind_review_precision": 0.95,
+    "critical_false_promotion_maximum": 0,
+    "unresolved_critical_contradictions_maximum": 0,
+    "rights_and_provenance_coverage_for_promotion": 1.0,
+    "stale_site_promotion_maximum": 0,
+    "source_removal_test_required_for_critical_roles": true,
+    "critical_roles_requiring_two_independent_families_per_region": ["LISTING_SUPPLY", "SOLD_TRANSACTION", "AUTHENTICATION_CONDITION"]
+  },
+  "semantic_guards": {
+    "listing_is_sold": false,
+    "bid_or_ask_is_transaction": false,
+    "estimate_or_price_guide_is_realized_price": false,
+    "institution_or_museum_presence_is_market_demand": false,
+    "query_match_is_scope_relevance": false,
+    "public_url_is_commercial_reuse_permission": false,
+    "missing_is_zero": false
+  },
+  "promotion_boundaries": {
+    "discovery_authorizes_content_collection": false,
+    "discovery_authorizes_commercial_use": false,
+    "discovery_authorizes_market_claim": false,
+    "discovery_authorizes_index": false,
+    "unknown_rights_authorizes_adapter": false,
+    "source_pool_ready_initial_count": 0,
+    "market_claims_created": 0,
+    "public_projection": false,
+    "production": "HOLD"
+  },
+  "continuous_operation": {
+    "stop_at_numeric_site_count": false,
+    "frontier_expansion": "CONTINUOUS",
+    "new_site_discovery": "CONTINUOUS",
+    "closure_and_domain_change_detection": "CONTINUOUS",
+    "region_language_and_role_gap_requeue": "CONTINUOUS",
+    "source_drift_reassessment": "CONTINUOUS",
+    "coverage_state_when_not_observed": "NOT_OBSERVED",
+    "market_state_when_transaction_evidence_missing": "NOT_RANKABLE"
+  }
+}

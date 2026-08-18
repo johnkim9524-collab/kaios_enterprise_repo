@@ -474,7 +474,8 @@
     "category_operational_depth": 5000,
     "category_global_leadership_depth": 10000,
     "upper_cap": null,
-    "source_universe_target": 10000
+    "source_universe_target": null,
+    "source_universe_mode": "CONTINUOUS_OPEN_ENDED_GLOBAL_OPEN_MARKET_ENUMERATION"
   },
   "runtime": {
     "provider": "DigitalOcean",

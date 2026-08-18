@@ -170,7 +170,7 @@ export function buildScopeSourcePoolReadiness(inputs = loadScopeSourcePoolInputs
   }
 
   const trustedByDomain = new Map(trustedSources.records.map(record => [record.vertical_id, record]));
-  const categoryDiscoveryAllocation = allocate(readinessContract.global_funnel_targets.source_channels_discovered, scaleContract.scale_definition.category_count);
+  const categoryDiscoveryAllocation = Array(scaleContract.scale_definition.category_count).fill(null);
   const categoryDeepAllocation = allocate(readinessContract.global_funnel_targets.deep_assessments, scaleContract.scale_definition.category_count);
   const categoryPreflightAllocation = allocate(readinessContract.global_funnel_targets.rights_access_preflights, scaleContract.scale_definition.category_count);
   const categoryAdapterAllocation = allocate(readinessContract.global_funnel_targets.bounded_live_adapters, scaleContract.scale_definition.category_count);
@@ -200,7 +200,7 @@ export function buildScopeSourcePoolReadiness(inputs = loadScopeSourcePoolInputs
       state: "CORE_DOMAIN_SEED_SCOPE_RELEVANCE_UNASSESSED"
     }));
 
-    const discoveryAllocation = allocate(categoryDiscoveryAllocation[categoryIndex], scopes.length);
+    const discoveryAllocation = Array(scopes.length).fill(null);
     const deepAllocation = allocate(categoryDeepAllocation[categoryIndex], scopes.length);
     const preflightAllocation = allocate(categoryPreflightAllocation[categoryIndex], scopes.length);
     const adapterAllocation = allocate(categoryAdapterAllocation[categoryIndex], scopes.length);
@@ -208,7 +208,7 @@ export function buildScopeSourcePoolReadiness(inputs = loadScopeSourcePoolInputs
     for (let scopeIndex = 0; scopeIndex < scopes.length; scopeIndex += 1) {
       const scope = scopes[scopeIndex];
       const roleHintSet = new Set(seedCandidates.flatMap(candidate => candidate.role_hints));
-      const roleChannelAllocation = allocate(discoveryAllocation[scopeIndex], requiredRoles.length);
+      const roleChannelAllocation = Array(requiredRoles.length).fill(null);
       const scopeRoleItems = [];
 
       for (let roleIndex = 0; roleIndex < requiredRoles.length; roleIndex += 1) {
@@ -347,7 +347,9 @@ export function buildScopeSourcePoolReadiness(inputs = loadScopeSourcePoolInputs
       bounded_live_adapters: null,
       status: "NOT_MEASURED_AFTER_PROGRAM_RESET"
     },
-    scope_discovery_allocation_total: scopeRecords.reduce((sum, scope) => sum + scope.global_discovery_funnel_allocation.discovered, 0),
+    scope_discovery_allocation_total: null,
+    source_discovery_mode: readinessContract.global_funnel_targets.source_discovery_mode,
+    numeric_site_target_is_prohibited: true,
     scope_deep_assessment_allocation_total: scopeRecords.reduce((sum, scope) => sum + scope.global_discovery_funnel_allocation.deep_assessed, 0),
     scope_rights_preflight_allocation_total: scopeRecords.reduce((sum, scope) => sum + scope.global_discovery_funnel_allocation.rights_access_preflight, 0),
     scope_adapter_allocation_total: scopeRecords.reduce((sum, scope) => sum + scope.global_discovery_funnel_allocation.bounded_live_adapters, 0),
@@ -460,6 +462,7 @@ export function buildScopeSourcePoolReadiness(inputs = loadScopeSourcePoolInputs
     source_pools_ready: 0,
     market_data_poc_ready_scopes: 0,
     source_universe_target: readinessContract.global_funnel_targets.source_channels_discovered,
+    source_universe_mode: readinessContract.global_funnel_targets.source_discovery_mode,
     category_qualified_object_target: scaleContract.scale_definition.qualified_object_candidates_per_category,
     total_qualified_object_target: scaleContract.scale_definition.total_qualified_object_candidates,
     current_qualified_objects: null,
@@ -492,7 +495,7 @@ async function main() {
   console.log(`Known domain seed channels: ${run.known_seed_channel_candidates}`);
   console.log(`Discovery work items: ${run.discovery_work_item_count}`);
   console.log(`Required / validated Source Role slots: ${run.required_source_role_slots} / ${run.validated_source_role_slots}`);
-  console.log(`Global Source target: ${run.source_universe_target}`);
+  console.log(`Global Source mode: ${run.source_universe_mode}`);
   console.log(`Category scale target: ${run.category_qualified_object_target} each / ${run.total_qualified_object_target} total`);
   console.log("Scope Source Pools ready: 0; acquisition: BLOCKED");
   console.log("KIDULT 500 / KIDULT 100: NOT_COMPUTED");

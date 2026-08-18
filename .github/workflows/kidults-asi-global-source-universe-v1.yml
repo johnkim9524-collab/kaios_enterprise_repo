@@ -1,0 +1,97 @@
+name: KIDULTS ASI Global Source Universe
+
+on:
+  pull_request:
+    paths:
+      - "coordination/kidults/source-intelligence/asi-global-source-universe-v1.json"
+      - "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json"
+      - "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
+      - "coordination/kidults/source-intelligence/scope-source-pool-readiness-contract-v1.json"
+      - "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.json"
+      - "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json"
+      - "coordination/kidults/data-scope/collection-scope-registry-v1.json"
+      - "coordination/kidults/strategy/agci-os-total-program-strategy-reset-v2.json"
+      - "coordination/kidults/data-scope/value-to-data-scope-contract-v1.json"
+      - "coordination/kidults/dos/decision-operating-system-contract-v1.json"
+      - "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json"
+      - "scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs"
+      - "scripts/kidults/source-intelligence/compile-asi-global-open-market-candidates-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-global-open-market-candidate-compiler-v1.mjs"
+      - "scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs"
+      - "scripts/kidults/data-scope/build-program-reset-v2.mjs"
+      - "scripts/kidults/data-scope/validate-program-reset-v2.mjs"
+      - ".github/workflows/kidults-asi-global-source-universe-v1.yml"
+  push:
+    branches: [main]
+    paths:
+      - "coordination/kidults/source-intelligence/**"
+      - "scripts/kidults/source-intelligence/**"
+      - ".github/workflows/kidults-asi-global-source-universe-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-global-source-universe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-global-open-market-frontier:
+    name: Validate Global Open-Market Source Universe
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Syntax check
+        run: |
+          node --check scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs
+          node --check scripts/kidults/source-intelligence/compile-asi-global-open-market-candidates-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-global-open-market-candidate-compiler-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs
+          node --check scripts/kidults/data-scope/build-program-reset-v2.mjs
+          node --check scripts/kidults/data-scope/validate-program-reset-v2.mjs
+
+      - name: Build deterministic global open-market frontier twice
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs --output /tmp/global-source-1 --write
+          node scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs --output /tmp/global-source-2 --write
+          diff -ru /tmp/global-source-1 /tmp/global-source-2
+
+      - name: Validate global open-market frontier and legal admission boundary
+        run: |
+          node scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs /tmp/global-source-1
+          node scripts/kidults/source-intelligence/validate-asi-global-open-market-candidate-compiler-v1.mjs
+
+      - name: Revalidate source-pool and strategy reset contracts
+        run: |
+          node scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs --output /tmp/source-pool --write
+          node scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs /tmp/source-pool
+          node scripts/kidults/data-scope/build-program-reset-v2.mjs --output /tmp/program-reset --write
+          node scripts/kidults/data-scope/validate-program-reset-v2.mjs /tmp/program-reset
+
+      - name: Prove no numeric Source Universe completion target remains
+        run: |
+          if rg -n 'Global Source Universe 10K|10000_DISCOVERED|source_channels_discovered_minimum|unique_source_endpoints_classified_minimum|"source_universe_target": 10000|"global_source_universe_discovery": 10000' coordination/kidults scripts/kidults; then
+            echo "A prohibited numeric Source Universe completion target remains." >&2
+            exit 1
+          fi
+
+      - name: Upload deterministic frontier evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-asi-global-source-universe-v1
+          path: /tmp/global-source-1
+          if-no-files-found: error
+          retention-days: 30

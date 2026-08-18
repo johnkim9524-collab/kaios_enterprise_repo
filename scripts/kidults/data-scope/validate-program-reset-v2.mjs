@@ -49,7 +49,13 @@ assert(category?.candidate_r2_authorized === false, "Scale planning cannot autho
 assert(category?.indexes_computed === 0, "Scale planning cannot compute Indexes.");
 assert(category?.production === "HOLD", "Production must remain HOLD.");
 
-assert(source?.targets?.discovered === 10000, "Global Source Universe discovery target must be 10,000.");
+assert(source?.targets?.discovered === null, "Global Source Universe must not use a numeric site target.");
+assert(source?.targets?.discovery_mode === "CONTINUOUS_OPEN_ENDED_GLOBAL_OPEN_MARKET_ENUMERATION",
+  "Global Source Universe must continuously enumerate the global open market.");
+assert(source?.numeric_site_target_is_prohibited === true,
+  "Global Source Universe must prohibit numeric site-count completion claims.");
+assert(source?.open_ended_global_open_market_enumeration === true,
+  "Global Source Universe enumeration must be open-ended.");
 assert(source?.targets?.deep_assessed === 1000, "Deep Source assessment target must be 1,000.");
 assert(source?.targets?.rights_access_preflight === 250, "Rights/access preflight target must be 250.");
 assert(source?.targets?.bounded_live_adapters === 50, "Bounded-live adapter target must be 50.");
@@ -93,7 +99,7 @@ console.log("AGCI-OS Program Strategy Reset + Category 1000: PASS");
 console.log("North Star: IRREPLACEABLE CUSTOMER VALUE");
 console.log("Categories / Collection Scopes: 8 / 32");
 console.log("Qualified object target: 1,000 per category / 8,000 total");
-console.log("Source Universe target: 10,000");
+console.log("Source Universe: CONTINUOUS OPEN-ENDED GLOBAL OPEN-MARKET ENUMERATION");
 console.log("Current counts: null / NOT_MEASURED");
 console.log("Provider Fusion: governed accelerator, no direct Portal or Index path");
 console.log("KIDULT 500 / KIDULT 100: NOT_COMPUTED");

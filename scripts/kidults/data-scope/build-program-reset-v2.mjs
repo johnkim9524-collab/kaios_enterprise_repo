@@ -99,7 +99,7 @@ export function buildProgramResetPlan(contracts = loadProgramResetContracts()) {
   categoryScalePlan.plan_fingerprint = fingerprint(categoryScalePlan);
 
   const sourceUniversePlan = {
-    id: "global-source-universe-10k-plan-v1",
+    id: "global-open-market-source-universe-plan-v1",
     record_type: "source_universe_plan",
     version: "1.0.0",
     status: "PLAN_READY_DISCOVERY_NOT_COMPLETE",
@@ -107,6 +107,7 @@ export function buildProgramResetPlan(contracts = loadProgramResetContracts()) {
     strategy_id: strategy.id,
     targets: {
       discovered: strategy.scale_targets.global_source_universe_discovery,
+      discovery_mode: strategy.scale_targets.global_source_universe_discovery_mode,
       deep_assessed: strategy.scale_targets.deep_source_assessments,
       rights_access_preflight: strategy.scale_targets.rights_access_preflights,
       bounded_live_adapters: strategy.scale_targets.bounded_live_adapters
@@ -131,6 +132,8 @@ export function buildProgramResetPlan(contracts = loadProgramResetContracts()) {
       "CONTINUITY_AND_REPLACEABILITY"
     ],
     discovery_does_not_authorize_acquisition: true,
+    numeric_site_target_is_prohibited: true,
+    open_ended_global_open_market_enumeration: true,
     bulk_collection_authorized: false,
     production: "HOLD"
   };
@@ -196,6 +199,7 @@ export function buildProgramResetPlan(contracts = loadProgramResetContracts()) {
     collection_scope_count: categoryScalePlan.collection_scope_count,
     qualified_object_target: categoryScalePlan.total_qualified_object_target,
     source_universe_discovery_target: sourceUniversePlan.targets.discovered,
+    source_universe_discovery_mode: sourceUniversePlan.targets.discovery_mode,
     current_data_claims_created: 0,
     indexes_computed: 0,
     candidate_r2_created: false,
@@ -228,7 +232,7 @@ async function main() {
   console.log("AGCI-OS Program Strategy Reset + Category 1000: FOUNDATION READY");
   console.log(`Categories / scopes: ${run.category_count} / ${run.collection_scope_count}`);
   console.log(`Qualified object target: ${run.qualified_object_target}`);
-  console.log(`Global source discovery target: ${run.source_universe_discovery_target}`);
+  console.log(`Global source discovery mode: ${run.source_universe_discovery_mode}`);
   console.log("Current counts: NOT MEASURED (never coerced to zero)");
   console.log("Provider fusion: CONTRACT READY / CONNECTION NOT AUTHORIZED");
   console.log("KIDULT 500 / KIDULT 100: NOT_COMPUTED");
