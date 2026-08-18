@@ -1,39 +1,23 @@
 {
-  "id": "track-c-portal-v502-experience-layer",
-  "record_type": "track",
-  "version": "1.1.0",
-  "status": "ACTIVE",
-  "display_name": "C. KIDULTS | Portal V502 & Experience Layer",
-  "role_id": "role-track-c",
-  "role_acceptance": "APPROVED",
-  "canonical_issue": 237,
-  "current_release_manifest_id": "portal-v502-rc1",
-  "current_published_snapshot_id": null,
-  "current_phase": "V502_RELEASE_CANDIDATE_IMPLEMENTATION",
-  "mission_id": "MISSION-0003",
-  "official_input_boundary": [
-    "Published Snapshot",
-    "Approved Asset Registry",
-    "Rights Registry",
-    "Portal Contract"
-  ],
-  "official_outputs": [
-    "portal-release-manifest.json",
-    "Portal V502 Release Candidate",
-    "Portal QA Report"
-  ],
-  "operating_boundary": [
-    "Portal is a consumer and does not calculate intelligence.",
-    "Candidate and unassessed intelligence remain fail-closed.",
-    "Current V502 work completes and freezes the validation baseline before Provider or market validation."
-  ],
-  "known_limitations": [
-    "No canonical candidate snapshot is registered.",
-    "No independent rankability assessment is registered.",
-    "Methodology and evidence-lineage versions remain unregistered."
-  ],
-  "updated_at": "2026-08-12T23:10:00+09:00",
-  "updated_by": "Atlas",
-  "approved_by": "John",
-  "created_by": "Atlas"
+  "id":"track-c-portal-v502-experience-layer",
+  "record_type":"track",
+  "version":"1.2.0",
+  "status":"PROJECTION_CONSUMER_ACTIVE_LIVE_INTELLIGENCE_WAITING",
+  "display_name":"C. KIDULTS | Portal & Customer Experience",
+  "role_id":"role-track-c",
+  "role_acceptance":"APPROVED",
+  "canonical_issue":237,
+  "current_release_manifest_id":"portal-v502-rc1",
+  "current_published_snapshot_id":null,
+  "current_phase":"PROJECTION_TRUTH_INTEGRITY_AND_LIVE_INTELLIGENCE_WAITING",
+  "mission_id":"MISSION-0003",
+  "official_input_boundary":["Approved Projection Registry only"],
+  "official_outputs":["Portal projection consumer","Portal QA evidence"],
+  "operating_boundary":["Portal is a consumer and does not calculate intelligence.","Raw Provider and raw Track A data are prohibited.","Unverified, held, stale and partial states remain fail-closed.","A verified individual SOLD transaction must not be inflated into market price, liquidity or significance without approved evidence."],
+  "known_limitations":["No approved live market-intelligence Projection is available yet.","Current Projection/Portal freshness integrity is under P0 remediation #477."],
+  "production":"HOLD",
+  "updated_at":"2026-08-19T06:45:00+09:00",
+  "updated_by":"KPMO / Atlas",
+  "approved_by":"John",
+  "created_by":"Atlas"
 }
