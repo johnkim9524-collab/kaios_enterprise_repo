@@ -1,0 +1,11 @@
+{
+  "id":"kidults-runtime-observability-slo-contract-v1",
+  "version":"1.0.0",
+  "status":"CONTRACT_READY_EMPIRICAL_BASELINE_PENDING",
+  "signals":["metrics","logs","traces"],
+  "required_slis":["queue_latency","end_to_end_candidate_latency","evidence_admission_throughput","market_event_admission_throughput","track_b_handoff_latency","projection_refresh_latency","portal_read_latency","eos_read_latency","retry_rate","dead_letter_rate","recovery_time","rollback_time"],
+  "slo_policy":"NO_NUMERIC_SLO_UNTIL_BOUNDED_REAL_POC_BASELINE_MEASURED",
+  "recovery_requirements":["retry_backoff","dead_letter_queue","deterministic_replay","backup_restore","rollback_target","incident_freeze","audit_log"],
+  "cost_required":true,
+  "production":"HOLD"
+}
