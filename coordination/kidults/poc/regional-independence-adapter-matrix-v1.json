@@ -1,0 +1,70 @@
+{
+  "matrix_id": "kidults-regional-independence-adapter-matrix-v1",
+  "issue": 457,
+  "status": "DISCOVERY_REQUIRED",
+  "production": "HOLD",
+  "purpose": "Execute a fail-closed 32-scope search for independent regional market-significance evidence without coercing public representation into demand or liquidity.",
+  "admission_rule": {
+    "minimum_independent_families": 2,
+    "required": [
+      "REGIONAL_PUBLIC_REPRESENTATION_OR_EXPLICIT_NA",
+      "AT_LEAST_ONE_INDEPENDENT_INSTITUTION_RELEASE_OR_VENUE_FAMILY"
+    ],
+    "may_support_but_not_required_for_significance": [
+      "REGIONAL_MARKET_ACTIVITY",
+      "REGIONAL_LIQUIDITY"
+    ],
+    "prohibited_inference": [
+      "MAKER_ORIGIN_TO_REGIONAL_DEMAND",
+      "LANGUAGE_PRESENCE_TO_REGIONAL_DEMAND",
+      "PUBLIC_REPRESENTATION_TO_REGIONAL_MARKET_SIGNIFICANCE",
+      "SINGLE_LISTING_TO_REGIONAL_MARKET_PRESENCE"
+    ]
+  },
+  "candidate_source_family_roles": [
+    "REGIONAL_INSTITUTION",
+    "REGIONAL_RELEASE_OR_DISTRIBUTION",
+    "REGIONAL_VENUE_OR_MARKET_PRESENCE"
+  ],
+  "scope_rows": [
+    {"scope_id":"designer_toys","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"diecast_scale_models","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"vintage_character_toys","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"construction_mechanical_sets","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"mechanical_watches","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"vintage_neo_vintage_watches","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"fine_jewelry","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"designer_jewelry","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"collector_cars","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"modern_classics","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"collector_motorcycles","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"automotive_memorabilia","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"sneakers","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"handbags","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"designer_garments","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"eyewear","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"seating","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"tables_storage","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"lighting","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"decorative_design_objects","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"cameras_lenses","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"hifi_audio","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"vintage_computing","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"collectible_electronics","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"video_games_consoles","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"vinyl_recorded_music","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"musical_instruments_artist_gear","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"film_tv_props","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"trading_cards","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"comic_books","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"sports_memorabilia","state":"NOT_VERIFIED","evidence_refs":[]},
+    {"scope_id":"historical_cultural_memorabilia","state":"NOT_VERIFIED","evidence_refs":[]}
+  ],
+  "allowed_terminal_states": [
+    "REGIONAL_SIGNIFICANCE_VERIFIED",
+    "PARTIAL_REGIONAL_EVIDENCE",
+    "BLOCKED_BY_REGIONAL_INDEPENDENCE",
+    "NOT_VERIFIED"
+  ],
+  "execution_rule": "No scope may leave NOT_VERIFIED without evidence references and source-family independence recorded. No scope is required to PASS merely to satisfy coverage counts."
+}
