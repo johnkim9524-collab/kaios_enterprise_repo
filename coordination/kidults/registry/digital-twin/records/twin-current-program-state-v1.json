@@ -51,6 +51,7 @@
     "mission-track-e-executive-operating-system": "IN_PROGRESS"
   },
   "critical_blocker_ids": [
+    "blocker-no-canonical-candidate",
     "blocker-entity-resolution-calibration-gap",
     "blocker-market-activity-depth-gap"
   ],
