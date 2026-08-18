@@ -1,0 +1,24 @@
+name: KIDULTS Regional Live Diagnostic v1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/poc/run-regional-live-diagnostic-v1.mjs'
+      - '.github/workflows/kidults-regional-live-diagnostic-v1.yml'
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run regional live diagnostic
+        run: node scripts/kidults/poc/run-regional-live-diagnostic-v1.mjs coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json tmp/regional-live-diagnostic-v1
+      - name: Validate fail-closed regional outcome
+        run: node -e "const x=require('./tmp/regional-live-diagnostic-v1/regional-live-diagnostic-v1.json'); if(x.products!==64) throw Error('expected 64'); if(x.selected_regional_challengers!==0) throw Error('no auto selection'); if(!x.defects.some(d=>d.id==='REGIONAL-INDEPENDENCE-GAP')) throw Error('independence guard'); if(x.provider_contact!=='HOLD'||x.production!=='HOLD') throw Error('gate'); console.log(JSON.stringify({status:'PASS',mapped:x.mapped_products,multi:x.products_with_multi_region_public_representation,errors:x.request_errors.length},null,2));"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-regional-live-diagnostic-v1
+          path: tmp/regional-live-diagnostic-v1/
