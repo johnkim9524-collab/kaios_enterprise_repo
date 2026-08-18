@@ -1,0 +1,41 @@
+name: KIDULTS Wikidata Transaction Candidate v1
+
+on:
+  pull_request:
+    paths:
+      - "scripts/kidults/autonomous/diagnose-wikidata-transaction-candidate-v1.mjs"
+      - ".github/workflows/kidults-wikidata-transaction-candidate-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: node --check scripts/kidults/autonomous/diagnose-wikidata-transaction-candidate-v1.mjs
+      - name: Run bounded live diagnostic
+        run: node scripts/kidults/autonomous/diagnose-wikidata-transaction-candidate-v1.mjs artifacts/wikidata-transaction-candidate-v1
+      - name: Enforce fail-closed admission boundary
+        run: |
+          node - <<'NODE'
+          const r = require('./artifacts/wikidata-transaction-candidate-v1/diagnostic-report.json');
+          if (r.rights.state !== 'CC0_STRUCTURED_DATA') process.exit(1);
+          if (r.admitted_verified_sales !== 0) process.exit(1);
+          if (r.source_removal_independent_transaction_family_added !== false) process.exit(1);
+          if (r.decision !== 'NOT_ADMITTED_AS_TRANSACTION_FAMILY') process.exit(1);
+          console.log(`Observed ${r.observed_records}; admitted 0; ambiguity held fail-closed.`);
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-wikidata-transaction-candidate-v1
+          path: artifacts/wikidata-transaction-candidate-v1
+          if-no-files-found: error
+          retention-days: 30
