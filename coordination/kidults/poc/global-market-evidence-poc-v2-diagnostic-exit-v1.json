@@ -1,0 +1,62 @@
+{
+  "id":"kidults-global-market-evidence-poc-v2-diagnostic-exit-v1",
+  "version":"1.0.0",
+  "status":"KPMO_DIAGNOSTIC_EXIT_CANDIDATE",
+  "issue":453,
+  "objective":"Find structural weaknesses before scale-up or Provider contact; PASS-rate and forced 320-product completion are not the primary success criteria.",
+  "canonical_inputs":[
+    "attention-signal-poc-v1 artifact 9307483165",
+    "regional-live-diagnostic-v1.1 artifact 9308030815",
+    "challenger-terminalization-v1 artifact 9307887548",
+    "market-activity-feasibility-contract-v1",
+    "market-activity-source-feasibility-wave1-v1.1",
+    "final-market-source-discovery-8-domain-v1"
+  ],
+  "empirical_results":{
+    "attention":{"products":64,"mapped":60,"history_300d_plus":59,"errors":0,"interpretation":"STRONG_SELF_COLLECTABLE_PUBLIC_ATTENTION_COMPONENT_NOT_DEMAND_NOT_TRANSACTION"},
+    "regional":{"products":64,"mapped":60,"multi_region_representation":55,"scopes_with_multi_region_representation":31,"errors":0,"selected_regional_challengers":0,"interpretation":"PUBLIC_REGIONAL_REPRESENTATION_SELF_COLLECTABLE_BUT_MARKET_SIGNIFICANCE_REQUIRES_INDEPENDENT_FAMILY_AND_VENUE_RELEASE_INSTITUTION_EVIDENCE"},
+    "challenger_terminalization":{"scopes":32,"slots":160,"selected":0,"partial_evidence":64,"blocked_regional_independence":32,"blocked_market_activity":64,"poc_320_readiness":"BLOCKED"}
+  },
+  "defect_disposition":[
+    {"id":"D01_GENERIC_PRODUCT_DISCOVERY","severity":"P1","state":"RESOLVED","finding":"Generic Scope keyword discovery was too noisy for named collectible selection.","remediation":"Scope-specific Product Discovery Grammar."},
+    {"id":"D02_DISCOVERY_THROTTLING","severity":"P1","state":"RESOLVED","finding":"160 direct probes caused provider throttling.","remediation":"32 Scope probes + bounded concurrency/backoff; final request errors 0."},
+    {"id":"D03_ROLE_EVIDENCE_TOPOLOGY","severity":"P0","state":"PARTIALLY_RESOLVED","finding":"Candidate existence did not prove Emerging/Regional/Scarce/Liquidity/Edge semantics.","remediation":"Role-specific evidence contracts and terminal states implemented; actual market-activity evidence remains open."},
+    {"id":"D04_ATTENTION_TRANSPORT_AND_SEMANTICS","severity":"P1","state":"RESOLVED","finding":"Initial attention mapping had transport failures and semantic overreach risk.","remediation":"Retry/backoff fixed; 60/64 mapped, 59/64 historical; Attention != Demand != Transaction guard retained."},
+    {"id":"D05_REGIONAL_MAPPING","severity":"P1","state":"RESOLVED","finding":"Direct Wikidata mapping returned 0/64 despite healthy transport.","remediation":"Wikipedia title mapping + langlinks; 60/64 mapped, 55/64 multi-region, 31/32 Scope coverage."},
+    {"id":"D06_REGIONAL_MARKET_INDEPENDENCE","severity":"P0","state":"OPEN","finding":"Public multi-language representation is not regional market demand; second independent family plus institution/release/venue evidence is still required.","remediation":"Build local institutional/release/venue evidence adapters and validate regional market component separately."},
+    {"id":"D07_SCARCITY_LIQUIDITY_CONFLATION","severity":"P0","state":"RESOLVED_AS_CONTRACT","finding":"Scarcity, availability, activity, sold transaction, illiquidity and liquidity could be incorrectly substituted.","remediation":"Separate evidence classes and hard fail-closed guards merged."},
+    {"id":"D08_MARKET_ACTIVITY_DEPTH","severity":"P0","state":"OPEN_SCOPE_DEPENDENT","finding":"Current rights-safe institutional topology has no transaction/activity roles; many Scopes lack verified sold/activity evidence.","remediation":"Use Scope-specific official/authenticated APIs where legally feasible and external licensed capability only for residual material Decision Utility gaps."},
+    {"id":"D09_PROVIDER_NECESSITY_OVERGENERALIZATION","severity":"P0","state":"RESOLVED_AS_STRATEGY","finding":"Verified sold data cannot be treated as universally provider-only; BrickLink demonstrates a credentialed Scope-specific sold-history path.","remediation":"Classify Provider necessity per Scope x Evidence Class x Rights x Decision Utility."}
+  ],
+  "scope_depth_implications":[
+    "Keep Dynamic Vertical architecture; Attention can be a strong self-collected component but needs independent activity confirmation before promotion.",
+    "Regional depth should split Public Representation from Regional Market Significance/Liquidity.",
+    "Market Activity/Sold History needs Scope-specific adapter topology rather than one universal market-data provider.",
+    "Scarcity and Liquidity must remain separate metrics with independent evidence and confidence.",
+    "Normalization Confidence must decline when market-activity depth differs materially across Scopes."
+  ],
+  "eight_category_stress_test":{"decision":"NO_CANONICAL_CATEGORY_CHANGE_JUSTIFIED_BY_CURRENT_POC","reason":"Current evidence strongly validates attention/regional representation but verified market-activity depth is incomplete and uneven across Scopes; changing 8 Core Categories now would risk turning evidence coverage bias into taxonomy change.","action":"KEEP_8_CORE_BASELINE_USE_DYNAMIC_CATEGORY_WEIGHTING_AND_DYNAMIC_VERTICALS"},
+  "provider_necessity_disposition":{
+    "platform_wide_provider_required":false,
+    "identity_catalog_culture":"PROVIDER_NOT_REQUIRED_AS_FOUNDATION",
+    "public_attention":"PROVIDER_NOT_REQUIRED",
+    "regional_public_representation":"PROVIDER_NOT_REQUIRED",
+    "regional_market_significance":"SCOPE_DEPENDENT_MORE_SELF_COLLECTION_REQUIRED",
+    "verified_sold_history":"SCOPE_DEPENDENT_EXTERNAL_OR_AUTHENTICATED_API_CAPABILITY",
+    "professional_authentication_condition":"SCOPE_DEPENDENT_EXTERNAL_SPECIALIST_CAPABILITY_LIKELY",
+    "broad_provider_contact":"NOT_RECOMMENDED",
+    "targeted_provider_contact":"ONLY_AFTER_EXACT_SCOPE_CAPABILITY_GAP_AND_DECISION_UTILITY_JUSTIFICATION"
+  },
+  "diagnostic_exit":{"full_320_run":"NOT_EXECUTED_BY_DESIGN","reason":"160 challenger sample cannot be defensibly qualified yet; forcing 320 would multiply known structural defects and contaminate the diagnostic.","success":"YES_DEFECT_FINDING_OBJECTIVE_MET","next_cycle":"PoC_v2.1_REMediation_and_TARGETED_STRESS_RERUN"},
+  "next_execution":[
+    "Regional independent family / local institution-release-venue adapter PoC",
+    "BrickLink credential and API Terms bounded preflight for construction_mechanical_sets",
+    "Scope-specific authenticated market-source discovery for remaining high-value Scopes",
+    "Re-terminalize 160 challenger slots using actual role evidence",
+    "Run targeted stress rerun before any full 320 expansion",
+    "Then quantify exact Provider ROI/dependency and request Program Owner authorization only for residual gaps"
+  ],
+  "north_star":{"AUTONOMOUS":"PASS_WITH_SCOPE_SPECIFIC_ADAPTER_GAPS","GLOBAL":"AMBER_PLUS_REGIONAL_PUBLIC_REPRESENTATION_STRONG_MARKET_DEPTH_UNEVEN","IRREPLACEABLE_VALUE":"PASS_DECISION_EVIDENCE_DEPTH_DIRECTION","TRANSPARENT":"PASS_FAIL_CLOSED_NO_FORCED_320_NO_PROVIDER_OVERCLAIM"},
+  "provider_contact":"HOLD",
+  "production":"HOLD"
+}
