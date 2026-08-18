@@ -3,12 +3,21 @@
   "$id": "kidults://registry-engine/digital-twin-record.schema.json",
   "title": "KIDULTS Digital Twin Current State",
   "type": "object",
-  "required": ["id","record_type","version","status","twin_id","program_status","registry_health","current_milestone_id","current_baseline_snapshot_id","track_states","production_state","generated_at","created_by"],
+  "required": ["id","record_type","version","status","twin_id","source_projection_id","source_projection_version","program_status","registry_health","current_milestone_id","current_baseline_snapshot_id","track_states","production_state","generated_at","generated_from","created_by"],
   "properties": {
     "record_type": {"const":"digital_twin"},
     "twin_id": {"type":"string","pattern":"^TWIN-[0-9]{4}$"},
+    "source_projection_id": {"const":"projection-agci-os-current-v1"},
+    "source_projection_version": {"type":"string","minLength":1},
     "status": {"enum":["CURRENT","SUPERSEDED","ARCHIVED"]},
-    "track_states": {"type":"object","required":["A","B","C","D"]}
+    "track_states": {"type":"object","required":["A","B","C","D","E"]},
+    "generated_from": {
+      "type":"array",
+      "minItems":2,
+      "maxItems":2,
+      "uniqueItems":true,
+      "items":{"type":"string","pattern":"^coordination/kidults/registry/projection/"}
+    }
   },
   "additionalProperties": true
 }

@@ -121,6 +121,25 @@ Projection Registry / Projection Engine
 Portal / Executive / API / Reports
 ```
 
+### Canonical market-funnel alignment
+
+The canonical execution authority is
+`coordination/kidults/architecture/platform-market-funnel-alignment-v1.json`.
+It binds all 9 platform layers and 52 logical engines to 12 causal funnel stages,
+maps the 11 ASI logical engines to 25 independently scalable execution fleets,
+and standardizes 10 Source roles: 7 core required roles and 3 optional roles.
+
+Stage order applies only inside one event's causal dependency chain; it is not a
+global batch barrier. Fleet, Scope, region, language, Source-role and host
+partitions progress independently through Queue, bounded retry, DLQ, replay,
+outbox and per-partition watermark controls.
+
+Repository canonical-architecture and integration-boundary alignment is 100%.
+The ASI Shadow runtime foundation is code-wired, but implementation of all 52
+logical engines is not verified or claimed. Nothing has been deployed: deployed
+operational alignment is 0%, Source Pools are not ready, Indexes are not
+computed, and Production remains `HOLD`.
+
 ## 7. Registry v2
 
 Business truth is organized through:

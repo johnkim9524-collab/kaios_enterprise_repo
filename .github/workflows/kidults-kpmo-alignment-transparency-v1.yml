@@ -4,6 +4,8 @@ on:
     paths:
       - 'coordination/kidults/governance/kpmo-alignment-transparency-gate-v1.json'
       - 'coordination/kidults/governance/kpmo-cross-track-alignment-status-v1.json'
+      - 'coordination/kidults/architecture/platform-market-funnel-alignment-v1.json'
+      - 'scripts/kidults/architecture/validate-platform-market-funnel-alignment-v1.mjs'
       - 'scripts/kidults/governance/validate-kpmo-alignment-transparency-v1.mjs'
       - '.github/workflows/kidults-kpmo-alignment-transparency-v1.yml'
   workflow_dispatch:
@@ -18,4 +20,6 @@ jobs:
         with:
           node-version: '20'
       - name: Validate 100 percent alignment and transparency-by-design
-        run: node scripts/kidults/governance/validate-kpmo-alignment-transparency-v1.mjs
+        run: |
+          node scripts/kidults/architecture/validate-platform-market-funnel-alignment-v1.mjs
+          node scripts/kidults/governance/validate-kpmo-alignment-transparency-v1.mjs

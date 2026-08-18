@@ -8,6 +8,7 @@
   "approved_by": "John",
   "first_value": "AUTONOMOUS",
   "governing_principle": "DATA_SCOPE_DETERMINES_CUSTOMER_VALUE",
+  "platform_market_funnel_alignment_contract": "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
   "canonical_flow": [
     "CUSTOMER",
     "CUSTOMER_DECISION",
@@ -253,7 +254,7 @@
     "COVERAGE_AND_BIAS_ENGINE",
     "INDEPENDENCE_AND_REDUNDANCY_ENGINE",
     "FRESHNESS_AND_STABILITY_ENGINE",
-    "SOURCE_COST_AND_ROI_ENGINE",
+    "COST_AND_ROI_ENGINE",
     "ACQUISITION_PLANNER",
     "SOURCE_POOL_EVOLUTION_ENGINE"
   ],

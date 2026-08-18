@@ -10,6 +10,10 @@ function read(relative) {
   return JSON.parse(fs.readFileSync(path.join(registryRoot, relative), "utf8"));
 }
 
+function readRoot(relative) {
+  return JSON.parse(fs.readFileSync(path.join(root, relative), "utf8"));
+}
+
 function record(registryKey, id = null) {
   const index = read(`${registryKey}/index.json`);
   const recordId = id ?? index.current_record_id;
@@ -65,20 +69,41 @@ const provider = read("provider/index.json");
 const runtime = read("runtime/index.json");
 const digitalOcean = read("runtime/records/runtime-digitalocean-readonly-audit-v1.json");
 const release = read("release/index.json");
+const milestone = read("milestone/index.json");
+const mission = read("mission/index.json");
+const blocker = read("blocker/index.json");
+const decision = read("decision/index.json");
+const marketFunnelAlignment = readRoot("coordination/kidults/architecture/platform-market-funnel-alignment-v1.json");
 
 const projection = {
   id: "projection-agci-os-current-v1",
   record_type: "agci_os_projection",
-  version: "1.2.0",
+  version: "1.3.0",
   status: "INTERNAL_CURRENT",
   created_at: createdAt,
   created_by: "Track C / Projection Engine",
   approved_by: null,
   projection_id: "AGCI-OS-PROJECTION-001",
-  projection_contract_version: "agci-os-projection-v1.2",
+  projection_contract_version: "agci-os-projection-v1.3",
   source_registry_system_version: catalog.registry_system_version,
   source_catalog_revision: catalog.catalog_revision ?? catalog.registry_system_version,
   program_status: "ACTIVE",
+  market_funnel_alignment: {
+    contract: "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
+    platform_layers: marketFunnelAlignment.truth_boundary.logical_platform_layer_count,
+    logical_engines: marketFunnelAlignment.truth_boundary.logical_platform_engine_count,
+    asi_logical_engines: marketFunnelAlignment.truth_boundary.asi_logical_engine_count,
+    asi_execution_fleets: marketFunnelAlignment.truth_boundary.asi_execution_fleet_contract_count,
+    repository_canonical_architecture_and_integration_boundary_alignment_percent: marketFunnelAlignment.truth_boundary.repository_canonical_architecture_and_integration_boundary_alignment_percent,
+    asi_shadow_runtime_foundation_code_wired: marketFunnelAlignment.truth_boundary.asi_shadow_runtime_foundation_code_wired,
+    full_52_engine_runtime_implementation_verified: marketFunnelAlignment.truth_boundary.full_52_engine_runtime_implementation_verified,
+    deployed_operational_alignment_percent: marketFunnelAlignment.truth_boundary.deployed_operational_alignment_percent,
+    runtime_state: "QUEUE_TRANSPORT_SCAFFOLD_CODE_WIRED_ENGINE_PROCESSORS_NOT_IMPLEMENTED_NOT_DEPLOYED",
+    source_pools_ready: marketFunnelAlignment.truth_boundary.source_pools_ready,
+    market_indexes_computed: marketFunnelAlignment.truth_boundary.market_indexes_computed,
+    publication_eligible: false,
+    production: marketFunnelAlignment.production
+  },
   autonomous: {
     first_value: autonomous.value.first_value,
     operating_contract_id: autonomous.value.id,
@@ -196,6 +221,14 @@ const projection = {
     D: trackState(track, "D"),
     E: trackState(track, "E")
   },
+  control_tower_state: {
+    program_phase: "PHASE_1_CONTENT_DATA_PROVIDER_FOUNDATION",
+    current_milestone_id: milestone.current_record_id,
+    mission_states: Object.fromEntries(mission.records.map(item => [item.id,item.status])),
+    critical_blocker_ids: blocker.records.filter(item => item.status === "OPEN" && item.severity === "CRITICAL").map(item => item.id),
+    high_blocker_ids: blocker.records.filter(item => item.status === "OPEN" && item.severity === "HIGH").map(item => item.id),
+    open_decision_count: decision.records.filter(item => ["OPEN","PENDING","PROPOSED"].includes(item.status)).length
+  },
   snapshot: {
     baseline_id: snapshot.current_baseline_snapshot_id,
     baseline_status: baseline.status,
@@ -253,7 +286,8 @@ const projection = {
     catalog_revision: catalog.catalog_revision ?? catalog.registry_system_version,
     engine_registry: engineRun.index.registry_version,
     memory_registry: memoryRun.index.registry_version,
-    raw_quarantine_registry: quarantineReport.index.registry_version
+    raw_quarantine_registry: quarantineReport.index.registry_version,
+    market_funnel_alignment: marketFunnelAlignment.version
   },
   publication: {
     public_index_projection: "NOT_AVAILABLE",

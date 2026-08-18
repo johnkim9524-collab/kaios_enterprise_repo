@@ -9,9 +9,9 @@ const rows = [
 export function goldenPathTransactions(): { items: NormalizedEvidence[]; governance: Record<string, unknown> } {
   const observedAt = new Date().toISOString();
   const items = rows.map(([category, confidence, depth, integrity, anomaly]) => ({
-    source: { name: 'Kidults Staging Transactions', family: 'marketplace' as const, region: 'Global', baseUrl: 'internal://kidults/golden-path/transactions', trustTier: 'D' as const },
+    source: { id: 'staging-golden-path', name: 'Kidults Staging Transactions', family: 'marketplace' as const, region: 'Global', baseUrl: 'internal://kidults/golden-path/transactions', trustTier: 'D' as const },
     entity: { type: 'category', name: category, category, externalKeys: { legacySourceId: 'transactions-primary', mode: 'illustrative' } },
-    evidence: { externalId: `illustrative-${category.toLowerCase().replaceAll(' ', '-')}-transactions`, observedAt, provenanceLabel: 'Kidults staging evidence — illustrative only', licenseCode: 'STAGING-NONCOMMERCIAL', grade: 'D' as const, confidence, raw: { source: 'golden-path', transactionDepth: depth, priceIntegrity: integrity, anomalyRate: anomaly } },
+    evidence: { admissionId: 'admission-staging-golden-path-v1', admissionInputSnapshotRef: 'sha256:5f8b182ad788512ec5283b03f0513ffb596f1b27e37c9ace0774e12f645bfbb6', externalId: `illustrative-${category.toLowerCase().replaceAll(' ', '-')}-transactions`, observedAt, provenanceLabel: 'Kidults staging evidence — illustrative only', licenseCode: 'STAGING-NONCOMMERCIAL', grade: 'D' as const, confidence, raw: { source: 'golden-path', transactionDepth: depth, priceIntegrity: integrity, anomalyRate: anomaly } },
     metrics: [
       { key: 'transaction_depth', value: depth, unit: 'index', confidence },
       { key: 'price_integrity', value: integrity, unit: 'index', confidence },

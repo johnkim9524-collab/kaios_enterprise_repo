@@ -8,7 +8,9 @@ on:
       - 'coordination/kidults/registry/work-queue/**'
       - 'coordination/kidults/registry/blocker/**'
       - 'coordination/kidults/registry/digital-twin/**'
+      - 'coordination/kidults/registry/projection/**'
       - 'coordination/kidults/registry/catalog.json'
+      - 'scripts/kidults/projection/build-agci-os-projection.mjs'
       - 'scripts/kidults/mission-control/**'
       - '.github/workflows/kidults-mission-control-validate.yml'
   push:
@@ -19,7 +21,9 @@ on:
       - 'coordination/kidults/registry/work-queue/**'
       - 'coordination/kidults/registry/blocker/**'
       - 'coordination/kidults/registry/digital-twin/**'
+      - 'coordination/kidults/registry/projection/**'
       - 'coordination/kidults/registry/catalog.json'
+      - 'scripts/kidults/projection/build-agci-os-projection.mjs'
       - 'scripts/kidults/mission-control/**'
       - '.github/workflows/kidults-mission-control-validate.yml'
   workflow_dispatch:
@@ -42,8 +46,8 @@ jobs:
       - name: Validate operational registry
         run: node scripts/kidults/registry/validate-operational-registry.mjs
 
-      - name: Validate mission control and digital twin
-        run: node scripts/kidults/mission-control/validate-mission-control.mjs
-
       - name: Build current-state projection
         run: node scripts/kidults/mission-control/build-current-state.mjs
+
+      - name: Validate mission control and digital twin
+        run: node scripts/kidults/mission-control/validate-mission-control.mjs

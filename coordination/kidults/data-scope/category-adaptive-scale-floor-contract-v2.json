@@ -121,7 +121,7 @@
   "program_effect": {
     "category_1000_label": "MINIMUM_FLOOR_ONLY",
     "total_8000_label": "MINIMUM_CURRENT_EIGHT_CATEGORY_FLOOR_ONLY",
-    "asi_10k": "ACTIVE_CRITICAL_PATH",
+    "continuous_global_source_universe": "ACTIVE_CRITICAL_PATH",
     "category_scale_execution": "STARTS_AFTER_SCOPE_SOURCE_POOL_READINESS",
     "candidate_r2": "SECONDARY_UNTIL_SCALE_AND_SOURCE_INTELLIGENCE_GATES_PASS",
     "kidult_500": "NOT_COMPUTED",

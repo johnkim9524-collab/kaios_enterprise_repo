@@ -1,10 +1,18 @@
 {
   "id": "kidults-asi-queue-and-partition-contract-v1",
   "version": "1.0.0",
-  "status": "DECLARED_RUNTIME_IMPLEMENTATION_PENDING",
+  "status": "QUEUE_TRANSPORT_SCAFFOLD_CODE_WIRED_CONTROLS_AND_ENGINE_PROCESSORS_PENDING_NOT_DEPLOYED",
   "event_schema": "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json",
   "delivery_semantics": "AT_LEAST_ONCE",
   "consumer_semantics": "IDEMPOTENT",
+  "runtime_implementation_state": {
+    "fleet_queue_transport_bindings_code_wired": 25,
+    "engine_processors_implemented": 0,
+    "required_queue_controls_complete": false,
+    "remote_resources_verified": false,
+    "deployed": false,
+    "production": "HOLD"
+  },
   "partition_dimensions": ["channel", "region", "language", "scope_id", "source_role", "canonical_host_hash"],
   "queue_classes": [
     {

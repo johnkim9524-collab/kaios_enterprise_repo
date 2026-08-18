@@ -91,5 +91,6 @@ console.log(`Registered missions: ${mission.record_count}`);
 console.log(`Current milestone: ${milestone.current_record_id}`);
 console.log(`Current candidate: ${snapshot.current_candidate_snapshot_id ?? 'NONE'}`);
 console.log(`Current assessment: ${assessment.current_assessment_id ?? 'NONE'}`);
-console.log(`Open blockers: ${blocker.records.filter((record) => record.status === 'OPEN').length}`);
+console.log(`Open operational blocker records: ${blocker.records.filter((record) => record.status === 'OPEN').length}`);
+console.log(`Rankability assessment: ${assessment.status}`);
 console.log(`Work items: ${workQueue.record_count}`);

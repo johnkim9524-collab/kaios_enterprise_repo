@@ -1,10 +1,12 @@
-export interface Env {
-  DB: D1Database;
+import { bearerAuthorized, parseBoundedJson } from './http-security';
+
+export type Env = Pick<Cloudflare.Env,
+  'DB' | 'METHODOLOGY_VERSION' | 'MIN_EVIDENCE_FOR_PUBLISH'
+> & {
   KIDULTS_ENV: string;
-  METHODOLOGY_VERSION: string;
-  MIN_EVIDENCE_FOR_PUBLISH: string;
+  ASI_PUBLICATION_ENABLED: string;
   INGEST_TOKEN?: string;
-}
+};
 
 type MetricInput = {
   key: string;
@@ -15,7 +17,7 @@ type MetricInput = {
 
 type IngestInput = {
   source: {
-    id?: string;
+    id: string;
     name: string;
     family: string;
     region?: string;
@@ -30,6 +32,8 @@ type IngestInput = {
     externalKeys?: Record<string, string>;
   };
   evidence: {
+    admissionId: string;
+    admissionInputSnapshotRef: string;
     externalId?: string;
     observedAt: string;
     provenanceUrl?: string;
@@ -73,14 +77,15 @@ async function sha256(value: unknown) {
 }
 
 function authorized(request: Request, env: Env) {
-  if (!env.INGEST_TOKEN) return env.KIDULTS_ENV !== 'production';
-  return request.headers.get('authorization') === `Bearer ${env.INGEST_TOKEN}`;
+  return bearerAuthorized(request,env.INGEST_TOKEN);
 }
 
 function validateIngest(input: IngestInput) {
-  if (!input?.source?.name || !input.source.family) throw new Error('source.name and source.family are required');
+  if (!input?.source?.id || !input.source.name || !input.source.family) throw new Error('source.id, source.name and source.family are required');
   if (!input?.entity?.name || !input.entity.category) throw new Error('entity.name and entity.category are required');
   if (!input?.evidence?.observedAt) throw new Error('evidence.observedAt is required');
+  if (!input.evidence.admissionId) throw new Error('evidence.admissionId is required');
+  if (!/^sha256:[a-f0-9]{64}$/.test(input.evidence.admissionInputSnapshotRef || '')) throw new Error('evidence.admissionInputSnapshotRef is required');
   if (!Number.isFinite(Date.parse(input.evidence.observedAt))) throw new Error('evidence.observedAt must be ISO-compatible');
   if (!Array.isArray(input.metrics) || input.metrics.length === 0) throw new Error('metrics must contain at least one observation');
   for (const metric of input.metrics) {
@@ -90,11 +95,35 @@ function validateIngest(input: IngestInput) {
 
 async function ingest(request: Request, env: Env) {
   if (!authorized(request, env)) return json({ error: 'unauthorized' }, { status: 401 });
-  const input = (await request.json()) as IngestInput;
+  const input = (await parseBoundedJson(request)) as IngestInput;
   validateIngest(input);
 
   const timestamp = nowIso();
-  const sourceId = input.source.id || `src_${slug(input.source.name)}`;
+  const sourceId = input.source.id;
+  const admission = await env.DB.prepare(`
+    SELECT a.admission_id,a.source_id,a.purpose,a.evidence_class,a.output_class,a.region,a.decision,a.rights_state,
+      a.policy_version,a.input_snapshot_ref,a.review_due_at
+    FROM asi_purpose_admissions a
+    JOIN asi_admission_assertions aa ON aa.admission_id=a.admission_id
+    JOIN asi_engine_assertions ea ON ea.assertion_id=aa.assertion_id
+    WHERE a.admission_id=? AND a.source_id=? AND a.purpose='BOUNDED_SHADOW_ACQUISITION'
+      AND a.output_class='INTERNAL_SHADOW' AND a.decision='PASS' AND a.rights_state='ALLOW'
+      AND a.policy_version='kidults-asi-purpose-specific-admission-policy-v1@1.0.0'
+      AND a.input_snapshot_ref=?
+      AND a.required_assertion_count=9 AND a.satisfied_assertion_count=9
+      AND a.superseded_at IS NULL AND a.revoked_at IS NULL AND a.review_due_at>?
+      AND ea.source_id=a.source_id AND ea.purpose=a.purpose AND ea.decision='PASS' AND ea.rights_state='ALLOW'
+    GROUP BY a.admission_id
+    HAVING COUNT(DISTINCT ea.assertion_type)=9
+      AND COUNT(DISTINCT CASE WHEN ea.assertion_type IN (
+        'COLLECT','STORE','TRANSFORM','RETENTION','RATE_LIMIT','ROBOTS','SCHEMA','PROVENANCE','FRESHNESS'
+      ) THEN ea.assertion_type END)=9
+    LIMIT 1
+  `).bind(input.evidence.admissionId,sourceId,input.evidence.admissionInputSnapshotRef,timestamp).first<{
+    admission_id:string;source_id:string;purpose:string;evidence_class:string;output_class:string;
+    region:string;decision:string;rights_state:string;policy_version:string;input_snapshot_ref:string;review_due_at:string;
+  }>();
+  if (!admission) return json({ error: 'purpose_admission_required', sourceId }, { status: 403 });
   const entityId = input.entity.id || `ent_${slug(input.entity.type || 'collectible')}_${slug(input.entity.name)}`;
   const evidenceId = makeId('ev');
   const rawPayload = JSON.stringify(input.evidence.raw);
@@ -119,11 +148,11 @@ async function ingest(request: Request, env: Env) {
     env.DB.prepare(`
       INSERT INTO evidence_ledger (
         id,source_id,entity_id,external_id,observed_at,ingested_at,payload_hash,provenance_url,provenance_label,
-        license_code,raw_payload_json,evidence_grade,confidence,status
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'accepted')
+        license_code,raw_payload_json,evidence_grade,confidence,status,admission_id
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'accepted',?)
     `).bind(evidenceId, sourceId, entityId, input.evidence.externalId || null, input.evidence.observedAt, timestamp,
       payloadHash, input.evidence.provenanceUrl || null, input.evidence.provenanceLabel || null,
-      input.evidence.licenseCode || null, rawPayload, input.evidence.grade || 'D', evidenceConfidence),
+      input.evidence.licenseCode || null, rawPayload, input.evidence.grade || 'D', evidenceConfidence,admission.admission_id),
   ];
 
   for (const metric of input.metrics) {
@@ -137,7 +166,10 @@ async function ingest(request: Request, env: Env) {
   statements.push(env.DB.prepare(`
     INSERT INTO audit_log (id,event_type,actor,subject_id,details_json,created_at)
     VALUES (?,'evidence.ingested','collector',?,?,?)
-  `).bind(makeId('audit'), evidenceId, JSON.stringify({ sourceId, entityId, metrics: input.metrics.length, payloadHash }), timestamp));
+  `).bind(makeId('audit'), evidenceId, JSON.stringify({
+    sourceId,entityId,metrics:input.metrics.length,payloadHash,admissionId:admission.admission_id,
+    admissionPurpose:admission.purpose,admissionRightsState:admission.rights_state,
+  }), timestamp));
 
   try {
     await env.DB.batch(statements);
@@ -354,6 +386,7 @@ async function buildPortalPayload(env: Env, runId?: string) {
 }
 
 async function publish(env: Env, triggerType='manual') {
+  if (env.ASI_PUBLICATION_ENABLED !== 'true') throw new Error('ASI_PUBLICATION_HOLD');
   const result = await runIntelligence(env, triggerType);
   const payload = await buildPortalPayload(env, result.runId);
   if (!payload) throw new Error('run produced no publishable payload');
@@ -378,13 +411,17 @@ async function route(request: Request, env: Env) {
   }
   if (request.method==='GET' && url.pathname.startsWith('/v1/evidence/')) {
     const evidenceId=url.pathname.split('/').pop()!;
-    const row=await env.DB.prepare(`SELECT id,source_id,entity_id,external_id,observed_at,ingested_at,payload_hash,provenance_url,provenance_label,license_code,evidence_grade,confidence,status,supersedes_id FROM evidence_ledger WHERE id=?`).bind(evidenceId).first();
+    const row=await env.DB.prepare(`SELECT id,source_id,entity_id,external_id,observed_at,ingested_at,payload_hash,provenance_url,provenance_label,license_code,evidence_grade,confidence,status,supersedes_id,admission_id FROM evidence_ledger WHERE id=?`).bind(evidenceId).first();
     return row?json(row):json({error:'not found'},{status:404});
   }
   if (request.method==='POST' && url.pathname==='/internal/ingest') return ingest(request,env);
   if (request.method==='POST' && url.pathname==='/internal/publish') {
     if (!authorized(request,env)) return json({error:'unauthorized'},{status:401});
-    return json(await publish(env,'manual'));
+    return json({
+      error:'legacy_monolithic_publication_path_disabled',
+      replacement:'GOVERNED_PROJECTION_REGISTRY_AFTER_PURPOSE_SPECIFIC_PUBLICATION_ADMISSION',
+      production:'HOLD',
+    },{status:410});
   }
   return json({error:'not found'},{status:404});
 }
@@ -398,9 +435,8 @@ export default {
     });
   },
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(publish(env,'scheduled').catch(async(error)=>{
-      const message=error instanceof Error?error.message:String(error);
-      await env.DB.prepare(`INSERT INTO audit_log (id,event_type,actor,details_json,created_at) VALUES (?,'scheduled.error','scheduler',?,?)`).bind(makeId('audit'),JSON.stringify({message}),nowIso()).run();
-    }));
+    void _event;
+    void env;
+    void ctx;
   },
 };

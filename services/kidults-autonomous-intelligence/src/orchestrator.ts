@@ -63,15 +63,13 @@ function extractEvidence(payload: unknown): NormalizedEvidence[] {
 
 export async function collectConfiguredAdapters(sourceAdaptersJson?: string): Promise<CollectorBatch[]> {
   const configs = parseConfigs(sourceAdaptersJson);
-  const batches: CollectorBatch[] = [];
-  for (const config of configs) {
+  return Promise.all(configs.map(async (config): Promise<CollectorBatch> => {
     if (!config.id || !config.family || !config.endpoint) throw new Error('adapter requires id, family and endpoint');
     const payload = await loadAdapterPayload(config);
     const items = extractEvidence(payload).map((item) => {
       if (item.source.family !== config.family) throw new Error(`${config.id} family mismatch`);
       return validateNormalizedEvidence(item);
     });
-    batches.push({ adapterId: config.id, family: config.family, rawCount: items.length, normalized: items });
-  }
-  return batches;
+    return { adapterId: config.id, family: config.family, rawCount: items.length, normalized: items };
+  }));
 }

@@ -6,6 +6,15 @@
   "effective_at": "2026-08-16T19:30:00+09:00",
   "created_by": "KPMO / Atlas",
   "approved_by": "John",
+  "platform_market_funnel_alignment": {
+    "contract": "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
+    "canonical_layer_count": 9,
+    "canonical_logical_engine_count": 52,
+    "contract_alignment_required": true,
+    "runtime_alignment_state": "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_FOUNDATION_CODE_WIRED_NOT_DEPLOYED",
+    "repository_canonical_architecture_and_integration_boundary_alignment_percent": 100,
+    "deployment_alignment_percent": 0
+  },
   "product": {
     "name": "Autonomous Global Collectibles Intelligence Operating System",
     "short_name": "AGCI-OS",
@@ -196,7 +205,7 @@
     "critical_path": [
       "VALUE_TO_DATA_SCOPE_FOUNDATION",
       "COLLECTION_SCOPE_REGISTRY",
-      "AUTONOMOUS_SOURCE_INTELLIGENCE_10K",
+      "CONTINUOUS_GLOBAL_OPEN_MARKET_SOURCE_INTELLIGENCE",
       "CATEGORY_1000_SCALE_POC",
       "PROVIDER_FUSION_READINESS",
       "CANDIDATE_R2",
@@ -245,7 +254,7 @@
       "responsibilities": [
         "SOURCE_COLLECTION_RUNTIME",
         "QUEUE_AND_SCHEDULER",
-        "CAPACITY_FOR_10K_SOURCES_AND_8K_OBJECTS",
+        "ELASTIC_CAPACITY_FOR_CONTINUOUS_SOURCE_UNIVERSE_AND_CATEGORY_OBJECT_FLOORS",
         "MONITORING_BACKUP_RECOVERY",
         "DIGITALOCEAN_READ_ONLY_UNTIL_G5",
         "PRODUCTION_HOLD"
@@ -318,7 +327,7 @@
   "current_official_state": {
     "strategy_reset": "ACTIVE",
     "value_scope": "P0",
-    "source_universe_10k": "P0",
+    "continuous_global_source_universe": "P0",
     "category_1000": "P0",
     "candidate_r2": "SECONDARY",
     "kidult_500": "NOT_COMPUTED",

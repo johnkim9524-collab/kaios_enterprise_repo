@@ -2,8 +2,13 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kidults-autonomous-intelligence",
   "main": "src/worker.ts",
-  "compatibility_date": "2026-08-01",
-  "observability": { "enabled": true },
+  "compatibility_date": "2026-08-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -12,11 +17,71 @@
       "migrations_dir": "migrations"
     }
   ],
+  "queues": {
+    "producers": [
+      { "binding": "ASI_DISCOVERY_COMMON_CRAWL_WDC_QUEUE", "queue": "kidults-asi-shadow-discovery-common-crawl-wdc" },
+      { "binding": "ASI_DISCOVERY_OVERTURE_MAPS_QUEUE", "queue": "kidults-asi-shadow-discovery-overture-maps" },
+      { "binding": "ASI_DISCOVERY_WIKIDATA_QUEUE", "queue": "kidults-asi-shadow-discovery-wikidata" },
+      { "binding": "ASI_DISCOVERY_OPENSTREETMAP_QUEUE", "queue": "kidults-asi-shadow-discovery-openstreetmap" },
+      { "binding": "ASI_DISCOVERY_GITHUB_HOMEPAGE_QUEUE", "queue": "kidults-asi-shadow-discovery-github-homepage" },
+      { "binding": "ASI_DISCOVERY_DATACITE_OPEN_RESEARCH_QUEUE", "queue": "kidults-asi-shadow-discovery-datacite-open-research" },
+      { "binding": "ASI_DISCOVERY_GLOBAL_NEWS_EVENTS_QUEUE", "queue": "kidults-asi-shadow-discovery-global-news-events" },
+      { "binding": "ASI_DISCOVERY_GOVERNMENT_REGIONAL_CATALOGS_QUEUE", "queue": "kidults-asi-shadow-discovery-government-regional-catalogs" },
+      { "binding": "ASI_DISCOVERY_ICANN_PUBLIC_ZONES_QUEUE", "queue": "kidults-asi-shadow-discovery-icann-public-zones" },
+      { "binding": "ASI_DISCOVERY_INTERNET_ARCHIVE_CONTINUITY_QUEUE", "queue": "kidults-asi-shadow-discovery-internet-archive-continuity" },
+      { "binding": "ASI_DISCOVERY_APPROVED_DIRECTORY_OUTBOUND_FRONTIER_QUEUE", "queue": "kidults-asi-shadow-discovery-directory-outbound-frontier" },
+      { "binding": "ASI_DISCOVERY_OPTIONAL_LICENSED_GAP_FILL_QUEUE", "queue": "kidults-asi-shadow-discovery-optional-licensed-gap-fill" },
+      { "binding": "ASI_SOURCE_SITE_IDENTITY_OWNER_LINEAGE_QUEUE", "queue": "kidults-asi-shadow-source-site-identity-owner-lineage" },
+      { "binding": "ASI_SOURCE_SCOPE_ROLE_CLASSIFICATION_QUEUE", "queue": "kidults-asi-shadow-source-scope-role-classification" },
+      { "binding": "ASI_SOURCE_REGION_LANGUAGE_CLASSIFICATION_QUEUE", "queue": "kidults-asi-shadow-source-region-language-classification" },
+      { "binding": "ASI_SOURCE_MARKET_SEMANTICS_CLASSIFICATION_QUEUE", "queue": "kidults-asi-shadow-source-market-semantics-classification" },
+      { "binding": "ASI_SOURCE_UTILITY_VALUE_ANALYSIS_QUEUE", "queue": "kidults-asi-shadow-source-utility-value-analysis" },
+      { "binding": "ASI_SOURCE_RIGHTS_COMPLIANCE_ANALYSIS_QUEUE", "queue": "kidults-asi-shadow-source-rights-compliance-analysis" },
+      { "binding": "ASI_SOURCE_TECHNICAL_ACCESS_SCHEMA_ANALYSIS_QUEUE", "queue": "kidults-asi-shadow-source-technical-access-schema-analysis" },
+      { "binding": "ASI_SOURCE_COVERAGE_BIAS_ANALYSIS_QUEUE", "queue": "kidults-asi-shadow-source-coverage-bias-analysis" },
+      { "binding": "ASI_SOURCE_INDEPENDENCE_REDUNDANCY_ANALYSIS_QUEUE", "queue": "kidults-asi-shadow-source-independence-redundancy-analysis" },
+      { "binding": "ASI_SOURCE_FRESHNESS_STABILITY_ANALYSIS_QUEUE", "queue": "kidults-asi-shadow-source-freshness-stability-analysis" },
+      { "binding": "ASI_SOURCE_COST_ROI_ANALYSIS_QUEUE", "queue": "kidults-asi-shadow-source-cost-roi-analysis" },
+      { "binding": "ASI_ACQUISITION_PLANNER_QUEUE", "queue": "kidults-asi-shadow-acquisition-planner" },
+      { "binding": "ASI_SOURCE_POOL_EVOLUTION_QUEUE", "queue": "kidults-asi-shadow-source-pool-evolution" },
+      { "binding": "ASI_DEAD_LETTER_QUEUE", "queue": "kidults-asi-shadow-dead-letter" }
+    ],
+    "consumers": [
+      { "queue": "kidults-asi-shadow-discovery-common-crawl-wdc", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-discovery-overture-maps", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-discovery-wikidata", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-discovery-openstreetmap", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-discovery-github-homepage", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-discovery-datacite-open-research", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-discovery-global-news-events", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-discovery-government-regional-catalogs", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-discovery-icann-public-zones", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-discovery-internet-archive-continuity", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-discovery-directory-outbound-frontier", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-discovery-optional-licensed-gap-fill", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-site-identity-owner-lineage", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-scope-role-classification", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-region-language-classification", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-market-semantics-classification", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-utility-value-analysis", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-rights-compliance-analysis", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-technical-access-schema-analysis", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-coverage-bias-analysis", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-independence-redundancy-analysis", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-freshness-stability-analysis", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-cost-roi-analysis", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-acquisition-planner", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-source-pool-evolution", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3, "dead_letter_queue": "kidults-asi-shadow-dead-letter" },
+      { "queue": "kidults-asi-shadow-dead-letter", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 3 }
+    ]
+  },
   "triggers": { "crons": ["17 * * * *"] },
   "vars": {
     "KIDULTS_ENV": "staging",
-    "METHODOLOGY_VERSION": "v2.0-autonomous-foundation",
+    "METHODOLOGY_VERSION": "v3.0-market-funnel-shadow",
     "MIN_EVIDENCE_FOR_PUBLISH": "20",
-    "SOURCE_ADAPTERS_JSON": "[{\"id\":\"staging-transactions-golden-path\",\"family\":\"marketplace\",\"endpoint\":\"https://kidults-autonomous-intelligence.john-kim9524.workers.dev/internal/golden-path/transactions\",\"enabled\":true,\"timeoutMs\":15000}]"
+    "ASI_MESH_MODE": "SHADOW",
+    "ASI_PUBLICATION_ENABLED": "false",
+    "SOURCE_ADAPTERS_JSON": "[]"
   }
 }

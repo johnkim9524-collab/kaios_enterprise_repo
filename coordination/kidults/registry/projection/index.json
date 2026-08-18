@@ -1,7 +1,7 @@
 {
   "registry_id":"kidults-projection-registry",
   "registry_name":"AGCI-OS Projection Registry",
-  "registry_version":"2.2.0",
+  "registry_version":"2.3.0",
   "shadow_revision":"authority-r1",
   "schema_version":"1.2.0",
   "owner":"Track C / Projection Engine",
@@ -12,12 +12,13 @@
   "record_count":1,
   "current_record_id":"projection-agci-os-current-v1",
   "current_shadow_projection_id":"projection-agci-os-authority-shadow-r1",
-  "records":[{"id":"projection-agci-os-current-v1","path":"records/projection-agci-os-current-v1.json","version":"1.2.0","status":"INTERNAL_CURRENT"}],
+  "records":[{"id":"projection-agci-os-current-v1","path":"records/projection-agci-os-current-v1.json","version":"1.3.0","status":"INTERNAL_CURRENT"}],
   "shadow_records":[{"id":"projection-agci-os-authority-shadow-r1","path":"records/projection-agci-os-authority-shadow-r1.json","version":"1.0.0","status":"INTERNAL_SHADOW_CURRENT"}],
   "change_history":[
     {"version":"2.0.0","changed_at":"2026-08-16T14:10:00+09:00","changed_by":"KPMO / Track C","change":"Registered the first governed AGCI-OS Projection as the sole Portal and Executive consumption boundary."},
     {"version":"2.1.0","changed_at":"2026-08-16T14:30:00+09:00","changed_by":"KPMO / Track C","change":"Projected deterministic Engine v2 and Raw Quarantine foundation state while preserving public Indexes as NOT_COMPUTED and Production as HOLD."},
     {"version":"2.2.0","changed_at":"2026-08-16T15:40:00+09:00","changed_by":"KPMO / Track C","change":"Projected append-only bitemporal Memory through the governed Projection boundary."},
-    {"version":"2.2.0+authority-shadow-r1","changed_at":"2026-08-16T16:20:00+09:00","changed_by":"KPMO / Track C","change":"Added a separate non-promoting authority Shadow Projection without replacing the canonical Portal current projection."}
+    {"version":"2.2.0+authority-shadow-r1","changed_at":"2026-08-16T16:20:00+09:00","changed_by":"KPMO / Track C","change":"Added a separate non-promoting authority Shadow Projection without replacing the canonical Portal current projection."},
+    {"version":"2.3.0","changed_at":"2026-08-18T16:00:00Z","changed_by":"KPMO / Track C","change":"Aligned the governed current Projection to the canonical 9-layer, 52-engine market funnel and its 25-fleet repository shadow runtime while preserving deployment and publication HOLDs."}
   ]
 }

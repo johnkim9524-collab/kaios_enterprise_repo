@@ -147,7 +147,15 @@ assert(providerMapping?.ingestion_flow?.[1] === "RAW_QUARANTINE",
   "Provider ingestion must enter Raw Quarantine.");
 
 assert(projectionIndex?.current_record_id === projection?.id, "Projection Registry current pointer mismatch.");
-assert(projectionIndex?.registry_version === "2.2.0", "Projection Registry version must be v2.2.0.");
+assert(projectionIndex?.registry_version === "2.3.0", "Projection Registry version must be v2.3.0.");
+assert(projection?.market_funnel_alignment?.contract === "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
+  "Projection must bind to the canonical platform market funnel.");
+assert(projection?.market_funnel_alignment?.repository_canonical_architecture_and_integration_boundary_alignment_percent === 100,
+  "Projection must expose 100% canonical architecture/integration-boundary alignment.");
+assert(projection?.market_funnel_alignment?.full_52_engine_runtime_implementation_verified === false,
+  "Projection must not claim full 52-engine runtime implementation.");
+assert(projection?.market_funnel_alignment?.deployed_operational_alignment_percent === 0,
+  "Projection must not overclaim deployed operational alignment.");
 assert(projection?.autonomous?.first_value === "AUTONOMOUS", "Projection must expose Autonomous first.");
 assert(projection?.memory?.current_run_id === memoryRun?.id, "Projection Memory pointer mismatch.");
 assert(projection?.memory?.storage_model === "APPEND_ONLY_BITEMPORAL",

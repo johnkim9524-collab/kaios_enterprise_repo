@@ -1,20 +1,36 @@
 {
   "id": "kpmo-cross-track-alignment-status-v1",
   "version": "1.0.0",
-  "status": "ALIGNMENT_LOCK_CANDIDATE",
+  "status": "REPOSITORY_CANONICAL_ARCHITECTURE_AND_INTEGRATION_BOUNDARIES_LOCKED",
+  "alignment_scope": "REPOSITORY_CANONICAL_ARCHITECTURE_AND_INTEGRATION_BOUNDARIES",
+  "alignment_evidence": {
+    "canonical_contract": "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
+    "machine_validator": "scripts/kidults/architecture/validate-platform-market-funnel-alignment-v1.mjs",
+    "platform_layers": 9,
+    "logical_engines": 52,
+    "asi_logical_engines": 11,
+    "asi_execution_fleets": 25,
+    "repository_canonical_architecture_and_integration_boundary_alignment_percent": 100,
+    "asi_shadow_runtime_foundation_code_wired": true,
+    "full_52_engine_runtime_implementation_verified": false,
+    "deployed_operational_alignment_percent": 0,
+    "deployment_state": "NOT_DEPLOYED_NOT_CLAIMED"
+  },
   "canonical_master": 344,
   "tracks": {
-    "TRACK_A": {"lane_issue": 345, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
-    "TRACK_B": {"lane_issue": 347, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
-    "TRACK_C": {"lane_issue": 348, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
-    "TRACK_D": {"lane_issue": 349, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
-    "TRACK_E": {"lane_issue": 349, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"}
+    "TRACK_A": {"canonical_track_issue": 235, "legacy_lane_issue": 345, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
+    "TRACK_B": {"canonical_track_issue": 236, "legacy_lane_issue": 347, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
+    "TRACK_C": {"canonical_track_issue": 237, "legacy_lane_issue": 348, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
+    "TRACK_D": {"canonical_track_issue": 240, "legacy_lane_issue": 349, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"},
+    "TRACK_E": {"canonical_track_issue": 256, "legacy_lane_issue": 349, "alignment_percent": 100, "state": "ALIGNED_ACTIVE"}
   },
+  "cross_cutting_issue_map": {"canonical_integration_issue": 238, "legacy_source_and_engine_lane_issue": 346},
   "shared_semantics": "CANONICAL_ACTIVE",
   "shared_product_model": "CANONICAL_ACTIVE",
   "shared_source_strategy": "PRODUCT_MARKET_CELL_ASSERTION_DRIVEN",
   "shared_north_star": ["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"],
   "execution_rule": "ANY_TRACK_ALIGNMENT_BELOW_100_PERCENT_STOPS_NEW_IMPLEMENTATION_FOR_THAT_TRACK",
+  "claim_boundary": "TRACK_ALIGNMENT_PERCENTAGES_APPLY_TO_CANONICAL_REPOSITORY_ARCHITECTURE_AND_INTEGRATION_BOUNDARIES_ONLY; DO_NOT_CLAIM_FULL_52_ENGINE_RUNTIME_IMPLEMENTATION_LIVE_SOURCE_COVERAGE_DEPLOYMENT_OR_PRODUCTION_READINESS",
   "legacy_board_rule": "LEGACY_BOARD_TEXT_IS_CONTEXT_ONLY_WHEN_CONFLICTING_WITH_MASTER_344_AND_LANES_345_349",
   "production": "HOLD"
 }

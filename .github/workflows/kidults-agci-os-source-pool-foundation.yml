@@ -42,7 +42,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs
 
-      - name: Build Scope Source Pool and 10K discovery plans
+      - name: Build Scope Source Pool and continuous discovery plans
         run: |
           node scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs \
             --output artifacts/agci-os/scope-source-pool-foundation-v1 \

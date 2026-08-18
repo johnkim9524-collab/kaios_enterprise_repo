@@ -1,0 +1,520 @@
+{
+  "id": "kidults-platform-market-funnel-alignment-v1",
+  "record_type": "canonical_platform_market_funnel_alignment_contract",
+  "version": "1.0.0",
+  "status": "APPROVED_ACTIVE_CANONICAL_ARCHITECTURE_AND_INTEGRATION_BOUNDARIES_ALIGNED",
+  "effective_at": "2026-08-18T15:30:00Z",
+  "created_by": "KPMO / Atlas",
+  "approved_by": "John",
+  "approval_scope": "CANONICAL_ARCHITECTURE_AND_INTEGRATION_BOUNDARIES_ONLY",
+  "approved_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "purpose": "Bind the complete nine-layer, 52-engine AGCI-OS taxonomy to one market-facing funnel while preserving independently scalable ASI execution fleets, provider-optional operation, independent validation and governed projection boundaries.",
+  "canonical_inputs": {
+    "platform_strategy": "coordination/kidults/strategy/agci-os-total-program-strategy-reset-v2.json",
+    "asi_program": "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json",
+    "asi_execution_topology": "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json",
+    "value_to_data_scope": "coordination/kidults/data-scope/value-to-data-scope-contract-v1.json",
+    "decision_operating_system": "coordination/kidults/dos/decision-operating-system-contract-v1.json",
+    "runtime_foundation": "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json",
+    "scope_version_crosswalk": "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
+    "projection_registry": "coordination/kidults/registry/projection/index.json",
+    "executive_control_tower_registry": "coordination/kidults/registry/digital-twin/index.json"
+  },
+  "truth_boundary": {
+    "logical_platform_layer_count": 9,
+    "logical_platform_engine_count": 52,
+    "asi_logical_engine_count": 11,
+    "asi_execution_fleet_contract_count": 25,
+    "fixed_worker_count": null,
+    "repository_canonical_architecture_and_integration_boundary_alignment_verified": true,
+    "repository_canonical_architecture_and_integration_boundary_alignment_percent": 100,
+    "asi_shadow_runtime_foundation_code_wired": true,
+    "full_52_engine_runtime_implementation_verified": false,
+    "full_52_engine_runtime_implementation_percent": null,
+    "durable_runtime_deployed": false,
+    "deployed_operational_alignment_percent": 0,
+    "deployment_verification_state": "NOT_DEPLOYED_NOT_CLAIMED",
+    "source_pools_ready": 0,
+    "market_indexes_computed": 0,
+    "production": "HOLD"
+  },
+  "taxonomy_authority": {
+    "platform_logical_engines": "THIS_CONTRACT_PLATFORM_LAYERS",
+    "asi_logical_to_execution_mapping": "THIS_CONTRACT_ASI_LOGICAL_TO_EXECUTION_FLEETS",
+    "execution_fleet_topology": "ASI_EXECUTION_TOPOLOGY_INPUT",
+    "logical_engine_and_execution_fleet_counts_are_additive": false,
+    "deprecated_aliases_allowed_in_active_contracts": false,
+    "deprecated_aliases": [
+      {
+        "alias": "SOURCE_COST_AND_ROI_ENGINE",
+        "canonical_engine_id": "COST_AND_ROI_ENGINE",
+        "state": "DEPRECATED_ALIAS_REJECT_IN_ACTIVE_CONTRACTS"
+      }
+    ]
+  },
+  "source_role_taxonomy": {
+    "authority": "THIS_CONTRACT_CANONICAL_SOURCE_ROLES",
+    "canonical_roles": [
+      "PRIMARY_AUTHORITY",
+      "CATALOG_REFERENCE",
+      "LISTING_SUPPLY",
+      "SOLD_TRANSACTION",
+      "AUCTION_PRIVATE_SALE",
+      "AUTHENTICATION_CONDITION",
+      "PROVENANCE_HISTORY",
+      "CULTURE_ATTENTION",
+      "MACRO_CONTEXT",
+      "INDEPENDENT_VERIFICATION"
+    ],
+    "core_required_roles": [
+      "PRIMARY_AUTHORITY",
+      "CATALOG_REFERENCE",
+      "LISTING_SUPPLY",
+      "SOLD_TRANSACTION",
+      "AUTHENTICATION_CONDITION",
+      "PROVENANCE_HISTORY",
+      "CULTURE_ATTENTION"
+    ],
+    "optional_roles": [
+      "AUCTION_PRIVATE_SALE",
+      "MACRO_CONTEXT",
+      "INDEPENDENT_VERIFICATION"
+    ],
+    "legacy_alias_crosswalk": [
+      {"legacy_role":"PRIMARY_MANUFACTURER_OR_CREATOR","canonical_role":"PRIMARY_AUTHORITY"},
+      {"legacy_role":"INSTITUTIONAL_AUTHORITY","canonical_role":"PRIMARY_AUTHORITY"},
+      {"legacy_role":"REFERENCE_CATALOG","canonical_role":"CATALOG_REFERENCE"},
+      {"legacy_role":"MARKETPLACE_LISTING","canonical_role":"LISTING_SUPPLY"},
+      {"legacy_role":"SOLD_TRANSACTION","canonical_role":"SOLD_TRANSACTION"},
+      {"legacy_role":"AUCTION_OR_PRIVATE_SALE","canonical_role":"AUCTION_PRIVATE_SALE"},
+      {"legacy_role":"AUTHENTICATION_OR_GRADING","canonical_role":"AUTHENTICATION_CONDITION"},
+      {"legacy_role":"PROVENANCE_OR_OWNERSHIP","canonical_role":"PROVENANCE_HISTORY"},
+      {"legacy_role":"CULTURE_AND_ATTENTION","canonical_role":"CULTURE_ATTENTION"},
+      {"legacy_role":"MACRO_CONTEXT","canonical_role":"MACRO_CONTEXT"},
+      {"legacy_role":"INDEPENDENT_CORROBORATION","canonical_role":"INDEPENDENT_VERIFICATION"}
+    ],
+    "active_contracts_must_use_canonical_roles": true
+  },
+  "platform_layers": [
+    {
+      "sequence": 1,
+      "layer_id": "AUTONOMOUS_VALUE_INTELLIGENCE",
+      "engine_ids": [
+        "CUSTOMER_DECISION_ENGINE",
+        "IRREPLACEABLE_VALUE_ENGINE",
+        "INTELLIGENCE_PRODUCT_DESIGN_ENGINE",
+        "VALUE_TO_DATA_REQUIREMENT_COMPILER"
+      ]
+    },
+    {
+      "sequence": 2,
+      "layer_id": "COLLECTION_SCOPE_INTELLIGENCE",
+      "engine_ids": [
+        "COLLECTION_SCOPE_COMPILER",
+        "SAMPLING_FRAME_ENGINE",
+        "COVERAGE_TARGET_ENGINE",
+        "SCOPE_READINESS_ENGINE"
+      ]
+    },
+    {
+      "sequence": 3,
+      "layer_id": "AUTONOMOUS_SOURCE_INTELLIGENCE",
+      "engine_ids": [
+        "SOURCE_DISCOVERY_ENGINE",
+        "SOURCE_CLASSIFICATION_ENGINE",
+        "UTILITY_AND_VALUE_SCORING_ENGINE",
+        "RIGHTS_AND_COMPLIANCE_RISK_ENGINE",
+        "TECHNICAL_ACCESS_AND_SCHEMA_RISK_ENGINE",
+        "COVERAGE_AND_BIAS_ENGINE",
+        "INDEPENDENCE_AND_REDUNDANCY_ENGINE",
+        "FRESHNESS_AND_STABILITY_ENGINE",
+        "COST_AND_ROI_ENGINE",
+        "ACQUISITION_PLANNER",
+        "SOURCE_POOL_EVOLUTION_ENGINE"
+      ]
+    },
+    {
+      "sequence": 4,
+      "layer_id": "DATA_ACQUISITION_AND_CONTROL",
+      "engine_ids": [
+        "SOURCE_ADAPTER_FACTORY",
+        "REQUEST_BUDGET_CONTROLLER",
+        "RAW_QUARANTINE_ENGINE",
+        "RIGHTS_PROVENANCE_FRESHNESS_GATE",
+        "FAILURE_RECOVERY_AND_AUDIT"
+      ]
+    },
+    {
+      "sequence": 5,
+      "layer_id": "CANONICAL_TRUTH_AND_MEMORY",
+      "engine_ids": [
+        "ENTITY_RESOLUTION_ENGINE",
+        "CANONICAL_OBJECT_ENGINE",
+        "APPEND_ONLY_BITEMPORAL_MEMORY",
+        "CORRECTION_AND_SUPERSESSION_ENGINE"
+      ]
+    },
+    {
+      "sequence": 6,
+      "layer_id": "EVIDENCE_AND_MARKET_GRAPH",
+      "engine_ids": [
+        "EVIDENCE_GRAPH_ENGINE",
+        "MARKET_EVENT_ENGINE",
+        "MARKET_GRAPH_ENGINE",
+        "CONFIDENCE_AND_EXPLAINABILITY_ENGINE",
+        "CLUSTER_DISCOVERY_ENGINE"
+      ]
+    },
+    {
+      "sequence": 7,
+      "layer_id": "PROVIDER_FUSION",
+      "engine_ids": [
+        "PROVIDER_SCHEMA_ADAPTER",
+        "PROVIDER_DELTA_AND_COVERAGE_ENGINE",
+        "CONFLICT_AND_CORROBORATION_ENGINE",
+        "SOURCE_CONTRIBUTION_ENGINE",
+        "FUSION_CONFIDENCE_ENGINE",
+        "PROVIDER_ROI_ENGINE"
+      ]
+    },
+    {
+      "sequence": 8,
+      "layer_id": "INTELLIGENCE_PRODUCTS_AND_INDEX",
+      "engine_ids": [
+        "OBJECT_INTELLIGENCE_PASSPORT_ENGINE",
+        "COMPARABLE_MARKET_ENGINE",
+        "SCARCITY_AND_AVAILABILITY_ENGINE",
+        "LIQUIDITY_AND_EXIT_RISK_ENGINE",
+        "MARKET_MOMENTUM_ENGINE",
+        "OPPORTUNITY_ENGINE",
+        "VERTICAL_INTELLIGENCE_INDEX_ENGINE",
+        "KIDULT_500_ENGINE",
+        "KIDULT_100_ENGINE"
+      ]
+    },
+    {
+      "sequence": 9,
+      "layer_id": "PROJECTION_AND_EXPERIENCE",
+      "engine_ids": [
+        "PROJECTION_ENGINE",
+        "PORTAL_PROJECTION",
+        "EXECUTIVE_PROJECTION",
+        "API_AND_REPORT_PROJECTION"
+      ]
+    }
+  ],
+  "funnel_stage_bindings": [
+    {
+      "sequence": 1,
+      "stage_id": "P0_VALUE_DIRECTION",
+      "layer_ids": ["AUTONOMOUS_VALUE_INTELLIGENCE"],
+      "engine_ids": [
+        "CUSTOMER_DECISION_ENGINE",
+        "IRREPLACEABLE_VALUE_ENGINE",
+        "INTELLIGENCE_PRODUCT_DESIGN_ENGINE",
+        "VALUE_TO_DATA_REQUIREMENT_COMPILER"
+      ],
+      "output": "VERSIONED_DECISION_VALUE_AND_DATA_REQUIREMENTS"
+    },
+    {
+      "sequence": 2,
+      "stage_id": "P1_SCOPE_COMPILATION",
+      "layer_ids": ["COLLECTION_SCOPE_INTELLIGENCE"],
+      "engine_ids": [
+        "COLLECTION_SCOPE_COMPILER",
+        "SAMPLING_FRAME_ENGINE",
+        "COVERAGE_TARGET_ENGINE",
+        "SCOPE_READINESS_ENGINE"
+      ],
+      "output": "VERSIONED_SCOPE_FRAME_COVERAGE_AND_READINESS"
+    },
+    {
+      "sequence": 3,
+      "stage_id": "F0_GLOBAL_MARKET_SENSING",
+      "layer_ids": ["AUTONOMOUS_SOURCE_INTELLIGENCE"],
+      "engine_ids": ["SOURCE_DISCOVERY_ENGINE"],
+      "output": "SOURCE_DISCOVERY_OBSERVATION"
+    },
+    {
+      "sequence": 4,
+      "stage_id": "F1_SOURCE_IDENTITY_AND_CLASSIFICATION",
+      "layer_ids": ["AUTONOMOUS_SOURCE_INTELLIGENCE"],
+      "engine_ids": ["SOURCE_CLASSIFICATION_ENGINE"],
+      "output": "CANONICAL_SOURCE_CANDIDATE_AND_SCOPE_ROLE_BINDING"
+    },
+    {
+      "sequence": 5,
+      "stage_id": "F2_SOURCE_QUALIFICATION_ANALYSIS",
+      "layer_ids": ["AUTONOMOUS_SOURCE_INTELLIGENCE"],
+      "engine_ids": [
+        "UTILITY_AND_VALUE_SCORING_ENGINE",
+        "RIGHTS_AND_COMPLIANCE_RISK_ENGINE",
+        "TECHNICAL_ACCESS_AND_SCHEMA_RISK_ENGINE",
+        "COVERAGE_AND_BIAS_ENGINE",
+        "INDEPENDENCE_AND_REDUNDANCY_ENGINE",
+        "FRESHNESS_AND_STABILITY_ENGINE",
+        "COST_AND_ROI_ENGINE"
+      ],
+      "output": "PURPOSE_SPECIFIC_SOURCE_QUALIFICATION_ASSERTION"
+    },
+    {
+      "sequence": 6,
+      "stage_id": "F3_SOURCE_PORTFOLIO_DECISION",
+      "layer_ids": ["AUTONOMOUS_SOURCE_INTELLIGENCE"],
+      "engine_ids": [
+        "ACQUISITION_PLANNER",
+        "SOURCE_POOL_EVOLUTION_ENGINE"
+      ],
+      "output": "VERSIONED_ACQUISITION_PLAN_OR_SOURCE_POOL_DECISION"
+    },
+    {
+      "sequence": 7,
+      "stage_id": "F4_RIGHTS_AWARE_COLLECTION_AND_CONTROL",
+      "layer_ids": ["DATA_ACQUISITION_AND_CONTROL"],
+      "engine_ids": [
+        "SOURCE_ADAPTER_FACTORY",
+        "REQUEST_BUDGET_CONTROLLER",
+        "RAW_QUARANTINE_ENGINE",
+        "RIGHTS_PROVENANCE_FRESHNESS_GATE",
+        "FAILURE_RECOVERY_AND_AUDIT"
+      ],
+      "output": "ADMITTED_OR_QUARANTINED_SOURCE_RECORD"
+    },
+    {
+      "sequence": 8,
+      "stage_id": "F5A_CANONICAL_TRUTH_AND_MEMORY",
+      "layer_ids": ["CANONICAL_TRUTH_AND_MEMORY"],
+      "engine_ids": [
+        "ENTITY_RESOLUTION_ENGINE",
+        "CANONICAL_OBJECT_ENGINE",
+        "APPEND_ONLY_BITEMPORAL_MEMORY",
+        "CORRECTION_AND_SUPERSESSION_ENGINE"
+      ],
+      "output": "VERSIONED_CANONICAL_ENTITY_AND_BITEMPORAL_MEMORY"
+    },
+    {
+      "sequence": 9,
+      "stage_id": "F5B_EVIDENCE_AND_MARKET_GRAPH",
+      "layer_ids": ["EVIDENCE_AND_MARKET_GRAPH"],
+      "engine_ids": [
+        "EVIDENCE_GRAPH_ENGINE",
+        "MARKET_EVENT_ENGINE",
+        "MARKET_GRAPH_ENGINE",
+        "CONFIDENCE_AND_EXPLAINABILITY_ENGINE",
+        "CLUSTER_DISCOVERY_ENGINE"
+      ],
+      "output": "VERSIONED_EVIDENCE_ASSERTION_MARKET_EVENT_AND_MARKET_CELL"
+    },
+    {
+      "sequence": 10,
+      "stage_id": "F5C_PROVIDER_FUSION",
+      "layer_ids": ["PROVIDER_FUSION"],
+      "engine_ids": [
+        "PROVIDER_SCHEMA_ADAPTER",
+        "PROVIDER_DELTA_AND_COVERAGE_ENGINE",
+        "CONFLICT_AND_CORROBORATION_ENGINE",
+        "SOURCE_CONTRIBUTION_ENGINE",
+        "FUSION_CONFIDENCE_ENGINE",
+        "PROVIDER_ROI_ENGINE"
+      ],
+      "output": "OPTIONAL_PROVIDER_CONTRIBUTION_ASSERTIONS_OR_EXPLICIT_NOT_APPLICABLE"
+    },
+    {
+      "sequence": 11,
+      "stage_id": "F6_IRREPLACEABLE_MARKET_INTELLIGENCE",
+      "layer_ids": ["INTELLIGENCE_PRODUCTS_AND_INDEX"],
+      "engine_ids": [
+        "OBJECT_INTELLIGENCE_PASSPORT_ENGINE",
+        "COMPARABLE_MARKET_ENGINE",
+        "SCARCITY_AND_AVAILABILITY_ENGINE",
+        "LIQUIDITY_AND_EXIT_RISK_ENGINE",
+        "MARKET_MOMENTUM_ENGINE",
+        "OPPORTUNITY_ENGINE",
+        "VERTICAL_INTELLIGENCE_INDEX_ENGINE",
+        "KIDULT_500_ENGINE",
+        "KIDULT_100_ENGINE"
+      ],
+      "output": "GOVERNED_INTELLIGENCE_PRODUCT_OR_NOT_RANKABLE_DECISION"
+    },
+    {
+      "sequence": 12,
+      "stage_id": "F7_GOVERNED_PROJECTION_AND_EXPERIENCE",
+      "layer_ids": ["PROJECTION_AND_EXPERIENCE"],
+      "engine_ids": [
+        "PROJECTION_ENGINE",
+        "PORTAL_PROJECTION",
+        "EXECUTIVE_PROJECTION",
+        "API_AND_REPORT_PROJECTION"
+      ],
+      "output": "VERSIONED_PROJECTION_REGISTRY_AND_READ_ONLY_EXPERIENCE_VIEWS"
+    }
+  ],
+  "asi_logical_to_execution_fleets": [
+    {
+      "logical_engine_id": "SOURCE_DISCOVERY_ENGINE",
+      "stage_id": "F0_GLOBAL_MARKET_SENSING",
+      "execution_fleet_ids": [
+        "DISCOVERY_COMMON_CRAWL_WDC",
+        "DISCOVERY_OVERTURE_MAPS",
+        "DISCOVERY_WIKIDATA",
+        "DISCOVERY_OPENSTREETMAP",
+        "DISCOVERY_GITHUB_HOMEPAGE",
+        "DISCOVERY_DATACITE_OPEN_RESEARCH",
+        "DISCOVERY_GLOBAL_NEWS_EVENTS",
+        "DISCOVERY_GOVERNMENT_REGIONAL_CATALOGS",
+        "DISCOVERY_ICANN_PUBLIC_ZONES",
+        "DISCOVERY_INTERNET_ARCHIVE_CONTINUITY",
+        "DISCOVERY_APPROVED_DIRECTORY_OUTBOUND_FRONTIER",
+        "DISCOVERY_OPTIONAL_LICENSED_GAP_FILL"
+      ]
+    },
+    {
+      "logical_engine_id": "SOURCE_CLASSIFICATION_ENGINE",
+      "stage_id": "F1_SOURCE_IDENTITY_AND_CLASSIFICATION",
+      "execution_fleet_ids": [
+        "SOURCE_SITE_IDENTITY_OWNER_LINEAGE",
+        "SOURCE_SCOPE_ROLE_CLASSIFICATION",
+        "SOURCE_REGION_LANGUAGE_CLASSIFICATION",
+        "SOURCE_MARKET_SEMANTICS_CLASSIFICATION"
+      ]
+    },
+    {
+      "logical_engine_id": "UTILITY_AND_VALUE_SCORING_ENGINE",
+      "stage_id": "F2_SOURCE_QUALIFICATION_ANALYSIS",
+      "execution_fleet_ids": ["SOURCE_UTILITY_VALUE_ANALYSIS"]
+    },
+    {
+      "logical_engine_id": "RIGHTS_AND_COMPLIANCE_RISK_ENGINE",
+      "stage_id": "F2_SOURCE_QUALIFICATION_ANALYSIS",
+      "execution_fleet_ids": ["SOURCE_RIGHTS_COMPLIANCE_ANALYSIS"]
+    },
+    {
+      "logical_engine_id": "TECHNICAL_ACCESS_AND_SCHEMA_RISK_ENGINE",
+      "stage_id": "F2_SOURCE_QUALIFICATION_ANALYSIS",
+      "execution_fleet_ids": ["SOURCE_TECHNICAL_ACCESS_SCHEMA_ANALYSIS"]
+    },
+    {
+      "logical_engine_id": "COVERAGE_AND_BIAS_ENGINE",
+      "stage_id": "F2_SOURCE_QUALIFICATION_ANALYSIS",
+      "execution_fleet_ids": ["SOURCE_COVERAGE_BIAS_ANALYSIS"]
+    },
+    {
+      "logical_engine_id": "INDEPENDENCE_AND_REDUNDANCY_ENGINE",
+      "stage_id": "F2_SOURCE_QUALIFICATION_ANALYSIS",
+      "execution_fleet_ids": ["SOURCE_INDEPENDENCE_REDUNDANCY_ANALYSIS"]
+    },
+    {
+      "logical_engine_id": "FRESHNESS_AND_STABILITY_ENGINE",
+      "stage_id": "F2_SOURCE_QUALIFICATION_ANALYSIS",
+      "execution_fleet_ids": ["SOURCE_FRESHNESS_STABILITY_ANALYSIS"]
+    },
+    {
+      "logical_engine_id": "COST_AND_ROI_ENGINE",
+      "stage_id": "F2_SOURCE_QUALIFICATION_ANALYSIS",
+      "execution_fleet_ids": ["SOURCE_COST_ROI_ANALYSIS"]
+    },
+    {
+      "logical_engine_id": "ACQUISITION_PLANNER",
+      "stage_id": "F3_SOURCE_PORTFOLIO_DECISION",
+      "execution_fleet_ids": ["ACQUISITION_PLANNER"]
+    },
+    {
+      "logical_engine_id": "SOURCE_POOL_EVOLUTION_ENGINE",
+      "stage_id": "F3_SOURCE_PORTFOLIO_DECISION",
+      "execution_fleet_ids": ["SOURCE_POOL_EVOLUTION"]
+    }
+  ],
+  "governed_handoffs": {
+    "value_to_scope_to_source": {
+      "from_stage_ids": ["P0_VALUE_DIRECTION", "P1_SCOPE_COMPILATION"],
+      "to_stage_id": "F0_GLOBAL_MARKET_SENSING",
+      "required_contracts": ["VALUE_SCOPE", "COLLECTION_SCOPE", "COVERAGE_TARGET", "SOURCE_ROLE_DEMAND"],
+      "missing_state": "HOLD_NO_SCOPE_NO_COLLECTION"
+    },
+    "source_to_acquisition": {
+      "from_stage_id": "F3_SOURCE_PORTFOLIO_DECISION",
+      "to_stage_id": "F4_RIGHTS_AWARE_COLLECTION_AND_CONTROL",
+      "required_contracts": ["PURPOSE_SPECIFIC_ADMISSION", "RIGHTS", "RATE_AND_COST_BUDGET", "PROVENANCE"],
+      "missing_state": "HOLD_OR_QUARANTINE"
+    },
+    "provider_fusion": {
+      "provider_is_required_for_platform_operation": false,
+      "from_stage_ids": ["F4_RIGHTS_AWARE_COLLECTION_AND_CONTROL", "F5A_CANONICAL_TRUTH_AND_MEMORY", "F5B_EVIDENCE_AND_MARKET_GRAPH"],
+      "to_stage_id": "F5C_PROVIDER_FUSION",
+      "no_provider_state": "NOT_APPLICABLE_CORE_AUTONOMOUS_PATH_CONTINUES",
+      "direct_provider_to_index_allowed": false,
+      "direct_provider_to_projection_allowed": false,
+      "provider_overwrites_canonical_truth": false
+    },
+    "track_b_independent_validation": {
+      "engine_stage": false,
+      "input_stage_ids": ["F5B_EVIDENCE_AND_MARKET_GRAPH", "F5C_PROVIDER_FUSION"],
+      "output_stage_id": "F6_IRREPLACEABLE_MARKET_INTELLIGENCE",
+      "provider_not_applicable_is_valid_input": true,
+      "public_index_without_track_b_allowed": false,
+      "failure_state": "NOT_RANKABLE_NOT_PUBLISHABLE"
+    },
+    "projection_and_control_tower": {
+      "from_stage_id": "F6_IRREPLACEABLE_MARKET_INTELLIGENCE",
+      "to_stage_id": "F7_GOVERNED_PROJECTION_AND_EXPERIENCE",
+      "projection_registry": "coordination/kidults/registry/projection/index.json",
+      "executive_control_tower_registry": "coordination/kidults/registry/digital-twin/index.json",
+      "portal_reads_projection_only": true,
+      "executive_control_tower_reads_projection_only": true,
+      "api_and_reports_read_projection_only": true,
+      "projection_may_create_market_truth": false
+    }
+  },
+  "alignment_invariants": [
+    "EXACTLY_NINE_UNIQUE_PLATFORM_LAYERS",
+    "EXACTLY_FIFTY_TWO_UNIQUE_LOGICAL_PLATFORM_ENGINES",
+    "EVERY_LOGICAL_ENGINE_BOUND_TO_EXACTLY_ONE_FUNNEL_STAGE",
+    "EXACTLY_ELEVEN_ASI_LOGICAL_ENGINES",
+    "EXACTLY_TWENTY_FIVE_UNIQUE_ASI_EXECUTION_FLEETS",
+    "EVERY_ASI_EXECUTION_FLEET_BOUND_TO_EXACTLY_ONE_ASI_LOGICAL_ENGINE",
+    "LOGICAL_ENGINE_COUNTS_ARE_NOT_ADDED_TO_EXECUTION_FLEET_COUNTS",
+    "PROVIDER_FUSION_IS_OPTIONAL_AND_NEVER_A_DIRECT_INDEX_OR_PROJECTION_PATH",
+    "TRACK_B_IS_AN_INDEPENDENT_VALIDATION_HANDOFF_NOT_A_SERIAL_PER_RECORD_ENGINE",
+    "PROJECTION_AND_CONTROL_TOWER_CONSUME_GOVERNED_PROJECTIONS_ONLY",
+    "SOURCE_UNIVERSE_DISCOVERY_IS_CONTINUOUS_OPEN_ENDED_WITH_NO_NUMERIC_SITE_COMPLETION_TARGET",
+    "MISSING_OR_UNKNOWN_REMAINS_FAIL_CLOSED"
+  ],
+  "source_universe": {
+    "mode": "CONTINUOUS_OPEN_ENDED_GLOBAL_OPEN_MARKET_ENUMERATION",
+    "numeric_site_completion_target": null
+  },
+  "repository_runtime_binding": {
+    "service_root": "services/kidults-autonomous-intelligence",
+    "worker_entrypoint": "services/kidults-autonomous-intelligence/src/worker.ts",
+    "http_security_helper": "services/kidults-autonomous-intelligence/src/http-security.ts",
+    "fleet_registry": "services/kidults-autonomous-intelligence/src/asi/registry.ts",
+    "event_runtime": "services/kidults-autonomous-intelligence/src/asi/runtime.ts",
+    "generated_binding_types_output": "services/kidults-autonomous-intelligence/src/worker-configuration.d.ts",
+    "generated_binding_types_command": "npm run types:generate",
+    "generated_binding_types_committed": false,
+    "queue_configuration": "services/kidults-autonomous-intelligence/wrangler.jsonc",
+    "durable_state_migration": "services/kidults-autonomous-intelligence/migrations/0003_asi_market_funnel_shadow.sql",
+    "runtime_preflight": "services/kidults-autonomous-intelligence/scripts/deploy-preflight.mjs",
+    "runtime_mode": "SHADOW",
+    "fleet_queue_binding_count": 25,
+    "queue_transport_scaffold_code_wired": true,
+    "engine_processor_implementation_count": 0,
+    "publication_enabled": false,
+    "legacy_synchronous_collection_path_enabled": false,
+    "deployment_performed": false
+  },
+  "production_scale_target": {
+    "state": "DECLARED_NOT_IMPLEMENTED_NOT_DEPLOYED",
+    "worker_deployment_unit": "INDEPENDENT_STAGE_OR_FLEET_SERVICE",
+    "single_worker_for_all_fleets_allowed_in_production": false,
+    "durable_state_sharding_dimensions": ["stage", "region", "partition_hash"],
+    "single_d1_write_database_for_all_global_fleets_allowed_in_production": false,
+    "infrastructure_as_code_and_remote_readiness_preflight_required": true
+  },
+  "production": "HOLD"
+}
