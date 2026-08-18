@@ -1,0 +1,27 @@
+{
+  "id":"kidults-value-chain-completion-scorecard-v1",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "scoring_policy":"ONLY_EVIDENCED_PASS_COUNTS_AS_COMPLETE",
+  "dimensions":[
+    {"id":"VALUE_TRACEABILITY","weight":10,"state":"PASS"},
+    {"id":"SOURCE_RIGHTS","weight":8,"state":"PARTIAL"},
+    {"id":"ENTITY_RESOLUTION","weight":10,"state":"FAIL"},
+    {"id":"MARKET_EVIDENCE","weight":12,"state":"PARTIAL"},
+    {"id":"ASI_EXECUTION","weight":10,"state":"PARTIAL"},
+    {"id":"IMMUTABLE_CANDIDATE","weight":8,"state":"NOT_READY"},
+    {"id":"TRACK_B_VALIDATION","weight":8,"state":"WAITING"},
+    {"id":"PROJECTION_TRUTH","weight":7,"state":"PASS"},
+    {"id":"PORTAL_TRANSPARENCY_ACCESSIBILITY","weight":6,"state":"PARTIAL"},
+    {"id":"EOS_FOUNDER_WORKFLOW","weight":5,"state":"PARTIAL"},
+    {"id":"RUNTIME_RELIABILITY","weight":6,"state":"PARTIAL"},
+    {"id":"SECURITY_SUPPLY_CHAIN","weight":4,"state":"FOUNDATION_ONLY"},
+    {"id":"PRIVACY_RETENTION","weight":3,"state":"FOUNDATION_ONLY"},
+    {"id":"INTEGRATION_GATE","weight":3,"state":"WAITING"}
+  ],
+  "weights_total":100,
+  "evidenced_pass_weight":17,
+  "note":"17% is a strict gate-completion score, not engineering progress. Partial work receives zero until its exit evidence passes.",
+  "target":100,
+  "production":"HOLD"
+}
