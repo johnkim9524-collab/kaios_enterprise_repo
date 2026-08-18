@@ -1,0 +1,19 @@
+{
+  "id":"kidults-fast-improvement-wave-v2",
+  "version":"1.0.0",
+  "status":"ACTIVE",
+  "objective":"Close every required pre-production value-chain gate with evidence, without expanding product scope.",
+  "workstreams":[
+    {"order":1,"issue":479,"name":"entity_resolution_benchmark","priority":"P0"},
+    {"order":2,"issue":480,"name":"bounded_asi_processor_slice","priority":"P0"},
+    {"order":3,"issue":457,"name":"real_market_intelligence_poc","priority":"P0"},
+    {"order":4,"name":"track_b_exact_package_assessment","priority":"P0","dependency":457},
+    {"order":5,"issue":481,"name":"dev_staging_runtime_proof","priority":"P1"},
+    {"order":6,"name":"security_privacy_rights_accessibility_evidence","priority":"P0_PARALLEL"},
+    {"order":7,"name":"portal_eos_real_lifecycle_qa","priority":"P1"},
+    {"order":8,"issue":238,"name":"integration_gate","priority":"P0_GATE"}
+  ],
+  "scope_freeze":["NO_FULL_320","NO_BROAD_PROVIDER_PURCHASE","NO_INDEX_PUBLICATION","NO_PRODUCTION","NO_NONCRITICAL_UI_EXPANSION"],
+  "exit":"all global-standard preproduction gates PASS and unresolved P0 count = 0",
+  "production":"HOLD"
+}
