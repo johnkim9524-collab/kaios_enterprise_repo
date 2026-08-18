@@ -1,0 +1,12 @@
+{
+  "id":"kidults-poc-v2-remediation-track-alignment-v1",
+  "status":"CANONICAL_CANDIDATE",
+  "tracks":{
+    "A":{"must":["emit separate regional representation/market-significance/liquidity evidence","separate scarcity/availability/activity/transaction/liquidity","keep attention as attention only","emit normalization confidence inputs"],"must_not":["self-qualify challenger role","promote dynamic vertical","substitute listings for sold events"]},
+    "B":{"must":["independently validate challenger role evidence","validate provider necessity by Scope x Evidence Class x Rights x Decision Utility","block false cross-Scope comparability","validate dynamic vertical promotion"],"must_not":["select vendor","authorize provider contact","relax evidence thresholds"]},
+    "C":{"must":["render Regional Public Representation separately from Regional Market Significance/Liquidity","render NOT_VERIFIED and Normalization Confidence","consume projection only"],"must_not":["derive market metrics","convert attention into demand"]},
+    "D":{"must":["operate bounded scope-specific adapters","implement retry/backoff/revalidation/audit","preserve rights and source lineage"],"must_not":["scrape restricted surfaces","create business truth","deploy Production without G5"]},
+    "E":{"must":["surface P0 defects and remediation status","surface Provider Contact gate and exact capability gap","surface 320 scale readiness"],"must_not":["create Registry/Market truth","override Track B evidence gate"]}
+  },
+  "common_gates":{"provider_contact":"HOLD","full_320_scale":"HOLD_UNTIL_P0_REMEDIATED","production":"HOLD"}
+}
