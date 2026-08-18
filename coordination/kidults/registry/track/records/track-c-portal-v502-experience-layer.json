@@ -1,8 +1,9 @@
 {
   "id":"track-c-portal-v502-experience-layer",
   "record_type":"track",
-  "version":"1.2.0",
-  "status":"PROJECTION_CONSUMER_ACTIVE_LIVE_INTELLIGENCE_WAITING",
+  "version":"1.2.1",
+  "status":"ACTIVE",
+  "operating_state":"PROJECTION_CONSUMER_ACTIVE_LIVE_INTELLIGENCE_WAITING",
   "display_name":"C. KIDULTS | Portal & Customer Experience",
   "role_id":"role-track-c",
   "role_acceptance":"APPROVED",
@@ -16,7 +17,7 @@
   "operating_boundary":["Portal is a consumer and does not calculate intelligence.","Raw Provider and raw Track A data are prohibited.","Unverified, held, stale and partial states remain fail-closed.","A verified individual SOLD transaction must not be inflated into market price, liquidity or significance without approved evidence."],
   "known_limitations":["No approved live market-intelligence Projection is available yet.","Current Projection/Portal freshness integrity is under P0 remediation #477."],
   "production":"HOLD",
-  "updated_at":"2026-08-19T06:45:00+09:00",
+  "updated_at":"2026-08-19T06:55:00+09:00",
   "updated_by":"KPMO / Atlas",
   "approved_by":"John",
   "created_by":"Atlas"
