@@ -1,0 +1,29 @@
+name: KIDULTS PoC v2 Challenger Live Diagnostic v1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/poc/run-challenger-live-diagnostic-v1.mjs'
+      - '.github/workflows/kidults-poc-v2-challenger-live-diagnostic-v1.yml'
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Compile canonical Scope v1.2 working set
+        run: node scripts/kidults/scope/compile-scope-evolution-watches-v1.2.mjs coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json coordination/kidults/scope-data/scope-evolution-watches-v1.2.json tmp/scope-v1.2
+      - name: Build 160 challenger demand rows
+        run: node scripts/kidults/poc/build-poc-v2-challenger-demand-v1.mjs tmp/scope-v1.2/collection-scope-data-requirement-matrix-v1.2.json tmp/poc-v2-challenger-demand-v1.json
+      - name: Run live challenger diagnostic
+        run: node scripts/kidults/poc/run-challenger-live-diagnostic-v1.mjs tmp/poc-v2-challenger-demand-v1.json tmp/poc-v2-challenger-live-diagnostic-v1
+      - name: Validate diagnostic fail-closed outcome
+        run: |
+          node -e "const x=require('./tmp/poc-v2-challenger-live-diagnostic-v1/challenger-live-diagnostic-v1.json'); if(x.slots!==160) throw Error('slots'); if(x.selected!==0) throw Error('unsupported selection'); if(!x.defects?.length) throw Error('missing defect'); if(x.provider_contact!=='HOLD'||x.production!=='HOLD') throw Error('gate'); console.log(JSON.stringify({status:'PASS',slots:x.slots,nominations:x.nominations,defects:x.defects.length},null,2));"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-poc-v2-challenger-live-diagnostic-v1
+          path: tmp/poc-v2-challenger-live-diagnostic-v1/
