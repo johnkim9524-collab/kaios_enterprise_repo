@@ -1,0 +1,20 @@
+name: KIDULTS Global Market Evidence PoC v2 Diagnostic Exit
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/poc/global-market-evidence-poc-v2-diagnostic-exit-v1.json'
+      - 'docs/kidults/global-market-evidence-poc-v2-diagnostic-exit-v1.md'
+      - 'scripts/kidults/poc/validate-global-market-evidence-poc-v2-diagnostic-exit-v1.mjs'
+      - '.github/workflows/kidults-global-market-evidence-poc-v2-diagnostic-exit-v1.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate diagnostic exit
+        run: node scripts/kidults/poc/validate-global-market-evidence-poc-v2-diagnostic-exit-v1.mjs
