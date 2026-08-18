@@ -1,0 +1,66 @@
+{
+  "id": "candidate-r2-live-preflight-evidence-record-v1",
+  "version": "1.0.0",
+  "status": "LIVE_PREFLIGHT_PARTIAL_PASS_TRACK_B_LABEL_REVIEW_REQUIRED",
+  "canonical_main_at_recording": "857fc9a3acc0961b31144c71612030c55f572599",
+  "github": {
+    "workflow_run_id": 32135246261,
+    "workflow_name": "KIDULTS AGCI-OS Candidate R2 Five-Source Preflight",
+    "head_sha": "10461ed9d024438d5b906f9477996f2b1f18bc06",
+    "conclusion": "success",
+    "artifact_id": 9323696073,
+    "artifact_name": "kidults-agci-os-candidate-r2-five-source-preflight",
+    "artifact_digest": "sha256:5a6d8e5a99f85e911c842286dd6341abc1398ab964c06ee101d09937dafd1235",
+    "artifact_expires_at": "2026-09-17T12:08:22Z"
+  },
+  "live_run": {
+    "generated_at": "2026-08-18T12:08:21.125Z",
+    "run_fingerprint": "sha256:e07fd302e99fa5a3f18a2c75806e79a6cd3622227999ffa363c08215f1502416",
+    "source_family_count": 5,
+    "authority_source_family_count": 4,
+    "transaction_source_family_count": 1,
+    "authority_input_records": 48,
+    "admitted_authority_records": 48,
+    "transaction_input_events": 1,
+    "admitted_market_events": 1,
+    "sold_transactions": 1,
+    "duplicate_contamination": 0,
+    "stale_record_admission": 0,
+    "rights_missing_admission": 0,
+    "rights_state_coverage": 1,
+    "critical_provenance_coverage": 1,
+    "deterministic_rerun": "PASS"
+  },
+  "golden_dataset_candidate": {
+    "dataset_id": "golden-dataset-v1-candidate-r1",
+    "dataset_fingerprint": "sha256:7b10f14f4e5b7f71eb6ca7bfcaf3be6fcf027adf7780bd379551093588394ad3",
+    "case_count": 200,
+    "case_mix": {"same_physical_object":50,"same_design_different_object":50,"hard_negative":50,"clear_negative":50},
+    "provenance_coverage": 1,
+    "rights_state_coverage": 1,
+    "approved_labels": 0,
+    "unreviewed_labels": 200,
+    "measured_accuracy": null,
+    "review_gate": "TRACK_B_INDEPENDENT_LABEL_REVIEW"
+  },
+  "stress": {
+    "status": "PARTIAL_PASS_GOLDEN_DATASET_AND_TRANSACTION_DIVERSITY_PENDING",
+    "deterministic_rerun": "PASS",
+    "stale_data_rejection": "PASS",
+    "rights_missing_rejection": "PASS",
+    "duplicate_rejection": "PASS",
+    "transaction_source_removal": "FAIL_TRANSACTION_EVIDENCE_REMOVED",
+    "contradiction_test": "NOT_EXECUTED_GOLDEN_DATASET_REQUIRED"
+  },
+  "disposition": {
+    "candidate_r2_created": false,
+    "snapshot_candidate_created": false,
+    "evidence_package_canonicalized": false,
+    "track_b_input_eligible": false,
+    "rankability": "BLOCKED",
+    "publication": "BLOCKED",
+    "production": "HOLD",
+    "provider_contact": "HOLD",
+    "full_320_expansion": "HOLD"
+  }
+}
