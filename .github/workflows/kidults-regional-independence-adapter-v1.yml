@@ -4,7 +4,15 @@ on:
   pull_request:
     paths:
       - 'coordination/kidults/poc/regional-independence-adapter-matrix-v1.json'
+      - 'coordination/kidults/poc/regional-independence-evidence-terminalization-v1.json'
+      - 'coordination/kidults/poc/regional-independent-official-source-supplement-v1.json'
+      - 'coordination/kidults/poc/global-standard-poc-hardening-contract-v1.json'
+      - 'coordination/kidults/schemas/market-event-v1.schema.json'
+      - 'coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json'
       - 'scripts/kidults/poc/validate-regional-independence-adapter-matrix-v1.mjs'
+      - 'scripts/kidults/poc/validate-regional-independence-evidence-terminalization-v1.mjs'
+      - 'scripts/kidults/poc/validate-regional-independent-official-source-supplement-v1.mjs'
+      - 'scripts/kidults/poc/validate-global-standard-poc-hardening-v1.mjs'
       - '.github/workflows/kidults-regional-independence-adapter-v1.yml'
   workflow_dispatch:
 
@@ -14,6 +22,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,3 +30,9 @@ jobs:
           node-version: '22'
       - name: Validate Regional Independence Adapter Matrix
         run: node scripts/kidults/poc/validate-regional-independence-adapter-matrix-v1.mjs
+      - name: Validate Regional Independence Evidence Terminalization
+        run: node scripts/kidults/poc/validate-regional-independence-evidence-terminalization-v1.mjs
+      - name: Validate Two Independent Official Sources Per Scope
+        run: node scripts/kidults/poc/validate-regional-independent-official-source-supplement-v1.mjs
+      - name: Validate Global Standard PoC Hardening
+        run: node scripts/kidults/poc/validate-global-standard-poc-hardening-v1.mjs

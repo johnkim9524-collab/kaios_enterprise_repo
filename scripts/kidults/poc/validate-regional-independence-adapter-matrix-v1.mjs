@@ -10,6 +10,15 @@ expect(m.issue === 457, 'issue must be #457');
 expect(m.production === 'HOLD', 'Production must remain HOLD');
 expect(m.status === 'DISCOVERY_REQUIRED', 'matrix must start fail-closed');
 expect(m.admission_rule?.minimum_independent_families >= 2, 'minimum independent source families must be >=2');
+expect(
+  m.admission_rule?.required?.length === 1
+    && m.admission_rule.required[0] === 'TWO_PUBLISHER_INDEPENDENT_OFFICIAL_REGIONAL_INSTITUTION_RELEASE_EVENT_OR_VENUE_REFERENCES',
+  'candidate admission must require two publisher-independent official context references'
+);
+expect(
+  m.admission_rule?.optional_non_admitted_context?.includes('REGIONAL_PUBLIC_REPRESENTATION_OR_EXPLICIT_NA'),
+  'public representation must remain optional non-admitted context'
+);
 expect(Array.isArray(m.scope_rows) && m.scope_rows.length === 32, 'exactly 32 canonical scopes required');
 
 const ids = m.scope_rows.map(x => x.scope_id);

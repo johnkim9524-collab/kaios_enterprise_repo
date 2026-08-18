@@ -1,0 +1,96 @@
+name: KAIOS Solo Owner Preflight
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: solo-owner-preflight-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    name: KAIOS Solo Owner Preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate coordination and PoC contracts
+        run: |
+          node scripts/kidults/coordination/validate-coordination.mjs
+          node scripts/kidults/poc/validate-poc-v2-1-remediation.mjs
+          node scripts/kidults/poc/validate-regional-independence-adapter-matrix-v1.mjs
+          node scripts/kidults/poc/validate-regional-independence-evidence-terminalization-v1.mjs
+          node scripts/kidults/poc/validate-regional-independent-official-source-supplement-v1.mjs
+          node scripts/kidults/poc/validate-global-standard-poc-hardening-v1.mjs
+
+      - name: Validate live-diagnostic fail-closed controls
+        run: node scripts/kidults/poc/run-regional-live-diagnostic-v1.mjs --self-test
+
+      - name: Confirm Solo PoC safety boundaries
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const contract = JSON.parse(fs.readFileSync(
+            'coordination/kidults/poc/global-standard-poc-hardening-contract-v1.json',
+            'utf8'
+          ));
+
+          const failures = [];
+          if (contract.status !== 'TRACK_A_PRE_CANDIDATE_HARDENING_PROPOSAL') {
+            failures.push('contract must remain a pre-candidate proposal');
+          }
+          if (contract.standards_position?.conformance_claimed !== false) {
+            failures.push('standards conformance must not be claimed');
+          }
+          if (contract.standards_position?.certification_claimed !== false) {
+            failures.push('standards certification must not be claimed');
+          }
+          if (contract.track_b_exit_gate?.owner !== 'TRACK_B') {
+            failures.push('Track B exit gate owner must remain TRACK_B');
+          }
+          if (contract.track_b_exit_gate?.track_a_mutation_allowed !== false) {
+            failures.push('Track A must not mutate the Track B exit gate');
+          }
+          if (contract.provider_contact !== 'HOLD') {
+            failures.push('Provider Contact must remain HOLD');
+          }
+          if (contract.production !== 'HOLD') {
+            failures.push('Production must remain HOLD');
+          }
+          if (contract.full_320_expansion_allowed !== false) {
+            failures.push('full-320 expansion must remain blocked');
+          }
+
+          if (failures.length) {
+            console.error('KAIOS Solo Owner Preflight: FAIL');
+            for (const failure of failures) console.error(`- ${failure}`);
+            process.exit(1);
+          }
+
+          console.log(JSON.stringify({
+            status: 'PASS',
+            mode: 'SOLO_OWNER_PREFLIGHT',
+            independent_human_review: 'WAIVED_FOR_SOLO_POC',
+            merge_authorization: 'SEPARATE_PROGRAM_OWNER_DECISION_REQUIRED',
+            provider_contact: contract.provider_contact,
+            production: contract.production,
+            full_320_expansion_allowed: contract.full_320_expansion_allowed
+          }, null, 2));
+          NODE

@@ -1,0 +1,371 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://intelligence-holdings.example/schemas/kidults/market-event-v1.schema.json",
+  "title": "KIDULTS Market Event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "market_event_id",
+    "evidence_class",
+    "event_state",
+    "source_event_id",
+    "market_cell_id",
+    "market_cell_dimensions",
+    "canonical_entity_id",
+    "physical_object_id",
+    "region",
+    "venue_id",
+    "sale_mechanism",
+    "event_at",
+    "observed_at",
+    "collected_at",
+    "source_updated_at",
+    "rights",
+    "freshness",
+    "lineage",
+    "price",
+    "quantity",
+    "condition_grade",
+    "missingness"
+  ],
+  "properties": {
+    "schema_version": {"const": "market-event-v1"},
+    "market_event_id": {"type": "string", "minLength": 1},
+    "evidence_class": {
+      "enum": [
+        "ACTIVE_LISTING",
+        "VENUE_PRESENCE",
+        "BID_ASK_SIGNAL",
+        "AUCTION_RESULT_REFERENCE",
+        "VERIFIED_SOLD_EVENT",
+        "FAILED_SALE_EVENT",
+        "TIME_TO_SALE"
+      ]
+    },
+    "event_state": {
+      "enum": [
+        "ACTIVE",
+        "SOLD",
+        "NO_SALE_RESERVE_NOT_MET",
+        "WITHDRAWN",
+        "CANCELLED",
+        "EXPIRED",
+        "DELISTED",
+        "RELISTED",
+        "UNKNOWN"
+      ]
+    },
+    "source_event_id": {"type": "string", "minLength": 1},
+    "source_listing_id": {"type": ["string", "null"]},
+    "source_lot_id": {"type": ["string", "null"]},
+    "market_cell_id": {"type": "string", "minLength": 1},
+    "market_cell_dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonical_product_or_edition",
+        "variant",
+        "condition_or_grade",
+        "region",
+        "channel",
+        "sale_mechanism",
+        "currency_basis",
+        "observation_window"
+      ],
+      "properties": {
+        "canonical_product_or_edition": {"type": "string", "minLength": 1},
+        "variant": {"type": ["string", "null"]},
+        "condition_or_grade": {"type": ["string", "null"]},
+        "region": {"type": "string", "minLength": 1},
+        "channel": {"type": "string", "minLength": 1},
+        "sale_mechanism": {"enum": ["AUCTION", "FIXED_PRICE", "NEGOTIATED", "DEALER", "EXCHANGE", "UNKNOWN"]},
+        "currency_basis": {"type": ["string", "null"], "pattern": "^[A-Z]{3}$"},
+        "observation_window": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["window_start", "window_end", "timezone"],
+          "properties": {
+            "window_start": {"type": "string", "format": "date-time"},
+            "window_end": {"type": "string", "format": "date-time"},
+            "timezone": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "canonical_entity_id": {"type": "string", "minLength": 1},
+    "physical_object_id": {"type": ["string", "null"]},
+    "lot_id": {"type": ["string", "null"]},
+    "relist_parent_event_id": {"type": ["string", "null"]},
+    "cross_list_group_id": {"type": ["string", "null"]},
+    "linked_sale_event_id": {"type": ["string", "null"]},
+    "duration_seconds": {"type": ["integer", "null"], "minimum": 0},
+    "listing_start": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["event_id", "physical_object_id", "listed_at"],
+      "properties": {
+        "event_id": {"type": "string", "minLength": 1},
+        "physical_object_id": {"type": "string", "minLength": 1},
+        "listed_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "region": {"type": "string", "minLength": 1},
+    "venue_id": {"type": "string", "minLength": 1},
+    "sale_mechanism": {
+      "enum": ["AUCTION", "FIXED_PRICE", "NEGOTIATED", "DEALER", "EXCHANGE", "UNKNOWN"]
+    },
+    "first_seen_at": {"type": ["string", "null"], "format": "date-time"},
+    "listed_at": {"type": ["string", "null"], "format": "date-time"},
+    "event_at": {"type": "string", "format": "date-time"},
+    "terminal_at": {"type": ["string", "null"], "format": "date-time"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "collected_at": {"type": "string", "format": "date-time"},
+    "source_updated_at": {"type": ["string", "null"], "format": "date-time"},
+    "quantity": {"type": ["number", "null"], "exclusiveMinimum": 0},
+    "condition_grade": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition_state", "grade", "grader", "authenticity_state"],
+      "properties": {
+        "condition_state": {"type": ["string", "null"]},
+        "grade": {"type": ["string", "null"]},
+        "grader": {"type": ["string", "null"]},
+        "authenticity_state": {"enum": ["VERIFIED", "ASSERTED", "DISPUTED", "UNKNOWN", "NOT_APPLICABLE"]},
+        "provenance_ref": {"type": ["string", "null"]}
+      }
+    },
+    "price": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "price_type",
+        "amount",
+        "currency",
+        "buyer_premium_included",
+        "tax_included",
+        "shipping_included",
+        "fx_source",
+        "fx_date",
+        "accepted_offer_disclosure"
+      ],
+      "properties": {
+        "price_type": {
+          "enum": ["ASK", "ESTIMATE_LOW", "ESTIMATE_HIGH", "HAMMER", "ALL_IN_REALIZED", "ACCEPTED_OFFER", "BID", "UNKNOWN"]
+        },
+        "amount": {"type": ["number", "null"], "minimum": 0},
+        "currency": {"type": ["string", "null"], "pattern": "^[A-Z]{3}$"},
+        "buyer_premium_included": {"type": ["boolean", "null"]},
+        "tax_included": {"type": ["boolean", "null"]},
+        "shipping_included": {"type": ["boolean", "null"]},
+        "fx_source": {"type": ["string", "null"]},
+        "fx_date": {"type": ["string", "null"], "format": "date"},
+        "accepted_offer_disclosure": {"enum": ["DISCLOSED", "UNDISCLOSED", "NOT_APPLICABLE", "UNKNOWN"]}
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["collect", "store", "transform", "display", "redistribute", "sell", "terms_url", "terms_version", "review_due_at", "field_bindings"],
+      "properties": {
+        "collect": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "store": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "transform": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "display": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "redistribute": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "sell": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "terms_url": {"type": ["string", "null"], "format": "uri"},
+        "terms_version": {"type": ["string", "null"]},
+        "review_due_at": {"type": ["string", "null"], "format": "date-time"},
+        "field_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["field_path", "output_class", "admission_state"],
+            "properties": {
+              "field_path": {"type": "string", "pattern": "^/"},
+              "output_class": {"enum": ["INTERNAL_ANALYSIS", "INTERNAL_PROJECTION", "PUBLIC_DISPLAY", "REDISTRIBUTION", "COMMERCIAL_SALE"]},
+              "admission_state": {"enum": ["ALLOW", "DENY", "UNKNOWN"]}
+            }
+          }
+        }
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "ttl_seconds", "window_start", "window_end", "watermark_at", "next_due_at", "stale_reason"],
+      "properties": {
+        "state": {"enum": ["CURRENT", "STALE", "EXPIRED", "NOT_VERIFIED"]},
+        "ttl_seconds": {"type": ["integer", "null"], "minimum": 1},
+        "window_start": {"type": ["string", "null"], "format": "date-time"},
+        "window_end": {"type": ["string", "null"], "format": "date-time"},
+        "watermark_at": {"type": ["string", "null"], "format": "date-time"},
+        "next_due_at": {"type": ["string", "null"], "format": "date-time"},
+        "stale_reason": {"type": ["string", "null"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"state": {"const": "CURRENT"}}, "required": ["state"]},
+          "then": {
+            "properties": {
+              "ttl_seconds": {"type": "integer", "minimum": 1},
+              "window_start": {"type": "string", "format": "date-time"},
+              "window_end": {"type": "string", "format": "date-time"},
+              "watermark_at": {"type": "string", "format": "date-time"},
+              "next_due_at": {"type": "string", "format": "date-time"},
+              "stale_reason": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"state": {"enum": ["STALE", "EXPIRED", "NOT_VERIFIED"]}}, "required": ["state"]},
+          "then": {"properties": {"stale_reason": {"type": "string", "minLength": 1}}}
+        }
+      ]
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "source_family_id", "raw_digest", "normalized_digest", "parser_version", "transform_version"],
+      "properties": {
+        "evidence_id": {"type": "string", "minLength": 1},
+        "source_family_id": {"type": "string", "minLength": 1},
+        "raw_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "normalized_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "parser_version": {"type": "string", "minLength": 1},
+        "transform_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "missingness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "coverage_numerator", "coverage_denominator", "imputation_policy", "field_states"],
+      "properties": {
+        "reason": {
+          "enum": [
+            "NONE",
+            "NOT_OBSERVED",
+            "NOT_APPLICABLE",
+            "NOT_COLLECTED_BY_DESIGN",
+            "SOURCE_UNAVAILABLE",
+            "ACCESS_DENIED",
+            "RIGHTS_RESTRICTED",
+            "PARSE_FAILED",
+            "STALE_REJECTED",
+            "CONFLICT_QUARANTINED"
+          ]
+        },
+        "coverage_numerator": {"type": "integer", "minimum": 0},
+        "coverage_denominator": {"type": "integer", "minimum": 0},
+        "imputation_policy": {"const": "NONE"},
+        "field_states": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["field_path", "reason"],
+            "properties": {
+              "field_path": {"type": "string", "pattern": "^/"},
+              "reason": {
+                "enum": [
+                  "NONE",
+                  "NOT_OBSERVED",
+                  "NOT_APPLICABLE",
+                  "NOT_COLLECTED_BY_DESIGN",
+                  "SOURCE_UNAVAILABLE",
+                  "ACCESS_DENIED",
+                  "RIGHTS_RESTRICTED",
+                  "PARSE_FAILED",
+                  "STALE_REJECTED",
+                  "CONFLICT_QUARANTINED"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"evidence_class": {"enum": ["ACTIVE_LISTING", "BID_ASK_SIGNAL"]}}, "required": ["evidence_class"]},
+      "then": {"not": {"properties": {"event_state": {"const": "SOLD"}}, "required": ["event_state"]}}
+    },
+    {
+      "if": {
+        "properties": {
+          "freshness": {
+            "properties": {"state": {"const": "CURRENT"}},
+            "required": ["state"]
+          }
+        },
+        "required": ["freshness"]
+      },
+      "then": {
+        "properties": {
+          "source_updated_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"evidence_class": {"const": "VERIFIED_SOLD_EVENT"}}},
+      "then": {
+        "required": ["condition_grade", "sale_mechanism"],
+        "properties": {
+          "event_state": {"const": "SOLD"},
+          "quantity": {"type": "number", "exclusiveMinimum": 0},
+          "price": {
+            "properties": {
+              "price_type": {"enum": ["HAMMER", "ALL_IN_REALIZED", "ACCEPTED_OFFER"]},
+              "amount": {"type": "number", "exclusiveMinimum": 0},
+              "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"evidence_class": {"const": "FAILED_SALE_EVENT"}}},
+      "then": {
+        "required": ["terminal_at"],
+        "properties": {
+          "event_state": {"enum": ["NO_SALE_RESERVE_NOT_MET", "EXPIRED"]},
+          "terminal_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"evidence_class": {"const": "TIME_TO_SALE"}}},
+      "then": {
+        "required": ["source_listing_id", "terminal_at", "physical_object_id", "listing_start", "linked_sale_event_id", "duration_seconds"],
+        "properties": {
+          "event_state": {"const": "SOLD"},
+          "source_listing_id": {"type": "string", "minLength": 1},
+          "terminal_at": {"type": "string", "format": "date-time"},
+          "physical_object_id": {"type": "string", "minLength": 1},
+          "listing_start": {"type": "object"},
+          "linked_sale_event_id": {"type": "string", "minLength": 1},
+          "duration_seconds": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {"const": "VERIFIED_SOLD_EVENT"},
+          "price": {"properties": {"price_type": {"const": "ACCEPTED_OFFER"}}, "required": ["price_type"]}
+        },
+        "required": ["evidence_class", "price"]
+      },
+      "then": {
+        "properties": {
+          "price": {"properties": {"accepted_offer_disclosure": {"const": "DISCLOSED"}}}
+        }
+      }
+    }
+  ]
+}

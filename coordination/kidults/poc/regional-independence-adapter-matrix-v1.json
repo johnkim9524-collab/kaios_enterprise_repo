@@ -3,14 +3,16 @@
   "issue": 457,
   "status": "DISCOVERY_REQUIRED",
   "production": "HOLD",
-  "purpose": "Execute a fail-closed 32-scope search for independent regional market-significance evidence without coercing public representation into demand or liquidity.",
+  "purpose": "Execute a fail-closed 32-scope search for independent regional institution, release, event or venue context without coercing public representation into market significance, demand or liquidity.",
   "admission_rule": {
     "minimum_independent_families": 2,
     "required": [
-      "REGIONAL_PUBLIC_REPRESENTATION_OR_EXPLICIT_NA",
-      "AT_LEAST_ONE_INDEPENDENT_INSTITUTION_RELEASE_OR_VENUE_FAMILY"
+      "TWO_PUBLISHER_INDEPENDENT_OFFICIAL_REGIONAL_INSTITUTION_RELEASE_EVENT_OR_VENUE_REFERENCES"
     ],
-    "may_support_but_not_required_for_significance": [
+    "optional_non_admitted_context": [
+      "REGIONAL_PUBLIC_REPRESENTATION_OR_EXPLICIT_NA"
+    ],
+    "separate_market_evidence_not_required_for_context_candidate": [
       "REGIONAL_MARKET_ACTIVITY",
       "REGIONAL_LIQUIDITY"
     ],
@@ -61,7 +63,7 @@
     {"scope_id":"historical_cultural_memorabilia","state":"NOT_VERIFIED","evidence_refs":[]}
   ],
   "allowed_terminal_states": [
-    "REGIONAL_SIGNIFICANCE_VERIFIED",
+    "REGIONAL_CONTEXT_SOURCE_PAIR_RECORDED_CANDIDATE",
     "PARTIAL_REGIONAL_EVIDENCE",
     "BLOCKED_BY_REGIONAL_INDEPENDENCE",
     "NOT_VERIFIED"

@@ -3,22 +3,30 @@ on:
   pull_request:
     paths:
       - 'scripts/kidults/poc/run-regional-live-diagnostic-v1.mjs'
+      - 'coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json'
       - '.github/workflows/kidults-regional-live-diagnostic-v1.yml'
 permissions:
   contents: read
 jobs:
   run:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Validate diagnostic fail-closed controls
+        run: node scripts/kidults/poc/run-regional-live-diagnostic-v1.mjs --self-test
       - name: Run regional live diagnostic
+        env:
+          CONCURRENCY: '4'
+          MAX_RECORD_ERROR_RATE: '0.2'
         run: node scripts/kidults/poc/run-regional-live-diagnostic-v1.mjs coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json tmp/regional-live-diagnostic-v1
       - name: Validate fail-closed regional outcome
-        run: node -e "const x=require('./tmp/regional-live-diagnostic-v1/regional-live-diagnostic-v1.json'); if(x.products!==64) throw Error('expected 64'); if(x.selected_regional_challengers!==0) throw Error('no auto selection'); if(!x.defects.some(d=>d.id==='REGIONAL-INDEPENDENCE-GAP')) throw Error('independence guard'); if(x.provider_contact!=='HOLD'||x.production!=='HOLD') throw Error('gate'); console.log(JSON.stringify({status:'PASS',mapped:x.mapped_products,multi:x.products_with_multi_region_public_representation,errors:x.request_errors.length},null,2));"
+        run: node -e "const x=require('./tmp/regional-live-diagnostic-v1/regional-live-diagnostic-v1.json'); if(x.status!=='DIAGNOSTIC_COMPLETE_FAIL_CLOSED') throw Error('incomplete diagnostic'); if(x.products!==64) throw Error('expected 64'); if(x.record_error_rate>x.operating.maximum_record_error_rate) throw Error('request error rate exceeded'); if(x.selected_regional_challengers!==0) throw Error('no auto selection'); if(x.identity_reviewed_products!==0) throw Error('search mapping cannot self-verify identity'); if(!x.rows.every(r=>!r.wikipedia_title||r.mapping_state==='CANDIDATE_MAPPING_NOT_IDENTITY_VERIFIED')) throw Error('mapping review guard'); if(x.rows.some(r=>r.scope_id==='vintage_digital_watches')) throw Error('superseded scope leaked'); const legacy=x.rows.filter(r=>r.source_scope_id==='vintage_digital_watches'); if(legacy.some(r=>r.scope_id!=='vintage_neo_vintage_watches')) throw Error('scope migration incorrect'); if(!x.defects.some(d=>d.id==='WIKIMEDIA-STREAM-INDEPENDENCE-GAP')) throw Error('independence guard'); if(!x.defects.some(d=>d.id==='REGIONAL-IDENTITY-MAPPING-REVIEW-GAP')) throw Error('identity guard'); if(x.provider_contact!=='HOLD'||x.production!=='HOLD') throw Error('gate'); console.log(JSON.stringify({status:'PASS',candidate_mapped:x.mapped_products,multi:x.products_with_multi_region_public_representation,error_records:x.error_record_count,error_rate:x.record_error_rate},null,2));"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: kidults-regional-live-diagnostic-v1
           path: tmp/regional-live-diagnostic-v1/
