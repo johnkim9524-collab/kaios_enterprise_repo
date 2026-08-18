@@ -1,0 +1,44 @@
+{
+  "id": "scarcity-activity-evidence-contract-v1",
+  "version": "1.0.0",
+  "status": "CANDIDATE_FOR_CANONICAL",
+  "principle": "Scarcity, availability, activity, sold transactions, illiquidity and liquidity are distinct evidence classes and may not substitute for each other.",
+  "evidence_classes": {
+    "SCARCITY": {
+      "valid": ["official production or edition size", "certification or population count where rights-cleared", "documented survival population", "variant-specific production evidence"],
+      "invalid_substitutions": ["high price", "few listings", "missing data", "social attention"]
+    },
+    "AVAILABILITY": {
+      "valid": ["time-stamped observable offer count", "rights-safe inventory observation"],
+      "invalid_substitutions": ["sold transaction", "liquidity", "scarcity"]
+    },
+    "MARKET_ACTIVITY": {
+      "valid": ["verified event frequency", "rights-safe auction/result activity", "explicitly labelled public activity signal"],
+      "invalid_substitutions": ["attention", "single listing", "maker release"]
+    },
+    "SOLD_TRANSACTION": {
+      "valid": ["verified completed sale with amount/date/currency/venue/object identity"],
+      "invalid_substitutions": ["listing", "bid", "ask", "estimate", "attention"]
+    },
+    "ILLIQUIDITY": {
+      "required": ["low verified activity over defined observation window", "sufficient observation coverage", "identity-normalized market cell"],
+      "invalid_substitutions": ["missing data", "rare object", "high price", "few search results"]
+    },
+    "LIQUIDITY": {
+      "required": ["repeated verified activity over defined observation window", "identity-normalized comparable market cell", "temporal persistence"],
+      "invalid_substitutions": ["many listings", "pageviews", "single sale", "high value"]
+    }
+  },
+  "challenger_terminalization": {
+    "SCARCE_ILLIQUID": "SCARCITY evidence AND ILLIQUIDITY evidence; otherwise DISCOVERY_REQUIRED",
+    "HIGH_LIQUIDITY_OR_ACTIVE_MARKET": "LIQUIDITY or defensible MARKET_ACTIVITY evidence; otherwise DISCOVERY_REQUIRED"
+  },
+  "governance": {
+    "evidence_before_metric": true,
+    "missing_not_zero": true,
+    "listing_not_sold": true,
+    "no_auto_selection": true,
+    "provider_contact": "HOLD",
+    "production": "HOLD"
+  }
+}
