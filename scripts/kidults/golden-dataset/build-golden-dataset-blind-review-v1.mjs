@@ -4,10 +4,10 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { fingerprint, hashId, readJson, writeJsonDirectory } from "../source-intelligence/asi-discovery-common-v1.mjs";
 
-const GENERATED_AT = "2026-08-17T16:55:00+09:00";
-const INPUT_RUN_ID = 31939060074;
-const INPUT_ARTIFACT_ID = 9261498529;
-const INPUT_ARTIFACT_DIGEST = "sha256:edb80e7abbe78cedbced90f7a9773caff9ea29f3e7b3cf09372ae8b89dcf3792";
+const GENERATED_AT = "2026-08-18T12:08:22Z";
+const INPUT_RUN_ID = 32135246261;
+const INPUT_ARTIFACT_ID = 9323696073;
+const INPUT_ARTIFACT_DIGEST = "sha256:5a6d8e5a99f85e911c842286dd6341abc1398ab964c06ee101d09937dafd1235";
 
 function parseArgs(argv) {
   const config = { input: null, output: null, write: false };
