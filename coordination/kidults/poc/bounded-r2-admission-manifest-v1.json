@@ -1,0 +1,56 @@
+{
+  "id": "bounded-r2-admission-manifest-v1",
+  "version": "1.0.0",
+  "status": "R2_SCOPE_PRODUCT_SELECTION_LOCKED_ADMISSION_PENDING",
+  "as_of": "2026-08-18T12:10:00Z",
+  "track": "TRACK_A",
+  "issue": 457,
+  "canonical_anchor_ref": "coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json",
+  "market_event_schema_ref": "coordination/kidults/schemas/market-event-v1.schema.json",
+  "pilot_scopes": ["mechanical_watches", "fine_jewelry", "seating", "lighting", "collector_cars", "sneakers", "trading_cards"],
+  "products_per_scope": 2,
+  "products": [
+    {"scope_id":"mechanical_watches","slot":1,"product_id":"rp-watches-jewelry-rolex-submariner-124060","display_name":"Rolex — Submariner 124060"},
+    {"scope_id":"mechanical_watches","slot":2,"product_id":"rp-watches-jewelry-patek-philippe-nautilus-5711-1a","display_name":"Patek Philippe — Nautilus 5711/1A"},
+    {"scope_id":"fine_jewelry","slot":1,"product_id":"rp-watches-jewelry-cartier-love-bracelet","display_name":"Cartier — Love Bracelet"},
+    {"scope_id":"fine_jewelry","slot":2,"product_id":"rp-watches-jewelry-tiffany-co-schlumberger-bird-on-a-rock-brooch","display_name":"Tiffany & Co. — Schlumberger Bird on a Rock Brooch"},
+    {"scope_id":"seating","slot":1,"product_id":"rp-design-furniture-herman-miller-vitra-eames-lounge-chair-and-ottoman","display_name":"Herman Miller / Vitra — Eames Lounge Chair and Ottoman"},
+    {"scope_id":"seating","slot":2,"product_id":"rp-design-furniture-knoll-barcelona-chair","display_name":"Knoll — Barcelona Chair"},
+    {"scope_id":"lighting","slot":1,"product_id":"rp-design-furniture-flos-arco-floor-lamp","display_name":"Flos — Arco Floor Lamp"},
+    {"scope_id":"lighting","slot":2,"product_id":"rp-design-furniture-isamu-noguchi-akari-akari-10a-floor-lamp","display_name":"Isamu Noguchi / Akari — Akari 10A Floor Lamp"},
+    {"scope_id":"collector_cars","slot":1,"product_id":"rp-automobiles-mobility-ferrari-250-gto","display_name":"Ferrari — 250 GTO"},
+    {"scope_id":"collector_cars","slot":2,"product_id":"rp-automobiles-mobility-porsche-911-carrera-rs-2-7","display_name":"Porsche — 911 Carrera RS 2.7"},
+    {"scope_id":"sneakers","slot":1,"product_id":"rp-fashion-accessories-nike-air-jordan-1-high-chicago-1985","display_name":"Nike — Air Jordan 1 High Chicago 1985"},
+    {"scope_id":"sneakers","slot":2,"product_id":"rp-fashion-accessories-nike-sb-dunk-low-pro-paris","display_name":"Nike SB — Dunk Low Pro Paris"},
+    {"scope_id":"trading_cards","slot":1,"product_id":"rp-cards-comics-memorabilia-wizards-of-the-coast-magic-the-gathering-alpha-black-lotus","display_name":"Wizards of the Coast — Magic: The Gathering Alpha Black Lotus"},
+    {"scope_id":"trading_cards","slot":2,"product_id":"rp-cards-comics-memorabilia-the-pokemon-company-1999-pokemon-base-set-charizard-1st-edition-4","display_name":"The Pokémon Company — 1999 Pokémon Base Set Charizard 1st Edition #4"}
+  ],
+  "scope_admission": [
+    {"scope_id":"mechanical_watches","access_state":"EXTERNAL_LICENSE_REQUIRED","rights_state":"NOT_VERIFIED","freshness_state":"NOT_VERIFIED","identity_state":"GOLDEN_DATASET_PENDING","market_event_state":"NOT_ADMITTED"},
+    {"scope_id":"fine_jewelry","access_state":"BOUNDED_OPEN_AUTHORITY_METADATA_ONLY","rights_state":"FIELD_REVIEW_PENDING","freshness_state":"NOT_VERIFIED","identity_state":"GOLDEN_DATASET_PENDING","market_event_state":"NOT_ADMITTED"},
+    {"scope_id":"seating","access_state":"BOUNDED_OPEN_AUTHORITY_METADATA_ONLY","rights_state":"FIELD_REVIEW_PENDING","freshness_state":"NOT_VERIFIED","identity_state":"GOLDEN_DATASET_PENDING","market_event_state":"NOT_ADMITTED"},
+    {"scope_id":"lighting","access_state":"BOUNDED_OPEN_AUTHORITY_METADATA_ONLY","rights_state":"FIELD_REVIEW_PENDING","freshness_state":"NOT_VERIFIED","identity_state":"GOLDEN_DATASET_PENDING","market_event_state":"NOT_ADMITTED"},
+    {"scope_id":"collector_cars","access_state":"EXTERNAL_LICENSE_REQUIRED","rights_state":"NOT_VERIFIED","freshness_state":"NOT_VERIFIED","identity_state":"GOLDEN_DATASET_PENDING","market_event_state":"NOT_ADMITTED"},
+    {"scope_id":"sneakers","access_state":"CREDENTIAL_AND_TERMS_REVIEW_REQUIRED","rights_state":"NOT_VERIFIED","freshness_state":"NOT_VERIFIED","identity_state":"GOLDEN_DATASET_PENDING","market_event_state":"NOT_ADMITTED"},
+    {"scope_id":"trading_cards","access_state":"WRITTEN_AGREEMENT_OR_API_SCOPE_REQUIRED","rights_state":"NOT_VERIFIED","freshness_state":"NOT_VERIFIED","identity_state":"GOLDEN_DATASET_PENDING","market_event_state":"NOT_ADMITTED"}
+  ],
+  "admission_requirements": {
+    "rights_actions_required_allow": ["collect", "store", "transform"],
+    "field_binding_required": true,
+    "terms_metadata_required": true,
+    "freshness_state_required": "CURRENT",
+    "identity_hierarchy_required": ["design", "edition", "variant", "physical_object", "lot", "listing", "event"],
+    "golden_dataset_minimum_records": 200,
+    "identity_precision_minimum": 0.99,
+    "critical_false_auto_merge_maximum": 0
+  },
+  "outputs": {
+    "market_events_admitted": 0,
+    "snapshot_candidate_created": false,
+    "evidence_package_created": false,
+    "track_b_input_eligible": false,
+    "cross_scope_ranking_allowed": false,
+    "public_output_allowed": false
+  },
+  "holds": {"provider_contact":"HOLD","production":"HOLD","digitalocean_mutation":"HOLD","full_320_expansion":"HOLD"}
+}

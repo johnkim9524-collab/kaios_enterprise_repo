@@ -37,6 +37,9 @@ jobs:
       - name: Compile and validate Market Event JSON Schema 2020-12 fixtures
         run: npm run validate:market-event
 
+      - name: Validate bounded R2 scope, product and admission manifest
+        run: node scripts/kidults/poc/validate-bounded-r2-admission-manifest-v1.mjs
+
       - name: Validate coordination and PoC contracts
         run: |
           node scripts/kidults/coordination/validate-coordination.mjs
