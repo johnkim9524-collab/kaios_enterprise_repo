@@ -1,0 +1,12 @@
+{
+  "id":"kidults-release-assurance-contract-v1",
+  "version":"1.0.0",
+  "status":"FOUNDATION_REGISTERED",
+  "production":"HOLD",
+  "security":{"framework":"NIST_SSDF_ALIGNED","required_evidence":["dependency_inventory_or_sbom","secret_scan","vulnerability_scan","artifact_integrity","security_test_results","vulnerability_response_owner"]},
+  "privacy":{"required_evidence":["data_classification","personal_data_presence","data_minimization","retention_period","deletion_or_expiry_rule","access_boundary"]},
+  "rights":{"required_purposes":["discover","collect","store","derive","display_internal","display_public"],"field_level_release_manifest_required":true,"unknown_rights":"HOLD"},
+  "accessibility":{"standard":"WCAG_2_2","portal_evidence_required":true,"minimum_scope":["keyboard","focus","semantic_structure","contrast","responsive_reflow","screen_reader_labels"]},
+  "observability":{"required_signals":["metrics","logs","traces"],"required_runtime_evidence":["sli_slo","retry_dlq","backup_restore","rollback","recovery_time","cost_baseline"]},
+  "authorization":{"integration_gate":238,"g5_required_for_production":true}
+}
