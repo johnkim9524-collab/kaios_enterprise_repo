@@ -4,23 +4,66 @@
   "status": "ACTIVE_CANDIDATE",
   "production": "HOLD",
   "provider_contact": "HOLD",
-  "purpose": "Reduce the two remaining PoC v2 P0 defects before any broader 320-product expansion.",
+  "purpose": "Reduce the remaining PoC v2 empirical defects after Policy-to-Platform Alignment Closure and before any broader scale-up.",
   "p0_defects": [
     "REGIONAL_MARKET_INDEPENDENCE",
     "SCOPE_SPECIFIC_MARKET_ACTIVITY_DEPTH"
   ],
   "truth_guards": [
     "EVIDENCE_BEFORE_METRICS",
+    "CLAIM_STRENGTH_LE_EVIDENCE_STRENGTH",
     "MISSING_NE_ZERO",
     "ATTENTION_NE_DEMAND_NE_TRANSACTION",
     "LISTING_NE_SOLD_TRANSACTION",
     "BID_ASK_NE_TRANSACTION",
     "MAKER_ORIGIN_NE_REGIONAL_DEMAND",
     "PUBLIC_REPRESENTATION_NE_REGIONAL_MARKET_SIGNIFICANCE",
+    "SCARCITY_NE_LIQUIDITY",
     "SCARCITY_NE_ILLIQUIDITY",
     "PROVIDER_NE_TRUTH",
     "NO_FALSE_COMPARABILITY"
   ],
+  "claim_evidence_policy": {
+    "governing_rule": "CLAIM_STRENGTH_LE_EVIDENCE_STRENGTH",
+    "transaction_admission": {
+      "universal_minimum_sold_source_families": null,
+      "single_authoritative_source_allowed": true,
+      "required_fields": [
+        "CANONICAL_PRODUCT_IDENTITY",
+        "TERMINAL_SOLD_STATE",
+        "SALE_DATE",
+        "AMOUNT",
+        "CURRENCY",
+        "VENUE_OR_REFERENCE",
+        "PROVENANCE",
+        "RIGHTS_ADMISSIBLE",
+        "FRESHNESS_STATE"
+      ],
+      "prohibited_inference": [
+        "SINGLE_TRANSACTION_TO_REPRESENTATIVE_MARKET_PRICE",
+        "SINGLE_TRANSACTION_TO_LIQUIDITY",
+        "SINGLE_TRANSACTION_TO_REGIONAL_MARKET_SIGNIFICANCE",
+        "SINGLE_TRANSACTION_TO_CROSS_MARKET_RANK"
+      ]
+    },
+    "independence_escalation": {
+      "mode": "RISK_BASED_BY_CLAIM",
+      "claims_requiring_progressively_stronger_corroboration": [
+        "MARKET_REPRESENTATIVENESS",
+        "VALUATION",
+        "LIQUIDITY",
+        "REGIONAL_MARKET_SIGNIFICANCE",
+        "CROSS_MARKET_RANKING"
+      ],
+      "dimensions": [
+        "SOURCE_FAMILY",
+        "VENUE",
+        "REGION",
+        "TIME_DEPTH",
+        "PRODUCT_COVERAGE"
+      ]
+    }
+  },
   "regional_independence": {
     "required_components": [
       "TWO_PUBLISHER_INDEPENDENT_OFFICIAL_REGIONAL_INSTITUTION_RELEASE_EVENT_OR_VENUE_REFERENCES"
@@ -31,6 +74,7 @@
       "REGIONAL_LIQUIDITY"
     ],
     "minimum_independent_families": 2,
+    "scope_of_rule": "REGIONAL_CONTEXT_SOURCE_PAIR_CANDIDATE_ONLY_NOT_SOLD_TRANSACTION_ADMISSION",
     "prohibited_inference": [
       "language_presence_to_demand",
       "maker_origin_to_demand",
@@ -60,7 +104,7 @@
       "FAILED_SALE_RATE",
       "TIME_TO_SALE"
     ],
-    "admission_rule": "Derived market-activity metrics require evidence-class-specific references; listing or bid/ask evidence cannot satisfy verified sold-event requirements.",
+    "admission_rule": "Derived market-activity metrics require evidence-class-specific references; listing or bid/ask evidence cannot satisfy verified sold-event requirements. Individual VERIFIED_SOLD_EVENT admission follows claim_evidence_policy and does not require a universal two-family minimum.",
     "scope_adapter_states": [
       "SELF_COLLECTABLE_OPEN",
       "SELF_COLLECTABLE_CREDENTIAL_REQUIRED",
@@ -97,8 +141,8 @@
     "targeted_inquiry_requires_program_owner_authorization": true
   },
   "track_alignment": {
-    "A": "Collect evidence and produce candidates; never self-approve truth.",
-    "B": "Independently validate evidence sufficiency, independence, semantics and normalization boundaries.",
+    "A": "Collect evidence and produce candidates; never self-approve truth; use claim-level evidence sufficiency rather than arbitrary source counts.",
+    "B": "Independently validate claim-level evidence sufficiency, independence, semantics and normalization boundaries without threshold relaxation.",
     "C": "Consume Projection only; render confidence, limits and gaps without local market inference.",
     "D": "Operate DEV/STAGING adapters, retries, audit and aging jobs; no business-truth creation.",
     "E": "Surface decisions, blockers and defect states; no Registry mutation or market-truth generation."
