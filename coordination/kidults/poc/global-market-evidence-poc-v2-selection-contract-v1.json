@@ -1,0 +1,21 @@
+{
+  "id":"global-market-evidence-poc-v2-selection-contract-v1",
+  "version":"1.0.0",
+  "status":"CANONICAL_CANDIDATE",
+  "parent_issue":430,
+  "selection_model":{"scopes":32,"products_per_scope":10,"total_products":320,"canonical_anchor_products":160,"challenger_products":160},
+  "canonical_anchor_source":{"manifest":"coordination/kidults/product/representative-anchor-input-manifest-v1.json","artifact_id":9286462549,"anchors_per_scope":5,"immutable":true},
+  "challenger_slots_per_scope":[
+    {"slot":"EMERGING_DYNAMIC_VERTICAL","count":1,"purpose":"stress Dynamic Vertical and new-canon detection"},
+    {"slot":"REGIONAL","count":1,"purpose":"stress geography/language and regional canon"},
+    {"slot":"SCARCE_ILLIQUID","count":1,"purpose":"stress scarcity/liquidity/float and missing-data behavior"},
+    {"slot":"HIGH_LIQUIDITY_OR_ACTIVE_MARKET","count":1,"purpose":"stress market microstructure, momentum and integrity"},
+    {"slot":"EDGE_CASE","count":1,"purpose":"stress identity grammar, condition/provenance, normalization and Scope boundary"}
+  ],
+  "challenger_admission":{"must_be_named_product":true,"must_have_scope_hypothesis":true,"must_have_selection_reason":true,"must_have_at_least_one_rights_clear_or_reference_safe_evidence_path":true,"may_be_not_yet_representative_qualified":true,"must_not_self_qualify":true,"duplicate_of_canonical_anchor":false},
+  "diagnostic_priority":["FIND_SCOPE_DEFECTS","FIND_BIAS","FIND_FALSE_COMPARABILITY","FIND_RIGHTS_GAPS","FIND_RESILIENCE_GAPS","FIND_PROVIDER_ONLY_GAPS"],
+  "output_states":["SELECTED","DISCOVERY_REQUIRED","NO_DEFENSIBLE_CANDIDATE"],
+  "fail_closed":true,
+  "provider_contact":"HOLD",
+  "production":"HOLD"
+}
