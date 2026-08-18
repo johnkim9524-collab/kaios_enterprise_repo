@@ -1,0 +1,20 @@
+name: KIDULTS Cross-Scope Meta Intelligence v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/scope/cross-scope-meta-intelligence-contract-v1.json'
+      - 'docs/kidults/cross-scope-meta-intelligence-design-v1.md'
+      - 'scripts/kidults/scope/validate-cross-scope-meta-intelligence-v1.mjs'
+      - '.github/workflows/kidults-cross-scope-meta-intelligence-v1.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate Cross-Scope Meta Intelligence
+        run: node scripts/kidults/scope/validate-cross-scope-meta-intelligence-v1.mjs
