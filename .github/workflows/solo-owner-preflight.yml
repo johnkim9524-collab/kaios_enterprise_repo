@@ -40,6 +40,9 @@ jobs:
       - name: Validate bounded R2 scope, product and admission manifest
         run: node scripts/kidults/poc/validate-bounded-r2-admission-manifest-v1.mjs
 
+      - name: Validate canonical live R2 preflight evidence record
+        run: node scripts/kidults/poc/validate-candidate-r2-live-preflight-evidence-record-v1.mjs
+
       - name: Validate coordination and PoC contracts
         run: |
           node scripts/kidults/coordination/validate-coordination.mjs
