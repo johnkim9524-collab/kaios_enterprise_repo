@@ -1,0 +1,9 @@
+{
+  "id":"secure-sdlc-supply-chain-contract-v1",
+  "version":"1.0.0",
+  "status":"FOUNDATION_REGISTERED_EVIDENCE_PENDING",
+  "framework_alignment":["NIST_SSDF"],
+  "required_release_evidence":["dependency_inventory_or_sbom","dependency_vulnerability_scan","secret_scan","source_and_artifact_integrity","security_test_results","protected_build_configuration","vulnerability_response_owner_and_process"],
+  "rules":{"hardcoded_secret":"PROHIBITED","unreviewed_critical_vulnerability":"HOLD","unknown_dependency_provenance":"HOLD","mutable_unversioned_release_artifact":"PROHIBITED"},
+  "production":"HOLD"
+}
