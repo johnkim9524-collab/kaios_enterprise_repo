@@ -3,26 +3,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 const demandPath=process.argv[2]||'tmp/poc-v2-challenger-demand-v1.json';
 const outDir=process.argv[3]||'tmp/poc-v2-challenger-live-diagnostic-v1';
+const concurrency=Number(process.env.CONCURRENCY||8);
 fs.mkdirSync(outDir,{recursive:true});
 const demand=JSON.parse(fs.readFileSync(demandPath,'utf8'));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const qtext=s=>String(s||'').replace(/_/g,' ').trim();
-const roleHints={
- EMERGING_DYNAMIC_VERTICAL:['emerging','new','contemporary','collectible'],
- REGIONAL:['japan','europe','asia','korea','regional'],
- SCARCE_ILLIQUID:['rare','limited','prototype','scarce'],
- HIGH_LIQUIDITY_OR_ACTIVE_MARKET:['popular','market','collectible'],
- EDGE_CASE:['prototype','variant','special edition','one off']
-};
-async function fetchJson(url,attempt=0){const c=new AbortController();const t=setTimeout(()=>c.abort(),12000);try{const r=await fetch(url,{signal:c.signal,headers:{'User-Agent':'KIDULTS-PoC-v2-Challenger-Diagnostic/1.0'}});if((r.status===429||r.status>=500)&&attempt<2){await sleep(400*(2**attempt));return fetchJson(url,attempt+1)}if(!r.ok)throw new Error('HTTP_'+r.status);return await r.json()}finally{clearTimeout(t)}}
-const rows=[];const errors=[];let nominations=0;
-for(const row of demand.rows){const terms=roleHints[row.challenger_role]||[];const query=`${qtext(row.scope_id)} ${terms[0]||''}`.trim();const u=new URL('https://www.wikidata.org/w/api.php');for(const[k,v]of Object.entries({action:'wbsearchentities',search:query,language:'en',uselang:'en',limit:'5',format:'json',origin:'*'}))u.searchParams.set(k,v);let candidates=[];try{const d=await fetchJson(u);candidates=(d.search||[]).map(x=>({provider:'WIKIDATA_ACTION_API',provider_record_id:x.id,label:x.label||x.id,description:x.description||'',endpoint_url:`https://www.wikidata.org/wiki/${x.id}`,rights_state:'REFERENCE_SAFE_CC0_METADATA',role_evidence_state:'NOT_VERIFIED'}));}catch(e){errors.push({scope_id:row.scope_id,challenger_role:row.challenger_role,error:e.message});}
- if(candidates.length)nominations+=candidates.length;
- rows.push({...row,state:'DISCOVERY_REQUIRED',query,candidate_nominations:candidates,terminal_reason:candidates.length?'CANDIDATES_EXIST_BUT_ROLE_SEMANTICS_NOT_PROVEN':'NO_REFERENCE_SAFE_CANDIDATE_OBSERVED',selection_reason:null});
- await sleep(120);
-}
+const roleHints={EMERGING_DYNAMIC_VERTICAL:['emerging'],REGIONAL:['regional'],SCARCE_ILLIQUID:['rare'],HIGH_LIQUIDITY_OR_ACTIVE_MARKET:['collectible'],EDGE_CASE:['prototype']};
+async function fetchJson(url,attempt=0){const c=new AbortController();const t=setTimeout(()=>c.abort(),8000);try{const r=await fetch(url,{signal:c.signal,headers:{'User-Agent':'KIDULTS-PoC-v2-Challenger-Diagnostic/1.1'}});if((r.status===429||r.status>=500)&&attempt<2){await sleep(500*(2**attempt));return fetchJson(url,attempt+1)}if(!r.ok)throw new Error('HTTP_'+r.status);return await r.json()}finally{clearTimeout(t)}}
+async function probe(row){const terms=roleHints[row.challenger_role]||[];const query=`${qtext(row.scope_id)} ${terms[0]||''}`.trim();const u=new URL('https://www.wikidata.org/w/api.php');for(const[k,v]of Object.entries({action:'wbsearchentities',search:query,language:'en',uselang:'en',limit:'5',format:'json',origin:'*'}))u.searchParams.set(k,v);try{const d=await fetchJson(u);const candidates=(d.search||[]).map(x=>({provider:'WIKIDATA_ACTION_API',provider_record_id:x.id,label:x.label||x.id,description:x.description||'',endpoint_url:`https://www.wikidata.org/wiki/${x.id}`,rights_state:'REFERENCE_SAFE_CC0_METADATA',role_evidence_state:'NOT_VERIFIED'}));return{row:{...row,state:'DISCOVERY_REQUIRED',query,candidate_nominations:candidates,terminal_reason:candidates.length?'CANDIDATES_EXIST_BUT_ROLE_SEMANTICS_NOT_PROVEN':'NO_REFERENCE_SAFE_CANDIDATE_OBSERVED',selection_reason:null},error:null};}catch(e){return{row:{...row,state:'DISCOVERY_REQUIRED',query,candidate_nominations:[],terminal_reason:'DISCOVERY_REQUEST_ERROR',selection_reason:null},error:{scope_id:row.scope_id,challenger_role:row.challenger_role,error:e.message}}}}
+const results=[];for(let i=0;i<demand.rows.length;i+=concurrency){const batch=demand.rows.slice(i,i+concurrency);results.push(...await Promise.all(batch.map(probe)));await sleep(150)}
+const rows=results.map(x=>x.row),errors=results.map(x=>x.error).filter(Boolean),nominations=rows.reduce((n,r)=>n+(r.candidate_nominations?.length||0),0);
 const defects=[{defect_id:'POC2-P0-CHALLENGER-ROLE-EVIDENCE-001',severity:'P0',dimension:'REPRESENTATIVE_PRODUCT_BIAS_AND_DYNAMIC_VERTICAL_SIGNAL',finding:'Current rights-safe authority/catalog discovery topology can nominate named entities but cannot defensibly prove challenger roles such as Emerging, Regional, Scarce/Illiquid, High-Liquidity or Edge Case.',observed_behavior:{slots:demand.rows.length,selected:0,nominations,request_errors:errors.length},expected_behavior:'Every challenger slot must be terminalized with role-specific evidence, not popularity or lexical relevance alone.',root_cause:'ROLE_SPECIFIC_MARKET_SIGNAL_TOPOLOGY_MISSING',customer_decision_impact:'Stress sample would be biased or fabricated if candidates were auto-selected.',north_star_impact:['GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'],remediation:'Add rights-safe role-specific market-signal discovery and evidence contracts before challenger selection; keep Provider contact HOLD.',evidence_refs:['challenger-live-diagnostic-v1.json']}];
-const out={id:'poc-v2-challenger-live-diagnostic-v1',status:'FAIL_CLOSED_DEFECT_DISCOVERED',slots:demand.rows.length,selected:0,discovery_required:demand.rows.length,nominations,request_errors:errors,rows,defects,provider_contact:'HOLD',production:'HOLD'};
-fs.writeFileSync(path.join(outDir,'challenger-live-diagnostic-v1.json'),JSON.stringify(out,null,2));
-fs.writeFileSync(path.join(outDir,'defect-register-seed-v1.json'),JSON.stringify({id:'poc-v2-defect-register-seed-v1',defects,production:'HOLD'},null,2));
-console.log(JSON.stringify({status:out.status,slots:out.slots,selected:0,nominations,errors:errors.length,defects:defects.length},null,2));
+const out={id:'poc-v2-challenger-live-diagnostic-v1',version:'1.1.0',status:'FAIL_CLOSED_DEFECT_DISCOVERED',slots:demand.rows.length,selected:0,discovery_required:demand.rows.length,nominations,request_errors:errors,rows,defects,operating:{bounded_concurrency:concurrency},provider_contact:'HOLD',production:'HOLD'};
+fs.writeFileSync(path.join(outDir,'challenger-live-diagnostic-v1.json'),JSON.stringify(out,null,2));fs.writeFileSync(path.join(outDir,'defect-register-seed-v1.json'),JSON.stringify({id:'poc-v2-defect-register-seed-v1',defects,production:'HOLD'},null,2));console.log(JSON.stringify({status:out.status,slots:out.slots,selected:0,nominations,errors:errors.length,defects:defects.length,concurrency},null,2));
