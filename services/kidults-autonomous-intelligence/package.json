@@ -7,11 +7,13 @@
     "dev": "wrangler dev --local",
     "deploy": "npm run deploy:preflight && wrangler deploy",
     "deploy:preflight": "node scripts/deploy-preflight.mjs",
+    "types:generate": "wrangler types src/worker-configuration.d.ts",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir /tmp/kidults-asi-worker-dry-run",
     "typecheck": "tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "runtime:smoke": "node scripts/runtime-smoke.mjs",
-    "validate": "npm run typecheck && npm run runtime:smoke",
+    "validate": "npm run deploy:preflight && npm run typecheck && npm run runtime:smoke && npm run deploy:dry-run",
     "remote:d1:preflight": "node scripts/remote-d1-preflight.mjs",
     "a9:finalize": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/a9-finalize.ps1",
     "scale:smoke": "node scripts/a10-scale-certify.mjs --profile=smoke",
@@ -114,8 +116,8 @@
     "a40:finalize": "npm run a40:certify && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stage-finalize.ps1 -Stage A40"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20260808.1",
+    "@types/node": "^24.3.0",
     "typescript": "^5.9.2",
-    "wrangler": "^4.120.0"
+    "wrangler": "4.124.0"
   }
 }

@@ -37,6 +37,7 @@ const projection = {
     short_name: "AGCI-OS",
     boundary: "PROJECTION_CONSUMER_ONLY"
   },
+  market_funnel_alignment: source.market_funnel_alignment,
   autonomous: source.autonomous,
   engine_v2: source.engine_v2,
   memory: source.memory,

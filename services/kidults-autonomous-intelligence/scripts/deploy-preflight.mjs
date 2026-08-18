@@ -2,33 +2,77 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const currentFile = fileURLToPath(import.meta.url);
-const currentDir = dirname(currentFile);
+const currentDir = dirname(fileURLToPath(import.meta.url));
 const cwd = resolve(currentDir, '..');
-const raw = readFileSync(resolve(cwd, 'wrangler.jsonc'), 'utf8');
-const cleanRaw = raw.replace(/^\uFEFF/, '');
-const config = JSON.parse(cleanRaw);
+const repoRoot = resolve(cwd, '../..');
+const read = (path) => readFileSync(resolve(repoRoot,path),'utf8').replace(/^\uFEFF/,'');
+const config = JSON.parse(read('services/kidults-autonomous-intelligence/wrangler.jsonc'));
+const mesh = JSON.parse(read('coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json'));
+const admissionPolicy = JSON.parse(read('coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json'));
+const registrySource = read('services/kidults-autonomous-intelligence/src/asi/registry.ts');
+const migration = read('services/kidults-autonomous-intelligence/migrations/0003_asi_market_funnel_shadow.sql');
+const ingestSource = read('services/kidults-autonomous-intelligence/src/index.ts');
+const workerSource = read('services/kidults-autonomous-intelligence/src/worker.ts');
+const httpSecuritySource = read('services/kidults-autonomous-intelligence/src/http-security.ts');
+const eventRuntimeSource = read('services/kidults-autonomous-intelligence/src/asi/runtime.ts');
 
 const failures = [];
+const unique = (values) => new Set(values).size === values.length;
 const db = config?.d1_databases?.find((item) => item.binding === 'DB');
-if (!db) failures.push('Missing D1 binding DB.');
-if (!db?.database_name) failures.push('Missing D1 database_name.');
-if (!db?.database_id || db.database_id === 'REPLACE_WITH_D1_DATABASE_ID') failures.push('D1 database_id is not configured.');
+if (!db?.database_name || !db?.database_id || db.database_id === 'REPLACE_WITH_D1_DATABASE_ID') failures.push('D1 binding DB is incomplete.');
 if (config?.main !== 'src/worker.ts') failures.push('Worker entrypoint must remain src/worker.ts.');
-if (!Array.isArray(config?.triggers?.crons) || !config.triggers.crons.length) failures.push('Autonomous cron trigger is missing.');
-if (config?.vars?.SOURCE_ADAPTERS_JSON === undefined) failures.push('SOURCE_ADAPTERS_JSON variable is missing.');
-if (!config?.vars?.METHODOLOGY_VERSION) failures.push('METHODOLOGY_VERSION is missing.');
-if (!config?.vars?.MIN_EVIDENCE_FOR_PUBLISH) failures.push('MIN_EVIDENCE_FOR_PUBLISH is missing.');
+if (config?.compatibility_date !== '2026-08-18') failures.push('Compatibility date must match the reviewed alignment baseline.');
+if (!config?.compatibility_flags?.includes('nodejs_compat')) failures.push('nodejs_compat is required.');
+if (config?.observability?.enabled !== true || config?.observability?.logs?.enabled !== true) failures.push('Structured observability must be enabled.');
+if (config?.vars?.ASI_MESH_MODE !== 'SHADOW') failures.push('ASI mesh must remain SHADOW.');
+if (config?.vars?.ASI_PUBLICATION_ENABLED !== 'false') failures.push('Publication must remain fail-closed.');
+if (config?.vars?.SOURCE_ADAPTERS_JSON !== '[]') failures.push('Legacy synchronous adapter execution must remain disabled.');
+if (!Array.isArray(config?.triggers?.crons) || !config.triggers.crons.length) failures.push('Shadow heartbeat cron is missing.');
 
-try {
-  const adapters = JSON.parse(config?.vars?.SOURCE_ADAPTERS_JSON || '[]');
-  if (!Array.isArray(adapters)) failures.push('SOURCE_ADAPTERS_JSON must be an array.');
-} catch {
-  failures.push('SOURCE_ADAPTERS_JSON is not valid JSON.');
+const contractFleets = mesh.asi_funnel.stages.flatMap((stage) => stage.engine_fleets);
+const registryFleets = [...registrySource.matchAll(/\{ id: '([^']+)', stage: '[^']+', binding: '([^']+)', queue: '([^']+)' \}/g)]
+  .map((match) => ({ id:match[1],binding:match[2],queue:match[3] }));
+const producers = config?.queues?.producers || [];
+const consumers = config?.queues?.consumers || [];
+const fleetProducers = producers.filter((item) => item.binding !== 'ASI_DEAD_LETTER_QUEUE');
+const fleetConsumers = consumers.filter((item) => item.queue !== 'kidults-asi-shadow-dead-letter');
+const dlqConsumers = consumers.filter((item) => item.queue === 'kidults-asi-shadow-dead-letter');
+
+if (contractFleets.length !== 25 || !unique(contractFleets)) failures.push('Contract must contain 25 unique ASI fleets.');
+if (registryFleets.length !== 25 || !unique(registryFleets.map((item) => item.id))) failures.push('Runtime registry must contain 25 unique ASI fleets.');
+if (JSON.stringify([...contractFleets].sort()) !== JSON.stringify(registryFleets.map((item) => item.id).sort())) failures.push('Runtime fleet registry does not exactly match the contract.');
+if (fleetProducers.length !== 25 || fleetConsumers.length !== 25 || dlqConsumers.length !== 1) failures.push('Exactly 25 fleet transports and one shared DLQ consumer are required.');
+if (!unique(fleetProducers.map((item) => item.binding)) || !unique(fleetProducers.map((item) => item.queue))) failures.push('Fleet queue bindings and names must be unique.');
+if (producers.some((item) => item.queue.length > 63) || consumers.some((item) => item.queue.length > 63 || (item.dead_letter_queue?.length ?? 0) > 63)) failures.push('Cloudflare Queue names must be 63 characters or fewer.');
+if (JSON.stringify(fleetProducers.map((item) => item.queue).sort()) !== JSON.stringify(fleetConsumers.map((item) => item.queue).sort())) failures.push('Every fleet producer queue must have one fleet consumer.');
+if (fleetConsumers.some((item) => item.max_retries !== 3 || item.dead_letter_queue !== 'kidults-asi-shadow-dead-letter')) failures.push('Every fleet consumer needs bounded retry and the shared DLQ.');
+if (dlqConsumers.some((item) => item.max_retries !== 3 || Object.hasOwn(item,'dead_letter_queue'))) failures.push('Shared DLQ consumer needs bounded retries without a recursive DLQ.');
+if (consumers.some((item) => Object.hasOwn(item,'max_concurrency'))) failures.push('Fixed max_concurrency is forbidden; Queue autoscaling must remain elastic.');
+if (!producers.some((item) => item.binding === 'ASI_DEAD_LETTER_QUEUE' && item.queue === 'kidults-asi-shadow-dead-letter')) failures.push('Shared dead-letter queue binding is missing.');
+
+for (const table of [
+  'asi_event_log','asi_outbox','asi_engine_assertions','asi_purpose_admissions','asi_admission_assertions','asi_queue_watermarks',
+  'asi_dead_letters','asi_processed_messages','asi_engine_health','asi_task_leases','asi_replay_requests','asi_circuit_breakers','asi_fleet_budgets',
+]) {
+  if (!migration.includes(`CREATE TABLE IF NOT EXISTS ${table}`)) failures.push(`Missing durable ASI table ${table}.`);
 }
+const boundedAssertions = admissionPolicy.purposes?.find((item) => item.purpose === 'BOUNDED_SHADOW_ACQUISITION')?.required_assertions || [];
+const expectedBoundedAssertions = ['COLLECT','STORE','TRANSFORM','RETENTION','RATE_LIMIT','ROBOTS','SCHEMA','PROVENANCE','FRESHNESS'];
+if (JSON.stringify(boundedAssertions) !== JSON.stringify(expectedBoundedAssertions)) failures.push('Bounded shadow admission policy assertion set drifted.');
+if (!migration.includes("'admission-staging-golden-path-v1'") || !migration.includes("'kidults-asi-purpose-specific-admission-policy-v1@1.0.0'")) failures.push('Versioned bounded staging admission seed is missing.');
+if (!migration.includes("[\"STAGING_NONCOMMERCIAL_FIXTURE_ONLY\"]',9,9") || !migration.includes('asi_admission_assertions')) failures.push('Staging admission must bind all nine required assertions.');
+if (!migration.includes('ADD COLUMN admission_id TEXT REFERENCES asi_purpose_admissions(admission_id)')) failures.push('Evidence ledger must persist the admission foreign key.');
+if (!ingestSource.includes('COUNT(DISTINCT ea.assertion_type)=9') || !ingestSource.includes('a.required_assertion_count=9 AND a.satisfied_assertion_count=9')) failures.push('Ingest must revalidate all nine admission assertions.');
+if (!ingestSource.includes('a.superseded_at IS NULL') || !ingestSource.includes('a.revoked_at IS NULL') || !ingestSource.includes('a.review_due_at>?')) failures.push('Ingest must reject stale, superseded or revoked admissions.');
+if (!ingestSource.includes('admissionInputSnapshotRef') || !ingestSource.includes('admission_id\n      ) VALUES')) failures.push('Ingest must bind snapshot and persist admission lineage.');
+if (!ingestSource.includes('bearerAuthorized(request,env.INGEST_TOKEN)') || !workerSource.includes('bearerAuthorized(request,env.INGEST_TOKEN)') ||
+  !httpSecuritySource.includes('if (!token) return false;') || !httpSecuritySource.includes('timingSafeEqual') || !httpSecuritySource.includes('REQUEST_BODY_TOO_LARGE')) failures.push('Internal runtime endpoints need bounded parsing and constant-time fail-closed bearer authentication.');
+if (!workerSource.includes('asi_transport_unavailable') || !workerSource.includes('clientError ? 400 : 503')) failures.push('Transient enqueue failures must return a retryable 5xx response.');
+if (!eventRuntimeSource.includes('ASI_QUEUE_TASK_OUTBOX_PROVENANCE_MISMATCH') ||
+  !eventRuntimeSource.includes('SELECT 1 FROM asi_event_log WHERE event_id=?')) failures.push('Outbox writes and consumer receipts must be bound to the immutable event and outbox lineage.');
 
 const expectedVisualLock = 'KIDULTS Portal Visual Baseline v1.0';
-const lockMigration = readFileSync(resolve(cwd, 'migrations/0002_autonomous_orchestration.sql'), 'utf8');
+const lockMigration = read('services/kidults-autonomous-intelligence/migrations/0002_autonomous_orchestration.sql');
 if (!lockMigration.includes(expectedVisualLock) || !lockMigration.includes('"locked":true')) failures.push('Visual baseline lock checkpoint is missing or changed.');
 
 if (failures.length) {
@@ -39,6 +83,5 @@ if (failures.length) {
 
 console.log('KIDULTS deployment preflight PASS');
 console.log(`D1: ${db.database_name} (${db.database_id})`);
-console.log(`Environment: ${config?.vars?.KIDULTS_ENV || 'unspecified'}`);
-console.log(`Methodology: ${config.vars.METHODOLOGY_VERSION}`);
-console.log(`Cron: ${config.triggers.crons.join(', ')}`);
+console.log('ASI: SHADOW / 25 queue transport scaffolds / engine processors NOT IMPLEMENTED / publication HOLD');
+console.log('Shadow transport state: event/outbox/watermark/DLQ schemas and code wired; engine processors, complete recovery, remote resources and deployment NOT VERIFIED');

@@ -4,11 +4,21 @@ on:
   pull_request:
     paths:
       - 'services/kidults-autonomous-intelligence/**'
+      - 'coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json'
+      - 'coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json'
+      - 'coordination/kidults/architecture/platform-market-funnel-alignment-v1.json'
       - '.github/workflows/kidults-autonomous-runtime.yml'
   push:
     branches: [main]
     paths:
       - 'services/kidults-autonomous-intelligence/**'
+      - 'coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json'
+      - 'coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json'
+      - 'coordination/kidults/architecture/platform-market-funnel-alignment-v1.json'
       - '.github/workflows/kidults-autonomous-runtime.yml'
 
 permissions:
@@ -31,10 +41,19 @@ jobs:
           node-version: 24
 
       - name: Install autonomous intelligence dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Generate Cloudflare binding types
+        run: npm run types:generate
 
       - name: Typecheck autonomous worker
         run: npm run typecheck
+
+      - name: Validate 25-fleet mesh and fail-closed deployment contract
+        run: npm run deploy:preflight
+
+      - name: Validate Wrangler configuration and bundle without deploying
+        run: npm run deploy:dry-run
 
       - name: Verify A26 package-script wiring
         run: |

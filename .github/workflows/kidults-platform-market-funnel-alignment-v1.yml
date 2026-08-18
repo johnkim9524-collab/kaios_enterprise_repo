@@ -1,0 +1,189 @@
+name: KIDULTS Platform Market Funnel Alignment v1
+
+on:
+  pull_request:
+    paths:
+      - "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json"
+      - "coordination/kidults/architecture/autonomous-global-collectibles-intelligence-os-v3.1.md"
+      - "coordination/kidults/registry/engine/records/engine-agci-os-v2-contract-v1.json"
+      - "coordination/kidults/strategy/agci-os-total-program-strategy-reset-v2.json"
+      - "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
+      - "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json"
+      - "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json"
+      - "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json"
+      - "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json"
+      - "coordination/kidults/data-scope/value-to-data-scope-contract-v1.json"
+      - "coordination/kidults/data-scope/category-adaptive-scale-floor-contract-v2.json"
+      - "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json"
+      - "coordination/kidults/dos/decision-operating-system-contract-v1.json"
+      - "coordination/kidults/governance/kpmo-cross-track-alignment-status-v1.json"
+      - "scripts/kidults/governance/validate-kpmo-alignment-transparency-v1.mjs"
+      - "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json"
+      - "coordination/kidults/source-intelligence/asi-global-source-universe-v1.json"
+      - "coordination/kidults/data-scope/collection-scope-registry-v1.json"
+      - "coordination/kidults/registry/projection/index.json"
+      - "coordination/kidults/registry/projection/records/projection-agci-os-current-v1.json"
+      - "coordination/kidults/registry/digital-twin/index.json"
+      - "coordination/kidults/registry/digital-twin/records/twin-current-program-state-v1.json"
+      - "scripts/kidults/architecture/validate-platform-market-funnel-alignment-v1.mjs"
+      - "scripts/kidults/architecture/validate-agci-os-registry-v2.mjs"
+      - "scripts/kidults/projection/build-agci-os-projection.mjs"
+      - "scripts/kidults/mission-control/build-current-state.mjs"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
+      - "services/kidults-autonomous-intelligence/**"
+      - ".github/workflows/kidults-platform-market-funnel-alignment-v1.yml"
+      - ".github/workflows/kidults-agci-os-source-pool-foundation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json"
+      - "coordination/kidults/architecture/autonomous-global-collectibles-intelligence-os-v3.1.md"
+      - "coordination/kidults/registry/engine/records/engine-agci-os-v2-contract-v1.json"
+      - "coordination/kidults/strategy/agci-os-total-program-strategy-reset-v2.json"
+      - "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
+      - "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json"
+      - "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json"
+      - "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json"
+      - "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json"
+      - "coordination/kidults/data-scope/value-to-data-scope-contract-v1.json"
+      - "coordination/kidults/data-scope/category-adaptive-scale-floor-contract-v2.json"
+      - "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json"
+      - "coordination/kidults/dos/decision-operating-system-contract-v1.json"
+      - "coordination/kidults/governance/kpmo-cross-track-alignment-status-v1.json"
+      - "scripts/kidults/governance/validate-kpmo-alignment-transparency-v1.mjs"
+      - "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json"
+      - "coordination/kidults/source-intelligence/asi-global-source-universe-v1.json"
+      - "coordination/kidults/data-scope/collection-scope-registry-v1.json"
+      - "coordination/kidults/registry/projection/index.json"
+      - "coordination/kidults/registry/projection/records/projection-agci-os-current-v1.json"
+      - "coordination/kidults/registry/digital-twin/index.json"
+      - "coordination/kidults/registry/digital-twin/records/twin-current-program-state-v1.json"
+      - "scripts/kidults/architecture/validate-platform-market-funnel-alignment-v1.mjs"
+      - "scripts/kidults/architecture/validate-agci-os-registry-v2.mjs"
+      - "scripts/kidults/projection/build-agci-os-projection.mjs"
+      - "scripts/kidults/mission-control/build-current-state.mjs"
+      - "scripts/kidults/portal/build-v502-registry-view.mjs"
+      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
+      - "services/kidults-autonomous-intelligence/**"
+      - ".github/workflows/kidults-platform-market-funnel-alignment-v1.yml"
+      - ".github/workflows/kidults-agci-os-source-pool-foundation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-platform-market-funnel-alignment-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-platform-market-funnel-alignment:
+    name: Validate Platform Market Funnel Alignment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Parse alignment contracts
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const files = [
+            "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
+            "coordination/kidults/strategy/agci-os-total-program-strategy-reset-v2.json",
+            "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json",
+            "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json",
+            "coordination/kidults/data-scope/value-to-data-scope-contract-v1.json",
+            "coordination/kidults/data-scope/category-adaptive-scale-floor-contract-v2.json",
+            "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json",
+            "coordination/kidults/dos/decision-operating-system-contract-v1.json",
+            "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
+            "coordination/kidults/registry/projection/index.json",
+            "coordination/kidults/registry/projection/records/projection-agci-os-current-v1.json",
+            "coordination/kidults/registry/digital-twin/index.json",
+            "coordination/kidults/registry/digital-twin/records/twin-current-program-state-v1.json"
+          ];
+          for (const file of files) JSON.parse(fs.readFileSync(file, "utf8"));
+          console.log(`Parsed ${files.length} platform alignment contracts.`);
+          NODE
+
+      - name: Syntax check validators
+        run: |
+          node --check scripts/kidults/architecture/validate-platform-market-funnel-alignment-v1.mjs
+          node --check scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node --check scripts/kidults/governance/validate-kpmo-alignment-transparency-v1.mjs
+          node --check scripts/kidults/projection/build-agci-os-projection.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs
+
+      - name: Validate 9-layer 52-engine alignment
+        run: |
+          node scripts/kidults/architecture/validate-platform-market-funnel-alignment-v1.mjs
+          node scripts/kidults/governance/validate-kpmo-alignment-transparency-v1.mjs
+
+      - name: Revalidate ASI multi-fleet topology
+        run: node scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs
+
+      - name: Validate governed Projection and Registry v2 alignment
+        run: |
+          node scripts/kidults/projection/build-agci-os-projection.mjs
+          node scripts/kidults/mission-control/build-current-state.mjs
+          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
+          node scripts/kidults/portal/build-v502-registry-view.mjs
+
+      - name: Revalidate deterministic global Source Universe contract
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs \
+            --output /tmp/asi-global-source-universe \
+            --write
+          node scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs \
+            /tmp/asi-global-source-universe
+
+      - name: Revalidate Scope Source Pool and Collection Scope boundaries
+        run: |
+          node scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs \
+            --output /tmp/scope-source-pool \
+            --write
+          node scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs \
+            /tmp/scope-source-pool
+          node scripts/kidults/data-scope/validate-collection-scope-registry-v1.mjs
+
+      - name: Revalidate all 52 engines against Irreplaceable Value
+        run: |
+          node scripts/kidults/value/build-irreplaceable-value-alignment-v1.mjs \
+            --output /tmp/irreplaceable-value-alignment \
+            --write
+          node scripts/kidults/value/validate-irreplaceable-value-alignment-v1.mjs \
+            /tmp/irreplaceable-value-alignment
+
+      - name: Install autonomous runtime dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Generate Cloudflare binding types
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run types:generate
+
+      - name: Validate runtime bindings and purpose-specific holds
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run deploy:preflight
+
+      - name: Typecheck 25-fleet shadow runtime
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+
+      - name: Validate Wrangler bundle without deployment
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run deploy:dry-run
+
+      - name: Apply local D1 migrations and verify runtime invariants
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run runtime:smoke

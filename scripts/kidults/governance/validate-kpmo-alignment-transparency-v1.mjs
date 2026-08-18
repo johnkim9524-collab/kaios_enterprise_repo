@@ -2,10 +2,25 @@
 import fs from 'node:fs';
 const gate=JSON.parse(fs.readFileSync('coordination/kidults/governance/kpmo-alignment-transparency-gate-v1.json','utf8'));
 const status=JSON.parse(fs.readFileSync('coordination/kidults/governance/kpmo-cross-track-alignment-status-v1.json','utf8'));
+const alignment=JSON.parse(fs.readFileSync('coordination/kidults/architecture/platform-market-funnel-alignment-v1.json','utf8'));
 const fail=m=>{throw new Error(m)};
 if(gate.alignment_rule.required_score_percent!==100)fail('alignment threshold must be 100');
 if(gate.alignment_rule.unaligned_execution_allowed!==false)fail('unaligned execution must be prohibited');
+const expectedTracks=['TRACK_A','TRACK_B','TRACK_C','TRACK_D','TRACK_E'];
+const actualTracks=Object.keys(status.tracks).sort();
+if(JSON.stringify(actualTracks)!==JSON.stringify(expectedTracks))fail('track key set must be exactly TRACK_A through TRACK_E');
 for(const [track,v] of Object.entries(status.tracks)){if(v.alignment_percent!==100)fail(`${track} alignment below 100`);if(v.state!=='ALIGNED_ACTIVE')fail(`${track} not aligned active`)}
+const canonicalTrackIssues={TRACK_A:235,TRACK_B:236,TRACK_C:237,TRACK_D:240,TRACK_E:256};
+const legacyLaneIssues={TRACK_A:345,TRACK_B:347,TRACK_C:348,TRACK_D:349,TRACK_E:349};
+for(const [track,v] of Object.entries(status.tracks)){if(v.canonical_track_issue!==canonicalTrackIssues[track])fail(`${track} canonical issue drift`);if(v.legacy_lane_issue!==legacyLaneIssues[track])fail(`${track} legacy lane issue drift`)}
+if(status.cross_cutting_issue_map?.canonical_integration_issue!==238||status.cross_cutting_issue_map?.legacy_source_and_engine_lane_issue!==346)fail('cross-cutting issue map drift');
+if(status.alignment_scope!=='REPOSITORY_CANONICAL_ARCHITECTURE_AND_INTEGRATION_BOUNDARIES')fail('alignment scope must be explicit');
+if(status.alignment_evidence?.canonical_contract!=='coordination/kidults/architecture/platform-market-funnel-alignment-v1.json')fail('canonical alignment evidence missing');
+if(status.alignment_evidence?.repository_canonical_architecture_and_integration_boundary_alignment_percent!==100||alignment.truth_boundary?.repository_canonical_architecture_and_integration_boundary_alignment_percent!==100)fail('repository alignment evidence mismatch');
+if(status.alignment_evidence?.full_52_engine_runtime_implementation_verified!==false||alignment.truth_boundary?.full_52_engine_runtime_implementation_verified!==false)fail('full runtime implementation must not be claimed');
+if(status.alignment_evidence?.deployed_operational_alignment_percent!==0||alignment.truth_boundary?.deployed_operational_alignment_percent!==0)fail('deployment alignment must remain zero');
+if(status.alignment_evidence?.deployment_state!=='NOT_DEPLOYED_NOT_CLAIMED'||alignment.truth_boundary?.durable_runtime_deployed!==false)fail('deployment truth boundary mismatch');
+if(!status.claim_boundary?.includes('DO_NOT_CLAIM_FULL_52_ENGINE_RUNTIME_IMPLEMENTATION_LIVE_SOURCE_COVERAGE_DEPLOYMENT_OR_PRODUCTION_READINESS'))fail('alignment claim boundary missing');
 for(const key of ['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'])if(!status.shared_north_star.includes(key))fail(`missing north star ${key}`);
 const requiredTransparency=['SOURCE_PROVENANCE','RIGHTS_AND_COMMERCIAL_USE_STATE','EVIDENCE_REFERENCES','CONFIDENCE_AND_CLASSIFICATION','KNOWN_LIMITATIONS','CHANGE_AND_AUDIT_HISTORY'];
 for(const k of requiredTransparency)if(!gate.transparency.required.includes(k))fail(`missing transparency requirement ${k}`);
@@ -14,4 +29,4 @@ if(!gate.transparency.prohibited.includes('UNKNOWN_PROMOTED_AS_VERIFIED'))fail('
 if(gate.exit_gate.cross_track_canonical_id_drift!==0)fail('canonical id drift must be zero');
 if(gate.exit_gate.transparency_critical_fields_percent!==100)fail('transparency critical fields must be 100%');
 if(status.production!=='HOLD'||gate.exit_gate.production!=='HOLD')fail('production boundary regression');
-console.log(JSON.stringify({status:'PASS',alignment:'100%',tracks:Object.keys(status.tracks).length,north_star:status.shared_north_star,transparency_required:gate.transparency.required.length,production:'HOLD'},null,2));
+console.log(JSON.stringify({status:'PASS',repository_canonical_architecture_and_integration_boundary_alignment:'100%',deployed_operational_alignment:'0%',tracks:Object.keys(status.tracks).length,north_star:status.shared_north_star,transparency_required:gate.transparency.required.length,production:'HOLD'},null,2));

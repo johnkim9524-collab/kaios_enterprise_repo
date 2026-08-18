@@ -7,6 +7,7 @@
   "created_by": "KPMO / Atlas",
   "approved_by": "John",
   "first_value": "AUTONOMOUS",
+  "platform_market_funnel_alignment_contract": "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
   "problem_statement": "The current low-volume authority-source PoCs validate ingestion, rights, provenance and graph mechanics, but they do not define the platform-wide data scope, map the global source universe, measure source utility and risk at scale, or provide a representative basis for market signals and customer trust.",
   "current_poc_reclassification": {
     "classification": "PHASE_0_ENGINEERING_AND_GOVERNANCE_POC",
@@ -85,17 +86,16 @@
     ]
   },
   "source_roles": [
-    "PRIMARY_MANUFACTURER_OR_CREATOR",
-    "INSTITUTIONAL_AUTHORITY",
-    "REFERENCE_CATALOG",
-    "MARKETPLACE_LISTING",
+    "PRIMARY_AUTHORITY",
+    "CATALOG_REFERENCE",
+    "LISTING_SUPPLY",
     "SOLD_TRANSACTION",
-    "AUCTION_OR_PRIVATE_SALE",
-    "AUTHENTICATION_OR_GRADING",
-    "PROVENANCE_OR_OWNERSHIP",
-    "CULTURE_AND_ATTENTION",
+    "AUCTION_PRIVATE_SALE",
+    "AUTHENTICATION_CONDITION",
+    "PROVENANCE_HISTORY",
+    "CULTURE_ATTENTION",
     "MACRO_CONTEXT",
-    "INDEPENDENT_CORROBORATION"
+    "INDEPENDENT_VERIFICATION"
   ],
   "source_intelligence_engines": [
     {
@@ -131,7 +131,7 @@
       "purpose": "Measure source freshness, drift, continuity, corrections, late arrivals and operational stability."
     },
     {
-      "engine": "SOURCE_COST_AND_ROI_ENGINE",
+      "engine": "COST_AND_ROI_ENGINE",
       "purpose": "Measure acquisition cost, operational cost, dependency risk and decision utility gained."
     },
     {
@@ -147,6 +147,7 @@
     "logical_domain_count": 11,
     "execution_fleet_contract_count": 25,
     "fixed_worker_count": null,
+    "platform_alignment_contract": "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
     "topology_contract": "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json",
     "queue_contract": "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json",
     "event_schema": "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json",
@@ -174,7 +175,7 @@
       "simulator": "scripts/kidults/source-intelligence/simulate-asi-market-funnel-v1.mjs",
       "validator": "scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs",
       "purpose": "Replace the serial ASI artifact chain with a broad-to-narrow market funnel of independent engine fleets, purpose-specific admission and anti-bottleneck controls.",
-      "runtime_state": "DETERMINISTIC_PREFLIGHT_ONLY_DURABLE_FLEETS_NOT_DEPLOYED",
+      "runtime_state": "REPOSITORY_SHADOW_RUNTIME_CODE_WIRED_25_FLEET_QUEUES_NOT_DEPLOYED",
       "production": "HOLD"
     }
   ],

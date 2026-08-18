@@ -2,12 +2,12 @@
   "projection_id": "portal-v502-registry-view-001",
   "projection_version": "2.2.0",
   "source_projection_id": "projection-agci-os-current-v1",
-  "source_projection_contract_version": "agci-os-projection-v1.2",
+  "source_projection_contract_version": "agci-os-projection-v1.3",
   "generated_from": [
     "coordination/kidults/registry/projection/index.json",
     "coordination/kidults/registry/projection/records/projection-agci-os-current-v1.json"
   ],
-  "generated_at": "2026-08-16T06:40:00.000Z",
+  "generated_at": "2026-08-18T16:07:51.578Z",
   "registry_system_version": "2.0.0",
   "catalog_revision": "2.2.0",
   "program_status": "ACTIVE",
@@ -15,6 +15,22 @@
     "product": "Autonomous Global Collectibles Intelligence Operating System",
     "short_name": "AGCI-OS",
     "boundary": "PROJECTION_CONSUMER_ONLY"
+  },
+  "market_funnel_alignment": {
+    "contract": "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
+    "platform_layers": 9,
+    "logical_engines": 52,
+    "asi_logical_engines": 11,
+    "asi_execution_fleets": 25,
+    "repository_canonical_architecture_and_integration_boundary_alignment_percent": 100,
+    "asi_shadow_runtime_foundation_code_wired": true,
+    "full_52_engine_runtime_implementation_verified": false,
+    "deployed_operational_alignment_percent": 0,
+    "runtime_state": "QUEUE_TRANSPORT_SCAFFOLD_CODE_WIRED_ENGINE_PROCESSORS_NOT_IMPLEMENTED_NOT_DEPLOYED",
+    "source_pools_ready": 0,
+    "market_indexes_computed": 0,
+    "publication_eligible": false,
+    "production": "HOLD"
   },
   "autonomous": {
     "first_value": "AUTONOMOUS",
@@ -203,10 +219,11 @@
     "catalog_revision": "2.2.0",
     "engine_registry": "2.1.0",
     "memory_registry": "1.0.0",
-    "raw_quarantine_registry": "2.1.0"
+    "raw_quarantine_registry": "2.1.0",
+    "market_funnel_alignment": "1.0.0"
   },
   "freshness": {
     "status": "CURRENT",
-    "as_of": "2026-08-16T06:40:00.000Z"
+    "as_of": "2026-08-18T16:07:51.578Z"
   }
 }

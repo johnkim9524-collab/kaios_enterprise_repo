@@ -2,7 +2,7 @@
   "id": "kidults-asi-market-funnel-engine-mesh-v1",
   "record_type": "market_facing_autonomous_engine_mesh_contract",
   "version": "1.0.0",
-  "status": "ARCHITECTURE_AND_DETERMINISTIC_PREFLIGHT_READY_RUNTIME_FLEETS_NOT_DEPLOYED",
+  "status": "CANONICAL_BOUNDARIES_ALIGNED_QUEUE_TRANSPORT_SCAFFOLD_CODE_WIRED_NOT_DEPLOYED",
   "created_at": "2026-08-18T13:30:00Z",
   "created_by": "KPMO / Atlas",
   "approved_principles": [
@@ -12,6 +12,7 @@
     "TRANSPARENT"
   ],
   "purpose": "Turn the worldwide public market into a broad-to-narrow, event-driven collection and analysis funnel whose independent engine fleets can scale, fail and recover without stopping the whole platform.",
+  "platform_market_funnel_alignment_contract": "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
   "truth_boundary": {
     "declared_engine_fleets_are_running_services": false,
     "durable_queue_runtime_deployed": false,
@@ -21,16 +22,84 @@
     "production": "HOLD"
   },
   "current_state_diagnosis": {
-    "legacy_asi_engine_taxonomies": [8, 11],
+    "pre_canonical_asi_taxonomies": "SUPERSEDED_NOT_ACTIVE",
     "canonical_asi_domain_count": 11,
-    "current_active_asi_execution_modules": 1,
+    "current_implemented_asi_engine_processors": 0,
+    "current_queue_transport_consumer_contracts": 25,
     "current_live_global_source_adapters": 0,
-    "staging_golden_path_adapters": 1,
-    "current_market_analysis_runtime_functions": 1,
-    "current_durable_queue_bindings": 0,
-    "diagnosis": "MULTI_ENGINE_BLUEPRINT_BUT_EFFECTIVELY_MONOLITHIC_SERIAL_RUNTIME"
+    "configured_active_source_adapters": 0,
+    "staging_golden_path_fixture_available": 1,
+    "repository_legacy_market_analysis_functions_disabled": 1,
+    "current_repository_fleet_queue_bindings": 25,
+    "current_deployed_queue_bindings": 0,
+    "legacy_synchronous_collection_path_enabled": false,
+    "diagnosis": "TWENTY_FIVE_QUEUE_TRANSPORT_SCAFFOLDS_CODE_WIRED_ENGINE_PROCESSORS_NOT_IMPLEMENTED_DEPLOYMENT_NOT_PERFORMED"
   },
   "architecture_rule": "ONE_POLICY_CONTROL_PLANE_MANY_INDEPENDENT_DATA_PLANE_ENGINE_FLEETS",
+  "platform_alignment": {
+    "canonical_layer_count": 9,
+    "canonical_logical_engine_count": 52,
+    "canonical_asi_logical_engine_count": 11,
+    "asi_execution_fleet_contract_count": 25,
+    "embedded_downstream_logical_engine_role_count": 23,
+    "external_ingress_logical_engine_count": 8,
+    "external_provider_fusion_logical_engine_count": 6,
+    "external_projection_logical_engine_count": 4,
+    "logical_engine_and_execution_fleet_counts_are_additive": false,
+    "mapping_authority": "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
+    "runtime_alignment_state": "QUEUE_TRANSPORT_SCAFFOLD_CODE_WIRED_ENGINE_PROCESSORS_NOT_IMPLEMENTED_NOT_DEPLOYED"
+  },
+  "external_platform_handoffs": {
+    "value_and_scope_ingress": {
+      "stage_ids": ["P0_VALUE_DIRECTION", "P1_SCOPE_COMPILATION"],
+      "engine_ids": [
+        "CUSTOMER_DECISION_ENGINE",
+        "IRREPLACEABLE_VALUE_ENGINE",
+        "INTELLIGENCE_PRODUCT_DESIGN_ENGINE",
+        "VALUE_TO_DATA_REQUIREMENT_COMPILER",
+        "COLLECTION_SCOPE_COMPILER",
+        "SAMPLING_FRAME_ENGINE",
+        "COVERAGE_TARGET_ENGINE",
+        "SCOPE_READINESS_ENGINE"
+      ],
+      "handoff_to": "F0_GLOBAL_MARKET_SENSING",
+      "missing_state": "HOLD_NO_SCOPE_NO_COLLECTION"
+    },
+    "provider_fusion": {
+      "stage_id": "F5C_PROVIDER_FUSION",
+      "engine_ids": [
+        "PROVIDER_SCHEMA_ADAPTER",
+        "PROVIDER_DELTA_AND_COVERAGE_ENGINE",
+        "CONFLICT_AND_CORROBORATION_ENGINE",
+        "SOURCE_CONTRIBUTION_ENGINE",
+        "FUSION_CONFIDENCE_ENGINE",
+        "PROVIDER_ROI_ENGINE"
+      ],
+      "provider_required": false,
+      "no_provider_state": "NOT_APPLICABLE_CORE_AUTONOMOUS_PATH_CONTINUES",
+      "direct_to_index_allowed": false,
+      "direct_to_projection_allowed": false
+    },
+    "track_b_independent_validation": {
+      "engine_stage": false,
+      "input_stage_ids": ["F5B_EVIDENCE_AND_MARKET_GRAPH", "F5C_PROVIDER_FUSION"],
+      "handoff_to": "F6_IRREPLACEABLE_MARKET_INTELLIGENCE",
+      "public_index_without_validation_allowed": false
+    },
+    "projection_and_control_tower": {
+      "stage_id": "F7_GOVERNED_PROJECTION_AND_EXPERIENCE",
+      "engine_ids": [
+        "PROJECTION_ENGINE",
+        "PORTAL_PROJECTION",
+        "EXECUTIVE_PROJECTION",
+        "API_AND_REPORT_PROJECTION"
+      ],
+      "projection_registry": "coordination/kidults/registry/projection/index.json",
+      "executive_control_tower_registry": "coordination/kidults/registry/digital-twin/index.json",
+      "projection_only_consumption": true,
+      "may_create_market_truth": false
+    }
+  },
   "funnel_grain_rule": "COUNTS_ARE_COMPARED_ONLY_WITHIN_THE_SAME_DECLARED_GRAIN; HOST_DEDUPLICATION_MAY_NARROW_WHILE_SCOPE_ROLE_ASSOCIATIONS_MAY_FAN_OUT",
   "asi_funnel": {
     "engine_fleet_contract_count": 25,
@@ -113,12 +182,18 @@
         "output_grain": "ADMITTED_OR_QUARANTINED_SOURCE_RECORD"
       },
       {
-        "stage_id": "F5_CANONICAL_TRUTH_EVIDENCE_AND_MARKET_GRAPH",
+        "stage_id": "F5A_CANONICAL_TRUTH_AND_MEMORY",
         "engine_roles": [
           "ENTITY_RESOLUTION_ENGINE",
           "CANONICAL_OBJECT_ENGINE",
           "APPEND_ONLY_BITEMPORAL_MEMORY",
-          "CORRECTION_AND_SUPERSESSION_ENGINE",
+          "CORRECTION_AND_SUPERSESSION_ENGINE"
+        ],
+        "output_grain": "VERSIONED_CANONICAL_ENTITY_AND_BITEMPORAL_MEMORY"
+      },
+      {
+        "stage_id": "F5B_EVIDENCE_AND_MARKET_GRAPH",
+        "engine_roles": [
           "EVIDENCE_GRAPH_ENGINE",
           "MARKET_EVENT_ENGINE",
           "MARKET_GRAPH_ENGINE",
@@ -268,5 +343,5 @@
     "DESTRUCTIVE_INFRASTRUCTURE_CHANGE",
     "RESIDUAL_RISK_ACCEPTANCE"
   ],
-  "next_runtime_gate": "IMPLEMENT_DURABLE_EVENT_BUS_AND_SPLIT_THE_12_DISCOVERY_4_CLASSIFICATION_7_ANALYSIS_2_DECISION_FLEETS_BEHIND_SHADOW_QUEUES"
+  "next_runtime_gate": "CREATE_CLOUDFLARE_QUEUE_RESOURCES_APPLY_REMOTE_D1_MIGRATION_AND_DEPLOY_BOUNDED_SHADOW_AFTER_HUMAN_INFRASTRUCTURE_GATE"
 }

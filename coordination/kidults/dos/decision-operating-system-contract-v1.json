@@ -8,6 +8,15 @@
   "approved_by": "John",
   "first_value": "AUTONOMOUS",
   "north_star": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_DECISION_ADVANTAGE",
+  "platform_market_funnel_alignment": {
+    "contract": "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
+    "canonical_layer_count": 9,
+    "canonical_logical_engine_count": 52,
+    "contract_alignment_required": true,
+    "runtime_alignment_state": "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_FOUNDATION_CODE_WIRED_NOT_DEPLOYED",
+    "repository_canonical_architecture_and_integration_boundary_alignment_percent": 100,
+    "deployment_alignment_percent": 0
+  },
   "product_relationship": {
     "agci_os_role": "TOP_LEVEL_DECISION_CONTROL_PLANE",
     "portal_role": "GOVERNED_DECISION_PROJECTION_ONLY",
