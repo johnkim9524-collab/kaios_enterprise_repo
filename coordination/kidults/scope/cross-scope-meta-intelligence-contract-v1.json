@@ -1,0 +1,20 @@
+{
+  "id":"kidults-cross-scope-meta-intelligence-v1","version":"1.0.0","status":"CANONICAL_CANDIDATE",
+  "purpose":"Convert deep Scope intelligence into reliable, manipulation-resistant, decision-useful and cross-scope comparable intelligence.",
+  "meta_layers":[
+    {"id":"DOWNSIDE_RISK_INTELLIGENCE","universal":true,"dimensions":["liquidity_risk","authenticity_risk","condition_risk","restoration_risk","price_concentration_risk","hype_risk","single_channel_risk","regional_demand_risk","regulatory_risk","obsolescence_risk"],"output":"risk_profile_not_buy_sell_advice"},
+    {"id":"CONFIDENCE_DECAY_EVIDENCE_AGING","universal":true,"dimensions":["freshness","decay_class","revalidation_interval","expiry_trigger","stale_state"],"lifecycle":["VERIFIED","STALE","REVALIDATION_REQUIRED","NOT_VERIFIED"]},
+    {"id":"MARKET_INTEGRITY_MANIPULATION_DETECTION","universal":true,"dimensions":["transaction_velocity_anomaly","repeat_counterparty_pattern","price_outlier","bid_concentration","attention_transaction_divergence","supply_disappearance","grade_distribution_anomaly"],"guard":"ANOMALY_IS_SIGNAL_NOT_FRAUD_CLAIM"},
+    {"id":"DECISION_UTILITY","universal":true,"decisions":["BUY","HOLD","SELL","COMPARE","AUTHENTICATE","INSURE","CONSIGN","WATCH"],"dimensions":["decision_relevance","confidence_improvement","time_saved","error_reduction"],"guard":"NO_ACTION_RECOMMENDATION_WITHOUT_EVIDENCE_AND_POLICY"},
+    {"id":"SOURCE_RESILIENCE_SUBSTITUTABILITY","universal":true,"dimensions":["independent_source_families","single_point_of_failure","fallback_coverage","source_removal_stability","rights_revocation_resilience"],"output":"source_resilience_score"},
+    {"id":"CROSS_SCOPE_NORMALIZATION_INTEGRITY","universal":true,"dimensions":["metric_definition_equivalence","unit_normalization","sample_sufficiency","regional_bias","condition_bias","market_structure_bias"],"output":"normalization_confidence","guard":"NO_FALSE_COMPARABILITY"},
+    {"id":"PRODUCT_CLUSTER_LIFECYCLE","universal":true,"states":["EMERGING","ACCELERATING","MATURE","OVERHEATED","COOLING","DECLINING","REDISCOVERY"],"guard":"LIFECYCLE_NE_MARKET_REGIME"},
+    {"id":"COUNTERFACTUAL_SIMULATION","universal":false,"dimensions":["condition_change","grade_change","event_removed","regional_shift","liquidity_change","attention_decay"],"output":"scenario_range","guard":"SIMULATION_NOT_OBSERVED_TRUTH"}
+  ],
+  "mandatory_truth_guards":["EVIDENCE_BEFORE_METRICS","MISSING_NE_ZERO","ATTENTION_NE_DEMAND_NE_TRANSACTION","ANOMALY_NE_FRAUD","SIMULATION_NE_OBSERVATION","NORMALIZED_SCORE_REQUIRES_NORMALIZATION_CONFIDENCE","PROVIDER_NE_TRUTH"],
+  "architecture":{"scope_depth":"OBJECT_AND_MARKET_INTELLIGENCE","meta_intelligence":"RELIABILITY_RISK_INTEGRITY_DECISION_RESILIENCE_NORMALIZATION","track_b":"INDEPENDENT_GATE","projection":"CONSUMER_ONLY"},
+  "track_alignment":{"A":"produce evidence-backed depth/meta candidates; no self-approval","B":"validate risk/integrity/normalization/resilience and simulation boundaries","C":"render confidence, limitations, risk and lifecycle from projection only","D":"operate aging/revalidation/anomaly jobs and audit; no business truth","E":"surface decisions, risk, drift, blockers and simulation state; no market truth generation"},
+  "poc_v2_requirements":["measure_evidence_aging_feasibility","measure_source_removal_resilience","test_normalization_confidence","detect_anomalies_without_fraud_labels","map_outputs_to_customer_decisions","run_bounded_counterfactuals_where_supported"],
+  "north_star":{"AUTONOMOUS":"PASS_REVALIDATION_AND_RESILIENCE_DESIGN","GLOBAL":"PASS_WITH_NORMALIZATION_BIAS_GUARD","IRREPLACEABLE_VALUE":"PASS_DECISION_AND_CAUSAL_EXPLANATION_DEPTH","TRANSPARENT":"PASS_CONFIDENCE_LIMITATION_SIMULATION_SEPARATION"},
+  "provider_contact":"HOLD_PENDING_GLOBAL_MARKET_EVIDENCE_POC_V2","production":"HOLD"
+}
