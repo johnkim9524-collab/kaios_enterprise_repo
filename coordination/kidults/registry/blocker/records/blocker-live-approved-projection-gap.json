@@ -1,0 +1,16 @@
+{
+  "id":"blocker-live-approved-projection-gap",
+  "record_type":"blocker",
+  "version":"1.0.0",
+  "status":"OPEN",
+  "blocker_id":"BLOCKER-0105",
+  "severity":"HIGH",
+  "title":"Portal and IH-EOS do not yet have live approved market-intelligence Projection",
+  "owner_track_id":"track-c-portal-v502-experience-layer",
+  "impact_tracks":["track-e-executive-operating-system"],
+  "condition":"Portal/EOS consume Projection-only correctly, but the current Projection is foundation/internal state and no Track B-approved live market-intelligence Projection exists.",
+  "exit_criteria":["fresh current-state Projection integrity passes","bounded real PoC package passes Track B as applicable","approved Projection is consumed by Portal/EOS without local market inference"],
+  "created_at":"2026-08-19T06:45:00+09:00",
+  "created_by":"KPMO / Atlas",
+  "approved_by":"John"
+}
