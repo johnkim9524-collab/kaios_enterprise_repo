@@ -1,0 +1,44 @@
+{
+  "id": "bounded-asi-poc-slice-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_P0",
+  "parent_issue": 480,
+  "execution_mode": "DEV_SHADOW_ONLY",
+  "objective": "Execute the minimum autonomous processor path required for the bounded real Market Intelligence PoC without claiming full platform runtime completion.",
+  "stages": [
+    "DISCOVERY_ACQUISITION",
+    "NORMALIZATION",
+    "PROVENANCE_RIGHTS_ADMISSION",
+    "IDENTITY_ENTITY_RESOLUTION",
+    "EVIDENCE_ADMISSION",
+    "MARKET_EVENT_ADMISSION",
+    "IMMUTABLE_CANDIDATE_EVIDENCE_HANDOFF"
+  ],
+  "required_runtime_properties": {
+    "deterministic_replay": true,
+    "quarantine": true,
+    "retry_backoff": true,
+    "dead_letter_queue": true,
+    "audit_log": true,
+    "provider_bypass_prohibited": true
+  },
+  "unsupported_lane_policy": "NOT_IMPLEMENTED_OR_NOT_VERIFIED",
+  "required_outputs": [
+    "source-pool-admission.json",
+    "processor-run-manifest.json",
+    "quarantine-report.json",
+    "retry-dlq-report.json",
+    "evidence-admission-report.json",
+    "market-event-admission-report.json",
+    "candidate-handoff-preflight.json"
+  ],
+  "exit_gate": {
+    "approved_pilot_scope_source_pool_minimum": 1,
+    "deterministic_replay": "PASS",
+    "retry_dlq_quarantine": "PASS",
+    "candidate_handoff_ready": true,
+    "production_mutation": false
+  },
+  "full_52_engine_runtime_claim": false,
+  "production": "HOLD"
+}
