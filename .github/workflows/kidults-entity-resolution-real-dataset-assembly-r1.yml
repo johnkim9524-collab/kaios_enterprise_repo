@@ -1,0 +1,32 @@
+name: KIDULTS Entity Resolution Real Dataset Assembly R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/entity-resolution-real-dataset-assembly-r1.json'
+      - '.github/workflows/kidults-entity-resolution-real-dataset-assembly-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-assembly-controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate fail-closed real-dataset controls
+        run: |
+          node - <<'NODE'
+          const x=require('./coordination/kidults/entity-resolution/entity-resolution-real-dataset-assembly-r1.json');
+          if(x.dataset_target_class!=='REAL_WORLD_LABELED'||x.production!=='HOLD') process.exit(1);
+          if(x.required_case_classes.length!==6||x.required_identity_boundaries.length!==4) process.exit(1);
+          if(x.current_state.real_cases_registered!==0||x.current_state.blind_holdout_frozen!==false||x.current_state.promotion_eligible!==false) process.exit(1);
+          if(!x.anti_shortcut.includes('NO_SYNTHETIC_CASES_IN_REAL_DATASET')||!x.anti_shortcut.includes('NO_LABEL_DERIVATION_FROM_RESOLVER_OUTPUT')) process.exit(1);
+          if(!x.truth_boundary.includes('zero empirical #479 completion credit')) process.exit(1);
+          console.log('Real ER dataset assembly controls PASS; empirical promotion remains blocked.');
+          NODE
