@@ -1,0 +1,145 @@
+{
+  "id": "kidults-live-regional-market-value-chain-alignment-v1",
+  "record_type": "canonical_value_chain_alignment_contract",
+  "version": "1.0.0",
+  "status": "PROPOSED_CANONICAL_ALIGNMENT",
+  "parent_issue": 646,
+  "policy_issue": 643,
+  "baseline_issue": 645,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "purpose": "Bind continuously refreshed category-by-region market scale and maturity evidence to ASI collection quotas and analytical weights through versioned fail-closed value-chain stages.",
+  "canonical_inputs": [
+    "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
+    "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json",
+    "coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json"
+  ],
+  "non_negotiable_rules": [
+    "RAW_RECORDS_MUST_NOT_DIRECTLY_MUTATE_COLLECTION_QUOTAS",
+    "RAW_RECORDS_MUST_NOT_DIRECTLY_MUTATE_ANALYTICAL_WEIGHTS",
+    "COLLECTION_SHARE_IS_NOT_ANALYTICAL_WEIGHT",
+    "MARKET_SCALE_AND_MATURITY_REQUIRE_EVIDENCE_REFERENCES",
+    "MISSING_FACTOR_IS_UNKNOWN_NOT_ZERO",
+    "BOOTSTRAP_VALUES_ARE_NOT_FACTUAL_MARKET_SHARE",
+    "GLOBAL_CLAIMS_REQUIRE_GLOBAL_GEOGRAPHY_GATE",
+    "TRACK_B_REMAINS_INDEPENDENT",
+    "PRODUCTION_REQUIRES_SEPARATE_G5"
+  ],
+  "governed_artifacts": [
+    "REGIONAL_FACTOR_EVIDENCE_ASSERTION",
+    "REGIONAL_MARKET_BASELINE_SNAPSHOT",
+    "REGIONAL_COLLECTION_QUOTA_PLAN",
+    "REGIONAL_ANALYTICAL_WEIGHT_PLAN",
+    "REGIONAL_SHADOW_DELTA_REPORT",
+    "REGIONAL_POLICY_ACTIVATION_DECISION"
+  ],
+  "value_chain_bindings": [
+    {
+      "stage": "F0_GLOBAL_MARKET_SENSING",
+      "engines": ["SOURCE_DISCOVERY_ENGINE"],
+      "regional_role": "Discover local and cross-border sources in under-covered category-region cells and close measured coverage debt.",
+      "output": "REGION_AWARE_SOURCE_DISCOVERY_OBSERVATION"
+    },
+    {
+      "stage": "F1_SOURCE_IDENTITY_AND_CLASSIFICATION",
+      "engines": ["SOURCE_CLASSIFICATION_ENGINE"],
+      "regional_role": "Bind macroregion, country, language, currency, venue, source owner and source role.",
+      "output": "REGION_BOUND_SOURCE_CANDIDATE"
+    },
+    {
+      "stage": "F2_SOURCE_QUALIFICATION_ANALYSIS",
+      "engines": ["UTILITY_AND_VALUE_SCORING_ENGINE","RIGHTS_AND_COMPLIANCE_RISK_ENGINE","TECHNICAL_ACCESS_AND_SCHEMA_RISK_ENGINE","COVERAGE_AND_BIAS_ENGINE","INDEPENDENCE_AND_REDUNDANCY_ENGINE","FRESHNESS_AND_STABILITY_ENGINE","COST_AND_ROI_ENGINE"],
+      "regional_role": "Produce evidence-backed factors for market scale, maturity, observed activity, venue depth, secondary-market depth, grading/authentication infrastructure, cross-border activity, evidence quality, freshness and source independence.",
+      "output": "REGIONAL_FACTOR_EVIDENCE_ASSERTION"
+    },
+    {
+      "stage": "F2B_REGIONAL_BASELINE_COMPILATION",
+      "engines": ["COVERAGE_AND_BIAS_ENGINE","INDEPENDENCE_AND_REDUNDANCY_ENGINE","FRESHNESS_AND_STABILITY_ENGINE"],
+      "regional_role": "Compile immutable category-by-region baseline snapshots from eligible assertions only; assign confidence, observed_at, rights/provenance completeness and snapshot hash.",
+      "output": "REGIONAL_MARKET_BASELINE_SNAPSHOT"
+    },
+    {
+      "stage": "F3_SOURCE_PORTFOLIO_DECISION",
+      "engines": ["ACQUISITION_PLANNER","SOURCE_POOL_EVOLUTION_ENGINE"],
+      "regional_role": "Compile collection quotas from the latest eligible baseline using floors, caps, coverage debt, hysteresis and source-owner diversity constraints.",
+      "output": "REGIONAL_COLLECTION_QUOTA_PLAN"
+    },
+    {
+      "stage": "F4_RIGHTS_AWARE_COLLECTION_AND_CONTROL",
+      "engines": ["SOURCE_ADAPTER_FACTORY","REQUEST_BUDGET_CONTROLLER","RAW_QUARANTINE_ENGINE","RIGHTS_PROVENANCE_FRESHNESS_GATE","FAILURE_RECOVERY_AND_AUDIT"],
+      "regional_role": "Execute only versioned quota plans; preserve region/country/currency/venue context and quarantine rights/freshness failures.",
+      "output": "REGION_BOUND_ADMITTED_OR_QUARANTINED_RECORD"
+    },
+    {
+      "stage": "F5A_CANONICAL_TRUTH_AND_MEMORY",
+      "engines": ["ENTITY_RESOLUTION_ENGINE","CANONICAL_OBJECT_ENGINE","APPEND_ONLY_BITEMPORAL_MEMORY","CORRECTION_AND_SUPERSESSION_ENGINE"],
+      "regional_role": "Canonicalize entities without erasing local-market identity or temporal context.",
+      "output": "REGION_PRESERVING_CANONICAL_ENTITY"
+    },
+    {
+      "stage": "F5B_EVIDENCE_AND_MARKET_GRAPH",
+      "engines": ["EVIDENCE_GRAPH_ENGINE","MARKET_EVENT_ENGINE","MARKET_GRAPH_ENGINE","CONFIDENCE_AND_EXPLAINABILITY_ENGINE","CLUSTER_DISCOVERY_ENGINE"],
+      "regional_role": "Preserve geography, currency, venue, condition, fee/tax/time normalization state and factor evidence lineage in market graph cells.",
+      "output": "REGION_AWARE_MARKET_GRAPH"
+    },
+    {
+      "stage": "F6_IRREPLACEABLE_MARKET_INTELLIGENCE",
+      "engines": ["COMPARABLE_MARKET_ENGINE","SCARCITY_AND_AVAILABILITY_ENGINE","LIQUIDITY_AND_EXIT_RISK_ENGINE","MARKET_MOMENTUM_ENGINE","OPPORTUNITY_ENGINE","VERTICAL_INTELLIGENCE_INDEX_ENGINE","KIDULT_500_ENGINE","KIDULT_100_ENGINE"],
+      "regional_role": "Compile analytical weights separately from collection share using the latest active baseline; apply REGIONAL, MULTI_REGION or GLOBAL claim geography gate before any metric or index claim.",
+      "output": "REGION_GOVERNED_INTELLIGENCE_OR_NOT_VERIFIED"
+    },
+    {
+      "stage": "F7_GOVERNED_PROJECTION_AND_EXPERIENCE",
+      "engines": ["PROJECTION_ENGINE","PORTAL_PROJECTION","EXECUTIVE_PROJECTION","API_AND_REPORT_PROJECTION"],
+      "regional_role": "Expose only approved geography scope, confidence, freshness, coverage debt and NOT_VERIFIED state; never expose bootstrap weights as market share.",
+      "output": "REGION_GOVERNED_PROJECTION"
+    }
+  ],
+  "track_bindings": {
+    "TRACK_A": "Produces evidence, baseline snapshots, quota plans, analytical-weight plans and immutable Candidate/Evidence lineage; never self-approves rankability or Production.",
+    "TRACK_B": "Independently assesses only exact immutable Candidate plus Evidence Package, including regional baseline and geography-gate evidence when geography claims are present.",
+    "TRACK_C": "Consumes approved Projection only and must render regional/global scope, freshness and NOT_VERIFIED states faithfully.",
+    "TRACK_D": "Operates DEV/STAGING scheduling and resource controls for regional acquisition plans without changing market weights or Production authorization.",
+    "TRACK_E": "Consumes approved Projection and exposes regional coverage debt, concentration, policy version and decision state in IH-EOS."
+  },
+  "factor_refresh_policy": {
+    "OBSERVED_TRANSACTION_ACTIVITY": "SOURCE_NATIVE_OR_DAILY",
+    "VENUE_DEPTH_AND_DIVERSITY": "DAILY_OR_WEEKLY",
+    "DATA_TRANSPARENCY_AND_EVIDENCE_QUALITY": "DAILY_OR_WEEKLY",
+    "FRESHNESS": "CONTINUOUS_OR_SOURCE_NATIVE",
+    "MARKET_MATURITY": "MONTHLY_OR_MATERIAL_CHANGE",
+    "MARKET_SCALE": "MONTHLY_OR_QUARTERLY",
+    "emergency_triggers": ["SOURCE_LOSS","RIGHTS_CHANGE","MATERIAL_ACTIVITY_SHIFT","VENUE_FAILURE","NEW_HIGH_VALUE_LOCAL_SOURCE","SCHEMA_FAILURE"]
+  },
+  "activation_gate": {
+    "required": [
+      "EVIDENCE_COMPLETENESS_PASS",
+      "RIGHTS_AND_PROVENANCE_PASS",
+      "REGIONAL_BIAS_AND_CONCENTRATION_PASS_OR_EXPLICITLY_BOUNDED",
+      "SOURCE_REMOVAL_SENSITIVITY_PASS_OR_EXPLICITLY_BOUNDED",
+      "DETERMINISTIC_RERUN_PASS",
+      "SNAPSHOT_HASH_PRESENT",
+      "SHADOW_DELTA_REVIEW_PASS"
+    ],
+    "stability_controls": {
+      "hysteresis_required": true,
+      "deadband_required": true,
+      "per_cycle_max_weight_delta_required": true,
+      "material_event_override_requires_reason": true,
+      "stale_factor_decay_or_not_verified": true
+    },
+    "failure_state": "HOLD_CURRENT_ACTIVE_POLICY_OR_NOT_VERIFIED"
+  },
+  "global_claim_gate_binding": {
+    "policy": "coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json",
+    "failure_state": "NOT_VERIFIED_GLOBAL",
+    "record_volume_override_prohibited": true
+  },
+  "current_truth": {
+    "regional_balance_policy_merged": true,
+    "live_market_scale_estimates_verified": false,
+    "live_market_maturity_scores_verified": false,
+    "dynamic_rebalancer_empirically_exercised": false,
+    "production": "HOLD"
+  }
+}
