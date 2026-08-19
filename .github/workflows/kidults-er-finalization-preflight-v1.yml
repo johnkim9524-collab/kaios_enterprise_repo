@@ -1,0 +1,69 @@
+name: KIDULTS ER Finalization Preflight V1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs'
+      - '.github/workflows/kidults-er-finalization-preflight-v1.yml'
+      - 'scripts/kidults/entity-resolution/**'
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove-current-six-of-seven-fails-closed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Rebuild current real chain R1 through R7J
+        run: |
+          node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/er-r2.json /tmp/er-r3.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs /tmp/er-r3.json /tmp/er-r5.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs /tmp/er-r5.json /tmp/er-r6.json
+          node scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs /tmp/er-r6.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7a.json
+          node scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs /tmp/er-r7a.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7b.json
+          node scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs /tmp/er-r7b.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7c.json
+          node scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs /tmp/er-r7c.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7e.json
+          node scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs /tmp/er-r7e.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7f.json
+          node scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs /tmp/er-r7f.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7g.json
+          node scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs /tmp/er-r7g.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7h.json
+          node scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs /tmp/er-r7h.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7i.json
+          node scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs /tmp/er-r7i.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json /tmp/er-r7j.json
+      - name: Reconfirm current 6-of-7 benchmark truth
+        run: |
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r7j.json /tmp/er-r7j-results.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+          node - <<'NODE'
+          const r=require('/tmp/er-r7j-results.json');
+          const completed=Object.values(r.coverage.per_stratum).filter(x=>x.complete===true).length;
+          if(completed!==6) process.exit(1);
+          if(r.coverage.per_stratum['er-stratum-graded-population'].complete!==false) process.exit(1);
+          if(r.accuracy!==1||r.blind_accuracy!==1||r.critical_false_auto_merge!==0||r.blind_critical_false_auto_merge!==0) process.exit(1);
+          if(r.deterministic_replay!=='PASS'||r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
+          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
+          console.log('Current empirical truth reconfirmed: 6/7, promotion false.');
+          NODE
+      - name: Prove finalizer refuses 6-of-7 input
+        run: |
+          set +e
+          node scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs /tmp/er-r7j.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-final-approved-v1.json >/tmp/finalize.stdout 2>/tmp/finalize.stderr
+          status=$?
+          set -e
+          cat /tmp/finalize.stdout || true
+          cat /tmp/finalize.stderr || true
+          if [ "$status" -eq 0 ]; then
+            echo 'Finalizer incorrectly accepted 6-of-7 input' >&2
+            exit 1
+          fi
+          grep -F 'FINALIZE_PER_STRATUM_INCOMPLETE:er-stratum-graded-population' /tmp/finalize.stderr
+          if [ -e /tmp/er-final-approved-v1.json ]; then
+            echo 'Finalizer wrote a final artifact despite incomplete strata' >&2
+            exit 1
+          fi
+          echo 'FAIL-CLOSED PASS: final approved dataset cannot be emitted before GRADED_POPULATION completes.'
