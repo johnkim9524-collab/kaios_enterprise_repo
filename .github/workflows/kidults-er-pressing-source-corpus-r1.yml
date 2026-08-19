@@ -39,7 +39,8 @@ jobs:
           node - <<'NODE'
           const d=require('/tmp/pressing-source-corpus-r1.json');
           if(d.record_count!==240||d.labels_present!==false||d.model_predictions_present!==false||d.empirical_pass!==false||d.track_b!=='NOT_STARTED'||d.production!=='HOLD'||d.public_release!=='HOLD') process.exit(1);
-          if(d.records.some(x=>x.rights_state!=='ALLOW_NONCOMMERCIAL_RESEARCH_ONLY'||!/^sha256:[a-f0-9]{64}$/.test(x.source_payload_sha256)||!/^\d{8,14}$/.test(x.payload?.barcode||'')||!x.payload?.media?.every(m=>/vinyl/i.test(m.format||'')))) process.exit(1);
+          if(d.data_rights_state!=='ALLOW'||d.acquisition_transport_state!=='ALLOW_NONCOMMERCIAL_RESEARCH_ONLY') process.exit(1);
+          if(d.records.some(x=>x.rights_state!=='ALLOW'||x.acquisition_transport_state!=='ALLOW_NONCOMMERCIAL_RESEARCH_ONLY'||!/^sha256:[a-f0-9]{64}$/.test(x.source_payload_sha256)||!/^\d{8,14}$/.test(x.payload?.barcode||'')||!x.payload?.media?.every(m=>/vinyl/i.test(m.format||'')))) process.exit(1);
           console.log('PASS: 240 real unlabeled MusicBrainz vinyl release records evidence-bound; no pair labels, current-market facts, commercial transport authorization, publication or Production.');
           NODE
       - name: Upload reviewer-candidate source corpus artifact

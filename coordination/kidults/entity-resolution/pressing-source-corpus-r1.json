@@ -12,7 +12,9 @@
   "page_limit": 100,
   "maximum_search_pages": 12,
   "minimum_request_interval_ms": 1100,
-  "rights_boundary": "MUSICBRAINZ_CORE_FIELDS_CC0_VIA_BOUNDED_NONCOMMERCIAL_WS2_PREFLIGHT",
+  "rights_boundary": "MUSICBRAINZ_CORE_FIELDS_CC0_DATA_WITH_BOUNDED_NONCOMMERCIAL_WS2_TRANSPORT",
+  "data_rights_state_required": "ALLOW",
+  "acquisition_transport_state_required": "ALLOW_NONCOMMERCIAL_RESEARCH_ONLY",
   "api_use_boundary": "The MusicBrainz web service is used only for this bounded non-commercial preflight with a meaningful User-Agent and no more than one request per second. Commercial or Production transport authorization is not created here.",
   "excluded_data_families": [
     "cover-art-archive",
@@ -40,5 +42,5 @@
   "track_b": "NOT_STARTED",
   "public_release": "HOLD",
   "production": "HOLD",
-  "truth_boundary": "A successful workflow proves acquisition of 240 real, evidence-bound MusicBrainz vinyl release records with an official release MBID, barcode, label catalog number, release-group identifier and physical vinyl medium only. It does not prove 120 benchmark pairs, cross-market identity, independent labels, blind holdout completion, empirical attestation, commercial API authorization, current-market facts, ER promotion, publication or Production authorization."
+  "truth_boundary": "A successful workflow proves acquisition of 240 real, evidence-bound MusicBrainz vinyl release records with an official release MBID, barcode, label catalog number, release-group identifier and physical vinyl medium only. The retained core fields are governed by MusicBrainz's CC0 core-database license, while this acquisition transport remains bounded to non-commercial WS/2 preflight use. It does not prove 120 benchmark pairs, cross-market identity, independent labels, blind holdout completion, empirical attestation, commercial API transport authorization, current-market facts, ER promotion, publication or Production authorization."
 }
