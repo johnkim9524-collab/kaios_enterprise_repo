@@ -1,0 +1,117 @@
+{
+  "id": "designer-maker-moma-cooper-admission-r3",
+  "version": "3.0.0",
+  "methodology_issue": 486,
+  "factory_issue": 488,
+  "er_source_lane_issue": 524,
+  "production": "HOLD",
+  "admission_scope": "DESIGNER_MAKER_EDITION_IDENTITY_CALIBRATION_ONLY",
+  "sources": [
+    {
+      "source_id": "moma-collection-research-dataset",
+      "owner": "The Museum of Modern Art (MoMA)",
+      "authority_type": "OFFICIAL_MUSEUM_COLLECTION_DATASET",
+      "channel": "OFFICIAL_GITHUB_RESEARCH_DATASET_PLUS_EXACT_COLLECTION_RECORD_REFERENCE",
+      "rights_basis": "CC0_COLLECTION_METADATA_DATASET",
+      "rights_evidence": [
+        "https://github.com/MuseumofModernArt/collection",
+        "https://github.com/MuseumofModernArt/collection/blob/main/README.md"
+      ],
+      "admission_state": "ADMITTED",
+      "allowed_fields": [
+        "collection_object_identifier",
+        "object_number",
+        "title",
+        "artist_designer",
+        "date_made",
+        "medium",
+        "dimensions",
+        "date_acquired",
+        "collection_record_url"
+      ],
+      "purpose_rights": {
+        "discover": "ALLOW",
+        "collect": "ALLOW_CC0_METADATA_ONLY",
+        "store": "ALLOW_CC0_METADATA_ONLY",
+        "derive": "ALLOW_CC0_METADATA_ONLY",
+        "display_internal": "ALLOW_CC0_METADATA_ONLY",
+        "display_public": "ALLOW_CC0_METADATA_ONLY_WITH_SOURCE_ATTRIBUTION_PREFERRED"
+      },
+      "image_rule": "BLOCKED_OUTSIDE_THIS_ADMISSION; IMAGES_ARE_NOT_PART_OF_THE_CC0_DATASET",
+      "misrepresentation_rule": "DO_NOT_IMPLY_MOMA_ENDORSEMENT; DERIVED_OR_MODIFIED_DATA_MUST_BE_IDENTIFIED_AS_SUCH",
+      "technical_constraints": [
+        "USE_EXACT_OFFICIAL_COLLECTION_IDENTIFIERS",
+        "NO_IMAGE_COLLECTION",
+        "NO_BROAD_SITE_SCRAPING",
+        "REVALIDATE_TARGET_RECORD_EXISTENCE_BEFORE_BENCHMARK_USE"
+      ],
+      "claim_ceiling": "MUSEUM_COLLECTION_OBJECT_IDENTITY_AND_DESIGN_REFERENCE_METADATA_ONLY"
+    },
+    {
+      "source_id": "cooper-hewitt-collection-json",
+      "owner": "Cooper Hewitt, Smithsonian Design Museum",
+      "authority_type": "OFFICIAL_MUSEUM_COLLECTION_DATASET",
+      "channel": "OFFICIAL_GITHUB_INDIVIDUAL_JSON_RECORDS",
+      "rights_basis": "CC0_COLLECTION_METADATA_DATASET",
+      "rights_evidence": [
+        "https://github.com/cooperhewitt/collection/blob/master/README.md"
+      ],
+      "admission_state": "ADMITTED",
+      "allowed_fields": [
+        "object_id",
+        "accession_number",
+        "title",
+        "title_raw",
+        "type",
+        "date",
+        "participant_person_id",
+        "participant_person_name",
+        "participant_role_name"
+      ],
+      "purpose_rights": {
+        "discover": "ALLOW",
+        "collect": "ALLOW_CC0_METADATA_ONLY",
+        "store": "ALLOW_CC0_METADATA_ONLY",
+        "derive": "ALLOW_CC0_METADATA_ONLY",
+        "display_internal": "ALLOW_CC0_METADATA_ONLY",
+        "display_public": "ALLOW_CC0_METADATA_ONLY_WITH_SOURCE_ATTRIBUTION_PREFERRED"
+      },
+      "image_rule": "BLOCKED_OUTSIDE_THIS_ADMISSION; REFERENCED_IMAGES_ARE_NOT_COVERED_BY_THE_DATASET_CC0_LICENSE",
+      "technical_constraints": [
+        "USE_INDIVIDUAL_JSON_METADATA_RECORDS",
+        "NO_IMAGE_COLLECTION",
+        "PRESERVE_OBJECT_ID_AND_ACCESSION_PROVENANCE",
+        "REVALIDATE_DESIGNER_MANUFACTURER_AND_MODEL_FIELDS_BEFORE_BENCHMARK_USE"
+      ],
+      "claim_ceiling": "MUSEUM_COLLECTION_OBJECT_AND_DESIGNER_MAKER_MODEL_METADATA_ONLY"
+    }
+  ],
+  "target_evidence_topology": {
+    "canonical_design": "ARNE_JACOBSEN_SERIES_7_MODEL_3107",
+    "moma_exemplar_records": [
+      {"collection_url": "https://www.moma.org/collection/works/1611", "object_number": "24.1997.1"},
+      {"collection_url": "https://www.moma.org/collection/works/103159", "object_number": "24.1997.2"}
+    ],
+    "cooper_hewitt_design_authority": {
+      "object_id": "18734945",
+      "accession_number": "2009-26-1-a,b",
+      "model_token": "3107",
+      "designer": "Arne Jacobsen",
+      "manufacturer": "Fritz Hansen Inc., Denmark"
+    },
+    "allowed_inference": "EXACT_MODEL_TOKEN_3107_PLUS_EXPLICIT_DESIGNER_AND_MANUFACTURER_MAY_BIND_THE_CANONICAL_DESIGN; DISTINCT_MUSEUM_OBJECT_NUMBERS_REMAIN_DISTINCT_PHYSICAL_OBJECTS",
+    "prohibited_inference": [
+      "NAME_SIMILARITY_ALONE",
+      "IMAGE_SIMILARITY",
+      "GENERIC_CHAIR_TYPE_EQUIVALENCE",
+      "MARKET_PRICE_OR_SALES_CLAIM",
+      "MOMA_OR_COOPER_HEWITT_ENDORSEMENT"
+    ]
+  },
+  "pool_effect": {
+    "designer_maker_edition_source_lane": "STRUCTURALLY_FIT_FOR_BOUNDED_ER_CALIBRATION",
+    "current_market_claim_gate": "UNCHANGED_STILL_OPEN",
+    "provider_purchase": "HOLD"
+  },
+  "truth_boundary": "This admission covers only CC0 collection metadata required for DESIGNER_MAKER_EDITION identity calibration. Images and current-market claims are excluded. Exact target records must be live-revalidated before any R7J benchmark case is admitted."
+}
