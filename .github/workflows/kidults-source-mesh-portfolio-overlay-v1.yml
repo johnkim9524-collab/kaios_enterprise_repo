@@ -1,0 +1,36 @@
+name: KIDULTS Source Mesh Portfolio Overlay v1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-source-mesh-portfolio-overlay-v1.mjs'
+      - 'coordination/kidults/source-intelligence/**'
+      - '.github/workflows/kidults-source-mesh-portfolio-overlay-v1.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build portfolio overlay
+        run: node scripts/kidults/source-intelligence/build-source-mesh-portfolio-overlay-v1.mjs /tmp/kidults-source-mesh-portfolio-overlay-v1.json
+      - name: Verify fail-closed truth
+        run: |
+          node - <<'NODE'
+          const x=require('/tmp/kidults-source-mesh-portfolio-overlay-v1.json');
+          if(x.production!=='HOLD'||x.global_provider_selected!==false) process.exit(1);
+          if(x.strict_rights_admitted_source_count<3) process.exit(1);
+          if(x.current_sold_strict_source_count!==0||x.current_sold_gap_state!=='OPEN_NO_STRICT_R1_CURRENT_SOLD_SOURCE') process.exit(1);
+          if(x.strict_rights_admitted_sources.some(s=>s.cell_evidence_admitted!==false||s.named_provider_global_truth!==false)) process.exit(1);
+          if(x.conditional_or_declaration_sources.some(s=>s.runtime_admitted!==false||s.current_market_claim_authorized!==false)) process.exit(1);
+          console.log('Portfolio overlay truth boundary PASS');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-source-mesh-portfolio-overlay-v1
+          path: /tmp/kidults-source-mesh-portfolio-overlay-v1.json
+          retention-days: 30
