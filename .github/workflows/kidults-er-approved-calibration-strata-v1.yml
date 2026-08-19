@@ -1,0 +1,108 @@
+name: KIDULTS ER Approved Calibration Strata v1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs'
+      - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - '.github/workflows/kidults-er-approved-calibration-strata-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-calibration-strata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Validate seven-strata manifest against candidate 32-Scope matrix
+        run: |
+          node scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json
+      - name: Build full per-stratum contract-control dataset
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const m=require('./coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json');
+          const cases=[]; let n=0;
+          for(const row of m.strata){
+            const classes=row.minimum_case_classes;
+            const boundaries=row.minimum_boundaries;
+            const count=Math.max(classes.length,boundaries.length);
+            for(let i=0;i<count;i++){
+              const case_class=classes[i%classes.length];
+              const identity_boundary=boundaries[i%boundaries.length];
+              const case_id=`control-${++n}-${row.stratum_id}`;
+              let expected='MATCH',left,right;
+              if(case_class==='AMBIGUOUS_REVIEW_REQUIRED'){
+                expected='REVIEW'; left={entity_id:'left-'+case_id}; right={entity_id:'right-'+case_id};
+              }else if(case_class==='HARD_NEGATIVE'){
+                expected='NO_MATCH'; left={anchors:{[identity_boundary]:`left:${case_id}`}}; right={anchors:{[identity_boundary]:`right:${case_id}`}};
+              }else{
+                const a=`same:${case_id}`; left={anchors:{[identity_boundary]:a}}; right={anchors:{[identity_boundary]:a}};
+              }
+              cases.push({case_id,case_class,identity_boundary,expected,scope_id:row.stratum_id,blind_holdout:true,left,right,provenance_refs:['contract-control:'+case_id],rights_state:'ALLOW'});
+            }
+          }
+          fs.writeFileSync('/tmp/er-strata-control.json',JSON.stringify({
+            id:'er-strata-contract-control',dataset_class:'CONTRACT_CONTROL',synthetic:true,
+            scope_stratification_status:'COMPLETE_APPROVED_POC',approved_scope_ids:m.approved_strata_ids,
+            required_scope_ids:m.required_strata_ids,cases
+          },null,2));
+          NODE
+      - name: Verify exact manifest and every per-stratum minimum, but prohibit synthetic promotion
+        run: |
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/er-strata-control.json /tmp/er-strata-control-results.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+          node - <<'NODE'
+          const r=require('/tmp/er-strata-control-results.json');
+          if(r.strata_manifest_binding.binding_valid!==true) process.exit(1);
+          if(r.coverage.per_stratum_requirements_complete!==true) process.exit(1);
+          if(r.coverage.scope_stratification_complete!==true) process.exit(1);
+          if(r.promotion_gate.real_world_dataset!==false) process.exit(1);
+          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
+          console.log('Exact approved-strata + every per-stratum minimum PASS; synthetic promotion correctly blocked.');
+          NODE
+      - name: Verify missing per-stratum minimum fails scope gate
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'); const d=require('/tmp/er-strata-control.json');
+          const target=d.required_scope_ids[0];
+          d.cases=d.cases.filter((x,i)=>!(x.scope_id===target&&i===d.cases.findIndex(y=>y.scope_id===target)));
+          fs.writeFileSync('/tmp/er-strata-minimum-negative.json',JSON.stringify(d,null,2));
+          NODE
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/er-strata-minimum-negative.json /tmp/er-strata-minimum-negative-results.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+          node - <<'NODE'
+          const r=require('/tmp/er-strata-minimum-negative-results.json');
+          if(r.coverage.per_stratum_requirements_complete!==false) process.exit(1);
+          if(r.coverage.scope_stratification_complete!==false) process.exit(1);
+          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
+          console.log('Missing per-stratum minimum correctly fails closed.');
+          NODE
+      - name: Verify unknown stratum fails scope gate
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'); const d=require('/tmp/er-strata-control.json');
+          d.cases[0].scope_id='diagnostic-or-unknown-stratum';
+          fs.writeFileSync('/tmp/er-strata-negative.json',JSON.stringify(d,null,2));
+          NODE
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/er-strata-negative.json /tmp/er-strata-negative-results.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+          node - <<'NODE'
+          const r=require('/tmp/er-strata-negative-results.json');
+          if(r.coverage.all_cases_in_approved_scopes!==false) process.exit(1);
+          if(r.coverage.scope_stratification_complete!==false) process.exit(1);
+          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
+          console.log('Unknown/diagnostic stratum leakage correctly fails closed.');
+          NODE
