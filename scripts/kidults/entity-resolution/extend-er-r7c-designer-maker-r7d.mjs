@@ -8,37 +8,55 @@ const STRATUM='er-stratum-designer-maker-edition';
 if(dataset.dataset_class!=='REAL_WORLD_LABELED'||dataset.synthetic===true) throw new Error('R7C_REAL_WORLD_DATASET_REQUIRED');
 if(manifest.status!=='APPROVED_BOUNDED_POC_CALIBRATION'||!(manifest.required_strata_ids||[]).includes(STRATUM)) throw new Error('DESIGNER_MAKER_STRATUM_NOT_APPROVED');
 
-const timeoutMs=16000;
-async function fetchJson(url,headers={},attempts=2){let last;for(let a=1;a<=attempts;a++){const c=new AbortController(),t=setTimeout(()=>c.abort(),timeoutMs);try{const r=await fetch(url,{headers:{'user-agent':'KIDULTS-ER-BENCHMARK-DEV-SHADOW/1.0',...headers},signal:c.signal});if(!r.ok) throw new Error(`${url} -> HTTP ${r.status}`);return await r.json();}catch(e){last=e;if(a<attempts) await new Promise(x=>setTimeout(x,500*a));}finally{clearTimeout(t);}}throw last;}
+const timeoutMs=20000;
+async function fetchJson(url,headers={},attempts=3){let last;for(let a=1;a<=attempts;a++){const c=new AbortController(),t=setTimeout(()=>c.abort(),timeoutMs);try{const r=await fetch(url,{headers:{'user-agent':'KIDULTS-ER-BENCHMARK-DEV-SHADOW/1.0',...headers},signal:c.signal});if(!r.ok) throw new Error(`${url} -> HTTP ${r.status}`);return await r.json();}catch(e){last=e;if(a<attempts) await new Promise(x=>setTimeout(x,600*a));}finally{clearTimeout(t);}}throw last;}
 function itemIds(e,p){return (e?.claims?.[p]??[]).map(c=>c?.mainsnak?.datavalue?.value?.id).filter(Boolean);}
 function stringValues(e,p){return (e?.claims?.[p]??[]).map(c=>c?.mainsnak?.datavalue?.value).filter(v=>typeof v==='string'&&v.trim());}
 function label(e){return e?.labels?.en?.value??e?.labels?.mul?.value??e?.id??null;}
 
-// The explicit Wikidata design entity itself is the canonical model/series identity.
-// Require designer + manufacturer on that design, then two separately inventoried P31 exemplars.
-const designQuery='SELECT ?design ?designer ?maker WHERE { ?design wdt:P287 ?designer ; wdt:P176 ?maker . } ORDER BY STR(?design) LIMIT 250';
-const dq=await fetchJson(`https://query.wikidata.org/sparql?query=${encodeURIComponent(designQuery)}&format=json`,{accept:'application/sparql-results+json'},3);
-const rows=dq?.results?.bindings??[];
-if(rows.length===0) throw new Error('NO_DESIGNER_MAKER_DESIGN_CANDIDATES');
-let selected=null;
-for(const row of rows){
+// Reverse discovery starts from actual inventoried physical records, then walks to their
+// explicit P31 design/class and only retains designs carrying both designer (P287) and maker (P176).
+// This preserves the semantic standard while avoiding N+1 SPARQL queries over sparse designs.
+const query=`SELECT ?item ?inventory ?design ?designer ?maker WHERE {
+  ?item wdt:P217 ?inventory ; wdt:P31 ?design .
+  ?design wdt:P287 ?designer ; wdt:P176 ?maker .
+} ORDER BY STR(?design) STR(?item) LIMIT 1200`;
+const q=await fetchJson(`https://query.wikidata.org/sparql?query=${encodeURIComponent(query)}&format=json`,{accept:'application/sparql-results+json'});
+const groups=new Map();
+for(const row of q?.results?.bindings??[]){
+  const item=String(row?.item?.value??'').match(/\/entity\/(Q\d+)$/)?.[1];
   const design=String(row?.design?.value??'').match(/\/entity\/(Q\d+)$/)?.[1];
   const designer=String(row?.designer?.value??'').match(/\/entity\/(Q\d+)$/)?.[1];
   const maker=String(row?.maker?.value??'').match(/\/entity\/(Q\d+)$/)?.[1];
-  if(!design||!designer||!maker) continue;
-  const iq=`SELECT ?item ?inventory WHERE { ?item wdt:P31 wd:${design} ; wdt:P217 ?inventory . } ORDER BY STR(?item) LIMIT 6`;
-  let ir; try{ir=await fetchJson(`https://query.wikidata.org/sparql?query=${encodeURIComponent(iq)}&format=json`,{accept:'application/sparql-results+json'},2);}catch{continue;}
-  const physical=[];
-  for(const b of ir?.results?.bindings??[]){const qid=String(b?.item?.value??'').match(/\/entity\/(Q\d+)$/)?.[1],inventory=String(b?.inventory?.value??'').trim();if(qid&&inventory&&!physical.some(x=>x.qid===qid)) physical.push({qid,inventory});}
-  if(physical.length>=2&&physical[0].qid!==physical[1].qid&&physical[0].inventory!==physical[1].inventory){selected={design,designer,maker,left:physical[0],right:physical[1]};break;}
+  const inventory=String(row?.inventory?.value??'').trim();
+  if(!item||!design||!designer||!maker||!inventory) continue;
+  const key=`${design}|${designer}|${maker}`;
+  const arr=groups.get(key)??[];
+  if(!arr.some(x=>x.qid===item)) arr.push({qid:item,inventory});
+  groups.set(key,arr);
+}
+let selected=null;
+for(const [key,arr] of [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
+  if(arr.length<2) continue;
+  for(let i=0;i<arr.length;i++) for(let j=i+1;j<arr.length;j++){
+    if(arr[i].qid!==arr[j].qid&&arr[i].inventory!==arr[j].inventory){const [design,designer,maker]=key.split('|');selected={design,designer,maker,left:arr[i],right:arr[j]};break;}
+    if(selected) break;
+  }
+  if(selected) break;
 }
 if(!selected) throw new Error('NO_DESIGN_WITH_TWO_INVENTORIED_PHYSICAL_EXEMPLARS');
-const [jd,jl,jr]=await Promise.all([fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${selected.design}.json`),fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${selected.left.qid}.json`),fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${selected.right.qid}.json`)]);
+
+const [jd,jl,jr]=await Promise.all([
+  fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${selected.design}.json`),
+  fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${selected.left.qid}.json`),
+  fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${selected.right.qid}.json`)
+]);
 const design=jd?.entities?.[selected.design],left=jl?.entities?.[selected.left.qid],right=jr?.entities?.[selected.right.qid];
 if(!design||!left||!right) throw new Error('DESIGNER_MAKER_ENTITYDATA_MISSING');
 if(!itemIds(design,'P287').includes(selected.designer)||!itemIds(design,'P176').includes(selected.maker)) throw new Error('DESIGNER_OR_MAKER_REVALIDATION_FAILED');
 if(!itemIds(left,'P31').includes(selected.design)||!itemIds(right,'P31').includes(selected.design)) throw new Error('DESIGN_INSTANCE_REVALIDATION_FAILED');
 if(!stringValues(left,'P217').includes(selected.left.inventory)||!stringValues(right,'P217').includes(selected.right.inventory)) throw new Error('INVENTORY_REVALIDATION_FAILED');
+
 const sourceAnchor=`wikidata-designer-maker-source:${selected.left.qid}:${selected.left.inventory}`;
 const designAnchor=`wikidata-designer-maker-design:${selected.design}`;
 const baseProv=[`wikidata:${selected.design}:P287:${selected.designer}`,`wikidata:${selected.design}:P176:${selected.maker}`];
@@ -48,6 +66,6 @@ const hardNegative={case_id:`wikidata-designer-maker-physical-negative-${selecte
 for(const c of [normalization,sameDesign,hardNegative]) if(dataset.cases.some(x=>x.case_id===c.case_id)) throw new Error(`DUPLICATE_R7D_CASE:${c.case_id}`);
 const cases=[...dataset.cases,normalization,sameDesign,hardNegative];
 const represented=[...new Set(cases.map(x=>x.scope_id).filter(x=>(manifest.required_strata_ids||[]).includes(x)))].sort();
-const out={...dataset,id:'entity-resolution-real-world-dataset-r7d-approved-strata-partial',dataset_scope:'R7D_PARTIAL_APPROVED_STRATA_6_OF_7_DESIGNER_MAKER_COMPLETE',scope_stratification_status:'INCOMPLETE',approved_scope_ids:manifest.approved_strata_ids,required_scope_ids:manifest.required_strata_ids,approved_strata_manifest_id:manifest.id,represented_approved_strata_ids:represented,cases,truth_boundary:'R7D uses an explicit designer+manufacturer canonical design entity and two separately inventoried physical exemplars. GRADED_POPULATION and other per-stratum gaps still block final promotion.'};
+const out={...dataset,id:'entity-resolution-real-world-dataset-r7d-approved-strata-partial',dataset_scope:'R7D_PARTIAL_APPROVED_STRATA_6_OF_7_DESIGNER_MAKER_COMPLETE',scope_stratification_status:'INCOMPLETE',approved_scope_ids:manifest.approved_strata_ids,required_scope_ids:manifest.required_strata_ids,approved_strata_manifest_id:manifest.id,represented_approved_strata_ids:represented,cases,truth_boundary:'R7D reverse-discovers two inventoried physical exemplars under an explicit designer+manufacturer design, then revalidates all claims in live EntityData. GRADED_POPULATION and other per-stratum gaps still block final promotion.'};
 await fs.writeFile(outputPath,JSON.stringify(out,null,2));
 console.log(JSON.stringify({id:out.id,design_id:selected.design,design_label:label(design),designer_id:selected.designer,maker_id:selected.maker,physical_exemplars:[selected.left,selected.right],represented_approved_strata_ids:represented,production:'HOLD'},null,2));
