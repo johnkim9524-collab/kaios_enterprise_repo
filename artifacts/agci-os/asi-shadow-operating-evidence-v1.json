@@ -285,13 +285,13 @@
     },
     "entity_resolution_cross_market_alias_r5_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs",
-      "sha256": "sha256:37d21840a1e3490b91b777465f186054b43715932efb19836b11437bb5c2ef01",
-      "byte_count": 5964
+      "sha256": "sha256:42ea579a52c9e8a2ac34ecd34d749fcaa53233a2b059a7836475ef8b53097abe",
+      "byte_count": 6210
     },
     "entity_resolution_ambiguous_review_r6_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs",
-      "sha256": "sha256:db9b74716c7e0b3915c4c34bb24963f21b5c34e62d8426da71e7532db415b2ff",
-      "byte_count": 5610
+      "sha256": "sha256:cb39af0dab0a1f76fc9a0ccfc1317a405d3d43dcdf21bc37274b3dbca943e2d8",
+      "byte_count": 5620
     },
     "entity_resolution_approved_strata_validator": {
       "path": "scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs",
@@ -305,8 +305,8 @@
     },
     "entity_resolution_serialized_reference_r7b_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs",
-      "sha256": "sha256:e7dd55fd478addc2a9c7e5ee5cb794c0ba1f6960976305b03eb823f93c6509ce",
-      "byte_count": 10230
+      "sha256": "sha256:5c2c63bab1dadca05e3c9f196b481025c4a8c988436ae7487abfe7dc43a03053",
+      "byte_count": 10557
     },
     "entity_resolution_variant_release_r7c_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs",
@@ -985,13 +985,13 @@
       },
       "cross_market_alias_r5_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs",
-        "sha256": "sha256:37d21840a1e3490b91b777465f186054b43715932efb19836b11437bb5c2ef01",
-        "byte_count": 5964
+        "sha256": "sha256:42ea579a52c9e8a2ac34ecd34d749fcaa53233a2b059a7836475ef8b53097abe",
+        "byte_count": 6210
       },
       "ambiguous_review_r6_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs",
-        "sha256": "sha256:db9b74716c7e0b3915c4c34bb24963f21b5c34e62d8426da71e7532db415b2ff",
-        "byte_count": 5610
+        "sha256": "sha256:cb39af0dab0a1f76fc9a0ccfc1317a405d3d43dcdf21bc37274b3dbca943e2d8",
+        "byte_count": 5620
       },
       "approved_calibration_strata_validator_ref": {
         "path": "scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs",
@@ -1005,8 +1005,8 @@
       },
       "serialized_reference_r7b_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs",
-        "sha256": "sha256:e7dd55fd478addc2a9c7e5ee5cb794c0ba1f6960976305b03eb823f93c6509ce",
-        "byte_count": 10230
+        "sha256": "sha256:5c2c63bab1dadca05e3c9f196b481025c4a8c988436ae7487abfe7dc43a03053",
+        "byte_count": 10557
       },
       "variant_release_r7c_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs",
@@ -2267,5 +2267,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:aa09c4605bdaaf04cc360e16b7766a06507c7da75f8e3cc52cbaebc82ddea037"
+  "evidence_fingerprint": "sha256:5219cd75e5a11ddb30f0381f279adb70f99f84e73d8392c6ceca9c63da93f53b"
 }
