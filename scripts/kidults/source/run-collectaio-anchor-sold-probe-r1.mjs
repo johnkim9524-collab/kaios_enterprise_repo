@@ -32,19 +32,32 @@ function keyTree(value, depth = 0) {
 function soldMetadata(item) {
   const listings = Array.isArray(item?.listings) ? item.listings : [];
   const soldListings = listings.filter(x => text(x?.market_state) === 'sold');
+  const boundedSoldEvents = soldListings.slice(0, 10).map(x => ({
+    provider_record_id: x?.id ?? null,
+    event_at: x?.date ?? null,
+    observed_at: x?.updated_at ?? null,
+    marketplace: x?.marketplace ?? null,
+    price: typeof x?.price === 'number' ? x.price : null,
+    currency: x?.currency ?? null,
+    condition: x?.condition ?? null,
+    source_url: x?.url ?? null,
+    include_in_price: x?.include_in_price ?? null,
+    title: x?.title ?? null
+  }));
   const summarySold = (Array.isArray(item?.listing_summaries) ? item.listing_summaries : [])
-    .map(x => Number(x?.sold))
-    .filter(Number.isFinite)
-    .reduce((a,b)=>a+b,0);
+    .map(x => Number(x?.sold)).filter(Number.isFinite).reduce((a,b)=>a+b,0);
   const directArrays = [item?.sold_comps, item?.soldComps, item?.market_signals?.sold_comps, item?.market?.sold_comps, item?.market_data?.sold_comps, item?.pricing?.sold_comps].filter(Array.isArray);
   const directCount = directArrays.reduce((m,a)=>Math.max(m,a.length),0);
   const explicitCandidates = [item?.sold_comp_count,item?.soldCompsCount,item?.market_signals?.sold_comp_count,item?.market_data?.sold_comp_count,item?.pricing?.sold_comp_count,item?.market?.sold_comp_count,item?.comps?.sold_count];
   const explicitCount = explicitCandidates.map(Number).find(Number.isFinite) ?? 0;
   const sampleSize = Math.max(soldListings.length, summarySold, directCount, explicitCount);
-  const freshnessCandidates = soldListings.map(x => x?.updated_at || x?.date).filter(Boolean);
-  const freshness = item?.last_checked_at ?? item?.updated_at ?? item?.market_signals?.last_checked_at ?? item?.market_data?.last_checked_at ?? item?.pricing?.last_checked_at ?? freshnessCandidates.sort().at(-1) ?? null;
+  const eventDates = boundedSoldEvents.map(x=>x.event_at).filter(Boolean).sort();
+  const observedDates = boundedSoldEvents.map(x=>x.observed_at).filter(Boolean).sort();
+  const latestEventAt = eventDates.at(-1) ?? null;
+  const latestObservedAt = observedDates.at(-1) ?? null;
+  const ageDays = latestEventAt ? Math.floor((Date.now() - new Date(latestEventAt).getTime()) / 86400000) : null;
   const basis = item?.price_basis ?? item?.basis ?? item?.market_signals?.basis ?? item?.market_data?.basis ?? item?.pricing?.basis ?? null;
-  return { sample_size: sampleSize, sold_listing_count: soldListings.length, summary_sold_count: summarySold, direct_sold_array_count: directCount, explicit_sold_count: explicitCount, basis, freshness };
+  return { sample_size: sampleSize, sold_listing_count: soldListings.length, summary_sold_count: summarySold, direct_sold_array_count: directCount, explicit_sold_count: explicitCount, basis, latest_event_at: latestEventAt, latest_observed_at: latestObservedAt, latest_event_age_days: ageDays, bounded_sold_events: boundedSoldEvents };
 }
 
 for (const anchor of anchors) {
@@ -61,7 +74,7 @@ for (const anchor of anchors) {
   const item = await dr.json();
   const meta = soldMetadata(item);
   const exact = scoreCandidate(item,anchor)===anchor.expected.length;
-  out.records.push({scope_id:anchor.scope_id,query:anchor.query,state:exact&&meta.sample_size>0?'EXACT_MATCH_WITH_SOLD_EVIDENCE_CANDIDATE':exact?'EXACT_MATCH_NO_SOLD_SAMPLE':'NON_EXACT_MATCH',slug:item?.slug??top.c.slug,canonical_url:`${base}/item/${item?.slug??top.c.slug}`,exact_identity_tokens:exact,sold_sample_size:meta.sample_size,sold_listing_count:meta.sold_listing_count,summary_sold_count:meta.summary_sold_count,direct_sold_array_count:meta.direct_sold_array_count,explicit_sold_count:meta.explicit_sold_count,sold_basis:meta.basis,freshness:meta.freshness,schema_keys_only:exact?keyTree(item):undefined});
+  out.records.push({scope_id:anchor.scope_id,query:anchor.query,state:exact&&meta.sample_size>0?'EXACT_MATCH_WITH_SOLD_EVIDENCE_CANDIDATE':exact?'EXACT_MATCH_NO_SOLD_SAMPLE':'NON_EXACT_MATCH',slug:item?.slug??top.c.slug,canonical_url:`${base}/item/${item?.slug??top.c.slug}`,exact_identity_tokens:exact,sold_sample_size:meta.sample_size,sold_listing_count:meta.sold_listing_count,summary_sold_count:meta.summary_sold_count,direct_sold_array_count:meta.direct_sold_array_count,explicit_sold_count:meta.explicit_sold_count,sold_basis:meta.basis,latest_event_at:meta.latest_event_at,latest_observed_at:meta.latest_observed_at,latest_event_age_days:meta.latest_event_age_days,bounded_sold_events:exact?meta.bounded_sold_events:[],schema_keys_only:exact?keyTree(item):undefined});
 }
 
 fs.mkdirSync('artifacts/kidults/source',{recursive:true});
