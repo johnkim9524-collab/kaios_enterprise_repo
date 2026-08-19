@@ -1,0 +1,37 @@
+name: KIDULTS ASI SHADOW Refresh Evidence R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/**'
+      - '.github/workflows/kidults-asi-shadow-refresh-evidence-r1.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build-exact-artifact:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: true
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: services/kidults-autonomous-intelligence
+      - name: Build and validate exact deterministic SHADOW evidence
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs --output /tmp/asi-shadow-operating-evidence-v1.json --write
+          node scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs --input /tmp/asi-shadow-operating-evidence-v1.json
+      - name: Commit exact canonical artifact if changed
+        run: |
+          cp /tmp/asi-shadow-operating-evidence-v1.json artifacts/agci-os/asi-shadow-operating-evidence-v1.json
+          if git diff --quiet -- artifacts/agci-os/asi-shadow-operating-evidence-v1.json; then exit 0; fi
+          git config user.name 'KPMO CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add artifacts/agci-os/asi-shadow-operating-evidence-v1.json
+          git commit -m 'KIDULTS: refresh deterministic ASI SHADOW evidence artifact'
+          git push origin HEAD:${{ github.head_ref }}
