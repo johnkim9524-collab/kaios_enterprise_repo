@@ -1,0 +1,42 @@
+name: KIDULTS Candidate Evidence Handoff Preflight R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r1.json'
+      - 'coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r1.json'
+      - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r1.mjs'
+      - '.github/workflows/kidults-candidate-evidence-handoff-preflight-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-handoff-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Split blocked selftest fixture
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=require('./coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r1.json');
+          fs.writeFileSync('/tmp/snapshot-candidate.json',JSON.stringify(x.snapshot,null,2));
+          fs.writeFileSync('/tmp/evidence-package.json',JSON.stringify(x.evidence,null,2));
+          NODE
+      - name: Run handoff preflight
+        run: node scripts/kidults/poc/validate-candidate-evidence-handoff-r1.mjs /tmp/snapshot-candidate.json /tmp/evidence-package.json /tmp/candidate-evidence-handoff-preflight-r1.json
+      - name: Require fail-closed BLOCKED result
+        run: |
+          node -e "const x=require('/tmp/candidate-evidence-handoff-preflight-r1.json'); if(x.handoff_state!=='BLOCKED'||x.blocker_count<3||!x.blockers.includes('ENTITY_RESOLUTION_OVERALL_LT_099')||!x.blockers.includes('CURRENT_CLAIM_WITHOUT_CURRENT_EVIDENCE')||x.publication!=='HOLD'||x.production!=='HOLD') process.exit(1); console.log('Candidate/Evidence handoff guard PASS; incomplete pair correctly BLOCKED.')"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-candidate-evidence-handoff-preflight-r1
+          path: /tmp/candidate-evidence-handoff-preflight-r1.json
+          if-no-files-found: error
+          retention-days: 30
