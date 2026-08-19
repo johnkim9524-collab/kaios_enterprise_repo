@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+// Canonical SHADOW contract validator. Keep this check deterministic and fail-closed.
 const read = p => JSON.parse(fs.readFileSync(p, 'utf8'));
 const registry = read('coordination/kidults/source-intelligence/regional-market-factor-registry-v1.json');
 const rebalancer = read('coordination/kidults/source-intelligence/regional-market-rebalancer-v1.json');
