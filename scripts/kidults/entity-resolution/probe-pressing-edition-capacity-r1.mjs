@@ -55,26 +55,48 @@ for(let i=0;i<records.length;i++){
   }
 }
 
+// Exact maximum source-record-disjoint subset. Current candidate pool is intentionally
+// bounded; this prevents raw pair count from being promoted into usable case capacity.
+function maxDisjointPairs(edges){
+  const sorted=[...edges].sort((a,b)=>a.candidate_id.localeCompare(b.candidate_id));
+  let best=[];
+  function visit(index,used,chosen){
+    if(chosen.length+(sorted.length-index)<=best.length) return;
+    if(index>=sorted.length){if(chosen.length>best.length) best=[...chosen];return;}
+    visit(index+1,used,chosen);
+    const edge=sorted[index];
+    const ids=edge.source_record_ids||[];
+    if(ids.length===2&&!used.has(ids[0])&&!used.has(ids[1])){
+      used.add(ids[0]);used.add(ids[1]);chosen.push(edge);
+      visit(index+1,used,chosen);
+      chosen.pop();used.delete(ids[0]);used.delete(ids[1]);
+    }
+  }
+  visit(0,new Set(),[]);
+  return best;
+}
+const hardNegativeDisjoint=maxDisjointPairs(hardNegative);
 const crossMarketAlias=[];
 const metrics={
   real_source_records:records.length,
   same_object_normalization_candidates:normalization.length,
   hard_negative_candidates:hardNegative.length,
+  hard_negative_source_disjoint_candidates:hardNegativeDisjoint.length,
   cross_market_alias_candidates:0,
   same_object_normalization_capacity:Math.min(40,normalization.length),
-  hard_negative_capacity:Math.min(40,hardNegative.length),
+  hard_negative_capacity:Math.min(40,hardNegativeDisjoint.length),
   cross_market_alias_capacity:0,
 };
 metrics.conservative_case_capacity=metrics.same_object_normalization_capacity+metrics.hard_negative_capacity+metrics.cross_market_alias_capacity;
 metrics.source_capacity_ready_for_120_cases=metrics.same_object_normalization_capacity===40&&metrics.hard_negative_capacity===40&&metrics.cross_market_alias_capacity===40;
 const blockers=[];
 if(metrics.same_object_normalization_capacity<40) blockers.push(`SAME_OBJECT_NORMALIZATION_${metrics.same_object_normalization_capacity}_OF_40`);
-if(metrics.hard_negative_capacity<40) blockers.push(`HARD_NEGATIVE_${metrics.hard_negative_capacity}_OF_40`);
+if(metrics.hard_negative_capacity<40) blockers.push(`HARD_NEGATIVE_${metrics.hard_negative_capacity}_OF_40_SOURCE_DISJOINT`);
 blockers.push('CROSS_MARKET_ALIAS_0_OF_40_SINGLE_SOURCE_MUSICBRAINZ_CANNOT_PROVE_CROSS_MARKET_ALIAS');
 
 const artifact={
   id:'kidults-er-pressing-edition-capacity-r1',
-  version:'1.1.0',
+  version:'1.2.0',
   stratum_id:stratum,
   status:metrics.source_capacity_ready_for_120_cases?'COMPLETE_SOURCE_CAPACITY_READY':'COMPLETE_FAIL_CLOSED_PARTIAL_CAPACITY',
   source_corpus_id:corpus.id,
@@ -85,6 +107,7 @@ const artifact={
   candidate_pools:{
     SAME_OBJECT_NORMALIZATION:normalization,
     HARD_NEGATIVE:hardNegative,
+    HARD_NEGATIVE_SOURCE_DISJOINT:hardNegativeDisjoint,
     CROSS_MARKET_ALIAS:crossMarketAlias
   },
   metrics,
@@ -96,7 +119,7 @@ const artifact={
   track_b:'NOT_STARTED',
   public_release:'HOLD',
   production:'HOLD',
-  truth_boundary:'This probe measures only evidence-backed Pressing/Edition case-class capacity from the existing lawful MusicBrainz corpus. The complete candidate pools are preserved only so downstream packetization can enforce source-record disjointness. Single-source identifier co-assertions may support SAME_OBJECT_NORMALIZATION candidates and same-release-group distinct releases may support HARD_NEGATIVE candidates. MusicBrainz alone contributes zero CROSS_MARKET_ALIAS capacity; no cross-market alias is inferred or fabricated.'
+  truth_boundary:'This probe measures only evidence-backed Pressing/Edition case-class capacity from the existing lawful MusicBrainz corpus. HARD_NEGATIVE usable capacity is the exact maximum source-record-disjoint subset, not the raw pair count. Single-source identifier co-assertions may support SAME_OBJECT_NORMALIZATION candidates and same-release-group distinct releases may support HARD_NEGATIVE candidates. MusicBrainz alone contributes zero CROSS_MARKET_ALIAS capacity; no cross-market alias is inferred or fabricated.'
 };
 await fs.writeFile(outPath,JSON.stringify(artifact,null,2));
 console.log(JSON.stringify({status:artifact.status,metrics,blockers,production:'HOLD'},null,2));
