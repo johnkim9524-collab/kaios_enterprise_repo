@@ -1,3 +1,4 @@
+// Bounded read-only evidence probe. No Production/G5 or provider commitment.
 import fs from 'node:fs';
 
 const anchors = [
