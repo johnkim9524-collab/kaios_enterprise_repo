@@ -11,7 +11,7 @@
     "canonical_layer_count": 9,
     "canonical_logical_engine_count": 52,
     "contract_alignment_required": true,
-    "runtime_alignment_state": "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_FOUNDATION_CODE_WIRED_NOT_DEPLOYED",
+    "runtime_alignment_state": "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_PROCESSORS_AND_QUEUE_TRANSPORT_CODE_WIRED_NOT_DEPLOYED",
     "repository_canonical_architecture_and_integration_boundary_alignment_percent": 100,
     "deployment_alignment_percent": 0
   },

@@ -8,6 +8,12 @@ on:
       - 'coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json'
       - 'coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json'
       - 'coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json'
+      - 'coordination/kidults/source-intelligence/global-pool-r1-frontier-seed-channel-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'scripts/kidults/source-intelligence/*global-pool-r1*'
       - 'coordination/kidults/architecture/platform-market-funnel-alignment-v1.json'
       - '.github/workflows/kidults-autonomous-runtime.yml'
   push:
@@ -18,6 +24,12 @@ on:
       - 'coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json'
       - 'coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json'
       - 'coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json'
+      - 'coordination/kidults/source-intelligence/global-pool-r1-frontier-seed-channel-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'scripts/kidults/source-intelligence/*global-pool-r1*'
       - 'coordination/kidults/architecture/platform-market-funnel-alignment-v1.json'
       - '.github/workflows/kidults-autonomous-runtime.yml'
 
@@ -51,6 +63,12 @@ jobs:
 
       - name: Validate 25-fleet mesh and fail-closed deployment contract
         run: npm run deploy:preflight
+
+      - name: Exercise durable 4+7 fan-in and SHADOW source-pool guards
+        run: npm run asi:processor:test
+
+      - name: Exercise all 25 processors through the Queue/D1 SHADOW runtime
+        run: npm run asi:processor:e2e
 
       - name: Validate Wrangler configuration and bundle without deploying
         run: npm run deploy:dry-run

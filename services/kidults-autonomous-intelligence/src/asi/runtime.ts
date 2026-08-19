@@ -1,4 +1,6 @@
-import { partitionKey, validateAsiEvent, type AsiEventEnvelope } from './event';
+import { assertAsiEventPayloadHash, partitionKey, validateAsiEvent, type AsiEventEnvelope } from './event';
+import { runAsiProcessorTask } from './processor-runtime';
+import { asiProcessorInventory, type AsiProcessorState } from './processors';
 import {
   ASI_FLEET_BY_ID,
   ASI_FLEET_BY_QUEUE,
@@ -273,12 +275,18 @@ async function resumeEventOutboxes(env: AsiMeshEnv, eventId: string): Promise<Ou
   return eventOutboxRows(env,eventId);
 }
 
-export async function enqueueAsiEvent(env: AsiMeshEnv, rawEvent: unknown): Promise<AsiEnqueueResult> {
-  const event = validateAsiEvent(rawEvent);
+async function stageAsiEvent(env: AsiMeshEnv, event: AsiEventEnvelope): Promise<AsiFleet[]> {
+  await assertAsiEventPayloadHash(event);
   const fleetIds = targetFleetsFor(event);
   const fleets = fleetIds.map((fleetId) => ASI_FLEET_BY_ID.get(fleetId));
   if (fleets.some((fleet) => !fleet)) throw new Error('ASI_TARGET_FLEET_REGISTRY_DRIFT');
   await persistEventAndOutboxes(env,event,fleets as AsiFleet[]);
+  return fleets as AsiFleet[];
+}
+
+export async function enqueueAsiEvent(env: AsiMeshEnv, rawEvent: unknown): Promise<AsiEnqueueResult> {
+  const event = validateAsiEvent(rawEvent);
+  const fleets = await stageAsiEvent(env,event);
   if (fleets.length === 0) return {eventId:event.event_id,state:'PARKED_NO_ENGINE_PROCESSOR',fleets:[],queues:[]};
   const rows = await resumeEventOutboxes(env,event.event_id);
   const state: AsiEnqueueState = rows.some((row) => row.status === 'DEAD_LETTERED' || row.status === 'HOLD')
@@ -313,6 +321,7 @@ async function recordTransportReceipt(
   task: AsiQueueTask,
   messageId: string,
   attempts: number,
+  processorState: AsiProcessorState,
 ): Promise<void> {
   const token = makeId('receipt');
   const timestamp = nowIso();
@@ -340,12 +349,12 @@ async function recordTransportReceipt(
     env.DB.prepare(`
       INSERT INTO asi_engine_health (
         engine_fleet,queue_name,state,processed_count,failed_count,retry_count,dead_letter_count,last_success_at,last_failure_at,updated_at
-      ) SELECT ?,?,'TRANSPORT_RECEIPT_ONLY',1,0,0,0,?,NULL,? WHERE EXISTS (
+      ) SELECT ?,?, ?,1,0,0,0,?,NULL,? WHERE EXISTS (
         SELECT 1 FROM asi_processed_messages WHERE queue_name=? AND outbox_id=? AND processing_token=? AND status='PROCESSING'
       )
-      ON CONFLICT(engine_fleet) DO UPDATE SET state='TRANSPORT_RECEIPT_ONLY',
+      ON CONFLICT(engine_fleet) DO UPDATE SET state=excluded.state,
         processed_count=asi_engine_health.processed_count+1,last_success_at=excluded.last_success_at,updated_at=excluded.updated_at
-    `).bind(fleet.id,fleet.queue,timestamp,timestamp,queueName,task.outbox_id,token),
+    `).bind(fleet.id,fleet.queue,`PROCESSOR_${processorState}`,timestamp,timestamp,queueName,task.outbox_id,token),
     env.DB.prepare(`
       UPDATE asi_processed_messages SET status='SUCCEEDED',completed_at=?,last_seen_at=?,processing_token=NULL,last_error=NULL
       WHERE queue_name=? AND outbox_id=? AND processing_token=?
@@ -448,7 +457,11 @@ export async function consumeAsiBatch(batch: MessageBatch<AsiQueueTask>, env: As
         .bind(batch.queue,task.outbox_id).first<{status:string}>();
       if (prior?.status === 'SUCCEEDED') { message.ack(); return; }
       await persistEventAndOutboxes(env,task.event,[]);
-      await recordTransportReceipt(env,fleet,batch.queue,task,message.id,message.attempts);
+      const processorRun = await runAsiProcessorTask(env,fleet,task,message.id,{
+        stageEvent: async (event) => { await stageAsiEvent(env,event); },
+        dispatchEvent: async (eventId) => { await resumeEventOutboxes(env,eventId); },
+      });
+      await recordTransportReceipt(env,fleet,batch.queue,task,message.id,message.attempts,processorRun.processor.state);
       message.ack();
     } catch (error) {
       const messageText = error instanceof Error ? error.message : String(error);
@@ -469,9 +482,9 @@ export async function asiMeshTelemetry(env: AsiMeshEnv): Promise<Record<string, 
   ]);
   return {
     mode:'SHADOW',
-    runtime_alignment:'TWENTY_FIVE_QUEUE_TRANSPORT_SCAFFOLDS_DURABLE_OUTBOX_RELAY_PROCESSORS_ZERO_CODE_WIRED_NOT_DEPLOYED',
+    runtime_alignment:'TWENTY_FIVE_DETERMINISTIC_SHADOW_PROCESSORS_AND_QUEUE_TRANSPORT_CODE_WIRED_NOT_DEPLOYED',
     registered_fleet_count:ASI_FLEETS.length,
-    engine_processor_implementation_count:0,
+    engine_processor_implementation_count:asiProcessorInventory().length,
     event_count:Number(events?.count || 0),
     outbox:outbox.results || [],
     watermarks:watermarks.results || [],

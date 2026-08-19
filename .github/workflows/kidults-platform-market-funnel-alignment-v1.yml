@@ -12,6 +12,11 @@ on:
       - "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json"
       - "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json"
       - "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json"
+      - "coordination/kidults/source-intelligence/global-pool-r1-frontier-seed-channel-contract-v1.json"
+      - "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-contract-v1.json"
+      - "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv"
+      - "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json"
+      - "scripts/kidults/source-intelligence/*global-pool-r1*"
       - "coordination/kidults/data-scope/value-to-data-scope-contract-v1.json"
       - "coordination/kidults/data-scope/category-adaptive-scale-floor-contract-v2.json"
       - "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json"
@@ -46,6 +51,11 @@ on:
       - "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json"
       - "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json"
       - "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json"
+      - "coordination/kidults/source-intelligence/global-pool-r1-frontier-seed-channel-contract-v1.json"
+      - "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-contract-v1.json"
+      - "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv"
+      - "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json"
+      - "scripts/kidults/source-intelligence/*global-pool-r1*"
       - "coordination/kidults/data-scope/value-to-data-scope-contract-v1.json"
       - "coordination/kidults/data-scope/category-adaptive-scale-floor-contract-v2.json"
       - "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json"
@@ -102,6 +112,7 @@ jobs:
             "coordination/kidults/strategy/agci-os-total-program-strategy-reset-v2.json",
             "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json",
             "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json",
+            "coordination/kidults/source-intelligence/global-pool-r1-frontier-seed-channel-contract-v1.json",
             "coordination/kidults/data-scope/value-to-data-scope-contract-v1.json",
             "coordination/kidults/data-scope/category-adaptive-scale-floor-contract-v2.json",
             "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json",
@@ -179,6 +190,12 @@ jobs:
       - name: Typecheck 25-fleet shadow runtime
         working-directory: services/kidults-autonomous-intelligence
         run: npm run typecheck
+
+      - name: Exercise processor fan-in and Queue/D1 behavior
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          npm run asi:processor:test
+          npm run asi:processor:e2e
 
       - name: Validate Wrangler bundle without deployment
         working-directory: services/kidults-autonomous-intelligence

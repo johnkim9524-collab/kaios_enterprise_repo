@@ -8,12 +8,19 @@ const repoRoot = resolve(cwd, '../..');
 const read = (path) => readFileSync(resolve(repoRoot,path),'utf8').replace(/^\uFEFF/,'');
 const config = JSON.parse(read('services/kidults-autonomous-intelligence/wrangler.jsonc'));
 const mesh = JSON.parse(read('coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json'));
+const queueContract = JSON.parse(read('coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json'));
 const admissionPolicy = JSON.parse(read('coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json'));
 const registrySource = read('services/kidults-autonomous-intelligence/src/asi/registry.ts');
 const migration = read('services/kidults-autonomous-intelligence/migrations/0003_asi_market_funnel_shadow.sql');
+const processorMigration = read('services/kidults-autonomous-intelligence/migrations/0004_asi_processor_shadow.sql');
+const processorSource = read('services/kidults-autonomous-intelligence/src/asi/processors.ts');
+const processorRuntimeSource = read('services/kidults-autonomous-intelligence/src/asi/processor-runtime.ts');
+const processorTestSource = read('services/kidults-autonomous-intelligence/scripts/asi-processor-shadow-test.mjs');
+const processorE2eTestSource = read('services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs');
 const ingestSource = read('services/kidults-autonomous-intelligence/src/index.ts');
 const workerSource = read('services/kidults-autonomous-intelligence/src/worker.ts');
 const httpSecuritySource = read('services/kidults-autonomous-intelligence/src/http-security.ts');
+const eventEnvelopeSource = read('services/kidults-autonomous-intelligence/src/asi/event.ts');
 const eventRuntimeSource = read('services/kidults-autonomous-intelligence/src/asi/runtime.ts');
 
 const failures = [];
@@ -56,6 +63,35 @@ for (const table of [
 ]) {
   if (!migration.includes(`CREATE TABLE IF NOT EXISTS ${table}`)) failures.push(`Missing durable ASI table ${table}.`);
 }
+for (const table of [
+  'asi_source_candidates','asi_source_candidate_observations','asi_processor_assertions','asi_processor_fan_in_groups',
+  'asi_processor_fan_in_requirements','asi_processor_fan_in_members','asi_source_pool_decisions',
+]) {
+  if (!processorMigration.includes(`CREATE TABLE IF NOT EXISTS ${table}`)) failures.push(`Missing processor ASI table ${table}.`);
+}
+if (!processorMigration.includes('CREATE VIEW IF NOT EXISTS asi_processor_fan_in_readiness') ||
+  !processorMigration.includes('CREATE VIEW IF NOT EXISTS asi_source_pool_effective') ||
+  !processorMigration.includes("production_state='HOLD'")) failures.push('Processor fan-in and fail-closed SHADOW source-pool guards are incomplete.');
+if (!processorSource.includes('export function asiProcessorInventory') ||
+  !processorSource.includes('SOURCE_POOL_DECIDED') ||
+  !processorRuntimeSource.includes('evaluateBoundedShadowAdmission') ||
+  !eventRuntimeSource.includes('runAsiProcessorTask')) failures.push('All 25 deterministic SHADOW processors must be wired through the Queue consumer runtime.');
+if (queueContract.partition_key_encoding?.version !== 'partition:v1' ||
+  queueContract.partition_key_encoding?.method !== 'CANONICAL_JSON_TUPLE' ||
+  queueContract.partition_key_encoding?.delimiter_collision_possible !== false ||
+  !eventEnvelopeSource.includes('partition:v1:') ||
+  !processorRuntimeSource.includes('ASI_DISCOVERY_CANONICAL_HOST_HASH_MISMATCH') ||
+  !processorRuntimeSource.includes('ASI_DISCOVERY_CANONICAL_SITE_ID_MISMATCH')) failures.push('Partition and canonical host identity encoding must be collision-safe and runtime-derived.');
+if (!processorTestSource.includes('classification_required:classificationFleets.length') ||
+  !processorTestSource.includes('qualification_required:qualificationFleets.length') ||
+  !processorE2eTestSource.includes('processors_exercised:25') ||
+  !processorE2eTestSource.includes('discovery_fleets_queue_d1_exercised:12') ||
+  !processorE2eTestSource.includes('full_queue_d1_processor_deliveries:13 * 14') ||
+  !processorE2eTestSource.includes('global_pool_bootstrap_seed_events:bootstrap.queue_seed_events.length') ||
+  !processorE2eTestSource.includes('ASI_EVENT_PAYLOAD_HASH_MISMATCH') ||
+  !processorE2eTestSource.includes('discovery seed ALLOW cannot override envelope DENY') ||
+  !processorE2eTestSource.includes('discovery seed ALLOW cannot override envelope REJECT') ||
+  !processorE2eTestSource.includes("hold_pool_state:'HOLD'")) failures.push('Processor durability/fan-in/end-to-end behavioral tests are incomplete.');
 const boundedAssertions = admissionPolicy.purposes?.find((item) => item.purpose === 'BOUNDED_SHADOW_ACQUISITION')?.required_assertions || [];
 const expectedBoundedAssertions = ['COLLECT','STORE','TRANSFORM','RETENTION','RATE_LIMIT','ROBOTS','SCHEMA','PROVENANCE','FRESHNESS'];
 if (JSON.stringify(boundedAssertions) !== JSON.stringify(expectedBoundedAssertions)) failures.push('Bounded shadow admission policy assertion set drifted.');
@@ -69,7 +105,8 @@ if (!ingestSource.includes('bearerAuthorized(request,env.INGEST_TOKEN)') || !wor
   !httpSecuritySource.includes('if (!token) return false;') || !httpSecuritySource.includes('timingSafeEqual') || !httpSecuritySource.includes('REQUEST_BODY_TOO_LARGE')) failures.push('Internal runtime endpoints need bounded parsing and constant-time fail-closed bearer authentication.');
 if (!workerSource.includes('asi_transport_unavailable') || !workerSource.includes('clientError ? 400 : 503')) failures.push('Transient enqueue failures must return a retryable 5xx response.');
 if (!eventRuntimeSource.includes('ASI_QUEUE_TASK_OUTBOX_PROVENANCE_MISMATCH') ||
-  !eventRuntimeSource.includes('SELECT 1 FROM asi_event_log WHERE event_id=?')) failures.push('Outbox writes and consumer receipts must be bound to the immutable event and outbox lineage.');
+  !eventRuntimeSource.includes('SELECT 1 FROM asi_event_log WHERE event_id=?') ||
+  !eventRuntimeSource.includes('assertAsiEventPayloadHash')) failures.push('Payload hash, outbox writes and consumer receipts must be bound to immutable event lineage.');
 
 const expectedVisualLock = 'KIDULTS Portal Visual Baseline v1.0';
 const lockMigration = read('services/kidults-autonomous-intelligence/migrations/0002_autonomous_orchestration.sql');
@@ -83,5 +120,5 @@ if (failures.length) {
 
 console.log('KIDULTS deployment preflight PASS');
 console.log(`D1: ${db.database_name} (${db.database_id})`);
-console.log('ASI: SHADOW / 25 queue transport scaffolds / engine processors NOT IMPLEMENTED / publication HOLD');
-console.log('Shadow transport state: event/outbox/watermark/DLQ schemas and code wired; engine processors, complete recovery, remote resources and deployment NOT VERIFIED');
+console.log('ASI: SHADOW / 25 deterministic processors + queue transports code-wired / publication HOLD');
+console.log('Shadow runtime state: processor/fan-in/event/outbox/watermark/DLQ code wired; complete recovery, remote resources and deployment NOT VERIFIED');
