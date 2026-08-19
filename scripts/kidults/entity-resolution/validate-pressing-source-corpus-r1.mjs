@@ -57,6 +57,8 @@ export function validateArtifact(artifact) {
   if (artifact.stratum_id !== 'er-stratum-pressing-edition-media') fail('STRATUM_INVALID');
   if (artifact.source_id !== 'musicbrainz-core-catalog') fail('SOURCE_INVALID');
   if (artifact.acquisition_transport !== 'musicbrainz-ws2-bounded-noncommercial-core-fields-only') fail('TRANSPORT_BOUNDARY_INVALID');
+  if (artifact.data_rights_state !== 'ALLOW' || artifact.data_rights_state !== config.data_rights_state_required) fail('DATA_RIGHTS_STATE_INVALID');
+  if (artifact.acquisition_transport_state !== 'ALLOW_NONCOMMERCIAL_RESEARCH_ONLY' || artifact.acquisition_transport_state !== config.acquisition_transport_state_required) fail('TRANSPORT_RIGHTS_STATE_INVALID');
   if (artifact.source_query !== config.search_query) fail('SOURCE_QUERY_MISMATCH');
   if (!Number.isInteger(artifact.search_pages_fetched) || artifact.search_pages_fetched < 1 || artifact.search_pages_fetched > config.maximum_search_pages) fail('SEARCH_PAGE_COUNT_INVALID');
   if (!Number.isInteger(artifact.eligible_records_observed) || artifact.eligible_records_observed < config.target_source_record_count) fail('ELIGIBLE_RECORD_FLOOR_NOT_MET');
@@ -77,7 +79,8 @@ export function validateArtifact(artifact) {
     if (!isUuid(record.source_record_id) || seen.has(record.source_record_id)) fail('RECORD_ID_INVALID_OR_DUPLICATE');
     seen.add(record.source_record_id);
     if (record.source_reference !== `https://musicbrainz.org/release/${record.source_record_id}`) fail('RECORD_SOURCE_REFERENCE_INVALID');
-    if (record.rights_state !== 'ALLOW_NONCOMMERCIAL_RESEARCH_ONLY') fail('RIGHTS_STATE_INVALID');
+    if (record.rights_state !== 'ALLOW' || record.rights_state !== config.data_rights_state_required) fail('RIGHTS_STATE_INVALID');
+    if (record.acquisition_transport_state !== 'ALLOW_NONCOMMERCIAL_RESEARCH_ONLY' || record.acquisition_transport_state !== config.acquisition_transport_state_required) fail('RECORD_TRANSPORT_RIGHTS_STATE_INVALID');
     if (!Array.isArray(record.license_evidence_refs) || config.license_evidence_refs.some((reference) => !record.license_evidence_refs.includes(reference))) fail('LICENSE_EVIDENCE_INCOMPLETE');
     if (!Array.isArray(record.provenance_refs) || record.provenance_refs.length < 2 ||
         !record.provenance_refs.some((reference) => String(reference).startsWith('https://musicbrainz.org/ws/2/release/')) ||
@@ -140,7 +143,8 @@ function makeSelfTestArtifact() {
       source_reference: sourceReference,
       source_payload_sha256: digest(payload),
       license_evidence_refs: [...config.license_evidence_refs],
-      rights_state: 'ALLOW_NONCOMMERCIAL_RESEARCH_ONLY',
+      rights_state: 'ALLOW',
+      acquisition_transport_state: 'ALLOW_NONCOMMERCIAL_RESEARCH_ONLY',
       provenance_refs: ['https://musicbrainz.org/ws/2/release/?query=fixture', sourceReference],
       payload
     };
@@ -152,6 +156,8 @@ function makeSelfTestArtifact() {
     stratum_id: config.stratum_id,
     source_id: config.source,
     acquisition_transport: 'musicbrainz-ws2-bounded-noncommercial-core-fields-only',
+    data_rights_state: 'ALLOW',
+    acquisition_transport_state: 'ALLOW_NONCOMMERCIAL_RESEARCH_ONLY',
     source_query: config.search_query,
     source_corpus_sha256: digest(records.map((record) => ({ source_record_id: record.source_record_id, source_payload_sha256: record.source_payload_sha256 }))),
     acquired_at: '2026-08-19T00:00:00.000Z',

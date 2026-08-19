@@ -171,7 +171,8 @@ const records = selected.map(({ payload, query_reference: queryReference }) => {
     source_reference: sourceReference,
     source_payload_sha256: digest(payload),
     license_evidence_refs: [...config.license_evidence_refs],
-    rights_state: 'ALLOW_NONCOMMERCIAL_RESEARCH_ONLY',
+    rights_state: config.data_rights_state_required,
+    acquisition_transport_state: config.acquisition_transport_state_required,
     provenance_refs: [queryReference, sourceReference],
     payload
   };
@@ -188,6 +189,8 @@ const artifact = {
   stratum_id: config.stratum_id,
   source_id: config.source,
   acquisition_transport: 'musicbrainz-ws2-bounded-noncommercial-core-fields-only',
+  data_rights_state: config.data_rights_state_required,
+  acquisition_transport_state: config.acquisition_transport_state_required,
   source_query: config.search_query,
   source_corpus_sha256: sourceCorpusSha256,
   acquired_at: new Date().toISOString(),
