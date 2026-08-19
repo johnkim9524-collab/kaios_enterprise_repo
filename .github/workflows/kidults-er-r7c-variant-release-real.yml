@@ -1,0 +1,66 @@
+name: KIDULTS ER R7C Variant Release Real
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs'
+      - 'scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs'
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - '.github/workflows/kidults-er-r7c-variant-release-real.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-r7c:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build R1-R6
+        run: |
+          node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/er-r2.json /tmp/er-r3.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs /tmp/er-r3.json /tmp/er-r5.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs /tmp/er-r5.json /tmp/er-r6.json
+      - name: Build R7A and R7B
+        run: |
+          node scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs /tmp/er-r6.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7a.json
+          node scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs /tmp/er-r7a.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7b.json
+      - name: Add variant-release normalization R7C
+        run: |
+          node scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs /tmp/er-r7b.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7c.json
+      - name: Run benchmark
+        run: |
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r7c.json /tmp/er-r7c-results.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+      - name: Verify 5-of-7 represented and variant stratum intentionally incomplete
+        run: |
+          node - <<'NODE'
+          const d=require('/tmp/er-r7c.json'); const r=require('/tmp/er-r7c-results.json');
+          const id='er-stratum-variant-release-heavy'; const rows=d.cases.filter(x=>x.scope_id===id); const classes=new Set(rows.map(x=>x.case_class));
+          const required=new Set(d.required_scope_ids); const represented=new Set(d.cases.map(x=>x.scope_id).filter(x=>required.has(x)));
+          if(represented.size!==5) process.exit(1);
+          if(!classes.has('SAME_OBJECT_NORMALIZATION')) process.exit(1);
+          if(classes.has('HARD_NEGATIVE')||classes.has('CROSS_MARKET_ALIAS')) process.exit(1);
+          if(r.strata_manifest_binding.binding_valid!==true) process.exit(1);
+          if(r.coverage.per_stratum[id].complete!==false) process.exit(1);
+          if(r.coverage.per_stratum_requirements_complete!==false||r.coverage.scope_stratification_complete!==false) process.exit(1);
+          if(r.accuracy!==1||r.blind_accuracy!==1||r.critical_false_auto_merge!==0||r.blind_critical_false_auto_merge!==0) process.exit(1);
+          if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
+          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
+          console.log('R7C PASS: VARIANT_RELEASE_HEAVY now has real same-object normalization; hard-negative/cross-market requirements remain explicit blockers.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-r7c-variant-release-real
+          path: |
+            /tmp/er-r7c.json
+            /tmp/er-r7c-results.json
+          if-no-files-found: error
+          retention-days: 30
