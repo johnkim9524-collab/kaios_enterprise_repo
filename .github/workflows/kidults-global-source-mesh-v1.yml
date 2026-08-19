@@ -1,0 +1,43 @@
+name: KIDULTS Global Source Mesh v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - '.github/workflows/kidults-global-source-mesh-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-source-mesh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build deterministic 32-scope global market-cell mesh
+        run: node scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json /tmp/kidults-global-source-mesh-v1.json
+      - name: Verify fail-closed global coverage and claim ceilings
+        run: |
+          node - <<'NODE'
+          const r=require('/tmp/kidults-global-source-mesh-v1.json');
+          if(r.production!=='HOLD'||r.market_cell_count!==768||r.scope_count!==32||r.evidence_class_count!==8) process.exit(1);
+          if(r.named_provider_global_selection!==false) process.exit(1);
+          if(r.market_cells.some(x=>x.rights_admitted||x.evidence_admitted||x.named_provider_selected||x.production!=='HOLD')) process.exit(1);
+          const required=['NO_CURRENT_PRICE_OR_TRANSACTION_CLAIM','NO_POPULATION_OR_SCARCITY_CLAIM','NO_LIQUIDITY_OR_TIME_TO_SALE_CLAIM'];
+          for(const x of required) if(!r.cannot_yet_claim_summary.includes(x)) process.exit(1);
+          if(!r.rules.includes('NO_SINGLE_PROVIDER_GLOBAL_TRUTH')) process.exit(1);
+          console.log('Global Source Mesh fail-closed validation PASS');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-global-source-mesh-v1
+          path: /tmp/kidults-global-source-mesh-v1.json
+          if-no-files-found: error
+          retention-days: 30
