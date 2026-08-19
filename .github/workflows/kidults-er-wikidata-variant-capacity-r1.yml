@@ -1,0 +1,23 @@
+name: KIDULTS ER Wikidata Variant Capacity R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/empirical-acquisition-wave1-r1.json'
+      - 'scripts/kidults/entity-resolution/probe-wikidata-variant-empirical-capacity-r1.mjs'
+      - '.github/workflows/kidults-er-wikidata-variant-capacity-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-capacity:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Prove at least 120 distinct real CC0 variant source records
+        run: node scripts/kidults/entity-resolution/probe-wikidata-variant-empirical-capacity-r1.mjs
