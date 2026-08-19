@@ -285,8 +285,8 @@
     },
     "entity_resolution_cross_market_alias_r5_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs",
-      "sha256": "sha256:42ea579a52c9e8a2ac34ecd34d749fcaa53233a2b059a7836475ef8b53097abe",
-      "byte_count": 6210
+      "sha256": "sha256:87572671b31f8b8c8249d8f575b4fc7d78f5e3f9c2aeb5ed48768c9744dd6335",
+      "byte_count": 5788
     },
     "entity_resolution_ambiguous_review_r6_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs",
@@ -985,8 +985,8 @@
       },
       "cross_market_alias_r5_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs",
-        "sha256": "sha256:42ea579a52c9e8a2ac34ecd34d749fcaa53233a2b059a7836475ef8b53097abe",
-        "byte_count": 6210
+        "sha256": "sha256:87572671b31f8b8c8249d8f575b4fc7d78f5e3f9c2aeb5ed48768c9744dd6335",
+        "byte_count": 5788
       },
       "ambiguous_review_r6_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs",
@@ -2267,5 +2267,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:5219cd75e5a11ddb30f0381f279adb70f99f84e73d8392c6ceca9c63da93f53b"
+  "evidence_fingerprint": "sha256:deec70be9831d3558ddb423e9e9d3e9ef724fe4918d5268ceff01b59ec4f460e"
 }
