@@ -1,0 +1,106 @@
+{
+  "id": "global-rights-source-pool-expansion-r2",
+  "version": "2.0.0",
+  "methodology_issue": 486,
+  "factory_issue": 488,
+  "production": "HOLD",
+  "sources": [
+    {
+      "source_id": "wikidata-structured-data",
+      "owner": "Wikimedia Foundation / Wikidata community",
+      "channel": "PUBLIC_API_LINKED_DATA_DUMPS",
+      "rights_basis": "CC0_STRUCTURED_DATA",
+      "rights_evidence": [
+        "https://www.wikidata.org/wiki/Wikidata:Data_access/en",
+        "https://www.wikidata.org/wiki/Wikidata:Licensing"
+      ],
+      "admission_state": "ADMITTED",
+      "allowed_claim_classes": ["OBJECT_IDENTITY", "CANONICAL_DESIGN_CONTEXT", "MAKER_CREATOR_CONTEXT", "AUTHORITY_LINKAGE", "REFERENCE_METADATA"],
+      "prohibited_claim_classes": ["SOLD_TRANSACTION", "CURRENT_MARKET_PRICE", "CURRENT_LIQUIDITY", "CURRENT_DEMAND"],
+      "purpose_rights": {
+        "discover": "ALLOW",
+        "collect": "ALLOW_STRUCTURED_CC0_DATA",
+        "store": "ALLOW_STRUCTURED_CC0_DATA",
+        "derive": "ALLOW_STRUCTURED_CC0_DATA",
+        "display_internal": "ALLOW_STRUCTURED_CC0_DATA",
+        "display_public": "ALLOW_STRUCTURED_CC0_DATA"
+      },
+      "technical_constraints": ["HONOR_RATE_LIMITS", "PREFER_EFFICIENT_ACCESS_METHOD", "INTERFACE_STABILITY_NOT_ASSUMED"],
+      "evidence_strength": "IDENTITY_CONTEXT_ONLY"
+    },
+    {
+      "source_id": "europeana-metadata-api",
+      "owner": "Europeana Foundation",
+      "channel": "API_LINKED_OPEN_DATA",
+      "rights_basis": "METADATA_CC0_OBJECT_RIGHTS_FIELD_SPECIFIC",
+      "rights_evidence": [
+        "https://www.europeana.eu/eu/rights/terms-of-use",
+        "https://pro.europeana.eu/page/the-data-exchange-agreement",
+        "https://pro.europeana.eu/page/apis"
+      ],
+      "admission_state": "ADMITTED",
+      "allowed_claim_classes": ["OBJECT_IDENTITY", "CATALOG_CONTEXT", "INSTITUTION_CONTEXT", "REFERENCE_METADATA", "RIGHTS_STATEMENT_CONTEXT"],
+      "prohibited_claim_classes": ["SOLD_TRANSACTION", "CURRENT_MARKET_PRICE", "CURRENT_LIQUIDITY", "CURRENT_DEMAND"],
+      "purpose_rights": {
+        "discover": "ALLOW",
+        "collect": "ALLOW_METADATA_CC0",
+        "store": "ALLOW_METADATA_CC0",
+        "derive": "ALLOW_METADATA_CC0",
+        "display_internal": "ALLOW_METADATA_CC0",
+        "display_public": "ALLOW_METADATA_CC0"
+      },
+      "digital_object_rule": "DIGITAL_OBJECT_AND_PREVIEW_REUSE_MUST_FOLLOW_RECORD_LEVEL_EDM_RIGHTS; missing rights defaults to no reuse beyond applicable law/provider permission.",
+      "api_key_rule": "API use requires applicable key/account terms; production-scale key is distinct from personal non-production key.",
+      "evidence_strength": "IDENTITY_CONTEXT_ONLY"
+    },
+    {
+      "source_id": "bricklink-price-guide-api",
+      "owner": "LEGO BrickLink, Inc.",
+      "channel": "REGISTERED_LICENSED_API",
+      "rights_basis": "REVOCABLE_API_LICENSE_TERMS",
+      "rights_evidence": [
+        "https://www.bricklink.com/v3/api.page?page=get-price-guide",
+        "https://www.bricklink.com/v3/terms_of_use_api.page"
+      ],
+      "admission_state": "CONDITIONAL",
+      "source_scope": ["construction_mechanical_sets", "lego_related_collectibles"],
+      "semantic_capability": ["LAST_6_MONTHS_SOLD_PRICE_STATISTICS", "SOLD_UNIT_QUANTITY", "CURRENT_LISTING_PRICE_STATISTICS", "REGION_COUNTRY_FILTERS"],
+      "purpose_rights": {
+        "discover": "ALLOW_PUBLIC_DOCUMENTATION",
+        "collect": "CONDITIONAL_ON_REGISTERED_AUTHORIZED_API_ACCESS",
+        "store": "CONDITIONAL_REQUIRES_EXACT_TERMS_REVIEW",
+        "derive": "CONDITIONAL_REQUIRES_EXACT_APPLICATION_AND_COMMERCIAL_USE_REVIEW",
+        "display_internal": "CONDITIONAL",
+        "display_public": "CONDITIONAL_ATTRIBUTION_AND_APPLICATION_TERMS"
+      },
+      "blocking_conditions": ["API_REGISTRATION_AUTHORIZATION", "APPLICATION_USE_CASE_TERMS_REVIEW", "COMMERCIAL_USE_BOUNDARY", "RATE_LIMIT", "NO_NON_API_SCRAPING"],
+      "evidence_strength": "POTENTIAL_CURRENT_MARKET_AGGREGATE_SOLD_SIGNAL_NOT_YET_ADMITTED"
+    },
+    {
+      "source_id": "discogs-api",
+      "owner": "Discogs",
+      "channel": "API",
+      "rights_basis": "MIXED_CC0_AND_RESTRICTED_DATA",
+      "rights_evidence": ["https://support.discogs.com/hc/en-us/articles/360009334593-API-Terms-of-Use"],
+      "admission_state": "CONDITIONAL",
+      "allowed_without_marketplace_promotion": ["CC0_RELEASE_METADATA", "CC0_ARTIST_METADATA", "CC0_LABEL_METADATA"],
+      "restricted_classes": ["MARKETPLACE_PRICING", "SALES_HISTORY", "INVENTORY", "ORDERS", "PRICING_SUGGESTIONS", "USER_DATA"],
+      "purpose_rights": {
+        "discover": "ALLOW_WITH_TERMS",
+        "collect": "CC0_CATALOG_ONLY_UNLESS_RESTRICTED_DATA_TERMS_SATISFIED",
+        "store": "CC0_CATALOG_ONLY_UNLESS_RESTRICTED_DATA_TERMS_SATISFIED",
+        "derive": "CONDITIONAL_FOR_RESTRICTED_MARKETPLACE_DATA",
+        "display_internal": "CONDITIONAL_FOR_RESTRICTED_MARKETPLACE_DATA",
+        "display_public": "CONDITIONAL_FOR_RESTRICTED_MARKETPLACE_DATA"
+      },
+      "evidence_strength": "IDENTITY_CONTEXT_CC0; MARKETPLACE_CURRENT_MARKET_NOT_ADMITTED"
+    }
+  ],
+  "pool_effect": {
+    "new_admitted_identity_context_sources": 2,
+    "new_current_market_candidates_conditional": 2,
+    "current_market_claim_gate": "STILL_OPEN",
+    "provider_purchase": "HOLD"
+  },
+  "truth_boundary": "Source-level admission is purpose-specific. BrickLink and Discogs marketplace data are not admitted as current-market truth until exact application/access/derivation/storage/display rights are evidenced."
+}
