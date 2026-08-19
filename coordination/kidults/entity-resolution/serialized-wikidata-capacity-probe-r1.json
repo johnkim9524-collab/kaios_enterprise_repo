@@ -1,0 +1,23 @@
+{
+  "id": "kidults-er-serialized-wikidata-capacity-probe-r1",
+  "version": "1.0.0",
+  "parent_issue": 609,
+  "support_issue": 614,
+  "stratum_id": "er-stratum-serialized-reference",
+  "status": "DIAGNOSTIC_CAPACITY_PROBE",
+  "source_id": "wikidata-structured-data-cc0",
+  "required_properties": {
+    "manufacturer": "P176",
+    "serial_number": "P2598",
+    "model_number": "P13351"
+  },
+  "capacity_floor": 120,
+  "query_limit": 500,
+  "admission_on_probe_success": false,
+  "labels_allowed": false,
+  "model_predictions_allowed": false,
+  "reviewer_claims_allowed": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "truth_boundary": "This is a diagnostic capacity probe only. A record counts toward raw grammar capacity only when the same Wikidata item has explicit manufacturer P176, serial number P2598 and model number P13351 statements. Reaching 120 does not prove collectible-scope representativeness, independent source aliases, empirical labels, benchmark PASS, Track B approval, publication or Production authorization."
+}
