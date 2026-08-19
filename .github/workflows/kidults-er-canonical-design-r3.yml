@@ -1,0 +1,44 @@
+name: KIDULTS ER Canonical Design R3
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs'
+      - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - '.github/workflows/kidults-er-canonical-design-r3.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  assemble-and-run-r3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - run: node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
+      - run: node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
+      - run: node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/er-r2.json /tmp/er-r3.json
+      - run: node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r3.json /tmp/er-r3-results.json
+      - name: Verify design coverage, scope gate and fail-closed promotion
+        run: |
+          node - <<'NODE'
+          const d=require('/tmp/er-r3.json'); const r=require('/tmp/er-r3-results.json');
+          if(d.cases.length!==4) process.exit(1);
+          if(!d.cases.some(x=>x.case_class==='SAME_DESIGN_DIFFERENT_OBJECT'&&x.identity_boundary==='CANONICAL_DESIGN')) process.exit(1);
+          if(r.accuracy!==1||r.critical_false_auto_merge!==0) process.exit(1);
+          if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
+          if(r.coverage.scope_stratification_complete!==false) process.exit(1);
+          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
+          console.log('R3 design evidence PASS; approved PoC scope gate remains correctly closed.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-real-world-r3-refresh
+          path: |
+            /tmp/er-r3.json
+            /tmp/er-r3-results.json
+          retention-days: 30

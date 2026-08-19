@@ -1,0 +1,56 @@
+name: KIDULTS ER Cross Market Alias R5
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs'
+      - 'scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs'
+      - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - '.github/workflows/kidults-er-cross-market-alias-r5.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assemble-and-run-r5:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build R1-R3 real aggregate
+        run: |
+          node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/er-r2.json /tmp/er-r3.json
+      - name: Add authoritative cross-market alias R5
+        run: node scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs /tmp/er-r3.json /tmp/er-r5.json
+      - name: Run canonical benchmark
+        run: node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r5.json /tmp/er-r5-results.json
+      - name: Freeze updated real blind holdout
+        run: node scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs /tmp/er-r5.json /tmp/er-r5-holdout-freeze.json
+      - name: Verify cross-market evidence and fail-closed scope gate
+        run: |
+          node - <<'NODE'
+          const d=require('/tmp/er-r5.json'); const r=require('/tmp/er-r5-results.json'); const f=require('/tmp/er-r5-holdout-freeze.json');
+          if(!d.cases.some(x=>x.case_class==='CROSS_MARKET_ALIAS')) process.exit(1);
+          if(r.accuracy!==1||r.critical_false_auto_merge!==0) process.exit(1);
+          if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
+          if(r.coverage.scope_stratification_complete!==false||r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
+          if(f.empirical_freeze!==true||f.holdout_count<2) process.exit(1);
+          console.log('R5 authoritative external-ID crosswalk PASS; current-market and final PoC scope promotion remain blocked.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-real-world-r5
+          path: |
+            /tmp/er-r5.json
+            /tmp/er-r5-results.json
+            /tmp/er-r5-holdout-freeze.json
+          if-no-files-found: error
+          retention-days: 30
