@@ -1,14 +1,26 @@
 import fs from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 
 const [inputPath, manifestPath, outputPath='/tmp/er-real-world-r7c.json'] = process.argv.slice(2);
 if(!inputPath||!manifestPath) throw new Error('Usage: node extend-er-r7b-variant-release-r7c.mjs <r7b.json> <manifest.json> [r7c.json]');
 const dataset=JSON.parse(await fs.readFile(inputPath,'utf8'));
 const manifest=JSON.parse(await fs.readFile(manifestPath,'utf8'));
 const STRATUM='er-stratum-variant-release-heavy';
-if(dataset.dataset_class!=='REAL_WORLD_LABELED'||dataset.synthetic===true) throw new Error('R7B_REAL_WORLD_DATASET_REQUIRED');
+const constructedControlInput=dataset.dataset_class==='REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL'
+  && dataset.synthetic===false
+  && dataset.constructed_control===true
+  && dataset.empirical_benchmark_eligible===false
+  && dataset.independent_label_review_complete===false
+  && dataset.label_adjudication_complete===false
+  && dataset.holdout_sealed_before_modeling===false
+  && Array.isArray(dataset.cases)
+  && dataset.cases.every((item)=>item.blind_holdout!==true);
+if(!constructedControlInput) throw new Error('R7B_CONSTRUCTED_CONTROL_DATASET_REQUIRED');
 if(manifest.status!=='APPROVED_BOUNDED_POC_CALIBRATION'||!(manifest.required_strata_ids||[]).includes(STRATUM)) throw new Error('VARIANT_RELEASE_STRATUM_NOT_APPROVED');
 
 const timeoutMs=18000;
+const WIKIDATA_RIGHTS_URL='https://www.wikidata.org/wiki/Wikidata:Licensing';
+const digest=(value)=>`sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 async function fetchJson(url,headers={},attempts=2){
   let last;
   for(let a=1;a<=attempts;a++){
@@ -58,17 +70,31 @@ if(selected.codes[0]===selected.codes[1]) throw new Error('DISTINCT_MODEL_NUMBER
 const anchor=`wikidata-product-model:${selected.qid}`;
 const variantNormalization={
   case_id:`wikidata-variant-model-number-normalization-${selected.qid}`,
-  case_class:'SAME_OBJECT_NORMALIZATION',identity_boundary:'SOURCE_RECORD',scope_id:STRATUM,expected:'MATCH',blind_holdout:true,
+  case_class:'SAME_OBJECT_NORMALIZATION',identity_boundary:'SOURCE_RECORD',scope_id:STRATUM,expected:'MATCH',blind_holdout:false,
+  constructed_control:true,label_review_status:'NOT_INDEPENDENTLY_REVIEWED_OR_ADJUDICATED',
   left:{anchors:{SOURCE_RECORD:anchor},unique_keys:{reference_id:`model-number:${selected.codes[0]}`},entity_id:selected.qid,model_number:selected.codes[0],manufacturer_id:selected.manufacturer,label:label(entity),source:'wikidata-structured-data'},
   right:{anchors:{SOURCE_RECORD:anchor},unique_keys:{reference_id:`model-number:${selected.codes[1]}`},entity_id:selected.qid,model_number:selected.codes[1],manufacturer_id:selected.manufacturer,label:String(label(entity)).toLowerCase(),source:'wikidata-structured-data'},
   provenance_refs:[`wikidata:${selected.qid}:P13351:${selected.codes[0]}`,`wikidata:${selected.qid}:P13351:${selected.codes[1]}`,`wikidata:${selected.qid}:P176:${selected.manufacturer}`,'wikidata-property:P13351:model-number'],
   rights_state:'ALLOW',
-  label_basis:'LIVE_WIKIDATA_ENTITYDATA_BINDS_TWO_DISTINCT_MANUFACTURER_MODEL_NUMBERS_TO_THE_SAME_PRODUCT_MODEL_ITEM',
+  label_basis:'ALGORITHMICALLY_CONSTRUCTED_FROM_WIKIDATA_ENTITYDATA_BINDING_TWO_DISTINCT_MANUFACTURER_MODEL_NUMBERS_TO_THE_SAME_PRODUCT_MODEL_ITEM',
+  source_evidence:[
+    {source_url:`https://www.wikidata.org/wiki/Special:EntityData/${selected.qid}.json`,source_payload_sha256:digest(j),license_evidence_refs:[WIKIDATA_RIGHTS_URL]}
+  ],
   claim_ceiling:'VARIANT_RELEASE_PRODUCT_MODEL_NORMALIZATION_ONLY_NO_REGION_OR_MARKET_INFERENCE'
 };
 if(dataset.cases.some(x=>x.case_id===variantNormalization.case_id)) throw new Error('DUPLICATE_R7C_CASE');
 const cases=[...dataset.cases,variantNormalization];
 const represented=[...new Set(cases.map(x=>x.scope_id).filter(x=>(manifest.required_strata_ids||[]).includes(x)))].sort();
-const out={...dataset,id:'entity-resolution-real-world-dataset-r7c-approved-strata-partial',dataset_scope:'R7C_PARTIAL_APPROVED_STRATA_5_OF_7_VARIANT_NORMALIZATION_ONLY',scope_stratification_status:'INCOMPLETE',approved_scope_ids:manifest.approved_strata_ids,required_scope_ids:manifest.required_strata_ids,approved_strata_manifest_id:manifest.id,represented_approved_strata_ids:represented,cases,truth_boundary:'R7C adds a live-revalidated VARIANT_RELEASE_HEAVY SAME_OBJECT_NORMALIZATION case using two model numbers on one manufacturer product-model item. It does not infer regional or market equivalence; hard-negative and cross-market-alias cases remain missing for this stratum.'};
+const out={
+  ...dataset,
+  id:'entity-resolution-live-source-derived-constructed-control-r7c-strata-mapped-partial',
+  dataset_scope:'R7C_PARTIAL_APPROVED_STRATA_5_OF_7_VARIANT_NORMALIZATION_ONLY_CONSTRUCTED_CONTROL',
+  dataset_class:'REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL',synthetic:false,constructed_control:true,
+  empirical_benchmark_eligible:false,independent_label_review_complete:false,label_adjudication_complete:false,
+  holdout_sealed_before_modeling:false,production:'HOLD',
+  scope_stratification_status:'INCOMPLETE',approved_scope_ids:manifest.approved_strata_ids,required_scope_ids:manifest.required_strata_ids,
+  approved_strata_manifest_id:manifest.id,represented_approved_strata_ids:represented,cases,
+  truth_boundary:'R7C adds a live-source-derived VARIANT_RELEASE_HEAVY SAME_OBJECT_NORMALIZATION constructed control using two model numbers on one Wikidata product-model item. The label is algorithmically derived, not independently reviewed, adjudicated, or blind. No regional or market equivalence is inferred; missing stratum classes and empirical/Production gates remain blocked.'
+};
 await fs.writeFile(outputPath,JSON.stringify(out,null,2));
-console.log(JSON.stringify({id:out.id,entity_id:selected.qid,manufacturer_id:selected.manufacturer,model_numbers:selected.codes,represented_approved_strata_ids:represented,production:'HOLD'},null,2));
+console.log(JSON.stringify({id:out.id,evidence_class:out.dataset_class,constructed_control:true,empirical_benchmark_eligible:false,entity_id:selected.qid,manufacturer_id:selected.manufacturer,model_numbers:selected.codes,represented_approved_strata_ids:represented,production:'HOLD'},null,2));

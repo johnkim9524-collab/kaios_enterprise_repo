@@ -3,7 +3,8 @@ import {
   asiMeshTelemetry,
   consumeAsiBatch,
   enqueueAsiEvent,
-  relayPendingOutbox,
+  runAsiRecoveryCycle,
+  type AsiRecoveryCycleResult,
   type AsiMeshEnv,
   type AsiQueueTask,
 } from './asi/runtime';
@@ -39,7 +40,7 @@ function enqueueErrorResponse(error: unknown): Response {
 
 async function recordShadowHeartbeat(
   env: Env,
-  relay: {selected:number;dispatched:number;retry:number;deadLettered:number},
+  recovery: AsiRecoveryCycleResult,
 ): Promise<void> {
   const telemetry = await asiMeshTelemetry(env);
   await env.DB.prepare(`
@@ -50,7 +51,7 @@ async function recordShadowHeartbeat(
     registeredFleetCount:telemetry.registered_fleet_count,
     eventCount:telemetry.event_count,
     unreplayedDeadLetters:telemetry.unreplayed_dead_letters,
-    outboxRelay:relay,
+    recoveryCycle:recovery,
     publicationAuthorized:false,
   }),nowIso()).run();
 }
@@ -99,8 +100,8 @@ export default {
 
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil((async () => {
-      const relay = await relayPendingOutbox(env);
-      await recordShadowHeartbeat(env,relay);
+      const recovery = await runAsiRecoveryCycle(env);
+      await recordShadowHeartbeat(env,recovery);
     })().catch(async (error) => {
       const message = error instanceof Error ? error.message : String(error);
       await env.DB.prepare(`

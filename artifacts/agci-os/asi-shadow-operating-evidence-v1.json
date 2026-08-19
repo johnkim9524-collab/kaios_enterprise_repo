@@ -1,0 +1,2271 @@
+{
+  "id": "kidults-asi-shadow-operating-evidence-v1",
+  "record_type": "asi_shadow_operating_evidence",
+  "version": "1.0.0",
+  "status": "LOCAL_SHADOW_OPERATING_EVIDENCE_PASS_NOT_DEPLOYED",
+  "evidence_clock": "2026-08-19T00:00:00.000Z",
+  "contract": {
+    "id": "kidults-asi-shadow-operating-evidence-contract-v1",
+    "version": "1.0.0",
+    "fingerprint": "sha256:32488f109ab04545c2968a7ae1bfc86e3d115e83f8317bb4a9c5b4ed5277c21f"
+  },
+  "principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "canonical_inputs": {
+    "source_admission_methodology": {
+      "path": "coordination/kidults/source-intelligence/source-admission-rights-methodology-v1.json",
+      "id": "source-admission-rights-methodology-v1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:f913638d32b3a4cf3b81f35bea7c3720d9c5d0599f134f305acc474f70f6ee55"
+    },
+    "engine_mesh": {
+      "path": "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json",
+      "id": "kidults-asi-market-funnel-engine-mesh-v1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:cd99de1d2da127e0d55222c5316ab9f6d891884c9263ab9452fada0279ba5bf9"
+    },
+    "queue_and_partition": {
+      "path": "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json",
+      "id": "kidults-asi-queue-and-partition-contract-v1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:8962527887176d5ddbae39665610ef87e0b8f738c0af278be42c90f1a8cf5c7e"
+    },
+    "purpose_admission": {
+      "path": "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json",
+      "id": "kidults-asi-purpose-specific-admission-policy-v1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:0054f0db62af4999b03ea3c38697735327fe59ec28b8d31b146f73e1e19285d3"
+    },
+    "rights_admitted_identity_context_pilot_pool": {
+      "path": "coordination/kidults/source-intelligence/rights-admitted-pilot-source-pool-r1.json",
+      "id": "rights-admitted-pilot-source-pool-r1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:dc5a3056ca4598f03029d01a93da49141be3ec74d54df0d6490ae6c59fe3fcac"
+    },
+    "rights_admitted_historical_transaction_pool": {
+      "path": "coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json",
+      "id": "rights-admitted-transaction-source-pool-r1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:a0fd2214ce0de0fb1a7ad0263c24eb120f8d9e85e7d605d40e8cc91d21827ef8"
+    },
+    "global_rights_source_pool_expansion_r2": {
+      "path": "coordination/kidults/source-intelligence/global-rights-source-pool-expansion-r2.json",
+      "id": "global-rights-source-pool-expansion-r2",
+      "version": "2.0.0",
+      "fingerprint": "sha256:591f0cd77d8ced81c5fd632c337620420c2b4a07d3c45702bb3b4dfb9ae1ece3"
+    },
+    "designer_maker_repository_declared_identity_calibration_admission_r3": {
+      "path": "coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json",
+      "id": "designer-maker-moma-cooper-admission-r3",
+      "version": "3.0.0",
+      "fingerprint": "sha256:7c769ee39523d4c2584cb69e51610f16299ec2bc0ea1f45c4c07283fa944ead7"
+    },
+    "candidate_handoff_preflight_contract_r2": {
+      "path": "coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json",
+      "id": "candidate-evidence-handoff-preflight-contract-r2",
+      "version": "2.1.0",
+      "fingerprint": "sha256:e9fda9bde7b338a6487eeae32a9e778613ce887a33e803058e752d9cc7483428"
+    },
+    "candidate_handoff_blocked_selftest_r2": {
+      "path": "coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json",
+      "id": null,
+      "version": null,
+      "fingerprint": "sha256:cc91eccfb2767c9e88044b73d6d0d9de9155c7350ee1c499f41d637a1713a26c"
+    },
+    "asi_runtime_core_validation_r1": {
+      "path": "coordination/kidults/engine-v2/asi-runtime-core-validation-r1.json",
+      "id": "asi-runtime-core-validation-r1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:e6403da65d8c8deae089e04e19272ebefa41dbfd2aa55792c5e9a6279fa67d2f"
+    },
+    "entity_resolution_benchmark_v2_contract": {
+      "path": "coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json",
+      "id": "entity-resolution-benchmark-v2-contract",
+      "version": "2.0.0",
+      "fingerprint": "sha256:8fddbb3e53b67d3c9e29e2c0ca92be31f6dfabf4572474c97bb0cdbf245b64a9"
+    },
+    "entity_resolution_benchmark_v2_selftest": {
+      "path": "coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-selftest.json",
+      "id": "entity-resolution-benchmark-v2-selftest",
+      "version": null,
+      "fingerprint": "sha256:58e26886f5fc64bc13bcdb30db2d5064f13ee617bbb9d7ff9b3f8dc6809f3146"
+    },
+    "entity_resolution_scope_matrix": {
+      "path": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json",
+      "id": null,
+      "version": "1.1",
+      "fingerprint": "sha256:a7892fe246752d65fe71daaf942ae54327d0ac1a96172a246ac7fc958d238c26"
+    },
+    "entity_resolution_approved_calibration_strata": {
+      "path": "coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json",
+      "id": "kidults-er-approved-bounded-poc-calibration-strata-v1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:22e9ef7ee56452910887a764df98e7a0c22d30b47e0eccab01ceaee7aaa09af1"
+    },
+    "global_pool_bootstrap_contract": {
+      "path": "coordination/kidults/source-intelligence/global-pool-r1-frontier-seed-channel-contract-v1.json",
+      "id": "kidults-global-pool-r1-frontier-seed-channel-contract-v1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:eaab31179a05588a28517e92fd4a4000e50d1082a5d306d68f5b1449187fdaa8"
+    },
+    "scope_source_pool_readiness_contract": {
+      "path": "coordination/kidults/source-intelligence/scope-source-pool-readiness-contract-v1.json",
+      "id": "scope-source-pool-readiness-contract-v1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:1740ea25ba013b7da38d76f6201c36e855ec575104b7efc735ffb214970dca5f"
+    },
+    "rights_access_review": {
+      "path": "coordination/kidults/source-intelligence/asi-source-rights-access-review-r1.json",
+      "id": "kidults-asi-source-rights-access-review-r1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:2131f851ee95663a3ab67a20262942ea89e83c837830dffae31e08726474f4e0"
+    },
+    "purpose_eligibility": {
+      "path": "coordination/kidults/source-intelligence/asi-source-pool-purpose-eligibility-r1.json",
+      "id": "kidults-asi-source-pool-purpose-eligibility-r1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:6e0dbd9d621e8355e3275799a76851127c355e79464bf032911822313701e01e"
+    }
+  },
+  "canonical_code_input_semantics": "HASHED_IMPLEMENTATION_PROVENANCE_NOT_EXECUTION_ATTESTATION",
+  "canonical_code_inputs": {
+    "processor_registry": {
+      "path": "services/kidults-autonomous-intelligence/src/asi/registry.ts",
+      "sha256": "sha256:d7a915ca39d8ff79bb9b59ddae42e31282ee71f1540a4adad259d7d758f2a62a",
+      "byte_count": 7818
+    },
+    "event_runtime": {
+      "path": "services/kidults-autonomous-intelligence/src/asi/event.ts",
+      "sha256": "sha256:141d62486fc8659f20be250916f17661df8f06a394c6dbb214a19f666a1e4d87",
+      "byte_count": 8613
+    },
+    "processor_implementations": {
+      "path": "services/kidults-autonomous-intelligence/src/asi/processors.ts",
+      "sha256": "sha256:4c954e2bccc58fd58cbdc2c0b14dde0365c77386a7d16f88b60cf41186cbf553",
+      "byte_count": 32785
+    },
+    "processor_runtime": {
+      "path": "services/kidults-autonomous-intelligence/src/asi/processor-runtime.ts",
+      "sha256": "sha256:779ac67c3db27ff2c9a0b35cfcc4590eb275b83b3cf281f06f8b1a189998bbfc",
+      "byte_count": 30779
+    },
+    "queue_recovery_runtime": {
+      "path": "services/kidults-autonomous-intelligence/src/asi/runtime.ts",
+      "sha256": "sha256:834c2ed93d514af1f59925c8e247609332a8bf2c0e9a8dd9d4788a227945e502",
+      "byte_count": 83923
+    },
+    "canonical_foundation_migration": {
+      "path": "services/kidults-autonomous-intelligence/migrations/0001_canonical_foundation.sql",
+      "sha256": "sha256:1eaef9bdef5af24b83075fddefebed1b0e8c3355d4c3a02dce823bab91e0dfed",
+      "byte_count": 4968
+    },
+    "autonomous_orchestration_migration": {
+      "path": "services/kidults-autonomous-intelligence/migrations/0002_autonomous_orchestration.sql",
+      "sha256": "sha256:3d475cc04e62bb516b2974eab34d9e6bfa1e58eb2f25a1ad4382cbaede1c15ab",
+      "byte_count": 1370
+    },
+    "market_funnel_shadow_migration": {
+      "path": "services/kidults-autonomous-intelligence/migrations/0003_asi_market_funnel_shadow.sql",
+      "sha256": "sha256:77a86222cc430e0fc38f5d30e9608d880dffca421fd35c8608d06c40dc0b18d9",
+      "byte_count": 12291
+    },
+    "processor_shadow_migration": {
+      "path": "services/kidults-autonomous-intelligence/migrations/0004_asi_processor_shadow.sql",
+      "sha256": "sha256:1c65d99ff517faca92d2e3588740f0fd78da57482e800390c794643372856728",
+      "byte_count": 33111
+    },
+    "recovery_fairness_shadow_migration": {
+      "path": "services/kidults-autonomous-intelligence/migrations/0005_asi_runtime_recovery_fairness_shadow.sql",
+      "sha256": "sha256:d25886b4b6593f0e78384ef5c90bfee54e6cce7cf2d850ee29e225e724c39134",
+      "byte_count": 10087
+    },
+    "task_lease_atomic_fencing_shadow_migration": {
+      "path": "services/kidults-autonomous-intelligence/migrations/0006_asi_task_lease_atomic_fencing_shadow.sql",
+      "sha256": "sha256:19534c51b5ad9fd6e454629573e7034097bab67c7992afcc2bb7c174b66ba38e",
+      "byte_count": 1400
+    },
+    "d1_fail_closed_shadow_test": {
+      "path": "services/kidults-autonomous-intelligence/scripts/asi-processor-shadow-test.mjs",
+      "sha256": "sha256:c5fa25692e35f3db53de7245cabe4df8723173cec4841e1a68bff46805d718b6",
+      "byte_count": 27831
+    },
+    "queue_d1_processor_e2e_test": {
+      "path": "services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs",
+      "sha256": "sha256:57bb6a6a2356c8f9f24e08e9ec9a6c533646e6e49a7de9b55a2481faa2accc33",
+      "byte_count": 31382
+    },
+    "runtime_recovery_fairness_test": {
+      "path": "services/kidults-autonomous-intelligence/scripts/asi-runtime-recovery-fairness-test.mjs",
+      "sha256": "sha256:9b1bc12d1fd132d08215a652717c6520052b0c434e11caacf91666d08a2cfb66",
+      "byte_count": 41415
+    },
+    "met_real_source_admission_runner": {
+      "path": "scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs",
+      "sha256": "sha256:d88875bc07d8cc167df2006b8eddf02a45a301b38ff6631f52a6c1ce1ad03abb",
+      "byte_count": 3374
+    },
+    "getty_historical_sale_runner": {
+      "path": "scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs",
+      "sha256": "sha256:3f7fcb3c74ca8b6f9f78e6181fbc7aff592970790f8761905d0de1895f52ba87",
+      "byte_count": 2080
+    },
+    "real_source_processor_bridge_builder": {
+      "path": "scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs",
+      "sha256": "sha256:77b343d3ea70c98bd3a84f4056fee08e4523731f848fd6a39f44360250d81b36",
+      "byte_count": 5271
+    },
+    "real_source_queue_d1_injection_runner": {
+      "path": "services/kidults-autonomous-intelligence/scripts/asi-real-source-queue-injection-r1.mjs",
+      "sha256": "sha256:7e6f401b2324635d1f6037ec6d355056987768f9e4ec69b2829928bbf128266a",
+      "byte_count": 7504
+    },
+    "real_source_retry_dlq_quarantine_runner": {
+      "path": "services/kidults-autonomous-intelligence/scripts/asi-real-source-retry-dlq-quarantine-r1.mjs",
+      "sha256": "sha256:e99750eb6621a101a2b4b81d5298db6469bf084d88a2d8464f3a6f365291529e",
+      "byte_count": 10676
+    },
+    "met_real_source_admission_workflow": {
+      "path": ".github/workflows/kidults-asi-real-source-admission-r1.yml",
+      "sha256": "sha256:ed0a71255446f166e923fe0f831399c0ed88b948e7f14b078e0658ef79b12ad3",
+      "byte_count": 1827
+    },
+    "getty_historical_sale_workflow": {
+      "path": ".github/workflows/kidults-asi-getty-historical-sale-r1.yml",
+      "sha256": "sha256:39538bf0c498d7237b313bab896fc64963f49fc5ae4a6bd0e2db3b1d1fed5dac",
+      "byte_count": 1864
+    },
+    "real_source_processor_bridge_workflow": {
+      "path": ".github/workflows/kidults-asi-real-source-processor-bridge-r1.yml",
+      "sha256": "sha256:4cbc3823f4bcfae0331e27c86885b8b7bc5d1f2ba0cd9fc8214451308b496e31",
+      "byte_count": 2859
+    },
+    "real_source_queue_d1_injection_workflow": {
+      "path": ".github/workflows/kidults-asi-real-source-queue-injection-r1.yml",
+      "sha256": "sha256:f44f8e995bfedbddf8c7dde77baec8e0642c9e6d5223e8f998c9f36d631accdc",
+      "byte_count": 5319
+    },
+    "real_source_retry_dlq_quarantine_workflow": {
+      "path": ".github/workflows/kidults-asi-real-source-retry-dlq-quarantine-r1.yml",
+      "sha256": "sha256:e61ded47c091b2ee15bac7c5f8859ed55d0b16866b4947719ed06f3100883f6d",
+      "byte_count": 5849
+    },
+    "runtime_control_baseline_runner": {
+      "path": "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
+      "sha256": "sha256:50ebd8c41f146b5a4e6c7bac6675e887d72e10a49de11c3bb5b8b7560bb4b6ad",
+      "byte_count": 5084
+    },
+    "entity_resolution_benchmark_runner": {
+      "path": "scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs",
+      "sha256": "sha256:0edb9fd39e811ed4b6505c662bc6f7fded9dda6cc60d69d9085aa84a66cc2ed6",
+      "byte_count": 35300
+    },
+    "entity_resolution_real_dataset_assembler": {
+      "path": "scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs",
+      "sha256": "sha256:3eae02fce34bbcb9b2abc7af6ca8861d6907fb2763b42f4580491fab5eed2efb",
+      "byte_count": 4496
+    },
+    "entity_resolution_getty_transaction_r2_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs",
+      "sha256": "sha256:662bb61d39f284507bd38361d416a68da357814bd6c1518a3ed790630af16a84",
+      "byte_count": 5037
+    },
+    "entity_resolution_wikidata_design_r3_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs",
+      "sha256": "sha256:242568bce4ceaf8395b7f779e38757f038b94dfb2108ee6b9e8c0d6b4ba05050",
+      "byte_count": 5570
+    },
+    "entity_resolution_real_holdout_r4_freezer": {
+      "path": "scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs",
+      "sha256": "sha256:b02fce36d9d8c4b509bad9fe2ead1a9e2447ccfa5a2ad720a0c6ed404d86309b",
+      "byte_count": 2296
+    },
+    "entity_resolution_cross_market_alias_r5_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs",
+      "sha256": "sha256:37d21840a1e3490b91b777465f186054b43715932efb19836b11437bb5c2ef01",
+      "byte_count": 5964
+    },
+    "entity_resolution_ambiguous_review_r6_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs",
+      "sha256": "sha256:db9b74716c7e0b3915c4c34bb24963f21b5c34e62d8426da71e7532db415b2ff",
+      "byte_count": 5610
+    },
+    "entity_resolution_approved_strata_validator": {
+      "path": "scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs",
+      "sha256": "sha256:b4d474fde57017622b51edab1daa03bf5ee80f206f3116aeb4203e56154d75a1",
+      "byte_count": 4763
+    },
+    "entity_resolution_approved_strata_r7a_promoter": {
+      "path": "scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs",
+      "sha256": "sha256:bf4734cfebc53d184962a09cf33dfc981675bab1d42e4c966c7458854c8a07d6",
+      "byte_count": 5397
+    },
+    "entity_resolution_serialized_reference_r7b_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs",
+      "sha256": "sha256:e7dd55fd478addc2a9c7e5ee5cb794c0ba1f6960976305b03eb823f93c6509ce",
+      "byte_count": 10230
+    },
+    "entity_resolution_variant_release_r7c_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs",
+      "sha256": "sha256:70e1a98f92aa05b4081dd16d9b8dbb5e9517dd84a18d46d34f80fdbaf360def9",
+      "byte_count": 7659
+    },
+    "entity_resolution_serialized_cross_authority_r7e_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs",
+      "sha256": "sha256:6d56c266a527581c415f3a93e210b09b55a1d40fee3c8c14d3304d683db39f84",
+      "byte_count": 13363
+    },
+    "entity_resolution_vehicle_minimums_r7f_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs",
+      "sha256": "sha256:1088a9666326b703da2b787c59575d767c6c7dc9f2daaea1bb3d2e6cc0f8fd3b",
+      "byte_count": 16823
+    },
+    "entity_resolution_variant_minimums_r7g_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs",
+      "sha256": "sha256:fb6984b827969c2d278f0c8aac85f2ff63710aff2d4eff0d78ad0bfe572424a5",
+      "byte_count": 17525
+    },
+    "entity_resolution_pressing_minimums_r7h_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs",
+      "sha256": "sha256:41c88d79616ca754a807aa904b8307edb354c7a1b38ef9d1ff102bd4dee0e8e1",
+      "byte_count": 18436
+    },
+    "entity_resolution_provenance_minimums_r7i_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs",
+      "sha256": "sha256:1cbe9d1a567debecdf88b36008e652e76ffce07bc1671a8c7c101e1fc92aa9f2",
+      "byte_count": 20443
+    },
+    "entity_resolution_designer_maker_minimums_r7j_extender": {
+      "path": "scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs",
+      "sha256": "sha256:f671f97159b6c081640f6b727d020b07af8b6f186255ee4e17417bd8ddc57e15",
+      "byte_count": 26098
+    },
+    "entity_resolution_approved_dataset_finalizer": {
+      "path": "scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs",
+      "sha256": "sha256:dabe628f3215136945854e7f995c8495c87267248afd435de7bcdd65aa423064",
+      "byte_count": 9486
+    },
+    "asi_runtime_core_validation_workflow": {
+      "path": ".github/workflows/kidults-asi-runtime-core-validation-r1.yml",
+      "sha256": "sha256:e3ceca59633210fa9c53a181471a5707f162dc0152e0b66daf0942d62b656421",
+      "byte_count": 8028
+    },
+    "runtime_control_baseline_workflow": {
+      "path": ".github/workflows/kidults-runtime-control-baseline-r1.yml",
+      "sha256": "sha256:66ce21aeaeca33df05f95fcf123ec80a9e6e6ea156d9dfcaf3887bd68b5b793e",
+      "byte_count": 4936
+    },
+    "global_rights_source_pool_expansion_r2_workflow": {
+      "path": ".github/workflows/kidults-global-rights-source-pool-expansion-r2.yml",
+      "sha256": "sha256:61ce002e6b8317f5c76a802932178d6b730323b4533d3062003f374a64da53a6",
+      "byte_count": 4675
+    },
+    "designer_maker_repository_declared_identity_calibration_admission_r3_workflow": {
+      "path": ".github/workflows/kidults-designer-maker-source-admission-r3.yml",
+      "sha256": "sha256:1cb90788a4b432c07b41abb2132d644e44a800cdf00f45b78e83c78a114f4fb8",
+      "byte_count": 7342
+    },
+    "entity_resolution_benchmark_v2_workflow": {
+      "path": ".github/workflows/kidults-entity-resolution-benchmark-v2-runner.yml",
+      "sha256": "sha256:967de8b85d7bb75f51271f51979e07c6e3f17a5ceb7d0c459b083613b82523b4",
+      "byte_count": 13092
+    },
+    "entity_resolution_real_dataset_workflow": {
+      "path": ".github/workflows/kidults-er-real-dataset-r1.yml",
+      "sha256": "sha256:91fe463864c08c828a6afa4cca9ed80935f8e9eeb15dd17fb98302a29dd71d01",
+      "byte_count": 4792
+    },
+    "entity_resolution_getty_transaction_r2_workflow": {
+      "path": ".github/workflows/kidults-er-getty-transaction-r2.yml",
+      "sha256": "sha256:4450e4b22056e13bd4a32be69b2ca85db463e20dfa4e947c93b7444232b87f57",
+      "byte_count": 3836
+    },
+    "entity_resolution_canonical_design_r3_workflow": {
+      "path": ".github/workflows/kidults-er-canonical-design-r3.yml",
+      "sha256": "sha256:7dc4fc796fcf7d7d3ed42362a4664e499467366dc35e825cdc6f69878ec89ea7",
+      "byte_count": 3891
+    },
+    "entity_resolution_real_holdout_r4_workflow": {
+      "path": ".github/workflows/kidults-er-real-holdout-r4.yml",
+      "sha256": "sha256:ddd25289a12f7911a5cec8eb31d11ae67bb6797b5cd4586804d359e3c5feff3e",
+      "byte_count": 4284
+    },
+    "entity_resolution_cross_market_alias_r5_workflow": {
+      "path": ".github/workflows/kidults-er-cross-market-alias-r5.yml",
+      "sha256": "sha256:e41dd8dee062996b56edc33150455c6034885c500a4690302ad5f948fa97736e",
+      "byte_count": 4431
+    },
+    "entity_resolution_ambiguous_review_r6_workflow": {
+      "path": ".github/workflows/kidults-er-ambiguous-review-r6.yml",
+      "sha256": "sha256:e9ec0ae9f9249c2f8e5418113037ecec9524111d441e8be79ac51da244a7b14b",
+      "byte_count": 5505
+    },
+    "entity_resolution_approved_strata_workflow": {
+      "path": ".github/workflows/kidults-er-approved-calibration-strata-v1.yml",
+      "sha256": "sha256:a812402b32dda254a0ba4b55313f4827fb2bf0d78e5f370e910d786b33dd487b",
+      "byte_count": 6918
+    },
+    "entity_resolution_approved_strata_r7a_workflow": {
+      "path": ".github/workflows/kidults-er-r7a-approved-strata-real.yml",
+      "sha256": "sha256:dea9d59039d0d7b6d106ee78f43e859c99278da617aa2aa7056f7d09947e53a7",
+      "byte_count": 5922
+    },
+    "entity_resolution_serialized_reference_r7b_workflow": {
+      "path": ".github/workflows/kidults-er-r7b-serialized-reference-real.yml",
+      "sha256": "sha256:144a5edeb37721eb5a3baa841ef0d29064a2fdf99e592b87a9ba5cf3c73b4296",
+      "byte_count": 6533
+    },
+    "entity_resolution_variant_release_r7c_workflow": {
+      "path": ".github/workflows/kidults-er-r7c-variant-release-real.yml",
+      "sha256": "sha256:05d848fa7479d27a582b6456bc4f5008c5f5ef9383fbefe27a82f42f894cf838",
+      "byte_count": 6631
+    },
+    "entity_resolution_serialized_cross_authority_r7e_workflow": {
+      "path": ".github/workflows/kidults-er-r7e-serialized-cross-authority.yml",
+      "sha256": "sha256:e2d3137717fc49c141ebe48d95f404fcf094d80b9f2113a127645aa879bd45db",
+      "byte_count": 8286
+    },
+    "entity_resolution_vehicle_minimums_r7f_workflow": {
+      "path": ".github/workflows/kidults-er-r7f-vehicle-minimums.yml",
+      "sha256": "sha256:de243341d4d02048be86aacfaef6fc7de3d6bf03e904280d85c19cdbd8da38d9",
+      "byte_count": 8477
+    },
+    "entity_resolution_variant_minimums_r7g_workflow": {
+      "path": ".github/workflows/kidults-er-r7g-variant-minimums.yml",
+      "sha256": "sha256:112f2500593a26c3ed7a4f9ae12e75bf39f8c35ee8401a8c34d95a3f241851eb",
+      "byte_count": 9533
+    },
+    "entity_resolution_pressing_minimums_r7h_workflow": {
+      "path": ".github/workflows/kidults-er-r7h-pressing-minimums.yml",
+      "sha256": "sha256:fff4ddedc3bb6826682e3163aa7cc7c490e6fbeea40d80a99e5f95d70a8f7c16",
+      "byte_count": 10672
+    },
+    "entity_resolution_provenance_minimums_r7i_workflow": {
+      "path": ".github/workflows/kidults-er-r7i-provenance-minimums.yml",
+      "sha256": "sha256:bb18fffca59a1240765458b0ab4713ee622c5cfa0ccba987c2b7568e0b8a81ee",
+      "byte_count": 11634
+    },
+    "entity_resolution_designer_maker_minimums_r7j_workflow": {
+      "path": ".github/workflows/kidults-er-r7j-designer-maker-minimums.yml",
+      "sha256": "sha256:dd76b1d43739d0584cbb5b11aa6f71e88ea10212e3f47d06c46f309ea85c782b",
+      "byte_count": 19966
+    },
+    "entity_resolution_finalization_preflight_workflow": {
+      "path": ".github/workflows/kidults-er-finalization-preflight-v1.yml",
+      "sha256": "sha256:be1acb1c659d69d55347958e2bd52c47eb7ba166ce00e3fdbd7abf11de00dd3f",
+      "byte_count": 10789
+    },
+    "candidate_handoff_preflight_validator_r2": {
+      "path": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
+      "sha256": "sha256:0370eb0d271545529f267cdb12403e091f6c2d10f3b788ac47707a4038bc2f61",
+      "byte_count": 26709
+    },
+    "candidate_handoff_preflight_workflow_r2": {
+      "path": ".github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml",
+      "sha256": "sha256:9eb3b47f65b32cecfb293bf178979a901629eaaa281bbc55140d2c1aef634858",
+      "byte_count": 12518
+    },
+    "autonomous_runtime_workflow": {
+      "path": ".github/workflows/kidults-autonomous-runtime.yml",
+      "sha256": "sha256:6c58593fbb17de49eab09af7e797bb78b1b7e214b5b95b4a2cff9d507a553cbd",
+      "byte_count": 4292
+    },
+    "runtime_deploy_preflight": {
+      "path": "services/kidults-autonomous-intelligence/scripts/deploy-preflight.mjs",
+      "sha256": "sha256:22835a5fb70b1d4bcd0b763bcbfe62bb5a9648dea21f25c9f154ea3ce9b301af",
+      "byte_count": 15811
+    },
+    "runtime_smoke": {
+      "path": "services/kidults-autonomous-intelligence/scripts/runtime-smoke.mjs",
+      "sha256": "sha256:6098ee7d8bb8d88a52b291a904ee5d9ffc17f383e61ab7fdae2a193f6524a702",
+      "byte_count": 4887
+    },
+    "rights_access_review_compiler": {
+      "path": "scripts/kidults/source-intelligence/compile-asi-source-rights-access-review-r1.mjs",
+      "sha256": "sha256:df7d27051699d63e1345cd8c77bfce1261dab408173d9a2f1f1bf07d6de4c388",
+      "byte_count": 76470
+    },
+    "rights_access_review_validator": {
+      "path": "scripts/kidults/source-intelligence/validate-asi-source-rights-access-review-r1.mjs",
+      "sha256": "sha256:ed3a6b4a03415422f9127421b8a9a89ff04ec6095b5d4fb20e46247e4076a774",
+      "byte_count": 30179
+    },
+    "global_pool_bootstrap_compiler": {
+      "path": "scripts/kidults/source-intelligence/compile-global-pool-r1-bootstrap-capture-v1.mjs",
+      "sha256": "sha256:9d7335c36e6f2fc932769411d15941d0f3ee6249afaa49d47a96a3cf7a95bb8c",
+      "byte_count": 36467
+    },
+    "global_pool_frontier_compiler": {
+      "path": "scripts/kidults/source-intelligence/compile-global-pool-r1-frontier-v1.mjs",
+      "sha256": "sha256:a506d20df389e3abff1682daa72399d9deb353c38c8d44f9c59ec7415c379e95",
+      "byte_count": 24359
+    },
+    "scope_source_pool_readiness_builder": {
+      "path": "scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs",
+      "sha256": "sha256:ff1ab40252439cdef9e224d868c904f7bd73a2ca30d5c3ee1071d5d7a300cad3",
+      "byte_count": 23360
+    },
+    "market_funnel_validator": {
+      "path": "scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs",
+      "sha256": "sha256:3d97e2ed180d7333fcfc0786146e4096eb825e601e343142dc55b59d852be5f4",
+      "byte_count": 7979
+    },
+    "market_funnel_simulator": {
+      "path": "scripts/kidults/source-intelligence/simulate-asi-market-funnel-v1.mjs",
+      "sha256": "sha256:e491e502340e6a80d6aace2850fc5a79b5e3b02f8f51958b5b0dbd72e9c48368",
+      "byte_count": 8247
+    },
+    "shadow_evidence_builder": {
+      "path": "scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs",
+      "sha256": "sha256:48feab104daaaf216f530c5f309d6afdce7181b3a826e76c4aee9344b0c6081b",
+      "byte_count": 131119
+    },
+    "shadow_evidence_validator": {
+      "path": "scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs",
+      "sha256": "sha256:3ffb2d1b47950234ca54d6c9140bc79c348b860a3189658ae6a4ea55151707fe",
+      "byte_count": 99560
+    },
+    "shadow_evidence_workflow": {
+      "path": ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml",
+      "sha256": "sha256:8c0b52312a47c5583ae4f2edb50edfbeafe5e976be0ffeac51d4f7a5e76c424a",
+      "byte_count": 17099
+    },
+    "root_package_manifest": {
+      "path": "package.json",
+      "sha256": "sha256:d6a515ba745161be7554f73387b7e432d5a0598ef169f3ef3c0b21d96125cafd",
+      "byte_count": 268
+    },
+    "root_dependency_lock": {
+      "path": "npm-shrinkwrap.json",
+      "sha256": "sha256:35bb4f22927b4dc4da32e14d45aa0e602aab7ef85120a88bf942e451bb2fd72c",
+      "byte_count": 2854
+    },
+    "autonomous_intelligence_package_manifest": {
+      "path": "services/kidults-autonomous-intelligence/package.json",
+      "sha256": "sha256:f89cf7fb69cc59fb82905dc9fb49a99138bf6afc107cf9ebe44e269905388e4f",
+      "byte_count": 10178
+    },
+    "autonomous_intelligence_dependency_lock": {
+      "path": "services/kidults-autonomous-intelligence/package-lock.json",
+      "sha256": "sha256:b972a1eb7bf63c38e1cd5da277a91dcb9f347613f054fdeb057149f51b9515f0",
+      "byte_count": 50610
+    }
+  },
+  "toolchain": {
+    "node_version": "v24.19.0",
+    "platform": "linux",
+    "architecture": "x64",
+    "deterministic_environment": {
+      "TZ": "UTC",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8"
+    },
+    "dependency_lockfiles": {
+      "root_npm_shrinkwrap": {
+        "path": "npm-shrinkwrap.json",
+        "sha256": "sha256:35bb4f22927b4dc4da32e14d45aa0e602aab7ef85120a88bf942e451bb2fd72c",
+        "byte_count": 2854
+      },
+      "autonomous_intelligence_package_lock": {
+        "path": "services/kidults-autonomous-intelligence/package-lock.json",
+        "sha256": "sha256:b972a1eb7bf63c38e1cd5da277a91dcb9f347613f054fdeb057149f51b9515f0",
+        "byte_count": 50610
+      }
+    }
+  },
+  "transitive_provenance": {
+    "source_rights_policy_preflight": {
+      "id": "kidults-asi-source-pool-purpose-eligibility-r1",
+      "input_fingerprints": {
+        "bootstrap_capture": "sha256:9e55bd2489554ee69e02ca1a1bb5cfc023725411ad72457e9ce581ae342a59af",
+        "event_schema": "sha256:51b27133f126cbcf4cff1457ee998b0998342c73e8de73cf52774da88a8c3f1d",
+        "evidence_assertion_bindings": "sha256:0e901e4cfe0ef83ebf584a5fbf4baa2a9ff4fc02e28eeb259bc8fa44a60ce26a",
+        "frontier_contract": "sha256:eaab31179a05588a28517e92fd4a4000e50d1082a5d306d68f5b1449187fdaa8",
+        "normalized_primary_claim_records": "sha256:7b70a4e2bbb959354374bac46856a088217622562078029a79ffafacf2943bc7",
+        "purpose_policy": "sha256:0054f0db62af4999b03ea3c38697735327fe59ec28b8d31b146f73e1e19285d3",
+        "review_contract": "sha256:ac92866d840b7f9b7a97422434ce2547d8e62685f77f311cc0f78888392b4828",
+        "review_data": "sha256:2131f851ee95663a3ab67a20262942ea89e83c837830dffae31e08726474f4e0",
+        "scope_pool_readiness": "sha256:1740ea25ba013b7da38d76f6201c36e855ec575104b7efc735ffb214970dca5f",
+        "scope_registry": "sha256:a7892fe246752d65fe71daaf942ae54327d0ac1a96172a246ac7fc958d238c26",
+        "source_admission_methodology": "sha256:f913638d32b3a4cf3b81f35bea7c3720d9c5d0599f134f305acc474f70f6ee55"
+      },
+      "eligibility_fingerprint": "sha256:f5880dfb237731fef6f1718bca95d847e7a18ced15db2115f909f720ed6726a1"
+    },
+    "global_pool_bootstrap_capture": {
+      "id": "kidults-global-pool-r1-bootstrap-capture-v1",
+      "input_fingerprints": {
+        "bootstrap_source_contract": "sha256:720055a7d34dc9ec9753695eaba5fd8129ec266c0af685bb72256f491e92a7e4",
+        "bootstrap_source_records": "sha256:ad4cbb0736180af4cda755bf8dbfd999a5514766147c2f4eed3d4fe3530f1cf9",
+        "current_scope_registry": "sha256:a7892fe246752d65fe71daaf942ae54327d0ac1a96172a246ac7fc958d238c26",
+        "event_schema": "sha256:51b27133f126cbcf4cff1457ee998b0998342c73e8de73cf52774da88a8c3f1d",
+        "frontier_contract": "sha256:eaab31179a05588a28517e92fd4a4000e50d1082a5d306d68f5b1449187fdaa8",
+        "global_source_universe": "sha256:05b0f01d21588bb6af971c23710938d3c41ed9d2bd70b6f2f1bd67d1e52e6f56",
+        "market_funnel_mesh": "sha256:cd99de1d2da127e0d55222c5316ab9f6d891884c9263ab9452fada0279ba5bf9",
+        "purpose_admission_policy": "sha256:0054f0db62af4999b03ea3c38697735327fe59ec28b8d31b146f73e1e19285d3",
+        "scope_crosswalk": "sha256:f550c7d744c810245b2a4eb0f074ca50b9a1685d138d91f9b975ad5096b1de80",
+        "source_pool_readiness": "sha256:1740ea25ba013b7da38d76f6201c36e855ec575104b7efc735ffb214970dca5f"
+      },
+      "bootstrap_fingerprint": "sha256:9e55bd2489554ee69e02ca1a1bb5cfc023725411ad72457e9ce581ae342a59af"
+    },
+    "scope_source_pool_readiness": {
+      "id": "scope-source-pool-foundation-run-v1",
+      "input_fingerprints": {
+        "asi_program": {
+          "fingerprint": "sha256:b63307538b5ac2faa0c0a4a84c6530f43748e85ab470527db55a0f8e817b6285",
+          "id": "autonomous-source-intelligence-program-v1"
+        },
+        "category_scale": {
+          "fingerprint": "sha256:6e31f6ee4e7dfe284db9163d426016e147b1d0fb190a08531b075254ab366c5e",
+          "id": "category-1000-scale-contract-v1"
+        },
+        "readiness_contract": {
+          "fingerprint": "sha256:1740ea25ba013b7da38d76f6201c36e855ec575104b7efc735ffb214970dca5f",
+          "id": "scope-source-pool-readiness-contract-v1"
+        },
+        "scope_registry": {
+          "fingerprint": "sha256:799ece96445495fc0d0f6fe66f1f3650b34bbb1d763dba4b33b237dc60ef810c",
+          "id": "collection-scope-registry-v1"
+        },
+        "trusted_source_registry": {
+          "fingerprint": "sha256:e58dfc0a0feaaedc83c50ca4ec5675aface9b9a8eb28a71ebdf67bc2525926c6",
+          "id": "kidults-trusted-source-registry"
+        }
+      },
+      "output_fingerprints": {
+        "acquisition-priority-queue.json": "sha256:900566390f64bf5ee73feaaa0abd17833fc3cab8d7cca624c6e7a9defa075f7b",
+        "global-source-discovery-funnel.json": "sha256:8a1ff364b44ed0498a55c16952834a6d8e6859155e54e678469a798b09049fb3",
+        "scope-source-pool-readiness.json": "sha256:a0bf14f421beaf96e965d6d42a4417a9a90ba7d8b38afa37108b45baf93e2ce0",
+        "source-role-gap-matrix.json": "sha256:b4069d69078b29b74516aec71ed9179ba9511e4207f9420332765ae7c9151253"
+      },
+      "run_fingerprint": "sha256:008edbea37befb2f876b8ce0db37d95a87226ef9461ab696e390b9eca4571801"
+    },
+    "mainline_rights_admitted_pilot_declarations": {
+      "identity_context_pool_id": "rights-admitted-pilot-source-pool-r1",
+      "identity_context_pool_fingerprint": "sha256:dc5a3056ca4598f03029d01a93da49141be3ec74d54df0d6490ae6c59fe3fcac",
+      "historical_transaction_pool_id": "rights-admitted-transaction-source-pool-r1",
+      "historical_transaction_pool_fingerprint": "sha256:a0fd2214ce0de0fb1a7ad0263c24eb120f8d9e85e7d605d40e8cc91d21827ef8",
+      "sealed_evidence_live_retrieval_artifact_refs": [],
+      "sealed_evidence_bridge_artifact_refs": [],
+      "sealed_evidence_external_workflow_attestation_refs": []
+    },
+    "global_rights_r2_declaration": {
+      "id": "global-rights-source-pool-expansion-r2",
+      "fingerprint": "sha256:591f0cd77d8ced81c5fd632c337620420c2b4a07d3c45702bb3b4dfb9ae1ece3",
+      "count_scope": "GLOBAL_RIGHTS_SOURCE_POOL_EXPANSION_R2_REPOSITORY_DECLARATIONS_ONLY",
+      "declared_source_record_count": 4,
+      "declared_identity_context_source_count": 2,
+      "conditional_market_candidate_count": 2,
+      "strict_r1_revalidated_source_count": 0,
+      "runtime_admitted_source_count": 0,
+      "current_market_evidence_source_count": 0,
+      "independent_legal_review_complete": false,
+      "counts_are_additive_to_prior_pilot_declarations": false,
+      "sealed_execution_attestation_refs": []
+    },
+    "designer_maker_r3_repository_declaration": {
+      "id": "designer-maker-moma-cooper-admission-r3",
+      "version": "3.0.0",
+      "fingerprint": "sha256:7c769ee39523d4c2584cb69e51610f16299ec2bc0ea1f45c4c07283fa944ead7",
+      "canonical_input_ref": {
+        "path": "coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json",
+        "id": "designer-maker-moma-cooper-admission-r3",
+        "version": "3.0.0",
+        "fingerprint": "sha256:7c769ee39523d4c2584cb69e51610f16299ec2bc0ea1f45c4c07283fa944ead7"
+      },
+      "workflow_ref": {
+        "path": ".github/workflows/kidults-designer-maker-source-admission-r3.yml",
+        "sha256": "sha256:1cb90788a4b432c07b41abb2132d644e44a800cdf00f45b78e83c78a114f4fb8",
+        "byte_count": 7342
+      },
+      "admission_scope": "DESIGNER_MAKER_EDITION_IDENTITY_CALIBRATION_ONLY",
+      "admission_class": "REPOSITORY_DECLARED_IDENTITY_CALIBRATION_METADATA_ONLY",
+      "admitted_state_definition": "ADMITTED_MEANS_REPOSITORY_DECLARED_FOR_BOUNDED_INTERNAL_IDENTITY_CALIBRATION_METADATA_ONLY",
+      "source_ids": [
+        "cooper-hewitt-collection-json",
+        "moma-collection-research-dataset"
+      ],
+      "repository_declared_identity_calibration_metadata_source_count": 2,
+      "strict_r1_evidence_bound_admitted_source_count": 0,
+      "full_source_pool_admitted_source_count": 0,
+      "current_market_ready_source_count": 0,
+      "runtime_admitted_source_count": 0,
+      "image_admitted_source_count": 0,
+      "repository_declaration_only": true,
+      "strict_r1_evidence_bound_revalidation_complete": false,
+      "independent_legal_review_complete": false,
+      "source_content_bytes_archived": false,
+      "source_content_archive_state": "NOT_ARCHIVED",
+      "live_workflow_probe_is_archival_or_independent_review_evidence": false,
+      "current_market_claim_authorized": false,
+      "full_source_pool_admission_authorized": false,
+      "public_release_authorized": false,
+      "commercial_use_authorized": false,
+      "public_commercial_admission_authorized": false,
+      "runtime_admission_authorized": false,
+      "runtime_admission_events_emitted": 0,
+      "image_admission_authorized": false,
+      "market_observation_count": 0,
+      "production_promotion_authorized": false,
+      "production": "HOLD",
+      "purpose_rights_interpretation": "SOURCE_LICENSE_FIELD_USE_CEILING_ONLY_NOT_PLATFORM_ADMISSION_OR_PUBLICATION_AUTHORIZATION",
+      "sealed_execution_attestation_refs": []
+    },
+    "candidate_handoff_r2_downstream_blocked_selftest": {
+      "contract_ref": {
+        "path": "coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json",
+        "id": "candidate-evidence-handoff-preflight-contract-r2",
+        "version": "2.1.0",
+        "fingerprint": "sha256:e9fda9bde7b338a6487eeae32a9e778613ce887a33e803058e752d9cc7483428"
+      },
+      "blocked_selftest_fixture_ref": {
+        "path": "coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json",
+        "id": null,
+        "version": null,
+        "fingerprint": "sha256:cc91eccfb2767c9e88044b73d6d0d9de9155c7350ee1c499f41d637a1713a26c"
+      },
+      "validator_ref": {
+        "path": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
+        "sha256": "sha256:0370eb0d271545529f267cdb12403e091f6c2d10f3b788ac47707a4038bc2f61",
+        "byte_count": 26709
+      },
+      "workflow_ref": {
+        "path": ".github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml",
+        "sha256": "sha256:9eb3b47f65b32cecfb293bf178979a901629eaaa281bbc55140d2c1aef634858",
+        "byte_count": 12518
+      },
+      "materiality": "DOWNSTREAM_TRACK_B_SUBMISSION_TRUTH_BOUNDARY_NOT_UPSTREAM_SHADOW_EXECUTION_OR_PROMOTION_EVIDENCE",
+      "local_blocked_selftest": {
+        "blocker_count": 30,
+        "blockers": [
+          "BLIND_CRITICAL_FALSE_AUTO_MERGE_NONZERO_OR_UNMEASURED",
+          "CLAIM_STRENGTH_EXCEEDS_EVIDENCE:selftest-current-market-claim-r2",
+          "CRITICAL_FALSE_AUTO_MERGE_NONZERO_OR_UNMEASURED",
+          "CURRENT_CLAIM_WITHOUT_CURRENT_EVIDENCE:selftest-current-market-claim-r2",
+          "ENTITY_RESOLUTION_BLIND_LT_TARGET",
+          "ENTITY_RESOLUTION_BLIND_WILSON_LT_TARGET",
+          "ENTITY_RESOLUTION_OVERALL_LT_TARGET",
+          "ENTITY_RESOLUTION_OVERALL_WILSON_LT_TARGET",
+          "ER_AGGREGATE_SAMPLE_FLOORS_NOT_MET",
+          "ER_BLIND_HOLDOUT_FREEZE_REQUIRED",
+          "ER_BLIND_SCOPE_ARCHETYPE_SAMPLE_FLOORS_NOT_MET",
+          "ER_CALIBRATION_ARTIFACT_REQUIRED",
+          "ER_CANONICAL_APPROVED_STRATA_BINDING_MISMATCH",
+          "ER_CANONICAL_APPROVED_STRATA_SET_INCOMPLETE",
+          "ER_CANONICAL_SAMPLE_POLICY_BINDING_MISMATCH",
+          "ER_CASE_CLASS_SAMPLE_FLOORS_NOT_MET",
+          "ER_CONSTRUCTED_CONTROL_NOT_EMPIRICAL",
+          "ER_EMPIRICAL_ATTESTATION_REQUIRED",
+          "ER_EMPIRICAL_BENCHMARK_NOT_ELIGIBLE",
+          "ER_EMPIRICAL_OBSERVATION_COUNTS_INVALID",
+          "ER_FINAL_DATASET_DIGEST_REQUIRED",
+          "ER_FINAL_DATASET_NOT_REAL_WORLD_LABELED",
+          "ER_FINAL_DATASET_REQUIRED",
+          "ER_FINAL_SCOPE_STRATIFICATION_NOT_COMPLETE",
+          "ER_IDENTITY_BOUNDARY_SAMPLE_FLOORS_NOT_MET",
+          "ER_REQUIRED_STRATA_INCOMPLETE",
+          "ER_SCOPE_ARCHETYPE_SAMPLE_FLOORS_NOT_MET",
+          "EVIDENCE_PACKAGE_DIGEST_REQUIRED",
+          "EVIDENCE_PACKAGE_NOT_IMMUTABLE",
+          "SNAPSHOT_DIGEST_REQUIRED"
+        ],
+        "constructed_control": true,
+        "current_market_evidence_present": false,
+        "empirical_attestation_verified": false,
+        "empirical_metrics_present": false,
+        "executed": true,
+        "execution_mode": "LOCAL_DETERMINISTIC_BLOCKED_SELFTEST",
+        "handoff_state": "BLOCKED",
+        "production": "HOLD",
+        "production_authorized_count": 0,
+        "publication_authorized_count": 0,
+        "ready_pair_count": 0,
+        "represented_approved_strata_complete": false,
+        "result_sha256": "sha256:2051adb1692cc97ed318b62f0edfdb61b585cf4b4056fa12e9fad2f78a86844c",
+        "track_b_assessment_count": 0,
+        "track_b_pass_count": 0,
+        "track_b_submission_count": 0,
+        "two_run_byte_identical": true
+      },
+      "current_state": "BLOCKED",
+      "ready_semantics": "TRACK_B_SUBMISSION_ELIGIBILITY_ONLY",
+      "sealed_ready_pair_refs": [],
+      "sealed_track_b_submission_refs": [],
+      "sealed_track_b_assessment_refs": [],
+      "sealed_track_b_pass_refs": [],
+      "ready_pair_count": 0,
+      "track_b_submission_count": 0,
+      "track_b_assessment_count": 0,
+      "track_b_pass_count": 0,
+      "publication_authorized_count": 0,
+      "production_authorized_count": 0,
+      "publication": "HOLD",
+      "production": "HOLD"
+    },
+    "entity_resolution_control_implementations": {
+      "contract_id": "entity-resolution-benchmark-v2-contract",
+      "contract_fingerprint": "sha256:8fddbb3e53b67d3c9e29e2c0ca92be31f6dfabf4572474c97bb0cdbf245b64a9",
+      "synthetic_selftest_id": "entity-resolution-benchmark-v2-selftest",
+      "synthetic_selftest_fingerprint": "sha256:58e26886f5fc64bc13bcdb30db2d5064f13ee617bbb9d7ff9b3f8dc6809f3146",
+      "canonical_scope_matrix_ref": {
+        "path": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json",
+        "id": null,
+        "version": "1.1",
+        "fingerprint": "sha256:a7892fe246752d65fe71daaf942ae54327d0ac1a96172a246ac7fc958d238c26"
+      },
+      "approved_calibration_strata_ref": {
+        "path": "coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json",
+        "id": "kidults-er-approved-bounded-poc-calibration-strata-v1",
+        "version": "1.0.0",
+        "fingerprint": "sha256:22e9ef7ee56452910887a764df98e7a0c22d30b47e0eccab01ceaee7aaa09af1"
+      },
+      "approved_calibration_strata_id": "kidults-er-approved-bounded-poc-calibration-strata-v1",
+      "approved_calibration_strata_status": "APPROVED_BOUNDED_POC_CALIBRATION",
+      "approved_calibration_strata_fingerprint": "sha256:22e9ef7ee56452910887a764df98e7a0c22d30b47e0eccab01ceaee7aaa09af1",
+      "approved_calibration_strata_count": 7,
+      "required_calibration_strata_ids": [
+        "er-stratum-designer-maker-edition",
+        "er-stratum-graded-population",
+        "er-stratum-pressing-edition-media",
+        "er-stratum-provenance-unique-object",
+        "er-stratum-serialized-reference",
+        "er-stratum-variant-release-heavy",
+        "er-stratum-vehicle-mechanical-asset"
+      ],
+      "approved_calibration_strata_ids": [
+        "er-stratum-designer-maker-edition",
+        "er-stratum-graded-population",
+        "er-stratum-pressing-edition-media",
+        "er-stratum-provenance-unique-object",
+        "er-stratum-serialized-reference",
+        "er-stratum-variant-release-heavy",
+        "er-stratum-vehicle-mechanical-asset"
+      ],
+      "approved_calibration_strata_grammar": [
+        {
+          "archetype": "DESIGNER_MAKER_EDITION",
+          "minimum_boundaries": [
+            "CANONICAL_DESIGN",
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "HARD_NEGATIVE",
+            "SAME_DESIGN_DIFFERENT_OBJECT",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-designer-maker-edition"
+        },
+        {
+          "archetype": "GRADED_POPULATION",
+          "minimum_boundaries": [
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "CROSS_MARKET_ALIAS",
+            "HARD_NEGATIVE",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-graded-population"
+        },
+        {
+          "archetype": "PRESSING_EDITION_MEDIA",
+          "minimum_boundaries": [
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "CROSS_MARKET_ALIAS",
+            "HARD_NEGATIVE",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-pressing-edition-media"
+        },
+        {
+          "archetype": "PROVENANCE_UNIQUE_OBJECT",
+          "minimum_boundaries": [
+            "MARKET_EVENT",
+            "PHYSICAL_OBJECT"
+          ],
+          "minimum_case_classes": [
+            "AMBIGUOUS_REVIEW_REQUIRED",
+            "HARD_NEGATIVE",
+            "TRANSACTION_TO_OBJECT_LINKAGE"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-provenance-unique-object"
+        },
+        {
+          "archetype": "SERIALIZED_REFERENCE",
+          "minimum_boundaries": [
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "CROSS_MARKET_ALIAS",
+            "HARD_NEGATIVE",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-serialized-reference"
+        },
+        {
+          "archetype": "VARIANT_RELEASE_HEAVY",
+          "minimum_boundaries": [
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "CROSS_MARKET_ALIAS",
+            "HARD_NEGATIVE",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-variant-release-heavy"
+        },
+        {
+          "archetype": "VEHICLE_MECHANICAL_ASSET",
+          "minimum_boundaries": [
+            "CANONICAL_DESIGN",
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "HARD_NEGATIVE",
+            "SAME_DESIGN_DIFFERENT_OBJECT",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-vehicle-mechanical-asset"
+        }
+      ],
+      "canonical_scope_matrix_fingerprint": "sha256:a7892fe246752d65fe71daaf942ae54327d0ac1a96172a246ac7fc958d238c26",
+      "canonical_scope_archetype_mapping_fingerprint": "sha256:2f173938613d832e66bca2ef9f3e695f017ff1a4e37ca0110db9795e7d70bb62",
+      "canonical_scope_count": 32,
+      "required_scope_archetypes": [
+        "DESIGNER_MAKER_EDITION",
+        "GRADED_POPULATION",
+        "PRESSING_EDITION_MEDIA",
+        "PROVENANCE_UNIQUE_OBJECT",
+        "SERIALIZED_REFERENCE",
+        "VARIANT_RELEASE_HEAVY",
+        "VEHICLE_MECHANICAL_ASSET"
+      ],
+      "required_scope_archetype_count": 7,
+      "benchmark_runner_ref": {
+        "path": "scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs",
+        "sha256": "sha256:0edb9fd39e811ed4b6505c662bc6f7fded9dda6cc60d69d9085aa84a66cc2ed6",
+        "byte_count": 35300
+      },
+      "real_source_constructed_control_assembler_ref": {
+        "path": "scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs",
+        "sha256": "sha256:3eae02fce34bbcb9b2abc7af6ca8861d6907fb2763b42f4580491fab5eed2efb",
+        "byte_count": 4496
+      },
+      "getty_transaction_r2_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs",
+        "sha256": "sha256:662bb61d39f284507bd38361d416a68da357814bd6c1518a3ed790630af16a84",
+        "byte_count": 5037
+      },
+      "wikidata_design_r3_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs",
+        "sha256": "sha256:242568bce4ceaf8395b7f779e38757f038b94dfb2108ee6b9e8c0d6b4ba05050",
+        "byte_count": 5570
+      },
+      "real_holdout_r4_freezer_ref": {
+        "path": "scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs",
+        "sha256": "sha256:b02fce36d9d8c4b509bad9fe2ead1a9e2447ccfa5a2ad720a0c6ed404d86309b",
+        "byte_count": 2296
+      },
+      "cross_market_alias_r5_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs",
+        "sha256": "sha256:37d21840a1e3490b91b777465f186054b43715932efb19836b11437bb5c2ef01",
+        "byte_count": 5964
+      },
+      "ambiguous_review_r6_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs",
+        "sha256": "sha256:db9b74716c7e0b3915c4c34bb24963f21b5c34e62d8426da71e7532db415b2ff",
+        "byte_count": 5610
+      },
+      "approved_calibration_strata_validator_ref": {
+        "path": "scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs",
+        "sha256": "sha256:b4d474fde57017622b51edab1daa03bf5ee80f206f3116aeb4203e56154d75a1",
+        "byte_count": 4763
+      },
+      "approved_strata_r7a_promoter_ref": {
+        "path": "scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs",
+        "sha256": "sha256:bf4734cfebc53d184962a09cf33dfc981675bab1d42e4c966c7458854c8a07d6",
+        "byte_count": 5397
+      },
+      "serialized_reference_r7b_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs",
+        "sha256": "sha256:e7dd55fd478addc2a9c7e5ee5cb794c0ba1f6960976305b03eb823f93c6509ce",
+        "byte_count": 10230
+      },
+      "variant_release_r7c_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs",
+        "sha256": "sha256:70e1a98f92aa05b4081dd16d9b8dbb5e9517dd84a18d46d34f80fdbaf360def9",
+        "byte_count": 7659
+      },
+      "serialized_cross_authority_r7e_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs",
+        "sha256": "sha256:6d56c266a527581c415f3a93e210b09b55a1d40fee3c8c14d3304d683db39f84",
+        "byte_count": 13363
+      },
+      "vehicle_minimums_r7f_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs",
+        "sha256": "sha256:1088a9666326b703da2b787c59575d767c6c7dc9f2daaea1bb3d2e6cc0f8fd3b",
+        "byte_count": 16823
+      },
+      "variant_minimums_r7g_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs",
+        "sha256": "sha256:fb6984b827969c2d278f0c8aac85f2ff63710aff2d4eff0d78ad0bfe572424a5",
+        "byte_count": 17525
+      },
+      "pressing_minimums_r7h_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs",
+        "sha256": "sha256:41c88d79616ca754a807aa904b8307edb354c7a1b38ef9d1ff102bd4dee0e8e1",
+        "byte_count": 18436
+      },
+      "provenance_minimums_r7i_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs",
+        "sha256": "sha256:1cbe9d1a567debecdf88b36008e652e76ffce07bc1671a8c7c101e1fc92aa9f2",
+        "byte_count": 20443
+      },
+      "designer_maker_minimums_r7j_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs",
+        "sha256": "sha256:f671f97159b6c081640f6b727d020b07af8b6f186255ee4e17417bd8ddc57e15",
+        "byte_count": 26098
+      },
+      "approved_dataset_finalizer_ref": {
+        "path": "scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs",
+        "sha256": "sha256:dabe628f3215136945854e7f995c8495c87267248afd435de7bcdd65aa423064",
+        "byte_count": 9486
+      },
+      "benchmark_workflow_ref": {
+        "path": ".github/workflows/kidults-entity-resolution-benchmark-v2-runner.yml",
+        "sha256": "sha256:967de8b85d7bb75f51271f51979e07c6e3f17a5ceb7d0c459b083613b82523b4",
+        "byte_count": 13092
+      },
+      "real_source_constructed_control_workflow_ref": {
+        "path": ".github/workflows/kidults-er-real-dataset-r1.yml",
+        "sha256": "sha256:91fe463864c08c828a6afa4cca9ed80935f8e9eeb15dd17fb98302a29dd71d01",
+        "byte_count": 4792
+      },
+      "getty_transaction_r2_workflow_ref": {
+        "path": ".github/workflows/kidults-er-getty-transaction-r2.yml",
+        "sha256": "sha256:4450e4b22056e13bd4a32be69b2ca85db463e20dfa4e947c93b7444232b87f57",
+        "byte_count": 3836
+      },
+      "canonical_design_r3_workflow_ref": {
+        "path": ".github/workflows/kidults-er-canonical-design-r3.yml",
+        "sha256": "sha256:7dc4fc796fcf7d7d3ed42362a4664e499467366dc35e825cdc6f69878ec89ea7",
+        "byte_count": 3891
+      },
+      "real_holdout_r4_workflow_ref": {
+        "path": ".github/workflows/kidults-er-real-holdout-r4.yml",
+        "sha256": "sha256:ddd25289a12f7911a5cec8eb31d11ae67bb6797b5cd4586804d359e3c5feff3e",
+        "byte_count": 4284
+      },
+      "cross_market_alias_r5_workflow_ref": {
+        "path": ".github/workflows/kidults-er-cross-market-alias-r5.yml",
+        "sha256": "sha256:e41dd8dee062996b56edc33150455c6034885c500a4690302ad5f948fa97736e",
+        "byte_count": 4431
+      },
+      "ambiguous_review_r6_workflow_ref": {
+        "path": ".github/workflows/kidults-er-ambiguous-review-r6.yml",
+        "sha256": "sha256:e9ec0ae9f9249c2f8e5418113037ecec9524111d441e8be79ac51da244a7b14b",
+        "byte_count": 5505
+      },
+      "approved_calibration_strata_workflow_ref": {
+        "path": ".github/workflows/kidults-er-approved-calibration-strata-v1.yml",
+        "sha256": "sha256:a812402b32dda254a0ba4b55313f4827fb2bf0d78e5f370e910d786b33dd487b",
+        "byte_count": 6918
+      },
+      "approved_strata_r7a_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7a-approved-strata-real.yml",
+        "sha256": "sha256:dea9d59039d0d7b6d106ee78f43e859c99278da617aa2aa7056f7d09947e53a7",
+        "byte_count": 5922
+      },
+      "serialized_reference_r7b_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7b-serialized-reference-real.yml",
+        "sha256": "sha256:144a5edeb37721eb5a3baa841ef0d29064a2fdf99e592b87a9ba5cf3c73b4296",
+        "byte_count": 6533
+      },
+      "variant_release_r7c_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7c-variant-release-real.yml",
+        "sha256": "sha256:05d848fa7479d27a582b6456bc4f5008c5f5ef9383fbefe27a82f42f894cf838",
+        "byte_count": 6631
+      },
+      "serialized_cross_authority_r7e_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7e-serialized-cross-authority.yml",
+        "sha256": "sha256:e2d3137717fc49c141ebe48d95f404fcf094d80b9f2113a127645aa879bd45db",
+        "byte_count": 8286
+      },
+      "vehicle_minimums_r7f_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7f-vehicle-minimums.yml",
+        "sha256": "sha256:de243341d4d02048be86aacfaef6fc7de3d6bf03e904280d85c19cdbd8da38d9",
+        "byte_count": 8477
+      },
+      "variant_minimums_r7g_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7g-variant-minimums.yml",
+        "sha256": "sha256:112f2500593a26c3ed7a4f9ae12e75bf39f8c35ee8401a8c34d95a3f241851eb",
+        "byte_count": 9533
+      },
+      "pressing_minimums_r7h_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7h-pressing-minimums.yml",
+        "sha256": "sha256:fff4ddedc3bb6826682e3163aa7cc7c490e6fbeea40d80a99e5f95d70a8f7c16",
+        "byte_count": 10672
+      },
+      "provenance_minimums_r7i_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7i-provenance-minimums.yml",
+        "sha256": "sha256:bb18fffca59a1240765458b0ab4713ee622c5cfa0ccba987c2b7568e0b8a81ee",
+        "byte_count": 11634
+      },
+      "designer_maker_minimums_r7j_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7j-designer-maker-minimums.yml",
+        "sha256": "sha256:dd76b1d43739d0584cbb5b11aa6f71e88ea10212e3f47d06c46f309ea85c782b",
+        "byte_count": 19966
+      },
+      "finalization_preflight_workflow_ref": {
+        "path": ".github/workflows/kidults-er-finalization-preflight-v1.yml",
+        "sha256": "sha256:be1acb1c659d69d55347958e2bd52c47eb7ba166ce00e3fdbd7abf11de00dd3f",
+        "byte_count": 10789
+      },
+      "synthetic_selftest_mechanics_present": true,
+      "real_source_constructed_control_implementation_present": true,
+      "r7efg_constructed_control_extensions_implementation_present": true,
+      "r7e_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7e-serialized-minimums",
+      "r7e_declared_output_scope": "R7E_PARTIAL_APPROVED_STRATA_5_OF_7_SERIALIZED_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7f_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7f-vehicle-minimums",
+      "r7f_declared_output_scope": "R7F_PARTIAL_APPROVED_STRATA_5_OF_7_VEHICLE_AND_SERIALIZED_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7g_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7g-variant-minimums",
+      "r7g_declared_output_scope": "R7G_PARTIAL_APPROVED_STRATA_5_OF_7_VARIANT_SERIALIZED_VEHICLE_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7efg_declared_case_count_contract": {
+        "r7e": {
+          "input_case_count": 9,
+          "output_case_count": 10
+        },
+        "r7f": {
+          "input_case_count": 10,
+          "output_case_count": 12
+        },
+        "r7g": {
+          "input_case_count": 12,
+          "output_case_count": 14
+        }
+      },
+      "r7efg_prior_input_sha256_role": "INTEGRITY_ONLY_NOT_AUTHORITY_OR_PROMOTION_EVIDENCE",
+      "r7efg_prior_input_sha256_is_sealed_execution_or_empirical_evidence": false,
+      "r7hi_constructed_control_extensions_implementation_present": true,
+      "r7h_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7h-pressing-minimums",
+      "r7h_declared_output_scope": "R7H_PARTIAL_APPROVED_STRATA_5_OF_7_FOUR_GRAMMARS_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7i_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7i-provenance-minimums",
+      "r7i_declared_output_scope": "R7I_PARTIAL_APPROVED_STRATA_5_OF_7_FIVE_GRAMMARS_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7efghi_declared_case_count_contract": {
+        "r7e": {
+          "input_case_count": 9,
+          "output_case_count": 10
+        },
+        "r7f": {
+          "input_case_count": 10,
+          "output_case_count": 12
+        },
+        "r7g": {
+          "input_case_count": 12,
+          "output_case_count": 14
+        },
+        "r7h": {
+          "input_case_count": 14,
+          "output_case_count": 16
+        },
+        "r7i": {
+          "input_case_count": 16,
+          "output_case_count": 18
+        }
+      },
+      "r7hi_prior_input_sha256_role": "INTEGRITY_ONLY_NOT_AUTHORITY_OR_PROMOTION_EVIDENCE",
+      "r7hi_prior_input_sha256_is_sealed_execution_or_empirical_evidence": false,
+      "r7i_ambiguous_case_declared_expected_decision": "REVIEW",
+      "r7i_ambiguous_case_auto_merge_allowed": false,
+      "r7i_ambiguous_case_auto_split_allowed": false,
+      "r7j_constructed_control_extension_implementation_present": true,
+      "r7j_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7j-designer-maker-minimums",
+      "r7j_declared_output_scope": "R7J_PARTIAL_APPROVED_STRATA_6_OF_7_SIX_GRAMMARS_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7j_declared_input_case_count": 18,
+      "r7j_declared_output_case_count": 21,
+      "r7j_declared_represented_grammar_count": 6,
+      "r7j_declared_required_grammar_count": 7,
+      "r7j_declared_all_required_grammars_complete": false,
+      "r7j_prior_input_sha256_role": "INTEGRITY_ONLY_NOT_AUTHORITY_OR_PROMOTION_EVIDENCE",
+      "r7j_prior_input_sha256_is_sealed_execution_or_empirical_evidence": false,
+      "finalization_preflight_implementation_present": true,
+      "current_r7j_finalization_state": "BLOCKED",
+      "current_r7j_finalization_blockers": [
+        "FINALIZE_PER_STRATUM_INCOMPLETE:er-stratum-graded-population",
+        "FINALIZE_EMPIRICAL_DATASET_FLAGS_REQUIRED",
+        "FINALIZE_CONSTRUCTED_CONTROL_PROHIBITED",
+        "FINALIZE_CANONICALLY_APPROVED_EMPIRICAL_ATTESTATION_REQUIRED",
+        "FINALIZE_VERIFIED_TRACK_B_EMPIRICAL_ATTESTATION_REQUIRED",
+        "FINALIZE_EMPIRICAL_SAMPLE_FLOORS_REQUIRED",
+        "FINALIZE_WILSON95_LOWER_BOUNDS_REQUIRED",
+        "FINALIZE_ATTESTED_CASE_EVIDENCE_BINDING_REQUIRED",
+        "FINALIZE_EMPIRICAL_BENCHMARK_GATE_REQUIRED"
+      ],
+      "canonical_approved_empirical_attestation_fingerprint_count": 0,
+      "caller_supplied_seven_of_seven_or_empirical_booleans_may_override_canonical_attestation": false,
+      "sealed_finalized_dataset_artifact_refs": [],
+      "sealed_finalization_workflow_attestation_refs": [],
+      "finalized_dataset_artifact_count_in_sealed_evidence": 0,
+      "finalization_execution_evidenced": false,
+      "finalization_public_claim_or_release_authorized": false,
+      "finalization_production_authorized": false,
+      "finalization_production": "HOLD",
+      "constructed_controls_are_empirical_benchmark_eligible": false,
+      "empirical_attestation_required": true,
+      "per_case_source_evidence_required": true,
+      "case_source_evidence_binding_required": true,
+      "case_source_payload_digest_binding_required": true,
+      "scope_matrix_digest_binding_required": true,
+      "exact_required_scope_archetype_binding_required": true,
+      "case_scope_archetype_binding_required": true,
+      "approved_calibration_strata_digest_binding_required": true,
+      "case_to_approved_stratum_binding_required": true,
+      "per_stratum_case_class_and_identity_boundary_minima_required": true,
+      "aggregate_case_class_and_boundary_coverage_may_substitute_for_per_stratum_grammar": false,
+      "caller_supplied_calibration_manifest_must_match_canonical": true,
+      "caller_supplied_calibration_manifest_may_override_canonical": false,
+      "empirical_sample_policy": {
+        "minimum_blind_accuracy_wilson_lower_bound": 0.99,
+        "minimum_blind_cases_per_required_scope_archetype": 25,
+        "minimum_blind_holdout_cases": 400,
+        "minimum_cases_per_identity_boundary": 100,
+        "minimum_cases_per_required_case_class": 50,
+        "minimum_cases_per_required_scope_archetype": 50,
+        "minimum_overall_accuracy_wilson_lower_bound": 0.99,
+        "minimum_total_cases": 800,
+        "wilson_confidence_level": 0.95
+      },
+      "empirical_sample_policy_fingerprint": "sha256:29ac17da78e9020b5a51a756ea265915d862033584e283ff1e21b8fdbf4ec00b",
+      "empirical_sample_floors_required": true,
+      "wilson_95_lower_bound_gate_required": true,
+      "approved_empirical_attestation_manifest_count": 0,
+      "sealed_dataset_artifact_refs": [],
+      "sealed_benchmark_result_refs": [],
+      "sealed_workflow_attestation_refs": [],
+      "sealed_r7_dataset_artifact_refs": [],
+      "sealed_r7_workflow_attestation_refs": [],
+      "r7_chain_execution_evidenced": false,
+      "sealed_r7efg_dataset_artifact_refs": [],
+      "sealed_r7efg_benchmark_result_refs": [],
+      "sealed_r7efg_workflow_attestation_refs": [],
+      "r7efg_executed_constructed_control_case_count_in_sealed_evidence": 0,
+      "r7efg_chain_execution_evidenced": false,
+      "r7efg_empirical_benchmark_evidence_present": false,
+      "r7efg_current_market_evidence_present": false,
+      "r7efg_production_authorized": false,
+      "sealed_r7hi_dataset_artifact_refs": [],
+      "sealed_r7hi_benchmark_result_refs": [],
+      "sealed_r7hi_workflow_attestation_refs": [],
+      "r7hi_executed_constructed_control_case_count_in_sealed_evidence": 0,
+      "r7hi_chain_execution_evidenced": false,
+      "r7hi_blind_holdout_evidence_present": false,
+      "r7hi_empirical_benchmark_evidence_present": false,
+      "r7hi_current_market_evidence_present": false,
+      "r7hi_public_claim_or_release_authorized": false,
+      "r7hi_production_authorized": false,
+      "sealed_r7j_dataset_artifact_refs": [],
+      "sealed_r7j_benchmark_result_refs": [],
+      "sealed_r7j_workflow_attestation_refs": [],
+      "r7j_executed_constructed_control_case_count_in_sealed_evidence": 0,
+      "r7j_chain_execution_evidenced": false,
+      "r7j_blind_holdout_evidence_present": false,
+      "r7j_empirical_benchmark_evidence_present": false,
+      "r7j_current_market_evidence_present": false,
+      "r7j_public_claim_or_release_authorized": false,
+      "r7j_production_authorized": false,
+      "r7j_production": "HOLD",
+      "empirical_99_percent_evidenced": false,
+      "per_case_source_evidence_binding_verified": false,
+      "case_source_evidence_binding_verified": false,
+      "case_source_payload_binding_verified": false,
+      "case_license_evidence_binding_verified": false,
+      "scope_policy_binding_verified": false,
+      "sample_policy_binding_verified": false,
+      "empirical_attestation_verified": false,
+      "required_scope_archetype_coverage_verified": false,
+      "approved_calibration_strata_binding_verified_in_sealed_dataset": false,
+      "per_stratum_case_class_and_identity_boundary_minima_verified": false,
+      "empirical_sample_floors_verified": false,
+      "wilson_95_lower_bound_gate_verified": false,
+      "empirical_benchmark_gate_pass": false,
+      "pre_track_b_promotion_authorized": false,
+      "production_promotion_authorized": false,
+      "empirical_promotion_authorized": false,
+      "independent_label_review_complete": false,
+      "label_adjudication_complete": false,
+      "holdout_sealed_before_modeling": false,
+      "track_b_pass": false
+    },
+    "runtime_core_and_baseline_declarations": {
+      "runtime_core_id": "asi-runtime-core-validation-r1",
+      "runtime_core_fingerprint": "sha256:e6403da65d8c8deae089e04e19272ebefa41dbfd2aa55792c5e9a6279fa67d2f",
+      "baseline_runner_ref": {
+        "path": "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
+        "sha256": "sha256:50ebd8c41f146b5a4e6c7bac6675e887d72e10a49de11c3bb5b8b7560bb4b6ad",
+        "byte_count": 5084
+      },
+      "runtime_core_workflow_ref": {
+        "path": ".github/workflows/kidults-asi-runtime-core-validation-r1.yml",
+        "sha256": "sha256:e3ceca59633210fa9c53a181471a5707f162dc0152e0b66daf0942d62b656421",
+        "byte_count": 8028
+      },
+      "baseline_workflow_ref": {
+        "path": ".github/workflows/kidults-runtime-control-baseline-r1.yml",
+        "sha256": "sha256:66ce21aeaeca33df05f95fcf123ec80a9e6e6ea156d9dfcaf3887bd68b5b793e",
+        "byte_count": 4936
+      },
+      "queue_recovery_runtime_ref": {
+        "path": "services/kidults-autonomous-intelligence/src/asi/runtime.ts",
+        "sha256": "sha256:834c2ed93d514af1f59925c8e247609332a8bf2c0e9a8dd9d4788a227945e502",
+        "byte_count": 83923
+      },
+      "task_lease_atomic_fencing_migration_ref": {
+        "path": "services/kidults-autonomous-intelligence/migrations/0006_asi_task_lease_atomic_fencing_shadow.sql",
+        "sha256": "sha256:19534c51b5ad9fd6e454629573e7034097bab67c7992afcc2bb7c174b66ba38e",
+        "byte_count": 1400
+      },
+      "d1_fail_closed_shadow_test_ref": {
+        "path": "services/kidults-autonomous-intelligence/scripts/asi-processor-shadow-test.mjs",
+        "sha256": "sha256:c5fa25692e35f3db53de7245cabe4df8723173cec4841e1a68bff46805d718b6",
+        "byte_count": 27831
+      },
+      "queue_d1_processor_e2e_test_ref": {
+        "path": "services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs",
+        "sha256": "sha256:57bb6a6a2356c8f9f24e08e9ec9a6c533646e6e49a7de9b55a2481faa2accc33",
+        "byte_count": 31382
+      },
+      "runtime_recovery_fairness_test_ref": {
+        "path": "services/kidults-autonomous-intelligence/scripts/asi-runtime-recovery-fairness-test.mjs",
+        "sha256": "sha256:9b1bc12d1fd132d08215a652717c6520052b0c434e11caacf91666d08a2cfb66",
+        "byte_count": 41415
+      },
+      "autonomous_runtime_workflow_ref": {
+        "path": ".github/workflows/kidults-autonomous-runtime.yml",
+        "sha256": "sha256:6c58593fbb17de49eab09af7e797bb78b1b7e214b5b95b4a2cff9d507a553cbd",
+        "byte_count": 4292
+      },
+      "runtime_deploy_preflight_ref": {
+        "path": "services/kidults-autonomous-intelligence/scripts/deploy-preflight.mjs",
+        "sha256": "sha256:22835a5fb70b1d4bcd0b763bcbfe62bb5a9648dea21f25c9f154ea3ce9b301af",
+        "byte_count": 15811
+      },
+      "runtime_smoke_ref": {
+        "path": "services/kidults-autonomous-intelligence/scripts/runtime-smoke.mjs",
+        "sha256": "sha256:6098ee7d8bb8d88a52b291a904ee5d9ffc17f383e61ab7fdae2a193f6524a702",
+        "byte_count": 4887
+      },
+      "implementation_mode": "LOCAL_IN_MEMORY_QUEUE_D1_COMPATIBLE_DEV_SHADOW_CONTROL",
+      "task_lease_atomic_fencing_local_shadow_verified": true,
+      "task_lease_atomic_fencing_remote_cloudflare_verified": false,
+      "remote_cloudflare_queue_d1_executed": false,
+      "canonical_cloudflare_durability_verified": false,
+      "original_source_record_processed_by_runtime": false,
+      "synthetic_retry_and_quarantine_controls": true,
+      "sealed_baseline_artifact_refs": [],
+      "sealed_workflow_attestation_refs": []
+    },
+    "mainline_real_source_runtime_implementations": {
+      "queue_d1_injection": {
+        "implementation_present": true,
+        "implementation_mode": "LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_HARNESS_IMPLEMENTED_WORKFLOW_ATTESTATION_NOT_INCLUDED",
+        "remote_execution": false,
+        "original_getty_record_processed": false,
+        "getty_derived_admission_metadata_is_ancillary_on_synthetic_discovery_request": true,
+        "pass_allow_assertions_are_fixture_derived": true,
+        "real_source_admission_metadata_read_by_processors": false,
+        "raw_source_response_preserved": false,
+        "raw_source_response_hash_preserved": false,
+        "raw_source_assertion_binding_preserved": false,
+        "bridge_payload_hash_scope": [
+          "record_id",
+          "record_type",
+          "retrieved_at"
+        ],
+        "external_fetch_forbidden_inside_harness": true,
+        "script_ref": {
+          "path": "services/kidults-autonomous-intelligence/scripts/asi-real-source-queue-injection-r1.mjs",
+          "sha256": "sha256:7e6f401b2324635d1f6037ec6d355056987768f9e4ec69b2829928bbf128266a",
+          "byte_count": 7504
+        },
+        "workflow_ref": {
+          "path": ".github/workflows/kidults-asi-real-source-queue-injection-r1.yml",
+          "sha256": "sha256:f44f8e995bfedbddf8c7dde77baec8e0642c9e6d5223e8f998c9f36d631accdc",
+          "byte_count": 5319
+        },
+        "sealed_execution_attestation_refs": []
+      },
+      "retry_dlq_quarantine": {
+        "implementation_present": true,
+        "implementation_mode": "LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_HARNESS_IMPLEMENTED_WORKFLOW_ATTESTATION_NOT_INCLUDED",
+        "remote_execution": false,
+        "original_getty_record_processed": false,
+        "getty_derived_admission_metadata_is_ancillary_on_synthetic_discovery_request": true,
+        "retry_and_unknown_quarantine_are_synthetic_controls": true,
+        "real_source_admission_metadata_read_by_processors": false,
+        "remote_durability_proven": false,
+        "source_failure_empirically_observed": false,
+        "external_fetch_forbidden_inside_harness": true,
+        "script_ref": {
+          "path": "services/kidults-autonomous-intelligence/scripts/asi-real-source-retry-dlq-quarantine-r1.mjs",
+          "sha256": "sha256:e99750eb6621a101a2b4b81d5298db6469bf084d88a2d8464f3a6f365291529e",
+          "byte_count": 10676
+        },
+        "workflow_ref": {
+          "path": ".github/workflows/kidults-asi-real-source-retry-dlq-quarantine-r1.yml",
+          "sha256": "sha256:e61ded47c091b2ee15bac7c5f8859ed55d0b16866b4947719ed06f3100883f6d",
+          "byte_count": 5849
+        },
+        "sealed_execution_attestation_refs": []
+      },
+      "workflow_presence_is_sealed_execution_attestation": false
+    }
+  },
+  "execution_truth": {
+    "mode": "LOCAL_DETERMINISTIC_SHADOW",
+    "registered_processor_count": 25,
+    "exercised_processor_count": 25,
+    "discovery_fleet_queue_d1_count": 12,
+    "queue_d1_processor_deliveries": 182,
+    "global_pool_registered_endpoint_records": 64,
+    "global_pool_registered_canonical_hosts": 63,
+    "global_pool_queue_seed_events": 264,
+    "network_requests_during_processor_e2e": 0,
+    "sealed_evidence_live_retrieval_artifact_count": 0,
+    "sealed_evidence_bridge_artifact_count": 0,
+    "mainline_real_source_queue_d1_implementation_present": true,
+    "mainline_real_source_retry_dlq_quarantine_implementation_present": true,
+    "mainline_real_source_harness_implementation_mode": "LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_HARNESS_IMPLEMENTED_WORKFLOW_ATTESTATION_NOT_INCLUDED",
+    "mainline_workflow_presence_is_sealed_execution_attestation": false,
+    "mainline_real_source_harness_remote_execution": false,
+    "sealed_evidence_original_getty_record_processed": false,
+    "sealed_evidence_mainline_workflow_attestation_count": 0,
+    "mainline_runtime_core_declaration_present": true,
+    "mainline_runtime_control_baseline_implementation_present": true,
+    "mainline_runtime_control_implementation_mode": "LOCAL_IN_MEMORY_QUEUE_D1_COMPATIBLE_DEV_SHADOW_CONTROL",
+    "mainline_runtime_core_remote_execution_verified": false,
+    "mainline_runtime_core_canonical_durability_verified": false,
+    "mainline_runtime_core_original_source_record_processed": false,
+    "sealed_evidence_runtime_core_or_baseline_attestation_count": 0,
+    "sealed_evidence_real_source_queue_d1_injection_count": 0,
+    "sealed_evidence_real_source_retry_dlq_quarantine_execution_count": 0,
+    "sealed_evidence_real_source_bridge_processor_mesh_execution": "NOT_RUN_IN_THIS_SEALED_EVIDENCE",
+    "full_platform_runtime_verified": false,
+    "remote_resources_verified": false,
+    "remote_deployment_verified": false,
+    "deployed_runtime_count": 0
+  },
+  "source_truth": {
+    "rights_review_artifact_present": true,
+    "purpose_eligibility_artifact_present": true,
+    "strict_r1_count_scope": "ASI_SOURCE_RIGHTS_ACCESS_REVIEW_R1_ONLY",
+    "reviewed_source_count": 13,
+    "reviewed_purpose_package_count": 14,
+    "purpose_policy_preflight_pass_package_count": 4,
+    "held_purpose_package_count": 7,
+    "rejected_purpose_package_count": 3,
+    "bounded_shadow_rights_policy_preflight_pass_source_count": 1,
+    "purpose_policy_preflight_pass_binding_count": 32,
+    "purpose_policy_preflight_pass_source_count": 3,
+    "purpose_policy_preflight_pass_frontier_channel_count": 2,
+    "purpose_policy_preflight_pass_target_source_count": 1,
+    "evidence_claim_count": 18,
+    "normalized_claim_record_integrity_verified_count": 16,
+    "pending_normalized_claim_record_count": 2,
+    "source_content_capture_complete_count": 0,
+    "source_content_capture_pending_count": 18,
+    "runtime_admission_events_emitted": 0,
+    "runtime_admission_materialized_binding_count": 0,
+    "canonical_region_language_coverage_credit": 0,
+    "purpose_held_source_count": 7,
+    "purpose_rejected_source_count": 3,
+    "market_event_evidence_policy_preflight_pass_source_count": 0,
+    "mainline_methodology_declared_identity_context_admitted_source_count": 2,
+    "mainline_methodology_declared_historical_transaction_admitted_source_count": 1,
+    "mainline_methodology_conditional_source_count": 1,
+    "mainline_methodology_current_market_event_ready_source_count": 0,
+    "mainline_prior_pilot_declared_source_record_count": 4,
+    "global_rights_r2_count_scope": "GLOBAL_RIGHTS_SOURCE_POOL_EXPANSION_R2_REPOSITORY_DECLARATIONS_ONLY",
+    "global_rights_r2_declared_source_record_count": 4,
+    "global_rights_r2_declared_identity_context_source_count": 2,
+    "global_rights_r2_conditional_market_candidate_count": 2,
+    "global_rights_r2_current_market_ready_source_count": 0,
+    "global_rights_r2_strict_r1_revalidation_complete": false,
+    "global_rights_r2_independent_legal_review_complete": false,
+    "global_rights_r2_runtime_admission_events_emitted": 0,
+    "global_rights_r2_counts_are_additive_to_prior_pilot_counts": false,
+    "designer_maker_r3_repository_declared_identity_calibration_metadata_source_count": 2,
+    "designer_maker_r3_strict_r1_evidence_bound_admitted_source_count": 0,
+    "designer_maker_r3_full_source_pool_admitted_source_count": 0,
+    "designer_maker_r3_current_market_ready_source_count": 0,
+    "designer_maker_r3_runtime_admitted_source_count": 0,
+    "designer_maker_r3_image_admitted_source_count": 0,
+    "designer_maker_r3_repository_declaration_only": true,
+    "designer_maker_r3_strict_r1_evidence_bound_revalidation_complete": false,
+    "designer_maker_r3_independent_legal_review_complete": false,
+    "designer_maker_r3_source_content_bytes_archived": false,
+    "designer_maker_r3_runtime_admission_authorized": false,
+    "designer_maker_r3_current_market_claim_authorized": false,
+    "designer_maker_r3_full_source_pool_admission_authorized": false,
+    "designer_maker_r3_public_commercial_admission_authorized": false,
+    "designer_maker_r3_image_admission_authorized": false,
+    "designer_maker_r3_production_promotion_authorized": false,
+    "designer_maker_r3_production": "HOLD",
+    "candidate_handoff_r2_blocked_selftest_executed_locally": true,
+    "candidate_handoff_r2_blocked_selftest_two_run_byte_identical": true,
+    "candidate_handoff_r2_blocker_count": 30,
+    "candidate_handoff_r2_current_state": "BLOCKED",
+    "candidate_handoff_r2_constructed_control": true,
+    "candidate_handoff_r2_empirical_metrics_present": false,
+    "candidate_handoff_r2_empirical_attestation_verified": false,
+    "candidate_handoff_r2_current_market_evidence_present": false,
+    "candidate_handoff_r2_ready_semantics": "TRACK_B_SUBMISSION_ELIGIBILITY_ONLY",
+    "candidate_handoff_r2_ready_pair_count": 0,
+    "candidate_handoff_r2_track_b_submission_count": 0,
+    "candidate_handoff_r2_track_b_assessment_count": 0,
+    "candidate_handoff_r2_track_b_pass_count": 0,
+    "candidate_handoff_r2_publication_authorized_count": 0,
+    "candidate_handoff_r2_production_authorized_count": 0,
+    "candidate_handoff_r2_publication": "HOLD",
+    "candidate_handoff_r2_production": "HOLD",
+    "er_synthetic_selftest_mechanics_present": true,
+    "er_real_source_constructed_control_assembler_present": true,
+    "sealed_er_dataset_artifact_count": 0,
+    "sealed_er_benchmark_result_count": 0,
+    "sealed_er_workflow_attestation_count": 0,
+    "er_approved_empirical_attestation_manifest_count": 0,
+    "er_approved_calibration_strata_count": 7,
+    "sealed_er_r7_dataset_artifact_count": 0,
+    "sealed_er_r7_workflow_attestation_count": 0,
+    "sealed_er_r7efg_dataset_artifact_count": 0,
+    "sealed_er_r7efg_benchmark_result_count": 0,
+    "sealed_er_r7efg_workflow_attestation_count": 0,
+    "er_r7efg_executed_constructed_control_case_count": 0,
+    "sealed_er_r7hi_dataset_artifact_count": 0,
+    "sealed_er_r7hi_benchmark_result_count": 0,
+    "sealed_er_r7hi_workflow_attestation_count": 0,
+    "er_r7hi_executed_constructed_control_case_count": 0,
+    "er_approved_calibration_strata_manifest_present": true,
+    "er_approved_calibration_strata_fingerprint_verified": true,
+    "er_approved_calibration_strata_is_empirical_attestation": false,
+    "er_r7_chain_implementation_present": true,
+    "er_r7_chain_execution_evidenced": false,
+    "er_r7efg_constructed_control_extensions_implementation_present": true,
+    "er_r7efg_chain_execution_evidenced": false,
+    "er_r7efg_empirical_benchmark_evidence_present": false,
+    "er_r7efg_current_market_evidence_present": false,
+    "er_r7efg_production_authorized": false,
+    "er_r7hi_constructed_control_extensions_implementation_present": true,
+    "er_r7hi_chain_execution_evidenced": false,
+    "er_r7hi_blind_holdout_evidence_present": false,
+    "er_r7hi_empirical_benchmark_evidence_present": false,
+    "er_r7hi_current_market_evidence_present": false,
+    "er_r7hi_public_claim_or_release_authorized": false,
+    "er_r7hi_production_authorized": false,
+    "sealed_er_r7j_dataset_artifact_count": 0,
+    "sealed_er_r7j_benchmark_result_count": 0,
+    "sealed_er_r7j_workflow_attestation_count": 0,
+    "er_r7j_executed_constructed_control_case_count": 0,
+    "er_r7j_constructed_control_extension_implementation_present": true,
+    "er_r7j_chain_execution_evidenced": false,
+    "er_r7j_declared_represented_grammar_count": 6,
+    "er_r7j_declared_required_grammar_count": 7,
+    "er_r7j_declared_all_required_grammars_complete": false,
+    "er_r7j_blind_holdout_evidence_present": false,
+    "er_r7j_empirical_benchmark_evidence_present": false,
+    "er_r7j_current_market_evidence_present": false,
+    "er_r7j_public_claim_or_release_authorized": false,
+    "er_r7j_production_authorized": false,
+    "er_r7j_production": "HOLD",
+    "er_finalization_preflight_implementation_present": true,
+    "er_current_r7j_finalization_state": "BLOCKED",
+    "er_canonical_approved_empirical_attestation_fingerprint_count": 0,
+    "sealed_er_finalized_dataset_artifact_count": 0,
+    "sealed_er_finalization_workflow_attestation_count": 0,
+    "er_finalization_execution_evidenced": false,
+    "er_finalization_caller_supplied_flags_may_override_canonical_attestation": false,
+    "er_finalization_public_claim_or_release_authorized": false,
+    "er_finalization_production_authorized": false,
+    "er_finalization_production": "HOLD",
+    "er_approved_calibration_strata_digest_binding_required": true,
+    "er_case_to_approved_stratum_binding_required": true,
+    "er_per_stratum_case_class_and_identity_boundary_minima_required": true,
+    "er_aggregate_class_boundary_coverage_may_substitute_for_per_stratum_grammar": false,
+    "er_caller_supplied_calibration_manifest_must_match_canonical": true,
+    "er_caller_supplied_calibration_manifest_may_override_canonical": false,
+    "er_approved_calibration_strata_binding_verified_in_sealed_dataset": false,
+    "er_per_stratum_case_class_and_identity_boundary_minima_verified": false,
+    "er_required_scope_archetype_count": 7,
+    "er_scope_matrix_canonical_fingerprint_verified": true,
+    "er_per_case_source_evidence_and_license_binding_required": true,
+    "er_case_source_evidence_binding_required": true,
+    "er_case_scope_archetype_binding_required": true,
+    "er_empirical_sample_policy_fingerprint_verified": true,
+    "er_minimum_total_cases_required": 800,
+    "er_minimum_blind_holdout_cases_required": 400,
+    "er_minimum_cases_per_scope_archetype_required": 50,
+    "er_minimum_blind_cases_per_scope_archetype_required": 25,
+    "er_minimum_cases_per_identity_boundary_required": 100,
+    "er_minimum_cases_per_case_class_required": 50,
+    "er_wilson_confidence_level_required": 0.95,
+    "er_minimum_overall_accuracy_wilson_lower_bound_required": 0.99,
+    "er_minimum_blind_accuracy_wilson_lower_bound_required": 0.99,
+    "er_per_case_source_evidence_binding_verified": false,
+    "er_case_source_evidence_binding_verified": false,
+    "er_case_source_payload_binding_verified": false,
+    "er_case_license_evidence_binding_verified": false,
+    "er_scope_policy_binding_verified": false,
+    "er_sample_policy_binding_verified": false,
+    "er_empirical_attestation_verified": false,
+    "er_full_required_scope_archetype_coverage_verified": false,
+    "er_empirical_sample_floors_verified": false,
+    "er_wilson_95_lower_bound_gate_verified": false,
+    "er_empirical_benchmark_gate_pass": false,
+    "er_pre_track_b_promotion_authorized": false,
+    "er_production_promotion_authorized": false,
+    "er_empirical_promotion_authorized": false,
+    "er_empirical_99_percent_evidenced": false,
+    "er_independent_label_review_complete": false,
+    "er_label_adjudication_complete": false,
+    "er_holdout_sealed_before_modeling": false,
+    "er_track_b_pass": false,
+    "runtime_core_declaration_present": true,
+    "runtime_control_baseline_implementation_present": true,
+    "sealed_runtime_core_or_baseline_artifact_count": 0,
+    "sealed_runtime_core_or_baseline_workflow_attestation_count": 0,
+    "runtime_core_remote_cloudflare_execution_verified": false,
+    "runtime_core_canonical_cloudflare_durability_verified": false,
+    "scope_source_pools_ready": 0,
+    "market_data_poc_ready_scopes": 0,
+    "indexes_computed": 0,
+    "deployed_alignment_percent": 0,
+    "rights_pass_semantics": "POLICY_AND_EVIDENCE_PREFLIGHT_NOT_LEGAL_CONCLUSION",
+    "canonical_rights_decision_semantics": "POLICY_AND_EVIDENCE_PREFLIGHT_PASS_ONLY",
+    "purpose_eligibility_rebuild_matches_committed_artifact": true,
+    "normalized_claim_record_integrity_state": "PASS_PACKAGE_CLAIM_RECORDS_VERIFIED_REVIEW_SLICE_PARTIAL",
+    "pass_package_claim_record_integrity_state": "ALL_PASS_NORMALIZED_CLAIM_RECORDS_INTEGRITY_VERIFIED",
+    "pass_package_temporal_provenance_state": "ALL_PASS_TEMPORAL_PROVENANCE_ORDER_VERIFIED",
+    "pass_package_evidence_assertion_binding_state": "ALL_PASS_ASSERTION_BINDING_FINGERPRINTS_VERIFIED",
+    "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+    "normalized_claim_record_digest_covers_source_content": false,
+    "earliest_evidence_review_due_at": "2026-09-18T00:00:00Z",
+    "stale_evidence_count_at_evidence_clock": 0,
+    "independent_review_state": "NOT_INDEPENDENT_INTERNAL_POLICY_PREFLIGHT",
+    "independent_legal_review_state": "NOT_COMPLETED",
+    "independent_legal_review_complete": false,
+    "independently_legal_cleared_source_count": 0,
+    "bounded_shadow_collection_execution_authorized_source_count": 0,
+    "mainline_pilot_source_declarations_revalidated_by_current_r1": false,
+    "mainline_declared_admission_is_independent_legal_clearance": false,
+    "mainline_declared_admission_is_strict_r1_evidence_bound_preflight": false,
+    "mainline_live_retrieval_artifacts_included_as_canonical_inputs_in_this_sealed_evidence": false,
+    "sealed_evidence_bridge_artifact_count": 0,
+    "sealed_evidence_real_source_queue_d1_injection_evidenced": false,
+    "sealed_evidence_real_source_retry_dlq_quarantine_execution_evidenced": false,
+    "sealed_evidence_mainline_bridge_processor_mesh_execution": "NOT_RUN_IN_THIS_SEALED_EVIDENCE",
+    "mainline_real_source_harness_remote_execution": false,
+    "sealed_evidence_original_getty_record_processed": false,
+    "mainline_queue_d1_implementation_pass_allow_assertions_are_fixture_derived": true,
+    "mainline_retry_and_unknown_quarantine_implementation_controls_are_synthetic": true,
+    "mainline_real_source_admission_metadata_read_by_processors": false,
+    "mainline_raw_source_response_preserved_in_bridge": false,
+    "mainline_raw_source_response_hash_preserved_in_bridge": false,
+    "mainline_raw_source_assertion_binding_preserved_in_bridge": false,
+    "historical_transaction_context_declared_available": true,
+    "sealed_historical_transaction_evidence_available": false,
+    "current_market_event_evidence_available": false,
+    "registered_endpoints_are_policy_preflight_pass_sources": false,
+    "purpose_policy_preflight_pass_sources_are_scope_source_pools": false,
+    "purpose_policy_preflight_bindings_are_runtime_admissions": false,
+    "frontier_scope_role_policy_binding_provenance_state": "ALL_FRONTIER_BINDINGS_EXACTLY_POLICY_BOUND"
+  },
+  "test_execution": {
+    "required_suite_count": 4,
+    "required_suite_pass_count": 4,
+    "optional_suite_count": 0,
+    "optional_suite_pass_count": 0,
+    "executed_test_count": 62,
+    "contract_negative_controls_passed": 10,
+    "contract_negative_controls_total": 10,
+    "suites": [
+      {
+        "suite_id": "ASI_MESH_CONTRACT_PREFLIGHT",
+        "command": "node scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs",
+        "status": "PASS",
+        "execution_mode": "LOCAL_DETERMINISTIC_CONTRACT_PREFLIGHT",
+        "negative_controls_passed": 10,
+        "negative_controls_total": 10,
+        "minimum_negative_controls": 10,
+        "test_count": null,
+        "test_names": []
+      },
+      {
+        "suite_id": "ASI_D1_FAIL_CLOSED_SHADOW",
+        "command": "node services/kidults-autonomous-intelligence/scripts/asi-processor-shadow-test.mjs",
+        "status": "PASS",
+        "execution_mode": "LOCAL_SHADOW",
+        "test_count": 18,
+        "minimum_test_count": 18,
+        "test_names": [
+          "all six migrations apply to a fresh SQLite database",
+          "migrations 0004 and 0006 are replay-safe",
+          "database seeds the exact canonical 4+7 fan-in requirements",
+          "missing one local classification assertion remains fail-closed",
+          "UNKNOWN rights holds only the affected source-purpose-partition",
+          "a discovery candidate on HOLD cannot be promoted by forged downstream PASS inputs",
+          "assertions and fan-in membership are append-only",
+          "outbox mismatch cannot be laundered into processor evidence",
+          "exact discovery observation replay is idempotent but payload mutation conflicts",
+          "fan-in is local: source B becomes ready while source A remains held",
+          "complete processor fan-in still cannot bypass purpose admission",
+          "only the complete PASS/ALLOW path reaches QUALIFIED_INTERNAL_SHADOW",
+          "expired linked admission makes a recorded qualification effectively unusable",
+          "revoked linked admission makes a recorded qualification effectively revoked",
+          "later denied discovery observation makes current fail closed without rewriting audit history",
+          "storage constraints reject any production or publication authorization",
+          "candidate identity cannot be mutated or deleted",
+          "the resulting database has no foreign-key violations"
+        ],
+        "summary": {
+          "classification_required": 4,
+          "mode": "SHADOW",
+          "production": "HOLD",
+          "qualification_required": 7,
+          "status": "PASS",
+          "tests": 18
+        }
+      },
+      {
+        "suite_id": "ASI_QUEUE_D1_PROCESSOR_E2E",
+        "command": "node services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs",
+        "status": "PASS",
+        "execution_mode": "LOCAL_SHADOW",
+        "test_count": 20,
+        "minimum_test_count": 20,
+        "test_names": [
+          "partition tuple encoding prevents delimiter-based grain collisions",
+          "discovery request is durably dispatched to exactly one channel fleet",
+          "all 12 discovery channels are durably routed through outbox to independent Queues",
+          "discovery seed ALLOW cannot override envelope DENY",
+          "discovery seed ALLOW cannot override envelope REJECT",
+          "all 12 discovery Queues consume through D1 and complete independent 14-processor funnels",
+          "PASS path executes discovery + 4 classifiers + 7 qualifiers + 2 decisions",
+          "PASS path materializes local 4/4 and 7/7 READY fan-ins",
+          "PASS admission is complete and source pool promotion is internal SHADOW only",
+          "event lineage contains every materialized stage and both decision outputs",
+          "duplicate Queue delivery ACKs idempotently without new materialization",
+          "duplicate ingress event/outbox is immutable and not redispatched",
+          "declared payload SHA-256 is recomputed before event or outbox persistence",
+          "forged outbox provenance retries fail-closed and creates no processor output",
+          "UNKNOWN collection rights completes local work but keeps admission and pool on HOLD",
+          "fan-in and decisions stay partition-local across simultaneous PASS/HOLD sources",
+          "all real registered-endpoint bootstrap seeds enter the canonical discovery Queue without eligibility inflation",
+          "DISCOVERY_METADATA_INDEX bootstrap executes discovery + local 4+7 analysis and then stops fail-closed",
+          "all 25 processors are registered and exercised without a network call",
+          "runtime task leases release cleanly and durable grains remain unique with no orphan rows"
+        ],
+        "summary": {
+          "discovery_fleets_queue_d1_exercised": 12,
+          "full_queue_d1_processor_deliveries": 182,
+          "global_pool_bootstrap_sample_processors_exercised": 12,
+          "global_pool_bootstrap_seed_events": 264,
+          "hold_pool_state": "HOLD",
+          "mode": "SHADOW",
+          "network_requests": 0,
+          "pass_pool_state": "QUALIFIED_INTERNAL_SHADOW",
+          "processors_exercised": 25,
+          "processors_exercised_per_source": 14,
+          "processors_registered": 25,
+          "production": "HOLD",
+          "public_projection_authorized": false,
+          "status": "PASS",
+          "tests": 20
+        }
+      },
+      {
+        "suite_id": "ASI_RUNTIME_RECOVERY_FAIRNESS_SHADOW",
+        "command": "node services/kidults-autonomous-intelligence/scripts/asi-runtime-recovery-fairness-test.mjs",
+        "status": "PASS",
+        "execution_mode": "LOCAL_SHADOW",
+        "test_count": 24,
+        "minimum_test_count": 24,
+        "test_names": [
+          "additive 0005 migration backfills the collision-safe fleet and market-cell fairness grain",
+          "fair relay selects one item from each of three source partitions before a second item",
+          "persistent fairness state advances all three partitions without starvation",
+          "oldest waiting market cell is not starved by continuous fresh keys or historic selection count",
+          "least-recently-served clock rotates to the oldest unserved market cell after aged work is served",
+          "per-fleet hourly request and zero-cost budget hold before Queue send",
+          "future circuit probe is not treated as active and produces an observable hold",
+          "due half-open probe is single-use and a successful send closes the circuit",
+          "stale half-open probe owner cannot close or count against a replacement probe owner",
+          "five consecutive transport failures open the per-fleet circuit",
+          "open circuit blocks a sixth Queue send and records the control transition",
+          "five control holds do not consume send attempts and the first actual send failure remains RETRY attempt one",
+          "corrupt outbox is terminal HOLD without circuit impact while a healthy peer dispatches",
+          "stale task lease owner cannot mutate processor state after the final fence read before the output batch",
+          "replay claim and attempt insertion are atomic and roll back together on attempt conflict",
+          "stale replay lease owner cannot reset outbox, send, transition, or count after ownership changes",
+          "terminal DLQ persistence failure requests retry and never ACKs",
+          "terminal DLQ ACK follows D1 commit and duplicate delivery is receipt-idempotent",
+          "explicit bounded replay claims a durable lease and redispatches the original idempotent outbox",
+          "consumer success resolves replay and terminal HOLD without deleting immutable evidence",
+          "unexpired replay lease is not stolen",
+          "expired replay lease is reclaimed once and fails closed when its target outbox is absent",
+          "operating telemetry is explicit about SHADOW, non-deployment and no no-loss guarantee",
+          "data quality has unique replay/outbox grains and no orphan foreign-key rows"
+        ],
+        "summary": {
+          "deployed": false,
+          "fair_partitions": 3,
+          "loss_guarantee": false,
+          "mode": "SHADOW",
+          "network_requests": 0,
+          "production": "HOLD",
+          "public_projection_authorized": false,
+          "remote_resources_verified": false,
+          "replay_max_attempts": 2,
+          "status": "PASS",
+          "terminal_ack_policy": "ACK_AFTER_D1_PERSIST",
+          "tests": 24
+        }
+      }
+    ]
+  },
+  "replay_readiness": {
+    "schema_migration_reapply": "VERIFIED_LOCAL_SHADOW",
+    "duplicate_queue_delivery": "VERIFIED_LOCAL_SHADOW",
+    "duplicate_ingress_event_outbox": "VERIFIED_LOCAL_SHADOW",
+    "replay_controller_and_lease": "VERIFIED_LOCAL_SHADOW",
+    "remote_replay": "NOT_VERIFIED"
+  },
+  "chaos_and_failure_mode_readiness": {
+    "payload_hash_forgery_rejection": "VERIFIED_LOCAL_SHADOW",
+    "outbox_provenance_forgery_retry": "VERIFIED_LOCAL_SHADOW",
+    "unknown_rights_partition_local_hold": "VERIFIED_LOCAL_SHADOW",
+    "admission_expiry_fail_closed": "VERIFIED_LOCAL_SHADOW",
+    "admission_revocation_fail_closed": "VERIFIED_LOCAL_SHADOW",
+    "later_deny_audit_preservation": "VERIFIED_LOCAL_SHADOW",
+    "partition_delimiter_collision": "VERIFIED_LOCAL_SHADOW",
+    "institutional_context_market_guard": "CONTRACT_PREFLIGHT_ONLY",
+    "synthetic_dead_letter_failure_isolation": "CONTRACT_PREFLIGHT_ONLY",
+    "bounded_partition_rotation_without_starvation": "VERIFIED_LOCAL_SHADOW",
+    "oldest_age_least_recently_served_starvation_resistance": "VERIFIED_LOCAL_SHADOW",
+    "decision_value_priority": "NOT_IMPLEMENTED",
+    "coverage_gap_priority": "NOT_IMPLEMENTED",
+    "market_funnel_priority_completeness": "HOLD",
+    "circuit_breaker_state_transitions": "VERIFIED_LOCAL_SHADOW",
+    "rate_and_cost_budget_exhaustion": "VERIFIED_LOCAL_SHADOW",
+    "terminal_dlq_persist_before_ack_fail_closed": "VERIFIED_LOCAL_SHADOW",
+    "terminal_dlq_receipt_idempotency": "VERIFIED_LOCAL_SHADOW",
+    "task_lease_owner_epoch_write_fence": "VERIFIED_LOCAL_SHADOW",
+    "terminal_dlq_durability_under_d1_failure": "NOT_VERIFIED",
+    "remote_chaos_injection": "NOT_VERIFIED"
+  },
+  "recovery_operating_truth": {
+    "suite_status": "PASS",
+    "executed_test_count": 24,
+    "fair_partitions_exercised": 3,
+    "verified_fairness_subset": "BOUNDED_PARTITION_ROTATION_PLUS_OLDEST_AGE_LEAST_RECENTLY_SERVED",
+    "decision_value_priority": "NOT_IMPLEMENTED",
+    "coverage_gap_priority": "NOT_IMPLEMENTED",
+    "full_market_funnel_priority_model": "HOLD",
+    "replay_max_attempts_exercised": 2,
+    "terminal_ack_policy_exercised": "ACK_AFTER_D1_PERSIST",
+    "terminal_dlq_loss_guarantee": false,
+    "network_requests": 0,
+    "remote_resources_verified": false,
+    "deployed": false,
+    "public_projection_authorized": false,
+    "production": "HOLD",
+    "structured_runtime_telemetry_source": "services/kidults-autonomous-intelligence/src/asi/runtime.ts"
+  },
+  "failure_observations": [
+    {
+      "observation_id": "MIGRATION_REPLAY_SAFE",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_D1_FAIL_CLOSED_SHADOW",
+      "evidence_ref": "migrations 0004 and 0006 are replay-safe"
+    },
+    {
+      "observation_id": "DUPLICATE_QUEUE_DELIVERY_IDEMPOTENT",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_QUEUE_D1_PROCESSOR_E2E",
+      "evidence_ref": "duplicate Queue delivery ACKs idempotently without new materialization"
+    },
+    {
+      "observation_id": "DUPLICATE_INGRESS_NOT_REDISPATCHED",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_QUEUE_D1_PROCESSOR_E2E",
+      "evidence_ref": "duplicate ingress event/outbox is immutable and not redispatched"
+    },
+    {
+      "observation_id": "PAYLOAD_HASH_FORGERY_REJECTED",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_QUEUE_D1_PROCESSOR_E2E",
+      "evidence_ref": "declared payload SHA-256 is recomputed before event or outbox persistence"
+    },
+    {
+      "observation_id": "OUTBOX_PROVENANCE_FORGERY_RETRIED_FAIL_CLOSED",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_QUEUE_D1_PROCESSOR_E2E",
+      "evidence_ref": "forged outbox provenance retries fail-closed and creates no processor output"
+    },
+    {
+      "observation_id": "UNKNOWN_RIGHTS_PARTITION_LOCAL_HOLD",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_D1_FAIL_CLOSED_SHADOW",
+      "evidence_ref": "UNKNOWN rights holds only the affected source-purpose-partition"
+    },
+    {
+      "observation_id": "EXPIRED_ADMISSION_FAIL_CLOSED",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_D1_FAIL_CLOSED_SHADOW",
+      "evidence_ref": "expired linked admission makes a recorded qualification effectively unusable"
+    },
+    {
+      "observation_id": "REVOKED_ADMISSION_FAIL_CLOSED",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_D1_FAIL_CLOSED_SHADOW",
+      "evidence_ref": "revoked linked admission makes a recorded qualification effectively revoked"
+    },
+    {
+      "observation_id": "LATER_DENY_FAIL_CLOSED_WITH_AUDIT_PRESERVED",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_D1_FAIL_CLOSED_SHADOW",
+      "evidence_ref": "later denied discovery observation makes current fail closed without rewriting audit history"
+    },
+    {
+      "observation_id": "PARTITION_DELIMITER_COLLISION_PREVENTED",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_QUEUE_D1_PROCESSOR_E2E",
+      "evidence_ref": "partition tuple encoding prevents delimiter-based grain collisions"
+    },
+    {
+      "observation_id": "NO_NETWORK_CALL_DURING_PROCESSOR_E2E",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_QUEUE_D1_PROCESSOR_E2E",
+      "evidence_ref": "all 25 processors are registered and exercised without a network call"
+    },
+    {
+      "observation_id": "TASK_LEASE_OWNER_EPOCH_WRITE_FENCE_FAILS_CLOSED",
+      "readiness": "VERIFIED_LOCAL_SHADOW",
+      "suite_id": "ASI_RUNTIME_RECOVERY_FAIRNESS_SHADOW",
+      "evidence_ref": "stale task lease owner cannot mutate processor state after the final fence read before the output batch"
+    },
+    {
+      "observation_id": "INSTITUTIONAL_CONTEXT_NOT_PROMOTED_TO_MARKET_EVIDENCE",
+      "readiness": "CONTRACT_PREFLIGHT_ONLY",
+      "suite_id": "ASI_MESH_CONTRACT_PREFLIGHT",
+      "evidence_ref": "institutional context contract mutation and deterministic simulation"
+    }
+  ],
+  "data_quality": {
+    "intended_grain": "ONE_EVIDENCE_RECORD_PER_CANONICAL_INPUT_AND_FIXED_SHADOW_TEST_SNAPSHOT",
+    "completeness": {
+      "required_suites_passed": 4,
+      "required_suites_total": 4,
+      "required_failure_observations_present": 13,
+      "required_failure_observations_total": 13
+    },
+    "uniqueness": {
+      "registered_processors_unique_and_exercised": true,
+      "evidence_input_keys_unique": true,
+      "code_input_keys_unique": true
+    },
+    "validity": {
+      "all_canonical_json_inputs_fingerprinted": true,
+      "all_canonical_code_inputs_present_and_hashed": true,
+      "passing_rights_packages_have_normalized_claim_record_integrity_digests": true,
+      "passing_rights_packages_have_temporal_provenance": true,
+      "passing_rights_packages_have_assertion_binding_fingerprints": true,
+      "frontier_scope_role_policy_binding_provenance_verified": true,
+      "source_content_capture_not_claimed": true,
+      "bootstrap_transitive_input_fingerprints_present": true,
+      "readiness_transitive_input_and_output_fingerprints_present": true
+    },
+    "integrity": {
+      "queue_d1_foreign_key_check_executed": true,
+      "recovery_foreign_key_check_executed": true
+    },
+    "timeliness": {
+      "evidence_clock": "2026-08-19T00:00:00.000Z",
+      "earliest_rights_evidence_review_due_at": "2026-09-18T00:00:00Z",
+      "stale_rights_evidence_count": 0
+    },
+    "limitations": [
+      "LOCAL_SHADOW_NOT_REMOTE_RUNTIME",
+      "RIGHTS_PASS_IS_POLICY_EVIDENCE_PREFLIGHT_NOT_LEGAL_OPINION",
+      "NORMALIZED_CLAIM_RECORD_DIGEST_IS_NOT_PRIMARY_SOURCE_CONTENT_CAPTURE",
+      "PRIMARY_SOURCE_CONTENT_IS_PENDING_NOT_ARCHIVED",
+      "REVIEWED_SLICE_IS_NOT_GLOBAL_MARKET_COMPLETENESS",
+      "MAINLINE_PILOT_SOURCE_DECLARATIONS_ARE_NOT_REVALIDATED_BY_THIS_R1_SLICE",
+      "MAINLINE_LIVE_RETRIEVAL_AND_REAL_SOURCE_RUNTIME_EXECUTION_ATTESTATIONS_ARE_NOT_CANONICAL_INPUTS_IN_THIS_SEALED_EVIDENCE",
+      "MAINLINE_REAL_SOURCE_QUEUE_D1_AND_RETRY_DLQ_IMPLEMENTATIONS_ARE_PRESENT_BUT_NOT_EXECUTED_IN_THIS_SEALED_EVIDENCE",
+      "GLOBAL_RIGHTS_R2_IS_A_NON_ADDITIVE_REPOSITORY_DECLARATION_NOT_STRICT_R1_REVALIDATION_OR_LEGAL_CLEARANCE",
+      "DESIGNER_MAKER_R3_TWO_SOURCE_ADMISSION_IS_REPOSITORY_DECLARED_BOUNDED_INTERNAL_IDENTITY_CALIBRATION_METADATA_ONLY_NOT_STRICT_R1_LEGAL_ARCHIVAL_RUNTIME_CURRENT_MARKET_FULL_POOL_IMAGE_PUBLIC_COMMERCIAL_OR_PRODUCTION_AUTHORIZATION",
+      "ENTITY_RESOLUTION_SELFTEST_AND_CONSTRUCTED_CONTROL_IMPLEMENTATIONS_ARE_NOT_EMPIRICAL_99_PERCENT_OR_TRACK_B_EVIDENCE",
+      "ENTITY_RESOLUTION_EMPIRICAL_SAMPLE_FLOORS_AND_WILSON_95_LOWER_BOUNDS_ARE_POLICY_GATES_NOT_EXECUTED_EVIDENCE",
+      "ENTITY_RESOLUTION_APPROVED_BOUNDED_CALIBRATION_STRATA_IS_POLICY_GRAMMAR_NOT_EMPIRICAL_ATTESTATION_OR_EXECUTION_EVIDENCE",
+      "ENTITY_RESOLUTION_R7_IMPLEMENTATIONS_AND_WORKFLOWS_ARE_PRESENT_BUT_NOT_EXECUTED_IN_THIS_SEALED_EVIDENCE",
+      "ENTITY_RESOLUTION_R7EFG_CONSTRUCTED_CONTROL_IMPLEMENTATIONS_AND_WORKFLOWS_ARE_PRESENT_BUT_NOT_EXECUTED_IN_THIS_SEALED_EVIDENCE",
+      "ENTITY_RESOLUTION_R7EFG_SCHEMA_MECHANICS_DO_NOT_PROVE_EMPIRICAL_PER_STRATUM_COMPLETION_OR_CURRENT_MARKET_EVIDENCE",
+      "ENTITY_RESOLUTION_R7HI_CONSTRUCTED_CONTROL_IMPLEMENTATIONS_AND_WORKFLOWS_ARE_PRESENT_BUT_NOT_EXECUTED_IN_THIS_SEALED_EVIDENCE",
+      "ENTITY_RESOLUTION_R7HI_SCHEMA_MECHANICS_DO_NOT_PROVE_BLIND_EMPIRICAL_CURRENT_MARKET_PUBLIC_OR_PRODUCTION_READINESS",
+      "ENTITY_RESOLUTION_R7J_IMPLEMENTATION_AND_WORKFLOW_ARE_PRESENT_BUT_HAVE_ZERO_SEALED_ARTIFACTS_EXECUTED_CASES_OR_ATTESTATIONS_IN_THIS_EVIDENCE",
+      "ENTITY_RESOLUTION_R7J_SIX_OF_SEVEN_CONSTRUCTED_CONTROL_GRAMMAR_MECHANICS_DO_NOT_PROVE_FULL_SCOPE_BLIND_EMPIRICAL_CURRENT_MARKET_PUBLIC_OR_PRODUCTION_READINESS",
+      "ENTITY_RESOLUTION_FINALIZER_IS_IMPLEMENTED_BUT_CURRENT_R7J_FINALIZATION_IS_BLOCKED_AND_NO_FINAL_ARTIFACT_OR_WORKFLOW_ATTESTATION_IS_SEALED",
+      "CALLER_FORGED_SEVEN_OF_SEVEN_OR_EMPIRICAL_RESULT_FLAGS_CANNOT_REPLACE_A_CANONICALLY_APPROVED_EMPIRICAL_ATTESTATION",
+      "CANDIDATE_HANDOFF_R2_LOCAL_BLOCKED_SELFTEST_IS_NOT_A_READY_PAIR_TRACK_B_SUBMISSION_ASSESSMENT_PASS_PUBLICATION_OR_PRODUCTION_AUTHORIZATION",
+      "RUNTIME_CORE_AND_BASELINE_DECLARATIONS_ARE_NOT_REMOTE_CLOUDFLARE_EXECUTION_OR_DURABILITY_ATTESTATIONS",
+      "HISTORICAL_TRANSACTION_CONTEXT_IS_NOT_CURRENT_MARKET_EVIDENCE",
+      "TERMINAL_DLQ_HAS_NO_NO_LOSS_GUARANTEE",
+      "PURPOSE_ELIGIBILITY_IS_NOT_SCOPE_SOURCE_POOL_READINESS",
+      "DECISION_VALUE_AND_COVERAGE_GAP_FAIRNESS_PRIORITIES_NOT_IMPLEMENTED"
+    ]
+  },
+  "readiness_limits": {
+    "current_local_queue_controls_complete": false,
+    "local_recovery_fairness_suite_status": "PASS",
+    "remote_terminal_dlq_loss_guarantee": false,
+    "live_worldwide_discovery_proven": false,
+    "reviewed_source_slice_is_global_market_complete": false,
+    "source_content_archived": false,
+    "historical_transaction_context_declared_available": true,
+    "sealed_historical_transaction_evidence_available": false,
+    "current_market_event_evidence_available": false,
+    "real_source_live_retrieval_artifact_included_in_this_sealed_evidence": false,
+    "mainline_real_source_queue_d1_implementation_present": true,
+    "mainline_real_source_retry_dlq_quarantine_implementation_present": true,
+    "mainline_real_source_harness_implementation_mode": "LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_HARNESS_IMPLEMENTED_WORKFLOW_ATTESTATION_NOT_INCLUDED",
+    "mainline_real_source_harness_remote_execution": false,
+    "sealed_evidence_original_getty_record_processed": false,
+    "sealed_evidence_real_source_queue_d1_injection_count": 0,
+    "sealed_evidence_real_source_retry_dlq_quarantine_execution_count": 0,
+    "sealed_evidence_real_source_queue_d1_injection_evidenced": false,
+    "sealed_evidence_real_source_retry_dlq_quarantine_execution_evidenced": false,
+    "global_rights_r2_strict_r1_revalidation_complete": false,
+    "global_rights_r2_independent_legal_review_complete": false,
+    "global_rights_r2_current_market_ready_source_count": 0,
+    "designer_maker_r3_repository_declared_identity_calibration_metadata_source_count": 2,
+    "designer_maker_r3_strict_r1_evidence_bound_admitted_source_count": 0,
+    "designer_maker_r3_full_source_pool_admitted_source_count": 0,
+    "designer_maker_r3_current_market_ready_source_count": 0,
+    "designer_maker_r3_runtime_admitted_source_count": 0,
+    "designer_maker_r3_image_admitted_source_count": 0,
+    "designer_maker_r3_repository_declaration_only": true,
+    "designer_maker_r3_strict_r1_evidence_bound_revalidation_complete": false,
+    "designer_maker_r3_independent_legal_review_complete": false,
+    "designer_maker_r3_source_content_bytes_archived": false,
+    "designer_maker_r3_runtime_admission_authorized": false,
+    "designer_maker_r3_current_market_claim_authorized": false,
+    "designer_maker_r3_full_source_pool_admission_authorized": false,
+    "designer_maker_r3_public_commercial_admission_authorized": false,
+    "designer_maker_r3_image_admission_authorized": false,
+    "designer_maker_r3_production_promotion_authorized": false,
+    "designer_maker_r3_production": "HOLD",
+    "candidate_handoff_r2_blocked_selftest_executed_locally": true,
+    "candidate_handoff_r2_blocked_selftest_two_run_byte_identical": true,
+    "candidate_handoff_r2_blocker_count": 30,
+    "candidate_handoff_r2_current_state": "BLOCKED",
+    "candidate_handoff_r2_constructed_control": true,
+    "candidate_handoff_r2_empirical_metrics_present": false,
+    "candidate_handoff_r2_empirical_attestation_verified": false,
+    "candidate_handoff_r2_current_market_evidence_present": false,
+    "candidate_handoff_r2_ready_semantics": "TRACK_B_SUBMISSION_ELIGIBILITY_ONLY",
+    "candidate_handoff_r2_ready_pair_count": 0,
+    "candidate_handoff_r2_track_b_submission_count": 0,
+    "candidate_handoff_r2_track_b_assessment_count": 0,
+    "candidate_handoff_r2_track_b_pass_count": 0,
+    "candidate_handoff_r2_publication_authorized_count": 0,
+    "candidate_handoff_r2_production_authorized_count": 0,
+    "candidate_handoff_r2_publication": "HOLD",
+    "candidate_handoff_r2_production": "HOLD",
+    "er_empirical_99_percent_evidenced": false,
+    "er_independent_label_review_complete": false,
+    "er_label_adjudication_complete": false,
+    "er_holdout_sealed_before_modeling": false,
+    "er_track_b_pass": false,
+    "er_approved_empirical_attestation_manifest_count": 0,
+    "er_approved_calibration_strata_count": 7,
+    "sealed_er_r7_dataset_artifact_count": 0,
+    "sealed_er_r7_workflow_attestation_count": 0,
+    "sealed_er_r7efg_dataset_artifact_count": 0,
+    "sealed_er_r7efg_benchmark_result_count": 0,
+    "sealed_er_r7efg_workflow_attestation_count": 0,
+    "er_r7efg_executed_constructed_control_case_count": 0,
+    "sealed_er_r7hi_dataset_artifact_count": 0,
+    "sealed_er_r7hi_benchmark_result_count": 0,
+    "sealed_er_r7hi_workflow_attestation_count": 0,
+    "er_r7hi_executed_constructed_control_case_count": 0,
+    "er_approved_calibration_strata_manifest_present": true,
+    "er_approved_calibration_strata_fingerprint_verified": true,
+    "er_approved_calibration_strata_is_empirical_attestation": false,
+    "er_r7_chain_implementation_present": true,
+    "er_r7_chain_execution_evidenced": false,
+    "er_r7efg_constructed_control_extensions_implementation_present": true,
+    "er_r7efg_chain_execution_evidenced": false,
+    "er_r7efg_empirical_benchmark_evidence_present": false,
+    "er_r7efg_current_market_evidence_present": false,
+    "er_r7efg_production_authorized": false,
+    "er_r7hi_constructed_control_extensions_implementation_present": true,
+    "er_r7hi_chain_execution_evidenced": false,
+    "er_r7hi_blind_holdout_evidence_present": false,
+    "er_r7hi_empirical_benchmark_evidence_present": false,
+    "er_r7hi_current_market_evidence_present": false,
+    "er_r7hi_public_claim_or_release_authorized": false,
+    "er_r7hi_production_authorized": false,
+    "sealed_er_r7j_dataset_artifact_count": 0,
+    "sealed_er_r7j_benchmark_result_count": 0,
+    "sealed_er_r7j_workflow_attestation_count": 0,
+    "er_r7j_executed_constructed_control_case_count": 0,
+    "er_r7j_constructed_control_extension_implementation_present": true,
+    "er_r7j_chain_execution_evidenced": false,
+    "er_r7j_declared_represented_grammar_count": 6,
+    "er_r7j_declared_required_grammar_count": 7,
+    "er_r7j_declared_all_required_grammars_complete": false,
+    "er_r7j_blind_holdout_evidence_present": false,
+    "er_r7j_empirical_benchmark_evidence_present": false,
+    "er_r7j_current_market_evidence_present": false,
+    "er_r7j_public_claim_or_release_authorized": false,
+    "er_r7j_production_authorized": false,
+    "er_r7j_production": "HOLD",
+    "er_finalization_preflight_implementation_present": true,
+    "er_current_r7j_finalization_state": "BLOCKED",
+    "er_canonical_approved_empirical_attestation_fingerprint_count": 0,
+    "sealed_er_finalized_dataset_artifact_count": 0,
+    "sealed_er_finalization_workflow_attestation_count": 0,
+    "er_finalization_execution_evidenced": false,
+    "er_finalization_caller_supplied_flags_may_override_canonical_attestation": false,
+    "er_finalization_public_claim_or_release_authorized": false,
+    "er_finalization_production_authorized": false,
+    "er_finalization_production": "HOLD",
+    "er_approved_calibration_strata_digest_binding_required": true,
+    "er_case_to_approved_stratum_binding_required": true,
+    "er_per_stratum_case_class_and_identity_boundary_minima_required": true,
+    "er_aggregate_class_boundary_coverage_may_substitute_for_per_stratum_grammar": false,
+    "er_caller_supplied_calibration_manifest_must_match_canonical": true,
+    "er_caller_supplied_calibration_manifest_may_override_canonical": false,
+    "er_approved_calibration_strata_binding_verified_in_sealed_dataset": false,
+    "er_per_stratum_case_class_and_identity_boundary_minima_verified": false,
+    "er_required_scope_archetype_count": 7,
+    "er_scope_matrix_canonical_fingerprint_verified": true,
+    "er_per_case_source_evidence_and_license_binding_required": true,
+    "er_case_source_evidence_binding_required": true,
+    "er_case_scope_archetype_binding_required": true,
+    "er_empirical_sample_policy_fingerprint_verified": true,
+    "er_minimum_total_cases_required": 800,
+    "er_minimum_blind_holdout_cases_required": 400,
+    "er_minimum_cases_per_scope_archetype_required": 50,
+    "er_minimum_blind_cases_per_scope_archetype_required": 25,
+    "er_minimum_cases_per_identity_boundary_required": 100,
+    "er_minimum_cases_per_case_class_required": 50,
+    "er_wilson_confidence_level_required": 0.95,
+    "er_minimum_overall_accuracy_wilson_lower_bound_required": 0.99,
+    "er_minimum_blind_accuracy_wilson_lower_bound_required": 0.99,
+    "er_per_case_source_evidence_binding_verified": false,
+    "er_case_source_evidence_binding_verified": false,
+    "er_case_source_payload_binding_verified": false,
+    "er_case_license_evidence_binding_verified": false,
+    "er_scope_policy_binding_verified": false,
+    "er_sample_policy_binding_verified": false,
+    "er_empirical_attestation_verified": false,
+    "er_full_required_scope_archetype_coverage_verified": false,
+    "er_empirical_sample_floors_verified": false,
+    "er_wilson_95_lower_bound_gate_verified": false,
+    "er_empirical_benchmark_gate_pass": false,
+    "er_pre_track_b_promotion_authorized": false,
+    "er_production_promotion_authorized": false,
+    "er_empirical_promotion_authorized": false,
+    "runtime_core_remote_cloudflare_execution_verified": false,
+    "runtime_core_canonical_cloudflare_durability_verified": false,
+    "task_lease_atomic_fencing_local_shadow_verified": true,
+    "task_lease_atomic_fencing_remote_cloudflare_verified": false,
+    "sealed_runtime_core_or_baseline_attestation_count": 0,
+    "indexes_are_computed": false,
+    "public_projection_authorized": false,
+    "commercial_projection_authorized": false,
+    "production": "HOLD"
+  },
+  "negative_control_contract": {
+    "count": 34,
+    "controls": [
+      "PROCESSOR_COUNT_INFLATION",
+      "BOUNDED_SHADOW_RIGHTS_POLICY_PREFLIGHT_COUNT_INFLATION",
+      "PURPOSE_POLICY_PREFLIGHT_COUNT_INFLATION",
+      "SCOPE_POOL_COUNT_INFLATION",
+      "INDEX_COUNT_INFLATION",
+      "REMOTE_DEPLOYMENT_FORGERY",
+      "PUBLIC_PROJECTION_FORGERY",
+      "COMMERCIAL_PROJECTION_FORGERY",
+      "PRODUCTION_PROMOTION_FORGERY",
+      "TEST_RESULT_FORGERY",
+      "FAILURE_OBSERVATION_REMOVAL",
+      "EVIDENCE_FINGERPRINT_TAMPER",
+      "STALE_CANONICAL_EXACT_EQUALITY",
+      "MAINLINE_DECLARED_SOURCE_COUNT_INFLATION",
+      "HISTORICAL_CONTEXT_CURRENT_MARKET_CONFLATION",
+      "MAINLINE_WORKFLOW_PRESENCE_SEALED_EXECUTION_LAUNDERING",
+      "GLOBAL_RIGHTS_R2_DECLARATION_STRICT_R1_OR_LEGAL_LAUNDERING",
+      "DESIGNER_MAKER_R3_REPOSITORY_DECLARATION_STRICT_R1_LEGAL_RUNTIME_MARKET_POOL_OR_PUBLIC_LAUNDERING",
+      "ER_CONTROL_EMPIRICAL_99_PERCENT_OR_TRACK_B_LAUNDERING",
+      "ER_SCOPE_PER_CASE_ATTESTATION_GATE_LAUNDERING",
+      "ER_SAMPLE_FLOOR_OR_WILSON95_GATE_LAUNDERING",
+      "ER_AGGREGATE_CLASS_BOUNDARY_COVERAGE_PER_STRATUM_GRAMMAR_LAUNDERING",
+      "ER_CALLER_SUPPLIED_CALIBRATION_MANIFEST_DIVERGENCE_LAUNDERING",
+      "ER_R7EFG_IMPLEMENTATION_SEALED_EXECUTION_LAUNDERING",
+      "ER_R7EFG_LINEAGE_SHA_AUTHORITY_OR_PROMOTION_LAUNDERING",
+      "ER_R7HI_IMPLEMENTATION_SEALED_EXECUTION_LAUNDERING",
+      "ER_R7HI_LINEAGE_SHA_AUTHORITY_OR_PROMOTION_LAUNDERING",
+      "ER_R7HI_PUBLIC_OR_PRODUCTION_AUTHORIZATION_LAUNDERING",
+      "ER_R7J_IMPLEMENTATION_SEALED_EXECUTION_LAUNDERING",
+      "ER_R7J_FULL_SCOPE_OR_EMPIRICAL_PROMOTION_LAUNDERING",
+      "ER_FINALIZER_OR_CALLER_BOOLEAN_FORGERY_SEALED_FINAL_ARTIFACT_LAUNDERING",
+      "CANDIDATE_HANDOFF_BLOCKED_SELFTEST_READY_TRACK_B_PUBLIC_PRODUCTION_LAUNDERING",
+      "RUNTIME_CORE_DECLARATION_REMOTE_EXECUTION_LAUNDERING",
+      "TASK_LEASE_ATOMIC_FENCING_REMOTE_EXECUTION_LAUNDERING"
+    ]
+  },
+  "prohibited_claims": [
+    "REGISTERED_ENDPOINT_EQUALS_RIGHTS_CLEARED_SOURCE",
+    "PURPOSE_ELIGIBLE_SOURCE_EQUALS_SCOPE_SOURCE_POOL_READY",
+    "LOCAL_SHADOW_TEST_EQUALS_REMOTE_DEPLOYMENT",
+    "SYNTHETIC_FAILURE_EQUALS_TERMINAL_DLQ_DURABILITY_PROOF",
+    "PROCESSOR_REGISTRATION_EQUALS_FULL_PLATFORM_RUNTIME",
+    "DISCOVERY_OR_INSTITUTIONAL_CONTEXT_EQUALS_MARKET_EVIDENCE",
+    "HISTORICAL_TRANSACTION_CONTEXT_EQUALS_CURRENT_MARKET_EVIDENCE",
+    "MAINLINE_PILOT_DECLARATION_EQUALS_R1_REVALIDATION_OR_QUEUE_D1_EXECUTION",
+    "MAINLINE_WORKFLOW_PRESENCE_EQUALS_SEALED_EXECUTION_ATTESTATION",
+    "GLOBAL_RIGHTS_R2_DECLARATION_EQUALS_STRICT_R1_REVALIDATION_OR_LEGAL_CLEARANCE",
+    "DESIGNER_MAKER_R3_REPOSITORY_DECLARATION_EQUALS_STRICT_R1_LEGAL_ARCHIVAL_RUNTIME_CURRENT_MARKET_FULL_POOL_PUBLIC_OR_COMMERCIAL_ADMISSION",
+    "ER_RUNNER_OR_CONSTRUCTED_CONTROL_EQUALS_EMPIRICAL_99_PERCENT_OR_TRACK_B_PASS",
+    "APPROVED_BOUNDED_CALIBRATION_STRATA_EQUALS_APPROVED_EMPIRICAL_ATTESTATION_OR_EXECUTED_BENCHMARK",
+    "AGGREGATE_CASE_CLASS_OR_BOUNDARY_COVERAGE_EQUALS_EVERY_APPROVED_STRATUM_GRAMMAR",
+    "CALLER_SUPPLIED_CALIBRATION_MANIFEST_EQUALS_CANONICAL_DIGEST_BOUND_MANIFEST",
+    "R7_EXTENSION_OR_WORKFLOW_PRESENCE_EQUALS_SEALED_EXECUTION_ATTESTATION",
+    "R7EFG_CONSTRUCTED_CONTROL_IMPLEMENTATION_EQUALS_EMPIRICAL_OR_SEALED_EXECUTION_EVIDENCE",
+    "R7HI_CONSTRUCTED_CONTROL_IMPLEMENTATION_EQUALS_EMPIRICAL_PUBLIC_PRODUCTION_OR_SEALED_EXECUTION_EVIDENCE",
+    "R7J_SIX_OF_SEVEN_CONSTRUCTED_CONTROL_MECHANICS_EQUALS_FULL_SCOPE_EMPIRICAL_PUBLIC_PRODUCTION_OR_SEALED_EXECUTION_EVIDENCE",
+    "FINALIZER_SCRIPT_OR_CALLER_FORGED_SEVEN_OF_SEVEN_EMPIRICAL_FLAGS_EQUALS_CANONICALLY_APPROVED_FINAL_ER_ARTIFACT",
+    "CANDIDATE_HANDOFF_BLOCKED_SELFTEST_OR_LOCAL_PREFLIGHT_EQUALS_READY_TRACK_B_PASS_PUBLICATION_OR_PRODUCTION",
+    "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
+    "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
+  ],
+  "evidence_fingerprint": "sha256:46d7119d529164f853969adfaddc81230c6c7c6598050a3ddfc112b2a8595763"
+}

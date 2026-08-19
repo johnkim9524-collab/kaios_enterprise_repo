@@ -2,49 +2,115 @@
   "snapshot": {
     "snapshot_id": "selftest-candidate-r2-blocked",
     "snapshot_status": "DRAFT_CANDIDATE",
+    "as_of": "2026-08-19T00:00:00.000Z",
     "registry_version": "SELFTEST_ONLY",
     "methodology_version": "SELFTEST_ONLY",
     "evidence_lineage_version": "SELFTEST_ONLY",
+    "bound_evidence_package_id": "selftest-evidence-package-r2-blocked",
+    "snapshot_payload_sha256": null,
     "publication_eligible": false,
-    "production_authorized": false
+    "production_authorized": false,
+    "ci_status": "NOT_EVIDENCE",
+    "local_preflight_status": "NOT_EVIDENCE"
   },
   "evidence": {
     "package_id": "selftest-evidence-package-r2-blocked",
     "package_status": "DRAFT",
+    "package_payload_sha256": null,
+    "bound_snapshot_id": "selftest-candidate-r2-blocked",
     "registry_version": "SELFTEST_ONLY",
     "methodology_version": "SELFTEST_ONLY",
     "evidence_lineage_version": "SELFTEST_ONLY",
     "entity_resolution": {
       "required_strata": 7,
       "complete_strata": 6,
+      "represented_approved_strata_ids": [
+        "er-stratum-designer-maker-edition",
+        "er-stratum-pressing-edition-media",
+        "er-stratum-provenance-unique-object",
+        "er-stratum-serialized-reference",
+        "er-stratum-variant-release-heavy",
+        "er-stratum-vehicle-mechanical-asset"
+      ],
       "final_scope_stratification_complete": false,
-      "overall_accuracy": 1.0,
-      "blind_accuracy": 1.0,
-      "critical_false_auto_merge": 0,
-      "blind_critical_false_auto_merge": 0,
-      "deterministic_replay": "PASS",
+      "dataset_class": "REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL",
+      "constructed_control": true,
+      "empirical_benchmark_eligible": false,
+      "empirical_attestation": false,
+      "empirical_attestation_present": false,
+      "empirical_attestation_approved": false,
+      "empirical_attestation_manifest": null,
+      "independent_label_review_complete": false,
+      "label_adjudication_complete": false,
+      "holdout_sealed_before_modeling": false,
+      "overall_accuracy": null,
+      "blind_accuracy": null,
+      "overall_accuracy_wilson_lower_95": null,
+      "blind_accuracy_wilson_lower_95": null,
+      "critical_false_auto_merge": null,
+      "blind_critical_false_auto_merge": null,
+      "empirical_observations": {
+        "total_cases": null,
+        "blind_holdout_cases": null,
+        "correct_cases": null,
+        "blind_correct_cases": null,
+        "critical_false_auto_merge": null,
+        "blind_critical_false_auto_merge": null,
+        "cases_per_required_scope_archetype": {},
+        "blind_cases_per_required_scope_archetype": {},
+        "cases_per_identity_boundary": {},
+        "cases_per_required_case_class": {}
+      },
+      "constructed_control_mechanics": {
+        "case_count": 21,
+        "correct_case_count": 21,
+        "mechanics_accuracy": 1.0,
+        "empirical_accuracy_claim": false,
+        "blind_holdout_count": 0
+      },
+      "deterministic_replay": "CONSTRUCTED_CONTROL_ONLY",
       "rights_coverage": 1.0,
       "provenance_coverage": 1.0,
       "final_dataset_id": null,
-      "final_dataset_hash": null,
+      "final_dataset_payload_sha256": null,
       "approved_strata_manifest_id": "kidults-er-approved-bounded-poc-calibration-strata-v1",
+      "approved_strata_manifest_sha256": null,
+      "empirical_sample_policy_sha256": null,
       "blind_holdout_freeze_id": null,
-      "calibration_artifact_id": null
+      "calibration_artifact_id": null,
+      "current_market_evidence": false,
+      "current_market_evidence_present": false
     },
+    "evidence_records": [
+      {
+        "evidence_id": "selftest-historical-only",
+        "temporality": "HISTORICAL",
+        "market_observation_type": "HISTORICAL_REFERENCE",
+        "rights_state": "ALLOW",
+        "evidence_strength": 0.5,
+        "source_payload_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "license_evidence_refs": ["selftest:license-only"]
+      }
+    ],
     "claims": [
       {
         "claim_id": "selftest-current-market-claim-r2",
         "claim_type": "CURRENT_MARKET_PRICE",
         "temporality": "CURRENT_MARKET",
         "evidence_temporality": "HISTORICAL",
+        "current_market_evidence_present": false,
         "claim_strength": 1.0,
         "evidence_strength": 0.5,
         "rights_state": "ALLOW",
-        "evidence_refs": ["selftest:historical-only"]
+        "evidence_refs": ["selftest-historical-only"]
       }
     ],
     "unresolved_critical_contradiction_count": 0,
-    "unknown_or_denied_claim_input_count": 0
+    "unknown_or_denied_claim_input_count": 0,
+    "publication_authorized": false,
+    "production_authorized": false,
+    "ci_status": "NOT_EVIDENCE",
+    "local_preflight_status": "NOT_EVIDENCE"
   },
-  "truth_boundary": "SELFTEST_ONLY. Mirrors the current structural blockers: ER is 6/7 rather than final 7/7, no final immutable ER artifacts exist, Evidence Package is not immutable, and the sample current-market claim is backed only by historical evidence. This fixture must remain BLOCKED and can never become Track B input."
+  "truth_boundary": "SELFTEST_ONLY. The 21-case, six-of-seven dataset is an algorithmically labeled constructed control. Its mechanics result is not empirical accuracy: overall_accuracy, blind_accuracy and both Wilson bounds are null; no blind holdout, independent review, adjudication, approved empirical attestation, immutable final dataset, current-market evidence, Track B assessment, publication approval or Production authorization exists. This fixture must remain BLOCKED."
 }

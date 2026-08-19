@@ -1,27 +1,60 @@
-name: KIDULTS ER R7C Variant Release Real
+name: KIDULTS ER R7C Variant-Release Source-Derived Control
 
 on:
   pull_request:
     paths:
+      - 'scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs'
       - 'scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs'
       - 'scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs'
       - 'scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs'
       - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
       - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - '.github/workflows/kidults-entity-resolution-benchmark-v2-runner.yml'
+      - '.github/workflows/kidults-er-real-dataset-r1.yml'
+      - '.github/workflows/kidults-er-getty-transaction-r2.yml'
+      - '.github/workflows/kidults-er-canonical-design-r3.yml'
+      - '.github/workflows/kidults-er-real-holdout-r4.yml'
+      - '.github/workflows/kidults-er-cross-market-alias-r5.yml'
+      - '.github/workflows/kidults-er-ambiguous-review-r6.yml'
+      - '.github/workflows/kidults-er-approved-calibration-strata-v1.yml'
+      - '.github/workflows/kidults-er-r7a-approved-strata-real.yml'
+      - '.github/workflows/kidults-er-r7b-serialized-reference-real.yml'
       - '.github/workflows/kidults-er-r7c-variant-release-real.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+concurrency:
+  group: kidults-er-r7c-variant-release-real-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-r7c:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 16
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
+      - name: Checkout repository
+        # actions/checkout v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        # actions/setup-node v5.0.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
       - name: Build R1-R6
         run: |
           node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
@@ -43,6 +76,8 @@ jobs:
         run: |
           node - <<'NODE'
           const d=require('/tmp/er-r7c.json'); const r=require('/tmp/er-r7c-results.json');
+          if(d.dataset_class!=='REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL'||d.constructed_control!==true||d.empirical_benchmark_eligible!==false||d.independent_label_review_complete!==false||d.label_adjudication_complete!==false||d.holdout_sealed_before_modeling!==false||d.production!=='HOLD') process.exit(1);
+          if(d.cases.some(x=>x.blind_holdout===true)||r.blind_holdout_count!==0||r.blind_accuracy!==null) process.exit(1);
           const id='er-stratum-variant-release-heavy'; const rows=d.cases.filter(x=>x.scope_id===id); const classes=new Set(rows.map(x=>x.case_class));
           const required=new Set(d.required_scope_ids); const represented=new Set(d.cases.map(x=>x.scope_id).filter(x=>required.has(x)));
           if(represented.size!==5) process.exit(1);
@@ -51,14 +86,16 @@ jobs:
           if(r.strata_manifest_binding.binding_valid!==true) process.exit(1);
           if(r.coverage.per_stratum[id].complete!==false) process.exit(1);
           if(r.coverage.per_stratum_requirements_complete!==false||r.coverage.scope_stratification_complete!==false) process.exit(1);
-          if(r.accuracy!==1||r.blind_accuracy!==1||r.critical_false_auto_merge!==0||r.blind_critical_false_auto_merge!==0) process.exit(1);
+          if(r.accuracy!==1||r.critical_false_auto_merge!==0||r.blind_critical_false_auto_merge!==0) process.exit(1);
           if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
-          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
-          console.log('R7C PASS: VARIANT_RELEASE_HEAVY now has real same-object normalization; hard-negative/cross-market requirements remain explicit blockers.');
+          if(r.promotion_gate.empirical_benchmark_gate_pass!==false||r.promotion_gate.promotion_eligible_before_track_b!==false||r.promotion_gate.production_promotion_authorized!==false) process.exit(1);
+          console.log('R7C PASS: VARIANT_RELEASE_HEAVY has one constructed normalization control; missing grammar and empirical promotion remain explicit blockers.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - name: Upload R7C diagnostic artifacts
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: kidults-er-r7c-variant-release-real
+          name: kidults-er-r7c-variant-release-source-derived-control
           path: |
             /tmp/er-r7c.json
             /tmp/er-r7c-results.json

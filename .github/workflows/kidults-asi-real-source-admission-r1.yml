@@ -11,21 +11,32 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
 jobs:
   met-live-identity-context:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          node-version: '22'
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '24.19.0'
       - name: Run bounded live rights-admitted Met source
         run: node scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs /tmp/met-real-source-admission-r1.json
       - name: Verify fail-closed truth boundary
         run: |
           node -e "const x=require('/tmp/met-real-source-admission-r1.json'); if(x.validations.live_public_api_retrieval!=='PASS'||x.validations.public_domain_filter!=='PASS'||x.validations.market_event_admission!=='PROHIBITED'||x.validations.production_mutation!==false) process.exit(1); console.log('Real-source identity/context admission PASS; market-event promotion blocked as required.')"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kidults-met-real-source-admission-r1
           path: /tmp/met-real-source-admission-r1.json

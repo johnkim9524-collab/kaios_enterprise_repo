@@ -3,24 +3,52 @@ name: KIDULTS ER Finalization Preflight V1
 on:
   pull_request:
     paths:
-      - 'scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs'
-      - '.github/workflows/kidults-er-finalization-preflight-v1.yml'
       - 'scripts/kidults/entity-resolution/**'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
       - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json'
+      - '.github/workflows/kidults-er-finalization-preflight-v1.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+  NODE_ENV: test
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
 jobs:
-  prove-current-six-of-seven-fails-closed:
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
+  prove-current-constructed-control-fails-closed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 38
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
-      - name: Rebuild current real chain R1 through R7J
+      - name: Checkout repository without persisted credentials
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '24.19.0'
+      - name: Verify deterministic runtime and canonical strata
+        run: |
+          test "$(node --version)" = 'v24.19.0'
+          test "$(date +%Z)" = 'UTC'
+          node scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json
+      - name: Rebuild live-source-derived constructed controls R1 through R7J
         run: |
           node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
           node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
@@ -35,35 +63,114 @@ jobs:
           node scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs /tmp/er-r7f.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7g.json
           node scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs /tmp/er-r7g.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7h.json
           node scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs /tmp/er-r7h.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7i.json
-          node scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs /tmp/er-r7i.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json /tmp/er-r7j.json
-      - name: Reconfirm current 6-of-7 benchmark truth
+          node scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs \
+            /tmp/er-r7i.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json \
+            coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json \
+            /tmp/er-r7j.json
+      - name: Reconfirm six-of-seven mechanics without empirical or blind claims
         run: |
-          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r7j.json /tmp/er-r7j-results.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/er-r7j.json \
+            /tmp/er-r7j-results.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
           node - <<'NODE'
+          const d=require('/tmp/er-r7j.json');
           const r=require('/tmp/er-r7j-results.json');
-          const completed=Object.values(r.coverage.per_stratum).filter(x=>x.complete===true).length;
-          if(completed!==6) process.exit(1);
-          if(r.coverage.per_stratum['er-stratum-graded-population'].complete!==false) process.exit(1);
-          if(r.accuracy!==1||r.blind_accuracy!==1||r.critical_false_auto_merge!==0||r.blind_critical_false_auto_merge!==0) process.exit(1);
-          if(r.deterministic_replay!=='PASS'||r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
-          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
-          console.log('Current empirical truth reconfirmed: 6/7, promotion false.');
+          const completed=Object.values(r.coverage.per_stratum).filter((value)=>value.complete===true).length;
+          if(d.dataset_class!=='REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL'||d.constructed_control!==true||
+            d.empirical_benchmark_eligible!==false||d.independent_label_review_complete!==false||
+            d.label_adjudication_complete!==false||d.holdout_sealed_before_modeling!==false||
+            d.track_b_independent_review_complete!==false||d.production!=='HOLD') process.exit(1);
+          if(d.cases.length!==21||d.cases.some((item)=>item.blind_holdout!==false)) process.exit(1);
+          if(completed!==6||r.coverage.per_stratum['er-stratum-graded-population'].complete!==false||
+            r.coverage.scope_stratification_complete!==false||r.blind_holdout_count!==0||r.blind_accuracy!==null) process.exit(1);
+          if(r.promotion_gate.empirical_attestation_verified!==false||
+            r.promotion_gate.empirical_benchmark_gate_pass!==false||
+            r.promotion_gate.real_world_dataset!==false||
+            r.promotion_gate.production_promotion_authorized!==false||r.production!=='HOLD') process.exit(1);
+          console.log('Current truth PASS: 21 constructed controls, blind 0/null, mechanics 6/7, empirical/Track B/Production blocked.');
           NODE
-      - name: Prove finalizer refuses 6-of-7 input
+      - name: Prove finalizer rejects current constructed controls without writing output
         run: |
           set +e
-          node scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs /tmp/er-r7j.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-final-approved-v1.json >/tmp/finalize.stdout 2>/tmp/finalize.stderr
+          node scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs \
+            /tmp/er-r7j.json \
+            /tmp/er-r7j-results.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json \
+            coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json \
+            /tmp/er-final-approved-v1.json \
+            >/tmp/finalize.stdout 2>/tmp/finalize.stderr
           status=$?
           set -e
-          cat /tmp/finalize.stdout || true
-          cat /tmp/finalize.stderr || true
-          if [ "$status" -eq 0 ]; then
-            echo 'Finalizer incorrectly accepted 6-of-7 input' >&2
-            exit 1
-          fi
+          test "$status" -ne 0
+          test ! -e /tmp/er-final-approved-v1.json
           grep -F 'FINALIZE_PER_STRATUM_INCOMPLETE:er-stratum-graded-population' /tmp/finalize.stderr
-          if [ -e /tmp/er-final-approved-v1.json ]; then
-            echo 'Finalizer wrote a final artifact despite incomplete strata' >&2
-            exit 1
-          fi
-          echo 'FAIL-CLOSED PASS: final approved dataset cannot be emitted before GRADED_POPULATION completes.'
+          grep -F 'FINALIZE_EMPIRICAL_DATASET_FLAGS_REQUIRED' /tmp/finalize.stderr
+          grep -F 'FINALIZE_CONSTRUCTED_CONTROL_PROHIBITED' /tmp/finalize.stderr
+          grep -F 'FINALIZE_CANONICALLY_APPROVED_EMPIRICAL_ATTESTATION_REQUIRED' /tmp/finalize.stderr
+          grep -F 'FINALIZE_VERIFIED_TRACK_B_EMPIRICAL_ATTESTATION_REQUIRED' /tmp/finalize.stderr
+          echo 'FAIL-CLOSED PASS: no final artifact can be emitted from six-of-seven constructed controls.'
+      - name: Prove caller booleans and forged result gates cannot authorize finalization
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const d=require('/tmp/er-r7j.json');
+          const r=require('/tmp/er-r7j-results.json');
+          d.dataset_class='REAL_WORLD_LABELED';
+          d.constructed_control=false;
+          d.empirical_benchmark_eligible=true;
+          d.independent_label_review_complete=true;
+          d.label_adjudication_complete=true;
+          d.holdout_sealed_before_modeling=true;
+          for(const item of d.cases) {
+            item.blind_holdout=true;
+            item.label_basis='CALLER_SELF_ASSERTED_INDEPENDENT_LABEL';
+          }
+          for(const [index, spec] of [
+            ['SAME_OBJECT_NORMALIZATION','SOURCE_RECORD'],
+            ['HARD_NEGATIVE','PHYSICAL_OBJECT'],
+            ['CROSS_MARKET_ALIAS','SOURCE_RECORD'],
+          ].entries()) {
+            const source=structuredClone(d.cases[index]);
+            source.case_id=`forged-graded-${index}`;
+            source.scope_id='er-stratum-graded-population';
+            source.case_class=spec[0];
+            source.identity_boundary=spec[1];
+            d.cases.push(source);
+          }
+          r.dataset_id=d.id;
+          r.coverage.per_stratum_requirements_complete=true;
+          r.coverage.scope_stratification_complete=true;
+          r.case_count=800;
+          r.blind_holdout_count=400;
+          Object.assign(r.promotion_gate,{
+            empirical_attestation_fingerprint_approved:true,
+            empirical_attestation_verified:true,
+            track_b_assessment:'APPROVED_ATTESTATION_VERIFIED',
+            empirical_sample_floors_complete:true,
+            overall_accuracy_wilson_lower_bound_gte_099:true,
+            blind_accuracy_wilson_lower_bound_gte_099:true,
+            source_payload_digest_and_license_evidence_bound:true,
+            empirical_benchmark_gate_pass:true,
+            real_world_dataset:true,
+          });
+          r.overall_accuracy_wilson_lower_95=1;
+          r.blind_accuracy_wilson_lower_95=1;
+          fs.writeFileSync('/tmp/forged-finalize-dataset.json',JSON.stringify(d));
+          fs.writeFileSync('/tmp/forged-finalize-results.json',JSON.stringify(r));
+          NODE
+          set +e
+          node scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs \
+            /tmp/forged-finalize-dataset.json \
+            /tmp/forged-finalize-results.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json \
+            coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json \
+            /tmp/forged-final-approved.json \
+            >/tmp/forged-finalize.stdout 2>/tmp/forged-finalize.stderr
+          status=$?
+          set -e
+          test "$status" -ne 0
+          test ! -e /tmp/forged-final-approved.json
+          grep -F 'FINALIZE_CANONICALLY_APPROVED_EMPIRICAL_ATTESTATION_REQUIRED' /tmp/forged-finalize.stderr
+          echo 'ADVERSARIAL PASS: caller flags, fabricated 7/7 cases, and forged result booleans cannot replace a canonical empirical attestation.'

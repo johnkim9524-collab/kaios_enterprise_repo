@@ -1,0 +1,266 @@
+name: KIDULTS ASI SHADOW Operating Evidence v1
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  pull_request:
+    paths:
+      - "coordination/kidults/source-intelligence/**"
+      - "coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json"
+      - "coordination/kidults/scope-data/**"
+      - "coordination/kidults/data-scope/**"
+      - "coordination/kidults/registry/trusted-source/**"
+      - "coordination/kidults/autonomous/source-discovery/contracts/**"
+      - "coordination/kidults/engine-v2/asi-runtime-core-validation-r1.json"
+      - "coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json"
+      - "coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-selftest.json"
+      - "coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json"
+      - "coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json"
+      - "coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json"
+      - "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json"
+      - "services/kidults-autonomous-intelligence/**"
+      - "services/kidults-autonomous-intelligence/src/asi/runtime.ts"
+      - "services/kidults-autonomous-intelligence/migrations/0006_asi_task_lease_atomic_fencing_shadow.sql"
+      - "services/kidults-autonomous-intelligence/scripts/asi-processor-shadow-test.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/asi-runtime-recovery-fairness-test.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/deploy-preflight.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/runtime-smoke.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/asi-real-source-queue-injection-r1.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/asi-real-source-retry-dlq-quarantine-r1.mjs"
+      - "scripts/kidults/source-intelligence/**"
+      - "scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs"
+      - "scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs"
+      - "scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs"
+      - "scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs"
+      - "scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs"
+      - "scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs"
+      - "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs"
+      - "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs"
+      - "artifacts/agci-os/asi-shadow-operating-evidence-v1.json"
+      - ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"
+      - ".github/workflows/kidults-asi-real-source-admission-r1.yml"
+      - ".github/workflows/kidults-asi-getty-historical-sale-r1.yml"
+      - ".github/workflows/kidults-asi-real-source-processor-bridge-r1.yml"
+      - ".github/workflows/kidults-asi-real-source-queue-injection-r1.yml"
+      - ".github/workflows/kidults-asi-real-source-retry-dlq-quarantine-r1.yml"
+      - ".github/workflows/kidults-asi-runtime-core-validation-r1.yml"
+      - ".github/workflows/kidults-runtime-control-baseline-r1.yml"
+      - ".github/workflows/kidults-global-rights-source-pool-expansion-r2.yml"
+      - ".github/workflows/kidults-designer-maker-source-admission-r3.yml"
+      - ".github/workflows/kidults-entity-resolution-benchmark-v2-runner.yml"
+      - ".github/workflows/kidults-er-real-dataset-r1.yml"
+      - ".github/workflows/kidults-er-getty-transaction-r2.yml"
+      - ".github/workflows/kidults-er-canonical-design-r3.yml"
+      - ".github/workflows/kidults-er-real-holdout-r4.yml"
+      - ".github/workflows/kidults-er-cross-market-alias-r5.yml"
+      - ".github/workflows/kidults-er-ambiguous-review-r6.yml"
+      - ".github/workflows/kidults-er-approved-calibration-strata-v1.yml"
+      - ".github/workflows/kidults-er-r7a-approved-strata-real.yml"
+      - ".github/workflows/kidults-er-r7b-serialized-reference-real.yml"
+      - ".github/workflows/kidults-er-r7c-variant-release-real.yml"
+      - ".github/workflows/kidults-er-r7e-serialized-cross-authority.yml"
+      - ".github/workflows/kidults-er-r7f-vehicle-minimums.yml"
+      - ".github/workflows/kidults-er-r7g-variant-minimums.yml"
+      - ".github/workflows/kidults-er-r7h-pressing-minimums.yml"
+      - ".github/workflows/kidults-er-r7i-provenance-minimums.yml"
+      - ".github/workflows/kidults-er-r7j-designer-maker-minimums.yml"
+      - ".github/workflows/kidults-er-finalization-preflight-v1.yml"
+      - ".github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml"
+      - ".github/workflows/kidults-autonomous-runtime.yml"
+      - "package.json"
+      - "npm-shrinkwrap.json"
+  push:
+    branches: [main]
+    paths:
+      - "coordination/kidults/source-intelligence/**"
+      - "coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json"
+      - "coordination/kidults/scope-data/**"
+      - "coordination/kidults/data-scope/**"
+      - "coordination/kidults/registry/trusted-source/**"
+      - "coordination/kidults/autonomous/source-discovery/contracts/**"
+      - "coordination/kidults/engine-v2/asi-runtime-core-validation-r1.json"
+      - "coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json"
+      - "coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-selftest.json"
+      - "coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json"
+      - "coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json"
+      - "coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json"
+      - "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json"
+      - "services/kidults-autonomous-intelligence/**"
+      - "services/kidults-autonomous-intelligence/src/asi/runtime.ts"
+      - "services/kidults-autonomous-intelligence/migrations/0006_asi_task_lease_atomic_fencing_shadow.sql"
+      - "services/kidults-autonomous-intelligence/scripts/asi-processor-shadow-test.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/asi-runtime-recovery-fairness-test.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/deploy-preflight.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/runtime-smoke.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/asi-real-source-queue-injection-r1.mjs"
+      - "services/kidults-autonomous-intelligence/scripts/asi-real-source-retry-dlq-quarantine-r1.mjs"
+      - "scripts/kidults/source-intelligence/**"
+      - "scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs"
+      - "scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs"
+      - "scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs"
+      - "scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs"
+      - "scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs"
+      - "scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs"
+      - "scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs"
+      - "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs"
+      - "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs"
+      - "artifacts/agci-os/asi-shadow-operating-evidence-v1.json"
+      - ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"
+      - ".github/workflows/kidults-asi-real-source-admission-r1.yml"
+      - ".github/workflows/kidults-asi-getty-historical-sale-r1.yml"
+      - ".github/workflows/kidults-asi-real-source-processor-bridge-r1.yml"
+      - ".github/workflows/kidults-asi-real-source-queue-injection-r1.yml"
+      - ".github/workflows/kidults-asi-real-source-retry-dlq-quarantine-r1.yml"
+      - ".github/workflows/kidults-asi-runtime-core-validation-r1.yml"
+      - ".github/workflows/kidults-runtime-control-baseline-r1.yml"
+      - ".github/workflows/kidults-global-rights-source-pool-expansion-r2.yml"
+      - ".github/workflows/kidults-designer-maker-source-admission-r3.yml"
+      - ".github/workflows/kidults-entity-resolution-benchmark-v2-runner.yml"
+      - ".github/workflows/kidults-er-real-dataset-r1.yml"
+      - ".github/workflows/kidults-er-getty-transaction-r2.yml"
+      - ".github/workflows/kidults-er-canonical-design-r3.yml"
+      - ".github/workflows/kidults-er-real-holdout-r4.yml"
+      - ".github/workflows/kidults-er-cross-market-alias-r5.yml"
+      - ".github/workflows/kidults-er-ambiguous-review-r6.yml"
+      - ".github/workflows/kidults-er-approved-calibration-strata-v1.yml"
+      - ".github/workflows/kidults-er-r7a-approved-strata-real.yml"
+      - ".github/workflows/kidults-er-r7b-serialized-reference-real.yml"
+      - ".github/workflows/kidults-er-r7c-variant-release-real.yml"
+      - ".github/workflows/kidults-er-r7e-serialized-cross-authority.yml"
+      - ".github/workflows/kidults-er-r7f-vehicle-minimums.yml"
+      - ".github/workflows/kidults-er-r7g-variant-minimums.yml"
+      - ".github/workflows/kidults-er-r7h-pressing-minimums.yml"
+      - ".github/workflows/kidults-er-r7i-provenance-minimums.yml"
+      - ".github/workflows/kidults-er-r7j-designer-maker-minimums.yml"
+      - ".github/workflows/kidults-er-finalization-preflight-v1.yml"
+      - ".github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml"
+      - ".github/workflows/kidults-autonomous-runtime.yml"
+      - "package.json"
+      - "npm-shrinkwrap.json"
+  workflow_dispatch:
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-shadow-operating-evidence-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-shadow-operating-evidence:
+    name: Validate SHADOW Operating Evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        # actions/checkout v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        # actions/setup-node v5.0.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: "24.19.0"
+
+      - name: Install root validation dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install autonomous intelligence dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Parse evidence contracts and syntax-check builders
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          for (const file of [
+            "coordination/kidults/source-intelligence/asi-shadow-operating-evidence-contract-v1.json",
+            "coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json",
+            "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json",
+            "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json",
+            "coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json",
+            "coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json",
+            "coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json",
+            "coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json",
+            "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json"
+          ]) JSON.parse(fs.readFileSync(file, "utf8"));
+          NODE
+          node --check scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs
+          node --check scripts/kidults/source-intelligence/compile-asi-source-rights-access-review-r1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-source-rights-access-review-r1.mjs
+          node --check scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs
+          node --check scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs
+          node --check scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs
+          node --check scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs
+          node --check scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs
+          node --check scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs
+          node --check scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs
+          node --check scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs
+          node --check scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs
+
+      - name: Validate rights and purpose policy preflight evidence
+        run: node scripts/kidults/source-intelligence/validate-asi-source-rights-access-review-r1.mjs
+
+      - name: Validate exact approved bounded calibration strata grammar
+        run: |
+          node scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json
+
+      - name: Build deterministic SHADOW evidence twice
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs \
+            --output /tmp/asi-shadow-operating-evidence-run-1.json --write
+          TZ=Pacific/Honolulu LANG=C LC_ALL=C \
+            node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs \
+            --output /tmp/asi-shadow-operating-evidence-run-2.json --write
+          cmp /tmp/asi-shadow-operating-evidence-run-1.json /tmp/asi-shadow-operating-evidence-run-2.json
+
+      - name: Reject stale evidence and thirty-four exact truth-boundary mutations
+        run: |
+          cmp artifacts/agci-os/asi-shadow-operating-evidence-v1.json /tmp/asi-shadow-operating-evidence-run-1.json
+          node scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs \
+            --input /tmp/asi-shadow-operating-evidence-run-1.json
+
+      - name: Upload non-deployed SHADOW evidence
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-shadow-operating-evidence-v1
+          path: /tmp/asi-shadow-operating-evidence-run-1.json
+          if-no-files-found: error
+          retention-days: 30

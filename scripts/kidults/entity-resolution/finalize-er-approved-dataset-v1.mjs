@@ -1,109 +1,164 @@
 import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 
-const [datasetPath, manifestPath, outputPath='/tmp/er-final-approved-v1.json'] = process.argv.slice(2);
-if (!datasetPath || !manifestPath) {
-  throw new Error('Usage: node finalize-er-approved-dataset-v1.mjs <dataset.json> <approved-strata-manifest.json> [output.json]');
+const [datasetPath, resultsPath, manifestPath, contractPath, outputPath = '/tmp/er-final-approved-v1.json'] =
+  process.argv.slice(2);
+if (!datasetPath || !resultsPath || !manifestPath || !contractPath) {
+  throw new Error(
+    'Usage: node finalize-er-approved-dataset-v1.mjs <dataset.json> <benchmark-results.json> <approved-strata-manifest.json> <benchmark-contract.json> [output.json]',
+  );
 }
 
-const dataset = JSON.parse(await fs.readFile(datasetPath, 'utf8'));
-const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
-if (dataset.dataset_class !== 'REAL_WORLD_LABELED' || dataset.synthetic === true || !Array.isArray(dataset.cases) || dataset.cases.length === 0) {
-  throw new Error('FINALIZE_REAL_WORLD_LABELED_DATASET_REQUIRED');
-}
-if (manifest.status !== 'APPROVED_BOUNDED_POC_CALIBRATION') throw new Error('FINALIZE_APPROVED_STRATA_MANIFEST_REQUIRED');
+const [dataset, results, manifest, contract] = await Promise.all(
+  [datasetPath, resultsPath, manifestPath, contractPath].map(async (file) =>
+    JSON.parse(await fs.readFile(file, 'utf8'))),
+);
 
-const canonical = value => Array.isArray(value)
+const canonical = (value) => Array.isArray(value)
   ? value.map(canonical)
-  : (value && typeof value === 'object'
-      ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]))
-      : value);
-const digest = value => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
-const sameSet = (a,b) => a.size === b.size && [...a].every(x => b.has(x));
+  : value && typeof value === 'object'
+    ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]))
+    : value;
+const digest = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
+const sortedUnique = (values) => [...new Set(values)].sort();
+const sameStrings = (left, right) => Array.isArray(left) && Array.isArray(right) &&
+  new Set(left).size === left.length && new Set(right).size === right.length &&
+  JSON.stringify(sortedUnique(left)) === JSON.stringify(sortedUnique(right));
+const validSourceEvidence = (evidence) =>
+  typeof evidence?.source_url === 'string' && /^https:\/\//.test(evidence.source_url) &&
+  /^sha256:[a-f0-9]{64}$/.test(evidence?.source_payload_sha256 || '') &&
+  Array.isArray(evidence?.license_evidence_refs) && evidence.license_evidence_refs.length > 0 &&
+  evidence.license_evidence_refs.every((ref) => typeof ref === 'string' && /^https:\/\//.test(ref));
 
-const approved = new Set((manifest.approved_strata_ids ?? []).filter(Boolean));
-const required = new Set((manifest.required_strata_ids ?? []).filter(Boolean));
-const datasetApproved = new Set((dataset.approved_scope_ids ?? []).filter(Boolean));
-const datasetRequired = new Set((dataset.required_scope_ids ?? []).filter(Boolean));
-if (approved.size === 0 || required.size === 0) throw new Error('FINALIZE_NONEMPTY_APPROVED_REQUIRED_STRATA_REQUIRED');
-if (!sameSet(approved, required)) throw new Error('FINALIZE_MANIFEST_APPROVED_REQUIRED_SET_MISMATCH');
-if (!sameSet(datasetApproved, approved) || !sameSet(datasetRequired, required)) throw new Error('FINALIZE_DATASET_MANIFEST_BINDING_MISMATCH');
-if (dataset.approved_strata_manifest_id !== manifest.id) throw new Error('FINALIZE_MANIFEST_ID_BINDING_MISMATCH');
+const blockers = [];
+const block = (condition, code) => { if (!condition) blockers.push(code); };
+const policy = contract.empirical_attestation_policy || {};
+const samplePolicy = policy.empirical_sample_policy || {};
 
-const manifestRows = (manifest.strata ?? []).filter(row => row?.status === 'APPROVED_REQUIRED');
-const rowById = new Map(manifestRows.map(row => [row.stratum_id, row]));
-if (![...required].every(id => rowById.has(id))) throw new Error('FINALIZE_REQUIRED_MANIFEST_ROW_MISSING');
+block(contract.id === 'entity-resolution-benchmark-v2-contract' && contract.status === 'ACTIVE_P0',
+  'FINALIZE_ACTIVE_BENCHMARK_CONTRACT_REQUIRED');
+block(manifest.id === policy.approved_calibration_strata_id &&
+  manifest.status === policy.approved_calibration_strata_status,
+  'FINALIZE_CANONICAL_APPROVED_STRATA_MANIFEST_REQUIRED');
+block(digest(manifest) === policy.approved_calibration_strata_sha256,
+  'FINALIZE_APPROVED_STRATA_DIGEST_MISMATCH');
+block(sameStrings(manifest.approved_strata_ids, manifest.required_strata_ids) &&
+  manifest.required_strata_ids?.length === 7,
+  'FINALIZE_EXACT_SEVEN_REQUIRED_STRATA_REQUIRED');
+block(dataset.approved_strata_manifest_id === manifest.id &&
+  sameStrings(dataset.approved_scope_ids, manifest.approved_strata_ids) &&
+  sameStrings(dataset.required_scope_ids, manifest.required_strata_ids),
+  'FINALIZE_DATASET_MANIFEST_BINDING_MISMATCH');
+block(Array.isArray(dataset.cases) && dataset.cases.length > 0 &&
+  new Set(dataset.cases.map((item) => item.case_id)).size === dataset.cases.length &&
+  dataset.cases.every((item) => typeof item.case_id === 'string' && item.case_id.trim()),
+  'FINALIZE_UNIQUE_NONEMPTY_CASES_REQUIRED');
+block(dataset.cases?.every((item) => Array.isArray(item.source_evidence) && item.source_evidence.length > 0 &&
+  item.source_evidence.every(validSourceEvidence) && Array.isArray(item.provenance_refs) &&
+  item.provenance_refs.length > 0 && item.rights_state === 'ALLOW'),
+  'FINALIZE_PER_CASE_SOURCE_EVIDENCE_RIGHTS_PROVENANCE_REQUIRED');
 
-const incomplete = [];
-const coverage = {};
-for (const id of [...required].sort()) {
-  const rule = rowById.get(id);
-  const rows = dataset.cases.filter(item => item.scope_id === id);
-  const classes = new Set(rows.map(item => item.case_class));
-  const boundaries = new Set(rows.map(item => item.identity_boundary));
-  const missingClasses = (rule.minimum_case_classes ?? []).filter(name => !classes.has(name));
-  const missingBoundaries = (rule.minimum_boundaries ?? []).filter(name => !boundaries.has(name));
-  const complete = rows.length > 0 && missingClasses.length === 0 && missingBoundaries.length === 0;
-  coverage[id] = {
-    case_count: rows.length,
-    missing_case_classes: missingClasses,
-    missing_boundaries: missingBoundaries,
-    complete
+const represented = sortedUnique((dataset.cases || []).map((item) => item.scope_id)
+  .filter((scopeId) => manifest.required_strata_ids?.includes(scopeId)));
+const rowById = new Map((manifest.strata || []).map((row) => [row.stratum_id, row]));
+const perStratum = {};
+for (const stratumId of [...(manifest.required_strata_ids || [])].sort()) {
+  const rule = rowById.get(stratumId);
+  const cases = (dataset.cases || []).filter((item) => item.scope_id === stratumId);
+  const classes = new Set(cases.map((item) => item.case_class));
+  const boundaries = new Set(cases.map((item) => item.identity_boundary));
+  const missingClasses = (rule?.minimum_case_classes || []).filter((value) => !classes.has(value));
+  const missingBoundaries = (rule?.minimum_boundaries || []).filter((value) => !boundaries.has(value));
+  perStratum[stratumId] = {
+    case_count:cases.length,
+    missing_case_classes:missingClasses,
+    missing_boundaries:missingBoundaries,
+    complete:Boolean(rule) && cases.length > 0 && missingClasses.length === 0 && missingBoundaries.length === 0,
   };
-  if (!complete) incomplete.push(id);
 }
-if (incomplete.length > 0) throw new Error(`FINALIZE_PER_STRATUM_INCOMPLETE:${incomplete.join(',')}`);
+const incompleteStrata = Object.entries(perStratum).filter(([, value]) => !value.complete).map(([id]) => id);
+block(incompleteStrata.length === 0 && represented.length === 7,
+  `FINALIZE_PER_STRATUM_INCOMPLETE:${incompleteStrata.join(',') || 'REPRESENTATION'}`);
 
-const approvedCases = dataset.cases.filter(item => approved.has(item.scope_id));
-const removedCases = dataset.cases.filter(item => !approved.has(item.scope_id));
-if (approvedCases.length === 0) throw new Error('FINALIZE_APPROVED_CASES_REQUIRED');
-const caseIds = new Set();
-for (const item of approvedCases) {
-  if (!item.case_id || caseIds.has(item.case_id)) throw new Error(`FINALIZE_CASE_ID_INVALID_OR_DUPLICATE:${item.case_id}`);
-  caseIds.add(item.case_id);
-  if (!item.provenance_refs?.length) throw new Error(`FINALIZE_PROVENANCE_REQUIRED:${item.case_id}`);
-  if (item.rights_state !== 'ALLOW') throw new Error(`FINALIZE_RIGHTS_NOT_ADMITTED:${item.case_id}`);
-  if (!item.blind_holdout) throw new Error(`FINALIZE_BLIND_HOLDOUT_REQUIRED_FOR_EVERY_FINAL_CASE:${item.case_id}`);
+const datasetPayloadFields = policy.dataset_payload_digest_fields || [];
+const datasetPayload = Object.fromEntries(datasetPayloadFields.map((field) => [field, dataset[field]]));
+const datasetPayloadSha256 = digest(datasetPayload);
+block(results.id === 'entity-resolution-benchmark-v2-results' && results.dataset_id === dataset.id,
+  'FINALIZE_BENCHMARK_RESULT_DATASET_ID_MISMATCH');
+block(results.promotion_gate?.dataset_payload_sha256 === datasetPayloadSha256,
+  'FINALIZE_BENCHMARK_RESULT_DATASET_DIGEST_MISMATCH');
+block(results.deterministic_replay === 'PASS', 'FINALIZE_DETERMINISTIC_REPLAY_REQUIRED');
+block(results.coverage?.per_stratum_requirements_complete === true &&
+  results.coverage?.scope_stratification_complete === true,
+  'FINALIZE_BENCHMARK_SEVEN_STRATA_COVERAGE_REQUIRED');
+
+const empiricalFlags = dataset.dataset_class === 'REAL_WORLD_LABELED' && dataset.synthetic !== true &&
+  dataset.constructed_control !== true && dataset.empirical_benchmark_eligible === true &&
+  dataset.independent_label_review_complete === true && dataset.label_adjudication_complete === true &&
+  dataset.holdout_sealed_before_modeling === true;
+block(empiricalFlags, 'FINALIZE_EMPIRICAL_DATASET_FLAGS_REQUIRED');
+block(dataset.constructed_control !== true &&
+  !(dataset.cases || []).some((item) => String(item.label_basis || '').includes('ALGORITHMICALLY_CONSTRUCTED')),
+  'FINALIZE_CONSTRUCTED_CONTROL_PROHIBITED');
+block(Array.isArray(policy.approved_manifest_fingerprints) && policy.approved_manifest_fingerprints.length > 0,
+  'FINALIZE_CANONICALLY_APPROVED_EMPIRICAL_ATTESTATION_REQUIRED');
+block(results.promotion_gate?.empirical_attestation_fingerprint_approved === true &&
+  results.promotion_gate?.empirical_attestation_verified === true &&
+  results.promotion_gate?.track_b_assessment === 'APPROVED_ATTESTATION_VERIFIED',
+  'FINALIZE_VERIFIED_TRACK_B_EMPIRICAL_ATTESTATION_REQUIRED');
+block(results.promotion_gate?.empirical_sample_floors_complete === true &&
+  Number(results.case_count) >= Number(samplePolicy.minimum_total_cases) &&
+  Number(results.blind_holdout_count) >= Number(samplePolicy.minimum_blind_holdout_cases),
+  'FINALIZE_EMPIRICAL_SAMPLE_FLOORS_REQUIRED');
+block(results.promotion_gate?.overall_accuracy_wilson_lower_bound_gte_099 === true &&
+  results.promotion_gate?.blind_accuracy_wilson_lower_bound_gte_099 === true &&
+  Number(results.overall_accuracy_wilson_lower_95) >= Number(samplePolicy.minimum_overall_accuracy_wilson_lower_bound) &&
+  Number(results.blind_accuracy_wilson_lower_95) >= Number(samplePolicy.minimum_blind_accuracy_wilson_lower_bound),
+  'FINALIZE_WILSON95_LOWER_BOUNDS_REQUIRED');
+block(results.promotion_gate?.source_payload_digest_and_license_evidence_bound === true,
+  'FINALIZE_ATTESTED_CASE_EVIDENCE_BINDING_REQUIRED');
+block(results.promotion_gate?.empirical_benchmark_gate_pass === true &&
+  results.promotion_gate?.real_world_dataset === true,
+  'FINALIZE_EMPIRICAL_BENCHMARK_GATE_REQUIRED');
+block(results.promotion_gate?.promotion_eligible_before_track_b === false &&
+  results.promotion_gate?.production_promotion_authorized === false && results.production === 'HOLD',
+  'FINALIZE_PRODUCTION_BOUNDARY_REQUIRED');
+
+if (blockers.length > 0) {
+  const unique = [...new Set(blockers)];
+  throw new Error(`FINALIZE_BLOCKED:${unique.join('|')}`);
 }
 
-const represented = new Set(approvedCases.map(item => item.scope_id));
-if (!sameSet(represented, required)) throw new Error('FINALIZE_ALL_REQUIRED_STRATA_NOT_REPRESENTED_AFTER_DIAGNOSTIC_REMOVAL');
-const finalScopes = new Set(approvedCases.map(item => item.scope_id));
-if ([...finalScopes].some(id => !approved.has(id))) throw new Error('FINALIZE_DIAGNOSTIC_SCOPE_LEAKAGE');
-
-const sourceHash = digest(dataset);
-const shortHash = sourceHash.replace('sha256:','').slice(0,12);
-const out = {
+const sourceDatasetHash = digest(dataset);
+const output = {
   ...dataset,
-  id: `${dataset.id ?? 'entity-resolution-dataset'}-final-approved-v1-${shortHash}`,
-  source_dataset_id: dataset.id ?? null,
-  source_dataset_hash: sourceHash,
-  dataset_scope: 'FINAL_APPROVED_BOUNDED_POC_STRATA_ONLY',
-  scope_stratification_status: 'COMPLETE_APPROVED_POC',
-  approved_scope_ids: [...approved].sort(),
-  required_scope_ids: [...required].sort(),
-  represented_approved_strata_ids: [...represented].sort(),
-  cases: approvedCases,
-  finalization: {
-    manifest_id: manifest.id,
-    all_required_strata_complete: true,
-    diagnostic_cases_removed: removedCases.length,
-    diagnostic_case_ids_removed: removedCases.map(item => item.case_id).sort(),
-    final_case_count: approvedCases.length,
-    per_stratum_coverage: coverage,
-    policy: 'FILTER_ONLY_ALREADY_APPROVED_STRATUM_CASES; NEVER_RECLASSIFY_OR_MANUFACTURE_CASES; REQUIRE_7_OF_7_BEFORE_COMPLETE_APPROVED_POC'
+  id:`${dataset.id}-final-bounded-poc-candidate-${sourceDatasetHash.slice(7, 19)}`,
+  source_dataset_id:dataset.id,
+  source_dataset_hash:sourceDatasetHash,
+  dataset_scope:'FINAL_EMPIRICAL_BOUNDED_POC_CANDIDATE_NOT_PRODUCTION',
+  scope_stratification_status:'COMPLETE_APPROVED_POC',
+  represented_approved_strata_ids:represented,
+  finalization:{
+    state:'EMPIRICAL_TRACK_B_ATTESTED_BOUNDED_POC_CANDIDATE',
+    benchmark_result_id:results.id,
+    benchmark_dataset_payload_sha256:datasetPayloadSha256,
+    manifest_id:manifest.id,
+    per_stratum_coverage:perStratum,
+    public_release_authorized:false,
+    production_promotion_authorized:false,
   },
-  truth_boundary: 'This artifact only removes non-approved diagnostic-scope cases after every approved stratum already satisfies its exact manifest minimums. It does not manufacture, relabel or weaken evidence. Benchmark, immutable holdout freeze, registered calibration artifact and independent Track B PASS remain separately required before promotion.',
-  production: 'HOLD'
+  public_claim_authorized:false,
+  public_release_authorized:false,
+  production_promotion_authorized:false,
+  production:'HOLD',
+  truth_boundary:'A canonical empirical attestation and independent Track B PASS may authorize only this bounded PoC dataset candidate. Public claims, release, and Production remain separately blocked.',
 };
-
-await fs.writeFile(outputPath, JSON.stringify(out, null, 2));
+await fs.writeFile(outputPath, `${JSON.stringify(canonical(output), null, 2)}\n`);
 console.log(JSON.stringify({
-  id: out.id,
-  source_dataset_id: out.source_dataset_id,
-  final_case_count: approvedCases.length,
-  diagnostic_cases_removed: removedCases.length,
-  all_required_strata_complete: true,
-  scope_stratification_status: out.scope_stratification_status,
-  production: 'HOLD'
+  id:output.id,
+  final_case_count:output.cases.length,
+  represented_strata:represented.length,
+  public_release_authorized:false,
+  production_promotion_authorized:false,
+  production:'HOLD',
 }, null, 2));

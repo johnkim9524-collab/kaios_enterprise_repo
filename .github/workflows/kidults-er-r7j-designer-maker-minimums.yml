@@ -3,40 +3,80 @@ name: KIDULTS ER R7J Designer Maker Minimums
 on:
   pull_request:
     paths:
-      - 'scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs'
-      - 'coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json'
-      - 'scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs'
+      - 'scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs'
       - 'scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs'
-      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs'
+      - 'scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs'
       - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json'
+      - '.github/workflows/kidults-designer-maker-source-admission-r3.yml'
+      - '.github/workflows/kidults-er-r7e-serialized-cross-authority.yml'
+      - '.github/workflows/kidults-er-r7f-vehicle-minimums.yml'
+      - '.github/workflows/kidults-er-r7g-variant-minimums.yml'
+      - '.github/workflows/kidults-er-r7h-pressing-minimums.yml'
+      - '.github/workflows/kidults-er-r7i-provenance-minimums.yml'
       - '.github/workflows/kidults-er-r7j-designer-maker-minimums.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+  NODE_ENV: test
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
 jobs:
   build-r7j:
-    runs-on: ubuntu-latest
-    timeout-minutes: 32
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
-      - name: Build R1-R6
+      - name: Checkout repository without persisted credentials
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Verify deterministic runtime and approved strata manifest
+        run: |
+          test "$(node --version)" = 'v24.19.0'
+          test "$(date +%Z)" = 'UTC'
+          node scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json
+      - name: Build R1-R6 live-source-derived constructed controls
         run: |
           node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
           node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
           node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/er-r2.json /tmp/er-r3.json
           node scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs /tmp/er-r3.json /tmp/er-r5.json
           node scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs /tmp/er-r5.json /tmp/er-r6.json
-      - name: Build approved strata through R7I
+      - name: Build approved-strata mechanics R7A-R7I
         run: |
           node scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs /tmp/er-r6.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7a.json
           node scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs /tmp/er-r7a.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7b.json
@@ -46,13 +86,23 @@ jobs:
           node scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs /tmp/er-r7f.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7g.json
           node scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs /tmp/er-r7g.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7h.json
           node scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs /tmp/er-r7h.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7i.json
-      - name: Add designer maker minimums R7J
-        run: node scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs /tmp/er-r7i.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json /tmp/er-r7j.json
-      - name: Run benchmark
-        run: node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r7j.json /tmp/er-r7j-results.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
-      - name: Verify designer maker minimums and 6-of-7 completion
+      - name: Add designer-maker grammar constructed controls R7J
+        run: |
+          node scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs \
+            /tmp/er-r7i.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json \
+            coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json \
+            /tmp/er-r7j.json
+      - name: Run benchmark mechanics
+        run: |
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/er-r7j.json \
+            /tmp/er-r7j-results.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+      - name: Verify designer-maker mechanics, six-of-seven completion, and blocked promotion
         run: |
           node - <<'NODE'
+          const d=require('/tmp/er-r7j.json');
           const r=require('/tmp/er-r7j-results.json');
           const designer='er-stratum-designer-maker-edition';
           const expectedComplete=[
@@ -61,19 +111,160 @@ jobs:
             'er-stratum-provenance-unique-object',
             'er-stratum-vehicle-mechanical-asset',
             'er-stratum-variant-release-heavy',
-            'er-stratum-pressing-edition-media'
+            'er-stratum-pressing-edition-media',
           ];
-          const completed=Object.values(r.coverage.per_stratum).filter(x=>x.complete===true).length;
+          const sameObject=d.cases.find((item)=>item.case_id==='moma-designer-maker-normalization-1611-24.1997.1');
+          const sameDesign=d.cases.find((item)=>item.case_id==='moma-cooper-series7-3107-same-design-24.1997.1-24.1997.2');
+          const hard=d.cases.find((item)=>item.case_id==='moma-series7-3107-collection-record-hard-negative-24.1997.1-24.1997.2');
+          const added=[sameObject,sameDesign,hard];
+          const completed=Object.values(r.coverage.per_stratum).filter((item)=>item.complete===true).length;
+          const flags=d.id==='entity-resolution-live-source-derived-constructed-control-r7j-designer-maker-minimums' &&
+            d.dataset_scope==='R7J_PARTIAL_APPROVED_STRATA_6_OF_7_SIX_GRAMMARS_COMPLETE_CONSTRUCTED_CONTROL' &&
+            d.dataset_class==='REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL' && d.synthetic===false &&
+            d.constructed_control===true && d.empirical_benchmark_eligible===false &&
+            d.independent_label_review_complete===false && d.label_adjudication_complete===false &&
+            d.holdout_sealed_before_modeling===false && d.track_b_independent_review_complete===false &&
+            d.pre_track_b_promotion_eligible===false && d.public_claim_authorized===false &&
+            d.public_release_authorized===false && d.production_promotion_authorized===false && d.production==='HOLD';
+          if(!flags||d.scope_stratification_status!=='INCOMPLETE'||d.cases.length!==21) process.exit(1);
+          if(new Set(d.cases.map((item)=>item.case_id)).size!==21||d.cases.some((item)=>item.blind_holdout!==false)) process.exit(1);
+          if(!/^sha256:[a-f0-9]{64}$/.test(d.prior_input_sha256)||
+            d.prior_input_sha256_role!=='INTEGRITY_ONLY_NOT_AUTHORITY_OR_PROMOTION_EVIDENCE') process.exit(1);
+          if(d.r7j_repository_declared_identity_calibration_metadata_source_count!==2||
+            d.r7j_strict_r1_evidence_bound_admitted_source_count!==0||d.r7j_independent_legal_review_count!==0||
+            d.r7j_source_content_archive_count!==0||d.r7j_full_source_pool_admitted_source_count!==0||
+            d.r7j_runtime_admitted_source_count!==0||d.r7j_current_market_ready_source_count!==0||
+            d.r7j_marketplace_observation_count!==0||d.r7j_current_market_observation_count!==0||
+            d.r7j_independent_physical_inspection_count!==0) process.exit(1);
+          const admission=d.source_admission_binding;
+          if(admission.admission_id!=='designer-maker-moma-cooper-admission-r3'||
+            !/^sha256:[a-f0-9]{64}$/.test(admission.admission_sha256)||
+            admission.repository_declared_identity_calibration_metadata_source_count!==2||
+            admission.strict_r1_evidence_bound_admitted_source_count!==0||admission.independent_legal_review_complete!==false||
+            admission.source_content_bytes_archived!==false||admission.full_source_pool_admission_authorized!==false||
+            admission.runtime_admission_authorized!==false||admission.current_market_claim_authorized!==false||
+            admission.public_commercial_admission_authorized!==false) process.exit(1);
+          if(added.some((item)=>!item||item.blind_holdout!==false||item.constructed_control!==true||
+            item.label_review_status!=='NOT_INDEPENDENTLY_REVIEWED_OR_ADJUDICATED'||
+            item.repository_declared_metadata_admission_only!==true||item.strict_r1_evidence_bound_admission!==false||
+            item.independent_legal_review_complete!==false||item.source_content_bytes_archived!==false||
+            item.full_source_pool_admission_authorized!==false||item.runtime_admission_authorized!==false||
+            item.marketplace_evidence!==false||item.current_market_evidence!==false||
+            item.public_commercial_admission_authorized!==false||item.production_promotion_authorized!==false||
+            !String(item.label_basis).startsWith('ALGORITHMICALLY_CONSTRUCTED_')||
+            !Array.isArray(item.source_evidence)||item.source_evidence.length===0||
+            item.source_evidence.some((evidence)=>!/^sha256:[a-f0-9]{64}$/.test(evidence.source_payload_sha256)||
+              !Array.isArray(evidence.license_evidence_refs)||evidence.license_evidence_refs.length===0))) process.exit(1);
+          if(sameObject.case_class!=='SAME_OBJECT_NORMALIZATION'||sameObject.identity_boundary!=='SOURCE_RECORD'||
+            sameDesign.case_class!=='SAME_DESIGN_DIFFERENT_OBJECT'||sameDesign.identity_boundary!=='CANONICAL_DESIGN'||
+            hard.case_class!=='HARD_NEGATIVE'||hard.identity_boundary!=='PHYSICAL_OBJECT'||hard.expected!=='NO_MATCH'||
+            hard.independent_physical_inspection_complete!==false||
+            hard.claim_ceiling!=='PHYSICAL_OBJECT_BOUNDARY_COLLECTION_RECORD_IDENTITY_MECHANICS_ONLY_NO_INDEPENDENT_PHYSICAL_INSPECTION_FULL_PROVENANCE_IMAGE_OR_CURRENT_MARKET_CLAIM') process.exit(1);
           if(r.strata_manifest_binding.binding_valid!==true) process.exit(1);
           for(const id of expectedComplete) if(r.coverage.per_stratum[id].complete!==true) process.exit(1);
-          if(r.coverage.per_stratum['er-stratum-graded-population'].complete!==false) process.exit(1);
-          if(completed!==6) process.exit(1);
-          if(r.accuracy!==1||r.blind_accuracy!==1||r.critical_false_auto_merge!==0||r.blind_critical_false_auto_merge!==0) process.exit(1);
-          if(r.deterministic_replay!=='PASS'||r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
-          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
-          console.log('R7J PASS: DESIGNER_MAKER_EDITION complete; 6/7 strata complete; GRADED_POPULATION and downstream gates remain fail-closed.');
+          if(r.coverage.per_stratum['er-stratum-graded-population'].complete!==false||completed!==6||
+            r.coverage.per_stratum_requirements_complete!==false||r.coverage.scope_stratification_complete!==false) process.exit(1);
+          for(const item of added) {
+            const result=r.results.find((row)=>row.case_id===item.case_id);
+            if(!result||result.predicted!==item.expected) process.exit(1);
+          }
+          if(r.blind_holdout_count!==0||r.blind_accuracy!==null||r.blind_accuracy_wilson_lower_95!==null||
+            r.critical_false_auto_merge!==0) process.exit(1);
+          if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1||
+            r.promotion_gate.source_payload_digest_and_license_evidence_present_per_case!==true) process.exit(1);
+          if(r.promotion_gate.real_world_dataset!==false||r.promotion_gate.empirical_dataset_flags_complete!==false||
+            r.promotion_gate.empirical_benchmark_gate_pass!==false||r.promotion_gate.promotion_eligible_before_track_b!==false||
+            r.promotion_gate.production_promotion_authorized!==false||r.production!=='HOLD') process.exit(1);
+          console.log('R7J PASS: designer-maker grammar mechanics complete; blind=0/null; 6/7 mechanics only; empirical/public/Production claims remain blocked.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - name: Verify fixed-fetch determinism and adversarial fail-closed guards
+        run: |
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs/promises';
+          import { pathToFileURL } from 'node:url';
+          import path from 'node:path';
+
+          const scriptUrl=pathToFileURL(path.resolve('scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs')).href;
+          const base=JSON.parse(await fs.readFile('/tmp/er-r7i.json','utf8'));
+          const manifest=JSON.parse(await fs.readFile('coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json','utf8'));
+          const admission=JSON.parse(await fs.readFile('coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json','utf8'));
+          const csvHeader='Title,Artist,AccessionNumber,ObjectID,URL';
+          const csvRows=[
+            'Chair Series 7 (3107),Arne Jacobsen,24.1997.1,1611,https://www.moma.org/collection/works/1611',
+            'Chair Series 7 (3107),Arne Jacobsen,24.1997.2,103159,https://www.moma.org/collection/works/103159',
+          ];
+          const cooper={
+            id:'18734945',
+            accession_number:'2009-26-1-a,b',
+            title_raw:'Model #3107',
+            participants:[
+              {role_name:'Designer',person_name:'Arne Jacobsen'},
+              {role_name:'Manufacturer',person_name:'Fritz Hansen Inc., Denmark'},
+            ],
+          };
+          const reverseKeys=(value)=>Array.isArray(value)?value.map(reverseKeys):value&&typeof value==='object'?
+            Object.fromEntries(Object.keys(value).reverse().map((key)=>[key,reverseKeys(value[key])])):value;
+          let sequence=0;
+          async function run(label,{input=base,manifestValue=manifest,admissionValue=admission,csvRowsValue=csvRows,cooperValue=cooper}={}) {
+            sequence+=1;
+            const inputPath=`/tmp/r7j-${label}-input.json`;
+            const manifestPath=`/tmp/r7j-${label}-manifest.json`;
+            const admissionPath=`/tmp/r7j-${label}-admission.json`;
+            const outputPath=`/tmp/r7j-${label}-output.json`;
+            await Promise.all([
+              fs.writeFile(inputPath,JSON.stringify(input)),
+              fs.writeFile(manifestPath,JSON.stringify(manifestValue)),
+              fs.writeFile(admissionPath,JSON.stringify(admissionValue)),
+            ]);
+            const csv=`${csvHeader}\n${csvRowsValue.join('\n')}\n`;
+            globalThis.fetch=async(url)=>new Response(String(url).includes('Artworks.csv')?csv:JSON.stringify(cooperValue),{status:200});
+            process.argv=['node','r7j',inputPath,manifestPath,admissionPath,outputPath];
+            await import(`${scriptUrl}?mock=${sequence}-${encodeURIComponent(label)}`);
+            return fs.readFile(outputPath);
+          }
+          const first=await run('determinism-a');
+          const second=await run('determinism-b',{
+            input:reverseKeys(base),
+            manifestValue:reverseKeys(manifest),
+            admissionValue:reverseKeys(admission),
+            csvRowsValue:[...csvRows].reverse(),
+            cooperValue:reverseKeys(cooper),
+          });
+          if(!first.equals(second)) throw new Error('R7J_FIXED_FETCH_PERMUTATION_NOT_BYTE_IDENTICAL');
+
+          async function expectReject(label,change,pattern) {
+            const fixture={input:structuredClone(base),manifestValue:structuredClone(manifest),admissionValue:structuredClone(admission)};
+            change(fixture);
+            try {
+              await run(`reject-${label}`,fixture);
+            } catch (error) {
+              if(pattern.test(String(error?.message))) return;
+              throw error;
+            }
+            throw new Error(`R7J_ADVERSARIAL_INPUT_ACCEPTED:${label}`);
+          }
+          await expectReject('forged-prior-id',(x)=>{x.input.id='forged';},/R7I_EXACT_CONSTRUCTED_CONTROL_DATASET_REQUIRED/);
+          await expectReject('forged-prior-scope',(x)=>{x.input.dataset_scope='forged';},/R7I_EXACT_CONSTRUCTED_CONTROL_DATASET_REQUIRED/);
+          await expectReject('duplicate-case-id',(x)=>{x.input.cases[1].case_id=x.input.cases[0].case_id;},/R7I_EXACT_CONSTRUCTED_CONTROL_DATASET_REQUIRED/);
+          await expectReject('forged-represented',(x)=>{x.input.represented_approved_strata_ids=[];},/R7I_EXACT_CONSTRUCTED_CONTROL_DATASET_REQUIRED/);
+          await expectReject('blind-laundering',(x)=>{x.input.cases[0].blind_holdout=true;},/R7I_EXACT_CONSTRUCTED_CONTROL_DATASET_REQUIRED/);
+          await expectReject('evidence-removal',(x)=>{x.input.cases[0].source_evidence=[];},/R7I_EXACT_CONSTRUCTED_CONTROL_DATASET_REQUIRED/);
+          await expectReject('forged-manifest',(x)=>{x.manifestValue.id='forged';},/R7J_APPROVED_STRATA_MANIFEST_BINDING_REQUIRED/);
+          await expectReject('forged-target-deficit',(x)=>{
+            x.manifestValue.strata.find((row)=>row.stratum_id==='er-stratum-designer-maker-edition').minimum_case_classes=['HARD_NEGATIVE'];
+          },/R7I_DESIGNER_MAKER_TARGET_DEFICIT_MISMATCH/);
+          await expectReject('strict-r1-laundering',(x)=>{
+            x.admissionValue.admission_accounting.strict_r1_evidence_bound_admitted_source_count=1;
+          },/R7J_EXACT_REPOSITORY_DECLARED_METADATA_ADMISSION_REQUIRED/);
+          await expectReject('public-commercial-laundering',(x)=>{
+            x.admissionValue.authorization_boundaries.public_commercial_admission_authorized=true;
+          },/R7J_EXACT_REPOSITORY_DECLARED_METADATA_ADMISSION_REQUIRED/);
+          await expectReject('admission-evidence-removal',(x)=>{x.admissionValue.sources[0].rights_evidence=[];},
+            /R7J_EXACT_REPOSITORY_DECLARED_METADATA_ADMISSION_REQUIRED/);
+          console.log('R7J fixed-fetch row/key permutations are byte-identical; 11 adversarial guards reject forged inputs and promotion laundering.');
+          NODE
+      - name: Upload bounded SHADOW evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-er-r7j-designer-maker-minimums
           path: |
@@ -81,3 +272,4 @@ jobs:
             /tmp/er-r7j-results.json
           if-no-files-found: error
           retention-days: 30
+          include-hidden-files: false

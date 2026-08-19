@@ -104,6 +104,8 @@ class MemoryD1Database {
       '0002_autonomous_orchestration.sql',
       '0003_asi_market_funnel_shadow.sql',
       '0004_asi_processor_shadow.sql',
+      '0005_asi_runtime_recovery_fairness_shadow.sql',
+      '0006_asi_task_lease_atomic_fencing_shadow.sql',
     ]) this.sqlite.exec(readFileSync(resolve(migrationRoot,migration),'utf8'));
     installEvaluationClock(this.sqlite);
   }
@@ -660,6 +662,30 @@ try {
     assert.equal(queryOne(db,`SELECT COUNT(*) AS n FROM asi_engine_health`).n,25);
     assert.equal(queryOne(db,`SELECT SUM(processed_count) AS n FROM asi_engine_health`).n,13 * 14);
     assert.equal(networkAttempts,0);
+    assert.deepEqual(queryAll(db,`PRAGMA foreign_key_check`),[]);
+  });
+
+  test('runtime task leases release cleanly and durable grains remain unique with no orphan rows', () => {
+    assert.equal(queryOne(db,`
+      SELECT COUNT(*) AS n FROM asi_task_leases
+      WHERE released_at IS NULL AND datetime(expires_at)>datetime('now')
+    `).n,0);
+    assert.equal(queryOne(db,`
+      SELECT COUNT(*) AS n FROM asi_task_leases
+      WHERE released_at IS NULL AND datetime(expires_at)<=datetime('now')
+    `).n,0);
+    assert.equal(queryOne(db,`
+      SELECT COUNT(*) AS n FROM (
+        SELECT event_id,engine_fleet,queue_binding,COUNT(*) AS copies
+        FROM asi_outbox GROUP BY event_id,engine_fleet,queue_binding HAVING COUNT(*)>1
+      )
+    `).n,0);
+    assert.equal(queryOne(db,`
+      SELECT COUNT(*) AS n FROM (
+        SELECT replay_id,attempt_number,COUNT(*) AS copies
+        FROM asi_replay_attempts GROUP BY replay_id,attempt_number HAVING COUNT(*)>1
+      )
+    `).n,0);
     assert.deepEqual(queryAll(db,`PRAGMA foreign_key_check`),[]);
   });
 

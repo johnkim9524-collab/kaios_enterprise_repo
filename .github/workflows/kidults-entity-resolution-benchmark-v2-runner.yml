@@ -6,35 +6,181 @@ on:
       - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
       - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-selftest.json'
       - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
       - '.github/workflows/kidults-entity-resolution-benchmark-v2-runner.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+concurrency:
+  group: kidults-entity-resolution-benchmark-v2-runner-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-runner:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        # actions/checkout v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          node-version: '22'
-      - name: Run non-promotional benchmark selftest
-        run: node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-selftest.json /tmp/entity-resolution-benchmark-v2-selftest-results.json
-      - name: Enforce selftest and scope-stratification truth boundary
+          persist-credentials: false
+
+      - name: Set up Node.js
+        # actions/setup-node v5.0.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Run two independent non-promotional benchmark selftest replays
+        run: |
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-selftest.json /tmp/entity-resolution-benchmark-v2-selftest-results-a.json
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-selftest.json /tmp/entity-resolution-benchmark-v2-selftest-results-b.json
+          cmp /tmp/entity-resolution-benchmark-v2-selftest-results-a.json /tmp/entity-resolution-benchmark-v2-selftest-results-b.json
+      - name: Enforce selftest truth boundary
+        run: |
+          node -e "const x=require('/tmp/entity-resolution-benchmark-v2-selftest-results-a.json'); if(x.accuracy!==1||x.critical_false_auto_merge!==0||x.deterministic_replay!=='PASS'||x.promotion_gate.empirical_sample_floors_complete!==false||x.promotion_gate.empirical_benchmark_gate_pass!==false||x.promotion_gate.promotion_eligible_before_track_b!==false||x.promotion_gate.production_promotion_authorized!==false||x.promotion_gate.empirical_attestation_required!==true||x.promotion_gate.empirical_attestation_manifest_present!==false||x.promotion_gate.empirical_attestation_fingerprint_approved!==false||x.dataset_class!=='SYNTHETIC_SELFTEST'||x.production!=='HOLD') process.exit(1); console.log('ER benchmark runner synthetic mechanics selftest PASS; empirical and Production promotion remain blocked.')"
+      - name: Reject relabeled selftest, per-case evidence concentration, and missing archetype laundering
         run: |
           node - <<'NODE'
-          const x=require('/tmp/entity-resolution-benchmark-v2-selftest-results.json');
-          if(x.accuracy!==1||x.critical_false_auto_merge!==0||x.deterministic_replay!=='PASS') process.exit(1);
-          if(x.promotion_gate.promotion_eligible_before_track_b!==false||x.dataset_class!=='SYNTHETIC_SELFTEST'||x.production!=='HOLD') process.exit(1);
-          if(x.coverage.scope_stratification_complete!==false||x.promotion_gate.scope_stratification_complete!==false) process.exit(1);
-          console.log('ER runner selftest PASS; synthetic data and incomplete approved-scope stratification remain promotion-blocked.');
+          const fs=require('fs');
+          const value=require('./coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-selftest.json');
+          value.dataset_class='REAL_WORLD_LABELED';
+          value.synthetic=false;
+          value.constructed_control=false;
+          value.empirical_benchmark_eligible=true;
+          value.independent_label_review_complete=true;
+          value.label_adjudication_complete=true;
+          value.holdout_sealed_before_modeling=true;
+          value.cases.forEach((item,index)=>{
+            item.provenance_refs=[`https://evidence.example/case/${index}`];
+            delete item.source_evidence;
+          });
+          value.cases[0].source_evidence=value.cases.map((_,index)=>({
+            source_url:`https://evidence.example/source/all-on-first-case/${index}`,
+            source_payload_sha256:`sha256:${String(index+1).padStart(64,'a')}`,
+            license_evidence_refs:['https://evidence.example/license']
+          }));
+          fs.writeFileSync('/tmp/entity-resolution-relabel-forgery.json',JSON.stringify(value,null,2));
+          fs.writeFileSync('/tmp/entity-resolution-unapproved-attestation.json',JSON.stringify({
+            manifest_schema_version:'1.0.0',status:'TRACK_B_INDEPENDENT_REVIEW_PASS_SEALED',dataset_id:value.id
+          },null,2));
           NODE
-      - uses: actions/upload-artifact@v4
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/entity-resolution-relabel-forgery.json /tmp/entity-resolution-relabel-forgery-results.json
+          node -e "const x=require('/tmp/entity-resolution-relabel-forgery-results.json'); if(x.promotion_gate.empirical_dataset_flags_complete!==true||x.promotion_gate.source_payload_digest_and_license_evidence_present_per_case!==false||x.promotion_gate.required_scope_archetypes_complete!==false||x.promotion_gate.empirical_attestation_manifest_present!==false||x.promotion_gate.empirical_attestation_fingerprint_approved!==false||x.promotion_gate.real_world_dataset!==false||x.promotion_gate.empirical_benchmark_gate_pass!==false||x.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1); console.log('Relabeled selftest and evidence concentrated on one case remain fail-closed.')"
+          node - <<'NODE'
+          const fs=require('fs');
+          const value=require('/tmp/entity-resolution-relabel-forgery.json');
+          value.cases.forEach((item,index)=>{
+            item.scope_id='designer_toys';
+            item.source_evidence=[{
+              source_url:`https://evidence.example/source/${index}`,
+              source_payload_sha256:`sha256:${String(index+1).padStart(64,'0')}`,
+              license_evidence_refs:['https://evidence.example/license']
+            }];
+          });
+          fs.writeFileSync('/tmp/entity-resolution-missing-archetype-forgery.json',JSON.stringify(value,null,2));
+          NODE
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/entity-resolution-missing-archetype-forgery.json /tmp/entity-resolution-missing-archetype-forgery-results.json
+          node -e "const x=require('/tmp/entity-resolution-missing-archetype-forgery-results.json'); if(x.promotion_gate.source_payload_digest_and_license_evidence_present_per_case!==true||x.promotion_gate.all_case_scopes_in_canonical_matrix!==true||x.promotion_gate.required_scope_archetypes_complete!==false||x.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1); console.log('Complete per-case evidence cannot substitute for missing canonical scope archetypes.')"
+          node - <<'NODE'
+          const fs=require('fs');
+          const value=require('/tmp/entity-resolution-missing-archetype-forgery.json');
+          const archetypeScopes=['designer_toys','trading_cards','vinyl_recorded_music','fine_jewelry','mechanical_watches','sneakers','collector_cars'];
+          value.cases.push({...structuredClone(value.cases[0]),case_id:'perfect-seven-extra',blind_holdout:true});
+          value.cases.forEach((item,index)=>{
+            item.scope_id=archetypeScopes[index];
+            item.source_evidence=[{
+              source_url:`https://evidence.example/perfect-seven/${index}`,
+              source_payload_sha256:`sha256:${String(index+101).padStart(64,'0')}`,
+              license_evidence_refs:['https://evidence.example/license']
+            }];
+          });
+          fs.writeFileSync('/tmp/entity-resolution-seven-perfect-cases.json',JSON.stringify(value,null,2));
+          NODE
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/entity-resolution-seven-perfect-cases.json /tmp/entity-resolution-seven-perfect-cases-results.json
+          node -e "const x=require('/tmp/entity-resolution-seven-perfect-cases-results.json'); if(x.case_count!==7||x.accuracy!==1||x.promotion_gate.source_payload_digest_and_license_evidence_present_per_case!==true||x.promotion_gate.required_scope_archetypes_complete!==true||x.promotion_gate.empirical_sample_floors_complete!==false||x.promotion_gate.overall_accuracy_wilson_lower_bound_gte_099!==false||x.promotion_gate.blind_accuracy_wilson_lower_bound_gte_099!==false||x.promotion_gate.empirical_benchmark_gate_pass!==false||x.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1); console.log('Seven perfect cases cannot satisfy canonical sample floors or Wilson 95% lower-bound gates.')"
+          node - <<'NODE'
+          const fs=require('fs');
+          const manifest=require('./coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json');
+          const classAndBoundary=[
+            ['HARD_NEGATIVE','SOURCE_RECORD'],
+            ['SAME_OBJECT_NORMALIZATION','PHYSICAL_OBJECT'],
+            ['CROSS_MARKET_ALIAS','SOURCE_RECORD'],
+            ['AMBIGUOUS_REVIEW_REQUIRED','MARKET_EVENT'],
+            ['TRANSACTION_TO_OBJECT_LINKAGE','MARKET_EVENT'],
+            ['SAME_DESIGN_DIFFERENT_OBJECT','CANONICAL_DESIGN'],
+            ['HARD_NEGATIVE','PHYSICAL_OBJECT']
+          ];
+          const cases=manifest.required_strata_ids.map((scopeId,index)=>({
+            case_id:`aggregate-only-${index}`,
+            case_class:classAndBoundary[index][0],
+            identity_boundary:classAndBoundary[index][1],
+            scope_id:scopeId,
+            blind_holdout:index===0,
+            expected:'REVIEW',
+            provenance_refs:[`https://evidence.example/aggregate-only/${index}`],
+            rights_state:'ALLOW',
+            left:{},
+            right:{}
+          }));
+          fs.writeFileSync('/tmp/entity-resolution-aggregate-only-grammar.json',JSON.stringify({
+            id:'entity-resolution-aggregate-only-grammar-forgery',
+            dataset_class:'REAL_WORLD_LABELED',
+            synthetic:false,
+            constructed_control:false,
+            empirical_benchmark_eligible:true,
+            independent_label_review_complete:true,
+            label_adjudication_complete:true,
+            holdout_sealed_before_modeling:true,
+            scope_stratification_status:'COMPLETE_APPROVED_POC',
+            required_scope_ids:manifest.required_strata_ids,
+            approved_scope_ids:manifest.approved_strata_ids,
+            cases
+          },null,2));
+          const divergent=structuredClone(manifest);
+          divergent.strata[0].minimum_case_classes=['HARD_NEGATIVE'];
+          fs.writeFileSync('/tmp/entity-resolution-divergent-strata.json',JSON.stringify(divergent,null,2));
+          NODE
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/entity-resolution-aggregate-only-grammar.json \
+            /tmp/entity-resolution-aggregate-only-grammar-results.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+          node -e "const x=require('/tmp/entity-resolution-aggregate-only-grammar-results.json'); if(x.coverage.required_case_classes_complete!==true||x.coverage.required_identity_boundaries_complete!==true||x.coverage.required_scope_archetypes_complete!==true||x.coverage.approved_strata_manifest_binding!==true||x.coverage.per_stratum_requirements_complete!==false||x.coverage.scope_stratification_complete!==false||x.promotion_gate.empirical_benchmark_gate_pass!==false||x.promotion_gate.production_promotion_authorized!==false) process.exit(1); console.log('Global class and boundary totals cannot substitute for every approved stratum grammar.')"
+          if node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-selftest.json \
+            /tmp/entity-resolution-divergent-strata-results.json \
+            /tmp/entity-resolution-divergent-strata.json; then
+            echo 'Caller-supplied divergent calibration manifest unexpectedly passed.' >&2
+            exit 1
+          fi
+          if node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/entity-resolution-relabel-forgery.json /tmp/entity-resolution-unapproved-results.json \
+            /tmp/entity-resolution-unapproved-attestation.json; then
+            echo 'Unapproved attestation unexpectedly passed.' >&2
+            exit 1
+          fi
+      - name: Upload deterministic selftest controls
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-entity-resolution-benchmark-v2-runner-selftest
-          path: /tmp/entity-resolution-benchmark-v2-selftest-results.json
+          path: |
+            /tmp/entity-resolution-benchmark-v2-selftest-results-a.json
+            /tmp/entity-resolution-benchmark-v2-selftest-results-b.json
+            /tmp/entity-resolution-relabel-forgery-results.json
+            /tmp/entity-resolution-missing-archetype-forgery-results.json
+            /tmp/entity-resolution-seven-perfect-cases-results.json
+            /tmp/entity-resolution-aggregate-only-grammar-results.json
           if-no-files-found: error
           retention-days: 30

@@ -10,35 +10,84 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+  NODE_ENV: test
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
 jobs:
   validate-admission:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
+      - name: Checkout repository without persisted credentials
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '24.19.0'
+      - name: Verify deterministic runtime
+        run: |
+          test "$(node --version)" = 'v24.19.0'
+          test "$(date +%Z)" = 'UTC'
       - name: Validate field-purpose rights boundary
         run: |
           node - <<'NODE'
           const x=require('./coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json');
           if(x.production!=='HOLD') process.exit(1);
           if(x.admission_scope!=='DESIGNER_MAKER_EDITION_IDENTITY_CALIBRATION_ONLY') process.exit(1);
+          if(x.admission_class!=='REPOSITORY_DECLARED_IDENTITY_CALIBRATION_METADATA_ONLY') process.exit(1);
+          if(x.admitted_state_definition!=='ADMITTED_MEANS_REPOSITORY_DECLARED_FOR_BOUNDED_INTERNAL_IDENTITY_CALIBRATION_METADATA_ONLY') process.exit(1);
           if(x.sources.length!==2||x.sources.some(s=>s.admission_state!=='ADMITTED')) process.exit(1);
+          const a=x.admission_accounting;
+          if(a.repository_declared_identity_calibration_metadata_source_count!==2||
+            a.strict_r1_evidence_bound_admitted_source_count!==0||
+            a.full_source_pool_admitted_source_count!==0||
+            a.current_market_ready_source_count!==0||
+            a.runtime_admitted_source_count!==0||
+            a.image_admitted_source_count!==0) process.exit(1);
+          const e=x.evidence_assurance;
+          if(e.repository_declaration_only!==true||e.strict_r1_evidence_bound_revalidation_complete!==false||
+            e.independent_legal_review_complete!==false||e.source_content_bytes_archived!==false||
+            e.source_content_archive_state!=='NOT_ARCHIVED'||e.live_workflow_probe_is_archival_or_independent_review_evidence!==false) process.exit(1);
+          const b=x.authorization_boundaries;
+          for(const field of ['current_market_claim_authorized','full_source_pool_admission_authorized',
+            'public_release_authorized','commercial_use_authorized','public_commercial_admission_authorized',
+            'runtime_admission_authorized','image_admission_authorized','production_promotion_authorized']) {
+            if(b[field]!==false) process.exit(1);
+          }
+          if(b.runtime_admission_events_emitted!==0||b.market_observation_count!==0) process.exit(1);
+          if(x.purpose_rights_interpretation!=='SOURCE_LICENSE_FIELD_USE_CEILING_ONLY_NOT_PLATFORM_ADMISSION_OR_PUBLICATION_AUTHORIZATION') process.exit(1);
           for(const s of x.sources){
+            if(s.admission_state_scope!=='REPOSITORY_DECLARED_BOUNDED_INTERNAL_IDENTITY_CALIBRATION_METADATA_ONLY'||
+              s.strict_r1_evidence_bound_admission!==false||s.source_content_bytes_archived!==false) process.exit(1);
             for(const p of ['discover','collect','store','derive','display_internal','display_public']) if(!String(s.purpose_rights[p]||'').startsWith('ALLOW')) process.exit(1);
             if(!String(s.rights_basis).includes('CC0')) process.exit(1);
             if(!String(s.image_rule).startsWith('BLOCKED')) process.exit(1);
             if(!String(s.claim_ceiling).includes('METADATA_ONLY')) process.exit(1);
           }
-          if(x.pool_effect.current_market_claim_gate!=='UNCHANGED_STILL_OPEN'||x.pool_effect.provider_purchase!=='HOLD') process.exit(1);
-          console.log('Purpose-specific metadata admission boundary PASS');
+          if(x.pool_effect.current_market_claim_gate!=='UNCHANGED_STILL_OPEN'||
+            x.pool_effect.current_market_claim_gate_satisfied!==false||
+            x.pool_effect.full_source_pool_effect!=='NONE'||x.pool_effect.runtime_admission_effect!=='NONE'||
+            x.pool_effect.provider_purchase!=='HOLD') process.exit(1);
+          console.log('Repository-declared metadata-only identity-calibration boundary PASS: 2 declared; strict R1/full pool/current market/runtime=0; Production HOLD');
           NODE
       - name: Live validate official CC0 authorities and target topology
         run: |
           node - <<'NODE'
           const headers={'user-agent':'KIDULTS-DEV-SHADOW-SourceAdmission/1.0','accept':'application/json,text/plain,text/csv'};
-          async function text(url){const r=await fetch(url,{headers}); if(!r.ok) throw new Error(`${url} -> ${r.status}`); return await r.text();}
+          async function text(url){const r=await fetch(url,{headers,signal:AbortSignal.timeout(30000)}); if(!r.ok) throw new Error(`${url} -> ${r.status}`); return await r.text();}
           async function json(url){return JSON.parse(await text(url));}
           const momaRepo=await json('https://api.github.com/repos/MuseumofModernArt/collection');
           if(momaRepo.owner?.login!=='MuseumofModernArt'||momaRepo.license?.spdx_id!=='CC0-1.0') throw new Error('MOMA_CC0_REPO_VALIDATION_FAILED');

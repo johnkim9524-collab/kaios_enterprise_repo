@@ -36,6 +36,15 @@ on:
 permissions:
   contents: read
 
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+concurrency:
+  group: kidults-autonomous-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-runtime:
     runs-on: ubuntu-24.04
@@ -45,12 +54,14 @@ jobs:
         working-directory: services/kidults-autonomous-intelligence
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
-          node-version: 24
+          node-version: 24.19.0
 
       - name: Install autonomous intelligence dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -69,6 +80,9 @@ jobs:
 
       - name: Exercise all 25 processors through the Queue/D1 SHADOW runtime
         run: npm run asi:processor:e2e
+
+      - name: Exercise recovery fairness, lease fencing, circuit and terminal DLQ controls
+        run: npm run asi:runtime-recovery:test
 
       - name: Validate Wrangler configuration and bundle without deploying
         run: npm run deploy:dry-run

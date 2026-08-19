@@ -1,21 +1,32 @@
 {
   "id": "asi-runtime-core-validation-r1",
   "version": "1.0.0",
-  "status": "EVIDENCE_BACKED_PASS",
+  "status": "LOCAL_DEV_SHADOW_PRECHECK_PASS_REMOTE_NOT_VERIFIED",
   "issue": 480,
   "production": "HOLD",
   "scope": "BOUNDED_DEV_SHADOW_RUNTIME_CORE",
   "validated_capabilities": {
-    "rights_admitted_live_source_retrieval": "PASS",
-    "canonical_source_admission_bridge": "PASS",
-    "real_source_derived_queue_d1_injection": "PASS",
-    "processor_mesh_traversal": "PASS",
-    "deterministic_replay": "PASS",
-    "durable_retry": "PASS",
-    "dead_letter_after_retry_exhaustion": "PASS",
-    "unknown_rights_fail_closed_hold": "PASS",
-    "claim_ceiling_enforcement": "PASS",
-    "production_guard": "PASS"
+    "live_source_metadata_retrieval": "WORKFLOW_CAPABILITY_PRESENT_OUTPUT_NOT_SEALED_IN_THIS_RECORD",
+    "source_admission_bridge": "METADATA_PROJECTION_ONLY_RAW_SOURCE_CONTENT_NOT_SEALED",
+    "real_source_derived_queue_d1_injection": "LOCAL_IN_MEMORY_QUEUE_D1_COMPATIBLE_HARNESS_PASS",
+    "processor_mesh_traversal": "LOCAL_SYNTHETIC_EVENT_HARNESS_PASS",
+    "deterministic_replay": "LOCAL_HARNESS_PASS",
+    "retry_control": "LOCAL_IN_MEMORY_SYNTHETIC_CONTROL_PASS_REMOTE_DURABILITY_NOT_VERIFIED",
+    "dead_letter_after_retry_exhaustion": "LOCAL_IN_MEMORY_SYNTHETIC_CONTROL_PASS_REMOTE_DLQ_NOT_VERIFIED",
+    "unknown_rights_fail_closed_hold": "SYNTHETIC_UNKNOWN_CONTROL_PASS_SOURCE_OBSERVED_FALSE",
+    "claim_ceiling_enforcement": "LOCAL_HARNESS_PASS",
+    "production_guard": "PASS_HOLD"
+  },
+  "execution_assurance": {
+    "database_backend": "LOCAL_IN_MEMORY_SQLITE",
+    "queue_backend": "LOCAL_DETERMINISTIC_IN_MEMORY_QUEUE",
+    "remote_cloudflare_queue_d1_executed": false,
+    "canonical_cloudflare_durability_verified": false,
+    "original_source_record_processed_by_runtime": false,
+    "live_derived_admission_metadata_attached": true,
+    "forced_transport_failure_is_source_observed": false,
+    "unknown_rights_control_is_source_observed": false,
+    "workflow_artifacts_canonicalized_in_this_record": false
   },
   "evidence_prs": [490, 493, 494, 495],
   "truth_boundary": {
@@ -25,10 +36,12 @@
     "immutable_candidate_evidence_handoff": "NOT_YET_EVIDENCED",
     "track_b_independent_assessment": "NOT_YET_EVIDENCED",
     "remote_production_deployment": "NOT_PERFORMED",
+    "remote_shadow_deployment": "NOT_PERFORMED",
+    "source_content_reproducibility": "NOT_ESTABLISHED",
     "full_platform_validation": false,
     "market_intelligence_poc_complete": false,
     "publication_eligible": false,
     "production_authorized": false
   },
-  "disposition": "ASI bounded runtime core may be treated as validated for continued DEV/SHADOW integration. Intelligence-quality, independent-validation, publication and Production gates remain separate and fail-closed."
+  "disposition": "The local Queue/D1-compatible DEV/SHADOW harness is suitable for continued code integration only. It is not remote Cloudflare execution or durability evidence. Intelligence-quality, independent validation, publication and Production gates remain separate and fail-closed."
 }

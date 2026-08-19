@@ -5,7 +5,16 @@ if (!datasetPath || !manifestPath) throw new Error('Usage: node promote-er-r6-to
 
 const dataset=JSON.parse(await fs.readFile(datasetPath,'utf8'));
 const manifest=JSON.parse(await fs.readFile(manifestPath,'utf8'));
-if(dataset.dataset_class!=='REAL_WORLD_LABELED'||dataset.synthetic===true||!Array.isArray(dataset.cases)) throw new Error('R6_REAL_WORLD_DATASET_REQUIRED');
+const constructedControlInput=dataset.dataset_class==='REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL'
+  && dataset.synthetic===false
+  && dataset.constructed_control===true
+  && dataset.empirical_benchmark_eligible===false
+  && dataset.independent_label_review_complete===false
+  && dataset.label_adjudication_complete===false
+  && dataset.holdout_sealed_before_modeling===false
+  && Array.isArray(dataset.cases)
+  && dataset.cases.every((item)=>item.blind_holdout!==true);
+if(!constructedControlInput) throw new Error('R6_CONSTRUCTED_CONTROL_DATASET_REQUIRED');
 if(manifest.status!=='APPROVED_BOUNDED_POC_CALIBRATION') throw new Error('APPROVED_CALIBRATION_MANIFEST_REQUIRED');
 
 const required=new Set(manifest.required_strata_ids||[]);
@@ -63,15 +72,23 @@ if(uniquePromoted!==1) throw new Error(`PROVENANCE_UNIQUE_STRATUM_EXACTLY_ONE_PR
 const represented=[...new Set(cases.map(x=>x.scope_id).filter(x=>required.has(x)))].sort();
 const out={
   ...dataset,
-  id:'entity-resolution-real-world-dataset-r7a-approved-strata-partial',
-  dataset_scope:'R7A_PARTIAL_APPROVED_STRATA_3_OF_7',
+  id:'entity-resolution-live-source-derived-constructed-control-r7a-strata-mapped-partial',
+  dataset_scope:'R7A_PARTIAL_APPROVED_STRATA_3_OF_7_CONSTRUCTED_CONTROL',
+  dataset_class:'REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL',
+  synthetic:false,
+  constructed_control:true,
+  empirical_benchmark_eligible:false,
+  independent_label_review_complete:false,
+  label_adjudication_complete:false,
+  holdout_sealed_before_modeling:false,
+  production:'HOLD',
   scope_stratification_status:'INCOMPLETE',
   approved_scope_ids:manifest.approved_strata_ids,
   required_scope_ids:manifest.required_strata_ids,
   approved_strata_manifest_id:manifest.id,
   represented_approved_strata_ids:represented,
   cases,
-  truth_boundary:'R7A semantically promotes only three real cases into approved calibration strata after structural evidence assertions. Four required strata remain unrepresented; diagnostic scope leakage remains; final scope stratification and promotion must stay blocked.'
+  truth_boundary:'R7A maps only three live-source-derived constructed-control cases to approved calibration strata after structural assertions. The strata manifest does not reclassify them as independently labeled empirical evidence. Four required strata remain unrepresented, diagnostic scope leakage remains, and empirical promotion, #479 completion, and Production stay blocked.'
 };
 await fs.writeFile(outputPath,JSON.stringify(out,null,2));
-console.log(JSON.stringify({id:out.id,represented_approved_strata_ids:represented,case_count:cases.length,production:'HOLD'},null,2));
+console.log(JSON.stringify({id:out.id,evidence_class:out.dataset_class,constructed_control:true,empirical_benchmark_eligible:false,represented_approved_strata_ids:represented,case_count:cases.length,production:'HOLD'},null,2));

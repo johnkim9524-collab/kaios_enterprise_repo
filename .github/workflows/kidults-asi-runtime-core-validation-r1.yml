@@ -7,6 +7,20 @@ on:
       - '.github/workflows/kidults-asi-runtime-core-validation-r1.yml'
       - 'services/kidults-autonomous-intelligence/scripts/asi-real-source-queue-injection-r1.mjs'
       - 'services/kidults-autonomous-intelligence/scripts/asi-real-source-retry-dlq-quarantine-r1.mjs'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs'
+      - 'services/kidults-autonomous-intelligence/src/asi/event.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/processors.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/processor-runtime.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/runtime.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/registry.ts'
+      - 'services/kidults-autonomous-intelligence/migrations/0001_canonical_foundation.sql'
+      - 'services/kidults-autonomous-intelligence/migrations/0002_autonomous_orchestration.sql'
+      - 'services/kidults-autonomous-intelligence/migrations/0003_asi_market_funnel_shadow.sql'
+      - 'services/kidults-autonomous-intelligence/migrations/0004_asi_processor_shadow.sql'
+      - 'services/kidults-autonomous-intelligence/migrations/0005_asi_runtime_recovery_fairness_shadow.sql'
+      - 'services/kidults-autonomous-intelligence/migrations/0006_asi_task_lease_atomic_fencing_shadow.sql'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'services/kidults-autonomous-intelligence/package-lock.json'
       - 'scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs'
       - 'scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs'
       - 'scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs'
@@ -15,43 +29,68 @@ on:
 permissions:
   contents: read
 
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+concurrency:
+  group: kidults-asi-runtime-core-validation-r1-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-runtime-core:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        # actions/checkout v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          node-version: '22'
-      - name: Validate canonical truth boundary
+          persist-credentials: false
+
+      - name: Set up Node.js
+        # actions/setup-node v5.0.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Validate local DEV/SHADOW declaration boundary
         run: |
-          node -e "const x=require('./coordination/kidults/engine-v2/asi-runtime-core-validation-r1.json'); if(x.status!=='EVIDENCE_BACKED_PASS'||x.production!=='HOLD'||x.truth_boundary.full_platform_validation!==false||x.truth_boundary.market_intelligence_poc_complete!==false||x.truth_boundary.production_authorized!==false) process.exit(1); console.log('ASI runtime core validation truth boundary PASS')"
-      - name: Retrieve live admitted sources
+          node -e "const x=require('./coordination/kidults/engine-v2/asi-runtime-core-validation-r1.json'); if(x.status!=='LOCAL_DEV_SHADOW_PRECHECK_PASS_REMOTE_NOT_VERIFIED'||x.production!=='HOLD'||x.execution_assurance.database_backend!=='LOCAL_IN_MEMORY_SQLITE'||x.execution_assurance.queue_backend!=='LOCAL_DETERMINISTIC_IN_MEMORY_QUEUE'||x.execution_assurance.remote_cloudflare_queue_d1_executed!==false||x.execution_assurance.canonical_cloudflare_durability_verified!==false||x.execution_assurance.original_source_record_processed_by_runtime!==false||x.execution_assurance.live_derived_admission_metadata_attached!==true||x.execution_assurance.forced_transport_failure_is_source_observed!==false||x.execution_assurance.unknown_rights_control_is_source_observed!==false||x.truth_boundary.full_platform_validation!==false||x.truth_boundary.market_intelligence_poc_complete!==false||x.truth_boundary.production_authorized!==false) process.exit(1); console.log('ASI local DEV/SHADOW declaration boundary PASS; remote execution and durability remain unverified.')"
+      - name: Retrieve live source metadata artifacts
         run: |
           node scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs /tmp/met-real-source-admission-r1.json
           node scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs /tmp/getty-historical-sale-r1.json
-      - name: Build deterministic bridge
+      - name: Build admission metadata bridge
         run: node scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs /tmp/met-real-source-admission-r1.json /tmp/getty-historical-sale-r1.json /tmp/asi-real-source-processor-bridge-r1.json
       - name: Install runtime dependencies
         working-directory: services/kidults-autonomous-intelligence
-        run: npm ci
-      - name: Re-prove real-source Queue/D1 traversal
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run Getty-derived metadata through local Queue/D1-compatible harness
         working-directory: services/kidults-autonomous-intelligence
-        run: node scripts/asi-real-source-queue-injection-r1.mjs /tmp/asi-real-source-processor-bridge-r1.json
-      - name: Re-prove retry DLQ and rights HOLD
+        run: node scripts/asi-real-source-queue-injection-r1.mjs /tmp/asi-real-source-processor-bridge-r1.json /tmp/asi-real-source-queue-injection-r1.json
+      - name: Run local synthetic retry DLQ and rights HOLD controls
         working-directory: services/kidults-autonomous-intelligence
         run: node scripts/asi-real-source-retry-dlq-quarantine-r1.mjs /tmp/asi-real-source-processor-bridge-r1.json /tmp/asi-real-source-retry-dlq-quarantine-r1.json
-      - name: Assert empirical failure-path evidence
+      - name: Assert exact local synthetic fail-closed reports
         run: |
-          node -e "const x=require('/tmp/asi-real-source-retry-dlq-quarantine-r1.json'); if(x.retry.state!=='PASS'||x.dlq.state!=='PASS'||x.quarantine.state!=='PASS_FAIL_CLOSED_HOLD'||x.market_claim_authorized!==false||x.production!=='HOLD') process.exit(1); console.log('ASI runtime core empirical evidence PASS')"
-      - uses: actions/upload-artifact@v4
+          node - <<'NODE'
+          const q=require('/tmp/asi-real-source-queue-injection-r1.json');
+          const r=require('/tmp/asi-real-source-retry-dlq-quarantine-r1.json');
+          if(q.execution_mode!=='LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_HARNESS'||q.backend.database!=='LOCAL_IN_MEMORY_SQLITE'||q.backend.queue!=='LOCAL_DETERMINISTIC_IN_MEMORY_QUEUE'||q.backend.remote_cloudflare!==false||q.backend.canonical_cloudflare_durability_verified!==false||q.original_getty_record_processed!==false||q.live_derived_admission_metadata_attached!==true||q.admission.decision!=='HOLD'||q.admission.rights_state!=='UNKNOWN'||q.pool.state!=='HOLD'||q.pool.usable!==0||q.current_market_event_evidenced!==false||q.market_claim_authorized!==false||q.production!=='HOLD') process.exit(1);
+          if(r.execution_mode!=='LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_HARNESS'||r.backend.database!=='LOCAL_IN_MEMORY_SQLITE'||r.backend.queue!=='LOCAL_DETERMINISTIC_IN_MEMORY_QUEUE'||r.backend.remote_cloudflare!==false||r.backend.canonical_cloudflare_durability_verified!==false||r.original_getty_record_processed!==false||r.live_derived_admission_metadata_attached!==true||r.retry.state!=='PASS_SYNTHETIC_CONTROL'||r.retry.forced_failure.synthetic!==true||r.retry.forced_failure.observed!==false||r.retry.forced_failure.observed_from_source!==false||r.retry.forced_failure.observed_from_remote_cloudflare!==false||r.retry.admission_materialized!==false||r.retry.source_pool_materialized!==false||r.retry.qualified_pool_rows!==0||r.dlq.state!=='PASS_LOCAL_HARNESS'||r.dlq.remote_cloudflare_observed!==false||r.quarantine.state!=='PASS_SYNTHETIC_UNKNOWN_CONTROL_HOLD'||r.quarantine.unknown_control.synthetic!==true||r.quarantine.unknown_control.observed!==false||r.quarantine.unknown_control.observed_from_source!==false||r.quarantine.admission!=='HOLD'||r.quarantine.rights_state!=='UNKNOWN'||r.quarantine.effective_pool_state!=='HOLD'||r.quarantine.effective_usable!==0||r.market_claim_authorized!==false||r.production!=='HOLD') process.exit(1);
+          console.log('Local Queue/D1-compatible and synthetic failure controls PASS; remote Cloudflare, canonical durability, and source-observed failures are NOT VERIFIED.');
+          NODE
+      - name: Upload local fail-closed runtime control artifacts
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-runtime-core-validation-r1
           path: |
             /tmp/met-real-source-admission-r1.json
             /tmp/getty-historical-sale-r1.json
             /tmp/asi-real-source-processor-bridge-r1.json
+            /tmp/asi-real-source-queue-injection-r1.json
             /tmp/asi-real-source-retry-dlq-quarantine-r1.json
             coordination/kidults/engine-v2/asi-runtime-core-validation-r1.json
           if-no-files-found: error

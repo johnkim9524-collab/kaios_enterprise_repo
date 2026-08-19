@@ -1,9 +1,23 @@
-name: KIDULTS ASI Real Source Queue Injection R1
+name: KIDULTS ASI Real-Source-Derived Local Queue/D1-Compatible DEV/SHADOW R1
 
 on:
   pull_request:
     paths:
       - 'services/kidults-autonomous-intelligence/scripts/asi-real-source-queue-injection-r1.mjs'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs'
+      - 'services/kidults-autonomous-intelligence/src/asi/event.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/processors.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/processor-runtime.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/runtime.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/registry.ts'
+      - 'services/kidults-autonomous-intelligence/migrations/0001_canonical_foundation.sql'
+      - 'services/kidults-autonomous-intelligence/migrations/0002_autonomous_orchestration.sql'
+      - 'services/kidults-autonomous-intelligence/migrations/0003_asi_market_funnel_shadow.sql'
+      - 'services/kidults-autonomous-intelligence/migrations/0004_asi_processor_shadow.sql'
+      - 'services/kidults-autonomous-intelligence/migrations/0005_asi_runtime_recovery_fairness_shadow.sql'
+      - 'services/kidults-autonomous-intelligence/migrations/0006_asi_task_lease_atomic_fencing_shadow.sql'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'services/kidults-autonomous-intelligence/package-lock.json'
       - '.github/workflows/kidults-asi-real-source-queue-injection-r1.yml'
       - 'scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs'
       - 'scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs'
@@ -13,36 +27,55 @@ on:
 permissions:
   contents: read
 
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+concurrency:
+  group: kidults-asi-real-source-queue-injection-r1-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   real-source-queue-injection:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        # actions/checkout v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          node-version: '22'
+          persist-credentials: false
+
+      - name: Set up Node.js
+        # actions/setup-node v5.0.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
       - name: Retrieve live Met identity/context artifact
         run: node scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs /tmp/met-real-source-admission-r1.json
       - name: Retrieve live Getty historical transaction artifact
         run: node scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs /tmp/getty-historical-sale-r1.json
-      - name: Build canonical admitted-source bridge
+      - name: Build admitted-source metadata bridge
         run: node scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs /tmp/met-real-source-admission-r1.json /tmp/getty-historical-sale-r1.json /tmp/asi-real-source-processor-bridge-r1.json
       - name: Install ASI runtime dependencies
         working-directory: services/kidults-autonomous-intelligence
-        run: npm ci
-      - name: Inject Getty admitted record through canonical Queue/D1 path
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run local Queue/D1-compatible DEV/SHADOW harness with Getty-derived metadata
         working-directory: services/kidults-autonomous-intelligence
-        run: node scripts/asi-real-source-queue-injection-r1.mjs /tmp/asi-real-source-processor-bridge-r1.json
-      - name: Preserve fail-closed boundary
+        run: node scripts/asi-real-source-queue-injection-r1.mjs /tmp/asi-real-source-processor-bridge-r1.json /tmp/asi-real-source-queue-injection-r1.json
+      - name: Verify local fail-closed harness boundary
         run: |
-          node -e "const x=require('/tmp/asi-real-source-processor-bridge-r1.json'); if(x.market_event_admission_report.current_market_event!=='NOT_EVIDENCED'||x.candidate_handoff_preflight.ready!==false||x.production_mutation!==false) process.exit(1); console.log('Real-source Queue/D1 injection PASS; current-market and Candidate gates remain closed.')"
-      - uses: actions/upload-artifact@v4
+          node -e "const b=require('/tmp/asi-real-source-processor-bridge-r1.json'); const x=require('/tmp/asi-real-source-queue-injection-r1.json'); if(b.market_event_admission_report.current_market_event!=='NOT_EVIDENCED'||b.candidate_handoff_preflight.ready!==false||b.production_mutation!==false||x.execution_mode!=='LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_HARNESS'||x.backend.database!=='LOCAL_IN_MEMORY_SQLITE'||x.backend.queue!=='LOCAL_DETERMINISTIC_IN_MEMORY_QUEUE'||x.backend.remote_cloudflare!==false||x.backend.canonical_cloudflare_durability_verified!==false||x.original_getty_record_processed!==false||x.live_derived_admission_metadata_attached!==true||x.admission.decision!=='HOLD'||x.admission.rights_state!=='UNKNOWN'||x.pool.state!=='HOLD'||x.pool.usable!==0||x.current_market_event_evidenced!==false||x.current_market_admission!=='HOLD'||x.content_collection_authorized!==false||x.market_claim_authorized!==false||x.commercial_projection_authorized!==false||x.production_eligible!==false||x.production!=='HOLD') process.exit(1); console.log('Local Queue/D1-compatible DEV/SHADOW harness PASS; remote Cloudflare and canonical durability are NOT VERIFIED.')"
+      - name: Upload fail-closed Queue/D1 evidence
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-real-source-queue-injection-r1
           path: |
             /tmp/met-real-source-admission-r1.json
             /tmp/getty-historical-sale-r1.json
             /tmp/asi-real-source-processor-bridge-r1.json
+            /tmp/asi-real-source-queue-injection-r1.json
           if-no-files-found: error
           retention-days: 30

@@ -1,9 +1,21 @@
 {
   "id": "global-rights-source-pool-expansion-r2",
   "version": "2.0.0",
+  "status": "REPOSITORY_METHODOLOGY_DECLARATION_NOT_STRICT_R1_REVALIDATED",
   "methodology_issue": 486,
   "factory_issue": 488,
   "production": "HOLD",
+  "evidence_assurance": {
+    "count_scope": "GLOBAL_RIGHTS_SOURCE_POOL_EXPANSION_R2_REPOSITORY_DECLARATIONS_ONLY",
+    "strict_r1_evidence_bound_revalidation_complete": false,
+    "independent_legal_review_complete": false,
+    "normalized_claim_record_integrity_verified_count": 0,
+    "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+    "runtime_admission_events_emitted": 0,
+    "remote_collection_authorized": false,
+    "current_market_claim_authorized": false,
+    "public_or_commercial_projection_authorized": false
+  },
   "sources": [
     {
       "source_id": "wikidata-structured-data",
@@ -12,6 +24,7 @@
       "rights_basis": "CC0_STRUCTURED_DATA",
       "rights_evidence": ["https://www.wikidata.org/wiki/Wikidata:Data_access/en","https://www.wikidata.org/wiki/Wikidata:Licensing"],
       "admission_state": "ADMITTED",
+      "admission_interpretation": "METHODOLOGY_DECLARATION_PENDING_STRICT_R1_EVIDENCE_BOUND_REVALIDATION",
       "allowed_claim_classes": ["OBJECT_IDENTITY","CANONICAL_DESIGN_CONTEXT","MAKER_CREATOR_CONTEXT","AUTHORITY_LINKAGE","REFERENCE_METADATA"],
       "prohibited_claim_classes": ["SOLD_TRANSACTION","CURRENT_MARKET_PRICE","CURRENT_LIQUIDITY","CURRENT_DEMAND"],
       "purpose_rights": {"discover":"ALLOW","collect":"ALLOW_STRUCTURED_CC0_DATA","store":"ALLOW_STRUCTURED_CC0_DATA","derive":"ALLOW_STRUCTURED_CC0_DATA","display_internal":"ALLOW_STRUCTURED_CC0_DATA","display_public":"ALLOW_STRUCTURED_CC0_DATA"},
@@ -25,6 +38,7 @@
       "rights_basis": "METADATA_CC0_OBJECT_RIGHTS_FIELD_SPECIFIC",
       "rights_evidence": ["https://www.europeana.eu/eu/rights/terms-of-use","https://pro.europeana.eu/page/the-data-exchange-agreement","https://pro.europeana.eu/page/apis"],
       "admission_state": "ADMITTED",
+      "admission_interpretation": "METHODOLOGY_DECLARATION_PENDING_STRICT_R1_EVIDENCE_BOUND_REVALIDATION",
       "allowed_claim_classes": ["OBJECT_IDENTITY","CATALOG_CONTEXT","INSTITUTION_CONTEXT","REFERENCE_METADATA","RIGHTS_STATEMENT_CONTEXT"],
       "prohibited_claim_classes": ["SOLD_TRANSACTION","CURRENT_MARKET_PRICE","CURRENT_LIQUIDITY","CURRENT_DEMAND"],
       "purpose_rights": {"discover":"ALLOW","collect":"ALLOW_METADATA_CC0","store":"ALLOW_METADATA_CC0","derive":"ALLOW_METADATA_CC0","display_internal":"ALLOW_METADATA_CC0","display_public":"ALLOW_METADATA_CC0"},
@@ -39,6 +53,7 @@
       "rights_basis": "REVOCABLE_API_LICENSE_TERMS",
       "rights_evidence": ["https://www.bricklink.com/v3/api.page?page=get-price-guide","https://www.bricklink.com/v3/terms_of_use_api.page"],
       "admission_state": "CONDITIONAL",
+      "admission_interpretation": "CANDIDATE_ONLY_NO_RUNTIME_OR_CURRENT_MARKET_ADMISSION",
       "source_scope": ["construction_mechanical_sets","lego_related_collectibles"],
       "semantic_capability": ["LAST_6_MONTHS_SOLD_PRICE_STATISTICS","SOLD_UNIT_QUANTITY","CURRENT_LISTING_PRICE_STATISTICS","REGION_COUNTRY_FILTERS"],
       "purpose_rights": {"discover":"ALLOW_PUBLIC_DOCUMENTATION","collect":"CONDITIONAL_ON_REGISTERED_AUTHORIZED_API_ACCESS","store":"CONDITIONAL_REQUIRES_EXACT_TERMS_REVIEW","derive":"CONDITIONAL_REQUIRES_EXACT_APPLICATION_AND_COMMERCIAL_USE_REVIEW","display_internal":"CONDITIONAL","display_public":"CONDITIONAL_ATTRIBUTION_AND_APPLICATION_TERMS"},
@@ -52,12 +67,21 @@
       "rights_basis": "MIXED_CC0_AND_RESTRICTED_DATA",
       "rights_evidence": ["https://support.discogs.com/hc/en-us/articles/360009334593-API-Terms-of-Use"],
       "admission_state": "CONDITIONAL",
+      "admission_interpretation": "CANDIDATE_ONLY_NO_RUNTIME_OR_CURRENT_MARKET_ADMISSION",
       "allowed_without_marketplace_promotion": ["CC0_RELEASE_METADATA","CC0_ARTIST_METADATA","CC0_LABEL_METADATA"],
       "restricted_classes": ["MARKETPLACE_PRICING","SALES_HISTORY","INVENTORY","ORDERS","PRICING_SUGGESTIONS","USER_DATA"],
       "purpose_rights": {"discover":"ALLOW_WITH_TERMS","collect":"CC0_CATALOG_ONLY_UNLESS_RESTRICTED_DATA_TERMS_SATISFIED","store":"CC0_CATALOG_ONLY_UNLESS_RESTRICTED_DATA_TERMS_SATISFIED","derive":"CONDITIONAL_FOR_RESTRICTED_MARKETPLACE_DATA","display_internal":"CONDITIONAL_FOR_RESTRICTED_MARKETPLACE_DATA","display_public":"CONDITIONAL_FOR_RESTRICTED_MARKETPLACE_DATA"},
       "evidence_strength": "IDENTITY_CONTEXT_CC0; MARKETPLACE_CURRENT_MARKET_NOT_ADMITTED"
     }
   ],
-  "pool_effect": {"new_admitted_identity_context_sources":2,"new_current_market_candidates_conditional":2,"current_market_claim_gate":"STILL_OPEN","provider_purchase":"HOLD"},
-  "truth_boundary": "Source-level admission is purpose-specific. BrickLink and Discogs marketplace data are not admitted as current-market truth until exact application/access/derivation/storage/display rights are evidenced."
+  "pool_effect": {
+    "new_admitted_identity_context_sources": 2,
+    "new_current_market_candidates_conditional": 2,
+    "strict_r1_revalidated_admitted_sources": 0,
+    "runtime_admitted_sources": 0,
+    "current_market_evidence_sources": 0,
+    "current_market_claim_gate": "STILL_OPEN",
+    "provider_purchase": "HOLD"
+  },
+  "truth_boundary": "All four rows are repository methodology declarations, not strict-R1 evidence-bound or independently reviewed legal admissions. Wikidata and Europeana are declared identity/context candidates only; BrickLink and Discogs remain conditional. No row is admitted to runtime collection, current-market truth, public/commercial projection, or Production until purpose-specific evidence and review gates pass."
 }

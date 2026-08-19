@@ -5,6 +5,8 @@ on:
     paths:
       - 'coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json'
       - 'coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
       - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
       - '.github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml'
   workflow_dispatch:
@@ -12,49 +14,213 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: kidults-candidate-evidence-handoff-r2-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
 jobs:
   validate-handoff-guard:
-    runs-on: ubuntu-latest
-    timeout-minutes: 6
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
+      - name: Check out exact revision
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node.js 24.19.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '24.19.0'
+          check-latest: false
+      - name: Verify deterministic runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "if(process.versions.node!=='24.19.0') throw new Error('NODE_VERSION_MISMATCH:'+process.versions.node)"
+          test "$(date +%Z)" = 'UTC'
       - name: Split blocked selftest pair
+        shell: bash
         run: |
+          set -euo pipefail
           node - <<'NODE'
-          const fs=require('fs');
-          const x=require('./coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json');
-          fs.writeFileSync('/tmp/snapshot-candidate.json',JSON.stringify(x.snapshot,null,2));
-          fs.writeFileSync('/tmp/evidence-package.json',JSON.stringify(x.evidence,null,2));
+          const fs = require('fs');
+          const fixture = require('./coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json');
+          fs.writeFileSync('/tmp/snapshot-candidate.json', `${JSON.stringify(fixture.snapshot, null, 2)}\n`);
+          fs.writeFileSync('/tmp/evidence-package.json', `${JSON.stringify(fixture.evidence, null, 2)}\n`);
           NODE
-      - name: Run handoff preflight
-        run: node scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs /tmp/snapshot-candidate.json /tmp/evidence-package.json /tmp/candidate-evidence-handoff-preflight-r2.json
-      - name: Require exact fail-closed blockers
+      - name: Require byte-identical two-run result
+        shell: bash
         run: |
+          set -euo pipefail
+          node scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs \
+            /tmp/snapshot-candidate.json \
+            /tmp/evidence-package.json \
+            /tmp/candidate-evidence-handoff-preflight-r2-a.json \
+            >/tmp/handoff-run-a.stdout
+          node scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs \
+            /tmp/snapshot-candidate.json \
+            /tmp/evidence-package.json \
+            /tmp/candidate-evidence-handoff-preflight-r2-b.json \
+            >/tmp/handoff-run-b.stdout
+          cmp /tmp/candidate-evidence-handoff-preflight-r2-a.json /tmp/candidate-evidence-handoff-preflight-r2-b.json
+          cmp /tmp/handoff-run-a.stdout /tmp/handoff-run-b.stdout
+      - name: Require exact fail-closed blockers and truth boundary
+        shell: bash
+        run: |
+          set -euo pipefail
           node - <<'NODE'
-          const x=require('/tmp/candidate-evidence-handoff-preflight-r2.json');
-          const has=(prefix)=>x.blockers.some(b=>b===prefix||b.startsWith(prefix+':'));
-          const required=[
-            'ER_REQUIRED_STRATA_INCOMPLETE',
-            'ER_FINAL_SCOPE_STRATIFICATION_NOT_COMPLETE',
-            'ER_FINAL_DATASET_REQUIRED',
-            'ER_FINAL_DATASET_HASH_REQUIRED',
+          const result = require('/tmp/candidate-evidence-handoff-preflight-r2-a.json');
+          const expected = [
+            'BLIND_CRITICAL_FALSE_AUTO_MERGE_NONZERO_OR_UNMEASURED',
+            'CLAIM_STRENGTH_EXCEEDS_EVIDENCE:selftest-current-market-claim-r2',
+            'CRITICAL_FALSE_AUTO_MERGE_NONZERO_OR_UNMEASURED',
+            'CURRENT_CLAIM_WITHOUT_CURRENT_EVIDENCE:selftest-current-market-claim-r2',
+            'ENTITY_RESOLUTION_BLIND_LT_TARGET',
+            'ENTITY_RESOLUTION_BLIND_WILSON_LT_TARGET',
+            'ENTITY_RESOLUTION_OVERALL_LT_TARGET',
+            'ENTITY_RESOLUTION_OVERALL_WILSON_LT_TARGET',
+            'ER_AGGREGATE_SAMPLE_FLOORS_NOT_MET',
             'ER_BLIND_HOLDOUT_FREEZE_REQUIRED',
+            'ER_BLIND_SCOPE_ARCHETYPE_SAMPLE_FLOORS_NOT_MET',
             'ER_CALIBRATION_ARTIFACT_REQUIRED',
+            'ER_CANONICAL_APPROVED_STRATA_BINDING_MISMATCH',
+            'ER_CANONICAL_APPROVED_STRATA_SET_INCOMPLETE',
+            'ER_CANONICAL_SAMPLE_POLICY_BINDING_MISMATCH',
+            'ER_CASE_CLASS_SAMPLE_FLOORS_NOT_MET',
+            'ER_CONSTRUCTED_CONTROL_NOT_EMPIRICAL',
+            'ER_EMPIRICAL_ATTESTATION_REQUIRED',
+            'ER_EMPIRICAL_BENCHMARK_NOT_ELIGIBLE',
+            'ER_EMPIRICAL_OBSERVATION_COUNTS_INVALID',
+            'ER_FINAL_DATASET_DIGEST_REQUIRED',
+            'ER_FINAL_DATASET_NOT_REAL_WORLD_LABELED',
+            'ER_FINAL_DATASET_REQUIRED',
+            'ER_FINAL_SCOPE_STRATIFICATION_NOT_COMPLETE',
+            'ER_IDENTITY_BOUNDARY_SAMPLE_FLOORS_NOT_MET',
+            'ER_REQUIRED_STRATA_INCOMPLETE',
+            'ER_SCOPE_ARCHETYPE_SAMPLE_FLOORS_NOT_MET',
+            'EVIDENCE_PACKAGE_DIGEST_REQUIRED',
             'EVIDENCE_PACKAGE_NOT_IMMUTABLE',
-            'CURRENT_CLAIM_WITHOUT_CURRENT_EVIDENCE',
-            'CLAIM_STRENGTH_EXCEEDS_EVIDENCE'
+            'SNAPSHOT_DIGEST_REQUIRED',
           ];
-          if(x.handoff_state!=='BLOCKED') process.exit(1);
-          for(const code of required) if(!has(code)) {console.error('missing blocker',code); process.exit(1);}
-          if(x.track_b_assessment!=='NOT_STARTED_BY_THIS_PREFLIGHT'||x.publication!=='HOLD'||x.production!=='HOLD') process.exit(1);
-          console.log('Candidate/Evidence R2 guard PASS: 6/7 + mutable package + historical-only current claim correctly BLOCKED.');
+          if (JSON.stringify(result.blockers) !== JSON.stringify(expected)) throw new Error('EXACT_BLOCKER_SET_MISMATCH');
+          const gates = result.computed_entity_resolution_gates;
+          if (result.handoff_state !== 'BLOCKED' || result.blocker_count !== expected.length ||
+              result.handoff_semantics !== 'TRACK_B_SUBMISSION_ELIGIBILITY_ONLY' ||
+              result.track_b_assessment !== 'NOT_PERFORMED_BY_THIS_PREFLIGHT' ||
+              result.track_b_pass !== 'NOT_ASSERTED_BY_THIS_PREFLIGHT' ||
+              result.publication !== 'HOLD' || result.production !== 'HOLD') {
+            throw new Error('HANDOFF_TRUTH_BOUNDARY_MISMATCH');
+          }
+          if (gates.canonical_required_strata_count !== 7 || gates.canonical_approved_strata_set_complete !== false ||
+              gates.overall_accuracy !== null || gates.blind_accuracy !== null ||
+              gates.overall_accuracy_wilson_lower_95 !== null || gates.blind_accuracy_wilson_lower_95 !== null ||
+              gates.empirical_attestation_verified !== false || gates.empirical_sample_floors_pass !== false ||
+              gates.current_market_evidence_present !== false || gates.caller_gate_booleans_authoritative !== false ||
+              gates.caller_point_estimates_authoritative !== false) {
+            throw new Error('COMPUTED_GATE_TRUTH_MISMATCH');
+          }
+          console.log('Candidate/Evidence R2 truth guard PASS: 6/7 constructed mechanics remain non-empirical and BLOCKED.');
+          NODE
+      - name: Prove shortcut laundering remains blocked
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('fs');
+          const fixture = require('./coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json');
+          const manifest = require('./coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json');
+          const clone = (value) => structuredClone(value);
+          const mutations = {
+            'ci-local-pass': (pair) => {
+              pair.snapshot.ci_status = 'PASS';
+              pair.snapshot.local_preflight_status = 'PASS';
+              pair.evidence.ci_status = 'PASS';
+              pair.evidence.local_preflight_status = 'PASS';
+            },
+            'historical-as-current': (pair) => {
+              const record = pair.evidence.evidence_records[0];
+              record.temporality = 'CURRENT_MARKET';
+              record.market_observation_type = 'SOLD_TRANSACTION';
+              record.source_url = 'https://example.invalid/fake-sale';
+              record.observed_at = '2026-08-18T00:00:00.000Z';
+              record.valid_until = '2026-08-20T00:00:00.000Z';
+              pair.evidence.entity_resolution.current_market_evidence_present = true;
+              pair.evidence.claims[0].evidence_temporality = 'CURRENT_MARKET';
+              pair.evidence.claims[0].current_market_evidence_present = true;
+            },
+            'mutable-as-immutable': (pair) => {
+              pair.evidence.package_status = 'IMMUTABLE';
+              pair.evidence.package_payload_sha256 = `sha256:${'0'.repeat(64)}`;
+            },
+            'constructed-as-empirical': (pair) => {
+              const er = pair.evidence.entity_resolution;
+              er.complete_strata = 7;
+              er.represented_approved_strata_ids = manifest.approved_strata_ids;
+              er.final_scope_stratification_complete = true;
+              er.dataset_class = 'REAL_WORLD_LABELED';
+              er.empirical_benchmark_eligible = true;
+              er.overall_accuracy = 1;
+              er.blind_accuracy = 1;
+              er.overall_accuracy_wilson_lower_95 = 1;
+              er.blind_accuracy_wilson_lower_95 = 1;
+            },
+          };
+          fs.mkdirSync('/tmp/handoff-negative-controls', { recursive: true });
+          for (const [name, mutate] of Object.entries(mutations)) {
+            const pair = { snapshot: clone(fixture.snapshot), evidence: clone(fixture.evidence) };
+            mutate(pair);
+            fs.writeFileSync(`/tmp/handoff-negative-controls/${name}-snapshot.json`, JSON.stringify(pair.snapshot));
+            fs.writeFileSync(`/tmp/handoff-negative-controls/${name}-evidence.json`, JSON.stringify(pair.evidence));
+          }
+          NODE
+          for control in ci-local-pass historical-as-current mutable-as-immutable constructed-as-empirical; do
+            node scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs \
+              "/tmp/handoff-negative-controls/${control}-snapshot.json" \
+              "/tmp/handoff-negative-controls/${control}-evidence.json" \
+              "/tmp/handoff-negative-controls/${control}-result.json" \
+              >/dev/null
+          done
+          node - <<'NODE'
+          const fs = require('fs');
+          const read = (name) => JSON.parse(fs.readFileSync(`/tmp/handoff-negative-controls/${name}-result.json`, 'utf8'));
+          const has = (result, code) => result.blockers.includes(code);
+          const ci = read('ci-local-pass');
+          const historical = read('historical-as-current');
+          const mutable = read('mutable-as-immutable');
+          const constructed = read('constructed-as-empirical');
+          if ([ci, historical, mutable, constructed].some((result) => result.handoff_state !== 'BLOCKED')) {
+            throw new Error('SHORTCUT_LAUNDERING_BECAME_READY');
+          }
+          if (!has(ci, 'ER_EMPIRICAL_ATTESTATION_REQUIRED')) throw new Error('CI_LOCAL_PASS_LAUNDERING_NOT_BLOCKED');
+          if (!has(historical, 'CURRENT_CLAIM_WITHOUT_CURRENT_EVIDENCE:selftest-current-market-claim-r2') ||
+              !has(historical, 'CURRENT_MARKET_EVIDENCE_RECORD_INVALID:selftest-historical-only') ||
+              !has(historical, 'CLAIM_REPORTED_CURRENT_EVIDENCE_MISMATCH:selftest-current-market-claim-r2') ||
+              !has(historical, 'ER_REPORTED_CURRENT_MARKET_EVIDENCE_MISMATCH')) {
+            throw new Error('HISTORICAL_CURRENT_LAUNDERING_NOT_BLOCKED');
+          }
+          if (!has(mutable, 'EVIDENCE_PACKAGE_DIGEST_MISMATCH')) throw new Error('MUTABLE_PACKAGE_LAUNDERING_NOT_BLOCKED');
+          if (!has(constructed, 'ER_CONSTRUCTED_CONTROL_NOT_EMPIRICAL') ||
+              !has(constructed, 'ER_CONSTRUCTED_CONTROL_METRICS_MUST_BE_NULL') ||
+              !has(constructed, 'ER_EMPIRICAL_ATTESTATION_REQUIRED')) {
+            throw new Error('CONSTRUCTED_EMPIRICAL_LAUNDERING_NOT_BLOCKED');
+          }
+          console.log('Semantic negative controls PASS: CI/local, historical/current, mutable and constructed/empirical shortcuts fail closed.');
           NODE
       - name: Require strict mode to reject blocked pair
+        shell: bash
         run: |
+          set -euo pipefail
           set +e
-          KAIOS_REQUIRE_HANDOFF_READY=1 node scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs /tmp/snapshot-candidate.json /tmp/evidence-package.json /tmp/strict.json >/tmp/strict.stdout 2>/tmp/strict.stderr
+          KAIOS_REQUIRE_HANDOFF_READY=1 node scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs \
+            /tmp/snapshot-candidate.json \
+            /tmp/evidence-package.json \
+            /tmp/strict.json \
+            >/tmp/strict.stdout 2>/tmp/strict.stderr
           status=$?
           set -e
           if [ "$status" -ne 2 ]; then
@@ -62,9 +228,10 @@ jobs:
             exit 1
           fi
           echo 'Strict handoff mode FAIL-CLOSED PASS.'
-      - uses: actions/upload-artifact@v4
+      - name: Upload deterministic preflight evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kidults-candidate-evidence-handoff-preflight-r2
-          path: /tmp/candidate-evidence-handoff-preflight-r2.json
+          path: /tmp/candidate-evidence-handoff-preflight-r2-a.json
           if-no-files-found: error
           retention-days: 30

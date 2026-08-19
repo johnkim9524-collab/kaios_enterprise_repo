@@ -1,33 +1,69 @@
-name: KIDULTS Global Rights Source Pool Expansion R2
+name: KIDULTS Global Rights Source Pool R2 Declaration Boundary
 
 on:
   pull_request:
     paths:
+      - 'coordination/kidults/source-intelligence/**'
+      - 'coordination/kidults/scope-data/**'
+      - 'coordination/kidults/data-scope/**'
+      - 'coordination/kidults/registry/trusted-source/**'
+      - 'coordination/kidults/autonomous/source-discovery/contracts/**'
+      - 'scripts/kidults/source-intelligence/**'
       - 'coordination/kidults/source-intelligence/global-rights-source-pool-expansion-r2.json'
+      - 'coordination/kidults/source-intelligence/source-admission-rights-methodology-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-rights-access-review-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-rights-access-review-r1.json'
+      - 'coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json'
+      - 'scripts/kidults/source-intelligence/compile-asi-source-rights-access-review-r1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-source-rights-access-review-r1.mjs'
       - '.github/workflows/kidults-global-rights-source-pool-expansion-r2.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+concurrency:
+  group: kidults-global-rights-source-pool-expansion-r2-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-rights-boundary:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        # actions/checkout v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          node-version: '22'
-      - name: Enforce source-purpose rights boundary
+          persist-credentials: false
+
+      - name: Set up Node.js
+        # actions/setup-node v5.0.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Install deterministic rights validation dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Regress canonical strict-R1 rights evidence independently of R2 declarations
+        run: node scripts/kidults/source-intelligence/validate-asi-source-rights-access-review-r1.mjs
+      - name: Enforce declaration-only source-purpose rights boundary
         run: |
           node - <<'NODE'
           const x=require('./coordination/kidults/source-intelligence/global-rights-source-pool-expansion-r2.json');
           const byId=Object.fromEntries(x.sources.map(s=>[s.source_id,s]));
-          if(x.production!=='HOLD') process.exit(1);
+          if(x.status!=='REPOSITORY_METHODOLOGY_DECLARATION_NOT_STRICT_R1_REVALIDATED'||x.production!=='HOLD'||x.sources.length!==4) process.exit(1);
+          if(x.evidence_assurance.count_scope!=='GLOBAL_RIGHTS_SOURCE_POOL_EXPANSION_R2_REPOSITORY_DECLARATIONS_ONLY'||x.evidence_assurance.strict_r1_evidence_bound_revalidation_complete!==false||x.evidence_assurance.independent_legal_review_complete!==false||x.evidence_assurance.normalized_claim_record_integrity_verified_count!==0||x.evidence_assurance.source_content_capture_state!=='PENDING_NOT_ARCHIVED'||x.evidence_assurance.runtime_admission_events_emitted!==0||x.evidence_assurance.remote_collection_authorized!==false||x.evidence_assurance.current_market_claim_authorized!==false||x.evidence_assurance.public_or_commercial_projection_authorized!==false) process.exit(1);
           for(const id of ['wikidata-structured-data','europeana-metadata-api']) if(byId[id]?.admission_state!=='ADMITTED') process.exit(1);
           for(const id of ['bricklink-price-guide-api','discogs-api']) if(byId[id]?.admission_state!=='CONDITIONAL') process.exit(1);
-          if(x.pool_effect.current_market_claim_gate!=='STILL_OPEN'||x.pool_effect.provider_purchase!=='HOLD') process.exit(1);
+          for(const id of ['wikidata-structured-data','europeana-metadata-api']) if(byId[id]?.admission_interpretation!=='METHODOLOGY_DECLARATION_PENDING_STRICT_R1_EVIDENCE_BOUND_REVALIDATION') process.exit(1);
+          for(const id of ['bricklink-price-guide-api','discogs-api']) if(byId[id]?.admission_interpretation!=='CANDIDATE_ONLY_NO_RUNTIME_OR_CURRENT_MARKET_ADMISSION') process.exit(1);
+          if(x.pool_effect.strict_r1_revalidated_admitted_sources!==0||x.pool_effect.runtime_admitted_sources!==0||x.pool_effect.current_market_evidence_sources!==0||x.pool_effect.current_market_claim_gate!=='STILL_OPEN'||x.pool_effect.provider_purchase!=='HOLD') process.exit(1);
           if(byId['europeana-metadata-api'].digital_object_rule.includes('ALLOW_ALL')) process.exit(1);
-          console.log('Global rights source pool R2 fail-closed boundary PASS');
+          console.log('R2 repository declarations PASS; strict-R1 evidence, legal review, runtime admission, current-market use, and Production remain unverified/HOLD.');
           NODE

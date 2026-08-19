@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 
 const [inputPath, outputPath='/tmp/er-real-world-r2.json'] = process.argv.slice(2);
 if (!inputPath) throw new Error('Usage: node extend-er-dataset-getty-transaction-r2.mjs <r1.json> [r2.json]');
@@ -9,6 +10,20 @@ const SALE_URL=`https://data.getty.edu/provenance/${SALE_ID}`;
 const OBJECT_URL=`https://data.getty.edu/provenance/${OBJECT_ID}`;
 const RIGHTS_URL='https://data.getty.edu/provenance/docs/';
 const timeoutMs=15000;
+const digest=(value)=>`sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
+
+function assertConstructedControlDataset(dataset, stage){
+  const valid=dataset.dataset_class==='REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL'
+    && dataset.synthetic===false
+    && dataset.constructed_control===true
+    && dataset.empirical_benchmark_eligible===false
+    && dataset.independent_label_review_complete===false
+    && dataset.label_adjudication_complete===false
+    && dataset.holdout_sealed_before_modeling===false
+    && Array.isArray(dataset.cases)
+    && dataset.cases.every((item)=>item.blind_holdout!==true);
+  if(!valid) throw new Error(`${stage}_CONSTRUCTED_CONTROL_DATASET_REQUIRED`);
+}
 
 async function fetchJson(url){
   const controller=new AbortController();
@@ -21,7 +36,7 @@ async function fetchJson(url){
 }
 
 const dataset=JSON.parse(await fs.readFile(inputPath,'utf8'));
-if(dataset.dataset_class!=='REAL_WORLD_LABELED'||dataset.synthetic===true||!Array.isArray(dataset.cases)) throw new Error('R1_REAL_WORLD_DATASET_REQUIRED');
+assertConstructedControlDataset(dataset,'R1');
 const sale=await fetchJson(SALE_URL);
 const object=await fetchJson(OBJECT_URL);
 const saleSerialized=JSON.stringify(sale).toLowerCase();
@@ -36,7 +51,9 @@ const gettyCase={
   identity_boundary:'MARKET_EVENT',
   scope_id:'poc-historical-transaction-linkage',
   expected:'MATCH',
-  blind_holdout:true,
+  blind_holdout:false,
+  constructed_control:true,
+  label_review_status:'NOT_INDEPENDENTLY_REVIEWED_OR_ADJUDICATED',
   left:{
     anchors:{MARKET_EVENT:relationAnchor},
     unique_keys:{transaction_id:SALE_ID},
@@ -59,12 +76,31 @@ const gettyCase={
     'getty-docs:documented-sale-to-object-example'
   ],
   rights_state:'ALLOW',
-  label_basis:'GETTY_OFFICIAL_API_DOCUMENTATION_EXPLICITLY_LINKS_DOCUMENTED_SALE_ACTIVITY_TO_DOCUMENTED_OBJECT',
+  label_basis:'ALGORITHMICALLY_CONSTRUCTED_FROM_GETTY_OFFICIAL_API_DOCUMENTATION_LINKING_A_DOCUMENTED_SALE_ACTIVITY_TO_A_DOCUMENTED_OBJECT',
   rights_reference:RIGHTS_URL,
+  source_evidence:[
+    {source_url:SALE_URL,source_payload_sha256:digest(sale),license_evidence_refs:[RIGHTS_URL]},
+    {source_url:OBJECT_URL,source_payload_sha256:digest(object),license_evidence_refs:[RIGHTS_URL]}
+  ],
   claim_ceiling:'HISTORICAL_TRANSACTION_TO_OBJECT_LINKAGE_ONLY'
 };
 
 if(dataset.cases.some(x=>x.case_id===gettyCase.case_id)) throw new Error('DUPLICATE_GETTY_CASE');
-const out={...dataset,id:'entity-resolution-real-world-dataset-increment-r2',dataset_scope:'INCREMENTAL_PARTIAL_R2',source_families:[...new Set([...(dataset.source_families??[]),'getty-provenance-index'])],cases:[...dataset.cases,gettyCase],truth_boundary:'R2 adds a real CC0 historical transaction-to-object linkage and MARKET_EVENT boundary. Required remaining case classes/boundaries/scope breadth still block #479 completion; historical evidence is not current-market evidence.'};
+const out={
+  ...dataset,
+  id:'entity-resolution-live-source-derived-constructed-control-r2',
+  dataset_scope:'INCREMENTAL_PARTIAL_R2_CONSTRUCTED_CONTROL',
+  dataset_class:'REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL',
+  synthetic:false,
+  constructed_control:true,
+  empirical_benchmark_eligible:false,
+  independent_label_review_complete:false,
+  label_adjudication_complete:false,
+  holdout_sealed_before_modeling:false,
+  production:'HOLD',
+  source_families:[...new Set([...(dataset.source_families??[]),'getty-provenance-index'])],
+  cases:[...dataset.cases,gettyCase],
+  truth_boundary:'R2 adds an official-source-derived CC0 constructed control for historical transaction-to-object linkage and the MARKET_EVENT boundary. Its pair label is algorithmically derived, not independently reviewed, adjudicated, or blind; it cannot satisfy empirical 99%, current-market, Production, or #479 completion claims.'
+};
 await fs.writeFile(outputPath,JSON.stringify(out,null,2));
 console.log(JSON.stringify(out,null,2));
