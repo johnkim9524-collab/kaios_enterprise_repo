@@ -1,0 +1,84 @@
+name: KIDULTS ER Approved Calibration Strata v1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs'
+      - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - '.github/workflows/kidults-er-approved-calibration-strata-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-calibration-strata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Validate seven-strata manifest against candidate 32-Scope matrix
+        run: |
+          node scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json
+      - name: Build contract-control dataset for exact manifest binding
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const m=require('./coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json');
+          const s=m.required_strata_ids;
+          const cases=[
+            ['c1','SAME_OBJECT_NORMALIZATION','SOURCE_RECORD','MATCH',s[0],false,'same:a','same:a'],
+            ['c2','SAME_DESIGN_DIFFERENT_OBJECT','CANONICAL_DESIGN','MATCH',s[1],false,'design:x','design:x'],
+            ['c3','HARD_NEGATIVE','PHYSICAL_OBJECT','NO_MATCH',s[2],true,'obj:a','obj:b'],
+            ['c4','CROSS_MARKET_ALIAS','SOURCE_RECORD','MATCH',s[3],true,'alias:x','alias:x'],
+            ['c5','TRANSACTION_TO_OBJECT_LINKAGE','MARKET_EVENT','MATCH',s[4],true,'event:x','event:x'],
+            ['c6','AMBIGUOUS_REVIEW_REQUIRED','SOURCE_RECORD','REVIEW',s[5],true,null,null],
+            ['c7','HARD_NEGATIVE','PHYSICAL_OBJECT','NO_MATCH',s[6],true,'obj:c','obj:d']
+          ].map(([case_id,case_class,identity_boundary,expected,scope_id,blind_holdout,l,r])=>({
+            case_id,case_class,identity_boundary,expected,scope_id,blind_holdout,
+            left:l?{anchors:{[identity_boundary]:l}}:{entity_id:'left-'+case_id},
+            right:r?{anchors:{[identity_boundary]:r}}:{entity_id:'right-'+case_id},
+            provenance_refs:['contract-control:'+case_id],rights_state:'ALLOW'
+          }));
+          fs.writeFileSync('/tmp/er-strata-control.json',JSON.stringify({
+            id:'er-strata-contract-control',dataset_class:'CONTRACT_CONTROL',synthetic:true,
+            scope_stratification_status:'COMPLETE_APPROVED_POC',approved_scope_ids:m.approved_strata_ids,
+            required_scope_ids:m.required_strata_ids,cases
+          },null,2));
+          NODE
+      - name: Verify exact manifest binding but prohibit synthetic promotion
+        run: |
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/er-strata-control.json /tmp/er-strata-control-results.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+          node - <<'NODE'
+          const r=require('/tmp/er-strata-control-results.json');
+          if(r.strata_manifest_binding.binding_valid!==true) process.exit(1);
+          if(r.coverage.scope_stratification_complete!==true) process.exit(1);
+          if(r.promotion_gate.real_world_dataset!==false) process.exit(1);
+          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
+          console.log('Exact approved-strata binding PASS; synthetic promotion correctly blocked.');
+          NODE
+      - name: Verify unknown stratum fails scope gate
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'); const d=require('/tmp/er-strata-control.json');
+          d.cases[0].scope_id='diagnostic-or-unknown-stratum';
+          fs.writeFileSync('/tmp/er-strata-negative.json',JSON.stringify(d,null,2));
+          NODE
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
+            /tmp/er-strata-negative.json /tmp/er-strata-negative-results.json \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+          node - <<'NODE'
+          const r=require('/tmp/er-strata-negative-results.json');
+          if(r.coverage.all_cases_in_approved_scopes!==false) process.exit(1);
+          if(r.coverage.scope_stratification_complete!==false) process.exit(1);
+          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
+          console.log('Unknown/diagnostic stratum leakage correctly fails closed.');
+          NODE
