@@ -5,6 +5,7 @@ on:
     paths:
       - 'coordination/kidults/entity-resolution/provenance-source-corpus-r1.json'
       - 'scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-provenance-source-corpus-r1.mjs'
       - '.github/workflows/kidults-er-provenance-source-corpus-r1.yml'
   workflow_dispatch:
 
@@ -20,24 +21,53 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Acquire 240 explicit Getty provenance Activity-object pairs
+      - name: Validate acquisition and validator syntax
         run: |
+          set -euo pipefail
+          node --check scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs
+          node --check scripts/kidults/entity-resolution/validate-provenance-source-corpus-r1.mjs
+      - name: Acquire 120 explicit Getty Activity to HumanMadeObject pairs
+        run: |
+          set -euo pipefail
           node scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs /tmp/provenance-source-corpus-r1.json
-      - name: Validate acquisition truth boundary
+      - name: Validate explicit source linkage and truth boundary
         run: |
+          set -euo pipefail
+          node scripts/kidults/entity-resolution/validate-provenance-source-corpus-r1.mjs \
+            /tmp/provenance-source-corpus-r1.json \
+            coordination/kidults/entity-resolution/provenance-source-corpus-r1.json
+      - name: Prove semantic tampering fails closed
+        run: |
+          set -euo pipefail
           node - <<'NODE'
           const fs=require('fs');
-          const a=JSON.parse(fs.readFileSync('/tmp/provenance-source-corpus-r1.json','utf8'));
-          if(a.status!=='REAL_SOURCE_LINKED_EVENT_OBJECT_CORPUS_UNLABELED') throw new Error('STATUS_INVALID');
-          if(a.stratum_id!=='er-stratum-provenance-unique-object') throw new Error('STRATUM_INVALID');
-          if(a.pair_count!==240 || a.pairs?.length!==240) throw new Error('PAIR_COUNT_240_REQUIRED');
-          if(a.labels_present!==false || a.model_predictions_present!==false) throw new Error('UNLABELED_BOUNDARY_REQUIRED');
-          if(a.production!=='HOLD' || a.public_release!=='HOLD') throw new Error('RELEASE_HOLD_REQUIRED');
-          if(a.pairs.some(p=>p.rights_state!=='ALLOW')) throw new Error('RIGHTS_ALLOW_REQUIRED');
-          if(a.pairs.some(p=>p.linkage_path!=='Activity.part[Acquisition].transferred_title_of -> HumanMadeObject')) throw new Error('EXPLICIT_LINKAGE_REQUIRED');
-          if(a.pairs.some(p=>!p.event_payload_sha256 || !p.object_payload_sha256)) throw new Error('DUAL_PAYLOAD_DIGEST_REQUIRED');
-          console.log('PASS: 240 explicit Getty Activity-to-HumanMadeObject pairs acquired with dual evidence bindings; no labels or ER PASS claimed.');
+          const crypto=require('crypto');
+          const source=JSON.parse(fs.readFileSync('/tmp/provenance-source-corpus-r1.json','utf8'));
+          const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
+          const digest=value=>`sha256:${crypto.createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
+          const write=(name,mutate)=>{
+            const candidate=structuredClone(source);
+            mutate(candidate);
+            candidate.corpus_evidence_sha256=digest(candidate.pairs);
+            fs.writeFileSync(`/tmp/provenance-${name}.json`,JSON.stringify(candidate));
+          };
+          write('forged-link',candidate=>{
+            const pair=candidate.pairs[0];
+            pair.explicit_source_link.link_evidence.referenced_object.id=candidate.pairs[1].object.source_reference;
+            pair.explicit_source_link.source_link_evidence_sha256=digest(pair.explicit_source_link.link_evidence);
+          });
+          write('label-leak',candidate=>{ candidate.pairs[0].gold_label='MATCH'; });
+          write('rights-drift',candidate=>{ candidate.pairs[0].rights_basis='UNKNOWN'; });
           NODE
+          for mutant in forged-link label-leak rights-drift; do
+            if node scripts/kidults/entity-resolution/validate-provenance-source-corpus-r1.mjs \
+              "/tmp/provenance-${mutant}.json" \
+              coordination/kidults/entity-resolution/provenance-source-corpus-r1.json; then
+              echo "validator accepted ${mutant}" >&2
+              exit 1
+            fi
+          done
+          echo 'PASS: forged link, outcome leakage and rights drift all fail closed.'
       - uses: actions/upload-artifact@v4
         with:
           name: kidults-er-provenance-source-corpus-r1
