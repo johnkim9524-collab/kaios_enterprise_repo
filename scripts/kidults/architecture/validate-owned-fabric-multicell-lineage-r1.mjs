@@ -1,0 +1,16 @@
+import fs from 'node:fs/promises';
+const p = process.argv[2] || '/tmp/kidults-owned-fabric-multicell-lineage-r1.json';
+const x = JSON.parse(await fs.readFile(p,'utf8'));
+if (x.production !== 'HOLD') throw new Error('PRODUCTION_MUST_HOLD');
+if (x.status !== 'PARTIAL_EMPIRICAL_LINEAGE_PROOF') throw new Error('STATUS_INVALID');
+if (x.bounded_cell_count < 2 || !Array.isArray(x.cells) || x.cells.length < 2) throw new Error('TWO_CELLS_REQUIRED');
+const identity = x.cells.find(c => c.evidence_class === 'IDENTITY_CANONICAL_REFERENCE');
+const historical = x.cells.find(c => c.evidence_class === 'HISTORICAL_TRANSACTION_PROVENANCE');
+if (!identity || identity.independent_owner_count < 2 || identity.fallback_replacement !== 'PASS_TWO_INDEPENDENT_OWNERS') throw new Error('IDENTITY_REDUNDANCY_NOT_PROVEN');
+if (!historical || historical.market_event_graph !== 'PASS_HISTORICAL_ONLY') throw new Error('HISTORICAL_MARKET_EVENT_LINEAGE_MISSING');
+if (historical.fallback_replacement !== 'CONCENTRATION_GAP_SINGLE_OWNER') throw new Error('HISTORICAL_CONCENTRATION_GAP_MUST_BE_EXPLICIT');
+if (x.current_sold_rights_admitted_source_count !== 0) throw new Error('R1_EXPECTS_CURRENT_SOLD_GAP_OPEN');
+if (x.current_market_cell_status !== 'BLOCKED_NO_STRICT_CURRENT_SOLD_SOURCE') throw new Error('CURRENT_MARKET_MUST_FAIL_CLOSED');
+if (x.immutable_candidate !== 'BLOCKED_NOT_CREATED' || x.track_b !== 'BLOCKED_EXACT_PAIR_ABSENT') throw new Error('DOWNSTREAM_MUST_FAIL_CLOSED');
+if (x.e2e_exit_complete !== false) throw new Error('MUST_NOT_CLAIM_E2E_EXIT');
+console.log('KIDULTS_OWNED_FABRIC_MULTICELL_LINEAGE_R1_PASS_PARTIAL_FAIL_CLOSED');

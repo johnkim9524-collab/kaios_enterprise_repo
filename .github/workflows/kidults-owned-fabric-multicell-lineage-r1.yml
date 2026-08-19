@@ -1,0 +1,29 @@
+name: KIDULTS Owned Fabric Multi-Cell Lineage R1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/architecture/build-owned-fabric-multicell-lineage-r1.mjs'
+      - 'scripts/kidults/architecture/validate-owned-fabric-multicell-lineage-r1.mjs'
+      - 'coordination/kidults/source-intelligence/rights-admitted-pilot-source-pool-r1.json'
+      - 'coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json'
+      - 'coordination/kidults/source-intelligence/source-redundancy-status-r1.json'
+      - 'artifacts/agci-os/asi-shadow-operating-evidence-v1.json'
+      - '.github/workflows/kidults-owned-fabric-multicell-lineage-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build partial empirical multi-cell lineage
+        run: node scripts/kidults/architecture/build-owned-fabric-multicell-lineage-r1.mjs /tmp/kidults-owned-fabric-multicell-lineage-r1.json
+      - name: Validate fail-closed lineage truth
+        run: node scripts/kidults/architecture/validate-owned-fabric-multicell-lineage-r1.mjs /tmp/kidults-owned-fabric-multicell-lineage-r1.json
