@@ -6,18 +6,29 @@
   "stratum_id": "er-stratum-provenance-unique-object",
   "status": "ACQUISITION_EXECUTION_CONTRACT",
   "source_id": "getty-provenance-index-linked-open-data",
-  "target_pair_count": 240,
-  "required_linkage": "Activity.part[Acquisition].transferred_title_of -> HumanMadeObject",
+  "corpus_unit": "EXPLICIT_ACTIVITY_TO_HUMAN_MADE_OBJECT_PAIR",
+  "target_pair_count": 120,
+  "target_distinct_activity_count": 120,
+  "target_distinct_object_count": 120,
+  "target_entity_payload_digest_count": 240,
+  "required_activity_type": "Activity",
+  "required_object_type": "HumanMadeObject",
+  "required_explicit_link_predicate": "part[*].transferred_title_of[*]",
+  "required_pair_selection_rule": "Each corpus unit must bind one distinct fetched Getty Activity payload to one distinct fetched Getty HumanMadeObject payload through an explicit transferred_title_of reference present in that Activity payload.",
   "rights_state_required": "ALLOW",
+  "rights_basis_required": "CC0-1.0",
   "license_evidence_refs": [
     "https://data.getty.edu/provenance/docs/",
-    "https://linked.art/model/provenance/acquisition/"
+    "https://creativecommons.org/publicdomain/zero/1.0/"
   ],
+  "activity_payload_sha256_required": true,
+  "object_payload_sha256_required": true,
+  "provenance_refs_required": true,
   "allowed_metadata_only": true,
   "labels_allowed": false,
   "model_predictions_allowed": false,
   "reviewer_assignment_required": true,
   "production": "HOLD",
   "public_release": "HOLD",
-  "truth_boundary": "Only explicit source-linked Getty provenance Activity-to-HumanMadeObject pairs are eligible. Generic entity counts are invalid. Both event and object payloads must be fetched and independently hashed. No ownership inference beyond source fields, current-market claim, ER label, benchmark PASS, Track B, publication or Production approval is created."
+  "truth_boundary": "This contract acquires 120 distinct Getty Activity to HumanMadeObject source pairs only when the fetched Activity explicitly carries part.transferred_title_of referencing the fetched object. Both fetched JSON-LD payloads are independently digested and Getty's API documentation plus its stated CC0 basis are retained as rights evidence. The corpus remains unlabeled and unpredicted empirical material; it does not infer ownership, identity, current-market truth, ER outcome, Track B approval, publication approval or Production approval."
 }

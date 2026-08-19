@@ -2,53 +2,310 @@ import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 
 const out = process.argv[2] || '/tmp/provenance-source-corpus-r1.json';
-const activityBase = 'https://data.getty.edu/provenance/activity-stream/page';
-const licenseRefs = ['https://data.getty.edu/provenance/docs/','https://linked.art/model/provenance/acquisition/'];
-const headers = { 'user-agent':'KIDULTS-ER-EMPIRICAL-ACQUISITION/1.1', accept:'application/json, application/ld+json' };
-function sha(v){return `sha256:${createHash('sha256').update(v).digest('hex')}`;}
-function canonical(v){if(Array.isArray(v))return v.map(canonical);if(v&&typeof v==='object')return Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])]));return v;}
-function digest(v){return sha(JSON.stringify(canonical(v)));}
-function arr(v){return Array.isArray(v)?v:(v?[v]:[]);}
-function typeOf(v){return String(v?.type||v?.['@type']||'');}
-function idOf(v){return typeof v==='string'?v:String(v?.id||v?.['@id']||'');}
-function isGettyEntity(u){return /^https:\/\/data\.getty\.edu\/provenance\/[0-9a-f-]{20,}$/i.test(u);}
-async function getJson(url){const r=await fetch(url,{headers});if(r.status===404||r.status===410)return null;if(!r.ok)throw new Error(`GETTY_HTTP_${r.status}:${url}`);return r.json();}
+const activityStreamBase = 'https://data.getty.edu/provenance/activity-stream';
+const activityPageBase = `${activityStreamBase}/page`;
+const sourceId = 'getty-provenance-index-linked-open-data';
+const targetPairCount = 120;
+const maxActivityStreamPages = 30;
+const concurrency = 12;
+const requestTimeoutMs = 25_000;
+const licenseEvidenceRefs = [
+  'https://data.getty.edu/provenance/docs/',
+  'https://creativecommons.org/publicdomain/zero/1.0/'
+];
+const entityUrlPattern = /^https:\/\/data\.getty\.edu\/provenance\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const activityUrls=[]; const seenActivities=new Set();
-for(let pageNo=1;pageNo<=1200 && activityUrls.length<800;pageNo++){
-  const page=await getJson(`${activityBase}/${pageNo}`); if(!page) continue;
-  for(const change of (page.orderedItems||page.items||[])){
-    const obj=change?.object;
-    const u=idOf(obj)||idOf(change?.target);
-    const t=typeOf(obj)||typeOf(change?.target);
-    if(!isGettyEntity(u)||seenActivities.has(u)) continue;
-    if(t && t!=='Activity') continue;
-    seenActivities.add(u); activityUrls.push(u);
-  }
+function sha(value) {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
-if(activityUrls.length<240) throw new Error(`GETTY_ACTIVITY_CANDIDATES_LT_240:${activityUrls.length}`);
 
-const pairs=[]; const pairKeys=new Set();
-for(const activityUrl of activityUrls){
-  if(pairs.length>=240) break;
-  const activity=await getJson(activityUrl); if(!activity||typeOf(activity)!=='Activity') continue;
-  const acquisitions=arr(activity.part).filter(p=>typeOf(p)==='Acquisition');
-  for(const acq of acquisitions){
-    for(const objectRef of arr(acq.transferred_title_of)){
-      if(pairs.length>=240) break;
-      const objectUrl=idOf(objectRef); if(!isGettyEntity(objectUrl)||typeOf(objectRef)!=='HumanMadeObject') continue;
-      const key=`${activityUrl}|${objectUrl}`; if(pairKeys.has(key)) continue;
-      const object=await getJson(objectUrl); if(!object||typeOf(object)!=='HumanMadeObject') continue;
-      const eventPayload={activity_id:activityUrl,source_label:String(activity._label||''),identified_by:arr(activity.identified_by).slice(0,5),timespan:activity.timespan||null,took_place_at:arr(activity.took_place_at).slice(0,5),carried_out_by:arr(activity.carried_out_by).slice(0,5),acquisition:{transferred_title_of:arr(acq.transferred_title_of).slice(0,5),transferred_title_from:arr(acq.transferred_title_from).slice(0,5),transferred_title_to:arr(acq.transferred_title_to).slice(0,5)}};
-      const objectPayload={object_id:objectUrl,source_label:String(object._label||''),identified_by:arr(object.identified_by).slice(0,8),produced_by:object.produced_by||null,current_owner:arr(object.current_owner).slice(0,5),referred_to_by:arr(object.referred_to_by).slice(0,5)};
-      pairKeys.add(key);
-      pairs.push({pair_id:`getty-provenance-pair-${String(pairs.length+1).padStart(4,'0')}`,source_id:'getty-provenance-index-linked-open-data',event_source_reference:activityUrl,object_source_reference:objectUrl,event_payload_sha256:digest(eventPayload),object_payload_sha256:digest(objectPayload),linkage_path:'Activity.part[Acquisition].transferred_title_of -> HumanMadeObject',rights_state:'ALLOW',license_evidence_refs:licenseRefs,provenance_refs:[activityUrl,objectUrl,'https://data.getty.edu/provenance/activity-stream'],event_payload:eventPayload,object_payload:objectPayload});
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]));
+  }
+  return value;
+}
+
+function digest(value) {
+  return sha(JSON.stringify(canonical(value)));
+}
+
+function pairId(activityReference, objectReference) {
+  return `getty-activity-object:${createHash('sha256')
+    .update(`${activityReference}\n${objectReference}`)
+    .digest('hex')}`;
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : value == null ? [] : [value];
+}
+
+function typeNames(value) {
+  return asArray(value).map(type => typeof type === 'string' ? type : type?.id || type?._label || '').filter(Boolean);
+}
+
+function hasType(entity, expected) {
+  return typeNames(entity?.type ?? entity?.['@type']).includes(expected);
+}
+
+function entityReference(entity, fallback) {
+  return String(entity?.id || entity?.['@id'] || fallback || '');
+}
+
+function retryableStatus(status) {
+  return status === 408 || status === 425 || status === 429 || status >= 500;
+}
+
+async function fetchJson(url, purpose) {
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          accept: 'application/json, application/ld+json',
+          'user-agent': 'KIDULTS-ER-EMPIRICAL-ACQUISITION/1.1'
+        }
+      });
+      if (response.status === 404 || response.status === 410) {
+        return { ok: false, status: response.status, payload: null };
+      }
+      if (!response.ok) {
+        const error = new Error(`${purpose}_HTTP_${response.status}:${url}`);
+        if (!retryableStatus(response.status) || attempt === 3) throw error;
+        lastError = error;
+      } else {
+        return { ok: true, status: response.status, payload: await response.json() };
+      }
+    } catch (error) {
+      lastError = error;
+      if (attempt === 3 || (error?.name !== 'AbortError' && !String(error?.message).includes('_HTTP_'))) throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+    await new Promise(resolve => setTimeout(resolve, 250 * attempt));
+  }
+  throw lastError;
+}
+
+async function mapLimit(items, limit, mapper) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (true) {
+      const index = cursor;
+      cursor += 1;
+      if (index >= items.length) return;
+      results[index] = await mapper(items[index], index);
     }
   }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
 }
-if(pairs.length!==240) throw new Error(`GETTY_LINKED_EVENT_OBJECT_PAIRS_NE_240:${pairs.length}`);
-if(new Set(pairs.map(p=>p.pair_id)).size!==240||new Set(pairs.map(p=>`${p.event_source_reference}|${p.object_source_reference}`)).size!==240) throw new Error('PAIR_UNIQUENESS_REQUIRED');
-if(pairs.some(p=>p.rights_state!=='ALLOW'||!/^sha256:[a-f0-9]{64}$/.test(p.event_payload_sha256)||!/^sha256:[a-f0-9]{64}$/.test(p.object_payload_sha256))) throw new Error('PAIR_EVIDENCE_INVALID');
-const artifact={id:'kidults-er-provenance-source-corpus-r1',status:'REAL_SOURCE_LINKED_EVENT_OBJECT_CORPUS_UNLABELED',stratum_id:'er-stratum-provenance-unique-object',source_id:'getty-provenance-index-linked-open-data',acquired_at:new Date().toISOString(),pair_count:pairs.length,labels_present:false,model_predictions_present:false,reviewer_assignment_required:true,production:'HOLD',public_release:'HOLD',pairs};
-await fs.writeFile(out,JSON.stringify(artifact,null,2));
-console.log(JSON.stringify({id:artifact.id,pair_count:artifact.pair_count,status:artifact.status,labels_present:false,production:'HOLD'}));
+
+function collectActivityEntries(page, streamPageReference) {
+  const items = page?.orderedItems || page?.items || [];
+  const entries = [];
+  for (const item of items) {
+    const object = item?.object;
+    const activityReference = typeof object === 'string' ? object : object?.id || object?.['@id'];
+    const streamActivityReference = String(item?.id || item?.['@id'] || '');
+    if (!entityUrlPattern.test(String(activityReference || ''))) continue;
+    if (typeof object === 'object' && object != null && !typeNames(object.type ?? object['@type']).includes('Activity')) continue;
+    entries.push({
+      activity_reference: String(activityReference),
+      activity_stream_item_reference: streamActivityReference,
+      activity_stream_page_reference: streamPageReference
+    });
+  }
+  return entries;
+}
+
+function explicitTitleTransferLinks(activity) {
+  const links = [];
+  const parts = asArray(activity?.part);
+  for (let partIndex = 0; partIndex < parts.length; partIndex += 1) {
+    const part = parts[partIndex];
+    const partTypes = typeNames(part?.type ?? part?.['@type']);
+    if (!partTypes.includes('Acquisition')) continue;
+    const targets = asArray(part?.transferred_title_of);
+    for (let relationIndex = 0; relationIndex < targets.length; relationIndex += 1) {
+      const target = targets[relationIndex];
+      const objectReference = String(target?.id || target?.['@id'] || '');
+      if (!entityUrlPattern.test(objectReference)) continue;
+      if (!typeNames(target?.type ?? target?.['@type']).includes('HumanMadeObject')) continue;
+      const linkEvidence = {
+        part_index: partIndex,
+        relation_index: relationIndex,
+        part_type: partTypes,
+        predicate: 'transferred_title_of',
+        referenced_object: {
+          id: objectReference,
+          type: 'HumanMadeObject'
+        }
+      };
+      links.push({
+        object_reference: objectReference,
+        source_path: `part[${partIndex}].transferred_title_of[${relationIndex}]`,
+        link_evidence: linkEvidence,
+        source_link_evidence_sha256: digest(linkEvidence)
+      });
+    }
+  }
+  return links;
+}
+
+const metrics = {
+  activity_stream_pages_scanned: 0,
+  activity_stream_items_observed: 0,
+  distinct_activity_references_observed: 0,
+  activity_payloads_fetched: 0,
+  explicit_transferred_title_of_links_observed: 0,
+  human_made_object_payloads_fetched: 0,
+  evidence_bound_pairs_selected: 0
+};
+const seenActivityReferences = new Set();
+const selectedActivityReferences = new Set();
+const selectedObjectReferences = new Set();
+const pairs = [];
+
+for (let pageNumber = 1; pageNumber <= maxActivityStreamPages && pairs.length < targetPairCount; pageNumber += 1) {
+  const streamPageReference = `${activityPageBase}/${pageNumber}`;
+  const pageResult = await fetchJson(streamPageReference, 'GETTY_ACTIVITY_STREAM');
+  if (!pageResult.ok) throw new Error(`GETTY_ACTIVITY_STREAM_PAGE_UNAVAILABLE:${pageNumber}`);
+  metrics.activity_stream_pages_scanned += 1;
+  metrics.activity_stream_items_observed += (pageResult.payload?.orderedItems || pageResult.payload?.items || []).length;
+
+  const entries = collectActivityEntries(pageResult.payload, streamPageReference)
+    .filter(entry => {
+      if (seenActivityReferences.has(entry.activity_reference)) return false;
+      seenActivityReferences.add(entry.activity_reference);
+      return true;
+    });
+  metrics.distinct_activity_references_observed = seenActivityReferences.size;
+
+  const activityResults = await mapLimit(entries, concurrency, async entry => {
+    const result = await fetchJson(entry.activity_reference, 'GETTY_ACTIVITY');
+    if (!result.ok) return null;
+    metrics.activity_payloads_fetched += 1;
+    const activity = result.payload;
+    const resolvedReference = entityReference(activity, entry.activity_reference);
+    if (resolvedReference !== entry.activity_reference || !hasType(activity, 'Activity')) return null;
+    const links = explicitTitleTransferLinks(activity);
+    metrics.explicit_transferred_title_of_links_observed += links.length;
+    return { entry, activity, links };
+  });
+
+  const reservedObjectReferences = new Set(selectedObjectReferences);
+  const candidates = [];
+  for (const result of activityResults) {
+    if (!result || selectedActivityReferences.has(result.entry.activity_reference)) continue;
+    const link = result.links.find(candidate => !reservedObjectReferences.has(candidate.object_reference));
+    if (!link) continue;
+    reservedObjectReferences.add(link.object_reference);
+    candidates.push({ ...result, link });
+  }
+
+  const objectResults = await mapLimit(candidates, concurrency, async candidate => {
+    const result = await fetchJson(candidate.link.object_reference, 'GETTY_HUMAN_MADE_OBJECT');
+    if (!result.ok) return null;
+    metrics.human_made_object_payloads_fetched += 1;
+    const object = result.payload;
+    const resolvedReference = entityReference(object, candidate.link.object_reference);
+    if (resolvedReference !== candidate.link.object_reference || !hasType(object, 'HumanMadeObject')) return null;
+    return { ...candidate, object };
+  });
+
+  for (const result of objectResults) {
+    if (!result || pairs.length >= targetPairCount) continue;
+    const activityReference = result.entry.activity_reference;
+    const objectReference = result.link.object_reference;
+    if (selectedActivityReferences.has(activityReference) || selectedObjectReferences.has(objectReference)) continue;
+    selectedActivityReferences.add(activityReference);
+    selectedObjectReferences.add(objectReference);
+    pairs.push({
+      pair_id: pairId(activityReference, objectReference),
+      source_id: sourceId,
+      activity: {
+        source_record_id: activityReference.split('/').pop(),
+        source_reference: activityReference,
+        source_type: 'Activity',
+        source_payload_sha256: digest(result.activity),
+        digest_scope: 'FULL_FETCHED_JSON_LD_RESPONSE'
+      },
+      object: {
+        source_record_id: objectReference.split('/').pop(),
+        source_reference: objectReference,
+        source_type: 'HumanMadeObject',
+        source_payload_sha256: digest(result.object),
+        digest_scope: 'FULL_FETCHED_JSON_LD_RESPONSE'
+      },
+      explicit_source_link: {
+        activity_reference: activityReference,
+        object_reference: objectReference,
+        predicate: 'transferred_title_of',
+        source_path: result.link.source_path,
+        link_evidence: result.link.link_evidence,
+        source_link_evidence_sha256: result.link.source_link_evidence_sha256,
+        verified_from_activity_payload: true
+      },
+      rights_state: 'ALLOW',
+      rights_basis: 'CC0-1.0',
+      rights_refs: [...licenseEvidenceRefs],
+      license_evidence_refs: [...licenseEvidenceRefs],
+      provenance_refs: [
+        result.entry.activity_stream_page_reference,
+        result.entry.activity_stream_item_reference,
+        activityReference,
+        objectReference
+      ]
+    });
+  }
+}
+
+metrics.evidence_bound_pairs_selected = pairs.length;
+if (pairs.length !== targetPairCount) throw new Error(`GETTY_EVIDENCE_BOUND_PAIRS_NE_${targetPairCount}:${pairs.length}`);
+if (selectedActivityReferences.size !== targetPairCount) throw new Error('DISTINCT_ACTIVITY_COUNT_INVALID');
+if (selectedObjectReferences.size !== targetPairCount) throw new Error('DISTINCT_OBJECT_COUNT_INVALID');
+if (new Set(pairs.map(pair => pair.pair_id)).size !== targetPairCount) throw new Error('DUPLICATE_LINKED_PAIR');
+
+const artifact = {
+  id: 'kidults-er-provenance-source-corpus-r1',
+  status: 'REAL_SOURCE_EXPLICITLY_LINKED_PAIR_CORPUS_UNLABELED',
+  stratum_id: 'er-stratum-provenance-unique-object',
+  source_id: sourceId,
+  acquired_at: new Date().toISOString(),
+  pair_count: pairs.length,
+  distinct_activity_count: selectedActivityReferences.size,
+  distinct_object_count: selectedObjectReferences.size,
+  entity_payload_digest_count: pairs.length * 2,
+  explicit_link_predicate: 'part[*].transferred_title_of[*]',
+  labels_present: false,
+  model_predictions_present: false,
+  reviewer_assignment_required: true,
+  production: 'HOLD',
+  public_release: 'HOLD',
+  acquisition_metrics: metrics,
+  corpus_evidence_sha256: digest(pairs),
+  pairs
+};
+
+await fs.writeFile(out, `${JSON.stringify(artifact, null, 2)}\n`);
+console.log(JSON.stringify({
+  id: artifact.id,
+  pair_count: artifact.pair_count,
+  distinct_activity_count: artifact.distinct_activity_count,
+  distinct_object_count: artifact.distinct_object_count,
+  entity_payload_digest_count: artifact.entity_payload_digest_count,
+  activity_stream_pages_scanned: metrics.activity_stream_pages_scanned,
+  activity_payloads_fetched: metrics.activity_payloads_fetched,
+  human_made_object_payloads_fetched: metrics.human_made_object_payloads_fetched,
+  explicit_links_observed: metrics.explicit_transferred_title_of_links_observed,
+  labels_present: false,
+  model_predictions_present: false,
+  production: 'HOLD',
+  public_release: 'HOLD'
+}));
