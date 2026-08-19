@@ -1,0 +1,17 @@
+name: KIDULTS Global Market Intelligence Product V1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/products/global-collectibles-market-intelligence-*'
+      - 'scripts/kidults/products/validate-global-collectibles-market-intelligence-product-v1.mjs'
+      - '.github/workflows/kidults-global-market-intelligence-product-v1.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/kidults/products/validate-global-collectibles-market-intelligence-product-v1.mjs

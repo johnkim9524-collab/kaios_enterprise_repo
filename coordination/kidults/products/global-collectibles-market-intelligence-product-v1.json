@@ -1,0 +1,53 @@
+{
+  "id": "global-collectibles-market-intelligence-product-v1",
+  "record_type": "canonical_intelligence_product_contract",
+  "version": "1.0.0",
+  "status": "PROPOSED_PREPUBLICATION",
+  "parent_issue": 651,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "purpose": "Convert governed category-by-region market evidence into decision-useful customer intelligence while preserving the same evidence, rights, confidence and geography truth boundaries used by ASI.",
+  "dual_use_value_chain": {
+    "shared_input": "REGIONAL_MARKET_BASELINE_SNAPSHOT",
+    "internal_plane": "ASI_CONTROL_PLANE",
+    "external_plane": "MARKET_INTELLIGENCE_PRODUCT_PLANE",
+    "raw_provider_data_direct_access": false,
+    "external_plane_requires_approved_projection": true
+  },
+  "product_family": [
+    {"product_id":"GLOBAL_COLLECTIBLES_MARKET_MAP","decision_job":"Understand where category markets are large, mature, active, liquid, evidence-rich or under-observed.","cadence":"MONTHLY_WITH_MATERIAL_CHANGE_REFRESH"},
+    {"product_id":"REGIONAL_MARKET_PULSE","decision_job":"Detect acceleration, weakening, venue changes and emerging regional signals over time.","cadence":"WEEKLY_OR_SOURCE_NATIVE_WITH_GOVERNED_SNAPSHOT"},
+    {"product_id":"CROSS_BORDER_OPPORTUNITY_MAP","decision_job":"Identify evidence-backed regional price/liquidity dispersion after comparability controls.","cadence":"EVENT_OR_WEEKLY","extra_gate":"CROSS_REGION_COMPARABILITY_PASS"},
+    {"product_id":"CATEGORY_REGIONAL_SCORECARD","decision_job":"Compare regional structure and trend for one collectible category.","cadence":"MONTHLY"},
+    {"product_id":"MARKET_STRUCTURE_REPORT","decision_job":"Explain material market structure changes, evidence, limitations and implications.","cadence":"MONTHLY"}
+  ],
+  "customer_dimensions": ["category_scope","geography_scope","claim_class","as_of","freshness","market_scale_state","market_maturity_state","observed_transaction_activity","venue_depth_and_diversity","secondary_market_depth","authentication_grading_infrastructure","cross_border_activity","data_transparency_and_evidence_quality","coverage_debt","confidence_classification","limitations"],
+  "claim_classes": ["REGIONAL","MULTI_REGION","GLOBAL"],
+  "truth_rules": [
+    "EVIDENCE_BEFORE_METRICS",
+    "BOOTSTRAP_IS_NOT_MARKET_SHARE",
+    "COLLECTION_VOLUME_IS_NOT_MARKET_SIZE",
+    "MISSING_IS_UNKNOWN_NOT_ZERO",
+    "GLOBAL_REQUIRES_REGIONAL_MARKET_BALANCE_GATE",
+    "CROSS_BORDER_PRICE_REQUIRES_CONDITION_TAX_FEE_FX_TIME_COMPARABILITY",
+    "NO_RAW_PROVIDER_REDISTRIBUTION",
+    "RIGHTS_AND_PROVENANCE_SURVIVE_TRANSFORMATION",
+    "NOT_VERIFIED_MUST_REMAIN_VISIBLE"
+  ],
+  "projection_contract": {
+    "input": "APPROVED_REGIONAL_MARKET_INTELLIGENCE_ASSERTIONS",
+    "output": "MARKET_INTELLIGENCE_PROJECTION",
+    "portal_may_compute_new_market_facts": false,
+    "eos_may_compute_new_market_facts": false,
+    "api_report_may_exceed_claim_ceiling": false
+  },
+  "commercialization": {
+    "phase_1":"PORTAL_MODULE_AND_MONTHLY_REPORT_SHELL",
+    "phase_2":"PREMIUM_REGIONAL_AND_CATEGORY_SCORECARDS_AND_ALERTS",
+    "phase_3":"API_AND_REPORT_LICENSING_AFTER_RIGHTS_AND_REDISTRIBUTION_REVIEW",
+    "pricing_authorized": false,
+    "paid_launch_authorized": false
+  },
+  "release_gates": ["EMPIRICAL_REGIONAL_BASELINE_PASS","TRACK_B_PASS","PROJECTION_APPROVED","PORTAL_QA_PASS","RIGHTS_REDISTRIBUTION_PASS","G5_IF_PRODUCTION"],
+  "failure_state": "NOT_VERIFIED_OR_HOLD"
+}
