@@ -1,0 +1,37 @@
+name: KIDULTS ER Designer Source Corpus R1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/acquire-designer-source-corpus-r1.mjs'
+      - '.github/workflows/kidults-er-designer-source-corpus-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acquire-real-unlabeled-corpus:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Acquire 240 real MoMA Architecture and Design source records
+        run: |
+          node scripts/kidults/entity-resolution/acquire-designer-source-corpus-r1.mjs /tmp/designer-source-corpus-r1.json
+          node - <<'NODE'
+          const d=require('/tmp/designer-source-corpus-r1.json');
+          if(d.status!=='REAL_SOURCE_RECORD_CORPUS_UNLABELED'||d.record_count!==240||d.labels_present!==false||d.model_predictions_present!==false||d.production!=='HOLD'||d.public_release!=='HOLD') process.exit(1);
+          if(d.records.length!==240||d.records.some(x=>x.rights_state!=='ALLOW'||!Array.isArray(x.license_evidence_refs)||x.license_evidence_refs.length<1||!/^sha256:[a-f0-9]{64}$/.test(x.source_payload_sha256))) process.exit(1);
+          console.log('PASS: 240 real unlabeled source records evidence-bound; no labels/predictions/Production.');
+          NODE
+      - name: Upload reviewer-candidate source corpus artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-designer-source-corpus-r1
+          path: /tmp/designer-source-corpus-r1.json
+          if-no-files-found: error
+          retention-days: 14
