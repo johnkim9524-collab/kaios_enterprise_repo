@@ -1,0 +1,18 @@
+name: KIDULTS Live Regional Market Baseline V1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/regional-market-**'
+      - 'coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-live-regional-market-baseline-v1.mjs'
+      - '.github/workflows/kidults-live-regional-market-baseline-v1.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/kidults/source-intelligence/validate-live-regional-market-baseline-v1.mjs
