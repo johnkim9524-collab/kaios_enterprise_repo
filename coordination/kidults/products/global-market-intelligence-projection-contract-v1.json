@@ -1,0 +1,13 @@
+{
+  "id":"global-market-intelligence-projection-contract-v1",
+  "version":"1.0.0",
+  "status":"PROPOSED_PREPUBLICATION",
+  "source_product":"global-collectibles-market-intelligence-product-v1",
+  "projection_only":true,
+  "required_fields":["product_id","category_scope","geography_scope","claim_class","as_of","freshness_state","confidence_classification","market_scale_state","market_maturity_state","activity_state","coverage_debt_state","limitations","evidence_assertion_refs","assessment_ref"],
+  "forbidden_fields":["raw_provider_payload","provider_secret","unlicensed_redistributable_record","bootstrap_share_as_market_share"],
+  "fail_closed_states":["NOT_VERIFIED","NOT_VERIFIED_GLOBAL","STALE","RIGHTS_HOLD","ASSESSMENT_HOLD"],
+  "consumer_rules":{"portal":"READ_ONLY","eos":"READ_ONLY","api_report":"READ_ONLY","may_recompute_market_facts":false},
+  "public_release":"HOLD",
+  "production":"HOLD"
+}
