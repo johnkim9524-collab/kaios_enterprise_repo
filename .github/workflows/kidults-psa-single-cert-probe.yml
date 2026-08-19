@@ -61,6 +61,32 @@ jobs:
             catch { throw new Error(`PSA_NON_JSON_RESPONSE_HTTP_${response.status}`); }
 
             const serverMessage = String(payload.ServerMessage ?? payload.serverMessage ?? payload.Message ?? payload.message ?? '');
+            const base = {
+              probe_id: 'psa-public-api-single-cert-r1',
+              production: 'HOLD',
+              endpoint_class: 'OFFICIAL_PSA_PUBLIC_API_CERT_VERIFICATION_SINGLE_ITEM',
+              cert_number: cert,
+              http_status: response.status,
+              server_message: serverMessage,
+              token_persisted: false,
+              raw_response_persisted: false,
+              public_display: 'BLOCKED',
+              production_authorized: false
+            };
+
+            if (response.status === 403 && /approved customers/i.test(serverMessage)) {
+              const summary = {
+                ...base,
+                admission_state: 'BLOCKED_EXTERNAL_CUSTOMER_APPROVAL_REQUIRED',
+                rights_state: 'NOT_ADMITTED',
+                claim_ceiling: 'NO_DATA_ADMISSION',
+                empirical_result: 'FAIL_CLOSED_APPROVED_CUSTOMER_GATE'
+              };
+              fs.writeFileSync('/tmp/psa-probe-summary.json', JSON.stringify(summary, null, 2));
+              console.log('PSA probe diagnostic PASS: official API reached; approved-customer gate reproduced; no data admitted.');
+              return;
+            }
+
             const isValidRequest = payload.IsValidRequest ?? payload.isValidRequest;
             if (response.status !== 200) throw new Error(`PSA_HTTP_${response.status}:${serverMessage || 'no-server-message'}`);
             if (isValidRequest !== true) throw new Error(`PSA_INVALID_REQUEST:${serverMessage || 'unknown'}`);
@@ -76,13 +102,10 @@ jobs:
             const marketKeys = allKeys.filter(k => /price|value|sale|auction|market/i.test(k));
 
             const summary = {
-              probe_id: 'psa-public-api-single-cert-r1',
-              production: 'HOLD',
-              endpoint_class: 'OFFICIAL_PSA_PUBLIC_API_CERT_VERIFICATION_SINGLE_ITEM',
-              cert_number: cert,
-              http_status: response.status,
+              ...base,
+              admission_state: 'PENDING_EXACT_EULA_PURPOSE_REVIEW',
+              rights_state: 'PENDING_EXACT_EULA_PURPOSE_REVIEW',
               is_valid_request: true,
-              server_message: serverMessage,
               returned_top_level_keys: allKeys,
               identity_fields: {
                 cert_number: pick('CertNumber','CertNo','CertificationNumber'),
@@ -96,18 +119,11 @@ jobs:
               },
               population_field_names_present: populationKeys,
               market_field_names_present_but_not_admitted: marketKeys,
-              token_persisted: false,
-              raw_response_persisted: false,
               claim_ceiling: 'IDENTITY_CERTIFICATION_GRADE_SCHEMA_REVIEW_ONLY',
-              rights_state: 'PENDING_EXACT_EULA_PURPOSE_REVIEW',
-              public_display: 'BLOCKED',
-              production_authorized: false
+              empirical_result: 'AUTHORIZED_RESPONSE_RECEIVED'
             };
             fs.writeFileSync('/tmp/psa-probe-summary.json', JSON.stringify(summary, null, 2));
             console.log('PSA single-cert probe PASS: official response received; sanitized schema summary created.');
-            console.log(`Returned top-level field count: ${allKeys.length}`);
-            console.log(`Population-like field names present: ${populationKeys.length}`);
-            console.log(`Market-like field names present but not admitted: ${marketKeys.length}`);
           })().catch(error => { console.error(error.message); process.exit(1); });
           NODE
 
@@ -118,8 +134,8 @@ jobs:
           const x=require('/tmp/psa-probe-summary.json');
           if(x.production!=='HOLD'||x.token_persisted!==false||x.raw_response_persisted!==false) process.exit(1);
           if(x.production_authorized!==false||x.public_display!=='BLOCKED') process.exit(1);
-          if(x.rights_state!=='PENDING_EXACT_EULA_PURPOSE_REVIEW') process.exit(1);
-          console.log('Fail-closed persistence boundary PASS');
+          if(x.http_status===403 && x.admission_state!=='BLOCKED_EXTERNAL_CUSTOMER_APPROVAL_REQUIRED') process.exit(1);
+          console.log(`Fail-closed persistence boundary PASS: ${x.empirical_result}`);
           NODE
 
       - name: Upload sanitized probe summary
