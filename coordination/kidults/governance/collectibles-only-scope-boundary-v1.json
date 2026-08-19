@@ -1,0 +1,56 @@
+{
+  "id": "collectibles-only-scope-boundary-v1",
+  "version": "1.0.0",
+  "status": "CANONICAL_SCOPE_BOUNDARY",
+  "program": "KIDULTS Autonomous Global Collectibles Intelligence Platform",
+  "principle": "COLLECTIBLES_ONLY",
+  "rule": "KIDULTS admits only collectible objects, collectible object markets, and evidence directly tied to collectible market cells.",
+  "included_examples": [
+    "automobiles_and_mobility_collectibles",
+    "watches",
+    "trading_cards",
+    "coins_and_numismatics",
+    "sneakers",
+    "designer_and_maker_objects",
+    "toys_and_models",
+    "media_pressings_and_editions"
+  ],
+  "excluded_asset_classes": [
+    "real_estate",
+    "land",
+    "residential_property",
+    "commercial_property",
+    "general_financial_assets",
+    "stocks",
+    "bonds",
+    "deposits",
+    "funds",
+    "derivatives",
+    "generic_non_collectible_goods"
+  ],
+  "source_admission_rules": {
+    "source_platform_is_not_scope": true,
+    "mixed_asset_platform_default": "EXCLUDE_UNLESS_COLLECTIBLE_ENDPOINT_OR_DATASET_IS_EXPLICITLY_SEPARABLE",
+    "market_cell_direct_relevance_required": true,
+    "collectible_identity_required": true,
+    "cannot_infer_collectible_status_from_auction_or_price_data_alone": true,
+    "out_of_scope_discovery_action": "FAIL_CLOSED_EXCLUDE"
+  },
+  "execution_order": [
+    "COLLECTIBLES_UNIVERSE",
+    "COLLECTION_SCOPE",
+    "COLLECTIBLE_MARKET_CELL",
+    "REQUIRED_CLAIM",
+    "SOURCE_DEMAND",
+    "SOURCE_ADMISSION"
+  ],
+  "prohibited_shortcuts": [
+    "DATA_AVAILABLE_THEREFORE_IN_SCOPE",
+    "AUCTIONED_THEREFORE_COLLECTIBLE",
+    "VALUABLE_THEREFORE_COLLECTIBLE",
+    "INVESTABLE_THEREFORE_COLLECTIBLE",
+    "MIXED_PLATFORM_THEREFORE_ADMISSIBLE"
+  ],
+  "production": "HOLD",
+  "g5": "NOT_REQUESTED"
+}
