@@ -1,0 +1,59 @@
+{
+  "id": "kidults-minimum-lawful-claim-profile-v1",
+  "version": "1.0.0",
+  "parent_issue": 457,
+  "production": "HOLD",
+  "publication": "HOLD",
+  "candidate_creation": "BLOCKED_UNTIL_FINAL_ER_AND_IMMUTABLE_ARTIFACTS",
+  "selected_scope": {
+    "scope_id": "construction_mechanical_sets",
+    "anchor": "LEGO NINJAGO City 70620",
+    "canonical_item_slug": "the-lego-ninjago-movie-ninjago-city-70620-1"
+  },
+  "selected_claim": {
+    "claim_id": "poc-v1-lego-70620-dated-observed-sold-transactions",
+    "claim_type": "DATED_OBSERVED_SOLD_TRANSACTION",
+    "temporality": "DATED_TRANSACTION_HISTORY",
+    "evidence_temporality": "DATED_TRANSACTION_HISTORY",
+    "claim_strength": 0.7,
+    "maximum_evidence_strength": 0.7,
+    "statement_template": "For the exact identified collectible, the admitted bounded source contains dated provider-marked sold transaction observations through the stated latest event date.",
+    "requires_current_price": false,
+    "requires_liquidity": false,
+    "requires_time_to_sale": false,
+    "requires_global_representativeness": false,
+    "requires_condition_adjustment": false
+  },
+  "evidence_binding": {
+    "source_admission_artifact": "coordination/kidults/source-intelligence/collectaio-shadow-sold-admission-r1.json",
+    "strict_market_gate": "coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json",
+    "owned_fabric_lineage_builder": "scripts/kidults/architecture/build-owned-fabric-current-sold-lineage-r2.mjs",
+    "required_evidence_class": "DATED_OBSERVED_SOLD_TRANSACTION",
+    "required_identity_state": "EXACT_MATCH",
+    "required_market_state": "sold",
+    "minimum_observed_event_count": 1,
+    "current_empirical_event_count": 10,
+    "current_empirical_latest_event_date": "2026-04-18",
+    "condition_state": "NOT_POPULATED"
+  },
+  "prohibited_claims": [
+    "CURRENT_PRICE",
+    "REPRESENTATIVE_PRICE",
+    "LIQUIDITY",
+    "TIME_TO_SALE",
+    "GLOBAL_DEMAND",
+    "GLOBAL_REPRESENTATIVENESS",
+    "CONDITION_ADJUSTED_VALUE",
+    "PRICE_INDEX",
+    "INVESTMENT_RETURN_FORECAST"
+  ],
+  "candidate_prerequisites": [
+    "FINAL_ER_7_OF_7",
+    "FINAL_APPROVED_ER_DATASET_HASH",
+    "IMMUTABLE_BLIND_HOLDOUT_FREEZE",
+    "REGISTERED_CALIBRATION_ARTIFACT",
+    "IMMUTABLE_EVIDENCE_PACKAGE",
+    "CANDIDATE_EVIDENCE_HANDOFF_R2_PASS"
+  ],
+  "truth_boundary": "This profile intentionally selects the weakest useful claim already supported by admitted evidence. It is not a current-price, liquidity, demand, ranking or valuation claim and does not create a Candidate. Final ER and immutable handoff gates remain mandatory."
+}
