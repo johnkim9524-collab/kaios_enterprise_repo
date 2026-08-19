@@ -1,0 +1,108 @@
+name: KIDULTS Runtime Remote Readonly Inventory
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-runtime-remote-readonly-inventory.yml'
+      - 'services/kidults-autonomous-intelligence/wrangler.jsonc'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build expected remote inventory from canonical config
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const x=JSON.parse(fs.readFileSync('services/kidults-autonomous-intelligence/wrangler.jsonc','utf8'));
+          const d1=x.d1_databases?.find(d=>d.binding==='DB');
+          const queues=[...(x.queues?.producers||[]).map(q=>q.queue)];
+          if(!d1?.database_name||!d1?.database_id) process.exit(1);
+          if(queues.length!==26||new Set(queues).size!==26) process.exit(1);
+          fs.writeFileSync('/tmp/expected.json',JSON.stringify({
+            production:'HOLD',
+            environment_declared:x.vars?.KIDULTS_ENV||null,
+            d1:{name:d1.database_name,id:d1.database_id},
+            queue_names:queues.sort(),
+            queue_count:queues.length,
+            destructive_actions:false,
+            deployment_performed:false
+          },null,2));
+          console.log(`Expected inventory: D1 ${d1.database_name}; ${queues.length} queues; env=${x.vars?.KIDULTS_ENV}`);
+          NODE
+      - name: Read-only Cloudflare control-plane inventory
+        shell: bash
+        run: |
+          set +e
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            cat > /tmp/remote.json <<'JSON'
+          {"status":"BLOCKED_CLOUDFLARE_CREDENTIALS_ABSENT","credential_present":false,"remote_inventory_verified":false,"dev_environment_verified":false,"staging_environment_verified":false,"deployment_performed":false,"destructive_actions":false,"production":"HOLD"}
+          JSON
+            echo 'Cloudflare read-only credentials absent; remote inventory remains fail-closed.'
+            exit 0
+          fi
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          cd services/kidults-autonomous-intelligence
+          npx wrangler d1 info kidults-intelligence-db --json > /tmp/d1.json 2>/tmp/d1.err
+          D1_RC=$?
+          npx wrangler queues list > /tmp/queues.txt 2>/tmp/queues.err
+          Q_RC=$?
+          cd ../..
+          D1_RC=$D1_RC Q_RC=$Q_RC node - <<'NODE'
+          const fs=require('node:fs');
+          const expected=JSON.parse(fs.readFileSync('/tmp/expected.json','utf8'));
+          const d1rc=Number(process.env.D1_RC), qrc=Number(process.env.Q_RC);
+          if(d1rc!==0||qrc!==0){
+            fs.writeFileSync('/tmp/remote.json',JSON.stringify({
+              status:'BLOCKED_REMOTE_CONTROL_PLANE_READ_FAILED',credential_present:true,
+              d1_read_ok:d1rc===0,queues_read_ok:qrc===0,remote_inventory_verified:false,
+              dev_environment_verified:false,staging_environment_verified:false,
+              deployment_performed:false,destructive_actions:false,production:'HOLD'
+            },null,2));
+            process.exit(0);
+          }
+          let d1={}; try{d1=JSON.parse(fs.readFileSync('/tmp/d1.json','utf8'));}catch{}
+          const queueText=fs.readFileSync('/tmp/queues.txt','utf8');
+          const missing=expected.queue_names.filter(name=>!queueText.includes(name));
+          const d1Match=JSON.stringify(d1).includes(expected.d1.id)||JSON.stringify(d1).includes(expected.d1.name);
+          const allQueues=missing.length===0;
+          fs.writeFileSync('/tmp/remote.json',JSON.stringify({
+            status:d1Match&&allQueues?'REMOTE_RESOURCE_INVENTORY_VERIFIED':'REMOTE_RESOURCE_INVENTORY_MISMATCH',
+            credential_present:true,d1_read_ok:true,queues_read_ok:true,d1_expected_match:d1Match,
+            queues_expected_count:expected.queue_count,queues_missing:missing,
+            remote_inventory_verified:d1Match&&allQueues,
+            environment_separation_verified:false,
+            dev_environment_verified:false,
+            staging_environment_verified:false,
+            deployment_performed:false,destructive_actions:false,production:'HOLD'
+          },null,2));
+          NODE
+      - name: Verify truth boundary
+        run: |
+          node - <<'NODE'
+          const r=require('/tmp/remote.json');
+          if(r.production!=='HOLD'||r.destructive_actions!==false||r.deployment_performed!==false) process.exit(1);
+          if(r.dev_environment_verified!==false||r.staging_environment_verified!==false) process.exit(1);
+          console.log(`Remote inventory audit state: ${r.status}`);
+          console.log('Truth boundary PASS: inventory != DEV/STAGING empirical proof != Production authorization.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-runtime-remote-readonly-inventory
+          path: |
+            /tmp/expected.json
+            /tmp/remote.json
+          if-no-files-found: error
+          retention-days: 30
