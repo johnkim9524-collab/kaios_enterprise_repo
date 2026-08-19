@@ -1,0 +1,74 @@
+{
+  "id": "collectaio-shadow-sold-admission-r1",
+  "version": "1.0.0",
+  "status": "ADMITTED_SHADOW_INTERNAL_ONLY",
+  "execution_mode": "DEV_SHADOW_ONLY",
+  "source": {
+    "provider_id": "collectaio-public-readonly-api",
+    "canonical_developer_url": "https://www.collectaio.com/developers",
+    "access_class": "PUBLIC_READ_ONLY_JSON",
+    "account_required": false,
+    "paid_access_required": false
+  },
+  "purpose_specific_rights": {
+    "discover": "ADMITTED",
+    "collect": "ADMITTED_BOUNDED_PUBLIC_READONLY",
+    "store": "ADMITTED_BOUNDED_CACHE_ONLY",
+    "derive": "ADMITTED_QUALIFIED_INTERNAL_CLAIMS_WITH_BASIS_FRESHNESS_AND_CITATION",
+    "display_internal": "ADMITTED_QUALIFIED",
+    "display_public": "BLOCKED_PENDING_SEPARATE_PUBLIC_COMMERCIAL_RIGHTS_REVIEW",
+    "raw_redistribution": "BLOCKED"
+  },
+  "rights_basis": [
+    "OFFICIAL_DEVELOPER_PAGE_EXPOSES_PUBLIC_READ_ONLY_JSON_ENDPOINTS",
+    "OFFICIAL_DEVELOPER_PAGE_SUPPORTS_SERVER_OR_BUILD_PROCESS_REQUESTS",
+    "OFFICIAL_DEVELOPER_PAGE_INSTRUCTS_BOUNDED_PAGINATION_AND_CACHE_RESPONSES",
+    "OFFICIAL_DEVELOPER_PAGE_REQUIRES_CANONICAL_CITATION_AND_QUALIFIED_CLAIMS",
+    "NO_PRIVATE_OR_AUTHENTICATED_ROUTE_USED"
+  ],
+  "freshness_policy": {
+    "policy_class": "DEV_SHADOW_CONTRACT_CEILING_ONLY",
+    "max_observation_age_days": 365,
+    "source_contract": "coordination/kidults/engine-v2/fixtures/foundation-preflight-input-v1.json",
+    "publication_or_production_threshold": "NOT_ESTABLISHED_BY_THIS_ARTIFACT"
+  },
+  "admitted_cell": {
+    "scope_id": "construction_mechanical_sets",
+    "anchor": "LEGO NINJAGO City 70620",
+    "canonical_item_slug": "the-lego-ninjago-movie-ninjago-city-70620-1",
+    "marketplace": "ebay",
+    "observed_sold_event_count": 10,
+    "latest_event_date": "2026-04-18",
+    "latest_event_age_days_at_probe": 123,
+    "identity_state": "EXACT_MATCH",
+    "provider_market_state": "sold",
+    "condition_state": "NOT_POPULATED",
+    "admitted_evidence_class": "DATED_OBSERVED_SOLD_TRANSACTION",
+    "claim_ceiling": "EXACT_ITEM_DATED_OBSERVED_SOLD_TRANSACTIONS_ONLY"
+  },
+  "allowed_outputs": [
+    "INTERNAL_EVIDENCE_ASSERTION",
+    "INTERNAL_MARKET_EVENT_NODE",
+    "INTERNAL_SOURCE_PROVENANCE_EDGE",
+    "INTERNAL_DATED_TRANSACTION_HISTORY"
+  ],
+  "prohibited_claims": [
+    "CURRENT_PRICE",
+    "REPRESENTATIVE_PRICE",
+    "LIQUIDITY",
+    "TIME_TO_SALE",
+    "GLOBAL_DEMAND",
+    "GLOBAL_REPRESENTATIVENESS",
+    "CONDITION_ADJUSTED_VALUE",
+    "PUBLIC_OR_COMMERCIAL_PROJECTION",
+    "RAW_PROVIDER_DATA_REDISTRIBUTION"
+  ],
+  "admission_decision": {
+    "bounded_shadow_acquisition": "PASS_WITH_BOUNDED_CACHE_AND_NO_RAW_REDISTRIBUTION",
+    "internal_market_analysis": "PASS_FOR_DATED_TRANSACTION_EVENT_ONLY",
+    "public_or_commercial_projection": "HOLD",
+    "production": "HOLD"
+  },
+  "source_probe_prs": [582, 588, 590],
+  "production": "HOLD"
+}
