@@ -1,0 +1,22 @@
+{
+  "id": "kidults-er-designer-source-corpus-r1",
+  "version": "1.0.0",
+  "parent_issue": 609,
+  "source": "moma-collection-research-dataset",
+  "stratum_id": "er-stratum-designer-maker-edition",
+  "acquisition_workflow": ".github/workflows/kidults-er-designer-source-corpus-r1.yml",
+  "target_source_record_count": 240,
+  "artifact_name": "kidults-er-designer-source-corpus-r1",
+  "artifact_retention_days": 14,
+  "rights_boundary": "CC0_COLLECTION_METADATA_ONLY_NO_IMAGES",
+  "state": "EMPIRICAL_SOURCE_CORPUS_ACQUISITION_EXECUTED_PENDING_REVIEW_PAIR_CONSTRUCTION",
+  "labels_present": false,
+  "model_predictions_present": false,
+  "reviewer_a": "NOT_ASSIGNED",
+  "reviewer_b": "NOT_ASSIGNED",
+  "empirical_pass": false,
+  "track_b": "NOT_STARTED",
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "truth_boundary": "A successful workflow proves acquisition of 240 real evidence-bound source records only. It does not prove 120 valid benchmark pairs, independent labels, blind holdout completion, empirical attestation or ER promotion."
+}
