@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 
 const [inputPath, outputPath='/tmp/er-real-world-r5.json'] = process.argv.slice(2);
 if (!inputPath) throw new Error('Usage: node extend-er-dataset-cross-market-alias-r5.mjs <r3.json> [r5.json]');
-const timeoutMs=20000;
+const timeoutMs=30000;
 const WIKIDATA_RIGHTS_URL='https://www.wikidata.org/wiki/Wikidata:Licensing';
 const digest=(value)=>`sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
@@ -20,14 +20,21 @@ function assertConstructedControlDataset(dataset, stage){
   if(!valid) throw new Error(`${stage}_CONSTRUCTED_CONTROL_DATASET_REQUIRED`);
 }
 
-async function fetchJson(url, headers={}){
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),timeoutMs);
-  try{
-    const res=await fetch(url,{headers:{'user-agent':'KIDULTS-ER-BENCHMARK-DEV-SHADOW/1.0',...headers},signal:controller.signal});
-    if(!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
-    return await res.json();
-  }finally{clearTimeout(timer);}
+async function fetchJson(url, headers={}, attempts=4){
+  let lastError;
+  for(let attempt=1;attempt<=attempts;attempt++){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),timeoutMs);
+    try{
+      const res=await fetch(url,{headers:{'user-agent':'KIDULTS-ER-BENCHMARK-DEV-SHADOW/1.0',...headers},signal:controller.signal});
+      if(!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+      return await res.json();
+    }catch(error){
+      lastError=error;
+      if(attempt<attempts) await new Promise(r=>setTimeout(r,1000*(2**(attempt-1))));
+    }finally{clearTimeout(timer);}
+  }
+  throw lastError;
 }
 function externalValues(entity,pid){return (entity?.claims?.[pid]??[]).map(c=>c?.mainsnak?.datavalue?.value).filter(v=>typeof v==='string'&&v.trim());}
 
@@ -36,7 +43,7 @@ assertConstructedControlDataset(dataset,'R3');
 
 const sparql=`SELECT ?item ?discogs ?musicbrainz WHERE { ?item wdt:P2206 ?discogs ; wdt:P5813 ?musicbrainz . } ORDER BY STR(?item) STR(?discogs) STR(?musicbrainz) LIMIT 10`;
 const queryUrl=`https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
-const query=await fetchJson(queryUrl,{accept:'application/sparql-results+json'});
+const query=await fetchJson(queryUrl,{accept:'application/sparql-results+json'},5);
 const rows=query?.results?.bindings??[];
 if(rows.length===0) throw new Error('No live Wikidata item with both P2206 and P5813 found; fail closed.');
 
