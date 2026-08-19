@@ -4,7 +4,7 @@ import fs from 'node:fs';
 const anchors = [
   ['diecast_scale_models','CMC 1:18 Ferrari 250 GTO',['CMC','250 GTO']],
   ['vintage_character_toys','Hasbro G.I. Joe Snake Eyes 1982',['Snake Eyes','1982']],
-  ['vintage_character_toys','Kenner Star Wars Boba Fett 3.75 inch',['Boba Fett']],
+  ['vintage_character_toys','Kenner Star Wars Boba Fett 3.75 inch',['Kenner','Boba Fett','figure']],
   ['mechanical_watches','Rolex Submariner 124060',['Submariner','124060']],
   ['mechanical_watches','Patek Philippe Nautilus 5711/1A',['Nautilus','5711']],
   ['handbags','Hermes Birkin 25',['Birkin 25']],
@@ -23,11 +23,11 @@ const score=(o,a)=>{const b=txt(o?.name||o?.title||o?.display_name||o?.slug);ret
 const arr=o=>Array.isArray(o)?o:(['items','results','data'].map(k=>o?.[k]).find(Array.isArray)||[]);
 for(const a of anchors){
   const u=new URL('/api/v2/search',base);u.searchParams.set('q',a.query);u.searchParams.set('page','1');u.searchParams.set('per_page','10');
-  const sr=await fetch(u,{headers:{'user-agent':'KIDULTS-bounded-evidence-probe/3.0'}});
+  const sr=await fetch(u,{headers:{'user-agent':'KIDULTS-bounded-evidence-probe/3.1'}});
   if(!sr.ok){out.records.push({scope_id:a.scope_id,query:a.query,state:'SEARCH_HTTP_BLOCKED',http_status:sr.status});continue}
   const candidates=arr(await sr.json()).map(c=>({c,s:score(c,a)})).sort((x,y)=>y.s-x.s);const top=candidates[0];
   if(!top||top.s===0||!top.c?.slug){out.records.push({scope_id:a.scope_id,query:a.query,state:'NO_EXACT_CANDIDATE',candidate_count:candidates.length});continue}
-  const dr=await fetch(`${base}/api/v1/items/${encodeURIComponent(top.c.slug)}`,{headers:{'user-agent':'KIDULTS-bounded-evidence-probe/3.0'}});
+  const dr=await fetch(`${base}/api/v1/items/${encodeURIComponent(top.c.slug)}`,{headers:{'user-agent':'KIDULTS-bounded-evidence-probe/3.1'}});
   if(!dr.ok){out.records.push({scope_id:a.scope_id,query:a.query,state:'DETAIL_HTTP_BLOCKED',http_status:dr.status,slug:top.c.slug});continue}
   const item=await dr.json();const exact=score(item,a)===a.expected.length;
   const sold=(Array.isArray(item?.listings)?item.listings:[]).filter(x=>txt(x?.market_state)==='sold');
