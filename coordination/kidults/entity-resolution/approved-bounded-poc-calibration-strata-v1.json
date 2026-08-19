@@ -1,0 +1,111 @@
+{
+  "id": "kidults-er-approved-bounded-poc-calibration-strata-v1",
+  "version": "1.0.0",
+  "status": "APPROVED_BOUNDED_POC_CALIBRATION",
+  "purpose": "Entity Resolution calibration representativeness only; this artifact does not canonize or alter the 32-Scope business taxonomy.",
+  "parent_issue": 514,
+  "source_scope_matrix": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json",
+  "source_scope_matrix_status_required": "CANDIDATE_FOR_CANONICAL",
+  "selection_rule": "One required calibration stratum per materially distinct identity archetype present in the current 32-Scope candidate matrix.",
+  "required_strata_ids": [
+    "er-stratum-designer-maker-edition",
+    "er-stratum-serialized-reference",
+    "er-stratum-provenance-unique-object",
+    "er-stratum-vehicle-mechanical-asset",
+    "er-stratum-variant-release-heavy",
+    "er-stratum-graded-population",
+    "er-stratum-pressing-edition-media"
+  ],
+  "approved_strata_ids": [
+    "er-stratum-designer-maker-edition",
+    "er-stratum-serialized-reference",
+    "er-stratum-provenance-unique-object",
+    "er-stratum-vehicle-mechanical-asset",
+    "er-stratum-variant-release-heavy",
+    "er-stratum-graded-population",
+    "er-stratum-pressing-edition-media"
+  ],
+  "common_requirements": {
+    "dataset_class": "REAL_WORLD_LABELED",
+    "rights_coverage": 1.0,
+    "provenance_coverage": 1.0,
+    "blind_holdout_required": true,
+    "diagnostic_scope_leakage_allowed": false,
+    "synthetic_promotion_allowed": false,
+    "track_b_required_separately": true,
+    "production": "HOLD"
+  },
+  "strata": [
+    {
+      "stratum_id": "er-stratum-designer-maker-edition",
+      "archetype": "DESIGNER_MAKER_EDITION",
+      "status": "APPROVED_REQUIRED",
+      "identity_grammar": ["designer_or_artist", "maker", "model_or_series", "edition_or_period", "materials", "marks", "variant"],
+      "representative_scope_examples": ["designer_toys", "designer_jewelry", "seating", "decorative_design_objects"],
+      "minimum_case_classes": ["SAME_OBJECT_NORMALIZATION", "SAME_DESIGN_DIFFERENT_OBJECT", "HARD_NEGATIVE"],
+      "minimum_boundaries": ["SOURCE_RECORD", "CANONICAL_DESIGN", "PHYSICAL_OBJECT"],
+      "rationale": "Tests design-level identity versus distinct physical exemplars, a recurring grammar across editioned design collectibles."
+    },
+    {
+      "stratum_id": "er-stratum-serialized-reference",
+      "archetype": "SERIALIZED_REFERENCE",
+      "status": "APPROVED_REQUIRED",
+      "identity_grammar": ["maker_or_brand", "reference_or_model", "serial_or_batch", "revision", "region", "original_components"],
+      "representative_scope_examples": ["mechanical_watches", "diecast_scale_models", "cameras_lenses", "vintage_computing"],
+      "minimum_case_classes": ["SAME_OBJECT_NORMALIZATION", "HARD_NEGATIVE", "CROSS_MARKET_ALIAS"],
+      "minimum_boundaries": ["SOURCE_RECORD", "PHYSICAL_OBJECT"],
+      "rationale": "Tests reference/serial/revision collisions and authoritative cross-source identifier reconciliation."
+    },
+    {
+      "stratum_id": "er-stratum-provenance-unique-object",
+      "archetype": "PROVENANCE_UNIQUE_OBJECT",
+      "status": "APPROVED_REQUIRED",
+      "identity_grammar": ["unique_object", "attribution", "provenance_chain", "event_or_person_linkage", "marks_or_archive_reference"],
+      "representative_scope_examples": ["fine_jewelry", "sports_memorabilia", "film_tv_props", "historical_cultural_memorabilia"],
+      "minimum_case_classes": ["HARD_NEGATIVE", "AMBIGUOUS_REVIEW_REQUIRED", "TRANSACTION_TO_OBJECT_LINKAGE"],
+      "minimum_boundaries": ["PHYSICAL_OBJECT", "MARKET_EVENT"],
+      "rationale": "Tests conservative identity when provenance or attribution may be incomplete, disputed or event-linked."
+    },
+    {
+      "stratum_id": "er-stratum-vehicle-mechanical-asset",
+      "archetype": "VEHICLE_MECHANICAL_ASSET",
+      "status": "APPROVED_REQUIRED",
+      "identity_grammar": ["manufacturer", "model_generation", "vin_or_chassis", "engine_or_frame", "factory_spec", "restoration_state"],
+      "representative_scope_examples": ["collector_cars", "modern_classics", "collector_motorcycles"],
+      "minimum_case_classes": ["SAME_OBJECT_NORMALIZATION", "HARD_NEGATIVE", "SAME_DESIGN_DIFFERENT_OBJECT"],
+      "minimum_boundaries": ["SOURCE_RECORD", "PHYSICAL_OBJECT", "CANONICAL_DESIGN"],
+      "rationale": "Separates model/design identity from individual machine identity and detects specification/serial conflicts."
+    },
+    {
+      "stratum_id": "er-stratum-variant-release-heavy",
+      "archetype": "VARIANT_RELEASE_HEAVY",
+      "status": "APPROVED_REQUIRED",
+      "identity_grammar": ["brand_or_designer", "model", "sku_or_style_code", "color_or_material", "size", "region_release", "season"],
+      "representative_scope_examples": ["sneakers", "handbags", "designer_garments", "eyewear"],
+      "minimum_case_classes": ["HARD_NEGATIVE", "CROSS_MARKET_ALIAS", "SAME_OBJECT_NORMALIZATION"],
+      "minimum_boundaries": ["SOURCE_RECORD", "PHYSICAL_OBJECT"],
+      "rationale": "Tests near-duplicate release variants where small SKU/color/size/region differences must not collapse identity."
+    },
+    {
+      "stratum_id": "er-stratum-graded-population",
+      "archetype": "GRADED_POPULATION",
+      "status": "APPROVED_REQUIRED",
+      "identity_grammar": ["title_or_subject", "issue_or_card", "printing_or_variant", "grade", "certification_number", "population_context"],
+      "representative_scope_examples": ["trading_cards", "comic_books", "video_games_consoles"],
+      "minimum_case_classes": ["SAME_OBJECT_NORMALIZATION", "HARD_NEGATIVE", "CROSS_MARKET_ALIAS"],
+      "minimum_boundaries": ["SOURCE_RECORD", "PHYSICAL_OBJECT"],
+      "rationale": "Tests item/release identity versus grade/certification-instance identity and cross-registry aliases."
+    },
+    {
+      "stratum_id": "er-stratum-pressing-edition-media",
+      "archetype": "PRESSING_EDITION_MEDIA",
+      "status": "APPROVED_REQUIRED",
+      "identity_grammar": ["artist", "title", "label", "catalog_number", "country", "pressing_or_matrix", "format", "sleeve_variant"],
+      "representative_scope_examples": ["vinyl_recorded_music"],
+      "minimum_case_classes": ["CROSS_MARKET_ALIAS", "HARD_NEGATIVE", "SAME_OBJECT_NORMALIZATION"],
+      "minimum_boundaries": ["SOURCE_RECORD", "PHYSICAL_OBJECT"],
+      "rationale": "Tests edition/pressing identity where title-level similarity is insufficient and external release identifiers are material."
+    }
+  ],
+  "truth_boundary": "Approval is limited to ER calibration strata for bounded pre-production validation. It does not approve the 32-Scope matrix as canonical taxonomy, does not authorize current-market claims, publication or Production."
+}
