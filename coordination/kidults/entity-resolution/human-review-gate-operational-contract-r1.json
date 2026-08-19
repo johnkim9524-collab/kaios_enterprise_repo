@@ -1,0 +1,92 @@
+{
+  "id": "kidults-er-human-review-gate-operational-contract-r1",
+  "version": "1.0.0",
+  "status": "PREFLIGHT_IMPLEMENTED_HUMAN_EXECUTION_NOT_STARTED",
+  "parent_issue": 609,
+  "boundary_sources": {
+    "sampling_allocation_pr": 610,
+    "independent_review_packet_pr": 612,
+    "sampling_plan": "coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json",
+    "review_packet_contract": "coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json"
+  },
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "truth_boundary": "This operational contract can generate and verify unlabeled A/B packet templates and a deterministic pre-model holdout commitment. It can structurally validate a later externally governed reviewer registry, but it cannot independently prove a human identity merely from registry strings or digests. It never creates reviewer identities, review labels, adjudications, empirical attestation, Track B approval or Production authorization.",
+  "input": {
+    "dataset_class_required": "REAL_WORLD_EVIDENCE_CASES_UNLABELED",
+    "total_cases_required": 840,
+    "cases_per_stratum_required": 120,
+    "rights_state_required": "ALLOW",
+    "labels_or_model_outputs_in_input": "PROHIBITED"
+  },
+  "packet": {
+    "reviewer_slots": ["A", "B"],
+    "reviewer_assignment_state": "NOT_ASSIGNED",
+    "case_count_per_packet": 840,
+    "case_fields": [
+      "case_id",
+      "stratum_id",
+      "case_class",
+      "identity_boundary",
+      "source_a_reference",
+      "source_b_reference",
+      "source_a_payload_sha256",
+      "source_b_payload_sha256",
+      "license_evidence_refs",
+      "rights_state",
+      "provenance_refs",
+      "case_evidence_binding_sha256"
+    ],
+    "prohibited_fields": [
+      "expected",
+      "expected_label",
+      "gold_label",
+      "label",
+      "model_prediction",
+      "model_score",
+      "model_output",
+      "resolver_prediction",
+      "resolver_score",
+      "other_reviewer_label",
+      "adjudicated_label",
+      "benchmark_result",
+      "blind_holdout"
+    ]
+  },
+  "holdout_commitment": {
+    "blind_case_count_required": 420,
+    "blind_cases_per_stratum_required": 60,
+    "selection_algorithm": "SHA256_RANK_BY_STRATUM_V1",
+    "selection_inputs": ["sampling_plan_sha256", "dataset_case_set_sha256", "stratum_id", "case_id", "case_evidence_binding_sha256"],
+    "labels_in_commitment": "PROHIBITED",
+    "partition_must_be_committed_before_model_freeze": true,
+    "generator_may_claim_git_commit_or_model_freeze": false
+  },
+  "human_completion": {
+    "minimum_independent_reviewers": 2,
+    "identity_verification_boundary": "EXTERNALLY_GOVERNED_REGISTRY_ASSERTION_STRUCTURAL_VALIDATION_ONLY",
+    "required_review_records": 1680,
+    "reviews_per_case": 2,
+    "records_per_reviewer": 840,
+    "placeholder_or_duplicate_reviewer_ids": "REJECT",
+    "allowed_reviewer_identity_sources": ["ORG_DIRECTORY", "CONTRACTOR_REGISTRY", "INDEPENDENT_REVIEW_REGISTRY"],
+    "adjudication_trigger": "REVIEWER_LABELS_DISAGREE_OR_ANY_REVIEW_REQUIRED",
+    "allowed_human_labels": ["MATCH", "NO_MATCH", "REVIEW_REQUIRED"],
+    "benchmark_label_mapping": {
+      "MATCH": "MATCH",
+      "NO_MATCH": "NO_MATCH",
+      "REVIEW_REQUIRED": "REVIEW"
+    },
+    "review_required_mapping_audit": "REQUIRED"
+  },
+  "completion_claims": {
+    "reviewer_a_assigned": false,
+    "reviewer_b_assigned": false,
+    "labels_collected": false,
+    "holdout_partition_committed": false,
+    "model_frozen": false,
+    "empirical_attestation_created": false,
+    "track_b_started": false,
+    "production_authorized": false
+  }
+}
