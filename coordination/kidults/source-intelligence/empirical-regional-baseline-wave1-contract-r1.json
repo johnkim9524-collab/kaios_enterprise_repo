@@ -1,0 +1,14 @@
+{
+  "id":"empirical-regional-baseline-wave1-contract-r1",
+  "version":"1.0.0",
+  "status":"SHADOW_DIAGNOSTIC",
+  "parent_issue":654,
+  "production":"HOLD",
+  "priority_macroregions":["NORTH_AMERICA","EUROPE","JAPAN","KOREA","GREATER_CHINA","SOUTHEAST_ASIA"],
+  "inputs":["rights-admitted-pilot-source-pool-r1","rights-admitted-transaction-source-pool-r1","global-rights-source-pool-expansion-r2","asi-global-regional-market-balance-policy-v1"],
+  "required_source_dimensions":["macroregion_id","country_code","local_market_or_venue","language","currency","source_owner_id","source_role","evidence_class","rights_state","provenance_ref","observed_at"],
+  "required_factor_outputs":["MARKET_SCALE","MARKET_MATURITY","OBSERVED_TRANSACTION_ACTIVITY","VENUE_DEPTH_AND_DIVERSITY","SECONDARY_MARKET_DEPTH","AUTHENTICATION_GRADING_INFRASTRUCTURE","CROSS_BORDER_ACTIVITY","DATA_TRANSPARENCY_AND_EVIDENCE_QUALITY","SIGNAL_LEAD_VALUE","FRESHNESS","SOURCE_INDEPENDENCE"],
+  "rules":["NO_REGION_INFERENCE_FROM_PROVIDER_HOME_COUNTRY","NO_RECORD_COUNT_AS_MARKET_SCALE","MISSING_REGION_DIMENSION_MEANS_NOT_VERIFIED","UNKNOWN_IS_NOT_ZERO","BOOTSTRAP_SHARE_IS_NOT_MARKET_SHARE"],
+  "first_exit":"Produce a machine-readable gap report that quantifies which admitted source assets are region-bindable now and which category×region factors remain UNKNOWN before any empirical quota/weight calculation.",
+  "public_release":"HOLD"
+}
