@@ -1,6 +1,6 @@
 {
   "id":"kidults-global-standard-gap-register-v2",
-  "version":"1.4.0",
+  "version":"1.5.0",
   "status":"ACTIVE",
   "canonical_main_binding":"PROTECTED_MAIN_HEAD_AT_READ",
   "truth_binding_note":"Current canonical main is resolved from protected main at read time. Support P0 issues are mapped into existing top-level gap classes so unresolved_top_level_p0_or_gate is not double-counted.",
@@ -21,6 +21,8 @@
     "historical_provenance_independent_owner_count":1,
     "scarcity_population_rights_admitted_authority_count":0,
     "strict_current_sold_rights_admitted_source_count":0,
+    "current_sold_candidate_support_issues":[566,577,578],
+    "current_sold_candidate_state":"PCGS_BOUNDED_APPROVED_NO_DATA__ALTFNDATA_LICENSE_REVIEW_FOUNDER_GATE__COLLECTAIO_RIGHTS_TECHNICAL_CANDIDATE_EXACT_ANCHOR_MATCH_PENDING",
     "kidults_owned_intelligence_fabric_issue":550,
     "owned_fabric_governance_pr":551,
     "owned_fabric_partial_multicell_lineage_pr":571,
@@ -29,9 +31,9 @@
     "production":"HOLD"
   },
   "gaps":[
-    {"id":"GS-P0-ER","priority":"P0","owner":"Track A + Track B","issue":479,"current_subgate":"6_OF_7_COMPLETE_GRADED_POPULATION_PSA_EXTERNAL_WAIT_AND_PCGS_APPROVED_EVALUATION_NO_DATA_ADMITTED","exit":"all 7 approved ER strata satisfy exact per-stratum minimums; final immutable holdout >=99% overall/blind; critical false auto-merge 0; deterministic replay PASS; rights/provenance 100%; calibration artifact registered"},
+    {"id":"GS-P0-ER","priority":"P0","owner":"Track A + Track B","issue":479,"support_issues":[559,566],"current_subgate":"6_OF_7_COMPLETE_GRADED_POPULATION_PSA_EXTERNAL_WAIT_AND_PCGS_APPROVED_EVALUATION_NO_DATA_ADMITTED","exit":"all 7 approved ER strata satisfy exact per-stratum minimums; final immutable holdout >=99% overall/blind; critical false auto-merge 0; deterministic replay PASS; rights/provenance 100%; calibration artifact registered"},
     {"id":"GS-P0-ASI","priority":"P0","owner":"Track A + Track D","issue":480,"support_issues":[550,560],"current_subgate":"BOUNDED_DEV_SHADOW_RUNTIME_CORE_PASS_PLUS_PR571_PARTIAL_MULTICELL_LINEAGE_CURRENT_MARKET_AND_CANDIDATE_PATH_INCOMPLETE","exit":"#479-calibrated identity + claim-sufficient admitted evidence produce final evidence-admission and market-event-admission artifacts plus immutable Candidate/Evidence handoff"},
-    {"id":"GS-P0-MARKET","priority":"P0","owner":"Track A","issue":457,"support_issues":[549,550,558,559,560],"current_subgate":"SOURCE_SELECTION_COMPLETE_IDENTITY_REDUNDANCY_PARTIAL_CURRENT_SOLD_ZERO_CURRENT_MARKET_EVIDENCE_OPEN","exit":"claim-level lawful current-market evidence terminalized where claimed + final identity-resolved admission artifacts + immutable snapshot-candidate.json and Evidence Package"},
+    {"id":"GS-P0-MARKET","priority":"P0","owner":"Track A","issue":457,"support_issues":[549,550,558,559,560,566,577,578],"current_subgate":"SOURCE_SELECTION_COMPLETE_IDENTITY_REDUNDANCY_PARTIAL_CURRENT_SOLD_ZERO__COLLECTAIO_EXACT_ANCHOR_PENDING__ALTFNDATA_LICENSE_REVIEW_FOUNDER_GATE__PCGS_BOUNDED_NO_DATA","exit":"claim-level lawful current-market evidence terminalized where claimed + final identity-resolved admission artifacts + immutable snapshot-candidate.json and Evidence Package"},
     {"id":"GS-P0-VALIDATION","priority":"P0","owner":"Track B","issue":236,"current_subgate":"READY_TO_ASSESS_WAITING_FOR_EXACT_IMMUTABLE_PAIR","exit":"exact immutable candidate/Evidence Package independently assessed and PASS"},
     {"id":"GS-P0-ASSURANCE","priority":"P0","owner":"KPMO + Tracks C/D","current_subgate":"SECURITY_PRIVACY_WCAG_AUTOMATION_PARTIAL_FINAL_RIGHTS_MANUAL_ACCESSIBILITY_AND_FINAL_SECURITY_ACCEPTANCE_OPEN","exit":"security/SBOM/vulnerability/secret + privacy/retention + field-level rights + WCAG release evidence all PASS"},
     {"id":"GS-P1-RUNTIME","priority":"P1","owner":"Track D","issue":481,"support_issues":[550,560],"current_subgate":"CI_CONTROL_AND_READONLY_INVENTORY_HARNESS_PRESENT_REMOTE_DEV_STAGING_EMPIRICAL_PROOF_INCOMPLETE","exit":"DEV/STAGING empirical latency/throughput/replay/retry-DLQ/backup-restore/rollback/recovery/cost proof PASS"},
@@ -44,7 +46,9 @@
     {"issue":550,"role":"KIDULTS_OWNED_INTELLIGENCE_FABRIC","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false},
     {"issue":558,"role":"CURRENT_SOLD_LIQUIDITY_EXPOSURE_BINDING_WAVE","maps_to":["GS-P0-MARKET"],"counted_as_additional_top_level_gap":false},
     {"issue":559,"role":"IDENTITY_PROVENANCE_SCARCITY_REDUNDANCY_WAVE","maps_to":["GS-P0-MARKET","GS-P0-ER"],"counted_as_additional_top_level_gap":false},
-    {"issue":560,"role":"BOUNDED_MULTICELL_SOURCE_TO_GRAPHS_TO_ENGINE_MESH_PROOF","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false}
+    {"issue":560,"role":"BOUNDED_MULTICELL_SOURCE_TO_GRAPHS_TO_ENGINE_MESH_PROOF","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false},
+    {"issue":577,"role":"ALTFNDATA_CURRENT_SOLD_LICENSE_REVIEW_FOUNDER_DECISION_SUPPORT","maps_to":["GS-P0-MARKET"],"counted_as_additional_top_level_gap":false},
+    {"issue":578,"role":"COLLECTAIO_PUBLIC_READONLY_CURRENT_SOLD_PREFLIGHT_SUPPORT","maps_to":["GS-P0-MARKET"],"counted_as_additional_top_level_gap":false}
   ],
   "unresolved_top_level_p0_or_gate":6,
   "unresolved_p0_allowed_for_100_percent":0,
