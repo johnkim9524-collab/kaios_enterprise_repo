@@ -1,0 +1,23 @@
+name: KIDULTS Private Market Evidence Reacquisition R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/private-market-evidence-reacquisition-r1.json'
+      - 'scripts/kidults/source-intelligence/validate-private-market-evidence-reacquisition-r1.mjs'
+      - '.github/workflows/kidults-private-market-evidence-reacquisition-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-structure-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate private reacquisition structure without provider network access
+        run: node scripts/kidults/source-intelligence/validate-private-market-evidence-reacquisition-r1.mjs coordination/kidults/source-intelligence/private-market-evidence-reacquisition-r1.json
