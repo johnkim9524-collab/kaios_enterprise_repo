@@ -23,9 +23,15 @@ jobs:
           node-version: '22'
       - name: Run non-promotional benchmark selftest
         run: node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-selftest.json /tmp/entity-resolution-benchmark-v2-selftest-results.json
-      - name: Enforce selftest truth boundary
+      - name: Enforce selftest and scope-stratification truth boundary
         run: |
-          node -e "const x=require('/tmp/entity-resolution-benchmark-v2-selftest-results.json'); if(x.accuracy!==1||x.critical_false_auto_merge!==0||x.deterministic_replay!=='PASS'||x.promotion_gate.promotion_eligible_before_track_b!==false||x.dataset_class!=='SYNTHETIC_SELFTEST'||x.production!=='HOLD') process.exit(1); console.log('ER benchmark runner selftest PASS; promotion correctly blocked for synthetic data.')"
+          node - <<'NODE'
+          const x=require('/tmp/entity-resolution-benchmark-v2-selftest-results.json');
+          if(x.accuracy!==1||x.critical_false_auto_merge!==0||x.deterministic_replay!=='PASS') process.exit(1);
+          if(x.promotion_gate.promotion_eligible_before_track_b!==false||x.dataset_class!=='SYNTHETIC_SELFTEST'||x.production!=='HOLD') process.exit(1);
+          if(x.coverage.scope_stratification_complete!==false||x.promotion_gate.scope_stratification_complete!==false) process.exit(1);
+          console.log('ER runner selftest PASS; synthetic data and incomplete approved-scope stratification remain promotion-blocked.');
+          NODE
       - uses: actions/upload-artifact@v4
         with:
           name: kidults-entity-resolution-benchmark-v2-runner-selftest

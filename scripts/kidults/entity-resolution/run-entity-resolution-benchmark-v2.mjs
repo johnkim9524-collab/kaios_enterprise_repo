@@ -36,15 +36,12 @@ function conservativeResolve(item) {
   const rightAnchor = strictAnchor(item.right, item.identity_boundary);
   if (leftAnchor && rightAnchor) return leftAnchor === rightAnchor ? 'MATCH' : 'NO_MATCH';
 
-  // Only unique-authority keys may create MATCH without a canonical anchor.
   const uniqueKeys = ['object_id','serial','vin','reference_id','transaction_id','accession_number'];
   for (const key of uniqueKeys) {
     const l = item.left?.unique_keys?.[key];
     const r = item.right?.unique_keys?.[key];
     if (l != null && r != null && normalized(l) && normalized(l) === normalized(r)) return 'MATCH';
   }
-
-  // Strong contradictory unique keys block a merge. Everything else remains REVIEW.
   for (const key of uniqueKeys) {
     const l = item.left?.unique_keys?.[key];
     const r = item.right?.unique_keys?.[key];
@@ -88,6 +85,11 @@ const accuracy = correct / first.length;
 const classes = new Set(dataset.cases.map((x) => x.case_class));
 const boundaries = new Set(dataset.cases.map((x) => x.identity_boundary));
 const scopes = new Set(dataset.cases.map((x) => x.scope_id));
+const approvedScopeIds = new Set(Array.isArray(dataset.approved_scope_ids) ? dataset.approved_scope_ids.filter(Boolean) : []);
+const requiredScopeIds = new Set(Array.isArray(dataset.required_scope_ids) ? dataset.required_scope_ids.filter(Boolean) : []);
+const allCasesInApprovedScopes = approvedScopeIds.size > 0 && [...scopes].every((x) => approvedScopeIds.has(x));
+const allRequiredScopesRepresented = requiredScopeIds.size > 0 && [...requiredScopeIds].every((x) => scopes.has(x));
+const scopeStratificationComplete = dataset.scope_stratification_status === 'COMPLETE_APPROVED_POC' && allCasesInApprovedScopes && allRequiredScopesRepresented;
 const blind = first.filter((x) => x.blind_holdout);
 const blindCorrect = blind.filter((x) => x.predicted === x.expected).length;
 const blindAccuracy = blind.length ? blindCorrect / blind.length : null;
@@ -96,13 +98,18 @@ const coverage = {
   required_case_classes_complete:[...REQUIRED_CASE_CLASSES].every((x) => classes.has(x)),
   required_identity_boundaries_complete:[...REQUIRED_BOUNDARIES].every((x) => boundaries.has(x)),
   scope_count:scopes.size,
+  approved_scope_count:approvedScopeIds.size,
+  required_scope_count:requiredScopeIds.size,
+  all_cases_in_approved_scopes:allCasesInApprovedScopes,
+  all_required_scopes_represented:allRequiredScopesRepresented,
+  scope_stratification_complete:scopeStratificationComplete,
   provenance_coverage:dataset.cases.filter((x) => x.provenance_refs?.length).length / dataset.cases.length,
   rights_coverage:dataset.cases.filter((x) => x.rights_state === 'ALLOW').length / dataset.cases.length,
   blind_holdout_count:blind.length,
 };
 const empiricalDataset = dataset.dataset_class === 'REAL_WORLD_LABELED' && dataset.synthetic !== true;
 const metricsPass = accuracy >= 0.99 && criticalFalseMatches === 0 && blind.length > 0 && blindAccuracy >= 0.99 && blindCriticalFalseMatches === 0;
-const promotionEligible = empiricalDataset && coverage.required_case_classes_complete && coverage.required_identity_boundaries_complete && coverage.provenance_coverage === 1 && coverage.rights_coverage === 1 && metricsPass;
+const promotionEligible = empiricalDataset && coverage.required_case_classes_complete && coverage.required_identity_boundaries_complete && coverage.scope_stratification_complete && coverage.provenance_coverage === 1 && coverage.rights_coverage === 1 && metricsPass;
 
 const result = {
   id:'entity-resolution-benchmark-v2-results',
@@ -125,6 +132,7 @@ const result = {
     real_world_dataset:empiricalDataset,
     required_case_classes_complete:coverage.required_case_classes_complete,
     required_identity_boundaries_complete:coverage.required_identity_boundaries_complete,
+    scope_stratification_complete:coverage.scope_stratification_complete,
     provenance_coverage_1:coverage.provenance_coverage === 1,
     rights_coverage_1:coverage.rights_coverage === 1,
     track_b_assessment:'PASS_REQUIRED_SEPARATELY',
@@ -132,8 +140,8 @@ const result = {
   },
   results:first,
   truth_boundary: promotionEligible
-    ? 'Dataset and measured benchmark gates pass locally; independent Track B assessment is still required before promotion.'
-    : 'No promotion claim. Missing empirical dataset breadth, blind performance, accuracy, false-merge, provenance, rights, or case/boundary coverage remains fail-closed.',
+    ? 'Dataset, approved PoC scope stratification and measured benchmark gates pass locally; independent Track B assessment is still required before promotion.'
+    : 'No promotion claim. Missing empirical dataset breadth, approved PoC scope stratification, blind performance, accuracy, false-merge, provenance, rights, or case/boundary coverage remains fail-closed.',
   production:'HOLD',
 };
 
