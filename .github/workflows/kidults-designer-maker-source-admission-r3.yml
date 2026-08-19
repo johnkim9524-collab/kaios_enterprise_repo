@@ -1,0 +1,59 @@
+name: KIDULTS Designer Maker Source Admission R3
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json'
+      - '.github/workflows/kidults-designer-maker-source-admission-r3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Validate field-purpose rights boundary
+        run: |
+          node - <<'NODE'
+          const x=require('./coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json');
+          if(x.production!=='HOLD') process.exit(1);
+          if(x.admission_scope!=='DESIGNER_MAKER_EDITION_IDENTITY_CALIBRATION_ONLY') process.exit(1);
+          if(x.sources.length!==2||x.sources.some(s=>s.admission_state!=='ADMITTED')) process.exit(1);
+          for(const s of x.sources){
+            for(const p of ['discover','collect','store','derive','display_internal','display_public']) if(!String(s.purpose_rights[p]||'').startsWith('ALLOW')) process.exit(1);
+            if(!String(s.rights_basis).includes('CC0')) process.exit(1);
+            if(!String(s.image_rule).startsWith('BLOCKED')) process.exit(1);
+            if(!String(s.claim_ceiling).includes('METADATA_ONLY')) process.exit(1);
+          }
+          if(x.pool_effect.current_market_claim_gate!=='UNCHANGED_STILL_OPEN'||x.pool_effect.provider_purchase!=='HOLD') process.exit(1);
+          console.log('Purpose-specific metadata admission boundary PASS');
+          NODE
+      - name: Live validate official CC0 authorities and target topology
+        run: |
+          node - <<'NODE'
+          const headers={'user-agent':'KIDULTS-DEV-SHADOW-SourceAdmission/1.0','accept':'application/json,text/plain,text/html'};
+          async function text(url){const r=await fetch(url,{headers}); if(!r.ok) throw new Error(`${url} -> ${r.status}`); return await r.text();}
+          async function json(url){return JSON.parse(await text(url));}
+          const momaRepo=await json('https://api.github.com/repos/MuseumofModernArt/collection');
+          if(momaRepo.owner?.login!=='MuseumofModernArt'||momaRepo.license?.spdx_id!=='CC0-1.0') throw new Error('MOMA_CC0_REPO_VALIDATION_FAILED');
+          const momaReadme=await text('https://raw.githubusercontent.com/MuseumofModernArt/collection/main/README.md');
+          if(!/public domain using a \[CC0 License\]/i.test(momaReadme)||!/Images are not included/i.test(momaReadme)) throw new Error('MOMA_RIGHTS_BOUNDARY_FAILED');
+          const cooperReadme=await text('https://raw.githubusercontent.com/cooperhewitt/collection/master/README.md');
+          if(!/Creative Commons Zero \(CC0\)/i.test(cooperReadme)||!/images are not included/i.test(cooperReadme)) throw new Error('COOPER_RIGHTS_BOUNDARY_FAILED');
+          const design=await json('https://raw.githubusercontent.com/cooperhewitt/collection/master/objects/187/349/45/18734945.json');
+          const roles=Object.fromEntries((design.participants||[]).map(p=>[p.role_name,p.person_name]));
+          if(design.id!=='18734945'||design.accession_number!=='2009-26-1-a,b'||design.title_raw!=='Model #3107') throw new Error('COOPER_MODEL_RECORD_FAILED');
+          if(roles.Designer!=='Arne Jacobsen'||!String(roles.Manufacturer||'').startsWith('Fritz Hansen')) throw new Error('COOPER_DESIGNER_MAKER_FAILED');
+          const targets=[['https://www.moma.org/collection/works/1611','24.1997.1'],['https://www.moma.org/collection/works/103159','24.1997.2']];
+          for(const [url,objectNumber] of targets){
+            const page=await text(url);
+            if(!page.includes('Chair Series 7 (3107)')||!page.includes(objectNumber)) throw new Error(`MOMA_TARGET_RECORD_FAILED:${objectNumber}`);
+          }
+          console.log('Live official source topology PASS: exact 3107 model + explicit designer/manufacturer + two distinct MoMA object records');
+          NODE
