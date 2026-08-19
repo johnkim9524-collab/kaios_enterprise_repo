@@ -1,0 +1,18 @@
+import fs from 'node:fs/promises';
+const p=process.argv[2]||'coordination/kidults/source-intelligence/private-market-evidence-reacquisition-r1.json';
+const x=JSON.parse(await fs.readFile(p,'utf8'));
+const fail=(m)=>{throw new Error(m)};
+if(x.scope_boundary!=='COLLECTIBLES_ONLY') fail('SCOPE');
+if(x.production!=='HOLD'||x.public_release!=='HOLD') fail('RELEASE_BOUNDARY');
+if(x.network_execution_in_public_ci!=='PROHIBITED'||x.provider_payload_in_public_ci!=='PROHIBITED') fail('PUBLIC_CI_BOUNDARY');
+if(x.private_store_contract?.visibility!=='PRIVATE_ONLY'||x.private_store_contract?.raw_payload_public_export!==false||x.private_store_contract?.raw_payload_github_storage!==false) fail('PRIVATE_STORE_BOUNDARY');
+if(x.private_store_contract?.provider_secret_storage!=='SECRET_MANAGER_ONLY'||x.private_store_contract?.raw_payload_registry_storage!==false) fail('SECRET_OR_REGISTRY_BOUNDARY');
+if(x.retention_policy?.ttl_days_min!==1||x.retention_policy?.ttl_days_max>30||x.retention_policy?.ttl_must_be_set_per_acquisition!==true) fail('TTL_POLICY');
+if(x.tamper_verification?.algorithm!=='HMAC_SHA256'||x.tamper_verification?.key_location!=='SECRET_MANAGER_ONLY'||x.tamper_verification?.key_must_not_enter_registry_github_logs_artifacts_or_chat!==true) fail('TAMPER_POLICY');
+const req=x.opaque_receipt_schema?.required_fields||[];
+for(const k of ['receipt_id','provider_id','claim_class','source_reference_hash','payload_sha256','acquired_at','expires_at','rights_decision_ref','private_object_ref_hash','tamper_hmac_sha256']) if(!req.includes(k)) fail(`RECEIPT_REQUIRED_${k}`);
+const forbidden=x.opaque_receipt_schema?.forbidden_fields||[];
+for(const k of ['raw_provider_payload','provider_secret','access_token','full_private_object_locator','raw_transaction_record']) if(!forbidden.includes(k)) fail(`RECEIPT_FORBIDDEN_${k}`);
+if(x.activation_gate?.active_market_claim!=='NONE'||x.activation_gate?.dated_observed_sold_transaction!=='BLOCKED_UNTIL_RIGHTS_PLUS_PRIVATE_RUNTIME_PLUS_CLEANUP_REVIEW') fail('MARKET_CLAIM_OVERCLAIM');
+for(const k of ['EXPLICIT_FIELD_BY_PURPOSE_RIGHTS_PASS','PRIVATE_STORE_RUNTIME_PASS','TTL_CONFIGURED','TAMPER_SECRET_AVAILABLE','HISTORICAL_CLEANUP_REVIEW_COMPLETE']) if(!(x.activation_gate?.required_before_any_reacquisition||[]).includes(k)) fail(`ACTIVATION_GATE_${k}`);
+console.log(JSON.stringify({status:'PASS_STRUCTURE_ONLY',network_execution:false,provider_payload_public_ci:false,active_market_claim:'NONE',production:'HOLD'},null,2));
