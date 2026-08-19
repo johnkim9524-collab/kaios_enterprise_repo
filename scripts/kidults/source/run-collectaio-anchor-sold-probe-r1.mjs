@@ -27,13 +27,56 @@ function collectArray(obj) {
   for (const key of ['items','results','data']) if (Array.isArray(obj?.[key])) return obj[key];
   return [];
 }
+function keyTree(value, depth = 0) {
+  if (depth > 2 || value == null) return null;
+  if (Array.isArray(value)) {
+    if (!value.length) return [];
+    return [keyTree(value[0], depth + 1)];
+  }
+  if (typeof value !== 'object') return typeof value;
+  const out = {};
+  for (const key of Object.keys(value).sort()) out[key] = keyTree(value[key], depth + 1);
+  return out;
+}
+function findSoldArrays(value, path = '$', depth = 0, hits = []) {
+  if (depth > 5 || value == null) return hits;
+  if (Array.isArray(value)) {
+    const lower = path.toLowerCase();
+    if (lower.includes('sold') || lower.includes('comp') || lower.includes('sale')) hits.push({ path, length: value.length });
+    if (value[0] && typeof value[0] === 'object') findSoldArrays(value[0], `${path}[0]`, depth + 1, hits);
+    return hits;
+  }
+  if (typeof value !== 'object') return hits;
+  for (const [key, child] of Object.entries(value)) findSoldArrays(child, `${path}.${key}`, depth + 1, hits);
+  return hits;
+}
+function numericAtPath(obj, path) {
+  const parts = path.replace(/^\$\.?/, '').split('.').filter(Boolean);
+  let cur = obj;
+  for (const p of parts) cur = cur?.[p];
+  const n = Number(cur);
+  return Number.isFinite(n) ? n : null;
+}
 function soldMetadata(item) {
-  const candidates = [item?.sold_comps, item?.soldComps, item?.market_signals?.sold_comps, item?.market?.sold_comps, item?.listings?.sold];
-  const sold = candidates.find(Array.isArray) || [];
-  const sampleSize = Number(item?.sold_comp_count ?? item?.soldCompsCount ?? item?.market_signals?.sold_comp_count ?? sold.length ?? 0);
-  const basis = item?.price_basis ?? item?.basis ?? item?.market_signals?.basis ?? null;
-  const freshness = item?.last_checked_at ?? item?.updated_at ?? item?.market_signals?.last_checked_at ?? null;
-  return { sample_size: Number.isFinite(sampleSize) ? sampleSize : sold.length, basis, freshness, sold_array_present: sold.length > 0 };
+  const directArrays = [item?.sold_comps, item?.soldComps, item?.market_signals?.sold_comps, item?.market?.sold_comps, item?.listings?.sold, item?.market_data?.sold_comps, item?.pricing?.sold_comps];
+  const sold = directArrays.find(Array.isArray) || [];
+  const countCandidates = [
+    item?.sold_comp_count,
+    item?.soldCompsCount,
+    item?.market_signals?.sold_comp_count,
+    item?.market_data?.sold_comp_count,
+    item?.pricing?.sold_comp_count,
+    item?.market?.sold_comp_count,
+    item?.comps?.sold_count,
+    item?.comps?.count
+  ];
+  const explicitCount = countCandidates.map(Number).find(Number.isFinite);
+  const discovered = findSoldArrays(item);
+  const discoveredMax = discovered.reduce((m, h) => Math.max(m, h.length || 0), 0);
+  const sampleSize = explicitCount ?? Math.max(sold.length, discoveredMax);
+  const basis = item?.price_basis ?? item?.basis ?? item?.market_signals?.basis ?? item?.market_data?.basis ?? item?.pricing?.basis ?? null;
+  const freshness = item?.last_checked_at ?? item?.updated_at ?? item?.market_signals?.last_checked_at ?? item?.market_data?.last_checked_at ?? item?.pricing?.last_checked_at ?? null;
+  return { sample_size: sampleSize, basis, freshness, sold_array_present: sampleSize > 0, discovered_sold_paths: discovered };
 }
 
 for (const anchor of anchors) {
@@ -73,7 +116,9 @@ for (const anchor of anchors) {
     sold_sample_size: meta.sample_size,
     sold_basis: meta.basis,
     freshness: meta.freshness,
-    sold_array_present: meta.sold_array_present
+    sold_array_present: meta.sold_array_present,
+    discovered_sold_paths: meta.discovered_sold_paths,
+    schema_keys_only: exact ? keyTree(item) : undefined
   });
 }
 
