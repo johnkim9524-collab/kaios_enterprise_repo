@@ -1,12 +1,12 @@
 {
   "id": "rights-admitted-pilot-source-pool-r1",
-  "version": "1.0.0",
-  "status": "PILOT_PARTIAL",
+  "version": "1.1.0",
+  "status": "PILOT_PARTIAL_WITH_SHADOW_TRANSACTION_LANE",
   "methodology_issue": 486,
   "factory_issue": 488,
   "execution_consumer_issue": 480,
   "production": "HOLD",
-  "truth_boundary": "This pool proves rights-admitted real identity/context sources only. It does not yet prove transaction/sold-event source admission or ASI market-event completion.",
+  "truth_boundary": "This pool proves rights-admitted real identity/context sources and one purpose-specific DEV/SHADOW internal dated observed-SOLD transaction lane. It does not authorize current-price, liquidity, public/commercial projection, raw provider redistribution, or Production.",
   "sources": [
     {
       "source_id": "met-open-access-api",
@@ -60,6 +60,34 @@
       "evidence_strength": "IDENTITY_CONTEXT_ONLY"
     },
     {
+      "source_id": "collectaio-public-readonly-api",
+      "owner": "CollectAIO",
+      "channel": "PUBLIC_READ_ONLY_API",
+      "rights_basis": "OFFICIAL_PUBLIC_DEVELOPER_INTEGRATION_GUIDANCE_BOUNDED_CACHE_CANONICAL_CITATION",
+      "rights_evidence": [
+        "https://www.collectaio.com/developers",
+        "coordination/kidults/source-intelligence/collectaio-shadow-sold-admission-r1.json"
+      ],
+      "admission_state": "ADMITTED_SHADOW_INTERNAL_ONLY",
+      "allowed_claim_classes": ["DATED_OBSERVED_SOLD_TRANSACTION"],
+      "prohibited_claim_classes": ["CURRENT_PRICE", "REPRESENTATIVE_PRICE", "LIQUIDITY", "TIME_TO_SALE", "GLOBAL_DEMAND", "GLOBAL_REPRESENTATIVENESS", "PUBLIC_OR_COMMERCIAL_PROJECTION", "RAW_PROVIDER_DATA_REDISTRIBUTION"],
+      "purpose_rights": {
+        "discover": "ALLOW",
+        "collect": "ALLOW_BOUNDED_PUBLIC_READONLY",
+        "store": "ALLOW_BOUNDED_CACHE_ONLY",
+        "derive": "ALLOW_QUALIFIED_INTERNAL_DATED_TRANSACTION_ASSERTION",
+        "display_internal": "ALLOW_QUALIFIED_WITH_CANONICAL_CITATION",
+        "display_public": "DENY_PENDING_SEPARATE_PUBLIC_COMMERCIAL_RIGHTS_REVIEW"
+      },
+      "scope_binding": "construction_mechanical_sets / LEGO NINJAGO City 70620",
+      "latest_valid_event_date": "2026-04-18",
+      "latest_valid_event_age_days_at_probe": 123,
+      "shadow_freshness_ceiling_days": 365,
+      "condition_state": "NOT_POPULATED",
+      "technical_state": "READY_FOR_DEV_SHADOW_DATED_MARKET_EVENT_ONLY",
+      "evidence_strength": "EXACT_ITEM_DATED_OBSERVED_SOLD_TRANSACTIONS_ONLY"
+    },
+    {
       "source_id": "ebay-developer-apis",
       "owner": "eBay",
       "channel": "LICENSED_API",
@@ -84,11 +112,15 @@
     }
   ],
   "pool_readiness": {
-    "rights_admitted_real_sources": 2,
+    "rights_admitted_real_sources": 3,
     "identity_context_pool_ready": true,
-    "transaction_market_event_pool_ready": false,
+    "shadow_internal_transaction_source_count": 1,
+    "transaction_market_event_pool_ready": true,
+    "transaction_market_event_scope": "DEV_SHADOW_DATED_EVENT_ONLY",
     "eligible_for_asi_identity_context_real_run": true,
-    "eligible_for_asi_market_event_exit": false
+    "eligible_for_asi_market_event_shadow_run": true,
+    "eligible_for_public_or_commercial_projection": false,
+    "eligible_for_production": false
   },
-  "next_required_step": "Execute #480 against admitted identity/context sources now while continuing #488 to identify a rights-admissible transaction/sold-event source for market-event admission."
+  "next_required_step": "Execute #480/#550/#560 with the admitted CollectAIO dated observed-SOLD cell as the first real DEV/SHADOW market-event node while keeping current-price/public/commercial/Production claims blocked."
 }
