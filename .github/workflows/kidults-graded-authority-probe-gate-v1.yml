@@ -12,14 +12,14 @@ permissions:
   contents: read
 
 jobs:
-  prove-approved-but-operationally-blocked:
+  prove-default-fail-closed:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
-      - name: Require Founder #569 approval binding and BLOCKED without account/EULA/token handoff
+      - name: Require Founder #569 binding and fail-closed with no operational env injected
         run: |
           node scripts/kidults/source-intelligence/validate-graded-authority-probe-gate-v1.mjs coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json /tmp/probe-gate.json
           node - <<'NODE'
@@ -28,12 +28,36 @@ jobs:
           if(x.state!=='BLOCKED') process.exit(1);
           for(const b of ['AUTHORIZED_PCGS_ACCOUNT_HANDOFF_REQUIRED','PCGS_API_EULA_COMPATIBILITY_TERMINALIZATION_REQUIRED','PCGS_TOKEN_SECRET_HANDOFF_REQUIRED']) if(!x.blockers.includes(b)) process.exit(1);
           if(x.secret_material_observed!==false||x.production!=='HOLD'||x.publication!=='HOLD') process.exit(1);
-          console.log('Graded authority gate PASS: Founder approval satisfied; only operational account/EULA/token handoff remains; no secret leakage.');
+          console.log('Default fail-closed gate PASS; no operational environment injected.');
           NODE
-      - name: Require strict mode fail-closed until operational handoff exists
+      - name: Require strict mode to reject absent handoff
         run: |
           set +e
           KAIOS_REQUIRE_PROBE_ALLOWED=1 node scripts/kidults/source-intelligence/validate-graded-authority-probe-gate-v1.mjs coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json /tmp/strict.json
           code=$?
           set -e
           test "$code" -eq 3
+
+  prove-founder-approved-operational-handoff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      KAIOS_PCGS_ACCOUNT_AUTHORIZED: ${{ vars.KAIOS_PCGS_ACCOUNT_AUTHORIZED }}
+      KAIOS_PCGS_EULA_COMPATIBLE: ${{ vars.KAIOS_PCGS_EULA_COMPATIBLE }}
+      KAIOS_PCGS_API_TOKEN: ${{ secrets.KAIOS_PCGS_API_TOKEN }}
+      KAIOS_REQUIRE_PROBE_ALLOWED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Prove account + EULA + secret-token handoff without revealing secret material
+        run: |
+          node scripts/kidults/source-intelligence/validate-graded-authority-probe-gate-v1.mjs coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json /tmp/live-preflight.json
+          node - <<'NODE'
+          const x=require('/tmp/live-preflight.json');
+          if(x.state!=='PCGS_LIVE_SINGLE_RECORD_PROBE_PERMITTED_BY_PREFLIGHT') process.exit(1);
+          if(x.blockers.length!==0) process.exit(1);
+          if(x.secret_material_observed!==false) process.exit(1);
+          if(x.production!=='HOLD'||x.publication!=='HOLD') process.exit(1);
+          console.log('PCGS operational handoff preflight PASS; minimal DEV/SHADOW single-record probe is permitted.');
+          NODE
