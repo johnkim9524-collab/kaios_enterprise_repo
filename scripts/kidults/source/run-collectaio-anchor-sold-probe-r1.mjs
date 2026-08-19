@@ -4,7 +4,8 @@ const anchors = [
   { scope_id: 'construction_mechanical_sets', query: 'LEGO 10179', expected: ['10179', 'Millennium Falcon'] },
   { scope_id: 'diecast_scale_models', query: 'Hot Wheels 1968 Custom Camaro', expected: ['1968', 'Custom Camaro'] },
   { scope_id: 'video_games_consoles', query: 'Nintendo World Championships 1990', expected: ['Nintendo World Championships', '1990'] },
-  { scope_id: 'vinyl_recorded_music', query: 'Beatles Please Please Me Black and Gold', expected: ['Please Please Me'] }
+  { scope_id: 'vinyl_recorded_music', query: 'Beatles Please Please Me Black and Gold', expected: ['Please Please Me'] },
+  { scope_id: 'scope-trading-cards', query: 'Magic The Gathering Alpha Black Lotus', expected: ['Black Lotus', 'Alpha'] }
 ];
 
 const base = 'https://www.collectaio.com';
