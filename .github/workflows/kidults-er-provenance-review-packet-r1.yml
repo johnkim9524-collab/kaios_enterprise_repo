@@ -1,0 +1,32 @@
+name: KIDULTS ER Provenance Review Packet R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/build-provenance-review-packet-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-provenance-review-packet-r1.mjs'
+      - '.github/workflows/kidults-er-provenance-review-packet-r1.yml'
+      - 'scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-partial-review-packet:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Acquire 120 real Getty provenance source-linked pairs
+        run: node scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs /tmp/provenance-source-corpus-r1.json
+      - name: Build 50 transaction-to-object reviewer cases
+        run: node scripts/kidults/entity-resolution/build-provenance-review-packet-r1.mjs /tmp/provenance-source-corpus-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/provenance-review-packet-r1.json
+      - name: Validate partial packet truth boundaries
+        run: node scripts/kidults/entity-resolution/validate-provenance-review-packet-r1.mjs /tmp/provenance-review-packet-r1.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-provenance-review-packet-r1
+          path: /tmp/provenance-review-packet-r1.json
+          retention-days: 14
