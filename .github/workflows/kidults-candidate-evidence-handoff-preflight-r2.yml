@@ -1,0 +1,70 @@
+name: KIDULTS Candidate Evidence Handoff Preflight R2
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json'
+      - 'coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json'
+      - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
+      - '.github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-handoff-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Split blocked selftest pair
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=require('./coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json');
+          fs.writeFileSync('/tmp/snapshot-candidate.json',JSON.stringify(x.snapshot,null,2));
+          fs.writeFileSync('/tmp/evidence-package.json',JSON.stringify(x.evidence,null,2));
+          NODE
+      - name: Run handoff preflight
+        run: node scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs /tmp/snapshot-candidate.json /tmp/evidence-package.json /tmp/candidate-evidence-handoff-preflight-r2.json
+      - name: Require exact fail-closed blockers
+        run: |
+          node - <<'NODE'
+          const x=require('/tmp/candidate-evidence-handoff-preflight-r2.json');
+          const has=(prefix)=>x.blockers.some(b=>b===prefix||b.startsWith(prefix+':'));
+          const required=[
+            'ER_REQUIRED_STRATA_INCOMPLETE',
+            'ER_FINAL_SCOPE_STRATIFICATION_NOT_COMPLETE',
+            'ER_FINAL_DATASET_REQUIRED',
+            'ER_FINAL_DATASET_HASH_REQUIRED',
+            'ER_BLIND_HOLDOUT_FREEZE_REQUIRED',
+            'ER_CALIBRATION_ARTIFACT_REQUIRED',
+            'EVIDENCE_PACKAGE_NOT_IMMUTABLE',
+            'CURRENT_CLAIM_WITHOUT_CURRENT_EVIDENCE',
+            'CLAIM_STRENGTH_EXCEEDS_EVIDENCE'
+          ];
+          if(x.handoff_state!=='BLOCKED') process.exit(1);
+          for(const code of required) if(!has(code)) {console.error('missing blocker',code); process.exit(1);}
+          if(x.track_b_assessment!=='NOT_STARTED_BY_THIS_PREFLIGHT'||x.publication!=='HOLD'||x.production!=='HOLD') process.exit(1);
+          console.log('Candidate/Evidence R2 guard PASS: 6/7 + mutable package + historical-only current claim correctly BLOCKED.');
+          NODE
+      - name: Require strict mode to reject blocked pair
+        run: |
+          set +e
+          KAIOS_REQUIRE_HANDOFF_READY=1 node scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs /tmp/snapshot-candidate.json /tmp/evidence-package.json /tmp/strict.json >/tmp/strict.stdout 2>/tmp/strict.stderr
+          status=$?
+          set -e
+          if [ "$status" -ne 2 ]; then
+            echo "Expected strict blocked exit 2, got $status" >&2
+            exit 1
+          fi
+          echo 'Strict handoff mode FAIL-CLOSED PASS.'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-candidate-evidence-handoff-preflight-r2
+          path: /tmp/candidate-evidence-handoff-preflight-r2.json
+          if-no-files-found: error
+          retention-days: 30
