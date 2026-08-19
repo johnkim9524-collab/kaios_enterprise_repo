@@ -1,0 +1,18 @@
+{
+  "id": "pilot-source-pool-template-v1",
+  "methodology": "source-admission-rights-methodology-v1",
+  "status": "EMPTY_FAIL_CLOSED_TEMPLATE",
+  "scope": {"category": null, "geography": null, "language": null},
+  "sources": [],
+  "admission_gate": {
+    "minimum_admitted_sources": 1,
+    "all_sources_have_admission_record": true,
+    "collection_rights_not_unknown": true,
+    "derivation_rights_not_unknown": true,
+    "technical_validation_required": true,
+    "evidence_validity_required": true,
+    "publication_not_implied": true
+  },
+  "eligible_for_asi_real_shadow": false,
+  "production": "HOLD"
+}
