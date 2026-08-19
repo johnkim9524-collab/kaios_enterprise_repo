@@ -13,9 +13,14 @@ const sampleIds = new Set((sampling.strata || []).map(x => x.stratum_id));
 for (const lane of plan.lanes) { if (!sampleIds.has(lane.stratum_id)) throw new Error(`UNKNOWN_STRATUM:${lane.stratum_id}`); if (lane.target_cases !== 120) throw new Error(`TARGET_120_REQUIRED:${lane.stratum_id}`); }
 const ready = plan.lanes.filter(x => x.state === 'START_READY');
 const blocked = plan.lanes.filter(x => x.state !== 'START_READY');
-if (ready.length !== 3 || ready.reduce((n,x)=>n+x.target_cases,0) !== 360) throw new Error('START_READY_360_REQUIRED');
-if (blocked.reduce((n,x)=>n+x.target_cases,0) !== 480) throw new Error('BLOCKED_CONDITIONAL_480_REQUIRED');
+if (ready.length !== 4 || ready.reduce((n,x)=>n+x.target_cases,0) !== 480) throw new Error('START_READY_480_REQUIRED');
+if (blocked.reduce((n,x)=>n+x.target_cases,0) !== 360) throw new Error('BLOCKED_CONDITIONAL_360_REQUIRED');
+const pressing = plan.lanes.find(x=>x.stratum_id==='er-stratum-pressing-edition-media');
+if (!pressing || pressing.state!=='START_READY' || !pressing.source_families.includes('musicbrainz-core-database-dump-cc0') || !pressing.rule.includes('exclude supplementary/derived data')) throw new Error('MUSICBRAINZ_CC0_CORE_BOUNDARY_REQUIRED');
 if (!plan.lanes.some(x => x.stratum_id === 'er-stratum-graded-population' && x.state === 'BLOCKED_BULK_RIGHTS')) throw new Error('GRADED_BULK_RIGHTS_FAIL_CLOSED_REQUIRED');
+const vehicle=plan.lanes.find(x=>x.stratum_id==='er-stratum-vehicle-mechanical-asset');
+if (!vehicle?.blocker?.includes('NHTSA vPIC bulk VIN API use prohibited')) throw new Error('NHTSA_BULK_VIN_BLOCK_REQUIRED');
+if (plan.parallel_execution?.start_ready_case_capacity !== 480 || plan.parallel_execution?.blocked_or_conditional_case_capacity !== 360) throw new Error('CAPACITY_TRUTH_MISMATCH');
 if (plan.parallel_execution?.reviewer_a !== 'NOT_ASSIGNED' || plan.parallel_execution?.reviewer_b !== 'NOT_ASSIGNED') throw new Error('REVIEWER_IDENTITY_MUST_NOT_BE_FABRICATED');
 if (plan.parallel_execution?.labels_collected !== 0 || plan.parallel_execution?.blind_partition_sealed !== false || plan.parallel_execution?.empirical_attestation_created !== false || plan.parallel_execution?.track_b_started !== false) throw new Error('DOWNSTREAM_MUST_REMAIN_BLOCKED');
-console.log('PASS: Wave 1 starts 360 cases immediately and fails closed on 480 cases requiring source/right terminalization; reviewer/attestation/Track B remain unclaimed.');
+console.log('PASS: Wave 1 has 480 start-ready cases across four rights-bounded lanes and fails closed on 360 cases; reviewer/attestation/Track B remain unclaimed.');
