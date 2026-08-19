@@ -1,10 +1,22 @@
 {
   "id":"kidults-global-standard-gap-register-v2",
-  "version":"1.1.0",
+  "version":"1.2.0",
   "status":"ACTIVE",
-  "canonical_main":"cb3452faed97d98cef595070b6cf0b391077502f",
+  "authoring_base_main":"b55dd22182bb7fdcbb54b8401fbaf97421cb9aa5",
+  "canonical_main_binding":"PROTECTED_MAIN_HEAD_AT_READ",
+  "truth_binding_note":"Do not persist a field named canonical_main with the PR base SHA: a merge commit advances protected main and makes that value stale immediately. authoring_base_main records provenance; current canonical main is resolved from protected main at read time.",
+  "current_truth":{
+    "er_represented_strata":6,
+    "er_complete_strata":6,
+    "er_required_strata":7,
+    "er_remaining_strata":["GRADED_POPULATION"],
+    "er_latest_empirical_merge_pr":535,
+    "candidate":"NONE",
+    "evidence_package":"NONE",
+    "track_b_assessment":"NOT_STARTED"
+  },
   "gaps":[
-    {"id":"GS-P0-ER","priority":"P0","owner":"Track A + Track B","issue":479,"exit":"all 7 approved ER strata satisfy exact per-stratum minimums; final immutable holdout >=99% overall/blind; critical false auto-merge 0; deterministic replay PASS; rights/provenance 100%; calibration artifact registered"},
+    {"id":"GS-P0-ER","priority":"P0","owner":"Track A + Track B","issue":479,"current_subgate":"6_OF_7_COMPLETE_GRADED_POPULATION_EXTERNAL_CREDENTIAL_RIGHTS_GATE","exit":"all 7 approved ER strata satisfy exact per-stratum minimums; final immutable holdout >=99% overall/blind; critical false auto-merge 0; deterministic replay PASS; rights/provenance 100%; calibration artifact registered"},
     {"id":"GS-P0-ASI","priority":"P0","owner":"Track A + Track D","issue":480,"current_subgate":"BOUNDED_DEV_SHADOW_RUNTIME_CORE_PASS","exit":"#479-calibrated identity + claim-sufficient admitted evidence produce final evidence-admission and market-event-admission artifacts plus immutable Candidate/Evidence handoff"},
     {"id":"GS-P0-MARKET","priority":"P0","owner":"Track A","issue":457,"exit":"claim-level lawful current-market evidence terminalized where claimed + final identity-resolved admission artifacts + immutable snapshot-candidate.json and Evidence Package"},
     {"id":"GS-P0-VALIDATION","priority":"P0","owner":"Track B","issue":236,"exit":"exact immutable candidate/Evidence Package independently assessed and PASS"},
