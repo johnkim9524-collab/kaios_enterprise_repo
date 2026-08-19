@@ -1,0 +1,88 @@
+{
+  "id": "kidults-strict-current-market-admission-gate-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_FAIL_CLOSED_CONTRACT",
+  "parent_issues": [558, 457, 550, 560],
+  "scope_boundary": "COLLECTIBLES_ONLY",
+  "production": "HOLD",
+  "principle": "DATED_OBSERVED_SOLD_TRANSACTION_IS_NOT_CURRENT_PRICE_OR_LIQUIDITY",
+  "claim_classes": {
+    "DATED_OBSERVED_SOLD_TRANSACTION": {
+      "required": [
+        "EXACT_ITEM_IDENTITY",
+        "SOLD_MARKET_STATE",
+        "EVENT_DATE",
+        "REALIZED_PRICE",
+        "CURRENCY",
+        "CANONICAL_PROVENANCE_REFERENCE",
+        "COLLECT_RIGHT",
+        "BOUNDED_STORE_RIGHT",
+        "INTERNAL_DERIVE_RIGHT"
+      ],
+      "condition_required": false,
+      "freshness_policy": "DATED_EVENT_WITH_EXPLICIT_AGE",
+      "allows_current_price_claim": false,
+      "allows_liquidity_claim": false
+    },
+    "CURRENT_PRICE": {
+      "required": [
+        "EXACT_ITEM_IDENTITY",
+        "VERIFIED_SOLD_SEMANTICS",
+        "REALIZED_PRICE",
+        "CURRENCY",
+        "EVENT_DATE",
+        "CLAIM_SPECIFIC_FRESHNESS_THRESHOLD_CALIBRATED",
+        "CONDITION_OR_GRADE_SEGMENTATION",
+        "OUTLIER_AND_DUPLICATE_CONTROL",
+        "COLLECT_RIGHT",
+        "STORE_RIGHT",
+        "DERIVE_RIGHT",
+        "PROVENANCE",
+        "MINIMUM_SAMPLE_RULE_CALIBRATED"
+      ],
+      "forbidden_substitutions": [
+        "DATED_SOLD_AS_CURRENT_PRICE",
+        "ASK_AS_REALIZED_PRICE",
+        "LISTING_AS_SOLD",
+        "UNKNOWN_CONDITION_AS_CONDITION_ADJUSTED_PRICE"
+      ]
+    },
+    "LIQUIDITY_OR_TIME_TO_SALE": {
+      "required": [
+        "EXACT_ITEM_IDENTITY",
+        "EXPOSURE_DENOMINATOR",
+        "LISTING_START_OR_OBSERVATION_START",
+        "SALE_OR_CENSOR_END",
+        "SOLD_UNSOLD_WITHDRAWN_SEMANTICS",
+        "FAILED_SALE_OR_CENSOR_HANDLING",
+        "CLAIM_SPECIFIC_FRESHNESS_THRESHOLD_CALIBRATED",
+        "COLLECT_RIGHT",
+        "STORE_RIGHT",
+        "DERIVE_RIGHT",
+        "PROVENANCE"
+      ],
+      "forbidden_substitutions": [
+        "SOLD_COUNT_AS_LIQUIDITY_WITHOUT_DENOMINATOR",
+        "SALE_DATE_ONLY_AS_TIME_TO_SALE",
+        "ACTIVE_LISTING_COUNT_AS_DEMAND"
+      ]
+    }
+  },
+  "redundancy_policy": {
+    "preferred": "TWO_INDEPENDENT_PROVIDER_OWNERS",
+    "single_provider_allowed_only_with": [
+      "EXPLICIT_CONCENTRATION_DECISION",
+      "CLAIM_CEILING",
+      "REPLACEMENT_PLAN",
+      "NO_PROVIDER_GLOBAL_TRUTH"
+    ]
+  },
+  "current_empirical_binding": {
+    "source_artifact": "coordination/kidults/source-intelligence/collectaio-shadow-sold-admission-r1.json",
+    "expected_classification": "DATED_ONLY_NOT_STRICT_CURRENT",
+    "strict_current_price_eligible": false,
+    "liquidity_eligible": false,
+    "public_or_commercial_projection_eligible": false
+  },
+  "exit": "A future exact bounded source package passes only the specific claim class whose required assertions are all evidenced. Missing assertions remain HOLD and never become zero or inferred PASS."
+}
