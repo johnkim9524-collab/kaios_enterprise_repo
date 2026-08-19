@@ -1,0 +1,39 @@
+{
+  "id": "kidults-global-source-mesh-contract-v1",
+  "version": "1.0.0",
+  "parent_issue": 549,
+  "production": "HOLD",
+  "scope_registry": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json",
+  "evidence_classes": [
+    "IDENTITY_CANONICAL_REFERENCE",
+    "CURRENT_SOLD_TRANSACTION",
+    "HISTORICAL_TRANSACTION_PROVENANCE",
+    "LISTING_AVAILABILITY",
+    "SCARCITY_POPULATION_SUPPLY",
+    "LIQUIDITY_TIME_TO_SALE_EXPOSURE",
+    "REGIONAL_CONTEXT",
+    "SENTIMENT_ATTENTION_CONTEXT"
+  ],
+  "lane_templates": {
+    "IDENTITY_CANONICAL_REFERENCE": {"source_lane_class":"OPEN_OR_OFFICIAL_AUTHORITY_METADATA","default_state":"SCREENING_REQUIRED","claim_ceiling":"IDENTITY_REFERENCE_ONLY","decision_utility":5,"evidence_strength":4,"rights_clarity":4,"autonomy":5,"dependency_risk":1},
+    "CURRENT_SOLD_TRANSACTION": {"source_lane_class":"OFFICIAL_OR_LICENSED_TERMINAL_SOLD_API_FEED","default_state":"GAP_UNTIL_ADMITTED","claim_ceiling":"NO_CURRENT_PRICE_OR_TRANSACTION_CLAIM","decision_utility":5,"evidence_strength":5,"rights_clarity":2,"autonomy":3,"dependency_risk":4},
+    "HISTORICAL_TRANSACTION_PROVENANCE": {"source_lane_class":"OPEN_PROVENANCE_OR_AUTHORIZED_AUCTION_ARCHIVE","default_state":"SCREENING_REQUIRED","claim_ceiling":"HISTORICAL_CONTEXT_ONLY","decision_utility":4,"evidence_strength":4,"rights_clarity":3,"autonomy":4,"dependency_risk":2},
+    "LISTING_AVAILABILITY": {"source_lane_class":"PUBLIC_OR_LICENSED_LISTING_FEED","default_state":"DISCOVERY_ONLY_UNTIL_ADMITTED","claim_ceiling":"LISTING_AVAILABILITY_ONLY_NOT_SOLD","decision_utility":3,"evidence_strength":2,"rights_clarity":2,"autonomy":3,"dependency_risk":3},
+    "SCARCITY_POPULATION_SUPPLY": {"source_lane_class":"OFFICIAL_AUTHORITY_OR_MANUFACTURER_CENSUS","default_state":"GAP_UNTIL_ADMITTED","claim_ceiling":"NO_POPULATION_OR_SCARCITY_CLAIM","decision_utility":4,"evidence_strength":5,"rights_clarity":2,"autonomy":2,"dependency_risk":4},
+    "LIQUIDITY_TIME_TO_SALE_EXPOSURE": {"source_lane_class":"SOLD_PLUS_FAILED_SALE_PLUS_EXPOSURE_DENOMINATOR","default_state":"GAP_UNTIL_ADMITTED","claim_ceiling":"NO_LIQUIDITY_OR_TIME_TO_SALE_CLAIM","decision_utility":5,"evidence_strength":5,"rights_clarity":1,"autonomy":2,"dependency_risk":5},
+    "REGIONAL_CONTEXT": {"source_lane_class":"PUBLIC_REGIONAL_REFERENCE_AND_MARKET_CONTEXT","default_state":"SCREENING_REQUIRED","claim_ceiling":"REGIONAL_CONTEXT_NOT_MARKET_SIGNIFICANCE","decision_utility":3,"evidence_strength":2,"rights_clarity":4,"autonomy":4,"dependency_risk":2},
+    "SENTIMENT_ATTENTION_CONTEXT": {"source_lane_class":"PUBLIC_CONTEXT_SIGNAL","default_state":"DISCOVERY_ONLY_UNTIL_ADMITTED","claim_ceiling":"ATTENTION_CONTEXT_NOT_DEMAND","decision_utility":2,"evidence_strength":1,"rights_clarity":2,"autonomy":3,"dependency_risk":3}
+  },
+  "hard_rules": [
+    "PROVIDER_IS_NOT_TRUTH",
+    "LISTING_IS_NOT_SOLD",
+    "HISTORICAL_IS_NOT_CURRENT",
+    "SCARCITY_IS_NOT_LIQUIDITY",
+    "ATTENTION_IS_NOT_DEMAND",
+    "MISSING_IS_NOT_ZERO",
+    "CLAIM_STRENGTH_LE_EVIDENCE_STRENGTH",
+    "UNKNOWN_RIGHTS_BLOCK_COLLECTION_AND_DERIVATION",
+    "NO_SINGLE_PROVIDER_GLOBAL_TRUTH"
+  ],
+  "truth_boundary": "This contract creates market-cell/source-lane selection structure only. A lane state is not source admission and does not authorize publication, provider purchase, external account/EULA action, or Production."
+}
