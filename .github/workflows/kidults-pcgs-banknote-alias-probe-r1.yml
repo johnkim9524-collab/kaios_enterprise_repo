@@ -1,0 +1,26 @@
+name: KIDULTS PCGS Banknote Alias Probe R1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/probe-pcgs-banknote-alias-r1.mjs'
+      - '.github/workflows/kidults-pcgs-banknote-alias-probe-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-banknote-alias-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      KAIOS_PCGS_ACCOUNT_AUTHORIZED: ${{ vars.KAIOS_PCGS_ACCOUNT_AUTHORIZED }}
+      KAIOS_PCGS_EULA_COMPATIBLE: ${{ vars.KAIOS_PCGS_EULA_COMPATIBLE }}
+      KAIOS_PCGS_API_TOKEN: ${{ secrets.KAIOS_PCGS_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Run bounded PCGS banknote authoritative alias probe
+        run: node scripts/kidults/source-intelligence/probe-pcgs-banknote-alias-r1.mjs
