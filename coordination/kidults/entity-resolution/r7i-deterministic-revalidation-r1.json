@@ -1,0 +1,14 @@
+{
+  "id": "kidults-er-r7i-deterministic-revalidation-r1",
+  "version": "1.0.0",
+  "parent_issue": 609,
+  "purpose": "Stabilize R7I constructed-control live provenance revalidation without changing empirical-promotion semantics.",
+  "change": "Replace broad WDQS rediscovery with direct live Wikidata EntityData revalidation of already-proven load-bearing records.",
+  "canonical_asi_evidence_refreshed": true,
+  "canonical_asi_cmp_weakened": false,
+  "empirical_labels_added": 0,
+  "reviewers_assigned": 0,
+  "blind_holdout_changed": false,
+  "public_release": "HOLD",
+  "production": "HOLD"
+}
