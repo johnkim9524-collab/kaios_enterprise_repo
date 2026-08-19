@@ -1,0 +1,46 @@
+name: KIDULTS ER Real Dataset R1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs'
+      - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - '.github/workflows/kidults-er-real-dataset-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assemble-and-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Assemble real-world rights-backed ER increment
+        run: node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-real-world-increment-r1.json
+      - name: Run canonical benchmark v2 runner
+        run: node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-real-world-increment-r1.json /tmp/er-real-world-results-r1.json
+      - name: Verify measured correctness without completion inflation
+        run: |
+          node - <<'NODE'
+          const d=require('/tmp/er-real-world-increment-r1.json');
+          const r=require('/tmp/er-real-world-results-r1.json');
+          if (d.synthetic !== false || d.dataset_class !== 'REAL_WORLD_LABELED') process.exit(1);
+          if (d.cases.length < 2) process.exit(1);
+          if (r.accuracy !== 1 || r.critical_false_auto_merge !== 0) process.exit(1);
+          if (r.coverage.provenance_coverage !== 1 || r.coverage.rights_coverage !== 1) process.exit(1);
+          if (r.promotion_gate.promotion_eligible_before_track_b !== false) process.exit(1);
+          console.log('Real-world increment measured PASS; full #479 promotion correctly blocked by incomplete breadth.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-real-world-increment-r1
+          path: |
+            /tmp/er-real-world-increment-r1.json
+            /tmp/er-real-world-results-r1.json
+          if-no-files-found: error
+          retention-days: 30
