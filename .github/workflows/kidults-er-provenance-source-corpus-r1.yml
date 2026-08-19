@@ -1,0 +1,45 @@
+name: KIDULTS ER Provenance Source Corpus R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/provenance-source-corpus-r1.json'
+      - 'scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs'
+      - '.github/workflows/kidults-er-provenance-source-corpus-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acquire-provenance-corpus:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Acquire 240 explicit Getty provenance Activity-object pairs
+        run: |
+          node scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs /tmp/provenance-source-corpus-r1.json
+      - name: Validate acquisition truth boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const a=JSON.parse(fs.readFileSync('/tmp/provenance-source-corpus-r1.json','utf8'));
+          if(a.status!=='REAL_SOURCE_LINKED_EVENT_OBJECT_CORPUS_UNLABELED') throw new Error('STATUS_INVALID');
+          if(a.stratum_id!=='er-stratum-provenance-unique-object') throw new Error('STRATUM_INVALID');
+          if(a.pair_count!==240 || a.pairs?.length!==240) throw new Error('PAIR_COUNT_240_REQUIRED');
+          if(a.labels_present!==false || a.model_predictions_present!==false) throw new Error('UNLABELED_BOUNDARY_REQUIRED');
+          if(a.production!=='HOLD' || a.public_release!=='HOLD') throw new Error('RELEASE_HOLD_REQUIRED');
+          if(a.pairs.some(p=>p.rights_state!=='ALLOW')) throw new Error('RIGHTS_ALLOW_REQUIRED');
+          if(a.pairs.some(p=>p.linkage_path!=='Activity.part[Acquisition].transferred_title_of -> HumanMadeObject')) throw new Error('EXPLICIT_LINKAGE_REQUIRED');
+          if(a.pairs.some(p=>!p.event_payload_sha256 || !p.object_payload_sha256)) throw new Error('DUAL_PAYLOAD_DIGEST_REQUIRED');
+          console.log('PASS: 240 explicit Getty Activity-to-HumanMadeObject pairs acquired with dual evidence bindings; no labels or ER PASS claimed.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-provenance-source-corpus-r1
+          path: /tmp/provenance-source-corpus-r1.json
+          retention-days: 14
