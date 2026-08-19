@@ -335,8 +335,8 @@
     },
     "entity_resolution_provenance_minimums_r7i_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs",
-      "sha256": "sha256:1cbe9d1a567debecdf88b36008e652e76ffce07bc1671a8c7c101e1fc92aa9f2",
-      "byte_count": 20443
+      "sha256": "sha256:98a069e748a4d0fea56ccb95c11da0836d6aaefdd1f5cdf088d2276785b8c80c",
+      "byte_count": 17286
     },
     "entity_resolution_designer_maker_minimums_r7j_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs",
@@ -1035,8 +1035,8 @@
       },
       "provenance_minimums_r7i_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs",
-        "sha256": "sha256:1cbe9d1a567debecdf88b36008e652e76ffce07bc1671a8c7c101e1fc92aa9f2",
-        "byte_count": 20443
+        "sha256": "sha256:98a069e748a4d0fea56ccb95c11da0836d6aaefdd1f5cdf088d2276785b8c80c",
+        "byte_count": 17286
       },
       "designer_maker_minimums_r7j_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs",
@@ -2267,5 +2267,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:46d7119d529164f853969adfaddc81230c6c7c6598050a3ddfc112b2a8595763"
+  "evidence_fingerprint": "sha256:aa09c4605bdaaf04cc360e16b7766a06507c7da75f8e3cc52cbaebc82ddea037"
 }
