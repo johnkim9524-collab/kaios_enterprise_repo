@@ -1,8 +1,7 @@
 {
   "id":"kidults-global-standard-gap-register-v2",
-  "version":"1.3.0",
+  "version":"1.4.0",
   "status":"ACTIVE",
-  "authoring_base_main":"5f59b36dfddb4a3ec818f820e271ec326b74ae5c",
   "canonical_main_binding":"PROTECTED_MAIN_HEAD_AT_READ",
   "truth_binding_note":"Current canonical main is resolved from protected main at read time. Support P0 issues are mapped into existing top-level gap classes so unresolved_top_level_p0_or_gate is not double-counted.",
   "current_truth":{
@@ -11,28 +10,41 @@
     "er_required_strata":7,
     "er_remaining_strata":["GRADED_POPULATION"],
     "er_latest_empirical_merge_pr":535,
-    "graded_population_authority_state":"PSA_PUBLIC_API_HTTP_403_APPROVED_CUSTOMER_GATE_EXTERNAL_RESPONSE_PENDING",
+    "graded_population_authority_state":"PSA_HTTP_403_APPROVED_CUSTOMER_RESPONSE_PENDING__PCGS_BOUNDED_EVALUATION_APPROVED_NO_DATA_ADMITTED",
     "candidate":"NONE",
     "evidence_package":"NONE",
     "track_b_assessment":"NOT_STARTED",
     "global_source_mesh_issue":549,
+    "global_source_mesh_state":"COMPLETE_768_CELLS_SELECTION_MAP_NOT_SOURCE_ADMISSION",
+    "source_redundancy_pr":570,
+    "identity_reference_independent_owner_count":2,
+    "historical_provenance_independent_owner_count":1,
+    "scarcity_population_rights_admitted_authority_count":0,
+    "strict_current_sold_rights_admitted_source_count":0,
     "kidults_owned_intelligence_fabric_issue":550,
-    "owned_fabric_governance_pr":551
+    "owned_fabric_governance_pr":551,
+    "owned_fabric_partial_multicell_lineage_pr":571,
+    "owned_fabric_empirical_state":"PARTIAL_MULTICELL_LINEAGE_PROVEN_IDENTITY_REFERENCE_PLUS_HISTORICAL_ONLY_CURRENT_MARKET_BLOCKED",
+    "strict_completion_score":17,
+    "production":"HOLD"
   },
   "gaps":[
-    {"id":"GS-P0-ER","priority":"P0","owner":"Track A + Track B","issue":479,"current_subgate":"6_OF_7_COMPLETE_GRADED_POPULATION_EXTERNAL_CUSTOMER_APPROVAL_WAIT","exit":"all 7 approved ER strata satisfy exact per-stratum minimums; final immutable holdout >=99% overall/blind; critical false auto-merge 0; deterministic replay PASS; rights/provenance 100%; calibration artifact registered"},
-    {"id":"GS-P0-ASI","priority":"P0","owner":"Track A + Track D","issue":480,"current_subgate":"BOUNDED_DEV_SHADOW_RUNTIME_CORE_PASS_SHADOW_OPERATING_EVIDENCE_MERGED_540","exit":"#479-calibrated identity + claim-sufficient admitted evidence produce final evidence-admission and market-event-admission artifacts plus immutable Candidate/Evidence handoff"},
-    {"id":"GS-P0-MARKET","priority":"P0","owner":"Track A","issue":457,"support_issues":[549,550],"current_subgate":"GLOBAL_SOURCE_MESH_AND_CLAIM_SPECIFIC_CURRENT_MARKET_EVIDENCE_ACTIVE","exit":"claim-level lawful current-market evidence terminalized where claimed + final identity-resolved admission artifacts + immutable snapshot-candidate.json and Evidence Package"},
-    {"id":"GS-P0-VALIDATION","priority":"P0","owner":"Track B","issue":236,"exit":"exact immutable candidate/Evidence Package independently assessed and PASS"},
-    {"id":"GS-P0-ASSURANCE","priority":"P0","owner":"KPMO + Tracks C/D","exit":"security/SBOM/vulnerability/secret + privacy/retention + field-level rights + WCAG release evidence all PASS"},
-    {"id":"GS-P1-RUNTIME","priority":"P1","owner":"Track D","issue":481,"support_issues":[550],"exit":"DEV/STAGING empirical latency/throughput/replay/retry-DLQ/backup-restore/rollback/recovery/cost proof PASS"},
-    {"id":"GS-P1-PORTAL","priority":"P1","owner":"Track C","issue":237,"exit":"real approved Projection transparency lifecycle + WCAG 2.2 evidence PASS"},
-    {"id":"GS-P1-EOS","priority":"P1","owner":"Track E","issue":256,"exit":"real approved Projection lifecycle Founder Acceptance PASS"},
-    {"id":"GS-P0-INTEGRATION","priority":"P0_GATE","owner":"KPMO","issue":238,"support_issues":[550],"exit":"exact upstream IDs/rights/assessment/runtime/rollback/Portal-EOS QA validated and Integration Gate PASS"}
+    {"id":"GS-P0-ER","priority":"P0","owner":"Track A + Track B","issue":479,"current_subgate":"6_OF_7_COMPLETE_GRADED_POPULATION_PSA_EXTERNAL_WAIT_AND_PCGS_APPROVED_EVALUATION_NO_DATA_ADMITTED","exit":"all 7 approved ER strata satisfy exact per-stratum minimums; final immutable holdout >=99% overall/blind; critical false auto-merge 0; deterministic replay PASS; rights/provenance 100%; calibration artifact registered"},
+    {"id":"GS-P0-ASI","priority":"P0","owner":"Track A + Track D","issue":480,"support_issues":[550,560],"current_subgate":"BOUNDED_DEV_SHADOW_RUNTIME_CORE_PASS_PLUS_PR571_PARTIAL_MULTICELL_LINEAGE_CURRENT_MARKET_AND_CANDIDATE_PATH_INCOMPLETE","exit":"#479-calibrated identity + claim-sufficient admitted evidence produce final evidence-admission and market-event-admission artifacts plus immutable Candidate/Evidence handoff"},
+    {"id":"GS-P0-MARKET","priority":"P0","owner":"Track A","issue":457,"support_issues":[549,550,558,559,560],"current_subgate":"SOURCE_SELECTION_COMPLETE_IDENTITY_REDUNDANCY_PARTIAL_CURRENT_SOLD_ZERO_CURRENT_MARKET_EVIDENCE_OPEN","exit":"claim-level lawful current-market evidence terminalized where claimed + final identity-resolved admission artifacts + immutable snapshot-candidate.json and Evidence Package"},
+    {"id":"GS-P0-VALIDATION","priority":"P0","owner":"Track B","issue":236,"current_subgate":"READY_TO_ASSESS_WAITING_FOR_EXACT_IMMUTABLE_PAIR","exit":"exact immutable candidate/Evidence Package independently assessed and PASS"},
+    {"id":"GS-P0-ASSURANCE","priority":"P0","owner":"KPMO + Tracks C/D","current_subgate":"SECURITY_PRIVACY_WCAG_AUTOMATION_PARTIAL_FINAL_RIGHTS_MANUAL_ACCESSIBILITY_AND_FINAL_SECURITY_ACCEPTANCE_OPEN","exit":"security/SBOM/vulnerability/secret + privacy/retention + field-level rights + WCAG release evidence all PASS"},
+    {"id":"GS-P1-RUNTIME","priority":"P1","owner":"Track D","issue":481,"support_issues":[550,560],"current_subgate":"CI_CONTROL_AND_READONLY_INVENTORY_HARNESS_PRESENT_REMOTE_DEV_STAGING_EMPIRICAL_PROOF_INCOMPLETE","exit":"DEV/STAGING empirical latency/throughput/replay/retry-DLQ/backup-restore/rollback/recovery/cost proof PASS"},
+    {"id":"GS-P1-PORTAL","priority":"P1","owner":"Track C","issue":237,"current_subgate":"AUTOMATED_WCAG_R1_PASS_MANUAL_SCREEN_READER_HUMAN_USABILITY_AND_LIVE_APPROVED_PROJECTION_WAIT","exit":"real approved Projection transparency lifecycle + WCAG 2.2 evidence PASS"},
+    {"id":"GS-P1-EOS","priority":"P1","owner":"Track E","issue":256,"current_subgate":"FOUNDATION_COMPLETE_LIVE_APPROVED_PROJECTION_AND_FOUNDER_ACCEPTANCE_WAIT","exit":"real approved Projection lifecycle Founder Acceptance PASS"},
+    {"id":"GS-P0-INTEGRATION","priority":"P0_GATE","owner":"KPMO","issue":238,"support_issues":[550,560],"current_subgate":"NOT_ELIGIBLE_UPSTREAM_IMMUTABLE_PAIR_TRACK_B_RUNTIME_RIGHTS_PORTAL_EOS_NOT_CONVERGED","exit":"exact upstream IDs/rights/assessment/runtime/rollback/Portal-EOS QA validated and Integration Gate PASS"}
   ],
   "support_p0_mapping":[
     {"issue":549,"role":"GLOBAL_SOURCE_SELECTION_AND_REDUNDANCY_MAP","maps_to":["GS-P0-MARKET"],"counted_as_additional_top_level_gap":false},
-    {"issue":550,"role":"KIDULTS_OWNED_INTELLIGENCE_FABRIC_EMPIRICAL_E2E_FLOW","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false}
+    {"issue":550,"role":"KIDULTS_OWNED_INTELLIGENCE_FABRIC","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false},
+    {"issue":558,"role":"CURRENT_SOLD_LIQUIDITY_EXPOSURE_BINDING_WAVE","maps_to":["GS-P0-MARKET"],"counted_as_additional_top_level_gap":false},
+    {"issue":559,"role":"IDENTITY_PROVENANCE_SCARCITY_REDUNDANCY_WAVE","maps_to":["GS-P0-MARKET","GS-P0-ER"],"counted_as_additional_top_level_gap":false},
+    {"issue":560,"role":"BOUNDED_MULTICELL_SOURCE_TO_GRAPHS_TO_ENGINE_MESH_PROOF","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false}
   ],
   "unresolved_top_level_p0_or_gate":6,
   "unresolved_p0_allowed_for_100_percent":0,
