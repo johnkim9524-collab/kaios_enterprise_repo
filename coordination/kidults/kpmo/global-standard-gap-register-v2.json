@@ -1,15 +1,20 @@
 {
   "id": "kidults-global-standard-gap-register-v2",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "status": "ACTIVE",
   "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
-  "truth_binding_note": "Support P0 issues map into existing top-level gap classes. PARTIAL evidence does not become PASS, and stronger current-price/liquidity claims remain separate from the first bounded dated-transaction PoC claim.",
+  "truth_binding_note": "Support P0 issues map into existing top-level gap classes. PARTIAL evidence does not become PASS. PCGS #603-#605 remove operational, grade/population-schema and second-authoritative-identifier uncertainties, but GRADED_POPULATION remains incomplete until exact field-purpose admission and genuine R7K/finalization evidence exist.",
   "current_truth": {
     "er_represented_strata": 6,
     "er_complete_strata": 6,
     "er_required_strata": 7,
     "er_remaining_strata": ["GRADED_POPULATION"],
-    "graded_population_authority_state": "PCGS_FOUNDER_APPROVED_BOUNDED_EVALUATION_OPERATIONAL_ACCOUNT_EULA_TOKEN_HANDOFF_PENDING__PSA_APPROVAL_RESPONSE_PENDING",
+    "graded_population_authority_state": "PCGS_OPERATIONAL_HANDOFF_EULA_PASS_PR603__GRADE_POPULATION_SCHEMA_HTTP200_PR604__AUTHORITATIVE_SECOND_IDENTIFIER_SERIAL_BINDING_HTTP200_PR605__PROVIDER_DATA_NOT_ADMITTED__EXACT_FIELD_PURPOSE_ADMISSION_AND_R7K_FINAL_CHAIN_PENDING__PSA_FALLBACK_PENDING",
+    "pcgs_operational_handoff_pr": 603,
+    "pcgs_grade_population_probe_pr": 604,
+    "pcgs_second_identifier_probe_pr": 605,
+    "pcgs_second_identifier_class": "BANKNOTE_SERIAL_NUMBER",
+    "pcgs_provider_data_admitted": false,
     "candidate": "NONE",
     "evidence_package": "NONE",
     "track_b_assessment": "NOT_STARTED",
@@ -35,7 +40,7 @@
     "time_to_sale_verified": false,
     "global_representativeness_verified": false,
     "owned_fabric_bounded_cell_count": 3,
-    "owned_fabric_empirical_state": "PARTIAL_MULTICELL_LINEAGE_PROVEN_IDENTITY_REFERENCE_PLUS_HISTORICAL_PLUS_DATED_SOLD_INTERNAL__SELECTED_POC_CLAIM_PRELOCKED__FINAL_ER_CANDIDATE_TRACK_B_PATH_INCOMPLETE",
+    "owned_fabric_empirical_state": "PARTIAL_MULTICELL_LINEAGE_PROVEN_IDENTITY_REFERENCE_PLUS_HISTORICAL_PLUS_DATED_SOLD_INTERNAL__SELECTED_POC_CLAIM_PRELOCKED__PCGS_R7K_INPUT_SCHEMA_AND_SECOND_IDENTIFIER_NOW_PROVEN__FINAL_FIELD_ADMISSION_ER7OF7_CANDIDATE_TRACK_B_PATH_INCOMPLETE",
     "strict_completion_score": 17,
     "production": "HOLD"
   },
@@ -45,8 +50,8 @@
       "priority": "P0",
       "owner": "Track A + Track B",
       "issue": 479,
-      "support_issues": [559, 566],
-      "current_subgate": "6_OF_7_COMPLETE__GRADED_POPULATION_PCGS_OPERATIONAL_HANDOFF_OR_PSA_APPROVAL_REQUIRED",
+      "support_issues": [559, 566, 543],
+      "current_subgate": "6_OF_7_COMPLETE__PCGS_PR603_OPERATIONAL_HANDOFF_GREEN__PR604_GRADE_POPULATION_SCHEMA_PROVEN__PR605_SECOND_AUTHORITATIVE_IDENTIFIER_SERIAL_PROVEN__EXACT_FIELD_PURPOSE_ADMISSION_R7K_CASE_CONSTRUCTION_FULL_CHAIN_FREEZE_CALIBRATION_PENDING",
       "exit": "all 7 approved ER strata satisfy exact per-stratum minimums; final immutable holdout >=99% overall/blind; critical false auto-merge 0; deterministic replay PASS; rights/provenance 100%; calibration artifact registered"
     },
     {
@@ -55,7 +60,7 @@
       "owner": "Track A + Track D",
       "issue": 480,
       "support_issues": [550, 560],
-      "current_subgate": "BOUNDED_DEV_SHADOW_RUNTIME_CORE_PASS__PR599_THREE_CELL_LINEAGE__PR600_SELECTED_CLAIM_LOCKED__FINAL_ER_AND_IMMUTABLE_CANDIDATE_PATH_INCOMPLETE",
+      "current_subgate": "BOUNDED_DEV_SHADOW_RUNTIME_CORE_PASS__PR599_THREE_CELL_LINEAGE__PR600_SELECTED_CLAIM_LOCKED__PCGS_PR604_PR605_REDUCE_FINAL_ER_INPUT_RISK__IMMUTABLE_CANDIDATE_PATH_INCOMPLETE",
       "exit": "final calibrated identity + admitted selected-claim evidence produce immutable Candidate/Evidence handoff and Track B-ready lineage without truth inflation"
     },
     {
@@ -64,7 +69,7 @@
       "owner": "Track A",
       "issue": 457,
       "support_issues": [549, 550, 558, 559, 560, 566, 577, 578],
-      "current_subgate": "PR591_DATED_SOLD_INTERNAL_ADMITTED__PR599_LINEAGE_PROVEN__PR600_FIRST_POC_CLAIM_LOCKED__PR601_SINGLE_PROVIDER_CONCENTRATION_ACCEPTED_FOR_NARROW_INTERNAL_CLAIM__CURRENT_PRICE_LIQUIDITY_EXPOSURE_STRONGER_CLAIMS_STILL_BLOCKED__CANDIDATE_NONE",
+      "current_subgate": "PR591_DATED_SOLD_INTERNAL_ADMITTED__PR599_LINEAGE_PROVEN__PR600_FIRST_POC_CLAIM_LOCKED__PR601_SINGLE_PROVIDER_CONCENTRATION_ACCEPTED_FOR_NARROW_INTERNAL_CLAIM__PCGS_GRADING_SCHEMA_ALIAS_PROBES_GREEN_BUT_NO_PCGS_MARKET_DATA_ADMITTED__CURRENT_PRICE_LIQUIDITY_EXPOSURE_STRONGER_CLAIMS_STILL_BLOCKED__CANDIDATE_NONE",
       "exit": "selected PoC claim remains within admitted evidence ceiling + final identity-resolved admission artifacts + immutable snapshot-candidate.json and Evidence Package; stronger market claims remain fail-closed unless separately evidenced"
     },
     {
@@ -122,7 +127,8 @@
     {"issue":550,"role":"KIDULTS_OWNED_INTELLIGENCE_FABRIC","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false},
     {"issue":558,"role":"CURRENT_SOLD_LIQUIDITY_EXPOSURE_BINDING_WAVE","maps_to":["GS-P0-MARKET"],"counted_as_additional_top_level_gap":false},
     {"issue":559,"role":"IDENTITY_PROVENANCE_SCARCITY_REDUNDANCY_WAVE","maps_to":["GS-P0-MARKET","GS-P0-ER"],"counted_as_additional_top_level_gap":false},
-    {"issue":560,"role":"BOUNDED_MULTICELL_SOURCE_TO_GRAPHS_TO_ENGINE_MESH_PROOF_PR599_THREE_CELL_DATED_SOLD_INTERNAL","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false}
+    {"issue":560,"role":"BOUNDED_MULTICELL_SOURCE_TO_GRAPHS_TO_ENGINE_MESH_PROOF_PR599_THREE_CELL_DATED_SOLD_INTERNAL","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false},
+    {"issue":543,"role":"GRADED_POPULATION_R7K_POST_PROBE_EXECUTION","maps_to":["GS-P0-ER"],"counted_as_additional_top_level_gap":false}
   ],
   "unresolved_top_level_p0_or_gate": 6,
   "unresolved_p0_allowed_for_100_percent": 0,
