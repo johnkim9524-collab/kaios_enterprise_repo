@@ -1,0 +1,337 @@
+{
+  "id": "kidults-er-graded-population-live-capacity-r1",
+  "version": "1.2.0",
+  "stratum_id": "er-stratum-graded-population",
+  "generated_at": "2026-08-19T18:25:52.375Z",
+  "probe_status": "COMPLETE_FAIL_CLOSED_NO_RIGHTS_ADMITTED_SOURCE_FIT",
+  "environment_class": "READ_ONLY_LIVE_RIGHTS_AND_SOURCE_FIT_PREFLIGHT",
+  "audit_scope": "BOUNDED_REPOSITORY_NAMED_TIER1_GRADING_AUTHORITIES_PLUS_WIKIDATA_CC0_ALTERNATIVE",
+  "collectible_scope": {
+    "allowed": [
+      "trading_cards",
+      "comic_books",
+      "video_games_consoles"
+    ],
+    "non_collectibles_admitted": false
+  },
+  "request_boundary": {
+    "http_method": "GET",
+    "authenticated": false,
+    "credentials_used": false,
+    "spend_usd": 0,
+    "remote_mutation": false,
+    "provider_record_requests": 0,
+    "blocked_provider_web_or_api_requests": 0,
+    "maximum_cc0_requests": 4,
+    "actual_cc0_requests": 4,
+    "local_output_only": true
+  },
+  "repository_evidence_bindings": {
+    "sampling_plan": {
+      "path": "coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json",
+      "canonical_payload_sha256": "sha256:de8b9b6c4d66ffb2fbe64740abb5a476a3a718e825f9649de766e79415a97aaa"
+    },
+    "pcgs_rights_terminalization": {
+      "path": "coordination/kidults/source-intelligence/pcgs-eula-rights-terminalization-v1.json",
+      "canonical_payload_sha256": "sha256:86950839ab3d1f758de84c0be77f94a04074328bfafb666fc57ffdda69ef992c"
+    },
+    "provider_probe_gate": {
+      "path": "coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json",
+      "canonical_payload_sha256": "sha256:98c8884845a8b16acbd470835279ced137a9cd25581e953b9fe82e0f7d671f29"
+    },
+    "trusted_collectibles_sources": {
+      "path": "coordination/kidults/registry/trusted-source/records/trusted-source-cards-comics-memorabilia-r1.json",
+      "canonical_payload_sha256": "sha256:db9a38ab55b497e2fb1dde011429c2aa2870f81497708bb20fd205b4fc1f9489"
+    }
+  },
+  "sampling_target": {
+    "cases": 120,
+    "blind": 60,
+    "per_class": {
+      "SAME_OBJECT_NORMALIZATION": 40,
+      "HARD_NEGATIVE": 40,
+      "CROSS_MARKET_ALIAS": 40
+    },
+    "per_boundary": {
+      "SOURCE_RECORD": 60,
+      "PHYSICAL_OBJECT": 60
+    }
+  },
+  "strict_record_grammar": {
+    "required": [
+      "title_or_subject",
+      "issue_or_card",
+      "printing_or_variant",
+      "grade",
+      "certification_number",
+      "population_context"
+    ],
+    "required_identity_aliases": [
+      "grading_certification_number",
+      "independent_authoritative_object_or_registry_identifier"
+    ],
+    "admitted_wikidata_property_mappings": {
+      "title_or_subject": "ENTITY_LABEL_ONLY_INSUFFICIENT_ALONE",
+      "issue_or_card": null,
+      "printing_or_variant": null,
+      "grade": null,
+      "certification_number": null,
+      "population_context": null,
+      "physical_object_serial": "P2598_ONLY_NOT_CERTIFICATION"
+    },
+    "inference_prohibited": true,
+    "rejected_substitutions": [
+      "P10611_AS_CERTIFICATION_NUMBER",
+      "P5021_AS_COLLECTIBLE_GRADE",
+      "P1082_AS_GRADED_POPULATION_CONTEXT",
+      "P2598_AS_GRADING_CERTIFICATION_WITHOUT_AUTHORITY_BINDING"
+    ]
+  },
+  "source_candidates": [
+    {
+      "source_family": "pcgs-public-api",
+      "scope_fit": "BOUNDED_COIN_BANKNOTE_REFERENCE_NOT_DECLARED_CARDS_COMICS_VIDEO_GAMES_EXAMPLES",
+      "rights_state": "BLOCK_BULK_BOUNDED_EVALUATION_ONLY",
+      "grammar_fit_state": "NOT_EVALUATED_FOR_BULK",
+      "rights_evidence_refs": [
+        "coordination/kidults/source-intelligence/pcgs-eula-rights-terminalization-v1.json",
+        "coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json"
+      ],
+      "blocking_controls": [
+        "raw_bulk_collection=BLOCK",
+        "BULK_ENUMERATION_PROHIBITED",
+        "MINIMAL_SINGLE_RECORD_DEV_SHADOW_ONLY"
+      ],
+      "authenticated_requests": 0,
+      "provider_record_requests": 0,
+      "source_records_observed": 0,
+      "rights_admitted_records": 0,
+      "capacity_contribution": 0
+    },
+    {
+      "source_family": "psa-public-api-and-population-report",
+      "scope_fit": "COLLECTIBLES_FIT_CARDS_AND_VIDEO_GAMES",
+      "rights_state": "BLOCK_PENDING_ACCOUNT_EULA_AND_BULK_RIGHTS",
+      "grammar_fit_state": "POPULATION_FIELD_NOT_ASSUMED",
+      "rights_evidence_refs": [
+        "coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json",
+        "coordination/kidults/registry/trusted-source/records/trusted-source-cards-comics-memorabilia-r1.json"
+      ],
+      "blocking_controls": [
+        "ACCOUNT_PLUS_BEARER_TOKEN_REQUIRED",
+        "BULK_ENUMERATION_PROHIBITED",
+        "POPULATION_FIELD_ASSUMPTION_PROHIBITED",
+        "COMMERCIAL_USE_NOT_CLEARED"
+      ],
+      "authenticated_requests": 0,
+      "provider_record_requests": 0,
+      "source_records_observed": 0,
+      "rights_admitted_records": 0,
+      "capacity_contribution": 0
+    },
+    {
+      "source_family": "cgc-population-and-certification-web",
+      "scope_fit": "COLLECTIBLES_FIT_CARDS_AND_COMICS",
+      "rights_state": "BLOCK_CONSERVATIVE_MANUAL_TERMS_REVIEW_NOT_CLEARED",
+      "grammar_fit_state": "NOT_ENUMERATED_BECAUSE_RIGHTS_NOT_CLEARED",
+      "rights_evidence_refs": [
+        "https://www.cgccomics.com/legal/terms-of-use/",
+        "coordination/kidults/registry/trusted-source/records/trusted-source-cards-comics-memorabilia-r1.json"
+      ],
+      "manual_terms_review": {
+        "evidence_mode": "MANUAL_CONSERVATIVE_REPOSITORY_REVIEW_NO_AUTOMATED_FETCH",
+        "reviewed_on": "2026-08-19",
+        "terms_url": "https://www.cgccomics.com/legal/terms-of-use/",
+        "sections": [
+          "1.2 Prohibited Uses",
+          "2.2 Your Rights to Use the Website Content"
+        ],
+        "observed_controls": [
+          "NO_ROBOT_OR_OTHER_AUTOMATIC_DEVICE_ACCESS_WITHOUT_PRIOR_WRITTEN_CONSENT",
+          "PERSONAL_INFORMATIONAL_NON_COMMERCIAL_CONTENT_USE_ONLY"
+        ],
+        "review_projection_sha256": "sha256:ba0b6844a225ff427f5a9ef923e22979f24f60d6bcdec94bfa81e53ca5b3d6eb"
+      },
+      "blocking_controls": [
+        "AUTOMATIC_DEVICE_ACCESS_PROHIBITED_WITHOUT_PRIOR_WRITTEN_CONSENT",
+        "CONTENT_USE_PERSONAL_INFORMATIONAL_NON_COMMERCIAL_ONLY",
+        "COMMERCIAL_USE_NOT_CLEARED"
+      ],
+      "prior_written_consent_present": false,
+      "authenticated_requests": 0,
+      "provider_record_requests": 0,
+      "source_records_observed": 0,
+      "rights_admitted_records": 0,
+      "capacity_contribution": 0
+    },
+    {
+      "source_family": "wikidata-cc0-graded-collectible-schema-fit",
+      "scope_fit": "CC0_ALTERNATIVE_BOUNDED_FOUR_PROPERTY_AUDIT_NO_EXACT_MAPPING_IDENTIFIED",
+      "rights_state": "ALLOW_CC0_STRUCTURED_DATA",
+      "grammar_fit_state": "NO_EXACT_MAPPING_IDENTIFIED_IN_BOUNDED_FOUR_PROPERTY_AUDIT",
+      "rights_evidence_refs": [
+        "https://www.wikidata.org/wiki/Wikidata:Licensing"
+      ],
+      "blocking_controls": [
+        "P10611_NOT_A_CERTIFICATION_NUMBER",
+        "P5021_NOT_A_COLLECTIBLE_GRADE_LITERAL",
+        "P1082_DEMOGRAPHIC_POPULATION_NOT_GRADED_POPULATION_CONTEXT",
+        "P2598_OBJECT_SERIAL_NOT_GRADING_CERTIFICATION"
+      ],
+      "authenticated_requests": 0,
+      "provider_record_requests": 0,
+      "source_records_observed": 0,
+      "rights_admitted_records": 0,
+      "capacity_contribution": 0
+    }
+  ],
+  "cc0_live_schema_observation": {
+    "source_family": "wikidata-cc0-structured-data",
+    "license": "CC0-1.0",
+    "license_evidence_ref": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+    "accessed_at": "2026-08-19T18:25:52.375Z",
+    "property_evidence": [
+      {
+        "id": "P10611",
+        "expected_label": "has certification",
+        "expected_description_fragment": "certain certification",
+        "candidate_role": "CERTIFICATION_NUMBER",
+        "decision": "REJECT_NOT_AN_IDENTIFIER",
+        "observed_label": "has certification",
+        "observed_description": "states that an item has a certain certification",
+        "observed_datatype": "wikibase-item",
+        "source_url": "https://www.wikidata.org/wiki/Special:EntityData/P10611.json",
+        "source_payload_sha256": "sha256:2d6a63a4305fbeca4ed47b7e61fceb8041b2f54035300f74aa073ff68a26a436",
+        "license_evidence_refs": [
+          "https://www.wikidata.org/wiki/Wikidata:Licensing"
+        ]
+      },
+      {
+        "id": "P5021",
+        "expected_label": "assessment",
+        "expected_description_fragment": "test or exam",
+        "candidate_role": "COLLECTIBLE_GRADE",
+        "decision": "REJECT_TEST_OR_METHOD_ASSESSMENT_NOT_GRADE_LITERAL",
+        "observed_label": "assessment",
+        "observed_description": "subject took the test or exam, or was assessed per test or method",
+        "observed_datatype": "wikibase-item",
+        "source_url": "https://www.wikidata.org/wiki/Special:EntityData/P5021.json",
+        "source_payload_sha256": "sha256:51beb077d9df827183029e6e90d4d3cc1dc0df6f7803c706d094a1f5ad16add0",
+        "license_evidence_refs": [
+          "https://www.wikidata.org/wiki/Wikidata:Licensing"
+        ]
+      },
+      {
+        "id": "P1082",
+        "expected_label": "population",
+        "expected_description_fragment": "number of people",
+        "candidate_role": "GRADED_POPULATION_CONTEXT",
+        "decision": "REJECT_DEMOGRAPHIC_POPULATION_SEMANTICS",
+        "observed_label": "population",
+        "observed_description": "number of people inhabiting the place; number of people of subject",
+        "observed_datatype": "quantity",
+        "source_url": "https://www.wikidata.org/wiki/Special:EntityData/P1082.json",
+        "source_payload_sha256": "sha256:10ae922b7ee125b7e2c1b20e1d592f99a38d1866ea67c5824fa07da62099b458",
+        "license_evidence_refs": [
+          "https://www.wikidata.org/wiki/Wikidata:Licensing"
+        ]
+      },
+      {
+        "id": "P2598",
+        "expected_label": "serial number",
+        "expected_description_fragment": "specific object",
+        "candidate_role": "PHYSICAL_OBJECT_IDENTIFIER",
+        "decision": "ALLOW_ONLY_AS_OBJECT_SERIAL_NOT_GRADING_CERTIFICATION",
+        "observed_label": "serial number",
+        "observed_description": "an identifier for a specific object among the same product. Not a product code or model number",
+        "observed_datatype": "string",
+        "source_url": "https://www.wikidata.org/wiki/Special:EntityData/P2598.json",
+        "source_payload_sha256": "sha256:0723d5b1c5499cc180ccf1c50591df0e08e270a8f4a8c072da43dafc5a270ab4",
+        "license_evidence_refs": [
+          "https://www.wikidata.org/wiki/Wikidata:Licensing"
+        ]
+      }
+    ],
+    "strict_grammar_record_query_executed": false,
+    "strict_grammar_record_query_reason": "NO_EXACT_MAPPING_IDENTIFIED_IN_BOUNDED_FOUR_PROPERTY_AUDIT; FORMULATING A RECORD QUERY FROM THESE REJECTED MAPPINGS WOULD INFER SEMANTICS"
+  },
+  "records": [],
+  "hard_negative_pairs": [],
+  "cross_registry_alias_pairs": [],
+  "metrics": {
+    "candidate_source_families_assessed": 4,
+    "rights_compatible_source_family_count": 1,
+    "grammar_fit_source_family_count": 0,
+    "rights_and_grammar_fit_source_family_count": 0,
+    "total_remote_get_requests": 4,
+    "authenticated_requests": 0,
+    "provider_record_requests": 0,
+    "blocked_provider_source_records_observed": 0,
+    "wikidata_schema_entities_observed": 4,
+    "rights_admitted_grammar_complete_real_record_count": 0,
+    "normalization_candidate_capacity": 0,
+    "hard_negative_pair_capacity": 0,
+    "cross_registry_alias_pair_capacity": 0,
+    "source_record_boundary_capacity": 0,
+    "physical_object_boundary_capacity": 0,
+    "conservative_case_capacity": 0,
+    "empirical_cases_created": 0,
+    "labels_created": 0,
+    "reviewers_created": 0,
+    "market_or_current_price_fields_observed": 0
+  },
+  "readiness_gate": {
+    "requirements": {
+      "rights_and_grammar_fit_source_family_floor": 1,
+      "grammar_complete_real_record_floor": 120,
+      "normalization_candidate_floor": 40,
+      "hard_negative_pair_floor": 40,
+      "cross_registry_alias_pair_floor": 40,
+      "blind_source_record_capacity_floor": 60,
+      "source_record_boundary_floor": 60,
+      "physical_object_boundary_floor": 60
+    },
+    "checks": {
+      "rights_and_grammar_fit_source_family_floor_met": false,
+      "grammar_complete_real_record_floor_met": false,
+      "normalization_candidate_floor_met": false,
+      "hard_negative_pair_floor_met": false,
+      "cross_registry_alias_pair_floor_met": false,
+      "blind_source_record_capacity_floor_met": false,
+      "source_record_boundary_floor_met": false,
+      "physical_object_boundary_floor_met": false,
+      "conservative_120_case_class_capacity_met": false
+    },
+    "source_capacity_ready_for_120_cases": false,
+    "acquisition_lane_state": "BLOCKED_RIGHTS_AND_SOURCE_FIT",
+    "blockers": [
+      "NO_RIGHTS_ADMITTED_GRADED_COLLECTIBLES_SOURCE_FIT_IDENTIFIED",
+      "PCGS_CURRENT_AUTHORIZATION_EXCLUDES_120_CASE_BULK_COLLECTION",
+      "PSA_BULK_RIGHTS_AND_CREDENTIAL_GATE_UNSATISFIED",
+      "CGC_MANUAL_CONSERVATIVE_TERMS_REVIEW_NOT_CLEARED_NO_AUTOMATED_FETCH",
+      "WIKIDATA_CC0_NO_EXACT_MAPPING_IDENTIFIED_IN_BOUNDED_FOUR_PROPERTY_AUDIT",
+      "RIGHTS_ADMITTED_GRAMMAR_COMPLETE_RECORDS_0_OF_120",
+      "SAME_OBJECT_NORMALIZATION_CAPACITY_0_OF_40",
+      "HARD_NEGATIVE_CAPACITY_0_OF_40",
+      "CROSS_MARKET_ALIAS_CAPACITY_0_OF_40",
+      "BLIND_CAPACITY_0_OF_60",
+      "SOURCE_RECORD_BOUNDARY_CAPACITY_0_OF_60",
+      "PHYSICAL_OBJECT_BOUNDARY_CAPACITY_0_OF_60"
+    ]
+  },
+  "downstream_claims": {
+    "empirical_cases_created": 0,
+    "labels_collected": 0,
+    "independent_reviewers_assigned": 0,
+    "independent_label_review_complete": false,
+    "blind_holdout_sealed": false,
+    "empirical_benchmark_ready": false,
+    "track_b_started": false,
+    "publication": "HOLD",
+    "production": "HOLD"
+  },
+  "truth_boundary": "This bounded preflight makes four unauthenticated GET requests only to Wikidata CC0 property-schema endpoints and makes zero provider-record requests. PCGS and PSA contribute zero because current bulk rights are blocked or not cleared. CGC contributes zero under a dated manual conservative terms review and the repository pending-terms/not-cleared gate; this probe does not fetch CGC. This four-property Wikidata audit identified no exact grade, grading-certification-number and graded-population-context mapping; it does not claim an exhaustive catalog-wide absence, and rejected generic properties are never reinterpreted. No cases, labels, reviewers, market/current-price claims, publication or Production authority are created.",
+  "integrity": {
+    "canonical_payload_sha256": "sha256:484a278f97fb4785dd56bc8643c5bc4e9f74367b1fab671d06dec9ecda4a4c7b"
+  }
+}
