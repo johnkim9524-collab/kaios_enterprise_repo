@@ -1,0 +1,40 @@
+{
+  "id": "source-admission-rights-methodology-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_P0",
+  "parent_issue": 486,
+  "execution_mode": "DEV_SHADOW_ONLY",
+  "principles": [
+    "PUBLIC_ACCESSIBLE_NOT_EQUAL_REUSABLE",
+    "PURPOSE_SPECIFIC_RIGHTS",
+    "EVIDENCE_BEFORE_METRICS",
+    "CLAIM_STRENGTH_LE_EVIDENCE_STRENGTH",
+    "UNKNOWN_FAILS_CLOSED"
+  ],
+  "purposes": ["discover","collect","store","derive","display_internal","display_public"],
+  "states": ["ADMITTED","CONDITIONAL","DISCOVERY_ONLY","BLOCKED"],
+  "required_checks": {
+    "access": ["robots_rep","authentication","login","paywall","captcha","technical_controls","rate_load"],
+    "legal_rights": ["terms_contract","copyright","database_right","license","privacy_personal_data"],
+    "technical": ["authority_provenance","deterministic_retrieval","freshness","market_state_semantics","entity_resolvability","field_completeness","anti_duplication","contradiction_handling","auditability"],
+    "evidence": ["evidence_class","intended_claim","sufficiency","confidence"]
+  },
+  "hard_blocks": [
+    "BYPASS_LOGIN_OR_AUTH",
+    "BYPASS_PAYWALL",
+    "BYPASS_CAPTCHA",
+    "BYPASS_TECHNICAL_ACCESS_CONTROL",
+    "PURPOSE_RIGHT_UNKNOWN_FOR_COLLECTION_OR_DERIVATION"
+  ],
+  "downgrade_triggers": ["robots_change","terms_change","license_change","rights_revocation","freshness_expiry","material_semantic_change"],
+  "required_artifacts": [
+    "source-admission-record.json",
+    "rights-purpose-matrix.json",
+    "source-technical-validation.json",
+    "evidence-sufficiency-record.json",
+    "rights-change-monitor-event.json",
+    "source-pool-admission.json",
+    "blocked-source-reason.json"
+  ],
+  "production": "HOLD"
+}
