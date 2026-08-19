@@ -1,0 +1,18 @@
+{
+  "id":"global-market-intelligence-release-gates-v1",
+  "version":"1.0.0",
+  "status":"ACTIVE_PREPUBLICATION_GATES",
+  "gates":[
+    "EMPIRICAL_REGIONAL_BASELINE_PASS",
+    "GLOBAL_OR_REGIONAL_CLAIM_ELIGIBILITY_PASS",
+    "TRACK_B_PASS",
+    "RIGHTS_REDISTRIBUTION_PASS",
+    "PROJECTION_APPROVED",
+    "PORTAL_QA_PASS",
+    "RUNTIME_STAGING_PASS",
+    "G5_IF_PRODUCTION"
+  ],
+  "failure":"HOLD",
+  "public_release":"HOLD",
+  "production":"HOLD"
+}
