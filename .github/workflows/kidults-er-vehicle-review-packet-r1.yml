@@ -7,6 +7,7 @@ on:
       - 'scripts/kidults/entity-resolution/validate-vehicle-review-packet-r1.mjs'
       - '.github/workflows/kidults-er-vehicle-review-packet-r1.yml'
       - 'scripts/kidults/entity-resolution/probe-vehicle-mechanical-asset-capacity-r1.mjs'
+      - 'coordination/kidults/entity-resolution/vehicle-review-packet-r1.json'
       - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
       - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
   workflow_dispatch:
@@ -29,6 +30,15 @@ jobs:
         run: node scripts/kidults/entity-resolution/build-vehicle-review-packet-r1.mjs /tmp/vehicle-capacity.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/vehicle-review-packet.json
       - name: Validate review packet truth boundaries
         run: node scripts/kidults/entity-resolution/validate-vehicle-review-packet-r1.mjs /tmp/vehicle-review-packet.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+      - name: Validate coordination truth boundary
+        run: |
+          node - <<'NODE'
+          const x=require('./coordination/kidults/entity-resolution/vehicle-review-packet-r1.json');
+          if(x.case_count!==120||x.blind_partition_candidate_count!==60) process.exit(1);
+          if(x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED'||x.labels!=='NOT_COLLECTED') process.exit(1);
+          if(x.production!=='HOLD'||x.public_release!=='HOLD') process.exit(1);
+          console.log('VEHICLE_REVIEW_PACKET_COORDINATION_BOUNDARY_PASS');
+          NODE
       - name: Upload reviewer-ready packet artifact
         uses: actions/upload-artifact@v4
         with:
