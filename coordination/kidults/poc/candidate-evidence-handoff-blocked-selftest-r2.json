@@ -1,0 +1,50 @@
+{
+  "snapshot": {
+    "snapshot_id": "selftest-candidate-r2-blocked",
+    "snapshot_status": "DRAFT_CANDIDATE",
+    "registry_version": "SELFTEST_ONLY",
+    "methodology_version": "SELFTEST_ONLY",
+    "evidence_lineage_version": "SELFTEST_ONLY",
+    "publication_eligible": false,
+    "production_authorized": false
+  },
+  "evidence": {
+    "package_id": "selftest-evidence-package-r2-blocked",
+    "package_status": "DRAFT",
+    "registry_version": "SELFTEST_ONLY",
+    "methodology_version": "SELFTEST_ONLY",
+    "evidence_lineage_version": "SELFTEST_ONLY",
+    "entity_resolution": {
+      "required_strata": 7,
+      "complete_strata": 6,
+      "final_scope_stratification_complete": false,
+      "overall_accuracy": 1.0,
+      "blind_accuracy": 1.0,
+      "critical_false_auto_merge": 0,
+      "blind_critical_false_auto_merge": 0,
+      "deterministic_replay": "PASS",
+      "rights_coverage": 1.0,
+      "provenance_coverage": 1.0,
+      "final_dataset_id": null,
+      "final_dataset_hash": null,
+      "approved_strata_manifest_id": "kidults-er-approved-bounded-poc-calibration-strata-v1",
+      "blind_holdout_freeze_id": null,
+      "calibration_artifact_id": null
+    },
+    "claims": [
+      {
+        "claim_id": "selftest-current-market-claim-r2",
+        "claim_type": "CURRENT_MARKET_PRICE",
+        "temporality": "CURRENT_MARKET",
+        "evidence_temporality": "HISTORICAL",
+        "claim_strength": 1.0,
+        "evidence_strength": 0.5,
+        "rights_state": "ALLOW",
+        "evidence_refs": ["selftest:historical-only"]
+      }
+    ],
+    "unresolved_critical_contradiction_count": 0,
+    "unknown_or_denied_claim_input_count": 0
+  },
+  "truth_boundary": "SELFTEST_ONLY. Mirrors the current structural blockers: ER is 6/7 rather than final 7/7, no final immutable ER artifacts exist, Evidence Package is not immutable, and the sample current-market claim is backed only by historical evidence. This fixture must remain BLOCKED and can never become Track B input."
+}
