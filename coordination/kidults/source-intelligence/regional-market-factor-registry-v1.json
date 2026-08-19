@@ -1,0 +1,16 @@
+{
+  "id": "regional-market-factor-registry-v1",
+  "record_type": "live_regional_market_factor_registry_contract",
+  "version": "1.0.0",
+  "status": "ACTIVE_SHADOW_CONTRACT",
+  "production": "HOLD",
+  "parent_issue": 645,
+  "unit": "CATEGORY_SCOPE_X_MACROREGION",
+  "required_factors": ["MARKET_SCALE","MARKET_MATURITY","OBSERVED_TRANSACTION_ACTIVITY","VENUE_DEPTH_AND_DIVERSITY","SECONDARY_MARKET_DEPTH","AUTHENTICATION_GRADING_INFRASTRUCTURE","CROSS_BORDER_ACTIVITY","DATA_TRANSPARENCY_AND_EVIDENCE_QUALITY","SIGNAL_LEAD_VALUE","FRESHNESS","SOURCE_INDEPENDENCE"],
+  "factor_assertion_required_fields": ["factor_id","category_scope","macroregion_id","value_or_unknown","observed_at","source_observation_ids","evidence_refs","rights_state","provenance_refs","methodology_version","confidence","freshness_state"],
+  "confidence_classes": ["HIGH","MEDIUM","LOW","NOT_VERIFIED"],
+  "unknown_policy": {"missing_or_insufficient":"UNKNOWN","unknown_numeric_substitution":"PROHIBITED","missing_to_zero":false},
+  "source_independence": {"minimum_independent_source_owners_for_active_factor":2,"single_source_factor_state":"NOT_VERIFIED_UNLESS_PRIMARY_AUTHORITY_ONLY_SEMANTIC_FACTOR","source_owner_concentration_must_be_recorded":true},
+  "refresh": {"OBSERVED_TRANSACTION_ACTIVITY":"DAILY_OR_SOURCE_NATIVE","VENUE_DEPTH_AND_DIVERSITY":"DAILY_OR_WEEKLY","FRESHNESS":"DAILY","MARKET_MATURITY":"MONTHLY_OR_MATERIAL_CHANGE","MARKET_SCALE":"MONTHLY_OR_QUARTERLY_BY_EVIDENCE_CADENCE","emergency_triggers":["SOURCE_LOSS","RIGHTS_CHANGE","MATERIAL_ACTIVITY_SHIFT","VENUE_FAILURE","NEW_HIGH_VALUE_LOCAL_SOURCE"]},
+  "truth_boundary": ["RAW_RECORD_COUNT_IS_NOT_MARKET_SCALE","ONE_PROVIDER_IS_NOT_REGIONAL_TRUTH","COLLECTION_VOLUME_IS_NOT_ANALYTICAL_WEIGHT","BOOTSTRAP_TARGET_IS_NOT_EMPIRICAL_MARKET_SHARE","UNKNOWN_IS_NOT_ZERO"]
+}
