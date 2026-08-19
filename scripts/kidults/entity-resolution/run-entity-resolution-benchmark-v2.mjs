@@ -1,10 +1,11 @@
 import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 
-const [datasetPath, outputPath = '/tmp/entity-resolution-results-v2.json'] = process.argv.slice(2);
-if (!datasetPath) throw new Error('Usage: node run-entity-resolution-benchmark-v2.mjs <dataset.json> [output.json]');
+const [datasetPath, outputPath = '/tmp/entity-resolution-results-v2.json', strataManifestPath] = process.argv.slice(2);
+if (!datasetPath) throw new Error('Usage: node run-entity-resolution-benchmark-v2.mjs <dataset.json> [output.json] [approved-strata-manifest.json]');
 
 const dataset = JSON.parse(await fs.readFile(datasetPath, 'utf8'));
+const strataManifest = strataManifestPath ? JSON.parse(await fs.readFile(strataManifestPath, 'utf8')) : null;
 const REQUIRED_CASE_CLASSES = new Set([
   'HARD_NEGATIVE',
   'SAME_OBJECT_NORMALIZATION',
@@ -30,6 +31,9 @@ function normalized(value) {
 function strictAnchor(record, boundary) {
   const anchors = record?.anchors || {};
   return typeof anchors[boundary] === 'string' && anchors[boundary].trim() ? anchors[boundary].trim() : null;
+}
+function sameSet(a, b) {
+  return a.size === b.size && [...a].every((x) => b.has(x));
 }
 function conservativeResolve(item) {
   const leftAnchor = strictAnchor(item.left, item.identity_boundary);
@@ -87,9 +91,37 @@ const boundaries = new Set(dataset.cases.map((x) => x.identity_boundary));
 const scopes = new Set(dataset.cases.map((x) => x.scope_id));
 const approvedScopeIds = new Set(Array.isArray(dataset.approved_scope_ids) ? dataset.approved_scope_ids.filter(Boolean) : []);
 const requiredScopeIds = new Set(Array.isArray(dataset.required_scope_ids) ? dataset.required_scope_ids.filter(Boolean) : []);
+
+let strataManifestBinding = {
+  provided:false,
+  manifest_id:null,
+  manifest_status:null,
+  exact_approved_ids_match:false,
+  exact_required_ids_match:false,
+  all_required_strata_approved:false,
+  binding_valid:false,
+};
+if (strataManifest) {
+  const manifestApproved = new Set(Array.isArray(strataManifest.approved_strata_ids) ? strataManifest.approved_strata_ids.filter(Boolean) : []);
+  const manifestRequired = new Set(Array.isArray(strataManifest.required_strata_ids) ? strataManifest.required_strata_ids.filter(Boolean) : []);
+  const manifestStrata = new Set(Array.isArray(strataManifest.strata) ? strataManifest.strata.filter((x) => x?.status === 'APPROVED_REQUIRED').map((x) => x.stratum_id) : []);
+  const exactApproved = sameSet(approvedScopeIds, manifestApproved);
+  const exactRequired = sameSet(requiredScopeIds, manifestRequired);
+  const allRequiredApproved = [...manifestRequired].every((x) => manifestApproved.has(x) && manifestStrata.has(x));
+  strataManifestBinding = {
+    provided:true,
+    manifest_id:strataManifest.id || null,
+    manifest_status:strataManifest.status || null,
+    exact_approved_ids_match:exactApproved,
+    exact_required_ids_match:exactRequired,
+    all_required_strata_approved:allRequiredApproved,
+    binding_valid:strataManifest.status === 'APPROVED_BOUNDED_POC_CALIBRATION' && exactApproved && exactRequired && allRequiredApproved,
+  };
+}
+
 const allCasesInApprovedScopes = approvedScopeIds.size > 0 && [...scopes].every((x) => approvedScopeIds.has(x));
 const allRequiredScopesRepresented = requiredScopeIds.size > 0 && [...requiredScopeIds].every((x) => scopes.has(x));
-const scopeStratificationComplete = dataset.scope_stratification_status === 'COMPLETE_APPROVED_POC' && allCasesInApprovedScopes && allRequiredScopesRepresented;
+const scopeStratificationComplete = dataset.scope_stratification_status === 'COMPLETE_APPROVED_POC' && strataManifestBinding.binding_valid && allCasesInApprovedScopes && allRequiredScopesRepresented;
 const blind = first.filter((x) => x.blind_holdout);
 const blindCorrect = blind.filter((x) => x.predicted === x.expected).length;
 const blindAccuracy = blind.length ? blindCorrect / blind.length : null;
@@ -102,6 +134,7 @@ const coverage = {
   required_scope_count:requiredScopeIds.size,
   all_cases_in_approved_scopes:allCasesInApprovedScopes,
   all_required_scopes_represented:allRequiredScopesRepresented,
+  approved_strata_manifest_binding:strataManifestBinding.binding_valid,
   scope_stratification_complete:scopeStratificationComplete,
   provenance_coverage:dataset.cases.filter((x) => x.provenance_refs?.length).length / dataset.cases.length,
   rights_coverage:dataset.cases.filter((x) => x.rights_state === 'ALLOW').length / dataset.cases.length,
@@ -123,6 +156,7 @@ const result = {
   blind_critical_false_auto_merge:blindCriticalFalseMatches,
   deterministic_replay:'PASS',
   replay_hash:firstHash,
+  strata_manifest_binding:strataManifestBinding,
   coverage,
   promotion_gate:{
     measured_accuracy_gte_099:accuracy >= 0.99,
@@ -132,6 +166,7 @@ const result = {
     real_world_dataset:empiricalDataset,
     required_case_classes_complete:coverage.required_case_classes_complete,
     required_identity_boundaries_complete:coverage.required_identity_boundaries_complete,
+    approved_strata_manifest_binding:coverage.approved_strata_manifest_binding,
     scope_stratification_complete:coverage.scope_stratification_complete,
     provenance_coverage_1:coverage.provenance_coverage === 1,
     rights_coverage_1:coverage.rights_coverage === 1,
@@ -140,8 +175,8 @@ const result = {
   },
   results:first,
   truth_boundary: promotionEligible
-    ? 'Dataset, approved PoC scope stratification and measured benchmark gates pass locally; independent Track B assessment is still required before promotion.'
-    : 'No promotion claim. Missing empirical dataset breadth, approved PoC scope stratification, blind performance, accuracy, false-merge, provenance, rights, or case/boundary coverage remains fail-closed.',
+    ? 'Dataset, exact approved bounded-PoC calibration-strata binding and measured benchmark gates pass locally; independent Track B assessment is still required before promotion.'
+    : 'No promotion claim. Missing empirical dataset breadth, exact approved calibration-strata manifest binding, approved PoC scope stratification, blind performance, accuracy, false-merge, provenance, rights, or case/boundary coverage remains fail-closed.',
   production:'HOLD',
 };
 
