@@ -1,0 +1,66 @@
+name: KIDULTS ER R7K Finalization Boundary
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-er-r7k-finalization-boundary.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  KAIOS_PCGS_ACCOUNT_AUTHORIZED: ${{ vars.KAIOS_PCGS_ACCOUNT_AUTHORIZED }}
+  KAIOS_PCGS_EULA_COMPATIBLE: ${{ vars.KAIOS_PCGS_EULA_COMPATIBLE }}
+  KAIOS_PCGS_API_TOKEN: ${{ secrets.KAIOS_PCGS_API_TOKEN }}
+  TZ: UTC
+
+jobs:
+  prove-post-r7k-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Rebuild R1 through R7K
+        run: |
+          M=coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+          node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/r1.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/r1.json /tmp/r2.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/r2.json /tmp/r3.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs /tmp/r3.json /tmp/r5.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs /tmp/r5.json /tmp/r6.json
+          node scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs /tmp/r6.json $M /tmp/r7a.json
+          node scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs /tmp/r7a.json $M /tmp/r7b.json
+          node scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs /tmp/r7b.json $M /tmp/r7c.json
+          node scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs /tmp/r7c.json $M /tmp/r7e.json
+          node scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs /tmp/r7e.json $M /tmp/r7f.json
+          node scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs /tmp/r7f.json $M /tmp/r7g.json
+          node scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs /tmp/r7g.json $M /tmp/r7h.json
+          node scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs /tmp/r7h.json $M /tmp/r7i.json
+          node scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs /tmp/r7i.json $M coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json /tmp/r7j.json
+          node scripts/kidults/entity-resolution/extend-er-r7j-graded-population-r7k.mjs /tmp/r7j.json $M /tmp/r7k.json
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/r7k.json /tmp/r7k-results.json $M
+      - name: Prove 7 of 7 mechanics complete
+        run: |
+          node - <<'NODE'
+          const r=require('/tmp/r7k-results.json');
+          const complete=Object.values(r.coverage.per_stratum).filter(x=>x.complete).length;
+          if(complete!==7||r.coverage.per_stratum_requirements_complete!==true||r.critical_false_auto_merge!==0||r.coverage.rights_coverage!==1||r.coverage.provenance_coverage!==1) process.exit(1);
+          console.log('POST-R7K: 7/7 mechanics complete.');
+          NODE
+      - name: Prove finalizer no longer fails on missing graded stratum but still rejects non-empirical controls
+        run: |
+          set +e
+          node scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs /tmp/r7k.json /tmp/r7k-results.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json /tmp/final.json >/tmp/final.out 2>/tmp/final.err
+          status=$?
+          set -e
+          test "$status" -ne 0
+          test ! -e /tmp/final.json
+          ! grep -F 'FINALIZE_PER_STRATUM_INCOMPLETE:er-stratum-graded-population' /tmp/final.err
+          grep -F 'FINALIZE_EMPIRICAL_DATASET_FLAGS_REQUIRED' /tmp/final.err
+          grep -F 'FINALIZE_CONSTRUCTED_CONTROL_PROHIBITED' /tmp/final.err
+          grep -F 'FINALIZE_CANONICALLY_APPROVED_EMPIRICAL_ATTESTATION_REQUIRED' /tmp/final.err
+          echo 'BOUNDARY PASS: GRADED mechanical blocker is gone; empirical attestation/review remains fail-closed.'
