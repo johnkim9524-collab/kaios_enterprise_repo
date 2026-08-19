@@ -1,0 +1,37 @@
+name: KIDULTS ER Blind Holdout Freeze v1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs'
+      - '.github/workflows/kidults-er-blind-holdout-freeze-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  freeze-selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Create mechanics-only selftest dataset
+        run: |
+          cat > /tmp/holdout-selftest.json <<'JSON'
+          {"id":"holdout-freeze-selftest-only","synthetic":true,"cases":[{"case_id":"selftest-1","case_class":"HARD_NEGATIVE","identity_boundary":"PHYSICAL_OBJECT","scope_id":"selftest","expected":"NO_MATCH","blind_holdout":true,"left":{"anchors":{"PHYSICAL_OBJECT":"a"}},"right":{"anchors":{"PHYSICAL_OBJECT":"b"}},"provenance_refs":["selftest:not-empirical"],"rights_state":"ALLOW"}]}
+          JSON
+      - name: Freeze holdout mechanics
+        run: node scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs /tmp/holdout-selftest.json /tmp/holdout-freeze.json
+      - name: Verify immutable hashes exist
+        run: |
+          node - <<'NODE'
+          const x=require('/tmp/holdout-freeze.json');
+          if(x.holdout_count!==1) process.exit(1);
+          if(!String(x.dataset_hash).startsWith('sha256:')||!String(x.holdout_case_set_hash).startsWith('sha256:')) process.exit(1);
+          if(!x.mutation_policy.includes('NEVER_OVERWRITE')) process.exit(1);
+          console.log('Holdout freeze mechanics PASS; selftest is not empirical benchmark evidence.');
+          NODE
