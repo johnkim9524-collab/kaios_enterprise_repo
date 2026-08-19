@@ -1,0 +1,12 @@
+{
+  "id":"global-market-intelligence-api-report-boundary-v1",
+  "version":"1.0.0",
+  "status":"PREPUBLICATION_SHELL",
+  "source":"MARKET_INTELLIGENCE_PROJECTION",
+  "allowed":"APPROVED_DERIVED_INTELLIGENCE_ONLY",
+  "raw_provider_redistribution":false,
+  "claim_ceiling_may_be_exceeded":false,
+  "rights_redistribution_review_required":true,
+  "licensing_launch_authorized":false,
+  "production":"HOLD"
+}

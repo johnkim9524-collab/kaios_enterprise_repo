@@ -1,0 +1,12 @@
+{
+  "id":"global-market-intelligence-portal-module-v1",
+  "version":"1.0.0",
+  "status":"PREPUBLICATION_SHELL",
+  "source":"MARKET_INTELLIGENCE_PROJECTION",
+  "surfaces":["GLOBAL_MARKET_MAP","REGIONAL_PULSE","CATEGORY_REGIONAL_SCORECARD","CROSS_BORDER_OPPORTUNITY","MARKET_STRUCTURE_REPORT"],
+  "render_required":["claim_class","geography_scope","as_of","freshness_state","confidence_classification","coverage_debt_state","limitations"],
+  "render_fail_closed":true,
+  "may_query_raw_sources":false,
+  "may_compute_new_market_facts":false,
+  "public_release":"HOLD"
+}

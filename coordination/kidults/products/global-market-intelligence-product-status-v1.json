@@ -1,0 +1,11 @@
+{
+  "id":"global-market-intelligence-product-status-v1",
+  "status":"FOUNDATION_IMPLEMENTED_PREPUBLICATION",
+  "canonical_product_family":5,
+  "empirical_regional_baseline":"NOT_VERIFIED",
+  "track_b":"NOT_STARTED_FOR_THIS_PRODUCT",
+  "projection":"SHELL_ONLY",
+  "portal":"SHELL_ONLY",
+  "public_release":"HOLD",
+  "production":"HOLD"
+}
