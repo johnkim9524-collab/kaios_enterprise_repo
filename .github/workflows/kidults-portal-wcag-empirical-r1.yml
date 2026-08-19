@@ -61,6 +61,7 @@ jobs:
               if(!response?.ok()){failures.push(`${route}:${vp.name}:HTTP_${response?.status()}`); await page.close(); continue;}
               const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
               const serious=axe.violations.filter(v=>['serious','critical'].includes(v.impact));
+              const seriousDetails=serious.map(v=>({id:v.id,impact:v.impact,description:v.description,help:v.help,nodes:v.nodes.map(n=>({target:n.target,html:n.html,failureSummary:n.failureSummary,any:n.any?.map(x=>x.message),all:n.all?.map(x=>x.message),none:n.none?.map(x=>x.message)}))}));
               if(serious.length) failures.push(`${route}:${vp.name}:AXE_${serious.map(v=>v.id).join(',')}`);
               const structural=await page.evaluate(()=>({
                 htmlLang:document.documentElement.getAttribute('lang'),
@@ -84,7 +85,7 @@ jobs:
               let keyboardFocus=false;
               if(focusables>0){await page.keyboard.press('Tab'); keyboardFocus=await page.evaluate(()=>document.activeElement&&document.activeElement!==document.body);}
               if(focusables>0&&!keyboardFocus) failures.push(`${route}:${vp.name}:KEYBOARD_FOCUS_NOT_OBSERVED`);
-              results.push({route,viewport:vp.name,axe_violation_count:axe.violations.length,serious_critical_count:serious.length,structural,focusables,keyboardFocus});
+              results.push({route,viewport:vp.name,axe_violation_count:axe.violations.length,serious_critical_count:serious.length,serious_details:seriousDetails,structural,focusables,keyboardFocus});
               await page.close();
             }
             await context.close();
