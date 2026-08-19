@@ -5,7 +5,7 @@ const RIGHTS_URLS = [
   'https://www.metmuseum.org/policies/terms-and-conditions',
   'https://www.metmuseum.org/hubs/open-access'
 ];
-
+const DOCUMENTED_PUBLIC_DOMAIN_FALLBACK_IDS = [45734, 437133];
 const timeoutMs = 15000;
 
 async function fetchJson(url) {
@@ -23,33 +23,46 @@ async function fetchJson(url) {
   }
 }
 
+function projectIdentityContext(obj) {
+  return {
+    objectID: obj.objectID,
+    title: obj.title ?? null,
+    objectName: obj.objectName ?? null,
+    department: obj.department ?? null,
+    culture: obj.culture ?? null,
+    period: obj.period ?? null,
+    objectDate: obj.objectDate ?? null,
+    accessionNumber: obj.accessionNumber ?? null,
+    objectURL: obj.objectURL ?? null,
+    isPublicDomain: true
+  };
+}
+
 const search = await fetchJson(SEARCH_URL);
 if (!Number.isInteger(search.total) || search.total <= 0 || !Array.isArray(search.objectIDs)) {
   throw new Error('Met search returned no usable object IDs.');
 }
 
 const sampled = [];
-for (const objectID of search.objectIDs.slice(0, 12)) {
+const attempted = [];
+for (const objectID of search.objectIDs.slice(0, 60)) {
+  attempted.push(objectID);
   const obj = await fetchJson(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${objectID}`);
-  if (obj?.isPublicDomain === true) {
-    sampled.push({
-      objectID: obj.objectID,
-      title: obj.title ?? null,
-      objectName: obj.objectName ?? null,
-      department: obj.department ?? null,
-      culture: obj.culture ?? null,
-      period: obj.period ?? null,
-      objectDate: obj.objectDate ?? null,
-      accessionNumber: obj.accessionNumber ?? null,
-      objectURL: obj.objectURL ?? null,
-      isPublicDomain: true
-    });
-  }
+  if (obj?.isPublicDomain === true) sampled.push(projectIdentityContext(obj));
   if (sampled.length >= 3) break;
 }
 
+let fallbackUsed = false;
 if (sampled.length === 0) {
-  throw new Error('No public-domain sample object was found within the bounded sample.');
+  fallbackUsed = true;
+  for (const objectID of DOCUMENTED_PUBLIC_DOMAIN_FALLBACK_IDS) {
+    const obj = await fetchJson(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${objectID}`);
+    if (obj?.isPublicDomain === true) sampled.push(projectIdentityContext(obj));
+  }
+}
+
+if (sampled.length === 0) {
+  throw new Error('No public-domain object could be verified from search results or documented fallback controls.');
 }
 
 const artifact = {
@@ -61,6 +74,8 @@ const artifact = {
   retrieved_at: new Date().toISOString(),
   query_class: 'IDENTITY_CONTEXT',
   search_total: search.total,
+  bounded_search_attempts: attempted.length,
+  fallback_used: fallbackUsed,
   sample_count: sampled.length,
   samples: sampled,
   validations: {
