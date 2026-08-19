@@ -1,0 +1,34 @@
+{
+  "snapshot": {
+    "snapshot_id": "selftest-candidate-r1",
+    "snapshot_status": "DRAFT_CANDIDATE",
+    "registry_version": "SELFTEST_ONLY",
+    "methodology_version": "SELFTEST_ONLY",
+    "evidence_lineage_version": "SELFTEST_ONLY",
+    "publication_eligible": false,
+    "production_authorized": false
+  },
+  "evidence": {
+    "entity_resolution": {
+      "overall_accuracy": 0.84,
+      "blind_accuracy": 0.84,
+      "critical_false_auto_merge": 0,
+      "deterministic_replay": "PASS"
+    },
+    "claims": [
+      {
+        "claim_id": "selftest-current-market-claim",
+        "claim_type": "CURRENT_MARKET_PRICE",
+        "temporality": "CURRENT_MARKET",
+        "evidence_temporality": "HISTORICAL",
+        "claim_strength": 1.0,
+        "evidence_strength": 0.5,
+        "rights_state": "ALLOW",
+        "evidence_refs": ["selftest:getty-historical-only"]
+      }
+    ],
+    "unresolved_critical_contradiction_count": 0,
+    "unknown_or_denied_claim_input_count": 0
+  },
+  "truth_boundary": "SELFTEST_ONLY. This fixture must remain BLOCKED and can never become Track B input."
+}
