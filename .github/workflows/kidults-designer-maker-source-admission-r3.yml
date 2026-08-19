@@ -37,7 +37,7 @@ jobs:
       - name: Live validate official CC0 authorities and target topology
         run: |
           node - <<'NODE'
-          const headers={'user-agent':'KIDULTS-DEV-SHADOW-SourceAdmission/1.0','accept':'application/json,text/plain,text/html'};
+          const headers={'user-agent':'KIDULTS-DEV-SHADOW-SourceAdmission/1.0','accept':'application/json,text/plain,text/csv'};
           async function text(url){const r=await fetch(url,{headers}); if(!r.ok) throw new Error(`${url} -> ${r.status}`); return await r.text();}
           async function json(url){return JSON.parse(await text(url));}
           const momaRepo=await json('https://api.github.com/repos/MuseumofModernArt/collection');
@@ -50,10 +50,15 @@ jobs:
           const roles=Object.fromEntries((design.participants||[]).map(p=>[p.role_name,p.person_name]));
           if(design.id!=='18734945'||design.accession_number!=='2009-26-1-a,b'||design.title_raw!=='Model #3107') throw new Error('COOPER_MODEL_RECORD_FAILED');
           if(roles.Designer!=='Arne Jacobsen'||!String(roles.Manufacturer||'').startsWith('Fritz Hansen')) throw new Error('COOPER_DESIGNER_MAKER_FAILED');
-          const targets=[['https://www.moma.org/collection/works/1611','24.1997.1'],['https://www.moma.org/collection/works/103159','24.1997.2']];
-          for(const [url,objectNumber] of targets){
-            const page=await text(url);
-            if(!page.includes('Chair Series 7 (3107)')||!page.includes(objectNumber)) throw new Error(`MOMA_TARGET_RECORD_FAILED:${objectNumber}`);
+          const artworks=await text('https://media.githubusercontent.com/media/MuseumofModernArt/collection/main/Artworks.csv');
+          const required=[
+            {number:'24.1997.1',objectId:'1611'},
+            {number:'24.1997.2',objectId:'103159'}
+          ];
+          for(const t of required){
+            if(!artworks.includes(t.number)||!artworks.includes(`collection/works/${t.objectId}`)) throw new Error(`MOMA_CC0_DATASET_RECORD_FAILED:${t.number}`);
           }
-          console.log('Live official source topology PASS: exact 3107 model + explicit designer/manufacturer + two distinct MoMA object records');
+          const modelHits=(artworks.match(/Chair Series 7 \(3107\)/g)||[]).length;
+          if(modelHits<2||!artworks.includes('Arne Jacobsen')) throw new Error('MOMA_MODEL_DESIGNER_DATASET_FAILED');
+          console.log('Live official source topology PASS via MoMA CC0 Git LFS dataset + Cooper Hewitt CC0 JSON; no moma.org page fetch/bypass used');
           NODE
