@@ -1,0 +1,20 @@
+name: KIDULTS Source Redundancy Status R1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/source-redundancy-status-r1.json'
+      - 'scripts/kidults/source-intelligence/validate-source-redundancy-status-r1.mjs'
+      - '.github/workflows/kidults-source-redundancy-status-r1.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate fail-closed redundancy truth
+        run: node scripts/kidults/source-intelligence/validate-source-redundancy-status-r1.mjs
