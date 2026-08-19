@@ -1,0 +1,43 @@
+name: KIDULTS ER Provenance Source Corpus R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/provenance-source-corpus-r1.json'
+      - 'scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs'
+      - '.github/workflows/kidults-er-provenance-source-corpus-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acquire-provenance-corpus:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Acquire 240 real unlabeled Getty provenance records
+        run: |
+          node scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs /tmp/provenance-source-corpus-r1.json
+      - name: Validate acquisition truth boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const a=JSON.parse(fs.readFileSync('/tmp/provenance-source-corpus-r1.json','utf8'));
+          if(a.status!=='REAL_SOURCE_RECORD_CORPUS_UNLABELED') throw new Error('STATUS_INVALID');
+          if(a.stratum_id!=='er-stratum-provenance-unique-object') throw new Error('STRATUM_INVALID');
+          if(a.record_count!==240 || a.records?.length!==240) throw new Error('RECORD_COUNT_240_REQUIRED');
+          if(a.labels_present!==false || a.model_predictions_present!==false) throw new Error('UNLABELED_BOUNDARY_REQUIRED');
+          if(a.production!=='HOLD' || a.public_release!=='HOLD') throw new Error('RELEASE_HOLD_REQUIRED');
+          if(a.records.some(r=>r.rights_state!=='ALLOW')) throw new Error('RIGHTS_ALLOW_REQUIRED');
+          console.log('PASS: 240 real unlabeled Getty provenance source records acquired with rights/provenance bindings; no labels or ER PASS claimed.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-provenance-source-corpus-r1
+          path: /tmp/provenance-source-corpus-r1.json
+          retention-days: 14
