@@ -1,23 +1,33 @@
 {
   "id": "rights-admitted-pilot-source-pool-r1",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "status": "PILOT_PARTIAL",
   "methodology_issue": 486,
   "factory_issue": 488,
   "execution_consumer_issue": 480,
   "production": "HOLD",
-  "truth_boundary": "Legacy identity/context readiness fields remain unchanged for compatibility. A separate purpose-specific DEV/SHADOW internal dated observed-SOLD lane is declared without promoting the legacy pool to current-market exit, public/commercial projection, raw provider redistribution, or Production.",
+  "truth_boundary": "This pool proves rights-admitted real identity/context sources only. It does not yet prove transaction/sold-event source admission or ASI market-event completion.",
   "sources": [
     {
       "source_id": "met-open-access-api",
       "owner": "The Metropolitan Museum of Art",
       "channel": "PUBLIC_API",
       "rights_basis": "CC0_OPEN_ACCESS",
-      "rights_evidence": ["https://www.metmuseum.org/policies/terms-and-conditions", "https://www.metmuseum.org/hubs/open-access"],
+      "rights_evidence": [
+        "https://www.metmuseum.org/policies/terms-and-conditions",
+        "https://www.metmuseum.org/hubs/open-access"
+      ],
       "admission_state": "ADMITTED",
       "allowed_claim_classes": ["OBJECT_IDENTITY", "CATALOG_CONTEXT", "REFERENCE_METADATA"],
       "prohibited_claim_classes": ["SOLD_TRANSACTION", "MARKET_PRICE", "LIQUIDITY", "DEMAND"],
-      "purpose_rights": {"discover":"ALLOW","collect":"ALLOW","store":"ALLOW","derive":"ALLOW","display_internal":"ALLOW","display_public":"ALLOW_CC0_FIELDS_ONLY"},
+      "purpose_rights": {
+        "discover": "ALLOW",
+        "collect": "ALLOW",
+        "store": "ALLOW",
+        "derive": "ALLOW",
+        "display_internal": "ALLOW",
+        "display_public": "ALLOW_CC0_FIELDS_ONLY"
+      },
       "media_rule": "Only Open Access / CC0-designated media may be reused; non-OA or third-party-rights fields remain excluded or separately assessed.",
       "pii": "NOT_EXPECTED_FOR_OBJECT_METADATA",
       "technical_state": "READY_FOR_DEV_SHADOW",
@@ -28,44 +38,47 @@
       "owner": "Smithsonian Institution",
       "channel": "PUBLIC_API_OR_OPEN_DATA",
       "rights_basis": "CC0_OPEN_ACCESS_FOR_DESIGNATED_ASSETS",
-      "rights_evidence": ["https://www.si.edu/termsofuse", "https://www.si.edu/openaccess/faq", "https://www.si.edu/openaccess/devtools"],
+      "rights_evidence": [
+        "https://www.si.edu/termsofuse",
+        "https://www.si.edu/openaccess/faq",
+        "https://www.si.edu/openaccess/devtools"
+      ],
       "admission_state": "ADMITTED",
       "allowed_claim_classes": ["OBJECT_IDENTITY", "CATALOG_CONTEXT", "REFERENCE_METADATA"],
       "prohibited_claim_classes": ["SOLD_TRANSACTION", "MARKET_PRICE", "LIQUIDITY", "DEMAND"],
-      "purpose_rights": {"discover":"ALLOW","collect":"ALLOW_CC0_FIELDS_ONLY","store":"ALLOW_CC0_FIELDS_ONLY","derive":"ALLOW_CC0_FIELDS_ONLY","display_internal":"ALLOW_CC0_FIELDS_ONLY","display_public":"ALLOW_CC0_FIELDS_ONLY"},
+      "purpose_rights": {
+        "discover": "ALLOW",
+        "collect": "ALLOW_CC0_FIELDS_ONLY",
+        "store": "ALLOW_CC0_FIELDS_ONLY",
+        "derive": "ALLOW_CC0_FIELDS_ONLY",
+        "display_internal": "ALLOW_CC0_FIELDS_ONLY",
+        "display_public": "ALLOW_CC0_FIELDS_ONLY"
+      },
       "media_rule": "CC0 designation must be present for reusable media. Usage-conditions-apply content is excluded from commercial/public reuse without separate permission.",
       "pii": "FIELD_LEVEL_REVIEW_IF_PRESENT",
       "technical_state": "READY_FOR_DEV_SHADOW",
       "evidence_strength": "IDENTITY_CONTEXT_ONLY"
     },
     {
-      "source_id": "collectaio-public-readonly-api",
-      "owner": "CollectAIO",
-      "channel": "PUBLIC_READ_ONLY_API",
-      "rights_basis": "OFFICIAL_PUBLIC_DEVELOPER_INTEGRATION_GUIDANCE_BOUNDED_CACHE_CANONICAL_CITATION",
-      "rights_evidence": ["https://www.collectaio.com/developers", "coordination/kidults/source-intelligence/collectaio-shadow-sold-admission-r1.json"],
-      "admission_state": "ADMITTED_SHADOW_INTERNAL_ONLY",
-      "allowed_claim_classes": ["DATED_OBSERVED_SOLD_TRANSACTION"],
-      "prohibited_claim_classes": ["CURRENT_PRICE", "REPRESENTATIVE_PRICE", "LIQUIDITY", "TIME_TO_SALE", "GLOBAL_DEMAND", "GLOBAL_REPRESENTATIVENESS", "PUBLIC_OR_COMMERCIAL_PROJECTION", "RAW_PROVIDER_DATA_REDISTRIBUTION"],
-      "purpose_rights": {"discover":"ALLOW","collect":"ALLOW_BOUNDED_PUBLIC_READONLY","store":"ALLOW_BOUNDED_CACHE_ONLY","derive":"ALLOW_QUALIFIED_INTERNAL_DATED_TRANSACTION_ASSERTION","display_internal":"ALLOW_QUALIFIED_WITH_CANONICAL_CITATION","display_public":"DENY_PENDING_SEPARATE_PUBLIC_COMMERCIAL_RIGHTS_REVIEW"},
-      "scope_binding": "construction_mechanical_sets / LEGO NINJAGO City 70620",
-      "latest_valid_event_date": "2026-04-18",
-      "latest_valid_event_age_days_at_probe": 123,
-      "shadow_freshness_ceiling_days": 365,
-      "condition_state": "NOT_POPULATED",
-      "technical_state": "READY_FOR_DEV_SHADOW_DATED_MARKET_EVENT_ONLY",
-      "evidence_strength": "EXACT_ITEM_DATED_OBSERVED_SOLD_TRANSACTIONS_ONLY"
-    },
-    {
       "source_id": "ebay-developer-apis",
       "owner": "eBay",
       "channel": "LICENSED_API",
       "rights_basis": "API_LICENSE_AGREEMENT_REQUIRED",
-      "rights_evidence": ["https://developer.ebay.com/join/api-license-agreement", "https://developer.ebay.com/develop/guides-v2/get-started-with-ebay-apis"],
+      "rights_evidence": [
+        "https://developer.ebay.com/join/api-license-agreement",
+        "https://developer.ebay.com/develop/guides-v2/get-started-with-ebay-apis"
+      ],
       "admission_state": "CONDITIONAL",
       "allowed_claim_classes": ["DISCOVERY_REFERENCE_ONLY_UNTIL_LICENSE_SCOPE_CONFIRMED"],
       "prohibited_claim_classes": ["MARKET_PRICE", "AGGREGATED_SALES", "PRICING_MODEL", "PUBLIC_DATA_REPUBLICATION"],
-      "purpose_rights": {"discover":"ALLOW_PUBLIC_DOCUMENTATION_ONLY","collect":"DENY_UNTIL_AUTHORIZED_API_USE_CONFIRMED","store":"DENY_UNTIL_AUTHORIZED_API_USE_CONFIRMED","derive":"DENY_UNTIL_EXPRESS_SCOPE_CONFIRMED","display_internal":"DENY_UNTIL_AUTHORIZED_API_USE_CONFIRMED","display_public":"DENY_UNTIL_EXPRESS_SCOPE_CONFIRMED"},
+      "purpose_rights": {
+        "discover": "ALLOW_PUBLIC_DOCUMENTATION_ONLY",
+        "collect": "DENY_UNTIL_AUTHORIZED_API_USE_CONFIRMED",
+        "store": "DENY_UNTIL_AUTHORIZED_API_USE_CONFIRMED",
+        "derive": "DENY_UNTIL_EXPRESS_SCOPE_CONFIRMED",
+        "display_internal": "DENY_UNTIL_AUTHORIZED_API_USE_CONFIRMED",
+        "display_public": "DENY_UNTIL_EXPRESS_SCOPE_CONFIRMED"
+      },
       "technical_state": "NOT_ADMITTED_FOR_REAL_MARKET_EVENT",
       "evidence_strength": "NONE_FOR_CURRENT_POC"
     }
@@ -75,13 +88,7 @@
     "identity_context_pool_ready": true,
     "transaction_market_event_pool_ready": false,
     "eligible_for_asi_identity_context_real_run": true,
-    "eligible_for_asi_market_event_exit": false,
-    "shadow_internal_transaction_source_count": 1,
-    "shadow_internal_transaction_lane_ready": true,
-    "shadow_internal_transaction_scope": "DEV_SHADOW_DATED_EVENT_ONLY",
-    "eligible_for_asi_market_event_shadow_run": true,
-    "eligible_for_public_or_commercial_projection": false,
-    "eligible_for_production": false
+    "eligible_for_asi_market_event_exit": false
   },
-  "next_required_step": "Execute #480/#550/#560 with the separate CollectAIO SHADOW dated observed-SOLD lane while preserving the legacy current-market exit gate as false until stricter rights/currentness requirements clear."
+  "next_required_step": "Execute #480 against admitted identity/context sources now while continuing #488 to identify a rights-admissible transaction/sold-event source for market-event admission."
 }
