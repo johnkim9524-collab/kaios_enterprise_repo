@@ -1,15 +1,16 @@
 {
   "id": "kidults-global-standard-preproduction-gate-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_FAIL_CLOSED",
+  "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
   "production": "HOLD",
   "completion_claim": "NOT_100_PERCENT",
   "principle": "Designed != implemented != deployed != validated != publication eligible != production authorized",
   "required_gates": [
     {"id":"VALUE_TRACEABILITY","status":"PASS"},
-    {"id":"SOURCE_RIGHTS","status":"WAITING_REAL_POC"},
-    {"id":"ENTITY_RESOLUTION","status":"FAIL_84_PERCENT_TARGET_99"},
-    {"id":"CLAIM_EVIDENCE_SUFFICIENCY","status":"WAITING_REAL_POC"},
+    {"id":"SOURCE_RIGHTS","status":"PARTIAL_REAL_SOURCES_ADMITTED_RELEASE_MANIFEST_INCOMPLETE"},
+    {"id":"ENTITY_RESOLUTION","status":"INCOMPLETE_6_OF_7_GRADED_POPULATION_EXTERNAL_CUSTOMER_APPROVAL_WAIT"},
+    {"id":"CLAIM_EVIDENCE_SUFFICIENCY","status":"WAITING_CLAIM_SPECIFIC_CURRENT_MARKET_EVIDENCE"},
     {"id":"IMMUTABLE_CANDIDATE_PAIR","status":"NOT_CREATED"},
     {"id":"TRACK_B_INDEPENDENT_ASSESSMENT","status":"WAITING"},
     {"id":"PROJECTION_TRUTH_FRESHNESS","status":"PASS"},
@@ -21,6 +22,19 @@
     {"id":"FIELD_LEVEL_RIGHTS_RELEASE_MANIFEST","status":"NOT_EVIDENCED"},
     {"id":"INTEGRATION_GATE_238","status":"WAITING"}
   ],
+  "current_empirical_truth": {
+    "entity_resolution_complete_strata": 6,
+    "entity_resolution_required_strata": 7,
+    "latest_full_chain_overall_accuracy": 1.0,
+    "latest_full_chain_blind_accuracy": 1.0,
+    "critical_false_auto_merge": 0,
+    "deterministic_replay": "PASS",
+    "rights_provenance_coverage": 1.0,
+    "graded_population": "UNREPRESENTED_PSA_HTTP_403_APPROVED_CUSTOMER_GATE_EXTERNAL_RESPONSE_PENDING",
+    "candidate": "NONE",
+    "evidence_package": "NONE",
+    "track_b_assessment": "NOT_STARTED"
+  },
   "hundred_percent_rule": {
     "all_required_gates_must_pass": true,
     "unresolved_p0_allowed": 0,
