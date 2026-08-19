@@ -1,0 +1,69 @@
+{
+  "id": "collectaio-exposure-revocation-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_REVOCATION_AND_QUARANTINE",
+  "scope_boundary": "COLLECTIBLES_ONLY",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "incident_issue": 637,
+  "reason": "PUBLIC_GITHUB_ACTIONS_LOG_AND_ARTIFACT_OUTPUT_CONTRADICTED_THE_PROJECT_RAW_REDISTRIBUTION_BOUNDARY",
+  "historical_artifacts_preserved_immutable": [
+    "coordination/kidults/source-intelligence/collectaio-shadow-sold-admission-r1.json",
+    "coordination/kidults/poc/minimum-lawful-claim-profile-v1.json",
+    "coordination/kidults/poc/single-provider-concentration-decision-v1.json",
+    "coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json"
+  ],
+  "active_applicability": {
+    "collectaio_shadow_sold_admission_r1": "REVOKED_NOT_AN_ACTIVE_ADMISSION",
+    "owned_fabric_current_sold_lineage_r2": "REVOKED_NOT_AN_ACTIVE_LINEAGE",
+    "owned_fabric_multicell_lineage_r2": "REVOKED_NOT_AN_ACTIVE_LINEAGE",
+    "minimum_lawful_claim_profile_v1": "REVOKED_NO_ACTIVE_MARKET_CLAIM",
+    "single_provider_concentration_decision_v1": "REVOKED_NO_ACTIVE_CONCENTRATION_ACCEPTANCE",
+    "strict_current_market_binding_v1": "REVOKED_NO_ACTIVE_EMPIRICAL_BINDING"
+  },
+  "public_ci_policy": {
+    "live_collectaio_provider_requests": "PROHIBITED",
+    "provider_response_logging": "PROHIBITED",
+    "provider_response_artifact_upload": "PROHIBITED",
+    "raw_provider_redistribution": "BLOCKED"
+  },
+  "historical_cleanup": {
+    "state": "PENDING_OWNER_ACTION",
+    "remediation_scope": "REMOVE_AFFECTED_WORKFLOW_RUNS_OR_BOTH_LOGS_AND_ARTIFACTS",
+    "affected_workflow_runs": [
+      "32264733864",
+      "32266290356",
+      "32268659716"
+    ],
+    "affected_artifacts": [
+      "9369697181",
+      "9370322174",
+      "9371251424"
+    ],
+    "connected_automation_capability": "NO_ACTIONS_DELETE_MUTATION_EXPOSED",
+    "rerun": "PROHIBITED"
+  },
+  "private_reacquisition_preconditions": {
+    "state": "NOT_STARTED",
+    "required": [
+      "EXPLICIT_FIELD_BY_PURPOSE_RIGHTS",
+      "PRIVATE_CONTROLLED_STORE",
+      "OPAQUE_EVIDENCE_RECEIPT",
+      "PAYLOAD_DIGEST",
+      "RETENTION_AND_TTL_POLICY",
+      "PRIVATE_TAMPER_VERIFICATION",
+      "REVIEW_OF_HISTORICAL_CLEANUP"
+    ],
+    "public_ci_may_verify": "STRUCTURE_ONLY_NO_PROVIDER_PAYLOAD"
+  },
+  "active_market_claim": {
+    "state": "NONE",
+    "dated_observed_sold_transaction": "BLOCKED_PENDING_PRIVATE_REACQUISITION",
+    "current_price": "BLOCKED",
+    "liquidity": "BLOCKED",
+    "time_to_sale": "BLOCKED",
+    "public_or_commercial_projection": "BLOCKED"
+  },
+  "immutable_candidate": "BLOCKED_NOT_CREATED",
+  "track_b": "BLOCKED_EXACT_PAIR_ABSENT"
+}

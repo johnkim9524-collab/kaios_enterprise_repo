@@ -1,0 +1,43 @@
+name: KIDULTS CollectAIO Exposure Remediation R1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/collectaio-**'
+      - 'scripts/kidults/source-intelligence/validate-collectaio-**'
+      - 'scripts/kidults/architecture/*current-market-quarantine-r3.mjs'
+      - 'tests/kidults/source-intelligence/collectaio-public-output-guard-v1.test.mjs'
+      - '.github/workflows/kidults-collectaio-exposure-remediation-r1.yml'
+      - '.github/workflows/kidults-collectaio-anchor-sold-probe-r1.yml'
+      - '.github/workflows/kidults-collectaio-anchor-sold-probe-r2.yml'
+      - '.github/workflows/kidults-collectaio-anchor-sold-probe-r3.yml'
+      - '.github/workflows/kidults-collectaio-shadow-sold-admission-r1.yml'
+      - '.github/workflows/kidults-owned-fabric-current-sold-lineage-r2.yml'
+      - '.github/workflows/kidults-owned-fabric-multicell-lineage-r2.yml'
+      - '.github/workflows/kidults-minimum-lawful-claim-profile-v1.yml'
+      - '.github/workflows/kidults-strict-current-market-admission-gate-v1.yml'
+      - '.github/workflows/kidults-single-provider-concentration-decision-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  quarantine-and-public-output-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Enforce no public provider payload path
+        run: node scripts/kidults/source-intelligence/validate-collectaio-public-output-guard-v1.mjs
+      - name: Validate active current-market revocation
+        run: node scripts/kidults/source-intelligence/validate-active-current-market-quarantine-v2.mjs
+      - name: Validate guard mutation tests
+        run: node --test tests/kidults/source-intelligence/collectaio-public-output-guard-v1.test.mjs
+      - name: Build current-market quarantine projection
+        run: node scripts/kidults/architecture/build-owned-fabric-current-market-quarantine-r3.mjs /tmp/kidults-owned-fabric-current-market-quarantine-r3.json
+      - name: Validate fail-closed current-market projection
+        run: node scripts/kidults/architecture/validate-owned-fabric-current-market-quarantine-r3.mjs /tmp/kidults-owned-fabric-current-market-quarantine-r3.json

@@ -1,0 +1,23 @@
+{
+  "id": "collectaio-public-exposure-remediation-v1",
+  "version": "1.0.0",
+  "status": "P0_REMEDIATION_IN_PROGRESS",
+  "parent_issue": 637,
+  "scope_boundary": "COLLECTIBLES_ONLY",
+  "actions": {
+    "future_public_provider_execution": "REMOVE_LEGACY_LIVE_WORKFLOWS_AND_SCRIPTS",
+    "public_output_guard": "REQUIRED",
+    "active_market_claim": "REVOKE_AND_QUARANTINE",
+    "historical_cleanup": "PENDING_OWNER_ACTION"
+  },
+  "validation_requirements": [
+    "NO_LEGACY_LIVE_PROBE_PATH",
+    "NO_PUBLIC_PROVIDER_FETCH",
+    "NO_PUBLIC_PROVIDER_ARTIFACT_UPLOAD",
+    "NO_PUBLIC_PROVIDER_RESPONSE_LOGGING",
+    "ACTIVE_CONSUMERS_BIND_TO_REVOCATION",
+    "CANDIDATE_AND_TRACK_B_REMAIN_BLOCKED"
+  ],
+  "production": "HOLD",
+  "public_release": "HOLD"
+}
