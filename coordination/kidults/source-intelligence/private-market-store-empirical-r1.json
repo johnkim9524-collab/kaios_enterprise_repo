@@ -1,0 +1,18 @@
+{
+  "id":"kidults-private-market-store-empirical-r1",
+  "version":"1.0.0",
+  "parent_issue":637,
+  "status":"LOCAL_DEV_SENTINEL_PROOF_EXECUTABLE_NOT_PROVIDER_EVIDENCE",
+  "scope":"PRIVATE_STORE_MECHANICS_ONLY",
+  "required_proof":["AT_REST_ENCRYPTION_ROUNDTRIP","OPAQUE_RECEIPT_HMAC_VERIFY","TAMPER_MUTATION_REJECTION","TTL_DELETE","AUDIT_LOG","LEAST_PRIVILEGE_0700_0600"],
+  "provider_network_requests":0,
+  "provider_payloads_allowed":false,
+  "synthetic_sentinel_only":true,
+  "active_market_claim":"NONE",
+  "rights_terminalized":false,
+  "historical_cleanup_complete":false,
+  "private_provider_runtime_verified":false,
+  "public_release":"HOLD",
+  "production":"HOLD",
+  "truth_boundary":"A passing run proves LOCAL/DEV private-store security and lifecycle mechanics only. It cannot satisfy source-specific rights, historical cleanup, remote/private provider reacquisition, active market evidence, Candidate eligibility or Production."
+}
