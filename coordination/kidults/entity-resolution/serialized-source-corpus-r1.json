@@ -1,0 +1,23 @@
+{
+  "id": "kidults-er-serialized-source-corpus-r1",
+  "version": "1.0.1",
+  "parent_issue": 609,
+  "support_issue": 614,
+  "stratum_id": "er-stratum-serialized-reference",
+  "status": "ACQUISITION_EXECUTION_CONTRACT",
+  "source_id": "met-open-access-csv",
+  "target_record_count": 240,
+  "rights_state_required": "ALLOW",
+  "license_evidence_refs": [
+    "https://github.com/metmuseum/openaccess",
+    "https://github.com/metmuseum/openaccess/blob/master/LICENSE"
+  ],
+  "allowed_metadata_only": true,
+  "images_allowed": false,
+  "labels_allowed": false,
+  "model_predictions_allowed": false,
+  "reviewer_assignment_required": true,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "truth_boundary": "This contract permits collection of real Met Open Access CC0 CSV metadata records as unlabeled empirical source material only. Accession/object numbers are preserved as authoritative source identifiers. Selection is restricted to records whose source object/title/classification text indicates watch, clock, camera, instrument, chronometer, timepiece or mechanical semantics. No ER label, benchmark PASS, Track B approval, publication or Production claim is created by this artifact."
+}
