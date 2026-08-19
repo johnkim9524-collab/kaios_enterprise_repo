@@ -15,13 +15,13 @@
     {"id":"PORTAL_TRANSPARENCY_ACCESSIBILITY","weight":6,"state":"PARTIAL"},
     {"id":"EOS_FOUNDER_WORKFLOW","weight":5,"state":"PARTIAL"},
     {"id":"RUNTIME_RELIABILITY","weight":6,"state":"PARTIAL"},
-    {"id":"SECURITY_SUPPLY_CHAIN","weight":4,"state":"FOUNDATION_ONLY"},
-    {"id":"PRIVACY_RETENTION","weight":3,"state":"FOUNDATION_ONLY"},
+    {"id":"SECURITY_SUPPLY_CHAIN","weight":4,"state":"PARTIAL","evidence":"PR #561 empirical repository/dependency/secret/vulnerability assurance merged; penetration/external-infrastructure/final security acceptance not complete"},
+    {"id":"PRIVACY_RETENTION","weight":3,"state":"PARTIAL","evidence":"PR #563 staging 365-day retention + least-privilege file modes merged; audit retention and record-level person/provenance classification remain open"},
     {"id":"INTEGRATION_GATE","weight":3,"state":"WAITING"}
   ],
   "weights_total":100,
   "evidenced_pass_weight":17,
-  "note":"17% is a strict gate-completion score, not engineering progress. Partial work receives zero until its exit evidence passes.",
+  "note":"17% is a strict gate-completion score, not engineering progress. Partial work receives zero until its exit evidence passes. Security and privacy moved from FOUNDATION_ONLY to PARTIAL after empirical R1 evidence; strict pass weight is unchanged.",
   "target":100,
   "production":"HOLD"
 }
