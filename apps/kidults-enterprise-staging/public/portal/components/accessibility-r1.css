@@ -1,0 +1,12 @@
+small[data-hero-status],
+.principles > span,
+.data-funnel-note,
+.footer-brand > span,
+.footer-inner > span,
+.workspace-page-context-copy > span {
+  color: #545b56 !important;
+}
+
+.data-funnel__layer > span {
+  color: #545b56 !important;
+}
