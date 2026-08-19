@@ -1,0 +1,47 @@
+{
+  "id": "candidate-evidence-handoff-preflight-contract-r1",
+  "version": "1.0.0",
+  "issue": 457,
+  "downstream_track": "TRACK_B_INDEPENDENT_VALIDATION",
+  "production": "HOLD",
+  "required_pair": ["snapshot-candidate.json", "evidence-package.json"],
+  "required_gates": {
+    "entity_resolution_empirical": {
+      "overall_accuracy_gte": 0.99,
+      "blind_accuracy_gte": 0.99,
+      "critical_false_auto_merge_eq": 0,
+      "deterministic_replay": "PASS"
+    },
+    "rights": {
+      "claim_inputs_purpose_specific_rights_admitted": true,
+      "unknown_or_denied_claim_input_count": 0
+    },
+    "evidence": {
+      "evidence_before_metrics": true,
+      "claim_strength_lte_evidence_strength": true,
+      "unresolved_critical_contradiction_count": 0,
+      "current_market_claim_requires_current_market_evidence": true,
+      "historical_evidence_cannot_satisfy_current_market_claim": true
+    },
+    "immutability": {
+      "snapshot_id_present": true,
+      "snapshot_status": "DRAFT_CANDIDATE",
+      "registry_version_present": true,
+      "methodology_version_present": true,
+      "evidence_lineage_version_present": true,
+      "pair_digest_required": true
+    }
+  },
+  "forbidden_shortcuts": [
+    "CI_PASS_AS_MARKET_TRUTH",
+    "RUNTIME_CORE_PASS_AS_MARKET_TRUTH",
+    "HISTORICAL_TRANSACTION_AS_CURRENT_MARKET",
+    "LISTING_AS_SOLD",
+    "PROVIDER_ID_AS_CANONICAL_ID",
+    "UNKNOWN_RIGHTS_AS_ALLOW",
+    "PORTAL_OUTPUT_AS_TRACK_B_INPUT"
+  ],
+  "handoff_state_values": ["READY_FOR_TRACK_B", "BLOCKED"],
+  "track_b_input_boundary": "Only the exact immutable snapshot-candidate.json + evidence-package.json pair may be submitted.",
+  "publication": "HOLD"
+}
