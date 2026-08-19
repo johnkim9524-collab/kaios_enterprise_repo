@@ -13,14 +13,13 @@ if (!(manifest.required_strata_ids ?? []).includes(STRATUM)) throw new Error('DE
 if (dataset.dataset_class !== 'REAL_WORLD_LABELED' || dataset.synthetic === true || !Array.isArray(dataset.cases)) throw new Error('R7I_REAL_WORLD_DATASET_REQUIRED');
 if (admission.admission_scope !== 'DESIGNER_MAKER_EDITION_IDENTITY_CALIBRATION_ONLY' || admission.sources?.some(s=>s.admission_state!=='ADMITTED')) throw new Error('DESIGNER_MAKER_SOURCE_ADMISSION_REQUIRED');
 
-const timeoutMs = 18000;
-async function fetchText(url, attempts=3) {
+async function fetchText(url, attempts=3, timeoutMs=18000) {
   let last;
   for (let attempt=1; attempt<=attempts; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetch(url, {headers:{'user-agent':'KIDULTS-ER-BENCHMARK-DEV-SHADOW/1.0','accept':'application/json,text/plain,text/html'},signal:controller.signal});
+      const res = await fetch(url, {headers:{'user-agent':'KIDULTS-ER-BENCHMARK-DEV-SHADOW/1.0','accept':'application/json,text/plain,text/csv'},signal:controller.signal});
       if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
       return await res.text();
     } catch (error) {
@@ -32,19 +31,20 @@ async function fetchText(url, attempts=3) {
 }
 async function fetchJson(url){ return JSON.parse(await fetchText(url)); }
 
-const moma1 = {work_id:'1611', object_number:'24.1997.1', url:'https://www.moma.org/collection/works/1611'};
-const moma2 = {work_id:'103159', object_number:'24.1997.2', url:'https://www.moma.org/collection/works/103159'};
+const moma1 = {work_id:'1611', object_number:'24.1997.1', source_ref:'moma-cc0-artworks-csv'};
+const moma2 = {work_id:'103159', object_number:'24.1997.2', source_ref:'moma-cc0-artworks-csv'};
 const modelToken = '3107';
 const canonicalAnchor = 'designer-maker:arne-jacobsen:fritz-hansen:model-3107';
 
-const [page1,page2,cooper] = await Promise.all([
-  fetchText(moma1.url),
-  fetchText(moma2.url),
+const [momaArtworks,cooper] = await Promise.all([
+  fetchText('https://media.githubusercontent.com/media/MuseumofModernArt/collection/main/Artworks.csv', 3, 45000),
   fetchJson('https://raw.githubusercontent.com/cooperhewitt/collection/master/objects/187/349/45/18734945.json')
 ]);
-for (const [page,target] of [[page1,moma1],[page2,moma2]]) {
-  if (!page.includes('Chair Series 7 (3107)') || !page.includes(target.object_number)) throw new Error(`MOMA_EXEMPLAR_REVALIDATION_FAILED:${target.object_number}`);
+for (const target of [moma1,moma2]) {
+  if (!momaArtworks.includes(target.object_number) || !momaArtworks.includes(`collection/works/${target.work_id}`)) throw new Error(`MOMA_CC0_EXEMPLAR_REVALIDATION_FAILED:${target.object_number}`);
 }
+const modelHits=(momaArtworks.match(/Chair Series 7 \(3107\)/g)||[]).length;
+if (modelHits < 2 || !momaArtworks.includes('Arne Jacobsen')) throw new Error('MOMA_CC0_MODEL_DESIGNER_REVALIDATION_FAILED');
 const roles = Object.fromEntries((cooper.participants ?? []).map(p=>[p.role_name,p.person_name]));
 if (cooper.id !== '18734945' || cooper.accession_number !== '2009-26-1-a,b' || cooper.title_raw !== 'Model #3107') throw new Error('COOPER_CANONICAL_MODEL_REVALIDATION_FAILED');
 if (roles.Designer !== 'Arne Jacobsen' || !String(roles.Manufacturer ?? '').startsWith('Fritz Hansen')) throw new Error('COOPER_DESIGNER_MAKER_REVALIDATION_FAILED');
@@ -74,12 +74,12 @@ const sameObject = {
     source:'moma-collection-research-dataset'
   },
   provenance_refs: [
-    'moma:collection-work:1611',
-    'moma:object-number:24.1997.1',
+    'moma-cc0-artworks-csv:object-id:1611',
+    'moma-cc0-artworks-csv:object-number:24.1997.1',
     'source-admission:designer-maker-moma-cooper-admission-r3'
   ],
   rights_state:'ALLOW',
-  label_basis:'LIVE_MOMA_OFFICIAL_COLLECTION_RECORD_BINDS_WORK_1611_AND_OBJECT_NUMBER_24.1997.1_TO_THE_SAME_SERIES_7_MODEL_3107_COLLECTION_RECORD',
+  label_basis:'LIVE_MOMA_OFFICIAL_CC0_ARTWORKS_DATASET_BINDS_OBJECT_ID_1611_AND_OBJECT_NUMBER_24.1997.1_TO_SERIES_7_MODEL_3107',
   claim_ceiling:'SOURCE_RECORD_NORMALIZATION_ONLY_NO_IMAGE_OR_MARKET_CLAIM'
 };
 
@@ -107,13 +107,13 @@ const sameDesign = {
     source:'moma-collection-research-dataset'
   },
   provenance_refs: [
-    'moma:collection-work:1611:object-number:24.1997.1',
-    'moma:collection-work:103159:object-number:24.1997.2',
+    'moma-cc0-artworks-csv:object-id:1611:object-number:24.1997.1',
+    'moma-cc0-artworks-csv:object-id:103159:object-number:24.1997.2',
     'cooper-hewitt:object:18734945:model-3107:designer-arne-jacobsen:manufacturer-fritz-hansen',
     'source-admission:designer-maker-moma-cooper-admission-r3'
   ],
   rights_state:'ALLOW',
-  label_basis:'TWO_DISTINCT_MOMA_COLLECTION_OBJECT_NUMBERS_EXPLICITLY_SHARE_SERIES_7_MODEL_3107_AND_DESIGNER_ARNE_JACOBSEN;_COOPER_HEWITT_CC0_RECORD_INDEPENDENTLY_REVALIDATES_EXACT_MODEL_3107_DESIGNER_ARNE_JACOBSEN_AND_MANUFACTURER_FRITZ_HANSEN',
+  label_basis:'TWO_DISTINCT_MOMA_CC0_COLLECTION_OBJECT_RECORDS_EXPLICITLY_SHARE_SERIES_7_MODEL_3107_AND_DESIGNER_ARNE_JACOBSEN;_COOPER_HEWITT_CC0_RECORD_INDEPENDENTLY_REVALIDATES_EXACT_MODEL_3107_DESIGNER_ARNE_JACOBSEN_AND_MANUFACTURER_FRITZ_HANSEN',
   claim_ceiling:'CANONICAL_DESIGN_IDENTITY_ONLY_DISTINCT_PHYSICAL_OBJECTS_REMAIN_DISTINCT'
 };
 
@@ -137,12 +137,12 @@ const hardNegative = {
     source:'moma-collection-research-dataset'
   },
   provenance_refs: [
-    'moma:collection-work:1611:object-number:24.1997.1',
-    'moma:collection-work:103159:object-number:24.1997.2',
+    'moma-cc0-artworks-csv:object-id:1611:object-number:24.1997.1',
+    'moma-cc0-artworks-csv:object-id:103159:object-number:24.1997.2',
     'source-admission:designer-maker-moma-cooper-admission-r3'
   ],
   rights_state:'ALLOW',
-  label_basis:'OFFICIAL_MOMA_RECORDS_EXPOSE_DISTINCT_OBJECT_NUMBERS_24.1997.1_AND_24.1997.2;_SHARED_MODEL_3107_DOES_NOT_COLLAPSE_PHYSICAL_OBJECT_IDENTITY',
+  label_basis:'OFFICIAL_MOMA_CC0_DATASET_EXPOSES_DISTINCT_OBJECT_NUMBERS_24.1997.1_AND_24.1997.2;_SHARED_MODEL_3107_DOES_NOT_COLLAPSE_PHYSICAL_OBJECT_IDENTITY',
   claim_ceiling:'PHYSICAL_COLLECTION_OBJECT_IDENTITY_ONLY_NO_PROVENANCE_OR_MARKET_CLAIM'
 };
 
@@ -152,7 +152,7 @@ const out = {
   id:'entity-resolution-real-world-dataset-r7j-designer-maker-minimums',
   dataset_scope:'R7J_DESIGNER_MAKER_EDITION_MINIMUMS_COMPLETE',
   cases:[...dataset.cases,sameObject,sameDesign,hardNegative],
-  truth_boundary:'R7J uses only rights-admitted museum metadata: two distinct MoMA Series 7 model 3107 collection objects plus independent Cooper Hewitt CC0 designer/manufacturer/model authority. Matching is exact model/authority based, not name or image similarity. Final promotion remains blocked by GRADED_POPULATION, diagnostic leakage/final freeze and Track B.'
+  truth_boundary:'R7J uses only rights-admitted museum metadata: two distinct MoMA Series 7 model 3107 collection objects from the official CC0 Git LFS dataset plus independent Cooper Hewitt CC0 designer/manufacturer/model authority. Matching is exact model/authority based, not name or image similarity. Final promotion remains blocked by GRADED_POPULATION, diagnostic leakage/final freeze and Track B.'
 };
 await fs.writeFile(outputPath,JSON.stringify(out,null,2));
 console.log(JSON.stringify({id:out.id,designer:'Arne Jacobsen',manufacturer:'Fritz Hansen',model:modelToken,exemplars:[moma1,moma2],production:'HOLD'},null,2));
