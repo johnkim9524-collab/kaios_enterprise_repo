@@ -10,6 +10,15 @@ on:
       - "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
       - "coordination/kidults/source-intelligence/asi-global-source-universe-v1.json"
       - "coordination/kidults/source-intelligence/scope-source-pool-readiness-contract-v1.json"
+      - "coordination/kidults/source-intelligence/global-pool-r1-frontier-seed-channel-contract-v1.json"
+      - "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-contract-v1.json"
+      - "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv"
+      - "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json"
+      - "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json"
+      - "scripts/kidults/source-intelligence/compile-global-pool-r1-frontier-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-global-pool-r1-frontier-v1.mjs"
+      - "scripts/kidults/source-intelligence/compile-global-pool-r1-bootstrap-capture-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-global-pool-r1-bootstrap-capture-v1.mjs"
       - "scripts/kidults/source-intelligence/simulate-asi-market-funnel-v1.mjs"
       - "scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs"
       - "scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs"
@@ -27,6 +36,15 @@ on:
       - "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
       - "coordination/kidults/source-intelligence/asi-global-source-universe-v1.json"
       - "coordination/kidults/source-intelligence/scope-source-pool-readiness-contract-v1.json"
+      - "coordination/kidults/source-intelligence/global-pool-r1-frontier-seed-channel-contract-v1.json"
+      - "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-contract-v1.json"
+      - "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv"
+      - "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json"
+      - "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json"
+      - "scripts/kidults/source-intelligence/compile-global-pool-r1-frontier-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-global-pool-r1-frontier-v1.mjs"
+      - "scripts/kidults/source-intelligence/compile-global-pool-r1-bootstrap-capture-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-global-pool-r1-bootstrap-capture-v1.mjs"
       - "scripts/kidults/source-intelligence/simulate-asi-market-funnel-v1.mjs"
       - "scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs"
       - "scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs"
@@ -68,7 +86,8 @@ jobs:
             "coordination/kidults/source-intelligence/asi-market-funnel-event-v1.schema.json",
             "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json",
             "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json",
-            "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
+            "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json",
+            "coordination/kidults/source-intelligence/global-pool-r1-frontier-seed-channel-contract-v1.json"
           ];
           for (const file of files) JSON.parse(fs.readFileSync(file, "utf8"));
           console.log(`Parsed ${files.length} ASI market funnel contracts.`);
@@ -82,6 +101,10 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs
           node --check scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs
+          node --check scripts/kidults/source-intelligence/compile-global-pool-r1-frontier-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-global-pool-r1-frontier-v1.mjs
+          node --check scripts/kidults/source-intelligence/compile-global-pool-r1-bootstrap-capture-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-global-pool-r1-bootstrap-capture-v1.mjs
 
       - name: Prove deterministic market funnel simulation
         run: |
@@ -93,6 +116,15 @@ jobs:
 
       - name: Validate multi-fleet topology and anti-bottleneck controls
         run: node scripts/kidults/source-intelligence/validate-asi-market-funnel-v1.mjs
+
+      - name: Validate open-ended global frontier and real registered-endpoint bootstrap
+        run: |
+          node scripts/kidults/source-intelligence/compile-global-pool-r1-frontier-v1.mjs \
+            --output /tmp/global-pool-r1-frontier.json
+          node scripts/kidults/source-intelligence/compile-global-pool-r1-bootstrap-capture-v1.mjs \
+            --output /tmp/global-pool-r1-bootstrap.json
+          node scripts/kidults/source-intelligence/validate-global-pool-r1-frontier-v1.mjs
+          node scripts/kidults/source-intelligence/validate-global-pool-r1-bootstrap-capture-v1.mjs
 
       - name: Revalidate Global Source Universe and Source Pool contracts
         run: |
@@ -111,6 +143,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kidults-asi-market-funnel-engine-mesh-v1
-          path: /tmp/asi-market-funnel-run-1.json
+          path: |
+            /tmp/asi-market-funnel-run-1.json
+            /tmp/global-pool-r1-frontier.json
+            /tmp/global-pool-r1-bootstrap.json
           if-no-files-found: error
           retention-days: 30

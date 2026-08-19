@@ -46,7 +46,13 @@ const visual = query("SELECT value_json FROM autonomous_checkpoints WHERE key='v
 assert(JSON.parse(visual?.value_json || '{}').locked === true,'VISUAL_BASELINE_NOT_LOCKED');
 
 const tables = query("SELECT COUNT(*) AS asi_table_count FROM sqlite_master WHERE type='table' AND name LIKE 'asi_%';")[0];
-assert(Number(tables?.asi_table_count) === 13,'ASI_DURABLE_TABLE_COUNT_MISMATCH');
+assert(Number(tables?.asi_table_count) === 20,'ASI_DURABLE_TABLE_COUNT_MISMATCH');
+
+const processorRequirements = query("SELECT g.stage,COUNT(*) AS required_count FROM asi_processor_fan_in_requirements r JOIN asi_processor_fan_in_groups g ON g.group_id=r.group_id GROUP BY g.stage ORDER BY g.stage;");
+assert(processorRequirements.length === 0,'PROCESSOR_FAN_IN_REQUIREMENTS_MUST_START_EMPTY_BEFORE_SOURCE_EVENTS');
+
+const processorViews = query("SELECT COUNT(*) AS view_count FROM sqlite_master WHERE type='view' AND name IN ('asi_processor_fan_in_readiness','asi_source_pool_current');")[0];
+assert(Number(processorViews?.view_count) === 2,'ASI_PROCESSOR_VIEWS_MISSING');
 
 const admission = query("SELECT admission_id,decision,rights_state,policy_version,required_assertion_count,satisfied_assertion_count FROM asi_purpose_admissions WHERE admission_id='admission-staging-golden-path-v1';")[0];
 assert(admission?.decision === 'PASS' && admission?.rights_state === 'ALLOW','FIXTURE_ADMISSION_NOT_PASS_ALLOW');

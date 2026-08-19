@@ -5,11 +5,13 @@ export type AsiFreshnessState = 'CURRENT' | 'STALE' | 'EXPIRED' | 'UNKNOWN';
 export type AsiDecision = 'PASS' | 'HOLD' | 'REJECT' | 'NOT_APPLICABLE' | null;
 
 export type AsiEventType =
+  | 'SOURCE_DISCOVERY_REQUESTED'
   | 'SOURCE_DISCOVERED'
   | 'SOURCE_IDENTIFIED'
   | 'SOURCE_CLASSIFICATION_ASSERTED'
   | 'SOURCE_QUALIFICATION_ASSERTED'
   | 'SOURCE_PURPOSE_ADMISSION_DECIDED'
+  | 'SOURCE_POOL_DECIDED'
   | 'ACQUISITION_PLANNED'
   | 'SOURCE_RECORD_QUARANTINED'
   | 'SOURCE_RECORD_ADMITTED'
@@ -54,8 +56,8 @@ export interface AsiEventEnvelope {
 }
 
 const eventTypes = new Set<AsiEventType>([
-  'SOURCE_DISCOVERED','SOURCE_IDENTIFIED','SOURCE_CLASSIFICATION_ASSERTED','SOURCE_QUALIFICATION_ASSERTED',
-  'SOURCE_PURPOSE_ADMISSION_DECIDED','ACQUISITION_PLANNED','SOURCE_RECORD_QUARANTINED','SOURCE_RECORD_ADMITTED',
+  'SOURCE_DISCOVERY_REQUESTED','SOURCE_DISCOVERED','SOURCE_IDENTIFIED','SOURCE_CLASSIFICATION_ASSERTED','SOURCE_QUALIFICATION_ASSERTED',
+  'SOURCE_PURPOSE_ADMISSION_DECIDED','SOURCE_POOL_DECIDED','ACQUISITION_PLANNED','SOURCE_RECORD_QUARANTINED','SOURCE_RECORD_ADMITTED',
   'ENTITY_RESOLUTION_ASSERTED','EVIDENCE_ASSERTED','MARKET_EVENT_ASSERTED','MARKET_CELL_ANALYZED',
   'INTELLIGENCE_ELIGIBILITY_DECIDED','ENGINE_TASK_HELD','ENGINE_TASK_DEAD_LETTERED',
 ]);
@@ -75,8 +77,45 @@ const normalizedDateTime = (value: unknown): string => {
   return new Date(value).toISOString();
 };
 
+function canonicalPayloadValue(value: unknown, seen = new Set<object>()): unknown {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new Error('ASI_EVENT_PAYLOAD_NON_FINITE_NUMBER');
+    return Object.is(value,-0) ? 0 : value;
+  }
+  if (Array.isArray(value)) {
+    if (seen.has(value)) throw new Error('ASI_EVENT_PAYLOAD_CYCLIC');
+    seen.add(value);
+    const output = value.map((item) => canonicalPayloadValue(item,seen));
+    seen.delete(value);
+    return output;
+  }
+  if (value && typeof value === 'object') {
+    if (seen.has(value)) throw new Error('ASI_EVENT_PAYLOAD_CYCLIC');
+    seen.add(value);
+    const output: Record<string,unknown> = {};
+    for (const key of Object.keys(value as Record<string,unknown>).sort()) {
+      const item = (value as Record<string,unknown>)[key];
+      if (item === undefined || typeof item === 'function' || typeof item === 'symbol') continue;
+      output[key] = canonicalPayloadValue(item,seen);
+    }
+    seen.delete(value);
+    return output;
+  }
+  throw new Error('ASI_EVENT_PAYLOAD_NOT_JSON_COMPATIBLE');
+}
+
+export async function assertAsiEventPayloadHash(event: AsiEventEnvelope): Promise<void> {
+  const canonical = JSON.stringify(canonicalPayloadValue(event.payload));
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(canonical)));
+  const actual = `sha256:${Array.from(digest,(byte) => byte.toString(16).padStart(2,'0')).join('')}`;
+  if (actual !== event.payload_hash) throw new Error('ASI_EVENT_PAYLOAD_HASH_MISMATCH');
+}
+
 export function partitionKey(partition: AsiPartition): string {
-  return [partition.channel, partition.region, partition.language, partition.scope_id, partition.source_role, partition.canonical_host_hash].join('|');
+  // Length/escape-safe JSON tuple encoding prevents distinct partition values
+  // containing a delimiter from collapsing into the same fan-in grain.
+  return `partition:v1:${JSON.stringify(partitionKeys.map((key) => partition[key]))}`;
 }
 
 export function validateAsiEvent(value: unknown): AsiEventEnvelope {
@@ -84,7 +123,7 @@ export function validateAsiEvent(value: unknown): AsiEventEnvelope {
   const raw = value as Record<string, unknown>;
   if (Object.keys(raw).some((key) => !allowedEventKeys.has(key))) throw new Error('ASI_EVENT_ADDITIONAL_PROPERTY_FORBIDDEN');
   if (requiredEventKeys.some((key) => !Object.hasOwn(raw,key))) throw new Error('ASI_EVENT_REQUIRED_PROPERTY_MISSING');
-  const event = raw as unknown as Partial<AsiEventEnvelope>;
+  const event = raw as Partial<AsiEventEnvelope>;
   if (!nonEmptyString(event.event_id) || !eventTypes.has(event.event_type as AsiEventType)) throw new Error('ASI_EVENT_ID_OR_TYPE_INVALID');
   if (event.event_version !== ASI_EVENT_VERSION) throw new Error('ASI_EVENT_VERSION_INVALID');
   if (!nonEmptyString(event.producer_engine) || !nonEmptyString(event.producer_version) || !nonEmptyString(event.correlation_id) || !nonEmptyString(event.idempotency_key)) throw new Error('ASI_EVENT_LINEAGE_INVALID');

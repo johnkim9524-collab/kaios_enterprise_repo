@@ -14,7 +14,7 @@
     "canonical_logical_engine_count": 52,
     "asi_logical_engine_count": 11,
     "asi_execution_fleet_contract_count": 25,
-    "runtime_service_alignment_state": "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_FOUNDATION_CODE_WIRED_NOT_DEPLOYED",
+    "runtime_service_alignment_state": "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_PROCESSORS_AND_QUEUE_TRANSPORT_CODE_WIRED_NOT_DEPLOYED",
     "repository_canonical_architecture_and_integration_boundary_alignment_percent": 100,
     "deployment_alignment_percent": 0,
     "production": "HOLD"

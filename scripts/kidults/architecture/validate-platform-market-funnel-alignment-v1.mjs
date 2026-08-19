@@ -22,6 +22,7 @@ const paths = {
   dos: "coordination/kidults/dos/decision-operating-system-contract-v1.json",
   scopeCrosswalk: "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
   globalSourceUniverse: "coordination/kidults/source-intelligence/asi-global-source-universe-v1.json",
+  globalPoolR1: "coordination/kidults/source-intelligence/global-pool-r1-frontier-seed-channel-contract-v1.json",
   admissionPolicy: "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json",
   queueContract: "coordination/kidults/source-intelligence/asi-queue-and-partition-contract-v1.json",
   collectionScopeRegistry: "coordination/kidults/data-scope/collection-scope-registry-v1.json",
@@ -34,11 +35,17 @@ const paths = {
   sourcePoolWorkflow: ".github/workflows/kidults-agci-os-source-pool-foundation.yml",
   wrangler: "services/kidults-autonomous-intelligence/wrangler.jsonc",
   fleetRegistry: "services/kidults-autonomous-intelligence/src/asi/registry.ts",
+  eventEnvelope: "services/kidults-autonomous-intelligence/src/asi/event.ts",
   eventRuntime: "services/kidults-autonomous-intelligence/src/asi/runtime.ts",
+  processorRuntime: "services/kidults-autonomous-intelligence/src/asi/processor-runtime.ts",
+  processorImplementation: "services/kidults-autonomous-intelligence/src/asi/processors.ts",
   httpSecurity: "services/kidults-autonomous-intelligence/src/http-security.ts",
   worker: "services/kidults-autonomous-intelligence/src/worker.ts",
   ingest: "services/kidults-autonomous-intelligence/src/index.ts",
   migration: "services/kidults-autonomous-intelligence/migrations/0003_asi_market_funnel_shadow.sql",
+  processorMigration: "services/kidults-autonomous-intelligence/migrations/0004_asi_processor_shadow.sql",
+  processorBehaviorTest: "services/kidults-autonomous-intelligence/scripts/asi-processor-shadow-test.mjs",
+  processorRuntimeE2eTest: "services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs",
   runtimePreflight: "services/kidults-autonomous-intelligence/scripts/deploy-preflight.mjs",
   runtimePackage: "services/kidults-autonomous-intelligence/package.json",
   engineContract: "coordination/kidults/registry/engine/records/engine-agci-os-v2-contract-v1.json",
@@ -54,6 +61,7 @@ const digitalOcean = read(paths.digitalOcean);
 const dos = read(paths.dos);
 const scopeCrosswalk = read(paths.scopeCrosswalk);
 const globalSourceUniverse = read(paths.globalSourceUniverse);
+const globalPoolR1 = read(paths.globalPoolR1);
 const admissionPolicy = read(paths.admissionPolicy);
 const queueContract = read(paths.queueContract);
 const collectionScopeRegistry = read(paths.collectionScopeRegistry);
@@ -106,6 +114,10 @@ function collectErrors(a = alignment, s = strategy, p = program, v = valueScope,
   assert(a.truth_boundary?.production === "HOLD" && a.production === "HOLD", "ALIGNMENT_PRODUCTION_MUST_HOLD");
   assert(a.source_universe?.mode === "CONTINUOUS_OPEN_ENDED_GLOBAL_OPEN_MARKET_ENUMERATION", "SOURCE_UNIVERSE_MODE_MISMATCH");
   assert(a.source_universe?.numeric_site_completion_target === null, "SOURCE_UNIVERSE_NUMERIC_TARGET_MUST_BE_NULL");
+  assert(a.source_universe?.global_pool_r1_frontier_contract === paths.globalPoolR1, "GLOBAL_POOL_R1_ALIGNMENT_REFERENCE_MISSING");
+  assert(a.source_universe?.derived_scope_role_region_language_work_cell_count === 10752 && a.source_universe?.work_cell_count_is_not_a_site_target_or_completeness_claim === true, "GLOBAL_POOL_R1_WORK_CELL_TRUTH_BOUNDARY_MISMATCH");
+  assert(a.source_universe?.registered_endpoint_bootstrap_records === 64 && a.source_universe?.registered_endpoint_bootstrap_canonical_hosts === 63 && a.source_universe?.bootstrap_source_discovery_requested_events === 264, "GLOBAL_POOL_R1_BOOTSTRAP_COUNTS_MISMATCH");
+  assert(a.source_universe?.live_verification_executed === false && a.source_universe?.rights_cleared_source_count === 0 && a.source_universe?.source_pool_eligible_count === 0, "GLOBAL_POOL_R1_ELIGIBILITY_OVERCLAIM");
 
   assert(strategyLayers.length === 9, "STRATEGY_LAYER_COUNT_MISMATCH");
   for (const layer of layers) {
@@ -115,7 +127,7 @@ function collectErrors(a = alignment, s = strategy, p = program, v = valueScope,
   }
   assert(strategyEngines.length === 52 && unique(strategyEngines), "STRATEGY_52_ENGINE_TAXONOMY_INVALID");
   assert(s.platform_market_funnel_alignment?.contract === paths.alignment, "STRATEGY_ALIGNMENT_REFERENCE_MISSING");
-  assert(s.platform_market_funnel_alignment?.runtime_alignment_state === "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_FOUNDATION_CODE_WIRED_NOT_DEPLOYED", "STRATEGY_RUNTIME_ALIGNMENT_STATE_MISMATCH");
+  assert(s.platform_market_funnel_alignment?.runtime_alignment_state === "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_PROCESSORS_AND_QUEUE_TRANSPORT_CODE_WIRED_NOT_DEPLOYED", "STRATEGY_RUNTIME_ALIGNMENT_STATE_MISMATCH");
   assert(s.platform_market_funnel_alignment?.repository_canonical_architecture_and_integration_boundary_alignment_percent === 100, "STRATEGY_REPOSITORY_ALIGNMENT_PERCENT_MISMATCH");
   assert(s.platform_market_funnel_alignment?.deployment_alignment_percent === 0, "STRATEGY_DEPLOYMENT_ALIGNMENT_MUST_REMAIN_ZERO");
 
@@ -149,6 +161,9 @@ function collectErrors(a = alignment, s = strategy, p = program, v = valueScope,
   assert(m.platform_alignment?.canonical_asi_logical_engine_count === 11, "MESH_ASI_LOGICAL_COUNT_REFERENCE_MISMATCH");
   assert(m.platform_alignment?.asi_execution_fleet_contract_count === 25, "MESH_ASI_FLEET_COUNT_REFERENCE_MISMATCH");
   assert(m.platform_alignment?.logical_engine_and_execution_fleet_counts_are_additive === false, "MESH_LOGICAL_AND_FLEET_COUNTS_MUST_NOT_BE_ADDITIVE");
+  assert(m.current_state_diagnosis?.current_implemented_asi_engine_processors === 25, "MESH_PROCESSOR_IMPLEMENTATION_COUNT_MISMATCH");
+  assert(m.current_state_diagnosis?.current_live_global_source_adapters === 0, "MESH_LIVE_SOURCE_ADAPTER_COUNT_MUST_REMAIN_ZERO");
+  assert(m.platform_alignment?.runtime_alignment_state === "TWENTY_FIVE_DETERMINISTIC_SHADOW_PROCESSORS_AND_QUEUE_TRANSPORT_CODE_WIRED_NOT_DEPLOYED", "MESH_RUNTIME_ALIGNMENT_STATE_MISMATCH");
 
   assert(stageBindings.length === 12 && stageBindings.every((stage, index) => stage.sequence === index + 1), "FUNNEL_STAGE_BINDING_SEQUENCE_MISMATCH");
   assert(stageEngines.length === 52 && unique(stageEngines), "EVERY_PLATFORM_ENGINE_MUST_BIND_TO_EXACTLY_ONE_STAGE");
@@ -201,13 +216,13 @@ function collectErrors(a = alignment, s = strategy, p = program, v = valueScope,
 
   assert(d.platform_market_funnel_alignment?.contract === paths.alignment, "DIGITALOCEAN_ALIGNMENT_REFERENCE_MISSING");
   assert(d.platform_market_funnel_alignment?.canonical_logical_engine_count === 52, "DIGITALOCEAN_ENGINE_COUNT_REFERENCE_MISMATCH");
-  assert(d.platform_market_funnel_alignment?.runtime_service_alignment_state === "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_FOUNDATION_CODE_WIRED_NOT_DEPLOYED", "DIGITALOCEAN_RUNTIME_ALIGNMENT_STATE_MISMATCH");
+  assert(d.platform_market_funnel_alignment?.runtime_service_alignment_state === "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_PROCESSORS_AND_QUEUE_TRANSPORT_CODE_WIRED_NOT_DEPLOYED", "DIGITALOCEAN_RUNTIME_ALIGNMENT_STATE_MISMATCH");
   assert(d.platform_market_funnel_alignment?.repository_canonical_architecture_and_integration_boundary_alignment_percent === 100, "DIGITALOCEAN_REPOSITORY_ALIGNMENT_PERCENT_MISMATCH");
   assert(d.platform_market_funnel_alignment?.deployment_alignment_percent === 0, "DIGITALOCEAN_DEPLOYMENT_ALIGNMENT_MUST_REMAIN_ZERO");
   assert(d.production === "HOLD" && d.platform_market_funnel_alignment?.production === "HOLD", "DIGITALOCEAN_PRODUCTION_MUST_HOLD");
   assert(o.platform_market_funnel_alignment?.contract === paths.alignment, "DOS_ALIGNMENT_REFERENCE_MISSING");
   assert(o.platform_market_funnel_alignment?.canonical_logical_engine_count === 52, "DOS_ENGINE_COUNT_REFERENCE_MISMATCH");
-  assert(o.platform_market_funnel_alignment?.runtime_alignment_state === "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_FOUNDATION_CODE_WIRED_NOT_DEPLOYED", "DOS_RUNTIME_ALIGNMENT_STATE_MISMATCH");
+  assert(o.platform_market_funnel_alignment?.runtime_alignment_state === "CANONICAL_BOUNDARIES_VERIFIED_ASI_SHADOW_PROCESSORS_AND_QUEUE_TRANSPORT_CODE_WIRED_NOT_DEPLOYED", "DOS_RUNTIME_ALIGNMENT_STATE_MISMATCH");
   assert(o.platform_market_funnel_alignment?.repository_canonical_architecture_and_integration_boundary_alignment_percent === 100, "DOS_REPOSITORY_ALIGNMENT_PERCENT_MISMATCH");
   assert(o.platform_market_funnel_alignment?.deployment_alignment_percent === 0, "DOS_DEPLOYMENT_ALIGNMENT_MUST_REMAIN_ZERO");
   assert(o.boundaries?.production === "HOLD", "DOS_PRODUCTION_MUST_HOLD");
@@ -219,6 +234,9 @@ const errors = collectErrors();
 const assert = (condition, message) => { if (!condition) errors.push(message); };
 
 assert(scopeCrosswalk.coverage_expectations?.legacy_scope_count === 32, "SCOPE_CROSSWALK_LEGACY_COUNT_MISMATCH");
+assert(globalPoolR1.status === "ACTIVE_SHADOW_FRONTIER_FOUNDATION", "GLOBAL_POOL_R1_STATUS_MISMATCH");
+assert(globalPoolR1.frontier_semantics?.open_ended === true && globalPoolR1.frontier_semantics?.numeric_site_target === null && globalPoolR1.frontier_semantics?.completion_claim_allowed === false, "GLOBAL_POOL_R1_OPEN_ENDED_BOUNDARY_MISMATCH");
+assert(globalPoolR1.bootstrap_capture?.target_site_traversal_authorized === false && globalPoolR1.bootstrap_capture?.source_pool_state === "NOT_ELIGIBLE" && globalPoolR1.bootstrap_capture?.production === "HOLD", "GLOBAL_POOL_R1_BOOTSTRAP_FAIL_CLOSED_BOUNDARY_MISMATCH");
 assert(scopeCrosswalk.coverage_expectations?.current_scope_count === 32, "SCOPE_CROSSWALK_CURRENT_COUNT_MISMATCH");
 assert(scopeCrosswalk.coverage_expectations?.unmapped_legacy_records === 0, "SCOPE_CROSSWALK_HAS_UNMAPPED_LEGACY_RECORDS");
 assert(scopeCrosswalk.coverage_expectations?.unmapped_current_targets === 0, "SCOPE_CROSSWALK_HAS_UNMAPPED_CURRENT_TARGETS");
@@ -271,17 +289,26 @@ assert(engineContract.ordering_semantics?.global_stage_barrier_allowed === false
 assert(architectureDoc.includes(paths.alignment) && architectureDoc.includes("Repository canonical-architecture and integration-boundary alignment is 100%"), "ARCHITECTURE_DOCUMENT_ALIGNMENT_MISSING");
 
 const runtimeRefs = alignment.repository_runtime_binding ?? {};
-assert(queueContract.status === "QUEUE_TRANSPORT_SCAFFOLD_CODE_WIRED_CONTROLS_AND_ENGINE_PROCESSORS_PENDING_NOT_DEPLOYED", "QUEUE_CONTRACT_RUNTIME_STATUS_MISMATCH");
+assert(queueContract.status === "TWENTY_FIVE_DETERMINISTIC_SHADOW_PROCESSORS_AND_QUEUE_TRANSPORT_CODE_WIRED_CONTROLS_INCOMPLETE_NOT_DEPLOYED", "QUEUE_CONTRACT_RUNTIME_STATUS_MISMATCH");
 assert(queueContract.runtime_implementation_state?.fleet_queue_transport_bindings_code_wired === 25, "QUEUE_CONTRACT_TRANSPORT_BINDING_COUNT_MISMATCH");
-assert(queueContract.runtime_implementation_state?.engine_processors_implemented === 0, "QUEUE_CONTRACT_ENGINE_PROCESSOR_COUNT_MUST_REMAIN_ZERO");
+assert(queueContract.runtime_implementation_state?.engine_processors_implemented === 25, "QUEUE_CONTRACT_ENGINE_PROCESSOR_COUNT_MISMATCH");
 assert(queueContract.runtime_implementation_state?.required_queue_controls_complete === false && queueContract.runtime_implementation_state?.deployed === false, "QUEUE_CONTRACT_MUST_NOT_CLAIM_COMPLETE_OR_DEPLOYED");
+assert(queueContract.partition_key_encoding?.version === "partition:v1" &&
+  queueContract.partition_key_encoding?.method === "CANONICAL_JSON_TUPLE" &&
+  queueContract.partition_key_encoding?.delimiter_collision_possible === false,
+"QUEUE_PARTITION_KEY_ENCODING_NOT_COLLISION_SAFE");
 for (const [field, relative] of Object.entries({
   worker_entrypoint:paths.worker,
   http_security_helper:paths.httpSecurity,
   fleet_registry:paths.fleetRegistry,
   event_runtime:paths.eventRuntime,
+  processor_runtime:paths.processorRuntime,
+  processor_implementation:paths.processorImplementation,
   queue_configuration:paths.wrangler,
   durable_state_migration:paths.migration,
+  processor_state_migration:paths.processorMigration,
+  processor_behavior_test:paths.processorBehaviorTest,
+  processor_runtime_e2e_test:paths.processorRuntimeE2eTest,
   runtime_preflight:paths.runtimePreflight,
 })) {
   assert(runtimeRefs[field] === relative, `RUNTIME_BINDING_REFERENCE_MISMATCH:${field}`);
@@ -292,7 +319,12 @@ assert(runtimeRefs.generated_binding_types_output === "services/kidults-autonomo
 assert(runtimeRefs.generated_binding_types_command === "npm run types:generate" && runtimeRefs.generated_binding_types_committed === false, "GENERATED_BINDING_TYPES_MUST_BE_REPRODUCED_IN_CI_NOT_COMMITTED");
 assert(runtimeRefs.fleet_queue_binding_count === 25, "RUNTIME_FLEET_QUEUE_BINDING_COUNT_MISMATCH");
 assert(runtimeRefs.queue_transport_scaffold_code_wired === true, "RUNTIME_QUEUE_TRANSPORT_SCAFFOLD_MUST_BE_CODE_WIRED");
-assert(runtimeRefs.engine_processor_implementation_count === 0, "RUNTIME_ENGINE_PROCESSOR_COUNT_MUST_REMAIN_ZERO_UNTIL_IMPLEMENTED");
+assert(runtimeRefs.engine_processor_implementation_count === 25, "RUNTIME_ENGINE_PROCESSOR_COUNT_MISMATCH");
+assert(runtimeRefs.partition_key_encoding === "partition:v1:CANONICAL_JSON_TUPLE" &&
+  runtimeRefs.canonical_site_identity === "NORMALIZED_HOST_SHA256_DERIVED", "RUNTIME_PARTITION_OR_SITE_IDENTITY_CONTRACT_MISMATCH");
+assert(runtimeRefs.source_pool_current_view === "asi_source_pool_current:FAIL_CLOSED_EFFECTIVE_STATE" &&
+  runtimeRefs.source_pool_audit_view === "asi_source_pool_latest_decision_audit:IMMUTABLE_RECORDED_STATE",
+"RUNTIME_SOURCE_POOL_VIEW_BOUNDARY_MISMATCH");
 assert(runtimeRefs.publication_enabled === false, "RUNTIME_PUBLICATION_MUST_BE_DISABLED");
 assert(runtimeRefs.legacy_synchronous_collection_path_enabled === false, "LEGACY_SYNCHRONOUS_PATH_MUST_BE_DISABLED");
 assert(runtimeRefs.deployment_performed === false, "DEPLOYMENT_MUST_NOT_BE_OVERCLAIMED");
@@ -302,11 +334,17 @@ assert(alignment.production_scale_target?.single_d1_write_database_for_all_globa
 
 const wrangler = read(paths.wrangler);
 const fleetRegistryText = readText(paths.fleetRegistry);
+const eventEnvelopeText = readText(paths.eventEnvelope);
 const eventRuntimeText = readText(paths.eventRuntime);
+const processorRuntimeText = readText(paths.processorRuntime);
+const processorImplementationText = readText(paths.processorImplementation);
 const httpSecurityText = readText(paths.httpSecurity);
 const workerText = readText(paths.worker);
 const ingestText = readText(paths.ingest);
 const migrationText = readText(paths.migration);
+const processorMigrationText = readText(paths.processorMigration);
+const processorBehaviorTestText = readText(paths.processorBehaviorTest);
+const processorRuntimeE2eTestText = readText(paths.processorRuntimeE2eTest);
 const runtimePackage = read(paths.runtimePackage);
 const registeredFleets = [...fleetRegistryText.matchAll(/\{ id: '([^']+)', stage: '[^']+', binding: '([^']+)', queue: '([^']+)' \}/g)]
   .map(match => ({id:match[1],binding:match[2],queue:match[3]}));
@@ -333,8 +371,14 @@ assert(
   eventRuntimeText.includes("ASI_QUEUE_TASK_MAX_BYTES = 120 * 1024") &&
   eventRuntimeText.includes("ASI_QUEUE_TASK_OUTBOX_PROVENANCE_MISMATCH") &&
   eventRuntimeText.includes("WHERE EXISTS (\n        SELECT 1 FROM asi_event_log WHERE event_id=?") &&
-  eventRuntimeText.includes("engine_processor_implementation_count:0"),
-  "ATOMIC_OUTBOX_RELAY_AND_TRANSPORT_CONSUMER_SCAFFOLD_REQUIRED"
+  eventRuntimeText.includes("runAsiProcessorTask") &&
+  eventRuntimeText.includes("assertAsiEventPayloadHash") &&
+  eventRuntimeText.includes("engine_processor_implementation_count:asiProcessorInventory().length") &&
+  processorRuntimeText.includes("processAsiFleet") &&
+  processorRuntimeText.includes("evaluateBoundedShadowAdmission") &&
+  processorImplementationText.includes("export function asiProcessorInventory") &&
+  processorImplementationText.includes("SOURCE_POOL_DECIDED"),
+  "ATOMIC_OUTBOX_RELAY_AND_TWENTY_FIVE_PROCESSOR_RUNTIME_REQUIRED"
 );
 assert(workerText.includes("legacy_serial_path_disabled") && workerText.includes("async queue(batch:"), "WORKER_MUST_DISABLE_SERIAL_PATH_AND_EXPORT_QUEUE_HANDLER");
 assert(workerText.includes("PURPOSE_SPECIFIC_PUBLICATION_ADMISSION_NOT_GRANTED"), "WORKER_PUBLICATION_HOLD_BOUNDARY_MISSING");
@@ -359,6 +403,18 @@ assert(sameSet(boundedAssertions,["COLLECT","STORE","TRANSFORM","RETENTION","RAT
 for (const table of ["asi_event_log","asi_outbox","asi_engine_assertions","asi_purpose_admissions","asi_admission_assertions","asi_queue_watermarks","asi_dead_letters","asi_processed_messages","asi_engine_health","asi_task_leases","asi_replay_requests","asi_circuit_breakers","asi_fleet_budgets"]) {
   assert(migrationText.includes(`CREATE TABLE IF NOT EXISTS ${table}`), `RUNTIME_DURABLE_TABLE_MISSING:${table}`);
 }
+for (const table of ["asi_source_candidates","asi_source_candidate_observations","asi_processor_assertions","asi_processor_fan_in_groups","asi_processor_fan_in_requirements","asi_processor_fan_in_members","asi_source_pool_decisions"]) {
+  assert(processorMigrationText.includes(`CREATE TABLE IF NOT EXISTS ${table}`), `PROCESSOR_DURABLE_TABLE_MISSING:${table}`);
+}
+assert(processorMigrationText.includes("CREATE VIEW IF NOT EXISTS asi_processor_fan_in_readiness"), "PROCESSOR_FAN_IN_READINESS_VIEW_MISSING");
+assert(processorMigrationText.includes("CREATE VIEW IF NOT EXISTS asi_source_pool_latest_decision_audit") &&
+  processorMigrationText.includes("CREATE VIEW IF NOT EXISTS asi_source_pool_effective") &&
+  processorMigrationText.includes("CREATE VIEW IF NOT EXISTS asi_source_pool_current") &&
+  processorMigrationText.includes("s.resolved_pool_state AS pool_state"), "PROCESSOR_POOL_CURRENT_MUST_BE_FAIL_CLOSED");
+assert(processorMigrationText.includes("QUALIFIED_INTERNAL_SHADOW") && processorMigrationText.includes("production_state='HOLD'"), "PROCESSOR_POOL_SHADOW_BOUNDARY_MISSING");
+assert(processorBehaviorTestText.includes("classification_required:classificationFleets.length") && processorBehaviorTestText.includes("qualification_required:qualificationFleets.length"), "PROCESSOR_BEHAVIOR_TEST_COVERAGE_MISSING");
+assert(eventEnvelopeText.includes("partition:v1:") && processorRuntimeText.includes("ASI_DISCOVERY_CANONICAL_HOST_HASH_MISMATCH") && processorRuntimeText.includes("ASI_DISCOVERY_CANONICAL_SITE_ID_MISMATCH"), "PARTITION_OR_CANONICAL_HOST_IDENTITY_GUARD_MISSING");
+assert(processorRuntimeE2eTestText.includes("processors_exercised:25") && processorRuntimeE2eTestText.includes("discovery_fleets_queue_d1_exercised:12") && processorRuntimeE2eTestText.includes("full_queue_d1_processor_deliveries:13 * 14") && processorRuntimeE2eTestText.includes("QUALIFIED_INTERNAL_SHADOW") && processorRuntimeE2eTestText.includes("hold_pool_state:'HOLD'") && processorRuntimeE2eTestText.includes("global_pool_bootstrap_seed_events:bootstrap.queue_seed_events.length") && processorRuntimeE2eTestText.includes("ASI_EVENT_PAYLOAD_HASH_MISMATCH") && processorRuntimeE2eTestText.includes("discovery seed ALLOW cannot override envelope DENY") && processorRuntimeE2eTestText.includes("discovery seed ALLOW cannot override envelope REJECT"), "PROCESSOR_RUNTIME_E2E_TEST_COVERAGE_MISSING");
 assert(migrationText.includes("[\"STAGING_NONCOMMERCIAL_FIXTURE_ONLY\"]',9,9") && migrationText.includes("kidults-asi-purpose-specific-admission-policy-v1@1.0.0"), "FIXTURE_ADMISSION_MUST_BIND_ALL_NINE_ASSERTIONS");
 assert(migrationText.includes("ADD COLUMN admission_id TEXT REFERENCES asi_purpose_admissions(admission_id)"), "EVIDENCE_ADMISSION_FOREIGN_KEY_MISSING");
 
@@ -413,7 +469,7 @@ console.log("Source Universe: CONTINUOUS OPEN-ENDED / NO NUMERIC SITE COMPLETION
 console.log("Provider: OPTIONAL / NO DIRECT INDEX OR PROJECTION PATH");
 console.log("Source roles: 10 canonical / 7 core required / 3 optional / legacy aliases crosswalked");
 console.log("Projection and Control Tower: GOVERNED PROJECTION CONSUMERS ONLY");
-console.log("Runtime: 25 queue-transport scaffolds code-wired / engine processors 0 / operational recovery not verified / publication fail-closed");
+console.log("Runtime: 25 deterministic SHADOW processors + queue transports code-wired / operational recovery incomplete / publication fail-closed");
 console.log("Repository canonical architecture and integration-boundary alignment: 100%");
 console.log("Full 52-engine runtime implementation: NOT VERIFIED / NOT CLAIMED");
 console.log("Deployed operational alignment: 0% / NOT DEPLOYED / NOT CLAIMED");

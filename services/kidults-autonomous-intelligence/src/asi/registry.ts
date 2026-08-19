@@ -44,11 +44,43 @@ export const ASI_CLASSIFICATION_FLEETS = fleetIdsByStage('CLASSIFICATION');
 export const ASI_QUALIFICATION_FLEETS = fleetIdsByStage('QUALIFICATION');
 export const ASI_DECISION_FLEETS = fleetIdsByStage('DECISION');
 
+const CANONICAL_HOST_PATTERN = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+const DISCOVERY_FLEET_BY_CHANNEL: Readonly<Record<string,AsiFleetId>> = {
+  COMMON_CRAWL_AND_WEB_DATA_COMMONS_STRUCTURED_WEB_INDEX:'DISCOVERY_COMMON_CRAWL_WDC',
+  OVERTURE_MAPS_PLACES_WEBSITE_METADATA:'DISCOVERY_OVERTURE_MAPS',
+  WIKIDATA_OFFICIAL_WEBSITE_GRAPH:'DISCOVERY_WIKIDATA',
+  OPENSTREETMAP_WEBSITE_TAG_GRAPH:'DISCOVERY_OPENSTREETMAP',
+  GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA:'DISCOVERY_GITHUB_HOMEPAGE',
+  DATACITE_AND_OPEN_RESEARCH_LANDING_METADATA:'DISCOVERY_DATACITE_OPEN_RESEARCH',
+  GLOBAL_NEWS_AND_EVENT_DOMAIN_DISCOVERY:'DISCOVERY_GLOBAL_NEWS_EVENTS',
+  PUBLIC_GOVERNMENT_AND_REGIONAL_DATA_CATALOGS:'DISCOVERY_GOVERNMENT_REGIONAL_CATALOGS',
+  ICANN_AND_PUBLIC_ZONE_DISCOVERY:'DISCOVERY_ICANN_PUBLIC_ZONES',
+  INTERNET_ARCHIVE_HISTORICAL_DOMAIN_CONTINUITY:'DISCOVERY_INTERNET_ARCHIVE_CONTINUITY',
+  APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER:'DISCOVERY_APPROVED_DIRECTORY_OUTBOUND_FRONTIER',
+  OPTIONAL_LICENSED_SEARCH_OR_DATA_PROVIDER:'DISCOVERY_OPTIONAL_LICENSED_GAP_FILL',
+};
+
 export function targetFleetsFor(event: AsiEventEnvelope): AsiFleetId[] {
   const explicit = event.payload.target_fleet;
   if (explicit !== undefined) throw new Error('ASI_EXPLICIT_TARGET_ROUTING_FORBIDDEN_USE_CANONICAL_STAGE_TRANSITION');
-  if (event.event_type === 'SOURCE_DISCOVERED') return ASI_CLASSIFICATION_FLEETS;
-  if (event.event_type === 'SOURCE_IDENTIFIED' || event.event_type === 'SOURCE_CLASSIFICATION_ASSERTED') return [];
-  if (event.event_type === 'SOURCE_QUALIFICATION_ASSERTED') return [];
+  if (event.event_type === 'SOURCE_DISCOVERY_REQUESTED') {
+    const fleet = DISCOVERY_FLEET_BY_CHANNEL[event.partition.channel];
+    if (!fleet) throw new Error('ASI_DISCOVERY_CHANNEL_NOT_REGISTERED');
+    return [fleet];
+  }
+  if (event.event_type === 'SOURCE_DISCOVERED') {
+    const seed = event.payload.discovery_seed;
+    const host = seed && typeof seed === 'object' && !Array.isArray(seed)
+      ? (seed as Record<string,unknown>).canonical_host
+      : null;
+    if (event.decision === 'REJECT' || typeof host !== 'string' || !CANONICAL_HOST_PATTERN.test(host.toLowerCase().replace(/^www\./,''))) {
+      return [];
+    }
+    return ASI_CLASSIFICATION_FLEETS;
+  }
+  if (event.event_type === 'SOURCE_IDENTIFIED') return ASI_QUALIFICATION_FLEETS;
+  if (event.event_type === 'SOURCE_PURPOSE_ADMISSION_DECIDED') return ASI_DECISION_FLEETS;
+  if (event.event_type === 'SOURCE_CLASSIFICATION_ASSERTED' || event.event_type === 'SOURCE_QUALIFICATION_ASSERTED') return [];
   return [];
 }
