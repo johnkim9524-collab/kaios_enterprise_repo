@@ -1,0 +1,51 @@
+{
+  "id": "kidults-single-provider-concentration-decision-v1",
+  "version": "1.0.0",
+  "parent_issue": 457,
+  "support_issues": [558, 560, 550],
+  "production": "HOLD",
+  "publication": "HOLD",
+  "decision_scope": "FIRST_BOUNDED_INTERNAL_POC_ONLY",
+  "provider": "collectaio-public-readonly-api",
+  "claim_profile": "coordination/kidults/poc/minimum-lawful-claim-profile-v1.json",
+  "source_admission": "coordination/kidults/source-intelligence/collectaio-shadow-sold-admission-r1.json",
+  "strict_market_gate": "coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json",
+  "decision": "ALLOW_SINGLE_PROVIDER_FOR_SELECTED_DATED_TRANSACTION_CLAIM_ONLY_WITH_EXPLICIT_CONCENTRATION_RISK",
+  "concentration_state": "KNOWN_SINGLE_PROVIDER_DEPENDENCY",
+  "allowed_claims": [
+    "EXACT_ITEM_DATED_OBSERVED_SOLD_TRANSACTIONS_ONLY"
+  ],
+  "prohibited_claims": [
+    "CURRENT_PRICE",
+    "REPRESENTATIVE_PRICE",
+    "LIQUIDITY",
+    "TIME_TO_SALE",
+    "GLOBAL_DEMAND",
+    "GLOBAL_REPRESENTATIVENESS",
+    "CONDITION_ADJUSTED_VALUE",
+    "PRICE_INDEX",
+    "INVESTMENT_RETURN_FORECAST"
+  ],
+  "replacement_plan": {
+    "status": "ACTIVE",
+    "priority_lanes": [
+      "PCGS_AUCTION_PRICES_REALIZED_IF_RIGHTS_COMPATIBLE",
+      "ALT_OR_FNDATA_IF_VENDOR_RIGHTS_SAMPLE_COMPATIBLE",
+      "OTHER_LAWFUL_COLLECTIBLES_SOLD_AUTHORITY"
+    ],
+    "replacement_rule": "FIRST_INDEPENDENT_RIGHTS_ADMITTED_SOURCE_FOR_THE_SAME_CLAIM_CLASS_MUST_BE_BOUND_AS_REDUNDANCY_WITHOUT_CHANGING_CANONICAL_TRUTH_RULES",
+    "provider_loss_behavior": "FAIL_CLOSED_NO_NEW_TRANSACTION_CLAIMS_FROM_MISSING_SOURCE"
+  },
+  "no_provider_global_truth": true,
+  "no_automatic_scope_expansion": true,
+  "no_automatic_claim_expansion": true,
+  "candidate_boundary": "THIS_DECISION_REMOVES_REDUNDANCY_AS_A_SERIAL_BLOCKER_ONLY_FOR_THE_SELECTED_NARROW_INTERNAL_POC_CLAIM; FINAL_ER_AND_IMMUTABLE_HANDOFF_GATES_REMAIN_MANDATORY",
+  "revisit_triggers": [
+    "INDEPENDENT_PROVIDER_ADMITTED",
+    "PROVIDER_RIGHTS_CHANGE",
+    "SOURCE_FRESHNESS_FAILURE",
+    "CLAIM_SCOPE_EXPANSION_REQUEST",
+    "PUBLICATION_OR_PRODUCTION_REQUEST"
+  ],
+  "truth_boundary": "Single-provider concentration is explicitly accepted only for the first bounded internal PoC's exact dated-observed-SOLD claim. The provider is not global truth; stronger claims and public/Production use remain blocked."
+}
