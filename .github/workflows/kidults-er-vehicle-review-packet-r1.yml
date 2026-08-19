@@ -1,0 +1,38 @@
+name: KIDULTS ER Vehicle Review Packet R1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/build-vehicle-review-packet-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-vehicle-review-packet-r1.mjs'
+      - '.github/workflows/kidults-er-vehicle-review-packet-r1.yml'
+      - 'scripts/kidults/entity-resolution/probe-vehicle-mechanical-asset-capacity-r1.mjs'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-review-packet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Acquire lawful real vehicle source evidence and candidate manifest
+        run: node scripts/kidults/entity-resolution/probe-vehicle-mechanical-asset-capacity-r1.mjs coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/vehicle-capacity.json
+      - name: Build 120-case unlabeled review packet
+        run: node scripts/kidults/entity-resolution/build-vehicle-review-packet-r1.mjs /tmp/vehicle-capacity.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/vehicle-review-packet.json
+      - name: Validate review packet truth boundaries
+        run: node scripts/kidults/entity-resolution/validate-vehicle-review-packet-r1.mjs /tmp/vehicle-review-packet.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+      - name: Upload reviewer-ready packet artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-vehicle-review-packet-r1
+          path: /tmp/vehicle-review-packet.json
+          retention-days: 14
+          if-no-files-found: error
