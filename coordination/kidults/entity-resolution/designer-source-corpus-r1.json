@@ -1,6 +1,6 @@
 {
   "id": "kidults-er-designer-source-corpus-r1",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "parent_issue": 609,
   "source": "moma-collection-research-dataset",
   "stratum_id": "er-stratum-designer-maker-edition",
@@ -10,6 +10,7 @@
   "artifact_retention_days": 14,
   "rights_boundary": "CC0_COLLECTION_METADATA_ONLY_NO_IMAGES",
   "state": "EMPIRICAL_SOURCE_CORPUS_ACQUISITION_EXECUTED_PENDING_REVIEW_PAIR_CONSTRUCTION",
+  "change_scope": "DESIGNER_SOURCE_CORPUS_ONLY_NO_R7I_OR_ASI_BASELINE_MUTATION",
   "labels_present": false,
   "model_predictions_present": false,
   "reviewer_a": "NOT_ASSIGNED",
@@ -18,5 +19,5 @@
   "track_b": "NOT_STARTED",
   "public_release": "HOLD",
   "production": "HOLD",
-  "truth_boundary": "A successful workflow proves acquisition of 240 real evidence-bound source records only. It does not prove 120 valid benchmark pairs, independent labels, blind holdout completion, empirical attestation or ER promotion."
+  "truth_boundary": "A successful workflow proves acquisition of 240 real evidence-bound source records only. It does not prove 120 valid benchmark pairs, independent labels, blind holdout completion, empirical attestation or ER promotion. This PR is intentionally isolated from unrelated R7I/ASI baseline stabilization."
 }
