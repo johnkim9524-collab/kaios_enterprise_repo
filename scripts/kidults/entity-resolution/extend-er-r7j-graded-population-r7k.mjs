@@ -1,0 +1,66 @@
+import fs from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+
+const [inputPath, manifestPath, outputPath='/tmp/er-r7k.json'] = process.argv.slice(2);
+if (!inputPath || !manifestPath) throw new Error('Usage: node extend-er-r7j-graded-population-r7k.mjs <r7j.json> <manifest.json> [out.json]');
+const token=process.env.KAIOS_PCGS_API_TOKEN;
+if(!token) throw new Error('PCGS_TOKEN_SECRET_REQUIRED');
+if(process.env.KAIOS_PCGS_ACCOUNT_AUTHORIZED!=='1') throw new Error('PCGS_ACCOUNT_AUTHORIZATION_REQUIRED');
+if(process.env.KAIOS_PCGS_EULA_COMPATIBLE!=='1') throw new Error('PCGS_EULA_COMPATIBILITY_REQUIRED');
+const dataset=JSON.parse(await fs.readFile(inputPath,'utf8'));
+const manifest=JSON.parse(await fs.readFile(manifestPath,'utf8'));
+if(dataset.id!=='entity-resolution-live-source-derived-constructed-control-r7j-designer-maker-minimums'||dataset.cases?.length!==21) throw new Error('R7J_EXACT_INPUT_REQUIRED');
+const STRATUM='er-stratum-graded-population';
+const row=(manifest.strata||[]).find(x=>x.stratum_id===STRATUM);
+if(!row||manifest.status!=='APPROVED_BOUNDED_POC_CALIBRATION') throw new Error('APPROVED_GRADED_STRATUM_REQUIRED');
+const sha=v=>`sha256:${createHash('sha256').update(typeof v==='string'?v:JSON.stringify(v)).digest('hex')}`;
+const certs=['59009488','45377904'];
+async function get(certNo){
+  const u=new URL('https://api.pcgs.com/publicapi/banknotedetail/GetBanknoteByCertNo'); u.searchParams.set('certNo',certNo);
+  const r=await fetch(u,{headers:{authorization:`bearer ${token}`,accept:'application/json'},redirect:'error'});
+  if(r.status!==200) throw new Error(`PCGS_R7K_HTTP_${r.status}`);
+  const p=await r.json();
+  if(p?.IsValidRequest!==true||!p?.Banknote) throw new Error('PCGS_R7K_VALID_RECORD_REQUIRED');
+  const b=p.Banknote;
+  if(!b.CertNo||!b.SerialNo||!b.Grade||!(Number.isInteger(b.Population)||Number.isInteger(b.PopHigher))) throw new Error('PCGS_R7K_ID_GRADE_POP_ALIAS_REQUIRED');
+  return {cert:String(b.CertNo),serial:String(b.SerialNo),grade:String(b.Grade),payloadDigest:sha(p)};
+}
+const [a,b]=await Promise.all(certs.map(get));
+if(a.cert===b.cert||a.serial===b.serial) throw new Error('PCGS_R7K_DISTINCT_HARD_NEGATIVE_REQUIRED');
+const ev=x=>[{source_url:`https://www.pcgs.com/banknotes/cert/${x.cert}`,source_payload_sha256:x.payloadDigest,license_evidence_refs:['https://www.pcgs.com/publicapi','https://www.pcgs.com/publicapi/documentation']}];
+const base=structuredClone(dataset.cases[0]);
+function common(id,cls,boundary,expected){
+  const x=structuredClone(base);
+  x.case_id=id; x.scope_id=STRATUM; x.case_class=cls; x.identity_boundary=boundary; x.expected=expected;
+  x.blind_holdout=false; x.constructed_control=true; x.rights_state='ALLOW';
+  x.provenance_refs=['PCGS_PUBLIC_API_LIVE_DEV_SHADOW','FOUNDER_569','EULA_BOUNDED_RESEARCH_REFERENCE'];
+  x.label_basis='ALGORITHMICALLY_CONSTRUCTED_FROM_AUTHORIZED_PCGS_LIVE_AUTHORITY_RECORDS';
+  x.label_review_status='NOT_INDEPENDENTLY_REVIEWED_OR_ADJUDICATED';
+  x.production_promotion_authorized=false; x.public_commercial_admission_authorized=false;
+  x.marketplace_evidence=false; x.current_market_evidence=false;
+  x.repository_declared_metadata_admission_only=true; x.strict_r1_evidence_bound_admission=false;
+  x.independent_legal_review_complete=false; x.source_content_bytes_archived=false;
+  x.full_source_pool_admission_authorized=false; x.runtime_admission_authorized=false;
+  return x;
+}
+const ah=sha(a.cert), ash=sha(a.serial), bh=sha(b.cert), bsh=sha(b.serial);
+const same=common('pcgs-graded-same-object-normalization-r7k','SAME_OBJECT_NORMALIZATION','SOURCE_RECORD','MATCH');
+same.left={anchors:{SOURCE_RECORD:`pcgs-certified-record:${ah}`},unique_keys:{reference_id:ah},attributes:{grade_present:true,population_context_present:true}};
+same.right={anchors:{SOURCE_RECORD:`pcgs-certified-record:${ah}`},unique_keys:{reference_id:ah},attributes:{grade_present:true,population_context_present:true}}; same.source_evidence=ev(a);
+const hard=common('pcgs-graded-hard-negative-r7k','HARD_NEGATIVE','PHYSICAL_OBJECT','NO_MATCH');
+hard.left={anchors:{PHYSICAL_OBJECT:`pcgs-holder:${ah}`},unique_keys:{serial:ash},attributes:{grade_present:true,population_context_present:true}};
+hard.right={anchors:{PHYSICAL_OBJECT:`pcgs-holder:${bh}`},unique_keys:{serial:bsh},attributes:{grade_present:true,population_context_present:true}}; hard.source_evidence=[...ev(a),...ev(b)];
+const alias=common('pcgs-graded-cert-serial-cross-alias-r7k','CROSS_MARKET_ALIAS','SOURCE_RECORD','MATCH');
+alias.left={anchors:{SOURCE_RECORD:`pcgs-certified-record:${ah}`},unique_keys:{reference_id:ah},attributes:{identifier_class:'CERTIFICATION_NUMBER',grade_present:true,population_context_present:true}};
+alias.right={anchors:{SOURCE_RECORD:`pcgs-certified-record:${ah}`},unique_keys:{serial:ash},attributes:{identifier_class:'BANKNOTE_SERIAL_NUMBER',grade_present:true,population_context_present:true}}; alias.source_evidence=ev(a);
+const out=structuredClone(dataset);
+out.id='entity-resolution-live-source-derived-constructed-control-r7k-graded-population-minimums';
+out.dataset_scope='R7K_APPROVED_STRATA_7_OF_7_SEVEN_GRAMMARS_COMPLETE_CONSTRUCTED_CONTROL';
+out.prior_input_sha256=sha(dataset); out.prior_input_sha256_role='INTEGRITY_ONLY_NOT_AUTHORITY_OR_PROMOTION_EVIDENCE';
+out.cases=[...dataset.cases,same,hard,alias];
+out.represented_approved_strata_ids=[...(manifest.required_strata_ids||[])].sort();
+out.scope_stratification_status='COMPLETE_MECHANICS_ONLY_NOT_EMPIRICAL_PROMOTION';
+out.empirical_benchmark_eligible=false; out.independent_label_review_complete=false; out.label_adjudication_complete=false; out.holdout_sealed_before_modeling=false; out.track_b_independent_review_complete=false; out.pre_track_b_promotion_eligible=false; out.production='HOLD';
+out.r7k_pcgs_live_authority={provider:'pcgs-public-api',records_probed:2,cert_identifier:true,authoritative_second_identifier:'BANKNOTE_SERIAL_NUMBER',grade:true,population_context:true,raw_provider_data_persisted:false,raw_provider_values_emitted:false,rights_ceiling:'BOUNDED_SINGLE_RECORD_RESEARCH_SCHEMA_AND_ER_CALIBRATION_REFERENCE_ONLY'};
+await fs.writeFile(outputPath,JSON.stringify(out,null,2));
+console.log(JSON.stringify({id:out.id,cases:out.cases.length,represented_strata:out.represented_approved_strata_ids.length,production:out.production,raw_provider_values_emitted:false},null,2));
