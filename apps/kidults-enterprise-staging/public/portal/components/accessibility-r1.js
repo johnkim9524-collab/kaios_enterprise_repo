@@ -2,22 +2,11 @@ const STYLE_ID = "kidults-accessibility-r1";
 
 export function startAccessibilityR1() {
   if (!document.getElementById(STYLE_ID)) {
-    const style = document.createElement("style");
-    style.id = STYLE_ID;
-    style.textContent = `
-      small[data-hero-status],
-      .principles > span,
-      .data-funnel-note,
-      .footer-brand > span,
-      .footer-inner > span,
-      .workspace-page-context-copy > span {
-        color: #545b56 !important;
-      }
-      .data-funnel__layer > span {
-        color: #545b56 !important;
-      }
-    `;
-    document.head.append(style);
+    const link = document.createElement("link");
+    link.id = STYLE_ID;
+    link.rel = "stylesheet";
+    link.href = "components/accessibility-r1.css?v=1";
+    document.head.append(link);
   }
 
   const searchTrigger = document.querySelector(".search-trigger[data-search-open]");
