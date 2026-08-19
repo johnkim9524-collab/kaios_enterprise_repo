@@ -39,74 +39,76 @@ jobs:
         run: |
           node - <<'NODE'
           const fs = require('node:fs');
-          const token = process.env.PSA_PUBLIC_API_TOKEN;
-          const cert = process.env.PSA_CERT_NUMBER;
-          if (!token) throw new Error('PSA_TOKEN_MISSING');
-          if (!/^\d{8,}$/.test(cert)) throw new Error('PSA_CERT_FORMAT_INVALID');
-          console.log(`::add-mask::${token}`);
+          (async () => {
+            const token = process.env.PSA_PUBLIC_API_TOKEN;
+            const cert = process.env.PSA_CERT_NUMBER;
+            if (!token) throw new Error('PSA_TOKEN_MISSING');
+            if (!/^\d{8,}$/.test(cert)) throw new Error('PSA_CERT_FORMAT_INVALID');
+            console.log(`::add-mask::${token}`);
 
-          const endpoint = `https://api.psacard.com/publicapi/cert/GetByCertNumber/${cert}`;
-          const response = await fetch(endpoint, {
-            method: 'GET',
-            headers: {
-              authorization: `bearer ${token}`,
-              accept: 'application/json'
-            }
-          });
+            const endpoint = `https://api.psacard.com/publicapi/cert/GetByCertNumber/${cert}`;
+            const response = await fetch(endpoint, {
+              method: 'GET',
+              headers: {
+                authorization: `bearer ${token}`,
+                accept: 'application/json'
+              }
+            });
 
-          const text = await response.text();
-          let payload;
-          try { payload = JSON.parse(text); }
-          catch { throw new Error(`PSA_NON_JSON_RESPONSE_HTTP_${response.status}`); }
+            const text = await response.text();
+            let payload;
+            try { payload = JSON.parse(text); }
+            catch { throw new Error(`PSA_NON_JSON_RESPONSE_HTTP_${response.status}`); }
 
-          const serverMessage = String(payload.ServerMessage ?? payload.serverMessage ?? '');
-          const isValidRequest = payload.IsValidRequest ?? payload.isValidRequest;
-          if (response.status !== 200) throw new Error(`PSA_HTTP_${response.status}`);
-          if (isValidRequest !== true) throw new Error(`PSA_INVALID_REQUEST:${serverMessage || 'unknown'}`);
-          if (!/request successful/i.test(serverMessage)) throw new Error(`PSA_NO_DATA:${serverMessage || 'unknown'}`);
+            const serverMessage = String(payload.ServerMessage ?? payload.serverMessage ?? '');
+            const isValidRequest = payload.IsValidRequest ?? payload.isValidRequest;
+            if (response.status !== 200) throw new Error(`PSA_HTTP_${response.status}`);
+            if (isValidRequest !== true) throw new Error(`PSA_INVALID_REQUEST:${serverMessage || 'unknown'}`);
+            if (!/request successful/i.test(serverMessage)) throw new Error(`PSA_NO_DATA:${serverMessage || 'unknown'}`);
 
-          const allKeys = Object.keys(payload).sort();
-          const lower = Object.fromEntries(Object.entries(payload).map(([k,v]) => [k.toLowerCase(), v]));
-          const pick = (...names) => {
-            for (const n of names) if (Object.prototype.hasOwnProperty.call(lower, n.toLowerCase())) return lower[n.toLowerCase()];
-            return null;
-          };
-          const populationKeys = allKeys.filter(k => /pop|population|census/i.test(k));
-          const marketKeys = allKeys.filter(k => /price|value|sale|auction|market/i.test(k));
+            const allKeys = Object.keys(payload).sort();
+            const lower = Object.fromEntries(Object.entries(payload).map(([k,v]) => [k.toLowerCase(), v]));
+            const pick = (...names) => {
+              for (const n of names) if (Object.prototype.hasOwnProperty.call(lower, n.toLowerCase())) return lower[n.toLowerCase()];
+              return null;
+            };
+            const populationKeys = allKeys.filter(k => /pop|population|census/i.test(k));
+            const marketKeys = allKeys.filter(k => /price|value|sale|auction|market/i.test(k));
 
-          const summary = {
-            probe_id: 'psa-public-api-single-cert-r1',
-            production: 'HOLD',
-            endpoint_class: 'OFFICIAL_PSA_PUBLIC_API_CERT_VERIFICATION_SINGLE_ITEM',
-            cert_number: cert,
-            http_status: response.status,
-            is_valid_request: true,
-            server_message: serverMessage,
-            returned_top_level_keys: allKeys,
-            identity_fields: {
-              cert_number: pick('CertNumber','CertNo','CertificationNumber'),
-              grade: pick('GradeDescription','Grade','ItemGrade'),
-              year: pick('Year'),
-              brand_title: pick('Brand','BrandTitle','BrandOrTitle','SpecDescription'),
-              subject: pick('Subject','Player','Name'),
-              card_number: pick('CardNumber','CardNo'),
-              category: pick('Category'),
-              variety_pedigree: pick('Variety','VarietyPedigree','Pedigree')
-            },
-            population_field_names_present: populationKeys,
-            market_field_names_present_but_not_admitted: marketKeys,
-            token_persisted: false,
-            raw_response_persisted: false,
-            claim_ceiling: 'IDENTITY_CERTIFICATION_GRADE_SCHEMA_REVIEW_ONLY',
-            rights_state: 'PENDING_EXACT_EULA_PURPOSE_REVIEW',
-            public_display: 'BLOCKED',
-            production_authorized: false
-          };
-          fs.writeFileSync('/tmp/psa-probe-summary.json', JSON.stringify(summary, null, 2));
-          console.log('PSA single-cert probe PASS: official response received; sanitized schema summary created.');
-          console.log(`Returned top-level field count: ${allKeys.length}`);
-          console.log(`Population-like field names present: ${populationKeys.length}`);
-          console.log(`Market-like field names present but not admitted: ${marketKeys.length}`);
+            const summary = {
+              probe_id: 'psa-public-api-single-cert-r1',
+              production: 'HOLD',
+              endpoint_class: 'OFFICIAL_PSA_PUBLIC_API_CERT_VERIFICATION_SINGLE_ITEM',
+              cert_number: cert,
+              http_status: response.status,
+              is_valid_request: true,
+              server_message: serverMessage,
+              returned_top_level_keys: allKeys,
+              identity_fields: {
+                cert_number: pick('CertNumber','CertNo','CertificationNumber'),
+                grade: pick('GradeDescription','Grade','ItemGrade'),
+                year: pick('Year'),
+                brand_title: pick('Brand','BrandTitle','BrandOrTitle','SpecDescription'),
+                subject: pick('Subject','Player','Name'),
+                card_number: pick('CardNumber','CardNo'),
+                category: pick('Category'),
+                variety_pedigree: pick('Variety','VarietyPedigree','Pedigree')
+              },
+              population_field_names_present: populationKeys,
+              market_field_names_present_but_not_admitted: marketKeys,
+              token_persisted: false,
+              raw_response_persisted: false,
+              claim_ceiling: 'IDENTITY_CERTIFICATION_GRADE_SCHEMA_REVIEW_ONLY',
+              rights_state: 'PENDING_EXACT_EULA_PURPOSE_REVIEW',
+              public_display: 'BLOCKED',
+              production_authorized: false
+            };
+            fs.writeFileSync('/tmp/psa-probe-summary.json', JSON.stringify(summary, null, 2));
+            console.log('PSA single-cert probe PASS: official response received; sanitized schema summary created.');
+            console.log(`Returned top-level field count: ${allKeys.length}`);
+            console.log(`Population-like field names present: ${populationKeys.length}`);
+            console.log(`Market-like field names present but not admitted: ${marketKeys.length}`);
+          })().catch(error => { console.error(error.message); process.exit(1); });
           NODE
 
       - name: Verify no secret/raw payload persistence
