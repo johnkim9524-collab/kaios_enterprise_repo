@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+const p='coordination/kidults/products/global-collectibles-market-intelligence-product-v1.json';
+const v='coordination/kidults/products/global-collectibles-market-intelligence-value-chain-v1.json';
+const x=JSON.parse(fs.readFileSync(p,'utf8'));
+const y=JSON.parse(fs.readFileSync(v,'utf8'));
+const req=['GLOBAL_COLLECTIBLES_MARKET_MAP','REGIONAL_MARKET_PULSE','CROSS_BORDER_OPPORTUNITY_MAP','CATEGORY_REGIONAL_SCORECARD','MARKET_STRUCTURE_REPORT'];
+const ids=new Set(x.product_family.map(z=>z.product_id));
+for(const id of req) if(!ids.has(id)) throw new Error(`missing product ${id}`);
+for(const rule of ['EVIDENCE_BEFORE_METRICS','BOOTSTRAP_IS_NOT_MARKET_SHARE','COLLECTION_VOLUME_IS_NOT_MARKET_SIZE','MISSING_IS_UNKNOWN_NOT_ZERO','NO_RAW_PROVIDER_REDISTRIBUTION']) if(!x.truth_rules.includes(rule)) throw new Error(`missing truth rule ${rule}`);
+if(x.dual_use_value_chain.raw_provider_data_direct_access!==false) throw new Error('raw provider access must be false');
+if(x.dual_use_value_chain.external_plane_requires_approved_projection!==true) throw new Error('approved Projection required');
+if(x.commercialization.pricing_authorized!==false||x.commercialization.paid_launch_authorized!==false) throw new Error('commercial launch must remain unauthorized');
+if(x.projection_contract.portal_may_compute_new_market_facts!==false||x.projection_contract.eos_may_compute_new_market_facts!==false) throw new Error('consumer fact computation prohibited');
+if(y.production!=='HOLD') throw new Error('production must remain HOLD');
+if(!y.separation_rules.includes('PROJECTION_IS_THE_ONLY_EXTERNAL_TRUTH_SURFACE')) throw new Error('Projection boundary missing');
+console.log('GLOBAL_COLLECTIBLES_MARKET_INTELLIGENCE_PRODUCT_V1_PASS');
