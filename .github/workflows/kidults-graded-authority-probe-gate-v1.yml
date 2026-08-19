@@ -12,25 +12,25 @@ permissions:
   contents: read
 
 jobs:
-  prove-default-deny:
+  prove-approved-but-operationally-blocked:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
-      - name: Validate contract and require BLOCKED without approval or token
+      - name: Require Founder #569 approval binding and BLOCKED without account/EULA/token handoff
         run: |
           node scripts/kidults/source-intelligence/validate-graded-authority-probe-gate-v1.mjs coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json /tmp/probe-gate.json
           node - <<'NODE'
           const x=require('/tmp/probe-gate.json');
+          if(x.founder_approval_issue!==569||x.founder_approval_satisfied!==true) process.exit(1);
           if(x.state!=='BLOCKED') process.exit(1);
-          if(!x.blockers.includes('EXPLICIT_EXTERNAL_CREDENTIAL_ACTION_APPROVAL_REQUIRED')) process.exit(1);
-          if(!x.blockers.includes('AUTHORIZED_PROVIDER_TOKEN_SECRET_REQUIRED')) process.exit(1);
+          for(const b of ['AUTHORIZED_PCGS_ACCOUNT_HANDOFF_REQUIRED','PCGS_API_EULA_COMPATIBILITY_TERMINALIZATION_REQUIRED','PCGS_TOKEN_SECRET_HANDOFF_REQUIRED']) if(!x.blockers.includes(b)) process.exit(1);
           if(x.secret_material_observed!==false||x.production!=='HOLD'||x.publication!=='HOLD') process.exit(1);
-          console.log('Graded authority external credential gate PASS: default deny, no secret leakage, Production/Publication HOLD.');
+          console.log('Graded authority gate PASS: Founder approval satisfied; only operational account/EULA/token handoff remains; no secret leakage.');
           NODE
-      - name: Require strict mode fail-closed
+      - name: Require strict mode fail-closed until operational handoff exists
         run: |
           set +e
           KAIOS_REQUIRE_PROBE_ALLOWED=1 node scripts/kidults/source-intelligence/validate-graded-authority-probe-gate-v1.mjs coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json /tmp/strict.json
