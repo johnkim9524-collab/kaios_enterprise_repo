@@ -1,0 +1,59 @@
+{
+  "id": "asi-global-regional-market-balance-binding-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_BINDING_ON_POLICY_PROMOTION",
+  "parent_issue": 643,
+  "policy": "coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json",
+  "architecture_guide": "coordination/kidults/architecture/global-regional-market-balance-guide-v1.md",
+  "upstream_contracts": [
+    "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json",
+    "coordination/kidults/source-intelligence/asi-global-source-universe-v1.json",
+    "coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json",
+    "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json"
+  ],
+  "consumer_engines": [
+    "SOURCE_DISCOVERY_ENGINE",
+    "SOURCE_CLASSIFICATION_ENGINE",
+    "UTILITY_AND_VALUE_SCORING_ENGINE",
+    "COVERAGE_AND_BIAS_ENGINE",
+    "INDEPENDENCE_AND_REDUNDANCY_ENGINE",
+    "FRESHNESS_AND_STABILITY_ENGINE",
+    "COST_AND_ROI_ENGINE",
+    "ACQUISITION_PLANNER",
+    "SOURCE_POOL_EVOLUTION_ENGINE",
+    "MARKET_GRAPH_ENGINE",
+    "VERTICAL_INTELLIGENCE_INDEX_ENGINE",
+    "KIDULT_500_ENGINE",
+    "KIDULT_100_ENGINE"
+  ],
+  "required_outputs_before_global_claim": [
+    "CATEGORY_REGION_FACTOR_SCORECARD",
+    "REGIONAL_COLLECTION_ALLOCATION",
+    "REGIONAL_ANALYTICAL_WEIGHT_TABLE",
+    "REGIONAL_COVERAGE_DEBT_REPORT",
+    "REGIONAL_CONCENTRATION_AND_DIVERSITY_REPORT",
+    "GLOBAL_CLAIM_GATE_ASSESSMENT"
+  ],
+  "required_source_candidate_fields": [
+    "macroregion_id","country_code","language","currency","source_owner_id","source_role","evidence_class","rights_state","provenance_ref"
+  ],
+  "fail_closed": {
+    "missing_region": "QUARANTINE_OR_REGION_UNKNOWN_NOT_GLOBAL_ELIGIBLE",
+    "missing_country": "NOT_GLOBAL_ELIGIBLE_FOR_MARKET_WEIGHTING",
+    "missing_rights": "REJECT_ADMISSION",
+    "missing_market_scale": "KEEP_UNKNOWN_AND_USE_STRUCTURAL_BOOTSTRAP_ONLY",
+    "global_gate_failure": "NOT_VERIFIED_GLOBAL",
+    "regional_concentration_breach": "REBALANCE_OR_EXPLICIT_GOVERNED_EXCEPTION"
+  },
+  "execution_precedence": [
+    "RIGHTS_AND_PROVENANCE",
+    "ENTITY_AND_EVENT_SEMANTICS",
+    "REGIONAL_REPRESENTATIVENESS",
+    "SOURCE_INDEPENDENCE",
+    "FRESHNESS",
+    "COST_EFFICIENCY",
+    "VOLUME"
+  ],
+  "production": "HOLD",
+  "public_release": "HOLD"
+}
