@@ -1,0 +1,70 @@
+{
+  "id": "kidults-private-market-evidence-reacquisition-preflight-r1",
+  "version": "1.0.0",
+  "parent_issue": 637,
+  "scope_boundary": "COLLECTIBLES_ONLY",
+  "status": "PREFLIGHT_READY_NO_PROVIDER_PAYLOAD",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "active_market_claim": "NONE",
+  "provider_payload_in_repo_or_public_ci": false,
+  "required_before_private_reacquisition": [
+    "EXPLICIT_FIELD_BY_PURPOSE_RIGHTS_ALLOW",
+    "PRIVATE_CONTROLLED_STORE",
+    "OPAQUE_EVIDENCE_RECEIPT",
+    "PAYLOAD_SHA256_DIGEST",
+    "RETENTION_AND_TTL_POLICY",
+    "PRIVATE_TAMPER_VERIFICATION",
+    "HISTORICAL_CLEANUP_REVIEWED"
+  ],
+  "field_purpose_rights_manifest": {
+    "state": "NOT_TERMINALIZED",
+    "required_purposes": ["COLLECT", "STORE_PRIVATE", "DERIVE_INTERNAL", "DISPLAY_INTERNAL"],
+    "unknown_or_denied": "HOLD"
+  },
+  "private_store_contract": {
+    "state": "NOT_CONNECTED",
+    "public_url_prohibited": true,
+    "provider_secret_in_receipt_prohibited": true,
+    "provider_payload_in_receipt_prohibited": true,
+    "encryption_at_rest_required": true,
+    "least_privilege_required": true
+  },
+  "opaque_receipt_schema": {
+    "required_fields": [
+      "receipt_id",
+      "provider_id_hash",
+      "claim_class",
+      "scope_id",
+      "payload_sha256",
+      "acquired_at",
+      "expires_at",
+      "rights_manifest_id",
+      "private_store_locator_hash",
+      "tamper_verification_ref"
+    ],
+    "forbidden_fields": ["raw_provider_payload", "provider_token", "provider_secret", "raw_private_store_locator"]
+  },
+  "retention_ttl": {
+    "state": "NOT_TERMINALIZED",
+    "expiry_required": true,
+    "deletion_or_revalidation_on_expiry_required": true
+  },
+  "tamper_verification": {
+    "state": "NOT_CONNECTED",
+    "digest_required": true,
+    "receipt_integrity_required": true
+  },
+  "historical_cleanup": {
+    "issue": 637,
+    "state": "PENDING_OWNER_ADMIN_ACTION",
+    "must_be_reviewed_before_reactivation": true
+  },
+  "reactivation_gate": {
+    "state": "BLOCKED",
+    "requires_all_preconditions": true,
+    "may_activate_dated_sold_claim_before_gate": false,
+    "may_activate_current_price_or_liquidity": false
+  },
+  "truth_boundary": "This artifact validates only the private reacquisition control shape. It contains no provider payload, performs no provider request, grants no rights, creates no active market claim and authorizes no public or Production use."
+}
