@@ -3,101 +3,84 @@ import { createHash } from 'node:crypto';
 
 const out = process.argv[2] || '/tmp/provenance-source-corpus-r1.json';
 const activityBase = 'https://data.getty.edu/provenance/activity-stream/page';
-const licenseRefs = [
-  'https://data.getty.edu/provenance/docs/',
-  'https://www.getty.edu/databases-tools-and-technologies/provenance/'
-];
+const licenseRefs = ['https://data.getty.edu/provenance/docs/','https://linked.art/model/provenance/acquisition/'];
+const headers = { 'user-agent':'KIDULTS-ER-EMPIRICAL-ACQUISITION/1.1', accept:'application/json, application/ld+json' };
+function sha(v){return `sha256:${createHash('sha256').update(v).digest('hex')}`;}
+function canonical(v){if(Array.isArray(v))return v.map(canonical);if(v&&typeof v==='object')return Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])]));return v;}
+function digest(v){return sha(JSON.stringify(canonical(v)));}
+function arr(v){return Array.isArray(v)?v:(v?[v]:[]);}
+function typeOf(v){return String(v?.type||v?.['@type']||'');}
+function idOf(v){return typeof v==='string'?v:String(v?.id||v?.['@id']||'');}
+function isGettyEntity(u){return /^https:\/\/data\.getty\.edu\/provenance\/[0-9a-f-]{20,}$/i.test(u);}
+async function getJson(url){const r=await fetch(url,{headers});if(r.status===404||r.status===410)return null;if(!r.ok)throw new Error(`GETTY_HTTP_${r.status}:${url}`);return r.json();}
 
-function sha(value) { return `sha256:${createHash('sha256').update(value).digest('hex')}`; }
-function canonical(value) {
-  if (Array.isArray(value)) return value.map(canonical);
-  if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])]));
-  return value;
-}
-function digest(value) { return sha(JSON.stringify(canonical(value))); }
-function typeList(value) { return Array.isArray(value) ? value.map(String) : value ? [String(value)] : []; }
-function collectObjectUrls(page) {
-  const items = page.orderedItems || page.items || [];
-  const urls = [];
-  for (const item of items) {
-    const obj = item?.object;
-    const candidates = [
-      typeof obj === 'string' ? obj : null,
-      obj?.id,
-      obj?.['@id'],
-      item?.target?.id,
-      item?.target?.['@id']
-    ].filter(Boolean);
-    for (const u of candidates) if (/^https:\/\/data\.getty\.edu\/provenance\/[0-9a-f-]{20,}$/i.test(String(u))) urls.push(String(u));
-  }
-  return urls;
-}
-
-const candidateUrls = [];
-const seen = new Set();
-for (let pageNo = 1; pageNo <= 80 && candidateUrls.length < 900; pageNo++) {
-  const url = `${activityBase}/${pageNo}`;
-  const response = await fetch(url, { headers: { 'user-agent': 'KIDULTS-ER-EMPIRICAL-ACQUISITION/1.0', accept: 'application/json, application/ld+json' } });
-  if (!response.ok) throw new Error(`GETTY_ACTIVITY_HTTP_${response.status}:PAGE_${pageNo}`);
-  const page = await response.json();
-  for (const u of collectObjectUrls(page)) {
-    if (!seen.has(u)) { seen.add(u); candidateUrls.push(u); }
+const activityUrls=[]; const seenActivities=new Set();
+for(let pageNo=1;pageNo<=1200 && activityUrls.length<800;pageNo++){
+  const page=await getJson(`${activityBase}/${pageNo}`); if(!page) continue;
+  for(const change of (page.orderedItems||page.items||[])){
+    const obj=change?.object;
+    const u=idOf(obj)||idOf(change?.target);
+    const t=typeOf(obj)||typeOf(change?.target);
+    if(!isGettyEntity(u)||seenActivities.has(u)) continue;
+    if(t && t!=='Activity') continue;
+    seenActivities.add(u); activityUrls.push(u);
   }
 }
-if (candidateUrls.length < 240) throw new Error(`GETTY_ACTIVITY_UNIQUE_ENTITY_URLS_LT_240:${candidateUrls.length}`);
+if(activityUrls.length<240) throw new Error(`GETTY_ACTIVITY_CANDIDATES_LT_240:${activityUrls.length}`);
 
-const records = [];
-for (const url of candidateUrls) {
-  if (records.length >= 240) break;
-  const response = await fetch(url, { headers: { 'user-agent': 'KIDULTS-ER-EMPIRICAL-ACQUISITION/1.0', accept: 'application/json, application/ld+json' } });
-  if (response.status === 404 || response.status === 410) continue;
-  if (!response.ok) throw new Error(`GETTY_ENTITY_HTTP_${response.status}:${url}`);
-  const entity = await response.json();
-  const entityId = String(entity.id || entity['@id'] || url);
-  if (entityId !== url && !entityId.startsWith('https://data.getty.edu/provenance/')) continue;
-  const types = typeList(entity.type || entity['@type']);
-  if (!types.length) continue;
-  const label = String(entity._label || entity.label || entity.identified_by?.[0]?.content || '').trim();
-  const payload = {
-    entity_id: entityId,
-    entity_types: types,
-    source_label: label,
-    identified_by: Array.isArray(entity.identified_by) ? entity.identified_by.slice(0, 5) : [],
-    referred_to_by: Array.isArray(entity.referred_to_by) ? entity.referred_to_by.slice(0, 5) : [],
-    produced_by: entity.produced_by || null,
-    current_owner: entity.current_owner || null,
-    member_of: Array.isArray(entity.member_of) ? entity.member_of.slice(0, 5) : [],
-    part_of: Array.isArray(entity.part_of) ? entity.part_of.slice(0, 5) : []
-  };
-  records.push({
-    source_id: 'getty-provenance-index-linked-open-data',
-    source_record_id: entityId.split('/').pop(),
-    source_reference: entityId,
-    source_payload_sha256: digest(payload),
-    license_evidence_refs: licenseRefs,
-    rights_state: 'ALLOW',
-    provenance_refs: [entityId, 'https://data.getty.edu/provenance/activity-stream'],
-    payload
-  });
+const pairs=[]; const pairKeys=new Set();
+for(const activityUrl of activityUrls){
+  if(pairs.length>=240) break;
+  const activity=await getJson(activityUrl); if(!activity||typeOf(activity)!=='Activity') continue;
+  const acquisitions=arr(activity.part).filter(p=>typeOf(p)==='Acquisition');
+  for(const acq of acquisitions){
+    for(const objectRef of arr(acq.transferred_title_of)){
+      if(pairs.length>=240) break;
+      const objectUrl=idOf(objectRef); if(!isGettyEntity(objectUrl)||typeOf(objectRef)!=='HumanMadeObject') continue;
+      const key=`${activityUrl}|${objectUrl}`; if(pairKeys.has(key)) continue;
+      const object=await getJson(objectUrl); if(!object||typeOf(object)!=='HumanMadeObject') continue;
+      const eventPayload={
+        activity_id:activityUrl,
+        source_label:String(activity._label||''),
+        identified_by:arr(activity.identified_by).slice(0,5),
+        timespan:activity.timespan||null,
+        took_place_at:arr(activity.took_place_at).slice(0,5),
+        carried_out_by:arr(activity.carried_out_by).slice(0,5),
+        acquisition:{
+          transferred_title_of:arr(acq.transferred_title_of).slice(0,5),
+          transferred_title_from:arr(acq.transferred_title_from).slice(0,5),
+          transferred_title_to:arr(acq.transferred_title_to).slice(0,5)
+        }
+      };
+      const objectPayload={
+        object_id:objectUrl,
+        source_label:String(object._label||''),
+        identified_by:arr(object.identified_by).slice(0,8),
+        produced_by:object.produced_by||null,
+        current_owner:arr(object.current_owner).slice(0,5),
+        referred_to_by:arr(object.referred_to_by).slice(0,5)
+      };
+      pairKeys.add(key);
+      pairs.push({
+        pair_id:`getty-provenance-pair-${String(pairs.length+1).padStart(4,'0')}`,
+        source_id:'getty-provenance-index-linked-open-data',
+        event_source_reference:activityUrl,
+        object_source_reference:objectUrl,
+        event_payload_sha256:digest(eventPayload),
+        object_payload_sha256:digest(objectPayload),
+        linkage_path:'Activity.part[Acquisition].transferred_title_of -> HumanMadeObject',
+        rights_state:'ALLOW',
+        license_evidence_refs:licenseRefs,
+        provenance_refs:[activityUrl,objectUrl,'https://data.getty.edu/provenance/activity-stream'],
+        event_payload:eventPayload,
+        object_payload:objectPayload
+      });
+    }
+  }
 }
-if (records.length !== 240) throw new Error(`GETTY_ELIGIBLE_PROVENANCE_RECORDS_NE_240:${records.length}`);
-if (new Set(records.map(r => r.source_record_id)).size !== 240) throw new Error('DUPLICATE_SOURCE_RECORD');
-if (records.some(r => r.rights_state !== 'ALLOW')) throw new Error('RIGHTS_ALLOW_REQUIRED');
-if (records.some(r => !/^sha256:[a-f0-9]{64}$/.test(r.source_payload_sha256))) throw new Error('PAYLOAD_DIGEST_INVALID');
-
-const artifact = {
-  id: 'kidults-er-provenance-source-corpus-r1',
-  status: 'REAL_SOURCE_RECORD_CORPUS_UNLABELED',
-  stratum_id: 'er-stratum-provenance-unique-object',
-  source_id: 'getty-provenance-index-linked-open-data',
-  acquired_at: new Date().toISOString(),
-  record_count: records.length,
-  labels_present: false,
-  model_predictions_present: false,
-  reviewer_assignment_required: true,
-  production: 'HOLD',
-  public_release: 'HOLD',
-  records
-};
-await fs.writeFile(out, JSON.stringify(artifact, null, 2));
-console.log(JSON.stringify({ id: artifact.id, record_count: artifact.record_count, labels_present: false, model_predictions_present: false, production: 'HOLD' }));
+if(pairs.length!==240) throw new Error(`GETTY_LINKED_EVENT_OBJECT_PAIRS_NE_240:${pairs.length}`);
+if(new Set(pairs.map(p=>p.pair_id)).size!==240||new Set(pairs.map(p=>`${p.event_source_reference}|${p.object_source_reference}`)).size!==240) throw new Error('PAIR_UNIQUENESS_REQUIRED');
+if(pairs.some(p=>p.rights_state!=='ALLOW'||!/^sha256:[a-f0-9]{64}$/.test(p.event_payload_sha256)||!/^sha256:[a-f0-9]{64}$/.test(p.object_payload_sha256))) throw new Error('PAIR_EVIDENCE_INVALID');
+const artifact={id:'kidults-er-provenance-source-corpus-r1',status:'REAL_SOURCE_LINKED_EVENT_OBJECT_CORPUS_UNLABELED',stratum_id:'er-stratum-provenance-unique-object',source_id:'getty-provenance-index-linked-open-data',acquired_at:new Date().toISOString(),pair_count:pairs.length,labels_present:false,model_predictions_present:false,reviewer_assignment_required:true,production:'HOLD',public_release:'HOLD',pairs};
+await fs.writeFile(out,JSON.stringify(artifact,null,2));
+console.log(JSON.stringify({id:artifact.id,pair_count:artifact.pair_count,status:artifact.status,labels_present:false,production:'HOLD'}));
