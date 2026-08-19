@@ -1,0 +1,62 @@
+name: KIDULTS ER R7K Graded Population
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/extend-er-r7j-graded-population-r7k.mjs'
+      - '.github/workflows/kidults-er-r7k-graded-population.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  KAIOS_PCGS_ACCOUNT_AUTHORIZED: ${{ vars.KAIOS_PCGS_ACCOUNT_AUTHORIZED }}
+  KAIOS_PCGS_EULA_COMPATIBLE: ${{ vars.KAIOS_PCGS_EULA_COMPATIBLE }}
+  KAIOS_PCGS_API_TOKEN: ${{ secrets.KAIOS_PCGS_API_TOKEN }}
+  TZ: UTC
+
+jobs:
+  r7k-seven-of-seven-mechanics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Rebuild R1 through R7J
+        run: |
+          node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/r1.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/r1.json /tmp/r2.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/r2.json /tmp/r3.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs /tmp/r3.json /tmp/r5.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs /tmp/r5.json /tmp/r6.json
+          M=coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+          node scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs /tmp/r6.json $M /tmp/r7a.json
+          node scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs /tmp/r7a.json $M /tmp/r7b.json
+          node scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs /tmp/r7b.json $M /tmp/r7c.json
+          node scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs /tmp/r7c.json $M /tmp/r7e.json
+          node scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs /tmp/r7e.json $M /tmp/r7f.json
+          node scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs /tmp/r7f.json $M /tmp/r7g.json
+          node scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs /tmp/r7g.json $M /tmp/r7h.json
+          node scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs /tmp/r7h.json $M /tmp/r7i.json
+          node scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs /tmp/r7i.json $M coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json /tmp/r7j.json
+      - name: Execute authorized PCGS R7K and benchmark
+        run: |
+          M=coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+          node scripts/kidults/entity-resolution/extend-er-r7j-graded-population-r7k.mjs /tmp/r7j.json $M /tmp/r7k.json
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/r7k.json /tmp/r7k-results.json $M
+      - name: Require genuine seven-strata mechanics and blocked promotion
+        run: |
+          node - <<'NODE'
+          const d=require('/tmp/r7k.json'); const r=require('/tmp/r7k-results.json');
+          const ids=['pcgs-graded-same-object-normalization-r7k','pcgs-graded-hard-negative-r7k','pcgs-graded-cert-serial-cross-alias-r7k'];
+          if(d.cases.length!==24||d.represented_approved_strata_ids.length!==7||d.r7k_pcgs_live_authority?.records_probed!==2) process.exit(1);
+          for(const id of ids){const x=d.cases.find(c=>c.case_id===id), y=r.results.find(c=>c.case_id===id); if(!x||!y||x.expected!==y.predicted) process.exit(1);}
+          const completed=Object.values(r.coverage.per_stratum).filter(x=>x.complete===true).length;
+          if(completed!==7||r.coverage.per_stratum['er-stratum-graded-population'].complete!==true||r.coverage.per_stratum_requirements_complete!==true) process.exit(1);
+          if(r.critical_false_auto_merge!==0||r.coverage.rights_coverage!==1||r.coverage.provenance_coverage!==1) process.exit(1);
+          if(d.empirical_benchmark_eligible!==false||d.track_b_independent_review_complete!==false||r.promotion_gate.empirical_benchmark_gate_pass!==false||r.production!=='HOLD') process.exit(1);
+          console.log('R7K PASS: 7/7 ER mechanics complete with PCGS cert+serial authority; empirical/Track B/Production remain separate fail-closed gates.');
+          NODE
