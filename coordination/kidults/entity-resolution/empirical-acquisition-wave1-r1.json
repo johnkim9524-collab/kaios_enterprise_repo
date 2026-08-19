@@ -1,6 +1,6 @@
 {
   "id": "kidults-er-empirical-acquisition-wave1-r1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "parent_issue": 609,
   "sampling_plan": "coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json",
   "status": "ACTIVE_PARTIAL_ACQUISITION",
@@ -10,12 +10,12 @@
   "operating_target": {"total_cases":840,"blind_holdout":420,"per_stratum":120,"per_stratum_blind":60},
   "lanes": [
     {"stratum_id":"er-stratum-designer-maker-edition","target_cases":120,"state":"START_READY","source_families":["moma-collection-research-dataset","cooper-hewitt-collection-json"],"rule":"collect only real source records with payload digest, license evidence and provenance; no algorithmic label generation"},
-    {"stratum_id":"er-stratum-serialized-reference","target_cases":120,"state":"START_READY","source_families":["met-open-access","smithsonian-open-access"],"rule":"use only authority identifiers actually present in source payloads; no inferred serial identity"},
+    {"stratum_id":"er-stratum-serialized-reference","target_cases":120,"state":"SOURCE_FIT_REVALIDATION_REQUIRED","source_families":["wikidata-cc0-p2598-p217-strict-capacity-probe"],"capacity_evidence":"coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json","observed_capacity":{"grammar_complete_real_records":7,"cross_authority_alias_pairs":7,"same_model_distinct_serial_hard_negative_pairs":0,"conservative_case_capacity":14,"source_capacity_ready_for_120_cases":false},"blocker":"STRICT_GRAMMAR_COMPLETE_REAL_RECORDS_7_OF_120; CROSS_AUTHORITY_ALIAS_PAIRS_7_OF_40; SAME_MODEL_DISTINCT_SERIAL_HARD_NEGATIVE_PAIRS_0_OF_40; Met accessionNumber alone is not a manufacturer serial or product reference","rule":"count only records exposing maker/manufacturer P176, a P31 target with a product-model path, manufacturer serial P2598, and distinct inventory/reference P217 qualified by collection P195; Met accessionNumber alone contributes zero capacity"},
     {"stratum_id":"er-stratum-provenance-unique-object","target_cases":120,"state":"START_READY","source_families":["getty-provenance-index"],"rule":"historical provenance/event semantics only; current market claims prohibited"},
     {"stratum_id":"er-stratum-pressing-edition-media","target_cases":120,"state":"START_READY","source_families":["musicbrainz-core-database-dump-cc0"],"rule":"use only MusicBrainz core database dump fields distributed under CC0; exclude supplementary/derived data, cover art and live replication feed unless separately rights-cleared; retain release/recording/barcode/disc identifiers only when present in the CC0 core payload"},
     {"stratum_id":"er-stratum-variant-release-heavy","target_cases":120,"state":"SOURCE_FIT_REVALIDATION_REQUIRED","source_families":[],"blocker":"RIGHTS_ADMITTED_VARIANT_LEVEL_SOURCE_FAMILY_FOR_120_CASE_SCALE_REQUIRED"},
     {"stratum_id":"er-stratum-vehicle-mechanical-asset","target_cases":120,"state":"SOURCE_FIT_REVALIDATION_REQUIRED","source_families":[],"blocker":"RIGHTS_ADMITTED_VIN_CHASSIS_OR_EQUIVALENT_AUTHORITY_FOR_120_CASE_SCALE_REQUIRED; NHTSA vPIC bulk VIN API use prohibited by official API policy"},
     {"stratum_id":"er-stratum-graded-population","target_cases":120,"state":"BLOCKED_BULK_RIGHTS","source_families":["pcgs-public-api-bounded-evaluation-only"],"blocker":"PCGS_CURRENT_AUTHORIZATION_IS_MINIMAL_BOUNDED_EVALUATION_NOT_120_CASE_EMPIRICAL_HARVEST; separate rights-compatible source or permission required"}
   ],
-  "parallel_execution": {"start_ready_case_capacity":480,"blocked_or_conditional_case_capacity":360,"review_packet_contract_merged":true,"reviewer_a":"NOT_ASSIGNED","reviewer_b":"NOT_ASSIGNED","labels_collected":0,"blind_partition_sealed":false,"empirical_attestation_created":false,"track_b_started":false}
+  "parallel_execution": {"start_ready_case_capacity":360,"blocked_or_conditional_case_capacity":480,"review_packet_contract_merged":true,"reviewer_a":"NOT_ASSIGNED","reviewer_b":"NOT_ASSIGNED","labels_collected":0,"blind_partition_sealed":false,"empirical_attestation_created":false,"track_b_started":false}
 }

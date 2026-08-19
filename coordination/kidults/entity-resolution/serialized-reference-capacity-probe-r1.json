@@ -1,0 +1,774 @@
+{
+  "id": "kidults-er-serialized-reference-live-capacity-r1",
+  "version": "1.0.0",
+  "stratum_id": "er-stratum-serialized-reference",
+  "generated_at": "2026-08-19T18:03:54.572Z",
+  "probe_status": "COMPLETE_FAIL_CLOSED_INSUFFICIENT_CAPACITY",
+  "environment_class": "READ_ONLY_LIVE_CAPACITY_PREFLIGHT",
+  "request_boundary": {
+    "http_method": "GET",
+    "authenticated": false,
+    "remote_mutation": false,
+    "local_output_only": true
+  },
+  "source_snapshot": {
+    "source_family": "wikidata-cc0-structured-data",
+    "license": "CC0-1.0",
+    "license_evidence_ref": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+    "accessed_at": "2026-08-19T18:03:54.572Z",
+    "product_model_class": {
+      "qid": "Q10929058",
+      "label": "product model"
+    },
+    "count_query": {
+      "endpoint": "https://query.wikidata.org/sparql",
+      "sparql": "SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE { \n  ?item wdt:P2598 ?serial ;\n        p:P217 ?inventoryStatement ;\n        wdt:P31 ?model .\n  ?inventoryStatement ps:P217 ?inventory ;\n                      pq:P195 ?collection .\n  {\n    ?item wdt:P176 ?maker .\n    BIND(\"ITEM_P176\" AS ?makerPath)\n  }\n  UNION\n  {\n    ?model wdt:P176 ?maker .\n    BIND(\"MODEL_P176\" AS ?makerPath)\n  }\n  {\n    { ?model wdt:P31/wdt:P279* wd:Q10929058 . }\n    UNION\n    { ?model wdt:P279+ wd:Q10929058 . }\n  }\n  FILTER(STR(?serial) != STR(?inventory))\n }",
+      "response_sha256": "sha256:69e556d0cd94a177c6274453e4294a8496dd0d4903422d1f665fea2bc7261ff3"
+    },
+    "detail_query": {
+      "endpoint": "https://query.wikidata.org/sparql",
+      "sparql": "SELECT DISTINCT ?item ?serial ?inventory ?collection ?model ?maker ?makerPath WHERE { \n  ?item wdt:P2598 ?serial ;\n        p:P217 ?inventoryStatement ;\n        wdt:P31 ?model .\n  ?inventoryStatement ps:P217 ?inventory ;\n                      pq:P195 ?collection .\n  {\n    ?item wdt:P176 ?maker .\n    BIND(\"ITEM_P176\" AS ?makerPath)\n  }\n  UNION\n  {\n    ?model wdt:P176 ?maker .\n    BIND(\"MODEL_P176\" AS ?makerPath)\n  }\n  {\n    { ?model wdt:P31/wdt:P279* wd:Q10929058 . }\n    UNION\n    { ?model wdt:P279+ wd:Q10929058 . }\n  }\n  FILTER(STR(?serial) != STR(?inventory))\n } ORDER BY ?item ?serial ?inventory ?collection ?model ?maker ?makerPath LIMIT 1000",
+      "limit": 1000,
+      "response_sha256": "sha256:1a8388f1d3368b8929214b196bb4c3397e5e778dbf7372dc32998da3e0eba14a",
+      "truncated": false
+    }
+  },
+  "strict_record_grammar": {
+    "required": [
+      "maker_or_manufacturer_p176",
+      "product_model_or_reference_p31_with_path_to_q10929058",
+      "manufacturer_serial_p2598",
+      "inventory_reference_p217_qualified_by_collection_p195"
+    ],
+    "identifier_independence_rule": "P2598_AND_P217_MUST_BE_DISTINCT_AND_P217_MUST_HAVE_P195_COLLECTION_QUALIFIER",
+    "model_rule": "P31_TARGET_MUST_HAVE_WDQS_INSTANCE_OR_SUBCLASS_PATH_TO_Q10929058_PRODUCT_MODEL",
+    "disallowed_substitutions": [
+      "MET_ACCESSION_NUMBER_ALONE_AS_PRODUCT_SERIAL",
+      "MET_ACCESSION_NUMBER_ALONE_AS_PRODUCT_REFERENCE",
+      "GENERIC_P31_CLASS_WITHOUT_PRODUCT_MODEL_PATH",
+      "UNQUALIFIED_P217_AS_INDEPENDENT_INVENTORY_REFERENCE"
+    ]
+  },
+  "source_admission": {
+    "wikidata_cc0_strict_records_admitted": true,
+    "met_accession_number_only_product_identifier_admitted": false,
+    "met_accession_number_only_contribution_to_capacity": 0,
+    "note": "Met accessionNumber alone is a collection record identifier, not evidence of manufacturer serial or product model/reference identity."
+  },
+  "sampling_target": {
+    "cases": 120,
+    "blind": 60,
+    "per_class": {
+      "SAME_OBJECT_NORMALIZATION": 40,
+      "HARD_NEGATIVE": 40,
+      "CROSS_MARKET_ALIAS": 40
+    }
+  },
+  "records": [
+    {
+      "record_id": "wikidata-serialized-reference:Q133839334",
+      "item_qid": "Q133839334",
+      "item_label": "CP-140 Aurora 140102",
+      "makers": [
+        {
+          "qid": "Q7233",
+          "label": "Lockheed Corporation",
+          "paths": [
+            "ITEM_P176",
+            "MODEL_P176"
+          ]
+        }
+      ],
+      "models": [
+        {
+          "qid": "Q1164696",
+          "label": "CP-140 Aurora",
+          "classification_basis": "WDQS_PATH_TO_PRODUCT_MODEL_CLASS_Q10929058"
+        }
+      ],
+      "manufacturer_serials_p2598": [
+        "285B-5689"
+      ],
+      "inventory_references_p217": [
+        "2018.102.1"
+      ],
+      "inventory_collections_p195": [
+        {
+          "qid": "Q6970239",
+          "label": "National Air Force Museum of Canada"
+        }
+      ],
+      "alias_pairs": [
+        {
+          "manufacturer_serial_p2598": "285B-5689",
+          "inventory_reference_p217": "2018.102.1",
+          "inventory_collection_p195": "Q6970239",
+          "model_qid": "Q1164696",
+          "maker_qid": "Q7233",
+          "maker_path": "MODEL_P176"
+        }
+      ],
+      "grammar_complete": true,
+      "grammar_evidence": [
+        "P176_MAKER_OR_MANUFACTURER",
+        "P31_PRODUCT_MODEL_PATH",
+        "P2598_MANUFACTURER_SERIAL",
+        "P217_INVENTORY_REFERENCE_WITH_P195_COLLECTION"
+      ],
+      "source_evidence": [
+        {
+          "role": "MODEL",
+          "entity_id": "Q1164696",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q1164696.json",
+          "source_payload_sha256": "sha256:11a9ae07dd3ee89f10ddcc418fbae5c076ab79447889f6325a9bd29c6d6d22db",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "ITEM",
+          "entity_id": "Q133839334",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q133839334.json",
+          "source_payload_sha256": "sha256:fdaa27279f6b7252ff09d597e8d36d89be4f6d6cc13bb2f757d2e1790741adfe",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "COLLECTION",
+          "entity_id": "Q6970239",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q6970239.json",
+          "source_payload_sha256": "sha256:35c08e84f1410fc98a728f07c1ed905d7e8ed90ce724d28faee8404f4197e5cb",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MAKER",
+          "entity_id": "Q7233",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q7233.json",
+          "source_payload_sha256": "sha256:f52d0d5bf1985c15b572bd1b5bdfafb199be5a57230b01d6c057f46ed2f69418",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "wikidata-serialized-reference:Q133839359",
+      "item_qid": "Q133839359",
+      "item_label": "CC-115 Buffalo 115456",
+      "makers": [
+        {
+          "qid": "Q285246",
+          "label": "De Havilland Canada",
+          "paths": [
+            "ITEM_P176",
+            "MODEL_P176"
+          ]
+        }
+      ],
+      "models": [
+        {
+          "qid": "Q18284198",
+          "label": "DHC-5A Buffalo",
+          "classification_basis": "WDQS_PATH_TO_PRODUCT_MODEL_CLASS_Q10929058"
+        }
+      ],
+      "manufacturer_serials_p2598": [
+        "10"
+      ],
+      "inventory_references_p217": [
+        "2020.56.1"
+      ],
+      "inventory_collections_p195": [
+        {
+          "qid": "Q6970239",
+          "label": "National Air Force Museum of Canada"
+        }
+      ],
+      "alias_pairs": [
+        {
+          "manufacturer_serial_p2598": "10",
+          "inventory_reference_p217": "2020.56.1",
+          "inventory_collection_p195": "Q6970239",
+          "model_qid": "Q18284198",
+          "maker_qid": "Q285246",
+          "maker_path": "MODEL_P176"
+        }
+      ],
+      "grammar_complete": true,
+      "grammar_evidence": [
+        "P176_MAKER_OR_MANUFACTURER",
+        "P31_PRODUCT_MODEL_PATH",
+        "P2598_MANUFACTURER_SERIAL",
+        "P217_INVENTORY_REFERENCE_WITH_P195_COLLECTION"
+      ],
+      "source_evidence": [
+        {
+          "role": "ITEM",
+          "entity_id": "Q133839359",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q133839359.json",
+          "source_payload_sha256": "sha256:7d2351e41f259a77f6ab31f665ad4faf2ec9234ca3399ef2adf9982e733f2fa7",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MODEL",
+          "entity_id": "Q18284198",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q18284198.json",
+          "source_payload_sha256": "sha256:0b87eab7bea1db281a12f45e78d2d12f57d2a94dae2e22dc23b8fde5ad3ad33d",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MAKER",
+          "entity_id": "Q285246",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q285246.json",
+          "source_payload_sha256": "sha256:c7791cdc5d86e402e2574a823066e8006a0fd60f0c164a172b81488dc8a988bd",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "COLLECTION",
+          "entity_id": "Q6970239",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q6970239.json",
+          "source_payload_sha256": "sha256:35c08e84f1410fc98a728f07c1ed905d7e8ed90ce724d28faee8404f4197e5cb",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "wikidata-serialized-reference:Q29113066",
+      "item_qid": "Q29113066",
+      "item_label": "Bugatti type 64 coach",
+      "makers": [
+        {
+          "qid": "Q27401",
+          "label": "Bugatti",
+          "paths": [
+            "MODEL_P176"
+          ]
+        }
+      ],
+      "models": [
+        {
+          "qid": "Q15055355",
+          "label": "Bugatti Type 64",
+          "classification_basis": "WDQS_PATH_TO_PRODUCT_MODEL_CLASS_Q10929058"
+        }
+      ],
+      "manufacturer_serials_p2598": [
+        "64-001"
+      ],
+      "inventory_references_p217": [
+        "MNA 0814"
+      ],
+      "inventory_collections_p195": [
+        {
+          "qid": "Q867719",
+          "label": "Cité de l'Automobile"
+        }
+      ],
+      "alias_pairs": [
+        {
+          "manufacturer_serial_p2598": "64-001",
+          "inventory_reference_p217": "MNA 0814",
+          "inventory_collection_p195": "Q867719",
+          "model_qid": "Q15055355",
+          "maker_qid": "Q27401",
+          "maker_path": "MODEL_P176"
+        }
+      ],
+      "grammar_complete": true,
+      "grammar_evidence": [
+        "P176_MAKER_OR_MANUFACTURER",
+        "P31_PRODUCT_MODEL_PATH",
+        "P2598_MANUFACTURER_SERIAL",
+        "P217_INVENTORY_REFERENCE_WITH_P195_COLLECTION"
+      ],
+      "source_evidence": [
+        {
+          "role": "MODEL",
+          "entity_id": "Q15055355",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q15055355.json",
+          "source_payload_sha256": "sha256:e6d2f60e96436a092f701f02e44cc249ca6ef5a30687b5a191ee772b76eb9780",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MAKER",
+          "entity_id": "Q27401",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q27401.json",
+          "source_payload_sha256": "sha256:9cef740d130346fa3e460ada07bf0b225d925a83c8b2251a372dda9f9bd0f6ba",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "ITEM",
+          "entity_id": "Q29113066",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q29113066.json",
+          "source_payload_sha256": "sha256:401ba8d78e3902b571bfb93f0523273a6dbe05d88a78b4555158400e205d6d26",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "COLLECTION",
+          "entity_id": "Q867719",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q867719.json",
+          "source_payload_sha256": "sha256:75fae48939c41921a94bf28f987ea56e50452490e6d94efebf87bc625b1bd254",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "wikidata-serialized-reference:Q30126260",
+      "item_qid": "Q30126260",
+      "item_label": "Canon de campagne de 75 mm modèle 1897",
+      "makers": [
+        {
+          "qid": "Q234743",
+          "label": "Puteaux",
+          "paths": [
+            "MODEL_P176"
+          ]
+        }
+      ],
+      "models": [
+        {
+          "qid": "Q958738",
+          "label": "75 mm Cannon Model 1897",
+          "classification_basis": "WDQS_PATH_TO_PRODUCT_MODEL_CLASS_Q10929058"
+        }
+      ],
+      "manufacturer_serials_p2598": [
+        "18095"
+      ],
+      "inventory_references_p217": [
+        "6774 ; N 427"
+      ],
+      "inventory_collections_p195": [
+        {
+          "qid": "Q1996069",
+          "label": "Musée de l'Armée"
+        }
+      ],
+      "alias_pairs": [
+        {
+          "manufacturer_serial_p2598": "18095",
+          "inventory_reference_p217": "6774 ; N 427",
+          "inventory_collection_p195": "Q1996069",
+          "model_qid": "Q958738",
+          "maker_qid": "Q234743",
+          "maker_path": "MODEL_P176"
+        }
+      ],
+      "grammar_complete": true,
+      "grammar_evidence": [
+        "P176_MAKER_OR_MANUFACTURER",
+        "P31_PRODUCT_MODEL_PATH",
+        "P2598_MANUFACTURER_SERIAL",
+        "P217_INVENTORY_REFERENCE_WITH_P195_COLLECTION"
+      ],
+      "source_evidence": [
+        {
+          "role": "COLLECTION",
+          "entity_id": "Q1996069",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q1996069.json",
+          "source_payload_sha256": "sha256:be9e2660e0941e1b264f0dc3929e896d1122c44f1577f9ec5ecf5292dab3d5fd",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MAKER",
+          "entity_id": "Q234743",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q234743.json",
+          "source_payload_sha256": "sha256:604ed642763047adbc8225f3807cfad7b3c4323122cfaa8f78d91185d29ad9c9",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "ITEM",
+          "entity_id": "Q30126260",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q30126260.json",
+          "source_payload_sha256": "sha256:51d8200f23a12d430079baffdcfc86f8d718d8356caeb6e3a8d2e45c12d33ea0",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MODEL",
+          "entity_id": "Q958738",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q958738.json",
+          "source_payload_sha256": "sha256:81a4fbbc853ac442455b3f2ea6368eef323a130e00e37695374aebe6cb257220",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "wikidata-serialized-reference:Q41244996",
+      "item_qid": "Q41244996",
+      "item_label": "Concorde 205",
+      "makers": [
+        {
+          "qid": "Q1428793",
+          "label": "Sud-Aviation",
+          "paths": [
+            "MODEL_P176"
+          ]
+        },
+        {
+          "qid": "Q650639",
+          "label": "Aérospatiale",
+          "paths": [
+            "ITEM_P176"
+          ]
+        },
+        {
+          "qid": "Q655224",
+          "label": "British Aircraft Corporation",
+          "paths": [
+            "MODEL_P176"
+          ]
+        }
+      ],
+      "models": [
+        {
+          "qid": "Q6505",
+          "label": "Concorde",
+          "classification_basis": "WDQS_PATH_TO_PRODUCT_MODEL_CLASS_Q10929058"
+        }
+      ],
+      "manufacturer_serials_p2598": [
+        "205"
+      ],
+      "inventory_references_p217": [
+        "A20030139000"
+      ],
+      "inventory_collections_p195": [
+        {
+          "qid": "Q752669",
+          "label": "National Air and Space Museum"
+        }
+      ],
+      "alias_pairs": [
+        {
+          "manufacturer_serial_p2598": "205",
+          "inventory_reference_p217": "A20030139000",
+          "inventory_collection_p195": "Q752669",
+          "model_qid": "Q6505",
+          "maker_qid": "Q655224",
+          "maker_path": "MODEL_P176"
+        }
+      ],
+      "grammar_complete": true,
+      "grammar_evidence": [
+        "P176_MAKER_OR_MANUFACTURER",
+        "P31_PRODUCT_MODEL_PATH",
+        "P2598_MANUFACTURER_SERIAL",
+        "P217_INVENTORY_REFERENCE_WITH_P195_COLLECTION"
+      ],
+      "source_evidence": [
+        {
+          "role": "MAKER",
+          "entity_id": "Q1428793",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q1428793.json",
+          "source_payload_sha256": "sha256:f1fbbd9fb9ccc13e2011b0e0a38bfa90af0dd03e178461f4c79ba786b2f21f2f",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "ITEM",
+          "entity_id": "Q41244996",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q41244996.json",
+          "source_payload_sha256": "sha256:9f2f824b0f49f0c5a6bda98e539ca12e41ade97c45608a988cb116714e0c312c",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MODEL",
+          "entity_id": "Q6505",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q6505.json",
+          "source_payload_sha256": "sha256:28f1e1dc29789af9982e185f50d4e2713dad6d197946c40a4475ef9f97d74862",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MAKER",
+          "entity_id": "Q650639",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q650639.json",
+          "source_payload_sha256": "sha256:3ca35f492a5a85fd1ff963afcc62133c447c8f4bd0f2e392aff10d0ec73c1f88",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MAKER",
+          "entity_id": "Q655224",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q655224.json",
+          "source_payload_sha256": "sha256:76bf0235940db4d555e72a4c113a62c62b27d6dd5954de99a506c0ecc74ab354",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "COLLECTION",
+          "entity_id": "Q752669",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q752669.json",
+          "source_payload_sha256": "sha256:e79f00dc5bdc758073b19aed6375904a32e6bf1f24ab2c799452233470f36c63",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "wikidata-serialized-reference:Q63869343",
+      "item_qid": "Q63869343",
+      "item_label": "Furrer Lmg M25 number 19515-Morges Inv 1003735",
+      "makers": [
+        {
+          "qid": "Q3565061",
+          "label": "Waffenfabrik Bern",
+          "paths": [
+            "ITEM_P176",
+            "MODEL_P176"
+          ]
+        }
+      ],
+      "models": [
+        {
+          "qid": "Q691502",
+          "label": "Furrer M25",
+          "classification_basis": "WDQS_PATH_TO_PRODUCT_MODEL_CLASS_Q10929058"
+        }
+      ],
+      "manufacturer_serials_p2598": [
+        "19515"
+      ],
+      "inventory_references_p217": [
+        "1003735"
+      ],
+      "inventory_collections_p195": [
+        {
+          "qid": "Q27880752",
+          "label": "Museums of Morges Castel"
+        }
+      ],
+      "alias_pairs": [
+        {
+          "manufacturer_serial_p2598": "19515",
+          "inventory_reference_p217": "1003735",
+          "inventory_collection_p195": "Q27880752",
+          "model_qid": "Q691502",
+          "maker_qid": "Q3565061",
+          "maker_path": "MODEL_P176"
+        }
+      ],
+      "grammar_complete": true,
+      "grammar_evidence": [
+        "P176_MAKER_OR_MANUFACTURER",
+        "P31_PRODUCT_MODEL_PATH",
+        "P2598_MANUFACTURER_SERIAL",
+        "P217_INVENTORY_REFERENCE_WITH_P195_COLLECTION"
+      ],
+      "source_evidence": [
+        {
+          "role": "COLLECTION",
+          "entity_id": "Q27880752",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q27880752.json",
+          "source_payload_sha256": "sha256:e4de0f6f85d87988622cb4e6c3f498283b9fb3b3b1504276f281dccd3eb4ceca",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MAKER",
+          "entity_id": "Q3565061",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q3565061.json",
+          "source_payload_sha256": "sha256:6968e53ec3f6d2b6548168df447e653475502e9e261056a28e77bf9f35801d60",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "ITEM",
+          "entity_id": "Q63869343",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q63869343.json",
+          "source_payload_sha256": "sha256:b5c4172e58d9939968240e774826a42d24566c52333038e7e01d519dc8c41044",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MODEL",
+          "entity_id": "Q691502",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q691502.json",
+          "source_payload_sha256": "sha256:a645ebf94a41281ccbb7a06fd9e978f4e5eba9548687553f8cdba3ff6e52b720",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "wikidata-serialized-reference:Q85753536",
+      "item_qid": "Q85753536",
+      "item_label": "Columbia",
+      "makers": [
+        {
+          "qid": "Q519560",
+          "label": "North American Aviation",
+          "paths": [
+            "ITEM_P176",
+            "MODEL_P176"
+          ]
+        }
+      ],
+      "models": [
+        {
+          "qid": "Q110163453",
+          "label": "Apollo Command Module",
+          "classification_basis": "WDQS_PATH_TO_PRODUCT_MODEL_CLASS_Q10929058"
+        }
+      ],
+      "manufacturer_serials_p2598": [
+        "CM-107"
+      ],
+      "inventory_references_p217": [
+        "A19700102000"
+      ],
+      "inventory_collections_p195": [
+        {
+          "qid": "Q752669",
+          "label": "National Air and Space Museum"
+        }
+      ],
+      "alias_pairs": [
+        {
+          "manufacturer_serial_p2598": "CM-107",
+          "inventory_reference_p217": "A19700102000",
+          "inventory_collection_p195": "Q752669",
+          "model_qid": "Q110163453",
+          "maker_qid": "Q519560",
+          "maker_path": "MODEL_P176"
+        }
+      ],
+      "grammar_complete": true,
+      "grammar_evidence": [
+        "P176_MAKER_OR_MANUFACTURER",
+        "P31_PRODUCT_MODEL_PATH",
+        "P2598_MANUFACTURER_SERIAL",
+        "P217_INVENTORY_REFERENCE_WITH_P195_COLLECTION"
+      ],
+      "source_evidence": [
+        {
+          "role": "MODEL",
+          "entity_id": "Q110163453",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q110163453.json",
+          "source_payload_sha256": "sha256:c95ac8fad9c53fa20212d166b61759315b510ecda6488e0a56f9d26c4fad83f2",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "MAKER",
+          "entity_id": "Q519560",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q519560.json",
+          "source_payload_sha256": "sha256:7ec801bea220ce40386af7bf732b0fe37a01bc5064838edae989fb8c1f4887d6",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "COLLECTION",
+          "entity_id": "Q752669",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q752669.json",
+          "source_payload_sha256": "sha256:e79f00dc5bdc758073b19aed6375904a32e6bf1f24ab2c799452233470f36c63",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        },
+        {
+          "role": "ITEM",
+          "entity_id": "Q85753536",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q85753536.json",
+          "source_payload_sha256": "sha256:ca11d382551ddb592b4bfc4b46b9bbaccd36aa1738055aac5e62dba4ba9958a6",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        }
+      ]
+    }
+  ],
+  "same_model_distinct_serial_hard_negative_pairs": [],
+  "metrics": {
+    "wdqs_declared_distinct_item_count": 7,
+    "wdqs_detail_binding_count": 13,
+    "source_revalidated_unique_item_count": 7,
+    "grammar_complete_real_record_count": 7,
+    "normalization_candidate_capacity": 7,
+    "same_model_distinct_serial_hard_negative_pair_count": 0,
+    "cross_authority_alias_pair_count": 7,
+    "conservative_case_capacity": 14,
+    "met_accession_number_only_case_capacity": 0
+  },
+  "readiness_gate": {
+    "requirements": {
+      "grammar_complete_record_floor": 120,
+      "normalization_candidate_floor": 40,
+      "same_model_distinct_serial_hard_negative_pair_floor": 40,
+      "cross_authority_alias_pair_floor": 40,
+      "blind_source_record_capacity_floor": 60
+    },
+    "checks": {
+      "grammar_complete_record_floor_met": false,
+      "normalization_candidate_floor_met": false,
+      "same_model_distinct_serial_hard_negative_pair_floor_met": false,
+      "cross_authority_alias_pair_floor_met": false,
+      "blind_source_record_capacity_floor_met": false,
+      "conservative_120_case_class_capacity_met": false
+    },
+    "source_capacity_ready_for_120_cases": false,
+    "acquisition_lane_state": "SOURCE_FIT_REVALIDATION_REQUIRED",
+    "blockers": [
+      "GRAMMAR_COMPLETE_REAL_RECORD_FLOOR_120_NOT_MET",
+      "NORMALIZATION_CANDIDATE_FLOOR_40_NOT_MET",
+      "SAME_MODEL_DISTINCT_SERIAL_HARD_NEGATIVE_PAIR_FLOOR_40_NOT_MET",
+      "CROSS_AUTHORITY_ALIAS_PAIR_FLOOR_40_NOT_MET",
+      "BLIND_SOURCE_RECORD_CAPACITY_FLOOR_60_NOT_MET",
+      "CONSERVATIVE_120_CASE_CLASS_CAPACITY_NOT_MET"
+    ]
+  },
+  "downstream_claims": {
+    "empirical_cases_created": 0,
+    "labels_collected": 0,
+    "independent_label_review_complete": false,
+    "blind_holdout_sealed": false,
+    "empirical_benchmark_ready": false,
+    "track_b_started": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  },
+  "truth_boundary": "This is a read-only source-capacity observation, not an empirical ER dataset or label set. A Wikidata item counts only when live entity data revalidates maker/manufacturer, a product-model-qualified P31 target, P2598 serial, and P217 inventory reference with P195 collection qualifier. Met accessionNumber alone contributes zero serial/reference capacity. Source capacity, independent labels, blind sealing, empirical accuracy, Track B, public release and Production remain separate fail-closed gates.",
+  "integrity": {
+    "canonical_payload_sha256": "sha256:9040446cd2db640eb5641a639d29205944134292a2a17af70ac522298b499a03"
+  }
+}

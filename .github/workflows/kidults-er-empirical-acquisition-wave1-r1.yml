@@ -5,6 +5,9 @@ on:
     paths:
       - 'coordination/kidults/entity-resolution/empirical-acquisition-wave1-r1.json'
       - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json'
+      - 'scripts/kidults/entity-resolution/probe-serialized-reference-capacity-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-serialized-reference-capacity-r1.mjs'
       - 'scripts/kidults/entity-resolution/validate-empirical-acquisition-wave1-r1.mjs'
       - '.github/workflows/kidults-er-empirical-acquisition-wave1-r1.yml'
   workflow_dispatch:
@@ -20,8 +23,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate immediate acquisition capacity and fail-closed blockers
+      - name: Re-run strict read-only serialized capacity census
         run: |
+          node --check scripts/kidults/entity-resolution/probe-serialized-reference-capacity-r1.mjs
+          node --check scripts/kidults/entity-resolution/validate-serialized-reference-capacity-r1.mjs
+          node scripts/kidults/entity-resolution/probe-serialized-reference-capacity-r1.mjs \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            /tmp/serialized-reference-capacity-live-r1.json
+          node scripts/kidults/entity-resolution/validate-serialized-reference-capacity-r1.mjs \
+            /tmp/serialized-reference-capacity-live-r1.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
           node scripts/kidults/entity-resolution/validate-empirical-acquisition-wave1-r1.mjs \
             coordination/kidults/entity-resolution/empirical-acquisition-wave1-r1.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            /tmp/serialized-reference-capacity-live-r1.json
+          node - <<'NODE'
+          const committed=require('./coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json');
+          const live=require('/tmp/serialized-reference-capacity-live-r1.json');
+          const committedIds=committed.records.map(x=>x.item_qid);
+          const liveIds=live.records.map(x=>x.item_qid);
+          if(JSON.stringify(committed.metrics)!==JSON.stringify(live.metrics)) throw new Error('COMMITTED_SERIALIZED_METRICS_STALE');
+          if(JSON.stringify(committedIds)!==JSON.stringify(liveIds)) throw new Error('COMMITTED_SERIALIZED_RECORD_CENSUS_STALE');
+          if(committed.probe_status!==live.probe_status || JSON.stringify(committed.readiness_gate)!==JSON.stringify(live.readiness_gate)) throw new Error('COMMITTED_SERIALIZED_READINESS_STALE');
+          console.log('PASS: committed serialized capacity remains identical to the live strict census.');
+          NODE
+      - name: Validate immediate acquisition capacity and fail-closed blockers
+        run: |
+          node scripts/kidults/entity-resolution/validate-serialized-reference-capacity-r1.mjs \
+            coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json \
             coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+          node scripts/kidults/entity-resolution/validate-empirical-acquisition-wave1-r1.mjs \
+            coordination/kidults/entity-resolution/empirical-acquisition-wave1-r1.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json
