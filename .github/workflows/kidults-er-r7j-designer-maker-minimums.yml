@@ -1,0 +1,83 @@
+name: KIDULTS ER R7J Designer Maker Minimums
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs'
+      - 'coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json'
+      - 'scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs'
+      - 'scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs'
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - '.github/workflows/kidults-er-r7j-designer-maker-minimums.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-r7j:
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build R1-R6
+        run: |
+          node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/er-r2.json /tmp/er-r3.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs /tmp/er-r3.json /tmp/er-r5.json
+          node scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs /tmp/er-r5.json /tmp/er-r6.json
+      - name: Build approved strata through R7I
+        run: |
+          node scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs /tmp/er-r6.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7a.json
+          node scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs /tmp/er-r7a.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7b.json
+          node scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs /tmp/er-r7b.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7c.json
+          node scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs /tmp/er-r7c.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7e.json
+          node scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs /tmp/er-r7e.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7f.json
+          node scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs /tmp/er-r7f.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7g.json
+          node scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs /tmp/er-r7g.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7h.json
+          node scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs /tmp/er-r7h.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7i.json
+      - name: Add designer maker minimums R7J
+        run: node scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs /tmp/er-r7i.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json /tmp/er-r7j.json
+      - name: Run benchmark
+        run: node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r7j.json /tmp/er-r7j-results.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+      - name: Verify designer maker minimums and 6-of-7 completion
+        run: |
+          node - <<'NODE'
+          const r=require('/tmp/er-r7j-results.json');
+          const designer='er-stratum-designer-maker-edition';
+          const expectedComplete=[
+            designer,
+            'er-stratum-serialized-reference',
+            'er-stratum-provenance-unique-object',
+            'er-stratum-vehicle-mechanical-asset',
+            'er-stratum-variant-release-heavy',
+            'er-stratum-pressing-edition-media'
+          ];
+          const completed=Object.values(r.coverage.per_stratum).filter(x=>x.complete===true).length;
+          if(r.strata_manifest_binding.binding_valid!==true) process.exit(1);
+          for(const id of expectedComplete) if(r.coverage.per_stratum[id].complete!==true) process.exit(1);
+          if(r.coverage.per_stratum['er-stratum-graded-population'].complete!==false) process.exit(1);
+          if(completed!==6) process.exit(1);
+          if(r.accuracy!==1||r.blind_accuracy!==1||r.critical_false_auto_merge!==0||r.blind_critical_false_auto_merge!==0) process.exit(1);
+          if(r.deterministic_replay!=='PASS'||r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
+          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
+          console.log('R7J PASS: DESIGNER_MAKER_EDITION complete; 6/7 strata complete; GRADED_POPULATION and downstream gates remain fail-closed.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-r7j-designer-maker-minimums
+          path: |
+            /tmp/er-r7j.json
+            /tmp/er-r7j-results.json
+          if-no-files-found: error
+          retention-days: 30
