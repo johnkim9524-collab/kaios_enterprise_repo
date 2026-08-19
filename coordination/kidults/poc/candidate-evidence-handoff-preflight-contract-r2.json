@@ -1,0 +1,68 @@
+{
+  "id": "candidate-evidence-handoff-preflight-contract-r2",
+  "version": "2.0.0",
+  "issue": 457,
+  "downstream_track": "TRACK_B_INDEPENDENT_VALIDATION",
+  "production": "HOLD",
+  "required_pair": ["snapshot-candidate.json", "evidence-package.json"],
+  "required_gates": {
+    "entity_resolution_final": {
+      "required_strata": 7,
+      "complete_strata_eq": 7,
+      "final_scope_stratification_complete": true,
+      "overall_accuracy_gte": 0.99,
+      "blind_accuracy_gte": 0.99,
+      "critical_false_auto_merge_eq": 0,
+      "blind_critical_false_auto_merge_eq": 0,
+      "deterministic_replay": "PASS",
+      "rights_coverage_eq": 1.0,
+      "provenance_coverage_eq": 1.0,
+      "final_dataset_id_present": true,
+      "final_dataset_hash_present": true,
+      "approved_strata_manifest_id_present": true,
+      "blind_holdout_freeze_id_present": true,
+      "calibration_artifact_id_present": true
+    },
+    "rights": {
+      "claim_inputs_purpose_specific_rights_admitted": true,
+      "unknown_or_denied_claim_input_count": 0
+    },
+    "evidence": {
+      "evidence_before_metrics": true,
+      "claim_strength_lte_evidence_strength": true,
+      "unresolved_critical_contradiction_count": 0,
+      "current_market_claim_requires_current_market_evidence": true,
+      "historical_evidence_cannot_satisfy_current_market_claim": true
+    },
+    "evidence_package": {
+      "package_id_present": true,
+      "package_status": "IMMUTABLE",
+      "registry_version_present": true,
+      "methodology_version_present": true,
+      "evidence_lineage_version_present": true
+    },
+    "snapshot_immutability": {
+      "snapshot_id_present": true,
+      "snapshot_status": "DRAFT_CANDIDATE",
+      "registry_version_present": true,
+      "methodology_version_present": true,
+      "evidence_lineage_version_present": true,
+      "pair_digest_required": true
+    }
+  },
+  "forbidden_shortcuts": [
+    "CI_PASS_AS_MARKET_TRUTH",
+    "RUNTIME_CORE_PASS_AS_MARKET_TRUTH",
+    "SIX_OF_SEVEN_ER_AS_FINAL_ER",
+    "DIAGNOSTIC_DATASET_AS_FINAL_DATASET",
+    "HISTORICAL_TRANSACTION_AS_CURRENT_MARKET",
+    "LISTING_AS_SOLD",
+    "PROVIDER_ID_AS_CANONICAL_ID",
+    "UNKNOWN_RIGHTS_AS_ALLOW",
+    "PORTAL_OUTPUT_AS_TRACK_B_INPUT",
+    "MUTABLE_EVIDENCE_PACKAGE_AS_TRACK_B_INPUT"
+  ],
+  "handoff_state_values": ["READY_FOR_TRACK_B", "BLOCKED"],
+  "track_b_input_boundary": "Only the exact immutable snapshot-candidate.json + evidence-package.json pair may be submitted. Track B performs an independent assessment and does not inherit Track A's local PASS.",
+  "publication": "HOLD"
+}
