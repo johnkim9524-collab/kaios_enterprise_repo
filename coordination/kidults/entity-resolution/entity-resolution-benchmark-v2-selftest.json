@@ -1,0 +1,81 @@
+{
+  "id": "entity-resolution-benchmark-v2-selftest",
+  "dataset_class": "SYNTHETIC_SELFTEST",
+  "synthetic": true,
+  "production": "HOLD",
+  "truth_boundary": "Runner mechanics only. This file is prohibited from serving as empirical #479 completion evidence.",
+  "cases": [
+    {
+      "case_id": "self-hard-negative-001",
+      "case_class": "HARD_NEGATIVE",
+      "identity_boundary": "SOURCE_RECORD",
+      "scope_id": "designer_toys",
+      "blind_holdout": true,
+      "rights_state": "ALLOW",
+      "provenance_refs": ["selftest:fixture"],
+      "left": {"anchors": {"SOURCE_RECORD": "record:A"}},
+      "right": {"anchors": {"SOURCE_RECORD": "record:B"}},
+      "expected": "NO_MATCH"
+    },
+    {
+      "case_id": "self-same-object-001",
+      "case_class": "SAME_OBJECT_NORMALIZATION",
+      "identity_boundary": "PHYSICAL_OBJECT",
+      "scope_id": "mechanical_watches",
+      "blind_holdout": false,
+      "rights_state": "ALLOW",
+      "provenance_refs": ["selftest:fixture"],
+      "left": {"anchors": {"PHYSICAL_OBJECT": "object:123"}},
+      "right": {"anchors": {"PHYSICAL_OBJECT": "object:123"}},
+      "expected": "MATCH"
+    },
+    {
+      "case_id": "self-same-design-different-object-001",
+      "case_class": "SAME_DESIGN_DIFFERENT_OBJECT",
+      "identity_boundary": "PHYSICAL_OBJECT",
+      "scope_id": "sports_cards",
+      "blind_holdout": true,
+      "rights_state": "ALLOW",
+      "provenance_refs": ["selftest:fixture"],
+      "left": {"anchors": {"PHYSICAL_OBJECT": "card:serial:1"}},
+      "right": {"anchors": {"PHYSICAL_OBJECT": "card:serial:2"}},
+      "expected": "NO_MATCH"
+    },
+    {
+      "case_id": "self-cross-market-alias-001",
+      "case_class": "CROSS_MARKET_ALIAS",
+      "identity_boundary": "CANONICAL_DESIGN",
+      "scope_id": "collector_cars",
+      "blind_holdout": false,
+      "rights_state": "ALLOW",
+      "provenance_refs": ["selftest:fixture"],
+      "left": {"anchors": {"CANONICAL_DESIGN": "design:ABC"}},
+      "right": {"anchors": {"CANONICAL_DESIGN": "design:ABC"}},
+      "expected": "MATCH"
+    },
+    {
+      "case_id": "self-transaction-linkage-001",
+      "case_class": "TRANSACTION_TO_OBJECT_LINKAGE",
+      "identity_boundary": "MARKET_EVENT",
+      "scope_id": "fine_jewelry",
+      "blind_holdout": true,
+      "rights_state": "ALLOW",
+      "provenance_refs": ["selftest:fixture"],
+      "left": {"anchors": {"MARKET_EVENT": "event:lot:42"}},
+      "right": {"anchors": {"MARKET_EVENT": "event:lot:42"}},
+      "expected": "MATCH"
+    },
+    {
+      "case_id": "self-ambiguous-001",
+      "case_class": "AMBIGUOUS_REVIEW_REQUIRED",
+      "identity_boundary": "SOURCE_RECORD",
+      "scope_id": "vintage_character_toys",
+      "blind_holdout": false,
+      "rights_state": "ALLOW",
+      "provenance_refs": ["selftest:fixture"],
+      "left": {"fields": {"title": "Example Item"}},
+      "right": {"fields": {"title": "Example Item?"}},
+      "expected": "REVIEW"
+    }
+  ]
+}
