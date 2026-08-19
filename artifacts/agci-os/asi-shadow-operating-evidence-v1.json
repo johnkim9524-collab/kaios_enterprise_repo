@@ -315,8 +315,8 @@
     },
     "entity_resolution_serialized_cross_authority_r7e_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs",
-      "sha256": "sha256:6d56c266a527581c415f3a93e210b09b55a1d40fee3c8c14d3304d683db39f84",
-      "byte_count": 13363
+      "sha256": "sha256:203185406500e55d947993ad51fa6e9d61d09acc0d7ad965637fb8750eaafdc5",
+      "byte_count": 11238
     },
     "entity_resolution_vehicle_minimums_r7f_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs",
@@ -1015,8 +1015,8 @@
       },
       "serialized_cross_authority_r7e_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs",
-        "sha256": "sha256:6d56c266a527581c415f3a93e210b09b55a1d40fee3c8c14d3304d683db39f84",
-        "byte_count": 13363
+        "sha256": "sha256:203185406500e55d947993ad51fa6e9d61d09acc0d7ad965637fb8750eaafdc5",
+        "byte_count": 11238
       },
       "vehicle_minimums_r7f_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs",
@@ -2267,5 +2267,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:deec70be9831d3558ddb423e9e9d3e9ef724fe4918d5268ceff01b59ec4f460e"
+  "evidence_fingerprint": "sha256:71058dc23ca56320b62a354d2d3977129905a6b0dd81051a4667fa16e5db58be"
 }
