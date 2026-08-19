@@ -1,4 +1,5 @@
 name: KIDULTS ER R7J Designer Maker Minimums
+# Synchronize commit: retrigger repository-required PR checks after #533 landed.
 
 on:
   pull_request:
