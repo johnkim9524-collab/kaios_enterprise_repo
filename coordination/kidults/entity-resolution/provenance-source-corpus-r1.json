@@ -1,0 +1,23 @@
+{
+  "id": "kidults-er-provenance-source-corpus-r1",
+  "version": "1.1.0",
+  "parent_issue": 609,
+  "support_issue": 614,
+  "stratum_id": "er-stratum-provenance-unique-object",
+  "status": "ACQUISITION_EXECUTION_CONTRACT",
+  "source_id": "getty-provenance-index-linked-open-data",
+  "target_pair_count": 240,
+  "required_linkage": "Activity.part[Acquisition].transferred_title_of -> HumanMadeObject",
+  "rights_state_required": "ALLOW",
+  "license_evidence_refs": [
+    "https://data.getty.edu/provenance/docs/",
+    "https://linked.art/model/provenance/acquisition/"
+  ],
+  "allowed_metadata_only": true,
+  "labels_allowed": false,
+  "model_predictions_allowed": false,
+  "reviewer_assignment_required": true,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "truth_boundary": "Only explicit source-linked Getty provenance Activity-to-HumanMadeObject pairs are eligible. Generic entity counts are invalid. Both event and object payloads must be fetched and independently hashed. No ownership inference beyond source fields, current-market claim, ER label, benchmark PASS, Track B, publication or Production approval is created."
+}
