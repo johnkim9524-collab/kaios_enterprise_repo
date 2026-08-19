@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "source-admission-record-v1.schema.json",
+  "type": "object",
+  "required": ["source_id","scope","source_type","access_channel","rights","technical_validity","evidence_validity","state","assessed_at"],
+  "properties": {
+    "source_id": {"type":"string","minLength":1},
+    "scope": {"type":"object","required":["category","geography"],"properties":{"category":{"type":"string"},"geography":{"type":"string"},"language":{"type":"string"}}},
+    "source_type": {"type":"string"},
+    "access_channel": {"enum":["PUBLIC_HTML","API","FEED","LICENSED_FILE","MANUAL_REFERENCE"]},
+    "rights": {
+      "type":"object",
+      "required":["discover","collect","store","derive","display_internal","display_public"],
+      "additionalProperties": false,
+      "properties": {
+        "discover":{"enum":["ALLOW","CONDITIONAL","DENY","UNKNOWN"]},
+        "collect":{"enum":["ALLOW","CONDITIONAL","DENY","UNKNOWN"]},
+        "store":{"enum":["ALLOW","CONDITIONAL","DENY","UNKNOWN"]},
+        "derive":{"enum":["ALLOW","CONDITIONAL","DENY","UNKNOWN"]},
+        "display_internal":{"enum":["ALLOW","CONDITIONAL","DENY","UNKNOWN"]},
+        "display_public":{"enum":["ALLOW","CONDITIONAL","DENY","UNKNOWN"]}
+      }
+    },
+    "technical_validity": {"enum":["PASS","CONDITIONAL","FAIL","UNKNOWN"]},
+    "evidence_validity": {"enum":["SUFFICIENT","LIMITED","INSUFFICIENT","UNKNOWN"]},
+    "state": {"enum":["ADMITTED","CONDITIONAL","DISCOVERY_ONLY","BLOCKED"]},
+    "assessed_at": {"type":"string"},
+    "expires_at": {"type":["string","null"]},
+    "reason_codes": {"type":"array","items":{"type":"string"}}
+  }
+}
