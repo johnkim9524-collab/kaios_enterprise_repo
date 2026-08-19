@@ -74,7 +74,7 @@ blockers.push('CROSS_MARKET_ALIAS_0_OF_40_SINGLE_SOURCE_MUSICBRAINZ_CANNOT_PROVE
 
 const artifact={
   id:'kidults-er-pressing-edition-capacity-r1',
-  version:'1.0.0',
+  version:'1.1.0',
   stratum_id:stratum,
   status:metrics.source_capacity_ready_for_120_cases?'COMPLETE_SOURCE_CAPACITY_READY':'COMPLETE_FAIL_CLOSED_PARTIAL_CAPACITY',
   source_corpus_id:corpus.id,
@@ -83,8 +83,8 @@ const artifact={
   labels_present:false,
   model_predictions_present:false,
   candidate_pools:{
-    SAME_OBJECT_NORMALIZATION:normalization.slice(0,40),
-    HARD_NEGATIVE:hardNegative.slice(0,40),
+    SAME_OBJECT_NORMALIZATION:normalization,
+    HARD_NEGATIVE:hardNegative,
     CROSS_MARKET_ALIAS:crossMarketAlias
   },
   metrics,
@@ -96,7 +96,7 @@ const artifact={
   track_b:'NOT_STARTED',
   public_release:'HOLD',
   production:'HOLD',
-  truth_boundary:'This probe measures only evidence-backed Pressing/Edition case-class capacity from the existing lawful MusicBrainz corpus. Single-source identifier co-assertions may support SAME_OBJECT_NORMALIZATION candidates and same-release-group distinct releases may support HARD_NEGATIVE candidates. MusicBrainz alone contributes zero CROSS_MARKET_ALIAS capacity; no cross-market alias is inferred or fabricated.'
+  truth_boundary:'This probe measures only evidence-backed Pressing/Edition case-class capacity from the existing lawful MusicBrainz corpus. The complete candidate pools are preserved only so downstream packetization can enforce source-record disjointness. Single-source identifier co-assertions may support SAME_OBJECT_NORMALIZATION candidates and same-release-group distinct releases may support HARD_NEGATIVE candidates. MusicBrainz alone contributes zero CROSS_MARKET_ALIAS capacity; no cross-market alias is inferred or fabricated.'
 };
 await fs.writeFile(outPath,JSON.stringify(artifact,null,2));
 console.log(JSON.stringify({status:artifact.status,metrics,blockers,production:'HOLD'},null,2));
