@@ -1,0 +1,49 @@
+name: KIDULTS ASI Real Source Retry DLQ Quarantine R1
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/scripts/asi-real-source-retry-dlq-quarantine-r1.mjs'
+      - '.github/workflows/kidults-asi-real-source-retry-dlq-quarantine-r1.yml'
+      - 'scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs'
+      - 'scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs'
+      - 'scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-source-retry-dlq-quarantine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Retrieve live Met identity/context artifact
+        run: node scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs /tmp/met-real-source-admission-r1.json
+      - name: Retrieve live Getty historical transaction artifact
+        run: node scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs /tmp/getty-historical-sale-r1.json
+      - name: Build canonical admitted-source bridge
+        run: node scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs /tmp/met-real-source-admission-r1.json /tmp/getty-historical-sale-r1.json /tmp/asi-real-source-processor-bridge-r1.json
+      - name: Install ASI runtime dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci
+      - name: Force empirical real-source retry DLQ and rights quarantine controls
+        working-directory: services/kidults-autonomous-intelligence
+        run: node scripts/asi-real-source-retry-dlq-quarantine-r1.mjs /tmp/asi-real-source-processor-bridge-r1.json /tmp/asi-real-source-retry-dlq-quarantine-r1.json
+      - name: Verify fail-closed failure-path report
+        run: |
+          node -e "const x=require('/tmp/asi-real-source-retry-dlq-quarantine-r1.json'); if(x.retry.state!=='PASS'||x.dlq.state!=='PASS'||x.quarantine.state!=='PASS_FAIL_CLOSED_HOLD'||x.market_claim_authorized!==false||x.production!=='HOLD') process.exit(1); console.log('Real-source retry/DLQ/quarantine empirical controls PASS; claims remain fail-closed.')"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-asi-real-source-retry-dlq-quarantine-r1
+          path: |
+            /tmp/met-real-source-admission-r1.json
+            /tmp/getty-historical-sale-r1.json
+            /tmp/asi-real-source-processor-bridge-r1.json
+            /tmp/asi-real-source-retry-dlq-quarantine-r1.json
+          if-no-files-found: error
+          retention-days: 30
