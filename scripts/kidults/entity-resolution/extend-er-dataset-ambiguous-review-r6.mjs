@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 
 const [inputPath, outputPath='/tmp/er-real-world-r6.json'] = process.argv.slice(2);
 if (!inputPath) throw new Error('Usage: node extend-er-dataset-ambiguous-review-r6.mjs <r5.json> [r6.json]');
-const timeoutMs=10000;
+const timeoutMs=30000;
 const WIKIDATA_RIGHTS_URL='https://www.wikidata.org/wiki/Wikidata:Licensing';
 const digest=(value)=>`sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 const DOCUMENTED_P460_CANDIDATES=[
@@ -25,7 +25,7 @@ function assertConstructedControlDataset(dataset, stage){
   if(!valid) throw new Error(`${stage}_CONSTRUCTED_CONTROL_DATASET_REQUIRED`);
 }
 
-async function fetchJson(url, attempts=2){
+async function fetchJson(url, attempts=4){
   let lastError;
   for(let attempt=1;attempt<=attempts;attempt++){
     const controller=new AbortController();
@@ -36,7 +36,7 @@ async function fetchJson(url, attempts=2){
       return await res.json();
     }catch(error){
       lastError=error;
-      if(attempt<attempts) await new Promise(r=>setTimeout(r,400*attempt));
+      if(attempt<attempts) await new Promise(r=>setTimeout(r,1000*(2**(attempt-1))));
     }finally{clearTimeout(timer);}
   }
   throw lastError;

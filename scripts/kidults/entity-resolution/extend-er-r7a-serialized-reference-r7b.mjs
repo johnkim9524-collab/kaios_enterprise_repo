@@ -18,10 +18,13 @@ const constructedControlInput=dataset.dataset_class==='REAL_SOURCE_DERIVED_CONST
 if(!constructedControlInput) throw new Error('R7A_CONSTRUCTED_CONTROL_DATASET_REQUIRED');
 if(manifest.status!=='APPROVED_BOUNDED_POC_CALIBRATION'||!(manifest.required_strata_ids||[]).includes(STRATUM)) throw new Error('SERIALIZED_REFERENCE_STRATUM_NOT_APPROVED');
 
-const timeoutMs=18000;
+// Network hardening only: evidence semantics, source authority, and finalization gates are unchanged.
+// Wikidata Query Service occasionally exceeds the former 18s timeout. Keep a bounded retry budget
+// and fail closed after the budget is exhausted rather than weakening or substituting evidence.
+const timeoutMs=30000;
 const WIKIDATA_RIGHTS_URL='https://www.wikidata.org/wiki/Wikidata:Licensing';
 const digest=(value)=>`sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
-async function fetchJson(url,headers={},attempts=2){
+async function fetchJson(url,headers={},attempts=4){
   let last;
   for(let a=1;a<=attempts;a++){
     const c=new AbortController(); const t=setTimeout(()=>c.abort(),timeoutMs);
@@ -29,8 +32,10 @@ async function fetchJson(url,headers={},attempts=2){
       const r=await fetch(url,{headers:{'user-agent':'KIDULTS-ER-BENCHMARK-DEV-SHADOW/1.0',...headers},signal:c.signal});
       if(!r.ok) throw new Error(`${url} -> HTTP ${r.status}`);
       return await r.json();
-    }catch(e){last=e;if(a<attempts) await new Promise(x=>setTimeout(x,600*a));}
-    finally{clearTimeout(t);}
+    }catch(e){
+      last=e;
+      if(a<attempts) await new Promise(x=>setTimeout(x,1000*(2**(a-1))));
+    } finally { clearTimeout(t); }
   }
   throw last;
 }
@@ -41,7 +46,7 @@ function label(entity){return entity?.labels?.en?.value??entity?.labels?.mul?.va
 // Discovery is intentionally bounded and generic. P2598 is the Wikidata serial-number
 // property for a specific object among the same product; P31 supplies the shared model/class.
 const sparql='SELECT ?item ?serial ?model WHERE { ?item wdt:P2598 ?serial ; wdt:P31 ?model . } ORDER BY STR(?model) STR(?item) LIMIT 500';
-const q=await fetchJson(`https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`,{accept:'application/sparql-results+json'},3);
+const q=await fetchJson(`https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`,{accept:'application/sparql-results+json'},5);
 const rows=q?.results?.bindings??[];
 if(rows.length===0) throw new Error('NO_SERIALIZED_REFERENCE_CANDIDATES');
 const groups=new Map();

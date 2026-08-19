@@ -3,8 +3,9 @@ import { createHash } from 'node:crypto';
 
 const [inputPath, outputPath='/tmp/er-real-world-r5.json'] = process.argv.slice(2);
 if (!inputPath) throw new Error('Usage: node extend-er-dataset-cross-market-alias-r5.mjs <r3.json> [r5.json]');
-const timeoutMs=20000;
+const timeoutMs=30000;
 const WIKIDATA_RIGHTS_URL='https://www.wikidata.org/wiki/Wikidata:Licensing';
+const DOCUMENTED_CROSSWALK_CANDIDATES=['Q100270451'];
 const digest=(value)=>`sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
 function assertConstructedControlDataset(dataset, stage){
@@ -20,46 +21,47 @@ function assertConstructedControlDataset(dataset, stage){
   if(!valid) throw new Error(`${stage}_CONSTRUCTED_CONTROL_DATASET_REQUIRED`);
 }
 
-async function fetchJson(url, headers={}){
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),timeoutMs);
-  try{
-    const res=await fetch(url,{headers:{'user-agent':'KIDULTS-ER-BENCHMARK-DEV-SHADOW/1.0',...headers},signal:controller.signal});
-    if(!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
-    return await res.json();
-  }finally{clearTimeout(timer);}
+async function fetchJson(url, attempts=4){
+  let lastError;
+  for(let attempt=1;attempt<=attempts;attempt++){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),timeoutMs);
+    try{
+      const res=await fetch(url,{headers:{'user-agent':'KIDULTS-ER-BENCHMARK-DEV-SHADOW/1.0'},signal:controller.signal});
+      if(!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+      return await res.json();
+    }catch(error){
+      lastError=error;
+      if(attempt<attempts) await new Promise(r=>setTimeout(r,1000*(2**(attempt-1))));
+    }finally{clearTimeout(timer);}
+  }
+  throw lastError;
 }
 function externalValues(entity,pid){return (entity?.claims?.[pid]??[]).map(c=>c?.mainsnak?.datavalue?.value).filter(v=>typeof v==='string'&&v.trim());}
 
 const dataset=JSON.parse(await fs.readFile(inputPath,'utf8'));
 assertConstructedControlDataset(dataset,'R3');
 
-const sparql=`SELECT ?item ?discogs ?musicbrainz WHERE { ?item wdt:P2206 ?discogs ; wdt:P5813 ?musicbrainz . } ORDER BY STR(?item) STR(?discogs) STR(?musicbrainz) LIMIT 10`;
-const queryUrl=`https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
-const query=await fetchJson(queryUrl,{accept:'application/sparql-results+json'});
-const rows=query?.results?.bindings??[];
-if(rows.length===0) throw new Error('No live Wikidata item with both P2206 and P5813 found; fail closed.');
-
+// Revalidate a previously observed authoritative Wikidata bridge directly from EntityData.
+// This intentionally avoids Wikidata Query Service availability as a CI dependency while
+// preserving the same CC0 source authority and fail-closed semantics.
 let selected=null;
-for(const row of rows){
-  const match=String(row?.item?.value??'').match(/\/entity\/(Q\d+)$/);
-  if(!match) continue;
-  const qid=match[1];
-  const entityJson=await fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);
+for(const qid of DOCUMENTED_CROSSWALK_CANDIDATES){
+  let entityJson;
+  try{entityJson=await fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`);}catch{continue;}
   const entity=entityJson?.entities?.[qid];
   if(!entity) continue;
-  const discogs=externalValues(entity,'P2206');
-  const musicbrainz=externalValues(entity,'P5813');
-  const rowDiscogs=String(row?.discogs?.value??'');
-  const rowMusicbrainz=String(row?.musicbrainz?.value??'');
-  if(discogs.includes(rowDiscogs)&&musicbrainz.includes(rowMusicbrainz)){
-    selected={qid,discogs:rowDiscogs,musicbrainz:rowMusicbrainz,entityPayload:entityJson};
+  const discogs=[...new Set(externalValues(entity,'P2206'))].sort();
+  const musicbrainz=[...new Set(externalValues(entity,'P5813'))].sort();
+  if(discogs.length&&musicbrainz.length){
+    selected={qid,discogs:discogs[0],musicbrainz:musicbrainz[0],entityPayload:entityJson};
     break;
   }
 }
-if(!selected) throw new Error('SPARQL crosswalk candidates could not be revalidated against live EntityData; fail closed.');
+if(!selected) throw new Error('Documented Wikidata crosswalk candidate no longer exposes both P2206 and P5813 in live EntityData; fail closed.');
 
 const {qid,discogs,musicbrainz}=selected;
+const entityUrl=`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`;
 const crosswalkAnchor=`wikidata-release-edition-crosswalk:${qid}`;
 const aliasCase={
   case_id:`wikidata-cross-market-alias-${qid}-${discogs}-${musicbrainz}`,
@@ -68,12 +70,11 @@ const aliasCase={
   constructed_control:true,label_review_status:'NOT_INDEPENDENTLY_REVIEWED_OR_ADJUDICATED',
   left:{anchors:{SOURCE_RECORD:crosswalkAnchor},unique_keys:{reference_id:`discogs-release:${discogs}`},external_system:'Discogs',external_id:discogs,wikidata_bridge:qid},
   right:{anchors:{SOURCE_RECORD:crosswalkAnchor},unique_keys:{reference_id:`musicbrainz-release:${musicbrainz}`},external_system:'MusicBrainz',external_id:musicbrainz,wikidata_bridge:qid},
-  provenance_refs:[`wikidata:${qid}:P2206:${discogs}`,`wikidata:${qid}:P5813:${musicbrainz}`,'wikidata-query:P2206+P5813','wikidata-property:P2206:discogs-release-id','wikidata-property:P5813:musicbrainz-release-id'],
+  provenance_refs:[`wikidata:${qid}:P2206:${discogs}`,`wikidata:${qid}:P5813:${musicbrainz}`,'wikidata-property:P2206:discogs-release-id','wikidata-property:P5813:musicbrainz-release-id'],
   rights_state:'ALLOW',
-  label_basis:'ALGORITHMICALLY_CONSTRUCTED_FROM_WIKIDATA_CC0_STRUCTURED_DATA_BINDING_DISCOGS_AND_MUSICBRAINZ_RELEASE_IDENTIFIERS_TO_THE_SAME_RELEASE_EDITION_ITEM',
+  label_basis:'ALGORITHMICALLY_CONSTRUCTED_FROM_WIKIDATA_CC0_ENTITYDATA_BINDING_DISCOGS_AND_MUSICBRAINZ_RELEASE_IDENTIFIERS_TO_THE_SAME_RELEASE_EDITION_ITEM',
   source_evidence:[
-    {source_url:queryUrl,source_payload_sha256:digest(query),license_evidence_refs:[WIKIDATA_RIGHTS_URL]},
-    {source_url:`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`,source_payload_sha256:digest(selected.entityPayload),license_evidence_refs:[WIKIDATA_RIGHTS_URL]}
+    {source_url:entityUrl,source_payload_sha256:digest(selected.entityPayload),license_evidence_refs:[WIKIDATA_RIGHTS_URL]}
   ],
   claim_ceiling:'EXTERNAL_RELEASE_IDENTIFIER_CROSSWALK_ONLY_NO_MARKET_PRICE_OR_SALES_DATA'
 };
@@ -92,7 +93,7 @@ const out={
   production:'HOLD',
   scope_stratification_status:'INCOMPLETE',approved_scope_ids:[],required_scope_ids:[],
   source_families:[...new Set([...(dataset.source_families??[]),'wikidata-external-id-crosswalk'])],cases:[...dataset.cases,aliasCase],
-  truth_boundary:'R5 adds a live-source-derived CC0 constructed control for a CROSS_MARKET_ALIAS external-ID crosswalk. The label is algorithmically derived from Wikidata, not independently reviewed, adjudicated, or blind; it admits no Discogs marketplace data and supports no current-market, empirical-promotion, or Production claim.'
+  truth_boundary:'R5 adds a live-source-derived CC0 constructed control for a CROSS_MARKET_ALIAS external-ID crosswalk revalidated directly from authoritative Wikidata EntityData. The label is algorithmically derived, not independently reviewed, adjudicated, or blind; it admits no Discogs API or marketplace data and supports no current-market, empirical-promotion, or Production claim.'
 };
 await fs.writeFile(outputPath,JSON.stringify(out,null,2));
 console.log(JSON.stringify(out,null,2));
