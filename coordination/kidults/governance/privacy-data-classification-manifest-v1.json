@@ -1,0 +1,67 @@
+{
+  "id": "kidults-privacy-data-classification-manifest-v1",
+  "version": "1.0.0",
+  "status": "PREPRODUCTION_ACTIVE",
+  "production": "HOLD",
+  "datasets": [
+    {
+      "dataset_id": "staging-conversion-submissions",
+      "data_category": "CUSTOMER_CONTACT_AND_REQUEST",
+      "personal_data_state": "YES",
+      "fields": ["email", "organization", "interest", "consent", "consent_version", "created_at"],
+      "necessity": "REQUIRED_OR_OPTIONAL_BY_EXPLICIT_CUSTOMER_REQUEST_TYPE",
+      "purpose": "STAGING_NEWSLETTER_WAITLIST_OR_INQUIRY_PROCESSING",
+      "retention_period": "365_DAYS",
+      "expiry_or_deletion_rule": "operations.mjs::enforceRetention removes records older than retention cutoff",
+      "access_boundary": "STAGING_OPERATIONS_ONLY_FILE_MODE_0600_PARENT_DIR_0700",
+      "provenance_reference": "apps/kidults-enterprise-staging/server.mjs",
+      "public_projection": false,
+      "raw_provider_to_portal": false
+    },
+    {
+      "dataset_id": "staging-conversion-audit",
+      "data_category": "OPERATIONAL_AUDIT",
+      "personal_data_state": "INDIRECT_IDENTIFIER_POSSIBLE",
+      "necessity": "SECURITY_RATE_LIMIT_AND_OPERATIONAL_AUDIT",
+      "purpose": "STAGING_OPERATIONAL_AUDIT",
+      "retention_period": "REQUIRES_SEPARATE_AUDIT_RETENTION_POLICY_BEFORE_PRODUCTION",
+      "expiry_or_deletion_rule": "HOLD_UNTIL_EXPLICIT_AUDIT_RETENTION_RULE",
+      "access_boundary": "STAGING_OPERATIONS_ONLY_FILE_MODE_0600_PARENT_DIR_0700",
+      "provenance_reference": "apps/kidults-enterprise-staging/server.mjs",
+      "public_projection": false
+    },
+    {
+      "dataset_id": "met-smithsonian-object-metadata",
+      "data_category": "COLLECTIBLE_REFERENCE_METADATA",
+      "personal_data_state": "NOT_EXPECTED_OR_FIELD_LEVEL_REVIEW_IF_PRESENT",
+      "necessity": "IDENTITY_REFERENCE_CONTEXT",
+      "purpose": "BOUNDED_ENTITY_AND_REFERENCE_EVIDENCE",
+      "retention_period": "SOURCE_RIGHTS_AND_PURPOSE_SPECIFIC",
+      "expiry_or_deletion_rule": "REMOVE_OR_QUARANTINE_IF_RIGHTS_OR_CLASSIFICATION_BECOMES_UNCERTAIN",
+      "access_boundary": "EVIDENCE_PIPELINE_ONLY_UNTIL_PROJECTION_APPROVAL",
+      "provenance_reference": "coordination/kidults/source-intelligence/rights-admitted-pilot-source-pool-r1.json",
+      "public_projection": "ONLY_APPROVED_FIELDS_AFTER_RIGHTS_AND_PRIVACY_REVIEW"
+    },
+    {
+      "dataset_id": "getty-historical-provenance",
+      "data_category": "HISTORICAL_TRANSACTION_AND_PROVENANCE_CONTEXT",
+      "personal_data_state": "PERSON_NAME_OR_PROVENANCE_CONTEXT_POSSIBLE_RECORD_LEVEL_CLASSIFICATION_REQUIRED",
+      "necessity": "HISTORICAL_PROVENANCE_CONTEXT",
+      "purpose": "BOUNDED_HISTORICAL_EVIDENCE",
+      "retention_period": "SOURCE_RIGHTS_AND_PURPOSE_SPECIFIC",
+      "expiry_or_deletion_rule": "QUARANTINE_PERSONAL_OR_UNCLASSIFIED_FIELDS_FROM_PUBLIC_PROJECTION_UNTIL_REVIEWED",
+      "access_boundary": "EVIDENCE_PIPELINE_INTERNAL_BY_DEFAULT",
+      "provenance_reference": "coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json",
+      "public_projection": "NO_RAW_PERSONAL_OR_UNCLASSIFIED_FIELDS"
+    }
+  ],
+  "hard_rules": [
+    "UNCLASSIFIED_PERSONAL_DATA_ADMISSION_FALSE",
+    "MISSING_RETENTION_RULE_HOLD",
+    "PUBLIC_PROJECTION_OF_PERSONAL_DATA_FALSE",
+    "RAW_PROVIDER_PERSONAL_DATA_TO_PORTAL_FALSE",
+    "PURPOSE_LIMITATION_REQUIRED",
+    "LEAST_PRIVILEGE_REQUIRED"
+  ],
+  "truth_boundary": "This manifest classifies known pre-production data paths. It does not establish legal compliance for every jurisdiction or authorize Production/public release. Unknown record-level personal-data state remains HOLD."
+}

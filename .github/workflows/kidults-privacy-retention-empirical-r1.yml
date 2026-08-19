@@ -1,0 +1,76 @@
+name: KIDULTS Privacy Retention Empirical R1
+on:
+  pull_request:
+    paths:
+      - 'apps/kidults-enterprise-staging/server.mjs'
+      - 'apps/kidults-enterprise-staging/operations.mjs'
+      - 'coordination/kidults/governance/privacy-*.json'
+      - 'coordination/kidults/source-intelligence/rights-admitted-*-source-pool-r1.json'
+      - '.github/workflows/kidults-privacy-retention-empirical-r1.yml'
+  workflow_dispatch:
+
+jobs:
+  privacy-retention:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate classification completeness
+        run: |
+          node - <<'NODE'
+          const c=require('./coordination/kidults/governance/privacy-retention-minimization-contract-v1.json');
+          const m=require('./coordination/kidults/governance/privacy-data-classification-manifest-v1.json');
+          if(c.production!=='HOLD'||m.production!=='HOLD') process.exit(1);
+          const required=c.required_classification;
+          for(const d of m.datasets){for(const k of required){if(d[k]===undefined||d[k]===null||d[k]==='') throw new Error(`${d.dataset_id}:MISSING_${k}`)}}
+          const conversion=m.datasets.find(d=>d.dataset_id==='staging-conversion-submissions');
+          if(conversion.personal_data_state!=='YES'||conversion.retention_period!=='365_DAYS'||conversion.public_projection!==false) process.exit(1);
+          const getty=m.datasets.find(d=>d.dataset_id==='getty-historical-provenance');
+          if(!String(getty.personal_data_state).includes('REQUIRED')||!String(getty.public_projection).startsWith('NO_')) process.exit(1);
+          console.log('Privacy classification completeness PASS');
+          NODE
+      - name: Empirically prove staging conversion retention
+        run: |
+          node - <<'NODE'
+          import fs from 'node:fs';
+          import os from 'node:os';
+          import path from 'node:path';
+          import { enforceRetention } from './apps/kidults-enterprise-staging/operations.mjs';
+          const dir=fs.mkdtempSync(path.join(os.tmpdir(),'kidults-retention-'));
+          fs.chmodSync(dir,0o700);
+          const p=path.join(dir,'conversion-submissions.jsonl');
+          const records=[
+            {id:'old',email:'old@example.invalid',created_at:'2025-08-18T00:00:00.000Z'},
+            {id:'edge-in',email:'edge@example.invalid',created_at:'2025-08-20T00:00:00.000Z'},
+            {id:'new',email:'new@example.invalid',created_at:'2026-08-19T00:00:00.000Z'}
+          ];
+          fs.writeFileSync(p,records.map(x=>JSON.stringify(x)).join('\n')+'\n',{mode:0o600});
+          const result=enforceRetention({dataDir:dir,now:new Date('2026-08-19T12:00:00.000Z'),retentionDays:365});
+          const left=fs.readFileSync(p,'utf8').trim().split('\n').filter(Boolean).map(JSON.parse);
+          if(result.removed!==1||result.retained!==2||result.retention_days!==365) process.exit(1);
+          if(left.some(x=>x.id==='old')||!left.some(x=>x.id==='new')) process.exit(1);
+          const fileMode=fs.statSync(p).mode & 0o777;
+          const dirMode=fs.statSync(dir).mode & 0o777;
+          if(fileMode!==0o600||dirMode!==0o700) throw new Error(`MODE_INVALID:${fileMode.toString(8)}:${dirMode.toString(8)}`);
+          fs.writeFileSync('/tmp/kidults-privacy-retention-result.json',JSON.stringify({id:'kidults-privacy-retention-empirical-r1',production:'HOLD',retention_result:result,file_mode:'0600',dir_mode:'0700',old_record_removed:true,new_record_retained:true,audit_retention_state:'HOLD_EXPLICIT_RULE_REQUIRED',getty_person_field_projection:'HOLD_RECORD_LEVEL_CLASSIFICATION_REQUIRED',pass:true,truth_boundary:'Staging conversion retention and least-privilege file modes are empirically proven. Audit retention and record-level person-field privacy remain explicit HOLDs before Production/public release.'},null,2));
+          console.log(result);
+          NODE
+      - name: Validate source privacy boundaries
+        run: |
+          node - <<'NODE'
+          const identity=require('./coordination/kidults/source-intelligence/rights-admitted-pilot-source-pool-r1.json');
+          const historical=require('./coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json');
+          if(!identity.sources.some(s=>s.pii==='NOT_EXPECTED_FOR_OBJECT_METADATA')) process.exit(1);
+          if(!identity.sources.some(s=>s.pii==='FIELD_LEVEL_REVIEW_IF_PRESENT')) process.exit(1);
+          if(historical.pool_readiness?.current_market_event_ready!==false) process.exit(1);
+          console.log('Source privacy fail-closed boundary PASS');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-privacy-retention-empirical-r1
+          path: /tmp/kidults-privacy-retention-result.json
+          retention-days: 30
