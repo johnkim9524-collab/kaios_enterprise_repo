@@ -1,0 +1,51 @@
+name: KIDULTS ER Pressing Source Corpus R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/pressing-source-corpus-r1.json'
+      - 'scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-pressing-source-corpus-r1.mjs'
+      - '.github/workflows/kidults-er-pressing-source-corpus-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-er-pressing-source-corpus-r1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acquire-real-unlabeled-vinyl-corpus:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate fail-closed corpus semantics
+        run: |
+          node --check scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs
+          node --check scripts/kidults/entity-resolution/validate-pressing-source-corpus-r1.mjs
+          node scripts/kidults/entity-resolution/validate-pressing-source-corpus-r1.mjs --self-test
+      - name: Acquire 240 real MusicBrainz official vinyl release records
+        run: |
+          node scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs /tmp/pressing-source-corpus-r1.json
+          node scripts/kidults/entity-resolution/validate-pressing-source-corpus-r1.mjs /tmp/pressing-source-corpus-r1.json
+      - name: Reassert truth boundary
+        run: |
+          node - <<'NODE'
+          const d=require('/tmp/pressing-source-corpus-r1.json');
+          if(d.record_count!==240||d.labels_present!==false||d.model_predictions_present!==false||d.empirical_pass!==false||d.track_b!=='NOT_STARTED'||d.production!=='HOLD'||d.public_release!=='HOLD') process.exit(1);
+          if(d.records.some(x=>x.rights_state!=='ALLOW_NONCOMMERCIAL_RESEARCH_ONLY'||!/^sha256:[a-f0-9]{64}$/.test(x.source_payload_sha256)||!/^\d{8,14}$/.test(x.payload?.barcode||'')||!x.payload?.media?.every(m=>/vinyl/i.test(m.format||'')))) process.exit(1);
+          console.log('PASS: 240 real unlabeled MusicBrainz vinyl release records evidence-bound; no pair labels, current-market facts, commercial transport authorization, publication or Production.');
+          NODE
+      - name: Upload reviewer-candidate source corpus artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-pressing-source-corpus-r1
+          path: /tmp/pressing-source-corpus-r1.json
+          if-no-files-found: error
+          retention-days: 14
