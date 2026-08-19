@@ -1,0 +1,78 @@
+{
+  "id": "kidults-er-empirical-acquisition-wave1-r1",
+  "version": "1.0.0",
+  "parent_issue": 609,
+  "sampling_plan": "coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json",
+  "status": "ACTIVE_PARTIAL_ACQUISITION",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "truth_boundary": "This artifact starts evidence acquisition only. It does not create labels, independent reviewer attestations, blind-holdout labels, empirical attestation, Track B approval, publication or Production authorization.",
+  "operating_target": {
+    "total_cases": 840,
+    "blind_holdout": 420,
+    "per_stratum": 120,
+    "per_stratum_blind": 60
+  },
+  "lanes": [
+    {
+      "stratum_id": "er-stratum-designer-maker-edition",
+      "target_cases": 120,
+      "state": "START_READY",
+      "source_families": ["moma-collection-research-dataset", "cooper-hewitt-collection-json"],
+      "rule": "collect only real source records with payload digest, license evidence and provenance; no algorithmic label generation"
+    },
+    {
+      "stratum_id": "er-stratum-serialized-reference",
+      "target_cases": 120,
+      "state": "START_READY",
+      "source_families": ["met-open-access", "smithsonian-open-access"],
+      "rule": "use only authority identifiers actually present in source payloads; no inferred serial identity"
+    },
+    {
+      "stratum_id": "er-stratum-provenance-unique-object",
+      "target_cases": 120,
+      "state": "START_READY",
+      "source_families": ["getty-provenance-index"],
+      "rule": "historical provenance/event semantics only; current market claims prohibited"
+    },
+    {
+      "stratum_id": "er-stratum-pressing-edition-media",
+      "target_cases": 120,
+      "state": "SOURCE_FIT_REVALIDATION_REQUIRED",
+      "source_families": [],
+      "blocker": "RIGHTS_ADMITTED_EMPIRICAL_SOURCE_FAMILY_FOR_120_CASE_SCALE_REQUIRED"
+    },
+    {
+      "stratum_id": "er-stratum-variant-release-heavy",
+      "target_cases": 120,
+      "state": "SOURCE_FIT_REVALIDATION_REQUIRED",
+      "source_families": [],
+      "blocker": "RIGHTS_ADMITTED_VARIANT_LEVEL_SOURCE_FAMILY_FOR_120_CASE_SCALE_REQUIRED"
+    },
+    {
+      "stratum_id": "er-stratum-vehicle-mechanical-asset",
+      "target_cases": 120,
+      "state": "SOURCE_FIT_REVALIDATION_REQUIRED",
+      "source_families": [],
+      "blocker": "RIGHTS_ADMITTED_VIN_CHASSIS_OR_EQUIVALENT_AUTHORITY_FOR_120_CASE_SCALE_REQUIRED"
+    },
+    {
+      "stratum_id": "er-stratum-graded-population",
+      "target_cases": 120,
+      "state": "BLOCKED_BULK_RIGHTS",
+      "source_families": ["pcgs-public-api-bounded-evaluation-only"],
+      "blocker": "PCGS_CURRENT_AUTHORIZATION_IS_MINIMAL_BOUNDED_EVALUATION_NOT_120_CASE_EMPIRICAL_HARVEST; separate rights-compatible source or permission required"
+    }
+  ],
+  "parallel_execution": {
+    "start_ready_case_capacity": 360,
+    "blocked_or_conditional_case_capacity": 480,
+    "review_packet_contract_merged": true,
+    "reviewer_a": "NOT_ASSIGNED",
+    "reviewer_b": "NOT_ASSIGNED",
+    "labels_collected": 0,
+    "blind_partition_sealed": false,
+    "empirical_attestation_created": false,
+    "track_b_started": false
+  }
+}
