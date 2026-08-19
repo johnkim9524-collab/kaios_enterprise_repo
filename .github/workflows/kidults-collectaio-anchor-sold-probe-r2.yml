@@ -1,0 +1,30 @@
+name: KIDULTS CollectAIO Anchor SOLD Probe R2
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source/run-collectaio-anchor-sold-probe-r2.mjs'
+      - '.github/workflows/kidults-collectaio-anchor-sold-probe-r2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-public-probe-r2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run bounded public CollectAIO R2 probe
+        run: node scripts/kidults/source/run-collectaio-anchor-sold-probe-r2.mjs
+      - name: Upload bounded evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collectaio-anchor-sold-probe-r2
+          path: artifacts/kidults/source/collectaio-anchor-sold-probe-r2.json
+          if-no-files-found: error
