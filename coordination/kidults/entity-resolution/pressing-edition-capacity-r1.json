@@ -1,0 +1,19 @@
+{
+  "id":"kidults-er-pressing-edition-capacity-r1",
+  "version":"1.0.0",
+  "parent_issue":609,
+  "stratum_id":"er-stratum-pressing-edition-media",
+  "status":"EXECUTABLE_CAPACITY_PROBE_FAIL_CLOSED",
+  "source_corpus":"kidults-er-pressing-source-corpus-r1",
+  "target_cases":120,
+  "case_class_targets":{"SAME_OBJECT_NORMALIZATION":40,"HARD_NEGATIVE":40,"CROSS_MARKET_ALIAS":40},
+  "single_source_cross_market_alias_capacity":0,
+  "rule":"Do not infer CROSS_MARKET_ALIAS from MusicBrainz-only identifiers. Measure same-object and hard-negative capacity separately and keep the full stratum blocked until a genuine independent market/source authority supplies the cross-market alias cases.",
+  "reviewer_a":"NOT_ASSIGNED",
+  "reviewer_b":"NOT_ASSIGNED",
+  "labels":"NOT_COLLECTED",
+  "empirical_pass":false,
+  "track_b":"NOT_STARTED",
+  "public_release":"HOLD",
+  "production":"HOLD"
+}
