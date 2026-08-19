@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { parseJsonNoDuplicateKeys } from './parse-json-no-duplicate-keys.mjs';
 
 const [samplingPath, outputPath = '/tmp/kidults-er-serialized-reference-capacity-r1.json'] = process.argv.slice(2);
 if (!samplingPath) {
@@ -14,6 +15,7 @@ const WIKIDATA_SPARQL = 'https://query.wikidata.org/sparql';
 const PRODUCT_MODEL_CLASS = 'Q10929058';
 const DETAIL_LIMIT = 1000;
 const USER_AGENT = 'KIDULTS-SERIALIZED-REFERENCE-CAPACITY/1.0 (read-only empirical preflight)';
+const FAILURE_TRUTH_BOUNDARY = 'The live source probe did not complete. All source-capacity and downstream claims fail closed.';
 
 // Strict capacity grammar. P31 is admitted as a model/reference only where the
 // target has a WDQS path to Wikidata's product-model class (Q10929058).
@@ -63,6 +65,12 @@ const claimItems = (entity, property) => (entity?.claims?.[property] || [])
   .filter(Boolean);
 const label = (entity) => entity?.labels?.en?.value || entity?.labels?.mul?.value || null;
 const evidenceUrl = (qid) => `https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`;
+const firstExclusive = (candidateValues, otherValues) => candidateValues.find((value) => !otherValues.includes(value));
+
+if (firstExclusive(['shared', 'left-only'], ['shared', 'right-only']) !== 'left-only' ||
+    firstExclusive(['shared', 'right-only'], ['shared', 'left-only']) !== 'right-only') {
+  throw new Error('SET_DIFFERENCE_SELECTION_REGRESSION');
+}
 
 function inventoryPairs(entity) {
   const pairs = [];
@@ -89,7 +97,7 @@ async function fetchJson(url, attempts = 3) {
         signal:controller.signal,
       });
       if (!response.ok) throw new Error(`HTTP_${response.status}`);
-      return await response.json();
+      return parseJsonNoDuplicateKeys(await response.text(), url);
     } catch (error) {
       lastError = error;
       if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 700 * attempt));
@@ -150,6 +158,42 @@ function targetFromSampling(sampling) {
   };
 }
 
+function deriveHardNegativePairs(records) {
+  const pairs = [];
+  for (let leftIndex = 0; leftIndex < records.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < records.length; rightIndex += 1) {
+      const left = records[leftIndex];
+      const right = records[rightIndex];
+      const sharedModels = left.models.map((row) => row.qid).filter((qid) => right.models.some((row) => row.qid === qid));
+      const sharedMakers = left.makers.map((row) => row.qid).filter((qid) => right.makers.some((row) => row.qid === qid));
+      const leftSerial = firstExclusive(left.manufacturer_serials_p2598, right.manufacturer_serials_p2598);
+      const rightSerial = firstExclusive(right.manufacturer_serials_p2598, left.manufacturer_serials_p2598);
+      if (sharedModels.length && sharedMakers.length && leftSerial && rightSerial) {
+        pairs.push({
+          left_record_id:left.record_id,
+          right_record_id:right.record_id,
+          shared_model_qid:[...sharedModels].sort()[0],
+          shared_maker_qid:[...sharedMakers].sort()[0],
+          left_manufacturer_serial_p2598:leftSerial,
+          right_manufacturer_serial_p2598:rightSerial,
+        });
+      }
+    }
+  }
+  return pairs;
+}
+
+{
+  const fixture = deriveHardNegativePairs([
+    {record_id:'left', models:[{qid:'QMODEL'}], makers:[{qid:'QMAKER'}], manufacturer_serials_p2598:['shared', 'left-only']},
+    {record_id:'right', models:[{qid:'QMODEL'}], makers:[{qid:'QMAKER'}], manufacturer_serials_p2598:['shared', 'right-only']},
+  ]);
+  if (fixture.length !== 1 || fixture[0].left_manufacturer_serial_p2598 !== 'left-only' ||
+      fixture[0].right_manufacturer_serial_p2598 !== 'right-only') {
+    throw new Error('HARD_NEGATIVE_CALL_SITE_SET_DIFFERENCE_REGRESSION');
+  }
+}
+
 function readiness(metrics, target) {
   const requirements = {
     grammar_complete_record_floor:target.cases,
@@ -185,7 +229,7 @@ async function writeArtifact(artifact) {
 }
 
 async function run() {
-  const sampling = JSON.parse(await fs.readFile(samplingPath, 'utf8'));
+  const sampling = parseJsonNoDuplicateKeys(await fs.readFile(samplingPath, 'utf8'), samplingPath);
   const target = targetFromSampling(sampling);
   const accessedAt = new Date().toISOString();
   const [countResult, detailResult] = await Promise.all([sparql(COUNT_QUERY), sparql(DETAIL_QUERY)]);
@@ -279,27 +323,7 @@ async function run() {
   records.sort((left, right) => left.record_id.localeCompare(right.record_id));
   if (records.length !== declaredCount) throw new Error('ENTITYDATA_REVALIDATED_RECORD_COUNT_MISMATCH');
 
-  const hardNegativePairs = [];
-  for (let leftIndex = 0; leftIndex < records.length; leftIndex += 1) {
-    for (let rightIndex = leftIndex + 1; rightIndex < records.length; rightIndex += 1) {
-      const left = records[leftIndex];
-      const right = records[rightIndex];
-      const sharedModels = left.models.map((row) => row.qid).filter((qid) => right.models.some((row) => row.qid === qid));
-      const sharedMakers = left.makers.map((row) => row.qid).filter((qid) => right.makers.some((row) => row.qid === qid));
-      const distinctSerial = left.manufacturer_serials_p2598.find((serial) => !right.manufacturer_serials_p2598.includes(serial));
-      const rightSerial = right.manufacturer_serials_p2598.find((serial) => serial !== distinctSerial);
-      if (sharedModels.length && sharedMakers.length && distinctSerial && rightSerial) {
-        hardNegativePairs.push({
-          left_record_id:left.record_id,
-          right_record_id:right.record_id,
-          shared_model_qid:sharedModels.sort()[0],
-          shared_maker_qid:sharedMakers.sort()[0],
-          left_manufacturer_serial_p2598:distinctSerial,
-          right_manufacturer_serial_p2598:rightSerial,
-        });
-      }
-    }
-  }
+  const hardNegativePairs = deriveHardNegativePairs(records);
 
   const aliasCount = records.reduce((sum, record) => sum + record.alias_pairs.length, 0);
   const metrics = {
@@ -387,7 +411,7 @@ try {
 } catch (error) {
   let target = {cases:120, blind:60, per_class:{SAME_OBJECT_NORMALIZATION:40, HARD_NEGATIVE:40, CROSS_MARKET_ALIAS:40}};
   try {
-    target = targetFromSampling(JSON.parse(await fs.readFile(samplingPath, 'utf8')));
+    target = targetFromSampling(parseJsonNoDuplicateKeys(await fs.readFile(samplingPath, 'utf8'), samplingPath));
   } catch {}
   const metrics = {
     wdqs_declared_distinct_item_count:0,
@@ -418,8 +442,8 @@ try {
     metrics,
     readiness_gate:{requirements:gate.requirements, checks:gate.checks, source_capacity_ready_for_120_cases:false, acquisition_lane_state:'SOURCE_FIT_REVALIDATION_REQUIRED', blockers:['LIVE_SOURCE_PROBE_UNAVAILABLE', ...gate.blockers]},
     downstream_claims:{empirical_cases_created:0, labels_collected:0, independent_label_review_complete:false, blind_holdout_sealed:false, empirical_benchmark_ready:false, track_b_started:false, public_release:'HOLD', production:'HOLD'},
-    failure:{code:String(error?.message || error?.name || 'UNKNOWN_ERROR').slice(0, 200)},
-    truth_boundary:'The live source probe did not complete. All source-capacity and downstream claims fail closed.',
+    failure:{code:'SOURCE_PROBE_UNAVAILABLE'},
+    truth_boundary:FAILURE_TRUTH_BOUNDARY,
   };
   await writeArtifact(failure);
   console.error(`FAIL_CLOSED: ${failure.failure.code}`);

@@ -1,0 +1,269 @@
+{
+  "id": "kidults-er-variant-release-heavy-live-capacity-r1",
+  "version": "1.0.0",
+  "stratum_id": "er-stratum-variant-release-heavy",
+  "generated_at": "2026-08-19T18:26:47.753Z",
+  "environment_class": "READ_ONLY_LIVE_CAPACITY_PREFLIGHT",
+  "request_boundary": {
+    "http_method": "GET",
+    "authenticated": false,
+    "remote_mutation": false,
+    "local_output_only": true
+  },
+  "rights_boundary": {
+    "source_family": "wikidata-cc0-structured-data",
+    "license": "CC0-1.0",
+    "license_evidence_ref": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+    "admitted_data": [
+      "WDQS_STRUCTURED_BINDINGS",
+      "SPECIAL_ENTITY_DATA_STRUCTURED_CLAIMS"
+    ],
+    "excluded_data": [
+      "IMAGES",
+      "FREE_TEXT_MINED_VARIANT_IDENTITY",
+      "MARKETPLACE_OBSERVATIONS",
+      "CURRENT_PRICE",
+      "RETAILER_ASSERTIONS"
+    ]
+  },
+  "collectibles_only_scope": {
+    "admitted_scope_class_qids": {
+      "Q1929383": "sneakers",
+      "Q467505": "handbags",
+      "Q11460": "designer_garments_broad_clothing_anchor",
+      "Q5422874": "eyewear"
+    },
+    "cross_stratum_exclusion_class_qids": {
+      "Q178794": "watch",
+      "Q26965868": "wristwatch",
+      "Q5362345": "smartwatch",
+      "Q125454714": "digital_watch"
+    },
+    "rule": "A record must have a WDQS P31/P279 path to an admitted fashion scope and no path to an excluded watch class. Generic product records and broad-clothing watch leakage are rejected."
+  },
+  "strict_record_grammar": {
+    "required": [
+      "collectibles_only_fashion_scope_path",
+      "brand_or_maker_p176_or_p1716",
+      "model_or_style_code_p13351",
+      "explicit_color_p462_or_material_p186"
+    ],
+    "normalization_candidate_rule": "One source record may expose a Wikidata entity identifier and explicit P13351 model/style code as two source representations; this creates an unlabeled review candidate only.",
+    "hard_negative_candidate_rule": "Two distinct admitted records must share an explicit brand/maker, series/part-of identifier and scope while exposing distinct P13351 codes and explicit variant discriminators.",
+    "cross_authority_candidate_rule": "One admitted record must bind explicit P13351 and GTIN P3962 identifiers. This is not marketplace evidence or a match label.",
+    "disallowed_substitutions": [
+      "INFERRED_VARIANT_IDENTITY",
+      "TEXT_MINED_STYLE_COLOR_SIZE_OR_SEASON",
+      "GENERIC_CLOTHING_ITEM_WITH_CROSS_STRATUM_WATCH_PATH",
+      "MARKETPLACE_OR_RETAIL_LISTING_ID",
+      "CURRENT_PRICE_OR_AVAILABILITY",
+      "MUSEUM_ACCESSION_NUMBER_ALONE_AS_STYLE_CODE"
+    ]
+  },
+  "sampling_target": {
+    "cases": 120,
+    "blind": 60,
+    "per_class": {
+      "HARD_NEGATIVE": 40,
+      "CROSS_MARKET_ALIAS": 40,
+      "SAME_OBJECT_NORMALIZATION": 40
+    }
+  },
+  "probe_status": "COMPLETE_FAIL_CLOSED_INSUFFICIENT_CAPACITY",
+  "source_snapshot": {
+    "source_family": "wikidata-cc0-fashion-product-model-structured-data",
+    "accessed_at": "2026-08-19T18:26:47.753Z",
+    "detail_query": {
+      "endpoint": "https://query.wikidata.org/sparql",
+      "sparql": "SELECT DISTINCT ?item ?scopeClass ?scopePath ?modelNumber ?excludedClass ?exclusionPath WHERE {\n  ?item wdt:P13351 ?modelNumber .\n  VALUES ?scopeClass { wd:Q1929383 wd:Q467505 wd:Q11460 wd:Q5422874 }\n  {\n    ?item wdt:P31/wdt:P279* ?scopeClass .\n    BIND(\"P31_PATH\" AS ?scopePath)\n  }\n  UNION\n  {\n    ?item wdt:P279+ ?scopeClass .\n    BIND(\"P279_PATH\" AS ?scopePath)\n  }\n  OPTIONAL {\n    VALUES ?excludedClass { wd:Q178794 wd:Q26965868 wd:Q5362345 wd:Q125454714 }\n    {\n      ?item wdt:P31/wdt:P279* ?excludedClass .\n      BIND(\"P31_PATH\" AS ?exclusionPath)\n    }\n    UNION\n    {\n      ?item wdt:P279+ ?excludedClass .\n      BIND(\"P279_PATH\" AS ?exclusionPath)\n    }\n  }\n} ORDER BY ?item ?scopeClass ?scopePath ?modelNumber ?excludedClass ?exclusionPath LIMIT 1000",
+      "limit": 1000,
+      "response_sha256": "sha256:3d9dd4035fc04024cc9b09fe3c746c004f0effc7ce0fe3f7c5712fd5fada7c0d",
+      "truncated": false
+    }
+  },
+  "candidate_records": [],
+  "rejected_records": [
+    {
+      "record_id": "wikidata-variant-release:Q132158487",
+      "item_qid": "Q132158487",
+      "scope_class_qids": [
+        "Q11460"
+      ],
+      "scope_paths": [
+        "P279_PATH:Q11460"
+      ],
+      "model_or_style_codes_p13351": [
+        "010-02582-01"
+      ],
+      "brand_or_maker_qids": [
+        "Q658789"
+      ],
+      "color_qids_p462": [],
+      "material_qids_p186": [],
+      "variant_discriminators": [],
+      "series_or_part_of_qids": [],
+      "gtin_identifiers_p3962": [],
+      "source_evidence": [
+        {
+          "entity_id": "Q132158487",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q132158487.json",
+          "source_payload_sha256": "sha256:b7e208e78f7b8e47d7ec09f86cba837f65f81921ec23c969b4122cabb5ff014e",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        }
+      ],
+      "excluded_cross_stratum_class_qids": [
+        "Q125454714",
+        "Q178794",
+        "Q5362345"
+      ],
+      "reject_reasons": [
+        "CROSS_STRATUM_WATCH_CLASSIFICATION_PATH",
+        "EXPLICIT_COLOR_P462_OR_MATERIAL_P186_MISSING"
+      ]
+    },
+    {
+      "record_id": "wikidata-variant-release:Q30896835",
+      "item_qid": "Q30896835",
+      "scope_class_qids": [
+        "Q11460"
+      ],
+      "scope_paths": [
+        "P31_PATH:Q11460"
+      ],
+      "model_or_style_codes_p13351": [
+        "CA-53W"
+      ],
+      "brand_or_maker_qids": [
+        "Q217338"
+      ],
+      "color_qids_p462": [],
+      "material_qids_p186": [
+        "Q145205",
+        "Q146322"
+      ],
+      "variant_discriminators": [
+        "P186:Q145205",
+        "P186:Q146322"
+      ],
+      "series_or_part_of_qids": [],
+      "gtin_identifiers_p3962": [],
+      "source_evidence": [
+        {
+          "entity_id": "Q30896835",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q30896835.json",
+          "source_payload_sha256": "sha256:f040099fd4c66edf35a4cdd60470f47ff79df55978835f7c227418b4b0da1072",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        }
+      ],
+      "excluded_cross_stratum_class_qids": [
+        "Q125454714",
+        "Q178794",
+        "Q26965868"
+      ],
+      "reject_reasons": [
+        "CROSS_STRATUM_WATCH_CLASSIFICATION_PATH"
+      ]
+    },
+    {
+      "record_id": "wikidata-variant-release:Q30898963",
+      "item_qid": "Q30898963",
+      "scope_class_qids": [
+        "Q11460"
+      ],
+      "scope_paths": [
+        "P279_PATH:Q11460"
+      ],
+      "model_or_style_codes_p13351": [
+        "WI501Q",
+        "WI502Q"
+      ],
+      "brand_or_maker_qids": [
+        "Q152864"
+      ],
+      "color_qids_p462": [],
+      "material_qids_p186": [],
+      "variant_discriminators": [],
+      "series_or_part_of_qids": [],
+      "gtin_identifiers_p3962": [],
+      "source_evidence": [
+        {
+          "entity_id": "Q30898963",
+          "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q30898963.json",
+          "source_payload_sha256": "sha256:cc3e5f51fac44b1106b2b92d48116a066464a7accae4095938af066ff3521e02",
+          "license_evidence_refs": [
+            "https://www.wikidata.org/wiki/Wikidata:Licensing"
+          ]
+        }
+      ],
+      "excluded_cross_stratum_class_qids": [
+        "Q125454714",
+        "Q178794",
+        "Q5362345"
+      ],
+      "reject_reasons": [
+        "CROSS_STRATUM_WATCH_CLASSIFICATION_PATH",
+        "EXPLICIT_COLOR_P462_OR_MATERIAL_P186_MISSING"
+      ]
+    }
+  ],
+  "same_object_normalization_candidates": [],
+  "explicit_variant_hard_negative_candidates": [],
+  "cross_authority_alias_candidates": [],
+  "metrics": {
+    "wdqs_detail_binding_count": 12,
+    "broad_model_code_candidate_count": 3,
+    "scope_leakage_rejected_item_count": 3,
+    "collectibles_scope_admitted_item_count": 0,
+    "grammar_complete_collectibles_record_count": 0,
+    "same_object_normalization_candidate_count": 0,
+    "explicit_variant_hard_negative_candidate_count": 0,
+    "cross_authority_alias_candidate_count": 0,
+    "conservative_case_capacity": 0
+  },
+  "readiness_gate": {
+    "requirements": {
+      "grammar_complete_collectibles_record_floor": 120,
+      "same_object_normalization_candidate_floor": 40,
+      "explicit_variant_hard_negative_candidate_floor": 40,
+      "cross_authority_alias_candidate_floor": 40,
+      "blind_source_record_capacity_floor": 60
+    },
+    "checks": {
+      "complete_live_census": true,
+      "grammar_complete_collectibles_record_floor_met": false,
+      "same_object_normalization_candidate_floor_met": false,
+      "explicit_variant_hard_negative_candidate_floor_met": false,
+      "cross_authority_alias_candidate_floor_met": false,
+      "blind_source_record_capacity_floor_met": false,
+      "conservative_120_case_class_capacity_met": false
+    },
+    "source_capacity_ready_for_120_cases": false,
+    "acquisition_lane_state": "SOURCE_FIT_REVALIDATION_REQUIRED",
+    "blockers": [
+      "GRAMMAR_COMPLETE_COLLECTIBLES_RECORDS_0_OF_120",
+      "SAME_OBJECT_NORMALIZATION_CANDIDATES_0_OF_40",
+      "EXPLICIT_VARIANT_HARD_NEGATIVE_CANDIDATES_0_OF_40",
+      "CROSS_AUTHORITY_ALIAS_CANDIDATES_0_OF_40",
+      "BLIND_SOURCE_RECORD_CAPACITY_0_OF_60",
+      "CONSERVATIVE_CASE_CAPACITY_0_OF_120",
+      "BROAD_CLOTHING_MODEL_CODE_CANDIDATES_3_ALL_REJECTED_AS_CROSS_STRATUM_WATCH_LEAKAGE"
+    ]
+  },
+  "nonclaims": {
+    "empirical_cases_created": 0,
+    "ground_truth_created": false,
+    "human_review_assignment_created": false,
+    "blind_holdout_sealed": false,
+    "empirical_benchmark_ready": false,
+    "track_b_started": false,
+    "release_authority": "NONE"
+  },
+  "truth_boundary": "This is a read-only CC0 source-capacity observation, not an empirical ER dataset. It admits only explicit structured fashion-scope, maker/brand, model/style-code and color/material claims; broad clothing records with a watch path fail closed. Cross-authority identifiers and distinct variant records remain unlabeled review candidates, not identity assertions. No inferred variant identity, marketplace/current-price observation, human review claim or release authority is created.",
+  "integrity": {
+    "canonical_payload_sha256": "sha256:ab36213699ad3ccdf2402748cc8a410d92a318b291bb025e401d29939361edf0"
+  }
+}

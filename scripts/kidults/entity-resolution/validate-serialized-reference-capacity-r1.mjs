@@ -1,17 +1,28 @@
 import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { parseJsonNoDuplicateKeys } from './parse-json-no-duplicate-keys.mjs';
 
 const [artifactPath, samplingPath] = process.argv.slice(2);
 if (!artifactPath || !samplingPath) {
   throw new Error('usage: node validate-serialized-reference-capacity-r1.mjs <capacity.json> <sampling-plan.json>');
 }
 
-const artifact = JSON.parse(await fs.readFile(artifactPath, 'utf8'));
-const sampling = JSON.parse(await fs.readFile(samplingPath, 'utf8'));
+const [artifactText, samplingText] = await Promise.all([
+  fs.readFile(artifactPath, 'utf8'),
+  fs.readFile(samplingPath, 'utf8'),
+]);
+const artifact = parseJsonNoDuplicateKeys(artifactText, artifactPath);
+const sampling = parseJsonNoDuplicateKeys(samplingText, samplingPath);
 const STRATUM_ID = 'er-stratum-serialized-reference';
 const COMPLETE_STATUSES = new Set(['COMPLETE_FAIL_CLOSED_INSUFFICIENT_CAPACITY', 'COMPLETE_SOURCE_CAPACITY_READY']);
 const SHA256 = /^sha256:[a-f0-9]{64}$/;
 const QID = /^Q\d+$/;
+const FROZEN_COMPLETE_SEMANTIC_SHA256 = 'sha256:33e48a6fa872ebf61076fab14c8795cd14f74cb2b7c60f71cfc0a79105a2b482';
+const FROZEN_FAILURE_SEMANTIC_SHA256 = 'sha256:612ca67e652c05b455b2dc6bbaff79cd05d320c116290264aeec719b528f5a47';
+const COMPLETE_VOLATILE_SEMANTIC_PATHS = new Set(['generated_at', 'integrity', 'source_snapshot.accessed_at']);
+const FAILURE_VOLATILE_SEMANTIC_PATHS = new Set(['generated_at', 'integrity']);
+const FAILURE_TRUTH_BOUNDARY = 'The live source probe did not complete. All source-capacity and downstream claims fail closed.';
+const FAILURE_CODE = 'SOURCE_PROBE_UNAVAILABLE';
 
 const canonical = (value) => {
   if (Array.isArray(value)) return value.map(canonical);
@@ -22,15 +33,68 @@ const canonical = (value) => {
 };
 const digest = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
 const sortedUnique = (values) => [...new Set(values)].sort();
+const firstExclusive = (candidateValues, otherValues) => candidateValues.find((value) => !otherValues.includes(value));
 const sameSet = (left, right) => Array.isArray(left) && Array.isArray(right) &&
   left.length === new Set(left).size && right.length === new Set(right).size &&
   JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
 const assert = (condition, code) => { if (!condition) throw new Error(code); };
+assert(firstExclusive(['shared', 'left-only'], ['shared', 'right-only']) === 'left-only' &&
+  firstExclusive(['shared', 'right-only'], ['shared', 'left-only']) === 'right-only',
+'SET_DIFFERENCE_SELECTION_REGRESSION');
+const semanticProjection = (value, volatilePaths, path = []) => {
+  if (Array.isArray(value)) return value.map((child, index) => semanticProjection(child, volatilePaths, [...path, String(index)]));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value)
+      .filter(([key]) => !volatilePaths.has([...path, key].join('.')))
+      .map(([key, child]) => [key, semanticProjection(child, volatilePaths, [...path, key])]));
+  }
+  return value;
+};
+const isCanonicalTimestamp = (value) => typeof value === 'string' && !Number.isNaN(Date.parse(value)) &&
+  new Date(value).toISOString() === value;
+
+function rejectUnsanctionedClaims(value, path = []) {
+  if (!value || typeof value !== 'object') return;
+  const forbidden = new Set([
+    'expected', 'labels', 'reviewer', 'reviewers', 'model_prediction',
+    'ground_truth', 'attestation', 'labels_collected', 'reviewers_assigned',
+    'reviewer_a', 'reviewer_b', 'empirical_attestation_created', 'empirical_cases_created',
+    'human_review_assignment_created', 'independent_reviewers_assigned',
+    'independent_label_review_complete', 'blind_holdout_sealed', 'empirical_benchmark_ready',
+    'track_b_started', 'release_authority', 'publication', 'production',
+    'market_claims_created', 'spend_authorized', 'ground_truth_created',
+    'identity_conclusion', 'identity_decision', 'physical_identity_conclusion',
+    'labels_created', 'human_reviewer', 'human_reviewers', 'review_complete',
+  ]);
+  const sanctioned = new Set([
+    'downstream_claims.empirical_cases_created',
+    'downstream_claims.labels_collected',
+    'downstream_claims.independent_label_review_complete',
+    'downstream_claims.blind_holdout_sealed',
+    'downstream_claims.empirical_benchmark_ready',
+    'downstream_claims.track_b_started',
+    'downstream_claims.production',
+  ]);
+  for (const [key, child] of Object.entries(value)) {
+    const nextPath = [...path, key];
+    const pathText = nextPath.join('.');
+    assert(!forbidden.has(key) || sanctioned.has(pathText),
+      `UNSANCTIONED_CASE_LABEL_REVIEW_OR_RELEASE_FIELD:${pathText}`);
+    rejectUnsanctionedClaims(child, nextPath);
+  }
+}
 
 assert(artifact.id === 'kidults-er-serialized-reference-live-capacity-r1', 'CAPACITY_ARTIFACT_ID_INVALID');
+assert(sameSet(Object.keys(artifact), [
+  'downstream_claims', 'environment_class', 'generated_at', 'id', 'integrity', 'metrics', 'probe_status',
+  'readiness_gate', 'records', 'request_boundary', 'same_model_distinct_serial_hard_negative_pairs',
+  'sampling_target', 'source_admission', 'source_snapshot', 'stratum_id', 'strict_record_grammar',
+  'truth_boundary', 'version',
+  ...(artifact.probe_status === 'SOURCE_UNAVAILABLE_FAIL_CLOSED' ? ['failure'] : []),
+]), 'CAPACITY_TOP_LEVEL_SCHEMA_INVALID');
 assert(artifact.version === '1.0.0', 'CAPACITY_ARTIFACT_VERSION_INVALID');
 assert(artifact.stratum_id === STRATUM_ID, 'CAPACITY_STRATUM_INVALID');
-assert(!Number.isNaN(Date.parse(artifact.generated_at)), 'CAPACITY_GENERATED_AT_INVALID');
+assert(isCanonicalTimestamp(artifact.generated_at), 'CAPACITY_GENERATED_AT_INVALID');
 assert(COMPLETE_STATUSES.has(artifact.probe_status) || artifact.probe_status === 'SOURCE_UNAVAILABLE_FAIL_CLOSED', 'CAPACITY_PROBE_STATUS_INVALID');
 assert(artifact.environment_class === 'READ_ONLY_LIVE_CAPACITY_PREFLIGHT', 'READ_ONLY_ENVIRONMENT_CLASS_REQUIRED');
 assert(artifact.request_boundary?.http_method === 'GET' && artifact.request_boundary?.authenticated === false &&
@@ -42,8 +106,23 @@ assert(artifact.source_snapshot?.source_family === 'wikidata-cc0-structured-data
   'WIKIDATA_CC0_SOURCE_BOUNDARY_REQUIRED');
 
 const {integrity, ...unsealed} = artifact;
+assert(sameSet(Object.keys(integrity || {}), ['canonical_payload_sha256']), 'ARTIFACT_INTEGRITY_SCHEMA_INVALID');
 assert(SHA256.test(integrity?.canonical_payload_sha256 || ''), 'ARTIFACT_INTEGRITY_DIGEST_REQUIRED');
 assert(integrity.canonical_payload_sha256 === digest(unsealed), 'ARTIFACT_INTEGRITY_DIGEST_MISMATCH');
+if (COMPLETE_STATUSES.has(artifact.probe_status)) {
+  assert(artifact.source_snapshot?.accessed_at === artifact.generated_at,
+    'COMPLETE_SOURCE_SNAPSHOT_TIMESTAMP_BINDING_REQUIRED');
+  assert(digest(semanticProjection(artifact, COMPLETE_VOLATILE_SEMANTIC_PATHS)) === FROZEN_COMPLETE_SEMANTIC_SHA256,
+    'FROZEN_COMPLETE_SEMANTIC_PROJECTION_MISMATCH');
+} else {
+  assert(sameSet(Object.keys(artifact.failure || {}), ['code']) && artifact.failure.code === FAILURE_CODE,
+    'SOURCE_UNAVAILABLE_FAILURE_SCHEMA_INVALID');
+  assert(artifact.truth_boundary === FAILURE_TRUTH_BOUNDARY,
+    'SOURCE_UNAVAILABLE_TRUTH_BOUNDARY_INVALID');
+  assert(digest(semanticProjection(artifact, FAILURE_VOLATILE_SEMANTIC_PATHS)) === FROZEN_FAILURE_SEMANTIC_SHA256,
+    'FROZEN_FAILURE_SEMANTIC_PROJECTION_MISMATCH');
+}
+rejectUnsanctionedClaims(artifact);
 
 const sample = (sampling.strata || []).find((row) => row.stratum_id === STRATUM_ID);
 assert(sample?.cases === 120 && sample?.blind === 60, 'SERIALIZED_SAMPLING_120_60_REQUIRED');
@@ -79,12 +158,27 @@ assert(recordIds.length === new Set(recordIds).size && itemQids.length === new S
 
 const globalAliasKeys = new Set();
 for (const record of artifact.records) {
+  assert(sameSet(Object.keys(record), [
+    'alias_pairs', 'grammar_complete', 'grammar_evidence', 'inventory_collections_p195',
+    'inventory_references_p217', 'item_label', 'item_qid', 'makers', 'manufacturer_serials_p2598',
+    'models', 'record_id', 'source_evidence',
+  ]), `RECORD_SCHEMA_INVALID:${record.record_id}`);
   assert(record.record_id === `wikidata-serialized-reference:${record.item_qid}` && QID.test(record.item_qid || ''),
     `RECORD_ID_OR_ITEM_QID_INVALID:${record.record_id}`);
   assert(typeof record.item_label === 'string' && record.item_label.trim(), `ITEM_LABEL_REQUIRED:${record.record_id}`);
   assert(record.grammar_complete === true, `GRAMMAR_COMPLETE_FLAG_REQUIRED:${record.record_id}`);
   assert(Array.isArray(record.makers) && record.makers.length > 0 && Array.isArray(record.models) && record.models.length > 0,
     `MAKER_AND_MODEL_REQUIRED:${record.record_id}`);
+  assert(record.makers.every((row) => sameSet(Object.keys(row), ['label', 'paths', 'qid'])) &&
+    record.models.every((row) => sameSet(Object.keys(row), ['classification_basis', 'label', 'qid'])) &&
+    record.inventory_collections_p195.every((row) => sameSet(Object.keys(row), ['label', 'qid'])) &&
+    record.source_evidence.every((row) => sameSet(Object.keys(row), [
+      'entity_id', 'license_evidence_refs', 'role', 'source_payload_sha256', 'source_url',
+    ])) &&
+    record.alias_pairs.every((row) => sameSet(Object.keys(row), [
+      'inventory_collection_p195', 'inventory_reference_p217', 'maker_path', 'maker_qid',
+      'manufacturer_serial_p2598', 'model_qid',
+    ])), `NESTED_RECORD_SCHEMA_INVALID:${record.record_id}`);
   assert(Array.isArray(record.manufacturer_serials_p2598) && record.manufacturer_serials_p2598.length > 0 &&
     record.manufacturer_serials_p2598.length === new Set(record.manufacturer_serials_p2598).size,
     `P2598_SERIALS_REQUIRED_AND_UNIQUE:${record.record_id}`);
@@ -149,8 +243,8 @@ function deriveHardNegativePairs(records) {
       const right = records[rightIndex];
       const sharedModels = left.models.map((row) => row.qid).filter((qid) => right.models.some((row) => row.qid === qid));
       const sharedMakers = left.makers.map((row) => row.qid).filter((qid) => right.makers.some((row) => row.qid === qid));
-      const leftSerial = left.manufacturer_serials_p2598.find((serial) => !right.manufacturer_serials_p2598.includes(serial));
-      const rightSerial = right.manufacturer_serials_p2598.find((serial) => serial !== leftSerial);
+      const leftSerial = firstExclusive(left.manufacturer_serials_p2598, right.manufacturer_serials_p2598);
+      const rightSerial = firstExclusive(right.manufacturer_serials_p2598, left.manufacturer_serials_p2598);
       if (sharedModels.length && sharedMakers.length && leftSerial && rightSerial) {
         pairs.push({
           left_record_id:left.record_id,
@@ -164,6 +258,16 @@ function deriveHardNegativePairs(records) {
     }
   }
   return pairs;
+}
+
+{
+  const fixture = deriveHardNegativePairs([
+    {record_id:'left', models:[{qid:'QMODEL'}], makers:[{qid:'QMAKER'}], manufacturer_serials_p2598:['shared', 'left-only']},
+    {record_id:'right', models:[{qid:'QMODEL'}], makers:[{qid:'QMAKER'}], manufacturer_serials_p2598:['shared', 'right-only']},
+  ]);
+  assert(fixture.length === 1 && fixture[0].left_manufacturer_serial_p2598 === 'left-only' &&
+    fixture[0].right_manufacturer_serial_p2598 === 'right-only',
+  'HARD_NEGATIVE_CALL_SITE_SET_DIFFERENCE_REGRESSION');
 }
 
 const derivedHardNegativePairs = deriveHardNegativePairs(artifact.records);

@@ -6,9 +6,22 @@ on:
       - 'coordination/kidults/entity-resolution/empirical-acquisition-wave1-r1.json'
       - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
       - 'coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json'
+      - 'coordination/kidults/entity-resolution/variant-release-heavy-capacity-probe-r1.json'
+      - 'coordination/kidults/entity-resolution/vehicle-mechanical-asset-capacity-probe-r1.json'
+      - 'coordination/kidults/entity-resolution/graded-population-capacity-probe-r1.json'
+      - 'coordination/kidults/source-intelligence/pcgs-eula-rights-terminalization-v1.json'
+      - 'coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json'
+      - 'coordination/kidults/registry/trusted-source/records/trusted-source-cards-comics-memorabilia-r1.json'
       - 'scripts/kidults/entity-resolution/probe-serialized-reference-capacity-r1.mjs'
       - 'scripts/kidults/entity-resolution/validate-serialized-reference-capacity-r1.mjs'
+      - 'scripts/kidults/entity-resolution/probe-variant-release-heavy-capacity-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-variant-release-heavy-capacity-r1.mjs'
+      - 'scripts/kidults/entity-resolution/probe-vehicle-mechanical-asset-capacity-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-vehicle-mechanical-asset-capacity-r1.mjs'
+      - 'scripts/kidults/entity-resolution/probe-graded-population-capacity-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-graded-population-capacity-r1.mjs'
       - 'scripts/kidults/entity-resolution/validate-empirical-acquisition-wave1-r1.mjs'
+      - 'scripts/kidults/entity-resolution/parse-json-no-duplicate-keys.mjs'
       - '.github/workflows/kidults-er-empirical-acquisition-wave1-r1.yml'
   workflow_dispatch:
 
@@ -18,13 +31,16 @@ permissions:
 jobs:
   validate-wave1:
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+
       - name: Re-run strict read-only serialized capacity census
         run: |
+          set -euo pipefail
           node --check scripts/kidults/entity-resolution/probe-serialized-reference-capacity-r1.mjs
           node --check scripts/kidults/entity-resolution/validate-serialized-reference-capacity-r1.mjs
           node scripts/kidults/entity-resolution/probe-serialized-reference-capacity-r1.mjs \
@@ -33,26 +49,472 @@ jobs:
           node scripts/kidults/entity-resolution/validate-serialized-reference-capacity-r1.mjs \
             /tmp/serialized-reference-capacity-live-r1.json \
             coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
-          node scripts/kidults/entity-resolution/validate-empirical-acquisition-wave1-r1.mjs \
-            coordination/kidults/entity-resolution/empirical-acquisition-wave1-r1.json \
-            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
-            /tmp/serialized-reference-capacity-live-r1.json
           node - <<'NODE'
           const committed=require('./coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json');
           const live=require('/tmp/serialized-reference-capacity-live-r1.json');
-          const committedIds=committed.records.map(x=>x.item_qid);
-          const liveIds=live.records.map(x=>x.item_qid);
-          if(JSON.stringify(committed.metrics)!==JSON.stringify(live.metrics)) throw new Error('COMMITTED_SERIALIZED_METRICS_STALE');
-          if(JSON.stringify(committedIds)!==JSON.stringify(liveIds)) throw new Error('COMMITTED_SERIALIZED_RECORD_CENSUS_STALE');
-          if(committed.probe_status!==live.probe_status || JSON.stringify(committed.readiness_gate)!==JSON.stringify(live.readiness_gate)) throw new Error('COMMITTED_SERIALIZED_READINESS_STALE');
+          const volatile=new Set(['generated_at','integrity','source_snapshot.accessed_at']);
+          const stable=(value,path=[])=>{
+            if(Array.isArray(value)) return value.map((child,index)=>stable(child,[...path,String(index)]));
+            if(value&&typeof value==='object') return Object.fromEntries(Object.entries(value).filter(([key])=>!volatile.has([...path,key].join('.'))).map(([key,child])=>[key,stable(child,[...path,key])]));
+            return value;
+          };
+          if(JSON.stringify(stable(committed))!==JSON.stringify(stable(live))) throw new Error('COMMITTED_SERIALIZED_FULL_SEMANTIC_EVIDENCE_STALE');
           console.log('PASS: committed serialized capacity remains identical to the live strict census.');
           NODE
-      - name: Validate immediate acquisition capacity and fail-closed blockers
+
+      - name: Re-run strict Collectibles-only variant capacity census
         run: |
+          set -euo pipefail
+          node --check scripts/kidults/entity-resolution/probe-variant-release-heavy-capacity-r1.mjs
+          node --check scripts/kidults/entity-resolution/validate-variant-release-heavy-capacity-r1.mjs
+          node scripts/kidults/entity-resolution/probe-variant-release-heavy-capacity-r1.mjs \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            /tmp/variant-release-heavy-capacity-live-r1.json
+          node scripts/kidults/entity-resolution/validate-variant-release-heavy-capacity-r1.mjs \
+            /tmp/variant-release-heavy-capacity-live-r1.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+          node - <<'NODE'
+          const committed=require('./coordination/kidults/entity-resolution/variant-release-heavy-capacity-probe-r1.json');
+          const live=require('/tmp/variant-release-heavy-capacity-live-r1.json');
+          const volatile=new Set(['generated_at','integrity','source_snapshot.accessed_at']);
+          const stable=(value,path=[])=>{
+            if(Array.isArray(value)) return value.map((child,index)=>stable(child,[...path,String(index)]));
+            if(value&&typeof value==='object') return Object.fromEntries(Object.entries(value).filter(([key])=>!volatile.has([...path,key].join('.'))).map(([key,child])=>[key,stable(child,[...path,key])]));
+            return value;
+          };
+          if(JSON.stringify(stable(committed))!==JSON.stringify(stable(live))) throw new Error('COMMITTED_VARIANT_FULL_SEMANTIC_EVIDENCE_STALE');
+          console.log('PASS: committed Collectibles-only variant capacity remains identical to the live strict census.');
+          NODE
+
+      - name: Re-run bounded rights-first graded-population source-fit probe
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/entity-resolution/probe-graded-population-capacity-r1.mjs
+          node --check scripts/kidults/entity-resolution/validate-graded-population-capacity-r1.mjs
+          node scripts/kidults/entity-resolution/probe-graded-population-capacity-r1.mjs \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/source-intelligence/pcgs-eula-rights-terminalization-v1.json \
+            coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json \
+            coordination/kidults/registry/trusted-source/records/trusted-source-cards-comics-memorabilia-r1.json \
+            /tmp/graded-population-capacity-live-r1.json
+          node scripts/kidults/entity-resolution/validate-graded-population-capacity-r1.mjs \
+            /tmp/graded-population-capacity-live-r1.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/source-intelligence/pcgs-eula-rights-terminalization-v1.json \
+            coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json \
+            coordination/kidults/registry/trusted-source/records/trusted-source-cards-comics-memorabilia-r1.json
+          node - <<'NODE'
+          const committed=require('./coordination/kidults/entity-resolution/graded-population-capacity-probe-r1.json');
+          const live=require('/tmp/graded-population-capacity-live-r1.json');
+          const volatile=new Set(['generated_at','integrity','cc0_live_schema_observation.accessed_at']);
+          const stable=(value,path=[])=>{
+            if(Array.isArray(value)) return value.map((child,index)=>stable(child,[...path,String(index)]));
+            if(value&&typeof value==='object') return Object.fromEntries(Object.entries(value).filter(([key])=>!volatile.has([...path,key].join('.'))).map(([key,child])=>[key,stable(child,[...path,key])]));
+            return value;
+          };
+          if(JSON.stringify(stable(committed))!==JSON.stringify(stable(live))) throw new Error('COMMITTED_GRADED_POPULATION_FULL_SEMANTIC_EVIDENCE_STALE');
+          console.log('PASS: committed graded-population blocker remains identical to the live bounded source-fit observation.');
+          NODE
+
+      - name: Re-run official Palissy vehicle capacity census
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/entity-resolution/probe-vehicle-mechanical-asset-capacity-r1.mjs
+          node --check scripts/kidults/entity-resolution/validate-vehicle-mechanical-asset-capacity-r1.mjs
+          node scripts/kidults/entity-resolution/probe-vehicle-mechanical-asset-capacity-r1.mjs \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            /tmp/vehicle-mechanical-asset-capacity-live-r1.json
+          node scripts/kidults/entity-resolution/validate-vehicle-mechanical-asset-capacity-r1.mjs \
+            /tmp/vehicle-mechanical-asset-capacity-live-r1.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+          node - <<'NODE'
+          const committed=require('./coordination/kidults/entity-resolution/vehicle-mechanical-asset-capacity-probe-r1.json');
+          const live=require('/tmp/vehicle-mechanical-asset-capacity-live-r1.json');
+          const volatile=new Set(['generated_at','integrity','source_snapshot.accessed_at']);
+          const stable=(value,path=[])=>{
+            if(Array.isArray(value)) return value.map((child,index)=>stable(child,[...path,String(index)]));
+            if(value&&typeof value==='object') return Object.fromEntries(Object.entries(value).filter(([key])=>!volatile.has([...path,key].join('.'))).map(([key,child])=>[key,stable(child,[...path,key])]));
+            return value;
+          };
+          if(JSON.stringify(stable(committed))!==JSON.stringify(stable(live))) throw new Error('COMMITTED_VEHICLE_FULL_SEMANTIC_EVIDENCE_STALE');
+          console.log('PASS: committed vehicle capacity remains identical to the live official Palissy census.');
+          NODE
+
+      - name: Validate combined capacity truth and fail-closed mutations
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/entity-resolution/parse-json-no-duplicate-keys.mjs
+          node --input-type=module - <<'NODE'
+          import {parseJsonNoDuplicateKeys as parse} from './scripts/kidults/entity-resolution/parse-json-no-duplicate-keys.mjs';
+          parse('{"left":{"same":1},"right":{"same":2},"values":[true,false,null,-1.2e3]}','valid-sibling-fixture');
+          for(const text of ['{"a":1,"a":2}','{"a":1,"\\u0061":2}','{"outer":{"a":1,"a":2}}']) {
+            try {
+              parse(text,'duplicate-member-fixture');
+              throw new Error('DUPLICATE_JSON_MEMBER_UNEXPECTEDLY_ACCEPTED');
+            } catch(error) {
+              if(error.code!=='DUPLICATE_JSON_MEMBER') throw error;
+            }
+          }
+          console.log('PASS: strict JSON parser accepts sibling keys and rejects plain, escaped and nested duplicates.');
+          NODE
           node scripts/kidults/entity-resolution/validate-serialized-reference-capacity-r1.mjs \
             coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json \
             coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+          node scripts/kidults/entity-resolution/validate-variant-release-heavy-capacity-r1.mjs \
+            coordination/kidults/entity-resolution/variant-release-heavy-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+          node scripts/kidults/entity-resolution/validate-vehicle-mechanical-asset-capacity-r1.mjs \
+            coordination/kidults/entity-resolution/vehicle-mechanical-asset-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+          node scripts/kidults/entity-resolution/validate-graded-population-capacity-r1.mjs \
+            coordination/kidults/entity-resolution/graded-population-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/source-intelligence/pcgs-eula-rights-terminalization-v1.json \
+            coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json \
+            coordination/kidults/registry/trusted-source/records/trusted-source-cards-comics-memorabilia-r1.json
           node scripts/kidults/entity-resolution/validate-empirical-acquisition-wave1-r1.mjs \
             coordination/kidults/entity-resolution/empirical-acquisition-wave1-r1.json \
             coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
-            coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json
+            coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/variant-release-heavy-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/vehicle-mechanical-asset-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/graded-population-capacity-probe-r1.json
+          missing_sampling=/tmp/kidults-wave1-intentionally-missing-sampling-plan.json
+          if node scripts/kidults/entity-resolution/probe-serialized-reference-capacity-r1.mjs \
+            "$missing_sampling" /tmp/fallback-serialized-capacity.json >/dev/null 2>&1; then
+            echo 'serialized source-unavailable probe unexpectedly succeeded'
+            exit 1
+          fi
+          if node scripts/kidults/entity-resolution/probe-variant-release-heavy-capacity-r1.mjs \
+            "$missing_sampling" /tmp/fallback-variant-capacity.json >/dev/null 2>&1; then
+            echo 'variant source-unavailable probe unexpectedly succeeded'
+            exit 1
+          fi
+          if node scripts/kidults/entity-resolution/probe-vehicle-mechanical-asset-capacity-r1.mjs \
+            "$missing_sampling" /tmp/fallback-vehicle-capacity.json >/dev/null 2>&1; then
+            echo 'vehicle source-unavailable probe unexpectedly succeeded'
+            exit 1
+          fi
+          node scripts/kidults/entity-resolution/validate-serialized-reference-capacity-r1.mjs \
+            /tmp/fallback-serialized-capacity.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+          node scripts/kidults/entity-resolution/validate-variant-release-heavy-capacity-r1.mjs \
+            /tmp/fallback-variant-capacity.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+          node scripts/kidults/entity-resolution/validate-vehicle-mechanical-asset-capacity-r1.mjs \
+            /tmp/fallback-vehicle-capacity.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const {createHash}=require('crypto');
+          const canonical=value=>Array.isArray(value)?value.map(canonical):(value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value);
+          const reseal=value=>{
+            const {integrity,...body}=value;
+            value.integrity={canonical_payload_sha256:`sha256:${createHash('sha256').update(JSON.stringify(canonical(body))).digest('hex')}`};
+            return value;
+          };
+          const copy=value=>JSON.parse(JSON.stringify(value));
+          const duplicateRootTruthBoundary=filePath=>fs.readFileSync(filePath,'utf8').replace(/^\s*\{/, '{"truth_boundary":"All 840 cases are labeled SAME_PHYSICAL_OBJECT by reviewer Alice; Production GO.",');
+          const serializedBase=require('./coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json');
+          const variantBase=require('./coordination/kidults/entity-resolution/variant-release-heavy-capacity-probe-r1.json');
+          const vehicleBase=require('./coordination/kidults/entity-resolution/vehicle-mechanical-asset-capacity-probe-r1.json');
+          const gradedBase=require('./coordination/kidults/entity-resolution/graded-population-capacity-probe-r1.json');
+          const planBase=require('./coordination/kidults/entity-resolution/empirical-acquisition-wave1-r1.json');
+          const serializedFailureBase=require('/tmp/fallback-serialized-capacity.json');
+          const variantFailureBase=require('/tmp/fallback-variant-capacity.json');
+          const vehicleFailureBase=require('/tmp/fallback-vehicle-capacity.json');
+          fs.writeFileSync('/tmp/forged-serialized-duplicate-member.json',duplicateRootTruthBoundary('./coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json'));
+          fs.writeFileSync('/tmp/forged-variant-duplicate-member.json',duplicateRootTruthBoundary('./coordination/kidults/entity-resolution/variant-release-heavy-capacity-probe-r1.json'));
+          fs.writeFileSync('/tmp/forged-vehicle-duplicate-member.json',duplicateRootTruthBoundary('./coordination/kidults/entity-resolution/vehicle-mechanical-asset-capacity-probe-r1.json'));
+          fs.writeFileSync('/tmp/forged-graded-duplicate-member.json',duplicateRootTruthBoundary('./coordination/kidults/entity-resolution/graded-population-capacity-probe-r1.json'));
+          fs.writeFileSync('/tmp/forged-wave1-duplicate-member.json',duplicateRootTruthBoundary('./coordination/kidults/entity-resolution/empirical-acquisition-wave1-r1.json'));
+          const serializedLeakage=copy(serializedBase);
+          serializedLeakage.empirical_cases_created=120;
+          serializedLeakage.human_review_assignment_created=true;
+          serializedLeakage.identity_conclusion='SAME_PHYSICAL_OBJECT';
+          fs.writeFileSync('/tmp/forged-serialized-leakage.json',JSON.stringify(reseal(serializedLeakage)));
+          const serializedEvidence=copy(serializedBase);
+          serializedEvidence.records[0].source_evidence[0].source_payload_sha256=`sha256:${'0'.repeat(64)}`;
+          serializedEvidence.truth_boundary+=' All 120 cases are labeled same-object.';
+          fs.writeFileSync('/tmp/forged-serialized-evidence.json',JSON.stringify(reseal(serializedEvidence)));
+          const serializedRelease=copy(serializedBase);
+          serializedRelease.downstream_claims.public_release='GO';
+          serializedRelease.downstream_claims.production='GO';
+          serializedRelease.downstream_claims.track_b_started=true;
+          fs.writeFileSync('/tmp/forged-serialized-release.json',JSON.stringify(reseal(serializedRelease)));
+          const serializedVolatile=copy(serializedBase);
+          serializedVolatile.source_snapshot.generated_at='All 120 cases labeled; Production GO';
+          fs.writeFileSync('/tmp/forged-serialized-nested-volatile.json',JSON.stringify(reseal(serializedVolatile)));
+          const serializedIntegrity=copy(serializedBase);
+          serializedIntegrity.integrity.note='All 120 cases labeled; Production GO';
+          fs.writeFileSync('/tmp/forged-serialized-integrity-note.json',JSON.stringify(serializedIntegrity));
+          const serializedFailureClaims=copy(serializedFailureBase);
+          serializedFailureClaims.truth_boundary+=' All 120 cases labeled SAME_PHYSICAL_OBJECT by reviewer Alice; Production GO.';
+          serializedFailureClaims.readiness_gate.blockers=['ALL_120_LABELED_PRODUCTION_GO'];
+          serializedFailureClaims.source_admission.wikidata_cc0_strict_records_admitted=true;
+          fs.writeFileSync('/tmp/forged-serialized-failure-claims.json',JSON.stringify(reseal(serializedFailureClaims)));
+          const serializedFailureExtra=copy(serializedFailureBase);
+          serializedFailureExtra.request_boundary.note='All 120 cases labeled; Production GO';
+          fs.writeFileSync('/tmp/forged-serialized-failure-extra.json',JSON.stringify(reseal(serializedFailureExtra)));
+          const serializedFailureCode=copy(serializedFailureBase);
+          serializedFailureCode.failure.code='SOURCE_PROBE_UNAVAILABLE_ALL_120_CASES_LABELED_PRODUCTION_GO';
+          fs.writeFileSync('/tmp/forged-serialized-failure-code.json',JSON.stringify(reseal(serializedFailureCode)));
+          const graded=copy(gradedBase);
+          graded.metrics.rights_admitted_grammar_complete_real_record_count=120;
+          graded.metrics.conservative_case_capacity=120;
+          fs.writeFileSync('/tmp/forged-graded-capacity.json',JSON.stringify(reseal(graded)));
+          const gradedLeakage=copy(gradedBase);
+          gradedLeakage.empirical_cases_created=120;
+          gradedLeakage.human_review_assignment_created=true;
+          gradedLeakage.labels_collected=120;
+          gradedLeakage.reviewers_assigned=2;
+          gradedLeakage.identity_conclusion='SAME_PHYSICAL_OBJECT';
+          fs.writeFileSync('/tmp/forged-graded-leakage.json',JSON.stringify(reseal(gradedLeakage)));
+          const gradedEvidence=copy(gradedBase);
+          gradedEvidence.source_candidates[2].scope_fit='FORGED_FULL_COMMERCIAL_FIT';
+          gradedEvidence.truth_boundary+=' All 120 cases are labeled same-object.';
+          fs.writeFileSync('/tmp/forged-graded-evidence.json',JSON.stringify(reseal(gradedEvidence)));
+          const gradedRelease=copy(gradedBase);
+          gradedRelease.downstream_claims.publication='PUBLIC';
+          gradedRelease.downstream_claims.production='GO';
+          gradedRelease.downstream_claims.track_b_started=true;
+          fs.writeFileSync('/tmp/forged-graded-release.json',JSON.stringify(reseal(gradedRelease)));
+          const gradedVolatile=copy(gradedBase);
+          gradedVolatile.request_boundary.generated_at='All 120 cases labeled; Production GO';
+          fs.writeFileSync('/tmp/forged-graded-nested-volatile.json',JSON.stringify(reseal(gradedVolatile)));
+          const gradedIntegrity=copy(gradedBase);
+          gradedIntegrity.integrity.note='All 120 cases labeled; Production GO';
+          fs.writeFileSync('/tmp/forged-graded-integrity-note.json',JSON.stringify(gradedIntegrity));
+          const variant=copy(variantBase);
+          variant.metrics.grammar_complete_collectibles_record_count=120;
+          variant.metrics.conservative_case_capacity=120;
+          variant.readiness_gate.source_capacity_ready_for_120_cases=true;
+          fs.writeFileSync('/tmp/forged-variant-capacity.json',JSON.stringify(reseal(variant)));
+          const variantEvidence=copy(variantBase);
+          variantEvidence.rejected_records[0].model_or_style_codes_p13351[0]='FORGED-MODEL-CODE';
+          variantEvidence.rejected_records[0].source_evidence[0].source_payload_sha256=`sha256:${'0'.repeat(64)}`;
+          fs.writeFileSync('/tmp/forged-variant-evidence.json',JSON.stringify(reseal(variantEvidence)));
+          const variantLeakage=copy(variantBase);
+          variantLeakage.labels_collected=120;
+          variantLeakage.empirical_cases_created=120;
+          variantLeakage.human_review_assignment_created=true;
+          variantLeakage.ground_truth_created=true;
+          variantLeakage.identity_conclusion='SAME_PHYSICAL_OBJECT';
+          variantLeakage.rejected_records[0].reviewer='FORGED_REVIEWER';
+          fs.writeFileSync('/tmp/forged-variant-leakage.json',JSON.stringify(reseal(variantLeakage)));
+          const variantSemantic=copy(variantBase);
+          variantSemantic.strict_record_grammar.normalization_candidate_rule='FALSE_LABELED_PRODUCTION_CLAIM';
+          variantSemantic.truth_boundary+=' All 120 cases are labeled same-object.';
+          fs.writeFileSync('/tmp/forged-variant-semantic.json',JSON.stringify(reseal(variantSemantic)));
+          const variantRelease=copy(variantBase);
+          variantRelease.nonclaims.release_authority='PUBLIC';
+          variantRelease.nonclaims.track_b_started=true;
+          fs.writeFileSync('/tmp/forged-variant-release.json',JSON.stringify(reseal(variantRelease)));
+          const variantVolatile=copy(variantBase);
+          variantVolatile.source_snapshot.generated_at='All 120 cases labeled; Production GO';
+          fs.writeFileSync('/tmp/forged-variant-nested-volatile.json',JSON.stringify(reseal(variantVolatile)));
+          const variantIntegrity=copy(variantBase);
+          variantIntegrity.integrity.note='All 120 cases labeled; Production GO';
+          fs.writeFileSync('/tmp/forged-variant-integrity-note.json',JSON.stringify(variantIntegrity));
+          const variantFailureClaims=copy(variantFailureBase);
+          variantFailureClaims.truth_boundary+=' All 120 cases labeled SAME_PHYSICAL_OBJECT by reviewer Alice; Production GO.';
+          variantFailureClaims.readiness_gate.blockers=['ALL_120_LABELED_PRODUCTION_GO'];
+          variantFailureClaims.nonclaims.release_authority='PUBLIC';
+          fs.writeFileSync('/tmp/forged-variant-failure-claims.json',JSON.stringify(reseal(variantFailureClaims)));
+          const variantFailureExtra=copy(variantFailureBase);
+          variantFailureExtra.source_snapshot.note='All 120 cases labeled; Production GO';
+          fs.writeFileSync('/tmp/forged-variant-failure-extra.json',JSON.stringify(reseal(variantFailureExtra)));
+          const variantFailureCode=copy(variantFailureBase);
+          variantFailureCode.failure.code='SOURCE_PROBE_UNAVAILABLE_ALL_120_CASES_LABELED_PRODUCTION_GO';
+          fs.writeFileSync('/tmp/forged-variant-failure-code.json',JSON.stringify(reseal(variantFailureCode)));
+          const vehicle=copy(vehicleBase);
+          vehicle.metrics.nhtsa_vpic_case_capacity=1;
+          vehicle.source_admission.nhtsa_vpic_used=true;
+          vehicle.source_admission.nhtsa_vpic_contribution_to_capacity=1;
+          fs.writeFileSync('/tmp/forged-vehicle-capacity.json',JSON.stringify(reseal(vehicle)));
+          const vehicleBoundary=copy(vehicleBase);
+          vehicleBoundary.candidate_manifest.selected.SAME_OBJECT_NORMALIZATION[0].identity_boundary='PHYSICAL_OBJECT';
+          fs.writeFileSync('/tmp/forged-vehicle-boundary.json',JSON.stringify(reseal(vehicleBoundary)));
+          const vehicleQuery=copy(vehicleBase);
+          vehicleQuery.source_snapshot.search_query.response_sha256=`sha256:${'0'.repeat(64)}`;
+          fs.writeFileSync('/tmp/forged-vehicle-query.json',JSON.stringify(reseal(vehicleQuery)));
+          const vehicleLeakage=copy(vehicleBase);
+          vehicleLeakage.labels_collected=120;
+          vehicleLeakage.empirical_cases_created=120;
+          vehicleLeakage.human_review_assignment_created=true;
+          vehicleLeakage.labels_created=120;
+          vehicleLeakage.human_reviewer='FORGED_REVIEWER';
+          vehicleLeakage.identity_conclusion='SAME_PHYSICAL_OBJECT';
+          vehicleLeakage.records[0].expected='SAME_PHYSICAL_OBJECT';
+          vehicleLeakage.records[0].reviewer='FORGED_REVIEWER';
+          fs.writeFileSync('/tmp/forged-vehicle-leakage.json',JSON.stringify(reseal(vehicleLeakage)));
+          const vehicleSemantic=copy(vehicleBase);
+          vehicleSemantic.strict_record_grammar.rejected=['FALSE_LABELED_PRODUCTION_CLAIM'];
+          vehicleSemantic.truth_boundary+=' All 120 cases are labeled same-object.';
+          fs.writeFileSync('/tmp/forged-vehicle-semantic.json',JSON.stringify(reseal(vehicleSemantic)));
+          const vehicleRelease=copy(vehicleBase);
+          vehicleRelease.downstream_claims.publication='PUBLIC';
+          vehicleRelease.downstream_claims.production='GO';
+          vehicleRelease.downstream_claims.track_b_started=true;
+          fs.writeFileSync('/tmp/forged-vehicle-release.json',JSON.stringify(reseal(vehicleRelease)));
+          const vehicleVolatile=copy(vehicleBase);
+          vehicleVolatile.source_snapshot.generated_at='All 120 cases labeled; Production GO';
+          fs.writeFileSync('/tmp/forged-vehicle-nested-volatile.json',JSON.stringify(reseal(vehicleVolatile)));
+          const vehicleIntegrity=copy(vehicleBase);
+          vehicleIntegrity.integrity.note='All 120 cases labeled; Production GO';
+          fs.writeFileSync('/tmp/forged-vehicle-integrity-note.json',JSON.stringify(vehicleIntegrity));
+          const vehicleFailureClaims=copy(vehicleFailureBase);
+          vehicleFailureClaims.truth_boundary+=' All 120 cases labeled SAME_PHYSICAL_OBJECT by reviewer Alice; Production GO.';
+          vehicleFailureClaims.readiness_gate.blockers=['ALL_120_LABELED_PRODUCTION_GO'];
+          vehicleFailureClaims.source_admission.pop_palissy_mh_open_text_admitted=true;
+          fs.writeFileSync('/tmp/forged-vehicle-failure-claims.json',JSON.stringify(reseal(vehicleFailureClaims)));
+          const vehicleFailureExtra=copy(vehicleFailureBase);
+          vehicleFailureExtra.source_snapshot.note='All 120 cases labeled; Production GO';
+          fs.writeFileSync('/tmp/forged-vehicle-failure-extra.json',JSON.stringify(reseal(vehicleFailureExtra)));
+          const vehicleFailureCode=copy(vehicleFailureBase);
+          vehicleFailureCode.failure.code='SOURCE_PROBE_UNAVAILABLE_ALL_120_CASES_LABELED_PRODUCTION_GO';
+          fs.writeFileSync('/tmp/forged-vehicle-failure-code.json',JSON.stringify(reseal(vehicleFailureCode)));
+          const plan=copy(planBase);
+          plan.labels_collected=840;
+          plan.reviewer_a='FORGED_REVIEWER';
+          plan.lanes[0].empirical_cases_created=120;
+          plan.lanes[0].human_review_assignment_created=true;
+          plan.lanes[0].identity_conclusion='SAME_PHYSICAL_OBJECT';
+          fs.writeFileSync('/tmp/forged-wave1-leakage.json',JSON.stringify(plan));
+          const duplicateLanePlan=copy(planBase);
+          duplicateLanePlan.lanes[0]=copy(duplicateLanePlan.lanes.find(lane=>lane.stratum_id==='er-stratum-provenance-unique-object'));
+          fs.writeFileSync('/tmp/forged-wave1-duplicate-lane.json',JSON.stringify(duplicateLanePlan));
+          const planSemantic=copy(planBase);
+          planSemantic.truth_boundary+=' All 840 cases are labeled same-object.';
+          planSemantic.lanes[0].rule='FALSE_LABELED_PRODUCTION_CLAIM';
+          fs.writeFileSync('/tmp/forged-wave1-semantic.json',JSON.stringify(planSemantic));
+          const planRelease=copy(planBase);
+          planRelease.production='GO';
+          planRelease.public_release='PUBLIC';
+          planRelease.parallel_execution.track_b_started=true;
+          fs.writeFileSync('/tmp/forged-wave1-release.json',JSON.stringify(planRelease));
+          NODE
+          if node scripts/kidults/entity-resolution/validate-serialized-reference-capacity-r1.mjs \
+            /tmp/forged-serialized-leakage.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json; then
+            echo 'forged serialized case/review leakage unexpectedly passed'
+            exit 1
+          fi
+          for forged in /tmp/forged-serialized-evidence.json /tmp/forged-serialized-release.json /tmp/forged-serialized-nested-volatile.json /tmp/forged-serialized-integrity-note.json /tmp/forged-serialized-failure-claims.json /tmp/forged-serialized-failure-extra.json /tmp/forged-serialized-failure-code.json /tmp/forged-serialized-duplicate-member.json; do
+            if node scripts/kidults/entity-resolution/validate-serialized-reference-capacity-r1.mjs \
+              "$forged" coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json; then
+              echo "forged serialized semantic/release state unexpectedly passed: $forged"
+              exit 1
+            fi
+          done
+          if node scripts/kidults/entity-resolution/validate-graded-population-capacity-r1.mjs \
+            /tmp/forged-graded-capacity.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/source-intelligence/pcgs-eula-rights-terminalization-v1.json \
+            coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json \
+            coordination/kidults/registry/trusted-source/records/trusted-source-cards-comics-memorabilia-r1.json; then
+            echo 'forged zero-source graded capacity unexpectedly passed'
+            exit 1
+          fi
+          for forged in /tmp/forged-graded-evidence.json /tmp/forged-graded-release.json /tmp/forged-graded-nested-volatile.json /tmp/forged-graded-integrity-note.json /tmp/forged-graded-duplicate-member.json; do
+            if node scripts/kidults/entity-resolution/validate-graded-population-capacity-r1.mjs \
+              "$forged" \
+              coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+              coordination/kidults/source-intelligence/pcgs-eula-rights-terminalization-v1.json \
+              coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json \
+              coordination/kidults/registry/trusted-source/records/trusted-source-cards-comics-memorabilia-r1.json; then
+              echo "forged graded semantic/release state unexpectedly passed: $forged"
+              exit 1
+            fi
+          done
+          if node scripts/kidults/entity-resolution/validate-graded-population-capacity-r1.mjs \
+            /tmp/forged-graded-leakage.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/source-intelligence/pcgs-eula-rights-terminalization-v1.json \
+            coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json \
+            coordination/kidults/registry/trusted-source/records/trusted-source-cards-comics-memorabilia-r1.json; then
+            echo 'forged graded case/review leakage unexpectedly passed'
+            exit 1
+          fi
+          if node scripts/kidults/entity-resolution/validate-variant-release-heavy-capacity-r1.mjs \
+            /tmp/forged-variant-capacity.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json; then
+            echo 'forged zero-source variant capacity unexpectedly passed'
+            exit 1
+          fi
+          for forged in /tmp/forged-variant-semantic.json /tmp/forged-variant-release.json /tmp/forged-variant-nested-volatile.json /tmp/forged-variant-integrity-note.json /tmp/forged-variant-failure-claims.json /tmp/forged-variant-failure-extra.json /tmp/forged-variant-failure-code.json /tmp/forged-variant-duplicate-member.json; do
+            if node scripts/kidults/entity-resolution/validate-variant-release-heavy-capacity-r1.mjs \
+              "$forged" coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json; then
+              echo "forged variant semantic/release state unexpectedly passed: $forged"
+              exit 1
+            fi
+          done
+          if node scripts/kidults/entity-resolution/validate-variant-release-heavy-capacity-r1.mjs \
+            /tmp/forged-variant-evidence.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json; then
+            echo 'forged variant source evidence unexpectedly passed'
+            exit 1
+          fi
+          if node scripts/kidults/entity-resolution/validate-variant-release-heavy-capacity-r1.mjs \
+            /tmp/forged-variant-leakage.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json; then
+            echo 'forged variant label/reviewer leakage unexpectedly passed'
+            exit 1
+          fi
+          if node scripts/kidults/entity-resolution/validate-vehicle-mechanical-asset-capacity-r1.mjs \
+            /tmp/forged-vehicle-capacity.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json; then
+            echo 'forged NHTSA vehicle capacity unexpectedly passed'
+            exit 1
+          fi
+          if node scripts/kidults/entity-resolution/validate-vehicle-mechanical-asset-capacity-r1.mjs \
+            /tmp/forged-vehicle-boundary.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json; then
+            echo 'forged vehicle identity boundary unexpectedly passed'
+            exit 1
+          fi
+          if node scripts/kidults/entity-resolution/validate-vehicle-mechanical-asset-capacity-r1.mjs \
+            /tmp/forged-vehicle-leakage.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json; then
+            echo 'forged vehicle label/reviewer leakage unexpectedly passed'
+            exit 1
+          fi
+          for forged in /tmp/forged-vehicle-query.json /tmp/forged-vehicle-semantic.json /tmp/forged-vehicle-release.json /tmp/forged-vehicle-nested-volatile.json /tmp/forged-vehicle-integrity-note.json /tmp/forged-vehicle-failure-claims.json /tmp/forged-vehicle-failure-extra.json /tmp/forged-vehicle-failure-code.json /tmp/forged-vehicle-duplicate-member.json; do
+            if node scripts/kidults/entity-resolution/validate-vehicle-mechanical-asset-capacity-r1.mjs \
+              "$forged" coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json; then
+              echo "forged vehicle source/semantic/release state unexpectedly passed: $forged"
+              exit 1
+            fi
+          done
+          if node scripts/kidults/entity-resolution/validate-empirical-acquisition-wave1-r1.mjs \
+            /tmp/forged-wave1-leakage.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/variant-release-heavy-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/vehicle-mechanical-asset-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/graded-population-capacity-probe-r1.json; then
+            echo 'forged Wave1 label/reviewer leakage unexpectedly passed'
+            exit 1
+          fi
+          for forged in /tmp/forged-wave1-semantic.json /tmp/forged-wave1-release.json /tmp/forged-wave1-duplicate-member.json; do
+            if node scripts/kidults/entity-resolution/validate-empirical-acquisition-wave1-r1.mjs \
+              "$forged" \
+              coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+              coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json \
+              coordination/kidults/entity-resolution/variant-release-heavy-capacity-probe-r1.json \
+              coordination/kidults/entity-resolution/vehicle-mechanical-asset-capacity-probe-r1.json \
+              coordination/kidults/entity-resolution/graded-population-capacity-probe-r1.json; then
+              echo "forged Wave1 semantic/release state unexpectedly passed: $forged"
+              exit 1
+            fi
+          done
+          if node scripts/kidults/entity-resolution/validate-empirical-acquisition-wave1-r1.mjs \
+            /tmp/forged-wave1-duplicate-lane.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/entity-resolution/serialized-reference-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/variant-release-heavy-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/vehicle-mechanical-asset-capacity-probe-r1.json \
+            coordination/kidults/entity-resolution/graded-population-capacity-probe-r1.json; then
+            echo 'forged Wave1 duplicate/missing lane unexpectedly passed'
+            exit 1
+          fi
