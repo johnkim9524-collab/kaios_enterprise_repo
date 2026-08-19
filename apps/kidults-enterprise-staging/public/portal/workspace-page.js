@@ -4,6 +4,7 @@ import { startCompareEngine } from "./components/compare-engine.js";
 import { startDecisionEngine } from "./components/decision-engine.js";
 import { startWorkspace } from "./components/workspace.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
+import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 import { setupNavigation } from "./components/interactions.js";
 
 function human(value) {
@@ -56,12 +57,14 @@ function mountWorkspace(data) {
 
 async function init() {
   setupNavigation();
+  startAccessibilityR1();
 
   try {
     const data = await loadPortalData();
     renderContext(data);
     const mode = mountWorkspace(data);
     startMobileReconstruction();
+    startAccessibilityR1();
 
     document.documentElement.dataset.dataState = "workspace-ready";
     window.KIDULTS_WORKSPACE_PAGE = Object.freeze({

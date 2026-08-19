@@ -1,4 +1,5 @@
 import { startDetailMobileReconstruction } from "./components/mobile-reconstruction.js";
+import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 
 const esc = value =>
   String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -141,6 +142,7 @@ function renderObject(root, k100, manifest, id) {
 
 async function init() {
   startDetailMobileReconstruction();
+  startAccessibilityR1();
   const root = document.querySelector("[data-detail-root]");
   const type = document.documentElement.dataset.detailType;
   const id = new URLSearchParams(window.location.search).get("id");
@@ -155,6 +157,7 @@ async function init() {
     if (type === "vertical") renderVertical(root, verticals, manifest, id);
     else if (type === "object") renderObject(root, k100, manifest, id);
     else throw new Error(`Unsupported detail type: ${type}`);
+    startAccessibilityR1();
     window.setTimeout(() => window.KIDULTS_MOBILE?.audit?.(), 80);
   } catch (error) {
     root.innerHTML = `

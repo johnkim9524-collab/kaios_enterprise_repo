@@ -7,6 +7,7 @@ import { startMobileReconstruction } from "./components/mobile-reconstruction.js
 import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.js?v=662-visual95-final";
 import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=662-visual95-final";
 import { startHomepageStructure } from "./components/homepage-structure.js?v=662-visual95-final";
+import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -65,6 +66,7 @@ async function init() {
   document.documentElement.dataset.experience = "living-intelligence-v6";
   document.documentElement.dataset.homepageStructure = "v662";
   setupNavigation();
+  startAccessibilityR1();
 
   try {
     const data = await loadPortalData();
@@ -92,6 +94,7 @@ async function init() {
     setupDialogs(data);
     setupVerticalFilter();
     setupSearch(data.searchIndex);
+    startAccessibilityR1();
     setupReveal();
 
     startMobileReconstruction();

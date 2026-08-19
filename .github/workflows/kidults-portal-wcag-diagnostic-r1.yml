@@ -1,0 +1,50 @@
+name: KIDULTS Portal WCAG Diagnostic R1
+on:
+  pull_request:
+    paths:
+      - 'apps/kidults-enterprise-staging/public/portal/**'
+      - '.github/workflows/kidults-portal-wcag-diagnostic-r1.yml'
+  workflow_dispatch:
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser diagnostics
+        run: |
+          mkdir -p /tmp/a11y && cd /tmp/a11y
+          npm init -y >/dev/null
+          npm install --silent playwright @axe-core/playwright
+          npx playwright install chromium
+      - name: Start staging portal
+        run: |
+          mkdir -p /tmp/kidults-conversion-data
+          printf 'diagnostic-nonproduction' > /tmp/kidults-conversion-secret
+          KAIOS_ENVIRONMENT=staging KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false KIDULTS_CONVERSION_DATA_DIR=/tmp/kidults-conversion-data KIDULTS_CONVERSION_HASH_SECRET_FILE=/tmp/kidults-conversion-secret HOST=127.0.0.1 PORT=4173 node apps/kidults-enterprise-staging/server.mjs >/tmp/server.log 2>&1 &
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/health >/dev/null && break; sleep 1; done
+      - name: Diagnose exact accessibility targets
+        run: |
+          cat >/tmp/a11y/diagnose.mjs <<'NODE'
+          import {chromium} from 'playwright';
+          import AxeBuilder from '@axe-core/playwright';
+          const browser=await chromium.launch({headless:true});
+          for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile320',width:320,height:800}]){
+            const ctx=await browser.newContext({viewport});
+            for(const route of ['/portal/index.html','/portal/workspace.html','/portal/vertical.html','/portal/object.html']){
+              const page=await ctx.newPage(); await page.goto('http://127.0.0.1:4173'+route,{waitUntil:'networkidle'});
+              const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();
+              const bad=axe.violations.filter(v=>['serious','critical'].includes(v.impact));
+              const unnamed=await page.evaluate(()=>[...document.querySelectorAll('button,input,select,textarea,a[href]')].filter(el=>{const text=(el.textContent||'').trim();const aria=el.getAttribute('aria-label')||el.getAttribute('aria-labelledby');const title=el.getAttribute('title');const alt=el.getAttribute('alt');const label=el.id&&document.querySelector(`label[for="${CSS.escape(el.id)}"]`);return !text&&!aria&&!title&&!alt&&!label}).map(el=>({tag:el.tagName,cls:el.className,id:el.id,outer:el.outerHTML.slice(0,500)})));
+              console.log(JSON.stringify({route,viewport:viewport.name,violations:bad.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,html:n.html,failureSummary:n.failureSummary,any:n.any?.map(x=>x.message)}))})),unnamed},null,2));
+              await page.close();
+            }
+            await ctx.close();
+          }
+          await browser.close();
+          NODE
+          cd /tmp/a11y && node diagnose.mjs
