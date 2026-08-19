@@ -1,0 +1,23 @@
+name: KIDULTS CollectAIO Shadow SOLD Admission R1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/collectaio-shadow-sold-admission-r1.json'
+      - 'scripts/kidults/source-intelligence/validate-collectaio-shadow-sold-admission-r1.mjs'
+      - '.github/workflows/kidults-collectaio-shadow-sold-admission-r1.yml'
+      - 'coordination/kidults/engine-v2/fixtures/foundation-preflight-input-v1.json'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-shadow-sold-admission:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/kidults/source-intelligence/validate-collectaio-shadow-sold-admission-r1.mjs
