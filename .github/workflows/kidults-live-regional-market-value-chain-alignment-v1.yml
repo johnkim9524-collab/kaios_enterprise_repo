@@ -1,0 +1,29 @@
+name: KIDULTS Live Regional Market Value Chain Alignment V1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/architecture/live-regional-market-value-chain-alignment-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-live-regional-market-value-chain-alignment-v1.mjs'
+      - '.github/workflows/kidults-live-regional-market-value-chain-alignment-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/architecture/live-regional-market-value-chain-alignment-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-live-regional-market-value-chain-alignment-v1.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate live regional value-chain alignment
+        run: node scripts/kidults/source-intelligence/validate-live-regional-market-value-chain-alignment-v1.mjs
