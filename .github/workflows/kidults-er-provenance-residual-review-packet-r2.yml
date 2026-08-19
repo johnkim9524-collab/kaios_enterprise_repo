@@ -1,0 +1,63 @@
+name: KIDULTS ER Provenance Residual Review Packet R2
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-provenance-residual-capacity-r2.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-residual-review-packet-r2.mjs'
+      - 'scripts/kidults/entity-resolution/validate-provenance-residual-review-packet-r2.mjs'
+      - '.github/workflows/kidults-er-provenance-residual-review-packet-r2.yml'
+      - 'scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-review-packet-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-provenance-review-packet-r1.mjs'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-residual-review-packet:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Rebuild existing 50-case provenance packet on current head
+        run: |
+          node scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs /tmp/provenance-source-corpus-r1.json
+          node scripts/kidults/entity-resolution/build-provenance-review-packet-r1.mjs /tmp/provenance-source-corpus-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/provenance-review-packet-r1.json
+          node scripts/kidults/entity-resolution/validate-provenance-review-packet-r1.mjs /tmp/provenance-review-packet-r1.json
+      - name: Create source-reference exclusion set
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/provenance-review-packet-r1.json','utf8'));
+          const refs=[];
+          for(const c of x.cases||[]){ if(c.source_a_reference) refs.push(c.source_a_reference); if(c.source_b_reference) refs.push(c.source_b_reference); }
+          fs.writeFileSync('/tmp/provenance-exclude-r2.json',JSON.stringify({references:[...new Set(refs)].sort()},null,2));
+          console.log(JSON.stringify({excluded_reference_count:[...new Set(refs)].length}));
+          NODE
+      - name: Measure residual Getty capacity excluding existing packet references
+        run: node scripts/kidults/entity-resolution/probe-provenance-residual-capacity-r2.mjs /tmp/provenance-residual-capacity-r2.json /tmp/provenance-exclude-r2.json
+      - name: Build additional reviewer-ready provenance cases
+        run: node scripts/kidults/entity-resolution/build-provenance-residual-review-packet-r2.mjs /tmp/provenance-residual-capacity-r2.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/provenance-residual-review-packet-r2.json
+      - name: Validate residual packet truth boundaries
+        run: node scripts/kidults/entity-resolution/validate-provenance-residual-review-packet-r2.mjs /tmp/provenance-residual-review-packet-r2.json
+      - name: Enforce no raw provider payload publication
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const cap=JSON.parse(fs.readFileSync('/tmp/provenance-residual-capacity-r2.json','utf8'));
+          const packet=JSON.parse(fs.readFileSync('/tmp/provenance-residual-review-packet-r2.json','utf8'));
+          const s=JSON.stringify({cap,packet});
+          if(/"payload"\s*:/.test(s)) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          if(packet.production!=='HOLD'||packet.public_release!=='HOLD'||packet.track_b!=='NOT_STARTED') throw new Error('RELEASE_BOUNDARY');
+          console.log(JSON.stringify({additional_reviewer_ready:packet.case_count,total_provenance_reviewer_ready:packet.total_reviewer_ready_if_combined,remaining:packet.remaining_case_count,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-provenance-residual-review-packet-r2
+          path: |
+            /tmp/provenance-residual-capacity-r2.json
+            /tmp/provenance-residual-review-packet-r2.json
+          retention-days: 14
