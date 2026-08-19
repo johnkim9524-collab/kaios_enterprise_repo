@@ -1,0 +1,27 @@
+name: KIDULTS PCGS Live Single Record Probe R1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/probe-pcgs-single-record-r1.mjs'
+      - '.github/workflows/kidults-pcgs-live-single-record-probe-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-live-single-record-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      KAIOS_PCGS_ACCOUNT_AUTHORIZED: ${{ vars.KAIOS_PCGS_ACCOUNT_AUTHORIZED }}
+      KAIOS_PCGS_EULA_COMPATIBLE: ${{ vars.KAIOS_PCGS_EULA_COMPATIBLE }}
+      KAIOS_PCGS_API_TOKEN: ${{ secrets.KAIOS_PCGS_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Founder-approved bounded PCGS live single-record schema probe
+        run: node scripts/kidults/source-intelligence/probe-pcgs-single-record-r1.mjs
