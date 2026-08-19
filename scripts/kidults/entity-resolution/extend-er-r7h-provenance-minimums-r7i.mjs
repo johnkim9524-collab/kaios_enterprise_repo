@@ -62,37 +62,28 @@ for (const c of dataset.cases.filter(x => x.scope_id === STRATUM)) {
   }
 }
 
+const HARD_CREATOR = 'Q5582';
 const objectRowsQuery = `
-SELECT ?item ?creator ?inventory WHERE {
-  ?item wdt:P170 ?creator ; wdt:P217 ?inventory .
+SELECT ?item ?inventory WHERE {
+  ?item wdt:P170 wd:${HARD_CREATOR} ; wdt:P217 ?inventory .
 }
-ORDER BY STR(?creator) STR(?item)
-LIMIT 1800`;
+LIMIT 120`;
 const rowsJson = await fetchJson(`https://query.wikidata.org/sparql?query=${encodeURIComponent(objectRowsQuery)}&format=json`);
 const rows = (rowsJson?.results?.bindings ?? [])
   .map(row => ({
     item: qidFromUri(row?.item?.value),
-    creator: qidFromUri(row?.creator?.value),
+    creator: HARD_CREATOR,
     inventory: String(row?.inventory?.value ?? '').trim()
   }))
-  .filter(row => row.item && row.creator && row.inventory && !usedQids.has(row.item));
+  .filter(row => row.item && row.inventory && !usedQids.has(row.item));
 
-const groups = new Map();
-for (const row of rows) {
-  const list = groups.get(row.creator) ?? [];
-  if (!list.some(x => x.item === row.item && x.inventory === row.inventory)) list.push(row);
-  groups.set(row.creator, list);
-}
 const candidatePairs = [];
-for (const [creator, list] of [...groups.entries()].sort()) {
-  for (let i=0; i<list.length; i++) {
-    for (let j=i+1; j<list.length; j++) {
-      if (list[i].item !== list[j].item && list[i].inventory !== list[j].inventory) {
-        candidatePairs.push({creator, left:list[i], right:list[j]});
-        if (candidatePairs.length >= 20) break;
-      }
+for (let i=0; i<rows.length; i++) {
+  for (let j=i+1; j<rows.length; j++) {
+    if (rows[i].item !== rows[j].item && rows[i].inventory !== rows[j].inventory) {
+      candidatePairs.push({creator:HARD_CREATOR,left:rows[i],right:rows[j]});
+      if (candidatePairs.length >= 20) break;
     }
-    if (candidatePairs.length >= 20) break;
   }
   if (candidatePairs.length >= 20) break;
 }
@@ -165,8 +156,7 @@ SELECT ?left ?right ?leftInventory ?rightInventory WHERE {
   FILTER(?left != ?right)
   FILTER(?leftInventory != ?rightInventory)
 }
-ORDER BY STR(?left) STR(?right)
-LIMIT 500`;
+LIMIT 120`;
 const ambiguousJson = await fetchJson(`https://query.wikidata.org/sparql?query=${encodeURIComponent(ambiguousQuery)}&format=json`);
 let ambiguous = null;
 for (const row of ambiguousJson?.results?.bindings ?? []) {
