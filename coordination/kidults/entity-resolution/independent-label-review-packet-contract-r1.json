@@ -1,0 +1,46 @@
+{
+  "id":"kidults-er-independent-label-review-packet-contract-r1",
+  "version":"1.0.0",
+  "status":"READY_FOR_REAL_REVIEWERS_NOT_ATTESTED",
+  "parent_issue":609,
+  "sampling_plan":"coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json",
+  "production":"HOLD",
+  "truth_boundary":"This contract prepares two independent blinded label-review packets and adjudication evidence. It does not claim that reviewers exist, reviews occurred, labels are complete, or Track B passed.",
+  "reviewer_requirements":{
+    "minimum_independent_reviewers":2,
+    "reviewer_identity_must_be_real":true,
+    "same_reviewer_twice_prohibited":true,
+    "resolver_author_or_model_prediction_as_reviewer_input_prohibited":true,
+    "reviewer_a_must_not_see_reviewer_b_labels":true,
+    "reviewer_b_must_not_see_reviewer_a_labels":true,
+    "model_predictions_hidden_until_both_labels_frozen":true
+  },
+  "packet_input_fields":[
+    "case_id","stratum_id","case_class","identity_boundary","source_a_reference","source_b_reference","source_a_payload_sha256","source_b_payload_sha256","license_evidence_refs","rights_state","provenance_refs"
+  ],
+  "fields_prohibited_from_reviewer_packets":["model_prediction","model_score","other_reviewer_label","adjudicated_label","benchmark_result"],
+  "review_output_schema":{
+    "required_fields":["case_id","reviewer_id","reviewer_independence_attestation","label","label_reason_code","evidence_refs_reviewed","reviewed_at","review_record_sha256"],
+    "allowed_labels":["MATCH","NO_MATCH","REVIEW_REQUIRED"],
+    "reviewer_independence_attestation_required":true
+  },
+  "adjudication":{
+    "trigger":"REVIEWER_LABELS_DISAGREE_OR_ANY_REVIEW_REQUIRED",
+    "required_fields":["case_id","reviewer_a_label","reviewer_b_label","adjudicator_id","final_label","reason","evidence_refs","adjudicated_at","record_sha256"],
+    "must_complete_before_empirical_attestation":true
+  },
+  "blind_holdout":{
+    "holdout_case_ids_must_be_sealed_before_model_freeze":true,
+    "holdout_labels_hidden_from_modeling":true,
+    "holdout_partition_change_after_model_freeze":"PROHIBITED",
+    "required_proof":["holdout_partition_sha256","holdout_partition_commit_sha","model_freeze_sha","proof_partition_commit_precedes_model_freeze"]
+  },
+  "completion_state":{
+    "reviewer_a":"NOT_ASSIGNED",
+    "reviewer_b":"NOT_ASSIGNED",
+    "labels":"NOT_COLLECTED",
+    "adjudication":"NOT_STARTED",
+    "empirical_attestation":"NOT_CREATED",
+    "track_b":"NOT_STARTED"
+  }
+}
