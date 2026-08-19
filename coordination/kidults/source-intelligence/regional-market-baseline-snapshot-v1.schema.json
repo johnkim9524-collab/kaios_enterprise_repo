@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "regional-market-baseline-snapshot-v1",
+  "title": "KIDULTS Regional Market Baseline Snapshot v1",
+  "type": "object",
+  "required": ["snapshot_id","methodology_version","generated_at","status","cells","truth_boundary"],
+  "properties": {
+    "snapshot_id": {"type":"string","minLength":1},
+    "methodology_version": {"type":"string","minLength":1},
+    "generated_at": {"type":"string"},
+    "status": {"enum":["DRAFT","SHADOW_VALIDATED","ACTIVE","SUPERSEDED"]},
+    "source_snapshot_ids": {"type":"array","items":{"type":"string"}},
+    "cells": {
+      "type":"array",
+      "items": {
+        "type":"object",
+        "required":["category_scope","macroregion_id","factors","collection_quota","analytical_weight","eligibility"],
+        "properties": {
+          "category_scope":{"type":"string"},
+          "macroregion_id":{"type":"string"},
+          "country_scope":{"type":"array","items":{"type":"string"}},
+          "factors":{"type":"object","required":["MARKET_SCALE","MARKET_MATURITY","OBSERVED_TRANSACTION_ACTIVITY","VENUE_DEPTH_AND_DIVERSITY","SECONDARY_MARKET_DEPTH","AUTHENTICATION_GRADING_INFRASTRUCTURE","CROSS_BORDER_ACTIVITY","DATA_TRANSPARENCY_AND_EVIDENCE_QUALITY","SIGNAL_LEAD_VALUE","FRESHNESS","SOURCE_INDEPENDENCE"]},
+          "collection_quota":{"type":["number","null"],"minimum":0,"maximum":1},
+          "analytical_weight":{"type":["number","null"],"minimum":0,"maximum":1},
+          "coverage_debt":{"type":["number","null"],"minimum":0},
+          "eligibility":{"enum":["ELIGIBLE_SHADOW","ELIGIBLE_ACTIVE","NOT_VERIFIED","STALE","RIGHTS_BLOCKED"]}
+        }
+      }
+    },
+    "truth_boundary": {
+      "type":"object",
+      "required":["unknown_is_not_zero","collection_share_is_not_analytical_weight","raw_records_do_not_directly_mutate_weights","bootstrap_is_not_market_share"]
+    }
+  }
+}
