@@ -3,7 +3,8 @@ small[data-hero-status],
 .data-funnel-note,
 .footer-brand > span,
 .footer-inner > span,
-.workspace-page-context-copy > span {
+.workspace-page-context-copy > span,
+.living-object-state > small {
   color: #545b56 !important;
 }
 
