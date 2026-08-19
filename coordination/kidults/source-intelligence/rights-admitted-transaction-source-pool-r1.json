@@ -1,0 +1,38 @@
+{
+  "id": "rights-admitted-transaction-source-pool-r1",
+  "version": "1.0.0",
+  "status": "PILOT_READY",
+  "methodology_issue": 486,
+  "factory_issue": 488,
+  "execution_consumer_issue": 480,
+  "production": "HOLD",
+  "sources": [
+    {
+      "source_id": "getty-provenance-index",
+      "owner": "J. Paul Getty Trust",
+      "channel": "PUBLIC_REST_JSON_LD_API",
+      "rights_basis": "CC0",
+      "rights_evidence": ["https://data.getty.edu/provenance/docs/"],
+      "admission_state": "ADMITTED",
+      "allowed_claim_classes": ["HISTORICAL_SALE_ACTIVITY", "OWNERSHIP_TRANSFER_CONTEXT", "HISTORICAL_VALUATION_CONTEXT"],
+      "prohibited_claim_classes": ["CURRENT_MARKET_PRICE", "CURRENT_LIQUIDITY", "CURRENT_DEMAND", "CURRENT_RANKING"],
+      "purpose_rights": {
+        "discover": "ALLOW",
+        "collect": "ALLOW",
+        "store": "ALLOW",
+        "derive": "ALLOW",
+        "display_internal": "ALLOW",
+        "display_public": "ALLOW_WITH_SOURCE_ACKNOWLEDGEMENT_PREFERRED"
+      },
+      "technical_state": "READY_FOR_DEV_SHADOW",
+      "evidence_strength": "HISTORICAL_TRANSACTION_CONTEXT_ONLY"
+    }
+  ],
+  "pool_readiness": {
+    "rights_admitted_transaction_sources": 1,
+    "historical_sale_activity_ready": true,
+    "current_market_event_ready": false,
+    "eligible_for_asi_historical_transaction_run": true,
+    "eligible_for_current_market_price_claim": false
+  }
+}

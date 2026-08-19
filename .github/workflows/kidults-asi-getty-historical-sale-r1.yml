@@ -1,0 +1,33 @@
+name: KIDULTS ASI Getty Historical Sale R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json'
+      - 'scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs'
+      - '.github/workflows/kidults-asi-getty-historical-sale-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  getty-historical-sale:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Getty historical sale live source
+        run: node scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs /tmp/getty-historical-sale-r1.json
+      - name: Verify historical-only fail-closed boundary
+        run: |
+          node -e "const x=require('/tmp/getty-historical-sale-r1.json'); if(x.validations.live_public_api_retrieval!=='PASS'||x.validations.historical_sale_activity_semantics!=='PASS'||x.validations.rights_admission!=='PASS_CC0'||x.validations.current_market_price_semantics!=='NOT_ESTABLISHED'||x.validations.production_mutation!==false) process.exit(1); console.log('Getty historical sale admission PASS; current-market promotion blocked.')"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-getty-historical-sale-r1
+          path: /tmp/getty-historical-sale-r1.json
+          if-no-files-found: error
+          retention-days: 30
