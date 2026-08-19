@@ -1,0 +1,32 @@
+name: KIDULTS Private Market Store Empirical R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/prove-private-market-store-r1.mjs'
+      - 'coordination/kidults/source-intelligence/private-market-store-empirical-r1.json'
+      - '.github/workflows/kidults-private-market-store-empirical-r1.yml'
+      - 'coordination/kidults/source-intelligence/private-market-evidence-reacquisition-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prove-local-dev-mechanics:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Prove private-store mechanics with synthetic sentinel only
+        run: node scripts/kidults/source-intelligence/prove-private-market-store-r1.mjs /tmp/kidults-private-market-store-r1 | tee /tmp/private-store-result.json
+      - name: Enforce no provider/market overclaim
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/private-store-result.json','utf8'));
+          if(x.status!=='LOCAL_DEV_SENTINEL_EMPIRICAL_PASS_NOT_PROVIDER_EVIDENCE') throw new Error('STATUS');
+          for(const k of ['at_rest_encryption_roundtrip','opaque_receipt_hmac_verify','tamper_mutation_rejected','ttl_delete']) if(x[k]!=='PASS') throw new Error(`MISSING_${k}`);
+          if(x.provider_network_requests!==0||x.provider_payloads_used!==0||x.synthetic_sentinel_only!==true) throw new Error('PROVIDER_BOUNDARY');
+          if(x.active_market_claim!=='NONE'||x.rights_terminalized!==false||x.historical_cleanup_complete!==false||x.private_provider_runtime_verified!==false) throw new Error('OVERCLAIM');
+          if(x.production!=='HOLD'||x.public_release!=='HOLD') throw new Error('RELEASE');
+          console.log('PRIVATE_MARKET_STORE_LOCAL_DEV_EMPIRICAL_R1_PASS_FAIL_CLOSED');
+          NODE
