@@ -1,0 +1,33 @@
+name: KIDULTS Global Rights Source Pool Expansion R2
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/global-rights-source-pool-expansion-r2.json'
+      - '.github/workflows/kidults-global-rights-source-pool-expansion-r2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-rights-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Enforce source-purpose rights boundary
+        run: |
+          node - <<'NODE'
+          const x=require('./coordination/kidults/source-intelligence/global-rights-source-pool-expansion-r2.json');
+          const byId=Object.fromEntries(x.sources.map(s=>[s.source_id,s]));
+          if(x.production!=='HOLD') process.exit(1);
+          for(const id of ['wikidata-structured-data','europeana-metadata-api']) if(byId[id]?.admission_state!=='ADMITTED') process.exit(1);
+          for(const id of ['bricklink-price-guide-api','discogs-api']) if(byId[id]?.admission_state!=='CONDITIONAL') process.exit(1);
+          if(x.pool_effect.current_market_claim_gate!=='STILL_OPEN'||x.pool_effect.provider_purchase!=='HOLD') process.exit(1);
+          if(byId['europeana-metadata-api'].digital_object_rule.includes('ALLOW_ALL')) process.exit(1);
+          console.log('Global rights source pool R2 fail-closed boundary PASS');
+          NODE
