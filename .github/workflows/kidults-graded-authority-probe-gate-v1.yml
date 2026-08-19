@@ -1,0 +1,39 @@
+name: KIDULTS Graded Authority Probe Gate V1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-graded-authority-probe-gate-v1.mjs'
+      - '.github/workflows/kidults-graded-authority-probe-gate-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove-default-deny:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Validate contract and require BLOCKED without approval or token
+        run: |
+          node scripts/kidults/source-intelligence/validate-graded-authority-probe-gate-v1.mjs coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json /tmp/probe-gate.json
+          node - <<'NODE'
+          const x=require('/tmp/probe-gate.json');
+          if(x.state!=='BLOCKED') process.exit(1);
+          if(!x.blockers.includes('EXPLICIT_EXTERNAL_CREDENTIAL_ACTION_APPROVAL_REQUIRED')) process.exit(1);
+          if(!x.blockers.includes('AUTHORIZED_PROVIDER_TOKEN_SECRET_REQUIRED')) process.exit(1);
+          if(x.secret_material_observed!==false||x.production!=='HOLD'||x.publication!=='HOLD') process.exit(1);
+          console.log('Graded authority external credential gate PASS: default deny, no secret leakage, Production/Publication HOLD.');
+          NODE
+      - name: Require strict mode fail-closed
+        run: |
+          set +e
+          KAIOS_REQUIRE_PROBE_ALLOWED=1 node scripts/kidults/source-intelligence/validate-graded-authority-probe-gate-v1.mjs coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json /tmp/strict.json
+          code=$?
+          set -e
+          test "$code" -eq 3
