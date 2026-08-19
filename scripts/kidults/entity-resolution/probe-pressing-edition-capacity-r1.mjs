@@ -12,91 +12,19 @@ const target=(sampling.strata||[]).find(x=>x.stratum_id===stratum);
 if(!target||target.case_class_targets?.SAME_OBJECT_NORMALIZATION!==40||target.case_class_targets?.HARD_NEGATIVE!==40||target.case_class_targets?.CROSS_MARKET_ALIAS!==40) throw new Error('PRESSING_SAMPLING_TARGET_INVALID');
 
 const records=corpus.records;
-const normalization=records.filter(r=>{
-  const p=r.payload||{};
-  return p.release_mbid&&p.barcode&&Array.isArray(p.label_catalog_numbers)&&p.label_catalog_numbers.some(x=>x.catalog_number);
-}).map(r=>({
-  candidate_id:`pressing-normalization:${r.source_record_id}`,
-  case_class:'SAME_OBJECT_NORMALIZATION',
-  source_record_ids:[r.source_record_id],
-  source_reference:r.source_reference,
-  release_mbid:r.payload.release_mbid,
-  barcode:r.payload.barcode,
-  catalog_numbers:r.payload.label_catalog_numbers.map(x=>x.catalog_number),
-  candidate_basis:'ONE_MUSICBRAINZ_RELEASE_RECORD_COASSERTS_RELEASE_MBID_BARCODE_AND_LABEL_CATALOG_NUMBER',
-  candidate_state:'UNLABELED_REVIEW_REQUIRED'
-}));
-
+const normalization=records.filter(r=>{const p=r.payload||{};return p.release_mbid&&p.barcode&&Array.isArray(p.label_catalog_numbers)&&p.label_catalog_numbers.some(x=>x.catalog_number);}).map(r=>({candidate_id:`pressing-normalization:${r.source_record_id}`,case_class:'SAME_OBJECT_NORMALIZATION',source_record_ids:[r.source_record_id],source_reference:r.source_reference,release_mbid:r.payload.release_mbid,barcode:r.payload.barcode,catalog_numbers:r.payload.label_catalog_numbers.map(x=>x.catalog_number),candidate_basis:'ONE_MUSICBRAINZ_RELEASE_RECORD_COASSERTS_RELEASE_MBID_BARCODE_AND_LABEL_CATALOG_NUMBER',candidate_state:'UNLABELED_REVIEW_REQUIRED'}));
 const hardNegative=[];
-for(let i=0;i<records.length;i++){
-  for(let j=i+1;j<records.length;j++){
-    const a=records[i],b=records[j],pa=a.payload||{},pb=b.payload||{};
-    if(!pa.release_group?.release_group_mbid||pa.release_group.release_group_mbid!==pb.release_group?.release_group_mbid) continue;
-    if(pa.release_mbid===pb.release_mbid) continue;
-    if(!pa.barcode||!pb.barcode||pa.barcode===pb.barcode) continue;
-    const aCats=(pa.label_catalog_numbers||[]).map(x=>x.catalog_number).filter(Boolean);
-    const bCats=(pb.label_catalog_numbers||[]).map(x=>x.catalog_number).filter(Boolean);
-    if(!aCats.length||!bCats.length) continue;
-    if(aCats.some(x=>bCats.includes(x))) continue;
-    hardNegative.push({
-      candidate_id:`pressing-hard-negative:${a.source_record_id}:${b.source_record_id}`,
-      case_class:'HARD_NEGATIVE',
-      source_record_ids:[a.source_record_id,b.source_record_id],
-      shared_release_group_mbid:pa.release_group.release_group_mbid,
-      left_release_mbid:pa.release_mbid,
-      right_release_mbid:pb.release_mbid,
-      left_barcode:pa.barcode,
-      right_barcode:pb.barcode,
-      left_catalog_numbers:aCats,
-      right_catalog_numbers:bCats,
-      candidate_basis:'TWO_MUSICBRAINZ_RELEASES_SHARE_RELEASE_GROUP_BUT_HAVE_DISTINCT_RELEASE_MBID_BARCODE_AND_CATALOG_NUMBER',
-      candidate_state:'UNLABELED_REVIEW_REQUIRED'
-    });
-  }
+for(let i=0;i<records.length;i++)for(let j=i+1;j<records.length;j++){
+  const a=records[i],b=records[j],pa=a.payload||{},pb=b.payload||{};
+  if(!pa.release_group?.release_group_mbid||pa.release_group.release_group_mbid!==pb.release_group?.release_group_mbid||pa.release_mbid===pb.release_mbid||!pa.barcode||!pb.barcode||pa.barcode===pb.barcode) continue;
+  const aCats=(pa.label_catalog_numbers||[]).map(x=>x.catalog_number).filter(Boolean), bCats=(pb.label_catalog_numbers||[]).map(x=>x.catalog_number).filter(Boolean);
+  if(!aCats.length||!bCats.length||aCats.some(x=>bCats.includes(x))) continue;
+  hardNegative.push({candidate_id:`pressing-hard-negative:${a.source_record_id}:${b.source_record_id}`,case_class:'HARD_NEGATIVE',source_record_ids:[a.source_record_id,b.source_record_id],shared_release_group_mbid:pa.release_group.release_group_mbid,left_release_mbid:pa.release_mbid,right_release_mbid:pb.release_mbid,left_barcode:pa.barcode,right_barcode:pb.barcode,left_catalog_numbers:aCats,right_catalog_numbers:bCats,candidate_basis:'TWO_MUSICBRAINZ_RELEASES_SHARE_RELEASE_GROUP_BUT_HAVE_DISTINCT_RELEASE_MBID_BARCODE_AND_CATALOG_NUMBER',candidate_state:'UNLABELED_REVIEW_REQUIRED'});
 }
-
-const crossMarketAlias=[];
-const metrics={
-  real_source_records:records.length,
-  same_object_normalization_candidates:normalization.length,
-  hard_negative_candidates:hardNegative.length,
-  cross_market_alias_candidates:0,
-  same_object_normalization_capacity:Math.min(40,normalization.length),
-  hard_negative_capacity:Math.min(40,hardNegative.length),
-  cross_market_alias_capacity:0,
-};
-metrics.conservative_case_capacity=metrics.same_object_normalization_capacity+metrics.hard_negative_capacity+metrics.cross_market_alias_capacity;
-metrics.source_capacity_ready_for_120_cases=metrics.same_object_normalization_capacity===40&&metrics.hard_negative_capacity===40&&metrics.cross_market_alias_capacity===40;
-const blockers=[];
-if(metrics.same_object_normalization_capacity<40) blockers.push(`SAME_OBJECT_NORMALIZATION_${metrics.same_object_normalization_capacity}_OF_40`);
-if(metrics.hard_negative_capacity<40) blockers.push(`HARD_NEGATIVE_${metrics.hard_negative_capacity}_OF_40`);
-blockers.push('CROSS_MARKET_ALIAS_0_OF_40_SINGLE_SOURCE_MUSICBRAINZ_CANNOT_PROVE_CROSS_MARKET_ALIAS');
-
-const artifact={
-  id:'kidults-er-pressing-edition-capacity-r1',
-  version:'1.0.0',
-  stratum_id:stratum,
-  status:metrics.source_capacity_ready_for_120_cases?'COMPLETE_SOURCE_CAPACITY_READY':'COMPLETE_FAIL_CLOSED_PARTIAL_CAPACITY',
-  source_corpus_id:corpus.id,
-  rights_state:'ALLOW',
-  acquisition_transport_state:corpus.acquisition_transport_state,
-  labels_present:false,
-  model_predictions_present:false,
-  candidate_pools:{
-    SAME_OBJECT_NORMALIZATION:normalization.slice(0,40),
-    HARD_NEGATIVE:hardNegative.slice(0,40),
-    CROSS_MARKET_ALIAS:crossMarketAlias
-  },
-  metrics,
-  blockers,
-  empirical_cases_created:0,
-  reviewers_assigned:0,
-  blind_partition_sealed:false,
-  empirical_attestation_created:false,
-  track_b:'NOT_STARTED',
-  public_release:'HOLD',
-  production:'HOLD',
-  truth_boundary:'This probe measures only evidence-backed Pressing/Edition case-class capacity from the existing lawful MusicBrainz corpus. Single-source identifier co-assertions may support SAME_OBJECT_NORMALIZATION candidates and same-release-group distinct releases may support HARD_NEGATIVE candidates. MusicBrainz alone contributes zero CROSS_MARKET_ALIAS capacity; no cross-market alias is inferred or fabricated.'
-};
-await fs.writeFile(outPath,JSON.stringify(artifact,null,2));
-console.log(JSON.stringify({status:artifact.status,metrics,blockers,production:'HOLD'},null,2));
+function maxDisjointPairs(edges){const sorted=[...edges].sort((a,b)=>a.candidate_id.localeCompare(b.candidate_id));let best=[];function visit(index,used,chosen){if(chosen.length+(sorted.length-index)<=best.length)return;if(index>=sorted.length){if(chosen.length>best.length)best=[...chosen];return;}visit(index+1,used,chosen);const edge=sorted[index],ids=edge.source_record_ids||[];if(ids.length===2&&!used.has(ids[0])&&!used.has(ids[1])){used.add(ids[0]);used.add(ids[1]);chosen.push(edge);visit(index+1,used,chosen);chosen.pop();used.delete(ids[0]);used.delete(ids[1]);}}visit(0,new Set(),[]);return best;}
+const hardNegativeDisjoint=maxDisjointPairs(hardNegative), crossMarketAlias=[];
+const metrics={real_source_records:records.length,same_object_normalization_candidates:normalization.length,hard_negative_candidates:hardNegative.length,hard_negative_source_disjoint_candidates:hardNegativeDisjoint.length,cross_market_alias_candidates:0,same_object_normalization_capacity:Math.min(40,normalization.length),hard_negative_capacity:Math.min(40,hardNegativeDisjoint.length),cross_market_alias_capacity:0};
+metrics.conservative_case_capacity=metrics.same_object_normalization_capacity+metrics.hard_negative_capacity;metrics.source_capacity_ready_for_120_cases=metrics.same_object_normalization_capacity===40&&metrics.hard_negative_capacity===40&&metrics.cross_market_alias_capacity===40;
+const blockers=[];if(metrics.same_object_normalization_capacity<40)blockers.push(`SAME_OBJECT_NORMALIZATION_${metrics.same_object_normalization_capacity}_OF_40`);if(metrics.hard_negative_capacity<40)blockers.push(`HARD_NEGATIVE_${metrics.hard_negative_capacity}_OF_40_SOURCE_DISJOINT`);blockers.push('CROSS_MARKET_ALIAS_0_OF_40_SINGLE_SOURCE_MUSICBRAINZ_CANNOT_PROVE_CROSS_MARKET_ALIAS');
+const artifact={id:'kidults-er-pressing-edition-capacity-r1',version:'1.2.0',stratum_id:stratum,status:metrics.source_capacity_ready_for_120_cases?'COMPLETE_SOURCE_CAPACITY_READY':'COMPLETE_FAIL_CLOSED_PARTIAL_CAPACITY',source_corpus_id:corpus.id,rights_state:'ALLOW',acquisition_transport_state:corpus.acquisition_transport_state,labels_present:false,model_predictions_present:false,candidate_pools:{SAME_OBJECT_NORMALIZATION:normalization,HARD_NEGATIVE:hardNegative,HARD_NEGATIVE_SOURCE_DISJOINT:hardNegativeDisjoint,CROSS_MARKET_ALIAS:crossMarketAlias},metrics,blockers,empirical_cases_created:0,reviewers_assigned:0,blind_partition_sealed:false,empirical_attestation_created:false,track_b:'NOT_STARTED',public_release:'HOLD',production:'HOLD',truth_boundary:'This probe measures only evidence-backed Pressing/Edition case-class capacity from the existing lawful MusicBrainz corpus. HARD_NEGATIVE usable capacity is the exact maximum source-record-disjoint subset, not the raw pair count. MusicBrainz alone contributes zero CROSS_MARKET_ALIAS capacity; no cross-market alias is inferred or fabricated.'};
+await fs.writeFile(outPath,JSON.stringify(artifact,null,2));console.log(JSON.stringify({status:artifact.status,metrics,blockers,production:'HOLD'},null,2));
