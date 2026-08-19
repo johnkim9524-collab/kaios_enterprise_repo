@@ -1,0 +1,34 @@
+name: KIDULTS ER Serialized Reference Capacity R2
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-serialized-reference-capacity-r2.mjs'
+      - '.github/workflows/kidults-er-serialized-capacity-r2.yml'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probe expanded authoritative Serialized Reference capacity
+        env:
+          KAIOS_REQUIRE_SERIALIZED_R2_READY: '1'
+        run: node scripts/kidults/entity-resolution/probe-serialized-reference-capacity-r2.mjs coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/serialized-r2.json
+      - name: Upload bounded diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-reference-capacity-r2
+          path: /tmp/serialized-r2.json
+          retention-days: 14
+          if-no-files-found: warn
