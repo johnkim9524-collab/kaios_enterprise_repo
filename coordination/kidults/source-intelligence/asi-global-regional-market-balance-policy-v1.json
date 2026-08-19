@@ -1,0 +1,159 @@
+{
+  "id": "asi-global-regional-market-balance-policy-v1",
+  "record_type": "canonical_asi_regional_market_balance_policy",
+  "version": "1.0.0",
+  "status": "PROPOSED_CANONICAL_ASI_GUIDE",
+  "parent_issue": 643,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "purpose": "Prevent data-rich regions, especially the United States, from becoming accidental global truth by governing regional collection allocation, analytical weighting, coverage debt and global-claim eligibility independently.",
+  "truth_boundary": [
+    "COLLECTION_VOLUME_IS_NOT_MARKET_SHARE",
+    "COLLECTION_SHARE_IS_NOT_ANALYTICAL_WEIGHT",
+    "US_DATA_ABUNDANCE_IS_NOT_GLOBAL_REPRESENTATIVENESS",
+    "MISSING_REGION_IS_NOT_ZERO_DEMAND",
+    "EQUAL_COUNTRY_COUNTS_ARE_NOT_MARKET_REPRESENTATIVENESS",
+    "ONE_PROVIDER_OR_VENUE_IS_NOT_REGIONAL_TRUTH",
+    "FX_NORMALIZATION_ALONE_DOES_NOT_CREATE_PRICE_COMPARABILITY",
+    "BOOTSTRAP_TARGETS_ARE_STRUCTURAL_STARTING_TARGETS_NOT_FACTUAL_MARKET_SHARE_ESTIMATES"
+  ],
+  "canonical_macroregions": [
+    {"id":"NORTH_AMERICA","countries_example":["US","CA","MX"],"bootstrap_collection_share":0.28,"market_stage":"MIXED_MATURE"},
+    {"id":"EUROPE","countries_example":["GB","FR","DE","IT","ES","CH","NL","SE"],"bootstrap_collection_share":0.20,"market_stage":"MATURE"},
+    {"id":"JAPAN","countries_example":["JP"],"bootstrap_collection_share":0.12,"market_stage":"MATURE_SPECIALIST"},
+    {"id":"KOREA","countries_example":["KR"],"bootstrap_collection_share":0.08,"market_stage":"GROWTH_SPECIALIST"},
+    {"id":"GREATER_CHINA","countries_example":["CN","HK","TW"],"bootstrap_collection_share":0.12,"market_stage":"GROWTH_LARGE"},
+    {"id":"SOUTHEAST_ASIA","countries_example":["SG","TH","MY","ID","PH","VN"],"bootstrap_collection_share":0.08,"market_stage":"GROWTH"},
+    {"id":"OCEANIA","countries_example":["AU","NZ"],"bootstrap_collection_share":0.06,"market_stage":"MATURE_SMALL"},
+    {"id":"LATAM_MEA","countries_example":["BR","AR","AE","SA","ZA"],"bootstrap_collection_share":0.06,"market_stage":"EMERGING_MIXED"}
+  ],
+  "regional_factor_schema": {
+    "scale": "0_TO_1_EVIDENCE_BACKED_OR_UNKNOWN",
+    "unknown_state": "UNKNOWN_NOT_ZERO",
+    "required_factors": [
+      "MARKET_SCALE",
+      "MARKET_MATURITY",
+      "OBSERVED_TRANSACTION_ACTIVITY",
+      "SIGNAL_LEAD_VALUE",
+      "EVIDENCE_QUALITY",
+      "STRATEGIC_COVERAGE_GAP"
+    ]
+  },
+  "collection_priority_model": {
+    "factor_weights": {
+      "MARKET_SCALE": 0.30,
+      "MARKET_MATURITY": 0.15,
+      "OBSERVED_TRANSACTION_ACTIVITY": 0.20,
+      "SIGNAL_LEAD_VALUE": 0.15,
+      "EVIDENCE_QUALITY": 0.15,
+      "STRATEGIC_COVERAGE_GAP": 0.05
+    },
+    "bootstrap_blend": {"evidence_score_share":0.60,"structural_bootstrap_share":0.40},
+    "portfolio_constraints": {
+      "minimum_macroregion_share_when_strategically_relevant": 0.04,
+      "maximum_macroregion_share_without_explicit_exception": 0.35,
+      "maximum_single_country_share_without_explicit_exception": 0.30,
+      "maximum_single_source_owner_share_within_region": 0.50,
+      "exception_requires": ["KPMO_RECORDED_REASON","EVIDENCE_OF_TRUE_MARKET_CONCENTRATION_OR_TEMPORARY_GAP_CLOSURE","EXPIRY_OR_REVIEW_DATE"]
+    },
+    "rebalancing": {
+      "cadence": "MONTHLY_OR_ON_MATERIAL_MARKET_SOURCE_CHANGE",
+      "trigger_conditions": ["COVERAGE_DEBT_SPIKE","SOURCE_LOSS","REGIONAL_ACTIVITY_SHIFT","RIGHTS_CHANGE","SCHEMA_FAILURE","NEW_HIGH_VALUE_LOCAL_SOURCE"],
+      "no_rebalance_from_raw_record_count_alone": true
+    }
+  },
+  "analytical_weight_model": {
+    "must_be_computed_separately_from_collection_share": true,
+    "factor_weights": {
+      "MARKET_SCALE": 0.35,
+      "MARKET_MATURITY": 0.10,
+      "OBSERVED_TRANSACTION_ACTIVITY": 0.20,
+      "EVIDENCE_QUALITY": 0.20,
+      "FRESHNESS": 0.10,
+      "SOURCE_INDEPENDENCE": 0.05
+    },
+    "record_count_weight": 0.0,
+    "rules": [
+      "NO_REGION_GAINS_ANALYTICAL_WEIGHT_MERELY_FROM_MORE_RECORDS",
+      "LOW_EVIDENCE_QUALITY_REDUCES_WEIGHT_OR_FORCES_NOT_VERIFIED",
+      "CATEGORY_SPECIFIC_WEIGHTS_OVERRIDE_PLATFORM_WIDE_WEIGHTS_ONLY_WITH_EVIDENCE",
+      "CONDITION_TAX_FEE_CURRENCY_AND_TIME_NORMALIZATION_REQUIRED_FOR_CROSS_REGION_PRICE_COMPARISON"
+    ]
+  },
+  "required_market_record_dimensions": [
+    "macroregion_id","country_code","local_market_or_venue","language","currency","category_scope","source_role","evidence_class","rights_state","license_or_terms_ref","provenance_ref","observed_at","freshness_state","source_owner_id"
+  ],
+  "coverage_and_bias_metrics": {
+    "required": [
+      "REGIONAL_COLLECTION_SHARE",
+      "REGIONAL_ANALYTICAL_WEIGHT",
+      "REGIONAL_COVERAGE_DEBT",
+      "REGIONAL_HHI",
+      "COUNTRY_HHI",
+      "SOURCE_OWNER_HHI_BY_REGION",
+      "LANGUAGE_COVERAGE",
+      "CURRENCY_COVERAGE",
+      "LOCAL_VENUE_DIVERSITY",
+      "TIMEZONE_OBSERVATION_COVERAGE",
+      "SOURCE_REMOVAL_SENSITIVITY_BY_REGION"
+    ],
+    "coverage_debt_definition": "MAX(0, TARGET_COLLECTION_SHARE - RIGHTS_ADMITTED_EFFECTIVE_COLLECTION_SHARE)",
+    "missing_metric_state": "NOT_VERIFIED"
+  },
+  "claim_geography_gates": {
+    "REGIONAL": {
+      "minimum_macroregions": 1,
+      "claim_label_must_name_region": true,
+      "cross_region_language_prohibited": true
+    },
+    "MULTI_REGION": {
+      "minimum_macroregions": 3,
+      "minimum_independent_source_owners": 2,
+      "maximum_single_macroregion_analytical_contribution": 0.60
+    },
+    "GLOBAL": {
+      "minimum_macroregions": 5,
+      "minimum_mature_or_specialist_regions": 3,
+      "minimum_growth_or_emerging_regions": 2,
+      "minimum_weighted_market_coverage": 0.75,
+      "maximum_single_macroregion_analytical_contribution": 0.45,
+      "maximum_single_country_analytical_contribution": 0.35,
+      "minimum_independent_source_owners": 3,
+      "minimum_currencies_for_price_claims": 3,
+      "minimum_languages_or_local_market_interfaces": 3,
+      "rights_and_provenance_coverage": 1.0,
+      "unresolved_critical_regional_bias": 0,
+      "source_removal_sensitivity": "PASS_OR_EXPLICITLY_BOUNDED",
+      "failure_state": "NOT_VERIFIED_GLOBAL"
+    }
+  },
+  "category_region_matrix_rule": {
+    "unit": "CATEGORY_SCOPE_X_MACROREGION_X_EVIDENCE_CLASS_X_SOURCE_ROLE",
+    "no_global_pool_without_cell_binding": true,
+    "category_specific_market_structure_required": true,
+    "examples": [
+      "SNEAKERS_X_JAPAN_X_SOLD_TRANSACTION_X_SOLD_TRANSACTION",
+      "WATCHES_X_EUROPE_X_AUCTION_RESULT_X_AUCTION_PRIVATE_SALE",
+      "TOYS_MODELS_X_KOREA_X_LISTING_X_LISTING_SUPPLY"
+    ]
+  },
+  "asi_engine_bindings": {
+    "SOURCE_DISCOVERY_ENGINE": "DISCOVER_LOCAL_AND_GLOBAL_SOURCES_TO_CLOSE_REGIONAL_COVERAGE_DEBT",
+    "SOURCE_CLASSIFICATION_ENGINE": "REQUIRE_REGION_COUNTRY_LANGUAGE_CURRENCY_OWNER_AND_ROLE_BINDING",
+    "UTILITY_AND_VALUE_SCORING_ENGINE": "SCORE_INCREMENTAL_REGIONAL_INFORMATION_VALUE",
+    "COVERAGE_AND_BIAS_ENGINE": "COMPUTE_COLLECTION_SHARE_ANALYTICAL_WEIGHT_HHI_AND_COVERAGE_DEBT",
+    "INDEPENDENCE_AND_REDUNDANCY_ENGINE": "MEASURE_OWNER_AND_VENUE_CONCENTRATION_PER_REGION",
+    "FRESHNESS_AND_STABILITY_ENGINE": "MEASURE_REGION_SPECIFIC_FRESHNESS_AND_LATE_ARRIVAL",
+    "COST_AND_ROI_ENGINE": "OPTIMIZE_COST_PER_INCREMENTAL_REPRESENTATIVE_SIGNAL_NOT_COST_PER_RECORD",
+    "ACQUISITION_PLANNER": "GENERATE_DYNAMIC_REGION_QUOTAS_WITH_FLOORS_CAPS_AND_RIGHTS",
+    "SOURCE_POOL_EVOLUTION_ENGINE": "PROMOTE_REPLACE_OR_RETIRE_SOURCES_USING_REGIONAL_COVERAGE_DEBT",
+    "MARKET_GRAPH_ENGINE": "PRESERVE_REGION_COUNTRY_CURRENCY_AND_VENUE_CONTEXT",
+    "INDEX_ENGINES": "APPLY_ANALYTICAL_WEIGHTS_ONLY_AFTER_GEOGRAPHY_CLAIM_GATE_PASS"
+  },
+  "bootstrap_state": {
+    "mode": "STRUCTURAL_BOOTSTRAP_NOT_MARKET_SHARE",
+    "market_scale_estimates_verified": false,
+    "automatic_global_claim_authorized": false,
+    "next_required_step": "POPULATE_EVIDENCE_BACKED_CATEGORY_X_REGION_FACTOR_SCORECARDS_AND_REBALANCE"
+  }
+}
