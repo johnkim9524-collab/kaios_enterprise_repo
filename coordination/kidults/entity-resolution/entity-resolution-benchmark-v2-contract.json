@@ -1,0 +1,43 @@
+{
+  "id": "entity-resolution-benchmark-v2-contract",
+  "version": "2.0.0",
+  "status": "ACTIVE_P0",
+  "parent_issue": 479,
+  "objective": "Real-world Scope-stratified calibration for SOURCE_RECORD, PHYSICAL_OBJECT, CANONICAL_DESIGN and MARKET_EVENT identity boundaries.",
+  "identity_boundaries": ["SOURCE_RECORD", "PHYSICAL_OBJECT", "CANONICAL_DESIGN", "MARKET_EVENT"],
+  "required_case_classes": [
+    "HARD_NEGATIVE",
+    "SAME_OBJECT_NORMALIZATION",
+    "SAME_DESIGN_DIFFERENT_OBJECT",
+    "CROSS_MARKET_ALIAS",
+    "TRANSACTION_TO_OBJECT_LINKAGE",
+    "AMBIGUOUS_REVIEW_REQUIRED"
+  ],
+  "scope_stratification": "REQUIRED_ACROSS_APPROVED_POC_SCOPE_ARCHETYPES",
+  "provenance_coverage_required": 1.0,
+  "rights_coverage_required": 1.0,
+  "accuracy_target": 0.99,
+  "critical_false_auto_merge_target": 0,
+  "auto_merge_default": false,
+  "unresolved_policy": "PRESERVE_UNRESOLVED_FAIL_CLOSED",
+  "anti_overfit_rules": [
+    "NO_THRESHOLD_RELAXATION_TO_FORCE_PASS",
+    "NO_EVALUATION_LABEL_LEAKAGE",
+    "NO_TUNING_ON_BLIND_HOLDOUT",
+    "TRACK_B_REMAINS_INDEPENDENT"
+  ],
+  "required_outputs": [
+    "benchmark-manifest.json",
+    "labeled-cases.jsonl",
+    "blind-holdout.jsonl",
+    "entity-resolution-results.json",
+    "calibration-report.json"
+  ],
+  "promotion_gate": {
+    "accuracy_gte": 0.99,
+    "critical_false_auto_merge_eq": 0,
+    "deterministic_replay": "PASS",
+    "track_b_assessment": "PASS_REQUIRED"
+  },
+  "production": "HOLD"
+}
