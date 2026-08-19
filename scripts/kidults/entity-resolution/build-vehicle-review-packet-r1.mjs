@@ -71,7 +71,6 @@ for(const [k,v] of Object.entries(target.identity_boundary_targets)) if(boundary
 if(cases.some(c=>c.rights_state!=='ALLOW')) throw new Error('RIGHTS_NOT_ALLOW');
 if(cases.some(c=>!/^sha256:[a-f0-9]{64}$/.test(c.source_a_payload_sha256)||!/^sha256:[a-f0-9]{64}$/.test(c.source_b_payload_sha256))) throw new Error('DIGEST_INVALID');
 
-// Deterministic pre-model partition candidate only. It is NOT sealed until the partition artifact is committed and the model-freeze ordering proof exists.
 const blindCaseIds=cases.filter((_,i)=>i%2===0).slice(0,60).map(c=>c.case_id);
 if(blindCaseIds.length!==60) throw new Error('BLIND_PARTITION_CANDIDATE_NOT_60');
 const artifact={
@@ -96,5 +95,5 @@ const artifact={
   production:'HOLD',
   truth_boundary:'120 real source-bound vehicle ER cases are packetized for future independent human review. No labels, reviewer identity, adjudication, sealed holdout, empirical attestation, benchmark PASS, Track B PASS, publication or Production are claimed.'
 };
-await fs.writeFile(out,JSON.stringify(artifact,null,2));
+await fs.writeFile(outPath,JSON.stringify(artifact,null,2));
 console.log(JSON.stringify({status:artifact.status,case_count:artifact.case_count,blind_candidate_count:60,case_class_counts:caseClassCounts,identity_boundary_counts:boundaryCounts,labels_present:false,production:'HOLD'},null,2));
