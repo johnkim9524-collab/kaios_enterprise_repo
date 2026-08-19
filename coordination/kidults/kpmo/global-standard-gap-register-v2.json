@@ -1,15 +1,37 @@
 {
   "id": "kidults-global-standard-gap-register-v2",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "status": "ACTIVE",
   "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
-  "truth_binding_note": "Support P0 issues map into existing top-level gap classes. PARTIAL evidence does not become PASS, and stronger current-price/liquidity claims remain separate from the first bounded dated-transaction PoC claim.",
+  "truth_binding_note": "Support P0 issues map into existing top-level gap classes. PARTIAL evidence does not become PASS. #606 closes seven-strata ER mechanics only; #607 moves the serial ER blocker to empirical validation; #609/#610 lock the executable 840-case/420-blind validation workload but create no labels, reviewer attestations or holdout evidence.",
   "current_truth": {
-    "er_represented_strata": 6,
-    "er_complete_strata": 6,
+    "er_represented_strata": 7,
+    "er_complete_strata": 7,
     "er_required_strata": 7,
-    "er_remaining_strata": ["GRADED_POPULATION"],
-    "graded_population_authority_state": "PCGS_FOUNDER_APPROVED_BOUNDED_EVALUATION_OPERATIONAL_ACCOUNT_EULA_TOKEN_HANDOFF_PENDING__PSA_APPROVAL_RESPONSE_PENDING",
+    "er_complete_strata_scope": "MECHANICS_ONLY_NOT_FINAL_EMPIRICAL_PROMOTION",
+    "er_remaining_strata": [],
+    "er_final_empirical_gate": "BLOCKED_REAL_WORLD_LABELS_INDEPENDENT_REVIEW_ADJUDICATION_SEALED_BLIND_HOLDOUT_CANONICAL_EMPIRICAL_ATTESTATION_FINAL_FREEZE_CALIBRATION",
+    "graded_population_authority_state": "PCGS_PR603_OPERATIONAL_EULA_GREEN__PR604_GRADE_POPULATION_SCHEMA_HTTP200__PR605_CERT_SERIAL_SECOND_IDENTIFIER_HTTP200__PR606_R7K_7_OF_7_MECHANICS_COMPLETE_WITH_CONSTRUCTED_CONTROLS__PR607_FINALIZER_BLOCKS_NON_EMPIRICAL_PROMOTION",
+    "empirical_validation_issue": 609,
+    "empirical_sampling_plan_pr": 610,
+    "empirical_sampling_plan_status": "PREFLIGHT_READY_NOT_LABELED_NOT_REVIEWED",
+    "empirical_target_total_cases": 840,
+    "empirical_target_blind_holdout_cases": 420,
+    "empirical_min_independent_reviewers": 2,
+    "empirical_real_labels_complete": false,
+    "empirical_reviewer_attestation_complete": false,
+    "empirical_adjudication_complete": false,
+    "empirical_holdout_sealed_before_modeling": false,
+    "canonical_empirical_attestation_complete": false,
+    "pcgs_operational_handoff_pr": 603,
+    "pcgs_grade_population_probe_pr": 604,
+    "pcgs_second_identifier_probe_pr": 605,
+    "pcgs_r7k_mechanics_pr": 606,
+    "pcgs_r7k_finalization_boundary_pr": 607,
+    "pcgs_second_identifier_class": "BANKNOTE_SERIAL_NUMBER",
+    "pcgs_bounded_research_er_authority_count": 1,
+    "pcgs_raw_provider_values_emitted": false,
+    "pcgs_public_or_production_admission": false,
     "candidate": "NONE",
     "evidence_package": "NONE",
     "track_b_assessment": "NOT_STARTED",
@@ -17,7 +39,8 @@
     "global_source_mesh_state": "COMPLETE_768_CELLS_SELECTION_MAP_NOT_SOURCE_ADMISSION",
     "identity_reference_independent_owner_count": 2,
     "historical_provenance_independent_owner_count": 1,
-    "scarcity_population_rights_admitted_authority_count": 0,
+    "scarcity_population_strict_runtime_admitted_authority_count": 0,
+    "scarcity_population_bounded_research_authority_count": 1,
     "dated_sold_internal_admitted_cell_count": 1,
     "dated_sold_internal_event_count": 10,
     "dated_sold_latest_event_date": "2026-04-18",
@@ -35,7 +58,7 @@
     "time_to_sale_verified": false,
     "global_representativeness_verified": false,
     "owned_fabric_bounded_cell_count": 3,
-    "owned_fabric_empirical_state": "PARTIAL_MULTICELL_LINEAGE_PROVEN_IDENTITY_REFERENCE_PLUS_HISTORICAL_PLUS_DATED_SOLD_INTERNAL__SELECTED_POC_CLAIM_PRELOCKED__FINAL_ER_CANDIDATE_TRACK_B_PATH_INCOMPLETE",
+    "owned_fabric_empirical_state": "PARTIAL_MULTICELL_LINEAGE_PROVEN_IDENTITY_REFERENCE_PLUS_HISTORICAL_PLUS_DATED_SOLD_INTERNAL__SELECTED_POC_CLAIM_PRELOCKED__ER7OF7_MECHANICS_COMPLETE__840_CASE_EMPIRICAL_PLAN_READY__REAL_EMPIRICAL_ATTESTATION_CANDIDATE_TRACK_B_PATH_INCOMPLETE",
     "strict_completion_score": 17,
     "production": "HOLD"
   },
@@ -45,9 +68,9 @@
       "priority": "P0",
       "owner": "Track A + Track B",
       "issue": 479,
-      "support_issues": [559, 566],
-      "current_subgate": "6_OF_7_COMPLETE__GRADED_POPULATION_PCGS_OPERATIONAL_HANDOFF_OR_PSA_APPROVAL_REQUIRED",
-      "exit": "all 7 approved ER strata satisfy exact per-stratum minimums; final immutable holdout >=99% overall/blind; critical false auto-merge 0; deterministic replay PASS; rights/provenance 100%; calibration artifact registered"
+      "support_issues": [559, 566, 543, 609],
+      "current_subgate": "7_OF_7_MECHANICS_COMPLETE_PR606__PR607_MISSING_STRATUM_BLOCKER_REMOVED__PR610_840_CASE_420_BLIND_PLAN_READY__REAL_LABEL_ACQUISITION_INDEPENDENT_REVIEW_ADJUDICATION_HOLDOUT_SEAL_EMPIRICAL_ATTESTATION_FREEZE_CALIBRATION_PENDING",
+      "exit": "all seven strata have canonically approved empirical labels/attestation and exact manifest binding; final immutable holdout >=99% overall/blind including Wilson 95% lower bounds; critical false auto-merge 0; deterministic replay PASS; rights/provenance 100%; freeze + calibration artifact registered"
     },
     {
       "id": "GS-P0-ASI",
@@ -55,8 +78,8 @@
       "owner": "Track A + Track D",
       "issue": 480,
       "support_issues": [550, 560],
-      "current_subgate": "BOUNDED_DEV_SHADOW_RUNTIME_CORE_PASS__PR599_THREE_CELL_LINEAGE__PR600_SELECTED_CLAIM_LOCKED__FINAL_ER_AND_IMMUTABLE_CANDIDATE_PATH_INCOMPLETE",
-      "exit": "final calibrated identity + admitted selected-claim evidence produce immutable Candidate/Evidence handoff and Track B-ready lineage without truth inflation"
+      "current_subgate": "BOUNDED_DEV_SHADOW_RUNTIME_CORE_PASS__PR599_THREE_CELL_LINEAGE__PR600_SELECTED_CLAIM_LOCKED__ER_7_OF_7_MECHANICS_COMPLETE__EMPIRICAL_ER_PLAN_READY__FINAL_EMPIRICAL_ER_AND_IMMUTABLE_CANDIDATE_PATH_INCOMPLETE",
+      "exit": "final empirically attested calibrated identity + admitted selected-claim evidence produce immutable Candidate/Evidence handoff and Track B-ready lineage without truth inflation"
     },
     {
       "id": "GS-P0-MARKET",
@@ -64,8 +87,8 @@
       "owner": "Track A",
       "issue": 457,
       "support_issues": [549, 550, 558, 559, 560, 566, 577, 578],
-      "current_subgate": "PR591_DATED_SOLD_INTERNAL_ADMITTED__PR599_LINEAGE_PROVEN__PR600_FIRST_POC_CLAIM_LOCKED__PR601_SINGLE_PROVIDER_CONCENTRATION_ACCEPTED_FOR_NARROW_INTERNAL_CLAIM__CURRENT_PRICE_LIQUIDITY_EXPOSURE_STRONGER_CLAIMS_STILL_BLOCKED__CANDIDATE_NONE",
-      "exit": "selected PoC claim remains within admitted evidence ceiling + final identity-resolved admission artifacts + immutable snapshot-candidate.json and Evidence Package; stronger market claims remain fail-closed unless separately evidenced"
+      "current_subgate": "PR591_DATED_SOLD_INTERNAL_ADMITTED__PR599_LINEAGE_PROVEN__PR600_FIRST_POC_CLAIM_LOCKED__PR601_SINGLE_PROVIDER_CONCENTRATION_ACCEPTED_FOR_NARROW_INTERNAL_CLAIM__ER_MECHANICS_7_OF_7_BUT_FINAL_EMPIRICAL_ATTESTATION_PENDING__CURRENT_PRICE_LIQUIDITY_EXPOSURE_STRONGER_CLAIMS_STILL_BLOCKED__CANDIDATE_NONE",
+      "exit": "selected PoC claim remains within admitted evidence ceiling + final empirically attested identity-resolved artifacts + immutable snapshot-candidate.json and Evidence Package; stronger market claims remain fail-closed unless separately evidenced"
     },
     {
       "id": "GS-P0-VALIDATION",
@@ -122,7 +145,9 @@
     {"issue":550,"role":"KIDULTS_OWNED_INTELLIGENCE_FABRIC","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false},
     {"issue":558,"role":"CURRENT_SOLD_LIQUIDITY_EXPOSURE_BINDING_WAVE","maps_to":["GS-P0-MARKET"],"counted_as_additional_top_level_gap":false},
     {"issue":559,"role":"IDENTITY_PROVENANCE_SCARCITY_REDUNDANCY_WAVE","maps_to":["GS-P0-MARKET","GS-P0-ER"],"counted_as_additional_top_level_gap":false},
-    {"issue":560,"role":"BOUNDED_MULTICELL_SOURCE_TO_GRAPHS_TO_ENGINE_MESH_PROOF_PR599_THREE_CELL_DATED_SOLD_INTERNAL","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false}
+    {"issue":560,"role":"BOUNDED_MULTICELL_SOURCE_TO_GRAPHS_TO_ENGINE_MESH_PROOF_PR599_THREE_CELL_DATED_SOLD_INTERNAL","maps_to":["GS-P0-MARKET","GS-P0-ASI","GS-P1-RUNTIME","GS-P0-INTEGRATION"],"counted_as_additional_top_level_gap":false},
+    {"issue":543,"role":"GRADED_POPULATION_R7K_MECHANICS_COMPLETE_EMPIRICAL_FINALIZATION_PENDING","maps_to":["GS-P0-ER"],"counted_as_additional_top_level_gap":false},
+    {"issue":609,"role":"ER_EMPIRICAL_VALIDATION_WAVE_840_CASE_420_BLIND_PREP","maps_to":["GS-P0-ER"],"counted_as_additional_top_level_gap":false}
   ],
   "unresolved_top_level_p0_or_gate": 6,
   "unresolved_p0_allowed_for_100_percent": 0,
