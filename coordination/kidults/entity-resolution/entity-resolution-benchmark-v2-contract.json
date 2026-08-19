@@ -16,6 +16,69 @@
   "scope_stratification": "REQUIRED_ACROSS_APPROVED_POC_SCOPE_ARCHETYPES",
   "provenance_coverage_required": 1.0,
   "rights_coverage_required": 1.0,
+  "independent_label_review_required": true,
+  "label_adjudication_required": true,
+  "holdout_sealed_before_modeling_required": true,
+  "constructed_controls_are_empirical_benchmark_eligible": false,
+  "empirical_attestation_policy": {
+    "required": true,
+    "manifest_schema_version": "1.0.0",
+    "approved_manifest_fingerprints": [],
+    "canonical_scope_matrix_path": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json",
+    "canonical_scope_matrix_sha256": "sha256:a7892fe246752d65fe71daaf942ae54327d0ac1a96172a246ac7fc958d238c26",
+    "canonical_scope_archetype_mapping_sha256": "sha256:2f173938613d832e66bca2ef9f3e695f017ff1a4e37ca0110db9795e7d70bb62",
+    "approved_calibration_strata_path": "coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json",
+    "approved_calibration_strata_sha256": "sha256:22e9ef7ee56452910887a764df98e7a0c22d30b47e0eccab01ceaee7aaa09af1",
+    "approved_calibration_strata_id": "kidults-er-approved-bounded-poc-calibration-strata-v1",
+    "approved_calibration_strata_status": "APPROVED_BOUNDED_POC_CALIBRATION",
+    "required_poc_scope_archetypes": [
+      "DESIGNER_MAKER_EDITION",
+      "GRADED_POPULATION",
+      "PRESSING_EDITION_MEDIA",
+      "PROVENANCE_UNIQUE_OBJECT",
+      "SERIALIZED_REFERENCE",
+      "VARIANT_RELEASE_HEAVY",
+      "VEHICLE_MECHANICAL_ASSET"
+    ],
+    "dataset_payload_digest_fields": [
+      "id",
+      "dataset_class",
+      "cases"
+    ],
+    "minimum_independent_reviewers": 2,
+    "per_case_source_evidence_required": true,
+    "case_source_evidence_binding_required": true,
+    "case_source_payload_digest_binding_required": true,
+    "source_payload_digest_binding_required": true,
+    "license_evidence_binding_required": true,
+    "scope_matrix_digest_binding_required": true,
+    "exact_required_scope_archetype_binding_required": true,
+    "case_scope_archetype_binding_required": true,
+    "approved_calibration_strata_digest_binding_required": true,
+    "case_to_approved_stratum_binding_required": true,
+    "per_stratum_case_class_and_identity_boundary_minima_required": true,
+    "empirical_sample_policy": {
+      "minimum_total_cases": 800,
+      "minimum_blind_holdout_cases": 400,
+      "minimum_cases_per_required_scope_archetype": 50,
+      "minimum_blind_cases_per_required_scope_archetype": 25,
+      "minimum_cases_per_identity_boundary": 100,
+      "minimum_cases_per_required_case_class": 50,
+      "wilson_confidence_level": 0.95,
+      "minimum_overall_accuracy_wilson_lower_bound": 0.99,
+      "minimum_blind_accuracy_wilson_lower_bound": 0.99
+    },
+    "empirical_sample_policy_sha256": "sha256:29ac17da78e9020b5a51a756ea265915d862033584e283ff1e21b8fdbf4ec00b",
+    "holdout_seal_must_precede_model_freeze": true,
+    "track_b_pass_required": true,
+    "prohibited_provenance_prefixes": [
+      "selftest:",
+      "fixture:"
+    ],
+    "prohibited_label_basis_fragments": [
+      "ALGORITHMICALLY_CONSTRUCTED"
+    ]
+  },
   "accuracy_target": 0.99,
   "critical_false_auto_merge_target": 0,
   "auto_merge_default": false,
@@ -24,6 +87,17 @@
     "NO_THRESHOLD_RELAXATION_TO_FORCE_PASS",
     "NO_EVALUATION_LABEL_LEAKAGE",
     "NO_TUNING_ON_BLIND_HOLDOUT",
+    "NO_ALGORITHMICALLY_CONSTRUCTED_PAIR_MAY_BE_LABELED_BLIND_HOLDOUT",
+    "NO_REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL_MAY_SATISFY_EMPIRICAL_PROMOTION",
+    "NO_DATASET_SELF_ASSERTED_BOOLEAN_MAY_SUBSTITUTE_FOR_AN_APPROVED_EMPIRICAL_ATTESTATION_MANIFEST",
+    "NO_SELFTEST_OR_FIXTURE_PROVENANCE_MAY_SATISFY_EMPIRICAL_PROMOTION",
+    "NO_FLATTENED_SOURCE_EVIDENCE_TOTAL_MAY_SUBSTITUTE_FOR_VALID_EVIDENCE_ON_EVERY_CASE",
+    "NO_GLOBAL_SOURCE_DIGEST_LIST_MAY_SUBSTITUTE_FOR_EXACT_CASE_TO_PAYLOAD_DIGEST_BINDINGS",
+    "NO_SCOPE_COUNT_MAY_SUBSTITUTE_FOR_FULL_CANONICAL_POC_ARCHETYPE_COVERAGE",
+    "NO_ATTESTED_SCOPE_SET_MAY_DIVERGE_FROM_THE_CANONICAL_SCOPE_MATRIX",
+    "NO_GLOBAL_CASE_CLASS_OR_BOUNDARY_TOTAL_MAY_SUBSTITUTE_FOR_EVERY_APPROVED_STRATUM_GRAMMAR",
+    "NO_CALLER_SUPPLIED_STRATA_MANIFEST_MAY_SUBSTITUTE_FOR_THE_CANONICAL_DIGEST_BOUND_MANIFEST",
+    "NO_POINT_ESTIMATE_MAY_SUBSTITUTE_FOR_THE_CANONICAL_SAMPLE_FLOORS_AND_WILSON_LOWER_BOUNDS",
     "TRACK_B_REMAINS_INDEPENDENT"
   ],
   "required_outputs": [
@@ -36,6 +110,10 @@
   "promotion_gate": {
     "accuracy_gte": 0.99,
     "critical_false_auto_merge_eq": 0,
+    "empirical_sample_floors": "PASS_REQUIRED",
+    "overall_accuracy_wilson_lower_95_gte": 0.99,
+    "blind_accuracy_wilson_lower_95_gte": 0.99,
+    "approved_empirical_attestation": "PASS_REQUIRED",
     "deterministic_replay": "PASS",
     "track_b_assessment": "PASS_REQUIRED"
   },

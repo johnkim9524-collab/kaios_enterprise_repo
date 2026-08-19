@@ -1,60 +1,112 @@
 {
   "id": "candidate-evidence-handoff-preflight-contract-r2",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "issue": 457,
   "downstream_track": "TRACK_B_INDEPENDENT_VALIDATION",
+  "current_state": "BLOCKED",
   "production": "HOLD",
+  "publication": "HOLD",
   "required_pair": ["snapshot-candidate.json", "evidence-package.json"],
+  "canonical_governance": {
+    "entity_resolution_benchmark_contract_path": "coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json",
+    "entity_resolution_benchmark_contract_id": "entity-resolution-benchmark-v2-contract",
+    "approved_strata_manifest_path": "coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json",
+    "approved_strata_manifest_id": "kidults-er-approved-bounded-poc-calibration-strata-v1",
+    "approved_strata_manifest_status": "APPROVED_BOUNDED_POC_CALIBRATION",
+    "caller_supplied_governance_allowed": false
+  },
+  "canonical_digest_rules": {
+    "algorithm": "SHA-256 over UTF-8 JSON with recursively sorted object keys and preserved array order, prefixed sha256:",
+    "final_dataset_payload_projection_from_benchmark_contract": ["id", "dataset_class", "cases"],
+    "final_dataset_digest_authority": "The digest must equal dataset_payload_sha256 in an embedded empirical-attestation manifest whose full canonical fingerprint is present in the benchmark contract approved_manifest_fingerprints allowlist.",
+    "snapshot_payload_projection": "All snapshot fields except snapshot_payload_sha256",
+    "evidence_package_payload_projection": "All evidence-package fields except package_payload_sha256",
+    "pair_digest_projection": ["snapshot", "evidence"]
+  },
   "required_gates": {
-    "entity_resolution_final": {
-      "required_strata": 7,
-      "complete_strata_eq": 7,
-      "final_scope_stratification_complete": true,
-      "overall_accuracy_gte": 0.99,
-      "blind_accuracy_gte": 0.99,
-      "critical_false_auto_merge_eq": 0,
-      "blind_critical_false_auto_merge_eq": 0,
-      "deterministic_replay": "PASS",
+    "entity_resolution_final_dataset": {
+      "exact_canonical_approved_strata_set_required": true,
+      "all_per_stratum_grammar_requirements_required": true,
+      "dataset_class": "REAL_WORLD_LABELED",
+      "constructed_control": false,
+      "empirical_benchmark_eligible": true,
+      "canonical_dataset_payload_sha256_required": true,
+      "dataset_digest_must_match_approved_attestation": true,
+      "approved_strata_manifest_digest_binding_required": true,
       "rights_coverage_eq": 1.0,
-      "provenance_coverage_eq": 1.0,
-      "final_dataset_id_present": true,
-      "final_dataset_hash_present": true,
-      "approved_strata_manifest_id_present": true,
-      "blind_holdout_freeze_id_present": true,
-      "calibration_artifact_id_present": true
+      "provenance_coverage_eq": 1.0
+    },
+    "empirical_attestation": {
+      "embedded_manifest_required": true,
+      "canonical_fingerprint_approval_required": true,
+      "minimum_independent_reviewers_from_benchmark_contract": true,
+      "independent_label_review_completed": true,
+      "label_adjudication_completed": true,
+      "holdout_sealed_before_modeling": true,
+      "holdout_labels_inaccessible_until_model_freeze": true,
+      "blind_case_ids_must_match_count": true,
+      "dataset_id_and_digest_binding_required": true,
+      "sample_policy_digest_binding_required": true,
+      "approved_strata_digest_and_ids_binding_required": true
+    },
+    "empirical_metrics": {
+      "derive_from_integer_observation_counts": true,
+      "caller_gate_booleans_authoritative": false,
+      "caller_point_estimates_authoritative": false,
+      "all_sample_floors_from_benchmark_contract_required": true,
+      "overall_accuracy_target_from_benchmark_contract_required": true,
+      "blind_accuracy_target_from_benchmark_contract_required": true,
+      "overall_wilson_lower_bound_from_benchmark_contract_required": true,
+      "blind_wilson_lower_bound_from_benchmark_contract_required": true,
+      "critical_false_auto_merge_eq": 0,
+      "blind_critical_false_auto_merge_eq": 0
     },
     "rights": {
       "claim_inputs_purpose_specific_rights_admitted": true,
       "unknown_or_denied_claim_input_count": 0
     },
-    "evidence": {
-      "evidence_before_metrics": true,
-      "claim_strength_lte_evidence_strength": true,
-      "unresolved_critical_contradiction_count": 0,
-      "current_market_claim_requires_current_market_evidence": true,
-      "historical_evidence_cannot_satisfy_current_market_claim": true
+    "claims": {
+      "resolve_referenced_evidence_records": true,
+      "claim_strength_lte_resolved_evidence_strength": true,
+      "current_market_claim_requires_current_market_evidence_record": true,
+      "historical_evidence_cannot_satisfy_current_market_claim": true,
+      "current_market_evidence_record": {
+        "source_url_https_required": true,
+        "nonzero_source_payload_sha256_required": true,
+        "license_evidence_https_urls_required": true,
+        "market_observation_type": "SOLD_TRANSACTION",
+        "strict_utc_observed_at_and_valid_until_required": true,
+        "snapshot_as_of_must_be_inside_validity_window": true,
+        "maximum_window_days": 30
+      }
     },
     "evidence_package": {
-      "package_id_present": true,
       "package_status": "IMMUTABLE",
+      "canonical_payload_digest_required": true,
+      "snapshot_binding_required": true,
       "registry_version_present": true,
       "methodology_version_present": true,
       "evidence_lineage_version_present": true
     },
-    "snapshot_immutability": {
-      "snapshot_id_present": true,
+    "snapshot": {
       "snapshot_status": "DRAFT_CANDIDATE",
-      "registry_version_present": true,
-      "methodology_version_present": true,
-      "evidence_lineage_version_present": true,
-      "pair_digest_required": true
+      "strict_utc_as_of_required": true,
+      "canonical_payload_digest_required": true,
+      "evidence_package_binding_required": true,
+      "publication_preauthorization_forbidden": true,
+      "production_preauthorization_forbidden": true
     }
   },
   "forbidden_shortcuts": [
-    "CI_PASS_AS_MARKET_TRUTH",
+    "CI_PASS_AS_EVIDENCE_GATE",
+    "LOCAL_PREFLIGHT_PASS_AS_EVIDENCE_GATE",
     "RUNTIME_CORE_PASS_AS_MARKET_TRUTH",
     "SIX_OF_SEVEN_ER_AS_FINAL_ER",
+    "CONSTRUCTED_CONTROL_AS_EMPIRICAL_ACCURACY",
+    "CALLER_BOOLEAN_AS_APPROVED_EMPIRICAL_ATTESTATION",
+    "CALLER_POINT_ESTIMATE_AS_WILSON_GATE",
     "DIAGNOSTIC_DATASET_AS_FINAL_DATASET",
+    "UNBOUND_DATASET_HASH_AS_CANONICAL_FINAL_DATASET",
     "HISTORICAL_TRANSACTION_AS_CURRENT_MARKET",
     "LISTING_AS_SOLD",
     "PROVIDER_ID_AS_CANONICAL_ID",
@@ -63,6 +115,7 @@
     "MUTABLE_EVIDENCE_PACKAGE_AS_TRACK_B_INPUT"
   ],
   "handoff_state_values": ["READY_FOR_TRACK_B", "BLOCKED"],
-  "track_b_input_boundary": "Only the exact immutable snapshot-candidate.json + evidence-package.json pair may be submitted. Track B performs an independent assessment and does not inherit Track A's local PASS.",
-  "publication": "HOLD"
+  "handoff_ready_semantics": "Track B submission eligibility for the exact immutable pair only. It never means Track B PASS, publication approval, public release or Production authorization.",
+  "track_b_input_boundary": "Only the exact digest-bound immutable snapshot-candidate.json + evidence-package.json pair may be submitted. Track B remains an independent assessment; this preflight does not perform or inherit Track B PASS.",
+  "truth_boundary": "The repository currently has no canonically approved empirical-attestation fingerprint and the six-of-seven constructed-control fixture has no empirical metrics. Current state is BLOCKED."
 }

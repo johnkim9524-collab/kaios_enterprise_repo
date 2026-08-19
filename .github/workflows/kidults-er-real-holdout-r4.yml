@@ -1,4 +1,4 @@
-name: KIDULTS ER Real Holdout R4
+name: KIDULTS ER Constructed-Control Holdout Rejection R4
 
 on:
   pull_request:
@@ -8,47 +8,75 @@ on:
       - 'scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs'
       - 'scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs'
       - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - '.github/workflows/kidults-entity-resolution-benchmark-v2-runner.yml'
+      - '.github/workflows/kidults-er-real-dataset-r1.yml'
+      - '.github/workflows/kidults-er-getty-transaction-r2.yml'
+      - '.github/workflows/kidults-er-canonical-design-r3.yml'
       - '.github/workflows/kidults-er-real-holdout-r4.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+concurrency:
+  group: kidults-er-real-holdout-r4-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   freeze-real-r3-holdout:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 9
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
-      - name: Build real aggregate R1-R3
+      - name: Checkout repository
+        # actions/checkout v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        # actions/setup-node v5.0.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Build live-source-derived constructed-control aggregate R1-R3
         run: |
           node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
           node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
           node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/er-r2.json /tmp/er-r3.json
       - name: Run canonical benchmark
         run: node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r3.json /tmp/er-r3-results.json
-      - name: Freeze exact real blind holdout
-        run: node scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs /tmp/er-r3.json /tmp/er-r3-holdout-freeze.json
-      - name: Verify empirical freeze and fail-closed promotion
+      - name: Prove constructed controls cannot be frozen as empirical blind holdout
+        run: |
+          if node scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs /tmp/er-r3.json /tmp/er-r3-holdout-freeze.json; then
+            echo 'Constructed-control dataset unexpectedly produced an empirical blind-holdout freeze.' >&2
+            exit 1
+          fi
+          test ! -e /tmp/er-r3-holdout-freeze.json
+      - name: Verify no empirical freeze and fail-closed promotion
         run: |
           node - <<'NODE'
+          const d=require('/tmp/er-r3.json');
           const r=require('/tmp/er-r3-results.json');
-          const f=require('/tmp/er-r3-holdout-freeze.json');
           if(r.accuracy!==1||r.critical_false_auto_merge!==0) process.exit(1);
-          if(f.empirical_freeze!==true||f.holdout_count<1) process.exit(1);
-          if(!String(f.dataset_hash).startsWith('sha256:')||!String(f.holdout_case_set_hash).startsWith('sha256:')) process.exit(1);
-          if(!f.mutation_policy.includes('NEVER_OVERWRITE')) process.exit(1);
-          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
-          console.log('Real R3 blind holdout frozen immutably; #479 promotion remains correctly blocked.');
+          if(d.dataset_class!=='REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL'||d.constructed_control!==true||d.empirical_benchmark_eligible!==false||d.holdout_sealed_before_modeling!==false||d.production!=='HOLD') process.exit(1);
+          if(d.cases.some(x=>x.blind_holdout===true)||r.blind_holdout_count!==0||r.blind_accuracy!==null) process.exit(1);
+          if(r.promotion_gate.empirical_attestation_verified!==false||r.promotion_gate.empirical_benchmark_gate_pass!==false||r.promotion_gate.promotion_eligible_before_track_b!==false||r.promotion_gate.production_promotion_authorized!==false) process.exit(1);
+          console.log('R4 PASS: constructed controls are rejected by the empirical holdout freezer; empirical and Production promotion remain blocked.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - name: Upload R4 fail-closed diagnostic artifacts
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: kidults-er-real-holdout-r4
+          name: kidults-er-constructed-control-holdout-rejection-r4
           path: |
             /tmp/er-r3.json
             /tmp/er-r3-results.json
-            /tmp/er-r3-holdout-freeze.json
           if-no-files-found: error
           retention-days: 30

@@ -3,59 +3,117 @@ name: KIDULTS ER R7F Vehicle Minimums
 on:
   pull_request:
     paths:
-      - 'scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs'
+      - 'scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs'
       - 'scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs'
-      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs'
+      - 'scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs'
       - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - '.github/workflows/kidults-er-r7e-serialized-cross-authority.yml'
       - '.github/workflows/kidults-er-r7f-vehicle-minimums.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+  NODE_ENV: test
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
 jobs:
   build-r7f:
-    runs-on: ubuntu-latest
-    timeout-minutes: 18
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
-      - name: Build R1-R6
+      - name: Checkout repository without persisted credentials
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Verify deterministic runtime and approved strata manifest
+        run: |
+          test "$(node --version)" = 'v24.19.0'
+          test "$(date +%Z)" = 'UTC'
+          node scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json
+      - name: Build R1-R6 live-source-derived constructed controls
         run: |
           node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
           node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
           node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/er-r2.json /tmp/er-r3.json
           node scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs /tmp/er-r3.json /tmp/er-r5.json
           node scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs /tmp/er-r5.json /tmp/er-r6.json
-      - name: Build approved strata R7A-R7E
+      - name: Build approved-strata mechanics R7A-R7E
         run: |
           node scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs /tmp/er-r6.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7a.json
           node scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs /tmp/er-r7a.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7b.json
           node scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs /tmp/er-r7b.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7c.json
           node scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs /tmp/er-r7c.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7e.json
-      - name: Add independent vehicle minimums R7F
+      - name: Add vehicle mechanical constructed controls R7F
         run: |
           node scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs /tmp/er-r7e.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7f.json
-      - name: Run benchmark
+      - name: Run benchmark mechanics
         run: |
           node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r7f.json /tmp/er-r7f-results.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
-      - name: Verify vehicle minimums complete while final promotion remains blocked
+      - name: Verify vehicle mechanics complete and every empirical gate blocked
         run: |
           node - <<'NODE'
-          const r=require('/tmp/er-r7f-results.json'); const id='er-stratum-vehicle-mechanical-asset';
-          if(r.strata_manifest_binding.binding_valid!==true) process.exit(1);
-          if(r.coverage.per_stratum[id].complete!==true) process.exit(1);
+          const d=require('/tmp/er-r7f.json');
+          const r=require('/tmp/er-r7f-results.json');
+          const id='er-stratum-vehicle-mechanical-asset';
+          const added=d.cases.filter((item)=>item.case_id.startsWith('wikidata-vehicle-'));
+          const flags=d.dataset_class==='REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL' && d.synthetic===false &&
+            d.constructed_control===true && d.empirical_benchmark_eligible===false &&
+            d.independent_label_review_complete===false && d.label_adjudication_complete===false &&
+            d.holdout_sealed_before_modeling===false && d.track_b_independent_review_complete===false &&
+            d.pre_track_b_promotion_eligible===false && d.production_promotion_authorized===false && d.production==='HOLD';
+          if(!flags||d.scope_stratification_status!=='INCOMPLETE') process.exit(1);
+          if(d.cases.length!==12||!/^sha256:[a-f0-9]{64}$/.test(d.prior_input_sha256)||
+            d.prior_input_sha256_role!=='INTEGRITY_ONLY_NOT_AUTHORITY_OR_PROMOTION_EVIDENCE') process.exit(1);
+          if(d.r7e_marketplace_observation_count!==0||d.r7e_current_market_observation_count!==0) process.exit(1);
+          if(added.length!==2||added.some((item)=>item.blind_holdout!==false||item.constructed_control!==true||
+            item.label_review_status!=='NOT_INDEPENDENTLY_REVIEWED_OR_ADJUDICATED'||
+            !String(item.label_basis).startsWith('ALGORITHMICALLY_CONSTRUCTED_')||
+            !String(item.claim_ceiling).endsWith('NO_MARKET_EVIDENCE'))) process.exit(1);
+          if(added.some((item)=>!Array.isArray(item.source_evidence)||item.source_evidence.length===0||
+            item.source_evidence.some((e)=>!/^sha256:[a-f0-9]{64}$/.test(e.source_payload_sha256)||!e.license_evidence_refs?.length))) process.exit(1);
+          if(d.cases.some((item)=>item.blind_holdout!==false)) process.exit(1);
+          if(r.strata_manifest_binding.binding_valid!==true||r.coverage.per_stratum[id].complete!==true) process.exit(1);
           if(r.coverage.per_stratum[id].case_classes_complete!==true||r.coverage.per_stratum[id].boundaries_complete!==true) process.exit(1);
-          if(r.accuracy!==1||r.blind_accuracy!==1||r.critical_false_auto_merge!==0||r.blind_critical_false_auto_merge!==0) process.exit(1);
-          if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
-          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
-          console.log('R7F PASS: VEHICLE_MECHANICAL_ASSET per-stratum minimums complete; final promotion remains fail-closed.');
+          if(r.coverage.per_stratum_requirements_complete!==false||r.coverage.scope_stratification_complete!==false) process.exit(1);
+          if(r.blind_holdout_count!==0||r.blind_accuracy!==null||r.blind_accuracy_wilson_lower_95!==null) process.exit(1);
+          if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1||
+            r.promotion_gate.source_payload_digest_and_license_evidence_present_per_case!==true) process.exit(1);
+          if(r.promotion_gate.real_world_dataset!==false||r.promotion_gate.empirical_dataset_flags_complete!==false||
+            r.promotion_gate.empirical_benchmark_gate_pass!==false||r.promotion_gate.promotion_eligible_before_track_b!==false||
+            r.promotion_gate.production_promotion_authorized!==false||r.production!=='HOLD') process.exit(1);
+          console.log('R7F PASS: vehicle grammar mechanics complete; blind/empirical/market/Production claims remain zero or HOLD.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - name: Upload bounded SHADOW evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-er-r7f-vehicle-minimums
           path: |
@@ -63,3 +121,4 @@ jobs:
             /tmp/er-r7f-results.json
           if-no-files-found: error
           retention-days: 30
+          include-hidden-files: false

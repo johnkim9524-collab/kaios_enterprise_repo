@@ -3,38 +3,76 @@ name: KIDULTS ER R7I Provenance Minimums
 on:
   pull_request:
     paths:
-      - 'scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs'
-      - 'scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs'
+      - 'scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs'
       - 'scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs'
-      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs'
+      - 'scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs'
       - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - '.github/workflows/kidults-er-r7e-serialized-cross-authority.yml'
+      - '.github/workflows/kidults-er-r7f-vehicle-minimums.yml'
+      - '.github/workflows/kidults-er-r7g-variant-minimums.yml'
+      - '.github/workflows/kidults-er-r7h-pressing-minimums.yml'
       - '.github/workflows/kidults-er-r7i-provenance-minimums.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+  NODE_ENV: test
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
 jobs:
   build-r7i:
-    runs-on: ubuntu-latest
-    timeout-minutes: 28
+    runs-on: ubuntu-24.04
+    timeout-minutes: 32
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
-      - name: Build R1-R6
+      - name: Checkout repository without persisted credentials
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Verify deterministic runtime and approved strata manifest
+        run: |
+          test "$(node --version)" = 'v24.19.0'
+          test "$(date +%Z)" = 'UTC'
+          node scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs \
+            coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json
+      - name: Build R1-R6 live-source-derived constructed controls
         run: |
           node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
           node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
           node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/er-r2.json /tmp/er-r3.json
           node scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs /tmp/er-r3.json /tmp/er-r5.json
           node scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs /tmp/er-r5.json /tmp/er-r6.json
-      - name: Build approved strata through R7H
+      - name: Build approved-strata mechanics R7A-R7H
         run: |
           node scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs /tmp/er-r6.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7a.json
           node scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs /tmp/er-r7a.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7b.json
@@ -43,13 +81,16 @@ jobs:
           node scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs /tmp/er-r7e.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7f.json
           node scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs /tmp/er-r7f.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7g.json
           node scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs /tmp/er-r7g.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7h.json
-      - name: Add provenance minimums R7I
-        run: node scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs /tmp/er-r7h.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7i.json
-      - name: Run benchmark
-        run: node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r7i.json /tmp/er-r7i-results.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
-      - name: Verify provenance minimums and 5-of-7 completion
+      - name: Add provenance grammar constructed controls R7I
+        run: |
+          node scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs /tmp/er-r7h.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json /tmp/er-r7i.json
+      - name: Run benchmark mechanics
+        run: |
+          node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r7i.json /tmp/er-r7i-results.json coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
+      - name: Verify provenance mechanics, five-of-seven completion, and blocked promotion
         run: |
           node - <<'NODE'
+          const d=require('/tmp/er-r7i.json');
           const r=require('/tmp/er-r7i-results.json');
           const provenance='er-stratum-provenance-unique-object';
           const expectedComplete=[
@@ -57,18 +98,55 @@ jobs:
             'er-stratum-vehicle-mechanical-asset',
             'er-stratum-variant-release-heavy',
             'er-stratum-pressing-edition-media',
-            provenance
+            provenance,
           ];
-          const completed=Object.values(r.coverage.per_stratum).filter(x=>x.complete===true).length;
+          const completed=Object.values(r.coverage.per_stratum).filter((item)=>item.complete===true).length;
+          const hard=d.cases.find((item)=>item.case_id.startsWith('wikidata-provenance-hard-negative-'));
+          const ambiguous=d.cases.find((item)=>item.case_id.startsWith('wikidata-provenance-ambiguous-p460-'));
+          const flags=d.dataset_class==='REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL' && d.synthetic===false &&
+            d.constructed_control===true && d.empirical_benchmark_eligible===false &&
+            d.independent_label_review_complete===false && d.label_adjudication_complete===false &&
+            d.holdout_sealed_before_modeling===false && d.track_b_independent_review_complete===false &&
+            d.pre_track_b_promotion_eligible===false && d.public_claim_authorized===false &&
+            d.public_release_authorized===false && d.production_promotion_authorized===false && d.production==='HOLD';
+          if(!flags||d.scope_stratification_status!=='INCOMPLETE'||d.cases.length!==18) process.exit(1);
+          if(!/^sha256:[a-f0-9]{64}$/.test(d.prior_input_sha256)||
+            d.prior_input_sha256_role!=='INTEGRITY_ONLY_NOT_AUTHORITY_OR_PROMOTION_EVIDENCE') process.exit(1);
+          if(d.r7i_independent_physical_inspection_count!==0||d.r7i_full_provenance_chain_verification_count!==0||
+            d.r7i_marketplace_observation_count!==0||d.r7i_current_market_observation_count!==0) process.exit(1);
+          if(!hard||hard.blind_holdout!==false||hard.constructed_control!==true||
+            hard.independent_physical_inspection_complete!==false||hard.full_provenance_chain_verified!==false||
+            hard.marketplace_evidence!==false||hard.current_market_evidence!==false||
+            hard.label_review_status!=='NOT_INDEPENDENTLY_REVIEWED_OR_ADJUDICATED'||
+            hard.claim_ceiling!=='PROVENANCE_INVENTORIED_RECORD_HARD_NEGATIVE_MECHANICS_ONLY_NO_INDEPENDENT_PHYSICAL_INSPECTION_FULL_PROVENANCE_OR_CURRENT_MARKET_EVIDENCE') process.exit(1);
+          if(!ambiguous||ambiguous.blind_holdout!==false||ambiguous.constructed_control!==true||ambiguous.expected!=='REVIEW'||
+            ambiguous.auto_merge_allowed!==false||ambiguous.auto_split_allowed!==false||
+            ambiguous.independent_physical_inspection_complete!==false||ambiguous.full_provenance_chain_verified!==false||
+            ambiguous.marketplace_evidence!==false||ambiguous.current_market_evidence!==false||
+            ambiguous.label_review_status!=='NOT_INDEPENDENTLY_REVIEWED_OR_ADJUDICATED'||
+            ambiguous.claim_ceiling!=='PROVENANCE_INVENTORIED_RECORD_AMBIGUOUS_REVIEW_MECHANICS_ONLY_NO_AUTO_MERGE_AUTO_SPLIT_INDEPENDENT_PHYSICAL_INSPECTION_FULL_PROVENANCE_OR_CURRENT_MARKET_EVIDENCE') process.exit(1);
+          for(const item of [hard,ambiguous]) {
+            if(!String(item.label_basis).startsWith('ALGORITHMICALLY_CONSTRUCTED_')) process.exit(1);
+            if(!Array.isArray(item.source_evidence)||item.source_evidence.length===0||
+              item.source_evidence.some((evidence)=>!/^sha256:[a-f0-9]{64}$/.test(evidence.source_payload_sha256)||!evidence.license_evidence_refs?.length)) process.exit(1);
+          }
+          if(d.cases.some((item)=>item.blind_holdout!==false)) process.exit(1);
           if(r.strata_manifest_binding.binding_valid!==true) process.exit(1);
           for(const id of expectedComplete) if(r.coverage.per_stratum[id].complete!==true) process.exit(1);
-          if(completed!==5) process.exit(1);
-          if(r.accuracy!==1||r.blind_accuracy!==1||r.critical_false_auto_merge!==0||r.blind_critical_false_auto_merge!==0) process.exit(1);
-          if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
-          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
-          console.log('R7I PASS: PROVENANCE_UNIQUE_OBJECT complete; 5/7 strata complete; final promotion remains fail-closed.');
+          if(completed!==5||r.coverage.per_stratum_requirements_complete!==false||r.coverage.scope_stratification_complete!==false) process.exit(1);
+          const ambiguousResult=r.results.find((item)=>item.case_id===ambiguous.case_id);
+          if(!ambiguousResult||ambiguousResult.expected!=='REVIEW'||ambiguousResult.predicted!=='REVIEW') process.exit(1);
+          if(r.accuracy!==1||r.critical_false_auto_merge!==0||r.blind_holdout_count!==0||
+            r.blind_accuracy!==null||r.blind_accuracy_wilson_lower_95!==null) process.exit(1);
+          if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1||
+            r.promotion_gate.source_payload_digest_and_license_evidence_present_per_case!==true) process.exit(1);
+          if(r.promotion_gate.real_world_dataset!==false||r.promotion_gate.empirical_dataset_flags_complete!==false||
+            r.promotion_gate.empirical_benchmark_gate_pass!==false||r.promotion_gate.promotion_eligible_before_track_b!==false||
+            r.promotion_gate.production_promotion_authorized!==false||r.production!=='HOLD') process.exit(1);
+          console.log('R7I PASS: provenance grammar mechanics complete; 5/7 mechanics only; ambiguous remains REVIEW; empirical/public/Production claims remain blocked.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - name: Upload bounded SHADOW evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-er-r7i-provenance-minimums
           path: |
@@ -76,3 +154,4 @@ jobs:
             /tmp/er-r7i-results.json
           if-no-files-found: error
           retention-days: 30
+          include-hidden-files: false

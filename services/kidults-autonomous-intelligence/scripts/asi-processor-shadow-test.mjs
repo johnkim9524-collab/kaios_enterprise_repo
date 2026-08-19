@@ -12,6 +12,8 @@ const migrationNames = [
   '0002_autonomous_orchestration.sql',
   '0003_asi_market_funnel_shadow.sql',
   '0004_asi_processor_shadow.sql',
+  '0005_asi_runtime_recovery_fairness_shadow.sql',
+  '0006_asi_task_lease_atomic_fencing_shadow.sql',
 ];
 
 const normalizeClock = (value) => {
@@ -319,13 +321,14 @@ function insertPoolDecision({
   );
 }
 
-test('all four migrations apply to a fresh SQLite database', () => {
+test('all six migrations apply to a fresh SQLite database', () => {
   assert.equal(row(`SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name LIKE 'asi_%'`).n >= 18,true);
   assert.deepEqual(all(`PRAGMA foreign_key_check`),[]);
 });
 
-test('migration 0004 is replay-safe', () => {
+test('migrations 0004 and 0006 are replay-safe', () => {
   db.exec(readFileSync(migrationPath('0004_asi_processor_shadow.sql'),'utf8'));
+  db.exec(readFileSync(migrationPath('0006_asi_task_lease_atomic_fencing_shadow.sql'),'utf8'));
 });
 
 const sourceA = seedSource('a');

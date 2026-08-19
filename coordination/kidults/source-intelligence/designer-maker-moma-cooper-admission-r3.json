@@ -6,6 +6,37 @@
   "er_source_lane_issue": 524,
   "production": "HOLD",
   "admission_scope": "DESIGNER_MAKER_EDITION_IDENTITY_CALIBRATION_ONLY",
+  "admission_class": "REPOSITORY_DECLARED_IDENTITY_CALIBRATION_METADATA_ONLY",
+  "admitted_state_definition": "ADMITTED_MEANS_REPOSITORY_DECLARED_FOR_BOUNDED_INTERNAL_IDENTITY_CALIBRATION_METADATA_ONLY",
+  "purpose_rights_interpretation": "SOURCE_LICENSE_FIELD_USE_CEILING_ONLY_NOT_PLATFORM_ADMISSION_OR_PUBLICATION_AUTHORIZATION",
+  "admission_accounting": {
+    "repository_declared_identity_calibration_metadata_source_count": 2,
+    "strict_r1_evidence_bound_admitted_source_count": 0,
+    "full_source_pool_admitted_source_count": 0,
+    "current_market_ready_source_count": 0,
+    "runtime_admitted_source_count": 0,
+    "image_admitted_source_count": 0
+  },
+  "evidence_assurance": {
+    "repository_declaration_only": true,
+    "strict_r1_evidence_bound_revalidation_complete": false,
+    "independent_legal_review_complete": false,
+    "source_content_bytes_archived": false,
+    "source_content_archive_state": "NOT_ARCHIVED",
+    "live_workflow_probe_is_archival_or_independent_review_evidence": false
+  },
+  "authorization_boundaries": {
+    "current_market_claim_authorized": false,
+    "full_source_pool_admission_authorized": false,
+    "public_release_authorized": false,
+    "commercial_use_authorized": false,
+    "public_commercial_admission_authorized": false,
+    "runtime_admission_authorized": false,
+    "runtime_admission_events_emitted": 0,
+    "image_admission_authorized": false,
+    "market_observation_count": 0,
+    "production_promotion_authorized": false
+  },
   "sources": [
     {
       "source_id": "moma-collection-research-dataset",
@@ -18,6 +49,9 @@
         "https://github.com/MuseumofModernArt/collection/blob/main/README.md"
       ],
       "admission_state": "ADMITTED",
+      "admission_state_scope": "REPOSITORY_DECLARED_BOUNDED_INTERNAL_IDENTITY_CALIBRATION_METADATA_ONLY",
+      "strict_r1_evidence_bound_admission": false,
+      "source_content_bytes_archived": false,
       "allowed_fields": [
         "collection_object_identifier",
         "object_number",
@@ -57,6 +91,9 @@
         "https://github.com/cooperhewitt/collection/blob/master/README.md"
       ],
       "admission_state": "ADMITTED",
+      "admission_state_scope": "REPOSITORY_DECLARED_BOUNDED_INTERNAL_IDENTITY_CALIBRATION_METADATA_ONLY",
+      "strict_r1_evidence_bound_admission": false,
+      "source_content_bytes_archived": false,
       "allowed_fields": [
         "object_id",
         "accession_number",
@@ -111,7 +148,10 @@
   "pool_effect": {
     "designer_maker_edition_source_lane": "STRUCTURALLY_FIT_FOR_BOUNDED_ER_CALIBRATION",
     "current_market_claim_gate": "UNCHANGED_STILL_OPEN",
+    "current_market_claim_gate_satisfied": false,
+    "full_source_pool_effect": "NONE",
+    "runtime_admission_effect": "NONE",
     "provider_purchase": "HOLD"
   },
-  "truth_boundary": "This admission covers only CC0 collection metadata required for DESIGNER_MAKER_EDITION identity calibration. Images and current-market claims are excluded. Exact target records must be live-revalidated before any R7J benchmark case is admitted."
+  "truth_boundary": "ADMITTED is a repository declaration covering only CC0 collection metadata for bounded internal DESIGNER_MAKER_EDITION identity calibration. It is not strict R1 evidence-bound admission, independent legal review, source-byte archival, full-pool or runtime admission, or public/commercial/current-market authorization. Images, market observations, and Production remain blocked. A live workflow probe checks official topology but does not archive source bytes or raise those gates."
 }

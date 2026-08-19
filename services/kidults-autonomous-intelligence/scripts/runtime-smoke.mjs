@@ -46,7 +46,16 @@ const visual = query("SELECT value_json FROM autonomous_checkpoints WHERE key='v
 assert(JSON.parse(visual?.value_json || '{}').locked === true,'VISUAL_BASELINE_NOT_LOCKED');
 
 const tables = query("SELECT COUNT(*) AS asi_table_count FROM sqlite_master WHERE type='table' AND name LIKE 'asi_%';")[0];
-assert(Number(tables?.asi_table_count) === 20,'ASI_DURABLE_TABLE_COUNT_MISMATCH');
+assert(Number(tables?.asi_table_count) === 26,'ASI_DURABLE_TABLE_COUNT_MISMATCH');
+
+const taskLeaseFence = query("SELECT COUNT(*) AS table_count FROM sqlite_master WHERE type='table' AND name='asi_task_lease_write_fences';")[0];
+assert(Number(taskLeaseFence?.table_count) === 1,'ASI_TASK_LEASE_ATOMIC_FENCE_TABLE_MISSING');
+
+const recoveryTables = query("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('asi_relay_fairness','asi_replay_attempts','asi_transport_attempts','asi_transport_control_holds','asi_terminal_dlq_receipts') ORDER BY name;");
+assert(recoveryTables.length === 5,'ASI_RECOVERY_DURABLE_TABLES_MISSING');
+
+const recoveryView = query("SELECT COUNT(*) AS view_count FROM sqlite_master WHERE type='view' AND name='asi_runtime_recovery_holds';")[0];
+assert(Number(recoveryView?.view_count) === 1,'ASI_RECOVERY_HOLD_VIEW_MISSING');
 
 const processorRequirements = query("SELECT g.stage,COUNT(*) AS required_count FROM asi_processor_fan_in_requirements r JOIN asi_processor_fan_in_groups g ON g.group_id=r.group_id GROUP BY g.stage ORDER BY g.stage;");
 assert(processorRequirements.length === 0,'PROCESSOR_FAN_IN_REQUIREMENTS_MUST_START_EMPTY_BEFORE_SOURCE_EVENTS');

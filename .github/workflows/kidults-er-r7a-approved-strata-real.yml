@@ -1,4 +1,4 @@
-name: KIDULTS ER R7A Approved Strata Real
+name: KIDULTS ER R7A Approved-Strata Source-Derived Controls
 
 on:
   pull_request:
@@ -11,21 +11,47 @@ on:
       - 'scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs'
       - 'scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs'
       - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - '.github/workflows/kidults-entity-resolution-benchmark-v2-runner.yml'
+      - '.github/workflows/kidults-er-real-dataset-r1.yml'
+      - '.github/workflows/kidults-er-getty-transaction-r2.yml'
+      - '.github/workflows/kidults-er-canonical-design-r3.yml'
+      - '.github/workflows/kidults-er-real-holdout-r4.yml'
+      - '.github/workflows/kidults-er-cross-market-alias-r5.yml'
+      - '.github/workflows/kidults-er-ambiguous-review-r6.yml'
+      - '.github/workflows/kidults-er-approved-calibration-strata-v1.yml'
       - '.github/workflows/kidults-er-r7a-approved-strata-real.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+concurrency:
+  group: kidults-er-r7a-approved-strata-real-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-r7a:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
-      - name: Build real R1-R6 diagnostic aggregate
+      - name: Checkout repository
+        # actions/checkout v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        # actions/setup-node v5.0.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Build live-source-derived constructed-control R1-R6 aggregate
         run: |
           node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
           node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
@@ -43,25 +69,29 @@ jobs:
           node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs \
             /tmp/er-r7a.json /tmp/er-r7a-results.json \
             coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json
-      - name: Verify 3-of-7 real strata progress and fail-closed final promotion
+      - name: Verify 3-of-7 constructed-control strata progress and fail-closed promotion
         run: |
           node - <<'NODE'
           const d=require('/tmp/er-r7a.json'); const r=require('/tmp/er-r7a-results.json');
+          if(d.dataset_class!=='REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL'||d.constructed_control!==true||d.empirical_benchmark_eligible!==false||d.independent_label_review_complete!==false||d.label_adjudication_complete!==false||d.holdout_sealed_before_modeling!==false||d.production!=='HOLD') process.exit(1);
+          if(d.cases.some(x=>x.blind_holdout===true)||r.blind_holdout_count!==0||r.blind_accuracy!==null) process.exit(1);
           const required=new Set(d.required_scope_ids); const represented=new Set(d.cases.map(x=>x.scope_id).filter(x=>required.has(x)));
           for(const id of ['er-stratum-vehicle-mechanical-asset','er-stratum-pressing-edition-media','er-stratum-provenance-unique-object']) if(!represented.has(id)) process.exit(1);
           if(represented.size!==3) process.exit(1);
           if(r.strata_manifest_binding.binding_valid!==true) process.exit(1);
-          if(r.accuracy!==1||r.blind_accuracy!==1||r.critical_false_auto_merge!==0||r.blind_critical_false_auto_merge!==0) process.exit(1);
+          if(r.accuracy!==1||r.critical_false_auto_merge!==0||r.blind_critical_false_auto_merge!==0) process.exit(1);
           if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
           if(r.coverage.all_cases_in_approved_scopes!==false) process.exit(1);
           if(r.coverage.all_required_scopes_represented!==false) process.exit(1);
           if(r.coverage.scope_stratification_complete!==false) process.exit(1);
-          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
-          console.log('R7A PASS: 3/7 approved strata represented by semantically asserted real evidence; final promotion correctly blocked.');
+          if(r.promotion_gate.empirical_benchmark_gate_pass!==false||r.promotion_gate.promotion_eligible_before_track_b!==false||r.promotion_gate.production_promotion_authorized!==false) process.exit(1);
+          console.log('R7A PASS: 3/7 strata have live-source-derived constructed controls; no independent blind evidence or promotion claim.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - name: Upload R7A diagnostic artifacts
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: kidults-er-r7a-approved-strata-real
+          name: kidults-er-r7a-approved-strata-source-derived-controls
           path: |
             /tmp/er-r7a.json
             /tmp/er-r7a-results.json

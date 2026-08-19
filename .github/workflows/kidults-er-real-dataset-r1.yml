@@ -1,42 +1,73 @@
-name: KIDULTS ER Real Dataset R1
+name: KIDULTS ER Real-Source-Derived Constructed Control R1
 
 on:
   pull_request:
     paths:
       - 'scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs'
       - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'coordination/kidults/source-intelligence/source-admission-rights-methodology-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-rights-access-review-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-rights-access-review-r1.json'
+      - 'coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json'
       - '.github/workflows/kidults-er-real-dataset-r1.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+concurrency:
+  group: kidults-er-real-dataset-r1-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   assemble-and-run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        # actions/checkout v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          node-version: '22'
-      - name: Assemble real-world rights-backed ER increment
+          persist-credentials: false
+
+      - name: Set up Node.js
+        # actions/setup-node v5.0.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Assemble real-source-derived constructed ER control
         run: node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-real-world-increment-r1.json
-      - name: Run canonical benchmark v2 runner
+      - name: Run benchmark v2 mechanics on the constructed control
         run: node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-real-world-increment-r1.json /tmp/er-real-world-results-r1.json
-      - name: Verify measured correctness without completion inflation
+      - name: Verify constructed-control boundary without empirical inflation
         run: |
           node - <<'NODE'
           const d=require('/tmp/er-real-world-increment-r1.json');
           const r=require('/tmp/er-real-world-results-r1.json');
-          if (d.synthetic !== false || d.dataset_class !== 'REAL_WORLD_LABELED') process.exit(1);
+          if (d.dataset_class !== 'REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL') process.exit(1);
+          if (d.constructed_control !== true || d.empirical_benchmark_eligible !== false || d.independent_label_review_complete !== false || d.label_adjudication_complete !== false || d.holdout_sealed_before_modeling !== false) process.exit(1);
           if (d.cases.length < 2) process.exit(1);
+          if (r.dataset_class !== 'REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL' || r.production !== 'HOLD') process.exit(1);
           if (r.accuracy !== 1 || r.critical_false_auto_merge !== 0) process.exit(1);
           if (r.coverage.provenance_coverage !== 1 || r.coverage.rights_coverage !== 1) process.exit(1);
-          if (r.promotion_gate.promotion_eligible_before_track_b !== false) process.exit(1);
-          console.log('Real-world increment measured PASS; full #479 promotion correctly blocked by incomplete breadth.');
+          if (r.coverage.required_case_classes_complete !== false || r.coverage.required_identity_boundaries_complete !== false) process.exit(1);
+          if (r.coverage.all_case_scopes_in_canonical_matrix !== false || r.coverage.required_scope_archetypes_complete !== false) process.exit(1);
+          if (r.promotion_gate.source_payload_digest_and_license_evidence_present_per_case !== true || r.promotion_gate.source_payload_digest_and_license_evidence_bound !== false) process.exit(1);
+          if (r.promotion_gate.empirical_sample_floors_complete !== false || r.promotion_gate.empirical_benchmark_gate_pass !== false || r.promotion_gate.production_promotion_authorized !== false) process.exit(1);
+          if (r.promotion_gate.real_world_dataset !== false || r.promotion_gate.constructed_control !== true || r.promotion_gate.empirical_benchmark_eligible !== false || r.promotion_gate.independent_label_review_complete !== false || r.promotion_gate.label_adjudication_complete !== false || r.promotion_gate.holdout_sealed_before_modeling !== false || r.promotion_gate.promotion_eligible_before_track_b !== false) process.exit(1);
+          console.log('Real-source-derived constructed ER control PASS; independent labels, sealed holdout, empirical breadth, Track B, and Production remain blocked.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - name: Upload constructed ER control artifacts
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-er-real-world-increment-r1
           path: |

@@ -13,10 +13,13 @@ const admissionPolicy = JSON.parse(read('coordination/kidults/source-intelligenc
 const registrySource = read('services/kidults-autonomous-intelligence/src/asi/registry.ts');
 const migration = read('services/kidults-autonomous-intelligence/migrations/0003_asi_market_funnel_shadow.sql');
 const processorMigration = read('services/kidults-autonomous-intelligence/migrations/0004_asi_processor_shadow.sql');
+const recoveryMigration = read('services/kidults-autonomous-intelligence/migrations/0005_asi_runtime_recovery_fairness_shadow.sql');
+const taskLeaseFencingMigration = read('services/kidults-autonomous-intelligence/migrations/0006_asi_task_lease_atomic_fencing_shadow.sql');
 const processorSource = read('services/kidults-autonomous-intelligence/src/asi/processors.ts');
 const processorRuntimeSource = read('services/kidults-autonomous-intelligence/src/asi/processor-runtime.ts');
 const processorTestSource = read('services/kidults-autonomous-intelligence/scripts/asi-processor-shadow-test.mjs');
 const processorE2eTestSource = read('services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs');
+const recoveryTestSource = read('services/kidults-autonomous-intelligence/scripts/asi-runtime-recovery-fairness-test.mjs');
 const ingestSource = read('services/kidults-autonomous-intelligence/src/index.ts');
 const workerSource = read('services/kidults-autonomous-intelligence/src/worker.ts');
 const httpSecuritySource = read('services/kidults-autonomous-intelligence/src/http-security.ts');
@@ -72,10 +75,38 @@ for (const table of [
 if (!processorMigration.includes('CREATE VIEW IF NOT EXISTS asi_processor_fan_in_readiness') ||
   !processorMigration.includes('CREATE VIEW IF NOT EXISTS asi_source_pool_effective') ||
   !processorMigration.includes("production_state='HOLD'")) failures.push('Processor fan-in and fail-closed SHADOW source-pool guards are incomplete.');
+for (const table of [
+  'asi_relay_fairness','asi_replay_attempts','asi_transport_attempts','asi_transport_control_holds','asi_terminal_dlq_receipts',
+]) {
+  if (!recoveryMigration.includes(`CREATE TABLE IF NOT EXISTS ${table}`)) failures.push(`Missing recovery ASI table ${table}.`);
+}
+if (!recoveryMigration.includes('CREATE VIEW IF NOT EXISTS asi_runtime_recovery_holds') ||
+  !recoveryMigration.includes('ACK_AFTER_D1_PERSIST') ||
+  !recoveryMigration.includes('loss_guarantee INTEGER NOT NULL DEFAULT 0') ||
+  !recoveryMigration.includes('ALTER TABLE asi_replay_requests ADD COLUMN lease_owner') ||
+  !recoveryMigration.includes('ALTER TABLE asi_outbox ADD COLUMN fairness_key')) {
+  failures.push('Recovery, fair relay and terminal DLQ fail-closed schema is incomplete.');
+}
+if (!taskLeaseFencingMigration.includes('CREATE TABLE IF NOT EXISTS asi_task_lease_write_fences') ||
+  !taskLeaseFencingMigration.includes('trg_asi_task_lease_write_fence_active') ||
+  !taskLeaseFencingMigration.includes("RAISE(ABORT,'ASI_TASK_LEASE_FENCE_LOST')") ||
+  !taskLeaseFencingMigration.includes('l.attempt_count=NEW.lease_epoch')) {
+  failures.push('Atomic task-lease owner and epoch write fencing schema is incomplete.');
+}
 if (!processorSource.includes('export function asiProcessorInventory') ||
   !processorSource.includes('SOURCE_POOL_DECIDED') ||
   !processorRuntimeSource.includes('evaluateBoundedShadowAdmission') ||
   !eventRuntimeSource.includes('runAsiProcessorTask')) failures.push('All 25 deterministic SHADOW processors must be wired through the Queue consumer runtime.');
+if (!eventRuntimeSource.includes('export async function runAsiRecoveryCycle') ||
+  !eventRuntimeSource.includes('export async function recoverPendingReplays') ||
+  !eventRuntimeSource.includes('export function asiFairnessKey') ||
+  !eventRuntimeSource.includes('ACK_ONLY_AFTER_D1_TERMINAL_LEDGER_PERSIST') ||
+  !eventRuntimeSource.includes('loss_guarantee:false') ||
+  !eventRuntimeSource.includes('INSERT INTO asi_task_lease_write_fences') ||
+  !eventRuntimeSource.includes('fence.leaseEpoch') ||
+  !workerSource.includes('runAsiRecoveryCycle(env)')) {
+  failures.push('Scheduled SHADOW recovery, replay, fair relay or terminal DLQ truth boundary is not wired.');
+}
 if (queueContract.partition_key_encoding?.version !== 'partition:v1' ||
   queueContract.partition_key_encoding?.method !== 'CANONICAL_JSON_TUPLE' ||
   queueContract.partition_key_encoding?.delimiter_collision_possible !== false ||
@@ -92,6 +123,19 @@ if (!processorTestSource.includes('classification_required:classificationFleets.
   !processorE2eTestSource.includes('discovery seed ALLOW cannot override envelope DENY') ||
   !processorE2eTestSource.includes('discovery seed ALLOW cannot override envelope REJECT') ||
   !processorE2eTestSource.includes("hold_pool_state:'HOLD'")) failures.push('Processor durability/fan-in/end-to-end behavioral tests are incomplete.');
+if (!recoveryTestSource.includes("fair_partitions:3") ||
+  !recoveryTestSource.includes("terminal_ack_policy:'ACK_AFTER_D1_PERSIST'") ||
+  !recoveryTestSource.includes('expired replay lease is reclaimed once') ||
+  !recoveryTestSource.includes('five control holds do not consume send attempts') ||
+  !recoveryTestSource.includes('corrupt outbox is terminal HOLD without circuit impact') ||
+  !recoveryTestSource.includes('stale task lease owner cannot mutate processor state') ||
+  !recoveryTestSource.includes('after the final fence read before the output batch') ||
+  !recoveryTestSource.includes('replay claim and attempt insertion are atomic') ||
+  !recoveryTestSource.includes('stale half-open probe owner cannot close or count') ||
+  !recoveryTestSource.includes('data quality has unique replay/outbox grains') ||
+  !recoveryTestSource.includes('loss_guarantee:false')) {
+  failures.push('Recovery/fairness/DLQ/replay deterministic behavioral tests are incomplete.');
+}
 const boundedAssertions = admissionPolicy.purposes?.find((item) => item.purpose === 'BOUNDED_SHADOW_ACQUISITION')?.required_assertions || [];
 const expectedBoundedAssertions = ['COLLECT','STORE','TRANSFORM','RETENTION','RATE_LIMIT','ROBOTS','SCHEMA','PROVENANCE','FRESHNESS'];
 if (JSON.stringify(boundedAssertions) !== JSON.stringify(expectedBoundedAssertions)) failures.push('Bounded shadow admission policy assertion set drifted.');
@@ -120,5 +164,5 @@ if (failures.length) {
 
 console.log('KIDULTS deployment preflight PASS');
 console.log(`D1: ${db.database_name} (${db.database_id})`);
-console.log('ASI: SHADOW / 25 deterministic processors + queue transports code-wired / publication HOLD');
-console.log('Shadow runtime state: processor/fan-in/event/outbox/watermark/DLQ code wired; complete recovery, remote resources and deployment NOT VERIFIED');
+console.log('ASI: SHADOW / 25 deterministic processors + bounded recovery/fair relay queue transports code-wired / publication HOLD');
+console.log('Shadow runtime state: processor/fan-in/event/outbox/watermark/replay/circuit/budget/DLQ code wired; remote resources, load and deployment NOT VERIFIED');

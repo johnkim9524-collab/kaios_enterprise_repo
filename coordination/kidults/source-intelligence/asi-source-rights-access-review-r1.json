@@ -1,0 +1,1372 @@
+{
+  "id": "kidults-asi-source-rights-access-review-r1",
+  "record_type": "asi_source_rights_access_review_batch",
+  "version": "1.0.0",
+  "status": "REVIEWED_SHADOW",
+  "observed_at": "2026-08-19T00:00:00Z",
+  "production": "HOLD",
+  "review_batch": {
+    "reviewed_source_count": 13,
+    "bounded_mechanism_proof_not_market_completeness": true,
+    "numeric_global_site_target": null,
+    "unreviewed_global_market_sites_remain_open_ended": true,
+    "official_primary_sources_only": true,
+    "legal_conclusion_asserted": false,
+    "human_legal_review_substituted": false,
+    "decision_semantics": "POLICY_AND_EVIDENCE_PREFLIGHT_PASS_ONLY",
+    "independent_legal_review_complete": false,
+    "independent_legal_review_state": "NOT_COMPLETED"
+  },
+  "evidence": [
+    {
+      "evidence_id": "ev-wikidata-license",
+      "evidence_kind": "LICENSE",
+      "url": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+      "publisher": "Wikimedia Foundation / Wikidata community",
+      "document_version": "oldid:2496674574",
+      "claim_locator": "Official policy / first paragraph",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-wikidata-license",
+      "record_integrity_sha256": "sha256:456dc840a89be252c9d9a6f626c5c7175273dd878289a84648a369777c4dfad1",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-11-17T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "Structured data in main, Property and Lexeme namespaces",
+      "claim_summary": "The official policy identifies structured Wikidata data as CC0; other namespace text and Commons media are outside this evidence scope."
+    },
+    {
+      "evidence_id": "ev-wikidata-access",
+      "evidence_kind": "ACCESS_AND_ROBOTS",
+      "url": "https://www.wikidata.org/wiki/Wikidata:Data_access/en",
+      "publisher": "Wikimedia Foundation / Wikidata community",
+      "document_version": "oldid:2497420605",
+      "claim_locator": "Access best practices",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-wikidata-access",
+      "record_integrity_sha256": "sha256:8904784a54749352489444c36f38285da73ef81a28dcac75892ecb525696adf0",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "Programmatic read access to structured Wikidata",
+      "claim_summary": "The official access guidance documents query, API and dump paths plus User-Agent, compression, concurrency and 429 backoff etiquette."
+    },
+    {
+      "evidence_id": "ev-datacite-license",
+      "evidence_kind": "LICENSE",
+      "url": "https://support.datacite.org/docs/harvesting-datacite-doi-metadata",
+      "publisher": "DataCite e.V.",
+      "document_version": "unversioned-official-policy-as-observed-2026-08-19",
+      "claim_locator": "Who can harvest DataCite metadata? / first paragraph",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-datacite-license",
+      "record_integrity_sha256": "sha256:b12fe18e482c4b1e55fa2beeae6cec4fed933be1d8b4e6fdb8dbba7cd3154c4e",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-11-17T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "DataCite DOI identifiers and deposited metadata in the DataCite Data File",
+      "claim_summary": "DataCite states that the DOI data file is provided under a CC0 waiver for unrestricted reuse, without warranties."
+    },
+    {
+      "evidence_id": "ev-datacite-access",
+      "evidence_kind": "ACCESS",
+      "url": "https://support.datacite.org/docs/harvesting-datacite-doi-metadata",
+      "publisher": "DataCite e.V.",
+      "document_version": "official-doc-as-observed-2026-08-19",
+      "claim_locator": "Which DataCite APIs can I use to harvest metadata? / REST API service row",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-datacite-access",
+      "record_integrity_sha256": "sha256:fd6350731e27e5c8f7b58f3cf3e9380e4807ff274c87fefe4add9f7664f3aef3",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "Findable DOI metadata retrieval through the public REST API",
+      "claim_summary": "The official harvesting guide lists the REST API as available to all users, including unidentified users."
+    },
+    {
+      "evidence_id": "ev-datacite-rate",
+      "evidence_kind": "RATE_LIMIT",
+      "url": "https://support.datacite.org/docs/rate-limit",
+      "publisher": "DataCite e.V.",
+      "document_version": "official-doc-as-observed-2026-08-19",
+      "claim_locator": "API rate limits / tier table",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-datacite-rate",
+      "record_integrity_sha256": "sha256:8f5e1c376c4194e9d398553bc8ed7523c93b3be42707235188b9e54e7406faad",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "DataCite API request limits",
+      "claim_summary": "The official policy publishes identified and unidentified request tiers and requires 429-aware backoff."
+    },
+    {
+      "evidence_id": "ev-moma-license",
+      "evidence_kind": "LICENSE_AND_ACCESS",
+      "url": "https://github.com/MuseumofModernArt/collection",
+      "publisher": "The Museum of Modern Art",
+      "document_version": "official-repository-default-branch-as-observed-2026-08-19",
+      "claim_locator": "README / license statement and Additional usage guidelines",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-moma-license",
+      "record_integrity_sha256": "sha256:2d71333027e94a98929beca8530f8368e1f76d83c38695b5acbc7b04fb0f3808",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-11-17T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "Artists and artworks metadata files in the official collection repository",
+      "claim_summary": "The official repository places its collection datasets in the public domain under CC0, excludes images, requests attribution and prohibits implied endorsement or misrepresentation."
+    },
+    {
+      "evidence_id": "ev-europeana-license",
+      "evidence_kind": "LICENSE",
+      "url": "https://pro.europeana.eu/page/the-data-exchange-agreement",
+      "publisher": "Europeana Foundation",
+      "document_version": "updated-2025-10-09",
+      "claim_locator": "Data Exchange Agreement / two central rules",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-europeana-license",
+      "record_integrity_sha256": "sha256:f6d1f2bc22662daea0b4e7b0eb62b7cd876d0edc07c1eef10e7b0047de19c89e",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-11-17T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "Descriptive metadata submitted to Europeana",
+      "claim_summary": "Europeana publishes submitted metadata under CC0 while each digital object and preview retains its own rights statement."
+    },
+    {
+      "evidence_id": "ev-europeana-api",
+      "evidence_kind": "ACCESS",
+      "url": "https://pro.europeana.eu/page/apis",
+      "publisher": "Europeana Foundation",
+      "document_version": "official-api-page-as-observed-2026-08-19",
+      "claim_locator": "Accessing the APIs / Get the API key",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-europeana-api",
+      "record_integrity_sha256": "sha256:d8e88210b792d0d092a75978b6b97f0af329a89d3b13dbeb1c1a039ebd00a17c",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "Europeana Search and Record APIs",
+      "claim_summary": "The official API page documents metadata access and an API-key registration path; no project credential is provisioned in this review."
+    },
+    {
+      "evidence_id": "ev-musicbrainz-license",
+      "evidence_kind": "LICENSE",
+      "url": "https://musicbrainz.org/doc/About/Data_License",
+      "publisher": "MetaBrainz Foundation",
+      "document_version": "revision:68951",
+      "claim_locator": "MusicBrainz Database / Core data and Supplementary data",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-musicbrainz-license",
+      "record_integrity_sha256": "sha256:72bfde53f1d9612313da47ff87edd6f10fc6493324b01fc9291bfca09f06dbdb",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-11-17T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "MusicBrainz core database fields only",
+      "claim_summary": "Core database data is CC0; supplementary data and live replication packets use a non-commercial share-alike license, and cover art is outside the database."
+    },
+    {
+      "evidence_id": "ev-musicbrainz-api",
+      "evidence_kind": "ACCESS_AND_RATE_LIMIT",
+      "url": "https://musicbrainz.org/doc/MusicBrainz_API",
+      "publisher": "MetaBrainz Foundation",
+      "document_version": "official-doc-as-observed-2026-08-19",
+      "claim_locator": "Frequently asked questions and Application rate limiting",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-musicbrainz-api",
+      "record_integrity_sha256": "sha256:124084127eccc9d2610d51cf7fb648bd07724844211ae752eb6ac783ce29e188",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "MusicBrainz public web service",
+      "claim_summary": "The official API page limits free use to non-commercial access, directs commercial users to a plan or contact, and requires an identifying User-Agent and one request per second."
+    },
+    {
+      "evidence_id": "ev-bricklink-terms",
+      "evidence_kind": "TERMS_AND_ACCESS",
+      "url": "https://www.bricklink.com/v3/terms_of_use_api.page",
+      "publisher": "LEGO BrickLink, Inc.",
+      "document_version": "last-updated-2023-02-01",
+      "claim_locator": "API Licensed Uses and Restrictions; Website Policies And Use of API",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-bricklink-terms",
+      "record_integrity_sha256": "sha256:3c82376ed430bc31dadaeca67b0615f9e22e77e3b0f0a8809ac8e3a93aa198bc",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "BrickLink Store API",
+      "claim_summary": "The official terms grant a revocable application license subject to registration, restrict storage and content age, prohibit unsupported automated access, and reserve ungranted rights."
+    },
+    {
+      "evidence_id": "ev-christies-results",
+      "evidence_kind": "IDENTITY_ONLY",
+      "url": "https://www.christies.com/en/help/auction-results",
+      "publisher": "Christie's",
+      "document_version": "official-help-page-as-observed-2026-08-19",
+      "claim_locator": "Auction results page identity; no rights-grant locator captured",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": null,
+      "record_integrity_sha256": null,
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "PRIMARY_URL_CLAIM_RECORDED_CLAIM_RECORD_PENDING",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "Auction results page identity only",
+      "claim_summary": "The official results page identifies the service, but this review did not capture an explicit machine collection, retention, transformation or commercial reuse grant."
+    },
+    {
+      "evidence_id": "ev-classic-about",
+      "evidence_kind": "IDENTITY_ONLY",
+      "url": "https://www.classic.com/about/",
+      "publisher": "CLASSIC.COM",
+      "document_version": "official-about-page-as-observed-2026-08-19",
+      "claim_locator": "About page identity; no rights-grant locator captured",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": null,
+      "record_integrity_sha256": null,
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "PRIMARY_URL_CLAIM_RECORDED_CLAIM_RECORD_PENDING",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "Collector-vehicle market database identity only",
+      "claim_summary": "The official page supports source identity, but no explicit data collection, storage, transformation or commercial reuse grant was captured."
+    },
+    {
+      "evidence_id": "ev-goat-terms",
+      "evidence_kind": "TERMS",
+      "url": "https://www.goat.com/terms",
+      "publisher": "1661, Inc. d/b/a GOAT",
+      "document_version": "last-updated-2026-01-26",
+      "claim_locator": "Key Terms Related to Content; General Prohibitions",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-goat-terms",
+      "record_integrity_sha256": "sha256:995522e2581012b72b11d8fb83f0fd012a1b6073a722d2caa9a8d40ef8dc71cd",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "GOAT website and service content",
+      "claim_summary": "The official terms define proprietary and user content and general use restrictions but do not provide this review with a precise automated analytics reuse grant."
+    },
+    {
+      "evidence_id": "ev-reverb-api-terms",
+      "evidence_kind": "TERMS_AND_ACCESS",
+      "url": "https://reverb.com/legal/reverbcom-api-terms-of-use",
+      "publisher": "Reverb.com, LLC",
+      "document_version": "official-api-terms-as-observed-2026-08-19",
+      "claim_locator": "API Limited License and Restrictions; Prohibited Access",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-reverb-api-terms",
+      "record_integrity_sha256": "sha256:6117a74e6fa5f7384fe6d9a012e866bc06ebb41f6763d128ad7ec9e716554803",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "Reverb APIs and website content",
+      "claim_summary": "The official API terms require registration, prohibit website crawling and prohibit API collection for analytics or machine learning unless expressly authorized."
+    },
+    {
+      "evidence_id": "ev-apple-terms",
+      "evidence_kind": "TERMS",
+      "url": "https://www.apple.com/legal/internet-services/terms/site.html",
+      "publisher": "Apple Inc.",
+      "document_version": "updated-2009-11-20",
+      "claim_locator": "Content; Your Use of the Site",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-apple-terms",
+      "record_integrity_sha256": "sha256:d5d777778782c87dad60909d5dc70d210899747b982fa5a86c86683ebee48b2d",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "Apple website and technical-specification content",
+      "claim_summary": "The official site terms prohibit page scraping and robots and limit downloadable product information to personal non-commercial informational use absent written consent."
+    },
+    {
+      "evidence_id": "ev-imdb-noncommercial",
+      "evidence_kind": "TERMS_AND_ACCESS",
+      "url": "https://developer.imdb.com/non-commercial-datasets/",
+      "publisher": "IMDb.com, Inc.",
+      "document_version": "dataset-notice-2024-03-18",
+      "claim_locator": "IMDb Non-Commercial Datasets / introductory paragraph",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-imdb-noncommercial",
+      "record_integrity_sha256": "sha256:ce0cb0448ea2f8bb05dac3623cb76f89b059cbe1dc3c7903648edef552c67c93",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "IMDb non-commercial TSV datasets",
+      "claim_summary": "The official page limits these datasets and local copies to personal and non-commercial use; commercial metadata licensing is a separate product path."
+    },
+    {
+      "evidence_id": "ev-scryfall-rate",
+      "evidence_kind": "ACCESS_AND_RATE_LIMIT",
+      "url": "https://scryfall.com/docs/faqs/i-m-having-trouble-accessing-the-scryfall-api-or-i-m-blocked-17",
+      "publisher": "Scryfall",
+      "document_version": "official-faq-as-observed-2026-08-19",
+      "claim_locator": "429 Too Many Requests; 400 Bad Request or 403 Forbidden",
+      "reviewer": "KPMO / Codex",
+      "claim_record_ref": "repo:coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json#claim-record-scryfall-rate",
+      "record_integrity_sha256": "sha256:8fcc4f3f5d95c122f2f48730c32ef906febb7e3b2cb13e61bb790cc56179e13e",
+      "observed_at": "2026-08-19T00:00:00Z",
+      "review_due_at": "2026-09-18T00:00:00Z",
+      "claim_record_state": "NORMALIZED_PRIMARY_CLAIM_RECORD_RECORDED",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "claim_scope": "Scryfall API access etiquette only",
+      "claim_summary": "The official FAQ publishes a sub-10-requests-per-second ceiling and recommends bulk data, but this review did not capture a complete official field-level reuse license."
+    }
+  ],
+  "reviews": [
+    {
+      "review_id": "review-frontier-wikidata-r1",
+      "source_kind": "FRONTIER_DISCOVERY_CHANNEL",
+      "source_record_id": null,
+      "channel_id": "WIKIDATA_OFFICIAL_WEBSITE_GRAPH",
+      "display_name": "Wikidata official website graph",
+      "canonical_host": "wikidata.org",
+      "owner_lineage": {
+        "operator": "Wikimedia Foundation",
+        "relationship": "Official Wikidata operator",
+        "state": "VERIFIED_OFFICIAL_OPERATOR"
+      },
+      "context_only": true,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-wikidata-discovery-r1",
+          "purpose": "DISCOVERY_METADATA_INDEX",
+          "scope_ids": [
+            "cameras_lenses",
+            "collector_cars",
+            "construction_mechanical_sets",
+            "handbags",
+            "mechanical_watches",
+            "seating",
+            "trading_cards",
+            "video_games_consoles"
+          ],
+          "source_roles": [
+            "CATALOG_REFERENCE"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "entity_id",
+            "label",
+            "official_website_url",
+            "reference_url"
+          ],
+          "excluded_material": [
+            "commons_media",
+            "non_structured_namespace_text",
+            "target_site_content"
+          ],
+          "output_class": "INTERNAL_DISCOVERY_LOCATOR_METADATA",
+          "evidence_ids": [
+            "ev-wikidata-access",
+            "ev-wikidata-license"
+          ],
+          "license_scope_state": "EXPLICIT",
+          "terms_scope_state": "EXPLICIT",
+          "access": {
+            "method": "DOCUMENTED_QUERY_OR_DUMP",
+            "state": "AVAILABLE",
+            "credential_state": "NOT_REQUIRED",
+            "robots_state": "ALLOW_WITH_PUBLISHED_ETIQUETTE",
+            "rate_limit_state": "EXPLICIT",
+            "rate_limit_policy": "IDENTIFY_USER_AGENT_USE_COMPRESSION_LIMIT_CONCURRENCY_AND_HONOR_429_RETRY_AFTER"
+          },
+          "rights": {
+            "collect": "ALLOW",
+            "store": "ALLOW",
+            "transform": "ALLOW",
+            "retention": "ALLOW",
+            "display": "NOT_APPLICABLE",
+            "redistribute": "NOT_APPLICABLE",
+            "sell": "NOT_APPLICABLE"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-frontier-datacite-r1",
+      "source_kind": "FRONTIER_DISCOVERY_CHANNEL",
+      "source_record_id": null,
+      "channel_id": "DATACITE_AND_OPEN_RESEARCH_LANDING_METADATA",
+      "display_name": "DataCite public DOI metadata API",
+      "canonical_host": "api.datacite.org",
+      "owner_lineage": {
+        "operator": "DataCite e.V.",
+        "relationship": "Official DataCite public API operator",
+        "state": "VERIFIED_OFFICIAL_OPERATOR"
+      },
+      "context_only": true,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-datacite-discovery-r1",
+          "purpose": "DISCOVERY_METADATA_INDEX",
+          "scope_ids": [
+            "cameras_lenses",
+            "collector_cars",
+            "construction_mechanical_sets",
+            "handbags",
+            "mechanical_watches",
+            "seating",
+            "trading_cards",
+            "video_games_consoles"
+          ],
+          "source_roles": [
+            "CATALOG_REFERENCE"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "doi",
+            "titles",
+            "publisher",
+            "resourceType",
+            "subjects",
+            "relatedIdentifiers",
+            "url",
+            "rightsList"
+          ],
+          "excluded_material": [
+            "landing_page_content",
+            "linked_research_files",
+            "third_party_media"
+          ],
+          "output_class": "INTERNAL_DISCOVERY_LOCATOR_METADATA",
+          "evidence_ids": [
+            "ev-datacite-access",
+            "ev-datacite-license",
+            "ev-datacite-rate"
+          ],
+          "license_scope_state": "EXPLICIT",
+          "terms_scope_state": "EXPLICIT",
+          "access": {
+            "method": "DOCUMENTED_PUBLIC_REST_API",
+            "state": "AVAILABLE",
+            "credential_state": "NOT_REQUIRED",
+            "robots_state": "NOT_APPLICABLE_DOCUMENTED_API",
+            "rate_limit_state": "EXPLICIT",
+            "rate_limit_policy": "IDENTIFIED_CLIENT_MAX_1000_REQUESTS_PER_5_MINUTES_HONOR_429_WITH_BACKOFF"
+          },
+          "rights": {
+            "collect": "ALLOW",
+            "store": "ALLOW",
+            "transform": "ALLOW",
+            "retention": "ALLOW",
+            "display": "NOT_APPLICABLE",
+            "redistribute": "NOT_APPLICABLE",
+            "sell": "NOT_APPLICABLE"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-moma-collection-r1",
+      "source_kind": "GLOBAL_POOL_R1_TARGET_CANDIDATE",
+      "source_record_id": "moma-collection-dataset",
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "display_name": "MoMA Collection Dataset",
+      "canonical_host": "github.com",
+      "owner_lineage": {
+        "operator": "The Museum of Modern Art",
+        "relationship": "Official MuseumofModernArt GitHub organization",
+        "state": "VERIFIED_OFFICIAL_OPERATOR"
+      },
+      "context_only": true,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-moma-discovery-r1",
+          "purpose": "DISCOVERY_METADATA_INDEX",
+          "scope_ids": [
+            "decorative_design_objects",
+            "lighting",
+            "seating",
+            "tables_storage"
+          ],
+          "source_roles": [
+            "CATALOG_REFERENCE",
+            "PROVENANCE_HISTORY"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "ConstituentID",
+            "ObjectID",
+            "Title",
+            "Artist",
+            "Date",
+            "Medium",
+            "Dimensions",
+            "Classification",
+            "DateAcquired",
+            "URL"
+          ],
+          "excluded_material": [
+            "images",
+            "logos",
+            "trademarks",
+            "non_dataset_site_content"
+          ],
+          "output_class": "INTERNAL_CONTEXT_REFERENCE_METADATA",
+          "evidence_ids": [
+            "ev-moma-license"
+          ],
+          "license_scope_state": "EXPLICIT",
+          "terms_scope_state": "EXPLICIT",
+          "access": {
+            "method": "OFFICIAL_STATIC_GIT_DATASET",
+            "state": "AVAILABLE",
+            "credential_state": "NOT_REQUIRED",
+            "robots_state": "NOT_APPLICABLE_STATIC_DATASET",
+            "rate_limit_state": "NOT_APPLICABLE_STATIC_DATASET",
+            "rate_limit_policy": "VERSIONED_SNAPSHOT_DOWNLOAD_NOT_PAGE_CRAWLING"
+          },
+          "rights": {
+            "collect": "ALLOW",
+            "store": "ALLOW",
+            "transform": "ALLOW",
+            "retention": "ALLOW",
+            "display": "ALLOW",
+            "redistribute": "ALLOW",
+            "sell": "ALLOW"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        },
+        {
+          "package_id": "pkg-moma-bounded-shadow-r1",
+          "purpose": "BOUNDED_SHADOW_ACQUISITION",
+          "scope_ids": [
+            "decorative_design_objects",
+            "lighting",
+            "seating",
+            "tables_storage"
+          ],
+          "source_roles": [
+            "CATALOG_REFERENCE",
+            "PROVENANCE_HISTORY"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "ConstituentID",
+            "ObjectID",
+            "Title",
+            "Artist",
+            "Date",
+            "Medium",
+            "Dimensions",
+            "Classification",
+            "DateAcquired",
+            "URL"
+          ],
+          "excluded_material": [
+            "images",
+            "logos",
+            "trademarks",
+            "non_dataset_site_content"
+          ],
+          "output_class": "INTERNAL_SHADOW_CONTEXT_RECORD",
+          "evidence_ids": [
+            "ev-moma-license"
+          ],
+          "license_scope_state": "EXPLICIT",
+          "terms_scope_state": "EXPLICIT",
+          "access": {
+            "method": "OFFICIAL_STATIC_GIT_DATASET",
+            "state": "AVAILABLE",
+            "credential_state": "NOT_REQUIRED",
+            "robots_state": "NOT_APPLICABLE_STATIC_DATASET",
+            "rate_limit_state": "NOT_APPLICABLE_STATIC_DATASET",
+            "rate_limit_policy": "VERSIONED_SNAPSHOT_DOWNLOAD_NOT_PAGE_CRAWLING"
+          },
+          "rights": {
+            "collect": "ALLOW",
+            "store": "ALLOW",
+            "transform": "ALLOW",
+            "retention": "ALLOW",
+            "display": "ALLOW",
+            "redistribute": "ALLOW",
+            "sell": "ALLOW"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-europeana-fashion-r1",
+      "source_kind": "GLOBAL_POOL_R1_TARGET_CANDIDATE",
+      "source_record_id": "europeana-apis-fashion",
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "display_name": "Europeana APIs",
+      "canonical_host": "pro.europeana.eu",
+      "owner_lineage": {
+        "operator": "Europeana Foundation",
+        "relationship": "Official Europeana API and licensing publisher",
+        "state": "VERIFIED_OFFICIAL_OPERATOR"
+      },
+      "context_only": true,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-europeana-bounded-shadow-r1",
+          "purpose": "BOUNDED_SHADOW_ACQUISITION",
+          "scope_ids": [
+            "designer_garments",
+            "eyewear",
+            "handbags",
+            "sneakers"
+          ],
+          "source_roles": [
+            "CATALOG_REFERENCE",
+            "PROVENANCE_HISTORY"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "record_id",
+            "title",
+            "creator",
+            "date",
+            "institution",
+            "country",
+            "edmRights",
+            "landing_url"
+          ],
+          "excluded_material": [
+            "digital_objects",
+            "previews",
+            "thumbnails",
+            "provider_assets"
+          ],
+          "output_class": "INTERNAL_SHADOW_CONTEXT_RECORD",
+          "evidence_ids": [
+            "ev-europeana-api",
+            "ev-europeana-license"
+          ],
+          "license_scope_state": "EXPLICIT",
+          "terms_scope_state": "PARTIAL",
+          "access": {
+            "method": "DOCUMENTED_API_KEY_API",
+            "state": "CREDENTIAL_REQUIRED",
+            "credential_state": "NOT_PROVISIONED",
+            "robots_state": "NOT_APPLICABLE_DOCUMENTED_API",
+            "rate_limit_state": "UNKNOWN",
+            "rate_limit_policy": "PROJECT_KEY_AND_RATE_LIMIT_NOT_PROVISIONED_OR_VERIFIED"
+          },
+          "rights": {
+            "collect": "ALLOW",
+            "store": "ALLOW",
+            "transform": "ALLOW",
+            "retention": "ALLOW",
+            "display": "UNKNOWN",
+            "redistribute": "UNKNOWN",
+            "sell": "UNKNOWN"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-musicbrainz-r1",
+      "source_kind": "GLOBAL_POOL_R1_TARGET_CANDIDATE",
+      "source_record_id": "musicbrainz-web-service",
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "display_name": "MusicBrainz Web Service",
+      "canonical_host": "musicbrainz.org",
+      "owner_lineage": {
+        "operator": "MetaBrainz Foundation",
+        "relationship": "Official MusicBrainz service operator",
+        "state": "VERIFIED_OFFICIAL_OPERATOR"
+      },
+      "context_only": false,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-musicbrainz-bounded-shadow-r1",
+          "purpose": "BOUNDED_SHADOW_ACQUISITION",
+          "scope_ids": [
+            "musical_instruments_artist_gear",
+            "vinyl_recorded_music"
+          ],
+          "source_roles": [
+            "CATALOG_REFERENCE",
+            "PROVENANCE_HISTORY"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "mbid",
+            "name",
+            "type",
+            "area",
+            "release_group",
+            "release",
+            "recording",
+            "label",
+            "relationship_url"
+          ],
+          "excluded_material": [
+            "annotations",
+            "tags",
+            "ratings",
+            "derived_statistics",
+            "cover_art",
+            "live_replication_packets"
+          ],
+          "output_class": "INTERNAL_SHADOW_CATALOG_RECORD",
+          "evidence_ids": [
+            "ev-musicbrainz-api",
+            "ev-musicbrainz-license"
+          ],
+          "license_scope_state": "EXPLICIT",
+          "terms_scope_state": "PARTIAL",
+          "access": {
+            "method": "DOCUMENTED_WEB_SERVICE",
+            "state": "CREDENTIAL_REQUIRED",
+            "credential_state": "NOT_PROVISIONED",
+            "robots_state": "NOT_APPLICABLE_DOCUMENTED_API",
+            "rate_limit_state": "EXPLICIT",
+            "rate_limit_policy": "MAX_ONE_REQUEST_PER_SECOND_WITH_IDENTIFYING_USER_AGENT"
+          },
+          "rights": {
+            "collect": "ALLOW",
+            "store": "ALLOW",
+            "transform": "ALLOW",
+            "retention": "ALLOW",
+            "display": "UNKNOWN",
+            "redistribute": "UNKNOWN",
+            "sell": "UNKNOWN"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-bricklink-r1",
+      "source_kind": "GLOBAL_POOL_R1_TARGET_CANDIDATE",
+      "source_record_id": "bricklink-catalog-api",
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "display_name": "BrickLink Catalog API",
+      "canonical_host": "bricklink.com",
+      "owner_lineage": {
+        "operator": "LEGO BrickLink, Inc.",
+        "relationship": "Official BrickLink API operator",
+        "state": "VERIFIED_OFFICIAL_OPERATOR"
+      },
+      "context_only": false,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-bricklink-bounded-shadow-r1",
+          "purpose": "BOUNDED_SHADOW_ACQUISITION",
+          "scope_ids": [
+            "construction_mechanical_sets"
+          ],
+          "source_roles": [
+            "CATALOG_REFERENCE",
+            "LISTING_SUPPLY"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "item_number",
+            "item_type",
+            "name",
+            "category_id",
+            "color_id",
+            "inventory_quantity",
+            "unit_price"
+          ],
+          "excluded_material": [
+            "member_personal_data",
+            "credentials",
+            "orders",
+            "messages",
+            "images"
+          ],
+          "output_class": "INTERNAL_SHADOW_CATALOG_AND_LISTING_RECORD",
+          "evidence_ids": [
+            "ev-bricklink-terms"
+          ],
+          "license_scope_state": "PARTIAL",
+          "terms_scope_state": "EXPLICIT",
+          "access": {
+            "method": "REGISTERED_OAUTH_API",
+            "state": "CREDENTIAL_REQUIRED",
+            "credential_state": "NOT_PROVISIONED",
+            "robots_state": "NOT_APPLICABLE_DOCUMENTED_API",
+            "rate_limit_state": "EXPLICIT",
+            "rate_limit_policy": "DEFAULT_5000_CALLS_PER_DAY_AND_REGISTERED_STATIC_IP"
+          },
+          "rights": {
+            "collect": "ALLOW",
+            "store": "UNKNOWN",
+            "transform": "UNKNOWN",
+            "retention": "UNKNOWN",
+            "display": "UNKNOWN",
+            "redistribute": "DENY",
+            "sell": "DENY"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-christies-watches-r1",
+      "source_kind": "GLOBAL_POOL_R1_TARGET_CANDIDATE",
+      "source_record_id": "christies-watches-results",
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "display_name": "Christie's Watches Results",
+      "canonical_host": "christies.com",
+      "owner_lineage": {
+        "operator": "Christie's",
+        "relationship": "Official auction-house results channel",
+        "state": "VERIFIED_OFFICIAL_OPERATOR"
+      },
+      "context_only": false,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-christies-watches-bounded-shadow-r1",
+          "purpose": "BOUNDED_SHADOW_ACQUISITION",
+          "scope_ids": [
+            "mechanical_watches",
+            "vintage_digital_watches"
+          ],
+          "source_roles": [
+            "SOLD_TRANSACTION"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "lot_id",
+            "title",
+            "sale_date",
+            "sale_location",
+            "currency",
+            "estimate",
+            "realized_price",
+            "result_status"
+          ],
+          "excluded_material": [
+            "images",
+            "catalog_essays",
+            "personal_data"
+          ],
+          "output_class": "INTERNAL_SHADOW_TERMINAL_TRANSACTION_CANDIDATE",
+          "evidence_ids": [
+            "ev-christies-results"
+          ],
+          "license_scope_state": "MISSING",
+          "terms_scope_state": "MISSING",
+          "access": {
+            "method": "PUBLIC_WEB",
+            "state": "NOT_VERIFIED",
+            "credential_state": "UNKNOWN",
+            "robots_state": "UNKNOWN",
+            "rate_limit_state": "UNKNOWN",
+            "rate_limit_policy": "NOT_RECORDED"
+          },
+          "rights": {
+            "collect": "UNKNOWN",
+            "store": "UNKNOWN",
+            "transform": "UNKNOWN",
+            "retention": "UNKNOWN",
+            "display": "UNKNOWN",
+            "redistribute": "UNKNOWN",
+            "sell": "UNKNOWN"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-classic-com-r1",
+      "source_kind": "GLOBAL_POOL_R1_TARGET_CANDIDATE",
+      "source_record_id": "classic-com-market-data",
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "display_name": "CLASSIC.COM Market Data",
+      "canonical_host": "classic.com",
+      "owner_lineage": {
+        "operator": "CLASSIC.COM",
+        "relationship": "Official site identity captured; legal operator detail not fully captured",
+        "state": "PARTIAL"
+      },
+      "context_only": false,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-classic-com-bounded-shadow-r1",
+          "purpose": "BOUNDED_SHADOW_ACQUISITION",
+          "scope_ids": [
+            "collector_cars",
+            "modern_classics"
+          ],
+          "source_roles": [
+            "LISTING_SUPPLY",
+            "SOLD_TRANSACTION"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "vehicle_id",
+            "make",
+            "model",
+            "year",
+            "listing_status",
+            "sale_date",
+            "currency",
+            "price",
+            "source_url"
+          ],
+          "excluded_material": [
+            "images",
+            "dealer_personal_data",
+            "editorial_content"
+          ],
+          "output_class": "INTERNAL_SHADOW_MARKET_EVENT_CANDIDATE",
+          "evidence_ids": [
+            "ev-classic-about"
+          ],
+          "license_scope_state": "MISSING",
+          "terms_scope_state": "MISSING",
+          "access": {
+            "method": "PUBLIC_WEB",
+            "state": "NOT_VERIFIED",
+            "credential_state": "UNKNOWN",
+            "robots_state": "UNKNOWN",
+            "rate_limit_state": "UNKNOWN",
+            "rate_limit_policy": "NOT_RECORDED"
+          },
+          "rights": {
+            "collect": "UNKNOWN",
+            "store": "UNKNOWN",
+            "transform": "UNKNOWN",
+            "retention": "UNKNOWN",
+            "display": "UNKNOWN",
+            "redistribute": "UNKNOWN",
+            "sell": "UNKNOWN"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-goat-r1",
+      "source_kind": "GLOBAL_POOL_R1_TARGET_CANDIDATE",
+      "source_record_id": "goat-sneaker-marketplace",
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "display_name": "GOAT Sneaker Marketplace",
+      "canonical_host": "goat.com",
+      "owner_lineage": {
+        "operator": "1661, Inc. d/b/a GOAT",
+        "relationship": "Official marketplace operator",
+        "state": "VERIFIED_OFFICIAL_OPERATOR"
+      },
+      "context_only": false,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-goat-bounded-shadow-r1",
+          "purpose": "BOUNDED_SHADOW_ACQUISITION",
+          "scope_ids": [
+            "handbags",
+            "sneakers"
+          ],
+          "source_roles": [
+            "LISTING_SUPPLY"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "listing_id",
+            "product_name",
+            "sku",
+            "size",
+            "condition",
+            "ask_price",
+            "currency"
+          ],
+          "excluded_material": [
+            "user_personal_data",
+            "images",
+            "registered_user_content"
+          ],
+          "output_class": "INTERNAL_SHADOW_LISTING_CANDIDATE",
+          "evidence_ids": [
+            "ev-goat-terms"
+          ],
+          "license_scope_state": "MISSING",
+          "terms_scope_state": "PARTIAL",
+          "access": {
+            "method": "PUBLIC_WEB",
+            "state": "NOT_VERIFIED",
+            "credential_state": "UNKNOWN",
+            "robots_state": "UNKNOWN",
+            "rate_limit_state": "UNKNOWN",
+            "rate_limit_policy": "NO_DOCUMENTED_MACHINE_ACCESS_PATH_RECORDED"
+          },
+          "rights": {
+            "collect": "UNKNOWN",
+            "store": "UNKNOWN",
+            "transform": "UNKNOWN",
+            "retention": "UNKNOWN",
+            "display": "UNKNOWN",
+            "redistribute": "UNKNOWN",
+            "sell": "UNKNOWN"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-reverb-r1",
+      "source_kind": "GLOBAL_POOL_R1_TARGET_CANDIDATE",
+      "source_record_id": "reverb-price-guide",
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "display_name": "Reverb Price Guide",
+      "canonical_host": "reverb.com",
+      "owner_lineage": {
+        "operator": "Reverb.com, LLC",
+        "relationship": "Official marketplace and API operator",
+        "state": "VERIFIED_OFFICIAL_OPERATOR"
+      },
+      "context_only": false,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-reverb-bounded-shadow-r1",
+          "purpose": "BOUNDED_SHADOW_ACQUISITION",
+          "scope_ids": [
+            "musical_instruments_artist_gear"
+          ],
+          "source_roles": [
+            "CATALOG_REFERENCE",
+            "LISTING_SUPPLY",
+            "SOLD_TRANSACTION"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "product_id",
+            "make",
+            "model",
+            "year",
+            "condition",
+            "listing_price",
+            "estimated_value"
+          ],
+          "excluded_material": [
+            "member_data",
+            "images",
+            "messages",
+            "credentials"
+          ],
+          "output_class": "INTERNAL_SHADOW_MARKET_ANALYTICS_RECORD",
+          "evidence_ids": [
+            "ev-reverb-api-terms"
+          ],
+          "license_scope_state": "PROHIBITED",
+          "terms_scope_state": "EXPLICIT",
+          "access": {
+            "method": "REGISTERED_API",
+            "state": "PROHIBITED",
+            "credential_state": "NOT_PROVISIONED",
+            "robots_state": "PROHIBITED",
+            "rate_limit_state": "EXPLICIT",
+            "rate_limit_policy": "DEFAULT_10000_CALLS_PER_DAY_BUT_ANALYTICS_REQUIRES_EXPRESS_AUTHORIZATION"
+          },
+          "rights": {
+            "collect": "DENY",
+            "store": "DENY",
+            "transform": "DENY",
+            "retention": "DENY",
+            "display": "UNKNOWN",
+            "redistribute": "DENY",
+            "sell": "DENY"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-apple-specs-r1",
+      "source_kind": "GLOBAL_POOL_R1_TARGET_CANDIDATE",
+      "source_record_id": "apple-tech-specs",
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "display_name": "Apple Technical Specifications",
+      "canonical_host": "support.apple.com",
+      "owner_lineage": {
+        "operator": "Apple Inc.",
+        "relationship": "Official manufacturer support site",
+        "state": "VERIFIED_OFFICIAL_OPERATOR"
+      },
+      "context_only": false,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-apple-specs-bounded-shadow-r1",
+          "purpose": "BOUNDED_SHADOW_ACQUISITION",
+          "scope_ids": [
+            "collectible_electronics",
+            "vintage_computing"
+          ],
+          "source_roles": [
+            "CATALOG_REFERENCE",
+            "PRIMARY_AUTHORITY"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "product_family",
+            "model",
+            "release_year",
+            "technical_specification",
+            "support_url"
+          ],
+          "excluded_material": [
+            "images",
+            "trademarks",
+            "site_design",
+            "personal_support_data"
+          ],
+          "output_class": "INTERNAL_SHADOW_PRIMARY_CATALOG_RECORD",
+          "evidence_ids": [
+            "ev-apple-terms"
+          ],
+          "license_scope_state": "PROHIBITED",
+          "terms_scope_state": "EXPLICIT",
+          "access": {
+            "method": "PUBLIC_WEB",
+            "state": "PROHIBITED",
+            "credential_state": "NOT_REQUIRED",
+            "robots_state": "PROHIBITED",
+            "rate_limit_state": "UNKNOWN",
+            "rate_limit_policy": "AUTOMATED_PAGE_ACCESS_PROHIBITED"
+          },
+          "rights": {
+            "collect": "DENY",
+            "store": "DENY",
+            "transform": "DENY",
+            "retention": "DENY",
+            "display": "DENY",
+            "redistribute": "DENY",
+            "sell": "DENY"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-imdb-r1",
+      "source_kind": "GLOBAL_POOL_R1_TARGET_CANDIDATE",
+      "source_record_id": "imdb-noncommercial-datasets",
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "display_name": "IMDb Non-Commercial Datasets",
+      "canonical_host": "developer.imdb.com",
+      "owner_lineage": {
+        "operator": "IMDb.com, Inc.",
+        "relationship": "Official IMDb developer data publisher",
+        "state": "VERIFIED_OFFICIAL_OPERATOR"
+      },
+      "context_only": false,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-imdb-bounded-shadow-r1",
+          "purpose": "BOUNDED_SHADOW_ACQUISITION",
+          "scope_ids": [
+            "film_tv_props"
+          ],
+          "source_roles": [
+            "CATALOG_REFERENCE"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "tconst",
+            "primaryTitle",
+            "originalTitle",
+            "titleType",
+            "startYear",
+            "region",
+            "language"
+          ],
+          "excluded_material": [
+            "ratings",
+            "images",
+            "user_data",
+            "commercial_metadata_products"
+          ],
+          "output_class": "INTERNAL_SHADOW_CATALOG_RECORD_FOR_COMMERCIAL_PLATFORM",
+          "evidence_ids": [
+            "ev-imdb-noncommercial"
+          ],
+          "license_scope_state": "PROHIBITED",
+          "terms_scope_state": "EXPLICIT",
+          "access": {
+            "method": "PUBLIC_STATIC_DATASET",
+            "state": "PROHIBITED",
+            "credential_state": "NOT_REQUIRED",
+            "robots_state": "NOT_APPLICABLE_STATIC_DATASET",
+            "rate_limit_state": "NOT_APPLICABLE_STATIC_DATASET",
+            "rate_limit_policy": "DATASET_USE_LIMITED_TO_PERSONAL_NON_COMMERCIAL_CONTEXT"
+          },
+          "rights": {
+            "collect": "DENY",
+            "store": "DENY",
+            "transform": "DENY",
+            "retention": "DENY",
+            "display": "DENY",
+            "redistribute": "DENY",
+            "sell": "DENY"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    },
+    {
+      "review_id": "review-scryfall-r1",
+      "source_kind": "GLOBAL_POOL_R1_TARGET_CANDIDATE",
+      "source_record_id": "scryfall-api",
+      "channel_id": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+      "display_name": "Scryfall API",
+      "canonical_host": "scryfall.com",
+      "owner_lineage": {
+        "operator": "Scryfall",
+        "relationship": "Official API documentation publisher; legal operator lineage not fully captured",
+        "state": "PARTIAL"
+      },
+      "context_only": false,
+      "purpose_packages": [
+        {
+          "package_id": "pkg-scryfall-bounded-shadow-r1",
+          "purpose": "BOUNDED_SHADOW_ACQUISITION",
+          "scope_ids": [
+            "trading_cards"
+          ],
+          "source_roles": [
+            "CATALOG_REFERENCE",
+            "PRIMARY_AUTHORITY"
+          ],
+          "region": "GLOBAL",
+          "language": "mul",
+          "input_fields": [
+            "oracle_id",
+            "name",
+            "set",
+            "collector_number",
+            "released_at",
+            "lang",
+            "rarity",
+            "finishes"
+          ],
+          "excluded_material": [
+            "card_images",
+            "artist_images",
+            "third_party_prices",
+            "user_data"
+          ],
+          "output_class": "INTERNAL_SHADOW_CARD_CATALOG_RECORD",
+          "evidence_ids": [
+            "ev-scryfall-rate"
+          ],
+          "license_scope_state": "MISSING",
+          "terms_scope_state": "PARTIAL",
+          "access": {
+            "method": "DOCUMENTED_API_OR_BULK_DATA",
+            "state": "AVAILABLE",
+            "credential_state": "NOT_REQUIRED",
+            "robots_state": "NOT_APPLICABLE_DOCUMENTED_API",
+            "rate_limit_state": "EXPLICIT",
+            "rate_limit_policy": "LESS_THAN_10_REQUESTS_PER_SECOND_USE_BULK_FOR_LARGE_ACCESS"
+          },
+          "rights": {
+            "collect": "UNKNOWN",
+            "store": "UNKNOWN",
+            "transform": "UNKNOWN",
+            "retention": "UNKNOWN",
+            "display": "UNKNOWN",
+            "redistribute": "UNKNOWN",
+            "sell": "UNKNOWN"
+          },
+          "market_semantics": {
+            "terminal_transaction_asserted": false,
+            "market_event_claim_authorized": false,
+            "demand_or_liquidity_claim_authorized": false
+          },
+          "human_gate_ref": null
+        }
+      ]
+    }
+  ]
+}

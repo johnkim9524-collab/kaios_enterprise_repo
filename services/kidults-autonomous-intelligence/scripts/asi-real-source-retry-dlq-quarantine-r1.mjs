@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const baseHarness = resolve(scriptDir, 'asi-processor-runtime-e2e-test.mjs');
-const generatedHarness = resolve(scriptDir, '.generated-asi-real-source-retry-dlq-quarantine-r1.mjs');
+const generatedHarness = resolve(scriptDir, `.generated-asi-real-source-retry-dlq-quarantine-r1-${process.pid}.mjs`);
 const bridgePath = process.argv[2] || process.env.KAIOS_ASI_REAL_SOURCE_BRIDGE_PATH;
 const reportPath = process.argv[3] || '/tmp/asi-real-source-retry-dlq-quarantine-r1.json';
 if (!bridgePath) throw new Error('REAL_SOURCE_BRIDGE_PATH_REQUIRED');
@@ -34,8 +34,10 @@ const injection = `
   assert.equal(realControlGetty.rights_state,'ALLOW');
   assert.equal(realControlGetty.evidence_class,'HISTORICAL_SALE_ACTIVITY');
 
-  // Empirical transport retry/DLQ control using a real-source-derived Getty event.
-  const retryRequest = await discoveryRequest(processors,'real-getty-retry',false);
+  // Synthetic transport retry/DLQ control using Getty-derived admission metadata.
+  // The forced failure is injected locally and was not observed from the source
+  // or from a remote Cloudflare resource.
+  const retryRequest = await discoveryRequest(processors,'real-getty-retry',true);
   retryRequest.input_snapshot_ref = realControlGetty.payload_hash;
   retryRequest.payload.real_source_admission = {
     source_id:realControlGetty.source_id,
@@ -57,7 +59,8 @@ const injection = `
   };
 
   const retryIngress = await runtime.enqueueAsiEvent(env,retryRequest);
-  test('real-source-derived transport failure enters durable RETRY state', () => {
+  test('Getty-derived metadata enters local synthetic RETRY control state', () => {
+    assert.equal(retryRequest.payload.assertion_inputs.COLLECT.rights_state,'UNKNOWN');
     assert.equal(retryIngress.state,'QUEUED_FOR_RELAY');
     const row = queryOne(db,'SELECT status,attempt_count,last_error FROM asi_outbox WHERE event_id=?',retryRequest.event_id);
     assert.equal(row.status,'RETRY');
@@ -72,7 +75,9 @@ const injection = `
   }
   const deadLetterOutbox = queryOne(db,'SELECT status,attempt_count,last_error FROM asi_outbox WHERE event_id=?',retryRequest.event_id);
   const deadLetterRow = queryOne(db,'SELECT error_code,error_message,attempts,event_id FROM asi_dead_letters WHERE event_id=?',retryRequest.event_id);
-  test('real-source-derived transport exhausts retries into durable DLQ evidence', () => {
+  const retryAdmissionCount = Number(queryOne(db,"SELECT COUNT(*) AS n FROM asi_purpose_admissions WHERE source_id='real-getty-retry'").n);
+  const retryPoolCount = Number(queryOne(db,"SELECT COUNT(*) AS n FROM asi_source_pool_decisions WHERE source_id='real-getty-retry'").n);
+  test('local synthetic transport control exhausts retries into a local DLQ row without qualification', () => {
     assert.equal(deadLetterOutbox.status,'DEAD_LETTERED');
     assert.equal(Number(deadLetterOutbox.attempt_count),5);
     assert.equal(deadLetterOutbox.last_error,'FORCED_REAL_SOURCE_TRANSPORT_FAILURE');
@@ -81,13 +86,17 @@ const injection = `
     assert.equal(Number(deadLetterRow.attempts),5);
     assert.equal(forcedSendFailures,5);
     assert.equal(retryRelayResults.at(-1).deadLettered,1);
+    assert.equal(retryAdmissionCount,0);
+    assert.equal(retryPoolCount,0);
   });
   env[retryFleet.binding] = healthyBinding;
 
-  // Empirical rights-quarantine control derived from the same admitted Getty source.
-  // The control deliberately removes collection-right certainty. Canonical runtime
-  // must process analysis but preserve HOLD / unusable state with zero market claim.
+  // Synthetic UNKNOWN_CONTROL rights quarantine derived from the same metadata.
+  // UNKNOWN_CONTROL was not observed from Getty. The local compatible runtime must
+  // preserve HOLD / unusable state with zero market claim. Use an independent
+  // discovery fleet so the synthetic retry circuit cannot contaminate quarantine.
   const quarantineRequest = await discoveryRequest(processors,'real-getty-quarantine',true);
+  quarantineRequest.partition.channel = 'DATACITE_AND_OPEN_RESEARCH_LANDING_METADATA';
   quarantineRequest.input_snapshot_ref = realControlGetty.payload_hash;
   quarantineRequest.payload.real_source_admission = {
     source_id:realControlGetty.source_id,
@@ -104,7 +113,7 @@ const injection = `
   const quarantineProcessed = await mesh.drain(runtime);
   const quarantineAdmission = queryOne(db,"SELECT decision,rights_state FROM asi_purpose_admissions WHERE source_id='real-getty-quarantine'");
   const quarantinePool = queryOne(db,"SELECT effective_pool_state,effective_usable,market_claim_authorized,commercial_projection_authorized,production_eligible,production_state FROM asi_source_pool_effective WHERE source_id='real-getty-quarantine'");
-  test('real-source-derived UNKNOWN-rights control is empirically quarantined as fail-closed HOLD', () => {
+  test('synthetic UNKNOWN_CONTROL is quarantined locally as fail-closed HOLD', () => {
     assert.equal(quarantineProcessed,14);
     assert.equal(quarantineAdmission.decision,'HOLD');
     assert.equal(quarantineAdmission.rights_state,'UNKNOWN');
@@ -118,16 +127,40 @@ const injection = `
 
   writeFileSync(process.env.KAIOS_ASI_REAL_SOURCE_FAILURE_REPORT_PATH,JSON.stringify({
     id:'asi-real-source-retry-dlq-quarantine-r1',
-    execution_mode:'DEV_SHADOW_ONLY',
+    execution_mode:'LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_HARNESS',
+    backend:{
+      database:'LOCAL_IN_MEMORY_SQLITE',
+      queue:'LOCAL_DETERMINISTIC_IN_MEMORY_QUEUE',
+      remote_cloudflare:false,
+      canonical_cloudflare_durability_verified:false,
+    },
     source_id:'getty-provenance-index',
-    retry:{state:'PASS',forced_failures:forcedSendFailures,attempts:Number(deadLetterOutbox.attempt_count)},
-    dlq:{state:'PASS',error_code:deadLetterRow.error_code,attempts:Number(deadLetterRow.attempts)},
-    quarantine:{state:'PASS_FAIL_CLOSED_HOLD',admission:quarantineAdmission.decision,rights_state:quarantineAdmission.rights_state,effective_pool_state:quarantinePool.effective_pool_state,effective_usable:Number(quarantinePool.effective_usable)},
+    original_getty_record_processed:false,
+    live_derived_admission_metadata_attached:true,
+    retry:{
+      state:'PASS_SYNTHETIC_CONTROL',
+      forced_failure:{synthetic:true,observed:false,observed_from_source:false,observed_from_remote_cloudflare:false},
+      forced_failures:forcedSendFailures,
+      attempts:Number(deadLetterOutbox.attempt_count),
+      discovery_fixture_rights_state:'UNKNOWN',
+      admission_materialized:false,
+      source_pool_materialized:false,
+      qualified_pool_rows:0,
+    },
+    dlq:{state:'PASS_LOCAL_HARNESS',error_code:deadLetterRow.error_code,attempts:Number(deadLetterRow.attempts),remote_cloudflare_observed:false},
+    quarantine:{
+      state:'PASS_SYNTHETIC_UNKNOWN_CONTROL_HOLD',
+      unknown_control:{value:'UNKNOWN_CONTROL',synthetic:true,observed:false,observed_from_source:false},
+      admission:quarantineAdmission.decision,
+      rights_state:quarantineAdmission.rights_state,
+      effective_pool_state:quarantinePool.effective_pool_state,
+      effective_usable:Number(quarantinePool.effective_usable),
+    },
     market_claim_authorized:false,
     commercial_projection_authorized:false,
     production_eligible:false,
     production:'HOLD',
-    truth_boundary:'Empirical DEV/SHADOW failure-path evidence for a real-source-derived record. This does not prove current-market evidence sufficiency, entity-resolution calibration, Candidate handoff, or Production readiness.'
+    truth_boundary:'Deterministic local Queue/D1-compatible DEV/SHADOW failure controls using Getty-derived metadata. Forced transport failure and UNKNOWN_CONTROL are synthetic and not source-observed. Remote Cloudflare resources, canonical durability, original Getty record processing, current-market evidence, Candidate handoff, and Production readiness are not verified.'
   },null,2));
 `;
 source = source.slice(0, insertPoint) + injection + source.slice(insertPoint);
@@ -143,8 +176,10 @@ try {
       KAIOS_ASI_REAL_SOURCE_FAILURE_REPORT_PATH: resolve(reportPath),
     },
   });
-  if (result.status !== 0) process.exit(result.status ?? 1);
-  console.log('ASI_REAL_SOURCE_RETRY_DLQ_QUARANTINE_R1_PASS');
+  if (result.status !== 0) {
+    throw new Error(`ASI_REAL_SOURCE_RETRY_DLQ_QUARANTINE_R1_CHILD_FAILED:${result.status ?? 1}`);
+  }
+  console.log('ASI_REAL_SOURCE_RETRY_DLQ_QUARANTINE_R1_LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_PASS_REMOTE_NOT_VERIFIED');
 } finally {
   try { unlinkSync(generatedHarness); } catch {}
 }

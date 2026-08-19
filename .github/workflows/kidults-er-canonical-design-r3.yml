@@ -7,18 +7,41 @@ on:
       - 'scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs'
       - 'scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs'
       - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - '.github/workflows/kidults-entity-resolution-benchmark-v2-runner.yml'
+      - '.github/workflows/kidults-er-real-dataset-r1.yml'
+      - '.github/workflows/kidults-er-getty-transaction-r2.yml'
       - '.github/workflows/kidults-er-canonical-design-r3.yml'
   workflow_dispatch:
 permissions:
   contents: read
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+concurrency:
+  group: kidults-er-canonical-design-r3-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   assemble-and-run-r3:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
+      - name: Checkout repository
+        # actions/checkout v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        # actions/setup-node v5.0.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
       - run: node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
       - run: node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
       - run: node scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs /tmp/er-r2.json /tmp/er-r3.json
@@ -28,16 +51,20 @@ jobs:
           node - <<'NODE'
           const d=require('/tmp/er-r3.json'); const r=require('/tmp/er-r3-results.json');
           if(d.cases.length!==4) process.exit(1);
+          if(d.dataset_class!=='REAL_SOURCE_DERIVED_CONSTRUCTED_CONTROL'||d.constructed_control!==true||d.empirical_benchmark_eligible!==false||d.independent_label_review_complete!==false||d.label_adjudication_complete!==false||d.holdout_sealed_before_modeling!==false||d.production!=='HOLD') process.exit(1);
+          if(d.cases.some(x=>x.blind_holdout===true)||r.blind_accuracy!==null||r.blind_holdout_count!==0) process.exit(1);
           if(!d.cases.some(x=>x.case_class==='SAME_DESIGN_DIFFERENT_OBJECT'&&x.identity_boundary==='CANONICAL_DESIGN')) process.exit(1);
           if(r.accuracy!==1||r.critical_false_auto_merge!==0) process.exit(1);
           if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
           if(r.coverage.scope_stratification_complete!==false) process.exit(1);
-          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
-          console.log('R3 design evidence PASS; approved PoC scope gate remains correctly closed.');
+          if(r.promotion_gate.empirical_benchmark_gate_pass!==false||r.promotion_gate.promotion_eligible_before_track_b!==false||r.promotion_gate.production_promotion_authorized!==false) process.exit(1);
+          console.log('R3 design constructed control PASS; approved PoC, empirical, and Production gates remain closed.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - name: Upload R3 diagnostic artifacts
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: kidults-er-real-world-r3-refresh
+          name: kidults-er-source-derived-constructed-control-r3
           path: |
             /tmp/er-r3.json
             /tmp/er-r3-results.json
