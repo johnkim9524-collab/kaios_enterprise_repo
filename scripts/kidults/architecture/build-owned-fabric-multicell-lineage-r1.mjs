@@ -9,13 +9,14 @@ const files = {
   runtime: 'artifacts/agci-os/asi-shadow-operating-evidence-v1.json'
 };
 const x = {}; for (const [k,p] of Object.entries(files)) x[k] = await read(p);
-if (x.identity.production !== 'HOLD' || x.historical.production !== 'HOLD' || x.runtime.production !== 'HOLD') throw new Error('PRODUCTION_BOUNDARY_INVALID');
+if (x.identity.production !== 'HOLD' || x.historical.production !== 'HOLD') throw new Error('SOURCE_PRODUCTION_BOUNDARY_INVALID');
+if (String(x.runtime.status || '') !== 'LOCAL_SHADOW_OPERATING_EVIDENCE_PASS_NOT_DEPLOYED') throw new Error('BOUNDED_SHADOW_RUNTIME_NOT_PASS');
+if (x.runtime.execution_truth?.remote_deployment_verified !== false || x.runtime.execution_truth?.full_platform_runtime_verified !== false) throw new Error('RUNTIME_REMOTE_OVERCLAIM');
 
 const met = (x.identity.sources||[]).find(s => s.source_id === 'met-open-access-api' && s.admission_state === 'ADMITTED');
 const smithsonian = (x.identity.sources||[]).find(s => s.source_id === 'smithsonian-open-access' && s.admission_state === 'ADMITTED');
 const getty = (x.historical.sources||[]).find(s => s.source_id === 'getty-provenance-index' && s.admission_state === 'ADMITTED');
 if (!met || !smithsonian || !getty) throw new Error('REQUIRED_ADMITTED_SOURCES_MISSING');
-if (!String(x.runtime.status || '').includes('PASS')) throw new Error('BOUNDED_SHADOW_RUNTIME_NOT_PASS');
 
 const cells = [
   {
