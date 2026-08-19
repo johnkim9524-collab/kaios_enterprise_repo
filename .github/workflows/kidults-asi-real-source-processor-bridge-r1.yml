@@ -1,0 +1,47 @@
+name: KIDULTS ASI Real Source Processor Bridge R1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs'
+      - 'scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs'
+      - 'scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs'
+      - '.github/workflows/kidults-asi-real-source-processor-bridge-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bridge-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Retrieve live rights-admitted identity/context source
+        run: node scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs /tmp/met-real-source-admission-r1.json
+      - name: Retrieve live rights-admitted historical transaction source
+        run: node scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs /tmp/getty-historical-sale-r1.json
+      - name: Build deterministic real-source processor bridge
+        run: node scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs /tmp/met-real-source-admission-r1.json /tmp/getty-historical-sale-r1.json /tmp/asi-real-source-processor-bridge-r1.json
+      - name: Re-run existing Queue/D1 processor mesh controls
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          npm ci
+          npm run asi:processor:test
+          npm run asi:processor:e2e
+      - name: Assert bridge truth boundary
+        run: |
+          node -e "const x=require('/tmp/asi-real-source-processor-bridge-r1.json'); if(x.deterministic_replay.state!=='PASS'||x.market_event_admission_report.state!=='PASS_HISTORICAL_ONLY'||x.candidate_handoff_preflight.ready!==false||x.processor_run_manifest.processor_mesh_execution!=='NOT_RUN_BY_THIS_BRIDGE'||x.production_mutation!==false) process.exit(1); console.log('Bridge preflight PASS; empirical real-source Queue/D1 injection remains explicitly open.')"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-asi-real-source-processor-bridge-r1
+          path: |
+            /tmp/met-real-source-admission-r1.json
+            /tmp/getty-historical-sale-r1.json
+            /tmp/asi-real-source-processor-bridge-r1.json
+          if-no-files-found: error
+          retention-days: 30
