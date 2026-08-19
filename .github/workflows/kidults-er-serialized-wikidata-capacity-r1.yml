@@ -1,0 +1,42 @@
+name: KIDULTS ER Serialized Wikidata Capacity R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/serialized-wikidata-capacity-probe-r1.json'
+      - 'scripts/kidults/entity-resolution/probe-serialized-wikidata-capacity-r1.mjs'
+      - '.github/workflows/kidults-er-serialized-wikidata-capacity-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe-serialized-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probe true serial + manufacturer + model capacity
+        run: |
+          node scripts/kidults/entity-resolution/probe-serialized-wikidata-capacity-r1.mjs /tmp/serialized-wikidata-capacity-r1.json
+      - name: Validate diagnostic truth boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const a=JSON.parse(fs.readFileSync('/tmp/serialized-wikidata-capacity-r1.json','utf8'));
+          if(a.status!=='DIAGNOSTIC_COMPLETE') throw new Error('DIAGNOSTIC_STATUS_REQUIRED');
+          if(a.required_properties?.manufacturer!=='P176'||a.required_properties?.serial_number!=='P2598'||a.required_properties?.model_number!=='P13351') throw new Error('TRUE_SERIAL_GRAMMAR_PROPERTIES_REQUIRED');
+          if(a.collectible_scope_representativeness_verified!==false||a.independent_alias_coverage_verified!==false) throw new Error('DOWNSTREAM_SCOPE_ALIAS_MUST_REMAIN_UNPROVEN');
+          if(a.labels_present!==false||a.empirical_pass_claimed!==false||a.track_b_started!==false) throw new Error('NO_EMPIRICAL_PROMOTION_ALLOWED');
+          if(a.production!=='HOLD'||a.public_release!=='HOLD') throw new Error('RELEASE_HOLD_REQUIRED');
+          console.log(`PASS diagnostic: ${a.distinct_item_count} distinct true-serial grammar items; disposition=${a.disposition}. No empirical readiness claimed.`);
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-wikidata-capacity-r1
+          path: /tmp/serialized-wikidata-capacity-r1.json
+          retention-days: 14
