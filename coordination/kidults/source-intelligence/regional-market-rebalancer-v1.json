@@ -1,0 +1,17 @@
+{
+  "id":"regional-market-rebalancer-v1",
+  "record_type":"asi_dynamic_regional_rebalancer_contract",
+  "version":"1.0.0",
+  "status":"SHADOW_ONLY",
+  "parent_issue":645,
+  "inputs":["REGIONAL_MARKET_BASELINE_SNAPSHOT","asi-global-regional-market-balance-policy-v1"],
+  "outputs":["REGIONAL_COLLECTION_QUOTA_PLAN","REGIONAL_ANALYTICAL_WEIGHT_PLAN","SHADOW_DELTA_REPORT"],
+  "collection_formula_weights":{"MARKET_SCALE":0.30,"MARKET_MATURITY":0.15,"OBSERVED_TRANSACTION_ACTIVITY":0.20,"SIGNAL_LEAD_VALUE":0.15,"DATA_TRANSPARENCY_AND_EVIDENCE_QUALITY":0.15,"STRATEGIC_COVERAGE_GAP":0.05},
+  "analytical_formula_weights":{"MARKET_SCALE":0.35,"MARKET_MATURITY":0.10,"OBSERVED_TRANSACTION_ACTIVITY":0.20,"DATA_TRANSPARENCY_AND_EVIDENCE_QUALITY":0.20,"FRESHNESS":0.10,"SOURCE_INDEPENDENCE":0.05},
+  "activation_gates":["EVIDENCE_COMPLETENESS_PASS","RIGHTS_PROVENANCE_PASS","CONCENTRATION_BIAS_PASS","SOURCE_REMOVAL_SENSITIVITY_PASS","DETERMINISTIC_RERUN_PASS","SNAPSHOT_HASH_PRESENT","SHADOW_DELTA_REVIEW_PASS"],
+  "stability_controls":{"hysteresis_deadband_absolute":0.02,"max_cycle_weight_delta_absolute":0.05,"material_event_override_requires_recorded_reason":true,"stale_factor_decay":"FAIL_TO_NOT_VERIFIED_NOT_ZERO","bootstrap_fallback":"ALLOWED_ONLY_FOR_UNKNOWN_AND_EXPLICITLY_FLAGGED"},
+  "portfolio_caps":{"max_macroregion_collection_share_without_exception":0.35,"max_country_collection_share_without_exception":0.30,"max_macroregion_analytical_contribution_global":0.45,"max_country_analytical_contribution_global":0.35},
+  "global_claim_failure_state":"NOT_VERIFIED_GLOBAL",
+  "raw_record_count_weight":0.0,
+  "production":"HOLD"
+}
