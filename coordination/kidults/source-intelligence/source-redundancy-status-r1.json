@@ -1,0 +1,88 @@
+{
+  "id": "kidults-source-redundancy-status-r1",
+  "version": "1.0.0",
+  "parent_issue": 559,
+  "production": "HOLD",
+  "scope": "COLLECTIBLES_ONLY",
+  "truth_boundary": "This artifact records redundancy/concentration truth from already rights-admitted source pools only. It does not admit new providers, authorize current-SOLD claims, or imply Production readiness.",
+  "evidence_classes": {
+    "IDENTITY_CANONICAL_REFERENCE": {
+      "status": "REDUNDANT_BOUNDED",
+      "primary_lanes": [
+        "met-open-access-api",
+        "smithsonian-open-access"
+      ],
+      "independent_owner_count": 2,
+      "fallback_available": true,
+      "claim_ceiling": [
+        "OBJECT_IDENTITY",
+        "CATALOG_CONTEXT",
+        "REFERENCE_METADATA"
+      ],
+      "blocked_claims": [
+        "SOLD_TRANSACTION",
+        "MARKET_PRICE",
+        "LIQUIDITY",
+        "DEMAND"
+      ]
+    },
+    "HISTORICAL_TRANSACTION_PROVENANCE": {
+      "status": "CONCENTRATION_GAP",
+      "primary_lanes": [
+        "getty-provenance-index"
+      ],
+      "independent_owner_count": 1,
+      "fallback_available": false,
+      "claim_ceiling": [
+        "HISTORICAL_SALE_ACTIVITY",
+        "OWNERSHIP_TRANSFER_CONTEXT",
+        "HISTORICAL_VALUATION_CONTEXT"
+      ],
+      "blocked_claims": [
+        "CURRENT_MARKET_PRICE",
+        "CURRENT_LIQUIDITY",
+        "CURRENT_DEMAND",
+        "CURRENT_RANKING"
+      ]
+    },
+    "SCARCITY_POPULATION": {
+      "status": "NO_RIGHTS_ADMITTED_AUTHORITY",
+      "primary_lanes": [],
+      "independent_owner_count": 0,
+      "fallback_available": false,
+      "claim_ceiling": [],
+      "blocked_claims": [
+        "POPULATION",
+        "SCARCITY",
+        "LIQUIDITY"
+      ],
+      "external_gates": [
+        521,
+        569
+      ]
+    },
+    "CURRENT_SOLD_TRANSACTION": {
+      "status": "NO_STRICT_RIGHTS_ADMITTED_SOURCE",
+      "primary_lanes": [],
+      "independent_owner_count": 0,
+      "fallback_available": false,
+      "claim_ceiling": [],
+      "blocked_claims": [
+        "CURRENT_SOLD_TRANSACTION",
+        "CURRENT_MARKET_PRICE",
+        "LIQUIDITY",
+        "TIME_TO_SALE",
+        "FAILED_SALE",
+        "EXPOSURE"
+      ],
+      "support_issue": 558
+    }
+  },
+  "exit_state": {
+    "identity_reference_redundancy_proven": true,
+    "historical_provenance_concentration_gap_documented": true,
+    "scarcity_population_redundancy_proven": false,
+    "current_sold_redundancy_proven": false,
+    "issue_559_complete": false
+  }
+}
