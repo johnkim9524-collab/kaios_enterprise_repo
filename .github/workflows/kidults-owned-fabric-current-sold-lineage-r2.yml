@@ -1,0 +1,35 @@
+name: KIDULTS Owned Fabric Current SOLD Lineage R2
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/architecture/build-owned-fabric-current-sold-lineage-r2.mjs'
+      - 'scripts/kidults/architecture/validate-owned-fabric-current-sold-lineage-r2.mjs'
+      - 'coordination/kidults/source-intelligence/collectaio-shadow-sold-admission-r1.json'
+      - 'coordination/kidults/source-intelligence/rights-admitted-pilot-source-pool-r1.json'
+      - 'coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json'
+      - 'artifacts/agci-os/asi-shadow-operating-evidence-v1.json'
+      - '.github/workflows/kidults-owned-fabric-current-sold-lineage-r2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build current SOLD lineage R2
+        run: node scripts/kidults/architecture/build-owned-fabric-current-sold-lineage-r2.mjs /tmp/kidults-owned-fabric-current-sold-lineage-r2.json
+      - name: Validate exact claim ceiling and fail-closed downstream
+        run: node scripts/kidults/architecture/validate-owned-fabric-current-sold-lineage-r2.mjs /tmp/kidults-owned-fabric-current-sold-lineage-r2.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-owned-fabric-current-sold-lineage-r2
+          path: /tmp/kidults-owned-fabric-current-sold-lineage-r2.json
+          if-no-files-found: error
+          retention-days: 30
