@@ -1,20 +1,24 @@
-name: KIDULTS ER Designer Capacity Probe R1
+name: KIDULTS ER Designer Capacity and Review Packet R1
 
 on:
   pull_request:
     paths:
       - 'scripts/kidults/entity-resolution/probe-designer-maker-capacity-r1.mjs'
+      - 'scripts/kidults/entity-resolution/build-designer-review-packet-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-designer-review-packet-r1.mjs'
+      - 'coordination/kidults/entity-resolution/designer-review-packet-r1.json'
       - '.github/workflows/kidults-er-designer-capacity-probe-r1.yml'
       - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  probe:
+  probe-and-packetize:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,11 +28,31 @@ jobs:
         env:
           KAIOS_REQUIRE_DESIGNER_120_READY: '1'
         run: node scripts/kidults/entity-resolution/probe-designer-maker-capacity-r1.mjs coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/designer-capacity.json
+      - name: Build 120-case unlabeled reviewer packet
+        run: node scripts/kidults/entity-resolution/build-designer-review-packet-r1.mjs /tmp/designer-capacity.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/designer-review-packet.json
+      - name: Validate packet truth boundary
+        run: node scripts/kidults/entity-resolution/validate-designer-review-packet-r1.mjs /tmp/designer-review-packet.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
+      - name: Validate coordination status
+        run: |
+          node - <<'NODE'
+          const x=require('./coordination/kidults/entity-resolution/designer-review-packet-r1.json');
+          if(x.case_count!==120||x.blind_partition_candidate_count!==60) process.exit(1);
+          if(x.live_capacity_evidence?.selected_source_record_count!==200||x.live_capacity_evidence?.source_record_reuse_count!==0) process.exit(1);
+          if(x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED'||x.labels!=='NOT_COLLECTED') process.exit(1);
+          if(x.production!=='HOLD'||x.public_release!=='HOLD') process.exit(1);
+          console.log('DESIGNER_REVIEW_PACKET_COORDINATION_BOUNDARY_PASS');
+          NODE
       - name: Upload bounded capacity artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kidults-er-designer-capacity-r1
           path: /tmp/designer-capacity.json
           retention-days: 14
-          if-no-files-found: warn
+          if-no-files-found: error
+      - name: Upload reviewer-ready packet artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-designer-review-packet-r1
+          path: /tmp/designer-review-packet.json
+          retention-days: 14
+          if-no-files-found: error
