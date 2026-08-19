@@ -10,7 +10,21 @@ const anchors = [
 ];
 
 const base = 'https://www.collectaio.com';
-const out = { id: 'collectaio-anchor-sold-probe-r1', generated_at: new Date().toISOString(), source: 'CollectAIO public read-only API', production: false, claims: { global_price: false, global_liquidity: false, provider_is_truth: false }, records: [] };
+const out = {
+  id: 'collectaio-anchor-sold-probe-r1',
+  generated_at: new Date().toISOString(),
+  source: 'CollectAIO public read-only API',
+  production: false,
+  truth_boundary: {
+    evidence_classification: 'BOUNDED_RECENT_SOLD_CANDIDATE_NOT_CURRENT_PRICE',
+    current_price_verified: false,
+    liquidity_verified: false,
+    time_to_sale_verified: false,
+    global_representativeness_verified: false,
+    provider_is_truth: false
+  },
+  records: []
+};
 
 function text(v) { return String(v ?? '').toLowerCase(); }
 function scoreCandidate(candidate, anchor) {
@@ -75,10 +89,37 @@ for (const anchor of anchors) {
   const item = await dr.json();
   const meta = soldMetadata(item);
   const exact = scoreCandidate(item,anchor)===anchor.expected.length;
-  out.records.push({scope_id:anchor.scope_id,query:anchor.query,state:exact&&meta.sample_size>0?'EXACT_MATCH_WITH_SOLD_EVIDENCE_CANDIDATE':exact?'EXACT_MATCH_NO_SOLD_SAMPLE':'NON_EXACT_MATCH',slug:item?.slug??top.c.slug,canonical_url:`${base}/item/${item?.slug??top.c.slug}`,exact_identity_tokens:exact,sold_sample_size:meta.sample_size,sold_listing_count:meta.sold_listing_count,summary_sold_count:meta.summary_sold_count,direct_sold_array_count:meta.direct_sold_array_count,explicit_sold_count:meta.explicit_sold_count,sold_basis:meta.basis,latest_event_at:meta.latest_event_at,latest_observed_at:meta.latest_observed_at,latest_event_age_days:meta.latest_event_age_days,bounded_sold_events:exact?meta.bounded_sold_events:[],schema_keys_only:exact?keyTree(item):undefined});
+  const hasSold = exact && meta.sample_size > 0;
+  out.records.push({
+    scope_id:anchor.scope_id,
+    query:anchor.query,
+    state:hasSold?'EXACT_MATCH_WITH_BOUNDED_RECENT_SOLD_EVIDENCE':exact?'EXACT_MATCH_NO_SOLD_SAMPLE':'NON_EXACT_MATCH',
+    evidence_classification:hasSold?'BOUNDED_RECENT_SOLD_CANDIDATE_NOT_CURRENT_PRICE':'NOT_ADMITTED',
+    claim_ceiling:hasSold?'EXACT_ITEM_OBSERVED_SOLD_TRANSACTIONS_ONLY':'NONE',
+    current_price_claim_allowed:false,
+    liquidity_claim_allowed:false,
+    time_to_sale_claim_allowed:false,
+    slug:item?.slug??top.c.slug,
+    canonical_url:`${base}/item/${item?.slug??top.c.slug}`,
+    exact_identity_tokens:exact,
+    sold_sample_size:meta.sample_size,
+    sold_listing_count:meta.sold_listing_count,
+    summary_sold_count:meta.summary_sold_count,
+    direct_sold_array_count:meta.direct_sold_array_count,
+    explicit_sold_count:meta.explicit_sold_count,
+    sold_basis:meta.basis,
+    latest_event_at:meta.latest_event_at,
+    latest_observed_at:meta.latest_observed_at,
+    latest_event_age_days:meta.latest_event_age_days,
+    bounded_sold_events:exact?meta.bounded_sold_events:[],
+    schema_keys_only:exact?keyTree(item):undefined
+  });
 }
 
 fs.mkdirSync('artifacts/kidults/source',{recursive:true});
 fs.writeFileSync('artifacts/kidults/source/collectaio-anchor-sold-probe-r1.json',JSON.stringify(out,null,2));
 console.log(JSON.stringify(out,null,2));
-if (!out.records.some(r=>r.state==='EXACT_MATCH_WITH_SOLD_EVIDENCE_CANDIDATE')) { console.error('FAIL_CLOSED: no exact existing KIDULTS anchor has verified sold evidence yet'); process.exit(2); }
+if (!out.records.some(r=>r.state==='EXACT_MATCH_WITH_BOUNDED_RECENT_SOLD_EVIDENCE')) {
+  console.error('FAIL_CLOSED: no exact existing KIDULTS anchor has verified bounded sold evidence yet');
+  process.exit(2);
+}
