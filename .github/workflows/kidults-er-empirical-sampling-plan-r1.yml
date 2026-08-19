@@ -1,0 +1,24 @@
+name: KIDULTS ER Empirical Sampling Plan R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'scripts/kidults/entity-resolution/validate-empirical-validation-sampling-plan-r1.mjs'
+      - '.github/workflows/kidults-er-empirical-sampling-plan-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate empirical sampling preflight without claiming labels or review
+        run: node scripts/kidults/entity-resolution/validate-empirical-validation-sampling-plan-r1.mjs
