@@ -1,18 +1,20 @@
 {
   "id":"kidults-global-standard-gap-register-v2",
-  "version":"1.0.0",
+  "version":"1.1.0",
   "status":"ACTIVE",
+  "canonical_main":"cb3452faed97d98cef595070b6cf0b391077502f",
   "gaps":[
-    {"id":"GS-P0-ER","priority":"P0","owner":"Track A + Track B","issue":479,"exit":"entity resolution >=99%, critical false auto-merge 0"},
-    {"id":"GS-P0-ASI","priority":"P0","owner":"Track A + Track D","issue":480,"exit":"bounded processor slice E2E DEV/SHADOW PASS"},
-    {"id":"GS-P0-MARKET","priority":"P0","owner":"Track A","issue":457,"exit":"claim-level real market evidence + immutable pair"},
-    {"id":"GS-P0-VALIDATION","priority":"P0","owner":"Track B","exit":"exact-package independent assessment"},
-    {"id":"GS-P0-ASSURANCE","priority":"P0","owner":"KPMO + Tracks C/D","exit":"security/privacy/rights/accessibility release evidence PASS"},
-    {"id":"GS-P1-RUNTIME","priority":"P1","owner":"Track D","issue":481,"exit":"DEV/STAGING SLI/SLO recovery cost proof PASS"},
-    {"id":"GS-P1-PORTAL","priority":"P1","owner":"Track C","exit":"real approved Projection transparency + WCAG evidence PASS"},
-    {"id":"GS-P1-EOS","priority":"P1","owner":"Track E","exit":"real lifecycle Founder Acceptance PASS"},
-    {"id":"GS-P0-INTEGRATION","priority":"P0_GATE","owner":"KPMO","issue":238,"exit":"Integration Gate PASS"}
+    {"id":"GS-P0-ER","priority":"P0","owner":"Track A + Track B","issue":479,"exit":"all 7 approved ER strata satisfy exact per-stratum minimums; final immutable holdout >=99% overall/blind; critical false auto-merge 0; deterministic replay PASS; rights/provenance 100%; calibration artifact registered"},
+    {"id":"GS-P0-ASI","priority":"P0","owner":"Track A + Track D","issue":480,"current_subgate":"BOUNDED_DEV_SHADOW_RUNTIME_CORE_PASS","exit":"#479-calibrated identity + claim-sufficient admitted evidence produce final evidence-admission and market-event-admission artifacts plus immutable Candidate/Evidence handoff"},
+    {"id":"GS-P0-MARKET","priority":"P0","owner":"Track A","issue":457,"exit":"claim-level lawful current-market evidence terminalized where claimed + final identity-resolved admission artifacts + immutable snapshot-candidate.json and Evidence Package"},
+    {"id":"GS-P0-VALIDATION","priority":"P0","owner":"Track B","issue":236,"exit":"exact immutable candidate/Evidence Package independently assessed and PASS"},
+    {"id":"GS-P0-ASSURANCE","priority":"P0","owner":"KPMO + Tracks C/D","exit":"security/SBOM/vulnerability/secret + privacy/retention + field-level rights + WCAG release evidence all PASS"},
+    {"id":"GS-P1-RUNTIME","priority":"P1","owner":"Track D","issue":481,"exit":"DEV/STAGING empirical latency/throughput/replay/retry-DLQ/backup-restore/rollback/recovery/cost proof PASS"},
+    {"id":"GS-P1-PORTAL","priority":"P1","owner":"Track C","issue":237,"exit":"real approved Projection transparency lifecycle + WCAG 2.2 evidence PASS"},
+    {"id":"GS-P1-EOS","priority":"P1","owner":"Track E","issue":256,"exit":"real approved Projection lifecycle Founder Acceptance PASS"},
+    {"id":"GS-P0-INTEGRATION","priority":"P0_GATE","owner":"KPMO","issue":238,"exit":"exact upstream IDs/rights/assessment/runtime/rollback/Portal-EOS QA validated and Integration Gate PASS"}
   ],
+  "unresolved_top_level_p0_or_gate":6,
   "unresolved_p0_allowed_for_100_percent":0,
   "production":"HOLD"
 }
