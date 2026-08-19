@@ -1,0 +1,67 @@
+{
+  "id": "kidults-er-empirical-validation-sampling-plan-r1",
+  "version": "1.0.0",
+  "status": "PREFLIGHT_READY_NOT_LABELED_NOT_REVIEWED",
+  "parent_issue": 609,
+  "benchmark_contract": "coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json",
+  "production": "HOLD",
+  "truth_boundary": "This artifact allocates a compliant empirical validation sample and holdout structure only. It does not create labels, claim independent review, approve an attestation fingerprint, or satisfy Track B.",
+  "dataset_target": {
+    "dataset_class_required": "REAL_WORLD_LABELED",
+    "total_cases": 840,
+    "blind_holdout_cases": 420,
+    "blind_fraction": 0.5,
+    "constructed_controls_allowed_for_promotion": false,
+    "labels_from_resolver_under_test_allowed": false
+  },
+  "strata": [
+    {"stratum_id":"er-stratum-designer-maker-edition","archetype":"DESIGNER_MAKER_EDITION","cases":120,"blind":60,"case_class_targets":{"SAME_OBJECT_NORMALIZATION":40,"SAME_DESIGN_DIFFERENT_OBJECT":40,"HARD_NEGATIVE":40},"identity_boundary_targets":{"SOURCE_RECORD":35,"CANONICAL_DESIGN":50,"PHYSICAL_OBJECT":35}},
+    {"stratum_id":"er-stratum-graded-population","archetype":"GRADED_POPULATION","cases":120,"blind":60,"case_class_targets":{"SAME_OBJECT_NORMALIZATION":40,"HARD_NEGATIVE":40,"CROSS_MARKET_ALIAS":40},"identity_boundary_targets":{"SOURCE_RECORD":60,"PHYSICAL_OBJECT":60}},
+    {"stratum_id":"er-stratum-pressing-edition-media","archetype":"PRESSING_EDITION_MEDIA","cases":120,"blind":60,"case_class_targets":{"CROSS_MARKET_ALIAS":40,"HARD_NEGATIVE":40,"SAME_OBJECT_NORMALIZATION":40},"identity_boundary_targets":{"SOURCE_RECORD":60,"PHYSICAL_OBJECT":60}},
+    {"stratum_id":"er-stratum-provenance-unique-object","archetype":"PROVENANCE_UNIQUE_OBJECT","cases":120,"blind":60,"case_class_targets":{"HARD_NEGATIVE":20,"AMBIGUOUS_REVIEW_REQUIRED":50,"TRANSACTION_TO_OBJECT_LINKAGE":50},"identity_boundary_targets":{"PHYSICAL_OBJECT":20,"MARKET_EVENT":100}},
+    {"stratum_id":"er-stratum-serialized-reference","archetype":"SERIALIZED_REFERENCE","cases":120,"blind":60,"case_class_targets":{"SAME_OBJECT_NORMALIZATION":40,"HARD_NEGATIVE":40,"CROSS_MARKET_ALIAS":40},"identity_boundary_targets":{"SOURCE_RECORD":60,"PHYSICAL_OBJECT":60}},
+    {"stratum_id":"er-stratum-variant-release-heavy","archetype":"VARIANT_RELEASE_HEAVY","cases":120,"blind":60,"case_class_targets":{"HARD_NEGATIVE":40,"CROSS_MARKET_ALIAS":40,"SAME_OBJECT_NORMALIZATION":40},"identity_boundary_targets":{"SOURCE_RECORD":60,"PHYSICAL_OBJECT":60}},
+    {"stratum_id":"er-stratum-vehicle-mechanical-asset","archetype":"VEHICLE_MECHANICAL_ASSET","cases":120,"blind":60,"case_class_targets":{"SAME_OBJECT_NORMALIZATION":40,"HARD_NEGATIVE":40,"SAME_DESIGN_DIFFERENT_OBJECT":40},"identity_boundary_targets":{"SOURCE_RECORD":35,"PHYSICAL_OBJECT":35,"CANONICAL_DESIGN":50}}
+  ],
+  "aggregate_targets": {
+    "case_classes": {"HARD_NEGATIVE":260,"SAME_OBJECT_NORMALIZATION":240,"CROSS_MARKET_ALIAS":160,"SAME_DESIGN_DIFFERENT_OBJECT":80,"AMBIGUOUS_REVIEW_REQUIRED":50,"TRANSACTION_TO_OBJECT_LINKAGE":50},
+    "identity_boundaries": {"SOURCE_RECORD":310,"PHYSICAL_OBJECT":330,"CANONICAL_DESIGN":100,"MARKET_EVENT":100}
+  },
+  "holdout_protocol": {
+    "partition_case_ids_before_model_freeze": true,
+    "blind_case_labels_absent_from_modeling_inputs": true,
+    "partition_commit_sha_must_precede_model_freeze_sha": true,
+    "blind_labels_may_be_revealed_only_to_evaluation_stage": true,
+    "repartition_after_model_results": "PROHIBITED"
+  },
+  "review_protocol": {
+    "minimum_independent_reviewers": 2,
+    "reviewer_identity_placeholders_are_not_evidence": true,
+    "reviewers_must_not_receive_model_prediction_before_label": true,
+    "per_case_two_reviews_required": true,
+    "disagreement_requires_adjudication": true,
+    "adjudication_complete_before_attestation": true,
+    "current_state": "REVIEWERS_NOT_YET_ATTESTED"
+  },
+  "evidence_protocol": {
+    "per_case_source_evidence_required": true,
+    "source_payload_sha256_required": true,
+    "license_evidence_refs_required": true,
+    "rights_state_allow_required": true,
+    "provenance_refs_required": true,
+    "no_selftest_or_fixture_provenance": true
+  },
+  "statistical_exit": {
+    "accuracy_min": 0.99,
+    "critical_false_auto_merge": 0,
+    "overall_wilson95_lower_min": 0.99,
+    "blind_wilson95_lower_min": 0.99,
+    "deterministic_replay": "PASS_REQUIRED"
+  },
+  "downstream": {
+    "canonical_empirical_attestation": "REQUIRED_NOT_YET_CREATED",
+    "track_b": "REQUIRED_NOT_STARTED",
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
