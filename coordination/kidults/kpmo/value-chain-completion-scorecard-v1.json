@@ -1,15 +1,15 @@
 {
   "id": "kidults-value-chain-completion-scorecard-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "ACTIVE",
   "scoring_policy": "ONLY_EVIDENCED_PASS_COUNTS_AS_COMPLETE",
   "dimensions": [
     {"id":"VALUE_TRACEABILITY","weight":10,"state":"PASS"},
-    {"id":"SOURCE_RIGHTS","weight":8,"state":"PARTIAL","evidence_refs":["#570 identity/reference redundancy empirical R1","#591 one exact bounded dated-SOLD internal source admission","field-level release manifest has no live public/Production-authorized fields"]},
-    {"id":"ENTITY_RESOLUTION","weight":10,"state":"FAIL","evidence_refs":["#479 6/7 complete","GRADED_POPULATION authority not admitted","#595 PCGS bounded probe gate ready but account/EULA/token handoff absent; PSA approval response pending"]},
+    {"id":"SOURCE_RIGHTS","weight":8,"state":"PARTIAL","evidence_refs":["#570 identity/reference redundancy empirical R1","#591 one exact bounded dated-SOLD internal source admission","#603 PCGS EULA terminalized only for bounded single-record research/schema/internal ER calibration reference; broad/public/Production reuse blocked","field-level public/Production release manifest remains incomplete"]},
+    {"id":"ENTITY_RESOLUTION","weight":10,"state":"FAIL","evidence_refs":["#603 PCGS account/EULA/secret operational handoff PASS in bounded DEV/SHADOW scope","#604 live PCGS HTTP 200 grade/population schema proof","#605 live PCGS HTTP 200 CertNo+SerialNo second-authoritative-identifier binding","#606 R7K constructed controls achieve 7/7 per-stratum mechanics with zero critical false auto-merge and rights/provenance 100%","#607 proves finalizer no longer fails on missing GRADED_POPULATION mechanics but still rejects non-empirical dataset flags, constructed controls and missing canonical empirical attestation","independent labels/adjudication + sealed blind holdout + final empirical dataset/freeze/calibration remain absent"]},
     {"id":"MARKET_EVIDENCE","weight":12,"state":"PARTIAL","evidence_refs":["#591 exact bounded DATED_OBSERVED_SOLD_TRANSACTION admission for LEGO NINJAGO City 70620","#599 three-cell owned-fabric lineage including dated-SOLD Market Event path","#600 first PoC claim locked to dated transaction history","#601 bounded single-provider concentration accepted only for selected narrow internal claim","CURRENT_PRICE/LIQUIDITY/TIME_TO_SALE/exposure-denominator claims remain unsupported"]},
-    {"id":"ASI_EXECUTION","weight":10,"state":"PARTIAL","evidence_refs":["#480 bounded DEV/SHADOW runtime mechanics evidence-backed PASS","25 processors; 62/62 behavioral tests; 34/34 truth-boundary rejections","#599 three-cell empirical owned-fabric lineage","full remote 52-engine/Candidate/Track B path incomplete"]},
-    {"id":"IMMUTABLE_CANDIDATE","weight":8,"state":"NOT_READY","evidence_refs":["#600 claim profile preselected","snapshot-candidate.json NONE","Evidence Package NONE","#537/#538 ready but fail-closed until final ER artifacts"]},
+    {"id":"ASI_EXECUTION","weight":10,"state":"PARTIAL","evidence_refs":["#480 bounded DEV/SHADOW runtime mechanics evidence-backed PASS","25 processors; 62/62 behavioral tests; 34/34 truth-boundary rejections","#599 three-cell empirical owned-fabric lineage","#606/#607 remove the 7/7 mechanics blocker and expose empirical ER attestation as the next serial blocker","full remote 52-engine/immutable Candidate/Track B path incomplete"]},
+    {"id":"IMMUTABLE_CANDIDATE","weight":8,"state":"NOT_READY","evidence_refs":["#600 claim profile preselected","snapshot-candidate.json NONE","Evidence Package NONE","#537/#538 ready but finalizer remains fail-closed on empirical ER attestation/blind-holdout requirements"]},
     {"id":"TRACK_B_VALIDATION","weight":8,"state":"WAITING","evidence_refs":["#236 ready-to-assess","exact immutable pair absent","assessment NOT STARTED"]},
     {"id":"PROJECTION_TRUTH","weight":7,"state":"PASS","evidence_refs":["semantic freshness fail-closed repair merged via #478"]},
     {"id":"PORTAL_TRANSPARENCY_ACCESSIBILITY","weight":6,"state":"PARTIAL","evidence_refs":["#568 automated browser WCAG 2.2 AA R1 PASS across 4 routes x desktop/mobile","manual screen-reader/human usability acceptance outstanding","live approved Projection absent"]},
@@ -21,7 +21,7 @@
   ],
   "weights_total": 100,
   "evidenced_pass_weight": 17,
-  "note": "17% is the strict gate-completion score, not engineering progress. #591/#599/#600/#601 materially reduce MARKET/Candidate design risk but do not promote a weighted gate to PASS. Partial work receives zero until its complete exit evidence passes.",
+  "note": "17% remains the strict gate-completion score. #603-#607 materially remove the PCGS operational/schema/alias and 7/7 mechanical coverage blockers, but ENTITY_RESOLUTION does not become PASS until canonical empirical attestation, independent label review/adjudication, sealed blind holdout and final freeze/calibration evidence are real. Partial work receives zero until the entire gate exits PASS.",
   "target": 100,
   "production": "HOLD"
 }
