@@ -320,8 +320,8 @@
     },
     "entity_resolution_vehicle_minimums_r7f_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs",
-      "sha256": "sha256:1088a9666326b703da2b787c59575d767c6c7dc9f2daaea1bb3d2e6cc0f8fd3b",
-      "byte_count": 16823
+      "sha256": "sha256:23f64b44d2a42b8f2884175cebed9cdee4b948566d93a02316cd5179ab07c8fe",
+      "byte_count": 15441
     },
     "entity_resolution_variant_minimums_r7g_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs",
@@ -1020,8 +1020,8 @@
       },
       "vehicle_minimums_r7f_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs",
-        "sha256": "sha256:1088a9666326b703da2b787c59575d767c6c7dc9f2daaea1bb3d2e6cc0f8fd3b",
-        "byte_count": 16823
+        "sha256": "sha256:23f64b44d2a42b8f2884175cebed9cdee4b948566d93a02316cd5179ab07c8fe",
+        "byte_count": 15441
       },
       "variant_minimums_r7g_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs",
@@ -2267,5 +2267,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:71058dc23ca56320b62a354d2d3977129905a6b0dd81051a4667fa16e5db58be"
+  "evidence_fingerprint": "sha256:2b63c9d2945da13099d4d7fd63abf62c3ec341388220a8ee70e31391d371a38d"
 }
