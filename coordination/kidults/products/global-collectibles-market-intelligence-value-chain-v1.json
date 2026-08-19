@@ -1,0 +1,28 @@
+{
+  "id":"global-collectibles-market-intelligence-value-chain-v1",
+  "version":"1.0.0",
+  "status":"PROPOSED_ALIGNED",
+  "product_contract":"coordination/kidults/products/global-collectibles-market-intelligence-product-v1.json",
+  "regional_policy":"coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json",
+  "live_baseline_issue":645,
+  "flow":[
+    {"stage":"F0_F1","role":"discover and classify local sources with region/country/language/currency/owner context"},
+    {"stage":"F2","role":"qualify evidence rights freshness independence and factor fitness"},
+    {"stage":"F2B","role":"compile versioned REGIONAL_MARKET_BASELINE_SNAPSHOT"},
+    {"stage":"F3_INTERNAL","role":"compile ASI collection quota from eligible baseline"},
+    {"stage":"F5B","role":"preserve market events and regional context in Evidence/Market Graph"},
+    {"stage":"F6_PRODUCT","role":"derive governed regional market intelligence assertions separately from acquisition volume"},
+    {"stage":"TRACK_B","role":"independently validate immutable candidate and evidence package"},
+    {"stage":"F7","role":"project approved market intelligence with claim class confidence freshness coverage debt and limitations"},
+    {"stage":"PORTAL_EOS_API_REPORT","role":"consume Projection only; no new market fact computation"}
+  ],
+  "track_bindings": {
+    "A":"produce evidence-backed baseline and candidate intelligence",
+    "B":"independent immutable validation",
+    "C":"render approved Projection and NOT_VERIFIED states",
+    "D":"operate approved runtime and freshness/recovery controls without changing analytical weights",
+    "E":"consume executive Projection for coverage, opportunity and risk visibility"
+  },
+  "separation_rules": ["INTERNAL_ASI_CONTROL_OUTPUT_IS_NOT_AUTOMATICALLY_CUSTOMER_INTELLIGENCE","CUSTOMER_INTELLIGENCE_REQUIRES_CLAIM_ELIGIBILITY_AND_TRACK_B","PROJECTION_IS_THE_ONLY_EXTERNAL_TRUTH_SURFACE","RAW_PROVIDER_DATA_NEVER_FLOWS_TO_PRODUCT_SURFACE"],
+  "production":"HOLD"
+}
