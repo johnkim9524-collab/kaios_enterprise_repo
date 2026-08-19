@@ -1,0 +1,41 @@
+name: KIDULTS ER Pressing Edition Capacity R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-pressing-edition-capacity-r1.mjs'
+      - 'coordination/kidults/entity-resolution/pressing-edition-capacity-r1.json'
+      - '.github/workflows/kidults-er-pressing-capacity-r1.yml'
+      - 'scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs'
+      - 'coordination/kidults/entity-resolution/pressing-source-corpus-r1.json'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Acquire bounded real MusicBrainz pressing corpus
+        run: node scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs /tmp/pressing-source-corpus-r1.json
+      - name: Measure exact case-class capacity
+        run: node scripts/kidults/entity-resolution/probe-pressing-edition-capacity-r1.mjs /tmp/pressing-source-corpus-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/pressing-capacity-r1.json
+      - name: Require fail-closed cross-market truth
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/pressing-capacity-r1.json','utf8'));
+          if(x.metrics?.cross_market_alias_capacity!==0) throw new Error('SINGLE_SOURCE_CROSS_MARKET_ALIAS_MUST_BE_ZERO');
+          if(x.metrics?.source_capacity_ready_for_120_cases!==false) throw new Error('FULL_120_MUST_REMAIN_BLOCKED_WITHOUT_CROSS_MARKET_SOURCE');
+          if(!x.blockers?.some(b=>b.includes('CROSS_MARKET_ALIAS_0_OF_40'))) throw new Error('CROSS_MARKET_BLOCKER_REQUIRED');
+          if(x.labels_present!==false||x.empirical_cases_created!==0||x.production!=='HOLD') throw new Error('TRUTH_BOUNDARY_INVALID');
+          console.log('PASS: Pressing capacity measured fail-closed; MusicBrainz-only cross-market alias capacity remains zero.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-pressing-capacity-r1
+          path: /tmp/pressing-capacity-r1.json
+          retention-days: 14
