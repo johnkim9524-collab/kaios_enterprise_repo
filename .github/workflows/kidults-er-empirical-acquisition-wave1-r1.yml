@@ -1,0 +1,27 @@
+name: KIDULTS ER Empirical Acquisition Wave1 R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/empirical-acquisition-wave1-r1.json'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'scripts/kidults/entity-resolution/validate-empirical-acquisition-wave1-r1.mjs'
+      - '.github/workflows/kidults-er-empirical-acquisition-wave1-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-wave1:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate immediate acquisition capacity and fail-closed blockers
+        run: |
+          node scripts/kidults/entity-resolution/validate-empirical-acquisition-wave1-r1.mjs \
+            coordination/kidults/entity-resolution/empirical-acquisition-wave1-r1.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json
