@@ -1,0 +1,18 @@
+{
+  "id":"kidults-er-provenance-residual-capacity-r1",
+  "version":"1.0.0",
+  "parent_issue":609,
+  "stratum_id":"er-stratum-provenance-unique-object",
+  "status":"EXECUTABLE_RESIDUAL_CAPACITY_PROBE_FAIL_CLOSED",
+  "source":"getty-provenance-index-linked-open-data",
+  "rights":"CC0_METADATA_ONLY",
+  "remaining_targets":{"AMBIGUOUS_REVIEW_REQUIRED":50,"HARD_NEGATIVE":20},
+  "ambiguity_rule":"Count only an Activity that explicitly links >=2 distinct HumanMadeObject targets through Acquisition.transferred_title_of.",
+  "hard_negative_rule":"Count only distinct Getty HumanMadeObject records sharing the exact normalized source label, selected source-record-disjoint, as unlabeled human-review candidates.",
+  "labels":"NOT_COLLECTED",
+  "reviewers":"NOT_ASSIGNED",
+  "empirical_pass":false,
+  "track_b":"NOT_STARTED",
+  "public_release":"HOLD",
+  "production":"HOLD"
+}
