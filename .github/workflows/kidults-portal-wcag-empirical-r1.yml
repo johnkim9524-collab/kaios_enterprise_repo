@@ -1,0 +1,108 @@
+name: KIDULTS Portal WCAG Empirical R1
+on:
+  pull_request:
+    paths:
+      - 'apps/kidults-enterprise-staging/public/portal/**'
+      - 'apps/kidults-enterprise-staging/server.mjs'
+      - 'coordination/kidults/governance/portal-accessibility-assurance-v1.json'
+      - '.github/workflows/kidults-portal-wcag-empirical-r1.yml'
+  workflow_dispatch:
+
+jobs:
+  wcag-browser:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install isolated browser test dependencies
+        run: |
+          mkdir -p /tmp/kidults-a11y
+          cd /tmp/kidults-a11y
+          npm init -y >/dev/null
+          npm install --silent playwright @axe-core/playwright
+          npx playwright install --with-deps chromium
+      - name: Start staging portal
+        shell: bash
+        run: |
+          mkdir -p /tmp/kidults-conversion-data
+          printf 'wcag-r1-ci-nonproduction-secret' > /tmp/kidults-conversion-secret
+          KAIOS_ENVIRONMENT=staging \
+          KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false \
+          KIDULTS_CONVERSION_DATA_DIR=/tmp/kidults-conversion-data \
+          KIDULTS_CONVERSION_HASH_SECRET_FILE=/tmp/kidults-conversion-secret \
+          HOST=127.0.0.1 PORT=4173 \
+          node apps/kidults-enterprise-staging/server.mjs >/tmp/kidults-portal-server.log 2>&1 &
+          echo $! >/tmp/kidults-portal-server.pid
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/health >/dev/null && exit 0; sleep 1; done
+          cat /tmp/kidults-portal-server.log
+          exit 1
+      - name: Run WCAG 2.2 browser evidence
+        shell: bash
+        run: |
+          cat > /tmp/kidults-a11y/run.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          import AxeBuilder from '@axe-core/playwright';
+          import fs from 'node:fs/promises';
+          const routes=['/portal/index.html','/portal/workspace.html','/portal/vertical.html','/portal/object.html'];
+          const viewports=[{name:'desktop',width:1440,height:1000},{name:'mobile320',width:320,height:800}];
+          const browser=await chromium.launch({headless:true});
+          const results=[];
+          let failures=[];
+          for(const vp of viewports){
+            const context=await browser.newContext({viewport:{width:vp.width,height:vp.height},reducedMotion:'reduce'});
+            for(const route of routes){
+              const page=await context.newPage();
+              const url='http://127.0.0.1:4173'+route;
+              const response=await page.goto(url,{waitUntil:'networkidle'});
+              if(!response?.ok()){failures.push(`${route}:${vp.name}:HTTP_${response?.status()}`); await page.close(); continue;}
+              const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+              const serious=axe.violations.filter(v=>['serious','critical'].includes(v.impact));
+              const seriousDetails=serious.map(v=>({id:v.id,impact:v.impact,description:v.description,help:v.help,nodes:v.nodes.map(n=>({target:n.target,html:n.html,failureSummary:n.failureSummary,any:n.any?.map(x=>x.message),all:n.all?.map(x=>x.message),none:n.none?.map(x=>x.message)}))}));
+              if(serious.length) failures.push(`${route}:${vp.name}:AXE_${serious.map(v=>v.id).join(',')}`);
+              const structural=await page.evaluate(()=>({
+                htmlLang:document.documentElement.getAttribute('lang'),
+                mainCount:document.querySelectorAll('main,[role="main"]').length,
+                unlabeledControls:[...document.querySelectorAll('button,input,select,textarea,a[href]')].filter(el=>{
+                  const text=(el.textContent||'').trim();
+                  const aria=el.getAttribute('aria-label')||el.getAttribute('aria-labelledby');
+                  const title=el.getAttribute('title');
+                  const alt=el.getAttribute('alt');
+                  const label=el.id&&document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+                  return !text&&!aria&&!title&&!alt&&!label;
+                }).length,
+                horizontalOverflow:document.documentElement.scrollWidth>document.documentElement.clientWidth+2,
+                reducedMotionRule:[...document.styleSheets].some(s=>{try{return [...s.cssRules].some(r=>String(r.cssText).includes('prefers-reduced-motion'))}catch{return false}})
+              }));
+              if(!structural.htmlLang) failures.push(`${route}:${vp.name}:HTML_LANG_MISSING`);
+              if(structural.mainCount<1) failures.push(`${route}:${vp.name}:MAIN_LANDMARK_MISSING`);
+              if(structural.unlabeledControls>0) failures.push(`${route}:${vp.name}:UNLABELED_CONTROLS_${structural.unlabeledControls}`);
+              if(vp.width===320&&structural.horizontalOverflow) failures.push(`${route}:${vp.name}:HORIZONTAL_OVERFLOW`);
+              const focusables=await page.locator('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])').count();
+              let keyboardFocus=false;
+              if(focusables>0){await page.keyboard.press('Tab'); keyboardFocus=await page.evaluate(()=>document.activeElement&&document.activeElement!==document.body);}
+              if(focusables>0&&!keyboardFocus) failures.push(`${route}:${vp.name}:KEYBOARD_FOCUS_NOT_OBSERVED`);
+              results.push({route,viewport:vp.name,axe_violation_count:axe.violations.length,serious_critical_count:serious.length,serious_details:seriousDetails,structural,focusables,keyboardFocus});
+              await page.close();
+            }
+            await context.close();
+          }
+          await browser.close();
+          const report={id:'kidults-portal-wcag-empirical-r1',standard:'WCAG_2_2_AA_BROWSER_AUTOMATED_SCOPE',production:'HOLD',routes,viewports,results,failures,pass:failures.length===0,limitations:['AUTOMATED_AXE_AND_BROWSER_STRUCTURAL_EVIDENCE_DOES_NOT_REPLACE_MANUAL_SCREEN_READER_USABILITY_REVIEW','VISUAL_FOCUS_QUALITY_REQUIRES_HUMAN_REVIEW_FOR_FINAL_PUBLIC_RELEASE'],truth_boundary:'Automated empirical accessibility evidence only. Production/public release remains separately gated.'};
+          await fs.writeFile('/tmp/kidults-portal-wcag-empirical-r1.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify(report,null,2));
+          if(failures.length) process.exit(1);
+          NODE
+          cd /tmp/kidults-a11y
+          node run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-portal-wcag-empirical-r1
+          path: |
+            /tmp/kidults-portal-wcag-empirical-r1.json
+            /tmp/kidults-portal-server.log
+          retention-days: 30
