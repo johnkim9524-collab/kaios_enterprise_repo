@@ -1,0 +1,41 @@
+name: KIDULTS ASI Global Regional Market Balance Policy V1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-global-regional-market-balance-binding-v1.json'
+      - 'coordination/kidults/architecture/global-regional-market-balance-guide-v1.md'
+      - 'scripts/kidults/source-intelligence/validate-asi-global-regional-market-balance-policy-v1.mjs'
+      - '.github/workflows/kidults-asi-global-regional-market-balance-policy-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-regional-market-balance-policy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate canonical policy and ASI binding
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/source-intelligence/validate-asi-global-regional-market-balance-policy-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-global-regional-market-balance-policy-v1.mjs
+      - name: Reassert global truth boundary
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const p=require('./coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json');
+          if(p.bootstrap_state.mode!=='STRUCTURAL_BOOTSTRAP_NOT_MARKET_SHARE') process.exit(1);
+          if(p.bootstrap_state.market_scale_estimates_verified!==false) process.exit(1);
+          if(p.analytical_weight_model.record_count_weight!==0) process.exit(1);
+          if(p.claim_geography_gates.GLOBAL.failure_state!=='NOT_VERIFIED_GLOBAL') process.exit(1);
+          if(p.production!=='HOLD'||p.public_release!=='HOLD') process.exit(1);
+          console.log('PASS: collection volume cannot become global market truth; bootstrap shares are structural only; global claims fail closed.');
+          NODE
