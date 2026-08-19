@@ -1,0 +1,10 @@
+{
+  "id":"global-market-intelligence-eos-module-v1",
+  "version":"1.0.0",
+  "status":"PREPUBLICATION_SHELL",
+  "source":"MARKET_INTELLIGENCE_PROJECTION",
+  "executive_views":["REGIONAL_COVERAGE_DEBT","MARKET_STRUCTURE_CHANGE","REGIONAL_OPPORTUNITY","SOURCE_CONCENTRATION_RISK","ACTIVE_BASELINE_VERSION"],
+  "may_compute_new_market_facts":false,
+  "may_mutate_asi_weights":false,
+  "production":"HOLD"
+}
