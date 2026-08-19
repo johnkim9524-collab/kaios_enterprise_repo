@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 
 const OUT = process.argv[2] || '/tmp/er-real-world-increment-r1.json';
-const MET_OBJECTS = [45734, 437133];
+const SEARCH_URL='https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=painting';
 const timeoutMs = 15000;
 
 async function fetchJson(url) {
@@ -14,26 +14,29 @@ async function fetchJson(url) {
   } finally { clearTimeout(timer); }
 }
 
+const search=await fetchJson(SEARCH_URL);
+if (!Array.isArray(search.objectIDs) || search.objectIDs.length===0) throw new Error('Met search returned no object IDs.');
 const objects=[];
-for (const id of MET_OBJECTS) {
+for (const id of search.objectIDs.slice(0,80)) {
   const r=await fetchJson(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`);
-  if (r?.isPublicDomain !== true) throw new Error(`Met object ${id} is not public domain; fail closed.`);
-  objects.push(r);
+  if (r?.isPublicDomain===true && r?.objectID && r?.accessionNumber) objects.push(r);
+  if (objects.length>=2) break;
 }
+if (objects.length<2) throw new Error('Could not verify two public-domain authoritative Met records within bounded scan.');
 const [a,b]=objects;
 if (a.objectID===b.objectID) throw new Error('Distinct authoritative objects required.');
 
 const provenance=(r)=>`met-open-access-api:object:${r.objectID}:cc0`;
 const sourceRecord=(r,variant=false)=>({
   anchors:{SOURCE_RECORD:`met:${r.objectID}`},
-  unique_keys:{object_id:String(r.objectID),accession_number:String(r.accessionNumber??'')},
+  unique_keys:{object_id:String(r.objectID),accession_number:String(r.accessionNumber)},
   title:variant?String(r.title??'').toLowerCase():r.title??null,
   object_name:variant?String(r.objectName??'').toUpperCase():r.objectName??null,
   source:'met-open-access-api'
 });
 const physicalObject=(r)=>({
   anchors:{PHYSICAL_OBJECT:`met-physical:${r.objectID}`},
-  unique_keys:{object_id:String(r.objectID),accession_number:String(r.accessionNumber??'')},
+  unique_keys:{object_id:String(r.objectID),accession_number:String(r.accessionNumber)},
   title:r.title??null,
   source:'met-open-access-api'
 });
@@ -60,7 +63,7 @@ const cases=[
 const artifact={
   id:'entity-resolution-real-world-dataset-increment-r1', parent_issue:479,
   dataset_class:'REAL_WORLD_LABELED', dataset_scope:'INCREMENTAL_PARTIAL', synthetic:false,
-  generated_at:new Date().toISOString(), source_families:['met-open-access-api'], cases,
+  generated_at:new Date().toISOString(), source_families:['met-open-access-api'], bounded_scan_count:Math.min(80,search.objectIDs.length), cases,
   truth_boundary:'Real rights/provenance-backed labeled increment only. Required case classes, all identity boundaries and scope breadth remain incomplete; no #479 completion claim.'
 };
 await fs.writeFile(OUT,JSON.stringify(artifact,null,2));
