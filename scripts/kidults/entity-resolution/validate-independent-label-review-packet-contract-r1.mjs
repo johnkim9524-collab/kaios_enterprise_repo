@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+const p='coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json';
+const x=JSON.parse(fs.readFileSync(p,'utf8'));
+const fail=m=>{throw new Error(m)};
+if(x.production!=='HOLD') fail('PRODUCTION_MUST_HOLD');
+if(x.reviewer_requirements.minimum_independent_reviewers<2) fail('TWO_REVIEWERS_REQUIRED');
+if(!x.reviewer_requirements.reviewer_identity_must_be_real || !x.reviewer_requirements.same_reviewer_twice_prohibited) fail('REVIEWER_INDEPENDENCE_WEAKENED');
+if(!x.reviewer_requirements.model_predictions_hidden_until_both_labels_frozen) fail('MODEL_PREDICTION_LEAKAGE');
+for(const f of ['model_prediction','model_score','other_reviewer_label','adjudicated_label','benchmark_result']) if(!x.fields_prohibited_from_reviewer_packets.includes(f)) fail(`PROHIBITED_FIELD_MISSING:${f}`);
+for(const f of ['case_id','reviewer_id','reviewer_independence_attestation','label','label_reason_code','evidence_refs_reviewed','reviewed_at','review_record_sha256']) if(!x.review_output_schema.required_fields.includes(f)) fail(`REVIEW_FIELD_MISSING:${f}`);
+if(!x.adjudication.must_complete_before_empirical_attestation) fail('ADJUDICATION_ORDER_INVALID');
+if(!x.blind_holdout.holdout_case_ids_must_be_sealed_before_model_freeze || !x.blind_holdout.holdout_labels_hidden_from_modeling || x.blind_holdout.holdout_partition_change_after_model_freeze!=='PROHIBITED') fail('BLIND_HOLDOUT_WEAKENED');
+const c=x.completion_state;
+if(c.reviewer_a!=='NOT_ASSIGNED'||c.reviewer_b!=='NOT_ASSIGNED'||c.labels!=='NOT_COLLECTED'||c.empirical_attestation!=='NOT_CREATED'||c.track_b!=='NOT_STARTED') fail('FALSE_COMPLETION_CLAIM');
+console.log('KIDULTS_ER_INDEPENDENT_LABEL_REVIEW_PACKET_CONTRACT_R1_PASS_PREFLIGHT_ONLY');
