@@ -1,0 +1,49 @@
+name: KIDULTS ER Getty Transaction R2
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs'
+      - 'scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs'
+      - 'scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs'
+      - '.github/workflows/kidults-er-getty-transaction-r2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assemble-and-run-r2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build R1 real-world Met increment
+        run: node scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs /tmp/er-r1.json
+      - name: Extend with Getty documented transaction-object linkage
+        run: node scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs /tmp/er-r1.json /tmp/er-r2.json
+      - name: Run canonical benchmark v2
+        run: node scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs /tmp/er-r2.json /tmp/er-r2-results.json
+      - name: Verify incremental progress and fail-closed breadth gate
+        run: |
+          node - <<'NODE'
+          const d=require('/tmp/er-r2.json');
+          const r=require('/tmp/er-r2-results.json');
+          if(d.cases.length!==3) process.exit(1);
+          if(!d.cases.some(x=>x.case_class==='TRANSACTION_TO_OBJECT_LINKAGE'&&x.identity_boundary==='MARKET_EVENT')) process.exit(1);
+          if(r.accuracy!==1||r.critical_false_auto_merge!==0) process.exit(1);
+          if(r.coverage.provenance_coverage!==1||r.coverage.rights_coverage!==1) process.exit(1);
+          if(r.promotion_gate.promotion_eligible_before_track_b!==false) process.exit(1);
+          console.log('R2 real-world ER increment PASS; full promotion remains blocked by incomplete case/boundary breadth.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-real-world-r2
+          path: |
+            /tmp/er-r2.json
+            /tmp/er-r2-results.json
+          if-no-files-found: error
+          retention-days: 30
