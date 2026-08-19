@@ -1,0 +1,36 @@
+name: KIDULTS ER Pressing Partial Review Packet R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/build-pressing-partial-review-packet-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-pressing-partial-review-packet-r1.mjs'
+      - 'coordination/kidults/entity-resolution/pressing-partial-review-packet-r1.json'
+      - '.github/workflows/kidults-er-pressing-partial-review-packet-r1.yml'
+      - 'scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs'
+      - 'scripts/kidults/entity-resolution/probe-pressing-edition-capacity-r1.mjs'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  packetize-proven-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Reacquire bounded real MusicBrainz corpus
+        run: node scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs /tmp/pressing-source-corpus-r1.json
+      - name: Remeasure capacity fail-closed
+        run: node scripts/kidults/entity-resolution/probe-pressing-edition-capacity-r1.mjs /tmp/pressing-source-corpus-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/pressing-capacity-r1.json
+      - name: Build only proven 45 cases
+        run: node scripts/kidults/entity-resolution/build-pressing-partial-review-packet-r1.mjs /tmp/pressing-source-corpus-r1.json /tmp/pressing-capacity-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/pressing-partial-review-packet-r1.json
+      - name: Validate no semantic inflation
+        run: node scripts/kidults/entity-resolution/validate-pressing-partial-review-packet-r1.mjs /tmp/pressing-partial-review-packet-r1.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-pressing-partial-review-packet-r1
+          path: /tmp/pressing-partial-review-packet-r1.json
+          retention-days: 14
