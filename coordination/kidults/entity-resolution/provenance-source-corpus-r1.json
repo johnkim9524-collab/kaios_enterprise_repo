@@ -1,0 +1,22 @@
+{
+  "id": "kidults-er-provenance-source-corpus-r1",
+  "version": "1.0.0",
+  "parent_issue": 609,
+  "support_issue": 614,
+  "stratum_id": "er-stratum-provenance-unique-object",
+  "status": "ACQUISITION_EXECUTION_CONTRACT",
+  "source_id": "getty-provenance-index-linked-open-data",
+  "target_record_count": 240,
+  "rights_state_required": "ALLOW",
+  "license_evidence_refs": [
+    "https://data.getty.edu/provenance/docs/",
+    "https://www.getty.edu/databases-tools-and-technologies/provenance/"
+  ],
+  "allowed_metadata_only": true,
+  "labels_allowed": false,
+  "model_predictions_allowed": false,
+  "reviewer_assignment_required": true,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "truth_boundary": "This contract collects real Getty Provenance Index linked-open-data entities as unlabeled empirical source material only. It does not infer ownership truth beyond the source payload, does not create ER labels, and does not imply current-market, Track B, publication or Production approval."
+}
