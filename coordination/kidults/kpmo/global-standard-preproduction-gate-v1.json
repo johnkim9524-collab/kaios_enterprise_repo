@@ -1,6 +1,6 @@
 {
   "id": "kidults-global-standard-preproduction-gate-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "ACTIVE_FAIL_CLOSED",
   "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
   "production": "HOLD",
@@ -14,11 +14,11 @@
     {"id":"IMMUTABLE_CANDIDATE_PAIR","status":"NOT_CREATED"},
     {"id":"TRACK_B_INDEPENDENT_ASSESSMENT","status":"WAITING"},
     {"id":"PROJECTION_TRUTH_FRESHNESS","status":"PASS"},
-    {"id":"PORTAL_ACCESSIBILITY_WCAG22","status":"NOT_EVIDENCED"},
+    {"id":"PORTAL_ACCESSIBILITY_WCAG22","status":"EMPIRICAL_R1_PR_OPEN_NOT_YET_PASS"},
     {"id":"EOS_FOUNDER_ACCEPTANCE","status":"NOT_EVIDENCED"},
-    {"id":"DEV_STAGING_RUNTIME_SLO_RECOVERY_COST","status":"NOT_EVIDENCED"},
-    {"id":"SECURE_SDLC_SUPPLY_CHAIN","status":"NOT_EVIDENCED"},
-    {"id":"PRIVACY_RETENTION_MINIMIZATION","status":"NOT_EVIDENCED"},
+    {"id":"DEV_STAGING_RUNTIME_SLO_RECOVERY_COST","status":"PARTIAL_READONLY_REMOTE_INVENTORY_GATE_MERGED_REMOTE_CREDENTIALS_ABSENT"},
+    {"id":"SECURE_SDLC_SUPPLY_CHAIN","status":"PARTIAL_EMPIRICAL_R1_REPOSITORY_DEPENDENCY_SECRET_VULNERABILITY_INTEGRITY_PASS_INFRA_ASSESSMENT_OPEN"},
+    {"id":"PRIVACY_RETENTION_MINIMIZATION","status":"PARTIAL_EMPIRICAL_R1_CONVERSION_RETENTION_PASS_AUDIT_AND_RECORD_LEVEL_PERSON_FIELDS_HOLD"},
     {"id":"FIELD_LEVEL_RIGHTS_RELEASE_MANIFEST","status":"NOT_EVIDENCED"},
     {"id":"INTEGRATION_GATE_238","status":"WAITING"}
   ],
@@ -33,7 +33,14 @@
     "graded_population": "UNREPRESENTED_PSA_HTTP_403_APPROVED_CUSTOMER_GATE_EXTERNAL_RESPONSE_PENDING",
     "candidate": "NONE",
     "evidence_package": "NONE",
-    "track_b_assessment": "NOT_STARTED"
+    "track_b_assessment": "NOT_STARTED",
+    "global_source_mesh_cells": 768,
+    "strict_rights_admitted_source_count_minimum_proven": 3,
+    "current_sold_strict_source_count": 0,
+    "security_assurance_empirical_pr": 561,
+    "privacy_retention_empirical_pr": 563,
+    "portal_wcag_empirical_pr": 562,
+    "runtime_readonly_inventory_pr": 554
   },
   "hundred_percent_rule": {
     "all_required_gates_must_pass": true,
