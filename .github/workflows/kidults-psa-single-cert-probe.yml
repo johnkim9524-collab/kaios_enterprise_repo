@@ -60,9 +60,9 @@ jobs:
             try { payload = JSON.parse(text); }
             catch { throw new Error(`PSA_NON_JSON_RESPONSE_HTTP_${response.status}`); }
 
-            const serverMessage = String(payload.ServerMessage ?? payload.serverMessage ?? '');
+            const serverMessage = String(payload.ServerMessage ?? payload.serverMessage ?? payload.Message ?? payload.message ?? '');
             const isValidRequest = payload.IsValidRequest ?? payload.isValidRequest;
-            if (response.status !== 200) throw new Error(`PSA_HTTP_${response.status}`);
+            if (response.status !== 200) throw new Error(`PSA_HTTP_${response.status}:${serverMessage || 'no-server-message'}`);
             if (isValidRequest !== true) throw new Error(`PSA_INVALID_REQUEST:${serverMessage || 'unknown'}`);
             if (!/request successful/i.test(serverMessage)) throw new Error(`PSA_NO_DATA:${serverMessage || 'unknown'}`);
 
