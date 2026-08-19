@@ -1,0 +1,77 @@
+{
+  "id": "entity-resolution-real-dataset-assembly-r1",
+  "version": "1.0.0",
+  "issue": 479,
+  "dataset_target_class": "REAL_WORLD_LABELED",
+  "production": "HOLD",
+  "objective": "Assemble independently defensible real-world identity pairs for the benchmark-v2 runner without synthetic promotion or label leakage.",
+  "required_case_classes": [
+    "HARD_NEGATIVE",
+    "SAME_OBJECT_NORMALIZATION",
+    "SAME_DESIGN_DIFFERENT_OBJECT",
+    "CROSS_MARKET_ALIAS",
+    "TRANSACTION_TO_OBJECT_LINKAGE",
+    "AMBIGUOUS_REVIEW_REQUIRED"
+  ],
+  "required_identity_boundaries": ["SOURCE_RECORD","PHYSICAL_OBJECT","CANONICAL_DESIGN","MARKET_EVENT"],
+  "approved_seed_source_roles": [
+    {
+      "source_id": "met-open-access-api",
+      "use": ["SOURCE_RECORD","PHYSICAL_OBJECT","HARD_NEGATIVE","SAME_OBJECT_NORMALIZATION"],
+      "claim_ceiling": "IDENTITY_CONTEXT_ONLY"
+    },
+    {
+      "source_id": "wikidata-structured-data",
+      "use": ["SOURCE_RECORD","CANONICAL_DESIGN","CROSS_MARKET_ALIAS","AUTHORITY_LINKAGE"],
+      "claim_ceiling": "IDENTITY_AUTHORITY_CONTEXT_ONLY"
+    },
+    {
+      "source_id": "europeana-metadata-api",
+      "use": ["SOURCE_RECORD","CROSS_SOURCE_ALIAS","AMBIGUOUS_REVIEW_REQUIRED"],
+      "claim_ceiling": "METADATA_IDENTITY_CONTEXT_ONLY"
+    },
+    {
+      "source_id": "getty-provenance-index",
+      "use": ["MARKET_EVENT","TRANSACTION_TO_OBJECT_LINKAGE","HISTORICAL_TRANSACTION_IDENTITY"],
+      "claim_ceiling": "HISTORICAL_TRANSACTION_CONTEXT_ONLY"
+    }
+  ],
+  "label_rules": {
+    "MATCH": "Requires a stable authoritative shared anchor at the identity boundary or an independently verified unique identifier linkage.",
+    "NO_MATCH": "Requires contradictory authoritative unique anchors or independently verified distinct identities at the evaluated boundary.",
+    "REVIEW": "Used when real records lack sufficient authoritative evidence for MATCH or NO_MATCH; unresolved is preserved rather than guessed."
+  },
+  "case_requirements": {
+    "rights_state": "ALLOW",
+    "provenance_refs_min": 1,
+    "raw_source_reference_required": true,
+    "label_basis_required": true,
+    "scope_id_required": true,
+    "identity_boundary_required": true,
+    "blind_holdout_assignment_required": true
+  },
+  "blind_holdout": {
+    "must_be_frozen_before_calibration": true,
+    "label_access_during_tuning": "PROHIBITED",
+    "minimum_fraction_recommended": 0.2,
+    "exact_fraction_is_not_a_pass_substitute": true
+  },
+  "anti_shortcut": [
+    "NO_SYNTHETIC_CASES_IN_REAL_DATASET",
+    "NO_SELFTEST_FIXTURES",
+    "NO_DUPLICATE_CASES_ACROSS_TRAIN_AND_BLIND",
+    "NO_LABEL_DERIVATION_FROM_RESOLVER_OUTPUT",
+    "NO_THRESHOLD_RELAXATION_TO_FORCE_99_PERCENT",
+    "NO_UNSUPPORTED_SCOPE_LABELS",
+    "NO_PROVIDER_ID_AS_CANONICAL_ID"
+  ],
+  "streaming_rule": "Approved real cases are appended incrementally, but benchmark promotion remains blocked until all required classes/boundaries/provenance/rights/blind gates are complete.",
+  "current_state": {
+    "real_cases_registered": 0,
+    "blind_holdout_frozen": false,
+    "empirical_accuracy": "NOT_MEASURED",
+    "critical_false_auto_merge": "NOT_MEASURED",
+    "promotion_eligible": false
+  },
+  "truth_boundary": "This artifact defines dataset assembly controls only. It is not a labeled dataset and provides zero empirical #479 completion credit."
+}
