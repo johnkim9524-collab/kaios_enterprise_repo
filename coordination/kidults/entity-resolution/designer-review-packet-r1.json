@@ -1,0 +1,23 @@
+{
+  "id":"kidults-er-designer-review-packet-r1",
+  "version":"1.0.0",
+  "parent_issue":609,
+  "stratum_id":"er-stratum-designer-maker-edition",
+  "status":"REVIEW_PACKET_EXECUTION_READY_UNLABELED_NOT_REVIEWED",
+  "case_count":120,
+  "blind_partition_candidate_count":60,
+  "case_class_targets":{"SAME_OBJECT_NORMALIZATION":40,"SAME_DESIGN_DIFFERENT_OBJECT":40,"HARD_NEGATIVE":40},
+  "identity_boundary_targets":{"SOURCE_RECORD":35,"CANONICAL_DESIGN":50,"PHYSICAL_OBJECT":35},
+  "live_capacity_evidence":{"eligible_real_record_count":16393,"same_design_observed_pair_count":100,"hard_negative_observed_pair_count":472394,"selected_source_record_count":200,"source_record_reuse_count":0},
+  "source_rights":"ALLOW_MOMA_RESEARCH_METADATA_NO_IMAGES",
+  "reviewer_a":"NOT_ASSIGNED",
+  "reviewer_b":"NOT_ASSIGNED",
+  "labels":"NOT_COLLECTED",
+  "adjudication":"NOT_STARTED",
+  "blind_partition":"CANDIDATE_NOT_SEALED",
+  "empirical_attestation":"NOT_CREATED",
+  "track_b":"NOT_STARTED",
+  "public_release":"HOLD",
+  "production":"HOLD",
+  "truth_boundary":"Live MoMA capacity proves the exact 120-case Designer/Maker sampling allocation can be generated without source-record reuse. The workflow packetizes those real source-bound cases for future independent review. No labels, reviewers, adjudication, sealed holdout, empirical PASS, Track B PASS, publication or Production are claimed."
+}
