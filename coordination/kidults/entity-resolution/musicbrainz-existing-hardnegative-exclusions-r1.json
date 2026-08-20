@@ -1,0 +1,33 @@
+{
+  "id": "kidults-er-musicbrainz-existing-hardnegative-exclusions-r1",
+  "version": "1.0.0",
+  "parent_issue": 707,
+  "rule": "EXCLUDE_ALL_CURRENT_240_CORPUS_RECORDS_PLUS_ALL_MBIDS_USED_BY_MERGED_PRESSING_693_AND_VARIANT_692_HARDNEGATIVE_EXPANSIONS",
+  "validated_sources": [
+    "PR#693 workflow run 32319470061 artifact 9389460176",
+    "PR#692 workflow run 32318374190 artifact 9389024653"
+  ],
+  "additional_release_mbids": [
+    "15d96554-8f56-3483-a91c-859efe3eed14",
+    "2d1b10f5-339a-444f-aba4-a6f897b5bdff",
+    "3dd7abc8-09ba-3794-a025-09a247548ab7",
+    "3dfd545d-a51a-48fe-8ba5-5a2ff37555f1",
+    "405ddf7d-cc87-47e6-a9c3-cb8548659c55",
+    "46cd66b9-85ea-36ff-bbbc-aad95d68853d",
+    "52129eb2-0f6e-4cc2-b082-83da3a34cf82",
+    "58acbd69-73cf-4a73-971c-e63979403ace",
+    "59231cb0-308e-3569-83b8-9e32046a88a4",
+    "6da372b9-988a-462b-a9e8-111b9ac6ce11",
+    "8378cdd0-ccdc-367e-9a8e-26b73f949417",
+    "8db1b6e8-2753-474c-818e-b70dff1276ef",
+    "93000eda-a5bf-419c-94dc-94c4431b278c",
+    "add78526-6ac0-3a84-980b-131a4e97b1c0",
+    "b9e5df56-bc94-42ef-8276-49ec5a51d493",
+    "c1e20363-3790-451b-a460-a303e4842fab",
+    "d4f1acad-55d0-4ead-b0c0-cb385e02f626",
+    "f2a55fcb-ccc5-3a59-9214-d080af2c5911",
+    "f55d9405-806c-3f98-8228-c3d60d9fb5b3",
+    "fe77a154-63da-4c0d-899c-3d8731e2d2c2"
+  ],
+  "production": "HOLD"
+}
