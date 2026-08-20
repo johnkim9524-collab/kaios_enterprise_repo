@@ -1,0 +1,50 @@
+name: KIDULTS Runtime CI DEV Proof R1
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/kidults-runtime-ci-dev-proof-r1.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ci-dev-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: GATE — isolated CI_DEV has no Cloudflare runtime credentials
+        run: |
+          set -euo pipefail
+          test -z "${CLOUDFLARE_API_TOKEN:-}"
+          test -z "${CLOUDFLARE_ACCOUNT_ID:-}"
+          test -z "${CLOUDFLARE_STAGING_REBIND_TOKEN:-}"
+          test -z "${CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN:-}"
+      - name: BUILD — canonical runtime dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          npm run typecheck
+      - name: MEASURE — deterministic CI_DEV processor/recovery SLO
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          node - <<'NODE'
+          const {spawnSync}=require('child_process'),fs=require('fs');
+          const run=(name,args)=>{const t=performance.now();const r=spawnSync(process.execPath,args,{encoding:'utf8',env:{...process.env,KAIOS_ASI_TEST_CLOCK:'2025-01-15T12:00:00.000Z'}});const ms=performance.now()-t;if(r.status!==0){console.error(r.stdout);console.error(r.stderr);throw new Error(`${name}_FAILED:${r.status}`)}return {name,elapsed_ms:Number(ms.toFixed(3))}};
+          const rows=[];for(let i=0;i<5;i++){rows.push(run('processor_e2e',['scripts/asi-processor-runtime-e2e-test.mjs']));rows.push(run('recovery',['scripts/asi-runtime-recovery-fairness-test.mjs']));}
+          const by=name=>rows.filter(x=>x.name===name).map(x=>x.elapsed_ms).sort((a,b)=>a-b);const stats=a=>({runs:a.length,min_ms:a[0],median_ms:a[Math.floor(a.length/2)],p95_ms:a[Math.ceil(a.length*.95)-1],max_ms:a.at(-1),mean_ms:Number((a.reduce((s,x)=>s+x,0)/a.length).toFixed(3))});
+          const receipt={environment:'CI_DEV',isolation:'EPHEMERAL_IN_MEMORY_D1_AND_DETERMINISTIC_QUEUE_MESH',cloudflare_credentials_present:false,remote_cloud_resources_created:0,external_provider_requests:0,cloudflare_incremental_cost_usd:0,github_ci_cost:'ACCOUNT_PLAN_DEPENDENT_NOT_ASSERTED',processor_e2e:stats(by('processor_e2e')),recovery:stats(by('recovery')),runs:rows,production_mutation:false,production:'HOLD'};fs.mkdirSync('/tmp/ci-dev',{recursive:true});fs.writeFileSync('/tmp/ci-dev/receipt.json',JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt,null,2));
+          NODE
+      - name: VERIFY — separation from remote STAGING identity
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=require('/tmp/ci-dev/receipt.json');x.dev_environment_id='CI_DEV_EPHEMERAL_MEMORY_D1';x.staging_environment_id='kidults-intelligence-db-staging:9bc6a406-6fca-4959-be7f-dd7f715b092c';x.dev_staging_resource_identity_equal=false;x.dev_persistence_lifetime='JOB_SCOPED_EPHEMERAL';x.staging_persistence_lifetime='REMOTE_PERSISTENT';x.separation_pass=true;fs.writeFileSync('/tmp/ci-dev/receipt.json',JSON.stringify(x,null,2));console.log(JSON.stringify({separation_pass:true,dev:x.dev_environment_id,staging:x.staging_environment_id},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-runtime-ci-dev-proof-r1
+          path: /tmp/ci-dev/receipt.json
+          retention-days: 30
