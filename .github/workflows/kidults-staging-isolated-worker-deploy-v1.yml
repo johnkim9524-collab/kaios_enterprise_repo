@@ -1,0 +1,159 @@
+name: KIDULTS STAGING Isolated Worker Deploy v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-staging-isolated-worker-deploy-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-staging-deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_STAGING_DEPLOY_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_DEPLOY_TOKEN }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: PRECHECK — canonical staging and isolation boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='services/kidults-autonomous-intelligence/wrangler.jsonc';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const q=(x.queues?.producers||[]).map(v=>v.queue);
+          const d=x.d1_databases?.find(v=>v.binding==='DB');
+          if(x.vars?.KIDULTS_ENV!=='staging') throw new Error('ENV_NOT_STAGING');
+          if(x.vars?.ASI_MESH_MODE!=='SHADOW') throw new Error('ASI_NOT_SHADOW');
+          if(x.vars?.ASI_PUBLICATION_ENABLED!=='false') throw new Error('PUBLICATION_NOT_DISABLED');
+          if(q.length!==26||new Set(q).size!==26||q.some(v=>!v.startsWith('kidults-asi-shadow-'))) throw new Error('QUEUE_BOUNDARY');
+          if(!d?.database_name||!d?.database_id) throw new Error('D1_BOUNDARY');
+          const s=structuredClone(x);
+          s.name='kidults-autonomous-intelligence-staging';
+          s.workers_dev=false;
+          delete s.routes;
+          delete s.route;
+          delete s.triggers;
+          s.vars={...(s.vars||{}),KIDULTS_ENV:'staging',ASI_MESH_MODE:'SHADOW',ASI_PUBLICATION_ENABLED:'false'};
+          fs.writeFileSync('services/kidults-autonomous-intelligence/wrangler.staging.generated.json',JSON.stringify(s,null,2));
+          fs.writeFileSync('services/kidults-autonomous-intelligence/src/staging-rollback.generated.ts',`export default { async fetch(){ return new Response('STAGING_ROLLBACK_INERT',{status:503}); }, async queue(){}, async scheduled(){} };\n`);
+          const r={worker_name:s.name,workers_dev:s.workers_dev,routes:0,cron:0,queue_count:q.length,d1_name:d.database_name,d1_id:d.database_id,environment:'staging',mesh:'SHADOW',publication:false,production:'HOLD'};
+          fs.writeFileSync('/tmp/staging-boundary.json',JSON.stringify(r,null,2));
+          console.log(JSON.stringify(r));
+          NODE
+
+      - name: Install and static validation
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          npm install --ignore-scripts
+          npm run deploy:preflight
+          npm run typecheck
+          npx wrangler deploy --config wrangler.staging.generated.json --dry-run --outdir /tmp/kidults-staging-dry-run
+
+      - name: VERIFY — existing D1 and 26 queues with read-only token
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          [ -n "${CLOUDFLARE_API_TOKEN:-}" ] && [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          npx wrangler d1 info kidults-intelligence-db --json > /tmp/d1.json
+          npx wrangler queues list > /tmp/queues.txt
+          node - <<'NODE'
+          const fs=require('fs'); const cfg=require('./wrangler.staging.generated.json');
+          const d=JSON.parse(fs.readFileSync('/tmp/d1.json','utf8'));
+          const txt=fs.readFileSync('/tmp/queues.txt','utf8');
+          const expected=(cfg.queues?.producers||[]).map(x=>x.queue);
+          const missing=expected.filter(q=>!txt.includes(q));
+          const d1ok=JSON.stringify(d).includes(cfg.d1_databases[0].database_id)||JSON.stringify(d).includes(cfg.d1_databases[0].database_name);
+          if(!d1ok||missing.length) throw new Error(`REMOTE_RESOURCE_MISMATCH:${missing.length}`);
+          console.log(JSON.stringify({status:'PASS',d1_match:true,queues:expected.length,missing:0}));
+          NODE
+
+      - name: GATE — require temporary least-privilege staging deploy token
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_STAGING_DEPLOY_TOKEN:-}" ]; then
+            echo 'CLOUDFLARE_STAGING_DEPLOY_TOKEN missing; fail closed before any upload/deploy.'
+            exit 2
+          fi
+          echo "::add-mask::$CLOUDFLARE_STAGING_DEPLOY_TOKEN"
+
+      - name: UPLOAD — inert rollback target, not deployed
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_DEPLOY_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: /tmp/wrangler-rollback.ndjson
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'); const p='wrangler.staging.generated.json'; const x=require('./'+p); x.main='src/staging-rollback.generated.ts'; fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          npx wrangler versions upload --config wrangler.staging.generated.json --tag staging-rollback-inert --message 'KPMO inert rollback target; no route; no cron'
+
+      - name: UPLOAD — actual staging version, not deployed
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_DEPLOY_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: /tmp/wrangler-actual.ndjson
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'); const p='wrangler.staging.generated.json'; const x=require('./'+p); x.main='src/worker.ts'; fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          npx wrangler versions upload --config wrangler.staging.generated.json --tag staging-approved-candidate --message 'KPMO approved isolated staging candidate; no route; no cron'
+
+      - name: DEPLOY — actual version with explicit rollback target already present
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_DEPLOY_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: /tmp/wrangler-deploy.ndjson
+        run: |
+          node - <<'NODE' > /tmp/version-ids.env
+          const fs=require('fs');
+          function last(path,type){const a=fs.readFileSync(path,'utf8').trim().split(/\n+/).filter(Boolean).map(JSON.parse).filter(x=>x.type===type); if(!a.length) throw new Error(`NO_${type}`); return a.at(-1);}
+          const rb=last('/tmp/wrangler-rollback.ndjson','version-upload');
+          const ac=last('/tmp/wrangler-actual.ndjson','version-upload');
+          console.log(`ROLLBACK_VERSION_ID=${rb.version_id}`);
+          console.log(`ACTUAL_VERSION_ID=${ac.version_id}`);
+          NODE
+          source /tmp/version-ids.env
+          test -n "$ROLLBACK_VERSION_ID" && test -n "$ACTUAL_VERSION_ID" && test "$ROLLBACK_VERSION_ID" != "$ACTUAL_VERSION_ID"
+          npx wrangler versions deploy "$ACTUAL_VERSION_ID@100%" --name kidults-autonomous-intelligence-staging --message 'KPMO approved isolated STAGING deploy' -y
+          printf '{"rollback_version_id":"%s","actual_version_id":"%s","worker":"kidults-autonomous-intelligence-staging","workers_dev":false,"routes":0,"cron":0,"production":"HOLD"}\n' "$ROLLBACK_VERSION_ID" "$ACTUAL_VERSION_ID" > /tmp/deploy-receipt.json
+
+      - name: POSTCHECK — deployment exists and rollback target remains available
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_DEPLOY_TOKEN }}
+        run: |
+          npx wrangler deployments list --name kidults-autonomous-intelligence-staging --json > /tmp/deployments.json
+          npx wrangler versions list --name kidults-autonomous-intelligence-staging --json > /tmp/versions.json
+          node - <<'NODE'
+          const fs=require('fs'); const r=require('/tmp/deploy-receipt.json');
+          const deps=JSON.parse(fs.readFileSync('/tmp/deployments.json','utf8')); const vers=JSON.parse(fs.readFileSync('/tmp/versions.json','utf8'));
+          const s=JSON.stringify({deps,vers});
+          if(!s.includes(r.actual_version_id)||!s.includes(r.rollback_version_id)) throw new Error('DEPLOY_OR_ROLLBACK_VERSION_NOT_VISIBLE');
+          console.log(JSON.stringify({status:'PASS',actual:r.actual_version_id,rollback:r.rollback_version_id,worker:r.worker,public_route:false,cron:false,production:'HOLD'}));
+          NODE
+
+      - name: Upload staging deployment receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-staging-isolated-worker-deploy-v1
+          path: |
+            /tmp/staging-boundary.json
+            /tmp/deploy-receipt.json
+            /tmp/deployments.json
+            /tmp/versions.json
+          retention-days: 30
+          if-no-files-found: error
