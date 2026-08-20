@@ -1,0 +1,36 @@
+{
+  "id": "kidults-owned-intelligence-hardening-v2",
+  "version": "2.0.0",
+  "status": "INTERNAL_HARDENING",
+  "principle": "PROVE_INTERNAL_INTELLIGENCE_BEFORE_PROMOTION",
+  "objectives": [
+    "adversarial_reconciliation",
+    "valuation_backtesting",
+    "liquidity_backtesting",
+    "source_reliability_calibration",
+    "cross_vertical_compatibility",
+    "model_governance_and_drift"
+  ],
+  "truth_boundaries": {
+    "synthetic_or_control_data_can_close_empirical_gate": false,
+    "backtest_pass_equals_live_market_fact": false,
+    "tolerance_match_can_hide_true_conflict": false,
+    "single_vertical_success_implies_global_compatibility": false,
+    "uncalibrated_source_score_can_drive_live_mutation": false,
+    "model_drift_can_be_ignored": false
+  },
+  "promotion_rules": {
+    "reconciliation": "PASS_ONLY_IF_EXACT_AND_TOLERANCE_NEGATIVE_CONTROLS_PASS",
+    "valuation": "PASS_ONLY_IF_HOLDOUT_ERROR_METRICS_ARE_COMPUTABLE_AND_WITHIN_VERSIONED_THRESHOLDS",
+    "liquidity": "PASS_ONLY_IF_EVENT_DEPTH_AND_FAILURE_CLASSIFICATION_BACKTEST_PASS",
+    "source_reliability": "CALIBRATION_REQUIRED_BEFORE_LIVE_WEIGHT_MUTATION",
+    "cross_vertical": "EACH_VERTICAL_MUST_DECLARE_REQUIRED_IDENTITY_AND_EVENT_DIMENSIONS",
+    "model_governance": "VERSIONED_CHAMPION_CHALLENGER_WITH_DRIFT_HOLD"
+  },
+  "activation": {
+    "mode": "SHADOW_FAIL_CLOSED",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  }
+}
