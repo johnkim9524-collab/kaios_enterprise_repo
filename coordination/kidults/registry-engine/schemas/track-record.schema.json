@@ -6,7 +6,7 @@
   "required":["id","record_type","version","status","display_name","role_id","created_by","approved_by"],
   "properties":{
     "record_type":{"const":"track"},
-    "id":{"enum":["track-a-120-intelligence-factory","track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability"]},
+    "id":{"enum":["track-a-120-intelligence-factory","track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability","track-e-executive-operating-system"]},
     "display_name":{"type":"string"},
     "role_id":{"type":"string"}
   },

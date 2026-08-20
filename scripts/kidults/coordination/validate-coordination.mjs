@@ -46,9 +46,11 @@ for (const relative of requiredFiles) {
 const program = parsed.get("coordination/kidults/registry/program-registry.json");
 if (program) {
   const trackIds = new Set(program.tracks?.map((track) => track.track_id));
-  for (const id of ["A", "B", "C", "D"]) {
+  for (const id of ["A", "B", "C", "D", "E"]) {
     if (!trackIds.has(id)) errors.push(`Program registry missing Track ${id}`);
   }
+  if (program.program?.canonical_board_issue !== 344) errors.push("Program registry canonical board must be KPMO master #344.");
+  if (program.program?.integration_gate_issue !== 238) errors.push("Program registry integration gate must be #238.");
   if ((program.official_books ?? []).join("|") !== "Master Book|Baseline Book|Architecture Book") {
     errors.push("Official Books must remain Master Book, Baseline Book and Architecture Book.");
   }
@@ -64,9 +66,10 @@ if (verticals) {
 const trackIndex = parsed.get("coordination/kidults/registry/track/index.json");
 if (trackIndex) {
   const operationalTrackIds = new Set(trackIndex.records?.map((track) => track.id));
-  for (const id of ["track-a-120-intelligence-factory","track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability"]) {
+  for (const id of ["track-a-120-intelligence-factory","track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability","track-e-executive-operating-system"]) {
     if (!operationalTrackIds.has(id)) errors.push(`Operational Track Registry missing ${id}`);
   }
+  if (trackIndex.record_count !== 5) errors.push(`Operational Track Registry must contain exactly 5 records; found ${trackIndex.record_count}.`);
 }
 
 const operationalVerticals = parsed.get("coordination/kidults/registry/vertical/index.json");
@@ -86,4 +89,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`KIDULTS coordination validation passed (${requiredFiles.length} required JSON files; four tracks registered).`);
+console.log(`KIDULTS coordination validation passed (${requiredFiles.length} required JSON files; five tracks A-E registered; KPMO master #344 canonical).`);
