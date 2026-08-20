@@ -133,7 +133,6 @@ export interface AsiRecoveryCycleResult {
 const nowIso = () => new Date().toISOString();
 const makeId = (prefix: string) => `${prefix}_${crypto.randomUUID().replaceAll('-', '')}`;
 const safeJson = (value: unknown) => JSON.stringify(value) ?? 'null';
-const ASI_DEAD_LETTER_QUEUE_NAME = 'kidults-asi-shadow-dead-letter';
 const ASI_QUEUE_TASK_MAX_BYTES = 120 * 1024;
 const OUTBOX_LEASE_SECONDS = 120;
 const OUTBOX_MAX_ATTEMPTS = 5;
