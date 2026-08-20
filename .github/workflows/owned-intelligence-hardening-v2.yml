@@ -1,0 +1,43 @@
+name: Owned Intelligence Hardening v2
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+    paths:
+      - "coordination/kidults/architecture/owned-intelligence-hardening-v2.json"
+      - "scripts/kidults/intelligence/owned-intelligence-hardening-v2.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-hardening-v2.mjs"
+      - ".github/workflows/owned-intelligence-hardening-v2.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "coordination/kidults/architecture/owned-intelligence-hardening-v2.json"
+      - "scripts/kidults/intelligence/owned-intelligence-hardening-v2.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-hardening-v2.mjs"
+      - ".github/workflows/owned-intelligence-hardening-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.19.0"
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Parse hardening contract
+        run: node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/architecture/owned-intelligence-hardening-v2.json','utf8'))"
+      - name: Validate existing owned intelligence v1
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.mjs
+      - name: Validate existing owned intelligence v1.1
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1-1.mjs
+      - name: Validate hardening v2
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-hardening-v2.mjs
