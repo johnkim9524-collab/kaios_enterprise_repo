@@ -1,0 +1,31 @@
+{
+  "id": "kidults-er-faa-serialized-nonpii-rights-admission-r1",
+  "version": "1.0.0",
+  "parent_issue": 720,
+  "source_authority": "US Federal Aviation Administration Aircraft Registry",
+  "official_release_page": "https://www.faa.gov/licenses_certificates/aircraft_certification/aircraft_registry/releasable_aircraft_download",
+  "official_file_documentation": "https://registry.faa.gov/database/ardata.pdf",
+  "official_archive": "https://registry.faa.gov/database/ReleasableAircraft.zip",
+  "admitted_purpose": "BOUNDED_INTERNAL_ENTITY_RESOLUTION_REVIEWER_MATERIAL_NON_PII_FIELDS_ONLY",
+  "field_purpose_decisions": {
+    "N_NUMBER": "ALLOW",
+    "MANUFACTURER_SERIAL": "ALLOW",
+    "AIRCRAFT_MANUFACTURER_MODEL_SERIES_CODE": "ALLOW",
+    "MANUFACTURER_NAME": "ALLOW",
+    "MODEL_SERIES_NAME": "ALLOW",
+    "OWNER_OR_REGISTRANT_NAME": "BLOCK",
+    "OWNER_OR_REGISTRANT_ADDRESS": "BLOCK",
+    "OWNER_OR_REGISTRANT_CONTACT": "BLOCK",
+    "OTHER_PERSONAL_INFORMATION": "BLOCK"
+  },
+  "rights_basis": [
+    "FAA explicitly publishes the entire releasable aircraft database for download.",
+    "FAA file documentation defines the retained registry fields and manufacturer/model reference mapping.",
+    "Only non-PII fields needed for bounded internal ER calibration are retained in derived artifacts.",
+    "No owner/registrant personal fields are admitted or redistributed."
+  ],
+  "claim_ceiling": "AIRCRAFT_IDENTIFIER_AND_MANUFACTURER_MODEL_IDENTITY_ONLY_NO_MARKET_VALUE_SALE_OWNER_OR_GLOBAL_CLAIM",
+  "public_display": "HOLD",
+  "production": "HOLD",
+  "status": "ALLOW_BOUNDED_NONPII_INTERNAL_ER_ONLY"
+}
