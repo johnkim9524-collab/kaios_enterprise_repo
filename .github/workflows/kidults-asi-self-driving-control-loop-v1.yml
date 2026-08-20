@@ -14,6 +14,7 @@ on:
       - 'scripts/kidults/source-intelligence/rotate-product-linked-discovery-queue-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/prepare-asi-previous-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-product-linked-live-v2.mjs'
       - '.github/workflows/kidults-asi-self-driving-control-loop-v1.yml'
   push:
@@ -28,6 +29,7 @@ on:
       - 'scripts/kidults/source-intelligence/rotate-product-linked-discovery-queue-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/prepare-asi-previous-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-product-linked-live-v2.mjs'
       - '.github/workflows/kidults-asi-self-driving-control-loop-v1.yml'
 permissions:
@@ -49,7 +51,7 @@ jobs:
         run: node scripts/kidults/source-intelligence/build-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
       - name: VERIFY — validate acquisition matrix
         run: node scripts/kidults/source-intelligence/validate-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
-      - name: DISCOVER — restore prior pool and immutable anchor foundation
+      - name: DISCOVER — restore and validate prior pool plus immutable anchor foundation
         id: discovery-state
         env:
           GH_TOKEN: ${{ github.token }}
@@ -62,13 +64,14 @@ jobs:
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-source-pool.zip
             unzip -q -o /tmp/previous-source-pool.zip -d /tmp/previous-source-pool
           fi
+          PREP=$(node scripts/kidults/source-intelligence/prepare-asi-previous-source-pool-v1.mjs /tmp/previous-source-pool/asi-proactive-source-pool-v1.json)
+          echo "$PREP"
+          CYCLE_INDEX=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(String(JSON.parse(s).cycle_index)))")
+          PREV_VALID=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(String(JSON.parse(s).previous_pool_valid)))")
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" > /tmp/anchor-foundation.zip
           unzip -q -o /tmp/anchor-foundation.zip -d input
-          CYCLE_INDEX=$(node - <<'NODE'
-          const fs=require('fs');const p='/tmp/previous-source-pool/asi-proactive-source-pool-v1.json';let n=0;if(fs.existsSync(p)){const x=JSON.parse(fs.readFileSync(p,'utf8'));n=Number(x.cycle_count||0)%10}process.stdout.write(String(n));
-          NODE
-          )
           echo "cycle_index=$CYCLE_INDEX" >> "$GITHUB_OUTPUT"
+          echo "previous_pool_valid=$PREV_VALID" >> "$GITHUB_OUTPUT"
           echo "previous_artifact_id=${PREV_ID:-NONE}" >> "$GITHUB_OUTPUT"
       - name: DISCOVER — build and rotate 160-anchor queue
         run: |
