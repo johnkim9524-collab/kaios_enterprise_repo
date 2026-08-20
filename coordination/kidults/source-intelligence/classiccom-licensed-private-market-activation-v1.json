@@ -1,0 +1,76 @@
+{
+  "id": "kidults-classiccom-licensed-private-market-activation-v1",
+  "version": "1.0.0",
+  "parent_issues": [637, 760],
+  "parent_contract": "kidults-private-market-evidence-reacquisition-r1",
+  "status": "RIGHTS_REQUEST_READY_NOT_LICENSED_NOT_ACTIVE",
+  "provider_id": "classiccom-licensed-third-party-api",
+  "provider_path": "LICENSED_THIRD_PARTY_API_SALES_HISTORY_ONLY",
+  "website_scraping": "PROHIBITED_FOR_THIS_PATH",
+  "provider_network_call_by_contract": false,
+  "contract_or_eula_acceptance_authorized": false,
+  "spend_authorized": false,
+  "credential_use_authorized": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "claim_class_target": "DATED_OBSERVED_SOLD_PRIVATE_EVALUATION_ONLY",
+  "required_fields": [
+    "vin",
+    "year",
+    "make",
+    "model",
+    "modelGeneration",
+    "modelVariant",
+    "modelTrim",
+    "status",
+    "listing_type",
+    "lot",
+    "lot_date",
+    "price",
+    "price_usd",
+    "price_currency",
+    "high_bid_price"
+  ],
+  "optional_regional_fields_only_if_separately_admitted": [
+    "location_country_code",
+    "location_state_code"
+  ],
+  "prohibited_fields": [
+    "image_url",
+    "description",
+    "raw_description",
+    "price_change"
+  ],
+  "field_purposes": {
+    "identity_binding": ["vin", "year", "make", "model", "modelGeneration", "modelVariant", "modelTrim"],
+    "market_event_binding": ["status", "listing_type", "lot", "lot_date"],
+    "observed_consideration": ["price", "price_usd", "price_currency", "high_bid_price"],
+    "regional_context_optional": ["location_country_code", "location_state_code"]
+  },
+  "external_rights_answers_required": [
+    "QUERY_OR_COLLECTION_RIGHT_FOR_EXACT_FIELDS",
+    "PRIVATE_STORAGE_RIGHT",
+    "BOUNDED_RETENTION_TTL_RIGHT",
+    "INTERNAL_DERIVATION_RIGHT",
+    "INTERNAL_REVIEW_DISPLAY_RIGHT",
+    "AUTOMATION_AND_RATE_LIMIT_RIGHT",
+    "ATTRIBUTION_REQUIREMENT",
+    "PUBLIC_DERIVED_OUTPUT_BOUNDARY",
+    "ONWARD_TRANSFER_BOUNDARY",
+    "DELETION_AND_TERMINATION_OBLIGATIONS",
+    "TERRITORY_AND_ENTITY_SCOPE"
+  ],
+  "real_activation_attestation_required": {
+    "rights_status": "FIELD_BY_PURPOSE_RIGHTS_PASS",
+    "private_store_runtime": "PASS",
+    "historical_cleanup_review": "COMPLETE",
+    "credential_boundary": "SECRET_MANAGER_ONLY",
+    "automation_rights": "PASS",
+    "ttl_days_range": [1, 30],
+    "raw_public_display": "BLOCK",
+    "redistribution": "BLOCK"
+  },
+  "public_safe_receipt_only": true,
+  "active_market_claim": "NONE",
+  "truth_boundary": "This public contract records only the minimum candidate field/purpose and future activation checks. It is not a license, rights decision, credential, provider request, transaction observation, active market evidence, public claim, Production authorization, or G5 authorization."
+}
