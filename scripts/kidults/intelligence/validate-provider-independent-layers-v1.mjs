@@ -80,7 +80,7 @@ assert.deepEqual(deduped[0].corroborating_source_owners, ['SOURCE_OWNER_A', 'SOU
 const signals = computeMarketSignals([marketA, marketB]);
 assert.equal(signals.unique_event_count, 1);
 assert.equal(signals.sold_event_count, 1);
-assert.equal(signals.source_owner_count, 1);
+assert.equal(signals.source_owner_count, 2);
 assert.equal(signals.median_sold_price_unconverted, 100000);
 assert.equal(signals.liquidity_state, 'NOT_VERIFIED_INSUFFICIENT_EVENTS');
 
@@ -101,6 +101,7 @@ console.log(JSON.stringify({
   market: {
     source_neutral_canonicalization: 'PASS',
     duplicate_republished_event_counts_once: 'PASS',
+    corroborating_source_independence_preserved: 'PASS',
     unknown_rights_fail_closed: 'PASS',
     insufficient_liquidity_evidence_not_promoted: 'PASS'
   }
