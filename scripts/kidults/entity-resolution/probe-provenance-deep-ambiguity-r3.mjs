@@ -1,0 +1,35 @@
+import fs from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+
+const outPath=process.argv[2]||'/tmp/provenance-deep-ambiguity-r3.json';
+const excludePath=process.argv[3]||null;
+const streamBase='https://data.getty.edu/provenance/activity-stream/page';
+const headers={accept:'application/json, application/ld+json','user-agent':'KIDULTS-ER-PROVENANCE-DEEP-AMBIGUITY/3.0'};
+const rightsRefs=['https://data.getty.edu/provenance/docs/','https://creativecommons.org/publicdomain/zero/1.0/'];
+const entityUrl=/^https:\/\/data\.getty\.edu\/provenance\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const startPage=25,endPage=96,concurrency=16,timeoutMs=25000,targetCapacity=47;
+const arr=v=>Array.isArray(v)?v:(v==null?[]:[v]);
+const types=v=>arr(v).map(x=>typeof x==='string'?x:(x?.id||x?._label||'')).filter(Boolean);
+const hasType=(v,t)=>types(v?.type??v?.['@type']).includes(t);
+const ref=v=>typeof v==='string'?v:String(v?.id||v?.['@id']||'');
+const canonical=v=>Array.isArray(v)?v.map(canonical):(v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v);
+const digest=v=>`sha256:${createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex')}`;
+const excluded=new Set();
+if(excludePath){const x=JSON.parse(await fs.readFile(excludePath,'utf8'));for(const r of x.references||[])if(entityUrl.test(r))excluded.add(r);}
+async function fetchJson(url){let last;for(let a=1;a<=3;a++){const c=new AbortController(),t=setTimeout(()=>c.abort(),timeoutMs);try{const r=await fetch(url,{headers,signal:c.signal});if(r.status===404||r.status===410)return null;if(!r.ok)throw new Error(`HTTP_${r.status}:${url}`);return await r.json();}catch(e){last=e;if(a===3)throw e;await new Promise(q=>setTimeout(q,300*a));}finally{clearTimeout(t);}}throw last;}
+async function mapLimit(items,limit,fn){const out=new Array(items.length);let cursor=0;async function worker(){while(true){const i=cursor++;if(i>=items.length)return;out[i]=await fn(items[i],i);}}await Promise.all(Array.from({length:Math.min(limit,items.length)},worker));return out;}
+function explicitTargets(activity){const out=[];for(let pi=0;pi<arr(activity?.part).length;pi++){const part=arr(activity.part)[pi];if(!types(part?.type??part?.['@type']).includes('Acquisition'))continue;for(let ri=0;ri<arr(part?.transferred_title_of).length;ri++){const target=arr(part.transferred_title_of)[ri],u=ref(target);if(entityUrl.test(u)&&types(target?.type??target?.['@type']).includes('HumanMadeObject')&&!excluded.has(u))out.push(u);}}return [...new Set(out)].sort();}
+const activityRefs=[];const seen=new Set();let pages=0,streamItems=0;
+for(let page=startPage;page<=endPage;page++){const p=await fetchJson(`${streamBase}/${page}`);if(!p)continue;pages++;const items=p.orderedItems||p.items||[];streamItems+=items.length;for(const item of items){const u=ref(item?.object)||ref(item?.target);if(!entityUrl.test(u)||excluded.has(u)||seen.has(u))continue;seen.add(u);activityRefs.push(u);}}
+const activities=(await mapLimit(activityRefs,concurrency,async u=>{const a=await fetchJson(u);if(!a||!hasType(a,'Activity'))return null;const targets=explicitTargets(a);return targets.length>=2?{reference:u,payload:a,targets}:null;})).filter(Boolean).sort((a,b)=>a.reference.localeCompare(b.reference));
+const selected=[];const used=new Set(excluded);
+for(const a of activities){const ids=[a.reference,...a.targets];if(ids.every(x=>!used.has(x))){selected.push(a);ids.forEach(x=>used.add(x));if(selected.length===targetCapacity)break;}}
+const objectRefs=[...new Set(selected.flatMap(x=>x.targets))];
+const objects=(await mapLimit(objectRefs,concurrency,async u=>{const o=await fetchJson(u);return o&&hasType(o,'HumanMadeObject')?{reference:u,payload_sha256:digest(o)}:null;})).filter(Boolean);
+const objectMap=new Map(objects.map(x=>[x.reference,x]));
+const candidates=[];for(const a of selected){if(!a.targets.every(x=>objectMap.has(x)))continue;candidates.push({candidate_id:`getty-deep-ambiguous:${createHash('sha256').update(a.reference).digest('hex')}`,case_class:'AMBIGUOUS_REVIEW_REQUIRED',activity_reference:a.reference,activity_payload_sha256:digest(a.payload),object_references:a.targets,object_payload_sha256:a.targets.map(r=>({reference:r,payload_sha256:objectMap.get(r).payload_sha256})),explicit_target_count:a.targets.length,candidate_basis:'ONE_GETTY_ACTIVITY_EXPLICITLY_LINKS_MULTIPLE_DISTINCT_HUMAN_MADE_OBJECT_TARGETS_REQUIRING_HUMAN_BOUNDARY_REVIEW',rights_state:'ALLOW',license_evidence_refs:rightsRefs,provenance_refs:[a.reference,...a.targets]});if(candidates.length===targetCapacity)break;}
+const metrics={activity_stream_page_start:startPage,activity_stream_page_end:endPage,activity_stream_pages_scanned:pages,activity_stream_items_observed:streamItems,activities_fetched:activityRefs.length,ambiguous_multi_object_activity_candidates:activities.length,excluded_reference_count:excluded.size,source_disjoint_ambiguity_capacity:candidates.length,target_remaining_ambiguity_capacity:targetCapacity,remaining_after_this_probe:Math.max(0,targetCapacity-candidates.length),full_remaining_47_ready:candidates.length===targetCapacity};
+const blockers=metrics.full_remaining_47_ready?[]:[`AMBIGUOUS_REVIEW_REQUIRED_${metrics.source_disjoint_ambiguity_capacity}_OF_${targetCapacity}_DEEP_SCAN`];
+const artifact={id:'kidults-er-provenance-deep-ambiguity-r3',version:'3.0.0',status:metrics.full_remaining_47_ready?'COMPLETE_REMAINING_AMBIGUITY_CAPACITY_READY':'COMPLETE_FAIL_CLOSED_PARTIAL_DEEP_AMBIGUITY_CAPACITY',parent_issue:609,stratum_id:'er-stratum-provenance-unique-object',rights_state:'ALLOW',source_id:'getty-provenance-index-linked-open-data',candidate_pool:candidates,metrics,blockers,labels_present:false,reviewers_assigned:0,empirical_cases_created:0,blind_partition_sealed:false,track_b:'NOT_STARTED',public_release:'HOLD',production:'HOLD',truth_boundary:'This read-only Getty CC0 diagnostic scans later activity-stream pages only after excluding all references already used by the rebuilt 50-case and R2 residual packets. It measures additional source-disjoint AMBIGUOUS_REVIEW_REQUIRED capacity only; no labels, empirical PASS, Track B, publication or Production are created.'};
+await fs.writeFile(outPath,JSON.stringify(artifact,null,2)+'\n');
+console.log(JSON.stringify({status:artifact.status,metrics,blockers,production:'HOLD'},null,2));
