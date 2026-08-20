@@ -1,0 +1,120 @@
+name: KIDULTS ER Reviewer Roster Readiness R1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/validate-er-reviewer-roster-readiness-r1.mjs'
+      - 'coordination/kidults/entity-resolution/human-review-gate-operational-contract-r1.json'
+      - '.github/workflows/kidults-er-reviewer-roster-readiness-r1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-private-roster-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build contract-test reviewer roster only
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const sha = s => `sha256:${crypto.createHash('sha256').update(String(s)).digest('hex')}`;
+          const reviewers = [
+            {
+              slot: 'A',
+              reviewer_id: 'ct-human-alpha-7319',
+              identity_source_type: 'INDEPENDENT_REVIEW_REGISTRY',
+              identity_verification_ref: 'ct-registry-ref-alpha-7319',
+              identity_attestation_sha256: sha('identity-alpha'),
+              independence_attestation_sha256: sha('independence-alpha'),
+              availability_attestation_sha256: sha('availability-alpha'),
+              availability_state: 'AVAILABLE',
+              attested_at: '2026-08-20T00:00:00Z',
+              resolver_author: false,
+              model_operator: false,
+              other_reviewer_labels_seen: false
+            },
+            {
+              slot: 'B',
+              reviewer_id: 'ct-human-beta-8642',
+              identity_source_type: 'INDEPENDENT_REVIEW_REGISTRY',
+              identity_verification_ref: 'ct-registry-ref-beta-8642',
+              identity_attestation_sha256: sha('identity-beta'),
+              independence_attestation_sha256: sha('independence-beta'),
+              availability_attestation_sha256: sha('availability-beta'),
+              availability_state: 'AVAILABLE',
+              attested_at: '2026-08-20T00:00:00Z',
+              resolver_author: false,
+              model_operator: false,
+              other_reviewer_labels_seen: false
+            }
+          ];
+          const roster = {
+            schema_version: '1.0.0',
+            fixture_classification: 'CONTRACT_TEST_IDENTITY_SIMULATION_NOT_REVIEWER_EVIDENCE',
+            roster_state: 'CONTRACT_TEST_ROSTER_ONLY',
+            owner_designation_ref_sha256: sha('owner-designation-fixture'),
+            reviewers
+          };
+          fs.writeFileSync('/tmp/reviewer-roster-fixture.json', JSON.stringify(roster, null, 2));
+          NODE
+      - name: Require safe structural PASS receipt
+        run: |
+          node scripts/kidults/entity-resolution/validate-er-reviewer-roster-readiness-r1.mjs \
+            /tmp/reviewer-roster-fixture.json \
+            /tmp/reviewer-roster-safe-receipt.json \
+            --contract-test-fixture
+          node - <<'NODE'
+          const fs = require('fs');
+          const x = JSON.parse(fs.readFileSync('/tmp/reviewer-roster-safe-receipt.json','utf8'));
+          if (x.receipt_state !== 'CONTRACT_TEST_PASS_NOT_REVIEWER_EVIDENCE') throw new Error('FIXTURE_RECEIPT_STATE');
+          if (x.reviewer_count !== 2 || JSON.stringify(x.reviewer_slots) !== JSON.stringify(['A','B'])) throw new Error('REVIEWER_COUNT_OR_SLOTS');
+          if (x.reviewer_identities_exposed !== false || x.labels_created !== false || x.adjudication_started !== false) throw new Error('FALSE_HUMAN_EVIDENCE');
+          if (x.blind_partition_sealed !== false || x.empirical_pass !== false || x.track_b_started !== false) throw new Error('FALSE_GATE_PROMOTION');
+          if (x.public_release !== 'HOLD' || x.production !== 'HOLD') throw new Error('RELEASE_BOUNDARY');
+          const receiptText = fs.readFileSync('/tmp/reviewer-roster-safe-receipt.json','utf8');
+          for (const forbidden of ['ct-human-alpha-7319','ct-human-beta-8642','ct-registry-ref-alpha-7319','ct-registry-ref-beta-8642']) {
+            if (receiptText.includes(forbidden)) throw new Error(`IDENTITY_LEAK:${forbidden}`);
+          }
+          console.log('SAFE_RECEIPT_PASS');
+          NODE
+      - name: Require fail-closed reviewer roster negatives
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const base = JSON.parse(fs.readFileSync('/tmp/reviewer-roster-fixture.json','utf8'));
+          const write = (name, mutate) => {
+            const x = structuredClone(base);
+            mutate(x);
+            fs.writeFileSync(`/tmp/${name}.json`, JSON.stringify(x, null, 2));
+          };
+          write('duplicate-reviewer', x => { x.reviewers[1].reviewer_id = x.reviewers[0].reviewer_id; });
+          write('model-operator', x => { x.reviewers[0].model_operator = true; });
+          write('unavailable-reviewer', x => { x.reviewers[0].availability_state = 'PENDING'; });
+          write('unexpected-sensitive-field', x => { x.reviewers[0].email = 'fixture@example.invalid'; });
+          NODE
+          for name in duplicate-reviewer model-operator unavailable-reviewer unexpected-sensitive-field; do
+            set +e
+            node scripts/kidults/entity-resolution/validate-er-reviewer-roster-readiness-r1.mjs \
+              "/tmp/${name}.json" "/tmp/${name}-receipt.json" --contract-test-fixture \
+              >"/tmp/${name}.stdout" 2>"/tmp/${name}.stderr"
+            status=$?
+            set -e
+            if [ "$status" -eq 0 ]; then
+              echo "negative fixture unexpectedly passed: ${name}" >&2
+              exit 1
+            fi
+            if [ -e "/tmp/${name}-receipt.json" ]; then
+              echo "negative fixture emitted receipt: ${name}" >&2
+              exit 1
+            fi
+          done
+          echo 'FAIL_CLOSED_NEGATIVES_PASS'
