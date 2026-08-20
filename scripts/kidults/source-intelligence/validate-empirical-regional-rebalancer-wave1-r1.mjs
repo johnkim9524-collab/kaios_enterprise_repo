@@ -30,7 +30,12 @@ for(const c of x.cells){
   }
   if(c.live_mutation_authorized!==false)fail('CELL_MUTATION_AUTH');
 }
-if(x.activation_gates?.EVIDENCE_COMPLETENESS_PASS!==false)fail('EVIDENCE_COMPLETENESS_MUST_FAIL_CURRENT_STATE');
+const evidenceComplete=x.regional_collection_quota_plan?.computable_cells===x.cells.length&&x.regional_analytical_weight_plan?.computable_cells===x.cells.length;
+if(x.activation_gates?.EVIDENCE_COMPLETENESS_PASS!==evidenceComplete)fail('EVIDENCE_COMPLETENESS_STATE_MISMATCH');
 if(x.activation_gates?.DETERMINISTIC_RERUN_PASS!==true||x.activation_gates?.SNAPSHOT_HASH_PRESENT!==true)fail('DETERMINISM_OR_HASH');
-if(x.activation_state!=='HOLD_INCOMPLETE_EMPIRICAL_FACTOR_SURFACE')fail('ACTIVATION_STATE');
+const expectedActivationState=evidenceComplete?'HOLD_PENDING_ACTIVATION_GATES':'HOLD_INCOMPLETE_EMPIRICAL_FACTOR_SURFACE';
+const expectedValidationState=evidenceComplete?'PENDING_REQUIRED_SHADOW_VALIDATION':'NOT_RUN_INCOMPLETE_FACTOR_SURFACE';
+if(x.activation_state!==expectedActivationState)fail('ACTIVATION_STATE');
+if(x.activation_gates?.CONCENTRATION_BIAS_PASS!==expectedValidationState||x.activation_gates?.SOURCE_REMOVAL_SENSITIVITY_PASS!==expectedValidationState)fail('ACTIVATION_GATE_TRANSITION');
+if(x.activation_gates?.SHADOW_DELTA_REVIEW_PASS!=='PENDING_FOUNDER_OR_GATE_REVIEW')fail('DELTA_REVIEW_MUST_REMAIN_PENDING');
 console.log(JSON.stringify({status:'PASS',cells:x.cells.length,collection_state:x.regional_collection_quota_plan.state,analytical_state:x.regional_analytical_weight_plan.state,verified_factor_cells:x.shadow_delta_report.verified_factor_cells,snapshot_hash:x.snapshot_hash,production:'HOLD'}));
