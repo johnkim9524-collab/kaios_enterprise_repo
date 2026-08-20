@@ -4,7 +4,9 @@ on:
     paths:
       - 'coordination/kidults/source-intelligence/empirical-regional-baseline-wave1-contract-r1.json'
       - 'coordination/kidults/source-intelligence/musicbrainz-regional-catalog-observation-admission-r1.json'
+      - 'coordination/kidults/source-intelligence/coins-na-authentication-grading-infrastructure-r1.json'
       - 'scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs'
+      - 'scripts/kidults/source-intelligence/probe-coins-na-authentication-grading-infrastructure-r1.mjs'
       - 'scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs'
       - 'scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs'
       - '.github/workflows/kidults-empirical-regional-baseline-wave1-r1.yml'
@@ -14,35 +16,41 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with: {persist-credentials: false}
       - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+        with: {node-version: '22'}
       - name: Acquire bounded region-bound catalog observations
         run: node scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs /tmp/musicbrainz-regional-catalog-observation-r1.json
-      - name: Build empirical Wave 1 baseline from admitted observations
-        run: node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json /tmp/musicbrainz-regional-catalog-observation-r1.json
-      - name: Validate fail-closed empirical baseline
+      - name: Acquire first verified category-region structural factor
+        run: node scripts/kidults/source-intelligence/probe-coins-na-authentication-grading-infrastructure-r1.mjs /tmp/coins-na-authentication-grading-infrastructure-r1.json
+      - name: Build empirical Wave 1 baseline with exact category factor binding
+        run: node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json /tmp/musicbrainz-regional-catalog-observation-r1.json /tmp/coins-na-authentication-grading-infrastructure-r1.json
+      - name: Validate one-factor partial baseline and fail-closed weights
         run: node scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
-      - name: Enforce blocker transition without market-factor promotion
+      - name: Enforce exact first-factor transition
         run: |
           node - <<'NODE'
           const r=require('/tmp/empirical-regional-baseline-wave1-r1.json');
           if(r.production!=='HOLD'||r.public_release!=='HOLD') throw new Error('RELEASE');
-          if(r.coverage_debt_report.region_bound_source_assets!==1) throw new Error('EXPECTED_ONE_REGION_BOUND_SOURCE');
           if(r.coverage_debt_report.region_bound_observation_count<1) throw new Error('NO_REGION_BOUND_OBSERVATIONS');
-          if(r.coverage_debt_report.factor_assertions_verified!==0) throw new Error('MARKET_FACTOR_OVERCLAIM');
-          if(r.coverage_debt_report.blocker!=='REGION_BOUND_CATALOG_OBSERVATIONS_PRESENT_MARKET_FACTOR_EVIDENCE_ABSENT') throw new Error('BLOCKER_TRANSITION');
-          if(r.cells.some(x=>x.collection_quota!==null||x.analytical_weight!==null||x.eligibility!=='NOT_VERIFIED')) throw new Error('PREMATURE_WEIGHT_ACTIVATION');
-          if(r.shadow_delta.status!=='NO_MUTATION_FAIL_CLOSED'||r.shadow_delta.reason!=='REGION_BINDING_EXISTS_BUT_ZERO_VERIFIED_MARKET_FACTORS') throw new Error('SHADOW_BOUNDARY');
-          console.log(JSON.stringify({status:'PASS',region_bound_source_assets:r.coverage_debt_report.region_bound_source_assets,region_bound_observation_count:r.coverage_debt_report.region_bound_observation_count,verified_market_factors:0,blocker:r.coverage_debt_report.blocker,production:'HOLD'}));
+          if(r.coverage_debt_report.factor_assertions_verified!==1) throw new Error('EXPECTED_ONE_VERIFIED_FACTOR');
+          const id='coins_and_numismatics×NORTH_AMERICA×AUTHENTICATION_GRADING_INFRASTRUCTURE';
+          if(!r.coverage_debt_report.verified_factor_cells.includes(id)) throw new Error('VERIFIED_FACTOR_CELL_MISSING');
+          const c=r.cells.find(x=>x.category_scope==='coins_and_numismatics'&&x.macroregion_id==='NORTH_AMERICA');
+          if(!c||c.factors.AUTHENTICATION_GRADING_INFRASTRUCTURE?.state!=='VERIFIED') throw new Error('CATEGORY_FACTOR_BINDING');
+          if(r.cells.filter(x=>x.category_scope==='PORTFOLIO_DIAGNOSTIC_ONLY').some(x=>Object.values(x.factors).some(f=>f.state==='VERIFIED'))) throw new Error('PORTFOLIO_PROMOTION');
+          if(r.cells.some(x=>x.collection_quota!==null||x.analytical_weight!==null)) throw new Error('PREMATURE_WEIGHTS');
+          if(r.shadow_delta.reason!=='ONE_STRUCTURAL_FACTOR_VERIFIED_INCOMPLETE_FOR_WEIGHTING') throw new Error('SHADOW_REASON');
+          console.log(JSON.stringify({status:'PASS',verified_market_factors:1,verified_factor_cell:id,collection_quota:'NOT_COMPUTABLE',analytical_weight:'NOT_COMPUTABLE',production:'HOLD'}));
           NODE
       - uses: actions/upload-artifact@v4
         with:
           name: empirical-regional-baseline-wave1-r1
           path: |
             /tmp/musicbrainz-regional-catalog-observation-r1.json
+            /tmp/coins-na-authentication-grading-infrastructure-r1.json
             /tmp/empirical-regional-baseline-wave1-r1.json
           retention-days: 30
