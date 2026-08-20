@@ -1,8 +1,9 @@
 {
   "id":"track-d-data-platform-production-reliability",
   "record_type":"track",
-  "version":"1.3.0",
-  "status":"GENERIC_DEV_STAGING_RUNTIME_READY_FINAL_WORKLOAD_WAITING",
+  "version":"1.3.1",
+  "status":"SHADOW_RUNTIME_FOUNDATION_ACTIVE",
+  "operating_state":"GENERIC_DEV_STAGING_RUNTIME_READY_FINAL_WORKLOAD_WAITING",
   "display_name":"D. KIDULTS | Runtime & Production Reliability",
   "role_id":"role-track-d",
   "canonical_issue":240,
