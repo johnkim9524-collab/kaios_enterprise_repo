@@ -1,0 +1,48 @@
+name: KIDULTS ASI MusicBrainz Regional Catalog R1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/musicbrainz-regional-catalog-observation-admission-r1.json'
+      - 'scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs'
+      - '.github/workflows/kidults-asi-musicbrainz-regional-catalog-r1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Validate purpose-specific admission boundary
+        run: |
+          node - <<'NODE'
+          const a=require('./coordination/kidults/source-intelligence/musicbrainz-regional-catalog-observation-admission-r1.json');
+          if(a.admission_state!=='ADMITTED_BOUNDED_NONCOMMERCIAL_SHADOW'||a.rights_state!=='ALLOW_CORE_CC0'||a.transport_state!=='ALLOW_NONCOMMERCIAL_API_READ_ONLY') throw new Error('ADMISSION');
+          if(a.api_controls.api_key_required!==false||a.api_controls.maximum_average_requests_per_second!==1||a.api_controls.write_or_submission!==false) throw new Error('API_CONTROLS');
+          for(const x of ['MARKET_SCALE','OBSERVED_TRANSACTION_ACTIVITY','CURRENT_PRICE','LIQUIDITY','DEMAND','SALES','GLOBAL_MARKET_WEIGHT']) if(!a.blocked_claims.includes(x)) throw new Error(`BLOCKED_CLAIM_MISSING:${x}`);
+          if(a.production!=='HOLD'||a.public_release!=='HOLD') throw new Error('RELEASE');
+          NODE
+      - name: Probe one bounded MusicBrainz API response
+        run: node scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs /tmp/musicbrainz-regional-catalog-observation-r1.json
+      - name: Enforce catalog-only regional boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/musicbrainz-regional-catalog-observation-r1.json','utf8'));
+          if(x.region_bound_observation_count<1) throw new Error('NO_REGION_BOUND_OBSERVATION');
+          if(x.factor_eligibility!=='NOT_VERIFIED'||x.market_scale_claim!==false||x.transaction_activity_claim!==false||x.current_market_claim!==false||x.global_weight_claim!==false) throw new Error('OVERCLAIM');
+          if(x.production!=='HOLD'||x.public_release!=='HOLD') throw new Error('RELEASE');
+          if(!x.observations.every(o=>/^[A-Z]{2}$/.test(o.country_code)&&o.macroregion_id&&o.rights_state==='ALLOW_CORE_CC0'&&o.purpose==='REGIONAL_CATALOG_OBSERVATION')) throw new Error('OBSERVATION_BINDING');
+          console.log(JSON.stringify({status:'PASS',region_bound_observation_count:x.region_bound_observation_count,macroregion_counts:x.macroregion_counts,factor_eligibility:x.factor_eligibility,production:'HOLD'}));
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-musicbrainz-regional-catalog-r1
+          path: /tmp/musicbrainz-regional-catalog-observation-r1.json
+          if-no-files-found: error
+          retention-days: 14
