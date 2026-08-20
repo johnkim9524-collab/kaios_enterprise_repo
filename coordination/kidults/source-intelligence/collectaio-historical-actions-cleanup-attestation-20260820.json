@@ -1,0 +1,50 @@
+{
+  "id": "kidults-collectaio-historical-actions-cleanup-attestation-20260820",
+  "version": "1.0.0",
+  "parent_issue": 637,
+  "status": "HISTORICAL_CLEANUP_REVIEW_COMPLETE",
+  "observed_date": "2026-08-20",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "old_probe_workflows_must_not_be_rerun": true,
+  "objects": [
+    {
+      "run_id": 32264733864,
+      "former_artifact_id": 9369697181,
+      "artifact_state": "ABSENT_VERIFIED_ACTIONS_API",
+      "run_logs_state": "DELETED_OWNER_UI_CONFIRMED",
+      "connected_job_log_locator": null,
+      "workflow_run_state": "RETAINED_SHELL"
+    },
+    {
+      "run_id": 32266290356,
+      "former_artifact_id": 9370322174,
+      "artifact_state": "ABSENT_VERIFIED_ACTIONS_API",
+      "run_logs_state": "DELETED_OWNER_UI_CONFIRMED",
+      "connected_job_log_locator": null,
+      "workflow_run_state": "RETAINED_SHELL"
+    },
+    {
+      "run_id": 32268659716,
+      "former_artifact_id": 9371251424,
+      "artifact_state": "ABSENT_VERIFIED_ACTIONS_API",
+      "run_logs_state": "DELETED_OWNER_UI_CONFIRMED",
+      "connected_job_log_locator": null,
+      "workflow_run_state": "RETAINED_SHELL"
+    }
+  ],
+  "verification_boundary": {
+    "provider_payload_reopened_or_inspected": false,
+    "provider_request_executed": false,
+    "artifact_reacquired": false,
+    "workflow_rerun_executed": false,
+    "active_market_claim_created": false,
+    "candidate_created": false,
+    "track_b_started": false
+  },
+  "remaining_activation_blockers": [
+    "EXPLICIT_FIELD_BY_PURPOSE_RIGHTS_PASS",
+    "REMOTE_PRIVATE_PROVIDER_RUNTIME_PASS"
+  ],
+  "truth_boundary": "This attestation records cleanup state only. It does not establish provider rights, a private provider runtime, real market evidence, an active market claim, Candidate eligibility, Track B eligibility, Public release, Production authorization, or G5 authorization."
+}
