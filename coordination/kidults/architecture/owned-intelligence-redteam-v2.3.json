@@ -1,0 +1,17 @@
+{
+  "id":"kidults-owned-intelligence-redteam-v2.3",
+  "version":"2.3.0",
+  "status":"INTERNAL_HARDENING",
+  "required_controls":[
+    "hardening_registry_file_digest_matches_runtime_trust_root",
+    "scarcity_requires_independent_provider_and_source_owner",
+    "same_provider_census_conflict_quarantined",
+    "same_provider_revisions_do_not_pad_composite",
+    "source_reliability_duplicate_padding_blocked",
+    "missing_freshness_is_not_pass",
+    "freshness_coverage_explicit"
+  ],
+  "known_next_gate":"CANDIDATE_HANDOFF_OWNED_INTELLIGENCE_PROOF_BINDING",
+  "truth_ceiling":"INTERNAL_HARDENING_NOT_EMPIRICAL_PASS",
+  "production":"HOLD","public":"HOLD","g5":"HOLD"
+}
