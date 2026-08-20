@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-market-structure-acquisition-feedback-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "SHADOW_FEEDBACK_CONTRACT",
   "production": "HOLD",
   "public_release": "HOLD",
@@ -11,6 +11,9 @@
     "empirical_baseline": "EMPIRICAL_REGIONAL_BASELINE_ARTIFACT_ONLY"
   },
   "feedback_loop": ["MARKET_STRUCTURE_EVIDENCE", "CATEGORY_REGION_FACTOR_SCORE", "COVERAGE_DEBT", "ACQUISITION_PRIORITY", "SOURCE_DISCOVERY", "RIGHTS_ADMISSION", "EVIDENCE", "MARKET_STRUCTURE_REEVALUATION"],
+  "factor_aliases": {
+    "DATA_TRANSPARENCY_AND_EVIDENCE_QUALITY": "EVIDENCE_QUALITY"
+  },
   "factor_to_acquisition_demand": {
     "MARKET_SCALE": ["CURRENT_SOLD_TRANSACTION", "LISTING_AVAILABILITY", "REGIONAL_CONTEXT"],
     "MARKET_MATURITY": ["CURRENT_SOLD_TRANSACTION", "HISTORICAL_TRANSACTION_PROVENANCE", "SCARCITY_POPULATION_SUPPLY", "REGIONAL_CONTEXT"],
@@ -29,7 +32,8 @@
     "factor_weights_source": "regional_policy.collection_priority_model.factor_weights",
     "coverage_debt_remains_independent": true,
     "rights_readiness_remains_independent": true,
-    "source_quality_and_redundancy_must_not_be_overridden": true
+    "source_quality_and_redundancy_must_not_be_overridden": true,
+    "canonical_factor_aliases_must_be_explicit": true
   },
   "category_region_rule": {
     "platform_wide_factor_can_fill_category_cell": false,
@@ -43,6 +47,7 @@
     "COLLECTION_PRIORITY_IS_NOT_ANALYTICAL_WEIGHT",
     "REGIONAL_FACTOR_DOES_NOT_CREATE_SOURCE_RIGHTS",
     "FACTOR_FEEDBACK_CANNOT_OVERRIDE_RIGHTS_ADMISSION_OR_PRODUCTION_GATES",
-    "NO_PRIORITY_MUTATION_FROM_UNVERIFIED_MARKET_STRUCTURE"
+    "NO_PRIORITY_MUTATION_FROM_UNVERIFIED_MARKET_STRUCTURE",
+    "DATA_TRANSPARENCY_AND_EVIDENCE_QUALITY_IS_CANONICALLY_ALIASED_TO_EVIDENCE_QUALITY_FOR_COLLECTION_PRIORITY_ONLY"
   ]
 }
