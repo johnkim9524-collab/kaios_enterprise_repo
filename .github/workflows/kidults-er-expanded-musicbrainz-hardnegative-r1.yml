@@ -1,0 +1,48 @@
+name: KIDULTS ER Expanded MusicBrainz Hardnegative R1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/pressing-source-corpus-r2-expanded.json'
+      - 'coordination/kidults/entity-resolution/musicbrainz-existing-hardnegative-exclusions-r1.json'
+      - 'scripts/kidults/entity-resolution/acquire-musicbrainz-expanded-vinyl-corpus-r2.mjs'
+      - 'scripts/kidults/entity-resolution/build-expanded-musicbrainz-hardnegative-packets-r1.mjs'
+      - '.github/workflows/kidults-er-expanded-musicbrainz-hardnegative-r1.yml'
+      - 'scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-and-packetize-residual-hard-negatives:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Rebuild current canonical 240-record exclusion corpus
+        run: node scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs /tmp/base240.json
+      - name: Acquire bounded expanded MusicBrainz corpus
+        run: node scripts/kidults/entity-resolution/acquire-musicbrainz-expanded-vinyl-corpus-r2.mjs /tmp/expanded800.json
+      - name: Build truthful globally source-disjoint residual packets
+        run: node scripts/kidults/entity-resolution/build-expanded-musicbrainz-hardnegative-packets-r1.mjs /tmp/expanded800.json /tmp/base240.json coordination/kidults/entity-resolution/musicbrainz-existing-hardnegative-exclusions-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/residual-hard.json
+      - name: Enforce evidence and no-overclaim boundaries
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/residual-hard.json','utf8'));const p=x.packets?.pressing,v=x.packets?.variant;if(!p||!v)throw new Error('PACKETS_MISSING');
+          if(x.source_disjoint_pair_capacity>51||x.aggregate_additional_case_count>51||x.aggregate_reviewer_ready_if_combined>609)throw new Error('CAPACITY_BOUNDARY');
+          if(p.case_count>26||p.total_reviewer_ready_if_combined!==94+p.case_count||p.remaining_case_count!==26-p.case_count)throw new Error('PRESSING_BOUNDARY');
+          if(v.case_count>25||v.total_reviewer_ready_if_combined!==95+v.case_count||v.remaining_case_count!==25-v.case_count)throw new Error('VARIANT_BOUNDARY');
+          const all=[...(p.cases||[]),...(v.cases||[])],refs=all.flatMap(c=>[c.source_a_reference,c.source_b_reference]);if(new Set(refs).size!==refs.length)throw new Error('NEW_GLOBAL_SOURCE_REUSE');
+          for(const c of all){if(c.case_class!=='HARD_NEGATIVE'||c.identity_boundary!=='PHYSICAL_OBJECT'||c.expected!=='NO_MATCH'||c.rights_state!=='ALLOW')throw new Error('CASE_GRAMMAR');if(!/^sha256:[a-f0-9]{64}$/.test(c.source_a_payload_sha256)||!/^sha256:[a-f0-9]{64}$/.test(c.source_b_payload_sha256))throw new Error('DIGEST');if(c.label!==null||c.model_prediction!==null||c.reviewer_assignment!=='PENDING_REAL_REVIEWER')throw new Error('OVERCLAIM_CASE');}
+          const base=new Set(JSON.parse(fs.readFileSync('/tmp/base240.json','utf8')).records.map(r=>String(r.source_record_id).toLowerCase()));const reg=new Set(JSON.parse(fs.readFileSync('coordination/kidults/entity-resolution/musicbrainz-existing-hardnegative-exclusions-r1.json','utf8')).additional_release_mbids.map(String));for(const c of all){for(const id of [c.reviewer_prompt_context.left_release_mbid,c.reviewer_prompt_context.right_release_mbid])if(base.has(String(id).toLowerCase())||reg.has(String(id).toLowerCase()))throw new Error('EXISTING_SOURCE_REUSE');}
+          if(x.labels_present!==false||x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED'||x.empirical_pass!==false||x.track_b!=='NOT_STARTED'||x.public_release!=='HOLD'||x.production!=='HOLD')throw new Error('OVERCLAIM');
+          if(/"raw_payload"\s*:/.test(JSON.stringify(x)))throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({pair_capacity:x.source_disjoint_pair_capacity,pressing_added:p.case_count,pressing_total:p.total_reviewer_ready_if_combined,variant_added:v.case_count,variant_total:v.total_reviewer_ready_if_combined,aggregate_total:x.aggregate_reviewer_ready_if_combined,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-expanded-musicbrainz-hardnegative-r1
+          path: /tmp/residual-hard.json
+          retention-days: 14
