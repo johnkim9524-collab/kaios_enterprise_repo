@@ -1,0 +1,19 @@
+{
+  "id": "kidults-asi-regional-observation-baseline-binding-r1",
+  "version": "1.0.0",
+  "parent_issue": 654,
+  "upstream": "kidults-asi-musicbrainz-regional-catalog-observation-r1",
+  "downstream": "empirical-regional-baseline-wave1-r1",
+  "purpose": "BIND_REGION_OBSERVATIONS_WITHOUT_MARKET_FACTOR_PROMOTION",
+  "expected_transition": {
+    "region_bound_source_assets": "0_TO_1_OR_MORE",
+    "region_bound_observations": "0_TO_NONZERO",
+    "verified_market_factors": 0,
+    "collection_quota": "NOT_COMPUTABLE",
+    "analytical_weight": "NOT_COMPUTABLE",
+    "blocker_after_binding": "REGION_BOUND_CATALOG_OBSERVATIONS_PRESENT_MARKET_FACTOR_EVIDENCE_ABSENT"
+  },
+  "forbidden_promotions": ["MARKET_SCALE","MARKET_MATURITY","OBSERVED_TRANSACTION_ACTIVITY","PRICE","LIQUIDITY","DEMAND","SALES","GLOBAL_WEIGHT"],
+  "production": "HOLD",
+  "public_release": "HOLD"
+}
