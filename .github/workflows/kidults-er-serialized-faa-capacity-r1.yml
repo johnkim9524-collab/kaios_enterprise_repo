@@ -1,0 +1,51 @@
+name: KIDULTS ER Serialized FAA Capacity R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-serialized-faa-releasable-capacity-r1.mjs'
+      - '.github/workflows/kidults-er-serialized-faa-capacity-r1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-faa-strict-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Download official FAA releasable registry archive
+        run: |
+          curl --fail --location --retry 4 --retry-all-errors --connect-timeout 20 --max-time 180 \
+            https://registry.faa.gov/database/ReleasableAircraft.zip -o /tmp/faa.zip
+          test -s /tmp/faa.zip
+          mkdir -p /tmp/faa
+          unzip -q /tmp/faa.zip -d /tmp/faa
+          test -f /tmp/faa/MASTER.txt
+          test -f /tmp/faa/ACFTREF.txt
+          sha256sum /tmp/faa.zip | cut -d' ' -f1 > /tmp/faa.sha256
+      - name: Measure strict non-PII Serialized capacity
+        run: |
+          export FAA_ARCHIVE_SHA256="$(cat /tmp/faa.sha256)"
+          node scripts/kidults/entity-resolution/probe-serialized-faa-releasable-capacity-r1.mjs /tmp/faa /tmp/faa-capacity.json
+      - name: Enforce PII exclusion, source-disjointness and diagnostic-only boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/faa-capacity.json','utf8'));
+          if(x.stratum_id!=='er-stratum-serialized-reference'||x.source_family!=='faa-releasable-aircraft-registry')throw new Error('SOURCE_OR_STRATUM');
+          if(x.privacy_boundary!=='OWNER_REGISTRANT_NAME_ADDRESS_CONTACT_AND_ALL_PII_EXCLUDED_FROM_DERIVED_OUTPUT')throw new Error('PRIVACY_BOUNDARY');
+          const allowed=new Set(['N_NUMBER','MANUFACTURER_SERIAL','AIRCRAFT_MANUFACTURER_MODEL_SERIES_CODE','MANUFACTURER_NAME','MODEL_SERIES_NAME']);if(x.retained_fields.some(f=>!allowed.has(f)))throw new Error('FIELD_SCOPE');
+          if(x.metrics.same_maker_model_distinct_serial_hard_negative_capacity>40||x.metrics.registration_to_manufacturer_serial_alias_capacity>40)throw new Error('CAPACITY_BOUNDARY');
+          const hard=x.hard_negative_candidates||[],alias=x.alias_candidates||[];const ids=[...hard.flatMap(p=>[p.left.record_id,p.right.record_id]),...alias.map(a=>a.record_id)];if(new Set(ids).size!==ids.length)throw new Error('SOURCE_REUSE');
+          for(const p of hard){if(p.left.manufacturer_serial===p.right.manufacturer_serial||p.left.n_number===p.right.n_number)throw new Error('HARD_GRAMMAR');}
+          const s=JSON.stringify(x).toLowerCase();for(const forbidden of ['registrant','street1','street2','address','telephone','owner_name','ownername']){if(forbidden!=='registrant'&&s.includes(`"${forbidden}"`))throw new Error(`PII_FIELD:${forbidden}`);}
+          if(x.labels_present!==false||x.reviewers_assigned!==0||x.empirical_cases_created!==0||x.blind_partition_sealed!==false||x.track_b!=='NOT_STARTED'||x.public_release!=='HOLD'||x.production!=='HOLD')throw new Error('OVERCLAIM');
+          if(/"raw_payload"\s*:|"payload"\s*:/.test(JSON.stringify(x)))throw new Error('RAW_PAYLOAD_FORBIDDEN');
+          console.log(JSON.stringify({hard:x.metrics.same_maker_model_distinct_serial_hard_negative_capacity,alias:x.metrics.registration_to_manufacturer_serial_alias_capacity,records:x.metrics.non_pii_strict_records,privacy:'PASS',production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-faa-capacity-r1
+          path: /tmp/faa-capacity.json
+          retention-days: 14
