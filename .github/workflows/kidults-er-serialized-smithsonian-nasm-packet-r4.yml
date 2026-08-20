@@ -1,0 +1,65 @@
+name: KIDULTS ER Serialized Smithsonian NASM Packet R4
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-serialized-smithsonian-nasm-capacity-r4.mjs'
+      - 'scripts/kidults/entity-resolution/build-serialized-smithsonian-nasm-review-packet-r4.mjs'
+      - '.github/workflows/kidults-er-serialized-smithsonian-nasm-packet-r4.yml'
+      - 'scripts/kidults/entity-resolution/build-serialized-source-disjoint-review-packet-r3.mjs'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  serialized-nasm-reviewer-material:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Rebuild protected-main Serialized reviewer-ready truth
+        run: |
+          node scripts/kidults/entity-resolution/build-serialized-source-disjoint-review-packet-r3.mjs \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json \
+            /tmp/serialized-source-disjoint-review-packet-r3.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/serialized-source-disjoint-review-packet-r3.json','utf8'));
+          if(x.case_count!==9||x.case_class_counts?.SAME_OBJECT_NORMALIZATION!==9||x.labels_present!==false) throw new Error(`SERIALIZED_BASE_TRUTH_DRIFT:${x.case_count}`);
+          if(x.empirical_pass!==false||x.track_b!=='NOT_STARTED'||x.public_release!=='HOLD'||x.production!=='HOLD') throw new Error('BASE_RELEASE_BOUNDARY');
+          console.log(JSON.stringify({base_reviewer_ready:x.case_count,base_normalization:x.case_class_counts.SAME_OBJECT_NORMALIZATION,production:'HOLD'},null,2));
+          NODE
+      - name: Freshly replay strict Smithsonian NASM semantic capacity
+        run: node scripts/kidults/entity-resolution/probe-serialized-smithsonian-nasm-capacity-r4.mjs /tmp/serialized-smithsonian-nasm-capacity-r4.json
+      - name: Packetize only the remaining normalization floor
+        run: |
+          node scripts/kidults/entity-resolution/build-serialized-smithsonian-nasm-review-packet-r4.mjs \
+            /tmp/serialized-smithsonian-nasm-capacity-r4.json \
+            /tmp/serialized-source-disjoint-review-packet-r3.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json \
+            /tmp/serialized-smithsonian-nasm-review-packet-r4.json
+      - name: Enforce reviewer-material, source-disjoint and release boundaries
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/serialized-smithsonian-nasm-review-packet-r4.json','utf8'));
+          if(x.additional_case_count!==31||x.total_reviewer_ready_if_combined!==40) throw new Error('EXPECTED_BLOCKER_REDUCTION_NOT_PROVEN');
+          if(x.case_class_counts_if_combined?.SAME_OBJECT_NORMALIZATION!==40||x.remaining_case_class_deficit?.SAME_OBJECT_NORMALIZATION!==0) throw new Error('NORMALIZATION_FLOOR_NOT_CLOSED');
+          if(x.remaining_case_class_deficit?.HARD_NEGATIVE!==40||x.remaining_case_class_deficit?.CROSS_MARKET_ALIAS!==40) throw new Error('UNSUPPORTED_CLASS_PROMOTION');
+          const refs=x.cases.map(c=>c.source_a_reference);if(new Set(refs).size!==refs.length) throw new Error('SOURCE_REFERENCE_REUSE');
+          const ids=x.cases.flatMap(c=>c.source_record_ids||[]);if(new Set(ids).size!==ids.length) throw new Error('SOURCE_RECORD_REUSE');
+          if(x.labels_present!==false||x.model_predictions_present!==false||x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED') throw new Error('REVIEWER_OR_LABEL_FABRICATION');
+          if(x.blind_partition_addition?.state!=='CANDIDATE_NOT_SEALED'||x.empirical_pass!==false||x.track_b!=='NOT_STARTED') throw new Error('GATE_OVERCLAIM');
+          if(x.public_release!=='HOLD'||x.production!=='HOLD') throw new Error('RELEASE_BOUNDARY');
+          if(/"payload"\s*:/.test(JSON.stringify(x))) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({added:x.additional_case_count,serialized_reviewer_ready:x.total_reviewer_ready_if_combined,normalization_floor:'40/40',remaining:x.remaining_case_count,empirical_pass:false,track_b:'NOT_STARTED',production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-smithsonian-nasm-review-packet-r4
+          path: /tmp/serialized-smithsonian-nasm-review-packet-r4.json
+          retention-days: 14
