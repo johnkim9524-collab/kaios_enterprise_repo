@@ -1,0 +1,41 @@
+name: KIDULTS ASI Empirical Regional Baseline Wave1 R1
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs'
+      - 'coordination/kidults/source-intelligence/empirical-regional-baseline-wave1-contract-r1.json'
+      - 'coordination/kidults/source-intelligence/rights-admitted-pilot-source-pool-r1.json'
+      - 'coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json'
+      - 'coordination/kidults/source-intelligence/global-rights-source-pool-expansion-r2.json'
+      - 'coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json'
+      - '.github/workflows/kidults-asi-empirical-regional-baseline-wave1-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Validate regional market guard contracts
+        run: node scripts/kidults/source-intelligence/validate-live-regional-market-baseline-v1.mjs
+      - name: Build empirical Wave 1 coverage-debt snapshot
+        run: node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
+      - name: Validate fail-closed empirical snapshot and SHADOW delta
+        run: node scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-empirical-regional-baseline-wave1-r1
+          path: /tmp/empirical-regional-baseline-wave1-r1.json
+          if-no-files-found: error
+          retention-days: 14
