@@ -1,0 +1,40 @@
+name: KIDULTS ER Graded Private Handoff Contract v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/graded-population-private-empirical-handoff-v1.json'
+      - 'scripts/kidults/entity-resolution/validate-graded-population-private-empirical-handoff-v1.mjs'
+      - 'scripts/kidults/entity-resolution/assemble-er-840-from-graded-private-handoff-v1.mjs'
+      - 'scripts/kidults/entity-resolution/test-graded-population-private-empirical-handoff-v1.mjs'
+      - '.github/workflows/kidults-er-graded-private-handoff-contract-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/entity-resolution/graded-population-private-empirical-handoff-v1.json'
+      - 'scripts/kidults/entity-resolution/validate-graded-population-private-empirical-handoff-v1.mjs'
+      - 'scripts/kidults/entity-resolution/assemble-er-840-from-graded-private-handoff-v1.mjs'
+      - 'scripts/kidults/entity-resolution/test-graded-population-private-empirical-handoff-v1.mjs'
+      - '.github/workflows/kidults-er-graded-private-handoff-contract-v1.yml'
+permissions:
+  contents: read
+jobs:
+  no-provider-network-contract-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate contract boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const c=JSON.parse(fs.readFileSync('coordination/kidults/entity-resolution/graded-population-private-empirical-handoff-v1.json','utf8'));
+          if(c.production!=='HOLD'||c.public_release!=='HOLD'||c.input_boundary.provider_network_call_by_this_contract!==false||c.input_boundary.acquisition_authorized_by_this_contract!==false||c.input_boundary.eula_acceptance_authorized!==false||c.graded_sample.cases!==120)throw new Error('CONTRACT_BOUNDARY');
+          console.log(JSON.stringify({status:'PASS',provider_network_call:false,acquisition_authorized:false,eula_acceptance_authorized:false,cases:120,production:'HOLD'}));
+          NODE
+      - name: Test private handoff validator and 840 assembly using fixtures only
+        run: node scripts/kidults/entity-resolution/test-graded-population-private-empirical-handoff-v1.mjs
