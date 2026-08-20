@@ -3,7 +3,9 @@ import { runAsiProcessorTask } from './processor-runtime';
 import { asiProcessorInventory, type AsiProcessorState } from './processors';
 import {
   ASI_FLEET_BY_ID,
-  ASI_FLEET_BY_QUEUE,
+  asiFleetForQueue,
+  asiQueueNamesEquivalent,
+  isAsiDeadLetterQueue,
   ASI_FLEETS,
   targetFleetsFor,
   type AsiFleet,
@@ -1242,11 +1244,11 @@ async function consumeDeadLetterBatch(batch: MessageBatch<AsiQueueTask>, env: As
 }
 
 export async function consumeAsiBatch(batch: MessageBatch<AsiQueueTask>, env: AsiMeshEnv): Promise<void> {
-  if (batch.queue === ASI_DEAD_LETTER_QUEUE_NAME) {
+  if (isAsiDeadLetterQueue(batch.queue)) {
     await consumeDeadLetterBatch(batch,env);
     return;
   }
-  const fleet = ASI_FLEET_BY_QUEUE.get(batch.queue);
+  const fleet = asiFleetForQueue(batch.queue);
   if (!fleet) {
     for (const message of batch.messages) message.retry({delaySeconds:300});
     throw new Error(`ASI_QUEUE_NOT_REGISTERED:${batch.queue}`);
@@ -1256,10 +1258,10 @@ export async function consumeAsiBatch(batch: MessageBatch<AsiQueueTask>, env: As
     let taskLeaseFence: TaskLeaseFence | null = null;
     try {
       task = validateQueueTask(message.body);
-      if (task.target_fleet !== fleet.id || task.source_queue !== batch.queue) throw new Error('ASI_QUEUE_TASK_TARGET_MISMATCH');
+      if (task.target_fleet !== fleet.id || !asiQueueNamesEquivalent(task.source_queue,batch.queue)) throw new Error('ASI_QUEUE_TASK_TARGET_MISMATCH');
       const sourceOutbox = await loadOutbox(env,task.outbox_id);
       if (!sourceOutbox || sourceOutbox.event_id !== task.event.event_id || sourceOutbox.engine_fleet !== fleet.id ||
-        sourceOutbox.queue_binding !== fleet.binding || sourceOutbox.queue_name !== batch.queue ||
+        sourceOutbox.queue_binding !== fleet.binding || !asiQueueNamesEquivalent(sourceOutbox.queue_name,batch.queue) ||
         safeJson(validateQueueTask(JSON.parse(sourceOutbox.payload_json))) !== safeJson(task)) {
         throw new Error('ASI_QUEUE_TASK_OUTBOX_PROVENANCE_MISMATCH');
       }
