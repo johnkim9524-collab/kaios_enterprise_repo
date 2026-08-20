@@ -1,0 +1,253 @@
+name: KIDULTS STAGING ASI E2E Empirical v2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-staging-asi-e2e-empirical-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging-asi-e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_READ_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_MUTATION_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+      WRANGLER_SEND_METRICS: 'false'
+      STAGING_WORKER: kidults-autonomous-intelligence-staging
+      STAGING_D1_ID: 9bc6a406-6fca-4959-be7f-dd7f715b092c
+      PRODUCTION_D1_ID: d6d65f81-f91d-428b-bf43-8a025aaa47bd
+      CANONICAL_VERSION: d870f7e4-0919-47f7-becc-13524c393f27
+      DLQ: kidults-asi-shadow-dead-letter
+      TARGET_QUEUE: kidults-asi-shadow-discovery-wikidata
+
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+
+      - name: PRECHECK — credential separation and STAGING truth
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_READ_TOKEN:-}"
+          test -n "${CLOUDFLARE_MUTATION_TOKEN:-}"
+          echo "::add-mask::$CLOUDFLARE_READ_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_MUTATION_TOKEN"
+          node - <<'NODE'
+          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));
+          const d=x.d1_databases?.find(v=>v.binding==='DB');
+          if(x.vars?.KIDULTS_ENV!=='staging'||x.vars?.ASI_MESH_MODE!=='SHADOW'||x.vars?.ASI_PUBLICATION_ENABLED!=='false') throw new Error('STAGING_BOUNDARY');
+          if(!d||d.database_id!=='d6d65f81-f91d-428b-bf43-8a025aaa47bd') throw new Error('CANONICAL_CONFIG_DRIFT');
+          if((x.queues?.producers||[]).length!==26||(x.queues?.consumers||[]).length!==26) throw new Error('QUEUE_CONFIG_COUNT');
+          d.database_name='kidults-intelligence-db-staging'; d.database_id='9bc6a406-6fca-4959-be7f-dd7f715b092c';
+          x.name='kidults-autonomous-intelligence-staging'; x.workers_dev=false; delete x.routes; delete x.route; delete x.triggers;
+          x.vars={...(x.vars||{}),KIDULTS_ENV:'staging',ASI_MESH_MODE:'SHADOW',ASI_PUBLICATION_ENABLED:'false'};
+          fs.writeFileSync('wrangler.e2e.generated.json',JSON.stringify(x,null,2));
+          NODE
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_READ_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$STAGING_D1_ID" > /tmp/staging-d1-info.json
+          grep -Fq "$STAGING_D1_ID" /tmp/staging-d1-info.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/staging-d1-info.json; then exit 10; fi
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_MUTATION_TOKEN" npx wrangler versions view "$CANONICAL_VERSION" --name "$STAGING_WORKER" --json > /tmp/canonical-view.json
+          grep -Fq "$CANONICAL_VERSION" /tmp/canonical-view.json
+          grep -Fq "$STAGING_D1_ID" /tmp/canonical-view.json || grep -Fq 'kidults-intelligence-db-staging' /tmp/canonical-view.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/canonical-view.json; then exit 11; fi
+
+      - name: CONSUMERS — fail on foreign bindings and attach missing STAGING consumers
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          node -e "const x=require('./wrangler.e2e.generated.json');for(const c of x.queues.consumers)console.log(c.queue)" > /tmp/all-queues.txt
+          : > /tmp/consumers-before.ndjson
+          while IFS= read -r q; do
+            npx wrangler queues consumer list "$q" --json > /tmp/consumer.json
+            Q="$q" W="$STAGING_WORKER" node - <<'NODE' >> /tmp/consumers-before.ndjson
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/consumer.json','utf8'));const a=Array.isArray(x)?x:(x.result||[]);const names=a.map(v=>v.script_name||v.script||v.service||v.worker_name||'').filter(Boolean);const foreign=names.filter(n=>n!==process.env.W);if(foreign.length)throw new Error(`FOREIGN_CONSUMER:${process.env.Q}:${foreign.join(',')}`);console.log(JSON.stringify({queue:process.env.Q,names}));
+          NODE
+            PRESENT=$(W="$STAGING_WORKER" node -e "const x=require('/tmp/consumer.json');const a=Array.isArray(x)?x:(x.result||[]);process.stdout.write(a.some(v=>(v.script_name||v.script||v.service||v.worker_name)===process.env.W)?'1':'0')")
+            if [ "$PRESENT" != "1" ]; then
+              if [ "$q" = "$DLQ" ]; then
+                npx wrangler queues consumer add "$q" "$STAGING_WORKER" --batch-size 10 --batch-timeout 5 --message-retries 3
+              else
+                npx wrangler queues consumer add "$q" "$STAGING_WORKER" --batch-size 10 --batch-timeout 5 --message-retries 3 --dead-letter-queue "$DLQ"
+              fi
+            fi
+          done < /tmp/all-queues.txt
+          : > /tmp/consumers-after.ndjson
+          while IFS= read -r q; do
+            npx wrangler queues consumer list "$q" --json > /tmp/consumer.json
+            Q="$q" W="$STAGING_WORKER" node - <<'NODE' >> /tmp/consumers-after.ndjson
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/consumer.json','utf8'));const a=Array.isArray(x)?x:(x.result||[]);const names=a.map(v=>v.script_name||v.script||v.service||v.worker_name||'').filter(Boolean);if(names.length!==1||names[0]!==process.env.W)throw new Error(`CONSUMER_POSTCHECK:${process.env.Q}:${names.join(',')}`);console.log(JSON.stringify({queue:process.env.Q,staging_consumer:true}));
+          NODE
+          done < /tmp/all-queues.txt
+
+      - name: BUILD — temporary bounded seed harness
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/worker.ts'); s=p.read_text()
+          old="""  async queue(batch: MessageBatch<AsiQueueTask>, env: Env): Promise<void> {\n    await consumeAsiBatch(batch,env);\n  },"""
+          new="""  async queue(batch: MessageBatch<AsiQueueTask>, env: Env): Promise<void> {\n    if (batch.queue === 'kidults-asi-shadow-dead-letter' && batch.messages.length === 1) {\n      const message = batch.messages[0];\n      const body = message.body as unknown as {control?:string;event?:unknown};\n      if (body && body.control === 'KPMO_STAGING_E2E_SEED_V2' && body.event) {\n        await enqueueAsiEvent(env,body.event);\n        message.ack();\n        return;\n      }\n    }\n    await consumeAsiBatch(batch,env);\n  },"""
+          if old not in s: raise SystemExit('PATCH_TARGET_NOT_FOUND')
+          p.write_text(s.replace(old,new))
+          PY
+          npm run typecheck
+          npx wrangler deploy --config wrangler.e2e.generated.json --dry-run --outdir /tmp/e2e-dry-run
+
+      - name: DEPLOY — temporary harness only
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: /tmp/harness-upload.ndjson
+        run: |
+          set -euo pipefail
+          rm -f /tmp/harness-upload.ndjson
+          npx wrangler versions upload --config wrangler.e2e.generated.json --tag kpmo-e2e-seed-v2 --message 'Bounded STAGING seed harness; no route; no cron'
+          node - <<'NODE' > /tmp/harness.env
+          const fs=require('fs');const rows=fs.readFileSync('/tmp/harness-upload.ndjson','utf8').trim().split(/\n+/).filter(Boolean).map(JSON.parse);const x=[...rows].reverse().find(r=>r.type==='version-upload'&&r.version_id);if(!x)throw new Error('NO_UPLOAD_RECEIPT');console.log(`HARNESS_VERSION=${x.version_id}`);
+          NODE
+          source /tmp/harness.env
+          npx wrangler versions view "$HARNESS_VERSION" --name "$STAGING_WORKER" --json > /tmp/harness-view.json
+          grep -Fq "$STAGING_D1_ID" /tmp/harness-view.json || grep -Fq 'kidults-intelligence-db-staging' /tmp/harness-view.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/harness-view.json; then exit 12; fi
+          T0=$(date +%s%3N)
+          npx wrangler versions deploy "$HARNESS_VERSION@100%" --name "$STAGING_WORKER" --message 'KPMO bounded STAGING E2E harness' -y
+          T1=$(date +%s%3N)
+          printf 'HARNESS_DEPLOY_MS=%s\n' "$((T1-T0))" > /tmp/e2e-metrics.env
+
+      - name: SEED — create one canonical SOURCE_DISCOVERY_REQUESTED through Queue
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > /tmp/e2e.env
+          const c=require('crypto'),fs=require('fs');const canon=v=>{if(v===null||typeof v!=='object')return v;if(Array.isArray(v))return v.map(canon);const o={};for(const k of Object.keys(v).sort())o[k]=canon(v[k]);return o};const h=v=>'sha256:'+c.createHash('sha256').update(typeof v==='string'?v:JSON.stringify(canon(v))).digest('hex');const s=c.randomBytes(8).toString('hex'),now=new Date().toISOString(),host='example.com';const source=`source_kpmo_e2e_${s}`,id=`evt_kpmo_e2e_${s}`,corr=`corr_kpmo_e2e_${s}`;const payload={source_id:source,discovery_seed:{source_id:source,seed_ref:'KPMO_SYNTHETIC_RESERVED_EXAMPLE_DOMAIN',canonical_host:host,discovery_rights_state:'ALLOW'},test_control:{synthetic:true,market_claim:false,production:false}};const event={event_id:id,event_type:'SOURCE_DISCOVERY_REQUESTED',event_version:'1.0.0',occurred_at:now,observed_at:now,producer_engine:'KPMO_STAGING_E2E_SEED',producer_version:'2.0.0',correlation_id:corr,causation_id:null,idempotency_key:`idem_${id}`,partition:{channel:'WIKIDATA_OFFICIAL_WEBSITE_GRAPH',region:'NORTH_AMERICA',language:'en',scope_id:'vinyl_recorded_music',source_role:'REFERENCE_ONLY',canonical_host_hash:h(host)},input_snapshot_ref:'kpmo-staging-e2e-synthetic-v2',payload_hash:h(payload),rights_state:'ALLOW',freshness_state:'CURRENT',assertion_purpose:'BOUNDED_SHADOW_ACQUISITION',decision:'PASS',reason_codes:['KPMO_STAGING_E2E_SYNTHETIC_CONTROL'],trace_refs:['KPMO_STAGING_E2E'],payload};fs.writeFileSync('/tmp/seed.json',JSON.stringify({body:{control:'KPMO_STAGING_E2E_SEED_V2',event}}));console.log(`EVENT_ID=${id}`);console.log(`SOURCE_ID=${source}`);console.log(`CORR_ID=${corr}`);console.log(`SEED_AT=${now}`);
+          NODE
+          source /tmp/e2e.env
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" > /tmp/queues.json
+          QID=$(Q="$DLQ" node -e "const x=require('/tmp/queues.json');const q=(x.result||[]).find(v=>(v.queue_name||v.name)===process.env.Q);if(!q)process.exit(2);process.stdout.write(q.queue_id||q.id)")
+          T0=$(date +%s%3N)
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QID/messages" --data-binary @/tmp/seed.json > /tmp/seed-response.json
+          T1=$(date +%s%3N)
+          grep -Fq '"success":true' /tmp/seed-response.json
+          printf 'QUEUE_PUSH_MS=%s\n' "$((T1-T0))" >> /tmp/e2e-metrics.env
+
+      - name: VERIFY — full Queue→Worker→D1 processor chain
+        run: |
+          set -euo pipefail
+          source /tmp/e2e.env
+          PASS=0
+          for i in $(seq 1 50); do
+            SQL="SELECT (SELECT COUNT(*) FROM asi_event_log WHERE correlation_id='$CORR_ID') event_count,(SELECT COUNT(*) FROM asi_source_candidates WHERE source_id='$SOURCE_ID') candidate_count,(SELECT COUNT(*) FROM asi_processor_assertions WHERE source_id='$SOURCE_ID') assertion_count,(SELECT COUNT(*) FROM asi_source_pool_decisions WHERE source_id='$SOURCE_ID') pool_count"
+            SQL="$SQL" node -e "require('fs').writeFileSync('/tmp/query.json',JSON.stringify({sql:process.env.SQL}))"
+            curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_READ_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$STAGING_D1_ID/query" --data-binary @/tmp/query.json > /tmp/chain-state.json
+            if node - <<'NODE'
+          const x=require('/tmp/chain-state.json');const r=x.result?.[0]?.results?.[0]||x.result?.results?.[0]||{};process.exit(Number(r.event_count)>=6&&Number(r.candidate_count)===1&&Number(r.assertion_count)>=11&&Number(r.pool_count)>=1?0:1)
+          NODE
+            then PASS=1; break; fi
+            sleep 4
+          done
+          test "$PASS" = 1
+          NOW=$(date +%s%3N); START=$(date -d "$SEED_AT" +%s%3N); printf 'CHAIN_VISIBLE_MS=%s\n' "$((NOW-START))" >> /tmp/e2e-metrics.env
+          cp /tmp/chain-state.json /tmp/chain-proof.json
+
+      - name: VERIFY — duplicate event is idempotent
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          source /tmp/e2e.env
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" > /tmp/queues.json
+          QID=$(Q="$DLQ" node -e "const x=require('/tmp/queues.json');const q=(x.result||[]).find(v=>(v.queue_name||v.name)===process.env.Q);process.stdout.write(q.queue_id||q.id)")
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QID/messages" --data-binary @/tmp/seed.json > /tmp/duplicate-response.json
+          sleep 8
+          SQL="SELECT (SELECT COUNT(*) FROM asi_event_log WHERE event_id='$EVENT_ID') event_rows,(SELECT COUNT(*) FROM asi_source_candidates WHERE source_id='$SOURCE_ID') candidate_rows,(SELECT COUNT(*) FROM asi_source_candidate_observations WHERE source_id='$SOURCE_ID') observation_rows"
+          SQL="$SQL" node -e "require('fs').writeFileSync('/tmp/query.json',JSON.stringify({sql:process.env.SQL}))"
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_READ_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$STAGING_D1_ID/query" --data-binary @/tmp/query.json > /tmp/idempotency.json
+          node - <<'NODE'
+          const x=require('/tmp/idempotency.json');const r=x.result?.[0]?.results?.[0]||{};if(Number(r.event_rows)!==1||Number(r.candidate_rows)!==1||Number(r.observation_rows)!==1)throw new Error(JSON.stringify(r));
+          NODE
+
+      - name: FAILURE — malformed retry→DLQ terminal persistence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          MARK="KPMO_MALFORMED_$(date +%s)_$RANDOM"; printf 'MALFORMED=%s\n' "$MARK" >> /tmp/e2e.env
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" > /tmp/queues.json
+          QID=$(Q="$TARGET_QUEUE" node -e "const x=require('/tmp/queues.json');const q=(x.result||[]).find(v=>(v.queue_name||v.name)===process.env.Q);process.stdout.write(q.queue_id||q.id)")
+          printf '{"body":{"malformed":"%s"}}' "$MARK" > /tmp/bad.json
+          T0=$(date +%s%3N)
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QID/messages" --data-binary @/tmp/bad.json > /tmp/bad-response.json
+          PASS=0
+          for i in $(seq 1 60); do
+            SQL="SELECT (SELECT COUNT(*) FROM asi_dead_letters WHERE payload_json LIKE '%$MARK%') dlq_count,(SELECT COUNT(*) FROM asi_terminal_dlq_receipts WHERE payload_json LIKE '%$MARK%') terminal_count"
+            SQL="$SQL" node -e "require('fs').writeFileSync('/tmp/query.json',JSON.stringify({sql:process.env.SQL}))"
+            curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_READ_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$STAGING_D1_ID/query" --data-binary @/tmp/query.json > /tmp/dlq-state.json
+            if node - <<'NODE'
+          const x=require('/tmp/dlq-state.json');const r=x.result?.[0]?.results?.[0]||{};process.exit(Number(r.dlq_count)>=1&&Number(r.terminal_count)>=1?0:1)
+          NODE
+            then PASS=1; break; fi
+            sleep 4
+          done
+          test "$PASS" = 1
+          T1=$(date +%s%3N); printf 'DLQ_TERMINAL_MS=%s\n' "$((T1-T0))" >> /tmp/e2e-metrics.env
+          cp /tmp/dlq-state.json /tmp/dlq-proof.json
+
+      - name: ROLLBACK — always restore canonical isolated STAGING version
+        if: always()
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          T0=$(date +%s%3N)
+          npx wrangler versions deploy "$CANONICAL_VERSION@100%" --name "$STAGING_WORKER" --message 'KPMO STAGING E2E complete — canonical rollback' -y
+          T1=$(date +%s%3N); touch /tmp/e2e-metrics.env; printf 'ROLLBACK_MS=%s\n' "$((T1-T0))" >> /tmp/e2e-metrics.env
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/final-deployment.json
+          grep -Fq "$CANONICAL_VERSION" /tmp/final-deployment.json
+          npx wrangler versions view "$CANONICAL_VERSION" --name "$STAGING_WORKER" --json > /tmp/final-version.json
+          grep -Fq "$STAGING_D1_ID" /tmp/final-version.json || grep -Fq 'kidults-intelligence-db-staging' /tmp/final-version.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/final-version.json; then exit 13; fi
+
+      - name: RECEIPT — empirical result
+        if: always()
+        run: |
+          touch /tmp/e2e.env /tmp/e2e-metrics.env
+          node - <<'NODE' > /tmp/receipt.json
+          const fs=require('fs');const parse=p=>Object.fromEntries(fs.readFileSync(p,'utf8').split(/\n/).filter(Boolean).map(l=>{const i=l.indexOf('=');return [l.slice(0,i),l.slice(i+1)]}));const e=parse('/tmp/e2e.env'),m=parse('/tmp/e2e-metrics.env');const ok=['/tmp/chain-proof.json','/tmp/idempotency.json','/tmp/dlq-proof.json','/tmp/final-deployment.json'].every(fs.existsSync);process.stdout.write(JSON.stringify({status:ok?'STAGING_ASI_E2E_EMPIRICAL_PASS':'STAGING_ASI_E2E_INCOMPLETE',event_id:e.EVENT_ID||null,source_id:e.SOURCE_ID||null,queue_push_ms:+m.QUEUE_PUSH_MS||null,chain_visible_ms:+m.CHAIN_VISIBLE_MS||null,dlq_terminal_ms:+m.DLQ_TERMINAL_MS||null,rollback_ms:+m.ROLLBACK_MS||null,queue_consumers:26,staging_d1:'9bc6a406-6fca-4959-be7f-dd7f715b092c',final_version:'d870f7e4-0919-47f7-becc-13524c393f27',production_mutation:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/receipt.json
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-staging-asi-e2e-empirical-v2
+          path: |
+            /tmp/receipt.json
+            /tmp/consumers-before.ndjson
+            /tmp/consumers-after.ndjson
+            /tmp/canonical-view.json
+            /tmp/harness-view.json
+            /tmp/seed-response.json
+            /tmp/chain-proof.json
+            /tmp/idempotency.json
+            /tmp/dlq-proof.json
+            /tmp/final-deployment.json
+            /tmp/final-version.json
+          retention-days: 30
+          if-no-files-found: warn
