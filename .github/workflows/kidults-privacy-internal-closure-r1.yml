@@ -1,0 +1,104 @@
+name: KIDULTS Privacy Internal Closure R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/governance/enforce-staging-audit-retention-v1.mjs'
+      - 'scripts/kidults/governance/validate-record-privacy-gate-v1.mjs'
+      - 'coordination/kidults/governance/privacy-data-classification-manifest-v1.json'
+      - 'coordination/kidults/kpmo/global-standard-preproduction-gate-v1.json'
+      - 'coordination/kidults/kpmo/global-standard-gap-register-v2.json'
+      - 'coordination/kidults/kpmo/value-chain-completion-scorecard-v1.json'
+      - '.github/workflows/kidults-privacy-internal-closure-r1.yml'
+  workflow_dispatch:
+
+jobs:
+  privacy-internal-closure:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate canonical privacy policy binding
+        run: |
+          node - <<'NODE'
+          const manifest=require('./coordination/kidults/governance/privacy-data-classification-manifest-v1.json');
+          const gate=require('./coordination/kidults/kpmo/global-standard-preproduction-gate-v1.json');
+          const gap=require('./coordination/kidults/kpmo/global-standard-gap-register-v2.json');
+          const score=require('./coordination/kidults/kpmo/value-chain-completion-scorecard-v1.json');
+          if(manifest.production!=='HOLD'||gate.production!=='HOLD'||gap.production!=='HOLD'||score.production!=='HOLD') throw new Error('PRODUCTION_MUST_REMAIN_HOLD');
+          const audit=manifest.datasets.find(d=>d.dataset_id==='staging-conversion-audit');
+          if(audit.retention_period!=='90_DAYS_PREPRODUCTION_OPERATIONAL_AUDIT') throw new Error('AUDIT_RETENTION_NOT_BOUND');
+          if(!String(audit.expiry_or_deletion_rule).includes('enforce-staging-audit-retention-v1.mjs')) throw new Error('AUDIT_ENFORCER_NOT_BOUND');
+          const getty=manifest.datasets.find(d=>d.dataset_id==='getty-historical-provenance');
+          if(getty.record_level_classification_gate!=='scripts/kidults/governance/validate-record-privacy-gate-v1.mjs') throw new Error('RECORD_PRIVACY_GATE_NOT_BOUND');
+          if(!String(getty.public_projection).startsWith('NO_')) throw new Error('GETTY_PUBLIC_DEFAULT_MUST_FAIL_CLOSED');
+          const privacyGate=gate.required_gates.find(g=>g.id==='PRIVACY_RETENTION_MINIMIZATION');
+          if(!privacyGate.status.includes('INTERNAL_AUDIT_RETENTION_AND_RECORD_CLASSIFICATION_GATES_PASS')) throw new Error('GLOBAL_GATE_PRIVACY_TRUTH_STALE');
+          if(gap.current_truth.privacy_internal_control_state!=='PASS') throw new Error('GAP_REGISTER_PRIVACY_TRUTH_STALE');
+          const scorePrivacy=score.dimensions.find(d=>d.id==='PRIVACY_RETENTION');
+          if(!scorePrivacy.evidence_refs.some(x=>x.includes('audit retention'))||scorePrivacy.state!=='PARTIAL') throw new Error('SCORECARD_PRIVACY_BOUNDARY_INVALID');
+          if(score.evidenced_pass_weight!==17) throw new Error('READINESS_MUST_NOT_INFLATE_STRICT_SCORE');
+          console.log('Canonical privacy policy binding PASS');
+          NODE
+      - name: Prove deterministic audit retention and fail-closed malformed input
+        run: |
+          node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+          import { tmpdir } from 'node:os';
+          import { resolve } from 'node:path';
+          import { enforceStagingAuditRetention } from './scripts/kidults/governance/enforce-staging-audit-retention-v1.mjs';
+          const dir=mkdtempSync(resolve(tmpdir(),'kidults-audit-retention-'));
+          const path=resolve(dir,'conversion-audit.jsonl');
+          const records=[
+            {event:'old',occurred_at:'2026-04-01T00:00:00.000Z'},
+            {event:'edge',occurred_at:'2026-05-23T00:00:00.000Z'},
+            {event:'new',occurred_at:'2026-08-20T00:00:00.000Z'}
+          ];
+          writeFileSync(path,records.map(JSON.stringify).join('\n')+'\n',{mode:0o600});
+          const first=enforceStagingAuditRetention({path,now:new Date('2026-08-21T00:00:00.000Z'),retentionDays:90});
+          assert.equal(first.removed,1); assert.equal(first.retained,2); assert.equal(first.production_authorized,false);
+          const bytes1=readFileSync(path,'utf8');
+          const second=enforceStagingAuditRetention({path,now:new Date('2026-08-21T00:00:00.000Z'),retentionDays:90});
+          assert.equal(second.removed,0); assert.equal(readFileSync(path,'utf8'),bytes1); assert.equal(statSync(path).mode & 0o777,0o600);
+          const bad=resolve(dir,'bad.jsonl'); writeFileSync(bad,'{"event":"bad","occurred_at":"not-a-date"}\n',{mode:0o600});
+          const before=readFileSync(bad,'utf8');
+          assert.throws(()=>enforceStagingAuditRetention({path:bad,now:new Date('2026-08-21T00:00:00.000Z')}),/INVALID_OCCURRED_AT/);
+          assert.equal(readFileSync(bad,'utf8'),before);
+          console.log('Audit retention deterministic/fail-closed PASS');
+          NODE
+      - name: Prove record-level privacy projection fail-close
+        run: |
+          node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import { validateRecordPrivacyDecision } from './scripts/kidults/governance/validate-record-privacy-gate-v1.mjs';
+          const safe=validateRecordPrivacyDecision({record_id:'r1',classification_state:'APPROVED_NONPERSONAL_FIELDSET',personal_fields:[],approved_public_fields:['object_title','object_date'],public_projection:true,review_ref:'review-001'});
+          assert.equal(safe.disposition,'PROJECTION_ELIGIBLE_BOUNDED_FIELDS');
+          const internal=validateRecordPrivacyDecision({record_id:'r2',classification_state:'PERSONAL_DATA_INTERNAL_ONLY',personal_fields:['person_name'],approved_public_fields:[],public_projection:false,review_ref:'review-002'});
+          assert.equal(internal.public_projection,false);
+          assert.throws(()=>validateRecordPrivacyDecision({record_id:'r3',classification_state:'UNKNOWN',personal_fields:[],approved_public_fields:[],public_projection:false,review_ref:'review-003'}),/UNCLASSIFIED_HOLD/);
+          assert.throws(()=>validateRecordPrivacyDecision({record_id:'r4',classification_state:'PERSONAL_DATA_INTERNAL_ONLY',personal_fields:['person_name'],approved_public_fields:['person_name'],public_projection:true,review_ref:'review-004'}),/PERSONAL_PUBLIC_PROJECTION_FORBIDDEN/);
+          console.log('Record-level privacy projection gate PASS');
+          NODE
+      - name: Emit bounded privacy readiness evidence
+        run: |
+          cat > /tmp/kidults-privacy-internal-closure-r1.json <<'JSON'
+          {
+            "id":"kidults-privacy-internal-closure-r1",
+            "internal_audit_retention_policy":"90_DAYS_PREPRODUCTION_OPERATIONAL_AUDIT",
+            "audit_retention_enforcer":"PASS_DETERMINISTIC_FAIL_CLOSED",
+            "record_level_privacy_projection_gate":"PASS_DETERMINISTIC_FAIL_CLOSED",
+            "source_specific_rights":"PENDING_EXTERNAL",
+            "real_source_record_classification":"DEPENDENCY_BOUND_TO_ACTUAL_ADMITTED_DATA",
+            "production":"HOLD",
+            "strict_score_promotion":false
+          }
+          JSON
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-privacy-internal-closure-r1
+          path: /tmp/kidults-privacy-internal-closure-r1.json
+          retention-days: 30
