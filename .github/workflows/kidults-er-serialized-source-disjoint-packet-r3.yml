@@ -1,0 +1,39 @@
+name: KIDULTS ER Serialized Source-Disjoint Packet R3
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/build-serialized-source-disjoint-review-packet-r3.mjs'
+      - '.github/workflows/kidults-er-serialized-source-disjoint-packet-r3.yml'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-source-disjoint-packet:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build live source-disjoint Serialized packet
+        run: node scripts/kidults/entity-resolution/build-serialized-source-disjoint-review-packet-r3.mjs coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/serialized-source-disjoint-review-packet-r3.json
+      - name: Enforce source-disjoint and fail-closed truth
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/serialized-source-disjoint-review-packet-r3.json','utf8'));
+          if(x.stratum_id!=='er-stratum-serialized-reference'||x.source_family!=='wikidata-cc0-structured-data') throw new Error('STRATUM_OR_SOURCE');
+          if(x.case_count>x.grammar_complete_real_record_count||x.case_count>40) throw new Error('DOUBLE_COUNT_OR_OVER_TARGET');
+          if(x.case_class_counts.SAME_OBJECT_NORMALIZATION!==x.case_count||x.case_class_counts.HARD_NEGATIVE!==0||x.case_class_counts.CROSS_MARKET_ALIAS!==0) throw new Error('CLASS_TRUTH');
+          if(new Set(x.cases.flatMap(c=>c.source_record_ids)).size!==x.case_count) throw new Error('SOURCE_RECORD_REUSE');
+          if(x.labels_present!==false||x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED'||x.empirical_pass!==false||x.track_b!=='NOT_STARTED') throw new Error('OVERCLAIM');
+          if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.blind_partition.state!=='CANDIDATE_NOT_SEALED') throw new Error('RELEASE_BOUNDARY');
+          if(/"payload"\s*:/.test(JSON.stringify(x))) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({reviewer_ready:x.case_count,grammar_complete:x.grammar_complete_real_record_count,blind_candidates:x.blind_partition.case_count,remaining:x.remaining_case_count,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-source-disjoint-packet-r3
+          path: /tmp/serialized-source-disjoint-review-packet-r3.json
+          retention-days: 14
