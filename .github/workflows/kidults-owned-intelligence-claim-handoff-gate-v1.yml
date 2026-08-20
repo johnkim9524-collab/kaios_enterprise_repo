@@ -1,0 +1,98 @@
+name: KIDULTS Owned Intelligence Claim Handoff Gate v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/poc/owned-intelligence-claim-handoff-gate-v1.json'
+      - 'coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json'
+      - 'scripts/kidults/poc/validate-owned-intelligence-claim-handoff-v1.mjs'
+      - 'scripts/kidults/source-intelligence/factor-eligibility-v1-lib.mjs'
+      - 'scripts/kidults/intelligence/owned-intelligence-redteam-v2.2.mjs'
+      - '.github/workflows/kidults-owned-intelligence-claim-handoff-gate-v1.yml'
+  push:
+    branches: [main, 'feat/**']
+    paths:
+      - 'coordination/kidults/poc/owned-intelligence-claim-handoff-gate-v1.json'
+      - 'coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json'
+      - 'scripts/kidults/poc/validate-owned-intelligence-claim-handoff-v1.mjs'
+      - 'scripts/kidults/source-intelligence/factor-eligibility-v1-lib.mjs'
+      - 'scripts/kidults/intelligence/owned-intelligence-redteam-v2.2.mjs'
+      - '.github/workflows/kidults-owned-intelligence-claim-handoff-gate-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+jobs:
+  validate-derived-claim-handoff:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.19.0'
+          check-latest: false
+      - name: Parse gate contract
+        run: node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/poc/owned-intelligence-claim-handoff-gate-v1.json','utf8'))"
+      - name: Prepare base Evidence Package fixture
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const fixture=require('./coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json');
+          fs.writeFileSync('/tmp/evidence-base.json',JSON.stringify(fixture.evidence,null,2));
+          NODE
+      - name: Raw external claim is not falsely reclassified as derived
+        run: |
+          KAIOS_REQUIRE_OWNED_CLAIM_HARDENED=1 node scripts/kidults/poc/validate-owned-intelligence-claim-handoff-v1.mjs /tmp/evidence-base.json /tmp/raw-result.json
+          node -e "const r=require('/tmp/raw-result.json');if(r.state!=='PASS'||r.derived_claim_count!==0)throw new Error('RAW_EXTERNAL_CLAIM_RECLASSIFIED')"
+      - name: Unhardened derived claim must fail closed
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const e=JSON.parse(fs.readFileSync('/tmp/evidence-base.json','utf8'));
+          e.claims.push({claim_id:'selftest-derived-valuation',claim_type:'VALUATION',derivation_origin:'KIDULTS_OWNED_INTELLIGENCE',methodology_ref:'owned-valuation-v1',claim_strength:0.5,evidence_strength:0.5,evidence_refs:['selftest-historical-only']});
+          fs.writeFileSync('/tmp/evidence-unhardened.json',JSON.stringify(e,null,2));
+          NODE
+          set +e
+          KAIOS_REQUIRE_OWNED_CLAIM_HARDENED=1 node scripts/kidults/poc/validate-owned-intelligence-claim-handoff-v1.mjs /tmp/evidence-unhardened.json /tmp/unhardened-result.json
+          status=$?
+          set -e
+          test "$status" -eq 2
+          node -e "const r=require('/tmp/unhardened-result.json');if(r.state!=='BLOCKED'||!r.blockers.some(x=>x.includes('HARDENING_BINDING_MISSING')))throw new Error('UNHARDENED_DERIVED_CLAIM_NOT_BLOCKED')"
+      - name: Claim-content-bound registered proof passes claim gate
+        run: |
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          import {buildHardeningReceiptV22,REQUIRED_HARDENING_CHECKS} from './scripts/kidults/intelligence/owned-intelligence-redteam-v2.2.mjs';
+          const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+          const sha=v=>`sha256:${createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex')}`;
+          const e=JSON.parse(fs.readFileSync('/tmp/evidence-base.json','utf8'));
+          const claim={claim_id:'selftest-derived-valuation',claim_type:'VALUATION',derivation_origin:'KIDULTS_OWNED_INTELLIGENCE',methodology_ref:'owned-valuation-v1',claim_strength:0.5,evidence_strength:0.5,evidence_refs:['selftest-historical-only']};
+          const proof=buildHardeningReceiptV22({checks:REQUIRED_HARDENING_CHECKS});
+          claim.hardening_binding={claim_id:claim.claim_id,claim_payload_sha256:sha(claim),proof};
+          e.claims.push(claim);
+          fs.writeFileSync('/tmp/evidence-hardened.json',JSON.stringify(e,null,2));
+          NODE
+          KAIOS_REQUIRE_OWNED_CLAIM_HARDENED=1 node scripts/kidults/poc/validate-owned-intelligence-claim-handoff-v1.mjs /tmp/evidence-hardened.json /tmp/hardened-result.json
+          node -e "const r=require('/tmp/hardened-result.json');if(r.state!=='PASS'||r.derived_claim_count!==1||r.derived_claims[0].state!=='PASS')throw new Error('VALID_HARDENED_CLAIM_NOT_ACCEPTED')"
+      - name: Tampered derived claim digest must fail closed
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const e=JSON.parse(fs.readFileSync('/tmp/evidence-hardened.json','utf8'));e.claims.at(-1).claim_strength=0.9;fs.writeFileSync('/tmp/evidence-tampered.json',JSON.stringify(e,null,2));
+          NODE
+          set +e
+          KAIOS_REQUIRE_OWNED_CLAIM_HARDENED=1 node scripts/kidults/poc/validate-owned-intelligence-claim-handoff-v1.mjs /tmp/evidence-tampered.json /tmp/tampered-result.json
+          status=$?
+          set -e
+          test "$status" -eq 2
+          node -e "const r=require('/tmp/tampered-result.json');if(!r.blockers.some(x=>x.includes('HARDENING_CLAIM_DIGEST_MISMATCH')))throw new Error('CLAIM_TAMPER_NOT_BLOCKED')"
