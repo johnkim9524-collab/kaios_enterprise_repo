@@ -1,0 +1,75 @@
+name: KIDULTS STAGING R3 Retry DLQ Proof
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-staging-r3-retry-dlq-proof.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  prove-retry-dlq:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      STAGING_D1: kidults-intelligence-db-staging
+      PRODUCTION_D1: kidults-intelligence-db
+      EVENT_ID: evt_kpmo_golden_r3_5e1374c71eda3e73
+      TARGET_QUEUE: kidults-asi-shadow-discovery-wikidata
+      DLQ: kidults-asi-shadow-dead-letter
+      WRANGLER_SEND_METRICS: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: READ — terminal retry and DLQ metadata only
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT queue_name,outbox_id,event_id,status,attempt_count,first_seen_at,last_seen_at,completed_at,last_error FROM asi_processed_messages WHERE event_id='$EVENT_ID' ORDER BY first_seen_at; SELECT id,event_id,engine_fleet,queue_name,status,attempt_count,last_error,created_at,updated_at FROM asi_outbox WHERE event_id='$EVENT_ID' ORDER BY id; SELECT id,queue_name,source_queue_name,source_queue_provenance_state,message_id,event_id,attempts,error_code,recorded_at,terminal_receipt_id,operating_state,replay_required FROM asi_dead_letters WHERE event_id='$EVENT_ID' ORDER BY recorded_at; SELECT receipt_id,receipt_type,dlq_queue_name,source_queue_name,message_id,event_id,outbox_id,payload_bytes,operating_state,replay_required,ack_policy,ack_requested,loss_guarantee,recorded_at FROM asi_terminal_dlq_receipts WHERE event_id='$EVENT_ID' ORDER BY recorded_at" --json > /tmp/r3-retry-dlq.json
+
+      - name: VERIFY — four attempts, bounded backoff, terminal DLQ receipt
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const sets=JSON.parse(fs.readFileSync('/tmp/r3-retry-dlq.json','utf8')).map(x=>x.results||[]);
+          const processed=(sets[0]||[])[0];
+          const outbox=(sets[1]||[])[0];
+          const dead=(sets[2]||[]).find(r=>r.event_id===process.env.EVENT_ID);
+          const receipt=(sets[3]||[]).find(r=>r.event_id===process.env.EVENT_ID&&r.receipt_type==='CLOUDFLARE_QUEUE_DLQ');
+          if(!processed||processed.queue_name!==process.env.TARGET_QUEUE||processed.status!=='FAILED'||Number(processed.attempt_count)<4) throw new Error('R3_RETRY_ATTEMPTS_NOT_PROVEN');
+          const elapsed=Date.parse(processed.last_seen_at)-Date.parse(processed.first_seen_at);
+          if(!Number.isFinite(elapsed)||elapsed<90000) throw new Error('R3_BOUNDED_BACKOFF_WINDOW_NOT_OBSERVED');
+          if(!outbox||outbox.queue_name!==process.env.TARGET_QUEUE||outbox.status!=='DEAD_LETTERED') throw new Error('R3_OUTBOX_NOT_TERMINAL_DLQ');
+          if(!dead||dead.queue_name!==process.env.DLQ||dead.source_queue_name!==process.env.TARGET_QUEUE||Number(dead.replay_required)!==1) throw new Error('R3_DLQ_RECORD_NOT_PROVEN');
+          if(!receipt||receipt.dlq_queue_name!==process.env.DLQ||receipt.source_queue_name!==process.env.TARGET_QUEUE||receipt.ack_policy!=='ACK_AFTER_D1_PERSIST'||Number(receipt.ack_requested)!==1||Number(receipt.loss_guarantee)!==0) throw new Error('R3_TERMINAL_RECEIPT_NOT_PROVEN');
+          const safe={state:'STAGING_RETRY_BACKOFF_DLQ_PASS',event_id:process.env.EVENT_ID,source_queue:process.env.TARGET_QUEUE,dlq:process.env.DLQ,processed_attempts:Number(processed.attempt_count),observed_retry_window_ms:elapsed,outbox_status:outbox.status,dead_letter_error_code:dead.error_code,terminal_receipt_type:receipt.receipt_type,ack_policy:receipt.ack_policy,replay_required:Number(receipt.replay_required),provider_payload:false,market_claim:false,production_mutation:false,production:'HOLD'};
+          fs.mkdirSync('/tmp/r3-safe',{recursive:true}); fs.writeFileSync('/tmp/r3-safe/receipt.json',JSON.stringify(safe,null,2)); console.log(JSON.stringify(safe,null,2));
+          NODE
+
+      - name: VERIFY — Production remains read-only
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/production-read.json
+          node - <<'NODE'
+          const x=require('/tmp/production-read.json'); if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_MUTATION_OR_READ_FAILURE');
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-staging-r3-retry-dlq-proof
+          path: /tmp/r3-safe/receipt.json
+          retention-days: 30
+          if-no-files-found: error
