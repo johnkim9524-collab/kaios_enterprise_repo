@@ -1,23 +1,42 @@
 {
   "id": "kidults-asi-coins-na-authentication-grading-infrastructure-r1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "parent_issue": 654,
   "factor_registry": "regional-market-factor-registry-v1",
   "factor_id": "AUTHENTICATION_GRADING_INFRASTRUCTURE",
   "category_scope": "coins_and_numismatics",
   "macroregion_id": "NORTH_AMERICA",
-  "purpose": "BOUNDED_PUBLIC_WEB_STRUCTURAL_FACTOR_EVIDENCE",
+  "purpose": "BOUNDED_STRUCTURAL_FACTOR_EVIDENCE",
   "minimum_independent_source_owners": 2,
+  "factor_state": "UNKNOWN_RIGHTS_HOLD",
   "sources": [
-    {"source_owner_id":"anacs","service_url":"https://anacs.com/services/","regional_access_url":"https://anacs.com/","required_semantics":["GRADING_SERVICE","AUTHENTICITY","UNITED_STATES_ACCESS"]},
-    {"source_owner_id":"ngc","service_url":"https://www.ngccoin.com/submit/services-fees/ngc/","regional_access_url":"https://www.ngccoin.com/contact/","required_semantics":["GRADING_SERVICE","UNITED_STATES_ACCESS"]}
+    {
+      "source_owner_id": "anacs",
+      "service_url": "https://anacs.com/services/",
+      "regional_access_url": "https://anacs.com/",
+      "transport_state": "NOT_NEEDED_WHILE_FACTOR_RIGHTS_HOLD",
+      "required_semantics": ["GRADING_SERVICE","AUTHENTICITY","UNITED_STATES_ACCESS"]
+    },
+    {
+      "source_owner_id": "ngc",
+      "service_url": "https://www.ngccoin.com/submit/services-fees/ngc/",
+      "regional_access_url": "https://www.ngccoin.com/contact/",
+      "terms_url": "https://www.ngccoin.com/legal/terms-of-use/",
+      "transport_state": "PROHIBITED_AUTOMATED_WEBSITE_ACCESS_WITHOUT_PRIOR_WRITTEN_CONSENT",
+      "internal_commercial_derivation_state": "NOT_AUTHORIZED_FROM_WEBSITE_TERMS",
+      "required_semantics": ["GRADING_SERVICE","UNITED_STATES_ACCESS"]
+    }
   ],
-  "excluded_transport_lanes": [{"source_owner_id":"pcgs","reason":"PUBLIC_WEB_RETURNED_HTTP_403_TO_CI_RUNNER; NO_BYPASS_ATTEMPTED"}],
-  "rights_state": "ALLOW_PUBLIC_READ_INTERNAL_DERIVATION_ONLY",
-  "allowed_claim": "OBSERVED_MULTI_AUTHORITY_GRADING_INFRASTRUCTURE_PRESENCE",
-  "blocked_claims": ["MARKET_SCALE","MARKET_MATURITY","TRANSACTION_ACTIVITY","PRICE","LIQUIDITY","DEMAND","SALES","MARKET_SHARE","GLOBAL_WEIGHT"],
-  "confidence_ceiling": "MEDIUM",
+  "excluded_transport_lanes": [
+    {"source_owner_id":"pcgs","reason":"PUBLIC_WEB_RETURNED_HTTP_403_TO_CI_RUNNER; NO_BYPASS_ATTEMPTED"},
+    {"source_owner_id":"ngc","reason":"OFFICIAL_TERMS_PROHIBIT_ROBOT_SPIDER_OR_OTHER_AUTOMATIC_DEVICE_ACCESS_WITHOUT_PRIOR_WRITTEN_CONSENT; WEBSITE_CONTENT_USE IS LIMITED TO PERSONAL_INFORMATIONAL_NON_COMMERCIAL_USE"}
+  ],
+  "rights_state": "HOLD_SECOND_SOURCE_RIGHTS_NOT_CLEARED",
+  "rights_evidence_refs": ["https://www.ngccoin.com/legal/terms-of-use/"],
+  "allowed_claim": "NONE_UNTIL_TWO_RIGHTS_CLEARED_INDEPENDENT_SOURCES_ARE_EMPIRICALLY_VERIFIED",
+  "blocked_claims": ["AUTHENTICATION_GRADING_INFRASTRUCTURE","MARKET_SCALE","MARKET_MATURITY","TRANSACTION_ACTIVITY","PRICE","LIQUIDITY","DEMAND","SALES","MARKET_SHARE","GLOBAL_WEIGHT"],
+  "confidence_ceiling": "NOT_VERIFIED",
   "public_release": "HOLD",
   "production": "HOLD",
-  "truth_boundary": "This factor proves only the observed presence of at least two independent official coin grading/authentication service infrastructures serving North America. PCGS public-web access was not bypassed after HTTP 403. No factor evidence here represents market size, maturity, demand, transaction activity, liquidity, price, sales, market share or global importance."
+  "truth_boundary": "The prior ANACS+NGC two-owner structural-factor promotion is quarantined. NGC Website Terms prohibit automated Website access without prior written consent and limit Website content use to personal informational non-commercial purposes. No automated NGC Website request is permitted by this workflow. AUTHENTICATION_GRADING_INFRASTRUCTURE remains UNKNOWN until two independent rights-cleared sources are proven."
 }
