@@ -334,6 +334,33 @@ try {
     assert.equal(registry.isAsiDeadLetterQueue('kidults-asi-production-dead-letter'),false);
   });
 
+  const devDb = new MemoryD1Database();
+  const devMesh = new DeterministicQueueMesh();
+  const devEnv = {DB:devDb};
+  for (const fleet of registry.ASI_FLEETS) devEnv[fleet.binding] = devMesh.binding(fleet.queue);
+  devMesh.env = devEnv;
+  const devRequest = await discoveryRequest(processors,'dev-physical-queue',false);
+  const devEnqueue = await runtime.enqueueAsiEvent(devEnv,devRequest);
+  const devItem = devMesh.pending.shift();
+  assert.ok(devItem);
+  const canonicalQueue = devItem.queue;
+  devItem.queue = canonicalQueue.replace('kidults-asi-shadow-','kidults-asi-dev-');
+  const devMessage = await devMesh.deliver(runtime,devItem,'message-dev-physical-queue');
+  const devProcessed = queryOne(devDb,`
+    SELECT queue_name,status FROM asi_processed_messages WHERE outbox_id=?
+  `,devItem.body.outbox_id);
+  const devOutbox = queryOne(devDb,`
+    SELECT queue_name,status FROM asi_outbox WHERE id=?
+  `,devItem.body.outbox_id);
+  test('DEV physical Queue batch consumes through canonical outbox provenance', () => {
+    assert.equal(devEnqueue.state,'DISPATCHED');
+    assert.equal(devMessage.state,'ACK');
+    assert.deepEqual(devProcessed,{queue_name:devItem.queue,status:'SUCCEEDED'});
+    assert.deepEqual(devOutbox,{queue_name:canonicalQueue,status:'DISPATCHED'});
+    assert.equal(devMesh.pending.length,4);
+  });
+  devDb.close();
+
   test('partition tuple encoding prevents delimiter-based grain collisions', () => {
     const common = {
       channel:'WIKIDATA_OFFICIAL_WEBSITE_GRAPH',
