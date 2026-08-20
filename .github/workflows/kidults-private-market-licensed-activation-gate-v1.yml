@@ -1,0 +1,37 @@
+name: KIDULTS Private Market Licensed Activation Gate v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/classiccom-licensed-private-market-activation-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-licensed-private-market-activation-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-licensed-private-market-activation-v1.mjs'
+      - '.github/workflows/kidults-private-market-licensed-activation-gate-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/classiccom-licensed-private-market-activation-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-licensed-private-market-activation-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-licensed-private-market-activation-v1.mjs'
+      - '.github/workflows/kidults-private-market-licensed-activation-gate-v1.yml'
+permissions:
+  contents: read
+jobs:
+  no-provider-network-activation-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate public-safe contract boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const c=JSON.parse(fs.readFileSync('coordination/kidults/source-intelligence/classiccom-licensed-private-market-activation-v1.json','utf8'));
+          if(c.production!=='HOLD'||c.public_release!=='HOLD'||c.provider_network_call_by_contract!==false||c.contract_or_eula_acceptance_authorized!==false||c.spend_authorized!==false||c.credential_use_authorized!==false||c.active_market_claim!=='NONE')throw new Error('ACTIVATION_CONTRACT_BOUNDARY');
+          console.log(JSON.stringify({status:'PASS',provider_network_call:false,contract_acceptance_authorized:false,spend_authorized:false,credential_use_authorized:false,active_market_claim:'NONE',production:'HOLD'}));
+          NODE
+      - name: Test activation gate with synthetic attestation only
+        run: node scripts/kidults/source-intelligence/test-licensed-private-market-activation-v1.mjs
