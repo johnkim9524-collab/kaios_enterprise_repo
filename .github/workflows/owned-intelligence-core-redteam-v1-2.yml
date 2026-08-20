@@ -5,6 +5,7 @@ on:
     branches: [main,"feat/**"]
     paths:
       - "coordination/kidults/architecture/owned-intelligence-core-redteam-v1.2.json"
+      - "scripts/kidults/intelligence/provider-independent-layers-v1.mjs"
       - "scripts/kidults/intelligence/owned-intelligence-core-v1.mjs"
       - "scripts/kidults/intelligence/owned-intelligence-core-v1.1.mjs"
       - "scripts/kidults/intelligence/validate-owned-intelligence-core-v1.1.mjs"
@@ -14,6 +15,7 @@ on:
     branches: [main]
     paths:
       - "coordination/kidults/architecture/owned-intelligence-core-redteam-v1.2.json"
+      - "scripts/kidults/intelligence/provider-independent-layers-v1.mjs"
       - "scripts/kidults/intelligence/owned-intelligence-core-v1.mjs"
       - "scripts/kidults/intelligence/owned-intelligence-core-v1.1.mjs"
       - "scripts/kidults/intelligence/validate-owned-intelligence-core-v1.1.mjs"
