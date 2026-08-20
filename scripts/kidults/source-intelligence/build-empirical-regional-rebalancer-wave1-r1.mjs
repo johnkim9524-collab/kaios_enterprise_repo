@@ -12,22 +12,41 @@ const collectionFactors=Object.keys(contract.collection_formula_weights||{});
 const analyticalFactors=Object.keys(contract.analytical_formula_weights||{});
 const factorState=(cell,f)=>cell?.factors?.[f]?.state||'UNKNOWN';
 const factorValue=(cell,f)=>Number(cell?.factors?.[f]?.value);
-const missing=(cell,factors)=>factors.filter(f=>factorState(cell,f)!=='VERIFIED'||!Number.isFinite(factorValue(cell,f)));
+const nonEmptyStrings=value=>Array.isArray(value)&&value.length>0&&value.every(item=>typeof item==='string'&&item.trim().length>0);
+const factorIneligibility=(cell,f)=>{
+  const factor=cell?.factors?.[f];
+  const reasons=[];
+  if(factor?.state!=='VERIFIED')reasons.push('STATE_NOT_VERIFIED');
+  const value=Number(factor?.value);
+  if(!Number.isFinite(value))reasons.push('VALUE_NOT_FINITE');
+  else if(value<0||value>1)reasons.push('VALUE_OUT_OF_RANGE');
+  if(!nonEmptyStrings(factor?.evidence_refs))reasons.push('EVIDENCE_REFS_MISSING');
+  if(!nonEmptyStrings(factor?.provenance_refs))reasons.push('PROVENANCE_REFS_MISSING');
+  if(typeof factor?.rights_state!=='string'||!factor.rights_state.startsWith('ALLOW'))reasons.push('RIGHTS_NOT_ALLOW');
+  if(!['HIGH','MEDIUM','LOW'].includes(factor?.confidence))reasons.push('CONFIDENCE_NOT_COMPUTABLE');
+  if(typeof factor?.methodology_ref!=='string'||!factor.methodology_ref.trim())reasons.push('METHODOLOGY_REF_MISSING');
+  return reasons;
+};
+const missing=(cell,factors)=>factors.filter(f=>factorIneligibility(cell,f).length>0);
 const normalizedScore=(cell,factors,weights)=>{
   const miss=missing(cell,factors);if(miss.length)return null;
-  let s=0,w=0;for(const f of factors){const wt=Number(weights[f]||0),v=factorValue(cell,f);if(v<0||v>1)throw new Error(`FACTOR_RANGE:${cell.category_scope}:${cell.macroregion_id}:${f}`);s+=wt*v;w+=wt;}
-  return w>0?Number((s/w).toFixed(6)):null;
+  let s=0,w=0;for(const f of factors){const wt=Number(weights[f]);if(!Number.isFinite(wt)||wt<=0)throw new Error(`FACTOR_WEIGHT_INVALID:${f}`);const v=factorValue(cell,f);s+=wt*v;w+=wt;}
+  if(w<=0)throw new Error('FACTOR_WEIGHT_TOTAL_INVALID');
+  return Number((s/w).toFixed(6));
 };
 const cells=[];
 for(const cell of baseline.cells||[]){
   const cMissing=missing(cell,collectionFactors),aMissing=missing(cell,analyticalFactors);
   const cScore=normalizedScore(cell,collectionFactors,contract.collection_formula_weights||{});
   const aScore=normalizedScore(cell,analyticalFactors,contract.analytical_formula_weights||{});
+  const consideredFactors=[...new Set([...collectionFactors,...analyticalFactors])];
+  const ineligibleFactors=Object.fromEntries(consideredFactors.map(f=>[f,factorIneligibility(cell,f)]).filter(([,reasons])=>reasons.length));
   cells.push({
     category_scope:cell.category_scope,macroregion_id:cell.macroregion_id,
     collection_plan:{state:cMissing.length?'NOT_COMPUTABLE_MISSING_FACTORS':'SHADOW_SCORE_COMPUTED_NOT_ACTIVATED',missing_factors:cMissing,normalized_score:cScore,collection_quota:null},
     analytical_plan:{state:aMissing.length?'NOT_COMPUTABLE_MISSING_FACTORS':'SHADOW_SCORE_COMPUTED_NOT_ACTIVATED',missing_factors:aMissing,normalized_score:aScore,analytical_weight:null},
     verified_factors:Object.entries(cell.factors||{}).filter(([,v])=>v?.state==='VERIFIED').map(([k])=>k).sort(),
+    ineligible_factors:ineligibleFactors,
     rights_provenance_refs:[...new Set(Object.values(cell.factors||{}).flatMap(v=>v?.state==='VERIFIED'?(v.provenance_refs||[]):[]))],
     live_mutation_authorized:false
   });
@@ -36,7 +55,7 @@ const collectionComputable=cells.filter(x=>!x.collection_plan.missing_factors.le
 const analyticalComputable=cells.filter(x=>!x.analytical_plan.missing_factors.length).length;
 const gates={
   EVIDENCE_COMPLETENESS_PASS:collectionComputable===cells.length&&analyticalComputable===cells.length,
-  RIGHTS_PROVENANCE_PASS:cells.every(x=>x.verified_factors.length===0||x.rights_provenance_refs.length>0),
+  RIGHTS_PROVENANCE_PASS:cells.every(x=>Object.values(x.ineligible_factors).every(reasons=>!reasons.includes('EVIDENCE_REFS_MISSING')&&!reasons.includes('PROVENANCE_REFS_MISSING')&&!reasons.includes('RIGHTS_NOT_ALLOW'))),
   CONCENTRATION_BIAS_PASS:'NOT_RUN_INCOMPLETE_FACTOR_SURFACE',
   SOURCE_REMOVAL_SENSITIVITY_PASS:'NOT_RUN_INCOMPLETE_FACTOR_SURFACE',
   DETERMINISTIC_RERUN_PASS:true,
