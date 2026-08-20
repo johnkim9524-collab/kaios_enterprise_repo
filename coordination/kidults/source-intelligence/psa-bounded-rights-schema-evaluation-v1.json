@@ -1,0 +1,85 @@
+{
+  "id": "kidults-psa-bounded-rights-schema-evaluation-v1",
+  "version": "1.0.0",
+  "parent_issues": [742, 521, 479, 344],
+  "founder_approval": {
+    "issue": 742,
+    "decision": "APPROVE_BOUNDED_PSA_API_RIGHTS_SCHEMA_EVALUATION",
+    "status": "APPROVED",
+    "scope": "ONE_ACCOUNT_IF_REQUIRED_PLUS_ACTUAL_API_EULA_REVIEW_PLUS_ONE_SECRET_TOKEN_PLUS_MAX_THREE_DOCUMENTED_SINGLE_CERT_DEV_SHADOW_SCHEMA_CALLS",
+    "spend": "NONE",
+    "production": "HOLD",
+    "publication": "HOLD"
+  },
+  "provider_id": "psa-public-api",
+  "state": "FOUNDER_APPROVED_ACCOUNT_EULA_TOKEN_HANDOFF_PENDING",
+  "official_docs": [
+    "https://www.psacard.com/publicapi",
+    "https://www.psacard.com/publicapi/documentation",
+    "https://www.psacard.com/termsandconditions/"
+  ],
+  "documented_transport": {
+    "base_url": "https://api.psacard.com/publicapi/",
+    "endpoint_class": "CERT_VERIFICATION_SINGLE_ITEM_BY_CERT_NUMBER",
+    "endpoint_template": "https://api.psacard.com/publicapi/cert/GetByCertNumber/{cert_number}",
+    "authentication": "OAUTH2_BEARER_ACCESS_TOKEN_FROM_PSA_ACCOUNT",
+    "public_documentation_claim": "SINGLE_ITEM_SEARCHES_BY_CERT_NUMBER"
+  },
+  "public_terms_boundary": {
+    "cert_verification_database_purpose": "CONFIRM_DATA_REGARDING_AUTHENTICATED_AND_GRADED_ITEMS_WITH_A_PARTICULAR_CERTIFICATION_NUMBER",
+    "implication": "PUBLIC_DOCUMENTATION_DOES_NOT_BY_ITSELF_AUTHORIZE_120_CASE_ENUMERATION_STORAGE_OR_INTERNAL_COMMERCIAL_CALIBRATION"
+  },
+  "secret_env": "KAIOS_PSA_API_TOKEN",
+  "operational_env": {
+    "account_authorized": "KAIOS_PSA_ACCOUNT_AUTHORIZED",
+    "eula_compatible": "KAIOS_PSA_EULA_COMPATIBLE",
+    "probe_cert_numbers": "KAIOS_PSA_PROBE_CERTS"
+  },
+  "allowed_before_rights_terminalization": [
+    "VIEW_ACTUAL_ACCOUNT_GATED_API_EULA",
+    "ACCEPT_EULA_ONLY_IF_COMPATIBLE_WITH_APPROVED_BOUNDED_PURPOSE",
+    "OBTAIN_ONE_OFFICIAL_API_TOKEN_IN_SECRET_SURFACE",
+    "ONE_TO_THREE_DOCUMENTED_SINGLE_CERT_DEV_SHADOW_SCHEMA_PROBES",
+    "OUTPUT_SCHEMA_KEYS_AND_FIELD_PRESENCE_ONLY",
+    "LOCAL_RESPONSE_SHA256_ONLY"
+  ],
+  "prohibited": [
+    "120_CASE_ACQUISITION_BEFORE_RIGHTS_TERMINALIZATION",
+    "BULK_ENUMERATION",
+    "BRUTE_FORCE_CERT_DISCOVERY",
+    "HTML_SCRAPING",
+    "HIDDEN_ENDPOINT_DISCOVERY",
+    "AUTH_BYPASS",
+    "TOKEN_LOGGING",
+    "RAW_PROVIDER_PAYLOAD_ARTIFACT",
+    "RAW_PROVIDER_PAYLOAD_LOGGING",
+    "PUBLIC_REDISTRIBUTION_OR_DISPLAY",
+    "COMMERCIAL_RESALE_OF_PROVIDER_DATA",
+    "PAID_MEMBERSHIP_OR_PURCHASE_WITHOUT_SEPARATE_APPROVAL",
+    "PRODUCTION_USE",
+    "FIELD_RIGHTS_ASSUMPTION"
+  ],
+  "field_purpose_rights": {
+    "collect": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
+    "store": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
+    "derive_internal_er_calibration": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
+    "display_internal": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
+    "display_public": "BLOCK",
+    "redistribute": "BLOCK",
+    "retention": "PENDING_ACTUAL_API_EULA_TERMINALIZATION"
+  },
+  "max_schema_probe_calls": 3,
+  "target_schema_presence": [
+    "CERTIFICATION_IDENTIFIER",
+    "GRADE",
+    "ITEM_IDENTITY_OR_REFERENCE",
+    "VARIANT_OR_PEDIGREE_IF_APPLICABLE",
+    "POPULATION_CONTEXT_IF_ACTUALLY_RETURNED",
+    "AUTHORITATIVE_ALTERNATE_IDENTIFIER_IF_ACTUALLY_RETURNED"
+  ],
+  "promotion_ceiling": "SCHEMA_AND_RIGHTS_PREFLIGHT_ONLY_NO_REVIEWER_MATERIAL",
+  "reviewer_material_increment": 0,
+  "production": "HOLD",
+  "publication": "HOLD",
+  "truth_boundary": "Founder #742 authorizes only the bounded PSA account/EULA/token/schema evaluation. Until the actual account-gated API EULA is terminalized compatible and exact fields are observed through at most three documented single-cert DEV/SHADOW calls, PSA contributes 0 GRADED_POPULATION reviewer material. No 120-case acquisition is authorized by this artifact."
+}
