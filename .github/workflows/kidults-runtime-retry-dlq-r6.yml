@@ -1,0 +1,71 @@
+name: KIDULTS Runtime Retry DLQ R6
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/kidults-runtime-retry-dlq-r6.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  retry-dlq-r6:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      STAGING_D1: kidults-intelligence-db-staging
+      PRODUCTION_D1: kidults-intelligence-db
+      EVENT_ID: evt_kpmo_golden_r3_5e1374c71eda3e73
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: GATE — exact read boundary
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_ACCOUNT_ID" && test -n "$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+      - name: READ — schema-safe R3 retry and DLQ state
+        run: |
+          set -euo pipefail
+          for Q in \
+            "SELECT * FROM asi_processed_messages WHERE event_id='$EVENT_ID' ORDER BY first_seen_at" \
+            "SELECT * FROM asi_outbox WHERE event_id='$EVENT_ID' ORDER BY created_at" \
+            "SELECT * FROM asi_dead_letters WHERE event_id='$EVENT_ID' ORDER BY recorded_at" \
+            "SELECT * FROM asi_terminal_dlq_receipts WHERE event_id='$EVENT_ID' ORDER BY recorded_at"; do
+            IDX=$(( ${IDX:-0} + 1 )); export IDX
+            npx wrangler d1 execute "$STAGING_D1" --remote --command "$Q" --json > "/tmp/q${IDX}.json"
+          done
+      - name: VERIFY — retry and terminal DLQ
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const rows=n=>{const x=JSON.parse(fs.readFileSync(`/tmp/q${n}.json`,'utf8'));return x.flatMap(v=>v.results||[])};
+          const p=rows(1),o=rows(2),d=rows(3),r=rows(4);
+          if(!p.length) throw new Error('NO_R3_PROCESSED_MESSAGE');
+          const maxAttempts=Math.max(...p.map(x=>Number(x.attempt_count||0)));
+          const failed=p.some(x=>x.status==='FAILED');
+          if(maxAttempts<4||!failed) throw new Error(`RETRY_NOT_PROVEN:${maxAttempts}:${failed}`);
+          const terminal=d.length+r.length;
+          const receipt={state:terminal>0?'RETRY_DLQ_PASS':'RETRY_PASS_DLQ_MISSING',max_attempts:maxAttempts,failed,dead_letter_rows:d.length,terminal_receipt_rows:r.length,outbox_rows:o.length,production:'HOLD'};
+          fs.writeFileSync('/tmp/r6.json',JSON.stringify(receipt,null,2)); console.log(JSON.stringify(receipt,null,2));
+          if(terminal===0) process.exit(42);
+          NODE
+      - name: VERIFY — Production read-only
+        if: always()
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/prod.json
+          node - <<'NODE'
+          const x=require('/tmp/prod.json'); if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_MUTATION');
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-runtime-retry-dlq-r6
+          path: /tmp/r6.json
+          if-no-files-found: warn
+          retention-days: 30
