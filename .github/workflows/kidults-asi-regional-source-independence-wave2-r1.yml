@@ -1,0 +1,86 @@
+name: KIDULTS ASI Regional Source Independence Wave2 R1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/wikidata-regional-vinyl-catalog-observation-admission-r1.json'
+      - 'coordination/kidults/source-intelligence/asi-regional-source-independence-factor-r1.json'
+      - 'scripts/kidults/source-intelligence/probe-wikidata-regional-vinyl-catalog-observation-r1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-regional-source-independence-factor-r1.mjs'
+      - '.github/workflows/kidults-asi-regional-source-independence-wave2-r1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-independence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Validate fail-closed Wave2 contracts
+        run: |
+          node - <<'NODE'
+          const wd=require('./coordination/kidults/source-intelligence/wikidata-regional-vinyl-catalog-observation-admission-r1.json');
+          const f=require('./coordination/kidults/source-intelligence/asi-regional-source-independence-factor-r1.json');
+          if(wd.admission_state!=='ADMITTED_BOUNDED_CC0_SHADOW'||wd.rights_state!=='ALLOW_CC0'||wd.transport_state!=='ALLOW_PUBLIC_SPARQL_READ_ONLY') throw new Error('WIKIDATA_ADMISSION');
+          if(wd.transport.authentication_required!==false||wd.transport.write_or_submission!==false||wd.transport.target_site_traversal!==false) throw new Error('WIKIDATA_TRANSPORT');
+          for(const x of ['MARKET_SCALE','MARKET_MATURITY','OBSERVED_TRANSACTION_ACTIVITY','CURRENT_PRICE','LIQUIDITY','DEMAND','SALES','GLOBAL_MARKET_WEIGHT']) if(!wd.blocked_claims.includes(x)) throw new Error(`BLOCKED_CLAIM_MISSING:${x}`);
+          if(f.canonical_factor!=='SOURCE_INDEPENDENCE'||f.verification_rule.minimum_independent_source_owners!==2||f.verification_rule.underlying_fact_lineage_independence_must_not_be_assumed!==true) throw new Error('FACTOR_CONTRACT');
+          if(wd.production!=='HOLD'||wd.public_release!=='HOLD'||f.production!=='HOLD'||f.public_release!=='HOLD') throw new Error('RELEASE');
+          NODE
+      - name: Rebuild current rights-admitted Wave1 surface
+        run: |
+          node scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs /tmp/musicbrainz.json
+          node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/baseline-wave1.json /tmp/musicbrainz.json
+          node scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs /tmp/baseline-wave1.json
+          node scripts/kidults/source-intelligence/build-asi-regional-data-usability-factor-r1.mjs /tmp/baseline-wave1.json /tmp/musicbrainz.json /tmp/baseline-data-usability.json
+          node scripts/kidults/source-intelligence/validate-asi-regional-data-usability-factor-r1.mjs /tmp/baseline-data-usability.json
+      - name: Probe independent Wikidata CC0 regional vinyl surface
+        run: node scripts/kidults/source-intelligence/probe-wikidata-regional-vinyl-catalog-observation-r1.mjs /tmp/wikidata.json
+      - name: Build SOURCE_INDEPENDENCE overlay twice
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-regional-source-independence-factor-r1.mjs /tmp/baseline-data-usability.json /tmp/musicbrainz.json /tmp/wikidata.json /tmp/baseline-wave2-a.json
+          node scripts/kidults/source-intelligence/build-asi-regional-source-independence-factor-r1.mjs /tmp/baseline-data-usability.json /tmp/musicbrainz.json /tmp/wikidata.json /tmp/baseline-wave2-b.json
+          cmp /tmp/baseline-wave2-a.json /tmp/baseline-wave2-b.json
+      - name: Validate multi-owner factor and source-removal sensitivity
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/baseline-wave2-a.json','utf8'));const s=x.source_independence_summary;
+          if(s?.state!=='VERIFIED'||s?.source_owner_count!==2||s?.verified_region_cells<1||s?.underlying_fact_lineage_independence_proven!==false) throw new Error('SOURCE_INDEPENDENCE_SUMMARY');
+          if(s.market_scale_verified!==false||s.market_maturity_verified!==false||s.transaction_activity_verified!==false) throw new Error('MARKET_OVERCLAIM');
+          const cells=x.cells.filter(c=>c.category_scope==='vinyl_recorded_music'&&c.factors?.SOURCE_INDEPENDENCE?.state==='VERIFIED');
+          if(cells.length!==s.verified_region_cells) throw new Error('CELL_COUNT');
+          for(const c of cells){const f=c.factors.SOURCE_INDEPENDENCE;if(f.source_owner_count!==2||f.confidence!=='MEDIUM'||f.underlying_fact_lineage_independence_proven!==false) throw new Error('CELL_FACTOR');if(f.source_removal_sensitivity.remove_musicbrainz.factor_state!=='NOT_VERIFIED_MULTI_OWNER'||f.source_removal_sensitivity.remove_wikidata.factor_state!=='NOT_VERIFIED_MULTI_OWNER') throw new Error('REMOVAL_SENSITIVITY');}
+          if(x.source_removal_sensitivity_state!=='PASS_FAILS_MULTI_OWNER_AS_EXPECTED'||x.production!=='HOLD'||x.public_release!=='HOLD') throw new Error('BOUNDARY');
+          console.log(JSON.stringify({status:'PASS',verified_region_cells:s.verified_region_cells,regions:s.regions,score:s.score,source_owner_count:s.source_owner_count,production:'HOLD'}));
+          NODE
+      - name: Replay SHADOW rebalancer twice on Wave2 surface
+        run: |
+          node scripts/kidults/source-intelligence/build-empirical-regional-rebalancer-wave1-r1.mjs /tmp/baseline-wave2-a.json /tmp/rebalancer-a.json
+          node scripts/kidults/source-intelligence/build-empirical-regional-rebalancer-wave1-r1.mjs /tmp/baseline-wave2-a.json /tmp/rebalancer-b.json
+          node scripts/kidults/source-intelligence/validate-empirical-regional-rebalancer-wave1-r1.mjs /tmp/rebalancer-a.json
+          node scripts/kidults/source-intelligence/validate-empirical-regional-rebalancer-wave1-r1.mjs /tmp/rebalancer-b.json
+          cmp /tmp/rebalancer-a.json /tmp/rebalancer-b.json
+      - name: Enforce zero live mutation and reduced analytical factor debt
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const r=JSON.parse(fs.readFileSync('/tmp/rebalancer-a.json','utf8'));
+          const vinyl=r.cells.filter(c=>c.category_scope==='vinyl_recorded_music'&&c.verified_factors.includes('SOURCE_INDEPENDENCE'));
+          if(!vinyl.length) throw new Error('NO_SOURCE_INDEPENDENCE_IN_REBALANCER');
+          for(const c of vinyl){if(c.analytical_plan.missing_factors.includes('SOURCE_INDEPENDENCE')) throw new Error('SOURCE_INDEPENDENCE_DEBT_NOT_REMOVED');if(c.collection_plan.collection_quota!==null||c.analytical_plan.analytical_weight!==null||c.live_mutation_authorized!==false) throw new Error('LIVE_MUTATION');}
+          if(r.activation_state!=='HOLD_INCOMPLETE_EMPIRICAL_FACTOR_SURFACE'||r.regional_collection_quota_plan.live_quota_mutations!==0||r.regional_analytical_weight_plan.live_weight_mutations!==0) throw new Error('ACTIVATION_BOUNDARY');
+          console.log(JSON.stringify({status:'PASS',source_independence_cells:vinyl.length,collection_computable:r.regional_collection_quota_plan.computable_cells,analytical_computable:r.regional_analytical_weight_plan.computable_cells,activation:r.activation_state}));
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-regional-source-independence-wave2-r1
+          path: |
+            /tmp/wikidata.json
+            /tmp/baseline-wave2-a.json
+            /tmp/rebalancer-a.json
+          if-no-files-found: error
+          retention-days: 30
