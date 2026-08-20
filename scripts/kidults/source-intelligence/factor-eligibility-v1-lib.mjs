@@ -13,6 +13,10 @@ export const factorIneligibility=factor=>{
   if(typeof factor?.rights_state!=='string'||!factor.rights_state.startsWith('ALLOW'))reasons.push('RIGHTS_NOT_ALLOW');
   if(!COMPUTABLE_CONFIDENCE.has(factor?.confidence))reasons.push('CONFIDENCE_NOT_COMPUTABLE');
   if(typeof factor?.methodology_ref!=='string'||!factor.methodology_ref.trim())reasons.push('METHODOLOGY_REF_MISSING');
+  if(factor?.origin==='OWNED_INTELLIGENCE'){
+    if(typeof factor?.hardening_proof_ref!=='string'||!factor.hardening_proof_ref.trim())reasons.push('OWNED_INTELLIGENCE_PROOF_REF_MISSING');
+    if(factor?.hardening_gate_state!=='ALLOW_SHADOW_ONLY')reasons.push('OWNED_INTELLIGENCE_HARDENING_GATE_NOT_ALLOW');
+  }
   return reasons;
 };
 

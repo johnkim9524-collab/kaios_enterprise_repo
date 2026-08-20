@@ -1,0 +1,42 @@
+name: Owned Intelligence Redteam v2.1
+
+on:
+  push:
+    branches: [main,"feat/**"]
+    paths:
+      - "coordination/kidults/architecture/owned-intelligence-redteam-v2.1.json"
+      - "scripts/kidults/intelligence/owned-intelligence-redteam-v2.1.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-redteam-v2.1.mjs"
+      - "scripts/kidults/source-intelligence/factor-eligibility-v1-lib.mjs"
+      - ".github/workflows/owned-intelligence-redteam-v2-1.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "coordination/kidults/architecture/owned-intelligence-redteam-v2.1.json"
+      - "scripts/kidults/intelligence/owned-intelligence-redteam-v2.1.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-redteam-v2.1.mjs"
+      - "scripts/kidults/source-intelligence/factor-eligibility-v1-lib.mjs"
+      - ".github/workflows/owned-intelligence-redteam-v2-1.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.19.0"
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Parse red-team contract
+        run: node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/architecture/owned-intelligence-redteam-v2.1.json','utf8'))"
+      - name: Regression validate v1
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.mjs
+      - name: Regression validate v1.1
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.1.mjs
+      - name: Regression validate v2
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-hardening-v2.mjs
+      - name: Validate red-team v2.1
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-redteam-v2.1.mjs
