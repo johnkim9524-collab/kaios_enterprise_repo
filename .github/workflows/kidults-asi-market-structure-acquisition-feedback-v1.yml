@@ -1,0 +1,62 @@
+name: KIDULTS ASI Market Structure Acquisition Feedback v1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-market-structure-acquisition-feedback-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-market-structure-acquisition-feedback-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-market-structure-acquisition-feedback-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v2.mjs'
+      - '.github/workflows/kidults-asi-market-structure-acquisition-feedback-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-market-structure-acquisition-feedback-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v2.mjs'
+      - '.github/workflows/kidults-asi-market-structure-acquisition-feedback-v1.yml'
+  schedule:
+    - cron: '27 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kidults-asi-market-feedback-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  feedback-cycle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build structural acquisition matrix
+        run: node scripts/kidults/source-intelligence/build-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
+      - name: Refresh bounded regional observation
+        run: node scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs /tmp/musicbrainz-regional-catalog-observation-r1.json
+      - name: Build and validate empirical regional baseline
+        run: |
+          node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json /tmp/musicbrainz-regional-catalog-observation-r1.json
+          node scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
+      - name: Apply market-structure feedback
+        run: node scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json /tmp/empirical-regional-baseline-wave1-r1.json /tmp/global-data-acquisition-master-matrix-feedback-v1.json
+      - name: Validate no unverified priority mutation
+        run: node scripts/kidults/source-intelligence/validate-asi-market-structure-acquisition-feedback-v1.mjs /tmp/global-data-acquisition-master-matrix-feedback-v1.json
+      - name: Build feedback-aware autonomous queue
+        run: node scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v2.mjs /tmp/global-data-acquisition-master-matrix-feedback-v1.json /tmp/asi-autonomous-action-queue-v2.json
+      - name: Validate feedback-aware queue
+        run: node scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v2.mjs /tmp/asi-autonomous-action-queue-v2.json
+      - name: Prove verified-factor isolation with synthetic contract fixture
+        run: node scripts/kidults/source-intelligence/test-asi-market-structure-acquisition-feedback-v1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-asi-market-structure-acquisition-feedback-v1
+          path: |
+            /tmp/empirical-regional-baseline-wave1-r1.json
+            /tmp/global-data-acquisition-master-matrix-feedback-v1.json
+            /tmp/asi-autonomous-action-queue-v2.json
+          retention-days: 30
+          if-no-files-found: error
