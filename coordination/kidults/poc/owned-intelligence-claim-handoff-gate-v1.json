@@ -1,0 +1,31 @@
+{
+  "id": "owned-intelligence-claim-handoff-gate-v1",
+  "version": "1.0.0",
+  "status": "INTERNAL_HARDENING",
+  "applies_to": "CANDIDATE_EVIDENCE_HANDOFF",
+  "derived_claim_types": [
+    "VALUATION",
+    "LIQUIDITY",
+    "SCARCITY",
+    "MARKET_DEPTH",
+    "MARKET_MATURITY",
+    "DEMAND",
+    "CONFIDENCE",
+    "SOURCE_RELIABILITY",
+    "PRICE_INDEX",
+    "MARKET_SIGNAL"
+  ],
+  "also_applies_when": "derivation_origin=KIDULTS_OWNED_INTELLIGENCE OR claim_type starts DERIVED_",
+  "required_binding": {
+    "methodology_ref": "NONEMPTY",
+    "hardening_binding.claim_id": "EXACT_CLAIM_ID",
+    "hardening_binding.claim_payload_sha256": "SHA256_OF_CLAIM_EXCLUDING_HARDENING_BINDING",
+    "hardening_binding.proof": "CANONICAL_REGISTERED_OWNED_INTELLIGENCE_HARDENING_PROOF"
+  },
+  "fail_closed": true,
+  "track_b_submission_on_failure": "BLOCKED",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "truth_boundary": "This gate does not convert raw external facts into derived intelligence. It prevents KIDULTS-owned derived claims from entering Candidate/Evidence handoff without a claim-content-bound registered hardening proof."
+}

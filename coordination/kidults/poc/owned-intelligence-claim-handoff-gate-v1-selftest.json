@@ -1,0 +1,14 @@
+{
+  "id": "owned-intelligence-claim-handoff-gate-v1-selftest",
+  "status": "SELFTEST_ONLY",
+  "controls": [
+    "raw_external_claim_not_reclassified",
+    "unhardened_derived_claim_blocked",
+    "claim_content_bound_registered_proof_passes",
+    "tampered_claim_digest_blocked"
+  ],
+  "empirical_evidence": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}
