@@ -1,0 +1,73 @@
+{
+  "id": "kidults-asi-proactive-source-pool-accumulator-v1",
+  "version": "1.0.0",
+  "status": "SHADOW_CONTINUOUS_CANDIDATE_POOL_CONTRACT",
+  "parent_issues": [480, 654, 746],
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "purpose": "Continuously discover, deduplicate and retain source candidates ahead of immediate demand fulfillment without converting discovery metadata into rights, admission, evidence or market claims.",
+  "persistence": {
+    "mode": "ROLLING_GITHUB_ACTIONS_ARTIFACT",
+    "artifact_name": "kidults-asi-proactive-source-pool-v1",
+    "retention_days": 90,
+    "repository_write_from_scheduled_cycle": false,
+    "previous_artifact_optional": true
+  },
+  "discovery": {
+    "product_anchor_count": 160,
+    "category_shards": 8,
+    "products_per_category_per_cycle": 2,
+    "rotation_cycle_count": 10,
+    "safe_discovery_providers": ["WIKIDATA_ACTION_API", "WIKIDATA_OFFICIAL_WEBSITE_CLAIM", "DATACITE_DOI_METADATA"],
+    "target_site_traversal_authorized": false,
+    "content_acquisition_authorized": false
+  },
+  "candidate_state_machine": [
+    "DISCOVERY_METADATA_OBSERVED",
+    "SOURCE_IDENTITY_DEDUPED",
+    "SCOPE_ROLE_REGION_RELEVANCE_CANDIDATE",
+    "RIGHTS_ROBOTS_ACCESS_PREFLIGHT_PENDING",
+    "PURPOSE_SPECIFIC_ADMISSION_PENDING",
+    "SOURCE_POOL_ELIGIBILITY_PENDING"
+  ],
+  "required_candidate_fields": [
+    "source_candidate_key",
+    "canonical_locator",
+    "source_name",
+    "first_seen_at",
+    "last_seen_at",
+    "observation_count",
+    "discovery_providers",
+    "source_family_hints",
+    "candidate_source_roles",
+    "representative_product_ids",
+    "demand_instance_ids",
+    "target_regions",
+    "target_languages",
+    "rights_state",
+    "admission_state",
+    "source_pool_state",
+    "evidence_state",
+    "next_action"
+  ],
+  "automatic_boundaries": {
+    "rights_state": "UNASSESSED",
+    "admission_state": "NOT_ADMITTED",
+    "source_pool_state": "CANDIDATE_ONLY",
+    "evidence_state": "DISCOVERY_METADATA_ONLY",
+    "acquisition_authorized": false,
+    "target_site_traversal_authorized": false,
+    "provider_contact_authorized": false,
+    "account_or_eula_authorized": false,
+    "spend_authorized": false,
+    "market_claim_authorized": false,
+    "public_projection": false,
+    "production": "HOLD"
+  },
+  "rights_review_queue": {
+    "max_packets_per_cycle": 64,
+    "ranking": ["NEW_CANDIDATE_FIRST", "DEMAND_LINK_COUNT_DESC", "ROLE_DIVERSITY_DESC", "REGION_DIVERSITY_DESC", "OBSERVATION_COUNT_DESC"],
+    "packet_purpose": "PURPOSE_SPECIFIC_RIGHTS_ROBOTS_ACCESS_PREFLIGHT_ONLY"
+  },
+  "truth_boundary": "Persistent candidate accumulation is discovery metadata only. Repeated observation does not create rights, admission, source-pool eligibility, verified evidence, market truth, Public release or Production authority."
+}
