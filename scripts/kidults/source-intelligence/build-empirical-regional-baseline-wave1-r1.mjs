@@ -8,78 +8,44 @@ const declarations=await read('coordination/kidults/source-intelligence/global-r
 const policy=await read('coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json');
 const contract=await read('coordination/kidults/source-intelligence/empirical-regional-baseline-wave1-contract-r1.json');
 const out=process.argv[2]||'/tmp/empirical-regional-baseline-wave1-r1.json';
+const observationPath=process.argv[3]||null;
 const sha=v=>`sha256:${createHash('sha256').update(JSON.stringify(v)).digest('hex')}`;
 const sources=[];
 for(const s of identity.sources||[]) if(s.admission_state==='ADMITTED') sources.push({...s,pool:'identity'});
 for(const s of historical.sources||[]) if(s.admission_state==='ADMITTED') sources.push({...s,pool:'historical'});
 for(const s of declarations.sources||[]) if(s.admission_state==='ADMITTED') sources.push({...s,pool:'declaration'});
+
+let regionalObs=null;
+if(observationPath){
+  regionalObs=await read(observationPath);
+  if(regionalObs.source_id!=='musicbrainz-core-catalog'||regionalObs.purpose!=='REGIONAL_CATALOG_OBSERVATION') throw new Error('REGIONAL_OBSERVATION_SOURCE_OR_PURPOSE');
+  if(regionalObs.rights_state!=='ALLOW_CORE_CC0'||regionalObs.factor_eligibility!=='NOT_VERIFIED') throw new Error('REGIONAL_OBSERVATION_RIGHTS_OR_FACTOR_BOUNDARY');
+  if(regionalObs.market_scale_claim!==false||regionalObs.transaction_activity_claim!==false||regionalObs.current_market_claim!==false||regionalObs.global_weight_claim!==false) throw new Error('REGIONAL_OBSERVATION_OVERCLAIM');
+  if(regionalObs.production!=='HOLD'||regionalObs.public_release!=='HOLD'||regionalObs.region_bound_observation_count<1) throw new Error('REGIONAL_OBSERVATION_RELEASE_OR_CAPACITY');
+}
+
 const dims=contract.required_source_dimensions;
 const dimensionCoverage={};
 for(const d of dims) dimensionCoverage[d]={present:0,total:sources.length,missing:[]};
-for(const s of sources){
-  for(const d of dims){
-    const v=s[d];
-    if(v!==undefined&&v!==null&&v!=='') dimensionCoverage[d].present++;
-    else dimensionCoverage[d].missing.push(s.source_id||s.id||'UNKNOWN_SOURCE');
-  }
-}
+for(const s of sources) for(const d of dims){const v=s[d];if(v!==undefined&&v!==null&&v!=='')dimensionCoverage[d].present++;else dimensionCoverage[d].missing.push(s.source_id||s.id||'UNKNOWN_SOURCE');}
 const factors=contract.required_factor_outputs;
-const sourceSnapshotIds=[identity.id,historical.id,declarations.id];
-const sourceDigest=sha({sourceSnapshotIds,sources});
-const regionBound=sources.filter(s=>s.macroregion_id&&s.country_code);
-const cells=(policy.canonical_macroregions||[]).map(r=>({
-  category_scope:'PORTFOLIO_DIAGNOSTIC_ONLY',
-  macroregion_id:r.id,
-  country_scope:[],
-  factors:Object.fromEntries(factors.map(f=>[f,{state:'UNKNOWN',confidence:null,evidence_refs:[],rights_state:'NOT_VERIFIED',provenance_refs:[],reason:'NO_REGION_BOUND_ADMITTED_FACTOR_EVIDENCE'}])),
-  collection_quota:null,
-  analytical_weight:null,
-  coverage_debt:null,
-  eligibility:'NOT_VERIFIED',
-  structural_bootstrap_target:r.bootstrap_collection_share,
-  bootstrap_is_market_share:false,
-  region_bound_admitted_source_count:regionBound.filter(s=>s.macroregion_id===r.id).length
-}));
+const obsCount=regionalObs?.region_bound_observation_count||0;
+const macroCounts=regionalObs?.macroregion_counts||{};
+const retainedObs=regionalObs?.observations||[];
+const canonicalRegionIds=new Set((policy.canonical_macroregions||[]).map(r=>r.id));
+const mappedObsCount=[...canonicalRegionIds].reduce((n,id)=>n+Number(macroCounts[id]||0),0);
+const unmappedObsCount=Math.max(0,obsCount-mappedObsCount);
+const regionBoundSourceAssets=obsCount>0?1:0;
+const sourceSnapshotIds=[identity.id,historical.id,declarations.id,...(regionalObs?[regionalObs.id]:[])];
+const observationBindingDigest=regionalObs?sha({id:regionalObs.id,query_response_sha256:regionalObs.query_response_sha256,region_bound_observation_count:obsCount,macroregion_counts:macroCounts,retained_projection_digests:retainedObs.map(o=>o.source_projection_sha256)}):null;
+const sourceDigest=sha({sourceSnapshotIds,sources,observationBindingDigest});
+const cells=(policy.canonical_macroregions||[]).map(r=>{
+  const regionObs=Number(macroCounts[r.id]||0);
+  const countries=[...new Set(retainedObs.filter(o=>o.macroregion_id===r.id).map(o=>o.country_code).filter(Boolean))].sort();
+  return {category_scope:'PORTFOLIO_DIAGNOSTIC_ONLY',macroregion_id:r.id,country_scope:countries,factors:Object.fromEntries(factors.map(f=>[f,{state:'UNKNOWN',confidence:null,evidence_refs:[],rights_state:'NOT_VERIFIED',provenance_refs:[],reason:regionObs>0?'REGION_BOUND_CATALOG_OBSERVATION_IS_NOT_MARKET_FACTOR_EVIDENCE':'NO_REGION_BOUND_MARKET_FACTOR_EVIDENCE'}])),collection_quota:null,analytical_weight:null,coverage_debt:null,eligibility:'NOT_VERIFIED',structural_bootstrap_target:r.bootstrap_collection_share,bootstrap_is_market_share:false,region_bound_admitted_source_count:regionObs>0?1:0,region_bound_observation_count:regionObs};
+});
 const priorityMissingDimensions=dims.filter(d=>dimensionCoverage[d].present<sources.length);
-const report={
-  snapshot_id:`regional-market-baseline-wave1-gap-${sourceDigest.slice(7,19)}`,
-  methodology_version:contract.version,
-  generated_at:'EVIDENCE_SNAPSHOT_DETERMINISTIC_FROM_COMMITTED_INPUTS',
-  status:'DRAFT',
-  source_snapshot_ids:sourceSnapshotIds,
-  source_snapshot_digest:sourceDigest,
-  cells,
-  coverage_debt_report:{
-    status:'EMPIRICAL_SOURCE_DIMENSION_GAP_MAP',
-    source_asset_count:sources.length,
-    region_bound_source_assets:regionBound.length,
-    source_dimension_coverage:dimensionCoverage,
-    priority_missing_dimensions:priorityMissingDimensions,
-    factor_assertions_verified:0,
-    factor_assertions_unknown:cells.length*factors.length,
-    blocker:regionBound.length===0?'CURRENT_ADMITTED_SOURCE_PORTFOLIO_LACKS_CANONICAL_REGION_BINDING':'PARTIAL_REGION_BINDING_REQUIRES_FACTOR_EVIDENCE',
-    next_acquisition_requirements:['OBSERVATION_LEVEL_MACROREGION','COUNTRY_CODE','LOCAL_MARKET_OR_VENUE','LANGUAGE','CURRENCY','OBSERVED_AT','EVIDENCE_BACKED_FACTOR_ASSERTIONS']
-  },
-  shadow_delta:{
-    status:'NO_MUTATION_FAIL_CLOSED',
-    collection_quota_plan:'NOT_COMPUTABLE',
-    analytical_weight_plan:'NOT_COMPUTABLE',
-    collection_quota_deltas:[],
-    analytical_weight_deltas:[],
-    reason:'NO_REGION_BOUND_EFFECTIVE_COVERAGE_AND_NO_VERIFIED_MARKET_FACTORS',
-    raw_record_count_used_as_market_scale:false,
-    production_mutation:false
-  },
-  truth_boundary:{
-    unknown_is_not_zero:true,
-    collection_share_is_not_analytical_weight:true,
-    raw_records_do_not_directly_mutate_weights:true,
-    bootstrap_is_not_market_share:true,
-    provider_home_country_is_not_observation_region:true,
-    global_claim_authorized:false
-  },
-  production:'HOLD',
-  public_release:'HOLD'
-};
+const blocker=obsCount>0?'REGION_BOUND_CATALOG_OBSERVATIONS_PRESENT_MARKET_FACTOR_EVIDENCE_ABSENT':'CURRENT_ADMITTED_SOURCE_PORTFOLIO_LACKS_CANONICAL_REGION_BINDING';
+const report={snapshot_id:`regional-market-baseline-wave1-gap-${sourceDigest.slice(7,19)}`,methodology_version:contract.version,generated_at:'EVIDENCE_SNAPSHOT_BOUND_TO_COMMITTED_AND_BOUNDED_OBSERVATION_INPUTS',status:'DRAFT',source_snapshot_ids:sourceSnapshotIds,source_snapshot_digest:sourceDigest,observation_binding_digest:observationBindingDigest,cells,coverage_debt_report:{status:'EMPIRICAL_SOURCE_AND_OBSERVATION_GAP_MAP',source_asset_count:sources.length+(regionalObs?1:0),region_bound_source_assets:regionBoundSourceAssets,region_bound_observation_count:obsCount,canonical_mapped_observation_count:mappedObsCount,unmapped_macroregion_observation_count:unmappedObsCount,region_bound_macroregion_counts:macroCounts,source_dimension_coverage:dimensionCoverage,priority_missing_dimensions:priorityMissingDimensions,factor_assertions_verified:0,factor_assertions_unknown:cells.length*factors.length,blocker,next_acquisition_requirements:obsCount>0?['RIGHTS_ADMITTED_TRANSACTION_ACTIVITY','VENUE_LEVEL_OBSERVATION','CURRENCY_AND_LANGUAGE_WHERE_FACTOR_RELEVANT','EVIDENCE_BACKED_MARKET_FACTOR_ASSERTIONS','INDEPENDENT_SOURCE_REDUNDANCY','CANONICALIZE_UNMAPPED_REGION_OBSERVATIONS_WITHOUT_INFERENCE']:['OBSERVATION_LEVEL_MACROREGION','COUNTRY_CODE','EVIDENCE_BACKED_FACTOR_ASSERTIONS']},shadow_delta:{status:'NO_MUTATION_FAIL_CLOSED',collection_quota_plan:'NOT_COMPUTABLE',analytical_weight_plan:'NOT_COMPUTABLE',collection_quota_deltas:[],analytical_weight_deltas:[],reason:obsCount>0?'REGION_BINDING_EXISTS_BUT_ZERO_VERIFIED_MARKET_FACTORS':'NO_REGION_BOUND_EFFECTIVE_COVERAGE_AND_NO_VERIFIED_MARKET_FACTORS',raw_record_count_used_as_market_scale:false,catalog_observation_used_as_market_factor:false,production_mutation:false},truth_boundary:{unknown_is_not_zero:true,collection_share_is_not_analytical_weight:true,raw_records_do_not_directly_mutate_weights:true,bootstrap_is_not_market_share:true,provider_home_country_is_not_observation_region:true,catalog_observation_is_not_market_factor:true,unmapped_region_observations_are_not_silently_zeroed:true,global_claim_authorized:false},production:'HOLD',public_release:'HOLD'};
 await fs.writeFile(out,JSON.stringify(report,null,2)+'\n');
-console.log(JSON.stringify({snapshot_id:report.snapshot_id,status:report.status,source_asset_count:sources.length,region_bound_source_assets:regionBound.length,factor_assertions_unknown:report.coverage_debt_report.factor_assertions_unknown,shadow_delta:report.shadow_delta.status,blocker:report.coverage_debt_report.blocker,production:'HOLD'}));
+console.log(JSON.stringify({snapshot_id:report.snapshot_id,status:report.status,source_asset_count:report.coverage_debt_report.source_asset_count,region_bound_source_assets:regionBoundSourceAssets,region_bound_observation_count:obsCount,canonical_mapped_observation_count:mappedObsCount,unmapped_macroregion_observation_count:unmappedObsCount,factor_assertions_verified:0,factor_assertions_unknown:report.coverage_debt_report.factor_assertions_unknown,shadow_delta:report.shadow_delta.status,blocker,production:'HOLD'}));
