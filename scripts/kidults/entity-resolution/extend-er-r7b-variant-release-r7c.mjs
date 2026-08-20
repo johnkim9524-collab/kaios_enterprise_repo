@@ -18,19 +18,28 @@ const constructedControlInput=dataset.dataset_class==='REAL_SOURCE_DERIVED_CONST
 if(!constructedControlInput) throw new Error('R7B_CONSTRUCTED_CONTROL_DATASET_REQUIRED');
 if(manifest.status!=='APPROVED_BOUNDED_POC_CALIBRATION'||!(manifest.required_strata_ids||[]).includes(STRATUM)) throw new Error('VARIANT_RELEASE_STRATUM_NOT_APPROVED');
 
-const timeoutMs=18000;
+// WDQS can transiently exceed the former 18s ceiling. Keep this live-source and fail-closed,
+// but give each bounded request enough time and retry transient transport/server failures.
+const timeoutMs=45000;
 const WIKIDATA_RIGHTS_URL='https://www.wikidata.org/wiki/Wikidata:Licensing';
 const digest=(value)=>`sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
-async function fetchJson(url,headers={},attempts=2){
+const sleep=(ms)=>new Promise((resolve)=>setTimeout(resolve,ms));
+async function fetchJson(url,headers={},attempts=3){
   let last;
   for(let a=1;a<=attempts;a++){
     const c=new AbortController(); const t=setTimeout(()=>c.abort(),timeoutMs);
     try{
       const r=await fetch(url,{headers:{'user-agent':'KIDULTS-ER-BENCHMARK-DEV-SHADOW/1.0',...headers},signal:c.signal});
-      if(!r.ok) throw new Error(`${url} -> HTTP ${r.status}`);
-      return await r.json();
-    }catch(e){last=e;if(a<attempts) await new Promise(x=>setTimeout(x,600*a));}
+      if(!r.ok){
+        const error=new Error(`${url} -> HTTP ${r.status}`);
+        if(![429,500,502,503,504].includes(r.status)) throw error;
+        last=error;
+      } else {
+        return await r.json();
+      }
+    }catch(e){last=e;}
     finally{clearTimeout(t);}
+    if(a<attempts) await sleep(Math.min(8000,1200*(2**(a-1))));
   }
   throw last;
 }
@@ -41,7 +50,7 @@ function label(entity){return entity?.labels?.en?.value??entity?.labels?.mul?.va
 // Discover product models carrying more than one manufacturer/model code. P13351 is
 // Wikidata's model-number property; P176 anchors an explicit manufacturer relationship.
 const sparql='SELECT ?item ?modelNumber ?manufacturer WHERE { ?item wdt:P13351 ?modelNumber ; wdt:P176 ?manufacturer . } ORDER BY STR(?item) STR(?modelNumber) LIMIT 500';
-const q=await fetchJson(`https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`,{accept:'application/sparql-results+json'},3);
+const q=await fetchJson(`https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`,{accept:'application/sparql-results+json'},4);
 const rows=q?.results?.bindings??[];
 if(rows.length===0) throw new Error('NO_MODEL_NUMBER_CANDIDATES');
 const groups=new Map();
@@ -59,7 +68,7 @@ for(const [key,arr] of [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0]
 }
 if(!selected) throw new Error('NO_SINGLE_PRODUCT_MODEL_WITH_TWO_DISTINCT_MODEL_NUMBERS');
 
-const j=await fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${selected.qid}.json`);
+const j=await fetchJson(`https://www.wikidata.org/wiki/Special:EntityData/${selected.qid}.json`,{},3);
 const entity=j?.entities?.[selected.qid];
 if(!entity) throw new Error('VARIANT_ENTITYDATA_MISSING');
 const liveCodes=stringValues(entity,'P13351'); const liveManufacturers=itemIds(entity,'P176');
