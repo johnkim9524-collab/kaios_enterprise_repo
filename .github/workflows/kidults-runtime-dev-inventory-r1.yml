@@ -1,0 +1,51 @@
+name: KIDULTS Runtime DEV Inventory R1
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/kidults-runtime-dev-inventory-r1.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dev-inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_READ_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_WORKER_READ_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+      CLOUDFLARE_QUEUE_READ_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: GATE — credentials present
+        run: |
+          set -euo pipefail
+          for V in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_READ_TOKEN CLOUDFLARE_WORKER_READ_TOKEN CLOUDFLARE_QUEUE_READ_TOKEN; do test -n "${!V:-}"; done
+          echo "::add-mask::$CLOUDFLARE_READ_TOKEN"; echo "::add-mask::$CLOUDFLARE_WORKER_READ_TOKEN"; echo "::add-mask::$CLOUDFLARE_QUEUE_READ_TOKEN"
+      - name: READ — remote D1 / Worker / Queue inventory only
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_READ_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database?per_page=100" > /tmp/d1.json
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_WORKER_READ_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts" > /tmp/workers.json
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_QUEUE_READ_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues?per_page=100" > /tmp/queues.json
+          node - <<'NODE'
+          const fs=require('fs');for(const f of ['/tmp/d1.json','/tmp/workers.json','/tmp/queues.json']){const x=JSON.parse(fs.readFileSync(f));if(x.success!==true)throw new Error(`REMOTE_INVENTORY_FAIL:${f}`)}
+          NODE
+      - name: CLASSIFY — explicit DEV vs STAGING separation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'); const d=JSON.parse(fs.readFileSync('/tmp/d1.json')); const w=JSON.parse(fs.readFileSync('/tmp/workers.json')); const q=JSON.parse(fs.readFileSync('/tmp/queues.json'));
+          const d1=(d.result||[]).map(x=>({name:x.name||'',id:x.uuid||x.id||''})); const workers=(w.result||[]).map(x=>typeof x==='string'?x:(x.id||x.name||x.script_name||'')); const queues=(q.result||[]).map(x=>x.queue_name||x.name||'');
+          const isDev=s=>/(^|[-_])(dev|development)([-_]|$)/i.test(String(s)); const isStaging=s=>/(^|[-_])staging([-_]|$)/i.test(String(s));
+          const dev={d1:d1.filter(x=>isDev(x.name)),workers:workers.filter(isDev),queues:queues.filter(isDev)}; const staging={d1:d1.filter(x=>isStaging(x.name)),workers:workers.filter(isStaging),queues:queues.filter(isStaging)};
+          const productionIds=['d6d65f81-f91d-428b-bf43-8a025aaa47bd']; const separation=dev.d1.every(x=>!productionIds.includes(x.id))&&staging.d1.every(x=>!productionIds.includes(x.id))&&dev.d1.every(a=>staging.d1.every(b=>a.id!==b.id));
+          const ready=dev.d1.length>0&&dev.workers.length>0&&dev.queues.length>0&&separation;
+          const receipt={state:ready?'INDEPENDENT_DEV_REMOTE_RESOURCES_PRESENT':'INDEPENDENT_DEV_REMOTE_RESOURCES_NOT_PRESENT',dev_counts:{d1:dev.d1.length,workers:dev.workers.length,queues:dev.queues.length},staging_counts:{d1:staging.d1.length,workers:staging.workers.length,queues:staging.queues.length},dev_d1_names:dev.d1.map(x=>x.name),dev_worker_names:dev.workers,dev_queue_count:dev.queues.length,separation_from_staging_and_production:separation,resource_creation_performed:false,production_mutation:false,production:'HOLD'};
+          fs.mkdirSync('/tmp/safe',{recursive:true});fs.writeFileSync('/tmp/safe/receipt.json',JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt,null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-runtime-dev-inventory-r1
+          path: /tmp/safe/receipt.json
+          retention-days: 30
