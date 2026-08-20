@@ -1,0 +1,86 @@
+{
+  "id": "kidults-provider-adapter-contract-v1",
+  "version": "1.0.0",
+  "status": "INTERNAL_FOUNDATION",
+  "provider_classes": {
+    "GRADING_EVIDENCE": {
+      "examples": ["PSA", "CGC", "BGS", "SGC"],
+      "required_source_fields": [
+        "provider_item_id",
+        "canonical_identity_fields",
+        "grade",
+        "observed_at",
+        "source_record_ref"
+      ],
+      "optional_source_fields": [
+        "certification_number",
+        "population_at_grade",
+        "population_higher",
+        "population_total",
+        "population_as_of"
+      ],
+      "canonical_output": "grading-evidence-v1",
+      "hard_rules": [
+        "NO_PROVIDER_CENSUS_SUMMATION",
+        "NO_GRADE_SCALE_EQUIVALENCE_WITHOUT_EXPLICIT_NORMALIZATION",
+        "RIGHTS_UNKNOWN_IS_HOLD",
+        "LINEAGE_REQUIRED",
+        "MISSING_POPULATION_REMAINS_UNKNOWN"
+      ]
+    },
+    "COLLECTOR_MARKET_EVENT": {
+      "examples": ["CLASSIC.COM", "Hagerty", "AuctionHouseDirect"],
+      "required_source_fields": [
+        "source_event_id",
+        "canonical_entity_id",
+        "event_at",
+        "event_state",
+        "venue_id",
+        "source_record_ref"
+      ],
+      "sold_event_required_fields": [
+        "price_amount",
+        "price_currency",
+        "price_type"
+      ],
+      "optional_source_fields": [
+        "physical_object_id",
+        "vin_or_chassis",
+        "listing_id",
+        "lot_id",
+        "high_bid",
+        "buyer_premium_included"
+      ],
+      "canonical_output": "market-event-v1",
+      "hard_rules": [
+        "ASK_IS_NOT_SOLD",
+        "DUPLICATE_REPUBLICATION_COUNTS_ONCE",
+        "CORROBORATING_SOURCE_OWNERS_ARE_PRESERVED",
+        "RIGHTS_UNKNOWN_IS_HOLD",
+        "FAILED_SALE_IS_NOT_ZERO_PRICE",
+        "MISSING_IS_NOT_ZERO"
+      ]
+    }
+  },
+  "rights_gate": {
+    "required_for_admission": ["collect", "store", "transform"],
+    "required_state": "ALLOW",
+    "unknown_behavior": "HOLD",
+    "deny_behavior": "REJECT"
+  },
+  "adapter_lifecycle": [
+    "DISCOVER",
+    "RIGHTS_PREFLIGHT",
+    "FIELD_MAP",
+    "NORMALIZE",
+    "VALIDATE",
+    "ADMIT_OR_HOLD",
+    "EMIT_CANONICAL_EVIDENCE"
+  ],
+  "activation_boundary": {
+    "credential_required_for_foundation": false,
+    "credential_required_for_live_provider_execution": true,
+    "contract_or_spend_authorization_required_before_paid_activation": true,
+    "production_allowed": false
+  }
+}
