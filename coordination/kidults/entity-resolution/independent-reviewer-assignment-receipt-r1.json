@@ -1,0 +1,35 @@
+{
+  "id":"kidults-er-independent-reviewer-assignment-receipt-r1",
+  "version":"1.0.0",
+  "parent_issue":827,
+  "review_contract_pr":612,
+  "production":"HOLD",
+  "public_personal_data":"NONE_BEYOND_OWNER_DESIGNATED_FIRST_NAMES_ALREADY_RECORDED_IN_ISSUE_827",
+  "reviewers":[
+    {
+      "reviewer_id":"REVIEWER_A",
+      "owner_designation":"Sean",
+      "real_person":true,
+      "distinct_from_other_reviewer":true,
+      "relevant_conflict_of_interest":"NONE_DISCLOSED_BY_OWNER",
+      "independent_from_resolver_decision_path":true,
+      "must_not_see_other_reviewer_labels":true
+    },
+    {
+      "reviewer_id":"REVIEWER_B",
+      "owner_designation":"Claire",
+      "real_person":true,
+      "distinct_from_other_reviewer":true,
+      "relevant_conflict_of_interest":"NONE_DISCLOSED_BY_OWNER",
+      "independent_from_resolver_decision_path":true,
+      "must_not_see_other_reviewer_labels":true
+    }
+  ],
+  "model_predictions_hidden_until_both_labels_frozen":true,
+  "labels":"NOT_COLLECTED",
+  "adjudication":"NOT_STARTED",
+  "blind_holdout":"CANDIDATE_NOT_SEALED",
+  "empirical_attestation":"NOT_CREATED",
+  "track_b":"NOT_STARTED",
+  "truth_boundary":"This receipt records owner designation and reviewer independence/availability only. It creates no human label, adjudication, empirical PASS, sealed holdout, benchmark result, or Track B input."
+}
