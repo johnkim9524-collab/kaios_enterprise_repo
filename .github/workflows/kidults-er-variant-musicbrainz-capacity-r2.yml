@@ -1,0 +1,36 @@
+name: KIDULTS ER Variant MusicBrainz Capacity R2
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-variant-musicbrainz-capacity-r2.mjs'
+      - '.github/workflows/kidults-er-variant-musicbrainz-capacity-r2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-variant-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Measure MusicBrainz variant capacity
+        run: node scripts/kidults/entity-resolution/probe-variant-musicbrainz-capacity-r2.mjs /tmp/variant-musicbrainz-capacity-r2.json
+      - name: Enforce fail-closed truth boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/variant-musicbrainz-capacity-r2.json','utf8'));
+          if(x.stratum_id!=='er-stratum-variant-release-heavy'||x.rights_state!=='ALLOW') throw new Error('STRATUM_OR_RIGHTS');
+          if(x.labels_present!==false||x.reviewers_assigned!==0||x.empirical_cases_created!==0||x.track_b!=='NOT_STARTED') throw new Error('OVERCLAIM');
+          if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.blind_partition_sealed!==false) throw new Error('RELEASE_BOUNDARY');
+          if(x.metrics.cross_market_alias_capacity!==0) throw new Error('CROSS_MARKET_ALIAS_MUST_FAIL_CLOSED_WITHOUT_INDEPENDENT_AUTHORITY');
+          if(x.metrics.same_object_normalization_source_disjoint_capacity>40||x.metrics.hard_negative_source_disjoint_capacity>40) throw new Error('CAPACITY_OVER_TARGET');
+          console.log(JSON.stringify({status:x.status,metrics:x.metrics,blockers:x.blockers,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-variant-musicbrainz-capacity-r2
+          path: /tmp/variant-musicbrainz-capacity-r2.json
+          retention-days: 14
