@@ -1,0 +1,100 @@
+{
+  "id": "kidults-er-graded-population-private-empirical-handoff-v1",
+  "version": "1.0.0",
+  "parent_issues": [609, 742, 747, 757],
+  "status": "PRIVATE_HANDOFF_CONTRACT_READY_RIGHTS_AND_DATA_PENDING",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "objective": "Bind a future lawfully acquired 120-case GRADED_POPULATION evidence set into the existing 840-case independent human-review preflight without publishing provider payloads, secrets, reviewer identities, labels, or model outputs.",
+  "input_boundary": {
+    "provider_network_call_by_this_contract": false,
+    "account_creation_authorized": false,
+    "eula_acceptance_authorized": false,
+    "spend_authorized": false,
+    "acquisition_authorized_by_this_contract": false,
+    "required_external_gate_before_real_handoff": "FIELD_BY_PURPOSE_RIGHTS_PASS",
+    "required_store": "PRIVATE_ONLY_CONTROLLED_STORE"
+  },
+  "rights_attestation_required": {
+    "status": "FIELD_BY_PURPOSE_RIGHTS_PASS",
+    "required_pass_purposes": ["collect", "store_private", "derive_internal_er_calibration", "internal_reviewer_display", "retention"],
+    "required_block_purposes": ["public_display", "redistribute"],
+    "terms_or_license_evidence_refs_required": true,
+    "real_attester_required": true,
+    "timestamp_required": true
+  },
+  "graded_sample": {
+    "stratum_id": "er-stratum-graded-population",
+    "cases": 120,
+    "case_class_targets": {
+      "SAME_OBJECT_NORMALIZATION": 40,
+      "HARD_NEGATIVE": 40,
+      "CROSS_MARKET_ALIAS": 40
+    },
+    "identity_boundary_targets": {
+      "SOURCE_RECORD": 60,
+      "PHYSICAL_OBJECT": 60
+    }
+  },
+  "per_case_allowlist": [
+    "case_id",
+    "stratum_id",
+    "case_class",
+    "identity_boundary",
+    "source_a_reference",
+    "source_b_reference",
+    "source_a_payload_sha256",
+    "source_b_payload_sha256",
+    "license_evidence_refs",
+    "rights_state",
+    "provenance_refs"
+  ],
+  "per_case_requirements": {
+    "rights_state": "ALLOW",
+    "two_distinct_evidence_sides": true,
+    "source_payload_sha256": true,
+    "license_evidence_refs": true,
+    "provenance_refs": true,
+    "unique_case_id": true,
+    "duplicate_evidence_pair_padding_prohibited": true
+  },
+  "prohibited_anywhere_in_real_handoff": [
+    "authorization",
+    "access_token",
+    "api_token",
+    "bearer_token",
+    "cookie",
+    "password",
+    "secret",
+    "raw_provider_payload",
+    "raw_response",
+    "response_body",
+    "expected",
+    "expected_label",
+    "gold_label",
+    "label",
+    "labels",
+    "reviewer_id",
+    "reviewer_label",
+    "reviewer_identity",
+    "model_prediction",
+    "model_score",
+    "blind_holdout"
+  ],
+  "public_safe_output": {
+    "allowed": ["handoff_id", "provider_id", "rights_attestation_id", "case_count", "case_class_counts", "identity_boundary_counts", "handoff_sha256", "case_set_sha256", "status", "production", "public_release"],
+    "case_material": "PROHIBITED",
+    "provider_payload": "PROHIBITED",
+    "secrets": "PROHIBITED"
+  },
+  "downstream": [
+    "COMBINE_WITH_EXACT_720_REAL_WORLD_UNLABELED_NON_GRADED_CASES",
+    "RUN_EXISTING_HUMAN_REVIEW_PREFLIGHT_FOR_EXACT_840",
+    "TWO_INDEPENDENT_REVIEWERS_AND_1680_REVIEW_RECORDS",
+    "ADJUDICATION",
+    "BLIND_HOLDOUT_COMMIT_AND_MODEL_FREEZE_ORDER_PROOF",
+    "EMPIRICAL_ATTESTATION",
+    "TRACK_B"
+  ],
+  "truth_boundary": "This contract removes only the post-rights integration ambiguity. It does not provide source rights, acquire data, create cases, assign reviewers, create labels, claim empirical PASS, authorize public release, or authorize Production/G5."
+}
