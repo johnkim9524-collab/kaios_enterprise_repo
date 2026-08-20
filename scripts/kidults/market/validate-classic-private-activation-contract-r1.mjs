@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+const p='coordination/kidults/market/classic-private-activation-contract-r1.json';
+const x=JSON.parse(fs.readFileSync(p,'utf8'));
+const fail=(m)=>{throw new Error(m)};
+if(x.provider!=='CLASSIC.COM') fail('PROVIDER_MISMATCH');
+if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.default_enabled!==false) fail('RELEASE_BOUNDARY_WEAKENED');
+if(x.activation_state!=='AWAITING_WRITTEN_RIGHTS_AND_PROVIDER_SPEC') fail('FALSE_ACTIVATION_STATE');
+if(x.required_rights_state!=='FIELD_BY_PURPOSE_RIGHTS_PASS') fail('RIGHTS_GATE_WEAKENED');
+for(const f of ['stable_object_or_lot_identity','sold_date','realized_consideration','currency','venue_or_source_reference']) if(!x.required_event_fields.includes(f)) fail(`EVENT_FIELD_MISSING:${f}`);
+for(const g of ['WRITTEN_RIGHTS_PASS','PROVIDER_SPEC_AVAILABLE','AUTHORIZED_CREDENTIAL_PRESENT','SECRET_MANAGER_BOUND','STAGING_PRIVATE_INGESTION_PASS','BOUNDED_REACQUISITION_PASS','EVENT_TUPLE_VALIDATION_PASS']) if(!x.activation_gates.includes(g)) fail(`ACTIVATION_GATE_MISSING:${g}`);
+const s=x.secret_boundary||{};
+if(s.credential_source!=='SECRET_MANAGER_ONLY'||!s.hardcoded_credentials_prohibited||!s.credential_values_in_registry_prohibited||!s.credential_values_in_logs_prohibited) fail('SECRET_BOUNDARY_WEAKENED');
+const r=x.runtime_boundary||{};
+if(r.environment!=='STAGING_PRIVATE_ONLY'||!r.provider_endpoint_must_be_supplied_by_authorized_provider_spec||!r.external_call_before_rights_pass_prohibited||!r.raw_provider_payload_publication_prohibited||!r.bounded_reacquisition_required) fail('RUNTIME_BOUNDARY_WEAKENED');
+if(r.ttl_days_min!==1||r.ttl_days_max!==30||!r.opaque_receipt_required||!r.audit_required||!r.tamper_detection_required||!r.deletion_proof_required) fail('PRIVATE_STORE_CONTROLS_WEAKENED');
+const c=x.current_completion||{};
+if(c.written_rights!=='PENDING'||c.provider_spec!=='PENDING'||c.private_ingestion!=='NOT_STARTED'||c.bounded_reacquisition!=='NOT_STARTED'||c.active_market_claim!=='NONE') fail('FALSE_COMPLETION_CLAIM');
+console.log('KIDULTS_CLASSIC_PRIVATE_ACTIVATION_CONTRACT_R1_PASS_PREFLIGHT_ONLY');
