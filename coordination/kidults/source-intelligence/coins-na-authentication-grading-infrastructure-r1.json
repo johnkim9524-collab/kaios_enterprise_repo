@@ -1,0 +1,32 @@
+{
+  "id": "kidults-asi-coins-na-authentication-grading-infrastructure-r1",
+  "version": "1.0.0",
+  "parent_issue": 654,
+  "factor_registry": "regional-market-factor-registry-v1",
+  "factor_id": "AUTHENTICATION_GRADING_INFRASTRUCTURE",
+  "category_scope": "coins_and_numismatics",
+  "macroregion_id": "NORTH_AMERICA",
+  "purpose": "BOUNDED_PUBLIC_WEB_STRUCTURAL_FACTOR_EVIDENCE",
+  "minimum_independent_source_owners": 2,
+  "sources": [
+    {
+      "source_owner_id": "pcgs",
+      "service_url": "https://www.pcgs.com/services/grading-services",
+      "regional_access_url": "https://www.pcgs.com/dealers",
+      "required_semantics": ["GRADING_SERVICE", "AUTHENTICITY_OR_GRADING_GUARANTEE", "US_OR_NORTH_AMERICA_ACCESS"]
+    },
+    {
+      "source_owner_id": "ngc",
+      "service_url": "https://www.ngccoin.com/submit/services-fees/ngc/",
+      "regional_access_url": "https://www.ngccoin.com/contact/",
+      "required_semantics": ["GRADING_SERVICE", "US_OR_NORTH_AMERICA_ACCESS"]
+    }
+  ],
+  "rights_state": "ALLOW_PUBLIC_READ_INTERNAL_DERIVATION_ONLY",
+  "allowed_claim": "OBSERVED_MULTI_AUTHORITY_GRADING_INFRASTRUCTURE_PRESENCE",
+  "blocked_claims": ["MARKET_SCALE","MARKET_MATURITY","TRANSACTION_ACTIVITY","PRICE","LIQUIDITY","DEMAND","SALES","MARKET_SHARE","GLOBAL_WEIGHT"],
+  "confidence_ceiling": "MEDIUM",
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "truth_boundary": "This factor proves only the observed presence of at least two independent official coin grading/authentication service infrastructures serving North America. It is not evidence of market size, demand, transaction activity, liquidity, price, sales, market share or global importance."
+}
