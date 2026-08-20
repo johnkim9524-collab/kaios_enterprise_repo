@@ -1,0 +1,49 @@
+name: KIDULTS DEV Queue Consumer Topology Read
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/kidults-dev-queue-consumer-topology-read.yml']
+permissions:
+  contents: read
+jobs:
+  topology:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DEV_WORKER: kidults-autonomous-intelligence-dev
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: READ — all DEV Queue worker consumers
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"; echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          node - <<'NODE' > /tmp/queues.txt
+          const fs=require('fs'),x=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));
+          const q=(x.queues?.consumers||[]).map(v=>v.queue.replace('kidults-asi-shadow-','kidults-asi-dev-'));
+          if(q.length!==26||new Set(q).size!==26) throw new Error('DEV_QUEUE_SET_NOT_26');
+          console.log(q.join('\n'));
+          NODE
+          mkdir -p /tmp/topology
+          while IFS= read -r queue; do
+            npx wrangler queues consumer worker list "$queue" --json > "/tmp/topology/$queue.json"
+          done < /tmp/queues.txt
+          node - <<'NODE'
+          const fs=require('fs'),path=require('path'),worker=process.env.DEV_WORKER;
+          const queues=fs.readFileSync('/tmp/queues.txt','utf8').trim().split(/\n/);
+          const rows=queues.map(queue=>{const raw=JSON.parse(fs.readFileSync(path.join('/tmp/topology',`${queue}.json`),'utf8'));const text=JSON.stringify(raw);return {queue,has_dev_worker:text.includes(worker),consumer_count:Array.isArray(raw)?raw.length:Array.isArray(raw?.result)?raw.result.length:null};});
+          const safe={state:'DEV_QUEUE_CONSUMER_TOPOLOGY_READ',expected_queues:26,queues_with_dev_worker:rows.filter(x=>x.has_dev_worker).length,queues:rows,mutation:false};
+          fs.mkdirSync('/tmp/safe',{recursive:true});fs.writeFileSync('/tmp/safe/receipt.json',JSON.stringify(safe,null,2));console.log(JSON.stringify(safe,null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-dev-queue-consumer-topology-read
+          path: /tmp/safe/receipt.json
+          retention-days: 30
+          if-no-files-found: error
