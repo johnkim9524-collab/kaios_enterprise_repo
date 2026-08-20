@@ -4,6 +4,7 @@ on:
     paths:
       - 'coordination/kidults/source-intelligence/empirical-regional-baseline-wave1-contract-r1.json'
       - 'scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs'
       - '.github/workflows/kidults-empirical-regional-baseline-wave1-r1.yml'
   workflow_dispatch:
 permissions:
@@ -16,16 +17,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
-      - name: Fail closed against fabricated market scale
+      - name: Build deterministic empirical Wave 1 gap snapshot
+        run: node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
+      - name: Validate fail-closed empirical snapshot
+        run: node scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
+      - name: Enforce no fabricated market scale or regional activation
         run: |
           node - <<'NODE'
           const r=require('/tmp/empirical-regional-baseline-wave1-r1.json');
-          if(r.production!=='HOLD') process.exit(1);
-          if(r.macroregions.some(x=>x.bootstrap_is_market_share!==false)) process.exit(1);
-          if(r.macroregions.some(x=>x.market_scale!=='UNKNOWN'||x.market_maturity!=='UNKNOWN')) process.exit(1);
-          if(!r.truth_boundary.includes('NO_RECORD_COUNT_AS_MARKET_SCALE')) process.exit(1);
-          console.log('Empirical Regional Baseline Wave1 fail-closed diagnostic PASS');
+          if(r.production!=='HOLD'||r.public_release!=='HOLD') process.exit(1);
+          if(!Array.isArray(r.cells)||r.cells.length===0) process.exit(1);
+          if(r.cells.some(x=>x.bootstrap_is_market_share!==false)) process.exit(1);
+          if(r.cells.some(x=>x.collection_quota!==null||x.analytical_weight!==null)) process.exit(1);
+          if(r.coverage_debt_report?.region_bound_source_assets!==0) process.exit(1);
+          if(r.coverage_debt_report?.blocker!=='CURRENT_ADMITTED_SOURCE_PORTFOLIO_LACKS_CANONICAL_REGION_BINDING') process.exit(1);
+          if(r.shadow_delta?.status!=='NO_MUTATION_FAIL_CLOSED'||r.shadow_delta?.production_mutation!==false) process.exit(1);
+          if(r.truth_boundary?.provider_home_country_is_not_observation_region!==true) process.exit(1);
+          if(r.truth_boundary?.global_claim_authorized!==false) process.exit(1);
+          console.log('Empirical Regional Baseline Wave1 exact gap truth PASS');
           NODE
       - uses: actions/upload-artifact@v4
         with:
