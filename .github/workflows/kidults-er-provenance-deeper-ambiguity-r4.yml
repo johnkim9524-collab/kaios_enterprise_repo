@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'scripts/kidults/entity-resolution/probe-provenance-deeper-ambiguity-r4.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-deeper-ambiguity-packet-r4.mjs'
       - '.github/workflows/kidults-er-provenance-deeper-ambiguity-r4.yml'
       - 'scripts/kidults/entity-resolution/probe-provenance-deep-ambiguity-r3.mjs'
       - 'scripts/kidults/entity-resolution/build-provenance-deep-ambiguity-packet-r3.mjs'
@@ -38,19 +39,24 @@ jobs:
           NODE
       - name: Measure pages 97-240 additional ambiguity capacity
         run: node scripts/kidults/entity-resolution/probe-provenance-deeper-ambiguity-r4.mjs /tmp/provenance-deeper-ambiguity-r4.json /tmp/provenance-exclude-r4.json
+      - name: Packetize proven R4 ambiguity cases
+        run: node scripts/kidults/entity-resolution/build-provenance-deeper-ambiguity-packet-r4.mjs /tmp/provenance-deeper-ambiguity-r4.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/provenance-deeper-ambiguity-packet-r4.json
       - name: Enforce fail-closed boundary
         run: |
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/provenance-deeper-ambiguity-r4.json','utf8'));
-          if(x.stratum_id!=='er-stratum-provenance-unique-object'||x.rights_state!=='ALLOW') throw new Error('STRATUM_OR_RIGHTS');
-          if(x.metrics.target_remaining_ambiguity_capacity!==41||x.metrics.source_disjoint_ambiguity_capacity>41) throw new Error('CAPACITY_BOUNDARY');
-          if(x.labels_present!==false||x.reviewers_assigned!==0||x.empirical_cases_created!==0||x.track_b!=='NOT_STARTED') throw new Error('OVERCLAIM');
-          if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.blind_partition_sealed!==false) throw new Error('RELEASE_BOUNDARY');
-          if(/"payload"\s*:/.test(JSON.stringify(x))) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
-          console.log(JSON.stringify({status:x.status,metrics:x.metrics,blockers:x.blockers,production:'HOLD'},null,2));
+          const fs=require('fs');const cap=JSON.parse(fs.readFileSync('/tmp/provenance-deeper-ambiguity-r4.json','utf8'));const packet=JSON.parse(fs.readFileSync('/tmp/provenance-deeper-ambiguity-packet-r4.json','utf8'));
+          if(cap.stratum_id!=='er-stratum-provenance-unique-object'||cap.rights_state!=='ALLOW') throw new Error('STRATUM_OR_RIGHTS');
+          if(cap.metrics.target_remaining_ambiguity_capacity!==41||cap.metrics.source_disjoint_ambiguity_capacity>41) throw new Error('CAPACITY_BOUNDARY');
+          if(packet.case_count!==cap.metrics.source_disjoint_ambiguity_capacity||packet.total_reviewer_ready_if_combined!==79+packet.case_count) throw new Error('PACKET_CAPACITY_MISMATCH');
+          if(packet.labels_present!==false||packet.reviewer_a!=='NOT_ASSIGNED'||packet.reviewer_b!=='NOT_ASSIGNED'||packet.empirical_pass!==false||packet.track_b!=='NOT_STARTED') throw new Error('OVERCLAIM');
+          if(packet.production!=='HOLD'||packet.public_release!=='HOLD'||packet.blind_partition.state!=='CANDIDATE_NOT_SEALED') throw new Error('RELEASE_BOUNDARY');
+          if(/"payload"\s*:/.test(JSON.stringify({cap,packet}))) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({additional:packet.case_count,total_provenance:packet.total_reviewer_ready_if_combined,remaining:packet.remaining_case_count,blind_candidates_added:packet.blind_partition.case_count,production:'HOLD'},null,2));
           NODE
       - uses: actions/upload-artifact@v4
         with:
           name: kidults-er-provenance-deeper-ambiguity-r4
-          path: /tmp/provenance-deeper-ambiguity-r4.json
+          path: |
+            /tmp/provenance-deeper-ambiguity-r4.json
+            /tmp/provenance-deeper-ambiguity-packet-r4.json
           retention-days: 14
