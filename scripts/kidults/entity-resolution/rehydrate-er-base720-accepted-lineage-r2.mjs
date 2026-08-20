@@ -33,6 +33,19 @@ function normalizeKnownLegacyReleaseProvenance(fragment,expectedAffected,expecte
   if(affected!==expectedAffected||removed!==expectedRemoved)fail('LEGACY_PROVENANCE_DUPLICATE_COUNT_DRIFT',`${fragment?.id||'UNKNOWN'}:${affected}/${removed}!=${expectedAffected}/${expectedRemoved}`);
   return {fragment:cloned,affected_case_count:affected,removed_exact_duplicate_ref_occurrences:removed};
 }
+function normalizeKnownLegacyDesignerProvenance(fragment){
+  const cloned=structuredClone(fragment);if(cloned?.id!=='kidults-er-designer-review-packet-r1'||!Array.isArray(cloned?.cases)||cloned.cases.length!==120)fail('DESIGNER_ACCEPTED_FRAGMENT_BOUNDARY');
+  let affected=0,removed=0;
+  for(const c of cloned.cases){
+    const refs=c?.provenance_refs;if(!Array.isArray(refs)||!refs.length)continue;
+    const unique=[...new Set(refs)];if(unique.length===refs.length)continue;
+    const accepted=/^designer-r1-\d{3}$/.test(String(c.case_id||''));
+    if(!accepted||c.case_class!=='SAME_OBJECT_NORMALIZATION'||c.rights_state!=='ALLOW'||refs.length!==4||unique.length!==3||refs.some(x=>typeof x!=='string'||!x.trim())||!c.source_a_reference||c.source_a_reference!==c.source_b_reference||!SHA.test(String(c.source_a_payload_sha256||''))||c.source_a_payload_sha256!==c.source_b_payload_sha256)fail('DESIGNER_PROVENANCE_DUPLICATE_OUTSIDE_ACCEPTED_SINGLE_RECORD_BOUNDARY',c?.case_id||'UNKNOWN');
+    c.provenance_refs=unique;affected++;removed+=refs.length-unique.length;
+  }
+  if(affected!==40||removed!==40)fail('DESIGNER_PROVENANCE_DUPLICATE_COUNT_DRIFT',`${affected}/${removed}!=40/40`);
+  return {fragment:cloned,affected_case_count:affected,removed_exact_duplicate_ref_occurrences:removed};
+}
 function basicCase(raw){
   noResultLeak(raw);
   const a=String(raw.source_a_reference??raw.source_reference??'').trim(),b=String(raw.source_b_reference??raw.source_reference??'').trim();
@@ -87,6 +100,7 @@ const serNasm=findId(files,'kidults-er-serialized-smithsonian-nasm-review-packet
 const serFaa=findId(files,'kidults-er-serialized-faa-hardnegative-packet-r1');
 const serAlias=findId(files,'kidults-er-serialized-faa-ntsb-crossauthority-packet-r1');
 
+const designerNormalized=normalizeKnownLegacyDesignerProvenance(designer);
 const residual1Normalized=normalizeKnownLegacyReleaseProvenance(residual1,5,5);
 const residual2Normalized=normalizeKnownLegacyReleaseProvenance(residual2,27,27);
 const pressing=adaptReleaseLineageForBase720({stratumId:'er-stratum-pressing-edition-media',fragments:[pBase,pHard,cross,residual2Normalized.fragment],samplingPlan:sampling});
@@ -95,10 +109,10 @@ const serialized=await adaptSerialized([serWd,serNasm,serFaa,serAlias]);
 
 const provenanceFiles=await jsonFiles(provenanceRoot);const provenanceCases=provenanceFiles.flatMap(x=>Array.isArray(x.value?.cases)&&x.value?.stratum_id==='er-stratum-provenance-unique-object'?x.value.cases:[]);if(provenanceCases.length!==120)fail('PROVENANCE_EXACT_120_REQUIRED',provenanceCases.length);
 const provenance=packet(provenanceCases);
-const packets=[packet(casesOf(designer,'er-stratum-designer-maker-edition')),packet(pressing.cases),provenance,packet(serialized.cases),packet(variant.cases),packet(casesOf(vehicle,'er-stratum-vehicle-mechanical-asset'))];
+const packets=[packet(casesOf(designerNormalized.fragment,'er-stratum-designer-maker-edition')),packet(pressing.cases),provenance,packet(serialized.cases),packet(variant.cases),packet(casesOf(vehicle,'er-stratum-vehicle-mechanical-asset'))];
 const manifest={id:'kidults-er-base720-materialization-manifest-v1',version:'1.0.0',production:'HOLD',packet_paths:['designer','pressing','provenance','serialized','variant','vehicle'],single_record_identity_case_classes:['CROSS_MARKET_ALIAS','SAME_OBJECT_NORMALIZATION']};
 const dataset=materializeBase720({manifest,packets,samplingPlan:sampling});const validation=validateBase720(dataset,sampling);
 await fs.writeFile(outPath,JSON.stringify(dataset,null,2)+'\n');
-const receipt={id:'kidults-er-base720-real-lineage-r2-receipt',version:'2.0.0',parent_issue:838,status:'PASS_EXACT_REAL_ACCEPTED_BASE720_MATERIALIZED_UNLABELED_NOT_REVIEWED',dataset_id:dataset.id,dataset_sha256:dataset.dataset_sha256,case_set_sha256:dataset.case_set_sha256,case_count:720,stratum_count:6,graded_population_case_count:0,validation,legacy_provenance_duplicate_normalization:{scope:'ONLY_LOCKED_MUSICBRAINZ_EXPANDED_HARDNEGATIVE_R1_R2_EXACT_DUPLICATE_REFS',affected_case_count:residual1Normalized.affected_case_count+residual2Normalized.affected_case_count,removed_exact_duplicate_ref_occurrences:residual1Normalized.removed_exact_duplicate_ref_occurrences+residual2Normalized.removed_exact_duplicate_ref_occurrences,evidence_created:false},release_adapter_receipts:{pressing:pressing.boundary_repair,variant:variant.boundary_repair},serialized_adapter:{case_count:serialized.case_count,wikidata_live_payload_revalidated:serialized.legacy_wikidata_live_payload_revalidated,nasm_exact_record_digest_count:serialized.legacy_nasm_source_record_digest_promoted_from_exact_record_sha256},reviewers:'NOT_BOUND_TO_PRE_REVIEW_PACKET',labels:'NOT_COLLECTED',empirical_pass:false,track_b:'NOT_STARTED',public_release:'HOLD',production:'HOLD'};
+const receipt={id:'kidults-er-base720-real-lineage-r2-receipt',version:'2.0.0',parent_issue:838,status:'PASS_EXACT_REAL_ACCEPTED_BASE720_MATERIALIZED_UNLABELED_NOT_REVIEWED',dataset_id:dataset.id,dataset_sha256:dataset.dataset_sha256,case_set_sha256:dataset.case_set_sha256,case_count:720,stratum_count:6,graded_population_case_count:0,validation,legacy_provenance_duplicate_normalization:{scope:'ONLY_LOCKED_ACCEPTED_EXACT_DUPLICATE_PROVENANCE_REFS',designer_single_record_normalization:{affected_case_count:designerNormalized.affected_case_count,removed_exact_duplicate_ref_occurrences:designerNormalized.removed_exact_duplicate_ref_occurrences},musicbrainz_expanded_hardnegative:{affected_case_count:residual1Normalized.affected_case_count+residual2Normalized.affected_case_count,removed_exact_duplicate_ref_occurrences:residual1Normalized.removed_exact_duplicate_ref_occurrences+residual2Normalized.removed_exact_duplicate_ref_occurrences},evidence_created:false},release_adapter_receipts:{pressing:pressing.boundary_repair,variant:variant.boundary_repair},serialized_adapter:{case_count:serialized.case_count,wikidata_live_payload_revalidated:serialized.legacy_wikidata_live_payload_revalidated,nasm_exact_record_digest_count:serialized.legacy_nasm_source_record_digest_promoted_from_exact_record_sha256},reviewers:'NOT_BOUND_TO_PRE_REVIEW_PACKET',labels:'NOT_COLLECTED',empirical_pass:false,track_b:'NOT_STARTED',public_release:'HOLD',production:'HOLD'};
 await fs.writeFile(receiptPath,JSON.stringify(receipt,null,2)+'\n');
 console.log(JSON.stringify(receipt,null,2));
