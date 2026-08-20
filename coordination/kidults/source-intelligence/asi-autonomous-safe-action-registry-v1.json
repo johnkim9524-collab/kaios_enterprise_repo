@@ -1,0 +1,15 @@
+{
+  "id": "kidults-asi-autonomous-safe-action-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_SHADOW_ALLOWLIST",
+  "production": "HOLD",
+  "actions": [
+    {"action_id":"matrix-rebuild-r1","action_type":"REBUILD_ACQUISITION_MATRIX","command":"node scripts/kidults/source-intelligence/build-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json","network":false,"writes_external":false,"rights_state":"ALLOW","admission_state":"ADMITTED_INTERNAL_CONTROL_PLANE","reversible":true},
+    {"action_id":"matrix-validate-r1","action_type":"VALIDATE_ACQUISITION_MATRIX","command":"node scripts/kidults/source-intelligence/validate-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json","network":false,"writes_external":false,"rights_state":"ALLOW","admission_state":"ADMITTED_INTERNAL_CONTROL_PLANE","reversible":true},
+    {"action_id":"musicbrainz-regional-catalog-refresh-r1","action_type":"REFRESH_EXISTING_RIGHTS_CLEARED_SHADOW_OBSERVATION","command":"node scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs /tmp/musicbrainz-regional-catalog-observation-r1.json","network":true,"writes_external":false,"source_id":"musicbrainz-core-catalog","purpose":"REGIONAL_CATALOG_OBSERVATION","rights_state":"ALLOW","admission_state":"EXPLICIT_BOUNDED_SHADOW_ADMISSION","transport_state":"ALLOW_NONCOMMERCIAL_API_READ_ONLY","rate_limit":"MAX_1_REQUEST_PER_SECOND","raw_payload_publication":false,"reversible":true},
+    {"action_id":"regional-baseline-rebuild-r1","action_type":"REBUILD_FAIL_CLOSED_REGIONAL_BASELINE","command":"node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json /tmp/musicbrainz-regional-catalog-observation-r1.json","network":false,"writes_external":false,"rights_state":"ALLOW","admission_state":"ADMITTED_INTERNAL_CONTROL_PLANE","reversible":true},
+    {"action_id":"regional-baseline-validate-r1","action_type":"VERIFY_NO_OVERCLAIM","command":"node scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json","network":false,"writes_external":false,"rights_state":"ALLOW","admission_state":"ADMITTED_INTERNAL_CONTROL_PLANE","reversible":true}
+  ],
+  "forbidden_command_patterns": ["wrangler deploy","curl -X POST","npm publish","gh release","git push","DELETE ","DROP TABLE","purchase","subscribe"],
+  "truth_boundary": "Only explicitly listed commands may be executed automatically. Registry presence never expands source rights, claim scope, Public release or Production authority."
+}
