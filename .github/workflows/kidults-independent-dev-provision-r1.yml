@@ -1,0 +1,192 @@
+name: KIDULTS Independent DEV Provision R1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-independent-dev-provision-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-independent-dev-provision
+  cancel-in-progress: false
+
+jobs:
+  provision-independent-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEV_PROVISION_TOKEN }}
+      CLOUDFLARE_READ_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DEV_D1: kidults-intelligence-db-dev
+      DEV_WORKER: kidults-autonomous-intelligence-dev
+      STAGING_D1_ID: 9bc6a406-6fca-4959-be7f-dd7f715b092c
+      PRODUCTION_D1_ID: d6d65f81-f91d-428b-bf43-8a025aaa47bd
+      WRANGLER_SEND_METRICS: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: GATE — authorization and immutable boundary
+        run: |
+          set -euo pipefail
+          for V in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN CLOUDFLARE_READ_TOKEN; do test -n "${!V:-}"; done
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_READ_TOKEN"
+          node - <<'NODE'
+          const fs=require('fs');
+          const root='services/kidults-autonomous-intelligence';
+          const cfg=JSON.parse(fs.readFileSync(`${root}/wrangler.jsonc`,'utf8'));
+          const d=cfg.d1_databases?.find(x=>x.binding==='DB');
+          if(!d||d.database_id!==process.env.PRODUCTION_D1_ID) throw new Error('CANONICAL_D1_DRIFT');
+          if((cfg.queues?.producers||[]).length!==26||(cfg.queues?.consumers||[]).length!==26) throw new Error('CANONICAL_QUEUE_COUNT_DRIFT');
+          const files=fs.readdirSync(`${root}/migrations`).filter(x=>/^000[1-6]_.*\.sql$/.test(x)).sort();
+          if(files.length!==6) throw new Error(`MIGRATION_COUNT_${files.length}`);
+          const names=cfg.queues.producers.map(x=>x.queue.replace('kidults-asi-shadow-','kidults-asi-dev-'));
+          if(new Set(names).size!==26||names.some(x=>!x.startsWith('kidults-asi-dev-'))) throw new Error('DEV_QUEUE_NAME_DERIVATION');
+          fs.writeFileSync('/tmp/dev-queues.json',JSON.stringify(names));
+          fs.writeFileSync('/tmp/migrations.json',JSON.stringify(files));
+          NODE
+
+      - name: PRECHECK — exact remote inventory
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > /tmp/d1-before.json
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues?per_page=100" > /tmp/queues-before.json
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts" > /tmp/workers-before.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('/tmp/d1-before.json','utf8'));
+          const q=JSON.parse(fs.readFileSync('/tmp/queues-before.json','utf8'));
+          const w=JSON.parse(fs.readFileSync('/tmp/workers-before.json','utf8'));
+          if(q.success!==true||w.success!==true) throw new Error('REMOTE_INVENTORY_AUTH');
+          const db=d.filter(x=>x.name===process.env.DEV_D1);
+          if(db.length>1) throw new Error('DUPLICATE_DEV_D1');
+          const wanted=new Set(JSON.parse(fs.readFileSync('/tmp/dev-queues.json','utf8')));
+          const existing=(q.result||[]).map(x=>x.queue_name||x.name||'').filter(x=>wanted.has(x));
+          const workers=(w.result||[]).map(x=>typeof x==='string'?x:(x.id||x.name||x.script_name||''));
+          const workerCount=workers.filter(x=>x===process.env.DEV_WORKER).length;
+          if(workerCount>1) throw new Error('DUPLICATE_DEV_WORKER');
+          fs.writeFileSync('/tmp/precheck.json',JSON.stringify({dev_d1_existing:db.length===1,dev_queue_existing:existing.length,dev_worker_existing:workerCount===1},null,2));
+          NODE
+
+      - name: CREATE — exact DEV D1 only
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          EXISTS=$(node -e "process.stdout.write(require('/tmp/precheck.json').dev_d1_existing?'1':'0')")
+          if [ "$EXISTS" = "0" ]; then npx wrangler d1 create "$DEV_D1"; fi
+          npx wrangler d1 info "$DEV_D1" --json > /tmp/dev-d1-info.json
+          node - <<'NODE'
+          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/dev-d1-info.json','utf8')); const s=JSON.stringify(x);
+          const m=s.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i); if(!m) throw new Error('DEV_D1_ID_NOT_FOUND');
+          if([process.env.PRODUCTION_D1_ID,process.env.STAGING_D1_ID].includes(m[0])) throw new Error('DEV_D1_NOT_INDEPENDENT');
+          fs.writeFileSync('/tmp/dev-d1-id.txt',m[0]+'\n');
+          NODE
+
+      - name: CONFIG — generate isolated DEV contract
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs'); const p='services/kidults-autonomous-intelligence/wrangler.jsonc'; const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const id=fs.readFileSync('/tmp/dev-d1-id.txt','utf8').trim(); const d=x.d1_databases.find(v=>v.binding==='DB');
+          d.database_name=process.env.DEV_D1; d.database_id=id; x.name=process.env.DEV_WORKER; x.workers_dev=false;
+          delete x.routes; delete x.route; delete x.triggers;
+          for(const p of x.queues.producers) p.queue=p.queue.replace('kidults-asi-shadow-','kidults-asi-dev-');
+          for(const c of x.queues.consumers){c.queue=c.queue.replace('kidults-asi-shadow-','kidults-asi-dev-'); if(c.dead_letter_queue)c.dead_letter_queue=c.dead_letter_queue.replace('kidults-asi-shadow-','kidults-asi-dev-');}
+          x.vars={...(x.vars||{}),KIDULTS_ENV:'dev',ASI_MESH_MODE:'SHADOW',ASI_PUBLICATION_ENABLED:'false',SOURCE_ADAPTERS_JSON:'[]'};
+          fs.writeFileSync('services/kidults-autonomous-intelligence/wrangler.dev.generated.json',JSON.stringify(x,null,2));
+          if(x.workers_dev!==false||x.triggers||x.routes||x.route||x.vars.KIDULTS_ENV!=='dev'||x.vars.ASI_PUBLICATION_ENABLED!=='false') throw new Error('DEV_BOUNDARY_GENERATION');
+          NODE
+
+      - name: CREATE — exact 26 DEV Queues
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues?per_page=100" > /tmp/queues-current.json
+          node -e "const fs=require('fs'),x=require('/tmp/queues-current.json');fs.writeFileSync('/tmp/queue-existing.txt',(x.result||[]).map(v=>v.queue_name||v.name).join('\n'))"
+          node -e "for(const q of require('/tmp/dev-queues.json'))console.log(q)" | while IFS= read -r Q; do
+            if grep -Fxq "$Q" /tmp/queue-existing.txt; then echo "EXISTS $Q"; else npx wrangler queues create "$Q"; fi
+          done
+
+      - name: MIGRATE — 0001 through 0006 with explicit ledger
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          for p in sorted(Path('migrations').glob('000[1-6]_*.sql')):
+              b=p.read_bytes(); p.write_bytes(b.replace(b'\r\n',b'\n').replace(b'\r',b'\n'))
+          PY
+          npx wrangler d1 execute DB --remote --config wrangler.dev.generated.json --command "CREATE TABLE IF NOT EXISTS d1_migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+          for F in $(node -e "for(const f of require('/tmp/migrations.json'))console.log(f)"); do
+            npx wrangler d1 execute DB --remote --config wrangler.dev.generated.json --command "SELECT name FROM d1_migrations WHERE name='$F'" --json > /tmp/migration-one.json
+            if grep -Fq "$F" /tmp/migration-one.json; then echo "APPLIED $F"; continue; fi
+            npx wrangler d1 execute DB --remote --config wrangler.dev.generated.json --file "migrations/$F"
+            npx wrangler d1 execute DB --remote --config wrangler.dev.generated.json --command "INSERT OR IGNORE INTO d1_migrations(name) VALUES ('$F')"
+          done
+          npx wrangler d1 execute DB --remote --config wrangler.dev.generated.json --command "SELECT name FROM d1_migrations ORDER BY id" --json > /tmp/migrations-after.json
+          node - <<'NODE'
+          const fs=require('fs'),s=fs.readFileSync('/tmp/migrations-after.json','utf8'); for(const f of require('/tmp/migrations.json'))if(!s.includes(f))throw new Error(`MIGRATION_LEDGER_MISSING:${f}`);
+          NODE
+
+      - name: DEPLOY — private DEV Worker only
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          npm run typecheck
+          npx wrangler deploy --config wrangler.dev.generated.json --message 'KPMO independent DEV foundation; bounded; no route; no cron; Production HOLD'
+
+      - name: VERIFY — resource separation and schema
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > /tmp/d1-after.json
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues?per_page=100" > /tmp/queues-after.json
+          npx wrangler deployments list --name "$DEV_WORKER" --json > /tmp/dev-deployment.json
+          npx wrangler d1 execute DB --remote --config wrangler.dev.generated.json --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name" --json > /tmp/dev-schema.json
+          node - <<'NODE'
+          const fs=require('fs'); const id=fs.readFileSync('/tmp/dev-d1-id.txt','utf8').trim(); const d=JSON.parse(fs.readFileSync('/tmp/d1-after.json','utf8')); const q=JSON.parse(fs.readFileSync('/tmp/queues-after.json','utf8')); const cfg=JSON.parse(fs.readFileSync('wrangler.dev.generated.json','utf8'));
+          const wanted=JSON.parse(fs.readFileSync('/tmp/dev-queues.json','utf8')); const seen=new Set((q.result||[]).map(x=>x.queue_name||x.name||'')); const missing=wanted.filter(x=>!seen.has(x));
+          if(missing.length||wanted.length!==26) throw new Error(`DEV_QUEUE_MISSING:${missing.join(',')}`);
+          if(!d.some(x=>x.name===process.env.DEV_D1&&(x.uuid||x.id)===id)) throw new Error('DEV_D1_NOT_VISIBLE');
+          if([process.env.STAGING_D1_ID,process.env.PRODUCTION_D1_ID].includes(id)) throw new Error('DEV_D1_ID_COLLISION');
+          if(cfg.workers_dev!==false||cfg.triggers||cfg.routes||cfg.route||cfg.vars.ASI_PUBLICATION_ENABLED!=='false') throw new Error('DEV_NOT_PRIVATE');
+          const schema=fs.readFileSync('/tmp/dev-schema.json','utf8'); for(const t of ['collector_runs','audit_log','asi_source_candidates','asi_processor_assertions','asi_task_leases'])if(!schema.includes(t))throw new Error(`DEV_SCHEMA_MISSING:${t}`);
+          const receipt={state:'INDEPENDENT_DEV_FOUNDATION_PASS',dev:{d1_name:process.env.DEV_D1,d1_id:id,worker:process.env.DEV_WORKER,queues:26,migrations:'0001-0006',workers_dev:false,routes:0,cron:0,publication:false},separation:{from_staging:true,from_production:true},bounded_control_messages_sent:0,provider_payload:false,market_claim:false,production_mutation:false,production:'HOLD'};
+          fs.mkdirSync('/tmp/safe',{recursive:true}); fs.writeFileSync('/tmp/safe/receipt.json',JSON.stringify(receipt,null,2)); console.log(JSON.stringify(receipt,null,2));
+          NODE
+
+      - name: VERIFY — Production read-only probe
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute kidults-intelligence-db --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/production-read.json
+          node -e "const x=require('/tmp/production-read.json');if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0))throw new Error('PRODUCTION_MUTATION_OR_READ_FAILURE')"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-independent-dev-provision-r1
+          path: |
+            /tmp/safe/receipt.json
+            /tmp/precheck.json
+            /tmp/dev-d1-info.json
+            /tmp/migrations-after.json
+            /tmp/dev-deployment.json
+            /tmp/production-read.json
+          retention-days: 30
+          if-no-files-found: warn
