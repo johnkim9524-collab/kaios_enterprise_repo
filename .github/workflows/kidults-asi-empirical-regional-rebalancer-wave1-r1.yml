@@ -4,6 +4,7 @@ on:
     paths:
       - 'scripts/kidults/source-intelligence/build-empirical-regional-rebalancer-wave1-r1.mjs'
       - 'scripts/kidults/source-intelligence/validate-empirical-regional-rebalancer-wave1-r1.mjs'
+      - 'scripts/kidults/source-intelligence/test-empirical-regional-rebalancer-factor-gates-r1.mjs'
       - '.github/workflows/kidults-asi-empirical-regional-rebalancer-wave1-r1.yml'
       - 'coordination/kidults/source-intelligence/regional-market-rebalancer-v1.json'
   push:
@@ -11,6 +12,7 @@ on:
     paths:
       - 'scripts/kidults/source-intelligence/build-empirical-regional-rebalancer-wave1-r1.mjs'
       - 'scripts/kidults/source-intelligence/validate-empirical-regional-rebalancer-wave1-r1.mjs'
+      - 'scripts/kidults/source-intelligence/test-empirical-regional-rebalancer-factor-gates-r1.mjs'
       - '.github/workflows/kidults-asi-empirical-regional-rebalancer-wave1-r1.yml'
       - 'coordination/kidults/source-intelligence/regional-market-rebalancer-v1.json'
   workflow_dispatch:
@@ -41,6 +43,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-empirical-regional-rebalancer-wave1-r1.mjs /tmp/rebalancer-a.json
           node scripts/kidults/source-intelligence/validate-empirical-regional-rebalancer-wave1-r1.mjs /tmp/rebalancer-b.json
           cmp /tmp/rebalancer-a.json /tmp/rebalancer-b.json
+          node scripts/kidults/source-intelligence/test-empirical-regional-rebalancer-factor-gates-r1.mjs /tmp/empirical-regional-baseline-with-data-usability-r1.json
       - name: Upload SHADOW evidence
         uses: actions/upload-artifact@v4
         with:
