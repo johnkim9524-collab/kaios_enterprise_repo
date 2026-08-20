@@ -1,0 +1,50 @@
+name: KIDULTS ER Variant Observed Corpus Capacity R3
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-variant-observed-corpus-capacity-r3.mjs'
+      - 'scripts/kidults/entity-resolution/build-variant-observed-corpus-review-packet-r3.mjs'
+      - '.github/workflows/kidults-er-variant-observed-corpus-capacity-r3.yml'
+      - 'scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs'
+      - 'coordination/kidults/entity-resolution/pressing-source-corpus-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-observed-corpus-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Reacquire proven 240-record MusicBrainz core corpus
+        run: node scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs /tmp/pressing-source-corpus-r1.json
+      - name: Measure source-disjoint Variant capacity from observed releases
+        run: node scripts/kidults/entity-resolution/probe-variant-observed-corpus-capacity-r3.mjs /tmp/pressing-source-corpus-r1.json /tmp/variant-observed-corpus-capacity-r3.json
+      - name: Packetize proven Variant cases
+        run: node scripts/kidults/entity-resolution/build-variant-observed-corpus-review-packet-r3.mjs /tmp/variant-observed-corpus-capacity-r3.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/variant-observed-corpus-review-packet-r3.json
+      - name: Enforce fail-closed truth boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const cap=JSON.parse(fs.readFileSync('/tmp/variant-observed-corpus-capacity-r3.json','utf8'));const packet=JSON.parse(fs.readFileSync('/tmp/variant-observed-corpus-review-packet-r3.json','utf8'));
+          if(cap.stratum_id!=='er-stratum-variant-release-heavy'||cap.rights_state!=='ALLOW') throw new Error('STRATUM_OR_RIGHTS');
+          if(cap.labels_present!==false||cap.reviewers_assigned!==0||cap.empirical_cases_created!==0||cap.track_b!=='NOT_STARTED') throw new Error('CAPACITY_OVERCLAIM');
+          if(cap.production!=='HOLD'||cap.public_release!=='HOLD'||cap.blind_partition_sealed!==false) throw new Error('CAPACITY_RELEASE_BOUNDARY');
+          if(cap.metrics.observed_corpus_records!==240||cap.metrics.cross_market_alias_capacity!==0) throw new Error('CAPACITY_TRUTH');
+          if(packet.case_count!==cap.metrics.conservative_reviewer_ready_capacity) throw new Error('PACKET_CAPACITY_MISMATCH');
+          if(packet.case_class_counts.SAME_OBJECT_NORMALIZATION!==40||packet.case_class_counts.HARD_NEGATIVE!==5||packet.case_class_counts.CROSS_MARKET_ALIAS!==0) throw new Error('PACKET_CLASS_TRUTH');
+          if(packet.labels_present!==false||packet.reviewer_a!=='NOT_ASSIGNED'||packet.reviewer_b!=='NOT_ASSIGNED'||packet.empirical_pass!==false||packet.track_b!=='NOT_STARTED') throw new Error('PACKET_OVERCLAIM');
+          if(packet.production!=='HOLD'||packet.public_release!=='HOLD'||packet.blind_partition.state!=='CANDIDATE_NOT_SEALED') throw new Error('PACKET_RELEASE_BOUNDARY');
+          if(/"payload"\s*:/.test(JSON.stringify({cap,packet}))) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({variant_reviewer_ready:packet.case_count,remaining:packet.remaining_case_count,blind_candidates:packet.blind_partition.case_count,case_class_counts:packet.case_class_counts,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-variant-observed-corpus-capacity-r3
+          path: |
+            /tmp/variant-observed-corpus-capacity-r3.json
+            /tmp/variant-observed-corpus-review-packet-r3.json
+          retention-days: 14
