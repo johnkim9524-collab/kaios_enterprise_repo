@@ -355,8 +355,10 @@ try {
   test('DEV physical Queue batch consumes through canonical outbox provenance', () => {
     assert.equal(devEnqueue.state,'DISPATCHED');
     assert.equal(devMessage.state,'ACK');
-    assert.deepEqual(devProcessed,{queue_name:devItem.queue,status:'SUCCEEDED'});
-    assert.deepEqual(devOutbox,{queue_name:canonicalQueue,status:'DISPATCHED'});
+    assert.equal(devProcessed.queue_name,devItem.queue);
+    assert.equal(devProcessed.status,'SUCCEEDED');
+    assert.equal(devOutbox.queue_name,canonicalQueue);
+    assert.equal(devOutbox.status,'DISPATCHED');
     assert.equal(devMesh.pending.length,4);
   });
   devDb.close();
