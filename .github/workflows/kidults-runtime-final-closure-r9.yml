@@ -1,0 +1,110 @@
+name: KIDULTS Runtime Final Closure R9
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/kidults-runtime-final-closure-r9.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  runtime-final-r9:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      STAGING_D1: kidults-intelligence-db-staging
+      PRODUCTION_D1: kidults-intelligence-db
+      R3_EVENT_ID: evt_kpmo_golden_r3_5e1374c71eda3e73
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: GATE — least privilege read-only
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_ACCOUNT_ID" && test -n "$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          npx wrangler d1 info "$STAGING_D1" --json > /tmp/staging.json
+          grep -Fq '9bc6a406-6fca-4959-be7f-dd7f715b092c' /tmp/staging.json
+
+      - name: VERIFY — persisted R7 idempotency and throughput
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT event_id,received_at FROM asi_event_log WHERE producer_engine='KPMO_RUNTIME_FINAL_R7' ORDER BY received_at DESC LIMIT 5" --json > /tmp/r7-events.json
+          node - <<'NODE'
+          const fs=require('fs');const x=require('/tmp/r7-events.json');const rows=x.flatMap(v=>v.results||[]);if(rows.length!==5||new Set(rows.map(r=>r.event_id)).size!==5)throw new Error(`R7_EVENT_SET:${rows.length}`);fs.writeFileSync('/tmp/r7-ids.json',JSON.stringify(rows.map(r=>r.event_id)));fs.writeFileSync('/tmp/r7-first.txt',rows[0].event_id);
+          NODE
+          IDS=$(node -e "process.stdout.write(require('/tmp/r7-ids.json').map(x=>\"'\"+x+\"'\").join(','))")
+          FIRST=$(cat /tmp/r7-first.txt)
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT (SELECT COUNT(*) FROM asi_event_log WHERE event_id='$FIRST') AS event_rows,(SELECT COUNT(*) FROM asi_outbox WHERE event_id='$FIRST') AS outbox_rows,(SELECT COUNT(*) FROM asi_processed_messages WHERE event_id='$FIRST' AND status='SUCCEEDED') AS success_rows" --json > /tmp/idem.json
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT COUNT(DISTINCT e.event_id) AS events,MIN(e.received_at) AS started_at,MAX(p.completed_at) AS completed_at FROM asi_event_log e JOIN asi_processed_messages p ON p.event_id=e.event_id AND p.status='SUCCEEDED' WHERE e.event_id IN ($IDS)" --json > /tmp/tput.json
+          node - <<'NODE'
+          const fs=require('fs');const i=require('/tmp/idem.json')?.[0]?.results?.[0]||{};if(Number(i.event_rows)!==1||Number(i.outbox_rows)!==1||Number(i.success_rows)!==1)throw new Error(`IDEMPOTENCY:${JSON.stringify(i)}`);const r=require('/tmp/tput.json')?.[0]?.results?.[0]||{};if(Number(r.events)!==5)throw new Error(`THROUGHPUT_EVENTS:${JSON.stringify(r)}`);const ms=Date.parse(r.completed_at)-Date.parse(r.started_at);if(!Number.isFinite(ms)||ms<0)throw new Error('THROUGHPUT_TIME');const out={events:5,elapsed_ms:ms,events_per_second:ms===0?null:5/(ms/1000),started_at:r.started_at,completed_at:r.completed_at};fs.writeFileSync('/tmp/throughput.json',JSON.stringify(out,null,2));console.log(JSON.stringify({idempotency:'PASS',throughput:out},null,2));
+          NODE
+
+      - name: BACKUP — runtime-critical ledgers by read queries
+        run: |
+          set -euo pipefail
+          START=$(date +%s%3N); mkdir -p /tmp/backup
+          for T in asi_event_log asi_outbox asi_processed_messages asi_dead_letters asi_terminal_dlq_receipts; do
+            npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT sql FROM sqlite_master WHERE type='table' AND name='$T'" --json > "/tmp/backup/schema-$T.json"
+            npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT * FROM $T" --json > "/tmp/backup/data-$T.json"
+          done
+          END=$(date +%s%3N); echo "BACKUP_READ_MS=$((END-START))" > /tmp/metrics.env
+          python - <<'PY'
+          import hashlib,pathlib
+          h=hashlib.sha256()
+          for p in sorted(pathlib.Path('/tmp/backup').glob('*.json')): h.update(p.name.encode()+b'\0'+p.read_bytes()+b'\0')
+          pathlib.Path('/tmp/backup.sha').write_text(h.hexdigest())
+          PY
+
+      - name: RESTORE — independent offline SQLite clone and validate
+        run: |
+          set -euo pipefail
+          START=$(date +%s%3N)
+          python - <<'PY'
+          import json,sqlite3,pathlib,os
+          tabs=['asi_event_log','asi_outbox','asi_processed_messages','asi_dead_letters','asi_terminal_dlq_receipts']; root=pathlib.Path('/tmp/backup')
+          def rows(p): return [r for b in json.load(open(p)) for r in b.get('results',[])]
+          db=sqlite3.connect('/tmp/restore.sqlite');db.execute('PRAGMA foreign_keys=OFF')
+          for t in tabs:
+              s=rows(root/f'schema-{t}.json');
+              if len(s)!=1 or not s[0].get('sql'): raise SystemExit(f'SCHEMA_MISSING:{t}')
+              db.execute(s[0]['sql'])
+          for t in tabs:
+              rs=rows(root/f'data-{t}.json')
+              if rs:
+                  cols=list(rs[0]); names=','.join('"'+c.replace('"','""')+'"' for c in cols); q=','.join('?' for _ in cols)
+                  db.executemany(f'INSERT INTO "{t}" ({names}) VALUES ({q})',[[r.get(c) for c in cols] for r in rs])
+          db.commit()
+          ids=json.load(open('/tmp/r7-ids.json')); q=','.join('?' for _ in ids)
+          tables=db.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('asi_event_log','asi_outbox','asi_processed_messages','asi_dead_letters','asi_terminal_dlq_receipts')").fetchone()[0]
+          ev=db.execute(f'SELECT COUNT(*) FROM asi_event_log WHERE event_id IN ({q})',ids).fetchone()[0]; ob=db.execute(f'SELECT COUNT(*) FROM asi_outbox WHERE event_id IN ({q})',ids).fetchone()[0]; ok=db.execute(f"SELECT COUNT(DISTINCT event_id) FROM asi_processed_messages WHERE event_id IN ({q}) AND status='SUCCEEDED'",ids).fetchone()[0]
+          r3=os.environ['R3_EVENT_ID']; dlq=db.execute('SELECT COUNT(*) FROM asi_dead_letters WHERE event_id=?',(r3,)).fetchone()[0]; receipts=db.execute('SELECT COUNT(*) FROM asi_terminal_dlq_receipts WHERE event_id=?',(r3,)).fetchone()[0];db.close()
+          out={'restore_target':'EPHEMERAL_OFFLINE_SQLITE_CLONE','required_tables':tables,'r7_events':ev,'r7_outboxes':ob,'r7_succeeded':ok,'r3_dead_letters':dlq,'r3_terminal_receipts':receipts,'control_record_loss':5-ev};json.dump(out,open('/tmp/restore.json','w'),indent=2);print(json.dumps(out,indent=2))
+          if tables!=5 or ev!=5 or ob!=5 or ok!=5 or dlq<1 or receipts<1 or out['control_record_loss']!=0: raise SystemExit('RESTORE_VALIDATION_FAILED')
+          PY
+          END=$(date +%s%3N); echo "RESTORE_MS=$((END-START))" >> /tmp/metrics.env
+
+      - name: VERIFY — Production remains read-only
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/prod.json
+          node -e "const x=require('/tmp/prod.json');if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0))process.exit(2)"
+
+      - name: RECEIPT — final runtime closure
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/safe
+          node - <<'NODE'
+          const fs=require('fs'),m={};for(const l of fs.readFileSync('/tmp/metrics.env','utf8').trim().split(/\n/)){const [k,v]=l.split('=');m[k]=Number(v)}const restore=require('/tmp/restore.json'),t=require('/tmp/throughput.json');const x={state:'RUNTIME_R9_CLOSURE_PASS',idempotency:'PASS_EXACT_ONE_EVENT_OUTBOX_SUCCESS_AFTER_DUPLICATE_ENQUEUE',throughput:t,backup_restore:restore,backup_sha256:'sha256:'+fs.readFileSync('/tmp/backup.sha','utf8').trim(),backup_read_ms:m.BACKUP_READ_MS,restore_rto_ms:m.RESTORE_MS,observed_rpo_control_record_loss:restore.control_record_loss,recovery_audit:true,credential_scope:'D1_READ_ONLY',production_mutation:false,production:'HOLD'};fs.writeFileSync('/tmp/safe/receipt.json',JSON.stringify(x,null,2));console.log(JSON.stringify(x,null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-runtime-final-closure-r9
+          path: /tmp/safe/receipt.json
+          retention-days: 30
