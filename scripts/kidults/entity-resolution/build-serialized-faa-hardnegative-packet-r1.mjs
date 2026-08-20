@@ -1,0 +1,96 @@
+import fs from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+
+const [masterPath,refPath,archiveDigestPath,samplingPath,reviewContractPath,outPath='/tmp/serialized-faa-hardnegative-packet-r1.json']=process.argv.slice(2);
+if(!masterPath||!refPath||!archiveDigestPath||!samplingPath||!reviewContractPath) throw new Error('usage: build-serialized-faa-hardnegative-packet-r1 <MASTER> <ACFTREF> <archive-digest-file> <sampling> <review-contract> [out]');
+const config=JSON.parse(await fs.readFile('coordination/kidults/entity-resolution/serialized-faa-releasable-aircraft-r1.json','utf8'));
+const sampling=JSON.parse(await fs.readFile(samplingPath,'utf8'));
+const reviewContract=JSON.parse(await fs.readFile(reviewContractPath,'utf8'));
+const archiveSha=(await fs.readFile(archiveDigestPath,'utf8')).trim();
+if(!/^sha256:[a-f0-9]{64}$/.test(archiveSha)) throw new Error('ARCHIVE_DIGEST_INVALID');
+if(config.rights_state!=='ALLOW'||config.production!=='HOLD'||config.public_release!=='HOLD') throw new Error('SOURCE_BOUNDARY_INVALID');
+if(reviewContract.status!=='READY_FOR_REAL_REVIEWERS_NOT_ATTESTED') throw new Error('REVIEW_CONTRACT_NOT_READY');
+const target=(sampling.strata||[]).find(x=>x.stratum_id==='er-stratum-serialized-reference');
+if(!target||target.cases!==120||target.case_class_targets?.HARD_NEGATIVE!==40||target.identity_boundary_targets?.PHYSICAL_OBJECT!==60) throw new Error('SAMPLING_TARGET_INVALID');
+
+const sha=v=>`sha256:${createHash('sha256').update(typeof v==='string'?v:JSON.stringify(v)).digest('hex')}`;
+function csv(line){const out=[];let s='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){s+='"';i++;}else q=!q;}else if(c===','&&!q){out.push(s.trim());s='';}else s+=c;}out.push(s.trim());return out;}
+const clean=v=>String(v??'').replace(/^"|"$/g,'').trim();
+const serialOk=v=>{const x=clean(v);return x.length>=1&&x.length<=30&&/[0-9A-Za-z]/.test(x)&&!['NONE','UNKNOWN','N/A','NA'].includes(x.toUpperCase());};
+const codeOk=v=>/^[A-Z0-9]{3,7}$/i.test(clean(v));
+
+const refText=await fs.readFile(refPath,'utf8');
+const refs=new Map();
+for(const [i,line] of refText.split(/\r?\n/).entries()){
+  if(!line.trim()) continue;
+  const r=csv(line),code=clean(r[0]),maker=clean(r[1]),model=clean(r[2]);
+  if(i===0&&/CODE|MFR/i.test(code)) continue;
+  if(!codeOk(code)||!maker||!model) continue;
+  refs.set(code,{maker,model});
+}
+if(refs.size<100) throw new Error(`FAA_REFERENCE_CAPACITY_IMPLAUSIBLE:${refs.size}`);
+
+const masterText=await fs.readFile(masterPath,'utf8');
+const byModel=new Map();let rawLines=0,eligible=0;
+for(const [i,line] of masterText.split(/\r?\n/).entries()){
+  if(!line.trim()) continue;rawLines++;
+  const r=csv(line);const n=clean(r[0]),serial=clean(r[1]),modelCode=clean(r[2]);
+  if(i===0&&/N[- ]?NUMBER/i.test(n)) continue;
+  if(!n||!serialOk(serial)||!codeOk(modelCode)) continue;
+  const ref=refs.get(modelCode);if(!ref) continue;
+  eligible++;
+  const projection={serial_number:serial,mfr_model_code:modelCode,aircraft_manufacturer:ref.maker,aircraft_model:ref.model};
+  const row={record_hash:sha({n_number:n,serial_number:serial,mfr_model_code:modelCode}),n_number_hash:sha(n),projection,projection_sha256:sha(projection)};
+  if(!byModel.has(modelCode)) byModel.set(modelCode,[]);byModel.get(modelCode).push(row);
+}
+
+const pairs=[];const usedRecordHashes=new Set();
+for(const [modelCode,rows0] of [...byModel.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
+  const serialSeen=new Set();const rows=[];
+  for(const r of rows0.sort((a,b)=>`${a.projection.serial_number}:${a.record_hash}`.localeCompare(`${b.projection.serial_number}:${b.record_hash}`))){
+    const sk=r.projection.serial_number.toUpperCase();if(serialSeen.has(sk)) continue;serialSeen.add(sk);rows.push(r);
+  }
+  for(let i=0;i+1<rows.length;i+=2){
+    const a=rows[i],b=rows[i+1];if(a.projection.serial_number.toUpperCase()===b.projection.serial_number.toUpperCase()) continue;
+    if(usedRecordHashes.has(a.record_hash)||usedRecordHashes.has(b.record_hash)) continue;
+    usedRecordHashes.add(a.record_hash);usedRecordHashes.add(b.record_hash);pairs.push({modelCode,a,b});
+    if(pairs.length===40) break;
+  }
+  if(pairs.length===40) break;
+}
+
+const cases=pairs.map((p,i)=>({
+  case_id:`serialized-faa-hard-${String(i+1).padStart(3,'0')}`,
+  stratum_id:'er-stratum-serialized-reference',
+  case_class:'HARD_NEGATIVE',
+  identity_boundary:'PHYSICAL_OBJECT',
+  expected:'NO_MATCH',
+  source_a_reference:`faa-releasable:${archiveSha}:${p.a.record_hash}`,
+  source_b_reference:`faa-releasable:${archiveSha}:${p.b.record_hash}`,
+  source_record_ids:[p.a.record_hash,p.b.record_hash],
+  source_a_payload_sha256:p.a.projection_sha256,
+  source_b_payload_sha256:p.b.projection_sha256,
+  license_evidence_refs:[config.download_page,config.documentation_url],
+  rights_state:'ALLOW',
+  rights_scope:config.rights_scope,
+  provenance_refs:[config.dataset_url,config.download_page,config.documentation_url,archiveSha],
+  reviewer_prompt_context:{
+    shared_authoritative_mfr_model_code:p.modelCode,
+    aircraft_manufacturer:p.a.projection.aircraft_manufacturer,
+    aircraft_model:p.a.projection.aircraft_model,
+    left_serial_number:p.a.projection.serial_number,
+    right_serial_number:p.b.projection.serial_number,
+    left_n_number_sha256:p.a.n_number_hash,
+    right_n_number_sha256:p.b.n_number_hash,
+    candidate_basis:'FAA_RELEASABLE_REGISTRY_SAME_AUTHORITATIVE_MANUFACTURER_MODEL_SERIES_CODE_DISTINCT_MANUFACTURER_ASSIGNED_SERIAL_NUMBERS'
+  },
+  label:null,
+  model_prediction:null,
+  reviewer_assignment:'PENDING_REAL_REVIEWER'
+}));
+const blindIds=cases.filter((_,i)=>i%2===0).slice(0,20).map(c=>c.case_id);
+const artifact={
+  id:'kidults-er-serialized-faa-hardnegative-packet-r1',version:'1.0.0',status:cases.length===40?'HARDNEGATIVE_REVIEWER_MATERIAL_READY_UNLABELED_NOT_REVIEWED':'COMPLETE_FAIL_CLOSED_PARTIAL_CAPACITY',parent_issue:609,stratum_id:'er-stratum-serialized-reference',source_family:'faa-releasable-aircraft-registry',source_archive_sha256:archiveSha,raw_master_lines_observed:rawLines,reference_codes_observed:refs.size,eligible_non_pii_identity_records:eligible,source_disjoint_pair_capacity:cases.length,base_serialized_reviewer_ready_case_count:40,additional_case_count:cases.length,total_serialized_reviewer_ready_if_combined:40+cases.length,remaining_case_class_deficit:{SAME_OBJECT_NORMALIZATION:0,HARD_NEGATIVE:Math.max(0,40-cases.length),CROSS_MARKET_ALIAS:40},aggregate_reviewer_ready_if_combined:640+cases.length,privacy:{retained_source_fields:['SERIAL_NUMBER','MFR_MODEL_CODE','AIRCRAFT_MANUFACTURER','AIRCRAFT_MODEL','N_NUMBER_SHA256_ONLY'],retained_owner_or_address_fields:0,raw_master_rows_emitted:0},blind_partition_addition:{state:'CANDIDATE_NOT_SEALED',case_count:blindIds.length,case_ids:blindIds,partition_sha256:sha(blindIds)},cases,labels_present:false,model_predictions_present:false,reviewer_a:'NOT_ASSIGNED',reviewer_b:'NOT_ASSIGNED',empirical_pass:false,track_b:'NOT_STARTED',public_release:'HOLD',production:'HOLD',truth_boundary:'FAA public releasable registry is used only for a bounded internal ER non-PII projection. Same exact authoritative manufacturer/model/series code plus distinct manufacturer-assigned serial numbers supports HARD_NEGATIVE reviewer material only. Owner/address fields are never retained, logged or uploaded. This creates no CROSS_MARKET_ALIAS, reviewer label, sealed holdout, empirical PASS, Track B, public claim or Production authority.'
+};
+await fs.writeFile(outPath,JSON.stringify(artifact,null,2)+'\n');
+console.log(JSON.stringify({status:artifact.status,reference_codes:artifact.reference_codes_observed,eligible_records:artifact.eligible_non_pii_identity_records,pair_capacity:artifact.source_disjoint_pair_capacity,serialized_total:artifact.total_serialized_reviewer_ready_if_combined,aggregate_total:artifact.aggregate_reviewer_ready_if_combined,pii_fields_retained:0,production:'HOLD'},null,2));
