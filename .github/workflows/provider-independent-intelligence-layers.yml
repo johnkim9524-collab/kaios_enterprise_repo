@@ -1,0 +1,41 @@
+name: Provider Independent Intelligence Layers
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+    paths:
+      - "coordination/kidults/schemas/grading-evidence-v1.schema.json"
+      - "coordination/kidults/architecture/provider-independent-intelligence-layers-v1.json"
+      - "scripts/kidults/intelligence/provider-independent-layers-v1.mjs"
+      - "scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs"
+      - ".github/workflows/provider-independent-intelligence-layers.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "coordination/kidults/schemas/grading-evidence-v1.schema.json"
+      - "coordination/kidults/architecture/provider-independent-intelligence-layers-v1.json"
+      - "scripts/kidults/intelligence/provider-independent-layers-v1.mjs"
+      - "scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs"
+      - ".github/workflows/provider-independent-intelligence-layers.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.19.0"
+          cache: npm
+      - run: npm ci
+      - name: Validate existing market-event contract
+        run: npm run validate:market-event
+      - name: Validate provider-independent intelligence layers
+        run: node scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs

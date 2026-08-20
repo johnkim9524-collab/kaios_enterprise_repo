@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://intelligence-holdings.example/schemas/kidults/grading-evidence-v1.schema.json",
+  "title": "KIDULTS Grading Evidence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "grading_evidence_id",
+    "provider_id",
+    "canonical_entity_id",
+    "provider_item_id",
+    "grade",
+    "population",
+    "observed_at",
+    "rights",
+    "lineage",
+    "admission"
+  ],
+  "properties": {
+    "schema_version": {"const": "grading-evidence-v1"},
+    "grading_evidence_id": {"type": "string", "minLength": 1},
+    "provider_id": {"type": "string", "minLength": 1},
+    "canonical_entity_id": {"type": "string", "minLength": 1},
+    "provider_item_id": {"type": "string", "minLength": 1},
+    "certification_number": {"type": ["string", "null"]},
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["year", "set", "card_number", "subject", "variant", "language"],
+      "properties": {
+        "year": {"type": ["integer", "null"], "minimum": 1800, "maximum": 2200},
+        "set": {"type": ["string", "null"]},
+        "card_number": {"type": ["string", "null"]},
+        "subject": {"type": ["string", "null"]},
+        "variant": {"type": ["string", "null"]},
+        "language": {"type": ["string", "null"]}
+      }
+    },
+    "grade": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw_grade", "scale_id", "normalized_score", "qualifiers"],
+      "properties": {
+        "raw_grade": {"type": "string", "minLength": 1},
+        "scale_id": {"type": "string", "minLength": 1},
+        "normalized_score": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "qualifiers": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "population": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["at_grade", "higher", "total", "scope", "as_of"],
+      "properties": {
+        "at_grade": {"type": ["integer", "null"], "minimum": 0},
+        "higher": {"type": ["integer", "null"], "minimum": 0},
+        "total": {"type": ["integer", "null"], "minimum": 0},
+        "scope": {"enum": ["PROVIDER_CENSUS", "PROVIDER_CERT_ONLY", "UNKNOWN"]},
+        "as_of": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "observed_at": {"type": "string", "format": "date-time"},
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["collect", "store", "transform", "internal_display", "redistribute", "retention_days", "terms_ref"],
+      "properties": {
+        "collect": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "store": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "transform": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "internal_display": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "redistribute": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "retention_days": {"type": ["integer", "null"], "minimum": 0},
+        "terms_ref": {"type": ["string", "null"]}
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_owner", "source_record_ref", "raw_digest", "normalized_digest", "adapter_version"],
+      "properties": {
+        "source_owner": {"type": "string", "minLength": 1},
+        "source_record_ref": {"type": "string", "minLength": 1},
+        "raw_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "normalized_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "adapter_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "reason_codes", "confidence"],
+      "properties": {
+        "state": {"enum": ["ADMITTED", "HOLD", "REJECTED"]},
+        "reason_codes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    }
+  }
+}

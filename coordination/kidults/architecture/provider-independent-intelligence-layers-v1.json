@@ -1,0 +1,69 @@
+{
+  "contract_version": "provider-independent-intelligence-layers-v1",
+  "status": "INTERNAL_CAPABILITY_FOUNDATION",
+  "production": "HOLD",
+  "principle": "EXTERNAL_FACTS_INTERNAL_INTELLIGENCE",
+  "provider_role": "PLUGGABLE_EVIDENCE_SOURCE_NOT_GLOBAL_TRUTH",
+  "grading_intelligence_layer": {
+    "canonical_schema": "coordination/kidults/schemas/grading-evidence-v1.schema.json",
+    "source_classes": ["GRADING_CERTIFICATION", "GRADING_POPULATION_CENSUS"],
+    "internal_capabilities": [
+      "canonical_entity_binding",
+      "grade_scale_normalization",
+      "population_scope_preservation",
+      "cross_provider_reconciliation",
+      "rights_admission",
+      "provenance_and_digest_binding",
+      "confidence_classification"
+    ],
+    "non_substitutable_external_facts": [
+      "provider_specific_certification_event",
+      "provider_specific_population_census"
+    ],
+    "hard_rules": [
+      "DO_NOT_SUM_PROVIDER_CENSUSES_AS_GLOBAL_POPULATION",
+      "UNKNOWN_RIGHTS_FAIL_CLOSED",
+      "MISSING_POPULATION_IS_NOT_ZERO",
+      "PROVIDER_IDENTITY_IS_PRESERVED",
+      "RAW_PROVIDER_PAYLOAD_IS_NOT_CANONICAL_TRUTH"
+    ]
+  },
+  "collector_market_intelligence_layer": {
+    "canonical_schema": "coordination/kidults/schemas/market-event-v1.schema.json",
+    "source_classes": ["AGGREGATOR", "AUCTION_HOUSE", "DEALER", "MARKETPLACE", "LICENSED_DATA_VENDOR"],
+    "internal_capabilities": [
+      "market_event_canonicalization",
+      "cross_source_deduplication",
+      "event_state_normalization",
+      "price_basis_preservation",
+      "source_owner_independence",
+      "rights_admission",
+      "provenance_and_digest_binding",
+      "comparable_selection",
+      "transaction_activity_metrics",
+      "liquidity_metrics",
+      "failed_sale_metrics",
+      "confidence_classification"
+    ],
+    "non_substitutable_external_facts": [
+      "actual_sale_event",
+      "actual_sale_status",
+      "actual_transaction_price",
+      "actual_event_date_and_venue"
+    ],
+    "hard_rules": [
+      "ASK_IS_NOT_SOLD_PRICE",
+      "AGGREGATE_STATISTIC_IS_NOT_INDIVIDUAL_SOLD_EVENT",
+      "UNKNOWN_RIGHTS_FAIL_CLOSED",
+      "MISSING_IS_NOT_ZERO",
+      "SINGLE_PROVIDER_DOES_NOT_DEFINE_GLOBAL_MARKET_TRUTH",
+      "DUPLICATE_REPUBLISHED_EVENTS_COUNT_ONCE"
+    ]
+  },
+  "activation_boundary": {
+    "development": "ALLOWED_WITH_SYNTHETIC_OR_RIGHTS_ADMITTED_EVIDENCE",
+    "shadow": "ALLOWED_WITH_RIGHTS_ADMITTED_REAL_EVIDENCE",
+    "production": "EXPLICIT_G5_REQUIRED",
+    "provider_contract_or_spend": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
