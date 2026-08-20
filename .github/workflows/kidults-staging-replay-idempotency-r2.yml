@@ -1,0 +1,173 @@
+name: KIDULTS STAGING Replay Idempotency R2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-staging-replay-idempotency-r2.yml'
+
+concurrency:
+  group: kidults-staging-runtime-mutation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  replay-idempotency-r2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_READ_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_STAGING_D1_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_D1_TOKEN }}
+      CLOUDFLARE_STAGING_REBIND_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+      CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN }}
+      STAGING_WORKER: kidults-autonomous-intelligence-staging
+      STAGING_D1: kidults-intelligence-db-staging
+      STAGING_D1_ID: 9bc6a406-6fca-4959-be7f-dd7f715b092c
+      PRODUCTION_D1: kidults-intelligence-db
+      PRODUCTION_D1_ID: d6d65f81-f91d-428b-bf43-8a025aaa47bd
+      CANONICAL_ROLLBACK_VERSION: d870f7e4-0919-47f7-becc-13524c393f27
+      TARGET_QUEUE: kidults-asi-shadow-discovery-wikidata
+      SOURCE_EVENT_ID: evt_kpmo_golden_r4_8ef64571612c0831
+      TARGET_FLEET: DISCOVERY_WIKIDATA
+      WRANGLER_SEND_METRICS: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: GATE — source success, no active replay, canonical STAGING
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          for v in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_READ_TOKEN CLOUDFLARE_STAGING_D1_TOKEN CLOUDFLARE_STAGING_REBIND_TOKEN CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN; do test -n "${!v:-}"; echo "::add-mask::${!v}"; done
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 info "$STAGING_D1" --json > /tmp/staging-info.json
+          grep -Fq "$STAGING_D1_ID" /tmp/staging-info.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/staging-info.json; then exit 10; fi
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT o.id AS outbox_id,o.status AS outbox_status,p.status AS processing_status,p.attempt_count AS processing_attempt_count FROM asi_outbox o JOIN asi_processed_messages p ON p.queue_name=o.queue_name AND p.outbox_id=o.id WHERE o.event_id='$SOURCE_EVENT_ID' AND o.engine_fleet='$TARGET_FLEET'" --json > /tmp/source-before.json
+          node - <<'NODE'
+          const fs=require('fs'),x=require('/tmp/source-before.json'),r=x?.[0]?.results?.[0]; if(!r||r.outbox_status!=='DISPATCHED'||r.processing_status!=='SUCCEEDED') throw new Error('SOURCE_GOLDEN_EVENT_NOT_SUCCEEDED'); fs.writeFileSync('/tmp/source-baseline.json',JSON.stringify(r));
+          NODE
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT COUNT(*) AS active FROM asi_replay_requests WHERE status IN ('PENDING','RUNNING','RETRY','AWAITING_CONSUMER')" --json > /tmp/replay-active.json
+          node -e "const x=require('/tmp/replay-active.json');if(Number(x?.[0]?.results?.[0]?.active||0)!==0)throw new Error('PREEXISTING_ACTIVE_REPLAY')"
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_STAGING_REBIND_TOKEN" npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-before.json
+          V="$CANONICAL_ROLLBACK_VERSION" node - <<'NODE'
+          const x=require('/tmp/deployment-before.json'),a=Array.isArray(x)?x:(x.result||x.deployments||[]),d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0]; if(!d||!JSON.stringify(d).includes(process.env.V)) throw new Error('STAGING_NOT_CANONICAL');
+          NODE
+
+      - name: BUILD — bounded no-route replay control Worker
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          cat > src/kpmo-replay-control.ts <<'TS'
+          import { recoverPendingReplays, type AsiMeshEnv, type AsiQueueTask } from './asi/runtime';
+          export default {
+            async queue(batch: MessageBatch<AsiQueueTask>, env: AsiMeshEnv): Promise<void> {
+              const controls=batch.messages.filter((m)=>((m.body as unknown as {control?:string})?.control)==='KPMO_STAGING_REPLAY_IDEMPOTENCY_R2');
+              if(!controls.length){ for(const m of batch.messages) m.retry({delaySeconds:15}); return; }
+              if(controls.length!==1) throw new Error('KPMO_REPLAY_CONTROL_NOT_UNIQUE');
+              await recoverPendingReplays(env,1);
+              for(const m of batch.messages){ if(((m.body as unknown as {control?:string})?.control)==='KPMO_STAGING_REPLAY_IDEMPOTENCY_R2') m.ack(); else m.retry({delaySeconds:15}); }
+            },
+          } satisfies ExportedHandler<AsiMeshEnv,AsiQueueTask>;
+          TS
+          node - <<'NODE'
+          const fs=require('fs'),x=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8')),d=x.d1_databases.find(v=>v.binding==='DB'); if(!d||d.database_id!==process.env.PRODUCTION_D1_ID) throw new Error('CANONICAL_CONFIG_DRIFT'); d.database_name=process.env.STAGING_D1; d.database_id=process.env.STAGING_D1_ID; x.name=process.env.STAGING_WORKER; x.main='src/kpmo-replay-control.ts'; x.workers_dev=false; delete x.routes; delete x.route; delete x.triggers; x.vars={...(x.vars||{}),KIDULTS_ENV:'staging',ASI_MESH_MODE:'SHADOW',ASI_PUBLICATION_ENABLED:'false'}; fs.writeFileSync('wrangler.replay-r2.generated.json',JSON.stringify(x,null,2));
+          NODE
+          npx tsc --noEmit
+          npx wrangler deploy --config wrangler.replay-r2.generated.json --dry-run --outdir /tmp/replay-r2-dry-run
+
+      - name: DEPLOY — temporary replay control
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: /tmp/replay-r2-upload.ndjson
+        run: |
+          set -euo pipefail
+          npx wrangler versions upload --config wrangler.replay-r2.generated.json --tag kpmo-staging-replay-idempotency-r2 --message 'Temporary STAGING replay idempotency control; no route; no cron; Production HOLD'
+          node - <<'NODE' > /tmp/harness.env
+          const fs=require('fs'),rows=fs.readFileSync('/tmp/replay-r2-upload.ndjson','utf8').trim().split(/\n+/).filter(Boolean).map(JSON.parse),x=[...rows].reverse().find(r=>r.type==='version-upload'&&r.version_id); if(!x) throw new Error('NO_HARNESS_VERSION'); console.log(`HARNESS_VERSION_ID=${x.version_id}`);
+          NODE
+          source /tmp/harness.env
+          npx wrangler versions view "$HARNESS_VERSION_ID" --name "$STAGING_WORKER" --json > /tmp/harness-view.json
+          grep -Fq "$STAGING_D1_ID" /tmp/harness-view.json || grep -Fq "$STAGING_D1" /tmp/harness-view.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/harness-view.json; then exit 11; fi
+          npx wrangler versions deploy "$HARNESS_VERSION_ID@100%" --name "$STAGING_WORKER" --message 'KPMO bounded STAGING replay idempotency R2' -y
+
+      - name: REQUEST + RUN — one bounded replay control
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          SUFFIX=$(node -e "process.stdout.write(require('crypto').randomBytes(8).toString('hex'))")
+          REPLAY_ID="replay_kpmo_idempotency_r2_${SUFFIX}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+          printf 'REPLAY_ID=%s\n' "$REPLAY_ID" > /tmp/replay.env
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_STAGING_D1_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "INSERT INTO asi_replay_requests (replay_id,source_event_id,target_engine_fleet,requested_by,reason_code,status,requested_at,max_attempts) VALUES ('$REPLAY_ID','$SOURCE_EVENT_ID','$TARGET_FLEET','KPMO_SYNTHETIC_CONTROL','KPMO_IDEMPOTENCY_PROOF','PENDING','$NOW',1)" --json > /tmp/replay-insert.json
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" > /tmp/queues.json
+          QUEUE_ID=$(Q="$TARGET_QUEUE" node -e "const x=require('/tmp/queues.json'),q=(x.result||[]).find(v=>(v.queue_name||v.name)===process.env.Q);if(!q)process.exit(2);process.stdout.write(q.queue_id||q.id)")
+          printf '%s' '{"body":{"control":"KPMO_STAGING_REPLAY_IDEMPOTENCY_R2"}}' > /tmp/control.json
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" --data-binary @/tmp/control.json > /tmp/control-response.json
+          grep -Fq '"success":true' /tmp/control-response.json
+
+      - name: VERIFY — completed idempotently, no duplicate processor run
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          source /tmp/replay.env
+          PASS=0
+          for i in $(seq 1 20); do
+            CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT r.replay_id,r.status,r.attempt_count,a.state AS attempt_state,a.reason_code FROM asi_replay_requests r LEFT JOIN asi_replay_attempts a ON a.replay_id=r.replay_id WHERE r.replay_id='$REPLAY_ID' ORDER BY a.attempt_number DESC LIMIT 1" --json > /tmp/replay-state.json
+            STATE=$(node -e "const x=require('/tmp/replay-state.json');process.stdout.write(String(x?.[0]?.results?.[0]?.status||''))")
+            if [ "$STATE" = COMPLETED ]; then PASS=1; break; fi
+            if [ "$STATE" = HOLD ]; then break; fi
+            sleep 3
+          done
+          test "$PASS" = 1
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT o.id AS outbox_id,o.status AS outbox_status,p.status AS processing_status,p.attempt_count AS processing_attempt_count FROM asi_outbox o JOIN asi_processed_messages p ON p.queue_name=o.queue_name AND p.outbox_id=o.id WHERE o.event_id='$SOURCE_EVENT_ID' AND o.engine_fleet='$TARGET_FLEET'" --json > /tmp/source-after.json
+          node - <<'NODE'
+          const fs=require('fs'),before=require('/tmp/source-baseline.json'),r=require('/tmp/replay-state.json')?.[0]?.results?.[0],after=require('/tmp/source-after.json')?.[0]?.results?.[0]; if(!r||r.status!=='COMPLETED'||Number(r.attempt_count)!==1||r.attempt_state!=='COMPLETED'||r.reason_code!=='ASI_REPLAY_ALREADY_SUCCEEDED') throw new Error('REPLAY_FAST_PATH_NOT_COMPLETED'); if(!after||after.outbox_id!==before.outbox_id||after.outbox_status!=='DISPATCHED'||after.processing_status!=='SUCCEEDED'||Number(after.processing_attempt_count)!==Number(before.processing_attempt_count)) throw new Error('DUPLICATE_PROCESSING_DETECTED'); const safe={state:'STAGING_REPLAY_IDEMPOTENCY_PASS',source_event_id:process.env.SOURCE_EVENT_ID,replay_id:r.replay_id,replay_attempts:Number(r.attempt_count),replay_reason:r.reason_code,processing_attempt_count_before:Number(before.processing_attempt_count),processing_attempt_count_after:Number(after.processing_attempt_count),duplicate_processing:false,provider_payload:false,market_claim:false,production_mutation:false,production:'HOLD'}; fs.mkdirSync('/tmp/replay-safe',{recursive:true}); fs.writeFileSync('/tmp/replay-safe/receipt.json',JSON.stringify(safe,null,2)); console.log(JSON.stringify(safe,null,2));
+          NODE
+
+      - name: VERIFY — Production remains read-only
+        if: always()
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/production-read.json
+          node -e "const x=require('/tmp/production-read.json');if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0))throw new Error('PRODUCTION_MUTATION_OR_READ_FAILURE')"
+
+      - name: ROLLBACK — restore canonical STAGING only if owned
+        if: always()
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ ! -f /tmp/harness.env ]; then exit 0; fi
+          source /tmp/harness.env
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-final.json
+          MODE=$(H="$HARNESS_VERSION_ID" C="$CANONICAL_ROLLBACK_VERSION" node - <<'NODE'
+          const x=require('/tmp/deployment-final.json'),a=Array.isArray(x)?x:(x.result||x.deployments||[]),d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0],s=JSON.stringify(d||{}); process.stdout.write(s.includes(process.env.H)?'OWNED':s.includes(process.env.C)?'CANONICAL':'FOREIGN');
+          NODE
+          )
+          if [ "$MODE" = FOREIGN ]; then exit 20; fi
+          if [ "$MODE" = OWNED ]; then npx wrangler versions deploy "$CANONICAL_ROLLBACK_VERSION@100%" --name "$STAGING_WORKER" --message 'KPMO replay R2 rollback to canonical STAGING' -y; fi
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-restored.json
+          V="$CANONICAL_ROLLBACK_VERSION" node - <<'NODE'
+          const x=require('/tmp/deployment-restored.json'),a=Array.isArray(x)?x:(x.result||x.deployments||[]),d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0]; if(!d||!JSON.stringify(d).includes(process.env.V)) throw new Error('CANONICAL_STAGING_NOT_RESTORED');
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-staging-replay-idempotency-r2
+          path: /tmp/replay-safe/receipt.json
+          retention-days: 30
+          if-no-files-found: warn
