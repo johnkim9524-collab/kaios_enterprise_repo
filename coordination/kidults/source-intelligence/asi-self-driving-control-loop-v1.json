@@ -1,0 +1,18 @@
+{
+  "id": "kidults-asi-self-driving-control-loop-v1",
+  "version": "1.0.0",
+  "parent_issues": [480, 654, 743],
+  "status": "SHADOW_AUTONOMY_CONTROL_CONTRACT",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "objective": "Continuously observe acquisition coverage debt, prioritize work, execute only pre-authorized reversible SHADOW actions, and re-evaluate without crossing rights, account, contract, spend, Public or Production gates.",
+  "loop": ["OBSERVE", "PRIORITIZE", "GATE", "PLAN", "EXECUTE_SAFE", "VERIFY", "RE_EVALUATE"],
+  "decision_classes": ["AUTO_EXECUTE_SAFE", "AUTO_BUILD_RIGHTS_REVIEW_PACKET", "WAIT_RIGHTS_OR_TERMS", "WAIT_ACCOUNT_OR_CONTRACT", "WAIT_HUMAN_REVIEW", "BLOCKED_PRODUCTION_OR_PUBLIC", "COMPLETE_BOUNDED"],
+  "automatic_action_requirements": {"rights_state":"ALLOW","admission_state":"ADMITTED_OR_EXPLICIT_BOUNDED_SHADOW_ADMISSION","production":"HOLD","public_release":"HOLD","no_external_spend":true,"no_new_account":true,"no_new_eula_or_contract":true,"no_provider_payload_publication":true,"reversible":true,"command_must_be_allowlisted":true},
+  "autonomous_safe_actions": ["REBUILD_ACQUISITION_MATRIX","VALIDATE_ACQUISITION_MATRIX","RANK_COVERAGE_DEBT","BUILD_RIGHTS_REVIEW_PACKET","REFRESH_EXISTING_RIGHTS_CLEARED_SHADOW_OBSERVATION","REBUILD_FAIL_CLOSED_REGIONAL_BASELINE","VERIFY_NO_OVERCLAIM"],
+  "forbidden_automatic_actions": ["ACCEPT_EULA_OR_TERMS","CREATE_EXTERNAL_ACCOUNT","PURCHASE_OR_SUBSCRIBE","CONTACT_PROVIDER","EXPAND_PURPOSE_RIGHTS_BY_INFERENCE","SCRAPE_RESTRICTED_SOURCE","PUBLISH_PROVIDER_PAYLOAD","ASSIGN_HUMAN_REVIEWER_IDENTITY","FABRICATE_LABEL_OR_EVIDENCE","PRODUCTION_DEPLOY","G5_APPROVAL"],
+  "cadence": {"scheduled":"HOURLY","event_driven":["MAIN_SOURCE_CONTROL_CHANGE","RIGHTS_ADMISSION_CHANGE","MATRIX_CHANGE","REGIONAL_POLICY_CHANGE"],"max_parallel_safe_actions":4},
+  "priority": {"source":"GLOBAL_DATA_ACQUISITION_MASTER_MATRIX_PRIORITY_SCORE","coverage_debt_bonus":5,"rights_ready_bonus":8,"admission_ready_bonus":5,"runtime_ready_bonus":3,"verified_evidence_penalty":100,"dedupe_unit":"CATEGORY_SCOPE_X_MACROREGION_X_EVIDENCE_CLASS"},
+  "outputs": ["AUTONOMOUS_ACTION_QUEUE","SAFE_EXECUTION_RESULTS","RIGHTS_REVIEW_QUEUE","BLOCKER_QUEUE","CONTROL_LOOP_SUMMARY"],
+  "truth_boundary": "Autonomy means continuous evidence-aware planning and execution of explicitly authorized reversible SHADOW actions. It never converts missing rights, admission, runtime connection, human review, Public release or Production approval into permission."
+}
