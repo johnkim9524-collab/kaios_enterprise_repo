@@ -5,7 +5,9 @@ on:
     paths:
       - 'scripts/kidults/entity-resolution/er-base720-materializer-v1-lib.mjs'
       - 'scripts/kidults/entity-resolution/materialize-er-base720-v1.mjs'
+      - 'scripts/kidults/entity-resolution/er-release-lineage-adapter-v1-lib.mjs'
       - 'tests/kidults/entity-resolution/er-base720-materializer-v1.test.mjs'
+      - 'tests/kidults/entity-resolution/er-release-lineage-adapter-v1.test.mjs'
       - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
       - '.github/workflows/kidults-er-base720-materializer-v1.yml'
   workflow_dispatch:
@@ -22,4 +24,4 @@ jobs:
         with:
           node-version: '24'
       - name: Test exact six-strata base-720 materialization and fail-closed controls
-        run: node --test tests/kidults/entity-resolution/er-base720-materializer-v1.test.mjs
+        run: node --test tests/kidults/entity-resolution/er-base720-materializer-v1.test.mjs tests/kidults/entity-resolution/er-release-lineage-adapter-v1.test.mjs
