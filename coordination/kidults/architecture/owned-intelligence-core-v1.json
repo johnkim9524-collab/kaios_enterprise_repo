@@ -1,0 +1,55 @@
+{
+  "id": "kidults-owned-intelligence-core-v1",
+  "version": "1.0.0",
+  "status": "INTERNAL_FOUNDATION",
+  "principle": "EXTERNAL_FACTS_IN_KIDULTS_INTELLIGENCE_OUT",
+  "external_only_authority": [
+    "actual grading event",
+    "grader certification identity",
+    "grader population/census fact",
+    "actual marketplace/auction transaction event",
+    "provider-owned historical transaction fact",
+    "provider/legal grant of usage rights",
+    "independent human legal determination",
+    "genuine human review/adjudication/acceptance"
+  ],
+  "kidults_owned_capabilities": [
+    "canonical identity resolution",
+    "grade normalization",
+    "grader crosswalk",
+    "population interpretation",
+    "scarcity intelligence",
+    "market event canonicalization",
+    "cross-source event deduplication",
+    "cross-source reconciliation and quarantine",
+    "comparable selection",
+    "valuation estimation",
+    "condition/grade adjustment framework",
+    "recency weighting",
+    "currency-normalization policy",
+    "liquidity and market-depth intelligence",
+    "failed-sale and relisting analysis",
+    "source reliability scoring",
+    "evidence quality scoring",
+    "rights-policy enforcement",
+    "confidence classification",
+    "ASI acquisition/rebalancing signals",
+    "projection claim-ceiling enforcement"
+  ],
+  "truth_rules": {
+    "missing_is_zero": false,
+    "asking_price_is_sale_price": false,
+    "provider_censuses_may_be_summed": false,
+    "provider_score_is_platform_truth": false,
+    "single_source_can_define_global_truth": false,
+    "synthetic_data_can_close_empirical_gate": false,
+    "unknown_rights_are_admitted": false,
+    "conflicting_authoritative_facts_are_silently_resolved": false
+  },
+  "activation": {
+    "mode": "SHADOW_FAIL_CLOSED",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  }
+}
