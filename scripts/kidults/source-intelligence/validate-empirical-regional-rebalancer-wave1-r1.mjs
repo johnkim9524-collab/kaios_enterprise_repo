@@ -11,7 +11,25 @@ if(!Array.isArray(x.cells)||x.cells.length<1)fail('CELLS_REQUIRED');
 if(x.regional_collection_quota_plan?.live_quota_mutations!==0||x.regional_analytical_weight_plan?.live_weight_mutations!==0)fail('LIVE_MUTATION');
 if(x.shadow_delta_report?.collection_quota_delta_applied!==0||x.shadow_delta_report?.analytical_weight_delta_applied!==0)fail('DELTA_MUTATION');
 if(x.shadow_delta_report?.bootstrap_reinterpreted_as_market_share!==false||x.shadow_delta_report?.raw_record_count_weight!==0)fail('TRUTH_BOUNDARY');
-for(const c of x.cells){for(const planName of ['collection_plan','analytical_plan']){const plan=c[planName];if(!plan||!Array.isArray(plan.missing_factors))fail('PLAN_SHAPE');if(plan.missing_factors.length>0){if(plan.state!=='NOT_COMPUTABLE_MISSING_FACTORS'||plan.normalized_score!==null)fail(`MISSING_FACTOR_COMPUTATION:${c.category_scope}:${c.macroregion_id}:${planName}`);}if(planName==='collection_plan'&&plan.collection_quota!==null)fail('QUOTA_NON_NULL');if(planName==='analytical_plan'&&plan.analytical_weight!==null)fail('WEIGHT_NON_NULL');}if(c.live_mutation_authorized!==false)fail('CELL_MUTATION_AUTH');}
+for(const c of x.cells){
+  if(!c.ineligible_factors||typeof c.ineligible_factors!=='object'||Array.isArray(c.ineligible_factors))fail('INELIGIBLE_FACTOR_MAP_REQUIRED');
+  for(const [factor,reasons] of Object.entries(c.ineligible_factors)){
+    if(!Array.isArray(reasons)||reasons.length<1||reasons.some(reason=>typeof reason!=='string'||!reason))fail(`INELIGIBLE_FACTOR_REASON_INVALID:${factor}`);
+  }
+  for(const planName of ['collection_plan','analytical_plan']){
+    const plan=c[planName];
+    if(!plan||!Array.isArray(plan.missing_factors))fail('PLAN_SHAPE');
+    for(const factor of plan.missing_factors)if(!c.ineligible_factors[factor]?.length)fail(`MISSING_FACTOR_WITHOUT_REASON:${c.category_scope}:${c.macroregion_id}:${factor}`);
+    if(plan.missing_factors.length>0){
+      if(plan.state!=='NOT_COMPUTABLE_MISSING_FACTORS'||plan.normalized_score!==null)fail(`MISSING_FACTOR_COMPUTATION:${c.category_scope}:${c.macroregion_id}:${planName}`);
+    }else if(plan.state!=='SHADOW_SCORE_COMPUTED_NOT_ACTIVATED'||!Number.isFinite(plan.normalized_score)){
+      fail(`COMPUTABLE_PLAN_INVALID:${c.category_scope}:${c.macroregion_id}:${planName}`);
+    }
+    if(planName==='collection_plan'&&plan.collection_quota!==null)fail('QUOTA_NON_NULL');
+    if(planName==='analytical_plan'&&plan.analytical_weight!==null)fail('WEIGHT_NON_NULL');
+  }
+  if(c.live_mutation_authorized!==false)fail('CELL_MUTATION_AUTH');
+}
 if(x.activation_gates?.EVIDENCE_COMPLETENESS_PASS!==false)fail('EVIDENCE_COMPLETENESS_MUST_FAIL_CURRENT_STATE');
 if(x.activation_gates?.DETERMINISTIC_RERUN_PASS!==true||x.activation_gates?.SNAPSHOT_HASH_PRESENT!==true)fail('DETERMINISM_OR_HASH');
 if(x.activation_state!=='HOLD_INCOMPLETE_EMPIRICAL_FACTOR_SURFACE')fail('ACTIVATION_STATE');
