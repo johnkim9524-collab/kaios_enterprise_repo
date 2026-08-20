@@ -1,0 +1,44 @@
+name: KIDULTS ER Variant Hardnegative Expansion R4
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/build-variant-hardnegative-expansion-r4.mjs'
+      - '.github/workflows/kidults-er-variant-hardnegative-expansion-r4.yml'
+      - 'scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs'
+      - 'scripts/kidults/entity-resolution/probe-variant-observed-corpus-capacity-r3.mjs'
+      - 'scripts/kidults/entity-resolution/build-variant-observed-corpus-review-packet-r3.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  expand-variant-hard-negatives:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Rebuild proven 240-record corpus and current 45-case Variant packet
+        run: |
+          node scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs /tmp/pressing-source-corpus-r1.json
+          node scripts/kidults/entity-resolution/probe-variant-observed-corpus-capacity-r3.mjs /tmp/pressing-source-corpus-r1.json /tmp/variant-capacity-r3.json
+          node scripts/kidults/entity-resolution/build-variant-observed-corpus-review-packet-r3.mjs /tmp/variant-capacity-r3.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/variant-review-packet-r3.json
+      - name: Expand only remaining hard-negative material
+        run: node scripts/kidults/entity-resolution/build-variant-hardnegative-expansion-r4.mjs /tmp/pressing-source-corpus-r1.json /tmp/variant-review-packet-r3.json /tmp/variant-hardnegative-expansion-r4.json
+      - name: Enforce source-disjoint fail-closed boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/variant-hardnegative-expansion-r4.json','utf8'));
+          if(x.stratum_id!=='er-stratum-variant-release-heavy'||x.existing_packet_case_count!==45||x.existing_hard_negative_count!==5) throw new Error('BASE_TRUTH');
+          if(x.additional_case_count>35||x.total_hard_negative_if_combined>40||x.remaining_case_class_deficit.CROSS_MARKET_ALIAS!==40) throw new Error('CAPACITY_BOUNDARY');
+          const refs=x.cases.flatMap(c=>[c.source_a_reference,c.source_b_reference]);if(new Set(refs).size!==refs.length) throw new Error('NEW_SOURCE_REUSE');
+          if(x.labels_present!==false||x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED'||x.empirical_pass!==false||x.track_b!=='NOT_STARTED') throw new Error('OVERCLAIM');
+          if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.blind_partition.state!=='CANDIDATE_NOT_SEALED') throw new Error('RELEASE_BOUNDARY');
+          if(/"payload"\s*:/.test(JSON.stringify(x))) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({additional:x.additional_case_count,total_variant:x.total_reviewer_ready_if_combined,total_hard_negative:x.total_hard_negative_if_combined,remaining:x.remaining_case_count,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-variant-hardnegative-expansion-r4
+          path: /tmp/variant-hardnegative-expansion-r4.json
+          retention-days: 14
