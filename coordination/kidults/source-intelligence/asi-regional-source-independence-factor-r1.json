@@ -1,0 +1,54 @@
+{
+  "id": "kidults-asi-regional-source-independence-factor-r1",
+  "version": "1.0.0",
+  "status": "SHADOW_EMPIRICAL_FACTOR_CONTRACT",
+  "parent_issue": 768,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "category_scope": "vinyl_recorded_music",
+  "canonical_factor": "SOURCE_INDEPENDENCE",
+  "objective": "Verify that bounded regional vinyl catalog evidence is supported by at least two separately owned, rights-admitted, independently queried structured-data surfaces without converting catalog coverage into market-activity truth.",
+  "required_sources": [
+    {
+      "source_id": "musicbrainz-core-catalog",
+      "source_owner_id": "metabrainz-foundation",
+      "rights_state": "ALLOW_CORE_CC0",
+      "purpose": "REGIONAL_CATALOG_OBSERVATION"
+    },
+    {
+      "source_id": "wikidata-structured-data",
+      "source_owner_id": "wikimedia-foundation-wikidata",
+      "rights_state": "ALLOW_CC0",
+      "purpose": "REGIONAL_VINYL_CATALOG_OBSERVATION"
+    }
+  ],
+  "verification_rule": {
+    "minimum_independent_source_owners": 2,
+    "minimum_region_observations_per_owner": 2,
+    "required_separate_transports": 2,
+    "underlying_fact_lineage_independence_must_not_be_assumed": true,
+    "state_when_requirements_met": "VERIFIED",
+    "state_when_requirements_fail": "NOT_VERIFIED"
+  },
+  "score_dimensions": {
+    "INDEPENDENT_SOURCE_OWNERS": {"weight": 0.35, "pass_value": 1.0},
+    "RIGHTS_AND_REUSE_CLARITY": {"weight": 0.15, "pass_value": 1.0},
+    "EXPLICIT_REGION_BINDING_BY_BOTH": {"weight": 0.15, "pass_value": 1.0},
+    "SEPARATE_READ_ONLY_TRANSPORTS": {"weight": 0.10, "pass_value": 1.0},
+    "SOURCE_REMOVAL_LEAVES_REAL_OBSERVATIONS": {"weight": 0.10, "pass_value": 1.0},
+    "UNDERLYING_FACT_LINEAGE_INDEPENDENCE_PROVEN": {"weight": 0.15, "pass_value": 1.0}
+  },
+  "confidence_rule": {
+    "two_owner_transport_independence_with_unproven_fact_lineage": "MEDIUM",
+    "high_requires_fact_lineage_independence_proven": true
+  },
+  "truth_boundaries": [
+    "SOURCE_OWNER_INDEPENDENCE_IS_NOT_TRANSACTION_INDEPENDENCE",
+    "CATALOG_COVERAGE_IS_NOT_MARKET_ACTIVITY",
+    "CATALOG_COVERAGE_IS_NOT_MARKET_SCALE",
+    "WIKIDATA_AND_MUSICBRAINZ_FACT_LINEAGE_DEPENDENCE_IS_NOT_ASSUMED_AWAY",
+    "REMOVING_EITHER_OWNER_DROPS_MULTI_OWNER_VERIFICATION",
+    "RAW_RECORD_COUNTS_HAVE_ZERO_MARKET_WEIGHT",
+    "FACTOR_MAY_AFFECT_ANALYTICAL_COMPLETENESS_ONLY_WITHIN_SHADOW"
+  ]
+}
