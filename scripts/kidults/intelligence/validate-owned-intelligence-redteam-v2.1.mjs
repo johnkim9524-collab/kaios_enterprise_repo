@@ -23,7 +23,7 @@ const bt=backtestPointEstimatesV21([...holdout,holdout[0],holdout[0]]);assert.eq
 assert.equal(backtestPointEstimatesV21(holdout.map(x=>({...x,target_at:'2025-01-01T00:00:00Z'}))).state,'HOLD_TEMPORAL_LEAKAGE');
 assert.equal(backtestPointEstimatesV21(holdout.map((x,i)=>i===0?{...x,target_at:'bad-date'}:x)).state,'HOLD_INVALID_BACKTEST_DATE');
 
-const cal=[];for(const source of ['A','B'])for(let i=0;i<40;i++)cal.push({case_id:`${source}${i}`,source_owner:source,predicted_score:i%2?.8:.2,observed_correct:i%2?1:0});
+const cal=[];for(const source of ['A','B'])for(let i=0;i<40;i++)cal.push({case_id:`${source}${i}`,source_owner:source,predicted_score:i%2?.95:.05,observed_correct:i%2?1:0});
 const c=calibrateSourceReliabilityV21(cal);assert.ok(c.every(x=>x.state==='CALIBRATED_BOUNDED'));assert.deepEqual(calibrateSourceReliabilityV21([{source_owner:'A',predicted_score:1.2,observed_correct:1}]),[]);
 
 const gate=enforceOwnedIntelligenceRuntimeGate({reconciliation:[{state:'TOLERANCE_MATCH'}],valuationBacktest:{state:'BACKTEST_PASS'},liquidityBacktest:{state:'BACKTEST_PASS'},sourceCalibration:c,modelGovernance:{state:'GOVERNED_SHADOW_READY'}});assert.equal(gate.state,'ALLOW_SHADOW_ONLY');
