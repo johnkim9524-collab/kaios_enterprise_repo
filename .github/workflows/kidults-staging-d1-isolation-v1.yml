@@ -1,0 +1,141 @@
+name: KIDULTS STAGING D1 Isolation v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-staging-d1-isolation-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging-d1-isolation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_STAGING_D1_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_D1_TOKEN }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: PRECHECK — exact staging-only boundary
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const files=fs.readdirSync('services/kidults-autonomous-intelligence/migrations').filter(x=>/^000[1-6]_.*\.sql$/.test(x)).sort();
+          if(files.length!==6) throw new Error(`MIGRATION_COUNT_${files.length}`);
+          const cfg=JSON.parse(fs.readFileSync('services/kidults-autonomous-intelligence/wrangler.jsonc','utf8'));
+          if(cfg.vars?.KIDULTS_ENV!=='staging'||cfg.vars?.ASI_MESH_MODE!=='SHADOW'||cfg.vars?.ASI_PUBLICATION_ENABLED!=='false') throw new Error('STAGING_BOUNDARY');
+          if(cfg.d1_databases?.[0]?.database_name!=='kidults-intelligence-db') throw new Error('CANONICAL_D1_UNEXPECTED');
+          fs.writeFileSync('/tmp/migrations.json',JSON.stringify(files));
+          console.log(JSON.stringify({status:'PASS',target:'kidults-intelligence-db-staging',migration_count:6,production:'HOLD'}));
+          NODE
+
+      - name: VERIFY — target absent or exact-name existing
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          npx wrangler d1 list --json > /tmp/d1-before.json
+          node - <<'NODE'
+          const fs=require('fs'); const a=JSON.parse(fs.readFileSync('/tmp/d1-before.json','utf8'));
+          const matches=a.filter(x=>x.name==='kidults-intelligence-db-staging');
+          if(matches.length>1) throw new Error('DUPLICATE_STAGING_D1');
+          const prod=a.find(x=>x.name==='kidults-intelligence-db');
+          if(!prod) throw new Error('CANONICAL_D1_NOT_VISIBLE');
+          fs.writeFileSync('/tmp/d1-precheck.json',JSON.stringify({existing:matches.length===1,staging_id:matches[0]?.uuid||matches[0]?.id||null,production_id:prod.uuid||prod.id||null},null,2));
+          console.log(JSON.stringify({status:'PASS',staging_existing:matches.length===1,production_present:true}));
+          NODE
+
+      - name: GATE — require temporary D1 Edit token
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_STAGING_D1_TOKEN:-}" ]; then
+            echo 'CLOUDFLARE_STAGING_D1_TOKEN missing; fail closed before D1 create/migration.'
+            exit 2
+          fi
+          echo "::add-mask::$CLOUDFLARE_STAGING_D1_TOKEN"
+
+      - name: CREATE — exact staging D1 only when absent
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_D1_TOKEN }}
+        run: |
+          set -euo pipefail
+          EXISTING=$(node -e "const x=require('/tmp/d1-precheck.json');process.stdout.write(x.existing?'1':'0')")
+          if [ "$EXISTING" = "0" ]; then
+            npx wrangler d1 create kidults-intelligence-db-staging
+          else
+            echo 'Exact staging D1 already exists; create skipped.'
+          fi
+          npx wrangler d1 info kidults-intelligence-db-staging --json > /tmp/d1-staging-info.json
+          node - <<'NODE'
+          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/d1-staging-info.json','utf8'));
+          const s=JSON.stringify(x); const m=s.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+          if(!m) throw new Error('STAGING_D1_ID_NOT_FOUND');
+          fs.writeFileSync('/tmp/staging-d1-id.txt',m[0]+'\n');
+          console.log(JSON.stringify({status:'PASS',staging_d1_id:m[0]}));
+          NODE
+
+      - name: CONFIG — generate staging-only D1 binding
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const id=fs.readFileSync('/tmp/staging-d1-id.txt','utf8').trim();
+          const p='services/kidults-autonomous-intelligence/wrangler.jsonc';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const d=x.d1_databases.find(v=>v.binding==='DB');
+          d.database_name='kidults-intelligence-db-staging'; d.database_id=id;
+          x.name='kidults-autonomous-intelligence-staging'; x.workers_dev=false; delete x.routes; delete x.route; delete x.triggers;
+          x.vars={...(x.vars||{}),KIDULTS_ENV:'staging',ASI_MESH_MODE:'SHADOW',ASI_PUBLICATION_ENABLED:'false'};
+          fs.writeFileSync('services/kidults-autonomous-intelligence/wrangler.staging-d1.generated.json',JSON.stringify(x,null,2));
+          NODE
+
+      - name: MIGRATE — apply canonical 0001 through 0006 to staging D1
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_D1_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx wrangler d1 migrations apply DB --remote --config wrangler.staging-d1.generated.json
+
+      - name: VERIFY — staging schema and production-id separation
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_D1_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute DB --remote --config wrangler.staging-d1.generated.json --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name" --json > /tmp/staging-schema.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const pre=require('/tmp/d1-precheck.json'); const sid=fs.readFileSync('/tmp/staging-d1-id.txt','utf8').trim();
+          if(sid===pre.production_id) throw new Error('STAGING_EQUALS_PRODUCTION_D1');
+          const txt=fs.readFileSync('/tmp/staging-schema.json','utf8');
+          const required=['collector_runs','audit_log'];
+          for(const t of required) if(!txt.includes(t)) throw new Error(`MISSING_TABLE_${t}`);
+          const out={status:'STAGING_D1_ISOLATED_AND_MIGRATED',staging_d1_id:sid,production_d1_id:pre.production_id,migrations:'0001-0006',production_mutation:false,production:'HOLD'};
+          fs.writeFileSync('/tmp/staging-d1-receipt.json',JSON.stringify(out,null,2));
+          console.log(JSON.stringify(out));
+          NODE
+
+      - name: Upload staging D1 isolation receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-staging-d1-isolation-v1
+          path: |
+            /tmp/d1-precheck.json
+            /tmp/d1-staging-info.json
+            /tmp/staging-schema.json
+            /tmp/staging-d1-receipt.json
+          retention-days: 30
+          if-no-files-found: error
