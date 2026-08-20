@@ -1,4 +1,4 @@
-name: KIDULTS STAGING Queue E2E #777 Golden Path
+name: KIDULTS STAGING Runtime Evidence #777
 
 on:
   pull_request:
@@ -11,19 +11,17 @@ permissions:
   contents: read
 
 jobs:
-  staging-queue-e2e-golden-path:
+  staging-runtime-readonly-evidence:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_STAGING_D1_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_D1_TOKEN }}
-      CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN }}
       STAGING_DB: kidults-intelligence-db-staging
       PRODUCTION_DB: kidults-intelligence-db
+      FAILED_OUTBOX_ID: outbox-kpmo-32343488684_1
+      FAILED_EVENT_ID: event-kpmo-32343488684_1
       TARGET_QUEUE: kidults-asi-shadow-discovery-wikidata
-      TARGET_FLEET: DISCOVERY_WIKIDATA
-      QUEUE_BINDING: ASI_DISCOVERY_WIKIDATA_QUEUE
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@v4
@@ -32,133 +30,88 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Gate secrets and fixed non-Production boundary
+      - name: Gate read-only evidence boundary
         run: |
           set -euo pipefail
           test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
           test -n "${CLOUDFLARE_API_TOKEN:-}"
-          test -n "${CLOUDFLARE_STAGING_D1_TOKEN:-}"
-          test -n "${CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN:-}"
           echo "::add-mask::$CLOUDFLARE_API_TOKEN"
-          echo "::add-mask::$CLOUDFLARE_STAGING_D1_TOKEN"
-          echo "::add-mask::$CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN"
           test "$STAGING_DB" = 'kidults-intelligence-db-staging'
           test "$PRODUCTION_DB" = 'kidults-intelligence-db'
-          test "$TARGET_QUEUE" = 'kidults-asi-shadow-discovery-wikidata'
-          test "$TARGET_FLEET" = 'DISCOVERY_WIKIDATA'
-          test "$QUEUE_BINDING" = 'ASI_DISCOVERY_WIKIDATA_QUEUE'
-
+          test "$FAILED_OUTBOX_ID" = 'outbox-kpmo-32343488684_1'
       - name: Install Wrangler only
         working-directory: services/kidults-autonomous-intelligence
         run: npm install --ignore-scripts
-
-      - name: Build canonical rejected control event, outbox provenance and Queue task
-        run: |
-          set -euo pipefail
-          node - <<'NODE'
-          const fs=require('fs'),crypto=require('crypto');
-          const stamp=`${process.env.GITHUB_RUN_ID}_${process.env.GITHUB_RUN_ATTEMPT}`;
-          const now=new Date().toISOString();
-          const sourceId=`kpmo-staging-control-${stamp}`;
-          const host='kpmo-staging-control.invalid';
-          const sha=s=>'sha256:'+crypto.createHash('sha256').update(s).digest('hex');
-          const canonical=v=>{
-            if(v===null||typeof v==='string'||typeof v==='boolean') return v;
-            if(typeof v==='number') return Object.is(v,-0)?0:v;
-            if(Array.isArray(v)) return v.map(canonical);
-            const o={}; for(const k of Object.keys(v).sort()) o[k]=canonical(v[k]); return o;
-          };
-          const payload={source_id:sourceId,discovery_seed:{source_id:sourceId,canonical_site_id:`site-${sha(host).slice(7,39)}`,canonical_host:host,seed_ref:`kpmo:staging:e2e:${stamp}`,discovery_rights_state:'DENY'},assertion_inputs:{}};
-          const eventId=`event-kpmo-golden-${stamp}`;
-          const event={event_id:eventId,event_type:'SOURCE_DISCOVERY_REQUESTED',event_version:'1.0.0',occurred_at:now,observed_at:now,producer_engine:'KPMO_STAGING_E2E_777',producer_version:'1.0.0',correlation_id:`corr-kpmo-golden-${stamp}`,causation_id:null,idempotency_key:`idem-kpmo-golden-${stamp}`,partition:{channel:'WIKIDATA_OFFICIAL_WEBSITE_GRAPH',region:'STAGING_CONTROL',language:'en',scope_id:'runtime-control',source_role:'CONTROL_ONLY',canonical_host_hash:sha(host)},input_snapshot_ref:`kpmo-staging-control-${stamp}`,payload_hash:sha(JSON.stringify(canonical(payload))),rights_state:'DENY',freshness_state:'CURRENT',assertion_purpose:'BOUNDED_SHADOW_ACQUISITION',decision:'REJECT',reason_codes:['CONTROL_REJECT_EXPECTED','SHADOW_TEST_ONLY'],trace_refs:[`kpmo:staging:e2e:${stamp}`],payload};
-          const outboxId=`outbox_${eventId}_${process.env.TARGET_FLEET}`;
-          const task={transport_version:'1.0.0',outbox_id:outboxId,target_fleet:process.env.TARGET_FLEET,source_queue:process.env.TARGET_QUEUE,created_at:now,event};
-          const p=event.partition;
-          const partitionKey=`partition:v1:${JSON.stringify([p.channel,p.region,p.language,p.scope_id,p.source_role,p.canonical_host_hash])}`;
-          const fairnessKey=`fairness:v1:${JSON.stringify([process.env.TARGET_FLEET,p.channel,p.region,p.language,p.scope_id,p.source_role])}`;
-          const q=v=>`'${String(v).replaceAll("'","''")}'`; const nullable=v=>v===null?'NULL':q(v); const taskJson=JSON.stringify(task);
-          const sql=`BEGIN;\n`+`INSERT INTO asi_event_log (event_id,event_type,event_version,producer_engine,producer_version,correlation_id,causation_id,idempotency_key,partition_key,input_snapshot_ref,payload_hash,rights_state,freshness_state,assertion_purpose,decision,reason_codes_json,trace_refs_json,payload_json,occurred_at,observed_at,received_at) VALUES (`+[event.event_id,event.event_type,event.event_version,event.producer_engine,event.producer_version,event.correlation_id].map(q).join(',')+','+nullable(event.causation_id)+','+[event.idempotency_key,partitionKey,event.input_snapshot_ref,event.payload_hash,event.rights_state,event.freshness_state,event.assertion_purpose,event.decision,JSON.stringify(event.reason_codes),JSON.stringify(event.trace_refs),JSON.stringify(event.payload),event.occurred_at,event.observed_at,now].map(q).join(',')+`);\n`+`INSERT INTO asi_outbox (id,event_id,engine_fleet,queue_binding,queue_name,payload_json,status,partition_key,fairness_key,created_at,updated_at) VALUES (`+[outboxId,event.event_id,process.env.TARGET_FLEET,process.env.QUEUE_BINDING,process.env.TARGET_QUEUE,taskJson,'DISPATCHED',partitionKey,fairnessKey,now,now].map(q).join(',')+`);\nCOMMIT;\n`;
-          fs.writeFileSync('/tmp/seed.sql',sql); fs.writeFileSync('/tmp/task-message.json',JSON.stringify({body:task,content_type:'json'})); fs.writeFileSync('/tmp/control.json',JSON.stringify({event_id:eventId,outbox_id:outboxId,partition_key:partitionKey,fairness_key:fairnessKey},null,2)); fs.writeFileSync('/tmp/ids.env',`EVENT_ID=${eventId}\nOUTBOX_ID=${outboxId}\n`);
-          NODE
-
-      - name: PRECHECK — prove exact IDs absent and Production read-only
+      - name: Read STAGING failure, health, DLQ and storage counters
         working-directory: services/kidults-autonomous-intelligence
         run: |
           set -euo pipefail
-          source /tmp/ids.env
-          npx wrangler d1 execute "$STAGING_DB" --remote --command "SELECT id,event_id,status FROM asi_outbox WHERE id='$OUTBOX_ID';" --json > /tmp/staging-before.json
-          node - <<'NODE'
-          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/staging-before.json','utf8')); if(!x.every(v=>v.success===true)||x.flatMap(v=>v.results||[]).length!==0) throw new Error('STAGING_CONTROL_ID_NOT_CLEAN'); if(x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('STAGING_PRECHECK_MUTATED');
-          NODE
+          npx wrangler d1 info "$STAGING_DB" --json > /tmp/staging-info.json
+          npx wrangler d1 execute "$STAGING_DB" --remote --command "SELECT queue_name,outbox_id,message_id,event_id,status,attempt_count,first_seen_at,last_seen_at,completed_at,last_error FROM asi_processed_messages WHERE outbox_id='$FAILED_OUTBOX_ID';" --json > /tmp/processed.json
+          npx wrangler d1 execute "$STAGING_DB" --remote --command "SELECT id,queue_name,source_queue_name,message_id,event_id,attempts,error_code,error_message,recorded_at,replayed_at,replay_event_id FROM asi_dead_letters WHERE event_id='$FAILED_EVENT_ID' OR message_id IN (SELECT message_id FROM asi_processed_messages WHERE outbox_id='$FAILED_OUTBOX_ID') ORDER BY recorded_at DESC LIMIT 10;" --json > /tmp/deadletters.json
+          npx wrangler d1 execute "$STAGING_DB" --remote --command "SELECT engine_fleet,queue_name,state,processed_count,failed_count,retry_count,dead_letter_count,last_success_at,last_failure_at,updated_at FROM asi_engine_health WHERE queue_name='$TARGET_QUEUE';" --json > /tmp/health.json
+          npx wrangler d1 execute "$STAGING_DB" --remote --command "SELECT (SELECT COUNT(*) FROM asi_event_log) AS event_log_rows,(SELECT COUNT(*) FROM asi_outbox) AS outbox_rows,(SELECT COUNT(*) FROM asi_processed_messages) AS processed_rows,(SELECT COUNT(*) FROM asi_dead_letters) AS dead_letter_rows,(SELECT COUNT(*) FROM asi_transport_attempts) AS transport_attempt_rows,(SELECT COUNT(*) FROM asi_replay_requests) AS replay_request_rows,(SELECT COUNT(*) FROM audit_log) AS audit_log_rows;" --json > /tmp/counts.json
+      - name: Prove Production remains read-only and runtime-row isolated
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npx wrangler d1 info "$PRODUCTION_DB" --json > /tmp/production-info.json
           npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "SELECT 1 AS production_read_probe;" --json > /tmp/production-read.json
+          npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "SELECT name FROM sqlite_master WHERE type='table' AND name='asi_processed_messages';" --json > /tmp/production-runtime-table.json
+      - name: Build public-safe empirical receipt
+        run: |
+          set -euo pipefail
           node - <<'NODE'
-          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/production-read.json','utf8')); if(!x.every(v=>v.success===true)||!x.flatMap(v=>v.results||[]).some(v=>v.production_read_probe===1)) throw new Error('PRODUCTION_READ_PRECHECK_FAILED'); if(x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_PRECHECK_MUTATED');
+          const fs=require('fs');
+          const rows=f=>JSON.parse(fs.readFileSync(f,'utf8')).flatMap(v=>v.results||[]);
+          const p=rows('/tmp/processed.json');
+          if(p.length!==1) throw new Error(`FAILED_ROW_COUNT:${p.length}`);
+          const r=p[0];
+          if(r.status!=='FAILED'||Number(r.attempt_count)!==4||r.last_error!=='ASI_QUEUE_TASK_OUTBOX_PROVENANCE_MISMATCH') throw new Error('FAILED_ROW_TRUTH_DRIFT');
+          const first=Date.parse(r.first_seen_at),last=Date.parse(r.last_seen_at);
+          if(!Number.isFinite(first)||!Number.isFinite(last)||last<first) throw new Error('RETRY_TIMESTAMPS_INVALID');
+          const retrySpanMs=last-first;
+          const dlq=rows('/tmp/deadletters.json');
+          const health=rows('/tmp/health.json');
+          const counts=rows('/tmp/counts.json')[0]||{};
+          const prodRead=JSON.parse(fs.readFileSync('/tmp/production-read.json','utf8'));
+          const prodRuntime=rows('/tmp/production-runtime-table.json');
+          if(!prodRead.every(v=>v.success===true)||!prodRead.flatMap(v=>v.results||[]).some(v=>v.production_read_probe===1)) throw new Error('PRODUCTION_READ_FAILED');
+          if(prodRead.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_READ_MUTATED');
+          const receipt={
+            issue:777,
+            evidence_class:'REMOTE_STAGING_READONLY_FAILURE_RECOVERY_BASELINE',
+            queue_name:r.queue_name,
+            outbox_id:r.outbox_id,
+            event_id:r.event_id,
+            consumer_delivery_proven:true,
+            worker_d1_write_proven:true,
+            terminal_status:r.status,
+            attempts:Number(r.attempt_count),
+            first_seen_at:r.first_seen_at,
+            last_seen_at:r.last_seen_at,
+            retry_span_ms:retrySpanMs,
+            last_error:r.last_error,
+            dead_letter_records_for_control:dlq.length,
+            engine_health:health.map(x=>({engine_fleet:x.engine_fleet,state:x.state,processed_count:Number(x.processed_count||0),failed_count:Number(x.failed_count||0),retry_count:Number(x.retry_count||0),dead_letter_count:Number(x.dead_letter_count||0),last_success_at:x.last_success_at||null,last_failure_at:x.last_failure_at||null,updated_at:x.updated_at||null})),
+            staging_counts:Object.fromEntries(Object.entries(counts).map(([k,v])=>[k,Number(v||0)])),
+            production_processed_messages_table_present:prodRuntime.length>0,
+            production_mutation:false,
+            new_queue_messages_sent:0,
+            new_d1_writes:0,
+            golden_path_pass:false,
+            blocker:'TEMPORARY_STAGING_D1_EDIT_SECRET_ABSENT_FOR_CANONICAL_PROVENANCE_SEED',
+            production:'HOLD'
+          };
+          fs.writeFileSync('/tmp/runtime-readonly-receipt.json',JSON.stringify(receipt,null,2)+'\n');
+          console.log(JSON.stringify(receipt,null,2));
           NODE
-
-      - name: SEED — canonical provenance in isolated STAGING D1 with staging-only edit token
-        working-directory: services/kidults-autonomous-intelligence
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_D1_TOKEN }}
-        run: |
-          set -euo pipefail
-          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
-          npx wrangler d1 execute "$STAGING_DB" --remote --file /tmp/seed.sql --json > /tmp/seed-result.json
-          source /tmp/ids.env
-          npx wrangler d1 execute "$STAGING_DB" --remote --command "SELECT id,event_id,engine_fleet,queue_binding,queue_name,status,payload_json FROM asi_outbox WHERE id='$OUTBOX_ID';" --json > /tmp/seed-proof.json
-          CONTROL=/tmp/control.json TASK=/tmp/task-message.json node - <<'NODE'
-          const fs=require('fs'); const c=require(process.env.CONTROL); const wrapper=require(process.env.TASK); const x=JSON.parse(fs.readFileSync('/tmp/seed-proof.json','utf8')); const rows=x.flatMap(v=>v.results||[]); if(rows.length!==1) throw new Error('SEEDED_OUTBOX_NOT_EXACTLY_ONE'); const r=rows[0]; if(r.id!==c.outbox_id||r.event_id!==c.event_id||r.engine_fleet!=='DISCOVERY_WIKIDATA'||r.queue_binding!=='ASI_DISCOVERY_WIKIDATA_QUEUE'||r.queue_name!=='kidults-asi-shadow-discovery-wikidata'||r.status!=='DISPATCHED') throw new Error('SEEDED_OUTBOX_PROVENANCE_DRIFT'); if(JSON.stringify(JSON.parse(r.payload_json))!==JSON.stringify(wrapper.body)) throw new Error('SEEDED_TASK_PAYLOAD_DRIFT');
-          NODE
-
-      - name: Resolve exact target Queue ID
-        run: |
-          set -euo pipefail
-          curl -fsS "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" > /tmp/queues.json
-          node - <<'NODE' > /tmp/queue.env
-          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/queues.json','utf8')); if(!x.success) throw new Error('QUEUE_LIST_FAILED'); const q=(x.result||[]).find(v=>(v.queue_name||v.name)==='kidults-asi-shadow-discovery-wikidata'); if(!q) throw new Error('TARGET_QUEUE_NOT_FOUND'); const id=q.queue_id||q.id; if(!id) throw new Error('TARGET_QUEUE_ID_MISSING'); console.log(`QUEUE_ID=${id}`);
-          NODE
-
-      - name: PUSH — exactly one provenance-valid STAGING control message
-        run: |
-          set -euo pipefail
-          source /tmp/queue.env
-          HTTP=$(curl -sS -o /tmp/push-response.json -w '%{http_code}' -X POST "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" -H 'Content-Type: application/json' --data-binary @/tmp/task-message.json)
-          test "$HTTP" = '200'
-          node -e "const x=require('/tmp/push-response.json'); if(x.success!==true) process.exit(1)"
-
-      - name: VERIFY — Worker SUCCEEDED, reject-control did not fan out, Production untouched
-        working-directory: services/kidults-autonomous-intelligence
-        run: |
-          set -euo pipefail
-          source /tmp/ids.env
-          FOUND=0
-          for i in $(seq 1 18); do
-            npx wrangler d1 execute "$STAGING_DB" --remote --command "SELECT queue_name,outbox_id,event_id,status,attempt_count,last_error,first_seen_at,last_seen_at,completed_at FROM asi_processed_messages WHERE outbox_id='$OUTBOX_ID';" --json > /tmp/staging-after.json
-            if node - <<'NODE'
-          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/staging-after.json','utf8')); const r=x.flatMap(v=>v.results||[])[0]; process.exit(r?.status==='SUCCEEDED' ? 0 : 1);
-          NODE
-            then FOUND=1; break; fi
-            sleep 5
-          done
-          test "$FOUND" = '1'
-          npx wrangler d1 execute "$STAGING_DB" --remote --command "SELECT COUNT(*) AS n FROM asi_outbox WHERE event_id IN (SELECT event_id FROM asi_event_log WHERE causation_id='$EVENT_ID');" --json > /tmp/fanout.json
-          npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "SELECT 1 AS production_read_probe;" --json > /tmp/production-after.json
-          EVENT_ID="$EVENT_ID" OUTBOX_ID="$OUTBOX_ID" node - <<'NODE'
-          const fs=require('fs'); const sx=JSON.parse(fs.readFileSync('/tmp/staging-after.json','utf8')); const r=sx.flatMap(v=>v.results||[])[0]; if(!r||r.outbox_id!==process.env.OUTBOX_ID||r.event_id!==process.env.EVENT_ID||r.status!=='SUCCEEDED'||Number(r.attempt_count)!==1||r.last_error!==null) throw new Error('STAGING_GOLDEN_PATH_NOT_SUCCEEDED_ONCE'); const f=JSON.parse(fs.readFileSync('/tmp/fanout.json','utf8')).flatMap(v=>v.results||[])[0]; if(Number(f?.n||0)!==0) throw new Error('REJECT_CONTROL_UNEXPECTED_FANOUT'); const px=JSON.parse(fs.readFileSync('/tmp/production-after.json','utf8')); if(!px.every(v=>v.success===true)||px.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_BOUNDARY_FAILED'); const receipt={issue:777,mode:'STAGING_CONTROL_REJECT_GOLDEN_PATH',event_id:process.env.EVENT_ID,outbox_id:process.env.OUTBOX_ID,queue_name:r.queue_name,status:r.status,attempt_count:Number(r.attempt_count),first_seen_at:r.first_seen_at,last_seen_at:r.last_seen_at,completed_at:r.completed_at,downstream_fanout_count:0,provider_payload_used:false,public_endpoint_opened:false,production_mutation:false,production:'HOLD'}; fs.writeFileSync('/tmp/golden-receipt.json',JSON.stringify(receipt,null,2)+'\n'); console.log(JSON.stringify(receipt,null,2));
-          NODE
-
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: kidults-staging-queue-e2e-777-golden-path
+          name: kidults-staging-runtime-readonly-evidence-777
           path: |
-            /tmp/golden-receipt.json
-            /tmp/control.json
-            /tmp/seed-result.json
-            /tmp/push-response.json
-            /tmp/staging-after.json
-            /tmp/fanout.json
-            /tmp/production-read.json
-            /tmp/production-after.json
+            /tmp/runtime-readonly-receipt.json
+            /tmp/staging-info.json
+            /tmp/production-info.json
           retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error
