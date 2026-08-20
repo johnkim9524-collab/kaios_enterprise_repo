@@ -1,0 +1,45 @@
+name: KIDULTS ER Release Crosswalk Review Packets R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/build-wikidata-release-crosswalk-review-packets-r1.mjs'
+      - '.github/workflows/kidults-er-release-crosswalk-review-packets-r1.yml'
+      - 'scripts/kidults/entity-resolution/probe-wikidata-release-crosswalk-capacity-r1.mjs'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-dual-strata-alias-packets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Freshly re-prove exact 80 crosswalk capacity
+        run: node scripts/kidults/entity-resolution/probe-wikidata-release-crosswalk-capacity-r1.mjs /tmp/crosswalk-capacity.json
+      - name: Build disjoint 40 Pressing + 40 Variant reviewer packets
+        run: node scripts/kidults/entity-resolution/build-wikidata-release-crosswalk-review-packets-r1.mjs /tmp/crosswalk-capacity.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/crosswalk-packets.json
+      - name: Enforce allocation, grammar, evidence, and fail-closed boundaries
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/crosswalk-packets.json','utf8'));
+          const p=x.packets?.pressing,v=x.packets?.variant;if(!p||!v)throw new Error('PACKETS_MISSING');
+          if(p.case_count!==40||p.total_reviewer_ready_if_combined!==94||p.remaining_case_count!==26||p.remaining_case_class_deficit?.CROSS_MARKET_ALIAS!==0||p.remaining_case_class_deficit?.HARD_NEGATIVE!==26)throw new Error('PRESSING_BOUNDARY');
+          if(v.case_count!==40||v.total_reviewer_ready_if_combined!==95||v.remaining_case_count!==25||v.remaining_case_class_deficit?.CROSS_MARKET_ALIAS!==0||v.remaining_case_class_deficit?.HARD_NEGATIVE!==25)throw new Error('VARIANT_BOUNDARY');
+          if(x.aggregate_additional_case_count!==80||x.aggregate_reviewer_ready_if_combined!==558)throw new Error('AGGREGATE_BOUNDARY');
+          const all=[...(p.cases||[]),...(v.cases||[])],qids=all.map(c=>c.reviewer_prompt_context?.wikidata_qid),refs=all.map(c=>c.source_reference);
+          if(all.length!==80||new Set(qids).size!==80||new Set(refs).size!==80)throw new Error('SOURCE_REUSE');
+          for(const c of all){if(c.case_class!=='CROSS_MARKET_ALIAS'||c.identity_boundary!=='SOURCE_RECORD'||c.expected!=='MATCH'||c.rights_state!=='ALLOW')throw new Error('CASE_GRAMMAR');if(!/^sha256:[a-f0-9]{64}$/.test(c.source_payload_sha256)||!c.license_evidence_refs?.length||!c.provenance_refs?.length)throw new Error('EVIDENCE');if(c.label!==null||c.model_prediction!==null||c.reviewer_assignment!=='PENDING_REAL_REVIEWER')throw new Error('OVERCLAIM_CASE');}
+          if(p.blind_partition?.case_count!==20||v.blind_partition?.case_count!==20||p.blind_partition.state!=='CANDIDATE_NOT_SEALED'||v.blind_partition.state!=='CANDIDATE_NOT_SEALED')throw new Error('BLIND_BOUNDARY');
+          if(x.labels_present!==false||x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED'||x.empirical_pass!==false||x.track_b!=='NOT_STARTED'||x.public_release!=='HOLD'||x.production!=='HOLD')throw new Error('OVERCLAIM');
+          if(/"raw_payload"\s*:|"payload"\s*:/.test(JSON.stringify(x)))throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({pressing_total:p.total_reviewer_ready_if_combined,variant_total:v.total_reviewer_ready_if_combined,aggregate_total:x.aggregate_reviewer_ready_if_combined,pressing_remaining:p.remaining_case_count,variant_remaining:v.remaining_case_count,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-release-crosswalk-review-packets-r1
+          path: /tmp/crosswalk-packets.json
+          retention-days: 14
