@@ -1,0 +1,41 @@
+name: Owned Intelligence Core v1
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+    paths:
+      - "coordination/kidults/architecture/owned-intelligence-core-v1.json"
+      - "scripts/kidults/intelligence/owned-intelligence-core-v1.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-core-v1.mjs"
+      - ".github/workflows/owned-intelligence-core-v1.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "coordination/kidults/architecture/owned-intelligence-core-v1.json"
+      - "scripts/kidults/intelligence/owned-intelligence-core-v1.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-core-v1.mjs"
+      - ".github/workflows/owned-intelligence-core-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.19.0"
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Parse owned intelligence architecture contract
+        run: node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/architecture/owned-intelligence-core-v1.json','utf8'))"
+      - name: Validate provider-independent market contract remains intact
+        run: npm run validate:market-event
+      - name: Validate owned intelligence core
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.mjs
