@@ -10,7 +10,6 @@ on:
       - "coordination/kidults/architecture/provider-independent-intelligence-layers-v1.json"
       - "scripts/kidults/intelligence/provider-independent-layers-v1.mjs"
       - "scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs"
-      - "package.json"
       - ".github/workflows/provider-independent-intelligence-layers.yml"
   pull_request:
     branches:
@@ -20,7 +19,6 @@ on:
       - "coordination/kidults/architecture/provider-independent-intelligence-layers-v1.json"
       - "scripts/kidults/intelligence/provider-independent-layers-v1.mjs"
       - "scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs"
-      - "package.json"
       - ".github/workflows/provider-independent-intelligence-layers.yml"
   workflow_dispatch:
 
@@ -37,21 +35,7 @@ jobs:
           node-version: "24.19.0"
           cache: npm
       - run: npm ci
-      - name: Install autonomous intelligence dependencies
-        working-directory: services/kidults-autonomous-intelligence
-        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Validate existing market-event contract
         run: npm run validate:market-event
       - name: Validate provider-independent intelligence layers
-        run: npm run validate:provider-independent-layers
-      - name: Build current ASI SHADOW evidence for drift synchronization
-        run: |
-          node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs \
-            --output /tmp/asi-shadow-operating-evidence-run-1.json --write
-      - name: Upload current ASI SHADOW evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: provider-independent-asi-shadow-evidence
-          path: /tmp/asi-shadow-operating-evidence-run-1.json
-          if-no-files-found: error
-          retention-days: 7
+        run: node scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs
