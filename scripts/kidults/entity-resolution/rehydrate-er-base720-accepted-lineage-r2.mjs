@@ -69,7 +69,7 @@ const residual2=findId(files,'kidults-er-expanded-musicbrainz-hardnegative-packe
 const serWd=findId(files,'kidults-er-serialized-source-disjoint-review-packet-r3');
 const serNasm=findId(files,'kidults-er-serialized-smithsonian-nasm-review-packet-r4');
 const serFaa=findId(files,'kidults-er-serialized-faa-hardnegative-packet-r1');
-const serAlias=findId(files,'kidults-er-serialized-faa-ntsb-crossauthority-r1');
+const serAlias=findId(files,'kidults-er-serialized-faa-ntsb-crossauthority-packet-r1');
 
 const pressing=adaptReleaseLineageForBase720({stratumId:'er-stratum-pressing-edition-media',fragments:[pBase,pHard,cross,residual2],samplingPlan:sampling});
 const variant=adaptReleaseLineageForBase720({stratumId:'er-stratum-variant-release-heavy',fragments:[vBase,vHard,cross,residual1,residual2],samplingPlan:sampling});
