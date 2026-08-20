@@ -85,57 +85,72 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${CLOUDFLARE_STAGING_DEPLOY_TOKEN:-}" ]; then
-            echo 'CLOUDFLARE_STAGING_DEPLOY_TOKEN missing; fail closed before any upload/deploy.'
+            echo 'CLOUDFLARE_STAGING_DEPLOY_TOKEN missing; fail closed before any deploy.'
             exit 2
           fi
           echo "::add-mask::$CLOUDFLARE_STAGING_DEPLOY_TOKEN"
 
-      - name: UPLOAD — inert rollback target, not deployed
+      - name: BOOTSTRAP — deploy inert isolated Worker and establish rollback target
         working-directory: services/kidults-autonomous-intelligence
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_DEPLOY_TOKEN }}
-          WRANGLER_OUTPUT_FILE_PATH: /tmp/wrangler-rollback.ndjson
         run: |
+          set -euo pipefail
           node - <<'NODE'
           const fs=require('fs'); const p='wrangler.staging.generated.json'; const x=require('./'+p); x.main='src/staging-rollback.generated.ts'; fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          npx wrangler versions upload --config wrangler.staging.generated.json --tag staging-rollback-inert --message 'KPMO inert rollback target; no route; no cron'
+          npx wrangler deploy --config wrangler.staging.generated.json --message 'KPMO inert isolated STAGING bootstrap; no route; no cron'
+          npx wrangler versions list --name kidults-autonomous-intelligence-staging --json > /tmp/versions-bootstrap.json
+          node - <<'NODE' > /tmp/rollback.env
+          const fs=require('fs'); const a=JSON.parse(fs.readFileSync('/tmp/versions-bootstrap.json','utf8'));
+          if(!Array.isArray(a)||!a.length) throw new Error('NO_BOOTSTRAP_VERSION');
+          const getTime=x=>Date.parse(x.created_on||x.created_at||x.created||0)||0;
+          const v=[...a].sort((x,y)=>getTime(y)-getTime(x))[0];
+          const id=v.id||v.version_id; if(!id) throw new Error('NO_BOOTSTRAP_VERSION_ID');
+          console.log(`ROLLBACK_VERSION_ID=${id}`);
+          NODE
+          cat /tmp/rollback.env
 
-      - name: UPLOAD — actual staging version, not deployed
+      - name: UPLOAD — actual isolated staging version
         working-directory: services/kidults-autonomous-intelligence
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_DEPLOY_TOKEN }}
-          WRANGLER_OUTPUT_FILE_PATH: /tmp/wrangler-actual.ndjson
         run: |
+          set -euo pipefail
+          source /tmp/rollback.env
           node - <<'NODE'
           const fs=require('fs'); const p='wrangler.staging.generated.json'; const x=require('./'+p); x.main='src/worker.ts'; fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
           npx wrangler versions upload --config wrangler.staging.generated.json --tag staging-approved-candidate --message 'KPMO approved isolated staging candidate; no route; no cron'
+          npx wrangler versions list --name kidults-autonomous-intelligence-staging --json > /tmp/versions-actual.json
+          ROLLBACK_VERSION_ID="$ROLLBACK_VERSION_ID" node - <<'NODE' > /tmp/actual.env
+          const fs=require('fs'); const rb=process.env.ROLLBACK_VERSION_ID; const a=JSON.parse(fs.readFileSync('/tmp/versions-actual.json','utf8'));
+          if(!Array.isArray(a)||!a.length) throw new Error('NO_VERSIONS_AFTER_UPLOAD');
+          const getTime=x=>Date.parse(x.created_on||x.created_at||x.created||0)||0;
+          const v=[...a].filter(x=>(x.id||x.version_id)!==rb).sort((x,y)=>getTime(y)-getTime(x))[0];
+          const id=v?.id||v?.version_id; if(!id) throw new Error('NO_ACTUAL_VERSION_ID');
+          console.log(`ACTUAL_VERSION_ID=${id}`);
+          NODE
+          cat /tmp/actual.env
 
-      - name: DEPLOY — actual version with explicit rollback target already present
+      - name: DEPLOY — actual version with rollback target already present
         working-directory: services/kidults-autonomous-intelligence
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_DEPLOY_TOKEN }}
-          WRANGLER_OUTPUT_FILE_PATH: /tmp/wrangler-deploy.ndjson
         run: |
-          node - <<'NODE' > /tmp/version-ids.env
-          const fs=require('fs');
-          function last(path,type){const a=fs.readFileSync(path,'utf8').trim().split(/\n+/).filter(Boolean).map(JSON.parse).filter(x=>x.type===type); if(!a.length) throw new Error(`NO_${type}`); return a.at(-1);}
-          const rb=last('/tmp/wrangler-rollback.ndjson','version-upload');
-          const ac=last('/tmp/wrangler-actual.ndjson','version-upload');
-          console.log(`ROLLBACK_VERSION_ID=${rb.version_id}`);
-          console.log(`ACTUAL_VERSION_ID=${ac.version_id}`);
-          NODE
-          source /tmp/version-ids.env
+          set -euo pipefail
+          source /tmp/rollback.env
+          source /tmp/actual.env
           test -n "$ROLLBACK_VERSION_ID" && test -n "$ACTUAL_VERSION_ID" && test "$ROLLBACK_VERSION_ID" != "$ACTUAL_VERSION_ID"
           npx wrangler versions deploy "$ACTUAL_VERSION_ID@100%" --name kidults-autonomous-intelligence-staging --message 'KPMO approved isolated STAGING deploy' -y
           printf '{"rollback_version_id":"%s","actual_version_id":"%s","worker":"kidults-autonomous-intelligence-staging","workers_dev":false,"routes":0,"cron":0,"production":"HOLD"}\n' "$ROLLBACK_VERSION_ID" "$ACTUAL_VERSION_ID" > /tmp/deploy-receipt.json
 
-      - name: POSTCHECK — deployment exists and rollback target remains available
+      - name: POSTCHECK — actual deployment and rollback target remain visible
         working-directory: services/kidults-autonomous-intelligence
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_DEPLOY_TOKEN }}
         run: |
+          set -euo pipefail
           npx wrangler deployments list --name kidults-autonomous-intelligence-staging --json > /tmp/deployments.json
           npx wrangler versions list --name kidults-autonomous-intelligence-staging --json > /tmp/versions.json
           node - <<'NODE'
