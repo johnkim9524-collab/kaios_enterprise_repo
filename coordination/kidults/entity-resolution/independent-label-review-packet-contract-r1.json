@@ -1,12 +1,11 @@
 {
   "id":"kidults-er-independent-label-review-packet-contract-r1",
-  "version":"1.0.1",
-  "status":"ROSTER_READY_PACKET_ASSIGNMENT_PENDING_NOT_LABELED",
+  "version":"1.0.0",
+  "status":"READY_FOR_REAL_REVIEWERS_NOT_ATTESTED",
   "parent_issue":609,
   "sampling_plan":"coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json",
-  "reviewer_assignment_receipt":"coordination/kidults/entity-resolution/independent-reviewer-assignment-receipt-r1.json",
   "production":"HOLD",
-  "truth_boundary":"This contract prepares two independent blinded label-review packets and adjudication evidence. Two genuine reviewers are owner-designated under issue #827 and recorded in the roster receipt, while packet-level reviewer assignment remains NOT_ASSIGNED until the exact reviewer packet boundary is bound. This does not claim that reviews occurred, labels are complete, adjudication occurred, empirical attestation exists, or Track B passed.",
+  "truth_boundary":"This contract prepares two independent blinded label-review packets and adjudication evidence. It does not claim that reviewers exist, reviews occurred, labels are complete, or Track B passed.",
   "reviewer_requirements":{
     "minimum_independent_reviewers":2,
     "reviewer_identity_must_be_real":true,
