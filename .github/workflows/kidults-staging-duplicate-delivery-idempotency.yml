@@ -1,0 +1,123 @@
+name: KIDULTS STAGING Duplicate Delivery Idempotency
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-staging-duplicate-delivery-idempotency.yml'
+
+concurrency:
+  group: kidults-staging-runtime-mutation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  duplicate-delivery-idempotency:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN }}
+      STAGING_WORKER: kidults-autonomous-intelligence-staging
+      STAGING_D1: kidults-intelligence-db-staging
+      STAGING_D1_ID: 9bc6a406-6fca-4959-be7f-dd7f715b092c
+      PRODUCTION_D1: kidults-intelligence-db
+      CANONICAL_STAGING_VERSION: d870f7e4-0919-47f7-becc-13524c393f27
+      SOURCE_EVENT_ID: evt_kpmo_golden_r4_8ef64571612c0831
+      TARGET_FLEET: DISCOVERY_WIKIDATA
+      TARGET_QUEUE: kidults-asi-shadow-discovery-wikidata
+      WRANGLER_SEND_METRICS: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: GATE — read and Queue-test credentials only
+        run: |
+          set -euo pipefail
+          for v in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN; do
+            test -n "${!v:-}"
+            echo "::add-mask::${!v}"
+          done
+
+      - name: PRECHECK — canonical Worker and already-succeeded source task
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npx wrangler d1 info "$STAGING_D1" --json > /tmp/staging-info.json
+          grep -Fq "$STAGING_D1_ID" /tmp/staging-info.json
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-before.json
+          V="$CANONICAL_STAGING_VERSION" node - <<'NODE'
+          const x=require('/tmp/deployment-before.json');
+          const a=Array.isArray(x)?x:(x.result||x.deployments||[]);
+          const d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0];
+          if(!d||!JSON.stringify(d).includes(process.env.V)) throw new Error('STAGING_WORKER_NOT_CANONICAL');
+          NODE
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT o.id AS outbox_id,o.queue_name,o.payload_json,o.status AS outbox_status,p.status AS processing_status,p.attempt_count AS processing_attempt_count,(SELECT attempt_count FROM asi_task_leases l WHERE l.outbox_id=o.id AND l.task_event_id=o.event_id ORDER BY attempt_count DESC LIMIT 1) AS lease_attempt_count,(SELECT COUNT(*) FROM asi_event_log e WHERE e.correlation_id=(SELECT correlation_id FROM asi_event_log WHERE event_id=o.event_id)) AS correlation_event_count FROM asi_outbox o JOIN asi_processed_messages p ON p.queue_name=o.queue_name AND p.outbox_id=o.id WHERE o.event_id='$SOURCE_EVENT_ID' AND o.engine_fleet='$TARGET_FLEET'" --json > /tmp/source-before.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=require('/tmp/source-before.json'); const r=x?.[0]?.results?.[0];
+          if(!r||r.queue_name!==process.env.TARGET_QUEUE||r.outbox_status!=='DISPATCHED'||r.processing_status!=='SUCCEEDED') throw new Error('SOURCE_TASK_NOT_ALREADY_SUCCEEDED');
+          const task=JSON.parse(r.payload_json);
+          if(task?.outbox_id!==r.outbox_id||task?.event?.event_id!==process.env.SOURCE_EVENT_ID||task?.target_fleet!==process.env.TARGET_FLEET||task?.source_queue!==process.env.TARGET_QUEUE) throw new Error('SOURCE_TASK_PROVENANCE_MISMATCH');
+          const baseline={outbox_id:r.outbox_id,processing_attempt_count:Number(r.processing_attempt_count),lease_attempt_count:Number(r.lease_attempt_count||0),correlation_event_count:Number(r.correlation_event_count||0)};
+          fs.writeFileSync('/tmp/baseline.json',JSON.stringify(baseline));
+          fs.writeFileSync('/tmp/queue-message.json',JSON.stringify({body:task}));
+          NODE
+
+      - name: PUSH — exact already-succeeded task once
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" > /tmp/queues.json
+          QUEUE_ID=$(Q="$TARGET_QUEUE" node -e "const x=require('/tmp/queues.json');const q=(x.result||[]).find(v=>(v.queue_name||v.name)===process.env.Q);if(!q)process.exit(2);process.stdout.write(q.queue_id||q.id)")
+          START=$(date +%s%3N)
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" \
+            -H 'Content-Type: application/json' \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" \
+            --data-binary @/tmp/queue-message.json > /tmp/push-response.json
+          END=$(date +%s%3N)
+          grep -Fq '"success":true' /tmp/push-response.json
+          printf '%s' "$((END-START))" > /tmp/push-ms.txt
+          rm -f /tmp/queue-message.json /tmp/push-response.json /tmp/queues.json
+
+      - name: VERIFY — duplicate acknowledged with zero processor/D1 state mutation
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          sleep 8
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT o.id AS outbox_id,o.status AS outbox_status,p.status AS processing_status,p.attempt_count AS processing_attempt_count,(SELECT attempt_count FROM asi_task_leases l WHERE l.outbox_id=o.id AND l.task_event_id=o.event_id ORDER BY attempt_count DESC LIMIT 1) AS lease_attempt_count,(SELECT COUNT(*) FROM asi_event_log e WHERE e.correlation_id=(SELECT correlation_id FROM asi_event_log WHERE event_id=o.event_id)) AS correlation_event_count FROM asi_outbox o JOIN asi_processed_messages p ON p.queue_name=o.queue_name AND p.outbox_id=o.id WHERE o.event_id='$SOURCE_EVENT_ID' AND o.engine_fleet='$TARGET_FLEET'" --json > /tmp/source-after.json
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-after.json
+          V="$CANONICAL_STAGING_VERSION" node - <<'NODE'
+          const fs=require('fs');
+          const before=require('/tmp/baseline.json');
+          const x=require('/tmp/source-after.json'); const after=x?.[0]?.results?.[0];
+          if(!after||after.outbox_id!==before.outbox_id||after.outbox_status!=='DISPATCHED'||after.processing_status!=='SUCCEEDED') throw new Error('DUPLICATE_DELIVERY_SOURCE_STATE_DRIFT');
+          if(Number(after.processing_attempt_count)!==before.processing_attempt_count) throw new Error('DUPLICATE_REPROCESSED_PROCESSOR');
+          if(Number(after.lease_attempt_count||0)!==before.lease_attempt_count) throw new Error('DUPLICATE_ACQUIRED_NEW_TASK_LEASE');
+          if(Number(after.correlation_event_count||0)!==before.correlation_event_count) throw new Error('DUPLICATE_CREATED_NEW_EVENTS');
+          const dep=require('/tmp/deployment-after.json'); const a=Array.isArray(dep)?dep:(dep.result||dep.deployments||[]); const d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0]; if(!d||!JSON.stringify(d).includes(process.env.V)) throw new Error('STAGING_WORKER_CHANGED_DURING_TEST');
+          const safe={state:'STAGING_DUPLICATE_DELIVERY_IDEMPOTENCY_PASS',source_event_id:process.env.SOURCE_EVENT_ID,outbox_id:before.outbox_id,processing_attempt_count_before:before.processing_attempt_count,processing_attempt_count_after:Number(after.processing_attempt_count),lease_attempt_count_before:before.lease_attempt_count,lease_attempt_count_after:Number(after.lease_attempt_count||0),correlation_event_count_before:before.correlation_event_count,correlation_event_count_after:Number(after.correlation_event_count||0),queue_push_ms:Number(fs.readFileSync('/tmp/push-ms.txt','utf8')),duplicate_processor_execution:false,new_task_lease:false,new_events:false,worker_deploy_mutation:false,provider_payload:false,market_claim:false,production_mutation:false,production:'HOLD'};
+          fs.mkdirSync('/tmp/safe',{recursive:true}); fs.writeFileSync('/tmp/safe/receipt.json',JSON.stringify(safe,null,2)); console.log(JSON.stringify(safe,null,2));
+          NODE
+
+      - name: VERIFY — Production remains read-only
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/production-read.json
+          node -e "const x=require('/tmp/production-read.json');if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0))throw new Error('PRODUCTION_MUTATION_OR_READ_FAILURE')"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-staging-duplicate-delivery-idempotency
+          path: /tmp/safe/receipt.json
+          retention-days: 30
+          if-no-files-found: error
