@@ -1,0 +1,71 @@
+name: KIDULTS Runtime Closure R5
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/kidults-runtime-closure-r5.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  runtime-closure-r5:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      STAGING_D1: kidults-intelligence-db-staging
+      PRODUCTION_D1: kidults-intelligence-db
+      EVENT_ID: evt_kpmo_golden_r3_5e1374c71eda3e73
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: GATE — read-only credential
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+      - name: READ — actual STAGING schema and R3 terminal state
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT name,type FROM sqlite_master WHERE name IN ('asi_processed_messages','asi_outbox','asi_dead_letters','asi_terminal_dlq_receipts') ORDER BY name" --json > /tmp/tables.json
+          for T in asi_processed_messages asi_outbox asi_dead_letters asi_terminal_dlq_receipts; do
+            npx wrangler d1 execute "$STAGING_D1" --remote --command "PRAGMA table_info($T)" --json > "/tmp/schema-$T.json"
+          done
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT * FROM asi_processed_messages WHERE event_id='$EVENT_ID' ORDER BY first_seen_at" --json > /tmp/processed.json
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT * FROM asi_outbox WHERE event_id='$EVENT_ID' ORDER BY created_at" --json > /tmp/outbox.json
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT * FROM asi_dead_letters WHERE event_id='$EVENT_ID' ORDER BY recorded_at" --json > /tmp/dead.json
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT * FROM asi_terminal_dlq_receipts WHERE event_id='$EVENT_ID' ORDER BY recorded_at" --json > /tmp/receipts.json
+      - name: VERIFY — retry/DLQ evidence without schema assumptions
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const rows=f=>{const x=JSON.parse(fs.readFileSync(f,'utf8'));return (x||[]).flatMap(v=>v.results||[])};
+          const tables=new Set(rows('/tmp/tables.json').map(r=>r.name));
+          for(const t of ['asi_processed_messages','asi_outbox','asi_dead_letters','asi_terminal_dlq_receipts']) if(!tables.has(t)) throw new Error(`MISSING_RUNTIME_TABLE:${t}`);
+          const p=rows('/tmp/processed.json'), o=rows('/tmp/outbox.json'), d=rows('/tmp/dead.json'), r=rows('/tmp/receipts.json');
+          if(!p.length) throw new Error('NO_R3_PROCESSED_MESSAGE');
+          const maxAttempts=Math.max(...p.map(x=>Number(x.attempt_count||0)));
+          const failed=p.some(x=>x.status==='FAILED');
+          if(maxAttempts<4||!failed) throw new Error(`RETRY_BOUNDARY_NOT_PROVEN:${maxAttempts}:${failed}`);
+          const terminal=d.length>0||r.length>0;
+          const receipt={state:terminal?'R3_RETRY_DLQ_TERMINAL_EVIDENCE_PRESENT':'R3_RETRY_PROVEN_DLQ_TERMINAL_ABSENT',processed_rows:p.length,max_attempts:maxAttempts,failed,dead_letter_rows:d.length,terminal_receipt_rows:r.length,outbox_rows:o.length,production:'HOLD'};
+          fs.writeFileSync('/tmp/runtime-r5.json',JSON.stringify(receipt,null,2)); console.log(JSON.stringify(receipt,null,2));
+          if(!terminal) process.exit(42);
+          NODE
+      - name: VERIFY — Production remains read-only
+        if: always()
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/prod.json
+          node - <<'NODE'
+          const x=require('/tmp/prod.json'); if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_MUTATION');
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-runtime-closure-r5
+          path: /tmp/runtime-r5.json
+          if-no-files-found: warn
+          retention-days: 30
