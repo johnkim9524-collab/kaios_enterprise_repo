@@ -139,7 +139,8 @@ export function canonicalizeMarketEvent(input) {
     raw_digest: event.lineage?.raw_digest ?? sha256(input.raw ?? input),
     normalized_digest: event.lineage?.normalized_digest ?? sha256({...event, lineage: {...event.lineage, normalized_digest: null}})
   };
-  return {event, admission_errors: marketAdmissionErrors(event), admitted: marketAdmissionErrors(event).length === 0};
+  const admissionErrors = marketAdmissionErrors(event);
+  return {event, admission_errors: admissionErrors, admitted: admissionErrors.length === 0};
 }
 
 export function marketEventFingerprint(event) {
@@ -170,17 +171,23 @@ export function computeMarketSignals(events) {
   const canonical = unique.map((x) => x.canonical_event);
   const sold = canonical.filter((e) => e.evidence_class === 'VERIFIED_SOLD_EVENT' && e.event_state === 'SOLD');
   const failed = canonical.filter((e) => e.evidence_class === 'FAILED_SALE_EVENT' || ['NO_SALE_RESERVE_NOT_MET', 'WITHDRAWN', 'EXPIRED'].includes(e.event_state));
+  const terminalCount = sold.length + failed.length;
   const soldAmounts = sold.map((e) => e.price.amount).filter(Number.isFinite).sort((a, b) => a - b);
-  const median = soldAmounts.length ? soldAmounts[Math.floor((soldAmounts.length - 1) / 2)] : null;
+  let median = null;
+  if (soldAmounts.length) {
+    const middle = Math.floor(soldAmounts.length / 2);
+    median = soldAmounts.length % 2 === 1 ? soldAmounts[middle] : (soldAmounts[middle - 1] + soldAmounts[middle]) / 2;
+  }
+  const sourceOwners = new Set(unique.flatMap((x) => x.corroborating_source_owners));
   return {
     unique_event_count: canonical.length,
     sold_event_count: sold.length,
     failed_sale_event_count: failed.length,
     transaction_activity_observed: sold.length,
-    failed_sale_ratio: canonical.length ? Number((failed.length / canonical.length).toFixed(6)) : null,
+    failed_sale_ratio: terminalCount ? Number((failed.length / terminalCount).toFixed(6)) : null,
     median_sold_price_unconverted: median,
     currency_set: [...new Set(sold.map((e) => e.price.currency).filter(Boolean))].sort(),
-    source_owner_count: new Set(canonical.map((e) => e.lineage.source_family_id)).size,
+    source_owner_count: sourceOwners.size,
     liquidity_state: sold.length >= 2 ? 'OBSERVED_BOUNDED' : 'NOT_VERIFIED_INSUFFICIENT_EVENTS'
   };
 }
