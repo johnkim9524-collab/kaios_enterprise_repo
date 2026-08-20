@@ -318,6 +318,22 @@ globalThis.fetch = async () => {
 };
 
 try {
+  test('isolated physical Queue namespaces resolve to the same logical fleet', () => {
+    const canonical = registry.ASI_FLEETS[0];
+    for (const namespace of ['shadow','dev','staging']) {
+      const physicalQueue = canonical.queue.replace('kidults-asi-shadow-',`kidults-asi-${namespace}-`);
+      assert.equal(registry.asiFleetForQueue(physicalQueue)?.id,canonical.id);
+      assert.equal(registry.asiQueueNamesEquivalent(canonical.queue,physicalQueue),true);
+    }
+    assert.equal(registry.asiFleetForQueue('kidults-asi-production-discovery-common-crawl-wdc'),undefined);
+    assert.equal(registry.asiQueueNamesEquivalent(
+      'kidults-asi-dev-discovery-common-crawl-wdc',
+      'kidults-asi-dev-discovery-wikidata',
+    ),false);
+    assert.equal(registry.isAsiDeadLetterQueue('kidults-asi-dev-dead-letter'),true);
+    assert.equal(registry.isAsiDeadLetterQueue('kidults-asi-production-dead-letter'),false);
+  });
+
   test('partition tuple encoding prevents delimiter-based grain collisions', () => {
     const common = {
       channel:'WIKIDATA_OFFICIAL_WEBSITE_GRAPH',
