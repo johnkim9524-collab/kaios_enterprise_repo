@@ -48,6 +48,25 @@ for(const [expectedReason,mutate] of cases){
     }
   }
 }
+const weightCases=[
+  ['EMPTY',candidate=>{candidate.collection_formula_weights={};},'FORMULA_WEIGHTS_REQUIRED:collection'],
+  ['ZERO',candidate=>{candidate.collection_formula_weights[Object.keys(candidate.collection_formula_weights)[0]]=0;},'FACTOR_WEIGHT_INVALID:collection'],
+  ['NEGATIVE',candidate=>{candidate.collection_formula_weights[Object.keys(candidate.collection_formula_weights)[0]]=-0.1;},'FACTOR_WEIGHT_INVALID:collection'],
+  ['NON_NUMERIC',candidate=>{candidate.collection_formula_weights[Object.keys(candidate.collection_formula_weights)[0]]='NaN';},'FACTOR_WEIGHT_INVALID:collection'],
+  ['TOTAL_DRIFT',candidate=>{candidate.collection_formula_weights[Object.keys(candidate.collection_formula_weights)[0]]+=0.01;},'FACTOR_WEIGHT_TOTAL_INVALID:collection'],
+];
+for(const [caseId,mutate,expectedError] of weightCases){
+  const candidate=structuredClone(contract);
+  mutate(candidate);
+  const contractPath=path.join(temp,`weight-${caseId}.json`);
+  const outputPath=path.join(temp,`weight-${caseId}.output.json`);
+  fs.writeFileSync(contractPath,JSON.stringify(candidate));
+  assert.throws(()=>execFileSync(process.execPath,[
+    'scripts/kidults/source-intelligence/build-empirical-regional-rebalancer-wave1-r1.mjs',
+    input,outputPath,contractPath,
+  ],{stdio:'pipe'}),error=>(error.stderr?.toString()||error.message).includes(expectedError),`${caseId}:EXPECTED_${expectedError}`);
+  assert.equal(fs.existsSync(outputPath),false,`${caseId}:OUTPUT_MUST_NOT_EXIST`);
+}
 const complete=structuredClone(baseline);
 const template=structuredClone(sourceCell.factors[factorId]);
 for(const cell of complete.cells||[]){
@@ -87,4 +106,4 @@ assert.equal(completed.regional_collection_quota_plan.live_quota_mutations,0);
 assert.equal(completed.regional_analytical_weight_plan.live_weight_mutations,0);
 assert.ok(completed.cells.every(cell=>cell.collection_plan.missing_factors.length===0&&cell.analytical_plan.missing_factors.length===0));
 assert.ok(completed.cells.every(cell=>Number.isFinite(cell.collection_plan.normalized_score)&&Number.isFinite(cell.analytical_plan.normalized_score)&&cell.live_mutation_authorized===false));
-console.log(JSON.stringify({status:'PASS',factor_id:factorId,negative_controls:cases.length,complete_surface_cells:completed.cells.length,activation_state:completed.activation_state,live_mutations:0,production:'HOLD'}));
+console.log(JSON.stringify({status:'PASS',factor_id:factorId,factor_negative_controls:cases.length,weight_negative_controls:weightCases.length,complete_surface_cells:completed.cells.length,activation_state:completed.activation_state,live_mutations:0,production:'HOLD'}));

@@ -3,8 +3,9 @@ import {createHash} from 'node:crypto';
 
 const baselinePath=process.argv[2]||'/tmp/empirical-regional-baseline-with-data-usability-r1.json';
 const outPath=process.argv[3]||'/tmp/empirical-regional-rebalancer-wave1-r1.json';
+const contractPath=process.argv[4]||'coordination/kidults/source-intelligence/regional-market-rebalancer-v1.json';
 const baseline=JSON.parse(await fs.readFile(baselinePath,'utf8'));
-const contract=JSON.parse(await fs.readFile('coordination/kidults/source-intelligence/regional-market-rebalancer-v1.json','utf8'));
+const contract=JSON.parse(await fs.readFile(contractPath,'utf8'));
 const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
 const sha=v=>`sha256:${createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex')}`;
 if(baseline.production!=='HOLD'||baseline.public_release!=='HOLD'||contract.production!=='HOLD'||contract.status!=='SHADOW_ONLY')throw new Error('PRODUCTION_OR_CONTRACT_BOUNDARY');
