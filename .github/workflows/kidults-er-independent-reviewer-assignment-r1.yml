@@ -1,0 +1,23 @@
+name: KIDULTS ER Independent Reviewer Assignment R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/independent-reviewer-assignment-receipt-r1.json'
+      - 'scripts/kidults/entity-resolution/validate-independent-reviewer-assignment-receipt-r1.mjs'
+      - '.github/workflows/kidults-er-independent-reviewer-assignment-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate independent reviewer roster receipt
+        run: node scripts/kidults/entity-resolution/validate-independent-reviewer-assignment-receipt-r1.mjs

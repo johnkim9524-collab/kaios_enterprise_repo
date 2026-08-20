@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+const p='coordination/kidults/entity-resolution/independent-reviewer-assignment-receipt-r1.json';
+const x=JSON.parse(fs.readFileSync(p,'utf8'));
+const fail=m=>{throw new Error(m)};
+if(x.production!=='HOLD') fail('PRODUCTION_MUST_HOLD');
+if(x.parent_issue!==827 || x.review_contract_pr!==612) fail('ROSTER_LINEAGE_INVALID');
+if(!Array.isArray(x.reviewers) || x.reviewers.length!==2) fail('EXACTLY_TWO_REVIEWERS_REQUIRED');
+const [a,b]=x.reviewers;
+if(a.reviewer_id!=='REVIEWER_A' || b.reviewer_id!=='REVIEWER_B') fail('OPAQUE_REVIEWER_IDS_REQUIRED');
+if(!a.real_person || !b.real_person || !a.distinct_from_other_reviewer || !b.distinct_from_other_reviewer) fail('GENUINE_DISTINCT_REVIEWERS_REQUIRED');
+if(!a.independent_from_resolver_decision_path || !b.independent_from_resolver_decision_path) fail('REVIEWER_INDEPENDENCE_REQUIRED');
+if(!a.must_not_see_other_reviewer_labels || !b.must_not_see_other_reviewer_labels) fail('REVIEWER_ISOLATION_REQUIRED');
+if(!x.model_predictions_hidden_until_both_labels_frozen) fail('MODEL_PREDICTION_LEAKAGE');
+if(x.labels!=='NOT_COLLECTED'||x.adjudication!=='NOT_STARTED'||x.blind_holdout!=='CANDIDATE_NOT_SEALED'||x.empirical_attestation!=='NOT_CREATED'||x.track_b!=='NOT_STARTED') fail('FALSE_COMPLETION_CLAIM');
+console.log('KIDULTS_ER_INDEPENDENT_REVIEWER_ASSIGNMENT_RECEIPT_R1_PASS_ROSTER_ONLY');
