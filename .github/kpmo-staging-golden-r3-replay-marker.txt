@@ -1,0 +1,1 @@
+Evidence-only replay marker for PR #785. Previous attempt failed before mutation because #784 attempt 2 still owned STAGING. Do not merge; remove by closing the evidence PR without merge.
