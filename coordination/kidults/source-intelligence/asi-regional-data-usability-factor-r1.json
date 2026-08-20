@@ -1,0 +1,51 @@
+{
+  "id": "kidults-asi-regional-data-usability-factor-r1",
+  "version": "1.0.0",
+  "status": "SHADOW_EMPIRICAL_FACTOR_CONTRACT",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "category_scope": "vinyl_recorded_music",
+  "source_id": "musicbrainz-core-catalog",
+  "source_purpose": "REGIONAL_CATALOG_OBSERVATION",
+  "canonical_factor": "DATA_TRANSPARENCY_AND_EVIDENCE_QUALITY",
+  "feedback_alias": "EVIDENCE_QUALITY",
+  "objective": "Measure bounded regional data usability of rights-cleared vinyl catalog evidence without inferring market size, demand, maturity, transaction activity, liquidity or global representativeness.",
+  "score_dimensions": {
+    "RIGHTS_AND_REUSE_CLARITY": {"weight": 0.20, "pass_value": 1.0},
+    "MACHINE_READABLE_STRUCTURED_ACCESS": {"weight": 0.15, "pass_value": 1.0},
+    "EXPLICIT_COUNTRY_REGION_BINDING": {"weight": 0.15, "pass_value": 1.0},
+    "CANONICAL_IDENTITY_FIELDS": {"weight": 0.15, "pass_value": 1.0},
+    "PROVENANCE_AND_PAYLOAD_DIGEST": {"weight": 0.15, "pass_value": 1.0},
+    "DATED_OBSERVATION_OR_RELEASE_TIME": {"weight": 0.10, "pass_value": 1.0},
+    "TRANSACTION_PRICE_CURRENCY_VENUE_COMPLETENESS": {"weight": 0.10, "pass_value": 1.0}
+  },
+  "verification_rule": {
+    "minimum_region_observations": 1,
+    "rights_state_required": "ALLOW_CORE_CC0",
+    "required_present_dimensions": [
+      "RIGHTS_AND_REUSE_CLARITY",
+      "MACHINE_READABLE_STRUCTURED_ACCESS",
+      "EXPLICIT_COUNTRY_REGION_BINDING",
+      "CANONICAL_IDENTITY_FIELDS",
+      "PROVENANCE_AND_PAYLOAD_DIGEST",
+      "DATED_OBSERVATION_OR_RELEASE_TIME"
+    ],
+    "transaction_dimension_may_score_zero_without_invalidating_data_usability": true,
+    "score_range": [0, 1],
+    "state_when_requirements_met": "VERIFIED",
+    "state_when_requirements_fail": "NOT_VERIFIED"
+  },
+  "confidence_rule": {
+    "single_source_owner_ceiling": "MEDIUM",
+    "minimum_two_independent_owners_for_high": true
+  },
+  "truth_boundaries": [
+    "DATA_USABILITY_IS_NOT_MARKET_SCALE",
+    "DATA_USABILITY_IS_NOT_MARKET_MATURITY",
+    "CATALOG_RELEASE_COUNTRY_IS_NOT_TRANSACTION_ACTIVITY",
+    "OBSERVATION_COUNT_IS_NOT_MARKET_SHARE",
+    "SINGLE_SOURCE_OWNER_CAPS_CONFIDENCE_AT_MEDIUM",
+    "MISSING_TRANSACTION_FIELDS_REDUCE_SCORE_AND_ARE_NOT_INFERRED",
+    "FACTOR_MAY_INFLUENCE_ACQUISITION_PRIORITY_BUT_NEVER_RIGHTS_ADMISSION_OR_PRODUCTION"
+  ]
+}
