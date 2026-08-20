@@ -1,0 +1,51 @@
+{
+  "id": "kidults-asi-musicbrainz-regional-catalog-observation-admission-r1",
+  "version": "1.0.0",
+  "parent_issue": 654,
+  "source_id": "musicbrainz-core-catalog",
+  "source_owner_id": "metabrainz-foundation",
+  "purpose": "REGIONAL_CATALOG_OBSERVATION",
+  "admission_state": "ADMITTED_BOUNDED_NONCOMMERCIAL_SHADOW",
+  "data_scope": [
+    "release_mbid",
+    "release_group_mbid",
+    "release_country",
+    "release_date",
+    "release_title",
+    "official_status",
+    "vinyl_format"
+  ],
+  "rights_state": "ALLOW_CORE_CC0",
+  "transport_state": "ALLOW_NONCOMMERCIAL_API_READ_ONLY",
+  "license_evidence_refs": [
+    "https://musicbrainz.org/doc/About/Data_License",
+    "https://musicbrainz.org/doc/MusicBrainz_API",
+    "https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting"
+  ],
+  "api_controls": {
+    "api_key_required": false,
+    "meaningful_user_agent_required": true,
+    "maximum_average_requests_per_second": 1,
+    "write_or_submission": false
+  },
+  "allowed_claims": [
+    "OBSERVED_RELEASE_COUNTRY",
+    "OBSERVED_RELEASE_DATE",
+    "REGIONAL_CATALOG_OBSERVATION"
+  ],
+  "blocked_claims": [
+    "MARKET_SCALE",
+    "MARKET_MATURITY",
+    "OBSERVED_TRANSACTION_ACTIVITY",
+    "SECONDARY_MARKET_DEPTH",
+    "CURRENT_PRICE",
+    "LIQUIDITY",
+    "DEMAND",
+    "SALES",
+    "GLOBAL_MARKET_WEIGHT",
+    "PUBLIC_OR_COMMERCIAL_DATA_PRODUCT"
+  ],
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "truth_boundary": "MusicBrainz core release metadata is admitted only as bounded noncommercial SHADOW regional catalog observation. Release country/date are not transaction, demand, price, liquidity or market-size evidence. No supplementary-data assumption, marketplace claim, public release or Production authority is created."
+}
