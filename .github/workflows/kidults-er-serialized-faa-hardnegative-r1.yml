@@ -1,0 +1,66 @@
+name: KIDULTS ER Serialized FAA Hardnegative R1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/serialized-faa-releasable-aircraft-r1.json'
+      - 'scripts/kidults/entity-resolution/build-serialized-faa-hardnegative-packet-r1.mjs'
+      - '.github/workflows/kidults-er-serialized-faa-hardnegative-r1.yml'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  faa-serialized-hardnegative:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Acquire releasable FAA archive without emitting source rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --retry-delay 2 'https://registry.faa.gov/database/ReleasableAircraft.zip' -o /tmp/faa.zip
+          printf 'sha256:%s\n' "$(sha256sum /tmp/faa.zip | awk '{print $1}')" > /tmp/faa.sha256
+          master="$(unzip -Z1 /tmp/faa.zip | grep -iE '(^|/)MASTER\.txt$' | head -1)"
+          ref="$(unzip -Z1 /tmp/faa.zip | grep -iE '(^|/)ACFTREF\.txt$' | head -1)"
+          test -n "$master" && test -n "$ref"
+          unzip -p /tmp/faa.zip "$master" > /tmp/MASTER.txt
+          unzip -p /tmp/faa.zip "$ref" > /tmp/ACFTREF.txt
+          rm -f /tmp/faa.zip
+      - name: Build only filtered non-PII reviewer material
+        run: |
+          node scripts/kidults/entity-resolution/build-serialized-faa-hardnegative-packet-r1.mjs \
+            /tmp/MASTER.txt /tmp/ACFTREF.txt /tmp/faa.sha256 \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json \
+            /tmp/serialized-faa-hardnegative-packet-r1.json
+          rm -f /tmp/MASTER.txt /tmp/ACFTREF.txt
+      - name: Enforce capacity privacy and no-overclaim boundaries
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/serialized-faa-hardnegative-packet-r1.json','utf8'));
+          if(x.additional_case_count!==40||x.source_disjoint_pair_capacity!==40||x.total_serialized_reviewer_ready_if_combined!==80||x.aggregate_reviewer_ready_if_combined!==680) throw new Error('EXPECTED_BLOCKER_REDUCTION_NOT_PROVEN');
+          if(x.remaining_case_class_deficit?.HARD_NEGATIVE!==0||x.remaining_case_class_deficit?.CROSS_MARKET_ALIAS!==40) throw new Error('CASE_CLASS_BOUNDARY');
+          if(x.privacy?.retained_owner_or_address_fields!==0||x.privacy?.raw_master_rows_emitted!==0) throw new Error('PII_OR_RAW_ROW_RETENTION');
+          const forbidden=/(registrant|street1|street2|zip[_ -]?code|county[_ -]?mail|country[_ -]?mail|owner[_ -]?name|full[_ -]?address)/i;
+          if(forbidden.test(JSON.stringify(x))) throw new Error('FORBIDDEN_PII_FIELD_IN_ARTIFACT');
+          const refs=x.cases.flatMap(c=>[c.source_a_reference,c.source_b_reference]);if(new Set(refs).size!==refs.length) throw new Error('SOURCE_REFERENCE_REUSE');
+          const ids=x.cases.flatMap(c=>c.source_record_ids||[]);if(new Set(ids).size!==ids.length) throw new Error('SOURCE_RECORD_REUSE');
+          for(const c of x.cases){
+            if(c.case_class!=='HARD_NEGATIVE'||c.identity_boundary!=='PHYSICAL_OBJECT'||c.expected!=='NO_MATCH'||c.rights_state!=='ALLOW') throw new Error('CASE_GRAMMAR');
+            if(c.reviewer_prompt_context.left_serial_number===c.reviewer_prompt_context.right_serial_number) throw new Error('SERIAL_NOT_DISTINCT');
+            if(!c.reviewer_prompt_context.shared_authoritative_mfr_model_code) throw new Error('MODEL_BINDING_MISSING');
+            if(c.label!==null||c.model_prediction!==null||c.reviewer_assignment!=='PENDING_REAL_REVIEWER') throw new Error('REVIEWER_OR_LABEL_FABRICATION');
+          }
+          if(x.labels_present!==false||x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED'||x.empirical_pass!==false||x.track_b!=='NOT_STARTED'||x.public_release!=='HOLD'||x.production!=='HOLD') throw new Error('GATE_OVERCLAIM');
+          console.log(JSON.stringify({status:x.status,added:x.additional_case_count,serialized_total:x.total_serialized_reviewer_ready_if_combined,aggregate_total:x.aggregate_reviewer_ready_if_combined,remaining_alias:x.remaining_case_class_deficit.CROSS_MARKET_ALIAS,pii_fields_retained:0,empirical_pass:false,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-faa-hardnegative-r1
+          path: /tmp/serialized-faa-hardnegative-packet-r1.json
+          retention-days: 14
