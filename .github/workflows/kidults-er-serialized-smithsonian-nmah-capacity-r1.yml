@@ -1,0 +1,34 @@
+name: KIDULTS ER Serialized Smithsonian NMAH Capacity R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-serialized-smithsonian-nmah-capacity-r1.mjs'
+      - '.github/workflows/kidults-er-serialized-smithsonian-nmah-capacity-r1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-nmah-strict-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Measure strict bounded NMAH serialized capacity
+        run: node scripts/kidults/entity-resolution/probe-serialized-smithsonian-nmah-capacity-r1.mjs /tmp/nmah-capacity.json
+      - name: Enforce diagnostic-only truth boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/nmah-capacity.json','utf8'));
+          if(x.stratum_id!=='er-stratum-serialized-reference'||x.source_family!=='smithsonian-open-access-nmah'||x.rights_state!=='ALLOW_METADATA_CC0_BOUNDARY')throw new Error('SOURCE_OR_RIGHTS');
+          if(x.metrics.same_object_normalization_capacity>40||x.metrics.same_model_maker_distinct_serial_hard_negative_capacity>40||x.metrics.cross_market_alias_capacity!==0)throw new Error('CAPACITY_BOUNDARY');
+          if(x.labels_present!==false||x.reviewers_assigned!==0||x.empirical_cases_created!==0||x.blind_partition_sealed!==false||x.track_b!=='NOT_STARTED'||x.public_release!=='HOLD'||x.production!=='HOLD')throw new Error('OVERCLAIM');
+          if(/"raw_payload"\s*:|"payload"\s*:/.test(JSON.stringify(x)))throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({metrics:x.metrics,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-smithsonian-nmah-capacity-r1
+          path: /tmp/nmah-capacity.json
+          retention-days: 14
