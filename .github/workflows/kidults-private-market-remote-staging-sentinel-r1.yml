@@ -1,0 +1,254 @@
+name: KIDULTS Private Market Remote STAGING Sentinel R1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-private-market-remote-staging-sentinel-r1.yml'
+
+concurrency:
+  group: kidults-staging-runtime-mutation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  private-market-remote-staging-sentinel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_READ_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_STAGING_REBIND_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+      CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN }}
+      STAGING_WORKER: kidults-autonomous-intelligence-staging
+      STAGING_D1: kidults-intelligence-db-staging
+      STAGING_D1_ID: 9bc6a406-6fca-4959-be7f-dd7f715b092c
+      PRODUCTION_D1: kidults-intelligence-db
+      PRODUCTION_D1_ID: d6d65f81-f91d-428b-bf43-8a025aaa47bd
+      CANONICAL_ROLLBACK_VERSION: d870f7e4-0919-47f7-becc-13524c393f27
+      TARGET_QUEUE: kidults-asi-shadow-discovery-wikidata
+      WRANGLER_SEND_METRICS: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: GATE — isolated STAGING and bounded credentials
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          for V in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_READ_TOKEN CLOUDFLARE_STAGING_REBIND_TOKEN CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN; do test -n "${!V:-}"; echo "::add-mask::${!V}"; done
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));
+          const d=x.d1_databases.find(v=>v.binding==='DB');
+          if(x.vars?.KIDULTS_ENV!=='staging'||x.vars?.ASI_MESH_MODE!=='SHADOW'||x.vars?.ASI_PUBLICATION_ENABLED!=='false') throw new Error('STAGING_BOUNDARY');
+          if(!d||d.database_id!==process.env.PRODUCTION_D1_ID) throw new Error('CANONICAL_CONFIG_DRIFT');
+          if((x.queues?.producers||[]).length!==26||(x.queues?.consumers||[]).length!==26) throw new Error('QUEUE_CONFIG_COUNT');
+          d.database_name=process.env.STAGING_D1; d.database_id=process.env.STAGING_D1_ID;
+          x.name=process.env.STAGING_WORKER; x.workers_dev=false;
+          delete x.routes; delete x.route; delete x.triggers;
+          x.vars={...(x.vars||{}),KIDULTS_ENV:'staging',ASI_MESH_MODE:'SHADOW',ASI_PUBLICATION_ENABLED:'false'};
+          fs.writeFileSync('wrangler.private-market-remote-r1.generated.json',JSON.stringify(x,null,2));
+          NODE
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 info "$STAGING_D1" --json > /tmp/staging-info.json
+          grep -Fq "$STAGING_D1_ID" /tmp/staging-info.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/staging-info.json; then exit 10; fi
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/production-before.json
+          node - <<'NODE'
+          const x=require('/tmp/production-before.json'); if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_PRECHECK_NOT_READ_ONLY');
+          NODE
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_STAGING_REBIND_TOKEN" npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-before.json
+          V="$CANONICAL_ROLLBACK_VERSION" node - <<'NODE'
+          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/deployment-before.json','utf8')); const a=Array.isArray(x)?x:(x.result||x.deployments||[]); const d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0]; if(!d||!JSON.stringify(d).includes(process.env.V)) throw new Error('STAGING_NOT_CANONICAL_BEFORE_TEST');
+          NODE
+
+      - name: BUILD — synthetic remote private-store harness
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          npm run typecheck
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/worker.ts'); s=p.read_text()
+          old="""  async queue(batch: MessageBatch<AsiQueueTask>, env: Env): Promise<void> {\n    await consumeAsiBatch(batch,env);\n  },"""
+          new=r'''  async queue(batch: MessageBatch<AsiQueueTask>, env: Env): Promise<void> {
+    const controls=batch.messages.filter((message)=>{ const b=message.body as unknown as {control?:string}; return b?.control==='KPMO_PRIVATE_MARKET_REMOTE_R1'; });
+    if(controls.length){
+      const enc=new TextEncoder(); const dec=new TextDecoder();
+      const hex=(v:ArrayBuffer|Uint8Array)=>Array.from(v instanceof Uint8Array?v:new Uint8Array(v)).map(x=>x.toString(16).padStart(2,'0')).join('');
+      const fromHex=(v:string)=>new Uint8Array((v.match(/../g)||[]).map(x=>parseInt(x,16)));
+      const b64=(v:ArrayBuffer)=>btoa(String.fromCharCode(...new Uint8Array(v)));
+      const fromB64=(v:string)=>Uint8Array.from(atob(v),c=>c.charCodeAt(0));
+      const sha=async(v:string)=>hex(await crypto.subtle.digest('SHA-256',enc.encode(v)));
+      const aesKey=async(id:string)=>crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',enc.encode(`KPMO_TEST_ONLY_AES|${id}`)),{name:'AES-GCM'},false,['encrypt','decrypt']);
+      const hmacKey=async(id:string)=>crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',enc.encode(`KPMO_TEST_ONLY_HMAC|${id}`)),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+      for(const message of batch.messages){
+        const b=message.body as unknown as {control?:string;phase?:string;sentinel_id?:string;acquired_at?:string;expires_at?:string;delete_at?:string};
+        if(b?.control!=='KPMO_PRIVATE_MARKET_REMOTE_R1'){ message.retry({delaySeconds:15}); continue; }
+        const id=String(b.sentinel_id||''); if(!/^kpmo_remote_[0-9a-f]{16}$/.test(id)) throw new Error('KPMO_PRIVATE_SENTINEL_ID');
+        const suffix=id.slice('kpmo_remote_'.length); const dataTable=`kpmo_private_market_${suffix}`; const auditTable=`kpmo_private_market_audit_${suffix}`;
+        if(b.phase==='STORE_VERIFY'){
+          const acquired=String(b.acquired_at||''), expires=String(b.expires_at||''); if(!acquired||!expires||Date.parse(expires)<=Date.parse(acquired)) throw new Error('KPMO_PRIVATE_SENTINEL_TIME');
+          const payload=JSON.stringify({kind:'SYNTHETIC_SENTINEL_NOT_PROVIDER_DATA',sentinel_id:id,value:'remote-staging-private-store-test-only'});
+          const iv=crypto.getRandomValues(new Uint8Array(12)); const key=await aesKey(id); const ciphertext=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(payload));
+          const payloadSha=await sha(payload); const cipherSha=await sha(b64(ciphertext)); const canonical=`${id}|${payloadSha}|${cipherSha}|${acquired}|${expires}`; const hk=await hmacKey(id); const receiptHmac=hex(await crypto.subtle.sign('HMAC',hk,enc.encode(canonical)));
+          await env.DB.exec(`CREATE TABLE ${dataTable} (sentinel_id TEXT PRIMARY KEY,ciphertext_b64 TEXT NOT NULL,iv_hex TEXT NOT NULL,payload_sha256 TEXT NOT NULL,ciphertext_sha256 TEXT NOT NULL,receipt_hmac_sha256 TEXT NOT NULL,acquired_at TEXT NOT NULL,expires_at TEXT NOT NULL,status TEXT NOT NULL); CREATE TABLE ${auditTable} (seq INTEGER PRIMARY KEY AUTOINCREMENT,event_type TEXT NOT NULL,result TEXT NOT NULL,at TEXT NOT NULL);`);
+          await env.DB.prepare(`INSERT INTO ${dataTable} VALUES (?,?,?,?,?,?,?,?,?)`).bind(id,b64(ciphertext),hex(iv),payloadSha,cipherSha,receiptHmac,acquired,expires,'STORED_ENCRYPTED').run();
+          await env.DB.prepare(`INSERT INTO ${auditTable}(event_type,result,at) VALUES ('STORE','PASS',?)`).bind(acquired).run();
+          const row=await env.DB.prepare(`SELECT * FROM ${dataTable} WHERE sentinel_id=?`).bind(id).first<{ciphertext_b64:string;iv_hex:string;payload_sha256:string;ciphertext_sha256:string;receipt_hmac_sha256:string;acquired_at:string;expires_at:string}>(); if(!row) throw new Error('KPMO_PRIVATE_SENTINEL_MISSING');
+          const plain=dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:fromHex(row.iv_hex)},key,fromB64(row.ciphertext_b64))); if(plain!==payload||await sha(plain)!==row.payload_sha256) throw new Error('KPMO_PRIVATE_DECRYPT_VERIFY');
+          const rowCanonical=`${id}|${row.payload_sha256}|${row.ciphertext_sha256}|${row.acquired_at}|${row.expires_at}`; if(!await crypto.subtle.verify('HMAC',hk,fromHex(row.receipt_hmac_sha256),enc.encode(rowCanonical))) throw new Error('KPMO_PRIVATE_HMAC_VERIFY');
+          const tampered=`${id}|${'0'.repeat(64)}|${row.ciphertext_sha256}|${row.acquired_at}|${row.expires_at}`; if(await crypto.subtle.verify('HMAC',hk,fromHex(row.receipt_hmac_sha256),enc.encode(tampered))) throw new Error('KPMO_PRIVATE_TAMPER_ACCEPTED');
+          await env.DB.prepare(`UPDATE ${dataTable} SET status='VERIFIED_TAMPER_REJECTED' WHERE sentinel_id=?`).bind(id).run();
+          await env.DB.prepare(`INSERT INTO ${auditTable}(event_type,result,at) VALUES ('DECRYPT_VERIFY','PASS',?),('TAMPER_NEGATIVE','REJECTED_AS_EXPECTED',?)`).bind(acquired,acquired).run();
+          message.ack(); continue;
+        }
+        if(b.phase==='TTL_DELETE'){
+          const row=await env.DB.prepare(`SELECT expires_at FROM ${dataTable} WHERE sentinel_id=?`).bind(id).first<{expires_at:string}>(); if(!row) throw new Error('KPMO_PRIVATE_TTL_ROW_MISSING'); const del=String(b.delete_at||''); if(!del||Date.parse(del)<=Date.parse(row.expires_at)) throw new Error('KPMO_PRIVATE_TTL_CLOCK');
+          await env.DB.prepare(`DELETE FROM ${dataTable} WHERE sentinel_id=?`).bind(id).run(); await env.DB.prepare(`INSERT INTO ${auditTable}(event_type,result,at) VALUES ('TTL_DELETE','PASS',?)`).bind(del).run(); message.ack(); continue;
+        }
+        if(b.phase==='FINALIZE'){
+          await env.DB.exec(`DROP TABLE IF EXISTS ${dataTable}; DROP TABLE IF EXISTS ${auditTable};`); message.ack(); continue;
+        }
+        throw new Error('KPMO_PRIVATE_SENTINEL_PHASE');
+      }
+      return;
+    }
+    await consumeAsiBatch(batch,env);
+  },'''
+          if old not in s: raise SystemExit('QUEUE_HANDLER_PATCH_TARGET_NOT_FOUND')
+          p.write_text(s.replace(old,new))
+          PY
+          npm run typecheck
+          npx wrangler deploy --config wrangler.private-market-remote-r1.generated.json --dry-run --outdir /tmp/private-market-remote-r1-dry-run
+
+      - name: DEPLOY — temporary no-route private-store harness
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: /tmp/private-market-remote-r1-upload.ndjson
+        run: |
+          set -euo pipefail
+          rm -f /tmp/private-market-remote-r1-upload.ndjson
+          START=$(date +%s%3N)
+          npx wrangler versions upload --config wrangler.private-market-remote-r1.generated.json --tag kpmo-private-market-remote-r1 --message 'Temporary synthetic PRIVATE_ONLY STAGING sentinel; no provider data; no route; no cron; Production HOLD'
+          node - <<'NODE' > /tmp/harness.env
+          const fs=require('fs'); const rows=fs.readFileSync('/tmp/private-market-remote-r1-upload.ndjson','utf8').trim().split(/\n+/).filter(Boolean).map(JSON.parse); const x=[...rows].reverse().find(r=>r.type==='version-upload'&&r.version_id); if(!x) throw new Error('NO_HARNESS_VERSION'); console.log(`HARNESS_VERSION_ID=${x.version_id}`);
+          NODE
+          source /tmp/harness.env
+          npx wrangler versions view "$HARNESS_VERSION_ID" --name "$STAGING_WORKER" --json > /tmp/harness-view.json
+          grep -Fq "$STAGING_D1_ID" /tmp/harness-view.json || grep -Fq "$STAGING_D1" /tmp/harness-view.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/harness-view.json; then exit 11; fi
+          npx wrangler versions deploy "$HARNESS_VERSION_ID@100%" --name "$STAGING_WORKER" --message 'KPMO private market remote sentinel R1' -y
+          END=$(date +%s%3N); printf 'DEPLOY_MS=%s\n' "$((END-START))" > /tmp/private-market-metrics.env
+
+      - name: STORE/VERIFY — encrypted synthetic sentinel only
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > /tmp/sentinel.env
+          const crypto=require('crypto'),fs=require('fs'); const suffix=crypto.randomBytes(8).toString('hex'); const id=`kpmo_remote_${suffix}`; const acquired=new Date(); const expires=new Date(acquired.getTime()+120000); const del=new Date(acquired.getTime()+180000); fs.writeFileSync('/tmp/store.json',JSON.stringify({body:{control:'KPMO_PRIVATE_MARKET_REMOTE_R1',phase:'STORE_VERIFY',sentinel_id:id,acquired_at:acquired.toISOString(),expires_at:expires.toISOString()}})); fs.writeFileSync('/tmp/delete.json',JSON.stringify({body:{control:'KPMO_PRIVATE_MARKET_REMOTE_R1',phase:'TTL_DELETE',sentinel_id:id,delete_at:del.toISOString()}})); fs.writeFileSync('/tmp/finalize.json',JSON.stringify({body:{control:'KPMO_PRIVATE_MARKET_REMOTE_R1',phase:'FINALIZE',sentinel_id:id}})); console.log(`SENTINEL_ID=${id}`); console.log(`SUFFIX=${suffix}`);
+          NODE
+          source /tmp/sentinel.env
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" > /tmp/queues.json
+          QUEUE_ID=$(Q="$TARGET_QUEUE" node -e "const x=require('/tmp/queues.json');const q=(x.result||[]).find(v=>(v.queue_name||v.name)===process.env.Q);if(!q)process.exit(2);process.stdout.write(q.queue_id||q.id)")
+          START=$(date +%s%3N)
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" --data-binary @/tmp/store.json > /tmp/store-response.json
+          grep -Fq '"success":true' /tmp/store-response.json
+          PASS=0
+          for i in $(seq 1 30); do
+            CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT status,length(ciphertext_b64) AS ciphertext_length,length(payload_sha256) AS payload_sha_length,length(receipt_hmac_sha256) AS hmac_length,instr(ciphertext_b64,'SYNTHETIC_SENTINEL_NOT_PROVIDER_DATA') AS plaintext_marker_present FROM kpmo_private_market_$SUFFIX WHERE sentinel_id='$SENTINEL_ID'" --json > /tmp/private-state.json 2>/tmp/private-state.err || true
+            if node - <<'NODE'
+          const fs=require('fs'); try{const x=JSON.parse(fs.readFileSync('/tmp/private-state.json','utf8'));const r=x?.[0]?.results?.[0]||{};process.exit(r.status==='VERIFIED_TAMPER_REJECTED'&&Number(r.ciphertext_length)>0&&Number(r.payload_sha_length)===64&&Number(r.hmac_length)===64&&Number(r.plaintext_marker_present)===0?0:1)}catch{process.exit(1)}
+          NODE
+            then PASS=1; break; fi
+            sleep 3
+          done
+          test "$PASS" = 1
+          END=$(date +%s%3N); printf 'STORE_VERIFY_VISIBLE_MS=%s\n' "$((END-START))" >> /tmp/private-market-metrics.env
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT COUNT(*) AS audit_events FROM kpmo_private_market_audit_$SUFFIX" --json > /tmp/audit-before-delete.json
+          node -e "const r=require('/tmp/audit-before-delete.json')?.[0]?.results?.[0]||{};if(Number(r.audit_events)!==3)process.exit(2)"
+
+      - name: TTL DELETE — simulated expiry and remote cleanup
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          source /tmp/sentinel.env
+          QUEUE_ID=$(Q="$TARGET_QUEUE" node -e "const x=require('/tmp/queues.json');const q=(x.result||[]).find(v=>(v.queue_name||v.name)===process.env.Q);if(!q)process.exit(2);process.stdout.write(q.queue_id||q.id)")
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" --data-binary @/tmp/delete.json > /tmp/delete-response.json
+          grep -Fq '"success":true' /tmp/delete-response.json
+          PASS=0
+          for i in $(seq 1 20); do
+            CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT (SELECT COUNT(*) FROM kpmo_private_market_$SUFFIX WHERE sentinel_id='$SENTINEL_ID') AS remaining,(SELECT COUNT(*) FROM kpmo_private_market_audit_$SUFFIX) AS audit_events" --json > /tmp/delete-state.json 2>/tmp/delete-state.err || true
+            if node - <<'NODE'
+          const fs=require('fs');try{const x=JSON.parse(fs.readFileSync('/tmp/delete-state.json','utf8'));const r=x?.[0]?.results?.[0]||{};process.exit(Number(r.remaining)===0&&Number(r.audit_events)===4?0:1)}catch{process.exit(1)}
+          NODE
+            then PASS=1; break; fi
+            sleep 3
+          done
+          test "$PASS" = 1
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" --data-binary @/tmp/finalize.json > /tmp/finalize-response.json
+          grep -Fq '"success":true' /tmp/finalize-response.json
+          PASS=0
+          for i in $(seq 1 20); do
+            CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT COUNT(*) AS remaining_tables FROM sqlite_master WHERE type='table' AND name IN ('kpmo_private_market_$SUFFIX','kpmo_private_market_audit_$SUFFIX')" --json > /tmp/final-state.json
+            if node -e "const r=require('/tmp/final-state.json')?.[0]?.results?.[0]||{};process.exit(Number(r.remaining_tables)===0?0:1)"; then PASS=1; break; fi
+            sleep 2
+          done
+          test "$PASS" = 1
+
+      - name: VERIFY — Production remains read-only
+        if: always()
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/production-after.json
+          node - <<'NODE'
+          const x=require('/tmp/production-after.json'); if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_MUTATION_OR_READ_FAILURE');
+          NODE
+
+      - name: ROLLBACK — canonical STAGING version only if owned
+        if: always()
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ ! -f /tmp/harness.env ]; then exit 0; fi
+          source /tmp/harness.env
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-final.json
+          MODE=$(H="$HARNESS_VERSION_ID" C="$CANONICAL_ROLLBACK_VERSION" node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/deployment-final.json','utf8'));const a=Array.isArray(x)?x:(x.result||x.deployments||[]);const d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0];const s=JSON.stringify(d||{});process.stdout.write(s.includes(process.env.H)?'OWNED':s.includes(process.env.C)?'CANONICAL':'FOREIGN');
+          NODE
+          )
+          if [ "$MODE" = FOREIGN ]; then echo 'Refusing to overwrite foreign concurrent STAGING deployment'; exit 20; fi
+          if [ "$MODE" = OWNED ]; then START=$(date +%s%3N); npx wrangler versions deploy "$CANONICAL_ROLLBACK_VERSION@100%" --name "$STAGING_WORKER" --message 'KPMO private market remote R1 rollback' -y; END=$(date +%s%3N); printf 'ROLLBACK_MS=%s\n' "$((END-START))" >> /tmp/private-market-metrics.env; fi
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-restored.json
+          V="$CANONICAL_ROLLBACK_VERSION" node -e "const x=require('/tmp/deployment-restored.json');const a=Array.isArray(x)?x:(x.result||x.deployments||[]);const d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0];if(!JSON.stringify(d||{}).includes(process.env.V))process.exit(2)"
+
+      - name: RECEIPT — public-safe synthetic metadata only
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/private-market-remote-r1-safe; touch /tmp/private-market-metrics.env
+          node - <<'NODE'
+          const fs=require('fs');const metrics={};for(const l of fs.readFileSync('/tmp/private-market-metrics.env','utf8').split(/\n/)){const i=l.indexOf('=');if(i>0)metrics[l.slice(0,i)]=Number(l.slice(i+1))}
+          const state=fs.existsSync('/tmp/final-state.json');let clean=false;if(state){try{const r=require('/tmp/final-state.json')?.[0]?.results?.[0]||{};clean=Number(r.remaining_tables)===0}catch{}}
+          const receipt={state:clean?'REMOTE_STAGING_PRIVATE_STORE_SENTINEL_PASS':'REMOTE_STAGING_PRIVATE_STORE_SENTINEL_INCOMPLETE',environment:'STAGING_ISOLATED_D1',synthetic_sentinel_only:true,provider_network_requests:0,provider_payloads_used:0,raw_payload_public_output:false,at_rest_aes_gcm_roundtrip:'PASS_IF_STATE_PASS',opaque_receipt_hmac:'PASS_IF_STATE_PASS',tamper_negative:'REJECTED_IF_STATE_PASS',simulated_ttl_delete:'PASS_IF_STATE_PASS',remote_cleanup:'PASS_IF_STATE_PASS',test_only_derivable_crypto_keying:true,secret_manager_provider_key_proven:false,provider_specific_private_runtime_verified:false,rights_terminalized:false,active_market_claim:'NONE',production_mutation:false,production:'HOLD',public_release:'HOLD',metrics_ms:metrics,truth_boundary:'Remote STAGING synthetic private-store mechanics only. This is not provider evidence, provider-specific credential/runtime proof, field-purpose rights, real Secret Manager key proof, market evidence, Public, Production or G5 authorization.'};fs.writeFileSync('/tmp/private-market-remote-r1-safe/receipt.json',JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt,null,2));if(!clean)process.exitCode=1;
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-private-market-remote-staging-sentinel-r1
+          path: /tmp/private-market-remote-r1-safe/receipt.json
+          retention-days: 30
+          if-no-files-found: error
