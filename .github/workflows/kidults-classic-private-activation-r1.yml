@@ -1,0 +1,23 @@
+name: KIDULTS CLASSIC Private Activation R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/market/classic-private-activation-contract-r1.json'
+      - 'scripts/kidults/market/validate-classic-private-activation-contract-r1.mjs'
+      - '.github/workflows/kidults-classic-private-activation-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate fail-closed CLASSIC.COM activation boundary
+        run: node scripts/kidults/market/validate-classic-private-activation-contract-r1.mjs
