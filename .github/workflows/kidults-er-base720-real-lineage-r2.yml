@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - 'coordination/kidults/entity-resolution/er-base720-accepted-artifact-lock-r1.json'
+      - 'coordination/kidults/entity-resolution/pressing-source-corpus-r3-expanded.json'
       - 'scripts/kidults/entity-resolution/rehydrate-er-base720-accepted-lineage-r2.mjs'
+      - 'scripts/kidults/entity-resolution/repair-release-cross-stratum-evidence-overlap-r1.mjs'
+      - 'scripts/kidults/entity-resolution/acquire-musicbrainz-expanded-vinyl-corpus-r3.mjs'
       - 'scripts/kidults/entity-resolution/build-er-base720-pre-review-packets-r1.mjs'
       - 'scripts/kidults/entity-resolution/er-release-lineage-adapter-v1-lib.mjs'
       - 'scripts/kidults/entity-resolution/er-base720-materializer-v1-lib.mjs'
@@ -65,6 +68,20 @@ jobs:
           done < /tmp/artifact-locks.tsv
           find /tmp/accepted -type f -name '*.json' -printf '%P\n' | sort
 
+      - name: Reacquire lawful source-disjoint MusicBrainz evidence for exact release overlap repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/kidults/entity-resolution/acquire-musicbrainz-expanded-vinyl-corpus-r3.mjs /tmp/expanded4000.json
+          node scripts/kidults/entity-resolution/repair-release-cross-stratum-evidence-overlap-r1.mjs /tmp/accepted /tmp/expanded4000.json /tmp/release-overlap-repair-r1.json
+          node - <<'NODE'
+          const fs=require('fs');const r=JSON.parse(fs.readFileSync('/tmp/release-overlap-repair-r1.json','utf8'));
+          if(r.status!=='PASS_EXACT_KNOWN_42_CROSS_STRATUM_OVERLAPS_REACQUIRED_WITH_SOURCE_DISJOINT_LAWFUL_EVIDENCE'||r.observed_overlap_case_count!==42||r.replacement_case_count!==42||r.replacement_source_reference_count!==45||r.raw_provider_payload_persisted!==false||r.labels_created!==false||r.empirical_pass!==false||r.production!=='HOLD')throw new Error('RELEASE_OVERLAP_REPAIR_BOUNDARY');
+          if(/"payload"\s*:|"raw_payload"\s*:/.test(JSON.stringify(r)))throw new Error('RELEASE_OVERLAP_RECEIPT_PAYLOAD_LEAKAGE');
+          console.log(JSON.stringify({overlaps:r.observed_overlap_case_count,replacements:r.replacement_case_count,replacement_sources:r.replacement_source_reference_count,projection_sha256:r.replacement_projection_sha256,production:'HOLD'}));
+          NODE
+          rm -f /tmp/expanded4000.json
+
       - name: Freshly rehydrate exact 120-case Provenance accepted lineage from current head
         shell: bash
         run: |
@@ -124,6 +141,7 @@ jobs:
         with:
           name: kidults-er-base720-real-lineage-r2
           path: |
+            /tmp/release-overlap-repair-r1.json
             /tmp/er-base720-real-lineage-r2.json
             /tmp/er-base720-real-lineage-r2-receipt.json
             /tmp/reviewer-a.json
