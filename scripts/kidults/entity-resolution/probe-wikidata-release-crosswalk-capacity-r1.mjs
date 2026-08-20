@@ -1,0 +1,22 @@
+import fs from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+
+const outPath=process.argv[2]||'/tmp/wikidata-release-crosswalk-capacity-r1.json';
+const timeoutMs=45000,target=80;
+const rightsRefs=['https://www.wikidata.org/wiki/Wikidata:Licensing','https://creativecommons.org/publicdomain/zero/1.0/'];
+const sha=v=>`sha256:${createHash('sha256').update(typeof v==='string'?v:JSON.stringify(v)).digest('hex')}`;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function fetchJson(url,headers={},attempts=4){let last;for(let a=1;a<=attempts;a++){const c=new AbortController(),t=setTimeout(()=>c.abort(),timeoutMs);try{const r=await fetch(url,{headers:{'user-agent':'KIDULTS-ER-WIKIDATA-RELEASE-CROSSWALK/1.0',...headers},signal:c.signal});if(r.ok)return await r.json();const e=new Error(`HTTP_${r.status}:${url}`);if(![429,500,502,503,504].includes(r.status))throw e;last=e;}catch(e){last=e;}finally{clearTimeout(t);}if(a<attempts)await sleep(Math.min(8000,1200*(2**(a-1))));}throw last;}
+async function mapLimit(items,limit,fn){const out=new Array(items.length);let cursor=0;async function worker(){while(true){const i=cursor++;if(i>=items.length)return;out[i]=await fn(items[i],i);}}await Promise.all(Array.from({length:Math.min(limit,items.length)},worker));return out;}
+const externalValues=(entity,pid)=>[...new Set((entity?.claims?.[pid]||[]).map(c=>c?.mainsnak?.datavalue?.value).filter(v=>typeof v==='string'&&v.trim()).map(String))].sort();
+const sparql='SELECT ?item ?discogs ?musicbrainz WHERE { ?item wdt:P2206 ?discogs ; wdt:P5813 ?musicbrainz . } ORDER BY STR(?item) LIMIT 240';
+const q=await fetchJson(`https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`,{accept:'application/sparql-results+json'},4);
+const qids=[...new Set((q?.results?.bindings||[]).map(r=>String(r?.item?.value||'').match(/\/entity\/(Q\d+)$/)?.[1]).filter(Boolean))].slice(0,160);
+if(!qids.length)throw new Error('NO_WIKIDATA_CROSSWALK_QIDS');
+const checked=(await mapLimit(qids,8,async qid=>{try{const url=`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`;const j=await fetchJson(url,{},3);const e=j?.entities?.[qid];if(!e)return null;const discogs=externalValues(e,'P2206'),musicbrainz=externalValues(e,'P5813');if(!discogs.length||!musicbrainz.length)return null;return {qid,source_reference:url,source_payload_sha256:sha(j),discogs_release_ids:discogs,musicbrainz_release_ids:musicbrainz,rights_state:'ALLOW',license_evidence_refs:rightsRefs,provenance_refs:[`wikidata:${qid}:P2206`,`wikidata:${qid}:P5813`],candidate_basis:'ONE_WIKIDATA_CC0_RELEASE_ITEM_EXPLICITLY_BINDS_DISCOGS_RELEASE_ID_AND_MUSICBRAINZ_RELEASE_ID'};}catch{return null;}})).filter(Boolean);
+const unique=[...new Map(checked.map(c=>[c.qid,c])).values()].sort((a,b)=>Number(a.qid.slice(1))-Number(b.qid.slice(1)));
+const selected=unique.slice(0,target);
+const metrics={wdqs_qids_discovered:qids.length,entitydata_crosswalks_revalidated:unique.length,source_disjoint_cross_market_alias_capacity:selected.length,target_dual_strata_alias_capacity:target,pressing_possible_if_allocated:Math.min(40,selected.length),variant_possible_after_pressing_allocation:Math.min(40,Math.max(0,selected.length-40)),full_80_ready:selected.length===80};
+const blockers=[];if(selected.length<80)blockers.push(`SOURCE_DISJOINT_CROSS_MARKET_ALIAS_${selected.length}_OF_80`);
+const artifact={id:'kidults-er-wikidata-release-crosswalk-capacity-r1',version:'1.0.0',status:selected.length===80?'COMPLETE_80_SOURCE_DISJOINT_CROSSWALK_CAPACITY_READY':'COMPLETE_FAIL_CLOSED_PARTIAL_CROSSWALK_CAPACITY',parent_issue:609,source_family:'wikidata-cc0-release-external-id-crosswalk',rights_state:'ALLOW',license_evidence_refs:rightsRefs,metrics,candidates:selected,blockers,labels_present:false,reviewers_assigned:0,empirical_cases_created:0,blind_partition_sealed:false,track_b:'NOT_STARTED',public_release:'HOLD',production:'HOLD',truth_boundary:'Capacity diagnostic only. Each candidate is one distinct Wikidata CC0 item whose live EntityData simultaneously exposes P2206 Discogs release ID and P5813 MusicBrainz release ID. No Discogs API/marketplace payload is fetched. This does not yet assign candidates to PRESSING or VARIANT reviewer packets, does not create labels or empirical PASS, and supports only release-identifier crosswalk identity semantics.'};
+await fs.writeFile(outPath,JSON.stringify(artifact,null,2)+'\n');console.log(JSON.stringify({status:artifact.status,metrics,blockers,production:'HOLD'},null,2));

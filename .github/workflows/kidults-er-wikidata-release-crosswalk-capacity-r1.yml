@@ -1,0 +1,36 @@
+name: KIDULTS ER Wikidata Release Crosswalk Capacity R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-wikidata-release-crosswalk-capacity-r1.mjs'
+      - '.github/workflows/kidults-er-wikidata-release-crosswalk-capacity-r1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-crosswalk-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Measure live CC0 release crosswalk capacity
+        run: node scripts/kidults/entity-resolution/probe-wikidata-release-crosswalk-capacity-r1.mjs /tmp/crosswalk-r1.json
+      - name: Enforce distinct authority and no market-data overclaim
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/crosswalk-r1.json','utf8'));
+          if(x.source_family!=='wikidata-cc0-release-external-id-crosswalk'||x.rights_state!=='ALLOW')throw new Error('SOURCE_OR_RIGHTS');
+          const qids=(x.candidates||[]).map(c=>c.qid);if(new Set(qids).size!==qids.length)throw new Error('QID_REUSE');
+          for(const c of x.candidates||[]){if(!/^Q\d+$/.test(c.qid)||!Array.isArray(c.discogs_release_ids)||!c.discogs_release_ids.length||!Array.isArray(c.musicbrainz_release_ids)||!c.musicbrainz_release_ids.length)throw new Error('CROSSWALK_GRAMMAR');if(!/^sha256:[a-f0-9]{64}$/.test(c.source_payload_sha256)||c.rights_state!=='ALLOW')throw new Error('EVIDENCE_BINDING');}
+          if(x.metrics.source_disjoint_cross_market_alias_capacity>80||x.metrics.pressing_possible_if_allocated>40||x.metrics.variant_possible_after_pressing_allocation>40)throw new Error('CAPACITY_BOUNDARY');
+          if(x.labels_present!==false||x.reviewers_assigned!==0||x.empirical_cases_created!==0||x.blind_partition_sealed!==false||x.track_b!=='NOT_STARTED'||x.public_release!=='HOLD'||x.production!=='HOLD')throw new Error('OVERCLAIM');
+          if(/"raw_payload"\s*:|"payload"\s*:/.test(JSON.stringify(x)))throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({capacity:x.metrics.source_disjoint_cross_market_alias_capacity,pressing_possible:x.metrics.pressing_possible_if_allocated,variant_possible:x.metrics.variant_possible_after_pressing_allocation,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-wikidata-release-crosswalk-capacity-r1
+          path: /tmp/crosswalk-r1.json
+          retention-days: 14
