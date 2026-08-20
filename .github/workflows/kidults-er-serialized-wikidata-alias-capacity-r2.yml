@@ -1,0 +1,42 @@
+name: KIDULTS ER Serialized Wikidata Alias Capacity R2
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-er-serialized-wikidata-alias-capacity-r2.yml'
+      - 'scripts/kidults/entity-resolution/probe-serialized-reference-capacity-r1.mjs'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-current-alias-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run strict current Wikidata serialized census
+        run: |
+          node scripts/kidults/entity-resolution/probe-serialized-reference-capacity-r1.mjs \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            /tmp/serialized-reference-capacity-live-r2.json
+      - name: Enforce diagnostic truth ceiling
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/serialized-reference-capacity-live-r2.json','utf8'));
+          const m=x.metrics||{};
+          if(x.stratum_id!=='er-stratum-serialized-reference') throw new Error('STRATUM');
+          if(!Number.isInteger(m.cross_authority_alias_pair_count)||m.cross_authority_alias_pair_count<0) throw new Error('ALIAS_METRIC');
+          if(x.downstream_claims?.empirical_cases_created!==0||x.downstream_claims?.labels_collected!==0||x.downstream_claims?.blind_holdout_sealed!==false||x.downstream_claims?.track_b_started!==false||x.downstream_claims?.production!=='HOLD') throw new Error('OVERCLAIM');
+          console.log(JSON.stringify({status:x.probe_status,grammar_records:m.grammar_complete_real_record_count,alias_capacity:m.cross_authority_alias_pair_count,hard_negative_capacity:m.same_model_distinct_serial_hard_negative_pair_count,conservative_capacity:m.conservative_case_capacity,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-wikidata-alias-capacity-r2
+          path: /tmp/serialized-reference-capacity-live-r2.json
+          retention-days: 14
