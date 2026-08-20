@@ -1,0 +1,246 @@
+name: KIDULTS STAGING Golden E2E R3
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-staging-golden-e2e-r3.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: kidults-staging-runtime-mutation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  staging-golden-e2e-r3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_READ_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_STAGING_REBIND_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+      CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN }}
+      STAGING_WORKER: kidults-autonomous-intelligence-staging
+      STAGING_D1: kidults-intelligence-db-staging
+      STAGING_D1_ID: 9bc6a406-6fca-4959-be7f-dd7f715b092c
+      PRODUCTION_D1: kidults-intelligence-db
+      PRODUCTION_D1_ID: d6d65f81-f91d-428b-bf43-8a025aaa47bd
+      CANONICAL_ROLLBACK_VERSION: d870f7e4-0919-47f7-becc-13524c393f27
+      TARGET_QUEUE: kidults-asi-shadow-discovery-wikidata
+      WRANGLER_SEND_METRICS: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: GATE — bounded credentials and exact static boundary
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          test -n "${CLOUDFLARE_READ_TOKEN:-}"
+          test -n "${CLOUDFLARE_STAGING_REBIND_TOKEN:-}"
+          test -n "${CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN:-}"
+          echo "::add-mask::$CLOUDFLARE_READ_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_STAGING_REBIND_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN"
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));
+          const d=x.d1_databases.find(v=>v.binding==='DB');
+          if(x.vars?.KIDULTS_ENV!=='staging'||x.vars?.ASI_MESH_MODE!=='SHADOW'||x.vars?.ASI_PUBLICATION_ENABLED!=='false') throw new Error('STAGING_BOUNDARY');
+          if(!d||d.database_id!=='d6d65f81-f91d-428b-bf43-8a025aaa47bd') throw new Error('CANONICAL_CONFIG_DRIFT');
+          if((x.queues?.producers||[]).length!==26||(x.queues?.consumers||[]).length!==26) throw new Error('QUEUE_CONFIG_COUNT');
+          d.database_name='kidults-intelligence-db-staging'; d.database_id='9bc6a406-6fca-4959-be7f-dd7f715b092c';
+          x.name='kidults-autonomous-intelligence-staging'; x.workers_dev=false;
+          delete x.routes; delete x.route; delete x.triggers;
+          x.vars={...(x.vars||{}),KIDULTS_ENV:'staging',ASI_MESH_MODE:'SHADOW',ASI_PUBLICATION_ENABLED:'false'};
+          fs.writeFileSync('wrangler.golden-r3.generated.json',JSON.stringify(x,null,2));
+          NODE
+
+      - name: PRECHECK — isolated D1 and canonical Worker are stable
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 info "$STAGING_D1" --json > /tmp/staging-d1-info.json
+          grep -Fq "$STAGING_D1_ID" /tmp/staging-d1-info.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/staging-d1-info.json; then exit 10; fi
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/production-before.json
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_STAGING_REBIND_TOKEN" npx wrangler versions view "$CANONICAL_ROLLBACK_VERSION" --name "$STAGING_WORKER" --json > /tmp/canonical-before.json
+          grep -Fq "$STAGING_D1_ID" /tmp/canonical-before.json || grep -Fq "$STAGING_D1" /tmp/canonical-before.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/canonical-before.json; then exit 11; fi
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_STAGING_REBIND_TOKEN" npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-before.json
+          V="$CANONICAL_ROLLBACK_VERSION" node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/deployment-before.json','utf8'));const a=Array.isArray(x)?x:(x.result||x.deployments||[]);if(!a.length)throw new Error('NO_STAGING_DEPLOYMENT');const d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0];if(!JSON.stringify(d).includes(process.env.V))throw new Error('STAGING_NOT_AT_CANONICAL_VERSION_BEFORE_TEST');
+          NODE
+
+      - name: BUILD — batch-robust canonical seed harness
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          npm run typecheck
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/worker.ts'); s=p.read_text()
+          old="""  async queue(batch: MessageBatch<AsiQueueTask>, env: Env): Promise<void> {\n    await consumeAsiBatch(batch,env);\n  },"""
+          new="""  async queue(batch: MessageBatch<AsiQueueTask>, env: Env): Promise<void> {\n    const controlMessages = batch.messages.filter((message) => {\n      const body = message.body as unknown as {control?:string;event?:unknown};\n      return body?.control === 'KPMO_STAGING_GOLDEN_SEED_R3' && Boolean(body.event);\n    });\n    if (controlMessages.length > 0) {\n      if (controlMessages.length !== 1) throw new Error('KPMO_STAGING_GOLDEN_SEED_NOT_UNIQUE');\n      for (const message of batch.messages) {\n        const body = message.body as unknown as {control?:string;event?:unknown};\n        if (body?.control === 'KPMO_STAGING_GOLDEN_SEED_R3' && body.event) {\n          await enqueueAsiEvent(env,body.event);\n          message.ack();\n        } else {\n          message.retry({delaySeconds:15});\n        }\n      }\n      return;\n    }\n    await consumeAsiBatch(batch,env);\n  },"""
+          if old not in s: raise SystemExit('QUEUE_HANDLER_PATCH_TARGET_NOT_FOUND')
+          p.write_text(s.replace(old,new))
+          PY
+          npm run typecheck
+          npx wrangler deploy --config wrangler.golden-r3.generated.json --dry-run --outdir /tmp/golden-r3-dry-run
+
+      - name: DEPLOY — temporary no-route harness and acquire ownership
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: /tmp/golden-r3-upload.ndjson
+        run: |
+          set -euo pipefail
+          rm -f /tmp/golden-r3-upload.ndjson
+          npx wrangler versions upload --config wrangler.golden-r3.generated.json --tag kpmo-staging-golden-r3 --message 'Temporary STAGING golden E2E R3; batch-robust; no route; no cron; Production HOLD'
+          node - <<'NODE' > /tmp/harness.env
+          const fs=require('fs');const rows=fs.readFileSync('/tmp/golden-r3-upload.ndjson','utf8').trim().split(/\n+/).filter(Boolean).map(JSON.parse);const x=[...rows].reverse().find(r=>r.type==='version-upload'&&r.version_id);if(!x)throw new Error('NO_HARNESS_VERSION_RECEIPT');console.log(`HARNESS_VERSION_ID=${x.version_id}`);
+          NODE
+          source /tmp/harness.env
+          npx wrangler versions view "$HARNESS_VERSION_ID" --name "$STAGING_WORKER" --json > /tmp/harness-view.json
+          grep -Fq "$STAGING_D1_ID" /tmp/harness-view.json || grep -Fq "$STAGING_D1" /tmp/harness-view.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/harness-view.json; then exit 12; fi
+          START=$(date +%s%3N)
+          npx wrangler versions deploy "$HARNESS_VERSION_ID@100%" --name "$STAGING_WORKER" --message 'KPMO bounded STAGING golden R3' -y
+          END=$(date +%s%3N)
+          printf 'HARNESS_DEPLOY_MS=%s\n' "$((END-START))" > /tmp/golden-metrics.env
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-owned.json
+          H="$HARNESS_VERSION_ID" node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/deployment-owned.json','utf8'));const a=Array.isArray(x)?x:(x.result||x.deployments||[]);const d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0];if(!d||!JSON.stringify(d).includes(process.env.H))throw new Error('STAGING_RUNTIME_OWNERSHIP_NOT_ACQUIRED');
+          NODE
+
+      - name: SEED — one synthetic reserved-domain control only after ownership check
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > /tmp/golden.env
+          const crypto=require('crypto'),fs=require('fs');
+          const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+          const sha=v=>'sha256:'+crypto.createHash('sha256').update(typeof v==='string'?v:JSON.stringify(canonical(v))).digest('hex');
+          const suffix=crypto.randomBytes(8).toString('hex'),now=new Date().toISOString(),host='example.com';
+          const source=`source_kpmo_golden_r3_${suffix}`,eventId=`evt_kpmo_golden_r3_${suffix}`,corr=`corr_kpmo_golden_r3_${suffix}`;
+          const payload={source_id:source,discovery_seed:{source_id:source,seed_ref:'KPMO_SYNTHETIC_RESERVED_EXAMPLE_DOMAIN',canonical_host:host,discovery_rights_state:'ALLOW'},test_control:{synthetic:true,market_claim:false,provider_payload:false,production:false}};
+          const event={event_id:eventId,event_type:'SOURCE_DISCOVERY_REQUESTED',event_version:'1.0.0',occurred_at:now,observed_at:now,producer_engine:'KPMO_STAGING_GOLDEN_R3',producer_version:'1.0.0',correlation_id:corr,causation_id:null,idempotency_key:`idem_${eventId}`,partition:{channel:'WIKIDATA_OFFICIAL_WEBSITE_GRAPH',region:'NORTH_AMERICA',language:'en',scope_id:'vinyl_recorded_music',source_role:'REFERENCE_ONLY',canonical_host_hash:sha(host)},input_snapshot_ref:'kpmo-staging-golden-r3-synthetic',payload_hash:sha(payload),rights_state:'ALLOW',freshness_state:'CURRENT',assertion_purpose:'BOUNDED_SHADOW_ACQUISITION',decision:'PASS',reason_codes:['KPMO_STAGING_GOLDEN_R3_SYNTHETIC'],trace_refs:['KPMO_STAGING_GOLDEN_R3'],payload};
+          fs.writeFileSync('/tmp/seed.json',JSON.stringify({body:{control:'KPMO_STAGING_GOLDEN_SEED_R3',event}}));
+          console.log(`EVENT_ID=${eventId}`);console.log(`SOURCE_ID=${source}`);console.log(`CORRELATION_ID=${corr}`);console.log(`SEED_AT=${now}`);
+          NODE
+          source /tmp/golden.env
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" > /tmp/queues.json
+          QUEUE_ID=$(Q="$TARGET_QUEUE" node -e "const x=require('/tmp/queues.json');const q=(x.result||[]).find(v=>(v.queue_name||v.name)===process.env.Q);if(!q)process.exit(2);process.stdout.write(q.queue_id||q.id)")
+          START=$(date +%s%3N)
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" --data-binary @/tmp/seed.json > /tmp/seed-response.json
+          END=$(date +%s%3N)
+          grep -Fq '"success":true' /tmp/seed-response.json
+          printf 'QUEUE_PUSH_MS=%s\n' "$((END-START))" >> /tmp/golden-metrics.env
+
+      - name: VERIFY — uncontended canonical Queue→Worker→D1 transport
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          source /tmp/harness.env
+          source /tmp/golden.env
+          PASS=0
+          for i in $(seq 1 36); do
+            if [ $((i % 3)) -eq 1 ]; then
+              CLOUDFLARE_API_TOKEN="$CLOUDFLARE_STAGING_REBIND_TOKEN" npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-during.json
+              H="$HARNESS_VERSION_ID" node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/deployment-during.json','utf8'));const a=Array.isArray(x)?x:(x.result||x.deployments||[]);const d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0];if(!d||!JSON.stringify(d).includes(process.env.H))throw new Error('STAGING_RUNTIME_CONCURRENT_MUTATION');
+          NODE
+            fi
+            npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT (SELECT COUNT(*) FROM asi_event_log WHERE correlation_id='$CORRELATION_ID') AS event_count,(SELECT COUNT(*) FROM asi_outbox WHERE event_id='$EVENT_ID') AS outbox_count,(SELECT COUNT(*) FROM asi_processed_messages WHERE event_id='$EVENT_ID' AND status='SUCCEEDED') AS success_count,(SELECT COUNT(*) FROM asi_processed_messages WHERE event_id='$EVENT_ID' AND status='FAILED') AS failed_count" --json > /tmp/state.json
+            if node - <<'NODE'
+          const x=require('/tmp/state.json');const r=x?.[0]?.results?.[0]||{};process.exit(Number(r.event_count)>=1&&Number(r.outbox_count)>=1&&Number(r.success_count)>=1?0:1);
+          NODE
+            then PASS=1; break; fi
+            sleep 4
+          done
+          test "$PASS" = "1"
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT event_id,event_type,decision,rights_state,correlation_id FROM asi_event_log WHERE correlation_id='$CORRELATION_ID' ORDER BY received_at; SELECT id,event_id,engine_fleet,queue_name,status,attempt_count,last_error FROM asi_outbox WHERE event_id='$EVENT_ID' ORDER BY id; SELECT queue_name,outbox_id,event_id,status,attempt_count,first_seen_at,last_seen_at,completed_at,last_error FROM asi_processed_messages WHERE event_id='$EVENT_ID' ORDER BY first_seen_at" --json > /tmp/golden-proof.json
+          VERIFY_MS=$(date +%s%3N); SEED_MS=$(date -d "$SEED_AT" +%s%3N); printf 'TRANSPORT_VISIBLE_MS=%s\n' "$((VERIFY_MS-SEED_MS))" >> /tmp/golden-metrics.env
+
+      - name: VERIFY — Production remains read-only
+        if: always()
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/production-after.json
+          node - <<'NODE'
+          const fs=require('fs');const a=JSON.parse(fs.readFileSync('/tmp/production-after.json','utf8'));if(!a.every(x=>x.success===true)||a.some(x=>Number(x.meta?.rows_written||0)!==0||Number(x.meta?.changes||0)!==0))throw new Error('PRODUCTION_MUTATION_OR_READ_FAILURE');
+          NODE
+
+      - name: ROLLBACK — restore canonical only if this run still owns STAGING
+        if: always()
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          touch /tmp/harness.env /tmp/golden-metrics.env
+          source /tmp/harness.env || true
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-at-rollback.json
+          STATE=$(H="${HARNESS_VERSION_ID:-}" C="$CANONICAL_ROLLBACK_VERSION" node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/deployment-at-rollback.json','utf8'));const a=Array.isArray(x)?x:(x.result||x.deployments||[]);const d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0];const s=JSON.stringify(d||{});process.stdout.write(process.env.H&&s.includes(process.env.H)?'OWN':s.includes(process.env.C)?'CANONICAL':'FOREIGN');
+          NODE
+          )
+          if [ "$STATE" = "OWN" ]; then
+            START=$(date +%s%3N)
+            npx wrangler versions deploy "$CANONICAL_ROLLBACK_VERSION@100%" --name "$STAGING_WORKER" --message 'KPMO STAGING golden R3 rollback' -y
+            END=$(date +%s%3N)
+            printf 'ROLLBACK_MS=%s\n' "$((END-START))" >> /tmp/golden-metrics.env
+          elif [ "$STATE" = "CANONICAL" ]; then
+            printf 'ROLLBACK_MS=0\n' >> /tmp/golden-metrics.env
+          else
+            printf 'ROLLBACK_MS=-1\n' >> /tmp/golden-metrics.env
+            echo 'Foreign concurrent STAGING version detected; refusing to overwrite it.' >&2
+          fi
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/final-deployment.json
+
+      - name: RECEIPT — public-safe bounded result
+        if: always()
+        run: |
+          set -euo pipefail
+          touch /tmp/golden.env /tmp/golden-metrics.env
+          node - <<'NODE' > /tmp/receipt.json
+          const fs=require('fs');const parse=p=>Object.fromEntries(fs.readFileSync(p,'utf8').split(/\n/).filter(Boolean).map(l=>{const i=l.indexOf('=');return [l.slice(0,i),l.slice(i+1)]}));const e=parse('/tmp/golden.env'),m=parse('/tmp/golden-metrics.env');const pass=fs.existsSync('/tmp/golden-proof.json')&&fs.existsSync('/tmp/production-after.json');const out={issue:777,status:pass?'STAGING_GOLDEN_QUEUE_WORKER_D1_TRANSPORT_PASS':'STAGING_GOLDEN_QUEUE_WORKER_D1_INCOMPLETE',event_id:e.EVENT_ID||null,synthetic_control:true,provider_payload:false,market_claim:false,semantic_admission_claim:false,public_route:false,production_mutation:false,queue_push_ms:Number(m.QUEUE_PUSH_MS||0)||null,transport_visible_ms:Number(m.TRANSPORT_VISIBLE_MS||0)||null,harness_deploy_ms:Number(m.HARNESS_DEPLOY_MS||0)||null,rollback_ms:m.ROLLBACK_MS===undefined?null:Number(m.ROLLBACK_MS),final_expected_version:'d870f7e4-0919-47f7-becc-13524c393f27',production:'HOLD',public_release:'HOLD'};process.stdout.write(JSON.stringify(out,null,2));
+          NODE
+          cat /tmp/receipt.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-staging-golden-e2e-r3
+          path: |
+            /tmp/receipt.json
+            /tmp/staging-d1-info.json
+            /tmp/canonical-before.json
+            /tmp/deployment-before.json
+            /tmp/harness-view.json
+            /tmp/deployment-owned.json
+            /tmp/deployment-during.json
+            /tmp/state.json
+            /tmp/golden-proof.json
+            /tmp/production-before.json
+            /tmp/production-after.json
+            /tmp/deployment-at-rollback.json
+            /tmp/final-deployment.json
+          retention-days: 30
+          if-no-files-found: warn
