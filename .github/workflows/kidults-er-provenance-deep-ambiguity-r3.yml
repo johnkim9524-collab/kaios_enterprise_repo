@@ -1,0 +1,68 @@
+name: KIDULTS ER Provenance Deep Ambiguity R3
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-provenance-deep-ambiguity-r3.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-deep-ambiguity-packet-r3.mjs'
+      - '.github/workflows/kidults-er-provenance-deep-ambiguity-r3.yml'
+      - 'scripts/kidults/entity-resolution/probe-provenance-residual-capacity-r2.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-residual-review-packet-r2.mjs'
+      - 'scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-review-packet-r1.mjs'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-deep-ambiguity-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Rebuild existing provenance reviewer-ready packets
+        run: |
+          node scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs /tmp/provenance-source-corpus-r1.json
+          node scripts/kidults/entity-resolution/build-provenance-review-packet-r1.mjs /tmp/provenance-source-corpus-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/provenance-review-packet-r1.json
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/provenance-review-packet-r1.json','utf8'));const refs=[];
+          for(const c of x.cases||[]){if(c.source_a_reference)refs.push(c.source_a_reference);if(c.source_b_reference)refs.push(c.source_b_reference);}
+          fs.writeFileSync('/tmp/exclude-base.json',JSON.stringify({references:[...new Set(refs)].sort()},null,2));
+          NODE
+          node scripts/kidults/entity-resolution/probe-provenance-residual-capacity-r2.mjs /tmp/provenance-residual-capacity-r2.json /tmp/exclude-base.json
+          node scripts/kidults/entity-resolution/build-provenance-residual-review-packet-r2.mjs /tmp/provenance-residual-capacity-r2.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/provenance-residual-review-packet-r2.json
+      - name: Create full exclusion set from 73 reviewer-ready cases
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const base=JSON.parse(fs.readFileSync('/tmp/provenance-review-packet-r1.json','utf8'));const r2=JSON.parse(fs.readFileSync('/tmp/provenance-residual-review-packet-r2.json','utf8'));const refs=[];
+          for(const c of [...(base.cases||[]),...(r2.cases||[])]){if(c.source_a_reference)refs.push(c.source_a_reference);if(c.source_b_reference)refs.push(c.source_b_reference);for(const r of c.source_b_references||[])refs.push(r);}
+          fs.writeFileSync('/tmp/provenance-exclude-r3.json',JSON.stringify({references:[...new Set(refs)].sort()},null,2));
+          console.log(JSON.stringify({excluded_reference_count:[...new Set(refs)].length}));
+          NODE
+      - name: Measure later-page Getty ambiguity capacity
+        run: node scripts/kidults/entity-resolution/probe-provenance-deep-ambiguity-r3.mjs /tmp/provenance-deep-ambiguity-r3.json /tmp/provenance-exclude-r3.json
+      - name: Packetize proven deep ambiguity cases
+        run: node scripts/kidults/entity-resolution/build-provenance-deep-ambiguity-packet-r3.mjs /tmp/provenance-deep-ambiguity-r3.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/provenance-deep-ambiguity-packet-r3.json
+      - name: Enforce fail-closed truth boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const cap=JSON.parse(fs.readFileSync('/tmp/provenance-deep-ambiguity-r3.json','utf8'));const packet=JSON.parse(fs.readFileSync('/tmp/provenance-deep-ambiguity-packet-r3.json','utf8'));
+          if(cap.stratum_id!=='er-stratum-provenance-unique-object'||cap.rights_state!=='ALLOW') throw new Error('STRATUM_OR_RIGHTS');
+          if(cap.labels_present!==false||cap.reviewers_assigned!==0||cap.empirical_cases_created!==0||cap.track_b!=='NOT_STARTED') throw new Error('CAPACITY_OVERCLAIM');
+          if(cap.production!=='HOLD'||cap.public_release!=='HOLD'||cap.blind_partition_sealed!==false) throw new Error('CAPACITY_RELEASE_BOUNDARY');
+          if(cap.metrics.source_disjoint_ambiguity_capacity>47) throw new Error('CAPACITY_OVER_TARGET');
+          if(packet.case_count!==cap.metrics.source_disjoint_ambiguity_capacity||packet.total_reviewer_ready_if_combined!==73+packet.case_count) throw new Error('PACKET_CAPACITY_MISMATCH');
+          if(packet.labels_present!==false||packet.reviewer_a!=='NOT_ASSIGNED'||packet.reviewer_b!=='NOT_ASSIGNED'||packet.empirical_pass!==false||packet.track_b!=='NOT_STARTED') throw new Error('PACKET_OVERCLAIM');
+          if(packet.production!=='HOLD'||packet.public_release!=='HOLD'||packet.blind_partition.state!=='CANDIDATE_NOT_SEALED') throw new Error('PACKET_RELEASE_BOUNDARY');
+          if(/"payload"\s*:/.test(JSON.stringify({cap,packet}))) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({additional_reviewer_ready:packet.case_count,total_provenance_reviewer_ready:packet.total_reviewer_ready_if_combined,remaining:packet.remaining_case_count,blind_candidates_added:packet.blind_partition.case_count,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-provenance-deep-ambiguity-r3
+          path: |
+            /tmp/provenance-deep-ambiguity-r3.json
+            /tmp/provenance-deep-ambiguity-packet-r3.json
+          retention-days: 14
