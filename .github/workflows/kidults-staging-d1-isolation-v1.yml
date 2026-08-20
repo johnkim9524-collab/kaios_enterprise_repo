@@ -101,6 +101,20 @@ jobs:
           fs.writeFileSync('services/kidults-autonomous-intelligence/wrangler.staging-d1.generated.json',JSON.stringify(x,null,2));
           NODE
 
+      - name: NORMALIZE — LF transport workaround for Wrangler remote trigger parsing
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          files=sorted(Path('migrations').glob('000[1-6]_*.sql'))
+          if len(files)!=6: raise SystemExit(f'expected 6 migrations, got {len(files)}')
+          for p in files:
+              b=p.read_bytes()
+              p.write_bytes(b.replace(b'\r\n',b'\n').replace(b'\r',b'\n'))
+          print({'status':'PASS','normalized_files':len(files),'semantic_change':False})
+          PY
+
       - name: MIGRATE — apply canonical 0001 through 0006 to staging D1
         working-directory: services/kidults-autonomous-intelligence
         env:
