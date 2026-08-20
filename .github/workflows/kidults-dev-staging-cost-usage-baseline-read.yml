@@ -1,0 +1,49 @@
+name: KIDULTS DEV STAGING Cost Usage Baseline Read
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/kidults-dev-staging-cost-usage-baseline-read.yml']
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DEV_D1: kidults-intelligence-db-dev
+      STAGING_D1: kidults-intelligence-db-staging
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: READ — actual resource and bounded usage evidence
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"; echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          npx wrangler d1 info "$DEV_D1" --json > /tmp/dev-info.json
+          npx wrangler d1 info "$STAGING_D1" --json > /tmp/staging-info.json
+          SQL="SELECT (SELECT COUNT(*) FROM asi_event_log) AS events,(SELECT COUNT(*) FROM asi_outbox) AS outboxes,(SELECT COUNT(*) FROM asi_processed_messages) AS processed,(SELECT COUNT(*) FROM asi_dead_letters) AS dead_letters,(SELECT COUNT(*) FROM audit_log) AS audit_rows"
+          npx wrangler d1 execute "$DEV_D1" --remote --command "$SQL" --json > /tmp/dev-counts.json
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "$SQL" --json > /tmp/staging-counts.json
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" > /tmp/queues.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const info=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          const q=info('/tmp/queues.json').result||[];
+          const d1=(p,c)=>{const raw=info(p),counts=info(c),r=counts?.[0]?.results?.[0]||{},m=counts?.[0]?.meta||{};return {name:raw.name||raw.database_name||null,uuid:raw.uuid||raw.database_id||null,file_size_bytes:raw.file_size||raw.file_size_bytes||null,num_tables:raw.num_tables||null,rows:{events:Number(r.events||0),outboxes:Number(r.outboxes||0),processed:Number(r.processed||0),dead_letters:Number(r.dead_letters||0),audit:Number(r.audit_rows||0)},observation_query_meta:{rows_read:Number(m.rows_read||0),rows_written:Number(m.rows_written||0),changes:Number(m.changes||0)}}};
+          const names=q.map(x=>x.queue_name||x.name||'');
+          const safe={state:'DEV_STAGING_ACTUAL_USAGE_BASELINE',captured_at:new Date().toISOString(),resources:{dev:{d1:d1('/tmp/dev-info.json','/tmp/dev-counts.json'),queues:names.filter(x=>x.startsWith('kidults-asi-dev-')).length},staging:{d1:d1('/tmp/staging-info.json','/tmp/staging-counts.json'),queues:names.filter(x=>x.startsWith('kidults-asi-shadow-')).length}},observed_control_workloads:{dev:{source_run:32353917423,external_queue_pushes:1,events:5,successful_processor_receipts:5,visible_ms:33546},staging:{source_issue:777,events:5,successful_processor_receipts:5,visible_ms:14301}},billing_truth:'ACCOUNT_BILLING_NOT_READ_OR_INFERRED',cost_truth:'ACTUAL_RESOURCE_AND_CONTROL_USAGE_EVIDENCE_ONLY',mutation:false,production:'HOLD'};
+          if(safe.resources.dev.queues!==26||safe.resources.staging.queues!==26) throw new Error('QUEUE_COUNT_DRIFT');
+          if(safe.resources.dev.d1.observation_query_meta.rows_written!==0||safe.resources.staging.d1.observation_query_meta.rows_written!==0) throw new Error('READ_BASELINE_MUTATED_D1');
+          fs.mkdirSync('/tmp/safe',{recursive:true});fs.writeFileSync('/tmp/safe/receipt.json',JSON.stringify(safe,null,2));console.log(JSON.stringify(safe,null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-dev-staging-cost-usage-baseline-read
+          path: /tmp/safe/receipt.json
+          retention-days: 30
+          if-no-files-found: error
