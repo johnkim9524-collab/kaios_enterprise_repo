@@ -1,0 +1,48 @@
+{
+  "id": "kidults-asi-market-structure-acquisition-feedback-v1",
+  "version": "1.0.0",
+  "status": "SHADOW_FEEDBACK_CONTRACT",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "objective": "Connect evidence-backed regional/category market-structure factors to Category x Region x Sourcing Channel x Evidence acquisition priority without allowing UNKNOWN, bootstrap shares or raw record counts to become market truth.",
+  "input_contracts": {
+    "regional_policy": "coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json",
+    "acquisition_matrix": "coordination/kidults/source-intelligence/global-data-acquisition-master-matrix-v1.json",
+    "empirical_baseline": "EMPIRICAL_REGIONAL_BASELINE_ARTIFACT_ONLY"
+  },
+  "feedback_loop": ["MARKET_STRUCTURE_EVIDENCE", "CATEGORY_REGION_FACTOR_SCORE", "COVERAGE_DEBT", "ACQUISITION_PRIORITY", "SOURCE_DISCOVERY", "RIGHTS_ADMISSION", "EVIDENCE", "MARKET_STRUCTURE_REEVALUATION"],
+  "factor_to_acquisition_demand": {
+    "MARKET_SCALE": ["CURRENT_SOLD_TRANSACTION", "LISTING_AVAILABILITY", "REGIONAL_CONTEXT"],
+    "MARKET_MATURITY": ["CURRENT_SOLD_TRANSACTION", "HISTORICAL_TRANSACTION_PROVENANCE", "SCARCITY_POPULATION_SUPPLY", "REGIONAL_CONTEXT"],
+    "OBSERVED_TRANSACTION_ACTIVITY": ["CURRENT_SOLD_TRANSACTION", "LIQUIDITY_TIME_TO_SALE_EXPOSURE", "LISTING_AVAILABILITY"],
+    "SIGNAL_LEAD_VALUE": ["SENTIMENT_ATTENTION_CONTEXT", "REGIONAL_CONTEXT"],
+    "EVIDENCE_QUALITY": ["IDENTITY_CANONICAL_REFERENCE", "HISTORICAL_TRANSACTION_PROVENANCE", "CURRENT_SOLD_TRANSACTION"],
+    "STRATEGIC_COVERAGE_GAP": ["IDENTITY_CANONICAL_REFERENCE", "CURRENT_SOLD_TRANSACTION", "HISTORICAL_TRANSACTION_PROVENANCE", "LISTING_AVAILABILITY", "SCARCITY_POPULATION_SUPPLY", "LIQUIDITY_TIME_TO_SALE_EXPOSURE", "REGIONAL_CONTEXT", "SENTIMENT_ATTENTION_CONTEXT"]
+  },
+  "priority_feedback_policy": {
+    "apply_only_when_factor_state": "VERIFIED",
+    "unknown_factor_effect": "NO_MARKET_MODIFIER_AND_KEEP_COVERAGE_DEBT_OPEN",
+    "not_verified_factor_effect": "NO_MARKET_MODIFIER",
+    "record_count_weight": 0,
+    "bootstrap_collection_share_weight": 0,
+    "market_modifier_range": [0, 25],
+    "factor_weights_source": "regional_policy.collection_priority_model.factor_weights",
+    "coverage_debt_remains_independent": true,
+    "rights_readiness_remains_independent": true,
+    "source_quality_and_redundancy_must_not_be_overridden": true
+  },
+  "category_region_rule": {
+    "platform_wide_factor_can_fill_category_cell": false,
+    "category_specific_factor_required_for_category_priority_mutation": true,
+    "portfolio_diagnostic_factor_can_only_create_discovery_debt": true
+  },
+  "truth_boundaries": [
+    "UNKNOWN_IS_NOT_ZERO",
+    "STRUCTURAL_BOOTSTRAP_IS_NOT_MARKET_SHARE",
+    "RAW_RECORD_COUNT_IS_NOT_MARKET_SCALE",
+    "COLLECTION_PRIORITY_IS_NOT_ANALYTICAL_WEIGHT",
+    "REGIONAL_FACTOR_DOES_NOT_CREATE_SOURCE_RIGHTS",
+    "FACTOR_FEEDBACK_CANNOT_OVERRIDE_RIGHTS_ADMISSION_OR_PRODUCTION_GATES",
+    "NO_PRIORITY_MUTATION_FROM_UNVERIFIED_MARKET_STRUCTURE"
+  ]
+}
