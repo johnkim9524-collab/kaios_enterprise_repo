@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'coordination/kidults/source-intelligence/asi-market-structure-acquisition-feedback-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-regional-data-usability-factor-r1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-regional-data-usability-factor-r1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-regional-data-usability-factor-r1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-market-structure-acquisition-feedback-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-market-structure-acquisition-feedback-v1.mjs'
@@ -13,6 +16,8 @@ on:
     branches: [main]
     paths:
       - 'coordination/kidults/source-intelligence/asi-market-structure-acquisition-feedback-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-regional-data-usability-factor-r1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-regional-data-usability-factor-r1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v2.mjs'
       - '.github/workflows/kidults-asi-market-structure-acquisition-feedback-v1.yml'
@@ -41,9 +46,13 @@ jobs:
         run: |
           node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json /tmp/musicbrainz-regional-catalog-observation-r1.json
           node scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
+      - name: Build verified bounded regional data-usability factor
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-regional-data-usability-factor-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json /tmp/musicbrainz-regional-catalog-observation-r1.json /tmp/empirical-regional-baseline-with-data-usability-r1.json
+          node scripts/kidults/source-intelligence/validate-asi-regional-data-usability-factor-r1.mjs /tmp/empirical-regional-baseline-with-data-usability-r1.json
       - name: Apply market-structure feedback
-        run: node scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json /tmp/empirical-regional-baseline-wave1-r1.json /tmp/global-data-acquisition-master-matrix-feedback-v1.json
-      - name: Validate no unverified priority mutation
+        run: node scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json /tmp/empirical-regional-baseline-with-data-usability-r1.json /tmp/global-data-acquisition-master-matrix-feedback-v1.json
+      - name: Validate verified-only priority mutation
         run: node scripts/kidults/source-intelligence/validate-asi-market-structure-acquisition-feedback-v1.mjs /tmp/global-data-acquisition-master-matrix-feedback-v1.json
       - name: Build feedback-aware autonomous queue
         run: node scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v2.mjs /tmp/global-data-acquisition-master-matrix-feedback-v1.json /tmp/asi-autonomous-action-queue-v2.json
@@ -56,6 +65,7 @@ jobs:
           name: kidults-asi-market-structure-acquisition-feedback-v1
           path: |
             /tmp/empirical-regional-baseline-wave1-r1.json
+            /tmp/empirical-regional-baseline-with-data-usability-r1.json
             /tmp/global-data-acquisition-master-matrix-feedback-v1.json
             /tmp/asi-autonomous-action-queue-v2.json
           retention-days: 30
