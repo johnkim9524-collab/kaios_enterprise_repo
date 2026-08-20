@@ -1,0 +1,118 @@
+{
+  "id": "kidults-state-department-online-auction-sold-event-admission-r1",
+  "version": "1.0.0",
+  "status": "PURPOSE_SPECIFIC_BOUNDED_ADMISSION",
+  "parent_issues": [637, 558, 457],
+  "source_id": "us-state-department-online-auction",
+  "source_owner_id": "us-department-of-state",
+  "purpose": "DATED_OBSERVED_SOLD_EVENT_SOURCE_FEASIBILITY",
+  "admission_state": "ADMITTED_BOUNDED_PUBLIC_FACTS_SHADOW_ONLY",
+  "rights_state": "ALLOW_PUBLIC_DOMAIN_FACTS_BOUNDED",
+  "rights_basis": "STATE_DEPARTMENT_PUBLIC_DOMAIN_POLICY_AND_FACTUAL_FIELDS_ONLY",
+  "transport_state": "ALLOW_PUBLIC_READ_ONLY_SPECIFIC_LOTS_NO_ACCOUNT",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "provider_network_call_by_public_ci": false,
+  "account_required": false,
+  "account_creation_authorized": false,
+  "bid_or_purchase_authorized": false,
+  "contract_or_eula_acceptance_authorized": false,
+  "spend_authorized": false,
+  "credential_use_authorized": false,
+  "rights_evidence_refs": [
+    "https://travel.state.gov/content/travel/en/copyright-disclaimer.html",
+    "https://ceac.state.gov/ceacstattracker/Common/Copyright.aspx"
+  ],
+  "bounded_source_examples": [
+    {
+      "auction_post": "Sarajevo",
+      "auction_id": "35edd30d-6be1-444a-9000-01311be98ad7",
+      "lot_id": "d2f865cd-68c2-4560-912a-be629dabea09",
+      "source_url": "https://online-auction.state.gov/en-US/Auction/Lot/d2f865cd-68c2-4560-912a-be629dabea09?auctionId=35edd30d-6be1-444a-9000-01311be98ad7",
+      "observed_public_facts": {
+        "sold_status": "SOLD",
+        "currency": "BAM",
+        "final_amount": 24250,
+        "year": 2015,
+        "make": "Chevrolet",
+        "model": "Tahoe",
+        "vin": "1GNSKAKC8FR673162"
+      }
+    },
+    {
+      "auction_post": "Sarajevo",
+      "auction_id": "35edd30d-6be1-444a-9000-01311be98ad7",
+      "lot_id": "561fb609-f20a-45e4-b2ee-f06a73c33d31",
+      "source_url": "https://online-auction.state.gov/en-US/Auction/Lot/561fb609-f20a-45e4-b2ee-f06a73c33d31?auctionId=35edd30d-6be1-444a-9000-01311be98ad7",
+      "observed_public_facts": {
+        "sold_status": "SOLD",
+        "currency": "BAM",
+        "final_amount": 22550,
+        "year": 2015,
+        "make": "Chevrolet",
+        "model": "Tahoe",
+        "vin": "1GNSKAKC9FR674191"
+      }
+    }
+  ],
+  "allowed_projection_fields": [
+    "auction_post",
+    "auction_id",
+    "lot_id",
+    "source_url",
+    "auction_close_date",
+    "sold_status",
+    "final_amount",
+    "currency",
+    "year",
+    "make",
+    "model",
+    "vin",
+    "condition",
+    "observed_at",
+    "source_projection_sha256"
+  ],
+  "prohibited_capture_or_projection": [
+    "photos",
+    "graphics",
+    "state_department_seal",
+    "official_insignia",
+    "bidder_identity",
+    "user_account_data",
+    "contact_data",
+    "payment_data",
+    "bidder_bid_history",
+    "raw_html_publication",
+    "full_description_reproduction"
+  ],
+  "transport": {
+    "mode": "BOUNDED_PUBLIC_READ_ONLY_SPECIFIC_LOT_URLS",
+    "authentication_required": false,
+    "write_or_submission": false,
+    "bidding": false,
+    "bulk_crawl": false,
+    "target_site_traversal": false,
+    "bounded_lot_limit_per_evaluation": 10
+  },
+  "scope_fit": {
+    "current_state": "NOT_ADMITTED_AS_COLLECTOR_CARS_MARKET_EVIDENCE",
+    "reason": "The observed source examples are government-surplus fleet vehicles. Public sold-event observability and source rights do not establish semantic representativeness for KIDULTS collector_cars or modern_classics markets.",
+    "required_for_poc_market_promotion": "A separately evidenced collector-relevant object-selection rule and claim-specific representativeness review."
+  },
+  "claim_class_target": "DATED_OBSERVED_SOLD_TRANSACTION_SOURCE_FEASIBILITY_ONLY",
+  "blocked_claims": [
+    "COLLECTOR_CARS_MARKET_EVIDENCE",
+    "MODERN_CLASSICS_MARKET_EVIDENCE",
+    "CURRENT_PRICE",
+    "REPRESENTATIVE_PRICE",
+    "LIQUIDITY",
+    "TIME_TO_SALE",
+    "DEMAND",
+    "MARKET_SCALE",
+    "MARKET_MATURITY",
+    "GLOBAL_MARKET_WEIGHT"
+  ],
+  "active_market_claim": "NONE",
+  "candidate_or_track_b_effect": "NONE",
+  "truth_boundary": "This admission establishes only that a bounded set of public U.S. Department of State auction pages can supply factual sold-event fields under the Department's public-domain information policy without account creation, bidding, credential use, a new EULA, or spend. It does not establish collector-market semantic fit, representative price, liquidity, demand, market scale, Candidate eligibility, Track B eligibility, Public release, Production, or G5 authority."
+}
