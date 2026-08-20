@@ -1,0 +1,81 @@
+name: KIDULTS ER Provenance Final 4 R6
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-provenance-deeper-ambiguity-r6.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-deeper-ambiguity-packet-r6.mjs'
+      - '.github/workflows/kidults-er-provenance-final4-r6.yml'
+      - 'scripts/kidults/entity-resolution/probe-provenance-deeper-ambiguity-r5.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-deeper-ambiguity-packet-r5.mjs'
+      - 'scripts/kidults/entity-resolution/probe-provenance-deeper-ambiguity-r4.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-deeper-ambiguity-packet-r4.mjs'
+      - 'scripts/kidults/entity-resolution/probe-provenance-deep-ambiguity-r3.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-deep-ambiguity-packet-r3.mjs'
+      - 'scripts/kidults/entity-resolution/probe-provenance-residual-capacity-r2.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-residual-review-packet-r2.mjs'
+      - 'scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs'
+      - 'scripts/kidults/entity-resolution/build-provenance-review-packet-r1.mjs'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  close-final-four:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Rebuild current 116-case Provenance material and exact exclusion set
+        run: |
+          node scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs /tmp/base-corpus.json
+          node scripts/kidults/entity-resolution/build-provenance-review-packet-r1.mjs /tmp/base-corpus.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/base.json
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/base.json'));const refs=[];for(const c of x.cases||[]){if(c.source_a_reference)refs.push(c.source_a_reference);if(c.source_b_reference)refs.push(c.source_b_reference);}fs.writeFileSync('/tmp/exclude-base.json',JSON.stringify({references:[...new Set(refs)].sort()}));
+          NODE
+          node scripts/kidults/entity-resolution/probe-provenance-residual-capacity-r2.mjs /tmp/r2-cap.json /tmp/exclude-base.json
+          node scripts/kidults/entity-resolution/build-provenance-residual-review-packet-r2.mjs /tmp/r2-cap.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/r2.json
+          node - <<'NODE'
+          const fs=require('fs');const packets=['/tmp/base.json','/tmp/r2.json'].map(f=>JSON.parse(fs.readFileSync(f)));const refs=[];for(const x of packets)for(const c of x.cases||[]){if(c.source_a_reference)refs.push(c.source_a_reference);if(c.source_b_reference)refs.push(c.source_b_reference);for(const r of c.source_b_references||[])refs.push(r);}fs.writeFileSync('/tmp/exclude-r3.json',JSON.stringify({references:[...new Set(refs)].sort()}));
+          NODE
+          node scripts/kidults/entity-resolution/probe-provenance-deep-ambiguity-r3.mjs /tmp/r3-cap.json /tmp/exclude-r3.json
+          node scripts/kidults/entity-resolution/build-provenance-deep-ambiguity-packet-r3.mjs /tmp/r3-cap.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/r3.json
+          node - <<'NODE'
+          const fs=require('fs');const packets=['/tmp/base.json','/tmp/r2.json','/tmp/r3.json'].map(f=>JSON.parse(fs.readFileSync(f)));const refs=[];for(const x of packets)for(const c of x.cases||[]){if(c.source_a_reference)refs.push(c.source_a_reference);if(c.source_b_reference)refs.push(c.source_b_reference);for(const r of c.source_b_references||[])refs.push(r);}fs.writeFileSync('/tmp/exclude-r4.json',JSON.stringify({references:[...new Set(refs)].sort()}));
+          NODE
+          node scripts/kidults/entity-resolution/probe-provenance-deeper-ambiguity-r4.mjs /tmp/r4-cap.json /tmp/exclude-r4.json
+          node scripts/kidults/entity-resolution/build-provenance-deeper-ambiguity-packet-r4.mjs /tmp/r4-cap.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/r4.json
+          node - <<'NODE'
+          const fs=require('fs');const packets=['/tmp/base.json','/tmp/r2.json','/tmp/r3.json','/tmp/r4.json'].map(f=>JSON.parse(fs.readFileSync(f)));const refs=[];for(const x of packets)for(const c of x.cases||[]){if(c.source_a_reference)refs.push(c.source_a_reference);if(c.source_b_reference)refs.push(c.source_b_reference);for(const r of c.source_b_references||[])refs.push(r);}fs.writeFileSync('/tmp/exclude-r5.json',JSON.stringify({references:[...new Set(refs)].sort()}));
+          NODE
+          node scripts/kidults/entity-resolution/probe-provenance-deeper-ambiguity-r5.mjs /tmp/r5-cap.json /tmp/exclude-r5.json
+          node scripts/kidults/entity-resolution/build-provenance-deeper-ambiguity-packet-r5.mjs /tmp/r5-cap.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/r5.json
+          node - <<'NODE'
+          const fs=require('fs');const packets=['/tmp/base.json','/tmp/r2.json','/tmp/r3.json','/tmp/r4.json','/tmp/r5.json'].map(f=>JSON.parse(fs.readFileSync(f)));const count=packets.reduce((n,x)=>n+(x.case_count||0),0);if(count!==116)throw new Error(`CURRENT_116_NOT_REPRODUCED:${count}`);const refs=[];for(const x of packets)for(const c of x.cases||[]){if(c.source_a_reference)refs.push(c.source_a_reference);if(c.source_b_reference)refs.push(c.source_b_reference);for(const r of c.source_b_references||[])refs.push(r);}fs.writeFileSync('/tmp/exclude-r6.json',JSON.stringify({references:[...new Set(refs)].sort()}));console.log(JSON.stringify({current_reviewer_ready:count,excluded_reference_count:[...new Set(refs)].length}));
+          NODE
+      - name: Measure final four from pages 481-720
+        run: node scripts/kidults/entity-resolution/probe-provenance-deeper-ambiguity-r6.mjs /tmp/r6-cap.json /tmp/exclude-r6.json
+      - name: Packetize final four only
+        run: node scripts/kidults/entity-resolution/build-provenance-deeper-ambiguity-packet-r6.mjs /tmp/r6-cap.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/r6.json
+      - name: Enforce exact 120 reviewer-material boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const cap=JSON.parse(fs.readFileSync('/tmp/r6-cap.json'));const packet=JSON.parse(fs.readFileSync('/tmp/r6.json'));const excluded=new Set(JSON.parse(fs.readFileSync('/tmp/exclude-r6.json')).references||[]);
+          if(cap.stratum_id!=='er-stratum-provenance-unique-object'||cap.rights_state!=='ALLOW')throw new Error('STRATUM_OR_RIGHTS');
+          if(cap.metrics.target_remaining_ambiguity_capacity!==4||cap.metrics.source_disjoint_ambiguity_capacity>4)throw new Error('CAPACITY_BOUNDARY');
+          if(packet.case_count!==cap.metrics.source_disjoint_ambiguity_capacity||packet.total_reviewer_ready_if_combined!==116+packet.case_count||packet.remaining_case_count!==4-packet.case_count)throw new Error('PACKET_CAPACITY_MISMATCH');
+          const refs=[];for(const c of packet.cases||[])refs.push(c.source_a_reference,...(c.source_b_references||[]));if(refs.some(r=>excluded.has(r))||new Set(refs).size!==refs.length)throw new Error('SOURCE_REFERENCE_REUSE');
+          if(packet.labels_present!==false||packet.reviewer_a!=='NOT_ASSIGNED'||packet.reviewer_b!=='NOT_ASSIGNED'||packet.empirical_pass!==false||packet.track_b!=='NOT_STARTED')throw new Error('OVERCLAIM');
+          if(packet.production!=='HOLD'||packet.public_release!=='HOLD'||packet.blind_partition.state!=='CANDIDATE_NOT_SEALED')throw new Error('RELEASE_BOUNDARY');
+          if(/"payload"\s*:/.test(JSON.stringify({cap,packet})))throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({additional:packet.case_count,total_provenance:packet.total_reviewer_ready_if_combined,remaining:packet.remaining_case_count,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-provenance-final4-r6
+          path: |
+            /tmp/r6-cap.json
+            /tmp/r6.json
+          retention-days: 14
