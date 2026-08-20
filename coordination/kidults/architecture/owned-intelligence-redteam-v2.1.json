@@ -1,0 +1,36 @@
+{
+  "id": "kidults-owned-intelligence-redteam-v2.1",
+  "version": "2.1.0",
+  "status": "INTERNAL_HARDENING",
+  "objective": "CLOSE_SEMANTIC_STATISTICAL_AND_RUNTIME_BYPASS_GAPS",
+  "required_controls": [
+    "true_population_stability_index",
+    "normalized_mean_shift_separate_from_psi",
+    "threshold_domain_validation",
+    "invalid_date_fail_closed",
+    "deduplicated_holdout_rows",
+    "temporal_holdout_enforcement",
+    "minimum_sample_and_source_owner_requirements",
+    "price_type_semantic_reconciliation",
+    "venue_alias_normalization",
+    "masked_identity_conservative_matching",
+    "brier_score_and_expected_calibration_error",
+    "source_score_range_validation",
+    "vertical_type_semantic_provenance_rights_validation",
+    "hardening_runtime_gate_binding",
+    "no_challenger_auto_promotion"
+  ],
+  "runtime_binding": {
+    "reconciliation_conflict": "HOLD",
+    "valuation_backtest_fail": "HOLD",
+    "liquidity_backtest_fail": "HOLD",
+    "source_calibration_fail": "HOLD",
+    "model_drift": "HOLD",
+    "candidate_promotion_on_hold": false,
+    "asi_factor_mutation_on_hold": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  },
+  "truth_ceiling": "INTERNAL_PROOF_FRAMEWORK_NOT_EMPIRICAL_MARKET_PASS"
+}
