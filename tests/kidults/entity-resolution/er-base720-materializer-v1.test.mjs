@@ -70,6 +70,8 @@ test('rejects duplicate case IDs and evidence-pair padding',()=>{
 });
 
 test('rejects quota drift even when total remains 720',()=>{
-  const {manifest,packets}=fixture();packets[0].cases[0].case_class=packets[0].cases[1].case_class;
+  const {manifest,packets}=fixture();
+  packets[0].cases[0].case_class=packets[0].cases[119].case_class;
+  assert.notEqual(packets[0].cases[0].case_class,packets[0].cases[1].case_class);
   assert.throws(()=>materializeBase720({manifest,packets,samplingPlan:sampling}),/CASE_CLASS_QUOTA_MISMATCH/);
 });
