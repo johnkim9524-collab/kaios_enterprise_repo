@@ -1,0 +1,20 @@
+{
+  "id": "kidults-er-musicbrainz-expanded-vinyl-corpus-r3",
+  "version": "3.0.0",
+  "parent_issue": 707,
+  "source": "musicbrainz-core-catalog",
+  "target_source_record_count": 4000,
+  "search_query": "format:vinyl AND barcode:* AND catno:* AND status:official",
+  "page_limit": 100,
+  "maximum_search_pages": 50,
+  "minimum_request_interval_ms": 1100,
+  "rights_state": "ALLOW",
+  "transport_state": "ALLOW_NONCOMMERCIAL_RESEARCH_ONLY",
+  "license_evidence_refs": [
+    "https://musicbrainz.org/doc/MusicBrainz_Database/Download",
+    "https://musicbrainz.org/doc/MusicBrainz_API",
+    "https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting"
+  ],
+  "truth_boundary": "Bounded expansion only. MusicBrainz core release metadata is used for ER reviewer-material hard-negative capacity under the existing research boundary; no marketplace, price, SOLD, liquidity, reviewer label, publication or Production authority is created.",
+  "production": "HOLD"
+}
