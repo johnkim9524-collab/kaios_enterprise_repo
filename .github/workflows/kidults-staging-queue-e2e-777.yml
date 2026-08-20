@@ -1,0 +1,156 @@
+name: KIDULTS STAGING Queue E2E #777
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-staging-queue-e2e-777.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging-queue-e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN }}
+      STAGING_DB: kidults-intelligence-db-staging
+      PRODUCTION_DB: kidults-intelligence-db
+      TARGET_QUEUE: kidults-asi-shadow-discovery-wikidata
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Gate secrets and fixed STAGING boundary
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          test -n "${CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN:-}"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN"
+          test "$STAGING_DB" = 'kidults-intelligence-db-staging'
+          test "$PRODUCTION_DB" = 'kidults-intelligence-db'
+          test "$TARGET_QUEUE" = 'kidults-asi-shadow-discovery-wikidata'
+
+      - name: Install Wrangler only
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm install --ignore-scripts
+
+      - name: PRECHECK — prove read verification before any message injection
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute "$STAGING_DB" --remote --command "SELECT 1 AS kpmo_read_probe;" --json > /tmp/staging-read-precheck.json
+          npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "SELECT 1 AS kpmo_read_probe;" --json > /tmp/production-read-precheck.json
+          grep -q 'kpmo_read_probe' /tmp/staging-read-precheck.json
+          grep -q 'kpmo_read_probe' /tmp/production-read-precheck.json
+
+      - name: Resolve exact target Queue ID using read-only token
+        run: |
+          set -euo pipefail
+          curl -fsS "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" > /tmp/queues.json
+          node - <<'NODE' > /tmp/queue.env
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/queues.json','utf8'));
+          if(!x.success) throw new Error('QUEUE_LIST_FAILED');
+          const q=(x.result||[]).find(v=>(v.queue_name||v.name)==='kidults-asi-shadow-discovery-wikidata');
+          if(!q) throw new Error('TARGET_QUEUE_NOT_FOUND');
+          const id=q.queue_id||q.id; if(!id) throw new Error('TARGET_QUEUE_ID_MISSING');
+          console.log(`QUEUE_ID=${id}`);
+          NODE
+
+      - name: Build one deterministic control Queue task
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > /tmp/task.json
+          const crypto=require('crypto');
+          const stamp=`${process.env.GITHUB_RUN_ID}_${process.env.GITHUB_RUN_ATTEMPT}`;
+          const now=new Date().toISOString();
+          const payload={fixture:'kpmo-staging-e2e-777',network_authorized:false,production_eligible:false};
+          const hash='sha256:'+crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+          const event={
+            event_id:`event-kpmo-${stamp}`,
+            event_type:'SOURCE_DISCOVERY_REQUESTED',event_version:'1.0.0',occurred_at:now,observed_at:now,
+            producer_engine:'KPMO_STAGING_E2E_777',producer_version:'1.0.0',correlation_id:`corr-kpmo-${stamp}`,
+            causation_id:null,idempotency_key:`idem-kpmo-${stamp}`,
+            partition:{channel:'WIKIDATA_OFFICIAL_WEBSITE_GRAPH',region:'STAGING_CONTROL',language:'en',scope_id:'runtime-control',source_role:'CONTROL_ONLY',canonical_host_hash:'sha256:'+'0'.repeat(64)},
+            input_snapshot_ref:'kpmo-staging-control-v1',payload_hash:hash,rights_state:'UNKNOWN',freshness_state:'CURRENT',
+            assertion_purpose:'DISCOVERY_METADATA_INDEX',decision:'HOLD',reason_codes:['SHADOW_TEST_ONLY'],trace_refs:[],payload
+          };
+          const task={transport_version:'1.0.0',outbox_id:`outbox-kpmo-${stamp}`,target_fleet:'DISCOVERY_WIKIDATA',source_queue:'kidults-asi-shadow-discovery-wikidata',created_at:now,event};
+          process.stdout.write(JSON.stringify({body:task,content_type:'json'}));
+          NODE
+          node -e "const x=require('/tmp/task.json'); if(!x.body?.outbox_id) process.exit(1); console.log('OUTBOX_ID='+x.body.outbox_id)" > /tmp/outbox.env
+
+      - name: PRECHECK — ensure correlation absent from both D1s before push
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          source /tmp/outbox.env
+          SQL="SELECT outbox_id,status FROM asi_processed_messages WHERE outbox_id='$OUTBOX_ID';"
+          npx wrangler d1 execute "$STAGING_DB" --remote --command "$SQL" --json > /tmp/staging-before.json
+          npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "$SQL" --json > /tmp/production-before.json
+          ! grep -Fq "$OUTBOX_ID" /tmp/staging-before.json
+          ! grep -Fq "$OUTBOX_ID" /tmp/production-before.json
+
+      - name: PUSH — exactly one STAGING control message
+        run: |
+          set -euo pipefail
+          source /tmp/queue.env
+          HTTP=$(curl -sS -o /tmp/push-response.json -w '%{http_code}' \
+            -X POST "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" \
+            -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/task.json)
+          test "$HTTP" = '200'
+          node -e "const x=require('/tmp/push-response.json'); if(x.success!==true) process.exit(1)"
+
+      - name: VERIFY — Worker consumed and STAGING D1 persisted; Production D1 stayed clean
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          source /tmp/outbox.env
+          SQL="SELECT queue_name,outbox_id,event_id,status,attempt_count FROM asi_processed_messages WHERE outbox_id='$OUTBOX_ID';"
+          FOUND=0
+          for i in $(seq 1 18); do
+            npx wrangler d1 execute "$STAGING_DB" --remote --command "$SQL" --json > /tmp/staging-after.json
+            if grep -Fq "$OUTBOX_ID" /tmp/staging-after.json && grep -Fq 'SUCCEEDED' /tmp/staging-after.json; then FOUND=1; break; fi
+            sleep 5
+          done
+          test "$FOUND" = '1'
+          npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "$SQL" --json > /tmp/production-after.json
+          ! grep -Fq "$OUTBOX_ID" /tmp/production-after.json
+
+      - name: Emit public-safe receipt
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          let outbox='UNKNOWN'; try { outbox=fs.readFileSync('/tmp/outbox.env','utf8').trim().split('=')[1]||'UNKNOWN'; } catch {}
+          const receipt={issue:777,mode:'STAGING_CONTROL_ONLY',target_queue:'kidults-asi-shadow-discovery-wikidata',outbox_id:outbox,staging_db:'kidults-intelligence-db-staging',production_db:'kidults-intelligence-db',public_endpoint_opened:false,provider_payload_used:false,production_mutation_authorized:false,production:'HOLD'};
+          fs.writeFileSync('/tmp/kidults-staging-queue-e2e-777-receipt.json',JSON.stringify(receipt,null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-staging-queue-e2e-777
+          path: |
+            /tmp/kidults-staging-queue-e2e-777-receipt.json
+            /tmp/staging-read-precheck.json
+            /tmp/production-read-precheck.json
+            /tmp/push-response.json
+            /tmp/staging-after.json
+            /tmp/production-after.json
+          retention-days: 30
+          if-no-files-found: warn
