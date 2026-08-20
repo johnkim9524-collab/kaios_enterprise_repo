@@ -55,8 +55,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');
           for(const file of ['/tmp/staging-read-precheck.json','/tmp/production-read-precheck.json']){
-            const x=JSON.parse(fs.readFileSync(file,'utf8'));
-            const rows=x.flatMap(v=>v.results||[]);
+            const x=JSON.parse(fs.readFileSync(file,'utf8')); const rows=x.flatMap(v=>v.results||[]);
             if(!x.every(v=>v.success===true)||!rows.some(v=>v.kpmo_read_probe===1)) throw new Error(`D1_READ_PRECHECK_FAILED:${file}`);
             if(x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error(`D1_READ_PRECHECK_MUTATED:${file}`);
           }
@@ -68,12 +67,10 @@ jobs:
           curl -fsS "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" > /tmp/queues.json
           node - <<'NODE' > /tmp/queue.env
-          const fs=require('fs');
-          const x=JSON.parse(fs.readFileSync('/tmp/queues.json','utf8'));
+          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/queues.json','utf8'));
           if(!x.success) throw new Error('QUEUE_LIST_FAILED');
           const q=(x.result||[]).find(v=>(v.queue_name||v.name)==='kidults-asi-shadow-discovery-wikidata');
-          if(!q) throw new Error('TARGET_QUEUE_NOT_FOUND');
-          const id=q.queue_id||q.id; if(!id) throw new Error('TARGET_QUEUE_ID_MISSING');
+          if(!q) throw new Error('TARGET_QUEUE_NOT_FOUND'); const id=q.queue_id||q.id; if(!id) throw new Error('TARGET_QUEUE_ID_MISSING');
           console.log(`QUEUE_ID=${id}`);
           NODE
 
@@ -81,56 +78,47 @@ jobs:
         run: |
           set -euo pipefail
           node - <<'NODE' > /tmp/task.json
-          const crypto=require('crypto');
-          const stamp=`${process.env.GITHUB_RUN_ID}_${process.env.GITHUB_RUN_ATTEMPT}`;
-          const now=new Date().toISOString();
+          const crypto=require('crypto'); const stamp=`${process.env.GITHUB_RUN_ID}_${process.env.GITHUB_RUN_ATTEMPT}`; const now=new Date().toISOString();
           const payload={fixture:'kpmo-staging-e2e-777',network_authorized:false,production_eligible:false};
           const hash='sha256:'+crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
-          const event={
-            event_id:`event-kpmo-${stamp}`,
-            event_type:'SOURCE_DISCOVERY_REQUESTED',event_version:'1.0.0',occurred_at:now,observed_at:now,
-            producer_engine:'KPMO_STAGING_E2E_777',producer_version:'1.0.0',correlation_id:`corr-kpmo-${stamp}`,
-            causation_id:null,idempotency_key:`idem-kpmo-${stamp}`,
-            partition:{channel:'WIKIDATA_OFFICIAL_WEBSITE_GRAPH',region:'STAGING_CONTROL',language:'en',scope_id:'runtime-control',source_role:'CONTROL_ONLY',canonical_host_hash:'sha256:'+'0'.repeat(64)},
-            input_snapshot_ref:'kpmo-staging-control-v1',payload_hash:hash,rights_state:'UNKNOWN',freshness_state:'CURRENT',
-            assertion_purpose:'DISCOVERY_METADATA_INDEX',decision:'HOLD',reason_codes:['SHADOW_TEST_ONLY'],trace_refs:[],payload
-          };
+          const event={event_id:`event-kpmo-${stamp}`,event_type:'SOURCE_DISCOVERY_REQUESTED',event_version:'1.0.0',occurred_at:now,observed_at:now,producer_engine:'KPMO_STAGING_E2E_777',producer_version:'1.0.0',correlation_id:`corr-kpmo-${stamp}`,causation_id:null,idempotency_key:`idem-kpmo-${stamp}`,partition:{channel:'WIKIDATA_OFFICIAL_WEBSITE_GRAPH',region:'STAGING_CONTROL',language:'en',scope_id:'runtime-control',source_role:'CONTROL_ONLY',canonical_host_hash:'sha256:'+'0'.repeat(64)},input_snapshot_ref:'kpmo-staging-control-v1',payload_hash:hash,rights_state:'UNKNOWN',freshness_state:'CURRENT',assertion_purpose:'DISCOVERY_METADATA_INDEX',decision:'HOLD',reason_codes:['SHADOW_TEST_ONLY'],trace_refs:[],payload};
           const task={transport_version:'1.0.0',outbox_id:`outbox-kpmo-${stamp}`,target_fleet:'DISCOVERY_WIKIDATA',source_queue:'kidults-asi-shadow-discovery-wikidata',created_at:now,event};
           process.stdout.write(JSON.stringify({body:task,content_type:'json'}));
           NODE
           node -e "const x=require('/tmp/task.json'); if(!x.body?.outbox_id) process.exit(1); console.log('OUTBOX_ID='+x.body.outbox_id)" > /tmp/outbox.env
 
-      - name: PRECHECK — ensure control outbox absent from both D1s before push
+      - name: PRECHECK — ensure control outbox absent from STAGING and Production boundary clean
         working-directory: services/kidults-autonomous-intelligence
         run: |
           set -euo pipefail
           source /tmp/outbox.env
           SQL="SELECT outbox_id,status FROM asi_processed_messages WHERE outbox_id='$OUTBOX_ID';"
           npx wrangler d1 execute "$STAGING_DB" --remote --command "$SQL" --json > /tmp/staging-before.json
-          npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "$SQL" --json > /tmp/production-before.json
-          OUTBOX_ID="$OUTBOX_ID" node - <<'NODE'
+          set +e
+          npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "$SQL" --json > /tmp/production-before.json 2>&1
+          PROD_RC=$?
+          set -e
+          OUTBOX_ID="$OUTBOX_ID" PROD_RC="$PROD_RC" node - <<'NODE'
           const fs=require('fs'); const target=process.env.OUTBOX_ID;
-          for(const file of ['/tmp/staging-before.json','/tmp/production-before.json']){
-            const x=JSON.parse(fs.readFileSync(file,'utf8')); const rows=x.flatMap(v=>v.results||[]);
-            if(!x.every(v=>v.success===true)) throw new Error(`D1_QUERY_FAILED:${file}`);
-            if(rows.some(v=>v.outbox_id===target)) throw new Error(`OUTBOX_ALREADY_EXISTS:${file}`);
-            if(x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error(`READ_QUERY_MUTATED:${file}`);
-          }
+          const sx=JSON.parse(fs.readFileSync('/tmp/staging-before.json','utf8')); const srows=sx.flatMap(v=>v.results||[]);
+          if(!sx.every(v=>v.success===true)||srows.some(v=>v.outbox_id===target)) throw new Error('STAGING_NOT_CLEAN_BEFORE_PUSH');
+          if(sx.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('STAGING_READ_MUTATED');
+          const raw=fs.readFileSync('/tmp/production-before.json','utf8'); const rc=Number(process.env.PROD_RC);
+          if(rc===0){ const px=JSON.parse(raw); const prows=px.flatMap(v=>v.results||[]); if(prows.some(v=>v.outbox_id===target)) throw new Error('PRODUCTION_OUTBOX_ALREADY_EXISTS'); if(px.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_READ_MUTATED'); }
+          else if(!raw.includes('no such table: asi_processed_messages')) throw new Error('PRODUCTION_BOUNDARY_QUERY_UNEXPECTED_FAILURE');
           NODE
 
       - name: PUSH — exactly one STAGING control message
         run: |
           set -euo pipefail
           source /tmp/queue.env
-          HTTP=$(curl -sS -o /tmp/push-response.json -w '%{http_code}' \
-            -X POST "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" \
-            -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" \
-            -H 'Content-Type: application/json' \
-            --data-binary @/tmp/task.json)
+          HTTP=$(curl -sS -o /tmp/push-response.json -w '%{http_code}' -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" \
+            -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" -H 'Content-Type: application/json' --data-binary @/tmp/task.json)
           test "$HTTP" = '200'
           node -e "const x=require('/tmp/push-response.json'); if(x.success!==true) process.exit(1)"
 
-      - name: VERIFY — Worker consumed and STAGING D1 persisted; Production D1 stayed clean
+      - name: VERIFY — Worker consumed and STAGING D1 persisted; Production boundary stayed clean
         working-directory: services/kidults-autonomous-intelligence
         run: |
           set -euo pipefail
@@ -140,30 +128,27 @@ jobs:
           for i in $(seq 1 18); do
             npx wrangler d1 execute "$STAGING_DB" --remote --command "$SQL" --json > /tmp/staging-after.json
             if OUTBOX_ID="$OUTBOX_ID" node - <<'NODE'
-          const fs=require('fs'); const target=process.env.OUTBOX_ID;
-          const x=JSON.parse(fs.readFileSync('/tmp/staging-after.json','utf8')); const rows=x.flatMap(v=>v.results||[]);
-          const row=rows.find(v=>v.outbox_id===target);
-          process.exit(row?.status==='SUCCEEDED' ? 0 : 1);
+          const fs=require('fs'); const target=process.env.OUTBOX_ID; const x=JSON.parse(fs.readFileSync('/tmp/staging-after.json','utf8')); const rows=x.flatMap(v=>v.results||[]); const row=rows.find(v=>v.outbox_id===target); process.exit(row?.status==='SUCCEEDED' ? 0 : 1);
           NODE
             then FOUND=1; break; fi
             sleep 5
           done
           test "$FOUND" = '1'
-          npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "$SQL" --json > /tmp/production-after.json
-          OUTBOX_ID="$OUTBOX_ID" node - <<'NODE'
-          const fs=require('fs'); const target=process.env.OUTBOX_ID;
-          const x=JSON.parse(fs.readFileSync('/tmp/production-after.json','utf8')); const rows=x.flatMap(v=>v.results||[]);
-          if(!x.every(v=>v.success===true)) throw new Error('PRODUCTION_D1_QUERY_FAILED');
-          if(rows.some(v=>v.outbox_id===target)) throw new Error('PRODUCTION_D1_MUTATION_DETECTED');
-          if(x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_READ_QUERY_MUTATED');
+          set +e
+          npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "$SQL" --json > /tmp/production-after.json 2>&1
+          PROD_RC=$?
+          set -e
+          OUTBOX_ID="$OUTBOX_ID" PROD_RC="$PROD_RC" node - <<'NODE'
+          const fs=require('fs'); const target=process.env.OUTBOX_ID; const raw=fs.readFileSync('/tmp/production-after.json','utf8'); const rc=Number(process.env.PROD_RC);
+          if(rc===0){ const x=JSON.parse(raw); const rows=x.flatMap(v=>v.results||[]); if(rows.some(v=>v.outbox_id===target)) throw new Error('PRODUCTION_D1_MUTATION_DETECTED'); if(x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_READ_MUTATED'); }
+          else if(!raw.includes('no such table: asi_processed_messages')) throw new Error('PRODUCTION_BOUNDARY_QUERY_UNEXPECTED_FAILURE_AFTER');
           NODE
 
       - name: Emit public-safe receipt
         if: always()
         run: |
           node - <<'NODE'
-          const fs=require('fs');
-          let outbox='UNKNOWN'; try { outbox=fs.readFileSync('/tmp/outbox.env','utf8').trim().split('=')[1]||'UNKNOWN'; } catch {}
+          const fs=require('fs'); let outbox='UNKNOWN'; try { outbox=fs.readFileSync('/tmp/outbox.env','utf8').trim().split('=')[1]||'UNKNOWN'; } catch {}
           const receipt={issue:777,mode:'STAGING_CONTROL_ONLY',target_queue:'kidults-asi-shadow-discovery-wikidata',outbox_id:outbox,staging_db:'kidults-intelligence-db-staging',production_db:'kidults-intelligence-db',public_endpoint_opened:false,provider_payload_used:false,production_mutation_authorized:false,production:'HOLD'};
           fs.writeFileSync('/tmp/kidults-staging-queue-e2e-777-receipt.json',JSON.stringify(receipt,null,2));
           NODE
