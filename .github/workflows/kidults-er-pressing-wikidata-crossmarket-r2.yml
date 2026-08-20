@@ -1,0 +1,37 @@
+name: KIDULTS ER Pressing Wikidata Crossmarket R2
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/acquire-pressing-wikidata-crossmarket-r2.mjs'
+      - 'scripts/kidults/entity-resolution/validate-pressing-wikidata-crossmarket-r2.mjs'
+      - '.github/workflows/kidults-er-pressing-wikidata-crossmarket-r2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  acquire-and-validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Acquire live Wikidata to MusicBrainz cross-market candidates
+        run: node scripts/kidults/entity-resolution/acquire-pressing-wikidata-crossmarket-r2.mjs /tmp/pressing-wikidata-crossmarket-r2.json
+      - name: Validate rights and fail-closed review boundary
+        run: node scripts/kidults/entity-resolution/validate-pressing-wikidata-crossmarket-r2.mjs /tmp/pressing-wikidata-crossmarket-r2.json
+      - name: Enforce public artifact payload boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/pressing-wikidata-crossmarket-r2.json','utf8'));
+          const s=JSON.stringify(x);
+          if(/"payload"\s*:/.test(s)) throw new Error('RAW_SOURCE_PAYLOAD_FIELD_FORBIDDEN');
+          if(x.discogs_api_requests!==0||x.discogs_payloads_collected!==0) throw new Error('DISCOGS_PROVIDER_ACCESS_FORBIDDEN');
+          if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.track_b!=='NOT_STARTED') throw new Error('RELEASE_BOUNDARY');
+          console.log(JSON.stringify({status:x.status,reviewer_ready_cross_market_alias:x.case_count,discogs_api_requests:0,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-pressing-wikidata-crossmarket-r2
+          path: /tmp/pressing-wikidata-crossmarket-r2.json
+          retention-days: 14
