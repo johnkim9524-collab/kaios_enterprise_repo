@@ -38,6 +38,6 @@ jobs:
       - name: Validate existing owned intelligence v1
         run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.mjs
       - name: Validate existing owned intelligence v1.1
-        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1-1.mjs
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.1.mjs
       - name: Validate hardening v2
         run: node scripts/kidults/intelligence/validate-owned-intelligence-hardening-v2.mjs
