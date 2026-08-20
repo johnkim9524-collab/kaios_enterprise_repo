@@ -10,6 +10,19 @@ const sha=v=>`sha256:${createHash('sha256').update(JSON.stringify(canonical(v)))
 if(baseline.production!=='HOLD'||baseline.public_release!=='HOLD'||contract.production!=='HOLD'||contract.status!=='SHADOW_ONLY')throw new Error('PRODUCTION_OR_CONTRACT_BOUNDARY');
 const collectionFactors=Object.keys(contract.collection_formula_weights||{});
 const analyticalFactors=Object.keys(contract.analytical_formula_weights||{});
+const validateFormulaWeights=(weights,label)=>{
+  const entries=Object.entries(weights||{});
+  if(!entries.length)throw new Error(`FORMULA_WEIGHTS_REQUIRED:${label}`);
+  let total=0;
+  for(const [factor,rawWeight] of entries){
+    const weight=Number(rawWeight);
+    if(!factor||!Number.isFinite(weight)||weight<=0)throw new Error(`FACTOR_WEIGHT_INVALID:${label}:${factor||'EMPTY'}`);
+    total+=weight;
+  }
+  if(Math.abs(total-1)>1e-9)throw new Error(`FACTOR_WEIGHT_TOTAL_INVALID:${label}:${total}`);
+};
+validateFormulaWeights(contract.collection_formula_weights,'collection');
+validateFormulaWeights(contract.analytical_formula_weights,'analytical');
 const factorState=(cell,f)=>cell?.factors?.[f]?.state||'UNKNOWN';
 const factorValue=(cell,f)=>Number(cell?.factors?.[f]?.value);
 const nonEmptyStrings=value=>Array.isArray(value)&&value.length>0&&value.every(item=>typeof item==='string'&&item.trim().length>0);
@@ -53,11 +66,12 @@ for(const cell of baseline.cells||[]){
 }
 const collectionComputable=cells.filter(x=>!x.collection_plan.missing_factors.length).length;
 const analyticalComputable=cells.filter(x=>!x.analytical_plan.missing_factors.length).length;
+const evidenceComplete=cells.length>0&&collectionComputable===cells.length&&analyticalComputable===cells.length;
 const gates={
-  EVIDENCE_COMPLETENESS_PASS:collectionComputable===cells.length&&analyticalComputable===cells.length,
+  EVIDENCE_COMPLETENESS_PASS:evidenceComplete,
   RIGHTS_PROVENANCE_PASS:cells.every(x=>Object.values(x.ineligible_factors).every(reasons=>!reasons.includes('EVIDENCE_REFS_MISSING')&&!reasons.includes('PROVENANCE_REFS_MISSING')&&!reasons.includes('RIGHTS_NOT_ALLOW'))),
-  CONCENTRATION_BIAS_PASS:'NOT_RUN_INCOMPLETE_FACTOR_SURFACE',
-  SOURCE_REMOVAL_SENSITIVITY_PASS:'NOT_RUN_INCOMPLETE_FACTOR_SURFACE',
+  CONCENTRATION_BIAS_PASS:evidenceComplete?'PENDING_REQUIRED_SHADOW_VALIDATION':'NOT_RUN_INCOMPLETE_FACTOR_SURFACE',
+  SOURCE_REMOVAL_SENSITIVITY_PASS:evidenceComplete?'PENDING_REQUIRED_SHADOW_VALIDATION':'NOT_RUN_INCOMPLETE_FACTOR_SURFACE',
   DETERMINISTIC_RERUN_PASS:true,
   SNAPSHOT_HASH_PRESENT:true,
   SHADOW_DELTA_REVIEW_PASS:'PENDING_FOUNDER_OR_GATE_REVIEW'
@@ -71,8 +85,8 @@ const body={
   regional_analytical_weight_plan:{state:analyticalComputable===cells.length?'SHADOW_COMPUTABLE_NOT_ACTIVATED':'NOT_COMPUTABLE_INCOMPLETE_EMPIRICAL_FACTORS',computable_cells:analyticalComputable,total_cells:cells.length,live_weight_mutations:0},
   shadow_delta_report:{state:'NO_LIVE_MUTATION_FAIL_CLOSED',collection_quota_delta_applied:0,analytical_weight_delta_applied:0,bootstrap_reinterpreted_as_market_share:false,raw_record_count_weight:0,verified_factor_cells:cells.filter(x=>x.verified_factors.length>0).length,unresolved_collection_cells:cells.length-collectionComputable,unresolved_analytical_cells:cells.length-analyticalComputable},
   activation_gates:gates,
-  activation_state:'HOLD_INCOMPLETE_EMPIRICAL_FACTOR_SURFACE',
-  truth_boundary:'This SHADOW rebalancer emits explicit NOT_COMPUTABLE plans where required market-structure factors are missing. UNKNOWN is not zero; no quota, analytical weight, market share, Production or public claim is created.',
+  activation_state:evidenceComplete?'HOLD_PENDING_ACTIVATION_GATES':'HOLD_INCOMPLETE_EMPIRICAL_FACTOR_SURFACE',
+  truth_boundary:'This SHADOW rebalancer emits NOT_COMPUTABLE plans for missing factors and computed scores without activation when the factor surface is complete. UNKNOWN is not zero; no quota, analytical weight, market share, Production or public claim is created.',
   public_release:'HOLD',production:'HOLD'
 };
 body.snapshot_hash=sha(body);
