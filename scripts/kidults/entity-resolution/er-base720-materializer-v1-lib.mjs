@@ -15,6 +15,11 @@ export const BASE720_CASE_FIELDS = Object.freeze([
   'license_evidence_refs','rights_state','provenance_refs','case_evidence_binding_sha256'
 ]);
 
+export const SAFE_SINGLE_RECORD_IDENTITY_CASE_CLASSES = Object.freeze([
+  'SAME_OBJECT_NORMALIZATION',
+  'CROSS_MARKET_ALIAS'
+]);
+
 const SHA_RE=/^sha256:[0-9a-f]{64}$/;
 const RESULT_KEYS=new Set([
   'label','labels','expected','expected_label','gold_label','review_label','reviewer_label',
@@ -49,13 +54,24 @@ function scanResultLeakage(v,path='$'){
 }
 function counts(items,field){const o={};for(const x of items)o[x[field]]=(o[x[field]]||0)+1;return o}
 function assertCounts(actual,expected,code){if(canonicalJson(actual)!==canonicalJson(expected))fail(code,`${canonicalJson(actual)}!=${canonicalJson(expected)}`)}
-function evidencePairKey(c){
+function singleRecordAllowlist(v){
+  if(v===undefined)return [];
+  if(!Array.isArray(v))fail('SINGLE_RECORD_IDENTITY_CASE_CLASSES_INVALID');
+  const allowed=new Set(SAFE_SINGLE_RECORD_IDENTITY_CASE_CLASSES);
+  const out=[...new Set(v.map(x=>string(x,'SINGLE_RECORD_IDENTITY_CASE_CLASS_INVALID'))) ].sort();
+  for(const x of out)if(!allowed.has(x))fail('SINGLE_RECORD_IDENTITY_CASE_CLASS_NOT_SAFE',x);
+  return out;
+}
+function evidencePairKey(c,allowSingleRecordIdentityCaseClasses){
   const sides=[
     {ref:c.source_a_reference,sha:c.source_a_payload_sha256},
     {ref:c.source_b_reference,sha:c.source_b_payload_sha256}
   ].sort((a,b)=>canonicalJson(a).localeCompare(canonicalJson(b)));
-  if(canonicalJson(sides[0])===canonicalJson(sides[1]))fail('SELF_EVIDENCE_PAIR_PROHIBITED',c.case_id);
-  return digest(sides);
+  if(canonicalJson(sides[0])===canonicalJson(sides[1])){
+    if(!allowSingleRecordIdentityCaseClasses.has(c.case_class))fail('SELF_EVIDENCE_PAIR_PROHIBITED',c.case_id);
+    return digest({mode:'SINGLE_RECORD_IDENTITY',case_class:c.case_class,evidence:sides[0]});
+  }
+  return digest({mode:'DUAL_RECORD_IDENTITY',evidence:sides});
 }
 
 export function materializeBase720({manifest,packets,samplingPlan}){
@@ -63,6 +79,8 @@ export function materializeBase720({manifest,packets,samplingPlan}){
   if(!Array.isArray(manifest.packet_paths)||manifest.packet_paths.length===0)fail('BASE720_PACKET_PATHS_REQUIRED');
   if(!Array.isArray(packets)||packets.length!==manifest.packet_paths.length)fail('BASE720_PACKET_INPUT_COUNT_MISMATCH');
   if(samplingPlan?.dataset_target?.total_cases!==840||samplingPlan?.dataset_target?.blind_holdout_cases!==420||!Array.isArray(samplingPlan.strata)||samplingPlan.strata.length!==7)fail('SAMPLING_PLAN_FINAL_GATE_INVALID');
+  const singleRecordClasses=singleRecordAllowlist(manifest.single_record_identity_case_classes);
+  const allowSingleRecordIdentityCaseClasses=new Set(singleRecordClasses);
 
   const plan=new Map(samplingPlan.strata.map(x=>[x.stratum_id,x]));
   const eligible=new Set(BASE720_ELIGIBLE_STRATA);
@@ -100,7 +118,7 @@ export function materializeBase720({manifest,packets,samplingPlan}){
   const ids=new Set();const pairs=new Set();
   for(const c of gathered){
     if(ids.has(c.case_id))fail('DUPLICATE_CASE_ID',c.case_id);ids.add(c.case_id);
-    const pair=evidencePairKey(c);if(pairs.has(pair))fail('DUPLICATE_EVIDENCE_PAIR_PADDING',c.case_id);pairs.add(pair);
+    const pair=evidencePairKey(c,allowSingleRecordIdentityCaseClasses);if(pairs.has(pair))fail('DUPLICATE_EVIDENCE_PAIR_PADDING',c.case_id);pairs.add(pair);
   }
 
   for(const id of BASE720_ELIGIBLE_STRATA){
@@ -116,10 +134,11 @@ export function materializeBase720({manifest,packets,samplingPlan}){
   const caseSet=cases.map(x=>({case_id:x.case_id,case_evidence_binding_sha256:x.case_evidence_binding_sha256}));
   const dataset={
     id:`kidults-er-base720-v1-${digest(caseSet).slice(7,19)}`,
-    version:'1.0.0',
+    version:'1.1.0',
     dataset_class:'REAL_WORLD_EVIDENCE_CASES_UNLABELED',
     state:'BASE_720_MATERIALIZED_UNLABELED_NOT_REVIEWED',
     source_manifest_id:manifest.id,
+    single_record_identity_case_classes:singleRecordClasses,
     packet_count:packets.length,
     stratum_count:6,
     case_count:720,
@@ -140,11 +159,12 @@ export function materializeBase720({manifest,packets,samplingPlan}){
 
 export function validateBase720(dataset,samplingPlan){
   if(!dataset||dataset.dataset_class!=='REAL_WORLD_EVIDENCE_CASES_UNLABELED'||dataset.production!=='HOLD'||dataset.public_release!=='HOLD'||dataset.case_count!==720||!Array.isArray(dataset.cases)||dataset.cases.length!==720||dataset.graded_population_case_count!==0)fail('BASE720_DATASET_BOUNDARY_INVALID');
+  const singleRecordClasses=singleRecordAllowlist(dataset.single_record_identity_case_classes);
   for(const c of dataset.cases){
     const keys=Object.keys(c).sort();if(canonicalJson(keys)!==canonicalJson([...BASE720_CASE_FIELDS].sort()))fail('BASE720_CASE_FIELD_ALLOWLIST_INVALID',c.case_id);
     const unsigned={...c};delete unsigned.case_evidence_binding_sha256;if(digest(unsigned)!==c.case_evidence_binding_sha256)fail('BASE720_CASE_BINDING_INVALID',c.case_id);
   }
-  const expected=materializeBase720({manifest:{id:'kidults-er-base720-materialization-manifest-v1',production:'HOLD',packet_paths:['dataset-self']},packets:[{production:'HOLD',cases:dataset.cases}],samplingPlan});
+  const expected=materializeBase720({manifest:{id:'kidults-er-base720-materialization-manifest-v1',production:'HOLD',packet_paths:['dataset-self'],single_record_identity_case_classes:singleRecordClasses},packets:[{production:'HOLD',cases:dataset.cases}],samplingPlan});
   if(expected.case_set_sha256!==dataset.case_set_sha256)fail('BASE720_CASE_SET_DIGEST_INVALID');
   if(dataset.labels_state!=='NOT_COLLECTED'||dataset.adjudication!=='NOT_STARTED'||dataset.final_blind_holdout!=='NOT_SEALED'||dataset.empirical_attestation!=='NOT_CREATED'||dataset.track_b!=='NOT_STARTED')fail('BASE720_FALSE_COMPLETION_CLAIM');
   const unsigned={...dataset};delete unsigned.dataset_sha256;if(digest(unsigned)!==dataset.dataset_sha256)fail('BASE720_DATASET_DIGEST_INVALID');

@@ -41,6 +41,7 @@ test('materializes exact sanitized six-strata 720 and validates deterministic di
   const out=materializeBase720({manifest,packets,samplingPlan:sampling});
   assert.equal(out.case_count,720);assert.equal(out.stratum_count,6);assert.equal(out.graded_population_case_count,0);
   assert.equal(out.labels_state,'NOT_COLLECTED');assert.equal(out.production,'HOLD');
+  assert.deepEqual(out.single_record_identity_case_classes,[]);
   assert.equal(out.cases.some(c=>'label' in c||'model_prediction' in c||'reviewer_assignment' in c),false);
   assert.deepEqual(validateBase720(out,sampling),{status:'PASS_BASE720_UNLABELED_NOT_REVIEWED',case_count:720,strata:6,graded:0,labels:'NOT_COLLECTED',production:'HOLD'});
   const again=materializeBase720({manifest,packets,samplingPlan:sampling});
@@ -67,6 +68,26 @@ test('rejects duplicate case IDs and evidence-pair padding',()=>{
   assert.throws(()=>materializeBase720({manifest,packets,samplingPlan:sampling}),/DUPLICATE_CASE_ID/);
   const f=fixture();f.packets[1].cases[0].source_a_reference=f.packets[0].cases[0].source_a_reference;f.packets[1].cases[0].source_b_reference=f.packets[0].cases[0].source_b_reference;f.packets[1].cases[0].source_a_payload_sha256=f.packets[0].cases[0].source_a_payload_sha256;f.packets[1].cases[0].source_b_payload_sha256=f.packets[0].cases[0].source_b_payload_sha256;
   assert.throws(()=>materializeBase720({manifest:f.manifest,packets:f.packets,samplingPlan:sampling}),/DUPLICATE_EVIDENCE_PAIR_PADDING/);
+});
+
+test('allows only explicit safe same-authority identity evidence and still rejects padding',()=>{
+  const {manifest,packets}=fixture();const c=packets[0].cases[0];
+  c.source_b_reference=c.source_a_reference;c.source_b_payload_sha256=c.source_a_payload_sha256;
+  assert.equal(c.case_class,'SAME_OBJECT_NORMALIZATION');
+  assert.throws(()=>materializeBase720({manifest,packets,samplingPlan:sampling}),/SELF_EVIDENCE_PAIR_PROHIBITED/);
+  manifest.single_record_identity_case_classes=['SAME_OBJECT_NORMALIZATION','CROSS_MARKET_ALIAS'];
+  const out=materializeBase720({manifest,packets,samplingPlan:sampling});
+  assert.deepEqual(out.single_record_identity_case_classes,['CROSS_MARKET_ALIAS','SAME_OBJECT_NORMALIZATION']);
+  assert.deepEqual(validateBase720(out,sampling),{status:'PASS_BASE720_UNLABELED_NOT_REVIEWED',case_count:720,strata:6,graded:0,labels:'NOT_COLLECTED',production:'HOLD'});
+
+  const d=packets[0].cases[1];d.source_a_reference=c.source_a_reference;d.source_b_reference=c.source_a_reference;d.source_a_payload_sha256=c.source_a_payload_sha256;d.source_b_payload_sha256=c.source_a_payload_sha256;
+  assert.equal(d.case_class,'SAME_OBJECT_NORMALIZATION');
+  assert.throws(()=>materializeBase720({manifest,packets,samplingPlan:sampling}),/DUPLICATE_EVIDENCE_PAIR_PADDING/);
+});
+
+test('rejects opt-in for unsafe self-evidence classes',()=>{
+  const {manifest,packets}=fixture();manifest.single_record_identity_case_classes=['HARD_NEGATIVE'];
+  assert.throws(()=>materializeBase720({manifest,packets,samplingPlan:sampling}),/SINGLE_RECORD_IDENTITY_CASE_CLASS_NOT_SAFE/);
 });
 
 test('rejects quota drift even when total remains 720',()=>{
