@@ -41,3 +41,14 @@ jobs:
         run: npm run validate:market-event
       - name: Validate provider-independent intelligence layers
         run: npm run validate:provider-independent-layers
+      - name: Build current ASI SHADOW evidence for drift synchronization
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs \
+            --output /tmp/asi-shadow-operating-evidence-run-1.json --write
+      - name: Upload current ASI SHADOW evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-independent-asi-shadow-evidence
+          path: /tmp/asi-shadow-operating-evidence-run-1.json
+          if-no-files-found: error
+          retention-days: 7
