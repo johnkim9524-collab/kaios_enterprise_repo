@@ -1,0 +1,131 @@
+{
+  "id": "kidults-global-data-acquisition-master-matrix-v1",
+  "version": "1.0.0",
+  "status": "CANONICAL_EXECUTION_CONTRACT_CANDIDATE",
+  "parent_issues": [480, 549, 654],
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "purpose": "Unify category, geography, sourcing channel, evidence demand, rights, admission, runtime, freshness, redundancy, coverage debt and acquisition priority into one deterministic fail-closed collection-control matrix.",
+  "axis_model": {
+    "category_axis": "32_COLLECTION_SCOPES_FROM_SCOPE_REGISTRY",
+    "geography_axis": "8_CANONICAL_MACROREGIONS_FROM_ASI_REGIONAL_POLICY",
+    "sourcing_channel_axis": "7_CANONICAL_SOURCE_CHANNELS",
+    "evidence_axis": "8_GLOBAL_SOURCE_MESH_EVIDENCE_CLASSES",
+    "base_execution_unit": "CATEGORY_SCOPE_X_MACROREGION_X_SOURCING_CHANNEL",
+    "evidence_binding_unit": "CATEGORY_SCOPE_X_MACROREGION_X_SOURCING_CHANNEL_X_EVIDENCE_CLASS"
+  },
+  "canonical_sourcing_channels": [
+    {
+      "id": "OFFICIAL_AUTHORITY",
+      "description": "Government, manufacturer, grading/authentication authority, museum or other primary authoritative reference source.",
+      "eligible_evidence_classes": ["IDENTITY_CANONICAL_REFERENCE", "SCARCITY_POPULATION_SUPPLY", "REGIONAL_CONTEXT"]
+    },
+    {
+      "id": "OPEN_STRUCTURED_DATA",
+      "description": "Rights-clear structured API, linked data, public-domain/CC0 dataset or open dump.",
+      "eligible_evidence_classes": ["IDENTITY_CANONICAL_REFERENCE", "REGIONAL_CONTEXT", "SENTIMENT_ATTENTION_CONTEXT"]
+    },
+    {
+      "id": "OFFICIAL_ARCHIVE",
+      "description": "Rights-clear official archive, provenance corpus, catalogue archive or institutional historical record.",
+      "eligible_evidence_classes": ["HISTORICAL_TRANSACTION_PROVENANCE", "REGIONAL_CONTEXT"]
+    },
+    {
+      "id": "LICENSED_TRANSACTION_OR_MARKET_FEED",
+      "description": "Explicitly authorized API/feed/private delivery capable of sold, exposure, liquidity or other market-event evidence.",
+      "eligible_evidence_classes": ["CURRENT_SOLD_TRANSACTION", "LISTING_AVAILABILITY", "LIQUIDITY_TIME_TO_SALE_EXPOSURE"]
+    },
+    {
+      "id": "PUBLIC_OR_LICENSED_LISTING_FEED",
+      "description": "Lawfully collectable public or licensed listing-supply source; listing semantics never imply sold semantics.",
+      "eligible_evidence_classes": ["LISTING_AVAILABILITY", "REGIONAL_CONTEXT"]
+    },
+    {
+      "id": "REGIONAL_INSTITUTION_EVENT_VENUE",
+      "description": "Regional institution, fair, release network, event or venue used for local context and attention evidence only within claim ceiling.",
+      "eligible_evidence_classes": ["REGIONAL_CONTEXT", "SENTIMENT_ATTENTION_CONTEXT"]
+    },
+    {
+      "id": "CONTEXT_SIGNAL",
+      "description": "Rights-cleared public contextual signal source for attention/sentiment and bounded regional context, never demand by itself.",
+      "eligible_evidence_classes": ["SENTIMENT_ATTENTION_CONTEXT", "REGIONAL_CONTEXT"]
+    }
+  ],
+  "required_row_fields": [
+    "acquisition_cell_id",
+    "category_scope",
+    "macroregion_id",
+    "sourcing_channel",
+    "evidence_class",
+    "source_role",
+    "selection_state",
+    "rights_state",
+    "admission_state",
+    "runtime_state",
+    "evidence_state",
+    "claim_state",
+    "freshness_state",
+    "minimum_independent_source_owners",
+    "observed_independent_source_owners",
+    "coverage_debt_state",
+    "priority_score",
+    "claim_ceiling",
+    "provenance_requirement",
+    "next_action"
+  ],
+  "state_models": {
+    "selection_state": ["GAP", "DISCOVERED", "SCREENED", "SELECTED"],
+    "rights_state": ["UNASSESSED", "BLOCKED", "CONDITIONAL", "ALLOW"],
+    "admission_state": ["NOT_ADMITTED", "CONDITIONAL", "ADMITTED"],
+    "runtime_state": ["NOT_CONNECTED", "DEV", "SHADOW", "STAGING", "PRODUCTION"],
+    "evidence_state": ["GAP", "OBSERVED_UNVERIFIED", "VERIFIED_BOUNDED"],
+    "claim_state": ["NOT_VERIFIED", "BOUNDED", "ELIGIBLE"],
+    "freshness_state": ["UNKNOWN", "CURRENT", "STALE", "SOURCE_NATIVE"]
+  },
+  "execution_rules": [
+    "CATEGORY_REGION_BINDING_PRECEDES_SOURCE_PROMOTION",
+    "SOURCING_CHANNEL_IS_DISTINCT_FROM_EVIDENCE_CLASS",
+    "SOURCE_DISCOVERY_IS_NOT_RIGHTS_ADMISSION",
+    "RIGHTS_ALLOW_IS_REQUIRED_BEFORE_COLLECTION_STORE_OR_DERIVATION",
+    "ADMISSION_IS_DISTINCT_FROM_RUNTIME_CONNECTION",
+    "RUNTIME_CONNECTED_IS_NOT_EVIDENCE_VERIFIED",
+    "RAW_RECORD_COUNT_IS_NOT_MARKET_SCALE",
+    "LISTING_IS_NOT_SOLD",
+    "HISTORICAL_IS_NOT_CURRENT",
+    "SCARCITY_IS_NOT_LIQUIDITY",
+    "ATTENTION_IS_NOT_DEMAND",
+    "MISSING_IS_NOT_ZERO",
+    "PROVIDER_HOME_COUNTRY_IS_NOT_OBSERVATION_REGION",
+    "COLLECTION_SHARE_IS_NOT_ANALYTICAL_WEIGHT",
+    "NO_SINGLE_PROVIDER_GLOBAL_TRUTH",
+    "NO_GLOBAL_CLAIM_WITHOUT_CELL_LEVEL_RIGHTS_PROVENANCE_REDUNDANCY_AND_GEOGRAPHY_GATES"
+  ],
+  "priority_model": {
+    "type": "STRUCTURAL_ACQUISITION_PRIORITY_NOT_MARKET_WEIGHT",
+    "formula": "2*decision_utility + evidence_strength + rights_clarity + autonomy - dependency_risk",
+    "record_count_weight": 0,
+    "market_share_interpretation": false
+  },
+  "redundancy_policy": {
+    "default_minimum_independent_source_owners": 2,
+    "global_claim_minimum_independent_source_owners": 3,
+    "single_owner_state": "COVERAGE_DEBT_OPEN_UNLESS_PRIMARY_AUTHORITY_ONLY_SEMANTIC_ASSERTION",
+    "owner_concentration_must_be_measured": true
+  },
+  "overlay_contracts": {
+    "scope_registry": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json",
+    "regional_policy": "coordination/kidults/source-intelligence/asi-global-regional-market-balance-policy-v1.json",
+    "source_mesh": "coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json",
+    "rights_admission": "PURPOSE_SPECIFIC_RIGHTS_AND_ADMISSION_ARTIFACTS_ONLY",
+    "runtime": "RUNTIME_REGISTRY_OR_EMPIRICAL_CONNECTION_ARTIFACT_ONLY",
+    "evidence": "EVIDENCE_BEFORE_METRICS_IMMUTABLE_ARTIFACT_ONLY"
+  },
+  "expected_structural_counts": {
+    "categories": 32,
+    "macroregions": 8,
+    "sourcing_channels": 7,
+    "base_execution_cells": 1792,
+    "evidence_binding_rows": 4352
+  },
+  "truth_boundary": "This matrix is a deterministic collection-control structure. Structural rows do not create rights, source admission, empirical evidence, market factors, analytical weights, public claims or Production authority. All unproven operational states default fail-closed."
+}
