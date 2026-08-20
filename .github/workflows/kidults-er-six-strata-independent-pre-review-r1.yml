@@ -1,0 +1,31 @@
+name: KIDULTS ER Six-Strata Independent Pre-Review R1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/six-strata-independent-pre-review-contract-r1.json'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+      - 'coordination/kidults/entity-resolution/human-review-gate-operational-contract-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-reviewer-assignment-receipt-r1.json'
+      - 'scripts/kidults/entity-resolution/validate-six-strata-independent-pre-review-contract-r1.mjs'
+      - 'scripts/kidults/entity-resolution/six-strata-pre-review-reconciliation-r1-lib.mjs'
+      - 'tests/kidults/entity-resolution/six-strata-pre-review-reconciliation-r1.test.mjs'
+      - '.github/workflows/kidults-er-six-strata-independent-pre-review-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate six-strata pre-review readiness without weakening exact-840 gate
+        run: node scripts/kidults/entity-resolution/validate-six-strata-independent-pre-review-contract-r1.mjs
+      - name: Test exact-840 digest-bound carry-forward reconciliation
+        run: node --test tests/kidults/entity-resolution/six-strata-pre-review-reconciliation-r1.test.mjs
