@@ -1,0 +1,48 @@
+name: Owned Intelligence Redteam v2.3
+
+on:
+  push:
+    branches: [main,"feat/**"]
+    paths:
+      - "coordination/kidults/architecture/owned-intelligence-redteam-v2.3.json"
+      - "coordination/kidults/registry/owned-intelligence-hardening-proof-registry-v1.json"
+      - "scripts/kidults/intelligence/provider-independent-layers-v1.mjs"
+      - "scripts/kidults/intelligence/owned-intelligence-core-v1.mjs"
+      - "scripts/kidults/intelligence/owned-intelligence-redteam-v2.2.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-redteam-v2.3.mjs"
+      - ".github/workflows/owned-intelligence-redteam-v2-3.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "coordination/kidults/architecture/owned-intelligence-redteam-v2.3.json"
+      - "coordination/kidults/registry/owned-intelligence-hardening-proof-registry-v1.json"
+      - "scripts/kidults/intelligence/provider-independent-layers-v1.mjs"
+      - "scripts/kidults/intelligence/owned-intelligence-core-v1.mjs"
+      - "scripts/kidults/intelligence/owned-intelligence-redteam-v2.2.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-redteam-v2.3.mjs"
+      - ".github/workflows/owned-intelligence-redteam-v2-3.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.19.0"
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Parse v2.3 contract
+        run: node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/architecture/owned-intelligence-redteam-v2.3.json','utf8'))"
+      - name: Regression provider-independent
+        run: node scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs
+      - name: Regression owned core v1
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.mjs
+      - name: Regression core redteam v1.2
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-redteam-v1.2.mjs
+      - name: Regression proof redteam v2.2
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-redteam-v2.2.mjs
+      - name: Validate v2.3
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-redteam-v2.3.mjs
