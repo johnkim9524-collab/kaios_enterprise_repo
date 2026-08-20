@@ -1,6 +1,6 @@
 {
   "id": "kidults-privacy-data-classification-manifest-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "PREPRODUCTION_ACTIVE",
   "production": "HOLD",
   "datasets": [
@@ -24,11 +24,12 @@
       "personal_data_state": "INDIRECT_IDENTIFIER_POSSIBLE",
       "necessity": "SECURITY_RATE_LIMIT_AND_OPERATIONAL_AUDIT",
       "purpose": "STAGING_OPERATIONAL_AUDIT",
-      "retention_period": "REQUIRES_SEPARATE_AUDIT_RETENTION_POLICY_BEFORE_PRODUCTION",
-      "expiry_or_deletion_rule": "HOLD_UNTIL_EXPLICIT_AUDIT_RETENTION_RULE",
+      "retention_period": "90_DAYS_PREPRODUCTION_OPERATIONAL_AUDIT",
+      "expiry_or_deletion_rule": "scripts/kidults/governance/enforce-staging-audit-retention-v1.mjs atomically removes records older than the 90-day staging audit cutoff and fails closed on malformed timestamps",
       "access_boundary": "STAGING_OPERATIONS_ONLY_FILE_MODE_0600_PARENT_DIR_0700",
       "provenance_reference": "apps/kidults-enterprise-staging/server.mjs",
-      "public_projection": false
+      "public_projection": false,
+      "policy_ceiling": "INTERNAL_PREPRODUCTION_POLICY_ONLY__FINAL_LEGAL_REGULATORY_OR_INCIDENT_HOLD_REQUIREMENTS_MAY_REQUIRE_SEPARATE_APPROVAL"
     },
     {
       "dataset_id": "met-smithsonian-object-metadata",
@@ -40,28 +41,41 @@
       "expiry_or_deletion_rule": "REMOVE_OR_QUARANTINE_IF_RIGHTS_OR_CLASSIFICATION_BECOMES_UNCERTAIN",
       "access_boundary": "EVIDENCE_PIPELINE_ONLY_UNTIL_PROJECTION_APPROVAL",
       "provenance_reference": "coordination/kidults/source-intelligence/rights-admitted-pilot-source-pool-r1.json",
-      "public_projection": "ONLY_APPROVED_FIELDS_AFTER_RIGHTS_AND_PRIVACY_REVIEW"
+      "public_projection": "ONLY_APPROVED_FIELDS_AFTER_RIGHTS_AND_PRIVACY_REVIEW",
+      "record_level_classification_gate": "scripts/kidults/governance/validate-record-privacy-gate-v1.mjs"
     },
     {
       "dataset_id": "getty-historical-provenance",
       "data_category": "HISTORICAL_TRANSACTION_AND_PROVENANCE_CONTEXT",
-      "personal_data_state": "PERSON_NAME_OR_PROVENANCE_CONTEXT_POSSIBLE_RECORD_LEVEL_CLASSIFICATION_REQUIRED",
+      "personal_data_state": "PERSON_NAME_OR_PROVENANCE_CONTEXT_POSSIBLE__UNCLASSIFIED_RECORDS_HOLD_PUBLIC",
       "necessity": "HISTORICAL_PROVENANCE_CONTEXT",
       "purpose": "BOUNDED_HISTORICAL_EVIDENCE",
       "retention_period": "SOURCE_RIGHTS_AND_PURPOSE_SPECIFIC",
-      "expiry_or_deletion_rule": "QUARANTINE_PERSONAL_OR_UNCLASSIFIED_FIELDS_FROM_PUBLIC_PROJECTION_UNTIL_REVIEWED",
+      "expiry_or_deletion_rule": "QUARANTINE_PERSONAL_OR_UNCLASSIFIED_FIELDS_FROM_PUBLIC_PROJECTION_UNTIL_RECORD_LEVEL_GATE_PASSES",
       "access_boundary": "EVIDENCE_PIPELINE_INTERNAL_BY_DEFAULT",
       "provenance_reference": "coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json",
-      "public_projection": "NO_RAW_PERSONAL_OR_UNCLASSIFIED_FIELDS"
+      "public_projection": "NO_RAW_PERSONAL_OR_UNCLASSIFIED_FIELDS",
+      "record_level_classification_gate": "scripts/kidults/governance/validate-record-privacy-gate-v1.mjs",
+      "real_record_classification_state": "DEPENDENCY_BOUND_TO_ACTUAL_ADMITTED_RECORDS"
     }
   ],
   "hard_rules": [
     "UNCLASSIFIED_PERSONAL_DATA_ADMISSION_FALSE",
+    "UNCLASSIFIED_RECORD_PUBLIC_PROJECTION_FALSE",
+    "PERSONAL_FIELD_PUBLIC_PROJECTION_FALSE_UNLESS_SEPARATELY_APPROVED_AND_LAWFUL",
     "MISSING_RETENTION_RULE_HOLD",
     "PUBLIC_PROJECTION_OF_PERSONAL_DATA_FALSE",
     "RAW_PROVIDER_PERSONAL_DATA_TO_PORTAL_FALSE",
     "PURPOSE_LIMITATION_REQUIRED",
-    "LEAST_PRIVILEGE_REQUIRED"
+    "LEAST_PRIVILEGE_REQUIRED",
+    "AUDIT_RETENTION_MALFORMED_TIMESTAMP_FAIL_CLOSED"
   ],
-  "truth_boundary": "This manifest classifies known pre-production data paths. It does not establish legal compliance for every jurisdiction or authorize Production/public release. Unknown record-level personal-data state remains HOLD."
+  "internal_control_state": {
+    "staging_submission_retention": "PASS_365_DAY_EMPIRICAL_CONTROL",
+    "staging_audit_retention": "READY_90_DAY_DETERMINISTIC_FAIL_CLOSED_CONTROL",
+    "record_level_projection_gate": "READY_DETERMINISTIC_FAIL_CLOSED_CONTROL",
+    "real_source_record_classification": "DEPENDENCY_BOUND_TO_ACTUAL_ADMITTED_DATA",
+    "source_specific_rights": "PENDING_EXTERNAL"
+  },
+  "truth_boundary": "This manifest and its deterministic controls close internal pre-production retention/classification readiness only. They do not establish legal compliance for every jurisdiction, classify unseen future source records, override litigation/security holds, grant source rights, or authorize Production/public release. Unknown record-level personal-data state remains HOLD."
 }
