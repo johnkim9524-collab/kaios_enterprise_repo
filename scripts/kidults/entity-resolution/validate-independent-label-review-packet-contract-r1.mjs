@@ -11,5 +11,8 @@ for(const f of ['case_id','reviewer_id','reviewer_independence_attestation','lab
 if(!x.adjudication.must_complete_before_empirical_attestation) fail('ADJUDICATION_ORDER_INVALID');
 if(!x.blind_holdout.holdout_case_ids_must_be_sealed_before_model_freeze || !x.blind_holdout.holdout_labels_hidden_from_modeling || x.blind_holdout.holdout_partition_change_after_model_freeze!=='PROHIBITED') fail('BLIND_HOLDOUT_WEAKENED');
 const c=x.completion_state;
-if(c.reviewer_a!=='NOT_ASSIGNED'||c.reviewer_b!=='NOT_ASSIGNED'||c.labels!=='NOT_COLLECTED'||c.empirical_attestation!=='NOT_CREATED'||c.track_b!=='NOT_STARTED') fail('FALSE_COMPLETION_CLAIM');
-console.log('KIDULTS_ER_INDEPENDENT_LABEL_REVIEW_PACKET_CONTRACT_R1_PASS_PREFLIGHT_ONLY');
+const assigned = c.reviewer_a==='ASSIGNED_OPAQUE_ID_REVIEWER_A' && c.reviewer_b==='ASSIGNED_OPAQUE_ID_REVIEWER_B';
+if(!assigned) fail('REVIEWER_ASSIGNMENT_NOT_BOUND');
+if(x.reviewer_assignment_receipt!=='coordination/kidults/entity-resolution/independent-reviewer-assignment-receipt-r1.json') fail('REVIEWER_ASSIGNMENT_RECEIPT_MISSING');
+if(c.labels!=='NOT_COLLECTED'||c.adjudication!=='NOT_STARTED'||c.empirical_attestation!=='NOT_CREATED'||c.track_b!=='NOT_STARTED') fail('FALSE_COMPLETION_CLAIM');
+console.log('KIDULTS_ER_INDEPENDENT_LABEL_REVIEW_PACKET_CONTRACT_R1_PASS_REVIEWERS_ASSIGNED_NOT_LABELED');
