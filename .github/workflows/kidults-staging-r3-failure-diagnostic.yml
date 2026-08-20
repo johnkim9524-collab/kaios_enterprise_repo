@@ -1,0 +1,45 @@
+name: KIDULTS STAGING R3 Failure Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-staging-r3-failure-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      STAGING_D1: kidults-intelligence-db-staging
+      EVENT_ID: evt_kpmo_golden_r3_5e1374c71eda3e73
+      PRODUCTION_D1_ID: d6d65f81-f91d-428b-bf43-8a025aaa47bd
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only diagnostic
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT event_id,event_type,producer_engine,decision,rights_state,correlation_id,causation_id FROM asi_event_log WHERE event_id='$EVENT_ID' OR causation_id='$EVENT_ID' ORDER BY received_at; SELECT id,event_id,engine_fleet,queue_name,status,attempt_count,last_error,created_at,updated_at FROM asi_outbox WHERE event_id='$EVENT_ID' ORDER BY id; SELECT queue_name,outbox_id,event_id,status,attempt_count,first_seen_at,last_seen_at,completed_at,last_error FROM asi_processed_messages WHERE event_id='$EVENT_ID' ORDER BY first_seen_at; SELECT lease_key,engine_fleet,event_id,outbox_id,lease_owner,lease_epoch,lease_expires_at,status,updated_at FROM asi_task_leases WHERE event_id='$EVENT_ID' ORDER BY updated_at;" --json > /tmp/diagnostic.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/diagnostic.json; then echo 'Production identifier leak'; exit 10; fi
+          cat /tmp/diagnostic.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-staging-r3-failure-diagnostic
+          path: /tmp/diagnostic.json
+          retention-days: 14
+          if-no-files-found: error
