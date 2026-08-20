@@ -8,10 +8,19 @@ on:
       - 'coordination/kidults/source-intelligence/asi-self-driving-control-loop-v1.json'
       - 'coordination/kidults/source-intelligence/asi-autonomous-safe-action-registry-v1.json'
       - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-market-structure-acquisition-feedback-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-regional-data-usability-factor-r1.json'
       - 'coordination/kidults/source-intelligence/global-data-acquisition-master-matrix-v1.json'
-      - 'scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v1.mjs'
-      - 'scripts/kidults/source-intelligence/rotate-product-linked-discovery-queue-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-market-structure-acquisition-feedback-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-regional-data-usability-factor-r1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-regional-data-usability-factor-r1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v2.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-discovery-steering-plan-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-discovery-steering-plan-v1.mjs'
+      - 'scripts/kidults/source-intelligence/rotate-product-linked-discovery-queue-v2.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-discovery-steering-freeze-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/prepare-asi-previous-source-pool-v1.mjs'
@@ -21,16 +30,13 @@ on:
     branches: [main]
     paths:
       - 'coordination/kidults/source-intelligence/asi-self-driving-control-loop-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-autonomous-safe-action-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
-      - 'coordination/kidults/source-intelligence/global-data-acquisition-master-matrix-v1.json'
-      - 'scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v1.mjs'
-      - 'scripts/kidults/source-intelligence/rotate-product-linked-discovery-queue-v1.mjs'
-      - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
-      - 'scripts/kidults/source-intelligence/prepare-asi-previous-source-pool-v1.mjs'
-      - 'scripts/kidults/source-intelligence/asi-product-linked-live-v2.mjs'
+      - 'coordination/kidults/source-intelligence/asi-market-structure-acquisition-feedback-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-regional-data-usability-factor-r1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-regional-data-usability-factor-r1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v2.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-discovery-steering-plan-v1.mjs'
+      - 'scripts/kidults/source-intelligence/rotate-product-linked-discovery-queue-v2.mjs'
       - '.github/workflows/kidults-asi-self-driving-control-loop-v1.yml'
 permissions:
   contents: read
@@ -41,17 +47,31 @@ concurrency:
 jobs:
   autonomous-shadow-cycle:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
-      - name: OBSERVE — rebuild acquisition matrix
-        run: node scripts/kidults/source-intelligence/build-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
-      - name: VERIFY — validate acquisition matrix
-        run: node scripts/kidults/source-intelligence/validate-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
-      - name: DISCOVER — restore and validate prior pool plus immutable anchor foundation
+      - name: OBSERVE — rebuild structural acquisition matrix
+        run: |
+          node scripts/kidults/source-intelligence/build-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
+          node scripts/kidults/source-intelligence/validate-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
+      - name: MARKET_STRUCTURE — refresh rights-cleared regional observation
+        run: node scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs /tmp/musicbrainz-regional-catalog-observation-r1.json
+      - name: MARKET_STRUCTURE — build empirical baseline and verified data-usability overlay
+        run: |
+          node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json /tmp/musicbrainz-regional-catalog-observation-r1.json
+          node scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
+          node scripts/kidults/source-intelligence/build-asi-regional-data-usability-factor-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json /tmp/musicbrainz-regional-catalog-observation-r1.json /tmp/empirical-regional-baseline-with-data-usability-r1.json
+          node scripts/kidults/source-intelligence/validate-asi-regional-data-usability-factor-r1.mjs /tmp/empirical-regional-baseline-with-data-usability-r1.json
+      - name: FEEDBACK — build verified-only acquisition priority matrix and queue
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json /tmp/empirical-regional-baseline-with-data-usability-r1.json /tmp/global-data-acquisition-master-matrix-feedback-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-market-structure-acquisition-feedback-v1.mjs /tmp/global-data-acquisition-master-matrix-feedback-v1.json
+          node scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v2.mjs /tmp/global-data-acquisition-master-matrix-feedback-v1.json /tmp/asi-autonomous-action-queue-v2.json
+          node scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v2.mjs /tmp/asi-autonomous-action-queue-v2.json
+      - name: DISCOVER — restore prior pool/steering state and immutable anchor foundation
         id: discovery-state
         env:
           GH_TOKEN: ${{ github.token }}
@@ -66,18 +86,27 @@ jobs:
           fi
           PREP=$(node scripts/kidults/source-intelligence/prepare-asi-previous-source-pool-v1.mjs /tmp/previous-source-pool/asi-proactive-source-pool-v1.json)
           echo "$PREP"
-          CYCLE_INDEX=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(String(JSON.parse(s).cycle_index)))")
-          PREV_VALID=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(String(JSON.parse(s).previous_pool_valid)))")
+          CYCLE_INDEX=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const x=JSON.parse(s);process.stdout.write(String(Number(x.cycle_index||0)))})")
+          PREV_COUNT=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const x=JSON.parse(s);process.stdout.write(String(Number(x.previous_cycle_count||0)))})")
+          PREV_VALID=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(String(Boolean(JSON.parse(s).previous_pool_valid))))")
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" > /tmp/anchor-foundation.zip
           unzip -q -o /tmp/anchor-foundation.zip -d input
           echo "cycle_index=$CYCLE_INDEX" >> "$GITHUB_OUTPUT"
+          echo "previous_cycle_count=$PREV_COUNT" >> "$GITHUB_OUTPUT"
           echo "previous_pool_valid=$PREV_VALID" >> "$GITHUB_OUTPUT"
           echo "previous_artifact_id=${PREV_ID:-NONE}" >> "$GITHUB_OUTPUT"
-      - name: DISCOVER — build and rotate 160-anchor queue
+      - name: DISCOVER — build 160-anchor product demand queue
         run: |
           node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input queue
           node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs queue
-          node scripts/kidults/source-intelligence/rotate-product-linked-discovery-queue-v1.mjs queue '${{ steps.discovery-state.outputs.cycle_index }}'
+      - name: STEER — build/reuse frozen feedback-aware 10-cycle discovery plan
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-discovery-steering-plan-v1.mjs queue /tmp/global-data-acquisition-master-matrix-feedback-v1.json /tmp/previous-source-pool/asi-discovery-steering-plan-v1.json '${{ steps.discovery-state.outputs.previous_cycle_count }}' /tmp/asi-discovery-steering-plan-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-discovery-steering-plan-v1.mjs /tmp/asi-discovery-steering-plan-v1.json
+          node scripts/kidults/source-intelligence/rotate-product-linked-discovery-queue-v2.mjs queue /tmp/asi-discovery-steering-plan-v1.json '${{ steps.discovery-state.outputs.cycle_index }}'
+      - name: VERIFY — prove steering freeze and 160-anchor full-sweep fairness
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        run: node scripts/kidults/source-intelligence/test-asi-discovery-steering-freeze-v1.mjs queue /tmp/global-data-acquisition-master-matrix-feedback-v1.json /tmp/asi-discovery-steering-plan-v1.json
       - name: DISCOVER — bounded open-metadata source candidates
         run: node scripts/kidults/source-intelligence/asi-product-linked-live-v2.mjs queue discovery-out
       - name: VERIFY — bounded discovery semantics
@@ -86,28 +115,20 @@ jobs:
         run: node scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs discovery-out/bounded-live-discovery.json /tmp/previous-source-pool/asi-proactive-source-pool-v1.json /tmp/asi-proactive-source-pool-v1.json
       - name: VERIFY — candidate pool cannot self-promote rights
         run: node scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs /tmp/asi-proactive-source-pool-v1.json
-      - name: PRIORITIZE/GATE — build autonomous action queue
-        run: node scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json /tmp/asi-autonomous-action-queue-v1.json
-      - name: VERIFY — validate autonomous action queue
-        run: node scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v1.mjs /tmp/asi-autonomous-action-queue-v1.json
-      - name: EXECUTE_SAFE — refresh rights-cleared MusicBrainz regional observation
-        run: node scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs /tmp/musicbrainz-regional-catalog-observation-r1.json
-      - name: EXECUTE_SAFE — rebuild fail-closed regional baseline
-        run: node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json /tmp/musicbrainz-regional-catalog-observation-r1.json
-      - name: VERIFY — enforce regional no-overclaim boundary
-        run: node scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
-      - name: RE-EVALUATE — emit cycle summary
+      - name: RE-EVALUATE — emit closed-loop cycle summary
         shell: bash
         run: |
           node - <<'NODE' >/tmp/asi-self-driving-cycle-summary-v1.json
-          const fs=require('fs');const q=JSON.parse(fs.readFileSync('/tmp/asi-autonomous-action-queue-v1.json','utf8'));const b=JSON.parse(fs.readFileSync('/tmp/empirical-regional-baseline-wave1-r1.json','utf8'));const m=JSON.parse(fs.readFileSync('/tmp/global-data-acquisition-master-matrix-v1.json','utf8'));const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-v1.json','utf8'));process.stdout.write(JSON.stringify({id:'kidults-asi-self-driving-cycle-summary-v1',status:'SHADOW_CYCLE_COMPLETE_WITH_PROACTIVE_SOURCE_POOL',matrix_rows:m.structural_counts.evidence_binding_rows,open_coverage_debt_rows:m.acquisition_state_summary.open_coverage_debt_rows,deduped_acquisition_demands:q.total_deduped_acquisition_demands,top_priority_actions:q.top_priority_count,demand_rights_review_packets:q.rights_review_queue.length,safe_execution_actions:q.safe_execution_actions.length,source_pool_cycle:p.cycle_count,source_pool_rotation_index:p.rotation_cycle_index,source_pool_candidates:p.candidate_count,new_source_candidates:p.new_candidate_count,reobserved_source_candidates:p.reobserved_candidate_count,candidate_rights_review_packets:p.rights_review_queue.length,covered_representative_products:p.covered_representative_products,regional_observations:b.coverage_debt_report?.region_bound_observation_count||0,verified_market_factors:b.coverage_debt_report?.factor_assertions_verified||0,next_blocker:b.coverage_debt_report?.blocker||'UNKNOWN',public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs');const q=JSON.parse(fs.readFileSync('/tmp/asi-autonomous-action-queue-v2.json','utf8'));const b=JSON.parse(fs.readFileSync('/tmp/empirical-regional-baseline-with-data-usability-r1.json','utf8'));const m=JSON.parse(fs.readFileSync('/tmp/global-data-acquisition-master-matrix-feedback-v1.json','utf8'));const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-v1.json','utf8'));const s=JSON.parse(fs.readFileSync('/tmp/asi-discovery-steering-plan-v1.json','utf8'));process.stdout.write(JSON.stringify({id:'kidults-asi-self-driving-cycle-summary-v1',status:'SHADOW_CLOSED_LOOP_COMPLETE_WITH_FEEDBACK_STEERING',matrix_rows:m.evidence_bindings.length,market_modified_rows:m.market_structure_feedback_summary?.modified_rows||0,deduped_acquisition_demands:q.total_deduped_acquisition_demands,top_priority_actions:q.top_priority_count,source_pool_cycle:p.cycle_count,source_pool_candidates:p.candidate_count,new_source_candidates:p.new_candidate_count,steering_sweep:s.sweep_number,steering_cycle:s.current_cycle.cycle_index,steering_selected_products:s.current_cycle.selected_products_total,steering_feedback_influenced_products:s.feedback_influenced_products,steering_plan_reused:s.reused_prior_plan,verified_data_usability_regions:b.category_specific_factor_summary?.verified_region_cells||0,data_usability_score:b.category_specific_factor_summary?.score||null,market_scale_verified:false,transaction_activity_verified:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-self-driving-cycle-summary-v1.json
-      - name: Persist rolling proactive source pool
+      - name: Persist rolling proactive source pool and frozen steering plan
         uses: actions/upload-artifact@v4
         with:
           name: kidults-asi-proactive-source-pool-v1
-          path: /tmp/asi-proactive-source-pool-v1.json
+          path: |
+            /tmp/asi-proactive-source-pool-v1.json
+            /tmp/asi-discovery-steering-plan-v1.json
           retention-days: 90
           if-no-files-found: error
       - name: Upload non-public SHADOW cycle artifacts
@@ -116,11 +137,14 @@ jobs:
           name: kidults-asi-self-driving-cycle-v1
           path: |
             /tmp/global-data-acquisition-master-matrix-v1.json
-            /tmp/asi-autonomous-action-queue-v1.json
+            /tmp/global-data-acquisition-master-matrix-feedback-v1.json
+            /tmp/asi-autonomous-action-queue-v2.json
+            /tmp/asi-discovery-steering-plan-v1.json
             /tmp/asi-proactive-source-pool-v1.json
             discovery-out/bounded-live-discovery.json
             /tmp/musicbrainz-regional-catalog-observation-r1.json
             /tmp/empirical-regional-baseline-wave1-r1.json
+            /tmp/empirical-regional-baseline-with-data-usability-r1.json
             /tmp/asi-self-driving-cycle-summary-v1.json
           retention-days: 14
           if-no-files-found: error
