@@ -1,0 +1,94 @@
+name: KIDULTS PSA Bounded Rights Schema Evaluation V1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
+      - '.github/workflows/kidults-psa-bounded-rights-schema-evaluation-v1.yml'
+  workflow_dispatch:
+    inputs:
+      cert_numbers:
+        description: 'One to three known PSA cert numbers, comma-separated; no enumeration'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prove-default-fail-closed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Validate Founder #742 binding and default HOLD
+        run: |
+          node --check scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs
+          node --check scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs
+          node scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs \
+            coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json \
+            /tmp/psa-preflight-default.json
+          node - <<'NODE'
+          const x=require('/tmp/psa-preflight-default.json');
+          if(x.founder_approval_issue!==742||x.founder_approval_satisfied!==true) process.exit(1);
+          if(x.state!=='BLOCKED') process.exit(1);
+          for(const b of ['AUTHORIZED_PSA_ACCOUNT_HANDOFF_REQUIRED','PSA_API_EULA_COMPATIBILITY_TERMINALIZATION_REQUIRED','PSA_TOKEN_SECRET_HANDOFF_REQUIRED','ONE_TO_THREE_VALID_PSA_CERT_NUMBERS_REQUIRED']) if(!x.blockers.includes(b)) process.exit(1);
+          if(x.secret_material_observed!==false||x.reviewer_material_increment!==0||x.production!=='HOLD'||x.publication!=='HOLD') process.exit(1);
+          console.log('PASS: Founder approval is bound and PSA probe defaults fail closed with zero reviewer-material promotion.');
+          NODE
+      - name: Strict mode must reject absent operational handoff
+        run: |
+          set +e
+          KAIOS_REQUIRE_PSA_PROBE_ALLOWED=1 node scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs \
+            coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json \
+            /tmp/psa-preflight-strict.json
+          code=$?
+          set -e
+          test "$code" -eq 3
+
+  bounded-live-schema-probe:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      KAIOS_PSA_ACCOUNT_AUTHORIZED: ${{ vars.KAIOS_PSA_ACCOUNT_AUTHORIZED }}
+      KAIOS_PSA_EULA_COMPATIBLE: ${{ vars.KAIOS_PSA_EULA_COMPATIBLE }}
+      KAIOS_PSA_API_TOKEN: ${{ secrets.KAIOS_PSA_API_TOKEN }}
+      KAIOS_PSA_PROBE_CERTS: ${{ inputs.cert_numbers }}
+      KAIOS_REQUIRE_PSA_PROBE_ALLOWED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Require account + compatible EULA + secret token + one-to-three known certs
+        run: |
+          node scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs \
+            coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json \
+            /tmp/psa-preflight-live.json
+      - name: Run bounded documented single-cert schema probe
+        run: |
+          node scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs \
+            coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json \
+            /tmp/psa-single-cert-schema-v1.json
+      - name: Enforce no raw payload / no reviewer-material promotion
+        run: |
+          node - <<'NODE'
+          const x=require('/tmp/psa-single-cert-schema-v1.json');
+          if(x.probe_count<1||x.probe_count>3) process.exit(1);
+          if(x.raw_provider_payload_retained!==false||x.token_retained!==false||x.reviewer_material_increment!==0) process.exit(1);
+          if(x.rights_state!=='PENDING_ACTUAL_API_EULA_TERMINALIZATION'||x.production!=='HOLD'||x.publication!=='HOLD') process.exit(1);
+          for(const r of x.results){if(r.raw_payload_emitted!==false||!/^sha256:[a-f0-9]{64}$/.test(r.response_sha256)||!/^sha256:[a-f0-9]{64}$/.test(r.cert_number_sha256))process.exit(1);}
+          console.log('PASS: PSA bounded schema observation contains no raw provider payload and promotes zero reviewer material.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-psa-schema-only-observation-v1
+          path: /tmp/psa-single-cert-schema-v1.json
+          if-no-files-found: error
+          retention-days: 14
