@@ -1,0 +1,107 @@
+name: KIDULTS Runtime SHADOW Queue Provision v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-runtime-shadow-queue-provision-v1.yml'
+      - 'services/kidults-autonomous-intelligence/wrangler.jsonc'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provision-shadow-queues:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_QUEUE_PROVISION_TOKEN: ${{ secrets.CLOUDFLARE_QUEUE_PROVISION_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: PRECHECK — canonical non-production boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('services/kidults-autonomous-intelligence/wrangler.jsonc','utf8'));
+          const qs=(x.queues?.producers||[]).map(q=>q.queue);
+          if(x.vars?.KIDULTS_ENV!=='staging') throw new Error('ENV_NOT_STAGING');
+          if(x.vars?.ASI_MESH_MODE!=='SHADOW') throw new Error('ASI_NOT_SHADOW');
+          if(x.vars?.ASI_PUBLICATION_ENABLED!=='false') throw new Error('PUBLICATION_NOT_DISABLED');
+          if(qs.length!==26||new Set(qs).size!==26) throw new Error('QUEUE_COUNT_NOT_26_UNIQUE');
+          if(qs.some(q=>!q.startsWith('kidults-asi-shadow-'))) throw new Error('NON_SHADOW_QUEUE_NAME');
+          fs.writeFileSync('/tmp/canonical-queues.txt',qs.sort().join('\n')+'\n');
+          console.log(JSON.stringify({status:'PASS',environment:'staging',mesh:'SHADOW',publication:false,queue_count:26,production:'HOLD'}));
+          NODE
+      - name: GATE — require temporary Queue Edit token
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_QUEUE_PROVISION_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo 'CLOUDFLARE_QUEUE_PROVISION_TOKEN or CLOUDFLARE_ACCOUNT_ID missing; fail closed.'
+            exit 2
+          fi
+          echo "::add-mask::$CLOUDFLARE_QUEUE_PROVISION_TOKEN"
+      - name: OBSERVE — list existing queues with read-only token
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          cd services/kidults-autonomous-intelligence
+          npx wrangler queues list > /tmp/queues-before.txt
+          cd ../..
+      - name: PROVISION — create only missing canonical SHADOW queues
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_QUEUE_PROVISION_TOKEN }}
+        run: |
+          set -euo pipefail
+          : > /tmp/created-queues.txt
+          while IFS= read -r q; do
+            [ -z "$q" ] && continue
+            if grep -Fq "$q" /tmp/queues-before.txt; then
+              echo "EXISTS $q"
+            else
+              echo "CREATE $q"
+              (cd services/kidults-autonomous-intelligence && npx wrangler queues create "$q")
+              echo "$q" >> /tmp/created-queues.txt
+            fi
+          done < /tmp/canonical-queues.txt
+          CREATED=$(grep -c . /tmp/created-queues.txt || true)
+          echo "Created queues: $CREATED"
+      - name: VERIFY — read-only inventory after provisioning
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          cd services/kidults-autonomous-intelligence
+          npx wrangler queues list > /tmp/queues-after.txt
+          cd ../..
+          node - <<'NODE'
+          const fs=require('fs');
+          const expected=fs.readFileSync('/tmp/canonical-queues.txt','utf8').trim().split(/\n+/).filter(Boolean);
+          const txt=fs.readFileSync('/tmp/queues-after.txt','utf8');
+          const missing=expected.filter(q=>!txt.includes(q));
+          const created=fs.readFileSync('/tmp/created-queues.txt','utf8').trim().split(/\n+/).filter(Boolean);
+          const out={status:missing.length?'REMOTE_QUEUE_INVENTORY_INCOMPLETE':'REMOTE_SHADOW_QUEUE_INVENTORY_VERIFIED',expected_count:expected.length,missing,created_count:created.length,created,environment:'staging',mesh:'SHADOW',deployment_performed:false,worker_deploy_performed:false,d1_mutation_performed:false,production:'HOLD',public_release:'HOLD'};
+          fs.writeFileSync('/tmp/provision-result.json',JSON.stringify(out,null,2));
+          console.log(JSON.stringify(out));
+          if(missing.length) process.exit(1);
+          NODE
+      - name: Upload provisioning receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-runtime-shadow-queue-provision-v1
+          path: |
+            /tmp/canonical-queues.txt
+            /tmp/created-queues.txt
+            /tmp/provision-result.json
+          retention-days: 30
+          if-no-files-found: error
