@@ -1,0 +1,85 @@
+name: KIDULTS ER Serialized FAA Packet R2
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-serialized-faa-releasable-capacity-r1.mjs'
+      - 'scripts/kidults/entity-resolution/build-serialized-faa-review-packet-r2.mjs'
+      - 'coordination/kidults/entity-resolution/faa-serialized-nonpii-rights-admission-r1.json'
+      - '.github/workflows/kidults-er-serialized-faa-packet-r2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  close-serialized-review-material:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Freshly rebuild current Serialized 40-case normalization material
+        run: |
+          node scripts/kidults/entity-resolution/build-serialized-source-disjoint-review-packet-r3.mjs \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json \
+            /tmp/serialized-base9.json
+          node scripts/kidults/entity-resolution/probe-serialized-smithsonian-nasm-capacity-r4.mjs /tmp/nasm-cap-r4.json
+          node scripts/kidults/entity-resolution/build-serialized-smithsonian-nasm-review-packet-r4.mjs \
+            /tmp/nasm-cap-r4.json /tmp/serialized-base9.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json \
+            /tmp/serialized-prior40.json
+          node - <<'NODE'
+          const x=require('/tmp/serialized-prior40.json');
+          if(x.total_reviewer_ready_if_combined!==40||x.case_class_counts_if_combined?.SAME_OBJECT_NORMALIZATION!==40||x.remaining_case_class_deficit?.HARD_NEGATIVE!==40||x.remaining_case_class_deficit?.CROSS_MARKET_ALIAS!==40)throw new Error('PRIOR_40_NOT_REPRODUCED');
+          console.log(JSON.stringify({serialized_prior:40,normalization:'40/40',remaining_hard:40,remaining_alias:40,production:'HOLD'}));
+          NODE
+      - name: Download official FAA releasable registry archive
+        run: |
+          curl --fail --location --retry 4 --retry-all-errors --connect-timeout 20 --max-time 180 \
+            --user-agent 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/151 Safari/537.36' \
+            --referer 'https://www.faa.gov/licenses_certificates/aircraft_certification/aircraft_registry/releasable_aircraft_download' \
+            --header 'Accept: application/zip,application/octet-stream;q=0.9,*/*;q=0.8' \
+            https://registry.faa.gov/database/ReleasableAircraft.zip -o /tmp/faa.zip
+          test -s /tmp/faa.zip
+          file /tmp/faa.zip | grep -Eiq 'zip|archive'
+          mkdir -p /tmp/faa
+          unzip -q /tmp/faa.zip -d /tmp/faa
+          test -f /tmp/faa/MASTER.txt
+          test -f /tmp/faa/ACFTREF.txt
+          sha256sum /tmp/faa.zip | cut -d' ' -f1 > /tmp/faa.sha256
+      - name: Freshly re-prove strict non-PII FAA capacity
+        run: |
+          export FAA_ARCHIVE_SHA256="$(cat /tmp/faa.sha256)"
+          node scripts/kidults/entity-resolution/probe-serialized-faa-releasable-capacity-r1.mjs /tmp/faa /tmp/faa-capacity.json
+      - name: Build exact 80-case FAA reviewer-material addition
+        run: |
+          node scripts/kidults/entity-resolution/build-serialized-faa-review-packet-r2.mjs \
+            /tmp/faa-capacity.json /tmp/serialized-prior40.json \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json \
+            coordination/kidults/entity-resolution/faa-serialized-nonpii-rights-admission-r1.json \
+            /tmp/serialized-faa-packet-r2.json
+      - name: Enforce exact class, boundary, privacy, source and release gates
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/serialized-faa-packet-r2.json','utf8'));
+          if(x.status!=='FULL_STRATUM_REVIEW_MATERIAL_READY_UNLABELED_NOT_REVIEWED'||x.total_reviewer_ready_if_combined!==120||x.remaining_case_count!==0)throw new Error('SERIALIZED_TOTAL');
+          const cc=x.case_class_counts_if_combined||{};if(cc.SAME_OBJECT_NORMALIZATION!==40||cc.HARD_NEGATIVE!==40||cc.CROSS_MARKET_ALIAS!==40)throw new Error('CLASS_TARGET');
+          const bc=x.identity_boundary_counts_if_combined||{};if(bc.SOURCE_RECORD!==60||bc.PHYSICAL_OBJECT!==60)throw new Error('BOUNDARY_TARGET');
+          if(x.additional_case_count!==80||x.source_record_count_added!==120||x.source_record_reuse_within_addition!==0||x.source_record_reuse_with_prior!==0)throw new Error('SOURCE_COUNTS');
+          if(x.blind_candidate_count_if_combined!==60||x.blind_partition_addition?.case_count!==40||x.blind_partition_addition?.state!=='CANDIDATE_NOT_SEALED')throw new Error('BLIND_TARGET');
+          const ids=x.cases.flatMap(c=>c.source_record_ids||[]);if(new Set(ids).size!==120)throw new Error('FAA_SOURCE_REUSE');
+          const aliases=x.cases.filter(c=>c.case_class==='CROSS_MARKET_ALIAS');if(aliases.length!==40||aliases.filter(c=>c.identity_boundary==='SOURCE_RECORD').length!==20||aliases.filter(c=>c.identity_boundary==='PHYSICAL_OBJECT').length!==20)throw new Error('ALIAS_BOUNDARY_SPLIT');
+          for(const a of aliases){const q=a.reviewer_prompt_context||{};if(q.identifier_namespace_a!=='FAA_N_NUMBER'||q.identifier_namespace_b!=='MANUFACTURER_ASSIGNED_SERIAL'||q.faa_registration_identifier===q.manufacturer_assigned_serial_identifier)throw new Error('ALIAS_SEMANTICS');}
+          if(x.privacy_boundary!=='OWNER_REGISTRANT_NAME_ADDRESS_CONTACT_AND_ALL_PII_EXCLUDED_FROM_DERIVED_OUTPUT')throw new Error('PRIVACY');
+          const s=JSON.stringify(x).toLowerCase();for(const f of ['street1','street2','telephone','owner_name','ownername'])if(s.includes(`"${f}"`))throw new Error(`PII_FIELD:${f}`);
+          if(x.labels_present!==false||x.model_predictions_present!==false||x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED'||x.empirical_pass!==false||x.track_b!=='NOT_STARTED'||x.public_release!=='HOLD'||x.production!=='HOLD')throw new Error('OVERCLAIM');
+          if(/"raw_payload"\s*:|"payload"\s*:/.test(JSON.stringify(x)))throw new Error('RAW_PAYLOAD_FORBIDDEN');
+          console.log(JSON.stringify({serialized_total:120,class_counts:cc,boundary_counts:bc,blind_candidates:60,privacy:'PASS',empirical_pass:false,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-faa-review-packet-r2
+          path: /tmp/serialized-faa-packet-r2.json
+          retention-days: 14
