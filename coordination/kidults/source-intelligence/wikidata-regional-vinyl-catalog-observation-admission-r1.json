@@ -1,0 +1,47 @@
+{
+  "id": "kidults-wikidata-regional-vinyl-catalog-observation-admission-r1",
+  "version": "1.0.0",
+  "status": "PURPOSE_SPECIFIC_BOUNDED_ADMISSION",
+  "parent_issue": 768,
+  "source_id": "wikidata-structured-data",
+  "source_owner_id": "wikimedia-foundation-wikidata",
+  "purpose": "REGIONAL_VINYL_CATALOG_OBSERVATION",
+  "category_scope": "vinyl_recorded_music",
+  "admission_state": "ADMITTED_BOUNDED_CC0_SHADOW",
+  "rights_state": "ALLOW_CC0",
+  "transport_state": "ALLOW_PUBLIC_SPARQL_READ_ONLY",
+  "license_evidence_refs": [
+    "https://www.wikidata.org/wiki/Wikidata:Licensing",
+    "https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "transport": {
+    "endpoint": "https://query.wikidata.org/sparql",
+    "authentication_required": false,
+    "write_or_submission": false,
+    "bounded_query_limit": 300,
+    "target_site_traversal": false
+  },
+  "allowed_projection_fields": [
+    "wikidata_item_qid",
+    "country_code",
+    "macroregion_id",
+    "publication_date",
+    "distribution_format_qid",
+    "source_reference",
+    "source_projection_sha256"
+  ],
+  "required_distribution_format_qid": "Q178588",
+  "blocked_claims": [
+    "MARKET_SCALE",
+    "MARKET_MATURITY",
+    "OBSERVED_TRANSACTION_ACTIVITY",
+    "CURRENT_PRICE",
+    "LIQUIDITY",
+    "DEMAND",
+    "SALES",
+    "GLOBAL_MARKET_WEIGHT"
+  ],
+  "truth_boundary": "Wikidata CC0 structured observations may establish bounded regional vinyl catalog coverage and an independent source-owner surface only. They do not establish transaction activity, price, demand, liquidity, market size, maturity or analytical market weight.",
+  "public_release": "HOLD",
+  "production": "HOLD"
+}
