@@ -52,8 +52,15 @@ jobs:
           set -euo pipefail
           npx wrangler d1 execute "$STAGING_DB" --remote --command "SELECT 1 AS kpmo_read_probe;" --json > /tmp/staging-read-precheck.json
           npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "SELECT 1 AS kpmo_read_probe;" --json > /tmp/production-read-precheck.json
-          grep -q 'kpmo_read_probe' /tmp/staging-read-precheck.json
-          grep -q 'kpmo_read_probe' /tmp/production-read-precheck.json
+          node - <<'NODE'
+          const fs=require('fs');
+          for(const file of ['/tmp/staging-read-precheck.json','/tmp/production-read-precheck.json']){
+            const x=JSON.parse(fs.readFileSync(file,'utf8'));
+            const rows=x.flatMap(v=>v.results||[]);
+            if(!x.every(v=>v.success===true)||!rows.some(v=>v.kpmo_read_probe===1)) throw new Error(`D1_READ_PRECHECK_FAILED:${file}`);
+            if(x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error(`D1_READ_PRECHECK_MUTATED:${file}`);
+          }
+          NODE
 
       - name: Resolve exact target Queue ID using read-only token
         run: |
@@ -93,7 +100,7 @@ jobs:
           NODE
           node -e "const x=require('/tmp/task.json'); if(!x.body?.outbox_id) process.exit(1); console.log('OUTBOX_ID='+x.body.outbox_id)" > /tmp/outbox.env
 
-      - name: PRECHECK — ensure correlation absent from both D1s before push
+      - name: PRECHECK — ensure control outbox absent from both D1s before push
         working-directory: services/kidults-autonomous-intelligence
         run: |
           set -euo pipefail
@@ -101,8 +108,15 @@ jobs:
           SQL="SELECT outbox_id,status FROM asi_processed_messages WHERE outbox_id='$OUTBOX_ID';"
           npx wrangler d1 execute "$STAGING_DB" --remote --command "$SQL" --json > /tmp/staging-before.json
           npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "$SQL" --json > /tmp/production-before.json
-          ! grep -Fq "$OUTBOX_ID" /tmp/staging-before.json
-          ! grep -Fq "$OUTBOX_ID" /tmp/production-before.json
+          OUTBOX_ID="$OUTBOX_ID" node - <<'NODE'
+          const fs=require('fs'); const target=process.env.OUTBOX_ID;
+          for(const file of ['/tmp/staging-before.json','/tmp/production-before.json']){
+            const x=JSON.parse(fs.readFileSync(file,'utf8')); const rows=x.flatMap(v=>v.results||[]);
+            if(!x.every(v=>v.success===true)) throw new Error(`D1_QUERY_FAILED:${file}`);
+            if(rows.some(v=>v.outbox_id===target)) throw new Error(`OUTBOX_ALREADY_EXISTS:${file}`);
+            if(x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error(`READ_QUERY_MUTATED:${file}`);
+          }
+          NODE
 
       - name: PUSH — exactly one STAGING control message
         run: |
@@ -125,12 +139,24 @@ jobs:
           FOUND=0
           for i in $(seq 1 18); do
             npx wrangler d1 execute "$STAGING_DB" --remote --command "$SQL" --json > /tmp/staging-after.json
-            if grep -Fq "$OUTBOX_ID" /tmp/staging-after.json && grep -Fq 'SUCCEEDED' /tmp/staging-after.json; then FOUND=1; break; fi
+            if OUTBOX_ID="$OUTBOX_ID" node - <<'NODE'
+          const fs=require('fs'); const target=process.env.OUTBOX_ID;
+          const x=JSON.parse(fs.readFileSync('/tmp/staging-after.json','utf8')); const rows=x.flatMap(v=>v.results||[]);
+          const row=rows.find(v=>v.outbox_id===target);
+          process.exit(row?.status==='SUCCEEDED' ? 0 : 1);
+          NODE
+            then FOUND=1; break; fi
             sleep 5
           done
           test "$FOUND" = '1'
           npx wrangler d1 execute "$PRODUCTION_DB" --remote --command "$SQL" --json > /tmp/production-after.json
-          ! grep -Fq "$OUTBOX_ID" /tmp/production-after.json
+          OUTBOX_ID="$OUTBOX_ID" node - <<'NODE'
+          const fs=require('fs'); const target=process.env.OUTBOX_ID;
+          const x=JSON.parse(fs.readFileSync('/tmp/production-after.json','utf8')); const rows=x.flatMap(v=>v.results||[]);
+          if(!x.every(v=>v.success===true)) throw new Error('PRODUCTION_D1_QUERY_FAILED');
+          if(rows.some(v=>v.outbox_id===target)) throw new Error('PRODUCTION_D1_MUTATION_DETECTED');
+          if(x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_READ_QUERY_MUTATED');
+          NODE
 
       - name: Emit public-safe receipt
         if: always()
@@ -149,6 +175,8 @@ jobs:
             /tmp/kidults-staging-queue-e2e-777-receipt.json
             /tmp/staging-read-precheck.json
             /tmp/production-read-precheck.json
+            /tmp/staging-before.json
+            /tmp/production-before.json
             /tmp/push-response.json
             /tmp/staging-after.json
             /tmp/production-after.json
