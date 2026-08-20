@@ -1,0 +1,111 @@
+name: KIDULTS ASI Self-Driving Control Loop v1
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-self-driving-control-loop-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-autonomous-safe-action-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/global-data-acquisition-master-matrix-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-global-data-acquisition-master-matrix-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-global-data-acquisition-master-matrix-v1.mjs'
+      - 'scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs'
+      - 'scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs'
+      - '.github/workflows/kidults-asi-self-driving-control-loop-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-self-driving-control-loop-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-autonomous-safe-action-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/global-data-acquisition-master-matrix-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v1.mjs'
+      - '.github/workflows/kidults-asi-self-driving-control-loop-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-self-driving-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  autonomous-shadow-cycle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact repository state
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: OBSERVE — rebuild acquisition matrix
+        run: node scripts/kidults/source-intelligence/build-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
+
+      - name: VERIFY — validate acquisition matrix
+        run: node scripts/kidults/source-intelligence/validate-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
+
+      - name: PRIORITIZE/GATE — build autonomous action queue
+        run: node scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json /tmp/asi-autonomous-action-queue-v1.json
+
+      - name: VERIFY — validate autonomous action queue
+        run: node scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v1.mjs /tmp/asi-autonomous-action-queue-v1.json
+
+      - name: EXECUTE_SAFE — refresh existing rights-cleared MusicBrainz regional observation
+        run: node scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs /tmp/musicbrainz-regional-catalog-observation-r1.json
+
+      - name: EXECUTE_SAFE — rebuild fail-closed regional baseline
+        run: node scripts/kidults/source-intelligence/build-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json /tmp/musicbrainz-regional-catalog-observation-r1.json
+
+      - name: VERIFY — enforce regional no-overclaim boundary
+        run: node scripts/kidults/source-intelligence/validate-empirical-regional-baseline-wave1-r1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
+
+      - name: RE-EVALUATE — emit cycle summary
+        shell: bash
+        run: |
+          node - <<'NODE' >/tmp/asi-self-driving-cycle-summary-v1.json
+          const fs=require('fs');
+          const q=JSON.parse(fs.readFileSync('/tmp/asi-autonomous-action-queue-v1.json','utf8'));
+          const b=JSON.parse(fs.readFileSync('/tmp/empirical-regional-baseline-wave1-r1.json','utf8'));
+          const m=JSON.parse(fs.readFileSync('/tmp/global-data-acquisition-master-matrix-v1.json','utf8'));
+          const out={
+            id:'kidults-asi-self-driving-cycle-summary-v1',
+            status:'SHADOW_CYCLE_COMPLETE',
+            matrix_rows:m.structural_counts.evidence_binding_rows,
+            open_coverage_debt_rows:m.acquisition_state_summary.open_coverage_debt_rows,
+            deduped_acquisition_demands:q.total_deduped_acquisition_demands,
+            top_priority_actions:q.top_priority_count,
+            rights_review_packets:q.rights_review_queue.length,
+            safe_execution_actions:q.safe_execution_actions.length,
+            regional_observations:b.coverage_debt_report?.region_bound_observation_count||0,
+            verified_market_factors:b.coverage_debt_report?.factor_assertions_verified||0,
+            next_blocker:b.coverage_debt_report?.blocker||'UNKNOWN',
+            public_release:'HOLD',
+            production:'HOLD'
+          };
+          process.stdout.write(JSON.stringify(out,null,2));
+          NODE
+          cat /tmp/asi-self-driving-cycle-summary-v1.json
+
+      - name: Upload non-public SHADOW control artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-asi-self-driving-cycle-v1
+          path: |
+            /tmp/global-data-acquisition-master-matrix-v1.json
+            /tmp/asi-autonomous-action-queue-v1.json
+            /tmp/musicbrainz-regional-catalog-observation-r1.json
+            /tmp/empirical-regional-baseline-wave1-r1.json
+            /tmp/asi-self-driving-cycle-summary-v1.json
+          retention-days: 14
+          if-no-files-found: error
