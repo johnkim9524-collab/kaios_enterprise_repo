@@ -1,11 +1,12 @@
 {
   "id":"kidults-er-independent-label-review-packet-contract-r1",
-  "version":"1.0.0",
-  "status":"READY_FOR_REAL_REVIEWERS_NOT_ATTESTED",
+  "version":"1.0.1",
+  "status":"READY_FOR_REAL_REVIEWERS_ASSIGNED_NOT_LABELED",
   "parent_issue":609,
   "sampling_plan":"coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json",
+  "reviewer_assignment_receipt":"coordination/kidults/entity-resolution/independent-reviewer-assignment-receipt-r1.json",
   "production":"HOLD",
-  "truth_boundary":"This contract prepares two independent blinded label-review packets and adjudication evidence. It does not claim that reviewers exist, reviews occurred, labels are complete, or Track B passed.",
+  "truth_boundary":"This contract prepares two independent blinded label-review packets and adjudication evidence. Two genuine reviewers are owner-designated under issue #827, but this does not claim that reviews occurred, labels are complete, adjudication occurred, empirical attestation exists, or Track B passed.",
   "reviewer_requirements":{
     "minimum_independent_reviewers":2,
     "reviewer_identity_must_be_real":true,
@@ -36,8 +37,8 @@
     "required_proof":["holdout_partition_sha256","holdout_partition_commit_sha","model_freeze_sha","proof_partition_commit_precedes_model_freeze"]
   },
   "completion_state":{
-    "reviewer_a":"NOT_ASSIGNED",
-    "reviewer_b":"NOT_ASSIGNED",
+    "reviewer_a":"ASSIGNED_OPAQUE_ID_REVIEWER_A",
+    "reviewer_b":"ASSIGNED_OPAQUE_ID_REVIEWER_B",
     "labels":"NOT_COLLECTED",
     "adjudication":"NOT_STARTED",
     "empirical_attestation":"NOT_CREATED",
