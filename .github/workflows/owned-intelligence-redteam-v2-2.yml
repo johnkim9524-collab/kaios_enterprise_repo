@@ -5,6 +5,7 @@ on:
     branches: [main,"feat/**"]
     paths:
       - "coordination/kidults/architecture/owned-intelligence-redteam-v2.2.json"
+      - "coordination/kidults/registry/owned-intelligence-hardening-proof-registry-v1.json"
       - "scripts/kidults/intelligence/owned-intelligence-redteam-v2.2.mjs"
       - "scripts/kidults/intelligence/validate-owned-intelligence-redteam-v2.2.mjs"
       - "scripts/kidults/intelligence/validate-owned-intelligence-redteam-v2.1.mjs"
@@ -14,6 +15,7 @@ on:
     branches: [main]
     paths:
       - "coordination/kidults/architecture/owned-intelligence-redteam-v2.2.json"
+      - "coordination/kidults/registry/owned-intelligence-hardening-proof-registry-v1.json"
       - "scripts/kidults/intelligence/owned-intelligence-redteam-v2.2.mjs"
       - "scripts/kidults/intelligence/validate-owned-intelligence-redteam-v2.2.mjs"
       - "scripts/kidults/intelligence/validate-owned-intelligence-redteam-v2.1.mjs"
@@ -32,8 +34,10 @@ jobs:
           node-version: "24.19.0"
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Parse v2.2 contract
-        run: node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/architecture/owned-intelligence-redteam-v2.2.json','utf8'))"
+      - name: Parse v2.2 contract and registry
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/architecture/owned-intelligence-redteam-v2.2.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/registry/owned-intelligence-hardening-proof-registry-v1.json','utf8'))"
       - name: Regression v1
         run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.mjs
       - name: Regression v1.1
