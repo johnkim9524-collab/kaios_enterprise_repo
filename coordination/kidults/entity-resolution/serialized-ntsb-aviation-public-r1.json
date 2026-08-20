@@ -1,0 +1,50 @@
+{
+  "id": "kidults-er-serialized-ntsb-aviation-public-r1",
+  "version": "1.0.0",
+  "parent_issue": 609,
+  "stratum_id": "er-stratum-serialized-reference",
+  "source_authority": "National Transportation Safety Board",
+  "dataset_page": "https://data.ntsb.gov/avdata",
+  "dataset_url": "https://data.ntsb.gov/avdata/FileDirectory/DownloadFile?fileID=C%3A%5Cavdata%5Cavall.zip",
+  "schema_url": "https://data.ntsb.gov/avdata/FileDirectory/DownloadFile?fileID=C%3A%5Cavdata%5Ceadmspub.pdf",
+  "public_use_evidence_url": "https://www.ntsb.gov/safety/data/Pages/Data_Stats.aspx",
+  "rights_state": "ALLOW_PUBLIC_USE_DATASET",
+  "rights_scope": "BOUNDED_INTERNAL_ER_NON_PII_AIRCRAFT_IDENTITY_FIELDS_ONLY",
+  "aircraft_table_fields": [
+    "ev_id",
+    "Aircraft_Key",
+    "ntsb_no",
+    "regis_no",
+    "acft_make",
+    "acft_model",
+    "acft_series",
+    "acft_serial_no"
+  ],
+  "forbidden_fields": [
+    "operator_name",
+    "crew_name",
+    "crew_address",
+    "owner_name",
+    "owner_address"
+  ],
+  "source_semantics": {
+    "regis_no": "aircraft registration number recorded by NTSB for the accident or incident aircraft",
+    "acft_serial_no": "aircraft manufacturer serial number recorded in the NTSB aircraft table",
+    "cross_authority_rule": "FAA current releasable aircraft record and an independent NTSB aviation record must agree on normalized registration and manufacturer serial number; each FAA and NTSB source record may be used at most once"
+  },
+  "case_target": {
+    "case_class": "CROSS_MARKET_ALIAS",
+    "reviewer_material_cases": 40,
+    "source_record_boundary_cases": 20,
+    "physical_object_boundary_cases": 20
+  },
+  "privacy_boundary": "NTSB and FAA bulk source files are transient runner inputs only. No owner, address, crew, operator or unrelated raw fields are retained, logged or uploaded. Registration numbers are represented only by cryptographic hashes in reviewer material; manufacturer serial, maker/model and NTSB case number are retained as non-owner aircraft identity context.",
+  "public_ci_boundary": "No raw NTSB MDB/CSV row, FAA MASTER row, archive, owner/address field or full provider payload may be uploaded. Only filtered source-disjoint reviewer material and cryptographic digests may leave the runner.",
+  "reviewer_a": "NOT_ASSIGNED",
+  "reviewer_b": "NOT_ASSIGNED",
+  "labels_present": false,
+  "empirical_pass": false,
+  "track_b": "NOT_STARTED",
+  "public_release": "HOLD",
+  "production": "HOLD"
+}
