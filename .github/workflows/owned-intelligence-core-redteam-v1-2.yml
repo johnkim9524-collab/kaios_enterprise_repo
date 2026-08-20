@@ -1,0 +1,44 @@
+name: Owned Intelligence Core Redteam v1.2
+
+on:
+  push:
+    branches: [main,"feat/**"]
+    paths:
+      - "coordination/kidults/architecture/owned-intelligence-core-redteam-v1.2.json"
+      - "scripts/kidults/intelligence/owned-intelligence-core-v1.mjs"
+      - "scripts/kidults/intelligence/owned-intelligence-core-v1.1.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-core-v1.1.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-core-redteam-v1.2.mjs"
+      - ".github/workflows/owned-intelligence-core-redteam-v1-2.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "coordination/kidults/architecture/owned-intelligence-core-redteam-v1.2.json"
+      - "scripts/kidults/intelligence/owned-intelligence-core-v1.mjs"
+      - "scripts/kidults/intelligence/owned-intelligence-core-v1.1.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-core-v1.1.mjs"
+      - "scripts/kidults/intelligence/validate-owned-intelligence-core-redteam-v1.2.mjs"
+      - ".github/workflows/owned-intelligence-core-redteam-v1-2.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.19.0"
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Parse red-team contract
+        run: node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/architecture/owned-intelligence-core-redteam-v1.2.json','utf8'))"
+      - name: Regression provider-independent layers
+        run: node scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs
+      - name: Regression owned core v1
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.mjs
+      - name: Regression owned core v1.1
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.1.mjs
+      - name: Validate core red-team v1.2
+        run: node scripts/kidults/intelligence/validate-owned-intelligence-core-redteam-v1.2.mjs
