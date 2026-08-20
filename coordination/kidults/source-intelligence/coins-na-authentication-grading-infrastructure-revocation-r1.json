@@ -1,0 +1,41 @@
+{
+  "id": "kidults-asi-coins-na-authentication-grading-infrastructure-revocation-r1",
+  "version": "1.0.0",
+  "parent_issue": 654,
+  "superseded_commit": "303808166bed73dab8e2ba036755f6cab086d14d",
+  "factor_id": "AUTHENTICATION_GRADING_INFRASTRUCTURE",
+  "category_scope": "coins_and_numismatics",
+  "macroregion_id": "NORTH_AMERICA",
+  "active_state": "REVOKED_RIGHTS_INCOMPATIBLE",
+  "factor_state": "UNKNOWN",
+  "reason": "The superseded factor used automated GitHub Actions GET requests against NGC/CCG Website pages and declared Website-derived content ALLOW_PUBLIC_READ_INTERNAL_DERIVATION_ONLY. Current official CCG Website Terms prohibit robot, spider or other automatic-device Website access without prior written consent and restrict gathered Website content to personal informational non-commercial use. The prior rights state was therefore not supportable for KIDULTS internal commercial evidence acquisition.",
+  "rights_evidence_refs": [
+    "https://www.ngccoin.com/legal/terms-of-use/",
+    "https://www.cgccomics.com/legal/terms-of-use/"
+  ],
+  "revoked_claims": [
+    "OBSERVED_MULTI_AUTHORITY_GRADING_INFRASTRUCTURE_PRESENCE"
+  ],
+  "still_blocked_claims": [
+    "MARKET_SCALE",
+    "MARKET_MATURITY",
+    "TRANSACTION_ACTIVITY",
+    "PRICE",
+    "LIQUIDITY",
+    "DEMAND",
+    "SALES",
+    "MARKET_SHARE",
+    "GLOBAL_WEIGHT"
+  ],
+  "successor_requirements": [
+    "PRIOR_WRITTEN_CONSENT_FOR_CCG_WEBSITE_AUTOMATION_OR_SEPARATELY_LICENSED_API_TRANSPORT",
+    "OR_DIFFERENT_RIGHTS_COMPATIBLE_INDEPENDENT_AUTHORITY",
+    "EXACT_COLLECT_STORE_DERIVE_PURPOSE_RIGHTS_ALLOW",
+    "NO_RAW_PROVIDER_PAYLOAD_PUBLICATION",
+    "TWO_INDEPENDENT_AUTHORITY_FLOOR"
+  ],
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD",
+  "truth_boundary": "Revocation removes the unsupported active ASI factor. It does not erase immutable Git history, create a replacement factor, establish market-factor evidence, or authorize any provider transport, publication or Production action."
+}
