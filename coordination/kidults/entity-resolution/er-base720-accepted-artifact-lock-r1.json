@@ -1,0 +1,23 @@
+{
+  "id": "kidults-er-base720-accepted-artifact-lock-r1",
+  "version": "1.0.0",
+  "parent_issue": 838,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "truth_boundary": "Pins only already-accepted reviewer-safe empirical-material workflow artifacts for fresh current-main lineage rehydration. Artifact metadata and digests must be revalidated in current PR-head CI; no stale CI result, reviewer label, market claim, provider payload, Production authority, spend, contract, or EULA is created.",
+  "artifacts": [
+    {"key":"designer","artifact_id":9386346984,"name":"kidults-er-designer-review-packet-r1","run_id":32310748593,"head_sha":"75f59e785d8b52a5608c6b53f45d64ba735ebb6e","digest":"sha256:e05cfc8f3a102f73c3d6cf191d56e51b984bd65bb6154914a7a706bade45cecf"},
+    {"key":"vehicle","artifact_id":9386126141,"name":"kidults-er-vehicle-review-packet-r1","run_id":32310122918,"head_sha":"76d96776beeb7cebe4ee9e90bbcc8a12e05c37ba","digest":"sha256:eb93bdf781b901baa196fcfb3bd9134bc2f26e5609e52669209fdef35a385bad"},
+    {"key":"pressing_base44","artifact_id":9386803131,"name":"kidults-er-pressing-partial-review-packet-r1","run_id":32312114653,"head_sha":"1e167bf6943cc2f8fd4a075fd52934472f3cb728","digest":"sha256:601f307d6e70d3ce0205610f441ea652a78ed8f90c9cb4375014e9ae51ea63a8"},
+    {"key":"pressing_hard10","artifact_id":9389460176,"name":"kidults-er-pressing-hardnegative-expansion-r2","run_id":32319470061,"head_sha":"22f2c5350415c70d6ef51c1c10723b038039767b","digest":"sha256:3a86ef8acb0fc8b0e5450cedf8f503276d0a56be55e78c182de913d0a634d977"},
+    {"key":"variant_base45","artifact_id":9388145410,"name":"kidults-er-variant-observed-corpus-capacity-r3","run_id":32316234748,"head_sha":"1eb25ce4d81c5daa3eac1673183fe2188a656fa1","digest":"sha256:13d34c904e47de93318a5553eb12cbf6e7c9f168f103d2513e2bfe36e2761303"},
+    {"key":"variant_hard10","artifact_id":9389024653,"name":"kidults-er-variant-hardnegative-expansion-r4","run_id":32318374190,"head_sha":"a8d645a06f156092c3fa70f5235bcdef793a6b84","digest":"sha256:2266db61b072f0be4c38e98156806ca404754d549a5dcec8cb7ed18068b54fdb"},
+    {"key":"release_crosswalk80","artifact_id":9389916955,"name":"kidults-er-release-crosswalk-review-packets-r1","run_id":32321508057,"head_sha":"773606effcbad8ad6289ad444c23b66dbb585e18","digest":"sha256:b01430829c2196463539d621018425f0f928a7aaabc91487e31c208687d11179"},
+    {"key":"expanded_hard_r1","artifact_id":9390058744,"name":"kidults-er-expanded-musicbrainz-hardnegative-r1","run_id":32321883342,"head_sha":"7710b1e43757ecf9caa0c39208a88091a4cac34a","digest":"sha256:cc303147430c82a25099905d2557520c22892ddc8e0115176582bb7100c00f04"},
+    {"key":"expanded_hard_r2","artifact_id":9390384319,"name":"kidults-er-expanded-musicbrainz-hardnegative-r2","run_id":32322881993,"head_sha":"f451c14354248288290c1ed44ef7d2a7f640079a","digest":"sha256:f7b26233945c8b3ab96367e9a69272d4fc993783845972c2030ace3f0826c81d"},
+    {"key":"serialized_wikidata9","artifact_id":9388300355,"name":"kidults-er-serialized-source-disjoint-packet-r3","run_id":32316672429,"head_sha":"c0354597636bd38eef481919e48faf4acdd79051","digest":"sha256:d42adaea1a7c0e01fe232593b15cd56413fe51610a6402e5aa497f07feb721b9"},
+    {"key":"serialized_nasm31","artifact_id":9390132159,"name":"kidults-er-serialized-smithsonian-nasm-review-packet-r4","run_id":32322154303,"head_sha":"b0c8dddb55f27e1f688eafd8f90c45f956a2cdfc","digest":"sha256:b4a7c8ad19c9239cb76a713c7c878b2d72d2e8e81a79829883bdf716823b034a"},
+    {"key":"serialized_faa_hard40","artifact_id":9390670482,"name":"kidults-er-serialized-faa-hardnegative-r1","run_id":32323900189,"head_sha":"d9e62672bcf42a0378685023e8e92f9a06be951f","digest":"sha256:255203a041bfd399f424f0798fa879bb18863437f61d7b5ac28fdf4962b8cf69"},
+    {"key":"serialized_faa_ntsb_alias40","artifact_id":9390892824,"name":"kidults-er-serialized-faa-ntsb-crossauthority-r1","run_id":32324584229,"head_sha":"00455b14bc957812eb08ecb1c73d222518810813","digest":"sha256:a755eaf27b2cdc4f01930a2f99d89d3c7d1a802746d40fc7abd7ab0b36e1d613"}
+  ]
+}
