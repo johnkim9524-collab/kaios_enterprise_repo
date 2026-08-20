@@ -36,6 +36,33 @@ export type AsiFleetStage = AsiFleet['stage'];
 export const ASI_FLEET_BY_ID = new Map<AsiFleetId, AsiFleet>(ASI_FLEETS.map((fleet) => [fleet.id, fleet]));
 export const ASI_FLEET_BY_QUEUE = new Map<string, AsiFleet>(ASI_FLEETS.map((fleet) => [fleet.queue, fleet]));
 
+const ASI_QUEUE_NAMESPACE_PATTERN = /^kidults-asi-(shadow|dev|staging)-/;
+const ASI_CANONICAL_QUEUE_PREFIX = 'kidults-asi-shadow-';
+
+/**
+ * Queue bindings are environment-specific, while fleet identity is stable.
+ * Only the three isolated runtime namespaces are accepted; arbitrary prefixes
+ * remain fail-closed instead of being silently routed to a processor fleet.
+ */
+export function canonicalAsiQueueName(queueName: string): string | null {
+  if (!ASI_QUEUE_NAMESPACE_PATTERN.test(queueName)) return null;
+  return queueName.replace(ASI_QUEUE_NAMESPACE_PATTERN,ASI_CANONICAL_QUEUE_PREFIX);
+}
+
+export function asiFleetForQueue(queueName: string): AsiFleet | undefined {
+  const canonical = canonicalAsiQueueName(queueName);
+  return canonical ? ASI_FLEET_BY_QUEUE.get(canonical) : undefined;
+}
+
+export function asiQueueNamesEquivalent(left: string, right: string): boolean {
+  const canonicalLeft = canonicalAsiQueueName(left);
+  return canonicalLeft !== null && canonicalLeft === canonicalAsiQueueName(right);
+}
+
+export function isAsiDeadLetterQueue(queueName: string): boolean {
+  return canonicalAsiQueueName(queueName) === 'kidults-asi-shadow-dead-letter';
+}
+
 const fleetIdsByStage = (stage: AsiFleetStage): AsiFleetId[] =>
   ASI_FLEETS.filter((fleet) => fleet.stage === stage).map((fleet) => fleet.id);
 
