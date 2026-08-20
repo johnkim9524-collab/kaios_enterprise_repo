@@ -1,0 +1,41 @@
+name: KIDULTS ASI Getty Historical Regional Binding R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/probe-getty-historical-regional-binding-r1.mjs'
+      - '.github/workflows/kidults-asi-getty-historical-regional-binding-r1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Probe bounded Getty historical Activity binding
+        run: node scripts/kidults/source-intelligence/probe-getty-historical-regional-binding-r1.mjs /tmp/getty-historical-regional-binding-r1.json
+      - name: Enforce Activity-only historical fail-closed boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/getty-historical-regional-binding-r1.json','utf8'));
+          if(x.source_id!=='getty-provenance-index'||x.evidence_class!=='HISTORICAL_TRANSACTION_PROVENANCE') throw new Error('SOURCE_OR_EVIDENCE_CLASS');
+          if(x.rights_state!=='ALLOW_CC0_METADATA') throw new Error('RIGHTS');
+          if(x.factor_eligibility!=='NOT_VERIFIED'||x.market_scale_claim!==false||x.current_market_claim!==false||x.global_claim!==false) throw new Error('OVERCLAIM');
+          if(x.production!=='HOLD'||x.public_release!=='HOLD') throw new Error('RELEASE');
+          if(x.country_code===null&&x.region_binding_status!=='NOT_VERIFIED_NO_EXPLICIT_ACTIVITY_COUNTRY_CHAIN') throw new Error('NULL_COUNTRY_MUST_FAIL_CLOSED');
+          if(x.country_code!==null&&x.region_binding_status!=='PARTIAL_EXPLICIT_ACTIVITY_COUNTRY_BINDING') throw new Error('COUNTRY_BINDING_STATUS');
+          if(x.country_code!==null&&!String(Array.isArray(x.observation_type)?x.observation_type.join('|'):x.observation_type).includes('Activity')) throw new Error('NON_ACTIVITY_BINDING_FORBIDDEN');
+          console.log(JSON.stringify({status:'PASS',region_binding_status:x.region_binding_status,country_code:x.country_code,macroregion_id:x.macroregion_id,activities_inspected:x.scan.activities_inspected,place_reference_count:x.place_reference_count,place_chain_count:x.place_chain_count,production:'HOLD'}));
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-getty-historical-regional-binding-r1
+          path: /tmp/getty-historical-regional-binding-r1.json
+          if-no-files-found: error
+          retention-days: 14
