@@ -1,0 +1,35 @@
+name: KIDULTS ER Serialized Smithsonian NASM Capacity R1
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-serialized-smithsonian-nasm-capacity-r1.mjs'
+      - '.github/workflows/kidults-er-serialized-smithsonian-nasm-capacity-r1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-nasm-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Measure bounded NASM serialized grammar capacity
+        run: node scripts/kidults/entity-resolution/probe-serialized-smithsonian-nasm-capacity-r1.mjs /tmp/serialized-smithsonian-nasm-capacity-r1.json
+      - name: Enforce diagnostic-only fail-closed boundary
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/serialized-smithsonian-nasm-capacity-r1.json','utf8'));
+          if(x.stratum_id!=='er-stratum-serialized-reference'||x.source_family!=='smithsonian-open-access-nasm') throw new Error('STRATUM_OR_SOURCE');
+          if(x.metrics.same_object_normalization_capacity>40||x.metrics.same_model_maker_distinct_serial_hard_negative_capacity>40||x.metrics.cross_market_alias_capacity!==0) throw new Error('CAPACITY_BOUNDARY');
+          if(x.labels_present!==false||x.reviewers_assigned!==0||x.empirical_cases_created!==0||x.track_b!=='NOT_STARTED') throw new Error('OVERCLAIM');
+          if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.blind_partition_sealed!==false) throw new Error('RELEASE_BOUNDARY');
+          if(/"raw_payload"\s*:|"payload"\s*:/.test(JSON.stringify(x))) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({status:x.status,metrics:x.metrics,blockers:x.blockers,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-smithsonian-nasm-capacity-r1
+          path: /tmp/serialized-smithsonian-nasm-capacity-r1.json
+          retention-days: 14
