@@ -195,8 +195,8 @@
     },
     "queue_d1_processor_e2e_test": {
       "path": "services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs",
-      "sha256": "sha256:186b9d32b6e0198a2d70bc7fdfa514378652151d685c0eadf728af5fda6662a2",
-      "byte_count": 32306
+      "sha256": "sha256:89bdf5ea4a6dc690ae865869e43e6e2400bd2ffcfd50186efc948d82ed129af3",
+      "byte_count": 33703
     },
     "runtime_recovery_fairness_test": {
       "path": "services/kidults-autonomous-intelligence/scripts/asi-runtime-recovery-fairness-test.mjs",
@@ -1348,8 +1348,8 @@
       },
       "queue_d1_processor_e2e_test_ref": {
         "path": "services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs",
-        "sha256": "sha256:186b9d32b6e0198a2d70bc7fdfa514378652151d685c0eadf728af5fda6662a2",
-        "byte_count": 32306
+        "sha256": "sha256:89bdf5ea4a6dc690ae865869e43e6e2400bd2ffcfd50186efc948d82ed129af3",
+        "byte_count": 33703
       },
       "runtime_recovery_fairness_test_ref": {
         "path": "services/kidults-autonomous-intelligence/scripts/asi-runtime-recovery-fairness-test.mjs",
@@ -1700,7 +1700,7 @@
     "required_suite_pass_count": 4,
     "optional_suite_count": 0,
     "optional_suite_pass_count": 0,
-    "executed_test_count": 63,
+    "executed_test_count": 64,
     "contract_negative_controls_passed": 10,
     "contract_negative_controls_total": 10,
     "suites": [
@@ -1756,10 +1756,11 @@
         "command": "node services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs",
         "status": "PASS",
         "execution_mode": "LOCAL_SHADOW",
-        "test_count": 21,
+        "test_count": 22,
         "minimum_test_count": 20,
         "test_names": [
           "isolated physical Queue namespaces resolve to the same logical fleet",
+          "DEV physical Queue batch consumes through canonical outbox provenance",
           "partition tuple encoding prevents delimiter-based grain collisions",
           "discovery request is durably dispatched to exactly one channel fleet",
           "all 12 discovery channels are durably routed through outbox to independent Queues",
@@ -1796,7 +1797,7 @@
           "production": "HOLD",
           "public_projection_authorized": false,
           "status": "PASS",
-          "tests": 21
+          "tests": 22
         }
       },
       {
@@ -2268,5 +2269,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:af0bf47002be7f26161c84e36884a70411df338a9bd1fe93266e5669fe1f18ed"
+  "evidence_fingerprint": "sha256:931dcecbd34066bf3aca407961c0167f2651f0310fc16d5c0848ef1132621463"
 }
