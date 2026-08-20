@@ -1,0 +1,190 @@
+name: KIDULTS Private Market Remote STAGING Sentinel R2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-private-market-remote-staging-sentinel-r2.yml'
+
+concurrency:
+  group: kidults-staging-runtime-mutation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  private-market-remote-staging-sentinel-r2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_READ_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_STAGING_REBIND_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+      CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN }}
+      STAGING_WORKER: kidults-autonomous-intelligence-staging
+      STAGING_D1: kidults-intelligence-db-staging
+      STAGING_D1_ID: 9bc6a406-6fca-4959-be7f-dd7f715b092c
+      PRODUCTION_D1: kidults-intelligence-db
+      PRODUCTION_D1_ID: d6d65f81-f91d-428b-bf43-8a025aaa47bd
+      CANONICAL_ROLLBACK_VERSION: d870f7e4-0919-47f7-becc-13524c393f27
+      TARGET_QUEUE: kidults-asi-shadow-discovery-wikidata
+      WRANGLER_SEND_METRICS: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: GATE — isolated STAGING and Production read-only
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          for V in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_READ_TOKEN CLOUDFLARE_STAGING_REBIND_TOKEN CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN; do test -n "${!V:-}"; echo "::add-mask::${!V}"; done
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));const d=x.d1_databases.find(v=>v.binding==='DB');
+          if(x.vars?.KIDULTS_ENV!=='staging'||x.vars?.ASI_MESH_MODE!=='SHADOW'||x.vars?.ASI_PUBLICATION_ENABLED!=='false')throw new Error('STAGING_BOUNDARY');
+          if(!d||d.database_id!==process.env.PRODUCTION_D1_ID)throw new Error('CANONICAL_CONFIG_DRIFT');
+          if((x.queues?.producers||[]).length!==26||(x.queues?.consumers||[]).length!==26)throw new Error('QUEUE_CONFIG_COUNT');
+          d.database_name=process.env.STAGING_D1;d.database_id=process.env.STAGING_D1_ID;x.name=process.env.STAGING_WORKER;x.workers_dev=false;delete x.routes;delete x.route;delete x.triggers;
+          x.vars={...(x.vars||{}),KIDULTS_ENV:'staging',ASI_MESH_MODE:'SHADOW',ASI_PUBLICATION_ENABLED:'false'};fs.writeFileSync('wrangler.private-market-remote-r2.generated.json',JSON.stringify(x,null,2));
+          NODE
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 info "$STAGING_D1" --json > /tmp/staging-info.json
+          grep -Fq "$STAGING_D1_ID" /tmp/staging-info.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/staging-info.json; then exit 10; fi
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/production-before.json
+          node -e "const x=require('/tmp/production-before.json');if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0))process.exit(2)"
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_STAGING_REBIND_TOKEN" npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-before.json
+          V="$CANONICAL_ROLLBACK_VERSION" node -e "const x=require('/tmp/deployment-before.json');const a=Array.isArray(x)?x:(x.result||x.deployments||[]);const d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0];if(!JSON.stringify(d||{}).includes(process.env.V))process.exit(3)"
+
+      - name: BUILD — patch synthetic private-store control
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          npm run typecheck
+          python - <<'PY'
+          from pathlib import Path
+          import base64
+          p=Path('src/worker.ts');s=p.read_text()
+          old="  async queue(batch: MessageBatch<AsiQueueTask>, env: Env): Promise<void> {\n    await consumeAsiBatch(batch,env);\n  },"
+          encoded="ICBhc3luYyBxdWV1ZShiYXRjaDogTWVzc2FnZUJhdGNoPEFzaVF1ZXVlVGFzaz4sIGVudjogRW52KTogUHJvbWlzZTx2b2lkPiB7CiAgICBjb25zdCBjb250cm9scz1iYXRjaC5tZXNzYWdlcy5maWx0ZXIoKG1lc3NhZ2UpPT57IGNvbnN0IGI9bWVzc2FnZS5ib2R5IGFzIHVua25vd24gYXMge2NvbnRyb2w/OnN0cmluZ307IHJldHVybiBiPy5jb250cm9sPT09J0tQTU9fUFJJVkFURV9NQVJLRVRfUkVNT1RFX1IyJzsgfSk7CiAgICBpZihjb250cm9scy5sZW5ndGgpewogICAgICBjb25zdCBlbmM9bmV3IFRleHRFbmNvZGVyKCk7CiAgICAgIGNvbnN0IGRlYz1uZXcgVGV4dERlY29kZXIoKTsKICAgICAgY29uc3QgaGV4PSh2OkFycmF5QnVmZmVyfFVpbnQ4QXJyYXkpPT5BcnJheS5mcm9tKHYgaW5zdGFuY2VvZiBVaW50OEFycmF5P3Y6bmV3IFVpbnQ4QXJyYXkodikpLm1hcCh4PT54LnRvU3RyaW5nKDE2KS5wYWRTdGFydCgyLCcwJykpLmpvaW4oJycpOwogICAgICBjb25zdCBmcm9tSGV4PSh2OnN0cmluZyk9Pm5ldyBVaW50OEFycmF5KCh2Lm1hdGNoKC8uLi9nKXx8W10pLm1hcCh4PT5wYXJzZUludCh4LDE2KSkpOwogICAgICBjb25zdCBiNjQ9KHY6QXJyYXlCdWZmZXIpPT5idG9hKFN0cmluZy5mcm9tQ2hhckNvZGUoLi4ubmV3IFVpbnQ4QXJyYXkodikpKTsKICAgICAgY29uc3QgZnJvbUI2ND0odjpzdHJpbmcpPT5VaW50OEFycmF5LmZyb20oYXRvYih2KSxjPT5jLmNoYXJDb2RlQXQoMCkpOwogICAgICBjb25zdCBzaGE9YXN5bmModjpzdHJpbmcpPT5oZXgoYXdhaXQgY3J5cHRvLnN1YnRsZS5kaWdlc3QoJ1NIQS0yNTYnLGVuYy5lbmNvZGUodikpKTsKICAgICAgY29uc3QgYWVzS2V5PWFzeW5jKGlkOnN0cmluZyk9PmNyeXB0by5zdWJ0bGUuaW1wb3J0S2V5KCdyYXcnLGF3YWl0IGNyeXB0by5zdWJ0bGUuZGlnZXN0KCdTSEEtMjU2JyxlbmMuZW5jb2RlKGBLUE1PX1RFU1RfT05MWV9BRVN8JHtpZH1gKSkse25hbWU6J0FFUy1HQ00nfSxmYWxzZSxbJ2VuY3J5cHQnLCdkZWNyeXB0J10pOwogICAgICBjb25zdCBobWFjS2V5PWFzeW5jKGlkOnN0cmluZyk9PmNyeXB0by5zdWJ0bGUuaW1wb3J0S2V5KCdyYXcnLGF3YWl0IGNyeXB0by5zdWJ0bGUuZGlnZXN0KCdTSEEtMjU2JyxlbmMuZW5jb2RlKGBLUE1PX1RFU1RfT05MWV9ITUFDfCR7aWR9YCkpLHtuYW1lOidITUFDJyxoYXNoOidTSEEtMjU2J30sZmFsc2UsWydzaWduJywndmVyaWZ5J10pOwogICAgICBmb3IoY29uc3QgbWVzc2FnZSBvZiBiYXRjaC5tZXNzYWdlcyl7CiAgICAgICAgY29uc3QgYj1tZXNzYWdlLmJvZHkgYXMgdW5rbm93biBhcyB7Y29udHJvbD86c3RyaW5nO3BoYXNlPzpzdHJpbmc7c2VudGluZWxfaWQ/OnN0cmluZzthY3F1aXJlZF9hdD86c3RyaW5nO2V4cGlyZXNfYXQ/OnN0cmluZztkZWxldGVfYXQ/OnN0cmluZ307CiAgICAgICAgaWYoYj8uY29udHJvbCE9PSdLUE1PX1BSSVZBVEVfTUFSS0VUX1JFTU9URV9SMicpeyBtZXNzYWdlLnJldHJ5KHtkZWxheVNlY29uZHM6MTV9KTsgY29udGludWU7IH0KICAgICAgICBjb25zdCBpZD1TdHJpbmcoYi5zZW50aW5lbF9pZHx8JycpOwogICAgICAgIGlmKCEvXmtwbW9fcmVtb3RlX1swLTlhLWZdezE2fSQvLnRlc3QoaWQpKSB0aHJvdyBuZXcgRXJyb3IoJ0tQTU9fUFJJVkFURV9TRU5USU5FTF9JRCcpOwogICAgICAgIGNvbnN0IHN1ZmZpeD1pZC5zbGljZSgna3Btb19yZW1vdGVfJy5sZW5ndGgpOwogICAgICAgIGNvbnN0IGRhdGFUYWJsZT1ga3Btb19wcml2YXRlX21hcmtldF8ke3N1ZmZpeH1gOwogICAgICAgIGNvbnN0IGF1ZGl0VGFibGU9YGtwbW9fcHJpdmF0ZV9tYXJrZXRfYXVkaXRfJHtzdWZmaXh9YDsKICAgICAgICBpZihiLnBoYXNlPT09J1NUT1JFX1ZFUklGWScpewogICAgICAgICAgY29uc3QgYWNxdWlyZWQ9U3RyaW5nKGIuYWNxdWlyZWRfYXR8fCcnKTsKICAgICAgICAgIGNvbnN0IGV4cGlyZXM9U3RyaW5nKGIuZXhwaXJlc19hdHx8JycpOwogICAgICAgICAgaWYoIWFjcXVpcmVkfHwhZXhwaXJlc3x8RGF0ZS5wYXJzZShleHBpcmVzKTw9RGF0ZS5wYXJzZShhY3F1aXJlZCkpIHRocm93IG5ldyBFcnJvcignS1BNT19QUklWQVRFX1NFTlRJTkVMX1RJTUUnKTsKICAgICAgICAgIGNvbnN0IHBheWxvYWQ9SlNPTi5zdHJpbmdpZnkoe2tpbmQ6J1NZTlRIRVRJQ19TRU5USU5FTF9OT1RfUFJPVklERVJfREFUQScsc2VudGluZWxfaWQ6aWQsdmFsdWU6J3JlbW90ZS1zdGFnaW5nLXByaXZhdGUtc3RvcmUtdGVzdC1vbmx5J30pOwogICAgICAgICAgY29uc3QgaXY9Y3J5cHRvLmdldFJhbmRvbVZhbHVlcyhuZXcgVWludDhBcnJheSgxMikpOwogICAgICAgICAgY29uc3Qga2V5PWF3YWl0IGFlc0tleShpZCk7CiAgICAgICAgICBjb25zdCBjaXBoZXJ0ZXh0PWF3YWl0IGNyeXB0by5zdWJ0bGUuZW5jcnlwdCh7bmFtZTonQUVTLUdDTScsaXZ9LGtleSxlbmMuZW5jb2RlKHBheWxvYWQpKTsKICAgICAgICAgIGNvbnN0IHBheWxvYWRTaGE9YXdhaXQgc2hhKHBheWxvYWQpOwogICAgICAgICAgY29uc3QgY2lwaGVydGV4dEI2ND1iNjQoY2lwaGVydGV4dCk7CiAgICAgICAgICBjb25zdCBjaXBoZXJTaGE9YXdhaXQgc2hhKGNpcGhlcnRleHRCNjQpOwogICAgICAgICAgY29uc3QgY2Fub25pY2FsPWAke2lkfXwke3BheWxvYWRTaGF9fCR7Y2lwaGVyU2hhfXwke2FjcXVpcmVkfXwke2V4cGlyZXN9YDsKICAgICAgICAgIGNvbnN0IGhrPWF3YWl0IGhtYWNLZXkoaWQpOwogICAgICAgICAgY29uc3QgcmVjZWlwdEhtYWM9aGV4KGF3YWl0IGNyeXB0by5zdWJ0bGUuc2lnbignSE1BQycsaGssZW5jLmVuY29kZShjYW5vbmljYWwpKSk7CiAgICAgICAgICBhd2FpdCBlbnYuREIuZXhlYyhgQ1JFQVRFIFRBQkxFICR7ZGF0YVRhYmxlfSAoc2VudGluZWxfaWQgVEVYVCBQUklNQVJZIEtFWSxjaXBoZXJ0ZXh0X2I2NCBURVhUIE5PVCBOVUxMLGl2X2hleCBURVhUIE5PVCBOVUxMLHBheWxvYWRfc2hhMjU2IFRFWFQgTk9UIE5VTEwsY2lwaGVydGV4dF9zaGEyNTYgVEVYVCBOT1QgTlVMTCxyZWNlaXB0X2htYWNfc2hhMjU2IFRFWFQgTk9UIE5VTEwsYWNxdWlyZWRfYXQgVEVYVCBOT1QgTlVMTCxleHBpcmVzX2F0IFRFWFQgTk9UIE5VTEwsc3RhdHVzIFRFWFQgTk9UIE5VTEwpOyBDUkVBVEUgVEFCTEUgJHthdWRpdFRhYmxlfSAoc2VxIElOVEVHRVIgUFJJTUFSWSBLRVkgQVVUT0lOQ1JFTUVOVCxldmVudF90eXBlIFRFWFQgTk9UIE5VTEwscmVzdWx0IFRFWFQgTk9UIE5VTEwsYXQgVEVYVCBOT1QgTlVMTCk7YCk7CiAgICAgICAgICBhd2FpdCBlbnYuREIucHJlcGFyZShgSU5TRVJUIElOVE8gJHtkYXRhVGFibGV9IFZBTFVFUyAoPyw/LD8sPyw/LD8sPyw/LD8pYCkuYmluZChpZCxjaXBoZXJ0ZXh0QjY0LGhleChpdikscGF5bG9hZFNoYSxjaXBoZXJTaGEscmVjZWlwdEhtYWMsYWNxdWlyZWQsZXhwaXJlcywnU1RPUkVEX0VOQ1JZUFRFRCcpLnJ1bigpOwogICAgICAgICAgYXdhaXQgZW52LkRCLnByZXBhcmUoYElOU0VSVCBJTlRPICR7YXVkaXRUYWJsZX0oZXZlbnRfdHlwZSxyZXN1bHQsYXQpIFZBTFVFUyAoJ1NUT1JFJywnUEFTUycsPylgKS5iaW5kKGFjcXVpcmVkKS5ydW4oKTsKICAgICAgICAgIGNvbnN0IHJvdz1hd2FpdCBlbnYuREIucHJlcGFyZShgU0VMRUNUICogRlJPTSAke2RhdGFUYWJsZX0gV0hFUkUgc2VudGluZWxfaWQ9P2ApLmJpbmQoaWQpLmZpcnN0PHtjaXBoZXJ0ZXh0X2I2NDpzdHJpbmc7aXZfaGV4OnN0cmluZztwYXlsb2FkX3NoYTI1NjpzdHJpbmc7Y2lwaGVydGV4dF9zaGEyNTY6c3RyaW5nO3JlY2VpcHRfaG1hY19zaGEyNTY6c3RyaW5nO2FjcXVpcmVkX2F0OnN0cmluZztleHBpcmVzX2F0OnN0cmluZ30+KCk7CiAgICAgICAgICBpZighcm93KSB0aHJvdyBuZXcgRXJyb3IoJ0tQTU9fUFJJVkFURV9TRU5USU5FTF9NSVNTSU5HJyk7CiAgICAgICAgICBjb25zdCBwbGFpbj1kZWMuZGVjb2RlKGF3YWl0IGNyeXB0by5zdWJ0bGUuZGVjcnlwdCh7bmFtZTonQUVTLUdDTScsaXY6ZnJvbUhleChyb3cuaXZfaGV4KX0sa2V5LGZyb21CNjQocm93LmNpcGhlcnRleHRfYjY0KSkpOwogICAgICAgICAgaWYocGxhaW4hPT1wYXlsb2FkfHxhd2FpdCBzaGEocGxhaW4pIT09cm93LnBheWxvYWRfc2hhMjU2KSB0aHJvdyBuZXcgRXJyb3IoJ0tQTU9fUFJJVkFURV9ERUNSWVBUX1ZFUklGWScpOwogICAgICAgICAgY29uc3Qgcm93Q2Fub25pY2FsPWAke2lkfXwke3Jvdy5wYXlsb2FkX3NoYTI1Nn18JHtyb3cuY2lwaGVydGV4dF9zaGEyNTZ9fCR7cm93LmFjcXVpcmVkX2F0fXwke3Jvdy5leHBpcmVzX2F0fWA7CiAgICAgICAgICBpZighYXdhaXQgY3J5cHRvLnN1YnRsZS52ZXJpZnkoJ0hNQUMnLGhrLGZyb21IZXgocm93LnJlY2VpcHRfaG1hY19zaGEyNTYpLGVuYy5lbmNvZGUocm93Q2Fub25pY2FsKSkpIHRocm93IG5ldyBFcnJvcignS1BNT19QUklWQVRFX0hNQUNfVkVSSUZZJyk7CiAgICAgICAgICBjb25zdCB0YW1wZXJlZD1gJHtpZH18JHsnMCcucmVwZWF0KDY0KX18JHtyb3cuY2lwaGVydGV4dF9zaGEyNTZ9fCR7cm93LmFjcXVpcmVkX2F0fXwke3Jvdy5leHBpcmVzX2F0fWA7CiAgICAgICAgICBpZihhd2FpdCBjcnlwdG8uc3VidGxlLnZlcmlmeSgnSE1BQycsaGssZnJvbUhleChyb3cucmVjZWlwdF9obWFjX3NoYTI1NiksZW5jLmVuY29kZSh0YW1wZXJlZCkpKSB0aHJvdyBuZXcgRXJyb3IoJ0tQTU9fUFJJVkFURV9UQU1QRVJfQUNDRVBURUQnKTsKICAgICAgICAgIGF3YWl0IGVudi5EQi5wcmVwYXJlKGBVUERBVEUgJHtkYXRhVGFibGV9IFNFVCBzdGF0dXM9J1ZFUklGSUVEX1RBTVBFUl9SRUpFQ1RFRCcgV0hFUkUgc2VudGluZWxfaWQ9P2ApLmJpbmQoaWQpLnJ1bigpOwogICAgICAgICAgYXdhaXQgZW52LkRCLnByZXBhcmUoYElOU0VSVCBJTlRPICR7YXVkaXRUYWJsZX0oZXZlbnRfdHlwZSxyZXN1bHQsYXQpIFZBTFVFUyAoJ0RFQ1JZUFRfVkVSSUZZJywnUEFTUycsPyksKCdUQU1QRVJfTkVHQVRJVkUnLCdSRUpFQ1RFRF9BU19FWFBFQ1RFRCcsPylgKS5iaW5kKGFjcXVpcmVkLGFjcXVpcmVkKS5ydW4oKTsKICAgICAgICAgIG1lc3NhZ2UuYWNrKCk7CiAgICAgICAgICBjb250aW51ZTsKICAgICAgICB9CiAgICAgICAgaWYoYi5waGFzZT09PSdUVExfREVMRVRFJyl7CiAgICAgICAgICBjb25zdCByb3c9YXdhaXQgZW52LkRCLnByZXBhcmUoYFNFTEVDVCBleHBpcmVzX2F0IEZST00gJHtkYXRhVGFibGV9IFdIRVJFIHNlbnRpbmVsX2lkPT9gKS5iaW5kKGlkKS5maXJzdDx7ZXhwaXJlc19hdDpzdHJpbmd9PigpOwogICAgICAgICAgaWYoIXJvdykgdGhyb3cgbmV3IEVycm9yKCdLUE1PX1BSSVZBVEVfVFRMX1JPV19NSVNTSU5HJyk7CiAgICAgICAgICBjb25zdCBkZWw9U3RyaW5nKGIuZGVsZXRlX2F0fHwnJyk7CiAgICAgICAgICBpZighZGVsfHxEYXRlLnBhcnNlKGRlbCk8PURhdGUucGFyc2Uocm93LmV4cGlyZXNfYXQpKSB0aHJvdyBuZXcgRXJyb3IoJ0tQTU9fUFJJVkFURV9UVExfQ0xPQ0snKTsKICAgICAgICAgIGF3YWl0IGVudi5EQi5wcmVwYXJlKGBERUxFVEUgRlJPTSAke2RhdGFUYWJsZX0gV0hFUkUgc2VudGluZWxfaWQ9P2ApLmJpbmQoaWQpLnJ1bigpOwogICAgICAgICAgYXdhaXQgZW52LkRCLnByZXBhcmUoYElOU0VSVCBJTlRPICR7YXVkaXRUYWJsZX0oZXZlbnRfdHlwZSxyZXN1bHQsYXQpIFZBTFVFUyAoJ1RUTF9ERUxFVEUnLCdQQVNTJyw/KWApLmJpbmQoZGVsKS5ydW4oKTsKICAgICAgICAgIG1lc3NhZ2UuYWNrKCk7CiAgICAgICAgICBjb250aW51ZTsKICAgICAgICB9CiAgICAgICAgaWYoYi5waGFzZT09PSdGSU5BTElaRScpewogICAgICAgICAgYXdhaXQgZW52LkRCLmV4ZWMoYERST1AgVEFCTEUgSUYgRVhJU1RTICR7ZGF0YVRhYmxlfTsgRFJPUCBUQUJMRSBJRiBFWElTVFMgJHthdWRpdFRhYmxlfTtgKTsKICAgICAgICAgIG1lc3NhZ2UuYWNrKCk7CiAgICAgICAgICBjb250aW51ZTsKICAgICAgICB9CiAgICAgICAgdGhyb3cgbmV3IEVycm9yKCdLUE1PX1BSSVZBVEVfU0VOVElORUxfUEhBU0UnKTsKICAgICAgfQogICAgICByZXR1cm47CiAgICB9CiAgICBhd2FpdCBjb25zdW1lQXNpQmF0Y2goYmF0Y2gsZW52KTsKICB9LA=="
+          new=base64.b64decode(encoded).decode()
+          if old not in s: raise SystemExit('QUEUE_HANDLER_PATCH_TARGET_NOT_FOUND')
+          p.write_text(s.replace(old,new))
+          PY
+          npm run typecheck
+          npx wrangler deploy --config wrangler.private-market-remote-r2.generated.json --dry-run --outdir /tmp/private-r2-dry-run
+
+      - name: DEPLOY — temporary no-route harness
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: /tmp/private-r2-upload.ndjson
+        run: |
+          set -euo pipefail
+          rm -f /tmp/private-r2-upload.ndjson
+          START=$(date +%s%3N)
+          npx wrangler versions upload --config wrangler.private-market-remote-r2.generated.json --tag kpmo-private-market-remote-r2 --message 'Temporary synthetic private-store STAGING sentinel R2; no provider data; no routes; no cron; Production HOLD'
+          node - <<'NODE' > /tmp/harness.env
+          const fs=require('fs');const rows=fs.readFileSync('/tmp/private-r2-upload.ndjson','utf8').trim().split(/\n+/).filter(Boolean).map(JSON.parse);const x=[...rows].reverse().find(r=>r.type==='version-upload'&&r.version_id);if(!x)throw new Error('NO_HARNESS_VERSION');console.log(`HARNESS_VERSION_ID=${x.version_id}`);
+          NODE
+          source /tmp/harness.env
+          npx wrangler versions view "$HARNESS_VERSION_ID" --name "$STAGING_WORKER" --json > /tmp/harness-view.json
+          grep -Fq "$STAGING_D1_ID" /tmp/harness-view.json || grep -Fq "$STAGING_D1" /tmp/harness-view.json
+          if grep -Fq "$PRODUCTION_D1_ID" /tmp/harness-view.json; then exit 11; fi
+          npx wrangler versions deploy "$HARNESS_VERSION_ID@100%" --name "$STAGING_WORKER" --message 'KPMO private market remote sentinel R2' -y
+          END=$(date +%s%3N);printf 'DEPLOY_MS=%s\n' "$((END-START))" > /tmp/private-r2-metrics.env
+
+      - name: STORE/VERIFY — encrypted synthetic sentinel
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > /tmp/sentinel.env
+          const crypto=require('crypto'),fs=require('fs');const suffix=crypto.randomBytes(8).toString('hex'),id=`kpmo_remote_${suffix}`,acquired=new Date(),expires=new Date(acquired.getTime()+120000),del=new Date(acquired.getTime()+180000);fs.writeFileSync('/tmp/store.json',JSON.stringify({body:{control:'KPMO_PRIVATE_MARKET_REMOTE_R2',phase:'STORE_VERIFY',sentinel_id:id,acquired_at:acquired.toISOString(),expires_at:expires.toISOString()}}));fs.writeFileSync('/tmp/delete.json',JSON.stringify({body:{control:'KPMO_PRIVATE_MARKET_REMOTE_R2',phase:'TTL_DELETE',sentinel_id:id,delete_at:del.toISOString()}}));fs.writeFileSync('/tmp/finalize.json',JSON.stringify({body:{control:'KPMO_PRIVATE_MARKET_REMOTE_R2',phase:'FINALIZE',sentinel_id:id}}));console.log(`SENTINEL_ID=${id}`);console.log(`SUFFIX=${suffix}`);
+          NODE
+          source /tmp/sentinel.env
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" > /tmp/queues.json
+          QUEUE_ID=$(Q="$TARGET_QUEUE" node -e "const x=require('/tmp/queues.json');const q=(x.result||[]).find(v=>(v.queue_name||v.name)===process.env.Q);if(!q)process.exit(2);process.stdout.write(q.queue_id||q.id)")
+          START=$(date +%s%3N)
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" --data-binary @/tmp/store.json > /tmp/store-response.json
+          grep -Fq '"success":true' /tmp/store-response.json
+          PASS=0
+          for i in $(seq 1 30); do
+            CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT status,length(ciphertext_b64) AS ciphertext_length,length(payload_sha256) AS payload_sha_length,length(receipt_hmac_sha256) AS hmac_length,instr(ciphertext_b64,'SYNTHETIC_SENTINEL_NOT_PROVIDER_DATA') AS plaintext_marker_present FROM kpmo_private_market_$SUFFIX WHERE sentinel_id='$SENTINEL_ID'" --json > /tmp/private-state.json 2>/dev/null || true
+            if node -e "const fs=require('fs');try{const x=JSON.parse(fs.readFileSync('/tmp/private-state.json','utf8')),r=x?.[0]?.results?.[0]||{};process.exit(r.status==='VERIFIED_TAMPER_REJECTED'&&Number(r.ciphertext_length)>0&&Number(r.payload_sha_length)===64&&Number(r.hmac_length)===64&&Number(r.plaintext_marker_present)===0?0:1)}catch{process.exit(1)}"; then PASS=1;break;fi
+            sleep 3
+          done
+          test "$PASS" = 1
+          END=$(date +%s%3N);printf 'STORE_VERIFY_VISIBLE_MS=%s\n' "$((END-START))" >> /tmp/private-r2-metrics.env
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT COUNT(*) AS audit_events FROM kpmo_private_market_audit_$SUFFIX" --json > /tmp/audit.json
+          node -e "const r=require('/tmp/audit.json')?.[0]?.results?.[0]||{};if(Number(r.audit_events)!==3)process.exit(2)"
+
+      - name: TTL DELETE/FINALIZE — simulated expiry and cleanup
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          source /tmp/sentinel.env
+          QUEUE_ID=$(Q="$TARGET_QUEUE" node -e "const x=require('/tmp/queues.json');const q=(x.result||[]).find(v=>(v.queue_name||v.name)===process.env.Q);if(!q)process.exit(2);process.stdout.write(q.queue_id||q.id)")
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" --data-binary @/tmp/delete.json > /tmp/delete-response.json
+          grep -Fq '"success":true' /tmp/delete-response.json
+          PASS=0
+          for i in $(seq 1 20); do
+            CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT (SELECT COUNT(*) FROM kpmo_private_market_$SUFFIX WHERE sentinel_id='$SENTINEL_ID') AS remaining,(SELECT COUNT(*) FROM kpmo_private_market_audit_$SUFFIX) AS audit_events" --json > /tmp/delete-state.json 2>/dev/null || true
+            if node -e "const fs=require('fs');try{const x=JSON.parse(fs.readFileSync('/tmp/delete-state.json','utf8')),r=x?.[0]?.results?.[0]||{};process.exit(Number(r.remaining)===0&&Number(r.audit_events)===4?0:1)}catch{process.exit(1)}"; then PASS=1;break;fi
+            sleep 3
+          done
+          test "$PASS" = 1
+          curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_STAGING_QUEUE_TEST_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" --data-binary @/tmp/finalize.json > /tmp/finalize-response.json
+          grep -Fq '"success":true' /tmp/finalize-response.json
+          PASS=0
+          for i in $(seq 1 20); do
+            CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT COUNT(*) AS remaining_tables FROM sqlite_master WHERE type='table' AND name IN ('kpmo_private_market_$SUFFIX','kpmo_private_market_audit_$SUFFIX')" --json > /tmp/final-state.json
+            if node -e "const r=require('/tmp/final-state.json')?.[0]?.results?.[0]||{};process.exit(Number(r.remaining_tables)===0?0:1)";then PASS=1;break;fi
+            sleep 2
+          done
+          test "$PASS" = 1
+
+      - name: VERIFY — Production remains read-only
+        if: always()
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/production-after.json
+          node -e "const x=require('/tmp/production-after.json');if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0))process.exit(2)"
+
+      - name: ROLLBACK — restore canonical STAGING if owned
+        if: always()
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ ! -f /tmp/harness.env ];then exit 0;fi
+          source /tmp/harness.env
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-final.json
+          MODE=$(H="$HARNESS_VERSION_ID" C="$CANONICAL_ROLLBACK_VERSION" node -e "const x=require('/tmp/deployment-final.json'),a=Array.isArray(x)?x:(x.result||x.deployments||[]),d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0],s=JSON.stringify(d||{});process.stdout.write(s.includes(process.env.H)?'OWNED':s.includes(process.env.C)?'CANONICAL':'FOREIGN')")
+          if [ "$MODE" = FOREIGN ];then echo 'Refusing foreign overwrite';exit 20;fi
+          if [ "$MODE" = OWNED ];then START=$(date +%s%3N);npx wrangler versions deploy "$CANONICAL_ROLLBACK_VERSION@100%" --name "$STAGING_WORKER" --message 'KPMO private market remote R2 rollback' -y;END=$(date +%s%3N);printf 'ROLLBACK_MS=%s\n' "$((END-START))" >> /tmp/private-r2-metrics.env;fi
+          npx wrangler deployments list --name "$STAGING_WORKER" --json > /tmp/deployment-restored.json
+          V="$CANONICAL_ROLLBACK_VERSION" node -e "const x=require('/tmp/deployment-restored.json'),a=Array.isArray(x)?x:(x.result||x.deployments||[]),d=[...a].sort((p,q)=>Date.parse(q.created_on||0)-Date.parse(p.created_on||0))[0];if(!JSON.stringify(d||{}).includes(process.env.V))process.exit(2)"
+
+      - name: RECEIPT — safe synthetic metadata only
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/private-r2-safe;touch /tmp/private-r2-metrics.env
+          node - <<'NODE'
+          const fs=require('fs');const metrics={};for(const l of fs.readFileSync('/tmp/private-r2-metrics.env','utf8').split(/\n/)){const i=l.indexOf('=');if(i>0)metrics[l.slice(0,i)]=Number(l.slice(i+1))}let clean=false;if(fs.existsSync('/tmp/final-state.json')){try{const r=require('/tmp/final-state.json')?.[0]?.results?.[0]||{};clean=Number(r.remaining_tables)===0}catch{}}const receipt={state:clean?'REMOTE_STAGING_PRIVATE_STORE_SENTINEL_PASS':'REMOTE_STAGING_PRIVATE_STORE_SENTINEL_INCOMPLETE',environment:'STAGING_ISOLATED_D1',synthetic_sentinel_only:true,provider_network_requests:0,provider_payloads_used:0,raw_payload_public_output:false,aes_gcm_roundtrip:clean?'PASS':'NOT_PROVEN',opaque_receipt_hmac:clean?'PASS':'NOT_PROVEN',tamper_negative:clean?'REJECTED_AS_EXPECTED':'NOT_PROVEN',simulated_ttl_delete:clean?'PASS':'NOT_PROVEN',remote_cleanup:clean?'PASS':'NOT_PROVEN',test_only_derivable_crypto_keying:true,secret_manager_provider_key_proven:false,provider_specific_private_runtime_verified:false,rights_terminalized:false,active_market_claim:'NONE',production_mutation:false,production:'HOLD',public_release:'HOLD',metrics_ms:metrics,truth_boundary:'Remote STAGING synthetic private-store mechanics only; not provider evidence, provider-specific credential/runtime proof, field-purpose rights, real Secret Manager key proof, market evidence, Public, Production or G5 authorization.'};fs.writeFileSync('/tmp/private-r2-safe/receipt.json',JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt,null,2));if(!clean)process.exitCode=1;
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-private-market-remote-staging-sentinel-r2
+          path: /tmp/private-r2-safe/receipt.json
+          retention-days: 30
+          if-no-files-found: error
