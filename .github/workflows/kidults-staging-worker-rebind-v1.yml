@@ -1,0 +1,164 @@
+name: KIDULTS STAGING Worker Rebind v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-staging-worker-rebind-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging-worker-rebind:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_STAGING_REBIND_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: PRECHECK — isolated staging boundary
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='services/kidults-autonomous-intelligence/wrangler.jsonc';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const q=(x.queues?.producers||[]).map(v=>v.queue);
+          if(x.vars?.KIDULTS_ENV!=='staging'||x.vars?.ASI_MESH_MODE!=='SHADOW'||x.vars?.ASI_PUBLICATION_ENABLED!=='false') throw new Error('STAGING_BOUNDARY');
+          if(q.length!==26||new Set(q).size!==26||q.some(v=>!v.startsWith('kidults-asi-shadow-'))) throw new Error('QUEUE_BOUNDARY');
+          const d=x.d1_databases?.find(v=>v.binding==='DB');
+          if(!d) throw new Error('DB_BINDING_MISSING');
+          d.database_name='kidults-intelligence-db-staging';
+          d.database_id='9bc6a406-6fca-4959-be7f-dd7f715b092c';
+          x.name='kidults-autonomous-intelligence-staging';
+          x.workers_dev=false;
+          delete x.routes; delete x.route; delete x.triggers;
+          x.vars={...(x.vars||{}),KIDULTS_ENV:'staging',ASI_MESH_MODE:'SHADOW',ASI_PUBLICATION_ENABLED:'false'};
+          fs.writeFileSync('services/kidults-autonomous-intelligence/wrangler.staging-rebind.generated.json',JSON.stringify(x,null,2));
+          fs.writeFileSync('/tmp/rebind-boundary.json',JSON.stringify({worker:x.name,staging_d1:d.database_id,queues:q.length,workers_dev:false,routes:0,cron:0,publication:false,production:'HOLD'},null,2));
+          NODE
+
+      - name: Install and static validation
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          npm install --ignore-scripts
+          npm run deploy:preflight
+          npm run typecheck
+          npx wrangler deploy --config wrangler.staging-rebind.generated.json --dry-run --outdir /tmp/kidults-staging-rebind-dry-run
+
+      - name: VERIFY — staging D1 and 26 queues with read-only token
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          npx wrangler d1 info kidults-intelligence-db-staging --json > /tmp/staging-d1-info.json
+          npx wrangler queues list > /tmp/queues.txt
+          node - <<'NODE'
+          const fs=require('fs'); const cfg=require('./wrangler.staging-rebind.generated.json');
+          const d=JSON.stringify(JSON.parse(fs.readFileSync('/tmp/staging-d1-info.json','utf8')));
+          if(!d.includes('9bc6a406-6fca-4959-be7f-dd7f715b092c')) throw new Error('STAGING_D1_ID_MISMATCH');
+          if(d.includes('d6d65f81-f91d-428b-bf43-8a025aaa47bd')) throw new Error('PRODUCTION_D1_LEAK');
+          const txt=fs.readFileSync('/tmp/queues.txt','utf8'); const expected=(cfg.queues?.producers||[]).map(x=>x.queue);
+          const missing=expected.filter(q=>!txt.includes(q)); if(missing.length) throw new Error(`QUEUE_MISSING_${missing.length}`);
+          console.log(JSON.stringify({status:'PASS',staging_d1:true,queues:26,production_d1:false}));
+          NODE
+
+      - name: GATE — require temporary Worker rebind token
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_STAGING_REBIND_TOKEN:-}" ]; then
+            echo 'CLOUDFLARE_STAGING_REBIND_TOKEN missing; fail closed before upload/deploy.'
+            exit 2
+          fi
+          echo "::add-mask::$CLOUDFLARE_STAGING_REBIND_TOKEN"
+
+      - name: SNAPSHOT — current deployment as rollback target
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx wrangler deployments list --name kidults-autonomous-intelligence-staging --json > /tmp/deployments-before.json
+          npx wrangler versions list --name kidults-autonomous-intelligence-staging --json > /tmp/versions-before.json
+          node - <<'NODE' > /tmp/rollback.env
+          const fs=require('fs'); const a=JSON.parse(fs.readFileSync('/tmp/deployments-before.json','utf8'));
+          const s=JSON.stringify(a); const ids=[...s.matchAll(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/ig)].map(m=>m[0]);
+          if(!ids.length) throw new Error('NO_CURRENT_DEPLOYMENT_VERSION');
+          console.log(`ROLLBACK_VERSION_ID=${ids[0]}`);
+          NODE
+          cat /tmp/rollback.env
+
+      - name: UPLOAD — staging D1-bound candidate version
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: /tmp/wrangler-rebind-upload.ndjson
+        run: |
+          set -euo pipefail
+          npx wrangler versions upload --config wrangler.staging-rebind.generated.json --tag staging-d1-isolated --message 'KPMO isolated STAGING D1 rebind; no route; no cron'
+          npx wrangler versions list --name kidults-autonomous-intelligence-staging --json > /tmp/versions-after-upload.json
+          source /tmp/rollback.env
+          ROLLBACK_VERSION_ID="$ROLLBACK_VERSION_ID" node - <<'NODE' > /tmp/candidate.env
+          const fs=require('fs'); const rb=process.env.ROLLBACK_VERSION_ID; const a=JSON.parse(fs.readFileSync('/tmp/versions-after-upload.json','utf8'));
+          const getTime=x=>Date.parse(x.created_on||x.created_at||x.created||0)||0;
+          const v=[...a].filter(x=>(x.id||x.version_id)!==rb).sort((x,y)=>getTime(y)-getTime(x))[0];
+          const id=v?.id||v?.version_id; if(!id) throw new Error('NO_REBIND_CANDIDATE_VERSION');
+          console.log(`CANDIDATE_VERSION_ID=${id}`);
+          NODE
+          cat /tmp/candidate.env
+
+      - name: DEPLOY — rebind candidate at 100 percent
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          source /tmp/rollback.env
+          source /tmp/candidate.env
+          test -n "$ROLLBACK_VERSION_ID" && test -n "$CANDIDATE_VERSION_ID" && test "$ROLLBACK_VERSION_ID" != "$CANDIDATE_VERSION_ID"
+          npx wrangler versions deploy "$CANDIDATE_VERSION_ID@100%" --name kidults-autonomous-intelligence-staging --message 'KPMO STAGING D1 isolated rebind' -y
+          printf '{"worker":"kidults-autonomous-intelligence-staging","rollback_version_id":"%s","candidate_version_id":"%s","staging_d1_id":"9bc6a406-6fca-4959-be7f-dd7f715b092c","production_d1_id":"d6d65f81-f91d-428b-bf43-8a025aaa47bd","queues":26,"workers_dev":false,"routes":0,"cron":0,"publication":false,"production":"HOLD"}\n' "$ROLLBACK_VERSION_ID" "$CANDIDATE_VERSION_ID" > /tmp/rebind-receipt.json
+
+      - name: POSTCHECK — deployment and rollback visibility
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_REBIND_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx wrangler deployments list --name kidults-autonomous-intelligence-staging --json > /tmp/deployments-after.json
+          npx wrangler versions list --name kidults-autonomous-intelligence-staging --json > /tmp/versions-after.json
+          node - <<'NODE'
+          const fs=require('fs'); const r=require('/tmp/rebind-receipt.json');
+          const s=fs.readFileSync('/tmp/deployments-after.json','utf8')+fs.readFileSync('/tmp/versions-after.json','utf8');
+          if(!s.includes(r.candidate_version_id)||!s.includes(r.rollback_version_id)) throw new Error('CANDIDATE_OR_ROLLBACK_NOT_VISIBLE');
+          const cfg=require('./wrangler.staging-rebind.generated.json'); const d=cfg.d1_databases.find(x=>x.binding==='DB');
+          if(d.database_id!==r.staging_d1_id||d.database_id===r.production_d1_id) throw new Error('POSTCHECK_D1_BINDING');
+          if((cfg.queues?.producers||[]).length!==26||cfg.workers_dev!==false||cfg.vars?.ASI_PUBLICATION_ENABLED!=='false') throw new Error('POSTCHECK_BOUNDARY');
+          console.log(JSON.stringify({status:'STAGING_WORKER_REBOUND_TO_ISOLATED_D1',candidate:r.candidate_version_id,rollback:r.rollback_version_id,queues:26,public_route:false,cron:false,production:'HOLD'}));
+          NODE
+
+      - name: Upload STAGING Worker rebind receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-staging-worker-rebind-v1
+          path: |
+            /tmp/rebind-boundary.json
+            /tmp/staging-d1-info.json
+            /tmp/deployments-before.json
+            /tmp/versions-before.json
+            /tmp/rebind-receipt.json
+            /tmp/deployments-after.json
+            /tmp/versions-after.json
+          retention-days: 30
+          if-no-files-found: error
