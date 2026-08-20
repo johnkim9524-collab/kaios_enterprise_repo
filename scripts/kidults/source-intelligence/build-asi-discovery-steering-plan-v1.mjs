@@ -38,7 +38,10 @@ if(!plan){
     if(by.size!==20)throw new Error(`EXPECTED_20_PRODUCTS:${doc.category_id}:${by.size}`);
     const products=[];
     for(const [id,rows] of by){
-      const first=rows[0];const scope=first.collection_scope_id;const regions=[...new Set(rows.flatMap(r=>r.target_regions||[]))];const evidence=[...new Set(rows.flatMap(r=>relevantEvidenceByGap[r.evidence_gap_class]||[])];
+      const first=rows[0];
+      const scope=first.collection_scope_id;
+      const regions=[...new Set(rows.flatMap(r=>r.target_regions||[]))];
+      const evidence=[...new Set(rows.flatMap(r=>relevantEvidenceByGap[r.evidence_gap_class]||[]))];
       const matched=feedbackRows.filter(r=>r.category_scope===scope&&regions.includes(r.macroregion_id)&&evidence.includes(r.evidence_class));
       const priority=matched.length?Math.max(...matched.map(r=>Number(r.effective_priority_score??r.priority_score??0))):0;
       const modifier=matched.length?Math.max(...matched.map(r=>Number(r.market_structure_feedback?.modifier||0))):0;
