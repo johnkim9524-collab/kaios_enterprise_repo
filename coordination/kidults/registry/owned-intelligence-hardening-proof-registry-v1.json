@@ -1,0 +1,15 @@
+{
+  "id": "owned-intelligence-hardening-proof-registry-v1",
+  "version": "1.0.0",
+  "producer": "owned-intelligence-redteam-v2.2",
+  "methodology_version": "2.2.0",
+  "required_checks": [
+    "calibration:PASS",
+    "drift:PASS",
+    "liquidity:PASS",
+    "reconciliation:PASS",
+    "valuation:PASS"
+  ],
+  "allowed_gate_state": "ALLOW_SHADOW_ONLY",
+  "production": "HOLD"
+}

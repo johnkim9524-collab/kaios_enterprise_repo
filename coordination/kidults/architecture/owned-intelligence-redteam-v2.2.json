@@ -1,0 +1,16 @@
+{
+  "id":"kidults-owned-intelligence-redteam-v2.2",
+  "version":"2.2.0",
+  "status":"INTERNAL_HARDENING",
+  "controls":[
+    "invalid_backtest_rows_fail_closed",
+    "invalid_calibration_rows_fail_closed",
+    "fuzzy_identity_default_off",
+    "governed_identity_link_registry_required",
+    "governed_venue_alias_registry_required",
+    "structured_content_bound_hardening_receipt",
+    "registered_receipt_required_for_owned_intelligence_factor"
+  ],
+  "truth_ceiling":"INTERNAL_PROOF_FRAMEWORK_NOT_EMPIRICAL_PASS",
+  "production":"HOLD","public":"HOLD","g5":"HOLD"
+}
