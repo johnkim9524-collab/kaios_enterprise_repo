@@ -1,0 +1,19 @@
+{
+  "id": "kidults-er-serialized-faa-releasable-aircraft-r1",
+  "version": "1.0.0",
+  "parent_issue": 609,
+  "stratum_id": "er-stratum-serialized-reference",
+  "source_authority": "Federal Aviation Administration Civil Aviation Registry",
+  "dataset_url": "https://registry.faa.gov/database/ReleasableAircraft.zip",
+  "documentation_url": "https://registry.faa.gov/database/ardata.pdf",
+  "download_page": "https://www.faa.gov/licenses_certificates/aircraft_certification/aircraft_registry/releasable_aircraft_download",
+  "rights_state": "ALLOW",
+  "rights_scope": "BOUNDED_INTERNAL_ER_NON_PII_REGISTRY_FIELDS_ONLY",
+  "allowed_fields": ["N_NUMBER_HASH_ONLY", "SERIAL_NUMBER", "MFR_MODEL_CODE", "AIRCRAFT_MANUFACTURER", "AIRCRAFT_MODEL"],
+  "forbidden_fields": ["REGISTRANT_NAME", "STREET1", "STREET2", "CITY", "STATE_MAIL", "ZIP_CODE", "COUNTY_MAIL", "COUNTRY_MAIL", "OTHER_NAMES"],
+  "source_semantics": {"serial_number":"manufacturer-assigned complete aircraft serial number","mfr_model_code":"FAA code assigned to manufacturer/model/series","hard_negative_rule":"same exact FAA manufacturer/model/series code and distinct manufacturer serial numbers"},
+  "case_target": {"case_class":"HARD_NEGATIVE","identity_boundary":"PHYSICAL_OBJECT","reviewer_material_cases":40},
+  "privacy_boundary": "The releasable archive may contain owner/address fields. They are never retained, logged, emitted, hashed into evidence, or uploaded. Only the explicit non-PII identity projection is processed into reviewer material.",
+  "public_ci_boundary": "The source archive is transient runner input only. No raw archive, raw MASTER row, owner/address field, or full source payload may be printed or uploaded. Artifacts may contain only filtered serial/maker/model reviewer material and cryptographic digests.",
+  "reviewer_a":"NOT_ASSIGNED","reviewer_b":"NOT_ASSIGNED","labels_present":false,"empirical_pass":false,"track_b":"NOT_STARTED","public_release":"HOLD","production":"HOLD"
+}
