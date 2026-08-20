@@ -1,0 +1,37 @@
+name: KIDULTS ER Serialized Smithsonian NASM Semantic R3
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/probe-serialized-smithsonian-nasm-capacity-r3.mjs'
+      - '.github/workflows/kidults-er-serialized-smithsonian-nasm-semantic-r3.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure-semantically-strict-nasm-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Measure corrected NASM serialized grammar capacity
+        run: node scripts/kidults/entity-resolution/probe-serialized-smithsonian-nasm-capacity-r3.mjs /tmp/nasm-r3.json
+      - name: Reject prior false-positive semantics and overclaim
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/nasm-r3.json','utf8'));
+          if(x.id!=='kidults-er-serialized-smithsonian-nasm-capacity-r3'||x.stratum_id!=='er-stratum-serialized-reference')throw new Error('IDENTITY');
+          const stop=new Set(['number','numbers','no','no.','one','serial','unknown','none','n/a']);const ids=new Set();
+          for(const c of x.candidates||[]){const s=String(c.serial_evidence?.value||'').toLowerCase();if(stop.has(s)||!/[0-9]/.test(s))throw new Error(`FALSE_SERIAL:${s}`);if(c.model_evidence?.path==='type'||String(c.model_evidence?.value||'').toLowerCase()==='edanmdm')throw new Error('GENERIC_EDAN_MODEL_FORBIDDEN');if(!/content\.freetext\.name\[\d+\]\.content/.test(c.maker_evidence?.path||''))throw new Error('STRUCTURED_MAKER_REQUIRED');if(!c.identity_key||ids.has(c.identity_key))throw new Error('CANONICAL_OBJECT_DUPLICATE');ids.add(c.identity_key);}
+          if(x.metrics.canonical_identity_distinct_records!==(x.candidates||[]).length)throw new Error('DEDUP_COUNT_MISMATCH');
+          if(x.metrics.same_object_normalization_capacity>40||x.metrics.same_model_maker_distinct_serial_hard_negative_capacity>40||x.metrics.cross_market_alias_capacity!==0)throw new Error('CAPACITY_BOUNDARY');
+          if(x.labels_present!==false||x.reviewers_assigned!==0||x.empirical_cases_created!==0||x.blind_partition_sealed!==false||x.track_b!=='NOT_STARTED'||x.production!=='HOLD'||x.public_release!=='HOLD')throw new Error('OVERCLAIM');
+          if(/"raw_payload"\s*:|"payload"\s*:/.test(JSON.stringify(x)))throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          console.log(JSON.stringify({strict_candidates:x.metrics.canonical_identity_distinct_records,normalization:x.metrics.same_object_normalization_capacity,hard_negative:x.metrics.same_model_maker_distinct_serial_hard_negative_capacity,alias:0,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-smithsonian-nasm-semantic-r3
+          path: /tmp/nasm-r3.json
+          retention-days: 14
