@@ -1,0 +1,91 @@
+name: KIDULTS ER Serialized FAA NTSB Crossauthority R1
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/serialized-ntsb-aviation-public-r1.json'
+      - 'scripts/kidults/entity-resolution/build-serialized-faa-ntsb-crossauthority-packet-r1.mjs'
+      - '.github/workflows/kidults-er-serialized-faa-ntsb-crossauthority-r1.yml'
+      - 'coordination/kidults/entity-resolution/serialized-faa-releasable-aircraft-r1.json'
+      - 'scripts/kidults/entity-resolution/build-serialized-faa-hardnegative-packet-r1.mjs'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  faa-ntsb-crossauthority:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install MDB reader
+        run: |
+          sudo apt-get update -y >/dev/null
+          sudo apt-get install -y mdbtools >/dev/null
+      - name: Acquire public-use NTSB and releasable FAA archives without emitting raw rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 4 --retry-all-errors --retry-delay 3 \
+            -H 'User-Agent: KIDULTS-ER/1.0 bounded empirical validation' \
+            'https://data.ntsb.gov/avdata/FileDirectory/DownloadFile?fileID=C%3A%5Cavdata%5Cavall.zip' -o /tmp/ntsb.zip
+          printf 'sha256:%s\n' "$(sha256sum /tmp/ntsb.zip | awk '{print $1}')" > /tmp/ntsb.sha256
+          mdb="$(unzip -Z1 /tmp/ntsb.zip | grep -iE '\.mdb$' | head -1)"
+          test -n "$mdb"
+          unzip -p /tmp/ntsb.zip "$mdb" > /tmp/avall.mdb
+          rm -f /tmp/ntsb.zip
+          mdb-export /tmp/avall.mdb aircraft > /tmp/ntsb-aircraft.csv
+          rm -f /tmp/avall.mdb
+
+          curl -fsSL --retry 4 --retry-all-errors --retry-delay 3 \
+            -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 KIDULTS-ER/1.0' \
+            -H 'Accept: application/zip,application/octet-stream;q=0.9,*/*;q=0.1' \
+            -H 'Referer: https://www.faa.gov/licenses_certificates/aircraft_certification/aircraft_registry/releasable_aircraft_download' \
+            'https://registry.faa.gov/database/ReleasableAircraft.zip' -o /tmp/faa.zip
+          printf 'sha256:%s\n' "$(sha256sum /tmp/faa.zip | awk '{print $1}')" > /tmp/faa.sha256
+          master="$(unzip -Z1 /tmp/faa.zip | grep -iE '(^|/)MASTER\.txt$' | head -1)"
+          ref="$(unzip -Z1 /tmp/faa.zip | grep -iE '(^|/)ACFTREF\.txt$' | head -1)"
+          test -n "$master" && test -n "$ref"
+          unzip -p /tmp/faa.zip "$master" > /tmp/MASTER.txt
+          unzip -p /tmp/faa.zip "$ref" > /tmp/ACFTREF.txt
+          rm -f /tmp/faa.zip
+      - name: Rebuild current FAA hard-negative allocation only to exclude already-used FAA records
+        run: |
+          node scripts/kidults/entity-resolution/build-serialized-faa-hardnegative-packet-r1.mjs \
+            /tmp/MASTER.txt /tmp/ACFTREF.txt /tmp/faa.sha256 \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json \
+            /tmp/serialized-faa-hardnegative-packet-r1.json
+      - name: Build source-disjoint FAA-NTSB cross-authority aliases
+        run: |
+          node scripts/kidults/entity-resolution/build-serialized-faa-ntsb-crossauthority-packet-r1.mjs \
+            /tmp/MASTER.txt /tmp/ACFTREF.txt /tmp/ntsb-aircraft.csv \
+            /tmp/faa.sha256 /tmp/ntsb.sha256 \
+            coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json \
+            coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json \
+            /tmp/serialized-faa-hardnegative-packet-r1.json \
+            /tmp/serialized-faa-ntsb-crossauthority-r1.json
+          rm -f /tmp/MASTER.txt /tmp/ACFTREF.txt /tmp/ntsb-aircraft.csv /tmp/serialized-faa-hardnegative-packet-r1.json
+      - name: Enforce exact Serialized closure privacy and no-overclaim boundaries
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/serialized-faa-ntsb-crossauthority-r1.json','utf8'));
+          if(x.additional_case_count!==40||x.total_serialized_reviewer_ready_if_combined!==120||x.aggregate_reviewer_ready_if_combined!==720||x.remaining_program_material_deficit!==120) throw new Error('EXPECTED_BLOCKER_REDUCTION_NOT_PROVEN');
+          if(x.case_class_counts_if_combined?.SAME_OBJECT_NORMALIZATION!==40||x.case_class_counts_if_combined?.HARD_NEGATIVE!==40||x.case_class_counts_if_combined?.CROSS_MARKET_ALIAS!==40) throw new Error('CASE_CLASS_FLOOR');
+          if(x.identity_boundary_counts_if_combined?.SOURCE_RECORD!==60||x.identity_boundary_counts_if_combined?.PHYSICAL_OBJECT!==60) throw new Error('IDENTITY_BOUNDARY_FLOOR');
+          if(x.privacy?.retained_owner_or_address_fields!==0||x.privacy?.retained_crew_or_operator_fields!==0||x.privacy?.raw_faa_master_rows_emitted!==0||x.privacy?.raw_ntsb_rows_emitted!==0||x.privacy?.raw_registration_numbers_emitted!==0) throw new Error('PRIVACY_BOUNDARY');
+          const forbidden=/(owner[_ -]?name|full[_ -]?address|street1|street2|crew[_ -]?name|operator[_ -]?name|raw_payload|"payload"\s*:|"regis_no"\s*:|"n_number"\s*:)/i;if(forbidden.test(JSON.stringify(x))) throw new Error('FORBIDDEN_RAW_OR_PII_FIELD');
+          const refs=x.cases.flatMap(c=>[c.source_a_reference,c.source_b_reference]);if(new Set(refs).size!==refs.length) throw new Error('SOURCE_REFERENCE_REUSE');
+          const ids=x.cases.flatMap(c=>c.source_record_ids||[]);if(new Set(ids).size!==ids.length) throw new Error('SOURCE_RECORD_REUSE');
+          const src=x.cases.filter(c=>c.identity_boundary==='SOURCE_RECORD').length,phy=x.cases.filter(c=>c.identity_boundary==='PHYSICAL_OBJECT').length;if(src!==20||phy!==20) throw new Error('NEW_ALIAS_BOUNDARY_SPLIT');
+          for(const c of x.cases){if(c.case_class!=='CROSS_MARKET_ALIAS'||c.expected!=='MATCH'||c.rights_state!=='ALLOW') throw new Error('CASE_GRAMMAR');if(c.reviewer_prompt_context?.faa_registration_sha256!==c.reviewer_prompt_context?.ntsb_registration_sha256) throw new Error('REGISTRATION_HASH_MISMATCH');if(!c.reviewer_prompt_context?.shared_manufacturer_serial) throw new Error('SERIAL_MISSING');if(c.label!==null||c.model_prediction!==null||c.reviewer_assignment!=='PENDING_REAL_REVIEWER') throw new Error('REVIEWER_OR_LABEL_FABRICATION');}
+          if(x.labels_present!==false||x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED'||x.empirical_pass!==false||x.track_b!=='NOT_STARTED'||x.public_release!=='HOLD'||x.production!=='HOLD') throw new Error('GATE_OVERCLAIM');
+          console.log(JSON.stringify({status:x.status,serialized_total:120,aggregate_total:720,remaining_material_deficit:120,source_record_boundary:60,physical_object_boundary:60,empirical_pass:false,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-serialized-faa-ntsb-crossauthority-r1
+          path: /tmp/serialized-faa-ntsb-crossauthority-r1.json
+          retention-days: 14
