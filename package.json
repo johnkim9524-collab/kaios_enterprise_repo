@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "validate:market-event": "node scripts/kidults/poc/validate-market-event-schema-v1.mjs"
+    "validate:market-event": "node scripts/kidults/poc/validate-market-event-schema-v1.mjs",
+    "validate:provider-independent-layers": "node scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs"
   },
   "dependencies": {
     "ajv": "8.17.1",
