@@ -1,0 +1,49 @@
+name: KIDULTS ER Pressing Hardnegative Expansion R2
+on:
+  pull_request:
+    paths:
+      - 'scripts/kidults/entity-resolution/build-pressing-hardnegative-expansion-r2.mjs'
+      - 'scripts/kidults/entity-resolution/validate-pressing-hardnegative-expansion-r2.mjs'
+      - '.github/workflows/kidults-er-pressing-hardnegative-expansion-r2.yml'
+      - 'scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs'
+      - 'scripts/kidults/entity-resolution/probe-pressing-edition-capacity-r1.mjs'
+      - 'scripts/kidults/entity-resolution/build-pressing-partial-review-packet-r1.mjs'
+      - 'scripts/kidults/entity-resolution/validate-pressing-partial-review-packet-r1.mjs'
+      - 'coordination/kidults/entity-resolution/pressing-source-corpus-r1.json'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  expand-hard-negatives:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Rebuild current 240-record MusicBrainz corpus
+        run: node scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs /tmp/pressing-source-corpus-r1.json
+      - name: Rebuild current proven Pressing packet
+        run: |
+          node scripts/kidults/entity-resolution/probe-pressing-edition-capacity-r1.mjs /tmp/pressing-source-corpus-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/pressing-capacity-r1.json
+          node scripts/kidults/entity-resolution/build-pressing-partial-review-packet-r1.mjs /tmp/pressing-source-corpus-r1.json /tmp/pressing-capacity-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/pressing-partial-review-packet-r1.json
+          node scripts/kidults/entity-resolution/validate-pressing-partial-review-packet-r1.mjs /tmp/pressing-partial-review-packet-r1.json
+      - name: Expand only remaining hard-negative material from same release groups
+        run: node scripts/kidults/entity-resolution/build-pressing-hardnegative-expansion-r2.mjs /tmp/pressing-source-corpus-r1.json /tmp/pressing-partial-review-packet-r1.json /tmp/pressing-hardnegative-expansion-r2.json
+      - name: Validate source disjointness and fail-closed boundary
+        run: node scripts/kidults/entity-resolution/validate-pressing-hardnegative-expansion-r2.mjs /tmp/pressing-hardnegative-expansion-r2.json /tmp/pressing-partial-review-packet-r1.json
+      - name: Enforce no raw provider payload artifact
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/pressing-hardnegative-expansion-r2.json','utf8'));const s=JSON.stringify(x);
+          if(/"payload"\s*:/.test(s)) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
+          if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.track_b!=='NOT_STARTED') throw new Error('RELEASE_BOUNDARY');
+          console.log(JSON.stringify({status:x.status,additional:x.additional_case_count,total_hard:x.total_hard_negative_if_combined,total_reviewer_ready:x.total_reviewer_ready_if_combined,remaining:x.remaining_case_count,production:'HOLD'},null,2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-pressing-hardnegative-expansion-r2
+          path: /tmp/pressing-hardnegative-expansion-r2.json
+          retention-days: 14
