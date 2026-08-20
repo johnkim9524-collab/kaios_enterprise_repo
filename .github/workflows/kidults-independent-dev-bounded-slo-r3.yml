@@ -1,0 +1,162 @@
+name: KIDULTS Independent DEV Bounded SLO R3
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/kidults-independent-dev-bounded-slo-r3.yml']
+permissions:
+  contents: read
+concurrency:
+  group: kidults-independent-dev-runtime
+  cancel-in-progress: false
+jobs:
+  dev-bounded-slo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_READ_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_DEV_TOKEN: ${{ secrets.CLOUDFLARE_DEV_PROVISION_TOKEN }}
+      DEV_WORKER: kidults-autonomous-intelligence-dev
+      DEV_D1: kidults-intelligence-db-dev
+      DEV_D1_ID: 8a6978d9-36c5-42de-b469-27278e21973b
+      CANONICAL_DEV_VERSION: 8d909148-ca29-4f6d-9d1a-f2214d399154
+      TARGET_QUEUE: kidults-asi-dev-discovery-wikidata
+      STAGING_D1_ID: 9bc6a406-6fca-4959-be7f-dd7f715b092c
+      PRODUCTION_D1_ID: d6d65f81-f91d-428b-bf43-8a025aaa47bd
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: GATE — isolated DEV and credentials
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          for V in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_READ_TOKEN CLOUDFLARE_DEV_TOKEN; do test -n "${!V:-}"; done
+          echo "::add-mask::$CLOUDFLARE_READ_TOKEN"; echo "::add-mask::$CLOUDFLARE_DEV_TOKEN"
+          node - <<'NODE'
+          const fs=require('fs'),x=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8')),d=x.d1_databases.find(v=>v.binding==='DB');
+          if(!d||d.database_id!==process.env.PRODUCTION_D1_ID||(x.queues?.producers||[]).length!==26)throw new Error('CANONICAL_CONFIG_DRIFT');
+          d.database_name=process.env.DEV_D1;d.database_id=process.env.DEV_D1_ID;x.name=process.env.DEV_WORKER;x.workers_dev=false;delete x.routes;delete x.route;delete x.triggers;
+          for(const p of x.queues.producers)p.queue=p.queue.replace('kidults-asi-shadow-','kidults-asi-dev-');
+          for(const c of x.queues.consumers){c.queue=c.queue.replace('kidults-asi-shadow-','kidults-asi-dev-');if(c.dead_letter_queue)c.dead_letter_queue=c.dead_letter_queue.replace('kidults-asi-shadow-','kidults-asi-dev-');}
+          x.vars={...(x.vars||{}),KIDULTS_ENV:'dev',ASI_MESH_MODE:'SHADOW',ASI_PUBLICATION_ENABLED:'false',SOURCE_ADAPTERS_JSON:'[]'};
+          fs.writeFileSync('wrangler.dev-slo.generated.json',JSON.stringify(x,null,2));
+          NODE
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 info "$DEV_D1" --json > /tmp/dev-info.json
+          grep -Fq "$DEV_D1_ID" /tmp/dev-info.json
+          if grep -Eq "$STAGING_D1_ID|$PRODUCTION_D1_ID" /tmp/dev-info.json; then exit 10; fi
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_DEV_TOKEN" npx wrangler versions view "$CANONICAL_DEV_VERSION" --name "$DEV_WORKER" --json > /tmp/canonical.json
+          grep -Fq "$DEV_D1_ID" /tmp/canonical.json || grep -Fq "$DEV_D1" /tmp/canonical.json
+      - name: BUILD — bounded five-event DEV-namespace harness
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          npm run typecheck
+          node - <<'NODE'
+          const fs=require('fs');
+          for(const path of ['src/asi/registry.ts','src/asi/runtime.ts']){
+            const before=fs.readFileSync(path,'utf8');
+            const after=before.replaceAll('kidults-asi-shadow-','kidults-asi-dev-');
+            if(after===before) throw new Error(`DEV_QUEUE_NAMESPACE_PATCH_MISSING:${path}`);
+            fs.writeFileSync(path,after);
+          }
+          NODE
+          cp src/worker.ts /tmp/worker.original.ts
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/worker.ts');s=p.read_text();old="""  async queue(batch: MessageBatch<AsiQueueTask>, env: Env): Promise<void> {\n    await consumeAsiBatch(batch,env);\n  },"""
+          new="""  async queue(batch: MessageBatch<AsiQueueTask>, env: Env): Promise<void> {\n    const controls=batch.messages.filter((message)=>{ const body=message.body as unknown as {control?:string;events?:unknown[]}; return body?.control==='KPMO_DEV_SLO_R3'&&Array.isArray(body.events)&&body.events.length===5; });\n    if(controls.length){\n      if(controls.length!==1) throw new Error('KPMO_DEV_SLO_CONTROL_NOT_UNIQUE');\n      for(const message of batch.messages){ const body=message.body as unknown as {control?:string;events?:unknown[]}; if(body?.control==='KPMO_DEV_SLO_R3'&&Array.isArray(body.events)&&body.events.length===5){ await enqueueAsiEvent(env,body.events[0]); await enqueueAsiEvent(env,body.events[0]); for(const event of body.events.slice(1)) await enqueueAsiEvent(env,event); message.ack(); } else message.retry({delaySeconds:15}); }\n      return;\n    }\n    await consumeAsiBatch(batch,env);\n  },"""
+          if old not in s:raise SystemExit('QUEUE_HANDLER_PATCH_TARGET_NOT_FOUND')
+          p.write_text(s.replace(old,new))
+          PY
+          npm run typecheck
+      - name: DEPLOY — temporary private DEV harness
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEV_PROVISION_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: /tmp/upload.ndjson
+        run: |
+          set -euo pipefail
+          START=$(date +%s%3N); npx wrangler versions upload --config wrangler.dev-slo.generated.json --tag kpmo-dev-slo-r3 --message 'Temporary bounded DEV SLO R3 harness; DEV queue namespace; no route; no cron; Production HOLD'
+          node - <<'NODE' > /tmp/harness.env
+          const fs=require('fs'),rows=fs.readFileSync('/tmp/upload.ndjson','utf8').trim().split(/\n+/).filter(Boolean).map(JSON.parse),x=[...rows].reverse().find(r=>r.type==='version-upload'&&r.version_id);if(!x)throw new Error('NO_HARNESS_VERSION');console.log(`HARNESS_VERSION_ID=${x.version_id}`);
+          NODE
+          source /tmp/harness.env
+          npx wrangler versions view "$HARNESS_VERSION_ID" --name "$DEV_WORKER" --json > /tmp/harness.json; grep -Fq "$DEV_D1_ID" /tmp/harness.json || grep -Fq "$DEV_D1" /tmp/harness.json
+          npx wrangler versions deploy "$HARNESS_VERSION_ID@100%" --name "$DEV_WORKER" --message 'KPMO bounded DEV SLO R3' -y
+          END=$(date +%s%3N); printf 'DEPLOY_MS=%s\n' "$((END-START))" > /tmp/metrics.env
+          sleep 45
+          npx wrangler deployments list --name "$DEV_WORKER" --json > /tmp/current-deployment.json
+          grep -Fq "$HARNESS_VERSION_ID" /tmp/current-deployment.json
+      - name: SEED — five synthetic events and one duplicate
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > /tmp/run.env
+          const crypto=require('crypto'),fs=require('fs'),canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v,sha=v=>'sha256:'+crypto.createHash('sha256').update(typeof v==='string'?v:JSON.stringify(canonical(v))).digest('hex');
+          const run=crypto.randomBytes(8).toString('hex'),now=new Date().toISOString(),events=[];for(let i=0;i<5;i++){const host=`kpmo-dev-${run}-${i}.example.com`,source=`source_kpmo_dev_${run}_${i}`,eventId=`evt_kpmo_dev_${run}_${i}`,corr=`corr_kpmo_dev_${run}_${i}`,payload={source_id:source,discovery_seed:{source_id:source,seed_ref:'KPMO_SYNTHETIC_RESERVED_EXAMPLE_SUBDOMAIN',canonical_host:host,discovery_rights_state:'ALLOW'},test_control:{synthetic:true,market_claim:false,provider_payload:false,production:false}};events.push({event_id:eventId,event_type:'SOURCE_DISCOVERY_REQUESTED',event_version:'1.0.0',occurred_at:now,observed_at:now,producer_engine:'KPMO_DEV_SLO_R3',producer_version:'1.0.0',correlation_id:corr,causation_id:null,idempotency_key:`idem_${eventId}`,partition:{channel:'WIKIDATA_OFFICIAL_WEBSITE_GRAPH',region:'NORTH_AMERICA',language:'en',scope_id:'vinyl_recorded_music',source_role:'REFERENCE_ONLY',canonical_host_hash:sha(host)},input_snapshot_ref:'kpmo-dev-slo-r3-synthetic',payload_hash:sha(payload),rights_state:'ALLOW',freshness_state:'CURRENT',assertion_purpose:'BOUNDED_SHADOW_ACQUISITION',decision:'PASS',reason_codes:['KPMO_DEV_SLO_R3_SYNTHETIC'],trace_refs:['KPMO_DEV_SLO_R3'],payload});}
+          fs.writeFileSync('/tmp/seed.json',JSON.stringify({body:{control:'KPMO_DEV_SLO_R3',events}}));fs.writeFileSync('/tmp/ids.json',JSON.stringify(events.map(e=>e.event_id)));console.log(`RUN_ID=${run}`);
+          NODE
+          curl -fsS -H "Authorization: Bearer $CLOUDFLARE_DEV_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" > /tmp/queues.json
+          QUEUE_ID=$(Q="$TARGET_QUEUE" node -e "const x=require('/tmp/queues.json'),q=(x.result||[]).find(v=>(v.queue_name||v.name)===process.env.Q);if(!q)process.exit(2);process.stdout.write(q.queue_id||q.id)")
+          START=$(date +%s%3N); curl -fsS -X POST -H "Authorization: Bearer $CLOUDFLARE_DEV_TOKEN" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/messages" --data-binary @/tmp/seed.json > /tmp/push.json; END=$(date +%s%3N)
+          grep -Fq '"success":true' /tmp/push.json; printf 'QUEUE_PUSH_MS=%s\nBATCH_START_MS=%s\n' "$((END-START))" "$START" >> /tmp/metrics.env
+      - name: VERIFY — latency throughput idempotency and query usage
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          IDS=$(node -e "process.stdout.write(require('/tmp/ids.json').map(x=>\"'\"+x+\"'\").join(','))"); PASS=0; POLLS=0
+          for i in $(seq 1 50); do POLLS=$i; CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$DEV_D1" --remote --command "SELECT (SELECT COUNT(*) FROM asi_event_log WHERE event_id IN ($IDS)) AS events,(SELECT COUNT(*) FROM asi_outbox WHERE event_id IN ($IDS)) AS outboxes,(SELECT COUNT(DISTINCT event_id) FROM asi_processed_messages WHERE event_id IN ($IDS) AND status='SUCCEEDED') AS succeeded" --json > /tmp/state.json; if node -e "const r=require('/tmp/state.json')?.[0]?.results?.[0]||{};process.exit(Number(r.events)===5&&Number(r.outboxes)===5&&Number(r.succeeded)===5?0:1)";then PASS=1;break;fi;sleep 3;done
+          test "$PASS" = 1
+          FIRST=$(node -e "process.stdout.write(require('/tmp/ids.json')[0])"); CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute "$DEV_D1" --remote --command "SELECT (SELECT COUNT(*) FROM asi_event_log WHERE event_id='$FIRST') AS event_rows,(SELECT COUNT(*) FROM asi_outbox WHERE event_id='$FIRST') AS outbox_rows,(SELECT COUNT(*) FROM asi_processed_messages WHERE event_id='$FIRST' AND status='SUCCEEDED') AS success_rows" --json > /tmp/idem.json
+          node -e "const r=require('/tmp/idem.json')?.[0]?.results?.[0]||{};if(Number(r.event_rows)!==1||Number(r.outbox_rows)!==1||Number(r.success_rows)!==1)throw new Error('IDEMPOTENCY_FAIL')"
+          END=$(date +%s%3N); START=$(grep '^BATCH_START_MS=' /tmp/metrics.env|cut -d= -f2); printf 'VISIBLE_MS=%s\nPOLL_QUERIES=%s\n' "$((END-START))" "$POLLS" >> /tmp/metrics.env
+      - name: VERIFY — Production remains read-only
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_READ_TOKEN" npx wrangler d1 execute kidults-intelligence-db --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/prod.json
+          node -e "const x=require('/tmp/prod.json');if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0))throw new Error('PRODUCTION_MUTATION')"
+      - name: FINALIZE — clean DEV namespace Worker
+        working-directory: services/kidults-autonomous-intelligence
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEV_PROVISION_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: /tmp/final-upload.ndjson
+        run: |
+          set -euo pipefail
+          cp /tmp/worker.original.ts src/worker.ts
+          npm run typecheck
+          START=$(date +%s%3N)
+          npx wrangler versions upload --config wrangler.dev-slo.generated.json --tag kpmo-dev-canonical-r3 --message 'Clean independent DEV Worker; DEV queue namespace; private; Production HOLD'
+          node - <<'NODE' > /tmp/final.env
+          const fs=require('fs'),rows=fs.readFileSync('/tmp/final-upload.ndjson','utf8').trim().split(/\n+/).filter(Boolean).map(JSON.parse),x=[...rows].reverse().find(r=>r.type==='version-upload'&&r.version_id);if(!x)throw new Error('NO_FINAL_DEV_VERSION');console.log(`FINAL_DEV_VERSION=${x.version_id}`);
+          NODE
+          source /tmp/final.env
+          npx wrangler versions view "$FINAL_DEV_VERSION" --name "$DEV_WORKER" --json > /tmp/final.json
+          grep -Fq "$DEV_D1_ID" /tmp/final.json || grep -Fq "$DEV_D1" /tmp/final.json
+          grep -Fq 'kidults-asi-dev-discovery-wikidata' /tmp/final.json
+          npx wrangler versions deploy "$FINAL_DEV_VERSION@100%" --name "$DEV_WORKER" --message 'Independent DEV canonical R3' -y
+          END=$(date +%s%3N); printf 'FINALIZE_MS=%s\n' "$((END-START))" >> /tmp/metrics.env
+      - name: ROLLBACK — prior canonical DEV Worker on failure
+        if: failure() || cancelled()
+        working-directory: services/kidults-autonomous-intelligence
+        env: {CLOUDFLARE_API_TOKEN: '${{ secrets.CLOUDFLARE_DEV_PROVISION_TOKEN }}'}
+        run: |
+          set -euo pipefail
+          if [ ! -f /tmp/harness.env ];then exit 0;fi;source /tmp/harness.env; START=$(date +%s%3N); npx wrangler versions deploy "$CANONICAL_DEV_VERSION@100%" --name "$DEV_WORKER" --message 'KPMO DEV SLO R3 failure rollback' -y; END=$(date +%s%3N); printf 'ROLLBACK_MS=%s\n' "$((END-START))" >> /tmp/metrics.env
+      - name: RECEIPT — bounded DEV baseline
+        if: always()
+        run: |
+          mkdir -p /tmp/safe;touch /tmp/metrics.env
+          node - <<'NODE'
+          const fs=require('fs'),m={};for(const l of fs.readFileSync('/tmp/metrics.env','utf8').split(/\n/)){const i=l.indexOf('=');if(i>0)m[l.slice(0,i)]=Number(l.slice(i+1))}const final=fs.existsSync('/tmp/final.env')?Object.fromEntries(fs.readFileSync('/tmp/final.env','utf8').trim().split(/\n/).map(x=>x.split('='))):{};const pass=fs.existsSync('/tmp/idem.json')&&m.VISIBLE_MS>0&&!!final.FINAL_DEV_VERSION;const r={state:pass?'INDEPENDENT_DEV_BOUNDED_SLO_PASS':'INDEPENDENT_DEV_BOUNDED_SLO_INCOMPLETE',events:5,duplicate_enqueue_collapsed:pass,visible_ms:m.VISIBLE_MS||null,events_per_second:m.VISIBLE_MS?5/(m.VISIBLE_MS/1000):null,queue_push_ms:m.QUEUE_PUSH_MS||null,deploy_ms:m.DEPLOY_MS||null,finalize_ms:m.FINALIZE_MS||null,rollback_ms:m.ROLLBACK_MS||null,final_dev_version:final.FINAL_DEV_VERSION||null,d1_observation_poll_queries:m.POLL_QUERIES||null,queue_api_pushes:1,provider_payload:false,market_claim:false,production_mutation:false,production:'HOLD',cost_truth:'USAGE_EVIDENCE_ONLY_NOT_ACCOUNT_BILLING'};fs.writeFileSync('/tmp/safe/receipt.json',JSON.stringify(r,null,2));console.log(JSON.stringify(r,null,2));if(!pass)process.exitCode=1;
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-independent-dev-bounded-slo-r3
+          path: /tmp/safe/receipt.json
+          retention-days: 30
+          if-no-files-found: error
