@@ -1,6 +1,6 @@
 {
   "id":"kidults-private-market-evidence-reacquisition-r1",
-  "version":"1.0.0",
+  "version":"1.0.1",
   "parent_issue":637,
   "status":"STRUCTURE_READY_RIGHTS_AND_PRIVATE_RUNTIME_PENDING",
   "scope_boundary":"COLLECTIBLES_ONLY",
@@ -15,8 +15,9 @@
     "payload_digest":"SHA256_REQUIRED",
     "retention_and_ttl_policy":"BOUNDED_EVALUATION_POLICY_READY",
     "private_tamper_verification":"HMAC_SHA256_REQUIRED_SECRET_MANAGER_ONLY",
-    "historical_cleanup_review":"PENDING_OWNER_ADMIN_ACTION"
+    "historical_cleanup_review":"COMPLETE_2026-08-20_ISSUE_637"
   },
+  "historical_cleanup_attestation_ref":"coordination/kidults/source-intelligence/collectaio-historical-actions-cleanup-attestation-20260820.json",
   "private_store_contract":{
     "visibility":"PRIVATE_ONLY",
     "raw_payload_public_export":false,
@@ -47,11 +48,11 @@
   },
   "activation_gate":{
     "active_market_claim":"NONE",
-    "dated_observed_sold_transaction":"BLOCKED_UNTIL_RIGHTS_PLUS_PRIVATE_RUNTIME_PLUS_CLEANUP_REVIEW",
+    "dated_observed_sold_transaction":"BLOCKED_UNTIL_RIGHTS_PLUS_PRIVATE_RUNTIME",
     "current_price":"BLOCKED",
     "liquidity":"BLOCKED",
     "time_to_sale":"BLOCKED",
     "required_before_any_reacquisition":["EXPLICIT_FIELD_BY_PURPOSE_RIGHTS_PASS","PRIVATE_STORE_RUNTIME_PASS","TTL_CONFIGURED","TAMPER_SECRET_AVAILABLE","HISTORICAL_CLEANUP_REVIEW_COMPLETE"]
   },
-  "truth_boundary":"This contract removes public-CI design ambiguity only. It does not contact a provider, store provider payloads, prove private runtime, clear field-purpose rights, complete historical cleanup, reactivate any market claim, create Candidate evidence, authorize public release or authorize Production."
+  "truth_boundary":"This contract records a completed historical cleanup review while preserving the remaining fail-closed gates. It does not contact a provider, store provider payloads, prove private runtime, clear field-purpose rights, reactivate any market claim, create Candidate evidence, authorize public release or authorize Production."
 }
