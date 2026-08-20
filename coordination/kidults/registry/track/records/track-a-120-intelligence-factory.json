@@ -1,8 +1,9 @@
 {
   "id":"track-a-120-intelligence-factory",
   "record_type":"track",
-  "version":"1.3.0",
-  "status":"ACTIVE_EMPIRICAL_EVIDENCE_DEPENDENCY_BLOCKED",
+  "version":"1.3.1",
+  "status":"READY_FOR_BOUNDED_REAL_POC",
+  "operating_state":"EMPIRICAL_EVIDENCE_DEPENDENCY_BLOCKED_EXACT_BASE720_READY",
   "display_name":"A. KIDULTS | Intelligence Factory",
   "role_id":"role-track-a",
   "canonical_issue":235,
