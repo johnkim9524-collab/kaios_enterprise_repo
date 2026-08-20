@@ -1,0 +1,31 @@
+name: Provider Adapter Contract v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "coordination/kidults/provider/provider-adapter-contract-v1.json"
+      - "scripts/kidults/intelligence/validate-provider-adapter-contract-v1.mjs"
+      - ".github/workflows/provider-adapter-contract-v1.yml"
+  push:
+    branches:
+      - main
+      - "feat/**"
+    paths:
+      - "coordination/kidults/provider/provider-adapter-contract-v1.json"
+      - "scripts/kidults/intelligence/validate-provider-adapter-contract-v1.mjs"
+      - ".github/workflows/provider-adapter-contract-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.19.0"
+      - run: node scripts/kidults/intelligence/validate-provider-adapter-contract-v1.mjs
