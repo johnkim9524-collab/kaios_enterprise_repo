@@ -22,7 +22,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL --retry 3 --retry-delay 2 'https://registry.faa.gov/database/ReleasableAircraft.zip' -o /tmp/faa.zip
+          curl -fsSL --retry 2 --retry-delay 2 \
+            -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 KIDULTS-ER/1.0' \
+            -H 'Accept: application/zip,application/octet-stream;q=0.9,*/*;q=0.1' \
+            -H 'Referer: https://www.faa.gov/licenses_certificates/aircraft_certification/aircraft_registry/releasable_aircraft_download' \
+            'https://registry.faa.gov/database/ReleasableAircraft.zip' -o /tmp/faa.zip
           printf 'sha256:%s\n' "$(sha256sum /tmp/faa.zip | awk '{print $1}')" > /tmp/faa.sha256
           master="$(unzip -Z1 /tmp/faa.zip | grep -iE '(^|/)MASTER\.txt$' | head -1)"
           ref="$(unzip -Z1 /tmp/faa.zip | grep -iE '(^|/)ACFTREF\.txt$' | head -1)"
