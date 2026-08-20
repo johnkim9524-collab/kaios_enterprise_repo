@@ -1,0 +1,133 @@
+name: KIDULTS ER Base720 Real Accepted Lineage R2
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/entity-resolution/er-base720-accepted-artifact-lock-r1.json'
+      - 'scripts/kidults/entity-resolution/rehydrate-er-base720-accepted-lineage-r2.mjs'
+      - 'scripts/kidults/entity-resolution/build-er-base720-pre-review-packets-r1.mjs'
+      - 'scripts/kidults/entity-resolution/er-release-lineage-adapter-v1-lib.mjs'
+      - 'scripts/kidults/entity-resolution/er-base720-materializer-v1-lib.mjs'
+      - 'coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json'
+      - 'coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json'
+      - '.github/workflows/kidults-er-base720-real-lineage-r2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  real-accepted-lineage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Revalidate immutable accepted artifact locks and download only reviewer-safe artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/accepted
+          node - <<'NODE' > /tmp/artifact-locks.tsv
+          const x=require('./coordination/kidults/entity-resolution/er-base720-accepted-artifact-lock-r1.json');
+          if(x.production!=='HOLD'||x.public_release!=='HOLD'||!Array.isArray(x.artifacts)||x.artifacts.length!==13) throw new Error('ARTIFACT_LOCK_BOUNDARY');
+          const seen=new Set();
+          for(const a of x.artifacts){
+            if(seen.has(a.artifact_id))throw new Error('DUP_ARTIFACT_ID');seen.add(a.artifact_id);
+            if(!/^sha256:[a-f0-9]{64}$/.test(a.digest)||!/^\d+$/.test(String(a.artifact_id))||!/^\d+$/.test(String(a.run_id))||!/^[a-f0-9]{40}$/.test(a.head_sha))throw new Error(`LOCK_INVALID:${a.key}`);
+            console.log([a.key,a.artifact_id,a.name,a.run_id,a.head_sha,a.digest].join('\t'));
+          }
+          NODE
+          while IFS=$'\t' read -r key id name run head digest; do
+            meta="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}")"
+            got_name="$(jq -r '.name' <<<"$meta")"
+            got_digest="$(jq -r '.digest' <<<"$meta")"
+            got_expired="$(jq -r '.expired' <<<"$meta")"
+            got_run="$(jq -r '.workflow_run.id' <<<"$meta")"
+            got_head="$(jq -r '.workflow_run.head_sha' <<<"$meta")"
+            test "$got_name" = "$name"
+            test "$got_digest" = "$digest"
+            test "$got_expired" = "false"
+            test "$got_run" = "$run"
+            test "$got_head" = "$head"
+            mkdir -p "/tmp/accepted/${key}"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" > "/tmp/${key}.zip"
+            unzip -q "/tmp/${key}.zip" -d "/tmp/accepted/${key}"
+            rm -f "/tmp/${key}.zip"
+          done < /tmp/artifact-locks.tsv
+          find /tmp/accepted -type f -name '*.json' -printf '%P\n' | sort
+
+      - name: Freshly rehydrate exact 120-case Provenance accepted lineage from current head
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/provenance
+          node scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs /tmp/base-corpus.json
+          node scripts/kidults/entity-resolution/build-provenance-review-packet-r1.mjs /tmp/base-corpus.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/provenance/base.json
+          node - <<'NODE'
+          const fs=require('fs');function refs(paths,out){const r=[];for(const p of paths){const x=JSON.parse(fs.readFileSync(p));for(const c of x.cases||[]){if(c.source_a_reference)r.push(c.source_a_reference);if(c.source_b_reference)r.push(c.source_b_reference);for(const z of c.source_b_references||[])r.push(z)}}fs.writeFileSync(out,JSON.stringify({references:[...new Set(r)].sort()}));}refs(['/tmp/provenance/base.json'],'/tmp/exclude-r2.json');
+          NODE
+          node scripts/kidults/entity-resolution/probe-provenance-residual-capacity-r2.mjs /tmp/r2-cap.json /tmp/exclude-r2.json
+          node scripts/kidults/entity-resolution/build-provenance-residual-review-packet-r2.mjs /tmp/r2-cap.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/provenance/r2.json
+          node - <<'NODE'
+          const fs=require('fs');function refs(paths,out){const r=[];for(const p of paths){const x=JSON.parse(fs.readFileSync(p));for(const c of x.cases||[]){if(c.source_a_reference)r.push(c.source_a_reference);if(c.source_b_reference)r.push(c.source_b_reference);for(const z of c.source_b_references||[])r.push(z)}}fs.writeFileSync(out,JSON.stringify({references:[...new Set(r)].sort()}));}refs(['/tmp/provenance/base.json','/tmp/provenance/r2.json'],'/tmp/exclude-r3.json');
+          NODE
+          node scripts/kidults/entity-resolution/probe-provenance-deep-ambiguity-r3.mjs /tmp/r3-cap.json /tmp/exclude-r3.json
+          node scripts/kidults/entity-resolution/build-provenance-deep-ambiguity-packet-r3.mjs /tmp/r3-cap.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/provenance/r3.json
+          node - <<'NODE'
+          const fs=require('fs');function refs(paths,out){const r=[];for(const p of paths){const x=JSON.parse(fs.readFileSync(p));for(const c of x.cases||[]){if(c.source_a_reference)r.push(c.source_a_reference);if(c.source_b_reference)r.push(c.source_b_reference);for(const z of c.source_b_references||[])r.push(z)}}fs.writeFileSync(out,JSON.stringify({references:[...new Set(r)].sort()}));}refs(['/tmp/provenance/base.json','/tmp/provenance/r2.json','/tmp/provenance/r3.json'],'/tmp/exclude-r4.json');
+          NODE
+          node scripts/kidults/entity-resolution/probe-provenance-deeper-ambiguity-r4.mjs /tmp/r4-cap.json /tmp/exclude-r4.json
+          node scripts/kidults/entity-resolution/build-provenance-deeper-ambiguity-packet-r4.mjs /tmp/r4-cap.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/provenance/r4.json
+          node - <<'NODE'
+          const fs=require('fs');function refs(paths,out){const r=[];for(const p of paths){const x=JSON.parse(fs.readFileSync(p));for(const c of x.cases||[]){if(c.source_a_reference)r.push(c.source_a_reference);if(c.source_b_reference)r.push(c.source_b_reference);for(const z of c.source_b_references||[])r.push(z)}}fs.writeFileSync(out,JSON.stringify({references:[...new Set(r)].sort()}));}refs(['/tmp/provenance/base.json','/tmp/provenance/r2.json','/tmp/provenance/r3.json','/tmp/provenance/r4.json'],'/tmp/exclude-r5.json');
+          NODE
+          node scripts/kidults/entity-resolution/probe-provenance-deeper-ambiguity-r5.mjs /tmp/r5-cap.json /tmp/exclude-r5.json
+          node scripts/kidults/entity-resolution/build-provenance-deeper-ambiguity-packet-r5.mjs /tmp/r5-cap.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/provenance/r5.json
+          node - <<'NODE'
+          const fs=require('fs');const paths=['/tmp/provenance/base.json','/tmp/provenance/r2.json','/tmp/provenance/r3.json','/tmp/provenance/r4.json','/tmp/provenance/r5.json'];const packets=paths.map(p=>JSON.parse(fs.readFileSync(p)));const n=packets.reduce((s,x)=>s+(x.case_count||0),0);if(n!==116)throw new Error(`CURRENT_116_NOT_REPRODUCED:${n}`);const r=[];for(const x of packets)for(const c of x.cases||[]){if(c.source_a_reference)r.push(c.source_a_reference);if(c.source_b_reference)r.push(c.source_b_reference);for(const z of c.source_b_references||[])r.push(z)}fs.writeFileSync('/tmp/exclude-r6.json',JSON.stringify({references:[...new Set(r)].sort()}));
+          NODE
+          node scripts/kidults/entity-resolution/probe-provenance-deeper-ambiguity-r6.mjs /tmp/r6-cap.json /tmp/exclude-r6.json
+          node scripts/kidults/entity-resolution/build-provenance-deeper-ambiguity-packet-r6.mjs /tmp/r6-cap.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/provenance/r6.json
+          node - <<'NODE'
+          const fs=require('fs');const ps=['base','r2','r3','r4','r5','r6'].map(x=>JSON.parse(fs.readFileSync(`/tmp/provenance/${x}.json`)));const cases=ps.flatMap(x=>x.cases||[]);if(cases.length!==120||new Set(cases.map(c=>c.case_id)).size!==120)throw new Error(`PROVENANCE_EXACT_120_NOT_REPRODUCED:${cases.length}`);for(const c of cases)if(c.rights_state!=='ALLOW'||c.label!=null||c.model_prediction!=null)throw new Error(`PROVENANCE_CASE_BOUNDARY:${c.case_id}`);console.log(JSON.stringify({provenance_rehydrated:120,labels:false,production:'HOLD'}));
+          NODE
+
+      - name: Materialize exact accepted real base720 on current PR head
+        run: |
+          node scripts/kidults/entity-resolution/rehydrate-er-base720-accepted-lineage-r2.mjs /tmp/accepted /tmp/provenance coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/er-base720-real-lineage-r2.json /tmp/er-base720-real-lineage-r2-receipt.json
+          node - <<'NODE'
+          const fs=require('fs');const d=JSON.parse(fs.readFileSync('/tmp/er-base720-real-lineage-r2.json'));const r=JSON.parse(fs.readFileSync('/tmp/er-base720-real-lineage-r2-receipt.json'));if(d.case_count!==720||d.stratum_count!==6||d.graded_population_case_count!==0||d.labels_state!=='NOT_COLLECTED'||d.production!=='HOLD'||r.status!=='PASS_EXACT_REAL_ACCEPTED_BASE720_MATERIALIZED_UNLABELED_NOT_REVIEWED')throw new Error('BASE720_RECEIPT_BOUNDARY');if(/"payload"\s*:|"raw_payload"\s*:|"model_prediction"\s*:\s*(?!null)|"label"\s*:\s*(?!null)/.test(JSON.stringify(d)))throw new Error('BASE720_RAW_OR_RESULT_LEAKAGE');console.log(JSON.stringify({dataset_id:d.id,dataset_sha256:d.dataset_sha256,case_set_sha256:d.case_set_sha256,case_count:720,production:'HOLD'}));
+          NODE
+
+      - name: Build reviewer-safe digest-bound A/B pre-review packets deterministically
+        run: |
+          node scripts/kidults/entity-resolution/build-er-base720-pre-review-packets-r1.mjs /tmp/er-base720-real-lineage-r2.json /tmp/reviewer-a.json /tmp/reviewer-b.json /tmp/pre-review-receipt.json
+          node scripts/kidults/entity-resolution/build-er-base720-pre-review-packets-r1.mjs /tmp/er-base720-real-lineage-r2.json /tmp/reviewer-a-rerun.json /tmp/reviewer-b-rerun.json /tmp/pre-review-receipt-rerun.json
+          cmp /tmp/reviewer-a.json /tmp/reviewer-a-rerun.json
+          cmp /tmp/reviewer-b.json /tmp/reviewer-b-rerun.json
+          cmp /tmp/pre-review-receipt.json /tmp/pre-review-receipt-rerun.json
+          node - <<'NODE'
+          const fs=require('fs');for(const p of ['/tmp/reviewer-a.json','/tmp/reviewer-b.json']){const x=JSON.parse(fs.readFileSync(p));if(x.case_count!==720||x.reviewer_identity_binding!=='NOT_ASSIGNED_EXACT_840_BINDING_PENDING'||x.labels_present!==false||x.model_predictions_present!==false||x.empirical_pass!==false||x.production!=='HOLD')throw new Error('PRE_REVIEW_PACKET_BOUNDARY');const s=JSON.stringify(x);if(/"case_class"\s*:|"identity_boundary"\s*:|"expected"\s*:|"label"\s*:|"model_prediction"\s*:|"other_reviewer_label"\s*:|"adjudicated_label"\s*:|"benchmark_result"\s*:/.test(s))throw new Error('REVIEWER_PACKET_LEAKAGE');}const r=JSON.parse(fs.readFileSync('/tmp/pre-review-receipt.json'));if(r.status!=='PASS_REVIEWER_SAFE_A_B_PACKETS_READY_NO_HUMAN_REVIEW_CLAIM'||r.empirical_pass!==false||r.track_b!=='NOT_STARTED')throw new Error('PRE_REVIEW_RECEIPT_OVERCLAIM');console.log(JSON.stringify(r));
+          NODE
+
+      - name: Upload source-bound base720 and reviewer-safe pre-review artifacts only
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-er-base720-real-lineage-r2
+          path: |
+            /tmp/er-base720-real-lineage-r2.json
+            /tmp/er-base720-real-lineage-r2-receipt.json
+            /tmp/reviewer-a.json
+            /tmp/reviewer-b.json
+            /tmp/pre-review-receipt.json
+          retention-days: 14
+          if-no-files-found: error
