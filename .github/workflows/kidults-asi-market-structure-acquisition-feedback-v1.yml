@@ -4,6 +4,7 @@ on:
     paths:
       - 'coordination/kidults/source-intelligence/asi-market-structure-acquisition-feedback-v1.json'
       - 'coordination/kidults/source-intelligence/asi-regional-data-usability-factor-r1.json'
+      - 'scripts/kidults/source-intelligence/factor-eligibility-v1-lib.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-regional-data-usability-factor-r1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-regional-data-usability-factor-r1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs'
@@ -17,9 +18,14 @@ on:
     paths:
       - 'coordination/kidults/source-intelligence/asi-market-structure-acquisition-feedback-v1.json'
       - 'coordination/kidults/source-intelligence/asi-regional-data-usability-factor-r1.json'
+      - 'scripts/kidults/source-intelligence/factor-eligibility-v1-lib.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-regional-data-usability-factor-r1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-regional-data-usability-factor-r1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-market-structure-acquisition-feedback-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-market-structure-acquisition-feedback-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v2.mjs'
       - '.github/workflows/kidults-asi-market-structure-acquisition-feedback-v1.yml'
   schedule:
     - cron: '27 * * * *'
@@ -52,13 +58,13 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-regional-data-usability-factor-r1.mjs /tmp/empirical-regional-baseline-with-data-usability-r1.json
       - name: Apply market-structure feedback
         run: node scripts/kidults/source-intelligence/build-asi-market-structure-acquisition-feedback-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json /tmp/empirical-regional-baseline-with-data-usability-r1.json /tmp/global-data-acquisition-master-matrix-feedback-v1.json
-      - name: Validate verified-only priority mutation
+      - name: Validate eligible-only priority mutation
         run: node scripts/kidults/source-intelligence/validate-asi-market-structure-acquisition-feedback-v1.mjs /tmp/global-data-acquisition-master-matrix-feedback-v1.json
       - name: Build feedback-aware autonomous queue
         run: node scripts/kidults/source-intelligence/build-asi-autonomous-action-queue-v2.mjs /tmp/global-data-acquisition-master-matrix-feedback-v1.json /tmp/asi-autonomous-action-queue-v2.json
       - name: Validate feedback-aware queue
         run: node scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v2.mjs /tmp/asi-autonomous-action-queue-v2.json
-      - name: Prove verified-factor isolation with synthetic contract fixture
+      - name: Prove canonical factor eligibility isolation and mutation controls
         run: node scripts/kidults/source-intelligence/test-asi-market-structure-acquisition-feedback-v1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
       - uses: actions/upload-artifact@v4
         with:
