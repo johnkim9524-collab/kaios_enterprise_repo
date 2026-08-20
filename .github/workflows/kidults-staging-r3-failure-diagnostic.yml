@@ -1,0 +1,75 @@
+name: KIDULTS STAGING R3 Failure Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-staging-r3-failure-diagnostic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-r3-failure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      STAGING_D1: kidults-intelligence-db-staging
+      STAGING_D1_ID: 9bc6a406-6fca-4959-be7f-dd7f715b092c
+      PRODUCTION_D1: kidults-intelligence-db
+      EVENT_ID: evt_kpmo_golden_r3_5e1374c71eda3e73
+      CORRELATION_ID: corr_kpmo_golden_r3_5e1374c71eda3e73
+      WRANGLER_SEND_METRICS: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: GATE — read-only credential and isolated STAGING D1
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          npx wrangler d1 info "$STAGING_D1" --json > /tmp/staging-info.json
+          grep -Fq "$STAGING_D1_ID" /tmp/staging-info.json
+
+      - name: DIAGNOSE — synthetic event status metadata only
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute "$STAGING_D1" --remote --command "SELECT event_id,event_type,decision,rights_state,correlation_id FROM asi_event_log WHERE event_id='$EVENT_ID' OR correlation_id='$CORRELATION_ID' ORDER BY received_at; SELECT id,event_id,engine_fleet,queue_name,status,attempt_count,last_error FROM asi_outbox WHERE event_id='$EVENT_ID' ORDER BY id; SELECT queue_name,outbox_id,event_id,status,attempt_count,first_seen_at,last_seen_at,completed_at,last_error FROM asi_processed_messages WHERE event_id='$EVENT_ID' ORDER BY first_seen_at" --json > /tmp/r3-diagnostic.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/r3-diagnostic.json','utf8'));
+          const resultSets=x.flatMap(v=>Array.isArray(v.results)?[v.results]:[]);
+          const rows=resultSets.flat();
+          const processed=rows.filter(r=>Object.prototype.hasOwnProperty.call(r,'queue_name')&&Object.prototype.hasOwnProperty.call(r,'attempt_count')&&Object.prototype.hasOwnProperty.call(r,'status')&&Object.prototype.hasOwnProperty.call(r,'outbox_id'));
+          if(!processed.length) throw new Error('NO_SYNTHETIC_PROCESSED_ROW');
+          const safe={event_id:process.env.EVENT_ID,processed:processed.map(r=>({queue_name:r.queue_name,outbox_id:r.outbox_id,status:r.status,attempt_count:Number(r.attempt_count||0),last_error:r.last_error||null,first_seen_at:r.first_seen_at||null,last_seen_at:r.last_seen_at||null,completed_at:r.completed_at||null})),provider_payload:false,market_claim:false,production_mutation:false};
+          fs.writeFileSync('/tmp/r3-safe-diagnostic.json',JSON.stringify(safe,null,2));
+          console.log(JSON.stringify(safe,null,2));
+          NODE
+
+      - name: VERIFY — Production remains read-only
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute "$PRODUCTION_D1" --remote --command "SELECT 1 AS production_read_probe" --json > /tmp/production-read.json
+          node - <<'NODE'
+          const x=require('/tmp/production-read.json');
+          if(!x.every(v=>v.success===true)||x.some(v=>Number(v.meta?.rows_written||0)!==0||Number(v.meta?.changes||0)!==0)) throw new Error('PRODUCTION_MUTATION_OR_READ_FAILURE');
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-staging-r3-safe-diagnostic
+          path: /tmp/r3-safe-diagnostic.json
+          retention-days: 30
