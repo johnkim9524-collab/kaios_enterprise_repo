@@ -1,0 +1,31 @@
+{
+  "id":"kidults-owned-intelligence-core-v1.1",
+  "version":"1.1.0",
+  "extends":"kidults-owned-intelligence-core-v1",
+  "status":"INTERNAL_FOUNDATION",
+  "additional_kidults_owned_capabilities":[
+    "fx conversion from external rate facts",
+    "comparable event selection",
+    "condition/grade adjustment from internal methodology policy",
+    "relisting and cross-list analysis",
+    "deterministic confidence classification",
+    "rights review-expiry and retention enforcement"
+  ],
+  "external_fact_inputs":[
+    "fx rate observation and timestamp",
+    "actual item condition/grade fact",
+    "actual listing/relisting event linkage when source exposes it"
+  ],
+  "rules":{
+    "fx_rate_missing":"HOLD",
+    "fx_rate_stale":"HOLD",
+    "condition_policy_missing":"NO_ADJUSTMENT_CLAIM",
+    "condition_adjustment_outside_cap":"HOLD",
+    "rights_review_expired":"HOLD",
+    "retention_expired":"DELETE_REQUIRED",
+    "confidence_without_minimum_evidence":"NOT_VERIFIED"
+  },
+  "production":"HOLD",
+  "public":"HOLD",
+  "g5":"HOLD"
+}
