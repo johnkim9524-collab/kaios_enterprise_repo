@@ -17,3 +17,4 @@
   "outputs": ["AUTONOMOUS_ACTION_QUEUE","PROACTIVE_SOURCE_CANDIDATE_POOL","CANDIDATE_RIGHTS_REVIEW_QUEUE","SAFE_EXECUTION_RESULTS","RIGHTS_REVIEW_QUEUE","BLOCKER_QUEUE","CONTROL_LOOP_SUMMARY"],
   "truth_boundary": "Autonomy includes proactive candidate-source accumulation, but repeated discovery never converts missing rights, admission, runtime connection, human review, Public release or Production approval into permission."
 }
+
