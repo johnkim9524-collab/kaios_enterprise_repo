@@ -1,8 +1,9 @@
 {
   "id": "kidults-global-leadership-risk-controls-v1",
-  "version": "1.0.0",
-  "status": "ACTIVE_DRAFT_PENDING_MERGE",
-  "canonical_main_base": "2e9f25c4dd802b2ec3f184d567833b7c1997f6c4",
+  "version": "1.0.1",
+  "status": "ACTIVE",
+  "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
+  "introduced_from_exact_main": "2e9f25c4dd802b2ec3f184d567833b7c1997f6c4",
   "objective": "Advance KIDULTS toward a globally leading Autonomous Global Intelligence Platform by reducing evidence starvation, source concentration, category/geography asymmetry, late integration risk and scorecard distortion without weakening empirical, rights, security or Production gates.",
   "non_negotiable_truth_rules": [
     "CLAIM_STRENGTH_LE_EVIDENCE_STRENGTH",
