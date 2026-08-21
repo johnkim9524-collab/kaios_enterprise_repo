@@ -72,6 +72,9 @@ const requiredFamilyValidators = [
   'scripts/kidults/kpmo/validate-ontology-entity-integrity-v1.mjs',
   'scripts/kidults/kpmo/validate-semantic-normalization-integrity-v1.mjs'
 ];
+const requiredDownstreamValidators = [
+  'scripts/kidults/portal/validate-portal-release-001.mjs'
+];
 const requiredCanonicalIds = [
   'collectible_family_id','representative_product_id','market_cell_id','assertion_id','evidence_requirement_id',
   'source_demand_id','source_family_id','evidence_id','market_event_id','snapshot_id','assessment_id','projection_id'
@@ -132,6 +135,10 @@ for (const validator of data.required_family_validators || []) {
   const p = path.join(root, validator);
   if (!fs.existsSync(p)) throw new Error(`Required family validator missing: ${validator}`);
 }
+for (const validator of requiredDownstreamValidators) {
+  const p = path.join(root, validator);
+  if (!fs.existsSync(p)) throw new Error(`Required downstream boundary validator missing: ${validator}`);
+}
 if (data.aggregate_machine_enforcement?.runner !== 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs') {
   throw new Error('Aggregate Red-Team runner binding changed');
 }
@@ -152,6 +159,12 @@ if (data.aggregate_machine_enforcement?.post_merge_main_revalidation !== true) {
 }
 if (data.aggregate_machine_enforcement?.control_pass_closes_empirical_gate !== false) {
   throw new Error('Control PASS must never close empirical gates');
+}
+const runnerPath = path.join(root, data.aggregate_machine_enforcement.runner);
+if (!fs.existsSync(runnerPath)) throw new Error('Aggregate Red-Team runner missing');
+const runnerText = fs.readFileSync(runnerPath, 'utf8');
+for (const validator of requiredDownstreamValidators) {
+  if (!runnerText.includes(validator)) throw new Error(`Aggregate Red-Team downstream boundary validator binding missing: ${validator}`);
 }
 const workflowPath = path.join(root, data.aggregate_machine_enforcement.workflow);
 if (!fs.existsSync(workflowPath)) throw new Error('Aggregate Red-Team workflow missing');
@@ -198,4 +211,4 @@ for (const [key, expected] of Object.entries(requiredHardBoundaries)) {
   if (auditContract.hard_boundaries?.[key] !== expected) throw new Error(`Audit hard boundary changed: ${key}`);
 }
 
-console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} audit stages, ${canonical.chain.length} canonical business-chain nodes, ${(data.required_existing_control_families || []).length} control families, ${(data.required_family_validators || []).length} executable family validators, ${requiredAxes.length} readiness axes, ${requiredChainReceipts.length} mandatory chain receipts, exact-head CI enforced`);
+console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} audit stages, ${canonical.chain.length} canonical business-chain nodes, ${(data.required_existing_control_families || []).length} control families, ${(data.required_family_validators || []).length} executable family validators, ${requiredDownstreamValidators.length} mandatory downstream boundary validator, ${requiredAxes.length} readiness axes, ${requiredChainReceipts.length} mandatory chain receipts, exact-head CI enforced`);
