@@ -12,6 +12,9 @@ ARCHIVE="${5:?archive path}"
 ip4="$(ip -4 addr show || true)"
 grep -Fq "$EXPECTED_PUBLIC_IP" <<<"$ip4" || exit 22
 grep -Fq "$EXPECTED_PRIVATE_IP" <<<"$ip4" || exit 23
+command -v python3 >/dev/null 2>&1 || { echo 'FAIL: python3 missing' >&2; exit 32; }
+command -v curl >/dev/null 2>&1 || { echo 'FAIL: curl missing' >&2; exit 33; }
+command -v setsid >/dev/null 2>&1 || { echo 'FAIL: setsid missing' >&2; exit 34; }
 
 ROOT="$HOME/kidults-runtime"
 MARKER="$ROOT/.kidults-staging-managed"
@@ -26,6 +29,7 @@ CURRENT="$APP/portal-r001-current"
 RELEASE="$RELEASES/$RELEASE_ID"
 PORT=4173
 PIDFILE="$ROOT/portal-r001.pid"
+SERVERLOG="$LOG/portal-r001-http.log"
 mkdir -p "$RELEASES" "$AUDIT" "$LOG"
 chmod 755 "$APP" "$RELEASES" "$LOG"
 chmod 700 "$AUDIT"
@@ -48,18 +52,43 @@ ln -sfn "$RELEASE" "$CURRENT"
 
 if [[ -f "$PIDFILE" ]]; then
   oldpid="$(cat "$PIDFILE" 2>/dev/null || true)"
-  [[ -z "$oldpid" ]] || kill "$oldpid" 2>/dev/null || true
+  if [[ -n "$oldpid" ]] && kill -0 "$oldpid" 2>/dev/null; then
+    kill "$oldpid" 2>/dev/null || true
+    for _ in $(seq 1 10); do kill -0 "$oldpid" 2>/dev/null || break; sleep 0.2; done
+  fi
+  rm -f "$PIDFILE"
 fi
-nohup python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$CURRENT" >"$LOG/portal-r001-http.log" 2>&1 &
-echo $! > "$PIDFILE"
+
+: > "$SERVERLOG"
+setsid -f sh -c 'exec python3 -m http.server "$1" --bind 127.0.0.1 --directory "$2" </dev/null >>"$3" 2>&1' sh "$PORT" "$CURRENT" "$SERVERLOG"
+
+newpid=""
+for _ in $(seq 1 30); do
+  newpid="$(pgrep -u "$(id -u)" -f "python3 -m http.server $PORT --bind 127.0.0.1 --directory $CURRENT" | head -1 || true)"
+  if [[ -n "$newpid" ]] && curl -fsS "http://127.0.0.1:$PORT/index.html" >/tmp/kidults-portal-r001-health.html; then
+    break
+  fi
+  sleep 0.5
+done
+
+if [[ -z "$newpid" ]] || ! kill -0 "$newpid" 2>/dev/null; then
+  echo 'FAIL: preview server process not alive' >&2
+  cat "$SERVERLOG" >&2 || true
+  exit 35
+fi
+printf '%s\n' "$newpid" > "$PIDFILE"
 chmod 600 "$PIDFILE"
 
-for _ in $(seq 1 20); do
-  if curl -fsS "http://127.0.0.1:$PORT/index.html" >/tmp/kidults-portal-r001-health.html; then break; fi
-  sleep 1
-done
-curl -fsS "http://127.0.0.1:$PORT/index.html" | grep -Fq 'data-release="portal-release-001"'
-curl -fsS "http://127.0.0.1:$PORT/index.html" | grep -Fq 'data-state="NO_PROJECTION"'
+if ! curl -fsS "http://127.0.0.1:$PORT/index.html" | grep -Fq 'data-release="portal-release-001"'; then
+  echo 'FAIL: release marker health check' >&2
+  cat "$SERVERLOG" >&2 || true
+  exit 36
+fi
+if ! curl -fsS "http://127.0.0.1:$PORT/index.html" | grep -Fq 'data-state="NO_PROJECTION"'; then
+  echo 'FAIL: NO_PROJECTION marker health check' >&2
+  cat "$SERVERLOG" >&2 || true
+  exit 37
+fi
 
 cat > "$AUDIT/portal-r001-deploy-receipt.json" <<EOF
 {
@@ -70,6 +99,7 @@ cat > "$AUDIT/portal-r001-deploy-receipt.json" <<EOF
   "release_path": "$RELEASE",
   "previous_release": "$PREVIOUS",
   "release_digest": "$DIGEST",
+  "server_pid": "$newpid",
   "health": "PASS",
   "portal_state": "NO_PROJECTION",
   "public_bind": false,
