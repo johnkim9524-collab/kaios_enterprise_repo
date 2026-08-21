@@ -1,14 +1,24 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "P0_PRE_INGESTION_CONTROL",
   "governing_issue": 881,
   "rule": "NO_PARTNER_DATA_INGESTION_BEFORE_PRE_INTAKE_GATE_PASS",
   "purpose": "Unify distributed audit controls into an append-only, fail-closed audit control plane before external partner data ingestion.",
+  "truth_boundary": {
+    "readiness_axis": "INTERNAL_CONTROL_READINESS",
+    "empirical_gate_effect": "NONE",
+    "synthetic_fixture_effect": "CONTROL_VALIDATION_ONLY",
+    "external_partner_data_ingestion": "HOLD",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
   "principles": [
     "APPEND_ONLY",
     "FAIL_CLOSED",
     "EVIDENCE_BEFORE_METRICS",
     "RIGHTS_BEFORE_USE",
+    "QUARANTINE_BEFORE_PROMOTION",
     "NO_PROVIDER_EQUALS_TRUTH",
     "ONLY_EVIDENCED_PASS_COUNTS_AS_COMPLETE"
   ],
@@ -16,12 +26,17 @@
     "required": [
       "audit_event_id",
       "event_time",
+      "sequence_number",
+      "previous_event_digest",
       "actor_type",
       "actor_id",
       "action",
       "object_type",
       "object_id",
       "source_id",
+      "source_owner_id",
+      "source_namespace",
+      "data_classification",
       "decision",
       "reason",
       "result",
@@ -31,6 +46,8 @@
     "conditional": [
       "snapshot_id",
       "rights_version",
+      "rights_decision_id",
+      "retention_class",
       "methodology_version",
       "evidence_lineage_version",
       "schema_version",
@@ -43,20 +60,60 @@
       "secret",
       "credential",
       "api_key",
-      "raw_token"
+      "raw_token",
+      "access_token",
+      "refresh_token",
+      "password",
+      "authorization_header"
     ]
   },
-  "partner_data_lifecycle": [
-    "RECEIVED",
-    "QUARANTINED",
-    "RIGHTS_CHECKED",
-    "SCHEMA_CHECKED",
-    "SEMANTICS_CHECKED",
-    "IDENTITY_CHECKED",
-    "NORMALIZED",
-    "EVIDENCE_ELIGIBLE",
-    "PROMOTED_OR_REJECTED"
-  ],
+  "partner_data_state_machine": {
+    "initial_state": "RECEIVED",
+    "default_after_receipt": "QUARANTINED",
+    "states": [
+      "RECEIVED",
+      "QUARANTINED",
+      "RIGHTS_CHECKED",
+      "SCHEMA_CHECKED",
+      "SEMANTICS_CHECKED",
+      "IDENTITY_CHECKED",
+      "LINEAGE_CHECKED",
+      "QUALITY_CHECKED",
+      "NORMALIZED",
+      "EVIDENCE_ELIGIBLE",
+      "PROMOTED",
+      "REJECTED",
+      "SUPERSEDED",
+      "WITHDRAWN",
+      "DELETED"
+    ],
+    "allowed_transitions": {
+      "RECEIVED": ["QUARANTINED"],
+      "QUARANTINED": ["RIGHTS_CHECKED", "REJECTED"],
+      "RIGHTS_CHECKED": ["SCHEMA_CHECKED", "REJECTED"],
+      "SCHEMA_CHECKED": ["SEMANTICS_CHECKED", "REJECTED"],
+      "SEMANTICS_CHECKED": ["IDENTITY_CHECKED", "REJECTED"],
+      "IDENTITY_CHECKED": ["LINEAGE_CHECKED", "REJECTED"],
+      "LINEAGE_CHECKED": ["QUALITY_CHECKED", "REJECTED"],
+      "QUALITY_CHECKED": ["NORMALIZED", "REJECTED"],
+      "NORMALIZED": ["EVIDENCE_ELIGIBLE", "REJECTED"],
+      "EVIDENCE_ELIGIBLE": ["PROMOTED", "REJECTED"],
+      "PROMOTED": ["SUPERSEDED", "WITHDRAWN", "DELETED"],
+      "REJECTED": [],
+      "SUPERSEDED": ["DELETED"],
+      "WITHDRAWN": ["DELETED"],
+      "DELETED": []
+    },
+    "promotion_guard": {
+      "rights_status": "PASS_AND_NOT_EXPIRED",
+      "schema_status": "PASS",
+      "semantic_status": "PASS",
+      "identity_status": "PASS",
+      "lineage_status": "PASS",
+      "quality_status": "PASS",
+      "raw_direct_metric_or_claim": "PROHIBITED"
+    }
+  },
   "control_layers": [
     "SOURCE_AUDIT",
     "RIGHTS_AUDIT",
@@ -65,6 +122,8 @@
     "IDENTITY_AUDIT",
     "PROVENANCE_LINEAGE_AUDIT",
     "QUALITY_ANOMALY_AUDIT",
+    "PRIVACY_SECURITY_AUDIT",
+    "COST_CAPACITY_AUDIT",
     "METRIC_AUDIT",
     "DECISION_AUDIT",
     "HUMAN_AUTHORITY_AUDIT",
@@ -72,16 +131,96 @@
     "PUBLICATION_AUDIT",
     "RECOVERY_AUDIT"
   ],
+  "pre_partner_control_families": [
+    {
+      "id": "RIGHTS_PURPOSE_SEGREGATION",
+      "required_controls": ["field_by_purpose_binding", "source_specific_rights_matrix", "prohibited_purpose_fail_closed", "retention_deletion_termination", "raw_redistribution_publication_control", "attribution_provenance"]
+    },
+    {
+      "id": "IMMUTABLE_QUARANTINED_LANDING_ZONE",
+      "required_controls": ["immutable_raw_landing", "source_namespace_isolation", "quarantine_by_default", "checksum_digest", "receipt_timestamp", "schema_version_capture", "no_auto_promotion"]
+    },
+    {
+      "id": "SCHEMA_SEMANTIC_INTEGRITY",
+      "required_controls": ["schema_validation", "currency_unit_fee_normalization", "unknown_semantics", "sale_status_semantics", "timezone_as_of_integrity", "source_revision_handling"]
+    },
+    {
+      "id": "IDENTITY_ENTITY_RESOLUTION",
+      "required_controls": ["stable_source_identifier", "source_owner_preserved", "uncertain_match_fail_closed", "authoritative_identifier_precedence", "collision_alias_detection"]
+    },
+    {
+      "id": "PROVENANCE_EVIDENCE_LINEAGE",
+      "required_controls": ["raw_to_claim_traceability", "immutable_lineage_reference", "methodology_lineage_version_binding", "confidence_limitation_propagation"]
+    },
+    {
+      "id": "QUALITY_POISONING_ANOMALY_DEFENSE",
+      "required_controls": ["malformed_adversarial_handling", "duplicate_contamination_control", "impossible_outlier_quarantine", "source_drift_detection", "batch_completeness_truncation", "independent_source_reconciliation"]
+    },
+    {
+      "id": "PRIVACY_SECURITY_SECRETS",
+      "required_controls": ["pii_classification_minimization", "secret_manager_only", "no_secrets_in_logs_registry_artifacts", "least_privilege", "ingest_reject_quarantine_replay_audit"]
+    },
+    {
+      "id": "REPLAY_RECOVERY_ROLLBACK",
+      "required_controls": ["deterministic_replay", "idempotent_ingestion", "partial_batch_recovery", "lineage_safe_rollback", "withdrawal_deletion_propagation"]
+    },
+    {
+      "id": "PROVIDER_INDEPENDENCE_CONCENTRATION",
+      "required_controls": ["source_owner_independence_metric", "no_provider_equals_truth", "provider_specific_adapter", "exit_replaceability_plan", "critical_evidence_redundancy_target"]
+    },
+    {
+      "id": "COST_RATE_CAPACITY_PROTECTION",
+      "required_controls": ["bounded_batch_rate", "backpressure_retry_dlq", "quota_exhaustion_fail_safe", "cost_guardrail_before_credentials", "burst_malformed_volume_test"]
+    },
+    {
+      "id": "DOWNSTREAM_GATE_ISOLATION",
+      "required_controls": ["raw_cannot_create_claim", "evidence_before_metrics", "candidate_requires_empirical_and_rights_gates", "track_b_input_boundary", "portal_eos_production_fail_closed"]
+    },
+    {
+      "id": "ADVERSARIAL_REDTEAM_FIXTURES",
+      "required_controls": ["schema_drift", "wrong_currency_unit", "duplicate_relisted", "contradictory_sources", "missing_rights", "expired_rights", "deletion_request", "poisoned_outlier", "partial_truncated_batch", "source_outage_rate_limit", "replay_recovery", "provider_substitution"]
+    }
+  ],
+  "adversarial_fixtures": [
+    {"id": "schema_drift", "expected_disposition": "QUARANTINED_OR_REJECTED"},
+    {"id": "wrong_currency_unit", "expected_disposition": "QUARANTINED_OR_REJECTED"},
+    {"id": "duplicate_relisted", "expected_disposition": "QUARANTINED_OR_REJECTED"},
+    {"id": "contradictory_sources", "expected_disposition": "QUARANTINED_OR_REJECTED"},
+    {"id": "missing_rights", "expected_disposition": "REJECTED"},
+    {"id": "expired_rights", "expected_disposition": "REJECTED"},
+    {"id": "deletion_request", "expected_disposition": "WITHDRAWN_OR_DELETED"},
+    {"id": "poisoned_outlier", "expected_disposition": "QUARANTINED_OR_REJECTED"},
+    {"id": "partial_truncated_batch", "expected_disposition": "QUARANTINED_OR_REJECTED"},
+    {"id": "source_outage_rate_limit", "expected_disposition": "NO_PROMOTION_RETRY_OR_DLQ"},
+    {"id": "replay_recovery", "expected_disposition": "IDEMPOTENT_REPLAY_WITH_AUDIT_TRACE"},
+    {"id": "provider_substitution", "expected_disposition": "REVALIDATE_RIGHTS_SCHEMA_IDENTITY_LINEAGE"}
+  ],
   "immutability": {
     "ledger_mode": "APPEND_ONLY",
     "mutation_policy": "NO_IN_PLACE_UPDATE_OR_DELETE",
     "correction_policy": "SUPERSEDING_EVENT_ONLY",
     "digest_required": true,
-    "sequence_integrity_required": true
+    "sequence_integrity_required": true,
+    "previous_digest_chain_required": true
+  },
+  "provider_independence": {
+    "truth_policy": "NO_PROVIDER_EQUALS_TRUTH",
+    "concentration_measure_required": true,
+    "critical_evidence_redundancy_target": "AT_LEAST_TWO_INDEPENDENT_SOURCE_OWNERS_WHERE_AVAILABLE",
+    "single_source_exception": "EXPLICIT_LIMITATION_AND_NO_FALSE_CORROBORATION"
+  },
+  "cost_capacity": {
+    "credentials_activation_before_guardrail": "PROHIBITED",
+    "bounded_batch_required": true,
+    "rate_limit_required": true,
+    "backpressure_required": true,
+    "retry_dlq_required": true,
+    "quota_exhaustion_behavior": "FAIL_CLOSED_NO_PROMOTION"
   },
   "downstream_isolation": {
     "raw_partner_data_to_market_claim": "PROHIBITED",
     "raw_partner_data_to_metric": "PROHIBITED",
+    "candidate_requires_empirical_and_rights_gates": true,
     "track_b_boundary": ["snapshot-candidate.json", "Evidence Package"],
     "portal_eos_production_bypass": "PROHIBITED"
   },
@@ -93,17 +232,19 @@
       "rights_blocks",
       "lineage_failures",
       "replay_rollback_events",
-      "provider_concentration_alerts"
+      "provider_concentration_alerts",
+      "cost_quota_alerts"
     ]
   },
   "exit_criteria": [
-    "event envelope validation PASS",
-    "append-only correction behavior PASS",
-    "missing-rights fail-closed PASS",
-    "malformed-payload quarantine PASS",
-    "raw-to-evidence deterministic lineage PASS",
-    "deletion-withdrawal propagation test PASS",
-    "replay and rollback audit trace PASS",
-    "Track B and downstream bypass tests PASS"
+    "all 12 control families machine-validated or explicitly evidenced",
+    "no internally solvable P0/P1 defect remains",
+    "missing or ambiguous rights fail closed",
+    "malformed partner-like payloads cannot promote",
+    "raw to normalized to evidence lineage deterministic and auditable",
+    "partner/source namespace isolation enforced",
+    "withdrawal deletion rollback replay trace proven",
+    "Track B Portal EOS Production bypass impossible",
+    "synthetic controls do not promote empirical readiness"
   ]
 }
