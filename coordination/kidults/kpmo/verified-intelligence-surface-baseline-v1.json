@@ -13,6 +13,17 @@
     "active_market_claim": "NONE"
   },
   "coverage_dimensions": ["CATEGORY", "GEOGRAPHY", "EVIDENCE_CLASS", "INDEPENDENT_SOURCE_OWNER"],
+  "companion_metrics": [
+    "WEIGHTED_UNKNOWN_DEBT",
+    "INDEPENDENT_SOURCE_OWNER_COVERAGE",
+    "COMPUTABLE_CATEGORY_REGION_CELLS",
+    "EVIDENCE_FRESHNESS_COVERAGE",
+    "SOURCE_REMOVAL_ROBUSTNESS",
+    "AUTONOMOUS_EVIDENCE_PRIORITY_CHANGES",
+    "VERIFIED_CLAIM_COVERAGE",
+    "EXPLORATION_COVERAGE_GAIN"
+  ],
+  "unknown_debt_classes": ["CRITICAL_UNKNOWN", "STRATEGIC_UNKNOWN", "COVERAGE_UNKNOWN", "LOW_IMPACT_UNKNOWN"],
   "next_factor_frontier": ["VENUE_DEPTH_AND_DIVERSITY", "MARKET_MATURITY", "MARKET_SCALE", "OBSERVED_TRANSACTION_ACTIVITY"],
   "first_exit_target": {
     "name": "FIRST_DEFENSIBLE_COMPUTABLE_MARKET_SURFACE",
@@ -24,10 +35,21 @@
       "Source-removal sensitivity PASS",
       "Deterministic recomputation PASS",
       "SHADOW reallocation proposal generated",
+      "Objective alignment and decision-impact rationale bound",
+      "Exploration/exploitation concentration controls PASS",
+      "Weighted UNKNOWN debt updated",
+      "Mutation blast-radius gates remain fail-closed",
       "No live mutation",
       "No empirical or release Gate promotion beyond evidence actually proven"
     ]
   },
+  "forbidden_interpretations": [
+    "ARCHITECTURE_COVERAGE_AS_EMPIRICAL_COVERAGE",
+    "RAW_RECORD_COUNT_AS_MARKET_STRENGTH",
+    "UNKNOWN_AS_ZERO",
+    "SINGLE_SOURCE_AS_GLOBAL_TRUTH",
+    "SYNTHETIC_COMPUTABILITY_AS_EMPIRICAL_COMPUTABILITY"
+  ],
   "reporting_rule": "This metric is separate from Release Evidence Readiness and may not be averaged with the strict 17/100 score.",
   "production": "HOLD"
 }
