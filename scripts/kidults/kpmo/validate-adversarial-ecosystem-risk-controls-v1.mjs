@@ -1,0 +1,26 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+const root = process.cwd();
+const controlPath = path.join(root, 'coordination', 'kidults', 'kpmo', 'adversarial-ecosystem-risk-controls-v1.json');
+const control = JSON.parse(fs.readFileSync(controlPath, 'utf8'));
+let failed = false;
+const fail = m => { console.error(`FAIL: ${m}`); failed = true; };
+const req = (c, m) => { if (!c) fail(m); };
+for (const p of ['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT']) req(control.operating_principles?.includes(p), `missing principle ${p}`);
+const byId = new Map((control.controls || []).map(x => [x.id, x]));
+const ids = ['MARKET_BEHAVIOR_SIGNAL_SHAPING','PROVENANCE_LAUNDERING','CANONICAL_IDENTITY_COLLISION_ATTACK','SNAPSHOT_TIMING_ATTACK','STRATEGIC_COVERAGE_OMISSION','FEEDBACK_PROBING_AND_THRESHOLD_GAMING','RIGHTS_AND_AVAILABILITY_COERCION'];
+for (const id of ids) req(byId.has(id), `missing adversarial control ${id}`);
+req(byId.get('MARKET_BEHAVIOR_SIGNAL_SHAPING').rules.some(r=>r.includes('OBSERVED_ACTIVITY_NE_ORGANIC_MARKET_SIGNAL')), 'organic signal separation missing');
+req(byId.get('PROVENANCE_LAUNDERING').rules.some(r=>r.includes('TRUSTED_DISTRIBUTOR_NE_TRUSTED_FACTUAL_ORIGIN')), 'provenance laundering separation missing');
+req(byId.get('CANONICAL_IDENTITY_COLLISION_ATTACK').rules.some(r=>r.includes('CANNOT_FORCE_CANONICAL_MERGE')), 'identity collision guard missing');
+req(byId.get('SNAPSHOT_TIMING_ATTACK').rules.some(r=>r.includes('BURST_ACTIVITY_NE_DURABLE_MARKET_STATE')), 'snapshot timing guard missing');
+req(byId.get('STRATEGIC_COVERAGE_OMISSION').rules.some(r=>r.includes('ABSENCE_OF_PROVIDER_RECORDS_NE_ABSENCE_OF_MARKET_ACTIVITY')), 'coverage omission guard missing');
+req(byId.get('FEEDBACK_PROBING_AND_THRESHOLD_GAMING').rules.some(r=>r.includes('MUST_NOT_EXPOSE_PRECISE_INTERNAL_THRESHOLDS')), 'threshold exposure guard missing');
+req(byId.get('RIGHTS_AND_AVAILABILITY_COERCION').rules.some(r=>r.includes('TRIGGER_DEGRADED_MODE_OR_HOLD_NOT_SEMANTIC_SUBSTITUTION')), 'rights coercion degradation guard missing');
+req(control.adversarial_truth_ceiling?.control_or_synthetic_tests === 'NON_PROMOTABLE_TO_EMPIRICAL_PASS', 'synthetic promotion ceiling missing');
+req(control.adversarial_truth_ceiling?.external_counterparty_intent === 'UNKNOWN_UNLESS_EVIDENCED', 'intent truth ceiling missing');
+req(control.adversarial_truth_ceiling?.production === 'HOLD', 'Production HOLD missing');
+req(control.adversarial_truth_ceiling?.g5 === 'EXPLICIT_APPROVAL_REQUIRED', 'G5 gate missing');
+if (failed) process.exit(1);
+console.log('PASS: adversarial ecosystem risk controls validated');
