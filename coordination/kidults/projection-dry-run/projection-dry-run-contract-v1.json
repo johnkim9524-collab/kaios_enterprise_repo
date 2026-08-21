@@ -1,0 +1,65 @@
+{
+  "contract_id": "kidults-projection-dry-run-v1",
+  "governing_issue": 884,
+  "governing_rule": "PREWIRE_FIRST_DATA_LATER",
+  "fixture_policy": "NON_PROMOTABLE_CONTROL_ONLY",
+  "required_path": [
+    "IMMUTABLE_CANDIDATE_EVIDENCE_FIXTURE",
+    "TRACK_B_CONTRACT_COMPATIBLE_MOCK_ASSESSMENT",
+    "PROJECTION_REGISTRY_CONTRACT",
+    "RUNTIME_REFRESH_REPLAY_ROLLBACK",
+    "PORTAL_READ_CONTRACT",
+    "IH_EOS_READ_CONTRACT",
+    "AUDIT_CONTROL_PLANE_EVENTS",
+    "FAIL_CLOSED_DOWNSTREAM_ISOLATION"
+  ],
+  "state_model": [
+    "LIVE_APPROVED",
+    "WAITING",
+    "STALE",
+    "INVALID",
+    "RIGHTS_BLOCKED",
+    "NOT_AVAILABLE",
+    "NO_PROJECTION"
+  ],
+  "negative_tests": [
+    "MISSING_ASSESSMENT",
+    "TAMPERED_ASSESSMENT_DIGEST",
+    "STALE_PROJECTION",
+    "RIGHTS_BLOCKED",
+    "PAIR_DIGEST_MISMATCH",
+    "SCHEMA_VERSION_MISMATCH"
+  ],
+  "audit_events_required": [
+    "PROJECTION_CREATE",
+    "PROJECTION_REJECT",
+    "PROJECTION_REPLAY",
+    "PROJECTION_ROLLBACK"
+  ],
+  "correlation_required": [
+    "snapshot_id",
+    "evidence_package_id",
+    "assessment_id",
+    "projection_id",
+    "correlation_id"
+  ],
+  "downstream_boundaries": {
+    "portal_reads_projection_only": true,
+    "ih_eos_reads_projection_registry_event_audit_only": true,
+    "raw_provider_payloads": false,
+    "credentials": false,
+    "track_b_bypass": false,
+    "public_intelligence_bypass": false,
+    "production_bypass": false,
+    "g5_bypass": false
+  },
+  "truth_boundary": {
+    "real_candidate_evidence": "NONE",
+    "track_b": "NOT_STARTED",
+    "live_approved_projection": "NONE",
+    "external_partner_data_ingestion": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED",
+    "synthetic_fixture_effect": "CONTROL_VALIDATION_ONLY"
+  }
+}
