@@ -5,12 +5,14 @@ on:
     paths:
       - 'coordination/kidults/audit/**'
       - 'scripts/kidults/audit/**'
+      - 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs'
       - '.github/workflows/kidults-unified-audit-control-plane.yml'
   push:
     branches: [ main ]
     paths:
       - 'coordination/kidults/audit/**'
       - 'scripts/kidults/audit/**'
+      - 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs'
       - '.github/workflows/kidults-unified-audit-control-plane.yml'
 
 permissions:
@@ -21,8 +23,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          echo "expected=$EXPECTED_SHA"
+          echo "actual=$ACTUAL_SHA"
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Validate unified audit control plane
         run: node scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs
+      - name: Validate pre-partner adversarial fixtures
+        run: node scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs
