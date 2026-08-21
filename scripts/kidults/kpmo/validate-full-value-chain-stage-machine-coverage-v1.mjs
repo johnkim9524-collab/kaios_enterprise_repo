@@ -4,6 +4,9 @@ import path from 'node:path';
 const root = process.cwd();
 const orchestratorPath = path.join(root, 'coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json');
 const data = JSON.parse(fs.readFileSync(orchestratorPath, 'utf8'));
+const requiredConcreteRuntimeBoundaryValidators = [
+  'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py'
+];
 
 if (data.aggregate_machine_enforcement?.require_all_stage_checks_bound !== true) {
   throw new Error('Aggregate Red-Team must require all stage checks to be machine-bound');
@@ -17,10 +20,16 @@ if (stages.length === 0) throw new Error('No Red-Team stages declared');
 
 const stageIds = new Set(stages.map(stage => stage.id));
 const coverage = data.stage_machine_coverage || {};
-const requiredRuntimeBoundaryValidators = data.required_runtime_boundary_validators || [];
+const configuredRuntimeBoundaryValidators = data.required_runtime_boundary_validators || [];
+const configuredRuntimeSet = new Set(configuredRuntimeBoundaryValidators);
+for (const validator of requiredConcreteRuntimeBoundaryValidators) {
+  if (!configuredRuntimeSet.has(validator)) {
+    throw new Error(`Required concrete runtime boundary validator not configured: ${validator}`);
+  }
+}
 const aggregateValidators = new Set([
   ...(data.required_family_validators || []),
-  ...requiredRuntimeBoundaryValidators
+  ...configuredRuntimeBoundaryValidators
 ]);
 
 for (const stage of stages) {
@@ -73,10 +82,22 @@ if (Object.keys(coverage).length !== stages.length) {
 }
 
 const runtimeValidators = new Set(coverage.RUNTIME?.validators || []);
-for (const validator of requiredRuntimeBoundaryValidators) {
+for (const validator of requiredConcreteRuntimeBoundaryValidators) {
   if (!runtimeValidators.has(validator)) {
     throw new Error(`RUNTIME stage missing required concrete boundary validator: ${validator}`);
   }
 }
 
-console.log(`PASS full value-chain stage machine coverage: ${stages.length} stages, ${stages.reduce((n, stage) => n + stage.checks.length, 0)} checks bound only to aggregate-executed validators; runtime boundaries ${requiredRuntimeBoundaryValidators.length}; empirical promotion NONE`);
+const runnerPath = path.join(root, data.aggregate_machine_enforcement?.runner || '');
+if (!fs.existsSync(runnerPath)) throw new Error('Aggregate Red-Team runner missing while validating runtime boundary');
+const runnerText = fs.readFileSync(runnerPath, 'utf8');
+for (const validator of requiredConcreteRuntimeBoundaryValidators) {
+  if (!runnerText.includes(validator)) {
+    throw new Error(`Aggregate Red-Team runner missing concrete runtime boundary validator: ${validator}`);
+  }
+}
+if (!runnerText.includes("script.endsWith('.py')")) {
+  throw new Error('Aggregate Red-Team runner missing fail-closed Python validator interpreter routing');
+}
+
+console.log(`PASS full value-chain stage machine coverage: ${stages.length} stages, ${stages.reduce((n, stage) => n + stage.checks.length, 0)} checks bound only to aggregate-executed validators; concrete runtime boundaries ${requiredConcreteRuntimeBoundaryValidators.length}; empirical promotion NONE`);
