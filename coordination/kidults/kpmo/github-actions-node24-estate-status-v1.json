@@ -1,0 +1,12 @@
+{
+  "status_id": "KIDULTS_GITHUB_ACTIONS_NODE24_ESTATE_STATUS_V1",
+  "governing_issue": 933,
+  "phase": "MIGRATION_IN_PROGRESS",
+  "deprecated_runtime_findings": "PENDING_MACHINE_CHECK",
+  "aggregate_binding": "PENDING",
+  "exact_head_ci": "PENDING",
+  "empirical_gate_effect": "NONE",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
