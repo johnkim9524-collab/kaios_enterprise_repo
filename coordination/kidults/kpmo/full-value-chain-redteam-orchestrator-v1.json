@@ -1,6 +1,6 @@
 {
   "id": "kidults-full-value-chain-redteam-orchestrator-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "status": "ACTIVE",
   "objective": "Continuously red-team the full KIDULTS intelligence value chain end-to-end, fail closed on missing material assurance, and prevent local PASS states from masking cross-stage failure.",
   "operating_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
@@ -89,7 +89,10 @@
   ],
   "aggregate_machine_enforcement": {
     "runner": "scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs",
+    "workflow": ".github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml",
     "require_all_family_validators_pass": true,
+    "exact_head_checkout_required": true,
+    "exact_head_sha_assertion_required": true,
     "post_merge_main_revalidation": true,
     "control_pass_closes_empirical_gate": false
   },
