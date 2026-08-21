@@ -1,0 +1,12 @@
+{
+  "fixture_type":"NON_PROMOTABLE_CONTROL_MATRIX",
+  "states":[
+    {"state":"NO_PROJECTION","workspace":"BLOCKED","ranking":"BLOCKED","market_metrics":"BLOCKED"},
+    {"state":"WAITING","workspace":"BLOCKED","ranking":"BLOCKED","market_metrics":"BLOCKED"},
+    {"state":"STALE","workspace":"BLOCKED","ranking":"BLOCKED","market_metrics":"BLOCKED"},
+    {"state":"INVALID","workspace":"BLOCKED","ranking":"BLOCKED","market_metrics":"BLOCKED"},
+    {"state":"RIGHTS_BLOCKED","workspace":"BLOCKED","ranking":"BLOCKED","market_metrics":"BLOCKED"},
+    {"state":"NOT_AVAILABLE","workspace":"BLOCKED","ranking":"BLOCKED","market_metrics":"BLOCKED"},
+    {"state":"LIVE_APPROVED","workspace":"AVAILABLE","ranking":"PROJECTION_BOUND","market_metrics":"PROJECTION_BOUND"}
+  ]
+}
