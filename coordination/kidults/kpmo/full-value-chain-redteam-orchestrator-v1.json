@@ -1,6 +1,6 @@
 {
   "id": "kidults-full-value-chain-redteam-orchestrator-v1",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "status": "ACTIVE",
   "objective": "Continuously red-team the full KIDULTS intelligence value chain end-to-end, fail closed on missing material assurance, and prevent local PASS states from masking cross-stage failure.",
   "operating_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
@@ -60,7 +60,7 @@
     "DECISION_THEORY": {"checks":["asymmetric_loss","tail_risk","value_of_information","abstention","irreversibility"],"validators":["scripts/kidults/kpmo/validate-decision-theoretic-tailrisk-controls-v1.mjs"],"readiness_axis":"INTERNAL_CONTROL_READINESS","empirical_gate_effect":"NONE"},
     "HUMAN_AUTHORITY": {"checks":["automation_bias","authority_separation","meaningful_review","override_expiry","escalation_acknowledgement"],"validators":["scripts/kidults/kpmo/validate-human-autonomy-authority-v1.mjs","scripts/kidults/kpmo/validate-operating-principles-resilience-v1.mjs"],"readiness_axis":"INTERNAL_CONTROL_READINESS","empirical_gate_effect":"NONE"},
     "SNAPSHOT_AND_TRACK_B": {"checks":["snapshot_immutability","registry_traceability","candidate_and_evidence_pair","independent_assessment","rankability_gate"],"validators":["scripts/kidults/kpmo/validate-human-autonomy-authority-v1.mjs","scripts/kidults/kpmo/validate-institutional-trust-risk-controls-v1.mjs","scripts/kidults/kpmo/validate-operating-principles-resilience-v1.mjs"],"readiness_axis":"INTERNAL_CONTROL_READINESS","empirical_gate_effect":"NONE"},
-    "RUNTIME": {"checks":["environment_separation","config_versioning","secret_management","rollback_epoch","incident_freeze"],"validators":["scripts/kidults/kpmo/validate-operating-principles-resilience-v1.mjs","scripts/kidults/kpmo/validate-systemic-catastrophic-risk-controls-v1.mjs","scripts/kidults/kpmo/validate-institutional-continuity-sovereignty-v1.mjs"],"readiness_axis":"INTERNAL_CONTROL_READINESS","empirical_gate_effect":"NONE"},
+    "RUNTIME": {"checks":["environment_separation","config_versioning","secret_management","rollback_epoch","incident_freeze"],"validators":["scripts/kidults/kpmo/validate-operating-principles-resilience-v1.mjs","scripts/kidults/kpmo/validate-systemic-catastrophic-risk-controls-v1.mjs","scripts/kidults/kpmo/validate-institutional-continuity-sovereignty-v1.mjs","scripts/operations/validate_digitalocean_staging_bootstrap_v1.py"],"readiness_axis":"INTERNAL_CONTROL_READINESS","empirical_gate_effect":"NONE"},
     "PROJECTION_PORTAL_EOS": {"checks":["projection_binding","truth_state_preservation","limitations_visibility","manual_accessibility","founder_acceptance"],"validators":["scripts/kidults/kpmo/validate-institutional-trust-risk-controls-v1.mjs","scripts/kidults/kpmo/validate-human-autonomy-authority-v1.mjs","scripts/kidults/kpmo/validate-reflexivity-self-influence-risk-controls-v1.mjs"],"readiness_axis":"INTERNAL_CONTROL_READINESS","empirical_gate_effect":"NONE"},
     "REFLEXIVITY_AND_EXTERNAL_EFFECTS": {"checks":["own_output_reingestion","publication_induced_behavior","customer_endogeneity","feedback_contamination"],"validators":["scripts/kidults/kpmo/validate-reflexivity-self-influence-risk-controls-v1.mjs"],"readiness_axis":"INTERNAL_CONTROL_READINESS","empirical_gate_effect":"NONE"},
     "AUDIT_RECOVERY_CONTINUITY": {"checks":["audit_authenticity","archive_independence","registry_restore","key_continuity","institutional_memory"],"validators":["scripts/kidults/kpmo/validate-institutional-continuity-sovereignty-v1.mjs","scripts/kidults/kpmo/validate-operating-principles-resilience-v1.mjs","scripts/kidults/kpmo/validate-institutional-trust-risk-controls-v1.mjs"],"readiness_axis":"INTERNAL_CONTROL_READINESS","empirical_gate_effect":"NONE"}
@@ -106,10 +106,14 @@
     "scripts/kidults/kpmo/validate-ontology-entity-integrity-v1.mjs",
     "scripts/kidults/kpmo/validate-semantic-normalization-integrity-v1.mjs"
   ],
+  "required_runtime_boundary_validators": [
+    "scripts/operations/validate_digitalocean_staging_bootstrap_v1.py"
+  ],
   "aggregate_machine_enforcement": {
     "runner": "scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs",
     "workflow": ".github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml",
     "require_all_family_validators_pass": true,
+    "require_all_runtime_boundary_validators_pass": true,
     "require_all_stage_checks_bound": true,
     "exact_head_checkout_required": true,
     "exact_head_sha_assertion_required": true,
