@@ -31,6 +31,7 @@ const outputs = {
   control_family_coverage: run('scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs'),
   audit_control_plane: run('scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs'),
   adversarial_fixtures: run('scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs'),
+  source_admission_temporal_rights: run('scripts/kidults/source-intelligence/test-source-admission-record-v1.mjs'),
   projection_isolation: run('scripts/kidults/projection/validate-projection-dry-run-v1.mjs')
 };
 
@@ -53,6 +54,7 @@ console.log(JSON.stringify({
   exact_family_control_coverage: 'PASS',
   control_removal_mutation_selftest: 'PASS',
   executable_adversarial_fixtures: 12,
+  source_admission_temporal_rights_fail_closed: 'PASS',
   unified_audit_control_plane: 'PASS',
   projection_downstream_isolation: 'PASS',
   no_internally_solvable_p0_p1_detected_by_certification: true,
