@@ -5,6 +5,7 @@ const orchestratorPath = 'coordination/kidults/kpmo/full-value-chain-redteam-orc
 const orchestrator = JSON.parse(fs.readFileSync(orchestratorPath, 'utf8'));
 const structuralValidator = 'scripts/kidults/kpmo/validate-full-value-chain-redteam-orchestrator-v1.mjs';
 const stageCoverageValidator = 'scripts/kidults/kpmo/validate-full-value-chain-stage-machine-coverage-v1.mjs';
+const criticalGateBindingValidator = 'scripts/kidults/kpmo/validate-full-value-chain-critical-gate-bindings-v1.mjs';
 const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
@@ -19,6 +20,7 @@ const downstreamBoundaryValidators = [
 const validators = [...new Set([
   structuralValidator,
   stageCoverageValidator,
+  criticalGateBindingValidator,
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
