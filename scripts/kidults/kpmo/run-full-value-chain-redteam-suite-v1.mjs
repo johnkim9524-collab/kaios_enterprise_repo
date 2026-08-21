@@ -6,8 +6,12 @@ const orchestrator = JSON.parse(fs.readFileSync(orchestratorPath, 'utf8'));
 const structuralValidator = 'scripts/kidults/kpmo/validate-full-value-chain-redteam-orchestrator-v1.mjs';
 const stageCoverageValidator = 'scripts/kidults/kpmo/validate-full-value-chain-stage-machine-coverage-v1.mjs';
 const p0PrePartnerValidators = [
+  'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs'
+];
+const rightsBoundaryValidators = [
+  'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
 ];
 const downstreamBoundaryValidators = [
   'scripts/kidults/portal/validate-portal-release-001.mjs'
@@ -17,6 +21,7 @@ const validators = [...new Set([
   stageCoverageValidator,
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
+  ...rightsBoundaryValidators,
   ...downstreamBoundaryValidators
 ])];
 
@@ -55,8 +60,10 @@ console.log(JSON.stringify({
   validators_passed: results.length,
   stages_machine_bound: Object.keys(orchestrator.stage_machine_coverage || {}).length,
   pre_partner_intake_gate_machine_bound: true,
+  pre_partner_certification_machine_bound: true,
   pre_partner_control_families: 12,
   partner_like_adversarial_fixtures: 12,
+  provider_rights_decision_gate_machine_bound: true,
   projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
