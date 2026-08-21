@@ -3,6 +3,8 @@ name: KIDULTS Full Value Chain Red-Team Orchestrator V1
 on:
   pull_request:
     branches: [ main ]
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -13,5 +15,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Validate full value-chain Red-Team orchestrator
-        run: node scripts/kidults/kpmo/validate-full-value-chain-redteam-orchestrator-v1.mjs
+      - name: Run aggregate full value-chain Red-Team suite
+        run: node scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs
