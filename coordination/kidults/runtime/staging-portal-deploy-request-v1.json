@@ -1,11 +1,11 @@
 {
-  "request_id": "staging-portal-deploy-request-v1-20260821-retry-1",
+  "request_id": "staging-portal-deploy-request-v1-20260821-retry-2",
   "issue": 921,
   "environment": "STAGING",
   "action": "DEPLOY_PORTAL_RELEASE_001",
   "source_commit": "6c07f9793b7491b4d54bd344a2164f0d929f692e",
   "target": "ih-staging-01",
-  "reason": "preview_service_startup_hardening_after_run_32488425738",
+  "reason": "pipefail_safe_health_verification_after_run_32489524731",
   "public_bind": false,
   "production": "HOLD",
   "g5": "HOLD"

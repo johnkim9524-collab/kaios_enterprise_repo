@@ -30,6 +30,7 @@ RELEASE="$RELEASES/$RELEASE_ID"
 PORT=4173
 PIDFILE="$ROOT/portal-r001.pid"
 SERVERLOG="$LOG/portal-r001-http.log"
+HEALTHFILE="$ROOT/portal-r001-health.html"
 mkdir -p "$RELEASES" "$AUDIT" "$LOG"
 chmod 755 "$APP" "$RELEASES" "$LOG"
 chmod 700 "$AUDIT"
@@ -65,7 +66,7 @@ setsid -f sh -c 'exec python3 -m http.server "$1" --bind 127.0.0.1 --directory "
 newpid=""
 for _ in $(seq 1 30); do
   newpid="$(pgrep -u "$(id -u)" -f "python3 -m http.server $PORT --bind 127.0.0.1 --directory $CURRENT" | head -1 || true)"
-  if [[ -n "$newpid" ]] && curl -fsS "http://127.0.0.1:$PORT/index.html" >/tmp/kidults-portal-r001-health.html; then
+  if [[ -n "$newpid" ]] && curl -fsS "http://127.0.0.1:$PORT/index.html" -o "$HEALTHFILE"; then
     break
   fi
   sleep 0.5
@@ -79,16 +80,22 @@ fi
 printf '%s\n' "$newpid" > "$PIDFILE"
 chmod 600 "$PIDFILE"
 
-if ! curl -fsS "http://127.0.0.1:$PORT/index.html" | grep -Fq 'data-release="portal-release-001"'; then
-  echo 'FAIL: release marker health check' >&2
+if ! curl -fsS "http://127.0.0.1:$PORT/index.html" -o "$HEALTHFILE"; then
+  echo 'FAIL: localhost HTTP health fetch' >&2
   cat "$SERVERLOG" >&2 || true
   exit 36
 fi
-if ! curl -fsS "http://127.0.0.1:$PORT/index.html" | grep -Fq 'data-state="NO_PROJECTION"'; then
-  echo 'FAIL: NO_PROJECTION marker health check' >&2
+if ! grep -Fq 'data-release="portal-release-001"' "$HEALTHFILE"; then
+  echo 'FAIL: release marker health check' >&2
   cat "$SERVERLOG" >&2 || true
   exit 37
 fi
+if ! grep -Fq 'data-state="NO_PROJECTION"' "$HEALTHFILE"; then
+  echo 'FAIL: NO_PROJECTION marker health check' >&2
+  cat "$SERVERLOG" >&2 || true
+  exit 38
+fi
+rm -f "$HEALTHFILE"
 
 cat > "$AUDIT/portal-r001-deploy-receipt.json" <<EOF
 {
