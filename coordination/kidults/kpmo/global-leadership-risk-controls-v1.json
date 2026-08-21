@@ -1,85 +1,28 @@
 {
   "id": "kidults-global-leadership-risk-controls-v1",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "status": "ACTIVE",
   "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
-  "introduced_from_exact_main": "2e9f25c4dd802b2ec3f184d567833b7c1997f6c4",
-  "objective": "Advance KIDULTS toward a globally leading Autonomous Global Intelligence Platform by reducing evidence starvation, source concentration, category/geography asymmetry, late integration risk and scorecard distortion without weakening empirical, rights, security or Production gates.",
+  "objective": "Advance KIDULTS toward a globally leading Autonomous Global Intelligence Platform by reducing evidence starvation, source concentration, category/geography asymmetry, late integration risk, scorecard distortion and autonomous-decision failure modes without weakening empirical, rights, security or Production gates.",
   "non_negotiable_truth_rules": [
     "CLAIM_STRENGTH_LE_EVIDENCE_STRENGTH",
     "MISSING_NE_ZERO",
     "PUBLIC_VISIBILITY_NE_REUSE_RIGHT",
     "PROVIDER_NE_GLOBAL_TRUTH",
     "ARCHITECTURE_CI_SYNTHETIC_NE_EMPIRICAL_PASS",
+    "BUSINESS_VALUE_NE_PERMISSION_TO_OVERRIDE_TRUTH_GATES",
     "NO_PRODUCTION_PUBLIC_G5_BYPASS"
   ],
   "risk_controls": [
-    {
-      "id": "EVIDENCE_STARVATION",
-      "severity": "P0",
-      "current_truth": "Empirical ASI rebalancer 13 cells / 0 collection-computable / 0 analytical-computable / 0 live mutations; active collector-market dated-SOLD cells 0.",
-      "control": "EVIDENCE_DEMAND_FIRST",
-      "required_actions": [
-        "Rank source acquisition by marginal reduction of UNKNOWN factors, not record volume.",
-        "Prioritize VENUE_DEPTH_AND_DIVERSITY, then MARKET_MATURITY, MARKET_SCALE, OBSERVED_TRANSACTION_ACTIVITY.",
-        "Require rights, freshness, provenance and source-owner independence before empirical admission.",
-        "Keep unsupported factor cells UNKNOWN with zero quota/weight mutation."
-      ],
-      "exit": "At least one claim-sufficient lawful collector-market lineage and sufficient lawful multi-owner factors to make bounded SHADOW rebalancer computation defensible."
-    },
-    {
-      "id": "SOURCE_CONCENTRATION",
-      "severity": "P0",
-      "current_truth": "Current admitted evidence ownership is narrow relative to global target and collector-current-market redundancy is 0.",
-      "control": "INDEPENDENT_SOURCE_OWNER_DIVERSIFICATION",
-      "required_actions": [
-        "Measure evidence coverage by independent source owner, category, geography and evidence class.",
-        "Do not count duplicate feeds, aliases or republished records as independent owners.",
-        "Require source-removal sensitivity for any factor relying on multi-owner evidence.",
-        "Flag any production-eligible claim whose evidence collapses after removal of one owner."
-      ],
-      "exit": "No production-eligible critical market claim depends on a single source owner unless explicitly classified as single-authority truth with a bounded claim ceiling."
-    },
-    {
-      "id": "CATEGORY_GEOGRAPHY_ASYMMETRY",
-      "severity": "P0",
-      "current_truth": "Architecture is multi-vertical/global while empirical factor coverage is materially uneven.",
-      "control": "SYMMETRY_WITHOUT_FORCED_PARITY",
-      "required_actions": [
-        "Maintain category x geography x evidence-class coverage matrix.",
-        "Expose NOT_VERIFIED and UNKNOWN rather than filling gaps with proxy assumptions.",
-        "Select next evidence acquisition by business relevance x uncertainty reduction x source independence x rights feasibility.",
-        "Require representative cross-vertical compatibility before broad global claims."
-      ],
-      "exit": "Global claims are bounded to empirically represented category/geography surfaces; no architecture-level coverage is reported as empirical coverage."
-    },
-    {
-      "id": "LATE_INTEGRATION_CLIFF",
-      "severity": "P0",
-      "current_truth": "No genuine immutable Candidate/Evidence pair has traversed Track B to live approved Projection.",
-      "control": "SHADOW_HANDOFF_REHEARSAL_WITHOUT_GATE_PROMOTION",
-      "required_actions": [
-        "Continuously test Candidate/Evidence/Track-B/Projection schema and digest compatibility using explicitly synthetic or non-promotable shadow fixtures.",
-        "Prove downstream consumers reject missing, stale, tampered and rights-inadmissible claims.",
-        "Keep shadow rehearsal artifacts cryptographically and semantically non-promotable to empirical PASS.",
-        "On first genuine immutable pair, execute Track B and final workload replay immediately without redesign delay."
-      ],
-      "exit": "Downstream chain is mechanically rehearsed and genuine first-pair traversal requires no contract/schema redesign."
-    },
-    {
-      "id": "SCORECARD_DISTORTION",
-      "severity": "P0",
-      "current_truth": "Strict evidenced completion is 17/100 and intentionally under-represents internal platform maturity because only final evidenced PASS counts.",
-      "control": "THREE_AXIS_READINESS",
-      "required_actions": [
-        "Preserve strict evidenced completion unchanged as Release Evidence Readiness.",
-        "Add Internal Platform Readiness as a separate non-release metric.",
-        "Add Empirical Evidence Readiness as a separate metric.",
-        "Never average the three axes into a single launch score.",
-        "Production eligibility remains governed only by canonical gates and explicit G5."
-      ],
-      "exit": "KPMO reporting cannot confuse architecture maturity, empirical evidence completeness and release authorization."
-    }
+    {"id":"EVIDENCE_STARVATION","severity":"P0","control":"EVIDENCE_DEMAND_FIRST"},
+    {"id":"SOURCE_CONCENTRATION","severity":"P0","control":"INDEPENDENT_SOURCE_OWNER_DIVERSIFICATION"},
+    {"id":"CATEGORY_GEOGRAPHY_ASYMMETRY","severity":"P0","control":"SYMMETRY_WITHOUT_FORCED_PARITY"},
+    {"id":"LATE_INTEGRATION_CLIFF","severity":"P0","control":"SHADOW_HANDOFF_REHEARSAL_WITHOUT_GATE_PROMOTION"},
+    {"id":"SCORECARD_DISTORTION","severity":"P0","control":"THREE_AXIS_READINESS"},
+    {"id":"AUTONOMY_OBJECTIVE_MISALIGNMENT","severity":"P0","control":"AUTONOMY_OBJECTIVE_ALIGNMENT","binding":"autonomy-safety-controls-v1.json"},
+    {"id":"FEEDBACK_LOOP_LOCK_IN","severity":"P0","control":"EXPLORATION_EXPLOITATION_LOCK_IN_CONTROL","binding":"autonomy-safety-controls-v1.json"},
+    {"id":"UNKNOWN_DEBT_EXPLOSION","severity":"P0","control":"WEIGHTED_UNKNOWN_DEBT","binding":"autonomy-safety-controls-v1.json"},
+    {"id":"AUTONOMOUS_ACTION_BLAST_RADIUS","severity":"P0_BEFORE_LIVE_MUTATION","control":"AUTONOMOUS_MUTATION_BLAST_RADIUS","binding":"autonomy-safety-controls-v1.json"}
   ],
   "operating_priority": [
     "EMPIRICAL_GATE_CLOSURE",
