@@ -9,11 +9,15 @@ const p0PrePartnerValidators = [
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs'
 ];
+const downstreamBoundaryValidators = [
+  'scripts/kidults/portal/validate-portal-release-001.mjs'
+];
 const validators = [...new Set([
   structuralValidator,
   stageCoverageValidator,
   ...(orchestrator.required_family_validators || []),
-  ...p0PrePartnerValidators
+  ...p0PrePartnerValidators,
+  ...downstreamBoundaryValidators
 ])];
 
 const results = [];
@@ -53,6 +57,7 @@ console.log(JSON.stringify({
   pre_partner_intake_gate_machine_bound: true,
   pre_partner_control_families: 12,
   partner_like_adversarial_fixtures: 12,
+  projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   external_partner_data_ingestion: 'HOLD',
