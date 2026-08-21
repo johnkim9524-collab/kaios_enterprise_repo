@@ -11,6 +11,9 @@ const mandatory = [
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs',
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs',
+  'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
+  'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
+  'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
 
@@ -28,7 +31,9 @@ for (const marker of [
   "empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE'",
   "release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE'",
   'pre_partner_required_controls_exactly_bound: true',
-  'pre_partner_control_removal_mutation_selftest: true'
+  'pre_partner_control_removal_mutation_selftest: true',
+  'digitalocean_staging_bootstrap_exec_contract_machine_bound: true',
+  'digitalocean_staging_bootstrap_workflow_machine_bound: true'
 ]) {
   if (!runner.includes(marker)) errors.push(`aggregate truth/control marker missing: ${marker}`);
 }
@@ -37,6 +42,18 @@ const preIntake = JSON.parse(fs.readFileSync('coordination/kidults/audit/unified
 if (preIntake.governing_issue !== 881) errors.push('Unified Audit Control Plane must remain bound to #881');
 if (!Array.isArray(preIntake.pre_partner_control_families) || preIntake.pre_partner_control_families.length !== 12) errors.push('all 12 #881 control families must remain machine-bound');
 if (preIntake.truth_boundary?.empirical_gate_effect !== 'NONE') errors.push('control evidence must not promote empirical gates');
+
+const orchestrator = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json','utf8'));
+const runtimeRequired = new Set(orchestrator.required_runtime_boundary_validators || []);
+const runtimeStage = new Set(orchestrator.stage_machine_coverage?.RUNTIME?.validators || []);
+for (const script of [
+  'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
+  'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
+  'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py'
+]) {
+  if (!runtimeRequired.has(script)) errors.push(`required runtime boundary missing: ${script}`);
+  if (!runtimeStage.has(script)) errors.push(`RUNTIME stage executable boundary missing: ${script}`);
+}
 
 const rightsGate = JSON.parse(fs.readFileSync('coordination/kidults/market/provider-rights-decision-gate-v1.json','utf8'));
 for (const provider of ['CLASSIC.COM','ALT/FNDATA']) {
@@ -59,6 +76,8 @@ console.log(JSON.stringify({
   pre_partner_control_family_exact_coverage:'MACHINE_BOUND',
   pre_partner_control_removal_mutation_selftest:'MACHINE_BOUND',
   provider_rights_decision_gate:'MACHINE_BOUND',
+  runtime_exec_contract:'MACHINE_BOUND',
+  runtime_exec_workflow:'MACHINE_BOUND',
   empirical_gate_effect:'NONE',
   external_partner_data_ingestion:'HOLD',
   production:'HOLD',

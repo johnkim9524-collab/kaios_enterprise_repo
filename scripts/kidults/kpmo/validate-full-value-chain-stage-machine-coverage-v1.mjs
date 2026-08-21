@@ -5,7 +5,9 @@ const root = process.cwd();
 const orchestratorPath = path.join(root, 'coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json');
 const data = JSON.parse(fs.readFileSync(orchestratorPath, 'utf8'));
 const requiredConcreteRuntimeBoundaryValidators = [
-  'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py'
+  'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
+  'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
+  'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py'
 ];
 
 if (data.aggregate_machine_enforcement?.require_all_stage_checks_bound !== true) {
