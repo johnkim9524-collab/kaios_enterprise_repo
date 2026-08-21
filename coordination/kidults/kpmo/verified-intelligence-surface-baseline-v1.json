@@ -1,0 +1,33 @@
+{
+  "id": "kidults-verified-intelligence-surface-baseline-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE",
+  "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
+  "metric": "VERIFIED_INTELLIGENCE_SURFACE",
+  "current_empirical_truth": {
+    "rebalancer_cells": 13,
+    "collection_computable_cells": 0,
+    "analytical_computable_cells": 0,
+    "live_mutations": 0,
+    "collector_market_dated_sold_cells": 0,
+    "active_market_claim": "NONE"
+  },
+  "coverage_dimensions": ["CATEGORY", "GEOGRAPHY", "EVIDENCE_CLASS", "INDEPENDENT_SOURCE_OWNER"],
+  "next_factor_frontier": ["VENUE_DEPTH_AND_DIVERSITY", "MARKET_MATURITY", "MARKET_SCALE", "OBSERVED_TRANSACTION_ACTIVITY"],
+  "first_exit_target": {
+    "name": "FIRST_DEFENSIBLE_COMPUTABLE_MARKET_SURFACE",
+    "requirements": [
+      "Rights-admitted empirical evidence only",
+      "Required factor completeness for at least one bounded category x geography surface",
+      "Freshness and provenance PASS",
+      "Independent source-owner requirements PASS where factor semantics require multi-owner evidence",
+      "Source-removal sensitivity PASS",
+      "Deterministic recomputation PASS",
+      "SHADOW reallocation proposal generated",
+      "No live mutation",
+      "No empirical or release Gate promotion beyond evidence actually proven"
+    ]
+  },
+  "reporting_rule": "This metric is separate from Release Evidence Readiness and may not be averaged with the strict 17/100 score.",
+  "production": "HOLD"
+}
