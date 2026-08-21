@@ -54,6 +54,8 @@ jobs:
           const fixture=JSON.parse(await fs.readFile(process.env.GITHUB_WORKSPACE+'/apps/kidults-enterprise-staging/public/portal-r001/data/projection-control-fixture.json','utf8'));
           const failures=[];
           const results=[];
+          const screenshotDir='/tmp/kidults-r001-qa/screenshots';
+          await fs.mkdir(screenshotDir,{recursive:true});
 
           function variant(state){
             const d=structuredClone(fixture);
@@ -69,6 +71,27 @@ jobs:
             return d;
           }
 
+          function liveEnvelope(){
+            const d=structuredClone(fixture);
+            const exactPair='sha256:'+ 'a'.repeat(64);
+            const correlation='sha256:'+ 'c'.repeat(64);
+            const liveAsOf=new Date(Date.now()-60000).toISOString();
+            delete d.fixture_type;
+            d.projection={state:'LIVE_APPROVED',projection_id:'qa-projection-001',assessment_id:'qa-assessment-001',replay_id:'qa-replay-001',exact_pair_digest:exactPair,correlation_id:correlation,production:false,public:false,promotable:true,synthetic:false,assessment_recommendation:'PUBLISHABLE_INTERNAL',overall_rankability:true,as_of:liveAsOf,rights_state:'APPROVED',freshness:'CURRENT'};
+            d.audit={projection_id:'qa-projection-001',assessment_id:'qa-assessment-001',replay_id:'qa-replay-001',exact_pair_digest:exactPair,correlation_id:correlation,rebuild_state:'PASS',replay_state:'PASS',rollback_state:'READY',reason_category:'QA_LIVE_APPROVED_SIMULATION'};
+            d.overview=[{label:'Approved Projection',value:'qa-projection-001',state_type:'intelligence',state:'LIVE_APPROVED'},{label:'Verified Market Claims',value:'QA bounded content',state_type:'intelligence',state:'LIVE_APPROVED'},{label:'Core Verticals',value:'8',state_type:'structural',state:'AVAILABLE'},{label:'Production',value:'HOLD',state_type:'release',state:'HOLD'}];
+            d.signals=[
+              {signal_id:'qa-scale',label:'QA Market Scale',value:'QA VALUE',state:'LIVE_APPROVED',as_of:liveAsOf,confidence:'HIGH',evidence_refs:['qa-evidence-001']},
+              {signal_id:'qa-liquidity',label:'QA Liquidity',value:'QA VERIFIED',state:'LIVE_APPROVED',as_of:liveAsOf,confidence:'HIGH',evidence_refs:['qa-evidence-002']}
+            ];
+            d.kidult_100={state:'LIVE_APPROVED',index_value:1000,change:null,as_of:liveAsOf,constituents:['qa-object-001'],methodology_version:'qa-method-v1'};
+            d.research_archive={state:'LIVE_APPROVED',items:[{research_id:'qa-research-001',title:'QA Projection Research',snapshot_id:'qa-snapshot-001',published_at:liveAsOf,projection_id:'qa-projection-001'}]};
+            d.evidence_methodology={coverage:'COMPLETE',independence:'VERIFIED',freshness:'CURRENT',rights:'APPROVED',methodology_version:'qa-method-v1',lineage_version:'qa-lineage-v1'};
+            d.evidence=[{label:'Evidence coverage',value:'QA COMPLETE'},{label:'Source-owner independence',value:'QA VERIFIED'},{label:'Freshness / as-of',value:'CURRENT'},{label:'Rights / publication',value:'APPROVED'},{label:'Methodology',value:'qa-method-v1'},{label:'Audit',value:'TRACE BOUND'}];
+            d.objects=[{object_id:'qa-object-001',title:'QA Reference Object',maker:'QA Maker',model:'QA Model',year:'1960',aliases:['QA Alias'],market_observations:['QA governed observation'],comparables:['QA governed comparable'],evidence_refs:['qa-evidence-001'],confidence:'HIGH',evidence_coverage:'COMPLETE',source_owner_independence:'VERIFIED',rights_state:'APPROVED',limitations:['QA simulation only']}];
+            return d;
+          }
+
           const browser=await chromium.launch({headless:true});
           for(const vp of viewports){
             for(const state of states){
@@ -76,6 +99,9 @@ jobs:
               await context.route('**/portal-r001/data/projection-control-fixture.json',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(variant(state))}));
               for(const route of routes){
                 const page=await context.newPage();
+                const runtimeErrors=[];
+                page.on('pageerror',error=>runtimeErrors.push(`PAGEERROR_${error.message}`));
+                page.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))runtimeErrors.push(`CONSOLE_${message.text()}`)});
                 const response=await page.goto(baseUrl+route,{waitUntil:'networkidle'});
                 if(!response?.ok()){
                   failures.push(`${route}:${vp.name}:${state}:HTTP_${response?.status()}`);
@@ -89,16 +115,24 @@ jobs:
                 const obs=await page.evaluate(()=>{
                   const html=document.documentElement;
                   const workspace=[...document.querySelectorAll('.workspace-grid article')];
-                  const search=document.querySelector('.search');
+                  const hero=document.querySelector('.hero-image');
+                  const signIn=document.querySelector('.sign-in');
+                  const visible=element=>Boolean(element&&getComputedStyle(element).display!=='none'&&getComputedStyle(element).visibility!=='hidden'&&element.getBoundingClientRect().width>0&&element.getBoundingClientRect().height>0);
                   return {
                     state:html.dataset.state||null,
                     lang:html.getAttribute('lang'),
                     mainCount:document.querySelectorAll('main,[role="main"]').length,
                     horizontalOverflow:html.scrollWidth>html.clientWidth+2,
-                    workspaceAllBlocked:workspace.length?workspace.every(x=>x.getAttribute('aria-disabled')==='true'):true,
-                    searchDisabled:search?search.disabled===true:true,
-                    hasLiveApprovedText:(document.body.innerText||'').includes('Governed ranking available.'),
-                    fixtureTag:document.querySelector('.projection-bar')?.getAttribute('data-fixture')||null,
+                    workspaceCount:workspace.length,
+                    workspaceAllBlocked:workspace.length===4&&workspace.every(x=>x.getAttribute('aria-disabled')==='true'),
+                    signInEnabled:Boolean(signIn)&&signIn.getAttribute('aria-disabled')!=='true'&&!signIn.hasAttribute('disabled'),
+                    hasLiveApprovedText:(document.body.innerText||'').includes('GOVERNED VIEW READY'),
+                    fixtureTag:document.querySelector('.status-strip')?.getAttribute('data-fixture')||null,
+                    heroDecoded:Boolean(hero?.complete&&hero.naturalWidth>=1800&&hero.naturalHeight>=800),
+                    heroDimensions:hero?`${hero.naturalWidth}x${hero.naturalHeight}`:null,
+                    rightsVisible:visible(document.querySelector('[data-rights]')),
+                    releaseVisible:visible(document.querySelector('[data-release-state]')),
+                    navToggleVisible:visible(document.querySelector('.nav-toggle')),
                     unlabeledControls:[...document.querySelectorAll('button,input,select,textarea,a[href]')].filter(el=>{
                       const text=(el.textContent||'').trim();
                       const aria=el.getAttribute('aria-label')||el.getAttribute('aria-labelledby');
@@ -114,11 +148,21 @@ jobs:
                 if(obs.mainCount<1) failures.push(`${route}:${vp.name}:${state}:MAIN_LANDMARK_MISSING`);
                 if(vp.width<=430&&obs.horizontalOverflow) failures.push(`${route}:${vp.name}:${state}:HORIZONTAL_OVERFLOW`);
                 if(obs.unlabeledControls>0) failures.push(`${route}:${vp.name}:${state}:UNLABELED_CONTROLS_${obs.unlabeledControls}`);
+                if(runtimeErrors.length) failures.push(`${route}:${vp.name}:${state}:RUNTIME_${runtimeErrors.join('|')}`);
+                if(!obs.heroDecoded) failures.push(`${route}:${vp.name}:${state}:HERO_NOT_DECODED_${obs.heroDimensions}`);
+                if(!obs.rightsVisible||!obs.releaseVisible) failures.push(`${route}:${vp.name}:${state}:CRITICAL_STATUS_HIDDEN`);
+                if(vp.width<=900&&!obs.navToggleVisible) failures.push(`${route}:${vp.name}:${state}:MOBILE_NAV_TOGGLE_HIDDEN`);
                 if(route.endsWith('index.html')){
                   if(!obs.workspaceAllBlocked) failures.push(`${route}:${vp.name}:${state}:WORKSPACE_UNLOCKED`);
-                  if(!obs.searchDisabled) failures.push(`${route}:${vp.name}:${state}:SEARCH_UNLOCKED`);
+                  if(!obs.signInEnabled) failures.push(`${route}:${vp.name}:${state}:SIGN_IN_PROJECTION_GATED`);
                   if(obs.hasLiveApprovedText) failures.push(`${route}:${vp.name}:${state}:FALSE_LIVE_RANKING`);
                   if(obs.fixtureTag!=='NON_PROMOTABLE') failures.push(`${route}:${vp.name}:${state}:FIXTURE_TAG_MISSING`);
+                }
+                if(vp.width<=900){
+                  await page.locator('.nav-toggle').click();
+                  const menuOpen=await page.locator('#primary-nav').isVisible();
+                  if(!menuOpen) failures.push(`${route}:${vp.name}:${state}:MOBILE_NAV_DID_NOT_OPEN`);
+                  await page.keyboard.press('Escape');
                 }
                 const focusables=await page.locator('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])').count();
                 let keyboardFocus=true;
@@ -127,9 +171,131 @@ jobs:
                   keyboardFocus=await page.evaluate(()=>document.activeElement&&document.activeElement!==document.body);
                   if(!keyboardFocus) failures.push(`${route}:${vp.name}:${state}:KEYBOARD_FOCUS_NOT_OBSERVED`);
                 }
+                if(route.endsWith('index.html')&&state==='NO_PROJECTION'&&(vp.width===390||vp.width===1440)){
+                  await page.screenshot({path:`${screenshotDir}/portal-r001-${vp.name}.png`,fullPage:true});
+                }
                 results.push({route,viewport:vp.name,state,seriousCritical:serious.length,obs,focusables,keyboardFocus});
                 await page.close();
               }
+              await context.close();
+            }
+          }
+
+          // Positive-path simulation: prove the in-page Object Intelligence runtime consumes a LIVE_APPROVED Projection.
+          {
+            const live=liveEnvelope();
+            for(const width of [390,1440]){
+              const context=await browser.newContext({viewport:{width,height:width===390?900:1000},reducedMotion:'reduce'});
+              await context.route('**/portal-r001/data/projection-control-fixture.json',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(live)}));
+              const page=await context.newPage();
+              const runtimeErrors=[];
+              page.on('pageerror',error=>runtimeErrors.push(`PAGEERROR_${error.message}`));
+              page.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))runtimeErrors.push(`CONSOLE_${message.text()}`)});
+              await page.goto(baseUrl+'/portal-r001/index.html',{waitUntil:'networkidle'});
+              const obs=await page.evaluate(()=>({
+                state:document.documentElement.dataset.state,
+                objectTitle:document.querySelector('[data-object-title]')?.textContent,
+                objectCount:document.querySelector('[data-object-count]')?.textContent,
+                workspaceCount:document.querySelectorAll('.workspace-grid article').length,
+                workspaceAvailable:document.querySelectorAll('.workspace-grid article').length===4&&[...document.querySelectorAll('.workspace-grid article')].every(node=>node.getAttribute('aria-disabled')==='false'),
+                kidultReady:document.querySelector('[data-k100-state]')?.dataset.contentState==='LIVE_APPROVED'&&document.querySelector('[data-k100-state]')?.textContent.includes('1,000'),
+                researchReady:document.querySelector('[data-research-state]')?.textContent.includes('1 projection-bound record')&&document.querySelector('[data-research-record]')?.textContent.includes('qa-snapshot-001'),
+                evidenceText:document.querySelector('[data-evidence-grid]')?.textContent||'',
+                auditText:document.querySelector('[data-audit-safe]')?.textContent||'',
+                auditSeal:document.querySelector('[data-audit-seal]')?.textContent,
+                indexSeriesLabel:document.querySelector('.index-line')?.getAttribute('aria-label'),
+                signInEnabled:Boolean(document.querySelector('.sign-in'))&&document.querySelector('.sign-in').getAttribute('aria-disabled')!=='true',
+                horizontalOverflow:document.documentElement.scrollWidth>document.documentElement.clientWidth+2
+              }));
+              if(obs.state!=='LIVE_APPROVED')failures.push(`LIVE:w${width}:STATE_${obs.state}`);
+              if(obs.objectTitle!=='QA Reference Object'||obs.objectCount!=='1 APPROVED')failures.push(`LIVE:w${width}:OBJECT_RUNTIME_NOT_BOUND`);
+              if(!obs.workspaceAvailable||!obs.kidultReady||!obs.researchReady||obs.auditSeal!=='TRACE BOUND')failures.push(`LIVE:w${width}:APPROVED_CAPABILITY_NOT_RENDERED`);
+              if(obs.indexSeriesLabel!=='Trend series not supplied by approved Projection')failures.push(`LIVE:w${width}:INDEX_SERIES_SEMANTICS_INCORRECT`);
+              if(/Waiting|No live Projection|Not yet verified|NOT_AVAILABLE/.test(obs.evidenceText+obs.auditText))failures.push(`LIVE:w${width}:BLOCKED_COPY_LEAKED_INTO_LIVE`);
+              if(!obs.signInEnabled)failures.push(`LIVE:w${width}:SIGN_IN_PROJECTION_GATED`);
+              if(runtimeErrors.length)failures.push(`LIVE:w${width}:RUNTIME_${runtimeErrors.join('|')}`);
+              if(width<=430&&obs.horizontalOverflow)failures.push(`LIVE:w${width}:HORIZONTAL_OVERFLOW`);
+              const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+              const serious=axe.violations.filter(v=>['serious','critical'].includes(v.impact));
+              if(serious.length)failures.push(`LIVE:w${width}:AXE_${serious.map(v=>v.id).join(',')}`);
+              results.push({route:'/portal-r001/index.html',viewport:`w${width}`,state:'LIVE_APPROVED_QA_SIMULATION',seriousCritical:serious.length,obs});
+              if(width===390){
+                await page.goto(baseUrl+'/portal-r001/object.html?id=qa-object-001',{waitUntil:'networkidle'});
+                const legacyKnown=await page.evaluate(()=>({url:location.href,title:document.querySelector('[data-object-title]')?.textContent}));
+                if(!legacyKnown.url.includes('index.html?id=qa-object-001#objects')||legacyKnown.title!=='QA Reference Object')failures.push(`LIVE:w390:LEGACY_OBJECT_ID_DROPPED_${JSON.stringify(legacyKnown)}`);
+                results.push({route:'/portal-r001/object.html?id=qa-object-001',viewport:'w390',state:'LIVE_APPROVED_LEGACY_OBJECT',obs:legacyKnown});
+                await page.goto(baseUrl+'/portal-r001/object.html?id=unknown-object',{waitUntil:'networkidle'});
+                const unknown=await page.evaluate(()=>({state:document.documentElement.dataset.state,objectState:document.querySelector('[data-object-state]')?.dataset.objectState,title:document.querySelector('[data-object-title]')?.textContent,id:document.querySelector('[data-object-id]')?.textContent,rights:document.querySelector('[data-object-rights]')?.textContent}));
+                if(unknown.state!=='LIVE_APPROVED'||unknown.objectState!=='NOT_AVAILABLE'||unknown.title!=='No governed object'||unknown.id==='qa-object-001'||unknown.rights==='APPROVED')failures.push(`LIVE:w390:UNKNOWN_OBJECT_FALSE_MATCH_${JSON.stringify(unknown)}`);
+                results.push({route:'/portal-r001/object.html?id=unknown-object',viewport:'w390',state:'LIVE_APPROVED_UNKNOWN_OBJECT',obs:unknown});
+              }
+              await context.close();
+            }
+          }
+
+          // Adversarial positive-state envelopes must be downgraded before any capability unlocks.
+          {
+            const validLive=liveEnvelope();
+            const adversarial=[
+              {name:'MISSING_IDENTITY',expected:'INVALID',mutate:data=>{data.projection.projection_id=null}},
+              {name:'MISSING_DIGEST',expected:'INVALID',mutate:data=>{data.projection.exact_pair_digest=null}},
+              {name:'MISSING_REPLAY',expected:'INVALID',mutate:data=>{data.projection.replay_id=null}},
+              {name:'PRODUCTION_TRUE',expected:'INVALID',mutate:data=>{data.projection.production=true}},
+              {name:'PUBLIC_TRUE',expected:'INVALID',mutate:data=>{data.projection.public=true}},
+              {name:'RELEASE_ESCALATION',expected:'INVALID',mutate:data=>{data.release.state='RELEASED'}},
+              {name:'SYNTHETIC_TRUE',expected:'INVALID',mutate:data=>{data.projection.synthetic=true}},
+              {name:'NON_RANKABLE',expected:'INVALID',mutate:data=>{data.projection.overall_rankability=false}},
+              {name:'CONDITIONAL_ASSESSMENT',expected:'INVALID',mutate:data=>{data.projection.assessment_recommendation='CONDITIONAL'}},
+              {name:'RIGHTS_WAITING',expected:'RIGHTS_BLOCKED',mutate:data=>{data.projection.rights_state='WAITING'}},
+              {name:'RIGHTS_SYNTHETIC',expected:'RIGHTS_BLOCKED',mutate:data=>{data.projection.rights_state='ALLOW_SYNTHETIC_TEST_ONLY'}},
+              {name:'RIGHTS_DISCOVERY',expected:'RIGHTS_BLOCKED',mutate:data=>{data.projection.rights_state='ALLOW_DISCOVERY_METADATA_ONLY'}},
+              {name:'FRESHNESS_PREFIX_FAKE',expected:'INVALID',mutate:data=>{data.projection.freshness='CURRENT_FAKE'}},
+              {name:'CORRELATION_MISMATCH',expected:'INVALID',mutate:data=>{data.audit.correlation_id='sha256:'+ 'd'.repeat(64)}},
+              {name:'AUDIT_PROJECTION_MISMATCH',expected:'INVALID',mutate:data=>{data.audit.projection_id='qa-projection-002'}},
+              {name:'AUDIT_ASSESSMENT_MISMATCH',expected:'INVALID',mutate:data=>{data.audit.assessment_id='qa-assessment-002'}},
+              {name:'AUDIT_REPLAY_MISMATCH',expected:'INVALID',mutate:data=>{data.audit.replay_id='qa-replay-002'}},
+              {name:'AUDIT_PAIR_MISMATCH',expected:'INVALID',mutate:data=>{data.audit.exact_pair_digest='sha256:'+ 'b'.repeat(64)}},
+              {name:'INVALID_AS_OF_FORMAT',expected:'INVALID',mutate:data=>{data.projection.as_of='2026-08-21'}},
+              {name:'FUTURE_AS_OF',expected:'INVALID',mutate:data=>{data.projection.as_of='2099-01-01T00:00:00Z'}},
+              {name:'OLD_AS_OF_CURRENT',expected:'INVALID',mutate:data=>{data.projection.as_of='2000-01-01T00:00:00Z'}},
+              {name:'INVALID_CALENDAR_AS_OF',expected:'INVALID',mutate:data=>{data.projection.as_of='2026-02-30T00:00:00Z'}},
+              {name:'MISSING_SIGNAL_EVIDENCE',expected:'INVALID',mutate:data=>{data.signals[0].evidence_refs=[]}},
+              {name:'EMPTY_SIGNAL_VALUE',expected:'INVALID',mutate:data=>{data.signals[0].value=''}},
+              {name:'OBJECT_SIGNAL_VALUE',expected:'INVALID',mutate:data=>{data.signals[0].value={fake:true}}},
+              {name:'INCOMPLETE_OBJECT',expected:'INVALID',mutate:data=>{data.objects[0].evidence_refs=[]}},
+              {name:'K100_NULL_CONSTITUENT',expected:'INVALID',mutate:data=>{data.kidult_100.constituents=[null]}},
+              {name:'K100_UNKNOWN_CONSTITUENT',expected:'INVALID',mutate:data=>{data.kidult_100.constituents=['qa-object-unknown']}},
+              {name:'METHODOLOGY_RIGHTS_MISMATCH',expected:'INVALID',mutate:data=>{data.evidence_methodology.rights='BLOCKED'}},
+              {name:'METHODOLOGY_FRESHNESS_MISMATCH',expected:'INVALID',mutate:data=>{data.evidence_methodology.freshness='STALE'}},
+              {name:'METHODOLOGY_COVERAGE_WAITING',expected:'INVALID',mutate:data=>{data.evidence_methodology.coverage='WAITING'}},
+              {name:'BLOCKED_SIGNAL_CONFIDENCE',expected:'INVALID',mutate:data=>{data.signals[0].confidence='PENDING'}},
+              {name:'BLOCKED_OBJECT_CONFIDENCE',expected:'INVALID',mutate:data=>{data.objects[0].confidence='UNVERIFIED'}},
+              {name:'BLOCKED_OBJECT_COVERAGE',expected:'INVALID',mutate:data=>{data.objects[0].evidence_coverage='NO EVIDENCE'}},
+              {name:'DUPLICATE_VERTICAL_ID',expected:'INVALID',mutate:data=>{data.verticals[1].vertical_id=data.verticals[0].vertical_id}},
+              {name:'DUPLICATE_SIGNAL_ID',expected:'INVALID',mutate:data=>{data.signals.push({...data.signals[0]})}},
+              {name:'DUPLICATE_OBJECT_ID',expected:'INVALID',mutate:data=>{data.objects.push({...data.objects[0]})}},
+              {name:'DUPLICATE_K100_CONSTITUENT',expected:'INVALID',mutate:data=>{data.kidult_100.constituents=['qa-object-001','qa-object-001']}},
+              {name:'DUPLICATE_RESEARCH_ID',expected:'INVALID',mutate:data=>{data.research_archive.items.push({...data.research_archive.items[0],snapshot_id:'qa-snapshot-002'})}},
+              {name:'ARCHIVE_PROJECTION_MISMATCH',expected:'INVALID',mutate:data=>{data.research_archive.items[0].projection_id='qa-projection-002'}},
+              {name:'MALFORMED_COLLECTION',expected:'INVALID',mutate:data=>{data.objects=[null]}},
+              {name:'CONTROL_FIXTURE_LIVE',expected:'INVALID',mutate:data=>{data.fixture_type='NON_PROMOTABLE_CONTROL'}},
+              {name:'SYNTHETIC_FIXTURE_LIVE',expected:'INVALID',mutate:data=>{data.fixture_type='SYNTHETIC_TEST'}}
+            ];
+            for(const test of adversarial){
+              const envelope=structuredClone(validLive);
+              test.mutate(envelope);
+              const context=await browser.newContext({viewport:{width:390,height:900},reducedMotion:'reduce'});
+              await context.route('**/portal-r001/data/projection-control-fixture.json',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(envelope)}));
+              const page=await context.newPage();
+              await page.goto(baseUrl+'/portal-r001/index.html',{waitUntil:'networkidle'});
+              const obs=await page.evaluate(()=>({
+                state:document.documentElement.dataset.state,
+                workspaceBlocked:document.querySelectorAll('.workspace-grid article').length===4&&[...document.querySelectorAll('.workspace-grid article')].every(node=>node.getAttribute('aria-disabled')==='true'),
+                kidultReady:document.querySelector('[data-k100-state]')?.dataset.contentState==='LIVE_APPROVED',
+                evidenceText:document.querySelector('[data-evidence-grid]')?.textContent||''
+              }));
+              if(obs.state!==test.expected||!obs.workspaceBlocked||obs.kidultReady||/COMPLETE|VERIFIED/.test(obs.evidenceText))failures.push(`ADVERSARIAL:${test.name}:FALSE_LIVE_${JSON.stringify(obs)}`);
+              results.push({route:'/portal-r001/index.html',viewport:'w390',state:`ADVERSARIAL_${test.name}`,expected:test.expected,obs});
               await context.close();
             }
           }
@@ -162,6 +328,8 @@ jobs:
             viewports:viewports.map(x=>x.width),
             blocked_states:states,
             cases:results.length,
+            positive_path_simulation:['LIVE_APPROVED_OBJECT_RUNTIME_W390','LIVE_APPROVED_OBJECT_RUNTIME_W1440'],
+            adversarial_live_envelopes:['MISSING_IDENTITY','MISSING_DIGEST','MISSING_REPLAY','PRODUCTION_TRUE','PUBLIC_TRUE','RELEASE_ESCALATION','SYNTHETIC_TRUE','NON_RANKABLE','CONDITIONAL_ASSESSMENT','RIGHTS_WAITING','RIGHTS_SYNTHETIC','RIGHTS_DISCOVERY','FRESHNESS_PREFIX_FAKE','CORRELATION_MISMATCH','AUDIT_PROJECTION_MISMATCH','AUDIT_ASSESSMENT_MISMATCH','AUDIT_REPLAY_MISMATCH','AUDIT_PAIR_MISMATCH','INVALID_AS_OF_FORMAT','FUTURE_AS_OF','OLD_AS_OF_CURRENT','INVALID_CALENDAR_AS_OF','MISSING_SIGNAL_EVIDENCE','EMPTY_SIGNAL_VALUE','OBJECT_SIGNAL_VALUE','INCOMPLETE_OBJECT','K100_NULL_CONSTITUENT','K100_UNKNOWN_CONSTITUENT','METHODOLOGY_RIGHTS_MISMATCH','METHODOLOGY_FRESHNESS_MISMATCH','METHODOLOGY_COVERAGE_WAITING','BLOCKED_SIGNAL_CONFIDENCE','BLOCKED_OBJECT_CONFIDENCE','BLOCKED_OBJECT_COVERAGE','DUPLICATE_VERTICAL_ID','DUPLICATE_SIGNAL_ID','DUPLICATE_OBJECT_ID','DUPLICATE_K100_CONSTITUENT','DUPLICATE_RESEARCH_ID','ARCHIVE_PROJECTION_MISMATCH','MALFORMED_COLLECTION','CONTROL_FIXTURE_LIVE','SYNTHETIC_FIXTURE_LIVE','UNKNOWN_OBJECT_ID','LEGACY_OBJECT_ID'],
             failures,
             truth_boundary:{fixture:'NON_PROMOTABLE',empirical_gate_effect:'NONE',live_approved_projection:'NONE',production:'HOLD',public_intelligence:'HOLD',g5:'EXPLICIT_APPROVAL_REQUIRED'},
             limitations:['AUTOMATED_BROWSER_AND_AXE_EVIDENCE_DOES_NOT_REPLACE_FINAL_MANUAL_SCREEN_READER_OR_HUMAN_USABILITY_ACCEPTANCE_ON_REAL_GOVERNED_PROJECTION']
@@ -179,4 +347,5 @@ jobs:
           path: |
             /tmp/kidults-portal-r001-release-qa-v1.json
             /tmp/kidults-r001-server.log
+            /tmp/kidults-r001-qa/screenshots
           retention-days: 30

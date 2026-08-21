@@ -1,0 +1,62 @@
+{
+  "id": "kidults-portal-r001-projection-content-v1",
+  "release": "Portal Release-001",
+  "read_boundary": "GOVERNED_PROJECTION_ONLY",
+  "binding": {
+    "projection_required": [
+      "projection_id",
+      "assessment_id",
+      "replay_id",
+      "exact_pair_digest",
+      "correlation_id",
+      "as_of",
+      "freshness",
+      "rights_state"
+    ],
+    "audit_must_match": [
+      "projection_id",
+      "assessment_id",
+      "replay_id",
+      "exact_pair_digest",
+      "correlation_id"
+    ],
+    "promotion_required": {
+      "synthetic": false,
+      "promotable": true,
+      "overall_rankability": true,
+      "assessment_recommendation": ["PUBLISHABLE_INTERNAL", "PUBLISHABLE_PUBLIC"],
+      "production": false,
+      "public": false
+    },
+    "freshness_max_age_days": 31,
+    "timestamp_format": "STRICT_UTC_ISO_8601",
+    "controlled_vocabulary": {
+      "confidence": ["HIGH", "MEDIUM"],
+      "evidence_coverage": ["COMPLETE", "SUFFICIENT", "BOUNDED"],
+      "source_owner_independence": ["VERIFIED", "MULTI_SOURCE_VERIFIED", "SOURCE_OWNER_INDEPENDENT"]
+    }
+  },
+  "surfaces": [
+    {"id":"overview","content":["state","as_of","freshness","assessment_id","rights_state","release_state"],"blocked_render":"EXPLICIT_STATUS_ONLY"},
+    {"id":"core_verticals","content":["vertical_id","label","structural_state"],"blocked_render":"STRUCTURE_ONLY_NO_MARKET_CLAIMS"},
+    {"id":"object_intelligence","content":["object_id","title","maker","model","year","aliases","market_observations","comparables","evidence_refs","confidence","evidence_coverage","source_owner_independence","rights_state","limitations"],"blocked_render":"NO_GOVERNED_OBJECT"},
+    {"id":"market_signals","content":["signal_id","label","value","state","as_of","confidence","evidence_refs"],"blocked_render":"NOT_VERIFIED"},
+    {"id":"kidult_100","content":["state","index_value","change","as_of","constituents","methodology_version"],"blocked_render":"NO_RANKING_OR_TREND"},
+    {"id":"research_archive","content":["state","research_id","title","snapshot_id","published_at","projection_id"],"blocked_render":"ARCHIVE_WAITING"},
+    {"id":"evidence_methodology","content":["coverage","independence","freshness","rights","methodology_version","lineage_version"],"blocked_render":"WAITING_WITH_LIMITS"},
+    {"id":"safe_audit","content":["projection_id","assessment_id","replay_id","exact_pair_digest","correlation_id","rebuild_state","replay_state","rollback_state","reason_category"],"blocked_render":"CONTROL_BOUNDARY_NO_VERIFICATION_BADGE"},
+    {"id":"workspace","content":["search","compare","watch","decide"],"blocked_render":"ARIA_DISABLED"}
+  ],
+  "display_policy": {
+    "missing_never_zero": true,
+    "no_synthetic_fallback": true,
+    "no_static_market_trend": true,
+    "raw_provider_payloads": false,
+    "credentials": false,
+    "secrets": false
+  },
+  "environment": "STAGING",
+  "production": "HOLD",
+  "public_intelligence": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
