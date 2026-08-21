@@ -34,6 +34,12 @@
       "confidence": ["HIGH", "MEDIUM"],
       "evidence_coverage": ["COMPLETE", "SUFFICIENT", "BOUNDED"],
       "source_owner_independence": ["VERIFIED", "MULTI_SOURCE_VERIFIED", "SOURCE_OWNER_INDEPENDENT"]
+    },
+    "integrity_rules": {
+      "unique_ids": ["vertical_id", "signal_id", "object_id", "research_id", "snapshot_id"],
+      "unique_record_arrays": ["aliases", "evidence_refs", "kidult_100.constituents"],
+      "references": ["kidult_100.constituents -> objects.object_id", "research_archive.items.projection_id -> projection.projection_id"],
+      "nullable_scalars": {"kidult_100.change": "NULL_OR_FINITE_NUMBER"}
     }
   },
   "surfaces": [

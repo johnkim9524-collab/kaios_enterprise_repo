@@ -125,6 +125,12 @@ for(const binding of ['projection_id','assessment_id','replay_id','exact_pair_di
 for(const binding of ['projection_id','assessment_id','replay_id','exact_pair_digest','correlation_id'])if(!contentContract?.binding?.audit_must_match?.includes(binding))errors.push(`audit content binding missing ${binding}`);
 if(contentContract?.display_policy?.missing_never_zero!==true||contentContract?.display_policy?.no_synthetic_fallback!==true||contentContract?.display_policy?.no_static_market_trend!==true)errors.push('projection content display policy is not fail-closed');
 if(contentContract?.binding?.freshness_max_age_days!==31||contentContract?.binding?.timestamp_format!=='STRICT_UTC_ISO_8601')errors.push('projection freshness/timestamp contract is incomplete');
+const vocabulary=contentContract?.binding?.controlled_vocabulary||{};
+if(JSON.stringify(vocabulary.confidence)!==JSON.stringify(['HIGH','MEDIUM'])||JSON.stringify(vocabulary.evidence_coverage)!==JSON.stringify(['COMPLETE','SUFFICIENT','BOUNDED'])||JSON.stringify(vocabulary.source_owner_independence)!==JSON.stringify(['VERIFIED','MULTI_SOURCE_VERIFIED','SOURCE_OWNER_INDEPENDENT']))errors.push('projection controlled vocabulary contract is incomplete');
+const integrity=contentContract?.binding?.integrity_rules||{};
+for(const field of ['vertical_id','signal_id','object_id','research_id','snapshot_id'])if(!integrity.unique_ids?.includes(field))errors.push(`projection uniqueness contract missing ${field}`);
+for(const field of ['aliases','evidence_refs','kidult_100.constituents'])if(!integrity.unique_record_arrays?.includes(field))errors.push(`projection record-array uniqueness missing ${field}`);
+if(integrity?.nullable_scalars?.['kidult_100.change']!=='NULL_OR_FINITE_NUMBER')errors.push('Kidult 100 change scalar contract missing');
 for(const surface of expectedSurfaces){
   if(surface==='research_archive'&&html.includes('data-content-surface="evidence_methodology research_archive"'))continue;
   if(!html.includes(`data-content-surface="${surface}`))errors.push(`portal surface is not represented in HTML: ${surface}`);
