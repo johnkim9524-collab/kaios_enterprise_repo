@@ -31,6 +31,14 @@ REQUIRED_MARKERS = [
     "assert h['status']=='OK' and h['production'] is False",
 ]
 
+REQUIRED_COUNTS = {
+    "if: github.event_name == 'workflow_dispatch'": 1,
+    '-o HostKeyAlgorithms=ssh-ed25519': 3,
+    '-o StrictHostKeyChecking=yes': 3,
+    '-o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts"': 3,
+    'kidults-staging@"$HOST"': 6,
+}
+
 FORBIDDEN_MARKERS = [
     'secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY }}',
     'sudo ',
@@ -46,11 +54,13 @@ def validate(text: str) -> list[str]:
     for marker in REQUIRED_MARKERS:
         if marker not in text:
             errors.append(f'missing executable workflow guard: {marker}')
+    for marker, expected in REQUIRED_COUNTS.items():
+        observed = text.count(marker)
+        if observed != expected:
+            errors.append(f'executable workflow guard count drift: {marker}: expected {expected}, observed {observed}')
     for marker in FORBIDDEN_MARKERS:
         if marker in text:
             errors.append(f'forbidden executable workflow capability present: {marker}')
-    if text.count("if: github.event_name == 'workflow_dispatch'") != 1:
-        errors.append('bootstrap remote mutation gate must be exactly one workflow_dispatch condition')
     if 'pull_request:' not in text:
         errors.append('PR control validation trigger must remain present')
     return errors
@@ -86,8 +96,9 @@ def main() -> int:
     cases = mutation_selftest(text)
     print(
         'PASS executable STAGING bootstrap workflow boundary: '
-        f'{len(REQUIRED_MARKERS)} required guards, {len(FORBIDDEN_MARKERS)} forbidden capabilities, '
-        f'{cases} mutation cases; remote mutation workflow_dispatch-only; Production/G5 unchanged'
+        f'{len(REQUIRED_MARKERS)} required guards, {len(REQUIRED_COUNTS)} count-sensitive guards, '
+        f'{len(FORBIDDEN_MARKERS)} forbidden capabilities, {cases} mutation cases; '
+        'remote mutation workflow_dispatch-only; Production/G5 unchanged'
     )
     return 0
 
