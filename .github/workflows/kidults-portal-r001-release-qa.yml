@@ -172,6 +172,7 @@ jobs:
                   if(!keyboardFocus) failures.push(`${route}:${vp.name}:${state}:KEYBOARD_FOCUS_NOT_OBSERVED`);
                 }
                 if(route.endsWith('index.html')&&state==='NO_PROJECTION'&&(vp.width===390||vp.width===1440)){
+                  await page.evaluate(()=>document.activeElement instanceof HTMLElement&&document.activeElement.blur());
                   await page.screenshot({path:`${screenshotDir}/portal-r001-${vp.name}.png`,fullPage:true});
                 }
                 results.push({route,viewport:vp.name,state,seriousCritical:serious.length,obs,focusables,keyboardFocus});
@@ -296,9 +297,9 @@ jobs:
                 state:document.documentElement.dataset.state,
                 workspaceBlocked:document.querySelectorAll('.workspace-grid article').length===4&&[...document.querySelectorAll('.workspace-grid article')].every(node=>node.getAttribute('aria-disabled')==='true'),
                 kidultReady:document.querySelector('[data-k100-state]')?.dataset.contentState==='LIVE_APPROVED',
-                evidenceText:document.querySelector('[data-evidence-grid]')?.textContent||''
+                evidenceValues:[...document.querySelectorAll('[data-evidence-grid] b')].map(node=>(node.textContent||'').trim())
               }));
-              if(obs.state!==test.expected||!obs.workspaceBlocked||obs.kidultReady||/COMPLETE|VERIFIED/.test(obs.evidenceText))failures.push(`ADVERSARIAL:${test.name}:FALSE_LIVE_${JSON.stringify(obs)}`);
+              if(obs.state!==test.expected||!obs.workspaceBlocked||obs.kidultReady||obs.evidenceValues.includes('COMPLETE')||obs.evidenceValues.includes('VERIFIED'))failures.push(`ADVERSARIAL:${test.name}:FALSE_LIVE_${JSON.stringify(obs)}`);
               results.push({route:'/portal-r001/index.html',viewport:'w390',state:`ADVERSARIAL_${test.name}`,expected:test.expected,obs});
               await context.close();
             }
