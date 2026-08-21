@@ -1,0 +1,31 @@
+name: KIDULTS Temporal Integrity Latency Red-Team V1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/kpmo/temporal-integrity-latency-controls-v1.json'
+      - 'scripts/kidults/kpmo/validate-temporal-integrity-latency-v1.mjs'
+      - '.github/workflows/kidults-temporal-integrity-latency-v1.yml'
+      - 'coordination/kidults/kpmo/global-leadership-risk-controls-v1.json'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/kpmo/temporal-integrity-latency-controls-v1.json'
+      - 'scripts/kidults/kpmo/validate-temporal-integrity-latency-v1.mjs'
+      - '.github/workflows/kidults-temporal-integrity-latency-v1.yml'
+      - 'coordination/kidults/kpmo/global-leadership-risk-controls-v1.json'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate temporal integrity and latency controls
+        run: node scripts/kidults/kpmo/validate-temporal-integrity-latency-v1.mjs
