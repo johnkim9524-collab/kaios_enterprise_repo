@@ -1,0 +1,109 @@
+{
+  "version": "1.0.0",
+  "status": "P0_PRE_INGESTION_CONTROL",
+  "governing_issue": 881,
+  "rule": "NO_PARTNER_DATA_INGESTION_BEFORE_PRE_INTAKE_GATE_PASS",
+  "purpose": "Unify distributed audit controls into an append-only, fail-closed audit control plane before external partner data ingestion.",
+  "principles": [
+    "APPEND_ONLY",
+    "FAIL_CLOSED",
+    "EVIDENCE_BEFORE_METRICS",
+    "RIGHTS_BEFORE_USE",
+    "NO_PROVIDER_EQUALS_TRUTH",
+    "ONLY_EVIDENCED_PASS_COUNTS_AS_COMPLETE"
+  ],
+  "audit_event_envelope": {
+    "required": [
+      "audit_event_id",
+      "event_time",
+      "actor_type",
+      "actor_id",
+      "action",
+      "object_type",
+      "object_id",
+      "source_id",
+      "decision",
+      "reason",
+      "result",
+      "correlation_id",
+      "event_digest"
+    ],
+    "conditional": [
+      "snapshot_id",
+      "rights_version",
+      "methodology_version",
+      "evidence_lineage_version",
+      "schema_version",
+      "before_digest",
+      "after_digest",
+      "batch_id",
+      "provider_id"
+    ],
+    "forbidden": [
+      "secret",
+      "credential",
+      "api_key",
+      "raw_token"
+    ]
+  },
+  "partner_data_lifecycle": [
+    "RECEIVED",
+    "QUARANTINED",
+    "RIGHTS_CHECKED",
+    "SCHEMA_CHECKED",
+    "SEMANTICS_CHECKED",
+    "IDENTITY_CHECKED",
+    "NORMALIZED",
+    "EVIDENCE_ELIGIBLE",
+    "PROMOTED_OR_REJECTED"
+  ],
+  "control_layers": [
+    "SOURCE_AUDIT",
+    "RIGHTS_AUDIT",
+    "INGESTION_AUDIT",
+    "SCHEMA_SEMANTIC_AUDIT",
+    "IDENTITY_AUDIT",
+    "PROVENANCE_LINEAGE_AUDIT",
+    "QUALITY_ANOMALY_AUDIT",
+    "METRIC_AUDIT",
+    "DECISION_AUDIT",
+    "HUMAN_AUTHORITY_AUDIT",
+    "RUNTIME_OPERATIONAL_AUDIT",
+    "PUBLICATION_AUDIT",
+    "RECOVERY_AUDIT"
+  ],
+  "immutability": {
+    "ledger_mode": "APPEND_ONLY",
+    "mutation_policy": "NO_IN_PLACE_UPDATE_OR_DELETE",
+    "correction_policy": "SUPERSEDING_EVENT_ONLY",
+    "digest_required": true,
+    "sequence_integrity_required": true
+  },
+  "downstream_isolation": {
+    "raw_partner_data_to_market_claim": "PROHIBITED",
+    "raw_partner_data_to_metric": "PROHIBITED",
+    "track_b_boundary": ["snapshot-candidate.json", "Evidence Package"],
+    "portal_eos_production_bypass": "PROHIBITED"
+  },
+  "eos_projection": {
+    "status": "CONTRACT_DEFINED_NOT_YET_LIVE",
+    "views": [
+      "latest_audit_events",
+      "quarantine_queue",
+      "rights_blocks",
+      "lineage_failures",
+      "replay_rollback_events",
+      "provider_concentration_alerts"
+    ]
+  },
+  "exit_criteria": [
+    "event envelope validation PASS",
+    "append-only correction behavior PASS",
+    "missing-rights fail-closed PASS",
+    "malformed-payload quarantine PASS",
+    "raw-to-evidence deterministic lineage PASS",
+    "deletion-withdrawal propagation test PASS",
+    "replay and rollback audit trace PASS",
+    "Track B and downstream bypass tests PASS"
+  ]
+}
