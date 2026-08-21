@@ -7,6 +7,7 @@ const mandatory = [
   'scripts/kidults/kpmo/validate-full-value-chain-redteam-orchestrator-v1.mjs',
   'scripts/kidults/kpmo/validate-full-value-chain-stage-machine-coverage-v1.mjs',
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
+  'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs',
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs',
@@ -25,9 +26,11 @@ for (const marker of [
   "public: 'HOLD'",
   "g5: 'EXPLICIT_APPROVAL_REQUIRED'",
   "empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE'",
-  "release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE'"
+  "release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE'",
+  'pre_partner_required_controls_exactly_bound: true',
+  'pre_partner_control_removal_mutation_selftest: true'
 ]) {
-  if (!runner.includes(marker)) errors.push(`aggregate truth-boundary marker missing: ${marker}`);
+  if (!runner.includes(marker)) errors.push(`aggregate truth/control marker missing: ${marker}`);
 }
 
 const preIntake = JSON.parse(fs.readFileSync('coordination/kidults/audit/unified-audit-control-plane-v1.json','utf8'));
@@ -53,6 +56,8 @@ console.log(JSON.stringify({
   result:'PASS',
   mandatory_validator_bindings:mandatory.length,
   pre_partner_control_families:12,
+  pre_partner_control_family_exact_coverage:'MACHINE_BOUND',
+  pre_partner_control_removal_mutation_selftest:'MACHINE_BOUND',
   provider_rights_decision_gate:'MACHINE_BOUND',
   empirical_gate_effect:'NONE',
   external_partner_data_ingestion:'HOLD',

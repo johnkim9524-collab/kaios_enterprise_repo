@@ -8,6 +8,7 @@ const stageCoverageValidator = 'scripts/kidults/kpmo/validate-full-value-chain-s
 const criticalGateBindingValidator = 'scripts/kidults/kpmo/validate-full-value-chain-critical-gate-bindings-v1.mjs';
 const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
+  'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs'
 ];
@@ -64,6 +65,8 @@ console.log(JSON.stringify({
   pre_partner_intake_gate_machine_bound: true,
   pre_partner_certification_machine_bound: true,
   pre_partner_control_families: 12,
+  pre_partner_required_controls_exactly_bound: true,
+  pre_partner_control_removal_mutation_selftest: true,
   partner_like_adversarial_fixtures: 12,
   provider_rights_decision_gate_machine_bound: true,
   projection_portal_eos_boundary_machine_bound: true,
