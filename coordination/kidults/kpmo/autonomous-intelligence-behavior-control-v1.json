@@ -1,0 +1,73 @@
+{
+  "id": "kidults-autonomous-intelligence-behavior-control-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE",
+  "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
+  "objective": "Turn autonomous intelligence architecture into evidence-driven autonomous behavior while preserving rights, truth, validation and Production boundaries.",
+  "canonical_learning_loop": [
+    "OBSERVE",
+    "DETECT_UNCERTAINTY",
+    "GENERATE_EVIDENCE_DEMAND",
+    "RANK_LAWFUL_SOURCE_OPPORTUNITY",
+    "ADMIT_RIGHTS_PROVENANCE_FRESHNESS_VALID_EVIDENCE",
+    "RECOMPUTE_FACTORS",
+    "EVALUATE_CONFIDENCE_AND_SOURCE_REMOVAL_SENSITIVITY",
+    "PROPOSE_SHADOW_REALLOCATION",
+    "COMPARE_CHAMPION_CHALLENGER",
+    "REPEAT"
+  ],
+  "first_behavioral_milestone": "FIRST_EVIDENCE_DRIVEN_SHADOW_REALLOCATION",
+  "activation_rule": "No SHADOW quota or analytical-weight proposal may be computed from incomplete required empirical factors; no live mutation follows from SHADOW computation without separate activation gates.",
+  "global_evidence_surface": {
+    "dimensions": ["CATEGORY", "GEOGRAPHY", "EVIDENCE_CLASS", "INDEPENDENT_SOURCE_OWNER"],
+    "states": ["VERIFIED", "PARTIAL", "UNKNOWN", "NOT_VERIFIED", "QUARANTINED"],
+    "rules": [
+      "ARCHITECTURE_COVERAGE_NE_EMPIRICAL_COVERAGE",
+      "UNKNOWN_IS_ACTIONABLE_INTELLIGENCE_DEBT",
+      "NO_PROXY_FILL_FOR_MISSING_GLOBAL_SURFACE",
+      "NO_DUPLICATE_FEED_AS_INDEPENDENT_OWNER"
+    ]
+  },
+  "primary_kpi": {
+    "id": "VERIFIED_INTELLIGENCE_SURFACE",
+    "definition": "The bounded category x geography surface for which KIDULTS can produce defensible intelligence from rights-admitted, fresh, provenance-bound evidence with required confidence and source-independence controls.",
+    "must_report_with": [
+      "UNKNOWN_FACTOR_DEBT",
+      "INDEPENDENT_SOURCE_OWNER_COVERAGE",
+      "COMPUTABLE_CATEGORY_REGION_CELLS",
+      "EVIDENCE_FRESHNESS_COVERAGE",
+      "SOURCE_REMOVAL_ROBUSTNESS",
+      "AUTONOMOUS_EVIDENCE_PRIORITY_CHANGES",
+      "VERIFIED_CLAIM_COVERAGE"
+    ],
+    "forbidden": [
+      "PR_COUNT_AS_INTELLIGENCE_PROGRESS",
+      "PROCESSOR_COUNT_AS_EMPIRICAL_PROGRESS",
+      "RAW_RECORD_COUNT_AS_MARKET_COVERAGE",
+      "AVERAGE_WITH_RELEASE_READINESS_TO_CREATE_ONE_SCORE"
+    ]
+  },
+  "cross_market_intelligence": {
+    "status": "DEFERRED_UNTIL_EMPIRICAL_PREREQUISITES",
+    "future_signals": [
+      "CATEGORY_ROTATION",
+      "REGIONAL_CAPITAL_FLOW",
+      "LIQUIDITY_MIGRATION",
+      "COLLECTOR_ATTENTION_SHIFT",
+      "CROSS_CATEGORY_SUBSTITUTION",
+      "LEADING_LAGGING_SIGNAL_RELATIONSHIPS"
+    ],
+    "start_condition": "Only after multiple category and geography surfaces have sufficient rights-admitted empirical market evidence, compatible methodology and source-independence. No new standalone engine is justified before that condition."
+  },
+  "current_truth_ceiling": {
+    "empirical_rebalancer_cells": 13,
+    "collection_computable": 0,
+    "analytical_computable": 0,
+    "live_mutations": 0,
+    "active_collector_market_dated_sold_cells": 0,
+    "active_market_claim": "NONE"
+  },
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
