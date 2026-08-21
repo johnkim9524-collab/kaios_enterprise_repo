@@ -1,7 +1,8 @@
 {
   "id": "kidults-exact-pair-arrival-orchestrator-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "issue": 916,
+  "hardening_issue": 918,
   "parents": [914, 538, 236, 481, 884, 238],
   "production": "HOLD",
   "public_intelligence": "HOLD",
@@ -9,11 +10,16 @@
   "empirical_gate_effect": "NONE_UNTIL_GENUINE_INPUTS_EXIST",
   "live_manifest_path": "coordination/kidults/integration/live-arrival/live-admission-manifest.json",
   "canonical_handoff_validator": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
+  "live_assessment_envelope_schema": "coordination/kidults/schemas/live-rankability-assessment-envelope-v1.schema.json",
+  "canonical_assessment_schema": "coordination/kidults/schemas/rankability-assessment.schema.json",
+  "audit_chain_builder": "scripts/kidults/integration/build-live-chain-audit-v1.py",
   "required_pair_files": ["snapshot-candidate.json", "evidence-package.json"],
   "state_machine": [
     "WAITING_PAIR",
+    "PAIR_BLOCKED_PRE_TRACK_B",
     "READY_FOR_TRACK_B",
     "WAITING_ASSESSMENT",
+    "TRACK_B_BLOCKED",
     "READY_FOR_STAGING_REPLAY",
     "WAITING_REPLAY",
     "READY_FOR_PROJECTION",
@@ -30,15 +36,30 @@
     "synthetic",
     "promotable"
   ],
-  "assessment_binding_required": [
-    "assessment_path",
-    "snapshot_id",
-    "evidence_package_id",
-    "exact_pair_digest",
-    "correlation_id",
-    "synthetic=false",
-    "promotable=true"
-  ],
+  "assessment_binding": {
+    "format": "LIVE_ASSESSMENT_ENVELOPE_V1",
+    "envelope_required": [
+      "record_type=live_rankability_assessment_envelope",
+      "version=1.0.0",
+      "exact_pair_digest",
+      "correlation_id",
+      "synthetic=false",
+      "promotable=true",
+      "assessment"
+    ],
+    "assessment_required": [
+      "assessment_id",
+      "snapshot_id",
+      "evidence_package_id",
+      "record_type=rankability_assessment",
+      "assessment_status=COMPLETED",
+      "immutable=true",
+      "production_eligible=false"
+    ],
+    "staging_replay_pass_recommendations": ["PUBLISHABLE_INTERNAL", "PUBLISHABLE_PUBLIC"],
+    "blocked_recommendations": ["BLOCKED", "CONDITIONAL"],
+    "public_recommendation_does_not_authorize_public_release": true
+  },
   "replay_binding_required": [
     "replay_receipt_path",
     "assessment_id",
@@ -58,15 +79,34 @@
     "production=false",
     "public=false"
   ],
+  "audit_binding": {
+    "digest_chained": true,
+    "previous_event_digest_required_after_first": true,
+    "safe_fields_only": true,
+    "raw_provider_payloads": false,
+    "credentials": false,
+    "secrets": false,
+    "required_ids_when_available": [
+      "snapshot_id",
+      "evidence_package_id",
+      "assessment_id",
+      "replay_id",
+      "projection_id",
+      "exact_pair_digest",
+      "correlation_id"
+    ]
+  },
   "forbidden_shortcuts": [
     "SYNTHETIC_OR_CONTROL_PROMOTION",
     "FIXTURE_AS_LIVE_INPUT",
     "PAIR_DIGEST_MISMATCH",
     "ASSESSMENT_DIFFERENT_PAIR",
+    "TRACK_B_BLOCKED_TO_RUNTIME",
+    "TRACK_B_CONDITIONAL_TO_RUNTIME",
     "RUNTIME_DIFFERENT_PAIR",
     "PROJECTION_DIFFERENT_PAIR",
     "TRACK_B_BYPASS",
-    "RUNTIME_BEFORE_TRACK_B",
+    "RUNTIME_BEFORE_TRACK_B_PASS",
     "PROJECTION_BEFORE_REPLAY",
     "RAW_PROVIDER_DIRECT_TO_PROJECTION",
     "MISSING_AS_ZERO",
