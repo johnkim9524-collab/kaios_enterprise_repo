@@ -4,7 +4,8 @@ import { spawnSync } from 'node:child_process';
 const orchestratorPath = 'coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json';
 const orchestrator = JSON.parse(fs.readFileSync(orchestratorPath, 'utf8'));
 const structuralValidator = 'scripts/kidults/kpmo/validate-full-value-chain-redteam-orchestrator-v1.mjs';
-const validators = [structuralValidator, ...(orchestrator.required_family_validators || [])];
+const stageCoverageValidator = 'scripts/kidults/kpmo/validate-full-value-chain-stage-machine-coverage-v1.mjs';
+const validators = [structuralValidator, stageCoverageValidator, ...(orchestrator.required_family_validators || [])];
 
 const results = [];
 for (const script of validators) {
@@ -26,7 +27,7 @@ for (const script of validators) {
     process.exit(1);
   }
   if (run.status !== 0) {
-    console.error(`FAIL aggregate Red-Team family validator: ${script} exited ${run.status}`);
+    console.error(`FAIL aggregate Red-Team validator: ${script} exited ${run.status}`);
     process.exit(run.status || 1);
   }
 }
@@ -35,6 +36,7 @@ console.log(JSON.stringify({
   suite: 'KIDULTS_FULL_VALUE_CHAIN_REDTEAM_V1',
   control_layer_result: 'PASS',
   validators_passed: results.length,
+  stages_machine_bound: Object.keys(orchestrator.stage_machine_coverage || {}).length,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   production: 'HOLD',
