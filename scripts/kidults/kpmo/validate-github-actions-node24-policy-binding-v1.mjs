@@ -3,10 +3,12 @@ import fs from 'node:fs';
 const policyPath = 'coordination/kidults/kpmo/github-actions-node24-estate-policy-v1.json';
 const guardPath = '.github/workflows/kpmo-node24-estate-guard-v1.yml';
 const migratorPath = 'scripts/kidults/kpmo/github-actions-node24-estate-v1.mjs';
+const dependabotPath = '.github/dependabot.yml';
 
 const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
 const guard = fs.readFileSync(guardPath, 'utf8');
 const migrator = fs.readFileSync(migratorPath, 'utf8');
+const dependabot = fs.readFileSync(dependabotPath, 'utf8');
 
 const required = [
   policy.policy_id === 'KIDULTS_GITHUB_ACTIONS_NODE24_ESTATE_POLICY_V1',
@@ -25,6 +27,8 @@ const required = [
   guard.includes("node-version: '24'"),
   migrator.includes('ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION'),
   migrator.includes('mutation_cases_detected'),
+  dependabot.includes('package-ecosystem: github-actions'),
+  dependabot.includes('interval: weekly')
 ];
 
 if (required.some((value) => !value)) throw new Error('Node24 estate policy binding incomplete');
@@ -33,6 +37,7 @@ console.log(JSON.stringify({
   result: 'PASS',
   governing_issue: 933,
   aggregate_binding: 'REQUIRED',
+  dependency_lifecycle: 'DEPENDABOT_GITHUB_ACTIONS_WEEKLY',
   empirical_gate_effect: 'NONE',
   production: 'HOLD',
   public: 'HOLD',
