@@ -32,7 +32,7 @@ jobs:
       HOST: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
       PRIVATE_IP: ${{ vars.KIDULTS_STAGING_PRIVATE_IP }}
       EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
-      SSH_PRIVATE_KEY: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY }}
+      SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}
     steps:
       - uses: actions/checkout@v4
       - name: Assert required runtime bindings
@@ -42,7 +42,7 @@ jobs:
           test -n "$HOST"
           test -n "$PRIVATE_IP"
           test -n "$EXPECTED_FINGERPRINT"
-          test -n "$SSH_PRIVATE_KEY"
+          test -n "$SSH_PRIVATE_KEY_B64"
           test "$HOST" = "165.232.175.45"
           test "$PRIVATE_IP" = "10.104.0.3"
       - name: Pin and verify ED25519 host key
@@ -59,8 +59,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/ssh"
-          printf '%s' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$RUNNER_TEMP/ssh/id_ed25519"
-          printf '\n' >> "$RUNNER_TEMP/ssh/id_ed25519"
+          printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 --decode > "$RUNNER_TEMP/ssh/id_ed25519"
+          tr -d '\r' < "$RUNNER_TEMP/ssh/id_ed25519" > "$RUNNER_TEMP/ssh/id_ed25519.normalized"
+          mv "$RUNNER_TEMP/ssh/id_ed25519.normalized" "$RUNNER_TEMP/ssh/id_ed25519"
           chmod 600 "$RUNNER_TEMP/ssh/id_ed25519"
           ssh-keygen -y -f "$RUNNER_TEMP/ssh/id_ed25519" >/dev/null
           echo "STAGING SSH private key parsed successfully"
