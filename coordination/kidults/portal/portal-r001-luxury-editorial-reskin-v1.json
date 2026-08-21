@@ -1,0 +1,17 @@
+{
+  "id": "kidults-portal-r001-luxury-editorial-reskin-v1",
+  "version": "1.0.0",
+  "release": "portal-release-001",
+  "design_reference": "2026-08-21 luxury editorial one-page",
+  "preserve_contracts": ["portal-read-contract-001", "fail-closed intelligence states", "safe audit projection", "workspace rights gating"],
+  "truth_rules": {
+    "fake_market_counts_forbidden": true,
+    "fake_object_counts_forbidden": true,
+    "fake_data_points_forbidden": true,
+    "fake_kidult100_value_forbidden": true,
+    "missing_never_zero": true
+  },
+  "current_state": "NO_PROJECTION",
+  "production": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
