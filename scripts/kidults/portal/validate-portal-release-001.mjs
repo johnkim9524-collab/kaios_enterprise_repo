@@ -1,10 +1,11 @@
 import fs from 'node:fs';import path from 'node:path';
 const root=process.cwd(),base='apps/kidults-enterprise-staging/public/portal-r001';const errs=[];const read=p=>{const f=path.join(root,p);if(!fs.existsSync(f)){errs.push(`missing ${p}`);return ''}return fs.readFileSync(f,'utf8')};
 const html=read(`${base}/index.html`),css=read(`${base}/portal-release-001.css`),js=read(`${base}/portal-release-001.js`),fixture=JSON.parse(read(`${base}/data/projection-control-fixture.json`)||'{}');
-for(const m of ['data-release="portal-release-001"','data-state="NO_PROJECTION"','GLOBAL COLLECTIBLES INTELLIGENCE','Eight Core Verticals','Kidult 100','Evidence &amp; Methodology','Workspace'])if(!html.includes(m))errs.push(`html missing ${m}`);
+for(const m of ['data-release="portal-release-001"','data-state="NO_PROJECTION"','GLOBAL COLLECTIBLES INTELLIGENCE','EIGHT CORE VERTICALS','Kidult 100','EVIDENCE &amp; METHODOLOGY','Workspace','assets/hero/portal-r001-hero-luxury.webp'])if(!html.includes(m))errs.push(`html missing ${m}`);
 for(const bad of ['data-release="v502"','V6 RC','THE GLOBAL STANDARD FOR COLLECTIBLES INTELLIGENCE'])if(html.includes(bad))errs.push(`legacy/customer-facing marker present: ${bad}`);
 for(const m of ['--forest:#0a2a20','--ivory:#f4f2ee','@media(max-width:620px)','@media(max-width:360px)'])if(!css.includes(m))errs.push(`css missing ${m}`);
 if(/#c9ff39|#c6d96a|lime|neon/i.test(css))errs.push('bright lime/neon accent present');
+const hero=path.join(root,base,'assets/hero/portal-r001-hero-luxury.webp');if(!fs.existsSync(hero))errs.push('luxury hero asset missing');else if(fs.statSync(hero).size<50000)errs.push('luxury hero asset unexpectedly small');
 if(fixture.fixture_type!=='NON_PROMOTABLE_CONTROL')errs.push('fixture must be NON_PROMOTABLE_CONTROL');if(fixture?.projection?.state!=='NO_PROJECTION')errs.push('fixture must remain NO_PROJECTION');if(fixture?.projection?.projection_id!==null)errs.push('fixture must not invent projection_id');
 for(const m of ['NO_PROJECTION','WAITING','fetch(\'./data/projection-control-fixture.json\''])if(!js.includes(m))errs.push(`js missing ${m}`);
-if(errs.length){console.error(`Portal Release-001 validation FAIL (${errs.length})`);errs.forEach(e=>console.error('ERROR:',e));process.exit(1)}console.log('Portal Release-001 validation PASS — premium shell, Projection-first fail-closed control fixture, no legacy product identity.');
+if(errs.length){console.error(`Portal Release-001 validation FAIL (${errs.length})`);errs.forEach(e=>console.error('ERROR:',e));process.exit(1)}console.log('Portal Release-001 validation PASS — premium cross-category shell, luxury hero asset, Projection-first fail-closed control fixture, no legacy product identity.');
