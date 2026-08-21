@@ -111,6 +111,7 @@ for (const field of ['CONTENT_DIGEST', 'RIGHTS_STATE_AT_USE', 'METHODOLOGY_VERSI
   requireValue(audit.durable_tombstone_fields.includes(field), `missing durable audit tombstone field ${field}`);
 }
 requireValue(audit.rules.some(rule => rule.includes('MUST_NOT_RETAIN_PROHIBITED_RAW_CONTENT')), 'audit tombstones must not retain prohibited raw content');
+requireValue(audit.rules.includes('DELETION_REVOCATION_AND_SCHEMA_DRIFT_EVENTS_MUST_REMAIN_AUDITABLE_VIA_OPAQUE_DIGESTS_AND_LINEAGE_METADATA'), 'audit survivability across deletion/revocation/schema drift missing');
 
 const vendor = hedgeById.get('VENDOR_ECONOMIC_CAPTURE');
 for (const metric of ['REPLACEMENT_LEAD_TIME', 'SWITCHING_COST', 'COVERAGE_LOSS_IF_REMOVED', 'PRICE_INCREASE_SENSITIVITY', 'MARGINAL_VERIFIED_INTELLIGENCE_GAIN']) {
