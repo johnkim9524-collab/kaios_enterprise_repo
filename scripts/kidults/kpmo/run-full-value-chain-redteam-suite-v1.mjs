@@ -16,7 +16,9 @@ const rightsBoundaryValidators = [
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
 ];
 const runtimeBoundaryValidators = [
-  'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py'
+  'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
+  'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
+  'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py'
 ];
 const downstreamBoundaryValidators = [
   'scripts/kidults/portal/validate-portal-release-001.mjs'
@@ -77,6 +79,8 @@ console.log(JSON.stringify({
   provider_rights_decision_gate_machine_bound: true,
   runtime_boundary_validators: runtimeBoundaryValidators.length,
   digitalocean_staging_bootstrap_boundary_machine_bound: true,
+  digitalocean_staging_bootstrap_exec_contract_machine_bound: true,
+  digitalocean_staging_bootstrap_workflow_machine_bound: true,
   projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
