@@ -1,0 +1,49 @@
+name: KIDULTS DigitalOcean STAGING Read-Only Audit
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/operations/digitalocean_staging_readonly_audit.py'
+      - '.github/workflows/digitalocean-staging-readonly-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact STAGING Droplet identity read-only
+        env:
+          DIGITALOCEAN_READ_TOKEN: ${{ secrets.DIGITALOCEAN_READ_TOKEN }}
+          DIGITALOCEAN_STAGING_DROPLET_ID: ${{ vars.DIGITALOCEAN_STAGING_DROPLET_ID }}
+          KIDULTS_STAGING_PUBLIC_IP: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
+          KIDULTS_STAGING_PRIVATE_IP: ${{ vars.KIDULTS_STAGING_PRIVATE_IP }}
+          KIDULTS_STAGING_AUDIT_OUTPUT: artifacts/digitalocean-staging-readonly-audit
+        run: python scripts/operations/digitalocean_staging_readonly_audit.py
+      - name: Assert no mutation or Production touch
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('artifacts/digitalocean-staging-readonly-audit/digitalocean-staging-readonly-audit.json').read_text())
+          assert report['result'] == 'PASS'
+          assert report['mode'] == 'READ_ONLY'
+          assert report['mutation_performed'] is False
+          assert report['bootstrap_performed'] is False
+          assert report['production_resource_touched'] is False
+          assert report['production'] == 'HOLD'
+          print('DIGITALOCEAN_STAGING_READ_ONLY_BINDING_PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-digitalocean-staging-readonly-audit
+          path: artifacts/digitalocean-staging-readonly-audit
+          retention-days: 30
