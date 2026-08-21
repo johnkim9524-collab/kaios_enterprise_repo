@@ -44,11 +44,13 @@ jobs:
           import { chromium } from 'playwright';
           import AxeBuilder from '@axe-core/playwright';
           const browser=await chromium.launch({headless:true});
-          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          const context=await browser.newContext({viewport:{width:1440,height:1000}});
+          const page=await context.newPage();
           await page.goto('http://127.0.0.1:4173/portal-r001/index.html',{waitUntil:'networkidle'});
           const axe=await new AxeBuilder({page}).withRules(['color-contrast']).analyze();
           const out=axe.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,html:n.html,failureSummary:n.failureSummary}))}));
           console.log(JSON.stringify(out,null,2));
+          await context.close();
           await browser.close();
           if(out.length) process.exit(1);
           NODE
