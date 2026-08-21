@@ -1,0 +1,32 @@
+{
+  "id": "kidults-digitalocean-staging-portal-deploy-v1",
+  "version": "1.0.0",
+  "issue": 921,
+  "environment": "STAGING",
+  "target": {
+    "hostname": "ih-staging-01",
+    "public_ip": "165.232.175.45",
+    "private_ip": "10.104.0.3",
+    "user": "kidults-staging",
+    "bind_host": "127.0.0.1",
+    "bind_port": 4173
+  },
+  "source": "apps/kidults-enterprise-staging/public/portal-r001",
+  "release_root": "/home/kidults-staging/kidults-runtime/app/portal-r001-releases",
+  "current_link": "/home/kidults-staging/kidults-runtime/app/portal-r001-current",
+  "required_markers": ["data-release=\"portal-release-001\"", "data-state=\"NO_PROJECTION\"", "Read the market.", "Know the evidence."],
+  "deployment": {
+    "no_sudo": true,
+    "no_package_mutation": true,
+    "no_firewall_mutation": true,
+    "no_dns_mutation": true,
+    "public_bind": false,
+    "rollback_required": true,
+    "release_digest_required": true,
+    "remote_health_required": true
+  },
+  "prohibited": ["PRODUCTION_MUTATION", "PUBLIC_INTELLIGENCE_ENDPOINT", "RAW_PROVIDER_INGESTION", "TRACK_B_BYPASS", "G5_PROMOTION"],
+  "production": "HOLD",
+  "public_intelligence": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
