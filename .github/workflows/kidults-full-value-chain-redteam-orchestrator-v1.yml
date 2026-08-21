@@ -7,11 +7,14 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   full-value-chain-redteam:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Verify exact source SHA
@@ -22,8 +25,9 @@ jobs:
           echo "expected=$EXPECTED_SHA"
           echo "actual=$ACTUAL_SHA"
           test "$ACTUAL_SHA" = "$EXPECTED_SHA"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24'
+          package-manager-cache: false
       - name: Run aggregate full value-chain Red-Team suite
         run: node scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs
