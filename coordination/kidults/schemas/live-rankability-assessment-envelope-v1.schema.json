@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.example/schemas/live-rankability-assessment-envelope-v1.schema.json",
+  "title": "KIDULTS Live Rankability Assessment Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_type",
+    "version",
+    "exact_pair_digest",
+    "correlation_id",
+    "synthetic",
+    "promotable",
+    "assessment"
+  ],
+  "properties": {
+    "record_type": {"const": "live_rankability_assessment_envelope"},
+    "version": {"const": "1.0.0"},
+    "exact_pair_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "correlation_id": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "synthetic": {"const": false},
+    "promotable": {"const": true},
+    "assessment": {"$ref": "rankability-assessment.schema.json"}
+  }
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import hashlib, json, os, subprocess, sys
+import hashlib, json, subprocess, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -50,8 +50,10 @@ def write(state, **extra):
 
 c=load(CONTRACT)
 assert c['id']=='kidults-exact-pair-arrival-orchestrator-v1'
+assert c['version']=='1.1.0'
 assert c['current_truth']['expected_state']=='WAITING_PAIR'
 assert 'TRACK_B_BYPASS' in c['forbidden_shortcuts'] and 'PRODUCTION_BYPASS' in c['forbidden_shortcuts']
+assert 'TRACK_B_BLOCKED_TO_RUNTIME' in c['forbidden_shortcuts']
 
 if not MANIFEST.exists():
     write('WAITING_PAIR', candidate='NONE', evidence_package='NONE', track_b='NOT_STARTED', final_business_workload='NOT_RUN', live_projection='NONE')
@@ -69,31 +71,55 @@ candidate,evidence=load(cp),load(ep)
 pair=digest_json({'snapshot':candidate,'evidence':evidence})
 if pair!=m['exact_pair_digest']: raise RuntimeError('EXACT_PAIR_DIGEST_MISMATCH')
 correlation=corr(pair)
+snapshot_id=candidate.get('snapshot_id')
+evidence_package_id=evidence.get('evidence_package_id')
+if not snapshot_id or not evidence_package_id: raise RuntimeError('PAIR_IDENTITY_MISSING')
 
+base_state={
+    'exact_pair_digest':pair,
+    'correlation_id':correlation,
+    'snapshot_id':snapshot_id,
+    'evidence_package_id':evidence_package_id,
+}
 preflight=OUT.parent/'handoff-r2.json'
 proc=subprocess.run(['node', str(ROOT/'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'), str(cp), str(ep), str(preflight)], cwd=ROOT)
 if proc.returncode!=0 or not preflight.exists():
-    write('WAITING_PAIR', exact_pair_digest=pair, correlation_id=correlation, handoff_r2='BLOCKED', track_b='NOT_STARTED')
+    write('PAIR_BLOCKED_PRE_TRACK_B', **base_state, handoff_r2='BLOCKED', track_b='NOT_STARTED')
     sys.exit(0)
 hand=load(preflight)
 if not contains_ready(hand):
-    write('WAITING_PAIR', exact_pair_digest=pair, correlation_id=correlation, handoff_r2='BLOCKED', track_b='NOT_STARTED')
+    write('PAIR_BLOCKED_PRE_TRACK_B', **base_state, handoff_r2='BLOCKED', track_b='NOT_STARTED')
     sys.exit(0)
 
 assessment_path=m.get('assessment_path')
 if not assessment_path:
-    write('READY_FOR_TRACK_B', exact_pair_digest=pair, correlation_id=correlation, handoff_r2='READY_FOR_TRACK_B', assessment='NOT_CREATED')
+    write('READY_FOR_TRACK_B', **base_state, handoff_r2='READY_FOR_TRACK_B', assessment='NOT_CREATED', track_b='READY_TO_ASSESS')
     sys.exit(0)
-a=load(resolve(assessment_path))
-if a.get('synthetic') is True or a.get('promotable') is False: raise RuntimeError('ASSESSMENT_NON_PROMOTABLE')
-if a.get('exact_pair_digest')!=pair or a.get('correlation_id')!=correlation: raise RuntimeError('ASSESSMENT_PAIR_BINDING_MISMATCH')
-if a.get('snapshot_id')!=candidate.get('snapshot_id') or a.get('evidence_package_id')!=evidence.get('evidence_package_id'): raise RuntimeError('ASSESSMENT_INPUT_ID_MISMATCH')
+
+env=load(resolve(assessment_path))
+if env.get('record_type')!='live_rankability_assessment_envelope' or env.get('version')!='1.0.0':
+    raise RuntimeError('ASSESSMENT_ENVELOPE_INVALID')
+if env.get('synthetic') is not False or env.get('promotable') is not True:
+    raise RuntimeError('ASSESSMENT_NON_PROMOTABLE')
+if env.get('exact_pair_digest')!=pair or env.get('correlation_id')!=correlation:
+    raise RuntimeError('ASSESSMENT_PAIR_BINDING_MISMATCH')
+a=env.get('assessment')
+if not isinstance(a, dict): raise RuntimeError('ASSESSMENT_BODY_MISSING')
+if a.get('record_type')!='rankability_assessment' or a.get('immutable') is not True or a.get('assessment_status')!='COMPLETED':
+    raise RuntimeError('ASSESSMENT_BODY_INVALID')
+if a.get('production_eligible') is not False: raise RuntimeError('ASSESSMENT_PRODUCTION_PREAUTH_FORBIDDEN')
+if a.get('snapshot_id')!=snapshot_id or a.get('evidence_package_id')!=evidence_package_id:
+    raise RuntimeError('ASSESSMENT_INPUT_ID_MISMATCH')
 assessment_id=a.get('assessment_id') or a.get('id')
 if not assessment_id: raise RuntimeError('ASSESSMENT_ID_MISSING')
+recommendation=a.get('recommendation')
+if recommendation not in c['assessment_binding']['staging_replay_pass_recommendations'] or a.get('overall_rankability') is not True:
+    write('TRACK_B_BLOCKED', **base_state, assessment_id=assessment_id, track_b='COMPLETED_NOT_PASS', recommendation=recommendation, final_business_workload='NOT_RUN', live_projection='NONE')
+    sys.exit(0)
 
 replay_path=m.get('replay_receipt_path')
 if not replay_path:
-    write('READY_FOR_STAGING_REPLAY', exact_pair_digest=pair, correlation_id=correlation, assessment_id=assessment_id)
+    write('READY_FOR_STAGING_REPLAY', **base_state, assessment_id=assessment_id, track_b='PASS_FOR_INTERNAL_STAGING', recommendation=recommendation, final_business_workload='NOT_RUN')
     sys.exit(0)
 r=load(resolve(replay_path))
 if r.get('exact_pair_digest')!=pair or r.get('correlation_id')!=correlation or r.get('assessment_id')!=assessment_id: raise RuntimeError('REPLAY_BINDING_MISMATCH')
@@ -103,9 +129,11 @@ if not replay_id: raise RuntimeError('REPLAY_ID_MISSING')
 
 projection_path=m.get('projection_admission_path')
 if not projection_path:
-    write('READY_FOR_PROJECTION', exact_pair_digest=pair, correlation_id=correlation, assessment_id=assessment_id, replay_id=replay_id)
+    write('READY_FOR_PROJECTION', **base_state, assessment_id=assessment_id, replay_id=replay_id, track_b='PASS_FOR_INTERNAL_STAGING', final_business_workload='PASS', live_projection='NONE')
     sys.exit(0)
 p=load(resolve(projection_path))
 if p.get('exact_pair_digest')!=pair or p.get('correlation_id')!=correlation or p.get('assessment_id')!=assessment_id or p.get('replay_id')!=replay_id: raise RuntimeError('PROJECTION_BINDING_MISMATCH')
 if p.get('production') is not False or p.get('public') is not False: raise RuntimeError('PROJECTION_BOUNDARY_VIOLATION')
-write('CHAIN_COMPLETE_INTERNAL', exact_pair_digest=pair, correlation_id=correlation, assessment_id=assessment_id, replay_id=replay_id, projection_id=p.get('projection_id') or p.get('id'))
+projection_id=p.get('projection_id') or p.get('id')
+if not projection_id: raise RuntimeError('PROJECTION_ID_MISSING')
+write('CHAIN_COMPLETE_INTERNAL', **base_state, assessment_id=assessment_id, replay_id=replay_id, projection_id=projection_id, track_b='PASS_FOR_INTERNAL_STAGING', final_business_workload='PASS', live_projection='GOVERNED_INTERNAL')
