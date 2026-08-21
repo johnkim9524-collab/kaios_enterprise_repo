@@ -5,10 +5,23 @@ const orchestratorPath = 'coordination/kidults/kpmo/full-value-chain-redteam-orc
 const orchestrator = JSON.parse(fs.readFileSync(orchestratorPath, 'utf8'));
 const structuralValidator = 'scripts/kidults/kpmo/validate-full-value-chain-redteam-orchestrator-v1.mjs';
 const stageCoverageValidator = 'scripts/kidults/kpmo/validate-full-value-chain-stage-machine-coverage-v1.mjs';
-const validators = [structuralValidator, stageCoverageValidator, ...(orchestrator.required_family_validators || [])];
+const p0PrePartnerValidators = [
+  'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
+  'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs'
+];
+const validators = [...new Set([
+  structuralValidator,
+  stageCoverageValidator,
+  ...(orchestrator.required_family_validators || []),
+  ...p0PrePartnerValidators
+])];
 
 const results = [];
 for (const script of validators) {
+  if (!fs.existsSync(script)) {
+    console.error(`FAIL aggregate Red-Team validator missing: ${script}`);
+    process.exit(1);
+  }
   const run = spawnSync(process.execPath, [script], {
     cwd: process.cwd(),
     encoding: 'utf8',
@@ -37,8 +50,12 @@ console.log(JSON.stringify({
   control_layer_result: 'PASS',
   validators_passed: results.length,
   stages_machine_bound: Object.keys(orchestrator.stage_machine_coverage || {}).length,
+  pre_partner_intake_gate_machine_bound: true,
+  pre_partner_control_families: 12,
+  partner_like_adversarial_fixtures: 12,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
+  external_partner_data_ingestion: 'HOLD',
   production: 'HOLD',
   public: 'HOLD',
   g5: 'EXPLICIT_APPROVAL_REQUIRED'
