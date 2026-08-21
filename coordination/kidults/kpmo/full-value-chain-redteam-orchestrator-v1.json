@@ -1,10 +1,11 @@
 {
   "id": "kidults-full-value-chain-redteam-orchestrator-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE",
   "objective": "Continuously red-team the full KIDULTS intelligence value chain end-to-end, fail closed on missing material assurance, and prevent local PASS states from masking cross-stage failure.",
   "operating_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
   "truth_rule": "ONLY_EVIDENCED_PASS_COUNTS_AS_COMPLETE",
+  "canonical_value_chain_binding": "coordination/kidults/architecture/kidults-end-to-end-value-chain-contract-v1.json",
   "chain_stages": [
     {"id":"SOURCE_DISCOVERY","checks":["rights_feasibility","factual_origin_independence","provider_concentration","coverage_bias"]},
     {"id":"RIGHTS_AND_POLICY","checks":["use_context_rights","jurisdiction_binding","revocation_cascade","auditability"]},
@@ -24,12 +25,34 @@
     {"id":"REFLEXIVITY_AND_EXTERNAL_EFFECTS","checks":["own_output_reingestion","publication_induced_behavior","customer_endogeneity","feedback_contamination"]},
     {"id":"AUDIT_RECOVERY_CONTINUITY","checks":["audit_authenticity","archive_independence","registry_restore","key_continuity","institutional_memory"]}
   ],
+  "business_chain_to_audit_stages": {
+    "KIDULTS_MARKET_LENS": ["SOURCE_DISCOVERY","AUTONOMOUS_SELECTION"],
+    "COLLECTIBLES_UNIVERSE_ADMISSION": ["SOURCE_DISCOVERY","ENTITY_AND_ONTOLOGY"],
+    "COLLECTION_SCOPE": ["SOURCE_DISCOVERY","RIGHTS_AND_POLICY"],
+    "REPRESENTATIVE_PRODUCT_FAMILY": ["ENTITY_AND_ONTOLOGY","METRICS_AND_FACTORS"],
+    "NAMED_REPRESENTATIVE_PRODUCT": ["ENTITY_AND_ONTOLOGY"],
+    "REPRESENTATIVE_MARKET_CELL": ["ENTITY_AND_ONTOLOGY","SEMANTIC_NORMALIZATION","TEMPORAL_INTEGRITY"],
+    "REQUIRED_ASSERTION": ["METRICS_AND_FACTORS","INTERPRETATION_AND_CAUSALITY"],
+    "EVIDENCE_DEMAND": ["EVIDENCE_GRAPH","METRICS_AND_FACTORS"],
+    "SOURCE_DEMAND": ["SOURCE_DISCOVERY","RIGHTS_AND_POLICY"],
+    "RIGHTS_ACCESS_COST_GATE": ["RIGHTS_AND_POLICY","DECISION_THEORY"],
+    "CANONICAL_IDENTITY": ["ENTITY_AND_ONTOLOGY"],
+    "EVIDENCE_GRAPH": ["EVIDENCE_GRAPH"],
+    "MARKET_GRAPH": ["EVIDENCE_GRAPH","SEMANTIC_NORMALIZATION","TEMPORAL_INTEGRITY"],
+    "BITEMPORAL_MEMORY": ["TEMPORAL_INTEGRITY","AUDIT_RECOVERY_CONTINUITY"],
+    "PROVIDER_FUSION": ["ACQUISITION","SEMANTIC_NORMALIZATION","EVIDENCE_GRAPH"],
+    "TRACK_B_INDEPENDENT_VALIDATION": ["SNAPSHOT_AND_TRACK_B","HUMAN_AUTHORITY"],
+    "INDEX_ELIGIBILITY": ["DECISION_THEORY","SNAPSHOT_AND_TRACK_B"],
+    "PROJECTION_REGISTRY": ["PROJECTION_PORTAL_EOS","AUDIT_RECOVERY_CONTINUITY"],
+    "PORTAL_EOS_API_REPORTS": ["PROJECTION_PORTAL_EOS","REFLEXIVITY_AND_EXTERNAL_EFFECTS"]
+  },
   "cross_stage_invariants": [
     "NO_STAGE_MAY_PROMOTE_UNKNOWN_TO_PASS",
     "LOCAL_PASS_NE_END_TO_END_PASS",
     "DOWNSTREAM_CANNOT_OUTRUN_UPSTREAM_TRUTH",
     "MATERIAL_LIMITATION_MUST_SURVIVE_TO_EXECUTIVE_AND_CUSTOMER_SURFACES",
     "RIGHTS_REVOCATION_OR_ENTITY_CORRECTION_MUST_TRANSITIVELY_INVALIDATE_DEPENDENT_CLAIMS",
+    "EVERY_CANONICAL_BUSINESS_CHAIN_NODE_MUST_MAP_TO_AT_LEAST_ONE_AUDIT_STAGE",
     "SYNTHETIC_CONTROL_EVIDENCE_IS_NON_PROMOTABLE",
     "NO_PRODUCTION_PUBLIC_G5_BYPASS"
   ],
