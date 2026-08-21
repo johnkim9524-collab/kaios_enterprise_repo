@@ -1,0 +1,36 @@
+{
+  "id": "kidults-first-autonomous-shadow-reallocation-gate-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE",
+  "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
+  "objective": "Define the first behavioral proof that KIDULTS autonomously changes evidence-acquisition or analytical allocation in SHADOW because new lawful empirical evidence reduced uncertainty.",
+  "preconditions": [
+    "At least one bounded category x geography surface has complete required empirical factors",
+    "Every admitted factor satisfies canonical eligibility law",
+    "Rights, provenance, freshness and confidence are valid",
+    "Multi-owner factors satisfy independent source-owner and source-removal sensitivity requirements",
+    "No synthetic fixture contributes to empirical completeness"
+  ],
+  "required_proof": [
+    "BEFORE factor snapshot digest",
+    "New evidence admission receipts and source-owner bindings",
+    "AFTER factor snapshot digest",
+    "Machine-computed uncertainty delta",
+    "Machine-generated evidence priority or SHADOW quota/weight delta",
+    "Deterministic replay reproduces the same delta",
+    "Champion/challenger and drift checks PASS",
+    "Live mutation remains zero"
+  ],
+  "fail_closed": [
+    "Any required factor UNKNOWN",
+    "Rights not ALLOW",
+    "Stale or malformed evidence",
+    "Insufficient source-owner independence",
+    "Duplicate/republication padding",
+    "Non-deterministic replay",
+    "Attempted live activation without separate gate"
+  ],
+  "success_state": "FIRST_EVIDENCE_DRIVEN_SHADOW_REALLOCATION_PROVEN",
+  "production": "HOLD",
+  "public": "HOLD"
+}
