@@ -1,0 +1,27 @@
+name: KIDULTS V665 Partner-Safe Public
+
+on:
+  pull_request:
+    paths:
+      - 'apps/kidults-enterprise-staging/public/index.html'
+      - 'scripts/kidults/portal/validate-v665-partner-safe-public.mjs'
+      - 'coordination/kidults/portal/v665-partner-safe-public-release.json'
+      - '.github/workflows/kidults-v665-partner-safe-public.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/kidults-enterprise-staging/public/index.html'
+      - 'scripts/kidults/portal/validate-v665-partner-safe-public.mjs'
+      - 'coordination/kidults/portal/v665-partner-safe-public-release.json'
+      - '.github/workflows/kidults-v665-partner-safe-public.yml'
+
+jobs:
+  validate-v665:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate V665 partner-safe public homepage
+        run: node scripts/kidults/portal/validate-v665-partner-safe-public.mjs

@@ -1,0 +1,51 @@
+{
+  "id": "kidults-v665-partner-safe-public-release",
+  "version": "665",
+  "status": "APPROVED_FOR_NARROW_PUBLIC_DEPLOYMENT",
+  "source_design": "V664",
+  "base_main_sha": "861dc65b36d444bf14b6d172832fd06350a24fa4",
+  "public_surface": "apps/kidults-enterprise-staging/public/index.html",
+  "purpose": "PARTNER_SAFE_CORPORATE_PUBLIC_HOMEPAGE",
+  "approval": {
+    "approved_by": "Program Owner",
+    "approved_at_local": "2026-08-21T12:56:00+09:00",
+    "scope": "V664_BASED_PARTNER_SAFE_V665_TO_KIDULTS_DOT_COM_PUBLIC"
+  },
+  "truth_boundary": {
+    "strict_evidenced_completion": "17/100",
+    "snapshot_candidate": "NONE",
+    "evidence_package": "NONE",
+    "track_b": "NOT_STARTED",
+    "active_market_claim": "NONE",
+    "synthetic_control_evidence_promotable": false
+  },
+  "public_content_policy": {
+    "allowed": [
+      "CORPORATE_POSITIONING",
+      "EIGHT_CORE_VERTICALS",
+      "PLATFORM_IN_DEVELOPMENT_DISCLOSURE",
+      "EVIDENCE_RIGHTS_TRANSPARENCY_PRINCIPLES",
+      "STRATEGIC_PARTNERSHIP_CONTACT"
+    ],
+    "prohibited": [
+      "UNVERIFIED_CURRENT_MARKET_METRICS",
+      "UNVERIFIED_RANKINGS",
+      "UNVERIFIED_CONFIDENCE_NUMBERS",
+      "PRODUCTION_OPERATIONAL_CLAIMS",
+      "PROVIDER_RAW_DATA"
+    ]
+  },
+  "authorization_ceiling": {
+    "static_homepage_publication": "APPROVED",
+    "provider_contract_or_eula": "NOT_AUTHORIZED",
+    "external_spend": "NOT_AUTHORIZED",
+    "credential_activation": "NOT_AUTHORIZED",
+    "production_intelligence_release": "NOT_AUTHORIZED",
+    "other_production_mutations": "NOT_AUTHORIZED"
+  },
+  "rollback": {
+    "target_main_sha_before_v665": "861dc65b36d444bf14b6d172832fd06350a24fa4",
+    "target_file_blob_sha": "becf1666dba44c08b9610efb4419263e309b8a83",
+    "required": true
+  }
+}
