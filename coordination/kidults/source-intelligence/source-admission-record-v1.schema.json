@@ -24,8 +24,8 @@
     "technical_validity": {"enum":["PASS","CONDITIONAL","FAIL","UNKNOWN"]},
     "evidence_validity": {"enum":["SUFFICIENT","LIMITED","INSUFFICIENT","UNKNOWN"]},
     "state": {"enum":["ADMITTED","CONDITIONAL","DISCOVERY_ONLY","BLOCKED"]},
-    "assessed_at": {"type":"string"},
-    "expires_at": {"type":["string","null"]},
+    "assessed_at": {"type":"string","format":"date-time"},
+    "expires_at": {"type":["string","null"],"format":"date-time"},
     "reason_codes": {"type":"array","items":{"type":"string"}}
   }
 }
