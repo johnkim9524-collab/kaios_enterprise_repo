@@ -1,0 +1,17 @@
+name: KIDULTS V666 Partner Edition
+on:
+  pull_request:
+    paths:
+      - 'apps/kidults-enterprise-staging/public/partner-v666/**'
+      - 'scripts/kidults/portal/validate-v666-partner-edition.mjs'
+      - '.github/workflows/kidults-v666-partner-edition.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/kidults/portal/validate-v666-partner-edition.mjs
