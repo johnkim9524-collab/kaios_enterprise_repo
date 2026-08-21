@@ -1,0 +1,100 @@
+{
+  "id": "kidults-operating-principles-and-resilience-controls-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE",
+  "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
+  "operating_principles": {
+    "AUTONOMOUS": "The platform must detect uncertainty, generate evidence demand, adapt source priority, recompute intelligence and propose bounded actions without requiring routine human orchestration, while preserving explicit gates for irreversible/legal/Production actions.",
+    "GLOBAL": "Global claims require empirically represented category x geography x evidence-class surfaces; architecture coverage, provider count or record count never substitutes for independent factual coverage.",
+    "IRREPLACEABLE_VALUE": "KIDULTS-owned value must accrue in canonical graphs, lineage, methodology, source-independence logic, derived intelligence, calibration, decision systems and evidence economics rather than any single provider feed.",
+    "TRANSPARENT": "Every material fact, factor, derived claim and autonomous decision must be traceable to evidence, rights, time semantics, methodology, dependencies, confidence and a reproducible decision rationale."
+  },
+  "resilience_controls": [
+    {
+      "id": "FACTUAL_ORIGIN_INDEPENDENCE",
+      "severity": "P0",
+      "principles": ["GLOBAL", "TRANSPARENT", "IRREPLACEABLE_VALUE"],
+      "rules": [
+        "COMMERCIAL_SOURCE_OWNER_INDEPENDENCE_NE_FACTUAL_ORIGIN_INDEPENDENCE",
+        "REPUBLISHED_OR_SYNDICATED_RECORDS_SHARE_ONE_FACTUAL_ORIGIN_UNLESS_PROVEN_OTHERWISE",
+        "MULTI_OWNER_FACTORS_MUST_REPORT_BOTH_SOURCE_OWNER_COUNT_AND_UNDERLYING_FACTUAL_ORIGIN_COUNT",
+        "SOURCE_REMOVAL_TESTS_MUST_REMOVE_CORRELATED_ORIGIN_CLUSTERS_NOT_ONLY_PROVIDER_IDS"
+      ],
+      "fail_closed": "If underlying factual origin cannot be established for a factor requiring independence, independence state is UNKNOWN and no independence-based promotion is allowed."
+    },
+    {
+      "id": "POISONED_OR_NONREPRESENTATIVE_MARKET_EVENT",
+      "severity": "P0",
+      "principles": ["IRREPLACEABLE_VALUE", "TRANSPARENT"],
+      "event_states": ["OBSERVED", "VALIDATED", "MARKET_ADMISSIBLE", "REPRESENTATIVE_ELIGIBLE", "QUARANTINED"],
+      "rules": [
+        "VALID_EVENT_NE_REPRESENTATIVE_MARKET_EVENT",
+        "SUSPECT_WASH_RELATED_PARTY_ABNORMAL_BIDDING_CANCELLATION_OR_PRICE_CURRENCY_ANOMALY_CANNOT_BE_REPRESENTATIVE_ELIGIBLE_WITHOUT_RESOLUTION",
+        "OUTLIERS_MUST_BE_EXPLAINED_OR_ROBUSTLY_BOUNDED_BEFORE_VALUATION_OR_LIQUIDITY_WEIGHTING",
+        "REPRESENTATIVENESS_DECISION_MUST_PRESERVE_REASON_CODES_AND_EVIDENCE_REFS"
+      ],
+      "fail_closed": "Unresolved manipulation/anomaly indicators quarantine representativeness-sensitive downstream claims."
+    },
+    {
+      "id": "RIGHTS_REVOCATION_TRANSITIVE_INVALIDATION",
+      "severity": "P0",
+      "principles": ["AUTONOMOUS", "TRANSPARENT", "IRREPLACEABLE_VALUE"],
+      "cascade": ["RIGHTS_CHANGE", "LINEAGE_TRAVERSAL", "DEPENDENT_FACT_QUARANTINE", "DEPENDENT_FACTOR_INVALIDATION", "DERIVED_CLAIM_INVALIDATION", "CANDIDATE_PROJECTION_HOLD", "DETERMINISTIC_RECOMPUTE", "REPLACEMENT_OUTPUT_IF_SUPPORTED"],
+      "rules": [
+        "DELETING_RAW_DATA_ALONE_IS_INSUFFICIENT_WHEN_DERIVED_OUTPUT_DEPENDS_ON_REVOKED_EVIDENCE",
+        "REVOCATION_MUST_PROPAGATE_THROUGH_ALL_TRANSITIVE_DEPENDENCIES",
+        "NO_DEPENDENT_CLAIM_MAY_REMAIN_ACTIVE_ONLY_BECAUSE_THE_RAW_RECORD_WAS_PREVIOUSLY_LAWFUL",
+        "RECOMPUTED_OUTPUT_MUST_BIND_TO_A_NEW_CONTENT_DIGEST_AND_LINEAGE_STATE"
+      ]
+    },
+    {
+      "id": "TEMPORAL_COHERENCE",
+      "severity": "P0",
+      "principles": ["GLOBAL", "TRANSPARENT"],
+      "required_times": ["EVENT_OCCURRED_AT", "SOURCE_OBSERVED_AT", "COLLECTED_AT", "ADMITTED_AT", "ANALYZED_AT", "PROJECTED_AT"],
+      "rules": [
+        "NO_FUTURE_INFORMATION_RELATIVE_TO_SNAPSHOT_OR_ANALYSIS_CUTOFF",
+        "CURRENT_GLOBAL_CLAIMS_REQUIRE_BOUNDED_TEMPORAL_COHERENCE_WINDOW",
+        "MIXED_FRESHNESS_SURFACES_MUST_BE_EXPLICITLY_CLASSIFIED",
+        "HISTORICAL_CONTEXT_ONLY_EVIDENCE_CANNOT_SILENTLY_UPGRADE_CURRENT_MARKET_CLAIMS"
+      ],
+      "states": ["TEMPORALLY_COHERENT", "MIXED_FRESHNESS", "HISTORICAL_CONTEXT_ONLY", "TEMPORAL_CONFLICT", "UNKNOWN"]
+    },
+    {
+      "id": "PROVIDER_SCHEMA_SEMANTIC_DRIFT",
+      "severity": "P0_P1",
+      "principles": ["AUTONOMOUS", "TRANSPARENT"],
+      "controls": ["FIELD_FINGERPRINT", "SEMANTIC_CONTRACT_VERSION", "ENUM_DRIFT_DETECTION", "UNIT_CURRENCY_BEHAVIOR_DETECTION", "PRICE_TYPE_SEMANTIC_BINDING", "NULLABILITY_AND_DOMAIN_DRIFT_DETECTION"],
+      "fail_closed": "Provider responses that are syntactically valid but violate the bound semantic contract are QUARANTINE_PROVIDER_SCHEMA_DRIFT and cannot feed factors or Candidate."
+    },
+    {
+      "id": "DERIVED_CLAIM_DEPENDENCY_DAG",
+      "severity": "P1",
+      "principles": ["IRREPLACEABLE_VALUE", "TRANSPARENT", "AUTONOMOUS"],
+      "required_dependency_types": ["RAW_FACT", "RECONCILED_FACT", "FX", "COMPARABLE", "CONDITION_ADJUSTMENT", "LIQUIDITY_WEIGHT", "SCARCITY_FACTOR", "REGIONAL_FACTOR", "METHODOLOGY", "RIGHTS_STATE"],
+      "rules": [
+        "EVERY_MATERIAL_DERIVED_CLAIM_MUST_ENUMERATE_TRANSITIVE_UPSTREAM_DEPENDENCIES",
+        "DEPENDENCY_INVALIDATION_MUST_TRIGGER_DETERMINISTIC_RECOMPUTE_OR_HOLD",
+        "NO_ORPHAN_DERIVED_CLAIM_AFTER_UPSTREAM_INVALIDATION"
+      ]
+    },
+    {
+      "id": "AUTONOMOUS_DECISION_EXPLAINABILITY",
+      "severity": "P1",
+      "principles": ["AUTONOMOUS", "TRANSPARENT"],
+      "required_rationale": ["WHY_THIS_TARGET", "WHY_NOT_HIGHER_RANKED_ALTERNATIVES", "WEIGHTED_UNKNOWN_DEBT", "DECISION_IMPACT", "SOURCE_INDEPENDENCE_DEFICIT", "COVERAGE_GAP", "FRESHNESS_GAP", "EXPECTED_MARGINAL_INTELLIGENCE_GAIN", "RIGHTS_FEASIBILITY", "BLAST_RADIUS_STATE"],
+      "rules": [
+        "AUTONOMOUS_PRIORITY_CHANGE_WITHOUT_REPRODUCIBLE_RATIONALE_IS_NOT_ACTIVATION_ELIGIBLE",
+        "DECISION_RECEIPT_MUST_BIND_INPUT_STATE_METHOD_VERSION_OUTPUT_AND_REASON_CODES",
+        "REPLAY_OF_THE_SAME_BOUND_STATE_MUST_REPRODUCE_THE_SAME_DECISION_OR_DECLARE_VERSIONED_NONDETERMINISM"
+      ]
+    }
+  ],
+  "global_safety_ceiling": {
+    "synthetic_or_control_evidence": "NON_PROMOTABLE_TO_EMPIRICAL_PASS",
+    "live_mutation": "DISABLED_UNTIL_SEPARATE_ACTIVATION_GATE",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
