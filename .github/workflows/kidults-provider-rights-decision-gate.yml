@@ -1,0 +1,28 @@
+name: KIDULTS Provider Rights Decision Gate
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/market/provider-rights-decision-gate-v1.json'
+      - 'coordination/kidults/market/classic-private-activation-contract-r1.json'
+      - 'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
+      - '.github/workflows/kidults-provider-rights-decision-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/market/provider-rights-decision-gate-v1.json'
+      - 'coordination/kidults/market/classic-private-activation-contract-r1.json'
+      - 'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
+
+jobs:
+  provider-rights-decision-gate:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate deterministic provider rights decision boundary
+        run: node scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs
