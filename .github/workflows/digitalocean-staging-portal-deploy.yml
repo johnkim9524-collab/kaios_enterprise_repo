@@ -1,0 +1,106 @@
+name: KIDULTS DigitalOcean STAGING Portal Deploy
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/runtime/digitalocean-staging-portal-deploy-contract-v1.json'
+      - 'scripts/operations/digitalocean_staging_portal_deploy_v1.sh'
+      - 'scripts/operations/validate_digitalocean_staging_portal_deploy_v1.py'
+      - '.github/workflows/digitalocean-staging-portal-deploy.yml'
+      - 'apps/kidults-enterprise-staging/public/portal-r001/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate deploy contract and safety boundaries
+        run: python scripts/operations/validate_digitalocean_staging_portal_deploy_v1.py
+      - name: Validate Portal Release-001
+        run: node scripts/kidults/portal/validate-portal-release-001.mjs
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HOST: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
+      PRIVATE_IP: ${{ vars.KIDULTS_STAGING_PRIVATE_IP }}
+      EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
+      SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert exact STAGING bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$HOST" = "165.232.175.45"
+          test "$PRIVATE_IP" = "10.104.0.3"
+          test -n "$EXPECTED_FINGERPRINT"
+          test -n "$SSH_PRIVATE_KEY_B64"
+      - name: Materialize SSH identity and pin host
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ssh"
+          ssh-keyscan -t ed25519 "$HOST" > "$RUNNER_TEMP/ssh/known_hosts"
+          OBSERVED="$(ssh-keygen -lf "$RUNNER_TEMP/ssh/known_hosts" | awk '{print $2}')"
+          test "$OBSERVED" = "$EXPECTED_FINGERPRINT"
+          printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 --decode > "$RUNNER_TEMP/ssh/id_ed25519"
+          tr -d '\r' < "$RUNNER_TEMP/ssh/id_ed25519" > "$RUNNER_TEMP/ssh/id_ed25519.normalized"
+          mv "$RUNNER_TEMP/ssh/id_ed25519.normalized" "$RUNNER_TEMP/ssh/id_ed25519"
+          chmod 600 "$RUNNER_TEMP/ssh/id_ed25519"
+          ssh-keygen -y -f "$RUNNER_TEMP/ssh/id_ed25519" >/dev/null
+      - name: Verify non-root STAGING identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          SSH=(ssh -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
+          test "$("${SSH[@]}" kidults-staging@"$HOST" whoami)" = "kidults-staging"
+          test "$("${SSH[@]}" kidults-staging@"$HOST" hostname)" = "ih-staging-01"
+      - name: Package Portal Release-001
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -C apps/kidults-enterprise-staging/public/portal-r001 -czf "$RUNNER_TEMP/portal-r001.tgz" .
+          sha256sum "$RUNNER_TEMP/portal-r001.tgz"
+      - name: Transfer and deploy to remote localhost-only STAGING
+        shell: bash
+        run: |
+          set -euo pipefail
+          SSH_OPTS=(-o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
+          RELEASE_ID="portal-r001-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
+          scp "${SSH_OPTS[@]}" "$RUNNER_TEMP/portal-r001.tgz" kidults-staging@"$HOST":/tmp/portal-r001.tgz
+          ssh "${SSH_OPTS[@]}" kidults-staging@"$HOST" 'bash -s -- ih-staging-01 165.232.175.45 10.104.0.3 '"$RELEASE_ID"' /tmp/portal-r001.tgz' < scripts/operations/digitalocean_staging_portal_deploy_v1.sh
+      - name: Collect remote deployment receipt and verify localhost HTTP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/digitalocean-staging-portal
+          SSH=(ssh -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
+          "${SSH[@]}" kidults-staging@"$HOST" 'cat ~/kidults-runtime/audit/portal-r001-deploy-receipt.json' > artifacts/digitalocean-staging-portal/deploy-receipt.json
+          "${SSH[@]}" kidults-staging@"$HOST" 'curl -fsS http://127.0.0.1:4173/index.html' > artifacts/digitalocean-staging-portal/index.html
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('artifacts/digitalocean-staging-portal/deploy-receipt.json').read_text())
+          h=Path('artifacts/digitalocean-staging-portal/index.html').read_text()
+          assert r['environment']=='STAGING' and r['health']=='PASS'
+          assert r['public_bind'] is False and r['production_touch'] is False and r['g5']=='HOLD'
+          assert 'data-release="portal-release-001"' in h and 'data-state="NO_PROJECTION"' in h
+          assert 'Read the market.' in h and 'Know the evidence.' in h
+          print('DIGITALOCEAN_STAGING_PORTAL_DEPLOY_PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-digitalocean-staging-portal
+          path: artifacts/digitalocean-staging-portal
+          retention-days: 30
