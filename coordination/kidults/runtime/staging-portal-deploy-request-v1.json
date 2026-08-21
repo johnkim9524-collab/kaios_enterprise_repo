@@ -1,0 +1,11 @@
+{
+  "request_id": "staging-portal-deploy-request-v1-20260821",
+  "issue": 921,
+  "environment": "STAGING",
+  "action": "DEPLOY_PORTAL_RELEASE_001",
+  "source_commit": "6c07f9793b7491b4d54bd344a2164f0d929f692e",
+  "target": "ih-staging-01",
+  "public_bind": false,
+  "production": "HOLD",
+  "g5": "HOLD"
+}

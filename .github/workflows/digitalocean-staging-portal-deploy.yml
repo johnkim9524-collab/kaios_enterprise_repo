@@ -4,10 +4,15 @@ on:
   pull_request:
     paths:
       - 'coordination/kidults/runtime/digitalocean-staging-portal-deploy-contract-v1.json'
+      - 'coordination/kidults/runtime/staging-portal-deploy-request-v1.json'
       - 'scripts/operations/digitalocean_staging_portal_deploy_v1.sh'
       - 'scripts/operations/validate_digitalocean_staging_portal_deploy_v1.py'
       - '.github/workflows/digitalocean-staging-portal-deploy.yml'
       - 'apps/kidults-enterprise-staging/public/portal-r001/**'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/runtime/staging-portal-deploy-request-v1.json'
   workflow_dispatch:
 
 permissions:
@@ -25,9 +30,21 @@ jobs:
         run: python scripts/operations/validate_digitalocean_staging_portal_deploy_v1.py
       - name: Validate Portal Release-001
         run: node scripts/kidults/portal/validate-portal-release-001.mjs
+      - name: Validate explicit deploy request on push
+        if: github.event_name == 'push'
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open('coordination/kidults/runtime/staging-portal-deploy-request-v1.json'))
+          assert p['environment']=='STAGING'
+          assert p['action']=='DEPLOY_PORTAL_RELEASE_001'
+          assert p['public_bind'] is False
+          assert p['production']=='HOLD'
+          assert p['g5']=='HOLD'
+          PY
 
   deploy:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
