@@ -1,0 +1,56 @@
+name: KIDULTS Portal R001 Contrast Diagnostic
+on:
+  pull_request:
+    paths:
+      - 'apps/kidults-enterprise-staging/public/portal-r001/**'
+      - '.github/workflows/kidults-portal-r001-contrast-diagnostic.yml'
+  workflow_dispatch:
+
+jobs:
+  contrast-diagnostic:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser diagnostic deps
+        run: |
+          mkdir -p /tmp/kidults-r001-diag
+          cd /tmp/kidults-r001-diag
+          npm init -y >/dev/null
+          npm install --silent playwright @axe-core/playwright
+          npx playwright install --with-deps chromium
+      - name: Start staging portal
+        shell: bash
+        run: |
+          mkdir -p /tmp/kidults-conversion-data
+          printf 'portal-r001-diag-nonproduction-secret' > /tmp/kidults-conversion-secret
+          KAIOS_ENVIRONMENT=staging \
+          KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false \
+          KIDULTS_CONVERSION_DATA_DIR=/tmp/kidults-conversion-data \
+          KIDULTS_CONVERSION_HASH_SECRET_FILE=/tmp/kidults-conversion-secret \
+          HOST=127.0.0.1 PORT=4173 \
+          node apps/kidults-enterprise-staging/server.mjs >/tmp/kidults-r001-diag-server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/health >/dev/null && exit 0; sleep 1; done
+          cat /tmp/kidults-r001-diag-server.log
+          exit 1
+      - name: Print exact color contrast nodes
+        shell: bash
+        run: |
+          cat > /tmp/kidults-r001-diag/run.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          import AxeBuilder from '@axe-core/playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1440,height:1000}});
+          await page.goto('http://127.0.0.1:4173/portal-r001/index.html',{waitUntil:'networkidle'});
+          const axe=await new AxeBuilder({page}).withRules(['color-contrast']).analyze();
+          const out=axe.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,html:n.html,failureSummary:n.failureSummary}))}));
+          console.log(JSON.stringify(out,null,2));
+          await browser.close();
+          if(out.length) process.exit(1);
+          NODE
+          cd /tmp/kidults-r001-diag
+          node run.mjs
