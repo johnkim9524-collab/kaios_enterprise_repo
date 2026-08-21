@@ -1,0 +1,73 @@
+{
+  "fixture_type": "NON_PROMOTABLE_CONTROL",
+  "product_release": "Portal Release-001",
+  "candidate": {
+    "snapshot_id": "fixture-snapshot-884-v1",
+    "schema_version": "snapshot-candidate-control-v1",
+    "snapshot_status": "CONTROL_ONLY",
+    "claims": [
+      {
+        "claim_id": "fixture-claim-001",
+        "claim_type": "CONTROL_SIGNAL",
+        "value": "NON_PROMOTABLE",
+        "rights_status": "PASS_CONTROL_ONLY",
+        "provenance_ref": "fixture-evidence-001"
+      }
+    ]
+  },
+  "evidence_package": {
+    "evidence_package_id": "fixture-evidence-package-884-v1",
+    "schema_version": "evidence-package-control-v1",
+    "rights_status": "PASS_CONTROL_ONLY",
+    "provenance_complete": true,
+    "evidence": [
+      {
+        "evidence_id": "fixture-evidence-001",
+        "source_owner": "KIDULTS_CONTROL_FIXTURE",
+        "synthetic": true,
+        "promotable": false,
+        "as_of": "2026-08-21T00:00:00Z"
+      }
+    ]
+  },
+  "mock_assessment": {
+    "assessment_id": "fixture-assessment-884-v1",
+    "schema_version": "rankability-assessment-control-v1",
+    "decision": "CONTROL_PASS",
+    "rankable": false,
+    "promotable": false,
+    "rights_status": "PASS_CONTROL_ONLY",
+    "assessment_as_of": "2026-08-21T00:00:00Z"
+  },
+  "projection_template": {
+    "projection_id": "fixture-projection-884-v1",
+    "schema_version": "projection-control-v1",
+    "state": "WAITING",
+    "rights_state": "PASS_CONTROL_ONLY",
+    "freshness": "CURRENT_CONTROL",
+    "as_of": "2026-08-21T00:00:00Z",
+    "promotable": false
+  },
+  "runtime": {
+    "refresh_budget_ms": 2000,
+    "replay_must_be_deterministic": true,
+    "rollback_required": true
+  },
+  "consumers": {
+    "portal": {
+      "allowed_states": ["LIVE_APPROVED","WAITING","STALE","INVALID","RIGHTS_BLOCKED","NOT_AVAILABLE","NO_PROJECTION"],
+      "fixture_state": "WAITING"
+    },
+    "ih_eos": {
+      "allowed_states": ["LIVE_APPROVED","WAITING","STALE","INVALID","RIGHTS_BLOCKED","NOT_AVAILABLE","NO_PROJECTION"],
+      "fixture_state": "WAITING"
+    }
+  },
+  "truth_boundary": {
+    "real_candidate_evidence": "NONE",
+    "track_b": "NOT_STARTED",
+    "live_approved_projection": "NONE",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}

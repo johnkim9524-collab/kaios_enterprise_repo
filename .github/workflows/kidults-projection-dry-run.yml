@@ -1,0 +1,35 @@
+name: KIDULTS Projection Dry-Run
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/projection-dry-run/**'
+      - 'scripts/kidults/projection/validate-projection-dry-run-v1.mjs'
+      - 'apps/kidults-enterprise-staging/public/portal-r001/projection-store.js'
+      - 'coordination/kidults/audit/unified-audit-control-plane-v1.json'
+      - 'coordination/kidults/registry/track/records/track-e-executive-operating-system.json'
+      - '.github/workflows/kidults-projection-dry-run.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/projection-dry-run/**'
+      - 'scripts/kidults/projection/validate-projection-dry-run-v1.mjs'
+      - 'apps/kidults-enterprise-staging/public/portal-r001/projection-store.js'
+      - 'coordination/kidults/audit/unified-audit-control-plane-v1.json'
+      - 'coordination/kidults/registry/track/records/track-e-executive-operating-system.json'
+      - '.github/workflows/kidults-projection-dry-run.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  projection-dry-run:
+    name: Projection Dry-Run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute NON_PROMOTABLE Projection chain
+        run: node scripts/kidults/projection/validate-projection-dry-run-v1.mjs
