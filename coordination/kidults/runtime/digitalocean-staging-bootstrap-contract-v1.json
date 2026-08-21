@@ -1,0 +1,54 @@
+{
+  "id": "digitalocean-staging-bootstrap-contract-v1",
+  "version": "1.0.0",
+  "parent_issue": 899,
+  "environment": "STAGING",
+  "target": {
+    "droplet_id_variable": "DIGITALOCEAN_STAGING_DROPLET_ID",
+    "public_ip_variable": "KIDULTS_STAGING_PUBLIC_IP",
+    "private_ip_variable": "KIDULTS_STAGING_PRIVATE_IP",
+    "expected_name": "ih-staging-01",
+    "expected_region": "sgp1"
+  },
+  "bootstrap_policy": {
+    "idempotent": true,
+    "versioned": true,
+    "audited": true,
+    "staging_only": true,
+    "production_touch": false,
+    "production_id_reuse": false,
+    "production_ip_reuse": false,
+    "production_credential_reuse": false
+  },
+  "required_preconditions": [
+    "READ_ONLY_BINDING_PASS",
+    "DEDICATED_STAGING_SSH_CREDENTIAL_PRESENT",
+    "EXACT_HOST_FINGERPRINT_PINNED",
+    "BOOTSTRAP_SCRIPT_DIGEST_PINNED",
+    "ROLLBACK_TARGET_DECLARED"
+  ],
+  "bootstrap_scope": [
+    "OS_PACKAGE_BASELINE",
+    "NON_ROOT_RUNTIME_USER",
+    "APPLICATION_ROOT",
+    "DATA_ROOT",
+    "AUDIT_ROOT",
+    "LOG_ROOT",
+    "SYSTEMD_FOUNDATION",
+    "HEALTH_ENDPOINT_FOUNDATION",
+    "MONITORING_AGENT_CHECK"
+  ],
+  "prohibited": [
+    "PRODUCTION_DEPLOY",
+    "PRODUCTION_RESTART",
+    "PRODUCTION_FIREWALL_MUTATION",
+    "PRODUCTION_DNS_MUTATION",
+    "PRODUCTION_DATABASE_WRITE",
+    "RAW_PROVIDER_INGESTION",
+    "REAL_BUSINESS_WORKLOAD",
+    "G5_PROMOTION"
+  ],
+  "current_state": "BOOTSTRAP_PREWIRED_CREDENTIAL_NOT_ADMITTED",
+  "production": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
