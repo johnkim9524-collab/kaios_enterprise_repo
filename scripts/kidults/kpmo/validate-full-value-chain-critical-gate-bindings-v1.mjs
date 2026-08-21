@@ -6,6 +6,8 @@ const runner = fs.readFileSync(runnerPath, 'utf8');
 const mandatory = [
   'scripts/kidults/kpmo/validate-full-value-chain-redteam-orchestrator-v1.mjs',
   'scripts/kidults/kpmo/validate-full-value-chain-stage-machine-coverage-v1.mjs',
+  'scripts/kidults/kpmo/validate-github-actions-node24-policy-binding-v1.mjs',
+  'scripts/kidults/kpmo/validate-github-actions-node24-estate-v1.mjs',
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
@@ -30,6 +32,8 @@ for (const marker of [
   "g5: 'EXPLICIT_APPROVAL_REQUIRED'",
   "empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE'",
   "release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE'",
+  'github_actions_node24_estate_machine_bound: true',
+  'github_actions_deprecated_runtime_findings: 0',
   'pre_partner_required_controls_exactly_bound: true',
   'pre_partner_control_removal_mutation_selftest: true',
   'digitalocean_staging_bootstrap_exec_contract_machine_bound: true',
@@ -37,6 +41,12 @@ for (const marker of [
 ]) {
   if (!runner.includes(marker)) errors.push(`aggregate truth/control marker missing: ${marker}`);
 }
+
+const nodePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/github-actions-node24-estate-policy-v1.json','utf8'));
+if (nodePolicy.governing_issue !== 933) errors.push('Node24 estate policy must remain bound to #933');
+if (nodePolicy.required_runtime_floor !== 'NODE24_SAFE_ACTION_RUNTIME') errors.push('Node24 estate runtime floor drift');
+if (nodePolicy.explicit_node20_runtime !== 'FORBIDDEN' || nodePolicy.unsecure_node20_optout !== 'FORBIDDEN') errors.push('Node20 fail-closed policy drift');
+if (nodePolicy.truth_boundary?.empirical_gate_effect !== 'NONE') errors.push('Node24 control evidence must not promote empirical gates');
 
 const preIntake = JSON.parse(fs.readFileSync('coordination/kidults/audit/unified-audit-control-plane-v1.json','utf8'));
 if (preIntake.governing_issue !== 881) errors.push('Unified Audit Control Plane must remain bound to #881');
@@ -72,6 +82,8 @@ console.log(JSON.stringify({
   suite:'KIDULTS_FULL_VALUE_CHAIN_CRITICAL_GATE_BINDINGS_V1',
   result:'PASS',
   mandatory_validator_bindings:mandatory.length,
+  github_actions_node24_estate:'MACHINE_BOUND',
+  github_actions_deprecated_runtime_findings:0,
   pre_partner_control_families:12,
   pre_partner_control_family_exact_coverage:'MACHINE_BOUND',
   pre_partner_control_removal_mutation_selftest:'MACHINE_BOUND',
