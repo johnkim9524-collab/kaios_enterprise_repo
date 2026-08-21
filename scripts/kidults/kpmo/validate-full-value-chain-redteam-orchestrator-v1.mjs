@@ -135,14 +135,33 @@ for (const validator of data.required_family_validators || []) {
 if (data.aggregate_machine_enforcement?.runner !== 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs') {
   throw new Error('Aggregate Red-Team runner binding changed');
 }
+if (data.aggregate_machine_enforcement?.workflow !== '.github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml') {
+  throw new Error('Aggregate Red-Team workflow binding changed');
+}
 if (data.aggregate_machine_enforcement?.require_all_family_validators_pass !== true) {
   throw new Error('All family validators must pass the aggregate Red-Team');
+}
+if (data.aggregate_machine_enforcement?.exact_head_checkout_required !== true) {
+  throw new Error('Aggregate Red-Team must checkout the exact source SHA');
+}
+if (data.aggregate_machine_enforcement?.exact_head_sha_assertion_required !== true) {
+  throw new Error('Aggregate Red-Team must assert the exact source SHA before validation');
 }
 if (data.aggregate_machine_enforcement?.post_merge_main_revalidation !== true) {
   throw new Error('Protected main must be revalidated post-merge');
 }
 if (data.aggregate_machine_enforcement?.control_pass_closes_empirical_gate !== false) {
   throw new Error('Control PASS must never close empirical gates');
+}
+const workflowPath = path.join(root, data.aggregate_machine_enforcement.workflow);
+if (!fs.existsSync(workflowPath)) throw new Error('Aggregate Red-Team workflow missing');
+const workflowText = fs.readFileSync(workflowPath, 'utf8');
+for (const marker of [
+  "ref: ${{ github.event.pull_request.head.sha || github.sha }}",
+  'Verify exact source SHA',
+  'test "$ACTUAL_SHA" = "$EXPECTED_SHA"'
+]) {
+  if (!workflowText.includes(marker)) throw new Error(`Aggregate Red-Team exact-head workflow marker missing: ${marker}`);
 }
 
 const canonicalPath = path.join(root, data.canonical_value_chain_binding || '');
@@ -179,4 +198,4 @@ for (const [key, expected] of Object.entries(requiredHardBoundaries)) {
   if (auditContract.hard_boundaries?.[key] !== expected) throw new Error(`Audit hard boundary changed: ${key}`);
 }
 
-console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} audit stages, ${canonical.chain.length} canonical business-chain nodes, ${(data.required_existing_control_families || []).length} control families, ${(data.required_family_validators || []).length} executable family validators, ${requiredAxes.length} readiness axes, ${requiredChainReceipts.length} mandatory chain receipts`);
+console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} audit stages, ${canonical.chain.length} canonical business-chain nodes, ${(data.required_existing_control_families || []).length} control families, ${(data.required_family_validators || []).length} executable family validators, ${requiredAxes.length} readiness axes, ${requiredChainReceipts.length} mandatory chain receipts, exact-head CI enforced`);
