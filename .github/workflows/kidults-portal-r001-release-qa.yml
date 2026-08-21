@@ -1,0 +1,182 @@
+name: KIDULTS Portal Release-001 QA
+on:
+  pull_request:
+    paths:
+      - 'apps/kidults-enterprise-staging/public/portal-r001/**'
+      - 'apps/kidults-enterprise-staging/server.mjs'
+      - '.github/workflows/kidults-portal-r001-release-qa.yml'
+  workflow_dispatch:
+
+jobs:
+  portal-r001-browser-qa:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install isolated browser QA dependencies
+        run: |
+          mkdir -p /tmp/kidults-r001-qa
+          cd /tmp/kidults-r001-qa
+          npm init -y >/dev/null
+          npm install --silent playwright @axe-core/playwright
+          npx playwright install --with-deps chromium
+      - name: Start staging portal
+        shell: bash
+        run: |
+          mkdir -p /tmp/kidults-conversion-data
+          printf 'portal-r001-qa-ci-nonproduction-secret' > /tmp/kidults-conversion-secret
+          KAIOS_ENVIRONMENT=staging \
+          KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false \
+          KIDULTS_CONVERSION_DATA_DIR=/tmp/kidults-conversion-data \
+          KIDULTS_CONVERSION_HASH_SECRET_FILE=/tmp/kidults-conversion-secret \
+          HOST=127.0.0.1 PORT=4173 \
+          node apps/kidults-enterprise-staging/server.mjs >/tmp/kidults-r001-server.log 2>&1 &
+          echo $! >/tmp/kidults-r001-server.pid
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/health >/dev/null && exit 0; sleep 1; done
+          cat /tmp/kidults-r001-server.log
+          exit 1
+      - name: Run Release-001 responsive accessibility resilience matrix
+        shell: bash
+        run: |
+          cat > /tmp/kidults-r001-qa/run.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          import AxeBuilder from '@axe-core/playwright';
+          import fs from 'node:fs/promises';
+
+          const baseUrl='http://127.0.0.1:4173';
+          const routes=['/portal-r001/index.html','/portal-r001/object.html'];
+          const viewports=[320,375,390,430,768,1440].map(width=>({name:`w${width}`,width,height:width<500?900:1000}));
+          const states=['NO_PROJECTION','WAITING','STALE','INVALID','RIGHTS_BLOCKED','NOT_AVAILABLE'];
+          const fixture=JSON.parse(await fs.readFile(process.env.GITHUB_WORKSPACE+'/apps/kidults-enterprise-staging/public/portal-r001/data/projection-control-fixture.json','utf8'));
+          const failures=[];
+          const results=[];
+
+          function variant(state){
+            const d=structuredClone(fixture);
+            d.fixture_type='NON_PROMOTABLE_CONTROL';
+            d.projection.state=state;
+            d.projection.projection_id=null;
+            d.projection.assessment_id=null;
+            d.projection.as_of=state==='STALE'?'2026-08-01T00:00:00Z':null;
+            d.projection.rights_state=state==='RIGHTS_BLOCKED'?'BLOCKED':'WAITING';
+            d.projection.freshness=state==='STALE'?'STALE':'NOT_AVAILABLE';
+            d.audit.reason_category=`CONTROL_${state}`;
+            d.overview=(d.overview||[]).map((x,i)=>i<2?{...x,state_type:'intelligence',state,value:'None'}:x);
+            return d;
+          }
+
+          const browser=await chromium.launch({headless:true});
+          for(const vp of viewports){
+            for(const state of states){
+              const context=await browser.newContext({viewport:{width:vp.width,height:vp.height},reducedMotion:'reduce'});
+              await context.route('**/portal-r001/data/projection-control-fixture.json',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(variant(state))}));
+              for(const route of routes){
+                const page=await context.newPage();
+                const response=await page.goto(baseUrl+route,{waitUntil:'networkidle'});
+                if(!response?.ok()){
+                  failures.push(`${route}:${vp.name}:${state}:HTTP_${response?.status()}`);
+                  await page.close();
+                  continue;
+                }
+                await page.waitForTimeout(50);
+                const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+                const serious=axe.violations.filter(v=>['serious','critical'].includes(v.impact));
+                if(serious.length) failures.push(`${route}:${vp.name}:${state}:AXE_${serious.map(v=>v.id).join(',')}`);
+                const obs=await page.evaluate(()=>{
+                  const html=document.documentElement;
+                  const workspace=[...document.querySelectorAll('.workspace-grid article')];
+                  const search=document.querySelector('.search');
+                  return {
+                    state:html.dataset.state||null,
+                    lang:html.getAttribute('lang'),
+                    mainCount:document.querySelectorAll('main,[role="main"]').length,
+                    horizontalOverflow:html.scrollWidth>html.clientWidth+2,
+                    workspaceAllBlocked:workspace.length?workspace.every(x=>x.getAttribute('aria-disabled')==='true'):true,
+                    searchDisabled:search?search.disabled===true:true,
+                    hasLiveApprovedText:(document.body.innerText||'').includes('Governed ranking available.'),
+                    fixtureTag:document.querySelector('.projection-bar')?.getAttribute('data-fixture')||null,
+                    unlabeledControls:[...document.querySelectorAll('button,input,select,textarea,a[href]')].filter(el=>{
+                      const text=(el.textContent||'').trim();
+                      const aria=el.getAttribute('aria-label')||el.getAttribute('aria-labelledby');
+                      const title=el.getAttribute('title');
+                      const alt=el.getAttribute('alt');
+                      const label=el.id&&document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+                      return !text&&!aria&&!title&&!alt&&!label;
+                    }).length
+                  };
+                });
+                if(obs.state!==state) failures.push(`${route}:${vp.name}:${state}:STATE_${obs.state}`);
+                if(!obs.lang) failures.push(`${route}:${vp.name}:${state}:HTML_LANG_MISSING`);
+                if(obs.mainCount<1) failures.push(`${route}:${vp.name}:${state}:MAIN_LANDMARK_MISSING`);
+                if(vp.width<=430&&obs.horizontalOverflow) failures.push(`${route}:${vp.name}:${state}:HORIZONTAL_OVERFLOW`);
+                if(obs.unlabeledControls>0) failures.push(`${route}:${vp.name}:${state}:UNLABELED_CONTROLS_${obs.unlabeledControls}`);
+                if(route.endsWith('index.html')){
+                  if(!obs.workspaceAllBlocked) failures.push(`${route}:${vp.name}:${state}:WORKSPACE_UNLOCKED`);
+                  if(!obs.searchDisabled) failures.push(`${route}:${vp.name}:${state}:SEARCH_UNLOCKED`);
+                  if(obs.hasLiveApprovedText) failures.push(`${route}:${vp.name}:${state}:FALSE_LIVE_RANKING`);
+                  if(obs.fixtureTag!=='NON_PROMOTABLE') failures.push(`${route}:${vp.name}:${state}:FIXTURE_TAG_MISSING`);
+                }
+                const focusables=await page.locator('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])').count();
+                let keyboardFocus=true;
+                if(focusables>0){
+                  await page.keyboard.press('Tab');
+                  keyboardFocus=await page.evaluate(()=>document.activeElement&&document.activeElement!==document.body);
+                  if(!keyboardFocus) failures.push(`${route}:${vp.name}:${state}:KEYBOARD_FOCUS_NOT_OBSERVED`);
+                }
+                results.push({route,viewport:vp.name,state,seriousCritical:serious.length,obs,focusables,keyboardFocus});
+                await page.close();
+              }
+              await context.close();
+            }
+          }
+
+          // Resilience: fixture fetch fails. Portal may render INVALID or remain fail-closed, but must never silently become LIVE_APPROVED.
+          {
+            const context=await browser.newContext({viewport:{width:390,height:900},reducedMotion:'reduce'});
+            await context.route('**/portal-r001/data/projection-control-fixture.json',route=>route.abort('failed'));
+            const page=await context.newPage();
+            await page.goto(baseUrl+'/portal-r001/index.html',{waitUntil:'networkidle'});
+            await page.waitForTimeout(100);
+            const state=await page.evaluate(()=>document.documentElement.dataset.state||null);
+            const body=await page.locator('body').innerText();
+            if(state==='LIVE_APPROVED'||body.includes('Governed ranking available.')) failures.push('fixture-fetch-failure:SILENT_LIVE_FALLBACK');
+            await context.setOffline(true);
+            try{await page.reload({waitUntil:'domcontentloaded',timeout:5000});}catch{}
+            const offlineState=await page.evaluate(()=>document.documentElement.dataset.state||null).catch(()=>null);
+            if(offlineState==='LIVE_APPROVED') failures.push('offline-reload:SILENT_LIVE_FALLBACK');
+            results.push({route:'/portal-r001/index.html',viewport:'w390',state:'FETCH_FAILURE_OFFLINE',observedState:offlineState||state});
+            await context.close();
+          }
+
+          await browser.close();
+          const report={
+            id:'kidults-portal-r001-release-qa-v1',
+            governing_issue:895,
+            parent_issue:886,
+            result:failures.length?'FAIL':'PASS',
+            routes,
+            viewports:viewports.map(x=>x.width),
+            blocked_states:states,
+            cases:results.length,
+            failures,
+            truth_boundary:{fixture:'NON_PROMOTABLE',empirical_gate_effect:'NONE',live_approved_projection:'NONE',production:'HOLD',public_intelligence:'HOLD',g5:'EXPLICIT_APPROVAL_REQUIRED'},
+            limitations:['AUTOMATED_BROWSER_AND_AXE_EVIDENCE_DOES_NOT_REPLACE_FINAL_MANUAL_SCREEN_READER_OR_HUMAN_USABILITY_ACCEPTANCE_ON_REAL_GOVERNED_PROJECTION']
+          };
+          await fs.writeFile('/tmp/kidults-portal-r001-release-qa-v1.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify(report,null,2));
+          if(failures.length) process.exit(1);
+          NODE
+          cd /tmp/kidults-r001-qa
+          node run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-portal-r001-release-qa-v1
+          path: |
+            /tmp/kidults-portal-r001-release-qa-v1.json
+            /tmp/kidults-r001-server.log
+          retention-days: 30
