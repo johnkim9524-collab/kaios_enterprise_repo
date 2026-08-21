@@ -1,0 +1,24 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+const root = process.cwd();
+const p = path.join(root, 'coordination', 'kidults', 'kpmo', 'semantic-normalization-integrity-controls-v1.json');
+const c = JSON.parse(fs.readFileSync(p, 'utf8'));
+let failed = false;
+const req = (x, m) => { if (!x) { console.error(`FAIL: ${m}`); failed = true; } };
+for (const p of ['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT']) req(c.operating_principles?.includes(p), `missing principle ${p}`);
+const ids = new Map((c.controls || []).map(x => [x.id, x]));
+for (const id of ['PRICE_FIELD_SEMANTIC_INTEGRITY','CURRENCY_AND_FX_INTEGRITY','FEE_PREMIUM_TAX_INTEGRITY','UNIT_AND_SCALE_INTEGRITY','NOMINAL_REAL_AND_TIME_BASIS_INTEGRITY','CONDITION_ADJUSTED_COMPARABILITY','NORMALIZATION_LINEAGE_AND_REPLAY']) req(ids.has(id), `missing control ${id}`);
+req(c.truth_rules?.includes('DISPLAY_PRICE_NE_ECONOMIC_PRICE'), 'display/economic price truth rule missing');
+req(c.truth_rules?.includes('RECENT_FX_RATE_NE_EVENT_TIME_FX_RATE'), 'event-time FX truth rule missing');
+req(c.truth_rules?.includes('GROSS_PRICE_NE_NET_PROCEEDS'), 'gross/net truth rule missing');
+req(ids.get('PRICE_FIELD_SEMANTIC_INTEGRITY')?.rules.some(x => x.includes('UNKNOWN_PRICE_TYPE_CANNOT_FEED_REPRESENTATIVE_VALUATION')), 'unknown price type fail-close missing');
+req(ids.get('CURRENCY_AND_FX_INTEGRITY')?.rules.some(x => x.includes('EVENT_TIME')), 'event-time FX binding missing');
+req(ids.get('FEE_PREMIUM_TAX_INTEGRITY')?.rules.some(x => x.includes('SEPARATE_FIELDS')), 'fee/premium/tax separation missing');
+req(ids.get('UNIT_AND_SCALE_INTEGRITY')?.rules.some(x => x.includes('DETERMINISTIC_VERSIONED_AND_REVERSIBLE')), 'reversible unit conversion missing');
+req(ids.get('NORMALIZATION_LINEAGE_AND_REPLAY')?.rules.some(x => x.includes('DEPENDENCY_REPLAY')), 'normalization replay missing');
+req(c.activation_ceiling?.empirical_promotion === 'PROHIBITED_FROM_SYNTHETIC_OR_CONTROL_TESTS', 'synthetic empirical ceiling missing');
+req(c.activation_ceiling?.production === 'HOLD', 'Production HOLD missing');
+req(c.activation_ceiling?.g5 === 'EXPLICIT_APPROVAL_REQUIRED', 'G5 gate missing');
+if (failed) process.exit(1);
+console.log('PASS: semantic normalization integrity controls validated');
