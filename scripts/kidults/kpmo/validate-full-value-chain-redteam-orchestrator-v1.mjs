@@ -3,7 +3,9 @@ import path from 'node:path';
 
 const root = process.cwd();
 const orchestratorPath = path.join(root, 'coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json');
+const contractPath = path.join(root, 'coordination/kidults/kpmo/full-value-chain-redteam-audit-contract-v1.json');
 const data = JSON.parse(fs.readFileSync(orchestratorPath, 'utf8'));
+const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
 
 const requiredStages = [
   'SOURCE_DISCOVERY','RIGHTS_AND_POLICY','ACQUISITION','TEMPORAL_INTEGRITY','ENTITY_AND_ONTOLOGY',
@@ -16,6 +18,7 @@ const requiredInvariants = [
   'MATERIAL_LIMITATION_MUST_SURVIVE_TO_EXECUTIVE_AND_CUSTOMER_SURFACES','SYNTHETIC_CONTROL_EVIDENCE_IS_NON_PROMOTABLE',
   'NO_PRODUCTION_PUBLIC_G5_BYPASS'
 ];
+const requiredAxes = ['INTERNAL_CONTROL_READINESS','EMPIRICAL_EVIDENCE_READINESS','RELEASE_EVIDENCE_READINESS'];
 
 const stageIds = new Set((data.chain_stages || []).map(x => x.id));
 for (const stage of requiredStages) {
@@ -37,4 +40,16 @@ for (const file of data.required_existing_control_families || []) {
   if (!fs.existsSync(p)) throw new Error(`Required control family missing: ${file}`);
 }
 
-console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} stages, ${(data.required_existing_control_families || []).length} bound control families`);
+const axisIds = new Set((contract.readiness_axes || []).map(x => x.id));
+for (const axis of requiredAxes) {
+  if (!axisIds.has(axis)) throw new Error(`Missing readiness axis: ${axis}`);
+}
+if (contract.completion_rule !== 'ONLY_PASS_EVIDENCED_COUNTS_TOWARD_EMPIRICAL_COMPLETION') throw new Error('Empirical completion rule changed');
+for (const rule of ['NO_AVERAGING_ACROSS_READINESS_AXES','CONTROL_PASS_CANNOT_CLOSE_EMPIRICAL_GATE','UNKNOWN_MATERIAL_STAGE_PREVENTS_END_TO_END_PASS']) {
+  if (!(contract.aggregation_rules || []).includes(rule)) throw new Error(`Missing audit aggregation rule: ${rule}`);
+}
+if (contract.hard_boundaries?.production !== 'HOLD') throw new Error('Audit contract Production must remain HOLD');
+if (contract.hard_boundaries?.public !== 'HOLD') throw new Error('Audit contract Public must remain HOLD');
+if (contract.hard_boundaries?.g5 !== 'EXPLICIT_APPROVAL_REQUIRED') throw new Error('Audit contract G5 explicit approval rule missing');
+
+console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} stages, ${(data.required_existing_control_families || []).length} control families, ${requiredAxes.length} readiness axes`);
