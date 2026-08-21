@@ -1,9 +1,10 @@
 {
   "id": "kidults-global-leadership-risk-controls-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "ACTIVE",
   "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
-  "objective": "Advance KIDULTS toward a globally leading Autonomous Global Intelligence Platform by reducing evidence starvation, source concentration, category/geography asymmetry, late integration risk, scorecard distortion and autonomous-decision failure modes without weakening empirical, rights, security or Production gates.",
+  "objective": "Advance KIDULTS toward a globally leading Autonomous Global Intelligence Platform by reducing evidence starvation, source concentration, category/geography asymmetry, late integration risk, scorecard distortion, autonomous-decision failure modes and operational resilience tail risks without weakening empirical, rights, security or Production gates.",
+  "operating_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
   "non_negotiable_truth_rules": [
     "CLAIM_STRENGTH_LE_EVIDENCE_STRENGTH",
     "MISSING_NE_ZERO",
@@ -22,7 +23,21 @@
     {"id":"AUTONOMY_OBJECTIVE_MISALIGNMENT","severity":"P0","control":"AUTONOMY_OBJECTIVE_ALIGNMENT","binding":"autonomy-safety-controls-v1.json"},
     {"id":"FEEDBACK_LOOP_LOCK_IN","severity":"P0","control":"EXPLORATION_EXPLOITATION_LOCK_IN_CONTROL","binding":"autonomy-safety-controls-v1.json"},
     {"id":"UNKNOWN_DEBT_EXPLOSION","severity":"P0","control":"WEIGHTED_UNKNOWN_DEBT","binding":"autonomy-safety-controls-v1.json"},
-    {"id":"AUTONOMOUS_ACTION_BLAST_RADIUS","severity":"P0_BEFORE_LIVE_MUTATION","control":"AUTONOMOUS_MUTATION_BLAST_RADIUS","binding":"autonomy-safety-controls-v1.json"}
+    {"id":"AUTONOMOUS_ACTION_BLAST_RADIUS","severity":"P0_BEFORE_LIVE_MUTATION","control":"AUTONOMOUS_MUTATION_BLAST_RADIUS","binding":"autonomy-safety-controls-v1.json"},
+    {"id":"FACTUAL_ORIGIN_CORRELATION","severity":"P0","control":"FACTUAL_ORIGIN_INDEPENDENCE","binding":"operating-principles-and-resilience-controls-v1.json"},
+    {"id":"POISONED_OR_NONREPRESENTATIVE_EVENT","severity":"P0","control":"POISONED_OR_NONREPRESENTATIVE_MARKET_EVENT","binding":"operating-principles-and-resilience-controls-v1.json"},
+    {"id":"RIGHTS_REVOCATION_CASCADE","severity":"P0","control":"RIGHTS_REVOCATION_TRANSITIVE_INVALIDATION","binding":"operating-principles-and-resilience-controls-v1.json"},
+    {"id":"TEMPORAL_INCOHERENCE","severity":"P0","control":"TEMPORAL_COHERENCE","binding":"operating-principles-and-resilience-controls-v1.json"},
+    {"id":"SCHEMA_SEMANTIC_DRIFT","severity":"P0_P1","control":"PROVIDER_SCHEMA_SEMANTIC_DRIFT","binding":"operating-principles-and-resilience-controls-v1.json"},
+    {"id":"DERIVED_CLAIM_ORPHANING","severity":"P1","control":"DERIVED_CLAIM_DEPENDENCY_DAG","binding":"operating-principles-and-resilience-controls-v1.json"},
+    {"id":"AUTONOMOUS_DECISION_OPACITY","severity":"P1","control":"AUTONOMOUS_DECISION_EXPLAINABILITY","binding":"operating-principles-and-resilience-controls-v1.json"},
+    {"id":"SILENT_PARTIAL_FAILURE","severity":"P0","control":"SILENT_PARTIAL_FAILURE","binding":"operational-resilience-hedges-v1.json"},
+    {"id":"HUMAN_OVERRIDE_ABUSE","severity":"P0","control":"HUMAN_OVERRIDE_GOVERNANCE","binding":"operational-resilience-hedges-v1.json"},
+    {"id":"ROLLBACK_SPLIT_BRAIN","severity":"P0","control":"ROLLBACK_EPOCH_INTEGRITY","binding":"operational-resilience-hedges-v1.json"},
+    {"id":"MARKET_REGIME_BREAK","severity":"P0_P1","control":"MARKET_REGIME_BREAK","binding":"operational-resilience-hedges-v1.json"},
+    {"id":"AUDIT_SURVIVABILITY","severity":"P1_P0_BEFORE_SCALE","control":"AUDIT_SURVIVABILITY","binding":"operational-resilience-hedges-v1.json"},
+    {"id":"VENDOR_ECONOMIC_CAPTURE","severity":"P1_P0_AT_SCALE","control":"VENDOR_ECONOMIC_CAPTURE","binding":"operational-resilience-hedges-v1.json"},
+    {"id":"METHODOLOGICAL_MONOCULTURE","severity":"P1_P0_BEFORE_HIGH_IMPACT_AUTONOMY","control":"METHODOLOGICAL_MONOCULTURE","binding":"operational-resilience-hedges-v1.json"}
   ],
   "operating_priority": [
     "EMPIRICAL_GATE_CLOSURE",
