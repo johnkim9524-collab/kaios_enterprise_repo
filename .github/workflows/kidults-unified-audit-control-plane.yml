@@ -1,0 +1,28 @@
+name: KIDULTS Unified Audit Control Plane
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/audit/**'
+      - 'scripts/kidults/audit/**'
+      - '.github/workflows/kidults-unified-audit-control-plane.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'coordination/kidults/audit/**'
+      - 'scripts/kidults/audit/**'
+      - '.github/workflows/kidults-unified-audit-control-plane.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate unified audit control plane
+        run: node scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs
