@@ -1,0 +1,27 @@
+{
+  "id": "kidults-cross-market-intelligence-entry-gate-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE",
+  "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
+  "objective": "Prevent premature cross-market inference and engine proliferation while preserving a clear path to category-rotation and capital-flow intelligence once empirical prerequisites exist.",
+  "entry_requirements": [
+    "At least two categories with claim-sufficient rights-admitted market evidence",
+    "At least two geographies with comparable methodology and freshness windows",
+    "Independent source-owner requirements satisfied for compared signals",
+    "Entity, currency, condition and time-window normalization PASS",
+    "No category uses architecture coverage or proxy assumptions as empirical market truth",
+    "Backtest and temporal leakage controls PASS",
+    "Derived cross-market claims receive content-bound registered hardening proof"
+  ],
+  "permitted_after_entry": [
+    "CATEGORY_ROTATION",
+    "REGIONAL_CAPITAL_FLOW",
+    "LIQUIDITY_MIGRATION",
+    "COLLECTOR_ATTENTION_SHIFT",
+    "CROSS_CATEGORY_SUBSTITUTION",
+    "LEADING_LAGGING_SIGNAL_RELATIONSHIPS"
+  ],
+  "current_state": "NOT_ELIGIBLE_EMPIRICAL_PREREQUISITES_INCOMPLETE",
+  "new_engine_policy": "Reuse the owned graph/factor/engine mesh by default. A new standalone engine requires evidence that existing processors cannot express the validated cross-market function without semantic or reliability loss.",
+  "production": "HOLD"
+}
