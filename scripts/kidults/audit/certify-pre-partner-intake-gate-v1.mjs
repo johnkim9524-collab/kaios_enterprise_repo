@@ -28,6 +28,7 @@ assert(projection.truth_boundary.track_b === 'NOT_STARTED', 'Track B falsely sta
 assert(projection.truth_boundary.live_approved_projection === 'NONE', 'live Projection falsely promoted');
 
 const outputs = {
+  control_family_coverage: run('scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs'),
   audit_control_plane: run('scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs'),
   adversarial_fixtures: run('scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs'),
   projection_isolation: run('scripts/kidults/projection/validate-projection-dry-run-v1.mjs')
@@ -49,6 +50,8 @@ console.log(JSON.stringify({
   governing_issue: 881,
   internal_pre_intake_gate: 'PASS',
   control_families: 12,
+  exact_family_control_coverage: 'PASS',
+  control_removal_mutation_selftest: 'PASS',
   executable_adversarial_fixtures: 12,
   unified_audit_control_plane: 'PASS',
   projection_downstream_isolation: 'PASS',
