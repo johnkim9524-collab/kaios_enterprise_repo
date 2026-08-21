@@ -1,0 +1,31 @@
+name: KIDULTS Reflexivity Self-Influence Red-Team V1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/kpmo/reflexivity-self-influence-risk-controls-v1.json'
+      - 'coordination/kidults/kpmo/global-leadership-risk-controls-v1.json'
+      - 'scripts/kidults/kpmo/validate-reflexivity-self-influence-risk-controls-v1.mjs'
+      - '.github/workflows/kidults-reflexivity-self-influence-redteam-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/kpmo/reflexivity-self-influence-risk-controls-v1.json'
+      - 'coordination/kidults/kpmo/global-leadership-risk-controls-v1.json'
+      - 'scripts/kidults/kpmo/validate-reflexivity-self-influence-risk-controls-v1.mjs'
+      - '.github/workflows/kidults-reflexivity-self-influence-redteam-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate reflexivity and self-influence risk controls
+        run: node scripts/kidults/kpmo/validate-reflexivity-self-influence-risk-controls-v1.mjs
