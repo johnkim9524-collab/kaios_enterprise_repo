@@ -1,0 +1,40 @@
+{
+  "id": "digitalocean-staging-binding-v1",
+  "governing_issue": 899,
+  "environment": "STAGING",
+  "resource": {
+    "provider": "DigitalOcean",
+    "droplet_name": "ih-staging-01",
+    "droplet_id_variable": "DIGITALOCEAN_STAGING_DROPLET_ID",
+    "public_ip_variable": "KIDULTS_STAGING_PUBLIC_IP",
+    "private_ip_variable": "KIDULTS_STAGING_PRIVATE_IP",
+    "expected_region": "sgp1",
+    "expected_size": "s-1vcpu-1gb",
+    "expected_status": "active"
+  },
+  "read_only_binding": {
+    "credential_secret": "DIGITALOCEAN_READ_TOKEN",
+    "required_scope": "droplet:read plus DigitalOcean-required read dependencies",
+    "state": "PENDING_EXACT_HEAD_AUDIT"
+  },
+  "bootstrap_gate": {
+    "state": "NOT_STARTED",
+    "dedicated_staging_credential_required": true,
+    "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
+    "requirements": [
+      "STAGING_ONLY_SSH_OR_DEPLOY_CREDENTIAL",
+      "IDEMPOTENT_VERSIONED_BOOTSTRAP",
+      "AUDIT_LOG",
+      "ROLLBACK_TARGET",
+      "NO_PRODUCTION_ID_IP_OR_CREDENTIAL_REUSE"
+    ]
+  },
+  "truth_boundary": {
+    "real_business_workload": "NOT_STARTED",
+    "candidate_evidence": "NONE",
+    "track_b": "NOT_STARTED",
+    "production_resource_touched": false,
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
