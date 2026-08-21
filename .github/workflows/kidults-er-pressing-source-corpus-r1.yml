@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Validate fail-closed corpus semantics
@@ -44,7 +44,7 @@ jobs:
           console.log('PASS: 240 real unlabeled MusicBrainz vinyl release records evidence-bound; no pair labels, current-market facts, commercial transport authorization, publication or Production.');
           NODE
       - name: Upload reviewer-candidate source corpus artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-er-pressing-source-corpus-r1
           path: /tmp/pressing-source-corpus-r1.json

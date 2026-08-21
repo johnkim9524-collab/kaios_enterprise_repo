@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Acquire bounded region-bound catalog observations
@@ -39,7 +39,7 @@ jobs:
           if(r.shadow_delta.status!=='NO_MUTATION_FAIL_CLOSED'||r.shadow_delta.reason!=='REGION_BINDING_EXISTS_BUT_ZERO_VERIFIED_MARKET_FACTORS') throw new Error('SHADOW_BOUNDARY');
           console.log(JSON.stringify({status:'PASS',region_bound_source_assets:r.coverage_debt_report.region_bound_source_assets,region_bound_observation_count:r.coverage_debt_report.region_bound_observation_count,verified_market_factors:0,blocker:r.coverage_debt_report.blocker,production:'HOLD'}));
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: empirical-regional-baseline-wave1-r1
           path: |

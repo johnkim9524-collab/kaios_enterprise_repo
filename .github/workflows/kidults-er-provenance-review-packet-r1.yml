@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Acquire 120 real Getty provenance source-linked pairs
         run: node scripts/kidults/entity-resolution/acquire-provenance-source-corpus-r1.mjs /tmp/provenance-source-corpus-r1.json
@@ -25,7 +25,7 @@ jobs:
         run: node scripts/kidults/entity-resolution/build-provenance-review-packet-r1.mjs /tmp/provenance-source-corpus-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json /tmp/provenance-review-packet-r1.json
       - name: Validate partial packet truth boundaries
         run: node scripts/kidults/entity-resolution/validate-provenance-review-packet-r1.mjs /tmp/provenance-review-packet-r1.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-er-provenance-review-packet-r1
           path: /tmp/provenance-review-packet-r1.json

@@ -16,8 +16,8 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Validate pinned script and rollback boundary
@@ -34,7 +34,7 @@ jobs:
       EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
       SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Assert required runtime bindings
         shell: bash
         run: |
@@ -100,7 +100,7 @@ jobs:
           assert h['status']=='OK' and h['production'] is False
           print('DIGITALOCEAN_STAGING_USERSPACE_BOOTSTRAP_PASS')
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-digitalocean-staging-bootstrap
           path: artifacts/digitalocean-staging-bootstrap

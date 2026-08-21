@@ -40,9 +40,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Build structural acquisition matrix
         run: node scripts/kidults/source-intelligence/build-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
@@ -66,7 +66,7 @@ jobs:
         run: node scripts/kidults/source-intelligence/validate-asi-autonomous-action-queue-v2.mjs /tmp/asi-autonomous-action-queue-v2.json
       - name: Prove canonical factor eligibility isolation and mutation controls
         run: node scripts/kidults/source-intelligence/test-asi-market-structure-acquisition-feedback-v1.mjs /tmp/empirical-regional-baseline-wave1-r1.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-asi-market-structure-acquisition-feedback-v1
           path: |

@@ -12,8 +12,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 22 }
       - name: Build exact current E2E state
         run: node scripts/kidults/architecture/build-owned-fabric-e2e-preflight-r1.mjs /tmp/kidults-owned-fabric-e2e-preflight-r1.json
@@ -25,7 +25,7 @@ jobs:
           if(x.stages.market_event_graph!=='BLOCKED_NO_STRICT_CURRENT_SOLD_SOURCE'||x.stages.immutable_candidate!=='BLOCKED_NOT_CREATED') process.exit(1);
           console.log('Owned-fabric E2E preflight truth boundary PASS');
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-owned-fabric-e2e-preflight-r1
           path: /tmp/kidults-owned-fabric-e2e-preflight-r1.json

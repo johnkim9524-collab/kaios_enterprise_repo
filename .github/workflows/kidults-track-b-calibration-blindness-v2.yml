@@ -25,10 +25,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
 
@@ -95,7 +95,7 @@ jobs:
 
       - name: Upload blindness-hardened review evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-track-b-calibration-readiness-v2-blind
           path: artifacts/agci-os/track-b-calibration-readiness-v2-blind

@@ -15,8 +15,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
       - run: node --check scripts/kidults/autonomous/diagnose-wikidata-transaction-candidate-v1.mjs
@@ -32,7 +32,7 @@ jobs:
           if (r.decision !== 'NOT_ADMITTED_AS_TRANSACTION_FAMILY') process.exit(1);
           console.log(`Observed ${r.observed_records}; admitted 0; ambiguity held fail-closed.`);
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: kidults-wikidata-transaction-candidate-v1

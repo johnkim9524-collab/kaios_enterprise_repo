@@ -15,10 +15,10 @@ jobs:
   validate-alignment-transparency:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Validate 100 percent alignment and transparency-by-design
         run: |
           node scripts/kidults/architecture/validate-platform-market-funnel-alignment-v1.mjs

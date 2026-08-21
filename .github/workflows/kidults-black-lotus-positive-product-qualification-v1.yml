@@ -15,13 +15,13 @@ jobs:
   evidence-package:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Build live/open + bounded-reference Product Evidence Package
         run: node scripts/kidults/e2e/build-black-lotus-positive-slice-v1.mjs coordination/kidults/e2e/black-lotus-positive-evidence-seed-v1.json out/evidence
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: black-lotus-product-evidence-package-v1
           path: out/evidence/product-evidence-package.json
@@ -30,17 +30,17 @@ jobs:
     needs: evidence-package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '20'
-      - uses: actions/download-artifact@v4
+          node-version: '24'
+      - uses: actions/download-artifact@v7
         with:
           name: black-lotus-product-evidence-package-v1
           path: input
       - name: Independent Track B assessment
         run: node scripts/kidults/e2e/assess-black-lotus-track-b-v1.mjs input/product-evidence-package.json out/assessment
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: black-lotus-track-b-assessment-v1
           path: out/assessment/track-b-assessment.json
@@ -49,15 +49,15 @@ jobs:
     needs: [evidence-package, track-b-assessment]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '20'
-      - uses: actions/download-artifact@v4
+          node-version: '24'
+      - uses: actions/download-artifact@v7
         with:
           name: black-lotus-product-evidence-package-v1
           path: input
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: black-lotus-track-b-assessment-v1
           path: input
@@ -65,7 +65,7 @@ jobs:
         run: node scripts/kidults/e2e/build-black-lotus-projection-v1.mjs input/product-evidence-package.json input/track-b-assessment.json out/projection
       - name: Validate Product PASS / Index HOLD split
         run: node scripts/kidults/e2e/validate-black-lotus-positive-slice-v1.mjs input/product-evidence-package.json input/track-b-assessment.json out/projection/projection.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: black-lotus-positive-product-qualification-slice-v1
           path: |

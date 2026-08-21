@@ -13,13 +13,13 @@ jobs:
   evolve:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Compile versioned v1.2 matrix and migrated anchors
         run: node scripts/kidults/scope/compile-scope-evolution-watches-v1.2.mjs coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json coordination/kidults/scope-data/scope-evolution-watches-v1.2.json scope-evolution-v1.2-out
       - name: Validate Track B migration invariants
         run: node scripts/kidults/scope/validate-scope-evolution-watches-v1.2.mjs scope-evolution-v1.2-out
       - name: Upload immutable v1.2 migration artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-scope-evolution-watches-v1.2
           path: scope-evolution-v1.2-out/

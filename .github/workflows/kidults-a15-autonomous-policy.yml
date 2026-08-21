@@ -15,8 +15,8 @@ jobs:
       run:
         working-directory: services/kidults-autonomous-intelligence
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - run: npm install
@@ -30,7 +30,7 @@ jobs:
           grep -q 'digitalocean' policy/autonomous-operations-inventory.json
           grep -q 'cloudflare' policy/autonomous-operations-inventory.json
           grep -q 'github' policy/autonomous-operations-inventory.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: kidults-a15-policy-report

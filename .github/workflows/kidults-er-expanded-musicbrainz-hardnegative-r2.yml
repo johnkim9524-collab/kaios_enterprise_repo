@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Rebuild canonical 240-record exclusion corpus
         run: node scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs /tmp/base240.json
@@ -51,7 +51,7 @@ jobs:
           if(/"payload"\s*:/.test(JSON.stringify(x))||/"raw_payload"\s*:/.test(JSON.stringify(x)))throw new Error('PROVIDER_PAYLOAD_FIELD_FORBIDDEN');
           console.log(JSON.stringify({pair_capacity:x.source_disjoint_pair_capacity,pressing_added:p.case_count,pressing_total:p.total_reviewer_ready_if_combined,variant_added:v.case_count,variant_total:v.total_reviewer_ready_if_combined,aggregate_total:x.aggregate_reviewer_ready_if_combined,empirical_pass:false,production:'HOLD'},null,2));
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-er-expanded-musicbrainz-hardnegative-r2
           path: /tmp/residual-hard-r2.json

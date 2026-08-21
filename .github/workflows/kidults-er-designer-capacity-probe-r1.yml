@@ -20,8 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Probe exact 120-case Designer/Maker source capacity
@@ -43,14 +43,14 @@ jobs:
           console.log('DESIGNER_REVIEW_PACKET_COORDINATION_BOUNDARY_PASS');
           NODE
       - name: Upload bounded capacity artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-er-designer-capacity-r1
           path: /tmp/designer-capacity.json
           retention-days: 14
           if-no-files-found: error
       - name: Upload reviewer-ready packet artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-er-designer-review-packet-r1
           path: /tmp/designer-review-packet.json

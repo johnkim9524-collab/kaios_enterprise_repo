@@ -18,7 +18,7 @@ jobs:
   bounded-live-product-discovery:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Download immutable 160-anchor foundation artifact
         env:
           GH_TOKEN: ${{ github.token }}
@@ -36,7 +36,7 @@ jobs:
       - name: Validate bounded-live discovery
         run: node scripts/kidults/source-intelligence/validate-asi-product-linked-live-v2.mjs discovery-out
       - name: Upload bounded-live evidence artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-product-linked-bounded-live-discovery-v2
           path: discovery-out/

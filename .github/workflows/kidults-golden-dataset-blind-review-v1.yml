@@ -25,10 +25,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
 
@@ -94,7 +94,7 @@ jobs:
 
       - name: Upload reviewer-safe artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-golden-dataset-blind-reviewer-v1
           path: artifacts/agci-os/golden-dataset-blind-review-v1/reviewer
@@ -103,7 +103,7 @@ jobs:
 
       - name: Upload hidden aggregation-only lineage artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-golden-dataset-blind-lineage-v1
           path: artifacts/agci-os/golden-dataset-blind-review-v1/lineage
@@ -112,7 +112,7 @@ jobs:
 
       - name: Upload Track B blind review outcome
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-golden-dataset-track-b-blind-review-r1
           path: artifacts/agci-os/golden-dataset-track-b-review-r1

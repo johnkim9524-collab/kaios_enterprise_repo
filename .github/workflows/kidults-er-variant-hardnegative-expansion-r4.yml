@@ -15,8 +15,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Rebuild proven 240-record corpus and current 45-case Variant packet
         run: |
@@ -37,7 +37,7 @@ jobs:
           if(/"payload"\s*:/.test(JSON.stringify(x))) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
           console.log(JSON.stringify({additional:x.additional_case_count,total_variant:x.total_reviewer_ready_if_combined,total_hard_negative:x.total_hard_negative_if_combined,remaining:x.remaining_case_count,production:'HOLD'},null,2));
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-er-variant-hardnegative-expansion-r4
           path: /tmp/variant-hardnegative-expansion-r4.json

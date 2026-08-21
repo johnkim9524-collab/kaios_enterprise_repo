@@ -17,12 +17,12 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Run autonomous operations
         run: node apps/kidults-enterprise-staging/scripts/run-a13-b16-autonomous-operations.mjs

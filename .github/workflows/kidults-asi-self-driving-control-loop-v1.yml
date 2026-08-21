@@ -49,9 +49,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: OBSERVE — rebuild structural acquisition matrix
         run: |
@@ -123,7 +123,7 @@ jobs:
           NODE
           cat /tmp/asi-self-driving-cycle-summary-v1.json
       - name: Persist rolling proactive source pool and frozen steering plan
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-asi-proactive-source-pool-v1
           path: |
@@ -132,7 +132,7 @@ jobs:
           retention-days: 90
           if-no-files-found: error
       - name: Upload non-public SHADOW cycle artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-asi-self-driving-cycle-v1
           path: |

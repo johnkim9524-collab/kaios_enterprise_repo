@@ -20,8 +20,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Rebuild current 240-record MusicBrainz corpus
         run: node scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs /tmp/pressing-source-corpus-r1.json
@@ -42,7 +42,7 @@ jobs:
           if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.track_b!=='NOT_STARTED') throw new Error('RELEASE_BOUNDARY');
           console.log(JSON.stringify({status:x.status,additional:x.additional_case_count,total_hard:x.total_hard_negative_if_combined,total_reviewer_ready:x.total_reviewer_ready_if_combined,remaining:x.remaining_case_count,production:'HOLD'},null,2));
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-er-pressing-hardnegative-expansion-r2
           path: /tmp/pressing-hardnegative-expansion-r2.json

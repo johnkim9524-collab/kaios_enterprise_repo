@@ -17,7 +17,7 @@ jobs:
   materialize-targeted-asi-queue:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Download immutable 160-anchor foundation artifact
         env:
           GH_TOKEN: ${{ github.token }}
@@ -31,7 +31,7 @@ jobs:
       - name: Validate queue and North-Star boundaries
         run: node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs out
       - name: Upload immutable queue artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-product-linked-targeted-asi-queue-v1
           path: out/

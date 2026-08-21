@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Measure strict bounded NMAH serialized capacity
         run: node scripts/kidults/entity-resolution/probe-serialized-smithsonian-nmah-capacity-r1.mjs /tmp/nmah-capacity.json
@@ -27,7 +27,7 @@ jobs:
           if(/"raw_payload"\s*:|"payload"\s*:/.test(JSON.stringify(x)))throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
           console.log(JSON.stringify({metrics:x.metrics,production:'HOLD'},null,2));
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-er-serialized-smithsonian-nmah-capacity-r1
           path: /tmp/nmah-capacity.json

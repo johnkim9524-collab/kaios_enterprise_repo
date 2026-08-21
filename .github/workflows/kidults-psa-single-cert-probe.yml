@@ -139,7 +139,7 @@ jobs:
           NODE
 
       - name: Upload sanitized probe summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-psa-single-cert-probe-summary
           path: /tmp/psa-probe-summary.json

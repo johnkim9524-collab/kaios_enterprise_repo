@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Rebuild existing 50-case provenance packet on current head
         run: |
@@ -54,7 +54,7 @@ jobs:
           if(packet.production!=='HOLD'||packet.public_release!=='HOLD'||packet.track_b!=='NOT_STARTED') throw new Error('RELEASE_BOUNDARY');
           console.log(JSON.stringify({additional_reviewer_ready:packet.case_count,total_provenance_reviewer_ready:packet.total_reviewer_ready_if_combined,remaining:packet.remaining_case_count,production:'HOLD'},null,2));
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-er-provenance-residual-review-packet-r2
           path: |

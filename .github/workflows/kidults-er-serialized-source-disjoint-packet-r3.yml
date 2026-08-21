@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Build live source-disjoint Serialized packet
         run: node scripts/kidults/entity-resolution/build-serialized-source-disjoint-review-packet-r3.mjs coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/serialized-source-disjoint-review-packet-r3.json
@@ -32,7 +32,7 @@ jobs:
           if(/"payload"\s*:/.test(JSON.stringify(x))) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
           console.log(JSON.stringify({reviewer_ready:x.case_count,grammar_complete:x.grammar_complete_real_record_count,blind_candidates:x.blind_partition.case_count,remaining:x.remaining_case_count,production:'HOLD'},null,2));
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-er-serialized-source-disjoint-packet-r3
           path: /tmp/serialized-source-disjoint-review-packet-r3.json

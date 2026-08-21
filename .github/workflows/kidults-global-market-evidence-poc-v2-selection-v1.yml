@@ -12,8 +12,8 @@ jobs:
   compile-validate:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Compile canonical Scope v1.2 working set
@@ -22,7 +22,7 @@ jobs:
         run: node scripts/kidults/poc/build-poc-v2-challenger-demand-v1.mjs tmp/scope-v1.2/collection-scope-data-requirement-matrix-v1.2.json tmp/poc-v2-challenger-demand-v1.json
       - name: Validate challenger demand
         run: node scripts/kidults/poc/validate-poc-v2-challenger-demand-v1.mjs tmp/poc-v2-challenger-demand-v1.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-poc-v2-320-selection-demand-v1
           path: tmp/poc-v2-challenger-demand-v1.json

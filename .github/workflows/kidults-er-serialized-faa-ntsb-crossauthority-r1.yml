@@ -17,8 +17,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Install MDB reader
         run: |
@@ -84,7 +84,7 @@ jobs:
           if(x.labels_present!==false||x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED'||x.empirical_pass!==false||x.track_b!=='NOT_STARTED'||x.public_release!=='HOLD'||x.production!=='HOLD') throw new Error('GATE_OVERCLAIM');
           console.log(JSON.stringify({status:x.status,serialized_total:120,aggregate_total:720,remaining_material_deficit:120,source_record_boundary:60,physical_object_boundary:60,empirical_pass:false,production:'HOLD'},null,2));
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-er-serialized-faa-ntsb-crossauthority-r1
           path: /tmp/serialized-faa-ntsb-crossauthority-r1.json

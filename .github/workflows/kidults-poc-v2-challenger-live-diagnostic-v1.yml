@@ -10,8 +10,8 @@ jobs:
   diagnostic:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Compile canonical Scope v1.2 working set
@@ -23,7 +23,7 @@ jobs:
       - name: Validate diagnostic fail-closed outcome
         run: |
           node -e "const x=require('./tmp/poc-v2-challenger-live-diagnostic-v1/challenger-live-diagnostic-v1.json'); if(x.slots!==160) throw Error('slots'); if(x.selected!==0) throw Error('unsupported selection'); if(!x.defects?.length) throw Error('missing defect'); if(x.provider_contact!=='HOLD'||x.production!=='HOLD') throw Error('gate'); console.log(JSON.stringify({status:'PASS',slots:x.slots,nominations:x.nominations,defects:x.defects.length},null,2));"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-poc-v2-challenger-live-diagnostic-v1
           path: tmp/poc-v2-challenger-live-diagnostic-v1/

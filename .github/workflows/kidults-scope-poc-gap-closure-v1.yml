@@ -16,7 +16,7 @@ jobs:
   close-gaps:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Download immutable 32-scope live baseline artifact
         env:
           GH_TOKEN: ${{ github.token }}
@@ -29,7 +29,7 @@ jobs:
       - name: Validate closure / Track B / Projection invariants
         run: node scripts/kidults/scope/validate-scope-self-collection-closure-v1.mjs scope-poc-live-out
       - name: Upload immutable closure artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-32-scope-poc-gap-closure-v1
           path: scope-poc-live-out/

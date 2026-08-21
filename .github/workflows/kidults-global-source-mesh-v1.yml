@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Build deterministic 32-scope global market-cell mesh
         run: node scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json /tmp/kidults-global-source-mesh-v1.json
@@ -35,7 +35,7 @@ jobs:
           if(!r.rules.includes('NO_SINGLE_PROVIDER_GLOBAL_TRUTH')) process.exit(1);
           console.log('Global Source Mesh fail-closed validation PASS');
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-global-source-mesh-v1
           path: /tmp/kidults-global-source-mesh-v1.json

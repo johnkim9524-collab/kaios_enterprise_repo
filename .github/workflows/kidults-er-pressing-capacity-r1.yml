@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Acquire bounded real MusicBrainz pressing corpus
         run: node scripts/kidults/entity-resolution/acquire-pressing-source-corpus-r1.mjs /tmp/pressing-source-corpus-r1.json
@@ -34,7 +34,7 @@ jobs:
           if(x.labels_present!==false||x.empirical_cases_created!==0||x.production!=='HOLD') throw new Error('TRUTH_BOUNDARY_INVALID');
           console.log('PASS: Pressing capacity measured fail-closed; MusicBrainz-only cross-market alias capacity remains zero.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-er-pressing-capacity-r1
           path: /tmp/pressing-capacity-r1.json

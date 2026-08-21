@@ -23,10 +23,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
 
@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload 400-case assessment evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-track-b-calibration-assessment-400-v2
           path: artifacts/agci-os/track-b-calibration-400-v2

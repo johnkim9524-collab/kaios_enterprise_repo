@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Execute requirement-driven V&A and AIC channels
@@ -23,7 +23,7 @@ jobs:
       - name: Validate rights and traceability invariants
         run: node scripts/kidults/scope/validate-self-collected-open-channel-expansion-v2.mjs scope-open-wave2-out
       - name: Upload immutable Wave 2 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-self-collected-open-channel-expansion-wave2
           path: scope-open-wave2-out/

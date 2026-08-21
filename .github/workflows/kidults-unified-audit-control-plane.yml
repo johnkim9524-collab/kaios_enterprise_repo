@@ -22,7 +22,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Verify exact source SHA
@@ -33,7 +33,7 @@ jobs:
           echo "expected=$EXPECTED_SHA"
           echo "actual=$ACTUAL_SHA"
           test "$ACTUAL_SHA" = "$EXPECTED_SHA"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Validate unified audit control plane

@@ -22,8 +22,8 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Validate deploy contract and safety boundaries
@@ -54,7 +54,7 @@ jobs:
       EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
       SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Assert exact STAGING bindings
         shell: bash
         run: |
@@ -116,7 +116,7 @@ jobs:
           assert 'Read the market.' in h and 'Know the evidence.' in h
           print('DIGITALOCEAN_STAGING_PORTAL_DEPLOY_PASS')
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-digitalocean-staging-portal
           path: artifacts/digitalocean-staging-portal

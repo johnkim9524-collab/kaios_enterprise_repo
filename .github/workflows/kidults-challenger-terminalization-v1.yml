@@ -11,15 +11,15 @@ jobs:
   terminalize:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Compile fail-closed challenger terminal states
         run: node scripts/kidults/poc/compile-challenger-terminalization-v1.mjs
       - name: Validate 32 x 5 terminalization
         run: node -e "const x=require('./tmp/challenger-terminalization-v1/challenger-terminalization-v1.json'); if(x.scope_count!==32||x.slot_count!==160) throw Error('shape'); if(x.selected_slots!==0) throw Error('no auto select'); if(x.poc_320_readiness!=='BLOCKED') throw Error('320 must remain blocked'); if(x.provider_contact!=='HOLD'||x.production!=='HOLD') throw Error('gate'); console.log(JSON.stringify({status:'PASS',counts:x.state_counts},null,2));"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-challenger-terminalization-v1
           path: tmp/challenger-terminalization-v1/

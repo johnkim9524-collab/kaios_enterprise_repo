@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Rebuild existing provenance reviewer-ready packets
         run: |
@@ -59,7 +59,7 @@ jobs:
           if(/"payload"\s*:/.test(JSON.stringify({cap,packet}))) throw new Error('RAW_PAYLOAD_FIELD_FORBIDDEN');
           console.log(JSON.stringify({additional_reviewer_ready:packet.case_count,total_provenance_reviewer_ready:packet.total_reviewer_ready_if_combined,remaining:packet.remaining_case_count,blind_candidates_added:packet.blind_partition.case_count,production:'HOLD'},null,2));
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-er-provenance-deep-ambiguity-r3
           path: |

@@ -22,9 +22,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Validate Founder #742 binding and default HOLD
         run: |
@@ -62,9 +62,9 @@ jobs:
       KAIOS_PSA_PROBE_CERTS: ${{ inputs.cert_numbers }}
       KAIOS_REQUIRE_PSA_PROBE_ALLOWED: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Require account + compatible EULA + secret token + one-to-three known certs
         run: |
@@ -86,7 +86,7 @@ jobs:
           for(const r of x.results){if(r.raw_payload_emitted!==false||!/^sha256:[a-f0-9]{64}$/.test(r.response_sha256)||!/^sha256:[a-f0-9]{64}$/.test(r.cert_number_sha256))process.exit(1);}
           console.log('PASS: PSA bounded schema observation contains no raw provider payload and promotes zero reviewer material.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kidults-psa-schema-only-observation-v1
           path: /tmp/psa-single-cert-schema-v1.json

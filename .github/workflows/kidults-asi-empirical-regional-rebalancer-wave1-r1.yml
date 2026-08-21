@@ -25,9 +25,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {persist-credentials: false}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: {node-version: '22'}
       - name: Rebuild bounded regional evidence surface
         run: |
@@ -47,7 +47,7 @@ jobs:
           cmp /tmp/rebalancer-a.json /tmp/rebalancer-b.json
           node scripts/kidults/source-intelligence/test-empirical-regional-rebalancer-factor-gates-r1.mjs /tmp/empirical-regional-baseline-with-data-usability-r1.json
       - name: Upload SHADOW evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kidults-asi-empirical-regional-rebalancer-wave1-r1
           path: |
