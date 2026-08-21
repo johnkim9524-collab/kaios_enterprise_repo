@@ -3,9 +3,9 @@ import path from 'node:path';
 
 const root = process.cwd();
 const orchestratorPath = path.join(root, 'coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json');
-const contractPath = path.join(root, 'coordination/kidults/kpmo/full-value-chain-redteam-audit-contract-v1.json');
+const auditContractPath = path.join(root, 'coordination/kidults/kpmo/full-value-chain-redteam-audit-contract-v1.json');
 const data = JSON.parse(fs.readFileSync(orchestratorPath, 'utf8'));
-const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
+const auditContract = JSON.parse(fs.readFileSync(auditContractPath, 'utf8'));
 
 const requiredStages = [
   'SOURCE_DISCOVERY','RIGHTS_AND_POLICY','ACQUISITION','TEMPORAL_INTEGRITY','ENTITY_AND_ONTOLOGY',
@@ -15,8 +15,9 @@ const requiredStages = [
 ];
 const requiredInvariants = [
   'NO_STAGE_MAY_PROMOTE_UNKNOWN_TO_PASS','LOCAL_PASS_NE_END_TO_END_PASS','DOWNSTREAM_CANNOT_OUTRUN_UPSTREAM_TRUTH',
-  'MATERIAL_LIMITATION_MUST_SURVIVE_TO_EXECUTIVE_AND_CUSTOMER_SURFACES','SYNTHETIC_CONTROL_EVIDENCE_IS_NON_PROMOTABLE',
-  'NO_PRODUCTION_PUBLIC_G5_BYPASS'
+  'MATERIAL_LIMITATION_MUST_SURVIVE_TO_EXECUTIVE_AND_CUSTOMER_SURFACES',
+  'EVERY_CANONICAL_BUSINESS_CHAIN_NODE_MUST_MAP_TO_AT_LEAST_ONE_AUDIT_STAGE',
+  'SYNTHETIC_CONTROL_EVIDENCE_IS_NON_PROMOTABLE','NO_PRODUCTION_PUBLIC_G5_BYPASS'
 ];
 const requiredAxes = ['INTERNAL_CONTROL_READINESS','EMPIRICAL_EVIDENCE_READINESS','RELEASE_EVIDENCE_READINESS'];
 
@@ -40,16 +41,32 @@ for (const file of data.required_existing_control_families || []) {
   if (!fs.existsSync(p)) throw new Error(`Required control family missing: ${file}`);
 }
 
-const axisIds = new Set((contract.readiness_axes || []).map(x => x.id));
+const canonicalPath = path.join(root, data.canonical_value_chain_binding || '');
+if (!fs.existsSync(canonicalPath)) throw new Error('Canonical value-chain contract binding missing');
+const canonical = JSON.parse(fs.readFileSync(canonicalPath, 'utf8'));
+if (!Array.isArray(canonical.chain) || canonical.chain.length === 0) throw new Error('Canonical business chain is empty');
+if (canonical.production !== 'HOLD') throw new Error('Canonical business value-chain Production must remain HOLD');
+for (const node of canonical.chain) {
+  const mapped = data.business_chain_to_audit_stages?.[node];
+  if (!Array.isArray(mapped) || mapped.length === 0) throw new Error(`Canonical business-chain node has no Red-Team mapping: ${node}`);
+  for (const auditStage of mapped) {
+    if (!stageIds.has(auditStage)) throw new Error(`Business-chain node ${node} maps to unknown audit stage ${auditStage}`);
+  }
+}
+for (const mappedNode of Object.keys(data.business_chain_to_audit_stages || {})) {
+  if (!canonical.chain.includes(mappedNode)) throw new Error(`Red-Team mapping references non-canonical business-chain node: ${mappedNode}`);
+}
+
+const axisIds = new Set((auditContract.readiness_axes || []).map(x => x.id));
 for (const axis of requiredAxes) {
   if (!axisIds.has(axis)) throw new Error(`Missing readiness axis: ${axis}`);
 }
-if (contract.completion_rule !== 'ONLY_PASS_EVIDENCED_COUNTS_TOWARD_EMPIRICAL_COMPLETION') throw new Error('Empirical completion rule changed');
+if (auditContract.completion_rule !== 'ONLY_PASS_EVIDENCED_COUNTS_TOWARD_EMPIRICAL_COMPLETION') throw new Error('Empirical completion rule changed');
 for (const rule of ['NO_AVERAGING_ACROSS_READINESS_AXES','CONTROL_PASS_CANNOT_CLOSE_EMPIRICAL_GATE','UNKNOWN_MATERIAL_STAGE_PREVENTS_END_TO_END_PASS']) {
-  if (!(contract.aggregation_rules || []).includes(rule)) throw new Error(`Missing audit aggregation rule: ${rule}`);
+  if (!(auditContract.aggregation_rules || []).includes(rule)) throw new Error(`Missing audit aggregation rule: ${rule}`);
 }
-if (contract.hard_boundaries?.production !== 'HOLD') throw new Error('Audit contract Production must remain HOLD');
-if (contract.hard_boundaries?.public !== 'HOLD') throw new Error('Audit contract Public must remain HOLD');
-if (contract.hard_boundaries?.g5 !== 'EXPLICIT_APPROVAL_REQUIRED') throw new Error('Audit contract G5 explicit approval rule missing');
+if (auditContract.hard_boundaries?.production !== 'HOLD') throw new Error('Audit contract Production must remain HOLD');
+if (auditContract.hard_boundaries?.public !== 'HOLD') throw new Error('Audit contract Public must remain HOLD');
+if (auditContract.hard_boundaries?.g5 !== 'EXPLICIT_APPROVAL_REQUIRED') throw new Error('Audit contract G5 explicit approval rule missing');
 
-console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} stages, ${(data.required_existing_control_families || []).length} control families, ${requiredAxes.length} readiness axes`);
+console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} audit stages, ${canonical.chain.length} canonical business-chain nodes, ${(data.required_existing_control_families || []).length} control families, ${requiredAxes.length} readiness axes`);
