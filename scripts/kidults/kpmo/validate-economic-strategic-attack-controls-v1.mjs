@@ -1,0 +1,27 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+const root = process.cwd();
+const controlPath = path.join(root, 'coordination', 'kidults', 'kpmo', 'economic-strategic-attack-controls-v1.json');
+const globalPath = path.join(root, 'coordination', 'kidults', 'kpmo', 'global-leadership-risk-controls-v1.json');
+const control = JSON.parse(fs.readFileSync(controlPath, 'utf8'));
+const global = JSON.parse(fs.readFileSync(globalPath, 'utf8'));
+let failed = false;
+const fail = m => { console.error(`FAIL: ${m}`); failed = true; };
+const req = (c,m) => { if (!c) fail(m); };
+for (const p of ['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT']) req(control.operating_principles?.includes(p), `missing principle ${p}`);
+const byId = new Map((control.controls||[]).map(x=>[x.id,x]));
+for (const id of ['COMPETITOR_INTELLIGENCE_POISONING','COORDINATED_LIQUIDITY_ILLUSION','SOURCE_EXCLUSIVITY_WARFARE','REGULATORY_FRAGMENTATION','JURISDICTION_ARBITRAGE','REPUTATION_ATTACK_AND_NARRATIVE_CAPTURE','CUSTOMER_SIDE_GAMING']) req(byId.has(id), `missing control ${id}`);
+req(byId.get('COMPETITOR_INTELLIGENCE_POISONING').rules.some(r=>r.includes('INTENT_REMAINS_UNKNOWN')), 'intent truth ceiling missing');
+req(byId.get('COORDINATED_LIQUIDITY_ILLUSION').rules.some(r=>r.includes('REALIZED_TRANSACTION_DEPTH')), 'liquidity evidence floor missing');
+req(byId.get('SOURCE_EXCLUSIVITY_WARFARE').rules.some(r=>r.includes('STRATEGIC_CONCENTRATION_DEBT')), 'exclusivity concentration debt missing');
+req(byId.get('REGULATORY_FRAGMENTATION').rules.some(r=>r.includes('JURISDICTION_SCOPED_RIGHTS_AND_POLICY_STATE')), 'jurisdiction-scoped state missing');
+req(byId.get('JURISDICTION_ARBITRAGE').rules.some(r=>r.includes('CANNOT_BE_USED_TO_BYPASS')), 'jurisdiction arbitrage bypass guard missing');
+req(byId.get('REPUTATION_ATTACK_AND_NARRATIVE_CAPTURE').rules.some(r=>r.includes('CORRECTION_HISTORY')), 'transparent correction history missing');
+req(byId.get('CUSTOMER_SIDE_GAMING').rules.some(r=>r.includes('SYBIL_RESISTANCE')), 'customer gaming/Sybil defense missing');
+req(control.strategic_truth_ceiling?.synthetic_or_control_evidence === 'NON_PROMOTABLE_TO_EMPIRICAL_PASS', 'synthetic promotion ceiling missing');
+req(control.strategic_truth_ceiling?.production === 'HOLD', 'Production HOLD missing');
+req(control.strategic_truth_ceiling?.g5 === 'EXPLICIT_APPROVAL_REQUIRED', 'G5 ceiling missing');
+req(global.risk_control_bindings?.economic_strategic === 'economic-strategic-attack-controls-v1.json', 'global index missing economic-strategic binding');
+if (failed) process.exit(1);
+console.log('PASS: economic/strategic attack controls validated');
