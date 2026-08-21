@@ -54,12 +54,16 @@ jobs:
           OBSERVED="$(ssh-keygen -lf "$RUNNER_TEMP/ssh/known_hosts" | awk '{print $2}')"
           echo "Observed fingerprint: $OBSERVED"
           test "$OBSERVED" = "$EXPECTED_FINGERPRINT"
-      - name: Materialize dedicated STAGING key
+      - name: Materialize and validate dedicated STAGING key
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/ssh/id_ed25519"
+          mkdir -p "$RUNNER_TEMP/ssh"
+          printf '%s' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$RUNNER_TEMP/ssh/id_ed25519"
+          printf '\n' >> "$RUNNER_TEMP/ssh/id_ed25519"
           chmod 600 "$RUNNER_TEMP/ssh/id_ed25519"
+          ssh-keygen -y -f "$RUNNER_TEMP/ssh/id_ed25519" >/dev/null
+          echo "STAGING SSH private key parsed successfully"
       - name: Verify exact non-root STAGING identity
         shell: bash
         run: |
