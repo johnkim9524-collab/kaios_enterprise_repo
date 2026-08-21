@@ -1,0 +1,25 @@
+name: KPMO GitHub Actions Node24 Estate Guard V1
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node24-estate-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Reject deprecated GitHub Actions runtimes
+        run: node scripts/kidults/kpmo/github-actions-node24-estate-v1.mjs --check
