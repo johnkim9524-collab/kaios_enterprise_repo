@@ -4,12 +4,16 @@ on:
   push:
     branches:
       - kpmo/actions-node24-estate-933
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   migrate-node24-estate:
+    if: github.event_name == 'push' || github.head_ref == 'kpmo/actions-node24-estate-933'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
