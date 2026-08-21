@@ -8,13 +8,20 @@ const data = JSON.parse(fs.readFileSync(orchestratorPath, 'utf8'));
 if (data.aggregate_machine_enforcement?.require_all_stage_checks_bound !== true) {
   throw new Error('Aggregate Red-Team must require all stage checks to be machine-bound');
 }
+if (data.aggregate_machine_enforcement?.require_all_runtime_boundary_validators_pass !== true) {
+  throw new Error('Aggregate Red-Team must require all runtime boundary validators to pass');
+}
 
 const stages = Array.isArray(data.chain_stages) ? data.chain_stages : [];
 if (stages.length === 0) throw new Error('No Red-Team stages declared');
 
 const stageIds = new Set(stages.map(stage => stage.id));
 const coverage = data.stage_machine_coverage || {};
-const aggregateValidators = new Set(data.required_family_validators || []);
+const requiredRuntimeBoundaryValidators = data.required_runtime_boundary_validators || [];
+const aggregateValidators = new Set([
+  ...(data.required_family_validators || []),
+  ...requiredRuntimeBoundaryValidators
+]);
 
 for (const stage of stages) {
   const binding = coverage[stage.id];
@@ -65,4 +72,11 @@ if (Object.keys(coverage).length !== stages.length) {
   throw new Error(`Machine coverage stage count ${Object.keys(coverage).length} does not equal declared stage count ${stages.length}`);
 }
 
-console.log(`PASS full value-chain stage machine coverage: ${stages.length} stages, ${stages.reduce((n, stage) => n + stage.checks.length, 0)} checks bound only to aggregate-executed validators; empirical promotion NONE`);
+const runtimeValidators = new Set(coverage.RUNTIME?.validators || []);
+for (const validator of requiredRuntimeBoundaryValidators) {
+  if (!runtimeValidators.has(validator)) {
+    throw new Error(`RUNTIME stage missing required concrete boundary validator: ${validator}`);
+  }
+}
+
+console.log(`PASS full value-chain stage machine coverage: ${stages.length} stages, ${stages.reduce((n, stage) => n + stage.checks.length, 0)} checks bound only to aggregate-executed validators; runtime boundaries ${requiredRuntimeBoundaryValidators.length}; empirical promotion NONE`);
