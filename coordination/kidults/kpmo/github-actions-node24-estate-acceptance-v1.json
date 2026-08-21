@@ -1,0 +1,14 @@
+{
+  "acceptance_id": "KIDULTS_GITHUB_ACTIONS_NODE24_ESTATE_ACCEPTANCE_V1",
+  "governing_issue": 933,
+  "criteria": [
+    "ZERO_DEPRECATED_RUNTIME_FINDINGS",
+    "MUTATION_SELFTEST_PASS",
+    "FULL_VALUE_CHAIN_AGGREGATE_PASS",
+    "EXACT_HEAD_CI_PASS"
+  ],
+  "empirical_gate_effect": "NONE",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
