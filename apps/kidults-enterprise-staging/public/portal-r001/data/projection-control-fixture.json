@@ -1,0 +1,44 @@
+{
+  "fixture_type": "NON_PROMOTABLE_CONTROL",
+  "product_release": "Portal Release-001",
+  "projection": {
+    "state": "NO_PROJECTION",
+    "projection_id": null,
+    "as_of": null,
+    "assessment_id": null,
+    "rights_state": "WAITING",
+    "freshness": "NOT_AVAILABLE"
+  },
+  "overview": [
+    {"label":"Approved Projection","value":"None","state":"NO_PROJECTION"},
+    {"label":"Verified Market Claims","value":"None","state":"WAITING"},
+    {"label":"Core Verticals","value":"8","state":"STRUCTURAL"},
+    {"label":"Production","value":"HOLD","state":"HOLD"}
+  ],
+  "verticals": [
+    "Toys & Models",
+    "Watches & Jewelry",
+    "Automobiles & Mobility",
+    "Fashion & Accessories",
+    "Design & Furniture",
+    "Technology & Cameras",
+    "Gaming / Music / Screen Culture",
+    "Cards / Comics / Memorabilia"
+  ],
+  "signals": [
+    "Market Scale",
+    "Venue Depth & Diversity",
+    "Observed Transaction Activity",
+    "Liquidity / Sell-through",
+    "Demand / Scarcity",
+    "Market Momentum"
+  ],
+  "evidence": [
+    {"label":"Evidence coverage","value":"Waiting for governed Projection"},
+    {"label":"Source-owner independence","value":"Not yet verified for live claims"},
+    {"label":"Freshness / as-of","value":"No live Projection"},
+    {"label":"Rights / publication","value":"Fail-closed until admissible"},
+    {"label":"Methodology","value":"Version-bound on governed output"},
+    {"label":"Audit","value":"Unified Audit Control Plane enabled"}
+  ]
+}

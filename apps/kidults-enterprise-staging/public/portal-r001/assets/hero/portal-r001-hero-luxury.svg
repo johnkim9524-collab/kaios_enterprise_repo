@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+<title id="title">Curated luxury collectibles gallery</title>
+<desc id="desc">An editorial still life suggesting a racing roadster, watch, handbag, camera and collectible memorabilia in a warm stone gallery.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e7e1d7"/><stop offset="1" stop-color="#bcb2a4"/></linearGradient>
+  <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8bfb2"/><stop offset="1" stop-color="#8d8377"/></linearGradient>
+  <linearGradient id="car" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#163e31"/><stop offset="1" stop-color="#071b15"/></linearGradient>
+  <radialGradient id="watch" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#f5f0e7"/><stop offset=".62" stop-color="#b5aa99"/><stop offset="1" stop-color="#625a51"/></radialGradient>
+  <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="18"/></filter>
+</defs>
+<rect width="1600" height="1000" fill="url(#bg)"/>
+<rect y="690" width="1600" height="310" fill="url(#floor)"/>
+<path d="M0 0h1600v220C1320 170 1130 165 905 205 620 255 350 225 0 300Z" fill="#f4f2ee" opacity=".55"/>
+<ellipse cx="788" cy="806" rx="650" ry="88" fill="#4d463f" opacity=".28" filter="url(#shadow)"/>
+<!-- roadster -->
+<g transform="translate(160 430)">
+  <ellipse cx="610" cy="330" rx="570" ry="52" fill="#2c2925" opacity=".32"/>
+  <path d="M84 258c42-112 127-171 282-193 145-21 337-15 448 18 81 24 148 75 208 161l92 16c46 8 78 32 85 70H55c2-35 11-56 29-72Z" fill="url(#car)"/>
+  <path d="M327 87c80-21 326-23 438 7l117 121H232Z" fill="#17251f"/>
+  <path d="M363 104c92-16 185-18 274-10l-7 107H269Z" fill="#839087" opacity=".72"/>
+  <path d="M659 95c46 5 82 10 108 18l91 88H652Z" fill="#71817a" opacity=".64"/>
+  <path d="M94 258h1018l36 47H72Z" fill="#0c251c"/>
+  <rect x="88" y="290" width="1035" height="24" rx="12" fill="#0a1713"/>
+  <circle cx="296" cy="326" r="92" fill="#171717"/><circle cx="296" cy="326" r="53" fill="#b6aa98"/><circle cx="296" cy="326" r="24" fill="#4c463f"/>
+  <circle cx="922" cy="326" r="92" fill="#171717"/><circle cx="922" cy="326" r="53" fill="#b6aa98"/><circle cx="922" cy="326" r="24" fill="#4c463f"/>
+  <ellipse cx="1090" cy="260" rx="45" ry="25" fill="#e7d7ac" opacity=".82"/>
+  <path d="M73 280c30 6 63 7 99 1" stroke="#e5d6b5" stroke-width="9" stroke-linecap="round" opacity=".65"/>
+</g>
+<!-- watch -->
+<g transform="translate(1195 205) rotate(8)">
+  <rect x="78" y="-55" width="74" height="430" rx="34" fill="#6b5542"/>
+  <circle cx="115" cy="150" r="112" fill="#403b36"/>
+  <circle cx="115" cy="150" r="94" fill="url(#watch)" stroke="#d3c6ae" stroke-width="10"/>
+  <circle cx="115" cy="150" r="7" fill="#26332d"/>
+  <path d="M115 150 112 85M115 150l48 29" stroke="#26332d" stroke-width="7" stroke-linecap="round"/>
+  <g stroke="#615b54" stroke-width="3"><path d="M115 68v14M115 218v14M33 150h14M183 150h14"/></g>
+</g>
+<!-- handbag -->
+<g transform="translate(1080 590)">
+  <ellipse cx="205" cy="270" rx="198" ry="34" fill="#3d3934" opacity=".24"/>
+  <path d="M38 84h328l40 190H0Z" fill="#72513d"/>
+  <path d="M90 88c8-89 39-129 111-129s103 40 111 129" fill="none" stroke="#4d3629" stroke-width="25"/>
+  <path d="M33 122h342" stroke="#a78468" stroke-width="5" opacity=".7"/>
+  <rect x="181" y="156" width="43" height="32" rx="4" fill="#c2a66f"/>
+</g>
+<!-- camera -->
+<g transform="translate(880 675) rotate(-5)">
+  <rect width="218" height="142" rx="18" fill="#282825"/>
+  <rect x="24" y="-25" width="78" height="38" rx="7" fill="#353530"/>
+  <circle cx="116" cy="70" r="57" fill="#151817" stroke="#6e695f" stroke-width="13"/>
+  <circle cx="116" cy="70" r="34" fill="#264039"/><circle cx="104" cy="56" r="9" fill="#a9c2b8" opacity=".52"/>
+  <rect x="177" y="23" width="22" height="12" rx="5" fill="#c1aa7a"/>
+</g>
+<!-- memorabilia card -->
+<g transform="translate(1350 595) rotate(7)">
+  <rect width="150" height="210" rx="12" fill="#e9e1d3" stroke="#8f8578" stroke-width="6"/>
+  <rect x="18" y="18" width="114" height="112" rx="4" fill="#253b32"/>
+  <circle cx="75" cy="70" r="34" fill="#c4b396" opacity=".78"/>
+  <path d="M25 155h100M25 173h80M25 191h92" stroke="#8f8578" stroke-width="6" stroke-linecap="round"/>
+</g>
+<rect x="42" y="42" width="1516" height="916" rx="12" fill="none" stroke="#fff" opacity=".16"/>
+</svg>

@@ -1,0 +1,18 @@
+name: KIDULTS Portal Release-001
+on:
+  pull_request:
+    paths:
+      - 'apps/kidults-enterprise-staging/public/portal-r001/**'
+      - 'coordination/kidults/portal/portal-release-001-product-design-v1.md'
+      - 'scripts/kidults/portal/validate-portal-release-001.mjs'
+      - '.github/workflows/kidults-portal-release-001.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/kidults/portal/validate-portal-release-001.mjs
