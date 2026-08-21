@@ -1,0 +1,109 @@
+{
+  "id": "kidults-systemic-catastrophic-risk-controls-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE",
+  "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
+  "operating_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
+  "scope": "SYSTEMIC_AND_CATASTROPHIC_FAILURE_MODES",
+  "controls": [
+    {
+      "id": "GRAPH_CONTAMINATION_PROPAGATION",
+      "severity": "P0",
+      "problem": "One poisoned or mis-resolved node/edge can contaminate many factors and claims through graph traversal.",
+      "rules": [
+        "EVERY_GRAPH_EDGE_USED_BY_MATERIAL_INTELLIGENCE_MUST_BIND_PROVENANCE_RIGHTS_TIME_AND_CONFIDENCE",
+        "QUARANTINED_OR_INVALIDATED_NODES_AND_EDGES_MUST_BE_EXCLUDED_FROM_TRANSITIVE_DERIVATION",
+        "GRAPH_CONTAMINATION_MUST_TRIGGER_DEPENDENCY_TRAVERSAL_AND_AFFECTED_CLAIM_HOLD",
+        "HIGH_FANOUT_NODES_REQUIRE_STRONGER_ADMISSION_AND_REMOVAL_SENSITIVITY",
+        "NO_GRAPH_REPAIR_MAY_SILENTLY_REWRITE_HISTORICAL_LINEAGE"
+      ],
+      "fail_closed": "HOLD_GRAPH_CONTAMINATION_PROPAGATION"
+    },
+    {
+      "id": "CONFIDENCE_CONTAGION",
+      "severity": "P0",
+      "problem": "Shared evidence or correlated upstream assumptions can cause confidence to be counted repeatedly across derived claims.",
+      "rules": [
+        "CONFIDENCE_MUST_NOT_MULTIPLY_FROM_REUSED_OR_CORRELATED_EVIDENCE",
+        "SHARED_UPSTREAM_EVIDENCE_MUST_BE_DEDUPED_AT_CONFIDENCE_AGGREGATION",
+        "DERIVED_CLAIM_CONFIDENCE_MUST_BE_CAPPED_BY_THE_WEAKEST_MATERIAL_DEPENDENCY_WHERE_SEMANTICS_REQUIRE_IT",
+        "CORRELATED_FACTUAL_ORIGIN_REDUCES_EFFECTIVE_INDEPENDENT_EVIDENCE_COUNT",
+        "CONFIDENCE_UPGRADE_REQUIRES_EXPLICIT_NEW_INDEPENDENT_INFORMATION_GAIN"
+      ],
+      "fail_closed": "HOLD_CONFIDENCE_CONTAGION"
+    },
+    {
+      "id": "SYNCHRONIZED_REGIONAL_FAILURE",
+      "severity": "P0",
+      "problem": "Multiple regional surfaces can fail together because they share infrastructure, providers, methodology, currency, or calendar assumptions.",
+      "common_mode_dimensions": ["PROVIDER", "FACTUAL_ORIGIN", "RUNTIME", "METHODOLOGY", "FX", "TIME_CALENDAR", "VENUE_FAMILY"],
+      "rules": [
+        "GLOBAL_ROBUSTNESS_MUST_MEASURE_COMMON_MODE_DEPENDENCIES_NOT_ONLY_REGION_COUNTS",
+        "REGIONAL_REDUNDANCY_DOES_NOT_COUNT_WHEN_FAILURE_DOMAINS_ARE_SHARED",
+        "GLOBAL_CLAIMS_REQUIRE_FAILURE_DOMAIN_DIVERSITY_PROPORTIONAL_TO CLAIM_SCOPE",
+        "SIMULTANEOUS_MULTI_REGION_HOLD_MUST_NOT_AUTO_FALLBACK_TO_STALE_GLOBAL_AGGREGATE"
+      ],
+      "fail_closed": "HOLD_GLOBAL_COMMON_MODE_FAILURE"
+    },
+    {
+      "id": "EVIDENCE_CARTEL_OR_COLLUSION",
+      "severity": "P0",
+      "problem": "Apparently independent providers or venues may coordinate, syndicate, cross-publish, or inherit one manipulated source ecosystem.",
+      "rules": [
+        "INDEPENDENCE_REQUIRES_OWNER_ORIGIN_AND_CONTROL_PATH_DIVERSITY",
+        "CROSS_PUBLISHING_OR_MUTUAL_REFERENCE_DOES_NOT_CREATE_INDEPENDENT_CORROBORATION",
+        "SUSPICIOUSLY_SYNCHRONIZED_PRICE_STATUS_OR_METADATA_CHANGES_REQUIRE_CORRELATION_REVIEW",
+        "CARTEL_OR_COLLUSION_SUSPECTED_EVIDENCE_CANNOT_UPGRADE_REPRESENTATIVENESS_OR_CONFIDENCE",
+        "SOURCE_REMOVAL_TESTS_MUST_SUPPORT_CLUSTER_LEVEL_REMOVAL"
+      ],
+      "fail_closed": "QUARANTINE_SUSPECTED_EVIDENCE_CARTEL"
+    },
+    {
+      "id": "AUTONOMOUS_GOAL_GAMING",
+      "severity": "P0",
+      "problem": "An autonomous loop can optimize measured KPIs while degrading real decision value, truth quality, diversity, or long-term optionality.",
+      "protected_objectives": ["TRUTH_QUALITY", "DECISION_VALUE", "SOURCE_DIVERSITY", "GLOBAL_COVERAGE", "RIGHTS_SAFETY", "LONG_TERM_OPTIONALITY"],
+      "rules": [
+        "NO_SINGLE_KPI_MAY_AUTHORIZE_AUTONOMOUS_PROMOTION",
+        "IMPROVING_VERIFIED_INTELLIGENCE_SURFACE_BY_WEAKENING CLAIM_CEILINGS_IS_PROHIBITED",
+        "UNKNOWN_DEBT_REDUCTION_BY_RECLASSIFICATION_WITHOUT_NEW_EVIDENCE_IS_PROHIBITED",
+        "SOURCE_DIVERSITY_CANNOT_BE_GAMED_BY_ALIAS_PROVIDER_OR_REPUBLISHED_FEED_SPLITTING",
+        "AUTONOMOUS_POLICY_CHANGE_MUST_REPORT BENEFIT_AND_HARM_ACROSS_ALL_PROTECTED_OBJECTIVES"
+      ],
+      "fail_closed": "HOLD_AUTONOMOUS_GOAL_GAMING"
+    },
+    {
+      "id": "RECOVERY_DEADLOCK",
+      "severity": "P0_P1",
+      "problem": "Fail-closed controls can become mutually dependent and prevent safe recovery indefinitely after a broad incident.",
+      "rules": [
+        "RECOVERY_PATH_MUST_BE_ACYCLIC_OR_HAVE_EXPLICIT_MANUAL_BREAK_GLASS_WITHOUT_TRUTH_GATE_BYPASS",
+        "EVERY_P0_HOLD_STATE_MUST_DECLARE RECOVERY_PRECONDITIONS_AND_TERMINAL_OWNER",
+        "NO_RECOVERY_STEP_MAY_REQUIRE_AN_ARTIFACT_THAT_CANNOT_EXIST_UNTIL_THE_HOLD_IS_CLEARED",
+        "BREAK_GLASS_MAY_RESTORE_SERVICE_OR_DIAGNOSTICS_BUT_CANNOT_PROMOTE_EMPIRICAL_OR_PRODUCTION_GATES",
+        "RECOVERY_REPLAY_MUST_PROVE_NO_ORPHAN_STATE_REMAINS"
+      ],
+      "fail_closed": "HOLD_RECOVERY_DEPENDENCY_DEADLOCK"
+    },
+    {
+      "id": "HIDDEN_COMMON_MODE_DEPENDENCY",
+      "severity": "P0",
+      "problem": "Nominally separate engines, providers, regions, or controls may share one library, registry, clock, identity map, methodology, or infrastructure dependency.",
+      "required_dependency_classes": ["CODE_LIBRARY", "REGISTRY", "IDENTITY_MAP", "METHODOLOGY", "RUNTIME", "CLOCK_TIME_SOURCE", "FX_SOURCE", "PROVIDER_ORIGIN", "SECRET_OR_CREDENTIAL_PLANE"],
+      "rules": [
+        "CRITICAL_INDEPENDENCE_CLAIMS_REQUIRE_COMMON_MODE_DEPENDENCY_DISCLOSURE",
+        "FAILURE_DOMAIN_COUNT_MUST_BE_REPORTED_SEPARATELY_FROM COMPONENT_COUNT",
+        "SHARED_TRUST_ROOT_OR_SHARED_IDENTITY_MAP_MUST_NOT_BE_PRESENTED_AS_INDEPENDENT_VALIDATION",
+        "COMMON_MODE_DEPENDENCY_REMOVAL_TEST_REQUIRED_BEFORE_HIGH_IMPACT_GLOBAL_AUTONOMY"
+      ],
+      "fail_closed": "HOLD_HIDDEN_COMMON_MODE_DEPENDENCY"
+    }
+  ],
+  "catastrophic_activation_ceiling": {
+    "empirical_promotion": "PROHIBITED_FROM_CONTROL_OR_SYNTHETIC_TESTS",
+    "live_mutation": "DISABLED_UNTIL_SEPARATE_ACTIVATION_GATE",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
