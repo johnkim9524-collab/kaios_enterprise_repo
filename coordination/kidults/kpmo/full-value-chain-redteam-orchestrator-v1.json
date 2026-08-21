@@ -1,6 +1,6 @@
 {
   "id": "kidults-full-value-chain-redteam-orchestrator-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "ACTIVE",
   "objective": "Continuously red-team the full KIDULTS intelligence value chain end-to-end, fail closed on missing material assurance, and prevent local PASS states from masking cross-stage failure.",
   "operating_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
@@ -72,6 +72,27 @@
     "ontology-entity-integrity-controls-v1.json",
     "semantic-normalization-integrity-controls-v1.json"
   ],
+  "required_family_validators": [
+    "scripts/kidults/kpmo/validate-operating-principles-resilience-v1.mjs",
+    "scripts/kidults/kpmo/validate-systemic-catastrophic-risk-controls-v1.mjs",
+    "scripts/kidults/kpmo/validate-adversarial-ecosystem-risk-controls-v1.mjs",
+    "scripts/kidults/kpmo/validate-economic-strategic-attack-controls-v1.mjs",
+    "scripts/kidults/kpmo/validate-institutional-trust-risk-controls-v1.mjs",
+    "scripts/kidults/kpmo/validate-institutional-continuity-sovereignty-v1.mjs",
+    "scripts/kidults/kpmo/validate-reflexivity-self-influence-risk-controls-v1.mjs",
+    "scripts/kidults/kpmo/validate-epistemic-causal-integrity-v1.mjs",
+    "scripts/kidults/kpmo/validate-decision-theoretic-tailrisk-controls-v1.mjs",
+    "scripts/kidults/kpmo/validate-human-autonomy-authority-v1.mjs",
+    "scripts/kidults/kpmo/validate-temporal-integrity-latency-v1.mjs",
+    "scripts/kidults/kpmo/validate-ontology-entity-integrity-v1.mjs",
+    "scripts/kidults/kpmo/validate-semantic-normalization-integrity-v1.mjs"
+  ],
+  "aggregate_machine_enforcement": {
+    "runner": "scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs",
+    "require_all_family_validators_pass": true,
+    "post_merge_main_revalidation": true,
+    "control_pass_closes_empirical_gate": false
+  },
   "promotion_policy": {
     "end_to_end_pass_requires_all_material_stages": true,
     "missing_stage_status": "HOLD",
