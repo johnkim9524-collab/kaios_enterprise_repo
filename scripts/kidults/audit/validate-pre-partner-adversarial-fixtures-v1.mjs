@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { parseRfc3339Millis } from './rfc3339-v1.mjs';
 
 const contract = JSON.parse(fs.readFileSync('coordination/kidults/audit/unified-audit-control-plane-v1.json', 'utf8'));
 const pack = JSON.parse(fs.readFileSync('coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json', 'utf8'));
@@ -6,9 +7,15 @@ const pack = JSON.parse(fs.readFileSync('coordination/kidults/audit/pre-partner-
 const ALLOWED_CURRENCIES = new Set(['USD','EUR','GBP','JPY','KRW','CHF','HKD','SGD','AUD','CAD']);
 const ALLOWED_UNITS = new Set(['ITEM','LOT']);
 
-function expired(rights, asOf) {
-  if (!rights?.expires_at || !asOf) return false;
-  return Date.parse(rights.expires_at) <= Date.parse(asOf);
+function rightsTemporalStatus(rights, asOf) {
+  try {
+    const asOfMs = parseRfc3339Millis(asOf, 'record.as_of');
+    if (rights?.expires_at === null || rights?.expires_at === undefined) return { valid: true, expired: false };
+    const expiresMs = parseRfc3339Millis(rights.expires_at, 'rights.expires_at');
+    return { valid: true, expired: expiresMs <= asOfMs };
+  } catch (error) {
+    return { valid: false, expired: false, reason: error.message };
+  }
 }
 
 function evaluateRecord(record) {
@@ -51,10 +58,16 @@ function evaluateRecord(record) {
     if (!revalidated) return { disposition: 'REVALIDATE_RIGHTS_SCHEMA_IDENTITY_LINEAGE', triggers };
   }
 
-  if (rights.present !== true || rights.status !== 'PASS' || expired(rights, record.as_of)) {
+  const temporal = rightsTemporalStatus(rights, record.as_of);
+  if (!temporal.valid) {
+    triggers.push('rights_temporal_invalid');
+    return { disposition: 'REJECTED', triggers };
+  }
+
+  if (rights.present !== true || rights.status !== 'PASS' || temporal.expired) {
     if (rights.present !== true) triggers.push('rights_missing');
     if (rights.status !== 'PASS') triggers.push('rights_not_pass');
-    if (expired(rights, record.as_of)) triggers.push('rights_expired');
+    if (temporal.expired) triggers.push('rights_expired');
     return { disposition: 'REJECTED', triggers };
   }
 
@@ -84,6 +97,21 @@ if (!baseline?.synthetic || baseline.promotable !== false) throw new Error('base
 const baselineEval = evaluateRecord(baseline.record);
 if (baselineEval.disposition !== baseline.expected_disposition || baselineEval.disposition !== 'CONTROL_ONLY_EVIDENCE_ELIGIBLE') {
   throw new Error(`baseline control failed: ${baselineEval.disposition}`);
+}
+
+const temporalMutationCases = [
+  { id: 'malformed_expiry', mutate: r => { r.rights.expires_at = 'not-a-date'; } },
+  { id: 'timezone_less_expiry', mutate: r => { r.rights.expires_at = '2099-01-01T00:00:00'; } },
+  { id: 'invalid_calendar_expiry', mutate: r => { r.rights.expires_at = '2099-02-30T00:00:00Z'; } },
+  { id: 'malformed_as_of', mutate: r => { r.as_of = 'invalid'; } }
+];
+for (const test of temporalMutationCases) {
+  const mutated = structuredClone(baseline.record);
+  test.mutate(mutated);
+  const actual = evaluateRecord(mutated);
+  if (actual.disposition !== 'REJECTED' || !actual.triggers.includes('rights_temporal_invalid')) {
+    throw new Error(`temporal mutation ${test.id} failed closed check: ${actual.disposition}/${actual.triggers.join(',')}`);
+  }
 }
 
 const contractFixtures = new Map((contract.adversarial_fixtures || []).map(f => [f.id, f.expected_disposition]));
@@ -124,6 +152,7 @@ console.log(JSON.stringify({
   suite: 'PRE_PARTNER_ADVERSARIAL_FIXTURES_V2',
   control_layer_result: 'PASS',
   executable_payload_fixtures_passed: results.length,
+  temporal_fail_closed_mutation_cases: temporalMutationCases.length,
   baseline_control: baselineEval.disposition,
   behavior_driven_evaluation: true,
   empirical_gate_effect: 'NONE',
