@@ -1,0 +1,12 @@
+const $=(s,r=document)=>r.querySelector(s);const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const stateClass=s=>s==='LIVE_APPROVED'?'live':(s==='RIGHTS_BLOCKED'||s==='INVALID')?'blocked':'';
+function stateLabel(s){return `<span class="state ${stateClass(s)}">${s.replaceAll('_',' ')}</span>`}
+async function load(){try{const r=await fetch('./data/projection-control-fixture.json',{cache:'no-store'});if(!r.ok)throw new Error(`HTTP ${r.status}`);return await r.json()}catch(e){document.documentElement.dataset.state='INVALID';return {fixture_type:'NON_PROMOTABLE_CONTROL',projection:{state:'INVALID',rights_state:'WAITING'},overview:[],verticals:[],signals:[],evidence:[]}}}
+function render(d){const p=d.projection||{};document.documentElement.dataset.state=p.state||'INVALID';$('[data-projection-state]').textContent=p.state||'INVALID';$('[data-projection-asof]').textContent=p.as_of||'—';$('[data-assessment]').textContent=p.assessment_id||'Not started';$('[data-rights]').textContent=p.rights_state||'Waiting';
+$('[data-overview-metrics]').innerHTML=(d.overview||[]).map(x=>`<article class="card"><small>${x.label}</small><strong>${x.value}</strong>${stateLabel(x.state)}</article>`).join('');
+$('[data-vertical-grid]').innerHTML=(d.verticals||[]).map((x,i)=>`<article class="vertical-card"><small>0${i+1}</small><b>${x}</b><span>${stateLabel('WAITING')} Governed market evidence pending</span></article>`).join('');
+$('[data-signal-grid]').innerHTML=(d.signals||[]).map(x=>`<article class="signal-card"><small>${x}</small><strong>Not verified</strong>${stateLabel('WAITING')}<p>Evidence and rights must pass before computation.</p></article>`).join('');
+$('[data-k100-state]').innerHTML=`<div><small class="eyebrow">CURRENT STATE</small><h3>No live ranking yet.</h3><p>Kidult 100 remains unavailable until an exact immutable Candidate/Evidence pair passes Track B and a governed Projection is published.</p></div>${stateLabel('NO_PROJECTION')}`;
+$('[data-evidence-grid]').innerHTML=(d.evidence||[]).map(x=>`<article class="evidence-card"><small>${x.label}</small><strong>${x.value}</strong></article>`).join('');
+if(d.fixture_type==='NON_PROMOTABLE_CONTROL'){const bar=$('.projection-bar');bar.setAttribute('data-fixture','NON_PROMOTABLE');bar.title='Control fixture only — not empirical or live Projection';}}
+load().then(render);
