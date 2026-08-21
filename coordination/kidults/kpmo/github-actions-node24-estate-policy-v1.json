@@ -1,0 +1,29 @@
+{
+  "policy_id": "KIDULTS_GITHUB_ACTIONS_NODE24_ESTATE_POLICY_V1",
+  "governing_issue": 933,
+  "scope": ".github/workflows/**/*.{yml,yaml}",
+  "required_runtime_floor": "NODE24_SAFE_ACTION_RUNTIME",
+  "required_first_party_action_majors": {
+    "actions/checkout": 7,
+    "actions/setup-node": 7,
+    "actions/setup-python": 7,
+    "actions/upload-artifact": 6,
+    "actions/download-artifact": 7,
+    "actions/cache": 5,
+    "actions/github-script": 8,
+    "actions/setup-go": 6,
+    "actions/setup-java": 5
+  },
+  "explicit_node20_runtime": "FORBIDDEN",
+  "unsecure_node20_optout": "FORBIDDEN",
+  "migration_engine": "scripts/kidults/kpmo/github-actions-node24-estate-v1.mjs",
+  "permanent_guard_workflow": ".github/workflows/kpmo-node24-estate-guard-v1.yml",
+  "aggregate_binding_required": true,
+  "truth_boundary": {
+    "empirical_gate_effect": "NONE",
+    "partner_ingestion": "HOLD",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
