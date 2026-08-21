@@ -1,0 +1,60 @@
+{
+  "version": "1.0.0",
+  "status": "CANONICAL",
+  "purpose": "Separate public corporate surface, operational intelligence portal, and executive operating system versioning so legacy V-number lineage does not imply product-release equivalence.",
+  "products": {
+    "public_partner_surface": {
+      "canonical_name": "KIDULTS Partner Site",
+      "current_release": "Partner Site Release-001",
+      "design_lineage": ["V666 Partner Edition"],
+      "role": "Public corporate and strategic-partnership surface only",
+      "projection_consumer": false,
+      "production_intelligence": false,
+      "notes": "Current public site may describe capabilities and partnership model but must not present unapproved live intelligence as validated Projection."
+    },
+    "operational_intelligence_portal": {
+      "canonical_name": "KIDULTS Intelligence Portal",
+      "current_release": "Portal Release-001",
+      "functional_lineage": ["Portal V502", "Experience Layer"],
+      "design_lineage": ["V666 visual system may be selectively inherited"],
+      "role": "Governed consumer of approved Projection Registry outputs",
+      "projection_consumer": true,
+      "required_input": "Approved governed Projection only",
+      "required_states": ["NO_PROJECTION", "STALE_PROJECTION", "INVALID_PROJECTION", "APPROVED_PROJECTION"],
+      "release_rule": "Do not use V502 or V666 as the public product release identifier after Portal Release-001 adoption."
+    },
+    "executive_operating_system": {
+      "canonical_name": "IH Executive Operating System",
+      "current_release": "IH-EOS Release-001",
+      "role": "Founder/executive operational consumer of registries, events, audit and governed Projection",
+      "projection_consumer": true,
+      "required_input": "Approved governed Projection plus executive registries/events",
+      "production_status": "HOLD_PENDING_GATES"
+    }
+  },
+  "projection_chain": [
+    "Immutable Candidate/Evidence",
+    "Track B Assessment",
+    "Runtime business-workload replay",
+    "Projection Registry",
+    "Portal Release-001",
+    "IH-EOS Release-001",
+    "Integration Gate",
+    "Explicit G5"
+  ],
+  "versioning_policy": {
+    "legacy_v_numbers": "LINEAGE_ONLY",
+    "product_release_names": "CANONICAL_EXTERNAL_AND_GOVERNANCE_NAMES",
+    "public_site_and_operational_portal_must_not_share_release_identity": true,
+    "projection_release_must_bind": ["snapshot_id", "assessment_id", "projection_id", "registry_version", "rights_version", "methodology_version", "evidence_lineage_version"],
+    "non_promotable_fixture_rule": "Dry-run fixtures may validate plumbing but may not create a live approved Projection."
+  },
+  "current_truth": {
+    "public_partner_surface": "LIVE_SEPARATELY_AUTHORIZED",
+    "portal_release_001": "PREWIRE_AND_DRY_RUN",
+    "ih_eos_release_001": "INTEGRATION_READY_WAITING_FOR_APPROVED_PROJECTION",
+    "live_approved_projection": "NONE",
+    "production_g5": "HOLD"
+  },
+  "governing_issues": [238, 884, 881]
+}
