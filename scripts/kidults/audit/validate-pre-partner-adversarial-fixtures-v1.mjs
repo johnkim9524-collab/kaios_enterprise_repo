@@ -31,6 +31,7 @@ function evaluateRecord(record) {
   const lineage = record.lineage || {};
   const quality = record.quality || {};
 
+  // Withdrawal/deletion must remain possible even after rights cease to be usable.
   if (lifecycle.deletion_requested === true) {
     triggers.push('deletion_requested');
     if (!['PROMOTED','SUPERSEDED','WITHDRAWN'].includes(lifecycle.current_state)) {
@@ -39,25 +40,14 @@ function evaluateRecord(record) {
     return { disposition: 'WITHDRAWN_OR_DELETED', triggers };
   }
 
+  // Transport failure never promotes and therefore may short-circuit before content admission checks.
   if (transport.http_status === 429 || transport.http_status >= 500 || transport.retries_exhausted === true) {
     triggers.push(`transport_${transport.http_status || 'retries_exhausted'}`);
     return { disposition: 'NO_PROMOTION_RETRY_OR_DLQ', triggers };
   }
 
-  if (replay.is_replay === true) {
-    triggers.push('replay');
-    if (replay.same_digest === true && replay.idempotency_key_match === true) {
-      return { disposition: 'IDEMPOTENT_REPLAY_WITH_AUDIT_TRACE', triggers };
-    }
-    return { disposition: 'QUARANTINED_OR_REJECTED', triggers: [...triggers, 'replay_identity_mismatch'] };
-  }
-
-  if (provider.substitution === true) {
-    triggers.push('provider_substitution');
-    const revalidated = provider.adapter_validated === true && provider.rights_revalidated === true && provider.identity_revalidated === true && provider.lineage_revalidated === true;
-    if (!revalidated) return { disposition: 'REVALIDATE_RIGHTS_SCHEMA_IDENTITY_LINEAGE', triggers };
-  }
-
+  // Rights are a universal admission prerequisite, including replay/recovery.
+  // Never allow replay idempotency to substitute for a current rights check.
   const temporal = rightsTemporalStatus(rights, record.as_of);
   if (!temporal.valid) {
     triggers.push('rights_temporal_invalid');
@@ -71,6 +61,15 @@ function evaluateRecord(record) {
     return { disposition: 'REJECTED', triggers };
   }
 
+  // Provider substitution must be revalidated before a replay may be considered safe.
+  if (provider.substitution === true) {
+    triggers.push('provider_substitution');
+    const revalidated = provider.adapter_validated === true && provider.rights_revalidated === true && provider.identity_revalidated === true && provider.lineage_revalidated === true;
+    if (!revalidated) return { disposition: 'REVALIDATE_RIGHTS_SCHEMA_IDENTITY_LINEAGE', triggers };
+  }
+
+  // Replay/recovery must pass the same current schema/semantic/identity/lineage/quality
+  // controls as a normal record. A matching digest only proves byte identity, not current admissibility.
   if (schema.received_version !== schema.expected_version || schema.required_fields_present !== true) {
     triggers.push('schema_integrity');
   }
@@ -85,6 +84,15 @@ function evaluateRecord(record) {
   if (quality.batch_complete !== true || quality.batch_expected_count !== quality.batch_received_count) triggers.push('batch_incomplete');
 
   if (triggers.length) return { disposition: 'QUARANTINED_OR_REJECTED', triggers };
+
+  if (replay.is_replay === true) {
+    triggers.push('replay');
+    if (replay.same_digest === true && replay.idempotency_key_match === true) {
+      return { disposition: 'IDEMPOTENT_REPLAY_WITH_AUDIT_TRACE', triggers };
+    }
+    return { disposition: 'QUARANTINED_OR_REJECTED', triggers: [...triggers, 'replay_identity_mismatch'] };
+  }
+
   return { disposition: 'CONTROL_ONLY_EVIDENCE_ELIGIBLE', triggers: ['all_control_checks_pass'] };
 }
 
@@ -111,6 +119,57 @@ for (const test of temporalMutationCases) {
   const actual = evaluateRecord(mutated);
   if (actual.disposition !== 'REJECTED' || !actual.triggers.includes('rights_temporal_invalid')) {
     throw new Error(`temporal mutation ${test.id} failed closed check: ${actual.disposition}/${actual.triggers.join(',')}`);
+  }
+}
+
+// Mutation-test the cross-control replay boundary itself. A valid replay envelope must not
+// bypass current rights, schema, or provider-substitution validation merely because its digest
+// and idempotency key match a previously seen record.
+const replayFailClosedMutationCases = [
+  {
+    id: 'replay_expired_rights',
+    mutate: r => { r.rights.expires_at = '2026-08-20T00:00:00Z'; },
+    expected: 'REJECTED'
+  },
+  {
+    id: 'replay_missing_rights',
+    mutate: r => { r.rights.present = false; r.rights.status = 'UNKNOWN'; },
+    expected: 'REJECTED'
+  },
+  {
+    id: 'replay_malformed_expiry',
+    mutate: r => { r.rights.expires_at = 'not-a-date'; },
+    expected: 'REJECTED'
+  },
+  {
+    id: 'replay_invalid_as_of',
+    mutate: r => { r.as_of = 'invalid'; },
+    expected: 'REJECTED'
+  },
+  {
+    id: 'replay_schema_drift',
+    mutate: r => { r.schema.received_version = 'partner-sale-v2-unknown'; },
+    expected: 'QUARANTINED_OR_REJECTED'
+  },
+  {
+    id: 'replay_unvalidated_provider_substitution',
+    mutate: r => {
+      r.provider.substitution = true;
+      r.provider.adapter_validated = false;
+      r.provider.rights_revalidated = false;
+      r.provider.identity_revalidated = false;
+      r.provider.lineage_revalidated = false;
+    },
+    expected: 'REVALIDATE_RIGHTS_SCHEMA_IDENTITY_LINEAGE'
+  }
+];
+for (const test of replayFailClosedMutationCases) {
+  const mutated = structuredClone(baseline.record);
+  mutated.replay = { is_replay: true, same_digest: true, idempotency_key_match: true };
+  test.mutate(mutated);
+  const actual = evaluateRecord(mutated);
+  if (actual.disposition !== test.expected || actual.disposition === 'IDEMPOTENT_REPLAY_WITH_AUDIT_TRACE') {
+    throw new Error(`replay mutation ${test.id} failed closed check: expected=${test.expected} actual=${actual.disposition}/${actual.triggers.join(',')}`);
   }
 }
 
@@ -153,6 +212,8 @@ console.log(JSON.stringify({
   control_layer_result: 'PASS',
   executable_payload_fixtures_passed: results.length,
   temporal_fail_closed_mutation_cases: temporalMutationCases.length,
+  replay_cross_control_fail_closed_mutation_cases: replayFailClosedMutationCases.length,
+  replay_requires_current_rights_and_control_revalidation: true,
   baseline_control: baselineEval.disposition,
   behavior_driven_evaluation: true,
   empirical_gate_effect: 'NONE',
