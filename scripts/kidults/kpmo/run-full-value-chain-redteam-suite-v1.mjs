@@ -15,6 +15,9 @@ const p0PrePartnerValidators = [
 const rightsBoundaryValidators = [
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
 ];
+const runtimeBoundaryValidators = [
+  'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py'
+];
 const downstreamBoundaryValidators = [
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
@@ -25,6 +28,7 @@ const validators = [...new Set([
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
+  ...runtimeBoundaryValidators,
   ...downstreamBoundaryValidators
 ])];
 
@@ -34,13 +38,15 @@ for (const script of validators) {
     console.error(`FAIL aggregate Red-Team validator missing: ${script}`);
     process.exit(1);
   }
-  const run = spawnSync(process.execPath, [script], {
+  const command = script.endsWith('.py') ? (process.env.PYTHON || 'python3') : process.execPath;
+  const run = spawnSync(command, [script], {
     cwd: process.cwd(),
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe']
   });
   const result = {
     script,
+    command,
     status: run.status,
     signal: run.signal || null
   };
@@ -69,6 +75,8 @@ console.log(JSON.stringify({
   pre_partner_control_removal_mutation_selftest: true,
   partner_like_adversarial_fixtures: 12,
   provider_rights_decision_gate_machine_bound: true,
+  runtime_boundary_validators: runtimeBoundaryValidators.length,
+  digitalocean_staging_bootstrap_boundary_machine_bound: true,
   projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
