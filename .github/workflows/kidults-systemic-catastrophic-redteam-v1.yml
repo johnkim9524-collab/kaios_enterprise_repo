@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - 'coordination/kidults/kpmo/systemic-catastrophic-risk-controls-v1.json'
+      - 'coordination/kidults/kpmo/global-leadership-risk-controls-v1.json'
       - 'scripts/kidults/kpmo/validate-systemic-catastrophic-risk-controls-v1.mjs'
       - '.github/workflows/kidults-systemic-catastrophic-redteam-v1.yml'
   push:
     branches: [main]
     paths:
       - 'coordination/kidults/kpmo/systemic-catastrophic-risk-controls-v1.json'
+      - 'coordination/kidults/kpmo/global-leadership-risk-controls-v1.json'
       - 'scripts/kidults/kpmo/validate-systemic-catastrophic-risk-controls-v1.mjs'
       - '.github/workflows/kidults-systemic-catastrophic-redteam-v1.yml'
 
