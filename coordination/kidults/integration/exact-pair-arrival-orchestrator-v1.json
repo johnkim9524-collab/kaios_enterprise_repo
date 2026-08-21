@@ -1,0 +1,86 @@
+{
+  "id": "kidults-exact-pair-arrival-orchestrator-v1",
+  "version": "1.0.0",
+  "issue": 916,
+  "parents": [914, 538, 236, 481, 884, 238],
+  "production": "HOLD",
+  "public_intelligence": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED",
+  "empirical_gate_effect": "NONE_UNTIL_GENUINE_INPUTS_EXIST",
+  "live_manifest_path": "coordination/kidults/integration/live-arrival/live-admission-manifest.json",
+  "canonical_handoff_validator": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
+  "required_pair_files": ["snapshot-candidate.json", "evidence-package.json"],
+  "state_machine": [
+    "WAITING_PAIR",
+    "READY_FOR_TRACK_B",
+    "WAITING_ASSESSMENT",
+    "READY_FOR_STAGING_REPLAY",
+    "WAITING_REPLAY",
+    "READY_FOR_PROJECTION",
+    "WAITING_PROJECTION",
+    "CHAIN_COMPLETE_INTERNAL"
+  ],
+  "correlation_rule": "sha256:SHA256(UTF8('kidults-live-chain-v1|' + exact_pair_digest))",
+  "manifest_required_fields": [
+    "candidate_path",
+    "evidence_path",
+    "candidate_sha256",
+    "evidence_sha256",
+    "exact_pair_digest",
+    "synthetic",
+    "promotable"
+  ],
+  "assessment_binding_required": [
+    "assessment_path",
+    "snapshot_id",
+    "evidence_package_id",
+    "exact_pair_digest",
+    "correlation_id",
+    "synthetic=false",
+    "promotable=true"
+  ],
+  "replay_binding_required": [
+    "replay_receipt_path",
+    "assessment_id",
+    "exact_pair_digest",
+    "correlation_id",
+    "environment=STAGING",
+    "production_touch=false",
+    "public_touch=false",
+    "g5=HOLD"
+  ],
+  "projection_binding_required": [
+    "projection_admission_path",
+    "assessment_id",
+    "replay_id",
+    "exact_pair_digest",
+    "correlation_id",
+    "production=false",
+    "public=false"
+  ],
+  "forbidden_shortcuts": [
+    "SYNTHETIC_OR_CONTROL_PROMOTION",
+    "FIXTURE_AS_LIVE_INPUT",
+    "PAIR_DIGEST_MISMATCH",
+    "ASSESSMENT_DIFFERENT_PAIR",
+    "RUNTIME_DIFFERENT_PAIR",
+    "PROJECTION_DIFFERENT_PAIR",
+    "TRACK_B_BYPASS",
+    "RUNTIME_BEFORE_TRACK_B",
+    "PROJECTION_BEFORE_REPLAY",
+    "RAW_PROVIDER_DIRECT_TO_PROJECTION",
+    "MISSING_AS_ZERO",
+    "PUBLIC_BYPASS",
+    "PRODUCTION_BYPASS",
+    "G5_BYPASS"
+  ],
+  "current_truth": {
+    "candidate": "NONE",
+    "evidence_package": "NONE",
+    "track_b": "NOT_STARTED",
+    "rankability_assessment": "NOT_CREATED",
+    "final_business_workload": "NOT_RUN",
+    "live_projection": "NONE",
+    "expected_state": "WAITING_PAIR"
+  }
+}

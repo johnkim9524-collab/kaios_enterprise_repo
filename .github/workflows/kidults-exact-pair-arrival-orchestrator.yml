@@ -1,0 +1,61 @@
+name: KIDULTS Exact Pair Arrival Orchestrator
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/integration/exact-pair-arrival-orchestrator-v1.json'
+      - 'scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py'
+      - '.github/workflows/kidults-exact-pair-arrival-orchestrator.yml'
+      - '**/snapshot-candidate.json'
+      - '**/evidence-package.json'
+      - '**/rankability-assessment.json'
+      - '**/staging-replay-receipt.json'
+      - '**/projection-admission-receipt.json'
+      - 'coordination/kidults/integration/live-arrival/live-admission-manifest.json'
+  push:
+    branches: [main]
+    paths:
+      - '**/snapshot-candidate.json'
+      - '**/evidence-package.json'
+      - '**/rankability-assessment.json'
+      - '**/staging-replay-receipt.json'
+      - '**/projection-admission-receipt.json'
+      - 'coordination/kidults/integration/live-arrival/live-admission-manifest.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Evaluate exact live chain
+        run: python scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py artifacts/exact-pair-arrival/arrival-state.json
+      - name: Assert current empty state stays fail-closed
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open('artifacts/exact-pair-arrival/arrival-state.json'))
+          assert p['result']=='PASS'
+          if not __import__('pathlib').Path('coordination/kidults/integration/live-arrival/live-admission-manifest.json').exists():
+              assert p['state']=='WAITING_PAIR'
+              assert p['track_b']=='NOT_STARTED'
+              assert p['final_business_workload']=='NOT_RUN'
+              assert p['live_projection']=='NONE'
+          assert p['production']=='HOLD'
+          assert p['public_intelligence']=='HOLD'
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-exact-pair-arrival-state
+          path: artifacts/exact-pair-arrival
+          retention-days: 30
