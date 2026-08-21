@@ -1,0 +1,57 @@
+{
+  "id": "kidults-provider-rights-decision-gate-v1",
+  "version": "1.0.0",
+  "parent_issue": 769,
+  "purpose": "Convert source-specific written provider responses into deterministic PASS / NO_GO / NEEDS_CLARIFICATION decisions without weakening field-by-purpose rights semantics.",
+  "providers": ["CLASSIC.COM", "ALT/FNDATA"],
+  "claim_ceiling": "DATED_OBSERVED_SOLD_PRIVATE_EVALUATION_ONLY",
+  "required_dimensions": [
+    "query_collect",
+    "private_store",
+    "internal_derive",
+    "internal_review",
+    "retention_1_to_30_days",
+    "automation_rate_limits",
+    "attribution",
+    "public_derived_output_boundary",
+    "onward_transfer",
+    "deletion_termination",
+    "entity_territory_scope"
+  ],
+  "required_event_fields": [
+    "stable_object_or_lot_identity",
+    "sold_date",
+    "realized_consideration",
+    "currency",
+    "venue_or_source_reference"
+  ],
+  "decision_law": {
+    "PASS": "every required dimension and event field is explicitly compatible, with no prohibited term and provider spec available",
+    "NO_GO": "any required dimension or event field is explicitly prohibited/incompatible, or raw/private use necessary for the claim is forbidden",
+    "NEEDS_CLARIFICATION": "no explicit prohibition exists but one or more required dimensions/fields remain unknown, ambiguous, conditional, or provider spec is absent"
+  },
+  "current_provider_state": {
+    "CLASSIC.COM": {
+      "written_response": "COMMERCIAL_LICENSING_AVAILABLE_USE_CASE_DEPENDENT",
+      "field_by_purpose_rights": "INCOMPLETE",
+      "provider_spec": "PENDING",
+      "decision": "NEEDS_CLARIFICATION",
+      "activation": "DISABLED"
+    },
+    "ALT/FNDATA": {
+      "written_response": "NO_SUBSTANTIVE_REPLY_OBSERVED",
+      "field_by_purpose_rights": "INCOMPLETE",
+      "provider_spec": "PENDING",
+      "decision": "NEEDS_CLARIFICATION",
+      "activation": "DISABLED"
+    }
+  },
+  "non_bypass": {
+    "account_or_eula_acceptance": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
+    "external_spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "public_intelligence": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
