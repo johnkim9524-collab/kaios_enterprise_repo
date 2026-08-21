@@ -1,0 +1,86 @@
+{
+  "id": "kidults-staging-real-workload-admission-v1",
+  "version": "1.0.0",
+  "parent_issue": 914,
+  "upstream": [236, 481, 538, 899],
+  "environment": "STAGING",
+  "target": {
+    "expected_name": "ih-staging-01",
+    "droplet_id_variable": "DIGITALOCEAN_STAGING_DROPLET_ID",
+    "public_ip_variable": "KIDULTS_STAGING_PUBLIC_IP",
+    "private_ip_variable": "KIDULTS_STAGING_PRIVATE_IP"
+  },
+  "official_inputs": {
+    "candidate": "snapshot-candidate.json",
+    "evidence_package": "evidence-package.json",
+    "track_b_assessment": "rankability-assessment.json"
+  },
+  "admission_law": {
+    "candidate_and_evidence_must_both_exist": true,
+    "candidate_evidence_must_pass_538": true,
+    "pair_digest_required": true,
+    "assessment_must_be_immutable": true,
+    "assessment_must_bind_exact_pair_digest": true,
+    "assessment_snapshot_id_must_equal_candidate_snapshot_id": true,
+    "assessment_must_be_track_b_output": true,
+    "synthetic_or_control_pair_rejected": true,
+    "non_promotable_pair_rejected": true,
+    "stale_or_rights_blocked_pair_rejected": true,
+    "missing_value_never_coerced_to_zero": true
+  },
+  "runtime_replay": {
+    "allowed_only_after_admission_pass": true,
+    "target_environment": "STAGING",
+    "same_pair_digest_required": true,
+    "same_assessment_id_required": true,
+    "required_metrics": [
+      "acquisition_to_evidence_latency",
+      "evidence_to_market_event_latency",
+      "projection_refresh_latency",
+      "portal_eos_read_latency_where_applicable",
+      "product_marketcell_evidence_throughput",
+      "storage_retention_growth",
+      "workload_specific_usage_observation",
+      "rollback_recovery_audit_binding"
+    ],
+    "required_audit_ids": [
+      "snapshot_id",
+      "evidence_package_id",
+      "assessment_id",
+      "pair_digest",
+      "correlation_id",
+      "runtime_replay_id"
+    ]
+  },
+  "downstream_projection": {
+    "construction_allowed_only_after_track_b_and_runtime_replay": true,
+    "must_bind_same_pair_digest": true,
+    "must_bind_same_assessment_id": true,
+    "raw_provider_payload_direct_consumption": false,
+    "synthetic_fallback": false
+  },
+  "empty_state": {
+    "candidate": "NONE",
+    "evidence_package": "NONE",
+    "track_b": "NOT_STARTED",
+    "rankability_assessment": "NOT_CREATED",
+    "final_business_workload": "NOT_RUN",
+    "live_projection": "NONE",
+    "admission_state": "WAITING_FOR_EXACT_IMMUTABLE_PAIR",
+    "runtime_mutation_allowed": false
+  },
+  "prohibited": [
+    "SYNTHETIC_FALLBACK_AS_REAL_WORKLOAD",
+    "TRACK_B_START_WITHOUT_EXACT_PAIR",
+    "RUNTIME_REPLAY_WITHOUT_TRACK_B_ASSESSMENT",
+    "PAIR_DIGEST_MISMATCH",
+    "ASSESSMENT_REBINDING",
+    "RAW_PROVIDER_INGESTION_BYPASS",
+    "PUBLIC_RELEASE",
+    "PRODUCTION_MUTATION",
+    "G5_PROMOTION"
+  ],
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
