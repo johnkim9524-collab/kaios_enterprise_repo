@@ -1,18 +1,19 @@
 {
   "id": "kidults-global-leadership-risk-controls-v1",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "status": "ACTIVE",
   "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
-  "objective": "Advance KIDULTS toward a globally leading Autonomous Global Intelligence Platform by reducing evidence starvation, concentration, asymmetry, integration, autonomy, operational resilience, systemic/catastrophic and adversarial-ecosystem risks without weakening empirical, rights, security or Production gates.",
+  "objective": "Advance KIDULTS toward a globally leading Autonomous Global Intelligence Platform by reducing evidence starvation, concentration, asymmetry, integration, autonomy, operational resilience, systemic/catastrophic, adversarial-ecosystem and economic/strategic attack risks without weakening empirical, rights, security or Production gates.",
   "operating_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
-  "non_negotiable_truth_rules": ["CLAIM_STRENGTH_LE_EVIDENCE_STRENGTH","MISSING_NE_ZERO","PUBLIC_VISIBILITY_NE_REUSE_RIGHT","PROVIDER_NE_GLOBAL_TRUTH","ARCHITECTURE_CI_SYNTHETIC_NE_EMPIRICAL_PASS","BUSINESS_VALUE_NE_PERMISSION_TO_OVERRIDE_TRUTH_GATES","EXTERNAL_COUNTERPARTY_INTENT_UNKNOWN_UNLESS_EVIDENCED","NO_PRODUCTION_PUBLIC_G5_BYPASS"],
+  "non_negotiable_truth_rules": ["CLAIM_STRENGTH_LE_EVIDENCE_STRENGTH","MISSING_NE_ZERO","PUBLIC_VISIBILITY_NE_REUSE_RIGHT","PROVIDER_NE_GLOBAL_TRUTH","ARCHITECTURE_CI_SYNTHETIC_NE_EMPIRICAL_PASS","BUSINESS_VALUE_NE_PERMISSION_TO_OVERRIDE_TRUTH_GATES","EXTERNAL_COUNTERPARTY_INTENT_UNKNOWN_UNLESS_EVIDENCED","MORE_PERMISSIVE_JURISDICTION_NE_PERMISSION_TO_BYPASS_USE_CONTEXT_RULES","NO_PRODUCTION_PUBLIC_G5_BYPASS"],
   "risk_control_bindings": {
     "global_and_autonomy": "global-leadership-risk-controls-v1.json + autonomy-safety-controls-v1.json",
     "evidence_resilience": "operating-principles-and-resilience-controls-v1.json",
     "operational_resilience": "operational-resilience-hedges-v1.json",
     "systemic_catastrophic": "systemic-catastrophic-risk-controls-v1.json",
     "adversarial_ecosystem": "adversarial-ecosystem-risk-controls-v1.json",
-    "machine_enforcement": "validate-operating-principles-resilience-v1.mjs + validate-systemic-catastrophic-risk-controls-v1.mjs + validate-adversarial-ecosystem-risk-controls-v1.mjs + dedicated CI workflows"
+    "economic_strategic": "economic-strategic-attack-controls-v1.json",
+    "machine_enforcement": "validate-operating-principles-resilience-v1.mjs + validate-systemic-catastrophic-risk-controls-v1.mjs + validate-adversarial-ecosystem-risk-controls-v1.mjs + validate-economic-strategic-attack-controls-v1.mjs + dedicated CI workflows"
   },
   "operating_priority": ["EMPIRICAL_GATE_CLOSURE","EXTERNAL_RIGHTS_DATA_ACTIVATION","DOWNSTREAM_RELEASE_CHAIN","NEW_RED_TEAM_DEFECT"],
   "deprioritization_rule": "Any new architecture, engine, registry or governance work not directly reducing one of the four operating priorities defaults to P1_OR_LOWER unless a new P0 defect is evidenced.",
