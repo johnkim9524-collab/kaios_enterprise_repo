@@ -1,10 +1,10 @@
 {
-  "request_id": "staging-portal-deploy-request-v1-20260821-premium-onepage-v2",
-  "issue": 926,
+  "request_id": "staging-portal-deploy-request-v1-20260821-premium-v4-projection-surface",
+  "issue": 928,
   "environment": "STAGING",
   "action": "DEPLOY_PORTAL_RELEASE_001",
   "target": "ih-staging-01",
-  "reason": "customer_value_premium_one_page_redesign",
+  "reason": "owner_approved_premium_v4_no_number_roadster_and_governed_projection_content_surface",
   "public_bind": false,
   "production": "HOLD",
   "g5": "HOLD"

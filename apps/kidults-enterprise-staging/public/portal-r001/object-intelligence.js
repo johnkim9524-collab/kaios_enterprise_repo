@@ -1,34 +1,46 @@
-import {readPortalProjection,normalizeIntelligenceState} from './projection-store.js';
-const $=(s,r=document)=>r.querySelector(s);
-const safe=value=>value==null||value===''?'Not available':String(value);
-const list=(items=[])=>items.length?`<ul>${items.map(x=>`<li>${safe(x)}</li>`).join('')}</ul>`:'<p>Not available from the governed Projection.</p>';
+import {normalizeIntelligenceState} from './projection-store.js';
 
-function renderBlocked(data){
-  const p=data.projection||{},state=normalizeIntelligenceState(p.state);
-  document.documentElement.dataset.state=state;
-  $('[data-projection-state]').textContent=state;
-  $('[data-assessment]').textContent=p.assessment_id||'Not started';
-  $('[data-rights]').textContent=p.rights_state||'Waiting';
-  $('[data-release-state]').textContent=data.release?.state||'HOLD';
-  $('[data-object-state]').innerHTML=`<div><p class="eyebrow">${state.replaceAll('_',' ')}</p><h2>Object intelligence is fail-closed.</h2><p>No identity, market observation, comparable or confidence claim is promoted without an admissible governed Projection.</p></div>`;
-  ['identity','market','comparables','evidence','rights','limitations'].forEach(k=>$(`[data-object-${k}]`).innerHTML='<p>Waiting for an admissible governed Projection.</p>');
+const query=(selector,root=document)=>root.querySelector(selector);
+const write=(root,selector,value)=>{const node=query(selector,root);if(node)node.textContent=value};
+const clean=value=>value==null||value===''?'Not available':String(value);
+const summarize=(values,fallback='Waiting')=>Array.isArray(values)&&values.length?values.map(clean).join(' · '):fallback;
+
+export function renderObjectIntelligence(data,{root=document,objectId=null}={}){
+  const projection=data?.projection||{};
+  const state=normalizeIntelligenceState(projection.state);
+  const objects=Array.isArray(data?.objects)?data.objects:[];
+  const requestedId=objectId||new URLSearchParams(globalThis.location?.search||'').get('id');
+  const object=state==='LIVE_APPROVED'?(requestedId?objects.find(item=>item.object_id===requestedId)||null:objects[0]||null):null;
+  const localState=object?'LIVE_APPROVED':state==='LIVE_APPROVED'?'NOT_AVAILABLE':state;
+  const stage=query('[data-object-state]',root);
+
+  write(root,'[data-object-count]',state==='LIVE_APPROVED'?`${objects.length} APPROVED`:'WAITING');
+  if(stage){
+    stage.dataset.objectState=localState;
+    stage.setAttribute('aria-label',object?`Governed object: ${clean(object.title)}`:'No governed object is available');
+  }
+
+  if(!object){
+    write(root,'[data-object-title]','No governed object');
+    write(root,'[data-object-id]',state==='LIVE_APPROVED'?'No approved object in Projection':state.replaceAll('_',' '));
+    write(root,'[data-object-identity]','Waiting');
+    write(root,'[data-object-market]','Waiting');
+    write(root,'[data-object-comparables]','Waiting');
+    write(root,'[data-object-evidence]','Waiting');
+    write(root,'[data-object-rights]',state==='LIVE_APPROVED'?'Not available':clean(projection.rights_state||'Waiting'));
+    write(root,'[data-object-limitations]','Visible');
+    return {state,object:null};
+  }
+
+  const identity=[object.maker,object.model,object.year,...(Array.isArray(object.aliases)?object.aliases:[])].filter(Boolean);
+  const evidence=[object.confidence&&`Confidence ${object.confidence}`,object.evidence_coverage&&`Coverage ${object.evidence_coverage}`,object.source_owner_independence&&`Independence ${object.source_owner_independence}`,Array.isArray(object.evidence_refs)&&`${object.evidence_refs.length} evidence refs`].filter(Boolean);
+  write(root,'[data-object-title]',clean(object.title));
+  write(root,'[data-object-id]',clean(object.object_id));
+  write(root,'[data-object-identity]',summarize(identity,`ID ${clean(object.object_id)}`));
+  write(root,'[data-object-market]',summarize(object.market_observations,'No observation promoted'));
+  write(root,'[data-object-comparables]',summarize(object.comparables,'No comparable promoted'));
+  write(root,'[data-object-evidence]',summarize(evidence,'Evidence attached'));
+  write(root,'[data-object-rights]',clean(object.rights_state));
+  write(root,'[data-object-limitations]',summarize(object.limitations,'No stated limitation'));
+  return {state,object};
 }
-
-function renderObject(data,object){
-  const p=data.projection||{};document.documentElement.dataset.state='LIVE_APPROVED';
-  $('[data-projection-state]').textContent='LIVE_APPROVED';$('[data-assessment]').textContent=p.assessment_id||'Not available';$('[data-rights]').textContent=p.rights_state||'Not available';$('[data-release-state]').textContent=data.release?.state||'HOLD';
-  $('[data-object-id]').textContent=safe(object.object_id);$('[data-object-title]').textContent=safe(object.title);
-  $('[data-object-state]').innerHTML=`<div><p class="eyebrow">GOVERNED OBJECT</p><h2>${safe(object.title)}</h2><p>As of ${safe(p.as_of)} · Projection ${safe(p.projection_id)}</p></div>`;
-  $('[data-object-identity]').innerHTML=list([`Object ID: ${safe(object.object_id)}`,...(object.aliases||[])]);
-  $('[data-object-market]').innerHTML=list(object.market_observations||[]);
-  $('[data-object-comparables]').innerHTML=list(object.comparables||[]);
-  $('[data-object-evidence]').innerHTML=list([`Confidence: ${safe(object.confidence)}`,`Evidence coverage: ${safe(object.evidence_coverage)}`,`Source-owner independence: ${safe(object.source_owner_independence)}`]);
-  $('[data-object-rights]').innerHTML=list([`Freshness: ${safe(p.freshness)}`,`Rights: ${safe(p.rights_state)}`]);
-  $('[data-object-limitations]').innerHTML=list(object.limitations||[]);
-}
-
-const data=await readPortalProjection();
-const state=normalizeIntelligenceState(data.projection?.state);
-const objectId=new URLSearchParams(location.search).get('id');
-const object=(data.objects||[]).find(x=>x.object_id===objectId);
-if(state!=='LIVE_APPROVED'||!object)renderBlocked(data);else renderObject(data,object);

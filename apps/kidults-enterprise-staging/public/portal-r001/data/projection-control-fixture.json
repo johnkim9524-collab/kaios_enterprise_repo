@@ -4,14 +4,24 @@
   "projection": {
     "state": "NO_PROJECTION",
     "projection_id": null,
+    "replay_id": null,
+    "exact_pair_digest": null,
     "as_of": null,
     "assessment_id": null,
     "rights_state": "WAITING",
-    "freshness": "NOT_AVAILABLE"
+    "freshness": "NOT_AVAILABLE",
+    "synthetic": true,
+    "promotable": false,
+    "production": false,
+    "public": false
   },
   "release": {"state":"HOLD"},
   "structural": {"core_verticals":{"value":8,"state":"AVAILABLE"}},
   "audit": {
+    "projection_id": null,
+    "assessment_id": null,
+    "replay_id": null,
+    "exact_pair_digest": null,
     "correlation_id": null,
     "rebuild_state": "NOT_AVAILABLE",
     "replay_state": "NOT_AVAILABLE",
@@ -25,23 +35,33 @@
     {"label":"Production","value":"HOLD","state_type":"release","state":"HOLD"}
   ],
   "verticals": [
-    "Toys & Models",
-    "Watches & Jewelry",
-    "Automobiles & Mobility",
-    "Fashion & Accessories",
-    "Design & Furniture",
-    "Technology & Cameras",
-    "Gaming / Music / Screen Culture",
-    "Cards / Comics / Memorabilia"
+    {"vertical_id":"toys-models","label":"Toys & Models","structural_state":"AVAILABLE"},
+    {"vertical_id":"watches-jewelry","label":"Watches & Jewelry","structural_state":"AVAILABLE"},
+    {"vertical_id":"automobiles-mobility","label":"Automobiles & Mobility","structural_state":"AVAILABLE"},
+    {"vertical_id":"fashion-accessories","label":"Fashion & Accessories","structural_state":"AVAILABLE"},
+    {"vertical_id":"design-furniture","label":"Design & Furniture","structural_state":"AVAILABLE"},
+    {"vertical_id":"technology-cameras","label":"Technology & Cameras","structural_state":"AVAILABLE"},
+    {"vertical_id":"gaming-music-screen","label":"Gaming / Music / Screen Culture","structural_state":"AVAILABLE"},
+    {"vertical_id":"cards-comics-memorabilia","label":"Cards / Comics / Memorabilia","structural_state":"AVAILABLE"}
   ],
   "signals": [
-    "Market Scale",
-    "Venue Depth & Diversity",
-    "Observed Transaction Activity",
-    "Liquidity / Sell-through",
-    "Demand / Scarcity",
-    "Market Momentum"
+    {"signal_id":"market-scale","label":"Market Scale","value":null,"state":"WAITING","as_of":null,"confidence":null,"evidence_refs":[]},
+    {"signal_id":"venue-depth","label":"Venue Depth & Diversity","value":null,"state":"WAITING","as_of":null,"confidence":null,"evidence_refs":[]},
+    {"signal_id":"transaction-activity","label":"Observed Transaction Activity","value":null,"state":"WAITING","as_of":null,"confidence":null,"evidence_refs":[]},
+    {"signal_id":"liquidity","label":"Liquidity / Sell-through","value":null,"state":"WAITING","as_of":null,"confidence":null,"evidence_refs":[]},
+    {"signal_id":"demand-scarcity","label":"Demand / Scarcity","value":null,"state":"WAITING","as_of":null,"confidence":null,"evidence_refs":[]},
+    {"signal_id":"momentum","label":"Market Momentum","value":null,"state":"WAITING","as_of":null,"confidence":null,"evidence_refs":[]}
   ],
+  "kidult_100": {"state":"NO_PROJECTION","index_value":null,"change":null,"as_of":null,"constituents":[],"methodology_version":null},
+  "research_archive": {"state":"NO_PROJECTION","items":[]},
+  "evidence_methodology": {
+    "coverage":"Waiting for governed Projection",
+    "independence":"Not yet verified for live claims",
+    "freshness":"No live Projection",
+    "rights":"Fail-closed until admissible",
+    "methodology_version":"Version-bound on governed output",
+    "lineage_version":"Not available"
+  },
   "objects": [],
   "evidence": [
     {"label":"Evidence coverage","value":"Waiting for governed Projection"},
