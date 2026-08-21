@@ -1,0 +1,31 @@
+name: KIDULTS Epistemic Causal Red-Team V1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/kpmo/epistemic-causal-integrity-controls-v1.json'
+      - 'coordination/kidults/kpmo/global-leadership-risk-controls-v1.json'
+      - 'scripts/kidults/kpmo/validate-epistemic-causal-integrity-v1.mjs'
+      - '.github/workflows/kidults-epistemic-causal-redteam-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/kpmo/epistemic-causal-integrity-controls-v1.json'
+      - 'coordination/kidults/kpmo/global-leadership-risk-controls-v1.json'
+      - 'scripts/kidults/kpmo/validate-epistemic-causal-integrity-v1.mjs'
+      - '.github/workflows/kidults-epistemic-causal-redteam-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate epistemic and causal integrity controls
+        run: node scripts/kidults/kpmo/validate-epistemic-causal-integrity-v1.mjs
