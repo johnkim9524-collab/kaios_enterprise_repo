@@ -41,6 +41,28 @@ for (const file of data.required_existing_control_families || []) {
   if (!fs.existsSync(p)) throw new Error(`Required control family missing: ${file}`);
 }
 
+if (!Array.isArray(data.required_family_validators) || data.required_family_validators.length < 13) {
+  throw new Error('Aggregate Red-Team family validator manifest is incomplete');
+}
+const validatorSet = new Set(data.required_family_validators);
+if (validatorSet.size !== data.required_family_validators.length) throw new Error('Duplicate family validator binding');
+for (const validator of data.required_family_validators) {
+  const p = path.join(root, validator);
+  if (!fs.existsSync(p)) throw new Error(`Required family validator missing: ${validator}`);
+}
+if (data.aggregate_machine_enforcement?.runner !== 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs') {
+  throw new Error('Aggregate Red-Team runner binding changed');
+}
+if (data.aggregate_machine_enforcement?.require_all_family_validators_pass !== true) {
+  throw new Error('All family validators must pass the aggregate Red-Team');
+}
+if (data.aggregate_machine_enforcement?.post_merge_main_revalidation !== true) {
+  throw new Error('Protected main must be revalidated post-merge');
+}
+if (data.aggregate_machine_enforcement?.control_pass_closes_empirical_gate !== false) {
+  throw new Error('Control PASS must never close empirical gates');
+}
+
 const canonicalPath = path.join(root, data.canonical_value_chain_binding || '');
 if (!fs.existsSync(canonicalPath)) throw new Error('Canonical value-chain contract binding missing');
 const canonical = JSON.parse(fs.readFileSync(canonicalPath, 'utf8'));
@@ -69,4 +91,4 @@ if (auditContract.hard_boundaries?.production !== 'HOLD') throw new Error('Audit
 if (auditContract.hard_boundaries?.public !== 'HOLD') throw new Error('Audit contract Public must remain HOLD');
 if (auditContract.hard_boundaries?.g5 !== 'EXPLICIT_APPROVAL_REQUIRED') throw new Error('Audit contract G5 explicit approval rule missing');
 
-console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} audit stages, ${canonical.chain.length} canonical business-chain nodes, ${(data.required_existing_control_families || []).length} control families, ${requiredAxes.length} readiness axes`);
+console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} audit stages, ${canonical.chain.length} canonical business-chain nodes, ${(data.required_existing_control_families || []).length} control families, ${data.required_family_validators.length} executable family validators, ${requiredAxes.length} readiness axes`);
