@@ -1,45 +1,24 @@
 {
   "id": "kidults-autonomy-safety-controls-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE",
   "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
-  "objective": "Prevent autonomous intelligence from optimizing the wrong objective, reinforcing existing evidence concentration, drowning in undifferentiated UNKNOWN debt, or creating unsafe mutation blast radius.",
+  "objective": "Prevent autonomous intelligence from optimizing the wrong objective, reinforcing existing evidence concentration, drowning in undifferentiated UNKNOWN debt, creating unsafe mutation blast radius, or bypassing truth through partial failure or human override.",
   "controls": [
     {
       "id": "AUTONOMY_OBJECTIVE_ALIGNMENT",
       "severity": "P0",
       "problem": "Maximum uncertainty reduction is not necessarily maximum decision or business value.",
-      "selection_objective": [
-        "UNCERTAINTY_REDUCTION",
-        "DECISION_IMPACT",
-        "BUSINESS_RELEVANCE",
-        "INDEPENDENT_SOURCE_OWNER_GAIN",
-        "RIGHTS_FEASIBILITY",
-        "FRESHNESS_GAIN",
-        "CLAIM_RELEVANCE"
-      ],
-      "hard_rules": [
-        "No source priority may be increased solely because it adds record volume.",
-        "A source that can move a material claim from NOT_VERIFIED toward defensible evidence may outrank a source that merely reduces many low-impact unknowns.",
-        "Decision-impact scoring must remain bounded by evidence and rights admissibility; business value cannot override truth gates.",
-        "Missing decision-impact evidence must be explicit rather than guessed."
-      ],
-      "exit": "Evidence-demand rankings are explainable as evidence value, decision value and rights-safe feasibility rather than data volume or incumbent-source momentum."
+      "selection_objective": ["UNCERTAINTY_REDUCTION", "DECISION_IMPACT", "BUSINESS_RELEVANCE", "INDEPENDENT_SOURCE_OWNER_GAIN", "RIGHTS_FEASIBILITY", "FRESHNESS_GAIN", "CLAIM_RELEVANCE"],
+      "hard_rules": ["No source priority may be increased solely because it adds record volume.", "A source that can move a material claim from NOT_VERIFIED toward defensible evidence may outrank a source that merely reduces many low-impact unknowns.", "Decision-impact scoring must remain bounded by evidence and rights admissibility; business value cannot override truth gates.", "Missing decision-impact evidence must be explicit rather than guessed."]
     },
     {
       "id": "EXPLORATION_EXPLOITATION_LOCK_IN_CONTROL",
       "severity": "P0",
       "problem": "Strong early evidence in one category or geography can create self-reinforcing acquisition concentration and permanently starve under-covered surfaces.",
       "modes": ["EXPLOITATION", "EXPLORATION"],
-      "hard_rules": [
-        "Reserve a bounded SHADOW exploration quota for under-covered category x geography x evidence-class cells.",
-        "Exploration candidates must still pass rights feasibility, provenance and semantic-fit preflight; exploration is not permission to weaken evidence admission.",
-        "No incumbent source/category receives priority merely because its prior evidence volume or confidence is high.",
-        "Source-owner concentration and category/geography concentration must be measured before each reallocation.",
-        "If concentration increases beyond the bounded policy ceiling without proportional decision-value gain, reallocation must HOLD."
-      ],
-      "activation": "SHADOW_ONLY_UNTIL_EMPIRICAL_FACTOR_SURFACE_IS_COMPUTABLE",
-      "exit": "Evidence acquisition demonstrates both high-value exploitation and deliberate rights-safe exploration without truth or concentration inflation."
+      "hard_rules": ["Reserve a bounded SHADOW exploration quota for under-covered category x geography x evidence-class cells.", "Exploration candidates must still pass rights feasibility, provenance and semantic-fit preflight; exploration is not permission to weaken evidence admission.", "No incumbent source/category receives priority merely because its prior evidence volume or confidence is high.", "Source-owner concentration and category/geography concentration must be measured before each reallocation.", "If concentration increases beyond the bounded policy ceiling without proportional decision-value gain, reallocation must HOLD."],
+      "activation": "SHADOW_ONLY_UNTIL_EMPIRICAL_FACTOR_SURFACE_IS_COMPUTABLE"
     },
     {
       "id": "WEIGHTED_UNKNOWN_DEBT",
@@ -51,55 +30,23 @@
         {"class": "COVERAGE_UNKNOWN", "priority": 2, "definition": "Limits global representation or source-owner diversity but does not immediately block a material decision."},
         {"class": "LOW_IMPACT_UNKNOWN", "priority": 1, "definition": "Currently has low decision impact and does not justify displacing higher-value evidence demand."}
       ],
-      "hard_rules": [
-        "UNKNOWN remains unknown and never becomes zero.",
-        "Raw UNKNOWN count must not drive source priority.",
-        "Every weighted debt item must bind category, geography, evidence class, blocked decision/claim if any, and evidence-demand rationale.",
-        "Priority may decay or rise only from explicit decision relevance, freshness, evidence gain or dependency change.",
-        "A large number of LOW_IMPACT_UNKNOWN items must never swamp a smaller number of CRITICAL_UNKNOWN items."
-      ],
-      "primary_metric": "WEIGHTED_UNKNOWN_DEBT",
-      "exit": "Evidence Demand Engine can rank unresolved empirical debt by materiality rather than volume."
+      "hard_rules": ["UNKNOWN remains unknown and never becomes zero.", "Raw UNKNOWN count must not drive source priority.", "Every weighted debt item must bind category, geography, evidence class, blocked decision/claim if any, and evidence-demand rationale.", "Priority may decay or rise only from explicit decision relevance, freshness, evidence gain or dependency change.", "A large number of LOW_IMPACT_UNKNOWN items must never swamp a smaller number of CRITICAL_UNKNOWN items."],
+      "primary_metric": "WEIGHTED_UNKNOWN_DEBT"
     },
     {
       "id": "AUTONOMOUS_MUTATION_BLAST_RADIUS",
       "severity": "P0_BEFORE_LIVE_MUTATION",
       "problem": "Once acquisition priority, collection quota or analytical weights become mutable, one wrong autonomous decision can propagate broadly.",
-      "hard_gates": [
-        "EMPIRICAL_FACTOR_COMPLETENESS_PASS",
-        "CANONICAL_FACTOR_ELIGIBILITY_PASS",
-        "SOURCE_REMOVAL_SENSITIVITY_PASS",
-        "CONCENTRATION_CEILING_PASS",
-        "FRESHNESS_COVERAGE_PASS",
-        "RIGHTS_ALLOW",
-        "DETERMINISTIC_REPLAY_PASS",
-        "SHADOW_DELTA_REVIEW_PASS",
-        "ROLLBACK_TARGET_PRESENT",
-        "CIRCUIT_BREAKER_ENABLED"
-      ],
-      "limits": {
-        "mode": "SHADOW_ONLY_CURRENTLY",
-        "max_per_cycle_delta": "BOUNDED_BY_VERSIONED_POLICY_BEFORE_ANY_LIVE_ACTIVATION",
-        "budget_ceiling": "EXPLICIT_APPROVAL_REQUIRED_BEFORE_ANY_COST_INCURRING_AUTOMATION",
-        "production_mutation": "PROHIBITED_WITHOUT_G5"
-      },
-      "fail_closed_conditions": [
-        "factor confidence degrades",
-        "source-owner concentration breaches ceiling",
-        "rights/freshness becomes non-ALLOW or unknown",
-        "observed outcome diverges materially from expected shadow delta",
-        "rollback target is missing or invalid",
-        "drift or contradictory evidence is unresolved"
-      ],
-      "exit": "First evidence-driven SHADOW reallocation is bounded, reversible, deterministic and demonstrably incapable of mutating Production or bypassing approval gates."
+      "hard_gates": ["EMPIRICAL_FACTOR_COMPLETENESS_PASS", "CANONICAL_FACTOR_ELIGIBILITY_PASS", "SOURCE_REMOVAL_SENSITIVITY_PASS", "CONCENTRATION_CEILING_PASS", "FRESHNESS_COVERAGE_PASS", "RIGHTS_ALLOW", "DETERMINISTIC_REPLAY_PASS", "SHADOW_DELTA_REVIEW_PASS", "ROLLBACK_TARGET_PRESENT", "ROLLBACK_EPOCH_INTEGRITY_PASS", "NO_UNDECLARED_PARTIAL_SUCCESS", "REGIME_STATE_NOT_HOLD", "CIRCUIT_BREAKER_ENABLED"],
+      "limits": {"mode": "SHADOW_ONLY_CURRENTLY", "max_per_cycle_delta": "BOUNDED_BY_VERSIONED_POLICY_BEFORE_ANY_LIVE_ACTIVATION", "budget_ceiling": "EXPLICIT_APPROVAL_REQUIRED_BEFORE_ANY_COST_INCURRING_AUTOMATION", "production_mutation": "PROHIBITED_WITHOUT_G5"},
+      "fail_closed_conditions": ["factor confidence degrades", "source-owner concentration breaches ceiling", "rights/freshness becomes non-ALLOW or unknown", "observed outcome diverges materially from expected shadow delta", "rollback target or rollback epoch is missing or invalid", "partial failure is undeclared", "market regime break is unresolved", "drift or contradictory evidence is unresolved"]
+    },
+    {
+      "id": "HUMAN_OVERRIDE_BOUNDARY",
+      "severity": "P0",
+      "hard_rules": ["NO_OVERRIDE_OF_RIGHTS_OR_EMPIRICAL_EVIDENCE_GATES", "NO_OVERRIDE_OF_PRODUCTION_OR_G5", "OVERRIDE_MUST_BE_SCOPE_BOUNDED", "OVERRIDE_MUST_EXPIRE", "OVERRIDE_REQUIRES_ROLLBACK_TARGET", "OVERRIDE_REQUIRES_IMMUTABLE_AUDIT_DIGEST"]
     }
   ],
-  "current_truth": {
-    "empirical_rebalancer_cells": 13,
-    "collection_computable": 0,
-    "analytical_computable": 0,
-    "live_mutations": 0,
-    "production": "HOLD"
-  },
+  "current_truth": {"empirical_rebalancer_cells": 13, "collection_computable": 0, "analytical_computable": 0, "live_mutations": 0, "production": "HOLD"},
   "non_promotion_rule": "These controls improve autonomous safety and decision quality only. They do not create empirical evidence, rights, Candidate, Track B PASS, Projection approval or Production/G5 authorization."
 }
