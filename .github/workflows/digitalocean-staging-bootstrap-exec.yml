@@ -1,0 +1,102 @@
+name: KIDULTS DigitalOcean STAGING Bootstrap Execute
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/runtime/digitalocean-staging-bootstrap-contract-v1.json'
+      - 'scripts/operations/digitalocean_staging_userspace_bootstrap_v1.sh'
+      - 'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py'
+      - '.github/workflows/digitalocean-staging-bootstrap-exec.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate pinned script and rollback boundary
+        run: python scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py
+
+  bootstrap:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HOST: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
+      PRIVATE_IP: ${{ vars.KIDULTS_STAGING_PRIVATE_IP }}
+      EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
+      SSH_PRIVATE_KEY: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert required runtime bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$HOST"
+          test -n "$PRIVATE_IP"
+          test -n "$EXPECTED_FINGERPRINT"
+          test -n "$SSH_PRIVATE_KEY"
+          test "$HOST" = "165.232.175.45"
+          test "$PRIVATE_IP" = "10.104.0.3"
+      - name: Pin and verify ED25519 host key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ssh"
+          ssh-keyscan -t ed25519 "$HOST" > "$RUNNER_TEMP/ssh/known_hosts"
+          OBSERVED="$(ssh-keygen -lf "$RUNNER_TEMP/ssh/known_hosts" | awk '{print $2}')"
+          echo "Observed fingerprint: $OBSERVED"
+          test "$OBSERVED" = "$EXPECTED_FINGERPRINT"
+      - name: Materialize dedicated STAGING key
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/ssh/id_ed25519"
+          chmod 600 "$RUNNER_TEMP/ssh/id_ed25519"
+      - name: Verify exact non-root STAGING identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          SSH=(ssh -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
+          test "$("${SSH[@]}" kidults-staging@"$HOST" 'whoami')" = "kidults-staging"
+          test "$("${SSH[@]}" kidults-staging@"$HOST" 'hostname')" = "ih-staging-01"
+          "${SSH[@]}" kidults-staging@"$HOST" 'ip -4 addr show | grep -F "10.104.0.3" >/dev/null'
+      - name: Execute reversible user-space bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          SSH=(ssh -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
+          "${SSH[@]}" kidults-staging@"$HOST" 'bash -s -- ih-staging-01 165.232.175.45 10.104.0.3' < scripts/operations/digitalocean_staging_userspace_bootstrap_v1.sh
+      - name: Collect bootstrap receipt and health
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/digitalocean-staging-bootstrap
+          SSH=(ssh -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
+          "${SSH[@]}" kidults-staging@"$HOST" 'cat ~/kidults-runtime/audit/bootstrap-receipt.json' > artifacts/digitalocean-staging-bootstrap/bootstrap-receipt.json
+          "${SSH[@]}" kidults-staging@"$HOST" '~/kidults-runtime/bin/health.sh' > artifacts/digitalocean-staging-bootstrap/health.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('artifacts/digitalocean-staging-bootstrap/bootstrap-receipt.json').read_text())
+          h=json.loads(Path('artifacts/digitalocean-staging-bootstrap/health.json').read_text())
+          assert r['environment']=='STAGING'
+          assert r['production_touch'] is False
+          assert r['raw_provider_ingestion'] is False
+          assert r['real_business_workload'] is False
+          assert r['g5']=='HOLD'
+          assert h['status']=='OK' and h['production'] is False
+          print('DIGITALOCEAN_STAGING_USERSPACE_BOOTSTRAP_PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kidults-digitalocean-staging-bootstrap
+          path: artifacts/digitalocean-staging-bootstrap
+          retention-days: 30

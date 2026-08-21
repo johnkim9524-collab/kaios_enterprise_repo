@@ -1,12 +1,15 @@
 {
   "id": "digitalocean-staging-bootstrap-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "parent_issue": 899,
   "environment": "STAGING",
   "target": {
     "droplet_id_variable": "DIGITALOCEAN_STAGING_DROPLET_ID",
     "public_ip_variable": "KIDULTS_STAGING_PUBLIC_IP",
     "private_ip_variable": "KIDULTS_STAGING_PRIVATE_IP",
+    "host_fingerprint_variable": "KIDULTS_STAGING_HOST_FINGERPRINT",
+    "ssh_private_key_secret": "KIDULTS_STAGING_SSH_PRIVATE_KEY",
+    "ssh_user": "kidults-staging",
     "expected_name": "ih-staging-01",
     "expected_region": "sgp1"
   },
@@ -15,10 +18,25 @@
     "versioned": true,
     "audited": true,
     "staging_only": true,
+    "user_space_only": true,
+    "sudo_required": false,
+    "os_package_mutation": false,
+    "systemd_activation": false,
     "production_touch": false,
     "production_id_reuse": false,
     "production_ip_reuse": false,
     "production_credential_reuse": false
+  },
+  "bootstrap_script": {
+    "path": "scripts/operations/digitalocean_staging_userspace_bootstrap_v1.sh",
+    "sha256": "2a73d344bc439b0fda961dbe5f1648d157f2fea17273c42e3067e73d75c8b88b",
+    "digest_state": "PINNED"
+  },
+  "rollback_target": {
+    "id": "USERSPACE_PRISTINE_BEFORE_BOOTSTRAP_V1",
+    "method": "REMOVE_ONLY_MANAGED_USERSPACE_PATHS_AFTER_MARKER_VERIFICATION",
+    "production_touch": false,
+    "state": "DECLARED"
   },
   "required_preconditions": [
     "READ_ONLY_BINDING_PASS",
@@ -28,15 +46,15 @@
     "ROLLBACK_TARGET_DECLARED"
   ],
   "bootstrap_scope": [
-    "OS_PACKAGE_BASELINE",
-    "NON_ROOT_RUNTIME_USER",
-    "APPLICATION_ROOT",
-    "DATA_ROOT",
-    "AUDIT_ROOT",
-    "LOG_ROOT",
-    "SYSTEMD_FOUNDATION",
-    "HEALTH_ENDPOINT_FOUNDATION",
-    "MONITORING_AGENT_CHECK"
+    "OS_PACKAGE_BASELINE_READ_ONLY",
+    "NON_ROOT_RUNTIME_USER_ASSERTION",
+    "APPLICATION_ROOT_USERSPACE",
+    "DATA_ROOT_USERSPACE",
+    "AUDIT_ROOT_USERSPACE",
+    "LOG_ROOT_USERSPACE",
+    "SYSTEMD_USER_UNIT_FOUNDATION_NOT_ENABLED",
+    "HEALTH_FOUNDATION",
+    "MONITORING_AGENT_CHECK_READ_ONLY"
   ],
   "prohibited": [
     "PRODUCTION_DEPLOY",
@@ -44,11 +62,15 @@
     "PRODUCTION_FIREWALL_MUTATION",
     "PRODUCTION_DNS_MUTATION",
     "PRODUCTION_DATABASE_WRITE",
+    "ROOT_SSH_AUTOMATION",
+    "SUDO_BOOTSTRAP",
+    "APT_MUTATION",
+    "SYSTEMD_ENABLE_OR_START",
     "RAW_PROVIDER_INGESTION",
     "REAL_BUSINESS_WORKLOAD",
     "G5_PROMOTION"
   ],
-  "current_state": "BOOTSTRAP_PREWIRED_CREDENTIAL_NOT_ADMITTED",
+  "current_state": "CREDENTIAL_AND_FINGERPRINT_OPERATOR_REGISTERED_EXECUTION_WORKFLOW_PENDING_PROOF",
   "production": "HOLD",
   "g5": "EXPLICIT_APPROVAL_REQUIRED"
 }
