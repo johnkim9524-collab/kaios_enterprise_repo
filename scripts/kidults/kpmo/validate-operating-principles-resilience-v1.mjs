@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const controlPath = path.join(root, 'coordination', 'kidults', 'kpmo', 'operating-principles-and-resilience-controls-v1.json');
+const hedgePath = path.join(root, 'coordination', 'kidults', 'kpmo', 'operational-resilience-hedges-v1.json');
 
 function fail(message) {
   console.error(`FAIL: ${message}`);
@@ -14,9 +15,11 @@ function requireValue(condition, message) {
 }
 
 const control = JSON.parse(fs.readFileSync(controlPath, 'utf8'));
+const hedge = JSON.parse(fs.readFileSync(hedgePath, 'utf8'));
 const requiredPrinciples = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
 for (const principle of requiredPrinciples) {
   requireValue(typeof control.operating_principles?.[principle] === 'string' && control.operating_principles[principle].length > 20, `missing operating principle ${principle}`);
+  requireValue(hedge.operating_principles?.includes(principle), `operational hedge missing principle ${principle}`);
 }
 
 const byId = new Map((control.resilience_controls || []).map(item => [item.id, item]));
@@ -68,10 +71,63 @@ for (const item of ['WHY_THIS_TARGET', 'WHY_NOT_HIGHER_RANKED_ALTERNATIVES', 'WE
 }
 requireValue(explain.rules.some(rule => rule.includes('REPRODUCIBLE_RATIONALE')), 'autonomous decision rationale must be reproducible');
 
+const hedgeById = new Map((hedge.hedges || []).map(item => [item.id, item]));
+const requiredHedges = [
+  'SILENT_PARTIAL_FAILURE',
+  'HUMAN_OVERRIDE_GOVERNANCE',
+  'ROLLBACK_EPOCH_INTEGRITY',
+  'MARKET_REGIME_BREAK',
+  'AUDIT_SURVIVABILITY',
+  'VENDOR_ECONOMIC_CAPTURE',
+  'METHODOLOGICAL_MONOCULTURE'
+];
+for (const id of requiredHedges) requireValue(hedgeById.has(id), `missing operational resilience hedge ${id}`);
+
+const partial = hedgeById.get('SILENT_PARTIAL_FAILURE');
+for (const state of ['COMPLETE_SUCCESS', 'PARTIAL_SUCCESS_EXPLICIT', 'FAILED_CLOSED', 'QUARANTINED_INCOMPLETE_SURFACE']) {
+  requireValue(partial.required_states.includes(state), `missing partial-failure state ${state}`);
+}
+requireValue(partial.rules.includes('PARTIAL_SUCCESS_MUST_NEVER_BE_SERIALIZED_AS_COMPLETE_SUCCESS'), 'partial success must never look complete');
+
+const override = hedgeById.get('HUMAN_OVERRIDE_GOVERNANCE');
+for (const field of ['OVERRIDE_ID', 'REASON', 'SCOPE', 'REQUESTOR', 'APPROVER', 'EXPIRES_AT', 'ROLLBACK_TARGET', 'AFFECTED_GATES', 'AUDIT_DIGEST']) {
+  requireValue(override.required_fields.includes(field), `missing override field ${field}`);
+}
+requireValue(override.rules.includes('NO_OVERRIDE_MAY_WEAKEN_RIGHTS_OR_EMPIRICAL_EVIDENCE_REQUIREMENTS'), 'override must not weaken rights/evidence');
+requireValue(override.rules.includes('NO_OVERRIDE_MAY_AUTHORIZE_PRODUCTION_OR_G5'), 'override must not authorize Production/G5');
+
+const rollback = hedgeById.get('ROLLBACK_EPOCH_INTEGRITY');
+for (const component of ['CODE', 'CONFIG', 'MODEL_OR_METHODOLOGY', 'FACTOR_SNAPSHOT', 'CLAIM_REGISTRY', 'RIGHTS_STATE', 'PROJECTION_BINDING']) {
+  requireValue(rollback.epoch_components.includes(component), `missing rollback epoch component ${component}`);
+}
+requireValue(rollback.fail_closed === 'HOLD_SPLIT_BRAIN_ROLLBACK_EPOCH', 'split-brain rollback must hold');
+
+const regime = hedgeById.get('MARKET_REGIME_BREAK');
+requireValue(regime.rules.includes('STATISTICAL_DRIFT_PASS_DOES_NOT_PROVE_MARKET_REGIME_STABILITY'), 'regime break must be distinct from statistical drift');
+requireValue(regime.rules.includes('PRE_BREAK_CALIBRATION_CANNOT_AUTO_PROMOTE_POST_BREAK_CLAIMS'), 'pre-break calibration cannot promote post-break claims');
+
+const audit = hedgeById.get('AUDIT_SURVIVABILITY');
+for (const field of ['CONTENT_DIGEST', 'RIGHTS_STATE_AT_USE', 'METHODOLOGY_VERSION', 'DECISION_RECEIPT_DIGEST', 'LINEAGE_TOMBSTONE']) {
+  requireValue(audit.durable_tombstone_fields.includes(field), `missing durable audit tombstone field ${field}`);
+}
+requireValue(audit.rules.some(rule => rule.includes('MUST_NOT_RETAIN_PROHIBITED_RAW_CONTENT')), 'audit tombstones must not retain prohibited raw content');
+
+const vendor = hedgeById.get('VENDOR_ECONOMIC_CAPTURE');
+for (const metric of ['REPLACEMENT_LEAD_TIME', 'SWITCHING_COST', 'COVERAGE_LOSS_IF_REMOVED', 'PRICE_INCREASE_SENSITIVITY', 'MARGINAL_VERIFIED_INTELLIGENCE_GAIN']) {
+  requireValue(vendor.required_metrics.includes(metric), `missing vendor capture metric ${metric}`);
+}
+requireValue(vendor.rules.includes('TECHNICAL_PROVIDER_INDEPENDENCE_DOES_NOT_IMPLY_ECONOMIC_INDEPENDENCE'), 'technical independence must not imply economic independence');
+
+const monoculture = hedgeById.get('METHODOLOGICAL_MONOCULTURE');
+requireValue(monoculture.rules.includes('VERSION_CHANGE_ALONE_DOES_NOT_COUNT_AS_METHODOLOGICAL_DIVERSITY'), 'version-only challenger must not count as methodology diversity');
+requireValue(monoculture.rules.includes('NO_AUTO_PROMOTION_OF_CHALLENGER_ON_SINGLE_METRIC_WIN'), 'single-metric challenger auto-promotion prohibited');
+
 requireValue(control.global_safety_ceiling?.synthetic_or_control_evidence === 'NON_PROMOTABLE_TO_EMPIRICAL_PASS', 'synthetic evidence promotion ceiling missing');
 requireValue(control.global_safety_ceiling?.live_mutation === 'DISABLED_UNTIL_SEPARATE_ACTIVATION_GATE', 'live mutation must remain separately gated');
 requireValue(control.global_safety_ceiling?.production === 'HOLD', 'Production must remain HOLD');
+requireValue(hedge.global_safety_ceiling?.production === 'HOLD', 'hedge layer Production must remain HOLD');
+requireValue(hedge.global_safety_ceiling?.g5 === 'EXPLICIT_APPROVAL_REQUIRED', 'hedge layer G5 must remain explicit approval');
 
 if (!process.exitCode) {
-  console.log('PASS: Autonomous / Global / Irreplaceable Value / Transparent resilience controls validated');
+  console.log('PASS: Autonomous / Global / Irreplaceable Value / Transparent resilience and operational hedge controls validated');
 }
