@@ -1,22 +1,43 @@
 {
   "id": "kidults-autonomous-intelligence-behavior-control-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE",
   "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
-  "objective": "Turn autonomous intelligence architecture into evidence-driven autonomous behavior while preserving rights, truth, validation and Production boundaries.",
+  "objective": "Turn autonomous intelligence architecture into evidence-driven autonomous behavior while preserving truth, rights, exploration, reversibility, validation and Production boundaries.",
   "canonical_learning_loop": [
     "OBSERVE",
     "DETECT_UNCERTAINTY",
+    "CLASSIFY_WEIGHTED_UNKNOWN_DEBT",
     "GENERATE_EVIDENCE_DEMAND",
+    "SCORE_OBJECTIVE_ALIGNMENT",
+    "BALANCE_EXPLORATION_EXPLOITATION",
     "RANK_LAWFUL_SOURCE_OPPORTUNITY",
     "ADMIT_RIGHTS_PROVENANCE_FRESHNESS_VALID_EVIDENCE",
     "RECOMPUTE_FACTORS",
     "EVALUATE_CONFIDENCE_AND_SOURCE_REMOVAL_SENSITIVITY",
     "PROPOSE_SHADOW_REALLOCATION",
+    "APPLY_BLAST_RADIUS_GATES",
     "COMPARE_CHAMPION_CHALLENGER",
     "REPEAT"
   ],
+  "required_policy_bindings": [
+    "AUTONOMY_OBJECTIVE_ALIGNMENT",
+    "EXPLORATION_EXPLOITATION_LOCK_IN_CONTROL",
+    "WEIGHTED_UNKNOWN_DEBT",
+    "AUTONOMOUS_MUTATION_BLAST_RADIUS"
+  ],
   "first_behavioral_milestone": "FIRST_EVIDENCE_DRIVEN_SHADOW_REALLOCATION",
+  "milestone_requirements": [
+    "New rights-admitted empirical evidence materially changes at least one eligible factor or weighted UNKNOWN debt item",
+    "Evidence-demand ranking binds decision-impact and business-relevance rationale without overriding truth gates",
+    "Exploration/exploitation policy does not increase concentration beyond ceiling without proportional decision-value gain",
+    "Factor recomputation and source-removal sensitivity PASS",
+    "SHADOW priority/quota/analytical-weight proposal differs deterministically from prior proposal for evidence-backed reasons",
+    "Max-delta, rights, freshness, confidence, rollback and circuit-breaker gates PASS",
+    "No Production mutation",
+    "No spend or provider activation without explicit approval",
+    "No synthetic/control evidence is promoted to empirical PASS"
+  ],
   "activation_rule": "No SHADOW quota or analytical-weight proposal may be computed from incomplete required empirical factors; no live mutation follows from SHADOW computation without separate activation gates.",
   "global_evidence_surface": {
     "dimensions": ["CATEGORY", "GEOGRAPHY", "EVIDENCE_CLASS", "INDEPENDENT_SOURCE_OWNER"],
@@ -24,26 +45,30 @@
     "rules": [
       "ARCHITECTURE_COVERAGE_NE_EMPIRICAL_COVERAGE",
       "UNKNOWN_IS_ACTIONABLE_INTELLIGENCE_DEBT",
+      "UNKNOWN_DEBT_MUST_BE_WEIGHTED_BY_DECISION_RELEVANCE",
       "NO_PROXY_FILL_FOR_MISSING_GLOBAL_SURFACE",
-      "NO_DUPLICATE_FEED_AS_INDEPENDENT_OWNER"
+      "NO_DUPLICATE_FEED_AS_INDEPENDENT_OWNER",
+      "EXPLORATION_RESERVE_MUST_NOT_WEAKEN_RIGHTS_OR_EVIDENCE_GATES"
     ]
   },
   "primary_kpi": {
     "id": "VERIFIED_INTELLIGENCE_SURFACE",
     "definition": "The bounded category x geography surface for which KIDULTS can produce defensible intelligence from rights-admitted, fresh, provenance-bound evidence with required confidence and source-independence controls.",
     "must_report_with": [
-      "UNKNOWN_FACTOR_DEBT",
+      "WEIGHTED_UNKNOWN_DEBT",
       "INDEPENDENT_SOURCE_OWNER_COVERAGE",
       "COMPUTABLE_CATEGORY_REGION_CELLS",
       "EVIDENCE_FRESHNESS_COVERAGE",
       "SOURCE_REMOVAL_ROBUSTNESS",
       "AUTONOMOUS_EVIDENCE_PRIORITY_CHANGES",
-      "VERIFIED_CLAIM_COVERAGE"
+      "VERIFIED_CLAIM_COVERAGE",
+      "EXPLORATION_COVERAGE_GAIN"
     ],
     "forbidden": [
       "PR_COUNT_AS_INTELLIGENCE_PROGRESS",
       "PROCESSOR_COUNT_AS_EMPIRICAL_PROGRESS",
       "RAW_RECORD_COUNT_AS_MARKET_COVERAGE",
+      "RAW_UNKNOWN_COUNT_AS_PRIORITY",
       "AVERAGE_WITH_RELEASE_READINESS_TO_CREATE_ONE_SCORE"
     ]
   },
@@ -56,6 +81,15 @@
       "COLLECTOR_ATTENTION_SHIFT",
       "CROSS_CATEGORY_SUBSTITUTION",
       "LEADING_LAGGING_SIGNAL_RELATIONSHIPS"
+    ],
+    "required_before_activation": [
+      "MULTI_CATEGORY_VERIFIED_INTELLIGENCE_SURFACE",
+      "MULTI_REGION_VERIFIED_INTELLIGENCE_SURFACE",
+      "TEMPORAL_STABILITY_CONTROLS",
+      "OUT_OF_SAMPLE_VALIDATION",
+      "CONFOUNDER_CONTROLS",
+      "FALSE_DISCOVERY_CONTROL",
+      "SOURCE_OWNER_DIVERSITY"
     ],
     "start_condition": "Only after multiple category and geography surfaces have sufficient rights-admitted empirical market evidence, compatible methodology and source-independence. No new standalone engine is justified before that condition."
   },
