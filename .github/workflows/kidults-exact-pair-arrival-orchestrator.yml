@@ -4,11 +4,15 @@ on:
   pull_request:
     paths:
       - 'coordination/kidults/integration/exact-pair-arrival-orchestrator-v1.json'
+      - 'coordination/kidults/schemas/live-rankability-assessment-envelope-v1.schema.json'
       - 'scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py'
+      - 'scripts/kidults/integration/build-live-chain-audit-v1.py'
+      - 'scripts/kidults/integration/validate-live-assessment-audit-hardening-v1.py'
       - '.github/workflows/kidults-exact-pair-arrival-orchestrator.yml'
       - '**/snapshot-candidate.json'
       - '**/evidence-package.json'
       - '**/rankability-assessment.json'
+      - '**/live-rankability-assessment-envelope.json'
       - '**/staging-replay-receipt.json'
       - '**/projection-admission-receipt.json'
       - 'coordination/kidults/integration/live-arrival/live-admission-manifest.json'
@@ -18,6 +22,7 @@ on:
       - '**/snapshot-candidate.json'
       - '**/evidence-package.json'
       - '**/rankability-assessment.json'
+      - '**/live-rankability-assessment-envelope.json'
       - '**/staging-replay-receipt.json'
       - '**/projection-admission-receipt.json'
       - 'coordination/kidults/integration/live-arrival/live-admission-manifest.json'
@@ -36,23 +41,33 @@ jobs:
           python-version: '3.12'
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
+      - name: Validate live Track B envelope and audit hardening
+        run: python scripts/kidults/integration/validate-live-assessment-audit-hardening-v1.py
       - name: Evaluate exact live chain
         run: python scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py artifacts/exact-pair-arrival/arrival-state.json
-      - name: Assert current empty state stays fail-closed
-        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+      - name: Build deterministic Unified Audit chain receipt
+        run: python scripts/kidults/integration/build-live-chain-audit-v1.py artifacts/exact-pair-arrival/arrival-state.json artifacts/exact-pair-arrival/audit-chain.json
+      - name: Assert current truth and release boundaries
         run: |
           python - <<'PY'
           import json
+          from pathlib import Path
           p=json.load(open('artifacts/exact-pair-arrival/arrival-state.json'))
+          a=json.load(open('artifacts/exact-pair-arrival/audit-chain.json'))
           assert p['result']=='PASS'
-          if not __import__('pathlib').Path('coordination/kidults/integration/live-arrival/live-admission-manifest.json').exists():
+          if not Path('coordination/kidults/integration/live-arrival/live-admission-manifest.json').exists():
               assert p['state']=='WAITING_PAIR'
               assert p['track_b']=='NOT_STARTED'
               assert p['final_business_workload']=='NOT_RUN'
               assert p['live_projection']=='NONE'
           assert p['production']=='HOLD'
           assert p['public_intelligence']=='HOLD'
+          assert a['production']=='HOLD'
+          assert a['public_intelligence']=='HOLD'
+          assert a['raw_provider_payloads'] is False
+          assert a['credentials'] is False
+          assert a['secrets'] is False
           PY
       - uses: actions/upload-artifact@v4
         with:
