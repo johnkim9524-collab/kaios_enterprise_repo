@@ -1,11 +1,10 @@
 {
-  "request_id": "staging-portal-deploy-request-v1-20260821-retry-2",
-  "issue": 921,
+  "request_id": "staging-portal-deploy-request-v1-20260821-premium-onepage-v2",
+  "issue": 926,
   "environment": "STAGING",
   "action": "DEPLOY_PORTAL_RELEASE_001",
-  "source_commit": "6c07f9793b7491b4d54bd344a2164f0d929f692e",
   "target": "ih-staging-01",
-  "reason": "pipefail_safe_health_verification_after_run_32489524731",
+  "reason": "customer_value_premium_one_page_redesign",
   "public_bind": false,
   "production": "HOLD",
   "g5": "HOLD"
