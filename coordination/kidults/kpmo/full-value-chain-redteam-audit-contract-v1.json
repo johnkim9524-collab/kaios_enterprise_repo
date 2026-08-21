@@ -1,0 +1,33 @@
+{
+  "id": "kidults-full-value-chain-redteam-audit-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE",
+  "readiness_axes": [
+    {"id":"INTERNAL_CONTROL_READINESS","may_use_ci_and_control_evidence":true,"may_close_empirical_gate":false},
+    {"id":"EMPIRICAL_EVIDENCE_READINESS","may_use_ci_and_control_evidence":false,"requires_genuine_lawful_evidence":true},
+    {"id":"RELEASE_EVIDENCE_READINESS","requires_approved_candidate_assessment_runtime_projection_chain":true,"may_not_average_with_other_axes":true}
+  ],
+  "stage_statuses": ["PASS_EVIDENCED","PASS_CONTROL_ONLY","IN_PROGRESS","WAITING_EXTERNAL","UNKNOWN","HOLD","FAIL"],
+  "completion_rule": "ONLY_PASS_EVIDENCED_COUNTS_TOWARD_EMPIRICAL_COMPLETION",
+  "aggregation_rules": [
+    "NO_AVERAGING_ACROSS_READINESS_AXES",
+    "CONTROL_PASS_CANNOT_CLOSE_EMPIRICAL_GATE",
+    "UNKNOWN_MATERIAL_STAGE_PREVENTS_END_TO_END_PASS",
+    "ONE_MATERIAL_FAIL_OR_HOLD_PREVENTS_END_TO_END_PASS",
+    "DOWNSTREAM_RELEASE_CHAIN_CANNOT_BE_GREENER_THAN_UPSTREAM_EMPIRICAL_TRUTH"
+  ],
+  "required_chain_receipts": [
+    "source_receipt","rights_state","raw_event_digest","normalization_lineage","entity_lineage","evidence_references",
+    "factor_computability","claim_confidence_and_limitations","decision_rationale","snapshot_id","assessment_id",
+    "runtime_release_or_hold_state","projection_binding","portal_eos_truth_state","audit_digest"
+  ],
+  "hard_boundaries": {
+    "synthetic_control_evidence": "NON_PROMOTABLE",
+    "provider_contact_or_contract": "EXPLICIT_GATE",
+    "external_spend": "EXPLICIT_GATE",
+    "credential_activation": "EXPLICIT_GATE",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
