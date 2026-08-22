@@ -31,7 +31,8 @@ const productionRecoveryValidators = [
   'scripts/kidults/kpmo/validate-production-rollback-contract-v1.mjs'
 ];
 const downstreamBoundaryValidators = [
-  'scripts/kidults/portal/validate-portal-release-001.mjs'
+  'scripts/kidults/portal/validate-portal-release-001.mjs',
+  'scripts/kidults/portal/validate-portal-r001-adversarial-nonregression-v2.mjs'
 ];
 const validators = [...new Set([
   structuralValidator,
@@ -95,6 +96,8 @@ console.log(JSON.stringify({
   production_recovery_boundary_machine_bound: true,
   production_recovery_validators: productionRecoveryValidators.length,
   production_automatic_rollback_executable_contract: true,
+  portal_adversarial_nonregression_machine_bound: true,
+  portal_adversarial_nonregression_validators: 1,
   projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
