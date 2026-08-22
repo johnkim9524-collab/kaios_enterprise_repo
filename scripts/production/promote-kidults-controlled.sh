@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$PWD}"
 PROD_ROOT="${PROD_ROOT:-/opt/intelligence-holdings/kidults/app}"
@@ -8,11 +8,49 @@ PREDEPLOYMENT_SNAPSHOT_DIR="${PREDEPLOYMENT_SNAPSHOT_DIR:-}"
 BASE_URL="${BASE_URL:-https://kaios.kidults.com}"
 ADMIN_TOKEN_FILE="${ADMIN_TOKEN_FILE:-/opt/intelligence-holdings/kidults/secrets/kaios_admin_token}"
 EXECUTE="${KAIOS_EXECUTE_PRODUCTION_PROMOTION:-false}"
+ROLLBACK_SCRIPT="${ROOT_DIR}/scripts/production/rollback-kidults-controlled.sh"
+ROLLBACK_ARMED=false
 
 fail() {
   echo "ERROR: $*" >&2
   exit 1
 }
+
+rollback_and_exit() {
+  local trigger="$1"
+  local original_code="$2"
+  local rollback_code=0
+  trap - ERR INT TERM
+
+  if [[ "${ROLLBACK_ARMED}" == "true" ]]; then
+    echo "Production mutation failed after rollback arm; executing bound rollback. trigger=${trigger}" >&2
+    set +e
+    KAIOS_EXECUTE_PRODUCTION_ROLLBACK=true \
+      ROLLBACK_TRIGGER="${trigger}" \
+      ROOT_DIR="${ROOT_DIR}" \
+      PROD_ROOT="${PROD_ROOT}" \
+      PREDEPLOYMENT_SNAPSHOT_DIR="${PREDEPLOYMENT_SNAPSHOT_DIR}" \
+      bash "${ROLLBACK_SCRIPT}"
+    rollback_code=$?
+    set -e
+    if [[ "${rollback_code}" -ne 0 ]]; then
+      echo "CRITICAL: automatic Production rollback failed. rollback_code=${rollback_code}" >&2
+      exit 90
+    fi
+    echo "Automatic Production rollback completed successfully." >&2
+  fi
+
+  exit "${original_code}"
+}
+
+on_error() {
+  local code=$?
+  rollback_and_exit "ERR" "${code}"
+}
+
+trap on_error ERR
+trap 'rollback_and_exit SIGINT 130' INT
+trap 'rollback_and_exit SIGTERM 143' TERM
 
 test -n "${EVIDENCE_ARCHIVE}" || fail "EVIDENCE_ARCHIVE is required"
 test -f "${EVIDENCE_ARCHIVE}" || fail "Evidence archive not found"
@@ -20,6 +58,7 @@ test -f "${EVIDENCE_ARCHIVE}.sha256" || fail "Evidence checksum not found"
 test -f "${EVIDENCE_ARCHIVE}.manifest.json" || fail "Evidence manifest not found"
 test -n "${PREDEPLOYMENT_SNAPSHOT_DIR}" || fail "PREDEPLOYMENT_SNAPSHOT_DIR is required"
 test -f "${PREDEPLOYMENT_SNAPSHOT_DIR}/manifest.json" || fail "Predeployment snapshot manifest not found"
+test -f "${ROLLBACK_SCRIPT}" || fail "Rollback executor missing"
 
 sha256sum -c "${EVIDENCE_ARCHIVE}.sha256"
 
@@ -39,13 +78,22 @@ assert seal.get("artfund_production_promotion_authorized") is False
 assert seal.get("production_change_executed") is False
 assert snapshot.get("status") == "captured"
 assert snapshot.get("vertical") == "kidults"
+assert snapshot.get("rollback_ready") is True
 assert snapshot.get("production_change_executed") is False
 assert snapshot.get("artfund_change_executed") is False
-print("Promotion authorization and snapshot verified.")
+print("Promotion authorization and rollback-ready snapshot verified.")
 PY
 
 test -f "${PROD_ROOT}/.env.production" || fail "Production environment file missing"
 test -f "${PROD_ROOT}/docker-compose.production.yml" || fail "Production compose file missing"
+
+# Machine-verify all rollback inputs before arming a Production mutation. This is
+# read-only and remains safe in the default dry-run path.
+KAIOS_EXECUTE_PRODUCTION_ROLLBACK=false \
+  ROOT_DIR="${ROOT_DIR}" \
+  PROD_ROOT="${PROD_ROOT}" \
+  PREDEPLOYMENT_SNAPSHOT_DIR="${PREDEPLOYMENT_SNAPSHOT_DIR}" \
+  bash "${ROLLBACK_SCRIPT}"
 
 cat <<EOF
 ===== KIDULTS CONTROLLED PRODUCTION PROMOTION =====
@@ -53,6 +101,8 @@ Mode: ${EXECUTE}
 Production root: ${PROD_ROOT}
 Evidence archive: ${EVIDENCE_ARCHIVE}
 Predeployment snapshot: ${PREDEPLOYMENT_SNAPSHOT_DIR}
+Rollback executor: ${ROLLBACK_SCRIPT}
+Rollback inputs: VERIFIED
 Artfund changes: forbidden
 EOF
 
@@ -62,8 +112,10 @@ if [[ "${EXECUTE}" != "true" ]]; then
 fi
 
 cd "${PROD_ROOT}"
-
 docker compose --env-file .env.production -f docker-compose.production.yml config >/dev/null
+
+# Arm rollback immediately before the first Production runtime mutation.
+ROLLBACK_ARMED=true
 
 docker compose --env-file .env.production -f docker-compose.production.yml up -d --force-recreate
 sleep 30
@@ -77,9 +129,13 @@ unset ADMIN_TOKEN
 DB_INTEGRITY="$(sqlite3 /opt/intelligence-holdings/kidults/data/kaios.db 'PRAGMA integrity_check;')"
 
 if [[ "${HEALTH_HTTP}" != "200" || "${PORTAL_HTTP}" != "200" || "${UNAUTH_HTTP}" != "401" || "${AUTH_HTTP}" != "200" || "${DB_INTEGRITY}" != "ok" ]]; then
-  echo "Post-deployment smoke failed. Automatic rollback is required." >&2
+  echo "Post-deployment smoke failed; automatic rollback is executing." >&2
   echo "HEALTH_HTTP=${HEALTH_HTTP} PORTAL_HTTP=${PORTAL_HTTP} UNAUTH_HTTP=${UNAUTH_HTTP} AUTH_HTTP=${AUTH_HTTP} DB_INTEGRITY=${DB_INTEGRITY}" >&2
-  exit 2
+  rollback_and_exit "SMOKE_FAILURE" 2
 fi
+
+# Success disarms the recovery trap only after every required smoke check passes.
+ROLLBACK_ARMED=false
+trap - ERR INT TERM
 
 echo "Kidults controlled production promotion completed and smoke checks passed."
