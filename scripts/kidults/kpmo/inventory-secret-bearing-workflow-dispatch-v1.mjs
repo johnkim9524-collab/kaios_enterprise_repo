@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const ROOT = path.resolve('.github/workflows');
 const REGISTRY = 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json';
-const enforceRegistry = process.argv.includes('--enforce-registry');
+const enforceRegistry = process.argv.includes('--enforce-registry') || fs.existsSync(REGISTRY);
 
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -38,7 +38,6 @@ function classify(text) {
   };
 }
 
-// Detector mutation self-tests: fail closed if the inventory stops seeing the risk shape.
 const mutationCases = [
   `on:\n  workflow_dispatch:\njobs:\n  run:\n    env:\n      TOKEN: \${{ secrets.TEST_TOKEN }}`,
   `workflow_dispatch:\nenvironment: staging\nenv:\n  KEY: \${{ secrets.SSH_KEY }}`
@@ -60,8 +59,9 @@ for (const sample of negativeCases) {
   }
 }
 
+const files = walk(ROOT);
 const findings = [];
-for (const file of walk(ROOT)) {
+for (const file of files) {
   const details = classify(fs.readFileSync(file, 'utf8'));
   if (!details.privileged_manual_lane) continue;
   findings.push({
@@ -91,7 +91,7 @@ if (fs.existsSync(REGISTRY)) {
 
 const result = {
   suite: 'KIDULTS_SECRET_BEARING_WORKFLOW_DISPATCH_INVENTORY_V1',
-  workflows_scanned: walk(ROOT).length,
+  workflows_scanned: files.length,
   privileged_manual_lanes: findings.length,
   mutation_cases_detected: mutationCases.length,
   negative_cases_accepted: negativeCases.length,
