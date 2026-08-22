@@ -1,0 +1,409 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.example/schemas/kidults-proof-product-projection-v1.schema.json",
+  "title": "KIDULTS proof-product governed Projection v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_type",
+    "contract_version",
+    "projection_id",
+    "product_type",
+    "projection_state",
+    "display_eligibility",
+    "scope",
+    "method_version",
+    "lineage",
+    "evidence_summary",
+    "rights",
+    "freshness",
+    "confidence",
+    "rankability",
+    "limitations",
+    "missing_data",
+    "actions",
+    "audit",
+    "payload",
+    "generated_at",
+    "updated_at"
+  ],
+  "properties": {
+    "record_type": {"const": "kidults_proof_product_projection"},
+    "contract_version": {"const": "1.0.0"},
+    "projection_id": {"type": "string", "minLength": 1},
+    "product_type": {
+      "enum": ["OBJECT_PASSPORT", "MARKET_PROJECTION_API", "KIDULT_100_INDEX"]
+    },
+    "projection_state": {
+      "enum": [
+        "AWAITING_APPROVED_PROJECTION",
+        "ASSESSMENT_PENDING",
+        "RIGHTS_BLOCKED",
+        "STALE",
+        "APPROVED_INTERNAL",
+        "APPROVED_PUBLIC",
+        "SUPERSEDED",
+        "REVOKED"
+      ]
+    },
+    "display_eligibility": {
+      "enum": ["STATE_ONLY", "INTERNAL_ONLY", "PUBLIC_ALLOWED", "BLOCKED"]
+    },
+    "scope": {"$ref": "#/$defs/scope"},
+    "method_version": {"type": "string", "minLength": 1},
+    "lineage": {"$ref": "#/$defs/lineage"},
+    "evidence_summary": {"$ref": "#/$defs/evidence_summary"},
+    "rights": {"$ref": "#/$defs/rights"},
+    "freshness": {"$ref": "#/$defs/freshness"},
+    "confidence": {"$ref": "#/$defs/confidence"},
+    "rankability": {"$ref": "#/$defs/rankability"},
+    "limitations": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "missing_data": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/missing_item"}
+    },
+    "actions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/action"}
+    },
+    "audit": {"$ref": "#/$defs/audit"},
+    "payload": {"type": "object"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"product_type": {"const": "OBJECT_PASSPORT"}}},
+      "then": {"properties": {"payload": {"$ref": "#/$defs/object_passport"}}}
+    },
+    {
+      "if": {"properties": {"product_type": {"const": "MARKET_PROJECTION_API"}}},
+      "then": {"properties": {"payload": {"$ref": "#/$defs/market_projection"}}}
+    },
+    {
+      "if": {"properties": {"product_type": {"const": "KIDULT_100_INDEX"}}},
+      "then": {"properties": {"payload": {"$ref": "#/$defs/kidult_100"}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "projection_state": {
+            "enum": ["APPROVED_INTERNAL", "APPROVED_PUBLIC"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "lineage": {
+            "required": ["snapshot_id", "evidence_package_id", "assessment_id"]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"projection_state": {"const": "APPROVED_PUBLIC"}}},
+      "then": {
+        "properties": {
+          "display_eligibility": {"const": "PUBLIC_ALLOWED"},
+          "rights": {"properties": {"public_display": {"const": "ALLOWED"}}},
+          "freshness": {"properties": {"state": {"const": "CURRENT"}}}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verticals", "period", "geographies", "venues", "currencies"],
+      "properties": {
+        "verticals": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "period": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start", "end"],
+          "properties": {
+            "start": {"type": ["string", "null"], "format": "date-time"},
+            "end": {"type": ["string", "null"], "format": "date-time"}
+          }
+        },
+        "geographies": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "venues": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "currencies": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z]{3}$"}}
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "evidence_package_id": {"type": "string", "minLength": 1},
+        "assessment_id": {"type": "string", "minLength": 1},
+        "previous_projection_id": {"type": ["string", "null"]}
+      }
+    },
+    "evidence_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "source_count", "independent_source_family_count", "evidence_references"],
+      "properties": {
+        "state": {"enum": ["PAIRED", "INSUFFICIENT", "CONTRADICTED", "NOT_PAIRED"]},
+        "source_count": {"type": ["integer", "null"], "minimum": 0},
+        "independent_source_family_count": {"type": ["integer", "null"], "minimum": 0},
+        "evidence_references": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "internal_analysis", "public_display", "api_redistribution", "profile_id"],
+      "properties": {
+        "state": {"enum": ["CLEARED", "PARTIAL", "BLOCKED", "UNKNOWN"]},
+        "internal_analysis": {"enum": ["ALLOWED", "BLOCKED", "UNKNOWN"]},
+        "public_display": {"enum": ["ALLOWED", "BLOCKED", "UNKNOWN"]},
+        "api_redistribution": {"enum": ["ALLOWED", "BLOCKED", "UNKNOWN"]},
+        "profile_id": {"type": ["string", "null"]}
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "observed_at", "valid_until"],
+      "properties": {
+        "state": {"enum": ["CURRENT", "STALE", "UNKNOWN"]},
+        "observed_at": {"type": ["string", "null"], "format": "date-time"},
+        "valid_until": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "classification", "value", "method_version"],
+      "properties": {
+        "state": {"enum": ["ASSESSED", "NOT_ASSESSED"]},
+        "classification": {"enum": ["LOW", "MEDIUM", "HIGH", "NOT_ASSESSED"]},
+        "value": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "method_version": {"type": ["string", "null"]}
+      }
+    },
+    "rankability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "assessment_id", "reasons"],
+      "properties": {
+        "state": {"enum": ["RANKABLE", "NOT_RANKABLE", "PENDING"]},
+        "assessment_id": {"type": ["string", "null"]},
+        "reasons": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field_id",
+        "state",
+        "evidence_references",
+        "rights_state",
+        "freshness_state",
+        "confidence_classification",
+        "limitations"
+      ],
+      "properties": {
+        "field_id": {"type": "string", "minLength": 1},
+        "state": {"enum": ["VERIFIED", "INFERRED", "UNAVAILABLE", "RIGHTS_BLOCKED", "STALE"]},
+        "value": {},
+        "unit": {"type": ["string", "null"]},
+        "evidence_references": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "rights_state": {"enum": ["CLEARED", "PARTIAL", "BLOCKED", "UNKNOWN"]},
+        "freshness_state": {"enum": ["CURRENT", "STALE", "UNKNOWN"]},
+        "confidence_classification": {"enum": ["LOW", "MEDIUM", "HIGH", "NOT_ASSESSED"]},
+        "reason": {"type": "string", "minLength": 1},
+        "opening_conditions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"state": {"enum": ["VERIFIED", "INFERRED"]}}},
+          "then": {
+            "required": ["value"],
+            "properties": {"evidence_references": {"minItems": 1}}
+          },
+          "else": {
+            "required": ["reason", "opening_conditions"],
+            "not": {"required": ["value"]}
+          }
+        }
+      ]
+    },
+    "missing_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field_id", "reason", "opening_conditions", "treatment"],
+      "properties": {
+        "field_id": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "opening_conditions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "treatment": {"const": "PRESERVE_MISSING_NEVER_ZERO"}
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "state", "reason"],
+      "properties": {
+        "action_id": {"enum": ["VIEW_GOVERNANCE", "OPEN_PROVENANCE", "COMPARE", "WATCHLIST", "ALERT", "EXPORT"]},
+        "state": {"enum": ["ENABLED", "DISABLED", "HIDDEN"]},
+        "destination": {"type": ["string", "null"]},
+        "reason": {"type": "string"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"state": {"const": "ENABLED"}}},
+          "then": {"properties": {"destination": {"type": "string", "minLength": 1}}},
+          "else": {"properties": {"reason": {"type": "string", "minLength": 1}}}
+        }
+      ]
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["governance_record_uri", "projection_record_uri", "events"],
+      "properties": {
+        "governance_record_uri": {"type": "string", "minLength": 1},
+        "projection_record_uri": {"type": "string", "minLength": 1},
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["event_id", "event_type", "occurred_at"],
+            "properties": {
+              "event_id": {"type": "string", "minLength": 1},
+              "event_type": {"type": "string", "minLength": 1},
+              "occurred_at": {"type": "string", "format": "date-time"}
+            }
+          }
+        }
+      }
+    },
+    "object_passport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonical_object_id", "fields"],
+      "properties": {
+        "canonical_object_id": {"type": "string", "minLength": 1},
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["identity", "maker", "model", "variant", "year", "provenance", "specification", "condition", "market_observations", "comparables", "liquidity", "scarcity", "cultural_significance", "risks", "evidence", "rights", "audit_history"],
+          "properties": {
+            "identity": {"$ref": "#/$defs/field"},
+            "maker": {"$ref": "#/$defs/field"},
+            "model": {"$ref": "#/$defs/field"},
+            "variant": {"$ref": "#/$defs/field"},
+            "year": {"$ref": "#/$defs/field"},
+            "provenance": {"$ref": "#/$defs/field"},
+            "specification": {"$ref": "#/$defs/field"},
+            "condition": {"$ref": "#/$defs/field"},
+            "market_observations": {"$ref": "#/$defs/field"},
+            "comparables": {"$ref": "#/$defs/field"},
+            "liquidity": {"$ref": "#/$defs/field"},
+            "scarcity": {"$ref": "#/$defs/field"},
+            "cultural_significance": {"$ref": "#/$defs/field"},
+            "risks": {"$ref": "#/$defs/field"},
+            "evidence": {"$ref": "#/$defs/field"},
+            "rights": {"$ref": "#/$defs/field"},
+            "audit_history": {"$ref": "#/$defs/field"}
+          }
+        }
+      }
+    },
+    "market_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["axes", "filters", "collector_lens", "institutional_lens"],
+      "properties": {
+        "axes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["axis_id", "label", "unit"],
+            "properties": {
+              "axis_id": {"type": "string", "minLength": 1},
+              "label": {"type": "string", "minLength": 1},
+              "unit": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "filters": {
+          "type": "array",
+          "items": {"enum": ["PERIOD", "CURRENCY", "GEOGRAPHY", "VENUE", "VERTICAL"]}
+        },
+        "collector_lens": {"$ref": "#/$defs/collector_lens"},
+        "institutional_lens": {"$ref": "#/$defs/institutional_lens"}
+      }
+    },
+    "collector_lens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["what_changed", "why_it_matters", "comparable_context", "liquidity", "risk", "possible_action"],
+      "properties": {
+        "what_changed": {"$ref": "#/$defs/field"},
+        "why_it_matters": {"$ref": "#/$defs/field"},
+        "comparable_context": {"$ref": "#/$defs/field"},
+        "liquidity": {"$ref": "#/$defs/field"},
+        "risk": {"$ref": "#/$defs/field"},
+        "possible_action": {"$ref": "#/$defs/field"}
+      }
+    },
+    "institutional_lens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["universe", "coverage", "market_scale", "depth", "turnover", "concentration", "exposure", "confidence"],
+      "properties": {
+        "universe": {"$ref": "#/$defs/field"},
+        "coverage": {"$ref": "#/$defs/field"},
+        "market_scale": {"$ref": "#/$defs/field"},
+        "depth": {"$ref": "#/$defs/field"},
+        "turnover": {"$ref": "#/$defs/field"},
+        "concentration": {"$ref": "#/$defs/field"},
+        "exposure": {"$ref": "#/$defs/field"},
+        "confidence": {"$ref": "#/$defs/field"}
+      }
+    },
+    "kidult_100": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["methodology", "index_level", "constituents"],
+      "properties": {
+        "methodology": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["index_objective", "eligible_universe", "inclusion_rules", "exclusion_rules", "evidence_threshold", "liquidity_threshold", "weighting_framework", "concentration_cap", "rebalance_cycle", "event_treatment", "rights_requirement", "method_versioning", "restatement_policy", "limitations"],
+          "properties": {
+            "index_objective": {"$ref": "#/$defs/field"},
+            "eligible_universe": {"$ref": "#/$defs/field"},
+            "inclusion_rules": {"$ref": "#/$defs/field"},
+            "exclusion_rules": {"$ref": "#/$defs/field"},
+            "evidence_threshold": {"$ref": "#/$defs/field"},
+            "liquidity_threshold": {"$ref": "#/$defs/field"},
+            "weighting_framework": {"$ref": "#/$defs/field"},
+            "concentration_cap": {"$ref": "#/$defs/field"},
+            "rebalance_cycle": {"$ref": "#/$defs/field"},
+            "event_treatment": {"$ref": "#/$defs/field"},
+            "rights_requirement": {"$ref": "#/$defs/field"},
+            "method_versioning": {"$ref": "#/$defs/field"},
+            "restatement_policy": {"$ref": "#/$defs/field"},
+            "limitations": {"$ref": "#/$defs/field"}
+          }
+        },
+        "index_level": {"$ref": "#/$defs/field"},
+        "constituents": {"$ref": "#/$defs/field"}
+      }
+    }
+  }
+}
