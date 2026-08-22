@@ -54,6 +54,7 @@ jobs:
             META_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
             DISC_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-hourly-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
           fi
+
           BASE_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$BASE_JQ")
           test -n "$BASE_ID"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BASE_ID}/zip" > /tmp/base.zip
@@ -62,6 +63,7 @@ jobs:
           test -n "$BASE_SRC"
           cp "$BASE_SRC" /tmp/base-cycle/asi-discovery-steering-plan-v1.json
 
+          BAL_CANON=/tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
           BAL_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$BAL_JQ")
           if [ -n "$BAL_ID" ]; then
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BAL_ID}/zip" > /tmp/balance.zip
@@ -92,11 +94,13 @@ jobs:
               /tmp/live-gates/asi-gate2-independent-reverification-v1.json \
               /tmp/live-gates/asi-gate3-admission-runtime-v1.json \
               /tmp/live-gates/asi-admitted-metadata-pool-v1.json \
-              /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
-            BAL_SRC=/tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
+              "$BAL_CANON"
+            BAL_SRC="$BAL_CANON"
           fi
+
           node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs "$BAL_SRC"
-          cp "$BAL_SRC" /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
+          if [ "$BAL_SRC" != "$BAL_CANON" ]; then cp "$BAL_SRC" "$BAL_CANON"; fi
+          test -f "$BAL_CANON"
       - name: Apply sweep-safe live autobalance overlay
         run: |
           node scripts/kidults/source-intelligence/apply-asi-autobalance-steering-overlay-v1.mjs \
