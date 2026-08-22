@@ -7,7 +7,8 @@
   "semantic_inputs": [
     "kidults-platform-definition-v1",
     "collectibles-universe-definition-v1",
-    "kidults-end-to-end-value-chain-contract-v1"
+    "kidults-end-to-end-value-chain-contract-v1",
+    "kidults-proof-product-data-contract-v1"
   ],
   "portal_role": "READ_ONLY_EXPERIENCE_CONSUMER",
   "required_projection_fields": [
@@ -25,6 +26,19 @@
     "provenance_references",
     "limitations"
   ],
+  "proof_product_binding": {
+    "contract": "../product/kidults-proof-product-data-contract-v1.json",
+    "schema": "../schemas/kidults-proof-product-projection-v1.schema.json",
+    "products": [
+      "OBJECT_PASSPORT",
+      "MARKET_PROJECTION_API",
+      "KIDULT_100_INDEX"
+    ],
+    "projection_only": true,
+    "closed_field_value_allowed": false,
+    "missing_to_zero": false,
+    "public_claims_authorized": false
+  },
   "experience_sections": [
     "KIDULTS_MARKET_LENS",
     "COLLECTIBLES_UNIVERSE",
@@ -42,6 +56,9 @@
     "PORTAL_SIDE_INDEX_RANKING",
     "RAW_PROVIDER_DATA",
     "MISSING_TO_ZERO",
+    "LOCAL_PROOF_PRODUCT_VALUE_OR_STATE",
+    "STALE_OR_RIGHTS_BLOCKED_VALUE_DISPLAY",
+    "INDEX_LEVEL_WITHOUT_PUBLICATION_GATE",
     "TOY_ONLY_BRAND_FRAMING",
     "UNQUALIFIED_PRODUCT_MARKET_CLAIM"
   ],
