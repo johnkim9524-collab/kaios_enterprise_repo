@@ -12,8 +12,15 @@ const allowed = new Set(['ALLOW','CONDITIONAL','DENY','UNKNOWN']);
 const states = new Set(['ADMITTED','CONDITIONAL','DISCOVERY_ONLY','BLOCKED']);
 const technical = new Set(['PASS','CONDITIONAL','FAIL','UNKNOWN']);
 const evidence = new Set(['SUFFICIENT','LIMITED','INSUFFICIENT','UNKNOWN']);
+const accessChannels = new Set(['PUBLIC_HTML','API','FEED','LICENSED_FILE','MANUAL_REFERENCE']);
 
 if (typeof r.source_id !== 'string' || r.source_id.length === 0) throw new Error('source_id required');
+if (!r.scope || typeof r.scope !== 'object' || Array.isArray(r.scope)) throw new Error('scope object required');
+if (typeof r.scope.category !== 'string') throw new Error('scope.category string required');
+if (typeof r.scope.geography !== 'string') throw new Error('scope.geography string required');
+if (r.scope.language !== undefined && typeof r.scope.language !== 'string') throw new Error('scope.language must be string when present');
+if (typeof r.source_type !== 'string') throw new Error('source_type string required');
+if (!accessChannels.has(r.access_channel)) throw new Error('invalid access_channel');
 if (!states.has(r.state)) throw new Error('invalid state');
 if (!technical.has(r.technical_validity)) throw new Error('invalid technical_validity');
 if (!evidence.has(r.evidence_validity)) throw new Error('invalid evidence_validity');
@@ -48,6 +55,7 @@ console.log(JSON.stringify({
   state:r.state,
   validation:'PASS',
   validation_as_of: validationAsOf,
+  source_context_schema_checked: true,
   admitted_execution_purpose_rights: r.state === 'ADMITTED' ? 'EXPLICIT_ALLOW_ONLY' : 'NOT_APPLICABLE_TO_NON_ADMITTED_STATE',
   rights_expiry_checked: expiresMs === null ? 'NO_EXPIRY_DECLARED' : 'PASS_AND_NOT_EXPIRED_FOR_STATE',
   production:'HOLD'
