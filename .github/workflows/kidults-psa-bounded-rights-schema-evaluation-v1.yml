@@ -1,12 +1,6 @@
 name: KIDULTS PSA Bounded Rights Schema Evaluation V1
 
 on:
-  pull_request:
-    paths:
-      - 'coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json'
-      - 'scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs'
-      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
-      - '.github/workflows/kidults-psa-bounded-rights-schema-evaluation-v1.yml'
   workflow_dispatch:
     inputs:
       cert_numbers:
@@ -52,7 +46,6 @@ jobs:
           test "$code" -eq 3
 
   bounded-live-schema-probe:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
