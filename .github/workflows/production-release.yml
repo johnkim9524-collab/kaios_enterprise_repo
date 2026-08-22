@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   certify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
@@ -30,6 +30,15 @@ jobs:
           echo "expected=${EXPECTED_SHA}"
           echo "actual=${ACTUAL_SHA}"
           test "${ACTUAL_SHA}" = "${EXPECTED_SHA}"
+
+      - name: Record release runner identity
+        run: |
+          set -euo pipefail
+          echo "runner_os=${RUNNER_OS:-UNKNOWN}"
+          echo "runner_arch=${RUNNER_ARCH:-UNKNOWN}"
+          echo "image_os=${ImageOS:-UNKNOWN}"
+          echo "image_version=${ImageVersion:-UNKNOWN}"
+          cat /etc/os-release
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
