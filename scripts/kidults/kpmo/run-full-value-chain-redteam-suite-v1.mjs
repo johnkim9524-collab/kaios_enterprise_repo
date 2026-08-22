@@ -27,6 +27,9 @@ const runtimeBoundaryValidators = [
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py'
 ];
+const productionRecoveryValidators = [
+  'scripts/kidults/kpmo/validate-production-rollback-contract-v1.mjs'
+];
 const downstreamBoundaryValidators = [
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
@@ -40,6 +43,7 @@ const validators = [...new Set([
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
   ...runtimeBoundaryValidators,
+  ...productionRecoveryValidators,
   ...downstreamBoundaryValidators
 ])];
 
@@ -88,6 +92,9 @@ console.log(JSON.stringify({
   digitalocean_staging_bootstrap_boundary_machine_bound: true,
   digitalocean_staging_bootstrap_exec_contract_machine_bound: true,
   digitalocean_staging_bootstrap_workflow_machine_bound: true,
+  production_recovery_boundary_machine_bound: true,
+  production_recovery_validators: productionRecoveryValidators.length,
+  production_automatic_rollback_executable_contract: true,
   projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
