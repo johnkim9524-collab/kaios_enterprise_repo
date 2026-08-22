@@ -47,7 +47,8 @@ if (r.state === 'ADMITTED' && unresolvedExecutionRights.length) {
 }
 if (r.state === 'ADMITTED' && r.technical_validity !== 'PASS') throw new Error('ADMITTED requires technical_validity PASS');
 if (r.state === 'ADMITTED' && !['SUFFICIENT','LIMITED'].includes(r.evidence_validity)) throw new Error('ADMITTED requires non-UNKNOWN evidence validity');
-if (r.state === 'ADMITTED' && expiresMs !== null && expiresMs <= asOfMs) throw new Error('ADMITTED requires unexpired rights at validation_as_of');
+if (r.state === 'ADMITTED' && expiresMs === null) throw new Error('ADMITTED requires explicit rights expiry');
+if (r.state === 'ADMITTED' && expiresMs <= asOfMs) throw new Error('ADMITTED requires unexpired rights at validation_as_of');
 if (r.rights.display_public !== 'ALLOW' && r.publication_eligible === true) throw new Error('publication requires display_public ALLOW');
 
 console.log(JSON.stringify({
@@ -57,6 +58,6 @@ console.log(JSON.stringify({
   validation_as_of: validationAsOf,
   source_context_schema_checked: true,
   admitted_execution_purpose_rights: r.state === 'ADMITTED' ? 'EXPLICIT_ALLOW_ONLY' : 'NOT_APPLICABLE_TO_NON_ADMITTED_STATE',
-  rights_expiry_checked: expiresMs === null ? 'NO_EXPIRY_DECLARED' : 'PASS_AND_NOT_EXPIRED_FOR_STATE',
+  rights_expiry_checked: r.state === 'ADMITTED' ? 'PASS_AND_NOT_EXPIRED' : (expiresMs === null ? 'NO_EXPIRY_DECLARED_NON_ADMITTED' : 'PASS_AND_NOT_EXPIRED_FOR_STATE'),
   production:'HOLD'
 }));
