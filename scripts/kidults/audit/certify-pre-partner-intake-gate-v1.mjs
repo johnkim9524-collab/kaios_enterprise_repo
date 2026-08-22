@@ -11,17 +11,20 @@ const run = p => {
 
 const control = readJson('coordination/kidults/audit/unified-audit-control-plane-v1.json');
 const fixtures = readJson('coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json');
+const lifecycleExtension = readJson('coordination/kidults/audit/destructive-lifecycle-control-extension-v1.json');
 const projection = readJson('coordination/kidults/projection-dry-run/projection-dry-run-contract-v1.json');
 
 assert(control.governing_issue === 881, 'control plane must bind #881');
 assert(control.rule === 'NO_PARTNER_DATA_INGESTION_BEFORE_PRE_INTAKE_GATE_PASS', 'pre-intake rule drift');
 assert(Array.isArray(control.pre_partner_control_families) && control.pre_partner_control_families.length === 12, 'all 12 control families required');
-for (const family of control.pre_partner_control_families) {
-  assert(family.id && Array.isArray(family.required_controls) && family.required_controls.length > 0, `incomplete family ${family.id}`);
-}
+for (const family of control.pre_partner_control_families) assert(family.id && Array.isArray(family.required_controls) && family.required_controls.length > 0, `incomplete family ${family.id}`);
 assert(Array.isArray(fixtures.fixtures) && fixtures.fixtures.length === 12, '12 executable adversarial fixtures required');
 assert(fixtures.fixture_type === 'SYNTHETIC_NON_PROMOTABLE_CONTROL', 'fixture class drift');
 assert(fixtures.empirical_gate_effect === 'NONE', 'synthetic fixtures cannot close empirical gates');
+assert(lifecycleExtension.governing_issue === 961 && lifecycleExtension.extends_governing_issue === 881, 'authenticated destructive lifecycle extension required');
+assert((lifecycleExtension.bound_control_families || []).includes('REPLAY_RECOVERY_ROLLBACK'), 'destructive lifecycle control must bind recovery family');
+assert((lifecycleExtension.bound_control_families || []).includes('PRIVACY_SECURITY_SECRETS'), 'destructive lifecycle control must bind security family');
+assert((lifecycleExtension.bound_control_families || []).includes('PROVENANCE_EVIDENCE_LINEAGE'), 'destructive lifecycle control must bind provenance family');
 assert(projection.governing_issue === 884 && projection.governing_rule === 'PREWIRE_FIRST_DATA_LATER', '#884 Projection dry-run binding required');
 assert(projection.truth_boundary.real_candidate_evidence === 'NONE', 'Projection fixture promoted real Candidate/Evidence');
 assert(projection.truth_boundary.track_b === 'NOT_STARTED', 'Track B falsely started');
@@ -30,6 +33,7 @@ assert(projection.truth_boundary.live_approved_projection === 'NONE', 'live Proj
 const outputs = {
   control_family_coverage: run('scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs'),
   audit_control_plane: run('scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs'),
+  destructive_lifecycle_control_events: run('scripts/kidults/audit/validate-destructive-lifecycle-control-events-v1.mjs'),
   adversarial_fixtures: run('scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs'),
   source_admission_temporal_rights: run('scripts/kidults/source-intelligence/test-source-admission-record-v1.mjs'),
   rights_withdrawal_transitive_invalidation: run('scripts/kidults/audit/validate-rights-withdrawal-transitive-invalidation-v1.mjs'),
@@ -53,6 +57,8 @@ console.log(JSON.stringify({
   internal_pre_intake_gate: 'PASS',
   control_families: 12,
   exact_family_control_coverage: 'PASS',
+  authenticated_destructive_lifecycle_control: 'PASS',
+  destructive_lifecycle_extension_issue: 961,
   control_removal_mutation_selftest: 'PASS',
   executable_adversarial_fixtures: 12,
   source_admission_temporal_rights_fail_closed: 'PASS',
