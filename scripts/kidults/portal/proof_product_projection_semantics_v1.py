@@ -83,16 +83,25 @@ def validate_projection_semantics(
         if not lineage_assessment or lineage_assessment != rankability_assessment:
             raise ValueError("approved Projection assessment identity rebound/mismatch")
 
-    observed_at = _parse_time(freshness.get("observed_at"), "freshness.observed_at")
-    valid_until = _parse_time(freshness.get("valid_until"), "freshness.valid_until")
-    if observed_at > valid_until:
-        raise ValueError("freshness observation occurs after validity end")
-
-    if freshness.get("state") == "CURRENT":
+    freshness_state = freshness.get("state")
+    observed_raw = freshness.get("observed_at")
+    valid_until_raw = freshness.get("valid_until")
+    if freshness_state == "CURRENT":
+        observed_at = _parse_time(observed_raw, "freshness.observed_at")
+        valid_until = _parse_time(valid_until_raw, "freshness.valid_until")
+        if observed_at > valid_until:
+            raise ValueError("freshness observation occurs after validity end")
         if observed_at > trusted_now:
             raise ValueError("CURRENT freshness observation is in the future")
         if trusted_now >= valid_until:
             raise ValueError("CURRENT freshness has expired at trusted consumer clock")
+    elif observed_raw is not None or valid_until_raw is not None:
+        if observed_raw is None or valid_until_raw is None:
+            raise ValueError("freshness timestamps must be both present or both absent")
+        observed_at = _parse_time(observed_raw, "freshness.observed_at")
+        valid_until = _parse_time(valid_until_raw, "freshness.valid_until")
+        if observed_at > valid_until:
+            raise ValueError("freshness observation occurs after validity end")
 
     generated_at = _parse_time(projection.get("generated_at"), "generated_at")
     updated_at = _parse_time(projection.get("updated_at"), "updated_at")
