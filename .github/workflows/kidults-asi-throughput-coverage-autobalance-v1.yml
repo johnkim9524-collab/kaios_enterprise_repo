@@ -1,0 +1,57 @@
+name: KIDULTS ASI Throughput Coverage Autobalance v1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs'
+      - '.github/workflows/kidults-asi-throughput-coverage-autobalance-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  autobalance-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with: {node-version: '24'}
+      - name: Verify exact source SHA and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs
+      - name: Build deterministic synthetic full-chain fixture
+        run: |
+          mkdir -p /tmp/autobalance-fixture discovery-out
+          node - <<'NODE'
+          const fs=require('fs');
+          const candidates=[];
+          for(let i=0;i<40;i++) candidates.push({candidate_id:`c${i}`,scope_hint:i<30?'designer_toys':'mechanical_watches',target_regions:i<35?['NORTH_AMERICA']:['EUROPE'],discovery_provider:i<32?'P1':'P2'});
+          fs.writeFileSync('discovery-out/global-low-risk-discovery.json',JSON.stringify({candidate_count:40,live_external_candidate_count:36,candidates}));
+          fs.writeFileSync('/tmp/autobalance-fixture/g1.json',JSON.stringify({safe_candidate_count:10}));
+          fs.writeFileSync('/tmp/autobalance-fixture/g2.json',JSON.stringify({verified_for_gate3_count:6}));
+          fs.writeFileSync('/tmp/autobalance-fixture/g3.json',JSON.stringify({admitted_count:4}));
+          fs.writeFileSync('/tmp/autobalance-fixture/ap.json',JSON.stringify({active_admitted_count:3}));
+          NODE
+      - name: Build and validate autobalance plan
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/autobalance-fixture/g1.json /tmp/autobalance-fixture/g2.json /tmp/autobalance-fixture/g3.json /tmp/autobalance-fixture/ap.json /tmp/asi-throughput-coverage-autobalance-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/asi-throughput-coverage-autobalance-v1.json
+      - name: Reject rights-gate weakening mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-throughput-coverage-autobalance-v1.json'));x.rules.rights_gate_can_never_be_weakened=false;fs.writeFileSync('/tmp/bad-autobalance.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/bad-autobalance.json; then exit 1; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-throughput-coverage-autobalance-v1
+          path: /tmp/asi-throughput-coverage-autobalance-v1.json
+          retention-days: 30
+          if-no-files-found: error
