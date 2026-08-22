@@ -27,6 +27,7 @@ const p0PrePartnerValidators = [
   'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs',
+  'scripts/kidults/audit/validate-pre-partner-adversarial-fixture-semantic-binding-v1.mjs',
   'scripts/kidults/audit/validate-rights-withdrawal-transitive-invalidation-v1.mjs',
   'scripts/kidults/audit/validate-destructive-lifecycle-recovery-monotonicity-v1.mjs',
   'scripts/kidults/audit/validate-destructive-canonical-suppression-v1.mjs'
@@ -115,6 +116,7 @@ console.log(JSON.stringify({
   pre_partner_control_families: 12,
   pre_partner_required_controls_exactly_bound: true,
   pre_partner_control_removal_mutation_selftest: true,
+  pre_partner_adversarial_fixture_semantic_binding_machine_bound: true,
   pre_partner_transitive_invalidation_machine_bound: true,
   pre_partner_durable_destructive_replay_machine_bound: true,
   pre_partner_rollback_revocation_resurrection_fail_closed: true,
