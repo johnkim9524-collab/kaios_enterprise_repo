@@ -10,7 +10,9 @@ const ALLOWED_UNITS = new Set(['ITEM','LOT']);
 const ALLOWED_DESTRUCTIVE_ACTIONS = new Set(['WITHDRAW','DELETE']);
 const SUPPRESSION_STATE = 'SUPPRESSED_NO_REINGESTION';
 const TRUSTED_DESTRUCTIVE_EVENT_SOURCE = 'CONTROL_PLANE';
+const TRUSTED_SUPPRESSION_CHECKPOINT_SOURCE = 'CONTROL_PLANE';
 const SUPPRESSION_SNAPSHOT_STATE = 'LOADED';
+const SUPPRESSION_FENCE_STATE = 'CURRENT_AT_ADMISSION_COMMIT';
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
@@ -55,6 +57,18 @@ function digestTrustedDestructiveEvent(event) {
   return sha256(body);
 }
 
+function digestTrustedSuppressionCheckpoint(checkpoint) {
+  const body = structuredClone(checkpoint);
+  delete body.checkpoint_digest;
+  return sha256(body);
+}
+
+function digestAdmissionSuppressionFence(fence) {
+  const body = structuredClone(fence);
+  delete body.fence_digest;
+  return sha256(body);
+}
+
 function buildSuppressionSnapshot(events, tombstones, epoch = 1) {
   const snapshot = {
     state: SUPPRESSION_SNAPSHOT_STATE,
@@ -65,6 +79,31 @@ function buildSuppressionSnapshot(events, tombstones, epoch = 1) {
   };
   snapshot.snapshot_digest = digestSuppressionSnapshot(snapshot);
   return snapshot;
+}
+
+function buildTrustedSuppressionCheckpoint(snapshot) {
+  const checkpoint = {
+    trusted_source: TRUSTED_SUPPRESSION_CHECKPOINT_SOURCE,
+    epoch: snapshot.epoch,
+    event_count: snapshot.event_count,
+    tombstone_count: snapshot.tombstone_count,
+    last_event_digest: snapshot.last_event_digest,
+    snapshot_digest: snapshot.snapshot_digest
+  };
+  checkpoint.checkpoint_digest = digestTrustedSuppressionCheckpoint(checkpoint);
+  return checkpoint;
+}
+
+function buildAdmissionSuppressionFence(checkpoint) {
+  const fence = {
+    trusted_source: TRUSTED_SUPPRESSION_CHECKPOINT_SOURCE,
+    state: SUPPRESSION_FENCE_STATE,
+    checkpoint_digest: checkpoint.checkpoint_digest,
+    epoch: checkpoint.epoch,
+    snapshot_digest: checkpoint.snapshot_digest
+  };
+  fence.fence_digest = digestAdmissionSuppressionFence(fence);
+  return fence;
 }
 
 function rightsTemporalStatus(rights, asOf) {
@@ -92,6 +131,12 @@ function normalizeTrustedContext(raw = {}) {
     canonical_suppression_snapshot: raw.canonical_suppression_snapshot
       ? structuredClone(raw.canonical_suppression_snapshot)
       : null,
+    trusted_canonical_suppression_checkpoint: raw.trusted_canonical_suppression_checkpoint
+      ? structuredClone(raw.trusted_canonical_suppression_checkpoint)
+      : null,
+    trusted_admission_suppression_fence: raw.trusted_admission_suppression_fence
+      ? structuredClone(raw.trusted_admission_suppression_fence)
+      : null,
     canonical_suppression_events: Array.isArray(raw.canonical_suppression_events)
       ? structuredClone(raw.canonical_suppression_events)
       : [],
@@ -106,6 +151,8 @@ function normalizeTrustedContext(raw = {}) {
 
 function validateCanonicalSuppressionLedger(context) {
   const snapshot = context.canonical_suppression_snapshot;
+  const checkpoint = context.trusted_canonical_suppression_checkpoint;
+  const fence = context.trusted_admission_suppression_fence;
   const events = context.canonical_suppression_events;
   const tombstones = context.canonical_suppression_tombstones;
   const failures = [];
@@ -122,6 +169,36 @@ function validateCanonicalSuppressionLedger(context) {
     const expectedLastDigest = events.length ? events[events.length - 1]?.event_digest : 'GENESIS';
     if (snapshot.last_event_digest !== expectedLastDigest) failures.push('canonical_suppression_snapshot_last_digest_drift');
     if (snapshot.snapshot_digest !== digestSuppressionSnapshot(snapshot)) failures.push('canonical_suppression_snapshot_digest_mismatch');
+  }
+
+  // P0 #1003: a self-consistent hydrated snapshot is not proof that it is the current authoritative
+  // head. Bind every decision to an independently trusted control-plane checkpoint and a commit fence.
+  if (!checkpoint || typeof checkpoint !== 'object') {
+    failures.push('canonical_suppression_checkpoint_missing');
+  } else {
+    if (checkpoint.trusted_source !== TRUSTED_SUPPRESSION_CHECKPOINT_SOURCE) failures.push('canonical_suppression_checkpoint_untrusted_source');
+    if (!Number.isInteger(checkpoint.epoch) || checkpoint.epoch < 1) failures.push('canonical_suppression_checkpoint_epoch_invalid');
+    if (checkpoint.checkpoint_digest !== digestTrustedSuppressionCheckpoint(checkpoint)) failures.push('canonical_suppression_checkpoint_digest_mismatch');
+    if (snapshot && typeof snapshot === 'object') {
+      if (checkpoint.epoch !== snapshot.epoch) failures.push('canonical_suppression_checkpoint_epoch_mismatch');
+      if (checkpoint.event_count !== snapshot.event_count) failures.push('canonical_suppression_checkpoint_event_count_mismatch');
+      if (checkpoint.tombstone_count !== snapshot.tombstone_count) failures.push('canonical_suppression_checkpoint_tombstone_count_mismatch');
+      if (checkpoint.last_event_digest !== snapshot.last_event_digest) failures.push('canonical_suppression_checkpoint_last_digest_mismatch');
+      if (checkpoint.snapshot_digest !== snapshot.snapshot_digest) failures.push('canonical_suppression_checkpoint_snapshot_digest_mismatch');
+    }
+  }
+
+  if (!fence || typeof fence !== 'object') {
+    failures.push('canonical_suppression_admission_fence_missing');
+  } else {
+    if (fence.trusted_source !== TRUSTED_SUPPRESSION_CHECKPOINT_SOURCE) failures.push('canonical_suppression_admission_fence_untrusted_source');
+    if (fence.state !== SUPPRESSION_FENCE_STATE) failures.push('canonical_suppression_admission_fence_state_invalid');
+    if (fence.fence_digest !== digestAdmissionSuppressionFence(fence)) failures.push('canonical_suppression_admission_fence_digest_mismatch');
+    if (checkpoint && typeof checkpoint === 'object') {
+      if (fence.checkpoint_digest !== checkpoint.checkpoint_digest) failures.push('canonical_suppression_admission_fence_checkpoint_mismatch');
+      if (fence.epoch !== checkpoint.epoch) failures.push('canonical_suppression_admission_fence_epoch_mismatch');
+      if (fence.snapshot_digest !== checkpoint.snapshot_digest) failures.push('canonical_suppression_admission_fence_snapshot_mismatch');
+    }
   }
 
   if (!events.length && !tombstones.length) return [...new Set(failures)];
@@ -317,8 +394,12 @@ function buildCleanAdmissionContext(record, options = {}) {
   const canonical = options.canonical_source_object_id || sourceRecordId;
   const events = [];
   const tombstones = [];
+  const snapshot = buildSuppressionSnapshot(events, tombstones, options.epoch || 1);
+  const checkpoint = buildTrustedSuppressionCheckpoint(snapshot);
   return {
-    canonical_suppression_snapshot: buildSuppressionSnapshot(events, tombstones, options.epoch || 1),
+    canonical_suppression_snapshot: snapshot,
+    trusted_canonical_suppression_checkpoint: checkpoint,
+    trusted_admission_suppression_fence: buildAdmissionSuppressionFence(checkpoint),
     canonical_suppression_events: events,
     canonical_suppression_tombstones: tombstones,
     trusted_canonical_resolution: {
@@ -365,6 +446,17 @@ const cleanContextMutationCases = [
   ['snapshot_event_count_drift', c => { c.canonical_suppression_snapshot.event_count = 1; c.canonical_suppression_snapshot.snapshot_digest = digestSuppressionSnapshot(c.canonical_suppression_snapshot); }],
   ['snapshot_last_digest_drift', c => { c.canonical_suppression_snapshot.last_event_digest = 'forged'; c.canonical_suppression_snapshot.snapshot_digest = digestSuppressionSnapshot(c.canonical_suppression_snapshot); }],
   ['snapshot_digest_tamper', c => { c.canonical_suppression_snapshot.snapshot_digest = 'forged'; }],
+  ['missing_checkpoint', c => { delete c.trusted_canonical_suppression_checkpoint; }],
+  ['checkpoint_untrusted_source', c => { c.trusted_canonical_suppression_checkpoint.trusted_source = 'CALLER'; c.trusted_canonical_suppression_checkpoint.checkpoint_digest = digestTrustedSuppressionCheckpoint(c.trusted_canonical_suppression_checkpoint); }],
+  ['checkpoint_epoch_rebinding_resigned', c => { c.trusted_canonical_suppression_checkpoint.epoch += 1; c.trusted_canonical_suppression_checkpoint.checkpoint_digest = digestTrustedSuppressionCheckpoint(c.trusted_canonical_suppression_checkpoint); }],
+  ['checkpoint_snapshot_rebinding_resigned', c => { c.trusted_canonical_suppression_checkpoint.snapshot_digest = 'other-snapshot'; c.trusted_canonical_suppression_checkpoint.checkpoint_digest = digestTrustedSuppressionCheckpoint(c.trusted_canonical_suppression_checkpoint); }],
+  ['checkpoint_digest_tamper', c => { c.trusted_canonical_suppression_checkpoint.checkpoint_digest = 'forged'; }],
+  ['missing_admission_fence', c => { delete c.trusted_admission_suppression_fence; }],
+  ['admission_fence_untrusted_source', c => { c.trusted_admission_suppression_fence.trusted_source = 'CALLER'; c.trusted_admission_suppression_fence.fence_digest = digestAdmissionSuppressionFence(c.trusted_admission_suppression_fence); }],
+  ['admission_fence_state_invalid', c => { c.trusted_admission_suppression_fence.state = 'STALE'; c.trusted_admission_suppression_fence.fence_digest = digestAdmissionSuppressionFence(c.trusted_admission_suppression_fence); }],
+  ['admission_fence_checkpoint_rebinding_resigned', c => { c.trusted_admission_suppression_fence.checkpoint_digest = 'other-checkpoint'; c.trusted_admission_suppression_fence.fence_digest = digestAdmissionSuppressionFence(c.trusted_admission_suppression_fence); }],
+  ['admission_fence_epoch_rebinding_resigned', c => { c.trusted_admission_suppression_fence.epoch += 1; c.trusted_admission_suppression_fence.fence_digest = digestAdmissionSuppressionFence(c.trusted_admission_suppression_fence); }],
+  ['admission_fence_digest_tamper', c => { c.trusted_admission_suppression_fence.fence_digest = 'forged'; }],
   ['missing_resolution_on_empty_ledger', c => { delete c.trusted_canonical_resolution; }],
   ['ambiguous_resolution_on_empty_ledger', c => { c.trusted_canonical_resolution.status = 'AMBIGUOUS'; }],
   ['record_rebinding_on_empty_ledger', c => { c.trusted_canonical_resolution.source_record_id = 'other-record'; }]
@@ -540,10 +632,14 @@ const canonicalSuppressionTombstone = {
   raw_content_retained: false
 };
 canonicalSuppressionTombstone.tombstone_digest = digestSuppressionTombstone(canonicalSuppressionTombstone);
+const canonicalSuppressionSnapshot = buildSuppressionSnapshot([canonicalSuppressionEvent], [canonicalSuppressionTombstone], 2);
+const canonicalSuppressionCheckpoint = buildTrustedSuppressionCheckpoint(canonicalSuppressionSnapshot);
 const canonicalSuppressionContext = {
   canonical_suppression_events: [canonicalSuppressionEvent],
   canonical_suppression_tombstones: [canonicalSuppressionTombstone],
-  canonical_suppression_snapshot: buildSuppressionSnapshot([canonicalSuppressionEvent], [canonicalSuppressionTombstone], 2),
+  canonical_suppression_snapshot: canonicalSuppressionSnapshot,
+  trusted_canonical_suppression_checkpoint: canonicalSuppressionCheckpoint,
+  trusted_admission_suppression_fence: buildAdmissionSuppressionFence(canonicalSuppressionCheckpoint),
   trusted_canonical_resolution: {
     status: 'RESOLVED_UNAMBIGUOUS',
     source_record_id: 'delete-001-rekeyed',
@@ -565,6 +661,27 @@ if (rekeyedReplayDisposition.disposition !== 'REJECTED_CANONICAL_OBJECT_SUPPRESS
   throw new Error(`post-delete canonical alias replay bypassed suppression: ${rekeyedReplayDisposition.disposition}/${rekeyedReplayDisposition.triggers.join(',')}`);
 }
 
+// P0 #1003 regression: an older self-consistent clean snapshot cannot override a newer trusted
+// destructive checkpoint. This covers stale read, rollback image, replica lag and replay paths.
+const staleCleanContext = buildCleanAdmissionContext(rekeyedAfterDelete, {
+  source_owner_id: deletionEvent.source_owner_id,
+  source_namespace: deletionEvent.source_namespace,
+  canonical_source_object_id: 'canonical-delete-001',
+  epoch: 1
+});
+staleCleanContext.trusted_canonical_suppression_checkpoint = structuredClone(canonicalSuppressionCheckpoint);
+staleCleanContext.trusted_admission_suppression_fence = buildAdmissionSuppressionFence(staleCleanContext.trusted_canonical_suppression_checkpoint);
+const staleNormalDisposition = evaluateRecord(structuredClone(rekeyedAfterDelete), staleCleanContext);
+if (staleNormalDisposition.disposition !== 'QUARANTINED_OR_REJECTED' || !staleNormalDisposition.triggers.includes('canonical_suppression_checkpoint_epoch_mismatch')) {
+  throw new Error(`stale clean suppression snapshot failed open: ${staleNormalDisposition.disposition}/${staleNormalDisposition.triggers.join(',')}`);
+}
+const staleReplayRecord = structuredClone(rekeyedAfterDelete);
+staleReplayRecord.replay = { is_replay: true, same_digest: true, idempotency_key_match: true };
+const staleReplayDisposition = evaluateRecord(staleReplayRecord, staleCleanContext);
+if (staleReplayDisposition.disposition !== 'QUARANTINED_OR_REJECTED' || staleReplayDisposition.disposition === 'IDEMPOTENT_REPLAY_WITH_AUDIT_TRACE') {
+  throw new Error(`stale suppression replay failed open: ${staleReplayDisposition.disposition}/${staleReplayDisposition.triggers.join(',')}`);
+}
+
 const independentSourceContext = structuredClone(canonicalSuppressionContext);
 independentSourceContext.trusted_canonical_resolution.source_owner_id = 'independent-owner';
 independentSourceContext.trusted_canonical_resolution.source_namespace = 'independent-source';
@@ -579,6 +696,11 @@ const canonicalSuppressionMutationCases = [
   ['snapshot_count_drift', c => { c.canonical_suppression_snapshot.event_count = 0; c.canonical_suppression_snapshot.snapshot_digest = digestSuppressionSnapshot(c.canonical_suppression_snapshot); }],
   ['snapshot_last_digest_drift', c => { c.canonical_suppression_snapshot.last_event_digest = 'forged'; c.canonical_suppression_snapshot.snapshot_digest = digestSuppressionSnapshot(c.canonical_suppression_snapshot); }],
   ['snapshot_digest_tamper', c => { c.canonical_suppression_snapshot.snapshot_digest = 'forged'; }],
+  ['missing_checkpoint', c => { delete c.trusted_canonical_suppression_checkpoint; }],
+  ['checkpoint_epoch_rebinding_resigned', c => { c.trusted_canonical_suppression_checkpoint.epoch += 1; c.trusted_canonical_suppression_checkpoint.checkpoint_digest = digestTrustedSuppressionCheckpoint(c.trusted_canonical_suppression_checkpoint); }],
+  ['checkpoint_last_digest_rebinding_resigned', c => { c.trusted_canonical_suppression_checkpoint.last_event_digest = 'other-head'; c.trusted_canonical_suppression_checkpoint.checkpoint_digest = digestTrustedSuppressionCheckpoint(c.trusted_canonical_suppression_checkpoint); }],
+  ['missing_admission_fence', c => { delete c.trusted_admission_suppression_fence; }],
+  ['admission_fence_checkpoint_rebinding_resigned', c => { c.trusted_admission_suppression_fence.checkpoint_digest = 'other-checkpoint'; c.trusted_admission_suppression_fence.fence_digest = digestAdmissionSuppressionFence(c.trusted_admission_suppression_fence); }],
   ['missing_resolution', c => { delete c.trusted_canonical_resolution; }],
   ['ambiguous_resolution', c => { c.trusted_canonical_resolution.status = 'AMBIGUOUS'; }],
   ['resolver_record_rebinding', c => { c.trusted_canonical_resolution.source_record_id = 'other-record'; }],
@@ -641,6 +763,10 @@ console.log(JSON.stringify({
   temporal_fail_closed_mutation_cases: temporalMutationCases.length,
   replay_cross_control_fail_closed_mutation_cases: replayFailClosedMutationCases.length,
   canonical_suppression_hydration_mandatory: true,
+  canonical_suppression_authoritative_checkpoint_mandatory: true,
+  canonical_suppression_admission_commit_fence_mandatory: true,
+  stale_suppression_snapshot_fail_closed: true,
+  stale_suppression_replay_fail_closed: true,
   canonical_resolution_mandatory_even_for_empty_ledger: true,
   omitted_suppression_context_fail_closed: true,
   replay_without_suppression_context_fail_closed: true,
