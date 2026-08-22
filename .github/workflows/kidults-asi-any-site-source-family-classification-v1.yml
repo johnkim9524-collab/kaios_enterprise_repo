@@ -1,0 +1,64 @@
+name: KIDULTS ASI Any-Site Source Family Classification v1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/classify-asi-any-site-source-family-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-any-site-source-family-v1.mjs'
+      - '.github/workflows/kidults-asi-any-site-source-family-classification-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-family-classification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with: {node-version: '24'}
+      - name: Verify exact source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/classify-asi-any-site-source-family-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-any-site-source-family-v1.mjs
+      - name: Build deterministic any-site fixture
+        run: |
+          mkdir -p /tmp/f
+          node - <<'NODE'
+          const fs=require('fs');
+          fs.writeFileSync('/tmp/f/discovery.json',JSON.stringify({candidates:[
+            {candidate_id:'a',endpoint_url:'https://example-museum.org',source_name:'Example Museum Archive',discovery_provider:'X',rights_state:'UNASSESSED'},
+            {candidate_id:'b',endpoint_url:'https://example-auction.com',source_name:'Example Auction Marketplace',discovery_provider:'X',rights_state:'UNASSESSED'},
+            {candidate_id:'c',endpoint_url:'https://example-grading.com',source_name:'Example Grading Authentication',discovery_provider:'X',rights_state:'UNASSESSED'},
+            {candidate_id:'d',endpoint_url:'https://example-forum.com',source_name:'Collector Community Forum',discovery_provider:'X',rights_state:'UNASSESSED'},
+            {candidate_id:'e',endpoint_url:'https://brand.example',source_name:'Brand',discovery_provider:'WIKIDATA_OFFICIAL_WEBSITE_GRAPH',rights_state:'UNASSESSED'},
+            {candidate_id:'f',endpoint_url:'https://unknown.example',source_name:'Unknown Endpoint',discovery_provider:'X',rights_state:'UNASSESSED'}
+          ]}));
+          NODE
+      - name: Classify and validate candidate-only semantics
+        run: |
+          node scripts/kidults/source-intelligence/classify-asi-any-site-source-family-v1.mjs /tmp/f/discovery.json /tmp/f/classified.json
+          node scripts/kidults/source-intelligence/validate-asi-any-site-source-family-v1.mjs /tmp/f/classified.json
+      - name: Reject listing to sold mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/f/classified.json'));const c=x.candidates.find(v=>v.source_family_hint==='OPEN_MARKETPLACE_OR_DEALER');c.candidate_source_roles=['SOLD_TRANSACTION'];c.terminal_transaction_asserted=false;fs.writeFileSync('/tmp/f/bad-sold.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-any-site-source-family-v1.mjs /tmp/f/bad-sold.json; then exit 1; fi
+      - name: Reject rights promotion mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/f/classified.json'));x.candidates[0].rights_state='ALLOW';fs.writeFileSync('/tmp/f/bad-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-any-site-source-family-v1.mjs /tmp/f/bad-rights.json; then exit 1; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-any-site-source-family-classification-v1
+          path: /tmp/f/classified.json
+          retention-days: 30
+          if-no-files-found: error
