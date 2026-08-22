@@ -1,0 +1,94 @@
+{
+  "id": "kidults-asi-proactive-source-pool-low-risk-policy-v1",
+  "version": "1.0.0",
+  "status": "P0_EXECUTION_POLICY_CANDIDATE",
+  "parent_pr": 1082,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "purpose": "Build and continuously maintain a web-scale, low-risk global source-candidate universe so downstream rights review, admission, normalization, entity resolution and market-evidence acquisition do not repeatedly restart from source discovery.",
+  "scale": {
+    "design_capacity_minimum_candidates": 100000,
+    "discovery_mode": "INCREMENTAL_ROLLING_POOL",
+    "full_rescan_each_cycle": false,
+    "candidate_retention": "ROLLING_WITH_LAST_SEEN_AND_REVALIDATION",
+    "category_control_axis": "32_COLLECTION_SCOPES",
+    "macroregion_axis": "8_CANONICAL_MACROREGIONS",
+    "sourcing_channel_axis": "7_CANONICAL_SOURCE_CHANNELS",
+    "customer_view": "8_CORE_CATEGORIES_AGGREGATE_THE_32_SCOPE_CONTROL_MODEL"
+  },
+  "automatic_low_risk_discovery_lanes": [
+    "COMMON_CRAWL_WEB_DATA_COMMONS_INDEX_METADATA",
+    "OVERTURE_MAPS_PLACES_WEBSITE_METADATA",
+    "WIKIDATA_ENTITY_AND_OFFICIAL_SITE_GRAPH",
+    "OPENSTREETMAP_WEBSITE_CONTACT_GRAPH",
+    "GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA",
+    "DATACITE_OPEN_RESEARCH_METADATA",
+    "PUBLIC_GOVERNMENT_AND_REGIONAL_OPEN_DATA_CATALOGS",
+    "ICANN_PUBLIC_ZONE_OR_REGISTRY_DERIVED_DISCOVERY_WHERE_LAWFUL",
+    "INTERNET_ARCHIVE_HISTORICAL_DOMAIN_CONTINUITY_METADATA",
+    "APPROVED_ASSOCIATION_DIRECTORY_OUTBOUND_LINK_FRONTIER",
+    "GLOBAL_NEWS_EVENT_DOMAIN_DISCOVERY_SIGNAL_ONLY"
+  ],
+  "separately_authorized_lanes": [
+    "LICENSED_SEARCH_OR_DATA_PROVIDER_DISCOVERY",
+    "COMMERCIAL_MARKETPLACE_API_OR_FEED",
+    "MEMBER_OR_DEALER_PORTAL",
+    "AUTHENTICATED_PROVIDER_DATA"
+  ],
+  "candidate_pipeline": [
+    "DISCOVER_METADATA",
+    "CANONICALIZE_DOMAIN_ENTITY",
+    "DEDUP_SOURCE_OWNER",
+    "CLASSIFY_SCOPE_CATEGORY",
+    "CLASSIFY_REGION_LANGUAGE",
+    "CLASSIFY_SOURCE_ROLE",
+    "LINK_EVIDENCE_DEMAND",
+    "SCORE_DISCOVERY_UTILITY",
+    "QUEUE_PURPOSE_SPECIFIC_RIGHTS_PREFLIGHT",
+    "ADMISSION_ONLY_AFTER_RIGHTS_PASS"
+  ],
+  "candidate_states": {
+    "rights_state": "UNASSESSED",
+    "admission_state": "NOT_ADMITTED",
+    "source_pool_state": "CANDIDATE_ONLY",
+    "evidence_state": "DISCOVERY_METADATA_ONLY",
+    "market_claim_state": "NOT_AUTHORIZED"
+  },
+  "prohibited_automatic_actions": [
+    "TARGET_SITE_BODY_CRAWLING_FROM_DISCOVERY_ALONE",
+    "LOGIN_PAYWALL_MEMBER_AREA_ACCESS",
+    "ROBOTS_OR_TERMS_CIRCUMVENTION",
+    "COMMERCIAL_DATA_EXTRACTION_WITHOUT_WRITTEN_RIGHTS",
+    "PROVIDER_CONTACT",
+    "ACCOUNT_CREATION",
+    "EULA_ACCEPTANCE",
+    "SPEND",
+    "RIGHTS_SELF_PROMOTION",
+    "EVIDENCE_SELF_PROMOTION",
+    "PUBLIC_PROJECTION",
+    "PRODUCTION_MUTATION"
+  ],
+  "redundancy_targets": {
+    "priority_cell_minimum_independent_candidate_owners": 2,
+    "global_claim_candidate_minimum_independent_owners": 3,
+    "single_provider_global_truth": false,
+    "measure_owner_concentration": true,
+    "measure_region_concentration": true
+  },
+  "burden_control": {
+    "rights_review_queue_is_bounded": true,
+    "prioritize_new_high_utility_multi_role_multi_region_candidates": true,
+    "do_not_send_all_discovered_candidates_to_humans": true,
+    "incremental_revalidation_instead_of_full_rescan": true,
+    "downstream_only_receives_ranked_candidates": true
+  },
+  "required_outputs": [
+    "GLOBAL_CANDIDATE_SOURCE_UNIVERSE",
+    "CATEGORY_X_MACROREGION_COVERAGE",
+    "SOURCE_ROLE_COVERAGE",
+    "INDEPENDENT_OWNER_DIVERSITY",
+    "RIGHTS_PREFLIGHT_PRIORITY_QUEUE",
+    "DISCOVERY_CHANNEL_HEALTH_AND_FAILURE_RESILIENCE"
+  ],
+  "truth_boundary": "Low-risk proactive pooling discovers and classifies candidates only. Discovery metadata, repetition, popularity or marketplace size never creates collection rights, admission, empirical evidence, market truth, public-release authority or Production authority."
+}
