@@ -1,0 +1,96 @@
+name: KIDULTS ASI Discovery Provider Health Circuit v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '19 * * * *'
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs'
+      - '.github/workflows/kidults-asi-discovery-provider-health-circuit-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-provider-health-circuit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  provider-health-circuit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs
+      - name: Restore latest main Any-Site discovery and previous circuit state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p discovery-out /tmp/provider-health-input /tmp/provider-health-previous
+          DISCOVERY_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select((.name=="kidults-asi-global-any-site-discovery-v2" or .name=="kidults-asi-global-any-site-hourly-cycle-v1") and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          test -n "$DISCOVERY_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISCOVERY_ID}/zip" > /tmp/provider-health-input.zip
+          unzip -q -o /tmp/provider-health-input.zip -d /tmp/provider-health-input
+          SRC=$(find /tmp/provider-health-input -type f -name global-low-risk-discovery.json | head -1)
+          test -n "$SRC"
+          cp "$SRC" discovery-out/global-low-risk-discovery.json
+          PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-discovery-provider-health-circuit-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          if [ -n "$PREV_ID" ]; then
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/provider-health-previous.zip
+            unzip -q -o /tmp/provider-health-previous.zip -d /tmp/provider-health-previous
+            PREV=$(find /tmp/provider-health-previous -type f -name asi-discovery-provider-health-circuit-v1.json | head -1 || true)
+            if [ -n "$PREV" ]; then cp "$PREV" /tmp/previous-asi-discovery-provider-health-circuit-v1.json; fi
+          fi
+      - name: Build and validate live provider circuit plan
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/previous-asi-discovery-provider-health-circuit-v1.json /tmp/asi-discovery-provider-health-circuit-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs /tmp/asi-discovery-provider-health-circuit-v1.json
+      - name: Reject failed-provider full-budget mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-discovery-provider-health-circuit-v1.json'));let p=x.providers.find(y=>y.current_status==='FAILED');if(!p){p=x.providers[0];p.current_status='FAILED';p.current_error='HTTP_429';}p.state='CLOSED_HEALTHY';p.next_cycle_action='FULL_DISCOVERY_BUDGET';fs.writeFileSync('/tmp/bad-provider-full-budget.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs /tmp/bad-provider-full-budget.json; then exit 1; fi
+      - name: Reject global discovery zeroing mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-discovery-provider-health-circuit-v1.json'));x.global_next_cycle.provider_failure_cannot_zero_global_discovery=false;fs.writeFileSync('/tmp/bad-provider-zero-global.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs /tmp/bad-provider-zero-global.json; then exit 1; fi
+      - name: Reject rights-boundary mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-discovery-provider-health-circuit-v1.json'));x.providers[0].rights_effect='ALLOW';fs.writeFileSync('/tmp/bad-provider-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs /tmp/bad-provider-rights.json; then exit 1; fi
+      - name: Emit provider health receipt
+        run: |
+          node - <<'NODE' >/tmp/asi-discovery-provider-health-circuit-receipt-v1.json
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-discovery-provider-health-circuit-v1.json'));process.stdout.write(JSON.stringify({id:'kidults-asi-discovery-provider-health-circuit-receipt-v1',status:'SHADOW_PROVIDER_HEALTH_CIRCUIT_COMPLETE',cycle:x.cycle_number,summary:x.summary,next_cycle_mode:x.global_next_cycle.mode,rights_changed:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/asi-discovery-provider-health-circuit-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-discovery-provider-health-circuit-v1
+          path: |
+            /tmp/asi-discovery-provider-health-circuit-v1.json
+            /tmp/asi-discovery-provider-health-circuit-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
