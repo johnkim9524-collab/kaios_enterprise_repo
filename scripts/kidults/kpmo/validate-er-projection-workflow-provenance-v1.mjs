@@ -6,16 +6,16 @@ const workflows = [
 ];
 
 const expectedSource = '${{ github.event.pull_request.head.sha || github.sha }}';
-const fullShaRef = /^\s*-?\s*uses:\s*([^\s@]+)@([0-9a-f]{40})(?:\s+#.*)?$/gm;
 
 function evaluate(text) {
   const findings = [];
-  const externalUses = [...text.matchAll(/^\s*-?\s*uses:\s*([^\s]+)\s*$/gm)]
+  const externalUses = [...text.matchAll(/^\s*-?\s*uses:\s*([^\s#]+)(?:\s+#.*)?\s*$/gm)]
     .map((m) => m[1])
     .filter((ref) => !ref.startsWith('./') && !ref.startsWith('docker://'));
 
+  if (externalUses.length === 0) findings.push('no_external_actions_detected');
   for (const ref of externalUses) {
-    if (!/@[0-9a-f]{40}(?:\s|$|#)/.test(ref)) findings.push(`mutable_external_action:${ref}`);
+    if (!/@[0-9a-f]{40}$/.test(ref)) findings.push(`mutable_external_action:${ref}`);
   }
   if (!text.includes(`ref: ${expectedSource}`)) findings.push('missing_exact_source_checkout');
   if (!/persist-credentials:\s*false/.test(text)) findings.push('checkout_credentials_persist');
