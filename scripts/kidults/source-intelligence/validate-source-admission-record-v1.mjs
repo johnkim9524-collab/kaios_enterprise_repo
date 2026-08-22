@@ -34,7 +34,8 @@ const hardFail = ['collect','store','derive'].some((p) => ['DENY','UNKNOWN'].inc
 if (hardFail && r.state === 'ADMITTED') throw new Error('fail-closed violation: ADMITTED with DENY/UNKNOWN collect/store/derive');
 if (r.state === 'ADMITTED' && r.technical_validity !== 'PASS') throw new Error('ADMITTED requires technical_validity PASS');
 if (r.state === 'ADMITTED' && !['SUFFICIENT','LIMITED'].includes(r.evidence_validity)) throw new Error('ADMITTED requires non-UNKNOWN evidence validity');
-if (r.state === 'ADMITTED' && expiresMs !== null && expiresMs <= asOfMs) throw new Error('ADMITTED requires unexpired rights at validation_as_of');
+if (r.state === 'ADMITTED' && expiresMs === null) throw new Error('ADMITTED requires explicit rights expiry');
+if (r.state === 'ADMITTED' && expiresMs <= asOfMs) throw new Error('ADMITTED requires unexpired rights at validation_as_of');
 if (r.rights.display_public !== 'ALLOW' && r.publication_eligible === true) throw new Error('publication requires display_public ALLOW');
 
 console.log(JSON.stringify({
@@ -42,6 +43,6 @@ console.log(JSON.stringify({
   state:r.state,
   validation:'PASS',
   validation_as_of: validationAsOf,
-  rights_expiry_checked: expiresMs === null ? 'NO_EXPIRY_DECLARED' : 'PASS_AND_NOT_EXPIRED_FOR_STATE',
+  rights_expiry_checked: r.state === 'ADMITTED' ? 'PASS_AND_NOT_EXPIRED' : (expiresMs === null ? 'NO_EXPIRY_DECLARED_NON_ADMITTED' : 'PASS_AND_NOT_EXPIRED_FOR_STATE'),
   production:'HOLD'
 }));
