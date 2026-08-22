@@ -32,9 +32,10 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');
           const candidates=[];
-          for(let i=0;i<40;i++) candidates.push({candidate_id:`c${i}`,scope_hint:i<30?'designer_toys':'mechanical_watches',target_regions:i<35?['NORTH_AMERICA']:['EUROPE'],discovery_provider:i<32?'P1':'P2'});
+          const fam=i=>i<10?'PRIMARY_OR_OFFICIAL_AUTHORITY':i<15?'OPEN_MARKETPLACE_OR_DEALER':i<17?'GRADING_AUTHENTICATION_OR_CONDITION':i<20?'MEDIA_COMMUNITY_OR_EVENT_CONTEXT':'UNCLASSIFIED_ANY_SITE_CANDIDATE';
+          for(let i=0;i<40;i++) candidates.push({candidate_id:`c${i}`,scope_hint:i<30?'designer_toys':'mechanical_watches',target_regions:i<35?['NORTH_AMERICA']:['EUROPE'],discovery_provider:i<32?'P1':'P2',source_family_hint:fam(i)});
           fs.writeFileSync('discovery-out/global-low-risk-discovery.json',JSON.stringify({candidate_count:40,live_external_candidate_count:36,candidates}));
-          fs.writeFileSync('/tmp/autobalance-fixture/g1.json',JSON.stringify({safe_candidate_count:10}));
+          fs.writeFileSync('/tmp/autobalance-fixture/g1.json',JSON.stringify({safe_candidate_count:10,safe_candidate_pool:candidates.slice(0,10),review_required_queue:candidates.slice(10),hard_block_queue:[]}));
           fs.writeFileSync('/tmp/autobalance-fixture/g2.json',JSON.stringify({verified_for_gate3_count:6}));
           fs.writeFileSync('/tmp/autobalance-fixture/g3.json',JSON.stringify({admitted_count:4}));
           fs.writeFileSync('/tmp/autobalance-fixture/ap.json',JSON.stringify({active_admitted_count:3}));
