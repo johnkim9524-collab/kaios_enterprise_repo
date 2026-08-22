@@ -1,0 +1,136 @@
+name: KIDULTS ASI Web-Index Expansion Governed Gate Chain v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '53 * * * *'
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/merge-asi-web-index-expansion-into-any-site-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-web-index-expansion-merge-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-observed-domain-source-graph-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-observed-domain-source-graph-v1.mjs'
+      - '.github/workflows/kidults-asi-web-index-expansion-gate-chain-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-web-index-expansion-gate-chain-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  governed-web-index-expansion:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/merge-asi-web-index-expansion-into-any-site-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-web-index-expansion-merge-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-observed-domain-source-graph-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-observed-domain-source-graph-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs
+      - name: Restore latest main Global Any-Site discovery artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p discovery-out /tmp/any-site-input
+          ART_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select((.name=="kidults-asi-global-any-site-discovery-v2" or .name=="kidults-asi-global-any-site-hourly-cycle-v1") and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          test -n "$ART_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip" > /tmp/any-site-input.zip
+          unzip -q -o /tmp/any-site-input.zip -d /tmp/any-site-input
+          SRC=$(find /tmp/any-site-input -type f -name global-low-risk-discovery.json | head -1)
+          test -n "$SRC"
+          cp "$SRC" discovery-out/global-low-risk-discovery.json
+      - name: Execute Common Crawl public-index host expansion
+        run: |
+          node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-host-expansion-v1.json
+      - name: Merge web-index candidates into governed Any-Site candidate view
+        run: |
+          node scripts/kidults/source-intelligence/merge-asi-web-index-expansion-into-any-site-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json /tmp/asi-global-any-site-web-index-expanded-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-web-index-expansion-merge-v1.mjs /tmp/asi-global-any-site-web-index-expanded-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs /tmp/asi-global-any-site-web-index-expanded-v1.json
+      - name: Build metadata-only observed domain source graph
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-observed-domain-source-graph-v1.mjs /tmp/asi-global-any-site-web-index-expanded-v1.json /tmp/asi-observed-domain-source-graph-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-observed-domain-source-graph-v1.mjs /tmp/asi-observed-domain-source-graph-v1.json
+      - name: GATE1 — classify expanded candidates without creating rights
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-global-any-site-web-index-expanded-v1.json /tmp/asi-web-index-gate1-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-web-index-gate1-v1.json
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-web-index-gate1-v1.json'));
+          const inserted=c=>c.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION';
+          const all=[...(x.safe_candidate_pool||[]),...(x.review_required_queue||[]),...(x.hard_block_queue||[])];
+          const cc=all.filter(inserted);if(!cc.length)throw new Error('NO_COMMON_CRAWL_CANDIDATES_REACHED_GATE1');
+          const unsafe=(x.safe_candidate_pool||[]).filter(inserted);if(unsafe.length)throw new Error('COMMON_CRAWL_METADATA_SELF_PROMOTED_TO_SAFE');
+          console.log(JSON.stringify({status:'PASS',common_crawl_gate1_candidates:cc.length,common_crawl_safe_without_rights:unsafe.length,production:'HOLD'}));
+          NODE
+      - name: GATE2 — independently reverify eligible Safe Candidate Pool
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs /tmp/asi-web-index-gate1-v1.json /tmp/asi-web-index-gate2-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs /tmp/asi-web-index-gate2-v1.json
+      - name: GATE3 — preserve bounded admission scope
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs /tmp/asi-web-index-gate2-v1.json /tmp/asi-web-index-gate3-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs /tmp/asi-web-index-gate3-v1.json
+      - name: Reject web-index rights promotion mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-global-any-site-web-index-expanded-v1.json'));const c=x.candidates.find(y=>y.web_index_expansion_observed===true);if(!c)process.exit(2);c.rights_state='ALLOW';fs.writeFileSync('/tmp/bad-web-index-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-web-index-expansion-merge-v1.mjs /tmp/bad-web-index-rights.json; then exit 1; fi
+      - name: Reject domain graph ownership promotion mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-observed-domain-source-graph-v1.json'));const g=x.nodes.find(y=>y.node_type==='OBSERVED_HOST_GROUP');if(!g)process.exit(2);g.ownership_verified=true;fs.writeFileSync('/tmp/bad-domain-ownership.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-observed-domain-source-graph-v1.mjs /tmp/bad-domain-ownership.json; then exit 1; fi
+      - name: Reject cross-host graph mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-observed-domain-source-graph-v1.json'));const c=x.nodes.find(y=>y.node_type==='SOURCE_ENDPOINT_CANDIDATE');if(!c)process.exit(2);c.endpoint_url='https://host-escape.invalid/path';fs.writeFileSync('/tmp/bad-domain-host.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-observed-domain-source-graph-v1.mjs /tmp/bad-domain-host.json; then exit 1; fi
+      - name: Emit governed expansion receipt
+        run: |
+          node - <<'NODE' >/tmp/asi-web-index-expansion-gate-chain-receipt-v1.json
+          const fs=require('fs');const d=JSON.parse(fs.readFileSync('/tmp/asi-global-any-site-web-index-expanded-v1.json'));const g=JSON.parse(fs.readFileSync('/tmp/asi-observed-domain-source-graph-v1.json'));const g1=JSON.parse(fs.readFileSync('/tmp/asi-web-index-gate1-v1.json'));const g2=JSON.parse(fs.readFileSync('/tmp/asi-web-index-gate2-v1.json'));const g3=JSON.parse(fs.readFileSync('/tmp/asi-web-index-gate3-v1.json'));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-web-index-expansion-gate-chain-receipt-v1',status:'SHADOW_WEB_INDEX_EXPANSION_GOVERNED_GATE_CHAIN_COMPLETE',total_candidates:d.candidate_count,web_index_expansion:d.web_index_expansion,observed_host_groups:g.group_count,gate1_safe:g1.safe_candidate_count,gate1_review:g1.review_required_count,gate2_verified:g2.verified_for_gate3_count,gate3_admitted:g3.admitted_count,content_acquired:false,rights_created:false,ownership_asserted:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/asi-web-index-expansion-gate-chain-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-web-index-expansion-gate-chain-v1
+          path: |
+            /tmp/asi-common-crawl-host-expansion-v1.json
+            /tmp/asi-global-any-site-web-index-expanded-v1.json
+            /tmp/asi-observed-domain-source-graph-v1.json
+            /tmp/asi-web-index-gate1-v1.json
+            /tmp/asi-web-index-gate2-v1.json
+            /tmp/asi-web-index-gate3-v1.json
+            /tmp/asi-web-index-expansion-gate-chain-receipt-v1.json
+          retention-days: 30
+          if-no-files-found: error
