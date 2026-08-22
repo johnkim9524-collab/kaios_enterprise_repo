@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import jsonschema
 import pytest
 
 
@@ -116,7 +117,6 @@ def test_contract_and_schema_are_parseable_and_bound():
 
 
 def test_closed_field_forbids_a_value_and_requires_opening_explanation():
-    jsonschema = pytest.importorskip("jsonschema")
     field_schema = load(SCHEMA_PATH)["$defs"]["field"]
     closed = closed_field("liquidity")
     jsonschema.Draft202012Validator(field_schema).validate(closed)
@@ -127,7 +127,6 @@ def test_closed_field_forbids_a_value_and_requires_opening_explanation():
 
 
 def test_verified_field_requires_evidence_reference():
-    jsonschema = pytest.importorskip("jsonschema")
     field_schema = load(SCHEMA_PATH)["$defs"]["field"]
     unbound = {
         "field_id": "identity",
@@ -144,7 +143,6 @@ def test_verified_field_requires_evidence_reference():
 
 
 def test_all_three_closed_state_payloads_validate_without_fabricated_values():
-    jsonschema = pytest.importorskip("jsonschema")
     schema = load(SCHEMA_PATH)
     validator = jsonschema.Draft202012Validator(schema)
 
