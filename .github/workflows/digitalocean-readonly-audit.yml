@@ -2,12 +2,6 @@ name: KIDULTS DigitalOcean Read-Only Audit
 
 on:
   workflow_dispatch:
-    inputs:
-      base_url:
-        description: Public KIDULTS runtime URL to observe
-        required: false
-        default: https://kaios.kidults.com
-        type: string
   schedule:
     - cron: "17 20 * * *"
 
@@ -16,26 +10,57 @@ permissions:
 
 jobs:
   audit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Enforce trusted main ref before secret consumption
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+
+      - name: Checkout exact triggering source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact source SHA
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          echo "expected=$EXPECTED_SHA"
+          echo "actual=$ACTUAL_SHA"
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
 
+      - name: Record runner identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "runner_os=${RUNNER_OS:-UNKNOWN}"
+          echo "runner_arch=${RUNNER_ARCH:-UNKNOWN}"
+          echo "image_os=${ImageOS:-UNKNOWN}"
+          echo "image_version=${ImageVersion:-UNKNOWN}"
+          python --version
+          cat /etc/os-release
+
       - name: Run read-only runtime audit
         env:
-          KIDULTS_MONITORED_BASE_URL: ${{ inputs.base_url || vars.KIDULTS_MONITORED_BASE_URL || 'https://kaios.kidults.com' }}
+          KIDULTS_MONITORED_BASE_URL: https://kaios.kidults.com
           DIGITALOCEAN_READ_TOKEN: ${{ secrets.DIGITALOCEAN_READ_TOKEN }}
           DIGITALOCEAN_DROPLET_ID: ${{ vars.DIGITALOCEAN_DROPLET_ID }}
           KIDULTS_AUDIT_OUTPUT: artifacts/digitalocean-readonly-audit
         run: python scripts/operations/digitalocean_readonly_audit.py
 
-      - name: Assert no mutation claim
+      - name: Assert no mutation or false binding claim
         run: |
           python - <<'PY'
           import json
@@ -45,12 +70,15 @@ jobs:
           assert report["mutation_performed"] is False
           assert report["production_connection_authorized"] is False
           assert report["production_decision"] == "HOLD"
+          assert report["binding"]["runtime_droplet_binding_verified"] is False
+          assert report["binding"]["binding_method"] == "NONE"
+          assert report["overall_state"] != "READ_ONLY_CONNECTION_VERIFIED"
           print(report["overall_state"])
           PY
 
       - name: Upload audit evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: kidults-digitalocean-readonly-audit
           path: artifacts/digitalocean-readonly-audit
