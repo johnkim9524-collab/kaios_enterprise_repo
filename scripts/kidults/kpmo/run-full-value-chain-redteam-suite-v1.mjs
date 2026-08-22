@@ -22,7 +22,8 @@ const p0PrePartnerValidators = [
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs',
   'scripts/kidults/audit/validate-rights-withdrawal-transitive-invalidation-v1.mjs',
-  'scripts/kidults/audit/validate-destructive-lifecycle-recovery-monotonicity-v1.mjs'
+  'scripts/kidults/audit/validate-destructive-lifecycle-recovery-monotonicity-v1.mjs',
+  'scripts/kidults/audit/validate-destructive-canonical-suppression-v1.mjs'
 ];
 const rightsBoundaryValidators = [
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
@@ -99,6 +100,8 @@ console.log(JSON.stringify({
   pre_partner_transitive_invalidation_machine_bound: true,
   pre_partner_durable_destructive_replay_machine_bound: true,
   pre_partner_rollback_revocation_resurrection_fail_closed: true,
+  pre_partner_canonical_source_object_suppression_machine_bound: true,
+  pre_partner_rekey_alias_reingestion_fail_closed: true,
   partner_like_adversarial_fixtures: 12,
   provider_rights_decision_gate_machine_bound: true,
   runtime_boundary_validators: runtimeBoundaryValidators.length,
