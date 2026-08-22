@@ -9,6 +9,9 @@ const criticalGateBindingValidator = 'scripts/kidults/kpmo/validate-full-value-c
 const repositoryMutationBoundaryValidators = [
   'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
 ];
+const secretBoundaryValidators = [
+  'scripts/kidults/kpmo/validate-pr-secret-boundary-v1.mjs'
+];
 const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
@@ -24,6 +27,9 @@ const runtimeBoundaryValidators = [
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py'
 ];
+const productionRecoveryValidators = [
+  'scripts/kidults/kpmo/validate-production-rollback-contract-v1.mjs'
+];
 const downstreamBoundaryValidators = [
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
@@ -32,10 +38,12 @@ const validators = [...new Set([
   stageCoverageValidator,
   criticalGateBindingValidator,
   ...repositoryMutationBoundaryValidators,
+  ...secretBoundaryValidators,
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
   ...runtimeBoundaryValidators,
+  ...productionRecoveryValidators,
   ...downstreamBoundaryValidators
 ])];
 
@@ -47,9 +55,7 @@ for (const script of validators) {
   }
   const command = script.endsWith('.py') ? (process.env.PYTHON || 'python3') : process.execPath;
   const run = spawnSync(command, [script], {
-    cwd: process.cwd(),
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe']
+    cwd: process.cwd(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']
   });
   const result = { script, command, status: run.status, signal: run.signal || null };
   results.push(result);
@@ -72,6 +78,8 @@ console.log(JSON.stringify({
   stages_machine_bound: Object.keys(orchestrator.stage_machine_coverage || {}).length,
   workflow_repository_mutation_boundary_machine_bound: true,
   workflow_repository_mutation_boundary_validators: repositoryMutationBoundaryValidators.length,
+  pull_request_secret_boundary_machine_bound: true,
+  pull_request_secret_boundary_validators: secretBoundaryValidators.length,
   pre_partner_intake_gate_machine_bound: true,
   pre_partner_certification_machine_bound: true,
   pre_partner_control_families: 12,
@@ -84,6 +92,9 @@ console.log(JSON.stringify({
   digitalocean_staging_bootstrap_boundary_machine_bound: true,
   digitalocean_staging_bootstrap_exec_contract_machine_bound: true,
   digitalocean_staging_bootstrap_workflow_machine_bound: true,
+  production_recovery_boundary_machine_bound: true,
+  production_recovery_validators: productionRecoveryValidators.length,
+  production_automatic_rollback_executable_contract: true,
   projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
