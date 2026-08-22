@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve('.github/workflows');
+const POLICY_VERSION = '1.0';
 
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -73,6 +74,7 @@ for (const file of files) {
 
 const result = {
   suite: 'KIDULTS_WORKFLOW_REPOSITORY_MUTATION_BOUNDARY_V1',
+  policy_version: POLICY_VERSION,
   workflows_scanned: files.length,
   mutation_cases_detected: mutationCases.length,
   negative_cases_rejected: negativeCases.length,
