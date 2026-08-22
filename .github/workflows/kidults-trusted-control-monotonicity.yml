@@ -162,16 +162,15 @@ jobs:
             return { closure, executableClosure, semanticClosure, baseContents };
           }
 
-          // The aggregate runner is itself a trust root. Ordinary PRs may add validator-reference-only
-          // lines inside existing arrays, but may not change any other runner execution semantics.
-          const pureValidatorRefLine = /^\s*['"]scripts\/[A-Za-z0-9_./-]+\.(?:mjs|py)['"],?\s*$/;
-          const aggregateExecutionSkeleton = text => text
-            .split(/\r?\n/)
-            .filter(line => !pureValidatorRefLine.test(line))
-            .join('\n');
+          // #1049: the aggregate runner is a trust-root executable and registration manifest.
+          // Ordinary PRs cannot alter it at all. Allowing additive validator registration lets a new,
+          // unprotected validator run first in the same writable checkout and mutate a protected
+          // baseline validator/control before later aggregate execution. Every aggregate change must
+          // therefore use the explicit trust-root migration path.
+          const aggregateRunnerUnchanged = (baseText, mergeText) => baseText === mergeText;
 
-          // Trusted self-tests: additive registration is allowed, while retained-reference execution
-          // downgrades must change the protected skeleton and therefore fail.
+          // Trusted self-tests prove additive validator injection and execution downgrades are rejected
+          // before any PR-controlled validator can execute.
           const selfBase = [
             'const validators = [',
             "  'scripts/a.mjs',",
@@ -183,8 +182,15 @@ jobs:
             '}'
           ].join('\n');
           const selfAdditive = selfBase.replace("  'scripts/a.mjs',", "  'scripts/a.mjs',\n  'scripts/b.mjs',");
-          if (aggregateExecutionSkeleton(selfBase) !== aggregateExecutionSkeleton(selfAdditive)) {
-            fail('trusted self-test rejected additive-only validator registration');
+          if (aggregateRunnerUnchanged(selfBase, selfAdditive)) {
+            fail('trusted self-test failed to detect additive validator registration');
+          }
+          const runtimeMutationInjection = selfBase.replace(
+            "  'scripts/a.mjs',",
+            "  'scripts/runtime-mutator.mjs',\n  'scripts/a.mjs',"
+          );
+          if (aggregateRunnerUnchanged(selfBase, runtimeMutationInjection)) {
+            fail('trusted self-test failed to reject runtime-mutation validator injection');
           }
           const executionDowngrades = [
             selfBase.replace('const run = spawnSync(command, [script]);', 'const run = { status: 0 };'),
@@ -193,7 +199,7 @@ jobs:
             selfBase.replace('for (const script of validators) {', 'if (false) for (const script of validators) {')
           ];
           for (const mutated of executionDowngrades) {
-            if (aggregateExecutionSkeleton(selfBase) === aggregateExecutionSkeleton(mutated)) {
+            if (aggregateRunnerUnchanged(selfBase, mutated)) {
               fail('trusted self-test missed aggregate execution downgrade');
             }
           }
@@ -287,11 +293,11 @@ jobs:
             fail(`merge result modifies baseline mandatory trust dependency file(s): ${changedBaselineDependencies.join(', ')}; use explicit trust-root migration`);
           }
 
-          // Protect the aggregate runner's execution skeleton. This blocks retained-path/no-execution,
-          // swallowed failure, unconditional PASS and equivalent semantic downgrades while allowing only
-          // additive pure validator-reference lines.
-          if (aggregateExecutionSkeleton(baseAggregate) !== aggregateExecutionSkeleton(mergeAggregate)) {
-            fail(`merge result modifies aggregate Red-Team execution semantics in ${aggregatePath}; use explicit trust-root migration`);
+          // #1049 root correction: the aggregate runner itself is byte-immutable for ordinary PRs.
+          // This rejects additive registration before any injected validator can run or mutate the
+          // writable checkout. All aggregate registrations/changes require explicit trust-root migration.
+          if (!aggregateRunnerUnchanged(baseAggregate, mergeAggregate)) {
+            fail(`merge result modifies aggregate Red-Team runner ${aggregatePath}; use explicit trust-root migration`);
           }
 
           // The critical exact-head Full Value Chain workflow is also a trust root. Marker-presence alone
@@ -324,7 +330,7 @@ jobs:
           }
 
           console.log(JSON.stringify({
-            suite: 'KIDULTS_TRUSTED_MERGE_CONTROL_MONOTONICITY_V6',
+            suite: 'KIDULTS_TRUSTED_MERGE_CONTROL_MONOTONICITY_V7',
             pr_number: Number(prNumber),
             base_sha: baseSha,
             merge_sha: mergeSha,
@@ -339,11 +345,13 @@ jobs:
             changed_baseline_trust_dependencies: 0,
             baseline_trust_dependency_closure_unchanged: true,
             canonical_orchestrator_unchanged: true,
-            aggregate_execution_semantics_unchanged_except_additive_refs: true,
+            aggregate_runner_byte_immutable: true,
+            additive_validator_registration_rejected: true,
+            runtime_mutation_injection_rejected_before_execution: true,
             critical_workflow_unchanged: true,
             trusted_workflow_unchanged: true,
             critical_workflow_primitives_preserved: true,
-            trusted_mutation_selftests: executionDowngrades.length + 7,
+            trusted_mutation_selftests: executionDowngrades.length + 9,
             result: 'PASS',
             empirical_gate_effect: 'NONE',
             production: 'HOLD',
