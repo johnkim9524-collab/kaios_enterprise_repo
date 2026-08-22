@@ -74,7 +74,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/ssh"
-          ssh-keyscan -T 10 -t ed25519 "$HOST" > "$RUNNER_TEMP/ssh/known_hosts"
+          timeout 10 ssh-keyscan -t ed25519 "$HOST" > "$RUNNER_TEMP/ssh/known_hosts"
           OBSERVED="$(ssh-keygen -lf "$RUNNER_TEMP/ssh/known_hosts" | awk '{print $2}')"
           echo "Observed fingerprint: $OBSERVED"
           test "$OBSERVED" = "$EXPECTED_FINGERPRINT"
