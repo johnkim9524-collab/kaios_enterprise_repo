@@ -1,0 +1,105 @@
+name: KIDULTS ASI Global Any-Site Hourly Pooling v1
+
+on:
+  schedule:
+    - cron: '37 * * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
+      - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-global-any-site-hourly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  global-any-site-hourly-pool:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source SHA
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Syntax-check runtime and pool builders
+        run: |
+          node --check scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs
+      - name: Restore immutable anchor foundation and previous Any-Site pool
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p input queue discovery-out /tmp/previous-any-site-pool
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" > /tmp/anchor-foundation.zip
+          unzip -q -o /tmp/anchor-foundation.zip -d input
+          PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          if [ -n "$PREV_ID" ]; then
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-any-site-pool.zip
+            unzip -q -o /tmp/previous-any-site-pool.zip -d /tmp/previous-any-site-pool
+          fi
+      - name: Build governed 160-anchor / 32-scope demand queue
+        run: |
+          node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input queue
+          node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs queue
+      - name: Discover GLOBAL ANY-SITE candidates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs queue discovery-out
+      - name: Validate live discovery and fail-closed admission boundary
+        run: node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
+      - name: Accumulate rolling Any-Site candidate pool
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/previous-any-site-pool/asi-proactive-source-pool-v1.json /tmp/asi-proactive-source-pool-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs /tmp/asi-proactive-source-pool-v1.json
+      - name: Emit cycle receipt
+        shell: bash
+        run: |
+          node - <<'NODE' >/tmp/asi-global-any-site-hourly-cycle-receipt-v1.json
+          const fs=require('fs');
+          const d=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery.json','utf8'));
+          const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-v1.json','utf8'));
+          process.stdout.write(JSON.stringify({
+            id:'kidults-asi-global-any-site-hourly-cycle-receipt-v1',
+            status:'SHADOW_ANY_SITE_POOLING_CYCLE_COMPLETE',
+            discovered_candidates:d.candidate_count,
+            live_external_candidates:d.live_external_candidate_count,
+            healthy_live_lanes:d.healthy_live_lane_count,
+            rolling_pool_candidates:p.candidate_count,
+            new_candidates:p.new_candidate_count,
+            rights_promoted_automatically:false,
+            admission_promoted_automatically:false,
+            public_release:'HOLD',
+            production:'HOLD'
+          },null,2));
+          NODE
+          cat /tmp/asi-global-any-site-hourly-cycle-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-global-any-site-source-pool-v1
+          path: |
+            /tmp/asi-proactive-source-pool-v1.json
+            /tmp/asi-global-any-site-hourly-cycle-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-global-any-site-hourly-cycle-v1
+          path: discovery-out/global-low-risk-discovery.json
+          retention-days: 14
+          if-no-files-found: error
