@@ -36,7 +36,8 @@ const rightsBoundaryValidators = [
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
 ];
 const providerAdapterBoundaryValidators = [
-  'scripts/kidults/kpmo/validate-provider-adapter-workflow-provenance-v1.mjs'
+  'scripts/kidults/kpmo/validate-provider-adapter-workflow-provenance-v1.mjs',
+  'scripts/kidults/kpmo/validate-privileged-provider-probe-workflow-provenance-v1.mjs'
 ];
 const runtimeBoundaryValidators = [
   'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
