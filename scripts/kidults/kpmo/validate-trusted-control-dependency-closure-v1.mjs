@@ -120,16 +120,23 @@ for (const expected of mandatoryDiscoveries) {
   if (!closure.has(expected)) fail(`closure missed mandatory trust dependency ${expected}`);
 }
 
-const dynamicMutationProbe = executableRefsFromJson(JSON.stringify({ nested: { validator: 'scripts/probe-dynamic.mjs' } }), 'dynamic probe');
-if (!dynamicMutationProbe.has('scripts/probe-dynamic.mjs')) fail('dynamic-ref mutation probe failed');
+// Mutation probes construct fake paths from fragments so the self-test source itself cannot be
+// mistaken for a real repository dependency by the same scanner it is validating.
+const fakeDynamic = ['scripts', 'probe-dynamic.mjs'].join('/');
+const dynamicMutationProbe = executableRefsFromJson(JSON.stringify({ nested: { validator: fakeDynamic } }), 'dynamic probe');
+if (!dynamicMutationProbe.has(fakeDynamic)) fail('dynamic-ref mutation probe failed');
 
+const fakeChild = ['scripts', 'probe-child.mjs'].join('/');
+const fakeRelativeHelper = ['.', 'probe-helper.js'].join('/');
+const fakeParent = ['scripts', 'kidults', 'kpmo', 'probe-parent.mjs'].join('/');
+const fakeResolvedHelper = ['scripts', 'kidults', 'kpmo', 'probe-helper.js'].join('/');
 const dependencyMutationProbe = repositoryDependencyRefs([
-  "run('scripts/probe-child.mjs')",
-  "import helper from './probe-helper.js';",
+  `run('${fakeChild}')`,
+  `import helper from '${fakeRelativeHelper}';`,
   "const fixture = 'coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json';",
   "const causal = path.join(root, 'coordination', 'kidults', 'kpmo', 'epistemic-causal-integrity-controls-v1.json');"
-].join('\n'), 'scripts/kidults/kpmo/probe-parent.mjs');
-for (const expected of ['scripts/probe-child.mjs', 'scripts/kidults/kpmo/probe-helper.js']) {
+].join('\n'), fakeParent);
+for (const expected of [fakeChild, fakeResolvedHelper]) {
   if (!dependencyMutationProbe.executable.has(expected)) fail(`transitive executable mutation probe missed ${expected}`);
 }
 for (const expected of ['coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json', 'coordination/kidults/kpmo/epistemic-causal-integrity-controls-v1.json']) {
