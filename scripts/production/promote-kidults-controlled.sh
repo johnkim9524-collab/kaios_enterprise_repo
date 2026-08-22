@@ -5,7 +5,7 @@ ROOT_DIR="${ROOT_DIR:-$PWD}"
 PROD_ROOT="${PROD_ROOT:-/opt/intelligence-holdings/kidults/app}"
 EVIDENCE_ARCHIVE="${EVIDENCE_ARCHIVE:-}"
 PREDEPLOYMENT_SNAPSHOT_DIR="${PREDEPLOYMENT_SNAPSHOT_DIR:-}"
-BASE_URL="${BASE_URL:-https://kaios.kidults.com}"
+readonly BASE_URL="https://kaios.kidults.com"
 ADMIN_TOKEN_FILE="${ADMIN_TOKEN_FILE:-/opt/intelligence-holdings/kidults/secrets/kaios_admin_token}"
 EXECUTE="${KAIOS_EXECUTE_PRODUCTION_PROMOTION:-false}"
 ROLLBACK_SCRIPT="${ROOT_DIR}/scripts/production/rollback-kidults-controlled.sh"
@@ -101,6 +101,7 @@ Mode: ${EXECUTE}
 Production root: ${PROD_ROOT}
 Evidence archive: ${EVIDENCE_ARCHIVE}
 Predeployment snapshot: ${PREDEPLOYMENT_SNAPSHOT_DIR}
+Production origin: ${BASE_URL}
 Rollback executor: ${ROLLBACK_SCRIPT}
 Rollback inputs: VERIFIED
 Artfund changes: forbidden
@@ -120,11 +121,11 @@ ROLLBACK_ARMED=true
 docker compose --env-file .env.production -f docker-compose.production.yml up -d --force-recreate
 sleep 30
 
-HEALTH_HTTP="$(curl -sS -o /tmp/kidults-health.json -w '%{http_code}' "${BASE_URL}/api/health")"
-PORTAL_HTTP="$(curl -sS -o /tmp/kidults-portal.html -w '%{http_code}' "${BASE_URL}/portal/")"
-UNAUTH_HTTP="$(curl -sS -o /tmp/kidults-unauth.json -w '%{http_code}' "${BASE_URL}/api/collector?mode=live")"
+HEALTH_HTTP="$(curl --proto '=https' --max-redirs 0 -sS -o /tmp/kidults-health.json -w '%{http_code}' "${BASE_URL}/api/health")"
+PORTAL_HTTP="$(curl --proto '=https' --max-redirs 0 -sS -o /tmp/kidults-portal.html -w '%{http_code}' "${BASE_URL}/portal/")"
+UNAUTH_HTTP="$(curl --proto '=https' --max-redirs 0 -sS -o /tmp/kidults-unauth.json -w '%{http_code}' "${BASE_URL}/api/collector?mode=live")"
 ADMIN_TOKEN="$(tr -d '\r\n' < "${ADMIN_TOKEN_FILE}")"
-AUTH_HTTP="$(curl -sS -o /tmp/kidults-auth.json -w '%{http_code}' -H "Authorization: Bearer ${ADMIN_TOKEN}" "${BASE_URL}/api/collector?mode=live")"
+AUTH_HTTP="$(curl --proto '=https' --max-redirs 0 -sS -o /tmp/kidults-auth.json -w '%{http_code}' -H "Authorization: Bearer ${ADMIN_TOKEN}" "${BASE_URL}/api/collector?mode=live")"
 unset ADMIN_TOKEN
 DB_INTEGRITY="$(sqlite3 /opt/intelligence-holdings/kidults/data/kaios.db 'PRAGMA integrity_check;')"
 
