@@ -1,0 +1,94 @@
+{
+  "id": "kidults-asi-legal-commercial-three-stage-gate-v1",
+  "version": "1.0.0",
+  "status": "P0_FAIL_CLOSED_EXECUTION_CONTRACT",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "purpose": "Prevent any discovered source candidate from entering acquisition, evidence or claims until legal and commercial risk is screened, purpose-specific rights are proven, and admission/activation authority is satisfied.",
+  "pipeline": ["DISCOVERY_METADATA_ONLY", "GATE_1_AUTOMATED_PREFLIGHT", "GATE_2_PURPOSE_SPECIFIC_RIGHTS_COMMERCIAL_DECISION", "GATE_3_ADMISSION_ACTIVATION_AUTHORIZATION", "PRIVATE_ACQUISITION_ELIGIBLE"],
+  "gate_1": {
+    "name": "AUTOMATED_LEGAL_COMMERCIAL_PREFLIGHT",
+    "owner": "ASI_SOURCE_DISCOVERY_AND_PREFLIGHT",
+    "input_state": "DISCOVERY_METADATA_ONLY",
+    "required_checks": [
+      "canonical_domain_or_locator",
+      "source_owner_identity",
+      "access_mode",
+      "terms_state",
+      "robots_or_machine_access_signal",
+      "license_or_open_data_signal",
+      "commercial_use_signal",
+      "automated_access_signal",
+      "login_paywall_member_area_signal",
+      "api_feed_or_download_signal",
+      "redistribution_signal",
+      "retention_signal",
+      "derivation_signal",
+      "region_country_language_context",
+      "source_role_and_evidence_demand_binding"
+    ],
+    "decisions": ["AUTO_CLEAR_TO_GATE_2", "HUMAN_REVIEW_REQUIRED", "HARD_BLOCK"],
+    "auto_clear_requirements": [
+      "NO_LOGIN_OR_PAYWALL_REQUIRED_FOR_DISCOVERY_METADATA",
+      "NO_TERMS_OR_ROBOTS_CONFLICT_OBSERVED",
+      "PUBLIC_OPEN_OR_EXPLICIT_METADATA_ACCESS_SIGNAL",
+      "NO_COMMERCIAL_EXTRACTION_RIGHT_INFERRED_FROM_PUBLIC_VISIBILITY",
+      "RIGHTS_STATE_REMAINS_UNASSESSED",
+      "ADMISSION_STATE_REMAINS_NOT_ADMITTED"
+    ],
+    "hard_block_triggers": [
+      "ROBOTS_OR_TECHNICAL_CIRCUMVENTION_REQUIRED",
+      "CREDENTIAL_SHARING_OR_UNAUTHORIZED_LOGIN_REQUIRED",
+      "TERMS_EXPLICITLY_PROHIBIT_REQUIRED_USE",
+      "KNOWN_UNLAWFUL_OR_UNAUTHORIZED_SOURCE",
+      "SOURCE_IDENTITY_OR_OWNER_CANNOT_BE_ESTABLISHED_FOR_REVIEW"
+    ],
+    "output_to_gate_2_only": true
+  },
+  "gate_2": {
+    "name": "PURPOSE_SPECIFIC_RIGHTS_AND_COMMERCIAL_DECISION",
+    "owner": "RIGHTS_AND_PROVIDER_DECISION_CONTROL",
+    "predecessor": "GATE_1_AUTOMATED_PREFLIGHT",
+    "required_purposes": ["collect", "store", "derive", "internal_calibration", "retention", "redistribute", "public_project", "sold_event_fields", "listing_fields", "population_or_census_fields"],
+    "required_commercial_dimensions": ["account_or_membership_required", "eula_or_contract_required", "paid_plan_or_spend_required", "rate_or_volume_limits", "data_retention_constraints", "derived_output_constraints", "attribution_or_notice_duties", "termination_or_deletion_duties"],
+    "decisions": ["ALLOW", "CONDITIONAL", "BLOCKED", "NEEDS_CLARIFICATION"],
+    "allow_rule": "EVERY_REQUESTED_PURPOSE_AND_COMMERCIAL_DIMENSION_MUST_HAVE_CURRENT_SOURCE_SPECIFIC_EVIDENCE",
+    "no_inference_rules": ["PUBLIC_VISIBILITY_IS_NOT_COMMERCIAL_USE_RIGHT", "API_ACCESS_IS_NOT_STORAGE_RIGHT", "LISTING_ACCESS_IS_NOT_SOLD_EVENT_RIGHT", "ACCOUNT_ACCESS_IS_NOT_DERIVATION_RIGHT", "HISTORICAL_PERMISSION_IS_NOT_CURRENT_PERMISSION"],
+    "human_or_external_review_required_when": ["TERMS_AMBIGUOUS", "CONTRACT_OR_EULA_REQUIRED", "PAID_PLAN_OR_SPEND_REQUIRED", "CUSTOM_LICENSE_REQUIRED", "RIGHTS_SCOPE_CONFLICT", "MATERIAL_COMMERCIAL_RESTRICTION"],
+    "output_to_gate_3_only_on_allow_or_explicitly_bounded_conditional": true
+  },
+  "gate_3": {
+    "name": "ADMISSION_AND_ACTIVATION_AUTHORIZATION",
+    "owner": "PRE_PARTNER_ADMISSION_AND_KPMO_GOVERNANCE",
+    "predecessor": "GATE_2_PURPOSE_SPECIFIC_RIGHTS_AND_COMMERCIAL_DECISION",
+    "required_inputs": ["gate_1_receipt", "gate_2_rights_matrix", "source_identity_and_owner_binding", "purpose_scope", "region_scope", "evidence_role", "current_rights_horizon", "provenance_ref"],
+    "required_before_private_acquisition": [
+      "GATE_1_NOT_HARD_BLOCKED",
+      "GATE_2_ALLOW_FOR_EACH_ACTUAL_PURPOSE",
+      "NO_UNRESOLVED_REQUIRED_COMMERCIAL_TERM",
+      "REQUIRED_HUMAN_OR_EXTERNAL_APPROVAL_COMPLETE",
+      "AUTHORIZED_CREDENTIAL_PATH_IF_NEEDED",
+      "SECRET_MANAGER_BOUND_IF_CREDENTIAL_NEEDED",
+      "RETENTION_AND_DELETION_POLICY_BOUND",
+      "SOURCE_SPECIFIC_RATE_AND_VOLUME_LIMIT_BOUND"
+    ],
+    "decisions": ["ADMITTED_FOR_PRIVATE_ACQUISITION", "CONDITIONAL_HOLD", "REJECTED", "EXTERNAL_APPROVAL_REQUIRED"],
+    "forbidden_without_admitted_state": ["CONTENT_ACQUISITION", "CREDENTIAL_ACTIVATION", "EVIDENCE_PROMOTION", "MARKET_CLAIM", "PUBLIC_PROJECTION", "PRODUCTION_MUTATION"]
+  },
+  "approval_boundaries": {
+    "program_owner_required": ["NEW_EULA_OR_CONTRACT", "PAID_PLAN_OR_SPEND", "PROVIDER_ACTIVATION_WITH_EXTERNAL_COMMITMENT", "MATERIALLY_EXPANDED_CREDENTIAL_PERMISSION", "PRODUCTION_OR_G5", "PUBLIC_INTELLIGENCE_AUTHORIZATION"],
+    "legal_or_commercial_human_review_required": ["AMBIGUOUS_TERMS", "CUSTOM_LICENSE", "CONFLICTING_RIGHTS_LANGUAGE", "MATERIAL_REDIStribution_OR_DERIVATION_RESTRICTION"],
+    "automation_may_not_self_approve_external_authority": true
+  },
+  "state_transition_rules": [
+    "DISCOVERY_NEVER_SELF_PROMOTES_TO_RIGHTS",
+    "GATE_1_NEVER_SELF_PROMOTES_TO_ADMISSION",
+    "GATE_2_NEVER_BYPASSES_REQUIRED_HUMAN_OR_PROGRAM_OWNER_APPROVAL",
+    "GATE_3_IS_REQUIRED_BEFORE_ANY_PRIVATE_ACQUISITION",
+    "UNKNOWN_OR_MISSING_REQUIRED_FIELD_FAILS_CLOSED",
+    "RIGHTS_EXPIRY_OR_SCOPE_CHANGE_FORCES_REVIEW",
+    "BLOCKED_OR_REVOKED_SOURCE_CANNOT_REENTER_WITH_NEW_RECORD_ID_WITHOUT_NEW_AUTHORITY"
+  ],
+  "required_candidate_risk_fields": ["legal_risk_tier", "commercial_risk_tier", "rights_clarity", "terms_state", "robots_state", "access_mode", "license_type", "commercial_use_signal", "automated_access_signal", "login_or_paywall", "api_or_feed_availability", "retention_signal", "derivation_signal", "human_review_required", "last_preflight_at", "next_revalidation_at"],
+  "truth_boundary": "Passing Gate 1 means only that a candidate may proceed to rights review. Passing Gate 2 means only that documented purposes are rights-compatible. Only Gate 3 can admit a source for bounded private acquisition, and no gate creates empirical evidence, market truth, public-release authority or Production/G5 authority."
+}
