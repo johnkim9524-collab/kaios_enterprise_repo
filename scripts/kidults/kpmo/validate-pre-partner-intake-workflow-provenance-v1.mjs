@@ -54,7 +54,7 @@ const mutations = [
   ['sha_assertion_disabled', text.replace('test "${ACTUAL_SHA}" = "${EXPECTED_SHA}"', 'true # equality disabled')],
   ['node_downgrade', text.replace(/node-version:\s*['"]?24['"]?/, "node-version: '22'")],
   ['continue_on_error', text.replace('name: Certify all 12 internal pre-intake control families', 'continue-on-error: true\n      - name: Certify all 12 internal pre-intake control families')],
-  ['secret_injection', `${text}\n# mutation\nenv:\n  BAD: ${{ secrets.BAD }}\n`]
+  ['secret_injection', text + '\n# mutation\nenv:\n  BAD: ${{ secrets.BAD }}\n']
 ];
 
 for (const [id, mutated] of mutations) {
