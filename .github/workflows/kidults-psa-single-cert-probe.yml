@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   probe:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
       PSA_CERT_NUMBER: '08178895'
@@ -129,7 +129,7 @@ jobs:
           NODE
 
       - name: Upload sanitized probe summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: kidults-psa-single-cert-probe-summary
           path: /tmp/psa-probe-summary.json
