@@ -6,6 +6,7 @@ const pack = JSON.parse(fs.readFileSync('coordination/kidults/audit/pre-partner-
 
 const ALLOWED_CURRENCIES = new Set(['USD','EUR','GBP','JPY','KRW','CHF','HKD','SGD','AUD','CAD']);
 const ALLOWED_UNITS = new Set(['ITEM','LOT']);
+const ALLOWED_DESTRUCTIVE_ACTIONS = new Set(['WITHDRAW','DELETE']);
 
 function rightsTemporalStatus(rights, asOf) {
   try {
@@ -18,7 +19,49 @@ function rightsTemporalStatus(rights, asOf) {
   }
 }
 
-function evaluateRecord(record) {
+function normalizeTrustedContext(raw = {}) {
+  return {
+    persisted_object_id: raw.persisted_object_id,
+    persisted_source_owner_id: raw.persisted_source_owner_id,
+    persisted_source_namespace: raw.persisted_source_namespace,
+    seen_destructive_event_ids: raw.seen_destructive_event_ids instanceof Set
+      ? raw.seen_destructive_event_ids
+      : new Set(Array.isArray(raw.seen_destructive_event_ids) ? raw.seen_destructive_event_ids : [])
+  };
+}
+
+function authorizeDestructiveLifecycle(record, rawContext) {
+  const lifecycle = record.lifecycle || {};
+  const identity = record.identity || {};
+  const event = lifecycle.control_event || {};
+  const context = normalizeTrustedContext(rawContext);
+  const failures = [];
+
+  if (!context.persisted_object_id || !context.persisted_source_owner_id || !context.persisted_source_namespace) failures.push('missing_trusted_persisted_context');
+  if (!event.event_id || typeof event.event_id !== 'string') failures.push('missing_destructive_event_id');
+  if (event.authenticated !== true) failures.push('destructive_actor_not_authenticated');
+  if (event.authorized !== true) failures.push('destructive_actor_not_authorized');
+  if (event.actor_type !== 'SOURCE_OWNER') failures.push('destructive_actor_type_invalid');
+  if (event.actor_id !== context.persisted_source_owner_id) failures.push('destructive_actor_owner_mismatch');
+  if (event.source_owner_id !== context.persisted_source_owner_id) failures.push('destructive_source_owner_mismatch');
+  if (event.source_namespace !== context.persisted_source_namespace) failures.push('destructive_namespace_mismatch');
+  if (event.object_id !== context.persisted_object_id) failures.push('destructive_object_mismatch');
+  if (identity.source_record_id !== context.persisted_object_id) failures.push('record_object_persisted_binding_mismatch');
+  if (!ALLOWED_DESTRUCTIVE_ACTIONS.has(event.action)) failures.push('destructive_action_not_allowed');
+  if (event.append_only_audit_bound !== true) failures.push('destructive_event_not_append_only_audit_bound');
+  if (event.event_id && context.seen_destructive_event_ids.has(event.event_id)) failures.push('destructive_event_replay');
+
+  const stateAllowsAction = event.action === 'WITHDRAW'
+    ? lifecycle.current_state === 'PROMOTED'
+    : ['PROMOTED','SUPERSEDED','WITHDRAWN'].includes(lifecycle.current_state);
+  if (!stateAllowsAction) failures.push('invalid_deletion_state');
+
+  if (failures.length) return { authorized: false, failures, context };
+  context.seen_destructive_event_ids.add(event.event_id);
+  return { authorized: true, failures: [], context };
+}
+
+function evaluateRecord(record, trustedContext = {}) {
   const triggers = [];
   const lifecycle = record.lifecycle || {};
   const transport = record.transport || {};
@@ -31,13 +74,16 @@ function evaluateRecord(record) {
   const lineage = record.lineage || {};
   const quality = record.quality || {};
 
-  // Withdrawal/deletion must remain possible even after rights cease to be usable.
+  // Withdrawal/deletion remains possible after rights cease, but a destructive request is not
+  // trusted merely because a payload says deletion_requested=true. It must bind to immutable
+  // persisted owner/namespace/object context and an authenticated append-only control event.
   if (lifecycle.deletion_requested === true) {
     triggers.push('deletion_requested');
-    if (!['PROMOTED','SUPERSEDED','WITHDRAWN'].includes(lifecycle.current_state)) {
-      return { disposition: 'QUARANTINED_OR_REJECTED', triggers: [...triggers, 'invalid_deletion_state'] };
+    const auth = authorizeDestructiveLifecycle(record, trustedContext);
+    if (!auth.authorized) {
+      return { disposition: 'QUARANTINED_OR_REJECTED', triggers: [...triggers, ...auth.failures] };
     }
-    return { disposition: 'WITHDRAWN_OR_DELETED', triggers };
+    return { disposition: 'WITHDRAWN_OR_DELETED', triggers: [...triggers, 'destructive_event_authorized'] };
   }
 
   // Transport failure never promotes and therefore may short-circuit before content admission checks.
@@ -99,6 +145,8 @@ function evaluateRecord(record) {
 if (pack.governing_issue !== 881) throw new Error('fixture pack must be governed by #881');
 if (pack.fixture_type !== 'SYNTHETIC_NON_PROMOTABLE_CONTROL') throw new Error('fixture pack must be synthetic/non-promotable');
 if (pack.empirical_gate_effect !== 'NONE') throw new Error('fixture pack may not affect empirical gates');
+if (contract.destructive_lifecycle_control?.authorization_required !== true) throw new Error('destructive lifecycle authorization contract required');
+if (contract.destructive_lifecycle_control?.replay_protection !== 'UNIQUE_EVENT_ID_FAIL_CLOSED') throw new Error('destructive lifecycle replay protection contract required');
 
 const baseline = pack.baseline_control;
 if (!baseline?.synthetic || baseline.promotable !== false) throw new Error('baseline control must be synthetic and non-promotable');
@@ -173,6 +221,49 @@ for (const test of replayFailClosedMutationCases) {
   }
 }
 
+const deletionFixture = (pack.fixtures || []).find(f => f.id === 'deletion_request');
+if (!deletionFixture?.trusted_context) throw new Error('deletion fixture must carry trusted persisted context');
+const validDeletion = evaluateRecord(structuredClone(deletionFixture.record), structuredClone(deletionFixture.trusted_context));
+if (validDeletion.disposition !== 'WITHDRAWN_OR_DELETED' || !validDeletion.triggers.includes('destructive_event_authorized')) {
+  throw new Error(`authorized deletion fixture failed: ${validDeletion.disposition}/${validDeletion.triggers.join(',')}`);
+}
+
+const destructiveMutationCases = [
+  ['missing_control_event', (r, c) => { delete r.lifecycle.control_event; }],
+  ['unauthenticated_actor', (r, c) => { r.lifecycle.control_event.authenticated = false; }],
+  ['unauthorized_actor', (r, c) => { r.lifecycle.control_event.authorized = false; }],
+  ['actor_owner_mismatch', (r, c) => { r.lifecycle.control_event.actor_id = 'forged-owner'; }],
+  ['source_owner_mismatch', (r, c) => { r.lifecycle.control_event.source_owner_id = 'forged-owner'; }],
+  ['namespace_mismatch', (r, c) => { r.lifecycle.control_event.source_namespace = 'forged-namespace'; }],
+  ['object_mismatch', (r, c) => { r.lifecycle.control_event.object_id = 'other-object'; }],
+  ['persisted_object_binding_mismatch', (r, c) => { c.persisted_object_id = 'other-object'; }],
+  ['unsupported_destructive_action', (r, c) => { r.lifecycle.control_event.action = 'PURGE_ALL'; }],
+  ['missing_append_only_audit_binding', (r, c) => { r.lifecycle.control_event.append_only_audit_bound = false; }],
+  ['missing_trusted_context', (r, c) => { delete c.persisted_source_owner_id; delete c.persisted_source_namespace; }]
+];
+for (const [id, mutate] of destructiveMutationCases) {
+  const record = structuredClone(deletionFixture.record);
+  const context = structuredClone(deletionFixture.trusted_context);
+  mutate(record, context);
+  const actual = evaluateRecord(record, context);
+  if (actual.disposition !== 'QUARANTINED_OR_REJECTED' || actual.disposition === 'WITHDRAWN_OR_DELETED') {
+    throw new Error(`destructive mutation ${id} failed closed: ${actual.disposition}/${actual.triggers.join(',')}`);
+  }
+}
+
+// Destructive event IDs are one-shot. Replaying the exact same authorized DELETE/WITHDRAW
+// control event against the same persisted context must fail closed instead of repeating state mutation.
+{
+  const record = structuredClone(deletionFixture.record);
+  const context = normalizeTrustedContext(deletionFixture.trusted_context);
+  const first = evaluateRecord(record, context);
+  if (first.disposition !== 'WITHDRAWN_OR_DELETED') throw new Error('destructive replay setup did not authorize first event');
+  const second = evaluateRecord(record, context);
+  if (second.disposition !== 'QUARANTINED_OR_REJECTED' || !second.triggers.includes('destructive_event_replay')) {
+    throw new Error(`destructive event replay did not fail closed: ${second.disposition}/${second.triggers.join(',')}`);
+  }
+}
+
 const contractFixtures = new Map((contract.adversarial_fixtures || []).map(f => [f.id, f.expected_disposition]));
 const packFixtures = pack.fixtures || [];
 if (packFixtures.length !== 12) throw new Error(`expected 12 executable #881 adversarial fixtures, got ${packFixtures.length}`);
@@ -185,14 +276,15 @@ for (const fixture of packFixtures) {
   if (!contractExpected) throw new Error(`fixture ${fixture.id} missing from control-plane contract`);
   if (contractExpected !== fixture.expected_disposition) throw new Error(`fixture ${fixture.id} contract/pack disposition drift`);
 
-  const actual = evaluateRecord(fixture.record);
+  const context = fixture.trusted_context ? structuredClone(fixture.trusted_context) : {};
+  const actual = evaluateRecord(structuredClone(fixture.record), context);
   if (actual.disposition !== fixture.expected_disposition) {
     throw new Error(`fixture ${fixture.id} expected=${fixture.expected_disposition} actual=${actual.disposition} triggers=${actual.triggers.join(',')}`);
   }
   if (!actual.triggers.length || actual.triggers[0] === 'all_control_checks_pass') throw new Error(`fixture ${fixture.id} did not exercise an adversarial control`);
 
   // Prove the harness is behavior-driven rather than fixture-ID-driven.
-  const renamed = evaluateRecord(structuredClone(fixture.record));
+  const renamed = evaluateRecord(structuredClone(fixture.record), fixture.trusted_context ? structuredClone(fixture.trusted_context) : {});
   if (renamed.disposition !== actual.disposition) throw new Error(`fixture ${fixture.id} result is not payload-deterministic`);
 
   results.push({ id: fixture.id, disposition: actual.disposition, triggers: actual.triggers, promotable: false });
@@ -213,6 +305,9 @@ console.log(JSON.stringify({
   executable_payload_fixtures_passed: results.length,
   temporal_fail_closed_mutation_cases: temporalMutationCases.length,
   replay_cross_control_fail_closed_mutation_cases: replayFailClosedMutationCases.length,
+  destructive_lifecycle_authorization_fail_closed_mutation_cases: destructiveMutationCases.length + 1,
+  destructive_lifecycle_requires_trusted_persisted_binding: true,
+  destructive_event_replay_protection: true,
   replay_requires_current_rights_and_control_revalidation: true,
   baseline_control: baselineEval.disposition,
   behavior_driven_evaluation: true,
