@@ -34,7 +34,8 @@ const rightsBoundaryValidators = [
 const runtimeBoundaryValidators = [
   'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
-  'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py'
+  'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py',
+  'scripts/kidults/kpmo/validate-staging-portal-workflow-provenance-v1.mjs'
 ];
 const productionRecoveryValidators = [
   'scripts/kidults/kpmo/validate-production-rollback-contract-v1.mjs'
@@ -114,6 +115,7 @@ console.log(JSON.stringify({
   digitalocean_staging_bootstrap_boundary_machine_bound: true,
   digitalocean_staging_bootstrap_exec_contract_machine_bound: true,
   digitalocean_staging_bootstrap_workflow_machine_bound: true,
+  digitalocean_staging_portal_workflow_provenance_machine_bound: true,
   production_recovery_boundary_machine_bound: true,
   production_recovery_validators: productionRecoveryValidators.length,
   production_automatic_rollback_executable_contract: true,
