@@ -19,6 +19,9 @@ const secretBoundaryValidators = [
 const truthScopeValidators = [
   'scripts/kidults/kpmo/validate-scoped-certification-truth-boundary-v1.mjs'
 ];
+const trustRootMigrationRegressionValidators = [
+  'scripts/kidults/kpmo/validate-trusted-control-dependency-closure-v1.mjs'
+];
 const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
@@ -55,6 +58,7 @@ const validators = [...new Set([
   ...repositoryMutationBoundaryValidators,
   ...secretBoundaryValidators,
   ...truthScopeValidators,
+  ...trustRootMigrationRegressionValidators,
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
@@ -104,6 +108,8 @@ console.log(JSON.stringify({
   privileged_manual_secret_lane_issue: 974,
   scoped_certification_truth_boundary_machine_bound: true,
   scoped_certification_truth_boundary_validators: truthScopeValidators.length,
+  trust_root_migration_dependency_closure_regression_machine_bound: true,
+  trust_root_migration_dependency_closure_validators: trustRootMigrationRegressionValidators.length,
   pre_partner_intake_gate_machine_bound: true,
   pre_partner_certification_machine_bound: true,
   pre_partner_control_families: 12,
