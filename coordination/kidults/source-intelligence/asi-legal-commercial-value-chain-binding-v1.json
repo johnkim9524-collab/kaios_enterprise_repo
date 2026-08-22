@@ -1,0 +1,72 @@
+{
+  "id": "kidults-asi-legal-commercial-value-chain-binding-v1",
+  "version": "1.0.0",
+  "status": "P0_FAIL_CLOSED_VALUE_CHAIN_BINDING",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "source_gate_contract": "coordination/kidults/source-intelligence/asi-legal-commercial-three-stage-gate-v1.json",
+  "canonical_flow": [
+    "DISCOVERY",
+    "GATE_1_ASI_INGRESS_VERIFICATION",
+    "SAFE_CANDIDATE_POOL",
+    "GATE_2_INDEPENDENT_REVERIFICATION",
+    "VERIFIED_ELIGIBLE_POOL",
+    "GATE_3_ADMISSION_ACTIVATION_VERIFICATION",
+    "ADMITTED_FOR_BOUNDED_AUTOMATED_ACQUISITION",
+    "BOUNDED_ACQUISITION",
+    "EVIDENCE_PACKAGE",
+    "TRACK_B_ASSESSMENT",
+    "GOVERNED_PROJECTION",
+    "PORTAL_EOS_CONSUMPTION"
+  ],
+  "bindings": {
+    "track_a": {
+      "issue": 235,
+      "rule": "SOURCE_DERIVED_EVIDENCE_REQUIRES_CURRENT_GATE3_ADMISSION_RECEIPT",
+      "receipt_lineage_required": ["gate_1_ingress_receipt", "gate_2_independent_reverification_receipt", "gate_3_admission_activation_receipt"]
+    },
+    "track_b": {
+      "issue": 236,
+      "rule": "REJECT_CANDIDATE_OR_EVIDENCE_WITHOUT_GATE3_SOURCE_LINEAGE",
+      "independent_receipt_validation": true
+    },
+    "track_c": {
+      "issue": 237,
+      "rule": "PROJECTION_ONLY_NO_DIRECT_SOURCE_OR_GATE1_GATE2_CONSUMPTION"
+    },
+    "track_d": {
+      "issue": 240,
+      "rule": "RUNTIME_INGEST_REQUIRES_GATE3_ADMITTED_STATE",
+      "runtime_controls_required": ["rate_volume", "retention_deletion", "credential_scope_if_needed", "secret_manager_if_needed", "kill_switch", "revocation", "revalidation_horizon"]
+    },
+    "track_e": {
+      "issue": 256,
+      "rule": "EOS_CONSUMES_GOVERNED_PROJECTION_ONLY"
+    },
+    "integration": {
+      "issue": 238,
+      "rule": "NO_INTEGRATION_PASS_IF_ANY_SOURCE_LINEAGE_BYPASSES_GATE3"
+    },
+    "pre_partner": {
+      "issue": 881,
+      "rule": "GATE3_ADMISSION_IS_REQUIRED_BUT_DOES_NOT_BYPASS_PREPARTNER_TRUST_CONTROLS"
+    }
+  },
+  "fail_closed_rules": [
+    "DISCOVERY_OR_GATE1_OR_GATE2_NEVER_EQUALS_COLLECTION_AUTHORITY",
+    "MISSING_STALE_CONFLICTING_OR_UNBOUND_GATE_RECEIPT_BLOCKS_DOWNSTREAM",
+    "BLOCKED_OR_REVOKED_SOURCE_CANNOT_REENTER_BY_ALIAS_OR_NEW_RECORD_ID",
+    "TRACK_B_CANNOT_INFER_RIGHTS_FROM_UPSTREAM_LABELS",
+    "RUNTIME_CANNOT_INGEST_WITHOUT_GATE3",
+    "PORTAL_AND_EOS_CANNOT_CONSUME_RAW_SOURCE_STATES",
+    "NO_GATE_CREATES_EMPIRICAL_EVIDENCE_MARKET_TRUTH_PUBLIC_OR_PRODUCTION_AUTHORITY"
+  ],
+  "approval_boundaries": [
+    "NEW_EULA_OR_CONTRACT",
+    "PAID_PLAN_OR_SPEND",
+    "PROVIDER_ACTIVATION_WITH_EXTERNAL_COMMITMENT",
+    "NEW_OR_EXPANDED_CREDENTIAL_PERMISSION",
+    "PUBLIC_INTELLIGENCE_AUTHORIZATION",
+    "PRODUCTION_OR_G5"
+  ]
+}
