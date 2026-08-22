@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { parseRfc3339Millis } from './rfc3339-v1.mjs';
 
 const contract = JSON.parse(fs.readFileSync('coordination/kidults/audit/unified-audit-control-plane-v1.json', 'utf8'));
@@ -8,6 +9,37 @@ const ALLOWED_CURRENCIES = new Set(['USD','EUR','GBP','JPY','KRW','CHF','HKD','S
 const ALLOWED_UNITS = new Set(['ITEM','LOT']);
 const ALLOWED_DESTRUCTIVE_ACTIONS = new Set(['WITHDRAW','DELETE']);
 const SUPPRESSION_STATE = 'SUPPRESSED_NO_REINGESTION';
+
+function stable(value) {
+  if (Array.isArray(value)) return value.map(stable);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map(key => [key, stable(value[key])]));
+  }
+  return value;
+}
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(JSON.stringify(stable(value))).digest('hex');
+}
+
+function suppressionKey(sourceOwnerId, sourceNamespace, canonicalSourceObjectId) {
+  if (typeof sourceOwnerId !== 'string' || !sourceOwnerId) return null;
+  if (typeof sourceNamespace !== 'string' || !sourceNamespace) return null;
+  if (typeof canonicalSourceObjectId !== 'string' || !canonicalSourceObjectId) return null;
+  return `${sourceOwnerId}::${sourceNamespace}::${canonicalSourceObjectId}`;
+}
+
+function digestSuppressionEvent(event) {
+  const body = structuredClone(event);
+  delete body.event_digest;
+  return sha256(body);
+}
+
+function digestSuppressionTombstone(tombstone) {
+  const body = structuredClone(tombstone);
+  delete body.tombstone_digest;
+  return sha256(body);
+}
 
 function rightsTemporalStatus(rights, asOf) {
   try {
@@ -28,6 +60,9 @@ function normalizeTrustedContext(raw = {}) {
     seen_destructive_event_ids: raw.seen_destructive_event_ids instanceof Set
       ? raw.seen_destructive_event_ids
       : new Set(Array.isArray(raw.seen_destructive_event_ids) ? raw.seen_destructive_event_ids : []),
+    canonical_suppression_events: Array.isArray(raw.canonical_suppression_events)
+      ? structuredClone(raw.canonical_suppression_events)
+      : [],
     canonical_suppression_tombstones: Array.isArray(raw.canonical_suppression_tombstones)
       ? structuredClone(raw.canonical_suppression_tombstones)
       : [],
@@ -68,14 +103,73 @@ function authorizeDestructiveLifecycle(record, rawContext) {
   return { authorized: true, failures: [], context };
 }
 
+function validateCanonicalSuppressionLedger(context) {
+  const events = context.canonical_suppression_events;
+  const tombstones = context.canonical_suppression_tombstones;
+  const failures = [];
+
+  if (!events.length && !tombstones.length) return failures;
+  if (!events.length || !tombstones.length) failures.push('canonical_suppression_event_tombstone_cardinality_drift');
+
+  const eventsById = new Map();
+  let previous = 'GENESIS';
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index];
+    if (!event || typeof event !== 'object') {
+      failures.push('canonical_suppression_event_invalid');
+      continue;
+    }
+    if (event.sequence_number !== index + 1) failures.push('canonical_suppression_event_sequence_drift');
+    if (event.previous_event_digest !== previous) failures.push('canonical_suppression_previous_digest_drift');
+    if (event.event_digest !== digestSuppressionEvent(event)) failures.push('canonical_suppression_event_digest_mismatch');
+    if (!ALLOWED_DESTRUCTIVE_ACTIONS.has(event.action)) failures.push('canonical_suppression_event_action_invalid');
+    if (event.authorized !== true || event.append_only_audit_bound !== true) failures.push('canonical_suppression_event_not_authorized_audit_bound');
+    const expectedKey = suppressionKey(event.source_owner_id, event.source_namespace, event.canonical_source_object_id);
+    if (!expectedKey || event.suppression_key !== expectedKey) failures.push('canonical_suppression_event_key_drift');
+    if (event.suppression_state !== SUPPRESSION_STATE) failures.push('canonical_suppression_event_state_invalid');
+    if (!event.destructive_event_id || !event.audit_event_id) failures.push('canonical_suppression_event_identity_missing');
+    if (event.destructive_event_id && eventsById.has(event.destructive_event_id)) failures.push('canonical_suppression_duplicate_destructive_event');
+    if (event.destructive_event_id) eventsById.set(event.destructive_event_id, event);
+    previous = event.event_digest;
+  }
+
+  const keys = new Set();
+  for (const tombstone of tombstones) {
+    if (!tombstone || typeof tombstone !== 'object') {
+      failures.push('canonical_suppression_tombstone_invalid');
+      continue;
+    }
+    const event = eventsById.get(tombstone.destructive_event_id);
+    if (!event) {
+      failures.push('canonical_suppression_orphan_tombstone');
+      continue;
+    }
+    if (tombstone.audit_event_id !== event.audit_event_id) failures.push('canonical_suppression_tombstone_audit_rebinding');
+    if (tombstone.event_sequence !== event.sequence_number) failures.push('canonical_suppression_tombstone_sequence_rebinding');
+    if (tombstone.source_owner_id !== event.source_owner_id) failures.push('canonical_suppression_tombstone_owner_rebinding');
+    if (tombstone.source_namespace !== event.source_namespace) failures.push('canonical_suppression_tombstone_namespace_rebinding');
+    if (tombstone.canonical_source_object_id !== event.canonical_source_object_id) failures.push('canonical_suppression_tombstone_object_rebinding');
+    if (tombstone.suppression_key !== event.suppression_key) failures.push('canonical_suppression_tombstone_key_rebinding');
+    if (tombstone.suppression_state !== SUPPRESSION_STATE) failures.push('canonical_suppression_state_invalid');
+    if (tombstone.lineage_metadata_only !== true || tombstone.raw_content_retained !== false) failures.push('canonical_suppression_tombstone_content_boundary_invalid');
+    if (tombstone.tombstone_digest !== digestSuppressionTombstone(tombstone)) failures.push('canonical_suppression_tombstone_digest_mismatch');
+    if (!tombstone.suppression_key || keys.has(tombstone.suppression_key)) failures.push('canonical_suppression_duplicate_or_missing_key');
+    if (tombstone.suppression_key) keys.add(tombstone.suppression_key);
+  }
+
+  if (events.length !== tombstones.length || keys.size !== eventsById.size) failures.push('canonical_suppression_event_tombstone_cardinality_drift');
+  return [...new Set(failures)];
+}
+
 function canonicalSuppressionDisposition(record, rawContext) {
   const context = normalizeTrustedContext(rawContext);
+  const events = context.canonical_suppression_events;
   const tombstones = context.canonical_suppression_tombstones;
-  if (!tombstones.length) return null;
+  if (!events.length && !tombstones.length) return null;
 
+  const failures = validateCanonicalSuppressionLedger(context);
   const resolution = context.trusted_canonical_resolution || {};
   const identity = record.identity || {};
-  const failures = [];
 
   if (resolution.status !== 'RESOLVED_UNAMBIGUOUS') failures.push('canonical_suppression_resolution_not_trusted_unambiguous');
   if (!resolution.source_record_id || resolution.source_record_id !== identity.source_record_id) failures.push('canonical_suppression_record_binding_mismatch');
@@ -83,24 +177,10 @@ function canonicalSuppressionDisposition(record, rawContext) {
   if (!resolution.source_namespace || typeof resolution.source_namespace !== 'string') failures.push('canonical_suppression_namespace_missing');
   if (!resolution.canonical_source_object_id || typeof resolution.canonical_source_object_id !== 'string') failures.push('canonical_suppression_object_missing');
 
-  for (const tombstone of tombstones) {
-    if (!tombstone || typeof tombstone !== 'object') {
-      failures.push('canonical_suppression_tombstone_invalid');
-      continue;
-    }
-    if (!tombstone.destructive_event_id || !tombstone.audit_event_id || !Number.isInteger(tombstone.event_sequence) || tombstone.event_sequence < 1) failures.push('canonical_suppression_audit_binding_invalid');
-    if (!tombstone.source_owner_id || !tombstone.source_namespace || !tombstone.canonical_source_object_id) failures.push('canonical_suppression_key_component_missing');
-    if (tombstone.suppression_state !== SUPPRESSION_STATE) failures.push('canonical_suppression_state_invalid');
-    if (tombstone.lineage_metadata_only !== true || tombstone.raw_content_retained !== false) failures.push('canonical_suppression_tombstone_content_boundary_invalid');
-  }
+  if (failures.length) return { disposition: 'QUARANTINED_OR_REJECTED', triggers: [...new Set(failures)] };
 
-  if (failures.length) return { disposition: 'QUARANTINED_OR_REJECTED', triggers: failures };
-
-  const suppressed = tombstones.some(tombstone =>
-    tombstone.source_owner_id === resolution.source_owner_id &&
-    tombstone.source_namespace === resolution.source_namespace &&
-    tombstone.canonical_source_object_id === resolution.canonical_source_object_id
-  );
+  const key = suppressionKey(resolution.source_owner_id, resolution.source_namespace, resolution.canonical_source_object_id);
+  const suppressed = tombstones.some(tombstone => tombstone.suppression_key === key);
 
   if (suppressed) {
     return {
@@ -139,7 +219,8 @@ function evaluateRecord(record, trustedContext = {}) {
 
   // A durable DELETE/WITHDRAW tombstone is an admission prerequisite, not a standalone proof.
   // Any same-source record rekey that resolves to the suppressed canonical source object must
-  // fail before transport/replay/idempotency can treat it as eligible again.
+  // fail before transport/replay/idempotency can treat it as eligible again. The consumer validates
+  // the exact digest-bound event/tombstone ledger it consumes before making this decision.
   const suppression = canonicalSuppressionDisposition(record, trustedContext);
   if (suppression) return suppression;
 
@@ -321,22 +402,47 @@ for (const [id, mutate] of destructiveMutationCases) {
   }
 }
 
-// Cross-control proof: the primary partner-like admission evaluator itself must consume the
-// durable canonical suppression state. A standalone suppression validator is insufficient if
-// this path can still admit a post-delete alias under a new transient source record ID.
+// Cross-control proof: the primary partner-like admission evaluator itself must consume and
+// cryptographically validate the durable canonical suppression ledger. A standalone suppression
+// validator is insufficient if this path consumes an unauthenticated projection of tombstone state.
 const deletionEvent = deletionFixture.record.lifecycle.control_event;
+const canonicalSuppressionKey = suppressionKey(
+  deletionEvent.source_owner_id,
+  deletionEvent.source_namespace,
+  'canonical-delete-001'
+);
+const canonicalSuppressionEvent = {
+  audit_event_id: 'audit-delete-001',
+  destructive_event_id: deletionEvent.event_id,
+  sequence_number: 1,
+  previous_event_digest: 'GENESIS',
+  action: deletionEvent.action,
+  authorized: true,
+  append_only_audit_bound: true,
+  source_owner_id: deletionEvent.source_owner_id,
+  source_namespace: deletionEvent.source_namespace,
+  source_record_id: deletionFixture.record.identity.source_record_id,
+  canonical_source_object_id: 'canonical-delete-001',
+  suppression_key: canonicalSuppressionKey,
+  suppression_state: SUPPRESSION_STATE
+};
+canonicalSuppressionEvent.event_digest = digestSuppressionEvent(canonicalSuppressionEvent);
+const canonicalSuppressionTombstone = {
+  destructive_event_id: canonicalSuppressionEvent.destructive_event_id,
+  audit_event_id: canonicalSuppressionEvent.audit_event_id,
+  event_sequence: canonicalSuppressionEvent.sequence_number,
+  source_owner_id: canonicalSuppressionEvent.source_owner_id,
+  source_namespace: canonicalSuppressionEvent.source_namespace,
+  canonical_source_object_id: canonicalSuppressionEvent.canonical_source_object_id,
+  suppression_key: canonicalSuppressionEvent.suppression_key,
+  suppression_state: SUPPRESSION_STATE,
+  lineage_metadata_only: true,
+  raw_content_retained: false
+};
+canonicalSuppressionTombstone.tombstone_digest = digestSuppressionTombstone(canonicalSuppressionTombstone);
 const canonicalSuppressionContext = {
-  canonical_suppression_tombstones: [{
-    destructive_event_id: deletionEvent.event_id,
-    audit_event_id: 'audit-delete-001',
-    event_sequence: 1,
-    source_owner_id: deletionEvent.source_owner_id,
-    source_namespace: deletionEvent.source_namespace,
-    canonical_source_object_id: 'canonical-delete-001',
-    suppression_state: SUPPRESSION_STATE,
-    lineage_metadata_only: true,
-    raw_content_retained: false
-  }],
+  canonical_suppression_events: [canonicalSuppressionEvent],
+  canonical_suppression_tombstones: [canonicalSuppressionTombstone],
   trusted_canonical_resolution: {
     status: 'RESOLVED_UNAMBIGUOUS',
     source_record_id: 'delete-001-rekeyed',
@@ -370,9 +476,41 @@ const canonicalSuppressionMutationCases = [
   ['missing_resolution', context => { delete context.trusted_canonical_resolution; }],
   ['ambiguous_resolution', context => { context.trusted_canonical_resolution.status = 'AMBIGUOUS'; }],
   ['resolver_record_rebinding', context => { context.trusted_canonical_resolution.source_record_id = 'other-record'; }],
-  ['suppression_state_promotion', context => { context.canonical_suppression_tombstones[0].suppression_state = 'ACTIVE'; }],
-  ['suppression_raw_content_retained', context => { context.canonical_suppression_tombstones[0].raw_content_retained = true; }],
-  ['suppression_audit_binding_missing', context => { delete context.canonical_suppression_tombstones[0].audit_event_id; }]
+  ['missing_event_chain', context => { context.canonical_suppression_events = []; }],
+  ['event_digest_tamper', context => { context.canonical_suppression_events[0].event_digest = 'forged'; }],
+  ['previous_digest_tamper_resigned', context => {
+    context.canonical_suppression_events[0].previous_event_digest = 'forged-previous';
+    context.canonical_suppression_events[0].event_digest = digestSuppressionEvent(context.canonical_suppression_events[0]);
+  }],
+  ['tombstone_digest_tamper', context => { context.canonical_suppression_tombstones[0].tombstone_digest = 'forged'; }],
+  ['tombstone_event_rebinding_resigned', context => {
+    context.canonical_suppression_tombstones[0].audit_event_id = 'other-audit';
+    context.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(context.canonical_suppression_tombstones[0]);
+  }],
+  ['suppression_key_recomputed_malicious_object', context => {
+    context.canonical_suppression_tombstones[0].canonical_source_object_id = 'other-canonical';
+    context.canonical_suppression_tombstones[0].suppression_key = suppressionKey(
+      context.canonical_suppression_tombstones[0].source_owner_id,
+      context.canonical_suppression_tombstones[0].source_namespace,
+      context.canonical_suppression_tombstones[0].canonical_source_object_id
+    );
+    context.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(context.canonical_suppression_tombstones[0]);
+  }],
+  ['suppression_state_promotion_resigned', context => {
+    context.canonical_suppression_tombstones[0].suppression_state = 'ACTIVE';
+    context.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(context.canonical_suppression_tombstones[0]);
+  }],
+  ['suppression_raw_content_retained_resigned', context => {
+    context.canonical_suppression_tombstones[0].raw_content_retained = true;
+    context.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(context.canonical_suppression_tombstones[0]);
+  }],
+  ['extra_orphan_tombstone', context => {
+    const extra = structuredClone(context.canonical_suppression_tombstones[0]);
+    extra.destructive_event_id = 'orphan-destructive';
+    extra.suppression_key = 'orphan::source::object';
+    extra.tombstone_digest = digestSuppressionTombstone(extra);
+    context.canonical_suppression_tombstones.push(extra);
+  }]
 ];
 for (const [id, mutate] of canonicalSuppressionMutationCases) {
   const context = structuredClone(canonicalSuppressionContext);
@@ -426,6 +564,7 @@ console.log(JSON.stringify({
   replay_cross_control_fail_closed_mutation_cases: replayFailClosedMutationCases.length,
   destructive_lifecycle_authorization_fail_closed_mutation_cases: destructiveMutationCases.length + 1,
   canonical_suppression_consumer_binding: true,
+  canonical_suppression_consumer_cryptographic_ledger_validation: true,
   canonical_rekey_reingestion_fail_closed: true,
   canonical_rekey_replay_fail_closed: true,
   canonical_suppression_fail_closed_mutation_cases: canonicalSuppressionMutationCases.length,
