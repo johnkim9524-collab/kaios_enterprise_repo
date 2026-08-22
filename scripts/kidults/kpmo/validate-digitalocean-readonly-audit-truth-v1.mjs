@@ -19,6 +19,10 @@ function externalActionRefs(text) {
   return refs;
 }
 
+function occurrences(text, needle) {
+  return text.split(needle).length - 1;
+}
+
 function violationsFor({ workflow, audit, doc }) {
   const violations = [];
 
@@ -51,7 +55,8 @@ function violationsFor({ workflow, audit, doc }) {
   if (!audit.includes('class NoRedirectHandler')) violations.push('redirect-fail-close-missing');
   if (!audit.includes('open_no_redirect')) violations.push('no-redirect-open-path-missing');
   if (!audit.includes('PUBLIC_RUNTIME_AND_DROPLET_METADATA_OBSERVED_INDEPENDENTLY')) violations.push('independent-observation-state-missing');
-  if (!audit.includes('"runtime_droplet_binding_verified": False')) violations.push('runtime-droplet-binding-not-explicit-false');
+  if (occurrences(audit, '"runtime_droplet_binding_verified": False') < 2) violations.push('runtime-droplet-binding-not-explicit-false');
+  if (audit.includes('"runtime_droplet_binding_verified": True')) violations.push('runtime-droplet-binding-true-claim');
   if (!audit.includes('"binding_method": "NONE"')) violations.push('binding-method-not-none');
   if (audit.includes('READ_ONLY_CONNECTION_VERIFIED')) violations.push('false-connection-verification-claim-in-audit');
 
