@@ -7,7 +7,7 @@ const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
 
 const requiredTop = [
   'version','status','governing_issue','rule','truth_boundary','principles','audit_event_envelope',
-  'partner_data_state_machine','control_layers','pre_partner_control_families','adversarial_fixtures',
+  'destructive_lifecycle_control','partner_data_state_machine','control_layers','pre_partner_control_families','adversarial_fixtures',
   'immutability','provider_independence','cost_capacity','downstream_isolation','exit_criteria'
 ];
 for (const key of requiredTop) if (!(key in contract)) throw new Error(`missing top-level key: ${key}`);
@@ -23,7 +23,7 @@ for (const hold of ['external_partner_data_ingestion','production','public']) {
 }
 if (truth.g5 !== 'EXPLICIT_APPROVAL_REQUIRED') throw new Error('G5 must require explicit approval');
 
-const mustPrinciples = ['APPEND_ONLY','FAIL_CLOSED','EVIDENCE_BEFORE_METRICS','RIGHTS_BEFORE_USE','QUARANTINE_BEFORE_PROMOTION','NO_PROVIDER_EQUALS_TRUTH','ONLY_EVIDENCED_PASS_COUNTS_AS_COMPLETE'];
+const mustPrinciples = ['APPEND_ONLY','FAIL_CLOSED','EVIDENCE_BEFORE_METRICS','RIGHTS_BEFORE_USE','QUARANTINE_BEFORE_PROMOTION','NO_PROVIDER_EQUALS_TRUTH','ONLY_EVIDENCED_PASS_COUNTS_AS_COMPLETE','AUTHENTICATE_DESTRUCTIVE_CONTROL_EVENTS'];
 for (const p of mustPrinciples) if (!contract.principles.includes(p)) throw new Error(`missing principle: ${p}`);
 
 const requiredEvent = ['audit_event_id','event_time','sequence_number','previous_event_digest','actor_type','actor_id','action','object_type','object_id','source_id','source_owner_id','source_namespace','data_classification','decision','reason','result','correlation_id','event_digest'];
@@ -31,6 +31,15 @@ for (const f of requiredEvent) if (!contract.audit_event_envelope.required.inclu
 for (const forbidden of ['secret','credential','api_key','raw_token','access_token','refresh_token','password','authorization_header']) {
   if (!contract.audit_event_envelope.forbidden.includes(forbidden)) throw new Error(`missing forbidden secret field: ${forbidden}`);
 }
+
+const destructive = contract.destructive_lifecycle_control || {};
+if (destructive.authorization_required !== true) throw new Error('destructive lifecycle authorization must be required');
+if (JSON.stringify(destructive.allowed_actions) !== JSON.stringify(['WITHDRAW','DELETE'])) throw new Error('destructive lifecycle actions must be exact');
+if (destructive.trusted_context_binding !== 'PERSISTED_SOURCE_OWNER_NAMESPACE_OBJECT') throw new Error('destructive event must bind persisted source owner/namespace/object context');
+if (destructive.actor_binding !== 'AUTHENTICATED_AUTHORIZED_SOURCE_OWNER') throw new Error('destructive event actor must be authenticated/authorized source owner');
+if (destructive.audit_binding !== 'APPEND_ONLY_EVENT_REQUIRED') throw new Error('destructive event must bind append-only audit event');
+if (destructive.replay_protection !== 'UNIQUE_EVENT_ID_FAIL_CLOSED') throw new Error('destructive event replay must fail closed');
+if (destructive.unauthorized_behavior !== 'QUARANTINE_OR_REJECT_NO_STATE_MUTATION') throw new Error('unauthorized destructive event must not mutate state');
 
 const sm = contract.partner_data_state_machine;
 if (sm.initial_state !== 'RECEIVED' || sm.default_after_receipt !== 'QUARANTINED') throw new Error('partner data must default to quarantine');
@@ -57,6 +66,13 @@ for (const id of requiredFamilyIds) {
   if (!family) throw new Error(`missing #881 control family: ${id}`);
   if (!Array.isArray(family.required_controls) || family.required_controls.length === 0) throw new Error(`family has no controls: ${id}`);
 }
+for (const [familyId, controlId] of [
+  ['PROVENANCE_EVIDENCE_LINEAGE','withdrawal_event_source_binding'],
+  ['PRIVACY_SECURITY_SECRETS','destructive_control_event_authorization'],
+  ['REPLAY_RECOVERY_ROLLBACK','destructive_event_replay_protection']
+]) {
+  if (!familyMap.get(familyId)?.required_controls?.includes(controlId)) throw new Error(`missing destructive lifecycle control binding: ${familyId}.${controlId}`);
+}
 
 const requiredFixtures = ['schema_drift','wrong_currency_unit','duplicate_relisted','contradictory_sources','missing_rights','expired_rights','deletion_request','poisoned_outlier','partial_truncated_batch','source_outage_rate_limit','replay_recovery','provider_substitution'];
 const fixtureMap = new Map(contract.adversarial_fixtures.map(f => [f.id, f]));
@@ -81,4 +97,5 @@ if (contract.downstream_isolation.portal_eos_production_bypass !== 'PROHIBITED')
 
 console.log('PASS unified-audit-control-plane-v1');
 console.log(`families=${contract.pre_partner_control_families.length} event_required=${contract.audit_event_envelope.required.length} lifecycle_states=${sm.states.length} fixtures=${contract.adversarial_fixtures.length}`);
+console.log('destructive_lifecycle=AUTHENTICATED_PERSISTED_BINDING_REPLAY_PROTECTED');
 console.log('truth=CONTROL_ONLY partner_ingestion=HOLD production=HOLD public=HOLD g5=EXPLICIT_APPROVAL_REQUIRED');
