@@ -7,6 +7,7 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-source-family-discovery-intent-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/apply-asi-datacite-source-family-supplement-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - '.github/workflows/kidults-asi-source-family-gap-feedback-discovery-v1.yml'
 
@@ -31,6 +32,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-asi-source-family-discovery-intent-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs
           node --check scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/apply-asi-datacite-source-family-supplement-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs
       - name: Build deterministic autobalance fixture
         run: |
@@ -38,13 +40,13 @@ jobs:
           const fs=require('fs');
           const scopes=JSON.parse(fs.readFileSync('coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json')).scopes.map(x=>x.scope_id);
           const families=['PRIMARY_OR_OFFICIAL_AUTHORITY','OPEN_MARKETPLACE_OR_DEALER','GRADING_AUTHENTICATION_OR_CONDITION','MEDIA_COMMUNITY_OR_EVENT_CONTEXT','MUSEUM_OR_INSTITUTIONAL_CONTEXT','UNCLASSIFIED_ANY_SITE_CANDIDATE'];
-          const familyCounts={PRIMARY_OR_OFFICIAL_AUTHORITY:30,OPEN_MARKETPLACE_OR_DEALER:1,GRADING_AUTHENTICATION_OR_CONDITION:0,MEDIA_COMMUNITY_OR_EVENT_CONTEXT:2,MUSEUM_OR_INSTITUTIONAL_CONTEXT:0,UNCLASSIFIED_ANY_SITE_CANDIDATE:40};
-          const familyPriorities=families.map(id=>{const c=familyCounts[id];return{id,count:c,priority_weight:c===0?3:c<5?2.8:1,coverage_ratio:c/40,reason:c===0?'ZERO_SOURCE_FAMILY_COVERAGE':c<5?'LOW_SOURCE_FAMILY_COVERAGE':'NORMAL'}}).sort((a,b)=>b.priority_weight-a.priority_weight);
-          const scopePriorities=scopes.map((id,i)=>({id,count:i,priority_weight:i<4?3:1.2,coverage_ratio:i/32,reason:i<4?'LOW_SCOPE_COVERAGE':'NORMAL'}));
-          const regions=['NORTH_AMERICA','EUROPE','JAPAN','KOREA','GREATER_CHINA','SOUTHEAST_ASIA','OCEANIA','LATAM_MEA'].map((id,i)=>({id,count:i,priority_weight:i<2?3:1.2,coverage_ratio:i/8,reason:i<2?'LOW_REGION_COVERAGE':'NORMAL'}));
-          process.stdout.write(JSON.stringify({id:'kidults-asi-throughput-coverage-autobalance-v1',status:'SHADOW_AUTOBALANCE_PLAN_READY',next_cycle_budget:{source_family_priorities:familyPriorities,scope_priorities:scopePriorities,region_priorities:regions},rules:{rights_gate_can_never_be_weakened:true},public_release:'HOLD',production:'HOLD'}));
+          const counts={PRIMARY_OR_OFFICIAL_AUTHORITY:30,OPEN_MARKETPLACE_OR_DEALER:1,GRADING_AUTHENTICATION_OR_CONDITION:0,MEDIA_COMMUNITY_OR_EVENT_CONTEXT:2,MUSEUM_OR_INSTITUTIONAL_CONTEXT:0,UNCLASSIFIED_ANY_SITE_CANDIDATE:40};
+          const fp=families.map(id=>{const c=counts[id];return{id,count:c,priority_weight:c===0?3:c<5?2.8:1,coverage_ratio:c/40,reason:c===0?'ZERO_SOURCE_FAMILY_COVERAGE':c<5?'LOW_SOURCE_FAMILY_COVERAGE':'NORMAL'}}).sort((a,b)=>b.priority_weight-a.priority_weight);
+          const sp=scopes.map((id,i)=>({id,count:i,priority_weight:i<4?3:1.2,coverage_ratio:i/32,reason:i<4?'LOW_SCOPE_COVERAGE':'NORMAL'}));
+          const rp=['NORTH_AMERICA','EUROPE','JAPAN','KOREA','GREATER_CHINA','SOUTHEAST_ASIA','OCEANIA','LATAM_MEA'].map((id,i)=>({id,count:i,priority_weight:i<2?3:1.2,coverage_ratio:i/8,reason:i<2?'LOW_REGION_COVERAGE':'NORMAL'}));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-throughput-coverage-autobalance-v1',status:'SHADOW_AUTOBALANCE_PLAN_READY',next_cycle_budget:{source_family_priorities:fp,scope_priorities:sp,region_priorities:rp},rules:{rights_gate_can_never_be_weakened:true},public_release:'HOLD',production:'HOLD'}));
           NODE
-      - name: Build and validate bounded supplemental intent
+      - name: Build and validate adaptive bounded intent
         run: |
           node scripts/kidults/source-intelligence/build-asi-source-family-discovery-intent-v1.mjs /tmp/autobalance.json /tmp/intent.json
           node scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs /tmp/intent.json
@@ -59,21 +61,22 @@ jobs:
           unzip -q -o /tmp/anchor-foundation.zip -d input
           node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input queue
           node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs queue
-      - name: Empirically execute baseline plus source-family supplemental discovery
+      - name: Empirically execute provider-adaptive supplemental discovery
         env:
           GH_TOKEN: ${{ github.token }}
           ASI_SOURCE_FAMILY_DISCOVERY_INTENT: /tmp/intent.json
         run: |
           node scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs queue discovery-out
+          node scripts/kidults/source-intelligence/apply-asi-datacite-source-family-supplement-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/intent.json
           node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
           node - <<'NODE'
           const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery.json'));
           if(x.source_family_gap_intent_applied!==true)throw new Error('INTENT_NOT_APPLIED');
-          if(!(x.supplemental_query_count>0&&x.supplemental_query_count<=12))throw new Error('SUPPLEMENTAL_QUERY_BUDGET');
-          const lane=x.lane_health.find(y=>y.lane_id==='GITHUB_SOURCE_FAMILY_GAP_SUPPLEMENT');
-          if(!lane||!['SUCCESS_WITH_RESULTS','SUCCESS_ZERO_RESULTS'].includes(lane.status))throw new Error(`SUPPLEMENT_LANE_NOT_PROVEN:${lane?.status}`);
+          const lane=x.lane_health.find(y=>y.lane_id==='DATACITE_SOURCE_FAMILY_GAP_SUPPLEMENT');
+          if(!lane||!['SUCCESS_WITH_RESULTS','SUCCESS_ZERO_RESULTS'].includes(lane.status))throw new Error(`DATACITE_SUPPLEMENT_NOT_PROVEN:${lane?.status}`);
+          if(!(x.source_family_gap_datacite_directive_count>0))throw new Error('NO_DATACITE_DIRECTIVES');
           if(x.baseline_discovery_executed!==true)throw new Error('BASELINE_REMOVED');
-          console.log(JSON.stringify({status:'PASS',supplemental_query_count:x.supplemental_query_count,supplement_lane:lane,candidates:x.candidate_count,live_external:x.live_external_candidate_count,production:x.production}));
+          console.log(JSON.stringify({status:'PASS',supplemental_query_count:x.supplemental_query_count,datacite_directives:x.source_family_gap_datacite_directive_count,datacite_lane:lane,candidates:x.candidate_count,live_external:x.live_external_candidate_count,production:x.production}));
           NODE
       - name: Reject baseline removal mutation
         run: |
