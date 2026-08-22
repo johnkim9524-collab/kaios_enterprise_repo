@@ -58,6 +58,8 @@ try {
     ['unknown_store', r => { r.rights.store = 'UNKNOWN'; }],
     ['unknown_derive', r => { r.rights.derive = 'UNKNOWN'; }],
     ['expired_rights', r => { r.expires_at = '2026-08-20T23:59:59Z'; }],
+    ['missing_expiry', r => { delete r.expires_at; }],
+    ['null_expiry', r => { r.expires_at = null; }],
     ['malformed_expiry', r => { r.expires_at = 'not-a-date'; }],
     ['timezone_less_expiry', r => { r.expires_at = '2099-01-01T00:00:00'; }],
     ['invalid_calendar_expiry', r => { r.expires_at = '2099-02-30T00:00:00Z'; }],
@@ -78,11 +80,17 @@ try {
   const conditionalHoldResult = execute(conditionalHold, 'conditional-hold-representable');
   if (conditionalHoldResult.status !== 0) throw new Error(`conditional HOLD record should remain representable:\n${conditionalHoldResult.stderr}`);
 
-  const archival = structuredClone(base);
-  archival.state = 'BLOCKED';
-  archival.expires_at = '2026-08-19T00:00:00Z';
-  const archivalResult = execute(archival, 'blocked-expired-archive');
-  if (archivalResult.status !== 0) throw new Error(`blocked archival record should remain representable:\n${archivalResult.stderr}`);
+  const blockedExpired = structuredClone(base);
+  blockedExpired.state = 'BLOCKED';
+  blockedExpired.expires_at = '2026-08-19T00:00:00Z';
+  const blockedExpiredResult = execute(blockedExpired, 'blocked-expired-archive');
+  if (blockedExpiredResult.status !== 0) throw new Error(`blocked expired archival record should remain representable:\n${blockedExpiredResult.stderr}`);
+
+  const blockedNoExpiry = structuredClone(base);
+  blockedNoExpiry.state = 'BLOCKED';
+  delete blockedNoExpiry.expires_at;
+  const blockedNoExpiryResult = execute(blockedNoExpiry, 'blocked-no-expiry-archive');
+  if (blockedNoExpiryResult.status !== 0) throw new Error(`blocked archival record without active expiry should remain representable:\n${blockedNoExpiryResult.stderr}`);
 
   console.log(JSON.stringify({
     suite: 'KIDULTS_SOURCE_ADMISSION_TEMPORAL_RIGHTS_SELFTEST_V1',
@@ -92,8 +100,10 @@ try {
     source_context_schema_fail_closed_mutations: 12,
     admitted_execution_rights_exact_allow_required: true,
     conditional_execution_rights_hold_representable: true,
+    admitted_requires_explicit_unexpired_rights_horizon: true,
     fail_closed_mutations_detected: rejected.length,
     blocked_expired_archival_record_supported: true,
+    blocked_no_expiry_archival_record_supported: true,
     external_partner_data_ingestion: 'HOLD',
     empirical_gate_effect: 'NONE',
     production: 'HOLD',
