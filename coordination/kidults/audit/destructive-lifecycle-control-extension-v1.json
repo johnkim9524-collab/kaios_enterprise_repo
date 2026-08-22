@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "governing_issue": 961,
+  "extends_governing_issue": 881,
+  "control_id": "AUTHENTICATED_DESTRUCTIVE_LIFECYCLE_EVENT",
+  "purpose": "Require authenticated, source-owner-bound, object-bound, append-only-audited authorization before a withdrawal or deletion request can change admitted evidence state.",
+  "bound_control_families": [
+    "PRIVACY_SECURITY_SECRETS",
+    "PROVENANCE_EVIDENCE_LINEAGE",
+    "REPLAY_RECOVERY_ROLLBACK",
+    "ADVERSARIAL_REDTEAM_FIXTURES"
+  ],
+  "required_controls": [
+    "authenticated_actor_identity",
+    "actor_source_owner_binding",
+    "source_owner_binding",
+    "source_namespace_binding",
+    "object_binding",
+    "allowed_destructive_action",
+    "authorization_decision_pass",
+    "append_only_audit_event_binding",
+    "destructive_event_id_uniqueness",
+    "destructive_event_replay_rejection"
+  ],
+  "allowed_actions": ["WITHDRAW", "DELETE"],
+  "fail_closed_disposition": "QUARANTINED_OR_REJECTED",
+  "truth_boundary": {
+    "readiness_axis": "INTERNAL_CONTROL_READINESS",
+    "empirical_gate_effect": "NONE",
+    "external_partner_data_ingestion": "HOLD",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
