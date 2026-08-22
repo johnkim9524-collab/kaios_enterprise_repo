@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 const TARGET = '.github/workflows/digitalocean-staging-portal-deploy.yml';
 const fullShaAction = /^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)@([0-9a-f]{40})(?:\s+#\s*.+)?$/i;
+const PINNED_RUNNER = 'ubuntu-24.04';
 
 function externalActionRefs(text) {
   return text.split(/\r?\n/)
@@ -22,6 +23,15 @@ function findingsFor(text) {
   }
   if (/\bpull_request\s*:/.test(text)) findings.push('SECRET_BEARING_STAGING_DEPLOY_MUST_NOT_RUN_ON_PULL_REQUEST');
   if (!/^permissions:\s*\n\s*contents:\s*read\s*$/mi.test(text)) findings.push('LEAST_PRIVILEGE_CONTENTS_READ_NOT_EXPLICIT');
+
+  const runnerRefs = [...text.matchAll(/^\s*runs-on:\s*([^\s#]+).*$/gmi)].map(match => match[1]);
+  if (runnerRefs.length !== 2) findings.push(`RUNNER_COUNT_EXPECTED_2_GOT_${runnerRefs.length}`);
+  for (const runner of runnerRefs) {
+    if (runner !== PINNED_RUNNER) findings.push(`UNPINNED_OR_UNEXPECTED_RUNNER:${runner}`);
+  }
+  if (/runs-on:\s*[^\n]*-latest\b/i.test(text)) findings.push('MOVING_LATEST_RUNNER_ALIAS_FORBIDDEN');
+  if (count(text, /Record STAGING (?:validation|deploy) runner identity/g) !== 2) findings.push('RUNNER_IDENTITY_RECORDING_EXPECTED_2');
+  if (count(text, /image_version=\$\{ImageVersion:-UNKNOWN\}/g) !== 2) findings.push('HOSTED_IMAGE_VERSION_RECORDING_EXPECTED_2');
 
   const checkoutCount = count(text, /uses:\s*actions\/checkout@[0-9a-f]{40}/gi);
   const exactRefCount = count(text, /ref:\s*\$\{\{\s*github\.sha\s*\}\}/g);
@@ -64,6 +74,11 @@ const mutationCases = [
     id: 'missing-exact-checkout',
     source: `permissions:\n  contents: read\nsteps:\n- uses: actions/checkout@${'a'.repeat(40)}\n- uses: actions/checkout@${'b'.repeat(40)}`,
     expected: 'EXACT_REF_COUNT_0_CHECKOUT_COUNT_2'
+  },
+  {
+    id: 'moving-runner-alias',
+    source: `permissions:\n  contents: read\njobs:\n  validate:\n    runs-on: ubuntu-latest\n  deploy:\n    runs-on: ubuntu-24.04`,
+    expected: 'UNPINNED_OR_UNEXPECTED_RUNNER:ubuntu-latest'
   }
 ];
 for (const mutation of mutationCases) {
@@ -84,6 +99,9 @@ console.log(JSON.stringify({
   immutable_external_actions_required: true,
   exact_source_sha_required: true,
   checkout_credentials_persisted: false,
+  pinned_runner: PINNED_RUNNER,
+  moving_latest_runner_alias_forbidden: true,
+  hosted_image_identity_recorded: true,
   remote_scope: 'DIGITALOCEAN_STAGING_LOCALHOST_ONLY',
   secret_execution_ref_policy: 'EXTERNAL_APPROVAL_REQUIRED_UNDER_ISSUE_974',
   production: 'HOLD',
