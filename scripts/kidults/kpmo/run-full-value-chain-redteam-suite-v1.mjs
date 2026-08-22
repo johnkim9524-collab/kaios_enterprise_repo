@@ -30,6 +30,7 @@ const p0PrePartnerValidators = [
   'scripts/kidults/audit/validate-pre-partner-adversarial-fixture-semantic-binding-v1.mjs',
   'scripts/kidults/audit/validate-rights-withdrawal-transitive-invalidation-v1.mjs',
   'scripts/kidults/audit/validate-destructive-lifecycle-recovery-monotonicity-v1.mjs',
+  'scripts/kidults/audit/validate-recovery-authority-anchor-v1.mjs',
   'scripts/kidults/audit/validate-destructive-canonical-suppression-v1.mjs'
 ];
 const rightsBoundaryValidators = [
@@ -121,6 +122,8 @@ console.log(JSON.stringify({
   pre_partner_adversarial_fixture_semantic_binding_machine_bound: true,
   pre_partner_transitive_invalidation_machine_bound: true,
   pre_partner_durable_destructive_replay_machine_bound: true,
+  pre_partner_recovery_authority_anchor_machine_bound: true,
+  pre_partner_recovery_authority_issue: 1068,
   pre_partner_rollback_revocation_resurrection_fail_closed: true,
   pre_partner_canonical_source_object_suppression_machine_bound: true,
   pre_partner_rekey_alias_reingestion_fail_closed: true,
