@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "P0_PRE_INGESTION_CONTROL",
   "governing_issue": 881,
   "rule": "NO_PARTNER_DATA_INGESTION_BEFORE_PRE_INTAKE_GATE_PASS",
@@ -20,7 +20,8 @@
     "RIGHTS_BEFORE_USE",
     "QUARANTINE_BEFORE_PROMOTION",
     "NO_PROVIDER_EQUALS_TRUTH",
-    "ONLY_EVIDENCED_PASS_COUNTS_AS_COMPLETE"
+    "ONLY_EVIDENCED_PASS_COUNTS_AS_COMPLETE",
+    "AUTHENTICATE_DESTRUCTIVE_CONTROL_EVENTS"
   ],
   "audit_event_envelope": {
     "required": [
@@ -66,6 +67,16 @@
       "password",
       "authorization_header"
     ]
+  },
+  "destructive_lifecycle_control": {
+    "authorization_required": true,
+    "allowed_actions": ["WITHDRAW", "DELETE"],
+    "trusted_context_binding": "PERSISTED_SOURCE_OWNER_NAMESPACE_OBJECT",
+    "actor_binding": "AUTHENTICATED_AUTHORIZED_SOURCE_OWNER",
+    "audit_binding": "APPEND_ONLY_EVENT_REQUIRED",
+    "replay_protection": "UNIQUE_EVENT_ID_FAIL_CLOSED",
+    "rights_expiry_behavior": "DESTRUCTIVE_REQUEST_MAY_PROCEED_ONLY_AFTER_AUTHORIZATION",
+    "unauthorized_behavior": "QUARANTINE_OR_REJECT_NO_STATE_MUTATION"
   },
   "partner_data_state_machine": {
     "initial_state": "RECEIVED",
@@ -150,7 +161,7 @@
     },
     {
       "id": "PROVENANCE_EVIDENCE_LINEAGE",
-      "required_controls": ["raw_to_claim_traceability", "immutable_lineage_reference", "methodology_lineage_version_binding", "confidence_limitation_propagation"]
+      "required_controls": ["raw_to_claim_traceability", "immutable_lineage_reference", "methodology_lineage_version_binding", "confidence_limitation_propagation", "withdrawal_event_source_binding"]
     },
     {
       "id": "QUALITY_POISONING_ANOMALY_DEFENSE",
@@ -158,11 +169,11 @@
     },
     {
       "id": "PRIVACY_SECURITY_SECRETS",
-      "required_controls": ["pii_classification_minimization", "secret_manager_only", "no_secrets_in_logs_registry_artifacts", "least_privilege", "ingest_reject_quarantine_replay_audit"]
+      "required_controls": ["pii_classification_minimization", "secret_manager_only", "no_secrets_in_logs_registry_artifacts", "least_privilege", "ingest_reject_quarantine_replay_audit", "destructive_control_event_authorization"]
     },
     {
       "id": "REPLAY_RECOVERY_ROLLBACK",
-      "required_controls": ["deterministic_replay", "idempotent_ingestion", "partial_batch_recovery", "lineage_safe_rollback", "withdrawal_deletion_propagation"]
+      "required_controls": ["deterministic_replay", "idempotent_ingestion", "partial_batch_recovery", "lineage_safe_rollback", "withdrawal_deletion_propagation", "destructive_event_replay_protection"]
     },
     {
       "id": "PROVIDER_INDEPENDENCE_CONCENTRATION",
@@ -244,6 +255,7 @@
     "raw to normalized to evidence lineage deterministic and auditable",
     "partner/source namespace isolation enforced",
     "withdrawal deletion rollback replay trace proven",
+    "destructive lifecycle requests authenticated and bound to persisted source-owner namespace object context",
     "Track B Portal EOS Production bypass impossible",
     "synthetic controls do not promote empirical readiness"
   ]
