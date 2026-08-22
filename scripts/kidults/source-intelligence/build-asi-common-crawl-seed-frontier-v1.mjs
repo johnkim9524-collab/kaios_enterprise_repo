@@ -106,8 +106,9 @@ const minimumSelectionCountAfter = Math.min(...frontier.map(row => row.selected_
 const maximumSelectionCountAfter = Math.max(...frontier.map(row => row.selected_count));
 const neverSelectedAfter = frontier.filter(row => row.selected_count === 0).length;
 const fairnessDelta = maximumSelectionCountAfter - minimumSelectionCountAfter;
-const fullSweepComplete = frontier.every(row => row.selected_count >= minimumSelectionCountAfter + (neverSelectedAfter === 0 ? 0 : 0));
-const sweepNumber = minimumSelectionCountAfter + 1;
+const fullSweepComplete = neverSelectedAfter === 0;
+const completedSweepCount = minimumSelectionCountAfter;
+const sweepNumber = completedSweepCount + 1;
 const inputDigest = `sha256:${sha(JSON.stringify({ discovery_id: discovery.id, candidate_count: discovery.candidate_count, hosts: [...observed.keys()].sort() }))}`;
 const frontierDigest = `sha256:${sha(JSON.stringify({ cycle_count: cycleCount, selected_hosts: selectedHosts, host_frontier: frontier }))}`;
 
@@ -119,6 +120,7 @@ const output = {
   universe_target: 'GLOBAL_ANY_SITE_SOURCE_UNIVERSE',
   purpose: 'COMMON_CRAWL_PUBLIC_INDEX_HOST_SELECTION_ONLY',
   cycle_count: cycleCount,
+  completed_sweep_count: completedSweepCount,
   sweep_number: sweepNumber,
   previous_frontier_valid: validPrevious,
   previous_cycle_count: Number(validPrevious ? previous.cycle_count : 0),
@@ -155,10 +157,12 @@ fs.renameSync(tempPath, outPath);
 console.log(JSON.stringify({
   status: output.status,
   cycle_count: cycleCount,
+  completed_sweep_count: completedSweepCount,
   sweep_number: sweepNumber,
   host_universe: frontier.length,
   selected_hosts: selectedHosts.length,
   never_selected_after: neverSelectedAfter,
+  full_sweep_complete: fullSweepComplete,
   fairness_delta: fairnessDelta,
   previous_frontier_valid: validPrevious,
   production: 'HOLD'
