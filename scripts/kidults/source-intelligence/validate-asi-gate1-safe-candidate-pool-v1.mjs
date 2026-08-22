@@ -1,31 +1,15 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-const p=process.argv[2]||'/tmp/asi-gate1-safe-candidate-pool-v1.json';
-const x=JSON.parse(fs.readFileSync(p,'utf8'));
-const fail=m=>{throw new Error(m)};
-if(x.id!=='kidults-asi-gate1-safe-candidate-pool-v1')fail('id mismatch');
-if(x.status!=='SHADOW_GATE1_INGRESS_CLASSIFICATION_COMPLETE')fail('status mismatch');
-if(x.purpose!=='DISCOVERY_METADATA_INDEX_ONLY')fail('purpose mismatch');
-if(Number(x.input_candidate_count)!==Number(x.safe_candidate_count)+Number(x.review_required_count)+Number(x.hard_block_count))fail('count partition mismatch');
-if((x.receipts||[]).length!==Number(x.input_candidate_count))fail('receipt coverage incomplete');
-if(x.rights_promoted_automatically!==false||x.admission_promoted_automatically!==false||x.acquisition_authorized!==false)fail('authority boundary weakened');
-if(x.public_release!=='HOLD'||x.production!=='HOLD')fail('public/production must HOLD');
-if(x.gate2_required_before_any_collection_right!==true||x.gate3_required_before_bounded_acquisition!==true)fail('downstream gates missing');
-const ids=new Set();
-for(const r of x.receipts||[]){
- if(r.receipt_type!=='GATE_1_INGRESS_RECEIPT'||r.gate!=='GATE_1_ASI_INGRESS_VERIFICATION')fail('receipt identity mismatch');
- if(!r.source_candidate_id||!r.canonical_locator||!r.input_fingerprint)fail('receipt provenance incomplete');
- if(ids.has(r.source_candidate_id))fail('duplicate receipt candidate');ids.add(r.source_candidate_id);
- if(r.collection_right_created!==false||r.store_right_created!==false||r.derive_right_created!==false||r.redistribution_right_created!==false||r.acquisition_authorized!==false)fail('Gate1 created downstream right');
- if(!['PASS_TO_SAFE_CANDIDATE_POOL','REVIEW_REQUIRED','HARD_BLOCK'].includes(r.decision))fail('invalid decision');
-}
-for(const c of x.safe_candidate_pool||[]){
- const r=c.gate_1_receipt;if(!r||r.decision!=='PASS_TO_SAFE_CANDIDATE_POOL'||c.gate_1_state!=='PASS')fail('safe pool without Gate1 PASS');
- const rights=JSON.stringify(r.primary_reference_signals?.rights_list||[]).toLowerCase();
- const open=['cc0','creative commons zero','public domain','cc by 4.0','cc-by-4.0','creative commons attribution 4.0','odc-by','open data commons attribution','pddl','open data commons public domain dedication','mit license','apache license 2.0'];
- if(c.discovery_provider!=='DATACITE_OPEN_RESEARCH_METADATA'||!open.some(v=>rights.includes(v)))fail('unsafe auto-pass basis');
- if(c.acquisition_authorized!==false)fail('safe pool implied acquisition');
-}
-for(const c of x.review_required_queue||[])if(c.gate_1_receipt?.decision!=='REVIEW_REQUIRED')fail('review queue contamination');
-for(const c of x.hard_block_queue||[])if(c.gate_1_receipt?.decision!=='HARD_BLOCK')fail('hard block queue contamination');
-console.log(JSON.stringify({status:'PASS',input:x.input_candidate_count,safe:x.safe_candidate_count,review:x.review_required_count,blocked:x.hard_block_count,production:x.production},null,2));
+const p=process.argv[2]||'/tmp/asi-gate1-safe-candidate-pool-v1.json';const x=JSON.parse(fs.readFileSync(p,'utf8'));const fail=m=>{throw new Error(m)};
+if(x.id!=='kidults-asi-gate1-safe-candidate-pool-v1')fail('id mismatch');if(x.status!=='SHADOW_GATE1_INGRESS_CLASSIFICATION_COMPLETE')fail('status mismatch');if(x.purpose!=='DISCOVERY_METADATA_INDEX_ONLY')fail('purpose mismatch');
+if(Number(x.input_candidate_count)!==Number(x.safe_candidate_count)+Number(x.review_required_count)+Number(x.hard_block_count))fail('count partition mismatch');if((x.receipts||[]).length!==Number(x.input_candidate_count))fail('receipt coverage incomplete');
+if(x.rights_promoted_automatically!==false||x.admission_promoted_automatically!==false||x.acquisition_authorized!==false)fail('authority boundary weakened');if(x.public_release!=='HOLD'||x.production!=='HOLD')fail('public/production must HOLD');if(x.gate2_required_before_any_collection_right!==true||x.gate3_required_before_bounded_acquisition!==true)fail('downstream gates missing');
+if(x.source_family_classification_applied!==true)fail('source family classification bypassed');
+const families=new Set(['UNCLASSIFIED_ANY_SITE_CANDIDATE','OPEN_MARKETPLACE_OR_DEALER','PRIMARY_OR_OFFICIAL_AUTHORITY','GRADING_AUTHENTICATION_OR_CONDITION','MEDIA_COMMUNITY_OR_EVENT_CONTEXT','MUSEUM_OR_INSTITUTIONAL_CONTEXT']);
+const all=[...(x.safe_candidate_pool||[]),...(x.review_required_queue||[]),...(x.hard_block_queue||[])];if(all.length!==Number(x.input_candidate_count))fail('candidate partition incomplete');
+for(const c of all){if(!families.has(c.source_family_hint))fail(`invalid family:${c.candidate_id}`);if(c.source_family_classification?.rights_effect!=='NONE'||c.source_family_classification?.admission_effect!=='NONE'||c.source_family_classification?.market_claim_effect!=='NONE')fail(`classification effect:${c.candidate_id}`);if((c.candidate_source_roles||[]).includes('SOLD_TRANSACTION')&&c.terminal_transaction_asserted!==true)fail(`listing is not sold:${c.candidate_id}`);if(c.rights_state!=='UNASSESSED'||c.admission_state!=='NOT_ADMITTED')fail(`classification promoted authority:${c.candidate_id}`);}
+const famTotal=Object.values(x.source_family_counts||{}).reduce((a,b)=>a+Number(b||0),0);if(famTotal!==Number(x.input_candidate_count))fail('family count mismatch');
+const ids=new Set();for(const r of x.receipts||[]){if(r.receipt_type!=='GATE_1_INGRESS_RECEIPT'||r.gate!=='GATE_1_ASI_INGRESS_VERIFICATION')fail('receipt identity mismatch');if(!r.source_candidate_id||!r.canonical_locator||!r.input_fingerprint)fail('receipt provenance incomplete');if(ids.has(r.source_candidate_id))fail('duplicate receipt candidate');ids.add(r.source_candidate_id);if(!families.has(r.source_family_hint))fail('receipt family missing');if(r.collection_right_created!==false||r.store_right_created!==false||r.derive_right_created!==false||r.redistribution_right_created!==false||r.acquisition_authorized!==false)fail('Gate1 created downstream right');if(!['PASS_TO_SAFE_CANDIDATE_POOL','REVIEW_REQUIRED','HARD_BLOCK'].includes(r.decision))fail('invalid decision');}
+for(const c of x.safe_candidate_pool||[]){const r=c.gate_1_receipt;if(!r||r.decision!=='PASS_TO_SAFE_CANDIDATE_POOL'||c.gate_1_state!=='PASS')fail('safe pool without Gate1 PASS');const rights=JSON.stringify(r.primary_reference_signals?.rights_list||[]).toLowerCase();const open=['cc0','creative commons zero','public domain','cc by 4.0','cc-by-4.0','creative commons attribution 4.0','odc-by','open data commons attribution','pddl','open data commons public domain dedication','mit license','apache license 2.0'];if(c.discovery_provider!=='DATACITE_OPEN_RESEARCH_METADATA'||!open.some(v=>rights.includes(v)))fail('unsafe auto-pass basis');if(c.acquisition_authorized!==false)fail('safe pool implied acquisition');}
+for(const c of x.review_required_queue||[])if(c.gate_1_receipt?.decision!=='REVIEW_REQUIRED')fail('review queue contamination');for(const c of x.hard_block_queue||[])if(c.gate_1_receipt?.decision!=='HARD_BLOCK')fail('hard block queue contamination');
+console.log(JSON.stringify({status:'PASS',input:x.input_candidate_count,safe:x.safe_candidate_count,review:x.review_required_count,blocked:x.hard_block_count,families:x.source_family_counts,production:x.production},null,2));
