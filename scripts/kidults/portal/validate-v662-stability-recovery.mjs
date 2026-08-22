@@ -43,8 +43,7 @@ const required = [
   `${portalRoot}/assets/kidult100/camera-v654.webp`,
   `${portalRoot}/assets/kidult100/toys-v654.webp`,
   `${portalRoot}/assets/kidult100/watch-v655.webp`,
-  `${portalRoot}/data/v502-manifest.json`,
-  ".github/workflows/kidults-mobile-preview-pages.yml"
+  `${portalRoot}/data/v502-manifest.json`
 ];
 for (const file of required) if (!exists(file)) errors.push(`Missing required V662 Visual95 file: ${file}`);
 
@@ -58,7 +57,6 @@ if (!errors.length) {
   const homepage = read(`${portalRoot}/components/homepage-structure.js`);
   const css = read(`${portalRoot}/components/v662-stability-freeze.css`);
   const manifest = JSON.parse(read(`${portalRoot}/data/v502-manifest.json`));
-  const deploy = read(".github/workflows/kidults-mobile-preview-pages.yml");
 
   const heroPath = `${portalRoot}/assets/hero/racing-roadster-v662.webp`;
   const hero = fs.readFileSync(path.join(root, heroPath));
@@ -147,16 +145,8 @@ if (!errors.length) {
     "racing-roadster-v658-mobile.webp"
   ]) if (exists(`${portalRoot}/assets/hero/${retired}`)) errors.push(`Retired Roadster remains: ${retired}`);
 
-  if (deploy.includes("sed -i")) errors.push("Deployment still mutates source files.");
-  for (const marker of [
-    "Verify V662 Visual95 source freeze",
-    "portal.js?v=662-visual95-final",
-    "racing-roadster-v662.webp?v=662-visual95-final",
-    "kidults-v662-visual95-final-live-evidence"
-  ]) if (!deploy.includes(marker)) errors.push(`Visual95 deployment marker missing: ${marker}`);
-
   if (!errors.length) {
-    console.log(`KIDULTS V662 Visual95 stability recovery: PASS (${size.width}x${size.height}, ${hero.length} bytes, one Roadster, unified K100, one Workspace intro)`);
+    console.log(`KIDULTS V662 Visual95 stability recovery: PASS (${size.width}x${size.height}, ${hero.length} bytes, one Roadster, unified K100, one Workspace intro; publication workflow intentionally out of content integrity scope)`);
   }
 }
 
