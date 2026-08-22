@@ -1,0 +1,71 @@
+name: KIDULTS ASI Autobalance Steering Overlay Live v1
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/apply-asi-autobalance-steering-overlay-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autobalance-steering-overlay-v1.mjs'
+      - '.github/workflows/kidults-asi-autobalance-steering-overlay-live-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-autobalance-steering-overlay-live-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  steering-overlay-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with: {node-version: '24'}
+      - name: Verify exact source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/apply-asi-autobalance-steering-overlay-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-autobalance-steering-overlay-v1.mjs
+      - name: Restore latest main steering and live autobalance artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/base-cycle /tmp/live-balance
+          BASE_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          BAL_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-throughput-coverage-autobalance-live-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          test -n "$BASE_ID"
+          test -n "$BAL_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BASE_ID}/zip" > /tmp/base.zip
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BAL_ID}/zip" > /tmp/balance.zip
+          unzip -q -o /tmp/base.zip -d /tmp/base-cycle
+          unzip -q -o /tmp/balance.zip -d /tmp/live-balance
+          test -f /tmp/base-cycle/asi-discovery-steering-plan-v1.json
+          test -f /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
+      - name: Apply sweep-safe live autobalance overlay
+        run: |
+          node scripts/kidults/source-intelligence/apply-asi-autobalance-steering-overlay-v1.mjs \
+            /tmp/base-cycle/asi-discovery-steering-plan-v1.json \
+            /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json \
+            /tmp/asi-discovery-steering-plan-autobalanced-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-autobalance-steering-overlay-v1.mjs /tmp/asi-discovery-steering-plan-autobalanced-v1.json
+      - name: Reject mid-sweep permission mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/asi-discovery-steering-plan-autobalanced-v1.json';const x=JSON.parse(fs.readFileSync(p));x.category_plans[0].ordered_products[0].acquisition_authorized=true;fs.writeFileSync('/tmp/bad-overlay.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-autobalance-steering-overlay-v1.mjs /tmp/bad-overlay.json; then exit 1; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-autobalance-steering-overlay-live-v1
+          path: /tmp/asi-discovery-steering-plan-autobalanced-v1.json
+          retention-days: 30
+          if-no-files-found: error
