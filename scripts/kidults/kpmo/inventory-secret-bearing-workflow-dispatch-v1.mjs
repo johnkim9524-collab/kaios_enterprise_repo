@@ -26,11 +26,13 @@ function classify(text) {
   const active = activeText(text);
   const workflowDispatch = /^\s*workflow_dispatch\s*:/mi.test(active);
   const dotSecretNames = [...active.matchAll(/\$\{\{\s*secrets\.([A-Za-z0-9_]+)\s*\}\}/g)].map((m) => m[1]);
-  const indexedSecretAccess = /\$\{\{\s*secrets\s*\[[^\]]+\]\s*\}\}/g.test(active);
+  const indexedSecretAccess = /\$\{\{[^}]*\bsecrets\s*\[[^\]]+\][^}]*\}\}/i.test(active);
+  const wholeOrDynamicSecretContext = /\$\{\{[^}]*\bsecrets\b[^}]*\}\}/i.test(active);
   const inheritedReusableSecrets = /^\s*secrets\s*:\s*inherit\s*$/mi.test(active);
   const secretNames = [
     ...dotSecretNames,
     ...(indexedSecretAccess ? ['INDEXED_SECRET_ACCESS'] : []),
+    ...(wholeOrDynamicSecretContext && dotSecretNames.length === 0 && !indexedSecretAccess ? ['SECRET_CONTEXT_EXPRESSION'] : []),
     ...(inheritedReusableSecrets ? ['INHERITED_REUSABLE_WORKFLOW_SECRETS'] : [])
   ];
   const environmentDeclared = /^\s*environment\s*:/mi.test(active);
@@ -40,10 +42,11 @@ function classify(text) {
     workflow_dispatch: workflowDispatch,
     secret_names: [...new Set(secretNames)].sort(),
     indexed_secret_access: indexedSecretAccess,
+    secret_context_expression: wholeOrDynamicSecretContext,
     inherited_reusable_secrets: inheritedReusableSecrets,
     environment_declared: environmentDeclared,
     explicit_main_ref_guard: explicitMainRefGuard,
-    privileged_manual_lane: workflowDispatch && secretNames.length > 0
+    privileged_manual_lane: workflowDispatch && (wholeOrDynamicSecretContext || inheritedReusableSecrets)
   };
 }
 
@@ -51,6 +54,7 @@ const mutationCases = [
   `on:\n  workflow_dispatch:\njobs:\n  run:\n    env:\n      TOKEN: \${{ secrets.TEST_TOKEN }}`,
   `workflow_dispatch:\nenvironment: staging\nenv:\n  KEY: \${{ secrets.SSH_KEY }}`,
   `on:\n  workflow_dispatch:\njobs:\n  run:\n    env:\n      TOKEN: \${{ secrets['TEST_TOKEN'] }}`,
+  `on:\n  workflow_dispatch:\njobs:\n  run:\n    env:\n      ALL_SECRETS: \${{ toJSON(secrets) }}`,
   `on:\n  workflow_dispatch:\njobs:\n  call:\n    uses: owner/repo/.github/workflows/reusable.yml@main\n    secrets: inherit`
 ];
 for (const sample of mutationCases) {
@@ -80,6 +84,7 @@ for (const file of files) {
     workflow: path.relative('.', file),
     secret_names: details.secret_names,
     indexed_secret_access: details.indexed_secret_access,
+    secret_context_expression: details.secret_context_expression,
     inherited_reusable_secrets: details.inherited_reusable_secrets,
     environment_declared: details.environment_declared,
     explicit_main_ref_guard: details.explicit_main_ref_guard,
@@ -104,12 +109,12 @@ if (fs.existsSync(REGISTRY)) {
 }
 
 const result = {
-  suite: 'KIDULTS_SECRET_BEARING_WORKFLOW_DISPATCH_INVENTORY_V1',
+  suite: 'KIDULTS_SECRET_BEARING_WORKFLOW_DISPATCH_INVENTORY_V2',
   workflows_scanned: files.length,
   privileged_manual_lanes: findings.length,
   mutation_cases_detected: mutationCases.length,
   negative_cases_accepted: negativeCases.length,
-  supported_secret_syntaxes: ['DOT_CONTEXT','INDEXED_CONTEXT','REUSABLE_SECRETS_INHERIT'],
+  supported_secret_syntaxes: ['DOT_CONTEXT','INDEXED_OR_DYNAMIC_CONTEXT','WHOLE_SECRET_CONTEXT','REUSABLE_SECRETS_INHERIT'],
   findings,
   registry_present: Boolean(registry),
   registry_drift: registryDrift,
