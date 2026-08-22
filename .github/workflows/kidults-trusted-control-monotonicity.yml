@@ -1,0 +1,118 @@
+name: KIDULTS Trusted Merge Control Monotonicity
+
+on:
+  pull_request_target:
+    branches: [ main ]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  trusted-control-monotonicity:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify current merge result preserves mandatory control plane
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const token = process.env.GH_TOKEN;
+          const repo = process.env.GH_REPOSITORY;
+          const prNumber = process.env.PR_NUMBER;
+          const apiBase = 'https://api.github.com';
+          const headers = {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'kidults-trusted-control-monotonicity'
+          };
+
+          const fail = message => {
+            console.error(`FAIL trusted merge control monotonicity: ${message}`);
+            process.exit(1);
+          };
+
+          async function getJson(url) {
+            const response = await fetch(url, { headers, redirect: 'error' });
+            if (!response.ok) fail(`${response.status} ${url}`);
+            return response.json();
+          }
+
+          async function getFile(ref, path) {
+            const encodedPath = path.split('/').map(encodeURIComponent).join('/');
+            const data = await getJson(`${apiBase}/repos/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`);
+            if (data.type !== 'file' || typeof data.content !== 'string') fail(`missing file ${path}@${ref}`);
+            return Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
+          }
+
+          const pr = await getJson(`${apiBase}/repos/${repo}/pulls/${prNumber}`);
+          const baseSha = pr.base?.sha;
+          const mergeSha = pr.merge_commit_sha;
+          if (!baseSha) fail('PR base SHA unavailable');
+          if (!mergeSha) fail('synthetic merge SHA unavailable; conflict or merge result not computed');
+
+          const aggregatePath = 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs';
+          const criticalWorkflowPath = '.github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml';
+          const trustedWorkflowPath = '.github/workflows/kidults-trusted-control-monotonicity.yml';
+
+          const [baseAggregate, mergeAggregate, baseCriticalWorkflow, mergeCriticalWorkflow, baseTrustedWorkflow, mergeTrustedWorkflow] = await Promise.all([
+            getFile(baseSha, aggregatePath),
+            getFile(mergeSha, aggregatePath),
+            getFile(baseSha, criticalWorkflowPath),
+            getFile(mergeSha, criticalWorkflowPath),
+            getFile(baseSha, trustedWorkflowPath),
+            getFile(mergeSha, trustedWorkflowPath)
+          ]);
+
+          const scriptRefs = text => new Set(
+            [...text.matchAll(/['"](scripts\/[A-Za-z0-9_./-]+\.(?:mjs|py))['"]/g)].map(match => match[1])
+          );
+          const baselineRefs = scriptRefs(baseAggregate);
+          const mergedRefs = scriptRefs(mergeAggregate);
+          const missingRefs = [...baselineRefs].filter(ref => !mergedRefs.has(ref)).sort();
+          if (missingRefs.length) fail(`merge result removes mandatory validator refs: ${missingRefs.join(', ')}`);
+
+          const criticalPrimitives = [
+            'permissions:\n  contents: read',
+            'persist-credentials: false',
+            'github.event.pull_request.head.sha || github.sha',
+            'test "$ACTUAL_SHA" = "$EXPECTED_SHA"',
+            "node-version: '24'",
+            'run: node scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs'
+          ];
+          for (const primitive of criticalPrimitives) {
+            if (!baseCriticalWorkflow.includes(primitive)) fail(`base critical workflow missing expected primitive: ${primitive}`);
+            if (!mergeCriticalWorkflow.includes(primitive)) fail(`merge result weakens critical workflow primitive: ${primitive}`);
+          }
+          for (const ref of ['actions/checkout@', 'actions/setup-node@']) {
+            const line = mergeCriticalWorkflow.split('\n').find(value => value.includes(ref));
+            if (!line || !/@[0-9a-f]{40}(?:\s|#|$)/.test(line)) fail(`merge result has mutable or non-full-SHA critical Action ref: ${ref}`);
+          }
+
+          // A PR cannot alter or delete the trusted-base monotonicity workflow that evaluates it.
+          if (mergeTrustedWorkflow !== baseTrustedWorkflow) {
+            fail(`merge result modifies trusted control workflow ${trustedWorkflowPath}; use an explicitly reviewed trust-root migration`);
+          }
+
+          console.log(JSON.stringify({
+            suite: 'KIDULTS_TRUSTED_MERGE_CONTROL_MONOTONICITY_V1',
+            pr_number: Number(prNumber),
+            base_sha: baseSha,
+            merge_sha: mergeSha,
+            baseline_validator_refs: baselineRefs.size,
+            merged_validator_refs: mergedRefs.size,
+            removed_baseline_validator_refs: 0,
+            trusted_workflow_unchanged: true,
+            critical_workflow_primitives_preserved: true,
+            result: 'PASS',
+            empirical_gate_effect: 'NONE',
+            production: 'HOLD',
+            public: 'HOLD',
+            g5: 'EXPLICIT_APPROVAL_REQUIRED'
+          }, null, 2));
+          NODE
