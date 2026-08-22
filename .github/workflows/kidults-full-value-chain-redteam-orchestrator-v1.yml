@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   full-value-chain-redteam:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -31,5 +31,14 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+      - name: Record authoritative runner identity
+        run: |
+          set -euo pipefail
+          echo "runner_os=${RUNNER_OS:-UNKNOWN}"
+          echo "runner_arch=${RUNNER_ARCH:-UNKNOWN}"
+          echo "image_os=${ImageOS:-UNKNOWN}"
+          echo "image_version=${ImageVersion:-UNKNOWN}"
+          echo "node=$(node --version)"
+          cat /etc/os-release
       - name: Run aggregate full value-chain Red-Team suite
         run: node scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs
