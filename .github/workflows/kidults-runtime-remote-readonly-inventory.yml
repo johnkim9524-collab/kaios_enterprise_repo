@@ -1,11 +1,6 @@
 name: KIDULTS Runtime Remote Readonly Inventory
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/kidults-runtime-remote-readonly-inventory.yml'
-      - 'services/kidults-autonomous-intelligence/wrangler.jsonc'
   workflow_dispatch:
 
 permissions:

@@ -1,18 +1,6 @@
 name: KIDULTS AGCI-OS Candidate R2 Five-Source Preflight
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "coordination/kidults/poc/bounded-r2-admission-manifest-v1.json"
-      - "coordination/kidults/schemas/market-event-v1.schema.json"
-      - "coordination/kidults/autonomous/source-discovery/contracts/**"
-      - "coordination/kidults/engine-v2/shadow-inputs/**"
-      - "scripts/kidults/autonomous/**"
-      - "scripts/kidults/engine-v2/**"
-      - "scripts/kidults/golden-dataset/**"
-      - ".github/workflows/kidults-agci-os-candidate-r2-preflight.yml"
   push:
     branches:
       - main

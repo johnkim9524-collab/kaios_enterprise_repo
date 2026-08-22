@@ -1,12 +1,6 @@
 name: KIDULTS DigitalOcean STAGING Bootstrap Execute
 
 on:
-  pull_request:
-    paths:
-      - 'coordination/kidults/runtime/digitalocean-staging-bootstrap-contract-v1.json'
-      - 'scripts/operations/digitalocean_staging_userspace_bootstrap_v1.sh'
-      - 'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py'
-      - '.github/workflows/digitalocean-staging-bootstrap-exec.yml'
   workflow_dispatch:
 
 permissions:
@@ -24,7 +18,6 @@ jobs:
         run: python scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py
 
   bootstrap:
-    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10

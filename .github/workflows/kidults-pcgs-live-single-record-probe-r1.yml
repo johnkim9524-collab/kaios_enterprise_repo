@@ -1,10 +1,6 @@
 name: KIDULTS PCGS Live Single Record Probe R1
 
 on:
-  pull_request:
-    paths:
-      - 'scripts/kidults/source-intelligence/probe-pcgs-single-record-r1.mjs'
-      - '.github/workflows/kidults-pcgs-live-single-record-probe-r1.yml'
   workflow_dispatch:
 
 permissions:

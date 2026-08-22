@@ -1,10 +1,6 @@
 name: KIDULTS ER R7K Graded Population
 
 on:
-  pull_request:
-    paths:
-      - 'scripts/kidults/entity-resolution/extend-er-r7j-graded-population-r7k.mjs'
-      - '.github/workflows/kidults-er-r7k-graded-population.yml'
   workflow_dispatch:
 
 permissions:

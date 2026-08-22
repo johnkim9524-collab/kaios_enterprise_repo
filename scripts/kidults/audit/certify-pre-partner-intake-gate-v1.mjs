@@ -27,11 +27,20 @@ assert(projection.truth_boundary.real_candidate_evidence === 'NONE', 'Projection
 assert(projection.truth_boundary.track_b === 'NOT_STARTED', 'Track B falsely started');
 assert(projection.truth_boundary.live_approved_projection === 'NONE', 'live Projection falsely promoted');
 
+const destructive = control.destructive_lifecycle_control || {};
+assert(destructive.authorization_required === true, 'destructive lifecycle authorization must be required');
+assert(destructive.trusted_context_binding === 'PERSISTED_SOURCE_OWNER_NAMESPACE_OBJECT', 'destructive lifecycle persisted binding drift');
+assert(destructive.actor_binding === 'AUTHENTICATED_AUTHORIZED_SOURCE_OWNER', 'destructive actor binding drift');
+assert(destructive.audit_binding === 'APPEND_ONLY_EVENT_REQUIRED', 'destructive append-only audit binding drift');
+assert(destructive.replay_protection === 'UNIQUE_EVENT_ID_FAIL_CLOSED', 'destructive replay protection drift');
+assert(destructive.unauthorized_behavior === 'QUARANTINE_OR_REJECT_NO_STATE_MUTATION', 'unauthorized destructive behavior drift');
+
 const outputs = {
   control_family_coverage: run('scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs'),
   audit_control_plane: run('scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs'),
   adversarial_fixtures: run('scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs'),
   source_admission_temporal_rights: run('scripts/kidults/source-intelligence/test-source-admission-record-v1.mjs'),
+  rights_withdrawal_transitive_invalidation: run('scripts/kidults/audit/validate-rights-withdrawal-transitive-invalidation-v1.mjs'),
   projection_isolation: run('scripts/kidults/projection/validate-projection-dry-run-v1.mjs')
 };
 
@@ -55,6 +64,9 @@ console.log(JSON.stringify({
   control_removal_mutation_selftest: 'PASS',
   executable_adversarial_fixtures: 12,
   source_admission_temporal_rights_fail_closed: 'PASS',
+  destructive_lifecycle_authorization_fail_closed: 'PASS',
+  destructive_event_replay_protection: 'PASS',
+  rights_withdrawal_transitive_invalidation: 'PASS',
   unified_audit_control_plane: 'PASS',
   projection_downstream_isolation: 'PASS',
   no_internally_solvable_p0_p1_detected_by_certification: true,

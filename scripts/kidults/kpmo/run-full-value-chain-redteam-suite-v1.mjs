@@ -9,11 +9,15 @@ const criticalGateBindingValidator = 'scripts/kidults/kpmo/validate-full-value-c
 const repositoryMutationBoundaryValidators = [
   'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
 ];
+const secretBoundaryValidators = [
+  'scripts/kidults/kpmo/validate-pr-secret-boundary-v1.mjs'
+];
 const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
-  'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs'
+  'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs',
+  'scripts/kidults/audit/validate-rights-withdrawal-transitive-invalidation-v1.mjs'
 ];
 const rightsBoundaryValidators = [
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
@@ -31,6 +35,7 @@ const validators = [...new Set([
   stageCoverageValidator,
   criticalGateBindingValidator,
   ...repositoryMutationBoundaryValidators,
+  ...secretBoundaryValidators,
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
@@ -46,9 +51,7 @@ for (const script of validators) {
   }
   const command = script.endsWith('.py') ? (process.env.PYTHON || 'python3') : process.execPath;
   const run = spawnSync(command, [script], {
-    cwd: process.cwd(),
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe']
+    cwd: process.cwd(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']
   });
   const result = { script, command, status: run.status, signal: run.signal || null };
   results.push(result);
@@ -71,11 +74,14 @@ console.log(JSON.stringify({
   stages_machine_bound: Object.keys(orchestrator.stage_machine_coverage || {}).length,
   workflow_repository_mutation_boundary_machine_bound: true,
   workflow_repository_mutation_boundary_validators: repositoryMutationBoundaryValidators.length,
+  pull_request_secret_boundary_machine_bound: true,
+  pull_request_secret_boundary_validators: secretBoundaryValidators.length,
   pre_partner_intake_gate_machine_bound: true,
   pre_partner_certification_machine_bound: true,
   pre_partner_control_families: 12,
   pre_partner_required_controls_exactly_bound: true,
   pre_partner_control_removal_mutation_selftest: true,
+  pre_partner_transitive_invalidation_machine_bound: true,
   partner_like_adversarial_fixtures: 12,
   provider_rights_decision_gate_machine_bound: true,
   runtime_boundary_validators: runtimeBoundaryValidators.length,
