@@ -21,6 +21,7 @@ jobs:
         run: |
           set -euo pipefail
           node <<'NODE'
+          const path = require('node:path');
           const token = process.env.GH_TOKEN;
           const repo = process.env.GH_REPOSITORY;
           const prNumber = process.env.PR_NUMBER;
@@ -43,14 +44,14 @@ jobs:
             return response.json();
           }
 
-          async function getFile(ref, path) {
-            const encodedPath = path.split('/').map(encodeURIComponent).join('/');
+          async function getFile(ref, filePath) {
+            const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
             const data = await getJson(`${apiBase}/repos/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`);
-            if (data.type !== 'file' || typeof data.content !== 'string') fail(`missing or non-file ${path}@${ref}`);
+            if (data.type !== 'file' || typeof data.content !== 'string') fail(`missing or non-file ${filePath}@${ref}`);
             return Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
           }
 
-          const scriptRefs = text => new Set(
+          const topLevelScriptRefs = text => new Set(
             [...text.matchAll(/['"](scripts\/[A-Za-z0-9_./-]+\.(?:mjs|py))['"]/g)].map(match => match[1])
           );
 
@@ -64,7 +65,7 @@ jobs:
             const refs = new Set();
             const walk = value => {
               if (typeof value === 'string') {
-                if (/^scripts\/[A-Za-z0-9_./-]+\.(?:mjs|py)$/.test(value)) refs.add(value);
+                if (/^scripts\/[A-Za-z0-9_./-]+\.(?:mjs|js|cjs|py|sh)$/.test(value)) refs.add(value);
                 return;
               }
               if (Array.isArray(value)) {
@@ -78,6 +79,48 @@ jobs:
             walk(parsed);
             return refs;
           };
+
+          // Discover repository-local executable dependencies referenced by a protected script. This
+          // closes the parent-entrypoint/child-validator gap: an unchanged certifier cannot delegate to
+          // a changed no-op child and still remain trusted.
+          const repositoryExecutableRefs = (text, currentPath) => {
+            const refs = new Set();
+            for (const match of text.matchAll(/['"](scripts\/[A-Za-z0-9_./-]+\.(?:mjs|js|cjs|py|sh))['"]/g)) {
+              refs.add(match[1]);
+            }
+            const relativePatterns = [
+              /\bfrom\s+['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]/g,
+              /\bimport\s+['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]/g,
+              /\bimport\s*\(\s*['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]\s*\)/g,
+              /\brequire\s*\(\s*['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]\s*\)/g
+            ];
+            for (const pattern of relativePatterns) {
+              for (const match of text.matchAll(pattern)) {
+                const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(currentPath), match[1]));
+                if (!resolved.startsWith('scripts/')) fail(`repository executable dependency escapes scripts/: ${currentPath} -> ${match[1]}`);
+                refs.add(resolved);
+              }
+            }
+            return refs;
+          };
+
+          async function buildBaselineExecutableClosure(seedRefs, baseSha) {
+            const closure = new Set(seedRefs);
+            const queue = [...closure].sort();
+            const baseContents = new Map();
+            while (queue.length) {
+              const ref = queue.shift();
+              const content = await getFile(baseSha, ref);
+              baseContents.set(ref, content);
+              for (const child of [...repositoryExecutableRefs(content, ref)].sort()) {
+                if (!closure.has(child)) {
+                  closure.add(child);
+                  queue.push(child);
+                }
+              }
+            }
+            return { closure, baseContents };
+          }
 
           // The aggregate runner is itself a trust root. Ordinary PRs may add validator-reference-only
           // lines inside existing arrays, but may not change any other runner execution semantics.
@@ -115,8 +158,7 @@ jobs:
             }
           }
 
-          // Dynamic validators loaded from the canonical orchestrator are equally mandatory. Prove the
-          // recursive JSON collector sees them even when their paths never appear literally in the runner.
+          // Dynamic and transitive dependency discovery are trusted primitives too.
           const dynamicSelf = executableRefsFromJson(JSON.stringify({
             required_family_validators: ['scripts/dynamic-family.mjs'],
             nested: { validators: ['scripts/nested.py'] },
@@ -124,6 +166,14 @@ jobs:
           }), 'trusted dynamic-ref self-test');
           if (!dynamicSelf.has('scripts/dynamic-family.mjs') || !dynamicSelf.has('scripts/nested.py') || dynamicSelf.size !== 2) {
             fail('trusted self-test missed dynamically loaded validator reference');
+          }
+          const transitiveSelf = repositoryExecutableRefs([
+            "run('scripts/child.mjs')",
+            "import helper from './helper.js';",
+            "const x = require('../shared/check.cjs');"
+          ].join('\n'), 'scripts/example/parent.mjs');
+          for (const expected of ['scripts/child.mjs', 'scripts/example/helper.js', 'scripts/shared/check.cjs']) {
+            if (!transitiveSelf.has(expected)) fail(`trusted self-test missed transitive executable dependency ${expected}`);
           }
 
           const pr = await getJson(`${apiBase}/repos/${repo}/pulls/${prNumber}`);
@@ -157,14 +207,14 @@ jobs:
             getFile(mergeSha, trustedWorkflowPath)
           ]);
 
-          const baselineLiteralRefs = scriptRefs(baseAggregate);
-          const mergedLiteralRefs = scriptRefs(mergeAggregate);
+          const baselineLiteralRefs = topLevelScriptRefs(baseAggregate);
+          const mergedLiteralRefs = topLevelScriptRefs(mergeAggregate);
           const baselineDynamicRefs = executableRefsFromJson(baseOrchestrator, 'base canonical orchestrator');
           const mergedDynamicRefs = executableRefsFromJson(mergeOrchestrator, 'merge canonical orchestrator');
-          const baselineRefs = new Set([...baselineLiteralRefs, ...baselineDynamicRefs]);
-          const mergedRefs = new Set([...mergedLiteralRefs, ...mergedDynamicRefs]);
-          const missingRefs = [...baselineRefs].filter(ref => !mergedRefs.has(ref)).sort();
-          if (missingRefs.length) fail(`merge result removes mandatory validator refs: ${missingRefs.join(', ')}`);
+          const baselineSeedRefs = new Set([...baselineLiteralRefs, ...baselineDynamicRefs]);
+          const mergedSeedRefs = new Set([...mergedLiteralRefs, ...mergedDynamicRefs]);
+          const missingSeedRefs = [...baselineSeedRefs].filter(ref => !mergedSeedRefs.has(ref)).sort();
+          if (missingSeedRefs.length) fail(`merge result removes mandatory validator refs: ${missingSeedRefs.join(', ')}`);
 
           // The canonical orchestrator decides dynamic validator bindings, stage mappings, promotion
           // policy and cross-stage invariants. Ordinary PRs cannot mutate this trust-root configuration.
@@ -172,18 +222,17 @@ jobs:
             fail(`merge result modifies canonical Red-Team orchestrator ${orchestratorPath}; use explicit trust-root migration`);
           }
 
-          // Baseline mandatory validator implementations are immutable in an ordinary PR, regardless of
-          // whether the entrypoint is referenced literally by the runner or loaded dynamically via JSON.
+          // Expand the baseline seed set through repository-local executable delegation/imports. Every
+          // file in that transitive closure is byte-immutable in an ordinary PR.
+          const { closure: baselineRefs, baseContents } = await buildBaselineExecutableClosure(baselineSeedRefs, baseSha);
           const changedBaselineValidators = [];
           for (const ref of [...baselineRefs].sort()) {
-            const [baseContent, mergeContent] = await Promise.all([
-              getFile(baseSha, ref),
-              getFile(mergeSha, ref)
-            ]);
+            const baseContent = baseContents.get(ref) ?? await getFile(baseSha, ref);
+            const mergeContent = await getFile(mergeSha, ref);
             if (baseContent !== mergeContent) changedBaselineValidators.push(ref);
           }
           if (changedBaselineValidators.length) {
-            fail(`merge result modifies baseline mandatory validator implementation(s): ${changedBaselineValidators.join(', ')}; use explicit trust-root migration`);
+            fail(`merge result modifies baseline mandatory validator/dependency implementation(s): ${changedBaselineValidators.join(', ')}; use explicit trust-root migration`);
           }
 
           // Protect the aggregate runner's execution skeleton. This blocks retained-path/no-execution,
@@ -223,23 +272,24 @@ jobs:
           }
 
           console.log(JSON.stringify({
-            suite: 'KIDULTS_TRUSTED_MERGE_CONTROL_MONOTONICITY_V4',
+            suite: 'KIDULTS_TRUSTED_MERGE_CONTROL_MONOTONICITY_V5',
             pr_number: Number(prNumber),
             base_sha: baseSha,
             merge_sha: mergeSha,
             baseline_literal_validator_refs: baselineLiteralRefs.size,
             baseline_dynamic_validator_refs: baselineDynamicRefs.size,
-            baseline_validator_refs: baselineRefs.size,
-            merged_validator_refs: mergedRefs.size,
+            baseline_seed_validator_refs: baselineSeedRefs.size,
+            baseline_transitive_executable_refs: baselineRefs.size,
+            merged_seed_validator_refs: mergedSeedRefs.size,
             removed_baseline_validator_refs: 0,
             changed_baseline_validator_implementations: 0,
-            baseline_validator_implementations_unchanged: true,
+            baseline_validator_dependency_closure_unchanged: true,
             canonical_orchestrator_unchanged: true,
             aggregate_execution_semantics_unchanged_except_additive_refs: true,
             critical_workflow_unchanged: true,
             trusted_workflow_unchanged: true,
             critical_workflow_primitives_preserved: true,
-            trusted_mutation_selftests: executionDowngrades.length + 2,
+            trusted_mutation_selftests: executionDowngrades.length + 5,
             result: 'PASS',
             empirical_gate_effect: 'NONE',
             production: 'HOLD',
