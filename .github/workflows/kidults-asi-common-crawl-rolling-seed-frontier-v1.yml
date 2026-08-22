@@ -1,0 +1,168 @@
+name: KIDULTS ASI Common Crawl Rolling Seed Frontier v1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - '.github/workflows/kidults-asi-common-crawl-rolling-seed-frontier-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-common-crawl-rolling-frontier-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rolling-seed-frontier:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs
+      - name: Restore latest main Self-Driving canonical discovery batch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/frontier-input discovery-out
+          ART_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          test -n "$ART_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip" > /tmp/frontier-input.zip
+          unzip -q -o /tmp/frontier-input.zip -d /tmp/frontier-input
+          DISCOVERY=$(find /tmp/frontier-input -type f -name 'global-low-risk-discovery.json' -print -quit)
+          test -n "$DISCOVERY"
+          cp "$DISCOVERY" discovery-out/global-low-risk-discovery.json
+      - name: Build and validate first two rolling frontier cycles
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/no-previous-frontier.json /tmp/asi-common-crawl-seed-frontier-cycle-1.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs /tmp/asi-common-crawl-seed-frontier-cycle-1.json
+          node scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-seed-frontier-cycle-1.json /tmp/asi-common-crawl-seed-frontier-cycle-2.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs /tmp/asi-common-crawl-seed-frontier-cycle-2.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const a=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-seed-frontier-cycle-1.json','utf8'));
+          const b=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-seed-frontier-cycle-2.json','utf8'));
+          const overlap=a.selected_hosts.filter(host=>b.selected_hosts.includes(host));
+          if(a.host_universe_count>a.max_hosts_per_cycle&&overlap.length)throw new Error(`EARLY_REPEAT:${overlap.join(',')}`);
+          if(b.cycle_count!==2||b.previous_frontier_valid!==true||b.previous_cycle_count!==1)throw new Error('FRONTIER_CHAIN');
+          console.log(JSON.stringify({status:'PASS',host_universe:a.host_universe_count,cycle_1_selected:a.selected_hosts.length,cycle_2_selected:b.selected_hosts.length,early_repeat_count:overlap.length,production:'HOLD'}));
+          NODE
+      - name: Prove complete fair sweep and deterministic next-cycle replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOSTS=$(node -e "const x=require('./discovery-out/global-low-risk-discovery.json');console.log(new Set(x.candidates.map(c=>{try{return new URL(c.endpoint_url).hostname.toLowerCase().replace(/^www\\./,'')}catch{return null}}).filter(Boolean)).size)")
+          CYCLES=$(( (HOSTS + 7) / 8 + 1 ))
+          cp /tmp/asi-common-crawl-seed-frontier-cycle-2.json /tmp/frontier-loop-current.json
+          START=3
+          if [ "$CYCLES" -lt "$START" ]; then CYCLES=$START; fi
+          for i in $(seq "$START" "$CYCLES"); do
+            node scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/frontier-loop-current.json /tmp/frontier-loop-next.json
+            node scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs /tmp/frontier-loop-next.json
+            mv /tmp/frontier-loop-next.json /tmp/frontier-loop-current.json
+          done
+          cp /tmp/frontier-loop-current.json /tmp/asi-common-crawl-seed-frontier-full-sweep.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-seed-frontier-full-sweep.json','utf8'));
+          if(x.never_selected_host_count_after!==0||x.full_sweep_complete!==true||x.completed_sweep_count<1)throw new Error('FULL_SWEEP_NOT_COMPLETE');
+          if(x.selection_count_delta_after>1)throw new Error('FAIRNESS_DELTA');
+          console.log(JSON.stringify({status:'PASS',cycle_count:x.cycle_count,host_universe:x.host_universe_count,completed_sweeps:x.completed_sweep_count,never_selected:x.never_selected_host_count_after,fairness_delta:x.selection_count_delta_after,production:'HOLD'}));
+          NODE
+          node scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-seed-frontier-cycle-1.json /tmp/frontier-replay-a.json
+          node scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-seed-frontier-cycle-1.json /tmp/frontier-replay-b.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const a=JSON.parse(fs.readFileSync('/tmp/frontier-replay-a.json','utf8'));
+          const b=JSON.parse(fs.readFileSync('/tmp/frontier-replay-b.json','utf8'));
+          if(a.frontier_digest!==b.frontier_digest||JSON.stringify(a.selected_hosts)!==JSON.stringify(b.selected_hosts)||JSON.stringify(a.host_frontier)!==JSON.stringify(b.host_frontier))throw new Error('NONDETERMINISTIC_REPLAY');
+          console.log(JSON.stringify({status:'PASS',cycle_count:a.cycle_count,frontier_digest:a.frontier_digest,production:'HOLD'}));
+          NODE
+      - name: Reject unfair early-repeat mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const crypto=require('crypto');
+          const p='/tmp/asi-common-crawl-seed-frontier-cycle-2.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const selected=new Set(x.selected_hosts);
+          const repeat=x.host_frontier.find(row=>!selected.has(row.host)&&row.selected_count===1);
+          const fresh=x.host_frontier.find(row=>selected.has(row.host)&&row.selected_count===1);
+          if(!repeat||!fresh)process.exit(2);
+          selected.delete(fresh.host);selected.add(repeat.host);
+          fresh.selected_this_cycle=false;fresh.selected_count=0;fresh.last_selected_cycle=null;
+          repeat.selected_this_cycle=true;repeat.selected_count=2;repeat.last_selected_cycle=x.cycle_count;
+          x.selected_hosts=[...selected];
+          x.minimum_selection_count_after=Math.min(...x.host_frontier.map(row=>row.selected_count));
+          x.maximum_selection_count_after=Math.max(...x.host_frontier.map(row=>row.selected_count));
+          x.selection_count_delta_after=x.maximum_selection_count_after-x.minimum_selection_count_after;
+          x.never_selected_host_count_after=x.host_frontier.filter(row=>row.selected_count===0).length;
+          x.completed_sweep_count=x.minimum_selection_count_after;
+          x.sweep_number=x.completed_sweep_count+1;
+          x.full_sweep_complete=x.never_selected_host_count_after===0;
+          x.frontier_digest=`sha256:${crypto.createHash('sha256').update(JSON.stringify({cycle_count:x.cycle_count,selected_hosts:x.selected_hosts,host_frontier:x.host_frontier})).digest('hex')}`;
+          fs.writeFileSync('/tmp/bad-common-crawl-unfair-frontier.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs /tmp/bad-common-crawl-unfair-frontier.json; then exit 1; fi
+      - name: Empirically execute expansion from rolling frontier
+        run: |
+          node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-rolling-v1.json /tmp/asi-common-crawl-seed-frontier-cycle-1.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-host-expansion-rolling-v1.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const f=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-seed-frontier-cycle-1.json','utf8'));
+          const e=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-host-expansion-rolling-v1.json','utf8'));
+          if(e.seed_selection_mode!=='ROLLING_FAIR_FRONTIER'||e.seed_frontier_cycle!==f.cycle_count||e.seed_frontier_digest!==f.frontier_digest)throw new Error('ROLLING_FRONTIER_NOT_CONSUMED');
+          if(JSON.stringify(e.seed_hosts)!==JSON.stringify(f.selected_hosts))throw new Error('SEED_SELECTION_MISMATCH');
+          console.log(JSON.stringify({status:'PASS',frontier_cycle:f.cycle_count,selected_hosts:f.selected_hosts.length,expanded_candidates:e.expanded_candidate_count,errors:e.errors.length,production:'HOLD'}));
+          NODE
+      - name: Reject expansion rights-promotion mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-host-expansion-rolling-v1.json','utf8'));
+          if(x.candidates.length)x.candidates[0].rights_state='ALLOW';else x.rights_promoted=true;
+          fs.writeFileSync('/tmp/bad-common-crawl-rolling-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/bad-common-crawl-rolling-rights.json; then exit 1; fi
+      - name: Reject expansion host-escape mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-host-expansion-rolling-v1.json','utf8'));
+          if(!x.candidates.length)process.exit(0);
+          x.candidates[0].endpoint_url='https://example.org';
+          x.candidates[0].observed_host='example.org';
+          fs.writeFileSync('/tmp/bad-common-crawl-rolling-host.json',JSON.stringify(x));
+          NODE
+          if [ -f /tmp/bad-common-crawl-rolling-host.json ] && node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/bad-common-crawl-rolling-host.json; then exit 1; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-common-crawl-rolling-seed-frontier-v1
+          path: |
+            /tmp/asi-common-crawl-seed-frontier-cycle-1.json
+            /tmp/asi-common-crawl-seed-frontier-cycle-2.json
+            /tmp/asi-common-crawl-seed-frontier-full-sweep.json
+            /tmp/asi-common-crawl-host-expansion-rolling-v1.json
+          retention-days: 30
+          if-no-files-found: error
