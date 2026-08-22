@@ -74,7 +74,8 @@ for (const script of [snapshotPath, promotionPath, rollbackPath]) {
 let mutationCases = 0;
 for (const [name, markers] of Object.entries(requiredMarkers)) {
   for (const marker of markers) {
-    const mutated = { ...sources, [name]: sources[name].replace(marker, `REMOVED_${crypto.randomUUID()}`) };
+    const removed = `REMOVED_${crypto.randomUUID()}`;
+    const mutated = { ...sources, [name]: sources[name].split(marker).join(removed) };
     mutationCases += 1;
     if (validateText(mutated).length === 0) throw new Error(`rollback mutation guard missed ${name}:${marker}`);
   }
