@@ -24,13 +24,49 @@ const normalizeUrl = value => {
 };
 const array = value => Array.isArray(value) ? value : [];
 const unique = values => [...new Set(values.filter(value => value !== undefined && value !== null && value !== ''))].sort();
+const earlier = (a, b) => !a ? b : !b ? a : (new Date(a) <= new Date(b) ? a : b);
+const later = (a, b) => !a ? b : !b ? a : (new Date(a) >= new Date(b) ? a : b);
 const now = new Date().toISOString();
+
+const safeState = candidate => ({
+  ...candidate,
+  provider_switchable_identity: true,
+  rights_state: 'UNASSESSED',
+  admission_state: 'NOT_ADMITTED',
+  source_pool_state: 'CANDIDATE_ONLY',
+  evidence_state: 'DISCOVERY_METADATA_ONLY',
+  candidate_state: 'RIGHTS_ROBOTS_ACCESS_PREFLIGHT_PENDING',
+  acquisition_authorized: false,
+  target_site_traversal_authorized: false,
+  market_claim_authorized: false,
+  public_projection: false,
+  production: 'HOLD',
+  next_action: 'PURPOSE_SPECIFIC_RIGHTS_ROBOTS_ACCESS_PREFLIGHT'
+});
+const mergeRestored = (left, right) => safeState({
+  ...left,
+  canonical_locator: left.canonical_locator,
+  source_name: left.source_name || right.source_name || left.canonical_locator,
+  first_seen_at: earlier(left.first_seen_at, right.first_seen_at),
+  last_seen_at: later(left.last_seen_at, right.last_seen_at),
+  observation_count: Number(left.observation_count || 0) + Number(right.observation_count || 0),
+  discovery_providers: unique([...array(left.discovery_providers), ...array(right.discovery_providers)]),
+  source_family_hints: unique([...array(left.source_family_hints), ...array(right.source_family_hints)]),
+  candidate_source_roles: unique([...array(left.candidate_source_roles), ...array(right.candidate_source_roles)]),
+  representative_product_ids: unique([...array(left.representative_product_ids), ...array(right.representative_product_ids)]),
+  demand_instance_ids: unique([...array(left.demand_instance_ids), ...array(right.demand_instance_ids)]),
+  target_regions: unique([...array(left.target_regions), ...array(right.target_regions)]),
+  target_languages: unique([...array(left.target_languages), ...array(right.target_languages)]),
+  provider_record_ids: unique([...array(left.provider_record_ids), ...array(right.provider_record_ids)])
+});
 
 const byKey = new Map();
 const keyByLocator = new Map();
+let migratedDuplicateLocatorCount = 0;
 for (const candidate of array(previous?.candidates)) {
   const locator = normalizeUrl(candidate.canonical_locator);
-  const restored = {
+  if (!locator) continue;
+  const restored = safeState({
     ...candidate,
     canonical_locator: locator,
     discovery_providers: array(candidate.discovery_providers),
@@ -41,9 +77,16 @@ for (const candidate of array(previous?.candidates)) {
     target_regions: array(candidate.target_regions),
     target_languages: array(candidate.target_languages),
     provider_record_ids: array(candidate.provider_record_ids)
-  };
-  byKey.set(candidate.source_candidate_key, restored);
-  if (locator && !keyByLocator.has(locator)) keyByLocator.set(locator, candidate.source_candidate_key);
+  });
+  const existingKey = keyByLocator.get(locator);
+  if (existingKey) {
+    byKey.set(existingKey, mergeRestored(byKey.get(existingKey), restored));
+    migratedDuplicateLocatorCount++;
+  } else {
+    const key = candidate.source_candidate_key || `src-cand:${sha(locator).slice(0, 24)}`;
+    byKey.set(key, { ...restored, source_candidate_key: key });
+    keyByLocator.set(locator, key);
+  }
 }
 
 let newCount = 0;
@@ -51,54 +94,27 @@ let reobserved = 0;
 const currentBatchKeys = new Set();
 for (const candidate of array(discovery.candidates)) {
   const locator = normalizeUrl(candidate.endpoint_url || candidate.source_locator || candidate.provider_record_id);
+  if (!locator) continue;
   const existingKey = keyByLocator.get(locator);
   const canonicalKey = `src-cand:${sha(candidate.underlying_work_key || locator).slice(0, 24)}`;
   const key = existingKey || canonicalKey;
   const prior = byKey.get(key);
-  const discoveryProviders = unique([
-    ...(prior?.discovery_providers || []),
-    ...array(candidate.discovery_providers),
-    candidate.discovery_provider
-  ]);
-  const providerRecordIds = unique([
-    ...(prior?.provider_record_ids || []),
-    ...array(candidate.provider_record_ids),
-    candidate.provider_record_id
-  ]);
-  const sourceFamilyHints = unique([
-    ...(prior?.source_family_hints || []),
-    ...array(candidate.source_family_hints),
-    candidate.source_family_hint
-  ]);
-
-  const next = {
+  const next = safeState({
     source_candidate_key: key,
     canonical_locator: locator,
     source_name: candidate.source_name || candidate.owner || prior?.source_name || locator,
     first_seen_at: prior?.first_seen_at || candidate.observed_at || now,
     last_seen_at: candidate.observed_at || now,
     observation_count: Number(prior?.observation_count || 0) + 1,
-    discovery_providers: discoveryProviders,
-    source_family_hints: sourceFamilyHints,
+    discovery_providers: unique([...(prior?.discovery_providers || []), ...array(candidate.discovery_providers), candidate.discovery_provider]),
+    source_family_hints: unique([...(prior?.source_family_hints || []), ...array(candidate.source_family_hints), candidate.source_family_hint]),
     candidate_source_roles: unique([...(prior?.candidate_source_roles || []), ...array(candidate.candidate_source_roles)]),
     representative_product_ids: unique([...(prior?.representative_product_ids || []), candidate.representative_product_id]),
     demand_instance_ids: unique([...(prior?.demand_instance_ids || []), ...array(candidate.demand_instance_ids)]),
     target_regions: unique([...(prior?.target_regions || []), ...array(candidate.target_regions)]),
     target_languages: unique([...(prior?.target_languages || []), ...array(candidate.target_languages)]),
-    provider_record_ids: providerRecordIds,
-    provider_switchable_identity: true,
-    rights_state: 'UNASSESSED',
-    admission_state: 'NOT_ADMITTED',
-    source_pool_state: 'CANDIDATE_ONLY',
-    evidence_state: 'DISCOVERY_METADATA_ONLY',
-    candidate_state: 'RIGHTS_ROBOTS_ACCESS_PREFLIGHT_PENDING',
-    acquisition_authorized: false,
-    target_site_traversal_authorized: false,
-    market_claim_authorized: false,
-    public_projection: false,
-    production: 'HOLD',
-    next_action: 'PURPOSE_SPECIFIC_RIGHTS_ROBOTS_ACCESS_PREFLIGHT'
-  };
+    provider_record_ids: unique([...(prior?.provider_record_ids || []), ...array(candidate.provider_record_ids), candidate.provider_record_id])
+  });
   byKey.set(key, next);
   keyByLocator.set(locator, key);
   currentBatchKeys.add(key);
@@ -147,6 +163,7 @@ const artifact = {
   rotation_cycle_index: (cycleCount - 1) % contract.discovery.rotation_cycle_count,
   updated_at: now,
   previous_candidate_count: Number(previous?.candidate_count || 0),
+  migrated_duplicate_locator_count: migratedDuplicateLocatorCount,
   discovery_batch_candidate_count: Number(discovery.candidate_count || 0),
   new_candidate_count: newCount,
   reobserved_candidate_count: reobserved,
@@ -174,6 +191,7 @@ console.log(JSON.stringify({
   cycle_count: cycleCount,
   rotation_cycle_index: artifact.rotation_cycle_index,
   previous_candidate_count: artifact.previous_candidate_count,
+  migrated_duplicate_locators: migratedDuplicateLocatorCount,
   batch_candidates: artifact.discovery_batch_candidate_count,
   new_candidates: newCount,
   reobserved_candidates: reobserved,
