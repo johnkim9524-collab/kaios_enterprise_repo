@@ -109,7 +109,12 @@ function buildAdmissionSuppressionFence(checkpoint) {
 function rightsTemporalStatus(rights, asOf) {
   try {
     const asOfMs = parseRfc3339Millis(asOf, 'record.as_of');
-    if (rights?.expires_at === null || rights?.expires_at === undefined) return { valid: true, expired: false };
+    if (rights?.expires_at === null || rights?.expires_at === undefined) {
+      if (rights?.present === true && rights?.status === 'PASS') {
+        return { valid: false, expired: false, reason: 'current PASS rights require an explicit expiry horizon' };
+      }
+      return { valid: true, expired: false };
+    }
     const expiresMs = parseRfc3339Millis(rights.expires_at, 'rights.expires_at');
     return { valid: true, expired: expiresMs <= asOfMs };
   } catch (error) {
@@ -560,6 +565,8 @@ for (const [id, mutate] of cleanContextMutationCases) {
 }
 
 const temporalMutationCases = [
+  ['missing_expiry_on_pass_rights', r => { delete r.rights.expires_at; }],
+  ['null_expiry_on_pass_rights', r => { r.rights.expires_at = null; }],
   ['malformed_expiry', r => { r.rights.expires_at = 'not-a-date'; }],
   ['timezone_less_expiry', r => { r.rights.expires_at = '2099-01-01T00:00:00'; }],
   ['invalid_calendar_expiry', r => { r.rights.expires_at = '2099-02-30T00:00:00Z'; }],
@@ -577,6 +584,8 @@ for (const [id, mutate] of temporalMutationCases) {
 const replayFailClosedMutationCases = [
   ['replay_expired_rights', r => { r.rights.expires_at = '2026-08-20T00:00:00Z'; }, 'REJECTED'],
   ['replay_missing_rights', r => { r.rights.present = false; r.rights.status = 'UNKNOWN'; }, 'REJECTED'],
+  ['replay_missing_expiry_on_pass_rights', r => { delete r.rights.expires_at; }, 'REJECTED'],
+  ['replay_null_expiry_on_pass_rights', r => { r.rights.expires_at = null; }, 'REJECTED'],
   ['replay_malformed_expiry', r => { r.rights.expires_at = 'not-a-date'; }, 'REJECTED'],
   ['replay_invalid_as_of', r => { r.as_of = 'invalid'; }, 'REJECTED'],
   ['replay_schema_drift', r => { r.schema.received_version = 'partner-sale-v2-unknown'; }, 'QUARANTINED_OR_REJECTED'],
