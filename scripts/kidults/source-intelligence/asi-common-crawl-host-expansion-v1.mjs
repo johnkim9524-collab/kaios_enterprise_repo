@@ -2,9 +2,217 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-const input=process.argv[2]||'discovery-out/global-low-risk-discovery.json';const out=process.argv[3]||'/tmp/asi-common-crawl-host-expansion-v1.json';const x=JSON.parse(fs.readFileSync(input,'utf8'));const hash=s=>crypto.createHash('sha256').update(String(s)).digest('hex').slice(0,24);const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function get(url,attempt=0){const c=new AbortController(),t=setTimeout(()=>c.abort(),15000);try{const r=await fetch(url,{signal:c.signal,headers:{Accept:'application/json,text/plain','User-Agent':'KIDULTS-ASI-Common-Crawl-Host-Expansion-v1'}});if((r.status===429||r.status>=500)&&attempt<2){await sleep(700*(2**attempt));return get(url,attempt+1)}if(!r.ok)throw new Error(`HTTP_${r.status}`);return r;}finally{clearTimeout(t)}}
-const seedHosts=[];for(const c of x.candidates||[]){try{const h=new URL(c.endpoint_url).hostname.toLowerCase().replace(/^www\./,'');if(h&&!seedHosts.includes(h))seedHosts.push(h)}catch{}if(seedHosts.length>=8)break;}
-let indexId=null,indexApi=null;const observations=[],errors=[];try{const r=await get('https://index.commoncrawl.org/collinfo.json');const a=await r.json();const latest=a?.[0];indexId=latest?.id||null;indexApi=latest?.['cdx-api']||null;if(!indexApi)throw new Error('NO_LATEST_INDEX_API');}catch(e){errors.push(`INDEX_DISCOVERY:${e.message}`)}
-if(indexApi){for(const host of seedHosts){try{const u=new URL(indexApi);u.searchParams.set('url',host);u.searchParams.set('matchType','domain');u.searchParams.set('output','json');u.searchParams.set('filter','status:200');u.searchParams.set('collapse','urlkey');u.searchParams.set('pageSize','8');const r=await get(u);const txt=await r.text();let n=0;for(const line of txt.split(/\r?\n/)){if(!line.trim())continue;let row;try{row=JSON.parse(line)}catch{continue}let observedHost;try{observedHost=new URL(row.url).hostname.toLowerCase()}catch{continue}if(!observedHost||!(observedHost===host||observedHost.endsWith(`.${host}`)))continue;observations.push({candidate_id:`cand-cc-host-${hash(host+observedHost)}`,seed_host:host,observed_host:observedHost,endpoint_url:`https://${observedHost}`,discovery_provider:'COMMON_CRAWL_URL_INDEX_HOST_EXPANSION',discovery_channel:'COMMON_CRAWL_AND_WEB_DATA_COMMONS_STRUCTURED_WEB_INDEX',provider_record_id:row.urlkey||row.digest||null,observed_at:new Date().toISOString(),common_crawl_index_id:indexId,http_status_metadata:row.status||null,mime_metadata:row.mime||null,live_external_observation:true,source_family_hint:'UNCLASSIFIED_ANY_SITE_CANDIDATE',candidate_source_roles:['UNCLASSIFIED_PENDING_RELEVANCE'],rights_state:'UNASSESSED',admission_state:'NOT_ADMITTED',gate_1_state:'PENDING',evidence_state:'DISCOVERY_METADATA_ONLY',acquisition_authorized:false,target_site_body_crawled:false,content_acquired:false,provider_contacted:false,account_created:false,eula_accepted:false,spend_authorized:false,production:'HOLD'});if(++n>=8)break;}await sleep(120);}catch(e){errors.push(`${host}:${e.message}`)}}}
-const dedup=[...new Map(observations.map(c=>[c.endpoint_url,c])).values()].sort((a,b)=>a.endpoint_url.localeCompare(b.endpoint_url));const output={id:'kidults-asi-common-crawl-host-expansion-v1',version:'1.0.0',status:dedup.length?'SHADOW_COMMON_CRAWL_HOST_EXPANSION_COMPLETE':'SHADOW_COMMON_CRAWL_HOST_EXPANSION_ZERO_RESULTS',universe_target:'GLOBAL_ANY_SITE_SOURCE_UNIVERSE',input_candidate_count:Number(x.candidate_count||0),seed_host_count:seedHosts.length,seed_hosts:seedHosts,common_crawl_index_id:indexId,common_crawl_index_api:indexApi,expanded_candidate_count:dedup.length,candidates:dedup,errors,metadata_index_only:true,target_site_body_crawled:false,content_acquired:false,rights_promoted:false,admission_promoted:false,acquisition_authorized:false,public_release:'HOLD',production:'HOLD'};fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,JSON.stringify(output,null,2)+'\n');console.log(JSON.stringify({status:output.status,index_id:indexId,seed_hosts:seedHosts.length,expanded_candidates:dedup.length,errors:errors.length,production:'HOLD'}));
+
+const input = process.argv[2] || 'discovery-out/global-low-risk-discovery.json';
+const out = process.argv[3] || '/tmp/asi-common-crawl-host-expansion-v1.json';
+const frontierPath = process.argv[4] || '';
+const discovery = JSON.parse(fs.readFileSync(input, 'utf8'));
+const hash = value => crypto.createHash('sha256').update(String(value)).digest('hex').slice(0, 24);
+const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+const normalizeHost = value => new URL(String(value || '')).hostname.toLowerCase().replace(/^www\./, '');
+
+async function get(url, attempt = 0) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json,text/plain',
+        'User-Agent': 'KIDULTS-ASI-Common-Crawl-Host-Expansion-v1'
+      }
+    });
+    if ((response.status === 429 || response.status >= 500) && attempt < 2) {
+      await sleep(700 * (2 ** attempt));
+      return get(url, attempt + 1);
+    }
+    if (!response.ok) throw new Error(`HTTP_${response.status}`);
+    return response;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+if (discovery.id !== 'kidults-asi-global-low-risk-discovery-v1' || discovery.primary_target !== 'GLOBAL_ANY_SITE_SOURCE_UNIVERSE') throw new Error('DISCOVERY_INPUT');
+if (discovery.production !== 'HOLD' || discovery.public_release !== 'HOLD' || discovery.acquisition_authorized !== false || discovery.content_acquired !== false) throw new Error('DISCOVERY_BOUNDARY');
+
+let frontier = null;
+if (frontierPath && fs.existsSync(frontierPath)) {
+  try {
+    const value = JSON.parse(fs.readFileSync(frontierPath, 'utf8'));
+    if (
+      value.id === 'kidults-asi-common-crawl-seed-frontier-v1' &&
+      value.version === '1.0.0' &&
+      value.status === 'SHADOW_COMMON_CRAWL_SEED_FRONTIER_READY' &&
+      value.universe_target === 'GLOBAL_ANY_SITE_SOURCE_UNIVERSE' &&
+      value.metadata_index_only === true &&
+      value.production === 'HOLD' &&
+      value.public_release === 'HOLD' &&
+      value.rights_promoted === false &&
+      value.admission_promoted === false &&
+      value.acquisition_authorized === false &&
+      Array.isArray(value.selected_hosts) &&
+      value.selected_hosts.length > 0 &&
+      value.selected_hosts.length <= 8
+    ) frontier = value;
+  } catch {}
+}
+
+let seedSelectionMode = 'ROLLING_FAIR_FRONTIER';
+let seedHosts = frontier?.selected_hosts || [];
+if (!frontier) {
+  seedSelectionMode = 'LEGACY_FIRST_SEEN_FAIL_SAFE';
+  seedHosts = [];
+  for (const candidate of discovery.candidates || []) {
+    try {
+      const host = normalizeHost(candidate.endpoint_url);
+      if (host && !seedHosts.includes(host)) seedHosts.push(host);
+    } catch {}
+    if (seedHosts.length >= 8) break;
+  }
+}
+seedHosts = [...new Set(seedHosts)].slice(0, 8);
+if (!seedHosts.length) throw new Error('NO_SEED_HOSTS');
+
+let indexId = null;
+let indexApi = null;
+const observations = [];
+const errors = [];
+const seedHostResults = [];
+try {
+  const response = await get('https://index.commoncrawl.org/collinfo.json');
+  const indexes = await response.json();
+  const latest = indexes?.[0];
+  indexId = latest?.id || null;
+  indexApi = latest?.['cdx-api'] || null;
+  if (!indexApi) throw new Error('NO_LATEST_INDEX_API');
+} catch (error) {
+  errors.push(`INDEX_DISCOVERY:${error.message}`);
+}
+
+if (indexApi) {
+  for (const host of seedHosts) {
+    let observedForHost = 0;
+    let hostStatus = 'SUCCESS_ZERO_RESULTS';
+    let hostError = null;
+    try {
+      const url = new URL(indexApi);
+      url.searchParams.set('url', host);
+      url.searchParams.set('matchType', 'domain');
+      url.searchParams.set('output', 'json');
+      url.searchParams.set('filter', 'status:200');
+      url.searchParams.set('collapse', 'urlkey');
+      url.searchParams.set('pageSize', '8');
+      const response = await get(url);
+      const text = await response.text();
+      let acceptedRows = 0;
+      for (const line of text.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        let row;
+        try { row = JSON.parse(line); } catch { continue; }
+        let observedHost;
+        try { observedHost = normalizeHost(row.url); } catch { continue; }
+        if (!observedHost || !(observedHost === host || observedHost.endsWith(`.${host}`))) continue;
+        observations.push({
+          candidate_id: `cand-cc-host-${hash(`${frontier?.cycle_count || 0}|${host}|${observedHost}`)}`,
+          seed_host: host,
+          observed_host: observedHost,
+          endpoint_url: `https://${observedHost}`,
+          discovery_provider: 'COMMON_CRAWL_URL_INDEX_HOST_EXPANSION',
+          discovery_channel: 'COMMON_CRAWL_AND_WEB_DATA_COMMONS_STRUCTURED_WEB_INDEX',
+          provider_record_id: row.urlkey || row.digest || null,
+          observed_at: new Date().toISOString(),
+          common_crawl_index_id: indexId,
+          seed_frontier_id: frontier?.id || null,
+          seed_frontier_cycle: frontier?.cycle_count || null,
+          seed_selection_mode: seedSelectionMode,
+          http_status_metadata: row.status || null,
+          mime_metadata: row.mime || null,
+          live_external_observation: true,
+          source_family_hint: 'UNCLASSIFIED_ANY_SITE_CANDIDATE',
+          candidate_source_roles: ['UNCLASSIFIED_PENDING_RELEVANCE'],
+          rights_state: 'UNASSESSED',
+          admission_state: 'NOT_ADMITTED',
+          gate_1_state: 'PENDING',
+          evidence_state: 'DISCOVERY_METADATA_ONLY',
+          acquisition_authorized: false,
+          target_site_body_crawled: false,
+          content_acquired: false,
+          provider_contacted: false,
+          account_created: false,
+          eula_accepted: false,
+          spend_authorized: false,
+          production: 'HOLD'
+        });
+        observedForHost++;
+        if (++acceptedRows >= 8) break;
+      }
+      hostStatus = observedForHost > 0 ? 'SUCCESS_WITH_RESULTS' : 'SUCCESS_ZERO_RESULTS';
+      await sleep(120);
+    } catch (error) {
+      hostStatus = 'FAILED_FAIL_SOFT';
+      hostError = error.message;
+      errors.push(`${host}:${error.message}`);
+    }
+    seedHostResults.push({
+      seed_host: host,
+      status: hostStatus,
+      observed_candidate_count: observedForHost,
+      error: hostError,
+      fail_soft: true
+    });
+  }
+} else {
+  for (const host of seedHosts) {
+    seedHostResults.push({
+      seed_host: host,
+      status: 'SKIPPED_INDEX_UNAVAILABLE_FAIL_SOFT',
+      observed_candidate_count: 0,
+      error: 'COMMON_CRAWL_INDEX_UNAVAILABLE',
+      fail_soft: true
+    });
+  }
+}
+
+const deduplicated = [...new Map(observations.map(candidate => [candidate.endpoint_url, candidate])).values()]
+  .sort((a, b) => a.endpoint_url.localeCompare(b.endpoint_url));
+const output = {
+  id: 'kidults-asi-common-crawl-host-expansion-v1',
+  version: '1.1.0',
+  status: deduplicated.length ? 'SHADOW_COMMON_CRAWL_HOST_EXPANSION_COMPLETE' : 'SHADOW_COMMON_CRAWL_HOST_EXPANSION_ZERO_RESULTS',
+  universe_target: 'GLOBAL_ANY_SITE_SOURCE_UNIVERSE',
+  input_candidate_count: Number(discovery.candidate_count || 0),
+  seed_selection_mode: seedSelectionMode,
+  seed_frontier_id: frontier?.id || null,
+  seed_frontier_version: frontier?.version || null,
+  seed_frontier_cycle: frontier?.cycle_count || null,
+  seed_frontier_digest: frontier?.frontier_digest || null,
+  seed_host_count: seedHosts.length,
+  seed_hosts: seedHosts,
+  seed_host_results: seedHostResults,
+  common_crawl_index_id: indexId,
+  common_crawl_index_api: indexApi,
+  expanded_candidate_count: deduplicated.length,
+  candidates: deduplicated,
+  errors,
+  metadata_index_only: true,
+  target_site_body_crawled: false,
+  content_acquired: false,
+  rights_promoted: false,
+  admission_promoted: false,
+  acquisition_authorized: false,
+  public_release: 'HOLD',
+  production: 'HOLD'
+};
+fs.mkdirSync(path.dirname(out), { recursive: true });
+fs.writeFileSync(out, `${JSON.stringify(output, null, 2)}\n`);
+console.log(JSON.stringify({
+  status: output.status,
+  index_id: indexId,
+  seed_selection_mode: seedSelectionMode,
+  seed_frontier_cycle: output.seed_frontier_cycle,
+  seed_hosts: seedHosts.length,
+  expanded_candidates: deduplicated.length,
+  errors: errors.length,
+  production: 'HOLD'
+}));
