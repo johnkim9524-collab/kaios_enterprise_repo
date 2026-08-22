@@ -31,6 +31,9 @@ const p0PrePartnerValidators = [
 const rightsBoundaryValidators = [
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
 ];
+const providerAdapterBoundaryValidators = [
+  'scripts/kidults/kpmo/validate-provider-adapter-workflow-provenance-v1.mjs'
+];
 const runtimeBoundaryValidators = [
   'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
@@ -54,6 +57,7 @@ const validators = [...new Set([
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
+  ...providerAdapterBoundaryValidators,
   ...runtimeBoundaryValidators,
   ...productionRecoveryValidators,
   ...downstreamBoundaryValidators
@@ -111,6 +115,8 @@ console.log(JSON.stringify({
   pre_partner_rekey_alias_reingestion_fail_closed: true,
   partner_like_adversarial_fixtures: 12,
   provider_rights_decision_gate_machine_bound: true,
+  provider_adapter_workflow_provenance_machine_bound: true,
+  provider_adapter_boundary_validators: providerAdapterBoundaryValidators.length,
   runtime_boundary_validators: runtimeBoundaryValidators.length,
   digitalocean_staging_bootstrap_boundary_machine_bound: true,
   digitalocean_staging_bootstrap_exec_contract_machine_bound: true,
