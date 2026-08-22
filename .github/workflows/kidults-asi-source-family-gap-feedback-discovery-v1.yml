@@ -1,0 +1,74 @@
+name: KIDULTS ASI Source Family Gap Feedback Discovery v1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-asi-source-family-discovery-intent-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
+      - '.github/workflows/kidults-asi-source-family-gap-feedback-discovery-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-family-gap-feedback-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-source-family-discovery-intent-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs
+      - name: Build deterministic autobalance fixture
+        run: |
+          node - <<'NODE' >/tmp/autobalance.json
+          const fs=require('fs');
+          const scopes=JSON.parse(fs.readFileSync('coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json')).scopes.map(x=>x.scope_id);
+          const families=['PRIMARY_OR_OFFICIAL_AUTHORITY','OPEN_MARKETPLACE_OR_DEALER','GRADING_AUTHENTICATION_OR_CONDITION','MEDIA_COMMUNITY_OR_EVENT_CONTEXT','MUSEUM_OR_INSTITUTIONAL_CONTEXT','UNCLASSIFIED_ANY_SITE_CANDIDATE'];
+          const familyCounts={PRIMARY_OR_OFFICIAL_AUTHORITY:30,OPEN_MARKETPLACE_OR_DEALER:1,GRADING_AUTHENTICATION_OR_CONDITION:0,MEDIA_COMMUNITY_OR_EVENT_CONTEXT:2,MUSEUM_OR_INSTITUTIONAL_CONTEXT:0,UNCLASSIFIED_ANY_SITE_CANDIDATE:40};
+          const familyPriorities=families.map(id=>{const c=familyCounts[id];return{id,count:c,priority_weight:c===0?3:c<5?2.8:1,coverage_ratio:c/40,reason:c===0?'ZERO_SOURCE_FAMILY_COVERAGE':c<5?'LOW_SOURCE_FAMILY_COVERAGE':'NORMAL'}}).sort((a,b)=>b.priority_weight-a.priority_weight);
+          const scopePriorities=scopes.map((id,i)=>({id,count:i,priority_weight:i<4?3:1.2,coverage_ratio:i/32,reason:i<4?'LOW_SCOPE_COVERAGE':'NORMAL'}));
+          const regions=['NORTH_AMERICA','EUROPE','JAPAN','KOREA','GREATER_CHINA','SOUTHEAST_ASIA','OCEANIA','LATAM_MEA'].map((id,i)=>({id,count:i,priority_weight:i<2?3:1.2,coverage_ratio:i/8,reason:i<2?'LOW_REGION_COVERAGE':'NORMAL'}));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-throughput-coverage-autobalance-v1',status:'SHADOW_AUTOBALANCE_PLAN_READY',next_cycle_budget:{source_family_priorities:familyPriorities,scope_priorities:scopePriorities,region_priorities:regions},rules:{rights_gate_can_never_be_weakened:true},public_release:'HOLD',production:'HOLD'}));
+          NODE
+      - name: Build and validate bounded supplemental intent
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-source-family-discovery-intent-v1.mjs /tmp/autobalance.json /tmp/intent.json
+          node scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs /tmp/intent.json
+      - name: Reject baseline removal mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/intent.json'));x.baseline_discovery_required=false;fs.writeFileSync('/tmp/bad-baseline.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs /tmp/bad-baseline.json; then exit 1; fi
+      - name: Reject unclassified target mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/intent.json'));x.target_family_ids.push('UNCLASSIFIED_ANY_SITE_CANDIDATE');fs.writeFileSync('/tmp/bad-unclassified.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs /tmp/bad-unclassified.json; then exit 1; fi
+      - name: Reject rights weakening mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/intent.json'));x.rules.rights_gate_can_never_be_weakened=false;fs.writeFileSync('/tmp/bad-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs /tmp/bad-rights.json; then exit 1; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-source-family-gap-feedback-discovery-v1
+          path: /tmp/intent.json
+          retention-days: 30
+          if-no-files-found: error
