@@ -1,0 +1,151 @@
+name: KIDULTS ASI Hourly v2 Promotion Readiness v1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs'
+      - '.github/workflows/kidults-asi-hourly-v2-promotion-readiness-v1.yml'
+  workflow_run:
+    workflows: ['KIDULTS ASI Global Any-Site Hourly Pooling v2']
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  promotion-contract-proof:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs
+      - name: Build deterministic two-cycle fixture
+        run: |
+          node - <<'NODE' >/tmp/promotion-input.json
+          const v2=(run,observed,fresh)=>({artifact_id:`a${run}`,workflow_run_id:String(run),receipt:{id:'kidults-asi-global-any-site-hourly-cycle-receipt-v2',status:'SHADOW_ANY_SITE_COMMON_CRAWL_FULL_GATE_CHAIN_COMPLETE',discovered_candidates:170+fresh,live_external_candidates:106+fresh,healthy_live_lanes:2,common_crawl_applied:true,common_crawl_index_id:'CC-MAIN-2026-30',common_crawl_seed_hosts:8,common_crawl_observed_candidates:observed,common_crawl_new_candidates:fresh,gate1_safe_candidates:75,gate1_review_required:95+fresh,gate1_hard_blocked:0,gate2_verified_for_gate3:73,gate3_bounded_metadata_admitted:73,active_admitted_metadata:73,stale_admission_revalidation:0,revoked_alias_blocked:0,rolling_discovery_pool_candidates:170+fresh,new_pool_candidates:fresh,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'}});
+          const v1={artifact_id:'v1a',workflow_run_id:'900',receipt:{id:'kidults-asi-global-any-site-hourly-cycle-receipt-v1',status:'SHADOW_ANY_SITE_FULL_GATE_CHAIN_WITH_REVALIDATED_ADMISSION_COMPLETE',discovered_candidates:164,live_external_candidates:100,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'}};
+          process.stdout.write(JSON.stringify({id:'kidults-asi-hourly-v2-promotion-input-v1',v1_baseline:v1,v2_cycles:[v2(1001,7,5),v2(1002,8,6)]}));
+          NODE
+      - name: Validate promotion readiness contract
+        run: node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/promotion-input.json /tmp/promotion-readiness.json
+      - name: Reject single-cycle promotion mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/promotion-input.json'));x.v2_cycles=x.v2_cycles.slice(0,1);fs.writeFileSync('/tmp/bad-single-cycle.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/bad-single-cycle.json /tmp/bad-out.json; then exit 1; fi
+      - name: Reject duplicate workflow run mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/promotion-input.json'));x.v2_cycles[1].workflow_run_id=x.v2_cycles[0].workflow_run_id;fs.writeFileSync('/tmp/bad-duplicate-run.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/bad-duplicate-run.json /tmp/bad-out.json; then exit 1; fi
+      - name: Reject Production promotion mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/promotion-input.json'));x.v2_cycles[0].receipt.production='APPROVED';fs.writeFileSync('/tmp/bad-production.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/bad-production.json /tmp/bad-out.json; then exit 1; fi
+      - name: Reject no empirical Common Crawl increment mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/promotion-input.json'));for(const c of x.v2_cycles){c.receipt.common_crawl_observed_candidates=0;c.receipt.common_crawl_new_candidates=0;}fs.writeFileSync('/tmp/bad-no-increment.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/bad-no-increment.json /tmp/bad-out.json; then exit 1; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-hourly-v2-promotion-contract-v1
+          path: /tmp/promotion-readiness.json
+          retention-days: 30
+          if-no-files-found: error
+
+  empirical-main-promotion-readiness:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Restore two distinct successful main v2 cycle artifacts
+        id: restore
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v2/0 /tmp/v2/1 /tmp/v1
+          mapfile -t V2 < <(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v2" and .expired==false and .workflow_run.head_branch=="main") | {id,run:.workflow_run.id}] | unique_by(.run) | .[0:2][] | "\(.id)|\(.run)"')
+          if [ "${#V2[@]}" -lt 2 ]; then
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo "v2_cycle_count=${#V2[@]}" >> "$GITHUB_OUTPUT"
+            printf '{"id":"kidults-asi-hourly-v2-promotion-readiness-v1","status":"WAITING_FOR_SECOND_DISTINCT_MAIN_V2_CYCLE","observed_v2_cycles":%s,"public_release":"HOLD","production":"HOLD"}\n' "${#V2[@]}" > /tmp/promotion-waiting.json
+            exit 0
+          fi
+          for i in 0 1; do
+            IFS='|' read -r ART RUN <<< "${V2[$i]}"
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART}/zip" > "/tmp/v2-${i}.zip"
+            unzip -q -o "/tmp/v2-${i}.zip" -d "/tmp/v2/${i}"
+            RECEIPT=$(find "/tmp/v2/${i}" -type f -name asi-global-any-site-hourly-cycle-receipt-v2.json | head -1)
+            test -n "$RECEIPT"
+            cp "$RECEIPT" "/tmp/v2/${i}/receipt.json"
+            echo "v2_artifact_${i}=$ART" >> "$GITHUB_OUTPUT"
+            echo "v2_run_${i}=$RUN" >> "$GITHUB_OUTPUT"
+          done
+          V1=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0] | if . then "\(.id)|\(.workflow_run.id)" else "" end')
+          if [ -n "$V1" ]; then
+            IFS='|' read -r V1_ART V1_RUN <<< "$V1"
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${V1_ART}/zip" > /tmp/v1.zip
+            unzip -q -o /tmp/v1.zip -d /tmp/v1
+            V1_RECEIPT=$(find /tmp/v1 -type f -name asi-global-any-site-hourly-cycle-receipt-v1.json | head -1)
+            if [ -n "$V1_RECEIPT" ]; then cp "$V1_RECEIPT" /tmp/v1/receipt.json; fi
+            echo "v1_artifact=$V1_ART" >> "$GITHUB_OUTPUT"
+            echo "v1_run=$V1_RUN" >> "$GITHUB_OUTPUT"
+          fi
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+          echo 'v2_cycle_count=2' >> "$GITHUB_OUTPUT"
+      - name: Emit waiting evidence
+        if: steps.restore.outputs.ready != 'true'
+        run: cat /tmp/promotion-waiting.json
+      - name: Build empirical promotion input
+        if: steps.restore.outputs.ready == 'true'
+        env:
+          V2_ART_0: ${{ steps.restore.outputs.v2_artifact_0 }}
+          V2_RUN_0: ${{ steps.restore.outputs.v2_run_0 }}
+          V2_ART_1: ${{ steps.restore.outputs.v2_artifact_1 }}
+          V2_RUN_1: ${{ steps.restore.outputs.v2_run_1 }}
+          V1_ART: ${{ steps.restore.outputs.v1_artifact }}
+          V1_RUN: ${{ steps.restore.outputs.v1_run }}
+        run: |
+          node - <<'NODE' >/tmp/asi-hourly-v2-promotion-input-v1.json
+          const fs=require('fs');const read=p=>JSON.parse(fs.readFileSync(p));
+          const v2=[0,1].map(i=>({artifact_id:process.env[`V2_ART_${i}`],workflow_run_id:process.env[`V2_RUN_${i}`],receipt:read(`/tmp/v2/${i}/receipt.json`)}));
+          const v1=fs.existsSync('/tmp/v1/receipt.json')?{artifact_id:process.env.V1_ART,workflow_run_id:process.env.V1_RUN,receipt:read('/tmp/v1/receipt.json')}:null;
+          process.stdout.write(JSON.stringify({id:'kidults-asi-hourly-v2-promotion-input-v1',v1_baseline:v1,v2_cycles:v2},null,2));
+          NODE
+      - name: Validate two-cycle empirical promotion readiness
+        if: steps.restore.outputs.ready == 'true'
+        run: node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/asi-hourly-v2-promotion-input-v1.json /tmp/asi-hourly-v2-promotion-readiness-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: kidults-asi-hourly-v2-promotion-readiness-v1
+          path: |
+            /tmp/promotion-waiting.json
+            /tmp/asi-hourly-v2-promotion-input-v1.json
+            /tmp/asi-hourly-v2-promotion-readiness-v1.json
+          retention-days: 90
+          if-no-files-found: warn
