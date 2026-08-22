@@ -54,6 +54,31 @@ jobs:
             [...text.matchAll(/['"](scripts\/[A-Za-z0-9_./-]+\.(?:mjs|py))['"]/g)].map(match => match[1])
           );
 
+          const executableRefsFromJson = (text, label) => {
+            let parsed;
+            try {
+              parsed = JSON.parse(text);
+            } catch (error) {
+              fail(`${label} is not valid JSON: ${error.message}`);
+            }
+            const refs = new Set();
+            const walk = value => {
+              if (typeof value === 'string') {
+                if (/^scripts\/[A-Za-z0-9_./-]+\.(?:mjs|py)$/.test(value)) refs.add(value);
+                return;
+              }
+              if (Array.isArray(value)) {
+                for (const item of value) walk(item);
+                return;
+              }
+              if (value && typeof value === 'object') {
+                for (const item of Object.values(value)) walk(item);
+              }
+            };
+            walk(parsed);
+            return refs;
+          };
+
           // The aggregate runner is itself a trust root. Ordinary PRs may add validator-reference-only
           // lines inside existing arrays, but may not change any other runner execution semantics.
           const pureValidatorRefLine = /^\s*['"]scripts\/[A-Za-z0-9_./-]+\.(?:mjs|py)['"],?\s*$/;
@@ -90,6 +115,17 @@ jobs:
             }
           }
 
+          // Dynamic validators loaded from the canonical orchestrator are equally mandatory. Prove the
+          // recursive JSON collector sees them even when their paths never appear literally in the runner.
+          const dynamicSelf = executableRefsFromJson(JSON.stringify({
+            required_family_validators: ['scripts/dynamic-family.mjs'],
+            nested: { validators: ['scripts/nested.py'] },
+            ignored: ['coordination/not-executable.json', 'scripts/not-a-validator.txt']
+          }), 'trusted dynamic-ref self-test');
+          if (!dynamicSelf.has('scripts/dynamic-family.mjs') || !dynamicSelf.has('scripts/nested.py') || dynamicSelf.size !== 2) {
+            fail('trusted self-test missed dynamically loaded validator reference');
+          }
+
           const pr = await getJson(`${apiBase}/repos/${repo}/pulls/${prNumber}`);
           const baseSha = pr.base?.sha;
           const mergeSha = pr.merge_commit_sha;
@@ -97,25 +133,47 @@ jobs:
           if (!mergeSha) fail('synthetic merge SHA unavailable; conflict or merge result not computed');
 
           const aggregatePath = 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs';
+          const orchestratorPath = 'coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json';
           const criticalWorkflowPath = '.github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml';
           const trustedWorkflowPath = '.github/workflows/kidults-trusted-control-monotonicity.yml';
 
-          const [baseAggregate, mergeAggregate, baseCriticalWorkflow, mergeCriticalWorkflow, baseTrustedWorkflow, mergeTrustedWorkflow] = await Promise.all([
+          const [
+            baseAggregate,
+            mergeAggregate,
+            baseOrchestrator,
+            mergeOrchestrator,
+            baseCriticalWorkflow,
+            mergeCriticalWorkflow,
+            baseTrustedWorkflow,
+            mergeTrustedWorkflow
+          ] = await Promise.all([
             getFile(baseSha, aggregatePath),
             getFile(mergeSha, aggregatePath),
+            getFile(baseSha, orchestratorPath),
+            getFile(mergeSha, orchestratorPath),
             getFile(baseSha, criticalWorkflowPath),
             getFile(mergeSha, criticalWorkflowPath),
             getFile(baseSha, trustedWorkflowPath),
             getFile(mergeSha, trustedWorkflowPath)
           ]);
 
-          const baselineRefs = scriptRefs(baseAggregate);
-          const mergedRefs = scriptRefs(mergeAggregate);
+          const baselineLiteralRefs = scriptRefs(baseAggregate);
+          const mergedLiteralRefs = scriptRefs(mergeAggregate);
+          const baselineDynamicRefs = executableRefsFromJson(baseOrchestrator, 'base canonical orchestrator');
+          const mergedDynamicRefs = executableRefsFromJson(mergeOrchestrator, 'merge canonical orchestrator');
+          const baselineRefs = new Set([...baselineLiteralRefs, ...baselineDynamicRefs]);
+          const mergedRefs = new Set([...mergedLiteralRefs, ...mergedDynamicRefs]);
           const missingRefs = [...baselineRefs].filter(ref => !mergedRefs.has(ref)).sort();
           if (missingRefs.length) fail(`merge result removes mandatory validator refs: ${missingRefs.join(', ')}`);
 
-          // Baseline mandatory validator implementations are immutable in an ordinary PR. Intentional
-          // changes are trust-root migrations and require a separately reviewed migration path.
+          // The canonical orchestrator decides dynamic validator bindings, stage mappings, promotion
+          // policy and cross-stage invariants. Ordinary PRs cannot mutate this trust-root configuration.
+          if (mergeOrchestrator !== baseOrchestrator) {
+            fail(`merge result modifies canonical Red-Team orchestrator ${orchestratorPath}; use explicit trust-root migration`);
+          }
+
+          // Baseline mandatory validator implementations are immutable in an ordinary PR, regardless of
+          // whether the entrypoint is referenced literally by the runner or loaded dynamically via JSON.
           const changedBaselineValidators = [];
           for (const ref of [...baselineRefs].sort()) {
             const [baseContent, mergeContent] = await Promise.all([
@@ -165,20 +223,23 @@ jobs:
           }
 
           console.log(JSON.stringify({
-            suite: 'KIDULTS_TRUSTED_MERGE_CONTROL_MONOTONICITY_V3',
+            suite: 'KIDULTS_TRUSTED_MERGE_CONTROL_MONOTONICITY_V4',
             pr_number: Number(prNumber),
             base_sha: baseSha,
             merge_sha: mergeSha,
+            baseline_literal_validator_refs: baselineLiteralRefs.size,
+            baseline_dynamic_validator_refs: baselineDynamicRefs.size,
             baseline_validator_refs: baselineRefs.size,
             merged_validator_refs: mergedRefs.size,
             removed_baseline_validator_refs: 0,
             changed_baseline_validator_implementations: 0,
             baseline_validator_implementations_unchanged: true,
+            canonical_orchestrator_unchanged: true,
             aggregate_execution_semantics_unchanged_except_additive_refs: true,
             critical_workflow_unchanged: true,
             trusted_workflow_unchanged: true,
             critical_workflow_primitives_preserved: true,
-            trusted_mutation_selftests: executionDowngrades.length + 1,
+            trusted_mutation_selftests: executionDowngrades.length + 2,
             result: 'PASS',
             empirical_gate_effect: 'NONE',
             production: 'HOLD',
