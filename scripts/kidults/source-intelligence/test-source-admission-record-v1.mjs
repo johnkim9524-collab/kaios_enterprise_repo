@@ -39,6 +39,18 @@ try {
   if (baseline.status !== 0) throw new Error(`baseline rejected:\n${baseline.stdout}\n${baseline.stderr}`);
 
   const rejected = [
+    ['missing_scope', r => { delete r.scope; }],
+    ['null_scope', r => { r.scope = null; }],
+    ['array_scope', r => { r.scope = []; }],
+    ['missing_scope_category', r => { delete r.scope.category; }],
+    ['malformed_scope_category', r => { r.scope.category = 42; }],
+    ['missing_scope_geography', r => { delete r.scope.geography; }],
+    ['malformed_scope_geography', r => { r.scope.geography = { region: 'US' }; }],
+    ['malformed_scope_language', r => { r.scope.language = 7; }],
+    ['missing_source_type', r => { delete r.source_type; }],
+    ['malformed_source_type', r => { r.source_type = ['PARTNER_FIXTURE']; }],
+    ['missing_access_channel', r => { delete r.access_channel; }],
+    ['invalid_access_channel', r => { r.access_channel = 'UNDECLARED_TRANSPORT'; }],
     ['expired_rights', r => { r.expires_at = '2026-08-20T23:59:59Z'; }],
     ['malformed_expiry', r => { r.expires_at = 'not-a-date'; }],
     ['timezone_less_expiry', r => { r.expires_at = '2099-01-01T00:00:00'; }],
@@ -64,6 +76,8 @@ try {
     suite: 'KIDULTS_SOURCE_ADMISSION_TEMPORAL_RIGHTS_SELFTEST_V1',
     result: 'PASS',
     baseline_admitted: true,
+    source_context_schema_required: true,
+    source_context_schema_fail_closed_mutations: 12,
     fail_closed_mutations_detected: rejected.length,
     blocked_expired_archival_record_supported: true,
     external_partner_data_ingestion: 'HOLD',
