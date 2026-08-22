@@ -1,0 +1,54 @@
+name: KIDULTS ASI Legal Commercial Three-Stage Gate v1
+
+on:
+  push:
+    branches:
+      - kpmo/global-proactive-source-discovery-expansion
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-legal-commercial-three-stage-gate-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-legal-commercial-three-stage-gate-v1.mjs'
+      - '.github/workflows/kidults-asi-legal-commercial-three-stage-gate-v1.yml'
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-legal-commercial-three-stage-gate-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-legal-commercial-three-stage-gate-v1.mjs'
+      - '.github/workflows/kidults-asi-legal-commercial-three-stage-gate-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-three-stage-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Validate canonical three-stage gate
+        run: node scripts/kidults/source-intelligence/validate-asi-legal-commercial-three-stage-gate-v1.mjs coordination/kidults/source-intelligence/asi-legal-commercial-three-stage-gate-v1.json
+      - name: Reject Gate1 rights self-promotion
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'); const p='coordination/kidults/source-intelligence/asi-legal-commercial-three-stage-gate-v1.json'; const x=JSON.parse(fs.readFileSync(p)); x.gate_1.auto_clear_requirements=x.gate_1.auto_clear_requirements.filter(v=>v!=='RIGHTS_STATE_REMAINS_UNASSESSED'); fs.writeFileSync('/tmp/bad-g1.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-legal-commercial-three-stage-gate-v1.mjs /tmp/bad-g1.json; then echo 'Gate1 mutation was not rejected' >&2; exit 1; fi
+      - name: Reject Gate2 purpose omission
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'); const p='coordination/kidults/source-intelligence/asi-legal-commercial-three-stage-gate-v1.json'; const x=JSON.parse(fs.readFileSync(p)); x.gate_2.required_purposes=x.gate_2.required_purposes.filter(v=>v!=='derive'); fs.writeFileSync('/tmp/bad-g2.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-legal-commercial-three-stage-gate-v1.mjs /tmp/bad-g2.json; then echo 'Gate2 mutation was not rejected' >&2; exit 1; fi
+      - name: Reject Gate3 admission bypass
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'); const p='coordination/kidults/source-intelligence/asi-legal-commercial-three-stage-gate-v1.json'; const x=JSON.parse(fs.readFileSync(p)); x.gate_3.required_before_private_acquisition=x.gate_3.required_before_private_acquisition.filter(v=>v!=='REQUIRED_HUMAN_OR_EXTERNAL_APPROVAL_COMPLETE'); fs.writeFileSync('/tmp/bad-g3.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-legal-commercial-three-stage-gate-v1.mjs /tmp/bad-g3.json; then echo 'Gate3 mutation was not rejected' >&2; exit 1; fi
