@@ -34,11 +34,11 @@ const requiredMarkers = {
     'KAIOS_EXECUTE_PRODUCTION_ROLLBACK=true',
     'rollback_and_exit "SMOKE_FAILURE" 2',
     'snapshot.get("rollback_ready") is True',
-    'ROLLBACK DRY RUN COMPLETE',
+    'KAIOS_EXECUTE_PRODUCTION_ROLLBACK=false',
   ],
   rollback: [
     'KAIOS_EXECUTE_PRODUCTION_ROLLBACK',
-    'snapshot.get("rollback_ready") is True',
+    'manifest.get("rollback_ready") is True',
     'snapshot_manifest_sha256',
     'failed-kaios.db',
     'docker load --input',
