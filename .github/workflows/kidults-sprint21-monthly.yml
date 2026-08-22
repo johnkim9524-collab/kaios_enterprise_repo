@@ -1,4 +1,4 @@
-name: Kidults Monthly Intelligence
+name: Kidults Monthly Intelligence Read-Only Build
 
 on:
   workflow_dispatch:
@@ -6,21 +6,34 @@ on:
     - cron: '15 0 1 * *'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-monthly-intelligence:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          echo "expected=$EXPECTED_SHA"
+          echo "actual=$ACTUAL_SHA"
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '20'
+          node-version: '24'
+          package-manager-cache: false
 
-      - name: Build governed intelligence artifacts
+      - name: Build monthly intelligence artifacts without repository mutation
         working-directory: apps/kidults-enterprise-staging
         run: npm run build:sprint21
 
@@ -31,14 +44,22 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('public/public-enterprise-preview/reports/index.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('public/public-enterprise-preview/api/v1/monthly.json','utf8'))"
 
-      - name: Commit generated artifacts
+      - name: Upload generated artifacts for inspection only
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-monthly-intelligence-readonly-${{ github.sha }}
+          path: |
+            apps/kidults-enterprise-staging/public/public-enterprise-preview/intelligence-data.json
+            apps/kidults-enterprise-staging/public/public-enterprise-preview/search-index.json
+            apps/kidults-enterprise-staging/public/public-enterprise-preview/api/v1
+            apps/kidults-enterprise-staging/public/public-enterprise-preview/reports
+            apps/kidults-enterprise-staging/public/public-enterprise-preview/archive-data
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Assert source commit was not mutated
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
-          git config user.name "kidults-intelligence-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add apps/kidults-enterprise-staging/public/public-enterprise-preview/intelligence-data.json
-          git add apps/kidults-enterprise-staging/public/public-enterprise-preview/search-index.json
-          git add apps/kidults-enterprise-staging/public/public-enterprise-preview/api/v1
-          git add apps/kidults-enterprise-staging/public/public-enterprise-preview/reports
-          git add apps/kidults-enterprise-staging/public/public-enterprise-preview/archive-data
-          git diff --cached --quiet || git commit -m "data(kidults): publish monthly intelligence artifacts"
-          git push
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          echo 'Source commit unchanged; generated files remain CI-local artifacts only.'

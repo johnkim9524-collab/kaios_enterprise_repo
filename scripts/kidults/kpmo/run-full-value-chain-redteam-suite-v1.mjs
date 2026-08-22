@@ -6,6 +6,9 @@ const orchestrator = JSON.parse(fs.readFileSync(orchestratorPath, 'utf8'));
 const structuralValidator = 'scripts/kidults/kpmo/validate-full-value-chain-redteam-orchestrator-v1.mjs';
 const stageCoverageValidator = 'scripts/kidults/kpmo/validate-full-value-chain-stage-machine-coverage-v1.mjs';
 const criticalGateBindingValidator = 'scripts/kidults/kpmo/validate-full-value-chain-critical-gate-bindings-v1.mjs';
+const repositoryMutationBoundaryValidators = [
+  'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
+];
 const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
@@ -27,6 +30,7 @@ const validators = [...new Set([
   structuralValidator,
   stageCoverageValidator,
   criticalGateBindingValidator,
+  ...repositoryMutationBoundaryValidators,
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
@@ -46,12 +50,7 @@ for (const script of validators) {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe']
   });
-  const result = {
-    script,
-    command,
-    status: run.status,
-    signal: run.signal || null
-  };
+  const result = { script, command, status: run.status, signal: run.signal || null };
   results.push(result);
   if (run.stdout) process.stdout.write(run.stdout);
   if (run.stderr) process.stderr.write(run.stderr);
@@ -70,6 +69,8 @@ console.log(JSON.stringify({
   control_layer_result: 'PASS',
   validators_passed: results.length,
   stages_machine_bound: Object.keys(orchestrator.stage_machine_coverage || {}).length,
+  workflow_repository_mutation_boundary_machine_bound: true,
+  workflow_repository_mutation_boundary_validators: repositoryMutationBoundaryValidators.length,
   pre_partner_intake_gate_machine_bound: true,
   pre_partner_certification_machine_bound: true,
   pre_partner_control_families: 12,
