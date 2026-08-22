@@ -9,6 +9,7 @@ const ALLOWED_CURRENCIES = new Set(['USD','EUR','GBP','JPY','KRW','CHF','HKD','S
 const ALLOWED_UNITS = new Set(['ITEM','LOT']);
 const ALLOWED_DESTRUCTIVE_ACTIONS = new Set(['WITHDRAW','DELETE']);
 const SUPPRESSION_STATE = 'SUPPRESSED_NO_REINGESTION';
+const TRUSTED_DESTRUCTIVE_EVENT_SOURCE = 'CONTROL_PLANE';
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
@@ -41,6 +42,12 @@ function digestSuppressionTombstone(tombstone) {
   return sha256(body);
 }
 
+function digestTrustedDestructiveEvent(event) {
+  const body = structuredClone(event);
+  delete body.event_digest;
+  return sha256(body);
+}
+
 function rightsTemporalStatus(rights, asOf) {
   try {
     const asOfMs = parseRfc3339Millis(asOf, 'record.as_of');
@@ -60,6 +67,9 @@ function normalizeTrustedContext(raw = {}) {
     seen_destructive_event_ids: raw.seen_destructive_event_ids instanceof Set
       ? raw.seen_destructive_event_ids
       : new Set(Array.isArray(raw.seen_destructive_event_ids) ? raw.seen_destructive_event_ids : []),
+    trusted_destructive_control_event: raw.trusted_destructive_control_event
+      ? structuredClone(raw.trusted_destructive_control_event)
+      : null,
     canonical_suppression_events: Array.isArray(raw.canonical_suppression_events)
       ? structuredClone(raw.canonical_suppression_events)
       : [],
@@ -75,11 +85,19 @@ function normalizeTrustedContext(raw = {}) {
 function authorizeDestructiveLifecycle(record, rawContext) {
   const lifecycle = record.lifecycle || {};
   const identity = record.identity || {};
-  const event = lifecycle.control_event || {};
+  const payloadEvent = lifecycle.control_event || null;
   const context = normalizeTrustedContext(rawContext);
+  const event = context.trusted_destructive_control_event || {};
   const failures = [];
 
   if (!context.persisted_object_id || !context.persisted_source_owner_id || !context.persisted_source_namespace) failures.push('missing_trusted_persisted_context');
+  if (!context.trusted_destructive_control_event) failures.push('missing_trusted_destructive_control_event');
+  if (!payloadEvent || typeof payloadEvent !== 'object') failures.push('destructive_payload_control_event_missing');
+  if (event.trusted_source !== TRUSTED_DESTRUCTIVE_EVENT_SOURCE) failures.push('destructive_event_untrusted_source');
+  if (!Number.isInteger(event.sequence_number) || event.sequence_number < 1) failures.push('destructive_event_sequence_invalid');
+  if (typeof event.previous_event_digest !== 'string' || !event.previous_event_digest) failures.push('destructive_event_previous_digest_missing');
+  if (!event.audit_event_id || typeof event.audit_event_id !== 'string') failures.push('destructive_audit_event_id_missing');
+  if (event.event_digest !== digestTrustedDestructiveEvent(event)) failures.push('destructive_event_digest_mismatch');
   if (!event.event_id || typeof event.event_id !== 'string') failures.push('missing_destructive_event_id');
   if (event.authenticated !== true) failures.push('destructive_actor_not_authenticated');
   if (event.authorized !== true) failures.push('destructive_actor_not_authorized');
@@ -93,12 +111,31 @@ function authorizeDestructiveLifecycle(record, rawContext) {
   if (event.append_only_audit_bound !== true) failures.push('destructive_event_not_append_only_audit_bound');
   if (event.event_id && context.seen_destructive_event_ids.has(event.event_id)) failures.push('destructive_event_replay');
 
+  // Partner payload may carry a non-authoritative control-event claim for correlation only.
+  // It can never establish authentication/authorization. If present, every claimed field must
+  // agree with the independently trusted control-plane event or the request fails closed.
+  if (payloadEvent && typeof payloadEvent === 'object') {
+    const claimFields = [
+      'event_id',
+      'authenticated',
+      'authorized',
+      'actor_type',
+      'actor_id',
+      'action',
+      'source_owner_id',
+      'source_namespace',
+      'object_id',
+      'append_only_audit_bound'
+    ];
+    if (claimFields.some(field => payloadEvent[field] !== event[field])) failures.push('destructive_payload_control_event_mismatch');
+  }
+
   const stateAllowsAction = event.action === 'WITHDRAW'
     ? lifecycle.current_state === 'PROMOTED'
     : ['PROMOTED','SUPERSEDED','WITHDRAWN'].includes(lifecycle.current_state);
   if (!stateAllowsAction) failures.push('invalid_deletion_state');
 
-  if (failures.length) return { authorized: false, failures, context };
+  if (failures.length) return { authorized: false, failures: [...new Set(failures)], context };
   context.seen_destructive_event_ids.add(event.event_id);
   return { authorized: true, failures: [], context };
 }
@@ -206,8 +243,8 @@ function evaluateRecord(record, trustedContext = {}) {
   const quality = record.quality || {};
 
   // Withdrawal/deletion remains possible after rights cease, but a destructive request is not
-  // trusted merely because a payload says deletion_requested=true. It must bind to immutable
-  // persisted owner/namespace/object context and an authenticated append-only control event.
+  // trusted merely because a partner payload says deletion_requested=true or self-asserts
+  // authenticated/authorized control-event flags. Authorization must come from trusted context.
   if (lifecycle.deletion_requested === true) {
     triggers.push('deletion_requested');
     const auth = authorizeDestructiveLifecycle(record, trustedContext);
@@ -361,27 +398,76 @@ for (const test of replayFailClosedMutationCases) {
 
 const deletionFixture = (pack.fixtures || []).find(f => f.id === 'deletion_request');
 if (!deletionFixture?.trusted_context) throw new Error('deletion fixture must carry trusted persisted context');
-const validDeletion = evaluateRecord(structuredClone(deletionFixture.record), structuredClone(deletionFixture.trusted_context));
+
+function buildTrustedDeletionContext(fixture) {
+  const context = structuredClone(fixture.trusted_context || {});
+  const payloadEvent = structuredClone(fixture.record?.lifecycle?.control_event || {});
+  const trustedEvent = {
+    ...payloadEvent,
+    audit_event_id: 'audit-destructive-delete-001',
+    sequence_number: 1,
+    previous_event_digest: 'GENESIS',
+    trusted_source: TRUSTED_DESTRUCTIVE_EVENT_SOURCE
+  };
+  trustedEvent.event_digest = digestTrustedDestructiveEvent(trustedEvent);
+  context.trusted_destructive_control_event = trustedEvent;
+  return context;
+}
+
+function fixtureTrustedContext(fixture) {
+  if (fixture.id === 'deletion_request') return buildTrustedDeletionContext(fixture);
+  return fixture.trusted_context ? structuredClone(fixture.trusted_context) : {};
+}
+
+const validDeletionContext = buildTrustedDeletionContext(deletionFixture);
+const validDeletion = evaluateRecord(structuredClone(deletionFixture.record), validDeletionContext);
 if (validDeletion.disposition !== 'WITHDRAWN_OR_DELETED' || !validDeletion.triggers.includes('destructive_event_authorized')) {
   throw new Error(`authorized deletion fixture failed: ${validDeletion.disposition}/${validDeletion.triggers.join(',')}`);
 }
 
+// P0 regression: a partner payload may self-assert all authorization flags, but without an
+// independently trusted control-plane event the destructive request must still fail closed.
+{
+  const record = structuredClone(deletionFixture.record);
+  const context = structuredClone(deletionFixture.trusted_context);
+  const actual = evaluateRecord(record, context);
+  if (actual.disposition !== 'QUARANTINED_OR_REJECTED' || !actual.triggers.includes('missing_trusted_destructive_control_event')) {
+    throw new Error(`payload-only destructive self-assertion did not fail closed: ${actual.disposition}/${actual.triggers.join(',')}`);
+  }
+}
+
 const destructiveMutationCases = [
-  ['missing_control_event', (r, c) => { delete r.lifecycle.control_event; }],
-  ['unauthenticated_actor', (r, c) => { r.lifecycle.control_event.authenticated = false; }],
-  ['unauthorized_actor', (r, c) => { r.lifecycle.control_event.authorized = false; }],
-  ['actor_owner_mismatch', (r, c) => { r.lifecycle.control_event.actor_id = 'forged-owner'; }],
-  ['source_owner_mismatch', (r, c) => { r.lifecycle.control_event.source_owner_id = 'forged-owner'; }],
-  ['namespace_mismatch', (r, c) => { r.lifecycle.control_event.source_namespace = 'forged-namespace'; }],
-  ['object_mismatch', (r, c) => { r.lifecycle.control_event.object_id = 'other-object'; }],
+  ['missing_control_event_claim', (r, c) => { delete r.lifecycle.control_event; }],
+  ['unauthenticated_payload_claim', (r, c) => { r.lifecycle.control_event.authenticated = false; }],
+  ['unauthorized_payload_claim', (r, c) => { r.lifecycle.control_event.authorized = false; }],
+  ['payload_actor_owner_mismatch', (r, c) => { r.lifecycle.control_event.actor_id = 'forged-owner'; }],
+  ['payload_source_owner_mismatch', (r, c) => { r.lifecycle.control_event.source_owner_id = 'forged-owner'; }],
+  ['payload_namespace_mismatch', (r, c) => { r.lifecycle.control_event.source_namespace = 'forged-namespace'; }],
+  ['payload_object_mismatch', (r, c) => { r.lifecycle.control_event.object_id = 'other-object'; }],
   ['persisted_object_binding_mismatch', (r, c) => { c.persisted_object_id = 'other-object'; }],
-  ['unsupported_destructive_action', (r, c) => { r.lifecycle.control_event.action = 'PURGE_ALL'; }],
-  ['missing_append_only_audit_binding', (r, c) => { r.lifecycle.control_event.append_only_audit_bound = false; }],
-  ['missing_trusted_context', (r, c) => { delete c.persisted_source_owner_id; delete c.persisted_source_namespace; }]
+  ['payload_unsupported_destructive_action', (r, c) => { r.lifecycle.control_event.action = 'PURGE_ALL'; }],
+  ['payload_missing_append_only_audit_binding', (r, c) => { r.lifecycle.control_event.append_only_audit_bound = false; }],
+  ['missing_trusted_context', (r, c) => { delete c.persisted_source_owner_id; delete c.persisted_source_namespace; }],
+  ['missing_trusted_destructive_event', (r, c) => { delete c.trusted_destructive_control_event; }],
+  ['trusted_event_untrusted_source', (r, c) => { c.trusted_destructive_control_event.trusted_source = 'PARTNER_PAYLOAD'; }],
+  ['trusted_event_sequence_invalid', (r, c) => { c.trusted_destructive_control_event.sequence_number = 0; }],
+  ['trusted_event_digest_tamper', (r, c) => { c.trusted_destructive_control_event.event_digest = 'forged'; }],
+  ['trusted_event_owner_rebinding_resigned', (r, c) => {
+    c.trusted_destructive_control_event.source_owner_id = 'forged-owner';
+    c.trusted_destructive_control_event.event_digest = digestTrustedDestructiveEvent(c.trusted_destructive_control_event);
+  }],
+  ['trusted_event_object_rebinding_resigned', (r, c) => {
+    c.trusted_destructive_control_event.object_id = 'other-object';
+    c.trusted_destructive_control_event.event_digest = digestTrustedDestructiveEvent(c.trusted_destructive_control_event);
+  }],
+  ['trusted_event_action_rebinding_resigned', (r, c) => {
+    c.trusted_destructive_control_event.action = 'WITHDRAW';
+    c.trusted_destructive_control_event.event_digest = digestTrustedDestructiveEvent(c.trusted_destructive_control_event);
+  }]
 ];
 for (const [id, mutate] of destructiveMutationCases) {
   const record = structuredClone(deletionFixture.record);
-  const context = structuredClone(deletionFixture.trusted_context);
+  const context = buildTrustedDeletionContext(deletionFixture);
   mutate(record, context);
   const actual = evaluateRecord(record, context);
   if (actual.disposition !== 'QUARANTINED_OR_REJECTED' || actual.disposition === 'WITHDRAWN_OR_DELETED') {
@@ -393,7 +479,7 @@ for (const [id, mutate] of destructiveMutationCases) {
 // control event against the same persisted context must fail closed instead of repeating state mutation.
 {
   const record = structuredClone(deletionFixture.record);
-  const context = normalizeTrustedContext(deletionFixture.trusted_context);
+  const context = normalizeTrustedContext(buildTrustedDeletionContext(deletionFixture));
   const first = evaluateRecord(record, context);
   if (first.disposition !== 'WITHDRAWN_OR_DELETED') throw new Error('destructive replay setup did not authorize first event');
   const second = evaluateRecord(record, context);
@@ -405,7 +491,7 @@ for (const [id, mutate] of destructiveMutationCases) {
 // Cross-control proof: the primary partner-like admission evaluator itself must consume and
 // cryptographically validate the durable canonical suppression ledger. A standalone suppression
 // validator is insufficient if this path consumes an unauthenticated projection of tombstone state.
-const deletionEvent = deletionFixture.record.lifecycle.control_event;
+const deletionEvent = validDeletionContext.trusted_destructive_control_event;
 const canonicalSuppressionKey = suppressionKey(
   deletionEvent.source_owner_id,
   deletionEvent.source_namespace,
@@ -533,7 +619,7 @@ for (const fixture of packFixtures) {
   if (!contractExpected) throw new Error(`fixture ${fixture.id} missing from control-plane contract`);
   if (contractExpected !== fixture.expected_disposition) throw new Error(`fixture ${fixture.id} contract/pack disposition drift`);
 
-  const context = fixture.trusted_context ? structuredClone(fixture.trusted_context) : {};
+  const context = fixtureTrustedContext(fixture);
   const actual = evaluateRecord(structuredClone(fixture.record), context);
   if (actual.disposition !== fixture.expected_disposition) {
     throw new Error(`fixture ${fixture.id} expected=${fixture.expected_disposition} actual=${actual.disposition} triggers=${actual.triggers.join(',')}`);
@@ -541,7 +627,7 @@ for (const fixture of packFixtures) {
   if (!actual.triggers.length || actual.triggers[0] === 'all_control_checks_pass') throw new Error(`fixture ${fixture.id} did not exercise an adversarial control`);
 
   // Prove the harness is behavior-driven rather than fixture-ID-driven.
-  const renamed = evaluateRecord(structuredClone(fixture.record), fixture.trusted_context ? structuredClone(fixture.trusted_context) : {});
+  const renamed = evaluateRecord(structuredClone(fixture.record), fixtureTrustedContext(fixture));
   if (renamed.disposition !== actual.disposition) throw new Error(`fixture ${fixture.id} result is not payload-deterministic`);
 
   results.push({ id: fixture.id, disposition: actual.disposition, triggers: actual.triggers, promotable: false });
@@ -562,7 +648,10 @@ console.log(JSON.stringify({
   executable_payload_fixtures_passed: results.length,
   temporal_fail_closed_mutation_cases: temporalMutationCases.length,
   replay_cross_control_fail_closed_mutation_cases: replayFailClosedMutationCases.length,
-  destructive_lifecycle_authorization_fail_closed_mutation_cases: destructiveMutationCases.length + 1,
+  destructive_lifecycle_authorization_fail_closed_mutation_cases: destructiveMutationCases.length + 2,
+  destructive_lifecycle_requires_trusted_control_plane_event: true,
+  destructive_payload_self_assertion_rejected: true,
+  destructive_trusted_event_digest_bound: true,
   canonical_suppression_consumer_binding: true,
   canonical_suppression_consumer_cryptographic_ledger_validation: true,
   canonical_rekey_reingestion_fail_closed: true,
