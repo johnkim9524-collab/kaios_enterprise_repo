@@ -38,11 +38,17 @@ jobs:
       - name: Verify A14 command wiring
         run: |
           node -e "const p=require('./package.json'); for (const k of ['a14:canary','a14:certify','a14:finalize']) if(!p.scripts[k]) process.exit(1)"
-      - name: Verify production guard and cleanup exist
+      - name: Verify production guard, cleanup and exact certification identity fence exist
         run: |
           grep -q "A14 remote canary is blocked in production" scripts/a14-remote-capacity-canary.mjs
           grep -q "DROP TABLE IF EXISTS" scripts/a14-remote-capacity-canary.mjs
+          grep -q '\$certifiedHead = (git rev-parse HEAD).Trim()' scripts/stage-finalize.ps1
+          grep -q '\$targetMain = (git rev-parse origin/main).Trim()' scripts/stage-finalize.ps1
+          grep -q 'if (\$certifiedHead -ne \$targetMain)' scripts/stage-finalize.ps1
+          grep -q 'rerun the stage certification on the current origin/main before finalizing' scripts/stage-finalize.ps1
           grep -q "git pull --ff-only origin main" scripts/stage-finalize.ps1
+          grep -q 'if (\$finalHead -ne \$certifiedHead)' scripts/stage-finalize.ps1
+          grep -q 'Final SHA:' scripts/stage-finalize.ps1
 
   remote-canary-contract:
     runs-on: ubuntu-24.04
