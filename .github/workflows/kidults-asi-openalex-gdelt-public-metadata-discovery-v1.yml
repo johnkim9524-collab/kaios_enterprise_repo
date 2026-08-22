@@ -1,0 +1,84 @@
+name: KIDULTS ASI OpenAlex GDELT Public Metadata Discovery v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '11 * * * *'
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - '.github/workflows/kidults-asi-openalex-gdelt-public-metadata-discovery-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-openalex-gdelt-discovery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  public-metadata-discovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs
+      - name: Execute provider-diverse public-metadata discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            ASI_SCOPE_ROTATION=0 node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs /tmp/asi-openalex-gdelt-public-metadata-discovery-v1.json
+          else
+            node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs /tmp/asi-openalex-gdelt-public-metadata-discovery-v1.json
+          fi
+          node scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs /tmp/asi-openalex-gdelt-public-metadata-discovery-v1.json
+      - name: GATE1 — force unproven public-metadata candidates to Review
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-openalex-gdelt-public-metadata-discovery-v1.json /tmp/asi-openalex-gdelt-gate1-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-openalex-gdelt-gate1-v1.json
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-openalex-gdelt-gate1-v1.json'));const providers=new Set(['OPENALEX_PUBLIC_WORK_AND_SOURCE_METADATA','GDELT_PUBLIC_DOMAIN_MENTION_METADATA']);
+          const owned=c=>(c.discovery_providers||[c.discovery_provider]).some(p=>providers.has(p));const all=[...(x.safe_candidate_pool||[]),...(x.review_required_queue||[]),...(x.hard_block_queue||[])].filter(owned);if(!all.length)throw new Error('NO_FLEET_CANDIDATES_AT_GATE1');const unsafe=(x.safe_candidate_pool||[]).filter(owned);if(unsafe.length)throw new Error('PUBLIC_METADATA_SELF_PROMOTED_TO_SAFE');console.log(JSON.stringify({status:'PASS',fleet_candidates:all.length,safe_without_rights:unsafe.length,review_required:(x.review_required_queue||[]).filter(owned).length,production:'HOLD'}));
+          NODE
+      - name: Reject rights promotion mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-openalex-gdelt-public-metadata-discovery-v1.json'));x.candidates[0].rights_state='ALLOW';fs.writeFileSync('/tmp/bad-public-metadata-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs /tmp/bad-public-metadata-rights.json; then exit 1; fi
+      - name: Reject provider impersonation mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-openalex-gdelt-public-metadata-discovery-v1.json'));x.candidates[0].discovery_provider='UNAPPROVED_PROVIDER';delete x.candidates[0].discovery_providers;fs.writeFileSync('/tmp/bad-public-metadata-provider.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs /tmp/bad-public-metadata-provider.json; then exit 1; fi
+      - name: Emit discovery receipt
+        run: |
+          node - <<'NODE' >/tmp/asi-openalex-gdelt-public-metadata-discovery-receipt-v1.json
+          const fs=require('fs');const d=JSON.parse(fs.readFileSync('/tmp/asi-openalex-gdelt-public-metadata-discovery-v1.json'));const g=JSON.parse(fs.readFileSync('/tmp/asi-openalex-gdelt-gate1-v1.json'));process.stdout.write(JSON.stringify({id:'kidults-asi-openalex-gdelt-public-metadata-discovery-receipt-v1',status:'SHADOW_PROVIDER_DIVERSE_DISCOVERY_AND_GATE1_COMPLETE',scope_rotation_index:d.scope_rotation_index,cycle_scopes:d.cycle_scope_count,candidates:d.candidate_count,healthy_lanes:d.healthy_lane_count,lane_health:d.lane_health,gate1_safe:g.safe_candidate_count,gate1_review:g.review_required_count,rights_created:false,content_acquired:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/asi-openalex-gdelt-public-metadata-discovery-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-openalex-gdelt-public-metadata-discovery-v1
+          path: |
+            /tmp/asi-openalex-gdelt-public-metadata-discovery-v1.json
+            /tmp/asi-openalex-gdelt-gate1-v1.json
+            /tmp/asi-openalex-gdelt-public-metadata-discovery-receipt-v1.json
+          retention-days: 30
+          if-no-files-found: error
