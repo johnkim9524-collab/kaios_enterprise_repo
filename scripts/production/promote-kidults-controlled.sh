@@ -5,7 +5,7 @@ ROOT_DIR="${ROOT_DIR:-$PWD}"
 PROD_ROOT="${PROD_ROOT:-/opt/intelligence-holdings/kidults/app}"
 EVIDENCE_ARCHIVE="${EVIDENCE_ARCHIVE:-}"
 PREDEPLOYMENT_SNAPSHOT_DIR="${PREDEPLOYMENT_SNAPSHOT_DIR:-}"
-BASE_URL="${BASE_URL:-https://kaios.kidults.com}"
+readonly BASE_URL="https://kaios.kidults.com"
 ADMIN_TOKEN_FILE="${ADMIN_TOKEN_FILE:-/opt/intelligence-holdings/kidults/secrets/kaios_admin_token}"
 EXECUTE="${KAIOS_EXECUTE_PRODUCTION_PROMOTION:-false}"
 
@@ -27,10 +27,8 @@ python3 - "${EVIDENCE_ARCHIVE}.manifest.json" "${PREDEPLOYMENT_SNAPSHOT_DIR}/man
 import json
 import sys
 from pathlib import Path
-
 seal = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 snapshot = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
-
 assert seal.get("status") == "sealed"
 assert seal.get("decision") == "go"
 assert seal.get("score") == 100
@@ -53,6 +51,7 @@ Mode: ${EXECUTE}
 Production root: ${PROD_ROOT}
 Evidence archive: ${EVIDENCE_ARCHIVE}
 Predeployment snapshot: ${PREDEPLOYMENT_SNAPSHOT_DIR}
+Production origin: ${BASE_URL}
 Artfund changes: forbidden
 EOF
 
@@ -62,9 +61,7 @@ if [[ "${EXECUTE}" != "true" ]]; then
 fi
 
 cd "${PROD_ROOT}"
-
 docker compose --env-file .env.production -f docker-compose.production.yml config >/dev/null
-
 docker compose --env-file .env.production -f docker-compose.production.yml up -d --force-recreate
 sleep 30
 
