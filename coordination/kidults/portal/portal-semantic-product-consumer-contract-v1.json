@@ -29,6 +29,17 @@
   "proof_product_binding": {
     "contract": "../product/kidults-proof-product-data-contract-v1.json",
     "schema": "../schemas/kidults-proof-product-projection-v1.schema.json",
+    "semantic_validator": "../../../scripts/kidults/portal/proof_product_projection_semantics_v1.py",
+    "schema_only_validation_sufficient": false,
+    "semantic_validation_required_at": [
+      "PORTAL_RENDER",
+      "PUBLIC_API_RESPONSE",
+      "EXPORT"
+    ],
+    "trusted_clock_required": true,
+    "consumer_purpose_required": true,
+    "assessment_identity_must_match_lineage": true,
+    "rights_summary_must_match_purpose_decisions": true,
     "products": [
       "OBJECT_PASSPORT",
       "MARKET_PROJECTION_API",
@@ -59,6 +70,10 @@
     "LOCAL_PROOF_PRODUCT_VALUE_OR_STATE",
     "STALE_OR_RIGHTS_BLOCKED_VALUE_DISPLAY",
     "INDEX_LEVEL_WITHOUT_PUBLICATION_GATE",
+    "SCHEMA_ONLY_PROOF_PRODUCT_ACCEPTANCE",
+    "UNTRUSTED_CLOCK_FRESHNESS_ACCEPTANCE",
+    "ASSESSMENT_ID_REBOUND",
+    "RIGHTS_SUMMARY_CONTRADICTION",
     "TOY_ONLY_BRAND_FRAMING",
     "UNQUALIFIED_PRODUCT_MARKET_CLAIM"
   ],
