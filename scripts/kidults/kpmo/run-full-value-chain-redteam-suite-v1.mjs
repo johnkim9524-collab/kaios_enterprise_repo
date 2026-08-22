@@ -13,7 +13,8 @@ const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
-  'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs'
+  'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs',
+  'scripts/kidults/audit/validate-rights-withdrawal-transitive-invalidation-v1.mjs'
 ];
 const rightsBoundaryValidators = [
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
@@ -76,6 +77,7 @@ console.log(JSON.stringify({
   pre_partner_control_families: 12,
   pre_partner_required_controls_exactly_bound: true,
   pre_partner_control_removal_mutation_selftest: true,
+  pre_partner_transitive_invalidation_machine_bound: true,
   partner_like_adversarial_fixtures: 12,
   provider_rights_decision_gate_machine_bound: true,
   runtime_boundary_validators: runtimeBoundaryValidators.length,
