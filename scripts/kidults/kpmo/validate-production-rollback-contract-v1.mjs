@@ -26,6 +26,7 @@ const requiredMarkers = {
     'incomplete rollback snapshot',
   ],
   promotion: [
+    'readonly BASE_URL="https://kaios.kidults.com"',
     'ROLLBACK_ARMED=false',
     'ROLLBACK_ARMED=true',
     'trap on_error ERR',
@@ -35,6 +36,7 @@ const requiredMarkers = {
     'rollback_and_exit "SMOKE_FAILURE" 2',
     'snapshot.get("rollback_ready") is True',
     'KAIOS_EXECUTE_PRODUCTION_ROLLBACK=false',
+    "curl --proto '=https' --max-redirs 0",
   ],
   rollback: [
     'KAIOS_EXECUTE_PRODUCTION_ROLLBACK',
@@ -57,6 +59,7 @@ function validateText(current) {
       if (!current[name].includes(marker)) findings.push(`${name}:missing:${marker}`);
     }
   }
+  if (current.promotion.includes('BASE_URL="${BASE_URL:-')) findings.push('promotion:environment-overridable-production-origin');
   if (contract.safety?.automatic_rollback_on_smoke_failure !== true) findings.push('contract:auto-rollback-not-true');
   if (contract.safety?.default_action !== 'dry-run') findings.push('contract:default-action-not-dry-run');
   if (contract.safety?.artfund_changes_forbidden !== true) findings.push('contract:artfund-isolation-not-required');
@@ -79,6 +82,11 @@ for (const [name, markers] of Object.entries(requiredMarkers)) {
     mutationCases += 1;
     if (validateText(mutated).length === 0) throw new Error(`rollback mutation guard missed ${name}:${marker}`);
   }
+}
+{
+  const mutated = { ...sources, promotion: sources.promotion.replace('readonly BASE_URL="https://kaios.kidults.com"', 'BASE_URL="${BASE_URL:-https://kaios.kidults.com}"') };
+  mutationCases += 1;
+  if (!validateText(mutated).includes('promotion:environment-overridable-production-origin')) throw new Error('rollback mutation guard missed environment-overridable Production origin');
 }
 
 // Execute the rollback verifier in its default no-mutation mode against a synthetic,
@@ -153,6 +161,7 @@ console.log(JSON.stringify({
   suite: 'KIDULTS_PRODUCTION_ROLLBACK_CONTRACT_V1',
   result: 'PASS',
   governing_issue: 955,
+  canonical_production_origin_fail_closed: true,
   automatic_rollback_contract: true,
   rollback_armed_before_first_runtime_mutation: true,
   err_interrupt_termination_traps: true,
