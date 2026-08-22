@@ -14,6 +14,7 @@ if (frontier.fairness_policy !== 'LOWEST_SELECTION_COUNT_THEN_OLDEST_SELECTION_T
 if (frontier.metadata_index_only !== true || frontier.target_site_body_crawled !== false || frontier.content_acquired !== false || frontier.rights_promoted !== false || frontier.admission_promoted !== false || frontier.acquisition_authorized !== false) fail('PERMISSION_BOUNDARY');
 if (frontier.production !== 'HOLD' || frontier.public_release !== 'HOLD') fail('RELEASE_BOUNDARY');
 if (!Number.isInteger(Number(frontier.cycle_count)) || Number(frontier.cycle_count) < 1) fail('CYCLE');
+if (!Number.isInteger(Number(frontier.previous_cycle_count)) || Number(frontier.previous_cycle_count) < 0 || Number(frontier.previous_cycle_count) >= Number(frontier.cycle_count)) fail('PREVIOUS_CYCLE');
 if (!Array.isArray(frontier.host_frontier) || frontier.host_frontier.length !== Number(frontier.host_universe_count) || frontier.host_frontier.length < 1) fail('HOST_UNIVERSE');
 if (!Array.isArray(frontier.selected_hosts) || frontier.selected_hosts.length !== Number(frontier.selected_host_count) || frontier.selected_hosts.length < 1 || frontier.selected_hosts.length > Number(frontier.max_hosts_per_cycle) || Number(frontier.max_hosts_per_cycle) !== 8) fail('SELECTION_BUDGET');
 if (new Set(frontier.selected_hosts).size !== frontier.selected_hosts.length) fail('DUPLICATE_SELECTED_HOST');
@@ -30,6 +31,8 @@ for (const row of frontier.host_frontier) {
   if (row.selected_this_cycle !== selected.has(row.host)) fail(`HOST_SELECTION_FLAG:${row.host}`);
   if (row.selected_this_cycle && Number(row.last_selected_cycle) !== Number(frontier.cycle_count)) fail(`HOST_LAST_SELECTED:${row.host}`);
   if (!row.selected_this_cycle && row.last_selected_cycle !== null && Number(row.last_selected_cycle) > Number(frontier.previous_cycle_count)) fail(`HOST_FUTURE_SELECTION:${row.host}`);
+  if (!Number.isInteger(Number(row.first_seen_cycle)) || Number(row.first_seen_cycle) < 1 || Number(row.first_seen_cycle) > Number(frontier.cycle_count)) fail(`HOST_FIRST_SEEN:${row.host}`);
+  if (Number(row.last_seen_cycle) !== Number(frontier.cycle_count)) fail(`HOST_LAST_SEEN:${row.host}`);
   if (row.rights_state !== 'UNASSESSED' || row.admission_state !== 'NOT_ADMITTED' || row.acquisition_authorized !== false || row.target_site_body_crawled !== false || row.production !== 'HOLD') fail(`HOST_PROMOTION:${row.host}`);
   priorCounts.set(row.host, Number(row.selected_count) - (row.selected_this_cycle ? 1 : 0));
 }
@@ -48,6 +51,10 @@ if (Number(frontier.minimum_selection_count_after) !== minimumAfter || Number(fr
 if (Number(frontier.selection_count_delta_after) !== maximumAfter - minimumAfter || maximumAfter - minimumAfter > 1) fail('FAIRNESS_DELTA');
 const neverSelected = frontier.host_frontier.filter(row => Number(row.selected_count) === 0).length;
 if (Number(frontier.never_selected_host_count_after) !== neverSelected) fail('NEVER_SELECTED_COUNT');
+const completedSweeps = minimumAfter;
+if (Number(frontier.completed_sweep_count) !== completedSweeps) fail('COMPLETED_SWEEP_COUNT');
+if (Number(frontier.sweep_number) !== completedSweeps + 1) fail('SWEEP_NUMBER');
+if (frontier.full_sweep_complete !== (neverSelected === 0)) fail('FULL_SWEEP_STATE');
 if (!frontier.input_discovery_digest?.startsWith('sha256:') || !frontier.frontier_digest?.startsWith('sha256:')) fail('DIGEST_FORMAT');
 const expectedDigest = `sha256:${sha(JSON.stringify({ cycle_count: frontier.cycle_count, selected_hosts: frontier.selected_hosts, host_frontier: frontier.host_frontier }))}`;
 if (frontier.frontier_digest !== expectedDigest) fail('FRONTIER_DIGEST');
@@ -55,6 +62,7 @@ if (frontier.frontier_digest !== expectedDigest) fail('FRONTIER_DIGEST');
 console.log(JSON.stringify({
   status: 'PASS',
   cycle_count: frontier.cycle_count,
+  completed_sweep_count: completedSweeps,
   sweep_number: frontier.sweep_number,
   host_universe: frontier.host_universe_count,
   selected_hosts: frontier.selected_host_count,
@@ -62,6 +70,7 @@ console.log(JSON.stringify({
   minimum_after: minimumAfter,
   maximum_after: maximumAfter,
   never_selected_after: neverSelected,
+  full_sweep_complete: frontier.full_sweep_complete,
   fairness_delta: maximumAfter - minimumAfter,
   production: 'HOLD'
 }));
