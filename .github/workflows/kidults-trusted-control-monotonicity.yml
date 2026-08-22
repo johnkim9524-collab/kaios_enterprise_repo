@@ -46,8 +46,48 @@ jobs:
           async function getFile(ref, path) {
             const encodedPath = path.split('/').map(encodeURIComponent).join('/');
             const data = await getJson(`${apiBase}/repos/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`);
-            if (data.type !== 'file' || typeof data.content !== 'string') fail(`missing file ${path}@${ref}`);
+            if (data.type !== 'file' || typeof data.content !== 'string') fail(`missing or non-file ${path}@${ref}`);
             return Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
+          }
+
+          const scriptRefs = text => new Set(
+            [...text.matchAll(/['"](scripts\/[A-Za-z0-9_./-]+\.(?:mjs|py))['"]/g)].map(match => match[1])
+          );
+
+          // The aggregate runner is itself a trust root. Ordinary PRs may add validator-reference-only
+          // lines inside existing arrays, but may not change any other runner execution semantics.
+          const pureValidatorRefLine = /^\s*['"]scripts\/[A-Za-z0-9_./-]+\.(?:mjs|py)['"],?\s*$/;
+          const aggregateExecutionSkeleton = text => text
+            .split(/\r?\n/)
+            .filter(line => !pureValidatorRefLine.test(line))
+            .join('\n');
+
+          // Trusted self-tests: additive registration is allowed, while retained-reference execution
+          // downgrades must change the protected skeleton and therefore fail.
+          const selfBase = [
+            'const validators = [',
+            "  'scripts/a.mjs',",
+            '];',
+            'for (const script of validators) {',
+            '  const run = spawnSync(command, [script]);',
+            '  if (run.error) process.exit(1);',
+            '  if (run.status !== 0) process.exit(1);',
+            '}'
+          ].join('\n');
+          const selfAdditive = selfBase.replace("  'scripts/a.mjs',", "  'scripts/a.mjs',\n  'scripts/b.mjs',");
+          if (aggregateExecutionSkeleton(selfBase) !== aggregateExecutionSkeleton(selfAdditive)) {
+            fail('trusted self-test rejected additive-only validator registration');
+          }
+          const executionDowngrades = [
+            selfBase.replace('const run = spawnSync(command, [script]);', 'const run = { status: 0 };'),
+            selfBase.replace('if (run.error) process.exit(1);', 'if (false && run.error) process.exit(1);'),
+            selfBase.replace('if (run.status !== 0) process.exit(1);', 'if (false && run.status !== 0) process.exit(1);'),
+            selfBase.replace('for (const script of validators) {', 'if (false) for (const script of validators) {')
+          ];
+          for (const mutated of executionDowngrades) {
+            if (aggregateExecutionSkeleton(selfBase) === aggregateExecutionSkeleton(mutated)) {
+              fail('trusted self-test missed aggregate execution downgrade');
+            }
           }
 
           const pr = await getJson(`${apiBase}/repos/${repo}/pulls/${prNumber}`);
@@ -69,13 +109,38 @@ jobs:
             getFile(mergeSha, trustedWorkflowPath)
           ]);
 
-          const scriptRefs = text => new Set(
-            [...text.matchAll(/['"](scripts\/[A-Za-z0-9_./-]+\.(?:mjs|py))['"]/g)].map(match => match[1])
-          );
           const baselineRefs = scriptRefs(baseAggregate);
           const mergedRefs = scriptRefs(mergeAggregate);
           const missingRefs = [...baselineRefs].filter(ref => !mergedRefs.has(ref)).sort();
           if (missingRefs.length) fail(`merge result removes mandatory validator refs: ${missingRefs.join(', ')}`);
+
+          // Baseline mandatory validator implementations are immutable in an ordinary PR. Intentional
+          // changes are trust-root migrations and require a separately reviewed migration path.
+          const changedBaselineValidators = [];
+          for (const ref of [...baselineRefs].sort()) {
+            const [baseContent, mergeContent] = await Promise.all([
+              getFile(baseSha, ref),
+              getFile(mergeSha, ref)
+            ]);
+            if (baseContent !== mergeContent) changedBaselineValidators.push(ref);
+          }
+          if (changedBaselineValidators.length) {
+            fail(`merge result modifies baseline mandatory validator implementation(s): ${changedBaselineValidators.join(', ')}; use explicit trust-root migration`);
+          }
+
+          // Protect the aggregate runner's execution skeleton. This blocks retained-path/no-execution,
+          // swallowed failure, unconditional PASS and equivalent semantic downgrades while allowing only
+          // additive pure validator-reference lines.
+          if (aggregateExecutionSkeleton(baseAggregate) !== aggregateExecutionSkeleton(mergeAggregate)) {
+            fail(`merge result modifies aggregate Red-Team execution semantics in ${aggregatePath}; use explicit trust-root migration`);
+          }
+
+          // The critical exact-head Full Value Chain workflow is also a trust root. Marker-presence alone
+          // is insufficient because job/step conditions or continue-on-error can preserve strings while
+          // disabling enforcement. Ordinary PRs therefore cannot modify this workflow at all.
+          if (mergeCriticalWorkflow !== baseCriticalWorkflow) {
+            fail(`merge result modifies critical Full Value Chain workflow ${criticalWorkflowPath}; use explicit trust-root migration`);
+          }
 
           const criticalPrimitives = [
             'permissions:\n  contents: read',
@@ -100,15 +165,20 @@ jobs:
           }
 
           console.log(JSON.stringify({
-            suite: 'KIDULTS_TRUSTED_MERGE_CONTROL_MONOTONICITY_V1',
+            suite: 'KIDULTS_TRUSTED_MERGE_CONTROL_MONOTONICITY_V3',
             pr_number: Number(prNumber),
             base_sha: baseSha,
             merge_sha: mergeSha,
             baseline_validator_refs: baselineRefs.size,
             merged_validator_refs: mergedRefs.size,
             removed_baseline_validator_refs: 0,
+            changed_baseline_validator_implementations: 0,
+            baseline_validator_implementations_unchanged: true,
+            aggregate_execution_semantics_unchanged_except_additive_refs: true,
+            critical_workflow_unchanged: true,
             trusted_workflow_unchanged: true,
             critical_workflow_primitives_preserved: true,
+            trusted_mutation_selftests: executionDowngrades.length + 1,
             result: 'PASS',
             empirical_gate_effect: 'NONE',
             production: 'HOLD',
