@@ -1,0 +1,76 @@
+{
+  "id": "kidults-global-proactive-source-discovery-expansion-v1",
+  "version": "1.0.0",
+  "status": "P0_EXECUTION_DIRECTIVE",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "problem": "The continuous proactive source-pool implementation is materially narrower than the canonical ASI discovery architecture: live execution currently uses only Wikidata Action API, Wikidata official-website claims and DataCite DOI metadata, creating systematic discovery bias and under-coverage for a global collectibles intelligence platform.",
+  "root_cause": "A bounded pilot implementation was promoted into the recurring discovery loop without expanding to the already-defined multi-channel discovery architecture.",
+  "closure_rule": "DETECT -> CONTAIN -> ROOT_CAUSE -> CORRECT -> REGRESSION_PROOF -> CANONICAL_TRUTH_SYNC -> CLOSE",
+  "target_discovery_channels": [
+    "COMMON_CRAWL_AND_WEB_DATA_COMMONS_STRUCTURED_WEB_INDEX",
+    "OVERTURE_MAPS_PLACES_WEBSITE_METADATA",
+    "WIKIDATA_OFFICIAL_WEBSITE_GRAPH",
+    "OPENSTREETMAP_WEBSITE_TAG_GRAPH",
+    "GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA",
+    "DATACITE_AND_OPEN_RESEARCH_LANDING_METADATA",
+    "GLOBAL_NEWS_AND_EVENT_DOMAIN_DISCOVERY",
+    "PUBLIC_GOVERNMENT_AND_REGIONAL_DATA_CATALOGS",
+    "ICANN_AND_PUBLIC_ZONE_DISCOVERY",
+    "INTERNET_ARCHIVE_HISTORICAL_DOMAIN_CONTINUITY",
+    "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+    "OPTIONAL_LICENSED_SEARCH_OR_DATA_PROVIDER"
+  ],
+  "execution_policy": {
+    "discovery_metadata_only": true,
+    "target_site_traversal_authorized": false,
+    "content_acquisition_authorized": false,
+    "candidate_self_promotion_to_rights_or_admission": false,
+    "provider_contact_authorized": false,
+    "account_or_eula_authorized": false,
+    "spend_authorized": false,
+    "market_claim_authorized": false
+  },
+  "rollout": [
+    {
+      "wave": "A_OPEN_METADATA",
+      "channels": [
+        "COMMON_CRAWL_AND_WEB_DATA_COMMONS_STRUCTURED_WEB_INDEX",
+        "OVERTURE_MAPS_PLACES_WEBSITE_METADATA",
+        "OPENSTREETMAP_WEBSITE_TAG_GRAPH",
+        "GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA",
+        "PUBLIC_GOVERNMENT_AND_REGIONAL_DATA_CATALOGS",
+        "ICANN_AND_PUBLIC_ZONE_DISCOVERY",
+        "INTERNET_ARCHIVE_HISTORICAL_DOMAIN_CONTINUITY"
+      ],
+      "goal": "Broaden global candidate-domain/site discovery without acquiring target-site content."
+    },
+    {
+      "wave": "B_CURATED_FRONTIER",
+      "channels": [
+        "GLOBAL_NEWS_AND_EVENT_DOMAIN_DISCOVERY",
+        "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER"
+      ],
+      "goal": "Increase regional/venue/category recall while keeping target traversal and admission fail-closed."
+    },
+    {
+      "wave": "C_LICENSED_OPTIONAL",
+      "channels": ["OPTIONAL_LICENSED_SEARCH_OR_DATA_PROVIDER"],
+      "goal": "Use only after explicit rights/account/EULA/spend authorization; never a mandatory bottleneck."
+    }
+  ],
+  "global_coverage_requirements": {
+    "category_shards": 8,
+    "macroregions": 8,
+    "preserve_unknown_regions": true,
+    "minimum_discovery_owner_diversity_target_per_priority_cell": 2,
+    "single_provider_global_truth_forbidden": true
+  },
+  "exit_criteria": [
+    "Recurring proactive loop executes all Wave A channels or records explicit channel-specific HOLD reasons.",
+    "Candidate pool reports coverage by category x macroregion x discovery channel.",
+    "No candidate is promoted to rights/admission/evidence by discovery frequency alone.",
+    "Channel-removal and provider-failure tests prove graceful degradation without global discovery collapse.",
+    "Current-main regression validates global discovery breadth and fail-closed rights boundaries."
+  ]
+}
