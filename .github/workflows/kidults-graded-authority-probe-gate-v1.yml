@@ -8,12 +8,21 @@ permissions:
 
 jobs:
   prove-default-fail-closed:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Verify exact dispatch source SHA
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Require Founder #569 binding and fail-closed with no operational env injected
         run: |
           node scripts/kidults/source-intelligence/validate-graded-authority-probe-gate-v1.mjs coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json /tmp/probe-gate.json
@@ -34,7 +43,7 @@ jobs:
           test "$code" -eq 3
 
   prove-founder-approved-operational-handoff:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       KAIOS_PCGS_ACCOUNT_AUTHORIZED: ${{ vars.KAIOS_PCGS_ACCOUNT_AUTHORIZED }}
@@ -42,9 +51,18 @@ jobs:
       KAIOS_PCGS_API_TOKEN: ${{ secrets.KAIOS_PCGS_API_TOKEN }}
       KAIOS_REQUIRE_PROBE_ALLOWED: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Verify exact dispatch source SHA
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Prove account + EULA + secret-token handoff without revealing secret material
         run: |
           node scripts/kidults/source-intelligence/validate-graded-authority-probe-gate-v1.mjs coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json /tmp/live-preflight.json

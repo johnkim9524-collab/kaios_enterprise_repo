@@ -16,10 +16,18 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-        with: {persist-credentials: false}
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Verify exact dispatch source SHA
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Validate Founder #742 binding and default HOLD
         run: |
           node --check scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs
@@ -55,10 +63,18 @@ jobs:
       KAIOS_PSA_PROBE_CERTS: ${{ inputs.cert_numbers }}
       KAIOS_REQUIRE_PSA_PROBE_ALLOWED: '1'
     steps:
-      - uses: actions/checkout@v4
-        with: {persist-credentials: false}
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Verify exact dispatch source SHA
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Require account + compatible EULA + secret token + one-to-three known certs
         run: |
           node scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs \
@@ -79,7 +95,7 @@ jobs:
           for(const r of x.results){if(r.raw_payload_emitted!==false||!/^sha256:[a-f0-9]{64}$/.test(r.response_sha256)||!/^sha256:[a-f0-9]{64}$/.test(r.cert_number_sha256))process.exit(1);}
           console.log('PASS: PSA bounded schema observation contains no raw provider payload and promotes zero reviewer material.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: kidults-psa-schema-only-observation-v1
           path: /tmp/psa-single-cert-schema-v1.json
