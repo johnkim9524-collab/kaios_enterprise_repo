@@ -7,7 +7,6 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-source-family-discovery-intent-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
-      - 'scripts/kidults/source-intelligence/apply-asi-datacite-source-family-supplement-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - '.github/workflows/kidults-asi-source-family-gap-feedback-discovery-v1.yml'
 
@@ -32,7 +31,6 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-asi-source-family-discovery-intent-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs
           node --check scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs
-          node --check scripts/kidults/source-intelligence/apply-asi-datacite-source-family-supplement-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs
       - name: Build deterministic autobalance fixture
         run: |
@@ -67,7 +65,6 @@ jobs:
           ASI_SOURCE_FAMILY_DISCOVERY_INTENT: /tmp/intent.json
         run: |
           node scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs queue discovery-out
-          node scripts/kidults/source-intelligence/apply-asi-datacite-source-family-supplement-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/intent.json
           node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
           node - <<'NODE'
           const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery.json'));
