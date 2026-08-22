@@ -1,0 +1,117 @@
+name: KIDULTS ASI Common Crawl Frontier Runtime Persistence v1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs'
+      - '.github/workflows/kidults-asi-common-crawl-frontier-runtime-persistence-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-common-crawl-frontier-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontier-runtime-persistence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs
+      - name: Restore latest main Self-Driving canonical discovery batch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/frontier-runtime-input discovery-out /tmp/previous-source-pool
+          ART_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          test -n "$ART_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip" > /tmp/frontier-runtime-input.zip
+          unzip -q -o /tmp/frontier-runtime-input.zip -d /tmp/frontier-runtime-input
+          DISCOVERY=$(find /tmp/frontier-runtime-input -type f -name 'global-low-risk-discovery.json' -print -quit)
+          test -n "$DISCOVERY"
+          cp "$DISCOVERY" discovery-out/global-low-risk-discovery.json
+      - name: Execute fresh runtime-managed frontier cycle
+        run: |
+          rm -f /tmp/previous-source-pool/asi-common-crawl-host-expansion-v1.json
+          node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-runtime-cycle-1.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-runtime-cycle-1.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-runtime-cycle-1.json','utf8'));
+          if(x.frontier_runtime_managed!==true||x.seed_frontier_bootstrap_state!=='RUNTIME_FRONTIER_FRESH'||x.seed_frontier_previous_snapshot_found!==false)throw new Error('FRESH_RUNTIME_STATE');
+          if(x.seed_selection_mode!=='ROLLING_FAIR_FRONTIER'||x.seed_frontier_cycle!==1||!x.seed_frontier_snapshot)throw new Error('FRESH_FRONTIER_NOT_CREATED');
+          console.log(JSON.stringify({status:'PASS',frontier_cycle:x.seed_frontier_cycle,host_universe:x.seed_frontier_snapshot.host_universe_count,selected_hosts:x.seed_hosts.length,expanded_candidates:x.expanded_candidate_count,production:'HOLD'}));
+          NODE
+      - name: Execute second cycle restored from prior expansion snapshot
+        run: |
+          cp /tmp/asi-common-crawl-runtime-cycle-1.json /tmp/previous-source-pool/asi-common-crawl-host-expansion-v1.json
+          node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-runtime-cycle-2.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-runtime-cycle-2.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const a=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-runtime-cycle-1.json','utf8'));
+          const b=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-runtime-cycle-2.json','utf8'));
+          if(b.frontier_runtime_managed!==true||b.seed_frontier_bootstrap_state!=='RUNTIME_FRONTIER_RESTORED_FROM_PREVIOUS_EXPANSION'||b.seed_frontier_previous_snapshot_found!==true||b.seed_frontier_previous_snapshot_source!=='SELF_DRIVING_PREVIOUS_EXPANSION')throw new Error('RESTORED_RUNTIME_STATE');
+          if(b.seed_frontier_cycle!==2||b.seed_frontier_snapshot.previous_frontier_valid!==true||b.seed_frontier_snapshot.previous_cycle_count!==1)throw new Error('RUNTIME_FRONTIER_CHAIN');
+          const overlap=a.seed_hosts.filter(host=>b.seed_hosts.includes(host));
+          if(a.seed_frontier_snapshot.host_universe_count>8&&overlap.length)throw new Error(`EARLY_RUNTIME_REPEAT:${overlap.join(',')}`);
+          if(a.seed_frontier_digest===b.seed_frontier_digest)throw new Error('FRONTIER_NOT_ADVANCED');
+          console.log(JSON.stringify({status:'PASS',cycle_1:a.seed_frontier_cycle,cycle_2:b.seed_frontier_cycle,early_repeat_count:overlap.length,cycle_1_expanded:a.expanded_candidate_count,cycle_2_expanded:b.expanded_candidate_count,production:'HOLD'}));
+          NODE
+      - name: Reject embedded frontier rights-promotion mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-runtime-cycle-2.json','utf8'));
+          const host=x.seed_frontier_snapshot.host_frontier[0];
+          host.rights_state='ALLOW';
+          fs.writeFileSync('/tmp/bad-common-crawl-runtime-frontier-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/bad-common-crawl-runtime-frontier-rights.json; then exit 1; fi
+      - name: Reject poisoned previous snapshot and restart safely
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-runtime-cycle-1.json','utf8'));
+          x.seed_frontier_snapshot.production='APPROVED';
+          fs.writeFileSync('/tmp/previous-source-pool/asi-common-crawl-host-expansion-v1.json',JSON.stringify(x));
+          NODE
+          node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-runtime-poison-recovery.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-runtime-poison-recovery.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-runtime-poison-recovery.json','utf8'));
+          if(x.seed_frontier_previous_snapshot_found!==false||x.seed_frontier_bootstrap_state!=='RUNTIME_FRONTIER_FRESH'||x.seed_frontier_cycle!==1)throw new Error('POISONED_SNAPSHOT_NOT_REJECTED');
+          if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.acquisition_authorized!==false)throw new Error('POISON_RECOVERY_BOUNDARY');
+          console.log(JSON.stringify({status:'PASS',poisoned_snapshot_rejected:true,recovery_frontier_cycle:x.seed_frontier_cycle,production:'HOLD'}));
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-common-crawl-frontier-runtime-persistence-v1
+          path: |
+            /tmp/asi-common-crawl-runtime-cycle-1.json
+            /tmp/asi-common-crawl-runtime-cycle-2.json
+            /tmp/asi-common-crawl-runtime-poison-recovery.json
+          retention-days: 30
+          if-no-files-found: error
