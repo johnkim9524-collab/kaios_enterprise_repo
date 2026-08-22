@@ -1,4 +1,4 @@
-name: KIDULTS ASI Global Open-Market Discovery v1
+name: KIDULTS ASI Global Any-Site Discovery v1
 
 on:
   schedule:
@@ -15,11 +15,11 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-global-open-market-${{ github.ref }}
+  group: kidults-asi-global-any-site-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  global-open-market-shadow:
+  global-any-site-shadow:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -31,6 +31,8 @@ jobs:
           node-version: '24'
       - name: Verify exact source SHA
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Syntax-check global any-site runtime
+        run: node --check scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs
       - name: Restore immutable 160-anchor foundation
         env:
           GH_TOKEN: ${{ github.token }}
@@ -44,20 +46,27 @@ jobs:
         run: |
           node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input queue
           node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs queue
-      - name: Discover global open-market candidates
+      - name: Discover global any-site candidates
         run: node scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs queue discovery-out
-      - name: Validate open-market-first and fail-closed boundaries
+      - name: Validate any-site universe and fail-closed boundaries
         run: node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
+      - name: Reject source-family narrowing mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const p='discovery-out/global-low-risk-discovery.json';const x=JSON.parse(fs.readFileSync(p));x.source_family_restriction='OPEN_MARKETPLACE_OR_DEALER';fs.writeFileSync('/tmp/bad-family.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs /tmp/bad-family.json; then exit 1; fi
       - name: Reject rights self-promotion mutation
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs');const p='discovery-out/global-low-risk-discovery.json';const x=JSON.parse(fs.readFileSync(p));if(!x.candidates.length)process.exit(2);x.candidates[0].rights_state='ALLOW';fs.writeFileSync('/tmp/bad.json',JSON.stringify(x));
+          const fs=require('fs');const p='discovery-out/global-low-risk-discovery.json';const x=JSON.parse(fs.readFileSync(p));if(!x.candidates.length)process.exit(2);x.candidates[0].rights_state='ALLOW';fs.writeFileSync('/tmp/bad-rights.json',JSON.stringify(x));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs /tmp/bad.json; then exit 1; fi
+          if node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs /tmp/bad-rights.json; then exit 1; fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: kidults-asi-global-open-market-discovery-v1
+          name: kidults-asi-global-any-site-discovery-v1
           path: discovery-out/global-low-risk-discovery.json
           retention-days: 30
           if-no-files-found: error
