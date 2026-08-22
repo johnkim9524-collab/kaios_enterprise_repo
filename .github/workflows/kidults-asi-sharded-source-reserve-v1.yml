@@ -45,7 +45,7 @@ jobs:
           test -n "$DISCOVERY_ID"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISCOVERY_ID}/zip" > /tmp/reserve-discovery.zip
           unzip -q -o /tmp/reserve-discovery.zip -d /tmp/reserve-discovery
-          SRC=$(find /tmp/reserve-discovery -type f -name global-low-risk-discovery.json | head -1)
+          SRC=$(find /tmp/reserve-discovery -type f -name global-low-risk-discovery.json -print -quit)
           test -n "$SRC"
           cp "$SRC" discovery-out/global-low-risk-discovery.json
           PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
@@ -61,7 +61,8 @@ jobs:
         shell: bash
         run: |
           cp -a /tmp/asi-sharded-source-reserve-v1 /tmp/bad-reserve-rights
-          FILE=$(find /tmp/bad-reserve-rights/shards -type f -size +0c | head -1)
+          FILE=$(find /tmp/bad-reserve-rights/shards -type f -size +0c -print -quit)
+          test -n "$FILE"
           node - "$FILE" <<'NODE'
           const fs=require('fs');const p=process.argv[2];const lines=fs.readFileSync(p,'utf8').trim().split(/\r?\n/);const x=JSON.parse(lines[0]);x.rights_state='ALLOW';lines[0]=JSON.stringify(x);fs.writeFileSync(p,lines.join('\n')+'\n');
           NODE
