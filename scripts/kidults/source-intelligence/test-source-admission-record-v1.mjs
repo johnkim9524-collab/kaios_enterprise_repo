@@ -39,7 +39,27 @@ try {
   if (baseline.status !== 0) throw new Error(`baseline rejected:\n${baseline.stdout}\n${baseline.stderr}`);
 
   const rejected = [
+    ['missing_scope', r => { delete r.scope; }],
+    ['null_scope', r => { r.scope = null; }],
+    ['array_scope', r => { r.scope = []; }],
+    ['missing_scope_category', r => { delete r.scope.category; }],
+    ['malformed_scope_category', r => { r.scope.category = 42; }],
+    ['missing_scope_geography', r => { delete r.scope.geography; }],
+    ['malformed_scope_geography', r => { r.scope.geography = { region: 'US' }; }],
+    ['malformed_scope_language', r => { r.scope.language = 7; }],
+    ['missing_source_type', r => { delete r.source_type; }],
+    ['malformed_source_type', r => { r.source_type = ['PARTNER_FIXTURE']; }],
+    ['missing_access_channel', r => { delete r.access_channel; }],
+    ['invalid_access_channel', r => { r.access_channel = 'UNDECLARED_TRANSPORT'; }],
+    ['conditional_collect', r => { r.rights.collect = 'CONDITIONAL'; }],
+    ['conditional_store', r => { r.rights.store = 'CONDITIONAL'; }],
+    ['conditional_derive', r => { r.rights.derive = 'CONDITIONAL'; }],
+    ['denied_collect', r => { r.rights.collect = 'DENY'; }],
+    ['unknown_store', r => { r.rights.store = 'UNKNOWN'; }],
+    ['unknown_derive', r => { r.rights.derive = 'UNKNOWN'; }],
     ['expired_rights', r => { r.expires_at = '2026-08-20T23:59:59Z'; }],
+    ['missing_expiry', r => { delete r.expires_at; }],
+    ['null_expiry', r => { r.expires_at = null; }],
     ['malformed_expiry', r => { r.expires_at = 'not-a-date'; }],
     ['timezone_less_expiry', r => { r.expires_at = '2099-01-01T00:00:00'; }],
     ['invalid_calendar_expiry', r => { r.expires_at = '2099-02-30T00:00:00Z'; }],
@@ -54,18 +74,36 @@ try {
     if (result.status === 0) throw new Error(`mutation ${name} failed open`);
   }
 
-  const archival = structuredClone(base);
-  archival.state = 'BLOCKED';
-  archival.expires_at = '2026-08-19T00:00:00Z';
-  const archivalResult = execute(archival, 'blocked-expired-archive');
-  if (archivalResult.status !== 0) throw new Error(`blocked archival record should remain representable:\n${archivalResult.stderr}`);
+  const conditionalHold = structuredClone(base);
+  conditionalHold.state = 'CONDITIONAL';
+  conditionalHold.rights.collect = 'CONDITIONAL';
+  const conditionalHoldResult = execute(conditionalHold, 'conditional-hold-representable');
+  if (conditionalHoldResult.status !== 0) throw new Error(`conditional HOLD record should remain representable:\n${conditionalHoldResult.stderr}`);
+
+  const blockedExpired = structuredClone(base);
+  blockedExpired.state = 'BLOCKED';
+  blockedExpired.expires_at = '2026-08-19T00:00:00Z';
+  const blockedExpiredResult = execute(blockedExpired, 'blocked-expired-archive');
+  if (blockedExpiredResult.status !== 0) throw new Error(`blocked expired archival record should remain representable:\n${blockedExpiredResult.stderr}`);
+
+  const blockedNoExpiry = structuredClone(base);
+  blockedNoExpiry.state = 'BLOCKED';
+  delete blockedNoExpiry.expires_at;
+  const blockedNoExpiryResult = execute(blockedNoExpiry, 'blocked-no-expiry-archive');
+  if (blockedNoExpiryResult.status !== 0) throw new Error(`blocked archival record without active expiry should remain representable:\n${blockedNoExpiryResult.stderr}`);
 
   console.log(JSON.stringify({
     suite: 'KIDULTS_SOURCE_ADMISSION_TEMPORAL_RIGHTS_SELFTEST_V1',
     result: 'PASS',
     baseline_admitted: true,
+    source_context_schema_required: true,
+    source_context_schema_fail_closed_mutations: 12,
+    admitted_execution_rights_exact_allow_required: true,
+    conditional_execution_rights_hold_representable: true,
+    admitted_requires_explicit_unexpired_rights_horizon: true,
     fail_closed_mutations_detected: rejected.length,
     blocked_expired_archival_record_supported: true,
+    blocked_no_expiry_archival_record_supported: true,
     external_partner_data_ingestion: 'HOLD',
     empirical_gate_effect: 'NONE',
     production: 'HOLD',
