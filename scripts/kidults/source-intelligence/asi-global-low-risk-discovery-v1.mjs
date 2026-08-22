@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 
 const queueDir=process.env.QUEUE_DIR||process.argv[2]||'queue';
 const outputDir=process.env.DISCOVERY_OUT||process.argv[3]||'discovery-out';
@@ -14,13 +15,33 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const hash=s=>crypto.createHash('sha256').update(String(s)).digest('hex').slice(0,24);
 const norm=u=>{try{const x=new URL(String(u||''));if(!/^https?:$/.test(x.protocol))return null;x.hash='';return x.toString().replace(/\/$/,'')}catch{return null}};
 async function fetchJson(url,opts={},attempt=0){const c=new AbortController();const t=setTimeout(()=>c.abort(),18000);try{const r=await fetch(url,{...opts,signal:c.signal});if((r.status===429||r.status>=500)&&attempt<2){await sleep(700*(2**attempt));return fetchJson(url,opts,attempt+1)}if(!r.ok)throw new Error(`HTTP_${r.status}`);return await r.json()}finally{clearTimeout(t)}}
-
+function findFile(root,name){if(!fs.existsSync(root))return null;for(const e of fs.readdirSync(root,{withFileTypes:true})){const p=path.join(root,e.name);if(e.isDirectory()){const f=findFile(p,name);if(f)return f;}else if(e.name===name)return p;}return null;}
+async function hydrateIntentFromLatestMainAutobalance(){
+ if(fs.existsSync(intentPath))return 'LOCAL_INTENT_PRESENT';
+ const token=process.env.GH_TOKEN||process.env.GITHUB_TOKEN||'';const repo=process.env.GITHUB_REPOSITORY||'';
+ if(!token||!repo)return 'NO_GITHUB_ACTIONS_CONTEXT_BASELINE_ONLY';
+ try{
+  const headers={Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'KIDULTS-ASI-Source-Family-Feedback-v1'};
+  const list=await fetchJson(`https://api.github.com/repos/${repo}/actions/artifacts?per_page=100`,{headers});
+  const art=(list.artifacts||[]).find(a=>a.name==='kidults-asi-throughput-coverage-autobalance-live-v1'&&a.expired===false&&a.workflow_run?.head_branch==='main');
+  if(!art)return 'NO_MAIN_AUTOBALANCE_ARTIFACT_BASELINE_ONLY';
+  const r=await fetch(art.archive_download_url,{headers});if(!r.ok)throw new Error(`ARTIFACT_HTTP_${r.status}`);
+  const zip='/tmp/asi-source-family-feedback-autobalance.zip';const dir='/tmp/asi-source-family-feedback-autobalance';
+  fs.writeFileSync(zip,Buffer.from(await r.arrayBuffer()));fs.rmSync(dir,{recursive:true,force:true});fs.mkdirSync(dir,{recursive:true});
+  execFileSync('unzip',['-q','-o',zip,'-d',dir],{stdio:'ignore'});
+  const balance=findFile(dir,'asi-throughput-coverage-autobalance-live-v1.json');
+  if(!balance)return 'AUTOBALANCE_FILE_NOT_FOUND_BASELINE_ONLY';
+  execFileSync(process.execPath,['scripts/kidults/source-intelligence/build-asi-source-family-discovery-intent-v1.mjs',balance,intentPath],{stdio:'ignore'});
+  return fs.existsSync(intentPath)?'RESTORED_FROM_MAIN_AUTOBALANCE':'INTENT_BUILD_FAILED_BASELINE_ONLY';
+ }catch(e){return `AUTOBALANCE_RESTORE_FAILED_BASELINE_ONLY:${String(e?.message||'UNKNOWN').slice(0,80)}`;}
+}
+const intentBootstrapState=await hydrateIntentFromLatestMainAutobalance();
 let discoveryIntent=null;
 if(fs.existsSync(intentPath)){
-  try{
-    const z=JSON.parse(fs.readFileSync(intentPath,'utf8'));
-    if(z.id==='kidults-asi-source-family-discovery-intent-v1'&&z.status==='SHADOW_SOURCE_FAMILY_DISCOVERY_INTENT_READY'&&z.universe_target==='GLOBAL_ANY_SITE_SOURCE_UNIVERSE'&&z.universe_restricted===false&&z.baseline_discovery_required===true&&z.production==='HOLD'&&z.public_release==='HOLD'&&z.rules?.rights_gate_can_never_be_weakened===true&&Array.isArray(z.directives)&&z.directives.length<=12) discoveryIntent=z;
-  }catch{}
+ try{
+  const z=JSON.parse(fs.readFileSync(intentPath,'utf8'));
+  if(z.id==='kidults-asi-source-family-discovery-intent-v1'&&z.status==='SHADOW_SOURCE_FAMILY_DISCOVERY_INTENT_READY'&&z.universe_target==='GLOBAL_ANY_SITE_SOURCE_UNIVERSE'&&z.universe_restricted===false&&z.baseline_discovery_required===true&&z.production==='HOLD'&&z.public_release==='HOLD'&&z.rules?.rights_gate_can_never_be_weakened===true&&Array.isArray(z.directives)&&z.directives.length<=12)discoveryIntent=z;
+ }catch{}
 }
 const supplementalDirectives=discoveryIntent?.directives||[];
 
@@ -46,7 +67,7 @@ try{
  let n=0;const token=process.env.GH_TOKEN||process.env.GITHUB_TOKEN||'';
  for(const s of scopeNames.slice(0,16)){
   const u=new URL('https://api.github.com/search/repositories');u.searchParams.set('q',`${s.name} collectibles`);u.searchParams.set('per_page','8');
-  const headers={'Accept':'application/vnd.github+json','User-Agent':'KIDULTS-ASI-Any-Site-Discovery-v3','X-GitHub-Api-Version':'2022-11-28'};if(token)headers.Authorization=`Bearer ${token}`;
+  const headers={Accept:'application/vnd.github+json','User-Agent':'KIDULTS-ASI-Any-Site-Discovery-v3','X-GitHub-Api-Version':'2022-11-28'};if(token)headers.Authorization=`Bearer ${token}`;
   const d=await fetchJson(u,{headers});
   for(const item of d.items||[]){const site=norm(item.homepage);if(!site)continue;add({candidate_id:`cand-gh-${hash(item.id+site)}`,discovery_provider:'GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA',discovery_channel:'OPEN_STRUCTURED_DATA',observed_at:new Date().toISOString(),endpoint_url:site,source_name:item.full_name||site,source_owner_hint:item.owner?.login||'UNKNOWN',provider_record_id:String(item.id),scope_hint:s.id,universe_target:'GLOBAL_ANY_SITE_SOURCE_UNIVERSE',live_external_observation:true,metadata:{repository_url:item.html_url||null,description:item.description||null,scope_name:s.name}});n++}
   await sleep(80);
@@ -55,14 +76,12 @@ try{
 }catch(e){lane('GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA','FAILED',0,e.message)}
 
 // Lane 1B: prior-cycle source-family coverage gaps may add bounded GitHub public-homepage queries. Baseline lane above always runs.
-if(!supplementalDirectives.length){
- lane('GITHUB_SOURCE_FAMILY_GAP_SUPPLEMENT','SKIPPED_NO_VALID_INTENT',0);
-}else{
+if(!supplementalDirectives.length){lane('GITHUB_SOURCE_FAMILY_GAP_SUPPLEMENT','SKIPPED_NO_VALID_INTENT',0);}else{
  try{
   let n=0;const token=process.env.GH_TOKEN||process.env.GITHUB_TOKEN||'';
   for(const d of supplementalDirectives.slice(0,12)){
    const u=new URL('https://api.github.com/search/repositories');u.searchParams.set('q',`${d.scope_name} ${d.query_term}`);u.searchParams.set('per_page','4');
-   const headers={'Accept':'application/vnd.github+json','User-Agent':'KIDULTS-ASI-Source-Family-Gap-Supplement-v1','X-GitHub-Api-Version':'2022-11-28'};if(token)headers.Authorization=`Bearer ${token}`;
+   const headers={Accept:'application/vnd.github+json','User-Agent':'KIDULTS-ASI-Source-Family-Gap-Supplement-v1','X-GitHub-Api-Version':'2022-11-28'};if(token)headers.Authorization=`Bearer ${token}`;
    const r=await fetchJson(u,{headers});
    for(const item of r.items||[]){const site=norm(item.homepage);if(!site)continue;add({candidate_id:`cand-gh-gap-${hash(item.id+site+d.directive_id)}`,discovery_provider:'GITHUB_SOURCE_FAMILY_GAP_SUPPLEMENT',discovery_channel:'OPEN_STRUCTURED_DATA',observed_at:new Date().toISOString(),endpoint_url:site,source_name:item.full_name||site,source_owner_hint:item.owner?.login||'UNKNOWN',provider_record_id:String(item.id),scope_hint:d.scope_id,universe_target:'GLOBAL_ANY_SITE_SOURCE_UNIVERSE',live_external_observation:true,supplemental_discovery_intent:true,discovery_intent_family_hint:d.source_family_id,metadata:{repository_url:item.html_url||null,description:item.description||null,scope_name:d.scope_name,discovery_intent_family:d.source_family_id,discovery_intent_query_term:d.query_term}});n++}
    await sleep(90);
@@ -102,6 +121,6 @@ const final=[...unique.values()].sort((a,b)=>a.endpoint_url.localeCompare(b.endp
 const liveFinal=final.filter(c=>c.live_external_observation===true);
 const providerCounts={};for(const c of final){for(const p of c.discovery_providers||[c.discovery_provider])providerCounts[p]=(providerCounts[p]||0)+1}
 const healthyLiveLanes=laneHealth.filter(x=>x.status==='SUCCESS_WITH_RESULTS'&&x.lane_id!=='CANONICAL_REGISTERED_FRONTIER_SEED').length;
-const output={id:'kidults-asi-global-low-risk-discovery-v1',version:'3.1.0',status:'SHADOW_GLOBAL_ANY_SITE_DISCOVERY_COMPLETE_NOT_RIGHTS_ADMITTED',primary_target:'GLOBAL_ANY_SITE_SOURCE_UNIVERSE',universe_boundary:'ANY_PUBLICLY_DISCOVERABLE_SITE_OR_SOURCE_ENDPOINT',source_family_restriction:null,design_capacity_minimum_candidates:100000,scope_count:scopeNames.length,macroregions,discovery_strategy:'MULTI_LANE_FAIL_SOFT_DISCOVERY_FAIL_CLOSED_ADMISSION',baseline_discovery_executed:true,source_family_gap_intent_applied:Boolean(discoveryIntent&&supplementalDirectives.length),source_family_gap_intent_id:discoveryIntent?.id||null,supplemental_query_count:supplementalDirectives.length,source_family_gap_target_families:discoveryIntent?.target_family_ids||[],lane_health:laneHealth,healthy_live_lanes:healthyLiveLanes,candidate_count:final.length,live_external_candidate_count:liveFinal.length,provider_counts:providerCounts,candidates:final,demand_rows:demandIds.length,listing_is_not_sold:true,terminal_transaction_assertion_required:true,legal_commercial_gate_required:true,gate_chain:['GATE_1_ASI_INGRESS_VERIFICATION','GATE_2_INDEPENDENT_LEGAL_COMMERCIAL_REVERIFICATION','GATE_3_ADMISSION_ACTIVATION_VERIFICATION'],target_site_body_crawled:false,content_acquired:false,acquisition_authorized:false,public_release:'HOLD',production:'HOLD'};
+const output={id:'kidults-asi-global-low-risk-discovery-v1',version:'3.2.0',status:'SHADOW_GLOBAL_ANY_SITE_DISCOVERY_COMPLETE_NOT_RIGHTS_ADMITTED',primary_target:'GLOBAL_ANY_SITE_SOURCE_UNIVERSE',universe_boundary:'ANY_PUBLICLY_DISCOVERABLE_SITE_OR_SOURCE_ENDPOINT',source_family_restriction:null,design_capacity_minimum_candidates:100000,scope_count:scopeNames.length,macroregions,discovery_strategy:'MULTI_LANE_FAIL_SOFT_DISCOVERY_FAIL_CLOSED_ADMISSION',baseline_discovery_executed:true,source_family_gap_intent_bootstrap_state:intentBootstrapState,source_family_gap_intent_applied:Boolean(discoveryIntent&&supplementalDirectives.length),source_family_gap_intent_id:discoveryIntent?.id||null,supplemental_query_count:supplementalDirectives.length,source_family_gap_target_families:discoveryIntent?.target_family_ids||[],lane_health:laneHealth,healthy_live_lanes:healthyLiveLanes,candidate_count:final.length,live_external_candidate_count:liveFinal.length,provider_counts:providerCounts,candidates:final,demand_rows:demandIds.length,listing_is_not_sold:true,terminal_transaction_assertion_required:true,legal_commercial_gate_required:true,gate_chain:['GATE_1_ASI_INGRESS_VERIFICATION','GATE_2_INDEPENDENT_LEGAL_COMMERCIAL_REVERIFICATION','GATE_3_ADMISSION_ACTIVATION_VERIFICATION'],target_site_body_crawled:false,content_acquired:false,acquisition_authorized:false,public_release:'HOLD',production:'HOLD'};
 fs.writeFileSync(path.join(outputDir,'global-low-risk-discovery.json'),JSON.stringify(output,null,2)+'\n');
-console.log(JSON.stringify({status:output.status,target:output.primary_target,candidates:output.candidate_count,live_external_candidates:output.live_external_candidate_count,healthy_live_lanes:output.healthy_live_lanes,source_family_gap_intent_applied:output.source_family_gap_intent_applied,supplemental_query_count:output.supplemental_query_count,lane_health:laneHealth,production:'HOLD'},null,2));
+console.log(JSON.stringify({status:output.status,target:output.primary_target,candidates:output.candidate_count,live_external_candidates:output.live_external_candidate_count,healthy_live_lanes:output.healthy_live_lanes,source_family_gap_intent_bootstrap_state:output.source_family_gap_intent_bootstrap_state,source_family_gap_intent_applied:output.source_family_gap_intent_applied,supplemental_query_count:output.supplemental_query_count,lane_health:laneHealth,production:'HOLD'},null,2));
