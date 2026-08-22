@@ -14,8 +14,8 @@ const fullShaAction = /^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)@([0-9a-f]{40})(?:\s+#
 function externalActionRefs(text) {
   return text.split(/\r?\n/)
     .map(line => line.trim())
-    .filter(line => line.startsWith('uses: '))
-    .map(line => line.slice('uses: '.length).trim())
+    .map(line => line.match(/^-?\s*uses:\s*(.+)$/i)?.[1]?.trim() || null)
+    .filter(Boolean)
     .filter(ref => !ref.startsWith('./') && !ref.startsWith('docker://'));
 }
 
