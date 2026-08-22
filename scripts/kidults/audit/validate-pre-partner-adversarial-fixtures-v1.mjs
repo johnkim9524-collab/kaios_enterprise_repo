@@ -10,6 +10,7 @@ const ALLOWED_UNITS = new Set(['ITEM','LOT']);
 const ALLOWED_DESTRUCTIVE_ACTIONS = new Set(['WITHDRAW','DELETE']);
 const SUPPRESSION_STATE = 'SUPPRESSED_NO_REINGESTION';
 const TRUSTED_DESTRUCTIVE_EVENT_SOURCE = 'CONTROL_PLANE';
+const SUPPRESSION_SNAPSHOT_STATE = 'LOADED';
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
@@ -42,10 +43,28 @@ function digestSuppressionTombstone(tombstone) {
   return sha256(body);
 }
 
+function digestSuppressionSnapshot(snapshot) {
+  const body = structuredClone(snapshot);
+  delete body.snapshot_digest;
+  return sha256(body);
+}
+
 function digestTrustedDestructiveEvent(event) {
   const body = structuredClone(event);
   delete body.event_digest;
   return sha256(body);
+}
+
+function buildSuppressionSnapshot(events, tombstones, epoch = 1) {
+  const snapshot = {
+    state: SUPPRESSION_SNAPSHOT_STATE,
+    epoch,
+    event_count: events.length,
+    tombstone_count: tombstones.length,
+    last_event_digest: events.length ? events[events.length - 1].event_digest : 'GENESIS'
+  };
+  snapshot.snapshot_digest = digestSuppressionSnapshot(snapshot);
+  return snapshot;
 }
 
 function rightsTemporalStatus(rights, asOf) {
@@ -70,6 +89,9 @@ function normalizeTrustedContext(raw = {}) {
     trusted_destructive_control_event: raw.trusted_destructive_control_event
       ? structuredClone(raw.trusted_destructive_control_event)
       : null,
+    canonical_suppression_snapshot: raw.canonical_suppression_snapshot
+      ? structuredClone(raw.canonical_suppression_snapshot)
+      : null,
     canonical_suppression_events: Array.isArray(raw.canonical_suppression_events)
       ? structuredClone(raw.canonical_suppression_events)
       : [],
@@ -82,70 +104,27 @@ function normalizeTrustedContext(raw = {}) {
   };
 }
 
-function authorizeDestructiveLifecycle(record, rawContext) {
-  const lifecycle = record.lifecycle || {};
-  const identity = record.identity || {};
-  const payloadEvent = lifecycle.control_event || null;
-  const context = normalizeTrustedContext(rawContext);
-  const event = context.trusted_destructive_control_event || {};
-  const failures = [];
-
-  if (!context.persisted_object_id || !context.persisted_source_owner_id || !context.persisted_source_namespace) failures.push('missing_trusted_persisted_context');
-  if (!context.trusted_destructive_control_event) failures.push('missing_trusted_destructive_control_event');
-  if (!payloadEvent || typeof payloadEvent !== 'object') failures.push('destructive_payload_control_event_missing');
-  if (event.trusted_source !== TRUSTED_DESTRUCTIVE_EVENT_SOURCE) failures.push('destructive_event_untrusted_source');
-  if (!Number.isInteger(event.sequence_number) || event.sequence_number < 1) failures.push('destructive_event_sequence_invalid');
-  if (typeof event.previous_event_digest !== 'string' || !event.previous_event_digest) failures.push('destructive_event_previous_digest_missing');
-  if (!event.audit_event_id || typeof event.audit_event_id !== 'string') failures.push('destructive_audit_event_id_missing');
-  if (event.event_digest !== digestTrustedDestructiveEvent(event)) failures.push('destructive_event_digest_mismatch');
-  if (!event.event_id || typeof event.event_id !== 'string') failures.push('missing_destructive_event_id');
-  if (event.authenticated !== true) failures.push('destructive_actor_not_authenticated');
-  if (event.authorized !== true) failures.push('destructive_actor_not_authorized');
-  if (event.actor_type !== 'SOURCE_OWNER') failures.push('destructive_actor_type_invalid');
-  if (event.actor_id !== context.persisted_source_owner_id) failures.push('destructive_actor_owner_mismatch');
-  if (event.source_owner_id !== context.persisted_source_owner_id) failures.push('destructive_source_owner_mismatch');
-  if (event.source_namespace !== context.persisted_source_namespace) failures.push('destructive_namespace_mismatch');
-  if (event.object_id !== context.persisted_object_id) failures.push('destructive_object_mismatch');
-  if (identity.source_record_id !== context.persisted_object_id) failures.push('record_object_persisted_binding_mismatch');
-  if (!ALLOWED_DESTRUCTIVE_ACTIONS.has(event.action)) failures.push('destructive_action_not_allowed');
-  if (event.append_only_audit_bound !== true) failures.push('destructive_event_not_append_only_audit_bound');
-  if (event.event_id && context.seen_destructive_event_ids.has(event.event_id)) failures.push('destructive_event_replay');
-
-  // Partner payload may carry a non-authoritative control-event claim for correlation only.
-  // It can never establish authentication/authorization. If present, every claimed field must
-  // agree with the independently trusted control-plane event or the request fails closed.
-  if (payloadEvent && typeof payloadEvent === 'object') {
-    const claimFields = [
-      'event_id',
-      'authenticated',
-      'authorized',
-      'actor_type',
-      'actor_id',
-      'action',
-      'source_owner_id',
-      'source_namespace',
-      'object_id',
-      'append_only_audit_bound'
-    ];
-    if (claimFields.some(field => payloadEvent[field] !== event[field])) failures.push('destructive_payload_control_event_mismatch');
-  }
-
-  const stateAllowsAction = event.action === 'WITHDRAW'
-    ? lifecycle.current_state === 'PROMOTED'
-    : ['PROMOTED','SUPERSEDED','WITHDRAWN'].includes(lifecycle.current_state);
-  if (!stateAllowsAction) failures.push('invalid_deletion_state');
-
-  if (failures.length) return { authorized: false, failures: [...new Set(failures)], context };
-  context.seen_destructive_event_ids.add(event.event_id);
-  return { authorized: true, failures: [], context };
-}
-
 function validateCanonicalSuppressionLedger(context) {
+  const snapshot = context.canonical_suppression_snapshot;
   const events = context.canonical_suppression_events;
   const tombstones = context.canonical_suppression_tombstones;
   const failures = [];
 
-  if (!events.length && !tombstones.length) return failures;
+  // Absence of negative-state evidence is not evidence of absence. Every admission/replay path
+  // must prove that the canonical suppression store was authoritatively hydrated, even when empty.
+  if (!snapshot || typeof snapshot !== 'object') {
+    failures.push('canonical_suppression_snapshot_missing');
+  } else {
+    if (snapshot.state !== SUPPRESSION_SNAPSHOT_STATE) failures.push('canonical_suppression_snapshot_not_loaded');
+    if (!Number.isInteger(snapshot.epoch) || snapshot.epoch < 1) failures.push('canonical_suppression_snapshot_epoch_invalid');
+    if (snapshot.event_count !== events.length) failures.push('canonical_suppression_snapshot_event_count_drift');
+    if (snapshot.tombstone_count !== tombstones.length) failures.push('canonical_suppression_snapshot_tombstone_count_drift');
+    const expectedLastDigest = events.length ? events[events.length - 1]?.event_digest : 'GENESIS';
+    if (snapshot.last_event_digest !== expectedLastDigest) failures.push('canonical_suppression_snapshot_last_digest_drift');
+    if (snapshot.snapshot_digest !== digestSuppressionSnapshot(snapshot)) failures.push('canonical_suppression_snapshot_digest_mismatch');
+  }
+
+  if (!events.length && !tombstones.length) return [...new Set(failures)];
   if (!events.length || !tombstones.length) failures.push('canonical_suppression_event_tombstone_cardinality_drift');
 
   const eventsById = new Map();
@@ -200,14 +179,12 @@ function validateCanonicalSuppressionLedger(context) {
 
 function canonicalSuppressionDisposition(record, rawContext) {
   const context = normalizeTrustedContext(rawContext);
-  const events = context.canonical_suppression_events;
-  const tombstones = context.canonical_suppression_tombstones;
-  if (!events.length && !tombstones.length) return null;
-
   const failures = validateCanonicalSuppressionLedger(context);
   const resolution = context.trusted_canonical_resolution || {};
   const identity = record.identity || {};
 
+  // Canonical identity is a universal admission prerequisite. A clean/empty suppression ledger
+  // is useful only if the candidate itself is unambiguously resolved into the same trust domain.
   if (resolution.status !== 'RESOLVED_UNAMBIGUOUS') failures.push('canonical_suppression_resolution_not_trusted_unambiguous');
   if (!resolution.source_record_id || resolution.source_record_id !== identity.source_record_id) failures.push('canonical_suppression_record_binding_mismatch');
   if (!resolution.source_owner_id || typeof resolution.source_owner_id !== 'string') failures.push('canonical_suppression_owner_missing');
@@ -217,16 +194,58 @@ function canonicalSuppressionDisposition(record, rawContext) {
   if (failures.length) return { disposition: 'QUARANTINED_OR_REJECTED', triggers: [...new Set(failures)] };
 
   const key = suppressionKey(resolution.source_owner_id, resolution.source_namespace, resolution.canonical_source_object_id);
-  const suppressed = tombstones.some(tombstone => tombstone.suppression_key === key);
-
+  const suppressed = context.canonical_suppression_tombstones.some(tombstone => tombstone.suppression_key === key);
   if (suppressed) {
     return {
       disposition: 'REJECTED_CANONICAL_OBJECT_SUPPRESSED',
       triggers: ['canonical_source_object_suppressed_after_destructive_event']
     };
   }
-
   return null;
+}
+
+function authorizeDestructiveLifecycle(record, rawContext) {
+  const lifecycle = record.lifecycle || {};
+  const identity = record.identity || {};
+  const payloadEvent = lifecycle.control_event || null;
+  const context = normalizeTrustedContext(rawContext);
+  const event = context.trusted_destructive_control_event || {};
+  const failures = [];
+
+  if (!context.persisted_object_id || !context.persisted_source_owner_id || !context.persisted_source_namespace) failures.push('missing_trusted_persisted_context');
+  if (!context.trusted_destructive_control_event) failures.push('missing_trusted_destructive_control_event');
+  if (!payloadEvent || typeof payloadEvent !== 'object') failures.push('destructive_payload_control_event_missing');
+  if (event.trusted_source !== TRUSTED_DESTRUCTIVE_EVENT_SOURCE) failures.push('destructive_event_untrusted_source');
+  if (!Number.isInteger(event.sequence_number) || event.sequence_number < 1) failures.push('destructive_event_sequence_invalid');
+  if (typeof event.previous_event_digest !== 'string' || !event.previous_event_digest) failures.push('destructive_event_previous_digest_missing');
+  if (!event.audit_event_id || typeof event.audit_event_id !== 'string') failures.push('destructive_audit_event_id_missing');
+  if (event.event_digest !== digestTrustedDestructiveEvent(event)) failures.push('destructive_event_digest_mismatch');
+  if (!event.event_id || typeof event.event_id !== 'string') failures.push('missing_destructive_event_id');
+  if (event.authenticated !== true) failures.push('destructive_actor_not_authenticated');
+  if (event.authorized !== true) failures.push('destructive_actor_not_authorized');
+  if (event.actor_type !== 'SOURCE_OWNER') failures.push('destructive_actor_type_invalid');
+  if (event.actor_id !== context.persisted_source_owner_id) failures.push('destructive_actor_owner_mismatch');
+  if (event.source_owner_id !== context.persisted_source_owner_id) failures.push('destructive_source_owner_mismatch');
+  if (event.source_namespace !== context.persisted_source_namespace) failures.push('destructive_namespace_mismatch');
+  if (event.object_id !== context.persisted_object_id) failures.push('destructive_object_mismatch');
+  if (identity.source_record_id !== context.persisted_object_id) failures.push('record_object_persisted_binding_mismatch');
+  if (!ALLOWED_DESTRUCTIVE_ACTIONS.has(event.action)) failures.push('destructive_action_not_allowed');
+  if (event.append_only_audit_bound !== true) failures.push('destructive_event_not_append_only_audit_bound');
+  if (event.event_id && context.seen_destructive_event_ids.has(event.event_id)) failures.push('destructive_event_replay');
+
+  if (payloadEvent && typeof payloadEvent === 'object') {
+    const claimFields = ['event_id','authenticated','authorized','actor_type','actor_id','action','source_owner_id','source_namespace','object_id','append_only_audit_bound'];
+    if (claimFields.some(field => payloadEvent[field] !== event[field])) failures.push('destructive_payload_control_event_mismatch');
+  }
+
+  const stateAllowsAction = event.action === 'WITHDRAW'
+    ? lifecycle.current_state === 'PROMOTED'
+    : ['PROMOTED','SUPERSEDED','WITHDRAWN'].includes(lifecycle.current_state);
+  if (!stateAllowsAction) failures.push('invalid_deletion_state');
+
+  if (failures.length) return { authorized: false, failures: [...new Set(failures)], context };
+  context.seen_destructive_event_ids.add(event.event_id);
+  return { authorized: true, failures: [], context };
 }
 
 function evaluateRecord(record, trustedContext = {}) {
@@ -242,39 +261,25 @@ function evaluateRecord(record, trustedContext = {}) {
   const lineage = record.lineage || {};
   const quality = record.quality || {};
 
-  // Withdrawal/deletion remains possible after rights cease, but a destructive request is not
-  // trusted merely because a partner payload says deletion_requested=true or self-asserts
-  // authenticated/authorized control-event flags. Authorization must come from trusted context.
-  if (lifecycle.deletion_requested === true) {
-    triggers.push('deletion_requested');
-    const auth = authorizeDestructiveLifecycle(record, trustedContext);
-    if (!auth.authorized) {
-      return { disposition: 'QUARANTINED_OR_REJECTED', triggers: [...triggers, ...auth.failures] };
-    }
-    return { disposition: 'WITHDRAWN_OR_DELETED', triggers: [...triggers, 'destructive_event_authorized'] };
-  }
-
-  // A durable DELETE/WITHDRAW tombstone is an admission prerequisite, not a standalone proof.
-  // Any same-source record rekey that resolves to the suppressed canonical source object must
-  // fail before transport/replay/idempotency can treat it as eligible again. The consumer validates
-  // the exact digest-bound event/tombstone ledger it consumes before making this decision.
+  // Mandatory negative-state hydration + canonical resolution runs before every normal, replay,
+  // provider-substitution, transport or destructive disposition. Missing suppression state fails closed.
   const suppression = canonicalSuppressionDisposition(record, trustedContext);
   if (suppression) return suppression;
 
-  // Transport failure never promotes and therefore may short-circuit before content admission checks.
+  if (lifecycle.deletion_requested === true) {
+    triggers.push('deletion_requested');
+    const auth = authorizeDestructiveLifecycle(record, trustedContext);
+    if (!auth.authorized) return { disposition: 'QUARANTINED_OR_REJECTED', triggers: [...triggers, ...auth.failures] };
+    return { disposition: 'WITHDRAWN_OR_DELETED', triggers: [...triggers, 'destructive_event_authorized'] };
+  }
+
   if (transport.http_status === 429 || transport.http_status >= 500 || transport.retries_exhausted === true) {
     triggers.push(`transport_${transport.http_status || 'retries_exhausted'}`);
     return { disposition: 'NO_PROMOTION_RETRY_OR_DLQ', triggers };
   }
 
-  // Rights are a universal admission prerequisite, including replay/recovery.
-  // Never allow replay idempotency to substitute for a current rights check.
   const temporal = rightsTemporalStatus(rights, record.as_of);
-  if (!temporal.valid) {
-    triggers.push('rights_temporal_invalid');
-    return { disposition: 'REJECTED', triggers };
-  }
-
+  if (!temporal.valid) return { disposition: 'REJECTED', triggers: ['rights_temporal_invalid'] };
   if (rights.present !== true || rights.status !== 'PASS' || temporal.expired) {
     if (rights.present !== true) triggers.push('rights_missing');
     if (rights.status !== 'PASS') triggers.push('rights_not_pass');
@@ -282,117 +287,133 @@ function evaluateRecord(record, trustedContext = {}) {
     return { disposition: 'REJECTED', triggers };
   }
 
-  // Provider substitution must be revalidated before a replay may be considered safe.
   if (provider.substitution === true) {
     triggers.push('provider_substitution');
     const revalidated = provider.adapter_validated === true && provider.rights_revalidated === true && provider.identity_revalidated === true && provider.lineage_revalidated === true;
     if (!revalidated) return { disposition: 'REVALIDATE_RIGHTS_SCHEMA_IDENTITY_LINEAGE', triggers };
   }
 
-  // Replay/recovery must pass the same current schema/semantic/identity/lineage/quality
-  // controls as a normal record. A matching digest only proves byte identity, not current admissibility.
-  if (schema.received_version !== schema.expected_version || schema.required_fields_present !== true) {
-    triggers.push('schema_integrity');
-  }
-  if (!ALLOWED_CURRENCIES.has(semantics.currency) || !ALLOWED_UNITS.has(semantics.unit) || semantics.timezone_valid !== true) {
-    triggers.push('semantic_integrity');
-  }
-  if (identity.duplicate_of || identity.relisted_from || identity.contradiction === true) {
-    triggers.push('identity_resolution');
-  }
+  if (schema.received_version !== schema.expected_version || schema.required_fields_present !== true) triggers.push('schema_integrity');
+  if (!ALLOWED_CURRENCIES.has(semantics.currency) || !ALLOWED_UNITS.has(semantics.unit) || semantics.timezone_valid !== true) triggers.push('semantic_integrity');
+  if (identity.duplicate_of || identity.relisted_from || identity.contradiction === true) triggers.push('identity_resolution');
   if (lineage.complete !== true) triggers.push('lineage_incomplete');
   if (quality.outlier === true || quality.impossible_value === true) triggers.push('quality_anomaly');
   if (quality.batch_complete !== true || quality.batch_expected_count !== quality.batch_received_count) triggers.push('batch_incomplete');
-
   if (triggers.length) return { disposition: 'QUARANTINED_OR_REJECTED', triggers };
 
   if (replay.is_replay === true) {
     triggers.push('replay');
-    if (replay.same_digest === true && replay.idempotency_key_match === true) {
-      return { disposition: 'IDEMPOTENT_REPLAY_WITH_AUDIT_TRACE', triggers };
-    }
+    if (replay.same_digest === true && replay.idempotency_key_match === true) return { disposition: 'IDEMPOTENT_REPLAY_WITH_AUDIT_TRACE', triggers };
     return { disposition: 'QUARANTINED_OR_REJECTED', triggers: [...triggers, 'replay_identity_mismatch'] };
   }
 
   return { disposition: 'CONTROL_ONLY_EVIDENCE_ELIGIBLE', triggers: ['all_control_checks_pass'] };
 }
 
+function buildCleanAdmissionContext(record, options = {}) {
+  const sourceRecordId = record?.identity?.source_record_id;
+  const owner = options.source_owner_id || 'fixture-owner';
+  const namespace = options.source_namespace || 'fixture-default';
+  const canonical = options.canonical_source_object_id || sourceRecordId;
+  const events = [];
+  const tombstones = [];
+  return {
+    canonical_suppression_snapshot: buildSuppressionSnapshot(events, tombstones, options.epoch || 1),
+    canonical_suppression_events: events,
+    canonical_suppression_tombstones: tombstones,
+    trusted_canonical_resolution: {
+      status: 'RESOLVED_UNAMBIGUOUS',
+      source_record_id: sourceRecordId,
+      source_owner_id: owner,
+      source_namespace: namespace,
+      canonical_source_object_id: canonical
+    }
+  };
+}
+
 if (pack.governing_issue !== 881) throw new Error('fixture pack must be governed by #881');
-if (pack.fixture_type !== 'SYNTHETIC_NON_PROMOTABLE_CONTROL') throw new Error('fixture pack must be synthetic/non-promotable');
+if (pack.fixture_type !== 'SYNTHETIC_NON_PROMOTABLE_CONTROL') throw new Error('fixture pack must be synthetic and non-promotable');
 if (pack.empirical_gate_effect !== 'NONE') throw new Error('fixture pack may not affect empirical gates');
 if (contract.destructive_lifecycle_control?.authorization_required !== true) throw new Error('destructive lifecycle authorization contract required');
 if (contract.destructive_lifecycle_control?.replay_protection !== 'UNIQUE_EVENT_ID_FAIL_CLOSED') throw new Error('destructive lifecycle replay protection contract required');
 
 const baseline = pack.baseline_control;
 if (!baseline?.synthetic || baseline.promotable !== false) throw new Error('baseline control must be synthetic and non-promotable');
-const baselineEval = evaluateRecord(baseline.record);
+const baselineContext = buildCleanAdmissionContext(baseline.record, { source_namespace: 'baseline' });
+const baselineEval = evaluateRecord(baseline.record, baselineContext);
 if (baselineEval.disposition !== baseline.expected_disposition || baselineEval.disposition !== 'CONTROL_ONLY_EVIDENCE_ELIGIBLE') {
   throw new Error(`baseline control failed: ${baselineEval.disposition}`);
 }
 
-const temporalMutationCases = [
-  { id: 'malformed_expiry', mutate: r => { r.rights.expires_at = 'not-a-date'; } },
-  { id: 'timezone_less_expiry', mutate: r => { r.rights.expires_at = '2099-01-01T00:00:00'; } },
-  { id: 'invalid_calendar_expiry', mutate: r => { r.rights.expires_at = '2099-02-30T00:00:00Z'; } },
-  { id: 'malformed_as_of', mutate: r => { r.as_of = 'invalid'; } }
+// P0 #995 regression: omission is not a clean ledger. Both ordinary and replay candidates must
+// fail before any eligible/idempotent disposition when suppression hydration or canonical identity is absent.
+const missingContext = evaluateRecord(structuredClone(baseline.record), {});
+if (missingContext.disposition !== 'QUARANTINED_OR_REJECTED' || !missingContext.triggers.includes('canonical_suppression_snapshot_missing')) {
+  throw new Error(`missing suppression context failed open: ${missingContext.disposition}/${missingContext.triggers.join(',')}`);
+}
+const missingContextReplayRecord = structuredClone(baseline.record);
+missingContextReplayRecord.replay = { is_replay: true, same_digest: true, idempotency_key_match: true };
+const missingContextReplay = evaluateRecord(missingContextReplayRecord, {});
+if (missingContextReplay.disposition !== 'QUARANTINED_OR_REJECTED' || missingContextReplay.disposition === 'IDEMPOTENT_REPLAY_WITH_AUDIT_TRACE') {
+  throw new Error(`replay without suppression hydration failed open: ${missingContextReplay.disposition}/${missingContextReplay.triggers.join(',')}`);
+}
+
+const cleanContextMutationCases = [
+  ['missing_snapshot', c => { delete c.canonical_suppression_snapshot; }],
+  ['snapshot_not_loaded', c => { c.canonical_suppression_snapshot.state = 'NOT_LOADED'; c.canonical_suppression_snapshot.snapshot_digest = digestSuppressionSnapshot(c.canonical_suppression_snapshot); }],
+  ['snapshot_epoch_invalid', c => { c.canonical_suppression_snapshot.epoch = 0; c.canonical_suppression_snapshot.snapshot_digest = digestSuppressionSnapshot(c.canonical_suppression_snapshot); }],
+  ['snapshot_event_count_drift', c => { c.canonical_suppression_snapshot.event_count = 1; c.canonical_suppression_snapshot.snapshot_digest = digestSuppressionSnapshot(c.canonical_suppression_snapshot); }],
+  ['snapshot_last_digest_drift', c => { c.canonical_suppression_snapshot.last_event_digest = 'forged'; c.canonical_suppression_snapshot.snapshot_digest = digestSuppressionSnapshot(c.canonical_suppression_snapshot); }],
+  ['snapshot_digest_tamper', c => { c.canonical_suppression_snapshot.snapshot_digest = 'forged'; }],
+  ['missing_resolution_on_empty_ledger', c => { delete c.trusted_canonical_resolution; }],
+  ['ambiguous_resolution_on_empty_ledger', c => { c.trusted_canonical_resolution.status = 'AMBIGUOUS'; }],
+  ['record_rebinding_on_empty_ledger', c => { c.trusted_canonical_resolution.source_record_id = 'other-record'; }]
 ];
-for (const test of temporalMutationCases) {
-  const mutated = structuredClone(baseline.record);
-  test.mutate(mutated);
-  const actual = evaluateRecord(mutated);
-  if (actual.disposition !== 'REJECTED' || !actual.triggers.includes('rights_temporal_invalid')) {
-    throw new Error(`temporal mutation ${test.id} failed closed check: ${actual.disposition}/${actual.triggers.join(',')}`);
+for (const [id, mutate] of cleanContextMutationCases) {
+  const context = structuredClone(baselineContext);
+  mutate(context);
+  const actual = evaluateRecord(structuredClone(baseline.record), context);
+  if (actual.disposition !== 'QUARANTINED_OR_REJECTED') {
+    throw new Error(`clean suppression hydration mutation ${id} failed closed: ${actual.disposition}/${actual.triggers.join(',')}`);
   }
 }
 
-// Mutation-test the cross-control replay boundary itself. A valid replay envelope must not
-// bypass current rights, schema, or provider-substitution validation merely because its digest
-// and idempotency key match a previously seen record.
-const replayFailClosedMutationCases = [
-  {
-    id: 'replay_expired_rights',
-    mutate: r => { r.rights.expires_at = '2026-08-20T00:00:00Z'; },
-    expected: 'REJECTED'
-  },
-  {
-    id: 'replay_missing_rights',
-    mutate: r => { r.rights.present = false; r.rights.status = 'UNKNOWN'; },
-    expected: 'REJECTED'
-  },
-  {
-    id: 'replay_malformed_expiry',
-    mutate: r => { r.rights.expires_at = 'not-a-date'; },
-    expected: 'REJECTED'
-  },
-  {
-    id: 'replay_invalid_as_of',
-    mutate: r => { r.as_of = 'invalid'; },
-    expected: 'REJECTED'
-  },
-  {
-    id: 'replay_schema_drift',
-    mutate: r => { r.schema.received_version = 'partner-sale-v2-unknown'; },
-    expected: 'QUARANTINED_OR_REJECTED'
-  },
-  {
-    id: 'replay_unvalidated_provider_substitution',
-    mutate: r => {
-      r.provider.substitution = true;
-      r.provider.adapter_validated = false;
-      r.provider.rights_revalidated = false;
-      r.provider.identity_revalidated = false;
-      r.provider.lineage_revalidated = false;
-    },
-    expected: 'REVALIDATE_RIGHTS_SCHEMA_IDENTITY_LINEAGE'
-  }
+const temporalMutationCases = [
+  ['malformed_expiry', r => { r.rights.expires_at = 'not-a-date'; }],
+  ['timezone_less_expiry', r => { r.rights.expires_at = '2099-01-01T00:00:00'; }],
+  ['invalid_calendar_expiry', r => { r.rights.expires_at = '2099-02-30T00:00:00Z'; }],
+  ['malformed_as_of', r => { r.as_of = 'invalid'; }]
 ];
-for (const test of replayFailClosedMutationCases) {
+for (const [id, mutate] of temporalMutationCases) {
+  const mutated = structuredClone(baseline.record);
+  mutate(mutated);
+  const actual = evaluateRecord(mutated, structuredClone(baselineContext));
+  if (actual.disposition !== 'REJECTED' || !actual.triggers.includes('rights_temporal_invalid')) {
+    throw new Error(`temporal mutation ${id} failed closed: ${actual.disposition}/${actual.triggers.join(',')}`);
+  }
+}
+
+const replayFailClosedMutationCases = [
+  ['replay_expired_rights', r => { r.rights.expires_at = '2026-08-20T00:00:00Z'; }, 'REJECTED'],
+  ['replay_missing_rights', r => { r.rights.present = false; r.rights.status = 'UNKNOWN'; }, 'REJECTED'],
+  ['replay_malformed_expiry', r => { r.rights.expires_at = 'not-a-date'; }, 'REJECTED'],
+  ['replay_invalid_as_of', r => { r.as_of = 'invalid'; }, 'REJECTED'],
+  ['replay_schema_drift', r => { r.schema.received_version = 'partner-sale-v2-unknown'; }, 'QUARANTINED_OR_REJECTED'],
+  ['replay_unvalidated_provider_substitution', r => {
+    r.provider.substitution = true;
+    r.provider.adapter_validated = false;
+    r.provider.rights_revalidated = false;
+    r.provider.identity_revalidated = false;
+    r.provider.lineage_revalidated = false;
+  }, 'REVALIDATE_RIGHTS_SCHEMA_IDENTITY_LINEAGE']
+];
+for (const [id, mutate, expected] of replayFailClosedMutationCases) {
   const mutated = structuredClone(baseline.record);
   mutated.replay = { is_replay: true, same_digest: true, idempotency_key_match: true };
-  test.mutate(mutated);
-  const actual = evaluateRecord(mutated);
-  if (actual.disposition !== test.expected || actual.disposition === 'IDEMPOTENT_REPLAY_WITH_AUDIT_TRACE') {
-    throw new Error(`replay mutation ${test.id} failed closed check: expected=${test.expected} actual=${actual.disposition}/${actual.triggers.join(',')}`);
+  mutate(mutated);
+  const actual = evaluateRecord(mutated, structuredClone(baselineContext));
+  if (actual.disposition !== expected || actual.disposition === 'IDEMPOTENT_REPLAY_WITH_AUDIT_TRACE') {
+    throw new Error(`replay mutation ${id} failed closed: expected=${expected} actual=${actual.disposition}/${actual.triggers.join(',')}`);
   }
 }
 
@@ -400,7 +421,15 @@ const deletionFixture = (pack.fixtures || []).find(f => f.id === 'deletion_reque
 if (!deletionFixture?.trusted_context) throw new Error('deletion fixture must carry trusted persisted context');
 
 function buildTrustedDeletionContext(fixture) {
-  const context = structuredClone(fixture.trusted_context || {});
+  const persisted = structuredClone(fixture.trusted_context || {});
+  const context = {
+    ...buildCleanAdmissionContext(fixture.record, {
+      source_owner_id: persisted.persisted_source_owner_id,
+      source_namespace: persisted.persisted_source_namespace,
+      canonical_source_object_id: 'canonical-delete-001'
+    }),
+    ...persisted
+  };
   const payloadEvent = structuredClone(fixture.record?.lifecycle?.control_event || {});
   const trustedEvent = {
     ...payloadEvent,
@@ -416,7 +445,8 @@ function buildTrustedDeletionContext(fixture) {
 
 function fixtureTrustedContext(fixture) {
   if (fixture.id === 'deletion_request') return buildTrustedDeletionContext(fixture);
-  return fixture.trusted_context ? structuredClone(fixture.trusted_context) : {};
+  const context = buildCleanAdmissionContext(fixture.record, { source_namespace: `fixture-${fixture.id}` });
+  return { ...context, ...(fixture.trusted_context ? structuredClone(fixture.trusted_context) : {}) };
 }
 
 const validDeletionContext = buildTrustedDeletionContext(deletionFixture);
@@ -425,12 +455,14 @@ if (validDeletion.disposition !== 'WITHDRAWN_OR_DELETED' || !validDeletion.trigg
   throw new Error(`authorized deletion fixture failed: ${validDeletion.disposition}/${validDeletion.triggers.join(',')}`);
 }
 
-// P0 regression: a partner payload may self-assert all authorization flags, but without an
-// independently trusted control-plane event the destructive request must still fail closed.
 {
-  const record = structuredClone(deletionFixture.record);
-  const context = structuredClone(deletionFixture.trusted_context);
-  const actual = evaluateRecord(record, context);
+  const context = buildCleanAdmissionContext(deletionFixture.record, {
+    source_owner_id: deletionFixture.trusted_context.persisted_source_owner_id,
+    source_namespace: deletionFixture.trusted_context.persisted_source_namespace,
+    canonical_source_object_id: 'canonical-delete-001'
+  });
+  Object.assign(context, structuredClone(deletionFixture.trusted_context));
+  const actual = evaluateRecord(structuredClone(deletionFixture.record), context);
   if (actual.disposition !== 'QUARANTINED_OR_REJECTED' || !actual.triggers.includes('missing_trusted_destructive_control_event')) {
     throw new Error(`payload-only destructive self-assertion did not fail closed: ${actual.disposition}/${actual.triggers.join(',')}`);
   }
@@ -452,18 +484,9 @@ const destructiveMutationCases = [
   ['trusted_event_untrusted_source', (r, c) => { c.trusted_destructive_control_event.trusted_source = 'PARTNER_PAYLOAD'; }],
   ['trusted_event_sequence_invalid', (r, c) => { c.trusted_destructive_control_event.sequence_number = 0; }],
   ['trusted_event_digest_tamper', (r, c) => { c.trusted_destructive_control_event.event_digest = 'forged'; }],
-  ['trusted_event_owner_rebinding_resigned', (r, c) => {
-    c.trusted_destructive_control_event.source_owner_id = 'forged-owner';
-    c.trusted_destructive_control_event.event_digest = digestTrustedDestructiveEvent(c.trusted_destructive_control_event);
-  }],
-  ['trusted_event_object_rebinding_resigned', (r, c) => {
-    c.trusted_destructive_control_event.object_id = 'other-object';
-    c.trusted_destructive_control_event.event_digest = digestTrustedDestructiveEvent(c.trusted_destructive_control_event);
-  }],
-  ['trusted_event_action_rebinding_resigned', (r, c) => {
-    c.trusted_destructive_control_event.action = 'WITHDRAW';
-    c.trusted_destructive_control_event.event_digest = digestTrustedDestructiveEvent(c.trusted_destructive_control_event);
-  }]
+  ['trusted_event_owner_rebinding_resigned', (r, c) => { c.trusted_destructive_control_event.source_owner_id = 'forged-owner'; c.trusted_destructive_control_event.event_digest = digestTrustedDestructiveEvent(c.trusted_destructive_control_event); }],
+  ['trusted_event_object_rebinding_resigned', (r, c) => { c.trusted_destructive_control_event.object_id = 'other-object'; c.trusted_destructive_control_event.event_digest = digestTrustedDestructiveEvent(c.trusted_destructive_control_event); }],
+  ['trusted_event_action_rebinding_resigned', (r, c) => { c.trusted_destructive_control_event.action = 'WITHDRAW'; c.trusted_destructive_control_event.event_digest = digestTrustedDestructiveEvent(c.trusted_destructive_control_event); }]
 ];
 for (const [id, mutate] of destructiveMutationCases) {
   const record = structuredClone(deletionFixture.record);
@@ -475,8 +498,6 @@ for (const [id, mutate] of destructiveMutationCases) {
   }
 }
 
-// Destructive event IDs are one-shot. Replaying the exact same authorized DELETE/WITHDRAW
-// control event against the same persisted context must fail closed instead of repeating state mutation.
 {
   const record = structuredClone(deletionFixture.record);
   const context = normalizeTrustedContext(buildTrustedDeletionContext(deletionFixture));
@@ -488,15 +509,8 @@ for (const [id, mutate] of destructiveMutationCases) {
   }
 }
 
-// Cross-control proof: the primary partner-like admission evaluator itself must consume and
-// cryptographically validate the durable canonical suppression ledger. A standalone suppression
-// validator is insufficient if this path consumes an unauthenticated projection of tombstone state.
 const deletionEvent = validDeletionContext.trusted_destructive_control_event;
-const canonicalSuppressionKey = suppressionKey(
-  deletionEvent.source_owner_id,
-  deletionEvent.source_namespace,
-  'canonical-delete-001'
-);
+const canonicalSuppressionKey = suppressionKey(deletionEvent.source_owner_id, deletionEvent.source_namespace, 'canonical-delete-001');
 const canonicalSuppressionEvent = {
   audit_event_id: 'audit-delete-001',
   destructive_event_id: deletionEvent.event_id,
@@ -529,6 +543,7 @@ canonicalSuppressionTombstone.tombstone_digest = digestSuppressionTombstone(cano
 const canonicalSuppressionContext = {
   canonical_suppression_events: [canonicalSuppressionEvent],
   canonical_suppression_tombstones: [canonicalSuppressionTombstone],
+  canonical_suppression_snapshot: buildSuppressionSnapshot([canonicalSuppressionEvent], [canonicalSuppressionTombstone], 2),
   trusted_canonical_resolution: {
     status: 'RESOLVED_UNAMBIGUOUS',
     source_record_id: 'delete-001-rekeyed',
@@ -559,44 +574,27 @@ if (independentSourceDisposition.disposition !== 'CONTROL_ONLY_EVIDENCE_ELIGIBLE
 }
 
 const canonicalSuppressionMutationCases = [
-  ['missing_resolution', context => { delete context.trusted_canonical_resolution; }],
-  ['ambiguous_resolution', context => { context.trusted_canonical_resolution.status = 'AMBIGUOUS'; }],
-  ['resolver_record_rebinding', context => { context.trusted_canonical_resolution.source_record_id = 'other-record'; }],
-  ['missing_event_chain', context => { context.canonical_suppression_events = []; }],
-  ['event_digest_tamper', context => { context.canonical_suppression_events[0].event_digest = 'forged'; }],
-  ['previous_digest_tamper_resigned', context => {
-    context.canonical_suppression_events[0].previous_event_digest = 'forged-previous';
-    context.canonical_suppression_events[0].event_digest = digestSuppressionEvent(context.canonical_suppression_events[0]);
+  ['missing_snapshot', c => { delete c.canonical_suppression_snapshot; }],
+  ['snapshot_not_loaded', c => { c.canonical_suppression_snapshot.state = 'NOT_LOADED'; c.canonical_suppression_snapshot.snapshot_digest = digestSuppressionSnapshot(c.canonical_suppression_snapshot); }],
+  ['snapshot_count_drift', c => { c.canonical_suppression_snapshot.event_count = 0; c.canonical_suppression_snapshot.snapshot_digest = digestSuppressionSnapshot(c.canonical_suppression_snapshot); }],
+  ['snapshot_last_digest_drift', c => { c.canonical_suppression_snapshot.last_event_digest = 'forged'; c.canonical_suppression_snapshot.snapshot_digest = digestSuppressionSnapshot(c.canonical_suppression_snapshot); }],
+  ['snapshot_digest_tamper', c => { c.canonical_suppression_snapshot.snapshot_digest = 'forged'; }],
+  ['missing_resolution', c => { delete c.trusted_canonical_resolution; }],
+  ['ambiguous_resolution', c => { c.trusted_canonical_resolution.status = 'AMBIGUOUS'; }],
+  ['resolver_record_rebinding', c => { c.trusted_canonical_resolution.source_record_id = 'other-record'; }],
+  ['missing_event_chain', c => { c.canonical_suppression_events = []; }],
+  ['event_digest_tamper', c => { c.canonical_suppression_events[0].event_digest = 'forged'; }],
+  ['previous_digest_tamper_resigned', c => { c.canonical_suppression_events[0].previous_event_digest = 'forged-previous'; c.canonical_suppression_events[0].event_digest = digestSuppressionEvent(c.canonical_suppression_events[0]); }],
+  ['tombstone_digest_tamper', c => { c.canonical_suppression_tombstones[0].tombstone_digest = 'forged'; }],
+  ['tombstone_event_rebinding_resigned', c => { c.canonical_suppression_tombstones[0].audit_event_id = 'other-audit'; c.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(c.canonical_suppression_tombstones[0]); }],
+  ['suppression_key_recomputed_malicious_object', c => {
+    c.canonical_suppression_tombstones[0].canonical_source_object_id = 'other-canonical';
+    c.canonical_suppression_tombstones[0].suppression_key = suppressionKey(c.canonical_suppression_tombstones[0].source_owner_id, c.canonical_suppression_tombstones[0].source_namespace, c.canonical_suppression_tombstones[0].canonical_source_object_id);
+    c.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(c.canonical_suppression_tombstones[0]);
   }],
-  ['tombstone_digest_tamper', context => { context.canonical_suppression_tombstones[0].tombstone_digest = 'forged'; }],
-  ['tombstone_event_rebinding_resigned', context => {
-    context.canonical_suppression_tombstones[0].audit_event_id = 'other-audit';
-    context.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(context.canonical_suppression_tombstones[0]);
-  }],
-  ['suppression_key_recomputed_malicious_object', context => {
-    context.canonical_suppression_tombstones[0].canonical_source_object_id = 'other-canonical';
-    context.canonical_suppression_tombstones[0].suppression_key = suppressionKey(
-      context.canonical_suppression_tombstones[0].source_owner_id,
-      context.canonical_suppression_tombstones[0].source_namespace,
-      context.canonical_suppression_tombstones[0].canonical_source_object_id
-    );
-    context.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(context.canonical_suppression_tombstones[0]);
-  }],
-  ['suppression_state_promotion_resigned', context => {
-    context.canonical_suppression_tombstones[0].suppression_state = 'ACTIVE';
-    context.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(context.canonical_suppression_tombstones[0]);
-  }],
-  ['suppression_raw_content_retained_resigned', context => {
-    context.canonical_suppression_tombstones[0].raw_content_retained = true;
-    context.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(context.canonical_suppression_tombstones[0]);
-  }],
-  ['extra_orphan_tombstone', context => {
-    const extra = structuredClone(context.canonical_suppression_tombstones[0]);
-    extra.destructive_event_id = 'orphan-destructive';
-    extra.suppression_key = 'orphan::source::object';
-    extra.tombstone_digest = digestSuppressionTombstone(extra);
-    context.canonical_suppression_tombstones.push(extra);
-  }]
+  ['suppression_state_promotion_resigned', c => { c.canonical_suppression_tombstones[0].suppression_state = 'ACTIVE'; c.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(c.canonical_suppression_tombstones[0]); }],
+  ['suppression_raw_content_retained_resigned', c => { c.canonical_suppression_tombstones[0].raw_content_retained = true; c.canonical_suppression_tombstones[0].tombstone_digest = digestSuppressionTombstone(c.canonical_suppression_tombstones[0]); }],
+  ['extra_orphan_tombstone', c => { const extra = structuredClone(c.canonical_suppression_tombstones[0]); extra.destructive_event_id = 'orphan-destructive'; extra.suppression_key = 'orphan::source::object'; extra.tombstone_digest = digestSuppressionTombstone(extra); c.canonical_suppression_tombstones.push(extra); }]
 ];
 for (const [id, mutate] of canonicalSuppressionMutationCases) {
   const context = structuredClone(canonicalSuppressionContext);
@@ -618,26 +616,20 @@ for (const fixture of packFixtures) {
   const contractExpected = contractFixtures.get(fixture.id);
   if (!contractExpected) throw new Error(`fixture ${fixture.id} missing from control-plane contract`);
   if (contractExpected !== fixture.expected_disposition) throw new Error(`fixture ${fixture.id} contract/pack disposition drift`);
-
-  const context = fixtureTrustedContext(fixture);
-  const actual = evaluateRecord(structuredClone(fixture.record), context);
+  const actual = evaluateRecord(structuredClone(fixture.record), fixtureTrustedContext(fixture));
   if (actual.disposition !== fixture.expected_disposition) {
     throw new Error(`fixture ${fixture.id} expected=${fixture.expected_disposition} actual=${actual.disposition} triggers=${actual.triggers.join(',')}`);
   }
   if (!actual.triggers.length || actual.triggers[0] === 'all_control_checks_pass') throw new Error(`fixture ${fixture.id} did not exercise an adversarial control`);
-
-  // Prove the harness is behavior-driven rather than fixture-ID-driven.
   const renamed = evaluateRecord(structuredClone(fixture.record), fixtureTrustedContext(fixture));
   if (renamed.disposition !== actual.disposition) throw new Error(`fixture ${fixture.id} result is not payload-deterministic`);
-
   results.push({ id: fixture.id, disposition: actual.disposition, triggers: actual.triggers, promotable: false });
 }
 
 for (const id of contractFixtures.keys()) {
   if (!packFixtures.some(f => f.id === id)) throw new Error(`contract fixture has no executable payload: ${id}`);
 }
-if (results.some(r => r.promotable)) throw new Error('synthetic adversarial fixture may not be promotable');
-if (results.some(r => r.disposition === 'PROMOTED')) throw new Error('adversarial fixture may never directly promote');
+if (results.some(r => r.promotable || r.disposition === 'PROMOTED')) throw new Error('synthetic adversarial fixture may never promote');
 if (contract.truth_boundary?.synthetic_fixture_effect !== 'CONTROL_VALIDATION_ONLY') throw new Error('synthetic fixture truth boundary drift');
 if (contract.truth_boundary?.empirical_gate_effect !== 'NONE') throw new Error('fixture harness cannot promote empirical readiness');
 if (contract.truth_boundary?.external_partner_data_ingestion !== 'HOLD') throw new Error('partner data ingestion must remain HOLD');
@@ -648,12 +640,18 @@ console.log(JSON.stringify({
   executable_payload_fixtures_passed: results.length,
   temporal_fail_closed_mutation_cases: temporalMutationCases.length,
   replay_cross_control_fail_closed_mutation_cases: replayFailClosedMutationCases.length,
+  canonical_suppression_hydration_mandatory: true,
+  canonical_resolution_mandatory_even_for_empty_ledger: true,
+  omitted_suppression_context_fail_closed: true,
+  replay_without_suppression_context_fail_closed: true,
+  clean_suppression_snapshot_fail_closed_mutation_cases: cleanContextMutationCases.length,
   destructive_lifecycle_authorization_fail_closed_mutation_cases: destructiveMutationCases.length + 2,
   destructive_lifecycle_requires_trusted_control_plane_event: true,
   destructive_payload_self_assertion_rejected: true,
   destructive_trusted_event_digest_bound: true,
   canonical_suppression_consumer_binding: true,
   canonical_suppression_consumer_cryptographic_ledger_validation: true,
+  canonical_suppression_snapshot_digest_bound: true,
   canonical_rekey_reingestion_fail_closed: true,
   canonical_rekey_replay_fail_closed: true,
   canonical_suppression_fail_closed_mutation_cases: canonicalSuppressionMutationCases.length,
