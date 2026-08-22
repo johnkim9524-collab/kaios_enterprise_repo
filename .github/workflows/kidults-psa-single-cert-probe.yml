@@ -1,16 +1,6 @@
 name: KIDULTS PSA Single Cert Probe
 
 on:
-  push:
-    branches:
-      - 'agent/psa-single-cert-probe'
-    paths:
-      - '.github/workflows/kidults-psa-single-cert-probe.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/kidults-psa-single-cert-probe.yml'
   workflow_dispatch:
 
 permissions:

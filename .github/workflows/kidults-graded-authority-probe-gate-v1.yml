@@ -1,11 +1,6 @@
 name: KIDULTS Graded Authority Probe Gate V1
 
 on:
-  pull_request:
-    paths:
-      - 'coordination/kidults/source-intelligence/graded-authority-credential-gated-probe-v1.json'
-      - 'scripts/kidults/source-intelligence/validate-graded-authority-probe-gate-v1.mjs'
-      - '.github/workflows/kidults-graded-authority-probe-gate-v1.yml'
   workflow_dispatch:
 
 permissions:

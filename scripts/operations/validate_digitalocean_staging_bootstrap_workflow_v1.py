@@ -6,7 +6,6 @@ WORKFLOW = Path('.github/workflows/digitalocean-staging-bootstrap-exec.yml')
 
 REQUIRED_MARKERS = [
     'workflow_dispatch:',
-    "if: github.event_name == 'workflow_dispatch'",
     'SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}',
     'test -n "$SSH_PRIVATE_KEY_B64"',
     "printf '%s' \"$SSH_PRIVATE_KEY_B64\" | base64 --decode",
@@ -32,7 +31,6 @@ REQUIRED_MARKERS = [
 ]
 
 REQUIRED_COUNTS = {
-    "if: github.event_name == 'workflow_dispatch'": 1,
     '-o HostKeyAlgorithms=ssh-ed25519': 3,
     '-o StrictHostKeyChecking=yes': 3,
     '-o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts"': 3,
@@ -40,6 +38,7 @@ REQUIRED_COUNTS = {
 }
 
 FORBIDDEN_MARKERS = [
+    'pull_request:',
     'secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY }}',
     'sudo ',
     'apt-get ',
@@ -61,8 +60,6 @@ def validate(text: str) -> list[str]:
     for marker in FORBIDDEN_MARKERS:
         if marker in text:
             errors.append(f'forbidden executable workflow capability present: {marker}')
-    if 'pull_request:' not in text:
-        errors.append('PR control validation trigger must remain present')
     return errors
 
 
@@ -79,10 +76,6 @@ def mutation_selftest(text: str) -> int:
         cases += 1
         if not validate(mutated):
             undetected.append(f'forbidden:{marker}')
-    mutated = text.replace("if: github.event_name == 'workflow_dispatch'", 'if: always()', 1)
-    cases += 1
-    if not validate(mutated):
-        undetected.append('workflow_dispatch_condition')
     if undetected:
         raise SystemExit('workflow mutation self-test false-green: ' + ', '.join(undetected))
     return cases
@@ -98,7 +91,8 @@ def main() -> int:
         'PASS executable STAGING bootstrap workflow boundary: '
         f'{len(REQUIRED_MARKERS)} required guards, {len(REQUIRED_COUNTS)} count-sensitive guards, '
         f'{len(FORBIDDEN_MARKERS)} forbidden capabilities, {cases} mutation cases; '
-        'remote mutation workflow_dispatch-only; Production/G5 unchanged'
+        'secret-bearing remote mutation workflow is workflow_dispatch-only with pull_request forbidden; '
+        'Production/G5 unchanged'
     )
     return 0
 
