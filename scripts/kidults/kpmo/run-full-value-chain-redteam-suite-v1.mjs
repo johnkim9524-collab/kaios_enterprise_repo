@@ -16,6 +16,9 @@ const secretBoundaryValidators = [
   'scripts/kidults/kpmo/validate-pr-secret-boundary-v1.mjs',
   'scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs'
 ];
+const truthScopeValidators = [
+  'scripts/kidults/kpmo/validate-scoped-certification-truth-boundary-v1.mjs'
+];
 const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
@@ -46,6 +49,7 @@ const validators = [...new Set([
   ...criticalWorkflowProvenanceValidators,
   ...repositoryMutationBoundaryValidators,
   ...secretBoundaryValidators,
+  ...truthScopeValidators,
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
@@ -92,6 +96,8 @@ console.log(JSON.stringify({
   privileged_manual_secret_lane_inventory_machine_bound: true,
   privileged_manual_secret_lane_registry_state: 'EXTERNAL_APPROVAL_REQUIRED',
   privileged_manual_secret_lane_issue: 974,
+  scoped_certification_truth_boundary_machine_bound: true,
+  scoped_certification_truth_boundary_validators: truthScopeValidators.length,
   pre_partner_intake_gate_machine_bound: true,
   pre_partner_certification_machine_bound: true,
   pre_partner_control_families: 12,
