@@ -145,6 +145,9 @@ function normalizeTrustedContext(raw = {}) {
       : [],
     trusted_canonical_resolution: raw.trusted_canonical_resolution
       ? structuredClone(raw.trusted_canonical_resolution)
+      : null,
+    trusted_post_destructive_suppression_context: raw.trusted_post_destructive_suppression_context
+      ? structuredClone(raw.trusted_post_destructive_suppression_context)
       : null
   };
 }
@@ -157,8 +160,6 @@ function validateCanonicalSuppressionLedger(context) {
   const tombstones = context.canonical_suppression_tombstones;
   const failures = [];
 
-  // Absence of negative-state evidence is not evidence of absence. Every admission/replay path
-  // must prove that the canonical suppression store was authoritatively hydrated, even when empty.
   if (!snapshot || typeof snapshot !== 'object') {
     failures.push('canonical_suppression_snapshot_missing');
   } else {
@@ -171,8 +172,6 @@ function validateCanonicalSuppressionLedger(context) {
     if (snapshot.snapshot_digest !== digestSuppressionSnapshot(snapshot)) failures.push('canonical_suppression_snapshot_digest_mismatch');
   }
 
-  // P0 #1003: a self-consistent hydrated snapshot is not proof that it is the current authoritative
-  // head. Bind every decision to an independently trusted control-plane checkpoint and a commit fence.
   if (!checkpoint || typeof checkpoint !== 'object') {
     failures.push('canonical_suppression_checkpoint_missing');
   } else {
@@ -260,8 +259,6 @@ function canonicalSuppressionDisposition(record, rawContext) {
   const resolution = context.trusted_canonical_resolution || {};
   const identity = record.identity || {};
 
-  // Canonical identity is a universal admission prerequisite. A clean/empty suppression ledger
-  // is useful only if the candidate itself is unambiguously resolved into the same trust domain.
   if (resolution.status !== 'RESOLVED_UNAMBIGUOUS') failures.push('canonical_suppression_resolution_not_trusted_unambiguous');
   if (!resolution.source_record_id || resolution.source_record_id !== identity.source_record_id) failures.push('canonical_suppression_record_binding_mismatch');
   if (!resolution.source_owner_id || typeof resolution.source_owner_id !== 'string') failures.push('canonical_suppression_owner_missing');
@@ -279,6 +276,100 @@ function canonicalSuppressionDisposition(record, rawContext) {
     };
   }
   return null;
+}
+
+function buildPostDestructiveSuppressionContext(record, rawContext, event) {
+  const pre = normalizeTrustedContext(rawContext);
+  const resolution = pre.trusted_canonical_resolution || {};
+  const events = structuredClone(pre.canonical_suppression_events);
+  const tombstones = structuredClone(pre.canonical_suppression_tombstones);
+  const key = suppressionKey(resolution.source_owner_id, resolution.source_namespace, resolution.canonical_source_object_id);
+  const suppressionEvent = {
+    audit_event_id: event.audit_event_id,
+    destructive_event_id: event.event_id,
+    sequence_number: events.length + 1,
+    previous_event_digest: events.length ? events.at(-1).event_digest : 'GENESIS',
+    action: event.action,
+    authorized: true,
+    append_only_audit_bound: true,
+    source_owner_id: event.source_owner_id,
+    source_namespace: event.source_namespace,
+    source_record_id: record?.identity?.source_record_id,
+    canonical_source_object_id: resolution.canonical_source_object_id,
+    suppression_key: key,
+    suppression_state: SUPPRESSION_STATE
+  };
+  suppressionEvent.event_digest = digestSuppressionEvent(suppressionEvent);
+  events.push(suppressionEvent);
+
+  const tombstone = {
+    destructive_event_id: suppressionEvent.destructive_event_id,
+    audit_event_id: suppressionEvent.audit_event_id,
+    event_sequence: suppressionEvent.sequence_number,
+    source_owner_id: suppressionEvent.source_owner_id,
+    source_namespace: suppressionEvent.source_namespace,
+    canonical_source_object_id: suppressionEvent.canonical_source_object_id,
+    suppression_key: suppressionEvent.suppression_key,
+    suppression_state: SUPPRESSION_STATE,
+    lineage_metadata_only: true,
+    raw_content_retained: false
+  };
+  tombstone.tombstone_digest = digestSuppressionTombstone(tombstone);
+  tombstones.push(tombstone);
+
+  const preEpoch = pre.canonical_suppression_snapshot?.epoch || 0;
+  const snapshot = buildSuppressionSnapshot(events, tombstones, preEpoch + 1);
+  const checkpoint = buildTrustedSuppressionCheckpoint(snapshot);
+  return {
+    canonical_suppression_events: events,
+    canonical_suppression_tombstones: tombstones,
+    canonical_suppression_snapshot: snapshot,
+    trusted_canonical_suppression_checkpoint: checkpoint,
+    trusted_admission_suppression_fence: buildAdmissionSuppressionFence(checkpoint),
+    trusted_canonical_resolution: structuredClone(resolution)
+  };
+}
+
+function validateDestructiveSuppressionCommit(record, rawContext, event) {
+  const pre = normalizeTrustedContext(rawContext);
+  const postRaw = pre.trusted_post_destructive_suppression_context;
+  const failures = [];
+  if (!postRaw || typeof postRaw !== 'object') {
+    return { committed: false, failures: ['destructive_suppression_post_commit_missing'] };
+  }
+
+  const post = normalizeTrustedContext(postRaw);
+  failures.push(...validateCanonicalSuppressionLedger(post));
+
+  const preCheckpoint = pre.trusted_canonical_suppression_checkpoint || {};
+  const postCheckpoint = post.trusted_canonical_suppression_checkpoint || {};
+  if (!Number.isInteger(postCheckpoint.epoch) || !Number.isInteger(preCheckpoint.epoch) || postCheckpoint.epoch <= preCheckpoint.epoch) {
+    failures.push('destructive_suppression_post_epoch_not_advanced');
+  }
+  if (!(postCheckpoint.event_count >= (preCheckpoint.event_count || 0) + 1)) failures.push('destructive_suppression_post_event_count_not_advanced');
+  if (!(postCheckpoint.tombstone_count >= (preCheckpoint.tombstone_count || 0) + 1)) failures.push('destructive_suppression_post_tombstone_count_not_advanced');
+
+  const resolution = pre.trusted_canonical_resolution || {};
+  const expectedKey = suppressionKey(event.source_owner_id, event.source_namespace, resolution.canonical_source_object_id);
+  const committedEvent = post.canonical_suppression_events.find(candidate => candidate.destructive_event_id === event.event_id);
+  if (!committedEvent) {
+    failures.push('destructive_suppression_committed_event_missing');
+  } else {
+    if (committedEvent.audit_event_id !== event.audit_event_id) failures.push('destructive_suppression_audit_event_mismatch');
+    if (committedEvent.action !== event.action) failures.push('destructive_suppression_action_mismatch');
+    if (committedEvent.source_owner_id !== event.source_owner_id) failures.push('destructive_suppression_owner_mismatch');
+    if (committedEvent.source_namespace !== event.source_namespace) failures.push('destructive_suppression_namespace_mismatch');
+    if (committedEvent.source_record_id !== record?.identity?.source_record_id) failures.push('destructive_suppression_source_record_mismatch');
+    if (committedEvent.canonical_source_object_id !== resolution.canonical_source_object_id) failures.push('destructive_suppression_canonical_object_mismatch');
+    if (committedEvent.suppression_key !== expectedKey) failures.push('destructive_suppression_key_mismatch');
+    if (committedEvent.suppression_state !== SUPPRESSION_STATE) failures.push('destructive_suppression_state_mismatch');
+  }
+
+  const committedTombstone = post.canonical_suppression_tombstones.find(candidate => candidate.destructive_event_id === event.event_id && candidate.suppression_key === expectedKey);
+  if (!committedTombstone) failures.push('destructive_suppression_committed_tombstone_missing');
+  if (post.trusted_canonical_resolution?.canonical_source_object_id !== resolution.canonical_source_object_id) failures.push('destructive_suppression_post_resolution_mismatch');
+
+  return { committed: failures.length === 0, failures: [...new Set(failures)] };
 }
 
 function authorizeDestructiveLifecycle(record, rawContext) {
@@ -338,8 +429,6 @@ function evaluateRecord(record, trustedContext = {}) {
   const lineage = record.lineage || {};
   const quality = record.quality || {};
 
-  // Mandatory negative-state hydration + canonical resolution runs before every normal, replay,
-  // provider-substitution, transport or destructive disposition. Missing suppression state fails closed.
   const suppression = canonicalSuppressionDisposition(record, trustedContext);
   if (suppression) return suppression;
 
@@ -347,7 +436,9 @@ function evaluateRecord(record, trustedContext = {}) {
     triggers.push('deletion_requested');
     const auth = authorizeDestructiveLifecycle(record, trustedContext);
     if (!auth.authorized) return { disposition: 'QUARANTINED_OR_REJECTED', triggers: [...triggers, ...auth.failures] };
-    return { disposition: 'WITHDRAWN_OR_DELETED', triggers: [...triggers, 'destructive_event_authorized'] };
+    const commit = validateDestructiveSuppressionCommit(record, trustedContext, normalizeTrustedContext(trustedContext).trusted_destructive_control_event || {});
+    if (!commit.committed) return { disposition: 'QUARANTINED_OR_REJECTED', triggers: [...triggers, 'destructive_event_authorized_but_suppression_not_committed', ...commit.failures] };
+    return { disposition: 'WITHDRAWN_OR_DELETED', triggers: [...triggers, 'destructive_event_authorized', 'destructive_suppression_commit_proven'] };
   }
 
   if (transport.http_status === 429 || transport.http_status >= 500 || transport.retries_exhausted === true) {
@@ -426,8 +517,6 @@ if (baselineEval.disposition !== baseline.expected_disposition || baselineEval.d
   throw new Error(`baseline control failed: ${baselineEval.disposition}`);
 }
 
-// P0 #995 regression: omission is not a clean ledger. Both ordinary and replay candidates must
-// fail before any eligible/idempotent disposition when suppression hydration or canonical identity is absent.
 const missingContext = evaluateRecord(structuredClone(baseline.record), {});
 if (missingContext.disposition !== 'QUARANTINED_OR_REJECTED' || !missingContext.triggers.includes('canonical_suppression_snapshot_missing')) {
   throw new Error(`missing suppression context failed open: ${missingContext.disposition}/${missingContext.triggers.join(',')}`);
@@ -532,6 +621,7 @@ function buildTrustedDeletionContext(fixture) {
   };
   trustedEvent.event_digest = digestTrustedDestructiveEvent(trustedEvent);
   context.trusted_destructive_control_event = trustedEvent;
+  context.trusted_post_destructive_suppression_context = buildPostDestructiveSuppressionContext(fixture.record, context, trustedEvent);
   return context;
 }
 
@@ -543,8 +633,53 @@ function fixtureTrustedContext(fixture) {
 
 const validDeletionContext = buildTrustedDeletionContext(deletionFixture);
 const validDeletion = evaluateRecord(structuredClone(deletionFixture.record), validDeletionContext);
-if (validDeletion.disposition !== 'WITHDRAWN_OR_DELETED' || !validDeletion.triggers.includes('destructive_event_authorized')) {
-  throw new Error(`authorized deletion fixture failed: ${validDeletion.disposition}/${validDeletion.triggers.join(',')}`);
+if (validDeletion.disposition !== 'WITHDRAWN_OR_DELETED' || !validDeletion.triggers.includes('destructive_suppression_commit_proven')) {
+  throw new Error(`authorized+committed deletion fixture failed: ${validDeletion.disposition}/${validDeletion.triggers.join(',')}`);
+}
+
+// P0 #1005 regression: authorization is not an acknowledgement. A destructive decision cannot
+// return WITHDRAWN_OR_DELETED unless the exact canonical suppression event+tombstone is durably
+// visible behind an advanced trusted checkpoint/fence.
+const destructiveCommitMutationCases = [
+  ['crash_before_suppression_commit', (r, c) => { delete c.trusted_post_destructive_suppression_context; }],
+  ['stale_post_state_same_as_pre', (r, c) => { c.trusted_post_destructive_suppression_context = buildCleanAdmissionContext(r, { source_owner_id: c.persisted_source_owner_id, source_namespace: c.persisted_source_namespace, canonical_source_object_id: 'canonical-delete-001', epoch: c.canonical_suppression_snapshot.epoch }); }],
+  ['post_tombstone_missing', (r, c) => { const p = c.trusted_post_destructive_suppression_context; p.canonical_suppression_tombstones = []; }],
+  ['post_fence_missing', (r, c) => { delete c.trusted_post_destructive_suppression_context.trusted_admission_suppression_fence; }],
+  ['post_destructive_event_id_rebound_resigned', (r, c) => {
+    const p = c.trusted_post_destructive_suppression_context;
+    const event = p.canonical_suppression_events[0];
+    const tombstone = p.canonical_suppression_tombstones[0];
+    event.destructive_event_id = 'other-destructive-event';
+    event.event_digest = digestSuppressionEvent(event);
+    tombstone.destructive_event_id = event.destructive_event_id;
+    tombstone.tombstone_digest = digestSuppressionTombstone(tombstone);
+    p.canonical_suppression_snapshot = buildSuppressionSnapshot(p.canonical_suppression_events, p.canonical_suppression_tombstones, p.canonical_suppression_snapshot.epoch);
+    p.trusted_canonical_suppression_checkpoint = buildTrustedSuppressionCheckpoint(p.canonical_suppression_snapshot);
+    p.trusted_admission_suppression_fence = buildAdmissionSuppressionFence(p.trusted_canonical_suppression_checkpoint);
+  }],
+  ['post_canonical_key_rebound_resigned', (r, c) => {
+    const p = c.trusted_post_destructive_suppression_context;
+    const event = p.canonical_suppression_events[0];
+    const tombstone = p.canonical_suppression_tombstones[0];
+    event.canonical_source_object_id = 'other-canonical';
+    event.suppression_key = suppressionKey(event.source_owner_id, event.source_namespace, event.canonical_source_object_id);
+    event.event_digest = digestSuppressionEvent(event);
+    tombstone.canonical_source_object_id = event.canonical_source_object_id;
+    tombstone.suppression_key = event.suppression_key;
+    tombstone.tombstone_digest = digestSuppressionTombstone(tombstone);
+    p.canonical_suppression_snapshot = buildSuppressionSnapshot(p.canonical_suppression_events, p.canonical_suppression_tombstones, p.canonical_suppression_snapshot.epoch);
+    p.trusted_canonical_suppression_checkpoint = buildTrustedSuppressionCheckpoint(p.canonical_suppression_snapshot);
+    p.trusted_admission_suppression_fence = buildAdmissionSuppressionFence(p.trusted_canonical_suppression_checkpoint);
+  }]
+];
+for (const [id, mutate] of destructiveCommitMutationCases) {
+  const record = structuredClone(deletionFixture.record);
+  const context = buildTrustedDeletionContext(deletionFixture);
+  mutate(record, context);
+  const actual = evaluateRecord(record, context);
+  if (actual.disposition !== 'QUARANTINED_OR_REJECTED' || actual.disposition === 'WITHDRAWN_OR_DELETED') {
+    throw new Error(`destructive commit mutation ${id} failed closed: ${actual.disposition}/${actual.triggers.join(',')}`);
+  }
 }
 
 {
@@ -594,7 +729,7 @@ for (const [id, mutate] of destructiveMutationCases) {
   const record = structuredClone(deletionFixture.record);
   const context = normalizeTrustedContext(buildTrustedDeletionContext(deletionFixture));
   const first = evaluateRecord(record, context);
-  if (first.disposition !== 'WITHDRAWN_OR_DELETED') throw new Error('destructive replay setup did not authorize first event');
+  if (first.disposition !== 'WITHDRAWN_OR_DELETED') throw new Error('destructive replay setup did not authorize+commit first event');
   const second = evaluateRecord(record, context);
   if (second.disposition !== 'QUARANTINED_OR_REJECTED' || !second.triggers.includes('destructive_event_replay')) {
     throw new Error(`destructive event replay did not fail closed: ${second.disposition}/${second.triggers.join(',')}`);
@@ -602,52 +737,8 @@ for (const [id, mutate] of destructiveMutationCases) {
 }
 
 const deletionEvent = validDeletionContext.trusted_destructive_control_event;
-const canonicalSuppressionKey = suppressionKey(deletionEvent.source_owner_id, deletionEvent.source_namespace, 'canonical-delete-001');
-const canonicalSuppressionEvent = {
-  audit_event_id: 'audit-delete-001',
-  destructive_event_id: deletionEvent.event_id,
-  sequence_number: 1,
-  previous_event_digest: 'GENESIS',
-  action: deletionEvent.action,
-  authorized: true,
-  append_only_audit_bound: true,
-  source_owner_id: deletionEvent.source_owner_id,
-  source_namespace: deletionEvent.source_namespace,
-  source_record_id: deletionFixture.record.identity.source_record_id,
-  canonical_source_object_id: 'canonical-delete-001',
-  suppression_key: canonicalSuppressionKey,
-  suppression_state: SUPPRESSION_STATE
-};
-canonicalSuppressionEvent.event_digest = digestSuppressionEvent(canonicalSuppressionEvent);
-const canonicalSuppressionTombstone = {
-  destructive_event_id: canonicalSuppressionEvent.destructive_event_id,
-  audit_event_id: canonicalSuppressionEvent.audit_event_id,
-  event_sequence: canonicalSuppressionEvent.sequence_number,
-  source_owner_id: canonicalSuppressionEvent.source_owner_id,
-  source_namespace: canonicalSuppressionEvent.source_namespace,
-  canonical_source_object_id: canonicalSuppressionEvent.canonical_source_object_id,
-  suppression_key: canonicalSuppressionEvent.suppression_key,
-  suppression_state: SUPPRESSION_STATE,
-  lineage_metadata_only: true,
-  raw_content_retained: false
-};
-canonicalSuppressionTombstone.tombstone_digest = digestSuppressionTombstone(canonicalSuppressionTombstone);
-const canonicalSuppressionSnapshot = buildSuppressionSnapshot([canonicalSuppressionEvent], [canonicalSuppressionTombstone], 2);
-const canonicalSuppressionCheckpoint = buildTrustedSuppressionCheckpoint(canonicalSuppressionSnapshot);
-const canonicalSuppressionContext = {
-  canonical_suppression_events: [canonicalSuppressionEvent],
-  canonical_suppression_tombstones: [canonicalSuppressionTombstone],
-  canonical_suppression_snapshot: canonicalSuppressionSnapshot,
-  trusted_canonical_suppression_checkpoint: canonicalSuppressionCheckpoint,
-  trusted_admission_suppression_fence: buildAdmissionSuppressionFence(canonicalSuppressionCheckpoint),
-  trusted_canonical_resolution: {
-    status: 'RESOLVED_UNAMBIGUOUS',
-    source_record_id: 'delete-001-rekeyed',
-    source_owner_id: deletionEvent.source_owner_id,
-    source_namespace: deletionEvent.source_namespace,
-    canonical_source_object_id: 'canonical-delete-001'
-  }
-};
+const canonicalSuppressionContext = structuredClone(validDeletionContext.trusted_post_destructive_suppression_context);
+canonicalSuppressionContext.trusted_canonical_resolution.source_record_id = 'delete-001-rekeyed';
 const rekeyedAfterDelete = structuredClone(baseline.record);
 rekeyedAfterDelete.identity.source_record_id = 'delete-001-rekeyed';
 const rekeyedDisposition = evaluateRecord(rekeyedAfterDelete, canonicalSuppressionContext);
@@ -661,8 +752,7 @@ if (rekeyedReplayDisposition.disposition !== 'REJECTED_CANONICAL_OBJECT_SUPPRESS
   throw new Error(`post-delete canonical alias replay bypassed suppression: ${rekeyedReplayDisposition.disposition}/${rekeyedReplayDisposition.triggers.join(',')}`);
 }
 
-// P0 #1003 regression: an older self-consistent clean snapshot cannot override a newer trusted
-// destructive checkpoint. This covers stale read, rollback image, replica lag and replay paths.
+const canonicalSuppressionCheckpoint = canonicalSuppressionContext.trusted_canonical_suppression_checkpoint;
 const staleCleanContext = buildCleanAdmissionContext(rekeyedAfterDelete, {
   source_owner_id: deletionEvent.source_owner_id,
   source_namespace: deletionEvent.source_namespace,
@@ -767,6 +857,8 @@ console.log(JSON.stringify({
   canonical_suppression_admission_commit_fence_mandatory: true,
   stale_suppression_snapshot_fail_closed: true,
   stale_suppression_replay_fail_closed: true,
+  destructive_ack_requires_durable_suppression_commit: true,
+  destructive_suppression_commit_fail_closed_mutation_cases: destructiveCommitMutationCases.length,
   canonical_resolution_mandatory_even_for_empty_ledger: true,
   omitted_suppression_context_fail_closed: true,
   replay_without_suppression_context_fail_closed: true,
