@@ -38,16 +38,25 @@ jobs:
             process.exit(1);
           };
 
-          async function getJson(url) {
-            const response = await fetch(url, { headers, redirect: 'error' });
-            if (!response.ok) fail(`${response.status} ${url}`);
-            return response.json();
+          async function rawFileResponse(ref, filePath) {
+            const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+            return fetch(`${apiBase}/repos/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`, { headers, redirect: 'error' });
           }
 
           async function getFile(ref, filePath) {
-            const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
-            const data = await getJson(`${apiBase}/repos/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`);
+            const response = await rawFileResponse(ref, filePath);
+            if (!response.ok) fail(`${response.status} ${filePath}@${ref}`);
+            const data = await response.json();
             if (data.type !== 'file' || typeof data.content !== 'string') fail(`missing or non-file ${filePath}@${ref}`);
+            return Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
+          }
+
+          async function tryGetFile(ref, filePath) {
+            const response = await rawFileResponse(ref, filePath);
+            if (response.status === 404) return null;
+            if (!response.ok) fail(`${response.status} ${filePath}@${ref}`);
+            const data = await response.json();
+            if (data.type !== 'file' || typeof data.content !== 'string') return null;
             return Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
           }
 
@@ -80,13 +89,13 @@ jobs:
             return refs;
           };
 
-          // Discover repository-local executable dependencies referenced by a protected script. This
-          // closes the parent-entrypoint/child-validator gap: an unchanged certifier cannot delegate to
-          // a changed no-op child and still remain trusted.
-          const repositoryExecutableRefs = (text, currentPath) => {
-            const refs = new Set();
+          // Discover repository-local executable and semantic dependencies referenced by a protected
+          // script/config. This closes parent/child validator and mutable fixture/control-input gaps.
+          const repositoryDependencyRefs = (text, currentPath) => {
+            const executable = new Set();
+            const semantic = new Set();
             for (const match of text.matchAll(/['"](scripts\/[A-Za-z0-9_./-]+\.(?:mjs|js|cjs|py|sh))['"]/g)) {
-              refs.add(match[1]);
+              executable.add(match[1]);
             }
             const relativePatterns = [
               /\bfrom\s+['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]/g,
@@ -98,28 +107,59 @@ jobs:
               for (const match of text.matchAll(pattern)) {
                 const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(currentPath), match[1]));
                 if (!resolved.startsWith('scripts/')) fail(`repository executable dependency escapes scripts/: ${currentPath} -> ${match[1]}`);
-                refs.add(resolved);
+                executable.add(resolved);
               }
             }
-            return refs;
+
+            // Direct repository-local JSON/YAML references are semantic trust inputs when they exist.
+            for (const match of text.matchAll(/['"]((?:coordination|apps|services)\/[A-Za-z0-9_./-]+\.(?:json|ya?ml))['"]/g)) {
+              semantic.add(match[1]);
+            }
+
+            // Many validators construct control paths with path.join(root, 'coordination', ...).
+            for (const match of text.matchAll(/path\.join\(\s*root\s*,([\s\S]*?)\)/g)) {
+              const segments = [...match[1].matchAll(/['"]([^'"]+)['"]/g)].map(item => item[1]);
+              if (!segments.length) continue;
+              const candidate = path.posix.normalize(path.posix.join(...segments));
+              if (/^(?:coordination|apps|services)\/.+\.(?:json|ya?ml)$/.test(candidate)) semantic.add(candidate);
+            }
+            return { executable, semantic };
           };
 
-          async function buildBaselineExecutableClosure(seedRefs, baseSha) {
+          async function buildBaselineDependencyClosure(seedRefs, baseSha) {
             const closure = new Set(seedRefs);
+            const executableClosure = new Set(seedRefs);
+            const semanticClosure = new Set();
             const queue = [...closure].sort();
             const baseContents = new Map();
             while (queue.length) {
               const ref = queue.shift();
-              const content = await getFile(baseSha, ref);
-              baseContents.set(ref, content);
-              for (const child of [...repositoryExecutableRefs(content, ref)].sort()) {
+              let content = baseContents.get(ref);
+              if (content === undefined) {
+                content = await getFile(baseSha, ref);
+                baseContents.set(ref, content);
+              }
+              const deps = repositoryDependencyRefs(content, ref);
+              for (const child of [...deps.executable].sort()) {
                 if (!closure.has(child)) {
+                  const childContent = await getFile(baseSha, child);
                   closure.add(child);
+                  executableClosure.add(child);
+                  baseContents.set(child, childContent);
                   queue.push(child);
                 }
               }
+              for (const candidate of [...deps.semantic].sort()) {
+                if (closure.has(candidate)) continue;
+                const candidateContent = await tryGetFile(baseSha, candidate);
+                if (candidateContent === null) continue;
+                closure.add(candidate);
+                semanticClosure.add(candidate);
+                baseContents.set(candidate, candidateContent);
+                queue.push(candidate);
+              }
             }
-            return { closure, baseContents };
+            return { closure, executableClosure, semanticClosure, baseContents };
           }
 
           // The aggregate runner is itself a trust root. Ordinary PRs may add validator-reference-only
@@ -158,7 +198,7 @@ jobs:
             }
           }
 
-          // Dynamic and transitive dependency discovery are trusted primitives too.
+          // Dynamic, transitive executable and semantic dependency discovery are trusted primitives too.
           const dynamicSelf = executableRefsFromJson(JSON.stringify({
             required_family_validators: ['scripts/dynamic-family.mjs'],
             nested: { validators: ['scripts/nested.py'] },
@@ -167,16 +207,23 @@ jobs:
           if (!dynamicSelf.has('scripts/dynamic-family.mjs') || !dynamicSelf.has('scripts/nested.py') || dynamicSelf.size !== 2) {
             fail('trusted self-test missed dynamically loaded validator reference');
           }
-          const transitiveSelf = repositoryExecutableRefs([
+          const transitiveSelf = repositoryDependencyRefs([
             "run('scripts/child.mjs')",
             "import helper from './helper.js';",
-            "const x = require('../shared/check.cjs');"
+            "const x = require('../shared/check.cjs');",
+            "const fixture = 'coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json';",
+            "const control = path.join(root, 'coordination', 'kidults', 'kpmo', 'epistemic-causal-integrity-controls-v1.json');"
           ].join('\n'), 'scripts/example/parent.mjs');
           for (const expected of ['scripts/child.mjs', 'scripts/example/helper.js', 'scripts/shared/check.cjs']) {
-            if (!transitiveSelf.has(expected)) fail(`trusted self-test missed transitive executable dependency ${expected}`);
+            if (!transitiveSelf.executable.has(expected)) fail(`trusted self-test missed transitive executable dependency ${expected}`);
+          }
+          for (const expected of ['coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json', 'coordination/kidults/kpmo/epistemic-causal-integrity-controls-v1.json']) {
+            if (!transitiveSelf.semantic.has(expected)) fail(`trusted self-test missed semantic control dependency ${expected}`);
           }
 
-          const pr = await getJson(`${apiBase}/repos/${repo}/pulls/${prNumber}`);
+          const prResponse = await fetch(`${apiBase}/repos/${repo}/pulls/${prNumber}`, { headers, redirect: 'error' });
+          if (!prResponse.ok) fail(`${prResponse.status} pull request ${prNumber}`);
+          const pr = await prResponse.json();
           const baseSha = pr.base?.sha;
           const mergeSha = pr.merge_commit_sha;
           if (!baseSha) fail('PR base SHA unavailable');
@@ -222,17 +269,22 @@ jobs:
             fail(`merge result modifies canonical Red-Team orchestrator ${orchestratorPath}; use explicit trust-root migration`);
           }
 
-          // Expand the baseline seed set through repository-local executable delegation/imports. Every
-          // file in that transitive closure is byte-immutable in an ordinary PR.
-          const { closure: baselineRefs, baseContents } = await buildBaselineExecutableClosure(baselineSeedRefs, baseSha);
-          const changedBaselineValidators = [];
+          // Expand the baseline seed set through repository-local executable delegation/imports and
+          // semantic control inputs. Every file in that baseline closure is byte-immutable ordinarily.
+          const {
+            closure: baselineRefs,
+            executableClosure,
+            semanticClosure,
+            baseContents
+          } = await buildBaselineDependencyClosure(baselineSeedRefs, baseSha);
+          const changedBaselineDependencies = [];
           for (const ref of [...baselineRefs].sort()) {
             const baseContent = baseContents.get(ref) ?? await getFile(baseSha, ref);
             const mergeContent = await getFile(mergeSha, ref);
-            if (baseContent !== mergeContent) changedBaselineValidators.push(ref);
+            if (baseContent !== mergeContent) changedBaselineDependencies.push(ref);
           }
-          if (changedBaselineValidators.length) {
-            fail(`merge result modifies baseline mandatory validator/dependency implementation(s): ${changedBaselineValidators.join(', ')}; use explicit trust-root migration`);
+          if (changedBaselineDependencies.length) {
+            fail(`merge result modifies baseline mandatory trust dependency file(s): ${changedBaselineDependencies.join(', ')}; use explicit trust-root migration`);
           }
 
           // Protect the aggregate runner's execution skeleton. This blocks retained-path/no-execution,
@@ -272,24 +324,26 @@ jobs:
           }
 
           console.log(JSON.stringify({
-            suite: 'KIDULTS_TRUSTED_MERGE_CONTROL_MONOTONICITY_V5',
+            suite: 'KIDULTS_TRUSTED_MERGE_CONTROL_MONOTONICITY_V6',
             pr_number: Number(prNumber),
             base_sha: baseSha,
             merge_sha: mergeSha,
             baseline_literal_validator_refs: baselineLiteralRefs.size,
             baseline_dynamic_validator_refs: baselineDynamicRefs.size,
             baseline_seed_validator_refs: baselineSeedRefs.size,
-            baseline_transitive_executable_refs: baselineRefs.size,
+            baseline_transitive_executable_refs: executableClosure.size,
+            baseline_semantic_control_refs: semanticClosure.size,
+            baseline_total_trust_dependency_refs: baselineRefs.size,
             merged_seed_validator_refs: mergedSeedRefs.size,
             removed_baseline_validator_refs: 0,
-            changed_baseline_validator_implementations: 0,
-            baseline_validator_dependency_closure_unchanged: true,
+            changed_baseline_trust_dependencies: 0,
+            baseline_trust_dependency_closure_unchanged: true,
             canonical_orchestrator_unchanged: true,
             aggregate_execution_semantics_unchanged_except_additive_refs: true,
             critical_workflow_unchanged: true,
             trusted_workflow_unchanged: true,
             critical_workflow_primitives_preserved: true,
-            trusted_mutation_selftests: executionDowngrades.length + 5,
+            trusted_mutation_selftests: executionDowngrades.length + 7,
             result: 'PASS',
             empirical_gate_effect: 'NONE',
             production: 'HOLD',
