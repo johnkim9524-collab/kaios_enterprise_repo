@@ -1,0 +1,84 @@
+name: KIDULTS ASI Hourly v2 Two-Cycle Dispatch v1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-asi-hourly-v2-two-cycle-dispatch-v1.yml'
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: kidults-asi-hourly-v2-two-cycle-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch-two-sequential-v2-cycles:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Verify exact main source
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = 'refs/heads/main'
+      - name: Dispatch and await two distinct successful hourly v2 cycles
+        id: cycles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          WF='kidults-asi-global-any-site-hourly-pooling-v2.yml'
+          API="/repos/${GITHUB_REPOSITORY}/actions/workflows/${WF}"
+          dispatch_and_wait() {
+            local ordinal="$1"
+            local previous
+            previous=$(gh api -H 'Accept: application/vnd.github+json' "${API}/runs?event=workflow_dispatch&branch=main&per_page=1" --jq '.workflow_runs[0].id // 0')
+            gh api -X POST -H 'Accept: application/vnd.github+json' "${API}/dispatches" -f ref=main >/dev/null
+            local run_id=''
+            for _ in $(seq 1 40); do
+              sleep 6
+              run_id=$(gh api -H 'Accept: application/vnd.github+json' "${API}/runs?event=workflow_dispatch&branch=main&per_page=10" --jq "[.workflow_runs[] | select(.id != ${previous})][0].id // empty")
+              [ -n "$run_id" ] && break
+            done
+            test -n "$run_id"
+            local status='' conclusion=''
+            for _ in $(seq 1 180); do
+              read -r status conclusion < <(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '[.status, (.conclusion // "NONE")] | @tsv')
+              if [ "$status" = 'completed' ]; then break; fi
+              sleep 15
+            done
+            test "$status" = 'completed'
+            test "$conclusion" = 'success'
+            echo "run_${ordinal}=${run_id}" >> "$GITHUB_OUTPUT"
+            printf '%s\n' "$run_id"
+          }
+          RUN1=$(dispatch_and_wait 1)
+          RUN2=$(dispatch_and_wait 2)
+          test "$RUN1" != "$RUN2"
+          echo "run_1=$RUN1" >> "$GITHUB_OUTPUT"
+          echo "run_2=$RUN2" >> "$GITHUB_OUTPUT"
+      - name: Emit two-cycle dispatch receipt
+        env:
+          RUN1: ${{ steps.cycles.outputs.run_1 }}
+          RUN2: ${{ steps.cycles.outputs.run_2 }}
+        run: |
+          node - <<'NODE' >/tmp/asi-hourly-v2-two-cycle-dispatch-receipt-v1.json
+          const x={id:'kidults-asi-hourly-v2-two-cycle-dispatch-receipt-v1',status:'TWO_DISTINCT_SUCCESSFUL_MAIN_V2_CYCLES_DISPATCHED_AND_COMPLETED',workflow:'KIDULTS ASI Global Any-Site Hourly Pooling v2',workflow_run_ids:[process.env.RUN1,process.env.RUN2],distinct_runs:process.env.RUN1!==process.env.RUN2,rights_or_admission_scope_changed:false,external_spend:false,public_release:'HOLD',production:'HOLD'};
+          if(!x.workflow_run_ids.every(Boolean)||!x.distinct_runs)throw new Error('TWO_DISTINCT_RUNS_REQUIRED');
+          process.stdout.write(JSON.stringify(x,null,2));
+          NODE
+          cat /tmp/asi-hourly-v2-two-cycle-dispatch-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-hourly-v2-two-cycle-dispatch-receipt-v1
+          path: /tmp/asi-hourly-v2-two-cycle-dispatch-receipt-v1.json
+          retention-days: 30
+          if-no-files-found: error
