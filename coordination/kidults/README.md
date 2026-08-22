@@ -92,3 +92,12 @@ production-release-record.json
 ```
 
 All cycle artifacts reference the same `snapshot_id`, methodology version and evidence-lineage version.
+
+## Product positioning
+
+The canonical KIDULTS category definition, customer value propositions, product hierarchy, Core/provider boundary, commercial packaging and claims policy are defined in:
+
+- [KIDULTS Product Positioning & Value Proposition v1.0](./KIDULTS_PRODUCT_POSITIONING_VALUE_PROPOSITION_V1.md)
+- [KIDULTS Target Market Competitiveness Strategy v1.0](./KIDULTS_TARGET_MARKET_COMPETITIVENESS_STRATEGY_V1.md)
+
+These records define the product contract and the value-chain execution strategy. They do not create a live Projection, authorize a provider, approve external spend or change the Production/Public/G5 HOLD.
