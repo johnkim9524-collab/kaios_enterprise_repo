@@ -1,0 +1,40 @@
+{
+  "version": "1.0.0",
+  "governing_issue": 961,
+  "extends_governing_issue": 881,
+  "fixture_type": "SYNTHETIC_NON_PROMOTABLE_CONTROL",
+  "object_registry": [
+    {
+      "object_type": "PARTNER_RECORD",
+      "object_id": "delete-001",
+      "source_id": "synthetic-partner-001",
+      "source_owner_id": "synthetic-owner-001",
+      "source_namespace": "synthetic/partner-market"
+    }
+  ],
+  "authorized_events": [
+    {
+      "destructive_event_id": "destructive-delete-001-v1",
+      "audit_event_id": "audit-delete-001-v1",
+      "actor_id": "synthetic-owner-control-service",
+      "actor_source_owner_id": "synthetic-owner-001",
+      "authenticated": true,
+      "authorization_decision": "PASS",
+      "action": "DELETE",
+      "object_type": "PARTNER_RECORD",
+      "object_id": "delete-001",
+      "source_id": "synthetic-partner-001",
+      "source_owner_id": "synthetic-owner-001",
+      "source_namespace": "synthetic/partner-market",
+      "append_only_audit_bound": true,
+      "replayed": false
+    }
+  ],
+  "truth_boundary": {
+    "empirical_gate_effect": "NONE",
+    "external_partner_data_ingestion": "HOLD",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
