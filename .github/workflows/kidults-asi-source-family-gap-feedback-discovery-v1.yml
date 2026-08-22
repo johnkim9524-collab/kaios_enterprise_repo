@@ -17,7 +17,7 @@ permissions:
 jobs:
   source-family-gap-feedback-proof:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -48,6 +48,33 @@ jobs:
         run: |
           node scripts/kidults/source-intelligence/build-asi-source-family-discovery-intent-v1.mjs /tmp/autobalance.json /tmp/intent.json
           node scripts/kidults/source-intelligence/validate-asi-source-family-discovery-intent-v1.mjs /tmp/intent.json
+      - name: Restore immutable 160-anchor foundation and build governed queue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p input queue discovery-out
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" > /tmp/anchor-foundation.zip
+          unzip -q -o /tmp/anchor-foundation.zip -d input
+          node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input queue
+          node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs queue
+      - name: Empirically execute baseline plus source-family supplemental discovery
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASI_SOURCE_FAMILY_DISCOVERY_INTENT: /tmp/intent.json
+        run: |
+          node scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs queue discovery-out
+          node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery.json'));
+          if(x.source_family_gap_intent_applied!==true)throw new Error('INTENT_NOT_APPLIED');
+          if(!(x.supplemental_query_count>0&&x.supplemental_query_count<=12))throw new Error('SUPPLEMENTAL_QUERY_BUDGET');
+          const lane=x.lane_health.find(y=>y.lane_id==='GITHUB_SOURCE_FAMILY_GAP_SUPPLEMENT');
+          if(!lane||!['SUCCESS_WITH_RESULTS','SUCCESS_ZERO_RESULTS'].includes(lane.status))throw new Error(`SUPPLEMENT_LANE_NOT_PROVEN:${lane?.status}`);
+          if(x.baseline_discovery_executed!==true)throw new Error('BASELINE_REMOVED');
+          console.log(JSON.stringify({status:'PASS',supplemental_query_count:x.supplemental_query_count,supplement_lane:lane,candidates:x.candidate_count,live_external:x.live_external_candidate_count,production:x.production}));
+          NODE
       - name: Reject baseline removal mutation
         run: |
           node - <<'NODE'
@@ -69,6 +96,8 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-source-family-gap-feedback-discovery-v1
-          path: /tmp/intent.json
+          path: |
+            /tmp/intent.json
+            discovery-out/global-low-risk-discovery.json
           retention-days: 30
           if-no-files-found: error
