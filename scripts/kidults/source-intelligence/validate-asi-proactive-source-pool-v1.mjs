@@ -1,21 +1,66 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-const p=process.argv[2]||'/tmp/asi-proactive-source-pool-v1.json';
-const x=JSON.parse(fs.readFileSync(p,'utf8'));
-const fail=m=>{throw new Error(m)};
-if(x.status!=='ROLLING_DISCOVERY_CANDIDATE_POOL') fail('STATUS');
-if(x.production!=='HOLD'||x.public_release!=='HOLD') fail('RELEASE_BOUNDARY');
-if(x.acquisition_authorized!==false||x.rights_promoted_automatically!==false||x.admission_promoted_automatically!==false) fail('AUTOMATIC_PROMOTION_FORBIDDEN');
-if(!Array.isArray(x.candidates)||!Array.isArray(x.rights_review_queue)) fail('ARRAYS');
-const keys=new Set();
-for(const c of x.candidates){
-  if(keys.has(c.source_candidate_key)) fail(`DUPLICATE:${c.source_candidate_key}`);keys.add(c.source_candidate_key);
-  for(const f of ['source_candidate_key','canonical_locator','source_name','first_seen_at','last_seen_at','observation_count','discovery_providers','source_family_hints','candidate_source_roles','representative_product_ids','demand_instance_ids','target_regions','target_languages','rights_state','admission_state','source_pool_state','evidence_state','next_action']) if(c[f]===undefined||c[f]===null) fail(`MISSING:${f}`);
-  if(c.rights_state!=='UNASSESSED'||c.admission_state!=='NOT_ADMITTED'||c.source_pool_state!=='CANDIDATE_ONLY'||c.evidence_state!=='DISCOVERY_METADATA_ONLY') fail(`PROMOTION:${c.source_candidate_key}`);
-  if(c.acquisition_authorized!==false||c.target_site_traversal_authorized!==false||c.market_claim_authorized!==false||c.public_projection!==false||c.production!=='HOLD') fail(`BOUNDARY:${c.source_candidate_key}`);
-  if(Number(c.observation_count)<1) fail(`OBSCOUNT:${c.source_candidate_key}`);
+
+const filePath = process.argv[2] || '/tmp/asi-proactive-source-pool-v1.json';
+const value = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+const fail = message => { throw new Error(message); };
+
+if (value.id !== 'kidults-asi-proactive-source-pool-v1') fail('ID');
+if (value.version !== '1.1.0') fail('VERSION');
+if (value.status !== 'ROLLING_DISCOVERY_CANDIDATE_POOL') fail('STATUS');
+if (value.lineage_policy !== 'CANONICAL_LOCATOR_STABLE_PROVIDER_SWITCHABLE') fail('LINEAGE_POLICY');
+if (value.provider_switching_preserves_source_candidate_identity !== true) fail('PROVIDER_SWITCHING_BOUNDARY');
+if (value.production !== 'HOLD' || value.public_release !== 'HOLD') fail('RELEASE_BOUNDARY');
+if (value.acquisition_authorized !== false || value.rights_promoted_automatically !== false || value.admission_promoted_automatically !== false) fail('AUTOMATIC_PROMOTION_FORBIDDEN');
+if (!Array.isArray(value.candidates) || !Array.isArray(value.rights_review_queue)) fail('ARRAYS');
+
+const keys = new Set();
+const locators = new Set();
+for (const candidate of value.candidates) {
+  if (keys.has(candidate.source_candidate_key)) fail(`DUPLICATE_KEY:${candidate.source_candidate_key}`);
+  keys.add(candidate.source_candidate_key);
+  if (locators.has(candidate.canonical_locator)) fail(`DUPLICATE_LOCATOR:${candidate.canonical_locator}`);
+  locators.add(candidate.canonical_locator);
+  for (const field of [
+    'source_candidate_key', 'canonical_locator', 'source_name', 'first_seen_at', 'last_seen_at', 'observation_count',
+    'discovery_providers', 'source_family_hints', 'candidate_source_roles', 'representative_product_ids',
+    'demand_instance_ids', 'target_regions', 'target_languages', 'provider_record_ids', 'rights_state',
+    'admission_state', 'source_pool_state', 'evidence_state', 'next_action'
+  ]) {
+    if (candidate[field] === undefined || candidate[field] === null) fail(`MISSING:${field}`);
+  }
+  if (!Array.isArray(candidate.discovery_providers) || candidate.discovery_providers.length < 1) fail(`PROVIDER_EMPTY:${candidate.source_candidate_key}`);
+  if (new Set(candidate.discovery_providers).size !== candidate.discovery_providers.length) fail(`PROVIDER_DUPLICATE:${candidate.source_candidate_key}`);
+  if (candidate.provider_switchable_identity !== true) fail(`PROVIDER_SWITCHING_DISABLED:${candidate.source_candidate_key}`);
+  if (candidate.rights_state !== 'UNASSESSED' || candidate.admission_state !== 'NOT_ADMITTED' || candidate.source_pool_state !== 'CANDIDATE_ONLY' || candidate.evidence_state !== 'DISCOVERY_METADATA_ONLY') fail(`PROMOTION:${candidate.source_candidate_key}`);
+  if (candidate.acquisition_authorized !== false || candidate.target_site_traversal_authorized !== false || candidate.market_claim_authorized !== false || candidate.public_projection !== false || candidate.production !== 'HOLD') fail(`BOUNDARY:${candidate.source_candidate_key}`);
+  if (Number(candidate.observation_count) < 1) fail(`OBSERVATION_COUNT:${candidate.source_candidate_key}`);
 }
-if(x.candidate_count!==x.candidates.length) fail('COUNT');
-if(x.rights_review_queue.length>64) fail('RIGHTS_QUEUE_LIMIT');
-for(const r of x.rights_review_queue){if(r.rights_state!=='UNASSESSED'||r.admission_state!=='NOT_ADMITTED'||r.acquisition_authorized!==false)fail(`RIGHTS_PACKET_PROMOTION:${r.packet_id}`);if(!keys.has(r.source_candidate_key))fail(`RIGHTS_PACKET_ORPHAN:${r.packet_id}`)}
-console.log(JSON.stringify({status:'PASS',cycle_count:x.cycle_count,candidate_count:x.candidate_count,new_candidate_count:x.new_candidate_count,reobserved_candidate_count:x.reobserved_candidate_count,rights_review_packets:x.rights_review_queue.length,production:x.production}));
+
+if (Number(value.candidate_count) !== value.candidates.length) fail('COUNT');
+if (value.rights_review_queue.length > 64) fail('RIGHTS_QUEUE_LIMIT');
+for (const receipt of value.rights_review_queue) {
+  if (receipt.rights_state !== 'UNASSESSED' || receipt.admission_state !== 'NOT_ADMITTED' || receipt.acquisition_authorized !== false) fail(`RIGHTS_PACKET_PROMOTION:${receipt.packet_id}`);
+  if (!keys.has(receipt.source_candidate_key)) fail(`RIGHTS_PACKET_ORPHAN:${receipt.packet_id}`);
+  if (!Array.isArray(receipt.discovery_providers) || receipt.discovery_providers.length < 1) fail(`RIGHTS_PACKET_PROVIDER_MISSING:${receipt.packet_id}`);
+}
+
+const providers = [...new Set(value.candidates.flatMap(candidate => candidate.discovery_providers))];
+for (const provider of providers) {
+  const actual = value.candidates.filter(candidate => candidate.discovery_providers.includes(provider)).length;
+  if (Number(value.provider_counts?.[provider] || 0) !== actual) fail(`PROVIDER_COUNT:${provider}`);
+}
+for (const provider of Object.keys(value.provider_counts || {})) {
+  if (!providers.includes(provider)) fail(`ORPHAN_PROVIDER_COUNT:${provider}`);
+}
+
+console.log(JSON.stringify({
+  status: 'PASS',
+  cycle_count: value.cycle_count,
+  candidate_count: value.candidate_count,
+  new_candidate_count: value.new_candidate_count,
+  reobserved_candidate_count: value.reobserved_candidate_count,
+  provider_count: providers.length,
+  rights_review_packets: value.rights_review_queue.length,
+  production: value.production
+}));
