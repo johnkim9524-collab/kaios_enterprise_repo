@@ -8,6 +8,8 @@ on:
     paths:
       - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
       - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml'
@@ -33,10 +35,12 @@ jobs:
           node-version: '24'
       - name: Verify exact source SHA
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-      - name: Syntax-check runtime and pool builders
+      - name: Syntax-check runtime, Gate1 and pool builders
         run: |
           node --check scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs
       - name: Restore immutable anchor foundation and previous Any-Site pool
@@ -63,7 +67,25 @@ jobs:
         run: node scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs queue discovery-out
       - name: Validate live discovery and fail-closed admission boundary
         run: node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
-      - name: Accumulate rolling Any-Site candidate pool
+      - name: GATE1 — classify ingress into Safe / Review / Hard Block pools
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-gate1-safe-candidate-pool-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-gate1-safe-candidate-pool-v1.json
+      - name: GATE1 — reject rights self-promotion mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/asi-gate1-safe-candidate-pool-v1.json';const x=JSON.parse(fs.readFileSync(p));if(!x.receipts.length)process.exit(2);x.receipts[0].collection_right_created=true;fs.writeFileSync('/tmp/bad-gate1-right.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/bad-gate1-right.json; then exit 1; fi
+      - name: GATE1 — reject review candidate entering Safe Pool mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/asi-gate1-safe-candidate-pool-v1.json';const x=JSON.parse(fs.readFileSync(p));const c=x.review_required_queue[0];if(!c)process.exit(0);x.safe_candidate_pool.push(c);x.safe_candidate_count++;x.review_required_queue.shift();x.review_required_count--;fs.writeFileSync('/tmp/bad-gate1-pool.json',JSON.stringify(x));
+          NODE
+          if [ -f /tmp/bad-gate1-pool.json ] && node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/bad-gate1-pool.json; then exit 1; fi
+      - name: Accumulate rolling Any-Site discovery candidate pool
         run: |
           node scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/previous-any-site-pool/asi-proactive-source-pool-v1.json /tmp/asi-proactive-source-pool-v1.json
           node scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs /tmp/asi-proactive-source-pool-v1.json
@@ -73,19 +95,15 @@ jobs:
           node - <<'NODE' >/tmp/asi-global-any-site-hourly-cycle-receipt-v1.json
           const fs=require('fs');
           const d=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery.json','utf8'));
+          const g=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v1.json','utf8'));
           const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-v1.json','utf8'));
           process.stdout.write(JSON.stringify({
-            id:'kidults-asi-global-any-site-hourly-cycle-receipt-v1',
-            status:'SHADOW_ANY_SITE_POOLING_CYCLE_COMPLETE',
-            discovered_candidates:d.candidate_count,
-            live_external_candidates:d.live_external_candidate_count,
-            healthy_live_lanes:d.healthy_live_lane_count,
-            rolling_pool_candidates:p.candidate_count,
-            new_candidates:p.new_candidate_count,
-            rights_promoted_automatically:false,
-            admission_promoted_automatically:false,
-            public_release:'HOLD',
-            production:'HOLD'
+            id:'kidults-asi-global-any-site-hourly-cycle-receipt-v1',status:'SHADOW_ANY_SITE_POOLING_WITH_GATE1_COMPLETE',
+            discovered_candidates:d.candidate_count,live_external_candidates:d.live_external_candidate_count,healthy_live_lanes:d.healthy_live_lanes,
+            gate1_safe_candidates:g.safe_candidate_count,gate1_review_required:g.review_required_count,gate1_hard_blocked:g.hard_block_count,
+            rolling_discovery_pool_candidates:p.candidate_count,new_candidates:p.new_candidate_count,
+            gate2_required_before_any_collection_right:true,gate3_required_before_bounded_acquisition:true,
+            rights_promoted_automatically:false,admission_promoted_automatically:false,public_release:'HOLD',production:'HOLD'
           },null,2));
           NODE
           cat /tmp/asi-global-any-site-hourly-cycle-receipt-v1.json
@@ -94,6 +112,7 @@ jobs:
           name: kidults-asi-global-any-site-source-pool-v1
           path: |
             /tmp/asi-proactive-source-pool-v1.json
+            /tmp/asi-gate1-safe-candidate-pool-v1.json
             /tmp/asi-global-any-site-hourly-cycle-receipt-v1.json
           retention-days: 90
           if-no-files-found: error
