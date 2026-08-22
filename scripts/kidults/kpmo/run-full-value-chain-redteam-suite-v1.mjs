@@ -13,7 +13,8 @@ const repositoryMutationBoundaryValidators = [
   'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
 ];
 const secretBoundaryValidators = [
-  'scripts/kidults/kpmo/validate-pr-secret-boundary-v1.mjs'
+  'scripts/kidults/kpmo/validate-pr-secret-boundary-v1.mjs',
+  'scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs'
 ];
 const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
@@ -85,7 +86,10 @@ console.log(JSON.stringify({
   workflow_repository_mutation_boundary_machine_bound: true,
   workflow_repository_mutation_boundary_validators: repositoryMutationBoundaryValidators.length,
   pull_request_secret_boundary_machine_bound: true,
-  pull_request_secret_boundary_validators: secretBoundaryValidators.length,
+  pull_request_secret_boundary_validators: 1,
+  privileged_manual_secret_lane_inventory_machine_bound: true,
+  privileged_manual_secret_lane_registry_state: 'EXTERNAL_APPROVAL_REQUIRED',
+  privileged_manual_secret_lane_issue: 974,
   pre_partner_intake_gate_machine_bound: true,
   pre_partner_certification_machine_bound: true,
   pre_partner_control_families: 12,
