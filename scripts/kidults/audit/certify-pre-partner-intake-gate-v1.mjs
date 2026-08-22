@@ -60,6 +60,8 @@ assert(control.partner_data_state_machine.default_after_receipt === 'QUARANTINED
 console.log(JSON.stringify({
   suite: 'KIDULTS_PRE_PARTNER_INTAKE_GATE_CERT_V1',
   governing_issue: 881,
+  certification_scope: 'PRE_PARTNER_CONTROL_READINESS_ONLY',
+  global_p0_p1_absence_claim: 'NOT_ASSERTED',
   internal_pre_intake_gate: 'PASS',
   control_families: 12,
   exact_family_control_coverage: 'PASS',
@@ -75,7 +77,6 @@ console.log(JSON.stringify({
   rights_withdrawal_transitive_invalidation: 'PASS',
   unified_audit_control_plane: 'PASS',
   projection_downstream_isolation: 'PASS',
-  no_internally_solvable_p0_p1_detected_by_certification: true,
   empirical_gate_effect: 'NONE',
   real_candidate_evidence: 'NONE',
   track_b: 'NOT_STARTED',
