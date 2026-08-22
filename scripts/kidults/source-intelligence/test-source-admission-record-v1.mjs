@@ -39,6 +39,12 @@ try {
   if (baseline.status !== 0) throw new Error(`baseline rejected:\n${baseline.stdout}\n${baseline.stderr}`);
 
   const rejected = [
+    ['conditional_collect', r => { r.rights.collect = 'CONDITIONAL'; }],
+    ['conditional_store', r => { r.rights.store = 'CONDITIONAL'; }],
+    ['conditional_derive', r => { r.rights.derive = 'CONDITIONAL'; }],
+    ['denied_collect', r => { r.rights.collect = 'DENY'; }],
+    ['unknown_store', r => { r.rights.store = 'UNKNOWN'; }],
+    ['unknown_derive', r => { r.rights.derive = 'UNKNOWN'; }],
     ['expired_rights', r => { r.expires_at = '2026-08-20T23:59:59Z'; }],
     ['malformed_expiry', r => { r.expires_at = 'not-a-date'; }],
     ['timezone_less_expiry', r => { r.expires_at = '2099-01-01T00:00:00'; }],
@@ -54,6 +60,12 @@ try {
     if (result.status === 0) throw new Error(`mutation ${name} failed open`);
   }
 
+  const conditionalHold = structuredClone(base);
+  conditionalHold.state = 'CONDITIONAL';
+  conditionalHold.rights.collect = 'CONDITIONAL';
+  const conditionalHoldResult = execute(conditionalHold, 'conditional-hold-representable');
+  if (conditionalHoldResult.status !== 0) throw new Error(`conditional HOLD record should remain representable:\n${conditionalHoldResult.stderr}`);
+
   const archival = structuredClone(base);
   archival.state = 'BLOCKED';
   archival.expires_at = '2026-08-19T00:00:00Z';
@@ -64,6 +76,8 @@ try {
     suite: 'KIDULTS_SOURCE_ADMISSION_TEMPORAL_RIGHTS_SELFTEST_V1',
     result: 'PASS',
     baseline_admitted: true,
+    admitted_execution_rights_exact_allow_required: true,
+    conditional_execution_rights_hold_representable: true,
     fail_closed_mutations_detected: rejected.length,
     blocked_expired_archival_record_supported: true,
     external_partner_data_ingestion: 'HOLD',
