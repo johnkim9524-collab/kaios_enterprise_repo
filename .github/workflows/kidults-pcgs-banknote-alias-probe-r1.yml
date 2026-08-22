@@ -1,10 +1,6 @@
 name: KIDULTS PCGS Banknote Alias Probe R1
 
 on:
-  pull_request:
-    paths:
-      - 'scripts/kidults/source-intelligence/probe-pcgs-banknote-alias-r1.mjs'
-      - '.github/workflows/kidults-pcgs-banknote-alias-probe-r1.yml'
   workflow_dispatch:
 
 permissions:

@@ -1,14 +1,6 @@
 name: KIDULTS DigitalOcean STAGING Portal Deploy
 
 on:
-  pull_request:
-    paths:
-      - 'coordination/kidults/runtime/digitalocean-staging-portal-deploy-contract-v1.json'
-      - 'coordination/kidults/runtime/staging-portal-deploy-request-v1.json'
-      - 'scripts/operations/digitalocean_staging_portal_deploy_v1.sh'
-      - 'scripts/operations/validate_digitalocean_staging_portal_deploy_v1.py'
-      - '.github/workflows/digitalocean-staging-portal-deploy.yml'
-      - 'apps/kidults-enterprise-staging/public/portal-r001/**'
   push:
     branches: [main]
     paths:
