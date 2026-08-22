@@ -11,6 +11,7 @@ const mandatory = [
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs',
   'scripts/kidults/audit/validate-rights-withdrawal-transitive-invalidation-v1.mjs',
+  'scripts/kidults/audit/validate-destructive-lifecycle-recovery-monotonicity-v1.mjs',
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs',
   'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
@@ -34,6 +35,8 @@ for (const marker of [
   'pre_partner_required_controls_exactly_bound: true',
   'pre_partner_control_removal_mutation_selftest: true',
   'pre_partner_transitive_invalidation_machine_bound: true',
+  'pre_partner_durable_destructive_replay_machine_bound: true',
+  'pre_partner_rollback_revocation_resurrection_fail_closed: true',
   'digitalocean_staging_bootstrap_exec_contract_machine_bound: true',
   'digitalocean_staging_bootstrap_workflow_machine_bound: true'
 ]) {
@@ -78,6 +81,8 @@ console.log(JSON.stringify({
   pre_partner_control_family_exact_coverage:'MACHINE_BOUND',
   pre_partner_control_removal_mutation_selftest:'MACHINE_BOUND',
   pre_partner_transitive_invalidation:'MACHINE_BOUND',
+  pre_partner_durable_destructive_replay:'MACHINE_BOUND',
+  pre_partner_rollback_revocation_resurrection:'FAIL_CLOSED',
   provider_rights_decision_gate:'MACHINE_BOUND',
   runtime_exec_contract:'MACHINE_BOUND',
   runtime_exec_workflow:'MACHINE_BOUND',
