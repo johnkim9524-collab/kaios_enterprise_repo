@@ -6,18 +6,34 @@ on:
       - 'services/kidults-autonomous-intelligence/**'
       - '.github/workflows/kidults-a14-remote-canary.yml'
 
+permissions:
+  contents: read
+
 jobs:
   static-validation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: services/kidults-autonomous-intelligence
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source SHA
+        working-directory: .
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          echo "expected=$EXPECTED_SHA"
+          echo "actual=$ACTUAL_SHA"
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '24'
-      - run: npm install
+          package-manager-cache: false
+      - run: npm ci
       - run: npm run typecheck
       - name: Verify A14 command wiring
         run: |
@@ -29,9 +45,20 @@ jobs:
           grep -q "git pull --ff-only origin main" scripts/stage-finalize.ps1
 
   remote-canary-contract:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          echo "expected=$EXPECTED_SHA"
+          echo "actual=$ACTUAL_SHA"
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
       - name: Assert remote canary is explicit/manual-runtime only
         run: |
           SCRIPT='services/kidults-autonomous-intelligence/scripts/a14-remote-capacity-canary.mjs'
