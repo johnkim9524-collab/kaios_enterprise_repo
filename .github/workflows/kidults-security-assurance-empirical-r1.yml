@@ -81,23 +81,38 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/kidults-security-r1/npm-audit
+          : > /tmp/kidults-security-r1/npm-audit-status.ndjson
           rc=0
+          count=0
           while IFS= read -r lock; do
             [ -n "$lock" ] || continue
+            count=$((count+1))
             d=$(dirname "$lock")
             safe=$(echo "$d" | tr '/.' '__')
-            (cd "$d" && npm audit --omit=dev --json) > "/tmp/kidults-security-r1/npm-audit/${safe}.json" || true
+            status=0
+            (cd "$d" && npm audit --audit-level=high --json) > "/tmp/kidults-security-r1/npm-audit/${safe}.json" || status=$?
+            printf '{"lockfile":"%s","exit_code":%s}\n' "$lock" "$status" >> /tmp/kidults-security-r1/npm-audit-status.ndjson
+            if [ "$status" -ne 0 ]; then rc=1; fi
           done < <(git ls-files '*package-lock.json')
-          node - <<'NODE'
+          node - "$count" "$rc" <<'NODE'
           const fs=require('node:fs'),path=require('node:path');
           const dir='/tmp/kidults-security-r1/npm-audit';
+          const expectedCount=Number(process.argv[2]);
+          const anyNonzero=Number(process.argv[3]);
           const files=fs.existsSync(dir)?fs.readdirSync(dir).filter(x=>x.endsWith('.json')):[];
-          let high=0,critical=0,invalid=0;
-          for(const f of files){try{const x=JSON.parse(fs.readFileSync(path.join(dir,f),'utf8')); const v=x.metadata?.vulnerabilities||{}; high+=v.high||0; critical+=v.critical||0;}catch{invalid++;}}
-          const out={audit_file_count:files.length,high,critical,invalid};
+          let high=0,critical=0,invalid=0,unavailable=0;
+          for(const f of files){
+            try{
+              const x=JSON.parse(fs.readFileSync(path.join(dir,f),'utf8'));
+              if(x?.error || !x?.metadata || !x.metadata.vulnerabilities){ unavailable++; continue; }
+              const v=x.metadata.vulnerabilities;
+              high+=Number(v.high||0); critical+=Number(v.critical||0);
+            }catch{invalid++;}
+          }
+          const out={audit_file_count:files.length,expected_lockfile_count:expectedCount,high,critical,invalid,unavailable,nonzero_audit_exit:Boolean(anyNonzero),scope:'FULL_LOCKFILE_INCLUDING_DEV'};
           fs.writeFileSync('/tmp/kidults-security-r1/npm-audit-summary.json',JSON.stringify(out,null,2));
           console.log(out);
-          if(invalid||high||critical) process.exit(1);
+          if(files.length!==expectedCount||invalid||unavailable||high||critical||anyNonzero) process.exit(1);
           NODE
 
       - name: Python dependency vulnerability audit
