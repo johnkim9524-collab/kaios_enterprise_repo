@@ -14,9 +14,12 @@ const parseJson=relativePath=>{
 };
 const requireMarkers=(content,markers,label)=>markers.forEach(marker=>{if(!content.includes(marker))errors.push(`${label} missing ${marker}`)});
 
-const html=read(`${base}/index.html`);
-const objectHtml=read(`${base}/object.html`);
-const css=read(`${base}/portal-premium-v4.css`);
+const routeFiles=['index.html','markets.html','vertical.html','objects.html','object.html','kidult-100.html','research.html','workspace.html','governance.html'];
+const routeHtml=Object.fromEntries(routeFiles.map(file=>[file,read(`${base}/${file}`)]));
+const html=routeHtml['index.html'];
+const objectHtml=routeHtml['object.html'];
+const combinedHtml=Object.values(routeHtml).join('\n');
+const css=read(`${base}/portal-platform-final.css`);
 const js=read(`${base}/portal-release-001.js`);
 const store=read(`${base}/projection-store.js`);
 const objectJs=read(`${base}/object-intelligence.js`);
@@ -24,41 +27,43 @@ const server=read('apps/kidults-enterprise-staging/server.mjs');
 const fixture=parseJson(`${base}/data/projection-control-fixture.json`);
 const matrix=parseJson(`${base}/data/negative-state-matrix.json`);
 const contentContract=parseJson(`${base}/data/projection-content-contract-v1.json`);
+const productArchitecture=parseJson(`${base}/data/portal-product-architecture-v1.json`);
 
 requireMarkers(html,[
   'data-release="portal-release-001"','data-state="NO_PROJECTION"','GLOBAL COLLECTIBLES INTELLIGENCE',
-  'EIGHT CORE VERTICALS','Read the market.','Know the evidence.','Kidult 100','EVIDENCE &amp; METHODOLOGY',
+  'EIGHT CORE VERTICALS','Read the market.','Know the evidence.','Kidult 100','EVIDENCE & METHODOLOGY',
   'Workspace','Object Intelligence','SAFE AUDIT PROJECTION','data-release-state','data-rights','data-object-state',
   'data-object-identity','data-object-market','data-object-comparables','data-object-evidence','data-object-rights','data-object-limitations',
-  'data-projection-freshness','data-research-state','data-research-record','data-audit-seal','data-content-surface="overview"',
-  'class="nav-toggle"','id="primary-nav"','class="site-footer"'
+  'data-projection-freshness','data-research-state','data-research-record','data-content-surface="overview"',
+  'class="nav-toggle"','id="primary-nav"','class="platform-footer"'
 ],'portal HTML');
-requireMarkers(objectHtml,['OBJECT INTELLIGENCE','Canonical identity','MARKET OBSERVATIONS','COMPARABLES','EVIDENCE','RIGHTS & FRESHNESS','LIMITATIONS','index.html#objects','src="object-redirect.js"'],'object compatibility route');
-if(/<script(?![^>]+src=)[^>]*>\s*[^<]/i.test(objectHtml))errors.push('object compatibility route must not use an inline redirect script under self-only CSP');
-requireMarkers(read(`${base}/object-redirect.js`),['URLSearchParams','encodeURIComponent','index.html?id=','#objects','globalThis.location.replace'],'object redirect runtime');
+requireMarkers(objectHtml,['Object Intelligence / Dossier','Identity','Market Observations','Comparables','Evidence','Rights','Known Limitations','data-object-state','portal-release-001.js'],'object detail route');
+for(const route of routeFiles)requireMarkers(routeHtml[route],['class="platform-header"','class="primary-nav"','class="platform-footer"','portal-platform-final.css','portal-release-001.js'],`${route} shell`);
 
 for(const legacy of ['data-release="v502"','V6 RC','THE GLOBAL STANDARD FOR COLLECTIBLES INTELLIGENCE']){
   if(html.includes(legacy)||objectHtml.includes(legacy))errors.push(`legacy/customer-facing marker present: ${legacy}`);
 }
 
-const styles=[...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(match=>match[1]);
-if(styles.length!==1||styles[0]!=='portal-premium-v4.css')errors.push(`portal must load exactly one design stylesheet; observed ${styles.join(', ')||'none'}`);
+for(const [route,content] of Object.entries(routeHtml)){
+  const styles=[...content.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(match=>match[1]);
+  if(styles.length!==1||styles[0]!=='portal-platform-final.css')errors.push(`${route} must load exactly one final design stylesheet; observed ${styles.join(', ')||'none'}`);
+}
 requireMarkers(css,[
-  '--forest: #09271e','--ivory: #f5f2ec','--serif: Georgia, "Times New Roman", serif','--sans: Inter, ui-sans-serif, system-ui','font-size: 22px','font-weight: 750','letter-spacing: .34em','text-indent: .34em',
-  '.footer-wordmark','font-size: 13px','letter-spacing: .28em','@media (max-width: 900px)','@media (max-width: 700px)',
-  '@media (max-width: 390px)','.module-grid','.object-facts','.workspace-grid','.audit-safe-grid'
-],'premium CSS');
+  '--forest:#08251c','--ivory:#f4f0e8','--serif:Georgia,"Times New Roman",serif','--sans:Inter,ui-sans-serif,system-ui','font-size:22px','font-weight:750','letter-spacing:.34em','text-indent:.34em',
+  '.footer-wordmark','font-size:16px','letter-spacing:.28em','@media(max-width:900px)','@media(max-width:620px)',
+  '.product-grid','.object-dossier','.workspace-board','.audit-ledger','.lens-switch'
+],'final platform CSS');
 if(/#c9ff39|#c6d96a|lime|neon/i.test(css))errors.push('bright lime/neon accent present');
 if(/html\s*,?\s*body[^}]*overflow-x\s*:\s*hidden/i.test(css))errors.push('global overflow-x hiding must not mask responsive defects');
 if(/\[data-(?:rights|release-state)\][^}]*display\s*:\s*none/is.test(css))errors.push('critical rights/release state must remain visible');
 
 const fakeMetrics=['50+','250K+','100M+','1,248.7','+3.7%'];
-const customerSurface=`${html}\n${js}`;
+const customerSurface=`${combinedHtml}\n${js}`;
 for(const fake of fakeMetrics)if(customerSurface.includes(fake))errors.push(`unsupported customer-facing metric present: ${fake}`);
 if(/number\s+seven|racing\s+number|>\s*7\s*</i.test(html))errors.push('removed racing number remains in customer-facing HTML');
 if(/class="sign-in[^\"]*search|class="search[^\"]*sign-in|class="sign-in"[^>]*disabled/i.test(html))errors.push('institutional sign-in must not be Projection-gated');
 
-const heroRelative='assets/hero/portal-r001-roadster-v4.webp';
+const heroRelative='assets/hero/portal-r001-roadster-final.webp';
 const heroPath=path.join(root,base,heroRelative);
 if(!html.includes(heroRelative))errors.push('approved roadster hero is not referenced');
 if(!fs.existsSync(heroPath)){
@@ -81,7 +86,7 @@ if(!fs.existsSync(heroPath)){
 }
 if(!server.includes('".webp": "image/webp"'))errors.push('staging server WebP MIME binding missing');
 
-for(const asset of ['verticals-v4.svg','object-dossier-v4.svg','market-map-v4.svg']){
+for(const asset of ['verticals-v4.svg']){
   const relative=`${base}/assets/cards/${asset}`;
   const svg=read(relative);
   if(!svg.includes('<svg')||!svg.includes('viewBox=')||!svg.includes('<title'))errors.push(`premium card asset invalid: ${asset}`);
@@ -132,9 +137,15 @@ for(const field of ['vertical_id','signal_id','object_id','research_id','snapsho
 for(const field of ['aliases','evidence_refs','kidult_100.constituents'])if(!integrity.unique_record_arrays?.includes(field))errors.push(`projection record-array uniqueness missing ${field}`);
 if(integrity?.nullable_scalars?.['kidult_100.change']!=='NULL_OR_FINITE_NUMBER')errors.push('Kidult 100 change scalar contract missing');
 for(const surface of expectedSurfaces){
-  if(surface==='research_archive'&&html.includes('data-content-surface="evidence_methodology research_archive"'))continue;
-  if(!html.includes(`data-content-surface="${surface}`))errors.push(`portal surface is not represented in HTML: ${surface}`);
+  if(surface==='research_archive'&&combinedHtml.includes('data-content-surface="evidence_methodology research_archive"'))continue;
+  if(!combinedHtml.includes(`data-content-surface="${surface}`))errors.push(`portal surface is not represented in the platform routes: ${surface}`);
 }
+
+if(productArchitecture.id!=='kidults-autonomous-global-intelligence-platform-portal-v1'||productArchitecture.experience_baseline!=='V502_EVOLVED')errors.push('final product architecture identity/baseline invalid');
+for(const route of routeFiles)if(!productArchitecture.routes?.some(item=>item.path===route))errors.push(`product architecture missing route ${route}`);
+for(const audience of ['collector','institutional'])if(!Array.isArray(productArchitecture?.audiences?.[audience])||!productArchitecture.audiences[audience].length)errors.push(`product architecture missing ${audience} lens`);
+if(productArchitecture?.card_system?.max_cards_per_desktop_row>3||productArchitecture?.card_system?.minimum_body_px<16||productArchitecture?.card_system?.minimum_metadata_px<12)errors.push('final card/typography policy is below premium minimum');
+if(productArchitecture?.truth_boundary?.governed_projection_only!==true||productArchitecture?.truth_boundary?.portal_calculation_allowed!==false||productArchitecture?.truth_boundary?.synthetic_fallback!==false)errors.push('final product architecture truth boundary invalid');
 
 if(errors.length){
   console.error(`Portal Release-001 premium-v4 validation FAIL (${errors.length})`);
@@ -142,4 +153,4 @@ if(errors.length){
   process.exit(1);
 }
 
-console.log('Portal Release-001 premium-v4 validation PASS — valid roadster WebP, single design system, responsive navigation, in-page Object runtime, governed state semantics and fail-closed boundaries.');
+console.log('Portal Release-001 final-platform validation PASS — V502-evolved multi-route products, sharp roadster hero, collector/institutional market lenses, governed Projection semantics and fail-closed boundaries.');

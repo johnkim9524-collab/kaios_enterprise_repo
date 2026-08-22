@@ -1,133 +1,39 @@
 <!doctype html>
-<html lang="en" data-product="kidults-intelligence-portal" data-release="portal-release-001" data-state="NO_PROJECTION">
+<html lang="en" data-product="kidults-intelligence-platform" data-release="portal-release-001" data-state="NO_PROJECTION">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f5f2ec">
-  <meta name="description" content="KIDULTS — governed global collectibles intelligence for markets, objects, evidence and decisions.">
-  <title>KIDULTS Intelligence Portal</title>
-  <link rel="preload" as="image" href="assets/hero/portal-r001-roadster-v4.webp" type="image/webp" fetchpriority="high">
-  <link rel="stylesheet" href="portal-premium-v4.css">
-  <script type="module" src="portal-release-001.js"></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f4f0e8">
+  <meta name="description" content="KIDULTS — governed global collectibles intelligence for collectors and institutions.">
+  <title>KIDULTS Intelligence Platform</title>
+  <link rel="preload" as="image" href="assets/hero/portal-r001-roadster-final.webp" type="image/webp" fetchpriority="high">
+  <link rel="stylesheet" href="portal-platform-final.css"><script type="module" src="portal-release-001.js"></script>
 </head>
-<body>
-  <!-- Release compatibility markers: GLOBAL COLLECTIBLES INTELLIGENCE · EIGHT CORE VERTICALS · EVIDENCE &amp; METHODOLOGY · SAFE AUDIT PROJECTION -->
+<body data-view="home">
+  <!-- GLOBAL COLLECTIBLES INTELLIGENCE · EIGHT CORE VERTICALS · EVIDENCE & METHODOLOGY · SAFE AUDIT PROJECTION -->
   <a class="skip-link" href="#main">Skip to intelligence</a>
-
-  <header class="site-header" data-site-header>
-    <div class="header-inner">
-      <a class="wordmark" href="#overview" aria-label="KIDULTS home">KIDULTS</a>
-      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">
-        <span>Menu</span><i aria-hidden="true"></i>
-      </button>
-      <nav class="primary-nav" id="primary-nav" aria-label="Primary navigation">
-        <a href="#overview">Dashboard</a><a href="#objects">Objects</a><a href="#markets">Markets</a><a href="#kidult-100">Insights</a><a href="#methodology">Research</a><a href="#verticals">Verticals</a>
-      </nav>
-      <nav class="utility-nav" aria-label="Account navigation">
-        <a href="#about">About</a><a href="#access">Access</a><a class="sign-in" href="mailto:access@kidults.com?subject=KIDULTS%20Institutional%20Sign-In%20Access">Sign in <span class="lock-mini" aria-hidden="true"></span></a>
-      </nav>
-    </div>
-  </header>
-
+  <header class="platform-header" data-site-header><div class="header-shell">
+    <a class="wordmark" href="index.html" aria-label="KIDULTS Intelligence home">KIDULTS</a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav"><span>Menu</span><i aria-hidden="true"></i></button>
+    <nav class="primary-nav" id="primary-nav" aria-label="Primary navigation"><a class="active" href="index.html">Intelligence</a><a href="markets.html">Markets</a><a href="objects.html">Objects</a><a href="research.html">Research</a><a href="workspace.html">Workspace</a><a href="governance.html">Governance</a></nav>
+    <a class="access-link" href="mailto:access@kidults.com?subject=KIDULTS%20Institutional%20Access">Access <span class="lock-mini" aria-hidden="true"></span></a>
+  </div></header>
   <main id="main">
-    <section class="hero" id="overview" data-content-surface="overview" aria-labelledby="hero-title">
-      <img class="hero-image" src="assets/hero/portal-r001-roadster-v4.webp" alt="Deep green vintage roadster in a warm stone gallery" width="1859" height="846" loading="eager" decoding="async" fetchpriority="high">
-      <div class="hero-shade" aria-hidden="true"></div>
-      <div class="hero-content">
-        <p class="eyebrow">Global Intelligence Portal</p>
-        <h1 id="hero-title">Read the market.<br>Know the evidence.</h1>
-        <span class="title-rule" aria-hidden="true"></span>
-        <p class="hero-lede">KIDULTS is the global, evidence-led<br class="desktop-only"> collectibles intelligence portal.</p>
-        <ul class="principles" aria-label="Portal principles">
-          <li><span class="principle-icon globe-icon" aria-hidden="true"></span>Evidence led</li>
-          <li><span class="principle-icon shield-icon" aria-hidden="true"></span>Non-promotable</li>
-          <li><span class="principle-icon lock-icon" aria-hidden="true"></span>Rights-gated</li>
-        </ul>
-      </div>
+    <section class="hero-final" aria-labelledby="hero-title" data-content-surface="overview">
+      <img class="hero-image" src="assets/hero/portal-r001-roadster-final.webp" width="1859" height="846" alt="Deep forest green vintage roadster in a warm stone gallery" loading="eager" decoding="async" fetchpriority="high">
+      <div class="hero-copy-panel"><p class="kicker">Global Collectibles Intelligence</p><h1 id="hero-title">Read the market.<br>Know the evidence.</h1><p class="hero-deck">Decision-grade intelligence for collectors, institutions and the markets that connect them.</p><div class="hero-actions"><a class="button-primary" href="markets.html">Explore market intelligence</a><a class="text-link" href="research.html">Review our evidence standard <span>→</span></a></div><ul class="trust-row" aria-label="Platform principles"><li>Evidence-led</li><li>Rights-gated</li><li>Audit-ready</li></ul></div>
     </section>
-
-    <section class="status-strip" aria-label="Current governed intelligence status">
-      <div class="status-grid">
-        <article><span class="status-icon projection-icon" aria-hidden="true"></span><div><small>Governed intelligence</small><strong data-projection-state aria-live="polite">NO_PROJECTION</strong><em>Current projection</em></div></article>
-        <article><span class="status-icon object-icon" aria-hidden="true"></span><div><small>Objects</small><strong data-object-count>WAITING</strong><em>Projection-bound</em></div></article>
-        <article><span class="status-icon assessment-icon" aria-hidden="true"></span><div><small>Assessment</small><strong data-assessment>NOT STARTED</strong><em><span data-projection-asof>As of —</span> · <span data-projection-freshness>NOT AVAILABLE</span></em></div></article>
-        <article><span class="status-icon rights-icon" aria-hidden="true"></span><div><small>Rights · Release</small><strong><span data-rights>WAITING</span> · <span data-release-state>HOLD</span></strong><em>Institutional boundary</em></div></article>
-      </div>
+    <section class="control-bar" aria-label="Governed Projection status"><div class="control-shell"><div class="control-primary"><span class="pulse-dot" aria-hidden="true"></span><p><small>Intelligence state</small><strong data-projection-state aria-live="polite">NO_PROJECTION</strong></p></div><dl><div><dt>Assessment</dt><dd data-assessment>NOT STARTED</dd></div><div><dt>Freshness</dt><dd data-projection-freshness>NOT AVAILABLE</dd></div><div><dt>Rights</dt><dd data-rights>WAITING</dd></div><div><dt>Release</dt><dd data-release-state>HOLD</dd></div></dl><a href="governance.html">Open governance record <span>→</span></a></div></section>
+    <section class="section-shell opening-grid" aria-labelledby="pulse-title"><div class="section-heading wide-heading"><p class="kicker">Global Market Pulse</p><h2 id="pulse-title">The collectible universe,<br>viewed as one market system.</h2><p>Cross-category signals are admitted only when value, evidence, freshness and usage rights travel together.</p></div><article class="feature-panel market-pulse" data-content-surface="market_signals"><header><div><span>Market Intelligence</span><h3>Signals that explain movement—not noise.</h3></div><a href="markets.html">Full market view →</a></header><div class="pulse-visual" aria-hidden="true"><span class="orbit one"></span><span class="orbit two"></span><span class="orbit three"></span><i></i><b></b></div><div class="signal-strip" data-signal-grid></div></article></section>
+    <section class="section-shell split-feature" aria-label="Index and object intelligence">
+      <article class="feature-panel index-product" id="kidult-100" data-content-surface="kidult_100"><header><div><span>Benchmark Intelligence</span><h2>Kidult 100</h2></div><a href="kidult-100.html">Open benchmark →</a></header><div class="index-hero" data-k100-state><small>Current governed state</small><strong>NO PROJECTION</strong><p>Ranking waits for approved evidence.</p></div><svg class="index-chart" viewBox="0 0 720 160" role="img" aria-label="Index series withheld until governed Projection"><path d="M12 128H708" class="chart-axis"></path><path d="M30 106C118 100 138 82 218 92S340 54 422 70 540 40 690 46" class="chart-withheld"></path></svg><footer><span>Evidence</span><span>Assessment</span><span>Constituents</span><span>Release</span></footer></article>
+      <article class="feature-panel object-product" id="objects" data-content-surface="object_intelligence" data-object-state><header><div><span>Object Intelligence</span><h2 data-object-title>No governed object</h2></div><a href="objects.html">Object explorer →</a></header><div class="object-stage"><div class="object-illustration" aria-hidden="true"><span></span><i></i></div><div><small>Selected object</small><strong data-object-id>Waiting for Projection</strong><p>Identity, provenance, condition, comparables and rights in one evidence-bound dossier.</p></div></div><dl class="object-summary"><div><dt>Identity</dt><dd data-object-identity>Waiting</dd></div><div><dt>Market</dt><dd data-object-market>Waiting</dd></div><div><dt>Comparables</dt><dd data-object-comparables>Waiting</dd></div><div><dt>Evidence</dt><dd data-object-evidence>Waiting</dd></div><div><dt>Rights</dt><dd data-object-rights>Waiting</dd></div><div><dt>Limits</dt><dd data-object-limitations>Visible</dd></div></dl></article>
     </section>
-
-    <section class="modules" aria-label="KIDULTS intelligence capabilities">
-      <div class="module-grid">
-        <article class="module-card verticals-card" id="verticals" data-content-surface="core_verticals">
-          <header class="module-head"><span>01</span><div><h2>8 Core Verticals</h2><p>Eight governed categories across the collectible universe.</p></div></header>
-          <div class="vertical-preview" data-vertical-grid aria-label="Eight core verticals"></div>
-          <a class="module-link" href="#access">Explore verticals <span aria-hidden="true">→</span></a>
-        </article>
-
-        <article class="module-card object-card" id="objects" data-content-surface="object_intelligence">
-          <header class="module-head"><span>02</span><div><h2>Object Intelligence</h2><p>Evidence-bound identity, provenance, condition and market context.</p></div></header>
-          <div class="object-preview" data-object-state role="group" aria-label="No governed object is available">
-            <div class="object-dial" aria-hidden="true"><i></i><b>K</b></div>
-            <div class="object-preview-copy"><small>Selected object</small><strong data-object-title>No governed object</strong><em data-object-id>Waiting for Projection</em></div>
-          </div>
-          <dl class="object-facts" aria-label="Object intelligence fields">
-            <div><dt>Identity</dt><dd data-object-identity>Waiting</dd></div><div><dt>Market</dt><dd data-object-market>Waiting</dd></div><div><dt>Comparables</dt><dd data-object-comparables>Waiting</dd></div><div><dt>Evidence</dt><dd data-object-evidence>Waiting</dd></div><div><dt>Rights</dt><dd data-object-rights>Waiting</dd></div><div><dt>Limits</dt><dd data-object-limitations>Visible</dd></div>
-          </dl>
-          <a class="module-link" href="#access">Explore objects <span aria-hidden="true">→</span></a>
-        </article>
-
-        <article class="module-card market-card" id="markets" data-content-surface="market_signals">
-          <header class="module-head"><span>03</span><div><h2>Market Signals</h2><p>Market movement with evidence, freshness and rights attached.</p></div></header>
-          <div class="market-preview"><div class="world-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="signal-list" data-signal-grid></div></div>
-          <a class="module-link" href="#access">Explore markets <span aria-hidden="true">→</span></a>
-        </article>
-
-        <article class="module-card index-card" id="kidult-100" data-content-surface="kidult_100">
-          <header class="module-head"><span>04</span><div><h2>Kidult 100</h2><p>A governed benchmark for blue-chip collectibles—never an unsupported score.</p></div></header>
-          <div class="index-state" data-k100-state><div><small>Current state</small><strong>NO PROJECTION</strong><p>Ranking waits for approved evidence.</p></div></div>
-          <svg class="index-line" viewBox="0 0 360 72" role="img" aria-label="Index display withheld until governed Projection"><path class="index-baseline" d="M2 48H358"></path><path class="index-withheld" d="M28 34H118M136 34H226M244 34H334"></path></svg>
-          <div class="index-periods" aria-hidden="true"><span>Evidence</span><span>Assessment</span><span>Release</span></div>
-          <a class="module-link" href="#access">View Kidult 100 <span aria-hidden="true">→</span></a>
-        </article>
-
-        <article class="module-card methodology-card" id="methodology" data-content-surface="evidence_methodology research_archive">
-          <header class="module-head"><span>05</span><div><h2>Evidence &amp; Methodology</h2><p>Lineage, freshness, confidence and methodological standards.</p></div></header>
-          <div class="method-visual" aria-hidden="true"><div class="method-paper"><b>KIDULTS</b><span>Methodology<br>Document</span><small>Release-001</small></div><div class="method-ring"><i></i></div></div>
-          <div class="evidence-list" data-evidence-grid></div>
-          <div class="research-state"><small>Research &amp; Archive</small><span><strong data-research-state>Archive waiting</strong><em data-research-record>No approved research record</em></span></div>
-          <a class="module-link" href="#access">View methodology <span aria-hidden="true">→</span></a>
-        </article>
-
-        <article class="module-card audit-card" id="safe-audit" data-content-surface="safe_audit">
-          <header class="module-head"><span>06</span><div><h2>Safe Audit</h2><p>Independent traceability without raw provider payloads or credentials.</p></div></header>
-          <div class="audit-seal" aria-label="Safe Audit control boundary"><span>KIDULTS</span><strong>SAFE AUDIT</strong><i aria-hidden="true">—</i><small data-audit-seal>CONTROL BOUNDARY</small></div>
-          <div class="audit-safe-grid" data-audit-safe></div>
-          <a class="module-link" href="#access">View safe audit <span aria-hidden="true">→</span></a>
-        </article>
-
-        <article class="module-card workspace-card" id="workspace" data-content-surface="workspace">
-          <header class="module-head"><span>07</span><div><h2>Workspace</h2><p>Build watchlists and compare governed objects in a secure environment.</p></div></header>
-          <div class="workspace-grid" aria-label="Workspace capabilities">
-            <article><span aria-hidden="true">⌕</span><b>Search</b><small>Projection-bound</small></article><article><span aria-hidden="true">⇄</span><b>Compare</b><small>Evidence-aware</small></article><article><span aria-hidden="true">◇</span><b>Watch</b><small>Governed changes</small></article><article><span aria-hidden="true">✓</span><b>Decide</b><small>Admissible inputs</small></article>
-          </div>
-          <a class="module-link" href="#access">Open workspace <span aria-hidden="true">→</span></a>
-        </article>
-
-        <article class="module-card access-card" id="access">
-          <div class="access-lock" aria-hidden="true"><i></i></div>
-          <div><h2>Institutional Access Only</h2><p>KIDULTS intelligence is rights-gated.<br>Request access to explore the portal.</p></div>
-          <a class="access-button" href="mailto:access@kidults.com?subject=KIDULTS%20Institutional%20Access">Request access</a>
-        </article>
-      </div>
-    </section>
+    <section class="vertical-section" data-content-surface="core_verticals" aria-labelledby="vertical-title"><div class="section-shell"><div class="section-heading horizontal"><div><p class="kicker">One intelligence fabric</p><h2 id="vertical-title">Eight specialist markets.<br>One governed universe.</h2></div><p>Each vertical retains its own market logic while sharing identity, evidence, confidence and rights controls.</p></div><div class="vertical-grid-final" data-vertical-grid aria-label="Eight core verticals"></div><a class="button-secondary" href="markets.html#verticals">Explore all verticals</a></div></section>
+    <section class="section-shell intelligence-foundation" aria-labelledby="foundation-title"><div class="section-heading"><p class="kicker">Intelligence Foundation</p><h2 id="foundation-title">Every conclusion should be traceable.</h2></div><div class="foundation-grid">
+      <article data-content-surface="evidence_methodology research_archive"><span>01</span><h3>Research &amp; Evidence</h3><p>Methodology, lineage, confidence, coverage and approved research records.</p><div class="evidence-list" data-evidence-grid></div><div class="research-state"><strong data-research-state>Archive waiting</strong><em data-research-record>No approved research record</em></div><a href="research.html">Enter research library →</a></article>
+      <article data-content-surface="safe_audit"><span>02</span><h3>Governance &amp; Safe Audit</h3><p>Projection, assessment and runtime receipts linked without exposing provider payloads.</p><div class="audit-chain-mini" aria-label="Governed audit chain"><b>Evidence</b><i></i><b>Assessment</b><i></i><b>Runtime</b><i></i><b>Projection</b></div><a href="governance.html">Inspect control chain →</a></article>
+      <article data-content-surface="workspace"><span>03</span><h3>Intelligence Workspace</h3><p>Compare governed objects, build watchlists and turn approved signals into decisions.</p><div class="workspace-actions"><b>Watch</b><b>Compare</b><b>Monitor</b><b>Decide</b></div><a href="workspace.html">Open workspace →</a></article>
+    </div></section>
+    <section class="institutional-cta"><div><p class="kicker">Institutional Intelligence</p><h2>Built for decisions that require evidence.</h2><p>Request governed access for research, portfolio intelligence and market infrastructure workflows.</p></div><a class="button-light" href="mailto:access@kidults.com?subject=KIDULTS%20Institutional%20Access">Request access</a></section>
   </main>
-
-  <footer class="site-footer" id="about">
-    <div class="footer-inner">
-      <a class="footer-wordmark" href="#overview" aria-label="KIDULTS home">KIDULTS</a>
-      <p>© 2026 Intelligence Holdings. All rights reserved.</p>
-      <nav aria-label="Footer navigation"><a href="#methodology">Methodology</a><a href="#markets">Research</a><a href="#access">Access</a></nav>
-      <p class="footer-release">Intelligence Portal · Release-001</p>
-    </div>
-  </footer>
-</body>
-</html>
+  <footer class="platform-footer"><div><a class="footer-wordmark" href="index.html">KIDULTS</a><p>Global Collectibles Intelligence</p></div><nav aria-label="Footer navigation"><a href="markets.html">Markets</a><a href="research.html">Methodology</a><a href="governance.html">Governance</a><a href="mailto:access@kidults.com">Access</a></nav><p>© 2026 Intelligence Holdings<br>Portal Release-001 · STAGING</p></footer>
+</body></html>

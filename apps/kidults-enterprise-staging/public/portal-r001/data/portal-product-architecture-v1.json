@@ -1,0 +1,41 @@
+{
+  "id": "kidults-autonomous-global-intelligence-platform-portal-v1",
+  "release": "Portal Release-001",
+  "experience_baseline": "V502_EVOLVED",
+  "purpose": "Decision-grade global collectibles intelligence for collectors and institutions",
+  "audiences": {
+    "collector": ["price_discovery", "comparables", "liquidity", "scarcity", "ownership_risk", "watchlist", "buy_hold_sell_context"],
+    "institutional": ["market_universe", "market_scale", "venue_depth", "turnover", "concentration", "cross_vertical_correlation", "portfolio_exposure", "confidence", "rights", "auditability"]
+  },
+  "routes": [
+    {"id":"intelligence","path":"index.html","surfaces":["overview","market_signals","kidult_100","core_verticals","object_intelligence","research_archive"]},
+    {"id":"markets","path":"markets.html","surfaces":["market_signals","core_verticals","kidult_100","evidence_methodology"]},
+    {"id":"vertical","path":"vertical.html","surfaces":["core_verticals","market_signals","object_intelligence","research_archive"]},
+    {"id":"objects","path":"objects.html","surfaces":["object_intelligence","market_signals","evidence_methodology"]},
+    {"id":"object_detail","path":"object.html","surfaces":["object_intelligence","market_signals","evidence_methodology","safe_audit"]},
+    {"id":"kidult_100","path":"kidult-100.html","surfaces":["kidult_100","core_verticals","evidence_methodology","research_archive"]},
+    {"id":"research","path":"research.html","surfaces":["research_archive","evidence_methodology"]},
+    {"id":"workspace","path":"workspace.html","surfaces":["workspace","object_intelligence","market_signals"]},
+    {"id":"governance","path":"governance.html","surfaces":["safe_audit","evidence_methodology","overview"]}
+  ],
+  "market_products": [
+    "global_market_pulse", "price_discovery", "liquidity_turnover", "demand_scarcity", "venue_geography", "risk_confidence", "vertical_intelligence", "kidult_100", "portfolio_watchlist"
+  ],
+  "card_system": {
+    "max_cards_per_desktop_row": 3,
+    "minimum_body_px": 16,
+    "minimum_metadata_px": 12,
+    "types": ["hero_intelligence", "market_analysis", "object_dossier", "index_product", "research_editorial", "evidence_panel", "governance_ledger", "status_chip"]
+  },
+  "truth_boundary": {
+    "governed_projection_only": true,
+    "portal_calculation_allowed": false,
+    "missing_never_zero": true,
+    "synthetic_fallback": false,
+    "raw_provider_payloads": false,
+    "credentials": false,
+    "production": false,
+    "public": false,
+    "g5": "HOLD"
+  }
+}

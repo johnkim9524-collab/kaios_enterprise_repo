@@ -1,7 +1,7 @@
 import {normalizeIntelligenceState} from './projection-store.js';
 
 const query=(selector,root=document)=>root.querySelector(selector);
-const write=(root,selector,value)=>{const node=query(selector,root);if(node)node.textContent=value};
+const write=(root,selector,value)=>{[...root.querySelectorAll(selector)].forEach(node=>{node.textContent=value})};
 const clean=value=>value==null||value===''?'Not available':String(value);
 const summarize=(values,fallback='Waiting')=>Array.isArray(values)&&values.length?values.map(clean).join(' · '):fallback;
 

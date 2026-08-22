@@ -7,7 +7,7 @@ const BLOCKING_STATES=new Set(['WAITING','STALE','INVALID','RIGHTS_BLOCKED','NOT
 const display=value=>value==null||value===''?'—':String(value);
 const stateLabel=value=>display(value).replaceAll('_',' ');
 
-function write(selector,value){const node=query(selector);if(node)node.textContent=value}
+function write(selector,value){queryAll(selector).forEach(node=>{node.textContent=value})}
 
 function initializeNavigation(){
   const header=query('[data-site-header]');
@@ -22,6 +22,19 @@ function initializeNavigation(){
   queryAll('#primary-nav a').forEach(link=>link.addEventListener('click',close));
   document.addEventListener('keydown',event=>{if(event.key==='Escape')close()});
   globalThis.addEventListener('resize',()=>{if(globalThis.innerWidth>900)close()},{passive:true});
+}
+
+function initializeAudienceLens(){
+  const buttons=queryAll('[data-lens]');
+  if(!buttons.length)return;
+  const apply=lens=>{
+    buttons.forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.lens===lens)));
+    queryAll('[data-lens-panel]').forEach(panel=>{panel.hidden=panel.dataset.lensPanel!==lens});
+    write('[data-lens-title]',lens==='institutional'?'Institutional market structure':'Collector market context');
+    write('[data-lens-description]',lens==='institutional'?'Universe coverage, venue depth, turnover, concentration, portfolio exposure and auditability across the collectible market.':'Price direction, activity, liquidity, scarcity and evidence confidence across the collectible universe.');
+  };
+  buttons.forEach(button=>button.addEventListener('click',()=>apply(button.dataset.lens)));
+  apply(buttons.find(button=>button.getAttribute('aria-pressed')==='true')?.dataset.lens||'collector');
 }
 
 function bindHero(){
@@ -44,8 +57,9 @@ function renderVerticals(verticals=[]){
   const root=query('[data-vertical-grid]');
   if(!root)return;
   root.replaceChildren(...verticals.slice(0,8).map(vertical=>{
-    const tile=document.createElement('span');
+    const tile=document.createElement('a');
     tile.className='vertical-tile';
+    tile.href=`vertical.html?id=${encodeURIComponent(vertical&&typeof vertical==='object'?vertical.vertical_id:String(vertical))}`;
     const label=document.createElement('span');
     label.textContent=vertical&&typeof vertical==='object'?display(vertical.label):display(vertical);
     if(vertical&&typeof vertical==='object')tile.dataset.verticalId=vertical.vertical_id;
@@ -95,7 +109,7 @@ function renderKidult100(content={},state){
   }else note.textContent='Ranking waits for approved evidence.';
   wrapper.append(label,value,note);
   root.replaceChildren(wrapper);
-  const chart=query('.index-line');
+  const chart=query('.index-chart,.index-line');
   if(chart){
     chart.dataset.seriesState=ready?'NOT_SUPPLIED':'WITHHELD';
     chart.setAttribute('aria-label',ready?'Trend series not supplied by approved Projection':'Index display withheld until governed Projection');
@@ -141,6 +155,10 @@ function renderAudit(audit={}){
     item.append(name,document.createTextNode(display(value)));
     return item;
   }));
+  write('[data-audit-pair]',display(audit.exact_pair_digest));
+  write('[data-audit-assessment]',display(audit.assessment_id));
+  write('[data-audit-replay]',display(audit.replay_id));
+  write('[data-audit-projection]',display(audit.projection_id));
 }
 
 function render(data){
@@ -164,7 +182,7 @@ function render(data){
   renderObjectIntelligence(data);
   gateWorkspace(state);
   if(data.fixture_type==='NON_PROMOTABLE_CONTROL'){
-    const bar=query('.status-strip');
+    const bar=query('.control-bar,.status-strip');
     if(bar){
       bar.dataset.fixture='NON_PROMOTABLE';
       bar.title='Control fixture only — not empirical or live Projection';
@@ -191,5 +209,6 @@ function renderFailure(){
 }
 
 initializeNavigation();
+initializeAudienceLens();
 bindHero();
 readPortalProjection().then(data=>{try{render(data)}catch{renderFailure()}}).catch(renderFailure);
