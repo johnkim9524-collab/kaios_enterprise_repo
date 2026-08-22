@@ -41,6 +41,23 @@ def approved_projection():
     }
 
 
+def closed_projection():
+    return {
+        "projection_state": "AWAITING_APPROVED_PROJECTION",
+        "lineage": {},
+        "rankability": {"state": "PENDING", "assessment_id": None},
+        "rights": {
+            "state": "UNKNOWN",
+            "internal_analysis": "UNKNOWN",
+            "public_display": "UNKNOWN",
+            "api_redistribution": "UNKNOWN",
+        },
+        "freshness": {"state": "UNKNOWN", "observed_at": None, "valid_until": None},
+        "generated_at": "2026-08-22T10:00:00Z",
+        "updated_at": "2026-08-22T10:05:00Z",
+    }
+
+
 def validate(candidate, *, purpose="PUBLIC_DISPLAY", trusted_now="2026-08-22T11:00:00Z"):
     module = load_validator_module()
     now = datetime.fromisoformat(trusted_now.replace("Z", "+00:00")).astimezone(timezone.utc)
@@ -64,12 +81,16 @@ def test_valid_projection_passes_semantic_gate():
     validate(approved_projection())
 
 
+def test_closed_projection_with_unknown_freshness_remains_renderable_as_state_only():
+    validate(closed_projection())
+
+
 @pytest.mark.parametrize(
     "mutator,purpose,trusted_now",
     [
         (lambda p: p["rankability"].update(assessment_id="assessment-other"), "PUBLIC_DISPLAY", "2026-08-22T11:00:00Z"),
         (lambda p: p["freshness"].update(valid_until="2026-08-22T10:59:59Z"), "PUBLIC_DISPLAY", "2026-08-22T11:00:00Z"),
-        (lambda p: p["freshness"].update(observed_at="2026-08-22T12:01:00Z"), "PUBLIC_DISPLAY", "2026-08-22T11:00:00Z"),
+        (lambda p: p["freshness"].update(observed_at="2026-08-22T11:30:00Z"), "PUBLIC_DISPLAY", "2026-08-22T11:00:00Z"),
         (lambda p: p["freshness"].update(observed_at="2026-08-22T12:01:00Z", valid_until="2026-08-22T12:00:00Z"), "PUBLIC_DISPLAY", "2026-08-22T11:00:00Z"),
         (lambda p: p["rights"].update(state="BLOCKED"), "PUBLIC_DISPLAY", "2026-08-22T11:00:00Z"),
         (lambda p: p["rights"].update(public_display="BLOCKED", state="PARTIAL"), "PUBLIC_DISPLAY", "2026-08-22T11:00:00Z"),
