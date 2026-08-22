@@ -39,7 +39,8 @@ const expected = {
     'raw_to_claim_traceability',
     'immutable_lineage_reference',
     'methodology_lineage_version_binding',
-    'confidence_limitation_propagation'
+    'confidence_limitation_propagation',
+    'withdrawal_event_source_binding'
   ],
   QUALITY_POISONING_ANOMALY_DEFENSE: [
     'malformed_adversarial_handling',
@@ -54,14 +55,16 @@ const expected = {
     'secret_manager_only',
     'no_secrets_in_logs_registry_artifacts',
     'least_privilege',
-    'ingest_reject_quarantine_replay_audit'
+    'ingest_reject_quarantine_replay_audit',
+    'destructive_control_event_authorization'
   ],
   REPLAY_RECOVERY_ROLLBACK: [
     'deterministic_replay',
     'idempotent_ingestion',
     'partial_batch_recovery',
     'lineage_safe_rollback',
-    'withdrawal_deletion_propagation'
+    'withdrawal_deletion_propagation',
+    'destructive_event_replay_protection'
   ],
   PROVIDER_INDEPENDENCE_CONCENTRATION: [
     'source_owner_independence_metric',
@@ -144,6 +147,9 @@ for (const [familyId, requiredControls] of Object.entries(expected)) {
 }
 
 if (contract.governing_issue !== 881) throw new Error('control-family coverage must remain bound to #881');
+if (contract.destructive_lifecycle_control?.authorization_required !== true) throw new Error('destructive lifecycle authorization contract required');
+if (contract.destructive_lifecycle_control?.trusted_context_binding !== 'PERSISTED_SOURCE_OWNER_NAMESPACE_OBJECT') throw new Error('destructive lifecycle trusted binding required');
+if (contract.destructive_lifecycle_control?.replay_protection !== 'UNIQUE_EVENT_ID_FAIL_CLOSED') throw new Error('destructive lifecycle replay protection required');
 if (contract.truth_boundary?.readiness_axis !== 'INTERNAL_CONTROL_READINESS') throw new Error('coverage proof is control-readiness only');
 if (contract.truth_boundary?.empirical_gate_effect !== 'NONE') throw new Error('coverage proof cannot promote empirical gates');
 if (contract.truth_boundary?.external_partner_data_ingestion !== 'HOLD') throw new Error('external partner ingestion must remain HOLD');
@@ -157,6 +163,8 @@ console.log(JSON.stringify({
   families_exactly_bound: Object.keys(expected).length,
   required_controls_machine_bound: mutationCases,
   removal_mutation_cases_detected: mutationCases,
+  destructive_lifecycle_authorization_bound: true,
+  destructive_event_replay_protection_bound: true,
   false_green_on_nonempty_family_only: 'CLOSED',
   empirical_gate_effect: 'NONE',
   external_partner_data_ingestion: 'HOLD',
