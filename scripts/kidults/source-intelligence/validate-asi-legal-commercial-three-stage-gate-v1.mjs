@@ -46,6 +46,7 @@ hasAll(x.gate_2?.verification_methods,[
   'REJECT_IF_GATE_1_AND_GATE_2_EVIDENCE_CONFLICT_WITHOUT_RESOLUTION'
 ],'Gate2 verification method');
 hasAll(x.gate_2?.required_purposes,['discover_metadata','collect','store','derive','internal_calibration','retention','redistribute','public_project','sold_event_fields','listing_fields','population_or_census_fields'],'Gate2 purpose');
+hasAll(x.gate_2?.required_commercial_dimensions,['account_or_membership_required','eula_or_contract_required','paid_plan_or_spend_required','credential_required','rate_or_volume_limits','data_retention_constraints','derived_output_constraints','redistribution_constraints','attribution_or_notice_duties','termination_or_deletion_duties'],'Gate2 commercial dimension');
 hasAll(x.gate_2?.decisions,['VERIFIED_FOR_GATE_3','VERIFIED_CONDITIONAL_APPROVAL_REQUIRED','NEEDS_CLARIFICATION','BLOCKED'],'Gate2 decision');
 hasAll(x.gate_2?.no_inference_rules,['PUBLIC_VISIBILITY_IS_NOT_COMMERCIAL_USE_RIGHT','API_ACCESS_IS_NOT_STORAGE_RIGHT','LISTING_ACCESS_IS_NOT_SOLD_EVENT_RIGHT','GATE_1_PASS_IS_NOT_GATE_2_PASS'],'Gate2 no-inference rule');
 if (x.gate_2?.collection_right_created !== false) fail('Gate2 must not create collection right');
@@ -63,6 +64,9 @@ hasAll(x.gate_3?.verification_methods,[
   'VERIFY_NO_BLOCKED_REVOKED_SOURCE_REENTRY_BY_ALIAS_OR_NEW_RECORD_ID'
 ],'Gate3 verification method');
 hasAll(x.gate_3?.decisions,['ADMITTED_FOR_BOUNDED_AUTOMATED_ACQUISITION','EXTERNAL_APPROVAL_REQUIRED','CONDITIONAL_HOLD','REJECTED'],'Gate3 decision');
+hasAll(x.gate_3?.approval_required_when,[
+  'NEW_EULA_OR_CONTRACT','PAID_PLAN_OR_SPEND','NEW_OR_EXPANDED_CREDENTIAL_PERMISSION','PROVIDER_ACTIVATION_WITH_EXTERNAL_COMMITMENT','AMBIGUOUS_OR_CUSTOM_LICENSE','PUBLIC_INTELLIGENCE_AUTHORIZATION','PRODUCTION_OR_G5'
+],'Gate3 approval boundary');
 hasAll(x.gate_3?.forbidden_without_admitted_state,['CONTENT_ACQUISITION','CREDENTIAL_ACTIVATION','EVIDENCE_PROMOTION','MARKET_CLAIM','PUBLIC_PROJECTION','PRODUCTION_MUTATION'],'Gate3 forbidden action');
 if (!String(x.gate_3?.auto_admit_rule||'').includes('NO_NEW_CONTRACT_EULA_SPEND_CREDENTIAL_PERMISSION_OR_EXTERNAL_COMMITMENT')) fail('Gate3 auto-admit boundary missing');
 
