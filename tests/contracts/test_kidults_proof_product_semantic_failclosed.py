@@ -2,6 +2,7 @@ import copy
 import json
 from pathlib import Path
 
+import jsonschema
 import pytest
 
 
@@ -126,14 +127,13 @@ def approved_public_market_projection():
 
 
 def validator():
-    jsonschema = pytest.importorskip("jsonschema")
     return jsonschema.Draft202012Validator(load_schema())
 
 
 def assert_rejected(mutator):
     candidate = approved_public_market_projection()
     mutator(candidate)
-    with pytest.raises(Exception):
+    with pytest.raises(jsonschema.ValidationError):
         validator().validate(candidate)
 
 
@@ -162,7 +162,7 @@ def test_approved_public_contradictions_fail_closed(mutator):
 def test_public_allowed_cannot_exist_outside_approved_public():
     candidate = approved_public_market_projection()
     candidate["projection_state"] = "AWAITING_APPROVED_PROJECTION"
-    with pytest.raises(Exception):
+    with pytest.raises(jsonschema.ValidationError):
         validator().validate(candidate)
 
 
@@ -175,7 +175,6 @@ def test_public_allowed_cannot_exist_outside_approved_public():
     ],
 )
 def test_value_bearing_fields_require_cleared_current_assessed_state(mutation):
-    jsonschema = pytest.importorskip("jsonschema")
     field_schema = load_schema()["$defs"]["field"]
     candidate = verified_field("liquidity", 1.0)
     candidate.update(mutation)
@@ -184,7 +183,6 @@ def test_value_bearing_fields_require_cleared_current_assessed_state(mutation):
 
 
 def test_rights_blocked_field_must_report_blocked_rights():
-    jsonschema = pytest.importorskip("jsonschema")
     field_schema = load_schema()["$defs"]["field"]
     candidate = {
         "field_id": "liquidity",
@@ -202,7 +200,6 @@ def test_rights_blocked_field_must_report_blocked_rights():
 
 
 def test_stale_field_must_report_stale_freshness():
-    jsonschema = pytest.importorskip("jsonschema")
     field_schema = load_schema()["$defs"]["field"]
     candidate = {
         "field_id": "liquidity",
