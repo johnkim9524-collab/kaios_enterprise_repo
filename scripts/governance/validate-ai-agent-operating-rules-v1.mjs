@@ -10,7 +10,9 @@ const files = {
   contract: 'coordination/kidults/governance/ai-agent-operating-rules-v1.json',
   platform: 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json',
   schema: 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json',
-  registry: 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+  registry: 'coordination/kidults/registry/ai-agent-governance-registry-v1.json',
+  reserveWorkflow: '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',
+  scaleWorkflow: '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
 };
 
 const fail = (message) => { throw new Error(message); };
@@ -30,6 +32,8 @@ const contract = readJson(files.contract);
 const platform = readJson(files.platform);
 const schema = readJson(files.schema);
 const registry = readJson(files.registry);
+const reserveWorkflow = readText(files.reserveWorkflow);
+const scaleWorkflow = readText(files.scaleWorkflow);
 
 const requiredPlatformPrinciples = [
   'AUTONOMOUS',
@@ -38,6 +42,7 @@ const requiredPlatformPrinciples = [
   'TRANSPARENT'
 ];
 assert(platform.id === 'kidults-operating-principles-and-resilience-controls-v1', 'PLATFORM_ID');
+assert(platform.version === '1.1.0', 'PLATFORM_VERSION');
 assert(platform.status === 'ACTIVE_MANDATORY_FAIL_CLOSED', 'PLATFORM_STATUS');
 assert(platform.owner === 'KPMO', 'PLATFORM_OWNER');
 assert(platform.precedence === 'HIGHEST_PLATFORM_OPERATING_PRINCIPLES', 'PLATFORM_PRECEDENCE');
@@ -54,7 +59,7 @@ for (const field of ['autonomous_effect','global_effect','irreplaceable_value_ef
 }
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
-assert(contract.version === '1.0.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.1.0', 'CONTRACT_VERSION');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.owner === 'KPMO', 'CONTRACT_OWNER');
 assert(contract.effective_scope === 'REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AUTOMATIONS', 'CONTRACT_SCOPE');
@@ -122,6 +127,15 @@ assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUND
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
+assert(registry.registered_policy?.policy_version === '1.1.0', 'REGISTRY_POLICY_VERSION');
+assert(registry.registered_policy?.platform_constitution_path === files.platform, 'REGISTRY_PLATFORM_PATH');
+assert(registry.platform_operating_principles?.precedence === platform.precedence, 'REGISTRY_PLATFORM_PRECEDENCE');
+assert(JSON.stringify(registry.platform_operating_principles?.ordered_principles) === JSON.stringify(requiredPlatformPrinciples), 'REGISTRY_PLATFORM_ORDER');
+assert(registry.platform_operating_principles?.child_rule_can_weaken_or_reorder === false, 'REGISTRY_PLATFORM_WEAKENING');
+assert(registry.platform_operating_principles?.manual_only_normal_activation_for_ready_governed_runner_forbidden === true, 'REGISTRY_MANUAL_ONLY_FORBIDDEN');
+assert(registry.automatic_execution_paths?.sharded_reserve_workflow === files.reserveWorkflow, 'REGISTRY_RESERVE_WORKFLOW');
+assert(registry.automatic_execution_paths?.source_fabric_scale_workflow === files.scaleWorkflow, 'REGISTRY_SCALE_WORKFLOW');
+assert(registry.automatic_execution_paths?.normal_activation_requires_automatic_trigger === true, 'REGISTRY_AUTOMATIC_TRIGGER');
 assert(registry.mandatory_inheritance?.child_rule_can_weaken_policy === false, 'CHILD_WEAKENING_ALLOWED');
 assert(registry.mandatory_inheritance?.agent_self_exemption_allowed === false, 'REGISTRY_SELF_EXEMPTION_ALLOWED');
 assert(registry.change_control?.requires_policy_and_contract_sync === true, 'REGISTRY_POLICY_SYNC');
@@ -139,6 +153,13 @@ for (const [key, expected] of Object.entries({
   workflow_path: '.github/workflows/ai-agent-governance-enforcement-v1.yml'
 })) {
   assert(registry.registered_policy?.[key] === expected, `REGISTRY_PATH_MISMATCH:${key}`);
+}
+
+for (const [workflowName, workflowText, markers] of [
+  ['RESERVE', reserveWorkflow, ['workflow_dispatch:', 'schedule:', 'push:', 'workflow_run:', 'KIDULTS ASI Global Any-Site Hourly Pooling v2']],
+  ['SCALE', scaleWorkflow, ['workflow_dispatch:', 'schedule:', 'push:']]
+]) {
+  for (const marker of markers) assert(workflowText.includes(marker), `${workflowName}_MISSING_AUTONOMOUS_TRIGGER:${marker}`);
 }
 
 const requiredAgentMarkers = [
@@ -160,6 +181,7 @@ const requiredAgentMarkers = [
 for (const marker of requiredAgentMarkers) assert(agents.includes(marker), `AGENTS_MISSING_MARKER:${marker}`);
 
 const requiredPolicyMarkers = [
+  '**Version:** 1.1.0',
   'Platform constitutional operating principles',
   '**AUTONOMOUS**',
   '**GLOBAL**',
@@ -219,6 +241,7 @@ const report = {
   governed_states_validated: requiredStates.length,
   required_report_fields_validated: contract.required_report_fields.length,
   inheritance_fail_closed: true,
+  autonomous_scale_triggers_validated: true,
   manual_only_normal_activation_forbidden: true,
   self_exemption_allowed: false,
   production: 'HOLD',
