@@ -9,9 +9,12 @@ on:
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
       - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
+      - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
+      - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
   push:
     branches: [main]
     paths:
@@ -20,9 +23,12 @@ on:
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
       - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
+      - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
+      - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
 
 permissions:
   contents: read
@@ -43,15 +49,16 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24'
-      - name: Verify exact source SHA and syntax
+      - name: Verify exact source SHA, syntax and machine contracts
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/governance/validate-ai-agent-operating-rules-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-operating-rules-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/registry/ai-agent-governance-registry-v1.json','utf8'))"
-      - name: Validate authoritative policy, contract, registry and schema
+      - name: Validate authoritative platform, AI policy, contracts, registry and autonomous triggers
         shell: bash
         run: |
           set -euo pipefail
@@ -86,12 +93,12 @@ jobs:
             "blockers": [],
             "actions_executed": [
               {
-                "action": "Validate AI agent governance controls",
+                "action": "Validate platform and AI governance controls",
                 "result": "EXECUTED",
                 "evidence_ref_ids": ["validator-output"]
               }
             ],
-            "next_action": "Preserve mandatory governance controls.",
+            "next_action": "Preserve mandatory platform and AI governance controls.",
             "authority_boundary": {
               "within_authority": true,
               "protected_gates_touched": []
@@ -101,6 +108,23 @@ jobs:
           }
           JSON
           node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt /tmp/valid-ai-agent-status-receipt-v1.json > /tmp/valid-receipt-validation.json
+      - name: Reject platform principle reorder mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json /tmp/platform.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          x.constitutional_order=['GLOBAL','AUTONOMOUS','IRREPLACEABLE_VALUE','TRANSPARENT'];
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted reordered platform principles' >&2
+            exit 1
+          fi
+          mv /tmp/platform.json coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json
       - name: Reject missing absolute-honesty principle mutation
         shell: bash
         run: |
@@ -135,6 +159,24 @@ jobs:
             exit 1
           fi
           mv /tmp/registry.json coordination/kidults/registry/ai-agent-governance-registry-v1.json
+      - name: Reject manual-only sharded reserve activation mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .github/workflows/kidults-asi-sharded-source-reserve-v1.yml /tmp/reserve-workflow.yml
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='.github/workflows/kidults-asi-sharded-source-reserve-v1.yml';
+          let x=fs.readFileSync(p,'utf8');
+          x=x.replace(/^\s{2}push:\s*$/m,'  push_removed:').replace(/^\s{2}workflow_run:\s*$/m,'  workflow_run_removed:');
+          if(!x.includes('push_removed:')||!x.includes('workflow_run_removed:'))throw new Error('MUTATION_DID_NOT_APPLY');
+          fs.writeFileSync(p,x);
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted manual-only reserve activation' >&2
+            exit 1
+          fi
+          mv /tmp/reserve-workflow.yml .github/workflows/kidults-asi-sharded-source-reserve-v1.yml
       - name: Reject RUNNING status without live run evidence
         shell: bash
         run: |

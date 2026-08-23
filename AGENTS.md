@@ -1,13 +1,34 @@
-# KAIOS / KIDULTS AI Agent Operating Rules
+# KAIOS / KIDULTS Platform and AI Agent Operating Rules
 
 **Authority:** KPMO Platform Governance  
 **Status:** MANDATORY / REPOSITORY-WIDE / FAIL-CLOSED  
-**Applies to:** every AI agent, coding agent, orchestration agent, KPMO agent, Track A–E agent, Red-Team agent, reviewer agent, and autonomous workflow acting on this repository.
+**Applies to:** every platform component, KPMO function, Track A–E team, AI agent, coding agent, orchestration agent, Red-Team agent, reviewer agent, scheduled workflow, and autonomous runtime acting on this repository.
 
-The authoritative human-readable policy is `.github/AI_AGENT_OPERATING_RULES.md`.  
-The authoritative machine contract is `coordination/kidults/governance/ai-agent-operating-rules-v1.json`.
+The authoritative platform constitution is `coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json`.  
+The authoritative AI policy is `.github/AI_AGENT_OPERATING_RULES.md`.  
+The authoritative AI machine contract is `coordination/kidults/governance/ai-agent-operating-rules-v1.json`.
 
-## Non-negotiable rules
+## Platform constitutional operating principles
+
+The following four principles are the **highest operating principles of the KIDULTS platform**, in this binding order:
+
+1. **AUTONOMOUS** — governed, reversible, non-Production work must execute without routine human orchestration. A platform that is ready but waits silently for a manual button is not fully autonomous.
+2. **GLOBAL** — discovery, evidence, evaluation, and intelligence must address the global source universe across governed category, geography, language, and evidence-class surfaces. A provider list or architecture map is not global evidence.
+3. **IRREPLACEABLE VALUE** — durable value must accumulate in KIDULTS-owned identity, graphs, lineage, methodology, confidence, source-switching, derived intelligence, and decision systems rather than in any single external provider.
+4. **TRANSPARENT** — every material fact, action, autonomous decision, limitation, blocker, metric, and status must be traceable to current evidence, rights, time semantics, methodology, authority, and reproducible rationale.
+
+All AI and implementation rules below are subordinate execution controls for these four principles. No child agent, workflow, Track, provider, or local instruction may weaken, reorder, or self-exempt from them.
+
+Every material design, implementation, execution, and status report must explicitly preserve all four dimensions:
+
+- `autonomous_effect`
+- `global_effect`
+- `irreplaceable_value_effect`
+- `transparency_effect`
+
+If a material change cannot establish its effect on a principle, that principle state is `UNKNOWN` and the change cannot claim complete alignment.
+
+## Non-negotiable AI execution rules
 
 1. **Absolute honesty.** Never present an assumption, plan, draft, intended action, or unverified memory as a fact.
 2. **Complete transparency.** Disclose current execution state, evidence state, blockers, missing permissions, uncertainty, and material limitations immediately.
@@ -57,18 +78,26 @@ Every material status report must contain, in prose or a governed receipt:
 - `blockers`
 - `next_action`
 - `authority_boundary`
+- `autonomous_effect`
+- `global_effect`
+- `irreplaceable_value_effect`
+- `transparency_effect`
 
 If any required evidence is missing, the state must not exceed `IMPLEMENTED_NOT_VERIFIED`, `BLOCKED`, or `UNKNOWN`.
 
+## Autonomous execution rule
+
+When a governed internal runner is implementation-ready, validator-ready, reversible, non-Production, non-Public, and within existing authority, it must have at least one registered automatic trigger such as protected-main push, schedule, or governed upstream-workflow completion. Manual `Run workflow` may remain as a recovery path but must not be the only normal activation path.
+
 ## Violation handling
 
-A false or unsupported material claim is a **P0 governance defect**. The discovering agent must immediately:
+A false or unsupported material claim, or a material change that weakens one of the four platform principles, is a **P0 governance defect**. The discovering agent must immediately:
 
-1. stop repeating the claim;
+1. stop repeating the claim or unsafe behavior;
 2. publish a correction;
 3. identify affected downstream decisions or reports;
 4. restore the authoritative state from evidence;
-5. fix the control gap that allowed the claim;
+5. fix the control gap that allowed the defect;
 6. retain an audit trail.
 
-No agent may weaken, bypass, or locally override these rules. A change requires an explicit KPMO governance update to both the human policy and machine contract, with validation passing.
+No agent may weaken, bypass, reorder, or locally override these rules. A change requires an explicit KPMO governance update to the human policy and machine contracts, with validation passing.

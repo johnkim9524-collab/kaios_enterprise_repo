@@ -4,6 +4,19 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '13 */6 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
   pull_request:
     paths:
       - 'scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
@@ -12,6 +25,9 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
       - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
 
 permissions:
@@ -33,8 +49,9 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24'
-      - name: Verify exact source and syntax
+      - name: Verify exact source, syntax and platform principles
         run: |
+          set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs
@@ -44,6 +61,14 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs
+          node - <<'NODE'
+          const fs=require('fs');
+          const p=fs.readFileSync('.github/workflows/kidults-asi-source-fabric-scale-pi1.yml','utf8');
+          for(const marker of ['workflow_dispatch:','schedule:','push:'])if(!p.includes(marker))throw new Error(`MISSING_AUTONOMOUS_TRIGGER:${marker}`);
+          const c=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'));
+          if(JSON.stringify(c.constitutional_order)!==JSON.stringify(['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT']))throw new Error('PLATFORM_PRINCIPLE_ORDER');
+          if(c.autonomous_activation_rule?.manual_only_normal_activation_forbidden!==true)throw new Error('MANUAL_ONLY_NOT_FORBIDDEN');
+          NODE
       - name: Restore prior provider circuit and rolling reserve from main
         env:
           GH_TOKEN: ${{ github.token }}
@@ -137,7 +162,7 @@ jobs:
         run: |
           node - <<'NODE' >/tmp/asi-source-fabric-scale-pi1-receipt.json
           const fs=require('fs');const f=JSON.parse(fs.readFileSync('/tmp/asi-public-metadata-source-fabric-v1.json'));const c=JSON.parse(fs.readFileSync('/tmp/asi-discovery-provider-health-circuit-v1.json'));const r=JSON.parse(fs.readFileSync('/tmp/asi-sharded-source-reserve-v1/asi-sharded-source-reserve-manifest-v1.json'));
-          process.stdout.write(JSON.stringify({id:'kidults-asi-source-fabric-scale-pi1-receipt',status:'SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_COMPLETE',scheduled_scopes:f.scheduled_scope_count,empirical_scopes:f.empirical_scope_count,current_increment_candidates:f.candidate_count,current_increment_unique_hosts:f.unique_host_count,provider_candidate_counts:f.provider_counts,healthy_provider_lanes:f.healthy_lane_count,degraded_provider_lanes:f.degraded_lane_count,provider_circuit_cycle:c.cycle_number,full_budget_providers:c.summary.full_budget_provider_count,reduced_budget_providers:c.summary.reduced_budget_provider_count,open_provider_circuits:c.summary.open_circuit_count,half_open_provider_probes:c.summary.half_open_probe_count,reserve_cycle:r.cycle_number,reserve_unique_candidates:r.unique_candidate_count,reserve_unique_hosts:r.unique_host_count,reserve_new_candidates:r.new_candidate_count,reserve_updated_candidates:r.updated_candidate_count,reserve_nonempty_shards:r.nonempty_shard_count,reserve_design_capacity:r.design_capacity_minimum_candidates,reserve_is_not_safe_pool:true,empirical_market_effect:'NONE',content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-source-fabric-scale-pi1-receipt',status:'SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_COMPLETE',trigger_event:process.env.GITHUB_EVENT_NAME,autonomous_effect:'POSITIVE',global_effect:'POSITIVE',irreplaceable_value_effect:'POSITIVE',transparency_effect:'POSITIVE',scheduled_scopes:f.scheduled_scope_count,empirical_scopes:f.empirical_scope_count,current_increment_candidates:f.candidate_count,current_increment_unique_hosts:f.unique_host_count,provider_candidate_counts:f.provider_counts,healthy_provider_lanes:f.healthy_lane_count,degraded_provider_lanes:f.degraded_lane_count,provider_circuit_cycle:c.cycle_number,full_budget_providers:c.summary.full_budget_provider_count,reduced_budget_providers:c.summary.reduced_budget_provider_count,open_provider_circuits:c.summary.open_circuit_count,half_open_provider_probes:c.summary.half_open_probe_count,reserve_cycle:r.cycle_number,reserve_unique_candidates:r.unique_candidate_count,reserve_unique_hosts:r.unique_host_count,reserve_new_candidates:r.new_candidate_count,reserve_updated_candidates:r.updated_candidate_count,reserve_nonempty_shards:r.nonempty_shard_count,reserve_design_capacity:r.design_capacity_minimum_candidates,reserve_is_not_safe_pool:true,empirical_market_effect:'NONE',content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-source-fabric-scale-pi1-receipt.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
