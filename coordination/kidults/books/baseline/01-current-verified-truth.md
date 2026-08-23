@@ -1,14 +1,14 @@
 # 베이스라인 북(Baseline Book) — 제1장: 현재 검증된 사실
 
-**기준 시각:** 2026-08-23 10:02 KST  
+**기준 시각:** 2026-08-23 11:08 KST  
 **책:** Baseline Book  
 **담당 트랙:** KPMO / Tracks A–E  
 **결정 ID:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`  
 **스냅샷 ID:** N/A — 불변의 Candidate/Evidence pair가 존재하지 않음  
 **문장 분류:** `VERIFIED CURRENT STATE` — 시점이 명시된 canonical 기록이며, 부재는 0이 아니라 missing으로 유지함  
-**보호된 main:** #1116 이후 `5ba79a49c0346bb0b3e5a5ade71890f51a1046fa`  
+**보호된 main:** #1117 이후 `d050d8b993929a883298e7cb90ea22bc97ec6ae1`  
 **Gate 상태:** C1 확립; C2 미완료; Production/Public/G5 `HOLD`  
-**Evidence 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116
+**Evidence 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116, #1117, Draft #1118
 
 ## 1. 경영진 핵심 사실
 
@@ -18,7 +18,22 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 
 > STRUCTURE READY / EMPIRICAL CHAIN NOT OPEN / CLAIMS CLOSED / Production HOLD
 
-## 2. 실증 Population
+## 2. AI Governance와 최상위 원칙의 현재 상태
+
+| 항목 | 검증된 현재 상태 |
+|---|---|
+| Repository-wide AI honesty/transparency governance | **MERGED_VERIFIED** — #1117, main commit `d050d8b9…` |
+| Human policy / machine contract / registry / validator | main에 존재; `KPMO-AI-GOV-001` v1.0.0 기준 |
+| 네 최상위 운영원칙의 v1.1 machine binding | **IMPLEMENTED_NOT_VERIFIED** — Draft #1118, 미병합 |
+| 자동 실행 계약 | **IMPLEMENTED_NOT_VERIFIED** — `PR Merge → Main Push → Scale Wave Auto Dispatch → Artifact → KPMO Receipt`, Draft #1118 |
+| 운영원칙 순서 | TARGET / GOVERNING DOCTRINE — Autonomous → Global → Irreplaceable Value → Transparent |
+| Empirical maturity / Production authority | 변경 없음 — C1, C2 미완료, Production/Public/G5 HOLD |
+
+#1117은 절대 정직, 완전 투명성, Evidence-before-status, Live-state verification, 상태어휘, Correction과 Fail-closed를 Repository-wide AI Governance로 고정했다. Draft #1118은 John이 정한 네 운영원칙과 main-push 자동 Scale Wave를 그 통제체계에 추가하지만, Draft 상태이므로 현재 main 정책 또는 실행 완료 상태로 표현하지 않는다.
+
+자동 실행의 목표는 사람이 매번 `Run workflow`를 누르는 의존성을 제거하는 것이다. 그러나 Artifact와 KPMO Receipt가 실제로 생성되기 전에는 `RUNNING_VERIFIED`나 `COMPLETE_VERIFIED`로 승격하지 않는다. Manual dispatch는 Break-glass 또는 진단 수단으로만 남는다.
+
+## 3. 실증 Population
 
 | Evidence 항목 | 검증된 상태 |
 |---|---:|
@@ -37,7 +52,7 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 
 720건의 reviewer-ready records와 360건의 blind candidates는 준비 상태를 입증하는 자료다. 이는 인간 검토 결과, 실증 `PASS`, Candidate/Evidence pair 또는 공개 가능한 시장 주장이 아니다.
 
-## 3. Track별 상태
+## 4. Track별 상태
 
 ### Track A — Intelligence Factory
 
@@ -76,9 +91,9 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 - 실제 Projection 데이터를 대상으로 하는 Founder Acceptance: 수행되지 않음.
 - IH-EOS는 Intelligence를 생성하거나 Release를 자체 승인하지 않음.
 
-## 4. ASI 상태
+## 5. ASI 상태
 
-현재 Protected main에는 #1106, #1113, #1107, #1108, #1115와 #1116이 포함돼 있다. 검증된 현재 상태는 다음과 같다.
+현재 Protected main에는 #1106, #1113, #1107, #1108, #1115, #1116과 #1117이 포함돼 있다. 검증된 현재 상태는 다음과 같다.
 
 - 통제되는 Common Crawl public-index 탐색은 계속해서 Gate 1 이전의 discovery 단계에 머무름.
 - 결정론적 256-shard metadata reserve와 100k **synthetic design-capacity** 검증은 통제 경로의 처리 규모를 입증할 뿐, 실제 source 또는 시장 coverage를 입증하지 않음.
@@ -98,7 +113,7 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 - 승인된 라이브 Projection
 - Production 권한
 
-## 5. 권리 및 Provider 관련 사실
+## 6. 권리 및 Provider 관련 사실
 
 | Provider 경로 | 현재 검증된 상태 | 미확정 Decision/Evidence |
 |---|---|---|
@@ -109,7 +124,7 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 
 계약 체결, credential 활성화, 비용 집행 또는 EULA 수락이 이루어졌다고 추론하지 않는다. Provider의 관측치는 입력으로 남으며, KIDULTS의 identity, normalization, evidence admission, confidence, rankability, derived analytics 및 Projection은 내부 Core로 유지한다.
 
-## 6. Gate 상태
+## 7. Gate 상태
 
 | Gate | 상태 | 종료에 필요한 Evidence |
 |---|---|---|
@@ -120,16 +135,16 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 | G4 — Portal/runtime/human acceptance | **PARTIAL** | 실제 STAGING, rollback receipts, 라이브·수동 usability 및 accessibility acceptance |
 | G5 — Program Owner Production approval | **HOLD** | 완전한 Evidence chain과 John의 명시적 Decision |
 
-## 7. 이 장에서 바로잡은 모순
+## 8. 이 장에서 바로잡은 모순
 
-1. 과거의 SHA reference는 해당 시점의 snapshot으로 유지한다. 현재 protected-main 기준은 #1116 이후 `5ba79a49…`이다.
+1. 과거의 SHA reference는 해당 시점의 snapshot으로 유지한다. 현재 protected-main 기준은 #1117 이후 `d050d8b9…`이다.
 2. #1013 또는 #1074의 green check는 Draft-head Evidence이며 protected-main 또는 Release authorization의 증거가 아니다.
 3. 자동화된 Portal QA는 최종 인간 acceptance가 아니다.
 4. Candidate discovery와 admission-control machinery는 empirical admission이 아니다.
 5. Missing data는 0이 아니며, 관측치의 부재는 시장 활동이 없다는 Evidence가 아니다.
 6. Confidence는 Rankability가 아니다.
 
-## 8. 해소해야 할 Evidence 결손
+## 9. 해소해야 할 Evidence 결손
 
 - 적법한 GRADED 120 및 등록된 workload에 대해 완료되고 책임 주체가 확인되는 human-review records
 - 적법한 컬렉터 시장 dated-SOLD 경로
@@ -142,7 +157,7 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 - 실제 인간 usability/accessibility acceptance
 - 명시적 G5
 
-## 9. Decision Mapping
+## 10. Decision Mapping
 
 - Positioning 및 Competitiveness Decision은 입증해야 할 대상을 정의하지만 실증 상태를 변경하지 않음.
 - #235는 Evidence와 Candidate 생성을 담당함.
@@ -152,13 +167,25 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 - #256은 Founder Decision을 위해 등록된 상태를 소비함.
 - #238은 계속해서 cross-track promotion Gate 역할을 수행함.
 
-## 10. Book Sync Report
+## 11. 원전 승계 상태
+
+기존 `Enterprise_Baseline_Book_Chapter_01–03_KO.docx`의 목적·범위·증거방법론을 본 Baseline의 공식 선행 원전으로 승계한다. 특히 다음을 유지한다.
+
+- Baseline은 회사를 좋게 보이게 하는 문서가 아니라 현재 사실을 확립하는 문서다.
+- E1 직접 증거와 E2 승인된 문서 증거가 중대한 결론의 중심이다.
+- Existing, Demonstrated, Production-ready와 Target State를 분리한다.
+- 계획, Local 성공, 문서 존재와 구현·Production을 서로 승격하지 않는다.
+- 모든 중대한 상태에는 기준일, 환경, 책임자, Evidence와 미해결 결손을 남긴다.
+
+기존 원전의 Portfolio 또는 상태가 현재 Registry와 충돌하면 원전은 역사적 기록으로 보존하고 현재 Canonical Evidence를 적용한다. 원전은 폐기되지 않으며 각 후속 장의 Source lineage에 연결한다.
+
+## 12. Book Sync Report
 
 - **Master Book:** Value claim은 현재 C1/C2 경계 내로 제한됨.
 - **Architecture Book:** 시스템은 Evidence, rights, freshness, Assessment 또는 approval이 부재하는 모든 경계에서 fail closed해야 함.
 - **No Fourth Book:** 원칙 유지. 운영보고와 PR 기록은 Evidence reference이며 별도의 Book이 아님.
-- **동기화 상태:** `ALIGNED TO CANONICAL PROTECTED MAIN 5ba79a49 AT 2026-08-23 10:02 KST`.
+- **동기화 상태:** `ALIGNED TO CANONICAL PROTECTED MAIN d050d8b9 AT 2026-08-23 11:08 KST; DRAFT #1118 NOT PROMOTED`.
 
-## 11. Rollback
+## 13. Rollback
 
 이 장의 파일을 revert한다. Source data, Runtime, Provider, Security control, Registry pointer, Public surface 또는 Production state는 변경되지 않는다.
