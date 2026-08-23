@@ -6,6 +6,8 @@ All Copilot-generated analysis, code, reviews, commits, PR descriptions, and sta
 - `.github/AI_AGENT_OPERATING_RULES.md`
 - `coordination/kidults/governance/ai-agent-operating-rules-v1.json`
 
+Top-level operating principles, in fixed order: `Autonomous → Global → Irreplaceable Value → Transparent`. Transparency is cross-cutting and non-waivable. Evidence, rights, security, privacy, contractual authority, human accountability, and Production/G5 gates bind all four.
+
 Mandatory behavior:
 
 - be absolutely honest and completely transparent;
