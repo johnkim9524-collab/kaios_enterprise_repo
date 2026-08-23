@@ -1,0 +1,131 @@
+{
+  "id": "kidults-asi-owned-source-intelligence-graph-contract-v2",
+  "version": "2.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P2",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Transform current P0B bounded-discovery candidates and P1 source-safety preflight outputs into a deterministic KIDULTS-owned source-intelligence graph without promoting candidates, preflight decisions, or admission candidates to market evidence.",
+  "authoritative_inputs": {
+    "p0b_artifact": "kidults-asi-p0b-bounded-discovery-candidates-v1",
+    "p0b_files": [
+      "p0b-source-candidate-registry-v1.json",
+      "p0b-mission-candidate-binding-ledger-v1.json"
+    ],
+    "p1_artifact": "kidults-asi-p1-source-preflight-v1",
+    "p1_files": [
+      "p1-gate1-source-safety-decisions-v1.json",
+      "p1-evidence-admission-candidate-register-v1.json",
+      "p1-preflight-action-queue-v1.json"
+    ]
+  },
+  "graph_model": {
+    "graph_id": "kidults-owned-source-intelligence-graph-v2",
+    "node_types": [
+      "MISSION",
+      "SCOPE",
+      "DOMAIN",
+      "REGION",
+      "EVIDENCE_CLASS",
+      "SOURCE_CANDIDATE",
+      "CANONICAL_HOST",
+      "DISCOVERY_PROVIDER",
+      "FACTUAL_ORIGIN_CANDIDATE",
+      "GATE1_DECISION",
+      "ADMISSION_CANDIDATE",
+      "PREFLIGHT_ACTION",
+      "ACTION_TYPE"
+    ],
+    "edge_types": [
+      "MISSION_IN_SCOPE",
+      "MISSION_IN_REGION",
+      "MISSION_REQUIRES_EVIDENCE_CLASS",
+      "SCOPE_IN_DOMAIN",
+      "MISSION_HAS_SOURCE_CANDIDATE",
+      "CANDIDATE_OBSERVED_ON_HOST",
+      "CANDIDATE_DISCOVERED_BY_PROVIDER",
+      "CANDIDATE_HAS_FACTUAL_ORIGIN_CANDIDATE",
+      "CANDIDATE_HAS_GATE1_DECISION",
+      "MISSION_HAS_GATE1_DECISION",
+      "CANDIDATE_HAS_ADMISSION_CANDIDATE",
+      "MISSION_HAS_ADMISSION_CANDIDATE",
+      "CANDIDATE_REQUIRES_PREFLIGHT_ACTION",
+      "ACTION_IS_TYPE"
+    ],
+    "node_ids_deterministic": true,
+    "edge_ids_deterministic": true,
+    "canonical_sort_required": true,
+    "duplicate_nodes_allowed": false,
+    "duplicate_edges_allowed": false
+  },
+  "owned_value_assets": [
+    "MISSION_TO_SOURCE_CANDIDATE_LINEAGE",
+    "CANONICAL_SOURCE_HOST_IDENTITY",
+    "DISCOVERY_PROVIDER_CONTRIBUTION",
+    "FACTUAL_ORIGIN_CANDIDATE_SEPARATION",
+    "GATE1_SOURCE_SAFETY_DECISION_HISTORY",
+    "ADMISSION_CANDIDATE_READINESS",
+    "PREFLIGHT_ACTION_DEPENDENCY_GRAPH",
+    "SOURCE_REPLACEMENT_GRAPH_PRIMITIVES",
+    "GLOBAL_SCOPE_REGION_EVIDENCE_COVERAGE_GRAPH"
+  ],
+  "forbidden_node_types": [
+    "MARKET_EVENT",
+    "SOLD_TRANSACTION",
+    "PRICE_OBSERVATION",
+    "LIQUIDITY_MEASURE",
+    "MARKET_CLAIM",
+    "SNAPSHOT_CANDIDATE",
+    "EVIDENCE_RECORD"
+  ],
+  "forbidden_edge_types": [
+    "PROVES",
+    "ADMITTED_AS_EVIDENCE",
+    "SUPPORTS_MARKET_CLAIM",
+    "CREATES_TRANSACTION",
+    "CREATES_LIQUIDITY_MEASURE",
+    "AUTHORIZED_FOR_PUBLICATION"
+  ],
+  "required_outputs": [
+    "owned-source-intelligence-graph-v2.json",
+    "owned-source-intelligence-lineage-v2.json",
+    "owned-source-intelligence-quality-v2.json",
+    "owned-source-intelligence-value-receipt-v2.json",
+    "owned-source-intelligence-manifest-v2.json"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "52 * * * *",
+    "upstream_workflows": [
+      "KIDULTS ASI P0B Bounded Discovery Candidates v1",
+      "KIDULTS ASI P1 Source Preflight v1"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "hard_boundaries": [
+    "SOURCE_INTELLIGENCE_GRAPH_IS_NOT_MARKET_EVIDENCE_GRAPH",
+    "SOURCE_CANDIDATE_IS_NOT_EVIDENCE",
+    "GATE1_HOLD_IS_NOT_ADMISSION",
+    "FACTUAL_ORIGIN_CANDIDATE_IS_NOT_VERIFIED_FACTUAL_ORIGIN",
+    "ADMISSION_CANDIDATE_IS_NOT_ADMITTED_EVIDENCE",
+    "PREFLIGHT_ACTION_IS_NOT_COLLECTION_AUTHORITY",
+    "GRAPH_COMPLETENESS_IS_NOT_MARKET_COVERAGE_COMPLETENESS"
+  ],
+  "truth_boundary": {
+    "creates_kidults_owned_source_intelligence": true,
+    "creates_market_event": false,
+    "creates_transaction": false,
+    "creates_price_observation": false,
+    "creates_liquidity_measure": false,
+    "admits_evidence": false,
+    "creates_snapshot_candidate": false,
+    "creates_market_claim": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
