@@ -140,6 +140,7 @@ KIDULTS의 성공은 고객이 답뿐 아니라 그 답의 품질과 경계까�
 |---|---|---|
 | `KIDULTS-POSITIONING-V1-20260822` | Category, Audience, Product Family와 Value Proposition을 정의한다 | Live Claim 또는 출시 승인 없음 |
 | `KIDULTS-COMPETITIVENESS-V1-20260822` | 통제된 Decision Layer와 Maturity Path를 정의한다 | Target, Traction 또는 우위를 만들어내지 않음 |
+| `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` | Autonomous → Global → Irreplaceable Value → Transparent를 최상위 운영원칙으로 정의한다 | Draft #1118이며 병합·실행·시장지위 또는 G5를 의미하지 않음 |
 | #239의 Three-Book Governance 및 Coordination Hub Rule 11 | Master, Baseline, Architecture만을 공식 Book으로 유지한다 | No Fourth Book — 네 번째 Book을 만들지 않음 |
 
 ## 10. 원전 승계 및 편집 기준
