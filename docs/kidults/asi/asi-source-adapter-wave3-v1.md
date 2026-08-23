@@ -67,7 +67,7 @@ Every Wave 3 adapter enforces:
 ```text
 Positive fixture candidates parsed: 4
 Deterministic replays verified: 4
-Negative fixture mutations rejected: 40/40
+40/40 negative fixture mutations rejected
 ```
 
 Each source rejects ten mutation families:
