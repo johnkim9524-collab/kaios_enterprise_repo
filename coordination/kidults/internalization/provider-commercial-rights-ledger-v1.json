@@ -1,0 +1,112 @@
+{
+  "ledger_id": "KIDULTS_PROVIDER_COMMERCIAL_RIGHTS_LEDGER_V1",
+  "parent_issues": [1166, 1153, 952, 1154, 1155],
+  "evidence_policy": "WRITTEN_OR_OFFICIAL_ONLY_UNKNOWN_NOT_ZERO",
+  "providers": [
+    {
+      "provider_id": "GEMRATE",
+      "evidence_state": "WRITTEN_PROVIDER",
+      "commercial": {
+        "developer_monthly_usd": 200,
+        "daily_request_limit": 5000,
+        "trial_days": 7,
+        "minimum_commitment": "UNKNOWN"
+      },
+      "included_scope": "ALL_ENDPOINTS_EXCEPT_HISTORICAL_DATA_CERT_IMAGES_CHANGE_FEED",
+      "rights_confirmed": {
+        "cache_store_while_subscription_active": true,
+        "display_data_or_derived_metrics_with_attribution": true
+      },
+      "rights_pending": [
+        "private_normalization",
+        "entity_resolution",
+        "model_calibration",
+        "human_review",
+        "post_termination_derived_intelligence",
+        "universal_id_portability",
+        "termination_deletion_detail"
+      ],
+      "activation_state": "HOLD_PENDING_WRITTEN_RIGHTS_AND_OWNER_SPEND_APPROVAL"
+    },
+    {
+      "provider_id": "PSA",
+      "evidence_state": "WRITTEN_PROVIDER",
+      "commercial": {
+        "premium_annual_usd": 199,
+        "premium_daily_request_limit": 100,
+        "enterprise_annual_usd": 3500,
+        "enterprise_daily_request_limit": 500
+      },
+      "rights_confirmed": {},
+      "rights_pending": [
+        "cert_verification_storage",
+        "internal_normalization",
+        "entity_resolution_model_calibration",
+        "human_review",
+        "retention_deletion",
+        "population_census_access",
+        "derived_output_boundary"
+      ],
+      "activation_state": "HOLD_PENDING_WRITTEN_RIGHTS_AND_OWNER_SPEND_APPROVAL"
+    },
+    {
+      "provider_id": "CGC_CCG",
+      "evidence_state": "WRITTEN_PROVIDER",
+      "commercial": {
+        "price": "UNKNOWN",
+        "minimum_commitment": "UNKNOWN"
+      },
+      "known_path": "DEALER_PORTAL_API",
+      "rights_pending": [
+        "cert_identity_grade",
+        "population_census",
+        "private_storage_normalization",
+        "entity_resolution_model_calibration_human_qa",
+        "derived_intelligence_retention",
+        "dealer_eligibility",
+        "commercial_terms"
+      ],
+      "activation_state": "HOLD_DEALER_API_RIGHTS_PENDING"
+    },
+    {
+      "provider_id": "CLASSIC_COM",
+      "evidence_state": "WRITTEN_PROVIDER",
+      "commercial": {
+        "commercial_licensing_available": true,
+        "pricing": "USE_CASE_DEPENDENT"
+      },
+      "rights_pending": ["field_purpose_matrix", "retention", "derivation", "public_derived_output", "portability", "termination"],
+      "activation_state": "HOLD_RIGHTS_AND_ECONOMICS_PENDING"
+    },
+    {
+      "provider_id": "ALT_FNDATA",
+      "evidence_state": "NO_SUBSTANTIVE_REPLY",
+      "commercial": {"price": "UNKNOWN"},
+      "rights_pending": ["ALL_MATERIAL_RIGHTS_AND_ECONOMICS"],
+      "activation_state": "HOLD"
+    },
+    {
+      "provider_id": "LIVEART",
+      "evidence_state": "NO_SUBSTANTIVE_REPLY",
+      "commercial": {"price": "UNKNOWN"},
+      "rights_pending": ["ALL_MATERIAL_RIGHTS_AND_ECONOMICS"],
+      "activation_state": "HOLD"
+    },
+    {
+      "provider_id": "HAGERTY",
+      "evidence_state": "NO_HUMAN_SUBSTANTIVE_REPLY",
+      "commercial": {"price": "UNKNOWN"},
+      "rights_pending": ["ALL_MATERIAL_RIGHTS_AND_ECONOMICS"],
+      "activation_state": "HOLD"
+    }
+  ],
+  "global_non_bypass": {
+    "unknown_rights_may_activate": false,
+    "unknown_price_may_be_zero": false,
+    "email_may_authorize_spend": false,
+    "contract_acceptance": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
