@@ -5,7 +5,8 @@
   "scripts": {
     "validate:market-event": "node scripts/kidults/poc/validate-market-event-schema-v1.mjs",
     "validate:internalization": "node scripts/kidults/internalization/validate-internalization-foundation-v1.mjs",
-    "validate:internalization-phase2": "node scripts/kidults/internalization/validate-internalization-phase2-runtime-bridge-v1.mjs"
+    "validate:internalization-phase2": "node scripts/kidults/internalization/validate-internalization-phase2-runtime-bridge-v1.mjs",
+    "validate:internalization-closure": "node scripts/kidults/internalization/validate-residual-external-dependency-ledger-v1.mjs && node scripts/kidults/internalization/validate-internalization-closure-gate-v1.mjs"
   },
   "dependencies": {
     "ajv": "8.17.1",
