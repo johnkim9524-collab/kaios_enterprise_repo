@@ -1,0 +1,131 @@
+{
+  "id": "kidults-asi-candidate-preflight-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Continuously consume P0 source candidates into bounded identity, technical-access, robots, semantic, terms-link, and rights-uncertainty preflight; preserve exact evidence and route only defensible candidates toward purpose-specific rights review without inventing admission.",
+  "authoritative_input": {
+    "artifact_name": "kidults-asi-mission-consumption-wave-v1",
+    "candidate_file": "source-candidate-increment-v1.json",
+    "candidate_state_required": "DISCOVERED_METADATA_ONLY_PREFLIGHT_REQUIRED"
+  },
+  "execution_scope": {
+    "unit_of_network_execution": "UNIQUE_CANONICAL_HOST",
+    "maximum_hosts_per_cycle": 96,
+    "candidate_records_inherit_host_preflight": true,
+    "external_http_methods": [
+      "HEAD",
+      "GET"
+    ],
+    "maximum_body_bytes_per_get": 65536,
+    "allowed_get_targets": [
+      "ORIGIN_ROOT",
+      "ROBOTS_TXT"
+    ],
+    "market_record_collection_allowed": false,
+    "deep_crawl_allowed": false,
+    "same_host_link_follow_allowed": false
+  },
+  "preflight_dimensions": [
+    "CANONICAL_IDENTITY",
+    "REDIRECT_AND_FINAL_HOST",
+    "TLS_AND_HTTP_REACHABILITY",
+    "CONTENT_TYPE",
+    "ROBOTS_DISCLOSURE",
+    "ROOT_TITLE_AND_META_DESCRIPTION",
+    "TERMS_PRIVACY_LEGAL_API_LINK_DISCOVERY",
+    "MISSION_SEMANTIC_RELEVANCE",
+    "RIGHTS_UNCERTAINTY",
+    "FACTUAL_ORIGIN_UNCERTAINTY"
+  ],
+  "rights_policy": {
+    "robots_allow_is_collection_permission": false,
+    "robots_disallow_all_behavior": "REJECT_AUTOMATED_PREFLIGHT_AND_COLLECTION",
+    "terms_link_discovered_behavior": "HOLD_FOR_EXPLICIT_PURPOSE_RIGHTS_REVIEW",
+    "no_terms_link_behavior": "HOLD_RIGHTS_UNKNOWN",
+    "public_web_access_is_collection_permission": false,
+    "official_website_is_collection_permission": false,
+    "article_page_is_transaction_evidence": false,
+    "automatic_rights_pass_allowed": false
+  },
+  "semantic_policy": {
+    "current_sold_required_signals": [
+      "auction results",
+      "sold for",
+      "hammer price",
+      "realized price",
+      "prices realized",
+      "sale results"
+    ],
+    "liquidity_required_signals": [
+      "sell through",
+      "sell-through",
+      "time to sale",
+      "days on market",
+      "auction clearance",
+      "clearance rate",
+      "turnover",
+      "liquidity"
+    ],
+    "semantic_signal_is_evidence": false,
+    "minimum_candidate_signal_score": 3,
+    "semantic_hold_below_threshold": true
+  },
+  "preflight_states": [
+    "PREFLIGHT_COMPLETE_RIGHTS_REVIEW_REQUIRED",
+    "PREFLIGHT_SEMANTIC_HOLD",
+    "PREFLIGHT_TECHNICAL_HOLD",
+    "PREFLIGHT_REJECT_ROBOTS_OR_ACCESS",
+    "PREFLIGHT_NOT_EXECUTED_CYCLE_LIMIT"
+  ],
+  "admission_readiness_states": [
+    "NOT_READY_RIGHTS_UNKNOWN",
+    "NOT_READY_SEMANTIC_INSUFFICIENT",
+    "NOT_READY_TECHNICAL_FAILURE",
+    "REJECTED_AUTOMATION_OR_ACCESS",
+    "WAITING_FOR_HOST_PREFLIGHT"
+  ],
+  "required_outputs": [
+    "candidate-host-preflight-ledger-v1.json",
+    "candidate-preflight-assignment-v1.json",
+    "candidate-admission-readiness-v1.json",
+    "candidate-preflight-health-v1.json",
+    "candidate-preflight-manifest-v1.json"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "37 * * * *",
+    "upstream_workflow": "KIDULTS ASI Mission Consumption Wave v1",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "hard_boundaries": [
+    "PREFLIGHT_IS_NOT_ADMISSION",
+    "REACHABLE_IS_NOT_LAWFUL_TO_COLLECT",
+    "ROBOTS_ALLOW_IS_NOT_LICENSE",
+    "TERMS_LINK_IS_NOT_RIGHTS_PASS",
+    "SEMANTIC_SIGNAL_IS_NOT_MARKET_EVIDENCE",
+    "ARTICLE_PAGE_IS_NOT_SOLD_RECORD",
+    "OFFICIAL_WEBSITE_IS_NOT_TRANSACTION_SOURCE",
+    "HOST_IDENTITY_IS_NOT_FACTUAL_ORIGIN_PROOF",
+    "EMPTY_OR_BLOCKED_RESPONSE_IS_NOT_ZERO_MARKET_ACTIVITY"
+  ],
+  "truth_boundary": {
+    "executes_bounded_host_preflight": true,
+    "collects_market_records": false,
+    "follows_discovered_links": false,
+    "creates_collection_right": false,
+    "admits_evidence": false,
+    "creates_transaction": false,
+    "creates_liquidity_measure": false,
+    "creates_market_claim": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
