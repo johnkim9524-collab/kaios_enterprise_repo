@@ -1,0 +1,126 @@
+{
+  "id": "kidults-asi-owned-source-intelligence-graph-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P2",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Transform P0 mission-consumption and P1 candidate-preflight outputs into a deterministic KIDULTS-owned source-intelligence graph that compounds identity, lineage, replaceability, preflight, and readiness knowledge without promoting source candidates to market evidence.",
+  "authoritative_inputs": {
+    "p0_artifact": "kidults-asi-mission-consumption-wave-v1",
+    "p0_files": [
+      "mission-consumption-ledger-v1.json",
+      "source-candidate-increment-v1.json",
+      "mission-lane-coverage-v1.json",
+      "discovery-provider-health-v1.json"
+    ],
+    "p1_artifact": "kidults-asi-candidate-preflight-wave-v1",
+    "p1_files": [
+      "candidate-host-preflight-ledger-v1.json",
+      "candidate-preflight-assignment-v1.json",
+      "candidate-admission-readiness-v1.json",
+      "candidate-preflight-health-v1.json"
+    ]
+  },
+  "graph_model": {
+    "graph_id": "kidults-owned-source-intelligence-graph-v1",
+    "node_types": [
+      "MISSION",
+      "SCOPE",
+      "DOMAIN",
+      "REGION",
+      "EVIDENCE_CLASS",
+      "SOURCE_CANDIDATE",
+      "CANONICAL_HOST",
+      "DISCOVERY_LANE",
+      "FACTUAL_ORIGIN_CANDIDATE",
+      "HOST_PREFLIGHT",
+      "ADMISSION_READINESS_STATE"
+    ],
+    "edge_types": [
+      "MISSION_IN_SCOPE",
+      "MISSION_IN_REGION",
+      "MISSION_REQUIRES_EVIDENCE_CLASS",
+      "SCOPE_IN_DOMAIN",
+      "MISSION_HAS_SOURCE_CANDIDATE",
+      "CANDIDATE_OBSERVED_ON_HOST",
+      "CANDIDATE_DISCOVERED_VIA_LANE",
+      "CANDIDATE_HAS_FACTUAL_ORIGIN_CANDIDATE",
+      "HOST_HAS_PREFLIGHT",
+      "CANDIDATE_ASSIGNED_PREFLIGHT",
+      "CANDIDATE_HAS_ADMISSION_READINESS"
+    ],
+    "node_ids_deterministic": true,
+    "edge_ids_deterministic": true,
+    "canonical_sort_required": true,
+    "duplicate_nodes_allowed": false,
+    "duplicate_edges_allowed": false,
+    "orphan_candidate_allowed": false,
+    "orphan_mission_allowed": false
+  },
+  "owned_value_assets": [
+    "MISSION_TO_SOURCE_CANDIDATE_LINEAGE",
+    "CANONICAL_SOURCE_HOST_IDENTITY",
+    "DISCOVERY_LANE_CONTRIBUTION",
+    "FACTUAL_ORIGIN_CANDIDATE_SEPARATION",
+    "HOST_PREFLIGHT_HISTORY",
+    "CANDIDATE_ADMISSION_READINESS",
+    "SOURCE_REPLACEMENT_GRAPH_PRIMITIVES",
+    "GLOBAL_SCOPE_REGION_EVIDENCE_COVERAGE_GRAPH"
+  ],
+  "forbidden_node_types": [
+    "MARKET_EVENT",
+    "SOLD_TRANSACTION",
+    "PRICE_OBSERVATION",
+    "LIQUIDITY_MEASURE",
+    "MARKET_CLAIM",
+    "SNAPSHOT_CANDIDATE"
+  ],
+  "forbidden_edge_types": [
+    "PROVES",
+    "ADMITTED_AS_EVIDENCE",
+    "SUPPORTS_MARKET_CLAIM",
+    "CREATES_TRANSACTION",
+    "CREATES_LIQUIDITY_MEASURE",
+    "AUTHORIZED_FOR_PUBLICATION"
+  ],
+  "required_outputs": [
+    "owned-source-intelligence-graph-v1.json",
+    "owned-source-intelligence-lineage-v1.json",
+    "owned-source-intelligence-quality-v1.json",
+    "owned-source-intelligence-value-receipt-v1.json",
+    "owned-source-intelligence-manifest-v1.json"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "52 * * * *",
+    "upstream_workflow": "KIDULTS ASI Candidate Preflight Wave v1",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "hard_boundaries": [
+    "SOURCE_INTELLIGENCE_GRAPH_IS_NOT_MARKET_EVIDENCE_GRAPH",
+    "SOURCE_CANDIDATE_IS_NOT_EVIDENCE",
+    "HOST_PREFLIGHT_IS_NOT_ADMISSION",
+    "FACTUAL_ORIGIN_CANDIDATE_IS_NOT_VERIFIED_FACTUAL_ORIGIN",
+    "ADMISSION_READINESS_IS_NOT_ADMISSION",
+    "MISSION_CANDIDATE_EDGE_IS_NOT_TRANSACTION_LINEAGE",
+    "GRAPH_COMPLETENESS_IS_NOT_MARKET_COVERAGE_COMPLETENESS"
+  ],
+  "truth_boundary": {
+    "creates_kidults_owned_source_intelligence": true,
+    "creates_market_event": false,
+    "creates_transaction": false,
+    "creates_price_observation": false,
+    "creates_liquidity_measure": false,
+    "admits_evidence": false,
+    "creates_snapshot_candidate": false,
+    "creates_market_claim": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
