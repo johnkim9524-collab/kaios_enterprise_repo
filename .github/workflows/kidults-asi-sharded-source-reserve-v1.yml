@@ -4,10 +4,23 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '29 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Global Any-Site Hourly Pooling v2'
+    branches: [main]
+    types: [completed]
   pull_request:
     paths:
       - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
       - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
 
 permissions:
@@ -20,6 +33,7 @@ concurrency:
 
 jobs:
   rolling-live-reserve:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -29,11 +43,19 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24'
-      - name: Verify exact source and syntax
+      - name: Verify exact source, syntax and autonomous trigger
         run: |
+          set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs
+          node - <<'NODE'
+          const fs=require('fs');const p=fs.readFileSync('.github/workflows/kidults-asi-sharded-source-reserve-v1.yml','utf8');
+          for(const marker of ['workflow_dispatch:','schedule:','push:','workflow_run:'])if(!p.includes(marker))throw new Error(`MISSING_AUTONOMOUS_TRIGGER:${marker}`);
+          const c=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'));
+          if(JSON.stringify(c.constitutional_order)!==JSON.stringify(['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT']))throw new Error('PLATFORM_PRINCIPLE_ORDER');
+          if(c.autonomous_activation_rule?.manual_only_normal_activation_forbidden!==true)throw new Error('MANUAL_ONLY_NOT_FORBIDDEN');
+          NODE
       - name: Restore latest main discovery and previous reserve
         env:
           GH_TOKEN: ${{ github.token }}
@@ -41,11 +63,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p discovery-out /tmp/reserve-discovery /tmp/previous-asi-sharded-source-reserve-v1
-          DISCOVERY_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select((.name=="kidults-asi-global-any-site-discovery-v2" or .name=="kidults-asi-global-any-site-hourly-cycle-v1") and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          DISCOVERY_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select((.name=="kidults-asi-global-any-site-discovery-v2" or .name=="kidults-asi-global-any-site-hourly-cycle-v1" or .name=="kidults-asi-global-any-site-hourly-cycle-v2") and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
           test -n "$DISCOVERY_ID"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISCOVERY_ID}/zip" > /tmp/reserve-discovery.zip
           unzip -q -o /tmp/reserve-discovery.zip -d /tmp/reserve-discovery
-          SRC=$(find /tmp/reserve-discovery -type f -name global-low-risk-discovery.json -print -quit)
+          SRC=$(find /tmp/reserve-discovery -type f \( -name global-low-risk-discovery.json -o -name global-low-risk-discovery-governed-v2.json \) -print -quit)
           test -n "$SRC"
           cp "$SRC" discovery-out/global-low-risk-discovery.json
           PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
@@ -53,6 +75,8 @@ jobs:
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-reserve.zip
             unzip -q -o /tmp/previous-reserve.zip -d /tmp/previous-asi-sharded-source-reserve-v1
           fi
+          echo "discovery_artifact_id=$DISCOVERY_ID"
+          echo "previous_reserve_artifact_id=${PREV_ID:-NONE}"
       - name: Build and validate rolling 256-shard reserve
         run: |
           node scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/previous-asi-sharded-source-reserve-v1 /tmp/asi-sharded-source-reserve-v1
@@ -67,10 +91,19 @@ jobs:
           const fs=require('fs');const p=process.argv[2];const lines=fs.readFileSync(p,'utf8').trim().split(/\r?\n/);const x=JSON.parse(lines[0]);x.rights_state='ALLOW';lines[0]=JSON.stringify(x);fs.writeFileSync(p,lines.join('\n')+'\n');
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs /tmp/bad-reserve-rights; then exit 1; fi
+      - name: Emit transparent reserve receipt
+        run: |
+          node - <<'NODE' >/tmp/asi-sharded-source-reserve-activation-receipt-v1.json
+          const fs=require('fs');const r=JSON.parse(fs.readFileSync('/tmp/asi-sharded-source-reserve-v1/asi-sharded-source-reserve-manifest-v1.json','utf8'));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-sharded-source-reserve-activation-receipt-v1',state:'VERIFIED_PASS',trigger_event:process.env.GITHUB_EVENT_NAME,autonomous_effect:'POSITIVE',global_effect:'POSITIVE',irreplaceable_value_effect:'POSITIVE',transparency_effect:'POSITIVE',reserve_cycle:r.cycle_number,reserve_unique_candidates:r.unique_candidate_count,reserve_unique_hosts:r.unique_host_count,reserve_new_candidates:r.new_candidate_count,reserve_updated_candidates:r.updated_candidate_count,reserve_nonempty_shards:r.nonempty_shard_count,reserve_design_capacity:r.design_capacity_minimum_candidates,reserve_is_not_safe_pool:true,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/asi-sharded-source-reserve-activation-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-sharded-source-reserve-v1
-          path: /tmp/asi-sharded-source-reserve-v1
+          path: |
+            /tmp/asi-sharded-source-reserve-v1
+            /tmp/asi-sharded-source-reserve-activation-receipt-v1.json
           retention-days: 90
           if-no-files-found: error
 
