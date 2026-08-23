@@ -15,6 +15,11 @@ from typing import Any
 
 
 CONTRACT_ID = "kidults-digitalocean-staging-portal-receipt-contract-v1"
+RUNNER_EXECUTION_ID = "kidults-digitalocean-staging-portal-runner-execution-v1"
+RUNNER_RECEIPT_TYPE = "GITHUB_RUNNER_EXECUTION"
+EXPECTED_REPOSITORY = "johnkim9524-collab/kaios_enterprise_repo"
+EXPECTED_WORKFLOW_NAME = "KIDULTS DigitalOcean STAGING Portal Deploy"
+EXPECTED_WORKFLOW_PATH = ".github/workflows/digitalocean-staging-portal-deploy.yml"
 SHA256_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
@@ -120,6 +125,74 @@ def validate_common(receipt: dict[str, Any], args: argparse.Namespace, name: str
     require(receipt["raw_provider_ingestion"] is False, f"{name}: provider ingestion must be false")
     require(receipt["real_business_workload"] is False, f"{name}: real workload must be false")
     require(receipt["g5"] == "HOLD", f"{name}: G5 must remain HOLD")
+
+
+def validate_runner_execution(bundle: Path, args: argparse.Namespace) -> Path:
+    path = bundle / "runner-execution.json"
+    receipt = read_json(path)
+    required_fields = {
+        "id",
+        "receipt_type",
+        "state",
+        "repository",
+        "workflow_name",
+        "workflow_ref",
+        "workflow_sha",
+        "source_ref",
+        "event_name",
+        "job_name",
+        "deployment_id",
+        "source_commit_sha",
+        "workflow_run_id",
+        "workflow_run_attempt",
+        "remote_deploy_exit_code",
+        "evidence_class",
+        "collected_at",
+        "successful_workflow_attested",
+        "public",
+        "production",
+        "g5",
+    }
+    missing = sorted(required_fields - receipt.keys())
+    require(not missing, f"runner-execution: missing fields: {', '.join(missing)}")
+    require(receipt["id"] == RUNNER_EXECUTION_ID, "runner-execution: id mismatch")
+    require(receipt["receipt_type"] == RUNNER_RECEIPT_TYPE, "runner-execution: receipt type mismatch")
+    require(receipt["state"] == "CAPTURED_NOT_ATTESTED", "runner-execution: state must remain CAPTURED_NOT_ATTESTED")
+    require(receipt["repository"] == args.expected_repository, "runner-execution: repository mismatch")
+    require(receipt["workflow_name"] == args.expected_workflow_name, "runner-execution: workflow name mismatch")
+    require(receipt["workflow_ref"] == args.expected_workflow_ref, "runner-execution: workflow ref mismatch")
+    require(receipt["workflow_sha"] == args.expected_workflow_sha, "runner-execution: workflow sha mismatch")
+    require(COMMIT_RE.fullmatch(str(receipt["workflow_sha"])) is not None, "runner-execution: invalid workflow sha")
+    require(receipt["source_ref"] == args.expected_source_ref, "runner-execution: source ref mismatch")
+    require(receipt["event_name"] == args.expected_event_name, "runner-execution: event name mismatch")
+    require(receipt["job_name"] == "deploy", "runner-execution: job name mismatch")
+    require(receipt["deployment_id"] == args.expected_deployment_id, "runner-execution: deployment id mismatch")
+    require(receipt["source_commit_sha"] == args.expected_source_sha, "runner-execution: source commit mismatch")
+    require(str(receipt["workflow_run_id"]) == args.expected_run_id, "runner-execution: workflow run id mismatch")
+    require(receipt["workflow_run_attempt"] == args.expected_run_attempt, "runner-execution: workflow run attempt mismatch")
+    require(receipt["evidence_class"] == args.expected_evidence_class, "runner-execution: evidence class mismatch")
+    require(valid_utc(receipt["collected_at"]), "runner-execution: invalid collected_at")
+    require(receipt["successful_workflow_attested"] is False, "runner-execution: in-run receipt cannot attest workflow success")
+    require(receipt["public"] == "HOLD", "runner-execution: Public must remain HOLD")
+    require(receipt["production"] == "HOLD", "runner-execution: Production must remain HOLD")
+    require(receipt["g5"] == "HOLD", "runner-execution: G5 must remain HOLD")
+    if args.expected_outcome == "DEPLOYED":
+        require(receipt["remote_deploy_exit_code"] == 0, "runner-execution: deployed outcome requires zero remote exit code")
+    else:
+        require(
+            isinstance(receipt["remote_deploy_exit_code"], int) and receipt["remote_deploy_exit_code"] > 0,
+            "runner-execution: rolled-back outcome requires nonzero remote exit code",
+        )
+    if args.expected_evidence_class == "REMOTE_STAGING":
+        require(args.expected_repository == EXPECTED_REPOSITORY, "caller supplied unexpected remote repository")
+        require(args.expected_workflow_name == EXPECTED_WORKFLOW_NAME, "caller supplied unexpected remote workflow name")
+        require(args.expected_source_ref == "refs/heads/main", "remote candidate source ref must be refs/heads/main")
+        require(
+            args.expected_workflow_ref == f"{EXPECTED_REPOSITORY}/{EXPECTED_WORKFLOW_PATH}@{args.expected_source_ref}",
+            "caller supplied unexpected remote workflow ref",
+        )
+        require(args.expected_workflow_sha == args.expected_source_sha, "remote workflow sha must equal source commit sha")
+    return path
 
 
 def validate_body(path: Path, expected_digest: str, required_markers: dict[str, str]) -> None:
@@ -231,7 +304,12 @@ def validate_rolled_back(bundle: Path, args: argparse.Namespace) -> list[Path]:
     return [rollback_path, index_path]
 
 
+def remote_exit_candidate(args: argparse.Namespace) -> bool:
+    return args.expected_evidence_class == "REMOTE_STAGING" and args.expected_outcome == "DEPLOYED"
+
+
 def write_validation_receipt(path: Path, args: argparse.Namespace, inputs: list[Path]) -> None:
+    candidate = remote_exit_candidate(args)
     payload = {
         "id": "kidults-digitalocean-staging-portal-receipt-validation-v1",
         "receipt_contract_id": CONTRACT_ID,
@@ -243,7 +321,22 @@ def write_validation_receipt(path: Path, args: argparse.Namespace, inputs: list[
         "workflow_run_id": args.expected_run_id,
         "workflow_run_attempt": args.expected_run_attempt,
         "evidence_class": args.expected_evidence_class,
-        "issue_921_remote_exit_eligible": args.expected_evidence_class == "REMOTE_STAGING",
+        "repository": args.expected_repository,
+        "workflow_name": args.expected_workflow_name,
+        "workflow_ref": args.expected_workflow_ref,
+        "workflow_sha": args.expected_workflow_sha,
+        "source_ref": args.expected_source_ref,
+        "event_name": args.expected_event_name,
+        "runner_execution_verified": True,
+        "successful_workflow_attested": False,
+        "remote_exit_state": "REMOTE_EXIT_CANDIDATE" if candidate else "NOT_ELIGIBLE",
+        "remote_exit_candidate": candidate,
+        "issue_921_remote_exit_eligible": False,
+        "issue_921_remote_exit_blocker": (
+            "SUCCESSFUL_WORKFLOW_ATTESTATION_REQUIRED"
+            if candidate
+            else "REMOTE_STAGING_DEPLOYED_OUTCOME_REQUIRED"
+        ),
         "validated_inputs": [
             {"name": item.name, "sha256": file_sha256(item)} for item in sorted(inputs, key=lambda item: item.name)
         ],
@@ -264,6 +357,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expected-source-sha", required=True)
     parser.add_argument("--expected-run-id", required=True)
     parser.add_argument("--expected-run-attempt", type=int, required=True)
+    parser.add_argument("--expected-repository", required=True)
+    parser.add_argument("--expected-workflow-name", required=True)
+    parser.add_argument("--expected-workflow-ref", required=True)
+    parser.add_argument("--expected-workflow-sha", required=True)
+    parser.add_argument("--expected-source-ref", required=True)
+    parser.add_argument("--expected-event-name", required=True)
     parser.add_argument(
         "--expected-evidence-class",
         choices=("REMOTE_STAGING", "LOCALHOST_CONTRACT_PROOF"),
@@ -273,6 +372,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     require(COMMIT_RE.fullmatch(args.expected_source_sha) is not None, "caller supplied invalid source commit sha")
+    require(COMMIT_RE.fullmatch(args.expected_workflow_sha) is not None, "caller supplied invalid workflow sha")
+    require(args.expected_source_ref.startswith("refs/"), "caller supplied invalid source ref")
     require(args.expected_run_attempt > 0, "caller supplied invalid workflow run attempt")
     return args
 
@@ -282,9 +383,12 @@ def main() -> int:
         args = parse_args()
         bundle = args.artifact_dir.resolve()
         require(bundle.is_dir(), "artifact directory missing")
+        runner_execution = validate_runner_execution(bundle, args)
         inputs = validate_deployed(bundle, args) if args.expected_outcome == "DEPLOYED" else validate_rolled_back(bundle, args)
+        inputs.append(runner_execution)
         if args.output:
             write_validation_receipt(args.output, args, inputs)
+        candidate = remote_exit_candidate(args)
         print(json.dumps({
             "suite": "DIGITALOCEAN_STAGING_PORTAL_RECEIPTS_V1",
             "state": "VERIFIED_PASS",
@@ -292,7 +396,18 @@ def main() -> int:
             "deployment_id": args.expected_deployment_id,
             "source_commit_sha": args.expected_source_sha,
             "evidence_class": args.expected_evidence_class,
-            "issue_921_remote_exit_eligible": args.expected_evidence_class == "REMOTE_STAGING",
+            "workflow_ref": args.expected_workflow_ref,
+            "workflow_sha": args.expected_workflow_sha,
+            "runner_execution_verified": True,
+            "successful_workflow_attested": False,
+            "remote_exit_state": "REMOTE_EXIT_CANDIDATE" if candidate else "NOT_ELIGIBLE",
+            "remote_exit_candidate": candidate,
+            "issue_921_remote_exit_eligible": False,
+            "issue_921_remote_exit_blocker": (
+                "SUCCESSFUL_WORKFLOW_ATTESTATION_REQUIRED"
+                if candidate
+                else "REMOTE_STAGING_DEPLOYED_OUTCOME_REQUIRED"
+            ),
             "production": "HOLD",
             "g5": "HOLD",
         }, indent=2))
