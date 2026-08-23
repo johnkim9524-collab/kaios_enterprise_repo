@@ -1,6 +1,6 @@
 {
   "id": "kidults-ai-agent-operating-rules-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
   "effective_scope": "REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AUTOMATIONS",
