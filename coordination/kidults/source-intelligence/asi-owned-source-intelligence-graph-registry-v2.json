@@ -1,0 +1,63 @@
+{
+  "id": "kidults-asi-owned-source-intelligence-graph-registry-v2",
+  "version": "2.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P2",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json",
+    "builder": "scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs",
+    "registry_validator": "scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v2.mjs",
+    "workflow": ".github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml",
+    "human_readme": "docs/kidults/asi/asi-owned-source-intelligence-graph-v2.md"
+  },
+  "registered_inputs": {
+    "p0b_artifact": "kidults-asi-p0b-bounded-discovery-candidates-v1",
+    "p1_artifact": "kidults-asi-p1-source-preflight-v1"
+  },
+  "registered_outputs": [
+    "owned-source-intelligence-graph-v2.json",
+    "owned-source-intelligence-lineage-v2.json",
+    "owned-source-intelligence-quality-v2.json",
+    "owned-source-intelligence-value-receipt-v2.json",
+    "owned-source-intelligence-manifest-v2.json"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "52 * * * *",
+    "upstream_workflows": [
+      "KIDULTS ASI P0B Bounded Discovery Candidates v1",
+      "KIDULTS ASI P1 Source Preflight v1"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "empirical_baseline": {
+    "missions": 192,
+    "source_candidates": 486,
+    "assigned_unique_candidates": 96,
+    "canonical_hosts": 114,
+    "discovery_providers": 2,
+    "gate1_decisions": 576,
+    "admission_candidates": 576,
+    "preflight_actions": 672,
+    "provider_switching_primitives": 230
+  },
+  "truth_boundary": {
+    "source_candidate_is_evidence": false,
+    "gate1_decision_is_admission": false,
+    "admission_candidate_is_admitted_evidence": false,
+    "preflight_action_is_collection_authority": false,
+    "graph_is_market_evidence_graph": false,
+    "market_event_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
