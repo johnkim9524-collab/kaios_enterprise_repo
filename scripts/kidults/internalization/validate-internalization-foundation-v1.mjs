@@ -12,7 +12,9 @@ const suites = [
   'scripts/kidults/internalization/validate-provider-internalization-matrix-v1.mjs',
   'scripts/kidults/internalization/validate-provider-commercial-rights-ledger-v1.mjs',
   'scripts/kidults/internalization/validate-provider-owned-core-admission-gate-v1.mjs',
-  'scripts/kidults/internalization/validate-provider-operating-decision-ledger-v1.mjs'
+  'scripts/kidults/internalization/validate-provider-operating-decision-ledger-v1.mjs',
+  'scripts/kidults/internalization/validate-provider-removal-readiness-ledger-v1.mjs',
+  'scripts/kidults/internalization/validate-provider-negotiation-packet-contract-v1.mjs'
 ];
 
 const removalPath = 'coordination/kidults/internalization/provider-removal-simulation-contract-v1.json';
