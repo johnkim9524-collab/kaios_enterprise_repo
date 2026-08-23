@@ -1,0 +1,210 @@
+name: KIDULTS ASI Candidate Preflight Wave v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-candidate-preflight-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-candidate-preflight-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-mission-consumption-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/run-asi-candidate-preflight-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-candidate-preflight-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-candidate-preflight-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-candidate-preflight-wave-v1.md'
+      - '.github/workflows/kidults-asi-candidate-preflight-wave-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-candidate-preflight-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-candidate-preflight-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-mission-consumption-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/run-asi-candidate-preflight-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-candidate-preflight-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-candidate-preflight-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-candidate-preflight-wave-v1.md'
+      - '.github/workflows/kidults-asi-candidate-preflight-wave-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Mission Consumption Wave v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-candidate-preflight-wave-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight-candidates:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      ASI_PREFLIGHT_HOST_BATCH_SIZE: '96'
+      ASI_PREFLIGHT_CONCURRENCY: '8'
+      ASI_PREFLIGHT_TIMEOUT_MS: '12000'
+      ASI_PREFLIGHT_RETRIES: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/run-asi-candidate-preflight-wave-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-candidate-preflight-wave-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-candidate-preflight-registry-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-candidate-preflight-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-candidate-preflight-registry-v1.json','utf8'))"
+      - name: Validate registered P1 assets and automatic continuation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-candidate-preflight-registry-v1.mjs \
+            | tee /tmp/kidults-asi-candidate-preflight-registry-validation-v1.json
+      - name: Restore latest P0 candidate artifact and previous P1 ledger
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/p0-mission-consumption /tmp/previous-asi-candidate-preflight-v1
+          P0_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-mission-consumption-wave-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          test -n "$P0_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0_ID}/zip" > /tmp/p0-mission-consumption.zip
+          unzip -q -o /tmp/p0-mission-consumption.zip -d /tmp/p0-mission-consumption
+          CANDIDATE_FILE=$(find /tmp/p0-mission-consumption -type f -name source-candidate-increment-v1.json -print -quit)
+          test -n "$CANDIDATE_FILE"
+          cp "$CANDIDATE_FILE" /tmp/kidults-asi-source-candidate-increment-v1.json
+          P1_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-candidate-preflight-wave-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          if [ -n "$P1_ID" ]; then
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/previous-p1.zip
+            unzip -q -o /tmp/previous-p1.zip -d /tmp/previous-p1-expanded
+            PREVIOUS_LEDGER=$(find /tmp/previous-p1-expanded -type f -name candidate-host-preflight-ledger-v1.json -print -quit || true)
+            if [ -n "$PREVIOUS_LEDGER" ]; then cp "$PREVIOUS_LEDGER" /tmp/previous-asi-candidate-preflight-v1/candidate-host-preflight-ledger-v1.json; fi
+          fi
+          echo "p0_artifact_id=$P0_ID"
+          echo "previous_p1_artifact_id=${P1_ID:-NONE}"
+      - name: Run bounded live candidate host preflight
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/run-asi-candidate-preflight-wave-v1.mjs \
+            /tmp/kidults-asi-source-candidate-increment-v1.json \
+            /tmp/previous-asi-candidate-preflight-v1 \
+            coordination/kidults/source-intelligence/asi-candidate-preflight-contract-v1.json \
+            /tmp/kidults-asi-candidate-preflight-v1 \
+            | tee /tmp/kidults-asi-candidate-preflight-live-summary-v1.json
+      - name: Validate P1 candidate preflight
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-candidate-preflight-wave-v1.mjs \
+            /tmp/kidults-asi-candidate-preflight-v1 \
+            /tmp/kidults-asi-source-candidate-increment-v1.json \
+            coordination/kidults/source-intelligence/asi-candidate-preflight-contract-v1.json \
+            | tee /tmp/kidults-asi-candidate-preflight-validation-v1.json
+      - name: Reject robots-as-license mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-candidate-preflight-v1 /tmp/bad-robots-license
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-robots-license/candidate-host-preflight-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));x.entries[0].robots.robots_is_license=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-candidate-preflight-wave-v1.mjs /tmp/bad-robots-license /tmp/kidults-asi-source-candidate-increment-v1.json; then
+            echo 'Validator accepted robots allow as license' >&2
+            exit 1
+          fi
+      - name: Reject automatic-admission mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-candidate-preflight-v1 /tmp/bad-auto-admission
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-auto-admission/candidate-admission-readiness-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_admission_eligible=1;x.evidence_admitted=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-candidate-preflight-wave-v1.mjs /tmp/bad-auto-admission /tmp/kidults-asi-source-candidate-increment-v1.json; then
+            echo 'Validator accepted automatic evidence admission' >&2
+            exit 1
+          fi
+      - name: Reject body-limit mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-candidate-preflight-v1 /tmp/bad-body-limit
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-body-limit/candidate-host-preflight-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));x.entries[0].technical.root_body_bytes=65537;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-candidate-preflight-wave-v1.mjs /tmp/bad-body-limit /tmp/kidults-asi-source-candidate-increment-v1.json; then
+            echo 'Validator accepted body-limit violation' >&2
+            exit 1
+          fi
+      - name: Reject discovered-link-follow mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-candidate-preflight-v1 /tmp/bad-link-follow
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-link-follow/candidate-host-preflight-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));x.entries[0].root_metadata.discovered_links_followed=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-candidate-preflight-wave-v1.mjs /tmp/bad-link-follow /tmp/kidults-asi-source-candidate-increment-v1.json; then
+            echo 'Validator accepted discovered-link follow' >&2
+            exit 1
+          fi
+      - name: Reject assignment rights-pass mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-candidate-preflight-v1 /tmp/bad-rights-pass
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-rights-pass/candidate-preflight-assignment-v1.json';const x=JSON.parse(fs.readFileSync(p));const a=x.assignments.find(v=>v.preflight_id!==null);if(!a)throw new Error('NO_PREFLIGHT_ASSIGNMENT');a.rights_state='ALLOW';fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-candidate-preflight-wave-v1.mjs /tmp/bad-rights-pass /tmp/kidults-asi-source-candidate-increment-v1.json; then
+            echo 'Validator accepted automatic rights PASS' >&2
+            exit 1
+          fi
+      - name: Reject manual-only continuation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-candidate-preflight-registry-v1.json /tmp/candidate-preflight-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-candidate-preflight-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflow=null;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-candidate-preflight-registry-v1.mjs; then
+            echo 'Validator accepted manual-only P1 continuation' >&2
+            exit 1
+          fi
+          mv /tmp/candidate-preflight-registry.json coordination/kidults/source-intelligence/asi-candidate-preflight-registry-v1.json
+      - name: Revalidate pristine P1 execution and registry
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-candidate-preflight-registry-v1.mjs \
+            > /tmp/kidults-asi-candidate-preflight-registry-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-candidate-preflight-wave-v1.mjs \
+            /tmp/kidults-asi-candidate-preflight-v1 \
+            /tmp/kidults-asi-source-candidate-increment-v1.json \
+            coordination/kidults/source-intelligence/asi-candidate-preflight-contract-v1.json \
+            > /tmp/kidults-asi-candidate-preflight-final-validation-v1.json
+      - name: Emit KPMO P1 candidate preflight receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-candidate-preflight-receipt-v1.json
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-candidate-preflight-v1/candidate-preflight-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-candidate-preflight-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,automatic_admission_eligible:0,evidence_admitted:0,market_records_collected:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-candidate-preflight-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-candidate-preflight-wave-v1
+          path: |
+            /tmp/kidults-asi-source-candidate-increment-v1.json
+            /tmp/kidults-asi-candidate-preflight-v1
+            /tmp/kidults-asi-candidate-preflight-live-summary-v1.json
+            /tmp/kidults-asi-candidate-preflight-registry-validation-v1.json
+            /tmp/kidults-asi-candidate-preflight-registry-final-validation-v1.json
+            /tmp/kidults-asi-candidate-preflight-validation-v1.json
+            /tmp/kidults-asi-candidate-preflight-final-validation-v1.json
+            /tmp/kidults-asi-candidate-preflight-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
