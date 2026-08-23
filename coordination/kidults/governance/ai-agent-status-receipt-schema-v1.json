@@ -117,7 +117,7 @@
               "EXTERNAL_SPEND",
               "CONTRACTUAL_COMMITMENT",
               "EXPANDED_CREDENTIAL_OR_PERMISSION"
-            }
+            ]
           },
           "uniqueItems": true
         },
