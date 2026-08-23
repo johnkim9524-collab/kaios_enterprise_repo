@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "validate:market-event": "node scripts/kidults/poc/validate-market-event-schema-v1.mjs",
-    "validate:internalization": "node scripts/kidults/internalization/validate-rights-intelligence-policy-v1.mjs && node scripts/kidults/internalization/validate-provider-economics-v1.mjs && node scripts/kidults/internalization/validate-source-reputation-v1.mjs && node scripts/kidults/internalization/validate-market-integrity-v1.mjs && node scripts/kidults/internalization/validate-canonical-ontology-evolution-v1.mjs && node scripts/kidults/internalization/validate-historical-learning-memory-v1.mjs && node scripts/kidults/internalization/validate-provider-removal-simulation-v1.mjs && node scripts/kidults/internalization/validate-provider-internalization-matrix-v1.mjs && node scripts/kidults/internalization/validate-minimum-external-dependency-negotiation-v1.mjs"
+    "validate:internalization": "node scripts/kidults/internalization/validate-internalization-foundation-v1.mjs"
   },
   "dependencies": {
     "ajv": "8.17.1",
