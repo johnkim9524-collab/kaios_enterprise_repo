@@ -1,0 +1,122 @@
+{
+  "id": "kidults-asi-p1-source-classification-admission-preflight-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Convert P0B source candidates into purpose-specific classification and qualification grains, route every grain through the registered ASI classification and qualification fleets, produce explicit Gate 1 source-safety decisions, and generate evidence-admission preflight actions without promoting unknown rights or metadata hints into evidence.",
+  "authoritative_inputs": {
+    "p0b_contract": "coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json",
+    "p0b_registry": "coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json",
+    "runtime_registry": "services/kidults-autonomous-intelligence/src/asi/registry.ts",
+    "runtime_alignment": "services/kidults-autonomous-intelligence/src/asi/alignment.ts",
+    "purpose_admission_policy": "coordination/kidults/source-intelligence/asi-purpose-specific-admission-policy-v1.json"
+  },
+  "input_requirements": {
+    "candidate_registry_id": "kidults-asi-p0b-source-candidate-registry-v1",
+    "binding_ledger_id": "kidults-asi-p0b-mission-candidate-binding-ledger-v1",
+    "candidate_gap_register_id": "kidults-asi-p0b-candidate-gap-register-v1",
+    "minimum_observed_candidates": 1,
+    "minimum_bound_missions": 1
+  },
+  "classification_fleets": [
+    "SOURCE_SITE_IDENTITY_OWNER_LINEAGE",
+    "SOURCE_SCOPE_ROLE_CLASSIFICATION",
+    "SOURCE_REGION_LANGUAGE_CLASSIFICATION",
+    "SOURCE_MARKET_SEMANTICS_CLASSIFICATION"
+  ],
+  "qualification_fleets": [
+    "SOURCE_UTILITY_VALUE_ANALYSIS",
+    "SOURCE_RIGHTS_COMPLIANCE_ANALYSIS",
+    "SOURCE_TECHNICAL_ACCESS_SCHEMA_ANALYSIS",
+    "SOURCE_COVERAGE_BIAS_ANALYSIS",
+    "SOURCE_INDEPENDENCE_REDUNDANCY_ANALYSIS",
+    "SOURCE_FRESHNESS_STABILITY_ANALYSIS",
+    "SOURCE_COST_ROI_ANALYSIS"
+  ],
+  "preliminary_assertion_model": {
+    "CANONICAL_HOST": "PASS_FROM_CANONICALIZED_ENDPOINT",
+    "OWNER_LINEAGE": "HOLD_UNKNOWN_REQUIRES_AUTHORITATIVE_CLASSIFICATION",
+    "PROVENANCE": "HOLD_DISCOVERY_LINEAGE_ONLY_NOT_FACTUAL_ORIGIN",
+    "RELEVANCE": "HOLD_SCOPE_HINT_ONLY",
+    "SCOPE_ROLE": "HOLD_CANDIDATE_ROLE_HINT_ONLY",
+    "REGION_LANGUAGE": "HOLD_REGION_HINT_NOT_COVERAGE",
+    "MARKET_SEMANTICS": "HOLD_NOT_VERIFIED",
+    "UTILITY_VALUE": "ADVISORY_FROM_MISSION_PRIORITY_ONLY",
+    "COLLECT_STORE_TRANSFORM_RETENTION": "HOLD_RIGHTS_UNKNOWN",
+    "ROBOTS_RATE_LIMIT_SCHEMA": "HOLD_NOT_PROBED",
+    "COVERAGE_BIAS": "HOLD_NOT_MEASURED",
+    "INDEPENDENCE_REDUNDANCY": "HOLD_FACTUAL_ORIGIN_UNKNOWN",
+    "FRESHNESS": "DISCOVERY_OBSERVATION_CURRENT_TARGET_DATA_UNKNOWN",
+    "COST_ROI": "ADVISORY_ONLY"
+  },
+  "gate1_source_safety": {
+    "pass_requires": [
+      "CANONICAL_SOURCE_IDENTITY_PASS",
+      "OWNER_AND_FACTUAL_ORIGIN_TRACEABLE",
+      "PURPOSE_SPECIFIC_COLLECT_RIGHT_NOT_DENY_AND_SUFFICIENT",
+      "MARKET_SEMANTICS_VERIFIED",
+      "TECHNICAL_ACCESS_AND_SCHEMA_PREFLIGHT_PASS",
+      "REGIONAL_RELEVANCE_VERIFIED_WHEN_MISSION_IS_REGIONAL",
+      "NO_PROVIDER_DIRECT_PATH",
+      "NO_UNRESOLVED_CRITICAL_CONFLICT"
+    ],
+    "unknown_or_missing_behavior": "HOLD",
+    "deny_or_invalid_behavior": "REJECT",
+    "metadata_hint_alone_can_pass": false
+  },
+  "preflight_actions": [
+    "SOURCE_OWNER_AND_FACTUAL_ORIGIN_CLASSIFICATION",
+    "PURPOSE_SPECIFIC_RIGHTS_AND_TERMS_PREFLIGHT",
+    "ROBOTS_RATE_LIMIT_AND_ACCESS_PREFLIGHT",
+    "MARKET_SEMANTIC_AND_SOURCE_ROLE_VERIFICATION",
+    "REGIONAL_RELEVANCE_AND_LANGUAGE_VERIFICATION",
+    "SCHEMA_AND_IDENTIFIER_SURFACE_PREFLIGHT",
+    "INDEPENDENCE_AND_SOURCE_REMOVAL_CLUSTERING"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "52 * * * *",
+    "upstream_workflow": "KIDULTS ASI P0B Bounded Discovery Candidates v1",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "required_outputs": [
+    "p1-source-classification-ledger-v1.json",
+    "p1-source-qualification-ledger-v1.json",
+    "p1-source-preflight-task-queue-v1.json",
+    "p1-gate1-source-safety-decisions-v1.json",
+    "p1-evidence-admission-candidate-register-v1.json",
+    "p1-preflight-action-queue-v1.json",
+    "p1-source-preflight-manifest-v1.json"
+  ],
+  "hard_boundaries": [
+    "CANONICAL_HOST_IS_NOT_SOURCE_OWNER",
+    "DISCOVERY_PROVIDER_IS_NOT_FACTUAL_ORIGIN",
+    "SCOPE_HINT_IS_NOT_RELEVANCE_PASS",
+    "REGION_HINT_IS_NOT_REGIONAL_COVERAGE",
+    "PUBLIC_METADATA_IS_NOT_MARKET_EVIDENCE",
+    "RIGHTS_UNKNOWN_IS_NOT_ALLOW",
+    "ROBOTS_UNKNOWN_IS_NOT_ALLOW",
+    "TECHNICAL_ACCESS_UNKNOWN_IS_NOT_PASS",
+    "GATE1_HOLD_IS_NOT_REJECT_OR_PASS",
+    "EVIDENCE_ADMISSION_CANDIDATE_IS_NOT_ADMITTED_EVIDENCE",
+    "PRIORITY_IS_NOT_PERMISSION"
+  ],
+  "truth_boundary": {
+    "creates_preliminary_classification_records": true,
+    "creates_runtime_preflighted_classification_and_qualification_tasks": true,
+    "performs_target_site_rights_or_access_probe": false,
+    "creates_collection_right": false,
+    "passes_gate1_from_metadata_hint_only": false,
+    "admits_evidence": false,
+    "creates_market_claim": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
