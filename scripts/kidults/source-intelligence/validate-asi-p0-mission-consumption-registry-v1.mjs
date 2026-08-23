@@ -30,6 +30,10 @@ assert(registry.id === 'kidults-asi-p0-mission-consumption-registry-v1', 'REGIST
 assert(registry.version === '1.0.0' && registry.owner === 'KPMO' && registry.priority === 'P0', 'REGISTRY_METADATA');
 assert(JSON.stringify(contract.platform_principles) === JSON.stringify(principles), 'CONTRACT_PRINCIPLE_ORDER');
 assert(JSON.stringify(registry.platform_principles) === JSON.stringify(principles), 'REGISTRY_PRINCIPLE_ORDER');
+assert(contract.consumption_model?.model === 'ONE_MISSION_TO_THREE_INDEPENDENT_DISCOVERY_LANE_TASKS', 'CONTRACT_CONSUMPTION_MODEL');
+assert(contract.consumption_model?.missions_consumed_required === 192, 'CONTRACT_MISSION_TARGET');
+assert(contract.consumption_model?.lane_tasks_required === 576, 'CONTRACT_TASK_TARGET');
+assert(contract.consumption_model?.lane_slots?.length === 3, 'CONTRACT_LANE_SLOT_COUNT');
 for (const [key, expected] of Object.entries({
   contract: files.contract,
   builder: files.builder,
@@ -73,7 +77,6 @@ assert(workflow.includes('persist-credentials: false'), 'WORKFLOW_CREDENTIALS');
 assert(!workflow.includes('git push'), 'WORKFLOW_DIRECT_PUSH_FORBIDDEN');
 
 for (const marker of [
-  'ONE_MISSION_TO_THREE_INDEPENDENT_DISCOVERY_LANE_TASKS',
   'SOURCE_DISCOVERY_REQUESTED',
   'READY_FOR_SHADOW_QUEUE_RUNTIME_PREFLIGHT',
   'CONSUMED_TO_THREE_DISCOVERY_LANE_TASKS',
