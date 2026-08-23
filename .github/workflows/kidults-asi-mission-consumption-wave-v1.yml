@@ -1,0 +1,234 @@
+name: KIDULTS ASI Mission Consumption Wave v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-mission-consumption-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json'
+      - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
+      - 'coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/collect-asi-mission-discovery-raw-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-mission-consumption-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-consumption-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-consumption-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-mission-consumption-wave-v1.md'
+      - '.github/workflows/kidults-asi-mission-consumption-wave-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-mission-consumption-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json'
+      - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
+      - 'coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/collect-asi-mission-discovery-raw-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-mission-consumption-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-consumption-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-consumption-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-mission-consumption-wave-v1.md'
+      - '.github/workflows/kidults-asi-mission-consumption-wave-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Intelligence Preparation Wave v1'
+      - 'KIDULTS ASI Source Fabric Scale PI1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-mission-consumption-wave-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  consume-missions:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      ASI_MISSION_DISCOVERY_CONCURRENCY: '4'
+      ASI_MISSION_DISCOVERY_TIMEOUT_MS: '12000'
+      ASI_MISSION_DISCOVERY_RETRIES: '1'
+      ASI_MISSION_QUERY_GROUP_LIMIT: '64'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs
+          node --check scripts/kidults/source-intelligence/collect-asi-mission-discovery-raw-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-mission-consumption-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-mission-consumption-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-mission-consumption-registry-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-mission-consumption-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json','utf8'))"
+      - name: Validate registered mission-consumption assets and automatic activation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-mission-consumption-registry-v1.mjs \
+            | tee /tmp/kidults-asi-mission-consumption-registry-validation-v1.json
+      - name: Rebuild current Global Source Mesh and 192-mission queue
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json \
+            coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json \
+            /tmp/kidults-global-source-mesh-v1.json
+          node scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs \
+            /tmp/kidults-global-source-mesh-v1.json \
+            coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json \
+            coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json \
+            /tmp/kidults-asi-intelligence-preparation-wave-v1
+          node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs \
+            /tmp/kidults-asi-intelligence-preparation-wave-v1 \
+            coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json \
+            > /tmp/kidults-asi-preparation-prerequisite-validation-v1.json
+      - name: Collect bounded live public-metadata discovery
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/collect-asi-mission-discovery-raw-v1.mjs \
+            /tmp/kidults-asi-intelligence-preparation-wave-v1/autonomous-mission-queue-v1.json \
+            /tmp/kidults-asi-mission-discovery-raw-v1.json \
+            | tee /tmp/kidults-asi-mission-discovery-live-summary-v1.json
+      - name: Build mission consumption twice and prove deterministic replay
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-mission-consumption-v1.mjs \
+            /tmp/kidults-asi-intelligence-preparation-wave-v1/autonomous-mission-queue-v1.json \
+            /tmp/kidults-asi-mission-discovery-raw-v1.json \
+            coordination/kidults/source-intelligence/asi-mission-consumption-contract-v1.json \
+            /tmp/kidults-asi-mission-consumption-run-1
+          TZ=Pacific/Honolulu LANG=C LC_ALL=C node scripts/kidults/source-intelligence/build-asi-mission-consumption-v1.mjs \
+            /tmp/kidults-asi-intelligence-preparation-wave-v1/autonomous-mission-queue-v1.json \
+            /tmp/kidults-asi-mission-discovery-raw-v1.json \
+            coordination/kidults/source-intelligence/asi-mission-consumption-contract-v1.json \
+            /tmp/kidults-asi-mission-consumption-run-2
+          diff -qr /tmp/kidults-asi-mission-consumption-run-1 /tmp/kidults-asi-mission-consumption-run-2
+      - name: Validate empirical mission consumption
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-mission-consumption-v1.mjs \
+            /tmp/kidults-asi-mission-consumption-run-1 \
+            /tmp/kidults-asi-mission-discovery-raw-v1.json \
+            coordination/kidults/source-intelligence/asi-mission-consumption-contract-v1.json \
+            | tee /tmp/kidults-asi-mission-consumption-validation-v1.json
+      - name: Reject candidate-to-evidence mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-mission-consumption-run-1 /tmp/bad-candidate-evidence
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-candidate-evidence/source-candidate-increment-v1.json';const x=JSON.parse(fs.readFileSync(p));x.candidates[0].candidate_is_evidence=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-consumption-v1.mjs /tmp/bad-candidate-evidence /tmp/kidults-asi-mission-discovery-raw-v1.json; then
+            echo 'Validator accepted source candidate as evidence' >&2
+            exit 1
+          fi
+      - name: Reject mission-consumption completion mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-mission-consumption-run-1 /tmp/bad-consumption-complete
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-consumption-complete/mission-consumption-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));x.mission_consumed_is_mission_completed=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-consumption-v1.mjs /tmp/bad-consumption-complete /tmp/kidults-asi-mission-discovery-raw-v1.json; then
+            echo 'Validator accepted mission-consumed as mission-complete' >&2
+            exit 1
+          fi
+      - name: Reject candidate-slot admission mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-mission-consumption-run-1 /tmp/bad-slot-admission
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-slot-admission/mission-lane-coverage-v1.json';const x=JSON.parse(fs.readFileSync(p));x.candidate_slot_is_operational_admission=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-consumption-v1.mjs /tmp/bad-slot-admission /tmp/kidults-asi-mission-discovery-raw-v1.json; then
+            echo 'Validator accepted candidate slot as operational admission' >&2
+            exit 1
+          fi
+      - name: Reject network-failure-as-empty-market mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-mission-consumption-run-1 /tmp/bad-network-semantic
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-network-semantic/discovery-provider-health-v1.json';const x=JSON.parse(fs.readFileSync(p));x.network_failure_is_empty_market=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-consumption-v1.mjs /tmp/bad-network-semantic /tmp/kidults-asi-mission-discovery-raw-v1.json; then
+            echo 'Validator accepted network failure as empty market' >&2
+            exit 1
+          fi
+      - name: Reject missing mission consumption mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-mission-consumption-run-1 /tmp/bad-missing-mission
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-missing-mission/mission-consumption-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));x.entries.pop();x.consumed_mission_count=191;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-consumption-v1.mjs /tmp/bad-missing-mission /tmp/kidults-asi-mission-discovery-raw-v1.json; then
+            echo 'Validator accepted missing mission consumption' >&2
+            exit 1
+          fi
+      - name: Reject manual-only activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json /tmp/mission-consumption-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflows=[];fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-consumption-registry-v1.mjs; then
+            echo 'Validator accepted manual-only mission consumption' >&2
+            exit 1
+          fi
+          mv /tmp/mission-consumption-registry.json coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json
+      - name: Revalidate pristine execution and registry
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-mission-consumption-registry-v1.mjs \
+            > /tmp/kidults-asi-mission-consumption-registry-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-mission-consumption-v1.mjs \
+            /tmp/kidults-asi-mission-consumption-run-1 \
+            /tmp/kidults-asi-mission-discovery-raw-v1.json \
+            coordination/kidults/source-intelligence/asi-mission-consumption-contract-v1.json \
+            > /tmp/kidults-asi-mission-consumption-final-validation-v1.json
+      - name: Emit KPMO mission consumption receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-mission-consumption-receipt-v1.json
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-mission-consumption-run-1/mission-consumption-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-mission-consumption-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,source_candidate_is_evidence:false,collection_right_created:false,evidence_admitted:0,market_claims_created:0,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-mission-consumption-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-mission-consumption-wave-v1
+          path: |
+            /tmp/kidults-global-source-mesh-v1.json
+            /tmp/kidults-asi-intelligence-preparation-wave-v1
+            /tmp/kidults-asi-preparation-prerequisite-validation-v1.json
+            /tmp/kidults-asi-mission-discovery-raw-v1.json
+            /tmp/kidults-asi-mission-discovery-live-summary-v1.json
+            /tmp/kidults-asi-mission-consumption-run-1
+            /tmp/kidults-asi-mission-consumption-registry-validation-v1.json
+            /tmp/kidults-asi-mission-consumption-registry-final-validation-v1.json
+            /tmp/kidults-asi-mission-consumption-validation-v1.json
+            /tmp/kidults-asi-mission-consumption-final-validation-v1.json
+            /tmp/kidults-asi-mission-consumption-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
