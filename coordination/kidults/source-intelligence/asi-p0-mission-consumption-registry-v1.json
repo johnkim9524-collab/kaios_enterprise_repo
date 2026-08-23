@@ -1,0 +1,56 @@
+{
+  "id": "kidults-asi-p0-mission-consumption-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json",
+    "preparation_contract": "coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json",
+    "preparation_registry": "coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json",
+    "engine_alignment_registry": "coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json",
+    "builder": "scripts/kidults/source-intelligence/build-asi-p0-mission-consumption-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-p0-mission-consumption-v1.mjs",
+    "runtime_test": "services/kidults-autonomous-intelligence/scripts/asi-p0-mission-consumption-runtime-test.mjs",
+    "workflow": ".github/workflows/kidults-asi-p0-mission-consumption-v1.yml",
+    "human_readme": "docs/kidults/asi/asi-p0-mission-consumption-v1.md"
+  },
+  "registered_outputs": [
+    "p0-mission-consumption-ledger-v1.json",
+    "p0-source-discovery-task-queue-v1.json",
+    "p0-discovery-fleet-routing-v1.json",
+    "p0-mission-consumption-manifest-v1.json",
+    "p0-mission-runtime-receipts-v1.json"
+  ],
+  "execution_truth": {
+    "missions_available": 192,
+    "missions_consumed_target": 192,
+    "lane_tasks_target": 576,
+    "runtime_registered_discovery_fleets_target": 11,
+    "optional_licensed_fleet_assigned_target": 0,
+    "source_candidate_target_in_this_stage": 0,
+    "next_stage": "P0B_BOUNDED_DISCOVERY_EXECUTION_AND_SOURCE_CANDIDATE_INCREMENT"
+  },
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "17 * * * *",
+    "upstream_workflow": "KIDULTS ASI Intelligence Preparation Wave v1",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "truth_boundary": {
+    "mission_consumption_is_source_discovery_result": false,
+    "runtime_preflight_is_processor_execution": false,
+    "runtime_preflight_is_external_network_execution": false,
+    "discovery_task_is_source_candidate": false,
+    "source_candidate_is_evidence": false,
+    "host_is_factual_origin_without_proof": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
