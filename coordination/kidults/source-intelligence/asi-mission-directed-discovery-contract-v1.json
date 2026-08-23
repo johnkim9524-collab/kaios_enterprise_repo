@@ -1,0 +1,130 @@
+{
+  "id": "kidults-asi-mission-directed-discovery-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0_TO_P1_BRIDGE",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "purpose": "Continuously consume the 426 mission discovery intents in bounded rotating batches, discover live public metadata candidates through independent provider lanes, pass candidates through Gate 1-3 metadata controls, and compile claim-specific CURRENT_SOLD_TRANSACTION and LIQUIDITY_TIME_TO_SALE_EXPOSURE admission-readiness gaps without promoting metadata to market evidence.",
+  "canonical_inputs": {
+    "mission_discovery_intents": "mission-discovery-intent-v1.json",
+    "mission_source_lanes": "mission-source-lane-assignments-v1.json",
+    "strict_current_market_gate": "coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json",
+    "gate1_builder": "scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs",
+    "gate2_builder": "scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs",
+    "gate3_builder": "scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs"
+  },
+  "cycle_policy": {
+    "mode": "ROLLING_BOUNDED_PUBLIC_METADATA_DISCOVERY",
+    "default_batch_size": 24,
+    "minimum_batch_size": 8,
+    "maximum_batch_size": 32,
+    "cursor_persisted_in_artifact": true,
+    "full_rotation_required": true,
+    "failed_lane_does_not_abort_other_lanes": true,
+    "minimum_healthy_provider_lanes": 1,
+    "minimum_live_candidates_per_successful_cycle": 1,
+    "intent_selection": "CURSOR_ORDER_WITH_PRIORITY_STABLE_INPUT",
+    "manual_orchestration_required": false
+  },
+  "provider_lanes": [
+    {
+      "lane_id": "WIKIDATA_OFFICIAL_WEBSITE_GRAPH",
+      "provider": "WIKIDATA",
+      "access": "PUBLIC_API",
+      "candidate_semantics": "OFFICIAL_WEBSITE_METADATA_CANDIDATE_ONLY",
+      "target_body_traversal": false
+    },
+    {
+      "lane_id": "GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA",
+      "provider": "GITHUB",
+      "access": "PUBLIC_API_WITH_WORKFLOW_TOKEN",
+      "candidate_semantics": "REPOSITORY_HOMEPAGE_METADATA_CANDIDATE_ONLY",
+      "target_body_traversal": false
+    },
+    {
+      "lane_id": "DATACITE_OPEN_RESEARCH_METADATA",
+      "provider": "DATACITE",
+      "access": "PUBLIC_API",
+      "candidate_semantics": "RESEARCH_LANDING_METADATA_CANDIDATE_ONLY",
+      "target_body_traversal": false
+    }
+  ],
+  "candidate_required_fields": [
+    "candidate_id",
+    "mission_discovery_intent_id",
+    "mission_id",
+    "market_cell_id",
+    "lane_slot",
+    "scope_id",
+    "region",
+    "evidence_class",
+    "endpoint_url",
+    "discovery_provider",
+    "provider_record_id",
+    "observed_at",
+    "source_name",
+    "source_owner_hint"
+  ],
+  "claim_readiness": {
+    "claim_classes": [
+      "DATED_OBSERVED_SOLD_TRANSACTION",
+      "CURRENT_PRICE",
+      "LIQUIDITY_OR_TIME_TO_SALE"
+    ],
+    "metadata_candidate_can_pass_claim_admission": false,
+    "gate3_metadata_admission_can_pass_claim_admission": false,
+    "missing_assertions_remain_hold": true,
+    "source_specific_adapter_requirement_generated": true,
+    "required_adapter_outputs": [
+      "FIELD_EXTRACTION_CONTRACT",
+      "SOLD_OR_EXPOSURE_SEMANTICS_CONTRACT",
+      "FIELD_PURPOSE_RIGHTS_MATRIX",
+      "FRESHNESS_POLICY",
+      "DUPLICATE_OUTLIER_AND_CENSOR_CONTROL",
+      "CANONICAL_IDENTITY_BINDING",
+      "PROVENANCE_AND_FACTUAL_ORIGIN_BINDING"
+    ]
+  },
+  "required_outputs": [
+    "mission-directed-discovery-v1.json",
+    "mission-directed-discovery-cycle-state-v1.json",
+    "mission-directed-gate-summary-v1.json",
+    "mission-claim-admission-readiness-v1.json",
+    "mission-source-adapter-requirements-v1.json",
+    "mission-directed-discovery-manifest-v1.json"
+  ],
+  "hard_boundaries": [
+    "PUBLIC_METADATA_DISCOVERY_IS_NOT_TARGET_SITE_COLLECTION",
+    "DISCOVERED_ENDPOINT_IS_NOT_RELEVANT_SOURCE_UNTIL_GATE1",
+    "GATE1_CLASSIFICATION_IS_NOT_RIGHTS_ADMISSION",
+    "GATE3_METADATA_ADMISSION_IS_NOT_MARKET_EVENT_ADMISSION",
+    "SOURCE_ROLE_HINT_IS_NOT_TERMINAL_SOLD_ASSERTION",
+    "DATED_SOLD_IS_NOT_CURRENT_PRICE",
+    "SOLD_COUNT_IS_NOT_LIQUIDITY_WITHOUT_EXPOSURE_DENOMINATOR",
+    "PROVIDER_OWNER_COUNT_IS_NOT_FACTUAL_ORIGIN_INDEPENDENCE",
+    "PARTIAL_PROVIDER_FAILURE_MUST_BE_VISIBLE",
+    "MISSING_ASSERTION_IS_HOLD_NOT_ZERO"
+  ],
+  "truth_boundary": {
+    "live_public_metadata_requests_executed": true,
+    "target_source_body_traversed": false,
+    "source_content_collected": false,
+    "account_created": false,
+    "eula_accepted": false,
+    "external_spend": false,
+    "collection_right_created": false,
+    "market_event_admitted": false,
+    "current_price_claim_eligible": false,
+    "liquidity_claim_eligible": false,
+    "graph_fact_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
