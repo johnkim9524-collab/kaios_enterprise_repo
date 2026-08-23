@@ -1,0 +1,102 @@
+{
+  "id": "kidults-proof-product-data-contract-v1",
+  "record_type": "kidults_proof_product_data_contract",
+  "version": "1.0.0",
+  "status": "CANONICAL_CANDIDATE",
+  "decision": "KIDULTS-COMPETITIVENESS-V1-20260822",
+  "owners": ["TRACK_C", "KPMO"],
+  "schema": "../schemas/kidults-proof-product-projection-v1.schema.json",
+  "consumers": ["PORTAL", "EXTERNAL_API", "IH_EOS", "REPORTS"],
+  "projection_only": true,
+  "production": "HOLD",
+  "public_claims_authorized": false,
+  "common_requirements": [
+    "PROJECTION_ID",
+    "PRODUCT_TYPE",
+    "PROJECTION_STATE",
+    "DISPLAY_ELIGIBILITY",
+    "SCOPE_PERIOD_GEOGRAPHY_VENUE_CURRENCY_VERTICAL",
+    "METHOD_VERSION",
+    "SNAPSHOT_EVIDENCE_ASSESSMENT_LINEAGE",
+    "SOURCE_COUNT_AND_INDEPENDENT_SOURCE_FAMILIES",
+    "RIGHTS_BY_USE",
+    "FRESHNESS",
+    "CONFIDENCE",
+    "RANKABILITY",
+    "LIMITATIONS",
+    "MISSING_DATA_TREATMENT",
+    "ACTION_STATE_AND_DISABLED_REASON",
+    "GOVERNANCE_AND_AUDIT_LINKS",
+    "GENERATED_AND_UPDATED_TIMESTAMPS"
+  ],
+  "field_states": ["VERIFIED", "INFERRED", "UNAVAILABLE", "RIGHTS_BLOCKED", "STALE"],
+  "empty_state_order": ["CURRENT_STATE", "CLOSED_REASON", "OPENING_CONDITION", "USER_ACTION"],
+  "products": {
+    "OBJECT_PASSPORT": {
+      "required_fields": [
+        "identity",
+        "maker",
+        "model",
+        "variant",
+        "year",
+        "provenance",
+        "specification",
+        "condition",
+        "market_observations",
+        "comparables",
+        "liquidity",
+        "scarcity",
+        "cultural_significance",
+        "risks",
+        "evidence",
+        "rights",
+        "audit_history"
+      ],
+      "opening_requirements": ["CANONICAL_OBJECT_ID", "FIELD_LEVEL_EVIDENCE", "FIELD_LEVEL_RIGHTS", "FIELD_LEVEL_FRESHNESS"]
+    },
+    "MARKET_PROJECTION_API": {
+      "required_axes": ["AXIS_ID", "LABEL", "UNIT"],
+      "required_filters": ["PERIOD", "CURRENCY", "GEOGRAPHY", "VENUE", "VERTICAL"],
+      "collector_lens": ["what_changed", "why_it_matters", "comparable_context", "liquidity", "risk", "possible_action"],
+      "institutional_lens": ["universe", "coverage", "market_scale", "depth", "turnover", "concentration", "exposure", "confidence"],
+      "opening_requirements": ["CLAIM_SUFFICIENT_MARKET_EVIDENCE", "TRACK_B_ASSESSMENT", "APPROVED_PROJECTION"]
+    },
+    "KIDULT_100_INDEX": {
+      "required_methodology": [
+        "index_objective",
+        "eligible_universe",
+        "inclusion_rules",
+        "exclusion_rules",
+        "evidence_threshold",
+        "liquidity_threshold",
+        "weighting_framework",
+        "concentration_cap",
+        "rebalance_cycle",
+        "event_treatment",
+        "rights_requirement",
+        "method_versioning",
+        "restatement_policy",
+        "limitations"
+      ],
+      "publication_fields": ["index_level", "constituents"],
+      "opening_requirements": ["APPROVED_UNIVERSE", "TRACK_B_RANKABLE", "CURRENT_RIGHTS", "APPROVED_PROJECTION", "PUBLICATION_GATE"]
+    }
+  },
+  "prohibited": [
+    "RAW_PROVIDER_DATA_TO_PRODUCT",
+    "PORTAL_SIDE_ANALYTICS_OR_QUALIFICATION",
+    "VALUE_WITHOUT_VERIFIED_OR_INFERRED_STATE",
+    "VALUE_WITHOUT_EVIDENCE_REFERENCE",
+    "MISSING_TO_ZERO",
+    "STALE_VALUE_DISPLAY",
+    "RIGHTS_BLOCKED_VALUE_DISPLAY",
+    "CONFIDENCE_USED_AS_RANKABILITY",
+    "GENERATED_OR_EDITORIAL_IMAGE_AS_MARKET_EVIDENCE",
+    "INDEX_LEVEL_OR_CONSTITUENTS_BEFORE_PUBLICATION_GATE",
+    "ENABLED_ACTION_WITHOUT_DESTINATION",
+    "DISABLED_ACTION_WITHOUT_REASON",
+    "PUBLIC_DISPLAY_WITHOUT_PUBLIC_RIGHTS",
+    "APPROVED_PROJECTION_WITHOUT_IMMUTABLE_LINEAGE"
+  ],
+  "rollback": "Remove this contract, schema and consumer binding; no runtime, provider, data or Production mutation is included."
+}
