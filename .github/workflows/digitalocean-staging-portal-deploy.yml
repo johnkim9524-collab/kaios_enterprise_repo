@@ -172,16 +172,28 @@ jobs:
           python - <<'PY'
           import json
           import os
+          from datetime import datetime, timezone
           from pathlib import Path
           payload={
             'id':'kidults-digitalocean-staging-portal-runner-execution-v1',
-            'state':'IMPLEMENTED_NOT_VERIFIED',
+            'receipt_type':'GITHUB_RUNNER_EXECUTION',
+            'state':'CAPTURED_NOT_ATTESTED',
+            'repository':os.environ['GITHUB_REPOSITORY'],
+            'workflow_name':os.environ['GITHUB_WORKFLOW'],
+            'workflow_ref':os.environ['GITHUB_WORKFLOW_REF'],
+            'workflow_sha':os.environ['GITHUB_WORKFLOW_SHA'],
+            'source_ref':os.environ['GITHUB_REF'],
+            'event_name':os.environ['GITHUB_EVENT_NAME'],
+            'job_name':'deploy',
             'deployment_id':os.environ['RELEASE_ID'],
             'source_commit_sha':os.environ['GITHUB_SHA'],
             'workflow_run_id':os.environ['GITHUB_RUN_ID'],
             'workflow_run_attempt':int(os.environ['GITHUB_RUN_ATTEMPT']),
             'remote_deploy_exit_code':int(os.environ['DEPLOY_EXIT_CODE']),
             'evidence_class':'REMOTE_STAGING',
+            'collected_at':datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'successful_workflow_attested':False,
+            'public':'HOLD',
             'production':'HOLD',
             'g5':'HOLD'
           }
@@ -210,6 +222,12 @@ jobs:
             --expected-source-sha "$GITHUB_SHA" \
             --expected-run-id "$GITHUB_RUN_ID" \
             --expected-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --expected-repository "$GITHUB_REPOSITORY" \
+            --expected-workflow-name "$GITHUB_WORKFLOW" \
+            --expected-workflow-ref "$GITHUB_WORKFLOW_REF" \
+            --expected-workflow-sha "$GITHUB_WORKFLOW_SHA" \
+            --expected-source-ref "$GITHUB_REF" \
+            --expected-event-name "$GITHUB_EVENT_NAME" \
             --expected-evidence-class REMOTE_STAGING \
             "${EXTRA_ARGS[@]}" \
             --output artifacts/digitalocean-staging-portal/receipt-validation.json \
