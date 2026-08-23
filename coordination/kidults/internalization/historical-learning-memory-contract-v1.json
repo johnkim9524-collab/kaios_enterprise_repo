@@ -1,0 +1,25 @@
+{
+  "contract_id": "KIDULTS_HISTORICAL_LEARNING_MEMORY_V1",
+  "parent_issues": [1153,1160,1166,951],
+  "records": [
+    "canonical_identity_history","normalized_event_reference_history","methodology_version_history",
+    "confidence_change_history","contradiction_resolution_history","provider_contribution_sensitivity",
+    "provider_removal_sensitivity","historical_comparable_sets","market_regime_history",
+    "index_rank_movement_explanations","decision_outcome_feedback","calibration_feedback",
+    "provider_switch_quality_cost_history"
+  ],
+  "separation_rules": {
+    "raw_provider_payload_required_for_replay": false,
+    "delete_required_raw_data_reclassified_as_owned": false,
+    "legally_retainable_derived_history_survives_provider_removal": true,
+    "provider_native_identity_required_for_history": false
+  },
+  "requirements": {
+    "bitemporal_or_versioned": true,
+    "methodology_version_bound": true,
+    "provenance_reference_required": true,
+    "termination_policy_link_required": true,
+    "provider_removal_simulation_required": true
+  },
+  "retention_states": ["RETAINABLE_DERIVED","DELETE_REQUIRED_RAW","UNKNOWN_HOLD"]
+}
