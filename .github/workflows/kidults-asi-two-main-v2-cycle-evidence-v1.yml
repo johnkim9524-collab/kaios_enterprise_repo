@@ -1,11 +1,10 @@
-name: KIDULTS ASI Two Main v2 Cycle Evidence v1
+name: KIDULTS Autonomous Main Scale Wave v1
 
 on:
   workflow_dispatch:
+  # AUTONOMOUS_MAIN_PUSH_CONTRACT: every protected-main push dispatches the bounded scale wave.
   push:
     branches: [main]
-    paths:
-      - '.github/workflows/kidults-asi-two-main-v2-cycle-evidence-v1.yml'
   pull_request:
     paths:
       - '.github/workflows/kidults-asi-two-main-v2-cycle-evidence-v1.yml'
@@ -16,7 +15,7 @@ permissions:
   actions: write
 
 concurrency:
-  group: kidults-asi-two-main-v2-cycle-evidence-v1
+  group: kidults-autonomous-main-scale-wave-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -53,7 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: main
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -149,6 +148,47 @@ jobs:
           process.stdout.write(JSON.stringify({id:'kidults-asi-two-main-v2-cycle-evidence-receipt-v1',status:'TWO_DISTINCT_SUCCESSFUL_MAIN_V2_CYCLES_EMPIRICALLY_PROVED',v2_workflow_run_ids:r.evaluated_v2_workflow_run_ids,v2_artifact_ids:r.evaluated_v2_artifact_ids,v1_baseline_check:r.v1_baseline_check,common_crawl_observed_candidates_across_cycles:r.common_crawl_observed_candidates_across_cycles,common_crawl_new_candidates_across_cycles:r.common_crawl_new_candidates_across_cycles,retirement_scope:r.retirement_scope,rollback_target:r.rollback_target,rights_or_admission_scope_changed:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-two-main-v2-cycle-evidence-receipt-v1.json
+      - name: Emit and validate KPMO autonomous scale-wave receipt
+        env:
+          RUN0: ${{ steps.cycles.outputs.run_0 }}
+          RUN1: ${{ steps.cycles.outputs.run_1 }}
+          ART0: ${{ steps.cycles.outputs.artifact_0 }}
+          ART1: ${{ steps.cycles.outputs.artifact_1 }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE' >/tmp/kpmo-autonomous-scale-wave-status-receipt-v1.json
+          const receipt={
+            id:`kpmo-autonomous-scale-wave-${process.env.GITHUB_RUN_ID}`,
+            version:'1.0.0',
+            agent_id:'KPMO_AUTONOMOUS_SCALE_WAVE',
+            as_of:new Date().toISOString(),
+            scope:'PR_MERGE_TO_MAIN_PUSH_TO_SCALE_WAVE_TO_ARTIFACT_TO_KPMO_RECEIPT',
+            state:'VERIFIED_PASS',
+            facts:[{statement:'A protected-main push automatically dispatched and validated two distinct bounded scale-wave cycles.',evidence_ref_ids:['trigger-main-push','cycle-0','cycle-1','artifact-0','artifact-1']}],
+            evidence_refs:[
+              {ref_id:'trigger-main-push',kind:'COMMIT',locator:`github:${process.env.GITHUB_REPOSITORY}@${process.env.GITHUB_SHA}`,observed_at:new Date().toISOString(),digest:process.env.GITHUB_SHA},
+              {ref_id:'cycle-0',kind:'WORKFLOW_RUN',locator:`github-actions-run:${process.env.RUN0}`,observed_at:new Date().toISOString()},
+              {ref_id:'cycle-1',kind:'WORKFLOW_RUN',locator:`github-actions-run:${process.env.RUN1}`,observed_at:new Date().toISOString()},
+              {ref_id:'artifact-0',kind:'ARTIFACT',locator:`github-actions-artifact:${process.env.ART0}`,observed_at:new Date().toISOString()},
+              {ref_id:'artifact-1',kind:'ARTIFACT',locator:`github-actions-artifact:${process.env.ART1}`,observed_at:new Date().toISOString()}
+            ],
+            inferences:[],
+            uncertainties:[],
+            blockers:[],
+            actions_executed:[
+              {action:'Automatically dispatch bounded scale-wave cycle 0',result:'EXECUTED',evidence_ref_ids:['cycle-0','artifact-0']},
+              {action:'Automatically dispatch bounded scale-wave cycle 1',result:'EXECUTED',evidence_ref_ids:['cycle-1','artifact-1']},
+              {action:'Validate empirical promotion readiness',result:'EXECUTED',evidence_ref_ids:['artifact-0','artifact-1']}
+            ],
+            next_action:'KPMO consumes the receipt; any later promotion remains subject to Evidence, Rights, Security, human accountability and Production/G5 gates.',
+            authority_boundary:{within_authority:true,protected_gates_touched:[],notes:'Automatic execution does not authorize Production, Public release, contracts, spend, credentials or irreversible legal/security changes.'},
+            production:'HOLD',
+            public_release:'HOLD'
+          };
+          process.stdout.write(JSON.stringify(receipt,null,2));
+          NODE
+          node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt /tmp/kpmo-autonomous-scale-wave-status-receipt-v1.json >/tmp/kpmo-autonomous-scale-wave-status-receipt-validation-v1.json
+          cat /tmp/kpmo-autonomous-scale-wave-status-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-two-main-v2-cycle-evidence-v1
@@ -156,5 +196,7 @@ jobs:
             /tmp/asi-hourly-v2-promotion-input-v1.json
             /tmp/asi-hourly-v2-promotion-readiness-v1.json
             /tmp/asi-two-main-v2-cycle-evidence-receipt-v1.json
+            /tmp/kpmo-autonomous-scale-wave-status-receipt-v1.json
+            /tmp/kpmo-autonomous-scale-wave-status-receipt-validation-v1.json
           retention-days: 90
           if-no-files-found: error
