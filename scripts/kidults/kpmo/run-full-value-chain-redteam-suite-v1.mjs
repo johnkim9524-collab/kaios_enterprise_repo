@@ -7,7 +7,8 @@ const structuralValidator = 'scripts/kidults/kpmo/validate-full-value-chain-redt
 const stageCoverageValidator = 'scripts/kidults/kpmo/validate-full-value-chain-stage-machine-coverage-v1.mjs';
 const criticalGateBindingValidator = 'scripts/kidults/kpmo/validate-full-value-chain-critical-gate-bindings-v1.mjs';
 const criticalWorkflowProvenanceValidators = [
-  'scripts/kidults/kpmo/validate-critical-workflow-provenance-v1.mjs'
+  'scripts/kidults/kpmo/validate-critical-workflow-provenance-v1.mjs',
+  'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs'
 ];
 const repositoryMutationBoundaryValidators = [
   'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
@@ -103,6 +104,8 @@ console.log(JSON.stringify({
   stages_machine_bound: Object.keys(orchestrator.stage_machine_coverage || {}).length,
   critical_workflow_provenance_machine_bound: true,
   critical_workflow_provenance_validators: criticalWorkflowProvenanceValidators.length,
+  a13_validation_supply_chain_machine_bound: true,
+  a13_validation_dependency_install_mode: 'NPM_CI_COMMITTED_LOCK',
   workflow_repository_mutation_boundary_machine_bound: true,
   workflow_repository_mutation_boundary_validators: repositoryMutationBoundaryValidators.length,
   pull_request_secret_boundary_machine_bound: true,

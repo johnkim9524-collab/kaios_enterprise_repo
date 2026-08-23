@@ -4,28 +4,74 @@ on:
   pull_request:
     paths:
       - 'services/kidults-autonomous-intelligence/**'
+      - 'scripts/kidults/kpmo/build-a13-validation-toolchain-receipt-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs'
       - '.github/workflows/kidults-a13-provider-concurrency.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   certify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:
       run:
         working-directory: services/kidults-autonomous-intelligence
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: '22'
-      - run: npm install
-      - run: npm run typecheck
-      - run: npm run a13:smoke
-      - run: npm run a13:baseline
-      - uses: actions/upload-artifact@v4
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact source SHA
+        working-directory: .
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          echo "expected=${EXPECTED_SHA}"
+          echo "actual=${ACTUAL_SHA}"
+          test "${ACTUAL_SHA}" = "${EXPECTED_SHA}"
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Validate A13 workflow provenance and committed lock
+        working-directory: .
+        run: node scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs
+
+      - name: Install committed dependency graph
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run A13 synthetic smoke certification
+        run: npm run a13:smoke
+
+      - name: Run A13 synthetic baseline certification
+        run: npm run a13:baseline
+
+      - name: Build deterministic validation toolchain receipt
+        working-directory: .
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/kidults/kpmo/build-a13-validation-toolchain-receipt-v1.mjs /tmp/kidults-a13-validation-toolchain-receipt-v1.json
+
+      - name: Upload A13 reports and toolchain receipt
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: kidults-a13-reports
-          path: services/kidults-autonomous-intelligence/reports/scale/a13-*.json
+          path: |
+            services/kidults-autonomous-intelligence/reports/scale/a13-*.json
+            /tmp/kidults-a13-validation-toolchain-receipt-v1.json
           if-no-files-found: warn
