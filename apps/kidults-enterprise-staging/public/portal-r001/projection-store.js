@@ -1,3 +1,5 @@
+import {admitProofProductProjection} from './proof-product-admission.js';
+
 const INTELLIGENCE_STATES=new Set(['LIVE_APPROVED','WAITING','STALE','INVALID','RIGHTS_BLOCKED','NOT_AVAILABLE','NO_PROJECTION']);
 const STRUCTURAL_STATES=new Set(['AVAILABLE','PARTIAL','UNAVAILABLE']);
 const RELEASE_STATES=new Set(['HOLD','READY','RELEASED']);
@@ -143,7 +145,24 @@ export async function readPortalProjection({url='./data/projection-control-fixtu
   try{
     const response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'}});
     if(!response.ok)throw new Error(`HTTP_${response.status}`);
-    return Object.freeze(validateEnvelope(await response.json()));
+    const candidate=await response.json();
+    if(candidate?.record_type==='kidults_proof_product_projection'){
+      const admission=admitProofProductProjection(candidate,{
+        surface:'PORTAL_RENDER',
+        purpose:'PUBLIC_DISPLAY',
+        trustedNow:null,
+        clockAuthority:'UNTRUSTED_BROWSER',
+        releaseAuthority:'HOLD'
+      });
+      const fallback=invalidProjection(admission.receipt.reason);
+      fallback.projection.state=admission.accepted&&admission.state_only?'NO_PROJECTION':'INVALID';
+      fallback.audit.projection_id=admission.receipt.projection_id;
+      fallback.audit.assessment_id=admission.receipt.assessment_id;
+      fallback.audit.reason_category=admission.receipt.reason;
+      fallback.audit.consumption_receipt=admission.receipt;
+      return Object.freeze(fallback);
+    }
+    return Object.freeze(validateEnvelope(candidate));
   }catch(error){
     return Object.freeze(invalidProjection(error?.message));
   }
@@ -158,5 +177,8 @@ export const portalProjectionContract=Object.freeze({
   content_surfaces:['overview','core_verticals','object_intelligence','market_signals','kidult_100','research_archive','evidence_methodology','safe_audit','workspace'],
   raw_provider_payloads:false,
   credentials:false,
-  track_b_bypass:false
+  track_b_bypass:false,
+  proof_product_admission:'EXECUTED_BEFORE_RENDER',
+  browser_clock_authoritative:false,
+  approved_projection_release_authority:'HOLD'
 });

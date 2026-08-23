@@ -14,6 +14,7 @@ const mandatory = [
   'scripts/kidults/audit/validate-destructive-lifecycle-recovery-monotonicity-v1.mjs',
   'scripts/kidults/audit/validate-destructive-canonical-suppression-v1.mjs',
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs',
+  'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs',
   'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py',
