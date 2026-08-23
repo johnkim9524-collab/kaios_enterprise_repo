@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-snapshot-readiness-factory-contract-v1",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P3",
