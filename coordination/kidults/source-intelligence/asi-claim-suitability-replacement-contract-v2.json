@@ -1,0 +1,94 @@
+{
+  "id": "kidults-asi-claim-suitability-replacement-contract-v2",
+  "version": "2.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": ["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"],
+  "mission": "Resolve every current metadata-only candidate–mission grain to a terminal claim-suitability decision and automatically generate replacement source-lane and adapter requirements for current-SOLD and liquidity evidence without inventing rights, evidence or claims.",
+  "input_contracts": {
+    "candidate_registry_id": "kidults-asi-p0b-source-candidate-registry-v1",
+    "binding_ledger_id": "kidults-asi-p0b-mission-candidate-binding-ledger-v1",
+    "gate1_id": "kidults-asi-p1-gate1-source-safety-decisions-v1",
+    "admission_candidate_id": "kidults-asi-p1-evidence-admission-candidate-register-v1",
+    "action_queue_id": "kidults-asi-p1-preflight-action-queue-v1",
+    "p2_graph_id": "kidults-owned-source-intelligence-graph-v2",
+    "p2_lineage_id": "kidults-owned-source-intelligence-lineage-v2"
+  },
+  "supported_evidence_classes": [
+    "CURRENT_SOLD_TRANSACTION",
+    "LIQUIDITY_TIME_TO_SALE_EXPOSURE"
+  ],
+  "engines": [
+    "CLAIM_SUITABILITY_RESOLUTION_ENGINE",
+    "GATE1_TERMINAL_DECISION_ENGINE",
+    "CANDIDATE_ROLE_RETIREMENT_ENGINE",
+    "REPLACEMENT_MISSION_GENERATOR",
+    "ADAPTER_REQUIREMENT_COMPILER"
+  ],
+  "terminal_decision": {
+    "metadata_only_current_observation": "REJECT_CURRENT_OBSERVATION_NOT_CLAIM_SUITABLE",
+    "candidate_global_retirement": false,
+    "candidate_role_retirement": "CURRENT_SOLD_AND_LIQUIDITY_EVIDENCE_ROLE_ONLY",
+    "rejection_is_negative_market_fact": false,
+    "rejection_is_source_rights_deny": false
+  },
+  "replacement_lane_requirements": {
+    "CURRENT_SOLD_TRANSACTION": {
+      "source_role": "TERMINAL_SOLD_TRANSACTION_EVIDENCE",
+      "source_lane_class": "OFFICIAL_RESULTS_OR_LICENSED_TRANSACTION_FEED",
+      "required_semantics": ["TERMINAL_SOLD","REALIZED_PRICE","CURRENCY","EVENT_TIME","OBJECT_IDENTITY","CONDITION_OR_COMPARABILITY"],
+      "required_rights": ["COLLECT","STORE","DERIVE"],
+      "minimum_independent_slots": 3
+    },
+    "LIQUIDITY_TIME_TO_SALE_EXPOSURE": {
+      "source_role": "EXPOSURE_AND_OUTCOME_EVIDENCE",
+      "source_lane_class": "EXPOSURE_DENOMINATOR_AND_TERMINAL_OUTCOME_SOURCE",
+      "required_semantics": ["EXPOSURE_START","EXPOSURE_END_OR_CENSORING","TERMINAL_OUTCOME","FAILED_OR_WITHDRAWN_STATE","OBJECT_IDENTITY"],
+      "required_rights": ["COLLECT","STORE","DERIVE"],
+      "minimum_independent_slots": 3
+    }
+  },
+  "required_slots": [
+    "PRIMARY_CLAIM_SUITABLE_LANE",
+    "INDEPENDENT_FALLBACK_LANE",
+    "DISTINCT_FACTUAL_ORIGIN_LANE"
+  ],
+  "adapter_contract": {
+    "schema_version_required": true,
+    "rights_by_field_and_purpose_required": true,
+    "listing_as_sold_forbidden": true,
+    "provider_direct_to_truth_or_projection_forbidden": true,
+    "deterministic_duplicate_grain_required": true,
+    "freshness_and_temporal_coherence_required": true,
+    "source_owner_and_factual_origin_required": true,
+    "fixture_pass_is_not_empirical_admission": true
+  },
+  "required_outputs": [
+    "claim-suitability-resolution-ledger-v2.json",
+    "gate1-terminal-resolution-ledger-v2.json",
+    "candidate-role-retirement-ledger-v2.json",
+    "replacement-mission-queue-v2.json",
+    "adapter-requirement-queue-v2.json",
+    "claim-suitability-replacement-manifest-v2.json"
+  ],
+  "hard_boundaries": [
+    "METADATA_ONLY_IS_NOT_CURRENT_SOLD_OR_LIQUIDITY_EVIDENCE",
+    "REJECT_CURRENT_OBSERVATION_IS_NOT_GLOBAL_SOURCE_BAN",
+    "REPLACEMENT_TASK_IS_NOT_PROVIDER_ADMISSION",
+    "ADAPTER_REQUIREMENT_IS_NOT_IMPLEMENTED_ADAPTER",
+    "FIXTURE_PASS_IS_NOT_EMPIRICAL_EVIDENCE",
+    "NO_EVIDENCE_ADMISSION_OR_MARKET_EVENT_OR_SNAPSHOT"
+  ],
+  "truth_boundary": {
+    "current_observation_grains_terminally_resolved": true,
+    "target_host_egress_executed": false,
+    "provider_selected": false,
+    "source_specific_adapter_implemented": false,
+    "evidence_admitted": false,
+    "market_event_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
