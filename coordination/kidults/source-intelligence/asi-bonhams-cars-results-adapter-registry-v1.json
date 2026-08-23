@@ -1,0 +1,63 @@
+{
+  "id": "kidults-asi-bonhams-cars-results-adapter-registry-v1",
+  "version": "1.0.0",
+  "status": "REFERENCE_ADAPTER_IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "adapter_contract": "coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json",
+    "template_contract": "coordination/kidults/source-intelligence/asi-source-adapter-template-expansion-contract-v1.json",
+    "runtime_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+    "source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
+    "adapter_module": "services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-cars-results.ts",
+    "generic_runtime": "services/kidults-autonomous-intelligence/src/asi/market-adapter.ts",
+    "adapter_test": "services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs",
+    "template_builder": "scripts/kidults/source-intelligence/build-asi-source-adapter-template-expansion-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-bonhams-cars-results-adapter-v1.yml",
+    "documentation": "docs/kidults/asi/asi-bonhams-cars-results-adapter-v1.md"
+  },
+  "implementation_state": {
+    "reference_source_id": "bonhams-cars-results",
+    "source_specific_parsers_implemented": 1,
+    "deterministic_fixture_suites_implemented": 1,
+    "generic_runtime_bindings_implemented": 1,
+    "registered_source_profiles": 16,
+    "adapter_templates_generated": 16,
+    "source_specific_adapters_activated": 0,
+    "live_source_snapshots_verified": 0,
+    "field_purpose_rights_verified_sources": 0,
+    "empirical_market_events_admitted": 0
+  },
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "37 */3 * * *",
+    "upstream_workflows": [
+      "KIDULTS ASI Autonomous Resolution Layer v1",
+      "KIDULTS ASI P1 Market-Event Adapter Runtime v1"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "next_execution": {
+    "reference_adapter_live_schema_preflight": "BLOCKED_PENDING_SECURITY_NETWORK_ACTIVATION_AND_RIGHTS_REVIEW",
+    "first_evidence_admission": "BLOCKED_PENDING_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_AND_ACTIVATION_PASS",
+    "fallback_execution": "CONTINUE_IMPLEMENTING_REMAINING_15_SOURCE_SPECIFIC_ADAPTERS_FROM_GENERATED_TEMPLATE"
+  },
+  "truth_boundary": {
+    "fixture_is_empirical_source_snapshot": false,
+    "implemented_parser_is_activated_adapter": false,
+    "template_is_source_specific_adapter": false,
+    "profile_registration_is_rights_verification": false,
+    "evidence_admitted": 0,
+    "market_events_created": 0,
+    "snapshot_candidates_created": 0,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "id": "kidults-asi-source-adapter-template-expansion-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Expand the Bonhams Cars reference-adapter control template across all 16 registered source profiles without claiming source-specific implementation, rights, schema, semantics, activation or Evidence admission for unverified profiles.",
+  "reference_adapter": {
+    "source_id": "bonhams-cars-results",
+    "module": "services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-cars-results.ts",
+    "test": "services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs",
+    "state": "REFERENCE_ADAPTER_IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED"
+  },
+  "canonical_inputs": {
+    "market_adapter_runtime_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+    "registered_source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
+    "bonhams_reference_contract": "coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json"
+  },
+  "required_profile_count": 16,
+  "template_families": [
+    "PUBLIC_WEB_AUCTION_RESULTS",
+    "PUBLIC_WEB_MARKETPLACE_RESULTS",
+    "STRUCTURED_API_MARKET_DATA",
+    "PUBLIC_WEB_RELEASE_OR_LISTING_SURFACE"
+  ],
+  "required_template_controls": [
+    "IMMUTABLE_INPUT_SNAPSHOT",
+    "SOURCE_URL_HOST_ALLOWLIST",
+    "PAYLOAD_HASH_INTEGRITY",
+    "EXACT_SOURCE_SCHEMA_VERSION",
+    "LISTING_BID_ASK_OFFER_RESERVE_NE_SOLD",
+    "EXPLICIT_TERMINAL_SOLD_STATE",
+    "POSITIVE_REALIZED_PRICE",
+    "EXPLICIT_CURRENCY",
+    "EVENT_AND_OBSERVATION_TIME",
+    "FIELD_PURPOSE_RIGHTS",
+    "SOURCE_OWNER_AND_FACTUAL_ORIGIN_SEPARATION",
+    "PROVENANCE_LINEAGE",
+    "DUPLICATE_GRAIN",
+    "EXPOSURE_DENOMINATOR_FOR_LIQUIDITY",
+    "CENSORING_AND_FAILED_SALE_HANDLING",
+    "PROVIDER_DIRECT_TO_INDEX_OR_PROJECTION_FORBIDDEN",
+    "DETERMINISTIC_REPLAY",
+    "MUTATION_REJECTION",
+    "EVIDENCE_ADMISSION_RECEIPT"
+  ],
+  "profile_states": [
+    "REFERENCE_ADAPTER_IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED",
+    "TEMPLATE_GENERATED_IMPLEMENTATION_PENDING"
+  ],
+  "required_outputs": [
+    "source-adapter-template-registry-v1.json",
+    "source-adapter-development-backlog-v1.json",
+    "source-adapter-template-expansion-manifest-v1.json"
+  ],
+  "truth_boundary": {
+    "template_is_source_specific_adapter": false,
+    "fixture_test_is_empirical_schema_proof": false,
+    "registered_profile_is_rights_verified": false,
+    "implemented_reference_adapter_is_activated": false,
+    "evidence_admitted": 0,
+    "market_events_created": 0,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
