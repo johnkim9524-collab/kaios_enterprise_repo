@@ -1,0 +1,30 @@
+{
+  "fixture_version": "1.0.0",
+  "providers": [
+    {
+      "provider_id": "PSA",
+      "state": "RIGHTS_PENDING",
+      "known": ["paid_api_path_exists"],
+      "unknown": ["normalize", "entity_resolution", "model_calibration", "human_review", "post_termination_derived_retention"]
+    },
+    {
+      "provider_id": "GEMRATE",
+      "state": "PARTIAL_RIGHTS_CONFIRMED",
+      "known": ["cache_while_subscription_active", "display_with_attribution", "derived_metrics_display_with_attribution"],
+      "unknown": ["normalize", "entity_resolution", "model_calibration", "human_review", "post_termination_derived_retention", "mapping_portability"]
+    },
+    {
+      "provider_id": "CGC_CCG",
+      "state": "RIGHTS_PENDING",
+      "known": ["dealer_api_documentation_path_exists"],
+      "unknown": ["field_scope", "normalize", "derive", "retention", "post_termination_derived_retention"]
+    },
+    {
+      "provider_id": "CLASSIC_COM",
+      "state": "COMMERCIAL_LICENSE_AVAILABLE_RIGHTS_PENDING",
+      "known": ["commercial_licensing_available"],
+      "unknown": ["field_purpose_rights", "retention", "derive", "public_derived_output", "post_termination_derived_retention"]
+    }
+  ],
+  "truth_rule": "Unknown remains UNKNOWN and must not be promoted to PASS."
+}
