@@ -1,0 +1,228 @@
+name: KIDULTS ASI Autonomous Resolution Layer v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '22 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-autonomous-resolution-layer-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-common-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-current-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-autonomous-resolution-layer-v1.md'
+      - '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-autonomous-resolution-layer-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-common-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-current-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-autonomous-resolution-layer-v1.md'
+      - '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI P1 Source Preflight v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-autonomous-resolution-layer-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve-current-p1-actions:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and autonomous-resolution syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-autonomous-resolution-layer-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-common-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-current-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-registry-v1.json','utf8'))"
+      - name: Validate registered resolution engines and automatic activation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs \
+            | tee /tmp/kidults-asi-autonomous-resolution-layer-registry-validation-v1.json
+      - name: Restore latest coherent P1 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/p1-expanded /tmp/p1-input
+          P1_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false)][0].id // empty)')
+          test -n "$P1_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/p1.zip
+          unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
+          for NAME in \
+            p0b-source-candidate-registry-v1.json \
+            p0b-mission-candidate-binding-ledger-v1.json \
+            p1-gate1-source-safety-decisions-v1.json \
+            p1-evidence-admission-candidate-register-v1.json \
+            p1-preflight-action-queue-v1.json; do
+            FILE=$(find /tmp/p1-expanded -type f -name "$NAME" -print -quit)
+            test -n "$FILE"
+            cp "$FILE" "/tmp/p1-input/$NAME"
+          done
+          echo "P1_ARTIFACT_ID=$P1_ID" >> "$GITHUB_ENV"
+          echo "p1_artifact_id=$P1_ID"
+      - name: Build autonomous resolution layer twice
+        run: |
+          set -euo pipefail
+          for RUN in 1 2; do
+            node scripts/kidults/source-intelligence/build-asi-autonomous-resolution-layer-v1.mjs \
+              /tmp/p1-input/p0b-source-candidate-registry-v1.json \
+              /tmp/p1-input/p0b-mission-candidate-binding-ledger-v1.json \
+              /tmp/p1-input/p1-gate1-source-safety-decisions-v1.json \
+              /tmp/p1-input/p1-evidence-admission-candidate-register-v1.json \
+              /tmp/p1-input/p1-preflight-action-queue-v1.json \
+              coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv \
+              coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json \
+              coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
+              coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json \
+              "/tmp/kidults-asi-autonomous-resolution-layer-run-${RUN}"
+          done
+          diff -qr /tmp/kidults-asi-autonomous-resolution-layer-run-1 /tmp/kidults-asi-autonomous-resolution-layer-run-2
+      - name: Validate seven resolution engines and terminal outcomes
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs \
+            /tmp/kidults-asi-autonomous-resolution-layer-run-1 \
+            /tmp/p1-input/p0b-source-candidate-registry-v1.json \
+            /tmp/p1-input/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p1-input/p1-gate1-source-safety-decisions-v1.json \
+            /tmp/p1-input/p1-evidence-admission-candidate-register-v1.json \
+            /tmp/p1-input/p1-preflight-action-queue-v1.json \
+            coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv \
+            coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json \
+            coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
+            coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json \
+            | tee /tmp/kidults-asi-autonomous-resolution-layer-validation-v1.json
+      - name: Reject false resolution promotions and incomplete terminalization
+        shell: bash
+        run: |
+          set -euo pipefail
+          validate() {
+            node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs \
+              "$1" \
+              /tmp/p1-input/p0b-source-candidate-registry-v1.json \
+              /tmp/p1-input/p0b-mission-candidate-binding-ledger-v1.json \
+              /tmp/p1-input/p1-gate1-source-safety-decisions-v1.json \
+              /tmp/p1-input/p1-evidence-admission-candidate-register-v1.json \
+              /tmp/p1-input/p1-preflight-action-queue-v1.json \
+              coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv \
+              coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json \
+              coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
+              coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json
+          }
+          mutate_and_reject() {
+            local NAME="$1"
+            local SCRIPT="$2"
+            local DIR="/tmp/bad-${NAME}"
+            cp -a /tmp/kidults-asi-autonomous-resolution-layer-run-1 "$DIR"
+            node - "$DIR" "$SCRIPT" <<'NODE'
+          const fs=require('fs');const path=require('path');const dir=process.argv[2];const kind=process.argv[3];
+          const load=n=>{const p=path.join(dir,n);return [p,JSON.parse(fs.readFileSync(p,'utf8'))]};
+          if(kind==='semantic-pass'){const [p,x]=load('semantic-resolution-ledger-v1.json');x.records[0].decision='PASS';x.records[0].state='VERIFIED_CURRENT_MARKET_EVIDENCE';x.pass_count=1;x.terminal_reject_count-=1;fs.writeFileSync(p,JSON.stringify(x,null,2));}
+          if(kind==='rights-allow'){const [p,x]=load('rights-resolution-ledger-v1.json');x.records[0].rights_state='ALLOW';x.records[0].rights_pass_created=true;x.rights_pass_count=1;x.rights_unknown_count-=1;fs.writeFileSync(p,JSON.stringify(x,null,2));}
+          if(kind==='gate1-pass'){const [p,x]=load('gate1-resolution-ledger-v1.json');x.records[0].resolved_decision='PASS';x.pass_count=1;x.reject_count-=1;fs.writeFileSync(p,JSON.stringify(x,null,2));}
+          if(kind==='unresolved-action'){const [p,x]=load('action-resolution-ledger-v1.json');x.records[0].terminal_state='QUEUED_NOT_EXECUTED';x.unresolved_action_count=1;x.terminal_action_count-=1;fs.writeFileSync(p,JSON.stringify(x,null,2));}
+          if(kind==='evidence-admission'){const [p,x]=load('evidence-admission-resolution-ledger-v1.json');x.records[0].resolved_state='ADMITTED';x.records[0].evidence_admitted=true;x.records[0].admitted_evidence_id='fabricated';x.admitted_count=1;x.rejected_count-=1;fs.writeFileSync(p,JSON.stringify(x,null,2));}
+          if(kind==='activated-profile'){const [p,x]=load('replacement-source-mission-queue-v1.json');x.adapter_development_backlog[0].adapter_state='ACTIVATED_EVIDENCE_BOUND';fs.writeFileSync(p,JSON.stringify(x,null,2));}
+          if(kind==='global-retirement'){const [p,x]=load('semantic-resolution-ledger-v1.json');x.records[0].candidate_globally_retired=true;x.records[0].rejection_scope='GLOBAL';fs.writeFileSync(p,JSON.stringify(x,null,2));}
+          NODE
+            if validate "$DIR"; then
+              echo "Validator accepted forbidden mutation: $NAME" >&2
+              exit 1
+            fi
+          }
+          mutate_and_reject semantic-pass semantic-pass
+          mutate_and_reject rights-allow rights-allow
+          mutate_and_reject gate1-pass gate1-pass
+          mutate_and_reject unresolved-action unresolved-action
+          mutate_and_reject evidence-admission evidence-admission
+          mutate_and_reject activated-profile activated-profile
+          mutate_and_reject global-retirement global-retirement
+      - name: Reject manual-only activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-registry-v1.json /tmp/resolution-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflow='NONE';fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs; then
+            echo 'Registry validator accepted manual-only activation' >&2
+            exit 1
+          fi
+          mv /tmp/resolution-registry.json coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-registry-v1.json
+      - name: Revalidate pristine resolution outputs and registry
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs \
+            > /tmp/kidults-asi-autonomous-resolution-layer-registry-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs \
+            /tmp/kidults-asi-autonomous-resolution-layer-run-1 \
+            /tmp/p1-input/p0b-source-candidate-registry-v1.json \
+            /tmp/p1-input/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p1-input/p1-gate1-source-safety-decisions-v1.json \
+            /tmp/p1-input/p1-evidence-admission-candidate-register-v1.json \
+            /tmp/p1-input/p1-preflight-action-queue-v1.json \
+            coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv \
+            coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json \
+            coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
+            coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json \
+            > /tmp/kidults-asi-autonomous-resolution-layer-final-validation-v1.json
+      - name: Emit KPMO autonomous-resolution receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-autonomous-resolution-layer-run-1/autonomous-resolution-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,p1_artifact_id:process.env.P1_ARTIFACT_ID,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,live_target_site_network_requests:0,rights_pass_created:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-autonomous-resolution-layer-v1
+          path: |
+            /tmp/kidults-asi-autonomous-resolution-layer-run-1
+            /tmp/kidults-asi-autonomous-resolution-layer-registry-validation-v1.json
+            /tmp/kidults-asi-autonomous-resolution-layer-validation-v1.json
+            /tmp/kidults-asi-autonomous-resolution-layer-registry-final-validation-v1.json
+            /tmp/kidults-asi-autonomous-resolution-layer-final-validation-v1.json
+            /tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
