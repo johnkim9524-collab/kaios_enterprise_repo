@@ -1,0 +1,82 @@
+{
+  "id": "kidults-asi-auction-adapter-wave2-registry-v1",
+  "version": "1.0.0",
+  "status": "FOUR_ADAPTERS_IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-auction-adapter-wave2-contract-v1.json",
+    "registry": "coordination/kidults/source-intelligence/asi-auction-adapter-wave2-registry-v1.json",
+    "common_parser": "services/kidults-autonomous-intelligence/src/asi/source-adapters/public-auction-results-common.ts",
+    "barrett_jackson_adapter": "services/kidults-autonomous-intelligence/src/asi/source-adapters/barrett-jackson-results.ts",
+    "broad_arrow_adapter": "services/kidults-autonomous-intelligence/src/asi/source-adapters/broad-arrow-results.ts",
+    "collecting_cars_adapter": "services/kidults-autonomous-intelligence/src/asi/source-adapters/collecting-cars-sold.ts",
+    "iconic_auctioneers_adapter": "services/kidults-autonomous-intelligence/src/asi/source-adapters/iconic-auctioneers-results.ts",
+    "fixture_test": "services/kidults-autonomous-intelligence/scripts/asi-auction-adapter-wave2-test.mjs",
+    "builder": "scripts/kidults/source-intelligence/build-asi-auction-adapter-wave2-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-auction-adapter-wave2-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-auction-adapter-wave2-v1.yml",
+    "documentation": "docs/kidults/asi/asi-auction-adapter-wave2-v1.md"
+  },
+  "implemented_source_ids": [
+    "barrett-jackson-results",
+    "broad-arrow-results",
+    "collecting-cars-sold",
+    "iconic-auctioneers-results"
+  ],
+  "implementation_state": {
+    "reference_adapters_preexisting": 1,
+    "wave2_source_specific_adapters_implemented": 4,
+    "total_source_specific_adapters_implemented_after_wave": 5,
+    "registered_source_profiles": 16,
+    "source_specific_adapters_pending_after_wave": 11,
+    "wave2_verified_assignment_count": 42,
+    "total_implemented_parser_assignment_coverage_after_wave": 66,
+    "deterministic_fixture_suites": 4,
+    "negative_fixture_mutations": 32,
+    "live_source_snapshots_verified": 0,
+    "field_purpose_rights_verified_sources": 0,
+    "source_specific_adapters_activated": 0,
+    "evidence_admitted": 0,
+    "market_events_created": 0
+  },
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "47 */3 * * *",
+    "upstream_workflows": [
+      "KIDULTS ASI Bonhams Cars Results Reference Adapter v1",
+      "KIDULTS ASI Autonomous Resolution Layer v1",
+      "KIDULTS ASI P1 Market-Event Adapter Runtime v1"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "next_execution": {
+    "empirical_preflight": "BLOCKED_PENDING_GOVERNED_SAFE_EGRESS_AND_PURPOSE_SPECIFIC_RIGHTS_ADJUDICATION",
+    "next_adapter_wave": [
+      "bonhams-watches-results",
+      "christies-watches-results",
+      "sothebys-watches-results",
+      "pricecharting-api"
+    ],
+    "first_evidence_admission": "BLOCKED_PENDING_AT_LEAST_ONE_SOURCE_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_AND_ACTIVATION_PASS"
+  },
+  "truth_boundary": {
+    "source_specific_parser_is_live_schema_verification": false,
+    "fixture_is_empirical_source_snapshot": false,
+    "implemented_parser_is_activated_adapter": false,
+    "registered_profile_is_rights_verification": false,
+    "live_source_request_executed": false,
+    "rights_pass_created": false,
+    "evidence_admitted": 0,
+    "market_events_created": 0,
+    "snapshot_candidates_created": 0,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
