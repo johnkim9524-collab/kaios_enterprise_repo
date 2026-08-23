@@ -78,7 +78,7 @@ A template is not a source-specific adapter. The 15 non-reference sources remain
 
 ## First Evidence Admission
 
-Current result:
+Current exact result is **0 admitted Evidence**.
 
 ```text
 Reference Adapter implemented: 1
