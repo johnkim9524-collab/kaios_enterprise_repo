@@ -43,20 +43,35 @@ It contains **14 edge types** connecting missions to scopes, regions, evidence c
 
 ## Current verified baseline
 
-The first bounded current-main input set contains:
+The exact bounded current-main input pair selected in workflow run `32636028997` produced:
 
 ```text
+2,774 nodes
+6,278 edges
 192 missions
-486 source candidates
-114 canonical hosts
+482 source candidates
+111 canonical hosts
 2 discovery providers
 576 Gate 1 decisions
 576 admission candidates
 672 preflight actions
-230 provider-switching primitives
+224 provider-switching primitives
 ```
 
-The exact graph node and edge totals are derived from the current immutable P0B and P1 inputs and validated rather than used as a permanent completion target.
+Input artifacts:
+
+```text
+P0B artifact 9492109965
+P1 artifact 9492137364
+```
+
+Graph digest:
+
+```text
+sha256:12887e716c8c091de033c8336f4aa0cced327c2af1b0d4b58eb1159df2660fb8
+```
+
+The totals are derived from the current immutable P0B and P1 inputs and validated rather than used as a permanent source-count completion target.
 
 ## Owned value
 
