@@ -51,13 +51,14 @@ assert.deepEqual(registryModule.ASI_PLATFORM_PRINCIPLES, principles);
 assert.equal(typeof alignmentModule.assertAsiExecutionAlignment, 'function');
 assert.equal(typeof eventModule.validateAsiEvent, 'function');
 assert.equal(typeof eventModule.assertAsiEventPayloadHash, 'function');
+assert.equal(typeof registryModule.asiLogicalEngineForFleet, 'function');
 
 const receipts = [];
 for (const task of queue.tasks) {
   const fleet = registryModule.ASI_FLEET_BY_ID.get(task.target_fleet);
   assert.ok(fleet, `ASI_P0_RUNTIME_FLEET_MISSING:${task.target_fleet}`);
   assert.equal(fleet.stage, 'DISCOVERY');
-  assert.equal(fleet.logicalEngine, 'SOURCE_DISCOVERY_ENGINE');
+  assert.equal(registryModule.asiLogicalEngineForFleet(task.target_fleet), 'SOURCE_DISCOVERY_ENGINE');
   const event = eventModule.validateAsiEvent(task.event);
   await eventModule.assertAsiEventPayloadHash(event);
   const receipt = await alignmentModule.assertAsiExecutionAlignment(task.target_fleet, event);
