@@ -1,0 +1,186 @@
+name: KIDULTS ASI Claim-Suitable Adapter SDK v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '42 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-registry-v1.json'
+      - 'scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-claim-suitable-adapter-sdk-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-claim-suitable-adapter-sdk-v1.md'
+      - '.github/workflows/kidults-asi-claim-suitable-adapter-sdk-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-registry-v1.json'
+      - 'scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-claim-suitable-adapter-sdk-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-claim-suitable-adapter-sdk-v1.md'
+      - '.github/workflows/kidults-asi-claim-suitable-adapter-sdk-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Claim-Suitability Replacement v2'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-claim-suitable-adapter-sdk-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify-adapter-sdk:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and adapter SDK contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-claim-suitable-adapter-sdk-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-registry-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-registry-v1.json','utf8'))"
+      - name: Validate adapter SDK registry and continuation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-registry-v1.mjs \
+            | tee /tmp/kidults-asi-claim-suitable-adapter-sdk-registry-validation-v1.json
+      - name: Restore latest claim-suitability replacement artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/replacement-expanded /tmp/replacement
+          ARTIFACT_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-claim-suitability-replacement-v2" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-claim-suitability-replacement-v2" and .expired==false)][0].id // empty)')
+          test -n "$ARTIFACT_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > /tmp/replacement.zip
+          unzip -q -o /tmp/replacement.zip -d /tmp/replacement-expanded
+          for NAME in replacement-mission-queue-v2.json adapter-requirement-queue-v2.json claim-suitability-replacement-manifest-v2.json; do
+            FILE=$(find /tmp/replacement-expanded -type f -name "$NAME" -print -quit)
+            test -n "$FILE"
+            cp "$FILE" "/tmp/replacement/$NAME"
+          done
+          echo "REPLACEMENT_ARTIFACT_ID=$ARTIFACT_ID" >> "$GITHUB_ENV"
+          echo "replacement_artifact_id=$ARTIFACT_ID"
+      - name: Build adapter SDK scaffold twice
+        run: |
+          set -euo pipefail
+          for RUN in 1 2; do
+            node scripts/kidults/source-intelligence/build-asi-claim-suitable-adapter-sdk-v1.mjs \
+              /tmp/replacement/replacement-mission-queue-v2.json \
+              /tmp/replacement/adapter-requirement-queue-v2.json \
+              /tmp/replacement/claim-suitability-replacement-manifest-v2.json \
+              coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-contract-v1.json \
+              "/tmp/kidults-asi-claim-suitable-adapter-sdk-run-${RUN}"
+          done
+          diff -qr /tmp/kidults-asi-claim-suitable-adapter-sdk-run-1 /tmp/kidults-asi-claim-suitable-adapter-sdk-run-2
+      - name: Validate adapter SDK scaffold outputs
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-v1.mjs \
+            /tmp/kidults-asi-claim-suitable-adapter-sdk-run-1 \
+            /tmp/replacement/replacement-mission-queue-v2.json \
+            /tmp/replacement/adapter-requirement-queue-v2.json \
+            /tmp/replacement/claim-suitability-replacement-manifest-v2.json \
+            coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-contract-v1.json \
+            | tee /tmp/kidults-asi-claim-suitable-adapter-sdk-validation-v1.json
+      - name: Reject listing-as-sold mutation
+        run: |
+          node --input-type=module - <<'NODE'
+          import {buildFixture,validateClaimSuitableFixture} from './scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs';
+          const x=buildFixture({familyId:'negative-listing',evidenceClass:'CURRENT_SOLD_TRANSACTION'});x.listing_only=true;
+          let rejected=false;try{validateClaimSuitableFixture(x)}catch(e){rejected=String(e.message)==='ADAPTER_LISTING_AS_SOLD_FORBIDDEN'}
+          if(!rejected)throw new Error('LISTING_AS_SOLD_NOT_REJECTED');
+          NODE
+      - name: Reject missing-rights mutation
+        run: |
+          node --input-type=module - <<'NODE'
+          import {buildFixture,validateClaimSuitableFixture} from './scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs';
+          const x=buildFixture({familyId:'negative-rights',evidenceClass:'CURRENT_SOLD_TRANSACTION'});x.rights.collect='UNKNOWN';
+          let rejected=false;try{validateClaimSuitableFixture(x)}catch(e){rejected=String(e.message)==='ADAPTER_RIGHTS_COLLECT_NOT_ALLOW'}
+          if(!rejected)throw new Error('MISSING_RIGHTS_NOT_REJECTED');
+          NODE
+      - name: Reject fixture promotion mutation
+        run: |
+          node --input-type=module - <<'NODE'
+          import {buildFixture,validateClaimSuitableFixture} from './scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs';
+          const x=buildFixture({familyId:'negative-promotion',evidenceClass:'LIQUIDITY_TIME_TO_SALE_EXPOSURE'});x.promotable=true;
+          let rejected=false;try{validateClaimSuitableFixture(x)}catch(e){rejected=String(e.message)==='ADAPTER_FIXTURE_PROMOTION_FORBIDDEN'}
+          if(!rejected)throw new Error('FIXTURE_PROMOTION_NOT_REJECTED');
+          NODE
+      - name: Reject family live-extraction overclaim mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-claim-suitable-adapter-sdk-run-1 /tmp/bad-family-live
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-family-live/adapter-family-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.families[0].live_extraction_verified=true;x.live_extractions_verified=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-v1.mjs /tmp/bad-family-live /tmp/replacement/replacement-mission-queue-v2.json /tmp/replacement/adapter-requirement-queue-v2.json /tmp/replacement/claim-suitability-replacement-manifest-v2.json; then exit 1; fi
+      - name: Reject source-specific mapping overclaim mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-claim-suitable-adapter-sdk-run-1 /tmp/bad-mapping
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-mapping/adapter-development-backlog-v1.json';const x=JSON.parse(fs.readFileSync(p));x.records[0].source_specific_mapping_implemented=true;x.records[0].adapter_id='fabricated';x.source_specific_mappings_implemented=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-v1.mjs /tmp/bad-mapping /tmp/replacement/replacement-mission-queue-v2.json /tmp/replacement/adapter-requirement-queue-v2.json /tmp/replacement/claim-suitability-replacement-manifest-v2.json; then exit 1; fi
+      - name: Reject manual-only activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-registry-v1.json /tmp/adapter-sdk-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflow='NONE';fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-registry-v1.mjs; then exit 1; fi
+          mv /tmp/adapter-sdk-registry.json coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-registry-v1.json
+      - name: Revalidate pristine adapter SDK scaffold
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-registry-v1.mjs > /tmp/kidults-asi-claim-suitable-adapter-sdk-registry-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-v1.mjs \
+            /tmp/kidults-asi-claim-suitable-adapter-sdk-run-1 \
+            /tmp/replacement/replacement-mission-queue-v2.json \
+            /tmp/replacement/adapter-requirement-queue-v2.json \
+            /tmp/replacement/claim-suitability-replacement-manifest-v2.json \
+            coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-contract-v1.json > /tmp/kidults-asi-claim-suitable-adapter-sdk-final-validation-v1.json
+      - name: Emit KPMO adapter SDK receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-claim-suitable-adapter-sdk-kpmo-receipt-v1.json
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-claim-suitable-adapter-sdk-run-1/adapter-sdk-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-claim-suitable-adapter-sdk-kpmo-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,replacement_artifact_id:process.env.REPLACEMENT_ARTIFACT_ID,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,target_host_egress_executed:false,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-claim-suitable-adapter-sdk-kpmo-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-claim-suitable-adapter-sdk-v1
+          path: |
+            /tmp/kidults-asi-claim-suitable-adapter-sdk-run-1
+            /tmp/kidults-asi-claim-suitable-adapter-sdk-registry-validation-v1.json
+            /tmp/kidults-asi-claim-suitable-adapter-sdk-validation-v1.json
+            /tmp/kidults-asi-claim-suitable-adapter-sdk-registry-final-validation-v1.json
+            /tmp/kidults-asi-claim-suitable-adapter-sdk-final-validation-v1.json
+            /tmp/kidults-asi-claim-suitable-adapter-sdk-kpmo-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
