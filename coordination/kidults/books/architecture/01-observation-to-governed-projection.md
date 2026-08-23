@@ -3,11 +3,11 @@
 **판본일:** 2026-08-23 KST  
 **문서:** Architecture Book  
 **트랙:** KPMO / Architecture / Tracks A–E  
-**의사결정 ID:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`  
+**의사결정 ID:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`; `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` (PROPOSAL / Draft #1118)  
 **스냅샷 ID:** N/A — Architecture 장이며, Candidate/Evidence pair가 존재하지 않음  
 **문장 분류:** TARGET ARCHITECTURE — 구현된 통제는 별도로 명시하며, 이 장은 Production 증명이 아님  
 **Gate 상태:** C1 확립; C2 미완료; Production/Public/G5 HOLD  
-**증거 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116; protected main `5ba79a49c0346bb0b3e5a5ade71890f51a1046fa`
+**증거 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116, #1117, Draft #1118; protected main `d050d8b993929a883298e7cb90ea22bc97ec6ae1`
 
 ## 1. 아키텍처의 목표
 
@@ -19,7 +19,30 @@
 
 모든 전환은 명시적이고, 버전이 관리되며, 되돌릴 수 있어야 한다. 실패하거나 필요한 항목이 존재하지 않으면 그 이후 단계의 주장은 닫힌다.
 
-## 2. 3단계 수집 통제
+## 2. 최상위 운영원칙의 실행 아키텍처
+
+네 최상위 원칙은 선언이 아니라 서로 다른 통제 책임을 갖는 하나의 운영계약이다. 전략적 순서는 **Autonomous → Global → Irreplaceable Value → Transparent**로 고정한다. 네 원칙은 모두 필수이며, Transparent는 다른 세 원칙 전체에 적용되는 비면제 통제다.
+
+| 원칙 | 아키텍처 책임 | 최소 실행 증거 | Fail-closed 경계 |
+|---|---|---|---|
+| **Autonomous** | 승인된 의도를 Scheduler, Queue, Lease, Retry, Health, Idempotency, Fencing, Incident, Recovery와 Rollback으로 지속 실행한다 | Automation ID, Trigger/Main SHA, Run·Cycle ID, Owner, Authority boundary, Health, immutable Artifact와 KPMO Receipt | 실행 메커니즘·Artifact·Receipt 중 하나라도 없으면 자동 실행 또는 완료를 주장하지 않는다 |
+| **Global** | Region, Language, Currency, Venue, Source, Category, Institution과 Jurisdiction 차이를 Canonical schema와 policy로 다룬다 | Coverage와 exclusion, locale/currency rule, source-rights jurisdiction, freshness와 limitation | 한 시장의 가정·권리·결손을 전 세계의 사실로 확장하지 않는다 |
+| **Irreplaceable Value** | Identity, Ontology, Evidence/Market/Rights Graph, Method, Confidence/Rankability, Projection, Decision History를 Provider-switchable internal Core로 누적한다 | 반복 가능한 Decision improvement, customer outcome, reuse, switching/replacement evidence | 독점 Feed, Provider Lock-in, Record 수 또는 근거 없는 리더십을 가치 증거로 사용하지 않는다 |
+| **Transparent** | FACT / INFERENCE / PLAN / UNKNOWN, Provenance, Rights, Method version, Freshness, Limitation, Decision, Correction과 Next action을 모든 경계에서 노출한다 | Source reference, status vocabulary, transformation lineage, correction history, governed receipt | 불확실성·오류·권리결손·승인경계를 숨기거나 더 강한 상태로 렌더링하지 않는다 |
+
+Autonomous의 정상 운영 루프는 다음과 같다.
+
+`PR Merge → Protected-main Push → Scale Wave Auto Dispatch → Immutable Artifact → KPMO Governed Status Receipt`
+
+Protected main의 PR 병합과 push가 Scale Wave를 자동으로 시작해야 하며, 사람이 매번 `Run workflow`를 누르는 경로에 정상 운영이 의존해서는 안 된다. Manual dispatch는 Break-glass·복구·진단에만 남긴다. 동일 main SHA에 대한 중복 실행은 Deduplication과 Concurrency control로 통제하고, 실패는 이유가 기록된 Receipt와 재시도·복구 경로를 남긴다.
+
+Artifact는 입력 Main SHA, Workflow/Run/Cycle ID, 실행된 Scope, 결과, Check, Limitation, Child artifact reference와 Rollback target을 포함한다. KPMO Receipt는 해당 Artifact를 AI Governance 상태어휘로 해석해 `IMPLEMENTED_NOT_VERIFIED`, `RUNNING_VERIFIED`, `VERIFIED_PASS`, `BLOCKED` 등을 구분한다. Artifact나 Receipt가 없으면 완료로 승격하지 않는다.
+
+자동 실행은 권한의 자동 확대가 아니다. Evidence admission, Rights, 개인정보, 계약·지출, Credential 활성화, Trust-root, Public release, Production과 G5는 각각의 명시적인 Authority와 Human accountability를 계속 요구한다. Scale Wave는 이 Gate를 우회하거나 자체 승인할 수 없다.
+
+현재 **VERIFIED CURRENT STATE**는 #1117의 AI honesty/transparency governance가 protected main에 병합돼 있다는 것이다. 네 원칙과 위 자동 실행 계약은 Draft #1118에서 **IMPLEMENTED_NOT_VERIFIED** 상태로 제안·구현돼 있으며, 병합과 main-triggered Artifact/Receipt가 검증되기 전까지 현재 운영 완료 상태로 표현하지 않는다.
+
+## 3. 3단계 수집 통제
 
 ### Gate A1 — ASI 유입 선별
 
@@ -45,7 +68,7 @@ Admission은 명시적으로 허용된 목적과 필드에 대해서만 이루�
 
 경계: 비공개 Evidence pool에 Admission되었다는 사실은 제품 공개를 의미하지 않는다.
 
-## 3. 내부 Core와 Provider의 경계
+## 4. 내부 Core와 Provider의 경계
 
 KIDULTS는 Provider가 달라져도 지속적으로 축적되는 다음 구성요소를 내부에서 소유해야 한다.
 
@@ -65,7 +88,7 @@ KIDULTS는 Provider가 달라져도 지속적으로 축적되는 다음 구성�
 
 어떤 Provider도 KIDULTS의 System of Record가 될 수 없다. Provider를 교체할 때는 Evidence, Rights, Freshness, Output quality를 다시 검증하면서 공개된 분석 문법은 유지해야 한다.
 
-## 4. Canonical Data Plane
+## 5. Canonical Data Plane
 
 | Plane | 구성 내용 | Release 경계 |
 |---|---|---|
@@ -80,7 +103,7 @@ KIDULTS는 Provider가 달라져도 지속적으로 축적되는 다음 구성�
 
 이들 Plane 전체에서 Missing은 계속 Missing으로 유지된다. 어떤 Adapter, Database default, Calculation, Interface도 Missing을 암묵적으로 0으로 바꿔서는 안 된다.
 
-## 5. Immutable Candidate/Evidence 인계
+## 6. Immutable Candidate/Evidence 인계
 
 Track A는 정확히 두 개의 공식 입력을 산출한다.
 
@@ -91,7 +114,7 @@ Track A는 정확히 두 개의 공식 입력을 산출한다.
 
 두 입력 중 하나라도 없거나, 서로 일치하지 않거나, 변경 가능하거나, Rights상 Admission될 수 없거나, Stale 상태이면 Track B를 시작하지 않는다.
 
-## 6. Confidence와 Rankability
+## 7. Confidence와 Rankability
 
 Confidence가 답하는 질문은 다음과 같다.
 
@@ -103,7 +126,7 @@ Rankability가 답하는 질문은 다음과 같다.
 
 Identity claim의 Confidence가 높더라도 Market claim은 Rankable하지 않을 수 있다. 이 두 상태는 Schema, Rule, Interface, Audit record에서 반드시 분리되어야 한다.
 
-## 7. 통제된 Projection
+## 8. 통제된 Projection
 
 Projection은 제품 표면으로 전달되는 유일한 Intelligence contract다. Projection은 다음을 하나의 계약으로 묶는다.
 
@@ -124,7 +147,7 @@ Portal과 IH-EOS는 Projection을 소비한다. 순위를 자체 계산하거나
 
 #1074의 Projection contract와 #1080의 Executable consumer binding은 Canonical repository에서 여전히 Draft/open 상태다. 따라서 이 아키텍처는 요구되는 경계를 정의할 뿐, 승인된 Live implementation이 존재한다고 주장하지 않는다.
 
-## 8. Portal과 EOS의 책임
+## 9. Portal과 EOS의 책임
 
 Portal은 **Brand Surface + Product Interface + Market Sensor**다.
 
@@ -134,7 +157,7 @@ Portal은 **Brand Surface + Product Interface + Market Sensor**다.
 
 IH-EOS는 등록된 Program, Blocker, Gate, Outcome, Projection state를 소비하여 Founder가 현재 상태를 이해하고 의사결정할 수 있게 한다. 두 Surface 모두 Intelligence producer가 되지 않는다.
 
-## 9. Security와 운영 통제
+## 10. Security와 운영 통제
 
 - LOCAL → DEV → STAGING → PRODUCTION은 계속 분리한다.
 - Credential과 Signing key를 Commit하거나 Registry에 복사하지 않는다.
@@ -147,7 +170,7 @@ IH-EOS는 등록된 Program, Blocker, Gate, Outcome, Projection state를 소비�
 
 승인 Gate가 적용되는 Trust-root migration이 병합되지 않은 동안 #881은 `CONTROL PASS SUSPENDED` 상태를 유지한다. Draft에서의 증명은 Release authority가 아니다.
 
-## 10. 아키텍처 업데이트 노트(Architecture Update Note)
+## 11. 아키텍처 업데이트 노트(Architecture Update Note)
 
 | 문장 분류 | 현재 아키텍처상의 의미 |
 |---|---|
@@ -160,7 +183,7 @@ IH-EOS는 등록된 Program, Blocker, Gate, Outcome, Projection state를 소비�
 
 병합된 Source control은 적법한 GRADED label, Collection/Display rights, Immutable pair, Track B assessment 또는 승인된 Projection을 생성하지 않으므로 Promotion state는 바뀌지 않는다.
 
-## 11. 의사결정 매핑(Decision Mapping)
+## 12. 의사결정 매핑(Decision Mapping)
 
 | 의사결정 / Issue | 아키텍처상의 책임 |
 |---|---|
@@ -173,13 +196,27 @@ IH-EOS는 등록된 Program, Blocker, Gate, Outcome, Projection state를 소비�
 | #256 | Founder의 의사결정을 위해 등록된 진실을 소비 |
 | #238 | Track 간 Promotion과 G5 경계 강제 |
 
-## 12. 북 동기화 보고서(Book Sync Report)
+## 13. 원전 승계와 Architecture Canon
+
+이 장은 John이 보관해 전달한 `EVIA Canon Edition 1.0 — Volume 3 Enterprise Architecture Book`과 기존 Architecture 문서 형식을 공식 선행 원전으로 승계한다. 새 문서 체계를 다시 만드는 것이 아니라, 원전의 구조를 현재 KIDULTS Canonical Evidence와 AI Governance에 연결해 v2로 발전시킨다.
+
+승계하는 핵심은 다음과 같다.
+
+- `Source → Collection → Evidence → Knowledge → Intelligence → Decision → Asset`의 Layer boundary와 책임 분리;
+- Candidate → Reviewed → Promoted → Monitored → Deprecated → Retired의 통제된 Asset lifecycle;
+- Explainability, Versioning, Override와 Decision trace;
+- Scheduler, Queue, Lease, Retry, Health, Idempotency/Fencing, Incident, Audit와 Recovery를 포함한 Autonomous Operating Model;
+- Local 성공, 문서 존재 또는 자동화 선언을 Production 증거로 승격하지 않는 Evidence discipline.
+
+원전의 철학·구조·문서 위계와 편집 형식은 보존한다. 다만 과거의 상태, Portfolio, Provider, 수치 또는 Runtime claim이 현재 Registry·Protected-main·Canonical issue와 충돌하면 원전은 역사적 Source lineage로 남기고 최신 검증 사실을 적용한다. No Fourth Book 원칙 아래 Runbook, Workflow, Receipt와 Decision record는 Architecture Book의 재현 증거이지 별도 Book이 아니다.
+
+## 14. 북 동기화 보고서(Book Sync Report)
 
 - **Master Book:** 고객가치와 Product claim은 이 장에 정의된 Projection 및 Evidence 경계에 연결된다.
 - **Baseline Book:** 현재의 모든 `NONE`, `NOT STARTED`, `OPEN`, `HOLD`, Blocked state는 그대로 표시하며 다른 의미로 재해석하지 않는다.
 - **No Fourth Book:** 유지한다. Runbook, Issue ledger, Decision record는 세 권의 Book을 지원하지만 별도의 Book이 되지 않는다.
-- **Sync state:** `ALIGNED TO CANONICAL PROTECTED MAIN 5ba79a49 AT 2026-08-23 10:02 KST`.
+- **Sync state:** `ALIGNED TO CANONICAL PROTECTED MAIN d050d8b9 AT 2026-08-23 11:08 KST; AI GOVERNANCE v1.1 AND AUTONOMOUS SCALE WAVE ARE PROPOSED IN DRAFT #1118, NOT PROMOTED`.
 
-## 13. 롤백(Rollback)
+## 15. 롤백(Rollback)
 
 이 장의 파일을 Revert한다. 이번 변경은 Documentation-only이며 Code, Data, Registry pointer, Provider, Credential, Rights, Runtime, Trust root, Public release 또는 Production을 변경하지 않는다.
