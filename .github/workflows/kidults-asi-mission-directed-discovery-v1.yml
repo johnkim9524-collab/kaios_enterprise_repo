@@ -1,0 +1,294 @@
+name: KIDULTS ASI Mission-Directed Discovery v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-mission-directed-discovery-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json'
+      - 'scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs'
+      - 'docs/kidults/asi/asi-mission-directed-discovery-v1.md'
+      - '.github/workflows/kidults-asi-mission-directed-discovery-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-mission-directed-discovery-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json'
+      - 'scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs'
+      - 'docs/kidults/asi/asi-mission-directed-discovery-v1.md'
+      - '.github/workflows/kidults-asi-mission-directed-discovery-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Mission Consumption v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-mission-directed-discovery-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mission-directed-discovery:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source, syntax and registered assets
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs \
+            | tee /tmp/mission-directed-discovery-registry-validation-v1.json
+      - name: Restore latest mission-consumption discovery intents
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/mission-consumption-input
+          ARTIFACT_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq '[.artifacts[] | select(.name=="kidults-asi-mission-consumption-v1" and .expired==false)][0].id // empty')
+          test -n "$ARTIFACT_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
+            > /tmp/mission-consumption-input.zip
+          unzip -q -o /tmp/mission-consumption-input.zip -d /tmp/mission-consumption-input
+          INTENT_FILE=$(find /tmp/mission-consumption-input -type f -name mission-discovery-intent-v1.json -print -quit)
+          LANE_FILE=$(find /tmp/mission-consumption-input -type f -name mission-source-lane-assignments-v1.json -print -quit)
+          test -n "$INTENT_FILE"
+          test -n "$LANE_FILE"
+          node - "$INTENT_FILE" "$LANE_FILE" <<'NODE'
+          const fs=require('fs');const i=JSON.parse(fs.readFileSync(process.argv[2]));const l=JSON.parse(fs.readFileSync(process.argv[3]));if(i.id!=='kidults-asi-mission-discovery-intent-v1'||i.intent_count!==426||i.intents?.length!==426)throw new Error('MISSION_INTENT_INPUT_INVALID');if(l.id!=='kidults-asi-mission-source-lane-assignments-v1'||l.source_lane_slot_count!==576)throw new Error('MISSION_LANE_INPUT_INVALID');console.log(JSON.stringify({state:'VERIFIED_PASS',artifact_id:process.env.ARTIFACT_ID,intents:i.intent_count,source_lane_slots:l.source_lane_slot_count}));
+          NODE
+          echo "MISSION_INTENT_FILE=$INTENT_FILE" >> "$GITHUB_ENV"
+          echo "MISSION_LANE_FILE=$LANE_FILE" >> "$GITHUB_ENV"
+          echo "MISSION_CONSUMPTION_ARTIFACT_ID=$ARTIFACT_ID" >> "$GITHUB_ENV"
+      - name: Restore prior rolling discovery cursor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/previous-mission-directed-discovery
+          PREVIOUS_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq '[.artifacts[] | select(.name=="kidults-asi-mission-directed-discovery-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          PREVIOUS_STATE=/tmp/previous-mission-directed-discovery/no-previous-state.json
+          if [ -n "$PREVIOUS_ID" ]; then
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREVIOUS_ID}/zip" \
+              > /tmp/previous-mission-directed-discovery.zip
+            unzip -q -o /tmp/previous-mission-directed-discovery.zip -d /tmp/previous-mission-directed-discovery
+            FOUND=$(find /tmp/previous-mission-directed-discovery -type f -name mission-directed-discovery-cycle-state-v1.json -print -quit || true)
+            if [ -n "$FOUND" ]; then PREVIOUS_STATE="$FOUND"; fi
+          fi
+          echo "PREVIOUS_DISCOVERY_ARTIFACT_ID=${PREVIOUS_ID:-NONE}" >> "$GITHUB_ENV"
+          echo "PREVIOUS_DISCOVERY_STATE=$PREVIOUS_STATE" >> "$GITHUB_ENV"
+      - name: Execute bounded live mission-directed discovery
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MISSION_DISCOVERY_BATCH_SIZE: '24'
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs \
+            "$MISSION_INTENT_FILE" \
+            "$PREVIOUS_DISCOVERY_STATE" \
+            coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json \
+            /tmp/kidults-asi-mission-directed-discovery-v1 \
+            | tee /tmp/mission-directed-discovery-run-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs \
+            /tmp/kidults-asi-mission-directed-discovery-v1 \
+            coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json \
+            | tee /tmp/mission-directed-discovery-validation-v1.json
+      - name: Run Gate 1 source safety classification
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs \
+            /tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-v1.json \
+            /tmp/asi-gate1-safe-candidate-pool-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs \
+            /tmp/asi-gate1-safe-candidate-pool-v1.json
+      - name: Run Gate 2 independent reverification
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs \
+            /tmp/asi-gate1-safe-candidate-pool-v1.json \
+            /tmp/asi-gate2-independent-reverification-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs \
+            /tmp/asi-gate2-independent-reverification-v1.json
+      - name: Run Gate 3 metadata admission
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs \
+            /tmp/asi-gate2-independent-reverification-v1.json \
+            /tmp/asi-gate3-admission-runtime-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs \
+            /tmp/asi-gate3-admission-runtime-v1.json
+      - name: Compile strict current-market admission gaps and adapters
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs \
+            /tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-v1.json \
+            /tmp/asi-gate1-safe-candidate-pool-v1.json \
+            /tmp/asi-gate2-independent-reverification-v1.json \
+            /tmp/asi-gate3-admission-runtime-v1.json \
+            coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json \
+            coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json \
+            /tmp/kidults-asi-mission-directed-discovery-v1 \
+            | tee /tmp/mission-claim-admission-readiness-build-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs \
+            /tmp/kidults-asi-mission-directed-discovery-v1 \
+            /tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-v1.json \
+            /tmp/asi-gate1-safe-candidate-pool-v1.json \
+            /tmp/asi-gate2-independent-reverification-v1.json \
+            /tmp/asi-gate3-admission-runtime-v1.json \
+            coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json \
+            coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json \
+            | tee /tmp/mission-claim-admission-readiness-validation-v1.json
+      - name: Reject terminal-sold metadata mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-terminal-sold
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-terminal-sold/mission-directed-discovery-v1.json';const x=JSON.parse(fs.readFileSync(p));x.candidates[0].terminal_transaction_asserted=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs /tmp/bad-terminal-sold; then
+            echo 'Validator accepted metadata as terminal sold assertion' >&2
+            exit 1
+          fi
+      - name: Reject hidden partial-failure mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-partial-failure
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-partial-failure/mission-directed-discovery-v1.json';const x=JSON.parse(fs.readFileSync(p));const r=x.intent_receipts[0];if(r.state!=='FAILED'){r.state='FAILED';r.error='MUTATION_PROVIDER_FAILURE';x.successful_intent_count--;x.failed_intent_count++;}x.partial_failure_state='NONE';fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs /tmp/bad-partial-failure; then
+            echo 'Validator accepted hidden partial provider failure' >&2
+            exit 1
+          fi
+      - name: Reject metadata-to-market-claim mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-market-claim
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-market-claim/mission-claim-admission-readiness-v1.json';const x=JSON.parse(fs.readFileSync(p));x.records[0].current_price_eligible=true;x.records[0].market_event_admitted=true;x.claim_ready_count=1;x.current_price_eligible_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs /tmp/bad-market-claim /tmp/bad-market-claim/mission-directed-discovery-v1.json /tmp/asi-gate1-safe-candidate-pool-v1.json /tmp/asi-gate2-independent-reverification-v1.json /tmp/asi-gate3-admission-runtime-v1.json; then
+            echo 'Validator accepted metadata as a current-price market event' >&2
+            exit 1
+          fi
+      - name: Reject adapter implementation overclaim mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-adapter-overclaim
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-adapter-overclaim/mission-source-adapter-requirements-v1.json';const x=JSON.parse(fs.readFileSync(p));x.requirements[0].adapter_runtime_implemented=true;x.requirements[0].adapter_runtime_tested=true;x.adapter_runtime_implemented_count=1;x.adapter_runtime_tested_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs /tmp/bad-adapter-overclaim /tmp/bad-adapter-overclaim/mission-directed-discovery-v1.json /tmp/asi-gate1-safe-candidate-pool-v1.json /tmp/asi-gate2-independent-reverification-v1.json /tmp/asi-gate3-admission-runtime-v1.json; then
+            echo 'Validator accepted an unimplemented adapter as implemented' >&2
+            exit 1
+          fi
+      - name: Reject invalid rolling cursor mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-cursor
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-cursor/mission-directed-discovery-cycle-state-v1.json';const x=JSON.parse(fs.readFileSync(p));x.next_cursor=x.total_intent_count;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs /tmp/bad-cursor; then
+            echo 'Validator accepted an invalid rolling cursor' >&2
+            exit 1
+          fi
+      - name: Reject manual-only activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-mission-directed-discovery-registry-v1.json /tmp/mission-directed-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-mission-directed-discovery-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflows=[];fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs; then
+            echo 'Validator accepted manual-only mission discovery' >&2
+            exit 1
+          fi
+          mv /tmp/mission-directed-registry.json coordination/kidults/source-intelligence/asi-mission-directed-discovery-registry-v1.json
+      - name: Revalidate pristine live outputs
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs \
+            > /tmp/mission-directed-discovery-registry-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs \
+            /tmp/kidults-asi-mission-directed-discovery-v1 \
+            coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json \
+            > /tmp/mission-directed-discovery-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs \
+            /tmp/kidults-asi-mission-directed-discovery-v1 \
+            /tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-v1.json \
+            /tmp/asi-gate1-safe-candidate-pool-v1.json \
+            /tmp/asi-gate2-independent-reverification-v1.json \
+            /tmp/asi-gate3-admission-runtime-v1.json \
+            coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json \
+            coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json \
+            > /tmp/mission-claim-admission-readiness-final-validation-v1.json
+      - name: Emit KPMO mission-directed discovery receipt
+        run: |
+          node - <<'NODE' >/tmp/mission-directed-discovery-kpmo-receipt-v1.json
+          const fs=require('fs'),crypto=require('crypto');const p='/tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-mission-directed-discovery-kpmo-receipt-v1',version:'1.0.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,mission_consumption_artifact_id:process.env.MISSION_CONSUMPTION_ARTIFACT_ID,previous_discovery_artifact_id:process.env.PREVIOUS_DISCOVERY_ARTIFACT_ID,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,current_price_eligible:0,liquidity_eligible:0,market_event_admitted:0,target_site_body_traversed:false,source_content_collected:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/mission-directed-discovery-kpmo-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-mission-directed-discovery-v1
+          path: |
+            /tmp/kidults-asi-mission-directed-discovery-v1
+            /tmp/asi-gate1-safe-candidate-pool-v1.json
+            /tmp/asi-gate2-independent-reverification-v1.json
+            /tmp/asi-gate3-admission-runtime-v1.json
+            /tmp/mission-directed-discovery-registry-validation-v1.json
+            /tmp/mission-directed-discovery-registry-final-validation-v1.json
+            /tmp/mission-directed-discovery-run-v1.json
+            /tmp/mission-directed-discovery-validation-v1.json
+            /tmp/mission-directed-discovery-final-validation-v1.json
+            /tmp/mission-claim-admission-readiness-build-v1.json
+            /tmp/mission-claim-admission-readiness-validation-v1.json
+            /tmp/mission-claim-admission-readiness-final-validation-v1.json
+            /tmp/mission-directed-discovery-kpmo-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
