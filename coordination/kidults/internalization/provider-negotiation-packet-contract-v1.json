@@ -1,0 +1,44 @@
+{
+  "contract_id": "KIDULTS_PROVIDER_NEGOTIATION_PACKET_V1",
+  "parent_issues": [1172,1166,1153,952,1152],
+  "inputs": [
+    "provider-commercial-rights-ledger-v1.json",
+    "provider-internalization-matrix-v1.json",
+    "provider-operating-decision-ledger-v1.json",
+    "provider-removal-readiness-ledger-v1.json",
+    "minimum-external-dependency-negotiation-contract-v1.json"
+  ],
+  "required_sections": [
+    "company_and_product_role",
+    "portfolio_priority",
+    "external_fact_scope_only",
+    "internalize_now",
+    "internalize_phased",
+    "rights_open_questions",
+    "cost_and_roi_state",
+    "termination_and_portability",
+    "provider_removal_state",
+    "recommended_action",
+    "written_outbound_scope"
+  ],
+  "outbound_rules": {
+    "github_pre_read_required": true,
+    "latest_human_inbound_required": true,
+    "analysis_report_before_outbound": true,
+    "written_negotiation_default": true,
+    "native_language_explanation_when_call_proposed": true,
+    "duplicate_question_prohibited": true,
+    "proprietary_methodology_disclosure": "PROHIBITED",
+    "competitor_confidential_economics_disclosure": "PROHIBITED"
+  },
+  "negotiation_priority": [
+    "non_internalizable_external_facts",
+    "internal_storage_normalization_analysis_rights",
+    "post_termination_derived_intelligence_rights",
+    "portability_and_replacement",
+    "historical_or_change_data_if_strategically_required",
+    "economics_and_support"
+  ],
+  "decision_states": ["RESPOND_NOW","WAIT","HOLD","NO_GO","BOUNDED_PILOT_CANDIDATE","STRATEGIC_PARTNER_CANDIDATE","FALLBACK","EXCLUDE"],
+  "non_bypass": {"contract":"EXPLICIT_APPROVAL_REQUIRED","spend":"EXPLICIT_APPROVAL_REQUIRED","credential_activation":"EXPLICIT_APPROVAL_REQUIRED","production":"HOLD","g5":"EXPLICIT_APPROVAL_REQUIRED"}
+}
