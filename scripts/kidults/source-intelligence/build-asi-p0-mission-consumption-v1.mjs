@@ -152,6 +152,13 @@ for (const mission of sortedMissions) {
           : ['sold date', 'listing date', 'days on market', 'time to sale', 'exposure', 'sell through'],
         negative_semantic_controls: contract.negative_semantic_controls
       },
+      discovery_seed: {
+        source_id: `discovery-frontier:v1:sha256:${frontierDigest}`,
+        seed_ref: `mission-frontier:${mission.mission_id}:${laneSlot}:${selectedFleetId}`,
+        discovery_frontier_only: true,
+        external_source_observed: false,
+        source_candidate_created: false
+      },
       four_principle_vector: mission.sourcing_direction_vector,
       provider_direct_to_truth: false,
       provider_direct_to_index: false,
