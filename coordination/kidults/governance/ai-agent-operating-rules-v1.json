@@ -268,12 +268,16 @@
         "OBSERVABILITY_AND_HEALTH_EVIDENCE",
         "AUDIT_RECEIPTS",
         "ROLLBACK",
-        "HUMAN_ESCALATION_AT_PROTECTED_GATES"
+        "HUMAN_ESCALATION_AT_PROTECTED_GATES",
+        "PROTECTED_MAIN_PUSH_AUTO_DISPATCH",
+        "SCALE_WAVE_ARTIFACT",
+        "KPMO_GOVERNED_STATUS_RECEIPT"
       ],
       "prohibited_interpretations": [
         "CHAT_PROMISE_AS_AUTOMATION",
         "UNOBSERVED_CODE_PATH_AS_RUNNING",
-        "AUTONOMY_AS_SELF_AUTHORIZATION"
+        "AUTONOMY_AS_SELF_AUTHORIZATION",
+        "MANUAL_RUN_AS_NORMAL_OPERATION"
       ]
     },
     {
@@ -340,5 +344,29 @@
     "rights_security_privacy_contractual_authority_human_accountability_and_g5_bound_all_principles": true,
     "principle_does_not_expand_agent_authority": true,
     "conflicts_fail_closed_and_are_recorded": true
+  },
+  "autonomous_execution_contract": {
+    "trigger": "PROTECTED_MAIN_PUSH_AFTER_PR_MERGE",
+    "flow": [
+      "PR_MERGE",
+      "MAIN_PUSH",
+      "SCALE_WAVE_AUTO_DISPATCH",
+      "ARTIFACT",
+      "KPMO_GOVERNED_STATUS_RECEIPT"
+    ],
+    "normal_operation_requires_manual_dispatch": false,
+    "manual_dispatch_role": "BREAK_GLASS_OR_RECOVERY_ONLY",
+    "deduplication_and_concurrency_control_required": true,
+    "artifact_required": true,
+    "kpmo_receipt_required": true,
+    "receipt_schema": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
+    "promotion_authority_created": false,
+    "protected_gates_preserved": [
+      "EVIDENCE",
+      "RIGHTS",
+      "SECURITY",
+      "HUMAN_ACCOUNTABILITY",
+      "PRODUCTION_G5"
+    ]
   }
 }
