@@ -10,7 +10,13 @@ const suites = [
   'scripts/kidults/internalization/validate-historical-learning-memory-v1.mjs',
   'scripts/kidults/internalization/validate-provider-removal-simulation-v1.mjs',
   'scripts/kidults/internalization/validate-provider-internalization-matrix-v1.mjs',
-  'scripts/kidults/internalization/validate-provider-commercial-rights-ledger-v1.mjs'
+  'scripts/kidults/internalization/validate-provider-commercial-rights-ledger-v1.mjs',
+  'scripts/kidults/internalization/validate-provider-operating-admission-gate-v1.mjs',
+  'scripts/kidults/internalization/validate-partner-pre-send-internalization-gate-v1.mjs',
+  'scripts/kidults/internalization/validate-provider-removal-baseline-v1.mjs',
+  'scripts/kidults/internalization/validate-residual-external-dependency-ledger-v1.mjs',
+  'scripts/kidults/internalization/validate-internalization-closure-gate-v1.mjs',
+  'scripts/kidults/internalization/validate-internalization-acceptance-hardening-v1.mjs'
 ];
 
 const removalPath = 'coordination/kidults/internalization/provider-removal-simulation-contract-v1.json';
@@ -64,6 +70,8 @@ console.log(JSON.stringify({
   component_validators: suites.length,
   provider_removal_invariants: removal.required_continuity_invariants.length,
   prohibited_dependencies: removal.prohibited_dependencies.length,
+  acceptance_hardening: 'PASS',
+  structural_internalization: 'COMPLETE',
   production: removal.non_bypass.production,
   g5: removal.non_bypass.g5,
   suiteResults
