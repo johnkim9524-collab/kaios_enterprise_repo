@@ -1,0 +1,118 @@
+{
+  "id": "kidults-asi-initial-auction-results-adapter-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": ["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"],
+  "mission": "Implement and fixture-certify the first six source-specific current-SOLD mapping adapters against the strict KIDULTS claim-suitable adapter SDK while preserving live extraction, rights, empirical admission and claim boundaries.",
+  "sdk_binding": {
+    "sdk_id": "kidults-claim-suitable-adapter-sdk-v1",
+    "sdk_path": "scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs",
+    "evidence_class": "CURRENT_SOLD_TRANSACTION"
+  },
+  "source_profiles": [
+    {
+      "profile_id": "BONHAMS_CARS_RESULTS_V1",
+      "display_name": "Bonhams Cars Results",
+      "domain": "automobiles_mobility",
+      "priority_assignment_count": 24,
+      "terminal_status_fields": ["result_status","status"],
+      "realized_price_fields": ["sold_for","price_realized","realized_price"],
+      "event_time_fields": ["sale_date","event_date"],
+      "record_id_fields": ["lot_number","lot_id"],
+      "title_fields": ["lot_title","title"]
+    },
+    {
+      "profile_id": "BARRETT_JACKSON_RESULTS_V1",
+      "display_name": "Barrett-Jackson Results",
+      "domain": "automobiles_mobility",
+      "priority_assignment_count": 18,
+      "terminal_status_fields": ["sale_status","status"],
+      "realized_price_fields": ["sale_price","sold_price","realized_price"],
+      "event_time_fields": ["auction_date","event_date"],
+      "record_id_fields": ["lot_number","lot"],
+      "title_fields": ["vehicle_title","title"]
+    },
+    {
+      "profile_id": "BONHAMS_WATCHES_RESULTS_V1",
+      "display_name": "Bonhams Watches Results",
+      "domain": "watches_jewelry",
+      "priority_assignment_count": 18,
+      "terminal_status_fields": ["result_status","status"],
+      "realized_price_fields": ["sold_for","price_realized","realized_price"],
+      "event_time_fields": ["sale_date","event_date"],
+      "record_id_fields": ["lot_number","lot_id"],
+      "title_fields": ["lot_title","title"]
+    },
+    {
+      "profile_id": "CHRISTIES_WATCHES_RESULTS_V1",
+      "display_name": "Christie's Watches Results",
+      "domain": "watches_jewelry",
+      "priority_assignment_count": 12,
+      "terminal_status_fields": ["result_status","status"],
+      "realized_price_fields": ["price_realized","realized_price","sold_price"],
+      "event_time_fields": ["sale_date","event_date"],
+      "record_id_fields": ["lot_number","lot_id"],
+      "title_fields": ["lot_title","title"]
+    },
+    {
+      "profile_id": "SOTHEBYS_WATCHES_RESULTS_V1",
+      "display_name": "Sotheby's Watches Results",
+      "domain": "watches_jewelry",
+      "priority_assignment_count": 12,
+      "terminal_status_fields": ["result_status","status"],
+      "realized_price_fields": ["sold_price","price_realized","realized_price"],
+      "event_time_fields": ["sale_date","event_date"],
+      "record_id_fields": ["lot_number","lot_id"],
+      "title_fields": ["lot_title","title"]
+    },
+    {
+      "profile_id": "BROAD_ARROW_RESULTS_V1",
+      "display_name": "Broad Arrow Results",
+      "domain": "automobiles_mobility",
+      "priority_assignment_count": 12,
+      "terminal_status_fields": ["result_status","status"],
+      "realized_price_fields": ["result_price","sold_price","realized_price"],
+      "event_time_fields": ["auction_date","event_date"],
+      "record_id_fields": ["lot_number","lot_id"],
+      "title_fields": ["vehicle_title","title"]
+    }
+  ],
+  "currency_parsing": {
+    "allowed_codes": ["USD","GBP","EUR","CHF","HKD","JPY","KRW"],
+    "allowed_symbols": {"$":"USD","£":"GBP","€":"EUR","CHF":"CHF","HK$":"HKD","¥":"JPY","₩":"KRW"},
+    "estimate_range_is_realized_price": false,
+    "ambiguous_dollar_without_source_currency": "REJECT"
+  },
+  "terminal_sold_markers": ["SOLD","SOLD_FOR","PRICE_REALIZED","SOLD_PRICE","SALE_COMPLETE_SOLD"],
+  "required_outputs": [
+    "source-specific-adapter-registry-v1.json",
+    "source-specific-adapter-fixture-certification-v1.json",
+    "adapter-assignment-coverage-v1.json",
+    "live-extraction-readiness-v1.json",
+    "initial-auction-adapter-manifest-v1.json"
+  ],
+  "hard_boundaries": [
+    "SOURCE_SPECIFIC_MAPPING_IMPLEMENTED_IS_NOT_LIVE_EXTRACTION_VERIFIED",
+    "FIXTURE_CERTIFICATION_IS_NOT_EMPIRICAL_ADMISSION",
+    "TERMINAL_STATUS_REQUIRED",
+    "ESTIMATE_IS_NOT_REALIZED_PRICE",
+    "AMBIGUOUS_CURRENCY_REJECTED",
+    "RIGHTS_ENVELOPE_REQUIRED",
+    "NO_TARGET_HOST_EGRESS_OR_EVIDENCE_ADMISSION_OR_MARKET_EVENT_OR_SNAPSHOT"
+  ],
+  "truth_boundary": {
+    "source_specific_mappings_implemented": true,
+    "source_specific_mapping_count": 6,
+    "priority_assignment_coverage": 96,
+    "live_extraction_verified": false,
+    "target_host_egress_executed": false,
+    "rights_pass_created": false,
+    "evidence_admitted": false,
+    "market_event_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
