@@ -1,3 +1,5 @@
+import {validateProofProductProjectionSchema} from './proof-product-schema-validator.js';
+
 const APPROVED_STATES=new Set(['APPROVED_INTERNAL','APPROVED_PUBLIC']);
 const PRODUCT_TYPES=new Set(['OBJECT_PASSPORT','MARKET_PROJECTION_API','KIDULT_100_INDEX']);
 const CLOSED_FIELD_STATES=new Set(['UNAVAILABLE','UNKNOWN','PENDING','RIGHTS_BLOCKED','STALE','NOT_APPLICABLE']);
@@ -36,8 +38,8 @@ function collectFields(value,fields=[]){
 }
 
 function structuralErrors(projection){
-  const errors=[];
-  if(!plainObject(projection))return ['PROJECTION_ENVELOPE_MISSING'];
+  const errors=validateProofProductProjectionSchema(projection).map(error=>`SCHEMA:${error}`);
+  if(!plainObject(projection))return errors.length?errors:['PROJECTION_ENVELOPE_MISSING'];
   for(const key of REQUIRED_ROOT)if(!Object.hasOwn(projection,key))errors.push(`ROOT_FIELD_MISSING:${key}`);
   if(projection.record_type!=='kidults_proof_product_projection')errors.push('RECORD_TYPE_INVALID');
   if(projection.contract_version!=='1.0.0')errors.push('CONTRACT_VERSION_INVALID');
