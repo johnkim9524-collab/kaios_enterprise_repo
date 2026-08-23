@@ -1,0 +1,75 @@
+{
+  "id": "kidults-asi-mission-consumption-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-mission-consumption-contract-v1.json",
+    "preparation_registry": "coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json",
+    "scope_crosswalk": "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
+    "registered_source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
+    "builder": "scripts/kidults/source-intelligence/build-asi-mission-consumption-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-mission-consumption-v1.mjs",
+    "runtime_test": "services/kidults-autonomous-intelligence/scripts/asi-mission-consumption-runtime-test.mjs",
+    "runtime_event_contract": "services/kidults-autonomous-intelligence/src/asi/event.ts",
+    "runtime_fleet_registry": "services/kidults-autonomous-intelligence/src/asi/registry.ts",
+    "runtime_processor": "services/kidults-autonomous-intelligence/src/asi/processors.ts",
+    "runtime_alignment": "services/kidults-autonomous-intelligence/src/asi/alignment.ts",
+    "workflow": ".github/workflows/kidults-asi-mission-consumption-v1.yml",
+    "human_readme": "docs/kidults/asi/asi-mission-consumption-v1.md"
+  },
+  "registered_outputs": [
+    "mission-consumption-state-v1.json",
+    "mission-product-work-items-v1.json",
+    "mission-source-lane-assignments-v1.json",
+    "mission-discovery-intent-v1.json",
+    "mission-runtime-discovery-events-v1.json",
+    "mission-consumption-manifest-v1.json",
+    "mission-consumption-runtime-test-v1.json",
+    "mission-consumption-kpmo-receipt-v1.json"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "17 * * * *",
+    "upstream_workflows": [
+      "KIDULTS ASI Intelligence Preparation Wave v1",
+      "KIDULTS ASI Global Any-Site Hourly Pooling v2"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "execution_truth": {
+    "generated_missions_expected": 192,
+    "generated_missions_consumed_expected": 192,
+    "product_work_items_expected": 960,
+    "source_lane_slots_expected": 576,
+    "runtime_event_count_is_input_dependent": true,
+    "runtime_event_minimum": 1,
+    "runtime_processor_mode": "LOCAL_SHADOW_PURE_TRANSFORM",
+    "runtime_processor_network_requests": 0,
+    "runtime_processor_external_writes": 0
+  },
+  "next_value_chain_handoffs": {
+    "P1": "MISSION_BOUND_DISCOVERY_RESULTS_TO_SOURCE_RIGHTS_SEMANTICS_AND_CLAIM_SPECIFIC_ADMISSION",
+    "P2": "ADMITTED_ENTITY_EVIDENCE_AND_MARKET_EVENTS_TO_KIDULTS_OWNED_GRAPHS",
+    "P3": "GOVERNED_GRAPH_SURFACE_TO_IMMUTABLE_SNAPSHOT_CANDIDATE_AND_EVIDENCE_PACKAGE"
+  },
+  "truth_boundary": {
+    "mission_generated_is_consumed": false,
+    "registered_source_is_rights_admitted": false,
+    "runtime_discovery_event_is_external_collection": false,
+    "runtime_processor_output_is_market_evidence": false,
+    "metadata_admission_is_market_event_admission": false,
+    "current_sold_event_is_current_price": false,
+    "sold_count_is_liquidity": false,
+    "provider_count_is_factual_origin_independence": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
