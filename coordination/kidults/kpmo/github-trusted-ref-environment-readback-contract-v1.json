@@ -1,6 +1,6 @@
 {
   "id": "kidults-github-trusted-ref-environment-readback-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "issue": 974,
   "parent_gate_issue": 881,
   "status": "IMPLEMENTED_READ_ONLY_PROOF_PATH_EXTERNAL_POLICY_NOT_VERIFIED",
@@ -67,7 +67,13 @@
     "ruleset_context_is_not_issue_936_closure": true,
     "settings_mutated": false,
     "secret_material_read": false,
-    "credential_activation": "NONE"
+    "credential_activation_by_authorization_mode": {
+      "GITHUB_TOKEN_METADATA_READ": "EPHEMERAL_GITHUB_TOKEN_METADATA_READ",
+      "PUBLIC_METADATA_ONLY": "NONE",
+      "TEST_FIXTURE": "NONE"
+    },
+    "stored_repository_or_environment_secret_activated": false,
+    "provider_credential_activated": false
   },
   "automatic_activation": {
     "pull_request_exact_head_validation": true,
@@ -82,7 +88,8 @@
     "empirical_evidence_promoted": false,
     "production": "HOLD",
     "public": "HOLD",
-    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+    "g5": "EXPLICIT_APPROVAL_REQUIRED",
+    "ephemeral_github_token_metadata_read_is_not_stored_or_provider_secret_activation": true
   },
   "effects": {
     "autonomous_effect": "POSITIVE_READ_ONLY_READBACK_AND_FAIL_CLOSED_VALIDATION_HAVE_AUTOMATIC_TRIGGERS",
