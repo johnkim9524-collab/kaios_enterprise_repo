@@ -146,7 +146,14 @@ function receipt(projection,context,{accepted,reason,errors,stateOnly}){
 }
 
 export function admitProofProductProjection(projection,context={}){
-  const normalized={surface:context.surface||'UNKNOWN',purpose:context.purpose||'PUBLIC_DISPLAY',trustedNow:context.trustedNow??null,clockAuthority:context.clockAuthority||'NONE',releaseAuthority:context.releaseAuthority||'HOLD'};
+  const fixtureValidation=context.validationMode==='FIXTURE_VALIDATION_ONLY'&&context.releaseAuthority==='TEST_ONLY';
+  const normalized={
+    surface:context.surface||'UNKNOWN',
+    purpose:context.purpose||'PUBLIC_DISPLAY',
+    trustedNow:fixtureValidation?(context.trustedNow??null):null,
+    clockAuthority:fixtureValidation?'KIDULTS_CONTROL_PLANE':'NO_BOUND_CONTROL_PLANE',
+    releaseAuthority:fixtureValidation?'TEST_ONLY':'HOLD'
+  };
   const structural=structuralErrors(projection);
   const semantic=structural.length?[]:semanticErrors(projection,normalized);
   const errors=[...structural,...semantic];
@@ -161,6 +168,9 @@ export function admitProofProductProjection(projection,context={}){
 
 export const proofProductConsumerContract=Object.freeze({
   version:'1.0.0',surfaces:['PORTAL_RENDER','PUBLIC_API_RESPONSE','EXPORT'],
+  bound_surfaces:['PORTAL_RENDER_STATE_ONLY'],unbound_surfaces:['PUBLIC_API_RESPONSE','EXPORT'],
   purposes:['PUBLIC_DISPLAY','API_REDISTRIBUTION'],schema_only_sufficient:false,
-  browser_clock_authoritative:false,release_authority_default:'HOLD',production:'HOLD',public:'HOLD',g5:'HOLD'
+  browser_clock_authoritative:false,caller_asserted_authority_accepted:false,
+  approved_release_capability_exposed:false,release_authority_default:'HOLD',
+  production:'HOLD',public:'HOLD',g5:'HOLD'
 });
