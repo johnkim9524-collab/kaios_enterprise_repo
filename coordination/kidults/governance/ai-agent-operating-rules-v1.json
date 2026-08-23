@@ -1,6 +1,6 @@
 {
   "id": "kidults-ai-agent-operating-rules-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
   "effective_scope": "REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AUTOMATIONS",
@@ -104,47 +104,85 @@
   "governed_states": {
     "PLANNED": {
       "description": "Intended work only.",
-      "minimum_evidence": ["plan_or_approved_issue_reference"]
+      "minimum_evidence": [
+        "plan_or_approved_issue_reference"
+      ]
     },
     "IMPLEMENTED_NOT_VERIFIED": {
       "description": "Code or configuration exists but accepted validation is absent.",
-      "minimum_evidence": ["commit_sha_or_branch_ref"]
+      "minimum_evidence": [
+        "commit_sha_or_branch_ref"
+      ]
     },
     "RUNNING_VERIFIED": {
       "description": "Execution is actively running and was observed live.",
-      "minimum_evidence": ["run_or_job_id", "live_status", "observed_at"]
+      "minimum_evidence": [
+        "run_or_job_id",
+        "live_status",
+        "observed_at"
+      ]
     },
     "VERIFIED_PASS": {
       "description": "Declared validation passed.",
-      "minimum_evidence": ["validator_or_test_id", "evidence_ref", "observed_at"]
+      "minimum_evidence": [
+        "validator_or_test_id",
+        "evidence_ref",
+        "observed_at"
+      ]
     },
     "VERIFIED_FAIL": {
       "description": "Declared validation failed.",
-      "minimum_evidence": ["failure_evidence_ref", "failed_criterion", "observed_at"]
+      "minimum_evidence": [
+        "failure_evidence_ref",
+        "failed_criterion",
+        "observed_at"
+      ]
     },
     "MERGED_VERIFIED": {
       "description": "Change exists in the target branch.",
-      "minimum_evidence": ["pull_request_number", "merge_commit_sha", "target_branch"]
+      "minimum_evidence": [
+        "pull_request_number",
+        "merge_commit_sha",
+        "target_branch"
+      ]
     },
     "DEPLOYED_VERIFIED": {
       "description": "Change is deployed to the named environment.",
-      "minimum_evidence": ["deployment_id_or_evidence_ref", "environment", "observed_at"]
+      "minimum_evidence": [
+        "deployment_id_or_evidence_ref",
+        "environment",
+        "observed_at"
+      ]
     },
     "BLOCKED": {
       "description": "Execution cannot continue.",
-      "minimum_evidence": ["blocked_action", "blocker", "unblock_condition", "detected_at"]
+      "minimum_evidence": [
+        "blocked_action",
+        "blocker",
+        "unblock_condition",
+        "detected_at"
+      ]
     },
     "UNKNOWN": {
       "description": "Current truth cannot be established.",
-      "minimum_evidence": ["missing_source_or_conflict"]
+      "minimum_evidence": [
+        "missing_source_or_conflict"
+      ]
     },
     "HOLD": {
       "description": "Work is intentionally paused by a governing gate or policy.",
-      "minimum_evidence": ["gate_or_policy_reference", "release_condition"]
+      "minimum_evidence": [
+        "gate_or_policy_reference",
+        "release_condition"
+      ]
     },
     "COMPLETE_VERIFIED": {
       "description": "Every declared exit criterion passed with evidence.",
-      "minimum_evidence": ["exit_criteria", "evidence_refs", "completion_receipt"]
+      "minimum_evidence": [
+        "exit_criteria",
+        "evidence_refs",
+        "completion_receipt"
+      ]
     }
   },
   "prohibited_bare_status_terms": [
@@ -217,5 +255,90 @@
     "no_agent_self_exemption": true,
     "production": "HOLD",
     "public_release": "HOLD"
+  },
+  "platform_operating_principles": [
+    {
+      "priority": 1,
+      "principle_id": "POP-001",
+      "name": "AUTONOMOUS",
+      "doctrine": "Turn approved intent into continuous, bounded, observable, recoverable execution.",
+      "required_controls": [
+        "REGISTERED_EXECUTION_MECHANISM",
+        "EXPLICIT_AUTHORITY_ENVELOPE",
+        "OBSERVABILITY_AND_HEALTH_EVIDENCE",
+        "AUDIT_RECEIPTS",
+        "ROLLBACK",
+        "HUMAN_ESCALATION_AT_PROTECTED_GATES"
+      ],
+      "prohibited_interpretations": [
+        "CHAT_PROMISE_AS_AUTOMATION",
+        "UNOBSERVED_CODE_PATH_AS_RUNNING",
+        "AUTONOMY_AS_SELF_AUTHORIZATION"
+      ]
+    },
+    {
+      "priority": 2,
+      "principle_id": "POP-002",
+      "name": "GLOBAL",
+      "doctrine": "Operate across regions, languages, currencies, venues, source families, categories, and institutional contexts without erasing local constraints.",
+      "required_controls": [
+        "JURISDICTION_AWARE_RIGHTS",
+        "LOCALIZATION",
+        "SOURCE_DIVERSITY",
+        "COMPARABLE_DEFINITIONS",
+        "EXPLICIT_COVERAGE_GAPS"
+      ],
+      "prohibited_interpretations": [
+        "GLOBAL_SCOPE_OVERRIDES_RIGHTS",
+        "ONE_MARKET_ASSUMPTION_AS_GLOBAL_TRUTH",
+        "UNKNOWN_COVERAGE_AS_ZERO"
+      ]
+    },
+    {
+      "priority": 3,
+      "principle_id": "POP-003",
+      "name": "IRREPLACEABLE_VALUE",
+      "doctrine": "Create defensible stakeholder value through governed identity, evidence, methodology, decision grammar, historical memory, and workflow integration.",
+      "required_controls": [
+        "PROVIDER_SWITCHABLE_INTERNAL_CORE",
+        "OUTCOME_AND_UTILITY_EVIDENCE",
+        "REUSABLE_KNOWLEDGE_CAPITAL",
+        "DECISION_HISTORY",
+        "NO_ARTIFICIAL_LOCK_IN"
+      ],
+      "prohibited_interpretations": [
+        "TARGET_AS_CURRENT_SUPERIORITY",
+        "RECORD_COUNT_AS_VALUE",
+        "PROVIDER_DEPENDENCE_AS_MOAT",
+        "UNSUPPORTED_MARKET_LEADERSHIP_CLAIM"
+      ]
+    },
+    {
+      "priority": 4,
+      "principle_id": "POP-004",
+      "name": "TRANSPARENT",
+      "doctrine": "Make state, evidence, method, uncertainty, rights, limitations, decisions, corrections, and next actions visible at the appropriate level.",
+      "required_controls": [
+        "FACT_INFERENCE_PLAN_UNKNOWN_LABELS",
+        "PROVENANCE_AND_METHOD_VISIBILITY",
+        "RIGHTS_AND_LIMITATIONS_VISIBILITY",
+        "CORRECTION_AUDIT_TRAIL",
+        "NEXT_ACTION_AND_AUTHORITY_BOUNDARY"
+      ],
+      "prohibited_interpretations": [
+        "SILENT_STATUS_PROMOTION",
+        "HIDDEN_BLOCKER",
+        "UNEXPLAINED_METRIC",
+        "SILENT_REWRITE"
+      ]
+    }
+  ],
+  "principle_inheritance": {
+    "strategic_priority_order_fixed": true,
+    "all_four_required": true,
+    "transparent_cross_cutting_non_waivable": true,
+    "rights_security_privacy_contractual_authority_human_accountability_and_g5_bound_all_principles": true,
+    "principle_does_not_expand_agent_authority": true,
+    "conflicts_fail_closed_and_are_recorded": true
   }
 }
