@@ -34,6 +34,9 @@ assert(contract.consumption_model?.model === 'ONE_MISSION_TO_THREE_INDEPENDENT_D
 assert(contract.consumption_model?.missions_consumed_required === 192, 'CONTRACT_MISSION_TARGET');
 assert(contract.consumption_model?.lane_tasks_required === 576, 'CONTRACT_TASK_TARGET');
 assert(contract.consumption_model?.lane_slots?.length === 3, 'CONTRACT_LANE_SLOT_COUNT');
+assert(contract.event_contract?.event_type === 'SOURCE_DISCOVERY_REQUESTED', 'CONTRACT_EVENT_TYPE');
+assert(contract.licensed_gap_fill?.fleet_id === 'DISCOVERY_OPTIONAL_LICENSED_GAP_FILL', 'CONTRACT_LICENSED_GAP_FLEET');
+assert(contract.licensed_gap_fill?.normal_autonomous_assignment_allowed === false, 'CONTRACT_LICENSED_GAP_ASSIGNMENT_BOUNDARY');
 for (const [key, expected] of Object.entries({
   contract: files.contract,
   builder: files.builder,
@@ -77,10 +80,8 @@ assert(workflow.includes('persist-credentials: false'), 'WORKFLOW_CREDENTIALS');
 assert(!workflow.includes('git push'), 'WORKFLOW_DIRECT_PUSH_FORBIDDEN');
 
 for (const marker of [
-  'SOURCE_DISCOVERY_REQUESTED',
   'READY_FOR_SHADOW_QUEUE_RUNTIME_PREFLIGHT',
   'CONSUMED_TO_THREE_DISCOVERY_LANE_TASKS',
-  'DISCOVERY_OPTIONAL_LICENSED_GAP_FILL',
   'source_candidates_created: 0'
 ]) assert(builder.includes(marker), `BUILDER_MARKER:${marker}`);
 for (const marker of [
