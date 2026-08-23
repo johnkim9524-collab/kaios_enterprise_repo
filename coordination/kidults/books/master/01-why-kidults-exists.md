@@ -7,7 +7,7 @@
 **Snapshot ID:** N/A — 전략 장이며, 어떠한 데이터 Snapshot도 존재한다고 주장하지 않음  
 **문장 분류:** TARGET / GOVERNING DOCTRINE — 현재의 실증 또는 시장 주장이 아닌 전략적 의도  
 **Gate 상태:** C1 Product Contract 실질적 확립; C2 미완료; Production/Public/G5 HOLD  
-**Evidence 참조:** #235, #236, #237, #238, #240, #256, #1061; protected main `5ba79a49c0346bb0b3e5a5ade71890f51a1046fa`
+**Evidence 참조:** #235, #236, #237, #238, #240, #256, #1061, #1117, Draft #1118; protected main `d050d8b993929a883298e7cb90ea22bc97ec6ae1`
 
 ## 1. 존재 목적
 
@@ -28,7 +28,22 @@ KIDULTS는 이러한 파편을 Collector와 Institution을 위한 통제되고 �
 
 > 오브젝트를 알라. Evidence를 이해하라. 의사결정의 경계를 보라.
 
-## 2. 시장의 문제
+## 2. 최상위 운영원칙
+
+KIDULTS는 다음 네 원칙을 이 순서대로 최상위 운영원칙으로 삼는다.
+
+| 우선순위 | 원칙 | 경영적 의미 | 금지되는 오해 |
+|---:|---|---|---|
+| 1 | **Autonomous** | 승인된 의도를 지속적이고 경계가 명확하며 관측·복구 가능한 실행으로 전환한다 | 자율성을 무제한 권한, 무감사 자동화 또는 인간 책임의 제거로 해석하지 않는다 |
+| 2 | **Global** | 지역·언어·통화·Venue·Source·Category·Institution의 차이를 수용하는 글로벌 구조를 만든다 | 한 시장의 가정, 권리 또는 데이터 결손을 보편적 진실로 확장하지 않는다 |
+| 3 | **Irreplaceable Value** | Identity, Evidence, Methodology, Decision Grammar, Historical Memory와 Workflow Integration을 통해 이해관계자가 포기하기 어려운 실질적 효용을 만든다 | 독점 Feed, Provider 종속, 인위적 Lock-in, Record 수 또는 근거 없는 우월성을 가치로 간주하지 않는다 |
+| 4 | **Transparent** | 상태, Evidence, Method, 불확실성, Rights, Limitation, Decision, Correction과 Next Action을 보이게 만든다 | 네 번째 순서라는 이유로 투명성을 선택 가능한 원칙으로 취급하지 않는다 |
+
+이 순서는 전략적 우선순위를 고정하지만, 네 원칙 가운데 어느 것도 생략할 수 있다는 뜻이 아니다. **Transparent는 모든 원칙을 가로지르는 비면제 통제**다. Evidence, Rights, Security, Privacy, Contractual Authority, Human Accountability와 Production/G5 Gate는 네 원칙 모두를 제한한다.
+
+**Irreplaceable Value는 현재 시장지위에 대한 주장이 아니라 장기적으로 입증해야 할 목표다.** KIDULTS는 제공자 종속이 아니라 Provider-switchable internal Core, 누적되는 Knowledge Capital과 실제 Decision Improvement로 그 가치를 증명해야 한다.
+
+## 3. 시장의 문제
 
 컬렉터블 시장은 정돈된 증권시장처럼 작동하지 않는다. 같은 오브젝트가 서로 다른 이름, Variant 또는 Identifier로 나타날 수 있다. Venue, Currency, Date, Condition, Provenance와 Rights에 따라 하나의 Observation이 갖는 의미도 달라진다. 거래가 희소하고 공시 기준이 일관되지 않기 때문에 단순 비교는 신뢰하기 어렵다. 레코드 수가 많더라도 Evidence 품질은 낮을 수 있다.
 
@@ -43,7 +58,7 @@ KIDULTS는 서로 다른 두 개의 진실을 만들지 않으면서 두 고객 
 - **Collector Lens:** 무엇이 변했는가(What changed) → 왜 중요한가(Why it matters) → Comparable 맥락(Comparable context) → Liquidity → Risk → 가능한 행동(Possible action).
 - **Institutional Lens:** Universe → Coverage → Market scale → Depth → Turnover → Concentration → Exposure → Confidence.
 
-## 3. 상품 포지션
+## 4. 상품 포지션
 
 KIDULTS는 통제형 컬렉터블 인텔리전스 플랫폼이다. Marketplace도, 가격만을 모은 Archive도, Grading Authority도, 불투명한 Recommendation Engine도, 합성된 Ranking Surface도 아니다.
 
@@ -60,7 +75,7 @@ KIDULTS가 소유하는 Decision Layer는 다음과 같다.
 
 어떤 후보 상품도 Evidence, Rights, Independent Assessment, Projection, Experience, Runtime과 Approval Gate를 모두 통과하기 전에는 출시된 상품으로 표현하지 않는다.
 
-## 4. 창출하는 가치
+## 5. 창출하는 가치
 
 KIDULTS는 가장 많은 Raw Record를 보유하기 위해 경쟁하지 않는다. 파편화된 Observation과 방어 가능한 Action 사이의 통제된 Decision Layer를 소유하기 위해 경쟁한다.
 
@@ -74,7 +89,7 @@ KIDULTS는 가장 많은 Raw Record를 보유하기 위해 경쟁하지 않는�
 
 지속 가능한 Moat는 하나의 Model이나 독점 Feed가 아니다. Object Graph, Evidence Graph, Market Observation Graph, Rights Graph, Confidence와 Rankability 통제, Projection Layer와 Decision History가 서로 연결되어 누적되는 구조다.
 
-## 5. Portal 원칙
+## 6. Portal 원칙
 
 Portal은 동시에 세 가지 책임을 수행한다.
 
@@ -84,7 +99,7 @@ Portal은 동시에 세 가지 책임을 수행한다.
 
 모든 선, 면, 단어, 폰트, 문장, 메시지, 숫자, 그래프와 컬러는 설명력을 높여야 한다. Interface는 Method, 신뢰 조건과 다음 행동을 명확히 읽을 수 있게 할 때에만 성공한 것이다. Editorial Image는 맥락을 형성할 수 있지만, 결코 Evidence가 되지 않는다.
 
-## 6. 상품 및 브랜드 무결성
+## 7. 상품 및 브랜드 무결성
 
 8개의 공식 Portfolio Brand는 기존 Portfolio Record의 통제를 계속 받는다. 이 장은 아홉 번째 Brand를 만들지 않으며, 기존 Brand의 명칭을 바꾸지 않고, Ownership, Trademark, Legal 또는 Commercial 상태를 변경하지 않는다.
 
@@ -99,7 +114,7 @@ KIDULTS의 표현 체계는 다음 원칙을 보존해야 한다.
 - **Provider-switchable internal Core**; 그리고
 - 근거 없는 보편적 리더십 표현을 배제한 Evidence-bounded Claim.
 
-## 7. 성공의 의미
+## 8. 성공의 의미
 
 KIDULTS의 성공은 고객이 답뿐 아니라 그 답의 품질과 경계까지 볼 수 있을 때 시작된다. 이러한 명료함이 실제 의사결정을 반복적으로 개선하고, 신뢰를 얻으며, 유료 사용을 뒷받침하고, Provider와 Category가 달라져도 지속적으로 운영될 때 Commercial Success로 이어진다.
 
@@ -113,7 +128,7 @@ KIDULTS의 성공은 고객이 답뿐 아니라 그 답의 품질과 경계까�
 
 현재 공식 상태는 C1이며 C2는 미완료다. 이 장은 현재 상태를 상향하지 않는다.
 
-## 8. Decision Mapping
+## 9. Decision Mapping
 
 | Decision | 이 장에 미치는 효과 | Boundary |
 |---|---|---|
@@ -121,13 +136,25 @@ KIDULTS의 성공은 고객이 답뿐 아니라 그 답의 품질과 경계까�
 | `KIDULTS-COMPETITIVENESS-V1-20260822` | 통제된 Decision Layer와 Maturity Path를 정의한다 | Target, Traction 또는 우위를 만들어내지 않음 |
 | #239의 Three-Book Governance 및 Coordination Hub Rule 11 | Master, Baseline, Architecture만을 공식 Book으로 유지한다 | No Fourth Book — 네 번째 Book을 만들지 않음 |
 
-## 9. Book Sync Report
+## 10. 원전 승계 및 편집 기준
+
+이 장은 새로 시작한 문서가 아니다. John이 전달한 기존 문서군을 공식 원전으로 승계하고, 현재의 검증된 운영체계와 연결해 v2로 발전시킨다.
+
+- `Master_Book_Chapter_01_KO.docx`: 자율형 지식자본 회사, Mission, Vision, 인간 책임과 KAIOS 실행의 분리.
+- `Master_Book_Chapter_02_The_Intelligence_Economy_KO.docx`: 정보에서 지식·인텔리전스·의사결정 인프라로 이동하는 가치사슬.
+- `Master_Book_Chapter_03_The_Knowledge_Capital_Doctrine_KO.docx`: Evidence, Methodology, Organizational Memory와 반복 효용의 복리화.
+- 기존 Baseline Chapter 1–3: 사실·해석·Target의 분리, E1–E4 증거 기준, Current State와 Production Readiness의 분리.
+- `EVIA Canon Edition 1.0 — Volume 3 Enterprise Architecture Book`: Layer boundary, Asset lifecycle, Explainability, Autonomous Operating Model, Audit evidence와 Recovery control.
+
+원전의 철학·구조·문서 형식은 보존하되, 오래된 Portfolio·상태·수치는 현재 Canonical Registry와 Protected-main Evidence로 대체한다. 검증되지 않은 과거 주장은 역사적 초안으로 보존하며 현재 사실로 승격하지 않는다.
+
+## 11. Book Sync Report
 
 - **Baseline Book dependency:** 현재 상태, Evidence Population, Blocker와 Gate는 사실에 근거하고 기준 일시가 명시되어야 한다.
 - **Architecture Book dependency:** 모든 Product Promise는 재현 가능한 System Boundary로 연결되어야 한다.
 - **Contradiction check:** Market Number, Provider Right, Candidate/Evidence Pair, Track B 결과, Live Projection 또는 Production Readiness를 주장하지 않는다.
-- **Sync state:** ALIGNED TO CANONICAL PROTECTED MAIN `5ba79a49` AT 2026-08-23 10:02 KST.
+- **Sync state:** ALIGNED TO CANONICAL PROTECTED MAIN `d050d8b9` AT 2026-08-23 11:08 KST; PLATFORM PRINCIPLES PROPOSED IN DRAFT #1118.
 
-## 10. Rollback
+## 12. Rollback
 
 Dated Documentation Branch에서 이 장을 삭제하거나 해당 단일 파일 Commit을 Revert한다. Rollback은 Runtime, Data, Provider Relationship, Rights Determination, Registry, Security Control, Public Release 또는 Production 상태를 변경하지 않는다.
