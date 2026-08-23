@@ -1,0 +1,111 @@
+{
+  "id": "kidults-asi-p1-preflight-action-execution-contract-v2",
+  "version": "2.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0_P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Execute the current P1 preflight-action backlog to terminal evidence-bound dispositions, reject source candidates that cannot provide the required current-SOLD or liquidity evidence class, regenerate Gate 1 and admission decisions, and route every affected mission toward registered real-market source profiles without creating rights, Evidence, Market Events, or a Snapshot Candidate.",
+  "input_ids": {
+    "candidate_registry": "kidults-asi-p0b-source-candidate-registry-v1",
+    "binding_ledger": "kidults-asi-p0b-mission-candidate-binding-ledger-v1",
+    "gate1": "kidults-asi-p1-gate1-source-safety-decisions-v1",
+    "admission": "kidults-asi-p1-evidence-admission-candidate-register-v1",
+    "action_queue": "kidults-asi-p1-preflight-action-queue-v1"
+  },
+  "authoritative_inputs": {
+    "p0b_candidate_contract": "coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json",
+    "p1_preflight_contract": "coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json",
+    "market_adapter_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+    "registered_source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv"
+  },
+  "terminal_non_market_source_classes": [
+    "RESEARCH_OR_PUBLICATION_METADATA",
+    "NEWS_OR_PRESS_MENTION_METADATA"
+  ],
+  "terminal_classification_rules": [
+    {
+      "rule_id": "OPEN_RESEARCH_METADATA_NOT_MARKET_EVENT_SOURCE",
+      "match_any_discovery_provider": ["OPENALEX_PUBLIC_WORK_AND_SOURCE_METADATA"],
+      "match_any_discovery_channel": ["OPEN_RESEARCH_AND_REPOSITORY_METADATA"],
+      "source_class": "RESEARCH_OR_PUBLICATION_METADATA",
+      "decision": "REJECT",
+      "reason_code": "RESEARCH_OR_PUBLICATION_METADATA_NOT_MARKET_EVENT_SOURCE"
+    },
+    {
+      "rule_id": "MENTION_INDEX_NOT_MARKET_RESULT_SOURCE",
+      "match_any_discovery_provider": ["GDELT_PUBLIC_DOMAIN_MENTION_METADATA"],
+      "match_any_discovery_channel": ["GLOBAL_EVENT_AND_DOMAIN_MENTION_INDEX"],
+      "source_class": "NEWS_OR_PRESS_MENTION_METADATA",
+      "decision": "REJECT",
+      "reason_code": "NEWS_OR_PRESS_MENTION_NOT_TERMINAL_MARKET_RESULT"
+    }
+  ],
+  "required_action_types": [
+    "SOURCE_OWNER_AND_FACTUAL_ORIGIN_CLASSIFICATION",
+    "PURPOSE_SPECIFIC_RIGHTS_AND_TERMS_PREFLIGHT",
+    "ROBOTS_RATE_LIMIT_AND_ACCESS_PREFLIGHT",
+    "MARKET_SEMANTIC_AND_SOURCE_ROLE_VERIFICATION",
+    "REGIONAL_RELEVANCE_AND_LANGUAGE_VERIFICATION",
+    "SCHEMA_AND_IDENTIFIER_SURFACE_PREFLIGHT",
+    "INDEPENDENCE_AND_SOURCE_REMOVAL_CLUSTERING"
+  ],
+  "terminal_execution_policy": {
+    "semantic_verification_decision": "REJECT",
+    "remaining_actions_after_terminal_semantic_reject": "EXECUTED_NOT_APPLICABLE_AFTER_TERMINAL_SEMANTIC_REJECT",
+    "target_site_network_probe_required_for_terminal_semantic_reject": false,
+    "rights_may_be_inferred_from_semantic_reject": false,
+    "rejected_candidate_may_remain_gate1_hold": false,
+    "rejected_candidate_may_enter_evidence_admission": false
+  },
+  "replacement_policy": {
+    "every_mission_with_all_current_slots_rejected_requires_replacement": true,
+    "registered_profile_compatibility_first_filters_by_target_claim": true,
+    "scope_compatibility_requires_registered_frontier_crosswalk": true,
+    "profile_registration_is_not_adapter_implementation": true,
+    "profile_registration_is_not_rights_verification": true,
+    "profile_registration_is_not_source_activation": true
+  },
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "2 * * * *",
+    "upstream_workflow": "KIDULTS ASI P1 Source Preflight v1",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "required_outputs": [
+    "p1-preflight-action-execution-ledger-v2.json",
+    "p1-source-disposition-ledger-v2.json",
+    "p1-gate1-source-safety-decisions-v2.json",
+    "p1-evidence-admission-candidate-register-v2.json",
+    "p1-replacement-source-demand-v2.json",
+    "p1-source-profile-adapter-queue-v2.json",
+    "p1-preflight-action-execution-manifest-v2.json"
+  ],
+  "hard_boundaries": [
+    "TERMINAL_SEMANTIC_REJECT_DOES_NOT_CREATE_RIGHTS",
+    "TERMINAL_ACTION_RESOLUTION_IS_NOT_EVIDENCE_ADMISSION",
+    "RESEARCH_METADATA_IS_NOT_SOLD_TRANSACTION_EVIDENCE",
+    "NEWS_OR_PRESS_MENTION_IS_NOT_TERMINAL_MARKET_RESULT",
+    "REGISTERED_PROFILE_IS_NOT_IMPLEMENTED_ADAPTER",
+    "REGISTERED_PROFILE_IS_NOT_ACTIVATED_SOURCE",
+    "REPLACEMENT_DEMAND_IS_NOT_SOURCE_ACTIVATION",
+    "GATE1_REJECT_IS_NOT_NEGATIVE_MARKET_ACTIVITY",
+    "REJECTED_CANDIDATE_IS_NOT_ZERO_MARKET_EVIDENCE"
+  ],
+  "truth_boundary": {
+    "semantic_rejection_is_rights_admission": false,
+    "terminal_action_resolution_is_evidence_admission": false,
+    "registered_profile_is_implemented_adapter": false,
+    "replacement_demand_is_source_activation": false,
+    "admits_evidence": false,
+    "creates_market_event": false,
+    "creates_snapshot_candidate": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
