@@ -1,0 +1,218 @@
+name: KIDULTS ASI Intelligence Preparation Wave v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '47 */3 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json'
+      - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
+      - 'coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-intelligence-preparation-wave-v1.md'
+      - '.github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json'
+      - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
+      - 'coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-intelligence-preparation-wave-v1.md'
+      - '.github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS Global Source Mesh v1'
+      - 'KIDULTS ASI Source Fabric Scale PI1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-intelligence-preparation-wave-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare-intelligence:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json','utf8'))"
+      - name: Validate registered preparation assets and automatic activation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs \
+            | tee /tmp/kidults-asi-intelligence-preparation-registry-validation-v1.json
+      - name: Build deterministic Global Source Mesh twice
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json \
+            coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json \
+            /tmp/kidults-global-source-mesh-run-1.json
+          TZ=Pacific/Honolulu LANG=C LC_ALL=C node scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json \
+            coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json \
+            /tmp/kidults-global-source-mesh-run-2.json
+          cmp /tmp/kidults-global-source-mesh-run-1.json /tmp/kidults-global-source-mesh-run-2.json
+      - name: Build preparation wave twice and prove deterministic replay
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs \
+            /tmp/kidults-global-source-mesh-run-1.json \
+            coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json \
+            coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json \
+            /tmp/kidults-asi-intelligence-preparation-wave-run-1
+          TZ=Pacific/Honolulu LANG=C LC_ALL=C node scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs \
+            /tmp/kidults-global-source-mesh-run-2.json \
+            coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json \
+            coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json \
+            /tmp/kidults-asi-intelligence-preparation-wave-run-2
+          diff -qr /tmp/kidults-asi-intelligence-preparation-wave-run-1 /tmp/kidults-asi-intelligence-preparation-wave-run-2
+      - name: Validate eight preparation modules
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs \
+            /tmp/kidults-asi-intelligence-preparation-wave-run-1 \
+            coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json \
+            | tee /tmp/kidults-asi-intelligence-preparation-wave-validation-v1.json
+      - name: Reject missing-is-zero mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-intelligence-preparation-wave-run-1 /tmp/bad-missing-zero
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-missing-zero/unknown-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.records[0].missing_is_zero=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs /tmp/bad-missing-zero; then
+            echo 'Validator accepted missing-as-zero mutation' >&2
+            exit 1
+          fi
+      - name: Reject mission permission mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-intelligence-preparation-wave-run-1 /tmp/bad-mission-permission
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-mission-permission/autonomous-mission-queue-v1.json';const x=JSON.parse(fs.readFileSync(p));x.missions[0].collection_authorized=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs /tmp/bad-mission-permission; then
+            echo 'Validator accepted mission-created collection permission' >&2
+            exit 1
+          fi
+      - name: Reject provider direct-path mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-intelligence-preparation-wave-run-1 /tmp/bad-provider-direct
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-provider-direct/provider-replaceability-plan-v1.json';const x=JSON.parse(fs.readFileSync(p));x.plans[0].provider_direct_to_truth_index_or_projection_allowed=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs /tmp/bad-provider-direct; then
+            echo 'Validator accepted provider direct path' >&2
+            exit 1
+          fi
+      - name: Reject cross-category hypothesis promotion mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-intelligence-preparation-wave-run-1 /tmp/bad-cross-claim
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-cross-claim/cross-category-intelligence-map-v1.json';const x=JSON.parse(fs.readFileSync(p));x.hypotheses[0].hypothesis_is_fact=true;x.hypotheses[0].market_claim_authorized=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs /tmp/bad-cross-claim; then
+            echo 'Validator accepted hypothesis-to-fact promotion' >&2
+            exit 1
+          fi
+      - name: Reject evidence-less calibration result mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-intelligence-preparation-wave-run-1 /tmp/bad-calibration-result
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-calibration-result/self-calibration-plan-v1.json';const x=JSON.parse(fs.readFileSync(p));x.obligations[0].realized.state='OBSERVED';x.obligations[0].realized.unknown_reduction_score=5;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs /tmp/bad-calibration-result; then
+            echo 'Validator accepted evidence-less realized result' >&2
+            exit 1
+          fi
+      - name: Reject module removal mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json /tmp/preparation-contract.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json';const x=JSON.parse(fs.readFileSync(p));x.modules.pop();fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs /tmp/kidults-asi-intelligence-preparation-wave-run-1; then
+            echo 'Validator accepted missing preparation module' >&2
+            exit 1
+          fi
+          mv /tmp/preparation-contract.json coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json
+      - name: Reject manual-only activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json /tmp/preparation-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflows=[];fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs; then
+            echo 'Validator accepted manual-only activation' >&2
+            exit 1
+          fi
+          mv /tmp/preparation-registry.json coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json
+      - name: Revalidate pristine outputs and registry
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs \
+            > /tmp/kidults-asi-intelligence-preparation-registry-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs \
+            /tmp/kidults-asi-intelligence-preparation-wave-run-1 \
+            coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json \
+            > /tmp/kidults-asi-intelligence-preparation-wave-final-validation-v1.json
+      - name: Emit KPMO execution receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-intelligence-preparation-wave-receipt-v1.json
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-intelligence-preparation-wave-run-1/asi-intelligence-preparation-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-intelligence-preparation-wave-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,external_collection_executed:false,evidence_admitted:0,market_claims_created:0,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-intelligence-preparation-wave-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-intelligence-preparation-wave-v1
+          path: |
+            /tmp/kidults-global-source-mesh-run-1.json
+            /tmp/kidults-asi-intelligence-preparation-wave-run-1
+            /tmp/kidults-asi-intelligence-preparation-registry-validation-v1.json
+            /tmp/kidults-asi-intelligence-preparation-registry-final-validation-v1.json
+            /tmp/kidults-asi-intelligence-preparation-wave-validation-v1.json
+            /tmp/kidults-asi-intelligence-preparation-wave-final-validation-v1.json
+            /tmp/kidults-asi-intelligence-preparation-wave-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
