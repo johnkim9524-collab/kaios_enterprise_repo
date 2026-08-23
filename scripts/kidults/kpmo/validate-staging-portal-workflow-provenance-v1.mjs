@@ -89,6 +89,7 @@ const EXPECTED_VALIDATOR_RUN = [
   '--expected-workflow-sha "$GITHUB_WORKFLOW_SHA" \\',
   '--expected-source-ref "$GITHUB_REF" \\',
   '--expected-event-name "$GITHUB_EVENT_NAME" \\',
+  '--expected-job-name "$GITHUB_JOB" \\',
   '--expected-evidence-class REMOTE_STAGING \\',
   '"${EXTRA_ARGS[@]}" \\',
   '--output artifacts/digitalocean-staging-portal/receipt-validation.json \\',
@@ -171,7 +172,7 @@ function findingsFor(text, receiptValidator = '') {
     "'workflow_sha':os.environ['GITHUB_WORKFLOW_SHA']",
     "'source_ref':os.environ['GITHUB_REF']",
     "'event_name':os.environ['GITHUB_EVENT_NAME']",
-    "'job_name':'deploy'",
+    "'job_name':os.environ['GITHUB_JOB']",
     "'successful_workflow_attested':False"
   ];
   if (!runnerExecutionMarkers.every((marker) => text.includes(marker))) {
