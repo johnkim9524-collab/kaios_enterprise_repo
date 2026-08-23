@@ -43,6 +43,12 @@ KIDULTS는 다음 네 원칙을 이 순서대로 최상위 운영원칙으로 �
 
 **Irreplaceable Value는 현재 시장지위에 대한 주장이 아니라 장기적으로 입증해야 할 목표다.** KIDULTS는 제공자 종속이 아니라 Provider-switchable internal Core, 누적되는 Knowledge Capital과 실제 Decision Improvement로 그 가치를 증명해야 한다.
 
+Autonomous는 다음의 닫힌 운영 루프로 구현한다.
+
+`PR Merge → Protected-main Push → Scale Wave Auto Dispatch → Immutable Artifact → KPMO Governed Status Receipt`
+
+정상 운영에서 사람이 매번 `Run workflow`를 누르는 것은 성공 조건이 아니다. Manual dispatch는 Break-glass, 복구 또는 진단을 위한 보조 경로로만 남긴다. 자동 실행은 중복 방지, 동시성 통제, 재시도, Health, Fencing, 불변 Artifact와 Receipt를 갖춰야 한다. 다만 자동화는 Evidence를 만들거나 권리를 추론하거나 상태를 승격하는 권한이 아니다. 계약·비용·Credential·Trust root·Public/Production/G5와 같이 명시적 인간 권한이 필요한 Gate는 계속 닫혀 있다.
+
 ## 3. 시장의 문제
 
 컬렉터블 시장은 정돈된 증권시장처럼 작동하지 않는다. 같은 오브젝트가 서로 다른 이름, Variant 또는 Identifier로 나타날 수 있다. Venue, Currency, Date, Condition, Provenance와 Rights에 따라 하나의 Observation이 갖는 의미도 달라진다. 거래가 희소하고 공시 기준이 일관되지 않기 때문에 단순 비교는 신뢰하기 어렵다. 레코드 수가 많더라도 Evidence 품질은 낮을 수 있다.
