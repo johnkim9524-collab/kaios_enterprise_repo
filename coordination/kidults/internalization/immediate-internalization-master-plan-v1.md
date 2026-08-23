@@ -29,12 +29,18 @@ Issue #1158. 공급자 분류체계와 독립된 버전형 KIDULTS 온톨로지�
 ### Wave 6 — 역사 학습·의사결정 메모리
 Issue #1160. 원시 공급자 데이터와 분리된 합법적 파생지식, 판단이력, 공급자 교체 전후 성능·비용 이력을 유지한다.
 
-## 즉시 구현 상태
-- Wave 1 계약 스키마: 구현 시작
-- Wave 1 검증기: 구현 시작
-- Wave 2 경제성 계약: 구현 시작
-- Wave 2 검증기: 구현 시작
-- Wave 3–6: 이슈 정의 완료, Wave 1–2 기반 후 병렬 구현
+## 구현 상태
+- Wave 1 권리·계약 정책 계약 + fail-closed 검증기: 구현 완료
+- Wave 2 공급자 경제성·한계가치 계약 + 검증기: 구현 완료
+- Wave 3 소스 평판·신뢰 메모리 계약 + 검증기: 구현 완료
+- Wave 4 시장 무결성·이상징후 계약 + 검증기: 구현 완료
+- Wave 5 기준 온톨로지·의미 진화 계약 + 검증기: 구현 완료
+- Wave 6 역사 학습·의사결정 메모리 계약 + 검증기: 구현 완료
+- 공급자 제거 시뮬레이션 계약 + 연속성 검증기: 구현 완료
+- PSA / GemRate / CGC-CCG / ALT-FNDATA / CLASSIC.COM / LiveArt / Hagerty 내재화 매트릭스: 구현 완료
+- 전체 내재화 기반 통합 검증: PASS
+- 일반 CI / Coordination / Full Value Chain / Security / Owned Fabric / Phase 2 / Solo Owner 검증: PASS
+- ASI SHADOW 추가 검증의 기존 고정 산출물 byte-diff는 별도 기존 산출물 동기화 문제로 분리 관리하며 내재화 필수 병합검사와 분리한다.
 
 ## 완료 기준
 - 권리 미확정/충돌/만료가 자동 HOLD
@@ -43,3 +49,6 @@ Issue #1160. 원시 공급자 데이터와 분리된 합법적 파생지식, 판
 - 공급자 제거 시 canonical identity/methodology/confidence/history가 지속
 - Tier 2/3 편의·분석 기능은 내재화 우선
 - 외부에는 실제 인증/등급/모집단/거래/낙찰/원천 기록과 법적 권한만 정당하게 잔존
+
+## 현재 병합 판단
+내재화 기반 자체는 병합 준비 상태다. protected main 병합은 repository required status checks를 우회하지 않고 통과한 정확한 PR head에서만 수행한다. Production/Public/G5는 계속 HOLD다.
