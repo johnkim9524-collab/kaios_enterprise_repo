@@ -1,0 +1,147 @@
+{
+  "id": "kidults-asi-mission-consumption-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "purpose": "Consume the 192 generated CURRENT_SOLD_TRANSACTION and LIQUIDITY_TIME_TO_SALE_EXPOSURE missions into product-level work items, three-lane source obligations, registered-source assignments, bounded discovery intents, and runtime-compatible SOURCE_DISCOVERY_REQUESTED events with complete mission lineage.",
+  "canonical_inputs": {
+    "mission_queue": "autonomous-mission-queue-v1.json",
+    "representative_product_registry": "category-representative-product-registry-v1.json",
+    "scope_crosswalk": "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
+    "registered_source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
+    "runtime_event_contract": "services/kidults-autonomous-intelligence/src/asi/event.ts",
+    "runtime_fleet_registry": "services/kidults-autonomous-intelligence/src/asi/registry.ts",
+    "runtime_processors": "services/kidults-autonomous-intelligence/src/asi/processors.ts"
+  },
+  "expected_input_counts": {
+    "missions": 192,
+    "current_sold_missions": 96,
+    "liquidity_missions": 96,
+    "representative_products": 160,
+    "current_scopes": 32,
+    "regions_per_scope": 3,
+    "critical_evidence_classes": 2
+  },
+  "execution_model": {
+    "mission_state_machine": [
+      "GENERATED",
+      "CONSUMED_PRODUCT_WORK_MATERIALIZED",
+      "CONSUMED_SOURCE_LANES_READY_FOR_PREFLIGHT",
+      "CONSUMED_SOURCE_LANES_PARTIAL",
+      "CONSUMED_DISCOVERY_GAP_OPEN",
+      "RUNTIME_DISCOVERY_EVENT_EMITTED",
+      "WAITING_SOURCE_PREFLIGHT",
+      "WAITING_EVIDENCE"
+    ],
+    "product_work_item_formula": "160_REPRESENTATIVE_PRODUCTS_X_3_REGIONS_X_2_CRITICAL_EVIDENCE_CLASSES",
+    "expected_product_work_items": 960,
+    "source_lane_slots_per_mission": 3,
+    "expected_source_lane_slots": 576,
+    "source_lane_slots": [
+      "PRIMARY_CANDIDATE_LANE",
+      "INDEPENDENT_FALLBACK_LANE",
+      "FACTUAL_ORIGIN_REPLACEMENT_LANE"
+    ],
+    "registered_source_assignment_is_advisory": true,
+    "unfilled_slot_generates_discovery_intent": true,
+    "runtime_event_emitted_only_for_named_registered_source": true
+  },
+  "evidence_class_requirements": {
+    "CURRENT_SOLD_TRANSACTION": {
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "required_market_semantics": [
+        "TERMINAL_SOLD_STATE",
+        "REALIZED_PRICE",
+        "CURRENCY",
+        "EVENT_DATE",
+        "EXACT_ITEM_IDENTITY"
+      ],
+      "claim_ceiling": "DATED_OBSERVED_SOLD_TRANSACTION_ONLY_UNTIL_STRICT_CURRENT_GATE_PASS"
+    },
+    "LIQUIDITY_TIME_TO_SALE_EXPOSURE": {
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "LISTING_SUPPLY",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "required_market_semantics": [
+        "EXPOSURE_DENOMINATOR",
+        "LISTING_START_OR_OBSERVATION_START",
+        "SALE_OR_CENSOR_END",
+        "SOLD_UNSOLD_WITHDRAWN_SEMANTICS",
+        "FAILED_SALE_OR_CENSOR_HANDLING"
+      ],
+      "claim_ceiling": "NO_LIQUIDITY_OR_TIME_TO_SALE_CLAIM_UNTIL_EXPOSURE_GATE_PASS"
+    }
+  },
+  "runtime_bridge": {
+    "input_event_type": "SOURCE_DISCOVERY_REQUESTED",
+    "canonical_discovery_channel": "APPROVED_DIRECTORY_ASSOCIATION_AND_OUTBOUND_LINK_FRONTIER",
+    "target_runtime_fleet": "DISCOVERY_APPROVED_DIRECTORY_OUTBOUND_FRONTIER",
+    "purpose": "MISSION_BOUND_SOURCE_DISCOVERY_PREFLIGHT",
+    "rights_state": "UNKNOWN",
+    "decision": "HOLD",
+    "freshness_state": "CURRENT",
+    "source_seed_rights_state": "UNKNOWN",
+    "expected_processor_output_type": "SOURCE_DISCOVERED",
+    "expected_processor_decision": "HOLD",
+    "network_requests_by_runtime_processor": 0,
+    "collection_execution_authorized": false
+  },
+  "required_outputs": [
+    "mission-consumption-state-v1.json",
+    "mission-product-work-items-v1.json",
+    "mission-source-lane-assignments-v1.json",
+    "mission-discovery-intent-v1.json",
+    "mission-runtime-discovery-events-v1.json",
+    "mission-consumption-manifest-v1.json"
+  ],
+  "completion_criteria": [
+    "ALL_192_MISSIONS_CONSUMED_EXACTLY_ONCE",
+    "ALL_960_PRODUCT_WORK_ITEMS_MATERIALIZED",
+    "ALL_576_SOURCE_LANE_SLOTS_EXPLICIT",
+    "EVERY_NAMED_SOURCE_ASSIGNMENT_SCOPE_CROSSWALK_AND_ROLE_COMPATIBLE",
+    "EVERY_UNFILLED_LANE_HAS_A_DISCOVERY_INTENT",
+    "EVERY_RUNTIME_EVENT_BINDS_MISSION_MARKET_CELL_SOURCE_SLOT_AND_REGISTERED_SOURCE",
+    "EVERY_RUNTIME_EVENT_VALIDATES_AND_ROUTES_TO_ONE_REGISTERED_DISCOVERY_FLEET",
+    "EVERY_RUNTIME_PROCESSOR_OUTPUT_REMAINS_HOLD_WITH_NO_COLLECTION_PERMISSION",
+    "DETERMINISTIC_REPLAY_PASS",
+    "KPMO_RECEIPT_AND_ARTIFACT_EMITTED"
+  ],
+  "hard_boundaries": [
+    "MISSION_GENERATED_IS_NOT_MISSION_CONSUMED",
+    "REGISTERED_SOURCE_IS_NOT_RIGHTS_ADMITTED_SOURCE",
+    "SOURCE_DISCOVERY_REQUEST_IS_NOT_COLLECTION",
+    "DISCOVERY_PROCESSOR_OUTPUT_IS_NOT_EVIDENCE",
+    "METADATA_ADMISSION_IS_NOT_MARKET_EVENT_ADMISSION",
+    "SOURCE_OWNER_COUNT_IS_NOT_FACTUAL_ORIGIN_INDEPENDENCE",
+    "CURRENT_SOLD_IS_NOT_CURRENT_PRICE_WITHOUT_STRICT_GATE",
+    "SOLD_COUNT_IS_NOT_LIQUIDITY_WITHOUT_EXPOSURE_DENOMINATOR",
+    "UNFILLED_LANE_IS_NOT_ZERO",
+    "PRIORITY_OR_ASSIGNMENT_IS_NOT_PERMISSION"
+  ],
+  "truth_boundary": {
+    "mission_queue_consumed": true,
+    "product_work_materialized": true,
+    "source_lane_obligations_materialized": true,
+    "runtime_discovery_events_materialized": true,
+    "runtime_discovery_processor_exercised_locally": true,
+    "external_source_content_collected": false,
+    "source_right_created": false,
+    "market_event_admitted": false,
+    "graph_fact_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
