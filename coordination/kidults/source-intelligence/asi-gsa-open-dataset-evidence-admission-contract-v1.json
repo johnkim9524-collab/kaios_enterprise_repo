@@ -1,0 +1,127 @@
+{
+  "id": "kidults-asi-gsa-open-dataset-evidence-admission-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Create the first lawful empirical Evidence admission from an immutable, attribution-preserving CC-BY-4.0 public dataset while explicitly preventing a last-observed bid level or reported sold signal from becoming a confirmed hammer price, realized transaction price, current price, liquidity measure, market value or customer claim.",
+  "source_registration": {
+    "source_id": "gsa-surplus-open-dataset",
+    "source_name": "U.S. Government (GSA) Surplus Auction Dataset",
+    "publisher": "GovAuctions (https://govauctions.app)",
+    "upstream_authority": "U.S. General Services Administration auction listings",
+    "repository": "benswork-space/us-government-surplus-dataset",
+    "repository_commit": "2db1a8e1ee7b0257d9b837a7f06f80ca659397fe",
+    "dataset_path": "us-gsa-surplus-auctions.json",
+    "manifest_path": "manifest.json",
+    "license_path": "LICENSE",
+    "readme_path": "README.md",
+    "expected_git_blob_shas": {
+      "dataset": "659100aba5adbf86d2f8de0614e4deb49f8bc43a",
+      "manifest": "b01cd1b39834eaed259e817a3a81bb69a9a92d4b",
+      "license": "825f2a4abf42d41a208f704089d9d919221b55da",
+      "readme": "17891e5fdd21b001e0a51a4e469b8eb570938fd6"
+    },
+    "expected_manifest": {
+      "license": "CC-BY-4.0",
+      "schema_version": "1.0",
+      "generated_at": "2026-08-10",
+      "row_count": 10015,
+      "coverage_country": "US",
+      "coverage_source": "gsa",
+      "earliest_ended": "2026-05-06",
+      "latest_ended": "2026-08-07"
+    }
+  },
+  "selection_policy": {
+    "mode": "DETERMINISTIC_SINGLE_BOUNDED_RECORD",
+    "required_reported_sold_signal": true,
+    "required_positive_observed_bid_level": true,
+    "required_positive_bid_count": true,
+    "required_currency": "USD",
+    "required_category_pattern": "VEHICLE",
+    "required_source_hosts": [
+      "gsaauctions.gov",
+      "www.gsaauctions.gov"
+    ],
+    "sort_order": [
+      "ENDED_AT_DESC",
+      "ID_ASC"
+    ],
+    "maximum_admitted_records": 1,
+    "source_record_is_collector_object": false,
+    "scope_assignment_state": "UNRESOLVED_VEHICLE_OBJECT_NOT_COLLECTIBLE_CLASSIFIED"
+  },
+  "rights_policy": {
+    "license": "CC-BY-4.0",
+    "decision": "ALLOW_WITH_ATTRIBUTION",
+    "granted_purposes": [
+      "COLLECT_RIGHT",
+      "BOUNDED_STORE_RIGHT",
+      "INTERNAL_DERIVE_RIGHT",
+      "ATTRIBUTED_DISPLAY_RIGHT"
+    ],
+    "required_attribution": "GovAuctions (https://govauctions.app), U.S. Government (GSA) Surplus Auction Dataset, 2026-08-10, CC BY 4.0; source listing from GSA Auctions.",
+    "license_link_required": true,
+    "changes_disclosure_required": true,
+    "raw_dataset_redistribution_by_this_workflow": false
+  },
+  "evidence_semantics": {
+    "evidence_type": "COMPLETED_GSA_AUCTION_LOT_OBSERVATION",
+    "evidence_class": "AUCTION_OUTCOME_CONTEXT",
+    "reported_sold_signal_allowed": true,
+    "last_observed_bid_level_allowed": true,
+    "last_observed_bid_level_is_hammer_price": false,
+    "last_observed_bid_level_is_realized_price": false,
+    "reported_sold_signal_is_confirmed_transaction": false,
+    "starting_bid_missing_is_zero": false,
+    "market_event_admission_allowed": false,
+    "customer_claim_authorized": false,
+    "public_projection_authorized": false
+  },
+  "claim_ceiling": {
+    "allowed": [
+      "THE_LICENSED_DATASET_REPORTED_A_POSITIVE_SOLD_SIGNAL_FOR_THE_SELECTED_COMPLETED_LOT",
+      "THE_LICENSED_DATASET_REPORTED_A_LAST_OBSERVED_BID_LEVEL_IN_USD",
+      "THE_LICENSED_DATASET_REPORTED_A_POSITIVE_BID_COUNT",
+      "THE_LICENSED_DATASET_REPORTED_AN_AUCTION_END_TIME",
+      "THE_SOURCE_RECORD_IS_A_US_GOVERNMENT_SURPLUS_VEHICLE_CONTEXT_OBSERVATION"
+    ],
+    "forbidden": [
+      "CONFIRMED_HAMMER_PRICE",
+      "REALIZED_TRANSACTION_PRICE",
+      "CURRENT_PRICE",
+      "LIQUIDITY",
+      "TIME_TO_SALE",
+      "MARKET_VALUE",
+      "COLLECTIBLE_CLASSIFICATION",
+      "GLOBAL_MARKET_REPRESENTATIVENESS",
+      "CUSTOMER_FACING_MARKET_CLAIM"
+    ]
+  },
+  "required_outputs": [
+    "gsa-open-dataset-rights-receipt-v1.json",
+    "gsa-open-dataset-evidence-admission-ledger-v1.json",
+    "gsa-open-dataset-claim-ceiling-receipt-v1.json",
+    "gsa-open-dataset-owned-evidence-graph-increment-v1.json",
+    "gsa-open-dataset-evidence-admission-manifest-v1.json"
+  ],
+  "truth_boundary": {
+    "admitted_evidence_count": 1,
+    "market_events_created": 0,
+    "confirmed_hammer_prices_created": 0,
+    "realized_transaction_prices_created": 0,
+    "current_prices_created": 0,
+    "liquidity_measures_created": 0,
+    "snapshot_candidates_created": 0,
+    "track_b_input_pairs_created": 0,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
