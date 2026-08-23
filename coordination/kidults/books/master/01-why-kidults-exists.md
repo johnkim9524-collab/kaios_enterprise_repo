@@ -9,6 +9,18 @@
 **현재 검증 경계:** KIDULTS program C1; C2 미완료; Production/Public/G5 HOLD  
 **Evidence 참조:** 기존 Master Book Chapter 1–3 KO/EN; 기존 Enterprise Baseline Chapter 1–3 KO/EN; EVIA Canon Edition 1.0 Volume 3; #235, #236, #237, #238, #240, #256, #1061, #1117, protected main Constitution commit; protected main `1109a98ce4cbdd68953d913fbddfb3b803809a0a`
 
+
+## Platform Constitution Effect Receipt
+
+| 필수 메타데이터 | 이 장의 효과 | Evidence와 경계 |
+|---|---|---|
+| `autonomous_effect` | `POSITIVE` | 자율형 지식자본 회사와 governed closed loop를 기업 Doctrine으로 연결함. 개별 run 성공은 Artifact·Receipt 없이는 주장하지 않음 |
+| `global_effect` | `POSITIVE` | Region·Language·Currency·Venue·Jurisdiction 차이를 기업 범위에 포함함. 현재 글로벌 coverage 달성 주장은 하지 않음 |
+| `irreplaceable_value_effect` | `POSITIVE` | Provider lock-in이 아닌 Identity·Evidence·Method·Memory·Workflow의 Knowledge Capital 축적을 가치 원천으로 고정함 |
+| `transparency_effect` | `POSITIVE` | TARGET / VERIFIED / UNKNOWN과 C1·C2·G5 경계를 명시하고 원전·현재 증거를 분리함 |
+
+이 평가는 **문서·Doctrine 효과**에 한정된다. 고객효용, 글로벌 시장지위 또는 Production 성과의 `COMPLETE_VERIFIED`를 의미하지 않는다.
+
 ## 1. Executive Thesis
 
 **Intelligence Holdings**는 새로운 경제 환경을 위해 구축되는 기업의 현재 전략적 명칭이다. 향후 공식 법인명 또는 Enterprise master brand가 바뀌더라도, 이 장이 정의하는 기업 정체성·운영원칙·지식자본 논리는 독립적으로 유지된다.
