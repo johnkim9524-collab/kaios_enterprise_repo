@@ -1,0 +1,144 @@
+name: KIDULTS ASI Sharded Source Reserve v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '29 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Global Any-Site Hourly Pooling v2'
+    branches: [main]
+    types: [completed]
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-sharded-source-reserve-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rolling-live-reserve:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source, syntax and autonomous trigger
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs
+          node - <<'NODE'
+          const fs=require('fs');const p=fs.readFileSync('.github/workflows/kidults-asi-sharded-source-reserve-v1.yml','utf8');
+          for(const marker of ['workflow_dispatch:','schedule:','push:','workflow_run:'])if(!p.includes(marker))throw new Error(`MISSING_AUTONOMOUS_TRIGGER:${marker}`);
+          const c=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'));
+          if(JSON.stringify(c.constitutional_order)!==JSON.stringify(['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT']))throw new Error('PLATFORM_PRINCIPLE_ORDER');
+          if(c.autonomous_activation_rule?.manual_only_normal_activation_forbidden!==true)throw new Error('MANUAL_ONLY_NOT_FORBIDDEN');
+          NODE
+      - name: Restore latest main discovery and previous reserve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p discovery-out /tmp/reserve-discovery /tmp/previous-asi-sharded-source-reserve-v1
+          DISCOVERY_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select((.name=="kidults-asi-global-any-site-discovery-v2" or .name=="kidults-asi-global-any-site-hourly-cycle-v1" or .name=="kidults-asi-global-any-site-hourly-cycle-v2") and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          test -n "$DISCOVERY_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISCOVERY_ID}/zip" > /tmp/reserve-discovery.zip
+          unzip -q -o /tmp/reserve-discovery.zip -d /tmp/reserve-discovery
+          SRC=$(find /tmp/reserve-discovery -type f \( -name global-low-risk-discovery.json -o -name global-low-risk-discovery-governed-v2.json \) -print -quit)
+          test -n "$SRC"
+          cp "$SRC" discovery-out/global-low-risk-discovery.json
+          PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          if [ -n "$PREV_ID" ]; then
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-reserve.zip
+            unzip -q -o /tmp/previous-reserve.zip -d /tmp/previous-asi-sharded-source-reserve-v1
+          fi
+          echo "discovery_artifact_id=$DISCOVERY_ID"
+          echo "previous_reserve_artifact_id=${PREV_ID:-NONE}"
+      - name: Build and validate rolling 256-shard reserve
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/previous-asi-sharded-source-reserve-v1 /tmp/asi-sharded-source-reserve-v1
+          node scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs /tmp/asi-sharded-source-reserve-v1
+      - name: Reject reserve rights promotion mutation
+        shell: bash
+        run: |
+          cp -a /tmp/asi-sharded-source-reserve-v1 /tmp/bad-reserve-rights
+          FILE=$(find /tmp/bad-reserve-rights/shards -type f -size +0c -print -quit)
+          test -n "$FILE"
+          node - "$FILE" <<'NODE'
+          const fs=require('fs');const p=process.argv[2];const lines=fs.readFileSync(p,'utf8').trim().split(/\r?\n/);const x=JSON.parse(lines[0]);x.rights_state='ALLOW';lines[0]=JSON.stringify(x);fs.writeFileSync(p,lines.join('\n')+'\n');
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs /tmp/bad-reserve-rights; then exit 1; fi
+      - name: Emit transparent reserve receipt
+        run: |
+          node - <<'NODE' >/tmp/asi-sharded-source-reserve-activation-receipt-v1.json
+          const fs=require('fs');const r=JSON.parse(fs.readFileSync('/tmp/asi-sharded-source-reserve-v1/asi-sharded-source-reserve-manifest-v1.json','utf8'));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-sharded-source-reserve-activation-receipt-v1',state:'VERIFIED_PASS',trigger_event:process.env.GITHUB_EVENT_NAME,autonomous_effect:'POSITIVE',global_effect:'POSITIVE',irreplaceable_value_effect:'POSITIVE',transparency_effect:'POSITIVE',reserve_cycle:r.cycle_number,reserve_unique_candidates:r.unique_candidate_count,reserve_unique_hosts:r.unique_host_count,reserve_new_candidates:r.new_candidate_count,reserve_updated_candidates:r.updated_candidate_count,reserve_nonempty_shards:r.nonempty_shard_count,reserve_design_capacity:r.design_capacity_minimum_candidates,reserve_is_not_safe_pool:true,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/asi-sharded-source-reserve-activation-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-sharded-source-reserve-v1
+          path: |
+            /tmp/asi-sharded-source-reserve-v1
+            /tmp/asi-sharded-source-reserve-activation-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
+
+  capacity-100k-proof:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Generate 100,000 governed synthetic discovery candidates
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const candidates=[];const now='2026-08-22T00:00:00Z';
+          for(let i=0;i<100000;i++)candidates.push({candidate_id:`capacity-${i}`,endpoint_url:`https://source-${i%20000}.capacity.invalid/item/${i}`,discovery_provider:'SYNTHETIC_CAPACITY_PROOF_ONLY',discovery_channel:'CI_CAPACITY_PROOF',observed_at:now,scope_hint:`scope-${i%32}`,region_hint:`region-${i%8}`,source_family_hint:'UNCLASSIFIED_ANY_SITE_CANDIDATE',candidate_source_roles:['UNCLASSIFIED_PENDING_RELEVANCE'],rights_state:'UNASSESSED',admission_state:'NOT_ADMITTED',gate_1_state:'PENDING',evidence_state:'DISCOVERY_METADATA_ONLY',acquisition_authorized:false,target_site_body_crawled:false,content_acquired:false,public_release:'HOLD',production:'HOLD'});
+          fs.writeFileSync('/tmp/asi-100k-capacity-fixture.json',JSON.stringify({id:'kidults-asi-100k-capacity-fixture',candidates,public_release:'HOLD',production:'HOLD'}));
+          NODE
+      - name: Build and validate 100k sharded capacity
+        run: |
+          mkdir -p /tmp/empty-previous-reserve
+          node --max-old-space-size=1024 scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs /tmp/asi-100k-capacity-fixture.json /tmp/empty-previous-reserve /tmp/asi-sharded-source-reserve-100k-proof
+          node --max-old-space-size=1024 scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs /tmp/asi-sharded-source-reserve-100k-proof
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-sharded-source-reserve-100k-proof/asi-sharded-source-reserve-manifest-v1.json'));if(x.unique_candidate_count!==100000)throw new Error(`CAPACITY_NOT_100K:${x.unique_candidate_count}`);if(x.shard_count!==256||x.nonempty_shard_count!==256)throw new Error('SHARD_DISTRIBUTION');if(x.rules.completion_claim_allowed!==false||x.rules.reserve_is_not_safe_pool!==true)throw new Error('SEMANTIC_BOUNDARY');console.log(JSON.stringify({status:'PASS',capacity:x.unique_candidate_count,shards:x.shard_count,nonempty:x.nonempty_shard_count,hosts:x.unique_host_count,production:'HOLD'}));
+          NODE
+      - name: Upload capacity manifest only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-sharded-source-reserve-100k-proof-v1
+          path: /tmp/asi-sharded-source-reserve-100k-proof/asi-sharded-source-reserve-manifest-v1.json
+          retention-days: 30
+          if-no-files-found: error

@@ -1,0 +1,99 @@
+{
+  "id": "kidults-asi-p0b-bounded-discovery-candidate-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Execute bounded public-metadata discovery for the current mission portfolio, convert observed endpoints into governed source candidates, bind candidates to mission lanes without overstating regional relevance or factual-origin independence, and emit exact empirical increments.",
+  "authoritative_inputs": {
+    "p0_contract": "coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json",
+    "p0_registry": "coordination/kidults/source-intelligence/asi-p0-mission-consumption-registry-v1.json",
+    "preparation_contract": "coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json",
+    "public_metadata_discovery": "scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs",
+    "public_metadata_discovery_validator": "scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs",
+    "rotation_merger": "scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs",
+    "source_fabric_validator": "scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs"
+  },
+  "bounded_live_lanes": [
+    "OPENALEX_PUBLIC_METADATA",
+    "GDELT_PUBLIC_METADATA"
+  ],
+  "scope_rotation_count": 4,
+  "candidate_input_requirements": [
+    "ENDPOINT_URL",
+    "DISCOVERY_PROVIDER",
+    "DISCOVERY_CHANNEL",
+    "OBSERVED_AT",
+    "SCOPE_HINT",
+    "REGION_HINT_OR_EXPLICIT_UNKNOWN",
+    "RIGHTS_STATE",
+    "ADMISSION_STATE",
+    "EVIDENCE_STATE",
+    "NO_TARGET_BODY_CRAWL",
+    "NO_CONTENT_ACQUISITION"
+  ],
+  "candidate_state_model": [
+    "OBSERVED_PUBLIC_METADATA_DISCOVERY_CANDIDATE",
+    "DUPLICATE_CANONICAL_ENDPOINT_SUPERSEDED",
+    "INVALID_ENDPOINT_QUARANTINED",
+    "UNBOUND_SCOPE_HINT",
+    "BOUND_TO_MISSION_PENDING_PREFLIGHT"
+  ],
+  "mission_binding": {
+    "scope_exact_match_required": true,
+    "region_exact_match_preferred": true,
+    "region_unknown_may_bind_as_candidate_only": true,
+    "region_unknown_counts_as_regional_coverage": false,
+    "maximum_candidates_per_mission": 3,
+    "distinct_host_preferred": true,
+    "distinct_discovery_provider_preferred": true,
+    "different_host_is_factual_origin_independence": false,
+    "candidate_can_fill_primary_or_fallback_slot": true,
+    "candidate_can_prove_factual_origin_replacement_slot": false
+  },
+  "output_requirements": {
+    "source_candidate_registry": true,
+    "mission_candidate_binding_ledger": true,
+    "candidate_gap_register": true,
+    "provider_and_host_diversity_report": true,
+    "empirical_increment_manifest": true
+  },
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "37 * * * *",
+    "upstream_workflow": "KIDULTS ASI P0 Mission Consumption v1",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "hard_boundaries": [
+    "PUBLIC_METADATA_DISCOVERY_IS_NOT_TARGET_SITE_COLLECTION",
+    "SOURCE_CANDIDATE_IS_NOT_EVIDENCE",
+    "SCOPE_HINT_IS_NOT_PROVEN_RELEVANCE",
+    "REGION_UNKNOWN_IS_NOT_REGIONAL_COVERAGE",
+    "DISTINCT_HOST_IS_NOT_DISTINCT_FACTUAL_ORIGIN",
+    "DISCOVERY_PROVIDER_IS_NOT_FACTUAL_ORIGIN",
+    "RIGHTS_UNASSESSED_BLOCKS_COLLECTION",
+    "CANDIDATE_BINDING_IS_NOT_ADMISSION",
+    "LISTING_NOT_SOLD",
+    "ATTENTION_NOT_DEMAND",
+    "HISTORICAL_NOT_CURRENT",
+    "MISSING_NOT_ZERO"
+  ],
+  "truth_boundary": {
+    "executes_bounded_public_metadata_network_discovery": true,
+    "observes_source_candidates": true,
+    "crawls_target_site_bodies": false,
+    "acquires_target_content": false,
+    "creates_collection_right": false,
+    "admits_evidence": false,
+    "proves_factual_origin_independence": false,
+    "creates_market_claim": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}

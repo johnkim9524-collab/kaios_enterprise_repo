@@ -1,0 +1,350 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.internal/schemas/ai-agent-status-receipt-v1.json",
+  "title": "KIDULTS AI Agent Status Receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "agent_id",
+    "as_of",
+    "scope",
+    "state",
+    "facts",
+    "evidence_refs",
+    "inferences",
+    "uncertainties",
+    "blockers",
+    "actions_executed",
+    "next_action",
+    "authority_boundary"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "const": "1.0.0"
+    },
+    "agent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state": {
+      "enum": [
+        "PLANNED",
+        "IMPLEMENTED_NOT_VERIFIED",
+        "RUNNING_VERIFIED",
+        "VERIFIED_PASS",
+        "VERIFIED_FAIL",
+        "MERGED_VERIFIED",
+        "DEPLOYED_VERIFIED",
+        "BLOCKED",
+        "UNKNOWN",
+        "HOLD",
+        "COMPLETE_VERIFIED"
+      ]
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceRef"
+      }
+    },
+    "inferences": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "uncertainties": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/blocker"
+      }
+    },
+    "actions_executed": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    },
+    "next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "within_authority",
+        "protected_gates_touched"
+      ],
+      "properties": {
+        "within_authority": {
+          "type": "boolean"
+        },
+        "protected_gates_touched": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "PRODUCTION_G5",
+              "IRREVERSIBLE_LEGAL_CHANGE",
+              "IRREVERSIBLE_SECURITY_CHANGE",
+              "EXTERNAL_SPEND",
+              "CONTRACTUAL_COMMITMENT",
+              "EXPANDED_CREDENTIAL_OR_PERMISSION"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "correction_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "production": {
+      "const": "HOLD"
+    },
+    "public_release": {
+      "const": "HOLD"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "RUNNING_VERIFIED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence_refs": {
+            "contains": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "WORKFLOW_RUN",
+                    "JOB_RUN",
+                    "RUNTIME_RUN"
+                  ]
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "MERGED_VERIFIED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence_refs": {
+            "contains": {
+              "properties": {
+                "kind": {
+                  "const": "MERGE_COMMIT"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "BLOCKED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "blockers": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statement",
+        "evidence_ref_ids"
+      ],
+      "properties": {
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_ref_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "evidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref_id",
+        "kind",
+        "locator",
+        "observed_at"
+      ],
+      "properties": {
+        "ref_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "IMMUTABLE_RECEIPT",
+            "ARTIFACT",
+            "COMMIT",
+            "MERGE_COMMIT",
+            "PULL_REQUEST",
+            "ISSUE",
+            "WORKFLOW_RUN",
+            "JOB_RUN",
+            "RUNTIME_RUN",
+            "DEPLOYMENT",
+            "REGISTRY",
+            "VALIDATOR_OUTPUT",
+            "OTHER_AUTHORITATIVE_SOURCE"
+          ]
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "digest": {
+          "type": "string"
+        }
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blocked_action",
+        "detected_at",
+        "blocker",
+        "unblock_condition"
+      ],
+      "properties": {
+        "blocked_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "detected_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "blocker": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "string"
+        },
+        "unblock_condition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parallel_work": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "result",
+        "evidence_ref_ids"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result": {
+          "enum": [
+            "EXECUTED",
+            "FAILED",
+            "NOT_EXECUTED"
+          ]
+        },
+        "evidence_ref_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

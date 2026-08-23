@@ -1,0 +1,199 @@
+name: KIDULTS ASI Engine Refactoring Alignment v2
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-engine-refactoring-contract-v2.json'
+      - 'coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json'
+      - 'coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json'
+      - 'coordination/kidults/architecture/platform-market-funnel-alignment-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/alignment.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/registry.ts'
+      - 'services/kidults-autonomous-intelligence/src/worker.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-engine-alignment-test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-engine-principle-alignment-v2.mjs'
+      - '.github/workflows/kidults-asi-engine-refactoring-alignment-v2.yml'
+      - 'docs/kidults/asi/asi-engine-refactoring-v2.md'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-engine-refactoring-contract-v2.json'
+      - 'coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json'
+      - 'coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json'
+      - 'coordination/kidults/architecture/platform-market-funnel-alignment-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-market-funnel-engine-mesh-v1.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/alignment.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/registry.ts'
+      - 'services/kidults-autonomous-intelligence/src/worker.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-engine-alignment-test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-engine-principle-alignment-v2.mjs'
+      - '.github/workflows/kidults-asi-engine-refactoring-alignment-v2.yml'
+      - 'docs/kidults/asi/asi-engine-refactoring-v2.md'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-engine-refactoring-alignment-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  enforce-engine-alignment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
+      - name: Verify exact source, syntax and JSON contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/validate-asi-engine-principle-alignment-v2.mjs
+          node --check services/kidults-autonomous-intelligence/scripts/asi-engine-alignment-test.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-engine-refactoring-contract-v2.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json','utf8'))"
+      - name: Validate 52 logical engines and 25 runtime fleets
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-engine-principle-alignment-v2.mjs | tee /tmp/asi-engine-principle-alignment-validation-v2.json
+      - name: Install bounded runtime dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci
+      - name: Typecheck refactored runtime
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+      - name: Prove all 25 fleet hard floors and mutation rejection
+        working-directory: services/kidults-autonomous-intelligence
+        run: node scripts/asi-engine-alignment-test.mjs | tee /tmp/asi-engine-alignment-runtime-test-v2.json
+      - name: Preserve existing processor end-to-end behavior
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run asi:processor:e2e
+      - name: Preserve recovery, fairness and DLQ behavior
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run asi:runtime-recovery:test
+      - name: Preserve deploy preflight and runtime smoke boundaries
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          npm run deploy:preflight
+          npm run runtime:smoke
+      - name: Reject logical-engine coverage mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json /tmp/alignment-registry.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          x.logical_engine_groups[0].engine_ids.pop();
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-engine-principle-alignment-v2.mjs; then
+            echo 'Validator accepted missing logical-engine alignment profile' >&2
+            exit 1
+          fi
+          mv /tmp/alignment-registry.json coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json
+      - name: Reject execution-fleet coverage mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json /tmp/alignment-registry.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          x.asi_logical_to_execution_fleets[0].execution_fleet_ids.pop();
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-engine-principle-alignment-v2.mjs; then
+            echo 'Validator accepted missing execution-fleet alignment profile' >&2
+            exit 1
+          fi
+          mv /tmp/alignment-registry.json coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json
+      - name: Reject platform-principle reorder mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-engine-refactoring-contract-v2.json /tmp/alignment-contract.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/source-intelligence/asi-engine-refactoring-contract-v2.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          x.platform_principles=['GLOBAL','AUTONOMOUS','IRREPLACEABLE_VALUE','TRANSPARENT'];
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-engine-principle-alignment-v2.mjs; then
+            echo 'Validator accepted reordered platform principles' >&2
+            exit 1
+          fi
+          mv /tmp/alignment-contract.json coordination/kidults/source-intelligence/asi-engine-refactoring-contract-v2.json
+      - name: Reject runtime-preflight removal mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp services/kidults-autonomous-intelligence/src/worker.ts /tmp/worker.ts
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='services/kidults-autonomous-intelligence/src/worker.ts';
+          let x=fs.readFileSync(p,'utf8');
+          const marker='const receipts = await preflightAlignmentReceipts(env,batch);';
+          if(!x.includes(marker))throw new Error('PREFLIGHT_MARKER_MISSING');
+          x=x.replace(marker,'const receipts = [];');
+          fs.writeFileSync(p,x);
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-engine-principle-alignment-v2.mjs; then
+            echo 'Validator accepted runtime without alignment preflight' >&2
+            exit 1
+          fi
+          mv /tmp/worker.ts services/kidults-autonomous-intelligence/src/worker.ts
+      - name: Revalidate pristine alignment
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-engine-principle-alignment-v2.mjs > /tmp/asi-engine-principle-alignment-final-v2.json
+      - name: Emit KPMO engine-refactoring receipt
+        run: |
+          node - <<'NODE' >/tmp/asi-engine-refactoring-kpmo-receipt-v2.json
+          const fs=require('fs');
+          const validation=JSON.parse(fs.readFileSync('/tmp/asi-engine-principle-alignment-final-v2.json','utf8'));
+          const runtime=JSON.parse(fs.readFileSync('/tmp/asi-engine-alignment-runtime-test-v2.json','utf8'));
+          process.stdout.write(JSON.stringify({
+            id:'kidults-asi-engine-refactoring-kpmo-receipt-v2',
+            state:'VERIFIED_PASS',
+            platform_principles:['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'],
+            logical_engines_aligned:validation.logical_engines_aligned,
+            logical_engines_total:validation.logical_engines_total,
+            logical_engine_alignment_percent:validation.logical_engine_alignment_percent,
+            execution_fleets_runtime_enforced:validation.execution_fleets_runtime_enforced,
+            execution_fleets_total:validation.execution_fleets_total,
+            execution_fleet_runtime_alignment_percent:validation.execution_fleet_runtime_alignment_percent,
+            valid_runtime_receipts:runtime.valid_runtime_receipts,
+            mutation_rejections:runtime.mutation_rejections + 4,
+            hard_floor_enforced:true,
+            composite_compensation_allowed:false,
+            full_52_engine_runtime_implementation_verified:false,
+            durable_remote_runtime_deployed:false,
+            public_release:'HOLD',
+            production:'HOLD'
+          },null,2));
+          NODE
+          cat /tmp/asi-engine-refactoring-kpmo-receipt-v2.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-engine-refactoring-alignment-v2
+          path: |
+            /tmp/asi-engine-principle-alignment-validation-v2.json
+            /tmp/asi-engine-principle-alignment-final-v2.json
+            /tmp/asi-engine-alignment-runtime-test-v2.json
+            /tmp/asi-engine-refactoring-kpmo-receipt-v2.json
+          retention-days: 90
+          if-no-files-found: error

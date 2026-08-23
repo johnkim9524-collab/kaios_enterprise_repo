@@ -1,0 +1,23 @@
+{
+  "id": "kidults-asi-admitted-metadata-revocation-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_FAIL_CLOSED_REGISTRY",
+  "scope": "DISCOVERY_METADATA_INDEX_ONLY",
+  "canonicalization": {
+    "lowercase_hostname": true,
+    "strip_www_prefix": true,
+    "strip_default_port": true,
+    "strip_fragment": true,
+    "normalize_trailing_slash": true,
+    "alias_reentry_block_required": true
+  },
+  "revocations": [],
+  "rules": {
+    "revoked_canonical_key_cannot_reenter": true,
+    "revoked_alias_cannot_reenter": true,
+    "revocation_requires_revalidation_before_reactivation": true,
+    "revocation_never_auto_expires": true
+  },
+  "public_release": "HOLD",
+  "production": "HOLD"
+}

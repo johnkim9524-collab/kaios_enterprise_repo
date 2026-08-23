@@ -1,5 +1,11 @@
 import baseWorker, { type Env as BaseEnv } from './index';
 import {
+  ASI_ENGINE_ALIGNMENT_POLICY_DIGEST,
+  ASI_ENGINE_ALIGNMENT_POLICY_VERSION,
+  assertAsiExecutionAlignment,
+  type AsiEngineAlignmentPreflightReceipt,
+} from './asi/alignment';
+import {
   asiMeshTelemetry,
   consumeAsiBatch,
   enqueueAsiEvent,
@@ -8,6 +14,7 @@ import {
   type AsiMeshEnv,
   type AsiQueueTask,
 } from './asi/runtime';
+import { ASI_PLATFORM_PRINCIPLES } from './asi/registry';
 import { isControlTowerRoute } from './control-tower-ui/executive-control-tower.js';
 import { isGatewayRoute } from './control-tower-gateway/control-tower-gateway.js';
 import { bearerAuthorized, parseBoundedJson } from './http-security';
@@ -28,13 +35,29 @@ function authorized(request: Request, env: Env): boolean {
   return bearerAuthorized(request,env.INGEST_TOKEN);
 }
 
+function engineAlignmentStatus() {
+  return {
+    policy_version:ASI_ENGINE_ALIGNMENT_POLICY_VERSION,
+    policy_digest:ASI_ENGINE_ALIGNMENT_POLICY_DIGEST,
+    principle_order:ASI_PLATFORM_PRINCIPLES,
+    hard_floor_enforced:true,
+    execution_fleet_count:25,
+    logical_engine_contract_count:52,
+    full_52_engine_runtime_implementation_claimed:false,
+    durable_remote_runtime_deployed:false,
+    public_release:'HOLD',
+    production:'HOLD',
+  } as const;
+}
+
 function enqueueErrorResponse(error: unknown): Response {
   const message = error instanceof Error ? error.message : String(error);
   if (message === 'ASI_EVENT_ID_OR_IDEMPOTENCY_CONFLICT') {
     return json({error:'asi_event_conflict',message},409);
   }
   const clientError = error instanceof SyntaxError || message.startsWith('ASI_EVENT_') ||
-    message.startsWith('CONTENT_TYPE_') || message.startsWith('REQUEST_BODY_');
+    message.startsWith('ASI_ENGINE_ALIGNMENT_') || message.startsWith('CONTENT_TYPE_') ||
+    message.startsWith('REQUEST_BODY_');
   return json({error:clientError ? 'asi_event_rejected' : 'asi_transport_unavailable',message},clientError ? 400 : 503);
 }
 
@@ -52,7 +75,58 @@ async function recordShadowHeartbeat(
     eventCount:telemetry.event_count,
     unreplayedDeadLetters:telemetry.unreplayed_dead_letters,
     recoveryCycle:recovery,
+    engineAlignment:engineAlignmentStatus(),
     publicationAuthorized:false,
+  }),nowIso()).run();
+}
+
+async function preflightAlignmentReceipts(
+  env: Env,
+  batch: MessageBatch<AsiQueueTask>,
+): Promise<AsiEngineAlignmentPreflightReceipt[]> {
+  const receipts: AsiEngineAlignmentPreflightReceipt[] = [];
+  for (const message of batch.messages) {
+    const task = message.body;
+    const receipt = await assertAsiExecutionAlignment(task.target_fleet,task.event);
+    if (!receipt.hard_floor_pass) throw new Error('ASI_ENGINE_ALIGNMENT_PREFLIGHT_NOT_PASS');
+    await env.DB.prepare(`
+      INSERT OR IGNORE INTO audit_log (id,event_type,actor,details_json,created_at)
+      VALUES (?,'asi.engine.alignment.preflight.v2',?,?,?)
+    `).bind(
+      receipt.receipt_id,
+      `asi-engine:${task.target_fleet}`,
+      JSON.stringify({
+        ...receipt,
+        source_queue:task.source_queue,
+        outbox_id:task.outbox_id,
+        queue_message_id:message.id,
+        runtime_mode:env.ASI_MESH_MODE,
+      }),
+      nowIso(),
+    ).run();
+    receipts.push(receipt);
+  }
+  return receipts;
+}
+
+async function recordAlignmentBatchCompletion(
+  env: Env,
+  batch: MessageBatch<AsiQueueTask>,
+  receipts: readonly AsiEngineAlignmentPreflightReceipt[],
+): Promise<void> {
+  await env.DB.prepare(`
+    INSERT INTO audit_log (id,event_type,actor,details_json,created_at)
+    VALUES (?,'asi.engine.alignment.batch.completed.v2','asi-runtime',?,?)
+  `).bind(makeId('audit'),JSON.stringify({
+    queue:batch.queue,
+    message_count:batch.messages.length,
+    message_ids:batch.messages.map((message) => message.id),
+    alignment_receipt_ids:receipts.map((receipt) => receipt.receipt_id),
+    logical_engine_ids:[...new Set(receipts.map((receipt) => receipt.logical_engine_id))].sort(),
+    fleet_ids:[...new Set(receipts.map((receipt) => receipt.fleet_id))].sort(),
+    principle_order:ASI_PLATFORM_PRINCIPLES,
+    all_hard_floors_pass:receipts.every((receipt) => receipt.hard_floor_pass),
+    production:'HOLD',
   }),nowIso()).run();
 }
 
@@ -68,7 +142,10 @@ export default {
     }
     if (request.method === 'GET' && url.pathname === '/internal/asi/shadow/status') {
       if (!authorized(request,env)) return json({ error: 'unauthorized' },401);
-      return json(await asiMeshTelemetry(env));
+      return json({
+        ...(await asiMeshTelemetry(env)),
+        engine_alignment:engineAlignmentStatus(),
+      });
     }
     if (request.method === 'POST' && url.pathname === '/internal/asi/shadow/enqueue') {
       if (!authorized(request,env)) return json({ error: 'unauthorized' },401);
@@ -77,7 +154,7 @@ export default {
         const event = await parseBoundedJson(request);
         const result = await enqueueAsiEvent(env,event);
         const status = result.state === 'PARKED_NO_ENGINE_PROCESSOR' ? 423 : result.state === 'TRANSPORT_HOLD' ? 503 : 202;
-        return json({ok:status === 202,...result,mode:'SHADOW',production:'HOLD'},status);
+        return json({ok:status === 202,...result,engine_alignment:engineAlignmentStatus(),mode:'SHADOW',production:'HOLD'},status);
       } catch (error) {
         return enqueueErrorResponse(error);
       }
@@ -107,11 +184,13 @@ export default {
       await env.DB.prepare(`
         INSERT INTO audit_log (id,event_type,actor,details_json,created_at)
         VALUES (?,'asi.shadow.heartbeat.error','scheduler',?,?)
-      `).bind(makeId('audit'),JSON.stringify({message}),nowIso()).run();
+      `).bind(makeId('audit'),JSON.stringify({message,engineAlignment:engineAlignmentStatus()}),nowIso()).run();
     }));
   },
 
   async queue(batch: MessageBatch<AsiQueueTask>, env: Env): Promise<void> {
+    const receipts = await preflightAlignmentReceipts(env,batch);
     await consumeAsiBatch(batch,env);
+    await recordAlignmentBatchCompletion(env,batch,receipts);
   },
 } satisfies ExportedHandler<Env, AsiQueueTask>;

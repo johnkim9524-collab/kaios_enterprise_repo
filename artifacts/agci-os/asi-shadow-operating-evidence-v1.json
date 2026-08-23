@@ -135,8 +135,8 @@
   "canonical_code_inputs": {
     "processor_registry": {
       "path": "services/kidults-autonomous-intelligence/src/asi/registry.ts",
-      "sha256": "sha256:effb286926b06ee55a503bd3568a2b8b9867f774fa5c2e6a2fb31c175c0170ee",
-      "byte_count": 8987
+      "sha256": "sha256:b559a538e22537e69d81c6ba4c9e05cd6df107e75784306fb21072f0150c5b21",
+      "byte_count": 11798
     },
     "event_runtime": {
       "path": "services/kidults-autonomous-intelligence/src/asi/event.ts",
@@ -2269,5 +2269,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:931dcecbd34066bf3aca407961c0167f2651f0310fc16d5c0848ef1132621463"
+  "evidence_fingerprint": "sha256:856e4927e8a8bd110cedb534f95ce21f27930c5d20583aac3459e773953d925f"
 }

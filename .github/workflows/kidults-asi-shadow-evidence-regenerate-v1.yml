@@ -1,0 +1,85 @@
+name: KIDULTS ASI SHADOW Evidence Regeneration v1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'services/kidults-autonomous-intelligence/src/asi/**'
+      - 'services/kidults-autonomous-intelligence/src/worker.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/**'
+      - 'coordination/kidults/source-intelligence/asi-engine-refactoring-contract-v2.json'
+      - 'coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json'
+      - 'scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs'
+      - 'artifacts/agci-os/asi-shadow-operating-evidence-v1.json'
+      - '.github/workflows/kidults-asi-shadow-evidence-regenerate-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'services/kidults-autonomous-intelligence/src/asi/**'
+      - 'services/kidults-autonomous-intelligence/src/worker.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/**'
+      - 'coordination/kidults/source-intelligence/asi-engine-refactoring-contract-v2.json'
+      - 'coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json'
+      - 'scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs'
+      - 'artifacts/agci-os/asi-shadow-operating-evidence-v1.json'
+      - '.github/workflows/kidults-asi-shadow-evidence-regenerate-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-shadow-evidence-regeneration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regenerate-shadow-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs
+      - name: Install deterministic validation dependencies
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm --prefix services/kidults-autonomous-intelligence ci --ignore-scripts --no-audit --no-fund
+      - name: Build evidence twice and prove deterministic replay
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs --output /tmp/asi-shadow-operating-evidence-v1.json --write
+          TZ=Pacific/Honolulu LANG=C LC_ALL=C node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs --output /tmp/asi-shadow-operating-evidence-replay-v1.json --write
+          cmp /tmp/asi-shadow-operating-evidence-v1.json /tmp/asi-shadow-operating-evidence-replay-v1.json
+      - name: Validate regenerated evidence and committed canonical parity
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs --input /tmp/asi-shadow-operating-evidence-v1.json
+          cmp artifacts/agci-os/asi-shadow-operating-evidence-v1.json /tmp/asi-shadow-operating-evidence-v1.json
+      - name: Emit regeneration receipt
+        run: |
+          node - <<'NODE' >/tmp/asi-shadow-evidence-regeneration-receipt-v1.json
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/asi-shadow-operating-evidence-v1.json';const x=JSON.parse(fs.readFileSync(p,'utf8'));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+          process.stdout.write(JSON.stringify({id:'kidults-asi-shadow-evidence-regeneration-receipt-v1',state:'VERIFIED_PASS',source_head:process.env.GITHUB_SHA,evidence_digest:digest,canonical_parity:true,processor_summary:x?.runtime_evidence ?? x?.summary ?? null,repository_mutation_performed:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/asi-shadow-evidence-regeneration-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-shadow-evidence-regenerated-v1
+          path: |
+            /tmp/asi-shadow-operating-evidence-v1.json
+            /tmp/asi-shadow-operating-evidence-replay-v1.json
+            /tmp/asi-shadow-evidence-regeneration-receipt-v1.json
+          retention-days: 30
+          if-no-files-found: error

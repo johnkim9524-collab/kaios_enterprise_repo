@@ -1,0 +1,121 @@
+{
+  "id": "kidults-asi-engine-refactoring-contract-v2",
+  "record_type": "asi_engine_runtime_refactoring_contract",
+  "version": "2.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "owner": "KPMO",
+  "mission": "Make every declared logical engine and every executable ASI fleet inherit and enforce Autonomous, Global, Irreplaceable Value, and Transparent as non-compensating hard floors in contracts, runtime preflight, outputs, handoffs, and receipts.",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "authorities": {
+    "platform_constitution": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
+    "platform_taxonomy": "coordination/kidults/architecture/platform-market-funnel-alignment-v1.json",
+    "sourcing_direction": "coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json",
+    "alignment_registry": "coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json"
+  },
+  "scope": {
+    "logical_engine_count": 52,
+    "execution_fleet_count": 25,
+    "logical_engine_alignment": "CONTRACT_AND_HANDOFF_ENFORCED",
+    "execution_fleet_alignment": "RUNTIME_HARD_FLOOR_ENFORCED",
+    "full_52_engine_runtime_implementation_claimed": false,
+    "remote_deployment_claimed": false
+  },
+  "runtime_preflight": {
+    "module": "services/kidults-autonomous-intelligence/src/asi/alignment.ts",
+    "function": "assertAsiExecutionAlignment",
+    "required_before": "ANY_ASI_PROCESSOR_TRANSFORMATION",
+    "failure_mode": "THROW_AND_REJECT_AFFECTED_TASK",
+    "required_checks": {
+      "AUTONOMOUS": [
+        "fleet_is_registered",
+        "logical_engine_binding_exists",
+        "explicit_target_routing_is_absent",
+        "execution_is_bounded_and_non_production"
+      ],
+      "GLOBAL": [
+        "partition_channel_present",
+        "partition_region_present",
+        "partition_language_present",
+        "partition_scope_present",
+        "partition_source_role_present",
+        "partition_canonical_host_hash_present"
+      ],
+      "IRREPLACEABLE_VALUE": [
+        "source_identity_present",
+        "provider_direct_to_truth_projection_or_index_forbidden",
+        "logical_engine_is_kidults_owned",
+        "output_remains_canonical_or_assertion_bound"
+      ],
+      "TRANSPARENT": [
+        "input_snapshot_ref_present",
+        "payload_hash_is_sha256",
+        "rights_state_explicit",
+        "freshness_state_explicit",
+        "decision_state_explicit_or_null",
+        "reason_codes_and_trace_refs_are_arrays"
+      ]
+    }
+  },
+  "runtime_receipt": {
+    "preflight_receipt_type": "ASI_ENGINE_ALIGNMENT_PREFLIGHT_V2",
+    "audit_event_type": "asi.engine.alignment.preflight.v2",
+    "batch_completion_audit_event_type": "asi.engine.alignment.batch.completed.v2",
+    "required_fields": [
+      "receipt_id",
+      "policy_version",
+      "policy_digest",
+      "fleet_id",
+      "logical_engine_id",
+      "stage",
+      "input_event_id",
+      "input_snapshot_ref",
+      "principle_order",
+      "principle_results",
+      "hard_floor_pass",
+      "failure_codes",
+      "evidence_refs",
+      "production"
+    ],
+    "hard_floor_pass_required": true,
+    "missing_receipt_state": "REJECT_EXECUTION",
+    "downstream_traceability": "OUTPUT_CAUSATION_AND_EVENT_LOG_TRACE_BACK_TO_INPUT_BOUND_ALIGNMENT_RECEIPT"
+  },
+  "handoff_rules": [
+    "NO_ENGINE_EXECUTION_STARTS_WITHOUT_ALIGNMENT_PREFLIGHT",
+    "NO_FAILED_OR_UNKNOWN_AXIS_CAN_BE_COMPENSATED_BY_OTHER_AXES",
+    "NO_PROVIDER_DIRECT_TO_CANONICAL_TRUTH_INDEX_OR_PROJECTION",
+    "NO_DISCOVERY_TO_COLLECTION_ADMISSION_OR_CLAIM_PERMISSION_PROMOTION",
+    "NO_PUBLIC_OR_PRODUCTION_PROMOTION"
+  ],
+  "alignment_states": {
+    "logical_engines": "52_OF_52_PROFILED",
+    "execution_fleets": "25_OF_25_RUNTIME_ENFORCED",
+    "runtime_test": "REQUIRED",
+    "mutation_test": "REQUIRED",
+    "remote_deployment": "NOT_PERFORMED_NOT_CLAIMED"
+  },
+  "validation": {
+    "validator": "scripts/kidults/source-intelligence/validate-asi-engine-principle-alignment-v2.mjs",
+    "workflow": ".github/workflows/kidults-asi-engine-refactoring-alignment-v2.yml",
+    "service_test": "services/kidults-autonomous-intelligence/scripts/asi-engine-alignment-test.mjs",
+    "required_mutations": [
+      "REMOVE_LOGICAL_ENGINE_PROFILE",
+      "REMOVE_EXECUTION_FLEET_PROFILE",
+      "REORDER_PLATFORM_PRINCIPLES",
+      "REMOVE_RUNTIME_PREFLIGHT_CALL",
+      "ALLOW_PROVIDER_DIRECT_TO_PROJECTION"
+    ]
+  },
+  "completion_definition": {
+    "repository_contract_alignment_percent": 100,
+    "shadow_runtime_fleet_alignment_percent": 100,
+    "full_runtime_deployment_alignment_percent": 0,
+    "complete_claim": "REPOSITORY_AND_SHADOW_RUNTIME_ALIGNMENT_ONLY",
+    "production": "HOLD"
+  }
+}

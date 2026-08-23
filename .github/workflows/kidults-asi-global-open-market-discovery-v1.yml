@@ -1,0 +1,76 @@
+name: KIDULTS ASI Global Any-Site Discovery v2
+
+on:
+  schedule:
+    - cron: '29 * * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
+      - '.github/workflows/kidults-asi-global-open-market-discovery-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-global-any-site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  global-any-site-shadow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source SHA
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Syntax-check global any-site runtime and validator
+        run: |
+          node --check scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs
+      - name: Restore immutable 160-anchor foundation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p input queue discovery-out
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" > /tmp/anchor-foundation.zip
+          unzip -q -o /tmp/anchor-foundation.zip -d input
+      - name: Build governed demand queue
+        run: |
+          node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input queue
+          node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs queue
+      - name: Discover global any-site candidates across independent public metadata lanes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs queue discovery-out
+      - name: Validate any-site universe, live candidate proof and fail-closed admission
+        run: node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
+      - name: Reject source-family narrowing mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const p='discovery-out/global-low-risk-discovery.json';const x=JSON.parse(fs.readFileSync(p));x.source_family_restriction='OPEN_MARKETPLACE_OR_DEALER';fs.writeFileSync('/tmp/bad-family.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs /tmp/bad-family.json; then exit 1; fi
+      - name: Reject rights self-promotion mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const p='discovery-out/global-low-risk-discovery.json';const x=JSON.parse(fs.readFileSync(p));if(!x.candidates.length)process.exit(2);x.candidates[0].rights_state='ALLOW';fs.writeFileSync('/tmp/bad-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs /tmp/bad-rights.json; then exit 1; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-global-any-site-discovery-v2
+          path: discovery-out/global-low-risk-discovery.json
+          retention-days: 30
+          if-no-files-found: error

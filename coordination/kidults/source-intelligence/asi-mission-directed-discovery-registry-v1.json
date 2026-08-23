@@ -1,0 +1,91 @@
+{
+  "id": "kidults-asi-mission-directed-discovery-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0_TO_P1_BRIDGE",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json",
+    "mission_consumption_registry": "coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json",
+    "strict_current_market_gate": "coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json",
+    "discovery_runner": "scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs",
+    "discovery_fallback_runner": "scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs",
+    "discovery_validator": "scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs",
+    "readiness_builder": "scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs",
+    "readiness_validator": "scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs",
+    "gate1_builder": "scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs",
+    "gate1_validator": "scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs",
+    "gate2_builder": "scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs",
+    "gate2_validator": "scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs",
+    "gate3_builder": "scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs",
+    "gate3_validator": "scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-mission-directed-discovery-v1.yml",
+    "human_readme": "docs/kidults/asi/asi-mission-directed-discovery-v1.md"
+  },
+  "registered_outputs": [
+    "mission-directed-discovery-v1.json",
+    "mission-directed-discovery-cycle-state-v1.json",
+    "asi-gate1-safe-candidate-pool-v1.json",
+    "asi-gate2-independent-reverification-v1.json",
+    "asi-gate3-admission-runtime-v1.json",
+    "mission-directed-gate-summary-v1.json",
+    "mission-claim-admission-readiness-v1.json",
+    "mission-source-adapter-requirements-v1.json",
+    "mission-directed-discovery-manifest-v1.json",
+    "mission-directed-discovery-kpmo-receipt-v1.json"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "37 * * * *",
+    "upstream_workflows": [
+      "KIDULTS ASI Mission Consumption v1"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "provider_lanes": [
+    "WIKIDATA_OFFICIAL_WEBSITE_GRAPH",
+    "GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA",
+    "DATACITE_OPEN_RESEARCH_METADATA"
+  ],
+  "fail_soft_discovery": {
+    "primary_zero_candidate_or_runtime_failure_behavior": "RUN_BOUNDED_GITHUB_METADATA_FALLBACK",
+    "fallback_provider_lane": "GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA",
+    "primary_failure_must_remain_visible": true,
+    "fallback_usage_must_remain_visible": true,
+    "fallback_candidate_claim_ceiling": "DISCOVERY_METADATA_ONLY",
+    "fallback_can_create_rights_admission_or_claim": false
+  },
+  "rolling_state": {
+    "artifact_name": "kidults-asi-mission-directed-discovery-v1",
+    "state_file": "mission-directed-discovery-cycle-state-v1.json",
+    "batch_size": 24,
+    "intent_count_at_activation": 426,
+    "estimated_cycles_per_full_rotation": 18,
+    "state_loss_behavior": "RESET_TO_CURSOR_ZERO_WITH_EXPLICIT_RECEIPT"
+  },
+  "downstream_p1_state": {
+    "metadata_gate_chain_implemented": true,
+    "claim_specific_readiness_compiler_implemented": true,
+    "source_specific_adapter_requirement_compiler_implemented": true,
+    "source_specific_market_event_adapters_implemented": false,
+    "field_purpose_rights_verified": false,
+    "strict_current_price_eligible_sources": 0,
+    "strict_liquidity_eligible_sources": 0
+  },
+  "truth_boundary": {
+    "live_public_metadata_discovery_is_market_evidence": false,
+    "gate3_metadata_admission_is_claim_admission": false,
+    "source_family_classification_is_terminal_sold_assertion": false,
+    "registered_or_discovered_endpoint_is_rights_admitted": false,
+    "adapter_requirement_is_implemented_adapter": false,
+    "fallback_candidate_is_market_evidence": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}

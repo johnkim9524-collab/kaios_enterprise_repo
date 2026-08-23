@@ -1,0 +1,66 @@
+{
+  "id": "kidults-asi-sourcing-direction-registry-v2",
+  "version": "2.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "constitutional_order": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "platform_constitution": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
+    "authoritative_contract": "coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json",
+    "human_policy": "docs/kidults/asi/asi-sourcing-direction-v2.md",
+    "program_binding": "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json",
+    "global_source_mesh_contract": "coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json",
+    "global_source_mesh_builder": "scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-sourcing-direction-v2.mjs",
+    "governance_workflow": ".github/workflows/kidults-asi-sourcing-direction-v2.yml",
+    "planning_workflow": ".github/workflows/kidults-global-source-mesh-v1.yml",
+    "scale_workflow": ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml"
+  },
+  "governed_value_chain": [
+    "DECISION_DEMAND",
+    "CLAIM_AND_UNKNOWN_REGISTRY",
+    "EVIDENCE_REQUIREMENT",
+    "GLOBAL_SOURCE_UNIVERSE",
+    "SOURCE_SELECTION",
+    "RIGHTS_AND_SEMANTIC_PREFLIGHT",
+    "GATE1",
+    "GATE2",
+    "GATE3",
+    "CANONICAL_GRAPHS",
+    "INTELLIGENCE",
+    "PROJECTION",
+    "DECISION_FEEDBACK"
+  ],
+  "mandatory_inheritance": {
+    "KPMO": true,
+    "TRACK_A": true,
+    "TRACK_B_SOURCE_EVIDENCE_BOUNDARY": true,
+    "TRACK_C_PROJECTION_TRANSPARENCY": true,
+    "TRACK_D_RUNTIME_AUTONOMY": true,
+    "TRACK_E_EXECUTIVE_TRACEABILITY": true,
+    "ASI": true,
+    "RED_TEAM": true,
+    "child_rule_can_weaken_or_reorder": false,
+    "self_exemption_allowed": false
+  },
+  "source_strategy_boundaries": {
+    "source_count_is_not_goal": true,
+    "provider_list_is_not_strategy": true,
+    "whitelist_is_not_global_universe": true,
+    "priority_score_is_not_permission": true,
+    "external_raw_data_is_not_owned_moat": true
+  },
+  "change_control": {
+    "requires_kpmo_review": true,
+    "requires_contract_doc_registry_sync": true,
+    "requires_validator_pass": true,
+    "requires_version_increment": true
+  },
+  "public_release": "HOLD",
+  "production": "HOLD"
+}

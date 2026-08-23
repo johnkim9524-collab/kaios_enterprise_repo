@@ -1,0 +1,88 @@
+name: KIDULTS ASI Throughput Coverage Autobalance Live v1
+
+on:
+  schedule:
+    - cron: '47 * * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs'
+      - '.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-throughput-coverage-autobalance-live-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-autobalance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with: {node-version: '24'}
+      - name: Verify exact source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs
+      - name: Restore latest hourly gate artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/live-gates/raw /tmp/live-gates/canonical discovery-out/raw discovery-out
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            META_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false)][0].id // empty'
+            DISC_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-hourly-cycle-v1" and .expired==false)][0].id // empty'
+          else
+            META_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
+            DISC_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-hourly-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
+          fi
+          META_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$META_JQ")
+          DISC_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$DISC_JQ")
+          echo "META_ID=${META_ID:-NONE} DISC_ID=${DISC_ID:-NONE}"
+          test -n "$META_ID"
+          test -n "$DISC_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${META_ID}/zip" > /tmp/meta.zip
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISC_ID}/zip" > /tmp/disc.zip
+          unzip -q -o /tmp/meta.zip -d /tmp/live-gates/raw
+          unzip -q -o /tmp/disc.zip -d discovery-out/raw
+          for f in asi-gate1-safe-candidate-pool-v1.json asi-gate2-independent-reverification-v1.json asi-gate3-admission-runtime-v1.json asi-admitted-metadata-pool-v1.json; do
+            SRC=$(find /tmp/live-gates/raw -type f -name "$f" -print -quit)
+            test -n "$SRC"
+            cp "$SRC" "/tmp/live-gates/canonical/$f"
+          done
+          DISC_SRC=$(find discovery-out/raw -type f -name 'global-low-risk-discovery.json' -print -quit)
+          test -n "$DISC_SRC"
+          cp "$DISC_SRC" discovery-out/global-low-risk-discovery.json
+      - name: Build and validate live autobalance plan
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs \
+            discovery-out/global-low-risk-discovery.json \
+            /tmp/live-gates/canonical/asi-gate1-safe-candidate-pool-v1.json \
+            /tmp/live-gates/canonical/asi-gate2-independent-reverification-v1.json \
+            /tmp/live-gates/canonical/asi-gate3-admission-runtime-v1.json \
+            /tmp/live-gates/canonical/asi-admitted-metadata-pool-v1.json \
+            /tmp/asi-throughput-coverage-autobalance-live-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/asi-throughput-coverage-autobalance-live-v1.json
+      - name: Reject permission weakening mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/asi-throughput-coverage-autobalance-live-v1.json';const x=JSON.parse(fs.readFileSync(p));x.rules.rights_gate_can_never_be_weakened=false;fs.writeFileSync('/tmp/bad-live-autobalance.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/bad-live-autobalance.json; then exit 1; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-throughput-coverage-autobalance-live-v1
+          path: /tmp/asi-throughput-coverage-autobalance-live-v1.json
+          retention-days: 30
+          if-no-files-found: error
