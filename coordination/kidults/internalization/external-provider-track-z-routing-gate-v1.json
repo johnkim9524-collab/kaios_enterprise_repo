@@ -1,0 +1,14 @@
+{
+  "contract_id": "KIDULTS_EXTERNAL_PROVIDER_TRACK_Z_ROUTING_GATE_V1",
+  "parent_issues": [1182,1166,952,344,1153],
+  "objective": "Route every external-provider review through Track Z before KPMO and Founder decision, with fail-closed enforcement before outbound, activation, spend, contract or data acquisition.",
+  "scope": ["new_provider","new_provider_product","new_human_inbound","rights_or_contract_change","commercial_terms_change","api_feed_or_data_offer","pilot_or_trial_offer","credential_or_account_request","external_data_acquisition_request","provider_activation_request","renewal_or_expansion_request"],
+  "mandatory_route": ["TRACK_Z_REVIEW","KPMO_INTEGRATED_REPORT","FOUNDER_DECISION"],
+  "track_z_required_outputs": ["company_product_analysis","external_fact_internalization_split","abcde_dependency_classification","portfolio_priority","rights_assessment","economics_roi_assessment","lock_in_and_replacement_assessment","provider_removal_assessment","negotiation_objective","track_z_verdict"],
+  "track_z_verdicts": ["SEND","REVISE","HOLD","WAIT","NO_GO","INTERNALIZE_FIRST","PASS_FOR_BOUNDED_PILOT_REVIEW"],
+  "kpmo_required_outputs": ["whole_value_chain_impact","cross_track_conflict_check","canonical_truth_check","approval_boundary_check","founder_report"],
+  "founder_decision_required_for": ["external_contract_acceptance","eula_acceptance","external_spend","credential_activation","external_data_acquisition","provider_activation","production_or_public_promotion","g5"],
+  "fail_closed": {"track_z_review_missing":"BLOCK","track_z_verdict_missing":"BLOCK","kpmo_integrated_report_missing":"BLOCK","founder_report_missing":"BLOCK","material_rights_unknown":"HOLD","material_economics_unknown":"HOLD_OR_CLARIFY","provider_core_capture":"NO_GO","provider_removal_requires_product_rewrite":"NO_GO_OR_INTERNALIZE_FIRST","outbound_before_required_route":"BLOCK","activation_before_required_route":"BLOCK"},
+  "cross_track_rule": {"tracks":["A","B","C","D","E","ASI","SOURCE_POOL","INTEGRATION"],"may_supply_technical_input":true,"may_make_final_external_provider_decision":false,"must_route_external_provider_decision_to_track_z":true},
+  "non_bypass": {"contract":"EXPLICIT_FOUNDER_APPROVAL_REQUIRED","eula":"EXPLICIT_FOUNDER_APPROVAL_REQUIRED","spend":"EXPLICIT_FOUNDER_APPROVAL_REQUIRED","credential_activation":"EXPLICIT_FOUNDER_APPROVAL_REQUIRED","external_data_acquisition":"EXPLICIT_FOUNDER_APPROVAL_REQUIRED","production":"HOLD","public":"HOLD","g5":"EXPLICIT_FOUNDER_APPROVAL_REQUIRED"}
+}
