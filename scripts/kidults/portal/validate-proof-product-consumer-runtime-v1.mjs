@@ -111,7 +111,7 @@ for(const surface of ['PUBLIC_API_RESPONSE','EXPORT']){
 
 const report={
   suite:'KIDULTS_PROOF_PRODUCT_EXECUTABLE_CONSUMER_RUNTIME_V1',result:'PASS',assertions,
-  trigger_sha:process.env.GITHUB_SHA||'LOCAL',run_id:process.env.GITHUB_RUN_ID||'LOCAL',
+  trigger_sha:process.env.KIDULTS_EXACT_HEAD_SHA||process.env.GITHUB_SHA||'LOCAL',run_id:process.env.GITHUB_RUN_ID||'LOCAL',
   surfaces:['PORTAL_RENDER','PUBLIC_API_RESPONSE','EXPORT'],negative_mutations:mutations.length,
   actual_portal_path:'readPortalProjection -> proof-product admission -> NO_PROJECTION/INVALID -> render',
   trusted_clock:'CONTROL_PLANE_REQUIRED__BROWSER_CLOCK_REJECTED',assessment_identity:'EXACT_MATCH_AND_RECEIPT_BOUND',
