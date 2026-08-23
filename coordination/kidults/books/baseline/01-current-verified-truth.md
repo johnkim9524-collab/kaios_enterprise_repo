@@ -1,13 +1,14 @@
 # Baseline Book — Chapter 01: Current Verified Truth
 
-**As-of:** 2026-08-23 00:02 KST  
+**As-of:** 2026-08-23 09:03 KST  
 **Book:** Baseline Book  
 **Track:** KPMO / Tracks A–E  
 **Decision IDs:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`  
 **Snapshot ID:** N/A — no immutable Candidate/Evidence pair exists  
-**Protected main:** `789cd75e93c4bb1329fd9cd31156633b6ad8c855` after #1096  
+**Statement class:** VERIFIED CURRENT STATE — dated canonical read; absence remains missing, not zero  
+**Protected main:** `ea8bacc076ab228c3e7e334cd6cacbe86c3a3bdb` after #1108  
 **Gate state:** C1 established; C2 incomplete; Production/Public/G5 HOLD  
-**Evidence references:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1096
+**Evidence references:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113
 
 ## 1. Executive truth
 
@@ -77,16 +78,16 @@ The 720 reviewer-ready records and 360 blind candidates are preparation evidence
 
 ## 4. ASI status
 
-Protected main advanced through #1096. Global Any-Site metadata discovery, rolling pooling, conservative Gate 1 classification, independent Gate 2 reverification, bounded Gate 3 admission controls, autobalance steering and source-family classification have materially strengthened the future acquisition funnel.
+Protected main now includes #1106, #1113, #1107 and #1108. The verified current state is:
 
-These changes create:
+- governed Common Crawl public-index traversal remains pre-Gate 1 discovery;
+- a deterministic 256-shard metadata reserve and 100k **synthetic design-capacity** proof test control-path scale, not real source or market coverage;
+- hourly Common-Crawl-augmented Gate 1→Gate 2→Gate 3 rolling-pool v2 is on main; and
+- v1 retirement remains blocked until two distinct successful main-branch v2 cycle artifacts pass readiness.
 
-- broader candidate discovery;
-- clearer source-family and evidence-role classification;
-- safer steering and admission boundaries; and
-- better preparation for provider-independent acquisition.
+The required two-cycle proof has **not** been established. #1109–#1112 remain old-base/open and prior green cannot be reused as current-main proof.
 
-They do **not** create:
+These controls create broader, safer and more provider-independent candidate preparation. They do **not** create:
 
 - acquisition or display rights;
 - a lawfully admitted market observation;
@@ -120,7 +121,7 @@ No contract, credential activation, spend or EULA acceptance is inferred. Provid
 
 ## 7. Contradictions corrected in this chapter
 
-1. Canonical issue bodies that still cite `e8759fe…` after #1087 are historical snapshots; the current protected-main read is `789cd75…` after #1096.
+1. Historical SHA references remain dated snapshots; the current protected-main read is `ea8bacc0…` after #1108.
 2. Green checks on #1013 or #1074 are draft-head evidence, not protected-main or release authorization.
 3. Automated Portal QA is not final human acceptance.
 4. Candidate discovery and admission-control machinery are not empirical admission.
@@ -129,7 +130,7 @@ No contract, credential activation, spend or EULA acceptance is inferred. Provid
 
 ## 8. Evidence gaps requiring closure
 
-- lawful GRADED 120 and two genuine reviewer records;
+- lawful GRADED 120 and completed, attributable human-review records for the registered workload;
 - lawful collector-market dated-SOLD path;
 - one immutable Candidate/Evidence pair;
 - Track B exact-pair assessment;
@@ -155,7 +156,7 @@ No contract, credential activation, spend or EULA acceptance is inferred. Provid
 - **Master Book:** value claims are constrained to the current C1/C2 boundary.
 - **Architecture Book:** the system must fail closed at every absent evidence, rights, freshness, assessment and approval boundary.
 - **No Fourth Book:** preserved; operating reports and PR records remain evidence references, not another Book.
-- **Sync state:** ALIGNED TO PROTECTED MAIN AT READ.
+- **Sync state:** ALIGNED TO CANONICAL PROTECTED MAIN `ea8bacc0` AT 2026-08-23 09:03 KST.
 
 ## 11. Rollback
 
