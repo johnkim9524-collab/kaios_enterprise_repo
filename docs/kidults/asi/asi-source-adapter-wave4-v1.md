@@ -11,7 +11,7 @@ Wave 4 implements the final seven source-specific adapters and brings the regist
 ```text
 16 / 16 source-specific adapters implemented
 0 / 16 empirically activated
-0 Evidence admitted
+Evidence admitted: 0
 0 Market Events created
 ```
 
@@ -97,12 +97,12 @@ Remaining software adapter backlog              0
 Deterministic replays                            7
 Positive transaction/exposure fixtures           4
 Context-only classifications                     3
-Negative fixture mutations rejected        49 / 49
+49 / 49 negative fixture mutations rejected
 Generic Runtime bindings verified                4
 Live source snapshots verified                   0
 Rights-verified sources                          0
 Activated adapters                               0
-Evidence admitted                                0
+Evidence admitted: 0
 Market Events                                    0
 ```
 
