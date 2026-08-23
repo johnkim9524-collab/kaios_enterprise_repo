@@ -1,0 +1,22 @@
+{
+  "ledger_id": "KIDULTS_PROVIDER_REMOVAL_READINESS_LEDGER_V1",
+  "parent_issues": [1172,1166,1153,951,945],
+  "decision_as_of": "2026-08-24",
+  "providers": [
+    {"provider_id":"PSA","simulation_state":"NOT_RUN","reason":"NO_ACTIVE_APPROVED_PROVIDER_BINDING_OR_EMPIRICAL_DATA","required_before_long_term":["canonical_identity_continuity","methodology_continuity","confidence_provenance_continuity","historical_learning_continuity","replacement_path"]},
+    {"provider_id":"GEMRATE","simulation_state":"NOT_RUN","reason":"NO_ACTIVE_APPROVED_PROVIDER_BINDING_OR_EMPIRICAL_DATA","required_before_long_term":["canonical_identity_continuity","mapping_memory_independence","methodology_continuity","historical_learning_continuity","replacement_path"]},
+    {"provider_id":"CGC_CCG","simulation_state":"NOT_RUN","reason":"DEALER_API_RIGHTS_AND_ELIGIBILITY_PENDING","required_before_long_term":["canonical_identity_continuity","methodology_continuity","confidence_provenance_continuity","replacement_path"]},
+    {"provider_id":"ALT_FNDATA","simulation_state":"NOT_RUN","reason":"RIGHTS_ECONOMICS_AND_APPROVED_BINDING_PENDING","required_before_long_term":["market_event_continuity","comparables_continuity","liquidity_methodology_continuity","replacement_path"]},
+    {"provider_id":"CLASSIC_COM","simulation_state":"NOT_RUN","reason":"RIGHTS_ECONOMICS_AND_APPROVED_BINDING_PENDING","required_before_long_term":["market_event_continuity","collector_car_comparable_continuity","methodology_continuity","replacement_path"]},
+    {"provider_id":"LIVEART","simulation_state":"NOT_RUN","reason":"SUBSTANTIVE_REPLY_AND_APPROVED_BINDING_PENDING","required_before_long_term":["market_event_continuity","ontology_continuity","comparables_continuity","replacement_path"]},
+    {"provider_id":"HAGERTY","simulation_state":"NOT_RUN","reason":"HUMAN_SUBSTANTIVE_REPLY_AND_APPROVED_BINDING_PENDING","required_before_long_term":["market_event_continuity","valuation_methodology_independence","replacement_path"]}
+  ],
+  "rules": {
+    "not_run_may_be_promoted_to_pass": false,
+    "provider_marketing_may_substitute_for_simulation": false,
+    "platform_rewrite_required": "FAIL",
+    "raw_provider_payload_required_for_kidults_core_continuity": "FAIL",
+    "long_term_partnership_without_removal_pass": "HOLD"
+  },
+  "non_bypass": {"contract":"EXPLICIT_APPROVAL_REQUIRED","spend":"EXPLICIT_APPROVAL_REQUIRED","credential_activation":"EXPLICIT_APPROVAL_REQUIRED","production":"HOLD","g5":"EXPLICIT_APPROVAL_REQUIRED"}
+}
