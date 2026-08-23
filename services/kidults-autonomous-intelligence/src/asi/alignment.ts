@@ -1,14 +1,17 @@
 import type { AsiEventEnvelope } from './event';
 import {
+  ASI_ENGINE_ALIGNMENT_PROFILE as REGISTERED_ALIGNMENT_PROFILE,
+  ASI_ENGINE_ALIGNMENT_STATE,
   ASI_FLEET_BY_ID,
   ASI_PLATFORM_PRINCIPLES,
+  asiLogicalEngineForFleet,
   type AsiFleetId,
   type AsiLogicalEngineId,
   type AsiPlatformPrinciple,
 } from './registry';
 
 export const ASI_ENGINE_ALIGNMENT_POLICY_VERSION = 'kidults-asi-engine-refactoring-contract-v2@2.0.0' as const;
-export const ASI_ENGINE_ALIGNMENT_PROFILE = 'FOUR_PRINCIPLE_HARD_FLOOR_V2' as const;
+export const ASI_ENGINE_ALIGNMENT_PROFILE = REGISTERED_ALIGNMENT_PROFILE;
 export const ASI_ENGINE_ALIGNMENT_POLICY_DIGEST =
   'sha256:e8fa4231fe0e282da94c54c65b79b88d3f20638f236237d81c8e9fb6272b3c35' as const;
 
@@ -43,7 +46,7 @@ export interface AsiEngineAlignmentPreflightReceipt {
   production: 'HOLD';
 }
 
-export interface AsiEngineAlignmentReceipt extends AsiEngineAlignmentPreflightReceipt {
+export interface AsiEngineAlignmentReceipt extends Omit<AsiEngineAlignmentPreflightReceipt, 'receipt_type'> {
   receipt_type: 'ASI_ENGINE_ALIGNMENT_RESULT_V2';
   output_event_id: string;
   output_payload_hash: string;
@@ -53,7 +56,7 @@ export interface AsiEngineAlignmentReceipt extends AsiEngineAlignmentPreflightRe
 const NON_EMPTY = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const RIGHTS = new Set(['ALLOW', 'DENY', 'UNKNOWN', 'NOT_APPLICABLE']);
-const FRESHNESS = new Set(['CURRENT', 'STALE', 'UNKNOWN', 'NOT_APPLICABLE']);
+const FRESHNESS = new Set(['CURRENT', 'STALE', 'EXPIRED', 'UNKNOWN']);
 const DECISIONS = new Set(['PASS', 'HOLD', 'REJECT', 'NOT_APPLICABLE', null]);
 
 function canonicalValue(value: unknown, seen = new Set<object>()): unknown {
@@ -131,15 +134,16 @@ export async function evaluateAsiExecutionAlignment(
 ): Promise<AsiEngineAlignmentPreflightReceipt> {
   const fleet = ASI_FLEET_BY_ID.get(fleetId);
   if (!fleet) throw new Error(`ASI_ENGINE_ALIGNMENT_PROFILE_MISSING:${fleetId}`);
-  if (fleet.alignmentProfile !== ASI_ENGINE_ALIGNMENT_PROFILE || fleet.alignmentState !== 'ENFORCED') {
+  if (ASI_ENGINE_ALIGNMENT_PROFILE !== 'FOUR_PRINCIPLE_HARD_FLOOR_V2' || ASI_ENGINE_ALIGNMENT_STATE !== 'ENFORCED') {
     throw new Error(`ASI_ENGINE_ALIGNMENT_PROFILE_NOT_ENFORCED:${fleetId}`);
   }
+  const logicalEngine = asiLogicalEngineForFleet(fleetId);
 
   const payload = record(event.payload);
   const partition = event.partition;
   const autonomous = result('AUTONOMOUS', [
     ['AUTONOMOUS_FLEET_REGISTERED', true],
-    ['AUTONOMOUS_LOGICAL_ENGINE_BOUND', NON_EMPTY(fleet.logicalEngine)],
+    ['AUTONOMOUS_LOGICAL_ENGINE_BOUND', NON_EMPTY(logicalEngine)],
     ['AUTONOMOUS_EXPLICIT_TARGET_ROUTING_ABSENT', payload.target_fleet === undefined],
     ['AUTONOMOUS_PRODUCTION_SIDE_EFFECT_NOT_REQUESTED', payload.production_authorized !== true],
     ['AUTONOMOUS_PUBLIC_SIDE_EFFECT_NOT_REQUESTED', payload.public_projection_authorized !== true],
@@ -155,7 +159,7 @@ export async function evaluateAsiExecutionAlignment(
   const irreplaceable = result('IRREPLACEABLE_VALUE', [
     ['IRREPLACEABLE_SOURCE_IDENTITY_PRESENT', sourceIdentityPresent(event)],
     ['IRREPLACEABLE_PROVIDER_DIRECT_PATH_FORBIDDEN', !providerBypassRequested(payload)],
-    ['IRREPLACEABLE_KIDULTS_LOGICAL_ENGINE_BOUND', NON_EMPTY(fleet.logicalEngine)],
+    ['IRREPLACEABLE_KIDULTS_LOGICAL_ENGINE_BOUND', NON_EMPTY(logicalEngine)],
     ['IRREPLACEABLE_EXTERNAL_COLLECTION_NOT_AUTHORIZED', payload.content_collection_authorized !== true && payload.external_collection_execution_authorized !== true],
   ]);
   const transparent = result('TRANSPARENT', [
@@ -181,7 +185,7 @@ export async function evaluateAsiExecutionAlignment(
     policy_digest: ASI_ENGINE_ALIGNMENT_POLICY_DIGEST,
     profile: ASI_ENGINE_ALIGNMENT_PROFILE,
     fleet_id: fleet.id,
-    logical_engine_id: fleet.logicalEngine,
+    logical_engine_id: logicalEngine,
     stage: fleet.stage,
     input_event_id: event.event_id,
     input_snapshot_ref: event.input_snapshot_ref,
