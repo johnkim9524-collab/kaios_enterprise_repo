@@ -1,0 +1,56 @@
+{
+  "contract_id": "KIDULTS_PROVIDER_OPERATING_ADMISSION_GATE_V1",
+  "parent_issues": [1171,1166,1153,952,894,769],
+  "objective": "Prevent provider activation or partnership promotion unless source rights, owned-core boundaries, economics and exit continuity are jointly acceptable.",
+  "required_inputs": [
+    "provider_rights_decision_gate_v1",
+    "rights_intelligence_policy_v1",
+    "provider_economics_contract_v1",
+    "provider_internalization_matrix_v1",
+    "provider_removal_simulation_contract_v1",
+    "minimum_external_dependency_negotiation_contract_v1"
+  ],
+  "decision_order": [
+    "WRITTEN_RIGHTS",
+    "CORE_PROTECTION",
+    "INTERNALIZATION_BOUNDARY",
+    "REMOVAL_CONTINUITY",
+    "ECONOMICS_ROI",
+    "PORTFOLIO_PRIORITY"
+  ],
+  "decision_states": ["PASS_FOR_BOUNDED_PILOT","HOLD","NO_GO","INTERNALIZE_FIRST"],
+  "laws": {
+    "unknown_or_incomplete_material_rights": "HOLD",
+    "prohibited_dependency_present": "NO_GO",
+    "internalize_now_function_requested_as_external_core": "INTERNALIZE_FIRST",
+    "provider_removal_requires_product_rewrite": "NO_GO",
+    "economics_unknown_after_rights_pass": "HOLD",
+    "all_gates_pass": "PASS_FOR_BOUNDED_PILOT"
+  },
+  "activation_requirements": {
+    "legacy_rights_gate_pass_required_where_applicable": true,
+    "rights_intelligence_pass_required": true,
+    "core_capture_count_must_equal": 0,
+    "prohibited_dependency_count_must_equal": 0,
+    "removal_continuity_pass_required": true,
+    "economics_recommendation_required": true,
+    "program_owner_spend_approval_required_if_paid": true
+  },
+  "provider_baseline": {
+    "PSA": "HOLD",
+    "GEMRATE": "HOLD",
+    "CGC_CCG": "HOLD",
+    "ALT_FNDATA": "HOLD",
+    "CLASSIC_COM": "HOLD",
+    "LIVEART": "HOLD",
+    "HAGERTY": "HOLD"
+  },
+  "non_bypass": {
+    "contract_acceptance": "EXPLICIT_APPROVAL_REQUIRED",
+    "external_spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "public_intelligence": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
