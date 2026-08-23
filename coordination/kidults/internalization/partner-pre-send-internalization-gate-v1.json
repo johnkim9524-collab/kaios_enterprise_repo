@@ -1,0 +1,48 @@
+{
+  "contract_id": "KIDULTS_PARTNER_PRE_SEND_INTERNALIZATION_GATE_V1",
+  "parent_issues": [1171,1166,1152,952,1153],
+  "objective": "Make GitHub-first whole-product and internalization analysis a mandatory precondition for provider outbound communication.",
+  "required_checks": [
+    "latest_human_inbound_read",
+    "inbound_outbound_timestamp_compared",
+    "duplicate_question_check",
+    "github_945_read",
+    "github_951_read",
+    "github_952_read",
+    "github_1152_read",
+    "github_1166_read",
+    "provider_specific_issue_read",
+    "company_analysis_complete",
+    "product_analysis_complete",
+    "portfolio_priority_complete",
+    "cost_roi_complete_or_unknown_explicit",
+    "rights_status_complete_or_unknown_explicit",
+    "external_fact_internalization_split_complete",
+    "internalize_now_plan_complete",
+    "replacement_path_complete",
+    "negotiation_objective_defined",
+    "korean_internal_report_completed",
+    "outbound_necessary"
+  ],
+  "decision_states": ["SEND_ELIGIBLE","DO_NOT_SEND","ANALYSIS_REQUIRED","WAIT"],
+  "fail_closed": {
+    "any_required_check_false": "DO_NOT_SEND",
+    "material_analysis_missing": "ANALYSIS_REQUIRED",
+    "newer_human_inbound_unread": "DO_NOT_SEND",
+    "duplicate_followup": "DO_NOT_SEND",
+    "provider_core_capture_requested": "DO_NOT_SEND",
+    "no_strategic_need_to_reply": "WAIT"
+  },
+  "written_negotiation": {
+    "preferred": true,
+    "reason": "ACCURATE_RIGHTS_AND_COMMERCIAL_TERMS_AND_AUDITABLE_RECORD",
+    "english_not_native_language_disclosure_permitted": true
+  },
+  "non_bypass": {
+    "spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "contract": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
