@@ -3,11 +3,11 @@
 **판본 일자:** 2026-08-23 KST  
 **도서:** Intelligence Holdings Master Book  
 **트랙:** KPMO / Enterprise Strategy / Product / Brand  
-**의사결정 ID:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`; `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` (PROPOSAL / Draft #1118)  
+**의사결정 ID:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`; `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` (MERGED_VERIFIED / protected main `1109a98c…`)  
 **Snapshot ID:** N/A — 전략 장이며 데이터 Snapshot 또는 시장 성과를 주장하지 않음  
 **문장 분류:** TARGET / GOVERNING DOCTRINE — 현재의 실증·시장지위·법인명 확정 주장이 아닌 기업 전략  
 **현재 검증 경계:** KIDULTS program C1; C2 미완료; Production/Public/G5 HOLD  
-**Evidence 참조:** 기존 Master Book Chapter 1–3 KO/EN; 기존 Enterprise Baseline Chapter 1–3 KO/EN; EVIA Canon Edition 1.0 Volume 3; #235, #236, #237, #238, #240, #256, #1061, #1117, Draft #1118; protected main `d050d8b993929a883298e7cb90ea22bc97ec6ae1`
+**Evidence 참조:** 기존 Master Book Chapter 1–3 KO/EN; 기존 Enterprise Baseline Chapter 1–3 KO/EN; EVIA Canon Edition 1.0 Volume 3; #235, #236, #237, #238, #240, #256, #1061, #1117, protected main Constitution commit; protected main `1109a98ce4cbdd68953d913fbddfb3b803809a0a`
 
 ## 1. Executive Thesis
 
@@ -126,7 +126,7 @@ Intelligence Holdings와 그 Platform은 다음 네 원칙을 이 순서대로 �
 
 그러나 자동화는 Evidence를 만들거나 Rights를 추론하거나 더 강한 상태를 자체 승인하는 권한이 아니다. 계약·비용·Credential·Trust root·Public release·Production/G5처럼 명시적 인간 Authority가 필요한 Gate는 계속 닫혀 있다.
 
-현재 #1117의 AI honesty/transparency governance는 protected main에서 `MERGED_VERIFIED`다. 네 운영원칙과 위 자동 실행 계약은 Draft #1118의 `IMPLEMENTED_NOT_VERIFIED` 상태이며, 실제 main-triggered Artifact와 KPMO Receipt가 검증되기 전에는 운영 완료로 표현하지 않는다.
+Protected main `1109a98c…`는 네 운영원칙을 최상위 Platform Constitution으로 고정하고 모든 Track·AI Agent·Workflow·Runtime의 상속, 자동 Scale Wave trigger와 manual-only 정상운영 금지를 `MERGED_VERIFIED` 상태로 결속한다. 다만 특정 실행이 성공했다는 주장은 해당 main SHA에 결속된 immutable Artifact와 KPMO governed Receipt가 검증될 때만 성립한다.
 
 ## 8. 기업 구조
 
@@ -240,6 +240,9 @@ KIDULTS의 현재 성숙도는 C1이며 C2는 미완료다. GRADED population 0/
 6. Provider 교체 가능성과 Strategic optionality를 높이는가.
 7. Manual dependency를 줄이면서 관측·복구 가능성을 높이는가.
 8. 장기 기업가치와 Irreplaceable Value의 Evidence를 축적하는가.
+9. 모든 중대한 변경·산출물이 `autonomous_effect`, `global_effect`, `irreplaceable_value_effect`, `transparency_effect`를 Evidence와 함께 기록하는가.
+
+네 효과 중 하나라도 `UNKNOWN`이면 해당 변경은 `COMPLETE_VERIFIED` 또는 완전한 Platform alignment를 주장할 수 없다. 부정적 효과는 명시적인 governed exception 없이는 묵시적으로 교환할 수 없다.
 
 ## 14. Decision Mapping
 
@@ -248,7 +251,7 @@ KIDULTS의 현재 성숙도는 C1이며 C2는 미완료다. GRADED population 0/
 | 기존 Intelligence Holdings Master Book Chapter 1–3 | 기업 정체성, Intelligence Economy와 Knowledge Capital Doctrine의 공식 원전 | 과거 상태·명칭·수치는 현재 사실로 자동 승격하지 않음 |
 | `KIDULTS-POSITIONING-V1-20260822` | KIDULTS category, audience, product family와 value proposition | Live claim 또는 launch approval 없음 |
 | `KIDULTS-COMPETITIVENESS-V1-20260822` | Governed Decision Layer와 maturity path | Traction, 우위 또는 C2를 생성하지 않음 |
-| `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` | 네 최상위 원칙과 Autonomous closed loop | Draft #1118; current main authority 아님 |
+| `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` | 네 최상위 원칙, Constitution inheritance, 네 효과 metadata와 Autonomous closed loop | protected main `1109a98c…`; 개별 run 성공은 Artifact·Receipt 필요 |
 | #239 Three-Book Governance / Coordination Hub Rule 11 | Master, Baseline, Architecture만 공식 Book으로 유지 | No Fourth Book |
 
 ## 15. 원전 승계 및 편집 기준
@@ -276,7 +279,7 @@ Cross-Book 원전:
 - **Enterprise Baseline Book:** 기업 전체를 아는 척하지 않는다. 현재 Canonical Evidence가 확보된 KIDULTS 실행 슬라이스의 사실·결손·Gate를 명시하고 다른 영역은 `UNKNOWN`으로 유지한다.
 - **Enterprise Architecture Book:** EVIA Canon을 기업 Architecture 원전으로 유지하고 KIDULTS의 Source→Evidence→Projection 구조와 Autonomous Scale Wave를 bounded implementation profile로 연결한다.
 - **No Fourth Book:** 유지한다. Workflow, Runbook, Registry, Receipt와 Decision record는 세 Book의 Evidence이지 별도 Book이 아니다.
-- **Sync state:** `ALIGNED TO CANONICAL PROTECTED MAIN d050d8b9 AT 2026-08-23 11:08 KST; PLATFORM PRINCIPLES AND AUTONOMOUS SCALE WAVE PROPOSED IN DRAFT #1118`.
+- **Sync state:** `ALIGNED TO CANONICAL PROTECTED MAIN 1109a98c AT 2026-08-23 11:08 KST; PLATFORM CONSTITUTION v1.1 MERGED; PER-RUN SCALE WAVE OUTCOME REQUIRES IMMUTABLE ARTIFACT AND KPMO RECEIPT`.
 
 ## 17. Rollback
 
