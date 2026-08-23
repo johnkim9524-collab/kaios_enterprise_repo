@@ -9,6 +9,18 @@
 **Gate 상태:** C1 확립; C2 미완료; Production/Public/G5 HOLD  
 **증거 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116, #1117, Platform Constitution commit; protected main `1109a98ce4cbdd68953d913fbddfb3b803809a0a`
 
+
+## Platform Constitution Effect Receipt
+
+| 필수 메타데이터 | 이 장의 효과 | Evidence와 경계 |
+|---|---|---|
+| `autonomous_effect` | `POSITIVE` | protected-main trigger, immutable Artifact, KPMO Receipt, recovery와 human gate를 하나의 architecture contract로 결속함 |
+| `global_effect` | `NEUTRAL_WITH_EVIDENCE` | global schema·jurisdiction 경계를 설계하지만 실제 geographic/language coverage 달성을 주장하지 않음 |
+| `irreplaceable_value_effect` | `POSITIVE` | Provider-switchable Core, canonical graph, methodology, Projection과 decision history를 기업 소유의 누적 구조로 고정함 |
+| `transparency_effect` | `POSITIVE` | TARGET EVIA Canon과 KIDULTS VERIFIED implementation profile, rights·missing·limitation·rollback을 분리함 |
+
+이 평가는 Architecture와 문서 변경에 한정되며 Production readiness 또는 live Projection을 입증하지 않는다.
+
 ## 1. Enterprise Architecture Canon과 적용 범위
 
 이 책은 John이 전달한 `EVIA Canon Edition 1.0 — Volume 3 Enterprise Architecture Book`을 Intelligence Holdings의 공식 선행 아키텍처 원전으로 승계한다. EVIA의 전사 흐름, Layer·Contract 경계, Asset lifecycle, Explainability, Autonomous Operating Model과 Recovery discipline은 목표 기업 아키텍처의 기준이다.
