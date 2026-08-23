@@ -11,6 +11,7 @@ const FAIL_CLOSED_INVALIDATION_STATES = new Set([
   'INVALIDATED',
   'HOLD_RECOMPUTE_REQUIRED'
 ]);
+const TRUSTED_RECOVERY_CHECKPOINT_SOURCE = 'CONTROL_PLANE';
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
@@ -36,11 +37,28 @@ function digestTombstone(tombstone) {
   return sha256(body);
 }
 
-function makeLedger(recoveryEpoch = 7) {
+function digestRecoveryCheckpoint(checkpoint) {
+  const body = structuredClone(checkpoint);
+  delete body.checkpoint_digest;
+  return sha256(body);
+}
+
+function digestDataSnapshot(snapshot) {
+  const body = structuredClone(snapshot);
+  delete body.snapshot_digest;
+  return sha256(body);
+}
+
+function makeLedger(recoveryEpoch = 7, {
+  ledgerId = 'kidults-destructive-ledger-v1',
+  recoveryDomainId = 'kidults-prepartner-intake'
+} = {}) {
   return {
     synthetic: true,
     promotable: false,
     empirical_gate_effect: 'NONE',
+    ledger_id: ledgerId,
+    recovery_domain_id: recoveryDomainId,
     recovery_epoch: recoveryEpoch,
     events: [],
     consumed_destructive_event_ids: [],
@@ -91,6 +109,8 @@ function validateLedger(ledger, { minimumRecoveryEpoch = 0, minimumSequence = 0 
   assert(ledger?.synthetic === true, 'durable replay proof must be synthetic');
   assert(ledger?.promotable === false, 'durable replay proof must remain non-promotable');
   assert(ledger?.empirical_gate_effect === 'NONE', 'durable replay proof cannot affect empirical gates');
+  assert(typeof ledger.ledger_id === 'string' && ledger.ledger_id.length > 0, 'durable ledger id required');
+  assert(typeof ledger.recovery_domain_id === 'string' && ledger.recovery_domain_id.length > 0, 'durable recovery domain id required');
   assert(Number.isInteger(ledger.recovery_epoch) && ledger.recovery_epoch >= minimumRecoveryEpoch, 'recovery epoch rollback detected');
   assert(Array.isArray(ledger.events), 'events array required');
   assert(Array.isArray(ledger.consumed_destructive_event_ids), 'consumed destructive event IDs required');
@@ -231,11 +251,68 @@ function restoreLedger(serialized, requirements = {}) {
   return restored;
 }
 
-function recoverDataSnapshot(snapshot, ledger) {
+function eventDigestAtSequence(ledger, sequence) {
+  assert(Number.isInteger(sequence) && sequence >= 0, 'snapshot ledger sequence invalid');
+  assert(sequence <= ledger.events.length, 'snapshot ledger sequence exceeds durable ledger');
+  return sequence === 0 ? 'GENESIS' : ledger.events[sequence - 1].event_digest;
+}
+
+function makeRecoveryCheckpoint(ledger, sequence = ledger.events.length) {
+  validateLedger(ledger);
+  const checkpoint = {
+    trusted_source: TRUSTED_RECOVERY_CHECKPOINT_SOURCE,
+    ledger_id: ledger.ledger_id,
+    recovery_domain_id: ledger.recovery_domain_id,
+    minimum_recovery_epoch: ledger.recovery_epoch,
+    ledger_sequence_at_capture: sequence,
+    ledger_event_digest_at_capture: eventDigestAtSequence(ledger, sequence)
+  };
+  checkpoint.checkpoint_digest = digestRecoveryCheckpoint(checkpoint);
+  return checkpoint;
+}
+
+function makeDataSnapshot(ledger, objectStates, sequence = ledger.events.length) {
+  const checkpoint = makeRecoveryCheckpoint(ledger, sequence);
+  const snapshot = {
+    synthetic: true,
+    promotable: false,
+    empirical_gate_effect: 'NONE',
+    minimum_recovery_epoch: checkpoint.minimum_recovery_epoch,
+    ledger_sequence_at_capture: checkpoint.ledger_sequence_at_capture,
+    recovery_checkpoint: checkpoint,
+    object_states: structuredClone(objectStates)
+  };
+  snapshot.snapshot_digest = digestDataSnapshot(snapshot);
+  return snapshot;
+}
+
+function validateSnapshotLedgerBinding(snapshot, ledger) {
+  assert(snapshot?.synthetic === true, 'recovery data snapshot must be synthetic');
+  assert(snapshot?.promotable === false, 'recovery data snapshot must remain non-promotable');
+  assert(snapshot?.empirical_gate_effect === 'NONE', 'recovery data snapshot cannot affect empirical gates');
+  assert(snapshot.snapshot_digest === digestDataSnapshot(snapshot), 'recovery data snapshot digest mismatch');
+
+  const checkpoint = snapshot.recovery_checkpoint;
+  assert(checkpoint && typeof checkpoint === 'object', 'trusted recovery checkpoint required');
+  assert(checkpoint.trusted_source === TRUSTED_RECOVERY_CHECKPOINT_SOURCE, 'recovery checkpoint untrusted source');
+  assert(checkpoint.checkpoint_digest === digestRecoveryCheckpoint(checkpoint), 'recovery checkpoint digest mismatch');
+  assert(checkpoint.minimum_recovery_epoch === snapshot.minimum_recovery_epoch, 'snapshot/checkpoint recovery epoch mismatch');
+  assert(checkpoint.ledger_sequence_at_capture === snapshot.ledger_sequence_at_capture, 'snapshot/checkpoint ledger sequence mismatch');
+
   validateLedger(ledger, {
-    minimumRecoveryEpoch: snapshot.minimum_recovery_epoch,
-    minimumSequence: snapshot.ledger_sequence_at_capture
+    minimumRecoveryEpoch: checkpoint.minimum_recovery_epoch,
+    minimumSequence: checkpoint.ledger_sequence_at_capture
   });
+
+  assert(checkpoint.ledger_id === ledger.ledger_id, 'recovery ledger identity mismatch');
+  assert(checkpoint.recovery_domain_id === ledger.recovery_domain_id, 'recovery domain mismatch');
+  const prefixDigest = eventDigestAtSequence(ledger, checkpoint.ledger_sequence_at_capture);
+  assert(prefixDigest === checkpoint.ledger_event_digest_at_capture, 'recovery ledger prefix fork detected');
+  return true;
+}
+
+function recoverDataSnapshot(snapshot, ledger) {
+  validateSnapshotLedgerBinding(snapshot, ledger);
   const next = structuredClone(snapshot);
   for (const tombstone of ledger.tombstones) {
     if (!(tombstone.object_id in next.object_states)) continue;
@@ -274,15 +351,11 @@ const invalidatedStates = {
   'portal-eos-1': 'HOLD_RECOMPUTE_REQUIRED'
 };
 
-const preEventSnapshot = {
-  synthetic: true,
-  promotable: false,
-  minimum_recovery_epoch: 7,
-  ledger_sequence_at_capture: 0,
-  object_states: Object.fromEntries(Object.keys(invalidatedStates).map(id => [id, 'ACTIVE']))
-};
+const activeObjectStates = Object.fromEntries(Object.keys(invalidatedStates).map(id => [id, 'ACTIVE']));
 
 const durable = makeLedger(7);
+const preEventSnapshot = makeDataSnapshot(durable, activeObjectStates, 0);
+
 appendDestructiveEvent(durable, {
   audit_event_id: 'audit-delete-1',
   destructive_event_id: 'destructive-delete-1',
@@ -306,6 +379,78 @@ expectFailure('fresh_process_duplicate_destructive_event', () => {
 const recovered = recoverDataSnapshot(preEventSnapshot, restored);
 for (const [objectId, expected] of Object.entries(invalidatedStates)) {
   assert(recovered.object_states[objectId] === expected, `recovery did not reapply durable tombstone: ${objectId}`);
+}
+
+// A same/higher-epoch internally valid but foreign/forked ledger may never satisfy a snapshot restore.
+const foreignLedger = makeLedger(7, {
+  ledgerId: 'foreign-ledger-v1',
+  recoveryDomainId: durable.recovery_domain_id
+});
+appendBenignAuditEvent(foreignLedger, { audit_event_id: 'foreign-audit-1' });
+appendBenignAuditEvent(foreignLedger, { audit_event_id: 'foreign-audit-2' });
+expectFailure('foreign_clean_ledger_cannot_resurrect_revoked_state', () => {
+  recoverDataSnapshot(preEventSnapshot, foreignLedger);
+});
+
+const foreignDomainLedger = makeLedger(7, {
+  ledgerId: durable.ledger_id,
+  recoveryDomainId: 'foreign-recovery-domain'
+});
+appendBenignAuditEvent(foreignDomainLedger, { audit_event_id: 'foreign-domain-audit-1' });
+expectFailure('foreign_recovery_domain_rejected', () => {
+  recoverDataSnapshot(preEventSnapshot, foreignDomainLedger);
+});
+
+// A later snapshot must pin the exact prior ledger prefix, not merely its sequence/epoch.
+const prefixLedger = makeLedger(7, {
+  ledgerId: 'prefix-ledger-v1',
+  recoveryDomainId: 'prefix-domain'
+});
+appendBenignAuditEvent(prefixLedger, { audit_event_id: 'prefix-audit-1', action: 'RECOVERY_CHECKPOINT' });
+const prefixSnapshot = makeDataSnapshot(prefixLedger, activeObjectStates, 1);
+const forkedPrefixLedger = makeLedger(7, {
+  ledgerId: prefixLedger.ledger_id,
+  recoveryDomainId: prefixLedger.recovery_domain_id
+});
+appendBenignAuditEvent(forkedPrefixLedger, { audit_event_id: 'fork-audit-1', action: 'DIFFERENT_BENIGN_EVENT' });
+appendBenignAuditEvent(forkedPrefixLedger, { audit_event_id: 'fork-audit-2' });
+expectFailure('same_identity_same_epoch_forked_prefix_rejected', () => {
+  recoverDataSnapshot(prefixSnapshot, forkedPrefixLedger);
+});
+
+const snapshotBindingMutations = [
+  ['snapshot_checkpoint_missing', snapshot => {
+    delete snapshot.recovery_checkpoint;
+    snapshot.snapshot_digest = digestDataSnapshot(snapshot);
+  }],
+  ['snapshot_checkpoint_untrusted_source', snapshot => {
+    snapshot.recovery_checkpoint.trusted_source = 'PAYLOAD';
+    snapshot.recovery_checkpoint.checkpoint_digest = digestRecoveryCheckpoint(snapshot.recovery_checkpoint);
+    snapshot.snapshot_digest = digestDataSnapshot(snapshot);
+  }],
+  ['snapshot_checkpoint_digest_tamper', snapshot => {
+    snapshot.recovery_checkpoint.ledger_event_digest_at_capture = 'forged-prefix';
+    snapshot.snapshot_digest = digestDataSnapshot(snapshot);
+  }],
+  ['snapshot_ledger_id_rebound', snapshot => {
+    snapshot.recovery_checkpoint.ledger_id = 'foreign-ledger-v1';
+    snapshot.recovery_checkpoint.checkpoint_digest = digestRecoveryCheckpoint(snapshot.recovery_checkpoint);
+    snapshot.snapshot_digest = digestDataSnapshot(snapshot);
+  }],
+  ['snapshot_recovery_domain_rebound', snapshot => {
+    snapshot.recovery_checkpoint.recovery_domain_id = 'foreign-domain';
+    snapshot.recovery_checkpoint.checkpoint_digest = digestRecoveryCheckpoint(snapshot.recovery_checkpoint);
+    snapshot.snapshot_digest = digestDataSnapshot(snapshot);
+  }],
+  ['snapshot_sequence_rebound', snapshot => {
+    snapshot.ledger_sequence_at_capture = 1;
+    snapshot.snapshot_digest = digestDataSnapshot(snapshot);
+  }]
+];
+for (const [id, mutate] of snapshotBindingMutations) {
+  const snapshot = structuredClone(preEventSnapshot);
+  mutate(snapshot);
+  expectFailure(id, () => recoverDataSnapshot(snapshot, restored));
 }
 
 const mutations = [
@@ -368,7 +513,9 @@ const mutations = [
     const event = ledger.events[0];
     event.affected_objects = event.affected_objects.filter(id => id !== 'claim-1');
     resignEventChain(ledger, 0);
-  }, {}]
+  }, {}],
+  ['ledger_identity_missing', ledger => { delete ledger.ledger_id; }, {}],
+  ['recovery_domain_missing', ledger => { delete ledger.recovery_domain_id; }, {}]
 ];
 
 for (const [id, mutate, requirements] of mutations) {
@@ -379,8 +526,8 @@ for (const [id, mutate, requirements] of mutations) {
 
 console.log(JSON.stringify({
   suite: 'KIDULTS_DESTRUCTIVE_LIFECYCLE_RECOVERY_MONOTONICITY_V1',
-  governing_issue: 979,
-  predecessor_issue: 977,
+  governing_issue: 1060,
+  predecessor_issue: 979,
   parent_pre_partner_gate: 881,
   result: 'PASS',
   durable_destructive_event_replay_index: true,
@@ -392,6 +539,11 @@ console.log(JSON.stringify({
   promotable_invalidation_state_fail_closed: true,
   recovery_epoch_monotonic: true,
   append_only_sequence_digest_chain_validated: true,
+  snapshot_to_ledger_identity_bound: true,
+  recovery_domain_bound: true,
+  captured_ledger_prefix_digest_bound: true,
+  foreign_or_forked_ledger_restore_rejected: true,
+  snapshot_binding_mutations_fail_closed: snapshotBindingMutations.length,
   mutation_cases_fail_closed: mutations.length,
   empirical_gate_effect: 'NONE',
   external_partner_data_ingestion: 'HOLD',

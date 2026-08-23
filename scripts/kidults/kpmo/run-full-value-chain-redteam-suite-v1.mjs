@@ -19,13 +19,18 @@ const secretBoundaryValidators = [
 const truthScopeValidators = [
   'scripts/kidults/kpmo/validate-scoped-certification-truth-boundary-v1.mjs'
 ];
+const trustRootMigrationRegressionValidators = [
+  'scripts/kidults/kpmo/validate-trusted-control-dependency-closure-v1.mjs'
+];
 const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs',
+  'scripts/kidults/audit/validate-pre-partner-adversarial-fixture-semantic-binding-v1.mjs',
   'scripts/kidults/audit/validate-rights-withdrawal-transitive-invalidation-v1.mjs',
   'scripts/kidults/audit/validate-destructive-lifecycle-recovery-monotonicity-v1.mjs',
+  'scripts/kidults/audit/validate-recovery-authority-anchor-v1.mjs',
   'scripts/kidults/audit/validate-destructive-canonical-suppression-v1.mjs'
 ];
 const rightsBoundaryValidators = [
@@ -57,6 +62,7 @@ const validators = [...new Set([
   ...repositoryMutationBoundaryValidators,
   ...secretBoundaryValidators,
   ...truthScopeValidators,
+  ...trustRootMigrationRegressionValidators,
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
@@ -106,13 +112,18 @@ console.log(JSON.stringify({
   privileged_manual_secret_lane_issue: 974,
   scoped_certification_truth_boundary_machine_bound: true,
   scoped_certification_truth_boundary_validators: truthScopeValidators.length,
+  trust_root_migration_dependency_closure_regression_machine_bound: true,
+  trust_root_migration_dependency_closure_validators: trustRootMigrationRegressionValidators.length,
   pre_partner_intake_gate_machine_bound: true,
   pre_partner_certification_machine_bound: true,
   pre_partner_control_families: 12,
   pre_partner_required_controls_exactly_bound: true,
   pre_partner_control_removal_mutation_selftest: true,
+  pre_partner_adversarial_fixture_semantic_binding_machine_bound: true,
   pre_partner_transitive_invalidation_machine_bound: true,
   pre_partner_durable_destructive_replay_machine_bound: true,
+  pre_partner_recovery_authority_anchor_machine_bound: true,
+  pre_partner_recovery_authority_issue: 1068,
   pre_partner_rollback_revocation_resurrection_fail_closed: true,
   pre_partner_canonical_source_object_suppression_machine_bound: true,
   pre_partner_rekey_alias_reingestion_fail_closed: true,
