@@ -1,0 +1,46 @@
+{
+  "contract_version": "1.0.0",
+  "decision_values": ["PASS", "HOLD", "DENY"],
+  "purposes": [
+    "collect",
+    "store",
+    "cache",
+    "normalize",
+    "entity_resolution",
+    "derive",
+    "model_calibration",
+    "human_review",
+    "display",
+    "redistribute"
+  ],
+  "required_grant_fields": [
+    "provider_id",
+    "field_pattern",
+    "purpose",
+    "decision",
+    "evidence_type",
+    "evidence_reference",
+    "effective_at",
+    "expires_at",
+    "entity_scope",
+    "territory_scope",
+    "environment_scope"
+  ],
+  "fail_closed_conditions": [
+    "MISSING_WRITTEN_EVIDENCE",
+    "UNKNOWN_PURPOSE",
+    "EXPIRED_GRANT",
+    "CONFLICTING_GRANTS",
+    "ENTITY_SCOPE_MISMATCH",
+    "TERRITORY_SCOPE_MISMATCH",
+    "ENVIRONMENT_SCOPE_MISMATCH"
+  ],
+  "precedence": [
+    "executed_agreement",
+    "written_legal_or_commercial_determination",
+    "official_current_documentation",
+    "operational_configuration"
+  ],
+  "raw_provider_data_required": false,
+  "production_authorized": false
+}
