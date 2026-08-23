@@ -9,7 +9,8 @@ const files = {
   copilot: '.github/copilot-instructions.md',
   contract: 'coordination/kidults/governance/ai-agent-operating-rules-v1.json',
   schema: 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json',
-  registry: 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+  registry: 'coordination/kidults/registry/ai-agent-governance-registry-v1.json',
+  scaleWave: '.github/workflows/kidults-asi-two-main-v2-cycle-evidence-v1.yml'
 };
 
 const fail = (message) => {
@@ -32,6 +33,7 @@ const copilot = readText(files.copilot);
 const contract = readJson(files.contract);
 const schema = readJson(files.schema);
 const registry = readJson(files.registry);
+const scaleWave = readText(files.scaleWave);
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
 assert(contract.version === '1.1.0', 'CONTRACT_VERSION');
@@ -64,6 +66,23 @@ assert(contract.principle_inheritance?.all_four_required === true, 'TOP_PRINCIPL
 assert(contract.principle_inheritance?.transparent_cross_cutting_non_waivable === true, 'TRANSPARENCY_WAIVABLE');
 assert(contract.principle_inheritance?.principle_does_not_expand_agent_authority === true, 'TOP_PRINCIPLE_EXPANDS_AUTHORITY');
 assert(contract.principle_inheritance?.conflicts_fail_closed_and_are_recorded === true, 'TOP_PRINCIPLE_CONFLICT_NOT_FAIL_CLOSED');
+
+assert(contract.autonomous_execution_contract?.trigger === 'PROTECTED_MAIN_PUSH_AFTER_PR_MERGE', 'AUTONOMOUS_TRIGGER');
+assert(JSON.stringify(contract.autonomous_execution_contract?.flow) === JSON.stringify(['PR_MERGE','MAIN_PUSH','SCALE_WAVE_AUTO_DISPATCH','ARTIFACT','KPMO_GOVERNED_STATUS_RECEIPT']), 'AUTONOMOUS_FLOW');
+assert(contract.autonomous_execution_contract?.normal_operation_requires_manual_dispatch === false, 'MANUAL_DISPATCH_REQUIRED');
+assert(contract.autonomous_execution_contract?.manual_dispatch_role === 'BREAK_GLASS_OR_RECOVERY_ONLY', 'MANUAL_DISPATCH_ROLE');
+assert(contract.autonomous_execution_contract?.artifact_required === true, 'AUTONOMOUS_ARTIFACT_NOT_REQUIRED');
+assert(contract.autonomous_execution_contract?.kpmo_receipt_required === true, 'AUTONOMOUS_KPMO_RECEIPT_NOT_REQUIRED');
+assert(contract.autonomous_execution_contract?.promotion_authority_created === false, 'AUTONOMOUS_FLOW_CREATES_PROMOTION_AUTHORITY');
+assert(/push:\s*\n\s+branches:\s*\[main\]\s*\n\s+pull_request:/.test(scaleWave), 'SCALE_WAVE_NOT_TRIGGERED_BY_EVERY_MAIN_PUSH');
+for (const marker of [
+  'AUTONOMOUS_MAIN_PUSH_CONTRACT',
+  'kidults-asi-global-any-site-hourly-pooling-v2.yml',
+  'kpmo-autonomous-scale-wave-status-receipt-v1.json',
+  'validate-ai-agent-operating-rules-v1.mjs --receipt',
+  'production:\'HOLD\'',
+  'public_release:\'HOLD\''
+]) assert(scaleWave.includes(marker), `SCALE_WAVE_MISSING_MARKER:${marker}`);
 
 const requiredPrinciples = [
   'ABSOLUTE_HONESTY',
@@ -225,6 +244,7 @@ const report = {
   status: 'VERIFIED_PASS',
   policy_id: 'KPMO-AI-GOV-001',
   platform_operating_principles_validated: requiredTopPrinciples.length,
+  autonomous_main_push_scale_wave_validated: true,
   principles_validated: requiredPrinciples.length,
   governed_states_validated: requiredStates.length,
   required_report_fields_validated: contract.required_report_fields.length,
