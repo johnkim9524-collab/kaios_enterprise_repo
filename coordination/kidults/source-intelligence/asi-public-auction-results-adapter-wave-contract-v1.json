@@ -1,0 +1,135 @@
+{
+  "id": "kidults-asi-public-auction-results-adapter-wave-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Extend the verified Bonhams Cars reference-adapter control model into four additional source-specific public-auction result adapters, bind all implementations to the KIDULTS-owned generic market adapter runtime, and preserve empirical rights, live schema, factual-origin, Evidence admission and Market Event promotion as separate fail-closed gates.",
+  "canonical_inputs": {
+    "generic_runtime_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+    "bonhams_reference_contract": "coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json",
+    "registered_source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
+    "generic_runtime_module": "services/kidults-autonomous-intelligence/src/asi/market-adapter.ts"
+  },
+  "implementation_wave": [
+    {
+      "priority_rank": 2,
+      "source_id": "barrett-jackson-results",
+      "canonical_host": "www.barrett-jackson.com",
+      "allowed_hosts": ["barrett-jackson.com", "www.barrett-jackson.com"],
+      "source_owner_candidate_id": "barrett-jackson",
+      "verified_assignment_count": 18,
+      "implemented_claim_parsers": ["DATED_OBSERVED_SOLD_TRANSACTION"],
+      "template_only_claims": ["CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"]
+    },
+    {
+      "priority_rank": 6,
+      "source_id": "broad-arrow-results",
+      "canonical_host": "www.broadarrowauctions.com",
+      "allowed_hosts": ["broadarrowauctions.com", "www.broadarrowauctions.com"],
+      "source_owner_candidate_id": "broad-arrow-auctions",
+      "verified_assignment_count": 12,
+      "implemented_claim_parsers": ["DATED_OBSERVED_SOLD_TRANSACTION"],
+      "template_only_claims": ["CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"]
+    },
+    {
+      "priority_rank": 8,
+      "source_id": "collecting-cars-sold",
+      "canonical_host": "collectingcars.com",
+      "allowed_hosts": ["collectingcars.com", "www.collectingcars.com"],
+      "source_owner_candidate_id": "collecting-cars",
+      "verified_assignment_count": 6,
+      "implemented_claim_parsers": ["DATED_OBSERVED_SOLD_TRANSACTION"],
+      "template_only_claims": ["CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"]
+    },
+    {
+      "priority_rank": 9,
+      "source_id": "iconic-auctioneers-results",
+      "canonical_host": "www.iconicauctioneers.com",
+      "allowed_hosts": ["iconicauctioneers.com", "www.iconicauctioneers.com"],
+      "source_owner_candidate_id": "iconic-auctioneers",
+      "verified_assignment_count": 6,
+      "implemented_claim_parsers": ["DATED_OBSERVED_SOLD_TRANSACTION"],
+      "template_only_claims": ["CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"]
+    }
+  ],
+  "shared_snapshot_contract": {
+    "network_execution_owned_by_adapter": false,
+    "accepted_input": "IMMUTABLE_EXTERNAL_SNAPSHOT_ONLY",
+    "required_fields": [
+      "source_url",
+      "observed_at",
+      "html",
+      "input_snapshot_ref",
+      "source_payload_hash",
+      "canonical_object_id",
+      "condition_segment",
+      "evidence_kind"
+    ],
+    "source_payload_hash_must_match_html": true,
+    "input_snapshot_ref_must_be_sha256": true,
+    "source_url_host_must_be_profile_allowlisted": true,
+    "https_required": true
+  },
+  "shared_sold_semantics": {
+    "explicit_terminal_sold_state_required": true,
+    "realized_price_required": true,
+    "explicit_currency_required": true,
+    "ambiguous_dollar_symbol_allowed": false,
+    "estimate_bid_offer_ask_reserve_listing_is_sold": false,
+    "script_only_sold_signal_allowed": false,
+    "event_identifier_required": true,
+    "lot_identifier_required": true,
+    "event_at_required": true,
+    "canonical_object_id_required": true,
+    "condition_segment_required": true
+  },
+  "required_negative_fixture_families_per_source": [
+    "ESTIMATE_OR_LISTING_IS_NOT_SOLD",
+    "AMBIGUOUS_DOLLAR_CURRENCY",
+    "SOLD_WITHOUT_EXPLICIT_PRICE",
+    "SCRIPT_ONLY_SOLD_SIGNAL",
+    "MISSING_LOT_IDENTIFIER",
+    "PAYLOAD_HASH_MISMATCH",
+    "SOURCE_HOST_NOT_ALLOWED",
+    "NON_HTTPS_SOURCE"
+  ],
+  "implementation_registry": {
+    "path": "coordination/kidults/source-intelligence/asi-source-specific-adapter-implementation-registry-v2.json",
+    "registered_source_profiles": 16,
+    "implemented_source_specific_adapters_after_wave": 5,
+    "fixture_verified_source_specific_adapters_after_wave": 5,
+    "pending_source_specific_adapters_after_wave": 11,
+    "empirically_activated_source_adapters": 0,
+    "evidence_admitted": 0
+  },
+  "required_outputs": [
+    "source-specific-adapter-implementation-ledger-v2.json",
+    "source-specific-adapter-development-backlog-v2.json",
+    "public-auction-adapter-wave-manifest-v1.json",
+    "public-auction-adapter-wave-test-receipt-v1.json",
+    "public-auction-adapter-wave-validation-v1.json"
+  ],
+  "truth_boundary": {
+    "fixture_is_empirical_source_snapshot": false,
+    "source_specific_parser_implemented_is_live_schema_verified": false,
+    "source_specific_parser_implemented_is_rights_verified": false,
+    "source_owner_candidate_is_verified_owner": false,
+    "auction_lot_key_is_verified_factual_origin": false,
+    "implemented_adapter_is_activated_adapter": false,
+    "template_is_source_specific_adapter": false,
+    "live_source_requests_executed": 0,
+    "rights_pass_created": 0,
+    "evidence_admitted": 0,
+    "market_events_created": 0,
+    "snapshot_candidates_created": 0,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
