@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 import {readPortalProjection} from '../../../apps/kidults-enterprise-staging/public/portal-r001/projection-store.js';
 import {admitProofProductProjection,proofProductConsumerContract} from '../../../apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js';
+import {proofProductProjectionSchema,validateProofProductProjectionSchema} from '../../../apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js';
 import {consumeProofProductProjection} from './execute-proof-product-consumer-v1.mjs';
 
 const collectorFields=['what_changed','why_it_matters','comparable_context','liquidity','risk','possible_action'];
@@ -53,12 +55,17 @@ function closedProjection(){
   return projection;
 }
 
-const testContext={surface:'PUBLIC_API_RESPONSE',purpose:'API_REDISTRIBUTION',trustedNow:'2026-08-22T11:00:00Z',clockAuthority:'KIDULTS_CONTROL_PLANE',releaseAuthority:'TEST_ONLY'};
+const testContext={surface:'PUBLIC_API_RESPONSE',purpose:'API_REDISTRIBUTION',trustedNow:'2026-08-22T11:00:00Z',clockAuthority:'KIDULTS_CONTROL_PLANE',releaseAuthority:'TEST_ONLY',validationMode:'FIXTURE_VALIDATION_ONLY'};
 let assertions=0;
 const check=(condition,message)=>{assert.ok(condition,message);assertions+=1};
 
 check(proofProductConsumerContract.schema_only_sufficient===false,'schema-only acceptance must be prohibited');
 check(proofProductConsumerContract.browser_clock_authoritative===false,'browser clock must not be authoritative');
+check(proofProductConsumerContract.caller_asserted_authority_accepted===false,'caller-asserted release/clock authority must be disabled');
+check(proofProductConsumerContract.approved_release_capability_exposed===false,'no approved release capability may be exposed client-side');
+check(proofProductConsumerContract.unbound_surfaces.includes('PUBLIC_API_RESPONSE')&&proofProductConsumerContract.unbound_surfaces.includes('EXPORT'),'unbound API/export surfaces must remain explicit');
+const canonicalSchema=JSON.parse(fs.readFileSync('coordination/kidults/schemas/kidults-proof-product-projection-v1.schema.json','utf8'));
+check(JSON.stringify(proofProductProjectionSchema)===JSON.stringify(canonicalSchema),'runtime schema must remain byte-model equivalent to canonical JSON Schema');
 
 for(const surface of ['PORTAL_RENDER','PUBLIC_API_RESPONSE','EXPORT']){
   const purpose=surface==='PORTAL_RENDER'?'PUBLIC_DISPLAY':'API_REDISTRIBUTION';
@@ -78,7 +85,13 @@ const mutations=[
   ['FUTURE_UPDATE',p=>{p.updated_at='2026-08-22T11:30:00Z'}],
   ['TIMESTAMP_ORDER',p=>{p.generated_at='2026-08-22T10:30:00Z'}],
   ['VALUE_RIGHTS',p=>{p.payload.collector_lens.liquidity.rights_state='BLOCKED'}],
-  ['PUBLIC_WITHOUT_APPROVAL',p=>{p.projection_state='AWAITING_APPROVED_PROJECTION'}]
+  ['PUBLIC_WITHOUT_APPROVAL',p=>{p.projection_state='AWAITING_APPROVED_PROJECTION'}],
+  ['EMPTY_PRODUCT_PAYLOAD',p=>{p.payload={}}],
+  ['MALFORMED_SCOPE',p=>{p.scope={}}],
+  ['MALFORMED_AUDIT',p=>{p.audit={}}],
+  ['MALFORMED_ACTION',p=>{p.actions=[{}]}],
+  ['EXTRA_ROOT_PROPERTY',p=>{p.unexpected='forbidden'}],
+  ['UNKNOWN_PROJECTION_STATE',p=>{p.projection_state='UNKNOWN_FUTURE_STATE'}]
 ];
 for(const [name,mutate] of mutations){
   const candidate=clone(approvedProjection());mutate(candidate);
@@ -103,18 +116,35 @@ const portalClosed=await readPortalProjection({url:closedUrl});
 check(portalClosed.projection.state==='NO_PROJECTION','actual Portal read path must preserve closed state as NO_PROJECTION');
 check(portalClosed.audit.consumption_receipt.state_only===true&&portalClosed.audit.consumption_receipt.payload_exposed===false,'closed-state Portal receipt must remain state-only');
 
+for(const candidate of [
+  {projection:{state:'WAITING'}},
+  {record_type:'unknown',projection:{state:'LIVE_APPROVED'}},
+  {record_type:'kidults_proof_product_projection_v2',projection:{state:'LIVE_APPROVED'}}
+]){
+  const url=`data:application/json;base64,${Buffer.from(JSON.stringify(candidate)).toString('base64')}`;
+  const rejected=await readPortalProjection({url});
+  check(rejected.projection.state==='INVALID'&&rejected.audit.reason_category==='PROJECTION_RECORD_TYPE_INVALID','unknown/legacy discriminator must fail closed');
+  check(rejected.signals.length===0&&rejected.objects.length===0,'legacy rejection must expose no value collection');
+}
+const controlFixture={fixture_type:'NON_PROMOTABLE_CONTROL',projection:{state:'NO_PROJECTION',synthetic:true,promotable:false,production:false,public:false}};
+const controlUrl=`data:application/json;base64,${Buffer.from(JSON.stringify(controlFixture)).toString('base64')}`;
+const portalControl=await readPortalProjection({url:controlUrl});
+check(portalControl.projection.state==='NO_PROJECTION'&&portalControl.audit.reason_category==='NO_GOVERNED_PROJECTION','exact non-promotable control may preserve NO_PROJECTION only');
+
 for(const surface of ['PUBLIC_API_RESPONSE','EXPORT']){
-  const result=consumeProofProductProjection(approvedProjection(),{surface,trustedNow:'2026-08-22T11:00:00Z'});
-  check(result.ok===false&&result.state==='INVALID',`${surface} must remain blocked without release authority`);
-  check(result.payload===null&&result.receipt.reason==='RELEASE_AUTHORITY_HOLD',`${surface} HOLD must emit no value payload`);
+  const result=consumeProofProductProjection(approvedProjection(),{surface,trustedNow:'2026-08-22T11:00:00Z',releaseAuthority:'PUBLIC_APPROVED',clockAuthority:'KIDULTS_CONTROL_PLANE'});
+  check(result.ok===false&&result.state==='INVALID',`${surface} must ignore caller-asserted authority and remain blocked`);
+  check(result.payload===null&&result.receipt.payload_exposed===false,`${surface} HOLD must emit no value payload`);
 }
 
 const report={
   suite:'KIDULTS_PROOF_PRODUCT_EXECUTABLE_CONSUMER_RUNTIME_V1',result:'PASS',assertions,
   trigger_sha:process.env.KIDULTS_EXACT_HEAD_SHA||process.env.GITHUB_SHA||'LOCAL',run_id:process.env.GITHUB_RUN_ID||'LOCAL',
   surfaces:['PORTAL_RENDER','PUBLIC_API_RESPONSE','EXPORT'],negative_mutations:mutations.length,
-  actual_portal_path:'readPortalProjection -> proof-product admission -> NO_PROJECTION/INVALID -> render',
-  trusted_clock:'CONTROL_PLANE_REQUIRED__BROWSER_CLOCK_REJECTED',assessment_identity:'EXACT_MATCH_AND_RECEIPT_BOUND',
+  actual_portal_path:'readPortalProjection -> strict discriminator -> schema -> semantics -> NO_PROJECTION/INVALID -> render',
+  runtime_schema:'CANONICAL_SCHEMA_BOUND',legacy_discriminator:'REJECT_UNKNOWN',
+  api_export_binding:'NOT_IMPLEMENTED_HOLD',approved_payload_exposure:'DISABLED_UNTIL_SIGNED_SERVER_CAPABILITY',
+  trusted_clock:'NO_CALLER_ASSERTED_AUTHORITY',assessment_identity:'EXACT_MATCH_AND_RECEIPT_BOUND',
   stale_after_load:'REVALIDATED_AT_CONSUMPTION',prior_value_retention:false,
   live_projection:'NONE',track_b:'NOT_STARTED',production:'HOLD',public:'HOLD',g5:'HOLD'
 };
