@@ -1,0 +1,81 @@
+name: KIDULTS Proof-Product Consumer Runtime v1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-proof-product-consumer-runtime-v1.yml'
+      - 'apps/kidults-enterprise-staging/public/portal-r001/**'
+      - 'coordination/kidults/portal/portal-semantic-product-consumer-contract-v1.json'
+      - 'coordination/kidults/product/KIDULTS_PROOF_PRODUCT_DATA_CONTRACT_V1.md'
+      - 'coordination/kidults/product/kidults-proof-product-data-contract-v1.json'
+      - 'coordination/kidults/schemas/kidults-proof-product-projection-v1.schema.json'
+      - 'scripts/kidults/portal/**proof-product*'
+      - 'scripts/kidults/portal/validate-portal-release-001.mjs'
+      - 'tests/contracts/test_kidults_proof_product_*'
+      - 'requirements.txt'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-proof-product-consumer-runtime-v1.yml'
+      - 'apps/kidults-enterprise-staging/public/portal-r001/**'
+      - 'coordination/kidults/portal/portal-semantic-product-consumer-contract-v1.json'
+      - 'coordination/kidults/product/KIDULTS_PROOF_PRODUCT_DATA_CONTRACT_V1.md'
+      - 'coordination/kidults/product/kidults-proof-product-data-contract-v1.json'
+      - 'coordination/kidults/schemas/kidults-proof-product-projection-v1.schema.json'
+      - 'scripts/kidults/portal/**proof-product*'
+      - 'scripts/kidults/portal/validate-portal-release-001.mjs'
+      - 'tests/contracts/test_kidults_proof_product_*'
+      - 'requirements.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-proof-product-consumer-runtime-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  executable-consumer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+      - name: Execute Portal, API and export fail-closed proof
+        run: |
+          mkdir -p artifacts/kidults/projection-consumer
+          node scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs \
+            | tee artifacts/kidults/projection-consumer/executable-consumer-receipt.json
+      - name: Revalidate Portal Release-001 binding
+        run: node scripts/kidults/portal/validate-portal-release-001.mjs
+      - name: Preserve exact-head fail-closed receipt
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-proof-product-consumer-${{ github.sha }}
+          path: artifacts/kidults/projection-consumer/executable-consumer-receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
+  structural-and-semantic-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Install non-optional schema validator
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Execute proof-product schema and semantic suites
+        run: >-
+          python -m pytest -q
+          tests/contracts/test_kidults_proof_product_contract.py
+          tests/contracts/test_kidults_proof_product_semantic_failclosed.py
+          tests/contracts/test_kidults_proof_product_runtime_semantics.py
