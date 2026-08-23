@@ -1,0 +1,51 @@
+name: KIDULTS ASI SHADOW Evidence Autosync One Shot
+
+on:
+  push:
+    branches:
+      - 'kpmo/asi-engine-refactoring-four-principles-v2'
+    paths:
+      - '.github/workflows/kidults-asi-shadow-evidence-autosync-one-shot.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kidults-asi-shadow-evidence-autosync-one-shot
+  cancel-in-progress: false
+
+jobs:
+  sync-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Install deterministic validation dependencies
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm --prefix services/kidults-autonomous-intelligence ci --ignore-scripts --no-audit --no-fund
+      - name: Regenerate and validate canonical SHADOW evidence
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs --output artifacts/agci-os/asi-shadow-operating-evidence-v1.json --write
+          node scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs --input artifacts/agci-os/asi-shadow-operating-evidence-v1.json
+      - name: Commit changed evidence to the exact branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- artifacts/agci-os/asi-shadow-operating-evidence-v1.json; then
+            echo 'SHADOW evidence already synchronized.'
+            exit 0
+          fi
+          git config user.name 'KPMO ASI Evidence Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add artifacts/agci-os/asi-shadow-operating-evidence-v1.json
+          git commit -m 'ASI: synchronize refactored SHADOW operating evidence'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
