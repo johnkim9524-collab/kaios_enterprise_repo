@@ -1,0 +1,93 @@
+{
+  "id": "kidults-github-trusted-ref-environment-readback-contract-v1",
+  "version": "1.0.0",
+  "issue": 974,
+  "parent_gate_issue": 881,
+  "status": "IMPLEMENTED_READ_ONLY_PROOF_PATH_EXTERNAL_POLICY_NOT_VERIFIED",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "scope": {
+    "repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "default_branch": "main",
+    "registry": "coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json",
+    "privileged_manual_lane_count_is_dynamic_from_registry": true,
+    "secret_values_must_never_be_requested_or_recorded": true
+  },
+  "approved_closure_patterns": {
+    "github_environment": {
+      "each_secret_bearing_job_has_static_environment_binding": true,
+      "environment_exists_in_live_github_readback": true,
+      "deployment_branch_policy_is_exact_main_only": true,
+      "required_environment_secret_name_coverage_is_read_back_without_values": true,
+      "dynamic_or_whole_secret_context_is_forbidden_for_proof": true,
+      "selected_non_main_ref_negative_control_must_be_rejected": true,
+      "branch_controlled_workflow_replacement_negative_control_must_be_rejected": true
+    },
+    "trusted_default_branch_or_release_handoff": {
+      "repository_declaration_alone_is_sufficient": false,
+      "authorized_external_control_plane_evidence_required": true,
+      "approved_immutable_identity_binding_required": true,
+      "negative_execution_proof_required": true,
+      "implemented_by_this_contract": false
+    }
+  },
+  "read_only_endpoints": [
+    "GET /repos/{owner}/{repo}",
+    "GET /repos/{owner}/{repo}/branches/main",
+    "GET /repos/{owner}/{repo}/environments",
+    "GET /repos/{owner}/{repo}/environments/{environment}/deployment-branch-policies",
+    "GET /repos/{owner}/{repo}/environments/{environment}/secrets",
+    "GET /repos/{owner}/{repo}/rulesets",
+    "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}"
+  ],
+  "forbidden_operations": [
+    "PUT_OR_DELETE_ENVIRONMENT",
+    "PUT_OR_DELETE_DEPLOYMENT_BRANCH_POLICY",
+    "PUT_OR_DELETE_SECRET",
+    "PUT_OR_DELETE_VARIABLE",
+    "CREATE_UPDATE_OR_DELETE_RULESET",
+    "WORKFLOW_DISPATCH_OF_SECRET_BEARING_LANE",
+    "SECRET_VALUE_READ_OR_LOG",
+    "PRODUCTION_PUBLIC_OR_G5_ACTION",
+    "EXTERNAL_PROVIDER_COMMITMENT_OR_SPEND"
+  ],
+  "receipt_requirements": {
+    "exact_source_sha": true,
+    "source_ref": true,
+    "observed_default_branch_sha": true,
+    "authorization_mode": true,
+    "endpoint_http_statuses": true,
+    "workflow_job_environment_binding_results": true,
+    "environment_policy_results": true,
+    "environment_secret_name_coverage_without_names_or_values": true,
+    "ruleset_context_is_not_issue_936_closure": true,
+    "settings_mutated": false,
+    "secret_material_read": false,
+    "credential_activation": "NONE"
+  },
+  "automatic_activation": {
+    "pull_request_exact_head_validation": true,
+    "protected_main_push_readback": true,
+    "daily_schedule_readback": true,
+    "manual_dispatch_is_recovery_only": true
+  },
+  "truth_boundary": {
+    "issue_974_closed_by_repository_implementation": false,
+    "issue_881_control_pass_promoted": false,
+    "external_partner_ingestion_authorized": false,
+    "empirical_evidence_promoted": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "effects": {
+    "autonomous_effect": "POSITIVE_READ_ONLY_READBACK_AND_FAIL_CLOSED_VALIDATION_HAVE_AUTOMATIC_TRIGGERS",
+    "global_effect": "NEUTRAL_CONTROL_APPLIES_TO_ALL_REGISTERED_PRIVILEGED_MANUAL_LANES_WITHOUT_EMPIRICAL_PROMOTION",
+    "irreplaceable_value_effect": "POSITIVE_KIDULTS_OWNS_THE_LANE_TO_ENVIRONMENT_TO_REF_POLICY_LINEAGE_AND_RECEIPT_LOGIC",
+    "transparency_effect": "POSITIVE_MISSING_BINDINGS_PERMISSIONS_AND_EXTERNAL_PROOF_REMAIN_EXPLICIT_BLOCKERS"
+  }
+}

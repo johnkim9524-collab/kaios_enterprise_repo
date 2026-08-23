@@ -9,7 +9,8 @@ const criticalGateBindingValidator = 'scripts/kidults/kpmo/validate-full-value-c
 const criticalWorkflowProvenanceValidators = [
   'scripts/kidults/kpmo/validate-critical-workflow-provenance-v1.mjs',
   'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs',
-  'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs'
+  'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs',
+  'scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs'
 ];
 const repositoryMutationBoundaryValidators = [
   'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'

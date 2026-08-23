@@ -16,6 +16,7 @@ const mandatory = [
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs',
   'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs',
   'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs',
+  'scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs',
   'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py',
