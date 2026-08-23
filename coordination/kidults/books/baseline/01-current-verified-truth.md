@@ -6,9 +6,9 @@
 **결정 ID:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`  
 **스냅샷 ID:** N/A — 불변의 Candidate/Evidence pair가 존재하지 않음  
 **문장 분류:** `VERIFIED CURRENT STATE` — 시점이 명시된 canonical 기록이며, 부재는 0이 아니라 missing으로 유지함  
-**보호된 main:** #1117 이후 `d050d8b993929a883298e7cb90ea22bc97ec6ae1`  
+**보호된 main:** Platform Constitution v1.1 이후 `1109a98ce4cbdd68953d913fbddfb3b803809a0a`  
 **Gate 상태:** C1 확립; C2 미완료; Production/Public/G5 `HOLD`  
-**Evidence 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116, #1117, Draft #1118
+**Evidence 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116, #1117, Platform Constitution commit `1109a98c…`
 
 ## 1. Baseline의 목적과 적용 범위
 
@@ -26,16 +26,18 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 
 | 항목 | 검증된 현재 상태 |
 |---|---|
-| Repository-wide AI honesty/transparency governance | **MERGED_VERIFIED** — #1117, main commit `d050d8b9…` |
+| Repository-wide AI honesty/transparency governance | **MERGED_VERIFIED** — #1117 및 Constitution v1.1, main `1109a98c…` |
 | Human policy / machine contract / registry / validator | main에 존재; `KPMO-AI-GOV-001` v1.0.0 기준 |
-| 네 최상위 운영원칙의 v1.1 machine binding | **IMPLEMENTED_NOT_VERIFIED** — Draft #1118, 미병합 |
-| 자동 실행 계약 | **IMPLEMENTED_NOT_VERIFIED** — `PR Merge → Main Push → Scale Wave Auto Dispatch → Artifact → KPMO Receipt`, Draft #1118 |
+| 네 최상위 운영원칙의 v1.1 machine binding | **MERGED_VERIFIED** — Platform Constitution, main `1109a98c…` |
+| 자동 실행 계약의 구성·trigger | **MERGED_VERIFIED** — `PR Merge → Protected-main Push → Scale Wave Auto Dispatch → Immutable Artifact → KPMO Governed Status Receipt`, main `1109a98c…`; 개별 실행 결과는 Receipt별 검증 필요 |
 | 운영원칙 순서 | TARGET / GOVERNING DOCTRINE — Autonomous → Global → Irreplaceable Value → Transparent |
 | Empirical maturity / Production authority | 변경 없음 — C1, C2 미완료, Production/Public/G5 HOLD |
 
-#1117은 절대 정직, 완전 투명성, Evidence-before-status, Live-state verification, 상태어휘, Correction과 Fail-closed를 Repository-wide AI Governance로 고정했다. Draft #1118은 John이 정한 네 운영원칙과 main-push 자동 Scale Wave를 그 통제체계에 추가하지만, Draft 상태이므로 현재 main 정책 또는 실행 완료 상태로 표현하지 않는다.
+Protected main `1109a98c…`는 #1117의 정직·투명성 통제 위에 John이 정한 네 운영원칙을 Platform Constitution으로 승격하고, 모든 Track·AI Agent·Workflow·Runtime의 의무 상속과 자동 Scale Wave trigger를 결속했다. 이는 구성과 Governance의 `MERGED_VERIFIED` 상태다. 특정 run의 실행 성공은 해당 SHA의 immutable Artifact와 KPMO governed Receipt가 있을 때만 더 강한 상태로 승격한다.
 
 자동 실행의 목표는 사람이 매번 `Run workflow`를 누르는 의존성을 제거하는 것이다. 그러나 Artifact와 KPMO Receipt가 실제로 생성되기 전에는 `RUNNING_VERIFIED`나 `COMPLETE_VERIFIED`로 승격하지 않는다. Manual dispatch는 Break-glass 또는 진단 수단으로만 남는다.
+
+모든 중대한 PR, Issue, Workflow, Receipt와 KPMO Report는 다음 네 효과를 기록해야 한다: `autonomous_effect`, `global_effect`, `irreplaceable_value_effect`, `transparency_effect`. 하나라도 `UNKNOWN`이면 완전한 Platform alignment 또는 `COMPLETE_VERIFIED`를 주장하지 않는다.
 
 ## 3. 실증 Population
 
@@ -141,7 +143,7 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 
 ## 8. 이 장에서 바로잡은 모순
 
-1. 과거의 SHA reference는 해당 시점의 snapshot으로 유지한다. 현재 protected-main 기준은 #1117 이후 `d050d8b9…`이다.
+1. 과거의 SHA reference는 해당 시점의 snapshot으로 유지한다. 현재 protected-main 기준은 #1117 이후 `1109a98c…`이다.
 2. #1013 또는 #1074의 green check는 Draft-head Evidence이며 protected-main 또는 Release authorization의 증거가 아니다.
 3. 자동화된 Portal QA는 최종 인간 acceptance가 아니다.
 4. Candidate discovery와 admission-control machinery는 empirical admission이 아니다.
@@ -189,7 +191,7 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 - **Architecture Book:** EVIA 기업 Canon과 정렬하며, KIDULTS 구현 슬라이스는 Evidence, rights, freshness, Assessment 또는 approval이 부재하는 모든 경계에서 fail closed해야 함.
 - **No Fourth Book:** 원칙 유지. 운영보고와 PR 기록은 Evidence reference이며 별도의 Book이 아님.
 - **장 누적 상태:** Baseline 1/3. 세 Book 모두 3/3에 도달하기 전에는 종합 리뷰를 수행하지 않음.
-- **동기화 상태:** `INHERITED ENTERPRISE BASELINE CANON; KIDULTS SLICE ALIGNED TO CANONICAL PROTECTED MAIN d050d8b9 AT 2026-08-23 11:08 KST; DRAFT #1118 NOT PROMOTED`.
+- **동기화 상태:** `INHERITED ENTERPRISE BASELINE CANON; KIDULTS SLICE ALIGNED TO CANONICAL PROTECTED MAIN 1109a98c AT 2026-08-23 11:08 KST; PLATFORM CONSTITUTION v1.1 MERGED; PER-RUN EFFECT METADATA AND RECEIPT REQUIRED`.
 
 ## 13. Rollback
 
