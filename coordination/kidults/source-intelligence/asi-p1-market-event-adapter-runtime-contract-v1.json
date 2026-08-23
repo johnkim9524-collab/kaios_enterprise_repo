@@ -10,8 +10,7 @@
     "strict_current_market_gate": "coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json",
     "registered_source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
     "runtime_module": "services/kidults-autonomous-intelligence/src/asi/market-adapter.ts",
-    "runtime_test": "services/kidults-autonomous-intelligence/scripts/asi-market-adapter-runtime-test.mjs",
-    "first_source_specific_adapter": "services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-cars-results.ts"
+    "runtime_test": "services/kidults-autonomous-intelligence/scripts/asi-market-adapter-runtime-test.mjs"
   },
   "runtime_states": [
     "ADAPTER_NOT_IMPLEMENTED",
@@ -76,23 +75,11 @@
   ],
   "profile_tuple": ["priority_rank", "source_id", "verified_assignment_count", "target_claims"],
   "registered_profile_default_state": "ADAPTER_NOT_IMPLEMENTED",
-  "implemented_source_specific_adapters": [
-    {
-      "source_id": "bonhams-cars-results",
-      "state": "IMPLEMENTED_NOT_RIGHTS_VERIFIED",
-      "implemented_claim_parsers": ["DATED_OBSERVED_SOLD_TRANSACTION"],
-      "fixture_verified": true,
-      "live_schema_verified": false,
-      "rights_verified": false,
-      "activated": false,
-      "evidence_admitted": 0
-    }
-  ],
   "implementation_truth": {
     "generic_strict_adapter_runtime_implemented": true,
     "generic_runtime_tested_with_non_promotable_fixtures": true,
     "registered_source_profile_count": 16,
-    "registered_source_adapter_implemented_count": 1,
+    "registered_source_adapter_implemented_count": 0,
     "registered_source_adapter_activated_count": 0,
     "field_purpose_rights_verified_source_count": 0,
     "sold_semantics_verified_source_count": 0,
@@ -112,7 +99,6 @@
   "truth_boundary": {
     "generic_runtime_is_source_specific_adapter": false,
     "fixture_normalization_is_empirical_admission": false,
-    "implemented_source_specific_adapter_is_activated": false,
     "registered_profile_is_rights_verified": false,
     "dated_sold_is_current_price": false,
     "sold_count_is_liquidity": false,
