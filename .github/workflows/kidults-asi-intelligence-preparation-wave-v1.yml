@@ -8,27 +8,31 @@ on:
     branches: [main]
     paths:
       - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json'
       - 'coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json'
-      - 'coordination/kidults/source-intelligence/asi-sourcing-direction-registry-v2.json'
       - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
       - 'coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json'
       - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
       - 'scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-intelligence-preparation-wave-v1.md'
       - '.github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml'
   pull_request:
     branches: [main]
     paths:
       - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json'
       - 'coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json'
-      - 'coordination/kidults/source-intelligence/asi-sourcing-direction-registry-v2.json'
       - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
       - 'coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json'
       - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
       - 'scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-intelligence-preparation-wave-v1.md'
       - '.github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml'
   workflow_run:
     workflows:
@@ -64,7 +68,14 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json','utf8'))"
+      - name: Validate registered preparation assets and automatic activation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs \
+            | tee /tmp/kidults-asi-intelligence-preparation-registry-validation-v1.json
       - name: Build deterministic Global Source Mesh twice
         run: |
           set -euo pipefail
@@ -165,9 +176,23 @@ jobs:
             exit 1
           fi
           mv /tmp/preparation-contract.json coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json
-      - name: Revalidate pristine outputs
+      - name: Reject manual-only activation mutation
         run: |
           set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json /tmp/preparation-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflows=[];fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs; then
+            echo 'Validator accepted manual-only activation' >&2
+            exit 1
+          fi
+          mv /tmp/preparation-registry.json coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json
+      - name: Revalidate pristine outputs and registry
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-registry-v1.mjs \
+            > /tmp/kidults-asi-intelligence-preparation-registry-final-validation-v1.json
           node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs \
             /tmp/kidults-asi-intelligence-preparation-wave-run-1 \
             coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json \
@@ -184,6 +209,8 @@ jobs:
           path: |
             /tmp/kidults-global-source-mesh-run-1.json
             /tmp/kidults-asi-intelligence-preparation-wave-run-1
+            /tmp/kidults-asi-intelligence-preparation-registry-validation-v1.json
+            /tmp/kidults-asi-intelligence-preparation-registry-final-validation-v1.json
             /tmp/kidults-asi-intelligence-preparation-wave-validation-v1.json
             /tmp/kidults-asi-intelligence-preparation-wave-final-validation-v1.json
             /tmp/kidults-asi-intelligence-preparation-wave-receipt-v1.json
