@@ -165,7 +165,7 @@ def validate_runner_execution(bundle: Path, args: argparse.Namespace) -> Path:
     require(COMMIT_RE.fullmatch(str(receipt["workflow_sha"])) is not None, "runner-execution: invalid workflow sha")
     require(receipt["source_ref"] == args.expected_source_ref, "runner-execution: source ref mismatch")
     require(receipt["event_name"] == args.expected_event_name, "runner-execution: event name mismatch")
-    require(receipt["job_name"] == "deploy", "runner-execution: job name mismatch")
+    require(receipt["job_name"] == args.expected_job_name, "runner-execution: job name mismatch")
     require(receipt["deployment_id"] == args.expected_deployment_id, "runner-execution: deployment id mismatch")
     require(receipt["source_commit_sha"] == args.expected_source_sha, "runner-execution: source commit mismatch")
     require(str(receipt["workflow_run_id"]) == args.expected_run_id, "runner-execution: workflow run id mismatch")
@@ -186,6 +186,7 @@ def validate_runner_execution(bundle: Path, args: argparse.Namespace) -> Path:
     if args.expected_evidence_class == "REMOTE_STAGING":
         require(args.expected_repository == EXPECTED_REPOSITORY, "caller supplied unexpected remote repository")
         require(args.expected_workflow_name == EXPECTED_WORKFLOW_NAME, "caller supplied unexpected remote workflow name")
+        require(args.expected_job_name == "deploy", "caller supplied unexpected remote job name")
         require(args.expected_source_ref == "refs/heads/main", "remote candidate source ref must be refs/heads/main")
         require(
             args.expected_workflow_ref == f"{EXPECTED_REPOSITORY}/{EXPECTED_WORKFLOW_PATH}@{args.expected_source_ref}",
@@ -363,6 +364,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expected-workflow-sha", required=True)
     parser.add_argument("--expected-source-ref", required=True)
     parser.add_argument("--expected-event-name", required=True)
+    parser.add_argument("--expected-job-name", required=True)
     parser.add_argument(
         "--expected-evidence-class",
         choices=("REMOTE_STAGING", "LOCALHOST_CONTRACT_PROOF"),
