@@ -7,7 +7,7 @@
 **Snapshot ID:** N/A — 전략 장이며, 어떠한 데이터 Snapshot도 존재한다고 주장하지 않음  
 **문장 분류:** TARGET / GOVERNING DOCTRINE — 현재의 실증 또는 시장 주장이 아닌 전략적 의도  
 **Gate 상태:** C1 Product Contract 실질적 확립; C2 미완료; Production/Public/G5 HOLD  
-**Evidence 참조:** #235, #236, #237, #238, #240, #256, #1061; protected main `ea8bacc076ab228c3e7e334cd6cacbe86c3a3bdb`
+**Evidence 참조:** #235, #236, #237, #238, #240, #256, #1061; protected main `5ba79a49c0346bb0b3e5a5ade71890f51a1046fa`
 
 ## 1. 존재 목적
 
@@ -126,7 +126,7 @@ KIDULTS의 성공은 고객이 답뿐 아니라 그 답의 품질과 경계까�
 - **Baseline Book dependency:** 현재 상태, Evidence Population, Blocker와 Gate는 사실에 근거하고 기준 일시가 명시되어야 한다.
 - **Architecture Book dependency:** 모든 Product Promise는 재현 가능한 System Boundary로 연결되어야 한다.
 - **Contradiction check:** Market Number, Provider Right, Candidate/Evidence Pair, Track B 결과, Live Projection 또는 Production Readiness를 주장하지 않는다.
-- **Sync state:** ALIGNED TO CANONICAL PROTECTED MAIN `ea8bacc0` AT 2026-08-23 09:03 KST.
+- **Sync state:** ALIGNED TO CANONICAL PROTECTED MAIN `5ba79a49` AT 2026-08-23 10:02 KST.
 
 ## 10. Rollback
 
