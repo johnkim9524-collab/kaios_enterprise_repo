@@ -15,14 +15,15 @@ const files = {
 const fail = (message) => {
   throw new Error(message);
 };
-const readText = (p) => fs.readFileSync(path.join(root, p), 'utf8');
+const resolvePath = (p) => path.isAbsolute(p) ? p : path.join(root, p);
+const readText = (p) => fs.readFileSync(resolvePath(p), 'utf8');
 const readJson = (p) => JSON.parse(readText(p));
 const assert = (condition, message) => {
   if (!condition) fail(message);
 };
 
 for (const [name, p] of Object.entries(files)) {
-  assert(fs.existsSync(path.join(root, p)), `MISSING_${name.toUpperCase()}:${p}`);
+  assert(fs.existsSync(resolvePath(p)), `MISSING_${name.toUpperCase()}:${p}`);
 }
 
 const agents = readText(files.agents);
