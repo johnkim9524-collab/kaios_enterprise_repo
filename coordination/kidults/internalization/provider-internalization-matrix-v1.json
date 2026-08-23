@@ -1,0 +1,87 @@
+{
+  "matrix_id": "KIDULTS_PROVIDER_INTERNALIZATION_MATRIX_V1",
+  "parent_issues": [1153, 1166, 952, 945, 951],
+  "classification_states": ["EXTERNAL_FACT", "INTERNALIZE_NOW", "INTERNALIZE_PHASED", "COMMODITY_BUY", "PROHIBITED_DEPENDENCY", "UNKNOWN"],
+  "providers": [
+    {
+      "provider_id": "PSA",
+      "portfolio_priority": "TIER_1",
+      "role": "AUTHORITATIVE_GRADING_FACT_SOURCE",
+      "rights_state": "PENDING_WRITTEN_FIELD_PURPOSE_CONFIRMATION",
+      "external_fact": ["grader_issued_certification", "grader_issued_grade", "provider_population_observation"],
+      "internalize_now": ["canonical_identity", "cross_grader_entity_resolution", "grade_normalization", "census_reconciliation", "confidence_provenance", "scarcity_derivation"],
+      "prohibited_dependency": ["provider_id_as_canonical_id", "provider_score_as_kidults_score"]
+    },
+    {
+      "provider_id": "GEMRATE",
+      "portfolio_priority": "TIER_2",
+      "role": "CROSS_GRADER_MAPPING_AND_POPULATION_EVIDENCE_ACCELERATOR",
+      "rights_state": "PARTIAL_WRITTEN_CONFIRMATION_REMAINDER_PENDING",
+      "external_fact": ["cross_grader_mapping_observation", "aggregated_population_observation"],
+      "internalize_now": ["canonical_identity", "mapping_confidence", "cross_provider_reconciliation", "normalization", "provider_switching"],
+      "internalize_phased": ["historical_mapping_memory", "population_change_interpretation"],
+      "prohibited_dependency": ["gemrate_id_as_canonical_id", "gemrate_taxonomy_as_canonical_ontology"]
+    },
+    {
+      "provider_id": "CGC_CCG",
+      "portfolio_priority": "TIER_1_OR_FALLBACK_PENDING_PRODUCT_RIGHTS",
+      "role": "AUTHORITATIVE_GRADING_FACT_SOURCE",
+      "rights_state": "DEALER_API_RIGHTS_PENDING",
+      "external_fact": ["grader_issued_certification", "grader_issued_grade", "provider_population_observation"],
+      "internalize_now": ["canonical_identity", "cross_grader_entity_resolution", "grade_normalization", "census_reconciliation", "confidence_provenance"],
+      "prohibited_dependency": ["provider_id_as_canonical_id", "provider_taxonomy_as_canonical_ontology"]
+    },
+    {
+      "provider_id": "ALT_FNDATA",
+      "portfolio_priority": "TIER_1_MARKET_BACKBONE_CANDIDATE",
+      "role": "HORIZONTAL_MARKET_OBSERVATION_SOURCE",
+      "rights_state": "PENDING",
+      "external_fact": ["licensed_transaction_observation", "licensed_listing_or_market_observation"],
+      "internalize_now": ["market_event_canonicalization", "deduplication", "comparables", "liquidity", "valuation", "confidence_provenance", "provider_switching"],
+      "internalize_phased": ["market_regime_learning", "source_reputation_history"],
+      "prohibited_dependency": ["provider_event_schema_as_canonical_contract", "provider_analytics_as_kidults_methodology"]
+    },
+    {
+      "provider_id": "CLASSIC_COM",
+      "portfolio_priority": "TIER_1_VERTICAL_SPECIALIST",
+      "role": "COLLECTOR_CAR_MARKET_OBSERVATION_SOURCE",
+      "rights_state": "COMMERCIAL_LICENSE_VIABLE_RIGHTS_ECONOMICS_PENDING",
+      "external_fact": ["licensed_vehicle_sale_observation", "licensed_listing_observation"],
+      "internalize_now": ["market_event_canonicalization", "deduplication", "comparables", "liquidity", "valuation", "confidence_provenance", "provider_switching"],
+      "prohibited_dependency": ["provider_vehicle_identity_as_canonical_id", "provider_valuation_as_kidults_valuation"]
+    },
+    {
+      "provider_id": "LIVEART",
+      "portfolio_priority": "VERTICAL_SPECIALIST",
+      "role": "FINE_ART_MARKET_OBSERVATION_SOURCE_CANDIDATE",
+      "rights_state": "PENDING",
+      "external_fact": ["licensed_art_market_observation_if_authorized"],
+      "internalize_now": ["canonical_identity", "market_event_canonicalization", "deduplication", "comparables", "confidence_provenance"],
+      "prohibited_dependency": ["provider_art_taxonomy_as_canonical_ontology", "provider_analytics_as_kidults_methodology"]
+    },
+    {
+      "provider_id": "HAGERTY",
+      "portfolio_priority": "SUPPLEMENTAL_OR_VERTICAL_SPECIALIST_PENDING_PRODUCT_REVIEW",
+      "role": "COLLECTOR_CAR_SPECIALIST_SIGNAL_CANDIDATE",
+      "rights_state": "PENDING",
+      "external_fact": ["authorized_market_observation_if_available"],
+      "internalize_now": ["valuation_methodology", "comparables", "confidence_provenance", "market_regime_interpretation"],
+      "prohibited_dependency": ["provider_valuation_as_kidults_valuation", "provider_taxonomy_as_canonical_ontology"]
+    }
+  ],
+  "global_rules": {
+    "provider_direct_to_portal": false,
+    "provider_direct_to_index": false,
+    "provider_id_may_be_canonical": false,
+    "provider_score_may_be_kidults_score": false,
+    "unknown_rights_may_activate": false,
+    "external_fact_priority_over_internalizable_convenience": true
+  },
+  "non_bypass": {
+    "spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "contract": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
