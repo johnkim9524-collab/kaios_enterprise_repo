@@ -1,0 +1,141 @@
+{
+  "id": "kidults-asi-candidate-ssrf-safe-preflight-contract-v1",
+  "version": "1.0.0",
+  "status": "IMPLEMENTED_SECURITY_PROOF_NETWORK_EXECUTION_HOLD",
+  "owner": "KPMO_SECURITY",
+  "priority": "P0",
+  "governing_issue": 1132,
+  "supersedes_unsafe_pr": 1130,
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Provide an SSRF-safe replacement transport for untrusted public-metadata candidate-host preflight while keeping protected-main candidate-host network execution fail-closed until exact-head proof and explicit security activation are recorded.",
+  "default_execution_state": {
+    "candidate_host_network_execution": "HOLD",
+    "protected_main_live_candidate_probes": 0,
+    "offline_exact_head_mutation_proof": "AUTOMATIC",
+    "external_credentials_required": false,
+    "secrets_available_to_validation_workflow": false
+  },
+  "url_policy": {
+    "allowed_schemes": [
+      "http",
+      "https"
+    ],
+    "allowed_methods": [
+      "HEAD",
+      "GET"
+    ],
+    "default_ports_only": true,
+    "credentials_allowed": false,
+    "fragments_allowed": false,
+    "backslash_normalization_allowed": false,
+    "ip_literals_allowed": false,
+    "single_label_names_allowed": false,
+    "localhost_internal_and_special_use_names_allowed": false,
+    "maximum_url_length": 4096
+  },
+  "dns_policy": {
+    "trusted_control_plane_resolver_required": true,
+    "system_default_resolver_allowed": false,
+    "resolve_before_every_hop": true,
+    "a_and_aaaa_answers_recorded": true,
+    "maximum_answers": 64,
+    "all_answers_must_be_globally_routable": true,
+    "mixed_global_and_non_global_answers_allowed": false,
+    "loopback_private_shared_link_local_multicast_reserved_documentation_and_translation_ranges_allowed": false,
+    "selected_address_is_deterministic": true
+  },
+  "transport_policy": {
+    "automatic_redirect_following_allowed": false,
+    "manual_redirect_validation_required": true,
+    "maximum_redirect_hops": 3,
+    "https_to_http_downgrade_allowed": false,
+    "address_pinned_transport_required": true,
+    "tls_server_name_is_original_validated_hostname": true,
+    "certificate_validation_required": true,
+    "connected_remote_address_must_match_pin": true,
+    "connection_pool_reuse_allowed": false,
+    "maximum_body_bytes": 65536,
+    "request_timeout_milliseconds": 12000
+  },
+  "receipt_policy": {
+    "required_destination_evidence": [
+      "POLICY_ID",
+      "CANONICAL_URL_DIGEST",
+      "SCHEME",
+      "HOSTNAME",
+      "PORT",
+      "ALL_RESOLVED_ADDRESSES",
+      "SELECTED_PINNED_ADDRESS",
+      "ADDRESS_FAMILY",
+      "TRANSPORT_MODE",
+      "REMOTE_ADDRESS_PIN_MATCH"
+    ],
+    "required_redirect_evidence": [
+      "HOP_INDEX",
+      "SOURCE_RESPONSE_STATUS",
+      "LOCATION_DIGEST",
+      "VALIDATED_DESTINATION",
+      "DNS_ANSWERS",
+      "ADDRESS_PIN"
+    ],
+    "raw_canonical_url_in_receipt": false,
+    "raw_response_body_in_receipt": false,
+    "response_body_digest_required_when_read": true
+  },
+  "required_mutation_families": [
+    "MISSING_TRUSTED_CONTROL_PLANE_RESOLVER",
+    "DIRECT_CREDENTIAL_AND_SCHEME",
+    "NON_DEFAULT_PORT",
+    "IPV4_LITERAL_DECIMAL_OCTAL_HEX_AND_METADATA",
+    "IPV6_LITERAL_MAPPED_LOOPBACK_LINK_LOCAL_AND_PRIVATE",
+    "ENCODED_AND_BACKSLASH_AUTHORITY_CONFUSION",
+    "LOCALHOST_INTERNAL_AND_SPECIAL_USE_NAMES",
+    "EMPTY_PRIVATE_AND_MIXED_DNS_ANSWERS",
+    "REDIRECT_TO_IP_INTERNAL_OR_MIXED_DNS",
+    "REDIRECT_DOWNGRADE_LOOP_AND_HOP_LIMIT",
+    "REMOTE_ADDRESS_PIN_MISMATCH",
+    "DNS_REBINDING_AND_CHECK_REQUEST_TOCTOU",
+    "INVALID_METHOD_TIMEOUT_BODY_AND_REDIRECT_LIMITS"
+  ],
+  "activation_gate": {
+    "live_network_execution_is_authorized_by_this_contract": false,
+    "requires_exact_head_mutation_receipt": true,
+    "requires_security_review_of_address_pinning": true,
+    "requires_explicit_kpmo_security_activation_record": true,
+    "requires_no_unresolved_p0_ssrf_mutation": true,
+    "requires_protected_main_network_execution_to_remain_zero_until_activation": true
+  },
+  "rights_and_admission_boundary": {
+    "robots_allow_is_collection_permission": false,
+    "terms_link_is_rights_pass": false,
+    "reachability_is_admission": false,
+    "semantic_signal_is_evidence": false,
+    "candidate_preflight_is_evidence": false,
+    "automatic_rights_pass_allowed": false
+  },
+  "registered_assets": {
+    "transport": "scripts/kidults/source-intelligence/ssrf-safe-candidate-preflight-v1.mjs",
+    "mutation_validator": "scripts/kidults/source-intelligence/validate-ssrf-safe-candidate-preflight-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-candidate-ssrf-safe-preflight-v1.yml",
+    "documentation": "docs/kidults/asi/asi-candidate-ssrf-safe-preflight-v1.md"
+  },
+  "truth_boundary": {
+    "live_candidate_host_requests_executed_by_validation": 0,
+    "creates_collection_right": false,
+    "admits_evidence": false,
+    "creates_market_claim": false,
+    "activates_provider": false,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "autonomous_effect": "POSITIVE_OFFLINE_SECURITY_MUTATION_PROOF_RUNS_ON_EVERY_RELEVANT_PR_AND_MAIN_CHANGE_WITHOUT_MANUAL_DISPATCH",
+  "global_effect": "NEUTRAL_THE_SAME_NON_COMPENSATING_EGRESS_POLICY_APPLIES_TO_EVERY_GLOBAL_CANDIDATE_HOST",
+  "irreplaceable_value_effect": "POSITIVE_DESTINATION_DNS_REDIRECT_AND_PIN_EVIDENCE_REMAINS_IN_A_KIDULTS_OWNED_RECEIPT",
+  "transparency_effect": "POSITIVE_ALLOWED_DESTINATIONS_REJECTIONS_REDIRECTS_DNS_ANSWERS_AND_ACTIVATION_HOLD_ARE_EXPLICIT"
+}
