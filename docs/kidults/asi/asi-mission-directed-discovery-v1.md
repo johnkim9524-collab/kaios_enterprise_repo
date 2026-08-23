@@ -47,6 +47,22 @@ Manual dispatch remains recovery or explicit replay only.
 
 A provider failure does not erase successful results from other lanes. Partial failure is an explicit output state.
 
+## Fail-soft metadata fallback
+
+The first empirical run proved that a narrow mission query can legitimately return zero candidates even when provider requests succeed. Zero results are not converted into fabricated candidates and do not silently disappear.
+
+When the primary multi-provider cycle fails or produces no live candidate, the workflow executes a bounded GitHub public-metadata fallback. The fallback:
+
+- reuses the same immutable 24-intent batch and rolling cursor;
+- searches scope-specific public repository metadata first;
+- uses a broad auction/marketplace/collector query only when the scope-specific query is empty;
+- emits a repository homepage or repository URL as a discovery-metadata candidate;
+- records `primary_discovery_fallback_used` and the original primary failure;
+- keeps every candidate at `DISCOVERY_METADATA_ONLY / UNASSESSED / NOT_ADMITTED`;
+- performs no target-site body traversal, cloning, collection, account creation, EULA acceptance or spend.
+
+The fallback improves autonomous continuity. It does not improve the candidate's claim ceiling and cannot create rights, admission, sold semantics, price, liquidity or a graph fact.
+
 ## Global provider lanes
 
 ### Wikidata Official Website Graph
@@ -160,6 +176,7 @@ Dated Sold ≠ Current Price
 Sold Count ≠ Liquidity without Exposure Denominator
 Provider Owner Count ≠ Factual-Origin Independence
 Partial Provider Failure must remain visible
+Fail-soft Candidate ≠ Market Evidence
 Missing Assertion = HOLD, not Zero
 ```
 
