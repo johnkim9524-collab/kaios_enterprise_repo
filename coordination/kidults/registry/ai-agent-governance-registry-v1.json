@@ -1,6 +1,6 @@
 {
   "id": "kidults-ai-agent-governance-registry-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "registered_policy": {
@@ -24,6 +24,19 @@
     ],
     "child_rule_can_weaken_or_reorder": false,
     "manual_only_normal_activation_for_ready_governed_runner_forbidden": true
+  },
+  "automatic_execution_paths": {
+    "scale_wave_flow": [
+      "PR_MERGE",
+      "PROTECTED_MAIN_PUSH",
+      "SCALE_WAVE_AUTO_ACTIVATION",
+      "ARTIFACT",
+      "KPMO_RECEIPT"
+    ],
+    "sharded_reserve_workflow": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+    "source_fabric_scale_workflow": ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml",
+    "normal_activation_requires_automatic_trigger": true,
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },
   "mandatory_inheritance": {
     "applies_to": [
