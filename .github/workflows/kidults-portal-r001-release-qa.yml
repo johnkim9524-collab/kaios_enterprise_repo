@@ -5,6 +5,10 @@ on:
       - 'apps/kidults-enterprise-staging/public/portal-r001/**'
       - 'apps/kidults-enterprise-staging/server.mjs'
       - '.github/workflows/kidults-portal-r001-release-qa.yml'
+      - 'tooling/kidults-portal-r001-browser-qa/package.json'
+      - 'tooling/kidults-portal-r001-browser-qa/package-lock.json'
+      - 'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs'
+      - 'scripts/kidults/kpmo/build-portal-r001-browser-qa-toolchain-receipt-v1.mjs'
   workflow_dispatch:
 
 jobs:
@@ -13,17 +17,30 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          test "${ACTUAL_SHA}" = "${EXPECTED_SHA}"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Validate browser QA workflow provenance
+        run: node scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs
       - name: Install isolated browser QA dependencies
         run: |
           mkdir -p /tmp/kidults-r001-qa
-          cd /tmp/kidults-r001-qa
-          npm init -y >/dev/null
-          npm install --silent playwright @axe-core/playwright
-          npx playwright install --with-deps chromium
+          cp tooling/kidults-portal-r001-browser-qa/package.json /tmp/kidults-r001-qa/package.json
+          cp tooling/kidults-portal-r001-browser-qa/package-lock.json /tmp/kidults-r001-qa/package-lock.json
+          npm ci --prefix /tmp/kidults-r001-qa
+          node /tmp/kidults-r001-qa/node_modules/playwright/cli.js install --with-deps chromium
       - name: Start staging portal
         shell: bash
         run: |
@@ -345,12 +362,17 @@ jobs:
           NODE
           cd /tmp/kidults-r001-qa
           node run.mjs
-      - uses: actions/upload-artifact@v4
+      - name: Build exact toolchain receipt
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/kidults/kpmo/build-portal-r001-browser-qa-toolchain-receipt-v1.mjs /tmp/kidults-r001-qa/toolchain-receipt.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: kidults-portal-r001-release-qa-v1
           path: |
             /tmp/kidults-portal-r001-release-qa-v1.json
+            /tmp/kidults-r001-qa/toolchain-receipt.json
             /tmp/kidults-r001-server.log
             /tmp/kidults-r001-qa/screenshots
           retention-days: 30
