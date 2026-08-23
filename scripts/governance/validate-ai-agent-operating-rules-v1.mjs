@@ -20,6 +20,8 @@ const resolvePath = (p) => path.isAbsolute(p) ? p : path.join(root, p);
 const readText = (p) => fs.readFileSync(resolvePath(p), 'utf8');
 const readJson = (p) => JSON.parse(readText(p));
 const assert = (condition, message) => { if (!condition) fail(message); };
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const hasTopLevelTrigger = (text, trigger) => new RegExp(`^  ${escapeRegex(trigger)}:\\s*$`, 'm').test(text);
 
 for (const [name, p] of Object.entries(files)) {
   assert(fs.existsSync(resolvePath(p)), `MISSING_${name.toUpperCase()}:${p}`);
@@ -155,11 +157,12 @@ for (const [key, expected] of Object.entries({
   assert(registry.registered_policy?.[key] === expected, `REGISTRY_PATH_MISMATCH:${key}`);
 }
 
-for (const [workflowName, workflowText, markers] of [
-  ['RESERVE', reserveWorkflow, ['workflow_dispatch:', 'schedule:', 'push:', 'workflow_run:', 'KIDULTS ASI Global Any-Site Hourly Pooling v2']],
-  ['SCALE', scaleWorkflow, ['workflow_dispatch:', 'schedule:', 'push:']]
-]) {
-  for (const marker of markers) assert(workflowText.includes(marker), `${workflowName}_MISSING_AUTONOMOUS_TRIGGER:${marker}`);
+for (const trigger of ['workflow_dispatch', 'schedule', 'push', 'workflow_run']) {
+  assert(hasTopLevelTrigger(reserveWorkflow, trigger), `RESERVE_MISSING_AUTONOMOUS_TRIGGER:${trigger}`);
+}
+assert(reserveWorkflow.includes('KIDULTS ASI Global Any-Site Hourly Pooling v2'), 'RESERVE_MISSING_UPSTREAM_WORKFLOW');
+for (const trigger of ['workflow_dispatch', 'schedule', 'push']) {
+  assert(hasTopLevelTrigger(scaleWorkflow, trigger), `SCALE_MISSING_AUTONOMOUS_TRIGGER:${trigger}`);
 }
 
 const requiredAgentMarkers = [
