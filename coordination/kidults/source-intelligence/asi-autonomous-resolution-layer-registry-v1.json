@@ -12,6 +12,7 @@
   ],
   "registered_assets": {
     "contract": "coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json",
+    "registry": "coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-registry-v1.json",
     "builder": "scripts/kidults/source-intelligence/build-asi-autonomous-resolution-layer-v1.mjs",
     "validator": "scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs",
     "registry_validator": "scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs",
@@ -21,7 +22,7 @@
     "scope_crosswalk": "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
     "market_adapter_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json"
   },
-  "engine_order": [
+  "registered_engines": [
     "ACTION_DEPENDENCY_GRAPH_ENGINE",
     "RESOLUTION_SCHEDULER",
     "RIGHTS_RESOLUTION_ENGINE",
@@ -30,22 +31,18 @@
     "EVIDENCE_ADMISSION_ENGINE",
     "RESOLUTION_LEARNING_ENGINE"
   ],
-  "input_artifacts": [
-    {
-      "artifact_name": "kidults-asi-p0b-bounded-discovery-candidates-v1",
-      "required_files": [
-        "p0b-source-candidate-registry-v1.json",
-        "p0b-mission-candidate-binding-ledger-v1.json"
-      ]
-    },
-    {
-      "artifact_name": "kidults-asi-p1-source-preflight-v1",
-      "required_files": [
-        "p1-gate1-source-safety-decisions-v1.json",
-        "p1-evidence-admission-candidate-register-v1.json",
-        "p1-preflight-action-queue-v1.json"
-      ]
-    }
+  "registered_outputs": [
+    "action-dependency-graph-v1.json",
+    "resolution-schedule-v1.json",
+    "rights-resolution-ledger-v1.json",
+    "semantic-resolution-ledger-v1.json",
+    "factual-origin-resolution-ledger-v1.json",
+    "action-resolution-ledger-v1.json",
+    "gate1-resolution-ledger-v1.json",
+    "evidence-admission-resolution-ledger-v1.json",
+    "replacement-source-mission-queue-v1.json",
+    "resolution-learning-ledger-v1.json",
+    "autonomous-resolution-manifest-v1.json"
   ],
   "automatic_activation": {
     "main_push": true,
@@ -53,16 +50,21 @@
     "upstream_workflow": "KIDULTS ASI P1 Source Preflight v1",
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },
+  "execution_policy": {
+    "current_p1_artifact_is_single_coherent_input": true,
+    "semantic_triage_precedes_expensive_preflight": true,
+    "all_current_actions_must_reach_terminal_state": true,
+    "terminal_semantic_rejection_may_supersede_nonsemantic_actions": true,
+    "candidate_global_retirement_from_mission_rejection_allowed": false,
+    "registered_replacement_profile_is_permission": false
+  },
   "truth_boundary": {
-    "terminal_action_is_rights_pass": false,
-    "terminal_action_is_evidence_admission": false,
-    "semantic_reject_globally_retires_candidate": false,
-    "registered_replacement_profile_is_activated_adapter": false,
-    "registered_replacement_profile_is_rights_verified": false,
-    "live_target_site_network_requests": 0,
-    "evidence_admitted": 0,
-    "market_events_created": 0,
-    "snapshot_candidates_created": 0,
+    "live_target_site_network_probe": false,
+    "rights_pass_created": false,
+    "evidence_admitted": false,
+    "market_event_created": false,
+    "snapshot_candidate_created": false,
+    "track_b_started": false,
     "public_release": "HOLD",
     "production": "HOLD"
   }
