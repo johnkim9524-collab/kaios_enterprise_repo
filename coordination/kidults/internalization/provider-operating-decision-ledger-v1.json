@@ -1,0 +1,30 @@
+{
+  "ledger_id": "KIDULTS_PROVIDER_OPERATING_DECISION_LEDGER_V1",
+  "parent_issues": [1172,1166,1153,952],
+  "decision_as_of": "2026-08-24",
+  "policy": {
+    "written_negotiation": "ALLOWED",
+    "substantive_inbound_requires_analysis_first": true,
+    "pilot_with_material_rights_pending": "HOLD",
+    "long_term_without_provider_removal_proof": "HOLD",
+    "spend_without_owner_approval": "PROHIBITED"
+  },
+  "providers": [
+    {"provider_id":"PSA","negotiation":"ACTIVE_WRITTEN","pilot":"HOLD_RIGHTS_AND_SPEND","long_term":"HOLD_REMOVAL_ECONOMICS_PORTABILITY","priority":"TIER_1","external_value":"AUTHORITATIVE_GRADING_FACTS"},
+    {"provider_id":"GEMRATE","negotiation":"ACTIVE_WRITTEN","pilot":"HOLD_REMAINING_RIGHTS_AND_SPEND","long_term":"HOLD_REMOVAL_ECONOMICS_PORTABILITY","priority":"TIER_2","external_value":"CROSS_GRADER_MAPPING_AND_POPULATION_EVIDENCE"},
+    {"provider_id":"CGC_CCG","negotiation":"ACTIVE_WRITTEN_DEALER_API_PATH","pilot":"HOLD_RIGHTS_ELIGIBILITY_AND_ECONOMICS","long_term":"HOLD_REMOVAL_ECONOMICS_PORTABILITY","priority":"TIER_1_OR_FALLBACK","external_value":"AUTHORITATIVE_GRADING_FACTS"},
+    {"provider_id":"ALT_FNDATA","negotiation":"WAITING_SUBSTANTIVE_REPLY","pilot":"HOLD_ALL_MATERIAL_RIGHTS_AND_ECONOMICS","long_term":"HOLD","priority":"TIER_1_MARKET_BACKBONE_CANDIDATE","external_value":"ACTUAL_MARKET_OBSERVATIONS"},
+    {"provider_id":"CLASSIC_COM","negotiation":"ACTIVE_WRITTEN_RIGHTS_SCOPE","pilot":"HOLD_RIGHTS_AND_ECONOMICS","long_term":"HOLD_REMOVAL_ECONOMICS_PORTABILITY","priority":"TIER_1_VERTICAL","external_value":"COLLECTOR_CAR_TRANSACTION_FACTS"},
+    {"provider_id":"LIVEART","negotiation":"WAITING_SUBSTANTIVE_REPLY","pilot":"HOLD_ALL_MATERIAL_RIGHTS_AND_ECONOMICS","long_term":"HOLD","priority":"VERTICAL_SPECIALIST","external_value":"FINE_ART_MARKET_FACTS"},
+    {"provider_id":"HAGERTY","negotiation":"WAITING_HUMAN_SUBSTANTIVE_REPLY","pilot":"HOLD_ALL_MATERIAL_RIGHTS_AND_ECONOMICS","long_term":"HOLD","priority":"SUPPLEMENTAL_OR_VERTICAL_SPECIALIST","external_value":"COLLECTOR_CAR_SPECIALIST_FACTS"}
+  ],
+  "empirical_truth_non_promotion": {
+    "graded_population": "0/120",
+    "human_reviews": 0,
+    "lawful_collector_market_dated_sold_cells": 0,
+    "market_claim": "NONE",
+    "candidate_evidence_pair": "NONE",
+    "track_b": "NOT_STARTED"
+  },
+  "non_bypass": {"contract":"EXPLICIT_APPROVAL_REQUIRED","spend":"EXPLICIT_APPROVAL_REQUIRED","credential_activation":"EXPLICIT_APPROVAL_REQUIRED","production":"HOLD","g5":"EXPLICIT_APPROVAL_REQUIRED"}
+}
