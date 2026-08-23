@@ -7,7 +7,9 @@ const suites = [
   'scripts/kidults/internalization/validate-source-reputation-v1.mjs',
   'scripts/kidults/internalization/validate-market-integrity-v1.mjs',
   'scripts/kidults/internalization/validate-canonical-ontology-evolution-v1.mjs',
-  'scripts/kidults/internalization/validate-historical-learning-memory-v1.mjs'
+  'scripts/kidults/internalization/validate-historical-learning-memory-v1.mjs',
+  'scripts/kidults/internalization/validate-provider-removal-simulation-v1.mjs',
+  'scripts/kidults/internalization/validate-provider-internalization-matrix-v1.mjs'
 ];
 
 const removalPath = 'coordination/kidults/internalization/provider-removal-simulation-contract-v1.json';
