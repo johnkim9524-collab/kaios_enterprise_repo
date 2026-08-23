@@ -1,0 +1,160 @@
+name: KIDULTS ASI Initial Auction Results Adapters v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '48 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-registry-v1.json'
+      - 'scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/initial-auction-results-adapters-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-initial-auction-results-adapters-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapters-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapter-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-initial-auction-results-adapters-v1.md'
+      - '.github/workflows/kidults-asi-initial-auction-results-adapters-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-registry-v1.json'
+      - 'scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/initial-auction-results-adapters-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-initial-auction-results-adapters-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapters-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapter-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-initial-auction-results-adapters-v1.md'
+      - '.github/workflows/kidults-asi-initial-auction-results-adapters-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Claim-Suitable Adapter SDK v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-initial-auction-results-adapters-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify-initial-adapters:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and initial adapter contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/initial-auction-results-adapters-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-initial-auction-results-adapters-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapters-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapter-registry-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-registry-v1.json','utf8'))"
+      - name: Validate initial adapter registry and continuation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapter-registry-v1.mjs \
+            | tee /tmp/kidults-asi-initial-auction-results-adapter-registry-validation-v1.json
+      - name: Build initial auction adapters twice
+        run: |
+          set -euo pipefail
+          for RUN in 1 2; do
+            node scripts/kidults/source-intelligence/build-asi-initial-auction-results-adapters-v1.mjs \
+              coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-contract-v1.json \
+              "/tmp/kidults-asi-initial-auction-results-adapters-run-${RUN}"
+          done
+          diff -qr /tmp/kidults-asi-initial-auction-results-adapters-run-1 /tmp/kidults-asi-initial-auction-results-adapters-run-2
+      - name: Validate initial auction adapter outputs
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapters-v1.mjs \
+            /tmp/kidults-asi-initial-auction-results-adapters-run-1 \
+            coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-contract-v1.json \
+            | tee /tmp/kidults-asi-initial-auction-results-adapter-validation-v1.json
+      - name: Reject estimate-as-realized mutation
+        run: |
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';import {mapAuctionResultFixture} from './scripts/kidults/source-intelligence/lib/initial-auction-results-adapters-v1.mjs';
+          const c=JSON.parse(fs.readFileSync('coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-contract-v1.json'));const p=c.source_profiles[0];const x={[p.terminal_status_fields[0]]:'SOLD',[p.realized_price_fields[0]]:'Estimate $100,000 - $150,000',[p.event_time_fields[0]]:'2026-08-22T00:00:00Z',[p.record_id_fields[0]]:'X',[p.title_fields[0]]:'Fixture',currency:'USD',source_observed_at:'2026-08-23T00:00:00Z'};
+          let rejected=false;try{mapAuctionResultFixture(p,x)}catch(e){rejected=String(e.message)==='SOURCE_MAPPING_ESTIMATE_AS_REALIZED_FORBIDDEN'}if(!rejected)throw new Error('ESTIMATE_NOT_REJECTED');
+          NODE
+      - name: Reject ambiguous-currency mutation
+        run: |
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';import {mapAuctionResultFixture} from './scripts/kidults/source-intelligence/lib/initial-auction-results-adapters-v1.mjs';
+          const c=JSON.parse(fs.readFileSync('coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-contract-v1.json'));const p=c.source_profiles[0];const x={[p.terminal_status_fields[0]]:'SOLD',[p.realized_price_fields[0]]:'$100000',[p.event_time_fields[0]]:'2026-08-22T00:00:00Z',[p.record_id_fields[0]]:'X',[p.title_fields[0]]:'Fixture',source_observed_at:'2026-08-23T00:00:00Z'};
+          let rejected=false;try{mapAuctionResultFixture(p,x)}catch(e){rejected=String(e.message)==='SOURCE_MAPPING_AMBIGUOUS_DOLLAR'}if(!rejected)throw new Error('AMBIGUOUS_CURRENCY_NOT_REJECTED');
+          NODE
+      - name: Reject source-specific mapping live-overclaim mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-initial-auction-results-adapters-run-1 /tmp/bad-live
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-live/source-specific-adapter-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.adapters[0].live_extraction_verified=true;x.live_extractions_verified=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapters-v1.mjs /tmp/bad-live; then exit 1; fi
+      - name: Reject fixture promotion mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-initial-auction-results-adapters-run-1 /tmp/bad-promotion
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-promotion/source-specific-adapter-fixture-certification-v1.json';const x=JSON.parse(fs.readFileSync(p));x.cases[0].promotable=true;x.promotable_case_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapters-v1.mjs /tmp/bad-promotion; then exit 1; fi
+      - name: Reject false evidence admission mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-initial-auction-results-adapters-run-1 /tmp/bad-admission
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-admission/initial-auction-adapter-manifest-v1.json';const x=JSON.parse(fs.readFileSync(p));x.results.evidence_admitted=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapters-v1.mjs /tmp/bad-admission; then exit 1; fi
+      - name: Reject manual-only activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-registry-v1.json /tmp/initial-adapter-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflow='NONE';fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapter-registry-v1.mjs; then exit 1; fi
+          mv /tmp/initial-adapter-registry.json coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-registry-v1.json
+      - name: Revalidate pristine initial adapters
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapter-registry-v1.mjs > /tmp/kidults-asi-initial-auction-results-adapter-registry-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapters-v1.mjs \
+            /tmp/kidults-asi-initial-auction-results-adapters-run-1 \
+            coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-contract-v1.json > /tmp/kidults-asi-initial-auction-results-adapter-final-validation-v1.json
+      - name: Emit KPMO initial-auction-adapter receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-initial-auction-results-adapter-kpmo-receipt-v1.json
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-initial-auction-results-adapters-run-1/initial-auction-adapter-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-initial-auction-results-adapter-kpmo-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,target_host_egress_executed:false,rights_pass_created:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-initial-auction-results-adapter-kpmo-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-initial-auction-results-adapters-v1
+          path: |
+            /tmp/kidults-asi-initial-auction-results-adapters-run-1
+            /tmp/kidults-asi-initial-auction-results-adapter-registry-validation-v1.json
+            /tmp/kidults-asi-initial-auction-results-adapter-validation-v1.json
+            /tmp/kidults-asi-initial-auction-results-adapter-registry-final-validation-v1.json
+            /tmp/kidults-asi-initial-auction-results-adapter-final-validation-v1.json
+            /tmp/kidults-asi-initial-auction-results-adapter-kpmo-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
