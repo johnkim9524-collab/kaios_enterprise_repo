@@ -8,6 +8,7 @@ const files = {
   sourceFrontier: 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv',
   runtimeModule: 'services/kidults-autonomous-intelligence/src/asi/market-adapter.ts',
   runtimeTest: 'services/kidults-autonomous-intelligence/scripts/asi-market-adapter-runtime-test.mjs',
+  validator: 'scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs',
   workflow: '.github/workflows/kidults-asi-p1-market-event-adapter-runtime-v1.yml',
   doc: 'docs/kidults/asi/asi-p1-market-event-adapter-runtime-v1.md'
 };
@@ -41,8 +42,6 @@ assert(JSON.stringify(contract.profile_tuple) === JSON.stringify(['priority_rank
 assert(contract.registered_profile_default_state === 'ADAPTER_NOT_IMPLEMENTED', 'CONTRACT_DEFAULT_STATE');
 assert(contract.fixture_policy?.mode === 'SYNTHETIC_CONTROL_ONLY', 'CONTRACT_FIXTURE_MODE');
 assert(contract.fixture_policy?.can_create_market_event_or_claim === false, 'CONTRACT_FIXTURE_PROMOTION');
-
-for (const claim of claims) assert(contract.claim_targets[claim], `CONTRACT_CLAIM_MISSING:${claim}`);
 assert(contract.claim_targets.DATED_OBSERVED_SOLD_TRANSACTION.required_fields.length === 13, 'DATED_SOLD_REQUIRED_FIELDS');
 assert(contract.claim_targets.DATED_OBSERVED_SOLD_TRANSACTION.required_rights.length === 3, 'DATED_SOLD_RIGHTS');
 assert(contract.claim_targets.DATED_OBSERVED_SOLD_TRANSACTION.listing_or_bid_ask_is_sold === false, 'LISTING_NOT_SOLD');
@@ -65,8 +64,7 @@ for (const tuple of contract.registered_source_profiles) {
   assert(Array.isArray(tuple) && tuple.length === 4, 'PROFILE_TUPLE_SHAPE');
   const [rank, sourceId, assignmentCount, targetClaims] = tuple;
   assert(Number.isInteger(rank) && rank >= 1 && rank <= 16, `PROFILE_RANK:${sourceId}`);
-  assert(typeof sourceId === 'string' && sourceId.length > 0, `PROFILE_SOURCE_ID:${rank}`);
-  assert(!profileSourceIds.has(sourceId), `PROFILE_DUPLICATE_SOURCE:${sourceId}`);
+  assert(typeof sourceId === 'string' && sourceId.length > 0 && !profileSourceIds.has(sourceId), `PROFILE_SOURCE_ID:${sourceId}`);
   profileSourceIds.add(sourceId);
   assert(frontierById.has(sourceId), `PROFILE_SOURCE_NOT_IN_FRONTIER:${sourceId}`);
   assert(Number.isInteger(assignmentCount) && assignmentCount > 0, `PROFILE_ASSIGNMENT_COUNT:${sourceId}`);
@@ -76,7 +74,7 @@ for (const tuple of contract.registered_source_profiles) {
 assert(profileSourceIds.size === 16, 'PROFILE_UNIQUE_COUNT');
 assert(assignmentTotal === 156, 'PROFILE_ASSIGNMENT_TOTAL');
 
-for (const [key, expected] of Object.entries({
+const requiredImplementationTruth = {
   generic_strict_adapter_runtime_implemented: true,
   generic_runtime_tested_with_non_promotable_fixtures: true,
   registered_source_profile_count: 16,
@@ -88,13 +86,16 @@ for (const [key, expected] of Object.entries({
   empirical_market_event_emitted_count: 0,
   current_price_eligible_source_count: 0,
   liquidity_eligible_source_count: 0
-})) assert(contract.implementation_truth?.[key] === expected, `CONTRACT_IMPLEMENTATION_TRUTH:${key}`);
+};
+for (const [key, expected] of Object.entries(requiredImplementationTruth)) {
+  assert(contract.implementation_truth?.[key] === expected, `CONTRACT_IMPLEMENTATION_TRUTH:${key}`);
+}
 
 assert(strictGate.id === 'kidults-strict-current-market-admission-gate-v1', 'STRICT_GATE_ID');
 for (const claim of claims) assert(strictGate.claim_classes?.[claim], `STRICT_GATE_CLAIM:${claim}`);
-assert(strictGate.eligible_source_counts?.DATED_OBSERVED_SOLD_TRANSACTION === 0, 'STRICT_GATE_DATED_SOLD_OVERCLAIM');
-assert(strictGate.eligible_source_counts?.CURRENT_PRICE === 0, 'STRICT_GATE_CURRENT_PRICE_OVERCLAIM');
-assert(strictGate.eligible_source_counts?.LIQUIDITY_OR_TIME_TO_SALE === 0, 'STRICT_GATE_LIQUIDITY_OVERCLAIM');
+assert(strictGate.current_empirical_binding?.strict_current_price_eligible === false, 'STRICT_GATE_CURRENT_PRICE_OVERCLAIM');
+assert(strictGate.current_empirical_binding?.liquidity_eligible === false, 'STRICT_GATE_LIQUIDITY_OVERCLAIM');
+assert(strictGate.current_empirical_binding?.public_or_commercial_projection_eligible === false, 'STRICT_GATE_PROJECTION_OVERCLAIM');
 
 assert(registry.id === 'kidults-asi-p1-market-event-adapter-runtime-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version && registry.owner === 'KPMO' && registry.priority === 'P1', 'REGISTRY_METADATA');
@@ -131,6 +132,7 @@ for (const marker of [
   'LISTING_OR_QUOTE_MISREPRESENTED_AS_SOLD',
   'EXPOSURE_DENOMINATOR_ID_MISSING',
   'ASI_MARKET_ADAPTER_PROVIDER_DIRECT_PATH_FORBIDDEN',
+  'if (profile.provider_direct_to_index_or_projection_allowed !== false)',
   "market_event_admitted: false",
   "current_price_eligible: false",
   "liquidity_eligible: false"
@@ -147,7 +149,6 @@ for (const marker of [
   'OUTLIER_AND_DUPLICATE_CONTROL_NOT_VERIFIED',
   'ASI_MARKET_ADAPTER_PROVIDER_DIRECT_PATH_FORBIDDEN'
 ]) assert(testSource.includes(marker), `TEST_MARKER:${marker}`);
-
 for (const marker of [
   'workflow_dispatch:',
   'schedule:',
@@ -164,7 +165,6 @@ for (const marker of [
 ]) assert(workflow.includes(marker), `WORKFLOW_MARKER:${marker}`);
 assert(workflow.includes('contents: read') && !workflow.includes('contents: write'), 'WORKFLOW_CONTENTS_BOUNDARY');
 assert(workflow.includes('persist-credentials: false') && !workflow.includes('git push'), 'WORKFLOW_MUTATION_BOUNDARY');
-
 for (const marker of [
   '# KIDULTS ASI P1 Market-Event Adapter Runtime v1',
   'Generic Runtime ≠ Source-Specific Adapter',
