@@ -1,7 +1,7 @@
-# 베이스라인 북(Baseline Book) — 제1장: 현재 검증된 사실
+# Intelligence Holdings 엔터프라이즈 베이스라인 북 — 제1장: 목적·증거기준과 KIDULTS 현재 검증 슬라이스
 
 **기준 시각:** 2026-08-23 11:08 KST  
-**책:** Baseline Book  
+**책:** Intelligence Holdings Enterprise Baseline Book  
 **담당 트랙:** KPMO / Tracks A–E  
 **결정 ID:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`  
 **스냅샷 ID:** N/A — 불변의 Candidate/Evidence pair가 존재하지 않음  
@@ -10,15 +10,19 @@
 **Gate 상태:** C1 확립; C2 미완료; Production/Public/G5 `HOLD`  
 **Evidence 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116, #1117, Draft #1118
 
-## 1. 경영진 핵심 사실
+## 1. Baseline의 목적과 적용 범위
+
+이 책은 Intelligence Holdings 전체를 대상으로 **현재 무엇이 실제로 존재하고, 무엇이 증명됐으며, 무엇이 아직 존재하지 않는지**를 확립하는 기업 기준서다. 기존 `Enterprise_Baseline_Book_Chapter_01–03_KO.docx`의 목적·증거 위계·상태 구분·진단 방법을 공식 원전으로 승계한다.
+
+다만 이 장에서 최신 canonical GitHub evidence로 직접 검증할 수 있는 범위는 현재 **KIDULTS 프로그램 슬라이스**다. 따라서 아래 수치와 Gate는 Intelligence Holdings 전체의 보편 상태가 아니라 KIDULTS의 시점 고정 상태다. 다른 기업·Portfolio 영역은 각 영역의 E1/E2 증거가 연결되기 전까지 `UNKNOWN`이며, KIDULTS의 상태를 전사 상태로 일반화하지 않는다.
 
 KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로 구축됐다. 그러나 독립적인 Track B Assessment를 시작하거나 승인된 라이브 Projection을 발행하는 데 필요한 적법한 실증 입력 쌍은 아직 확보되지 않았다.
 
-현재 프로그램의 정확한 상태는 다음과 같다.
+현재 KIDULTS 검증 슬라이스의 정확한 상태는 다음과 같다.
 
 > STRUCTURE READY / EMPIRICAL CHAIN NOT OPEN / CLAIMS CLOSED / Production HOLD
 
-## 2. AI Governance와 최상위 원칙의 현재 상태
+## 2. Intelligence Holdings AI Governance와 최상위 원칙의 현재 상태
 
 | 항목 | 검증된 현재 상태 |
 |---|---|
@@ -169,7 +173,7 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 
 ## 11. 원전 승계 상태
 
-기존 `Enterprise_Baseline_Book_Chapter_01–03_KO.docx`의 목적·범위·증거방법론을 본 Baseline의 공식 선행 원전으로 승계한다. 특히 다음을 유지한다.
+기존 `Enterprise_Baseline_Book_Chapter_01–03_KO.docx`의 세 장 전체—Baseline의 목적과 범위, 증거 기반 방법론, 기업 현황 진단—를 본 Baseline의 공식 선행 원전으로 승계한다. 현재 파일은 그 원전을 대체하는 새 출발점이 아니라, 원전의 기업 기준을 최신 canonical evidence에 결속한 한국어 개정 장이다. 특히 다음을 유지한다.
 
 - Baseline은 회사를 좋게 보이게 하는 문서가 아니라 현재 사실을 확립하는 문서다.
 - E1 직접 증거와 E2 승인된 문서 증거가 중대한 결론의 중심이다.
@@ -181,10 +185,11 @@ KIDULTS의 제품·거버넌스·범용 Runtime 기반은 상당한 수준으로
 
 ## 12. Book Sync Report
 
-- **Master Book:** Value claim은 현재 C1/C2 경계 내로 제한됨.
-- **Architecture Book:** 시스템은 Evidence, rights, freshness, Assessment 또는 approval이 부재하는 모든 경계에서 fail closed해야 함.
+- **Master Book:** Intelligence Holdings의 존재 이유·Intelligence Economy·Knowledge Capital doctrine과 정렬하며, KIDULTS Value claim은 현재 C1/C2 경계 내로 제한됨.
+- **Architecture Book:** EVIA 기업 Canon과 정렬하며, KIDULTS 구현 슬라이스는 Evidence, rights, freshness, Assessment 또는 approval이 부재하는 모든 경계에서 fail closed해야 함.
 - **No Fourth Book:** 원칙 유지. 운영보고와 PR 기록은 Evidence reference이며 별도의 Book이 아님.
-- **동기화 상태:** `ALIGNED TO CANONICAL PROTECTED MAIN d050d8b9 AT 2026-08-23 11:08 KST; DRAFT #1118 NOT PROMOTED`.
+- **장 누적 상태:** Baseline 1/3. 세 Book 모두 3/3에 도달하기 전에는 종합 리뷰를 수행하지 않음.
+- **동기화 상태:** `INHERITED ENTERPRISE BASELINE CANON; KIDULTS SLICE ALIGNED TO CANONICAL PROTECTED MAIN d050d8b9 AT 2026-08-23 11:08 KST; DRAFT #1118 NOT PROMOTED`.
 
 ## 13. Rollback
 
