@@ -1,0 +1,271 @@
+{
+  "id": "kidults-asi-sourcing-direction-contract-v2",
+  "version": "2.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED",
+  "owner": "KPMO",
+  "precedence": "ASI_SOURCING_DIRECTION_AUTHORITY",
+  "effective_scope": [
+    "SOURCE_DEMAND_GENERATION",
+    "SOURCE_DISCOVERY",
+    "SOURCE_CLASSIFICATION",
+    "SOURCE_SELECTION",
+    "SOURCE_COLLECTION_PLANNING",
+    "SOURCE_ADMISSION",
+    "SOURCE_REASSESSMENT",
+    "SOURCE_REPLACEMENT",
+    "SOURCE_RETIREMENT"
+  ],
+  "platform_constitution": {
+    "path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
+    "ordered_principles": [
+      "AUTONOMOUS",
+      "GLOBAL",
+      "IRREPLACEABLE_VALUE",
+      "TRANSPARENT"
+    ],
+    "child_rule_can_weaken_or_reorder": false,
+    "self_exemption_allowed": false
+  },
+  "program_binding": {
+    "program": "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json",
+    "global_source_mesh": "coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json",
+    "directional_precedence": true,
+    "legacy_source_first_language_interpretation": "EXECUTION_STAGE_ONLY_NOT_STRATEGIC_DIRECTION"
+  },
+  "mission": "Continuously source lawful global evidence opportunities that reduce decision-relevant uncertainty, strengthen KIDULTS-owned intelligence assets, and preserve complete decision traceability.",
+  "sourcing_target": {
+    "universe": "GLOBAL_ANY_LAWFUL_PUBLIC_OR_AUTHORIZED_SOURCE",
+    "site_policy": "ANY_SITE_SERVICE_FEED_ARCHIVE_OR_DATASET_MAY_BE_A_CANDIDATE_IF_RELEVANT_AND_LAWFUL",
+    "candidate_types": [
+      "WEBSITE",
+      "API",
+      "FEED",
+      "ARCHIVE",
+      "CATALOG",
+      "MARKETPLACE",
+      "AUCTION_HOUSE",
+      "GRADING_AUTHORITY",
+      "MANUFACTURER",
+      "INSTITUTION",
+      "OPEN_DATASET",
+      "COMMUNITY_CONTEXT"
+    ],
+    "whitelist_is_not_the_universe": true,
+    "provider_list_is_not_the_strategy": true,
+    "numeric_site_count_is_not_completion": true,
+    "record_count_is_not_intelligence": true
+  },
+  "directional_pillars": {
+    "AUTONOMOUS": {
+      "objective": "Generate and execute bounded sourcing plans from live intelligence gaps without routine human orchestration.",
+      "mandatory_behaviors": [
+        "DETECT_DECISION_RELEVANT_UNKNOWN_DEBT",
+        "GENERATE_SOURCE_DEMAND_FROM_GAPS",
+        "REGISTER_AUTOMATIC_EXECUTION_TRIGGER",
+        "ADAPT_TO_PROVIDER_HEALTH_RIGHTS_FRESHNESS_AND_COST",
+        "RETRY_REPLAY_REPLACE_OR_RETIRE_WITH_BOUNDED_RULES",
+        "ESCALATE_ONLY_PROTECTED_AUTHORITY_GATES"
+      ],
+      "minimum_proof": [
+        "AUTOMATION_OR_SCHEDULE_REF",
+        "SELECTION_REASON",
+        "CURRENT_INPUT_STATE",
+        "RUN_OR_PLAN_RECEIPT",
+        "FEEDBACK_OR_REASSESSMENT_STATE"
+      ]
+    },
+    "GLOBAL": {
+      "objective": "Expand empirical coverage across the worldwide source universe rather than optimize for a familiar provider set.",
+      "mandatory_surfaces": [
+        "SCOPE",
+        "REGION",
+        "LANGUAGE",
+        "EVIDENCE_CLASS",
+        "SOURCE_ROLE",
+        "PRICE_TIER",
+        "VENUE_TYPE",
+        "TIME"
+      ],
+      "mandatory_behaviors": [
+        "MEASURE_MARGINAL_GLOBAL_COVERAGE",
+        "DISCLOSE_UNREPRESENTED_SURFACES",
+        "PRESERVE_LOCAL_LANGUAGE_AND_REGIONAL_SEMANTICS",
+        "SEPARATE_ARCHITECTURE_COVERAGE_FROM_EMPIRICAL_COVERAGE",
+        "REQUIRE_EMPIRICAL_REPRESENTATION_BEFORE_GLOBAL_CLAIMS"
+      ]
+    },
+    "IRREPLACEABLE_VALUE": {
+      "objective": "Use external evidence to compound KIDULTS-owned identity, graph, methodology, confidence, switching, and decision assets.",
+      "owned_value_assets": [
+        "SOURCE_IDENTITY_AND_OWNER_ORIGIN_GRAPH",
+        "CANONICAL_ENTITY_GRAPH",
+        "EVIDENCE_AND_MARKET_EVENT_GRAPHS",
+        "SOURCE_SEMANTIC_FINGERPRINTS",
+        "NORMALIZATION_AND_RECONCILIATION_METHODS",
+        "PROVIDER_SWITCHING_AND_REPLACEMENT_LAYER",
+        "CONFIDENCE_AND_CALIBRATION",
+        "DERIVED_INTELLIGENCE",
+        "DECISION_FEEDBACK_AND_EVIDENCE_ECONOMICS"
+      ],
+      "mandatory_behaviors": [
+        "NO_SINGLE_PROVIDER_MANDATORY_BOTTLENECK",
+        "MEASURE_SOURCE_REMOVAL_RESILIENCE",
+        "PREFER_INCREMENTAL_KIDULTS_OWNED_VALUE_GAIN",
+        "PRESERVE_PROVIDER_SWITCHABILITY",
+        "DO_NOT_TREAT_EXTERNAL_RAW_DATA_AS_OWNED_MOAT"
+      ]
+    },
+    "TRANSPARENT": {
+      "objective": "Make every source choice, limitation, transformation, and claim boundary reproducible and auditable.",
+      "required_source_receipt_fields": [
+        "SOURCE_IDENTITY",
+        "OWNER_AND_FACTUAL_ORIGIN",
+        "DISCOVERY_METHOD",
+        "SELECTION_REASON",
+        "EVIDENCE_CLASS_AND_SOURCE_ROLE",
+        "RIGHTS_BY_PURPOSE",
+        "ACCESS_AND_COST_STATE",
+        "FRESHNESS_AND_TIME_SEMANTICS",
+        "PROVENANCE_AND_LINEAGE",
+        "CLAIM_CEILING",
+        "CONFIDENCE_AND_UNCERTAINTY",
+        "TRANSFORMATIONS_AND_DEPENDENCIES",
+        "PROVIDER_HEALTH",
+        "DECISION_AND_REPLACEMENT_RATIONALE",
+        "EVIDENCE_REFS"
+      ],
+      "mandatory_behaviors": [
+        "FACT_INFERENCE_PLAN_UNKNOWN_SEPARATION",
+        "LISTING_NOT_SOLD",
+        "ATTENTION_NOT_DEMAND",
+        "HISTORICAL_NOT_CURRENT",
+        "MISSING_NOT_ZERO",
+        "BLOCKERS_AND_RIGHTS_LIMITS_IMMEDIATELY_VISIBLE"
+      ]
+    }
+  },
+  "canonical_sourcing_cycle": [
+    "CUSTOMER_OR_EXECUTIVE_DECISION_DEMAND",
+    "INTELLIGENCE_QUESTION",
+    "CLAIM_AND_UNKNOWN_REGISTRY",
+    "EVIDENCE_REQUIREMENT",
+    "GLOBAL_GAP_MAP",
+    "GLOBAL_SOURCE_UNIVERSE_GENERATION",
+    "FOUR_AXIS_SCREENING",
+    "RIGHTS_SEMANTICS_AND_TECHNICAL_PREFLIGHT",
+    "EXPECTED_INTELLIGENCE_GAIN_AND_COST_PRIORITY",
+    "GOVERNED_DISCOVERY_OR_COLLECTION",
+    "GATE1_SOURCE_SAFETY",
+    "GATE2_INDEPENDENT_REVERIFICATION",
+    "GATE3_PURPOSE_SPECIFIC_ADMISSION",
+    "CANONICAL_GRAPH_BINDING",
+    "UNKNOWN_REDUCTION_AND_VALUE_GAIN_MEASUREMENT",
+    "FEEDBACK_REPRIORITIZATION_REPLACEMENT_OR_RETIREMENT"
+  ],
+  "source_selection_model": {
+    "model": "FOUR_AXIS_HARD_FLOOR_THEN_EXPECTED_INTELLIGENCE_GAIN_PER_TOTAL_COST",
+    "single_composite_score_can_override_hard_floor": false,
+    "four_axis_vector": [
+      "AUTONOMOUS",
+      "GLOBAL",
+      "IRREPLACEABLE_VALUE",
+      "TRANSPARENT"
+    ],
+    "score_scale": "1_TO_5",
+    "minimum_each_direction": 2,
+    "hard_gates_before_priority": [
+      "RELEVANCE_TO_DECISION_OR_BOUNDED_EXPLORATION",
+      "RIGHTS_STATE_NOT_DENY",
+      "PROVENANCE_OR_ORIGIN_TRACEABLE_OR_EXPLICIT_UNKNOWN",
+      "MARKET_SEMANTICS_NOT_MISREPRESENTED",
+      "NO_PROTECTED_GATE_BYPASS"
+    ],
+    "priority_tiebreaker": "EXPECTED_DECISION_RELEVANT_UNKNOWN_REDUCTION_PER_TOTAL_COST",
+    "priority_score_is_advisory_only": true,
+    "priority_score_cannot_create_rights_admission_or_claim": true,
+    "bounded_exploration": {
+      "allowed": true,
+      "purpose": "DISCOVER_UNEXPECTED_GLOBAL_EVIDENCE_OPPORTUNITIES",
+      "requires_budget_and_reason_receipt": true,
+      "cannot_bypass_four_axis_floor_or_rights": true
+    }
+  },
+  "rights_and_semantic_boundaries": {
+    "discovery_is_not_collection": true,
+    "collection_is_not_admission": true,
+    "admission_is_not_claim": true,
+    "source_count_is_not_coverage": true,
+    "listing_is_not_sold": true,
+    "attention_is_not_demand": true,
+    "scarcity_is_not_liquidity": true,
+    "historical_is_not_current": true,
+    "unknown_rights_behavior": "BLOCK_COLLECTION_DERIVATION_DISPLAY_AND_REDISTRIBUTION",
+    "field_and_purpose_specific_rights_required": true
+  },
+  "required_outputs": [
+    "GLOBAL_GAP_MAP",
+    "SOURCE_DEMAND_QUEUE",
+    "FOUR_AXIS_SOURCE_SCORECARD",
+    "RIGHTS_ACCESS_COST_MATRIX",
+    "SOURCE_SELECTION_RECEIPT",
+    "SOURCE_HEALTH_AND_REPLACEMENT_PLAN",
+    "COVERAGE_BIAS_AND_CONCENTRATION_REPORT",
+    "UNKNOWN_REDUCTION_REPORT",
+    "KIDULTS_OWNED_VALUE_GAIN_REPORT"
+  ],
+  "required_metrics": {
+    "AUTONOMOUS": [
+      "AUTOMATIC_TRIGGER_COVERAGE",
+      "MANUAL_INTERVENTION_RATE",
+      "SELF_RECOVERY_RATE",
+      "REPRIORITIZATION_LATENCY"
+    ],
+    "GLOBAL": [
+      "EMPIRICAL_SCOPE_REGION_LANGUAGE_EVIDENCE_COVERAGE",
+      "MARGINAL_COVERAGE_GAIN",
+      "UNREPRESENTED_SURFACE_COUNT",
+      "FACTUAL_ORIGIN_DIVERSITY"
+    ],
+    "IRREPLACEABLE_VALUE": [
+      "NEW_CANONICAL_IDENTITIES",
+      "NEW_GRAPH_RELATIONSHIPS",
+      "PROVIDER_SWITCHABILITY",
+      "SOURCE_REMOVAL_RESILIENCE",
+      "DERIVED_INTELLIGENCE_GAIN"
+    ],
+    "TRANSPARENT": [
+      "SOURCE_RECEIPT_COMPLETENESS",
+      "RIGHTS_AND_PROVENANCE_COVERAGE",
+      "CLAIM_CEILING_COVERAGE",
+      "REPRODUCIBLE_SELECTION_RATE",
+      "UNKNOWN_AND_BLOCKER_DISCLOSURE_RATE"
+    ]
+  },
+  "non_goals": [
+    "MAXIMIZE_SOURCE_COUNT",
+    "MAXIMIZE_PROVIDER_COUNT",
+    "MAXIMIZE_RAW_RECORD_COUNT",
+    "COPY_EXTERNAL_DATA_AS_THE_MOAT",
+    "SELECT_A_SINGLE_GLOBAL_TRUTH_PROVIDER",
+    "TREAT_SYNTHETIC_CAPACITY_AS_EMPIRICAL_COMPLETION",
+    "USE_A_STATIC_SOURCE_LIST_AS_THE_GLOBAL_UNIVERSE"
+  ],
+  "fail_closed_states": {
+    "missing_direction_evidence": "UNKNOWN",
+    "direction_floor_not_met": "HOLD_OR_BOUNDED_EXPLORATION_ONLY",
+    "unknown_or_conflicting_rights": "BLOCK_COLLECTION_AND_DERIVATION",
+    "untraceable_selection": "QUARANTINE",
+    "single_provider_critical_dependency": "REPLACEMENT_PLAN_REQUIRED",
+    "global_claim_without_empirical_representation": "NOT_VERIFIED"
+  },
+  "protected_gates": [
+    "PRODUCTION_G5",
+    "IRREVERSIBLE_LEGAL_CHANGE",
+    "IRREVERSIBLE_SECURITY_CHANGE",
+    "EXTERNAL_SPEND",
+    "CONTRACTUAL_COMMITMENT",
+    "EXPANDED_CREDENTIAL_OR_PERMISSION"
+  ],
+  "public_release": "HOLD",
+  "production": "HOLD"
+}
