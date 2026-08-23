@@ -7,7 +7,7 @@
 **스냅샷 ID:** N/A — Architecture 장이며, Candidate/Evidence pair가 존재하지 않음  
 **문장 분류:** TARGET ARCHITECTURE — 구현된 통제는 별도로 명시하며, 이 장은 Production 증명이 아님  
 **Gate 상태:** C1 확립; C2 미완료; Production/Public/G5 HOLD  
-**증거 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113; protected main `ea8bacc076ab228c3e7e334cd6cacbe86c3a3bdb`
+**증거 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116; protected main `5ba79a49c0346bb0b3e5a5ade71890f51a1046fa`
 
 ## 1. 아키텍처의 목표
 
@@ -151,8 +151,8 @@ IH-EOS는 등록된 Program, Blocker, Gate, Outcome, Projection state를 소비�
 
 | 문장 분류 | 현재 아키텍처상의 의미 |
 |---|---|
-| **VERIFIED CURRENT STATE** | #1106은 Governed Common Crawl public-index traversal을 Pre-Gate 1 통제 경로에 결속한다. #1113은 Deterministic 256-shard metadata reserve와 100k Synthetic design-capacity proof를 추가한다. #1107은 Common-Crawl이 보강된 Hourly Gate 1→2→3 rolling-pool v2를 Current main에 배치한다. #1108은 v1을 Retirement하기 전에 서로 구분되는 두 개의 성공한 Main-branch v2 cycle artifact를 요구한다. |
-| **UNKNOWN / NOT ESTABLISHED** | 요구된 두 개의 Main-branch v2 cycle artifact는 아직 Evidence로 입증되지 않았다. #1109–#1112는 계속 Old-base/open 상태다. |
+| **VERIFIED CURRENT STATE** | #1106은 Governed Common Crawl public-index traversal을 Pre-Gate 1 통제 경로에 결속한다. #1113은 Deterministic 256-shard metadata reserve와 100k Synthetic design-capacity proof를 추가한다. #1107은 Common-Crawl이 보강된 Hourly Gate 1→2→3 rolling-pool v2를 Current main에 배치한다. #1108은 v1을 Retirement하기 전에 서로 구분되는 두 개의 성공한 Main-branch v2 cycle artifact를 요구한다. #1115는 OpenAlex/GDELT public-metadata scale, provider-health routing과 rolling reserve increment를 하나의 통제경로로 통합한다. #1116은 두 개의 main v2 cycle을 순차 실행하고 exact-pair readiness를 검증하는 dispatcher를 배치한다. |
+| **UNKNOWN / NOT ESTABLISHED** | #1116이 main에서 생성해야 하는 두 개의 실제 cycle receipt와 최종 promotion-readiness artifact는 이 기준 시각에 아직 검증되지 않았다. 따라서 v1 retirement는 차단된다. #1109–#1112는 병합되지 않은 채 #1115/#1116으로 대체되어 종료됐다. |
 | **TARGET** | 적법한 Source admission, Immutable Candidate/Evidence pair, Track B assessment, Governed Projection, Customer acceptance, 명시적인 G5 |
 | **PROPOSAL** | 병합되지 않은 Adapter, Provider, Schema 또는 운영 변경은 정상적인 Gate를 통과하기 전까지 비권위적 상태로 유지된다. |
 
@@ -178,7 +178,7 @@ IH-EOS는 등록된 Program, Blocker, Gate, Outcome, Projection state를 소비�
 - **Master Book:** 고객가치와 Product claim은 이 장에 정의된 Projection 및 Evidence 경계에 연결된다.
 - **Baseline Book:** 현재의 모든 `NONE`, `NOT STARTED`, `OPEN`, `HOLD`, Blocked state는 그대로 표시하며 다른 의미로 재해석하지 않는다.
 - **No Fourth Book:** 유지한다. Runbook, Issue ledger, Decision record는 세 권의 Book을 지원하지만 별도의 Book이 되지 않는다.
-- **Sync state:** `ALIGNED TO CANONICAL PROTECTED MAIN ea8bacc0 AT 2026-08-23 09:03 KST`.
+- **Sync state:** `ALIGNED TO CANONICAL PROTECTED MAIN 5ba79a49 AT 2026-08-23 10:02 KST`.
 
 ## 13. 롤백(Rollback)
 
