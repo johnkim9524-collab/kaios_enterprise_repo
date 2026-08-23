@@ -1,0 +1,53 @@
+{
+  "id": "kidults-asi-initial-auction-results-adapter-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": ["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-contract-v1.json",
+    "registry": "coordination/kidults/source-intelligence/asi-initial-auction-results-adapter-registry-v1.json",
+    "mapping_module": "scripts/kidults/source-intelligence/lib/initial-auction-results-adapters-v1.mjs",
+    "sdk": "scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs",
+    "builder": "scripts/kidults/source-intelligence/build-asi-initial-auction-results-adapters-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapters-v1.mjs",
+    "registry_validator": "scripts/kidults/source-intelligence/validate-asi-initial-auction-results-adapter-registry-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-initial-auction-results-adapters-v1.yml",
+    "human_policy": "docs/kidults/asi/asi-initial-auction-results-adapters-v1.md"
+  },
+  "registered_profiles": [
+    "BONHAMS_CARS_RESULTS_V1",
+    "BARRETT_JACKSON_RESULTS_V1",
+    "BONHAMS_WATCHES_RESULTS_V1",
+    "CHRISTIES_WATCHES_RESULTS_V1",
+    "SOTHEBYS_WATCHES_RESULTS_V1",
+    "BROAD_ARROW_RESULTS_V1"
+  ],
+  "output_artifact": "kidults-asi-initial-auction-results-adapters-v1",
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "48 * * * *",
+    "upstream_workflow": "KIDULTS ASI Claim-Suitable Adapter SDK v1",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "continuation": {
+    "next_stage": "BOUNDED_OFFICIAL_SOURCE_SCHEMA_OBSERVATION_AND_NON_PROMOTABLE_LIVE_EXTRACTION",
+    "next_input": "live-extraction-readiness-v1.json",
+    "automatic_continuation_required": true
+  },
+  "truth_boundary": {
+    "source_specific_mappings_implemented": true,
+    "source_specific_mapping_count": 6,
+    "priority_assignment_coverage_count": 96,
+    "fixture_certification_is_live_extraction": false,
+    "live_extraction_verified": false,
+    "target_host_egress_executed": false,
+    "rights_pass_created": false,
+    "evidence_admitted": false,
+    "market_event_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
