@@ -66,6 +66,7 @@ for (const candidate of candidatesInput.candidates) {
   candidatesByHost.get(host).push(candidate);
 }
 
+// Rolling execution unit: UNIQUE_CANONICAL_HOST.
 const allHosts = [...candidatesByHost.entries()]
   .map(([host, candidates]) => ({
     canonical_host: host,
