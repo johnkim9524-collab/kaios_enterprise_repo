@@ -11,8 +11,6 @@
     "registered_source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
     "runtime_module": "services/kidults-autonomous-intelligence/src/asi/market-adapter.ts",
     "runtime_test": "services/kidults-autonomous-intelligence/scripts/asi-market-adapter-runtime-test.mjs",
-    "first_source_specific_adapter": "services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-cars-results.ts",
-    "first_source_specific_test": "services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs",
     "validator": "scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs",
     "workflow": ".github/workflows/kidults-asi-p1-market-event-adapter-runtime-v1.yml",
     "human_readme": "docs/kidults/asi/asi-p1-market-event-adapter-runtime-v1.md"
@@ -27,39 +25,23 @@
     "generic_strict_runtime": "IMPLEMENTED_NOT_SOURCE_ACTIVATION",
     "runtime_fixture_tests": "NON_PROMOTABLE_CONTROL_ONLY",
     "registered_source_profiles": 16,
-    "source_specific_adapters_implemented": 1,
-    "source_specific_adapter_ids": ["bonhams-cars-results"],
+    "source_specific_adapters_implemented": 0,
     "source_specific_adapters_activated": 0,
-    "field_purpose_rights_verified_sources": 0,
-    "live_schema_verified_sources": 0,
     "empirical_market_events_admitted": 0,
     "current_price_eligible_sources": 0,
     "liquidity_eligible_sources": 0
   },
-  "implemented_reference_adapters": [
-    {
-      "source_id": "bonhams-cars-results",
-      "state": "IMPLEMENTED_NOT_RIGHTS_VERIFIED",
-      "implemented_claim_parsers": ["DATED_OBSERVED_SOLD_TRANSACTION"],
-      "fixture_verified": true,
-      "live_schema_verified": false,
-      "rights_verified": false,
-      "activated": false,
-      "evidence_admitted": 0
-    }
-  ],
   "next_source_adapter_backlog": [
-    {"rank": 1, "source_id": "barrett-jackson-results", "verified_assignment_count": 18},
-    {"rank": 2, "source_id": "bonhams-watches-results", "verified_assignment_count": 18},
-    {"rank": 3, "source_id": "christies-watches-results", "verified_assignment_count": 12},
-    {"rank": 4, "source_id": "sothebys-watches-results", "verified_assignment_count": 12},
-    {"rank": 5, "source_id": "broad-arrow-results", "verified_assignment_count": 12},
-    {"rank": 6, "source_id": "pricecharting-api", "verified_assignment_count": 12}
+    {"rank": 1, "source_id": "bonhams-cars-results", "verified_assignment_count": 24},
+    {"rank": 2, "source_id": "barrett-jackson-results", "verified_assignment_count": 18},
+    {"rank": 3, "source_id": "bonhams-watches-results", "verified_assignment_count": 18},
+    {"rank": 4, "source_id": "christies-watches-results", "verified_assignment_count": 12},
+    {"rank": 5, "source_id": "sothebys-watches-results", "verified_assignment_count": 12},
+    {"rank": 6, "source_id": "broad-arrow-results", "verified_assignment_count": 12}
   ],
   "truth_boundary": {
     "generic_runtime_is_source_specific_adapter": false,
     "fixture_test_is_empirical_market_event": false,
-    "implemented_source_specific_adapter_is_activated": false,
     "profile_registration_is_rights_verification": false,
     "normalized_record_is_admitted_market_event": false,
     "dated_sold_record_is_current_price": false,
