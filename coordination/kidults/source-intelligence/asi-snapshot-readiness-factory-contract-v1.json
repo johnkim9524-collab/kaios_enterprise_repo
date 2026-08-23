@@ -1,0 +1,41 @@
+{
+  "id": "kidults-asi-snapshot-readiness-factory-contract-v1",
+  "version": "1.1.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P3",
+  "platform_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
+  "mission": "Continuously assess whether the current P0B, P1 and P2 v2 chain can lawfully support an immutable Snapshot Candidate and Track B handoff; when evidence is insufficient, generate exact blocker and admission-demand packages instead of fabricating a snapshot.",
+  "authoritative_inputs": {
+    "p2_artifact": "kidults-asi-owned-source-intelligence-graph-v2",
+    "p2_files": ["owned-source-intelligence-graph-v2.json", "owned-source-intelligence-lineage-v2.json", "owned-source-intelligence-quality-v2.json", "owned-source-intelligence-value-receipt-v2.json"],
+    "p1_artifact": "kidults-asi-p1-source-preflight-v1",
+    "p1_files": ["p1-gate1-source-safety-decisions-v1.json", "p1-evidence-admission-candidate-register-v1.json", "p1-preflight-action-queue-v1.json"],
+    "p0_artifact": "kidults-asi-p0b-bounded-discovery-candidates-v1",
+    "p0_files": ["p0b-source-candidate-registry-v1.json", "p0b-mission-candidate-binding-ledger-v1.json"]
+  },
+  "compatibility_adapter": "scripts/kidults/source-intelligence/build-asi-snapshot-readiness-current-chain-compat-v1.mjs",
+  "readiness_dimensions": ["SOURCE_CANDIDATE_COVERAGE", "HOST_PREFLIGHT_COVERAGE", "PURPOSE_SPECIFIC_RIGHTS", "SEMANTIC_SUFFICIENCY", "FACTUAL_ORIGIN_INDEPENDENCE", "EVIDENCE_ADMISSION", "CURRENT_SOLD_TRANSACTION_EVIDENCE", "LIQUIDITY_EVIDENCE", "MARKET_EVENT_GRAPH", "IMMUTABLE_EVIDENCE_PACKAGE", "TRACK_B_INPUT_PAIR"],
+  "snapshot_creation_gate": {
+    "all_dimensions_pass_required": true,
+    "source_candidate_count_greater_than_zero_required": true,
+    "automatic_admission_eligible_greater_than_zero_required": true,
+    "admitted_evidence_greater_than_zero_required": true,
+    "admitted_current_sold_transactions_greater_than_zero_required": true,
+    "admitted_liquidity_evidence_greater_than_zero_required": true,
+    "market_events_greater_than_zero_required": true,
+    "rights_cleared_for_every_material_claim_required": true,
+    "factual_origin_independence_required": true,
+    "immutable_evidence_package_required": true,
+    "snapshot_candidate_may_be_generated_when_gate_fails": false
+  },
+  "readiness_states": ["READY_FOR_IMMUTABLE_SNAPSHOT_GENERATION", "NOT_READY_NO_ADMITTED_EVIDENCE", "NOT_READY_RIGHTS_OR_SEMANTICS", "NOT_READY_MARKET_EVENT_GRAPH", "NOT_READY_IMMUTABLE_EVIDENCE_PACKAGE"],
+  "track_b_states": ["READY_FOR_INDEPENDENT_ASSESSMENT", "WAITING_FOR_SNAPSHOT_CANDIDATE_AND_EVIDENCE_PACKAGE"],
+  "blocker_classes": ["SOURCE_CANDIDATE_COVERAGE_GAP", "HOST_PREFLIGHT_COVERAGE_GAP", "PURPOSE_RIGHTS_UNKNOWN", "SEMANTIC_HOLD", "TECHNICAL_OR_ACCESS_HOLD", "FACTUAL_ORIGIN_INDEPENDENCE_NOT_PROVEN", "EVIDENCE_ADMISSION_ZERO", "CURRENT_SOLD_TRANSACTION_EVIDENCE_ZERO", "LIQUIDITY_EVIDENCE_ZERO", "MARKET_EVENT_GRAPH_ZERO", "IMMUTABLE_EVIDENCE_PACKAGE_MISSING", "SNAPSHOT_CANDIDATE_NOT_GENERATED", "TRACK_B_INPUT_PAIR_MISSING"],
+  "admission_demand_classes": ["RIGHTS_REVIEW_REQUIRED", "SEMANTIC_REFINEMENT_REQUIRED", "TECHNICAL_RECOVERY_REQUIRED", "ACCESS_OR_ROBOTS_REJECTED", "HOST_PREFLIGHT_REQUIRED", "SOURCE_DISCOVERY_EXPANSION_REQUIRED", "FACTUAL_ORIGIN_VERIFICATION_REQUIRED"],
+  "required_outputs": ["snapshot-readiness-ledger-v1.json", "immutable-blocker-package-v1.json", "admission-demand-package-v1.json", "snapshot-non-generation-receipt-v1.json", "track-b-handoff-readiness-v1.json", "snapshot-readiness-manifest-v1.json"],
+  "forbidden_outputs": ["snapshot-candidate.json", "evidence-package.json", "rankability-assessment.json"],
+  "automatic_activation": {"main_push": true, "schedule": "7 * * * *", "upstream_workflow": "KIDULTS ASI Owned Source Intelligence Graph v2", "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"},
+  "hard_boundaries": ["SOURCE_INTELLIGENCE_GRAPH_IS_NOT_MARKET_EVIDENCE_GRAPH", "SOURCE_CANDIDATE_COUNT_IS_NOT_EVIDENCE_COUNT", "PREFLIGHT_ACTION_QUEUE_IS_NOT_EXECUTED_PREFLIGHT", "PREFLIGHT_COMPLETE_IS_NOT_RIGHTS_PASS", "ADMISSION_READINESS_IS_NOT_ADMISSION", "BLOCKER_PACKAGE_IS_NOT_EVIDENCE_PACKAGE", "SNAPSHOT_NON_GENERATION_RECEIPT_IS_NOT_SNAPSHOT_CANDIDATE", "TRACK_B_WAITING_STATE_IS_NOT_ASSESSMENT", "NO_SNAPSHOT_FILE_WHEN_GATE_FAILS"],
+  "truth_boundary": {"assesses_snapshot_readiness": true, "creates_blocker_package": true, "creates_admission_demand_package": true, "creates_snapshot_candidate_when_not_ready": false, "creates_evidence_package_when_not_ready": false, "starts_track_b_assessment_when_not_ready": false, "admits_evidence": false, "creates_market_event": false, "creates_market_claim": false, "public_release": "HOLD", "production": "HOLD"}
+}
