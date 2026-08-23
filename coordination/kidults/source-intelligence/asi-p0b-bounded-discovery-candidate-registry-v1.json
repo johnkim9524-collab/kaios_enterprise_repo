@@ -1,0 +1,67 @@
+{
+  "id": "kidults-asi-p0b-bounded-discovery-candidate-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json",
+    "p0_contract": "coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json",
+    "p0_registry": "coordination/kidults/source-intelligence/asi-p0-mission-consumption-registry-v1.json",
+    "builder": "scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml",
+    "human_readme": "docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md"
+  },
+  "registered_outputs": [
+    "p0b-source-candidate-registry-v1.json",
+    "p0b-mission-candidate-binding-ledger-v1.json",
+    "p0b-candidate-gap-register-v1.json",
+    "p0b-provider-host-diversity-v1.json",
+    "p0b-bounded-discovery-manifest-v1.json"
+  ],
+  "execution_chain": [
+    "P0_MISSION_TASK_QUEUE",
+    "FOUR_PUBLIC_METADATA_SCOPE_ROTATIONS",
+    "OPENALEX_AND_GDELT_LIVE_DISCOVERY",
+    "SOURCE_FABRIC_MERGE_AND_VALIDATION",
+    "CANONICAL_ENDPOINT_DEDUPLICATION",
+    "SCOPE_EXACT_MISSION_BINDING",
+    "EXPLICIT_REGION_AND_ORIGIN_GAPS",
+    "KPMO_RECEIPT_AND_ARTIFACT"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "37 * * * *",
+    "upstream_workflow": "KIDULTS ASI P0 Mission Consumption v1",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "next_stage": {
+    "id": "P1_SOURCE_CLASSIFICATION_AND_EVIDENCE_ADMISSION_PREFLIGHT",
+    "inputs": [
+      "SOURCE_CANDIDATE_REGISTRY",
+      "MISSION_CANDIDATE_BINDING_LEDGER",
+      "CANDIDATE_GAP_REGISTER"
+    ]
+  },
+  "truth_boundary": {
+    "public_metadata_network_discovery_is_executed": true,
+    "source_candidates_are_observed": true,
+    "target_site_body_collection_is_executed": false,
+    "target_content_is_acquired": false,
+    "source_candidates_are_evidence": false,
+    "regional_coverage_is_proven": false,
+    "factual_origin_independence_is_proven": false,
+    "collection_right_is_created": false,
+    "evidence_is_admitted": false,
+    "market_claim_is_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
