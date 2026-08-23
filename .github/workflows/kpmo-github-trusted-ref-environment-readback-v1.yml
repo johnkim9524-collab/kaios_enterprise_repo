@@ -1,0 +1,113 @@
+name: KPMO GitHub Trusted-Ref Environment Read-back V1
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/**'
+      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
+      - 'coordination/kidults/kpmo/github-trusted-ref-environment-readback-contract-v1.json'
+      - 'scripts/kidults/kpmo/github-trusted-ref-environment-readback-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs'
+      - 'tests/kidults/kpmo/github-trusted-ref-environment-readback-v1.test.mjs'
+      - 'docs/kidults/security/github-trusted-ref-environment-readback-v1.md'
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/**'
+      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
+      - 'coordination/kidults/kpmo/github-trusted-ref-environment-readback-contract-v1.json'
+      - 'scripts/kidults/kpmo/github-trusted-ref-environment-readback-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs'
+      - 'tests/kidults/kpmo/github-trusted-ref-environment-readback-v1.test.mjs'
+      - 'docs/kidults/security/github-trusted-ref-environment-readback-v1.md'
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: read
+
+concurrency:
+  group: kpmo-github-trusted-ref-environment-readback-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SOURCE_SHA="$(git rev-parse HEAD)"
+          echo "expected=$EXPECTED_SOURCE_SHA"
+          echo "actual=$ACTUAL_SOURCE_SHA"
+          test "$ACTUAL_SOURCE_SHA" = "$EXPECTED_SOURCE_SHA"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Validate contract collector workflow and fail-closed mutations
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/kpmo/github-trusted-ref-environment-readback-v1.mjs
+          node --check scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs
+          node scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs
+          node --test tests/kidults/kpmo/github-trusted-ref-environment-readback-v1.test.mjs
+          node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
+
+  live-readback:
+    needs: offline-proof
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      EXPECTED_SOURCE_REF: ${{ github.event_name == 'pull_request' && format('refs/heads/{0}', github.head_ref) || github.ref }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact source SHA
+        run: |
+          set -euo pipefail
+          ACTUAL_SOURCE_SHA="$(git rev-parse HEAD)"
+          echo "expected=$EXPECTED_SOURCE_SHA"
+          echo "actual=$ACTUAL_SOURCE_SHA"
+          test "$ACTUAL_SOURCE_SHA" = "$EXPECTED_SOURCE_SHA"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Read GitHub control-plane metadata without mutation or secret values
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/github-trusted-ref-environment-readback-v1.mjs \
+            --source-ref "$EXPECTED_SOURCE_REF" \
+            --source-sha "$EXPECTED_SOURCE_SHA" \
+            --output /tmp/kidults-github-trusted-ref-environment-readback-receipt-v1.json \
+            | tee /tmp/kidults-github-trusted-ref-environment-readback-log-v1.json
+      - name: Validate read-back truth boundary
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs \
+            --receipt /tmp/kidults-github-trusted-ref-environment-readback-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kidults-github-trusted-ref-environment-readback-v1-${{ github.run_id }}
+          path: |
+            /tmp/kidults-github-trusted-ref-environment-readback-receipt-v1.json
+            /tmp/kidults-github-trusted-ref-environment-readback-log-v1.json
+          if-no-files-found: error
+          retention-days: 30
