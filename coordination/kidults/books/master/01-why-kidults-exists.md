@@ -5,8 +5,9 @@
 **Track:** KPMO / Product / Brand  
 **Decision IDs:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`  
 **Snapshot ID:** N/A — strategic chapter; no data snapshot is asserted  
+**Statement class:** TARGET / GOVERNING DOCTRINE — strategic intent, not a current empirical or market claim  
 **Gate state:** C1 Product Contract materially established; C2 incomplete; Production/Public/G5 HOLD  
-**Evidence references:** #235, #236, #237, #238, #240, #256, #1061; protected main `789cd75e93c4bb1329fd9cd31156633b6ad8c855`
+**Evidence references:** #235, #236, #237, #238, #240, #256, #1061; protected main `ea8bacc076ab228c3e7e334cd6cacbe86c3a3bdb`
 
 ## 1. The purpose
 
@@ -125,7 +126,7 @@ The current official state is C1 with C2 incomplete. This chapter does not promo
 - **Baseline Book dependency:** current state, evidence populations, blockers and gates must remain factual and dated.
 - **Architecture Book dependency:** every product promise must resolve to a reproducible system boundary.
 - **Contradiction check:** no market number, provider right, Candidate/Evidence pair, Track B result, live Projection or Production readiness is asserted.
-- **Sync state:** ALIGNED for this dated draft.
+- **Sync state:** ALIGNED TO CANONICAL PROTECTED MAIN `ea8bacc0` AT 2026-08-23 09:03 KST.
 
 ## 10. Rollback
 
