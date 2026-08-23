@@ -1,0 +1,64 @@
+{
+  "id": "kidults-asi-autonomous-resolution-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-autonomous-resolution-contract-v1.json",
+    "registry": "coordination/kidults/source-intelligence/asi-autonomous-resolution-registry-v1.json",
+    "builder": "scripts/kidults/source-intelligence/build-asi-autonomous-resolution-layer-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs",
+    "registry_validator": "scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-registry-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml",
+    "human_policy": "docs/kidults/asi/asi-autonomous-resolution-layer-v1.md"
+  },
+  "registered_engines": [
+    "RIGHTS_RESOLUTION_ENGINE",
+    "SEMANTIC_RESOLUTION_ENGINE",
+    "FACTUAL_ORIGIN_RESOLUTION_ENGINE",
+    "EVIDENCE_ADMISSION_ENGINE",
+    "ACTION_DEPENDENCY_GRAPH_ENGINE",
+    "RESOLUTION_SCHEDULER",
+    "RESOLUTION_LEARNING_ENGINE"
+  ],
+  "input_artifacts": [
+    "kidults-asi-p0b-bounded-discovery-candidates-v1",
+    "kidults-asi-p1-source-preflight-v1",
+    "kidults-asi-owned-source-intelligence-graph-v2"
+  ],
+  "output_artifact": "kidults-asi-autonomous-resolution-layer-v1",
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "22 * * * *",
+    "upstream_workflows": [
+      "KIDULTS ASI P1 Source Preflight v1",
+      "KIDULTS ASI Owned Source Intelligence Graph v2"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "continuation": {
+    "next_workflow": "KIDULTS ASI Snapshot Readiness Factory v2",
+    "next_input_role": "P1_RESOLUTION_EVIDENCE_AND_EXACT_BLOCKER_FEEDBACK",
+    "automatic_continuation_required": true
+  },
+  "truth_boundary": {
+    "action_consumption_is_target_preflight_execution": false,
+    "action_disposition_is_evidence_satisfaction": false,
+    "semantic_negative_is_market_evidence": false,
+    "distinct_host_is_factual_origin_independence": false,
+    "gate1_pass_created": false,
+    "evidence_admitted": false,
+    "market_event_created": false,
+    "snapshot_candidate_created": false,
+    "target_host_egress_executed": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
