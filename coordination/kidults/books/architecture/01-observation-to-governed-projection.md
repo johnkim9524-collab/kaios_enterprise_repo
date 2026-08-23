@@ -1,7 +1,7 @@
-# 아키텍처 북(Architecture Book) — 제1장: 관측에서 통제된 Projection까지
+# Intelligence Holdings 엔터프라이즈 아키텍처 북 — 제1장: Enterprise Flow와 KIDULTS Bounded Profile
 
 **판본일:** 2026-08-23 KST  
-**문서:** Architecture Book  
+**문서:** Intelligence Holdings Enterprise Architecture Book / EVIA successor  
 **트랙:** KPMO / Architecture / Tracks A–E  
 **의사결정 ID:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`; `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` (PROPOSAL / Draft #1118)  
 **스냅샷 ID:** N/A — Architecture 장이며, Candidate/Evidence pair가 존재하지 않음  
@@ -9,17 +9,21 @@
 **Gate 상태:** C1 확립; C2 미완료; Production/Public/G5 HOLD  
 **증거 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116, #1117, Draft #1118; protected main `d050d8b993929a883298e7cb90ea22bc97ec6ae1`
 
-## 1. 아키텍처의 목표
+## 1. Enterprise Architecture Canon과 적용 범위
 
-이 아키텍처는 발견량, 데이터 규모, Confidence, Provider 또는 사용자 인터페이스 가운데 어느 것도 스스로 진실을 승인하지 못하도록 통제하면서, 파편화된 글로벌 관측을 재현 가능한 고객 Intelligence로 전환해야 한다.
+이 책은 John이 전달한 `EVIA Canon Edition 1.0 — Volume 3 Enterprise Architecture Book`을 Intelligence Holdings의 공식 선행 아키텍처 원전으로 승계한다. EVIA의 전사 흐름, Layer·Contract 경계, Asset lifecycle, Explainability, Autonomous Operating Model과 Recovery discipline은 목표 기업 아키텍처의 기준이다.
 
-불변 처리 흐름은 다음과 같다.
+이 장에서 최신 GitHub evidence로 직접 검증되는 것은 Intelligence Holdings 전체 Production architecture가 아니라 **KIDULTS의 bounded implementation profile**이다. 따라서 아래 Source→Projection 흐름, AI Governance binding과 Scale Wave는 기업 Canon을 KIDULTS에 적용한 Profile이며, 다른 Portfolio 구현 상태는 각자의 canonical evidence가 연결되기 전까지 `UNKNOWN`이다. TARGET architecture와 VERIFIED implementation을 서로 승격하지 않는다.
+
+Enterprise architecture는 발견량, 데이터 규모, Confidence, Provider 또는 사용자 인터페이스 가운데 어느 것도 스스로 진실을 승인하지 못하도록 통제하면서, 파편화된 글로벌 관측을 재현 가능한 고객 Intelligence로 전환해야 한다.
+
+KIDULTS bounded profile의 불변 처리 흐름은 다음과 같다.
 
 `Discover → Screen → Reverify → Admit → Normalize → Resolve Identity → Pair Evidence → Assess Independently → Project → Render → Decide → Audit`
 
 모든 전환은 명시적이고, 버전이 관리되며, 되돌릴 수 있어야 한다. 실패하거나 필요한 항목이 존재하지 않으면 그 이후 단계의 주장은 닫힌다.
 
-## 2. 최상위 운영원칙의 실행 아키텍처
+## 2. Intelligence Holdings 최상위 운영원칙의 실행 아키텍처
 
 네 최상위 원칙은 선언이 아니라 서로 다른 통제 책임을 갖는 하나의 운영계약이다. 전략적 순서는 **Autonomous → Global → Irreplaceable Value → Transparent**로 고정한다. 네 원칙은 모두 필수이며, Transparent는 다른 세 원칙 전체에 적용되는 비면제 통제다.
 
@@ -199,7 +203,7 @@ IH-EOS는 등록된 Program, Blocker, Gate, Outcome, Projection state를 소비�
 
 ## 13. 원전 승계와 Architecture Canon
 
-이 장은 John이 보관해 전달한 `EVIA Canon Edition 1.0 — Volume 3 Enterprise Architecture Book`과 기존 Architecture 문서 형식을 공식 선행 원전으로 승계한다. 새 문서 체계를 다시 만드는 것이 아니라, 원전의 구조를 현재 KIDULTS Canonical Evidence와 AI Governance에 연결해 v2로 발전시킨다.
+이 장은 John이 보관해 전달한 `EVIA Canon Edition 1.0 — Volume 3 Enterprise Architecture Book` 전체와 기존 Architecture 문서 형식을 공식 선행 원전으로 승계한다. 새 문서 체계를 다시 만드는 것이 아니라, 원전의 Intelligence Holdings 기업 구조를 현재 KIDULTS Canonical Evidence와 AI Governance에 연결해 v2로 발전시킨다.
 
 승계하는 핵심은 다음과 같다.
 
@@ -213,10 +217,11 @@ IH-EOS는 등록된 Program, Blocker, Gate, Outcome, Projection state를 소비�
 
 ## 14. 북 동기화 보고서(Book Sync Report)
 
-- **Master Book:** 고객가치와 Product claim은 이 장에 정의된 Projection 및 Evidence 경계에 연결된다.
-- **Baseline Book:** 현재의 모든 `NONE`, `NOT STARTED`, `OPEN`, `HOLD`, Blocked state는 그대로 표시하며 다른 의미로 재해석하지 않는다.
+- **Master Book:** Intelligence Holdings의 기업 정체성·Intelligence Economy·Knowledge Capital doctrine을 이 EVIA 기업 Canon의 실행 구조에 연결한다. KIDULTS 고객가치와 Product claim은 이 장의 bounded Projection 및 Evidence 경계에 연결된다.
+- **Baseline Book:** Enterprise Baseline의 증거 위계를 따르며, 현재 KIDULTS 슬라이스의 모든 `NONE`, `NOT STARTED`, `OPEN`, `HOLD`, Blocked state는 그대로 표시하고 전사 상태로 일반화하지 않는다.
 - **No Fourth Book:** 유지한다. Runbook, Issue ledger, Decision record는 세 권의 Book을 지원하지만 별도의 Book이 되지 않는다.
-- **Sync state:** `ALIGNED TO CANONICAL PROTECTED MAIN d050d8b9 AT 2026-08-23 11:08 KST; AI GOVERNANCE v1.1 AND AUTONOMOUS SCALE WAVE ARE PROPOSED IN DRAFT #1118, NOT PROMOTED`.
+- **장 누적 상태:** Architecture 1/3. 세 Book 모두 3/3에 도달하기 전에는 종합 리뷰를 수행하지 않음.
+- **Sync state:** `EVIA ENTERPRISE CANON INHERITED; KIDULTS BOUNDED PROFILE ALIGNED TO CANONICAL PROTECTED MAIN d050d8b9 AT 2026-08-23 11:08 KST; AI GOVERNANCE v1.1 AND AUTONOMOUS SCALE WAVE ARE PROPOSED IN DRAFT #1118, NOT PROMOTED`.
 
 ## 15. 롤백(Rollback)
 
