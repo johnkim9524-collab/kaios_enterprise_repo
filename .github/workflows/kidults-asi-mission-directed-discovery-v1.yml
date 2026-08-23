@@ -12,6 +12,7 @@ on:
       - 'coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json'
       - 'coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json'
       - 'scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs'
@@ -32,6 +33,7 @@ on:
       - 'coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json'
       - 'coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json'
       - 'scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs'
@@ -75,6 +77,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs
@@ -98,7 +101,7 @@ jobs:
           test -n "$INTENT_FILE"
           test -n "$LANE_FILE"
           node - "$INTENT_FILE" "$LANE_FILE" <<'NODE'
-          const fs=require('fs');const i=JSON.parse(fs.readFileSync(process.argv[2]));const l=JSON.parse(fs.readFileSync(process.argv[3]));if(i.id!=='kidults-asi-mission-discovery-intent-v1'||i.intent_count!==426||i.intents?.length!==426)throw new Error('MISSION_INTENT_INPUT_INVALID');if(l.id!=='kidults-asi-mission-source-lane-assignments-v1'||l.source_lane_slot_count!==576)throw new Error('MISSION_LANE_INPUT_INVALID');console.log(JSON.stringify({state:'VERIFIED_PASS',artifact_id:process.env.ARTIFACT_ID,intents:i.intent_count,source_lane_slots:l.source_lane_slot_count}));
+          const fs=require('fs');const i=JSON.parse(fs.readFileSync(process.argv[2]));const l=JSON.parse(fs.readFileSync(process.argv[3]));if(i.id!=='kidults-asi-mission-discovery-intent-v1'||i.intent_count!==426||i.intents?.length!==426)throw new Error('MISSION_INTENT_INPUT_INVALID');if(l.id!=='kidults-asi-mission-source-lane-assignments-v1'||l.source_lane_slot_count!==576)throw new Error('MISSION_LANE_INPUT_INVALID');console.log(JSON.stringify({state:'VERIFIED_PASS',intents:i.intent_count,source_lane_slots:l.source_lane_slot_count}));
           NODE
           echo "MISSION_INTENT_FILE=$INTENT_FILE" >> "$GITHUB_ENV"
           echo "MISSION_LANE_FILE=$LANE_FILE" >> "$GITHUB_ENV"
@@ -125,18 +128,39 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           MISSION_DISCOVERY_BATCH_SIZE: '24'
+        shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          PRIMARY_LOG=/tmp/mission-directed-discovery-primary-v1.log
+          set +e
           node scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs \
             "$MISSION_INTENT_FILE" \
             "$PREVIOUS_DISCOVERY_STATE" \
             coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json \
             /tmp/kidults-asi-mission-directed-discovery-v1 \
-            | tee /tmp/mission-directed-discovery-run-v1.json
+            > "$PRIMARY_LOG" 2>&1
+          PRIMARY_STATUS=$?
+          set -e
+          if [ "$PRIMARY_STATUS" -ne 0 ]; then
+            echo 'Primary discovery failed or produced no candidates; executing bounded fail-soft fallback.'
+            cat "$PRIMARY_LOG"
+            node scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs \
+              "$MISSION_INTENT_FILE" \
+              "$PREVIOUS_DISCOVERY_STATE" \
+              coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json \
+              /tmp/kidults-asi-mission-directed-discovery-v1 \
+              "PRIMARY_DISCOVERY_EXIT_${PRIMARY_STATUS}" \
+              | tee /tmp/mission-directed-discovery-run-v1.json
+          else
+            cat "$PRIMARY_LOG" | tee /tmp/mission-directed-discovery-run-v1.json
+          fi
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs \
             /tmp/kidults-asi-mission-directed-discovery-v1 \
             coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json \
             | tee /tmp/mission-directed-discovery-validation-v1.json
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-v1.json';const x=JSON.parse(fs.readFileSync(p));if(x.primary_discovery_fallback_used===true){if(typeof x.primary_discovery_failure!=='string'||!x.primary_discovery_failure)throw new Error('FALLBACK_PRIMARY_FAILURE_MISSING');if(!x.intent_receipts.every(r=>r.fallback_used===true&&typeof r.fallback_reason==='string'&&r.fallback_reason))throw new Error('FALLBACK_RECEIPT_VISIBILITY_MISSING');if(x.candidates.some(c=>c.evidence_state!=='DISCOVERY_METADATA_ONLY'||c.rights_state!=='UNASSESSED'||c.admission_state!=='NOT_ADMITTED'))throw new Error('FALLBACK_CANDIDATE_PROMOTION');}console.log(JSON.stringify({state:'VERIFIED_PASS',primary_discovery_fallback_used:x.primary_discovery_fallback_used===true,primary_discovery_failure:x.primary_discovery_failure||null,candidates:x.candidate_count}));
+          NODE
       - name: Run Gate 1 source safety classification
         run: |
           set -euo pipefail
@@ -270,7 +294,7 @@ jobs:
       - name: Emit KPMO mission-directed discovery receipt
         run: |
           node - <<'NODE' >/tmp/mission-directed-discovery-kpmo-receipt-v1.json
-          const fs=require('fs'),crypto=require('crypto');const p='/tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-mission-directed-discovery-kpmo-receipt-v1',version:'1.0.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,mission_consumption_artifact_id:process.env.MISSION_CONSUMPTION_ARTIFACT_ID,previous_discovery_artifact_id:process.env.PREVIOUS_DISCOVERY_ARTIFACT_ID,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,current_price_eligible:0,liquidity_eligible:0,market_event_admitted:0,target_site_body_traversed:false,source_content_collected:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs'),crypto=require('crypto');const p='/tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-manifest-v1.json';const d=JSON.parse(fs.readFileSync('/tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-v1.json'));const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-mission-directed-discovery-kpmo-receipt-v1',version:'1.0.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,mission_consumption_artifact_id:process.env.MISSION_CONSUMPTION_ARTIFACT_ID,previous_discovery_artifact_id:process.env.PREVIOUS_DISCOVERY_ARTIFACT_ID,manifest_digest:digest,primary_discovery_fallback_used:d.primary_discovery_fallback_used===true,primary_discovery_failure:d.primary_discovery_failure||null,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,current_price_eligible:0,liquidity_eligible:0,market_event_admitted:0,target_site_body_traversed:false,source_content_collected:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/mission-directed-discovery-kpmo-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -281,6 +305,7 @@ jobs:
             /tmp/asi-gate1-safe-candidate-pool-v1.json
             /tmp/asi-gate2-independent-reverification-v1.json
             /tmp/asi-gate3-admission-runtime-v1.json
+            /tmp/mission-directed-discovery-primary-v1.log
             /tmp/mission-directed-discovery-registry-validation-v1.json
             /tmp/mission-directed-discovery-registry-final-validation-v1.json
             /tmp/mission-directed-discovery-run-v1.json
