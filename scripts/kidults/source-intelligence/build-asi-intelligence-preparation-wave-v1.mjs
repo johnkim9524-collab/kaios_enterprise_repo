@@ -24,7 +24,7 @@ const writeJson = async (name, value) => {
   const content = stableJson(value);
   const filePath = path.join(outputDir, name);
   await fs.writeFile(filePath, content);
-  return { name, path: filePath, sha256: sha256(content), bytes: Buffer.byteLength(content) };
+  return { name, path: name, sha256: sha256(content), bytes: Buffer.byteLength(content) };
 };
 const round = (value, digits = 3) => Number(Number(value).toFixed(digits));
 const sum = (values) => values.reduce((total, value) => total + Number(value || 0), 0);
