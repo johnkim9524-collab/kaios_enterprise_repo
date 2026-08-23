@@ -1,0 +1,19 @@
+{
+  "contract_id": "KIDULTS_MARKET_INTEGRITY_V1",
+  "parent_issues": [1153,1157,1166,951],
+  "signal_types": [
+    "PRICE_SPIKE","RELIST_CHAIN","DUPLICATE_SYNDICATION","ABNORMAL_BID_NO_SALE",
+    "GRADE_CONDITION_MISMATCH","CURRENCY_FEE_DISTORTION","VENUE_CONCENTRATION",
+    "STALE_EVENT","FUTURE_DATED_EVENT","IDENTITY_COLLISION","SOURCE_CONFLICT",
+    "SCHEMA_SEMANTICS_DRIFT"
+  ],
+  "requirements": {
+    "evidence_reference_required": true,
+    "provenance_required": true,
+    "provider_native_flag_required": false,
+    "unsupported_intent_claim": "PROHIBITED",
+    "unknown_state_supported": true,
+    "false_positive_containment_required": true
+  },
+  "outputs": ["NO_SIGNAL","ANOMALY_SIGNAL","RISK_SIGNAL","HOLD","UNKNOWN"]
+}
