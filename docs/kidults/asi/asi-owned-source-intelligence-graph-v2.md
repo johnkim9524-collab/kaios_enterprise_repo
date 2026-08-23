@@ -1,0 +1,112 @@
+# KIDULTS ASI Owned Source Intelligence Graph v2
+
+**Owner:** KPMO  
+**Priority:** P2  
+**State after merge:** Automatic deterministic SHADOW execution  
+**Direction:** Autonomous → Global → Irreplaceable Value → Transparent
+
+## Executed chain
+
+```text
+P0B Bounded Discovery Candidates
+        +
+P1 Source Classification / Qualification / Gate 1 / Admission-Candidate Preparation
+        ↓
+KIDULTS-owned Source Intelligence Graph
+        ↓
+Immutable Lineage + Graph Quality + Owned-Value Receipt
+```
+
+The v2 compiler consumes the current merged P0B and P1 artifacts. It replaces the stale v1 draft dependency on artifact names that never landed on protected main.
+
+## Graph model
+
+The graph contains **13 node types**:
+
+```text
+MISSION
+SCOPE
+DOMAIN
+REGION
+EVIDENCE_CLASS
+SOURCE_CANDIDATE
+CANONICAL_HOST
+DISCOVERY_PROVIDER
+FACTUAL_ORIGIN_CANDIDATE
+GATE1_DECISION
+ADMISSION_CANDIDATE
+PREFLIGHT_ACTION
+ACTION_TYPE
+```
+
+It contains **14 edge types** connecting missions to scopes, regions, evidence classes and candidates; candidates to hosts, discovery providers and factual-origin candidates; and candidates/missions to Gate 1 decisions, admission candidates and preflight actions.
+
+## Current verified baseline
+
+The first bounded current-main input set contains:
+
+```text
+192 missions
+486 source candidates
+114 canonical hosts
+2 discovery providers
+576 Gate 1 decisions
+576 admission candidates
+672 preflight actions
+230 provider-switching primitives
+```
+
+The exact graph node and edge totals are derived from the current immutable P0B and P1 inputs and validated rather than used as a permanent completion target.
+
+## Owned value
+
+The output compounds KIDULTS-owned value in:
+
+- mission-to-source-candidate lineage;
+- canonical source-host identity;
+- discovery-provider contribution;
+- factual-origin candidate separation;
+- Gate 1 decision history;
+- admission-candidate readiness;
+- preflight-action dependencies;
+- provider-switching primitives;
+- global scope × region × evidence-class structure.
+
+External raw data is not treated as the moat. The graph structure, canonical identities, lineage, decision history and switching layer are KIDULTS-owned assets.
+
+## Truth boundaries
+
+```text
+Source Candidate ≠ Evidence
+Gate 1 HOLD ≠ Admission
+Admission Candidate ≠ Admitted Evidence
+Preflight Action ≠ Collection Authority
+Factual-Origin Candidate ≠ Verified Factual Origin
+Source Intelligence Graph ≠ Market Evidence Graph
+```
+
+The graph creates no market event, sold transaction, price observation, liquidity measure, evidence admission, Snapshot Candidate, Track B input, or customer claim.
+
+## Automatic continuation
+
+```text
+Successful P0B or P1 run
+or relevant protected-main push
+or hourly schedule at :52
+        ↓
+Restore current immutable artifacts
+        ↓
+Build twice
+        ↓
+Byte-identical replay proof
+        ↓
+Graph validation and adversarial mutations
+        ↓
+KPMO P2 receipt and 90-day artifact
+```
+
+Manual dispatch remains only for recovery or explicit replay.
+
+## Completion state
+
+`P2_OWNED_SOURCE_INTELLIGENCE_GRAPH_VERIFIED` means the source-intelligence graph, lineage, integrity and owned-value increment are verified for the exact bounded input pair. It does not mean that market evidence or a Snapshot Candidate exists.
