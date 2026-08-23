@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+    env:
+      PIP_AUDIT_LOCK: requirements-security-assurance-pip-audit.lock.txt
+      EXPECTED_PIP_AUDIT_VERSION: '2.10.1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,6 +33,10 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.11'
+
+      - name: Validate locked security-audit bootstrap
+        shell: bash
+        run: node scripts/kidults/kpmo/validate-security-assurance-bootstrap-lock-v1.mjs
 
       - name: Build dependency and integrity inventories
         shell: bash
@@ -125,14 +132,43 @@ jobs:
             echo '{"requirements_file_count":0,"state":"NOT_APPLICABLE_NO_REQUIREMENTS_FILES"}' > /tmp/kidults-security-r1/pip-audit-summary.json
             exit 0
           fi
-          python -m pip install --disable-pip-version-check --quiet pip-audit
+          python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r "$PIP_AUDIT_LOCK"
+          lock_sha256="$(sha256sum "$PIP_AUDIT_LOCK" | awk '{print $1}')"
+          actual_version="$(python -m pip_audit --version | awk '{print $NF}')"
+          actual_pip_version="$(python -m pip --version | awk '{print $2}')"
+          test "$actual_version" = "$EXPECTED_PIP_AUDIT_VERSION"
+          python - "$PIP_AUDIT_LOCK" "$lock_sha256" "$actual_version" "$actual_pip_version" <<'PY'
+          import json,pathlib,platform,sys
+          lock_path,lock_sha256,auditor_version,pip_version=sys.argv[1:]
+          lock_text=pathlib.Path(lock_path).read_text()
+          locked_requirement_count=sum(
+            1 for line in lock_text.splitlines()
+            if line.strip() and not line.lstrip().startswith('#')
+          )
+          out={
+            'issue':976,
+            'lock_path':lock_path,
+            'lock_sha256':lock_sha256,
+            'locked_requirement_count':locked_requirement_count,
+            'pip_audit_version':auditor_version,
+            'pip_version':pip_version,
+            'python_version':platform.python_version(),
+            'platform_machine':platform.machine(),
+            'install_mode':'HASH_VERIFIED_WHEELS_ONLY',
+            'evidence_effect':'NONE',
+            'empirical_gate_effect':'NONE',
+            'production':'HOLD'
+          }
+          pathlib.Path('/tmp/kidults-security-r1/pip-audit-bootstrap.json').write_text(json.dumps(out,indent=2))
+          print(out)
+          PY
           count=0
           failed=0
           while IFS= read -r req; do
             [ -n "$req" ] || continue
             count=$((count+1))
             safe=$(echo "$req" | tr '/.' '__')
-            if ! pip-audit -r "$req" -f json -o "/tmp/kidults-security-r1/pip-audit/${safe}.json"; then failed=$((failed+1)); fi
+            if ! python -m pip_audit -r "$req" -f json -o "/tmp/kidults-security-r1/pip-audit/${safe}.json"; then failed=$((failed+1)); fi
           done <<< "$reqs"
           python - "$count" "$failed" <<'PY'
           import json,sys,pathlib
@@ -170,7 +206,7 @@ jobs:
           const root='/tmp/kidults-security-r1';
           const read=(f)=>{try{return JSON.parse(fs.readFileSync(`${root}/${f}`,'utf8'))}catch{return null}};
           const integ=fs.existsSync(`${root}/source-integrity.sha256`)?crypto.createHash('sha256').update(fs.readFileSync(`${root}/source-integrity.sha256`)).digest('hex'):null;
-          const report={id:'kidults-security-assurance-empirical-r1',production:'HOLD',dependency_inventory:read('inventory-summary.json'),secret_scan:read('secret-scan.json'),npm_audit:read('npm-audit-summary.json'),pip_audit:read('pip-audit-summary.json'),source_integrity_manifest_sha256:integ,vulnerability_response_owner:'REGISTERED',truth_boundary:'This is pre-production repository and dependency assurance evidence. It is not a penetration test, external infrastructure security assessment, legal/privacy clearance, or Production authorization.'};
+          const report={id:'kidults-security-assurance-empirical-r1',production:'HOLD',dependency_inventory:read('inventory-summary.json'),secret_scan:read('secret-scan.json'),npm_audit:read('npm-audit-summary.json'),pip_audit:read('pip-audit-summary.json'),pip_audit_bootstrap:read('pip-audit-bootstrap.json'),source_integrity_manifest_sha256:integ,vulnerability_response_owner:'REGISTERED',truth_boundary:'This is pre-production repository and dependency assurance evidence. It is not a penetration test, external infrastructure security assessment, legal/privacy clearance, or Production authorization.'};
           fs.writeFileSync(`${root}/security-assurance-report.json`,JSON.stringify(report,null,2));
           NODE
 
