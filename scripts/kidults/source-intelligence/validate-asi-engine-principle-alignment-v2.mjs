@@ -98,19 +98,28 @@ assert(meshFleets.length === 25 && new Set(meshFleets).size === 25,'MESH_25_FLEE
 assert(JSON.stringify([...meshFleets].sort()) === JSON.stringify(platformFleetPairs.map(([fleet]) => fleet).sort()),'MESH_PLATFORM_FLEET_MISMATCH');
 assert(JSON.stringify(mesh.approved_principles) === JSON.stringify(expectedPrinciples),'MESH_PRINCIPLE_ORDER');
 
-assert(JSON.stringify(sourcing.sourcing_directions) === JSON.stringify(expectedPrinciples),'SOURCING_PRINCIPLE_ORDER');
-assert(sourcing.selection_model?.hard_floor_all_directions === true,'SOURCING_HARD_FLOOR');
-assert(sourcing.selection_model?.composite_score_may_offset_failed_direction === false,'SOURCING_COMPOSITE_COMPENSATION');
+assert(JSON.stringify(sourcing.platform_constitution?.ordered_principles) === JSON.stringify(expectedPrinciples),'SOURCING_PRINCIPLE_ORDER');
+assert(JSON.stringify(sourcing.source_selection_model?.four_axis_vector) === JSON.stringify(expectedPrinciples),'SOURCING_FOUR_AXIS_VECTOR');
+assert(sourcing.source_selection_model?.single_composite_score_can_override_hard_floor === false,'SOURCING_COMPOSITE_COMPENSATION');
+assert(Number(sourcing.source_selection_model?.minimum_each_direction) > 0,'SOURCING_HARD_FLOOR');
 
-const runtimeFleetMatches = [...runtimeRegistry.matchAll(/\{ id: '([^']+)', stage: '([^']+)', logicalEngine: '([^']+)', alignmentProfile: ALIGNMENT_PROFILE, alignmentState: ALIGNMENT_STATE,/g)]
-  .map((match) => ({fleet:match[1],stage:match[2],engine:match[3]}));
-assert(runtimeFleetMatches.length === 25,'RUNTIME_FLEET_PROFILE_COUNT');
-assert(new Set(runtimeFleetMatches.map((item) => item.fleet)).size === 25,'RUNTIME_FLEET_PROFILE_DUPLICATE');
-const runtimePairs = runtimeFleetMatches.map((item) => `${item.fleet}::${item.engine}`).sort();
+const runtimeFleetEntries = [...runtimeRegistry.matchAll(/\{ id: '([^']+)', stage: '([^']+)', binding: '([^']+)', queue: '([^']+)' \}/g)]
+  .map((match) => ({fleet:match[1],stage:match[2],binding:match[3],queue:match[4]}));
+assert(runtimeFleetEntries.length === 25,'RUNTIME_FLEET_COUNT');
+assert(new Set(runtimeFleetEntries.map((item) => item.fleet)).size === 25,'RUNTIME_FLEET_DUPLICATE');
+
+const mappingBlock = runtimeRegistry.match(/export const ASI_FLEET_LOGICAL_ENGINE:[\s\S]*?= \{([\s\S]*?)\n\};/);
+assert(mappingBlock,'RUNTIME_LOGICAL_MAPPING_BLOCK_MISSING');
+const runtimeMappingMatches = [...mappingBlock[1].matchAll(/^\s{2}([A-Z0-9_]+): '([A-Z0-9_]+)',$/gm)]
+  .map((match) => ({fleet:match[1],engine:match[2]}));
+assert(runtimeMappingMatches.length === 25,'RUNTIME_FLEET_PROFILE_COUNT');
+assert(new Set(runtimeMappingMatches.map((item) => item.fleet)).size === 25,'RUNTIME_FLEET_PROFILE_DUPLICATE');
+const runtimePairs = runtimeMappingMatches.map((item) => `${item.fleet}::${item.engine}`).sort();
 assert(JSON.stringify(runtimePairs) === JSON.stringify(platformFleetPairs.map(pairKey).sort()),'RUNTIME_FLEET_LOGICAL_MAPPING_MISMATCH');
+assert(JSON.stringify(runtimeFleetEntries.map((item) => item.fleet).sort()) === JSON.stringify(runtimeMappingMatches.map((item) => item.fleet).sort()),'RUNTIME_FLEET_PROFILE_ORPHAN');
 for (const marker of [
   "'AUTONOMOUS'","'GLOBAL'","'IRREPLACEABLE_VALUE'","'TRANSPARENT'",
-  "'FOUR_PRINCIPLE_HARD_FLOOR_V2'","'ENFORCED'",
+  "'FOUR_PRINCIPLE_HARD_FLOOR_V2'","'ENFORCED'",'ASI_FLEET_LOGICAL_ENGINE','asiLogicalEngineForFleet',
 ]) assert(runtimeRegistry.includes(marker),`RUNTIME_REGISTRY_MARKER:${marker}`);
 
 for (const marker of [
@@ -145,6 +154,7 @@ assert(preflightPosition >= 0 && preflightPosition < consumePosition && consumeP
 for (const marker of [
   'registry.ASI_FLEETS.length,25',
   'registry.ASI_LOGICAL_ENGINES.length,11',
+  'registry.ASI_FLEET_LOGICAL_ENGINE',
   'AUTONOMOUS_EXPLICIT_TARGET_ROUTING_ABSENT',
   'GLOBAL_REGION_EXPLICIT',
   'IRREPLACEABLE_PROVIDER_DIRECT_PATH_FORBIDDEN',
@@ -170,7 +180,7 @@ const report = {
   logical_engines_total:platformEngines.length,
   logical_engine_alignment_percent:100,
   asi_logical_engines_mapped:platform.asi_logical_to_execution_fleets.length,
-  execution_fleets_runtime_enforced:runtimeFleetMatches.length,
+  execution_fleets_runtime_enforced:runtimeMappingMatches.length,
   execution_fleets_total:platformFleetPairs.length,
   execution_fleet_runtime_alignment_percent:100,
   hard_floor_enforced:true,
