@@ -7,6 +7,10 @@ on:
       - 'coordination/kidults/runtime/staging-portal-deploy-request-v1.json'
   workflow_dispatch:
 
+concurrency:
+  group: kidults-digitalocean-staging-portal
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -122,34 +126,110 @@ jobs:
           tar -C apps/kidults-enterprise-staging/public/portal-r001 -czf "$RUNNER_TEMP/portal-r001.tgz" .
           sha256sum "$RUNNER_TEMP/portal-r001.tgz"
       - name: Transfer and deploy to remote localhost-only STAGING
+        id: remote_deploy
         shell: bash
         run: |
           set -euo pipefail
           SSH_OPTS=(-o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          RELEASE_ID="portal-r001-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
-          scp "${SSH_OPTS[@]}" "$RUNNER_TEMP/portal-r001.tgz" kidults-staging@"$HOST":/tmp/portal-r001.tgz
-          ssh "${SSH_OPTS[@]}" kidults-staging@"$HOST" 'bash -s -- ih-staging-01 165.232.175.45 10.104.0.3 '"$RELEASE_ID"' /tmp/portal-r001.tgz' < scripts/operations/digitalocean_staging_portal_deploy_v1.sh
-      - name: Collect remote deployment receipt and verify localhost HTTP
+          RELEASE_ID="portal-r001-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          REMOTE_ARCHIVE="/tmp/${RELEASE_ID}.tgz"
+          DEPLOY_EXIT_CODE=0
+          scp "${SSH_OPTS[@]}" "$RUNNER_TEMP/portal-r001.tgz" kidults-staging@"$HOST":"$REMOTE_ARCHIVE" \
+            || DEPLOY_EXIT_CODE=$?
+          if [[ "$DEPLOY_EXIT_CODE" -eq 0 ]]; then
+            ssh "${SSH_OPTS[@]}" kidults-staging@"$HOST" \
+              'bash -s -- ih-staging-01 165.232.175.45 10.104.0.3 '"$RELEASE_ID $REMOTE_ARCHIVE $GITHUB_SHA $GITHUB_RUN_ID $GITHUB_RUN_ATTEMPT" \
+              < scripts/operations/digitalocean_staging_portal_deploy_v1.sh \
+              || DEPLOY_EXIT_CODE=$?
+          fi
+          ssh "${SSH_OPTS[@]}" kidults-staging@"$HOST" "rm -f -- $REMOTE_ARCHIVE" || true
+          {
+            echo "release_id=$RELEASE_ID"
+            echo "exit_code=$DEPLOY_EXIT_CODE"
+          } >> "$GITHUB_OUTPUT"
+      - name: Collect deployment-scoped remote receipts and localhost body
+        if: always() && steps.remote_deploy.outputs.release_id != ''
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p artifacts/digitalocean-staging-portal
           SSH=(ssh -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          "${SSH[@]}" kidults-staging@"$HOST" 'cat ~/kidults-runtime/audit/portal-r001-deploy-receipt.json' > artifacts/digitalocean-staging-portal/deploy-receipt.json
-          "${SSH[@]}" kidults-staging@"$HOST" 'curl -fsS http://127.0.0.1:4173/index.html' > artifacts/digitalocean-staging-portal/index.html
+          RELEASE_ID="${{ steps.remote_deploy.outputs.release_id }}"
+          DEPLOY_EXIT_CODE="${{ steps.remote_deploy.outputs.exit_code }}"
+          REMOTE_RECEIPT_DIR="~/kidults-runtime/audit/portal-r001-deployments/$RELEASE_ID"
+          for receipt in deploy-receipt.json health-receipt.json rollback-receipt.json; do
+            if "${SSH[@]}" kidults-staging@"$HOST" "test -f $REMOTE_RECEIPT_DIR/$receipt"; then
+              "${SSH[@]}" kidults-staging@"$HOST" "cat $REMOTE_RECEIPT_DIR/$receipt" \
+                > "artifacts/digitalocean-staging-portal/$receipt"
+            fi
+          done
+          BODY_NAME=index.html
+          if [[ "$DEPLOY_EXIT_CODE" -ne 0 ]]; then BODY_NAME=rollback-index.html; fi
+          if ! "${SSH[@]}" kidults-staging@"$HOST" 'curl -fsS http://127.0.0.1:4173/index.html' \
+            > "artifacts/digitalocean-staging-portal/$BODY_NAME"; then
+            rm -f "artifacts/digitalocean-staging-portal/$BODY_NAME"
+          fi
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
-          r=json.loads(Path('artifacts/digitalocean-staging-portal/deploy-receipt.json').read_text())
-          h=Path('artifacts/digitalocean-staging-portal/index.html').read_text()
-          assert r['environment']=='STAGING' and r['health']=='PASS'
-          assert r['public_bind'] is False and r['production_touch'] is False and r['g5']=='HOLD'
-          assert 'data-release="portal-release-001"' in h and 'data-state="NO_PROJECTION"' in h
-          assert 'Read the market.' in h and 'Know the evidence.' in h
-          print('DIGITALOCEAN_STAGING_PORTAL_DEPLOY_PASS')
+          payload={
+            'id':'kidults-digitalocean-staging-portal-runner-execution-v1',
+            'state':'IMPLEMENTED_NOT_VERIFIED',
+            'deployment_id':os.environ['RELEASE_ID'],
+            'source_commit_sha':os.environ['GITHUB_SHA'],
+            'workflow_run_id':os.environ['GITHUB_RUN_ID'],
+            'workflow_run_attempt':int(os.environ['GITHUB_RUN_ATTEMPT']),
+            'remote_deploy_exit_code':int(os.environ['DEPLOY_EXIT_CODE']),
+            'evidence_class':'REMOTE_STAGING',
+            'production':'HOLD',
+            'g5':'HOLD'
+          }
+          Path('artifacts/digitalocean-staging-portal/runner-execution.json').write_text(json.dumps(payload,indent=2)+'\n')
           PY
+        env:
+          RELEASE_ID: ${{ steps.remote_deploy.outputs.release_id }}
+          DEPLOY_EXIT_CODE: ${{ steps.remote_deploy.outputs.exit_code }}
+      - name: Validate exact remote receipt bundle
+        id: validate_receipts
+        if: always() && steps.remote_deploy.outputs.release_id != ''
+        shell: bash
+        run: |
+          set -uo pipefail
+          OUTCOME=DEPLOYED
+          EXTRA_ARGS=(--require-rollback-target)
+          if [[ "${{ steps.remote_deploy.outputs.exit_code }}" -ne 0 ]]; then
+            OUTCOME=ROLLED_BACK
+            EXTRA_ARGS=()
+          fi
+          VALIDATOR_EXIT_CODE=0
+          python scripts/operations/validate_digitalocean_staging_portal_receipts_v1.py \
+            --artifact-dir artifacts/digitalocean-staging-portal \
+            --expected-outcome "$OUTCOME" \
+            --expected-deployment-id "${{ steps.remote_deploy.outputs.release_id }}" \
+            --expected-source-sha "$GITHUB_SHA" \
+            --expected-run-id "$GITHUB_RUN_ID" \
+            --expected-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --expected-evidence-class REMOTE_STAGING \
+            "${EXTRA_ARGS[@]}" \
+            --output artifacts/digitalocean-staging-portal/receipt-validation.json \
+            || VALIDATOR_EXIT_CODE=$?
+          echo "exit_code=$VALIDATOR_EXIT_CODE" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
         with:
           name: kidults-digitalocean-staging-portal
           path: artifacts/digitalocean-staging-portal
           retention-days: 30
+          if-no-files-found: warn
+      - name: Remove SSH material
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/ssh/id_ed25519" "$RUNNER_TEMP/ssh/known_hosts"
+      - name: Enforce successful deploy and receipt validation
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.remote_deploy.outputs.exit_code }}" = "0"
+          test "${{ steps.validate_receipts.outputs.exit_code }}" = "0"
