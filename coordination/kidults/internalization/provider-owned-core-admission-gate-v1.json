@@ -1,0 +1,53 @@
+{
+  "gate_id": "KIDULTS_PROVIDER_OWNED_CORE_ADMISSION_GATE_V1",
+  "parent_issues": [1172,1166,1153,952,945,951,769],
+  "inputs": [
+    "provider-commercial-rights-ledger-v1.json",
+    "provider-internalization-matrix-v1.json",
+    "rights-intelligence-policy-v1.json",
+    "provider-removal-simulation-contract-v1.json",
+    "minimum-external-dependency-negotiation-contract-v1.json"
+  ],
+  "stages": {
+    "NEGOTIATION": {
+      "requires": ["provider_registered","portfolio_role_defined","external_fact_vs_internalizable_split_defined"],
+      "unknown_rights": "ALLOWED_TO_NEGOTIATE_NOT_TO_ACTIVATE"
+    },
+    "BOUNDED_PILOT": {
+      "requires": ["written_material_rights_resolved","core_capture_absent","owner_spend_or_zero_cost_authorized","credential_activation_authorized_if_required"],
+      "unknown_rights": "HOLD"
+    },
+    "LONG_TERM_PARTNERSHIP": {
+      "requires": ["bounded_pilot_pass_or_equivalent_evidence","provider_removal_simulation_pass","portability_or_documented_replacement_path","post_termination_derived_intelligence_boundary_resolved","economics_roi_pass"],
+      "unknown_rights": "HOLD"
+    },
+    "PRODUCTION": {
+      "requires": ["EXPLICIT_G5"],
+      "default": "HOLD"
+    }
+  },
+  "hard_no_go": [
+    "provider_native_id_as_canonical",
+    "provider_taxonomy_as_canonical_ontology",
+    "provider_score_as_kidults_score",
+    "provider_direct_to_portal",
+    "provider_direct_to_index",
+    "single_provider_global_truth",
+    "provider_removal_requires_platform_rewrite"
+  ],
+  "current_policy": {
+    "all_current_providers_with_material_rights_pending": "HOLD_FOR_PILOT",
+    "provider_marketing_may_satisfy_rights": false,
+    "email_may_authorize_spend": false,
+    "unknown_price_may_be_zero": false,
+    "internalization_analysis_precedes_negotiation": true
+  },
+  "non_bypass": {
+    "contract_acceptance": "EXPLICIT_APPROVAL_REQUIRED",
+    "external_spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "public_intelligence": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
