@@ -67,6 +67,7 @@ for (const candidate of candidatesInput.candidates) {
 }
 
 // Rolling execution unit: UNIQUE_CANONICAL_HOST.
+// Bounded auxiliary target: ROBOTS_TXT.
 const allHosts = [...candidatesByHost.entries()]
   .map(([host, candidates]) => ({
     canonical_host: host,
