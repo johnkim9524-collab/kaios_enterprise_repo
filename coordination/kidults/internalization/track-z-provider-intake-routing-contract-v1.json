@@ -1,0 +1,78 @@
+{
+  "contract_id": "KIDULTS_TRACK_Z_PROVIDER_INTAKE_ROUTING_V1",
+  "owner": "TRACK_Z",
+  "reporting_chain": ["TRACK_Z", "KPMO", "FOUNDER"],
+  "applies_to": [
+    "new_external_provider",
+    "new_provider_product",
+    "provider_inbound_reply",
+    "outbound_provider_email",
+    "rights_or_contract_question",
+    "pricing_or_commercial_change",
+    "api_feed_bulk_or_dataset_offer",
+    "provider_activation_request",
+    "provider_renewal_or_termination"
+  ],
+  "required_inputs": [
+    "company_and_product_analysis",
+    "latest_provider_thread_or_explicit_no_prior_thread",
+    "external_fact_boundary",
+    "internalization_classification",
+    "field_by_purpose_rights_state",
+    "economics_and_roi_state",
+    "provider_removal_and_replacement_state",
+    "proposed_action"
+  ],
+  "mandatory_sequence": [
+    "TRACK_Z_INTAKE",
+    "TRACK_Z_STRATEGIC_AND_INTERNALIZATION_REVIEW",
+    "TRACK_Z_RIGHTS_REVIEW",
+    "TRACK_Z_ECONOMICS_REVIEW",
+    "TRACK_Z_PROVIDER_REMOVAL_REVIEW",
+    "TRACK_Z_VERDICT",
+    "KPMO_INTEGRATED_REPORT",
+    "FOUNDER_REPORT",
+    "ACTION_ONLY_IF_GATE_ALLOWS"
+  ],
+  "track_z_verdicts": [
+    "SEND",
+    "REVISE",
+    "HOLD",
+    "PILOT_READY",
+    "STRATEGIC_NEGOTIATION",
+    "INTERNALIZE_FIRST",
+    "NO_GO"
+  ],
+  "fail_closed_rules": {
+    "missing_company_product_analysis": "HOLD",
+    "missing_latest_thread_when_replying": "HOLD",
+    "unknown_or_conflicting_rights": "HOLD",
+    "prohibited_dependency_detected": "NO_GO_OR_INTERNALIZE_FIRST",
+    "provider_removal_requires_platform_rewrite": "INTERNALIZE_FIRST",
+    "unapproved_contract_eula_spend_or_credential": "HOLD",
+    "production_or_g5_without_explicit_approval": "HOLD"
+  },
+  "core_invariants": [
+    "provider_id_is_not_kidults_canonical_id",
+    "provider_taxonomy_is_not_kidults_ontology",
+    "provider_score_is_not_kidults_score",
+    "provider_does_not_connect_directly_to_portal",
+    "provider_does_not_connect_directly_to_index",
+    "external_scope_is_minimized_to_irreducible_facts_and_rights",
+    "canonical_identity_normalization_scoring_confidence_derived_analytics_and_switching_remain_owned_core"
+  ],
+  "founder_explicit_approval_required_for": [
+    "contract_or_eula_acceptance",
+    "external_spend",
+    "credential_activation",
+    "production_or_public_activation",
+    "g5",
+    "irreversible_legal_or_security_change"
+  ],
+  "non_bypass": {
+    "tracks_a_to_e_may_bypass_track_z": false,
+    "asi_may_bypass_track_z": false,
+    "kpmo_report_may_be_skipped": false,
+    "founder_report_may_be_skipped": false
+  }
+}
