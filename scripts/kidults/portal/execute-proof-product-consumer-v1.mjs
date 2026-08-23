@@ -24,14 +24,16 @@ function parseArgs(argv){
   return args;
 }
 
-export function consumeProofProductProjection(projection,{surface,trustedNow,releaseAuthority='HOLD'}={}){
+export function consumeProofProductProjection(projection,{surface}={}){
   if(!Object.hasOwn(SURFACES,surface))throw new Error(`unsupported surface: ${surface}`);
+  // No API/export release route or signed control-plane capability exists yet.
+  // Caller-supplied clock/release strings are intentionally ignored.
   const admission=admitProofProductProjection(projection,{
     surface,
     purpose:SURFACES[surface],
-    trustedNow,
-    clockAuthority:'KIDULTS_CONTROL_PLANE',
-    releaseAuthority
+    trustedNow:null,
+    clockAuthority:'NO_BOUND_CONTROL_PLANE',
+    releaseAuthority:'HOLD'
   });
   return Object.freeze({
     ok:admission.accepted,
@@ -46,17 +48,13 @@ export function consumeProofProductProjection(projection,{surface,trustedNow,rel
 
 function main(){
   const args=parseArgs(process.argv.slice(2));
-  if(!args.projection||!args.surface||!args['trusted-now']){
-    throw new Error('required: --projection FILE --surface PORTAL_RENDER|PUBLIC_API_RESPONSE|EXPORT --trusted-now ISO_8601');
+  if(!args.projection||!args.surface){
+    throw new Error('required: --projection FILE --surface PORTAL_RENDER|PUBLIC_API_RESPONSE|EXPORT');
   }
   const projectionPath=path.resolve(process.cwd(),args.projection);
   const projection=JSON.parse(fs.readFileSync(projectionPath,'utf8'));
   // Normal execution stays HOLD. No CLI flag may self-authorize approved output.
-  const result=consumeProofProductProjection(projection,{
-    surface:args.surface,
-    trustedNow:args['trusted-now'],
-    releaseAuthority:'HOLD'
-  });
+  const result=consumeProofProductProjection(projection,{surface:args.surface});
   process.stdout.write(`${JSON.stringify(result,null,2)}\n`);
   return result.ok?0:2;
 }
