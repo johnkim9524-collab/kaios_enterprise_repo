@@ -1,0 +1,111 @@
+{
+  "id": "kidults-asi-official-source-schema-observation-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_BOUNDED_LIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": ["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"],
+  "mission": "Execute bounded, credential-free, read-only schema observation against the six exact official source hosts, preserve partial failures, discover same-host result/archive path candidates and emit transport evidence without creating rights, evidence admission or market claims.",
+  "activation_authority": "PROGRAM_OWNER_DIRECTIVE_CONTINUE_P0_P1_P2_P3_AND_BUILD_RESOLUTION_ENGINES",
+  "source_profiles": [
+    {
+      "profile_id": "BONHAMS_CARS_RESULTS_V1",
+      "root_url": "https://cars.bonhams.com/",
+      "allowed_hosts": ["cars.bonhams.com","www.bonhams.com","bonhams.com"],
+      "expected_domain": "automobiles_mobility"
+    },
+    {
+      "profile_id": "BARRETT_JACKSON_RESULTS_V1",
+      "root_url": "https://www.barrett-jackson.com/",
+      "allowed_hosts": ["www.barrett-jackson.com","barrett-jackson.com"],
+      "expected_domain": "automobiles_mobility"
+    },
+    {
+      "profile_id": "BONHAMS_WATCHES_RESULTS_V1",
+      "root_url": "https://www.bonhams.com/",
+      "allowed_hosts": ["www.bonhams.com","bonhams.com"],
+      "expected_domain": "watches_jewelry"
+    },
+    {
+      "profile_id": "CHRISTIES_WATCHES_RESULTS_V1",
+      "root_url": "https://www.christies.com/",
+      "allowed_hosts": ["www.christies.com","christies.com"],
+      "expected_domain": "watches_jewelry"
+    },
+    {
+      "profile_id": "SOTHEBYS_WATCHES_RESULTS_V1",
+      "root_url": "https://www.sothebys.com/",
+      "allowed_hosts": ["www.sothebys.com","sothebys.com"],
+      "expected_domain": "watches_jewelry"
+    },
+    {
+      "profile_id": "BROAD_ARROW_RESULTS_V1",
+      "root_url": "https://www.broadarrowauctions.com/",
+      "allowed_hosts": ["www.broadarrowauctions.com","broadarrowauctions.com"],
+      "expected_domain": "automobiles_mobility"
+    }
+  ],
+  "transport": {
+    "protocol": "HTTPS_ONLY",
+    "default_port_only": true,
+    "credentials_forbidden": true,
+    "cookies_forbidden": true,
+    "request_methods": ["GET"],
+    "paths": ["/","/robots.txt"],
+    "max_redirects": 3,
+    "max_body_bytes": 65536,
+    "connect_timeout_ms": 10000,
+    "total_timeout_ms": 20000,
+    "private_or_special_ip_forbidden": true,
+    "pinned_dns_and_tls_hostname_verification_required": true,
+    "user_agent": "KIDULTS-ASI-Schema-Observation/1.0 (+bounded-read-only)"
+  },
+  "observation": {
+    "persist_raw_body": false,
+    "persist_body_digest": true,
+    "persist_http_status": true,
+    "persist_content_type": true,
+    "persist_title": true,
+    "persist_json_ld_types": true,
+    "persist_terms_privacy_links": true,
+    "persist_same_host_result_path_candidates": true,
+    "follow_discovered_links": false,
+    "result_path_keywords": ["result","results","auction","auctions","sale","sales","archive","past","sold"]
+  },
+  "success_model": {
+    "per_profile_terminal_receipt_required": true,
+    "partial_failure_preserved": true,
+    "network_failure_is_not_empty_market_activity": true,
+    "root_reachability_is_not_live_result_extraction": true,
+    "robots_or_terms_is_not_rights_pass": true
+  },
+  "required_outputs": [
+    "official-source-schema-observation-ledger-v1.json",
+    "official-source-result-path-candidate-registry-v1.json",
+    "official-source-transport-receipt-v1.json",
+    "official-source-schema-observation-manifest-v1.json"
+  ],
+  "hard_boundaries": [
+    "EXACT_ALLOWLIST_ONLY",
+    "NO_CREDENTIALS_COOKIES_OR_WRITES",
+    "NO_PRIVATE_SPECIAL_OR_MIXED_DNS",
+    "NO_UNVALIDATED_REDIRECT",
+    "NO_RAW_BODY_PERSISTENCE",
+    "NO_DISCOVERED_LINK_FOLLOW",
+    "REACHABILITY_IS_NOT_RIGHTS_OR_EVIDENCE",
+    "NO_EVIDENCE_ADMISSION_MARKET_EVENT_OR_SNAPSHOT"
+  ],
+  "truth_boundary": {
+    "bounded_target_host_egress_authorized": true,
+    "bounded_target_host_egress_executed_by_workflow": true,
+    "raw_content_persisted": false,
+    "collection_right_created": false,
+    "rights_pass_created": false,
+    "live_result_extraction_verified": false,
+    "evidence_admitted": false,
+    "market_event_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
