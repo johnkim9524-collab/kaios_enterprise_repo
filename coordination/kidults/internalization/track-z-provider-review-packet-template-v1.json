@@ -1,0 +1,67 @@
+{
+  "template_id": "KIDULTS_TRACK_Z_PROVIDER_REVIEW_PACKET_V1",
+  "provider_id": "REQUIRED",
+  "trigger_type": "REQUIRED",
+  "company_product": {
+    "company_role": "UNKNOWN",
+    "product_or_service": "UNKNOWN",
+    "source_type": "UNKNOWN",
+    "portfolio_priority": "UNKNOWN",
+    "strategic_fit": "UNKNOWN"
+  },
+  "external_dependency": {
+    "irreducible_external_facts": [],
+    "internalize_now": [],
+    "internalize_phased": [],
+    "commodity_buy": [],
+    "prohibited_dependency": []
+  },
+  "rights": {
+    "state": "UNKNOWN",
+    "collect_or_query": "UNKNOWN",
+    "private_store": "UNKNOWN",
+    "cache": "UNKNOWN",
+    "normalize": "UNKNOWN",
+    "entity_resolution": "UNKNOWN",
+    "derive": "UNKNOWN",
+    "model_calibration": "UNKNOWN",
+    "human_review": "UNKNOWN",
+    "retention": "UNKNOWN",
+    "deletion": "UNKNOWN",
+    "attribution": "UNKNOWN",
+    "public_derived_output": "UNKNOWN",
+    "redistribution": "UNKNOWN",
+    "termination": "UNKNOWN",
+    "post_termination_derived_retention": "UNKNOWN",
+    "portability_export": "UNKNOWN"
+  },
+  "economics": {
+    "state": "UNKNOWN",
+    "setup_cost": "UNKNOWN",
+    "monthly_cost": "UNKNOWN",
+    "annual_cost": "UNKNOWN",
+    "minimum_commitment": "UNKNOWN",
+    "volume_limits": "UNKNOWN",
+    "overage": "UNKNOWN",
+    "historical_data_cost": "UNKNOWN",
+    "incremental_value": "UNKNOWN",
+    "internal_build_comparison": "UNKNOWN",
+    "switching_cost": "UNKNOWN"
+  },
+  "removal": {
+    "structural_continuity": "UNKNOWN",
+    "replacement_path": "UNKNOWN",
+    "platform_rewrite_required": "UNKNOWN",
+    "empirical_provider_off_required_after_activation": true
+  },
+  "communication": {
+    "latest_thread_read": false,
+    "actual_outbound_draft_read": false,
+    "written_email_negotiation_preferred": true,
+    "commitment_leakage_check": "NOT_RUN"
+  },
+  "track_z_verdict": "HOLD",
+  "kpmo_reported": false,
+  "founder_reported": false,
+  "action_authorized": false
+}
