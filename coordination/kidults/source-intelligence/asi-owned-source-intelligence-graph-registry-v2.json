@@ -39,15 +39,21 @@
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },
   "empirical_baseline": {
+    "source_run": 32636028997,
+    "p0b_artifact_id": 9492109965,
+    "p1_artifact_id": 9492137364,
+    "graph_digest": "sha256:12887e716c8c091de033c8336f4aa0cced327c2af1b0d4b58eb1159df2660fb8",
+    "nodes": 2774,
+    "edges": 6278,
     "missions": 192,
-    "source_candidates": 486,
+    "source_candidates": 482,
     "assigned_unique_candidates": 96,
-    "canonical_hosts": 114,
+    "canonical_hosts": 111,
     "discovery_providers": 2,
     "gate1_decisions": 576,
     "admission_candidates": 576,
     "preflight_actions": 672,
-    "provider_switching_primitives": 230
+    "provider_switching_primitives": 224
   },
   "truth_boundary": {
     "source_candidate_is_evidence": false,
