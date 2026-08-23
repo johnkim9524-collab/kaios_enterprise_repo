@@ -1,0 +1,118 @@
+{
+  "id": "kidults-asi-claim-suitable-adapter-sdk-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Turn every current claim-suitable adapter requirement into a KIDULTS-owned deterministic adapter-family contract, fixture-certified parser boundary and implementation backlog while preserving the separation between fixture proof, source-specific live extraction and empirical evidence admission.",
+  "input_contracts": {
+    "replacement_queue_id": "kidults-asi-replacement-mission-queue-v2",
+    "adapter_requirement_queue_id": "kidults-asi-adapter-requirement-queue-v2",
+    "replacement_manifest_id": "kidults-asi-claim-suitability-replacement-manifest-v2"
+  },
+  "evidence_classes": {
+    "CURRENT_SOLD_TRANSACTION": {
+      "event_type": "TERMINAL_SOLD_TRANSACTION",
+      "required_fields": [
+        "source_record_id",
+        "object_identity",
+        "terminal_state",
+        "realized_price",
+        "currency",
+        "event_occurred_at",
+        "source_owner",
+        "factual_origin",
+        "rights.collect",
+        "rights.store",
+        "rights.derive"
+      ],
+      "forbidden_promotions": [
+        "LISTING_AS_SOLD",
+        "BID_AS_SOLD",
+        "ASK_AS_SOLD",
+        "OFFER_AS_SOLD",
+        "RESERVE_AS_SOLD"
+      ]
+    },
+    "LIQUIDITY_TIME_TO_SALE_EXPOSURE": {
+      "event_type": "EXPOSURE_AND_TERMINAL_OUTCOME",
+      "required_fields": [
+        "source_record_id",
+        "object_identity",
+        "exposure_started_at",
+        "outcome_state",
+        "source_owner",
+        "factual_origin",
+        "rights.collect",
+        "rights.store",
+        "rights.derive"
+      ],
+      "conditional_fields": {
+        "terminal_outcome": [
+          "exposure_ended_at"
+        ],
+        "censored_outcome": [
+          "censored_at"
+        ]
+      }
+    }
+  },
+  "adapter_family_key": [
+    "DOMAIN",
+    "EVIDENCE_CLASS"
+  ],
+  "adapter_family_expected_count": 16,
+  "sdk_controls": [
+    "EXACT_SCHEMA_VERSION",
+    "FIELD_PURPOSE_RIGHTS",
+    "TERMINAL_EVENT_SEMANTICS",
+    "POSITIVE_REALIZED_PRICE",
+    "EXPLICIT_CURRENCY",
+    "TEMPORAL_COHERENCE",
+    "OBJECT_IDENTITY",
+    "SOURCE_OWNER",
+    "FACTUAL_ORIGIN",
+    "DETERMINISTIC_DUPLICATE_GRAIN",
+    "PROVIDER_DIRECT_TRUTH_PROHIBITION",
+    "FIXTURE_NON_PROMOTABILITY"
+  ],
+  "implementation_states": [
+    "SDK_AND_FAMILY_CONTRACT_IMPLEMENTED",
+    "SOURCE_SPECIFIC_MAPPING_REQUIRED",
+    "LIVE_EXTRACTION_NOT_VERIFIED",
+    "EMPIRICAL_ADMISSION_NOT_STARTED"
+  ],
+  "required_outputs": [
+    "adapter-family-registry-v1.json",
+    "adapter-fixture-certification-v1.json",
+    "adapter-development-backlog-v1.json",
+    "adapter-sdk-manifest-v1.json"
+  ],
+  "hard_boundaries": [
+    "FIXTURE_PASS_IS_NOT_LIVE_EXTRACTION",
+    "LIVE_EXTRACTION_IS_NOT_RIGHTS_PASS",
+    "RIGHTS_PASS_IS_NOT_EVIDENCE_ADMISSION",
+    "ADAPTER_FAMILY_IS_NOT_SOURCE_SPECIFIC_ADAPTER",
+    "ADAPTER_REQUIREMENT_IS_NOT_IMPLEMENTED_ADAPTER",
+    "NO_PROVIDER_PRESELECTION",
+    "NO_EMPIRICAL_EVIDENCE_OR_MARKET_EVENT_OR_SNAPSHOT"
+  ],
+  "truth_boundary": {
+    "generic_sdk_implemented": true,
+    "adapter_family_contracts_implemented": true,
+    "source_specific_mappings_implemented": false,
+    "live_extraction_verified": false,
+    "target_host_egress_executed": false,
+    "evidence_admitted": false,
+    "market_event_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
