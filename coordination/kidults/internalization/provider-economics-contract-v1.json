@@ -1,0 +1,49 @@
+{
+  "contract_id": "KIDULTS_PROVIDER_ECONOMICS_V1",
+  "parent_issues": [1153, 1155, 1166, 951, 952],
+  "unknown_policy": "UNKNOWN_NOT_ZERO",
+  "unit_metrics": [
+    "cost_per_admitted_record",
+    "cost_per_validated_object",
+    "cost_per_useful_market_event",
+    "incremental_coverage_value",
+    "freshness_value",
+    "historical_depth_value",
+    "duplicate_overlap_cost",
+    "internal_engineering_cost_avoided",
+    "concentration_penalty",
+    "switching_cost",
+    "annualized_scale_cost"
+  ],
+  "decision_outputs": ["MAKE", "BUY", "PARTNER", "FALLBACK", "DOWNGRADE", "REPLACE", "HOLD"],
+  "priority_rules": {
+    "authoritative_external_fact_bonus": true,
+    "internalizable_feature_penalty": true,
+    "single_provider_concentration_penalty": true,
+    "list_price_alone_may_rank_provider": false,
+    "unknown_cost_may_be_treated_as_zero": false,
+    "provider_marketing_may_define_roi": false
+  },
+  "required_provider_dimensions": [
+    "provider_id",
+    "evidence_class",
+    "external_fact_uniqueness",
+    "internalization_class",
+    "monthly_cost",
+    "annual_cost",
+    "minimum_commitment",
+    "rate_limit",
+    "incremental_coverage",
+    "overlap_ratio",
+    "switching_cost",
+    "concentration_risk",
+    "recommendation"
+  ],
+  "non_bypass": {
+    "spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "contract": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
