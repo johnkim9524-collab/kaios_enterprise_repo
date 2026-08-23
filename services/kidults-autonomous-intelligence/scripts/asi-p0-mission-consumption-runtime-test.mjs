@@ -61,6 +61,10 @@ for (const task of queue.tasks) {
   assert.equal(registryModule.asiLogicalEngineForFleet(task.target_fleet), 'SOURCE_DISCOVERY_ENGINE');
   const event = eventModule.validateAsiEvent(task.event);
   await eventModule.assertAsiEventPayloadHash(event);
+  assert.match(event.payload.discovery_seed?.source_id || '', /^discovery-frontier:v1:sha256:[a-f0-9]{64}$/);
+  assert.equal(event.payload.discovery_seed?.discovery_frontier_only, true);
+  assert.equal(event.payload.discovery_seed?.external_source_observed, false);
+  assert.equal(event.payload.discovery_seed?.source_candidate_created, false);
   const receipt = await alignmentModule.assertAsiExecutionAlignment(task.target_fleet, event);
   assert.ok(receipt && typeof receipt === 'object', `ASI_P0_RUNTIME_RECEIPT_MISSING:${task.task_id}`);
   const serialized = JSON.stringify(receipt);
