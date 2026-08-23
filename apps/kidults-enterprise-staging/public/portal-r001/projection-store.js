@@ -162,7 +162,15 @@ export async function readPortalProjection({url='./data/projection-control-fixtu
       fallback.audit.consumption_receipt=admission.receipt;
       return Object.freeze(fallback);
     }
-    return Object.freeze(validateEnvelope(candidate));
+    const exactControl=candidate?.fixture_type==='NON_PROMOTABLE_CONTROL'&&
+      candidate?.projection?.state==='NO_PROJECTION'&&candidate?.projection?.synthetic===true&&
+      candidate?.projection?.promotable===false&&candidate?.projection?.production===false&&candidate?.projection?.public===false;
+    if(exactControl){
+      const fallback=invalidProjection('NO_GOVERNED_PROJECTION');
+      fallback.projection.state='NO_PROJECTION';
+      return Object.freeze(fallback);
+    }
+    throw new Error('PROJECTION_RECORD_TYPE_INVALID');
   }catch(error){
     return Object.freeze(invalidProjection(error?.message));
   }
