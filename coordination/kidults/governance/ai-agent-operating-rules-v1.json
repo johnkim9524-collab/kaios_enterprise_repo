@@ -9,6 +9,20 @@
   "root_agent_instruction_path": "AGENTS.md",
   "status_receipt_schema_path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
   "registry_path": "coordination/kidults/registry/ai-agent-governance-registry-v1.json",
+  "platform_constitution": {
+    "path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
+    "precedence": "HIGHEST_PLATFORM_OPERATING_PRINCIPLES",
+    "ordered_principles": [
+      "AUTONOMOUS",
+      "GLOBAL",
+      "IRREPLACEABLE_VALUE",
+      "TRANSPARENT"
+    ],
+    "mandatory_inheritance": true,
+    "agent_self_exemption_allowed": false,
+    "child_rule_can_weaken_or_reorder": false,
+    "manual_only_normal_activation_for_governed_ready_runner_forbidden": true
+  },
   "principles": [
     {
       "rule_id": "AI-001",
@@ -208,7 +222,9 @@
     "STALE_STATE_REPORTED_AS_CURRENT_WHEN_LIVE_SOURCE_WAS_AVAILABLE",
     "CONTINUOUS_EXECUTION_CLAIM_WITHOUT_AUTOMATION",
     "SUPPRESSED_OR_SILENTLY_REWRITTEN_MATERIAL_CORRECTION",
-    "CHILD_AGENT_RULE_WEAKENS_PARENT_POLICY"
+    "CHILD_AGENT_RULE_WEAKENS_PARENT_POLICY",
+    "PLATFORM_PRINCIPLE_WEAKENED_REORDERED_OR_BYPASSED",
+    "MANUAL_ONLY_NORMAL_ACTIVATION_FOR_READY_GOVERNED_RUNNER"
   ],
   "enforcement": {
     "validator_path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
