@@ -1,11 +1,11 @@
 {
   "id": "kidults-ai-agent-governance-registry-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "registered_policy": {
     "policy_id": "KPMO-AI-GOV-001",
-    "policy_version": "1.0.0",
+    "policy_version": "1.1.0",
     "human_policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
     "root_instruction_path": "AGENTS.md",
     "machine_contract_path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
@@ -65,5 +65,17 @@
     "requires_change_rationale": true
   },
   "public_release": "HOLD",
-  "production": "HOLD"
+  "production": "HOLD",
+  "top_platform_operating_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "top_principle_inheritance": {
+    "priority_order_fixed": true,
+    "all_four_required": true,
+    "transparent_cross_cutting_non_waivable": true,
+    "protected_gates_bound_all_principles": true
+  }
 }
