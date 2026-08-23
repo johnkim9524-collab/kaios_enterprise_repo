@@ -3,11 +3,11 @@
 **판본일:** 2026-08-23 KST  
 **문서:** Intelligence Holdings Enterprise Architecture Book / EVIA successor  
 **트랙:** KPMO / Architecture / Tracks A–E  
-**의사결정 ID:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`; `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` (PROPOSAL / Draft #1118)  
+**의사결정 ID:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`; `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` (MERGED_VERIFIED / protected main `1109a98c…`)  
 **스냅샷 ID:** N/A — Architecture 장이며, Candidate/Evidence pair가 존재하지 않음  
 **문장 분류:** TARGET ARCHITECTURE — 구현된 통제는 별도로 명시하며, 이 장은 Production 증명이 아님  
 **Gate 상태:** C1 확립; C2 미완료; Production/Public/G5 HOLD  
-**증거 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116, #1117, Draft #1118; protected main `d050d8b993929a883298e7cb90ea22bc97ec6ae1`
+**증거 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116, #1117, Platform Constitution commit; protected main `1109a98ce4cbdd68953d913fbddfb3b803809a0a`
 
 ## 1. Enterprise Architecture Canon과 적용 범위
 
@@ -40,11 +40,11 @@ Autonomous의 정상 운영 루프는 다음과 같다.
 
 Protected main의 PR 병합과 push가 Scale Wave를 자동으로 시작해야 하며, 사람이 매번 `Run workflow`를 누르는 경로에 정상 운영이 의존해서는 안 된다. Manual dispatch는 Break-glass·복구·진단에만 남긴다. 동일 main SHA에 대한 중복 실행은 Deduplication과 Concurrency control로 통제하고, 실패는 이유가 기록된 Receipt와 재시도·복구 경로를 남긴다.
 
-Artifact는 입력 Main SHA, Workflow/Run/Cycle ID, 실행된 Scope, 결과, Check, Limitation, Child artifact reference와 Rollback target을 포함한다. KPMO Receipt는 해당 Artifact를 AI Governance 상태어휘로 해석해 `IMPLEMENTED_NOT_VERIFIED`, `RUNNING_VERIFIED`, `VERIFIED_PASS`, `BLOCKED` 등을 구분한다. Artifact나 Receipt가 없으면 완료로 승격하지 않는다.
+Artifact는 입력 Main SHA, Workflow/Run/Cycle ID, 실행된 Scope, 결과, Check, Limitation, Child artifact reference, Rollback target과 네 Constitution 효과를 포함한다. KPMO Receipt는 `autonomous_effect`, `global_effect`, `irreplaceable_value_effect`, `transparency_effect`를 필수로 기록하고 해당 Artifact를 AI Governance 상태어휘로 해석해 `IMPLEMENTED_NOT_VERIFIED`, `RUNNING_VERIFIED`, `VERIFIED_PASS`, `BLOCKED` 등을 구분한다. Artifact나 Receipt가 없으면 완료로 승격하지 않는다.
 
 자동 실행은 권한의 자동 확대가 아니다. Evidence admission, Rights, 개인정보, 계약·지출, Credential 활성화, Trust-root, Public release, Production과 G5는 각각의 명시적인 Authority와 Human accountability를 계속 요구한다. Scale Wave는 이 Gate를 우회하거나 자체 승인할 수 없다.
 
-현재 **VERIFIED CURRENT STATE**는 #1117의 AI honesty/transparency governance가 protected main에 병합돼 있다는 것이다. 네 원칙과 위 자동 실행 계약은 Draft #1118에서 **IMPLEMENTED_NOT_VERIFIED** 상태로 제안·구현돼 있으며, 병합과 main-triggered Artifact/Receipt가 검증되기 전까지 현재 운영 완료 상태로 표현하지 않는다.
+현재 **VERIFIED CURRENT STATE**는 protected main `1109a98c…`가 네 원칙을 Platform Constitution으로 고정하고, 전 Track·AI Agent·Workflow·Runtime의 상속과 자동 Scale Wave trigger를 machine contract·registry·validator에 결속했다는 것이다. 그러나 개별 main-triggered 실행은 해당 SHA의 immutable Artifact와 KPMO governed Receipt가 검증되기 전까지 완료 상태로 표현하지 않는다.
 
 ## 3. 3단계 수집 통제
 
@@ -193,7 +193,7 @@ IH-EOS는 등록된 Program, Blocker, Gate, Outcome, Projection state를 소비�
 |---|---|
 | `KIDULTS-POSITIONING-V1-20260822` | Product promise는 점검 가능한 System state로 연결되어야 함 |
 | `KIDULTS-COMPETITIVENESS-V1-20260822` | Provider-switchable Governed decision layer는 내부 Core로 유지 |
-| `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` | 네 원칙의 실행계약과 main-push Scale Wave·Artifact·KPMO Receipt 경계를 정의함; Draft #1118은 아직 current authority가 아님 |
+| `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` | 네 원칙의 Constitution, 의무 상속, 네 효과 metadata와 main-push Scale Wave·Artifact·KPMO Receipt 경계를 정의함; main `1109a98c…` authority |
 | #235 | Immutable하고 Evidence-backed인 입력 산출 |
 | #236 | 정확한 Pair를 독립적으로 Assessment |
 | #237 / #1080 | 의미상 유효하며 승인된 Projection만 Render |
@@ -221,7 +221,7 @@ IH-EOS는 등록된 Program, Blocker, Gate, Outcome, Projection state를 소비�
 - **Baseline Book:** Enterprise Baseline의 증거 위계를 따르며, 현재 KIDULTS 슬라이스의 모든 `NONE`, `NOT STARTED`, `OPEN`, `HOLD`, Blocked state는 그대로 표시하고 전사 상태로 일반화하지 않는다.
 - **No Fourth Book:** 유지한다. Runbook, Issue ledger, Decision record는 세 권의 Book을 지원하지만 별도의 Book이 되지 않는다.
 - **장 누적 상태:** Architecture 1/3. 세 Book 모두 3/3에 도달하기 전에는 종합 리뷰를 수행하지 않음.
-- **Sync state:** `EVIA ENTERPRISE CANON INHERITED; KIDULTS BOUNDED PROFILE ALIGNED TO CANONICAL PROTECTED MAIN d050d8b9 AT 2026-08-23 11:08 KST; AI GOVERNANCE v1.1 AND AUTONOMOUS SCALE WAVE ARE PROPOSED IN DRAFT #1118, NOT PROMOTED`.
+- **Sync state:** `EVIA ENTERPRISE CANON INHERITED; KIDULTS BOUNDED PROFILE ALIGNED TO CANONICAL PROTECTED MAIN 1109a98c AT 2026-08-23 11:08 KST; PLATFORM CONSTITUTION v1.1 AND AUTO SCALE TRIGGERS MERGED; PER-RUN ARTIFACT, FOUR EFFECTS AND KPMO RECEIPT REQUIRED`.
 
 ## 15. 롤백(Rollback)
 
