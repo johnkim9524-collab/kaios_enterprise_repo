@@ -1,0 +1,98 @@
+{
+  "id": "kidults-asi-autonomous-resolution-layer-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Autonomously terminalize the current P1 preflight action queue, short-circuit semantically incompatible discovery-metadata candidates, re-evaluate Gate 1 without fabricating rights or Evidence, and generate a governed replacement-source and adapter backlog from registered high-authority profiles.",
+  "engine_order": [
+    "ACTION_DEPENDENCY_GRAPH_ENGINE",
+    "RESOLUTION_SCHEDULER",
+    "RIGHTS_RESOLUTION_ENGINE",
+    "SEMANTIC_RESOLUTION_ENGINE",
+    "FACTUAL_ORIGIN_RESOLUTION_ENGINE",
+    "EVIDENCE_ADMISSION_ENGINE",
+    "RESOLUTION_LEARNING_ENGINE"
+  ],
+  "action_types": [
+    "SOURCE_OWNER_AND_FACTUAL_ORIGIN_CLASSIFICATION",
+    "PURPOSE_SPECIFIC_RIGHTS_AND_TERMS_PREFLIGHT",
+    "ROBOTS_RATE_LIMIT_AND_ACCESS_PREFLIGHT",
+    "MARKET_SEMANTIC_AND_SOURCE_ROLE_VERIFICATION",
+    "REGIONAL_RELEVANCE_AND_LANGUAGE_VERIFICATION",
+    "SCHEMA_AND_IDENTIFIER_SURFACE_PREFLIGHT",
+    "INDEPENDENCE_AND_SOURCE_REMOVAL_CLUSTERING"
+  ],
+  "terminal_action_states": [
+    "RESOLVED_REJECTED",
+    "SUPERSEDED_BY_TERMINAL_SEMANTIC_REJECTION"
+  ],
+  "semantic_short_circuit": {
+    "enabled": true,
+    "terminal_rule": "DISCOVERY_METADATA_ONLY_WITHOUT_TARGET_CONTENT_CANNOT_SATISFY_CURRENT_SOLD_OR_LIQUIDITY_EVIDENCE",
+    "required_candidate_state": "DISCOVERY_METADATA_ONLY",
+    "required_target_content_acquired": false,
+    "affected_evidence_classes": [
+      "CURRENT_SOLD_TRANSACTION",
+      "LIQUIDITY_TIME_TO_SALE_EXPOSURE"
+    ],
+    "rejection_scope": "MISSION_EVIDENCE_CLASS_ONLY",
+    "candidate_global_retirement_allowed": false,
+    "remaining_actions_may_be_superseded": true
+  },
+  "dependency_policy": {
+    "semantic_triage_precedes_expensive_candidate_preflight": true,
+    "gate1_reevaluation_requires_all_candidate_actions_terminal": true,
+    "terminal_semantic_rejection_supersedes_nonsemantic_actions": true,
+    "short_circuit_must_preserve_reason_and_lineage": true
+  },
+  "replacement_policy": {
+    "frontier_path": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
+    "scope_crosswalk_path": "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
+    "market_adapter_contract_path": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+    "claim_mapping": {
+      "CURRENT_SOLD_TRANSACTION": "DATED_OBSERVED_SOLD_TRANSACTION",
+      "LIQUIDITY_TIME_TO_SALE_EXPOSURE": "LIQUIDITY_OR_TIME_TO_SALE"
+    },
+    "maximum_source_slots_per_mission": 3,
+    "required_slots": [
+      "PRIMARY_REGISTERED_PROFILE",
+      "INDEPENDENT_FALLBACK_REGISTERED_PROFILE",
+      "FACTUAL_ORIGIN_REPLACEMENT_PROFILE"
+    ],
+    "registered_profile_is_rights_verified": false,
+    "registered_profile_is_adapter_implemented": false,
+    "registered_profile_is_factual_origin_independent": false,
+    "profile_assignment_can_admit_evidence": false
+  },
+  "required_outputs": [
+    "action-dependency-graph-v1.json",
+    "resolution-schedule-v1.json",
+    "rights-resolution-ledger-v1.json",
+    "semantic-resolution-ledger-v1.json",
+    "factual-origin-resolution-ledger-v1.json",
+    "action-resolution-ledger-v1.json",
+    "gate1-resolution-ledger-v1.json",
+    "evidence-admission-resolution-ledger-v1.json",
+    "replacement-source-mission-queue-v1.json",
+    "resolution-learning-ledger-v1.json",
+    "autonomous-resolution-manifest-v1.json"
+  ],
+  "truth_boundary": {
+    "executes_live_target_site_network_probe": false,
+    "creates_collection_right": false,
+    "creates_rights_pass": false,
+    "admits_evidence": false,
+    "creates_market_event": false,
+    "creates_snapshot_candidate": false,
+    "starts_track_b": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
