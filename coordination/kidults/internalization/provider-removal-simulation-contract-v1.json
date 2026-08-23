@@ -1,0 +1,51 @@
+{
+  "contract_id": "KIDULTS_PROVIDER_REMOVAL_SIMULATION_V1",
+  "parent_issues": [1153, 1166, 945, 951, 952],
+  "objective": "Prove that removal of any one provider does not break KIDULTS canonical continuity or force downstream product rewrites.",
+  "required_continuity_invariants": [
+    "canonical_identity_continuity",
+    "normalization_continuity",
+    "methodology_continuity",
+    "confidence_provenance_continuity",
+    "historical_learning_continuity",
+    "downstream_contract_continuity",
+    "provider_adapter_replaceability"
+  ],
+  "prohibited_dependencies": [
+    "provider_native_id_as_canonical",
+    "provider_taxonomy_as_canonical_ontology",
+    "provider_score_as_kidults_score",
+    "provider_direct_to_portal",
+    "provider_direct_to_index",
+    "single_provider_global_truth"
+  ],
+  "simulation_states": ["PASS", "FAIL", "NOT_MEASURED"],
+  "fail_conditions": [
+    "canonical_id_changes_when_provider_removed",
+    "downstream_schema_requires_provider_native_fields",
+    "methodology_cannot_replay_without_provider_payload",
+    "legally_retainable_history_is_lost_on_provider_exit",
+    "replacement_requires_product_rewrite"
+  ],
+  "required_provider_record_fields": [
+    "provider_id",
+    "evidence_class",
+    "removal_test_state",
+    "replacement_path",
+    "canonical_identity_state",
+    "methodology_state",
+    "confidence_history_state",
+    "downstream_contract_state",
+    "switching_lead_time",
+    "residual_dependency",
+    "decision"
+  ],
+  "decision_states": ["PASS_FOR_REPLACEABLE_USE", "HOLD_FOR_INTERNALIZATION", "NO_GO_DEPENDENCY"],
+  "non_bypass": {
+    "external_spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "contract_acceptance": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}

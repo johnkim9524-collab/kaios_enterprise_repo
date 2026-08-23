@@ -1,0 +1,59 @@
+{
+  "contract_id": "KIDULTS_MINIMUM_EXTERNAL_DEPENDENCY_NEGOTIATION_V1",
+  "parent_issues": [1166,1153,952,945,951],
+  "objective": "NEGOTIATE_ONLY_NON_INTERNALIZABLE_FACTS_AND_REQUIRED_RIGHTS",
+  "required_order": [
+    "company_product_analysis",
+    "external_fact_vs_internalizable_split",
+    "portfolio_priority",
+    "internalization_cost_and_horizon",
+    "minimum_external_fact_scope",
+    "rights_requirements",
+    "termination_and_portability",
+    "economics",
+    "written_negotiation"
+  ],
+  "rights_requirements": [
+    "private_storage",
+    "private_normalization",
+    "entity_resolution",
+    "model_calibration",
+    "human_review",
+    "derivation",
+    "retention_deletion",
+    "public_derived_output_boundary",
+    "post_termination_derived_intelligence",
+    "portability_export"
+  ],
+  "never_concede": [
+    "canonical_identity_ownership",
+    "normalization_ownership",
+    "methodology_scoring_ownership",
+    "confidence_provenance_ownership",
+    "ontology_ownership",
+    "provider_switching_control",
+    "historical_learning_control"
+  ],
+  "provider_request_strategy": {
+    "PSA": "AUTHORITATIVE_CERT_GRADE_POPULATION_FACTS_ONLY_PLUS_REQUIRED_INTERNAL_USE_RIGHTS",
+    "CGC_CCG": "AUTHORITATIVE_CERT_GRADE_POPULATION_FACTS_ONLY_PLUS_REQUIRED_INTERNAL_USE_RIGHTS",
+    "GEMRATE": "CROSS_GRADER_MAPPING_AND_POPULATION_EVIDENCE_AS_ACCELERATOR_NOT_CANONICAL_CORE",
+    "ALT_FNDATA": "ACTUAL_MARKET_OBSERVATIONS_AND_TRANSACTION_FACTS_NOT_PROVIDER_ANALYTICS_CORE",
+    "CLASSIC_COM": "COLLECTOR_CAR_TRANSACTION_AND_LISTING_FACTS_NOT_PROVIDER_ANALYTICS_CORE",
+    "LIVEART": "FINE_ART_MARKET_FACTS_NOT_PROVIDER_TAXONOMY_OR_ANALYTICS_CORE",
+    "HAGERTY": "AUTHORIZED_COLLECTOR_CAR_FACTS_AS_SUPPLEMENT_NOT_PROVIDER_VALUATION_CORE"
+  },
+  "fail_closed": {
+    "unknown_material_rights": "HOLD",
+    "provider_core_capture": "NO_GO",
+    "termination_erases_kidults_legal_derived_intelligence": "NO_GO_OR_RENEGOTIATE",
+    "provider_removal_requires_platform_rewrite": "NO_GO_OR_INTERNALIZE_FIRST"
+  },
+  "non_bypass": {
+    "spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "contract": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}

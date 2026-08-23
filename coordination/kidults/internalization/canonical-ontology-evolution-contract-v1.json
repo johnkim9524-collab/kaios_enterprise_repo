@@ -1,0 +1,22 @@
+{
+  "contract_id": "KIDULTS_CANONICAL_ONTOLOGY_EVOLUTION_V1",
+  "parent_issues": [1153,1158,1166,951,340],
+  "provider_independence": {
+    "provider_taxonomy_is_canonical": false,
+    "provider_id_is_canonical": false,
+    "adapter_boundary_required": true
+  },
+  "capabilities": [
+    "ontology_versioning","alias_synonym_translation","category_scope_lifecycle",
+    "product_family_edition_variant_lifecycle","grader_scale_mapping","condition_scale_mapping",
+    "market_event_semantics","merge_split_deprecate","backward_compatible_identity_history",
+    "provider_taxonomy_drift_detection","semantic_migration_plan","historical_version_replay"
+  ],
+  "lifecycle_states": ["ACTIVE","DEPRECATED","MERGED","SPLIT","REPLACED"],
+  "requirements": {
+    "version_required": true,
+    "migration_record_required": true,
+    "deterministic_replay_required": true,
+    "downstream_contract_stable_on_provider_removal": true
+  }
+}

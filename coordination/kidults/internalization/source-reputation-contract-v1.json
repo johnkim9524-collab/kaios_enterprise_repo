@@ -1,0 +1,19 @@
+{
+  "contract_id": "KIDULTS_SOURCE_REPUTATION_V1",
+  "parent_issues": [1153,1156,1166,951],
+  "unknown_policy": "UNKNOWN_NOT_MEASURED",
+  "dimensions": [
+    "schema_stability","availability","latency","freshness","correction_rate",
+    "retraction_rate","duplicate_rate","republish_rate","contradiction_rate",
+    "provenance_completeness","rights_change_frequency","support_responsiveness",
+    "empirical_claim_contribution","geographic_bias","category_bias","value_band_bias",
+    "source_owner_concentration"
+  ],
+  "requirements": {
+    "time_versioned": true,
+    "evidence_reference_required": true,
+    "marketing_claim_auto_promotion": false,
+    "provider_removal_deletes_history": false
+  },
+  "states": ["UNKNOWN", "MEASURED", "DEGRADED", "RELIABLE", "HOLD"]
+}
