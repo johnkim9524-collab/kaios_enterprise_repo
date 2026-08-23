@@ -1,65 +1,41 @@
 {
   "id": "kidults-asi-snapshot-readiness-factory-registry-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P3",
-  "platform_principles": [
-    "AUTONOMOUS",
-    "GLOBAL",
-    "IRREPLACEABLE_VALUE",
-    "TRANSPARENT"
-  ],
   "registered_assets": {
     "contract": "coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v1.json",
+    "compatibility_adapter": "scripts/kidults/source-intelligence/build-asi-snapshot-readiness-current-chain-compat-v1.mjs",
     "builder": "scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v1.mjs",
     "validator": "scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v1.mjs",
+    "registry_validator": "scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v1.mjs",
     "workflow": ".github/workflows/kidults-asi-snapshot-readiness-factory-v1.yml",
-    "human_readme": "docs/kidults/asi/asi-snapshot-readiness-factory-v1.md"
+    "documentation": "docs/kidults/asi/asi-snapshot-readiness-factory-v1.md"
   },
-  "registered_outputs": [
-    "snapshot-readiness-ledger-v1.json",
-    "immutable-blocker-package-v1.json",
-    "admission-demand-package-v1.json",
-    "snapshot-non-generation-receipt-v1.json",
-    "track-b-handoff-readiness-v1.json",
-    "snapshot-readiness-manifest-v1.json"
-  ],
-  "forbidden_outputs": [
-    "snapshot-candidate.json",
-    "evidence-package.json",
-    "rankability-assessment.json"
+  "current_input_artifacts": [
+    "kidults-asi-p0b-bounded-discovery-candidates-v1",
+    "kidults-asi-p1-source-preflight-v1",
+    "kidults-asi-owned-source-intelligence-graph-v2"
   ],
   "automatic_activation": {
     "main_push": true,
     "schedule": "7 * * * *",
-    "upstream_workflow": "KIDULTS ASI Owned Source Intelligence Graph v1",
+    "upstream_workflow": "KIDULTS ASI Owned Source Intelligence Graph v2",
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },
-  "execution_guarantees": {
-    "restore_latest_main_p0_artifact": true,
-    "restore_latest_main_p1_artifact": true,
-    "restore_latest_main_p2_artifact": true,
-    "deterministic_two_run_replay": true,
-    "all_eleven_readiness_dimensions_evaluated": true,
-    "all_open_blockers_have_unblock_conditions": true,
-    "admission_demands_bound_to_candidate_or_mission_refs": true,
-    "snapshot_file_absence_enforced_when_gate_fails": true,
-    "track_b_input_pair_absence_explicit": true,
-    "no_direct_repository_mutation_from_workflow": true
-  },
-  "truth_boundary": {
-    "readiness_ledger_is_snapshot_candidate": false,
+  "current_truth_boundary": {
+    "source_candidates": 482,
+    "gate1_decisions": 576,
+    "preflight_actions": 672,
+    "evidence_admitted": 0,
+    "market_events": 0,
+    "snapshot_candidates": 0,
+    "track_b_input_pairs": 0,
+    "compatibility_view_is_evidence": false,
     "blocker_package_is_evidence_package": false,
-    "admission_demand_package_is_admission": false,
     "non_generation_receipt_is_snapshot_candidate": false,
-    "track_b_waiting_state_is_assessment": false,
-    "snapshot_candidate_generated": false,
-    "evidence_package_generated": false,
-    "track_b_assessment_started": false,
-    "evidence_admitted": false,
-    "market_event_created": false,
-    "market_claim_created": false,
+    "waiting_state_is_assessment": false,
     "public_release": "HOLD",
     "production": "HOLD"
   }
