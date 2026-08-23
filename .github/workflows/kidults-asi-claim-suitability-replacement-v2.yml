@@ -1,0 +1,201 @@
+name: KIDULTS ASI Claim-Suitability Replacement v2
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '32 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-claim-suitability-replacement-contract-v2.json'
+      - 'coordination/kidults/source-intelligence/asi-claim-suitability-replacement-registry-v2.json'
+      - 'scripts/kidults/source-intelligence/build-asi-claim-suitability-replacement-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-registry-v2.mjs'
+      - 'docs/kidults/asi/asi-claim-suitability-replacement-v2.md'
+      - '.github/workflows/kidults-asi-claim-suitability-replacement-v2.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-claim-suitability-replacement-contract-v2.json'
+      - 'coordination/kidults/source-intelligence/asi-claim-suitability-replacement-registry-v2.json'
+      - 'scripts/kidults/source-intelligence/build-asi-claim-suitability-replacement-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-registry-v2.mjs'
+      - 'docs/kidults/asi/asi-claim-suitability-replacement-v2.md'
+      - '.github/workflows/kidults-asi-claim-suitability-replacement-v2.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Autonomous Resolution Layer v1'
+      - 'KIDULTS ASI P1 Source Preflight v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-claim-suitability-replacement-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve-and-replace:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and replacement contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-claim-suitability-replacement-v2.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-v2.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-registry-v2.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-claim-suitability-replacement-contract-v2.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-claim-suitability-replacement-registry-v2.json','utf8'))"
+      - name: Validate replacement registry and continuation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-registry-v2.mjs \
+            | tee /tmp/kidults-asi-claim-suitability-replacement-registry-validation-v2.json
+      - name: Restore latest current P0B P1 and P2 artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/p0b-expanded /tmp/p1-expanded /tmp/p2-expanded /tmp/p0b /tmp/p1 /tmp/p2
+          P0B_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false)][0].id // empty)')
+          P1_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false)][0].id // empty)')
+          P2_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-owned-source-intelligence-graph-v2" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-owned-source-intelligence-graph-v2" and .expired==false)][0].id // empty)')
+          test -n "$P0B_ID" && test -n "$P1_ID" && test -n "$P2_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0B_ID}/zip" > /tmp/p0b.zip
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/p1.zip
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P2_ID}/zip" > /tmp/p2.zip
+          unzip -q -o /tmp/p0b.zip -d /tmp/p0b-expanded
+          unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
+          unzip -q -o /tmp/p2.zip -d /tmp/p2-expanded
+          for NAME in p0b-source-candidate-registry-v1.json p0b-mission-candidate-binding-ledger-v1.json; do FILE=$(find /tmp/p0b-expanded -type f -name "$NAME" -print -quit); test -n "$FILE"; cp "$FILE" "/tmp/p0b/$NAME"; done
+          for NAME in p1-gate1-source-safety-decisions-v1.json p1-evidence-admission-candidate-register-v1.json p1-preflight-action-queue-v1.json; do FILE=$(find /tmp/p1-expanded -type f -name "$NAME" -print -quit); test -n "$FILE"; cp "$FILE" "/tmp/p1/$NAME"; done
+          for NAME in owned-source-intelligence-graph-v2.json owned-source-intelligence-lineage-v2.json; do FILE=$(find /tmp/p2-expanded -type f -name "$NAME" -print -quit); test -n "$FILE"; cp "$FILE" "/tmp/p2/$NAME"; done
+          echo "P0B_ARTIFACT_ID=$P0B_ID" >> "$GITHUB_ENV"
+          echo "P1_ARTIFACT_ID=$P1_ID" >> "$GITHUB_ENV"
+          echo "P2_ARTIFACT_ID=$P2_ID" >> "$GITHUB_ENV"
+      - name: Build claim-suitability replacement twice
+        run: |
+          set -euo pipefail
+          for RUN in 1 2; do
+            node scripts/kidults/source-intelligence/build-asi-claim-suitability-replacement-v2.mjs \
+              /tmp/p0b/p0b-source-candidate-registry-v1.json \
+              /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json \
+              /tmp/p1/p1-gate1-source-safety-decisions-v1.json \
+              /tmp/p1/p1-evidence-admission-candidate-register-v1.json \
+              /tmp/p1/p1-preflight-action-queue-v1.json \
+              /tmp/p2/owned-source-intelligence-graph-v2.json \
+              /tmp/p2/owned-source-intelligence-lineage-v2.json \
+              coordination/kidults/source-intelligence/asi-claim-suitability-replacement-contract-v2.json \
+              "/tmp/kidults-asi-claim-suitability-replacement-run-${RUN}"
+          done
+          diff -qr /tmp/kidults-asi-claim-suitability-replacement-run-1 /tmp/kidults-asi-claim-suitability-replacement-run-2
+      - name: Validate claim-suitability replacement outputs
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-v2.mjs \
+            /tmp/kidults-asi-claim-suitability-replacement-run-1 \
+            /tmp/p0b/p0b-source-candidate-registry-v1.json \
+            /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p1/p1-gate1-source-safety-decisions-v1.json \
+            /tmp/p1/p1-evidence-admission-candidate-register-v1.json \
+            /tmp/p1/p1-preflight-action-queue-v1.json \
+            /tmp/p2/owned-source-intelligence-graph-v2.json \
+            /tmp/p2/owned-source-intelligence-lineage-v2.json \
+            coordination/kidults/source-intelligence/asi-claim-suitability-replacement-contract-v2.json \
+            | tee /tmp/kidults-asi-claim-suitability-replacement-validation-v2.json
+      - name: Reject terminal reject as market fact mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-claim-suitability-replacement-run-1 /tmp/bad-market-fact
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-market-fact/claim-suitability-resolution-ledger-v2.json';const x=JSON.parse(fs.readFileSync(p));x.resolutions[0].rejection_is_negative_market_fact=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-v2.mjs /tmp/bad-market-fact /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json; then exit 1; fi
+      - name: Reject candidate global-ban mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-claim-suitability-replacement-run-1 /tmp/bad-global-ban
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-global-ban/candidate-role-retirement-ledger-v2.json';const x=JSON.parse(fs.readFileSync(p));x.records[0].source_global_retired=true;x.records[0].global_source_state='BANNED';x.global_source_retirement_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-v2.mjs /tmp/bad-global-ban /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json; then exit 1; fi
+      - name: Reject replacement provider preselection mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-claim-suitability-replacement-run-1 /tmp/bad-provider
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-provider/replacement-mission-queue-v2.json';const x=JSON.parse(fs.readFileSync(p));x.missions[0].slots[0].named_provider='UNAPPROVED_PROVIDER';x.named_provider_selected_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-v2.mjs /tmp/bad-provider /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json; then exit 1; fi
+      - name: Reject adapter implemented mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-claim-suitability-replacement-run-1 /tmp/bad-adapter
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-adapter/adapter-requirement-queue-v2.json';const x=JSON.parse(fs.readFileSync(p));x.requirements[0].adapter_implemented=true;x.requirements[0].adapter_id='fabricated';x.adapters_implemented=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-v2.mjs /tmp/bad-adapter /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json; then exit 1; fi
+      - name: Reject false evidence admission mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-claim-suitability-replacement-run-1 /tmp/bad-admission
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-admission/claim-suitability-replacement-manifest-v2.json';const x=JSON.parse(fs.readFileSync(p));x.results.evidence_admitted=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-v2.mjs /tmp/bad-admission /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json; then exit 1; fi
+      - name: Reject manual-only activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-claim-suitability-replacement-registry-v2.json /tmp/replacement-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-claim-suitability-replacement-registry-v2.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflows=[];fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-registry-v2.mjs; then exit 1; fi
+          mv /tmp/replacement-registry.json coordination/kidults/source-intelligence/asi-claim-suitability-replacement-registry-v2.json
+      - name: Revalidate pristine replacement execution
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-registry-v2.mjs > /tmp/kidults-asi-claim-suitability-replacement-registry-final-validation-v2.json
+          node scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-v2.mjs \
+            /tmp/kidults-asi-claim-suitability-replacement-run-1 \
+            /tmp/p0b/p0b-source-candidate-registry-v1.json \
+            /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p1/p1-gate1-source-safety-decisions-v1.json \
+            /tmp/p1/p1-evidence-admission-candidate-register-v1.json \
+            /tmp/p1/p1-preflight-action-queue-v1.json \
+            /tmp/p2/owned-source-intelligence-graph-v2.json \
+            /tmp/p2/owned-source-intelligence-lineage-v2.json \
+            coordination/kidults/source-intelligence/asi-claim-suitability-replacement-contract-v2.json > /tmp/kidults-asi-claim-suitability-replacement-final-validation-v2.json
+      - name: Emit KPMO claim-suitability replacement receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-claim-suitability-replacement-kpmo-receipt-v2.json
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-claim-suitability-replacement-run-1/claim-suitability-replacement-manifest-v2.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-claim-suitability-replacement-kpmo-receipt-v2',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,p0b_artifact_id:process.env.P0B_ARTIFACT_ID,p1_artifact_id:process.env.P1_ARTIFACT_ID,p2_artifact_id:process.env.P2_ARTIFACT_ID,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-claim-suitability-replacement-kpmo-receipt-v2.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-claim-suitability-replacement-v2
+          path: |
+            /tmp/kidults-asi-claim-suitability-replacement-run-1
+            /tmp/kidults-asi-claim-suitability-replacement-registry-validation-v2.json
+            /tmp/kidults-asi-claim-suitability-replacement-validation-v2.json
+            /tmp/kidults-asi-claim-suitability-replacement-registry-final-validation-v2.json
+            /tmp/kidults-asi-claim-suitability-replacement-final-validation-v2.json
+            /tmp/kidults-asi-claim-suitability-replacement-kpmo-receipt-v2.json
+          retention-days: 90
+          if-no-files-found: error
