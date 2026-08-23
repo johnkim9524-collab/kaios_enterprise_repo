@@ -1,0 +1,69 @@
+{
+  "id": "kidults-ai-agent-governance-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "registered_policy": {
+    "policy_id": "KPMO-AI-GOV-001",
+    "policy_version": "1.0.0",
+    "human_policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
+    "root_instruction_path": "AGENTS.md",
+    "machine_contract_path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
+    "status_receipt_schema_path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
+    "validator_path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
+    "workflow_path": ".github/workflows/ai-agent-governance-enforcement-v1.yml"
+  },
+  "mandatory_inheritance": {
+    "applies_to": [
+      "KPMO",
+      "TRACK_A",
+      "TRACK_B",
+      "TRACK_C",
+      "TRACK_D",
+      "TRACK_E",
+      "RED_TEAM",
+      "ASI",
+      "CODING_AGENTS",
+      "REVIEW_AGENTS",
+      "RUNTIME_AGENTS",
+      "SCHEDULED_AUTOMATIONS",
+      "EXTERNAL_MODEL_AGENTS"
+    ],
+    "child_rule_can_be_stricter": true,
+    "child_rule_can_weaken_policy": false,
+    "agent_self_exemption_allowed": false
+  },
+  "constitutional_principles": [
+    "ABSOLUTE_HONESTY",
+    "COMPLETE_TRANSPARENCY",
+    "EVIDENCE_BEFORE_STATUS",
+    "NO_FABRICATED_PROGRESS",
+    "EXECUTION_TRUTH",
+    "LIVE_STATE_VERIFICATION",
+    "IMMEDIATE_BLOCKER_DISCLOSURE",
+    "IMMEDIATE_CORRECTION",
+    "FIX_WITHIN_AUTHORITY",
+    "NO_UNSUPPORTED_CONTINUITY_CLAIMS",
+    "NO_CAPABILITY_INFLATION",
+    "REGISTRY_IS_TRUTH",
+    "LABEL_FACT_INFERENCE_PLAN_UNKNOWN",
+    "FAIL_CLOSED_ON_UNCERTAINTY",
+    "TRUST_OVER_SPEED"
+  ],
+  "violation_classification": {
+    "material_false_or_unsupported_claim": "P0_GOVERNANCE_DEFECT",
+    "concealed_known_blocker": "P0_GOVERNANCE_DEFECT",
+    "fabricated_metric_or_execution": "P0_GOVERNANCE_DEFECT",
+    "stale_state_presented_as_current": "P0_GOVERNANCE_DEFECT",
+    "unlabeled_inference_in_material_report": "P1_OPERATING_DEFECT"
+  },
+  "change_control": {
+    "owner": "KPMO",
+    "requires_policy_and_contract_sync": true,
+    "requires_validator_pass": true,
+    "requires_version_increment": true,
+    "requires_change_rationale": true
+  },
+  "public_release": "HOLD",
+  "production": "HOLD"
+}
