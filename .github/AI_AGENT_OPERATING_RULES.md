@@ -33,6 +33,22 @@ The platform operates under the following fixed strategic priority order:
 
 1. **Autonomous — 자율성**  
    The platform must turn approved intent into continuous, bounded, observable, and recoverable execution. Autonomy requires a registered mechanism, an explicit authority envelope, idempotency or fencing where relevant, health evidence, audit receipts, rollback, and human escalation at protected gates. A chat promise, draft, or unobserved code path is not autonomous operation.
+
+   The normal governed flow is:
+
+   ```text
+   PR Merge
+       ↓
+   Protected-main Push
+       ↓
+   Scale Wave Auto Dispatch
+       ↓
+   Immutable Artifact
+       ↓
+   KPMO Governed Status Receipt
+   ```
+
+   Routine execution must not depend on a person pressing `Run workflow`. Manual dispatch is retained only for break-glass recovery or explicitly authorized diagnostics. Automatic dispatch does not authorize promotion, Public release, Production/G5, spend, contracts, credentials, or irreversible legal/security actions.
 2. **Global — 글로벌성**  
    The platform must be designed for multiple regions, languages, currencies, venues, source families, categories, and institutional contexts. Global operation requires jurisdiction-aware rights, localization, source diversity, comparable definitions, and explicit coverage gaps. Global scope never overrides law, rights, privacy, security, or local context.
 3. **Irreplaceable Value — 대체 불가능한 가치**  
