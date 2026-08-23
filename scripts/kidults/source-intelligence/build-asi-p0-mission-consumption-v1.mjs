@@ -55,8 +55,23 @@ if (contract.truth_boundary?.executes_external_discovery_network_calls !== false
   throw new Error('MISSION_CONSUMPTION_TRUTH_BOUNDARY_INVALID');
 }
 
-const fleetMatches = [...registrySource.matchAll(/\{\s*id:\s*'([^']+)'[\s\S]*?stage:\s*'([^']+)'[\s\S]*?logicalEngine:\s*'([^']+)'[\s\S]*?binding:\s*'([^']+)'[\s\S]*?queue:\s*'([^']+)'[\s\S]*?\}/g)]
-  .map((match) => ({ id: match[1], stage: match[2], logical_engine: match[3], binding: match[4], queue: match[5] }));
+const fleetSection = registrySource.match(/export const ASI_FLEETS = \[([\s\S]*?)\] as const;/);
+if (!fleetSection) throw new Error('RUNTIME_FLEET_REGISTRY_SECTION_MISSING');
+const logicalEngineSection = registrySource.match(/export const ASI_FLEET_LOGICAL_ENGINE:[\s\S]*?= \{([\s\S]*?)\n\};/);
+if (!logicalEngineSection) throw new Error('RUNTIME_FLEET_LOGICAL_ENGINE_SECTION_MISSING');
+const fleetLogicalEngines = new Map(
+  [...logicalEngineSection[1].matchAll(/([A-Z0-9_]+):\s*'([A-Z0-9_]+)'/g)]
+    .map((match) => [match[1], match[2]])
+);
+const fleetMatches = [...fleetSection[1].matchAll(
+  /\{\s*id:\s*'([^']+)',\s*stage:\s*'([^']+)',\s*binding:\s*'([^']+)',\s*queue:\s*'([^']+)'\s*\}/g
+)].map((match) => ({
+  id: match[1],
+  stage: match[2],
+  logical_engine: fleetLogicalEngines.get(match[1]) || null,
+  binding: match[3],
+  queue: match[4]
+}));
 const fleetById = new Map(fleetMatches.map((fleet) => [fleet.id, fleet]));
 const assignedFleetIds = [...new Set(Object.values(contract.discovery_fleet_pools).flat())];
 const allDiscoveryFleetIds = [...assignedFleetIds, contract.licensed_gap_fill.fleet_id];
