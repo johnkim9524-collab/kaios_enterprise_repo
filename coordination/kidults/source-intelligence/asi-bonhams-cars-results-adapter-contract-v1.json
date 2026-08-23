@@ -1,7 +1,7 @@
 {
   "id": "kidults-asi-bonhams-cars-results-adapter-contract-v1",
   "version": "1.0.0",
-  "status": "IMPLEMENTED_NOT_RIGHTS_OR_LIVE_SCHEMA_VERIFIED",
+  "status": "CONTRACT_REGISTERED_IMPLEMENTATION_PENDING",
   "owner": "KPMO",
   "priority": "P1",
   "source_id": "bonhams-cars-results",
@@ -23,7 +23,7 @@
     "access_mode": "PUBLIC_WEB",
     "source_owner_candidate": "bonhams",
     "source_schema_version": "bonhams-cars-result-snapshot-v1",
-    "adapter_state": "IMPLEMENTED_NOT_RIGHTS_VERIFIED",
+    "adapter_state": "ADAPTER_NOT_IMPLEMENTED",
     "target_claims": [
       "DATED_OBSERVED_SOLD_TRANSACTION",
       "CURRENT_PRICE",
@@ -76,9 +76,9 @@
     "factual_origin_independence_proven": false
   },
   "implementation_truth": {
-    "source_specific_parser_implemented": true,
-    "deterministic_fixture_tests_implemented": true,
-    "generic_market_adapter_runtime_bound": true,
+    "source_specific_parser_implemented": false,
+    "deterministic_fixture_tests_implemented": false,
+    "generic_market_adapter_runtime_bound": false,
     "live_source_snapshot_verified_count": 0,
     "field_purpose_rights_verified": false,
     "sold_semantics_empirically_verified": false,
