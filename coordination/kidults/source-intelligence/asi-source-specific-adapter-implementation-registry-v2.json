@@ -1,0 +1,110 @@
+{
+  "id": "kidults-asi-source-specific-adapter-implementation-registry-v2",
+  "version": "2.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P1",
+  "supersedes_implementation_partition": "kidults-asi-source-adapter-template-expansion-contract-v1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_source_profile_ids": [
+    "bonhams-cars-results",
+    "barrett-jackson-results",
+    "bonhams-watches-results",
+    "christies-watches-results",
+    "sothebys-watches-results",
+    "broad-arrow-results",
+    "pricecharting-api",
+    "collecting-cars-sold",
+    "iconic-auctioneers-results",
+    "christies-handbags-results",
+    "reverb-price-guide",
+    "hasbro-pulse-collections",
+    "goat-sneaker-marketplace",
+    "comc-marketplace",
+    "bricklink-catalog-api",
+    "nike-snkrs-launch-calendar"
+  ],
+  "implemented_source_specific_adapter_ids": [
+    "bonhams-cars-results",
+    "barrett-jackson-results",
+    "broad-arrow-results",
+    "collecting-cars-sold",
+    "iconic-auctioneers-results"
+  ],
+  "fixture_verified_source_specific_adapter_ids": [
+    "bonhams-cars-results",
+    "barrett-jackson-results",
+    "broad-arrow-results",
+    "collecting-cars-sold",
+    "iconic-auctioneers-results"
+  ],
+  "empirically_verified_source_adapter_ids": [],
+  "activated_source_adapter_ids": [],
+  "source_specific_adapter_modules": {
+    "bonhams-cars-results": "services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-cars-results.ts",
+    "barrett-jackson-results": "services/kidults-autonomous-intelligence/src/asi/source-adapters/registered-public-auction-results.ts",
+    "broad-arrow-results": "services/kidults-autonomous-intelligence/src/asi/source-adapters/registered-public-auction-results.ts",
+    "collecting-cars-sold": "services/kidults-autonomous-intelligence/src/asi/source-adapters/registered-public-auction-results.ts",
+    "iconic-auctioneers-results": "services/kidults-autonomous-intelligence/src/asi/source-adapters/registered-public-auction-results.ts"
+  },
+  "implementation_families": {
+    "bonhams-cars-results": "PUBLIC_WEB_AUCTION_RESULTS",
+    "barrett-jackson-results": "PUBLIC_WEB_AUCTION_RESULTS",
+    "broad-arrow-results": "PUBLIC_WEB_AUCTION_RESULTS",
+    "collecting-cars-sold": "PUBLIC_WEB_MARKETPLACE_RESULTS",
+    "iconic-auctioneers-results": "PUBLIC_WEB_AUCTION_RESULTS"
+  },
+  "implementation_counts": {
+    "registered_source_profiles": 16,
+    "source_specific_adapters_implemented": 5,
+    "source_specific_adapters_fixture_verified": 5,
+    "source_specific_adapters_pending": 11,
+    "source_specific_adapters_empirically_verified": 0,
+    "source_specific_adapters_activated": 0,
+    "live_source_snapshots_verified": 0,
+    "field_purpose_rights_verified_sources": 0,
+    "evidence_admitted": 0,
+    "market_events_created": 0
+  },
+  "remaining_priority_order": [
+    "bonhams-watches-results",
+    "christies-watches-results",
+    "sothebys-watches-results",
+    "pricecharting-api",
+    "christies-handbags-results",
+    "reverb-price-guide",
+    "hasbro-pulse-collections",
+    "goat-sneaker-marketplace",
+    "comc-marketplace",
+    "bricklink-catalog-api",
+    "nike-snkrs-launch-calendar"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "52 */3 * * *",
+    "upstream_workflows": [
+      "KIDULTS ASI Bonhams Cars Results Reference Adapter v1",
+      "KIDULTS ASI Autonomous Resolution Layer v1",
+      "KIDULTS ASI P1 Market-Event Adapter Runtime v1"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "truth_boundary": {
+    "fixture_verified_is_empirical_source_verified": false,
+    "implemented_is_activated": false,
+    "registered_profile_is_rights_verified": false,
+    "template_is_implemented_adapter": false,
+    "live_source_requests_executed": 0,
+    "rights_pass_created": 0,
+    "evidence_admitted": 0,
+    "market_events_created": 0,
+    "snapshot_candidates_created": 0,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
