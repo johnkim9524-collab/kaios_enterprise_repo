@@ -29,6 +29,7 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
     return Object.entries(value).some(([key, nested]) => forbiddenKeys.has(key.toLowerCase()) || hasForbiddenKey(nested));
   };
   require(receipt?.id === 'kidults-github-trusted-ref-environment-readback-receipt-v1', 'receipt_id');
+  require(receipt?.version === '1.1.0', 'receipt_version');
   require(receipt?.issue === 974 && receipt?.parent_gate_issue === 881, 'issue_binding');
   require(['BLOCKED', 'VERIFIED_PASS'].includes(receipt?.state), 'governed_state');
   require(!Number.isNaN(Date.parse(String(receipt?.observed_at || ''))), 'observed_at');
@@ -40,7 +41,12 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
   require(receipt?.settings_mutated === false, 'settings_mutation_boundary');
   require(receipt?.secret_material_read === false, 'secret_material_boundary');
   require(receipt?.secret_names_emitted === false, 'secret_name_output_boundary');
-  require(receipt?.credential_activation === 'NONE', 'credential_activation_boundary');
+  const expectedCredentialActivation = receipt?.authorization_mode === 'GITHUB_TOKEN_METADATA_READ'
+    ? 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ'
+    : 'NONE';
+  require(receipt?.credential_activation === expectedCredentialActivation, 'credential_activation_semantics');
+  require(receipt?.stored_repository_or_environment_secret_activated === false, 'stored_secret_activation_boundary');
+  require(receipt?.provider_credential_activated === false, 'provider_credential_activation_boundary');
   require(receipt?.issue_974_closed_by_this_readback === false, 'issue_974_auto_closure_forbidden');
   require(receipt?.issue_881_control_pass_promoted === false, 'issue_881_promotion_forbidden');
   require(receipt?.effective_ruleset_readback_issue_936_closed === false, 'issue_936_closure_forbidden');
@@ -196,7 +202,7 @@ export function validateRepository(root = process.cwd()) {
     live_github_requests_executed_by_validator: 0,
     settings_mutated: false,
     secret_material_read: false,
-    credential_activation: 'NONE',
+    validator_credential_activation: 'NONE_STATIC_VALIDATION_ONLY',
     issue_974_closed: false,
     issue_881_control_pass_promoted: false,
     empirical_evidence_promoted: false,
