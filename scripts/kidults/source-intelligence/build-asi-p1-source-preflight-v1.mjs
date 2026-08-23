@@ -52,9 +52,22 @@ if (contract.truth_boundary?.performs_target_site_rights_or_access_probe !== fal
   throw new Error('P1_TRUTH_BOUNDARY_INVALID');
 }
 
-const fleetMatches = [...runtimeRegistrySource.matchAll(/\{\s*id:\s*'([^']+)'[\s\S]*?stage:\s*'([^']+)'[\s\S]*?logicalEngine:\s*'([^']+)'[\s\S]*?binding:\s*'([^']+)'[\s\S]*?queue:\s*'([^']+)'[\s\S]*?\}/g)]
-  .map((match) => ({ id: match[1], stage: match[2], logical_engine: match[3], binding: match[4], queue: match[5] }));
-const fleetById = new Map(fleetMatches.map((fleet) => [fleet.id, fleet]));
+const fleetMatches = [...runtimeRegistrySource.matchAll(/\{\s*id:\s*'([^']+)'\s*,\s*stage:\s*'([^']+)'\s*,\s*binding:\s*'([^']+)'\s*,\s*queue:\s*'([^']+)'\s*\}/g)]
+  .map((match) => ({ id: match[1], stage: match[2], binding: match[3], queue: match[4] }));
+const logicalEngineMapSource = runtimeRegistrySource.match(/export const ASI_FLEET_LOGICAL_ENGINE[^=]*=\s*\{([\s\S]*?)\n\};/)?.[1];
+if (!logicalEngineMapSource) throw new Error('P1_RUNTIME_LOGICAL_ENGINE_MAP_MISSING');
+const logicalEngineByFleet = new Map(
+  [...logicalEngineMapSource.matchAll(/^\s*([A-Z0-9_]+):\s*'([^']+)'\s*,?$/gm)]
+    .map((match) => [match[1], match[2]])
+);
+const fleetById = new Map(fleetMatches.map((fleet) => [
+  fleet.id,
+  { ...fleet, logical_engine: logicalEngineByFleet.get(fleet.id) }
+]));
+if (fleetMatches.length === 0 || logicalEngineByFleet.size === 0) throw new Error('P1_RUNTIME_FLEET_REGISTRY_PARSE_FAILED');
+for (const fleet of fleetById.values()) {
+  if (!fleet.logical_engine) throw new Error(`P1_RUNTIME_LOGICAL_ENGINE_MISSING:${fleet.id}`);
+}
 for (const fleetId of contract.classification_fleets) {
   const fleet = fleetById.get(fleetId);
   if (!fleet || fleet.stage !== 'CLASSIFICATION' || fleet.logical_engine !== 'SOURCE_CLASSIFICATION_ENGINE') throw new Error(`P1_CLASSIFICATION_FLEET_INVALID:${fleetId}`);
