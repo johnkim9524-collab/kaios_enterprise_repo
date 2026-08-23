@@ -1,0 +1,198 @@
+name: KIDULTS ASI Owned Source Intelligence Graph v2
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '52 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json'
+      - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v2.json'
+      - 'scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v2.mjs'
+      - 'docs/kidults/asi/asi-owned-source-intelligence-graph-v2.md'
+      - '.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json'
+      - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v2.json'
+      - 'scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v2.mjs'
+      - 'docs/kidults/asi/asi-owned-source-intelligence-graph-v2.md'
+      - '.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI P0B Bounded Discovery Candidates v1'
+      - 'KIDULTS ASI P1 Source Preflight v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-owned-source-intelligence-graph-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-owned-source-graph:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v2.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v2.json','utf8'))"
+      - name: Validate registered P2 assets and automatic continuation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v2.mjs \
+            | tee /tmp/kidults-asi-owned-source-intelligence-graph-registry-validation-v2.json
+      - name: Restore latest current P0B and P1 artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/p0b-expanded /tmp/p1-expanded /tmp/p0b /tmp/p1
+          P0B_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false)][0].id // empty)')
+          P1_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false)][0].id // empty)')
+          test -n "$P0B_ID"
+          test -n "$P1_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0B_ID}/zip" > /tmp/p0b.zip
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/p1.zip
+          unzip -q -o /tmp/p0b.zip -d /tmp/p0b-expanded
+          unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
+          for NAME in p0b-source-candidate-registry-v1.json p0b-mission-candidate-binding-ledger-v1.json; do
+            FILE=$(find /tmp/p0b-expanded -type f -name "$NAME" -print -quit)
+            test -n "$FILE"
+            cp "$FILE" "/tmp/p0b/$NAME"
+          done
+          for NAME in p1-gate1-source-safety-decisions-v1.json p1-evidence-admission-candidate-register-v1.json p1-preflight-action-queue-v1.json; do
+            FILE=$(find /tmp/p1-expanded -type f -name "$NAME" -print -quit)
+            test -n "$FILE"
+            cp "$FILE" "/tmp/p1/$NAME"
+          done
+          echo "P0B_ARTIFACT_ID=$P0B_ID" >> "$GITHUB_ENV"
+          echo "P1_ARTIFACT_ID=$P1_ID" >> "$GITHUB_ENV"
+          echo "p0b_artifact_id=$P0B_ID"
+          echo "p1_artifact_id=$P1_ID"
+      - name: Build owned source-intelligence graph twice
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs \
+            /tmp/p0b/p0b-source-candidate-registry-v1.json \
+            /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p1/p1-gate1-source-safety-decisions-v1.json \
+            /tmp/p1/p1-evidence-admission-candidate-register-v1.json \
+            /tmp/p1/p1-preflight-action-queue-v1.json \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
+            /tmp/kidults-asi-owned-source-intelligence-graph-run-1
+          TZ=Pacific/Honolulu LANG=C LC_ALL=C node scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs \
+            /tmp/p0b/p0b-source-candidate-registry-v1.json \
+            /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p1/p1-gate1-source-safety-decisions-v1.json \
+            /tmp/p1/p1-evidence-admission-candidate-register-v1.json \
+            /tmp/p1/p1-preflight-action-queue-v1.json \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
+            /tmp/kidults-asi-owned-source-intelligence-graph-run-2
+          diff -qr /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/kidults-asi-owned-source-intelligence-graph-run-2
+      - name: Validate P2 owned source-intelligence graph
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs \
+            /tmp/kidults-asi-owned-source-intelligence-graph-run-1 \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
+            | tee /tmp/kidults-asi-owned-source-intelligence-graph-validation-v2.json
+      - name: Reject source-candidate-as-evidence mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/bad-p2-candidate-evidence
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-p2-candidate-evidence/owned-source-intelligence-graph-v2.json';const x=JSON.parse(fs.readFileSync(p));const n=x.nodes.find(v=>v.node_type==='SOURCE_CANDIDATE');n.market_evidence_node=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-candidate-evidence coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
+      - name: Reject market-event node mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/bad-p2-market-event
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-p2-market-event/owned-source-intelligence-graph-v2.json';const x=JSON.parse(fs.readFileSync(p));x.nodes.push({node_id:'node:market-event:forbidden',node_type:'MARKET_EVENT',canonical_key:'forbidden',properties:{},kidults_owned_graph_primitive:true,market_evidence_node:true,source_refs:[],public_release:'HOLD',production:'HOLD'});x.node_count=x.nodes.length;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-market-event coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
+      - name: Reject evidence-admission mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/bad-p2-admission
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-p2-admission/owned-source-intelligence-graph-v2.json';const x=JSON.parse(fs.readFileSync(p));x.evidence_admitted=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-admission coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
+      - name: Reject orphan-edge mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/bad-p2-orphan
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-p2-orphan/owned-source-intelligence-graph-v2.json';const x=JSON.parse(fs.readFileSync(p));x.edges[0].to_node_id='node:missing:forbidden';fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-orphan coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
+      - name: Reject graph-digest mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/bad-p2-digest
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-p2-digest/owned-source-intelligence-lineage-v2.json';const x=JSON.parse(fs.readFileSync(p));x.graph.digest='sha256:'+'0'.repeat(64);fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-digest coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
+      - name: Reject manual-only P2 activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v2.json /tmp/p2-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v2.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflows=[];fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v2.mjs; then exit 1; fi
+          mv /tmp/p2-registry.json coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v2.json
+      - name: Revalidate pristine P2 graph and registry
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v2.mjs > /tmp/kidults-asi-owned-source-intelligence-graph-registry-final-validation-v2.json
+          node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs \
+            /tmp/kidults-asi-owned-source-intelligence-graph-run-1 \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
+            > /tmp/kidults-asi-owned-source-intelligence-graph-final-validation-v2.json
+      - name: Emit KPMO P2 owned-value receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-owned-source-intelligence-graph-kpmo-receipt-v2.json
+          const fs=require('fs');const m=JSON.parse(fs.readFileSync('/tmp/kidults-asi-owned-source-intelligence-graph-run-1/owned-source-intelligence-manifest-v2.json'));process.stdout.write(JSON.stringify({id:'kidults-asi-owned-source-intelligence-graph-kpmo-receipt-v2',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,p0b_artifact_id:process.env.P0B_ARTIFACT_ID,p1_artifact_id:process.env.P1_ARTIFACT_ID,graph_digest:m.graph_digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,market_claims_created:0,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-owned-source-intelligence-graph-kpmo-receipt-v2.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-owned-source-intelligence-graph-v2
+          path: |
+            /tmp/kidults-asi-owned-source-intelligence-graph-run-1
+            /tmp/kidults-asi-owned-source-intelligence-graph-registry-validation-v2.json
+            /tmp/kidults-asi-owned-source-intelligence-graph-validation-v2.json
+            /tmp/kidults-asi-owned-source-intelligence-graph-registry-final-validation-v2.json
+            /tmp/kidults-asi-owned-source-intelligence-graph-final-validation-v2.json
+            /tmp/kidults-asi-owned-source-intelligence-graph-kpmo-receipt-v2.json
+          retention-days: 90
+          if-no-files-found: error
