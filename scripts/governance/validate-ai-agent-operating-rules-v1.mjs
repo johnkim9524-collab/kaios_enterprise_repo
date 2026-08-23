@@ -56,7 +56,7 @@ assert(topPrinciples.length === requiredTopPrinciples.length, 'TOP_PRINCIPLE_COU
 assert(JSON.stringify(topPrinciples.map((x) => x.name)) === JSON.stringify(requiredTopPrinciples), 'TOP_PRINCIPLE_ORDER');
 assert(JSON.stringify(topPrinciples.map((x) => x.priority)) === JSON.stringify([1, 2, 3, 4]), 'TOP_PRINCIPLE_PRIORITY');
 for (const p of topPrinciples) {
-  assert(/^POP-\\d{3}$/.test(p.principle_id), `INVALID_TOP_PRINCIPLE_ID:${p.principle_id}`);
+  assert(/^POP-\d{3}$/.test(p.principle_id), `INVALID_TOP_PRINCIPLE_ID:${p.principle_id}`);
   assert(typeof p.doctrine === 'string' && p.doctrine.length > 30, `WEAK_TOP_PRINCIPLE_DOCTRINE:${p.name}`);
   assert(Array.isArray(p.required_controls) && p.required_controls.length >= 5, `WEAK_TOP_PRINCIPLE_CONTROLS:${p.name}`);
   assert(Array.isArray(p.prohibited_interpretations) && p.prohibited_interpretations.length >= 3, `WEAK_TOP_PRINCIPLE_BOUNDARY:${p.name}`);
