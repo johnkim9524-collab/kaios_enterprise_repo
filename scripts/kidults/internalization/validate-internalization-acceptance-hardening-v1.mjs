@@ -29,8 +29,9 @@ for(const x of f.economics_provider_fixtures||[]) {
   if(!['PARTIAL_KNOWN','UNKNOWN'].includes(x.external_price_state)) errs.push(`${x.provider_id} price state must preserve UNKNOWN/PARTIAL`);
   if(x.comparison_axis!=='MAKE_BUY_PARTNER_FALLBACK') errs.push(`${x.provider_id} comparison axis drift`);
 }
-if(!econ.metrics?.includes('internal_engineering_cost_avoided')) errs.push('economics must include internal engineering avoided cost');
-if(!econ.recommendations?.includes('MAKE') || !econ.recommendations?.includes('BUY') || !econ.recommendations?.includes('PARTNER')) errs.push('economics make/buy/partner recommendation missing');
+if(!econ.unit_metrics?.includes('internal_engineering_cost_avoided')) errs.push('economics must include internal engineering avoided cost');
+if(!econ.decision_outputs?.includes('MAKE') || !econ.decision_outputs?.includes('BUY') || !econ.decision_outputs?.includes('PARTNER')) errs.push('economics make/buy/partner recommendation missing');
+if(econ.priority_rules?.unknown_cost_may_be_treated_as_zero!==false || econ.priority_rules?.list_price_alone_may_rank_provider!==false) errs.push('economics unknown/list-price discipline drift');
 
 // #1156 Source reputation acceptance
 if((f.source_reputation_initial_fixtures||[]).length!==7) errs.push('reputation fixtures must cover 7 providers');
