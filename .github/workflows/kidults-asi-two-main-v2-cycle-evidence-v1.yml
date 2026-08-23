@@ -1,0 +1,160 @@
+name: KIDULTS ASI Two Main v2 Cycle Evidence v1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-asi-two-main-v2-cycle-evidence-v1.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-asi-two-main-v2-cycle-evidence-v1.yml'
+      - 'scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs'
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: kidults-asi-two-main-v2-cycle-evidence-v1
+  cancel-in-progress: false
+
+jobs:
+  contract-proof:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and promotion validator
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs
+      - name: Prove two-cycle readiness and reject duplicate runs
+        run: |
+          node - <<'NODE' >/tmp/input.json
+          const c=(run,obs,fresh)=>({artifact_id:`a-${run}`,workflow_run_id:String(run),receipt:{id:'kidults-asi-global-any-site-hourly-cycle-receipt-v2',status:'SHADOW_ANY_SITE_COMMON_CRAWL_FULL_GATE_CHAIN_COMPLETE',discovered_candidates:180+fresh,live_external_candidates:110+fresh,healthy_live_lanes:2,common_crawl_applied:true,common_crawl_index_id:'CC-MAIN-2026-30',common_crawl_seed_hosts:8,common_crawl_observed_candidates:obs,common_crawl_new_candidates:fresh,gate1_safe_candidates:75,gate1_review_required:105+fresh,gate1_hard_blocked:0,gate2_verified_for_gate3:73,gate3_bounded_metadata_admitted:73,rolling_discovery_pool_candidates:180+fresh,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'}});
+          process.stdout.write(JSON.stringify({id:'kidults-asi-hourly-v2-promotion-input-v1',v1_baseline:null,v2_cycles:[c(1,7,4),c(2,8,5)]}));
+          NODE
+          node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/input.json /tmp/out.json
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/out.json'));if(x.status!=='READY_TO_RETIRE_V1_AFTER_TWO_CONSECUTIVE_MAIN_CYCLES')throw new Error('READINESS_STATUS');
+          const bad=JSON.parse(fs.readFileSync('/tmp/input.json'));bad.v2_cycles[1].workflow_run_id=bad.v2_cycles[0].workflow_run_id;fs.writeFileSync('/tmp/bad.json',JSON.stringify(bad));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/bad.json /tmp/bad-out.json; then exit 1; fi
+
+  dispatch-and-prove:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact protected-main source
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF" = 'refs/heads/main'
+          node --check scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs
+      - name: Dispatch and await two distinct successful main v2 cycles
+        id: cycles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          WF='kidults-asi-global-any-site-hourly-pooling-v2.yml'
+          API="/repos/${GITHUB_REPOSITORY}/actions/workflows/${WF}"
+          mkdir -p /tmp/v2/0 /tmp/v2/1
+          dispatch_and_wait() {
+            local ordinal="$1"
+            local before run_id status conclusion artifact_id receipt
+            before=$(gh api -H 'Accept: application/vnd.github+json' "${API}/runs?event=workflow_dispatch&branch=main&per_page=20" --jq '[.workflow_runs[].id]')
+            gh api -X POST -H 'Accept: application/vnd.github+json' "${API}/dispatches" -f ref=main >/dev/null
+            run_id=''
+            for _ in $(seq 1 60); do
+              sleep 5
+              run_id=$(gh api -H 'Accept: application/vnd.github+json' "${API}/runs?event=workflow_dispatch&branch=main&per_page=20" | jq --argjson before "$before" -r '[.workflow_runs[] | select(.id as $id | ($before | index($id) | not))][0].id // empty')
+              [ -n "$run_id" ] && break
+            done
+            test -n "$run_id"
+            status=''; conclusion=''
+            for _ in $(seq 1 240); do
+              read -r status conclusion < <(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '[.status, (.conclusion // "NONE")] | @tsv')
+              [ "$status" = 'completed' ] && break
+              sleep 15
+            done
+            test "$status" = 'completed'
+            test "$conclusion" = 'success'
+            artifact_id=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v2" and .expired==false)][0].id // empty')
+            test -n "$artifact_id"
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > "/tmp/v2-${ordinal}.zip"
+            unzip -q -o "/tmp/v2-${ordinal}.zip" -d "/tmp/v2/${ordinal}"
+            receipt=$(find "/tmp/v2/${ordinal}" -type f -name asi-global-any-site-hourly-cycle-receipt-v2.json -print -quit)
+            test -n "$receipt"
+            cp "$receipt" "/tmp/v2/${ordinal}/receipt.json"
+            echo "run_${ordinal}=${run_id}" >> "$GITHUB_OUTPUT"
+            echo "artifact_${ordinal}=${artifact_id}" >> "$GITHUB_OUTPUT"
+          }
+          dispatch_and_wait 0
+          dispatch_and_wait 1
+          test "$(cat /dev/null; echo '${{ steps.cycles.outputs.run_0 }}')" != "$(cat /dev/null; echo '${{ steps.cycles.outputs.run_1 }}')" || true
+      - name: Restore latest v1 baseline when available
+        id: v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1
+          V1=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0] | if . then "\(.id)|\(.workflow_run.id)" else "" end')
+          if [ -n "$V1" ]; then
+            IFS='|' read -r ART RUN <<< "$V1"
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART}/zip" > /tmp/v1.zip
+            unzip -q -o /tmp/v1.zip -d /tmp/v1
+            RECEIPT=$(find /tmp/v1 -type f -name asi-global-any-site-hourly-cycle-receipt-v1.json -print -quit)
+            if [ -n "$RECEIPT" ]; then cp "$RECEIPT" /tmp/v1/receipt.json; fi
+            echo "artifact=$ART" >> "$GITHUB_OUTPUT"
+            echo "run=$RUN" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Validate empirical promotion readiness from the two main cycles
+        env:
+          RUN0: ${{ steps.cycles.outputs.run_0 }}
+          RUN1: ${{ steps.cycles.outputs.run_1 }}
+          ART0: ${{ steps.cycles.outputs.artifact_0 }}
+          ART1: ${{ steps.cycles.outputs.artifact_1 }}
+          V1_RUN: ${{ steps.v1.outputs.run }}
+          V1_ART: ${{ steps.v1.outputs.artifact }}
+        run: |
+          test -n "$RUN0"
+          test -n "$RUN1"
+          test "$RUN0" != "$RUN1"
+          node - <<'NODE' >/tmp/asi-hourly-v2-promotion-input-v1.json
+          const fs=require('fs');const read=p=>JSON.parse(fs.readFileSync(p));
+          const v2=[0,1].map(i=>({artifact_id:process.env[`ART${i}`],workflow_run_id:process.env[`RUN${i}`],receipt:read(`/tmp/v2/${i}/receipt.json`)}));
+          const v1=fs.existsSync('/tmp/v1/receipt.json')?{artifact_id:process.env.V1_ART,workflow_run_id:process.env.V1_RUN,receipt:read('/tmp/v1/receipt.json')}:null;
+          process.stdout.write(JSON.stringify({id:'kidults-asi-hourly-v2-promotion-input-v1',v1_baseline:v1,v2_cycles:v2},null,2));
+          NODE
+          node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/asi-hourly-v2-promotion-input-v1.json /tmp/asi-hourly-v2-promotion-readiness-v1.json
+          node - <<'NODE' >/tmp/asi-two-main-v2-cycle-evidence-receipt-v1.json
+          const fs=require('fs');const r=JSON.parse(fs.readFileSync('/tmp/asi-hourly-v2-promotion-readiness-v1.json'));
+          if(r.status!=='READY_TO_RETIRE_V1_AFTER_TWO_CONSECUTIVE_MAIN_CYCLES')throw new Error('NOT_READY');
+          process.stdout.write(JSON.stringify({id:'kidults-asi-two-main-v2-cycle-evidence-receipt-v1',status:'TWO_DISTINCT_SUCCESSFUL_MAIN_V2_CYCLES_EMPIRICALLY_PROVED',v2_workflow_run_ids:r.evaluated_v2_workflow_run_ids,v2_artifact_ids:r.evaluated_v2_artifact_ids,v1_baseline_check:r.v1_baseline_check,common_crawl_observed_candidates_across_cycles:r.common_crawl_observed_candidates_across_cycles,common_crawl_new_candidates_across_cycles:r.common_crawl_new_candidates_across_cycles,retirement_scope:r.retirement_scope,rollback_target:r.rollback_target,rights_or_admission_scope_changed:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/asi-two-main-v2-cycle-evidence-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-two-main-v2-cycle-evidence-v1
+          path: |
+            /tmp/asi-hourly-v2-promotion-input-v1.json
+            /tmp/asi-hourly-v2-promotion-readiness-v1.json
+            /tmp/asi-two-main-v2-cycle-evidence-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
