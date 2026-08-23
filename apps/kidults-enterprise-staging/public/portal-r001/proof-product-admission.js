@@ -136,7 +136,7 @@ function receipt(projection,context,{accepted,reason,errors,stateOnly}){
     rankability_assessment_id:nonEmpty(projection?.rankability?.assessment_id)?projection.rankability.assessment_id:null,
     rights_state:projection?.rights?.state||'UNKNOWN',freshness_state:projection?.freshness?.state||'UNKNOWN',
     valid_until:projection?.freshness?.valid_until||null,clock_authority:context.clockAuthority||'NONE',
-    release_authority:context.releaseAuthority||'HOLD',state_only:stateOnly,payload_exposed:accepted&&!stateOnly,
+    release_authority:context.releaseAuthority||'HOLD',state_only:stateOnly,payload_exposed:false,
     production:'HOLD',public:'HOLD',g5:'HOLD',
     autonomous_effect:'One executable admission function governs Portal, API and export.',
     global_effect:'Consumer validation is product- and geography-neutral.',
@@ -163,7 +163,9 @@ export function admitProofProductProjection(projection,context={}){
   if(normalized.surface==='PORTAL_RENDER'&&approved&&normalized.releaseAuthority!=='TEST_ONLY')errors.push('CLIENT_VALUE_RENDER_DISABLED');
   const accepted=errors.length===0;
   const resultReceipt=receipt(projection,normalized,{accepted,reason:accepted?(stateOnly?'STATE_ONLY_ACCEPTED':'APPROVED_TEST_ADMISSION'):errors[0],errors,stateOnly});
-  return Object.freeze({accepted,state_only:stateOnly,projection:accepted?projection:null,payload:accepted&&!stateOnly?projection.payload:null,receipt:resultReceipt});
+  // Public/browser evaluation never releases the raw Projection or payload.
+  // A future server-only signed-capability consumer must attach approved values after verification.
+  return Object.freeze({accepted,state_only:stateOnly,projection:null,payload:null,receipt:resultReceipt});
 }
 
 export const proofProductConsumerContract=Object.freeze({
