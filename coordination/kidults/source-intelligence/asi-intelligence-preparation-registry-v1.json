@@ -1,0 +1,64 @@
+{
+  "id": "kidults-asi-intelligence-preparation-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json",
+    "sourcing_direction": "coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json",
+    "engine_alignment": "coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json",
+    "global_source_mesh_contract": "coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json",
+    "verified_surface_baseline": "coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json",
+    "builder": "scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml",
+    "human_readme": "docs/kidults/asi/asi-intelligence-preparation-wave-v1.md"
+  },
+  "registered_modules": [
+    "UNKNOWN_REGISTRY",
+    "INTELLIGENCE_GAP_ENGINE",
+    "AUTONOMOUS_MISSION_GENERATOR",
+    "PROVIDER_REPLACEABILITY",
+    "INTELLIGENCE_ROI",
+    "CROSS_CATEGORY_INTELLIGENCE",
+    "PORTFOLIO_INTELLIGENCE",
+    "SELF_CALIBRATION"
+  ],
+  "registered_outputs": [
+    "unknown-registry-v1.json",
+    "intelligence-gap-map-v1.json",
+    "autonomous-mission-queue-v1.json",
+    "provider-replaceability-plan-v1.json",
+    "intelligence-roi-portfolio-v1.json",
+    "cross-category-intelligence-map-v1.json",
+    "portfolio-intelligence-map-v1.json",
+    "self-calibration-plan-v1.json",
+    "asi-intelligence-preparation-manifest-v1.json"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "47 */3 * * *",
+    "upstream_workflows": [
+      "KIDULTS Global Source Mesh v1",
+      "KIDULTS ASI Source Fabric Scale PI1"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "truth_boundary": {
+    "preparation_outputs_are_empirical_market_evidence": false,
+    "mission_queue_executes_external_collection": false,
+    "provider_replacement_plan_selects_named_provider": false,
+    "cross_category_hypotheses_are_market_claims": false,
+    "portfolio_map_is_an_index": false,
+    "calibration_predictions_are_realized_results": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
