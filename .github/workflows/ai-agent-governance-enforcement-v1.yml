@@ -45,13 +45,20 @@ jobs:
           node-version: '24'
       - name: Verify exact source SHA and syntax
         run: |
+          set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/governance/validate-ai-agent-operating-rules-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-operating-rules-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/registry/ai-agent-governance-registry-v1.json','utf8'))"
       - name: Validate authoritative policy, contract, registry and schema
+        shell: bash
         run: |
+          set -euo pipefail
           node scripts/governance/validate-ai-agent-operating-rules-v1.mjs | tee /tmp/ai-agent-governance-validation-v1.json
       - name: Validate a compliant evidence-bound status receipt
         run: |
+          set -euo pipefail
           cat > /tmp/valid-ai-agent-status-receipt-v1.json <<'JSON'
           {
             "id": "governance-ci-valid-receipt",
@@ -97,6 +104,7 @@ jobs:
       - name: Reject missing absolute-honesty principle mutation
         shell: bash
         run: |
+          set -euo pipefail
           cp coordination/kidults/governance/ai-agent-operating-rules-v1.json /tmp/contract.json
           node - <<'NODE'
           const fs=require('fs');
@@ -113,6 +121,7 @@ jobs:
       - name: Reject AI self-exemption mutation
         shell: bash
         run: |
+          set -euo pipefail
           cp coordination/kidults/registry/ai-agent-governance-registry-v1.json /tmp/registry.json
           node - <<'NODE'
           const fs=require('fs');
@@ -129,6 +138,7 @@ jobs:
       - name: Reject RUNNING status without live run evidence
         shell: bash
         run: |
+          set -euo pipefail
           node - <<'NODE'
           const fs=require('fs');
           const x=JSON.parse(fs.readFileSync('/tmp/valid-ai-agent-status-receipt-v1.json','utf8'));
@@ -143,7 +153,9 @@ jobs:
             exit 1
           fi
       - name: Revalidate pristine governance after mutations
-        run: node scripts/governance/validate-ai-agent-operating-rules-v1.mjs > /tmp/ai-agent-governance-final-validation-v1.json
+        run: |
+          set -euo pipefail
+          node scripts/governance/validate-ai-agent-operating-rules-v1.mjs > /tmp/ai-agent-governance-final-validation-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kpmo-ai-agent-governance-enforcement-v1
