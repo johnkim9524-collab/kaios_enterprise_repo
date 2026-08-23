@@ -5,8 +5,9 @@
 **Track:** KPMO / Architecture / Tracks A–E  
 **Decision IDs:** `KIDULTS-POSITIONING-V1-20260822`; `KIDULTS-COMPETITIVENESS-V1-20260822`  
 **Snapshot ID:** N/A — architecture chapter; no Candidate/Evidence pair exists  
+**Statement class:** TARGET ARCHITECTURE — implemented controls are named separately; this chapter is not Production proof  
 **Gate state:** C1 established; C2 incomplete; Production/Public/G5 HOLD  
-**Evidence references:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080; protected main `789cd75e93c4bb1329fd9cd31156633b6ad8c855`
+**Evidence references:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113; protected main `ea8bacc076ab228c3e7e334cd6cacbe86c3a3bdb`
 
 ## 1. Architectural objective
 
@@ -144,9 +145,16 @@ IH-EOS consumes registered program, blocker, gate, outcome and Projection state 
 
 ## 10. Architecture Update Note
 
-Protected main through #1096 materially improves the acquisition funnel with global metadata discovery, rolling pools, independent reverification, bounded admission, autobalance and source-family classification. The architectural change is broader and safer candidate preparation.
+| Statement class | Current architectural meaning |
+|---|---|
+| **VERIFIED CURRENT STATE** | #1106 binds governed Common Crawl public-index traversal to the pre-Gate 1 control path; #1113 adds a deterministic 256-shard metadata reserve and 100k synthetic design-capacity proof; #1107 places hourly Common-Crawl-augmented Gate 1→2→3 rolling-pool v2 on current main; #1108 requires two distinct successful main-branch v2 cycle artifacts before v1 retirement |
+| **UNKNOWN / NOT ESTABLISHED** | The two required main-branch v2 cycle artifacts are not yet evidenced; #1109–#1112 remain old-base/open |
+| **TARGET** | Lawful source admission, the immutable Candidate/Evidence pair, Track B assessment, governed Projection, customer acceptance and explicit G5 |
+| **PROPOSAL** | Any unmerged adapter, provider, schema or operating change remains non-authoritative until its normal gate passes |
 
-Promotion state is unchanged because those controls do not produce lawful GRADED labels, rights, the immutable pair, Track B assessment or an approved Projection.
+The 256-shard and 100k results are control-path design-capacity evidence using synthetic inputs. They are not 100k lawful sources, market observations, Safe Pool entries, customer evidence or release readiness.
+
+Promotion state is unchanged because the landed source controls do not produce lawful GRADED labels, collection/display rights, the immutable pair, Track B assessment or an approved Projection.
 
 ## 11. Decision mapping
 
@@ -166,7 +174,7 @@ Promotion state is unchanged because those controls do not produce lawful GRADED
 - **Master Book:** customer value and product claims map to the Projection and evidence boundaries defined here.
 - **Baseline Book:** every current NONE, NOT STARTED, OPEN, HOLD or blocked state remains visible and is not reinterpreted.
 - **No Fourth Book:** preserved. Runbooks, issue ledgers and decision records support the three Books; they do not become another Book.
-- **Sync state:** ALIGNED for this dated draft.
+- **Sync state:** ALIGNED TO CANONICAL PROTECTED MAIN `ea8bacc0` AT 2026-08-23 09:03 KST.
 
 ## 13. Rollback
 
