@@ -34,7 +34,7 @@ const schema = readJson(files.schema);
 const registry = readJson(files.registry);
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
-assert(contract.version === '1.0.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.1.0', 'CONTRACT_VERSION');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.owner === 'KPMO', 'CONTRACT_OWNER');
 assert(contract.effective_scope === 'REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AUTOMATIONS', 'CONTRACT_SCOPE');
@@ -42,6 +42,28 @@ assert(contract.enforcement?.production === 'HOLD', 'CONTRACT_PRODUCTION_BOUNDAR
 assert(contract.enforcement?.public_release === 'HOLD', 'CONTRACT_PUBLIC_BOUNDARY');
 assert(contract.enforcement?.no_agent_self_exemption === true, 'SELF_EXEMPTION_MUST_BE_FALSE');
 assert(contract.enforcement?.policy_and_contract_must_change_together === true, 'POLICY_CONTRACT_SYNC');
+
+const requiredTopPrinciples = [
+  'AUTONOMOUS',
+  'GLOBAL',
+  'IRREPLACEABLE_VALUE',
+  'TRANSPARENT'
+];
+const topPrinciples = contract.platform_operating_principles ?? [];
+assert(topPrinciples.length === requiredTopPrinciples.length, 'TOP_PRINCIPLE_COUNT');
+assert(JSON.stringify(topPrinciples.map((x) => x.name)) === JSON.stringify(requiredTopPrinciples), 'TOP_PRINCIPLE_ORDER');
+assert(JSON.stringify(topPrinciples.map((x) => x.priority)) === JSON.stringify([1, 2, 3, 4]), 'TOP_PRINCIPLE_PRIORITY');
+for (const p of topPrinciples) {
+  assert(/^POP-\\d{3}$/.test(p.principle_id), `INVALID_TOP_PRINCIPLE_ID:${p.principle_id}`);
+  assert(typeof p.doctrine === 'string' && p.doctrine.length > 30, `WEAK_TOP_PRINCIPLE_DOCTRINE:${p.name}`);
+  assert(Array.isArray(p.required_controls) && p.required_controls.length >= 5, `WEAK_TOP_PRINCIPLE_CONTROLS:${p.name}`);
+  assert(Array.isArray(p.prohibited_interpretations) && p.prohibited_interpretations.length >= 3, `WEAK_TOP_PRINCIPLE_BOUNDARY:${p.name}`);
+}
+assert(contract.principle_inheritance?.strategic_priority_order_fixed === true, 'TOP_PRINCIPLE_ORDER_NOT_FIXED');
+assert(contract.principle_inheritance?.all_four_required === true, 'TOP_PRINCIPLE_NOT_ALL_REQUIRED');
+assert(contract.principle_inheritance?.transparent_cross_cutting_non_waivable === true, 'TRANSPARENCY_WAIVABLE');
+assert(contract.principle_inheritance?.principle_does_not_expand_agent_authority === true, 'TOP_PRINCIPLE_EXPANDS_AUTHORITY');
+assert(contract.principle_inheritance?.conflicts_fail_closed_and_are_recorded === true, 'TOP_PRINCIPLE_CONFLICT_NOT_FAIL_CLOSED');
 
 const requiredPrinciples = [
   'ABSOLUTE_HONESTY',
@@ -103,6 +125,12 @@ assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUND
 
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
+assert(registry.registered_policy?.policy_version === contract.version, 'REGISTRY_POLICY_VERSION_MISMATCH');
+assert(JSON.stringify(registry.top_platform_operating_principles) === JSON.stringify(requiredTopPrinciples), 'REGISTRY_TOP_PRINCIPLE_ORDER');
+assert(registry.top_principle_inheritance?.priority_order_fixed === true, 'REGISTRY_TOP_PRINCIPLE_ORDER_NOT_FIXED');
+assert(registry.top_principle_inheritance?.all_four_required === true, 'REGISTRY_TOP_PRINCIPLE_NOT_ALL_REQUIRED');
+assert(registry.top_principle_inheritance?.transparent_cross_cutting_non_waivable === true, 'REGISTRY_TRANSPARENCY_WAIVABLE');
+assert(registry.top_principle_inheritance?.protected_gates_bound_all_principles === true, 'REGISTRY_PROTECTED_GATES_NOT_BOUND');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
 assert(registry.mandatory_inheritance?.child_rule_can_weaken_policy === false, 'CHILD_WEAKENING_ALLOWED');
 assert(registry.mandatory_inheritance?.agent_self_exemption_allowed === false, 'REGISTRY_SELF_EXEMPTION_ALLOWED');
@@ -124,6 +152,10 @@ for (const [key, expected] of Object.entries({
 }
 
 const requiredAgentMarkers = [
+  'Autonomous',
+  'Global',
+  'Irreplaceable Value',
+  'Transparent',
   'Absolute honesty',
   'Complete transparency',
   'Evidence before status',
@@ -137,6 +169,11 @@ const requiredAgentMarkers = [
 for (const marker of requiredAgentMarkers) assert(agents.includes(marker), `AGENTS_MISSING_MARKER:${marker}`);
 
 const requiredPolicyMarkers = [
+  'Top-level platform operating principles — 최상위 운영원칙',
+  'Autonomous — 자율성',
+  'Global — 글로벌성',
+  'Irreplaceable Value — 대체 불가능한 가치',
+  'Transparent — 투명성',
   'Absolute honesty — 절대 정직',
   'Complete transparency — 완전 투명성',
   'Evidence before statement',
@@ -148,6 +185,7 @@ const requiredPolicyMarkers = [
 ];
 for (const marker of requiredPolicyMarkers) assert(policy.includes(marker), `POLICY_MISSING_MARKER:${marker}`);
 assert(copilot.includes('AGENTS.md'), 'COPILOT_AGENTS_REFERENCE');
+assert(copilot.includes('Autonomous → Global → Irreplaceable Value → Transparent'), 'COPILOT_TOP_PRINCIPLE_ORDER');
 assert(copilot.includes('.github/AI_AGENT_OPERATING_RULES.md'), 'COPILOT_POLICY_REFERENCE');
 assert(copilot.includes('never fabricate metrics'), 'COPILOT_METRIC_BOUNDARY');
 
@@ -183,9 +221,10 @@ if (explicitReceiptIndex >= 0) {
 
 const report = {
   id: 'kidults-ai-agent-governance-validation-v1',
-  version: '1.0.0',
+  version: '1.1.0',
   status: 'VERIFIED_PASS',
   policy_id: 'KPMO-AI-GOV-001',
+  platform_operating_principles_validated: requiredTopPrinciples.length,
   principles_validated: requiredPrinciples.length,
   governed_states_validated: requiredStates.length,
   required_report_fields_validated: contract.required_report_fields.length,
