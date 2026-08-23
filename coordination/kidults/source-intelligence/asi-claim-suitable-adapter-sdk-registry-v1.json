@@ -1,0 +1,49 @@
+{
+  "id": "kidults-asi-claim-suitable-adapter-sdk-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-contract-v1.json",
+    "registry": "coordination/kidults/source-intelligence/asi-claim-suitable-adapter-sdk-registry-v1.json",
+    "sdk": "scripts/kidults/source-intelligence/lib/claim-suitable-adapter-sdk-v1.mjs",
+    "builder": "scripts/kidults/source-intelligence/build-asi-claim-suitable-adapter-sdk-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-v1.mjs",
+    "registry_validator": "scripts/kidults/source-intelligence/validate-asi-claim-suitable-adapter-sdk-registry-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-claim-suitable-adapter-sdk-v1.yml",
+    "human_policy": "docs/kidults/asi/asi-claim-suitable-adapter-sdk-v1.md"
+  },
+  "input_artifact": "kidults-asi-claim-suitability-replacement-v2",
+  "output_artifact": "kidults-asi-claim-suitable-adapter-sdk-v1",
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "42 * * * *",
+    "upstream_workflow": "KIDULTS ASI Claim-Suitability Replacement v2",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "continuation": {
+    "next_stage": "SOURCE_SPECIFIC_MAPPING_AND_BOUNDED_LIVE_EXTRACTION",
+    "adapter_development_backlog_output": "adapter-development-backlog-v1.json",
+    "automatic_continuation_required": true
+  },
+  "truth_boundary": {
+    "generic_sdk_implemented": true,
+    "adapter_family_contracts_implemented": true,
+    "fixture_certification_is_live_extraction": false,
+    "source_specific_mappings_implemented": false,
+    "live_extraction_verified": false,
+    "target_host_egress_executed": false,
+    "evidence_admitted": false,
+    "market_event_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
