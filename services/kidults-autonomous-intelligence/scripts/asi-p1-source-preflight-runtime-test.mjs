@@ -70,10 +70,12 @@ const receipts = [];
 for (const task of queue.tasks) {
   const fleet = registryModule.ASI_FLEET_BY_ID.get(task.target_fleet);
   assert.ok(fleet, `ASI_P1_RUNTIME_FLEET_MISSING:${task.target_fleet}`);
+  const logicalEngine = registryModule.asiLogicalEngineForFleet(task.target_fleet);
+  assert.equal(task.logical_engine, logicalEngine, `ASI_P1_RUNTIME_LOGICAL_ENGINE_MISMATCH:${task.target_fleet}`);
   if (task.stage === 'CLASSIFICATION') {
     assert.ok(classificationFleets.has(task.target_fleet), `ASI_P1_RUNTIME_CLASSIFICATION_FLEET:${task.target_fleet}`);
     assert.equal(fleet.stage, 'CLASSIFICATION');
-    assert.equal(fleet.logicalEngine, 'SOURCE_CLASSIFICATION_ENGINE');
+    assert.equal(logicalEngine, 'SOURCE_CLASSIFICATION_ENGINE');
   } else {
     assert.equal(task.stage, 'QUALIFICATION');
     assert.ok(qualificationFleets.has(task.target_fleet), `ASI_P1_RUNTIME_QUALIFICATION_FLEET:${task.target_fleet}`);
