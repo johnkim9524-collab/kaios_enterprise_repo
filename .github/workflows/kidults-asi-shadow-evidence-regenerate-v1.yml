@@ -28,7 +28,7 @@ on:
       - '.github/workflows/kidults-asi-shadow-evidence-regenerate-v1.yml'
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 concurrency:
@@ -42,14 +42,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          persist-credentials: false
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: true
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24'
       - name: Verify exact source and syntax
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          if [ "${GITHUB_EVENT_NAME}" != "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          fi
           node --check scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs
       - name: Install deterministic validation dependencies
@@ -68,9 +72,24 @@ jobs:
         run: |
           node - <<'NODE' >/tmp/asi-shadow-evidence-regeneration-receipt-v1.json
           const fs=require('fs');const crypto=require('crypto');const p='/tmp/asi-shadow-operating-evidence-v1.json';const x=JSON.parse(fs.readFileSync(p,'utf8'));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
-          process.stdout.write(JSON.stringify({id:'kidults-asi-shadow-evidence-regeneration-receipt-v1',state:'VERIFIED_PASS',source_head:process.env.GITHUB_SHA,evidence_digest:digest,processors_registered:x?.runtime_evidence?.processors_registered ?? x?.summary?.processors_registered ?? null,processors_exercised:x?.runtime_evidence?.processors_exercised ?? x?.summary?.processors_exercised ?? null,public_release:'HOLD',production:'HOLD'},null,2));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-shadow-evidence-regeneration-receipt-v1',state:'VERIFIED_PASS',source_head:process.env.GITHUB_SHA,evidence_digest:digest,processor_summary:x?.runtime_evidence ?? x?.summary ?? null,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-shadow-evidence-regeneration-receipt-v1.json
+      - name: Synchronize canonical evidence on same-repository PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/asi-shadow-operating-evidence-v1.json artifacts/agci-os/asi-shadow-operating-evidence-v1.json
+          if git diff --quiet -- artifacts/agci-os/asi-shadow-operating-evidence-v1.json; then
+            echo 'Canonical SHADOW evidence already synchronized.'
+            exit 0
+          fi
+          git config user.name 'KPMO ASI Evidence Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add artifacts/agci-os/asi-shadow-operating-evidence-v1.json
+          git commit -m 'ASI: synchronize refactored SHADOW operating evidence'
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-shadow-evidence-regenerated-v1
