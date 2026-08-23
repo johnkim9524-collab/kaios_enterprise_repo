@@ -1,0 +1,173 @@
+name: KIDULTS ASI Source Adapter Wave 3 v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '27 */3 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'services/kidults-autonomous-intelligence/src/asi/market-adapter.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/public-auction-results.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-watches-results.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/christies-watches-results.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/sothebys-watches-results.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/christies-handbags-results.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-source-adapter-wave3-test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-source-adapter-wave3-v1.mjs'
+      - 'docs/kidults/asi/asi-source-adapter-wave3-v1.md'
+      - '.github/workflows/kidults-asi-source-adapter-wave3-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'services/kidults-autonomous-intelligence/src/asi/market-adapter.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/public-auction-results.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-watches-results.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/christies-watches-results.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/sothebys-watches-results.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/christies-handbags-results.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-source-adapter-wave3-test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-source-adapter-wave3-v1.mjs'
+      - 'docs/kidults/asi/asi-source-adapter-wave3-v1.md'
+      - '.github/workflows/kidults-asi-source-adapter-wave3-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Source Adapter Wave 2 v1'
+      - 'KIDULTS ASI Bonhams Cars Results Reference Adapter v1'
+      - 'KIDULTS ASI P1 Market-Event Adapter Runtime v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-source-adapter-wave3-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-source-adapter-wave3:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
+      - name: Verify exact source syntax and contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check services/kidults-autonomous-intelligence/scripts/asi-source-adapter-wave3-test.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-source-adapter-wave3-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json','utf8'))"
+      - name: Install bounded runtime dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck shared core and four Wave 3 adapters
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+      - name: Run four-adapter Wave 3 deterministic fixture and mutation proof
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          node scripts/asi-source-adapter-wave3-test.mjs \
+            | tee /tmp/kidults-asi-source-adapter-wave3-test-receipt-v1.json
+      - name: Validate Wave 3 implementation truth
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-source-adapter-wave3-v1.mjs \
+            /tmp/kidults-asi-source-adapter-wave3-test-receipt-v1.json \
+            | tee /tmp/kidults-asi-source-adapter-wave3-validation-v1.json
+      - name: Reject ambiguous-dollar semantic weakening mutation
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          cp src/asi/source-adapters/public-auction-results.ts /tmp/public-auction-results.ts
+          python - <<'PY'
+          p='src/asi/source-adapters/public-auction-results.ts'
+          s=open(p).read().replace("return { state: 'AMBIGUOUS_DOLLAR', price: null, currency: null };", "return { state: 'MATCH', price: 100000, currency: 'USD' };")
+          open(p,'w').write(s)
+          PY
+          if node scripts/asi-source-adapter-wave3-test.mjs; then
+            echo 'Wave 3 test accepted ambiguous-dollar semantic weakening' >&2
+            exit 1
+          fi
+          mv /tmp/public-auction-results.ts src/asi/source-adapters/public-auction-results.ts
+      - name: Reject false adapter activation and Evidence mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json /tmp/wave3-contract.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json';const x=JSON.parse(fs.readFileSync(p));x.portfolio_state_after_wave.source_specific_adapters_activated=1;x.portfolio_state_after_wave.empirical_market_events_admitted=1;x.truth_boundary.evidence_admitted=1;x.truth_boundary.market_events_created=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-source-adapter-wave3-v1.mjs /tmp/kidults-asi-source-adapter-wave3-test-receipt-v1.json; then
+            echo 'Wave 3 validator accepted false activation or Evidence admission' >&2
+            exit 1
+          fi
+          mv /tmp/wave3-contract.json coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json
+      - name: Reject implemented-adapter count inflation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json /tmp/wave3-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.implementation_state.wave_source_specific_adapters_implemented=5;x.implementation_state.portfolio_source_specific_adapters_implemented=10;x.implementation_state.portfolio_source_specific_adapters_pending=6;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-source-adapter-wave3-v1.mjs /tmp/kidults-asi-source-adapter-wave3-test-receipt-v1.json; then
+            echo 'Wave 3 validator accepted implemented-adapter inflation' >&2
+            exit 1
+          fi
+          mv /tmp/wave3-registry.json coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json
+      - name: Reject unregistered liquidity claim mutation
+        run: |
+          set -euo pipefail
+          cp services/kidults-autonomous-intelligence/src/asi/source-adapters/christies-watches-results.ts /tmp/christies-watches-results.ts
+          python - <<'PY'
+          p='services/kidults-autonomous-intelligence/src/asi/source-adapters/christies-watches-results.ts'
+          s=open(p).read().replace("target_claims: ['DATED_OBSERVED_SOLD_TRANSACTION', 'CURRENT_PRICE']", "target_claims: ['DATED_OBSERVED_SOLD_TRANSACTION', 'CURRENT_PRICE', 'LIQUIDITY_OR_TIME_TO_SALE']")
+          open(p,'w').write(s)
+          PY
+          if node scripts/kidults/source-intelligence/validate-asi-source-adapter-wave3-v1.mjs /tmp/kidults-asi-source-adapter-wave3-test-receipt-v1.json; then
+            echo 'Wave 3 validator accepted unregistered liquidity claim' >&2
+            exit 1
+          fi
+          mv /tmp/christies-watches-results.ts services/kidults-autonomous-intelligence/src/asi/source-adapters/christies-watches-results.ts
+      - name: Revalidate pristine Wave 3 state
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-source-adapter-wave3-v1.mjs \
+            /tmp/kidults-asi-source-adapter-wave3-test-receipt-v1.json \
+            > /tmp/kidults-asi-source-adapter-wave3-final-validation-v1.json
+      - name: Emit KPMO Wave 3 receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-source-adapter-wave3-kpmo-receipt-v1.json
+          const fs=require('fs'),crypto=require('crypto');const v=JSON.parse(fs.readFileSync('/tmp/kidults-asi-source-adapter-wave3-final-validation-v1.json'));const digest=p=>'sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-source-adapter-wave3-kpmo-receipt-v1',version:'1.0.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,test_digest:digest('/tmp/kidults-asi-source-adapter-wave3-test-receipt-v1.json'),validation_digest:digest('/tmp/kidults-asi-source-adapter-wave3-final-validation-v1.json'),wave_source_specific_adapters_implemented:v.wave_source_specific_adapters_implemented,portfolio_source_specific_adapters_implemented:v.portfolio_source_specific_adapters_implemented,registered_source_profiles:v.registered_source_profiles,source_specific_adapters_pending:v.source_specific_adapters_pending,deterministic_replays_verified:v.deterministic_replays_verified,positive_fixture_candidates_parsed:v.positive_fixture_candidates_parsed,negative_fixture_mutations_rejected:v.negative_fixture_mutations_rejected,live_source_snapshots_verified:0,field_purpose_rights_verified_sources:0,source_specific_adapters_activated:0,evidence_admitted:0,market_events_created:0,first_evidence_admission_state:v.first_evidence_admission_state,autonomous_effect:'POSITIVE_SHARED_CONTROL_CORE_EXECUTES_AUTOMATICALLY_FOR_FOUR_MORE_SOURCE_ADAPTERS',global_effect:'POSITIVE_WATCHES_AND_LUXURY_AUCTION_RESULT_LANES_SHARE_ONE_NON_COMPENSATING_CONTROL_MODEL',irreplaceable_value_effect:'POSITIVE_KIDULTS_OWNS_SOURCE_SPECIFIC_PARSERS_RECORD_GRAINS_AND_SWITCHING_BACKLOG',transparency_effect:'POSITIVE_IMPLEMENTED_FIXTURE_EMPIRICAL_RIGHTS_ACTIVATION_AND_ADMISSION_STATES_REMAIN_SEPARATE',public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-source-adapter-wave3-kpmo-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-source-adapter-wave3-v1
+          path: |
+            /tmp/kidults-asi-source-adapter-wave3-test-receipt-v1.json
+            /tmp/kidults-asi-source-adapter-wave3-validation-v1.json
+            /tmp/kidults-asi-source-adapter-wave3-final-validation-v1.json
+            /tmp/kidults-asi-source-adapter-wave3-kpmo-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
