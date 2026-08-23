@@ -189,6 +189,7 @@ IH-EOS는 등록된 Program, Blocker, Gate, Outcome, Projection state를 소비�
 |---|---|
 | `KIDULTS-POSITIONING-V1-20260822` | Product promise는 점검 가능한 System state로 연결되어야 함 |
 | `KIDULTS-COMPETITIVENESS-V1-20260822` | Provider-switchable Governed decision layer는 내부 Core로 유지 |
+| `KIDULTS-PLATFORM-PRINCIPLES-V1-20260823` | 네 원칙의 실행계약과 main-push Scale Wave·Artifact·KPMO Receipt 경계를 정의함; Draft #1118은 아직 current authority가 아님 |
 | #235 | Immutable하고 Evidence-backed인 입력 산출 |
 | #236 | 정확한 Pair를 독립적으로 Assessment |
 | #237 / #1080 | 의미상 유효하며 승인된 Projection만 Render |
