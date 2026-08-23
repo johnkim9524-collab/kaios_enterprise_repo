@@ -1,0 +1,156 @@
+name: KPMO AI Agent Governance Enforcement v1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - '.github/AI_AGENT_OPERATING_RULES.md'
+      - '.github/copilot-instructions.md'
+      - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'AGENTS.md'
+      - '.github/AI_AGENT_OPERATING_RULES.md'
+      - '.github/copilot-instructions.md'
+      - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kpmo-ai-agent-governance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  enforce-ai-agent-governance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source SHA and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/governance/validate-ai-agent-operating-rules-v1.mjs
+      - name: Validate authoritative policy, contract, registry and schema
+        run: |
+          node scripts/governance/validate-ai-agent-operating-rules-v1.mjs | tee /tmp/ai-agent-governance-validation-v1.json
+      - name: Validate a compliant evidence-bound status receipt
+        run: |
+          cat > /tmp/valid-ai-agent-status-receipt-v1.json <<'JSON'
+          {
+            "id": "governance-ci-valid-receipt",
+            "version": "1.0.0",
+            "agent_id": "KPMO_GOVERNANCE_VALIDATOR",
+            "as_of": "2026-08-23T00:00:00Z",
+            "scope": "AI_AGENT_GOVERNANCE_CI",
+            "state": "VERIFIED_PASS",
+            "facts": [
+              {
+                "statement": "The governance validator returned a pass result in this workflow.",
+                "evidence_ref_ids": ["validator-output"]
+              }
+            ],
+            "evidence_refs": [
+              {
+                "ref_id": "validator-output",
+                "kind": "VALIDATOR_OUTPUT",
+                "locator": "/tmp/ai-agent-governance-validation-v1.json",
+                "observed_at": "2026-08-23T00:00:00Z"
+              }
+            ],
+            "inferences": [],
+            "uncertainties": [],
+            "blockers": [],
+            "actions_executed": [
+              {
+                "action": "Validate AI agent governance controls",
+                "result": "EXECUTED",
+                "evidence_ref_ids": ["validator-output"]
+              }
+            ],
+            "next_action": "Preserve mandatory governance controls.",
+            "authority_boundary": {
+              "within_authority": true,
+              "protected_gates_touched": []
+            },
+            "production": "HOLD",
+            "public_release": "HOLD"
+          }
+          JSON
+          node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt /tmp/valid-ai-agent-status-receipt-v1.json > /tmp/valid-receipt-validation.json
+      - name: Reject missing absolute-honesty principle mutation
+        shell: bash
+        run: |
+          cp coordination/kidults/governance/ai-agent-operating-rules-v1.json /tmp/contract.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/governance/ai-agent-operating-rules-v1.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          x.principles=x.principles.filter(r=>r.name!=='ABSOLUTE_HONESTY');
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted missing absolute honesty principle' >&2
+            exit 1
+          fi
+          mv /tmp/contract.json coordination/kidults/governance/ai-agent-operating-rules-v1.json
+      - name: Reject AI self-exemption mutation
+        shell: bash
+        run: |
+          cp coordination/kidults/registry/ai-agent-governance-registry-v1.json /tmp/registry.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/registry/ai-agent-governance-registry-v1.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          x.mandatory_inheritance.agent_self_exemption_allowed=true;
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted AI self-exemption' >&2
+            exit 1
+          fi
+          mv /tmp/registry.json coordination/kidults/registry/ai-agent-governance-registry-v1.json
+      - name: Reject RUNNING status without live run evidence
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/valid-ai-agent-status-receipt-v1.json','utf8'));
+          x.state='RUNNING_VERIFIED';
+          x.evidence_refs=[{ref_id:'plan',kind:'ISSUE',locator:'issue:1',observed_at:'2026-08-23T00:00:00Z'}];
+          x.facts[0].evidence_ref_ids=['plan'];
+          x.actions_executed[0].evidence_ref_ids=['plan'];
+          fs.writeFileSync('/tmp/invalid-running-receipt.json',JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt /tmp/invalid-running-receipt.json; then
+            echo 'Validator accepted RUNNING without a live run identifier' >&2
+            exit 1
+          fi
+      - name: Revalidate pristine governance after mutations
+        run: node scripts/governance/validate-ai-agent-operating-rules-v1.mjs > /tmp/ai-agent-governance-final-validation-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-ai-agent-governance-enforcement-v1
+          path: |
+            /tmp/ai-agent-governance-validation-v1.json
+            /tmp/ai-agent-governance-final-validation-v1.json
+            /tmp/valid-ai-agent-status-receipt-v1.json
+            /tmp/valid-receipt-validation.json
+          retention-days: 90
+          if-no-files-found: error
