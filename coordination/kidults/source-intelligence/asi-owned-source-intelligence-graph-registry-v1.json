@@ -1,0 +1,87 @@
+{
+  "id": "kidults-asi-owned-source-intelligence-graph-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P2",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v1.json",
+    "canonical_builder": "scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v1.1.mjs",
+    "superseded_draft_builder": "scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-owned-source-intelligence-graph-v1.yml",
+    "human_readme": "docs/kidults/asi/asi-owned-source-intelligence-graph-v1.md"
+  },
+  "registered_node_types": [
+    "MISSION",
+    "SCOPE",
+    "DOMAIN",
+    "REGION",
+    "EVIDENCE_CLASS",
+    "SOURCE_CANDIDATE",
+    "CANONICAL_HOST",
+    "DISCOVERY_LANE",
+    "FACTUAL_ORIGIN_CANDIDATE",
+    "HOST_PREFLIGHT",
+    "ADMISSION_READINESS_STATE"
+  ],
+  "registered_edge_types": [
+    "MISSION_IN_SCOPE",
+    "MISSION_IN_REGION",
+    "MISSION_REQUIRES_EVIDENCE_CLASS",
+    "SCOPE_IN_DOMAIN",
+    "MISSION_HAS_SOURCE_CANDIDATE",
+    "CANDIDATE_OBSERVED_ON_HOST",
+    "CANDIDATE_DISCOVERED_VIA_LANE",
+    "CANDIDATE_HAS_FACTUAL_ORIGIN_CANDIDATE",
+    "HOST_HAS_PREFLIGHT",
+    "CANDIDATE_ASSIGNED_PREFLIGHT",
+    "CANDIDATE_HAS_ADMISSION_READINESS"
+  ],
+  "registered_outputs": [
+    "owned-source-intelligence-graph-v1.json",
+    "owned-source-intelligence-lineage-v1.json",
+    "owned-source-intelligence-quality-v1.json",
+    "owned-source-intelligence-value-receipt-v1.json",
+    "owned-source-intelligence-manifest-v1.json"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "52 * * * *",
+    "upstream_workflow": "KIDULTS ASI Candidate Preflight Wave v1",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "execution_guarantees": {
+    "restore_latest_main_p0_artifact": true,
+    "restore_latest_main_p1_artifact": true,
+    "deterministic_two_run_replay": true,
+    "canonical_node_and_edge_sort": true,
+    "duplicate_node_and_edge_rejection": true,
+    "orphan_mission_and_candidate_rejection": true,
+    "merged_lineage_refs_for_canonical_edges": true,
+    "immutable_input_and_output_digests": true,
+    "no_direct_repository_mutation_from_workflow": true
+  },
+  "truth_boundary": {
+    "source_intelligence_graph_is_market_evidence_graph": false,
+    "source_candidate_is_evidence": false,
+    "preflight_is_admission": false,
+    "factual_origin_candidate_is_verified_origin": false,
+    "admission_readiness_is_admission": false,
+    "market_event_created": false,
+    "transaction_created": false,
+    "price_observation_created": false,
+    "liquidity_measure_created": false,
+    "evidence_admitted": false,
+    "snapshot_candidate_created": false,
+    "market_claim_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
