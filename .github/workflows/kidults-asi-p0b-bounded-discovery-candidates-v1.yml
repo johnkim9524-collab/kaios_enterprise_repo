@@ -1,0 +1,237 @@
+name: KIDULTS ASI P0B Bounded Discovery Candidates v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p0-mission-consumption-registry-v1.json'
+      - 'scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md'
+      - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p0-mission-consumption-registry-v1.json'
+      - 'scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md'
+      - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI P0 Mission Consumption v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bounded-discovery-candidates:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source, syntax and contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          for file in \
+            scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs \
+            scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs \
+            scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs \
+            scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs \
+            scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs \
+            scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs \
+            scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs; do
+            node --check "$file"
+          done
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json','utf8'))"
+      - name: Validate P0B registry and autonomous activation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs \
+            | tee /tmp/kidults-asi-p0b-registry-validation-v1.json
+      - name: Rebuild current P0 mission task queue
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json \
+            coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json \
+            /tmp/kidults-global-source-mesh-v1.json
+          node scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs \
+            /tmp/kidults-global-source-mesh-v1.json \
+            coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json \
+            coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json \
+            /tmp/kidults-asi-intelligence-preparation-wave-v1
+          node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs \
+            /tmp/kidults-asi-intelligence-preparation-wave-v1 \
+            coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json \
+            > /tmp/kidults-asi-intelligence-preparation-wave-validation-v1.json
+          node scripts/kidults/source-intelligence/build-asi-p0-mission-consumption-v1.mjs \
+            /tmp/kidults-asi-intelligence-preparation-wave-v1/autonomous-mission-queue-v1.json \
+            coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json \
+            services/kidults-autonomous-intelligence/src/asi/registry.ts \
+            /tmp/kidults-asi-p0-mission-consumption-v1
+          node scripts/kidults/source-intelligence/validate-asi-p0-mission-consumption-v1.mjs \
+            /tmp/kidults-asi-p0-mission-consumption-v1 \
+            coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json \
+            > /tmp/kidults-asi-p0-mission-consumption-validation-v1.json
+      - name: Execute four governed public-metadata rotations
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/p0b-rotations
+          for R in 0 1 2 3; do
+            ASI_SCOPE_ROTATION="$R" ASI_PROVIDER_CIRCUIT=/tmp/p0b-no-prior-circuit.json \
+              node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs "/tmp/p0b-rotations/r${R}.json"
+            node scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs "/tmp/p0b-rotations/r${R}.json"
+          done
+      - name: Merge and validate live public-metadata source fabric
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs \
+            /tmp/p0b-rotations/r0.json /tmp/p0b-rotations/r1.json /tmp/p0b-rotations/r2.json /tmp/p0b-rotations/r3.json \
+            /tmp/asi-public-metadata-source-fabric-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs \
+            /tmp/asi-public-metadata-source-fabric-v1.json
+      - name: Build P0B source candidate increment
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs \
+            /tmp/kidults-asi-p0-mission-consumption-v1/p0-source-discovery-task-queue-v1.json \
+            /tmp/asi-public-metadata-source-fabric-v1.json \
+            coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json \
+            /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1
+          node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs \
+            /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 \
+            coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json \
+            | tee /tmp/kidults-asi-p0b-candidate-validation-v1.json
+      - name: Reject source-candidate-as-evidence mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 /tmp/p0b-bad-evidence
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/p0b-bad-evidence/p0b-source-candidate-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.candidates[0].evidence_admitted=true;x.candidates[0].evidence_state='ADMITTED';fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs /tmp/p0b-bad-evidence; then
+            echo 'Validator accepted source candidate as admitted evidence' >&2
+            exit 1
+          fi
+      - name: Reject region-hint-as-coverage mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 /tmp/p0b-bad-region
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/p0b-bad-region/p0b-mission-candidate-binding-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));x.bindings[0].regional_coverage_proven=true;x.missions_with_regional_coverage_proven=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs /tmp/p0b-bad-region; then
+            echo 'Validator accepted region hint as proven coverage' >&2
+            exit 1
+          fi
+      - name: Reject host-as-factual-origin mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 /tmp/p0b-bad-origin
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/p0b-bad-origin/p0b-provider-host-diversity-v1.json';const x=JSON.parse(fs.readFileSync(p));x.distinct_host_is_distinct_factual_origin=true;x.factual_origin_independence_proven_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs /tmp/p0b-bad-origin; then
+            echo 'Validator accepted distinct host as distinct factual origin' >&2
+            exit 1
+          fi
+      - name: Reject target-content acquisition mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 /tmp/p0b-bad-content
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/p0b-bad-content/p0b-source-candidate-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.candidates[0].target_site_body_crawled=true;x.candidates[0].target_content_acquired=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs /tmp/p0b-bad-content; then
+            echo 'Validator accepted unproven target-content acquisition' >&2
+            exit 1
+          fi
+      - name: Reject unsupported market claim mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 /tmp/p0b-bad-claim
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/p0b-bad-claim/p0b-bounded-discovery-manifest-v1.json';const x=JSON.parse(fs.readFileSync(p));x.results.market_claims_created=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs /tmp/p0b-bad-claim; then
+            echo 'Validator accepted unsupported market claim' >&2
+            exit 1
+          fi
+      - name: Reject manual-only activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json /tmp/p0b-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflow='NONE';fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs; then
+            echo 'Validator accepted manual-only P0B activation' >&2
+            exit 1
+          fi
+          mv /tmp/p0b-registry.json coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json
+      - name: Revalidate pristine P0B execution
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs \
+            > /tmp/kidults-asi-p0b-registry-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs \
+            /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 \
+            coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json \
+            > /tmp/kidults-asi-p0b-candidate-final-validation-v1.json
+      - name: Emit KPMO P0B discovery receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-p0b-bounded-discovery-receipt-v1.json
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-p0b-bounded-discovery-candidates-v1/p0b-bounded-discovery-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-p0b-bounded-discovery-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-p0b-bounded-discovery-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-p0b-bounded-discovery-candidates-v1
+          path: |
+            /tmp/p0b-rotations
+            /tmp/asi-public-metadata-source-fabric-v1.json
+            /tmp/kidults-asi-p0-mission-consumption-v1
+            /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1
+            /tmp/kidults-asi-p0b-registry-validation-v1.json
+            /tmp/kidults-asi-p0b-registry-final-validation-v1.json
+            /tmp/kidults-asi-p0b-candidate-validation-v1.json
+            /tmp/kidults-asi-p0b-candidate-final-validation-v1.json
+            /tmp/kidults-asi-p0b-bounded-discovery-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
