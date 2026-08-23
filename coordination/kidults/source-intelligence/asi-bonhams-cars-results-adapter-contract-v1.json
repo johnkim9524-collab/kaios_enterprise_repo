@@ -1,7 +1,7 @@
 {
   "id": "kidults-asi-bonhams-cars-results-adapter-contract-v1",
   "version": "1.0.0",
-  "status": "CONTRACT_REGISTERED_IMPLEMENTATION_PENDING",
+  "status": "IMPLEMENTED_FIXTURE_VERIFIED_NOT_RIGHTS_OR_LIVE_SCHEMA_VERIFIED",
   "owner": "KPMO",
   "priority": "P1",
   "source_id": "bonhams-cars-results",
@@ -12,6 +12,14 @@
     "TRANSPARENT"
   ],
   "mission": "Implement the first source-specific adapter for the highest-impact registered market source while keeping rights, live schema, factual-origin, Evidence admission, Market Event and claim promotion fail-closed.",
+  "registered_assets": {
+    "source_specific_module": "services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-cars-results.ts",
+    "source_specific_test": "services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs",
+    "generic_market_adapter_runtime": "services/kidults-autonomous-intelligence/src/asi/market-adapter.ts",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-bonhams-cars-results-adapter-v1.yml",
+    "documentation": "docs/kidults/asi/asi-bonhams-cars-results-adapter-v1.md"
+  },
   "source_profile": {
     "canonical_host": "cars.bonhams.com",
     "allowed_source_hosts": [
@@ -23,9 +31,16 @@
     "access_mode": "PUBLIC_WEB",
     "source_owner_candidate": "bonhams",
     "source_schema_version": "bonhams-cars-result-snapshot-v1",
-    "adapter_state": "ADAPTER_NOT_IMPLEMENTED",
+    "adapter_state": "IMPLEMENTED_NOT_RIGHTS_VERIFIED",
     "target_claims": [
       "DATED_OBSERVED_SOLD_TRANSACTION",
+      "CURRENT_PRICE",
+      "LIQUIDITY_OR_TIME_TO_SALE"
+    ],
+    "implemented_claim_parsers": [
+      "DATED_OBSERVED_SOLD_TRANSACTION"
+    ],
+    "template_only_claims": [
       "CURRENT_PRICE",
       "LIQUIDITY_OR_TIME_TO_SALE"
     ],
@@ -41,7 +56,8 @@
       "input_snapshot_ref",
       "source_payload_hash",
       "canonical_object_id",
-      "condition_segment"
+      "condition_segment",
+      "evidence_kind"
     ],
     "source_payload_hash_must_match_html": true,
     "input_snapshot_ref_must_be_sha256": true,
@@ -59,6 +75,7 @@
     "condition_segment_required": true
   },
   "liquidity_semantics": {
+    "implementation_state": "TEMPLATE_ONLY_IMPLEMENTATION_PENDING",
     "terminal_outcomes": [
       "SOLD",
       "UNSOLD",
@@ -76,9 +93,9 @@
     "factual_origin_independence_proven": false
   },
   "implementation_truth": {
-    "source_specific_parser_implemented": false,
-    "deterministic_fixture_tests_implemented": false,
-    "generic_market_adapter_runtime_bound": false,
+    "source_specific_parser_implemented": true,
+    "deterministic_fixture_tests_implemented": true,
+    "generic_market_adapter_runtime_bound": true,
     "live_source_snapshot_verified_count": 0,
     "field_purpose_rights_verified": false,
     "sold_semantics_empirically_verified": false,
@@ -96,9 +113,22 @@
     "fixtures_can_verify_empirical_rights_or_live_schema": false,
     "fixtures_can_create_market_event_or_claim": false
   },
+  "required_mutation_families": [
+    "ESTIMATE_IS_NOT_SOLD",
+    "AMBIGUOUS_DOLLAR_CURRENCY",
+    "SOLD_WITHOUT_EXPLICIT_PRICE",
+    "SCRIPT_ONLY_SOLD_SIGNAL",
+    "MISSING_LOT_IDENTIFIER",
+    "PAYLOAD_HASH_MISMATCH",
+    "SOURCE_HOST_NOT_ALLOWED",
+    "NON_HTTPS_SOURCE"
+  ],
   "required_outputs": [
     "bonhams-cars-adapter-test-receipt-v1.json",
-    "bonhams-cars-adapter-validation-v1.json"
+    "bonhams-cars-adapter-validation-v1.json",
+    "source-adapter-template-registry-v1.json",
+    "source-adapter-development-backlog-v1.json",
+    "source-adapter-template-expansion-manifest-v1.json"
   ],
   "truth_boundary": {
     "live_source_request_executed": false,
