@@ -1,0 +1,169 @@
+name: KIDULTS ASI P1 Market-Event Adapter Runtime v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7 */6 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'services/kidults-autonomous-intelligence/src/asi/market-adapter.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-market-adapter-runtime-test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs'
+      - 'docs/kidults/asi/asi-p1-market-event-adapter-runtime-v1.md'
+      - '.github/workflows/kidults-asi-p1-market-event-adapter-runtime-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'services/kidults-autonomous-intelligence/src/asi/market-adapter.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-market-adapter-runtime-test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs'
+      - 'docs/kidults/asi/asi-p1-market-event-adapter-runtime-v1.md'
+      - '.github/workflows/kidults-asi-p1-market-event-adapter-runtime-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Mission-Directed Discovery v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-p1-market-event-adapter-runtime-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-market-adapter-runtime:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
+      - name: Verify exact source and syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs
+          node --check services/kidults-autonomous-intelligence/scripts/asi-market-adapter-runtime-test.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-registry-v1.json','utf8'))"
+      - name: Validate strict adapter contract and source profiles
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs \
+            | tee /tmp/asi-market-adapter-runtime-validation-v1.json
+      - name: Install bounded runtime dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck market adapter runtime
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+      - name: Exercise fail-closed market adapter runtime
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          node scripts/asi-market-adapter-runtime-test.mjs \
+            | tee /tmp/asi-market-adapter-runtime-test-v1.json
+      - name: Preserve existing 25-fleet processor behavior
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run asi:processor:e2e
+      - name: Reject registered-source activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json /tmp/adapter-contract.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json';const x=JSON.parse(fs.readFileSync(p));x.registered_profile_default_state='ACTIVATED_EVIDENCE_BOUND';x.implementation_truth.registered_source_adapter_implemented_count=1;x.implementation_truth.registered_source_adapter_activated_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs; then
+            echo 'Validator accepted unsupported registered-source activation' >&2
+            exit 1
+          fi
+          mv /tmp/adapter-contract.json coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json
+      - name: Reject fixture promotion mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json /tmp/adapter-contract.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json';const x=JSON.parse(fs.readFileSync(p));x.fixture_policy.can_create_market_event_or_claim=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs; then
+            echo 'Validator accepted synthetic fixture promotion' >&2
+            exit 1
+          fi
+          mv /tmp/adapter-contract.json coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json
+      - name: Reject source-adapter implementation overclaim mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-registry-v1.json /tmp/adapter-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.implementation_state.source_specific_adapters_implemented=1;x.implementation_state.source_specific_adapters_activated=1;x.implementation_state.empirical_market_events_admitted=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs; then
+            echo 'Validator accepted source-adapter and market-event overclaim' >&2
+            exit 1
+          fi
+          mv /tmp/adapter-registry.json coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-registry-v1.json
+      - name: Reject provider direct-path source mutation
+        run: |
+          set -euo pipefail
+          cp services/kidults-autonomous-intelligence/src/asi/market-adapter.ts /tmp/market-adapter.ts
+          python - <<'PY'
+          p='services/kidults-autonomous-intelligence/src/asi/market-adapter.ts'
+          s=open(p).read().replace("provider_direct_to_index_or_projection_allowed: false;", "provider_direct_to_index_or_projection_allowed: boolean;")
+          s=s.replace("if (profile.provider_direct_to_index_or_projection_allowed !== false)", "if (false)")
+          open(p,'w').write(s)
+          PY
+          if node scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs; then
+            echo 'Validator accepted provider direct-path weakening' >&2
+            exit 1
+          fi
+          mv /tmp/market-adapter.ts services/kidults-autonomous-intelligence/src/asi/market-adapter.ts
+      - name: Reject manual-only activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-registry-v1.json /tmp/adapter-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflows=[];fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs; then
+            echo 'Validator accepted manual-only adapter runtime validation' >&2
+            exit 1
+          fi
+          mv /tmp/adapter-registry.json coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-registry-v1.json
+      - name: Revalidate pristine adapter runtime
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs \
+            > /tmp/asi-market-adapter-runtime-final-validation-v1.json
+      - name: Emit KPMO market-adapter runtime receipt
+        run: |
+          node - <<'NODE' >/tmp/asi-market-adapter-runtime-kpmo-receipt-v1.json
+          const fs=require('fs'),crypto=require('crypto');const testPath='/tmp/asi-market-adapter-runtime-test-v1.json';const validationPath='/tmp/asi-market-adapter-runtime-final-validation-v1.json';const t=JSON.parse(fs.readFileSync(testPath));const v=JSON.parse(fs.readFileSync(validationPath));const digest=p=>'sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-market-adapter-runtime-kpmo-receipt-v1',version:'1.0.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,test_digest:digest(testPath),validation_digest:digest(validationPath),registered_source_profiles:t.registered_source_profiles_validated,generic_strict_runtime_implemented:true,fixture_tests_non_promotable:true,registered_source_adapters_implemented:0,registered_source_adapters_activated:0,empirical_market_events_admitted:0,current_price_eligible_sources:0,liquidity_eligible_sources:0,autonomous_effect:'POSITIVE_FAIL_CLOSED_RUNTIME_REVALIDATES_AUTOMATICALLY',global_effect:'POSITIVE_ONE_RUNTIME_CONTRACT_FOR_ALL_REGISTERED_SOURCE_PROFILES',irreplaceable_value_effect:'POSITIVE_KIDULTS_OWNED_NORMALIZATION_RIGHTS_PROVENANCE_AND_SWITCHING_BOUNDARY',transparency_effect:'POSITIVE_EVERY_MISSING_ASSERTION_AND_NON_PROMOTABLE_FIXTURE_EXPLICIT',public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/asi-market-adapter-runtime-kpmo-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-p1-market-event-adapter-runtime-v1
+          path: |
+            /tmp/asi-market-adapter-runtime-validation-v1.json
+            /tmp/asi-market-adapter-runtime-test-v1.json
+            /tmp/asi-market-adapter-runtime-final-validation-v1.json
+            /tmp/asi-market-adapter-runtime-kpmo-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
