@@ -39,7 +39,7 @@ The validator rejects:
 - mutable Actions, moving runners, persisted checkout credentials, non-exact checkout, secret injection, or manual-only activation in the read-back workflow;
 - any receipt that claims GitHub settings changed, secret material was read, #974 was auto-closed, #936 was closed, #881 control pass was promoted, empirical Evidence was promoted, or Production/Public/G5 authority changed.
 
-The automatic workflow runs exact-head offline proof on pull requests, read-only proof after protected-main pushes, and a daily scheduled read-back. `workflow_dispatch` is recovery-only. It uses only the ephemeral least-privilege `github.token`; it references no repository or Environment secret.
+The automatic workflow runs exact-head offline proof on pull requests, read-only proof after protected-main pushes, and a daily scheduled read-back. `workflow_dispatch` is recovery-only. Its live job uses the ephemeral least-privilege `${{ github.token }}` for GitHub metadata GETs, and the receipt reports that truthfully as `authorization_mode=GITHUB_TOKEN_METADATA_READ` plus `credential_activation=EPHEMERAL_GITHUB_TOKEN_METADATA_READ`. This is not activation of a stored repository/Environment secret or any provider credential; both remain explicitly `false`.
 
 ## Reproduction
 
@@ -62,7 +62,7 @@ node scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mj
   --receipt /tmp/kidults-github-trusted-ref-environment-readback-receipt-v1.json
 ```
 
-`GITHUB_TOKEN` may be present in the environment for metadata authorization. It is never accepted as a CLI argument, written to the receipt, or printed.
+`GITHUB_TOKEN` may be present in the process environment for metadata authorization. The token value is never accepted as a CLI argument, written to the receipt, or printed. The receipt records only the authorization/activation class: ephemeral GitHub token metadata read, public metadata, or test fixture.
 
 ## Remaining external blockers
 
