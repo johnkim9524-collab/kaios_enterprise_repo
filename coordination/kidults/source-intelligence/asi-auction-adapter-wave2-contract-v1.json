@@ -1,0 +1,162 @@
+{
+  "id": "kidults-asi-auction-adapter-wave2-contract-v1",
+  "version": "1.0.0",
+  "status": "IMPLEMENTED_FIXTURE_VERIFIED_NOT_RIGHTS_OR_LIVE_SCHEMA_VERIFIED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Convert the highest-priority generated public-auction templates after Bonhams Cars into four source-specific, deterministic, fail-closed SOLD adapters while preserving empirical rights, live schema, owner, factual-origin, Evidence Admission and Market Event boundaries.",
+  "reference_adapter": {
+    "source_id": "bonhams-cars-results",
+    "state": "IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED",
+    "contract": "coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json"
+  },
+  "common_runtime_assets": {
+    "generic_market_adapter": "services/kidults-autonomous-intelligence/src/asi/market-adapter.ts",
+    "public_auction_parser": "services/kidults-autonomous-intelligence/src/asi/source-adapters/public-auction-results-common.ts",
+    "registered_profile_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+    "registered_source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv"
+  },
+  "wave_sources": [
+    {
+      "rank": 2,
+      "source_id": "barrett-jackson-results",
+      "verified_assignment_count": 18,
+      "module": "services/kidults-autonomous-intelligence/src/asi/source-adapters/barrett-jackson-results.ts",
+      "source_schema_version": "barrett-jackson-result-snapshot-v1",
+      "target_claims": [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ],
+      "implemented_claim_parsers": [
+        "DATED_OBSERVED_SOLD_TRANSACTION"
+      ]
+    },
+    {
+      "rank": 6,
+      "source_id": "broad-arrow-results",
+      "verified_assignment_count": 12,
+      "module": "services/kidults-autonomous-intelligence/src/asi/source-adapters/broad-arrow-results.ts",
+      "source_schema_version": "broad-arrow-result-snapshot-v1",
+      "target_claims": [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ],
+      "implemented_claim_parsers": [
+        "DATED_OBSERVED_SOLD_TRANSACTION"
+      ]
+    },
+    {
+      "rank": 8,
+      "source_id": "collecting-cars-sold",
+      "verified_assignment_count": 6,
+      "module": "services/kidults-autonomous-intelligence/src/asi/source-adapters/collecting-cars-sold.ts",
+      "source_schema_version": "collecting-cars-sold-snapshot-v1",
+      "target_claims": [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ],
+      "implemented_claim_parsers": [
+        "DATED_OBSERVED_SOLD_TRANSACTION"
+      ]
+    },
+    {
+      "rank": 9,
+      "source_id": "iconic-auctioneers-results",
+      "verified_assignment_count": 6,
+      "module": "services/kidults-autonomous-intelligence/src/asi/source-adapters/iconic-auctioneers-results.ts",
+      "source_schema_version": "iconic-auctioneers-result-snapshot-v1",
+      "target_claims": [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ],
+      "implemented_claim_parsers": [
+        "DATED_OBSERVED_SOLD_TRANSACTION"
+      ]
+    }
+  ],
+  "source_specific_contract": {
+    "immutable_external_snapshot_only": true,
+    "network_execution_owned_by_adapter": false,
+    "https_required": true,
+    "source_host_allowlist_required": true,
+    "payload_sha256_match_required": true,
+    "snapshot_sha256_reference_required": true,
+    "event_identifier_required": true,
+    "lot_identifier_required": true,
+    "event_time_required": true,
+    "explicit_terminal_sold_phrase_required": true,
+    "positive_realized_price_required": true,
+    "explicit_currency_required": true,
+    "ambiguous_dollar_allowed": false,
+    "listing_estimate_bid_offer_reserve_or_guide_is_sold": false,
+    "script_only_sold_signal_allowed": false,
+    "canonical_object_id_required": true,
+    "condition_segment_required": true,
+    "generic_runtime_binding_required": true,
+    "deterministic_replay_required": true
+  },
+  "required_mutation_families": [
+    "ESTIMATE_IS_NOT_SOLD",
+    "AMBIGUOUS_DOLLAR_CURRENCY",
+    "SOLD_WITHOUT_EXPLICIT_PRICE",
+    "SCRIPT_ONLY_SOLD_SIGNAL",
+    "MISSING_LOT_IDENTIFIER",
+    "PAYLOAD_HASH_MISMATCH",
+    "SOURCE_HOST_NOT_ALLOWED",
+    "NON_HTTPS_SOURCE"
+  ],
+  "portfolio_state_after_wave": {
+    "registered_source_profiles": 16,
+    "source_specific_adapters_implemented": 5,
+    "source_specific_adapters_pending": 11,
+    "wave2_adapters_implemented": 4,
+    "wave2_verified_assignment_count": 42,
+    "live_source_snapshots_verified": 0,
+    "field_purpose_rights_verified_sources": 0,
+    "source_specific_adapters_activated": 0,
+    "evidence_admitted": 0,
+    "market_events_created": 0
+  },
+  "fixture_policy": {
+    "mode": "SYNTHETIC_CONTROL_ONLY",
+    "can_verify_parser_runtime_replay_and_mutation_behavior": true,
+    "can_verify_empirical_rights_live_schema_or_source_semantics": false,
+    "can_activate_adapter": false,
+    "can_create_evidence_or_market_event": false
+  },
+  "required_outputs": [
+    "auction-adapter-wave2-test-receipt-v1.json",
+    "auction-adapter-wave2-implementation-registry-v1.json",
+    "source-adapter-implementation-backlog-v2.json",
+    "auction-adapter-wave2-manifest-v1.json",
+    "auction-adapter-wave2-validation-v1.json"
+  ],
+  "truth_boundary": {
+    "parser_implementation_is_live_schema_verification": false,
+    "fixture_verification_is_empirical_source_verification": false,
+    "registered_profile_is_rights_verification": false,
+    "source_owner_candidate_is_verified_owner": false,
+    "auction_lot_key_is_verified_factual_origin": false,
+    "normalized_candidate_is_admitted_evidence": false,
+    "live_source_request_executed": false,
+    "rights_pass_created": false,
+    "adapter_activated": false,
+    "evidence_admitted": false,
+    "market_event_created": false,
+    "current_price_created": false,
+    "liquidity_measure_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
