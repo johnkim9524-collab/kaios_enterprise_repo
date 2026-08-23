@@ -1,0 +1,228 @@
+name: KIDULTS ASI Owned Source Intelligence Graph v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '52 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v1.1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-owned-source-intelligence-graph-v1.md'
+      - '.github/workflows/kidults-asi-owned-source-intelligence-graph-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v1.1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-owned-source-intelligence-graph-v1.md'
+      - '.github/workflows/kidults-asi-owned-source-intelligence-graph-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Candidate Preflight Wave v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-owned-source-intelligence-graph-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-owned-source-graph:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v1.1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v1.json','utf8'))"
+      - name: Validate registered P2 assets and automatic continuation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v1.mjs \
+            | tee /tmp/kidults-asi-owned-source-intelligence-graph-registry-validation-v1.json
+      - name: Restore latest main P0 and P1 artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/p0-expanded /tmp/p1-expanded /tmp/p0 /tmp/p1
+          P0_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-mission-consumption-wave-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          P1_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-candidate-preflight-wave-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          test -n "$P0_ID"
+          test -n "$P1_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0_ID}/zip" > /tmp/p0.zip
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/p1.zip
+          unzip -q -o /tmp/p0.zip -d /tmp/p0-expanded
+          unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
+          for NAME in mission-consumption-ledger-v1.json source-candidate-increment-v1.json mission-lane-coverage-v1.json discovery-provider-health-v1.json; do
+            FILE=$(find /tmp/p0-expanded -type f -name "$NAME" -print -quit)
+            test -n "$FILE"
+            cp "$FILE" "/tmp/p0/$NAME"
+          done
+          for NAME in candidate-host-preflight-ledger-v1.json candidate-preflight-assignment-v1.json candidate-admission-readiness-v1.json candidate-preflight-health-v1.json; do
+            FILE=$(find /tmp/p1-expanded -type f -name "$NAME" -print -quit)
+            test -n "$FILE"
+            cp "$FILE" "/tmp/p1/$NAME"
+          done
+          echo "p0_artifact_id=$P0_ID"
+          echo "p1_artifact_id=$P1_ID"
+      - name: Build owned source-intelligence graph twice
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v1.1.mjs \
+            /tmp/p0/mission-consumption-ledger-v1.json \
+            /tmp/p0/source-candidate-increment-v1.json \
+            /tmp/p1/candidate-host-preflight-ledger-v1.json \
+            /tmp/p1/candidate-preflight-assignment-v1.json \
+            /tmp/p1/candidate-admission-readiness-v1.json \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v1.json \
+            /tmp/kidults-asi-owned-source-intelligence-graph-run-1 \
+            | tee /tmp/kidults-asi-owned-source-intelligence-graph-live-summary-v1.json
+          TZ=Pacific/Honolulu LANG=C LC_ALL=C node scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v1.1.mjs \
+            /tmp/p0/mission-consumption-ledger-v1.json \
+            /tmp/p0/source-candidate-increment-v1.json \
+            /tmp/p1/candidate-host-preflight-ledger-v1.json \
+            /tmp/p1/candidate-preflight-assignment-v1.json \
+            /tmp/p1/candidate-admission-readiness-v1.json \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v1.json \
+            /tmp/kidults-asi-owned-source-intelligence-graph-run-2
+          diff -qr /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/kidults-asi-owned-source-intelligence-graph-run-2
+      - name: Validate P2 owned source-intelligence graph
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v1.mjs \
+            /tmp/kidults-asi-owned-source-intelligence-graph-run-1 \
+            /tmp/p0/mission-consumption-ledger-v1.json \
+            /tmp/p0/source-candidate-increment-v1.json \
+            /tmp/p1/candidate-host-preflight-ledger-v1.json \
+            /tmp/p1/candidate-preflight-assignment-v1.json \
+            /tmp/p1/candidate-admission-readiness-v1.json \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v1.json \
+            | tee /tmp/kidults-asi-owned-source-intelligence-graph-validation-v1.json
+      - name: Reject source-candidate-as-evidence mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/bad-candidate-evidence
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-candidate-evidence/owned-source-intelligence-graph-v1.json';const x=JSON.parse(fs.readFileSync(p));const n=x.nodes.find(v=>v.node_type==='SOURCE_CANDIDATE');if(!n)throw new Error('NO_CANDIDATE_NODE');n.properties.candidate_is_evidence=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v1.mjs /tmp/bad-candidate-evidence /tmp/p0/mission-consumption-ledger-v1.json /tmp/p0/source-candidate-increment-v1.json /tmp/p1/candidate-host-preflight-ledger-v1.json /tmp/p1/candidate-preflight-assignment-v1.json /tmp/p1/candidate-admission-readiness-v1.json; then
+            echo 'Validator accepted source candidate as evidence' >&2
+            exit 1
+          fi
+      - name: Reject market-event node mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/bad-market-event
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-market-event/owned-source-intelligence-graph-v1.json';const x=JSON.parse(fs.readFileSync(p));x.nodes.push({node_id:'node:market_event:forbidden',node_type:'MARKET_EVENT',canonical_key:'forbidden',properties:{},source_refs:[],kidults_owned_graph_primitive:true,market_evidence_node:true,public_release:'HOLD',production:'HOLD'});x.node_count=x.nodes.length;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v1.mjs /tmp/bad-market-event /tmp/p0/mission-consumption-ledger-v1.json /tmp/p0/source-candidate-increment-v1.json /tmp/p1/candidate-host-preflight-ledger-v1.json /tmp/p1/candidate-preflight-assignment-v1.json /tmp/p1/candidate-admission-readiness-v1.json; then
+            echo 'Validator accepted market-event node' >&2
+            exit 1
+          fi
+      - name: Reject orphan mission mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/bad-orphan-mission
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-orphan-mission/owned-source-intelligence-graph-v1.json';const x=JSON.parse(fs.readFileSync(p));const m=x.nodes.find(v=>v.node_type==='MISSION');const i=x.edges.findIndex(v=>v.edge_type==='MISSION_IN_SCOPE'&&v.from_node_id===m.node_id);if(i<0)throw new Error('MISSION_EDGE_MISSING');x.edges.splice(i,1);x.edge_count=x.edges.length;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v1.mjs /tmp/bad-orphan-mission /tmp/p0/mission-consumption-ledger-v1.json /tmp/p0/source-candidate-increment-v1.json /tmp/p1/candidate-host-preflight-ledger-v1.json /tmp/p1/candidate-preflight-assignment-v1.json /tmp/p1/candidate-admission-readiness-v1.json; then
+            echo 'Validator accepted orphan mission' >&2
+            exit 1
+          fi
+      - name: Reject graph digest mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/bad-graph-digest
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-graph-digest/owned-source-intelligence-lineage-v1.json';const x=JSON.parse(fs.readFileSync(p));x.graph.digest='sha256:'+'0'.repeat(64);fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v1.mjs /tmp/bad-graph-digest /tmp/p0/mission-consumption-ledger-v1.json /tmp/p0/source-candidate-increment-v1.json /tmp/p1/candidate-host-preflight-ledger-v1.json /tmp/p1/candidate-preflight-assignment-v1.json /tmp/p1/candidate-admission-readiness-v1.json; then
+            echo 'Validator accepted graph digest mutation' >&2
+            exit 1
+          fi
+      - name: Reject preflight-as-admission mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/bad-preflight-admission
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-preflight-admission/owned-source-intelligence-graph-v1.json';const x=JSON.parse(fs.readFileSync(p));const e=x.edges.find(v=>v.edge_type==='HOST_HAS_PREFLIGHT');if(!e)throw new Error('NO_PREFLIGHT_EDGE');e.properties.preflight_is_admission=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v1.mjs /tmp/bad-preflight-admission /tmp/p0/mission-consumption-ledger-v1.json /tmp/p0/source-candidate-increment-v1.json /tmp/p1/candidate-host-preflight-ledger-v1.json /tmp/p1/candidate-preflight-assignment-v1.json /tmp/p1/candidate-admission-readiness-v1.json; then
+            echo 'Validator accepted preflight as admission' >&2
+            exit 1
+          fi
+      - name: Reject manual-only P2 activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v1.json /tmp/owned-graph-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflow=null;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v1.mjs; then
+            echo 'Validator accepted manual-only P2 activation' >&2
+            exit 1
+          fi
+          mv /tmp/owned-graph-registry.json coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v1.json
+      - name: Revalidate pristine P2 graph and registry
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v1.mjs \
+            > /tmp/kidults-asi-owned-source-intelligence-graph-registry-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v1.mjs \
+            /tmp/kidults-asi-owned-source-intelligence-graph-run-1 \
+            /tmp/p0/mission-consumption-ledger-v1.json \
+            /tmp/p0/source-candidate-increment-v1.json \
+            /tmp/p1/candidate-host-preflight-ledger-v1.json \
+            /tmp/p1/candidate-preflight-assignment-v1.json \
+            /tmp/p1/candidate-admission-readiness-v1.json \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v1.json \
+            > /tmp/kidults-asi-owned-source-intelligence-graph-final-validation-v1.json
+      - name: Emit KPMO P2 owned-value receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-owned-source-intelligence-graph-receipt-v1.json
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-owned-source-intelligence-graph-run-1/owned-source-intelligence-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-owned-source-intelligence-graph-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,manifest_digest:digest,graph_digest:m.graph_digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,market_claims_created:0,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-owned-source-intelligence-graph-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-owned-source-intelligence-graph-v1
+          path: |
+            /tmp/p0
+            /tmp/p1
+            /tmp/kidults-asi-owned-source-intelligence-graph-run-1
+            /tmp/kidults-asi-owned-source-intelligence-graph-live-summary-v1.json
+            /tmp/kidults-asi-owned-source-intelligence-graph-registry-validation-v1.json
+            /tmp/kidults-asi-owned-source-intelligence-graph-registry-final-validation-v1.json
+            /tmp/kidults-asi-owned-source-intelligence-graph-validation-v1.json
+            /tmp/kidults-asi-owned-source-intelligence-graph-final-validation-v1.json
+            /tmp/kidults-asi-owned-source-intelligence-graph-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
