@@ -1,0 +1,173 @@
+{
+  "id": "kidults-asi-source-adapter-wave4-contract-v1",
+  "version": "1.0.0",
+  "status": "SEVEN_SOURCE_ADAPTERS_IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Complete source-specific implementation coverage for all 16 registered market-source profiles by implementing the final seven adapters with channel-appropriate transaction, exposure or context-only semantics and no inherited claim capability.",
+  "registered_assets": {
+    "shared_market_surface_core": "services/kidults-autonomous-intelligence/src/asi/source-adapters/governed-market-surface.ts",
+    "source_adapter_module": "services/kidults-autonomous-intelligence/src/asi/source-adapters/source-adapter-wave4.ts",
+    "wave_test": "services/kidults-autonomous-intelligence/scripts/asi-source-adapter-wave4-test.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-source-adapter-wave4-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-source-adapter-wave4-v1.yml",
+    "documentation": "docs/kidults/asi/asi-source-adapter-wave4-v1.md"
+  },
+  "source_adapters": [
+    {
+      "rank": 7,
+      "source_id": "pricecharting-api",
+      "family": "STRUCTURED_API_TRANSACTION",
+      "verified_assignment_count": 12,
+      "registered_claims": ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE"],
+      "implemented_claim_parsers": ["DATED_OBSERVED_SOLD_TRANSACTION"],
+      "context_only_claims": [],
+      "implementation_state": "IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED"
+    },
+    {
+      "rank": 11,
+      "source_id": "reverb-price-guide",
+      "family": "AGGREGATE_PRICE_GUIDE_CONTEXT",
+      "verified_assignment_count": 6,
+      "registered_claims": ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE"],
+      "implemented_claim_parsers": [],
+      "context_only_claims": ["AGGREGATE_PRICE_GUIDE_CONTEXT"],
+      "implementation_state": "IMPLEMENTED_CONTEXT_CLASSIFIER_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED"
+    },
+    {
+      "rank": 12,
+      "source_id": "hasbro-pulse-collections",
+      "family": "RELEASE_OR_LISTING_CONTEXT",
+      "verified_assignment_count": 6,
+      "registered_claims": ["LIQUIDITY_OR_TIME_TO_SALE"],
+      "implemented_claim_parsers": [],
+      "context_only_claims": ["RELEASE_OR_LISTING_CONTEXT"],
+      "implementation_state": "IMPLEMENTED_CONTEXT_CLASSIFIER_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED"
+    },
+    {
+      "rank": 13,
+      "source_id": "goat-sneaker-marketplace",
+      "family": "MARKETPLACE_EXPOSURE",
+      "verified_assignment_count": 6,
+      "registered_claims": ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"],
+      "implemented_claim_parsers": ["LIQUIDITY_OR_TIME_TO_SALE"],
+      "context_only_claims": ["LISTING_AND_AUTHENTICATION_CONTEXT"],
+      "implementation_state": "IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED"
+    },
+    {
+      "rank": 14,
+      "source_id": "comc-marketplace",
+      "family": "MARKETPLACE_EXPOSURE",
+      "verified_assignment_count": 6,
+      "registered_claims": ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"],
+      "implemented_claim_parsers": ["LIQUIDITY_OR_TIME_TO_SALE"],
+      "context_only_claims": ["LISTING_AND_AUTHENTICATION_CONTEXT"],
+      "implementation_state": "IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED"
+    },
+    {
+      "rank": 15,
+      "source_id": "bricklink-catalog-api",
+      "family": "MARKETPLACE_EXPOSURE",
+      "verified_assignment_count": 3,
+      "registered_claims": ["LIQUIDITY_OR_TIME_TO_SALE"],
+      "implemented_claim_parsers": ["LIQUIDITY_OR_TIME_TO_SALE"],
+      "context_only_claims": ["CATALOG_AND_LISTING_CONTEXT"],
+      "implementation_state": "IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED"
+    },
+    {
+      "rank": 16,
+      "source_id": "nike-snkrs-launch-calendar",
+      "family": "RELEASE_OR_LISTING_CONTEXT",
+      "verified_assignment_count": 3,
+      "registered_claims": ["LIQUIDITY_OR_TIME_TO_SALE"],
+      "implemented_claim_parsers": [],
+      "context_only_claims": ["RELEASE_OR_LISTING_CONTEXT"],
+      "implementation_state": "IMPLEMENTED_CONTEXT_CLASSIFIER_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED"
+    }
+  ],
+  "claim_partition": {
+    "strict_transaction_candidate_parsers": 1,
+    "strict_exposure_candidate_parsers": 3,
+    "context_only_non_promotable_classifiers": 3,
+    "dated_sold_parsers_may_not_inherit_current_price": true,
+    "listing_or_release_context_may_not_inherit_liquidity": true,
+    "aggregate_price_guide_may_not_inherit_transaction_or_current_price": true,
+    "registered_claim_is_not_implemented_claim": true
+  },
+  "shared_controls": [
+    "HTTPS_ONLY",
+    "SOURCE_HOST_ALLOWLIST",
+    "SOURCE_PATH_ALLOWLIST",
+    "IMMUTABLE_SNAPSHOT_REFERENCE",
+    "EXACT_PAYLOAD_SHA256",
+    "OBJECT_JSON_PAYLOAD_REQUIRED",
+    "RFC3339_OBSERVATION_TIME",
+    "SOURCE_SPECIFIC_FIELD_MAPPING",
+    "EXPLICIT_TERMINAL_SOLD_REQUIRED_FOR_TRANSACTION",
+    "POSITIVE_REALIZED_PRICE_AND_EXPLICIT_CURRENCY",
+    "EXPOSURE_START_END_OUTCOME_CENSORING_AND_DENOMINATOR_REQUIRED",
+    "AGGREGATE_PRICE_GUIDE_NE_TRANSACTION",
+    "RELEASE_OR_LISTING_NE_LIQUIDITY",
+    "OWNER_AND_FACTUAL_ORIGIN_REMAIN_UNVERIFIED",
+    "GENERIC_MARKET_ADAPTER_RUNTIME_BOUND_WHEN_CANDIDATE_EXISTS",
+    "DETERMINISTIC_REPLAY",
+    "PROVIDER_DIRECT_TO_INDEX_OR_PROJECTION_FORBIDDEN"
+  ],
+  "required_mutation_families_per_source": [
+    "SOURCE_HOST_NOT_ALLOWED",
+    "NON_HTTPS_SOURCE",
+    "SOURCE_PATH_NOT_ALLOWED",
+    "PAYLOAD_HASH_MISMATCH",
+    "SOURCE_FAMILY_SEMANTIC_MUTATION_A",
+    "SOURCE_FAMILY_SEMANTIC_MUTATION_B",
+    "SOURCE_FAMILY_SEMANTIC_MUTATION_C"
+  ],
+  "portfolio_state_after_wave": {
+    "registered_source_profiles": 16,
+    "source_specific_adapters_implemented": 16,
+    "source_specific_adapters_pending": 0,
+    "transaction_candidate_parsers_implemented": 10,
+    "exposure_candidate_parsers_implemented": 3,
+    "context_only_classifiers_implemented": 3,
+    "source_specific_adapters_activated": 0,
+    "live_source_snapshots_verified": 0,
+    "field_purpose_rights_verified_sources": 0,
+    "empirical_market_events_admitted": 0
+  },
+  "first_evidence_admission_gate": {
+    "state": "BLOCKED_PENDING_EMPIRICAL_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_AND_ACTIVATION",
+    "software_adapter_coverage_complete": true,
+    "required": [
+      "IMMUTABLE_LIVE_SOURCE_SNAPSHOT",
+      "PURPOSE_SPECIFIC_COLLECT_STORE_DERIVE_RIGHTS",
+      "EMPIRICAL_SOURCE_SCHEMA_VERIFICATION",
+      "EMPIRICAL_CLAIM_SEMANTICS_VERIFICATION",
+      "SOURCE_OWNER_VERIFICATION",
+      "FACTUAL_ORIGIN_VERIFICATION",
+      "SOURCE_SPECIFIC_ACTIVATION_GATE_PASS",
+      "MARKET_EVENT_ADMISSION_RECEIPT"
+    ]
+  },
+  "truth_boundary": {
+    "fixture_is_empirical_source_snapshot": false,
+    "implemented_adapter_is_activated_adapter": false,
+    "context_classifier_is_evidence_parser": false,
+    "registered_claim_is_implemented_claim": false,
+    "live_source_request_executed": false,
+    "rights_pass_created": false,
+    "factual_origin_verified": false,
+    "evidence_admitted": 0,
+    "market_events_created": 0,
+    "current_price_created": false,
+    "liquidity_measure_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
