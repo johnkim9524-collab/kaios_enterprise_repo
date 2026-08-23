@@ -168,7 +168,8 @@ jobs:
           const fs=require('fs');
           const p='.github/workflows/kidults-asi-sharded-source-reserve-v1.yml';
           let x=fs.readFileSync(p,'utf8');
-          x=x.replace('\n  push:\n','\n  push_removed:\n').replace('\n  workflow_run:\n','\n  workflow_run_removed:\n');
+          x=x.replace(/^\s{2}push:\s*$/m,'  push_removed:').replace(/^\s{2}workflow_run:\s*$/m,'  workflow_run_removed:');
+          if(!x.includes('push_removed:')||!x.includes('workflow_run_removed:'))throw new Error('MUTATION_DID_NOT_APPLY');
           fs.writeFileSync(p,x);
           NODE
           if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
