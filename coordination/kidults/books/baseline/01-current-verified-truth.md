@@ -10,6 +10,18 @@
 **Gate 상태:** C1 확립; C2 미완료; Production/Public/G5 `HOLD`  
 **Evidence 참조:** #235, #236, #237, #238, #240, #256, #881, #921, #1013, #1074, #1080, #1106, #1107, #1108, #1113, #1115, #1116, #1117, Platform Constitution commit `1109a98c…`
 
+
+## Platform Constitution Effect Receipt
+
+| 필수 메타데이터 | 이 장의 효과 | Evidence와 경계 |
+|---|---|---|
+| `autonomous_effect` | `NEUTRAL_WITH_EVIDENCE` | main에 자동 trigger가 병합된 사실과 per-run Artifact·Receipt 필요조건을 기록함. 이 장이 Runtime을 변경하지는 않음 |
+| `global_effect` | `NEUTRAL_WITH_EVIDENCE` | KIDULTS 검증 슬라이스를 전사·글로벌 사실로 일반화하지 않고 미검증 영역을 `UNKNOWN`으로 유지함 |
+| `irreplaceable_value_effect` | `NEUTRAL_WITH_EVIDENCE` | 내부 Core와 Knowledge Capital의 평가기준을 보존하지만 고객효용·시장우위를 새로 입증하지 않음 |
+| `transparency_effect` | `POSITIVE` | 현재 SHA, 실증 0/부재, Track·Gate·Rights·Provider 결손과 상태승격 금지를 시점 고정 사실로 공개함 |
+
+네 효과는 문서 변경 범위의 평가다. 실증·상업·Production 효과로 확대 해석하지 않는다.
+
 ## 1. Baseline의 목적과 적용 범위
 
 이 책은 Intelligence Holdings 전체를 대상으로 **현재 무엇이 실제로 존재하고, 무엇이 증명됐으며, 무엇이 아직 존재하지 않는지**를 확립하는 기업 기준서다. 기존 `Enterprise_Baseline_Book_Chapter_01–03_KO.docx`의 목적·증거 위계·상태 구분·진단 방법을 공식 원전으로 승계한다.
