@@ -4,11 +4,17 @@ from pathlib import Path
 
 root=Path(__file__).resolve().parents[2]
 contract=json.loads((root/'coordination/kidults/runtime/digitalocean-staging-portal-deploy-contract-v1.json').read_text())
+receipt_contract=json.loads((root/'coordination/kidults/runtime/digitalocean-staging-portal-receipt-contract-v1.json').read_text())
 script=(root/'scripts/operations/digitalocean_staging_portal_deploy_v1.sh').read_text()
+receipt_validator=(root/'scripts/operations/validate_digitalocean_staging_portal_receipts_v1.py').read_text()
+deploy_workflow=(root/'.github/workflows/digitalocean-staging-portal-deploy.yml').read_text()
+receipt_workflow_path=root/'.github/workflows/digitalocean-staging-portal-receipt-contract.yml'
+receipt_workflow=receipt_workflow_path.read_text() if receipt_workflow_path.exists() else ''
 portal=(root/'apps/kidults-enterprise-staging/public/portal-r001/index.html').read_text()
 errors=[]
 need=lambda c,m: errors.append(m) if not c else None
 need(contract['id']=='kidults-digitalocean-staging-portal-deploy-v1','id')
+need(contract['version']=='1.1.0','deploy contract version')
 need(contract['issue']==921,'issue')
 need(contract['environment']=='STAGING','env')
 need(contract['target']['hostname']=='ih-staging-01','hostname')
@@ -19,6 +25,11 @@ need(contract['target']['bind_host']=='127.0.0.1','bind must be localhost')
 need(contract['deployment']['no_sudo'] is True,'no sudo')
 need(contract['deployment']['public_bind'] is False,'no public bind')
 need(contract['deployment']['rollback_required'] is True,'rollback required')
+need(contract['deployment']['deployment_scoped_receipts_required'] is True,'deployment-scoped receipts required')
+need(contract['deployment']['exact_source_and_workflow_binding_required'] is True,'exact binding required')
+need(contract['deployment']['successful_deploy_rollback_readiness_receipt_required'] is True,'rollback readiness receipt required')
+need(contract['deployment']['local_contract_proof_is_remote_evidence'] is False,'local proof must not be remote evidence')
+need(contract['receipt_contract']=='coordination/kidults/runtime/digitalocean-staging-portal-receipt-contract-v1.json','receipt contract binding')
 need(contract['production']=='HOLD','production hold')
 need(contract['public_intelligence']=='HOLD','public hold')
 need(contract['g5']=='EXPLICIT_APPROVAL_REQUIRED','g5')
@@ -38,13 +49,37 @@ for marker in [
     'portal-r001-rollback-receipt.json',
     'ln -sfn "$PREVIOUS" "$CURRENT"',
     'rollback_status',
+    'SOURCE_COMMIT_SHA="${6:?source commit sha}"',
+    'WORKFLOW_RUN_ID="${7:?workflow run id}"',
+    'WORKFLOW_RUN_ATTEMPT="${8:?workflow run attempt}"',
+    'LOCALHOST_CONTRACT_PROOF',
+    'portal-r001-deployments',
+    'deploy-receipt.json',
+    'health-receipt.json',
+    'receipt_contract_id',
+    'body_sha256',
+    'rollback_target_digest',
+    '"state": "DEPLOYED_VERIFIED"',
+    '"state": "VERIFIED_PASS"',
 ]:
     need(marker in script, f'script marker {marker}')
 need(script.index('ROLLBACK_ARMED=true') < script.index('ln -sfn "$RELEASE" "$CURRENT"'), 'rollback must arm before cutover')
-need('"public_bind": false' in script,'rollback/deploy receipt public bind false')
-need('"production_touch": false' in script,'rollback/deploy receipt production touch false')
-need('"raw_provider_ingestion": false' in script,'rollback/deploy receipt provider ingestion false')
+need('"public_bind": False' in script,'rollback/deploy receipt public bind false')
+need('"production_touch": False' in script,'rollback/deploy receipt production touch false')
+need('"raw_provider_ingestion": False' in script,'rollback/deploy receipt provider ingestion false')
 need('"g5": "HOLD"' in script,'rollback/deploy receipt g5 hold')
+need(receipt_contract['id']=='kidults-digitalocean-staging-portal-receipt-contract-v1','receipt contract id')
+need(receipt_contract['issue']==921,'receipt contract issue')
+need(receipt_contract['evidence_classes']['REMOTE_STAGING']['eligible_for_issue_921_remote_exit'] is True,'remote evidence eligibility')
+need(receipt_contract['evidence_classes']['LOCALHOST_CONTRACT_PROOF']['eligible_for_issue_921_remote_exit'] is False,'local evidence eligibility')
+need(receipt_contract['rollback_receipt']['issue_921_exit_requires_previous_target'] is True,'previous rollback target required')
+need(receipt_contract['safety_boundaries']['production']=='HOLD','receipt Production HOLD')
+need(receipt_contract['safety_boundaries']['g5']=='HOLD','receipt G5 HOLD')
+for marker in ['--expected-deployment-id','--expected-source-sha','--expected-run-id','--expected-run-attempt','--expected-evidence-class','--require-rollback-target','LOCALHOST_CONTRACT_PROOF','REMOTE_STAGING','localhost body digest mismatch','previous-release target is required']:
+    need(marker in receipt_validator, f'receipt validator marker {marker}')
+need('pull_request:' not in deploy_workflow,'privileged deploy workflow must not run on pull_request')
+for marker in ['pull_request:','push:','persist-credentials: false','Verify exact source SHA','test_digitalocean_staging_portal_receipts_v1.sh']:
+    need(marker in receipt_workflow, f'safe receipt workflow marker {marker}')
 if errors:
-    print(json.dumps({'suite':'DIGITALOCEAN_STAGING_PORTAL_DEPLOY_V1','result':'FAIL','errors':errors},indent=2));raise SystemExit(1)
-print(json.dumps({'suite':'DIGITALOCEAN_STAGING_PORTAL_DEPLOY_V1','result':'PASS','target':'ih-staging-01','bind':'127.0.0.1:4173','rollback':'FAIL_CLOSED_ARMED','production':'HOLD','public_intelligence':'HOLD','g5':'EXPLICIT_APPROVAL_REQUIRED'},indent=2))
+    print(json.dumps({'suite':'DIGITALOCEAN_STAGING_PORTAL_DEPLOY_V1','state':'VERIFIED_FAIL','errors':errors},indent=2));raise SystemExit(1)
+print(json.dumps({'suite':'DIGITALOCEAN_STAGING_PORTAL_DEPLOY_V1','state':'VERIFIED_PASS','target':'ih-staging-01','bind':'127.0.0.1:4173','rollback':'FAIL_CLOSED_ARMED','receipt_contract':'kidults-digitalocean-staging-portal-receipt-contract-v1','production':'HOLD','public_intelligence':'HOLD','g5':'EXPLICIT_APPROVAL_REQUIRED'},indent=2))
