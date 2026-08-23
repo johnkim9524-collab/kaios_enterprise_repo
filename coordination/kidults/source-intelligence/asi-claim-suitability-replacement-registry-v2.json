@@ -1,0 +1,61 @@
+{
+  "id": "kidults-asi-claim-suitability-replacement-registry-v2",
+  "version": "2.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": ["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-claim-suitability-replacement-contract-v2.json",
+    "registry": "coordination/kidults/source-intelligence/asi-claim-suitability-replacement-registry-v2.json",
+    "builder": "scripts/kidults/source-intelligence/build-asi-claim-suitability-replacement-v2.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-v2.mjs",
+    "registry_validator": "scripts/kidults/source-intelligence/validate-asi-claim-suitability-replacement-registry-v2.mjs",
+    "workflow": ".github/workflows/kidults-asi-claim-suitability-replacement-v2.yml",
+    "human_policy": "docs/kidults/asi/asi-claim-suitability-replacement-v2.md"
+  },
+  "registered_engines": [
+    "CLAIM_SUITABILITY_RESOLUTION_ENGINE",
+    "GATE1_TERMINAL_DECISION_ENGINE",
+    "CANDIDATE_ROLE_RETIREMENT_ENGINE",
+    "REPLACEMENT_MISSION_GENERATOR",
+    "ADAPTER_REQUIREMENT_COMPILER"
+  ],
+  "input_artifacts": [
+    "kidults-asi-p0b-bounded-discovery-candidates-v1",
+    "kidults-asi-p1-source-preflight-v1",
+    "kidults-asi-owned-source-intelligence-graph-v2"
+  ],
+  "output_artifact": "kidults-asi-claim-suitability-replacement-v2",
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "32 * * * *",
+    "upstream_workflows": [
+      "KIDULTS ASI Autonomous Resolution Layer v1",
+      "KIDULTS ASI P1 Source Preflight v1"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "continuation": {
+    "replacement_queue_consumers": [
+      "KIDULTS ASI P0 Mission Consumption v1",
+      "KIDULTS ASI P0B Bounded Discovery Candidates v1",
+      "SOURCE_SPECIFIC_ADAPTER_DEVELOPMENT"
+    ],
+    "snapshot_readiness_consumer": "KIDULTS ASI Snapshot Readiness Factory v2",
+    "automatic_continuation_required": true
+  },
+  "truth_boundary": {
+    "terminal_reject_is_gate1_pass": false,
+    "terminal_reject_is_negative_market_fact": false,
+    "candidate_role_retirement_is_global_source_ban": false,
+    "replacement_task_is_provider_admission": false,
+    "adapter_requirement_is_adapter_implementation": false,
+    "target_host_egress_executed": false,
+    "evidence_admitted": false,
+    "market_event_created": false,
+    "snapshot_candidate_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
