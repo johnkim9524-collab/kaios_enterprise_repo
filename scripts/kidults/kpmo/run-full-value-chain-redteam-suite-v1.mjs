@@ -8,7 +8,8 @@ const stageCoverageValidator = 'scripts/kidults/kpmo/validate-full-value-chain-s
 const criticalGateBindingValidator = 'scripts/kidults/kpmo/validate-full-value-chain-critical-gate-bindings-v1.mjs';
 const criticalWorkflowProvenanceValidators = [
   'scripts/kidults/kpmo/validate-critical-workflow-provenance-v1.mjs',
-  'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs'
+  'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs',
+  'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs'
 ];
 const repositoryMutationBoundaryValidators = [
   'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
