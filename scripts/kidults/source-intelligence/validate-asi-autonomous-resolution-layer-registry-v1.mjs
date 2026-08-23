@@ -26,6 +26,7 @@ const contract = json(files.contract);
 const registry = json(files.registry);
 const workflow = read(files.workflow);
 const builder = read(files.builder);
+const implementation = [builder, read(files.commonModule), read(files.currentModule), read(files.replacementModule)].join('\n');
 const validator = read(files.validator);
 const doc = read(files.documentation);
 const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
@@ -113,7 +114,7 @@ for (const marker of [
   'kidults-asi-replacement-source-mission-queue-v1',
   'kidults-asi-resolution-learning-ledger-v1',
   'TERMINAL_REJECT_FOR_CURRENT_MARKET_EVIDENCE'
-]) assert(builder.includes(marker), `BUILDER_MARKER:${marker}`);
+]) assert(implementation.includes(marker), `IMPLEMENTATION_MARKER:${marker}`);
 for (const marker of [
   'SEMANTIC_DECISIONS',
   'RIGHTS_PASS_BOUNDARY',
