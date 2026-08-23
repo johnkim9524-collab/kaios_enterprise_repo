@@ -19,6 +19,7 @@ const objectHtml=read(`${base}/object.html`);
 const css=read(`${base}/portal-premium-v4.css`);
 const js=read(`${base}/portal-release-001.js`);
 const store=read(`${base}/projection-store.js`);
+const proofAdmission=read(`${base}/proof-product-admission.js`);
 const objectJs=read(`${base}/object-intelligence.js`);
 const server=read('apps/kidults-enterprise-staging/server.mjs');
 const fixture=parseJson(`${base}/data/projection-control-fixture.json`);
@@ -88,7 +89,8 @@ for(const asset of ['verticals-v4.svg','object-dossier-v4.svg','market-map-v4.sv
   if(!css.includes(`assets/cards/${asset}`))errors.push(`premium card asset not referenced: ${asset}`);
 }
 
-requireMarkers(store,['portal-read-contract-001','normalizeIntelligenceState','normalizeStructuralState','normalizeReleaseState','live_envelope_requires','content_surfaces','LIVE_RIGHTS','LIVE_FRESHNESS','LIVE_RECOMMENDATIONS','LIVE_CONFIDENCE','LIVE_COVERAGE','LIVE_INDEPENDENCE','LIVE_MAX_AGE_MS','FIXTURE_LIVE_ATTEMPT','validDigest','strictIso','parsedStrictIso','validLiveDate','validDisplayScalar','uniqueNonEmpty','liveContentComplete','auditBound','synthetic===false','overall_rankability===true','raw_provider_payloads:false','credentials:false','track_b_bypass:false'],'projection store');
+requireMarkers(store,['portal-read-contract-001','normalizeIntelligenceState','normalizeStructuralState','normalizeReleaseState','live_envelope_requires','content_surfaces','LIVE_RIGHTS','LIVE_FRESHNESS','LIVE_RECOMMENDATIONS','LIVE_CONFIDENCE','LIVE_COVERAGE','LIVE_INDEPENDENCE','LIVE_MAX_AGE_MS','FIXTURE_LIVE_ATTEMPT','validDigest','strictIso','parsedStrictIso','validLiveDate','validDisplayScalar','uniqueNonEmpty','liveContentComplete','auditBound','synthetic===false','overall_rankability===true','raw_provider_payloads:false','credentials:false','track_b_bypass:false','admitProofProductProjection','UNTRUSTED_BROWSER','releaseAuthority:\'HOLD\'','proof_product_admission:\'EXECUTED_BEFORE_RENDER\''],'projection store');
+requireMarkers(proofAdmission,['admitProofProductProjection','PORTAL_RENDER','PUBLIC_API_RESPONSE','EXPORT','ASSESSMENT_ID_REBOUND','TRUSTED_CLOCK_REQUIRED','FRESHNESS_EXPIRED_AT_CONSUMPTION','RELEASE_AUTHORITY_HOLD','payload_exposed','production:\'HOLD\'','public:\'HOLD\'','g5:\'HOLD\''],'proof-product executable admission');
 requireMarkers(js,['readPortalProjection','renderObjectIntelligence','renderVerticals','renderSignals','renderKidult100','renderResearch','renderEvidence','renderAudit','gateWorkspace','initializeNavigation','renderFailure'],'portal runtime');
 requireMarkers(objectJs,['renderObjectIntelligence','normalizeIntelligenceState','LIVE_APPROVED','data-object-identity','data-object-market','data-object-comparables','data-object-evidence','data-object-rights','data-object-limitations'],'object runtime');
 if(js.includes('tabindex="0"')||objectJs.includes('tabindex="0"'))errors.push('runtime creates artificial non-interactive tab stops');
