@@ -187,6 +187,8 @@ def validate_deployed(bundle: Path, args: argparse.Namespace) -> list[Path]:
         require(managed_release_path(rollback.get("rollback_target"), args.expected_evidence_class), "rollback: unmanaged target path")
         require(rollback.get("rollback_target") != deploy.get("release_path"), "rollback: target must differ from deployed release")
         require(SHA256_RE.fullmatch(str(rollback.get("rollback_target_digest", ""))) is not None, "rollback: invalid target digest")
+        require(rollback.get("rollback_target_digest_verified") is True, "rollback: target digest was not revalidated")
+        require(rollback.get("restored_release_digest") == "", "rollback: armed receipt must not claim a restoration digest")
     else:
         require(rollback.get("state") == "BLOCKED", "rollback: missing target must be BLOCKED")
         require(rollback.get("rollback_status") == "NO_PREVIOUS_RELEASE", "rollback: missing target status mismatch")
@@ -211,6 +213,11 @@ def validate_rolled_back(bundle: Path, args: argparse.Namespace) -> list[Path]:
     require(managed_release_path(rollback.get("rollback_target"), args.expected_evidence_class), "rollback: unmanaged restored target")
     require(rollback.get("failed_release") != rollback.get("rollback_target"), "rollback: restored target must differ from failed release")
     require(SHA256_RE.fullmatch(str(rollback.get("rollback_target_digest", ""))) is not None, "rollback: invalid target digest")
+    require(rollback.get("rollback_target_digest_verified") is True, "rollback: restored target digest was not revalidated")
+    require(
+        rollback.get("restored_release_digest") == rollback.get("rollback_target_digest"),
+        "rollback: restored release digest mismatch",
+    )
     require(str(rollback.get("server_pid", "")).isdigit() and int(rollback["server_pid"]) > 0, "rollback: invalid restored server pid")
     restored_markers = rollback.get("restored_markers")
     require(isinstance(restored_markers, dict), "rollback: restored markers must be an object")

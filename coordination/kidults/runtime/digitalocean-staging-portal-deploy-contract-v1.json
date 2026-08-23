@@ -1,6 +1,6 @@
 {
   "id": "kidults-digitalocean-staging-portal-deploy-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "issue": 921,
   "environment": "STAGING",
   "target": {
@@ -29,6 +29,10 @@
     "deployment_scoped_receipts_required": true,
     "exact_source_and_workflow_binding_required": true,
     "successful_deploy_rollback_readiness_receipt_required": true,
+    "previous_release_required_before_cutover": true,
+    "rollback_target_digest_revalidation_required": true,
+    "serialized_deployments_required": true,
+    "run_attempt_scoped_release_id": true,
     "local_contract_proof_is_remote_evidence": false
   },
   "prohibited": ["PRODUCTION_MUTATION", "PUBLIC_INTELLIGENCE_ENDPOINT", "RAW_PROVIDER_INGESTION", "TRACK_B_BYPASS", "G5_PROMOTION"],

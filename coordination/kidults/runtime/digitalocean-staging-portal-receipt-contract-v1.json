@@ -1,6 +1,6 @@
 {
   "id": "kidults-digitalocean-staging-portal-receipt-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "issue": 921,
   "status": "REGISTERED_FAIL_CLOSED",
   "environment": "STAGING",
@@ -100,6 +100,8 @@
       "rollback_target_available",
       "rollback_target",
       "rollback_target_digest",
+      "rollback_target_digest_verified",
+      "restored_release_digest",
       "rollback_status",
       "failed_release",
       "trigger_exit_code"
@@ -107,6 +109,8 @@
     "deployed_outcome": {
       "required_state_when_target_available": "VERIFIED_PASS",
       "required_status_when_target_available": "ARMED",
+      "rollback_target_digest_verified": true,
+      "pre_cutover_without_previous_target": "VERIFIED_FAIL_NO_CUTOVER",
       "state_without_previous_target": "BLOCKED",
       "status_without_previous_target": "NO_PREVIOUS_RELEASE",
       "required_trigger_exit_code": 0
@@ -114,6 +118,8 @@
     "rolled_back_outcome": {
       "required_state": "VERIFIED_PASS",
       "required_status": "RESTORED",
+      "rollback_target_digest_verified": true,
+      "restored_release_digest_must_equal_rollback_target_digest": true,
       "trigger_exit_code_must_be_nonzero": true,
       "required_restored_health_markers": [
         "data-release=\"portal-release-001\"",
@@ -125,6 +131,7 @@
     "algorithm": "SHA-256",
     "format": "sha256:<64 lowercase hexadecimal characters>",
     "release_digest": "Digest of the sorted relative-path sha256sum manifest for regular files in the release directory.",
+    "rollback_target_digest": "Captured before candidate preparation, revalidated immediately before cutover, before rollback, and after restored localhost health.",
     "body_sha256": "Digest of the exact localhost HTTP response body stored in the workflow artifact."
   },
   "safety_boundaries": {

@@ -14,7 +14,7 @@ portal=(root/'apps/kidults-enterprise-staging/public/portal-r001/index.html').re
 errors=[]
 need=lambda c,m: errors.append(m) if not c else None
 need(contract['id']=='kidults-digitalocean-staging-portal-deploy-v1','id')
-need(contract['version']=='1.1.0','deploy contract version')
+need(contract['version']=='1.2.0','deploy contract version')
 need(contract['issue']==921,'issue')
 need(contract['environment']=='STAGING','env')
 need(contract['target']['hostname']=='ih-staging-01','hostname')
@@ -28,6 +28,10 @@ need(contract['deployment']['rollback_required'] is True,'rollback required')
 need(contract['deployment']['deployment_scoped_receipts_required'] is True,'deployment-scoped receipts required')
 need(contract['deployment']['exact_source_and_workflow_binding_required'] is True,'exact binding required')
 need(contract['deployment']['successful_deploy_rollback_readiness_receipt_required'] is True,'rollback readiness receipt required')
+need(contract['deployment']['previous_release_required_before_cutover'] is True,'previous release required before cutover')
+need(contract['deployment']['rollback_target_digest_revalidation_required'] is True,'rollback target digest revalidation required')
+need(contract['deployment']['serialized_deployments_required'] is True,'serialized deployments required')
+need(contract['deployment']['run_attempt_scoped_release_id'] is True,'run-attempt-scoped release id required')
 need(contract['deployment']['local_contract_proof_is_remote_evidence'] is False,'local proof must not be remote evidence')
 need(contract['receipt_contract']=='coordination/kidults/runtime/digitalocean-staging-portal-receipt-contract-v1.json','receipt contract binding')
 need(contract['production']=='HOLD','production hold')
@@ -59,6 +63,12 @@ for marker in [
     'receipt_contract_id',
     'body_sha256',
     'rollback_target_digest',
+    'rollback_target_digest_verified',
+    'restored_release_digest',
+    'flock -n 9',
+    'another Portal deployment holds the remote lock',
+    'a verified previous release is required before cutover',
+    'rollback_target_matches_digest',
     '"state": "DEPLOYED_VERIFIED"',
     '"state": "VERIFIED_PASS"',
 ]:
@@ -69,15 +79,21 @@ need('"production_touch": False' in script,'rollback/deploy receipt production t
 need('"raw_provider_ingestion": False' in script,'rollback/deploy receipt provider ingestion false')
 need('"g5": "HOLD"' in script,'rollback/deploy receipt g5 hold')
 need(receipt_contract['id']=='kidults-digitalocean-staging-portal-receipt-contract-v1','receipt contract id')
+need(receipt_contract['version']=='1.1.0','receipt contract version')
 need(receipt_contract['issue']==921,'receipt contract issue')
 need(receipt_contract['evidence_classes']['REMOTE_STAGING']['eligible_for_issue_921_remote_exit'] is True,'remote evidence eligibility')
 need(receipt_contract['evidence_classes']['LOCALHOST_CONTRACT_PROOF']['eligible_for_issue_921_remote_exit'] is False,'local evidence eligibility')
 need(receipt_contract['rollback_receipt']['issue_921_exit_requires_previous_target'] is True,'previous rollback target required')
+need(receipt_contract['rollback_receipt']['deployed_outcome']['rollback_target_digest_verified'] is True,'armed target digest verification required')
+need(receipt_contract['rollback_receipt']['rolled_back_outcome']['restored_release_digest_must_equal_rollback_target_digest'] is True,'restored target digest equality required')
 need(receipt_contract['safety_boundaries']['production']=='HOLD','receipt Production HOLD')
 need(receipt_contract['safety_boundaries']['g5']=='HOLD','receipt G5 HOLD')
 for marker in ['--expected-deployment-id','--expected-source-sha','--expected-run-id','--expected-run-attempt','--expected-evidence-class','--require-rollback-target','LOCALHOST_CONTRACT_PROOF','REMOTE_STAGING','localhost body digest mismatch','previous-release target is required']:
     need(marker in receipt_validator, f'receipt validator marker {marker}')
 need('pull_request:' not in deploy_workflow,'privileged deploy workflow must not run on pull_request')
+need('group: kidults-digitalocean-staging-portal' in deploy_workflow,'workflow deployment concurrency group')
+need('cancel-in-progress: false' in deploy_workflow,'workflow deployment concurrency must not cancel in progress')
+need('RELEASE_ID="portal-r001-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"' in deploy_workflow,'release id must include workflow run attempt')
 for marker in ['pull_request:','push:','persist-credentials: false','Verify exact source SHA','test_digitalocean_staging_portal_receipts_v1.sh']:
     need(marker in receipt_workflow, f'safe receipt workflow marker {marker}')
 if errors:

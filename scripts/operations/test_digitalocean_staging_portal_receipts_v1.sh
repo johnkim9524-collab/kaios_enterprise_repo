@@ -15,8 +15,12 @@ REAL_ID="$(command -v id)"
 REAL_CURL="$(command -v curl)"
 SUCCESS_RUN_ID="localhost-${SOURCE_SHA:0:12}-success"
 ROLLBACK_RUN_ID="localhost-${SOURCE_SHA:0:12}-rollback"
+TAMPER_RUN_ID="localhost-${SOURCE_SHA:0:12}-target-tamper"
 SUCCESS_RELEASE_ID="portal-r001-${SOURCE_SHA:0:12}-localhost-success"
 FAILED_RELEASE_ID="portal-r001-${SOURCE_SHA:0:12}-localhost-rollback"
+LOCKED_RELEASE_ID="portal-r001-${SOURCE_SHA:0:12}-localhost-locked"
+NO_TARGET_RELEASE_ID="portal-r001-${SOURCE_SHA:0:12}-localhost-no-target"
+TAMPER_RELEASE_ID="portal-r001-${SOURCE_SHA:0:12}-localhost-target-tamper"
 NEGATIVE_CASES=0
 
 cleanup() {
@@ -77,6 +81,10 @@ if [[ "${KIDULTS_TEST_INJECT_FINAL_HEALTH:-0}" == "1" \
     fi
   done
   [[ -n "$output" ]]
+  if [[ -n "${KIDULTS_TEST_MUTATE_ROLLBACK_TARGET:-}" ]]; then
+    printf '%s\n' '<!-- rollback target mutated after cutover -->' \
+      >> "$KIDULTS_TEST_MUTATE_ROLLBACK_TARGET/index.html"
+  fi
   printf '%s\n' '<html data-release="portal-release-001" data-state="INVALID"><body>Read the market. Know the evidence.</body></html>' > "$output"
   printf '200'
   exit 0
@@ -98,6 +106,42 @@ COMMON_ENV=(
   "KIDULTS_TEST_REAL_ID=$REAL_ID"
   "KIDULTS_TEST_REAL_CURL=$REAL_CURL"
 )
+
+NO_TARGET_HOME="$PROOF_ROOT/no-target-home"
+mkdir -p "$NO_TARGET_HOME/kidults-runtime/app/portal-r001-releases"
+printf '%s\n' 'managed_by=kidults-digitalocean-staging-bootstrap-v1' \
+  > "$NO_TARGET_HOME/kidults-runtime/.kidults-staging-managed"
+set +e
+env "${COMMON_ENV[@]}" HOME="$NO_TARGET_HOME" bash "$DEPLOY_SCRIPT" \
+  ih-staging-01 165.232.175.45 10.104.0.3 \
+  "$NO_TARGET_RELEASE_ID" "$PROOF_ROOT/portal-r001.tgz" "$SOURCE_SHA" localhost-no-target 1 \
+  > "$PROOF_ROOT/no-target.stdout" 2> "$PROOF_ROOT/no-target.stderr"
+NO_TARGET_EXIT_CODE=$?
+set -e
+[[ "$NO_TARGET_EXIT_CODE" -eq 41 ]] \
+  || { echo "FAIL: missing rollback target should stop before cutover with 41, got $NO_TARGET_EXIT_CODE" >&2; exit 1; }
+[[ ! -e "$NO_TARGET_HOME/kidults-runtime/app/portal-r001-current" \
+  && ! -e "$NO_TARGET_HOME/kidults-runtime/portal-r001.pid" \
+  && ! -e "$NO_TARGET_HOME/kidults-runtime/app/portal-r001-releases/$NO_TARGET_RELEASE_ID" ]] \
+  || { echo 'FAIL: missing-target rejection mutated active or release state' >&2; exit 1; }
+NEGATIVE_CASES=$((NEGATIVE_CASES + 1))
+
+exec {PROOF_LOCK_FD}>"$PROOF_HOME/kidults-runtime/portal-r001-deploy.lock"
+flock -n "$PROOF_LOCK_FD"
+set +e
+env "${COMMON_ENV[@]}" bash "$DEPLOY_SCRIPT" \
+  ih-staging-01 165.232.175.45 10.104.0.3 \
+  "$LOCKED_RELEASE_ID" "$PROOF_ROOT/portal-r001.tgz" "$SOURCE_SHA" localhost-locked 1 \
+  > "$PROOF_ROOT/locked.stdout" 2> "$PROOF_ROOT/locked.stderr"
+LOCKED_EXIT_CODE=$?
+set -e
+flock -u "$PROOF_LOCK_FD"
+exec {PROOF_LOCK_FD}>&-
+[[ "$LOCKED_EXIT_CODE" -eq 40 ]] \
+  || { echo "FAIL: concurrent deployment should be rejected with 40, got $LOCKED_EXIT_CODE" >&2; exit 1; }
+[[ ! -e "$PROOF_HOME/kidults-runtime/app/portal-r001-releases/$LOCKED_RELEASE_ID" ]] \
+  || { echo 'FAIL: lock rejection created a release' >&2; exit 1; }
+NEGATIVE_CASES=$((NEGATIVE_CASES + 1))
 
 env "${COMMON_ENV[@]}" bash "$DEPLOY_SCRIPT" \
   ih-staging-01 165.232.175.45 10.104.0.3 \
@@ -239,6 +283,34 @@ EXPECTED_RESTORED_RELEASE="$PROOF_HOME/kidults-runtime/app/portal-r001-releases/
 [[ "$(realpath "$PROOF_HOME/kidults-runtime/app/portal-r001-current")" == "$EXPECTED_RESTORED_RELEASE" ]] \
   || { echo 'FAIL: controlled rollback did not restore the previous release' >&2; exit 1; }
 
+set +e
+env "${COMMON_ENV[@]}" \
+  KIDULTS_TEST_INJECT_FINAL_HEALTH=1 \
+  KIDULTS_TEST_CURL_INJECTED="$PROOF_ROOT/target-tamper-health-injected" \
+  KIDULTS_TEST_MUTATE_ROLLBACK_TARGET="$EXPECTED_RESTORED_RELEASE" \
+  bash "$DEPLOY_SCRIPT" \
+  ih-staging-01 165.232.175.45 10.104.0.3 \
+  "$TAMPER_RELEASE_ID" "$PROOF_ROOT/portal-r001.tgz" "$SOURCE_SHA" "$TAMPER_RUN_ID" 1 \
+  > "$PROOF_ROOT/target-tamper.stdout" 2> "$PROOF_ROOT/target-tamper.stderr"
+TARGET_TAMPER_EXIT_CODE=$?
+set -e
+[[ "$TARGET_TAMPER_EXIT_CODE" -eq 38 ]] \
+  || { echo "FAIL: target-tamper probe expected original health failure 38, got $TARGET_TAMPER_EXIT_CODE" >&2; exit 1; }
+TARGET_TAMPER_RECEIPT="$PROOF_HOME/kidults-runtime/audit/portal-r001-deployments/$TAMPER_RELEASE_ID/rollback-receipt.json"
+python - "$TARGET_TAMPER_RECEIPT" <<'PY'
+import json,sys
+from pathlib import Path
+r=json.loads(Path(sys.argv[1]).read_text())
+assert r['state']=='VERIFIED_FAIL'
+assert r['rollback_status']=='TARGET_DIGEST_MISMATCH'
+assert r['rollback_target_digest_verified'] is False
+assert r['restored_release_digest']==''
+PY
+[[ ! -e "$PROOF_HOME/kidults-runtime/app/portal-r001-current" \
+  && ! -e "$PROOF_HOME/kidults-runtime/portal-r001.pid" ]] \
+  || { echo 'FAIL: mutated rollback target remained active' >&2; exit 1; }
+NEGATIVE_CASES=$((NEGATIVE_CASES + 1))
+
 python - "$SOURCE_SHA" "$SUCCESS_RELEASE_ID" "$FAILED_RELEASE_ID" "$NEGATIVE_CASES" <<'PY'
 import json,sys
 source_sha,success_release,failed_release,negative_cases=sys.argv[1:]
@@ -252,6 +324,9 @@ print(json.dumps({
   'controlled_failure_release':failed_release,
   'controlled_failure_exit_code':38,
   'rollback_state':'VERIFIED_PASS',
+  'concurrent_deployment_lock_rejected':True,
+  'missing_rollback_target_rejected_before_cutover':True,
+  'rollback_target_digest_mutation_rejected':True,
   'negative_cases_rejected':int(negative_cases),
   'evidence_class':'LOCALHOST_CONTRACT_PROOF',
   'issue_921_remote_exit_eligible':False,

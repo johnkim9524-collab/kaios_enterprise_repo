@@ -24,7 +24,7 @@ RECEIPT_CONTRACT_ID="kidults-digitalocean-staging-portal-receipt-contract-v1"
 ip4="$(ip -4 addr show || true)"
 grep -Fq "$EXPECTED_PUBLIC_IP" <<<"$ip4" || exit 22
 grep -Fq "$EXPECTED_PRIVATE_IP" <<<"$ip4" || exit 23
-for required_command in python3 curl setsid realpath sha256sum; do
+for required_command in python3 curl setsid realpath sha256sum flock; do
   command -v "$required_command" >/dev/null 2>&1 || { echo "FAIL: $required_command missing" >&2; exit 32; }
 done
 
@@ -32,6 +32,11 @@ ROOT="$HOME/kidults-runtime"
 MARKER="$ROOT/.kidults-staging-managed"
 [[ -f "$MARKER" ]] || exit 24
 grep -Fxq 'managed_by=kidults-digitalocean-staging-bootstrap-v1' "$MARKER" || exit 25
+
+DEPLOY_LOCK="$ROOT/portal-r001-deploy.lock"
+exec 9>"$DEPLOY_LOCK"
+chmod 600 "$DEPLOY_LOCK"
+flock -n 9 || { echo 'FAIL: another Portal deployment holds the remote lock' >&2; exit 40; }
 
 APP="$ROOT/app"
 AUDIT="$ROOT/audit"
@@ -74,6 +79,16 @@ release_has_required_markers() {
     && grep -Fq 'Know the evidence.' "$index"
 }
 
+rollback_target_matches_digest() {
+  [[ "$PREVIOUS_TARGET_AVAILABLE" == "true" ]] || return 1
+  local canonical observed_digest
+  canonical="$(realpath -e "$PREVIOUS")" || return 1
+  [[ "$canonical" == "$PREVIOUS" && "$canonical" == "$RELEASES/"* ]] || return 1
+  release_has_required_markers "$canonical" || return 1
+  observed_digest="$(release_digest "$canonical")" || return 1
+  [[ "$observed_digest" == "$PREVIOUS_DIGEST" ]]
+}
+
 PREVIOUS="NONE"
 PREVIOUS_DIGEST=""
 PREVIOUS_TARGET_AVAILABLE=false
@@ -87,6 +102,13 @@ elif [[ -e "$CURRENT" ]]; then
   echo 'FAIL: current release path is not a symlink' >&2
   exit 39
 fi
+
+if [[ "$PREVIOUS_TARGET_AVAILABLE" != "true" ]]; then
+  echo 'FAIL: a verified previous release is required before cutover' >&2
+  exit 41
+fi
+rollback_target_matches_digest \
+  || { echo 'FAIL: previous release changed before candidate preparation' >&2; exit 42; }
 
 [[ ! -e "$RELEASE" ]] || { echo 'FAIL: release already exists' >&2; exit 26; }
 mkdir -p "$RELEASE"
@@ -107,7 +129,7 @@ start_server() {
   local directory="$1"
   : > "$SERVERLOG"
   setsid python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$directory" \
-    </dev/null >>"$SERVERLOG" 2>&1 &
+    </dev/null >>"$SERVERLOG" 2>&1 9>&- &
   local pid="$!"
   for _ in $(seq 1 30); do
     if kill -0 "$pid" 2>/dev/null && curl -fsS "$HEALTH_URL" -o "$HEALTHFILE" 2>/dev/null; then
@@ -141,13 +163,15 @@ write_rollback_receipt() {
   local trigger_exit_code="$4"
   local server_pid="$5"
   local restored_body_sha256="$6"
+  local target_digest_verified="$7"
+  local restored_release_digest="$8"
   local observed_at
   observed_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
   python3 - "$ROLLBACK_RECEIPT" \
     "$RECEIPT_CONTRACT_ID" "$RELEASE_ID" "$SOURCE_COMMIT_SHA" "$WORKFLOW_RUN_ID" "$WORKFLOW_RUN_ATTEMPT" \
     "$EVIDENCE_CLASS" "$EXPECTED_HOSTNAME" "$BIND" "$observed_at" "$state" "$action" "$status" \
     "$trigger_exit_code" "$RELEASE" "$PREVIOUS" "$PREVIOUS_DIGEST" "$PREVIOUS_TARGET_AVAILABLE" \
-    "$server_pid" "$restored_body_sha256" <<'PY'
+    "$server_pid" "$restored_body_sha256" "$target_digest_verified" "$restored_release_digest" <<'PY'
 import json
 import os
 import sys
@@ -156,7 +180,8 @@ from pathlib import Path
 (path, contract_id, deployment_id, source_sha, run_id, run_attempt,
  evidence_class, hostname, bind, observed_at, state, action, status,
  trigger_code, failed_release, target, target_digest, target_available,
- server_pid, restored_body_sha256) = sys.argv[1:]
+ server_pid, restored_body_sha256, target_digest_verified,
+ restored_release_digest) = sys.argv[1:]
 payload = {
     "receipt_contract_id": contract_id,
     "receipt_type": "ROLLBACK",
@@ -179,6 +204,8 @@ payload = {
     "rollback_target_available": target_available == "true",
     "rollback_target": target,
     "rollback_target_digest": target_digest,
+    "rollback_target_digest_verified": target_digest_verified == "true",
+    "restored_release_digest": restored_release_digest,
     "server_pid": server_pid,
     "restored_health_body_sha256": restored_body_sha256,
     "restored_markers": {
@@ -219,21 +246,43 @@ rollback_on_exit() {
   rollback_state="BLOCKED"
   rollback_pid=""
   restored_body_sha256=""
+  rollback_target_digest_verified=false
+  restored_release_digest=""
   if [[ "$PREVIOUS_TARGET_AVAILABLE" == "true" ]]; then
-    ln -sfn "$PREVIOUS" "$CURRENT"
-    rollback_pid="$(start_server "$CURRENT")"
-    if [[ -n "$rollback_pid" ]] \
-      && kill -0 "$rollback_pid" 2>/dev/null \
-      && grep -Fq 'data-release="portal-release-001"' "$HEALTHFILE" \
-      && grep -Fq 'data-state="NO_PROJECTION"' "$HEALTHFILE"; then
-      printf '%s\n' "$rollback_pid" > "$PIDFILE"
-      chmod 600 "$PIDFILE"
-      rollback_status="RESTORED"
-      rollback_state="VERIFIED_PASS"
-      restored_body_sha256="sha256:$(sha256sum "$HEALTHFILE" | awk '{print $1}')"
+    if rollback_target_matches_digest; then
+      ln -sfn "$PREVIOUS" "$CURRENT"
+      rollback_pid="$(start_server "$CURRENT")"
+      if [[ -n "$rollback_pid" ]] \
+        && kill -0 "$rollback_pid" 2>/dev/null \
+        && grep -Fq 'data-release="portal-release-001"' "$HEALTHFILE" \
+        && grep -Fq 'data-state="NO_PROJECTION"' "$HEALTHFILE" \
+        && rollback_target_matches_digest; then
+        restored_release_digest="$(release_digest "$PREVIOUS")"
+        if [[ "$restored_release_digest" == "$PREVIOUS_DIGEST" ]]; then
+          printf '%s\n' "$rollback_pid" > "$PIDFILE"
+          chmod 600 "$PIDFILE"
+          rollback_status="RESTORED"
+          rollback_state="VERIFIED_PASS"
+          rollback_target_digest_verified=true
+          restored_body_sha256="sha256:$(sha256sum "$HEALTHFILE" | awk '{print $1}')"
+        else
+          rollback_status="TARGET_DIGEST_MISMATCH"
+          rollback_state="VERIFIED_FAIL"
+          kill "$rollback_pid" 2>/dev/null || true
+          rm -f "$CURRENT" "$PIDFILE"
+        fi
+      else
+        rollback_status="FAILED"
+        rollback_state="VERIFIED_FAIL"
+        if [[ -n "$rollback_pid" ]] && kill -0 "$rollback_pid" 2>/dev/null; then
+          kill "$rollback_pid" 2>/dev/null || true
+        fi
+        rm -f "$CURRENT" "$PIDFILE"
+      fi
     else
-      rollback_status="FAILED"
+      rollback_status="TARGET_DIGEST_MISMATCH"
       rollback_state="VERIFIED_FAIL"
+      rm -f "$CURRENT"
     fi
   else
     rm -f "$CURRENT"
@@ -241,12 +290,14 @@ rollback_on_exit() {
   rm -f "$HEALTHFILE"
 
   write_rollback_receipt "$rollback_state" "EXECUTED" "$rollback_status" "$rc" \
-    "$rollback_pid" "$restored_body_sha256"
+    "$rollback_pid" "$restored_body_sha256" "$rollback_target_digest_verified" "$restored_release_digest"
   cat "$ROLLBACK_RECEIPT" >&2
   exit "$rc"
 }
 trap 'rollback_on_exit "$?"' EXIT
 
+rollback_target_matches_digest \
+  || { echo 'FAIL: previous release changed before cutover' >&2; exit 42; }
 ROLLBACK_ARMED=true
 ln -sfn "$RELEASE" "$CURRENT"
 stop_pidfile_server
@@ -338,9 +389,11 @@ cp "$HEALTH_RECEIPT" "$AUDIT/portal-r001-health-receipt.json"
 chmod 600 "$AUDIT/portal-r001-health-receipt.json"
 
 if [[ "$PREVIOUS_TARGET_AVAILABLE" == "true" ]]; then
-  write_rollback_receipt "VERIFIED_PASS" "ARMED_NOT_EXECUTED" "ARMED" 0 "" ""
+  rollback_target_matches_digest \
+    || { echo 'FAIL: previous release changed before rollback receipt' >&2; exit 42; }
+  write_rollback_receipt "VERIFIED_PASS" "ARMED_NOT_EXECUTED" "ARMED" 0 "" "" true ""
 else
-  write_rollback_receipt "BLOCKED" "ARMED_NOT_EXECUTED" "NO_PREVIOUS_RELEASE" 0 "" ""
+  write_rollback_receipt "BLOCKED" "ARMED_NOT_EXECUTED" "NO_PREVIOUS_RELEASE" 0 "" "" false ""
 fi
 
 DEPLOY_OBSERVED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"

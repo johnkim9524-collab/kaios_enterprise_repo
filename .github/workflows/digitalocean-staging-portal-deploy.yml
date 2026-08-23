@@ -7,6 +7,10 @@ on:
       - 'coordination/kidults/runtime/staging-portal-deploy-request-v1.json'
   workflow_dispatch:
 
+concurrency:
+  group: kidults-digitalocean-staging-portal
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -127,7 +131,7 @@ jobs:
         run: |
           set -euo pipefail
           SSH_OPTS=(-o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          RELEASE_ID="portal-r001-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
+          RELEASE_ID="portal-r001-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           REMOTE_ARCHIVE="/tmp/${RELEASE_ID}.tgz"
           DEPLOY_EXIT_CODE=0
           scp "${SSH_OPTS[@]}" "$RUNNER_TEMP/portal-r001.tgz" kidults-staging@"$HOST":"$REMOTE_ARCHIVE" \
