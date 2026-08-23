@@ -7,6 +7,7 @@ const files = {
   missionConsumptionRegistry: 'coordination/kidults/source-intelligence/asi-mission-consumption-registry-v1.json',
   strictGate: 'coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json',
   discoveryRunner: 'scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs',
+  discoveryFallbackRunner: 'scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs',
   discoveryValidator: 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs',
   readinessBuilder: 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs',
   readinessValidator: 'scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs',
@@ -30,6 +31,7 @@ const registry = json(files.registry);
 const missionConsumptionRegistry = json(files.missionConsumptionRegistry);
 const strictGate = json(files.strictGate);
 const runner = read(files.discoveryRunner);
+const fallbackRunner = read(files.discoveryFallbackRunner);
 const discoveryValidator = read(files.discoveryValidator);
 const readinessBuilder = read(files.readinessBuilder);
 const readinessValidator = read(files.readinessValidator);
@@ -45,6 +47,12 @@ assert(JSON.stringify(registry.platform_principles) === JSON.stringify(principle
 assert(missionConsumptionRegistry.id === 'kidults-asi-mission-consumption-registry-v1', 'MISSION_CONSUMPTION_BINDING');
 assert(strictGate.id === 'kidults-strict-current-market-admission-gate-v1', 'STRICT_GATE_BINDING');
 assert(JSON.stringify(registry.provider_lanes) === JSON.stringify(providerLanes), 'REGISTRY_PROVIDER_LANES');
+assert(registry.fail_soft_discovery?.primary_zero_candidate_or_runtime_failure_behavior === 'RUN_BOUNDED_GITHUB_METADATA_FALLBACK', 'REGISTRY_FAIL_SOFT_BEHAVIOR');
+assert(registry.fail_soft_discovery?.fallback_provider_lane === 'GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA', 'REGISTRY_FAIL_SOFT_LANE');
+assert(registry.fail_soft_discovery?.primary_failure_must_remain_visible === true, 'REGISTRY_PRIMARY_FAILURE_VISIBILITY');
+assert(registry.fail_soft_discovery?.fallback_usage_must_remain_visible === true, 'REGISTRY_FALLBACK_VISIBILITY');
+assert(registry.fail_soft_discovery?.fallback_candidate_claim_ceiling === 'DISCOVERY_METADATA_ONLY', 'REGISTRY_FALLBACK_CLAIM_CEILING');
+assert(registry.fail_soft_discovery?.fallback_can_create_rights_admission_or_claim === false, 'REGISTRY_FALLBACK_PERMISSION');
 assert(registry.rolling_state?.batch_size === 24 && registry.rolling_state?.intent_count_at_activation === 426 && registry.rolling_state?.estimated_cycles_per_full_rotation === 18, 'REGISTRY_ROLLING_STATE');
 assert(registry.downstream_p1_state?.metadata_gate_chain_implemented === true, 'REGISTRY_METADATA_GATES');
 assert(registry.downstream_p1_state?.claim_specific_readiness_compiler_implemented === true, 'REGISTRY_READINESS_COMPILER');
@@ -58,6 +66,7 @@ for (const [key, expected] of Object.entries({
   mission_consumption_registry: files.missionConsumptionRegistry,
   strict_current_market_gate: files.strictGate,
   discovery_runner: files.discoveryRunner,
+  discovery_fallback_runner: files.discoveryFallbackRunner,
   discovery_validator: files.discoveryValidator,
   readiness_builder: files.readinessBuilder,
   readiness_validator: files.readinessValidator,
@@ -85,6 +94,8 @@ for (const marker of [
   "'KIDULTS ASI Mission Consumption v1'",
   'Restore prior rolling discovery cursor',
   'Execute bounded live mission-directed discovery',
+  'Primary discovery failed or produced no candidates; executing bounded fail-soft fallback.',
+  'asi-mission-directed-github-fallback-discovery-v1.mjs',
   'Run Gate 1 source safety classification',
   'Run Gate 2 independent reverification',
   'Run Gate 3 metadata admission',
@@ -109,6 +120,15 @@ for (const marker of [
   'collection_right_created: false'
 ]) assert(runner.includes(marker), `RUNNER_MARKER:${marker}`);
 for (const marker of [
+  'FALLBACK_NO_LIVE_CANDIDATE',
+  'primary_discovery_fallback_used: true',
+  'primary_discovery_failure',
+  'GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA',
+  'broad_query_fallback_used',
+  'target_site_body_crawled: false',
+  'collection_right_created: false'
+]) assert(fallbackRunner.includes(marker), `FALLBACK_RUNNER_MARKER:${marker}`);
+for (const marker of [
   'DISCOVERY_PARTIAL_FAILURE_STATE',
   'DISCOVERY_CANDIDATE_SOLD_ASSERTION',
   'DISCOVERY_CANDIDATE_STATE',
@@ -132,6 +152,7 @@ for (const marker of [
   '# KIDULTS ASI Mission-Directed Discovery v1',
   '426 Unfilled or Ambiguous Source-Lane Intents',
   'Rolling Cursor and 24-Intent Batch',
+  'Fail-soft metadata fallback',
   'Gate 3 Metadata Admission ≠ Market-Event Admission',
   'Source-Specific Adapter Requirements',
   'Dated Sold ≠ Current Price',
@@ -144,6 +165,7 @@ for (const [key, expected] of Object.entries({
   source_family_classification_is_terminal_sold_assertion: false,
   registered_or_discovered_endpoint_is_rights_admitted: false,
   adapter_requirement_is_implemented_adapter: false,
+  fallback_candidate_is_market_evidence: false,
   public_release: 'HOLD',
   production: 'HOLD'
 })) assert(registry.truth_boundary?.[key] === expected, `REGISTRY_TRUTH_BOUNDARY:${key}`);
@@ -154,6 +176,7 @@ console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   platform_principles: principles,
   provider_lanes: providerLanes.length,
+  fail_soft_fallback_registered: true,
   rolling_batch_size: registry.rolling_state.batch_size,
   intent_count_at_activation: registry.rolling_state.intent_count_at_activation,
   automatic_main_push: true,
