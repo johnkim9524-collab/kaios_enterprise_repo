@@ -328,6 +328,7 @@ def write_validation_receipt(path: Path, args: argparse.Namespace, inputs: list[
         "workflow_sha": args.expected_workflow_sha,
         "source_ref": args.expected_source_ref,
         "event_name": args.expected_event_name,
+        "job_name": args.expected_job_name,
         "runner_execution_verified": True,
         "successful_workflow_attested": False,
         "remote_exit_state": "REMOTE_EXIT_CANDIDATE" if candidate else "NOT_ELIGIBLE",
