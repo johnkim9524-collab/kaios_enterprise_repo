@@ -1,0 +1,52 @@
+{
+  "id": "kidults-asi-p1-market-event-adapter-runtime-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+    "strict_current_market_gate": "coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json",
+    "registered_source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
+    "runtime_module": "services/kidults-autonomous-intelligence/src/asi/market-adapter.ts",
+    "runtime_test": "services/kidults-autonomous-intelligence/scripts/asi-market-adapter-runtime-test.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-p1-market-event-adapter-runtime-v1.yml",
+    "human_readme": "docs/kidults/asi/asi-p1-market-event-adapter-runtime-v1.md"
+  },
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "7 */6 * * *",
+    "upstream_workflows": ["KIDULTS ASI Mission-Directed Discovery v1"],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "implementation_state": {
+    "generic_strict_runtime": "IMPLEMENTED_NOT_SOURCE_ACTIVATION",
+    "runtime_fixture_tests": "NON_PROMOTABLE_CONTROL_ONLY",
+    "registered_source_profiles": 16,
+    "source_specific_adapters_implemented": 0,
+    "source_specific_adapters_activated": 0,
+    "empirical_market_events_admitted": 0,
+    "current_price_eligible_sources": 0,
+    "liquidity_eligible_sources": 0
+  },
+  "next_source_adapter_backlog": [
+    {"rank": 1, "source_id": "bonhams-cars-results", "verified_assignment_count": 24},
+    {"rank": 2, "source_id": "barrett-jackson-results", "verified_assignment_count": 18},
+    {"rank": 3, "source_id": "bonhams-watches-results", "verified_assignment_count": 18},
+    {"rank": 4, "source_id": "christies-watches-results", "verified_assignment_count": 12},
+    {"rank": 5, "source_id": "sothebys-watches-results", "verified_assignment_count": 12},
+    {"rank": 6, "source_id": "broad-arrow-results", "verified_assignment_count": 12}
+  ],
+  "truth_boundary": {
+    "generic_runtime_is_source_specific_adapter": false,
+    "fixture_test_is_empirical_market_event": false,
+    "profile_registration_is_rights_verification": false,
+    "normalized_record_is_admitted_market_event": false,
+    "dated_sold_record_is_current_price": false,
+    "sold_record_count_is_liquidity": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
