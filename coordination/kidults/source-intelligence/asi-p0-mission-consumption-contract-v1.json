@@ -1,0 +1,142 @@
+{
+  "id": "kidults-asi-p0-mission-consumption-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Consume every current ASI preparation mission into deterministic, runtime-preflighted Source Discovery tasks without manual routing, provider lock-in, rights promotion, evidence promotion, or claim promotion.",
+  "authoritative_inputs": {
+    "preparation_contract": "coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json",
+    "preparation_registry": "coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json",
+    "engine_alignment_contract": "coordination/kidults/source-intelligence/asi-engine-refactoring-contract-v2.json",
+    "engine_alignment_registry": "coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json",
+    "runtime_fleet_registry": "services/kidults-autonomous-intelligence/src/asi/registry.ts",
+    "runtime_alignment": "services/kidults-autonomous-intelligence/src/asi/alignment.ts",
+    "runtime_event_contract": "services/kidults-autonomous-intelligence/src/asi/event.ts"
+  },
+  "input_queue": {
+    "id": "kidults-asi-autonomous-mission-queue-v1",
+    "required_state": "READY_FOR_AUTOMATIC_BOUNDED_DISCOVERY_AND_PREFLIGHT",
+    "required_mission_count": 192,
+    "required_evidence_classes": [
+      "CURRENT_SOLD_TRANSACTION",
+      "LIQUIDITY_TIME_TO_SALE_EXPOSURE"
+    ]
+  },
+  "consumption_model": {
+    "model": "ONE_MISSION_TO_THREE_INDEPENDENT_DISCOVERY_LANE_TASKS",
+    "missions_consumed_required": 192,
+    "lane_tasks_required": 576,
+    "lane_slots": [
+      "PRIMARY_CANDIDATE_LANE",
+      "INDEPENDENT_FALLBACK_LANE",
+      "FACTUAL_ORIGIN_REPLACEMENT_LANE"
+    ],
+    "manual_routing_required": false,
+    "deterministic_routing_required": true,
+    "runtime_alignment_preflight_required": true,
+    "per_task_receipt_required": true,
+    "mission_consumption_receipt_required": true
+  },
+  "discovery_fleet_pools": {
+    "PRIMARY_CANDIDATE_LANE": [
+      "DISCOVERY_COMMON_CRAWL_WDC",
+      "DISCOVERY_OVERTURE_MAPS",
+      "DISCOVERY_WIKIDATA",
+      "DISCOVERY_OPENSTREETMAP",
+      "DISCOVERY_GLOBAL_NEWS_EVENTS"
+    ],
+    "INDEPENDENT_FALLBACK_LANE": [
+      "DISCOVERY_GITHUB_HOMEPAGE",
+      "DISCOVERY_DATACITE_OPEN_RESEARCH",
+      "DISCOVERY_GOVERNMENT_REGIONAL_CATALOGS",
+      "DISCOVERY_APPROVED_DIRECTORY_OUTBOUND_FRONTIER"
+    ],
+    "FACTUAL_ORIGIN_REPLACEMENT_LANE": [
+      "DISCOVERY_ICANN_PUBLIC_ZONES",
+      "DISCOVERY_INTERNET_ARCHIVE_CONTINUITY"
+    ]
+  },
+  "licensed_gap_fill": {
+    "fleet_id": "DISCOVERY_OPTIONAL_LICENSED_GAP_FILL",
+    "normal_autonomous_assignment_allowed": false,
+    "state": "RESERVED_EXTERNAL_AUTHORITY_FALLBACK_NOT_ASSIGNED",
+    "activation_requires_explicit_authority": true
+  },
+  "event_contract": {
+    "event_type": "SOURCE_DISCOVERY_REQUESTED",
+    "event_version": "1.0.0",
+    "producer_engine": "AUTONOMOUS_MISSION_GENERATOR",
+    "producer_version": "kidults-asi-p0-mission-consumption-v1@1.0.0",
+    "assertion_purpose": "BOUNDED_DISCOVERY_AND_PREFLIGHT",
+    "decision": "NOT_APPLICABLE",
+    "rights_state": "NOT_APPLICABLE",
+    "freshness_state": "CURRENT",
+    "event_clock": "2026-08-23T06:00:00.000Z"
+  },
+  "query_bundle_requirements": [
+    "SCOPE_ID",
+    "SCOPE_NAME",
+    "DOMAIN",
+    "ARCHETYPE",
+    "REGION",
+    "LANGUAGE_RULE",
+    "EVIDENCE_CLASS",
+    "SOURCE_ROLE",
+    "CLAIM_CEILING",
+    "LANE_SLOT",
+    "DISCOVERY_OBJECTIVE",
+    "NEGATIVE_SEMANTIC_CONTROLS"
+  ],
+  "negative_semantic_controls": [
+    "LISTING_NOT_SOLD",
+    "ATTENTION_NOT_DEMAND",
+    "SCARCITY_NOT_LIQUIDITY",
+    "HISTORICAL_NOT_CURRENT",
+    "MISSING_NOT_ZERO",
+    "DISCOVERY_NOT_COLLECTION",
+    "COLLECTION_NOT_ADMISSION",
+    "ADMISSION_NOT_CLAIM"
+  ],
+  "required_outputs": [
+    "p0-mission-consumption-ledger-v1.json",
+    "p0-source-discovery-task-queue-v1.json",
+    "p0-discovery-fleet-routing-v1.json",
+    "p0-mission-consumption-manifest-v1.json"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "17 * * * *",
+    "upstream_workflow": "KIDULTS ASI Intelligence Preparation Wave v1",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "hard_boundaries": [
+    "MISSION_CONSUMED_IS_NOT_SOURCE_DISCOVERED",
+    "DISCOVERY_TASK_IS_NOT_SOURCE_CANDIDATE",
+    "SOURCE_CANDIDATE_IS_NOT_EVIDENCE",
+    "DISCOVERY_IS_NOT_COLLECTION",
+    "COLLECTION_IS_NOT_ADMISSION",
+    "ADMISSION_IS_NOT_CLAIM",
+    "HOST_IS_NOT_FACTUAL_ORIGIN_UNLESS_PROVEN",
+    "PROVIDER_COUNT_IS_NOT_INDEPENDENCE",
+    "PRIORITY_IS_NOT_PERMISSION",
+    "OPTIONAL_LICENSED_FLEET_IS_NOT_AUTOMATICALLY_AUTHORIZED"
+  ],
+  "truth_boundary": {
+    "consumes_machine_readable_missions": true,
+    "creates_runtime_preflighted_discovery_tasks": true,
+    "executes_external_discovery_network_calls": false,
+    "creates_source_candidates": false,
+    "creates_collection_right": false,
+    "admits_evidence": false,
+    "creates_market_claim": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}
