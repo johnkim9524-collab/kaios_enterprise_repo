@@ -30,6 +30,7 @@ const mandatory = [
   'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py',
   ...snapshotReadinessMandatory,
   'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
+  'scripts/kidults/portal/validate-portal-internal-readiness-v1.mjs',
   'scripts/kidults/portal/validate-portal-launch-assurance-v1.mjs',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];

@@ -73,6 +73,7 @@ const requiredFamilyValidators = [
   'scripts/kidults/kpmo/validate-semantic-normalization-integrity-v1.mjs'
 ];
 const requiredDownstreamValidators = [
+  'scripts/kidults/portal/validate-portal-internal-readiness-v1.mjs',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
 const requiredSnapshotReadinessValidators = [

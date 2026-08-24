@@ -1,0 +1,22 @@
+{
+  "id": "kidults-portal-external-gate-evidence-index-v1",
+  "record_type": "external_gate_evidence_index",
+  "version": "1.0.0",
+  "purpose": "Pre-created receipt slots; absence is explicit and never interpreted as pass.",
+  "required_receipts": [
+    {"id":"github-environment-readback-15-of-15","owner":"GitHub control-plane administrator","state":"NONE","required_fields":["workflow","environment","protected_ref","trusted_execution","observed_at"]},
+    {"id":"digitalocean-staging-health","owner":"Staging operator","state":"NONE","required_fields":["source_sha","deployment_id","health_url","http_status","portal_state","body_sha256","observed_at"]},
+    {"id":"digitalocean-staging-rollback","owner":"Staging operator","state":"NONE","required_fields":["failed_release","rollback_target","target_digest","restored_digest","trigger_exit_code","observed_at"]},
+    {"id":"human-accessibility-review","owner":"Independent human reviewer","state":"NONE","required_fields":["reviewer_id","date_utc","browser_os","screen_reader","routes","critical_serious_issues","decision"]},
+    {"id":"remote-web-vitals","owner":"Staging/RUM operator","state":"NONE","required_fields":["route","viewport","lcp_ms","cls","inp_ms","sample_window_utc","build_sha"]},
+    {"id":"edge-tls-observability","owner":"Platform operator","state":"NONE","required_fields":["origin","proxy_chain","tls_version","hsts","request_id","projection_id","rollback_id","observed_at"]},
+    {"id":"rights-current-sold","owner":"Rights administrator","state":"NONE","required_fields":["source_id","purpose","geography","license_uri","valid_from","valid_until","decision_digest","reviewer"]},
+    {"id":"track-b-assessment","owner":"Independent Track B reviewer","state":"NONE","required_fields":["snapshot_digest","evidence_digest","assessment_id","reviewer","decision","observed_at"]},
+    {"id":"approved-projection","owner":"Control-plane approver","state":"NONE","required_fields":["projection_id","assessment_id","capability_digest","surface_scope","approved_at","revocation_rule"]}
+  ],
+  "missing_receipt_policy": "HOLD",
+  "self_attestation_allowed": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}
