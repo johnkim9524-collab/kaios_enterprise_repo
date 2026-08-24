@@ -1,0 +1,527 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "KIDULTS_TRACK_Z_PROVIDER_PRODUCT_PORTFOLIO_V1",
+  "generatedAt": "2026-08-24T08:40:00Z",
+  "owner": "Track Z",
+  "registryCustodian": "KPMO",
+  "approver": "Founder",
+  "authorityChain": [
+    "Track Z",
+    "KPMO",
+    "Founder"
+  ],
+  "sourceDecision": {
+    "analysisState": "COMPLETE",
+    "validationState": "PASS",
+    "basis": "TRACK_Z_VALIDATED_PRODUCT_ANALYSIS",
+    "analysisCommits": [
+      "e73a723f",
+      "fee5a7db"
+    ]
+  },
+  "decisionSemantics": {
+    "providerBaseline": "HOLD",
+    "providerBaselineMeaning": "NO_EXTERNAL_ACCESS_SPEND_OR_ACTIVATION",
+    "CONDITIONAL_HOLD": "OPTION_REMAINS_INACTIVE_UNTIL_ALL_EVIDENCE_GATES_PASS",
+    "PENDING_PROVIDER_RESPONSE": "INACTIVE_NON_TERMINAL_UNTIL_OFFICIAL_PROVIDER_RESPONSE_AND_DECISION_EVIDENCE",
+    "DROP": "TERMINAL_DISPOSITION_REQUIRING_OFFICIAL_PROVIDER_RESPONSE_NEW_DECISION_PACKET_KPMO_REVIEW_AND_FOUNDER_APPROVAL",
+    "productDecisionPrecedence": "PRODUCT_DECISION_NARROWS_BUT_NEVER_RELAXES_PROVIDER_HOLD"
+  },
+  "currentSoldTransactionFeed": {
+    "status": "OPEN_GAP",
+    "completeImmediatelyPurchasableProductCount": 0,
+    "failClosedOutput": "UNAVAILABLE_NO_RIGHTS_CLEAR_CURRENT_SOLD_FEED",
+    "requiredCapabilities": [
+      "ASSET_IDENTITY",
+      "SALE_STATUS",
+      "REALIZED_SOLD_PRICE",
+      "SALE_DATE",
+      "CURRENCY",
+      "VENUE",
+      "SOURCE_URL",
+      "CURRENT_FRESHNESS",
+      "COVERAGE_DISCLOSURE"
+    ],
+    "requiredRights": [
+      "SOURCE_ACCESS",
+      "PERMITTED_PURPOSE",
+      "RETENTION",
+      "DERIVED_OUTPUT",
+      "PUBLICATION_EXPORT",
+      "MODEL_USE",
+      "TERMINATION_DELETION",
+      "PORTABILITY"
+    ],
+    "nonQualifyingSubstitutes": [
+      "GRADING_CERTIFICATION",
+      "POPULATION_DATA",
+      "CROSS_GRADER_MAPPING",
+      "LISTING_ASK_PRICE",
+      "PRICE_GUIDE",
+      "MODEL_ESTIMATE"
+    ]
+  },
+  "summary": {
+    "conditionalHoldCount": 3,
+    "pendingProviderResponseCount": 5,
+    "dropCount": 0,
+    "conditionalHoldProductIds": [
+      "GEMRATE_DEVELOPER_TIER",
+      "PSA_PREMIUM_API",
+      "CLASSIC_COM_LICENSED_BUNDLE_3"
+    ],
+    "pendingProviderResponseProductIds": [
+      "PSA_ENTERPRISE_API",
+      "CGC_DEALER_PORTAL_API",
+      "ALT_FNDATA",
+      "LIVEART_PILOT",
+      "HAGERTY_UNSPECIFIED_PRODUCT"
+    ],
+    "currentSoldPrimaryCandidateProductIds": [
+      "CLASSIC_COM_LICENSED_BUNDLE_3"
+    ],
+    "gradingOrCertificationHelperProductIds": [
+      "GEMRATE_DEVELOPER_TIER",
+      "PSA_PREMIUM_API"
+    ]
+  },
+  "products": [
+    {
+      "productId": "GEMRATE_DEVELOPER_TIER",
+      "providerId": "GEMRATE",
+      "productName": "GemRate Developer Tier",
+      "priority": 1,
+      "decision": "CONDITIONAL_HOLD",
+      "role": "GRADING_ENRICHMENT_HELPER",
+      "fit": "HIGH_FOR_GRADER_ENRICHMENT",
+      "currentSoldCapability": {
+        "providesTransactionHistory": false,
+        "potentiallyRelevant": false,
+        "qualifiesAsCompleteCurrentSoldFeed": false,
+        "reason": "GRADER_CERTIFICATION_GRADE_POPULATION_AND_CROSS_GRADER_MAPPING_ONLY"
+      },
+      "economics": {
+        "currency": "USD",
+        "monthlyAmount": 200,
+        "annualAmount": 2400,
+        "trialDays": 7,
+        "callsPerDay": null,
+        "quoteStatus": "TRACK_Z_VALIDATED_PRICE"
+      },
+      "activation": {
+        "state": "PROHIBITED",
+        "externalContactAllowed": false,
+        "contractAllowed": false,
+        "spendAllowed": false,
+        "credentialAllowed": false,
+        "dataAcquisitionAllowed": false,
+        "adapterBacklogAdmissionAllowed": false,
+        "productionAllowed": false
+      },
+      "evidenceGates": [
+        "OFFICIAL_PRODUCT_TERMS",
+        "FIELD_SCHEMA",
+        "QUOTA_AND_RATE_LIMIT",
+        "PERMITTED_PURPOSES",
+        "RETENTION_RIGHTS",
+        "DERIVED_OUTPUT_RIGHTS",
+        "MODEL_USE_RIGHTS",
+        "TERMINATION_DELETION",
+        "FOUNDER_APPROVAL"
+      ],
+      "reentryPolicy": null
+    },
+    {
+      "productId": "PSA_PREMIUM_API",
+      "providerId": "PSA",
+      "productName": "PSA Premium API",
+      "priority": 2,
+      "decision": "CONDITIONAL_HOLD",
+      "role": "CERTIFICATION_VERIFICATION_HELPER",
+      "fit": "MEDIUM_FOR_CERTIFICATION_VERIFICATION",
+      "currentSoldCapability": {
+        "providesTransactionHistory": false,
+        "potentiallyRelevant": false,
+        "qualifiesAsCompleteCurrentSoldFeed": false,
+        "reason": "CARD_CERTIFICATION_AND_GRADE_VERIFICATION_ONLY"
+      },
+      "economics": {
+        "currency": "USD",
+        "monthlyAmount": null,
+        "annualAmount": 199,
+        "trialDays": null,
+        "callsPerDay": 100,
+        "quoteStatus": "TRACK_Z_VALIDATED_PRICE"
+      },
+      "activation": {
+        "state": "PROHIBITED",
+        "externalContactAllowed": false,
+        "contractAllowed": false,
+        "spendAllowed": false,
+        "credentialAllowed": false,
+        "dataAcquisitionAllowed": false,
+        "adapterBacklogAdmissionAllowed": false,
+        "productionAllowed": false
+      },
+      "evidenceGates": [
+        "OFFICIAL_PRODUCT_TERMS",
+        "FIELD_SCHEMA",
+        "QUOTA_AND_RATE_LIMIT",
+        "PERMITTED_PURPOSES",
+        "RETENTION_RIGHTS",
+        "DERIVED_OUTPUT_RIGHTS",
+        "MODEL_USE_RIGHTS",
+        "TERMINATION_DELETION",
+        "FOUNDER_APPROVAL"
+      ],
+      "reentryPolicy": null
+    },
+    {
+      "productId": "PSA_ENTERPRISE_API",
+      "providerId": "PSA",
+      "productName": "PSA Enterprise API",
+      "priority": 2,
+      "decision": "PENDING_PROVIDER_RESPONSE",
+      "role": "CERTIFICATION_VERIFICATION_HELPER",
+      "fit": "FUNCTIONALLY_SIMILAR_TO_PSA_PREMIUM_WITH_HIGHER_QUOTA",
+      "pendingReason": "COST_EFFICIENCY_CURRENTLY_LOW_BUT_TERMINAL_DECISION_REQUIRES_PROVIDER_RESPONSE",
+      "currentSoldCapability": {
+        "providesTransactionHistory": false,
+        "potentiallyRelevant": false,
+        "qualifiesAsCompleteCurrentSoldFeed": false,
+        "reason": "CERTIFICATION_HELPER_NOT_MARKET_TRANSACTION_FEED"
+      },
+      "economics": {
+        "currency": "USD",
+        "monthlyAmount": null,
+        "annualAmount": 3500,
+        "trialDays": null,
+        "callsPerDay": 500,
+        "quoteStatus": "TRACK_Z_VALIDATED_PRICE"
+      },
+      "activation": {
+        "state": "PROHIBITED",
+        "externalContactAllowed": false,
+        "contractAllowed": false,
+        "spendAllowed": false,
+        "credentialAllowed": false,
+        "dataAcquisitionAllowed": false,
+        "adapterBacklogAdmissionAllowed": false,
+        "productionAllowed": false
+      },
+      "evidenceGates": [],
+      "terminalDispositionPolicy": {
+        "requiresOfficialProviderResponse": true,
+        "requiresResponseEvidenceReference": true,
+        "requiresResolvedDecisionEvidence": true,
+        "acceptedMaterialChanges": [
+          "PRICE",
+          "QUOTA",
+          "RIGHTS",
+          "FORECAST_DEMAND"
+        ],
+        "requiresNewDecisionPacket": true,
+        "requiresKpmoReview": true,
+        "requiresFounderApproval": true
+      }
+    },
+    {
+      "productId": "CLASSIC_COM_LICENSED_BUNDLE_3",
+      "providerId": "CLASSIC_COM",
+      "productName": "Classic.com Licensed Bundle 3",
+      "priority": 3,
+      "decision": "CONDITIONAL_HOLD",
+      "role": "CURRENT_SOLD_PRIMARY_CANDIDATE",
+      "fit": "HIGHEST_VERTICAL_FIT_FOR_COLLECTOR_CAR_SOLD_COMPS",
+      "currentSoldCapability": {
+        "providesTransactionHistory": true,
+        "potentiallyRelevant": true,
+        "qualifiesAsCompleteCurrentSoldFeed": false,
+        "reason": "PRICE_SCHEMA_FIELD_RIGHTS_RETENTION_DERIVATIVE_AND_TERMINATION_TERMS_UNRESOLVED"
+      },
+      "economics": {
+        "currency": "USD",
+        "monthlyAmount": null,
+        "annualAmount": null,
+        "trialDays": null,
+        "callsPerDay": null,
+        "quoteStatus": "CUSTOM_QUOTE_REQUIRED"
+      },
+      "activation": {
+        "state": "PROHIBITED",
+        "externalContactAllowed": false,
+        "contractAllowed": false,
+        "spendAllowed": false,
+        "credentialAllowed": false,
+        "dataAcquisitionAllowed": false,
+        "adapterBacklogAdmissionAllowed": false,
+        "productionAllowed": false
+      },
+      "evidenceGates": [
+        "OFFICIAL_PRODUCT_PROPOSAL",
+        "FIELD_SCHEMA",
+        "SAMPLE_PAYLOAD",
+        "SOLD_UNSOLD_SEPARATION",
+        "REALIZED_PRICE_SEMANTICS",
+        "COVERAGE_AND_FRESHNESS",
+        "PERMITTED_PURPOSES",
+        "RETENTION_RIGHTS",
+        "DERIVED_OUTPUT_RIGHTS",
+        "PUBLICATION_EXPORT_RIGHTS",
+        "MODEL_USE_RIGHTS",
+        "TERMINATION_DELETION",
+        "PORTABILITY_RIGHTS",
+        "QUOTE_AND_TOTAL_COST",
+        "QUOTA_LATENCY_AND_SLA",
+        "FOUNDER_APPROVAL"
+      ],
+      "reentryPolicy": null
+    },
+    {
+      "productId": "CGC_DEALER_PORTAL_API",
+      "providerId": "CGC",
+      "productName": "CGC Dealer Portal API",
+      "priority": 4,
+      "decision": "PENDING_PROVIDER_RESPONSE",
+      "role": "UNVERIFIED_CERTIFICATION_OR_GRADING_CANDIDATE",
+      "fit": "SEMANTICALLY_POSSIBLE_BUT_UNVERIFIED",
+      "pendingReason": "PRODUCT_PRICE_RIGHTS_AND_FIELDS_UNCONFIRMED_PENDING_PROVIDER_RESPONSE",
+      "currentSoldCapability": {
+        "providesTransactionHistory": false,
+        "potentiallyRelevant": false,
+        "qualifiesAsCompleteCurrentSoldFeed": false,
+        "reason": "NO_VERIFIED_CURRENT_SOLD_PRODUCT"
+      },
+      "economics": {
+        "currency": "USD",
+        "monthlyAmount": null,
+        "annualAmount": null,
+        "trialDays": null,
+        "callsPerDay": null,
+        "quoteStatus": "UNKNOWN"
+      },
+      "activation": {
+        "state": "PROHIBITED",
+        "externalContactAllowed": false,
+        "contractAllowed": false,
+        "spendAllowed": false,
+        "credentialAllowed": false,
+        "dataAcquisitionAllowed": false,
+        "adapterBacklogAdmissionAllowed": false,
+        "productionAllowed": false
+      },
+      "evidenceGates": [],
+      "terminalDispositionPolicy": {
+        "requiresOfficialProviderResponse": true,
+        "requiresResponseEvidenceReference": true,
+        "requiresResolvedDecisionEvidence": true,
+        "acceptedMaterialChanges": [
+          "PRODUCT",
+          "SCHEMA",
+          "PRICE",
+          "RIGHTS"
+        ],
+        "requiresNewDecisionPacket": true,
+        "requiresKpmoReview": true,
+        "requiresFounderApproval": true
+      }
+    },
+    {
+      "productId": "ALT_FNDATA",
+      "providerId": "ALT_FNDATA",
+      "productName": "ALT/FNDATA",
+      "priority": 5,
+      "decision": "PENDING_PROVIDER_RESPONSE",
+      "role": "UNVERIFIED_MARKET_DATA_CANDIDATE",
+      "fit": "UNVERIFIED",
+      "pendingReason": "NO_VERIFIABLE_PRODUCT_SCHEMA_PRICE_OR_RIGHTS_RESPONSE_YET",
+      "currentSoldCapability": {
+        "providesTransactionHistory": false,
+        "potentiallyRelevant": false,
+        "qualifiesAsCompleteCurrentSoldFeed": false,
+        "reason": "NO_VERIFIED_CURRENT_SOLD_PRODUCT"
+      },
+      "economics": {
+        "currency": "USD",
+        "monthlyAmount": null,
+        "annualAmount": null,
+        "trialDays": null,
+        "callsPerDay": null,
+        "quoteStatus": "UNKNOWN"
+      },
+      "activation": {
+        "state": "PROHIBITED",
+        "externalContactAllowed": false,
+        "contractAllowed": false,
+        "spendAllowed": false,
+        "credentialAllowed": false,
+        "dataAcquisitionAllowed": false,
+        "adapterBacklogAdmissionAllowed": false,
+        "productionAllowed": false
+      },
+      "evidenceGates": [],
+      "terminalDispositionPolicy": {
+        "requiresOfficialProviderResponse": true,
+        "requiresResponseEvidenceReference": true,
+        "requiresResolvedDecisionEvidence": true,
+        "acceptedMaterialChanges": [
+          "PRODUCT",
+          "SCHEMA",
+          "PRICE",
+          "RIGHTS"
+        ],
+        "requiresNewDecisionPacket": true,
+        "requiresKpmoReview": true,
+        "requiresFounderApproval": true
+      }
+    },
+    {
+      "productId": "LIVEART_PILOT",
+      "providerId": "LIVEART",
+      "productName": "LiveArt Pilot",
+      "priority": 6,
+      "decision": "PENDING_PROVIDER_RESPONSE",
+      "role": "ART_AUCTION_DATA_CANDIDATE",
+      "fit": "POTENTIALLY_RELEVANT_BUT_UNVERIFIED",
+      "pendingReason": "PILOT_PRICE_RIGHTS_AND_PRODUCT_TERMS_UNCONFIRMED_PENDING_PROVIDER_RESPONSE",
+      "currentSoldCapability": {
+        "providesTransactionHistory": false,
+        "potentiallyRelevant": true,
+        "qualifiesAsCompleteCurrentSoldFeed": false,
+        "reason": "NO_VERIFIED_PILOT_SCHEMA_RIGHTS_OR_PURCHASABLE_PRODUCT"
+      },
+      "economics": {
+        "currency": "USD",
+        "monthlyAmount": null,
+        "annualAmount": null,
+        "trialDays": null,
+        "callsPerDay": null,
+        "quoteStatus": "UNKNOWN"
+      },
+      "activation": {
+        "state": "PROHIBITED",
+        "externalContactAllowed": false,
+        "contractAllowed": false,
+        "spendAllowed": false,
+        "credentialAllowed": false,
+        "dataAcquisitionAllowed": false,
+        "adapterBacklogAdmissionAllowed": false,
+        "productionAllowed": false
+      },
+      "evidenceGates": [],
+      "terminalDispositionPolicy": {
+        "requiresOfficialProviderResponse": true,
+        "requiresResponseEvidenceReference": true,
+        "requiresResolvedDecisionEvidence": true,
+        "acceptedMaterialChanges": [
+          "PRODUCT",
+          "PILOT",
+          "SCHEMA",
+          "PRICE",
+          "RIGHTS"
+        ],
+        "requiresNewDecisionPacket": true,
+        "requiresKpmoReview": true,
+        "requiresFounderApproval": true
+      }
+    },
+    {
+      "productId": "HAGERTY_UNSPECIFIED_PRODUCT",
+      "providerId": "HAGERTY",
+      "productName": "Hagerty",
+      "priority": 7,
+      "decision": "PENDING_PROVIDER_RESPONSE",
+      "role": "UNSPECIFIED_COLLECTOR_CAR_CANDIDATE",
+      "fit": "UNVERIFIED",
+      "pendingReason": "NO_PRODUCT_API_PRICE_OR_RIGHTS_PROPOSAL_YET",
+      "currentSoldCapability": {
+        "providesTransactionHistory": false,
+        "potentiallyRelevant": false,
+        "qualifiesAsCompleteCurrentSoldFeed": false,
+        "reason": "NO_VERIFIED_CURRENT_SOLD_PRODUCT"
+      },
+      "economics": {
+        "currency": "USD",
+        "monthlyAmount": null,
+        "annualAmount": null,
+        "trialDays": null,
+        "callsPerDay": null,
+        "quoteStatus": "UNKNOWN"
+      },
+      "activation": {
+        "state": "PROHIBITED",
+        "externalContactAllowed": false,
+        "contractAllowed": false,
+        "spendAllowed": false,
+        "credentialAllowed": false,
+        "dataAcquisitionAllowed": false,
+        "adapterBacklogAdmissionAllowed": false,
+        "productionAllowed": false
+      },
+      "evidenceGates": [],
+      "terminalDispositionPolicy": {
+        "requiresOfficialProviderResponse": true,
+        "requiresResponseEvidenceReference": true,
+        "requiresResolvedDecisionEvidence": true,
+        "acceptedMaterialChanges": [
+          "PRODUCT",
+          "API",
+          "SCHEMA",
+          "PRICE",
+          "RIGHTS"
+        ],
+        "requiresNewDecisionPacket": true,
+        "requiresKpmoReview": true,
+        "requiresFounderApproval": true
+      }
+    }
+  ],
+  "gapClosureWork": {
+    "queueStatus": "INTERNAL_ONLY",
+    "lanes": [
+      {
+        "laneId": "CLASSIC_BUNDLE3_DILIGENCE",
+        "mode": "EVIDENCE_GATING_ONLY",
+        "externalExecutionAllowed": false,
+        "purpose": "RESOLVE_CURRENT_SOLD_SCHEMA_PRICE_AND_RIGHTS"
+      },
+      {
+        "laneId": "NEW_CURRENT_SOLD_FEED_DISCOVERY",
+        "mode": "OFFICIAL_PRODUCT_EVIDENCE_ONLY",
+        "externalExecutionAllowed": false,
+        "purpose": "IDENTIFY_RIGHTS_CLEAR_CURRENT_SOLD_FEED_PRODUCTS"
+      },
+      {
+        "laneId": "GRADER_HELPER_SEPARATION",
+        "mode": "ARCHITECTURE_GUARD",
+        "externalExecutionAllowed": false,
+        "purpose": "PREVENT_GRADING_HELPERS_FROM_MASQUERADING_AS_TRANSACTION_FEEDS"
+      }
+    ],
+    "candidateAdmissionRequirements": [
+      "OFFICIAL_PRODUCT_ARTIFACT",
+      "FIELD_SCHEMA",
+      "SAMPLE_PAYLOAD",
+      "COVERAGE_AND_FRESHNESS",
+      "SOLD_STATUS_AND_PRICE_SEMANTICS",
+      "SOURCE_PURPOSE_RETENTION_RIGHTS",
+      "DERIVED_PUBLICATION_MODEL_RIGHTS",
+      "TERMINATION_DELETION_AND_PORTABILITY",
+      "QUOTE_AND_TOTAL_COST",
+      "QUOTA_LATENCY_AND_SLA",
+      "LINEAGE_AND_DETERMINISTIC_REPLAY",
+      "KPMO_REVIEW",
+      "FOUNDER_APPROVAL"
+    ]
+  },
+  "nonBypass": {
+    "externalContact": "HOLD",
+    "contract": "HOLD",
+    "spend": "HOLD",
+    "credential": "HOLD",
+    "dataAcquisition": "HOLD",
+    "adapterDevelopment": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "id": "kidults-digitalocean-staging-portal-deploy-v1",
-  "version": "1.2.0",
+  "version": "1.4.0",
   "issue": 921,
   "environment": "STAGING",
   "target": {
@@ -18,6 +18,9 @@
   "receipt_root": "/home/kidults-staging/kidults-runtime/audit/portal-r001-deployments",
   "required_markers": ["data-release=\"portal-release-001\"", "data-state=\"NO_PROJECTION\"", "Read the market.", "Know the evidence."],
   "deployment": {
+    "runtime": "NODE_SERVER_ENTRY_V1_WITH_STATIC_FALLBACK_FOR_LOCAL_CONTRACT_PROOF",
+    "runtime_entry": "scripts/operations/kidults_portal_runtime_entry_v1.mjs",
+    "runtime_requires_public_provider_ingestion": false,
     "no_sudo": true,
     "no_package_mutation": true,
     "no_firewall_mutation": true,
@@ -33,7 +36,17 @@
     "rollback_target_digest_revalidation_required": true,
     "serialized_deployments_required": true,
     "run_attempt_scoped_release_id": true,
-    "local_contract_proof_is_remote_evidence": false
+    "local_contract_proof_is_remote_evidence": false,
+    "exact_main_ref_required_before_validation": true,
+    "exact_main_ref_required_before_secret_consumption": true,
+    "live_main_branch_sha_equality_required_before_secret_consumption": true,
+    "live_main_read_uses_builtin_github_token_contents_read": true,
+    "ssh_private_key_step_scoped": true,
+    "host_key_scan_and_fingerprint_secret_free": true,
+    "ssh_materialization_separate_after_host_verification": true,
+    "ssh_key_cleanup_immediately_after_remote_receipts": true,
+    "ssh_key_cleanup_before_artifact_upload": true,
+    "non_main_remote_mutation_allowed": false
   },
   "prohibited": ["PRODUCTION_MUTATION", "PUBLIC_INTELLIGENCE_ENDPOINT", "RAW_PROVIDER_INGESTION", "TRACK_B_BYPASS", "G5_PROMOTION"],
   "production": "HOLD",

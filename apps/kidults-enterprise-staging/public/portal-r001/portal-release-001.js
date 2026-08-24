@@ -190,6 +190,22 @@ function renderFailure(){
   gateWorkspace('INVALID');
 }
 
+let projectionRevalidationTimer=null;
+async function refreshProjection(){
+  try{
+    const data=await readPortalProjection();
+    render(data);
+    clearTimeout(projectionRevalidationTimer);
+    projectionRevalidationTimer=setTimeout(refreshProjection,
+      Number.isInteger(data.runtime_revalidate_after_ms)?data.runtime_revalidate_after_ms:30000);
+  }catch{
+    renderFailure();
+    clearTimeout(projectionRevalidationTimer);
+    projectionRevalidationTimer=setTimeout(refreshProjection,5000);
+  }
+}
+
 initializeNavigation();
 bindHero();
-readPortalProjection().then(data=>{try{render(data)}catch{renderFailure()}}).catch(renderFailure);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshProjection()});
+refreshProjection();

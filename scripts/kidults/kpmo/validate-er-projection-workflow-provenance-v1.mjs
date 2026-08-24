@@ -22,7 +22,7 @@ function evaluate(text) {
   if (!text.includes('git rev-parse HEAD')) findings.push('missing_actual_sha_probe');
   if (!text.includes(`EXPECTED_SHA: ${expectedSource}`)) findings.push('missing_expected_sha_binding');
   if (!/test\s+"\$\{ACTUAL_SHA\}"\s*=\s*"\$\{EXPECTED_SHA\}"/.test(text)) findings.push('missing_sha_equality_failclose');
-  if (!/node-version:\s*['"]?24['"]?/.test(text)) findings.push('node24_not_enforced');
+  if (!/node-version:\s*['"]?24\.19\.0['"]?/.test(text)) findings.push('node24_exact_patch_not_enforced');
   return findings;
 }
 
@@ -34,7 +34,7 @@ const mutationCases = [
   (s) => s.replace('git rev-parse HEAD', 'echo HEAD'),
   (s) => s.replace(`EXPECTED_SHA: ${expectedSource}`, 'EXPECTED_SHA: ${{ github.sha }}'),
   (s) => s.replace('test "${ACTUAL_SHA}" = "${EXPECTED_SHA}"', 'echo "${ACTUAL_SHA}" "${EXPECTED_SHA}"'),
-  (s) => s.replace(/node-version:\s*['"]24['"]/, "node-version: '22'"),
+  (s) => s.replace(/node-version:\s*['"]24\.19\.0['"]/, "node-version: '22'"),
 ];
 
 const results = [];

@@ -5,6 +5,7 @@ const WORKFLOW_PATH = '.github/workflows/kidults-portal-r001-release-qa.yml';
 const PACKAGE_PATH = 'tooling/kidults-portal-r001-browser-qa/package.json';
 const LOCK_PATH = 'tooling/kidults-portal-r001-browser-qa/package-lock.json';
 const RECEIPT_BUILDER = 'scripts/kidults/kpmo/build-portal-r001-browser-qa-toolchain-receipt-v1.mjs';
+const FIXTURE_BUILDER = 'scripts/kidults/portal/proof-product-test-fixtures-v1.mjs';
 const SELF = 'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs';
 const CHECKOUT_SHA = '3d3c42e5aac5ba805825da76410c181273ba90b1';
 const SETUP_NODE_SHA = '820762786026740c76f36085b0efc47a31fe5020';
@@ -42,10 +43,12 @@ function workflowFindings(text) {
   require(text.includes(`EXPECTED_SHA: ${EXACT_SOURCE}`), 'EXPECTED_SHA_BINDING_MISSING');
   require(/ACTUAL_SHA="\$\(git rev-parse HEAD\)"/.test(text), 'ACTUAL_SHA_READBACK_MISSING');
   require(/test "\$\{ACTUAL_SHA\}" = "\$\{EXPECTED_SHA\}"/.test(text), 'SOURCE_SHA_EQUALITY_ASSERTION_MISSING');
-  require(/node-version:\s*['"]24['"]/.test(text), 'NODE_24_REQUIRED');
+  require(/node-version:\s*['"]24\.19\.0['"]/.test(text), 'NODE_24_19_0_REQUIRED');
   require(/package-manager-cache:\s*false/.test(text), 'PACKAGE_MANAGER_CACHE_POLICY_MISSING');
   require(text.includes(`node ${SELF}`), 'SELF_PROVENANCE_VALIDATION_MISSING');
-  require(text.includes('npm ci --prefix /tmp/kidults-r001-qa'), 'NPM_CI_COMMITTED_LOCK_MISSING');
+  require(text.split(/\r?\n/).some((line) => line.trim() === `- '${FIXTURE_BUILDER}'`), 'FIXTURE_BUILDER_PATH_TRIGGER_MISSING');
+  require(text.includes(`process.env.GITHUB_WORKSPACE+'/${FIXTURE_BUILDER}'`), 'FIXTURE_BUILDER_RUNTIME_IMPORT_MISSING');
+  require(text.includes('npm ci --prefix /tmp/kidults-r001-qa --ignore-scripts --no-audit --no-fund'), 'NPM_CI_COMMITTED_LOCK_MISSING');
   require(text.includes('node /tmp/kidults-r001-qa/node_modules/playwright/cli.js install --with-deps chromium'), 'LOCKED_PLAYWRIGHT_CLI_MISSING');
   require(!activeRunLines(text).some((line) => /^(?:run:\s*)?npm\s+install\b/i.test(line)), 'MUTABLE_NPM_INSTALL_FORBIDDEN');
   require(!activeRunLines(text).some((line) => /^(?:run:\s*)?npx\b/i.test(line)), 'NPX_RUNTIME_RESOLUTION_FORBIDDEN');
@@ -87,6 +90,7 @@ function receiptFindings(text) {
   const markers = [
     'SOURCE_SHA_MISMATCH', 'NPM_CI_INSTALLED_TREE_LOCK_MISSING', 'INSTALLED_PACKAGE_VERSION_DRIFT',
     'INSTALLED_PACKAGE_INTEGRITY_DRIFT', 'BROWSER_QA_REPORT_NOT_PASS', 'browser_qa_report_sha256',
+    'fixture_builder_sha256', FIXTURE_BUILDER,
     "production: 'HOLD'", "public: 'HOLD'", "g5: 'EXPLICIT_APPROVAL_REQUIRED'"
   ];
   return markers.filter((marker) => !text.includes(marker)).map((marker) => `RECEIPT_MARKER_MISSING:${marker}`);
@@ -101,6 +105,7 @@ const workflow = fs.readFileSync(WORKFLOW_PATH, 'utf8');
 const pkgBytes = fs.readFileSync(PACKAGE_PATH);
 const lockBytes = fs.readFileSync(LOCK_PATH);
 const receiptBuilder = fs.readFileSync(RECEIPT_BUILDER, 'utf8');
+const fixtureBytes = fs.readFileSync(FIXTURE_BUILDER);
 const pkg = JSON.parse(pkgBytes.toString('utf8'));
 const lock = JSON.parse(lockBytes.toString('utf8'));
 
@@ -108,10 +113,12 @@ const findings = [...workflowFindings(workflow), ...lockFindings(pkg, lock), ...
 if (findings.length) throw new Error(`PORTAL_BROWSER_QA_SUPPLY_CHAIN_INVALID:${findings.join(',')}`);
 
 expectMutation('MUTABLE_CHECKOUT', workflow.replace(`actions/checkout@${CHECKOUT_SHA} # v7.0.1`, 'actions/checkout@v7'), 'MUTABLE_OR_NONFULL_ACTION_REF');
-expectMutation('NODE_DOWNGRADE', workflow.replace("node-version: '24'", 'node-version: 22'), 'NODE_24_REQUIRED');
-expectMutation('NPM_INSTALL', workflow.replace('npm ci --prefix /tmp/kidults-r001-qa', 'npm install --prefix /tmp/kidults-r001-qa'), 'MUTABLE_NPM_INSTALL_FORBIDDEN');
+expectMutation('NODE_DOWNGRADE', workflow.replace("node-version: '24.19.0'", "node-version: '24'"), 'NODE_24_19_0_REQUIRED');
+expectMutation('NPM_INSTALL', workflow.replace('npm ci --prefix /tmp/kidults-r001-qa --ignore-scripts --no-audit --no-fund', 'npm install --prefix /tmp/kidults-r001-qa'), 'MUTABLE_NPM_INSTALL_FORBIDDEN');
 expectMutation('NPX', workflow.replace('node /tmp/kidults-r001-qa/node_modules/playwright/cli.js', 'npx playwright'), 'NPX_RUNTIME_RESOLUTION_FORBIDDEN');
 expectMutation('CREDENTIAL_PERSIST', workflow.replace('persist-credentials: false', 'persist-credentials: true'), 'CHECKOUT_CREDENTIAL_PERSISTENCE_NOT_DISABLED');
+expectMutation('FIXTURE_TRIGGER_REMOVAL', workflow.replace(`      - '${FIXTURE_BUILDER}'\n`, ''), 'FIXTURE_BUILDER_PATH_TRIGGER_MISSING');
+expectMutation('FIXTURE_IMPORT_DRIFT', workflow.replace(`process.env.GITHUB_WORKSPACE+'/${FIXTURE_BUILDER}'`, `process.env.GITHUB_WORKSPACE+'/scripts/kidults/portal/unbound-fixtures.mjs'`), 'FIXTURE_BUILDER_RUNTIME_IMPORT_MISSING');
 
 const lockNoIntegrity = structuredClone(lock);
 const record = Object.entries(lockNoIntegrity.packages).find(([name, value]) => name && !value.link)?.[1];
@@ -131,9 +138,11 @@ const receipt = {
   workflow_sha256: `sha256:${crypto.createHash('sha256').update(workflow).digest('hex')}`,
   package_sha256: `sha256:${crypto.createHash('sha256').update(pkgBytes).digest('hex')}`,
   lock_sha256: `sha256:${crypto.createHash('sha256').update(lockBytes).digest('hex')}`,
+  fixture_builder: FIXTURE_BUILDER,
+  fixture_builder_sha256: `sha256:${crypto.createHash('sha256').update(fixtureBytes).digest('hex')}`,
   locked_package_records: registryRecords.length,
   integrity_bound_package_records: registryRecords.filter(([, value]) => value.integrity).length,
-  mutations_rejected: 7,
+  mutations_rejected: 9,
   scope: 'PORTAL_R001_BROWSER_QA_ONLY',
   empirical_gate_effect: 'NONE',
   external_runtime_mutation: false,

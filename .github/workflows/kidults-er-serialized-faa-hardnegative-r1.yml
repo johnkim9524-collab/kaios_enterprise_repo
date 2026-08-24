@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: {node-version: '22.23.2'}
       - name: Acquire releasable FAA archive without emitting source rows
         shell: bash
         run: |
@@ -56,7 +56,7 @@ jobs:
           if(x.labels_present!==false||x.reviewer_a!=='NOT_ASSIGNED'||x.reviewer_b!=='NOT_ASSIGNED'||x.empirical_pass!==false||x.track_b!=='NOT_STARTED'||x.public_release!=='HOLD'||x.production!=='HOLD') throw new Error('GATE_OVERCLAIM');
           console.log(JSON.stringify({status:x.status,added:x.additional_case_count,serialized_total:x.total_serialized_reviewer_ready_if_combined,aggregate_total:x.aggregate_reviewer_ready_if_combined,remaining_alias:x.remaining_case_class_deficit.CROSS_MARKET_ALIAS,pii_fields_retained:0,empirical_pass:false,production:'HOLD'},null,2));
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kidults-er-serialized-faa-hardnegative-r1
           path: /tmp/serialized-faa-hardnegative-packet-r1.json

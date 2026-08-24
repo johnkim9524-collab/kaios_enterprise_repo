@@ -1,0 +1,468 @@
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+
+const WORKFLOW_ROOT = '.github/workflows';
+const ACTION_ALLOWLIST_PATH = 'coordination/kidults/kpmo/estate-action-allowlist-v1.json';
+const FULL_COMMIT_ACTION = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*@[0-9a-f]{40}$/;
+const DIGEST_PINNED_CONTAINER = /^docker:\/\/[^\s@]+@sha256:[0-9a-f]{64}$/;
+
+function workflowFiles(root) {
+  if (!fs.existsSync(root)) return [];
+  const files = [];
+  const visit = directory => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(entryPath);
+      if (entry.isFile() && /\.ya?ml$/i.test(entry.name)) files.push(entryPath);
+    }
+  };
+  visit(root);
+  return files.sort();
+}
+
+function parseUsesLine(line) {
+  const match = line.match(/^\s*-?\s*uses\s*:\s*(.*?)\s*$/i);
+  if (!match) return null;
+  const value = match[1].replace(/\s+#.*$/, '').trim();
+  const reference = /^(['"]).*\1$/.test(value) ? value.slice(1, -1).trim() : value;
+  return {
+    reference,
+    hasVersionAnnotation: /\s+#\s*v[0-9][A-Za-z0-9_.-]*\s*$/i.test(match[1])
+  };
+}
+
+function unquoteScalar(value) {
+  const scalar = value.trim();
+  return /^(['"]).*\1$/.test(scalar) ? scalar.slice(1, -1).trim() : scalar;
+}
+
+function parseRunsOnLine(line) {
+  const match = line.match(/^\s*runs-on\s*:\s*(.*?)\s*$/i);
+  if (!match) return null;
+  const reference = stripYamlComment(match[1]).trim();
+  const labels = reference.startsWith('[') && reference.endsWith(']')
+    ? reference.slice(1, -1).split(',').map(unquoteScalar).filter(Boolean)
+    : [unquoteScalar(reference)].filter(Boolean);
+  return { reference, labels };
+}
+
+function runnerFinding(labels) {
+  return labels.some(label => label.toLowerCase() === 'ubuntu-latest')
+    ? 'MOVING_GITHUB_HOSTED_RUNNER_ALIAS'
+    : null;
+}
+
+function referenceFinding(reference) {
+  if (!reference) return 'EMPTY_ACTION_REF';
+  if (reference.startsWith('./')) return null;
+  if (reference.startsWith('docker://')) {
+    return DIGEST_PINNED_CONTAINER.test(reference) ? null : 'MUTABLE_OR_NONDIGEST_CONTAINER_REF';
+  }
+  return FULL_COMMIT_ACTION.test(reference) ? null : 'MUTABLE_OR_NONFULL_ACTION_REF';
+}
+
+function actionAllowlistFindings(allowlist, observedActionRefs, observedContainerRefs) {
+  const findings = [];
+  const require = (condition, id) => { if (!condition) findings.push(`ACTION_ALLOWLIST:${id}`); };
+  require(allowlist?.id === 'kidults-estate-action-allowlist-v1', 'ID');
+  require(allowlist?.version === '1.0.0', 'VERSION');
+  require(allowlist?.status === 'ACTIVE_EXACT_REFERENCE_ALLOWLIST', 'STATUS');
+  require(allowlist?.scope === '.github/workflows/**/*.yml|yaml', 'SCOPE');
+  const entries = Array.isArray(allowlist?.entries) ? allowlist.entries : [];
+  const allowedRefs = [];
+  for (const [index, entry] of entries.entries()) {
+    const reference = String(entry?.reference || '');
+    const repository = String(entry?.repository || '');
+    const commitSha = String(entry?.commit_sha || '');
+    allowedRefs.push(reference);
+    require(FULL_COMMIT_ACTION.test(reference), `ENTRY_${index}_REFERENCE`);
+    require(/^[0-9a-f]{40}$/.test(commitSha), `ENTRY_${index}_SHA`);
+    require(reference === `${repository}@${commitSha}`, `ENTRY_${index}_IDENTITY_BINDING`);
+    require(entry?.source_repository === `https://github.com/${repository}`, `ENTRY_${index}_SOURCE_REPOSITORY`);
+    require(/^v[0-9][A-Za-z0-9_.-]*$/.test(String(entry?.release || '')), `ENTRY_${index}_RELEASE`);
+  }
+  require(new Set(allowedRefs).size === allowedRefs.length, 'DUPLICATE_REFERENCE');
+  const allowedContainers = Array.isArray(allowlist?.allowed_container_action_refs)
+    ? allowlist.allowed_container_action_refs.map(String)
+    : [];
+  require(new Set(allowedContainers).size === allowedContainers.length, 'DUPLICATE_CONTAINER_REFERENCE');
+  require(allowedContainers.every(reference => DIGEST_PINNED_CONTAINER.test(reference)), 'CONTAINER_REFERENCE_FORMAT');
+  const observed = [...new Set(observedActionRefs)].sort();
+  const allowed = [...new Set(allowedRefs)].sort();
+  const observedContainers = [...new Set(observedContainerRefs)].sort();
+  const allowedContainersSorted = [...new Set(allowedContainers)].sort();
+  require(JSON.stringify(observed) === JSON.stringify(allowed), 'EXACT_ACTION_REFERENCE_PARTITION');
+  require(JSON.stringify(observedContainers) === JSON.stringify(allowedContainersSorted), 'EXACT_CONTAINER_REFERENCE_PARTITION');
+  require(allowlist?.truth_boundary?.exact_reference_allowlist_is_source_review_substitute === false, 'SOURCE_REVIEW_TRUTH');
+  require(allowlist?.truth_boundary?.new_repository_or_commit_requires_trust_root_review === true, 'TRUST_ROOT_REVIEW_REQUIRED');
+  require(allowlist?.truth_boundary?.github_hosted_runner_image_build_pinned === false, 'RUNNER_IMAGE_TRUTH');
+  require(allowlist?.truth_boundary?.production === 'HOLD' && allowlist?.truth_boundary?.public === 'HOLD', 'RELEASE_HOLD');
+  require(allowlist?.truth_boundary?.g5 === 'EXPLICIT_APPROVAL_REQUIRED', 'G5_HOLD');
+  return findings;
+}
+
+// GitHub interprets workflow keys after YAML escape, alias, tag and merge resolution.
+// Decode quoted key candidates and reject non-canonical key construction so a semantic
+// `uses` key cannot evade the literal reference inventory.
+function decodeDoubleQuotedScalar(text, start) {
+  const simpleEscapes = new Map([
+    ['0', '\0'], ['a', '\x07'], ['b', '\b'], ['t', '\t'], ['n', '\n'], ['v', '\v'],
+    ['f', '\f'], ['r', '\r'], ['e', '\x1b'], [' ', ' '], ['"', '"'], ['/', '/'],
+    ['\\', '\\'], ['N', '\u0085'], ['_', '\u00a0'], ['L', '\u2028'], ['P', '\u2029']
+  ]);
+  let decoded = '';
+  for (let index = start + 1; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '"') return { decoded, end: index };
+    if (character !== '\\') {
+      decoded += character;
+      continue;
+    }
+    const escape = text[index + 1];
+    if (escape === '\n' || escape === '\r') {
+      index += escape === '\r' && text[index + 2] === '\n' ? 2 : 1;
+      while (text[index + 1] === ' ' || text[index + 1] === '\t') index += 1;
+      continue;
+    }
+    const widths = { x: 2, u: 4, U: 8 };
+    if (Object.hasOwn(widths, escape)) {
+      const width = widths[escape];
+      const hex = text.slice(index + 2, index + 2 + width);
+      if (!new RegExp(`^[0-9a-fA-F]{${width}}$`).test(hex)) return null;
+      const codePoint = Number.parseInt(hex, 16);
+      if (codePoint > 0x10ffff) return null;
+      decoded += String.fromCodePoint(codePoint);
+      index += width + 1;
+      continue;
+    }
+    if (!simpleEscapes.has(escape)) return null;
+    decoded += simpleEscapes.get(escape);
+    index += 1;
+  }
+  return null;
+}
+
+function stripYamlComment(line) {
+  let singleQuoted = false;
+  let doubleQuoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (doubleQuoted && character === '\\') {
+      index += 1;
+      continue;
+    }
+    if (!doubleQuoted && character === "'") {
+      if (singleQuoted && line[index + 1] === "'") {
+        index += 1;
+        continue;
+      }
+      singleQuoted = !singleQuoted;
+      continue;
+    }
+    if (!singleQuoted && character === '"') {
+      doubleQuoted = !doubleQuoted;
+      continue;
+    }
+    if (!singleQuoted && !doubleQuoted && character === '#' && (index === 0 || /\s/.test(line[index - 1]))) {
+      return line.slice(0, index);
+    }
+  }
+  return line;
+}
+
+function blockScalarBaseIndent(line) {
+  const uncommented = stripYamlComment(line).trimEnd();
+  const indicator = uncommented.match(/[|>][1-9+-]{0,2}\s*$/);
+  if (!indicator) return null;
+  const leading = uncommented.match(/^\s*/)?.[0].length || 0;
+  const prefix = uncommented.slice(leading, indicator.index);
+  return /^-\s+/.test(prefix) && prefix.includes(':') ? leading + 2 : leading;
+}
+
+function quotedKeyCandidates(line) {
+  const candidates = new Set();
+  const canonicalStart = line.match(/^\s*(?:-\s+)*(?:(?:![^\s]+|&[^\s,{}\[\]"']+)\s+)*"/);
+  if (canonicalStart) candidates.add(canonicalStart[0].length - 1);
+  const flowStart = /[{\[,]\s*(?:(?:![^\s,{}\[\]]+|&[^\s,{}\[\]"']+)\s+)*"/g;
+  for (const match of line.matchAll(flowStart)) candidates.add(match.index + match[0].lastIndexOf('"'));
+  return [...candidates].sort((left, right) => left - right);
+}
+
+function semanticKeyFindings(name, text) {
+  const findings = [];
+  const lines = text.split('\n');
+  let offset = 0;
+  let blockScalar = null;
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const rawLine = lines[lineIndex].replace(/\r$/, '');
+    const indent = rawLine.match(/^ */)?.[0].length || 0;
+    const blank = rawLine.trim() === '';
+    if (blockScalar) {
+      if (blank) {
+        offset += lines[lineIndex].length + 1;
+        continue;
+      }
+      if (blockScalar.contentIndent === null && indent > blockScalar.baseIndent) {
+        blockScalar.contentIndent = indent;
+      }
+      if (blockScalar.contentIndent !== null && indent >= blockScalar.contentIndent) {
+        offset += lines[lineIndex].length + 1;
+        continue;
+      }
+      blockScalar = null;
+    }
+
+    const uncommented = stripYamlComment(rawLine);
+    for (const candidate of quotedKeyCandidates(uncommented)) {
+      const parsed = decodeDoubleQuotedScalar(text, offset + candidate);
+      if (!parsed) continue;
+      let cursor = parsed.end + 1;
+      while (/\s/.test(text[cursor] || '')) cursor += 1;
+      const semanticKey = parsed.decoded.toLowerCase();
+      if (semanticKey === 'uses' && text[cursor] === ':') {
+        findings.push(`${name}:${lineIndex + 1}:NONCANONICAL_ESCAPED_USES_KEY`);
+      }
+      if (semanticKey === 'runs-on' && text[cursor] === ':') {
+        findings.push(`${name}:${lineIndex + 1}:NONCANONICAL_ESCAPED_RUNS_ON_KEY`);
+      }
+    }
+
+    const baseIndent = blockScalarBaseIndent(rawLine);
+    if (baseIndent !== null) blockScalar = { baseIndent, contentIndent: null };
+    offset += lines[lineIndex].length + 1;
+  }
+  return findings;
+}
+
+function findingsFor(name, text) {
+  const findings = semanticKeyFindings(name, text);
+  const refs = [];
+  const runners = [];
+  for (const [index, line] of text.split(/\r?\n/).entries()) {
+    const runner = parseRunsOnLine(line);
+    if (runner) {
+      runners.push({ line: index + 1, reference: runner.reference, labels: runner.labels });
+      const finding = runnerFinding(runner.labels);
+      if (finding) findings.push(`${name}:${index + 1}:${finding}:${runner.reference || '<EMPTY>'}`);
+    }
+    const parsed = parseUsesLine(line);
+    if (!parsed) {
+      const uncommented = stripYamlComment(line);
+      if (!runner && /(?:^|[{,]|-\s)\s*(?:runs-on|['"]runs-on['"])\s*:/i.test(uncommented)) {
+        findings.push(`${name}:${index + 1}:NONCANONICAL_RUNS_ON_SYNTAX:${line.trim()}`);
+      }
+      // Complex, alias and merge keys are unnecessary in canonical Actions syntax and
+      // can synthesize a `uses` key only after YAML parsing, so they fail closed.
+      if (/^\s*(?:-\s*)?\?\s/.test(uncommented) || /[{,]\s*\?\s/.test(uncommented)) {
+        findings.push(`${name}:${index + 1}:NONCANONICAL_COMPLEX_MAPPING_KEY:${line.trim()}`);
+      }
+      if (/(?:^|[{,]|-\s)\s*\*[^\s,{}\[\]*]+?\s*:/.test(uncommented)) {
+        findings.push(`${name}:${index + 1}:NONCANONICAL_ALIAS_MAPPING_KEY:${line.trim()}`);
+      }
+      if (/(?:^|[{,]|-\s)\s*<<\s*:/.test(uncommented)) {
+        findings.push(`${name}:${index + 1}:NONCANONICAL_MERGE_MAPPING_KEY:${line.trim()}`);
+      }
+      if (/(?:\buses\s*:|['"]uses['"]\s*:)/i.test(uncommented) || /^\s*-?\s*\?\s*['"]?uses['"]?\s*$/i.test(uncommented)) {
+        findings.push(`${name}:${index + 1}:NONCANONICAL_USES_SYNTAX:${line.trim()}`);
+      }
+      continue;
+    }
+    const finding = referenceFinding(parsed.reference);
+    refs.push({
+      line: index + 1,
+      reference: parsed.reference,
+      local: parsed.reference.startsWith('./'),
+      container: parsed.reference.startsWith('docker://'),
+      has_version_annotation: parsed.hasVersionAnnotation
+    });
+    if (finding) findings.push(`${name}:${index + 1}:${finding}:${parsed.reference || '<EMPTY>'}`);
+  }
+  return { findings, refs, runners };
+}
+
+const sha = 'a'.repeat(40);
+const digest = 'b'.repeat(64);
+const mutationCases = [
+  { name: 'mutable-tag', text: 'steps:\n  - uses: actions/checkout@v4', expected: 'MUTABLE_OR_NONFULL_ACTION_REF' },
+  { name: 'mutable-branch', text: 'steps:\n  - uses: owner/action@main', expected: 'MUTABLE_OR_NONFULL_ACTION_REF' },
+  { name: 'short-sha', text: 'steps:\n  - uses: owner/action@deadbeef', expected: 'MUTABLE_OR_NONFULL_ACTION_REF' },
+  { name: 'expression-ref', text: 'steps:\n  - uses: owner/action@${{ github.sha }}', expected: 'MUTABLE_OR_NONFULL_ACTION_REF' },
+  { name: 'empty-ref', text: 'steps:\n  - uses:', expected: 'EMPTY_ACTION_REF' },
+  { name: 'container-tag', text: 'steps:\n  - uses: docker://alpine:3.21', expected: 'MUTABLE_OR_NONDIGEST_CONTAINER_REF' },
+  { name: 'flow-style', text: 'steps: [{ uses: actions/checkout@v4 }]', expected: 'NONCANONICAL_USES_SYNTAX' },
+  { name: 'quoted-key', text: `steps:\n  - "uses": owner/action@${sha}`, expected: 'NONCANONICAL_USES_SYNTAX' },
+  { name: 'complex-key', text: `steps:\n  - ? uses\n    : owner/action@${sha}`, expected: 'NONCANONICAL_USES_SYNTAX' },
+  { name: 'unicode-escaped-key', text: 'steps:\n  - "u\\u0073es": actions/checkout@v4', expected: 'NONCANONICAL_ESCAPED_USES_KEY' },
+  { name: 'hex-escaped-key', text: 'steps:\n  - "u\\x73es": actions/checkout@v4', expected: 'NONCANONICAL_ESCAPED_USES_KEY' },
+  { name: 'long-unicode-escaped-key', text: 'steps:\n  - "u\\U00000073es": actions/checkout@v4', expected: 'NONCANONICAL_ESCAPED_USES_KEY' },
+  { name: 'flow-escaped-key', text: 'steps: [{"u\\u0073es": actions/checkout@v4}]', expected: 'NONCANONICAL_ESCAPED_USES_KEY' },
+  { name: 'first-letter-escaped-key', text: 'steps:\n  - "\\x75ses": actions/checkout@v4', expected: 'NONCANONICAL_ESCAPED_USES_KEY' },
+  { name: 'comment-quote-before-escaped-key', text: 'steps:\n  # "\n  - "u\\u0073es": actions/checkout@v4', expected: 'NONCANONICAL_ESCAPED_USES_KEY' },
+  { name: 'scalar-quote-before-escaped-key', text: 'steps:\n  - run: \'echo "\'\n  - "u\\u0073es": actions/checkout@v4', expected: 'NONCANONICAL_ESCAPED_USES_KEY' },
+  { name: 'plain-scalar-quote-before-escaped-key', text: 'steps:\n  - run: echo "\n  - "u\\u0073es": actions/checkout@v4', expected: 'NONCANONICAL_ESCAPED_USES_KEY' },
+  { name: 'block-scalar-quote-before-escaped-key', text: 'steps:\n  - run: |\n      echo "\n  - "u\\u0073es": actions/checkout@v4', expected: 'NONCANONICAL_ESCAPED_USES_KEY' },
+  { name: 'flow-comment-quote-before-escaped-key', text: '# "\nsteps: [{"u\\x73es": actions/checkout@v4}]', expected: 'NONCANONICAL_ESCAPED_USES_KEY' },
+  { name: 'alias-explicit-key', text: 'steps:\n  - env:\n      KEY: &uses_key uses\n    ? *uses_key\n    : actions/checkout@v4', expected: 'NONCANONICAL_COMPLEX_MAPPING_KEY' },
+  { name: 'alias-colon-key', text: 'steps:\n  - env:\n      KEY: &uses_key uses\n    *uses_key: actions/checkout@v4', expected: 'NONCANONICAL_ALIAS_MAPPING_KEY' },
+  { name: 'tagged-complex-key', text: 'steps:\n  - ? !!str "uses"\n    : actions/checkout@v4', expected: 'NONCANONICAL_COMPLEX_MAPPING_KEY' },
+  { name: 'merge-escaped-source', text: 'steps:\n  - &base {"u\\u0073es": actions/checkout@v4}\n  - <<: *base', expected: 'NONCANONICAL_MERGE_MAPPING_KEY' },
+  { name: 'moving-runner-alias', text: 'jobs:\n  check:\n    runs-on: ubuntu-latest', expected: 'MOVING_GITHUB_HOSTED_RUNNER_ALIAS' },
+  { name: 'quoted-moving-runner-alias', text: 'jobs:\n  check:\n    runs-on: "ubuntu-latest"', expected: 'MOVING_GITHUB_HOSTED_RUNNER_ALIAS' },
+  { name: 'array-moving-runner-alias', text: "jobs:\n  check:\n    runs-on: [self-hosted, 'ubuntu-latest']", expected: 'MOVING_GITHUB_HOSTED_RUNNER_ALIAS' },
+  { name: 'quoted-runner-key', text: 'jobs:\n  check:\n    "runs-on": ubuntu-latest', expected: 'NONCANONICAL_RUNS_ON_SYNTAX' },
+  { name: 'flow-runner-alias', text: 'jobs: {check: {runs-on: ubuntu-latest}}', expected: 'NONCANONICAL_RUNS_ON_SYNTAX' },
+  { name: 'escaped-runner-key', text: 'jobs:\n  check:\n    "runs-\\u006fn": ubuntu-latest', expected: 'NONCANONICAL_ESCAPED_RUNS_ON_KEY' },
+  { name: 'full-sha', text: `steps:\n  - uses: owner/action@${sha}`, expected: null },
+  { name: 'full-sha-comment', text: `steps:\n  - uses: owner/action@${sha} # v1.2.3`, expected: null },
+  { name: 'reusable-workflow-sha', text: `jobs:\n  call:\n    uses: owner/repository/.github/workflows/check.yml@${sha}`, expected: null },
+  { name: 'local-action', text: 'steps:\n  - uses: ./.github/actions/local', expected: null },
+  { name: 'container-digest', text: `steps:\n  - uses: docker://alpine@sha256:${digest}`, expected: null },
+  { name: 'versioned-hosted-runner', text: 'jobs:\n  check:\n    runs-on: ubuntu-24.04', expected: null }
+];
+
+for (const mutation of mutationCases) {
+  const { findings } = findingsFor(`MUTATION_${mutation.name}`, mutation.text);
+  if (mutation.expected && !findings.some(finding => finding.includes(mutation.expected))) {
+    throw new Error(`mutation self-test missed ${mutation.name}: expected ${mutation.expected}; got ${findings.join(',')}`);
+  }
+  if (!mutation.expected && findings.length) {
+    throw new Error(`valid-reference self-test rejected ${mutation.name}: ${findings.join(',')}`);
+  }
+}
+
+const workflows = workflowFiles(WORKFLOW_ROOT);
+const findings = [];
+const inventory = [];
+const runnerInventory = [];
+for (const workflow of workflows) {
+  const result = findingsFor(workflow, fs.readFileSync(workflow, 'utf8'));
+  findings.push(...result.findings);
+  inventory.push(...result.refs.map(ref => ({ workflow, ...ref })));
+  runnerInventory.push(...result.runners.map(runner => ({ workflow, ...runner })));
+}
+
+if (!workflows.length) findings.push(`${WORKFLOW_ROOT}:NO_WORKFLOW_FILES_DISCOVERED`);
+if (!inventory.length) findings.push(`${WORKFLOW_ROOT}:NO_ACTION_REFERENCES_DISCOVERED`);
+
+const external = inventory.filter(ref => !ref.local);
+const containers = external.filter(ref => ref.container);
+const commitPinned = external.filter(ref => !ref.container && FULL_COMMIT_ACTION.test(ref.reference));
+const digestPinnedContainers = containers.filter(ref => DIGEST_PINNED_CONTAINER.test(ref.reference));
+const versionAnnotated = commitPinned.filter(ref => ref.has_version_annotation);
+const ubuntu2404Runners = runnerInventory.filter(runner => runner.labels.includes('ubuntu-24.04'));
+const movingRunnerAliases = runnerInventory.filter(runner => runnerFinding(runner.labels));
+let actionAllowlist = null;
+try {
+  actionAllowlist = JSON.parse(fs.readFileSync(ACTION_ALLOWLIST_PATH, 'utf8'));
+} catch (error) {
+  findings.push(`${ACTION_ALLOWLIST_PATH}:UNREADABLE_OR_INVALID:${error instanceof Error ? error.message : String(error)}`);
+}
+const observedActionRefs = commitPinned.map(item => item.reference);
+const observedContainerRefs = digestPinnedContainers.map(item => item.reference);
+if (actionAllowlist) findings.push(...actionAllowlistFindings(actionAllowlist, observedActionRefs, observedContainerRefs));
+const allowlistMutationCases = actionAllowlist ? [
+  ['unapproved_full_sha', actionAllowlist, [...observedActionRefs, `owner/action@${'c'.repeat(40)}`], observedContainerRefs],
+  ['observed_reference_removed', actionAllowlist, observedActionRefs.filter(reference => reference !== actionAllowlist.entries[0].reference), observedContainerRefs],
+  ['duplicate_allowlist_entry', { ...actionAllowlist, entries: [...actionAllowlist.entries, actionAllowlist.entries[0]] }, observedActionRefs, observedContainerRefs],
+  ['identity_binding_changed', { ...actionAllowlist, entries: actionAllowlist.entries.map((entry, index) => index === 0 ? { ...entry, repository: 'actions/setup-node' } : entry) }, observedActionRefs, observedContainerRefs],
+  ['source_repository_changed', { ...actionAllowlist, entries: actionAllowlist.entries.map((entry, index) => index === 0 ? { ...entry, source_repository: 'https://example.invalid/action' } : entry) }, observedActionRefs, observedContainerRefs],
+  ['stale_allowlist_entry', { ...actionAllowlist, entries: [...actionAllowlist.entries, { repository: 'owner/action', commit_sha: 'd'.repeat(40), release: 'v1', reference: `owner/action@${'d'.repeat(40)}`, source_repository: 'https://github.com/owner/action' }] }, observedActionRefs, observedContainerRefs]
+] : [];
+for (const [name, mutatedAllowlist, mutatedObservedActions, mutatedObservedContainers] of allowlistMutationCases) {
+  if (actionAllowlistFindings(mutatedAllowlist, mutatedObservedActions, mutatedObservedContainers).length === 0) {
+    throw new Error(`action allowlist mutation self-test missed ${name}`);
+  }
+}
+const inventorySha256 = crypto.createHash('sha256')
+  .update(JSON.stringify({
+    actions: inventory.map(({ workflow, line, reference }) => ({ workflow, line, reference })),
+    runners: runnerInventory.map(({ workflow, line, reference }) => ({ workflow, line, reference }))
+  }))
+  .digest('hex');
+const state = findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS';
+const uncertainties = [
+  'ubuntu-24.04 fixes the hosted OS release label, but GitHub updates that hosted image build in place and runs-on cannot pin its build by SHA or digest'
+];
+const actionAllowlistSha256 = actionAllowlist
+  ? crypto.createHash('sha256').update(fs.readFileSync(ACTION_ALLOWLIST_PATH)).digest('hex')
+  : null;
+
+const receipt = {
+  suite: 'KIDULTS_ESTATE_ACTION_PINNING_V1',
+  agent_id: 'KIDULTS_SUPPLY_CHAIN_CONTROL',
+  as_of: new Date().toISOString(),
+  scope: `${WORKFLOW_ROOT}/**/*.yml|yaml`,
+  state,
+  facts: [
+    `${workflows.length} workflow files were discovered dynamically`,
+    `${external.length} external Action/container references were inspected`,
+    `${commitPinned.length} repository Action references are pinned to full 40-character commit SHAs`,
+    `${digestPinnedContainers.length} container Action references are pinned to sha256 digests`,
+    `${runnerInventory.length} runs-on declarations were inspected`,
+    `${ubuntu2404Runners.length} runs-on declarations use the versioned ubuntu-24.04 label`,
+    `${movingRunnerAliases.length} runs-on declarations use the forbidden ubuntu-latest alias`
+  ],
+  evidence_refs: [
+    WORKFLOW_ROOT,
+    'scripts/kidults/kpmo/validate-estate-action-pinning-v1.mjs',
+    'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs',
+    'scripts/kidults/kpmo/validate-full-value-chain-critical-gate-bindings-v1.mjs',
+    ACTION_ALLOWLIST_PATH,
+    'docs/kidults/security/estate-github-actions-runner-policy-v1.md'
+  ],
+  inferences: [],
+  uncertainties,
+  external_residuals: [
+    {
+      control: 'GITHUB_HOSTED_IMAGE_BUILD_IDENTITY',
+      state: 'NOT_IMMUTABLY_PINNABLE_VIA_RUNS_ON',
+      mitigation: 'RECORD_IMAGEOS_IMAGEVERSION_RUNNER_OS_RUNNER_ARCH_IN_EXECUTION_RECEIPTS'
+    }
+  ],
+  blockers: findings,
+  actions_executed: ['READ_WORKFLOW_ESTATE', 'VALIDATE_EXTERNAL_ACTION_REFS', 'VALIDATE_GITHUB_HOSTED_RUNNER_LABELS', 'RUN_MUTATION_SELF_TESTS'],
+  next_action: findings.length ? 'PIN_EVERY_REPORTED_REFERENCE_AND_RERUN' : 'KEEP_VALIDATOR_BOUND_TO_REQUIRED_MAIN_AND_PR_GATES',
+  authority_boundary: {
+    repository_mutated: false,
+    external_system_mutated: false,
+    secret_material_read: false,
+    empirical_gate_effect: 'NONE'
+  },
+  operating_principle_effects: {
+    autonomous: 'POSITIVE_FAIL_CLOSED_DEPENDENCY_EXECUTION',
+    global: 'POSITIVE_ESTATE_WIDE_DYNAMIC_DISCOVERY',
+    irreplaceable_value: 'POSITIVE_IMMUTABLE_BUILD_LINEAGE',
+    transparency: 'POSITIVE_HASHED_MACHINE_READABLE_RECEIPT'
+  },
+  workflow_files: workflows.length,
+  action_references: inventory.length,
+  external_action_references: external.length,
+  full_commit_action_references: commitPinned.length,
+  container_action_references: containers.length,
+  digest_pinned_container_action_references: digestPinnedContainers.length,
+  version_annotated_action_references: versionAnnotated.length,
+  exact_allowlisted_unique_action_references: actionAllowlist?.entries?.length || 0,
+  action_allowlist_mutation_cases: allowlistMutationCases.length,
+  action_allowlist_sha256: actionAllowlistSha256,
+  runner_declarations: runnerInventory.length,
+  ubuntu_24_04_runner_declarations: ubuntu2404Runners.length,
+  moving_ubuntu_latest_runner_aliases: movingRunnerAliases.length,
+  github_hosted_runner_alias_policy: 'OS_VERSION_LABEL_REQUIRED',
+  github_hosted_image_build_immutability: 'NOT_AVAILABLE_EXTERNAL_RESIDUAL',
+  github_hosted_image_identity_receipt_requirement: 'EXTERNAL_RUNTIME_EVIDENCE_REQUIRED_NOT_CLOSED_BY_THIS_VALIDATOR',
+  mutation_cases: mutationCases.length,
+  moving_runner_alias_mutation_selftest: true,
+  semantic_runner_key_bypass_mutation_selftest: true,
+  semantic_action_key_bypass_mutation_selftest: true,
+  inventory_sha256: inventorySha256,
+  findings,
+  result: findings.length ? 'FAIL' : 'PASS',
+  empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_VALIDATOR',
+  production: 'HOLD',
+  public: 'HOLD',
+  g5: 'EXPLICIT_APPROVAL_REQUIRED'
+};
+
+console.log(JSON.stringify(receipt, null, 2));
+if (findings.length) process.exit(1);

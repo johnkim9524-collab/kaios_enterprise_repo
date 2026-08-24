@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import {hydrateConversionRecord} from "./server.mjs";
 
 function required(value, name) {
   if (!value) throw new Error(`Missing required configuration: ${name}`);
@@ -145,7 +146,8 @@ export function runCrmCommand(command, env = process.env, args = process.argv.sl
   const submissionsPath = resolve(dataDir, "conversion-submissions.jsonl");
   const statePath = resolve(dataDir, "crm-state.json");
   const outputDir = resolve(env.KIDULTS_CRM_OUTPUT_DIR || "public/operations");
-  const submissions = readJsonLines(submissionsPath);
+  const vaultSecret=env.KIDULTS_CONVERSION_VAULT_SECRET_FILE?readFileSync(env.KIDULTS_CONVERSION_VAULT_SECRET_FILE,"utf8").trim():null;
+  const submissions = readJsonLines(submissionsPath).map(record=>hydrateConversionRecord(record,vaultSecret));
   let state = normalizeState(readJson(statePath, { records: {} }));
 
   if (command === "mark-read" || command === "archive" || command === "reopen") {

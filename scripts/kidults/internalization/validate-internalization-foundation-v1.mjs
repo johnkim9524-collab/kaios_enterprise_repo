@@ -11,6 +11,7 @@ const suites = [
   'scripts/kidults/internalization/validate-provider-removal-simulation-v1.mjs',
   'scripts/kidults/internalization/validate-provider-internalization-matrix-v1.mjs',
   'scripts/kidults/internalization/validate-provider-commercial-rights-ledger-v1.mjs',
+  'scripts/kidults/internalization/validate-provider-product-portfolio-v1.mjs',
   'scripts/kidults/internalization/validate-provider-operating-admission-gate-v1.mjs',
   'scripts/kidults/internalization/validate-partner-pre-send-internalization-gate-v1.mjs',
   'scripts/kidults/internalization/validate-external-provider-track-z-routing-gate-v1.mjs',

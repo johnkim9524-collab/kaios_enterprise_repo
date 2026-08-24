@@ -2,7 +2,7 @@
   "id": "portal-semantic-product-consumer-contract-v1",
   "record_type": "portal_projection_consumer_contract",
   "version": "1.0.0",
-  "status": "CANDIDATE_ON_CANONICAL_VALUE_CHAIN",
+  "status": "PORTAL_API_EXPORT_SIGNED_SERVER_CAPABILITY_BOUND",
   "parent_mission": 348,
   "semantic_inputs": [
     "kidults-platform-definition-v1",
@@ -63,7 +63,23 @@
     "projection_only": true,
     "closed_field_value_allowed": false,
     "missing_to_zero": false,
-    "public_claims_authorized": false
+    "public_claims_authorized": false,
+    "runtime_schema_validator": "../../../apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js",
+    "schema_runtime_binding": true,
+    "actual_surface_bindings": {
+      "PORTAL_RENDER": "SIGNED_SERVER_CAPABILITY_OR_STATE_ONLY_FAIL_CLOSED",
+      "PUBLIC_API_RESPONSE": "SIGNED_SERVER_CAPABILITY",
+      "EXPORT": "SIGNED_SERVER_CAPABILITY"
+    },
+    "caller_asserted_clock_or_release_authority_accepted": false,
+    "public_fixture_validation_bypass": false,
+    "approved_release_capability_exposed": false,
+    "server_release_capability": "SHORT_LIVED_EXACT_PROJECTION_BOUND",
+    "exact_nonpromotable_control_fixture_compatibility": "NO_PROJECTION_ONLY",
+    "nonpromotable_control_record_type": "kidults_non_promotable_control_projection",
+    "nonpromotable_control_schema_version": "1.0.0",
+    "control_fixture_content_policy": "DISCARD_ALL_INPUT_CONTENT_AND_RENDER_IMMUTABLE_STRUCTURAL_CATALOG_ONLY",
+    "unknown_or_legacy_record_type": "REJECT_INVALID"
   },
   "experience_sections": [
     "KIDULTS_MARKET_LENS",

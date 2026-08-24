@@ -1,0 +1,103 @@
+{
+  "id": "kidults-dependency-bootstrap-lock-contract-v1",
+  "version": "1.1.0",
+  "status": "ACTIVE_FAIL_CLOSED",
+  "governing_issue": 976,
+  "scope": [
+    "ACTIVE_WORKFLOW_RUNTIME_PATCHES",
+    "GITHUB_WORKFLOW_NODE_BOOTSTRAP",
+    "GITHUB_WORKFLOW_PYTHON_BOOTSTRAP",
+    "ROOT_RUNTIME_CONTAINER"
+  ],
+  "node": {
+    "required_install_command": "npm ci --ignore-scripts --no-audit --no-fund",
+    "runtime_registry_resolution_forbidden": ["npm install", "npm init", "npx"],
+    "governed_runtimes": {
+      "service_and_root": {
+        "node": "24.19.0",
+        "npm": "11.17.0",
+        "release_evidence": "https://nodejs.org/en/blog/release/v24.19.0"
+      },
+      "browser_qa_tooling": {
+        "node": "24.19.0",
+        "npm": "11.17.0",
+        "release_evidence": "https://nodejs.org/en/blog/release/v24.19.0"
+      },
+      "approved_non_install_estate_lanes": {
+        "node": "22.23.2",
+        "npm": "10.9.8",
+        "node_release_evidence": "https://nodejs.org/en/blog/release/v22.23.2",
+        "npm_release_evidence": "https://nodejs.org/en/blog/release/v22.22.3",
+        "scope": "ACTIVE_WORKFLOWS_WITHOUT_GOVERNED_NPM_CI"
+      }
+    },
+    "estate_runtimes": {
+      "node_22": {
+        "node": "22.23.2",
+        "release_evidence": "https://nodejs.org/en/blog/release/v22.23.2"
+      },
+      "node_24": {
+        "node": "24.19.0",
+        "release_evidence": "https://nodejs.org/en/blog/release/v24.19.0"
+      }
+    },
+    "node_20_governed_install_lanes_allowed": false,
+    "node_20_active_workflows_allowed": false,
+    "manifest_package_manager": {
+      "package.json": "npm@11.17.0",
+      "services/kidults-autonomous-intelligence/package.json": "npm@11.17.0",
+      "tooling/kidults-portal-r001-browser-qa/package.json": "npm@11.17.0"
+    },
+    "governed_lockfiles": [
+      "npm-shrinkwrap.json",
+      "services/kidults-autonomous-intelligence/package-lock.json",
+      "tooling/kidults-portal-r001-browser-qa/package-lock.json"
+    ],
+    "registry_entries_require_integrity": true
+  },
+  "python": {
+    "governed_versions": {
+      "ci_primary": "3.11.16",
+      "release_and_contract": "3.12.14",
+      "evidence": [
+        "https://www.python.org/downloads/release/python-31116/",
+        "https://www.python.org/downloads/release/python-31214/"
+      ]
+    },
+    "ci_input": "requirements-ci.in",
+    "ci_install_lock": "requirements-ci.lock.txt",
+    "runtime_input": "requirements-runtime.in",
+    "runtime_install_lock": "requirements-runtime.lock.txt",
+    "runtime_dependency_state": "STDLIB_ONLY_EMPTY_LOCK",
+    "ci_packages_forbidden_in_runtime_lock": ["pytest", "jsonschema"],
+    "required_flags": ["--require-hashes", "--only-binary=:all:", "--disable-pip-version-check"],
+    "pip_self_upgrade_forbidden": true,
+    "all_transitive_requirements_exact_and_hashed": true
+  },
+  "container": {
+    "dockerfile": "Dockerfile",
+    "base_reference": "python:3.11.16-slim-bookworm",
+    "base_index_digest": "sha256:2e32f7d302adc1c37428355c1e646897c0c53f4fd60b6a551245fb90ee129f91",
+    "digest_verified_at": "2026-08-24",
+    "digest_kind": "MULTI_PLATFORM_INDEX_DIGEST_NOT_PLATFORM_MANIFEST_DIGEST",
+    "tag_os_line": "BOOKWORM",
+    "verification_source_kind": "OFFICIAL_DOCKER_HUB_TAG_DETAIL",
+    "verified_platform": "linux/amd64",
+    "platform_manifest_digest_observed": "sha256:bb3a5d38989ec658710f06b08bc23cb78d079eb852405e42b124fdf430281454",
+    "digest_evidence": "https://hub.docker.com/layers/library/python/3.11.16-slim-bookworm/images/sha256-bb3a5d38989ec658710f06b08bc23cb78d079eb852405e42b124fdf430281454?tab=layers"
+  },
+  "truth_boundary": {
+    "control_effect": "DEPENDENCY_AND_BASE_IMAGE_RESOLUTION_IS_REPRODUCIBLE_FOR_GOVERNED_INSTALL_PATHS",
+    "vulnerability_acceptance": "NOT_GRANTED_BY_PINNING",
+    "empirical_gate_effect": "NONE",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "platform_effects": {
+    "autonomous_effect": "POSITIVE",
+    "global_effect": "NEUTRAL_WITH_EVIDENCE",
+    "irreplaceable_value_effect": "POSITIVE",
+    "transparency_effect": "POSITIVE"
+  }
+}

@@ -1,102 +1,166 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
+import {
+  PRINCIPLES, deriveReadiness, digestObject, hashText, stableJson,
+} from './lib/asi-snapshot-readiness-factory-v2.mjs';
 
-const args=process.argv.slice(2);
-if(args.length!==14) throw new Error('P3_VALIDATION_ARGUMENTS_REQUIRED');
-const [out,p0r,p0b,p0m,p1g,p1a,p1q,p1m,p2g,p2l,p2q,p2v,p2m,cp]=args;
-const fail=m=>{throw new Error(m)};
-const ok=(c,m)=>{if(!c)fail(m)};
-const text=p=>fs.readFileSync(p,'utf8');
-const json=p=>JSON.parse(text(p));
-const stable=v=>Array.isArray(v)?v.map(stable):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,stable(v[k])])):v;
-const sj=v=>`${JSON.stringify(stable(v),null,2)}\n`;
-const sha=v=>`sha256:${crypto.createHash('sha256').update(v).digest('hex')}`;
-const f=n=>path.join(out,n);
-const C=json(cp),I={p0r:json(p0r),p0b:json(p0b),p0m:json(p0m),p1g:json(p1g),p1a:json(p1a),p1q:json(p1q),p1m:json(p1m),p2g:json(p2g),p2l:json(p2l),p2q:json(p2q),p2v:json(p2v),p2m:json(p2m)};
-const P=['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'];
+const args = process.argv.slice(2);
+if (args.length !== 15) throw new Error('P3_VALIDATION_ARGUMENTS_REQUIRED');
+const [out, p0r, p0b, p0m, p1g, p1a, p1q, p1m, p2g, p2l, p2q, p2v, p2m, ub, cp] = args;
+const fail = (message) => { throw new Error(message); };
+const ok = (condition, message) => { if (!condition) fail(message); };
+const text = (file) => fs.readFileSync(file, 'utf8');
+const json = (file) => JSON.parse(text(file));
+const outputPath = (name) => path.join(out, name);
+const outputText = (name) => text(outputPath(name));
+const outputJson = (name) => json(outputPath(name));
+const exists = (name) => fs.existsSync(outputPath(name));
 
-ok(C.id==='kidults-asi-snapshot-readiness-factory-contract-v2'&&C.version==='2.0.0','CONTRACT_ID_VERSION');
-ok(JSON.stringify(C.platform_principles)===JSON.stringify(P),'CONTRACT_PRINCIPLES');
-ok(C.readiness_dimensions?.length===12&&C.required_outputs?.length===6,'CONTRACT_COUNTS');
-ok(C.snapshot_creation_gate?.snapshot_candidate_may_be_generated_when_gate_fails===false,'CONTRACT_FAIL_CLOSED');
-ok(C.snapshot_creation_gate?.blocker_package_may_be_called_evidence_package===false,'CONTRACT_BLOCKER_BOUNDARY');
-ok(C.snapshot_creation_gate?.track_b_may_start_without_exact_immutable_pair===false,'CONTRACT_TRACK_B_BOUNDARY');
-for(const n of C.required_outputs) ok(fs.existsSync(f(n)),`MISSING_OUTPUT:${n}`);
-for(const n of C.forbidden_outputs_when_gate_fails) ok(!fs.existsSync(f(n)),`FORBIDDEN_OUTPUT_PRESENT:${n}`);
+const contract = json(cp);
+const inputs = {
+  p0Registry: json(p0r),
+  p0Bindings: json(p0b),
+  p0Manifest: json(p0m),
+  p1Gate: json(p1g),
+  p1Admission: json(p1a),
+  p1Actions: json(p1q),
+  p1Manifest: json(p1m),
+  p2Graph: json(p2g),
+  p2Lineage: json(p2l),
+  p2Quality: json(p2q),
+  p2Value: json(p2v),
+  p2Manifest: json(p2m),
+  upstreamBinding: json(ub),
+};
+const derived = deriveReadiness(inputs, contract);
 
-ok(I.p0r.id==='kidults-asi-p0b-source-candidate-registry-v1'&&I.p0r.canonical_candidate_count>0&&I.p0r.unique_host_count>0,'INPUT_P0_REGISTRY');
-ok(I.p0b.id==='kidults-asi-p0b-mission-candidate-binding-ledger-v1'&&I.p0b.mission_count===192&&I.p0b.bindings?.length===192,'INPUT_P0_BINDINGS');
-ok(I.p0m.id==='kidults-asi-p0b-bounded-discovery-manifest-v1','INPUT_P0_MANIFEST');
-ok(I.p1g.id==='kidults-asi-p1-gate1-source-safety-decisions-v1'&&I.p1g.decision_count===576&&I.p1g.decisions?.length===576,'INPUT_P1_GATE');
-ok(I.p1a.id==='kidults-asi-p1-evidence-admission-candidate-register-v1'&&I.p1a.candidate_count===576&&I.p1a.candidates?.length===576,'INPUT_P1_ADMISSION');
-ok(I.p1q.id==='kidults-asi-p1-preflight-action-queue-v1'&&I.p1q.action_count===672&&I.p1q.actions?.length===672,'INPUT_P1_ACTIONS');
-ok(I.p1m.id==='kidults-asi-p1-source-preflight-manifest-v1','INPUT_P1_MANIFEST');
-ok(I.p2g.id==='kidults-owned-source-intelligence-graph-v2'&&I.p2g.node_count>0&&I.p2g.edge_count>0,'INPUT_P2_GRAPH');
-ok(I.p2l.id==='kidults-owned-source-intelligence-lineage-v2'&&I.p2l.graph?.digest===sha(sj(I.p2g)),'INPUT_P2_LINEAGE');
-ok(I.p2q.id==='kidults-owned-source-intelligence-quality-v2'&&I.p2q.state==='VERIFIED_GRAPH_INTEGRITY_READY','INPUT_P2_QUALITY');
-ok(I.p2v.id==='kidults-owned-source-intelligence-value-receipt-v2'&&I.p2v.source_intelligence_graph_is_market_evidence_graph===false,'INPUT_P2_VALUE');
-ok(I.p2m.id==='kidults-owned-source-intelligence-manifest-v2'&&I.p2m.graph_digest===I.p2l.graph.digest,'INPUT_P2_MANIFEST');
-ok(I.p2m.results?.source_candidates===I.p0r.canonical_candidate_count,'INPUT_P0_P2_CANDIDATE_DRIFT');
-ok(I.p2m.results?.canonical_hosts===I.p0r.unique_host_count,'INPUT_P0_P2_HOST_DRIFT');
-ok(I.p2m.results?.nodes===I.p2g.node_count&&I.p2m.results?.edges===I.p2g.edge_count,'INPUT_P2_MANIFEST_COUNTS');
+ok(contract.id === 'kidults-asi-snapshot-readiness-factory-contract-v2' && contract.version === '2.1.0', 'CONTRACT_ID_VERSION');
+ok(JSON.stringify(contract.platform_principles) === JSON.stringify(PRINCIPLES), 'CONTRACT_PRINCIPLES');
+ok(contract.prerequisite_dimensions?.length === 10 && contract.output_assertion_dimensions?.length === 2 && contract.readiness_dimensions?.length === 12, 'CONTRACT_DIMENSION_COUNTS');
+ok(contract.snapshot_creation_gate?.snapshot_candidate_may_be_generated_when_gate_fails === false, 'CONTRACT_FAIL_CLOSED');
+ok(contract.snapshot_creation_gate?.output_existence_is_prerequisite === false, 'CONTRACT_LIVENESS_BOUNDARY');
+ok(contract.snapshot_creation_gate?.blocker_package_may_be_called_evidence_package === false, 'CONTRACT_BLOCKER_BOUNDARY');
+ok(contract.snapshot_creation_gate?.track_b_may_start_without_exact_immutable_pair === false, 'CONTRACT_TRACK_B_BOUNDARY');
+ok(JSON.stringify(contract.always_required_outputs) === JSON.stringify([
+  'snapshot-readiness-ledger-v2.json', 'immutable-blocker-package-v2.json',
+  'admission-demand-package-v2.json', 'track-b-handoff-readiness-v2.json',
+  'snapshot-readiness-manifest-v2.json',
+]), 'CONTRACT_ALWAYS_OUTPUTS');
+ok(JSON.stringify(contract.outputs_when_gate_fails) === JSON.stringify(['snapshot-non-generation-receipt-v2.json']), 'CONTRACT_GATE_FAIL_OUTPUTS');
+ok(JSON.stringify(contract.outputs_when_gate_passes) === JSON.stringify(['snapshot-candidate.json', 'evidence-package.json', 'snapshot-pair-generation-receipt-v2.json']), 'CONTRACT_GATE_PASS_OUTPUTS');
+for (const name of contract.always_required_outputs) ok(exists(name), `MISSING_ALWAYS_OUTPUT:${name}`);
+for (const name of contract.forbidden_outputs_always) ok(!exists(name), `ALWAYS_FORBIDDEN_OUTPUT_PRESENT:${name}`);
 
-const R=json(f('snapshot-readiness-ledger-v2.json')),B=json(f('immutable-blocker-package-v2.json')),D=json(f('admission-demand-package-v2.json')),N=json(f('snapshot-non-generation-receipt-v2.json')),T=json(f('track-b-handoff-readiness-v2.json')),M=json(f('snapshot-readiness-manifest-v2.json'));
+const readiness = outputJson('snapshot-readiness-ledger-v2.json');
+const blockers = outputJson('immutable-blocker-package-v2.json');
+const demand = outputJson('admission-demand-package-v2.json');
+const trackB = outputJson('track-b-handoff-readiness-v2.json');
+const manifest = outputJson('snapshot-readiness-manifest-v2.json');
 
-ok(R.id==='kidults-asi-snapshot-readiness-ledger-v2'&&R.state==='NOT_READY_EXACT_BLOCKERS_OPEN','READINESS_ID_STATE');
-ok(JSON.stringify(R.platform_principles)===JSON.stringify(P)&&R.source_graph_digest===I.p2l.graph.digest,'READINESS_BINDING');
-ok(R.snapshot_creation_gate_pass===false&&R.all_dimensions_pass===false,'READINESS_GATE');
-ok(R.dimensions?.length===12&&JSON.stringify(R.dimensions.map(x=>x.dimension))===JSON.stringify(C.readiness_dimensions),'READINESS_DIMENSIONS');
-ok(R.dimensions.filter(x=>x.state==='PASS').length===2&&R.dimensions.filter(x=>x.state==='FAIL').length===10,'READINESS_PASS_FAIL_COUNTS');
-ok(R.counts.missions===192&&R.counts.source_candidates===I.p0r.canonical_candidate_count&&R.counts.unique_hosts===I.p0r.unique_host_count,'READINESS_P0_COUNTS');
-ok(R.counts.assigned_unique_candidates===I.p2m.results.assigned_unique_candidates,'READINESS_ASSIGNED_COUNT');
-ok(R.counts.gate1_pass===I.p1g.pass_count&&R.counts.gate1_hold===I.p1g.hold_count&&R.counts.gate1_reject===I.p1g.reject_count,'READINESS_GATE1_COUNTS');
-ok(R.counts.preflight_actions===672&&R.counts.preflight_actions_completed===I.p1q.actions.filter(x=>['COMPLETED','PASS','VERIFIED_PASS'].includes(x.state)).length,'READINESS_ACTION_COUNTS');
-ok(R.counts.rights_pass_candidates===0&&R.counts.semantic_verified_grains===0,'READINESS_RIGHTS_SEMANTIC_COUNTS');
-ok(R.counts.regional_coverage_verified_missions===I.p0b.missions_with_regional_coverage_proven&&R.counts.factual_origin_independence_verified_missions===I.p0b.missions_with_factual_origin_independence_proven,'READINESS_INDEPENDENCE_COUNTS');
-ok(R.counts.evidence_admitted===0&&R.counts.admitted_current_sold===0&&R.counts.admitted_liquidity===0,'READINESS_EVIDENCE_COUNTS');
-ok(R.counts.market_events===0&&R.counts.immutable_evidence_packages===0&&R.counts.snapshot_candidates===0&&R.counts.track_b_input_pairs===0,'READINESS_DOWNSTREAM_COUNTS');
-ok(R.snapshot_candidate_generated===false&&R.evidence_package_generated===false&&R.track_b_assessment_started===false,'READINESS_NON_GENERATION');
+ok(readiness.id === 'kidults-asi-snapshot-readiness-ledger-v2' && readiness.version === '2.1.0', 'READINESS_ID_VERSION');
+ok(JSON.stringify(readiness.platform_principles) === JSON.stringify(PRINCIPLES) && readiness.source_graph_digest === derived.sourceGraphDigest, 'READINESS_BINDING');
+ok(readiness.snapshot_creation_prerequisites_pass === derived.prerequisitesPass && readiness.snapshot_creation_gate_pass === derived.prerequisitesPass, 'READINESS_GATE');
+ok(stableJson(readiness.prerequisite_dimensions) === stableJson(derived.prerequisiteDimensions), 'READINESS_PREREQUISITE_DIMENSIONS');
+ok(readiness.dimensions?.length === 12 && JSON.stringify(readiness.dimensions.map((value) => value.dimension)) === JSON.stringify(contract.readiness_dimensions), 'READINESS_DIMENSIONS');
+ok(readiness.counts.missions === derived.missionCount && readiness.counts.source_candidates === derived.candidateCount && readiness.counts.unique_hosts === derived.uniqueHosts, 'READINESS_P0_COUNTS');
+ok(readiness.counts.gate1_pass === derived.actualGatePass && readiness.counts.gate1_hold === derived.actualGateHold && readiness.counts.gate1_reject === derived.actualGateReject, 'READINESS_GATE1_COUNTS');
+ok(readiness.counts.preflight_actions === inputs.p1Actions.action_count && readiness.counts.preflight_actions_completed === derived.completedActions, 'READINESS_ACTION_COUNTS');
+ok(readiness.counts.rights_pass_candidates === derived.rightsPass && readiness.counts.semantic_verified_grains === derived.semanticVerified, 'READINESS_RIGHTS_SEMANTIC_COUNTS');
+ok(readiness.counts.regional_coverage_verified_missions === derived.regionalCoverageVerified && readiness.counts.factual_origin_independence_verified_missions === derived.factualOriginVerified, 'READINESS_COVERAGE_COUNTS');
+ok(readiness.counts.evidence_admitted === derived.evidenceRecords.length && readiness.counts.admitted_current_sold === derived.admittedSold && readiness.counts.admitted_liquidity === derived.admittedLiquidity, 'READINESS_EVIDENCE_COUNTS');
+ok(readiness.counts.market_events === derived.marketEvents.length, 'READINESS_MARKET_EVENT_COUNTS');
+ok(readiness.track_b_assessment_started === false && readiness.public_release === 'HOLD' && readiness.production === 'HOLD', 'READINESS_RELEASE_BOUNDARY');
 
-ok(B.id==='kidults-asi-immutable-blocker-package-v2'&&B.state==='OPEN_BLOCKERS_BOUND_TO_CURRENT_CHAIN','BLOCKER_ID_STATE');
-ok(B.source_graph_digest===I.p2l.graph.digest&&B.blocker_count===12&&B.blockers?.length===12,'BLOCKER_COUNT');
-ok(B.p0_blocker_count===11&&B.p1_blocker_count===1,'BLOCKER_SEVERITY_COUNT');
-ok(B.package_is_evidence_package===false&&B.package_is_snapshot_candidate===false,'BLOCKER_PACKAGE_BOUNDARY');
-const classes=new Set(B.blockers.map(x=>x.blocker_class));
-for(const c of ['GATE1_HOLD_OPEN','PURPOSE_SPECIFIC_RIGHTS_UNKNOWN','MARKET_SEMANTICS_UNVERIFIED','PREFLIGHT_ACTIONS_UNEXECUTED','REGIONAL_RELEVANCE_UNPROVEN','FACTUAL_ORIGIN_INDEPENDENCE_UNPROVEN','EVIDENCE_ADMISSION_ZERO','CURRENT_SOLD_TRANSACTION_EVIDENCE_ZERO','LIQUIDITY_TIME_TO_SALE_EVIDENCE_ZERO','MARKET_EVENT_GRAPH_ZERO','IMMUTABLE_EVIDENCE_PACKAGE_MISSING','TRACK_B_INPUT_PAIR_MISSING']) ok(classes.has(c),`BLOCKER_MISSING:${c}`);
-for(const b of B.blockers){ok(b.state==='OPEN'&&b.snapshot_gate_effect==='BLOCK','BLOCKER_STATE_OR_EFFECT');ok(typeof b.unblock_condition==='string'&&b.unblock_condition.length>30,'BLOCKER_UNBLOCK_CONDITION');ok(b.dependencies?.length>0&&b.evidence_refs?.length>0,'BLOCKER_BINDING');}
+ok(blockers.id === 'kidults-asi-immutable-blocker-package-v2' && blockers.version === '2.1.0', 'BLOCKER_ID_VERSION');
+ok(blockers.source_graph_digest === derived.sourceGraphDigest && blockers.blocker_count === derived.blockers.length && blockers.blockers?.length === derived.blockers.length, 'BLOCKER_COUNT');
+ok(blockers.p0_blocker_count === derived.blockers.filter((value) => value.severity === 'P0').length && blockers.p1_blocker_count === derived.blockers.filter((value) => value.severity === 'P1').length, 'BLOCKER_SEVERITY_COUNT');
+ok(JSON.stringify(blockers.blockers.map((value) => value.blocker_class)) === JSON.stringify(derived.blockers.map((value) => value.blocker_class)), 'BLOCKER_CLASSES');
+ok(blockers.output_absence_is_not_a_prerequisite_blocker === true && blockers.package_is_evidence_package === false && blockers.package_is_snapshot_candidate === false, 'BLOCKER_PACKAGE_BOUNDARY');
+ok(!blockers.blockers.some((value) => ['IMMUTABLE_EVIDENCE_PACKAGE_MISSING', 'TRACK_B_INPUT_PAIR_MISSING'].includes(value.blocker_class)), 'OUTPUT_EXISTENCE_CYCLE_REINTRODUCED');
 
-ok(D.id==='kidults-asi-admission-demand-package-v2'&&D.state==='P1_ACTION_EXECUTION_REQUIRED','DEMAND_ID_STATE');
-ok(D.source_graph_digest===I.p2l.graph.digest&&D.action_count===672&&D.queued_action_count===672&&D.completed_action_count===0,'DEMAND_ACTION_COUNTS');
-ok(D.action_demands?.length===672&&Object.values(D.action_type_counts).reduce((a,b)=>a+b,0)===672,'DEMAND_ACTION_BINDING');
-ok(D.gate1_hold_count===576&&D.rights_unknown_count===576&&D.semantic_unknown_count===576,'DEMAND_GATE_COUNTS');
-ok(D.regional_coverage_unproven_missions===192&&D.factual_origin_independence_unproven_missions===192,'DEMAND_COVERAGE_COUNTS');
-ok(D.evidence_admitted===0&&D.package_is_evidence_package===false,'DEMAND_BOUNDARY');
-for(const a of D.action_demands) ok(a.state==='QUEUED_NOT_EXECUTED'&&a.network_probe_authorized===false&&a.collection_authorized===false&&a.evidence_admitted===false,'DEMAND_ACTION_PERMISSION');
+ok(demand.id === 'kidults-asi-admission-demand-package-v2' && demand.version === '2.1.0', 'DEMAND_ID_VERSION');
+ok(demand.source_graph_digest === derived.sourceGraphDigest && demand.action_count === inputs.p1Actions.action_count && demand.queued_action_count === derived.queuedActions && demand.completed_action_count === derived.completedActions, 'DEMAND_ACTION_COUNTS');
+ok(demand.action_demands?.length === inputs.p1Actions.action_count && Object.values(demand.action_type_counts).reduce((left, right) => left + right, 0) === inputs.p1Actions.action_count, 'DEMAND_ACTION_BINDING');
+ok(demand.evidence_admitted === derived.evidenceRecords.length && demand.package_is_evidence_package === false, 'DEMAND_BOUNDARY');
 
-ok(N.id==='kidults-asi-snapshot-non-generation-receipt-v2'&&N.state==='VERIFIED_NOT_GENERATED_FAIL_CLOSED','NON_GENERATION_ID_STATE');
-ok(N.source_graph_digest===I.p2l.graph.digest&&N.snapshot_creation_gate_pass===false,'NON_GENERATION_GRAPH_GATE');
-ok(N.snapshot_candidate_generated===false&&N.evidence_package_generated===false&&N.rankability_assessment_generated===false&&N.forbidden_output_absence_required===true,'NON_GENERATION_FLAGS');
-ok(N.readiness_ledger_digest===sha(text(f('snapshot-readiness-ledger-v2.json'))),'NON_GENERATION_READINESS_DIGEST');
-ok(N.blocker_package_digest===sha(text(f('immutable-blocker-package-v2.json'))),'NON_GENERATION_BLOCKER_DIGEST');
-ok(N.admission_demand_digest===sha(text(f('admission-demand-package-v2.json'))),'NON_GENERATION_DEMAND_DIGEST');
+ok(trackB.id === 'kidults-track-b-handoff-readiness-v2' && trackB.version === '2.1.0', 'TRACK_B_ID_VERSION');
+ok(trackB.independent_assessment_started === false && trackB.track_b_submission_eligible === false, 'TRACK_B_NO_PREAUTHORIZATION');
+ok(trackB.blocker_package_is_not_track_b_input === true && trackB.required_inputs?.length === 2, 'TRACK_B_BOUNDARY');
 
-ok(T.id==='kidults-track-b-handoff-readiness-v2'&&T.state==='WAITING_FOR_EXACT_IMMUTABLE_PAIR','TRACK_B_ID_STATE');
-ok(T.snapshot_candidate_present===false&&T.evidence_package_present===false&&T.exact_pair_digest_present===false&&T.independent_assessment_started===false,'TRACK_B_FLAGS');
-ok(T.blocker_package_is_not_track_b_input===true&&T.required_inputs?.length===2&&T.blocking_classes?.length===12,'TRACK_B_BOUNDARY');
+if (derived.prerequisitesPass) {
+  for (const name of contract.outputs_when_gate_passes) ok(exists(name), `MISSING_GATE_PASS_OUTPUT:${name}`);
+  for (const name of contract.forbidden_outputs_when_gate_passes) ok(!exists(name), `GATE_PASS_FORBIDDEN_OUTPUT_PRESENT:${name}`);
+  const snapshot = outputJson('snapshot-candidate.json');
+  const evidence = outputJson('evidence-package.json');
+  const receipt = outputJson('snapshot-pair-generation-receipt-v2.json');
+  const computedEvidenceDigest = digestObject(Object.fromEntries(Object.entries(evidence).filter(([key]) => key !== 'package_payload_sha256')));
+  const computedSnapshotDigest = digestObject(Object.fromEntries(Object.entries(snapshot).filter(([key]) => key !== 'snapshot_payload_sha256')));
+  const pairDigest = digestObject({ snapshot, evidence });
+  ok(evidence.package_status === 'CONTENT_ADDRESSED_STORAGE_AND_ATTESTATION_PENDING' && evidence.package_id === evidence.evidence_package_id, 'EVIDENCE_PACKAGE_ID_STATUS');
+  ok(evidence.bound_snapshot_id === snapshot.snapshot_id && snapshot.bound_evidence_package_id === evidence.package_id, 'PAIR_CROSS_BINDING');
+  ok(evidence.package_payload_sha256 === computedEvidenceDigest && snapshot.snapshot_payload_sha256 === computedSnapshotDigest, 'PAIR_PAYLOAD_DIGESTS');
+  ok(stableJson(evidence.evidence_records) === stableJson(derived.evidenceRecords), 'EVIDENCE_RECORD_BINDING');
+  ok(snapshot.snapshot_status === 'DRAFT_CANDIDATE_STORAGE_AND_ATTESTATION_PENDING' && snapshot.as_of === derived.asOf && snapshot.source_graph_digest === derived.sourceGraphDigest, 'SNAPSHOT_STATE_BINDING');
+  ok(snapshot.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest && evidence.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest, 'PAIR_UPSTREAM_RECEIPT_BINDING');
+  ok(stableJson(snapshot.upstream_binding) === stableJson(derived.upstreamBinding) && stableJson(evidence.upstream_binding) === stableJson(derived.upstreamBinding), 'PAIR_UPSTREAM_RECEIPT_PAYLOAD');
+  ok(snapshot.publication_eligible === false && snapshot.production_authorized === false && evidence.publication_authorized === false && evidence.production_authorized === false, 'PAIR_RELEASE_BOUNDARY');
+  ok(trackB.state === 'PAIR_GENERATED_STORAGE_AND_ATTESTATION_REQUIRED' && trackB.snapshot_candidate_present === true && trackB.evidence_package_present === true && trackB.exact_pair_digest_present === true, 'TRACK_B_PAIR_FLAGS');
+  ok(trackB.exact_pair_digest === pairDigest && trackB.canonical_handoff_preflight === 'BLOCKED_PENDING_IMMUTABLE_STORAGE_AND_ATTESTATION', 'TRACK_B_PAIR_DIGEST');
+  ok(trackB.immutable_storage_verified === false && trackB.artifact_attestation_verified === false && trackB.track_b_submission_eligible === false, 'TRACK_B_ATTESTATION_HOLD');
+  ok(receipt.state === 'CONTENT_ADDRESSED_PAIR_ATOMICALLY_GENERATED_ATTESTATION_PENDING' && receipt.exact_pair_digest === pairDigest && receipt.atomic_directory_commit === true, 'PAIR_GENERATION_RECEIPT');
+  ok(receipt.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest && receipt.immutable_storage_receipt === null && receipt.artifact_attestation === null && receipt.track_b_submission_eligible === false, 'PAIR_PROVENANCE_ATTESTATION_BOUNDARY');
+  ok(receipt.canonical_handoff_preflight === 'BLOCKED_PENDING_IMMUTABLE_STORAGE_AND_ATTESTATION', 'PAIR_HANDOFF_ATTESTATION_BOUNDARY');
+  ok(receipt.snapshot_file_sha256 === hashText(outputText('snapshot-candidate.json')) && receipt.evidence_file_sha256 === hashText(outputText('evidence-package.json')), 'PAIR_FILE_DIGESTS');
+  ok(readiness.state === 'PAIR_GENERATED_STORAGE_AND_ATTESTATION_PENDING' && readiness.all_dimensions_pass === false, 'READY_STATE');
+  ok(readiness.output_assertion_dimensions.every((value) => value.state === 'NOT_EVALUATED') && readiness.counts.snapshot_candidates === 1 && readiness.counts.immutable_evidence_packages === 0 && readiness.counts.track_b_input_pairs === 0, 'READY_OUTPUT_ASSERTIONS');
+  ok(readiness.exact_pair_digest === pairDigest, 'READINESS_PAIR_DIGEST');
+} else {
+  for (const name of contract.outputs_when_gate_fails) ok(exists(name), `MISSING_GATE_FAIL_OUTPUT:${name}`);
+  for (const name of contract.forbidden_outputs_when_gate_fails) ok(!exists(name), `GATE_FAIL_FORBIDDEN_OUTPUT_PRESENT:${name}`);
+  const nonGeneration = outputJson('snapshot-non-generation-receipt-v2.json');
+  ok(nonGeneration.id === 'kidults-asi-snapshot-non-generation-receipt-v2' && nonGeneration.state === 'VERIFIED_NOT_GENERATED_FAIL_CLOSED', 'NON_GENERATION_ID_STATE');
+  ok(nonGeneration.source_graph_digest === derived.sourceGraphDigest && nonGeneration.snapshot_creation_prerequisites_pass === false, 'NON_GENERATION_GRAPH_GATE');
+  ok(nonGeneration.snapshot_candidate_generated === false && nonGeneration.evidence_package_generated === false && nonGeneration.rankability_assessment_generated === false && nonGeneration.forbidden_output_absence_required === true, 'NON_GENERATION_FLAGS');
+  ok(trackB.state === 'WAITING_FOR_SNAPSHOT_PREREQUISITES' && trackB.snapshot_candidate_present === false && trackB.evidence_package_present === false && trackB.exact_pair_digest_present === false, 'TRACK_B_WAITING_FLAGS');
+  ok(readiness.state === 'NOT_READY_EXACT_PREREQUISITE_BLOCKERS_OPEN' && readiness.all_dimensions_pass === false, 'BLOCKED_READINESS_STATE');
+  ok(readiness.output_assertion_dimensions.every((value) => value.state === 'NOT_EVALUATED'), 'BLOCKED_OUTPUT_ASSERTIONS');
+  ok(readiness.counts.snapshot_candidates === 0 && readiness.counts.immutable_evidence_packages === 0 && readiness.counts.track_b_input_pairs === 0, 'BLOCKED_OUTPUT_COUNTS');
+}
 
-ok(M.id==='kidults-asi-snapshot-readiness-manifest-v2'&&M.state==='P3_READINESS_ASSESSED_SNAPSHOT_NOT_GENERATED','MANIFEST_ID_STATE');
-ok(JSON.stringify(M.platform_principles)===JSON.stringify(P),'MANIFEST_PRINCIPLES');
-ok(M.input_bindings.p0b.candidate_count===I.p0r.canonical_candidate_count&&M.input_bindings.p0b.mission_count===192,'MANIFEST_P0');
-ok(M.input_bindings.p1.gate1_hold===576&&M.input_bindings.p1.actions_queued===672,'MANIFEST_P1');
-ok(M.input_bindings.p2.graph_digest===I.p2l.graph.digest&&M.input_bindings.p2.node_count===I.p2g.node_count&&M.input_bindings.p2.edge_count===I.p2g.edge_count,'MANIFEST_P2');
-ok(M.results.readiness_dimensions===12&&M.results.dimensions_pass===2&&M.results.dimensions_fail===10,'MANIFEST_DIMENSIONS');
-ok(M.results.open_blockers===12&&M.results.p0_blockers===11&&M.results.p1_blockers===1,'MANIFEST_BLOCKERS');
-ok(M.results.preflight_actions_queued===672&&M.results.evidence_admitted===0&&M.results.market_events_created===0,'MANIFEST_PIPELINE_COUNTS');
-ok(M.results.snapshot_candidates_created===0&&M.results.evidence_packages_created===0&&M.results.track_b_input_pairs_created===0,'MANIFEST_OUTPUT_COUNTS');
-ok(M.output_files?.length===5,'MANIFEST_OUTPUT_FILE_COUNT');
-for(const o of M.output_files){ok(fs.existsSync(f(o.name)),`MANIFEST_FILE_MISSING:${o.name}`);const t=text(f(o.name));ok(o.sha256===sha(t)&&o.bytes===Buffer.byteLength(t),`MANIFEST_FILE_DIGEST:${o.name}`);}
-ok(M.public_release==='HOLD'&&M.production==='HOLD','MANIFEST_BOUNDARY');
+ok(manifest.id === 'kidults-asi-snapshot-readiness-manifest-v2' && manifest.version === '2.1.0', 'MANIFEST_ID_VERSION');
+ok(JSON.stringify(manifest.platform_principles) === JSON.stringify(PRINCIPLES), 'MANIFEST_PRINCIPLES');
+ok(manifest.input_bindings.p0b.candidate_count === derived.candidateCount && manifest.input_bindings.p0b.mission_count === derived.missionCount, 'MANIFEST_P0');
+ok(manifest.input_bindings.p1.gate1_hold === derived.actualGateHold && manifest.input_bindings.p1.actions_queued === derived.queuedActions, 'MANIFEST_P1');
+ok(manifest.input_bindings.p2.graph_digest === derived.sourceGraphDigest && manifest.input_bindings.p2.node_count === inputs.p2Graph.node_count && manifest.input_bindings.p2.edge_count === inputs.p2Graph.edge_count, 'MANIFEST_P2');
+ok(manifest.results.readiness_dimensions === 12 && manifest.results.prerequisite_dimensions === 10 && manifest.results.output_assertion_dimensions === 2, 'MANIFEST_DIMENSIONS');
+ok(manifest.results.open_blockers === derived.blockers.length && manifest.results.preflight_actions_queued === derived.queuedActions && manifest.results.evidence_admitted === derived.evidenceRecords.length && manifest.results.market_events_created === derived.marketEvents.length, 'MANIFEST_PIPELINE_COUNTS');
+ok(manifest.results.snapshot_candidates_created === (derived.prerequisitesPass ? 1 : 0) && manifest.results.evidence_packages_created === (derived.prerequisitesPass ? 1 : 0) && manifest.results.track_b_input_pairs_created === 0, 'MANIFEST_OUTPUT_COUNTS');
+ok(manifest.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest, 'MANIFEST_UPSTREAM_BINDING');
+ok(manifest.results.track_b_assessments_started === 0 && manifest.atomic_directory_commit === true, 'MANIFEST_ATOMIC_TRACK_B_BOUNDARY');
+for (const output of manifest.output_files) {
+  ok(exists(output.name), `MANIFEST_FILE_MISSING:${output.name}`);
+  const content = outputText(output.name);
+  ok(output.sha256 === hashText(content) && output.bytes === Buffer.byteLength(content), `MANIFEST_FILE_DIGEST:${output.name}`);
+}
+ok(manifest.public_release === 'HOLD' && manifest.production === 'HOLD', 'MANIFEST_RELEASE_BOUNDARY');
 
-console.log(JSON.stringify({id:'kidults-asi-snapshot-readiness-factory-validation-v2',state:'VERIFIED_PASS',current_source_candidates:I.p0r.canonical_candidate_count,current_unique_hosts:I.p0r.unique_host_count,current_p2_nodes:I.p2g.node_count,current_p2_edges:I.p2g.edge_count,readiness_dimensions:12,dimensions_pass:2,dimensions_fail:10,open_blockers:12,p0_blockers:11,p1_blockers:1,preflight_actions_queued:672,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,track_b_input_pairs_created:0,forbidden_outputs_present:0,public_release:'HOLD',production:'HOLD'},null,2));
+console.log(JSON.stringify({
+  id: 'kidults-asi-snapshot-readiness-factory-validation-v2',
+  state: 'VERIFIED_PASS',
+  prerequisites_pass: derived.prerequisitesPass,
+  readiness_dimensions: 12,
+  prerequisite_dimensions: 10,
+  output_assertion_dimensions: 2,
+  open_blockers: derived.blockers.length,
+  evidence_admitted: derived.evidenceRecords.length,
+  market_events_created: derived.marketEvents.length,
+  snapshot_candidates_created: derived.prerequisitesPass ? 1 : 0,
+  evidence_packages_created: derived.prerequisitesPass ? 1 : 0,
+  track_b_input_pairs_created: 0,
+  immutable_storage_verified: false,
+  artifact_attestation_verified: false,
+  atomic_directory_commit: true,
+  public_release: 'HOLD',
+  production: 'HOLD',
+}, null, 2));

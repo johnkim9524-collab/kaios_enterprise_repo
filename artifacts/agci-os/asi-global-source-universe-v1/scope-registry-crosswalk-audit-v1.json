@@ -1,0 +1,25 @@
+{
+  "id": "scope-registry-crosswalk-audit-v1",
+  "record_type": "scope_registry_crosswalk_audit",
+  "version": "1.0.0",
+  "status": "PASS_COMPLETE_WITH_EXPLICIT_SPLITS_RETIREMENT_AND_SEMANTIC_WARNING",
+  "generated_at": "2026-08-18T12:30:00Z",
+  "crosswalk_id": "scope-registry-v1-to-v2-crosswalk-v1",
+  "legacy_scope_count": 32,
+  "current_scope_count": 32,
+  "legacy_scopes_covered": 32,
+  "current_scopes_covered": 32,
+  "split_records": [
+    "scope-designer-toys-action-figures",
+    "scope-historical-entertainment-memorabilia"
+  ],
+  "retired_records": [
+    "scope-model-kits-mecha"
+  ],
+  "semantic_review_records": [
+    "scope-vintage-neo-vintage-watches"
+  ],
+  "implicit_migrations_allowed": false,
+  "production": "HOLD",
+  "audit_fingerprint": "sha256:2b2ef6fa5bb632589c4970e1fdcd920a12de4145307eb6e6d76a71aca372a046"
+}

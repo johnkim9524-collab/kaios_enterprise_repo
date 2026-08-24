@@ -25,10 +25,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: {persist-credentials: false}
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: {node-version: '22.23.2'}
       - name: Rebuild bounded regional evidence surface
         run: |
           node scripts/kidults/source-intelligence/probe-musicbrainz-regional-catalog-observation-r1.mjs /tmp/musicbrainz-regional-catalog-observation-r1.json
@@ -47,7 +47,7 @@ jobs:
           cmp /tmp/rebalancer-a.json /tmp/rebalancer-b.json
           node scripts/kidults/source-intelligence/test-empirical-regional-rebalancer-factor-gates-r1.mjs /tmp/empirical-regional-baseline-with-data-usability-r1.json
       - name: Upload SHADOW evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kidults-asi-empirical-regional-rebalancer-wave1-r1
           path: |

@@ -1,0 +1,66 @@
+{
+  "id": "kidults-portal-internal-readiness-v1",
+  "record_type": "portal_internal_pre_external_gate_readiness",
+  "version": "1.0.0",
+  "canonical_portal": {
+    "surface": "ORIGINAL_FULL_SCOPE",
+    "runtime_root": "apps/kidults-enterprise-staging/public/portal-r001",
+    "variants_policy": "PRESERVE_SEPARATELY_NEVER_MIX_IN_DEPLOY_BUNDLE"
+  },
+  "internal_workstreams": {
+    "evidence_handoff": {
+      "contract": "coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json",
+      "required_pair": ["snapshot-candidate.json", "evidence-package.json"],
+      "track_b_input_boundary": "EXACT_IMMUTABLE_DIGEST_BOUND_PAIR_ONLY",
+      "current_state": "BLOCKED_UNTIL_LAWFUL_EMPIRICAL_PAIR"
+    },
+    "projection_release": {
+      "implementation": "apps/kidults-enterprise-staging/projection-capability-v1.mjs",
+      "surfaces": ["PORTAL_RENDER", "PUBLIC_API_RESPONSE", "EXPORT"],
+      "request_revalidation": true,
+      "browser_revalidation_ms": 5000,
+      "static_approved_projection": false
+    },
+    "rights": {
+      "source_purpose_geography_binding": true,
+      "current_market_sold_rights_clear_count": 0,
+      "unknown_or_denied_claim_input_allowed": false
+    },
+    "storage": {
+      "candidate_evidence_immutability": "DIGEST_BOUND_APPEND_ONLY_REQUIRED",
+      "projection_receipts": "CAPABILITY_DIGEST_AND_EXACT_IDENTITY",
+      "conversion_pii": "AES-256-GCM-v1",
+      "conversion_retention_days": 365,
+      "plaintext_without_vault_secret": false
+    },
+    "runtime": {
+      "observability_contract": "coordination/kidults/runtime/observability-slo-contract-v1.json",
+      "receipt_contract": "coordination/kidults/runtime/digitalocean-staging-portal-receipt-contract-v1.json",
+      "rollback": "ARMED_IN_CONTRACT_NOT_EXTERNALLY_EXECUTED",
+      "remote_execution": "NOT_EXECUTED"
+    },
+    "quality": {
+      "launch_contract": "coordination/kidults/portal/portal-launch-assurance-v1.json",
+      "automated_accessibility": "CI_AXE_SERIOUS_CRITICAL_ZERO",
+      "human_accessibility_receipt": "NONE",
+      "lab_lcp_budget_ms": 2500,
+      "lab_cls_budget": 0.1,
+      "remote_inp_receipt": "NONE"
+    }
+  },
+  "evidence_index": "coordination/kidults/portal/portal-external-gate-evidence-index-v1.json",
+  "runbook": "coordination/kidults/portal/portal-external-gate-runbook-v1.md",
+  "external_gate_state": {
+    "github_environment_trusted_execution": "0/15_HOLD",
+    "digitalocean_staging_health_rollback": "NONE_HOLD",
+    "dated_sold": "0_HOLD",
+    "track_b": "NOT_STARTED_HOLD",
+    "approved_projection": "NONE_HOLD",
+    "human_review": "NONE_HOLD",
+    "remote_rum_tls_edge": "NONE_HOLD"
+  },
+  "promotion": "FORBIDDEN_UNTIL_ALL_EXTERNAL_GATE_EVIDENCE_IS_ATTESTED",
+  "public": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}
