@@ -1,0 +1,96 @@
+{
+  "id": "kidults-ai-agent-governance-registry-v1",
+  "version": "1.1.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "registered_policy": {
+    "policy_id": "KPMO-AI-GOV-001",
+    "policy_version": "1.1.0",
+    "platform_constitution_path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
+    "human_policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
+    "root_instruction_path": "AGENTS.md",
+    "machine_contract_path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
+    "status_receipt_schema_path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
+    "validator_path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
+    "workflow_path": ".github/workflows/ai-agent-governance-enforcement-v1.yml"
+  },
+  "platform_operating_principles": {
+    "precedence": "HIGHEST_PLATFORM_OPERATING_PRINCIPLES",
+    "ordered_principles": [
+      "AUTONOMOUS",
+      "GLOBAL",
+      "IRREPLACEABLE_VALUE",
+      "TRANSPARENT"
+    ],
+    "child_rule_can_weaken_or_reorder": false,
+    "manual_only_normal_activation_for_ready_governed_runner_forbidden": true
+  },
+  "automatic_execution_paths": {
+    "scale_wave_flow": [
+      "PR_MERGE",
+      "PROTECTED_MAIN_PUSH",
+      "SCALE_WAVE_AUTO_ACTIVATION",
+      "ARTIFACT",
+      "KPMO_RECEIPT"
+    ],
+    "sharded_reserve_workflow": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+    "source_fabric_scale_workflow": ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml",
+    "normal_activation_requires_automatic_trigger": true,
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "mandatory_inheritance": {
+    "applies_to": [
+      "KPMO",
+      "TRACK_A",
+      "TRACK_B",
+      "TRACK_C",
+      "TRACK_D",
+      "TRACK_E",
+      "RED_TEAM",
+      "ASI",
+      "CODING_AGENTS",
+      "REVIEW_AGENTS",
+      "RUNTIME_AGENTS",
+      "SCHEDULED_AUTOMATIONS",
+      "EXTERNAL_MODEL_AGENTS"
+    ],
+    "child_rule_can_be_stricter": true,
+    "child_rule_can_weaken_policy": false,
+    "agent_self_exemption_allowed": false
+  },
+  "constitutional_principles": [
+    "ABSOLUTE_HONESTY",
+    "COMPLETE_TRANSPARENCY",
+    "EVIDENCE_BEFORE_STATUS",
+    "NO_FABRICATED_PROGRESS",
+    "EXECUTION_TRUTH",
+    "LIVE_STATE_VERIFICATION",
+    "IMMEDIATE_BLOCKER_DISCLOSURE",
+    "IMMEDIATE_CORRECTION",
+    "FIX_WITHIN_AUTHORITY",
+    "NO_UNSUPPORTED_CONTINUITY_CLAIMS",
+    "NO_CAPABILITY_INFLATION",
+    "REGISTRY_IS_TRUTH",
+    "LABEL_FACT_INFERENCE_PLAN_UNKNOWN",
+    "FAIL_CLOSED_ON_UNCERTAINTY",
+    "TRUST_OVER_SPEED"
+  ],
+  "violation_classification": {
+    "material_false_or_unsupported_claim": "P0_GOVERNANCE_DEFECT",
+    "concealed_known_blocker": "P0_GOVERNANCE_DEFECT",
+    "fabricated_metric_or_execution": "P0_GOVERNANCE_DEFECT",
+    "stale_state_presented_as_current": "P0_GOVERNANCE_DEFECT",
+    "platform_principle_weakened_reordered_or_bypassed": "P0_GOVERNANCE_DEFECT",
+    "manual_only_normal_activation_for_ready_governed_runner": "P0_GOVERNANCE_DEFECT",
+    "unlabeled_inference_in_material_report": "P1_OPERATING_DEFECT"
+  },
+  "change_control": {
+    "owner": "KPMO",
+    "requires_policy_and_contract_sync": true,
+    "requires_validator_pass": true,
+    "requires_version_increment": true,
+    "requires_change_rationale": true
+  },
+  "public_release": "HOLD",
+  "production": "HOLD"
+}

@@ -27,5 +27,11 @@
     "assessed_at": {"type":"string","format":"date-time"},
     "expires_at": {"type":["string","null"],"format":"date-time"},
     "reason_codes": {"type":"array","items":{"type":"string"}}
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties":{"state":{"const":"ADMITTED"}},"required":["state"]},
+      "then": {"required":["expires_at"],"properties":{"expires_at":{"type":"string","format":"date-time"}}}
+    }
+  ]
 }

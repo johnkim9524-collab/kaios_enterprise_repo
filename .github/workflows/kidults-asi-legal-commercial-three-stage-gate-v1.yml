@@ -2,16 +2,24 @@ name: KIDULTS ASI Legal Commercial Three-Stage Gate v2
 
 on:
   push:
-    branches:
-      - kpmo/global-proactive-source-discovery-expansion
+    branches: [main]
     paths:
       - 'coordination/kidults/source-intelligence/asi-legal-commercial-three-stage-gate-v1.json'
       - 'scripts/kidults/source-intelligence/validate-asi-legal-commercial-three-stage-gate-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
       - '.github/workflows/kidults-asi-legal-commercial-three-stage-gate-v1.yml'
   pull_request:
+    branches: [main]
     paths:
       - 'coordination/kidults/source-intelligence/asi-legal-commercial-three-stage-gate-v1.json'
       - 'scripts/kidults/source-intelligence/validate-asi-legal-commercial-three-stage-gate-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
       - '.github/workflows/kidults-asi-legal-commercial-three-stage-gate-v1.yml'
   workflow_dispatch:
 

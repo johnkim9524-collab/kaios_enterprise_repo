@@ -1,0 +1,93 @@
+{
+  "id": "kidults-asi-snapshot-readiness-factory-contract-v2",
+  "version": "2.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P3",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "current_input_chain": {
+    "p0b_artifact": "kidults-asi-p0b-bounded-discovery-candidates-v1",
+    "p1_artifact": "kidults-asi-p1-source-preflight-v1",
+    "p2_artifact": "kidults-asi-owned-source-intelligence-graph-v2",
+    "p0b_required_files": [
+      "p0b-source-candidate-registry-v1.json",
+      "p0b-mission-candidate-binding-ledger-v1.json",
+      "p0b-bounded-discovery-manifest-v1.json"
+    ],
+    "p1_required_files": [
+      "p1-gate1-source-safety-decisions-v1.json",
+      "p1-evidence-admission-candidate-register-v1.json",
+      "p1-preflight-action-queue-v1.json",
+      "p1-source-preflight-manifest-v1.json"
+    ],
+    "p2_required_files": [
+      "owned-source-intelligence-graph-v2.json",
+      "owned-source-intelligence-lineage-v2.json",
+      "owned-source-intelligence-quality-v2.json",
+      "owned-source-intelligence-value-receipt-v2.json",
+      "owned-source-intelligence-manifest-v2.json"
+    ]
+  },
+  "readiness_dimensions": [
+    "MISSION_SOURCE_CANDIDATE_COVERAGE",
+    "PRIMARY_FALLBACK_REPLACEMENT_COVERAGE",
+    "GATE1_SOURCE_SAFETY",
+    "PURPOSE_SPECIFIC_RIGHTS",
+    "MARKET_SEMANTIC_SUFFICIENCY",
+    "FACTUAL_ORIGIN_INDEPENDENCE",
+    "EVIDENCE_ADMISSION",
+    "CURRENT_SOLD_TRANSACTION_EVIDENCE",
+    "LIQUIDITY_TIME_TO_SALE_EVIDENCE",
+    "MARKET_EVENT_GRAPH",
+    "IMMUTABLE_EVIDENCE_PACKAGE",
+    "TRACK_B_INPUT_PAIR"
+  ],
+  "snapshot_creation_gate": {
+    "all_readiness_dimensions_must_pass": true,
+    "admitted_evidence_minimum": 1,
+    "admitted_current_sold_minimum": 1,
+    "admitted_liquidity_minimum": 1,
+    "market_event_graph_nodes_minimum": 1,
+    "immutable_evidence_package_required": true,
+    "snapshot_candidate_may_be_generated_when_gate_fails": false,
+    "blocker_package_may_be_called_evidence_package": false,
+    "track_b_may_start_without_exact_immutable_pair": false
+  },
+  "required_outputs": [
+    "snapshot-readiness-ledger-v2.json",
+    "immutable-blocker-package-v2.json",
+    "admission-demand-package-v2.json",
+    "snapshot-non-generation-receipt-v2.json",
+    "track-b-handoff-readiness-v2.json",
+    "snapshot-readiness-manifest-v2.json"
+  ],
+  "forbidden_outputs_when_gate_fails": [
+    "snapshot-candidate.json",
+    "evidence-package.json",
+    "rankability-assessment.json"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "7 * * * *",
+    "upstream_workflow": "KIDULTS ASI Owned Source Intelligence Graph v2",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "truth_boundaries": [
+    "SOURCE_CANDIDATE_IS_NOT_EVIDENCE",
+    "GATE1_HOLD_IS_NOT_PASS",
+    "PREFLIGHT_ACTION_IS_NOT_COMPLETED_PREFLIGHT",
+    "HOST_IS_NOT_FACTUAL_ORIGIN",
+    "ADMISSION_CANDIDATE_IS_NOT_ADMITTED_EVIDENCE",
+    "SOURCE_INTELLIGENCE_GRAPH_IS_NOT_MARKET_EVIDENCE_GRAPH",
+    "BLOCKER_PACKAGE_IS_NOT_EVIDENCE_PACKAGE",
+    "SNAPSHOT_READINESS_IS_NOT_SNAPSHOT_CANDIDATE",
+    "TRACK_B_WAITING_IS_NOT_TRACK_B_STARTED"
+  ],
+  "public_release": "HOLD",
+  "production": "HOLD"
+}

@@ -1,0 +1,230 @@
+name: KIDULTS ASI Global Any-Site Hourly Pooling v2
+
+on:
+  schedule:
+    - cron: '47 * * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-admitted-metadata-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-admitted-metadata-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-admitted-metadata-revocation-registry-v1.json'
+      - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-global-any-site-hourly-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  global-any-site-hourly-pool-v2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source SHA
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Syntax-check discovery and governance runtime
+        run: |
+          node --check scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-admitted-metadata-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-admitted-metadata-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs
+      - name: Restore immutable anchor foundation and previous v2 pools
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p input queue discovery-out /tmp/previous-any-site-pool-v2
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" > /tmp/anchor-foundation.zip
+          unzip -q -o /tmp/anchor-foundation.zip -d input
+          PREV_RUN_ID=$(gh api --method GET -H 'Accept: application/vnd.github+json' \
+            -f branch=main -f status=success -f per_page=1 \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs" \
+            --jq '.workflow_runs[0].id // empty')
+          PREV_ID=""
+          if [ -n "$PREV_RUN_ID" ]; then
+            PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${PREV_RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v2" and .expired==false)] | sort_by(.created_at) | reverse | .[0].id // empty')
+          fi
+          if [ -n "$PREV_ID" ]; then
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-any-site-pool-v2.zip
+            unzip -q -o /tmp/previous-any-site-pool-v2.zip -d /tmp/previous-any-site-pool-v2
+          fi
+          echo "previous_successful_run_id=${PREV_RUN_ID:-NONE}"
+          echo "previous_artifact_id=${PREV_ID:-NONE}"
+      - name: Build governed 160-anchor and 32-scope demand queue
+        run: |
+          node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input queue
+          node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs queue
+      - name: Discover GLOBAL ANY-SITE baseline candidates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs queue discovery-out
+      - name: Validate baseline discovery boundary
+        run: node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
+      - name: Expand bounded hosts through Common Crawl public index
+        run: |
+          node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-host-expansion-v1.json
+      - name: Merge Common Crawl metadata candidates before Gate1
+        run: |
+          node scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json discovery-out/global-low-risk-discovery-governed-v2.json
+          node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery-governed-v2.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs discovery-out/global-low-risk-discovery-governed-v2.json
+      - name: Reject Common Crawl rights self-promotion mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-governed-v2.json'));const c=x.candidates.find(y=>y.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'||y.discovery_providers?.includes('COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'));if(!c)process.exit(0);c.rights_state='ALLOW';fs.writeFileSync('/tmp/bad-common-crawl-rights-v2.json',JSON.stringify(x));
+          NODE
+          if [ -f /tmp/bad-common-crawl-rights-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs /tmp/bad-common-crawl-rights-v2.json; then exit 1; fi
+      - name: Gate1 classify merged ingress into Safe, Review and Hard Block
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs discovery-out/global-low-risk-discovery-governed-v2.json /tmp/asi-gate1-safe-candidate-pool-v2.json
+          node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-gate1-safe-candidate-pool-v2.json
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));const all=[...(x.safe_candidate_pool||[]),...(x.review_required_queue||[]),...(x.hard_block_queue||[])];const cc=all.filter(c=>c.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'||c.discovery_providers?.includes('COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'));if(cc.some(c=>c.gate_1_state==='PASS'))throw new Error('COMMON_CRAWL_AUTO_SAFE_WITHOUT_RIGHTS');if(cc.some(c=>c.acquisition_authorized!==false))throw new Error('COMMON_CRAWL_ACQUISITION_PROMOTION');console.log(JSON.stringify({status:'PASS',common_crawl_gate1_candidates:cc.length,common_crawl_auto_safe:0,production:x.production}));
+          NODE
+      - name: Gate1 reject rights self-promotion mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));if(!x.receipts.length)process.exit(2);x.receipts[0].collection_right_created=true;fs.writeFileSync('/tmp/bad-gate1-right-v2.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/bad-gate1-right-v2.json; then exit 1; fi
+      - name: Gate1 reject Review candidate entering Safe Pool mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));const c=x.review_required_queue[0];if(!c)process.exit(0);x.safe_candidate_pool.push(c);x.safe_candidate_count++;x.review_required_queue.shift();x.review_required_count--;fs.writeFileSync('/tmp/bad-gate1-pool-v2.json',JSON.stringify(x));
+          NODE
+          if [ -f /tmp/bad-gate1-pool-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/bad-gate1-pool-v2.json; then exit 1; fi
+      - name: Gate2 independently reverify current Safe Candidate Pool
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs /tmp/asi-gate1-safe-candidate-pool-v2.json /tmp/asi-gate2-independent-reverification-v2.json
+          node scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs /tmp/asi-gate2-independent-reverification-v2.json
+      - name: Gate2 reject Gate1 decision reuse mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v2.json'));if(!x.receipts.length)process.exit(0);x.receipts[0].gate1_decision_used_as_evidence=true;fs.writeFileSync('/tmp/bad-gate2-reuse-v2.json',JSON.stringify(x));
+          NODE
+          if [ -f /tmp/bad-gate2-reuse-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs /tmp/bad-gate2-reuse-v2.json; then exit 1; fi
+      - name: Gate2 reject unproven collection right mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v2.json'));if(!x.receipts.length)process.exit(0);x.receipts[0].purpose_rights_matrix.collect='ALLOW';fs.writeFileSync('/tmp/bad-gate2-collect-v2.json',JSON.stringify(x));
+          NODE
+          if [ -f /tmp/bad-gate2-collect-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs /tmp/bad-gate2-collect-v2.json; then exit 1; fi
+      - name: Gate3 verify bounded metadata admission
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs /tmp/asi-gate2-independent-reverification-v2.json /tmp/asi-gate3-admission-runtime-v2.json
+          node scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs /tmp/asi-gate3-admission-runtime-v2.json
+      - name: Gate3 reject content acquisition promotion mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v2.json'));if(!x.receipts.length)process.exit(0);x.receipts[0].content_acquisition_authorized=true;fs.writeFileSync('/tmp/bad-gate3-content-v2.json',JSON.stringify(x));
+          NODE
+          if [ -f /tmp/bad-gate3-content-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs /tmp/bad-gate3-content-v2.json; then exit 1; fi
+      - name: Apply admitted-pool freshness, revocation and alias controls
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-admitted-metadata-pool-v1.mjs /tmp/asi-gate3-admission-runtime-v2.json /tmp/previous-any-site-pool-v2/asi-admitted-metadata-pool-v2.json coordination/kidults/source-intelligence/asi-admitted-metadata-revocation-registry-v1.json /tmp/asi-admitted-metadata-pool-v2.json
+          node scripts/kidults/source-intelligence/validate-asi-admitted-metadata-pool-v1.mjs /tmp/asi-admitted-metadata-pool-v2.json
+      - name: Reject revoked alias re-entry mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-admitted-metadata-pool-v2.json'));const c=x.revoked_block_queue?.[0];if(!c)process.exit(0);x.active_admitted_metadata_pool.push(c);x.active_count++;fs.writeFileSync('/tmp/bad-revoked-reentry-v2.json',JSON.stringify(x));
+          NODE
+          if [ -f /tmp/bad-revoked-reentry-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-admitted-metadata-pool-v1.mjs /tmp/bad-revoked-reentry-v2.json; then exit 1; fi
+      - name: Accumulate rolling Common Crawl augmented candidate pool
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs discovery-out/global-low-risk-discovery-governed-v2.json /tmp/previous-any-site-pool-v2/asi-proactive-source-pool-v2.json /tmp/asi-proactive-source-pool-v2.json
+          node scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs /tmp/asi-proactive-source-pool-v2.json
+      - name: Emit hourly v2 cycle receipt
+        shell: bash
+        run: |
+          node - <<'NODE' >/tmp/asi-global-any-site-hourly-cycle-receipt-v2.json
+          const fs=require('fs');const d=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-governed-v2.json'));const g1=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));const g2=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v2.json'));const g3=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v2.json'));const a=JSON.parse(fs.readFileSync('/tmp/asi-admitted-metadata-pool-v2.json'));const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-v2.json'));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-global-any-site-hourly-cycle-receipt-v2',status:'SHADOW_ANY_SITE_COMMON_CRAWL_FULL_GATE_CHAIN_COMPLETE',discovered_candidates:d.candidate_count,live_external_candidates:d.live_external_candidate_count,healthy_live_lanes:d.healthy_live_lanes,common_crawl_applied:d.common_crawl_host_expansion_applied,common_crawl_index_id:d.common_crawl_index_id,common_crawl_seed_hosts:d.common_crawl_seed_host_count,common_crawl_observed_candidates:d.common_crawl_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_new_candidate_count,gate1_safe_candidates:g1.safe_candidate_count,gate1_review_required:g1.review_required_count,gate1_hard_blocked:g1.hard_block_count,gate2_verified_for_gate3:g2.verified_for_gate3_count,gate2_needs_clarification:g2.needs_clarification_count,gate3_bounded_metadata_admitted:g3.admitted_count,active_admitted_metadata:a.active_count,stale_admission_revalidation:a.stale_revalidation_count,revoked_alias_blocked:a.revoked_block_count,rolling_discovery_pool_candidates:p.candidate_count,new_pool_candidates:p.new_candidate_count,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/asi-global-any-site-hourly-cycle-receipt-v2.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-global-any-site-source-pool-v2
+          path: |
+            /tmp/asi-proactive-source-pool-v2.json
+            /tmp/asi-gate1-safe-candidate-pool-v2.json
+            /tmp/asi-gate2-independent-reverification-v2.json
+            /tmp/asi-gate3-admission-runtime-v2.json
+            /tmp/asi-admitted-metadata-pool-v2.json
+            /tmp/asi-global-any-site-hourly-cycle-receipt-v2.json
+          retention-days: 90
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-global-any-site-hourly-cycle-v2
+          path: |
+            discovery-out/global-low-risk-discovery.json
+            /tmp/asi-common-crawl-host-expansion-v1.json
+            discovery-out/global-low-risk-discovery-governed-v2.json
+          retention-days: 30
+          if-no-files-found: error

@@ -1,0 +1,161 @@
+name: KIDULTS ASI Source Adapter Wave 4 v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '47 */3 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'services/kidults-autonomous-intelligence/src/asi/market-adapter.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/governed-market-surface.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/source-adapter-wave4.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-source-adapter-wave4-test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-source-adapter-wave4-v1.mjs'
+      - 'docs/kidults/asi/asi-source-adapter-wave4-v1.md'
+      - '.github/workflows/kidults-asi-source-adapter-wave4-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'services/kidults-autonomous-intelligence/src/asi/market-adapter.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/governed-market-surface.ts'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/source-adapter-wave4.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-source-adapter-wave4-test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-source-adapter-wave4-v1.mjs'
+      - 'docs/kidults/asi/asi-source-adapter-wave4-v1.md'
+      - '.github/workflows/kidults-asi-source-adapter-wave4-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Source Adapter Wave 3 v1'
+      - 'KIDULTS ASI Source Adapter Wave 2 v1'
+      - 'KIDULTS ASI P1 Market-Event Adapter Runtime v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-source-adapter-wave4-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-source-adapter-wave4:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
+      - name: Verify exact source syntax and contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check services/kidults-autonomous-intelligence/scripts/asi-source-adapter-wave4-test.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-source-adapter-wave4-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json','utf8'))"
+      - name: Install bounded runtime dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck final seven adapters and shared market-surface core
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+      - name: Run final seven-adapter deterministic fixture and mutation proof
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          node scripts/asi-source-adapter-wave4-test.mjs \
+            | tee /tmp/kidults-asi-source-adapter-wave4-test-receipt-v1.json
+      - name: Validate complete 16-source adapter implementation portfolio
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-source-adapter-wave4-v1.mjs \
+            /tmp/kidults-asi-source-adapter-wave4-test-receipt-v1.json \
+            | tee /tmp/kidults-asi-source-adapter-wave4-validation-v1.json
+      - name: Reject context-to-Evidence promotion mutation
+        run: |
+          set -euo pipefail
+          cp /tmp/kidults-asi-source-adapter-wave4-test-receipt-v1.json /tmp/bad-wave4-context-promotion.json
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-wave4-context-promotion.json';const x=JSON.parse(fs.readFileSync(p));x.evidence_admitted=1;x.source_results.find((r)=>r.positive_kind==='CONTEXT').evidence_admitted=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-source-adapter-wave4-v1.mjs /tmp/bad-wave4-context-promotion.json; then
+            echo 'Validator accepted context-only classification as Evidence' >&2
+            exit 1
+          fi
+      - name: Reject registered-claim inheritance mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json /tmp/wave4-contract.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json';const x=JSON.parse(fs.readFileSync(p));const r=x.source_adapters.find((v)=>v.source_id==='reverb-price-guide');r.implemented_claim_parsers=[...r.registered_claims];fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-source-adapter-wave4-v1.mjs /tmp/kidults-asi-source-adapter-wave4-test-receipt-v1.json; then
+            echo 'Validator accepted registered claims as implemented claims' >&2
+            exit 1
+          fi
+          mv /tmp/wave4-contract.json coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json
+      - name: Reject false live activation and Evidence mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json /tmp/wave4-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.implementation_state.live_source_snapshots_verified=1;x.implementation_state.field_purpose_rights_verified_sources=1;x.implementation_state.source_specific_adapters_activated=1;x.implementation_state.empirical_market_events_admitted=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-source-adapter-wave4-v1.mjs /tmp/kidults-asi-source-adapter-wave4-test-receipt-v1.json; then
+            echo 'Validator accepted unsupported live activation or Evidence' >&2
+            exit 1
+          fi
+          mv /tmp/wave4-registry.json coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json
+      - name: Reject incomplete software coverage mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json /tmp/wave4-registry.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.implementation_state.portfolio_source_specific_adapters_implemented=15;x.implementation_state.portfolio_source_specific_adapters_pending=1;x.implemented_source_ids.pop();x.remaining_source_adapter_backlog=['nike-snkrs-launch-calendar'];fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-source-adapter-wave4-v1.mjs /tmp/kidults-asi-source-adapter-wave4-test-receipt-v1.json; then
+            echo 'Validator accepted incomplete software coverage as 16/16 complete' >&2
+            exit 1
+          fi
+          mv /tmp/wave4-registry.json coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json
+      - name: Revalidate pristine Wave 4 state
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-source-adapter-wave4-v1.mjs \
+            /tmp/kidults-asi-source-adapter-wave4-test-receipt-v1.json \
+            > /tmp/kidults-asi-source-adapter-wave4-final-validation-v1.json
+      - name: Emit KPMO Wave 4 receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-source-adapter-wave4-kpmo-receipt-v1.json
+          const fs=require('fs'),crypto=require('crypto');const tp='/tmp/kidults-asi-source-adapter-wave4-test-receipt-v1.json';const vp='/tmp/kidults-asi-source-adapter-wave4-final-validation-v1.json';const t=JSON.parse(fs.readFileSync(tp));const v=JSON.parse(fs.readFileSync(vp));const digest=p=>'sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-source-adapter-wave4-kpmo-receipt-v1',version:'1.0.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,test_digest:digest(tp),validation_digest:digest(vp),wave_source_specific_adapters_implemented:v.wave_source_specific_adapters_implemented,portfolio_source_specific_adapters_implemented:v.portfolio_source_specific_adapters_implemented,registered_source_profiles:v.registered_source_profiles,source_specific_adapters_pending:v.source_specific_adapters_pending,deterministic_replays_verified:v.deterministic_replays_verified,positive_fixture_candidates_parsed:v.positive_fixture_candidates_parsed,context_only_classifications_verified:v.context_only_classifications_verified,negative_fixture_mutations_rejected:v.negative_fixture_mutations_rejected,software_adapter_coverage:v.software_adapter_coverage,live_source_snapshots_verified:0,field_purpose_rights_verified_sources:0,source_specific_adapters_activated:0,evidence_admitted:0,market_events_created:0,first_evidence_admission_state:v.first_evidence_admission_state,autonomous_effect:'POSITIVE_ALL_16_REGISTERED_SOURCE_PROFILES_HAVE_AUTOMATIC_SOURCE_SPECIFIC_SOFTWARE_CONTROLS',global_effect:'POSITIVE_MULTIPLE_MARKET_CHANNEL_FAMILIES_USE_NON_COMPENSATING_CLAIM_CEILINGS',irreplaceable_value_effect:'POSITIVE_KIDULTS_OWNS_THE_COMPLETE_ADAPTER_CONTROL_PORTFOLIO_AND_SWITCHING_BOUNDARY',transparency_effect:'POSITIVE_SOFTWARE_COMPLETION_AND_EMPIRICAL_ACTIVATION_ARE_EXPLICITLY_SEPARATED',public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/kidults-asi-source-adapter-wave4-kpmo-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-source-adapter-wave4-v1
+          path: |
+            /tmp/kidults-asi-source-adapter-wave4-test-receipt-v1.json
+            /tmp/kidults-asi-source-adapter-wave4-validation-v1.json
+            /tmp/kidults-asi-source-adapter-wave4-final-validation-v1.json
+            /tmp/kidults-asi-source-adapter-wave4-kpmo-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error

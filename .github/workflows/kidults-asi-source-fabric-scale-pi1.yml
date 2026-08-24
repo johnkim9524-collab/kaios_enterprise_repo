@@ -1,0 +1,178 @@
+name: KIDULTS ASI Source Fabric Scale PI1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '13 */6 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-source-fabric-scale-pi1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-fabric-scale-pi1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source, syntax and platform principles
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs
+          node - <<'NODE'
+          const fs=require('fs');
+          const p=fs.readFileSync('.github/workflows/kidults-asi-source-fabric-scale-pi1.yml','utf8');
+          for(const marker of ['workflow_dispatch:','schedule:','push:'])if(!p.includes(marker))throw new Error(`MISSING_AUTONOMOUS_TRIGGER:${marker}`);
+          const c=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'));
+          if(JSON.stringify(c.constitutional_order)!==JSON.stringify(['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT']))throw new Error('PLATFORM_PRINCIPLE_ORDER');
+          if(c.autonomous_activation_rule?.manual_only_normal_activation_forbidden!==true)throw new Error('MANUAL_ONLY_NOT_FORBIDDEN');
+          NODE
+      - name: Restore prior provider circuit and rolling reserve from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/previous-scale /tmp/previous-reserve /tmp/rotations
+          SCALE_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-source-fabric-scale-pi1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          if [ -n "$SCALE_ID" ]; then
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${SCALE_ID}/zip" > /tmp/previous-scale.zip
+            unzip -q -o /tmp/previous-scale.zip -d /tmp/previous-scale
+          fi
+          CIRCUIT=$(find /tmp/previous-scale -type f -name asi-discovery-provider-health-circuit-v1.json -print -quit || true)
+          if [ -n "$CIRCUIT" ]; then cp "$CIRCUIT" /tmp/previous-scale/previous-circuit.json; fi
+          RESERVE=$(find /tmp/previous-scale -type f -name asi-sharded-source-reserve-manifest-v1.json -print -quit || true)
+          if [ -n "$RESERVE" ]; then
+            ROOT=$(dirname "$RESERVE")
+            cp -a "$ROOT"/. /tmp/previous-reserve/
+          else
+            RESERVE_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+            if [ -n "$RESERVE_ID" ]; then
+              gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${RESERVE_ID}/zip" > /tmp/previous-reserve.zip
+              unzip -q -o /tmp/previous-reserve.zip -d /tmp/previous-reserve
+            fi
+          fi
+          echo "prior_scale_artifact=${SCALE_ID:-NONE}"
+      - name: Execute four governed scope rotations
+        shell: bash
+        run: |
+          set -euo pipefail
+          for R in 0 1 2 3; do
+            ASI_SCOPE_ROTATION="$R" ASI_PROVIDER_CIRCUIT=/tmp/previous-scale/previous-circuit.json \
+              node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs "/tmp/rotations/r${R}.json"
+            node scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs "/tmp/rotations/r${R}.json"
+          done
+      - name: Merge rotations and validate actual source-fabric increment
+        run: |
+          node scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs \
+            /tmp/rotations/r0.json /tmp/rotations/r1.json /tmp/rotations/r2.json /tmp/rotations/r3.json \
+            /tmp/asi-public-metadata-source-fabric-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs /tmp/asi-public-metadata-source-fabric-v1.json
+      - name: Build and validate next-cycle provider health routing
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs \
+            /tmp/asi-public-metadata-source-fabric-v1.json \
+            /tmp/previous-scale/previous-circuit.json \
+            /tmp/asi-discovery-provider-health-circuit-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs /tmp/asi-discovery-provider-health-circuit-v1.json
+      - name: Build and validate rolling 256-shard reserve increment
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs \
+            /tmp/asi-public-metadata-source-fabric-v1.json \
+            /tmp/previous-reserve \
+            /tmp/asi-sharded-source-reserve-v1
+          node scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs /tmp/asi-sharded-source-reserve-v1
+      - name: Reject source rights self-promotion mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-public-metadata-source-fabric-v1.json'));x.candidates[0].rights_state='ALLOW';fs.writeFileSync('/tmp/bad-source-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs /tmp/bad-source-rights.json; then exit 1; fi
+      - name: Reject provider circuit permission mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-discovery-provider-health-circuit-v1.json'));x.providers[0].rights_effect='ALLOW';fs.writeFileSync('/tmp/bad-circuit-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs /tmp/bad-circuit-rights.json; then exit 1; fi
+      - name: Prove bounded cooldown and recovery transitions
+        run: |
+          node - <<'NODE' >/tmp/provider-failure-fixture.json
+          process.stdout.write(JSON.stringify({id:'fixture',candidate_count:0,lane_health:[{lane_id:'P403',status:'FAILED',observed_candidates:0,error:'HTTP_403'},{lane_id:'P429',status:'FAILED',observed_candidates:0,error:'HTTP_429'},{lane_id:'POK',status:'SUCCESS_WITH_RESULTS',observed_candidates:7}],public_release:'HOLD',production:'HOLD'}));
+          NODE
+          node scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs /tmp/provider-failure-fixture.json /tmp/no-prior.json /tmp/circuit-c1.json
+          node scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs /tmp/circuit-c1.json
+          node scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs /tmp/provider-failure-fixture.json /tmp/circuit-c1.json /tmp/circuit-c2.json
+          node scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs /tmp/circuit-c2.json
+          node - <<'NODE'
+          const fs=require('fs');const a=JSON.parse(fs.readFileSync('/tmp/circuit-c1.json'));const b=JSON.parse(fs.readFileSync('/tmp/circuit-c2.json'));const p403a=a.providers.find(x=>x.lane_id==='P403');const p403b=b.providers.find(x=>x.lane_id==='P403');const p429a=a.providers.find(x=>x.lane_id==='P429');const p429b=b.providers.find(x=>x.lane_id==='P429');if(p403a.cooldown_cycles_remaining!==4||p403b.cooldown_cycles_remaining!==3)throw new Error('P403_COOLDOWN');if(p429a.cooldown_cycles_remaining!==2||p429b.cooldown_cycles_remaining!==1)throw new Error('P429_COOLDOWN');console.log(JSON.stringify({status:'PASS',p403:[4,3],p429:[2,1],production:'HOLD'}));
+          NODE
+      - name: Reject reserve rights promotion mutation
+        shell: bash
+        run: |
+          cp -a /tmp/asi-sharded-source-reserve-v1 /tmp/bad-reserve-rights
+          FILE=$(find /tmp/bad-reserve-rights/shards -type f -size +0c -print -quit)
+          test -n "$FILE"
+          node - "$FILE" <<'NODE'
+          const fs=require('fs');const p=process.argv[2];const lines=fs.readFileSync(p,'utf8').trim().split(/\r?\n/);const x=JSON.parse(lines[0]);x.rights_state='ALLOW';lines[0]=JSON.stringify(x);fs.writeFileSync(p,lines.join('\n')+'\n');
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs /tmp/bad-reserve-rights; then exit 1; fi
+      - name: Emit empirical scale receipt
+        run: |
+          node - <<'NODE' >/tmp/asi-source-fabric-scale-pi1-receipt.json
+          const fs=require('fs');const f=JSON.parse(fs.readFileSync('/tmp/asi-public-metadata-source-fabric-v1.json'));const c=JSON.parse(fs.readFileSync('/tmp/asi-discovery-provider-health-circuit-v1.json'));const r=JSON.parse(fs.readFileSync('/tmp/asi-sharded-source-reserve-v1/asi-sharded-source-reserve-manifest-v1.json'));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-source-fabric-scale-pi1-receipt',status:'SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_COMPLETE',trigger_event:process.env.GITHUB_EVENT_NAME,autonomous_effect:'POSITIVE',global_effect:'POSITIVE',irreplaceable_value_effect:'POSITIVE',transparency_effect:'POSITIVE',scheduled_scopes:f.scheduled_scope_count,empirical_scopes:f.empirical_scope_count,current_increment_candidates:f.candidate_count,current_increment_unique_hosts:f.unique_host_count,provider_candidate_counts:f.provider_counts,healthy_provider_lanes:f.healthy_lane_count,degraded_provider_lanes:f.degraded_lane_count,provider_circuit_cycle:c.cycle_number,full_budget_providers:c.summary.full_budget_provider_count,reduced_budget_providers:c.summary.reduced_budget_provider_count,open_provider_circuits:c.summary.open_circuit_count,half_open_provider_probes:c.summary.half_open_probe_count,reserve_cycle:r.cycle_number,reserve_unique_candidates:r.unique_candidate_count,reserve_unique_hosts:r.unique_host_count,reserve_new_candidates:r.new_candidate_count,reserve_updated_candidates:r.updated_candidate_count,reserve_nonempty_shards:r.nonempty_shard_count,reserve_design_capacity:r.design_capacity_minimum_candidates,reserve_is_not_safe_pool:true,empirical_market_effect:'NONE',content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/asi-source-fabric-scale-pi1-receipt.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-source-fabric-scale-pi1
+          path: |
+            /tmp/rotations
+            /tmp/asi-public-metadata-source-fabric-v1.json
+            /tmp/asi-discovery-provider-health-circuit-v1.json
+            /tmp/asi-sharded-source-reserve-v1
+            /tmp/asi-source-fabric-scale-pi1-receipt.json
+          retention-days: 90
+          if-no-files-found: error

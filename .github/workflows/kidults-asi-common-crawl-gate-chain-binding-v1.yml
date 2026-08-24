@@ -1,0 +1,166 @@
+name: KIDULTS ASI Common Crawl Gate Chain Binding v1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs'
+      - '.github/workflows/kidults-asi-common-crawl-gate-chain-binding-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  common-crawl-gate-chain-binding:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs
+      - name: Restore latest successful branch-compatible Global Any-Site discovery evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p discovery-out /tmp/any-site-input
+          for ATTEMPT in $(seq 1 24); do
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-open-market-discovery-v1.yml/runs?branch=${TARGET_BRANCH}&status=success&per_page=100" \
+              > /tmp/any-site-runs.json
+            TARGET_BRANCH="$TARGET_BRANCH" node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/any-site-runs.json','utf8'));
+          const target=process.env.TARGET_BRANCH;
+          const runs=(x.workflow_runs||[])
+            .filter((run)=>run.name==='KIDULTS ASI Global Any-Site Discovery v2'&&
+              run.path==='.github/workflows/kidults-asi-global-open-market-discovery-v1.yml'&&
+              run.head_branch===target&&run.status==='completed'&&run.conclusion==='success')
+            .sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)||b.id-a.id);
+          if(runs.length)fs.writeFileSync('/tmp/any-site-run.json',JSON.stringify(runs[0],null,2));
+          NODE
+            if [ -s /tmp/any-site-run.json ]; then break; fi
+            if [ "$ATTEMPT" -eq 24 ]; then
+              echo "NO_SUCCESSFUL_BRANCH_GLOBAL_DISCOVERY_RUN:${TARGET_BRANCH}" >&2
+              exit 1
+            fi
+            sleep 10
+          done
+          RUN_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/any-site-run.json')).id")
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" \
+            > /tmp/any-site-artifacts.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const run=JSON.parse(fs.readFileSync('/tmp/any-site-run.json','utf8'));
+          const x=JSON.parse(fs.readFileSync('/tmp/any-site-artifacts.json','utf8'));
+          const artifacts=(x.artifacts||[])
+            .filter((artifact)=>artifact.name==='kidults-asi-global-any-site-discovery-v2'&&
+              artifact.expired===false&&artifact.workflow_run?.id===run.id&&
+              artifact.workflow_run?.head_sha===run.head_sha);
+          if(artifacts.length!==1)throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_CARDINALITY:${artifacts.length}`);
+          fs.writeFileSync('/tmp/any-site-artifact.json',JSON.stringify(artifacts[0],null,2));
+          NODE
+          ART_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/any-site-artifact.json')).id")
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip" \
+            > /tmp/any-site-input.zip
+          unzip -q -o /tmp/any-site-input.zip -d /tmp/any-site-input
+          mapfile -t FILES < <(find /tmp/any-site-input -type f -name global-low-risk-discovery.json -print)
+          test "${#FILES[@]}" -eq 1
+          cp "${FILES[0]}" discovery-out/global-low-risk-discovery.json
+          node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
+          echo "global_discovery_run_id=$RUN_ID artifact_id=$ART_ID branch=$TARGET_BRANCH"
+      - name: Expand bounded hosts through Common Crawl public index
+        run: |
+          node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-host-expansion-v1.json
+      - name: Merge expansion into canonical Gate1 input
+        run: |
+          node scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json discovery-out/global-low-risk-discovery-common-crawl-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery-common-crawl-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs discovery-out/global-low-risk-discovery-common-crawl-v1.json
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-common-crawl-v1.json'));
+          if(!(x.common_crawl_observed_candidate_count>0))throw new Error('NO_EMPIRICAL_COMMON_CRAWL_CANDIDATE');
+          console.log(JSON.stringify({status:'PASS',index_id:x.common_crawl_index_id,observed:x.common_crawl_observed_candidate_count,new_candidates:x.common_crawl_new_candidate_count,merged:x.candidate_count,production:x.production}));
+          NODE
+      - name: Reject merged rights self-promotion mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-common-crawl-v1.json'));const c=x.candidates.find(y=>y.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'||y.discovery_providers?.includes('COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'));if(!c)process.exit(2);c.rights_state='ALLOW';fs.writeFileSync('/tmp/bad-common-crawl-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs /tmp/bad-common-crawl-rights.json; then exit 1; fi
+      - name: Reject merged host escape mutation
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-common-crawl-v1.json'));const c=x.candidates.find(y=>y.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION');if(!c)process.exit(2);c.endpoint_url='https://example.org/escape';fs.writeFileSync('/tmp/bad-common-crawl-host.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs /tmp/bad-common-crawl-host.json; then exit 1; fi
+      - name: Gate1 classify merged Any-Site ingress
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs discovery-out/global-low-risk-discovery-common-crawl-v1.json /tmp/asi-gate1-safe-candidate-pool-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-gate1-safe-candidate-pool-v1.json
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v1.json'));
+          const all=[...(x.safe_candidate_pool||[]),...(x.review_required_queue||[]),...(x.hard_block_queue||[])];
+          const cc=all.filter(c=>c.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'||c.discovery_providers?.includes('COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'));
+          if(!cc.length)throw new Error('COMMON_CRAWL_NOT_BOUND_TO_GATE1');
+          if(cc.some(c=>c.gate_1_state==='PASS'))throw new Error('COMMON_CRAWL_AUTO_SAFE_WITHOUT_RIGHTS');
+          if(cc.some(c=>c.rights_state!=='UNASSESSED'||c.admission_state!=='NOT_ADMITTED'||c.acquisition_authorized!==false))throw new Error('COMMON_CRAWL_GATE1_PROMOTION');
+          console.log(JSON.stringify({status:'PASS',common_crawl_gate1_candidates:cc.length,common_crawl_auto_safe:0,gate1_safe:x.safe_candidate_count,gate1_review:x.review_required_count,production:x.production}));
+          NODE
+      - name: Gate2 independently reverify Safe Candidate Pool
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs /tmp/asi-gate1-safe-candidate-pool-v1.json /tmp/asi-gate2-independent-reverification-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs /tmp/asi-gate2-independent-reverification-v1.json
+      - name: Gate3 admit metadata-only eligible subset
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs /tmp/asi-gate2-independent-reverification-v1.json /tmp/asi-gate3-admission-runtime-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs /tmp/asi-gate3-admission-runtime-v1.json
+      - name: Accumulate merged candidates without rights promotion
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs discovery-out/global-low-risk-discovery-common-crawl-v1.json /tmp/nonexistent-previous-pool.json /tmp/asi-proactive-source-pool-common-crawl-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs /tmp/asi-proactive-source-pool-common-crawl-v1.json
+      - name: Emit governed binding receipt
+        run: |
+          node - <<'NODE' >/tmp/asi-common-crawl-gate-chain-binding-receipt-v1.json
+          const fs=require('fs');const d=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-common-crawl-v1.json'));const g1=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v1.json'));const g2=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v1.json'));const g3=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v1.json'));const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-common-crawl-v1.json'));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-common-crawl-gate-chain-binding-receipt-v1',status:'SHADOW_COMMON_CRAWL_ANY_SITE_GATE_CHAIN_BOUND',common_crawl_index_id:d.common_crawl_index_id,common_crawl_seed_hosts:d.common_crawl_seed_host_count,common_crawl_observed_candidates:d.common_crawl_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_new_candidate_count,merged_discovery_candidates:d.candidate_count,gate1_safe:g1.safe_candidate_count,gate1_review:g1.review_required_count,gate2_verified:g2.verified_for_gate3_count,gate3_metadata_admitted:g3.admitted_count,rolling_candidate_pool:p.candidate_count,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/asi-common-crawl-gate-chain-binding-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-common-crawl-gate-chain-binding-v1
+          path: |
+            /tmp/asi-common-crawl-host-expansion-v1.json
+            discovery-out/global-low-risk-discovery-common-crawl-v1.json
+            /tmp/asi-gate1-safe-candidate-pool-v1.json
+            /tmp/asi-gate2-independent-reverification-v1.json
+            /tmp/asi-gate3-admission-runtime-v1.json
+            /tmp/asi-proactive-source-pool-common-crawl-v1.json
+            /tmp/asi-common-crawl-gate-chain-binding-receipt-v1.json
+          retention-days: 30
+          if-no-files-found: error

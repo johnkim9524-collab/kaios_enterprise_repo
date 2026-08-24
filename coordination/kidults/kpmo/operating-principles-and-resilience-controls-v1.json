@@ -1,13 +1,74 @@
 {
   "id": "kidults-operating-principles-and-resilience-controls-v1",
-  "version": "1.0.0",
-  "status": "ACTIVE",
+  "version": "1.1.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED",
+  "owner": "KPMO",
+  "precedence": "HIGHEST_PLATFORM_OPERATING_PRINCIPLES",
+  "effective_scope": "REPOSITORY_WIDE_PLATFORM_TRACKS_AGENTS_WORKFLOWS_RUNTIME",
   "canonical_main_binding": "PROTECTED_MAIN_HEAD_AT_READ",
+  "constitutional_order": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
   "operating_principles": {
-    "AUTONOMOUS": "The platform must detect uncertainty, generate evidence demand, adapt source priority, recompute intelligence and propose bounded actions without requiring routine human orchestration, while preserving explicit gates for irreversible/legal/Production actions.",
-    "GLOBAL": "Global claims require empirically represented category x geography x evidence-class surfaces; architecture coverage, provider count or record count never substitutes for independent factual coverage.",
-    "IRREPLACEABLE_VALUE": "KIDULTS-owned value must accrue in canonical graphs, lineage, methodology, source-independence logic, derived intelligence, calibration, decision systems and evidence economics rather than any single provider feed.",
-    "TRANSPARENT": "Every material fact, factor, derived claim and autonomous decision must be traceable to evidence, rights, time semantics, methodology, dependencies, confidence and a reproducible decision rationale."
+    "AUTONOMOUS": "The platform must detect uncertainty, generate evidence demand, adapt source priority, recompute intelligence and execute governed reversible non-Production work without requiring routine human orchestration, while preserving explicit gates for irreversible, legal, security, contractual, external-spend and Production actions.",
+    "GLOBAL": "Global claims require empirically represented category x geography x language x evidence-class surfaces; architecture coverage, provider count or record count never substitutes for independent factual coverage.",
+    "IRREPLACEABLE_VALUE": "KIDULTS-owned value must accrue in canonical identity, graphs, lineage, methodology, source-independence logic, provider-switching, derived intelligence, calibration, decision systems and evidence economics rather than any single provider feed.",
+    "TRANSPARENT": "Every material fact, action, factor, derived claim, autonomous decision, limitation, blocker, metric and status must be traceable to evidence, rights, time semantics, methodology, dependencies, authority, confidence and a reproducible rationale."
+  },
+  "mandatory_inheritance": {
+    "all_tracks": true,
+    "all_ai_agents": true,
+    "all_workflows": true,
+    "all_runtime_components": true,
+    "all_provider_integrations": true,
+    "child_rule_can_weaken_or_reorder": false,
+    "self_exemption_allowed": false
+  },
+  "material_change_decision_test": {
+    "required_fields": [
+      "autonomous_effect",
+      "global_effect",
+      "irreplaceable_value_effect",
+      "transparency_effect"
+    ],
+    "allowed_states": [
+      "POSITIVE",
+      "NEUTRAL_WITH_EVIDENCE",
+      "NEGATIVE_WITH_APPROVED_EXCEPTION",
+      "UNKNOWN"
+    ],
+    "completion_rule": "A material change with any UNKNOWN principle effect cannot claim COMPLETE_VERIFIED or full platform alignment.",
+    "negative_rule": "A material negative effect requires an explicit governed exception and cannot be silently traded away."
+  },
+  "autonomous_activation_rule": {
+    "normal_path": [
+      "IMPLEMENTED",
+      "VALIDATOR_READY",
+      "REVERSIBLE_INTERNAL_SCOPE_CONFIRMED",
+      "AUTOMATIC_TRIGGER_REGISTERED",
+      "RUN",
+      "VERIFY",
+      "RECEIPT",
+      "NEXT_CYCLE"
+    ],
+    "manual_only_normal_activation_forbidden": true,
+    "acceptable_automatic_triggers": [
+      "PROTECTED_MAIN_PUSH",
+      "SCHEDULE",
+      "GOVERNED_UPSTREAM_WORKFLOW_COMPLETION"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY",
+    "protected_gates": [
+      "PRODUCTION_G5",
+      "IRREVERSIBLE_LEGAL_CHANGE",
+      "IRREVERSIBLE_SECURITY_CHANGE",
+      "EXTERNAL_SPEND",
+      "CONTRACTUAL_COMMITMENT",
+      "EXPANDED_CREDENTIAL_OR_PERMISSION"
+    ]
   },
   "resilience_controls": [
     {

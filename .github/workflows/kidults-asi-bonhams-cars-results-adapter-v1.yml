@@ -1,0 +1,180 @@
+name: KIDULTS ASI Bonhams Cars Results Reference Adapter v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 */3 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-template-expansion-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-cars-results.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-source-adapter-template-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs'
+      - 'docs/kidults/asi/asi-bonhams-cars-results-adapter-v1.md'
+      - '.github/workflows/kidults-asi-bonhams-cars-results-adapter-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-template-expansion-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-cars-results.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-source-adapter-template-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs'
+      - 'docs/kidults/asi/asi-bonhams-cars-results-adapter-v1.md'
+      - '.github/workflows/kidults-asi-bonhams-cars-results-adapter-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Autonomous Resolution Layer v1'
+      - 'KIDULTS ASI P1 Market-Event Adapter Runtime v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-bonhams-cars-results-adapter-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-reference-adapter:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
+      - name: Verify exact source syntax and contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-source-adapter-template-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-source-adapter-template-expansion-contract-v1.json','utf8'))"
+      - name: Install bounded runtime dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck Reference Adapter and generic runtime binding
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+      - name: Run Bonhams Cars reference adapter fixture and mutation proof
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          node scripts/asi-bonhams-cars-results-adapter-test.mjs \
+            | tee /tmp/bonhams-cars-adapter-test-receipt-v1.json
+      - name: Build all 16 source adapter templates twice
+        run: |
+          set -euo pipefail
+          for RUN in 1 2; do
+          node scripts/kidults/source-intelligence/build-asi-source-adapter-template-expansion-v1.mjs \
+            coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
+            coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv \
+            coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json \
+            coordination/kidults/source-intelligence/asi-source-adapter-template-expansion-contract-v1.json \
+            coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
+            "/tmp/kidults-asi-source-adapter-template-expansion-run-${RUN}"
+          done
+          diff -qr /tmp/kidults-asi-source-adapter-template-expansion-run-1 /tmp/kidults-asi-source-adapter-template-expansion-run-2
+          cp -a /tmp/kidults-asi-source-adapter-template-expansion-run-1 /tmp/kidults-asi-source-adapter-template-expansion-v1
+      - name: Validate Reference Adapter and all 16 templates
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs \
+            /tmp/kidults-asi-source-adapter-template-expansion-v1 \
+            /tmp/bonhams-cars-adapter-test-receipt-v1.json \
+            | tee /tmp/bonhams-cars-adapter-validation-v1.json
+      - name: Reject fixture promotion mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json /tmp/bonhams-contract.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json';const x=JSON.parse(fs.readFileSync(p));x.fixture_policy.fixtures_can_create_market_event_or_claim=true;x.implementation_truth.adapter_activated=true;x.implementation_truth.empirical_market_events_admitted=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs /tmp/kidults-asi-source-adapter-template-expansion-v1 /tmp/bonhams-cars-adapter-test-receipt-v1.json; then
+            echo 'Validator accepted fixture promotion or false activation' >&2
+            exit 1
+          fi
+          mv /tmp/bonhams-contract.json coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json
+      - name: Reject parser semantic weakening mutation
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          cp src/asi/source-adapters/bonhams-cars-results.ts /tmp/bonhams-cars-results.ts
+          python - <<'PY'
+          p='src/asi/source-adapters/bonhams-cars-results.ts'
+          s=open(p).read().replace("return { state: 'AMBIGUOUS_DOLLAR', price: null, currency: null };", "return { state: 'MATCH', price: 125000, currency: 'USD' };")
+          open(p,'w').write(s)
+          PY
+          if node scripts/asi-bonhams-cars-results-adapter-test.mjs; then
+            echo 'Reference adapter test accepted ambiguous-dollar semantic weakening' >&2
+            exit 1
+          fi
+          mv /tmp/bonhams-cars-results.ts src/asi/source-adapters/bonhams-cars-results.ts
+      - name: Reject template-as-adapter mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-source-adapter-template-expansion-v1 /tmp/bad-template-adapter
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-template-adapter/source-adapter-template-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.profiles[1].implementation_state='REFERENCE_ADAPTER_IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED';x.reference_adapter_count=2;x.template_pending_count=14;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs /tmp/bad-template-adapter /tmp/bonhams-cars-adapter-test-receipt-v1.json; then
+            echo 'Validator accepted generated template as implemented adapter' >&2
+            exit 1
+          fi
+      - name: Reject false Evidence admission mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-source-adapter-template-expansion-v1 /tmp/bad-evidence-admission
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-evidence-admission/source-adapter-template-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.evidence_admitted=1;x.profiles[0].evidence_admitted=1;x.profiles[0].adapter_activated=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs /tmp/bad-evidence-admission /tmp/bonhams-cars-adapter-test-receipt-v1.json; then
+            echo 'Validator accepted unverified Evidence admission' >&2
+            exit 1
+          fi
+      - name: Revalidate pristine Reference Adapter outputs
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs \
+            /tmp/kidults-asi-source-adapter-template-expansion-v1 \
+            /tmp/bonhams-cars-adapter-test-receipt-v1.json \
+            > /tmp/bonhams-cars-adapter-final-validation-v1.json
+      - name: Emit KPMO reference-adapter receipt
+        run: |
+          node - <<'NODE' >/tmp/bonhams-cars-reference-adapter-kpmo-receipt-v1.json
+          const fs=require('fs'),crypto=require('crypto');const test=JSON.parse(fs.readFileSync('/tmp/bonhams-cars-adapter-test-receipt-v1.json'));const validation=JSON.parse(fs.readFileSync('/tmp/bonhams-cars-adapter-final-validation-v1.json'));const manifest=JSON.parse(fs.readFileSync('/tmp/kidults-asi-source-adapter-template-expansion-v1/source-adapter-template-expansion-manifest-v1.json'));const digest=p=>'sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-bonhams-cars-reference-adapter-kpmo-receipt-v1',version:'1.0.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,test_digest:digest('/tmp/bonhams-cars-adapter-test-receipt-v1.json'),validation_digest:digest('/tmp/bonhams-cars-adapter-final-validation-v1.json'),template_manifest_digest:digest('/tmp/kidults-asi-source-adapter-template-expansion-v1/source-adapter-template-expansion-manifest-v1.json'),reference_adapters_implemented:validation.reference_adapters_implemented,registered_source_profiles:validation.registered_source_profiles,adapter_templates_generated:validation.adapter_templates_generated,templates_pending_source_implementation:validation.templates_pending_source_implementation,live_source_snapshots_verified:0,field_purpose_rights_verified_sources:0,source_specific_adapters_activated:0,evidence_admitted:0,market_events_created:0,first_evidence_admission_state:validation.first_evidence_admission_state,autonomous_effect:manifest.autonomous_effect,global_effect:manifest.global_effect,irreplaceable_value_effect:manifest.irreplaceable_value_effect,transparency_effect:manifest.transparency_effect,public_release:'HOLD',production:'HOLD'},null,2));
+          NODE
+          cat /tmp/bonhams-cars-reference-adapter-kpmo-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-bonhams-cars-results-reference-adapter-v1
+          path: |
+            /tmp/bonhams-cars-adapter-test-receipt-v1.json
+            /tmp/bonhams-cars-adapter-validation-v1.json
+            /tmp/bonhams-cars-adapter-final-validation-v1.json
+            /tmp/kidults-asi-source-adapter-template-expansion-v1
+            /tmp/bonhams-cars-reference-adapter-kpmo-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error

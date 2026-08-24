@@ -50,6 +50,12 @@ jobs:
           node-version: "24"
           package-manager-cache: false
 
+      - name: Reject unbounded GitHub Actions API access
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-github-actions-api-bounds-v1.mjs --self-test
+          node scripts/kidults/source-intelligence/validate-github-actions-api-bounds-v1.mjs
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip

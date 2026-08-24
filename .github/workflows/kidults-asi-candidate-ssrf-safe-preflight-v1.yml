@@ -1,0 +1,102 @@
+name: KIDULTS ASI Candidate SSRF-Safe Preflight Proof v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-candidate-ssrf-safe-preflight-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/ssrf-safe-candidate-preflight-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-ssrf-safe-candidate-preflight-v1.mjs'
+      - 'docs/kidults/asi/asi-candidate-ssrf-safe-preflight-v1.md'
+      - '.github/workflows/kidults-asi-candidate-ssrf-safe-preflight-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-candidate-ssrf-safe-preflight-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/ssrf-safe-candidate-preflight-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-ssrf-safe-candidate-preflight-v1.mjs'
+      - 'docs/kidults/asi/asi-candidate-ssrf-safe-preflight-v1.md'
+      - '.github/workflows/kidults-asi-candidate-ssrf-safe-preflight-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-candidate-ssrf-safe-preflight-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-ssrf-mutation-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ASI_CANDIDATE_HOST_NETWORK_EXECUTION: DISABLED_SECURITY_HOLD
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$ASI_CANDIDATE_HOST_NETWORK_EXECUTION" = "DISABLED_SECURITY_HOLD"
+          node --check scripts/kidults/source-intelligence/ssrf-safe-candidate-preflight-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-ssrf-safe-candidate-preflight-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-candidate-ssrf-safe-preflight-contract-v1.json','utf8'))"
+      - name: Validate security contract remains fail-closed
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = 'coordination/kidults/source-intelligence/asi-candidate-ssrf-safe-preflight-contract-v1.json';
+          const x = JSON.parse(fs.readFileSync(p));
+          const fail = (m) => { throw new Error(m); };
+          const principles = ['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'];
+          if (x.id !== 'kidults-asi-candidate-ssrf-safe-preflight-contract-v1') fail('CONTRACT_ID');
+          if (x.status !== 'IMPLEMENTED_SECURITY_PROOF_NETWORK_EXECUTION_HOLD') fail('CONTRACT_STATUS');
+          if (JSON.stringify(x.platform_principles) !== JSON.stringify(principles)) fail('PRINCIPLE_ORDER');
+          if (x.default_execution_state?.candidate_host_network_execution !== 'HOLD') fail('NETWORK_DEFAULT');
+          if (x.activation_gate?.live_network_execution_is_authorized_by_this_contract !== false) fail('NETWORK_AUTHORIZATION');
+          if (x.transport_policy?.address_pinned_transport_required !== true) fail('ADDRESS_PIN');
+          if (x.transport_policy?.manual_redirect_validation_required !== true) fail('MANUAL_REDIRECT');
+          if (x.dns_policy?.trusted_control_plane_resolver_required !== true) fail('TRUSTED_RESOLVER');
+          if (x.dns_policy?.system_default_resolver_allowed !== false) fail('SYSTEM_RESOLVER');
+          if (x.dns_policy?.all_answers_must_be_globally_routable !== true) fail('DNS_GLOBAL');
+          if (x.dns_policy?.mixed_global_and_non_global_answers_allowed !== false) fail('DNS_MIXED');
+          if (x.rights_and_admission_boundary?.robots_allow_is_collection_permission !== false) fail('ROBOTS_RIGHTS');
+          if (x.rights_and_admission_boundary?.reachability_is_admission !== false) fail('REACHABILITY_ADMISSION');
+          if (x.rights_and_admission_boundary?.candidate_preflight_is_evidence !== false) fail('PREFLIGHT_EVIDENCE');
+          if (x.truth_boundary?.live_candidate_host_requests_executed_by_validation !== 0) fail('LIVE_REQUESTS');
+          if (x.truth_boundary?.public_release !== 'HOLD' || x.truth_boundary?.production !== 'HOLD' || x.truth_boundary?.g5 !== 'HOLD') fail('RELEASE_BOUNDARY');
+          NODE
+      - name: Execute offline direct DNS redirect IPv4 IPv6 and rebinding mutations
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-ssrf-safe-candidate-preflight-v1.mjs \
+            /tmp/kidults-asi-candidate-ssrf-safe-preflight-mutation-receipt-v1.json \
+            | tee /tmp/kidults-asi-candidate-ssrf-safe-preflight-validation-v1.json
+      - name: Verify receipt and zero live candidate-host requests
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = '/tmp/kidults-asi-candidate-ssrf-safe-preflight-mutation-receipt-v1.json';
+          const x = JSON.parse(fs.readFileSync(p));
+          if (x.state !== 'VERIFIED_PASS') throw new Error('MUTATION_RECEIPT_STATE');
+          if (x.mutation_count < 30 || x.rejected_mutation_count !== x.mutation_count) throw new Error('MUTATION_COVERAGE');
+          if (x.live_candidate_host_requests_executed !== 0) throw new Error('LIVE_CANDIDATE_REQUEST');
+          if (x.protected_main_candidate_host_network_execution !== false) throw new Error('MAIN_NETWORK_EXECUTION');
+          if (x.robots_terms_reachability_create_rights !== false) throw new Error('RIGHTS_OVERCLAIM');
+          if (x.evidence_admitted !== 0 || x.market_claims_created !== 0) throw new Error('PROMOTION_OVERCLAIM');
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-candidate-ssrf-safe-preflight-proof-v1
+          path: |
+            /tmp/kidults-asi-candidate-ssrf-safe-preflight-mutation-receipt-v1.json
+            /tmp/kidults-asi-candidate-ssrf-safe-preflight-validation-v1.json
+          retention-days: 14
+          if-no-files-found: error

@@ -1,0 +1,94 @@
+{
+  "id": "kidults-asi-source-adapter-wave4-registry-v1",
+  "version": "1.0.0",
+  "status": "ALL_16_SOURCE_ADAPTERS_IMPLEMENTED_FIXTURE_VERIFIED_NONE_EMPIRICALLY_ACTIVATED",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json",
+    "wave3_registry": "coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json",
+    "runtime_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+    "source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
+    "shared_market_surface_core": "services/kidults-autonomous-intelligence/src/asi/source-adapters/governed-market-surface.ts",
+    "source_adapter_module": "services/kidults-autonomous-intelligence/src/asi/source-adapters/source-adapter-wave4.ts",
+    "test": "services/kidults-autonomous-intelligence/scripts/asi-source-adapter-wave4-test.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-source-adapter-wave4-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-source-adapter-wave4-v1.yml",
+    "documentation": "docs/kidults/asi/asi-source-adapter-wave4-v1.md"
+  },
+  "implementation_state": {
+    "wave_source_specific_adapters_implemented": 7,
+    "portfolio_source_specific_adapters_implemented": 16,
+    "portfolio_registered_source_profiles": 16,
+    "portfolio_source_specific_adapters_pending": 0,
+    "strict_transaction_candidate_parsers_in_wave": 0,
+    "strict_exposure_candidate_parsers_in_wave": 3,
+    "context_only_non_promotable_classifiers_in_wave": 4,
+    "deterministic_fixture_suites_implemented": 7,
+    "generic_runtime_bindings_verified": 3,
+    "live_source_snapshots_verified": 0,
+    "field_purpose_rights_verified_sources": 0,
+    "source_specific_adapters_activated": 0,
+    "empirical_market_events_admitted": 0
+  },
+  "implemented_source_ids": [
+    "barrett-jackson-results",
+    "bonhams-cars-results",
+    "bonhams-watches-results",
+    "bricklink-catalog-api",
+    "broad-arrow-results",
+    "christies-handbags-results",
+    "christies-watches-results",
+    "collecting-cars-sold",
+    "comc-marketplace",
+    "goat-sneaker-marketplace",
+    "hasbro-pulse-collections",
+    "iconic-auctioneers-results",
+    "nike-snkrs-launch-calendar",
+    "pricecharting-api",
+    "reverb-price-guide",
+    "sothebys-watches-results"
+  ],
+  "remaining_source_adapter_backlog": [],
+  "empirical_activation_backlog": [
+    "PURPOSE_SPECIFIC_RIGHTS_DOSSIER_PER_SOURCE",
+    "IMMUTABLE_LIVE_SCHEMA_SNAPSHOT_PER_SOURCE",
+    "EMPIRICAL_CLAIM_SEMANTICS_PROOF_PER_IMPLEMENTED_CLAIM",
+    "SOURCE_OWNER_AND_FACTUAL_ORIGIN_PROOF",
+    "SOURCE_SPECIFIC_ACTIVATION_RECEIPT",
+    "FIRST_MARKET_EVENT_ADMISSION_RECEIPT"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "47 */3 * * *",
+    "upstream_workflows": [
+      "KIDULTS ASI Source Adapter Wave 3 v1",
+      "KIDULTS ASI Source Adapter Wave 2 v1",
+      "KIDULTS ASI P1 Market-Event Adapter Runtime v1"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "next_execution": {
+    "software_adapter_coverage": "COMPLETE_16_OF_16",
+    "empirical_rights_schema_semantics_activation": "OPEN",
+    "first_evidence_admission": "BLOCKED_PENDING_EMPIRICAL_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_AND_ACTIVATION_PASS",
+    "provider_contact_routing": "TRACK_Z_TO_KPMO_TO_FOUNDER_REQUIRED"
+  },
+  "truth_boundary": {
+    "fixture_is_empirical_source_snapshot": false,
+    "implemented_adapter_is_activated_adapter": false,
+    "context_classifier_is_evidence_parser": false,
+    "rights_pass_created": false,
+    "evidence_admitted": 0,
+    "market_events_created": 0,
+    "snapshot_candidates_created": 0,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}

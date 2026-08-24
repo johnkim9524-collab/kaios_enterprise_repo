@@ -1,43 +1,143 @@
 name: KIDULTS Global Source Mesh v1
 
 on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Source Fabric Scale PI1'
+    branches: [main]
+    types: [completed]
   pull_request:
     branches: [main]
     paths:
+      - 'coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json'
       - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-sourcing-direction-registry-v2.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-sourcing-direction-v2.mjs'
       - 'scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs'
       - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'docs/kidults/asi/asi-sourcing-direction-v2.md'
       - '.github/workflows/kidults-global-source-mesh-v1.yml'
-  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json'
+      - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-sourcing-direction-registry-v2.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-sourcing-direction-v2.mjs'
+      - 'scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'docs/kidults/asi/asi-sourcing-direction-v2.md'
+      - '.github/workflows/kidults-global-source-mesh-v1.yml'
 
 permissions:
   contents: read
 
+concurrency:
+  group: kidults-global-source-mesh-v1-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-source-mesh:
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
-      - name: Build deterministic 32-scope global market-cell mesh
-        run: node scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json /tmp/kidults-global-source-mesh-v1.json
-      - name: Verify fail-closed global coverage and claim ceilings
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and syntax
         run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/validate-asi-sourcing-direction-v2.mjs
+          node --check scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs
+      - name: Validate ASI sourcing direction before planning
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-sourcing-direction-v2.mjs \
+            > /tmp/asi-sourcing-direction-validation-v2.json
+      - name: Build deterministic 32-scope four-direction global market-cell mesh
+        run: |
+          node scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs \
+            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json \
+            coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json \
+            /tmp/kidults-global-source-mesh-v1.json
+      - name: Verify fail-closed global coverage, direction vectors and claim ceilings
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-sourcing-direction-v2.mjs \
+            --mesh /tmp/kidults-global-source-mesh-v1.json \
+            > /tmp/asi-sourcing-direction-mesh-validation-v2.json
           node - <<'NODE'
           const r=require('/tmp/kidults-global-source-mesh-v1.json');
-          if(r.production!=='HOLD'||r.market_cell_count!==768||r.scope_count!==32||r.evidence_class_count!==8) process.exit(1);
-          if(r.named_provider_global_selection!==false) process.exit(1);
-          if(r.market_cells.some(x=>x.rights_admitted||x.evidence_admitted||x.named_provider_selected||x.production!=='HOLD')) process.exit(1);
+          if(r.production!=='HOLD'||r.public_release!=='HOLD'||r.market_cell_count!==768||r.scope_count!==32||r.evidence_class_count!==8) process.exit(1);
+          if(r.named_provider_global_selection!==false||r.source_count_is_not_goal!==true||r.provider_first_selection_forbidden!==true) process.exit(1);
+          if(r.direction_floor_pass_count!==r.market_cell_count) process.exit(1);
+          if(r.market_cells.some(x=>x.rights_admitted||x.evidence_admitted||x.collection_authorized||x.claim_authorized||x.named_provider_selected||x.production!=='HOLD'||x.public_release!=='HOLD')) process.exit(1);
           const required=['NO_CURRENT_PRICE_OR_TRANSACTION_CLAIM','NO_POPULATION_OR_SCARCITY_CLAIM','NO_LIQUIDITY_OR_TIME_TO_SALE_CLAIM'];
           for(const x of required) if(!r.cannot_yet_claim_summary.includes(x)) process.exit(1);
-          if(!r.rules.includes('NO_SINGLE_PROVIDER_GLOBAL_TRUTH')) process.exit(1);
-          console.log('Global Source Mesh fail-closed validation PASS');
+          for(const x of ['AUTONOMOUS_REQUIRES_REGISTERED_EXECUTION_PATH','GLOBAL_REQUIRES_EMPIRICAL_MARGINAL_COVERAGE','IRREPLACEABLE_VALUE_MUST_ACCRUE_TO_KIDULTS_OWNED_INTELLIGENCE_ASSETS','TRANSPARENT_SOURCE_SELECTION_REQUIRES_REASON_AND_EVIDENCE_RECEIPT']) if(!r.rules.includes(x)) process.exit(1);
+          console.log('Global Source Mesh four-direction fail-closed validation PASS');
           NODE
-      - uses: actions/upload-artifact@v4
+      - name: Reject priority-score permission promotion mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/kidults-global-source-mesh-v1.json','utf8'));
+          x.market_cells[0].collection_authorized=true;
+          fs.writeFileSync('/tmp/bad-priority-permission-mesh.json',JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-sourcing-direction-v2.mjs --mesh /tmp/bad-priority-permission-mesh.json; then
+            echo 'Validator accepted priority-created collection permission' >&2
+            exit 1
+          fi
+      - name: Emit KPMO sourcing direction receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-asi-sourcing-direction-kpmo-receipt-v2.json
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('/tmp/kidults-global-source-mesh-v1.json','utf8'));
+          process.stdout.write(JSON.stringify({
+            id:'kidults-asi-sourcing-direction-kpmo-receipt-v2',
+            state:'VERIFIED_PASS',
+            trigger_event:process.env.GITHUB_EVENT_NAME,
+            sourcing_direction_order:r.sourcing_direction_order,
+            source_selection_model:r.source_selection_model,
+            source_universe_target:r.source_universe_target,
+            market_cells:r.market_cell_count,
+            direction_floor_pass_count:r.direction_floor_pass_count,
+            execution_wave_order:r.execution_wave_order,
+            autonomous_effect:'POSITIVE',
+            global_effect:'POSITIVE',
+            irreplaceable_value_effect:'POSITIVE',
+            transparency_effect:'POSITIVE',
+            source_count_is_not_goal:true,
+            provider_first_selection_forbidden:true,
+            priority_score_is_tiebreaker_only:true,
+            rights_admitted:false,
+            collection_authorized:false,
+            claim_authorized:false,
+            public_release:'HOLD',
+            production:'HOLD',
+            evidence_ref:'/tmp/kidults-global-source-mesh-v1.json',
+            source_hash_sha256:r.source_hash_sha256
+          },null,2));
+          NODE
+          cat /tmp/kidults-asi-sourcing-direction-kpmo-receipt-v2.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-global-source-mesh-v1
-          path: /tmp/kidults-global-source-mesh-v1.json
+          path: |
+            /tmp/kidults-global-source-mesh-v1.json
+            /tmp/asi-sourcing-direction-validation-v2.json
+            /tmp/asi-sourcing-direction-mesh-validation-v2.json
+            /tmp/kidults-asi-sourcing-direction-kpmo-receipt-v2.json
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90

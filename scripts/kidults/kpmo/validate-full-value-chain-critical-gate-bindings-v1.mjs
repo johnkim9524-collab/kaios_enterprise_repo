@@ -14,9 +14,15 @@ const mandatory = [
   'scripts/kidults/audit/validate-destructive-lifecycle-recovery-monotonicity-v1.mjs',
   'scripts/kidults/audit/validate-destructive-canonical-suppression-v1.mjs',
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs',
+  'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs',
+  'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs',
+  'scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs',
+  'scripts/kidults/e2e/validate-black-lotus-legacy-quarantine-v1.mjs',
   'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py',
+  'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
+  'scripts/kidults/portal/validate-server-projection-capability-v1.mjs',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
 
@@ -40,8 +46,14 @@ for (const marker of [
   'pre_partner_rollback_revocation_resurrection_fail_closed: true',
   'pre_partner_canonical_source_object_suppression_machine_bound: true',
   'pre_partner_rekey_alias_reingestion_fail_closed: true',
+  'black_lotus_legacy_qualification_quarantined: true',
   'digitalocean_staging_bootstrap_exec_contract_machine_bound: true',
-  'digitalocean_staging_bootstrap_workflow_machine_bound: true'
+  'digitalocean_staging_bootstrap_workflow_machine_bound: true',
+  'proof_product_consumer_runtime_machine_bound: true',
+  'proof_product_consumer_schema_runtime_bound: true',
+  'server_projection_capability_cryptographic_core_machine_bound: true',
+  "server_projection_capability_route_binding: 'NOT_IMPLEMENTED_HOLD'",
+  "proof_product_api_export_binding: 'NOT_IMPLEMENTED_HOLD'"
 ]) {
   if (!runner.includes(marker)) errors.push(`aggregate truth/control marker missing: ${marker}`);
 }

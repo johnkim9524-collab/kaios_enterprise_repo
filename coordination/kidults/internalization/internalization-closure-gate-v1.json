@@ -1,0 +1,33 @@
+{
+  "contract_id":"KIDULTS_INTERNALIZATION_CLOSURE_GATE_V1",
+  "parent_issues":[1176,1171,1166,1153,945,951,952],
+  "required_inputs":[
+    "provider_internalization_matrix_v1",
+    "provider_operating_admission_gate_v1",
+    "provider_removal_baseline_v1",
+    "residual_external_dependency_ledger_v1",
+    "minimum_external_dependency_negotiation_contract_v1"
+  ],
+  "closure_rules": {
+    "internalize_now_remaining_must_equal":0,
+    "prohibited_dependency_remaining_must_equal":0,
+    "residual_external_must_be_allowed_class":true,
+    "provider_activation_must_not_be_required_for_core_operation":true,
+    "partner_negotiation_scope_must_map_to_residual_external_need":true,
+    "empirical_removal_required_after_provider_activation":true
+  },
+  "states":["STRUCTURAL_INTERNALIZATION_COMPLETE","HOLD_GAP_REMAINS","NO_GO_CORE_CAPTURE"],
+  "current_state":"STRUCTURAL_INTERNALIZATION_COMPLETE",
+  "truth_boundary": {
+    "active_provider_count":0,
+    "empirical_provider_off_proof":"NOT_APPLICABLE_UNTIL_ACTIVATION",
+    "external_fact_acquisition":"NOT_AUTHORIZED_BY_THIS_GATE",
+    "production":"HOLD"
+  },
+  "reopen_conditions":[
+    "new_provider_product_introduces_internalizable_dependency",
+    "provider_term_blocks_owned_core_or_legally_retainable_derived_intelligence",
+    "provider_removal_requires_downstream_rewrite",
+    "new_external_dependency_class_not_in_allowlist"
+  ]
+}

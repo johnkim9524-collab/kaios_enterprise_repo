@@ -8,6 +8,11 @@ on:
     paths:
       - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-global-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-downstream-binding-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs'
@@ -32,7 +37,7 @@ concurrency:
 jobs:
   global-any-site-hourly-pool:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -46,6 +51,11 @@ jobs:
         run: |
           node --check scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/merge-asi-common-crawl-into-global-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-downstream-binding-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs
@@ -78,8 +88,37 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs queue discovery-out
-      - name: Validate live discovery and fail-closed admission boundary
+      - name: Validate baseline live discovery and fail-closed admission boundary
         run: node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
+      - name: EXPAND — Common Crawl public-index same-domain candidates
+        run: |
+          node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-host-expansion-v1.json
+      - name: EXPAND — reject rights promotion before canonical merge
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-host-expansion-v1.json','utf8'));
+          if(x.candidates.length)x.candidates[0].rights_state='ALLOW';else x.rights_promoted=true;
+          fs.writeFileSync('/tmp/bad-common-crawl-rights.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/merge-asi-common-crawl-into-global-discovery-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/bad-common-crawl-rights.json /tmp/bad-common-crawl-merged.json; then exit 1; fi
+      - name: MERGE — bind Common Crawl into canonical Any-Site batch
+        run: |
+          node scripts/kidults/source-intelligence/merge-asi-common-crawl-into-global-discovery-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json discovery-out/global-low-risk-discovery.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs discovery-out/global-low-risk-discovery.json
+          node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
+      - name: MERGE — reject Common Crawl lane removal mutation
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery.json','utf8'));
+          x.lane_health=x.lane_health.filter(y=>y.lane_id!=='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION');
+          fs.writeFileSync('/tmp/bad-common-crawl-lane.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs /tmp/bad-common-crawl-lane.json; then exit 1; fi
       - name: GATE1 — classify ingress into Safe / Review / Hard Block pools
         run: |
           node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-gate1-safe-candidate-pool-v1.json
@@ -149,6 +188,8 @@ jobs:
         run: |
           node scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/previous-any-site-pool/asi-proactive-source-pool-v1.json /tmp/asi-proactive-source-pool-v1.json
           node scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs /tmp/asi-proactive-source-pool-v1.json
+      - name: VERIFY — Common Crawl candidates reached Gate1 and rolling pool
+        run: node scripts/kidults/source-intelligence/validate-asi-common-crawl-downstream-binding-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-gate1-safe-candidate-pool-v1.json /tmp/asi-proactive-source-pool-v1.json
       - name: Emit cycle receipt
         shell: bash
         run: |
@@ -160,7 +201,8 @@ jobs:
           const g3=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v1.json','utf8'));
           const a=JSON.parse(fs.readFileSync('/tmp/asi-admitted-metadata-pool-v1.json','utf8'));
           const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-v1.json','utf8'));
-          process.stdout.write(JSON.stringify({id:'kidults-asi-global-any-site-hourly-cycle-receipt-v1',status:'SHADOW_ANY_SITE_FULL_GATE_CHAIN_WITH_REVALIDATED_ADMISSION_COMPLETE',discovered_candidates:d.candidate_count,live_external_candidates:d.live_external_candidate_count,healthy_live_lanes:d.healthy_live_lanes,gate1_safe_candidates:g1.safe_candidate_count,gate1_review_required:g1.review_required_count,gate1_hard_blocked:g1.hard_block_count,gate2_verified_for_gate3:g2.verified_for_gate3_count,gate2_needs_clarification:g2.needs_clarification_count,gate2_stale_gate1:g2.stale_gate1_count,gate3_bounded_metadata_admitted:g3.admitted_count,gate3_external_approval_required:g3.external_approval_required_count,gate3_conditional_hold:g3.conditional_hold_count,active_admitted_metadata:a.active_count,stale_admission_revalidation:a.stale_revalidation_count,revoked_alias_blocked:a.revoked_block_count,rolling_discovery_pool_candidates:p.candidate_count,new_candidates:p.new_candidate_count,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          const cc=d.lane_health.find(x=>x.lane_id==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION')||{};
+          process.stdout.write(JSON.stringify({id:'kidults-asi-global-any-site-hourly-cycle-receipt-v1',status:'SHADOW_ANY_SITE_FULL_GATE_CHAIN_WITH_COMMON_CRAWL_AND_REVALIDATED_ADMISSION_COMPLETE',discovered_candidates:d.candidate_count,live_external_candidates:d.live_external_candidate_count,healthy_live_lanes:d.healthy_live_lanes,common_crawl_expansion_applied:d.common_crawl_host_expansion_applied,common_crawl_index_id:d.common_crawl_host_expansion_index_id,common_crawl_lane_status:cc.status||null,common_crawl_observed_candidates:d.common_crawl_host_expansion_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_host_expansion_new_candidate_count,common_crawl_deduplicated_candidates:d.common_crawl_host_expansion_deduplicated_candidate_count,gate1_safe_candidates:g1.safe_candidate_count,gate1_review_required:g1.review_required_count,gate1_hard_blocked:g1.hard_block_count,gate2_verified_for_gate3:g2.verified_for_gate3_count,gate2_needs_clarification:g2.needs_clarification_count,gate2_stale_gate1:g2.stale_gate1_count,gate3_bounded_metadata_admitted:g3.admitted_count,gate3_external_approval_required:g3.external_approval_required_count,gate3_conditional_hold:g3.conditional_hold_count,active_admitted_metadata:a.active_count,stale_admission_revalidation:a.stale_revalidation_count,revoked_alias_blocked:a.revoked_block_count,rolling_discovery_pool_candidates:p.candidate_count,new_candidates:p.new_candidate_count,provider_switchable_lineage:p.provider_switching_preserves_source_candidate_identity,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-global-any-site-hourly-cycle-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -172,12 +214,15 @@ jobs:
             /tmp/asi-gate2-independent-reverification-v1.json
             /tmp/asi-gate3-admission-runtime-v1.json
             /tmp/asi-admitted-metadata-pool-v1.json
+            /tmp/asi-common-crawl-host-expansion-v1.json
             /tmp/asi-global-any-site-hourly-cycle-receipt-v1.json
           retention-days: 90
           if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-global-any-site-hourly-cycle-v1
-          path: discovery-out/global-low-risk-discovery.json
+          path: |
+            discovery-out/global-low-risk-discovery.json
+            /tmp/asi-common-crawl-host-expansion-v1.json
           retention-days: 14
           if-no-files-found: error

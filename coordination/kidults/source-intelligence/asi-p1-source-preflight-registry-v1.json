@@ -1,0 +1,73 @@
+{
+  "id": "kidults-asi-p1-source-preflight-registry-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json",
+    "p0b_contract": "coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json",
+    "p0b_registry": "coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json",
+    "engine_alignment_registry": "coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json",
+    "builder": "scripts/kidults/source-intelligence/build-asi-p1-source-preflight-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-p1-source-preflight-v1.mjs",
+    "runtime_test": "services/kidults-autonomous-intelligence/scripts/asi-p1-source-preflight-runtime-test.mjs",
+    "workflow": ".github/workflows/kidults-asi-p1-source-preflight-v1.yml",
+    "human_readme": "docs/kidults/asi/asi-p1-source-preflight-v1.md"
+  },
+  "registered_outputs": [
+    "p1-source-classification-ledger-v1.json",
+    "p1-source-qualification-ledger-v1.json",
+    "p1-source-preflight-task-queue-v1.json",
+    "p1-gate1-source-safety-decisions-v1.json",
+    "p1-evidence-admission-candidate-register-v1.json",
+    "p1-preflight-action-queue-v1.json",
+    "p1-source-preflight-manifest-v1.json",
+    "p1-source-preflight-runtime-receipts-v1.json"
+  ],
+  "execution_chain": [
+    "P0B_SOURCE_CANDIDATE_REGISTRY",
+    "CANDIDATE_MISSION_GRAIN_COMPILATION",
+    "FOUR_CLASSIFICATION_FLEET_TASKS_PER_GRAIN",
+    "SEVEN_QUALIFICATION_FLEET_TASKS_PER_GRAIN",
+    "RUNTIME_ALIGNMENT_PREFLIGHT",
+    "GATE1_SOURCE_SAFETY_DECISION",
+    "EVIDENCE_ADMISSION_CANDIDATE_REGISTER",
+    "TARGETED_PREFLIGHT_ACTION_QUEUE",
+    "KPMO_RECEIPT_AND_ARTIFACT"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "52 * * * *",
+    "upstream_workflow": "KIDULTS ASI P0B Bounded Discovery Candidates v1",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "next_stage": {
+    "id": "P1B_BOUNDED_SOURCE_SAFETY_PREFLIGHT_EXECUTION",
+    "required_actions": [
+      "SOURCE_OWNER_AND_FACTUAL_ORIGIN_CLASSIFICATION",
+      "PURPOSE_SPECIFIC_RIGHTS_AND_TERMS_PREFLIGHT",
+      "ROBOTS_RATE_LIMIT_AND_ACCESS_PREFLIGHT",
+      "MARKET_SEMANTIC_AND_SOURCE_ROLE_VERIFICATION",
+      "REGIONAL_RELEVANCE_AND_LANGUAGE_VERIFICATION",
+      "SCHEMA_AND_IDENTIFIER_SURFACE_PREFLIGHT",
+      "INDEPENDENCE_AND_SOURCE_REMOVAL_CLUSTERING"
+    ]
+  },
+  "truth_boundary": {
+    "preliminary_classification_is_authoritative_owner_or_origin_fact": false,
+    "runtime_preflight_is_target_site_probe": false,
+    "gate1_hold_is_gate1_pass": false,
+    "evidence_admission_candidate_is_admitted_evidence": false,
+    "rights_unknown_is_allow": false,
+    "metadata_hint_is_market_semantic_pass": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}

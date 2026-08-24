@@ -1,0 +1,221 @@
+{
+  "id": "kidults-asi-intelligence-preparation-wave-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Convert the governed Global Source Mesh into a deterministic unknown registry, intelligence gap map, autonomous mission queue, provider-replacement plan, intelligence-ROI portfolio, cross-category hypotheses, portfolio-intelligence preparation, and self-calibration obligations without inventing evidence, rights, or market claims.",
+  "authoritative_inputs": {
+    "sourcing_direction": "coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json",
+    "engine_alignment": "coordination/kidults/source-intelligence/asi-engine-principle-alignment-registry-v2.json",
+    "global_source_mesh_contract": "coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json",
+    "global_source_mesh_builder": "scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs",
+    "scope_matrix": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json",
+    "verified_surface_baseline": "coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json"
+  },
+  "canonical_execution_order": [
+    "UNKNOWN_REGISTRY",
+    "INTELLIGENCE_GAP_ENGINE",
+    "AUTONOMOUS_MISSION_GENERATOR",
+    "PROVIDER_REPLACEABILITY",
+    "INTELLIGENCE_ROI",
+    "CROSS_CATEGORY_INTELLIGENCE",
+    "PORTFOLIO_INTELLIGENCE",
+    "SELF_CALIBRATION"
+  ],
+  "modules": [
+    {
+      "module_id": "UNKNOWN_REGISTRY",
+      "engine_bindings": [
+        "COVERAGE_TARGET_ENGINE",
+        "SCOPE_READINESS_ENGINE",
+        "COVERAGE_AND_BIAS_ENGINE",
+        "CONFIDENCE_AND_EXPLAINABILITY_ENGINE"
+      ],
+      "output": "unknown-registry-v1.json",
+      "required_behavior": "Represent every unresolved market cell explicitly; missing evidence is UNKNOWN and never ZERO."
+    },
+    {
+      "module_id": "INTELLIGENCE_GAP_ENGINE",
+      "engine_bindings": [
+        "VALUE_TO_DATA_REQUIREMENT_COMPILER",
+        "COVERAGE_TARGET_ENGINE",
+        "COVERAGE_AND_BIAS_ENGINE"
+      ],
+      "output": "intelligence-gap-map-v1.json",
+      "required_behavior": "Aggregate unknown debt across scope, region, evidence class, domain, and archetype while preserving exact cell lineage."
+    },
+    {
+      "module_id": "AUTONOMOUS_MISSION_GENERATOR",
+      "engine_bindings": [
+        "SOURCE_DISCOVERY_ENGINE",
+        "UTILITY_AND_VALUE_SCORING_ENGINE",
+        "ACQUISITION_PLANNER",
+        "SOURCE_POOL_EVOLUTION_ENGINE"
+      ],
+      "output": "autonomous-mission-queue-v1.json",
+      "required_behavior": "Generate bounded discovery-and-preflight missions from the highest decision-relevant unknown debt without routine manual orchestration."
+    },
+    {
+      "module_id": "PROVIDER_REPLACEABILITY",
+      "engine_bindings": [
+        "INDEPENDENCE_AND_REDUNDANCY_ENGINE",
+        "PROVIDER_DELTA_AND_COVERAGE_ENGINE",
+        "SOURCE_CONTRIBUTION_ENGINE",
+        "PROVIDER_ROI_ENGINE"
+      ],
+      "output": "provider-replaceability-plan-v1.json",
+      "required_behavior": "Require primary, independent fallback, and factual-origin resilience slots before any provider can become operationally critical."
+    },
+    {
+      "module_id": "INTELLIGENCE_ROI",
+      "engine_bindings": [
+        "IRREPLACEABLE_VALUE_ENGINE",
+        "UTILITY_AND_VALUE_SCORING_ENGINE",
+        "COST_AND_ROI_ENGINE",
+        "PROVIDER_ROI_ENGINE"
+      ],
+      "output": "intelligence-roi-portfolio-v1.json",
+      "required_behavior": "Rank only after four-principle hard floors and rights boundaries using expected decision-relevant unknown reduction per total cost and dependency."
+    },
+    {
+      "module_id": "CROSS_CATEGORY_INTELLIGENCE",
+      "engine_bindings": [
+        "CLUSTER_DISCOVERY_ENGINE",
+        "MARKET_GRAPH_ENGINE",
+        "OPPORTUNITY_ENGINE"
+      ],
+      "output": "cross-category-intelligence-map-v1.json",
+      "required_behavior": "Generate testable cross-domain hypotheses and evidence demands; hypotheses are never promoted to facts or market claims."
+    },
+    {
+      "module_id": "PORTFOLIO_INTELLIGENCE",
+      "engine_bindings": [
+        "INTELLIGENCE_PRODUCT_DESIGN_ENGINE",
+        "OBJECT_INTELLIGENCE_PASSPORT_ENGINE",
+        "VERTICAL_INTELLIGENCE_INDEX_ENGINE",
+        "KIDULT_500_ENGINE",
+        "KIDULT_100_ENGINE"
+      ],
+      "output": "portfolio-intelligence-map-v1.json",
+      "required_behavior": "Expose domain and portfolio-level coverage, unknown debt, concentration, and readiness without computing an unauthorized index."
+    },
+    {
+      "module_id": "SELF_CALIBRATION",
+      "engine_bindings": [
+        "CONFIDENCE_AND_EXPLAINABILITY_ENGINE",
+        "FUSION_CONFIDENCE_ENGINE",
+        "CORRECTION_AND_SUPERSESSION_ENGINE"
+      ],
+      "output": "self-calibration-plan-v1.json",
+      "required_behavior": "Bind every generated mission to a predicted information gain and a future evidence-backed realized-gain comparison; no observed result may exist without evidence."
+    }
+  ],
+  "unknown_state_model": [
+    "RIGHTS_UNKNOWN",
+    "EVIDENCE_MISSING",
+    "SOURCE_ORIGIN_UNKNOWN",
+    "FRESHNESS_UNKNOWN",
+    "REPRESENTATIVENESS_UNKNOWN",
+    "INDEPENDENCE_UNKNOWN",
+    "SEMANTIC_UNKNOWN",
+    "COVERAGE_UNKNOWN"
+  ],
+  "mission_policy": {
+    "normal_execution_mode": "BOUNDED_DISCOVERY_AND_PREFLIGHT_ONLY",
+    "top_evidence_classes": [
+      "CURRENT_SOLD_TRANSACTION",
+      "LIQUIDITY_TIME_TO_SALE_EXPOSURE"
+    ],
+    "required_market_cells": "ALL_32_SCOPES_X_3_REGIONS_X_TOP_2_EVIDENCE_CLASSES",
+    "expected_mission_count": 192,
+    "mission_requires_four_axis_floor": true,
+    "mission_requires_claim_ceiling": true,
+    "mission_can_create_collection_right": false,
+    "mission_can_create_evidence_admission": false,
+    "mission_can_create_market_claim": false
+  },
+  "provider_replaceability_policy": {
+    "provider_list_is_not_strategy": true,
+    "provider_required_for_core_operation": false,
+    "minimum_operational_slots_per_mission": 3,
+    "required_slots": [
+      "PRIMARY_CANDIDATE_LANE",
+      "INDEPENDENT_FALLBACK_LANE",
+      "FACTUAL_ORIGIN_REPLACEMENT_LANE"
+    ],
+    "single_provider_mandatory_bottleneck_allowed": false,
+    "single_factual_origin_global_truth_allowed": false,
+    "provider_direct_to_truth_index_or_projection_allowed": false
+  },
+  "roi_model": {
+    "name": "EXPECTED_DECISION_UNKNOWN_REDUCTION_PER_TOTAL_COST_AND_DEPENDENCY",
+    "hard_floor_before_ranking": true,
+    "formula": "EXPECTED_INTELLIGENCE_GAIN / (EXPECTED_COST * (1 + DEPENDENCY_RISK/5))",
+    "score_is_advisory_only": true,
+    "score_can_create_rights_admission_or_claim": false
+  },
+  "cross_category_policy": {
+    "minimum_distinct_domains_per_hypothesis": 2,
+    "group_dimensions": [
+      "REGION",
+      "EVIDENCE_CLASS"
+    ],
+    "hypothesis_state": "UNVERIFIED_EVIDENCE_DEMAND",
+    "correlation_is_not_causation": true,
+    "hypothesis_is_not_market_claim": true
+  },
+  "self_calibration_policy": {
+    "prediction_required": true,
+    "realized_result_requires_evidence": true,
+    "initial_realized_state": "WAITING_FOR_EVIDENCE",
+    "calibration_dimensions": [
+      "UNKNOWN_REDUCTION",
+      "GLOBAL_COVERAGE_GAIN",
+      "OWNED_VALUE_GAIN",
+      "COST_VARIANCE",
+      "SOURCE_REPLACEMENT_RESILIENCE",
+      "DECISION_UTILITY"
+    ],
+    "silent_prediction_rewrite_allowed": false
+  },
+  "required_outputs": [
+    "unknown-registry-v1.json",
+    "intelligence-gap-map-v1.json",
+    "autonomous-mission-queue-v1.json",
+    "provider-replaceability-plan-v1.json",
+    "intelligence-roi-portfolio-v1.json",
+    "cross-category-intelligence-map-v1.json",
+    "portfolio-intelligence-map-v1.json",
+    "self-calibration-plan-v1.json",
+    "asi-intelligence-preparation-manifest-v1.json"
+  ],
+  "hard_boundaries": [
+    "MISSING_IS_NOT_ZERO",
+    "DISCOVERY_IS_NOT_COLLECTION",
+    "COLLECTION_IS_NOT_ADMISSION",
+    "ADMISSION_IS_NOT_CLAIM",
+    "SOURCE_COUNT_IS_NOT_GLOBAL_COVERAGE",
+    "PROVIDER_COUNT_IS_NOT_FACTUAL_ORIGIN_INDEPENDENCE",
+    "HYPOTHESIS_IS_NOT_FACT",
+    "EXPECTED_GAIN_IS_NOT_REALIZED_GAIN",
+    "EXTERNAL_RAW_DATA_IS_NOT_KIDULTS_OWNED_MOAT",
+    "PRIORITY_SCORE_IS_NOT_PERMISSION"
+  ],
+  "truth_boundary": {
+    "creates_bounded_missions": true,
+    "executes_external_collection": false,
+    "creates_collection_right": false,
+    "admits_evidence": false,
+    "computes_market_index": false,
+    "creates_customer_claim": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}

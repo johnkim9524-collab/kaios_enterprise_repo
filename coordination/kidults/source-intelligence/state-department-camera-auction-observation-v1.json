@@ -1,0 +1,125 @@
+{
+  "id": "kidults-state-department-camera-auction-observation-v1",
+  "version": "1.0.0",
+  "state": "VERIFIED_PASS",
+  "as_of": "2026-08-24T00:30:12Z",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "observation_method": {
+    "mode": "BOUNDED_PUBLIC_PRIMARY_SOURCE_FACT_PROJECTION",
+    "capture_agent": "codex/root",
+    "network_requests": 1,
+    "authenticated": false,
+    "account_created": false,
+    "credential_used": false,
+    "bid_or_purchase_executed": false,
+    "raw_html_archived_or_republished": false,
+    "images_or_graphics_archived_or_republished": false
+  },
+  "source": {
+    "source_id": "us-state-department-online-auction",
+    "source_owner_id": "us-department-of-state",
+    "factual_origin_id": "us-department-of-state-online-auction",
+    "canonical_host": "online-auction.state.gov",
+    "source_url": "https://online-auction.state.gov/en-US/Auction/Lot/fdc79e90-95ac-452e-8f9b-ac91aede6e3d?auctionId=13251474-ac4c-49d5-b3dc-9c9b0cb181e3",
+    "owner_and_origin_state": "VERIFIED_OFFICIAL_GOVERNMENT_HOST_SAME_OWNER_AND_FACTUAL_ORIGIN"
+  },
+  "rights": {
+    "decision": "POLICY_AND_EVIDENCE_PREFLIGHT_PASS_ALLOW_FACTUAL_FIELDS_ONLY",
+    "independent_legal_review_complete": false,
+    "legal_conclusion_asserted": false,
+    "collect": "ALLOW",
+    "store": "ALLOW",
+    "transform": "ALLOW",
+    "display": "UNKNOWN",
+    "redistribute": "UNKNOWN",
+    "sell": "UNKNOWN",
+    "allowed_material": "NORMALIZED_FACTUAL_FIELDS_ONLY",
+    "evidence_refs": [
+      "https://www.state.gov/copyright-information",
+      "https://ceac.state.gov/ceacstattracker/Common/Copyright.aspx",
+      "https://travel.state.gov/content/travel/en/copyright-disclaimer.html"
+    ],
+    "review_due_at": "2026-09-23T00:30:12Z"
+  },
+  "source_projection": {
+    "source_schema_version": "state-department-online-auction-fact-projection-v1",
+    "auction_post": "Doha (Qatar)",
+    "auction_id": "13251474-ac4c-49d5-b3dc-9c9b0cb181e3",
+    "lot_uuid": "fdc79e90-95ac-452e-8f9b-ac91aede6e3d",
+    "lot_number": "158",
+    "auction_close_at": "2024-06-29T12:00:00Z",
+    "title": "NIKON CAMERA",
+    "condition": "Usable",
+    "object_identifiers": [
+      "Nikon D5600",
+      "Nikon D90"
+    ],
+    "camera_quantity": 2,
+    "lot_quantity": 1,
+    "terminal_page_state": "SOLD_FOR",
+    "bid_count": 101,
+    "terminal_display_amount": 2110,
+    "currency": "QAR",
+    "amount_page_label": "Current price",
+    "sale_mechanism": "AUCTION",
+    "description_sale_rule": "Sale will go to the highest bidder.",
+    "scope_id": "cameras_lenses",
+    "legacy_scope_id": "scope-cameras-lenses",
+    "domain_id": "technology_cameras",
+    "condition_source_asserted": true,
+    "source_url": "https://online-auction.state.gov/en-US/Auction/Lot/fdc79e90-95ac-452e-8f9b-ac91aede6e3d?auctionId=13251474-ac4c-49d5-b3dc-9c9b0cb181e3",
+    "observed_at": "2026-08-24T00:30:12Z"
+  },
+  "projection_sha256": "sha256:dcd433fa8d320a0e3e6a22c3425e72b70988815dfb5c69514517588e009f37b5",
+  "semantic_boundary": {
+    "admissible_evidence_class": "AUCTION_RESULT_REFERENCE",
+    "event_state": "SOLD",
+    "price_role": "TERMINAL_HIGHEST_BID_DISPLAY_AMOUNT_NOT_CONFIRMED_SETTLEMENT_OR_ALL_IN_REALIZED",
+    "verified_sold_event": false,
+    "hammer_price_confirmed": false,
+    "settlement_confirmed": false,
+    "buyer_premium_inclusion_known": false,
+    "current_price": false,
+    "liquidity_or_time_to_sale": false,
+    "collector_market_representativeness_verified": false
+  },
+  "excluded_capture": [
+    "PHOTOS",
+    "GRAPHICS",
+    "STATE_DEPARTMENT_SEAL_OR_INSIGNIA",
+    "RAW_HTML",
+    "FULL_DESCRIPTION_REPRODUCTION",
+    "BIDDER_IDENTITY",
+    "ACCOUNT_DATA",
+    "PAYMENT_DATA",
+    "BIDDER_BID_HISTORY"
+  ],
+  "evidence_refs": [
+    {
+      "ref_id": "official-lot-page",
+      "kind": "OTHER_AUTHORITATIVE_SOURCE",
+      "locator": "https://online-auction.state.gov/en-US/Auction/Lot/fdc79e90-95ac-452e-8f9b-ac91aede6e3d?auctionId=13251474-ac4c-49d5-b3dc-9c9b0cb181e3",
+      "observed_at": "2026-08-24T00:30:12Z"
+    },
+    {
+      "ref_id": "department-copyright-policy",
+      "kind": "OTHER_AUTHORITATIVE_SOURCE",
+      "locator": "https://www.state.gov/copyright-information",
+      "observed_at": "2026-08-24T00:30:12Z"
+    },
+    {
+      "ref_id": "department-copyright-policy-corroboration",
+      "kind": "OTHER_AUTHORITATIVE_SOURCE",
+      "locator": "https://ceac.state.gov/ceacstattracker/Common/Copyright.aspx",
+      "observed_at": "2026-08-24T00:30:12Z"
+    }
+  ],
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}

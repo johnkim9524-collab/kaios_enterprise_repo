@@ -1,0 +1,156 @@
+{
+  "id": "kidults-asi-autonomous-resolution-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Consume every current P1 preflight action into a deterministic dependency graph, evidence-bounded resolution disposition, priority schedule, Gate 1 re-evaluation, admission decision and learning receipt without fabricating rights, semantics, factual-origin independence, freshness, evidence admission or market claims.",
+  "input_contracts": {
+    "p0b_candidate_registry_id": "kidults-asi-p0b-source-candidate-registry-v1",
+    "p0b_binding_ledger_id": "kidults-asi-p0b-mission-candidate-binding-ledger-v1",
+    "p1_gate1_id": "kidults-asi-p1-gate1-source-safety-decisions-v1",
+    "p1_admission_candidate_id": "kidults-asi-p1-evidence-admission-candidate-register-v1",
+    "p1_action_queue_id": "kidults-asi-p1-preflight-action-queue-v1",
+    "p1_manifest_id": "kidults-asi-p1-source-preflight-manifest-v1",
+    "p2_graph_id": "kidults-owned-source-intelligence-graph-v2",
+    "p2_lineage_id": "kidults-owned-source-intelligence-lineage-v2"
+  },
+  "engines": [
+    {
+      "engine_id": "RIGHTS_RESOLUTION_ENGINE",
+      "scope": "Purpose-specific collect, store, derive, display and redistribution rights; policy, terms and license evidence.",
+      "positive_decision_requires": [
+        "EXPLICIT_PURPOSE_SPECIFIC_RIGHTS_EVIDENCE",
+        "SOURCE_IDENTITY_BOUND",
+        "EVIDENCE_REFERENCE",
+        "VALIDITY_OR_OBSERVATION_TIME"
+      ],
+      "metadata_hint_can_create_allow": false
+    },
+    {
+      "engine_id": "SEMANTIC_RESOLUTION_ENGINE",
+      "scope": "Listing, offer, bid, ask, reserve, auction, sold, transaction, exposure and liquidity semantics plus claim ceiling.",
+      "positive_decision_requires": [
+        "EXPLICIT_TERMINAL_EVENT_SEMANTICS",
+        "NO_LISTING_AS_SOLD",
+        "NO_ATTENTION_AS_DEMAND",
+        "NO_SCARCITY_AS_LIQUIDITY"
+      ],
+      "discovery_metadata_can_create_market_evidence": false
+    },
+    {
+      "engine_id": "FACTUAL_ORIGIN_RESOLUTION_ENGINE",
+      "scope": "Provider, host, publisher, upstream dataset and underlying factual-origin lineage and independence.",
+      "positive_decision_requires": [
+        "VERIFIED_OWNER_OR_PUBLISHER",
+        "VERIFIED_UPSTREAM_DATASET_LINEAGE",
+        "DISTINCT_FACTUAL_ORIGIN_EVIDENCE"
+      ],
+      "distinct_host_can_prove_independence": false
+    },
+    {
+      "engine_id": "EVIDENCE_ADMISSION_ENGINE",
+      "scope": "Conjunctive admission after rights, semantics, freshness, provenance, technical integrity and independence requirements pass.",
+      "all_material_gates_required": true,
+      "partial_or_composite_compensation_allowed": false
+    },
+    {
+      "engine_id": "ACTION_DEPENDENCY_GRAPH_ENGINE",
+      "scope": "Bind actions to candidates, missions, grains, Gate 1 decisions, admission candidates and prerequisite evidence demands."
+    },
+    {
+      "engine_id": "RESOLUTION_SCHEDULER",
+      "scope": "Rank actions after constitutional hard floors by impact, blocker criticality, reuse, expected unknown reduction, cost and dependency risk.",
+      "score_is_advisory_only": true,
+      "score_can_create_permission_or_admission": false
+    },
+    {
+      "engine_id": "RESOLUTION_LEARNING_ENGINE",
+      "scope": "Preserve pattern-level predictions, realized dispositions, evidence gaps and future policy-calibration obligations without silent rewrites.",
+      "realized_pass_requires_evidence": true,
+      "silent_rewrite_allowed": false
+    }
+  ],
+  "resolution_domains": [
+    "RIGHTS",
+    "SEMANTICS",
+    "FACTUAL_ORIGIN",
+    "FRESHNESS_PROVENANCE",
+    "TECHNICAL_ACCESS_SCHEMA",
+    "REGIONAL_RELEVANCE",
+    "OTHER"
+  ],
+  "governed_dispositions": [
+    "RESOLVED_DENY",
+    "RESOLVED_CURRENT_OBSERVATION_INSUFFICIENT",
+    "RESOLVED_DISCOVERY_METADATA_ONLY",
+    "BLOCKED_EXPLICIT_EVIDENCE_REQUIRED",
+    "BLOCKED_TARGET_PREFLIGHT_NOT_AUTHORIZED",
+    "REVIEW_REQUIRED_UNCLASSIFIED_ACTION"
+  ],
+  "execution_semantics": {
+    "action_evaluated_is_not_evidence_satisfied": true,
+    "action_dispositioned_is_not_gate1_pass": true,
+    "gate1_hold_can_become_pass_without_new_evidence": false,
+    "candidate_is_not_evidence": true,
+    "host_is_not_factual_origin": true,
+    "robots_is_not_license": true,
+    "terms_link_is_not_rights_pass": true,
+    "discovery_metadata_is_not_sold_transaction": true,
+    "expected_gain_is_not_realized_gain": true
+  },
+  "scheduler": {
+    "category_weight": {
+      "RIGHTS": 100,
+      "SEMANTICS": 95,
+      "FACTUAL_ORIGIN": 90,
+      "FRESHNESS_PROVENANCE": 80,
+      "TECHNICAL_ACCESS_SCHEMA": 75,
+      "REGIONAL_RELEVANCE": 70,
+      "OTHER": 50
+    },
+    "impact_weight": 10,
+    "candidate_reuse_weight": 5,
+    "batch_size": 96,
+    "target_host_egress_default": "HOLD"
+  },
+  "required_outputs": [
+    "action-dependency-graph-v1.json",
+    "rights-resolution-ledger-v1.json",
+    "semantic-resolution-ledger-v1.json",
+    "factual-origin-resolution-ledger-v1.json",
+    "freshness-provenance-resolution-ledger-v1.json",
+    "resolution-schedule-v1.json",
+    "resolution-learning-ledger-v1.json",
+    "gate1-resolution-ledger-v1.json",
+    "evidence-admission-resolution-ledger-v1.json",
+    "autonomous-resolution-manifest-v1.json"
+  ],
+  "hard_boundaries": [
+    "NO_RIGHTS_ALLOW_FROM_METADATA_HINT",
+    "NO_SOLD_OR_LIQUIDITY_EVIDENCE_FROM_DISCOVERY_METADATA",
+    "NO_FACTUAL_ORIGIN_INDEPENDENCE_FROM_DISTINCT_HOST",
+    "NO_GATE1_PASS_WITH_UNSATISFIED_MATERIAL_ACTION",
+    "NO_EVIDENCE_ADMISSION_WITHOUT_CONJUNCTIVE_PASS",
+    "NO_SNAPSHOT_CANDIDATE_OR_EVIDENCE_PACKAGE",
+    "NO_PROVIDER_DIRECT_TO_TRUTH_INDEX_OR_PROJECTION",
+    "NO_TARGET_HOST_EGRESS_WITHOUT_SEPARATE_ACTIVATION"
+  ],
+  "truth_boundary": {
+    "consumes_and_dispositions_actions": true,
+    "executes_target_host_egress": false,
+    "creates_collection_right": false,
+    "admits_market_evidence": false,
+    "creates_market_event": false,
+    "creates_snapshot_candidate": false,
+    "starts_track_b": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  }
+}

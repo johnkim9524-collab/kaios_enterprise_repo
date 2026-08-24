@@ -2,12 +2,13 @@
   "id": "portal-semantic-product-consumer-contract-v1",
   "record_type": "portal_projection_consumer_contract",
   "version": "1.0.0",
-  "status": "CANDIDATE_ON_CANONICAL_VALUE_CHAIN",
+  "status": "PORTAL_STATE_ONLY_SCHEMA_BOUND__API_EXPORT_UNBOUND_FAIL_CLOSED",
   "parent_mission": 348,
   "semantic_inputs": [
     "kidults-platform-definition-v1",
     "collectibles-universe-definition-v1",
-    "kidults-end-to-end-value-chain-contract-v1"
+    "kidults-end-to-end-value-chain-contract-v1",
+    "kidults-proof-product-data-contract-v1"
   ],
   "portal_role": "READ_ONLY_EXPERIENCE_CONSUMER",
   "required_projection_fields": [
@@ -25,6 +26,60 @@
     "provenance_references",
     "limitations"
   ],
+  "proof_product_binding": {
+    "contract": "../product/kidults-proof-product-data-contract-v1.json",
+    "schema": "../schemas/kidults-proof-product-projection-v1.schema.json",
+    "semantic_validator": "../../../scripts/kidults/portal/proof_product_projection_semantics_v1.py",
+    "executable_admission": "../../../apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js",
+    "control_plane_consumer": "../../../scripts/kidults/portal/execute-proof-product-consumer-v1.mjs",
+    "schema_only_validation_sufficient": false,
+    "semantic_validation_required_at": [
+      "PORTAL_RENDER",
+      "PUBLIC_API_RESPONSE",
+      "EXPORT"
+    ],
+    "trusted_clock_required": true,
+    "consumer_purpose_required": true,
+    "assessment_identity_must_match_lineage": true,
+    "rights_summary_must_match_purpose_decisions": true,
+    "receipt_must_bind": [
+      "projection_id",
+      "assessment_id",
+      "rankability_assessment_id",
+      "rights_state",
+      "freshness_state",
+      "valid_until",
+      "surface",
+      "purpose"
+    ],
+    "browser_clock_authoritative": false,
+    "default_release_authority": "HOLD",
+    "prior_value_retention_on_rejection": false,
+    "products": [
+      "OBJECT_PASSPORT",
+      "MARKET_PROJECTION_API",
+      "KIDULT_100_INDEX"
+    ],
+    "projection_only": true,
+    "closed_field_value_allowed": false,
+    "missing_to_zero": false,
+    "public_claims_authorized": false,
+    "runtime_schema_validator": "../../../apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js",
+    "schema_runtime_binding": true,
+    "actual_surface_bindings": {
+      "PORTAL_RENDER": "STATE_ONLY_FAIL_CLOSED",
+      "PUBLIC_API_RESPONSE": "NOT_IMPLEMENTED_HOLD",
+      "EXPORT": "NOT_IMPLEMENTED_HOLD"
+    },
+    "caller_asserted_clock_or_release_authority_accepted": false,
+    "public_fixture_validation_bypass": false,
+    "approved_release_capability_exposed": false,
+    "exact_nonpromotable_control_fixture_compatibility": "NO_PROJECTION_ONLY",
+    "nonpromotable_control_record_type": "kidults_non_promotable_control_projection",
+    "nonpromotable_control_schema_version": "1.0.0",
+    "control_fixture_content_policy": "DISCARD_ALL_INPUT_CONTENT_AND_RENDER_IMMUTABLE_STRUCTURAL_CATALOG_ONLY",
+    "unknown_or_legacy_record_type": "REJECT_INVALID"
+  },
   "experience_sections": [
     "KIDULTS_MARKET_LENS",
     "COLLECTIBLES_UNIVERSE",
@@ -42,9 +97,18 @@
     "PORTAL_SIDE_INDEX_RANKING",
     "RAW_PROVIDER_DATA",
     "MISSING_TO_ZERO",
+    "LOCAL_PROOF_PRODUCT_VALUE_OR_STATE",
+    "STALE_OR_RIGHTS_BLOCKED_VALUE_DISPLAY",
+    "INDEX_LEVEL_WITHOUT_PUBLICATION_GATE",
+    "SCHEMA_ONLY_PROOF_PRODUCT_ACCEPTANCE",
+    "UNTRUSTED_CLOCK_FRESHNESS_ACCEPTANCE",
+    "ASSESSMENT_ID_REBOUND",
+    "RIGHTS_SUMMARY_CONTRADICTION",
     "TOY_ONLY_BRAND_FRAMING",
     "UNQUALIFIED_PRODUCT_MARKET_CLAIM"
   ],
   "responsive_floor_px": 320,
+  "public": "HOLD",
+  "g5": "HOLD",
   "production": "HOLD"
 }

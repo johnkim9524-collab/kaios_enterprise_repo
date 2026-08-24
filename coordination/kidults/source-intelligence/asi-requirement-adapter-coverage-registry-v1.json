@@ -1,0 +1,77 @@
+{
+  "id": "kidults-asi-requirement-adapter-coverage-registry-v1",
+  "version": "1.0.0",
+  "status": "REGISTERED_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json",
+    "registry": "coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json",
+    "builder": "scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs",
+    "purpose_rights_preflight": "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+    "purpose_rights_gate": "scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs",
+    "registry_validator": "scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml",
+    "documentation": "docs/kidults/asi/asi-requirement-adapter-coverage-v1.md"
+  },
+  "input_artifact": "kidults-asi-autonomous-resolution-layer-v1",
+  "output_artifact": "kidults-asi-requirement-adapter-coverage-v1",
+  "implementation_state": {
+    "authoritative_requirement_grain": "AUTONOMOUS_RESOLUTION_MISSION_V1",
+    "requirements_accounted_for": 192,
+    "domain_evidence_families_retained": 16,
+    "registered_source_profiles": 16,
+    "implemented_source_adapters": 16,
+    "purpose_rights_clear_sources": 0,
+    "purpose_rights_preflight_hold_sources": 16,
+    "replacement_profiles_selected_after_rights_gate": 0,
+    "software_implemented_requirements": 39,
+    "context_only_requirements": 15,
+    "unmapped_requirements": 138,
+    "rights_schema_activation_hold_requirements": 192,
+    "unmerged_v2_ids_synthesized": 0,
+    "duplicate_sdk_or_runtime_introduced": 0,
+    "evidence_admitted": 0,
+    "market_events_created": 0
+  },
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "12 * * * *",
+    "upstream_workflows": [
+      "KIDULTS ASI Autonomous Resolution Layer v1",
+      "KIDULTS ASI Source Adapter Wave 4 v1"
+    ],
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "continuation": {
+    "software_gap_queue_output": "requirement-adapter-gap-queue-v1.json",
+    "next_stage": "SOURCE_SCOPE_AND_CLAIM_GAP_REMEDIATION_WITH_SEPARATE_EMPIRICAL_ACTIVATION_GATES",
+    "automatic_continuation_required": true
+  },
+  "truth_boundary": {
+    "software_lineage_only": true,
+    "artifact_must_be_successful_nonexpired_main_lineage": true,
+    "registered_claim_is_parser_coverage": false,
+    "context_only_is_parser_coverage": false,
+    "software_implemented_is_empirically_ready": false,
+    "live_source_request_executed": false,
+    "provider_contact_executed": false,
+    "rights_pass_created": false,
+    "source_adapter_activated": false,
+    "evidence_admitted": 0,
+    "market_events_created": 0,
+    "snapshot_candidates_created": 0,
+    "track_b_results_created": 0,
+    "projections_created": 0,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

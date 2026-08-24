@@ -1,0 +1,40 @@
+{
+  "id": "kidults-asi-snapshot-readiness-factory-registry-v2",
+  "version": "2.0.0",
+  "status": "ACTIVE_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P3",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json",
+    "builder": "scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs",
+    "registry_validator": "scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs",
+    "workflow": ".github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml",
+    "documentation": "docs/kidults/asi/asi-snapshot-readiness-factory-v2.md"
+  },
+  "input_artifacts": [
+    "kidults-asi-p0b-bounded-discovery-candidates-v1",
+    "kidults-asi-p1-source-preflight-v1",
+    "kidults-asi-owned-source-intelligence-graph-v2"
+  ],
+  "automatic_activation": {
+    "main_push": true,
+    "schedule": "7 * * * *",
+    "upstream_workflow": "KIDULTS ASI Owned Source Intelligence Graph v2",
+    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+  },
+  "release_semantics": {
+    "snapshot_candidate_generation": "FAIL_CLOSED_UNTIL_ALL_DIMENSIONS_PASS",
+    "evidence_package_generation": "FAIL_CLOSED_UNTIL_ADMITTED_EVIDENCE_EXISTS",
+    "track_b_start": "FAIL_CLOSED_UNTIL_EXACT_IMMUTABLE_PAIR_EXISTS",
+    "blocker_package_is_evidence_package": false
+  },
+  "public_release": "HOLD",
+  "production": "HOLD"
+}

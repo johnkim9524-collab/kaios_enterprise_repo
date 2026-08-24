@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+
+throw new Error('LEGACY_POSITIVE_QUALIFICATION_DISABLED: no Projection may be built from the quarantined Black Lotus reference seed');
 const e=JSON.parse(fs.readFileSync(process.argv[2]||'input/product-evidence-package.json','utf8'));
 const a=JSON.parse(fs.readFileSync(process.argv[3]||'input/track-b-assessment.json','utf8'));
 const outDir=process.argv[4]||'out/projection';

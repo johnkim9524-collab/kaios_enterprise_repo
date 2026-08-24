@@ -7,7 +7,10 @@ const structuralValidator = 'scripts/kidults/kpmo/validate-full-value-chain-redt
 const stageCoverageValidator = 'scripts/kidults/kpmo/validate-full-value-chain-stage-machine-coverage-v1.mjs';
 const criticalGateBindingValidator = 'scripts/kidults/kpmo/validate-full-value-chain-critical-gate-bindings-v1.mjs';
 const criticalWorkflowProvenanceValidators = [
-  'scripts/kidults/kpmo/validate-critical-workflow-provenance-v1.mjs'
+  'scripts/kidults/kpmo/validate-critical-workflow-provenance-v1.mjs',
+  'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs',
+  'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs',
+  'scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs'
 ];
 const repositoryMutationBoundaryValidators = [
   'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
@@ -17,15 +20,21 @@ const secretBoundaryValidators = [
   'scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs'
 ];
 const truthScopeValidators = [
-  'scripts/kidults/kpmo/validate-scoped-certification-truth-boundary-v1.mjs'
+  'scripts/kidults/kpmo/validate-scoped-certification-truth-boundary-v1.mjs',
+  'scripts/kidults/e2e/validate-black-lotus-legacy-quarantine-v1.mjs'
+];
+const trustRootMigrationRegressionValidators = [
+  'scripts/kidults/kpmo/validate-trusted-control-dependency-closure-v1.mjs'
 ];
 const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
   'scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-adversarial-fixtures-v1.mjs',
+  'scripts/kidults/audit/validate-pre-partner-adversarial-fixture-semantic-binding-v1.mjs',
   'scripts/kidults/audit/validate-rights-withdrawal-transitive-invalidation-v1.mjs',
   'scripts/kidults/audit/validate-destructive-lifecycle-recovery-monotonicity-v1.mjs',
+  'scripts/kidults/audit/validate-recovery-authority-anchor-v1.mjs',
   'scripts/kidults/audit/validate-destructive-canonical-suppression-v1.mjs'
 ];
 const rightsBoundaryValidators = [
@@ -47,6 +56,8 @@ const productionRecoveryValidators = [
 ];
 const downstreamBoundaryValidators = [
   'scripts/kidults/kpmo/validate-er-projection-workflow-provenance-v1.mjs',
+  'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
+  'scripts/kidults/portal/validate-server-projection-capability-v1.mjs',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
 const validators = [...new Set([
@@ -57,6 +68,7 @@ const validators = [...new Set([
   ...repositoryMutationBoundaryValidators,
   ...secretBoundaryValidators,
   ...truthScopeValidators,
+  ...trustRootMigrationRegressionValidators,
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
@@ -97,6 +109,8 @@ console.log(JSON.stringify({
   stages_machine_bound: Object.keys(orchestrator.stage_machine_coverage || {}).length,
   critical_workflow_provenance_machine_bound: true,
   critical_workflow_provenance_validators: criticalWorkflowProvenanceValidators.length,
+  a13_validation_supply_chain_machine_bound: true,
+  a13_validation_dependency_install_mode: 'NPM_CI_COMMITTED_LOCK',
   workflow_repository_mutation_boundary_machine_bound: true,
   workflow_repository_mutation_boundary_validators: repositoryMutationBoundaryValidators.length,
   pull_request_secret_boundary_machine_bound: true,
@@ -106,13 +120,19 @@ console.log(JSON.stringify({
   privileged_manual_secret_lane_issue: 974,
   scoped_certification_truth_boundary_machine_bound: true,
   scoped_certification_truth_boundary_validators: truthScopeValidators.length,
+  black_lotus_legacy_qualification_quarantined: true,
+  trust_root_migration_dependency_closure_regression_machine_bound: true,
+  trust_root_migration_dependency_closure_validators: trustRootMigrationRegressionValidators.length,
   pre_partner_intake_gate_machine_bound: true,
   pre_partner_certification_machine_bound: true,
   pre_partner_control_families: 12,
   pre_partner_required_controls_exactly_bound: true,
   pre_partner_control_removal_mutation_selftest: true,
+  pre_partner_adversarial_fixture_semantic_binding_machine_bound: true,
   pre_partner_transitive_invalidation_machine_bound: true,
   pre_partner_durable_destructive_replay_machine_bound: true,
+  pre_partner_recovery_authority_anchor_machine_bound: true,
+  pre_partner_recovery_authority_issue: 1068,
   pre_partner_rollback_revocation_resurrection_fail_closed: true,
   pre_partner_canonical_source_object_suppression_machine_bound: true,
   pre_partner_rekey_alias_reingestion_fail_closed: true,
@@ -131,6 +151,13 @@ console.log(JSON.stringify({
   production_automatic_rollback_executable_contract: true,
   er_projection_workflow_provenance_machine_bound: true,
   er_projection_workflow_provenance_validators: 1,
+  proof_product_consumer_runtime_machine_bound: true,
+  proof_product_consumer_schema_runtime_bound: true,
+  proof_product_consumer_unknown_discriminator_fail_closed: true,
+  server_projection_capability_cryptographic_core_machine_bound: true,
+  server_projection_capability_algorithm: 'Ed25519',
+  server_projection_capability_route_binding: 'NOT_IMPLEMENTED_HOLD',
+  proof_product_api_export_binding: 'NOT_IMPLEMENTED_HOLD',
   projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
