@@ -113,6 +113,19 @@ jobs:
           const failures=[];
           const results=[];
           const adversarialCaseNames=[];
+          const observeRuntimeErrors=(page,runtimeErrors)=>{
+            page.on('pageerror',error=>runtimeErrors.push(`PAGEERROR_${error.message}`));
+            page.on('console',message=>{
+              if(message.type()!=='error'||/favicon/i.test(message.text()))return;
+              const location=message.location?.()||{};
+              // The control server deliberately returns 503 from the signed
+              // Projection route before the browser falls back to the exact
+              // non-promotable fixture. The subsequent state assertions prove
+              // that this expected fail-closed response never unlocks content.
+              if(/\/api\/v1\/projection(?:$|\?)/.test(location.url||'')&&/503/.test(message.text()))return;
+              runtimeErrors.push(`CONSOLE_${message.text()}`);
+            });
+          };
           const screenshotDir='/tmp/kidults-r001-qa/screenshots';
           await fs.mkdir(screenshotDir,{recursive:true});
 
@@ -125,8 +138,7 @@ jobs:
               for(const route of routes){
                 const page=await context.newPage();
                 const runtimeErrors=[];
-                page.on('pageerror',error=>runtimeErrors.push(`PAGEERROR_${error.message}`));
-                page.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))runtimeErrors.push(`CONSOLE_${message.text()}`)});
+                observeRuntimeErrors(page,runtimeErrors);
                 const response=await page.goto(baseUrl+route,{waitUntil:'domcontentloaded',timeout:15000});
                 await page.waitForFunction(()=>Boolean(document.documentElement.dataset.state),null,{timeout:5000});
                 if(!response?.ok()){
@@ -225,12 +237,12 @@ jobs:
               });
               const page=await context.newPage();
               const runtimeErrors=[];
-              page.on('pageerror',error=>runtimeErrors.push(`PAGEERROR_${error.message}`));
-              page.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))runtimeErrors.push(`CONSOLE_${message.text()}`)});
+              observeRuntimeErrors(page,runtimeErrors);
               await page.goto('http://127.0.0.1:4174/portal-r001/index.html',{waitUntil:'domcontentloaded',timeout:15000});
               await page.waitForFunction(()=>Boolean(document.documentElement.dataset.state),null,{timeout:5000});
               await page.keyboard.press('Tab');
               await page.waitForTimeout(100);
+              await page.waitForFunction(()=>globalThis.__kidultsVitals?.lcp>0,null,{timeout:2000}).catch(()=>{});
               const obs=await page.evaluate(()=>({
                 state:document.documentElement.dataset.state,
                 objectTitle:document.querySelector('[data-object-title]')?.textContent,
