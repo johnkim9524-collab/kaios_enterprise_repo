@@ -6,7 +6,7 @@
   "confirmed_structural_risk": {
     "source": "hourly staging cron at minute 17",
     "previous_behavior": "scheduled recovery invoked full asiMeshTelemetry with repeated COUNT/GROUP BY scans across operating tables",
-    "remediation": "scheduled heartbeat is O(1) and full telemetry is authenticated on-demand only",
+    "remediation": "scheduled heartbeat is O(1), full telemetry is authenticated on-demand only, and recovery/hot paths receive composite indexes",
     "status": "CODE_FIXED_PENDING_CI_AND_DEPLOYMENT"
   },
   "required_controls": [
