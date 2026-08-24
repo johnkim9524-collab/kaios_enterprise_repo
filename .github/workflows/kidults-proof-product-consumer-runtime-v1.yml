@@ -10,6 +10,7 @@ on:
       - 'coordination/kidults/product/kidults-proof-product-data-contract-v1.json'
       - 'coordination/kidults/schemas/kidults-proof-product-projection-v1.schema.json'
       - 'scripts/kidults/portal/**proof-product*'
+      - 'scripts/kidults/portal/**projection-capability*'
       - 'scripts/kidults/portal/validate-portal-release-001.mjs'
       - 'tests/contracts/test_kidults_proof_product_*'
       - 'requirements.txt'
@@ -23,6 +24,7 @@ on:
       - 'coordination/kidults/product/kidults-proof-product-data-contract-v1.json'
       - 'coordination/kidults/schemas/kidults-proof-product-projection-v1.schema.json'
       - 'scripts/kidults/portal/**proof-product*'
+      - 'scripts/kidults/portal/**projection-capability*'
       - 'scripts/kidults/portal/validate-portal-release-001.mjs'
       - 'tests/contracts/test_kidults_proof_product_*'
       - 'requirements.txt'
@@ -57,6 +59,8 @@ jobs:
           mkdir -p artifacts/kidults/projection-consumer
           node scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs \
             | tee artifacts/kidults/projection-consumer/executable-consumer-receipt.json
+          node scripts/kidults/portal/validate-server-projection-capability-v1.mjs \
+            | tee artifacts/kidults/projection-consumer/server-capability-receipt.json
       - name: Revalidate Portal Release-001 binding
         run: node scripts/kidults/portal/validate-portal-release-001.mjs
       - name: Preserve exact-head fail-closed receipt
