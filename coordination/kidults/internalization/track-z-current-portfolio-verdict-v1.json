@@ -9,11 +9,11 @@
   "verdicts": [
     {"provider_id":"PSA","portfolio_priority":"TIER_1","track_z_verdict":"HOLD","decision":"REVISE","reason_codes":["WRITTEN_FIELD_PURPOSE_RIGHTS_PENDING","CREDENTIAL_AND_PRODUCT_SCOPE_UNVERIFIED"],"next_gate":"FIELD_BY_PURPOSE_RIGHTS_AND_PRODUCT_SPEC"},
     {"provider_id":"GEMRATE","portfolio_priority":"TIER_2","track_z_verdict":"HOLD","decision":"REVISE","reason_codes":["PARTIAL_WRITTEN_CONFIRMATION","POPULATION_AND_MAPPING_SCOPE_UNVERIFIED"],"next_gate":"FIELD_BY_PURPOSE_RIGHTS_AND_MAPPING_SPEC"},
-    {"provider_id":"CGC_CCG","portfolio_priority":"TIER_1_OR_FALLBACK_PENDING_PRODUCT_RIGHTS","track_z_verdict":"NO_GO","decision":"DROP","reason_codes":["NO_VERIFIABLE_PRODUCT_SPEC","PRICE_UNKNOWN","RIGHTS_AND_ELIGIBILITY_UNKNOWN"],"next_gate":"NONE_UNLESS_NEW_OFFICIAL_PRODUCT_OFFER"},
-    {"provider_id":"ALT_FNDATA","portfolio_priority":"TIER_1_MARKET_BACKBONE_CANDIDATE","track_z_verdict":"NO_GO","decision":"DROP","reason_codes":["NO_SUBSTANTIVE_PRODUCT_RESPONSE","PRICE_UNKNOWN","RIGHTS_AND_SCHEMA_UNKNOWN"],"next_gate":"NONE_UNLESS_NEW_OFFICIAL_PRODUCT_OFFER"},
+    {"provider_id":"CGC_CCG","portfolio_priority":"TIER_1_OR_FALLBACK_PENDING_PRODUCT_RIGHTS","track_z_verdict":"WAIT","decision":"WAIT_FOR_REPLY","reason_codes":["NO_VERIFIABLE_PRODUCT_SPEC_YET","PRICE_UNKNOWN","RIGHTS_AND_ELIGIBILITY_UNKNOWN"],"next_gate":"AWAIT_OFFICIAL_PRODUCT_SPEC_AND_COMMERCIAL_REPLY"},
+    {"provider_id":"ALT_FNDATA","portfolio_priority":"TIER_1_MARKET_BACKBONE_CANDIDATE","track_z_verdict":"WAIT","decision":"WAIT_FOR_REPLY","reason_codes":["NO_SUBSTANTIVE_PRODUCT_RESPONSE_YET","PRICE_UNKNOWN","RIGHTS_AND_SCHEMA_UNKNOWN"],"next_gate":"AWAIT_OFFICIAL_PRODUCT_AND_LICENSE_REPLY"},
     {"provider_id":"CLASSIC_COM","portfolio_priority":"TIER_1_VERTICAL_SPECIALIST","track_z_verdict":"HOLD","decision":"REVISE","reason_codes":["COMMERCIAL_LICENSE_VIABLE_NOT_CONFIRMED","CURRENT_SOLD_FIELD_AND_DERIVATION_SCOPE_UNVERIFIED"],"next_gate":"WRITTEN_LICENSE_AND_CURRENT_SOLD_SPEC"},
-    {"provider_id":"LIVEART","portfolio_priority":"VERTICAL_SPECIALIST","track_z_verdict":"NO_GO","decision":"DROP","reason_codes":["UNPRICED_PILOT_ONLY","RIGHTS_UNRESOLVED","NO_VERIFIABLE_PRODUCT_OFFER"],"next_gate":"NONE_UNLESS_NEW_OFFICIAL_PRODUCT_OFFER"},
-    {"provider_id":"HAGERTY","portfolio_priority":"SUPPLEMENTAL_OR_VERTICAL_SPECIALIST_PENDING_PRODUCT_REVIEW","track_z_verdict":"NO_GO","decision":"DROP","reason_codes":["NO_HUMAN_SUBSTANTIVE_REPLY","PRODUCT_UNKNOWN","PRICE_AND_RIGHTS_UNKNOWN"],"next_gate":"NONE_UNLESS_NEW_OFFICIAL_PRODUCT_OFFER"}
+    {"provider_id":"LIVEART","portfolio_priority":"VERTICAL_SPECIALIST","track_z_verdict":"WAIT","decision":"WAIT_FOR_REPLY","reason_codes":["UNPRICED_PILOT_ONLY","RIGHTS_UNRESOLVED","PRODUCT_OFFER_NOT_FINAL"],"next_gate":"AWAIT_OFFICIAL_PILOT_PRICE_AND_RIGHTS_REPLY"},
+    {"provider_id":"HAGERTY","portfolio_priority":"SUPPLEMENTAL_OR_VERTICAL_SPECIALIST_PENDING_PRODUCT_REVIEW","track_z_verdict":"WAIT","decision":"WAIT_FOR_REPLY","reason_codes":["NO_HUMAN_SUBSTANTIVE_REPLY_YET","PRODUCT_UNKNOWN","PRICE_AND_RIGHTS_UNKNOWN"],"next_gate":"AWAIT_PROVIDER_REPLY_BEFORE_FINAL_DECISION"}
   ],
   "product_assessments": [
     {
@@ -79,7 +79,7 @@
       "missing_scope": ["product_documentation", "field_schema", "population", "rights", "price", "eligibility"],
       "known_cost_usd": {"status": "UNKNOWN"},
       "rights_state": "PENDING",
-      "decision": "DROP",
+      "decision": "WAIT_FOR_REPLY",
       "reason": "A dealer-portal mention is not a product specification or commercial offer."
     },
     {
@@ -92,7 +92,7 @@
       "missing_scope": ["product", "schema", "coverage", "rights", "price", "pilot"],
       "known_cost_usd": {"status": "UNKNOWN"},
       "rights_state": "NO_SUBSTANTIVE_REPLY",
-      "decision": "DROP",
+      "decision": "WAIT_FOR_REPLY",
       "reason": "No product, price, or rights evidence to evaluate against KIDULTS requirements."
     },
     {
@@ -105,7 +105,7 @@
       "missing_scope": ["formal_product", "rights", "price", "retention", "derived_output_terms"],
       "known_cost_usd": {"status": "UNKNOWN"},
       "rights_state": "UNRESOLVED",
-      "decision": "DROP",
+      "decision": "WAIT_FOR_REPLY",
       "reason": "A proposed ~120-record pilot without price or rights cannot enter the active product shortlist."
     },
     {
@@ -118,11 +118,11 @@
       "missing_scope": ["product", "API_or_feed", "rights", "price", "pilot"],
       "known_cost_usd": {"status": "UNKNOWN"},
       "rights_state": "NO_HUMAN_SUBSTANTIVE_REPLY",
-      "decision": "DROP",
+      "decision": "WAIT_FOR_REPLY",
       "reason": "No product evidence exists; valuation methodology remains internalizable and cannot justify a provider contract."
     }
   ],
-  "portfolio_conclusion": "Only GemRate Developer Tier, PSA Premium API, and Classic.com Licensed Bundle 3 remain as conditional product candidates. PSA Enterprise is dropped pending scale proof; CGC_CCG, ALT_FNDATA, LiveArt and Hagerty are dropped because a verifiable product, price and rights scope are absent. No provider is eligible for activation, outbound contact, spend, credential use or data acquisition from this read-only review.",
+  "portfolio_conclusion": "Only GemRate Developer Tier, PSA Premium API, and Classic.com Licensed Bundle 3 remain as conditional product candidates. PSA Enterprise remains deferred pending scale proof; CGC_CCG, ALT_FNDATA, LiveArt and Hagerty remain in WAIT_FOR_REPLY because a verifiable product, price and rights scope are not yet available; final DROP is deferred until provider response. No provider is eligible for activation, outbound contact, spend, credential use or data acquisition from this read-only review.",
   "current_sold_activation_candidates": [],
   "kmpo_required_outputs": ["whole_value_chain_impact","cross_track_conflict_check","canonical_truth_check","approval_boundary_check","founder_report"],
   "production": "HOLD",
