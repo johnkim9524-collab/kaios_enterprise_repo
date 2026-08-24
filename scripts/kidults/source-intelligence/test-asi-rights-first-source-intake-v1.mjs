@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { classifyPurposeRights, RIGHTS_CLEAR, RIGHTS_HOLD } from './lib/source-purpose-rights-gate-v1.mjs';
 
@@ -206,31 +207,75 @@ badContext.rights_clear_source_pool.push(contextPackage);
 const badContextPath = write('bad-context.json', badContext);
 run([validator, badContextPath], false);
 
+const evidencePoolPath = process.env.RIGHTS_FIRST_POOL_OUT || actualOne;
+if (evidencePoolPath !== actualOne) fs.copyFileSync(actualOne, evidencePoolPath);
+const digestFile = file => `sha256:${crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')}`;
+const runUrl = process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+  ? `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+  : 'https://github.com/local/local/actions/runs/0';
+const commitUrl = process.env.GITHUB_REPOSITORY && process.env.GITHUB_SHA
+  ? `https://github.com/${process.env.GITHUB_REPOSITORY}/commit/${process.env.GITHUB_SHA}`
+  : `https://github.com/local/local/commit/${'0'.repeat(40)}`;
 const receipt = {
-  id: 'kidults-asi-rights-first-source-intake-test-v1',
+  id: 'kidults-asi-rights-first-source-intake-kpmo-receipt-v1',
   version: '1.0.0',
-  state: 'VERIFIED_PASS',
+  agent_id: 'github-actions/kidults-asi-rights-first-source-intake-v1',
   as_of: fixedNow,
-  facts: {
-    top16_preflighted: 16,
-    top16_rights_clear_current_sold: 0,
-    rights_clear_current_sold_references: actual.rights_clear_current_sold_reference_count,
-    context_only_excluded_from_current_sold: actual.context_only_excluded_from_current_sold_count,
-    adapter_development_backlog: actual.adapter_development_backlog_count,
-    synthetic_exact_current_sold_clear: positive.rights_clear_current_sold_source_count,
-    synthetic_collector_domain_backlog: positive.adapter_development_backlog_count,
-    mutation_cases_rejected: cases.length + 2
-  },
+  scope: 'Rights-first Source x Purpose discovery ranking, claim ceiling, preflight queues and adapter backlog gate',
+  state: 'VERIFIED_PASS',
+  facts: [
+    { statement: 'top16_sources_preflighted=16; top16_rights_clear_current_sold_sources=0', evidence_ref_ids: ['top16-preflight', 'source-pool'] },
+    { statement: `rights_clear_current_sold_reference_sources=${actual.rights_clear_current_sold_reference_count}; rights_clear_collector_current_sold_sources=${actual.rights_clear_current_sold_source_count}`, evidence_ref_ids: ['open-preflight', 'source-pool'] },
+    { statement: `context_only_sources_excluded_from_current_sold=${actual.context_only_excluded_from_current_sold_count}; adapter_development_backlog=${actual.adapter_development_backlog_count}`, evidence_ref_ids: ['source-pool'] },
+    { statement: `synthetic_exact_current_sold_clear=${positive.rights_clear_current_sold_source_count}; synthetic_collector_domain_backlog=${positive.adapter_development_backlog_count}`, evidence_ref_ids: ['workflow-run'] },
+    { statement: `mutation_cases_rejected=${cases.length + 2}`, evidence_ref_ids: ['workflow-run'] },
+    { statement: 'autonomous_effect=POSITIVE_RIGHTS_FIRST_FAIL_CLOSED', evidence_ref_ids: ['workflow-run', 'source-pool'] },
+    { statement: 'global_effect=RIGHTS_CLEAR_AND_LOW_FRICTION_FIRST_WITH_EXTERNAL_CASES_ROUTED', evidence_ref_ids: ['source-pool'] },
+    { statement: 'irreplaceable_value_effect=POSITIVE; transparency_effect=POSITIVE', evidence_ref_ids: ['top16-preflight', 'open-preflight', 'source-pool'] }
+  ],
+  evidence_refs: [
+    { ref_id: 'workflow-run', kind: 'WORKFLOW_RUN', locator: runUrl, observed_at: fixedNow },
+    { ref_id: 'commit', kind: 'COMMIT', locator: commitUrl, observed_at: fixedNow },
+    { ref_id: 'top16-preflight', kind: 'REGISTRY', locator: top16Path, observed_at: fixedNow, digest: digestFile(top16Path) },
+    { ref_id: 'open-preflight', kind: 'REGISTRY', locator: openPath, observed_at: fixedNow, digest: digestFile(openPath) },
+    { ref_id: 'source-pool', kind: 'ARTIFACT', locator: evidencePoolPath, observed_at: fixedNow, digest: digestFile(evidencePoolPath) }
+  ],
+  inferences: [],
+  uncertainties: [
+    'No Top16 source currently has an exact purpose-specific commercial reuse PASS for current sold acquisition.',
+    'Seattle sold fleet data is rights-clear only as a non-collector reference and does not establish collector-market price or liquidity.'
+  ],
+  blockers: [
+    {
+      blocked_action: 'Activate a Top16 current-sold source',
+      detected_at: fixedNow,
+      blocker: 'Purpose-specific permission, licensed feed, authorized account or credential and exact semantics remain unresolved.',
+      owner: 'Track Z',
+      unblock_condition: 'Track Z verifies the provider case, KPMO reports it, and Founder approves any external commitment before all technical gates pass.'
+    },
+    {
+      blocked_action: 'Create collector current-price or liquidity evidence',
+      detected_at: fixedNow,
+      blocker: 'Rights-clear collector current-sold and exposure-denominator evidence count is zero.',
+      owner: 'KPMO Source Intelligence',
+      unblock_condition: 'Admit exact-purpose collector current-sold evidence and separate exposure evidence from rights-cleared sources.'
+    }
+  ],
+  actions_executed: [
+    { action: 'Completed read-only official preflight for all 16 registered sources.', result: 'EXECUTED', evidence_ref_ids: ['top16-preflight'] },
+    { action: 'Ranked Source x Purpose packages by rights and commercial friction before purpose fit and demand.', result: 'EXECUTED', evidence_ref_ids: ['source-pool'] },
+    { action: 'Capped six context-only profiles before replacement mission ranking.', result: 'EXECUTED', evidence_ref_ids: ['commit', 'workflow-run'] },
+    { action: 'Rejected generic PASS, forged role, paid or credential bypass, stale rights, changed terms, fake evidence, unsupported purpose and protected-output mutations.', result: 'EXECUTED', evidence_ref_ids: ['workflow-run'] },
+    { action: 'Kept acquisition, provider contact, account, EULA, spend, Public, Production and G5 on HOLD.', result: 'EXECUTED', evidence_ref_ids: ['source-pool'] }
+  ],
+  next_action: 'Track Z should work the rights and commercial review queue in ranked order and return a portfolio verdict to KPMO issue 344; only exact PASS sources may enter adapter development.',
   authority_boundary: {
-    provider_contacted: false,
-    account_created: false,
-    eula_accepted: false,
-    spend_authorized: false,
-    live_records_acquired: false,
-    public_release: 'HOLD',
-    production: 'HOLD',
-    g5: 'HOLD'
-  }
+    within_authority: true,
+    protected_gates_touched: [],
+    notes: 'Internal reversible code, read-only official metadata and CI only; no provider contact, contract, EULA, account, credential, spend, live acquisition, Public, Production or G5 action.'
+  },
+  production: 'HOLD',
+  public_release: 'HOLD'
 };
 const receiptPath = process.env.RIGHTS_FIRST_RECEIPT_OUT || path.join(tmp, 'rights-first-receipt.json');
 fs.writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
