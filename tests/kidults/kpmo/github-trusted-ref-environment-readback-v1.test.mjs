@@ -87,7 +87,7 @@ function verifiedSnapshot(inventory = verifiedInventory()) {
   };
 }
 
-function receipt({ inventory = verifiedInventory(), snapshot = null, ref = 'refs/heads/main', sha = mainSha } = {}) {
+function receipt({ inventory = verifiedInventory(), snapshot = null, ref = 'refs/heads/main', sha = mainSha, authorizationMode = 'TEST_FIXTURE' } = {}) {
   return buildReadbackReceipt({
     contract,
     registry,
@@ -95,7 +95,7 @@ function receipt({ inventory = verifiedInventory(), snapshot = null, ref = 'refs
     snapshot: snapshot || verifiedSnapshot(inventory),
     sourceContext: { ref, sha },
     observedAt: '2026-08-23T00:00:00.000Z',
-    authorizationMode: 'TEST_FIXTURE'
+    authorizationMode
   });
 }
 
@@ -119,6 +119,35 @@ test('synthetic exact-main environment and secret-name metadata is a test-only p
   assert.equal(positive.settings_mutated, false);
   assert.equal(positive.secret_material_read, false);
   assert.equal(positive.secret_names_emitted, false);
+  assert.equal(positive.credential_activation, 'NONE');
+  assert.equal(positive.stored_repository_or_environment_secret_activated, false);
+  assert.equal(positive.provider_credential_activated, false);
+});
+
+test('authorization mode is bound to truthful ephemeral credential semantics', () => {
+  const githubToken = receipt({ authorizationMode: 'GITHUB_TOKEN_METADATA_READ' });
+  assert.equal(githubToken.credential_activation, 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ');
+  assert.equal(githubToken.stored_repository_or_environment_secret_activated, false);
+  assert.equal(githubToken.provider_credential_activated, false);
+  assert.deepEqual(validateReceipt(githubToken), []);
+
+  const understated = structuredClone(githubToken);
+  understated.credential_activation = 'NONE';
+  assert.ok(validateReceipt(understated).includes('credential_activation_semantics'));
+
+  const publicMetadata = receipt({ authorizationMode: 'PUBLIC_METADATA_ONLY' });
+  assert.equal(publicMetadata.credential_activation, 'NONE');
+  const overstated = structuredClone(publicMetadata);
+  overstated.credential_activation = 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ';
+  assert.ok(validateReceipt(overstated).includes('credential_activation_semantics'));
+
+  const storedSecretClaim = structuredClone(githubToken);
+  storedSecretClaim.stored_repository_or_environment_secret_activated = true;
+  assert.ok(validateReceipt(storedSecretClaim).includes('stored_secret_activation_boundary'));
+
+  const providerClaim = structuredClone(githubToken);
+  providerClaim.provider_credential_activated = true;
+  assert.ok(validateReceipt(providerClaim).includes('provider_credential_activation_boundary'));
 });
 
 test('selected non-main ref and stale main SHA are independently rejected', () => {

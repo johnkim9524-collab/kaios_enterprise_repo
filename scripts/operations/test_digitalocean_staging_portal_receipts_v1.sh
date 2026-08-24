@@ -5,7 +5,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DEPLOY_SCRIPT="$REPO_ROOT/scripts/operations/digitalocean_staging_portal_deploy_v1.sh"
 VALIDATOR="$REPO_ROOT/scripts/operations/validate_digitalocean_staging_portal_receipts_v1.py"
 PORTAL="$REPO_ROOT/apps/kidults-enterprise-staging/public/portal-r001"
-SOURCE_SHA="${GITHUB_SHA:-$(git -C "$REPO_ROOT" rev-parse HEAD)}"
+SOURCE_SHA="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'FAIL: local proof requires an exact source SHA' >&2; exit 1; }
 
 PROOF_ROOT="$(mktemp -d)"
@@ -22,6 +22,76 @@ LOCKED_RELEASE_ID="portal-r001-${SOURCE_SHA:0:12}-localhost-locked"
 NO_TARGET_RELEASE_ID="portal-r001-${SOURCE_SHA:0:12}-localhost-no-target"
 TAMPER_RELEASE_ID="portal-r001-${SOURCE_SHA:0:12}-localhost-target-tamper"
 NEGATIVE_CASES=0
+TEST_REPOSITORY="${GITHUB_REPOSITORY:-johnkim9524-collab/kaios_enterprise_repo}"
+TEST_WORKFLOW_NAME="${GITHUB_WORKFLOW:-KIDULTS DigitalOcean STAGING Portal Receipt Contract}"
+TEST_SOURCE_REF="${GITHUB_REF:-refs/heads/local-contract-proof}"
+if [[ -n "${GITHUB_HEAD_REF:-}" ]]; then TEST_SOURCE_REF="refs/heads/$GITHUB_HEAD_REF"; fi
+TEST_WORKFLOW_REF="${GITHUB_WORKFLOW_REF:-$TEST_REPOSITORY/.github/workflows/digitalocean-staging-portal-receipt-contract.yml@$TEST_SOURCE_REF}"
+TEST_WORKFLOW_SHA="${GITHUB_WORKFLOW_SHA:-$SOURCE_SHA}"
+TEST_EVENT_NAME="${GITHUB_EVENT_NAME:-LOCALHOST_TEST}"
+TEST_JOB_NAME="${GITHUB_JOB:-validate-localhost-receipts}"
+LOCAL_IDENTITY_ARGS=(
+  --expected-repository "$TEST_REPOSITORY"
+  --expected-workflow-name "$TEST_WORKFLOW_NAME"
+  --expected-workflow-ref "$TEST_WORKFLOW_REF"
+  --expected-workflow-sha "$TEST_WORKFLOW_SHA"
+  --expected-source-ref "$TEST_SOURCE_REF"
+  --expected-event-name "$TEST_EVENT_NAME"
+  --expected-job-name "$TEST_JOB_NAME"
+)
+
+write_runner_execution() {
+  local bundle="$1"
+  local deployment_id="$2"
+  local run_id="$3"
+  local exit_code="$4"
+  local evidence_class="$5"
+  python - "$bundle/runner-execution.json" "$deployment_id" "$run_id" "$exit_code" "$evidence_class"     "$SOURCE_SHA" "$TEST_REPOSITORY" "$TEST_WORKFLOW_NAME" "$TEST_WORKFLOW_REF" "$TEST_WORKFLOW_SHA"     "$TEST_SOURCE_REF" "$TEST_EVENT_NAME" "$TEST_JOB_NAME" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+(
+    output,
+    deployment_id,
+    run_id,
+    exit_code,
+    evidence_class,
+    source_sha,
+    repository,
+    workflow_name,
+    workflow_ref,
+    workflow_sha,
+    source_ref,
+    event_name,
+    job_name,
+) = sys.argv[1:]
+payload = {
+    "id": "kidults-digitalocean-staging-portal-runner-execution-v1",
+    "receipt_type": "GITHUB_RUNNER_EXECUTION",
+    "state": "CAPTURED_NOT_ATTESTED",
+    "repository": repository,
+    "workflow_name": workflow_name,
+    "workflow_ref": workflow_ref,
+    "workflow_sha": workflow_sha,
+    "source_ref": source_ref,
+    "event_name": event_name,
+    "job_name": job_name,
+    "deployment_id": deployment_id,
+    "source_commit_sha": source_sha,
+    "workflow_run_id": run_id,
+    "workflow_run_attempt": 1,
+    "remote_deploy_exit_code": int(exit_code),
+    "evidence_class": evidence_class,
+    "collected_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "successful_workflow_attested": False,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD",
+}
+Path(output).write_text(json.dumps(payload, indent=2) + "\n")
+PY
+}
 
 cleanup() {
   local pid=""
@@ -150,6 +220,7 @@ env "${COMMON_ENV[@]}" bash "$DEPLOY_SCRIPT" \
 
 SUCCESS_BUNDLE="$PROOF_HOME/kidults-runtime/audit/portal-r001-deployments/$SUCCESS_RELEASE_ID"
 "$REAL_CURL" -fsS http://127.0.0.1:4173/index.html > "$SUCCESS_BUNDLE/index.html"
+write_runner_execution "$SUCCESS_BUNDLE" "$SUCCESS_RELEASE_ID" "$SUCCESS_RUN_ID" 0 LOCALHOST_CONTRACT_PROOF
 python "$VALIDATOR" \
   --artifact-dir "$SUCCESS_BUNDLE" \
   --expected-outcome DEPLOYED \
@@ -157,10 +228,22 @@ python "$VALIDATOR" \
   --expected-source-sha "$SOURCE_SHA" \
   --expected-run-id "$SUCCESS_RUN_ID" \
   --expected-run-attempt 1 \
+  "${LOCAL_IDENTITY_ARGS[@]}" \
   --expected-evidence-class LOCALHOST_CONTRACT_PROOF \
   --require-rollback-target \
   --output "$SUCCESS_BUNDLE/receipt-validation.json" \
   > "$PROOF_ROOT/success-validation.log"
+python - "$SUCCESS_BUNDLE/receipt-validation.json" <<'PY'
+import json
+import sys
+receipt=json.loads(open(sys.argv[1]).read())
+assert receipt["runner_execution_verified"] is True
+assert receipt["successful_workflow_attested"] is False
+assert receipt["remote_exit_state"] == "NOT_ELIGIBLE"
+assert receipt["remote_exit_candidate"] is False
+assert receipt["issue_921_remote_exit_eligible"] is False
+assert any(item["name"] == "runner-execution.json" for item in receipt["validated_inputs"])
+PY
 
 reject_mutation() {
   local name="$1"
@@ -173,6 +256,7 @@ reject_mutation() {
     --expected-source-sha "$SOURCE_SHA" \
     --expected-run-id "$SUCCESS_RUN_ID" \
     --expected-run-attempt 1 \
+    "${LOCAL_IDENTITY_ARGS[@]}" \
     --expected-evidence-class LOCALHOST_CONTRACT_PROOF \
     --require-rollback-target "$@" \
     > "$PROOF_ROOT/$name.stdout" 2> "$PROOF_ROOT/$name.stderr"; then
@@ -181,6 +265,38 @@ reject_mutation() {
   fi
   NEGATIVE_CASES=$((NEGATIVE_CASES + 1))
 }
+
+MISSING_RUNNER="$PROOF_ROOT/missing-runner-execution"
+cp -R "$SUCCESS_BUNDLE" "$MISSING_RUNNER"
+rm "$MISSING_RUNNER/runner-execution.json"
+reject_mutation missing-runner-execution "$MISSING_RUNNER"
+
+MUTATED_RUNNER_SHA="$PROOF_ROOT/mutated-runner-workflow-sha"
+cp -R "$SUCCESS_BUNDLE" "$MUTATED_RUNNER_SHA"
+python - "$MUTATED_RUNNER_SHA/runner-execution.json" <<'PY'
+import json,sys
+from pathlib import Path
+p=Path(sys.argv[1]);v=json.loads(p.read_text());v["workflow_sha"]="0"*40;p.write_text(json.dumps(v,indent=2)+"\n")
+PY
+reject_mutation runner-workflow-sha "$MUTATED_RUNNER_SHA"
+
+MUTATED_RUNNER_REF="$PROOF_ROOT/mutated-runner-workflow-ref"
+cp -R "$SUCCESS_BUNDLE" "$MUTATED_RUNNER_REF"
+python - "$MUTATED_RUNNER_REF/runner-execution.json" <<'PY'
+import json,sys
+from pathlib import Path
+p=Path(sys.argv[1]);v=json.loads(p.read_text());v["workflow_ref"]="attacker/replaced.yml@refs/heads/main";p.write_text(json.dumps(v,indent=2)+"\n")
+PY
+reject_mutation runner-workflow-ref "$MUTATED_RUNNER_REF"
+
+MUTATED_RUNNER_EXIT="$PROOF_ROOT/mutated-runner-exit-code"
+cp -R "$SUCCESS_BUNDLE" "$MUTATED_RUNNER_EXIT"
+python - "$MUTATED_RUNNER_EXIT/runner-execution.json" <<'PY'
+import json,sys
+from pathlib import Path
+p=Path(sys.argv[1]);v=json.loads(p.read_text());v["remote_deploy_exit_code"]=7;p.write_text(json.dumps(v,indent=2)+"\n")
+PY
+reject_mutation runner-exit-code "$MUTATED_RUNNER_EXIT"
 
 MUTATED_SHA="$PROOF_ROOT/mutated-source-sha"
 cp -R "$SUCCESS_BUNDLE" "$MUTATED_SHA"
@@ -213,6 +329,7 @@ if python "$VALIDATOR" \
   --expected-source-sha "$SOURCE_SHA" \
   --expected-run-id "$SUCCESS_RUN_ID" \
   --expected-run-attempt 1 \
+  "${LOCAL_IDENTITY_ARGS[@]}" \
   --expected-evidence-class REMOTE_STAGING \
   --require-rollback-target \
   > "$PROOF_ROOT/evidence-class.stdout" 2> "$PROOF_ROOT/evidence-class.stderr"; then
@@ -221,6 +338,80 @@ if python "$VALIDATOR" \
 fi
 NEGATIVE_CASES=$((NEGATIVE_CASES + 1))
 
+REMOTE_CANDIDATE="$PROOF_ROOT/remote-exit-candidate"
+cp -R "$SUCCESS_BUNDLE" "$REMOTE_CANDIDATE"
+REMOTE_WORKFLOW_NAME="KIDULTS DigitalOcean STAGING Portal Deploy"
+REMOTE_SOURCE_REF="refs/heads/main"
+REMOTE_WORKFLOW_REF="johnkim9524-collab/kaios_enterprise_repo/.github/workflows/digitalocean-staging-portal-deploy.yml@$REMOTE_SOURCE_REF"
+python - "$REMOTE_CANDIDATE" "$SOURCE_SHA" "$REMOTE_WORKFLOW_NAME" "$REMOTE_WORKFLOW_REF" <<'PY'
+import json
+import sys
+from pathlib import Path
+bundle=Path(sys.argv[1]);source_sha,workflow_name,workflow_ref=sys.argv[2:]
+release_root="/home/kidults-staging/kidults-runtime/app/portal-r001-releases"
+candidate=f"{release_root}/portal-r001-candidate"
+previous=f"{release_root}/portal-r001-previous"
+for name in ("deploy-receipt.json","health-receipt.json","rollback-receipt.json"):
+    path=bundle/name
+    value=json.loads(path.read_text())
+    value["evidence_class"]="REMOTE_STAGING"
+    value["remote_target_observed"]=True
+    path.write_text(json.dumps(value,indent=2)+"\n")
+deploy_path=bundle/"deploy-receipt.json"
+deploy=json.loads(deploy_path.read_text())
+deploy["state"]="DEPLOYED_VERIFIED"
+deploy["release_path"]=candidate
+deploy["previous_release"]=previous
+deploy_path.write_text(json.dumps(deploy,indent=2)+"\n")
+rollback_path=bundle/"rollback-receipt.json"
+rollback=json.loads(rollback_path.read_text())
+rollback["failed_release"]=candidate
+rollback["rollback_target"]=previous
+rollback_path.write_text(json.dumps(rollback,indent=2)+"\n")
+runner_path=bundle/"runner-execution.json"
+runner=json.loads(runner_path.read_text())
+runner.update({
+    "repository":"johnkim9524-collab/kaios_enterprise_repo",
+    "workflow_name":workflow_name,
+    "workflow_ref":workflow_ref,
+    "workflow_sha":source_sha,
+    "source_ref":"refs/heads/main",
+    "event_name":"workflow_dispatch",
+    "job_name":"deploy",
+    "evidence_class":"REMOTE_STAGING",
+})
+runner_path.write_text(json.dumps(runner,indent=2)+"\n")
+PY
+python "$VALIDATOR" \
+  --artifact-dir "$REMOTE_CANDIDATE" \
+  --expected-outcome DEPLOYED \
+  --expected-deployment-id "$SUCCESS_RELEASE_ID" \
+  --expected-source-sha "$SOURCE_SHA" \
+  --expected-run-id "$SUCCESS_RUN_ID" \
+  --expected-run-attempt 1 \
+  --expected-repository johnkim9524-collab/kaios_enterprise_repo \
+  --expected-workflow-name "$REMOTE_WORKFLOW_NAME" \
+  --expected-workflow-ref "$REMOTE_WORKFLOW_REF" \
+  --expected-workflow-sha "$SOURCE_SHA" \
+  --expected-source-ref "$REMOTE_SOURCE_REF" \
+  --expected-event-name workflow_dispatch \
+  --expected-job-name deploy \
+  --expected-evidence-class REMOTE_STAGING \
+  --require-rollback-target \
+  --output "$REMOTE_CANDIDATE/receipt-validation.json" \
+  > "$PROOF_ROOT/remote-candidate-validation.log"
+python - "$REMOTE_CANDIDATE/receipt-validation.json" <<'PY'
+import json
+import sys
+receipt=json.loads(open(sys.argv[1]).read())
+assert receipt["runner_execution_verified"] is True
+assert receipt["successful_workflow_attested"] is False
+assert receipt["remote_exit_state"] == "REMOTE_EXIT_CANDIDATE"
+assert receipt["remote_exit_candidate"] is True
+assert receipt["issue_921_remote_exit_eligible"] is False
+assert receipt["issue_921_remote_exit_blocker"] == "SUCCESSFUL_WORKFLOW_ATTESTATION_REQUIRED"
+PY
+
 if python "$VALIDATOR" \
   --artifact-dir "$SUCCESS_BUNDLE" \
   --expected-outcome DEPLOYED \
@@ -228,6 +419,7 @@ if python "$VALIDATOR" \
   --expected-source-sha "$SOURCE_SHA" \
   --expected-run-id "$SUCCESS_RUN_ID" \
   --expected-run-attempt 1 \
+  "${LOCAL_IDENTITY_ARGS[@]}" \
   --expected-evidence-class LOCALHOST_CONTRACT_PROOF \
   --require-rollback-target \
   > "$PROOF_ROOT/stale-execution.stdout" 2> "$PROOF_ROOT/stale-execution.stderr"; then
@@ -251,6 +443,7 @@ set -e
 
 ROLLBACK_BUNDLE="$PROOF_HOME/kidults-runtime/audit/portal-r001-deployments/$FAILED_RELEASE_ID"
 "$REAL_CURL" -fsS http://127.0.0.1:4173/index.html > "$ROLLBACK_BUNDLE/rollback-index.html"
+write_runner_execution "$ROLLBACK_BUNDLE" "$FAILED_RELEASE_ID" "$ROLLBACK_RUN_ID" "$ROLLBACK_TRIGGER_EXIT_CODE" LOCALHOST_CONTRACT_PROOF
 python "$VALIDATOR" \
   --artifact-dir "$ROLLBACK_BUNDLE" \
   --expected-outcome ROLLED_BACK \
@@ -258,6 +451,7 @@ python "$VALIDATOR" \
   --expected-source-sha "$SOURCE_SHA" \
   --expected-run-id "$ROLLBACK_RUN_ID" \
   --expected-run-attempt 1 \
+  "${LOCAL_IDENTITY_ARGS[@]}" \
   --expected-evidence-class LOCALHOST_CONTRACT_PROOF \
   --output "$ROLLBACK_BUNDLE/receipt-validation.json" \
   > "$PROOF_ROOT/rollback-validation.log"
@@ -272,6 +466,7 @@ if python "$VALIDATOR" \
   --expected-source-sha "$SOURCE_SHA" \
   --expected-run-id "$ROLLBACK_RUN_ID" \
   --expected-run-attempt 1 \
+  "${LOCAL_IDENTITY_ARGS[@]}" \
   --expected-evidence-class LOCALHOST_CONTRACT_PROOF \
   > "$PROOF_ROOT/rollback-body.stdout" 2> "$PROOF_ROOT/rollback-body.stderr"; then
   echo 'FAIL: tampered rollback body was accepted' >&2
@@ -327,6 +522,8 @@ print(json.dumps({
   'concurrent_deployment_lock_rejected':True,
   'missing_rollback_target_rejected_before_cutover':True,
   'rollback_target_digest_mutation_rejected':True,
+  'runner_execution_receipt_bound':True,
+  'remote_exit_candidate_only_verified':True,
   'negative_cases_rejected':int(negative_cases),
   'evidence_class':'LOCALHOST_CONTRACT_PROOF',
   'issue_921_remote_exit_eligible':False,

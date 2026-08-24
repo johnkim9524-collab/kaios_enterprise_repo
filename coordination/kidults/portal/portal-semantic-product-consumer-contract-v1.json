@@ -72,8 +72,12 @@
       "EXPORT": "NOT_IMPLEMENTED_HOLD"
     },
     "caller_asserted_clock_or_release_authority_accepted": false,
+    "public_fixture_validation_bypass": false,
     "approved_release_capability_exposed": false,
     "exact_nonpromotable_control_fixture_compatibility": "NO_PROJECTION_ONLY",
+    "nonpromotable_control_record_type": "kidults_non_promotable_control_projection",
+    "nonpromotable_control_schema_version": "1.0.0",
+    "control_fixture_content_policy": "DISCARD_ALL_INPUT_CONTENT_AND_RENDER_IMMUTABLE_STRUCTURAL_CATALOG_ONLY",
     "unknown_or_legacy_record_type": "REJECT_INVALID"
   },
   "experience_sections": [

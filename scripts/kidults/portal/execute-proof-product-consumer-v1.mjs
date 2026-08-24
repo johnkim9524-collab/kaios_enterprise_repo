@@ -25,12 +25,11 @@ function parseArgs(argv){
 }
 
 export function consumeProofProductProjection(projection,{surface}={}){
-  if(!Object.hasOwn(SURFACES,surface))throw new Error(`unsupported surface: ${surface}`);
   // No API/export release route or signed control-plane capability exists yet.
   // Caller-supplied clock/release strings are intentionally ignored.
   const admission=admitProofProductProjection(projection,{
     surface,
-    purpose:SURFACES[surface],
+    purpose:SURFACES[surface]||'UNKNOWN',
     trustedNow:null,
     clockAuthority:'NO_BOUND_CONTROL_PLANE',
     releaseAuthority:'HOLD'

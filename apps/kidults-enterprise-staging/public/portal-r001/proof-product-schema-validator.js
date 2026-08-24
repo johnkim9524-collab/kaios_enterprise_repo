@@ -4,7 +4,23 @@ export const proofProductProjectionSchema={"$schema":"https://json-schema.org/dr
 
 const plainObject=value=>Boolean(value)&&typeof value==='object'&&!Array.isArray(value);
 const deepEqual=(left,right)=>JSON.stringify(left)===JSON.stringify(right);
-const dateTime=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const dateTime=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
+export function validProofProductDateTime(value){
+  if(typeof value!=='string')return false;
+  const match=dateTime.exec(value);
+  if(!match)return false;
+  const [year,month,day,hour,minute,second]=match.slice(1,7).map(Number);
+  const leap=year%4===0&&(year%100!==0||year%400===0);
+  const days=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
+  if(month<1||month>12||day<1||day>days[month-1])return false;
+  if(hour>23||minute>59||second>59)return false;
+  if(match[7]!=='Z'){
+    const [offsetHour,offsetMinute]=match[7].slice(1).split(':').map(Number);
+    if(offsetHour>23||offsetMinute>59)return false;
+  }
+  return Number.isFinite(Date.parse(value));
+}
 
 function typeMatches(value,type){
   if(Array.isArray(type))return type.some(candidate=>typeMatches(value,candidate));
@@ -45,7 +61,7 @@ function validateNode(value,node,root,path,errors){
   if(typeof value==='string'){
     if(Number.isInteger(node.minLength)&&value.length<node.minLength)errors.push(`${path}:MIN_LENGTH`);
     if(typeof node.pattern==='string'&&!new RegExp(node.pattern).test(value))errors.push(`${path}:PATTERN`);
-    if(node.format==='date-time'&&(!dateTime.test(value)||!Number.isFinite(Date.parse(value))))errors.push(`${path}:FORMAT_DATE_TIME`);
+    if(node.format==='date-time'&&!validProofProductDateTime(value))errors.push(`${path}:FORMAT_DATE_TIME`);
   }
   if(typeof value==='number'&&Number.isFinite(value)){
     if(typeof node.minimum==='number'&&value<node.minimum)errors.push(`${path}:MINIMUM`);

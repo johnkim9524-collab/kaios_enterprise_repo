@@ -79,22 +79,33 @@ need('"production_touch": False' in script,'rollback/deploy receipt production t
 need('"raw_provider_ingestion": False' in script,'rollback/deploy receipt provider ingestion false')
 need('"g5": "HOLD"' in script,'rollback/deploy receipt g5 hold')
 need(receipt_contract['id']=='kidults-digitalocean-staging-portal-receipt-contract-v1','receipt contract id')
-need(receipt_contract['version']=='1.1.0','receipt contract version')
+need(receipt_contract['version']=='1.2.0','receipt contract version')
 need(receipt_contract['issue']==921,'receipt contract issue')
-need(receipt_contract['evidence_classes']['REMOTE_STAGING']['eligible_for_issue_921_remote_exit'] is True,'remote evidence eligibility')
+need(receipt_contract['evidence_classes']['REMOTE_STAGING']['eligible_for_remote_exit_candidate'] is True,'remote candidate eligibility')
+need(receipt_contract['evidence_classes']['REMOTE_STAGING']['eligible_for_issue_921_remote_exit'] is False,'in-run remote evidence must not be final eligibility')
+need(receipt_contract['evidence_classes']['REMOTE_STAGING']['final_eligibility_requires_successful_workflow_attestation'] is True,'successful workflow attestation required')
+need(receipt_contract['evidence_classes']['LOCALHOST_CONTRACT_PROOF']['eligible_for_remote_exit_candidate'] is False,'local evidence candidate eligibility')
 need(receipt_contract['evidence_classes']['LOCALHOST_CONTRACT_PROOF']['eligible_for_issue_921_remote_exit'] is False,'local evidence eligibility')
+need('runner-execution.json' in receipt_contract['bundle']['required_for_deployed_outcome'],'deployed runner execution receipt required')
+need('runner-execution.json' in receipt_contract['bundle']['required_for_rolled_back_outcome'],'rolled-back runner execution receipt required')
+need(receipt_contract['runner_execution_receipt']['required_state']=='CAPTURED_NOT_ATTESTED','runner receipt attestation boundary')
+need(receipt_contract['runner_execution_receipt']['successful_workflow_attested'] is False,'runner receipt cannot attest workflow success')
+need(receipt_contract['validation_receipt']['remote_deployed_state']=='REMOTE_EXIT_CANDIDATE','remote candidate validation state')
+need(receipt_contract['validation_receipt']['issue_921_remote_exit_eligible'] is False,'validation receipt final eligibility must be false')
 need(receipt_contract['rollback_receipt']['issue_921_exit_requires_previous_target'] is True,'previous rollback target required')
 need(receipt_contract['rollback_receipt']['deployed_outcome']['rollback_target_digest_verified'] is True,'armed target digest verification required')
 need(receipt_contract['rollback_receipt']['rolled_back_outcome']['restored_release_digest_must_equal_rollback_target_digest'] is True,'restored target digest equality required')
 need(receipt_contract['safety_boundaries']['production']=='HOLD','receipt Production HOLD')
 need(receipt_contract['safety_boundaries']['g5']=='HOLD','receipt G5 HOLD')
-for marker in ['--expected-deployment-id','--expected-source-sha','--expected-run-id','--expected-run-attempt','--expected-evidence-class','--require-rollback-target','LOCALHOST_CONTRACT_PROOF','REMOTE_STAGING','localhost body digest mismatch','previous-release target is required']:
+for marker in ['--expected-deployment-id','--expected-source-sha','--expected-run-id','--expected-run-attempt','--expected-repository','--expected-workflow-name','--expected-workflow-ref','--expected-workflow-sha','--expected-source-ref','--expected-event-name','--expected-job-name','--expected-evidence-class','--require-rollback-target','runner-execution.json','CAPTURED_NOT_ATTESTED','REMOTE_EXIT_CANDIDATE','SUCCESSFUL_WORKFLOW_ATTESTATION_REQUIRED','issue_921_remote_exit_eligible": False','LOCALHOST_CONTRACT_PROOF','REMOTE_STAGING','localhost body digest mismatch','previous-release target is required']:
     need(marker in receipt_validator, f'receipt validator marker {marker}')
 need('pull_request:' not in deploy_workflow,'privileged deploy workflow must not run on pull_request')
 need('group: kidults-digitalocean-staging-portal' in deploy_workflow,'workflow deployment concurrency group')
 need('cancel-in-progress: false' in deploy_workflow,'workflow deployment concurrency must not cancel in progress')
 need('RELEASE_ID="portal-r001-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"' in deploy_workflow,'release id must include workflow run attempt')
-for marker in ['pull_request:','push:','persist-credentials: false','Verify exact source SHA','test_digitalocean_staging_portal_receipts_v1.sh']:
+for marker in ["'receipt_type':'GITHUB_RUNNER_EXECUTION'","'state':'CAPTURED_NOT_ATTESTED'","'workflow_ref':os.environ['GITHUB_WORKFLOW_REF']","'workflow_sha':os.environ['GITHUB_WORKFLOW_SHA']","'job_name':os.environ['GITHUB_JOB']","'successful_workflow_attested':False",'--expected-workflow-ref "$GITHUB_WORKFLOW_REF"','--expected-workflow-sha "$GITHUB_WORKFLOW_SHA"','--expected-job-name "$GITHUB_JOB"']:
+    need(marker in deploy_workflow, f'workflow runner binding marker {marker}')
+for marker in ['pull_request:','push:','persist-credentials: false','Verify exact source SHA','test_digitalocean_staging_portal_receipts_v1.sh','validate-staging-portal-workflow-provenance-v1.mjs']:
     need(marker in receipt_workflow, f'safe receipt workflow marker {marker}')
 if errors:
     print(json.dumps({'suite':'DIGITALOCEAN_STAGING_PORTAL_DEPLOY_V1','state':'VERIFIED_FAIL','errors':errors},indent=2));raise SystemExit(1)

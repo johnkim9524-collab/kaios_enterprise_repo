@@ -83,6 +83,13 @@ const EXPECTED_VALIDATOR_RUN = [
   '--expected-source-sha "$GITHUB_SHA" \\',
   '--expected-run-id "$GITHUB_RUN_ID" \\',
   '--expected-run-attempt "$GITHUB_RUN_ATTEMPT" \\',
+  '--expected-repository "$GITHUB_REPOSITORY" \\',
+  '--expected-workflow-name "$GITHUB_WORKFLOW" \\',
+  '--expected-workflow-ref "$GITHUB_WORKFLOW_REF" \\',
+  '--expected-workflow-sha "$GITHUB_WORKFLOW_SHA" \\',
+  '--expected-source-ref "$GITHUB_REF" \\',
+  '--expected-event-name "$GITHUB_EVENT_NAME" \\',
+  '--expected-job-name "$GITHUB_JOB" \\',
   '--expected-evidence-class REMOTE_STAGING \\',
   '"${EXTRA_ARGS[@]}" \\',
   '--output artifacts/digitalocean-staging-portal/receipt-validation.json \\',
@@ -155,6 +162,28 @@ function findingsFor(text, receiptValidator = '') {
   if (/continue-on-error\s*:\s*true/i.test(validatorBlock)) findings.push('RECEIPT_VALIDATOR_CONTINUE_ON_ERROR_FORBIDDEN');
   if (!receiptValidatorInvocation) findings.push('RECEIPT_VALIDATOR_INVOCATION_MISSING');
   if (!sameLines(validatorRun, EXPECTED_VALIDATOR_RUN)) findings.push('RECEIPT_VALIDATOR_EXACT_RUN_CONTRACT_MISSING');
+
+  const runnerExecutionMarkers = [
+    "'receipt_type':'GITHUB_RUNNER_EXECUTION'",
+    "'state':'CAPTURED_NOT_ATTESTED'",
+    "'repository':os.environ['GITHUB_REPOSITORY']",
+    "'workflow_name':os.environ['GITHUB_WORKFLOW']",
+    "'workflow_ref':os.environ['GITHUB_WORKFLOW_REF']",
+    "'workflow_sha':os.environ['GITHUB_WORKFLOW_SHA']",
+    "'source_ref':os.environ['GITHUB_REF']",
+    "'event_name':os.environ['GITHUB_EVENT_NAME']",
+    "'job_name':os.environ['GITHUB_JOB']",
+    "'successful_workflow_attested':False"
+  ];
+  if (!runnerExecutionMarkers.every((marker) => text.includes(marker))) {
+    findings.push('RUNNER_EXECUTION_WORKFLOW_IDENTITY_BINDING_MISSING');
+  }
+  if (!receiptValidator.includes('runner-execution.json')) findings.push('RUNNER_EXECUTION_RECEIPT_VALIDATION_MISSING');
+  if (!receiptValidator.includes('CAPTURED_NOT_ATTESTED')) findings.push('RUNNER_EXECUTION_IN_RUN_ATTESTATION_BOUNDARY_MISSING');
+  if (!receiptValidator.includes('REMOTE_EXIT_CANDIDATE')) findings.push('REMOTE_EXIT_CANDIDATE_STATE_MISSING');
+  if (!receiptValidator.includes('"issue_921_remote_exit_eligible": False')) {
+    findings.push('IN_RUN_FINAL_REMOTE_ELIGIBILITY_FORBIDDEN');
+  }
 
   const enforcementSteps = namedSteps(text, 'Enforce successful deploy and receipt validation');
   const enforcementStep = enforcementSteps.length === 1 ? enforcementSteps[0] : null;
@@ -249,6 +278,13 @@ const workflowMutationCases = [
     before: 'test "${{ steps.remote_deploy.outputs.exit_code }}" = "0"',
     after: 'true # remote deploy gate removed',
     expected: 'FINAL_REMOTE_DEPLOY_EXIT_GATE_MISSING'
+  },
+  {
+    id: 'runner-workflow-sha-binding',
+    step: 'Collect deployment-scoped remote receipts and localhost body',
+    before: "'workflow_sha':os.environ['GITHUB_WORKFLOW_SHA']",
+    after: "'workflow_sha':os.environ['GITHUB_SHA']",
+    expected: 'RUNNER_EXECUTION_WORKFLOW_IDENTITY_BINDING_MISSING'
   }
 ];
 for (const mutation of workflowMutationCases) {
@@ -279,11 +315,13 @@ const weakenedValidatorFindings = findingsFor(
     .replace('data-state="NO_PROJECTION"', 'data-state="PROJECTED"')
     .replace('receipt["public_bind"] is False', 'receipt["public_bind"] is True')
     .replace('receipt["production_touch"] is False', 'receipt["production_touch"] is True')
+    .replaceAll('"issue_921_remote_exit_eligible": False', '"issue_921_remote_exit_eligible": True')
 );
 for (const expected of [
   'NO_PROJECTION_HEALTH_ASSERTION_MISSING',
   'PUBLIC_BIND_FALSE_ASSERTION_MISSING',
-  'PRODUCTION_TOUCH_FALSE_ASSERTION_MISSING'
+  'PRODUCTION_TOUCH_FALSE_ASSERTION_MISSING',
+  'IN_RUN_FINAL_REMOTE_ELIGIBILITY_FORBIDDEN'
 ]) {
   if (!weakenedValidatorFindings.includes(expected)) {
     throw new Error(`receipt validator assertion mutation escaped (${expected}): ${weakenedValidatorFindings.join(',')}`);
@@ -297,6 +335,11 @@ const receiptBindingFindings = new Set([
   'RECEIPT_VALIDATOR_CONTINUE_ON_ERROR_FORBIDDEN',
   'RECEIPT_VALIDATOR_INVOCATION_MISSING',
   'RECEIPT_VALIDATOR_EXACT_RUN_CONTRACT_MISSING',
+  'RUNNER_EXECUTION_WORKFLOW_IDENTITY_BINDING_MISSING',
+  'RUNNER_EXECUTION_RECEIPT_VALIDATION_MISSING',
+  'RUNNER_EXECUTION_IN_RUN_ATTESTATION_BOUNDARY_MISSING',
+  'REMOTE_EXIT_CANDIDATE_STATE_MISSING',
+  'IN_RUN_FINAL_REMOTE_ELIGIBILITY_FORBIDDEN',
   'FINAL_ENFORCEMENT_ALWAYS_GUARD_MISSING',
   'FINAL_ENFORCEMENT_BASH_SHELL_MISSING',
   'FINAL_ENFORCEMENT_CONTINUE_ON_ERROR_FORBIDDEN',
@@ -316,7 +359,7 @@ console.log(JSON.stringify({
   target: TARGET,
   receipt_validator: RECEIPT_VALIDATOR,
   receipt_validator_bound_to_remote_exact_execution: receiptValidatorBound,
-  receipt_validator_binding_mutation_cases: workflowMutationCases.length + 4,
+  receipt_validator_binding_mutation_cases: workflowMutationCases.length + 5,
   external_action_refs: externalActionRefs(source),
   immutable_external_actions_required: true,
   exact_source_sha_required: true,
