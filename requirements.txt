@@ -1,3 +1,0 @@
-# Core CI/test tooling. Wider transitive/hash locking remains tracked under #976.
-pytest>=8.0.0
-jsonschema==4.26.0
