@@ -25,7 +25,7 @@ The observation used only public control-plane metadata. It did not read secret 
 
 ## Implemented internal control
 
-The collector derives the current privileged-job set from `secret-bearing-workflow-dispatch-registry-v1.json`, parses each job's secret references and Environment binding, and performs GET-only GitHub metadata reads. Its receipt records exact source SHA/ref, live default-branch SHA, endpoint statuses, per-job binding results, deployment-policy results, and secret-name coverage counts/digests without emitting secret names or values.
+The collector derives the current privileged-job set from `secret-bearing-workflow-dispatch-registry-v1.json`, parses each job's secret references and Environment binding, and performs GET-only GitHub metadata reads. Every list endpoint is paginated to exhaustion and reconciled to its reported count before it can contribute to a pass. The receipt records exact source SHA/ref, live default-branch SHA, endpoint statuses, per-job binding results, deployment-policy results, Environment coverage, repository/organization scope-absence counts/digests, and negative-execution evidence without emitting secret names or values.
 
 The validator rejects:
 
@@ -35,11 +35,18 @@ The validator rejects:
 - a missing, dynamic, or unobserved job Environment;
 - wildcard, tag, multiple, or otherwise non-exact-`main` deployment policies;
 - unreadable or incomplete Environment-secret name coverage;
+- any required credential name that still exists at repository or organization scope;
+- a truncated or count-mismatched Environment, policy, or secret-name listing;
+- an Environment that permits administrator bypass;
+- missing negative execution evidence for a selected non-main ref or branch-controlled workflow replacement;
+- a stale or altered read-back digest;
 - dynamic/whole secret context and `secrets: inherit` as externally unprovable sets;
 - mutable Actions, moving runners, persisted checkout credentials, non-exact checkout, secret injection, or manual-only activation in the read-back workflow;
 - any receipt that claims GitHub settings changed, secret material was read, #974 was auto-closed, #936 was closed, #881 control pass was promoted, empirical Evidence was promoted, or Production/Public/G5 authority changed.
 
-The automatic workflow runs exact-head offline proof on pull requests, read-only proof after protected-main pushes, and a daily scheduled read-back. `workflow_dispatch` is recovery-only. Its live job uses the ephemeral least-privilege `${{ github.token }}` for GitHub metadata GETs, and the receipt reports that truthfully as `authorization_mode=GITHUB_TOKEN_METADATA_READ` plus `credential_activation=EPHEMERAL_GITHUB_TOKEN_METADATA_READ`. This is not activation of a stored repository/Environment secret or any provider credential; both remain explicitly `false`.
+The automatic workflow runs exact-head offline proof on pull requests, read-only proof after protected-main pushes, and a daily scheduled read-back. `workflow_dispatch` is recovery-only. Its live job uses the ephemeral least-privilege `${{ github.token }}` for the metadata it can read and reports `authorization_mode=GITHUB_TOKEN_METADATA_READ` plus `credential_activation=EPHEMERAL_GITHUB_TOKEN_METADATA_READ`. GitHub's workflow token cannot provide the Environment- and Actions-secret metadata permissions required for closure.
+
+An authorization class cannot be selected by an environment variable. The current CLI therefore cannot claim `GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ`, even if an ordinary token is present. A future approved post-run attestor must obtain a separately authorized ephemeral GitHub App installation token, live-read the run/job and negative-control records, bind them to exact protected `main`, and produce cryptographically verifiable artifact provenance. Until that attestor and its verifier are implemented, `--require-external-proof` deliberately fails every receipt with `external_proof_validator_fail_closed_until_trusted_attestor`; `issue_974_closure_eligible` remains `false`.
 
 ## Reproduction
 
@@ -51,7 +58,7 @@ node --test tests/kidults/kpmo/github-trusted-ref-environment-readback-v1.test.m
 node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
 ```
 
-Authorized read-only execution on exact protected `main`:
+Read-only execution on an exact source revision:
 
 ```bash
 node scripts/kidults/kpmo/github-trusted-ref-environment-readback-v1.mjs \
@@ -62,16 +69,19 @@ node scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mj
   --receipt /tmp/kidults-github-trusted-ref-environment-readback-receipt-v1.json
 ```
 
-`GITHUB_TOKEN` may be present in the process environment for metadata authorization. The token value is never accepted as a CLI argument, written to the receipt, or printed. The receipt records only the authorization/activation class: ephemeral GitHub token metadata read, public metadata, or test fixture.
+`GITHUB_TOKEN` may be present in the process environment for metadata authorization. The token value is never accepted as a CLI argument, written to the receipt, or printed. The receipt records only the authorization/activation class: ephemeral GitHub token metadata read, public metadata, or test fixture. A plain environment variable cannot promote that token to the future GitHub App authorization class.
 
 ## Remaining external blockers
 
 1. Program Owner security approval for any Environment, secret-scope, deployment-policy, ruleset, or trusted-handoff change.
 2. Static Environment binding for every secret-bearing job, or a separately authorized trusted-default-branch/release handoff.
 3. Exact-`main` external deployment branch policy for each bound Environment.
-4. Authorized Environment-secret metadata read-back proving every referenced secret name resolves in the bound Environment, without reading values.
-5. Exact protected-main execution receipt plus negative stale/non-main ref and branch-controlled replacement execution proof.
-6. A separate authorized closure decision. A green internal validator or read-back receipt cannot close #974 by itself.
+4. Administrator bypass disabled for every bound Environment.
+5. Authorized Environment-secret metadata read-back proving every referenced secret name resolves in the bound Environment, without reading values.
+6. Authorized repository/organization secret-name read-back proving those required names are absent outside the bound Environments.
+7. Exact protected-main execution receipt plus live-revalidated negative stale/non-main ref and branch-controlled replacement execution proof.
+8. Trusted post-run attestation with cryptographically verifiable artifact provenance bound to the exact repository, workflow, run, ref, and SHA.
+9. A separate authorized closure decision. A green internal validator or read-back receipt cannot close #974 by itself.
 
 ## #881 semantic boundary
 

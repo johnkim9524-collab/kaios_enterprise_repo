@@ -6,7 +6,8 @@ import {
   CONTRACT_PATH,
   REGISTRY_PATH,
   analyzeWorkflow,
-  buildWorkflowInventory
+  buildWorkflowInventory,
+  computeReadbackDigest
 } from './github-trusted-ref-environment-readback-v1.mjs';
 
 const WORKFLOW_PATH = '.github/workflows/kpmo-github-trusted-ref-environment-readback-v1.yml';
@@ -29,25 +30,40 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
     return Object.entries(value).some(([key, nested]) => forbiddenKeys.has(key.toLowerCase()) || hasForbiddenKey(nested));
   };
   require(receipt?.id === 'kidults-github-trusted-ref-environment-readback-receipt-v1', 'receipt_id');
-  require(receipt?.version === '1.1.0', 'receipt_version');
+  require(receipt?.version === '1.2.0', 'receipt_version');
   require(receipt?.issue === 974 && receipt?.parent_gate_issue === 881, 'issue_binding');
   require(['BLOCKED', 'VERIFIED_PASS'].includes(receipt?.state), 'governed_state');
   require(!Number.isNaN(Date.parse(String(receipt?.observed_at || ''))), 'observed_at');
-  require(['PUBLIC_METADATA_ONLY', 'GITHUB_TOKEN_METADATA_READ', 'TEST_FIXTURE'].includes(receipt?.authorization_mode), 'authorization_mode');
+  require([
+    'PUBLIC_METADATA_ONLY',
+    'GITHUB_TOKEN_METADATA_READ',
+    'GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ',
+    'TEST_FIXTURE'
+  ].includes(receipt?.authorization_mode), 'authorization_mode');
+  const expectedProofScope = receipt?.authorization_mode === 'GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ'
+    ? 'AUTHORIZED_ENVIRONMENT_AND_SECRET_SCOPE_METADATA_READBACK'
+    : (receipt?.authorization_mode === 'GITHUB_TOKEN_METADATA_READ'
+        ? 'LIMITED_GITHUB_TOKEN_METADATA_READBACK'
+        : (receipt?.authorization_mode === 'TEST_FIXTURE' ? 'SYNTHETIC_TEST_CONTROL' : 'PUBLIC_METADATA_OBSERVATION'));
+  require(receipt?.proof_scope === expectedProofScope, 'proof_scope_semantics');
+  require(receipt?.repository === 'johnkim9524-collab/kaios_enterprise_repo', 'repository_identity');
+  require(receipt?.source_ref === 'refs/heads/main' || receipt?.state === 'BLOCKED', 'verified_source_ref');
   require(/^[0-9a-f]{40}$/.test(String(receipt?.exact_source_sha || '')), 'exact_source_sha');
   require(/^sha256:[0-9a-f]{64}$/.test(String(receipt?.readback_digest || '')), 'readback_digest');
+  require(receipt?.readback_digest === computeReadbackDigest(receipt), 'readback_digest_integrity');
   require(receipt?.endpoint_http_statuses && typeof receipt.endpoint_http_statuses === 'object', 'endpoint_statuses');
   require(!hasForbiddenKey(receipt), 'raw_secret_or_credential_field_forbidden');
   require(receipt?.settings_mutated === false, 'settings_mutation_boundary');
   require(receipt?.secret_material_read === false, 'secret_material_boundary');
   require(receipt?.secret_names_emitted === false, 'secret_name_output_boundary');
-  const expectedCredentialActivation = receipt?.authorization_mode === 'GITHUB_TOKEN_METADATA_READ'
-    ? 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ'
-    : 'NONE';
+  const expectedCredentialActivation = receipt?.authorization_mode === 'GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ'
+    ? 'EPHEMERAL_GITHUB_APP_INSTALLATION_TOKEN_ENVIRONMENTS_AND_SECRETS_READ'
+    : (receipt?.authorization_mode === 'GITHUB_TOKEN_METADATA_READ' ? 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ' : 'NONE');
   require(receipt?.credential_activation === expectedCredentialActivation, 'credential_activation_semantics');
   require(receipt?.stored_repository_or_environment_secret_activated === false, 'stored_secret_activation_boundary');
   require(receipt?.provider_credential_activated === false, 'provider_credential_activation_boundary');
   require(receipt?.issue_974_closed_by_this_readback === false, 'issue_974_auto_closure_forbidden');
+  require(receipt?.issue_974_closure_eligible === false, 'issue_974_closure_eligibility_forbidden_until_attestor');
   require(receipt?.issue_881_control_pass_promoted === false, 'issue_881_promotion_forbidden');
   require(receipt?.effective_ruleset_readback_issue_936_closed === false, 'issue_936_closure_forbidden');
   require(receipt?.empirical_evidence_promoted === false, 'empirical_promotion_forbidden');
@@ -58,16 +74,110 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
   require(Array.isArray(receipt?.binding_results) && receipt.binding_results.length === receipt?.secret_bearing_jobs, 'binding_partition');
   require(receipt?.verified_secret_bearing_jobs === receipt?.binding_results?.filter((item) => item.state === 'VERIFIED_PASS').length, 'verified_binding_count');
   require(receipt?.ruleset_context_only === true, 'ruleset_context_boundary');
+  const negativeControls = receipt?.negative_execution_proof;
+  require(negativeControls && typeof negativeControls === 'object', 'negative_execution_proof_partition');
+  for (const control of ['selected_non_main_ref', 'branch_controlled_workflow_replacement']) {
+    const observed = negativeControls?.[control];
+    require(['VERIFIED_REJECTED', 'NOT_PROVEN'].includes(observed?.state), `negative_execution_state_${control}`);
+    if (observed?.state === 'VERIFIED_REJECTED') {
+      require(/^https:\/\/github\.com\/johnkim9524-collab\/kaios_enterprise_repo\/actions\/runs\/[1-9][0-9]*$/.test(String(observed?.evidence_ref || '')), `negative_execution_evidence_${control}`);
+      require(/^refs\/heads\//.test(String(observed?.source_ref || '')) && observed.source_ref !== 'refs/heads/main', `negative_execution_ref_${control}`);
+      require(!Number.isNaN(Date.parse(String(observed?.observed_at || ''))), `negative_execution_observed_at_${control}`);
+    }
+  }
+  require(receipt?.trusted_execution_attestation?.state === 'NOT_IMPLEMENTED', 'trusted_execution_attestation_state');
+  require(receipt?.trusted_execution_attestation?.provenance_type === 'NONE', 'trusted_execution_attestation_provenance');
+  require(receipt?.trusted_execution_attestation?.subject_digest === null, 'trusted_execution_attestation_subject');
+  require(receipt?.trusted_execution_attestation?.workflow_run_id === null, 'trusted_execution_attestation_run');
+  require(receipt?.trusted_execution_attestation?.verified_by === null, 'trusted_execution_attestation_verifier');
+  require(receipt?.external_proof_state === 'BLOCKED', 'external_proof_state');
+  require(
+    Array.isArray(receipt?.external_proof_blockers)
+      && receipt.external_proof_blockers.includes('TRUSTED_POST_RUN_ATTESTOR_NOT_IMPLEMENTED')
+      && receipt.external_proof_blockers.includes('CRYPTOGRAPHIC_ARTIFACT_PROVENANCE_NOT_VERIFIED'),
+    'external_proof_blockers'
+  );
   if (receipt?.state === 'BLOCKED') {
     require(receipt?.issue_974_closure_eligible === false, 'blocked_not_closure_eligible');
     require(Array.isArray(receipt?.blockers) && receipt.blockers.length > 0, 'blocked_requires_blocker');
   }
   if (receipt?.state === 'VERIFIED_PASS') {
-    require(receipt?.issue_974_closure_eligible === true, 'verified_closure_eligibility');
     require(receipt?.binding_results?.every((item) => item.state === 'VERIFIED_PASS'), 'verified_all_bindings');
     require(Array.isArray(receipt?.blockers) && receipt.blockers.length === 0, 'verified_has_no_blockers');
+    require(Object.values(negativeControls || {}).every((item) => item?.state === 'VERIFIED_REJECTED'), 'verified_negative_execution_proof');
+    const expectedControlTruth = receipt?.authorization_mode === 'TEST_FIXTURE'
+      ? 'SYNTHETIC_POSITIVE_CONTROL_ONLY_NOT_EXTERNAL_PROOF'
+      : 'CONTROL_PLANE_READBACK_COMPLETE_EXTERNAL_TRUSTED_EXECUTION_NOT_PROVEN';
+    require(receipt?.control_truth === expectedControlTruth, 'verified_control_truth');
   }
-  if (requireExternalProof) require(receipt?.state === 'VERIFIED_PASS', 'external_proof_required');
+  if (requireExternalProof) {
+    require(false, 'external_proof_validator_fail_closed_until_trusted_attestor');
+    require(receipt?.state === 'VERIFIED_PASS', 'external_proof_required');
+    require(receipt?.authorization_mode === 'GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ', 'external_proof_authorization_mode');
+    require(receipt?.proof_scope === 'AUTHORIZED_ENVIRONMENT_AND_SECRET_SCOPE_METADATA_READBACK', 'external_proof_scope');
+    require(receipt?.source_ref === 'refs/heads/main', 'external_proof_exact_main_ref');
+    require(receipt?.exact_source_sha === receipt?.observed_default_branch_sha, 'external_proof_exact_main_sha');
+    require(receipt?.observed_default_branch === 'main' && receipt?.observed_default_branch_protected === true, 'external_proof_protected_main');
+    require(receipt?.external_proof_state === 'VERIFIED_PASS', 'external_proof_attested_state');
+    require(receipt?.trusted_execution_attestation?.state === 'VERIFIED_PASS', 'external_proof_trusted_execution_attestation');
+    for (const endpointName of ['repository', 'default_branch', 'environments', 'rulesets', 'repository_secrets', 'organization_secrets']) {
+      const endpoint = receipt?.endpoint_http_statuses?.[endpointName];
+      require(
+        endpoint?.readable === true
+          && endpoint?.http_status === 200
+          && (!['environments', 'rulesets', 'repository_secrets', 'organization_secrets'].includes(endpointName) || endpoint?.complete === true),
+        `external_proof_endpoint_${endpointName}`
+      );
+    }
+    require(receipt?.binding_results?.every((item) => (
+      item?.state === 'VERIFIED_PASS'
+      && Array.isArray(item?.blockers) && item.blockers.length === 0
+      && item?.required_secret_count > 0
+      && /^sha256:[0-9a-f]{64}$/.test(String(item?.required_secret_name_digest || ''))
+      && item?.dynamic_secret_context === false
+      && item?.inherited_reusable_secrets === false
+      && item?.environment_declared === true
+      && item?.environment_binding_static === true
+      && typeof item?.environment_name === 'string' && item.environment_name.length > 0
+      && item?.environment_observed === true
+      && item?.exact_main_deployment_policy_verified === true
+      && item?.environment_secret_metadata_readable === true
+      && item?.environment_secret_metadata_complete === true
+      && item?.matched_required_secret_count === item?.required_secret_count
+      && item?.environment_secret_name_coverage_complete === true
+      && item?.repository_secret_metadata_readable === true
+      && item?.repository_secret_metadata_complete === true
+      && item?.organization_secret_metadata_readable === true
+      && item?.organization_secret_metadata_complete === true
+      && item?.repository_scoped_required_secret_count === 0
+      && item?.organization_scoped_required_secret_count === 0
+      && item?.credential_environment_exclusive === true
+    )), 'external_proof_binding_semantics');
+    const summaries = new Map((receipt?.environment_summary || []).map((item) => [item?.name, item]));
+    require(receipt?.binding_results?.every((item) => {
+      const summary = summaries.get(item?.environment_name);
+      return summary?.can_admins_bypass === false
+        && summary?.exact_main_only === true
+        && summary?.deployment_branch_policy_readback?.readable === true
+        && summary?.deployment_branch_policy_readback?.http_status === 200
+        && summary?.deployment_branch_policy_readback?.complete === true
+        && summary?.environment_secret_metadata_readback?.readable === true
+        && summary?.environment_secret_metadata_readback?.http_status === 200
+        && summary?.environment_secret_metadata_readback?.complete === true;
+    }), 'external_proof_environment_summary');
+    require(
+      receipt?.credential_scope_summary?.repository_secret_metadata_readback?.readable === true
+      && receipt?.credential_scope_summary?.repository_secret_metadata_readback?.http_status === 200
+      && receipt?.credential_scope_summary?.repository_secret_metadata_readback?.complete === true
+      && receipt?.credential_scope_summary?.organization_secret_metadata_readback?.readable === true
+      && receipt?.credential_scope_summary?.organization_secret_metadata_readback?.http_status === 200
+      && receipt?.credential_scope_summary?.organization_secret_metadata_readback?.complete === true
+      && /^sha256:[0-9a-f]{64}$/.test(String(receipt?.credential_scope_summary?.repository_secret_name_digest || ''))
+      && /^sha256:[0-9a-f]{64}$/.test(String(receipt?.credential_scope_summary?.organization_secret_name_digest || ''))
+      && receipt?.credential_scope_summary?.secret_names_emitted === false,
+      'external_proof_credential_scope_summary'
+    );
+  }
   return [...new Set(failures)];
 }
 
@@ -120,14 +230,21 @@ export function validateRepository(root = process.cwd()) {
   const docs = fs.readFileSync(path.join(root, DOC_PATH), 'utf8');
 
   assert(contract.id === 'kidults-github-trusted-ref-environment-readback-contract-v1', 'CONTRACT_ID');
-  assert(contract.version === '1.1.0', 'CONTRACT_VERSION');
+  assert(contract.version === '1.2.0', 'CONTRACT_VERSION');
   assert(contract.issue === 974 && contract.parent_gate_issue === 881, 'CONTRACT_ISSUE_BINDING');
   assert(contract.status === 'IMPLEMENTED_READ_ONLY_PROOF_PATH_EXTERNAL_POLICY_NOT_VERIFIED', 'CONTRACT_STATUS');
   assert(JSON.stringify(contract.platform_principles) === JSON.stringify(['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT']), 'PRINCIPLE_ORDER');
   assert(contract.approved_closure_patterns.github_environment.deployment_branch_policy_is_exact_main_only === true, 'EXACT_MAIN_POLICY');
+  assert(contract.approved_closure_patterns.github_environment.environment_administrator_bypass_is_disabled === true, 'ADMIN_BYPASS_DISABLED');
+  assert(contract.approved_closure_patterns.github_environment.required_secret_names_are_absent_from_repository_and_organization_scopes === true, 'ENVIRONMENT_EXCLUSIVE_SECRET_SCOPE');
+  assert(contract.approved_closure_patterns.github_environment.all_list_endpoints_are_exhaustively_paginated_and_count_reconciled === true, 'COMPLETE_LIST_READBACK');
   assert(contract.approved_closure_patterns.trusted_default_branch_or_release_handoff.repository_declaration_alone_is_sufficient === false, 'REPOSITORY_DECLARATION_NOT_PROOF');
   assert(contract.approved_closure_patterns.trusted_default_branch_or_release_handoff.implemented_by_this_contract === false, 'HANDOFF_NOT_IMPLEMENTED');
   assert(contract.receipt_requirements.credential_activation_by_authorization_mode.GITHUB_TOKEN_METADATA_READ === 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ', 'EPHEMERAL_TOKEN_SEMANTICS');
+  assert(contract.receipt_requirements.external_proof_authorization_mode === 'GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ', 'EXTERNAL_PROOF_AUTHORIZATION_MODE');
+  assert(contract.receipt_requirements.trusted_post_run_attestor_required_for_external_proof === true, 'TRUSTED_ATTESTOR_REQUIRED');
+  assert(contract.receipt_requirements.external_proof_validator_fail_closed_until_attestor_is_implemented === true, 'EXTERNAL_VALIDATOR_FAIL_CLOSED');
+  assert(contract.receipt_requirements.credential_activation_by_authorization_mode.GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ === 'EPHEMERAL_GITHUB_APP_INSTALLATION_TOKEN_ENVIRONMENTS_AND_SECRETS_READ', 'GITHUB_APP_TOKEN_SEMANTICS');
   assert(contract.receipt_requirements.stored_repository_or_environment_secret_activated === false, 'STORED_SECRET_ACTIVATION_BOUNDARY');
   assert(contract.receipt_requirements.provider_credential_activated === false, 'PROVIDER_CREDENTIAL_ACTIVATION_BOUNDARY');
   assert(contract.truth_boundary.issue_974_closed_by_repository_implementation === false, 'ISSUE_974_BOUNDARY');
@@ -135,6 +252,7 @@ export function validateRepository(root = process.cwd()) {
   assert(contract.truth_boundary.empirical_evidence_promoted === false, 'EMPIRICAL_BOUNDARY');
   assert(contract.truth_boundary.production === 'HOLD' && contract.truth_boundary.public === 'HOLD', 'RELEASE_HOLD');
   assert(contract.truth_boundary.g5 === 'EXPLICIT_APPROVAL_REQUIRED', 'G5_HOLD');
+  assert(contract.truth_boundary.issue_974_closure_eligible_before_trusted_attestor === false, 'ISSUE_974_NOT_ELIGIBLE_BEFORE_ATTESTOR');
   assert(registry.issue === 974 && registry.status === 'EXTERNAL_APPROVAL_REQUIRED', 'REGISTRY_REMAINS_OPEN');
   assert(registry.inventory_evidence?.evidence_semantics === 'HISTORICAL_REGISTRATION_BASELINE_NOT_LIVE_EXTERNAL_POLICY_READBACK', 'REGISTRY_BASELINE_TIME_SEMANTICS');
   assert(registry.internal_readback_control?.contract === CONTRACT_PATH, 'REGISTRY_READBACK_CONTRACT_POINTER');
@@ -149,16 +267,22 @@ export function validateRepository(root = process.cwd()) {
   assert(validateWorkflowSource(workflow).length === 0, `WORKFLOW_PROVENANCE:${validateWorkflowSource(workflow).join(',')}`);
   assert(/method:\s*'GET'/.test(collector), 'COLLECTOR_GET_ONLY');
   assert(!/method:\s*['"](?:POST|PUT|PATCH|DELETE)['"]/.test(collector), 'COLLECTOR_MUTATING_METHOD');
-  assert(!/\/actions\/secrets/.test(collector), 'REPOSITORY_SECRET_ENDPOINT_FORBIDDEN');
+  assert(collector.includes("githubGetCompleteList(repository, '/actions/secrets', token"), 'REPOSITORY_SECRET_METADATA_ENDPOINT_REQUIRED');
+  assert(collector.includes("githubGetCompleteList(repository, '/actions/organization-secrets', token"), 'ORGANIZATION_SECRET_METADATA_ENDPOINT_REQUIRED');
   assert(collector.includes('/environments/${encoded}/secrets'), 'ENVIRONMENT_SECRET_METADATA_ENDPOINT_REQUIRED');
   assert(collector.includes('secret_names_emitted: false'), 'SECRET_NAMES_OUTPUT_BOUNDARY');
-  assert(collector.includes("credentialActivation = authorizationMode === 'GITHUB_TOKEN_METADATA_READ'"), 'CREDENTIAL_ACTIVATION_MAPPING');
+  assert(collector.includes("credentialActivation = authorizationMode === 'GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ'"), 'CREDENTIAL_ACTIVATION_MAPPING');
+  assert(collector.includes("authorizationMode === 'GITHUB_TOKEN_METADATA_READ' ? 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ'"), 'LIMITED_GITHUB_TOKEN_MAPPING');
+  assert(collector.includes('githubGetCompleteList'), 'PAGINATED_LIST_READBACK_REQUIRED');
+  assert(!collector.includes('KIDULTS_GITHUB_AUTHORIZATION_MODE'), 'AUTHORIZATION_MODE_SELF_ASSERTION_FORBIDDEN');
   assert(collector.includes("stored_repository_or_environment_secret_activated: false"), 'STORED_SECRET_FALSE_RECEIPT');
   assert(collector.includes("provider_credential_activated: false"), 'PROVIDER_CREDENTIAL_FALSE_RECEIPT');
   assert(testSource.includes('selected non-main ref and stale main SHA are independently rejected'), 'NEGATIVE_REF_TEST_MISSING');
+  assert(testSource.includes('external-proof mode rejects forged state, fixture scope, stale digest, stale SHA, and non-exclusive credentials'), 'EXTERNAL_PROOF_MUTATION_TEST_MISSING');
   assert(docs.includes('BLOCKED_EXTERNAL_CONTROL_PLANE_NOT_ESTABLISHED'), 'DOC_CURRENT_STATE');
   assert(docs.includes('#881'), 'DOC_PARENT_BOUNDARY');
   assert(docs.includes('EPHEMERAL_GITHUB_TOKEN_METADATA_READ'), 'DOC_EPHEMERAL_TOKEN_SEMANTICS');
+  assert(docs.includes('external_proof_validator_fail_closed_until_trusted_attestor'), 'DOC_EXTERNAL_ATTESTOR_FAIL_CLOSED');
 
   const workflowMutations = [
     ['pull_request_target', workflow.replace('pull_request:', 'pull_request_target:')],
