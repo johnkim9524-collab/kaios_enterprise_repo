@@ -45,7 +45,7 @@ assert(same(contract.required_outputs, [
 ]), 'CONTRACT_OUTPUTS');
 const baseline = contract.expected_current_main_baseline;
 assert(baseline.registered_source_profiles === 16 && baseline.implemented_source_adapters === 16 && baseline.pending_source_adapters === 0, 'CONTRACT_SOURCE_BASELINE');
-assert(baseline.software_implemented_requirements === 45 && baseline.context_only_requirements === 9 && baseline.unmapped_requirements === 138 && baseline.software_gap_requirements === 147, 'CONTRACT_COVERAGE_BASELINE');
+assert(baseline.software_implemented_requirements === 39 && baseline.context_only_requirements === 15 && baseline.unmapped_requirements === 138 && baseline.software_gap_requirements === 153, 'CONTRACT_COVERAGE_BASELINE');
 assert(baseline.rights_schema_activation_hold_requirements === 192 && baseline.evidence_admitted === 0 && baseline.market_events_created === 0, 'CONTRACT_EMPIRICAL_BASELINE');
 assert(contract.truth_boundary?.software_lineage_only === true && contract.truth_boundary?.live_source_request_executed === false && contract.truth_boundary?.provider_contact_executed === false, 'CONTRACT_LIVE_BOUNDARY');
 assert(contract.truth_boundary?.rights_pass_created === false && contract.truth_boundary?.source_adapter_activated === false, 'CONTRACT_ACTIVATION_BOUNDARY');
@@ -69,7 +69,7 @@ assert(registry.output_artifact === 'kidults-asi-requirement-adapter-coverage-v1
 assert(registry.implementation_state?.authoritative_requirement_grain === 'AUTONOMOUS_RESOLUTION_MISSION_V1', 'REGISTRY_GRAIN');
 assert(registry.implementation_state?.requirements_accounted_for === 192 && registry.implementation_state?.domain_evidence_families_retained === 16, 'REGISTRY_REQUIREMENT_COUNTS');
 assert(registry.implementation_state?.registered_source_profiles === 16 && registry.implementation_state?.implemented_source_adapters === 16, 'REGISTRY_SOURCE_COUNTS');
-assert(registry.implementation_state?.software_implemented_requirements === 45 && registry.implementation_state?.context_only_requirements === 9 && registry.implementation_state?.unmapped_requirements === 138, 'REGISTRY_COVERAGE_COUNTS');
+assert(registry.implementation_state?.software_implemented_requirements === 39 && registry.implementation_state?.context_only_requirements === 15 && registry.implementation_state?.unmapped_requirements === 138, 'REGISTRY_COVERAGE_COUNTS');
 assert(registry.implementation_state?.rights_schema_activation_hold_requirements === 192, 'REGISTRY_HOLD_COUNT');
 assert(registry.implementation_state?.unmerged_v2_ids_synthesized === 0 && registry.implementation_state?.duplicate_sdk_or_runtime_introduced === 0, 'REGISTRY_FORBIDDEN_ASSET_COUNTS');
 assert(registry.implementation_state?.evidence_admitted === 0 && registry.implementation_state?.market_events_created === 0, 'REGISTRY_EMPIRICAL_COUNTS');
@@ -131,7 +131,7 @@ for (const pin of [
   'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
   'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
 ]) assert(workflow.includes(pin), `WORKFLOW_ACTION_NOT_IMMUTABLY_PINNED:${pin}`);
-assert(documentation.includes('45 / 192') && documentation.includes('RIGHTS_SCHEMA_ACTIVATION_HOLD'), 'DOCUMENTATION_BASELINE_OR_BOUNDARY');
+assert(documentation.includes('39 / 192') && documentation.includes('RIGHTS_SCHEMA_ACTIVATION_HOLD'), 'DOCUMENTATION_BASELINE_OR_BOUNDARY');
 assert(documentation.includes('9502274246') && documentation.includes('32674508442') && documentation.includes('81079541e708d5916621fec3758c357f96b7254b'), 'DOCUMENTATION_CURRENT_EVIDENCE_BINDING');
 
 console.log(JSON.stringify({
