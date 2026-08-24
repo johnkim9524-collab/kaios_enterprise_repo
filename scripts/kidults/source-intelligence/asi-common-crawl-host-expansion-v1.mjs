@@ -186,6 +186,7 @@ if (indexApi) {
           live_external_observation: true,
           source_family_hint: 'UNCLASSIFIED_ANY_SITE_CANDIDATE',
           candidate_source_roles: ['UNCLASSIFIED_PENDING_RELEVANCE'],
+          candidate_purpose_intents: [],
           rights_state: 'UNASSESSED',
           admission_state: 'NOT_ADMITTED',
           gate_1_state: 'PENDING',
