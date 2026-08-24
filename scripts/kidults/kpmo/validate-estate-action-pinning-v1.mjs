@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const WORKFLOW_ROOT = '.github/workflows';
+const ACTION_ALLOWLIST_PATH = 'coordination/kidults/kpmo/estate-action-allowlist-v1.json';
 const FULL_COMMIT_ACTION = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*@[0-9a-f]{40}$/;
 const DIGEST_PINNED_CONTAINER = /^docker:\/\/[^\s@]+@sha256:[0-9a-f]{64}$/;
 
@@ -59,6 +60,46 @@ function referenceFinding(reference) {
     return DIGEST_PINNED_CONTAINER.test(reference) ? null : 'MUTABLE_OR_NONDIGEST_CONTAINER_REF';
   }
   return FULL_COMMIT_ACTION.test(reference) ? null : 'MUTABLE_OR_NONFULL_ACTION_REF';
+}
+
+function actionAllowlistFindings(allowlist, observedActionRefs, observedContainerRefs) {
+  const findings = [];
+  const require = (condition, id) => { if (!condition) findings.push(`ACTION_ALLOWLIST:${id}`); };
+  require(allowlist?.id === 'kidults-estate-action-allowlist-v1', 'ID');
+  require(allowlist?.version === '1.0.0', 'VERSION');
+  require(allowlist?.status === 'ACTIVE_EXACT_REFERENCE_ALLOWLIST', 'STATUS');
+  require(allowlist?.scope === '.github/workflows/**/*.yml|yaml', 'SCOPE');
+  const entries = Array.isArray(allowlist?.entries) ? allowlist.entries : [];
+  const allowedRefs = [];
+  for (const [index, entry] of entries.entries()) {
+    const reference = String(entry?.reference || '');
+    const repository = String(entry?.repository || '');
+    const commitSha = String(entry?.commit_sha || '');
+    allowedRefs.push(reference);
+    require(FULL_COMMIT_ACTION.test(reference), `ENTRY_${index}_REFERENCE`);
+    require(/^[0-9a-f]{40}$/.test(commitSha), `ENTRY_${index}_SHA`);
+    require(reference === `${repository}@${commitSha}`, `ENTRY_${index}_IDENTITY_BINDING`);
+    require(entry?.source_repository === `https://github.com/${repository}`, `ENTRY_${index}_SOURCE_REPOSITORY`);
+    require(/^v[0-9][A-Za-z0-9_.-]*$/.test(String(entry?.release || '')), `ENTRY_${index}_RELEASE`);
+  }
+  require(new Set(allowedRefs).size === allowedRefs.length, 'DUPLICATE_REFERENCE');
+  const allowedContainers = Array.isArray(allowlist?.allowed_container_action_refs)
+    ? allowlist.allowed_container_action_refs.map(String)
+    : [];
+  require(new Set(allowedContainers).size === allowedContainers.length, 'DUPLICATE_CONTAINER_REFERENCE');
+  require(allowedContainers.every(reference => DIGEST_PINNED_CONTAINER.test(reference)), 'CONTAINER_REFERENCE_FORMAT');
+  const observed = [...new Set(observedActionRefs)].sort();
+  const allowed = [...new Set(allowedRefs)].sort();
+  const observedContainers = [...new Set(observedContainerRefs)].sort();
+  const allowedContainersSorted = [...new Set(allowedContainers)].sort();
+  require(JSON.stringify(observed) === JSON.stringify(allowed), 'EXACT_ACTION_REFERENCE_PARTITION');
+  require(JSON.stringify(observedContainers) === JSON.stringify(allowedContainersSorted), 'EXACT_CONTAINER_REFERENCE_PARTITION');
+  require(allowlist?.truth_boundary?.exact_reference_allowlist_is_source_review_substitute === false, 'SOURCE_REVIEW_TRUTH');
+  require(allowlist?.truth_boundary?.new_repository_or_commit_requires_trust_root_review === true, 'TRUST_ROOT_REVIEW_REQUIRED');
+  require(allowlist?.truth_boundary?.github_hosted_runner_image_build_pinned === false, 'RUNNER_IMAGE_TRUTH');
+  require(allowlist?.truth_boundary?.production === 'HOLD' && allowlist?.truth_boundary?.public === 'HOLD', 'RELEASE_HOLD');
+  require(allowlist?.truth_boundary?.g5 === 'EXPLICIT_APPROVAL_REQUIRED', 'G5_HOLD');
+  return findings;
 }
 
 // GitHub interprets workflow keys after YAML escape, alias, tag and merge resolution.
@@ -311,6 +352,28 @@ const digestPinnedContainers = containers.filter(ref => DIGEST_PINNED_CONTAINER.
 const versionAnnotated = commitPinned.filter(ref => ref.has_version_annotation);
 const ubuntu2404Runners = runnerInventory.filter(runner => runner.labels.includes('ubuntu-24.04'));
 const movingRunnerAliases = runnerInventory.filter(runner => runnerFinding(runner.labels));
+let actionAllowlist = null;
+try {
+  actionAllowlist = JSON.parse(fs.readFileSync(ACTION_ALLOWLIST_PATH, 'utf8'));
+} catch (error) {
+  findings.push(`${ACTION_ALLOWLIST_PATH}:UNREADABLE_OR_INVALID:${error instanceof Error ? error.message : String(error)}`);
+}
+const observedActionRefs = commitPinned.map(item => item.reference);
+const observedContainerRefs = digestPinnedContainers.map(item => item.reference);
+if (actionAllowlist) findings.push(...actionAllowlistFindings(actionAllowlist, observedActionRefs, observedContainerRefs));
+const allowlistMutationCases = actionAllowlist ? [
+  ['unapproved_full_sha', actionAllowlist, [...observedActionRefs, `owner/action@${'c'.repeat(40)}`], observedContainerRefs],
+  ['observed_reference_removed', actionAllowlist, observedActionRefs.filter(reference => reference !== actionAllowlist.entries[0].reference), observedContainerRefs],
+  ['duplicate_allowlist_entry', { ...actionAllowlist, entries: [...actionAllowlist.entries, actionAllowlist.entries[0]] }, observedActionRefs, observedContainerRefs],
+  ['identity_binding_changed', { ...actionAllowlist, entries: actionAllowlist.entries.map((entry, index) => index === 0 ? { ...entry, repository: 'actions/setup-node' } : entry) }, observedActionRefs, observedContainerRefs],
+  ['source_repository_changed', { ...actionAllowlist, entries: actionAllowlist.entries.map((entry, index) => index === 0 ? { ...entry, source_repository: 'https://example.invalid/action' } : entry) }, observedActionRefs, observedContainerRefs],
+  ['stale_allowlist_entry', { ...actionAllowlist, entries: [...actionAllowlist.entries, { repository: 'owner/action', commit_sha: 'd'.repeat(40), release: 'v1', reference: `owner/action@${'d'.repeat(40)}`, source_repository: 'https://github.com/owner/action' }] }, observedActionRefs, observedContainerRefs]
+] : [];
+for (const [name, mutatedAllowlist, mutatedObservedActions, mutatedObservedContainers] of allowlistMutationCases) {
+  if (actionAllowlistFindings(mutatedAllowlist, mutatedObservedActions, mutatedObservedContainers).length === 0) {
+    throw new Error(`action allowlist mutation self-test missed ${name}`);
+  }
+}
 const inventorySha256 = crypto.createHash('sha256')
   .update(JSON.stringify({
     actions: inventory.map(({ workflow, line, reference }) => ({ workflow, line, reference })),
@@ -321,9 +384,9 @@ const state = findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS';
 const uncertainties = [
   'ubuntu-24.04 fixes the hosted OS release label, but GitHub updates that hosted image build in place and runs-on cannot pin its build by SHA or digest'
 ];
-if (versionAnnotated.length !== commitPinned.length) {
-  uncertainties.push(`${commitPinned.length - versionAnnotated.length} immutable Action refs lack an optional human-readable release annotation`);
-}
+const actionAllowlistSha256 = actionAllowlist
+  ? crypto.createHash('sha256').update(fs.readFileSync(ACTION_ALLOWLIST_PATH)).digest('hex')
+  : null;
 
 const receipt = {
   suite: 'KIDULTS_ESTATE_ACTION_PINNING_V1',
@@ -345,6 +408,7 @@ const receipt = {
     'scripts/kidults/kpmo/validate-estate-action-pinning-v1.mjs',
     'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs',
     'scripts/kidults/kpmo/validate-full-value-chain-critical-gate-bindings-v1.mjs',
+    ACTION_ALLOWLIST_PATH,
     'docs/kidults/security/estate-github-actions-runner-policy-v1.md'
   ],
   inferences: [],
@@ -378,6 +442,9 @@ const receipt = {
   container_action_references: containers.length,
   digest_pinned_container_action_references: digestPinnedContainers.length,
   version_annotated_action_references: versionAnnotated.length,
+  exact_allowlisted_unique_action_references: actionAllowlist?.entries?.length || 0,
+  action_allowlist_mutation_cases: allowlistMutationCases.length,
+  action_allowlist_sha256: actionAllowlistSha256,
   runner_declarations: runnerInventory.length,
   ubuntu_24_04_runner_declarations: ubuntu2404Runners.length,
   moving_ubuntu_latest_runner_aliases: movingRunnerAliases.length,

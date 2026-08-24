@@ -1,0 +1,87 @@
+{
+  "id": "kidults-estate-action-allowlist-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_EXACT_REFERENCE_ALLOWLIST",
+  "scope": ".github/workflows/**/*.yml|yaml",
+  "entries": [
+    {
+      "repository": "actions/checkout",
+      "commit_sha": "08c6903cd8c0fde910a37f88322edcfb5dd907a8",
+      "release": "v5.0.0",
+      "reference": "actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8",
+      "source_repository": "https://github.com/actions/checkout"
+    },
+    {
+      "repository": "actions/checkout",
+      "commit_sha": "11bd71901bbe5b1630ceea73d27597364c9af683",
+      "release": "v4.2.2",
+      "reference": "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+      "source_repository": "https://github.com/actions/checkout"
+    },
+    {
+      "repository": "actions/checkout",
+      "commit_sha": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "release": "v7.0.1",
+      "reference": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "source_repository": "https://github.com/actions/checkout"
+    },
+    {
+      "repository": "actions/setup-node",
+      "commit_sha": "49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "release": "v4.4.0",
+      "reference": "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "source_repository": "https://github.com/actions/setup-node"
+    },
+    {
+      "repository": "actions/setup-node",
+      "commit_sha": "820762786026740c76f36085b0efc47a31fe5020",
+      "release": "v7",
+      "reference": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+      "source_repository": "https://github.com/actions/setup-node"
+    },
+    {
+      "repository": "actions/setup-node",
+      "commit_sha": "a0853c24544627f65ddf259abe73b1d18a591444",
+      "release": "v5.0.0",
+      "reference": "actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+      "source_repository": "https://github.com/actions/setup-node"
+    },
+    {
+      "repository": "actions/setup-python",
+      "commit_sha": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "release": "v7",
+      "reference": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "source_repository": "https://github.com/actions/setup-python"
+    },
+    {
+      "repository": "actions/setup-python",
+      "commit_sha": "a26af69be951a213d495a4c3e4e4022e16d87065",
+      "release": "v5.6.0",
+      "reference": "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+      "source_repository": "https://github.com/actions/setup-python"
+    },
+    {
+      "repository": "actions/upload-artifact",
+      "commit_sha": "b7c566a772e6b6bfb58ed0dc250532a479d7789f",
+      "release": "v6.0.0",
+      "reference": "actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
+      "source_repository": "https://github.com/actions/upload-artifact"
+    },
+    {
+      "repository": "actions/upload-artifact",
+      "commit_sha": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "release": "v4.6.2",
+      "reference": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "source_repository": "https://github.com/actions/upload-artifact"
+    }
+  ],
+  "allowed_container_action_refs": [],
+  "truth_boundary": {
+    "exact_reference_allowlist_is_source_review_substitute": false,
+    "new_repository_or_commit_requires_trust_root_review": true,
+    "github_hosted_runner_image_build_pinned": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
