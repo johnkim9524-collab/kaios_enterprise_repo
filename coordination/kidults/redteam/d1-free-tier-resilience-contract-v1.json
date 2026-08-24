@@ -3,11 +3,17 @@
   "trigger": "2026-09-01_FREE_LIMIT_ENFORCEMENT",
   "free_daily_budget": {"rows_read": 5000000, "rows_written": 100000},
   "target_safety_utilization": 0.70,
+  "confirmed_structural_risk": {
+    "source": "hourly staging cron at minute 17",
+    "previous_behavior": "scheduled recovery invoked full asiMeshTelemetry with repeated COUNT/GROUP BY scans across operating tables",
+    "remediation": "scheduled heartbeat is O(1) and full telemetry is authenticated on-demand only",
+    "status": "CODE_FIXED_PENDING_CI_AND_DEPLOYMENT"
+  },
   "required_controls": [
     "QUERY_PLAN_REVIEW_FOR_HOT_PATHS",
-    "NO_SELECT_STAR_ON_RUNTIME_HOT_PATHS",
     "BOUNDED_POINT_OR_RANGE_LOOKUPS",
     "INDEXES_MATCH_FILTER_JOIN_ORDER_KEYS",
+    "FULL_TELEMETRY_ON_DEMAND_ONLY",
     "NO_DUPLICATE_POLLING_OR_RECOMPUTATION",
     "BATCH_WRITES_WHERE_SEMANTICALLY_SAFE",
     "PER_DB_AND_PATH_USAGE_ATTRIBUTION",
