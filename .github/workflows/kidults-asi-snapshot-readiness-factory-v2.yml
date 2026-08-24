@@ -136,11 +136,13 @@ jobs:
           if(process.env.GITHUB_EVENT_NAME==='workflow_run'&&(String(run.id)!==String(process.env.EVENT_P2_RUN_ID)||run.head_sha!==process.env.EVENT_P2_HEAD_SHA))process.exit(3);
           NODE
           P2_HEAD_SHA="$(node -p "require('/tmp/p2-run.json').head_sha")"
-          gh api -H 'Accept: application/vnd.github+json' --paginate --slurp \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${P2_RUN_ID}/artifacts?per_page=100" > /tmp/p2-artifact-pages.json
+          # Read one bounded artifact page only. A run-scoped artifact lookup must
+          # never perform an unbounded repository-wide pagination walk.
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${P2_RUN_ID}/artifacts?per_page=100&page=1" > /tmp/p2-artifact-pages.json
           node - <<'NODE'
-          const fs=require('fs');const pages=JSON.parse(fs.readFileSync('/tmp/p2-artifact-pages.json'));const run=JSON.parse(fs.readFileSync('/tmp/p2-run.json'));
-          const matches=pages.flatMap(x=>x.artifacts||[]).filter(x=>x.name==='kidults-asi-owned-source-intelligence-graph-v2'&&x.expired===false);
+          const fs=require('fs');const payload=JSON.parse(fs.readFileSync('/tmp/p2-artifact-pages.json'));const run=JSON.parse(fs.readFileSync('/tmp/p2-run.json'));
+          const matches=(payload.artifacts||[]).filter(x=>x.name==='kidults-asi-owned-source-intelligence-graph-v2'&&x.expired===false);
           if(matches.length!==1)process.exit(2);const a=matches[0];
           if(String(a.workflow_run?.id)!==String(run.id)||a.workflow_run?.head_branch!=='main'||a.workflow_run?.head_sha!==run.head_sha||!(/^sha256:[0-9a-f]{64}$/.test(a.digest||'')))process.exit(3);
           fs.writeFileSync('/tmp/p2-artifact.json',JSON.stringify(a,null,2)+'\n');
