@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+
+throw new Error('LEGACY_POSITIVE_QUALIFICATION_DISABLED: Track B accepts only an exact immutable Candidate and Evidence Package from the governed Track A handoff');
 const inPath=process.argv[2]||'input/product-evidence-package.json';
 const outDir=process.argv[3]||'out/assessment';
 fs.mkdirSync(outDir,{recursive:true});

@@ -1,4 +1,5 @@
-name: KIDULTS Black Lotus Positive Product Qualification v1
+name: KIDULTS Black Lotus Legacy Qualification Quarantine v1
+
 on:
   pull_request:
     paths:
@@ -7,68 +8,35 @@ on:
       - 'scripts/kidults/e2e/assess-black-lotus-track-b-v1.mjs'
       - 'scripts/kidults/e2e/build-black-lotus-projection-v1.mjs'
       - 'scripts/kidults/e2e/validate-black-lotus-positive-slice-v1.mjs'
+      - 'scripts/kidults/e2e/validate-black-lotus-legacy-quarantine-v1.mjs'
       - '.github/workflows/kidults-black-lotus-positive-product-qualification-v1.yml'
-  workflow_dispatch:
+
 permissions:
   contents: read
+
+env:
+  KIDULTS_EXACT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
-  evidence-package:
-    runs-on: ubuntu-latest
+  legacy-quarantine:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout exact source SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: '20'
-      - name: Build live/open + bounded-reference Product Evidence Package
-        run: node scripts/kidults/e2e/build-black-lotus-positive-slice-v1.mjs coordination/kidults/e2e/black-lotus-positive-evidence-seed-v1.json out/evidence
-      - uses: actions/upload-artifact@v4
-        with:
-          name: black-lotus-product-evidence-package-v1
-          path: out/evidence/product-evidence-package.json
+          ref: ${{ env.KIDULTS_EXACT_HEAD_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
 
-  track-b-assessment:
-    needs: evidence-package
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - uses: actions/download-artifact@v4
-        with:
-          name: black-lotus-product-evidence-package-v1
-          path: input
-      - name: Independent Track B assessment
-        run: node scripts/kidults/e2e/assess-black-lotus-track-b-v1.mjs input/product-evidence-package.json out/assessment
-      - uses: actions/upload-artifact@v4
-        with:
-          name: black-lotus-track-b-assessment-v1
-          path: out/assessment/track-b-assessment.json
+      - name: Verify exact checked-out source
+        run: test "$(git rev-parse HEAD)" = "$KIDULTS_EXACT_HEAD_SHA"
 
-  projection-and-validation:
-    needs: [evidence-package, track-b-assessment]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '20'
-      - uses: actions/download-artifact@v4
-        with:
-          name: black-lotus-product-evidence-package-v1
-          path: input
-      - uses: actions/download-artifact@v4
-        with:
-          name: black-lotus-track-b-assessment-v1
-          path: input
-      - name: Build Projection Registry slice
-        run: node scripts/kidults/e2e/build-black-lotus-projection-v1.mjs input/product-evidence-package.json input/track-b-assessment.json out/projection
-      - name: Validate Product PASS / Index HOLD split
-        run: node scripts/kidults/e2e/validate-black-lotus-positive-slice-v1.mjs input/product-evidence-package.json input/track-b-assessment.json out/projection/projection.json
-      - uses: actions/upload-artifact@v4
-        with:
-          name: black-lotus-positive-product-qualification-slice-v1
-          path: |
-            input/product-evidence-package.json
-            input/track-b-assessment.json
-            out/projection/projection.json
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Prove legacy qualification remains non-executable and non-promotable
+        run: node scripts/kidults/e2e/validate-black-lotus-legacy-quarantine-v1.mjs

@@ -2,6 +2,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+throw new Error('LEGACY_POSITIVE_QUALIFICATION_DISABLED: bounded reference pointers cannot create an Evidence Package, verified SOLD observation, Candidate, Track B input, or Projection');
+
 const seedPath = process.argv[2] || 'coordination/kidults/e2e/black-lotus-positive-evidence-seed-v1.json';
 const outDir = process.argv[3] || 'out/evidence';
 fs.mkdirSync(outDir,{recursive:true});
