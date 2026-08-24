@@ -102,7 +102,14 @@ assert(artifactBinding.expired === false, 'ARTIFACT_EXPIRED');
 assert(Number.isInteger(artifactBinding.workflow_run_id) && artifactBinding.workflow_run_id > 0, 'WORKFLOW_RUN_ID_INVALID');
 assert(artifactBinding.workflow_name === input.upstream_workflow_name, 'WORKFLOW_NAME_MISMATCH');
 assert(artifactBinding.workflow_path === input.upstream_workflow_path, 'WORKFLOW_PATH_MISMATCH');
-assert(artifactBinding.head_branch === 'main', 'ARTIFACT_NOT_MAIN');
+assert(artifactBinding.expected_source_sha === artifactBinding.head_sha, 'ARTIFACT_EXPECTED_SOURCE_SHA_MISMATCH');
+assert(artifactBinding.expected_head_branch === artifactBinding.head_branch, 'ARTIFACT_EXPECTED_HEAD_BRANCH_MISMATCH');
+const trustedMainArtifact = artifactBinding.validation_scope === 'MAIN' &&
+  artifactBinding.head_branch === 'main' && artifactBinding.production_eligible === true;
+const trustedPullRequestArtifact = artifactBinding.validation_scope === 'PULL_REQUEST_HEAD' &&
+  artifactBinding.head_branch !== 'main' && artifactBinding.production_eligible === false &&
+  artifactBinding.head_sha !== artifactBinding.consumer_sha;
+assert(trustedMainArtifact || trustedPullRequestArtifact, 'ARTIFACT_PROVENANCE_SCOPE_INVALID');
 assert(artifactBinding.status === 'completed' && artifactBinding.conclusion === 'success', 'ARTIFACT_RUN_NOT_SUCCESSFUL');
 assert(shaPattern.test(artifactBinding.head_sha) && shaPattern.test(artifactBinding.consumer_sha), 'ARTIFACT_SHA_INVALID');
 assert(artifactBinding.source_sha_ancestor_of_consumer === true, 'ARTIFACT_SOURCE_NOT_ANCESTOR');
