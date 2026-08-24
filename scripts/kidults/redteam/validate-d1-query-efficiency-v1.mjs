@@ -32,7 +32,12 @@ else {
     'idx_category_snapshots_run_score',
     'idx_publication_snapshots_channel_status_published',
     'idx_source_registry_active_family_region',
-    'idx_entity_registry_type'
+    'idx_entity_registry_type',
+    'idx_asi_outbox_recovery_due',
+    'idx_asi_replay_recovery_due',
+    'idx_asi_replay_awaiting_requested',
+    'idx_asi_task_leases_active',
+    'idx_asi_control_holds_reason'
   ]) if (!sql.includes(required)) errors.push(`missing hot-path index: ${required}`);
 }
 
