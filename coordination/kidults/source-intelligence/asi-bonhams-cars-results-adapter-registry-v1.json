@@ -19,6 +19,8 @@
     "generic_runtime": "services/kidults-autonomous-intelligence/src/asi/market-adapter.ts",
     "adapter_test": "services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs",
     "template_builder": "scripts/kidults/source-intelligence/build-asi-source-adapter-template-expansion-v1.mjs",
+    "purpose_rights_preflight": "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+    "purpose_rights_gate": "scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs",
     "validator": "scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs",
     "workflow": ".github/workflows/kidults-asi-bonhams-cars-results-adapter-v1.yml",
     "documentation": "docs/kidults/asi/asi-bonhams-cars-results-adapter-v1.md"
@@ -47,7 +49,7 @@
   "next_execution": {
     "reference_adapter_live_schema_preflight": "BLOCKED_PENDING_SECURITY_NETWORK_ACTIVATION_AND_RIGHTS_REVIEW",
     "first_evidence_admission": "BLOCKED_PENDING_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_AND_ACTIVATION_PASS",
-    "fallback_execution": "CONTINUE_IMPLEMENTING_REMAINING_15_SOURCE_SPECIFIC_ADAPTERS_FROM_GENERATED_TEMPLATE"
+    "fallback_execution": "QUEUE_REMAINING_PROFILES_IN_PURPOSE_RIGHTS_PREFLIGHT_ONLY;_IMPLEMENT_SOURCE_SPECIFIC_ADAPTERS_ONLY_AFTER_RIGHTS_CLEAR"
   },
   "truth_boundary": {
     "fixture_is_empirical_source_snapshot": false,

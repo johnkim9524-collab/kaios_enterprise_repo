@@ -4,9 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { buildPurposeRightsIndex, RIGHTS_CLEAR } from './lib/source-purpose-rights-gate-v1.mjs';
 
-const [outputDir, queuePath, manifestPath, receiptPath, artifactBindingPath, contractPath] = process.argv.slice(2);
-if (![outputDir, queuePath, manifestPath, receiptPath, artifactBindingPath, contractPath].every(Boolean)) {
+const [outputDir, queuePath, manifestPath, receiptPath, artifactBindingPath, contractPath, purposeRightsPreflightPath] = process.argv.slice(2);
+if (![outputDir, queuePath, manifestPath, receiptPath, artifactBindingPath, contractPath, purposeRightsPreflightPath].every(Boolean)) {
   throw new Error('REQUIREMENT_ADAPTER_COVERAGE_VALIDATION_ARGUMENTS_REQUIRED');
 }
 
@@ -40,7 +41,9 @@ for (const name of required) assert(fs.existsSync(file(name)), `OUTPUT_FILE_MISS
 assert(same(fs.readdirSync(outputDir).filter((name) => name.endsWith('.json')).sort(), [...required].sort()), 'OUTPUT_FILE_SET_INVALID');
 
 const contract = json(contractPath);
+const purposeRightsPreflight = json(purposeRightsPreflightPath);
 const artifactBinding = json(artifactBindingPath);
+const queue = json(queuePath);
 const ledger = json(file(required[0]));
 const familyCoverage = json(file(required[1]));
 const claimCeilings = json(file(required[2]));
@@ -52,6 +55,13 @@ const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'
 assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.0.0', 'CONTRACT_ID_VERSION');
 assert(same(contract.platform_principles, principles), 'CONTRACT_PRINCIPLES');
 assert(same(contract.required_outputs, required), 'CONTRACT_REQUIRED_OUTPUTS');
+assert(purposeRightsPreflight.id === 'kidults-top16-empirical-activation-preflight-v1' && purposeRightsPreflight.rows?.length === 16, 'PURPOSE_RIGHTS_PREFLIGHT_INPUT');
+const purposeRightsIndex = buildPurposeRightsIndex(
+  purposeRightsPreflight,
+  purposeRightsPreflight.rows.map((row) => row.source_id),
+  'CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION'
+);
+const expectedRightsClear = [...purposeRightsIndex.values()].filter((value) => value.decision === RIGHTS_CLEAR).length;
 
 const expectedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-requirement-adapter-coverage-expected-'));
 try {
@@ -62,6 +72,7 @@ try {
     receiptPath,
     artifactBindingPath,
     contractPath,
+    purposeRightsPreflightPath,
     expectedDir,
   ], { cwd: process.cwd(), encoding: 'utf8' });
   assert(replay.status === 0, `EXPECTED_REBUILD_FAILED:${replay.stderr || replay.stdout}`);
@@ -100,10 +111,15 @@ for (const record of ledger.records) {
   assert(record.producer_source_sha === artifactBinding.head_sha && record.consumer_source_sha === artifactBinding.consumer_sha, `COVERAGE_SOURCE_SHA:${record.mission_id}`);
   assert(/^sha256:[a-f0-9]{64}$/.test(record.upstream_digests?.replacement_queue) && /^sha256:[a-f0-9]{64}$/.test(record.upstream_digests?.resolution_manifest), `COVERAGE_UPSTREAM_DIGEST:${record.mission_id}`);
   assert(record.selected_source_ids.every((sourceId) => record.eligible_source_ids.includes(sourceId)), `COVERAGE_SELECTED_NOT_ELIGIBLE:${record.mission_id}`);
+  assert(record.acquisition_eligible_source_ids.every((sourceId) => record.rights_clear_source_ids.includes(sourceId)), `COVERAGE_ACQUISITION_RIGHTS:${record.mission_id}`);
+  assert(record.rights_hold_source_ids.every((sourceId) => purposeRightsIndex.get(sourceId)?.decision !== RIGHTS_CLEAR), `COVERAGE_RIGHTS_HOLD_SET:${record.mission_id}`);
   assert(record.qualifying_software_adapter_ids.every((sourceId) => record.eligible_source_ids.includes(sourceId)), `COVERAGE_QUALIFYING_NOT_ELIGIBLE:${record.mission_id}`);
   assert(record.selected_qualifying_software_adapter_ids.every((sourceId) => record.selected_source_ids.includes(sourceId) && record.qualifying_software_adapter_ids.includes(sourceId)), `COVERAGE_SELECTED_QUALIFYING_INVALID:${record.mission_id}`);
   assert(record.source_evaluations?.length === record.eligible_source_ids.length, `COVERAGE_EVALUATION_COUNT:${record.mission_id}`);
   for (const evaluation of record.source_evaluations) {
+    const rights = purposeRightsIndex.get(evaluation.source_id);
+    assert(rights && evaluation.purpose_rights_decision === rights.decision && same(evaluation.purpose_rights_reason_codes, rights.reason_codes), `COVERAGE_PURPOSE_RIGHTS_BINDING:${record.mission_id}:${evaluation.source_id}`);
+    assert(evaluation.acquisition_or_adapter_backlog_eligible === (rights.decision === RIGHTS_CLEAR), `COVERAGE_PURPOSE_RIGHTS_ELIGIBILITY:${record.mission_id}:${evaluation.source_id}`);
     const literalMatch = evaluation.implemented_claim_parsers.includes(record.required_adapter_claim);
     assert(evaluation.required_claim_parser_match === literalMatch, `COVERAGE_LITERAL_CLAIM_MATCH:${record.mission_id}:${evaluation.source_id}`);
     assert(evaluation.adapter_implemented === true, `COVERAGE_ADAPTER_IMPLEMENTATION:${record.mission_id}:${evaluation.source_id}`);
@@ -172,6 +188,14 @@ assert(outputManifest.results?.requirements_accounted_for === 192 && outputManif
 assert(outputManifest.results?.registered_source_profiles === 16 && outputManifest.results?.implemented_source_adapters === 16, 'OUTPUT_MANIFEST_SOURCE_DENOMINATOR');
 assert(outputManifest.results?.software_implemented_requirements === 39 && outputManifest.results?.context_only_requirements === 15 && outputManifest.results?.unmapped_requirements === 138, 'OUTPUT_MANIFEST_COVERAGE_COUNTS');
 assert(outputManifest.results?.software_gap_requirements === 153 && outputManifest.results?.rights_schema_activation_hold_requirements === 192, 'OUTPUT_MANIFEST_GAP_HOLD_COUNTS');
+assert(outputManifest.results?.rights_clear_registered_profiles === expectedRightsClear, 'OUTPUT_MANIFEST_RIGHTS_CLEAR_COUNT');
+assert(outputManifest.results?.rights_hold_registered_profiles === purposeRightsIndex.size - expectedRightsClear, 'OUTPUT_MANIFEST_RIGHTS_HOLD_COUNT');
+assert(outputManifest.results?.rights_preflight_queue_items === outputManifest.results?.rights_hold_registered_profiles, 'OUTPUT_MANIFEST_RIGHTS_QUEUE_COUNT');
+const expectedRightsMissionCount = new Set(ledger.records.filter((record) => record.selected_source_ids.length > 0).map((record) => record.mission_id)).size;
+const expectedRightsSlots = ledger.records.reduce((total, record) => total + record.selected_source_ids.length, 0);
+const expectedRightsSelected = uniq(ledger.records.flatMap((record) => record.selected_source_ids)).length;
+assert(outputManifest.results?.replacement_missions_with_rights_clear_profiles === expectedRightsMissionCount && outputManifest.results?.replacement_source_slots_filled === expectedRightsSlots && outputManifest.results?.unique_rights_clear_profiles_selected === expectedRightsSelected, 'OUTPUT_MANIFEST_REPLACEMENT_RIGHTS_COUNTS');
+assert(outputManifest.results?.rights_clear_gate === 'RIGHTS_CLEAR_FOR_PURPOSE_REQUIRED_BEFORE_ADAPTER_BACKLOG_OR_REPLACEMENT_PROFILE_SELECTION', 'OUTPUT_MANIFEST_RIGHTS_GATE');
 assert(outputManifest.results?.legacy_v2_adapter_requirement_ids_synthesized === 0 && outputManifest.results?.duplicate_sdk_or_runtime_introduced === 0, 'OUTPUT_MANIFEST_FORBIDDEN_ASSETS');
 for (const key of ['live_source_requests_executed', 'provider_contacts_executed', 'rights_passes_created', 'adapters_activated', 'evidence_admitted', 'market_events_created', 'snapshot_candidates_created', 'track_b_results_created', 'projections_created']) {
   assert(outputManifest.results?.[key] === 0, `OUTPUT_MANIFEST_PROMOTION:${key}`);

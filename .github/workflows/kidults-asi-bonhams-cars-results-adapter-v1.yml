@@ -10,9 +10,11 @@ on:
       - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json'
       - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json'
       - 'coordination/kidults/source-intelligence/asi-source-adapter-template-expansion-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-cars-results.ts'
       - 'services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-source-adapter-template-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs'
       - 'docs/kidults/asi/asi-bonhams-cars-results-adapter-v1.md'
       - '.github/workflows/kidults-asi-bonhams-cars-results-adapter-v1.yml'
@@ -22,9 +24,11 @@ on:
       - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json'
       - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json'
       - 'coordination/kidults/source-intelligence/asi-source-adapter-template-expansion-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-cars-results.ts'
       - 'services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-source-adapter-template-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs'
       - 'docs/kidults/asi/asi-bonhams-cars-results-adapter-v1.md'
       - '.github/workflows/kidults-asi-bonhams-cars-results-adapter-v1.yml'
@@ -63,6 +67,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs
           node --check scripts/kidults/source-intelligence/build-asi-source-adapter-template-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-bonhams-cars-results-adapter-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json','utf8'))"
@@ -83,12 +88,13 @@ jobs:
         run: |
           set -euo pipefail
           for RUN in 1 2; do
-            node scripts/kidults/source-intelligence/build-asi-source-adapter-template-expansion-v1.mjs \
-              coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
-              coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv \
-              coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json \
-              coordination/kidults/source-intelligence/asi-source-adapter-template-expansion-contract-v1.json \
-              "/tmp/kidults-asi-source-adapter-template-expansion-run-${RUN}"
+          node scripts/kidults/source-intelligence/build-asi-source-adapter-template-expansion-v1.mjs \
+            coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
+            coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv \
+            coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json \
+            coordination/kidults/source-intelligence/asi-source-adapter-template-expansion-contract-v1.json \
+            coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
+            "/tmp/kidults-asi-source-adapter-template-expansion-run-${RUN}"
           done
           diff -qr /tmp/kidults-asi-source-adapter-template-expansion-run-1 /tmp/kidults-asi-source-adapter-template-expansion-run-2
           cp -a /tmp/kidults-asi-source-adapter-template-expansion-run-1 /tmp/kidults-asi-source-adapter-template-expansion-v1

@@ -23,7 +23,9 @@
     "documentation": "docs/kidults/asi/asi-autonomous-resolution-layer-v1.md",
     "source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
     "scope_crosswalk": "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
-    "market_adapter_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json"
+    "market_adapter_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+    "purpose_rights_preflight": "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+    "purpose_rights_gate": "scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs"
   },
   "registered_engines": [
     "ACTION_DEPENDENCY_GRAPH_ENGINE",
@@ -59,7 +61,9 @@
     "all_current_actions_must_reach_terminal_state": true,
     "terminal_semantic_rejection_may_supersede_nonsemantic_actions": true,
     "candidate_global_retirement_from_mission_rejection_allowed": false,
-    "registered_replacement_profile_is_permission": false
+    "registered_replacement_profile_is_permission": false,
+    "rights_clear_required_before_replacement_profile_selection": true,
+    "unknown_or_conditional_rights_enter_rights_preflight_queue": true
   },
   "truth_boundary": {
     "live_target_site_network_probe": false,
