@@ -22,6 +22,16 @@ const POSITIVE_ACCESS = new Set([
 const POSITIVE_FIELD_RIGHTS = new Set(['ALLOW', 'ALLOW_FOR_PURPOSE', 'PASS', 'VERIFIED_PASS']);
 
 const PURPOSE_SPECS = new Map([
+  ['CURRENT_SOLD_TRANSACTION_REFERENCE', {
+    required_roles_all: ['SOLD_TRANSACTION'],
+    required_evidence_classes_all: ['CURRENT_SOLD_TRANSACTION_REFERENCE'],
+    required_field_groups: [
+      ['source_record_id', 'equipment_id', 'equip_id', 'lot_id', 'transaction_id'],
+      ['sale_price', 'realized_price', 'final_price'],
+      ['sale_date', 'event_at', 'transaction_date']
+    ],
+    required_outputs_all: ['INTERNAL_CURRENT_SOLD_REFERENCE']
+  }],
   ['CURRENT_SOLD_TRANSACTION', {
     required_roles_all: ['SOLD_TRANSACTION'],
     required_evidence_classes_all: ['CURRENT_SOLD_TRANSACTION'],
