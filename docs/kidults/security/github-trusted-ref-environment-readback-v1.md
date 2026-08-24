@@ -76,10 +76,20 @@ node scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mj
 
 `GITHUB_TOKEN` may be present in the process environment for metadata authorization. The token value is never accepted as a CLI argument, written to the receipt, or printed. The receipt records only the authorization/activation class: ephemeral GitHub token metadata read, public metadata, or test fixture. A plain environment variable cannot promote that token to the future GitHub App authorization class.
 
+## Repository live-main and credential-lifetime controls
+
+All 15 registered secret-bearing jobs implement the same inline, secret-free preflight before any provider credential is resolved. The preflight uses only `${{ github.token }}` with `contents: read` to GET `/repos/$GITHUB_REPOSITORY/branches/main`; an unreadable or malformed response, a non-`main` ref, or any SHA other than exact `GITHUB_SHA` fails closed.
+
+Provider secrets are forbidden at workflow and job scope. The dispatch registry names the single allowed credential-consuming step for each privileged job, and the repository validator proves 15/15 guards, 15/15 step-scoped bindings, zero workflow-scope bindings, zero job-scope bindings, and rejects stale, unreadable, non-main, ordering, and scope mutations.
+
+The Portal STAGING lane additionally keeps host-key scan and fingerprint verification secret-free, materializes the SSH identity in a separate minimal step, removes the private key and `known_hosts` immediately after remote receipts are collected, and performs receipt validation and artifact upload only after that cleanup.
+
+These repository controls reduce the stale-main and credential-lifetime attack surface, but they do not make a branch-controlled workflow a GitHub control-plane trust root. A changed workflow can remove its own guard until external Environment deployment policy, bypass configuration, secret placement, live execution, negative-control evidence, and trusted attestation are independently read back. They therefore do not close #974.
+
 ## Remaining external blockers
 
 1. Program Owner security approval for any Environment, secret-scope, deployment-policy, ruleset, or trusted-handoff change.
-2. Land the 15 repository-side static Environment bindings and exact-`main` guards on protected `main`, then verify that live GitHub executes that exact source. The bindings are implemented locally but are not merged or externally proven.
+2. Land the 15 repository-side Environment bindings, live-main guards, and step-only secret-lifetime controls on protected `main`, then verify that live GitHub executes that exact source. The controls are implemented locally but are not merged or externally proven.
 3. Exact-`main` external deployment branch policy for each bound Environment.
 4. Administrator bypass disabled for every bound Environment.
 5. Authorized Environment-secret metadata read-back proving every referenced secret name resolves in the bound Environment, without reading values.

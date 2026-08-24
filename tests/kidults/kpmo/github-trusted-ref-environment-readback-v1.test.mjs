@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import {
   CONTRACT_PATH,
+  LIVE_MAIN_GUARD_STEP_NAME,
   REGISTRY_PATH,
   analyzeWorkflow,
   buildReadbackReceipt,
@@ -17,6 +18,62 @@ const contract = JSON.parse(fs.readFileSync(CONTRACT_PATH, 'utf8'));
 const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
 const currentInventory = buildWorkflowInventory(process.cwd(), registry);
 const mainSha = 'a'.repeat(40);
+
+function replaceInLiveMainGuard(source, before, after) {
+  const header = `      - name: ${LIVE_MAIN_GUARD_STEP_NAME}`;
+  const start = source.indexOf(header);
+  assert.notEqual(start, -1, 'live-main guard step fixture missing');
+  const end = source.indexOf('\n      - ', start + header.length);
+  const boundary = end < 0 ? source.length : end;
+  const block = source.slice(start, boundary);
+  assert.ok(block.includes(before), `live-main guard marker missing: ${before}`);
+  const mutatedBlock = block.replace(before, after);
+  return `${source.slice(0, start)}${mutatedBlock}${source.slice(boundary)}`;
+}
+
+function replaceLaneSource(inventory, workflow, source) {
+  const mutated = structuredClone(inventory);
+  const laneIndex = mutated.lanes.findIndex((lane) => lane.workflow === workflow);
+  assert.notEqual(laneIndex, -1, `registered workflow fixture missing: ${workflow}`);
+  mutated.lanes[laneIndex] = analyzeWorkflow(source, workflow);
+  return mutated;
+}
+
+function injectJobScopeSecret(source, jobName) {
+  const jobHeader = `  ${jobName}:`;
+  const jobStart = source.indexOf(jobHeader);
+  assert.notEqual(jobStart, -1, `job fixture missing: ${jobName}`);
+  const steps = source.indexOf('    steps:', jobStart);
+  assert.notEqual(steps, -1, `steps fixture missing: ${jobName}`);
+  const secretExpression = '$' + '{{ secrets.MUTATED_SCOPE_SECRET }}';
+  return `${source.slice(0, steps)}    env:\n      MUTATED_SCOPE_SECRET: ${secretExpression}\n${source.slice(steps)}`;
+}
+
+function injectJobPermissionOverride(source, jobName) {
+  const jobHeader = `  ${jobName}:`;
+  const jobStart = source.indexOf(jobHeader);
+  assert.notEqual(jobStart, -1, `job fixture missing: ${jobName}`);
+  const steps = source.indexOf('    steps:', jobStart);
+  assert.notEqual(steps, -1, `steps fixture missing: ${jobName}`);
+  return `${source.slice(0, steps)}    permissions: write-all\n${source.slice(steps)}`;
+}
+
+function moveNamedStepAfter(source, stepName, afterStepName) {
+  const header = `      - name: ${stepName}`;
+  const start = source.indexOf(header);
+  assert.notEqual(start, -1, `step fixture missing: ${stepName}`);
+  const endMatch = source.indexOf('\n      - ', start + header.length);
+  const end = endMatch < 0 ? source.length : endMatch;
+  const block = source.slice(start, end);
+  const withoutBlock = `${source.slice(0, start)}${source.slice(end)}`;
+
+  const afterHeader = `      - name: ${afterStepName}`;
+  const afterStart = withoutBlock.indexOf(afterHeader);
+  assert.notEqual(afterStart, -1, `step fixture missing: ${afterStepName}`);
+  const afterEndMatch = withoutBlock.indexOf('\n      - ', afterStart + afterHeader.length);
+  const afterEnd = afterEndMatch < 0 ? withoutBlock.length : afterEndMatch;
+  return `${withoutBlock.slice(0, afterEnd)}\n${block}${withoutBlock.slice(afterEnd)}`;
+}
 
 function verifiedInventory() {
   const inventory = structuredClone(currentInventory);
@@ -215,6 +272,103 @@ test('selected non-main ref and stale main SHA are independently rejected', () =
   const stale = receipt({ sha: 'b'.repeat(40) });
   assert.equal(stale.state, 'BLOCKED');
   assert.ok(stale.blockers.includes('EXACT_SOURCE_SHA_NOT_OBSERVED_DEFAULT_BRANCH_HEAD'));
+});
+
+test('all 15 privileged jobs reject unreadable, stale, and non-main live-main guards', () => {
+  const mutations = [
+    [
+      'unreadable_api_fail_open',
+      'curl --fail-with-body --silent --show-error',
+      'curl --silent --show-error'
+    ],
+    [
+      'stale_main_fail_open',
+      'test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"',
+      'test -n "$LIVE_MAIN_SHA"'
+    ],
+    [
+      'non_main_fail_open',
+      'test "$GITHUB_REF" = "refs/heads/main"',
+      'test -n "$GITHUB_REF"'
+    ]
+  ];
+  let rejected = 0;
+  for (const lane of currentInventory.lanes) {
+    const source = fs.readFileSync(lane.workflow, 'utf8');
+    for (const [id, before, after] of mutations) {
+      const mutatedSource = replaceInLiveMainGuard(source, before, after);
+      const failures = validateRequiredEnvironmentBindings(
+        replaceLaneSource(currentInventory, lane.workflow, mutatedSource),
+        registry
+      );
+      assert.ok(
+        failures.some((failure) => failure.startsWith('LIVE_MAIN_GUARD_CONTRACT:')),
+        `${lane.workflow} accepted ${id}: ${failures.join(',')}`
+      );
+      rejected += 1;
+    }
+  }
+  assert.equal(rejected, 45);
+});
+
+test('all 15 privileged jobs reject secret scope and guard order mutations', () => {
+  let rejected = 0;
+  for (const lane of currentInventory.lanes) {
+    const job = lane.secret_bearing_jobs[0];
+    const source = fs.readFileSync(lane.workflow, 'utf8');
+    const secretExpression = '$' + '{{ secrets.MUTATED_SCOPE_SECRET }}';
+
+    const workflowScoped = source.replace(
+      '\njobs:\n',
+      `\nenv:\n  MUTATED_SCOPE_SECRET: ${secretExpression}\njobs:\n`
+    );
+    let failures = validateRequiredEnvironmentBindings(
+      replaceLaneSource(currentInventory, lane.workflow, workflowScoped),
+      registry
+    );
+    assert.ok(failures.some((failure) => failure.startsWith('WORKFLOW_SCOPE_PROVIDER_SECRET:')));
+    rejected += 1;
+
+    const jobScoped = injectJobScopeSecret(source, job.job);
+    failures = validateRequiredEnvironmentBindings(
+      replaceLaneSource(currentInventory, lane.workflow, jobScoped),
+      registry
+    );
+    assert.ok(failures.some((failure) => failure.startsWith('JOB_SCOPE_PROVIDER_SECRET:')));
+    rejected += 1;
+
+    const expandedJobToken = injectJobPermissionOverride(source, job.job);
+    failures = validateRequiredEnvironmentBindings(
+      replaceLaneSource(currentInventory, lane.workflow, expandedJobToken),
+      registry
+    );
+    assert.ok(failures.some((failure) => failure.startsWith('GITHUB_TOKEN_JOB_PERMISSION_OVERRIDE:')));
+    rejected += 1;
+
+    const binding = registry.required_environment_bindings.find((item) => (
+      item.workflow === lane.workflow && item.job === job.job
+    ));
+    const secretStepName = binding.required_secret_step_names[0];
+    const reorderedSource = moveNamedStepAfter(source, LIVE_MAIN_GUARD_STEP_NAME, secretStepName);
+    failures = validateRequiredEnvironmentBindings(
+      replaceLaneSource(currentInventory, lane.workflow, reorderedSource),
+      registry
+    );
+    assert.ok(failures.some((failure) => failure.startsWith('LIVE_MAIN_GUARD_ORDER:')));
+    rejected += 1;
+
+    const renamedSource = source.replace(
+      `      - name: ${secretStepName}`,
+      '      - name: Mutated broad provider-secret step'
+    );
+    failures = validateRequiredEnvironmentBindings(
+      replaceLaneSource(currentInventory, lane.workflow, renamedSource),
+      registry
+    );
+    assert.ok(failures.some((failure) => failure.startsWith('REQUIRED_SECRET_STEP_MISMATCH:')));
+    rejected += 1;
+  }
+  assert.equal(rejected, 75);
 });
 
 test('unprotected main, wildcard policy, and unreadable secret metadata fail closed', () => {
