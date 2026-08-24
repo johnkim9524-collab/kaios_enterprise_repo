@@ -47,7 +47,7 @@ jobs:
           import { chromium } from 'playwright';
           import AxeBuilder from '@axe-core/playwright';
           import fs from 'node:fs/promises';
-          const routes=['/portal-r001/index.html','/portal-r001/object.html'];
+          const routes=['/index.html','/object.html'];
           const viewports=[{name:'desktop',width:1440,height:1000},{name:'mobile320',width:320,height:800}];
           const browser=await chromium.launch({headless:true});
           const results=[];
