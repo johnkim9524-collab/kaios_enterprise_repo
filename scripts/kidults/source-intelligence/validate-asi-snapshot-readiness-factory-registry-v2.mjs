@@ -212,6 +212,9 @@ for (const marker of [
   'P2_LINEAGE_INPUT_DIGEST_MISMATCH',
   'global_artifact_scan_used: false',
   'mutation_cases: mutations.length',
+  'const noArgumentSelfTest = args.length === 0',
+  "const explicitSelfTest = args.length === 1 && args[0] === '--self-test'",
+  "invocation_mode: noArgumentSelfTest ? 'NO_ARGUMENT_SAFE_SELF_TEST' : 'EXPLICIT_SELF_TEST'",
 ]) assert(upstreamValidator.includes(marker), `UPSTREAM_VALIDATOR_MARKER:${marker}`);
 for (const marker of [
   '# KIDULTS ASI Snapshot Readiness Factory v2.1',

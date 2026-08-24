@@ -46,6 +46,15 @@ const providerAdapterBoundaryValidators = [
   'scripts/kidults/kpmo/validate-provider-adapter-workflow-provenance-v1.mjs',
   'scripts/kidults/kpmo/validate-privileged-provider-probe-workflow-provenance-v1.mjs'
 ];
+const snapshotReadinessValidators = [
+  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs',
+  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs',
+  'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
+];
+if (JSON.stringify(orchestrator.required_snapshot_readiness_validators || []) !== JSON.stringify(snapshotReadinessValidators)) {
+  console.error('FAIL aggregate Red-Team snapshot-readiness validator registry is not exact');
+  process.exit(1);
+}
 const runtimeBoundaryValidators = [
   'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
@@ -75,6 +84,7 @@ const validators = [...new Set([
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
   ...providerAdapterBoundaryValidators,
+  ...snapshotReadinessValidators,
   ...runtimeBoundaryValidators,
   ...productionRecoveryValidators,
   ...downstreamBoundaryValidators
@@ -152,6 +162,11 @@ console.log(JSON.stringify({
   provider_rights_decision_gate_machine_bound: true,
   provider_adapter_workflow_provenance_machine_bound: true,
   provider_adapter_boundary_validators: providerAdapterBoundaryValidators.length,
+  snapshot_readiness_factory_machine_bound: true,
+  snapshot_readiness_validators: snapshotReadinessValidators.length,
+  snapshot_readiness_upstream_no_argument_mode: 'SAFE_SELF_TEST',
+  snapshot_readiness_output_existence_is_prerequisite: false,
+  snapshot_readiness_track_b_submission_preauthorized: false,
   runtime_boundary_validators: runtimeBoundaryValidators.length,
   digitalocean_staging_bootstrap_boundary_machine_bound: true,
   digitalocean_staging_bootstrap_exec_contract_machine_bound: true,

@@ -9,12 +9,20 @@ const requiredConcreteRuntimeBoundaryValidators = [
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py'
 ];
+const requiredSnapshotReadinessValidators = [
+  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs',
+  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs',
+  'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
+];
 
 if (data.aggregate_machine_enforcement?.require_all_stage_checks_bound !== true) {
   throw new Error('Aggregate Red-Team must require all stage checks to be machine-bound');
 }
 if (data.aggregate_machine_enforcement?.require_all_runtime_boundary_validators_pass !== true) {
   throw new Error('Aggregate Red-Team must require all runtime boundary validators to pass');
+}
+if (data.aggregate_machine_enforcement?.require_all_snapshot_readiness_validators_pass !== true) {
+  throw new Error('Aggregate Red-Team must require all snapshot-readiness validators to pass');
 }
 
 const stages = Array.isArray(data.chain_stages) ? data.chain_stages : [];
@@ -23,6 +31,10 @@ if (stages.length === 0) throw new Error('No Red-Team stages declared');
 const stageIds = new Set(stages.map(stage => stage.id));
 const coverage = data.stage_machine_coverage || {};
 const configuredRuntimeBoundaryValidators = data.required_runtime_boundary_validators || [];
+const configuredSnapshotReadinessValidators = data.required_snapshot_readiness_validators || [];
+if (JSON.stringify(configuredSnapshotReadinessValidators) !== JSON.stringify(requiredSnapshotReadinessValidators)) {
+  throw new Error('Required snapshot-readiness validator registry must remain exact and ordered');
+}
 const configuredRuntimeSet = new Set(configuredRuntimeBoundaryValidators);
 for (const validator of requiredConcreteRuntimeBoundaryValidators) {
   if (!configuredRuntimeSet.has(validator)) {
@@ -31,6 +43,7 @@ for (const validator of requiredConcreteRuntimeBoundaryValidators) {
 }
 const aggregateValidators = new Set([
   ...(data.required_family_validators || []),
+  ...configuredSnapshotReadinessValidators,
   ...configuredRuntimeBoundaryValidators
 ]);
 
@@ -90,6 +103,13 @@ for (const validator of requiredConcreteRuntimeBoundaryValidators) {
   }
 }
 
+const snapshotValidators = new Set(coverage.SNAPSHOT_AND_TRACK_B?.validators || []);
+for (const validator of requiredSnapshotReadinessValidators) {
+  if (!snapshotValidators.has(validator)) {
+    throw new Error(`SNAPSHOT_AND_TRACK_B stage missing required snapshot-readiness validator: ${validator}`);
+  }
+}
+
 const runnerPath = path.join(root, data.aggregate_machine_enforcement?.runner || '');
 if (!fs.existsSync(runnerPath)) throw new Error('Aggregate Red-Team runner missing while validating runtime boundary');
 const runnerText = fs.readFileSync(runnerPath, 'utf8');
@@ -98,8 +118,13 @@ for (const validator of requiredConcreteRuntimeBoundaryValidators) {
     throw new Error(`Aggregate Red-Team runner missing concrete runtime boundary validator: ${validator}`);
   }
 }
+for (const validator of requiredSnapshotReadinessValidators) {
+  if (!runnerText.includes(validator)) {
+    throw new Error(`Aggregate Red-Team runner missing snapshot-readiness validator: ${validator}`);
+  }
+}
 if (!runnerText.includes("script.endsWith('.py')")) {
   throw new Error('Aggregate Red-Team runner missing fail-closed Python validator interpreter routing');
 }
 
-console.log(`PASS full value-chain stage machine coverage: ${stages.length} stages, ${stages.reduce((n, stage) => n + stage.checks.length, 0)} checks bound only to aggregate-executed validators; concrete runtime boundaries ${requiredConcreteRuntimeBoundaryValidators.length}; empirical promotion NONE`);
+console.log(`PASS full value-chain stage machine coverage: ${stages.length} stages, ${stages.reduce((n, stage) => n + stage.checks.length, 0)} checks bound only to aggregate-executed validators; snapshot-readiness validators ${requiredSnapshotReadinessValidators.length}; concrete runtime boundaries ${requiredConcreteRuntimeBoundaryValidators.length}; empirical promotion NONE`);
