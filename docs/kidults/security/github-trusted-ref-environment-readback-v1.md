@@ -8,7 +8,7 @@ This control implements a read-only, fail-closed evidence path for #974. It does
 
 ## Last verified external observation
 
-The observation below is time-bounded to `2026-08-23T11:47:52Z`. GitHub `main` had already advanced from the earlier requested `79366dcb7610b68862fc73c710838e1b6db5b814` to `d222db86e3d2db6427ea126ce56ce939277ff77b`; the latter was re-read from the live branch endpoint before recording this observation.
+The observation below is time-bounded to `2026-08-23T11:47:52Z`. It is historical external evidence, not a claim about this unmerged implementation branch. GitHub `main` had already advanced from the earlier requested `79366dcb7610b68862fc73c710838e1b6db5b814` to `d222db86e3d2db6427ea126ce56ce939277ff77b`; the latter was re-read from the live branch endpoint before recording this observation.
 
 Read-only GitHub REST metadata showed:
 
@@ -25,7 +25,9 @@ The observation used only public control-plane metadata. It did not read secret 
 
 ## Implemented internal control
 
-The collector derives the current privileged-job set from `secret-bearing-workflow-dispatch-registry-v1.json`, parses each job's secret references and Environment binding, and performs GET-only GitHub metadata reads. Every list endpoint is paginated to exhaustion and reconciled to its reported count before it can contribute to a pass. The receipt records exact source SHA/ref, live default-branch SHA, endpoint statuses, per-job binding results, deployment-policy results, Environment coverage, repository/organization scope-absence counts/digests, and negative-execution evidence without emitting secret names or values.
+The repository-side implementation now statically binds all 15 registered secret-bearing jobs to eight named GitHub Environments and gives every such job an exact-`main` guard. The registry binds every workflow/job identity to its required Environment and to a digest of its required secret-name set. The machine validator rejects a missing, renamed, dynamic, duplicate, or extra binding; a changed secret-name digest; or a removed exact-`main` guard. These local bindings do not prove that the eight Environments exist, have exact-`main` deployment policies, disable administrator bypass, or contain Environment-only secrets on live GitHub.
+
+The collector derives the current privileged-job set from `secret-bearing-workflow-dispatch-registry-v1.json`, parses each job's secret references and Environment binding, and performs GET-only GitHub metadata reads. Every list endpoint is paginated to exhaustion and reconciled to its reported count before it can contribute to a pass. The receipt records exact source SHA/ref, live default-branch SHA, endpoint statuses, registry-to-workflow binding results, deployment-policy results, Environment coverage, repository/organization scope-absence counts/digests, and negative-execution evidence without emitting secret names or values.
 
 The validator rejects:
 
@@ -33,6 +35,9 @@ The validator rejects:
 - a stale SHA represented as current `main`;
 - unprotected or unreadable `main` metadata;
 - a missing, dynamic, or unobserved job Environment;
+- a workflow/job Environment name that differs from the registry binding;
+- a required secret-name set whose digest differs from the registry binding;
+- a secret-bearing job without a repository exact-`main` guard;
 - wildcard, tag, multiple, or otherwise non-exact-`main` deployment policies;
 - unreadable or incomplete Environment-secret name coverage;
 - any required credential name that still exists at repository or organization scope;
@@ -74,7 +79,7 @@ node scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mj
 ## Remaining external blockers
 
 1. Program Owner security approval for any Environment, secret-scope, deployment-policy, ruleset, or trusted-handoff change.
-2. Static Environment binding for every secret-bearing job, or a separately authorized trusted-default-branch/release handoff.
+2. Land the 15 repository-side static Environment bindings and exact-`main` guards on protected `main`, then verify that live GitHub executes that exact source. The bindings are implemented locally but are not merged or externally proven.
 3. Exact-`main` external deployment branch policy for each bound Environment.
 4. Administrator bypass disabled for every bound Environment.
 5. Authorized Environment-secret metadata read-back proving every referenced secret name resolves in the bound Environment, without reading values.
@@ -89,4 +94,4 @@ This work changes only assurance observability. Partner ingestion remains `HOLD`
 
 ## Rollback
 
-Revert the single implementation commit or remove the contract, collector, validator, test, documentation, workflow, and registry pointer together. The workflow is read-only and creates no external setting to undo; retained workflow artifacts can expire under the 30-day retention policy.
+Revert the repository implementation commits together. The read-back workflow is read-only and creates no external setting to undo. If the eight Environments or their secret scopes are later configured through a separately approved external change, that external change requires its own rollback plan; it is not undone by a Git revert.

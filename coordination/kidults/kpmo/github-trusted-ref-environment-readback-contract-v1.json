@@ -1,6 +1,6 @@
 {
   "id": "kidults-github-trusted-ref-environment-readback-contract-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "issue": 974,
   "parent_gate_issue": 881,
   "status": "IMPLEMENTED_READ_ONLY_PROOF_PATH_EXTERNAL_POLICY_NOT_VERIFIED",
@@ -20,6 +20,8 @@
   "approved_closure_patterns": {
     "github_environment": {
       "each_secret_bearing_job_has_static_environment_binding": true,
+      "each_secret_bearing_job_matches_registry_environment_and_secret_digest": true,
+      "each_secret_bearing_job_has_repository_exact_main_guard": true,
       "environment_exists_in_live_github_readback": true,
       "deployment_branch_policy_is_exact_main_only": true,
       "environment_administrator_bypass_is_disabled": true,
@@ -69,6 +71,8 @@
     "external_proof_authorization_mode": "GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ",
     "endpoint_http_statuses": true,
     "workflow_job_environment_binding_results": true,
+    "registry_environment_name_and_secret_digest_binding_results": true,
+    "repository_exact_main_guard_results": true,
     "environment_policy_results": true,
     "environment_secret_name_coverage_without_names_or_values": true,
     "repository_and_organization_secret_name_absence_without_names_or_values": true,

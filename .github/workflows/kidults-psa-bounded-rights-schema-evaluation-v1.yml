@@ -54,6 +54,8 @@ jobs:
           test "$code" -eq 3
 
   bounded-live-schema-probe:
+    if: github.ref == 'refs/heads/main'
+    environment: kidults-psa-bounded-probe
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
