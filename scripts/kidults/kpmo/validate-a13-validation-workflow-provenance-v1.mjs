@@ -48,13 +48,13 @@ function workflowFindings(text) {
   require(text.includes(`EXPECTED_SHA: ${EXACT_SOURCE}`), 'EXPECTED_SHA_BINDING_MISSING');
   require(/ACTUAL_SHA="\$\(git rev-parse HEAD\)"/.test(text), 'ACTUAL_SHA_READBACK_MISSING');
   require(/test "\$\{ACTUAL_SHA\}" = "\$\{EXPECTED_SHA\}"/.test(text), 'SOURCE_SHA_EQUALITY_ASSERTION_MISSING');
-  require(/node-version:\s*['"]24['"]/.test(text), 'NODE_24_REQUIRED');
+  require(/node-version:\s*['"]24\.19\.0['"]/.test(text), 'NODE_24_19_0_REQUIRED');
   require(/package-manager-cache:\s*false/.test(text), 'PACKAGE_MANAGER_CACHE_POLICY_MISSING');
   require(text.includes(`node ${SELF}`), 'SELF_PROVENANCE_VALIDATION_MISSING');
   require(text.includes(`node ${RECEIPT_BUILDER} /tmp/kidults-a13-validation-toolchain-receipt-v1.json`), 'TOOLCHAIN_RECEIPT_BUILDER_MISSING');
   require(text.includes(`SOURCE_SHA: ${EXACT_SOURCE}`), 'TOOLCHAIN_RECEIPT_SOURCE_BINDING_MISSING');
   require(text.includes('/tmp/kidults-a13-validation-toolchain-receipt-v1.json'), 'TOOLCHAIN_RECEIPT_ARTIFACT_BINDING_MISSING');
-  require(count(text, /^\s*run:\s*npm ci\s*$/gm) === 1, 'NPM_CI_COUNT_NOT_EXACTLY_ONE');
+  require(count(text, /^\s*run:\s*npm ci --ignore-scripts --no-audit --no-fund\s*$/gm) === 1, 'NPM_CI_COUNT_NOT_EXACTLY_ONE');
   require(!activeRunLines(text).some((line) => /^(?:run:\s*)?npm\s+install\b/i.test(line)), 'MUTABLE_NPM_INSTALL_FORBIDDEN');
   require(/run:\s*npm run typecheck/.test(text), 'TYPECHECK_MISSING');
   require(/run:\s*npm run a13:smoke/.test(text), 'A13_SMOKE_MISSING');
@@ -146,9 +146,9 @@ const workflowMutations = [
   ['wrong-source-ref', workflow.replace(`ref: ${EXACT_SOURCE}`, 'ref: main'), 'EXACT_SOURCE_REF_MISSING'],
   ['credential-persistence-default', workflow.replace(/\n\s*persist-credentials:\s*false/, ''), 'CHECKOUT_CREDENTIAL_PERSISTENCE_NOT_DISABLED'],
   ['sha-readback-removed', workflow.replace('ACTUAL_SHA="$(git rev-parse HEAD)"', 'ACTUAL_SHA="${EXPECTED_SHA}"'), 'ACTUAL_SHA_READBACK_MISSING'],
-  ['node-downgrade', workflow.replace("node-version: '24'", "node-version: '22'"), 'NODE_24_REQUIRED'],
+  ['node-downgrade', workflow.replace("node-version: '24.19.0'", "node-version: '24'"), 'NODE_24_19_0_REQUIRED'],
   ['cache-policy-removed', workflow.replace(/\n\s*package-manager-cache:\s*false/, ''), 'PACKAGE_MANAGER_CACHE_POLICY_MISSING'],
-  ['mutable-install', workflow.replace('run: npm ci', 'run: npm install'), 'NPM_CI_COUNT_NOT_EXACTLY_ONE'],
+  ['mutable-install', workflow.replace('run: npm ci --ignore-scripts --no-audit --no-fund', 'run: npm install'), 'NPM_CI_COUNT_NOT_EXACTLY_ONE'],
   ['receipt-unbound', workflow.replace('/tmp/kidults-a13-validation-toolchain-receipt-v1.json', '/tmp/unbound.json'), 'TOOLCHAIN_RECEIPT_BUILDER_MISSING'],
   ['secret-injection', `${workflow}\nenv:\n  TOKEN: \${{ secrets.BAD }}\n`, 'SECRET_CONTEXT_FORBIDDEN'],
   ['remote-command', workflow.replace('run: npm run a13:smoke', 'run: npm run remote:d1:preflight'), 'REMOTE_RUNTIME_COMMAND_FORBIDDEN']
@@ -187,7 +187,7 @@ const result = {
   target: WORKFLOW_PATH,
   scope: 'SYNTHETIC_NON_PRODUCTION_VALIDATION_ONLY',
   runner: 'ubuntu-24.04',
-  node: '24',
+  node: '24.19.0',
   immutable_action_refs: externalActionRefs(workflow).length,
   exact_source_sha_required: true,
   checkout_credentials_persisted: false,

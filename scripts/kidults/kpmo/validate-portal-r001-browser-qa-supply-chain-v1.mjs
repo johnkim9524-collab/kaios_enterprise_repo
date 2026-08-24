@@ -43,7 +43,7 @@ function workflowFindings(text) {
   require(text.includes(`EXPECTED_SHA: ${EXACT_SOURCE}`), 'EXPECTED_SHA_BINDING_MISSING');
   require(/ACTUAL_SHA="\$\(git rev-parse HEAD\)"/.test(text), 'ACTUAL_SHA_READBACK_MISSING');
   require(/test "\$\{ACTUAL_SHA\}" = "\$\{EXPECTED_SHA\}"/.test(text), 'SOURCE_SHA_EQUALITY_ASSERTION_MISSING');
-  require(/node-version:\s*['"]24['"]/.test(text), 'NODE_24_REQUIRED');
+  require(/node-version:\s*['"]24\.19\.0['"]/.test(text), 'NODE_24_19_0_REQUIRED');
   require(/package-manager-cache:\s*false/.test(text), 'PACKAGE_MANAGER_CACHE_POLICY_MISSING');
   require(text.includes(`node ${SELF}`), 'SELF_PROVENANCE_VALIDATION_MISSING');
   require(text.split(/\r?\n/).some((line) => line.trim() === `- '${FIXTURE_BUILDER}'`), 'FIXTURE_BUILDER_PATH_TRIGGER_MISSING');
@@ -113,7 +113,7 @@ const findings = [...workflowFindings(workflow), ...lockFindings(pkg, lock), ...
 if (findings.length) throw new Error(`PORTAL_BROWSER_QA_SUPPLY_CHAIN_INVALID:${findings.join(',')}`);
 
 expectMutation('MUTABLE_CHECKOUT', workflow.replace(`actions/checkout@${CHECKOUT_SHA} # v7.0.1`, 'actions/checkout@v7'), 'MUTABLE_OR_NONFULL_ACTION_REF');
-expectMutation('NODE_DOWNGRADE', workflow.replace("node-version: '24'", 'node-version: 22'), 'NODE_24_REQUIRED');
+expectMutation('NODE_DOWNGRADE', workflow.replace("node-version: '24.19.0'", "node-version: '24'"), 'NODE_24_19_0_REQUIRED');
 expectMutation('NPM_INSTALL', workflow.replace('npm ci --prefix /tmp/kidults-r001-qa --ignore-scripts --no-audit --no-fund', 'npm install --prefix /tmp/kidults-r001-qa'), 'MUTABLE_NPM_INSTALL_FORBIDDEN');
 expectMutation('NPX', workflow.replace('node /tmp/kidults-r001-qa/node_modules/playwright/cli.js', 'npx playwright'), 'NPX_RUNTIME_RESOLUTION_FORBIDDEN');
 expectMutation('CREDENTIAL_PERSIST', workflow.replace('persist-credentials: false', 'persist-credentials: true'), 'CHECKOUT_CREDENTIAL_PERSISTENCE_NOT_DISABLED');
