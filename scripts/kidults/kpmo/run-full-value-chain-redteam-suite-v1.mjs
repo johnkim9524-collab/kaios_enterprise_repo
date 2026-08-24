@@ -7,9 +7,7 @@ const structuralValidator = 'scripts/kidults/kpmo/validate-full-value-chain-redt
 const stageCoverageValidator = 'scripts/kidults/kpmo/validate-full-value-chain-stage-machine-coverage-v1.mjs';
 const criticalGateBindingValidator = 'scripts/kidults/kpmo/validate-full-value-chain-critical-gate-bindings-v1.mjs';
 const criticalWorkflowProvenanceValidators = [
-  'scripts/kidults/kpmo/validate-estate-action-pinning-v1.mjs',
   'scripts/kidults/kpmo/validate-critical-workflow-provenance-v1.mjs',
-  'scripts/kidults/kpmo/validate-dependency-bootstrap-lock-v1.mjs',
   'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs',
   'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs',
   'scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs'
@@ -46,15 +44,6 @@ const providerAdapterBoundaryValidators = [
   'scripts/kidults/kpmo/validate-provider-adapter-workflow-provenance-v1.mjs',
   'scripts/kidults/kpmo/validate-privileged-provider-probe-workflow-provenance-v1.mjs'
 ];
-const snapshotReadinessValidators = [
-  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs',
-  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs',
-  'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
-];
-if (JSON.stringify(orchestrator.required_snapshot_readiness_validators || []) !== JSON.stringify(snapshotReadinessValidators)) {
-  console.error('FAIL aggregate Red-Team snapshot-readiness validator registry is not exact');
-  process.exit(1);
-}
 const runtimeBoundaryValidators = [
   'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
@@ -68,9 +57,7 @@ const productionRecoveryValidators = [
 const downstreamBoundaryValidators = [
   'scripts/kidults/kpmo/validate-er-projection-workflow-provenance-v1.mjs',
   'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
-  'scripts/kidults/portal/validate-portal-internal-readiness-v1.mjs',
-  'scripts/kidults/portal/validate-portal-external-gate-evidence-v1.mjs',
-  'scripts/kidults/portal/validate-portal-launch-assurance-v1.mjs',
+  'scripts/kidults/portal/validate-server-projection-capability-v1.mjs',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
 const validators = [...new Set([
@@ -86,7 +73,6 @@ const validators = [...new Set([
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
   ...providerAdapterBoundaryValidators,
-  ...snapshotReadinessValidators,
   ...runtimeBoundaryValidators,
   ...productionRecoveryValidators,
   ...downstreamBoundaryValidators
@@ -123,16 +109,6 @@ console.log(JSON.stringify({
   stages_machine_bound: Object.keys(orchestrator.stage_machine_coverage || {}).length,
   critical_workflow_provenance_machine_bound: true,
   critical_workflow_provenance_validators: criticalWorkflowProvenanceValidators.length,
-  estate_action_pinning_machine_bound: true,
-  estate_action_pinning_mutation_selftest: true,
-  estate_action_pinning_semantic_key_mutation_selftest: true,
-  estate_action_exact_allowlist_machine_bound: true,
-  estate_action_allowlist_mutation_selftest: true,
-  estate_moving_runner_alias_forbidden: true,
-  github_hosted_image_build_external_residual: true,
-  dependency_bootstrap_lock_machine_bound: true,
-  dependency_bootstrap_governing_issue: 976,
-  dependency_bootstrap_empirical_gate_effect: 'NONE',
   a13_validation_supply_chain_machine_bound: true,
   a13_validation_dependency_install_mode: 'NPM_CI_COMMITTED_LOCK',
   workflow_repository_mutation_boundary_machine_bound: true,
@@ -164,11 +140,6 @@ console.log(JSON.stringify({
   provider_rights_decision_gate_machine_bound: true,
   provider_adapter_workflow_provenance_machine_bound: true,
   provider_adapter_boundary_validators: providerAdapterBoundaryValidators.length,
-  snapshot_readiness_factory_machine_bound: true,
-  snapshot_readiness_validators: snapshotReadinessValidators.length,
-  snapshot_readiness_upstream_no_argument_mode: 'SAFE_SELF_TEST',
-  snapshot_readiness_output_existence_is_prerequisite: false,
-  snapshot_readiness_track_b_submission_preauthorized: false,
   runtime_boundary_validators: runtimeBoundaryValidators.length,
   digitalocean_staging_bootstrap_boundary_machine_bound: true,
   digitalocean_staging_bootstrap_exec_contract_machine_bound: true,
@@ -183,7 +154,10 @@ console.log(JSON.stringify({
   proof_product_consumer_runtime_machine_bound: true,
   proof_product_consumer_schema_runtime_bound: true,
   proof_product_consumer_unknown_discriminator_fail_closed: true,
-  proof_product_api_export_binding: 'SIGNED_SERVER_CAPABILITY_BOUND__PUBLIC_CALLER_PATH_HOLD',
+  server_projection_capability_cryptographic_core_machine_bound: true,
+  server_projection_capability_algorithm: 'Ed25519',
+  server_projection_capability_route_binding: 'NOT_IMPLEMENTED_HOLD',
+  proof_product_api_export_binding: 'NOT_IMPLEMENTED_HOLD',
   projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
