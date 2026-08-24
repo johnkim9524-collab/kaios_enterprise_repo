@@ -11,11 +11,13 @@
   "public_release": "HOLD",
   "purpose": "Continuously discover, deduplicate and retain global source candidates, partition them by Source × Purpose, and rank purpose-specific rights/commercial preflight before mission utility without converting discovery metadata into rights, admission, evidence or market claims.",
   "persistence": {
-    "mode": "ROLLING_GITHUB_ACTIONS_ARTIFACT",
+    "mode": "ROLLING_GITHUB_ACTIONS_ARTIFACT_WITH_PERSISTED_REVIEW_STATE",
     "artifact_name": "kidults-asi-proactive-source-pool-v1",
     "retention_days": 90,
     "repository_write_from_scheduled_cycle": false,
-    "previous_artifact_optional": true
+    "previous_artifact_optional": true,
+    "review_state_persistence_required_after_first_cycle": true,
+    "rights_evaluation_cache_reuse_allowed_until_review_due": true
   },
   "discovery": {
     "product_anchor_count": 160,

@@ -226,7 +226,9 @@ export function classifyPurposeRights(row, purpose = 'CURRENT_SOLD_TRANSACTION',
     evidence_refs: evidenceRefs,
     evidence_digest: sha256(evidenceDigest) ? evidenceDigest : null,
     purpose_binding_id: binding?.binding_id ?? null,
-    source_roles: unique([...array(binding?.source_roles), ...array(row?.source_roles)]),
+    // Downstream consumers must see only roles proven on the exact binding;
+    // row-level roles are discovery metadata, not purpose authorization.
+    source_roles: unique(array(binding?.source_roles)),
     evidence_classes: unique(array(binding?.evidence_classes ?? binding?.evidence_class)),
     observed_at: timestamp.observedAt ?? null,
     review_due_at: timestamp.reviewDueAt ?? null,

@@ -112,7 +112,6 @@ assert(actual.rights_clear_source_pool.every(pkg => pkg.acquisition_authorized =
 const agedPrevious = structuredClone(actual);
 agedPrevious.rights_review_queue = [];
 agedPrevious.rights_review_age_by_package = Object.fromEntries(actual.source_purpose_packages
-  .filter(pkg => pkg.rights_decision !== RIGHTS_CLEAR)
   .map(pkg => [pkg.package_id, 2]));
 const agedPreviousPath = write('aged-previous.json', agedPrevious);
 const agedNextPath = path.join(tmp, 'aged-next.json');

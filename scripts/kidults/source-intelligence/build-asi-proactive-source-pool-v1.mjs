@@ -246,12 +246,34 @@ const purposeRank = purpose => purpose === 'CURRENT_SOLD_TRANSACTION' ? 0 :
   purpose === 'CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION' ? 2 : 3;
 
 const sourcePurposePackages = [];
+const priorRightsCache = previous?.rights_eval_cache && typeof previous.rights_eval_cache === 'object'
+  ? previous.rights_eval_cache : {};
+const rightsEvalCache = { ...priorRightsCache };
+let rightsCacheHits = 0;
+const stable = value => {
+  if (Array.isArray(value)) return value.map(stable);
+  if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map(key => [key, stable(value[key])]));
+  return value;
+};
+const rightsCacheKey = (row, purpose) => sha(stable({
+  source_id: row?.source_id || null,
+  purpose,
+  rights_revision: row?.rights_revision || row?.terms_revision || null,
+  rights_state: row?.rights_state || null,
+  evidence_digest: row?.evidence_digest || row?.rights_evidence_digest || null,
+  purpose_bindings: row?.purpose_bindings || [],
+  observed_at: row?.observed_at || row?.rights_observed_at || null,
+  review_due_at: row?.review_due_at || row?.next_revalidation_at || null
+}));
 for (const candidate of candidates) {
   const rows = matchingRows(candidate);
   for (const purpose of candidate.candidate_purpose_intents) {
     const row = rows.find(value => array(value.purpose_bindings).some(binding => binding.purpose === purpose)) || rows[0] || null;
+    const cacheKey = row ? rightsCacheKey(row, purpose) : null;
+    const cached = cacheKey ? priorRightsCache[cacheKey] : null;
+    const cacheUsable = cached && cached.review_due_at && new Date(cached.review_due_at) >= asOf;
     const decision = supportedGatePurpose(purpose) && row
-      ? classifyPurposeRights(row, purpose, asOf)
+      ? (cacheUsable ? (rightsCacheHits++, cached) : classifyPurposeRights(row, purpose, asOf))
       : {
           purpose,
           decision: 'RIGHTS_HOLD',
@@ -267,6 +289,7 @@ for (const candidate of candidates) {
           external_approval_required: false,
           external_approval_bound: false
         };
+    if (cacheKey && !cacheUsable && decision.review_due_at) rightsEvalCache[cacheKey] = decision;
     const exactBinding = Boolean(row && array(row.purpose_bindings).some(binding => binding.purpose === purpose));
     const domainFitState = row?.domain_fit_state || 'UNASSESSED';
     const roleFitState = exactBinding ? 'CONFIRMED' : candidate.candidate_source_roles.length ? 'CANDIDATE_UNVERIFIED' : 'UNCLASSIFIED';
@@ -279,7 +302,9 @@ for (const candidate of candidates) {
       source_name: candidate.source_name,
       purpose,
       purpose_rank: purposeRank(purpose),
-      source_roles: unique([...candidate.candidate_source_roles, ...array(decision.source_roles)]),
+      // For HOLD packages retain candidate role metadata for routing, while
+      // the gate itself still evaluates only exact binding roles.
+      source_roles: unique(array(decision.source_roles).length ? array(decision.source_roles) : candidate.candidate_source_roles),
       evidence_classes: array(decision.evidence_classes),
       purpose_role_fit_state: roleFitState,
       domain_fit_state: domainFitState,
@@ -294,6 +319,12 @@ for (const candidate of candidates) {
       external_approval_bound: decision.external_approval_bound === true,
       rights_commercial_friction_tier: f.tier,
       rights_commercial_friction_rank: f.rank,
+      source_state: purpose === 'CURRENT_SOLD_TRANSACTION' || purpose === 'CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION'
+        ? (decision.decision === RIGHTS_CLEAR && domainFitState === 'COLLECTOR_MARKET_SCOPE_VERIFIED'
+          ? 'RIGHTS_CLEAR_COLLECTOR_CURRENT_SOLD_CANDIDATE' : 'CURRENT_SOLD_PURPOSE_HOLD')
+        : purpose === 'CURRENT_SOLD_TRANSACTION_REFERENCE'
+          ? (decision.decision === RIGHTS_CLEAR ? 'RIGHTS_CLEAR_REFERENCE_ONLY' : 'REFERENCE_PURPOSE_HOLD')
+          : 'DISCOVERY_OR_CONTEXT_ONLY',
       gate_eligible_for_acquisition_or_adapter_backlog: decision.eligible_for_acquisition_or_adapter_backlog === true,
       acquisition_authorized: false,
       adapter_development_authorized: false,
@@ -318,10 +349,11 @@ sourcePurposePackages.sort((a, b) =>
 const candidateByKey = new Map(candidates.map(candidate => [candidate.source_candidate_key, candidate]));
 const maxPackets = Number(contract.rights_review_queue?.max_packets_per_cycle || 64);
 const previousReviewAges = previous?.rights_review_age_by_package || {};
-const previousQueuedPackages = new Set(array(previous?.rights_review_queue).map(packet => packet.package_id));
 for (const pkg of sourcePurposePackages) {
+  const priorState = previous?.review_state_by_package?.[pkg.package_id] || 'PENDING';
+  pkg.review_state = priorState;
   pkg.review_age_cycles = previous
-    ? (previousQueuedPackages.has(pkg.package_id) ? 0 : Number(previousReviewAges[pkg.package_id] || 0) + 1)
+    ? (['CLOSED', 'REVIEWED_PASS', 'REVIEWED_NO_GO'].includes(priorState) ? 0 : Number(previousReviewAges[pkg.package_id] || 0) + 1)
     : 0;
 }
 const reviewCandidates = sourcePurposePackages
@@ -438,6 +470,11 @@ const artifact = {
   rights_review_age_by_package: Object.fromEntries(sourcePurposePackages
     .filter(pkg => pkg.rights_decision !== RIGHTS_CLEAR)
     .map(pkg => [pkg.package_id, pkg.review_age_cycles])),
+  review_state_by_package: Object.fromEntries(sourcePurposePackages
+    .filter(pkg => pkg.rights_decision !== RIGHTS_CLEAR)
+    .map(pkg => [pkg.package_id, pkg.review_state || 'PENDING'])),
+  rights_eval_cache: rightsEvalCache,
+  rights_evaluation_cache_hits: rightsCacheHits,
   permission_required_queue_count: permissionRequiredQueue.length,
   no_go_queue_count: noGoQueue.length,
   domain_fit_hold_queue_count: domainFitHoldQueue.length,
