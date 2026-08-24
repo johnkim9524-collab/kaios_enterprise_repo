@@ -1,0 +1,76 @@
+{
+  "id": "product-linked-targeted-asi-queue-bootstrap-manifest-v1",
+  "version": "1.3.0",
+  "status": "MATERIALIZED_DISCOVERY_READY_GLOBAL_PLANNING_TOPOLOGY_BOUND",
+  "input_registry_id": "category-representative-product-registry-v1",
+  "global_topology_id": "global-market-cell-region-language-topology-v1",
+  "named_products": 160,
+  "planning_market_cells": 160,
+  "bound_scopes": 32,
+  "demand_records": 1280,
+  "required_source_role_assignments": 3520,
+  "product_identity_context_rows": 1280,
+  "naive_independent_family_floor_sum_not_deduplicated": 3040,
+  "note": "The family-floor sum is workload demand, not a Source target. Empirical Global representativeness remains pending discovery and qualification.",
+  "north_star": {
+    "autonomous": "PASS",
+    "global": "PASS_PLANNING_TOPOLOGY_EMPIRICAL_PENDING",
+    "irreplaceable_value": "PASS"
+  },
+  "decision_traceability_rows": 1280,
+  "irreplaceable_value_traceability_rows": 1280,
+  "region_language_bound_rows": 1280,
+  "discovery_active": true,
+  "acquisition_authorized": false,
+  "production": "HOLD",
+  "shards": [
+    {
+      "category_id": "automobiles-mobility",
+      "file": "automobiles-mobility.json",
+      "record_count": 160,
+      "sha256": "1fa50843444d6b7ddd002e99d7ac4e17683675f9d9875b613c73609283febf1c"
+    },
+    {
+      "category_id": "cards-comics-memorabilia",
+      "file": "cards-comics-memorabilia.json",
+      "record_count": 160,
+      "sha256": "eaaefe19d475df4e3bf54f5fe7ec2bd0d32a9cef058ae3d7d44a47a5233c2059"
+    },
+    {
+      "category_id": "design-furniture",
+      "file": "design-furniture.json",
+      "record_count": 160,
+      "sha256": "5d01e78147a63a0a323b0adfd6a271abbb20f65ec2eb84c265f07530fd37117a"
+    },
+    {
+      "category_id": "fashion-accessories",
+      "file": "fashion-accessories.json",
+      "record_count": 160,
+      "sha256": "e5fbab6c4db285274452b7fd5d09647318a20b468aeac3dddf82b90fd5f6de37"
+    },
+    {
+      "category_id": "gaming-music-screen",
+      "file": "gaming-music-screen.json",
+      "record_count": 160,
+      "sha256": "cafec70cc584f9897236823125b9a833067c172dedbc72e170b82f803b0ac9af"
+    },
+    {
+      "category_id": "technology-cameras",
+      "file": "technology-cameras.json",
+      "record_count": 160,
+      "sha256": "5582a2dcf8de8ff59bfff5daa35999e262d6f499df77a73f22639c8560be448f"
+    },
+    {
+      "category_id": "toys-models",
+      "file": "toys-models.json",
+      "record_count": 160,
+      "sha256": "4a25a477e15b334da1a56455f1874be87ece6a3f2f165ffa05f7eb8e9db5b264"
+    },
+    {
+      "category_id": "watches-jewelry",
+      "file": "watches-jewelry.json",
+      "record_count": 160,
+      "sha256": "8a3cc22615ce72f1ea6660257fd63e8d25034a2b29a8c1dbd1045bab180bd76c"
+    }
+  ]
+}
