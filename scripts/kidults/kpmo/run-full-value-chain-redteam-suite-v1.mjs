@@ -9,6 +9,7 @@ const criticalGateBindingValidator = 'scripts/kidults/kpmo/validate-full-value-c
 const criticalWorkflowProvenanceValidators = [
   'scripts/kidults/kpmo/validate-estate-action-pinning-v1.mjs',
   'scripts/kidults/kpmo/validate-critical-workflow-provenance-v1.mjs',
+  'scripts/kidults/kpmo/validate-dependency-bootstrap-lock-v1.mjs',
   'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs',
   'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs',
   'scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs'
@@ -116,6 +117,9 @@ console.log(JSON.stringify({
   estate_action_allowlist_mutation_selftest: true,
   estate_moving_runner_alias_forbidden: true,
   github_hosted_image_build_external_residual: true,
+  dependency_bootstrap_lock_machine_bound: true,
+  dependency_bootstrap_governing_issue: 976,
+  dependency_bootstrap_empirical_gate_effect: 'NONE',
   a13_validation_supply_chain_machine_bound: true,
   a13_validation_dependency_install_mode: 'NPM_CI_COMMITTED_LOCK',
   workflow_repository_mutation_boundary_machine_bound: true,

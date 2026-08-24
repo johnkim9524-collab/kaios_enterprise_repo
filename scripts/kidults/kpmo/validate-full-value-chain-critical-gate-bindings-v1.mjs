@@ -15,6 +15,7 @@ const mandatory = [
   'scripts/kidults/audit/validate-destructive-canonical-suppression-v1.mjs',
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs',
   'scripts/kidults/kpmo/validate-estate-action-pinning-v1.mjs',
+  'scripts/kidults/kpmo/validate-dependency-bootstrap-lock-v1.mjs',
   'scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs',
   'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs',
   'scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs',
@@ -57,6 +58,8 @@ for (const marker of [
   'digitalocean_staging_bootstrap_exec_contract_machine_bound: true',
   'digitalocean_staging_bootstrap_workflow_machine_bound: true',
   'proof_product_consumer_runtime_machine_bound: true',
+  'dependency_bootstrap_lock_machine_bound: true',
+  "dependency_bootstrap_empirical_gate_effect: 'NONE'",
   'proof_product_consumer_schema_runtime_bound: true',
   "proof_product_api_export_binding: 'NOT_IMPLEMENTED_HOLD'"
 ]) {

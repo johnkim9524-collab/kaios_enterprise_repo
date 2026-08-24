@@ -30,7 +30,10 @@ def test_canonical_root_files() -> None:
         "README.md",
         "VERSION",
         "pyproject.toml",
-        "requirements.txt",
+        "requirements-ci.in",
+        "requirements-ci.lock.txt",
+        "requirements-runtime.in",
+        "requirements-runtime.lock.txt",
         "scripts/run_kaios.py",
     ]
 
