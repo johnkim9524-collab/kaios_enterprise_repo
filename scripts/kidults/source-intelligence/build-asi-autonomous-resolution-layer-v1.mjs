@@ -3,12 +3,12 @@ import { fs, readJson, stableJson, hash, parsePsv, makeWriter } from './lib/asi-
 import { resolveCurrent } from './lib/asi-autonomous-resolution-current-v1.mjs';
 import { buildReplacement } from './lib/asi-autonomous-resolution-replacement-v1.mjs';
 
-const [candidateRegistryPath,bindingLedgerPath,gate1Path,admissionPath,actionQueuePath,frontierPath,crosswalkPath,adapterContractPath,contractPath,outputDir] = process.argv.slice(2);
-if (![candidateRegistryPath,bindingLedgerPath,gate1Path,admissionPath,actionQueuePath,frontierPath,crosswalkPath,adapterContractPath,contractPath,outputDir].every(Boolean)) throw new Error('AUTONOMOUS_RESOLUTION_ARGUMENTS_REQUIRED');
+const [candidateRegistryPath,bindingLedgerPath,gate1Path,admissionPath,actionQueuePath,frontierPath,crosswalkPath,adapterContractPath,contractPath,rightsPreflightPath,outputDir] = process.argv.slice(2);
+if (![candidateRegistryPath,bindingLedgerPath,gate1Path,admissionPath,actionQueuePath,frontierPath,crosswalkPath,adapterContractPath,contractPath,rightsPreflightPath,outputDir].every(Boolean)) throw new Error('AUTONOMOUS_RESOLUTION_ARGUMENTS_REQUIRED');
 
-const [candidates,bindings,gate1,admissions,actionQueue,crosswalk,adapterContract,contract,frontierText] = await Promise.all([
+const [candidates,bindings,gate1,admissions,actionQueue,crosswalk,adapterContract,contract,rightsPreflight,frontierText] = await Promise.all([
   readJson(candidateRegistryPath), readJson(bindingLedgerPath), readJson(gate1Path), readJson(admissionPath), readJson(actionQueuePath),
-  readJson(crosswalkPath), readJson(adapterContractPath), readJson(contractPath), fs.readFile(frontierPath, 'utf8')
+  readJson(crosswalkPath), readJson(adapterContractPath), readJson(contractPath), readJson(rightsPreflightPath), fs.readFile(frontierPath, 'utf8')
 ]);
 const frontier = parsePsv(frontierText);
 const principles = ['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'];
@@ -22,10 +22,11 @@ if (adapterContract.id !== 'kidults-asi-p1-market-event-adapter-runtime-contract
 if (contract.id !== 'kidults-asi-autonomous-resolution-layer-contract-v1' || contract.version !== '1.0.0') throw new Error('RESOLUTION_CONTRACT_INVALID');
 if (JSON.stringify(contract.platform_principles) !== JSON.stringify(principles)) throw new Error('RESOLUTION_PRINCIPLE_ORDER_INVALID');
 if (contract.truth_boundary?.executes_live_target_site_network_probe !== false || contract.truth_boundary?.admits_evidence !== false) throw new Error('RESOLUTION_TRUTH_BOUNDARY_INVALID');
+if (rightsPreflight.id !== 'kidults-top16-empirical-activation-preflight-v1' || !Array.isArray(rightsPreflight.rows)) throw new Error('PURPOSE_RIGHTS_PREFLIGHT_INVALID');
 await fs.mkdir(outputDir, { recursive: true });
 
 const current = resolveCurrent({ candidates, bindings, gate1, admissions, actionQueue, contract });
-const { adapterProfiles, replacementQueue } = buildReplacement({ bindings, gate1, frontier, crosswalk, adapterContract, contract });
+const { adapterProfiles, replacementQueue } = buildReplacement({ bindings, gate1, frontier, crosswalk, adapterContract, rightsPreflight, contract });
 const actionResolutionLedger = {
   id:'kidults-asi-action-resolution-ledger-v1',version:'1.0.0',state:'ALL_CURRENT_ACTIONS_TERMINAL',
   original_action_count:actionQueue.actions.length,terminal_action_count:current.actionRecords.length,
@@ -50,7 +51,7 @@ const resolutionSchedule = {
     {sequence:1,batch_id:'SEMANTIC_TRIAGE',state:'COMPLETED',item_count:current.candidateIds.length,outcome:'TERMINAL_REJECT'},
     {sequence:2,batch_id:'CONDITIONAL_SOURCE_PREFLIGHT',state:'SUPERSEDED',item_count:actionQueue.actions.length-current.candidateIds.length,outcome:'NOT_EXECUTED_AFTER_SHORT_CIRCUIT'},
     {sequence:3,batch_id:'GATE1_REEVALUATION',state:'COMPLETED',item_count:gate1.decisions.length,outcome:'REJECT'},
-    {sequence:4,batch_id:'REPLACEMENT_SOURCE_MISSION_GENERATION',state:'COMPLETED',item_count:replacementQueue.mission_count,outcome:'REGISTERED_PROFILE_BACKLOG_CREATED'}
+    {sequence:4,batch_id:'REPLACEMENT_SOURCE_MISSION_GENERATION',state:'COMPLETED',item_count:replacementQueue.mission_count,outcome:replacementQueue.adapter_development_backlog.length > 0 ? 'RIGHTS_CLEAR_PROFILE_BACKLOG_CREATED' : 'RIGHTS_PREFLIGHT_QUEUE_ONLY'}
   ],
   total_original_actions:actionQueue.actions.length,terminal_actions:current.actionRecords.length,
   live_network_requests:0,manual_orchestration_required:false,public_release:'HOLD',production:'HOLD'
@@ -105,7 +106,8 @@ const manifest={
     frontier:{path:contract.replacement_policy.frontier_path,records:frontier.length,digest:hash(frontierText)},
     crosswalk:{id:crosswalk.id,records:crosswalk.records.length,digest:hash(stableJson(crosswalk))},
     adapter_contract:{id:adapterContract.id,profiles:adapterProfiles.size,digest:hash(stableJson(adapterContract))},
-    contract:{id:contract.id,version:contract.version,digest:hash(stableJson(contract))}
+    contract:{id:contract.id,version:contract.version,digest:hash(stableJson(contract))},
+    rights_preflight:{id:rightsPreflight.id,rows:rightsPreflight.rows.length,digest:hash(stableJson(rightsPreflight))}
   },
   results:{
     current_candidate_count:current.candidateIds.length,original_actions:actionQueue.actions.length,terminal_actions:current.actionRecords.length,
@@ -118,10 +120,14 @@ const manifest={
     replacement_source_slots_filled:replacementQueue.filled_source_slots,
     unique_registered_profiles_selected:replacementQueue.unique_registered_profiles_selected,
     adapter_backlog_items:replacementQueue.adapter_development_backlog.length,live_network_requests:0,
+    rights_clear_registered_profiles:replacementQueue.rights_clear_registered_profile_count,
+    rights_hold_registered_profiles:replacementQueue.rights_hold_registered_profile_count,
+    rights_preflight_queue_items:replacementQueue.rights_preflight_queue_count,
+    rights_clear_gate:'RIGHTS_CLEAR_FOR_PURPOSE_REQUIRED_BEFORE_ADAPTER_BACKLOG_OR_REPLACEMENT_PROFILE_SELECTION',
     collection_rights_created:0,snapshot_candidates_created:0,track_b_input_pairs_created:0
   },
   output_files:outputs,
-  autonomous_effect:'POSITIVE_CURRENT_ACTION_QUEUE_TERMINALIZED_AND_REPLACEMENT_BACKLOG_GENERATED_WITHOUT_MANUAL_REVIEW',
+  autonomous_effect:'POSITIVE_CURRENT_ACTION_QUEUE_TERMINALIZED_AND_RIGHTS_GATED_REPLACEMENT_OR_PREFLIGHT_QUEUE_GENERATED_WITHOUT_MANUAL_REVIEW',
   global_effect:'POSITIVE_ALL_192_CURRENT_SOLD_AND_LIQUIDITY_MISSIONS_REEVALUATED_WITH_SCOPE_CROSSWALKED_REPLACEMENT_SEARCH',
   irreplaceable_value_effect:'POSITIVE_KIDULTS_OWNED_DEPENDENCY_GRAPH_RESOLUTION_HISTORY_REJECTION_LINEAGE_AND_ADAPTER_BACKLOG',
   transparency_effect:'POSITIVE_EVERY_REJECT_SUPERSESSION_DEPENDENCY_AND_REPLACEMENT_GAP_IS_EXPLICIT_AND_DIGEST_BOUND',

@@ -21,6 +21,7 @@ on:
       - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json'
       - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json'
       - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/**'
       - 'scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs'
@@ -44,6 +45,7 @@ on:
       - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json'
       - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json'
       - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/**'
       - 'scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs'
@@ -84,6 +86,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json','utf8'))"
@@ -158,6 +161,7 @@ jobs:
               /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json \
               /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json \
               coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json \
+              coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
               "/tmp/kidults-asi-requirement-adapter-coverage-run-${RUN}"
           done
           diff -qr \
@@ -173,6 +177,7 @@ jobs:
             /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json \
             /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json \
             coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json \
+            coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
             | tee /tmp/kidults-asi-requirement-adapter-coverage-validation-v1.json
       - name: Reject denominator-substitution mutation
         run: |
@@ -181,7 +186,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-coverage-denominator/requirement-adapter-coverage-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));x.requirement_count=16;x.unique_mission_count=16;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-coverage-denominator /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json; then
+          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-coverage-denominator /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json; then
             echo 'Validator accepted 16-source denominator as 192-requirement accounting' >&2
             exit 1
           fi
@@ -192,7 +197,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-registered-inheritance/source-adapter-claim-ceiling-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));const s=x.sources.find((v)=>v.source_id==='reverb-price-guide');s.implemented_claim_parsers=[...s.registered_claims];s.unimplemented_registered_claims=[];s.adapter_kind='TRANSACTION_PARSER';fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-registered-inheritance /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json; then
+          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-registered-inheritance /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json; then
             echo 'Validator accepted registered claims as implemented parsers' >&2
             exit 1
           fi
@@ -203,7 +208,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-context-parser/requirement-adapter-coverage-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));const r=x.records.find((v)=>v.software_coverage_state==='CONTEXT_ONLY');const e=r.source_evaluations.find((v)=>v.adapter_kind==='CONTEXT_ONLY_CLASSIFIER');r.software_coverage_state='SOFTWARE_IMPLEMENTED';r.qualifying_software_adapter_ids=[e.source_id];e.required_claim_parser_match=true;e.software_evaluation_state='CLAIM_PARSER_MATCH';fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-context-parser /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json; then
+          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-context-parser /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json; then
             echo 'Validator accepted context-only classification as parser coverage' >&2
             exit 1
           fi
@@ -214,7 +219,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-live-promotion/requirement-adapter-coverage-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));x.records[0].rights_verified=true;x.records[0].live_schema_verified=true;x.records[0].adapter_activated=true;x.records[0].evidence_admitted=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-live-promotion /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json; then
+          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-live-promotion /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json; then
             echo 'Validator accepted unsupported live, rights, activation or Evidence promotion' >&2
             exit 1
           fi
@@ -225,7 +230,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-autonomous-resolution-manifest-v1.json';const x=JSON.parse(fs.readFileSync(p));x.input_bindings.adapter_contract.digest='sha256:'+('0'.repeat(64));fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/bad-autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json /tmp/bad-unbound-digest-output; then
+          if node scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/bad-autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json /tmp/bad-unbound-digest-output; then
             echo 'Builder accepted an unbound upstream digest' >&2
             exit 1
           fi
@@ -238,7 +243,7 @@ jobs:
           const fs=require('fs');let p='/tmp/bad-silent-drop-queue.json';let x=JSON.parse(fs.readFileSync(p));x.missions.pop();x.mission_count=191;fs.writeFileSync(p,JSON.stringify(x,null,2));p='/tmp/bad-duplicate-grain-queue.json';x=JSON.parse(fs.readFileSync(p));x.missions[1].mission_id=x.missions[0].mission_id;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
           for BAD in /tmp/bad-silent-drop-queue.json /tmp/bad-duplicate-grain-queue.json; do
-            if node scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs "$BAD" /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json "/tmp/$(basename "$BAD" .json)-output"; then
+            if node scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs "$BAD" /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json "/tmp/$(basename "$BAD" .json)-output"; then
               echo "Builder accepted forbidden mission mutation: $BAD" >&2
               exit 1
             fi
@@ -270,6 +275,7 @@ jobs:
             /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json \
             /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json \
             coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json \
+            coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
             > /tmp/kidults-asi-requirement-adapter-coverage-final-validation-v1.json
       - name: Emit KPMO requirement coverage receipt
         run: |

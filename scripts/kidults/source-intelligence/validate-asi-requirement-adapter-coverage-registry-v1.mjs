@@ -6,6 +6,8 @@ const files = {
   registry: 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json',
   builder: 'scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs',
   validator: 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs',
+  purposeRightsPreflight: 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json',
+  purposeRightsGate: 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs',
   registryValidator: 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs',
   workflow: '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',
   documentation: 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md',
@@ -34,6 +36,8 @@ assert(contract.canonical_grain?.expected_domain_count === 8 && contract.canonic
 assert(contract.canonical_grain?.unmerged_v2_adapter_requirement_id_is_authoritative === false && contract.canonical_grain?.unmerged_v2_adapter_requirement_id_may_be_synthesized === false, 'CONTRACT_V2_ID_BOUNDARY');
 assert(contract.coverage_policy?.registered_claim_is_implemented_claim === false && contract.coverage_policy?.context_classifier_is_claim_parser === false, 'CONTRACT_CLAIM_BOUNDARY');
 assert(contract.coverage_policy?.software_coverage_rule === 'ELIGIBLE_CURRENT_SOURCE_WITH_LITERAL_REQUIRED_CLAIM_IN_IMPLEMENTED_CLAIM_PARSERS', 'CONTRACT_SOFTWARE_COVERAGE_RULE');
+assert(contract.coverage_policy?.acquisition_eligibility_rule === 'PURPOSE_RIGHTS_PREFLIGHT_DECISION_MUST_EQUAL_RIGHTS_CLEAR_FOR_PURPOSE', 'CONTRACT_ACQUISITION_RIGHTS_RULE');
+assert(contract.coverage_policy?.selected_slot_rule === 'FIRST_THREE_RIGHTS_CLEAR_SOURCES_BY_PRIORITY_RANK_THEN_SOURCE_ID', 'CONTRACT_RIGHTS_SLOT_RULE');
 assert(same(contract.software_coverage_states, ['SOFTWARE_IMPLEMENTED', 'CONTEXT_ONLY', 'UNMAPPED']), 'CONTRACT_COVERAGE_STATES');
 assert(contract.empirical_state === 'RIGHTS_SCHEMA_ACTIVATION_HOLD' && contract.empirical_hold_reasons?.length === 6, 'CONTRACT_EMPIRICAL_HOLD');
 assert(same(contract.required_outputs, [
@@ -45,7 +49,7 @@ assert(same(contract.required_outputs, [
 ]), 'CONTRACT_OUTPUTS');
 const baseline = contract.expected_current_main_baseline;
 assert(baseline.registered_source_profiles === 16 && baseline.implemented_source_adapters === 16 && baseline.pending_source_adapters === 0, 'CONTRACT_SOURCE_BASELINE');
-assert(baseline.software_implemented_requirements === 45 && baseline.context_only_requirements === 9 && baseline.unmapped_requirements === 138 && baseline.software_gap_requirements === 147, 'CONTRACT_COVERAGE_BASELINE');
+assert(baseline.software_implemented_requirements === 39 && baseline.context_only_requirements === 15 && baseline.unmapped_requirements === 138 && baseline.software_gap_requirements === 153, 'CONTRACT_COVERAGE_BASELINE');
 assert(baseline.rights_schema_activation_hold_requirements === 192 && baseline.evidence_admitted === 0 && baseline.market_events_created === 0, 'CONTRACT_EMPIRICAL_BASELINE');
 assert(contract.truth_boundary?.software_lineage_only === true && contract.truth_boundary?.live_source_request_executed === false && contract.truth_boundary?.provider_contact_executed === false, 'CONTRACT_LIVE_BOUNDARY');
 assert(contract.truth_boundary?.rights_pass_created === false && contract.truth_boundary?.source_adapter_activated === false, 'CONTRACT_ACTIVATION_BOUNDARY');
@@ -60,6 +64,8 @@ for (const [name, expected] of Object.entries({
   registry: files.registry,
   builder: files.builder,
   validator: files.validator,
+  purpose_rights_preflight: files.purposeRightsPreflight,
+  purpose_rights_gate: files.purposeRightsGate,
   registry_validator: files.registryValidator,
   workflow: files.workflow,
   documentation: files.documentation,
@@ -69,7 +75,8 @@ assert(registry.output_artifact === 'kidults-asi-requirement-adapter-coverage-v1
 assert(registry.implementation_state?.authoritative_requirement_grain === 'AUTONOMOUS_RESOLUTION_MISSION_V1', 'REGISTRY_GRAIN');
 assert(registry.implementation_state?.requirements_accounted_for === 192 && registry.implementation_state?.domain_evidence_families_retained === 16, 'REGISTRY_REQUIREMENT_COUNTS');
 assert(registry.implementation_state?.registered_source_profiles === 16 && registry.implementation_state?.implemented_source_adapters === 16, 'REGISTRY_SOURCE_COUNTS');
-assert(registry.implementation_state?.software_implemented_requirements === 45 && registry.implementation_state?.context_only_requirements === 9 && registry.implementation_state?.unmapped_requirements === 138, 'REGISTRY_COVERAGE_COUNTS');
+assert(registry.implementation_state?.purpose_rights_clear_sources === 0 && registry.implementation_state?.purpose_rights_preflight_hold_sources === 16 && registry.implementation_state?.replacement_profiles_selected_after_rights_gate === 0, 'REGISTRY_RIGHTS_FIRST_COUNTS');
+assert(registry.implementation_state?.software_implemented_requirements === 39 && registry.implementation_state?.context_only_requirements === 15 && registry.implementation_state?.unmapped_requirements === 138, 'REGISTRY_COVERAGE_COUNTS');
 assert(registry.implementation_state?.rights_schema_activation_hold_requirements === 192, 'REGISTRY_HOLD_COUNT');
 assert(registry.implementation_state?.unmerged_v2_ids_synthesized === 0 && registry.implementation_state?.duplicate_sdk_or_runtime_introduced === 0, 'REGISTRY_FORBIDDEN_ASSET_COUNTS');
 assert(registry.implementation_state?.evidence_admitted === 0 && registry.implementation_state?.market_events_created === 0, 'REGISTRY_EMPIRICAL_COUNTS');
@@ -97,6 +104,8 @@ for (const marker of [
   "public_release: 'HOLD'",
   "production: 'HOLD'",
   "g5: 'HOLD'",
+  'RIGHTS_CLEAR',
+  'purposeRightsPreflight',
 ]) assert(builder.includes(marker), `BUILDER_CONTROL_MARKER:${marker}`);
 for (const marker of [
   'LEDGER_REQUIREMENT_COUNT',
@@ -105,6 +114,7 @@ for (const marker of [
   'CONTEXT_COUNTED_AS_PARSER',
   'OUTPUT_REBUILD_MISMATCH',
   'OUTPUT_MANIFEST_ACCOUNTING',
+  'COVERAGE_PURPOSE_RIGHTS_BINDING',
 ]) assert(validator.includes(marker), `VALIDATOR_CONTROL_MARKER:${marker}`);
 
 for (const marker of [
@@ -124,6 +134,7 @@ for (const marker of [
   'Reject live-rights-activation promotion mutation',
   'Reject unbound upstream digest mutation',
   'Reject silent-drop and duplicate-grain mutations',
+  'top16-empirical-activation-preflight-v1.json',
   'retention-days: 90',
 ]) assert(workflow.includes(marker), `WORKFLOW_CONTROL_MARKER:${marker}`);
 for (const pin of [
@@ -131,7 +142,8 @@ for (const pin of [
   'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
   'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
 ]) assert(workflow.includes(pin), `WORKFLOW_ACTION_NOT_IMMUTABLY_PINNED:${pin}`);
-assert(documentation.includes('45 / 192') && documentation.includes('RIGHTS_SCHEMA_ACTIVATION_HOLD'), 'DOCUMENTATION_BASELINE_OR_BOUNDARY');
+assert(documentation.includes('39 / 192') && documentation.includes('RIGHTS_SCHEMA_ACTIVATION_HOLD'), 'DOCUMENTATION_BASELINE_OR_BOUNDARY');
+assert(documentation.includes('RIGHTS_CLEAR_FOR_PURPOSE') && documentation.includes('adapter-acquisition backlog items'), 'DOCUMENTATION_RIGHTS_FIRST_BOUNDARY');
 assert(documentation.includes('9502274246') && documentation.includes('32674508442') && documentation.includes('81079541e708d5916621fec3758c357f96b7254b'), 'DOCUMENTATION_CURRENT_EVIDENCE_BINDING');
 
 console.log(JSON.stringify({

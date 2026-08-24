@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { buildPurposeRightsIndex, RIGHTS_CLEAR } from './lib/source-purpose-rights-gate-v1.mjs';
 
 const [templateOutputDir='/tmp/kidults-asi-source-adapter-template-expansion-v1',testReceiptPath='/tmp/bonhams-cars-adapter-test-receipt-v1.json'] = process.argv.slice(2);
 const files={
@@ -10,6 +11,8 @@ const files={
   templateContract:'coordination/kidults/source-intelligence/asi-source-adapter-template-expansion-contract-v1.json',
   runtimeContract:'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json',
   sourceFrontier:'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv',
+  rightsPreflight:'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json',
+  rightsGate:'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs',
   adapterModule:'services/kidults-autonomous-intelligence/src/asi/source-adapters/bonhams-cars-results.ts',
   genericRuntime:'services/kidults-autonomous-intelligence/src/asi/market-adapter.ts',
   adapterTest:'services/kidults-autonomous-intelligence/scripts/asi-bonhams-cars-results-adapter-test.mjs',
@@ -20,7 +23,7 @@ const files={
 };
 const fail=m=>{throw new Error(m)};const assert=(c,m)=>{if(!c)fail(m)};const read=p=>fs.readFileSync(p,'utf8');const json=p=>JSON.parse(read(p));
 for(const [key,p] of Object.entries(files))assert(fs.existsSync(p),`MISSING_${key.toUpperCase()}:${p}`);
-const adapter=json(files.adapterContract),registry=json(files.adapterRegistry),template=json(files.templateContract),runtime=json(files.runtimeContract);
+const adapter=json(files.adapterContract),registry=json(files.adapterRegistry),template=json(files.templateContract),runtime=json(files.runtimeContract),rightsPreflight=json(files.rightsPreflight);
 const moduleSource=read(files.adapterModule),testSource=read(files.adapterTest),builderSource=read(files.templateBuilder),workflow=read(files.workflow),doc=read(files.documentation),frontier=read(files.sourceFrontier);
 const principles=['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'];
 assert(adapter.id==='kidults-asi-bonhams-cars-results-adapter-contract-v1'&&adapter.version==='1.0.0','ADAPTER_CONTRACT_ID');
@@ -40,19 +43,23 @@ assert(adapter.required_mutation_families.length===8,'ADAPTER_MUTATION_COUNT');
 assert(registry.id==='kidults-asi-bonhams-cars-results-adapter-registry-v1','REGISTRY_ID');
 assert(registry.implementation_state.source_specific_parsers_implemented===1&&registry.implementation_state.registered_source_profiles===16&&registry.implementation_state.adapter_templates_generated===16,'REGISTRY_COUNTS');
 assert(registry.implementation_state.source_specific_adapters_activated===0&&registry.implementation_state.empirical_market_events_admitted===0,'REGISTRY_ACTIVATION_BOUNDARY');
+assert(registry.next_execution?.fallback_execution?.includes('PURPOSE_RIGHTS_PREFLIGHT_ONLY') && registry.next_execution?.fallback_execution?.includes('ONLY_AFTER_RIGHTS_CLEAR'),'REGISTRY_RIGHTS_FIRST_FALLBACK');
 assert(registry.automatic_activation.main_push===true&&registry.automatic_activation.schedule==='37 */3 * * *'&&registry.automatic_activation.upstream_workflows.length===2,'REGISTRY_AUTOMATION');
 for(const [key,expected] of Object.entries({
-  adapter_contract:files.adapterContract,template_contract:files.templateContract,runtime_contract:files.runtimeContract,source_frontier:files.sourceFrontier,
+  adapter_contract:files.adapterContract,template_contract:files.templateContract,runtime_contract:files.runtimeContract,source_frontier:files.sourceFrontier,purpose_rights_preflight:files.rightsPreflight,purpose_rights_gate:files.rightsGate,
   adapter_module:files.adapterModule,generic_runtime:files.genericRuntime,adapter_test:files.adapterTest,template_builder:files.templateBuilder,validator:files.validator,workflow:files.workflow,documentation:files.documentation
 }))assert(registry.registered_assets[key]===expected,`REGISTRY_PATH:${key}`);
 
 assert(template.id==='kidults-asi-source-adapter-template-expansion-contract-v1'&&template.required_profile_count===16,'TEMPLATE_CONTRACT');
 assert(JSON.stringify(template.platform_principles)===JSON.stringify(principles),'TEMPLATE_PRINCIPLES');
 assert(template.reference_adapter.source_id==='bonhams-cars-results','TEMPLATE_REFERENCE');
+assert(template.implementation_gate?.required_decision==='RIGHTS_CLEAR_FOR_PURPOSE'&&template.implementation_gate?.discovery_metadata_is_not_rights_clearance===true,'TEMPLATE_RIGHTS_GATE');
 assert(template.required_template_controls.length===19,'TEMPLATE_CONTROL_COUNT');
 assert(template.truth_boundary.template_is_source_specific_adapter===false&&template.truth_boundary.evidence_admitted===0,'TEMPLATE_BOUNDARY');
 assert(runtime.registered_source_profiles.length===16&&runtime.registered_source_profiles[0][1]==='bonhams-cars-results','RUNTIME_PROFILES');
 assert(frontier.includes('bonhams-cars-results|Bonhams Cars Auction Results'),'FRONTIER_REFERENCE_SOURCE');
+assert(rightsPreflight.id==='kidults-top16-empirical-activation-preflight-v1'&&rightsPreflight.rows?.length===16,'RIGHTS_PREFLIGHT_INPUT');
+const rightsIndex=buildPurposeRightsIndex(rightsPreflight,runtime.registered_source_profiles.map((tuple)=>tuple[1]),'CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION');
 
 for(const marker of [
   'parseBonhamsCarsSoldSnapshot','getBonhamsCarsReferenceAdapterProfile','SOURCE_PAYLOAD_HASH_MISMATCH','LISTING_ESTIMATE_BID_OFFER_OR_RESERVE_IS_NOT_SOLD',
@@ -63,7 +70,8 @@ for(const marker of [
   'BONHAMS_REFERENCE_ADAPTER_REPLAY_NOT_DETERMINISTIC','estimate-is-not-sold','ambiguous-dollar-rejected','sold-without-price-rejected','script-only-sold-is-not-semantic-proof',
   'SOURCE_PAYLOAD_HASH_MISMATCH','SOURCE_HOST_NOT_ALLOWED','SOURCE_SCHEME_NOT_HTTPS','negative_fixture_mutations_rejected'
 ])assert(testSource.includes(marker),`TEST_MARKER:${marker}`);
-for(const marker of ['SIXTEEN_SOURCE_TEMPLATES_EXPANDED','REFERENCE_ADAPTER_IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED','TEMPLATE_GENERATED_IMPLEMENTATION_PENDING','source-adapter-development-backlog-v1.json'])assert(builderSource.includes(marker),`BUILDER_MARKER:${marker}`);
+for(const marker of ['SIXTEEN_SOURCE_TEMPLATES_EXPANDED','REFERENCE_ADAPTER_IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED','TEMPLATE_GENERATED_IMPLEMENTATION_PENDING','source-adapter-development-backlog-v1.json','RIGHTS_CLEAR_FOR_PURPOSE','RIGHTS_GATED_NO_ELIGIBLE_PROFILE'])assert(builderSource.includes(marker),`BUILDER_MARKER:${marker}`);
+assert(builderSource.includes('buildPurposeRightsIndex') && builderSource.includes('CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION'),'BUILDER_PURPOSE_RIGHTS_GATE');
 for(const marker of [
   'workflow_dispatch:','schedule:',"cron: '37 */3 * * *'",'push:','pull_request:','workflow_run:',"'KIDULTS ASI Autonomous Resolution Layer v1'",'Run Bonhams Cars reference adapter fixture and mutation proof',
   'Build all 16 source adapter templates twice','Reject fixture promotion mutation','Reject template-as-adapter mutation','Emit KPMO reference-adapter receipt'
@@ -81,6 +89,9 @@ assert(testReceipt.positive_fixture_candidates_parsed===1&&testReceipt.negative_
 assert(testReceipt.live_source_snapshots_verified===0&&testReceipt.field_purpose_rights_verified===false&&testReceipt.adapter_activated===false&&testReceipt.evidence_admitted===0,'TEST_RECEIPT_BOUNDARY');
 assert(templateRegistry.id==='kidults-asi-source-adapter-template-registry-v1'&&templateRegistry.profile_count===16,'TEMPLATE_REGISTRY_COUNT');
 assert(templateRegistry.reference_adapter_count===1&&templateRegistry.template_pending_count===15,'TEMPLATE_IMPLEMENTATION_PARTITION');
+const expectedRightsClear=[...rightsIndex.values()].filter((value)=>value.decision===RIGHTS_CLEAR).length;
+assert(templateRegistry.rights_clear_profile_count===expectedRightsClear&&templateRegistry.rights_hold_profile_count===16-expectedRightsClear,'TEMPLATE_RIGHTS_COUNTS');
+assert(templateRegistry.adapter_backlog_eligible_profile_count===expectedRightsClear,'TEMPLATE_BACKLOG_ELIGIBILITY_COUNT');
 assert(templateRegistry.source_specific_adapters_implemented===1&&templateRegistry.source_specific_adapters_activated===0&&templateRegistry.evidence_admitted===0,'TEMPLATE_ACTIVATION_BOUNDARY');
 assert(new Set(templateRegistry.profiles.map(p=>p.source_id)).size===16,'TEMPLATE_PROFILE_DUPLICATE');
 const expectedIds=new Set(runtime.registered_source_profiles.map(tuple=>tuple[1]));assert(templateRegistry.profiles.every(p=>expectedIds.has(p.source_id)),'TEMPLATE_PROFILE_BINDING');
@@ -88,8 +99,11 @@ const referenceProfile=templateRegistry.profiles.find(p=>p.source_id==='bonhams-
 assert(referenceProfile.claim_states.DATED_OBSERVED_SOLD_TRANSACTION==='PARSER_IMPLEMENTED_FIXTURE_VERIFIED_RIGHTS_AND_LIVE_SCHEMA_HOLD','REFERENCE_CLAIM_STATE');
 assert(templateRegistry.profiles.filter(p=>p.source_id!=='bonhams-cars-results').every(p=>p.implementation_state==='TEMPLATE_GENERATED_IMPLEMENTATION_PENDING'),'PENDING_PROFILE_STATE');
 assert(templateRegistry.profiles.every(p=>p.field_purpose_rights_verified===false&&p.adapter_activated===false&&p.evidence_admitted===0&&p.provider_direct_to_index_or_projection_allowed===false),'PROFILE_PROMOTION_BOUNDARY');
-assert(backlog.backlog_count===16&&backlog.items.length===16&&backlog.items[0].source_id==='bonhams-cars-results','BACKLOG_COUNT_ORDER');
-assert(manifest.results.registered_profiles===16&&manifest.results.reference_adapters_implemented===1&&manifest.results.templates_generated===16&&manifest.results.templates_pending_implementation===15,'MANIFEST_COUNTS');
+for(const profile of templateRegistry.profiles){const expected=rightsIndex.get(profile.source_id);assert(profile.rights_eligibility_state===expected.decision&&profile.rights_eligibility_reason_codes.join('|')===expected.reason_codes.join('|'),'PROFILE_RIGHTS_BINDING');assert(profile.eligible_for_acquisition_or_adapter_backlog===(expected.decision===RIGHTS_CLEAR),'PROFILE_RIGHTS_ELIGIBILITY');}
+assert(backlog.backlog_count===expectedRightsClear&&backlog.items.length===expectedRightsClear&&backlog.rights_preflight_queue_count===16-expectedRightsClear,'BACKLOG_RIGHTS_COUNTS');
+assert(backlog.implementation_priority_rule==='RIGHTS_CLEAR_FOR_PURPOSE_REQUIRED_BEFORE_ADAPTER_BACKLOG_OR_ACQUISITION_PRIORITY','BACKLOG_RIGHTS_RULE');
+assert(backlog.rights_preflight_queue.every((item)=>rightsIndex.get(item.source_id)?.decision!==RIGHTS_CLEAR),'RIGHTS_QUEUE_ONLY_HOLD');
+assert(manifest.results.registered_profiles===16&&manifest.results.reference_adapters_implemented===1&&manifest.results.templates_generated===16&&manifest.results.templates_pending_implementation===15&&manifest.results.rights_clear_profiles===expectedRightsClear&&manifest.results.adapter_backlog_eligible_profiles===expectedRightsClear,'MANIFEST_COUNTS');
 assert(manifest.results.source_specific_adapters_activated===0&&manifest.results.live_source_snapshots_verified===0&&manifest.results.evidence_admitted===0&&manifest.results.market_events_created===0,'MANIFEST_BOUNDARY');
 assert(manifest.output_files.length===2,'MANIFEST_OUTPUT_DIGEST_COUNT');
 for(const output of manifest.output_files){const raw=read(path.join(templateOutputDir,output.name));const digest=`sha256:${crypto.createHash('sha256').update(raw).digest('hex')}`;assert(output.sha256===digest&&output.bytes===Buffer.byteLength(raw),`MANIFEST_OUTPUT_DIGEST:${output.name}`);}

@@ -29,7 +29,11 @@ Evidence Admission Engine
         ↓
 Resolution Learning Engine
         ↓
-Gate 1 Re-evaluation + Replacement Mission Queue
+Gate 1 Re-evaluation
+        ↓
+Purpose Rights Eligibility Gate
+        ↓
+Rights-Clear Replacement Mission Queue
 ```
 
 ## 1. Action Dependency Graph Engine
@@ -43,7 +47,7 @@ The scheduler runs four deterministic batches:
 1. semantic triage;
 2. conditional source preflight;
 3. Gate 1 re-evaluation;
-4. registered replacement-profile mission generation.
+4. purpose-rights-gated replacement-profile mission generation.
 
 A terminal semantic rejection short-circuits unnecessary rights, robots, schema, region and independence probes without calling those checks PASS.
 
@@ -94,7 +98,9 @@ All 192 current missions are crosswalked to the governed v1 source frontier and 
 2. independent fallback registered profile;
 3. factual-origin replacement profile.
 
-A registered profile is not a rights pass, not an implemented adapter, not proven independent, and not admitted Evidence. Missing profile coverage remains an explicit gap.
+A registered profile is not a rights pass, not an implemented adapter, not proven independent, and not admitted Evidence. Only `RIGHTS_CLEAR_FOR_PURPOSE` sources may occupy a replacement slot or enter the adapter-acquisition backlog. Unknown, conditional, denied, paid-but-unapproved, login-gated, robots-blocked, or permission-pending sources remain in the explicit rights preflight queue. Discovery metadata never clears this gate.
+
+The current preflight contains 16 registered profiles, with 0 rights-clear profiles and 16 rights-hold profiles. Therefore the current replacement queue has 0 filled slots, 0 adapter-backlog items, and 16 rights-preflight items. This is an intentional fail-closed result, not a software implementation gap.
 
 ## Automatic activation
 
@@ -123,6 +129,8 @@ Action terminalized ≠ Action PASS
 Semantic rejection ≠ Rights denial
 Mission-level rejection ≠ Global source retirement
 Registered profile ≠ Rights verified
+Rights preflight ≠ Rights clear
+Rights clear required before acquisition priority
 Registered profile ≠ Adapter implemented
 Gate 1 reject ≠ Evidence admission
 Discovery metadata ≠ Sold transaction
