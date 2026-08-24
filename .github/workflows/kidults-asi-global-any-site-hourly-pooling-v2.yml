@@ -94,7 +94,7 @@ jobs:
           mkdir -p input queue discovery-out /tmp/previous-any-site-pool-v2
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" > /tmp/anchor-foundation.zip
           unzip -q -o /tmp/anchor-foundation.zip -d input
-          PREV_RUN_ID=$(gh api --paginate --slurp -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs?branch=main&status=success&per_page=100" --jq '[.[].workflow_runs[] | select(.conclusion=="success")][0].id // empty')
+          PREV_RUN_ID=$(gh api --paginate -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs?branch=main&status=success&per_page=100" --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | awk 'NR==1{first=$0} END{if(first) print first}')
           PREV_ID=""
           if [ -n "$PREV_RUN_ID" ]; then
             PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${PREV_RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v2" and .expired==false)] | sort_by(.created_at) | reverse | .[0].id // empty')
