@@ -105,7 +105,7 @@ need('cancel-in-progress: false' in deploy_workflow,'workflow deployment concurr
 need('RELEASE_ID="portal-r001-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"' in deploy_workflow,'release id must include workflow run attempt')
 for marker in ["'receipt_type':'GITHUB_RUNNER_EXECUTION'","'state':'CAPTURED_NOT_ATTESTED'","'workflow_ref':os.environ['GITHUB_WORKFLOW_REF']","'workflow_sha':os.environ['GITHUB_WORKFLOW_SHA']","'job_name':os.environ['GITHUB_JOB']","'successful_workflow_attested':False",'--expected-workflow-ref "$GITHUB_WORKFLOW_REF"','--expected-workflow-sha "$GITHUB_WORKFLOW_SHA"','--expected-job-name "$GITHUB_JOB"']:
     need(marker in deploy_workflow, f'workflow runner binding marker {marker}')
-for marker in ['pull_request:','push:','persist-credentials: false','Verify exact source SHA','test_digitalocean_staging_portal_receipts_v1.sh']:
+for marker in ['pull_request:','push:','persist-credentials: false','Verify exact source SHA','test_digitalocean_staging_portal_receipts_v1.sh','validate-staging-portal-workflow-provenance-v1.mjs']:
     need(marker in receipt_workflow, f'safe receipt workflow marker {marker}')
 if errors:
     print(json.dumps({'suite':'DIGITALOCEAN_STAGING_PORTAL_DEPLOY_V1','state':'VERIFIED_FAIL','errors':errors},indent=2));raise SystemExit(1)
