@@ -57,7 +57,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: '24'
+          node-version: '24.19.0'
       - name: Run secretless P3 static and liveness validation only
         run: |
           set -euo pipefail
