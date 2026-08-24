@@ -1,0 +1,142 @@
+{
+  "id": "kidults-asi-requirement-adapter-coverage-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "priority": "P1",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Bind every authoritative autonomous-resolution replacement mission to the current implemented source-adapter claim ceiling without reviving the stale parallel SDK, inventing unmerged v2 requirement identifiers, or promoting software coverage to empirical readiness.",
+  "authoritative_inputs": {
+    "upstream_artifact_name": "kidults-asi-autonomous-resolution-layer-v1",
+    "upstream_workflow_name": "KIDULTS ASI Autonomous Resolution Layer v1",
+    "upstream_workflow_path": ".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml",
+    "replacement_queue_file": "replacement-source-mission-queue-v1.json",
+    "replacement_queue_id": "kidults-asi-replacement-source-mission-queue-v1",
+    "resolution_manifest_file": "autonomous-resolution-manifest-v1.json",
+    "resolution_manifest_id": "kidults-asi-autonomous-resolution-manifest-v1",
+    "resolution_receipt_file": "kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json",
+    "resolution_receipt_id": "kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1",
+    "resolution_contract": "coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json",
+    "runtime_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+    "source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
+    "scope_crosswalk": "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
+    "bonhams_contract": "coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json",
+    "bonhams_registry": "coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json",
+    "wave2_contract": "coordination/kidults/source-intelligence/asi-source-adapter-wave2-contract-v1.json",
+    "wave2_registry": "coordination/kidults/source-intelligence/asi-source-adapter-wave2-registry-v1.json",
+    "wave3_contract": "coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json",
+    "wave3_registry": "coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json",
+    "wave4_contract": "coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json",
+    "wave4_registry": "coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json"
+  },
+  "canonical_grain": {
+    "keys": [
+      "mission_id",
+      "scope_id",
+      "region",
+      "evidence_class"
+    ],
+    "coverage_record_id": "sha256(canonical mission_id + scope_id + region + evidence_class + required_adapter_claim)",
+    "unmerged_v2_adapter_requirement_id_is_authoritative": false,
+    "unmerged_v2_adapter_requirement_id_may_be_synthesized": false,
+    "expected_mission_count": 192,
+    "expected_unique_market_cell_count": 192,
+    "expected_scope_count": 32,
+    "expected_region_count": 3,
+    "expected_domain_count": 8,
+    "expected_evidence_class_count": 2,
+    "expected_family_count": 16,
+    "expected_requirements_per_family": 12
+  },
+  "claim_mapping": {
+    "CURRENT_SOLD_TRANSACTION": "DATED_OBSERVED_SOLD_TRANSACTION",
+    "LIQUIDITY_TIME_TO_SALE_EXPOSURE": "LIQUIDITY_OR_TIME_TO_SALE"
+  },
+  "coverage_policy": {
+    "registered_claim_is_implemented_claim": false,
+    "template_claim_is_implemented_claim": false,
+    "context_classifier_is_claim_parser": false,
+    "fixture_verification_is_empirical_activation": false,
+    "source_eligibility_rule": "REGISTERED_RUNTIME_CLAIM_AND_FRONTIER_SCOPE_INTERSECTION",
+    "selected_slot_rule": "FIRST_THREE_ELIGIBLE_SOURCES_BY_PRIORITY_RANK_THEN_SOURCE_ID",
+    "software_coverage_rule": "ELIGIBLE_CURRENT_SOURCE_WITH_LITERAL_REQUIRED_CLAIM_IN_IMPLEMENTED_CLAIM_PARSERS",
+    "current_price_inheritance_from_dated_sold_forbidden": true,
+    "cross_claim_inheritance_forbidden": true
+  },
+  "software_coverage_states": [
+    "SOFTWARE_IMPLEMENTED",
+    "CONTEXT_ONLY",
+    "UNMAPPED"
+  ],
+  "empirical_state": "RIGHTS_SCHEMA_ACTIVATION_HOLD",
+  "empirical_hold_reasons": [
+    "PURPOSE_SPECIFIC_RIGHTS_NOT_VERIFIED",
+    "IMMUTABLE_LIVE_SCHEMA_SNAPSHOT_NOT_VERIFIED",
+    "EMPIRICAL_CLAIM_SEMANTICS_NOT_VERIFIED",
+    "SOURCE_OWNER_AND_FACTUAL_ORIGIN_NOT_VERIFIED",
+    "SOURCE_ADAPTER_NOT_ACTIVATED",
+    "MARKET_EVENT_ADMISSION_RECEIPT_NOT_CREATED"
+  ],
+  "expected_current_main_baseline": {
+    "registered_source_profiles": 16,
+    "implemented_source_adapters": 16,
+    "pending_source_adapters": 0,
+    "missions_with_registered_profiles": 72,
+    "missions_without_registered_profiles": 120,
+    "filled_registered_profile_slots": 135,
+    "unique_selected_registered_profiles": 16,
+    "software_implemented_requirements": 45,
+    "context_only_requirements": 9,
+    "unmapped_requirements": 138,
+    "software_gap_requirements": 147,
+    "sold_software_implemented_requirements": 30,
+    "liquidity_software_implemented_requirements": 15,
+    "fully_software_covered_families": 1,
+    "partially_software_covered_families": 6,
+    "zero_software_covered_families": 9,
+    "rights_schema_activation_hold_requirements": 192,
+    "live_source_snapshots_verified": 0,
+    "field_purpose_rights_verified_sources": 0,
+    "source_specific_adapters_activated": 0,
+    "evidence_admitted": 0,
+    "market_events_created": 0
+  },
+  "required_outputs": [
+    "requirement-adapter-coverage-ledger-v1.json",
+    "requirement-adapter-family-coverage-v1.json",
+    "source-adapter-claim-ceiling-registry-v1.json",
+    "requirement-adapter-gap-queue-v1.json",
+    "requirement-adapter-coverage-manifest-v1.json"
+  ],
+  "hard_boundaries": [
+    "NO_UNMERGED_V2_IDENTIFIER_OR_SEMANTIC_MAPPING_SYNTHESIS",
+    "SOURCE_PROFILE_COUNT_IS_NOT_REQUIREMENT_COVERAGE",
+    "REGISTERED_CLAIM_IS_NOT_IMPLEMENTED_CLAIM",
+    "CONTEXT_ONLY_IS_NOT_PARSER_COVERAGE",
+    "SOFTWARE_IMPLEMENTED_IS_NOT_RIGHTS_OR_LIVE_SCHEMA_PASS",
+    "FIXTURE_PASS_IS_NOT_EMPIRICAL_EVIDENCE",
+    "NO_LIVE_SOURCE_REQUEST_OR_PROVIDER_CONTACT",
+    "NO_EVIDENCE_MARKET_EVENT_SNAPSHOT_TRACK_B_PROJECTION_PUBLIC_PRODUCTION_OR_G5_PROMOTION"
+  ],
+  "truth_boundary": {
+    "software_lineage_only": true,
+    "live_source_request_executed": false,
+    "provider_contact_executed": false,
+    "rights_pass_created": false,
+    "live_schema_verified": false,
+    "source_adapter_activated": false,
+    "evidence_admitted": 0,
+    "market_events_created": 0,
+    "snapshot_candidates_created": 0,
+    "track_b_results_created": 0,
+    "projections_created": 0,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
