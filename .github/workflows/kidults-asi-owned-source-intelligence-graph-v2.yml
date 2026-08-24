@@ -72,8 +72,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/p0b-expanded /tmp/p1-expanded /tmp/p0b /tmp/p1
-          P0B_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false)][0].id // empty)')
-          P1_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false)][0].id // empty)')
+          P0B_RUN_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')
+          P1_RUN_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')
+          test -n "$P0B_RUN_ID"
+          test -n "$P1_RUN_ID"
+          P0B_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${P0B_RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false)][0].id // empty')
+          P1_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${P1_RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false)][0].id // empty')
           test -n "$P0B_ID"
           test -n "$P1_ID"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0B_ID}/zip" > /tmp/p0b.zip

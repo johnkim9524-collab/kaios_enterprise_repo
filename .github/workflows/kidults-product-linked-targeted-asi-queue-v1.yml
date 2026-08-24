@@ -25,7 +25,7 @@ jobs:
           mkdir -p input out
           gh api -H 'Accept: application/vnd.github+json' \
             /repos/${{ github.repository }}/actions/artifacts/9286462549/zip > anchor-foundation.zip
-          unzip -q anchor-foundation.zip -d input
+          unzip -q -o anchor-foundation.zip -d input
       - name: Build Product-linked Targeted ASI queue
         run: node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input out
       - name: Validate queue and North-Star boundaries

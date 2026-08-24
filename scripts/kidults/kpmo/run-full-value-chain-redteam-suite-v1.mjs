@@ -54,8 +54,14 @@ const runtimeBoundaryValidators = [
 const productionRecoveryValidators = [
   'scripts/kidults/kpmo/validate-production-rollback-contract-v1.mjs'
 ];
+const snapshotReadinessValidators = [
+  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs',
+  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs',
+  'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
+];
 const downstreamBoundaryValidators = [
   'scripts/kidults/kpmo/validate-er-projection-workflow-provenance-v1.mjs',
+  'scripts/kidults/portal/validate-portal-external-gate-evidence-v1.mjs',
   'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
   'scripts/kidults/portal/validate-server-projection-capability-v1.mjs',
   'scripts/kidults/portal/validate-portal-internal-readiness-v1.mjs',
@@ -76,6 +82,7 @@ const validators = [...new Set([
   ...providerAdapterBoundaryValidators,
   ...runtimeBoundaryValidators,
   ...productionRecoveryValidators,
+  ...snapshotReadinessValidators,
   ...downstreamBoundaryValidators
 ])];
 

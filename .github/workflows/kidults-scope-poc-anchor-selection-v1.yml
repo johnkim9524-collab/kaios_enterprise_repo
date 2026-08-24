@@ -25,5 +25,5 @@ jobs:
         run: |
           mkdir -p input
           gh api -H 'Accept: application/vnd.github+json' /repos/${{ github.repository }}/actions/artifacts/9286462549/zip > anchor-foundation.zip
-          unzip -q anchor-foundation.zip -d input
+          unzip -q -o anchor-foundation.zip -d input
       - run: node scripts/kidults/validate-scope-poc-anchor-selection-against-artifact-v1.mjs input

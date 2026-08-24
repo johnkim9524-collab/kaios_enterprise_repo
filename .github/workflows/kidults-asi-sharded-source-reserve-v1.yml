@@ -63,14 +63,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p discovery-out /tmp/reserve-discovery /tmp/previous-asi-sharded-source-reserve-v1
-          DISCOVERY_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select((.name=="kidults-asi-global-any-site-discovery-v2" or .name=="kidults-asi-global-any-site-hourly-cycle-v1" or .name=="kidults-asi-global-any-site-hourly-cycle-v2") and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          DISCOVERY_RUN_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')
+          test -n "$DISCOVERY_RUN_ID"
+          DISCOVERY_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${DISCOVERY_RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select((.name=="kidults-asi-global-any-site-discovery-v2" or .name=="kidults-asi-global-any-site-hourly-cycle-v1" or .name=="kidults-asi-global-any-site-hourly-cycle-v2") and .expired==false)][0].id // empty')
           test -n "$DISCOVERY_ID"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISCOVERY_ID}/zip" > /tmp/reserve-discovery.zip
           unzip -q -o /tmp/reserve-discovery.zip -d /tmp/reserve-discovery
           SRC=$(find /tmp/reserve-discovery -type f \( -name global-low-risk-discovery.json -o -name global-low-risk-discovery-governed-v2.json \) -print -quit)
           test -n "$SRC"
           cp "$SRC" discovery-out/global-low-risk-discovery.json
-          PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          PREV_RUN_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-sharded-source-reserve-v1.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')
+          PREV_ID=""
+          if [ -n "$PREV_RUN_ID" ]; then
+            PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${PREV_RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false)][0].id // empty')
+          fi
           if [ -n "$PREV_ID" ]; then
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-reserve.zip
             unzip -q -o /tmp/previous-reserve.zip -d /tmp/previous-asi-sharded-source-reserve-v1

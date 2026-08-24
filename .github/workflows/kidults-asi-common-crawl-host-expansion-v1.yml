@@ -35,7 +35,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p discovery-out /tmp/cc-input
-          ART_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-discovery-v2" and .expired==false)][0].id // empty')
+          RUN_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')
+          test -n "$RUN_ID"
+          ART_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-discovery-v2" and .expired==false)][0].id // empty')
           test -n "$ART_ID"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip" > /tmp/cc-input.zip
           unzip -q -o /tmp/cc-input.zip -d /tmp/cc-input
