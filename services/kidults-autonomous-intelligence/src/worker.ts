@@ -65,15 +65,12 @@ async function recordShadowHeartbeat(
   env: Env,
   recovery: AsiRecoveryCycleResult,
 ): Promise<void> {
-  const telemetry = await asiMeshTelemetry(env);
   await env.DB.prepare(`
     INSERT INTO audit_log (id,event_type,actor,details_json,created_at)
     VALUES (?,'asi.shadow.heartbeat','scheduler',?,?)
   `).bind(makeId('audit'),JSON.stringify({
     meshMode:env.ASI_MESH_MODE,
-    registeredFleetCount:telemetry.registered_fleet_count,
-    eventCount:telemetry.event_count,
-    unreplayedDeadLetters:telemetry.unreplayed_dead_letters,
+    telemetryMode:'ON_DEMAND_ONLY',
     recoveryCycle:recovery,
     engineAlignment:engineAlignmentStatus(),
     publicationAuthorized:false,
