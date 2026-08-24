@@ -12,17 +12,21 @@ async function withServer(run, options = {}) {
   const { mkdirSync } = await import("node:fs");
   mkdirSync(publicDir, { recursive: true });
   writeFileSync(resolve(publicDir, "index.html"), "<!doctype html><title>Kidults</title>", "utf8");
+  const projectionPath = resolve(root, "approved-projection.json");
+  if (options.projection) writeFileSync(projectionPath, JSON.stringify(options.projection), "utf8");
   const server = createKidultsServer({
     publicDir,
     dataDir,
     secret: "test-secret-with-sufficient-entropy",
     rateMax: options.rateMax || 20,
-    now: () => new Date("2026-07-31T03:00:00.000Z")
+    now: options.now || (() => new Date("2026-07-31T03:00:00.000Z")),
+    projectionPath: options.projection ? projectionPath : null,
+    projectionSecret: options.projection ? "projection-capability-test-secret-with-at-least-32-bytes" : null
   });
   await new Promise((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
   const address = server.address();
   try {
-    await run(`http://127.0.0.1:${address.port}`, dataDir);
+    await run(`http://127.0.0.1:${address.port}`, dataDir, projectionPath);
   } finally {
     await new Promise((resolveClose) => server.close(resolveClose));
   }
@@ -64,7 +68,44 @@ test("serves the portal and staging health contract with security headers", asyn
   });
 });
 
-test("persists an accepted submission and a non-PII audit event", async () => {
+test("projection surfaces fail closed without server capability configuration", async () => {
+  await withServer(async (base) => {
+    for (const path of ["/api/v1/projection", "/api/v1/projection/data", "/api/v1/projection/export"]) {
+      const response = await fetch(`${base}${path}`);
+      assert.equal(response.status, 503);
+      assert.equal((await response.json()).release, "HOLD");
+    }
+  });
+});
+
+test("portal, API and export use signed exact-projection admission and revoke immediately", async () => {
+  const { approvedProjectionFixture } = await import("../../scripts/kidults/portal/proof-product-test-fixtures-v1.mjs");
+  const projection = approvedProjectionFixture();
+  await withServer(async (base, _dataDir, projectionPath) => {
+    const portal = await fetch(`${base}/api/v1/projection`);
+    const portalBody = await portal.json();
+    assert.equal(portal.status, 200);
+    assert.equal(portalBody.portal_view.projection.state, "LIVE_APPROVED");
+    assert.equal(portalBody.consumption_receipt.release_authority, "SIGNED_SERVER_CAPABILITY");
+
+    const api = await fetch(`${base}/api/v1/projection/data`);
+    assert.equal(api.status, 200);
+    assert.equal((await api.json()).projection.projection_id, projection.projection_id);
+    const exported = await fetch(`${base}/api/v1/projection/export`);
+    assert.equal(exported.status, 200);
+    assert.match(exported.headers.get("content-disposition"), /attachment/);
+
+    const revoked = structuredClone(projection);
+    revoked.projection_state = "REVOKED";
+    revoked.display_eligibility = "BLOCKED";
+    writeFileSync(projectionPath, JSON.stringify(revoked), "utf8");
+    const afterRevoke = await fetch(`${base}/api/v1/projection`);
+    assert.equal(afterRevoke.status, 409);
+    assert.equal((await afterRevoke.json()).release, "HOLD");
+  }, { projection, now: () => new Date("2026-08-22T10:30:00Z") });
+});
+
+test("persists encrypted personal data and a non-PII audit event", async () => {
   await withServer(async (base, dataDir) => {
     const response = await submit(base, validSubmission());
     const body = await response.json();
@@ -73,10 +114,24 @@ test("persists an accepted submission and a non-PII audit event", async () => {
 
     const submissions = readFileSync(resolve(dataDir, "conversion-submissions.jsonl"), "utf8");
     const audit = readFileSync(resolve(dataDir, "conversion-audit.jsonl"), "utf8");
-    assert.match(submissions, /qa@example\.com/);
+    assert.doesNotMatch(submissions, /qa@example\.com/);
     assert.match(submissions, /email_fingerprint/);
+    assert.match(submissions, /AES-256-GCM-v1/);
+    assert.match(submissions, /expires_at/);
     assert.doesNotMatch(audit, /qa@example\.com/);
     assert.match(audit, /conversion_accepted/);
+  });
+});
+
+test("rejects cross-origin conversion writes", async () => {
+  await withServer(async (base) => {
+    const response = await fetch(`${base}/api/conversions`, {
+      method: "POST",
+      headers: {"content-type":"application/json", origin:"https://attacker.invalid"},
+      body: JSON.stringify(validSubmission())
+    });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).error, "cross_origin");
   });
 });
 

@@ -116,9 +116,9 @@ const report={
   schema_semantic_negative_mutations:mutations.length,discriminator_negative_mutations:discriminatorMutations.length,
   actual_portal_path:'readPortalProjection -> strict discriminator -> schema -> semantics -> NO_PROJECTION/INVALID -> render',
   runtime_schema:'CANONICAL_SCHEMA_BOUND',legacy_discriminator:'REJECT_UNKNOWN',
-  api_export_binding:'NOT_IMPLEMENTED_HOLD',approved_payload_exposure:'DISABLED_UNTIL_SIGNED_SERVER_CAPABILITY',
+  api_export_binding:'PUBLIC_CALLER_PATH_HOLD__SIGNED_SERVER_PATH_BOUND',approved_payload_exposure:'SIGNED_SERVER_CAPABILITY_ONLY',
   trusted_clock:'NO_CALLER_ASSERTED_AUTHORITY',caller_fixture_bypass:'REMOVED',assessment_identity:'EXACT_MATCH_AND_RECEIPT_BOUND',
-  stale_after_load:'SERVER_SIGNED_CAPABILITY_NOT_IMPLEMENTED_HOLD',prior_value_retention:false,
+  stale_after_load:'SERVER_RELOAD_AND_READMISSION_PER_REQUEST',prior_value_retention:false,
   live_projection:'NONE',track_b:'NOT_STARTED',production:'HOLD',public:'HOLD',g5:'HOLD'
 };
 console.log(JSON.stringify(report,null,2));

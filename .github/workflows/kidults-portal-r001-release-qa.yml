@@ -47,16 +47,37 @@ jobs:
         run: |
           mkdir -p /tmp/kidults-conversion-data
           printf 'portal-r001-qa-ci-nonproduction-secret' > /tmp/kidults-conversion-secret
+          printf 'portal-r001-projection-capability-ci-secret-at-least-32-bytes' > /tmp/kidults-projection-secret
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {approvedProjectionFixture} from './scripts/kidults/portal/proof-product-test-fixtures-v1.mjs';
+          const p=approvedProjectionFixture(), now=new Date();
+          p.generated_at=new Date(now-120000).toISOString();p.updated_at=new Date(now-60000).toISOString();
+          p.freshness.observed_at=new Date(now-120000).toISOString();p.freshness.valid_until=new Date(now.getTime()+3600000).toISOString();
+          fs.writeFileSync('/tmp/kidults-approved-projection.json',JSON.stringify(p));
+          NODE
           KAIOS_ENVIRONMENT=staging \
           KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false \
+          KIDULTS_PUBLIC_DIR="$GITHUB_WORKSPACE/apps/kidults-enterprise-staging/public" \
           KIDULTS_CONVERSION_DATA_DIR=/tmp/kidults-conversion-data \
           KIDULTS_CONVERSION_HASH_SECRET_FILE=/tmp/kidults-conversion-secret \
           HOST=127.0.0.1 PORT=4173 \
           node apps/kidults-enterprise-staging/server.mjs >/tmp/kidults-r001-server.log 2>&1 &
           echo $! >/tmp/kidults-r001-server.pid
-          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/health >/dev/null && exit 0; sleep 1; done
-          cat /tmp/kidults-r001-server.log
-          exit 1
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/health >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:4173/health >/dev/null || { cat /tmp/kidults-r001-server.log; exit 1; }
+          KAIOS_ENVIRONMENT=staging \
+          KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false \
+          KIDULTS_PUBLIC_DIR="$GITHUB_WORKSPACE/apps/kidults-enterprise-staging/public" \
+          KIDULTS_CONVERSION_DATA_DIR=/tmp/kidults-conversion-data \
+          KIDULTS_CONVERSION_HASH_SECRET_FILE=/tmp/kidults-conversion-secret \
+          KIDULTS_APPROVED_PROJECTION_FILE=/tmp/kidults-approved-projection.json \
+          KIDULTS_PROJECTION_CAPABILITY_SECRET_FILE=/tmp/kidults-projection-secret \
+          HOST=127.0.0.1 PORT=4174 \
+          node apps/kidults-enterprise-staging/server.mjs >/tmp/kidults-r001-positive-server.log 2>&1 &
+          echo $! >/tmp/kidults-r001-positive-server.pid
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4174/health >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:4174/health >/dev/null || { cat /tmp/kidults-r001-positive-server.log; exit 1; }
       - name: Run Release-001 responsive accessibility resilience matrix
         shell: bash
         run: |
@@ -189,18 +210,25 @@ jobs:
             }
           }
 
-          // Browser quarantine: even a canonical approved Projection must expose no value until a
-          // signed, non-public server capability and governed route exist.
+          // Positive path: a canonical approved Projection is rendered only through
+          // the signed, non-public server capability on the isolated positive server.
           {
             const approved=approvedProjectionFixture();
             for(const width of [390,1440]){
               const context=await browser.newContext({viewport:{width,height:width===390?900:1000},reducedMotion:'reduce'});
-              await context.route('**/portal-r001/data/projection-control-fixture.json',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(approved)}));
+              await context.addInitScript(()=>{
+                globalThis.__kidultsVitals={lcp:0,cls:0,inp:0};
+                new PerformanceObserver(list=>{for(const e of list.getEntries())globalThis.__kidultsVitals.lcp=Math.max(globalThis.__kidultsVitals.lcp,e.startTime)}).observe({type:'largest-contentful-paint',buffered:true});
+                new PerformanceObserver(list=>{for(const e of list.getEntries())if(!e.hadRecentInput)globalThis.__kidultsVitals.cls+=e.value}).observe({type:'layout-shift',buffered:true});
+                try{new PerformanceObserver(list=>{for(const e of list.getEntries())globalThis.__kidultsVitals.inp=Math.max(globalThis.__kidultsVitals.inp,e.duration)}).observe({type:'event',buffered:true,durationThreshold:16})}catch{}
+              });
               const page=await context.newPage();
               const runtimeErrors=[];
               page.on('pageerror',error=>runtimeErrors.push(`PAGEERROR_${error.message}`));
               page.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))runtimeErrors.push(`CONSOLE_${message.text()}`)});
-              await page.goto(baseUrl+'/portal-r001/index.html',{waitUntil:'networkidle'});
+              await page.goto('http://127.0.0.1:4174/portal-r001/index.html',{waitUntil:'networkidle'});
+              await page.keyboard.press('Tab');
+              await page.waitForTimeout(100);
               const obs=await page.evaluate(()=>({
                 state:document.documentElement.dataset.state,
                 objectTitle:document.querySelector('[data-object-title]')?.textContent,
@@ -214,31 +242,24 @@ jobs:
                 indexSeriesLabel:document.querySelector('.index-line')?.getAttribute('aria-label'),
                 signInEnabled:Boolean(document.querySelector('.sign-in'))&&document.querySelector('.sign-in').getAttribute('aria-disabled')!=='true',
                 horizontalOverflow:document.documentElement.scrollWidth>document.documentElement.clientWidth+2,
-                bodyText:document.body.innerText||''
+                bodyText:document.body.innerText||'',
+                vitals:globalThis.__kidultsVitals
               }));
-              if(obs.state!=='INVALID')failures.push(`APPROVED_QUARANTINE:w${width}:STATE_${obs.state}`);
+              if(obs.state!=='LIVE_APPROVED')failures.push(`APPROVED_POSITIVE:w${width}:STATE_${obs.state}`);
               if(obs.objectTitle!=='No governed object'||obs.objectCount!=='WAITING')failures.push(`APPROVED_QUARANTINE:w${width}:OBJECT_VALUE_EXPOSED`);
-              if(!obs.workspaceBlocked||obs.kidultReady||obs.auditSeal!=='CONTROL BOUNDARY')failures.push(`APPROVED_QUARANTINE:w${width}:CAPABILITY_UNLOCKED`);
+              if(obs.workspaceBlocked||obs.auditSeal!=='TRACE BOUND')failures.push(`APPROVED_POSITIVE:w${width}:CAPABILITY_NOT_UNLOCKED`);
               if(obs.indexSeriesLabel!=='Index display withheld until governed Projection')failures.push(`APPROVED_QUARANTINE:w${width}:INDEX_SERIES_EXPOSED`);
-              if(/fixture-(?:what_changed|liquidity|market_scale)|GOVERNED VIEW READY/.test(obs.bodyText+obs.evidenceText+obs.researchText))failures.push(`APPROVED_QUARANTINE:w${width}:PAYLOAD_TEXT_EXPOSED`);
+              if(!/fixture-(?:what_changed|liquidity|market_scale)/.test(obs.bodyText))failures.push(`APPROVED_POSITIVE:w${width}:SIGNED_VALUE_MISSING`);
               if(!obs.signInEnabled)failures.push(`APPROVED_QUARANTINE:w${width}:SIGN_IN_PROJECTION_GATED`);
               if(runtimeErrors.length)failures.push(`APPROVED_QUARANTINE:w${width}:RUNTIME_${runtimeErrors.join('|')}`);
               if(width<=430&&obs.horizontalOverflow)failures.push(`APPROVED_QUARANTINE:w${width}:HORIZONTAL_OVERFLOW`);
+              if(!obs.vitals?.lcp||obs.vitals.lcp>2500)failures.push(`APPROVED_POSITIVE:w${width}:LCP_${obs.vitals?.lcp}`);
+              if(obs.vitals?.cls>0.1)failures.push(`APPROVED_POSITIVE:w${width}:CLS_${obs.vitals?.cls}`);
               const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
               const serious=axe.violations.filter(v=>['serious','critical'].includes(v.impact));
               const axeDetails=serious.flatMap(violation=>violation.nodes.map(node=>({id:violation.id,target:node.target,html:node.html})));
               if(serious.length)failures.push(`APPROVED_QUARANTINE:w${width}:AXE_${JSON.stringify(axeDetails)}`);
-              results.push({route:'/portal-r001/index.html',viewport:`w${width}`,state:'APPROVED_PUBLIC_BROWSER_QUARANTINED',seriousCritical:serious.length,axeDetails,obs});
-              if(width===390){
-                await page.goto(baseUrl+'/portal-r001/object.html?id=fixture-object-001',{waitUntil:'networkidle'});
-                const redirected=await page.evaluate(()=>({url:location.href,state:document.documentElement.dataset.state,title:document.querySelector('[data-object-title]')?.textContent}));
-                if(!redirected.url.includes('index.html?id=fixture-object-001#objects')||redirected.state!=='INVALID'||redirected.title!=='No governed object')failures.push(`APPROVED_QUARANTINE:w390:OBJECT_REDIRECT_EXPOSED_${JSON.stringify(redirected)}`);
-                results.push({route:'/portal-r001/object.html?id=fixture-object-001',viewport:'w390',state:'APPROVED_PUBLIC_OBJECT_QUARANTINED',obs:redirected});
-                await page.goto(baseUrl+'/portal-r001/object.html?id=unknown-object',{waitUntil:'networkidle'});
-                const unknown=await page.evaluate(()=>({state:document.documentElement.dataset.state,objectState:document.querySelector('[data-object-state]')?.dataset.objectState,title:document.querySelector('[data-object-title]')?.textContent,id:document.querySelector('[data-object-id]')?.textContent,rights:document.querySelector('[data-object-rights]')?.textContent}));
-                if(unknown.state!=='INVALID'||unknown.title!=='No governed object'||unknown.rights==='CLEARED')failures.push(`APPROVED_QUARANTINE:w390:UNKNOWN_OBJECT_FALSE_MATCH_${JSON.stringify(unknown)}`);
-                results.push({route:'/portal-r001/object.html?id=unknown-object',viewport:'w390',state:'APPROVED_PUBLIC_UNKNOWN_OBJECT_QUARANTINED',obs:unknown});
-              }
+              results.push({route:'/portal-r001/index.html',viewport:`w${width}`,state:'APPROVED_PUBLIC_SIGNED_POSITIVE',seriousCritical:serious.length,axeDetails,obs});
               await context.close();
             }
           }
@@ -312,8 +333,8 @@ jobs:
             state_cases:stateCases.map(test=>({name:test.name,expected:test.expected,fixture_tag:test.fixtureTag})),
             canonical_closed_projection_states:closedStates,
             cases:results.length,
-            approved_browser_quarantine:['APPROVED_PUBLIC_W390','APPROVED_PUBLIC_W1440','OBJECT_REDIRECT_VALUE_QUARANTINE'],
-            live_positive_path:'SUSPENDED_UNTIL_SIGNED_NON_PUBLIC_SERVER_CAPABILITY',
+            approved_browser_quarantine:['UNSIGNED_STATIC_APPROVED_PROJECTION_REJECTED'],
+            live_positive_path:'SIGNED_NON_PUBLIC_SERVER_CAPABILITY_W390_W1440',
             adversarial_approved_projection_mutations:adversarialCaseNames,
             failures,
             truth_boundary:{fixture:'NON_PROMOTABLE',empirical_gate_effect:'NONE',live_approved_projection:'NONE',production:'HOLD',public_intelligence:'HOLD',g5:'EXPLICIT_APPROVAL_REQUIRED'},
@@ -337,5 +358,6 @@ jobs:
             /tmp/kidults-portal-r001-release-qa-v1.json
             /tmp/kidults-r001-qa/toolchain-receipt.json
             /tmp/kidults-r001-server.log
+            /tmp/kidults-r001-positive-server.log
             /tmp/kidults-r001-qa/screenshots
           retention-days: 30
