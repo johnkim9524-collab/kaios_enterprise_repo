@@ -48,6 +48,28 @@ function sameLines(actual, expected) {
     && actual.every((line, index) => line === expected[index]);
 }
 
+function namedJob(text, name) {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex(line => line === `  ${name}:`);
+  if (start < 0) return null;
+  let end = start + 1;
+  while (end < lines.length && !/^  [A-Za-z0-9_-]+:\s*$/.test(lines[end])) end += 1;
+  return { start, end, block: lines.slice(start, end), text: lines.slice(start, end).join('\n') };
+}
+
+function firstStepHeader(job) {
+  if (!job) return null;
+  const stepsIndex = job.block.findIndex(line => /^\s{4}steps:\s*$/.test(line));
+  if (stepsIndex < 0) return null;
+  for (let index = stepsIndex + 1; index < job.block.length; index += 1) {
+    const line = job.block[index];
+    if (!line.trim()) continue;
+    const match = line.match(/^\s{6}-\s+(name|uses):\s*(.*?)\s*$/);
+    return match ? { kind: match[1], value: match[2] } : null;
+  }
+  return null;
+}
+
 function mutateOnce(text, before, after, id) {
   const first = text.indexOf(before);
   if (first < 0 || text.indexOf(before, first + before.length) >= 0) {
@@ -103,6 +125,20 @@ const EXPECTED_ENFORCEMENT_RUN = [
   'test "${{ steps.validate_receipts.outputs.exit_code }}" = "0"'
 ];
 
+const EXPECTED_MAIN_GUARD_RUN = [
+  'set -euo pipefail',
+  'test "$GITHUB_REF" = "refs/heads/main"',
+  'case "$GITHUB_EVENT_NAME" in',
+  'push|workflow_dispatch) ;;',
+  '*) exit 64 ;;',
+  'esac'
+];
+
+const VALIDATE_MAIN_GUARD_STEP = 'Reject non-main source before privileged validation';
+const DEPLOY_MAIN_GUARD_STEP = 'Enforce exact main before any SSH secret or remote access';
+const DEPLOY_JOB_MAIN_GUARD = "if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')";
+const SSH_SECRET_BINDING = 'SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}';
+
 function findingsFor(text, receiptValidator = '') {
   const findings = [];
   for (const ref of externalActionRefs(text)) {
@@ -133,6 +169,44 @@ function findingsFor(text, receiptValidator = '') {
   if (verifyStepCount !== checkoutCount) findings.push(`VERIFY_STEP_COUNT_${verifyStepCount}_CHECKOUT_COUNT_${checkoutCount}`);
   if (expectedShaCount !== checkoutCount) findings.push(`EXPECTED_SHA_COUNT_${expectedShaCount}_CHECKOUT_COUNT_${checkoutCount}`);
   if (actualShaCount < checkoutCount) findings.push(`ACTUAL_SHA_ASSERTION_COUNT_${actualShaCount}_CHECKOUT_COUNT_${checkoutCount}`);
+
+  const validateJob = namedJob(text, 'validate');
+  const deployJob = namedJob(text, 'deploy');
+  const validateFirstStep = firstStepHeader(validateJob);
+  const deployFirstStep = firstStepHeader(deployJob);
+  const validateGuardSteps = validateJob ? namedSteps(validateJob.text, VALIDATE_MAIN_GUARD_STEP) : [];
+  const deployGuardSteps = deployJob ? namedSteps(deployJob.text, DEPLOY_MAIN_GUARD_STEP) : [];
+  const validateGuardRun = validateGuardSteps.length === 1 ? normalizedRunLines(validateGuardSteps[0]) : null;
+  const deployGuardRun = deployGuardSteps.length === 1 ? normalizedRunLines(deployGuardSteps[0]) : null;
+  if (!validateJob) findings.push('VALIDATE_JOB_MISSING');
+  if (!deployJob) findings.push('DEPLOY_JOB_MISSING');
+  if (validateGuardSteps.length !== 1 || !sameLines(validateGuardRun, EXPECTED_MAIN_GUARD_RUN)) {
+    findings.push('VALIDATE_PRE_PRIVILEGED_MAIN_GUARD_MISSING');
+  }
+  if (deployGuardSteps.length !== 1 || !sameLines(deployGuardRun, EXPECTED_MAIN_GUARD_RUN)) {
+    findings.push('DEPLOY_PRE_SECRET_MAIN_GUARD_MISSING');
+  }
+  if (validateFirstStep?.kind !== 'name' || validateFirstStep.value !== VALIDATE_MAIN_GUARD_STEP) {
+    findings.push('VALIDATE_MAIN_GUARD_NOT_FIRST_STEP');
+  }
+  if (deployFirstStep?.kind !== 'name' || deployFirstStep.value !== DEPLOY_MAIN_GUARD_STEP) {
+    findings.push('DEPLOY_MAIN_GUARD_NOT_FIRST_STEP');
+  }
+  if (!deployJob?.text.includes(DEPLOY_JOB_MAIN_GUARD)) findings.push('DEPLOY_JOB_EXACT_MAIN_GUARD_MISSING');
+
+  const materializeSteps = deployJob ? namedSteps(deployJob.text, 'Materialize SSH identity and pin host') : [];
+  const materializeBlock = materializeSteps.length === 1 ? materializeSteps[0].block.join('\n') : '';
+  if (count(text, /SSH_PRIVATE_KEY_B64:\s*\$\{\{\s*secrets\.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64\s*\}\}/g) !== 1
+      || !materializeBlock.includes(SSH_SECRET_BINDING)) {
+    findings.push('SSH_SECRET_NOT_STEP_SCOPED');
+  }
+  if (deployJob && deployGuardSteps.length === 1) {
+    const guardOffset = deployJob.text.indexOf(`- name: ${DEPLOY_MAIN_GUARD_STEP}`);
+    for (const marker of [SSH_SECRET_BINDING, 'ssh-keyscan -t ed25519', 'scp "${SSH_OPTS[@]}"']) {
+      const markerOffset = deployJob.text.indexOf(marker);
+      if (markerOffset < 0 || markerOffset < guardOffset) findings.push(`REMOTE_ACCESS_BEFORE_DEPLOY_MAIN_GUARD:${marker}`);
+    }
+  }
 
   if (!/HOST:\s*\$\{\{\s*vars\.KIDULTS_STAGING_PUBLIC_IP\s*\}\}/.test(text)) findings.push('STAGING_HOST_BINDING_MISSING');
   if (!/SSH_PRIVATE_KEY_B64:\s*\$\{\{\s*secrets\.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64\s*\}\}/.test(text)) findings.push('STAGING_SECRET_BINDING_MISSING');
@@ -298,6 +372,78 @@ for (const mutation of workflowMutationCases) {
   }
 }
 
+const mainGuardMutationCases = [
+  {
+    id: 'deploy-job-main-guard',
+    mutate: value => mutateOnce(
+      value,
+      DEPLOY_JOB_MAIN_GUARD,
+      "if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'",
+      'deploy-job-main-guard'
+    ),
+    expected: 'DEPLOY_JOB_EXACT_MAIN_GUARD_MISSING'
+  },
+  {
+    id: 'validate-step-main-guard',
+    mutate: value => mutateNamedStepOnce(
+      value,
+      VALIDATE_MAIN_GUARD_STEP,
+      'test "$GITHUB_REF" = "refs/heads/main"',
+      'test -n "$GITHUB_REF"',
+      'validate-step-main-guard'
+    ),
+    expected: 'VALIDATE_PRE_PRIVILEGED_MAIN_GUARD_MISSING'
+  },
+  {
+    id: 'deploy-step-main-guard',
+    mutate: value => mutateNamedStepOnce(
+      value,
+      DEPLOY_MAIN_GUARD_STEP,
+      'test "$GITHUB_REF" = "refs/heads/main"',
+      'test -n "$GITHUB_REF"',
+      'deploy-step-main-guard'
+    ),
+    expected: 'DEPLOY_PRE_SECRET_MAIN_GUARD_MISSING'
+  },
+  {
+    id: 'deploy-guard-not-first',
+    mutate: value => mutateOnce(
+      value,
+      `    steps:\n      - name: ${DEPLOY_MAIN_GUARD_STEP}`,
+      `    steps:\n      - name: Unsafe remote access before main guard\n        run: scp payload target\n      - name: ${DEPLOY_MAIN_GUARD_STEP}`,
+      'deploy-guard-not-first'
+    ),
+    expected: 'DEPLOY_MAIN_GUARD_NOT_FIRST_STEP'
+  },
+  {
+    id: 'secret-job-scoped',
+    mutate: value => {
+      const withoutStepSecret = mutateOnce(
+        value,
+        `      - name: Materialize SSH identity and pin host\n        env:\n          ${SSH_SECRET_BINDING}`,
+        '      - name: Materialize SSH identity and pin host',
+        'secret-job-scoped-remove'
+      );
+      return mutateOnce(
+        withoutStepSecret,
+        '      EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}\n    steps:',
+        `      EXPECTED_FINGERPRINT: \${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}\n      ${SSH_SECRET_BINDING}\n    steps:`,
+        'secret-job-scoped-add'
+      );
+    },
+    expected: 'SSH_SECRET_NOT_STEP_SCOPED'
+  }
+];
+for (const mutation of mainGuardMutationCases) {
+  if (findings.some(item => item.includes(mutation.expected))) {
+    throw new Error(`baseline already contains main-guard mutation finding: ${mutation.expected}`);
+  }
+  const mutationFindings = findingsFor(mutation.mutate(source), receiptValidatorSource);
+  if (!mutationFindings.some(item => item.includes(mutation.expected))) {
+    throw new Error(`main-guard mutation escaped ${mutation.id}: ${mutationFindings.join(',')}`);
+  }
+}
+
 const detachedValidatorFindings = findingsFor(
   source.replace(
     'python scripts/operations/validate_digitalocean_staging_portal_receipts_v1.py',
@@ -360,6 +506,7 @@ console.log(JSON.stringify({
   receipt_validator: RECEIPT_VALIDATOR,
   receipt_validator_bound_to_remote_exact_execution: receiptValidatorBound,
   receipt_validator_binding_mutation_cases: workflowMutationCases.length + 5,
+  exact_main_pre_secret_guard_mutation_cases: mainGuardMutationCases.length,
   external_action_refs: externalActionRefs(source),
   immutable_external_actions_required: true,
   exact_source_sha_required: true,

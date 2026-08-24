@@ -18,6 +18,15 @@ jobs:
   validate:
     runs-on: ubuntu-24.04
     steps:
+      - name: Reject non-main source before privileged validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          case "$GITHUB_EVENT_NAME" in
+            push|workflow_dispatch) ;;
+            *) exit 64 ;;
+          esac
       - name: Checkout exact source commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -60,7 +69,7 @@ jobs:
           PY
 
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -68,8 +77,16 @@ jobs:
       HOST: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
       PRIVATE_IP: ${{ vars.KIDULTS_STAGING_PRIVATE_IP }}
       EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
-      SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}
     steps:
+      - name: Enforce exact main before any SSH secret or remote access
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          case "$GITHUB_EVENT_NAME" in
+            push|workflow_dispatch) ;;
+            *) exit 64 ;;
+          esac
       - name: Checkout exact source commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -98,11 +115,13 @@ jobs:
           test "$HOST" = "165.232.175.45"
           test "$PRIVATE_IP" = "10.104.0.3"
           test -n "$EXPECTED_FINGERPRINT"
-          test -n "$SSH_PRIVATE_KEY_B64"
       - name: Materialize SSH identity and pin host
+        env:
+          SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}
         shell: bash
         run: |
           set -euo pipefail
+          test -n "$SSH_PRIVATE_KEY_B64"
           mkdir -p "$RUNNER_TEMP/ssh"
           ssh-keyscan -t ed25519 "$HOST" > "$RUNNER_TEMP/ssh/known_hosts"
           OBSERVED="$(ssh-keygen -lf "$RUNNER_TEMP/ssh/known_hosts" | awk '{print $2}')"

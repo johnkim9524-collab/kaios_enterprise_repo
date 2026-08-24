@@ -14,7 +14,7 @@ portal=(root/'apps/kidults-enterprise-staging/public/portal-r001/index.html').re
 errors=[]
 need=lambda c,m: errors.append(m) if not c else None
 need(contract['id']=='kidults-digitalocean-staging-portal-deploy-v1','id')
-need(contract['version']=='1.2.0','deploy contract version')
+need(contract['version']=='1.3.0','deploy contract version')
 need(contract['issue']==921,'issue')
 need(contract['environment']=='STAGING','env')
 need(contract['target']['hostname']=='ih-staging-01','hostname')
@@ -33,6 +33,10 @@ need(contract['deployment']['rollback_target_digest_revalidation_required'] is T
 need(contract['deployment']['serialized_deployments_required'] is True,'serialized deployments required')
 need(contract['deployment']['run_attempt_scoped_release_id'] is True,'run-attempt-scoped release id required')
 need(contract['deployment']['local_contract_proof_is_remote_evidence'] is False,'local proof must not be remote evidence')
+need(contract['deployment']['exact_main_ref_required_before_validation'] is True,'exact main required before validation')
+need(contract['deployment']['exact_main_ref_required_before_secret_consumption'] is True,'exact main required before secret consumption')
+need(contract['deployment']['ssh_private_key_step_scoped'] is True,'SSH private key must be step scoped')
+need(contract['deployment']['non_main_remote_mutation_allowed'] is False,'non-main remote mutation must be forbidden')
 need(contract['receipt_contract']=='coordination/kidults/runtime/digitalocean-staging-portal-receipt-contract-v1.json','receipt contract binding')
 need(contract['production']=='HOLD','production hold')
 need(contract['public_intelligence']=='HOLD','public hold')
@@ -102,6 +106,37 @@ for marker in ['--expected-deployment-id','--expected-source-sha','--expected-ru
 need('pull_request:' not in deploy_workflow,'privileged deploy workflow must not run on pull_request')
 need('group: kidults-digitalocean-staging-portal' in deploy_workflow,'workflow deployment concurrency group')
 need('cancel-in-progress: false' in deploy_workflow,'workflow deployment concurrency must not cancel in progress')
+validate_guard='''      - name: Reject non-main source before privileged validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          case "$GITHUB_EVENT_NAME" in
+            push|workflow_dispatch) ;;
+            *) exit 64 ;;
+          esac'''
+deploy_guard='''      - name: Enforce exact main before any SSH secret or remote access
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          case "$GITHUB_EVENT_NAME" in
+            push|workflow_dispatch) ;;
+            *) exit 64 ;;
+          esac'''
+deploy_job_guard="if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')"
+need(validate_guard in deploy_workflow,'validate exact-main pre-privileged guard')
+need(deploy_guard in deploy_workflow,'deploy exact-main pre-secret guard')
+need(deploy_job_guard in deploy_workflow,'deploy job exact-main guard')
+need(deploy_workflow.count('${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}')==1,'SSH secret binding must be unique')
+if deploy_guard in deploy_workflow:
+    guard_index=deploy_workflow.index(deploy_guard)
+    for marker in ['${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}','ssh-keyscan -t ed25519','scp "${SSH_OPTS[@]}"']:
+        need(marker in deploy_workflow and guard_index < deploy_workflow.index(marker),f'exact-main guard must precede {marker}')
+materialize_marker='''      - name: Materialize SSH identity and pin host
+        env:
+          SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}'''
+need(materialize_marker in deploy_workflow,'SSH secret must be scoped to materialization step')
 need('RELEASE_ID="portal-r001-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"' in deploy_workflow,'release id must include workflow run attempt')
 for marker in ["'receipt_type':'GITHUB_RUNNER_EXECUTION'","'state':'CAPTURED_NOT_ATTESTED'","'workflow_ref':os.environ['GITHUB_WORKFLOW_REF']","'workflow_sha':os.environ['GITHUB_WORKFLOW_SHA']","'job_name':os.environ['GITHUB_JOB']","'successful_workflow_attested':False",'--expected-workflow-ref "$GITHUB_WORKFLOW_REF"','--expected-workflow-sha "$GITHUB_WORKFLOW_SHA"','--expected-job-name "$GITHUB_JOB"']:
     need(marker in deploy_workflow, f'workflow runner binding marker {marker}')

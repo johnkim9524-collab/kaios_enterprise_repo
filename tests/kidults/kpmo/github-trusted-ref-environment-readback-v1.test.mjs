@@ -123,6 +123,15 @@ function receipt({ inventory = verifiedInventory(), snapshot = null, ref = 'refs
 test('current exact registry remains 15 privileged manual lanes and unbound jobs fail closed', () => {
   assert.equal(currentInventory.registered_lane_count, 15);
   assert.ok(currentInventory.secret_bearing_job_count >= 15);
+  const repositoryGuardedLanes = currentInventory.lanes
+    .filter((lane) => lane.secret_bearing_jobs.some((job) => job.explicit_main_ref_guard))
+    .map((lane) => lane.workflow)
+    .sort();
+  assert.deepEqual(repositoryGuardedLanes, [
+    '.github/workflows/digitalocean-readonly-audit.yml',
+    '.github/workflows/digitalocean-staging-bootstrap-exec.yml',
+    '.github/workflows/digitalocean-staging-portal-deploy.yml',
+  ]);
   const current = receipt({ inventory: currentInventory, snapshot: verifiedSnapshot(currentInventory) });
   assert.equal(current.state, 'BLOCKED');
   assert.equal(current.issue_974_closure_eligible, false);

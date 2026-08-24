@@ -263,7 +263,15 @@ export function validateRepository(root = process.cwd()) {
   assert(inventory.registered_lane_count === registry.registered_count && registry.registered_count === 15, 'REGISTRY_LANE_PARTITION');
   assert(inventory.secret_bearing_job_count === 15, 'SECRET_BEARING_JOB_PARTITION');
   assert(inventory.lanes.every((lane) => lane.secret_bearing_jobs.every((job) => !job.environment.declared)), 'CURRENT_LANES_MUST_NOT_BE_PROMOTED_TO_ENV_BOUND');
-  assert(inventory.lanes.filter((lane) => lane.secret_bearing_jobs.some((job) => job.explicit_main_ref_guard)).length === 2, 'REPOSITORY_MAIN_GUARD_COUNT');
+  const repositoryGuardedLanes = inventory.lanes
+    .filter((lane) => lane.secret_bearing_jobs.some((job) => job.explicit_main_ref_guard))
+    .map((lane) => lane.workflow)
+    .sort();
+  assert(JSON.stringify(repositoryGuardedLanes) === JSON.stringify([
+    '.github/workflows/digitalocean-readonly-audit.yml',
+    '.github/workflows/digitalocean-staging-bootstrap-exec.yml',
+    '.github/workflows/digitalocean-staging-portal-deploy.yml',
+  ]), 'REPOSITORY_MAIN_GUARD_LANES');
   assert(validateWorkflowSource(workflow).length === 0, `WORKFLOW_PROVENANCE:${validateWorkflowSource(workflow).join(',')}`);
   assert(/method:\s*'GET'/.test(collector), 'COLLECTOR_GET_ONLY');
   assert(!/method:\s*['"](?:POST|PUT|PATCH|DELETE)['"]/.test(collector), 'COLLECTOR_MUTATING_METHOD');
@@ -326,9 +334,7 @@ export function validateRepository(root = process.cwd()) {
       (count, lane) => count + lane.secret_bearing_jobs.filter((job) => job.environment.declared).length,
       0
     ),
-    repository_main_guard_lanes: inventory.lanes.filter(
-      (lane) => lane.secret_bearing_jobs.some((job) => job.explicit_main_ref_guard)
-    ).length,
+    repository_main_guard_lanes: repositoryGuardedLanes.length,
     workflow_mutations_rejected: workflowMutations.length,
     analyzer_mutations_detected: analyzerMutations.length,
     live_github_requests_executed_by_validator: 0,
