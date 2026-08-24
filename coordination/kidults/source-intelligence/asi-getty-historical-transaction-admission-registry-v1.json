@@ -1,0 +1,89 @@
+{
+  "id": "kidults-asi-getty-historical-transaction-admission-registry-v1",
+  "version": "1.0.0",
+  "status": "VERIFIED_PASS",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-contract-v1.json",
+    "observation": "coordination/kidults/source-intelligence/getty-provenance-historical-transaction-observation-v1.json",
+    "sale_snapshot": "coordination/kidults/source-intelligence/evidence/getty-provenance-sale-fbc91494-v1.json",
+    "object_snapshot": "coordination/kidults/source-intelligence/evidence/getty-provenance-object-09539ab1-v1.json",
+    "top16_empirical_preflight": "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+    "adapter": "services/kidults-autonomous-intelligence/src/asi/source-adapters/getty-provenance-index.ts",
+    "adapter_test": "services/kidults-autonomous-intelligence/scripts/asi-getty-provenance-index-test.mjs",
+    "builder": "scripts/kidults/source-intelligence/build-asi-getty-historical-transaction-admission-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-getty-historical-transaction-admission-v1.mjs",
+    "generic_market_router": "scripts/kidults/intelligence/provider-independent-layers-v1.mjs",
+    "generic_market_router_validator": "scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml",
+    "documentation": "docs/kidults/asi/asi-getty-historical-transaction-admission-v1.md"
+  },
+  "implementation_state": {
+    "getty_source_profiles_registered": 1,
+    "getty_source_adapters_implemented": 1,
+    "getty_source_adapters_activated_historical_only": 1,
+    "immutable_live_source_snapshots_verified": 2,
+    "purpose_specific_rights_verified_sources": 1,
+    "historical_transaction_evidence_admitted": 1,
+    "historical_transaction_events_created": 1,
+    "generic_market_events_admitted": 0,
+    "verified_current_sold_events_created": 0,
+    "top16_source_profiles": 16,
+    "top16_source_adapters_implemented_fixture_verified": 16,
+    "top16_source_adapters_activated": 0,
+    "top16_evidence_admitted": 0,
+    "current_prices_created": 0,
+    "liquidity_measures_created": 0
+  },
+  "automatic_execution": {
+    "workflow_dispatch": true,
+    "schedule": "17 */4 * * *",
+    "main_push": true,
+    "pull_request": true,
+    "upstream_workflows": [
+      "KIDULTS ASI Source Adapter Wave 4 v1"
+    ],
+    "manual_only_normal_activation": false
+  },
+  "effects": {
+    "autonomous_effect": "POSITIVE",
+    "global_effect": "POSITIVE_BOUNDED_HISTORICAL_COVERAGE_ONLY",
+    "irreplaceable_value_effect": "POSITIVE",
+    "transparency_effect": "POSITIVE",
+    "evidence": {
+      "autonomous": "Exact-digest replay, rights binding, admission, mutation rejection and scheduled rebuild are owned by KIDULTS.",
+      "global": "Getty linked open data adds one rights-clear historical transaction path; one United Kingdom pound-denominated 1938 record is not global market coverage.",
+      "irreplaceable_value": "KIDULTS owns the claim ceiling, evidence admission, time-precision and current-signal isolation logic.",
+      "transparent": "Historical evidence, current market event, Top16 activation, price, liquidity, Public, Production and G5 states are reported independently."
+    }
+  },
+  "next_action": "Obtain authorized rights and access for one current-sold Top16 source or licensed feed; do not inherit the Getty historical admission into Top16 or current-market claims.",
+  "authority_boundary": {
+    "internal_reversible_implementation": "EXECUTED",
+    "external_account_terms_spend_permission_or_credential": "HOLD",
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "truth_boundary": {
+    "getty_registered_top16_source_profile": false,
+    "historical_is_current": false,
+    "documented_amount_is_hammer_or_all_in_realized": false,
+    "month_window_is_exact_day": false,
+    "generic_market_event_created": false,
+    "current_market_signal_eligible": false,
+    "collector_market_representativeness_verified": false,
+    "snapshot_candidate_created": false,
+    "track_b_input_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

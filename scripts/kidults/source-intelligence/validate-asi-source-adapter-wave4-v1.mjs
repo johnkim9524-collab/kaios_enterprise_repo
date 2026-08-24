@@ -34,7 +34,7 @@ const workflow = read(files.workflow);
 const doc = read(files.documentation);
 const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
 const expectedSources = [
-  { rank: 7, source_id: 'pricecharting-api', assignments: 12, family: 'STRUCTURED_API_TRANSACTION', claims: ['DATED_OBSERVED_SOLD_TRANSACTION', 'CURRENT_PRICE'], implemented: ['DATED_OBSERVED_SOLD_TRANSACTION'] },
+  { rank: 7, source_id: 'pricecharting-api', assignments: 12, family: 'AGGREGATE_PRICE_GUIDE_CONTEXT', claims: ['DATED_OBSERVED_SOLD_TRANSACTION', 'CURRENT_PRICE'], implemented: [] },
   { rank: 11, source_id: 'reverb-price-guide', assignments: 6, family: 'AGGREGATE_PRICE_GUIDE_CONTEXT', claims: ['DATED_OBSERVED_SOLD_TRANSACTION', 'CURRENT_PRICE'], implemented: [] },
   { rank: 12, source_id: 'hasbro-pulse-collections', assignments: 6, family: 'RELEASE_OR_LISTING_CONTEXT', claims: ['LIQUIDITY_OR_TIME_TO_SALE'], implemented: [] },
   { rank: 13, source_id: 'goat-sneaker-marketplace', assignments: 6, family: 'MARKETPLACE_EXPOSURE', claims: ['DATED_OBSERVED_SOLD_TRANSACTION', 'CURRENT_PRICE', 'LIQUIDITY_OR_TIME_TO_SALE'], implemented: ['LIQUIDITY_OR_TIME_TO_SALE'] },
@@ -50,9 +50,9 @@ assert(JSON.stringify(contract.platform_principles) === JSON.stringify(principle
 assert(contract.source_adapters?.length === 7, 'CONTRACT_SOURCE_COUNT');
 assert(contract.shared_controls?.length >= 16, 'CONTRACT_CONTROL_COUNT');
 assert(contract.required_mutation_families_per_source?.length === 7, 'CONTRACT_MUTATION_COUNT');
-assert(contract.claim_partition?.strict_transaction_candidate_parsers === 1, 'CONTRACT_TRANSACTION_PARSER_COUNT');
+assert(contract.claim_partition?.strict_transaction_candidate_parsers === 0, 'CONTRACT_TRANSACTION_PARSER_COUNT');
 assert(contract.claim_partition?.strict_exposure_candidate_parsers === 3, 'CONTRACT_EXPOSURE_PARSER_COUNT');
-assert(contract.claim_partition?.context_only_non_promotable_classifiers === 3, 'CONTRACT_CONTEXT_COUNT');
+assert(contract.claim_partition?.context_only_non_promotable_classifiers === 4, 'CONTRACT_CONTEXT_COUNT');
 assert(contract.claim_partition?.registered_claim_is_not_implemented_claim === true, 'CONTRACT_CLAIM_INHERITANCE');
 assert(contract.portfolio_state_after_wave?.registered_source_profiles === 16, 'CONTRACT_PROFILE_COUNT');
 assert(contract.portfolio_state_after_wave?.source_specific_adapters_implemented === 16, 'CONTRACT_IMPLEMENTED_COUNT');
@@ -80,11 +80,11 @@ for (const [key, expected] of Object.entries({
 assert(registry.implementation_state?.wave_source_specific_adapters_implemented === 7, 'REGISTRY_WAVE_IMPLEMENTED');
 assert(registry.implementation_state?.portfolio_source_specific_adapters_implemented === 16, 'REGISTRY_PORTFOLIO_IMPLEMENTED');
 assert(registry.implementation_state?.portfolio_source_specific_adapters_pending === 0, 'REGISTRY_PENDING');
-assert(registry.implementation_state?.strict_transaction_candidate_parsers_in_wave === 1, 'REGISTRY_TRANSACTION_COUNT');
+assert(registry.implementation_state?.strict_transaction_candidate_parsers_in_wave === 0, 'REGISTRY_TRANSACTION_COUNT');
 assert(registry.implementation_state?.strict_exposure_candidate_parsers_in_wave === 3, 'REGISTRY_EXPOSURE_COUNT');
-assert(registry.implementation_state?.context_only_non_promotable_classifiers_in_wave === 3, 'REGISTRY_CONTEXT_COUNT');
+assert(registry.implementation_state?.context_only_non_promotable_classifiers_in_wave === 4, 'REGISTRY_CONTEXT_COUNT');
 assert(registry.implementation_state?.deterministic_fixture_suites_implemented === 7, 'REGISTRY_FIXTURE_COUNT');
-assert(registry.implementation_state?.generic_runtime_bindings_verified === 4, 'REGISTRY_RUNTIME_BINDING_COUNT');
+assert(registry.implementation_state?.generic_runtime_bindings_verified === 3, 'REGISTRY_RUNTIME_BINDING_COUNT');
 assert(registry.implementation_state?.source_specific_adapters_activated === 0, 'REGISTRY_ACTIVATION_BOUNDARY');
 assert(registry.implementation_state?.empirical_market_events_admitted === 0, 'REGISTRY_EVENT_BOUNDARY');
 assert(registry.implemented_source_ids?.length === 16 && new Set(registry.implemented_source_ids).size === 16, 'REGISTRY_IMPLEMENTED_IDS');
@@ -145,7 +145,7 @@ for (const marker of [
 ]) assert(shared.includes(marker), `SHARED_CORE_MARKER:${marker}`);
 assert(!shared.includes('fetch(') && !shared.includes("from 'node:http'") && !shared.includes("from 'node:https'"), 'SHARED_CORE_NETWORK_FORBIDDEN');
 for (const marker of [
-  'parsePriceChartingTransactionSnapshot',
+  'classifyPriceChartingCurrentValueSnapshot',
   'classifyReverbPriceGuideSnapshot',
   'classifyHasbroPulseCollectionSnapshot',
   'parseGoatExposureSnapshot',
@@ -160,10 +160,10 @@ assert(receipt.source_specific_adapters_implemented === 7, 'TEST_RECEIPT_IMPLEME
 assert(receipt.total_source_specific_adapters_implemented_in_portfolio === 16, 'TEST_RECEIPT_PORTFOLIO');
 assert(receipt.remaining_source_specific_adapters === 0, 'TEST_RECEIPT_PENDING');
 assert(receipt.deterministic_replays_verified === 7, 'TEST_RECEIPT_REPLAY');
-assert(receipt.positive_fixture_candidates_parsed === 4, 'TEST_RECEIPT_POSITIVE');
-assert(receipt.context_only_classifications_verified === 3, 'TEST_RECEIPT_CONTEXT');
+assert(receipt.positive_fixture_candidates_parsed === 3, 'TEST_RECEIPT_POSITIVE');
+assert(receipt.context_only_classifications_verified === 4, 'TEST_RECEIPT_CONTEXT');
 assert(receipt.negative_fixture_mutations_rejected === 49, 'TEST_RECEIPT_NEGATIVE');
-assert(receipt.generic_market_adapter_runtime_bindings_verified === 4, 'TEST_RECEIPT_RUNTIME');
+assert(receipt.generic_market_adapter_runtime_bindings_verified === 3, 'TEST_RECEIPT_RUNTIME');
 assert(receipt.live_source_snapshots_verified === 0 && receipt.field_purpose_rights_verified_sources === 0, 'TEST_RECEIPT_EMPIRICAL_BOUNDARY');
 assert(receipt.source_specific_adapters_activated === 0 && receipt.evidence_admitted === 0 && receipt.market_events_created === 0, 'TEST_RECEIPT_PROMOTION_BOUNDARY');
 assert(receipt.source_results?.length === 7, 'TEST_RECEIPT_SOURCE_RESULTS');
@@ -241,8 +241,8 @@ console.log(JSON.stringify({
   registered_source_profiles: 16,
   source_specific_adapters_pending: 0,
   deterministic_replays_verified: 7,
-  positive_fixture_candidates_parsed: 4,
-  context_only_classifications_verified: 3,
+  positive_fixture_candidates_parsed: 3,
+  context_only_classifications_verified: 4,
   negative_fixture_mutations_rejected: 49,
   live_source_snapshots_verified: 0,
   field_purpose_rights_verified_sources: 0,

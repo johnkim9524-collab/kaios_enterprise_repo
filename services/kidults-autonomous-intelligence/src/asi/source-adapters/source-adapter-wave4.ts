@@ -2,7 +2,6 @@ import {
   classifyContextOnlySurface,
   cloneGovernedMarketSurfaceProfile,
   parseStrictExposureSurface,
-  parseStrictTransactionSurface,
   type GovernedMarketSurfaceProfile,
   type GovernedMarketSurfaceResult,
   type GovernedMarketSurfaceSnapshot,
@@ -12,19 +11,12 @@ const priceChartingProfile: GovernedMarketSurfaceProfile = {
   source_id: 'pricecharting-api',
   canonical_host: 'www.pricecharting.com',
   allowed_hosts: ['www.pricecharting.com', 'pricecharting.com'],
-  allowed_path_prefixes: ['/api', '/api-documentation'],
-  source_schema_version: 'pricecharting-transaction-snapshot-v1',
+  allowed_path_prefixes: ['/api/product', '/api-documentation'],
+  source_schema_version: 'pricecharting-current-value-context-snapshot-v1',
   source_owner_candidate_id: 'pricecharting',
-  family: 'STRUCTURED_API_TRANSACTION',
+  family: 'AGGREGATE_PRICE_GUIDE_CONTEXT',
   registered_claims: ['DATED_OBSERVED_SOLD_TRANSACTION', 'CURRENT_PRICE'],
-  implemented_claim_parsers: ['DATED_OBSERVED_SOLD_TRANSACTION'],
-  transaction_fields: {
-    record_id: 'sale_id',
-    status: 'status',
-    realized_price: 'sold_price',
-    currency: 'currency',
-    event_at: 'sold_at',
-  },
+  implemented_claim_parsers: [],
 };
 
 const reverbProfile: GovernedMarketSurfaceProfile = {
@@ -126,10 +118,10 @@ const nikeSnkrsProfile: GovernedMarketSurfaceProfile = {
   implemented_claim_parsers: [],
 };
 
-export async function parsePriceChartingTransactionSnapshot(
+export async function classifyPriceChartingCurrentValueSnapshot(
   snapshot: GovernedMarketSurfaceSnapshot,
 ): Promise<GovernedMarketSurfaceResult> {
-  return parseStrictTransactionSurface(snapshot, priceChartingProfile);
+  return classifyContextOnlySurface(snapshot, priceChartingProfile);
 }
 
 export async function classifyReverbPriceGuideSnapshot(

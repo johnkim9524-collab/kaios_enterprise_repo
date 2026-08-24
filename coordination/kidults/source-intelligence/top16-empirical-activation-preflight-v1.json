@@ -1,0 +1,228 @@
+{
+  "id": "kidults-top16-empirical-activation-preflight-v1",
+  "version": "1.0.0",
+  "status": "VERIFIED_FAIL_CLOSED",
+  "as_of": "2026-08-24T02:38:18Z",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "portfolio": {
+    "registered_source_profiles": 16,
+    "software_adapters_implemented_fixture_verified": 16,
+    "purpose_specific_rights_verified": 0,
+    "immutable_live_source_snapshots_verified": 0,
+    "empirically_activated": 0,
+    "evidence_admitted": 0,
+    "verified_current_sold_events": 0
+  },
+  "preflighted_sources": 5,
+  "rows": [
+    {
+      "source_id": "broad-arrow-results",
+      "preflight_state": "OFFICIAL_TERMS_AND_ROBOTS_VERIFIED",
+      "access_state": "PUBLIC_RESULT_VISIBLE",
+      "rights_state": "DENY_AUTOMATED_COLLECTION_ABSENT_WRITTEN_PERMISSION",
+      "schema_state": "EXACT_LOT_RESULT_VISIBLE_NOT_COLLECTED",
+      "semantic_state": "SOLD_PRICE_LABEL_VISIBLE_NOT_ADMITTED",
+      "activation_state": "HOLD_EXTERNAL_WRITTEN_PERMISSION_REQUIRED",
+      "blocker": "ROBOTS_DISALLOWS_VEHICLES_RESULTS_AND_PLATFORM_TERMS_PROHIBIT_AUTOMATED_RETRIEVAL_DATA_MINING_OR_REPRODUCTION",
+      "evidence_refs": [
+        "https://www.broadarrowauctions.com/robots.txt",
+        "https://speeddigital.com/terms-and-conditions/",
+        "https://www.broadarrowauctions.com/vehicles/ch24_r073/2005-honda-s2000"
+      ]
+    },
+    {
+      "source_id": "collecting-cars-sold",
+      "preflight_state": "OFFICIAL_TERMS_AND_ROBOTS_VERIFIED",
+      "access_state": "SOLD_ARCHIVE_VISIBLE_PRICE_LOGIN_GATED_ON_OBSERVED_ROWS",
+      "rights_state": "DENY_AUTOMATED_COLLECTION_ABSENT_PRIOR_WRITTEN_CONSENT",
+      "schema_state": "LIVE_PRICE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "SOLD_ARCHIVE_LABEL_ONLY_NOT_PRICE_EVIDENCE",
+      "activation_state": "HOLD_EXTERNAL_WRITTEN_PERMISSION_REQUIRED",
+      "blocker": "TERMS_PROHIBIT_SCRAPING_DATA_MINING_ROBOTS_AND_DATA_EXTRACTION_WITHOUT_PRIOR_WRITTEN_CONSENT",
+      "evidence_refs": [
+        "https://collectingcars.com/robots.txt",
+        "https://collectingcars.com/terms-conditions",
+        "https://collectingcars.com/sold"
+      ]
+    },
+    {
+      "source_id": "barrett-jackson-results",
+      "preflight_state": "OFFICIAL_RESULT_SURFACE_OBSERVED",
+      "access_state": "REGISTER_TO_VIEW_PRICE_AND_AUTOMATED_PREFLIGHT_BLOCKED",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "LIVE_PRICE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "TERMINAL_PRICE_NOT_OBSERVED_WITHOUT_ACCOUNT",
+      "activation_state": "HOLD_ACCOUNT_RIGHTS_AND_SCHEMA_REQUIRED",
+      "blocker": "PRICE_REQUIRES_REGISTRATION_AND_NONINTERACTIVE_ROBOTS_PREFLIGHT_RETURNED_ACCESS_DENIAL",
+      "evidence_refs": [
+        "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle-results"
+      ]
+    },
+    {
+      "source_id": "iconic-auctioneers-results",
+      "preflight_state": "OFFICIAL_SEARCH_RESULT_SEMANTICS_OBSERVED",
+      "access_state": "AWS_WAF_CHALLENGE_BLOCKS_NONINTERACTIVE_CAPTURE",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "SOLD_INCLUDING_PREMIUM_LABEL_VISIBLE_IN_SEARCH_CONTEXT_NOT_ADMITTED",
+      "activation_state": "HOLD_ACCESS_RIGHTS_AND_SCHEMA_REQUIRED",
+      "blocker": "NONINTERACTIVE_OFFICIAL_PAGE_CAPTURE_IS_BLOCKED_BY_WAF_AND_NO_PURPOSE_SPECIFIC_RIGHTS_PASS_EXISTS",
+      "evidence_refs": [
+        "https://www.iconicauctioneers.com/auction-results"
+      ]
+    },
+    {
+      "source_id": "pricecharting-api",
+      "preflight_state": "OFFICIAL_API_DOCUMENTATION_VERIFIED",
+      "access_state": "PAID_SUBSCRIPTION_AND_TOKEN_REQUIRED",
+      "rights_state": "EXTERNAL_ACCOUNT_SPEND_AND_TERMS_ACCEPTANCE_REQUIRED",
+      "schema_state": "SOFTWARE_ADAPTER_CORRECTED_TO_DOCUMENTED_CURRENT_VALUE_CONTEXT_ONLY_LIVE_UNVERIFIED",
+      "semantic_state": "DOCUMENTED_PRICE_API_IS_CURRENT_VALUE_NOT_GENERIC_HISTORICAL_SOLD_TRANSACTIONS",
+      "activation_state": "HOLD_EXTERNAL_SPEND_CREDENTIAL_RIGHTS_AND_LIVE_SCHEMA_REQUIRED",
+      "blocker": "NO_AUTHORIZED_TOKEN_OR_SPEND; DOCUMENTED_SOLD_OFFERS_ENDPOINT_IS PARTY_SCOPED_AND_CANNOT_SUPPORT_A_GENERIC_TRANSACTION_CLAIM",
+      "evidence_refs": [
+        "https://www.pricecharting.com/api-documentation",
+        "https://www.pricecharting.com/pricecharting-pro"
+      ]
+    },
+    {
+      "source_id": "bonhams-cars-results",
+      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
+      "access_state": "UNVERIFIED",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
+      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
+      "evidence_refs": []
+    },
+    {
+      "source_id": "bonhams-watches-results",
+      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
+      "access_state": "UNVERIFIED",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
+      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
+      "evidence_refs": []
+    },
+    {
+      "source_id": "bricklink-catalog-api",
+      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
+      "access_state": "CREDENTIAL_REQUIRED_FROM_EXISTING_REGISTRY",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "activation_state": "HOLD_CREDENTIAL_RIGHTS_SCHEMA_SEMANTICS_REQUIRED",
+      "blocker": "AUTHORIZED_CREDENTIAL_AND_PURPOSE_RIGHTS_NOT_AVAILABLE",
+      "evidence_refs": []
+    },
+    {
+      "source_id": "christies-handbags-results",
+      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
+      "access_state": "UNVERIFIED",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
+      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
+      "evidence_refs": []
+    },
+    {
+      "source_id": "christies-watches-results",
+      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
+      "access_state": "UNVERIFIED",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
+      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
+      "evidence_refs": []
+    },
+    {
+      "source_id": "comc-marketplace",
+      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
+      "access_state": "UNVERIFIED",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
+      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
+      "evidence_refs": []
+    },
+    {
+      "source_id": "goat-sneaker-marketplace",
+      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
+      "access_state": "UNVERIFIED",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
+      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
+      "evidence_refs": []
+    },
+    {
+      "source_id": "hasbro-pulse-collections",
+      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
+      "access_state": "UNVERIFIED",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "semantic_state": "CONTEXT_OR_RELEASE_SURFACE_NOT_SOLD_EVIDENCE",
+      "activation_state": "HOLD_RIGHTS_SCHEMA_AND_CLAIM_CEILING_REQUIRED",
+      "blocker": "EMPIRICAL_CONTEXT_ONLY_ACTIVATION_DOSSIER_INCOMPLETE",
+      "evidence_refs": []
+    },
+    {
+      "source_id": "nike-snkrs-launch-calendar",
+      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
+      "access_state": "UNVERIFIED",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "semantic_state": "RELEASE_CALENDAR_NOT_SOLD_EVIDENCE",
+      "activation_state": "HOLD_RIGHTS_SCHEMA_AND_CLAIM_CEILING_REQUIRED",
+      "blocker": "EMPIRICAL_CONTEXT_ONLY_ACTIVATION_DOSSIER_INCOMPLETE",
+      "evidence_refs": []
+    },
+    {
+      "source_id": "reverb-price-guide",
+      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
+      "access_state": "CREDENTIAL_OR_AUTHORIZED_ACCESS_UNVERIFIED",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "activation_state": "HOLD_CREDENTIAL_RIGHTS_SCHEMA_SEMANTICS_REQUIRED",
+      "blocker": "AUTHORIZED_ACCESS_AND_PURPOSE_RIGHTS_NOT_AVAILABLE",
+      "evidence_refs": []
+    },
+    {
+      "source_id": "sothebys-watches-results",
+      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
+      "access_state": "UNVERIFIED",
+      "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
+      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
+      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
+      "evidence_refs": []
+    }
+  ],
+  "authority_boundary": {
+    "internal_adapter_code_and_fail_closed_routing": "AUTHORIZED",
+    "external_account_creation": "HOLD",
+    "terms_acceptance": "HOLD",
+    "paid_subscription_or_api_purchase": "HOLD",
+    "written_permission_request_or_legal_commitment": "HOLD",
+    "credential_use_not_already_configured": "HOLD",
+    "production_public_release_or_g5": "HOLD"
+  },
+  "next_action": "Route a provider-permission or licensed-feed decision through KPMO/founder authority while continuing rights-clear open historical transaction acquisition independently.",
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}
