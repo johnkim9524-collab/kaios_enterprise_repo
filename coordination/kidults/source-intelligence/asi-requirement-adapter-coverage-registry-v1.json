@@ -15,6 +15,8 @@
     "registry": "coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json",
     "builder": "scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs",
     "validator": "scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs",
+    "purpose_rights_preflight": "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+    "purpose_rights_gate": "scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs",
     "registry_validator": "scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs",
     "workflow": ".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml",
     "documentation": "docs/kidults/asi/asi-requirement-adapter-coverage-v1.md"
@@ -27,6 +29,9 @@
     "domain_evidence_families_retained": 16,
     "registered_source_profiles": 16,
     "implemented_source_adapters": 16,
+    "purpose_rights_clear_sources": 0,
+    "purpose_rights_preflight_hold_sources": 16,
+    "replacement_profiles_selected_after_rights_gate": 0,
     "software_implemented_requirements": 39,
     "context_only_requirements": 15,
     "unmapped_requirements": 138,

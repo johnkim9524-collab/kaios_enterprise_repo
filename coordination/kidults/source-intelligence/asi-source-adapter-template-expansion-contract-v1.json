@@ -20,7 +20,19 @@
   "canonical_inputs": {
     "market_adapter_runtime_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
     "registered_source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
-    "bonhams_reference_contract": "coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json"
+    "bonhams_reference_contract": "coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json",
+    "purpose_rights_preflight": "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json"
+  },
+  "implementation_gate": {
+    "purpose": "CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION",
+    "required_decision": "RIGHTS_CLEAR_FOR_PURPOSE",
+    "required_before": [
+      "ADAPTER_DEVELOPMENT_BACKLOG",
+      "SOURCE_ACQUISITION_PRIORITY",
+      "REPLACEMENT_MISSION_PROFILE_SELECTION"
+    ],
+    "unknown_conditional_denied_or_permission_pending": "HOLD_AND_RIGHTS_PREFLIGHT_QUEUE",
+    "discovery_metadata_is_not_rights_clearance": true
   },
   "required_profile_count": 16,
   "template_families": [

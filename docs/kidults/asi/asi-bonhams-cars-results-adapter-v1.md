@@ -62,7 +62,7 @@ The Reference Adapter control model is expanded into a machine-readable template
 +
 15 generated source-specific implementation templates
 =
-16 governed source profiles
+16 governed source profiles (not 16 acquisition-eligible sources)
 ```
 
 Each profile is assigned one of four implementation families:
@@ -74,7 +74,17 @@ Each profile is assigned one of four implementation families:
 
 Every template includes immutable snapshot integrity, host allowlisting, exact schema version, SOLD semantics, rights, owner/origin separation, provenance, duplicate grain, liquidity denominator, censoring, deterministic replay, mutation rejection and Evidence Admission receipt requirements.
 
-A template is not a source-specific adapter. The 15 non-reference sources remain `TEMPLATE_GENERATED_IMPLEMENTATION_PENDING`.
+A template is not a source-specific adapter. The 15 non-reference sources remain `TEMPLATE_GENERATED_IMPLEMENTATION_PENDING`. Before any template can enter implementation or acquisition priority, the source must pass the purpose-specific rights gate as `RIGHTS_CLEAR_FOR_PURPOSE`.
+
+The current rights-first result is:
+
+```text
+Purpose-rights preflight rows: 16
+RIGHTS_CLEAR_FOR_PURPOSE: 0
+RIGHTS_HOLD: 16
+Adapter-acquisition backlog: 0
+Rights preflight queue: 16
+```
 
 ## First Evidence Admission
 
@@ -117,7 +127,7 @@ Generic runtime normalization
 Evidence Admission receipt
 ```
 
-The program does not wait on Bonhams alone. The 15 generated templates remain in prioritized implementation order so failure or rights denial at one source moves execution to the next source.
+The program does not treat Bonhams or any other profile as implementation priority merely because it has assignments. A source that is unknown, conditional, denied, paid-but-unapproved, login-gated, robots-blocked or permission-pending stays in the rights preflight queue. The implementation backlog is populated only after a purpose-specific rights-clear decision; until then, the scheduler can switch among the rights queue without spending adapter effort on legally or commercially blocked sources.
 
 ## Hard boundaries
 

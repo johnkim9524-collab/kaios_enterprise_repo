@@ -11,14 +11,21 @@ import {
   parsePsv,
   makeWriter,
 } from './lib/asi-autonomous-resolution-common-v1.mjs';
+import { buildPurposeRightsIndex, RIGHTS_CLEAR } from './lib/source-purpose-rights-gate-v1.mjs';
 
-const [queuePath, manifestPath, receiptPath, artifactBindingPath, contractPath, outputDir] = process.argv.slice(2);
-if (![queuePath, manifestPath, receiptPath, artifactBindingPath, contractPath, outputDir].every(Boolean)) {
+const [queuePath, manifestPath, receiptPath, artifactBindingPath, contractPath, purposeRightsPreflightPath, outputDir] = process.argv.slice(2);
+if (![queuePath, manifestPath, receiptPath, artifactBindingPath, contractPath, purposeRightsPreflightPath, outputDir].every(Boolean)) {
   throw new Error('REQUIREMENT_ADAPTER_COVERAGE_ARGUMENTS_REQUIRED');
 }
 
 const fail = (message) => { throw new Error(message); };
 const assert = (condition, message) => { if (!condition) fail(message); };
+const rightsGateRule = 'RIGHTS_CLEAR_FOR_PURPOSE_REQUIRED_BEFORE_ADAPTER_BACKLOG_OR_REPLACEMENT_PROFILE_SELECTION';
+// The first rights-gated consumer must still be able to audit the last
+// successful main ARL artifact. That artifact predates the purpose-rights
+// fields, so its contract digest is accepted only together with its explicit
+// legacy queue state below; arbitrary contract drift remains fail-closed.
+const legacyResolutionContractDigest = 'sha256:cd0b8f3538d7476c3bba15092caa2bd23c5178b93e136bdadbfe4d41dfd71912';
 const same = (left, right) => stableJson(left) === stableJson(right);
 const sorted = (values) => [...values].sort((a, b) => String(a).localeCompare(String(b)));
 const setEqual = (left, right) => same(uniq(left), uniq(right));
@@ -66,6 +73,7 @@ const staticEntries = [
   ['wave3Registry', input.wave3_registry],
   ['wave4Contract', input.wave4_contract],
   ['wave4Registry', input.wave4_registry],
+  ['purposeRightsPreflight', input.purpose_rights_preflight],
 ];
 for (const [name, file] of staticEntries) {
   assert(typeof file === 'string' && file.length > 0, `STATIC_INPUT_PATH_MISSING:${name}`);
@@ -83,6 +91,9 @@ const wave3Contract = JSON.parse(staticTexts.wave3Contract);
 const wave3Registry = JSON.parse(staticTexts.wave3Registry);
 const wave4Contract = JSON.parse(staticTexts.wave4Contract);
 const wave4Registry = JSON.parse(staticTexts.wave4Registry);
+const purposeRightsPreflight = JSON.parse(staticTexts.purposeRightsPreflight);
+const explicitPurposeRightsPreflight = JSON.parse(await fs.readFile(purposeRightsPreflightPath, 'utf8'));
+assert(same(purposeRightsPreflight, explicitPurposeRightsPreflight), 'PURPOSE_RIGHTS_PREFLIGHT_BINDING_DRIFT');
 
 assert(artifactBinding.id === 'kidults-asi-autonomous-resolution-artifact-binding-v1' && artifactBinding.version === '1.0.0', 'ARTIFACT_BINDING_ID_VERSION');
 assert(artifactBinding.artifact_name === input.upstream_artifact_name, 'ARTIFACT_NAME_MISMATCH');
@@ -112,13 +123,27 @@ assert(resolutionManifest.results?.replacement_missions_with_profiles === queue.
 assert(resolutionManifest.results?.replacement_missions_without_profiles === queue.missions_without_profile_candidates, 'RESOLUTION_RESULT_PROFILE_GAP_COUNT_MISMATCH');
 assert(resolutionManifest.results?.replacement_source_slots_filled === queue.filled_source_slots, 'RESOLUTION_RESULT_FILLED_SLOT_COUNT_MISMATCH');
 assert(resolutionManifest.results?.unique_registered_profiles_selected === queue.unique_registered_profiles_selected, 'RESOLUTION_RESULT_SELECTED_PROFILE_COUNT_MISMATCH');
+const upstreamRightsGate = resolutionManifest.results?.rights_clear_gate;
+const legacyUpstreamRightsQueue = upstreamRightsGate === undefined && queue.state === 'REGISTERED_HIGH_AUTHORITY_PROFILE_REPLACEMENT_QUEUE_READY';
+assert(upstreamRightsGate === undefined || upstreamRightsGate === rightsGateRule, 'RESOLUTION_RESULT_RIGHTS_GATE_MISMATCH');
+if (!legacyUpstreamRightsQueue) {
+  assert(resolutionManifest.results?.rights_clear_registered_profiles === queue.rights_clear_registered_profile_count, 'RESOLUTION_RESULT_RIGHTS_CLEAR_COUNT_MISMATCH');
+  assert(resolutionManifest.results?.rights_hold_registered_profiles === queue.rights_hold_registered_profile_count, 'RESOLUTION_RESULT_RIGHTS_HOLD_COUNT_MISMATCH');
+  assert(resolutionManifest.results?.rights_preflight_queue_items === queue.rights_preflight_queue_count, 'RESOLUTION_RESULT_RIGHTS_QUEUE_COUNT_MISMATCH');
+}
 const queueOutput = resolutionManifest.output_files?.find((file) => file.name === input.replacement_queue_file);
 assert(queueOutput && queueOutput.sha256 === hash(queueText) && queueOutput.bytes === Buffer.byteLength(queueText), 'REPLACEMENT_QUEUE_OUTPUT_BINDING_MISMATCH');
 
 assert(resolutionContract.id === 'kidults-asi-autonomous-resolution-layer-contract-v1' && resolutionContract.version === '1.0.0', 'RESOLUTION_CONTRACT_INVALID');
 assert(runtimeContract.id === 'kidults-asi-p1-market-event-adapter-runtime-contract-v1' && runtimeContract.version === '1.0.0', 'RUNTIME_CONTRACT_INVALID');
 assert(crosswalk.id === 'scope-registry-v1-to-v2-crosswalk-v1' && crosswalk.status === 'ACTIVE_CANONICAL_MIGRATION_GATE', 'SCOPE_CROSSWALK_INVALID');
-assert(resolutionManifest.input_bindings?.contract?.digest === hash(stableJson(resolutionContract)), 'RESOLUTION_CONTRACT_DIGEST_DRIFT');
+const upstreamResolutionContractDigest = resolutionManifest.input_bindings?.contract?.digest;
+const currentResolutionContractDigest = hash(stableJson(resolutionContract));
+assert(
+  upstreamResolutionContractDigest === currentResolutionContractDigest
+    || (legacyUpstreamRightsQueue && upstreamResolutionContractDigest === legacyResolutionContractDigest),
+  'RESOLUTION_CONTRACT_DIGEST_DRIFT'
+);
 assert(resolutionManifest.input_bindings?.adapter_contract?.digest === hash(stableJson(runtimeContract)), 'RUNTIME_CONTRACT_DIGEST_DRIFT');
 assert(resolutionManifest.input_bindings?.frontier?.digest === hash(staticTexts.frontier), 'SOURCE_FRONTIER_DIGEST_DRIFT');
 assert(resolutionManifest.input_bindings?.crosswalk?.digest === hash(stableJson(crosswalk)), 'SCOPE_CROSSWALK_DIGEST_DRIFT');
@@ -144,6 +169,14 @@ for (const tuple of runtimeContract.registered_source_profiles || []) {
 const expectedSourceCount = contract.expected_current_main_baseline.registered_source_profiles;
 assert(runtimeProfiles.size === expectedSourceCount, `RUNTIME_PROFILE_COUNT_INVALID:${runtimeProfiles.size}`);
 assert(uniq([...runtimeProfiles.values()].map((profile) => profile.priority_rank)).length === expectedSourceCount, 'RUNTIME_PROFILE_RANK_DUPLICATE');
+assert(purposeRightsPreflight.id === 'kidults-top16-empirical-activation-preflight-v1', 'PURPOSE_RIGHTS_PREFLIGHT_ID');
+const purposeRightsIndex = buildPurposeRightsIndex(
+  purposeRightsPreflight,
+  [...runtimeProfiles.keys()],
+  'CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION'
+);
+const rightsClearRegisteredProfileCount = [...purposeRightsIndex.values()].filter((value) => value.decision === RIGHTS_CLEAR).length;
+const rightsHoldRegisteredProfileCount = purposeRightsIndex.size - rightsClearRegisteredProfileCount;
 
 const frontierBySource = new Map();
 for (const record of frontier) {
@@ -288,7 +321,7 @@ assert(Array.isArray(expectedSlots) && expectedSlots.length === 3, 'RESOLUTION_R
 assert(same(resolutionContract.replacement_policy?.claim_mapping, contract.claim_mapping), 'CLAIM_MAPPING_DRIFT');
 
 const grain = contract.canonical_grain;
-assert(queue.state === 'REGISTERED_HIGH_AUTHORITY_PROFILE_REPLACEMENT_QUEUE_READY', 'REPLACEMENT_QUEUE_STATE');
+assert(queue.state === 'RIGHTS_GATED_REPLACEMENT_QUEUE_READY' || legacyUpstreamRightsQueue, 'REPLACEMENT_QUEUE_STATE');
 assert(queue.mission_count === grain.expected_mission_count && queue.missions?.length === grain.expected_mission_count, 'REPLACEMENT_MISSION_COUNT');
 assert(queue.registered_profile_is_rights_verified === false && queue.registered_profile_is_adapter_implemented === false, 'STALE_QUEUE_TRUTH_BOUNDARY_CHANGED');
 assert(queue.evidence_admitted === 0 && queue.public_release === 'HOLD' && queue.production === 'HOLD', 'REPLACEMENT_QUEUE_PROMOTION');
@@ -308,26 +341,30 @@ for (const mission of queue.missions) {
     .filter((profile) => profile.registered_claims.includes(mission.required_adapter_claim)
       && profile.collection_scope_ids.some((scopeId) => legacyScopes.includes(scopeId)))
     .sort((a, b) => a.priority_rank - b.priority_rank || a.source_id.localeCompare(b.source_id));
-  const selected = eligible.slice(0, expectedSlots.length);
+  const rightsEligible = eligible
+    .filter((profile) => purposeRightsIndex.get(profile.source_id)?.decision === RIGHTS_CLEAR);
+  const selected = rightsEligible.slice(0, expectedSlots.length);
   const selectedIds = selected.map((profile) => profile.source_id);
-  assert(mission.eligible_registered_profile_count === eligible.length, `MISSION_ELIGIBLE_COUNT:${mission.mission_id}`);
+  if (!legacyUpstreamRightsQueue) assert(mission.eligible_registered_profile_count === rightsEligible.length, `MISSION_RIGHTS_ELIGIBLE_COUNT:${mission.mission_id}`);
   assert(mission.slots?.length === expectedSlots.length, `MISSION_SLOT_COUNT:${mission.mission_id}`);
   assert(same(mission.slots.map((slot) => slot.slot), expectedSlots), `MISSION_SLOT_ORDER:${mission.mission_id}`);
   const upstreamSelectedIds = mission.slots.filter((slot) => slot.source_id).map((slot) => slot.source_id);
-  assert(same(upstreamSelectedIds, selectedIds), `MISSION_SELECTED_SOURCE_DRIFT:${mission.mission_id}`);
-  assert(mission.filled_slot_count === selectedIds.length, `MISSION_FILLED_SLOT_COUNT:${mission.mission_id}`);
-  assert(mission.state === (eligible.length > 0 ? 'TARGET_REGISTERED_PROFILES_IDENTIFIED' : 'NO_REGISTERED_PROFILE_GAP'), `MISSION_STATE:${mission.mission_id}`);
+  if (!legacyUpstreamRightsQueue) {
+    assert(same(upstreamSelectedIds, selectedIds), `MISSION_SELECTED_SOURCE_DRIFT:${mission.mission_id}`);
+    assert(mission.filled_slot_count === selectedIds.length, `MISSION_FILLED_SLOT_COUNT:${mission.mission_id}`);
+    assert(mission.state === (rightsEligible.length > 0 ? 'RIGHTS_CLEAR_REGISTERED_PROFILES_IDENTIFIED' : 'NO_RIGHTS_CLEAR_REGISTERED_PROFILE'), `MISSION_STATE:${mission.mission_id}`);
+  }
   assert(mission.rights_or_admission_created === false && mission.public_release === 'HOLD' && mission.production === 'HOLD', `MISSION_PROMOTION:${mission.mission_id}`);
   for (let index = 0; index < mission.slots.length; index += 1) {
     const slot = mission.slots[index];
     const selectedProfile = selected[index] || null;
-    if (selectedProfile) {
+    if (selectedProfile && !legacyUpstreamRightsQueue) {
       assert(slot.source_id === selectedProfile.source_id, `MISSION_SLOT_SOURCE:${mission.mission_id}:${slot.slot}`);
       assert(same(uniq(slot.registered_target_claims || []), uniq(selectedProfile.registered_claims)), `MISSION_SLOT_REGISTERED_CLAIMS:${mission.mission_id}:${slot.slot}`);
       assert(slot.adapter_state === 'ADAPTER_NOT_IMPLEMENTED', `UPSTREAM_STALE_ADAPTER_STATE_CHANGED:${mission.mission_id}:${slot.slot}`);
-      assert(slot.rights_state === 'UNKNOWN' && slot.sold_or_liquidity_semantics_state === 'UNVERIFIED', `MISSION_SLOT_EMPIRICAL_STATE:${mission.mission_id}:${slot.slot}`);
+      assert(slot.rights_state === RIGHTS_CLEAR && slot.rights_eligibility_state === RIGHTS_CLEAR && slot.sold_or_liquidity_semantics_state === 'UNVERIFIED', `MISSION_SLOT_EMPIRICAL_STATE:${mission.mission_id}:${slot.slot}`);
       assert(slot.factual_origin_independence_state === 'UNVERIFIED' && slot.evidence_admitted === false, `MISSION_SLOT_PROMOTION:${mission.mission_id}:${slot.slot}`);
-    } else {
+    } else if (!legacyUpstreamRightsQueue) {
       assert(slot.source_id === null && slot.adapter_state === 'NOT_AVAILABLE', `MISSION_UNFILLED_SLOT:${mission.mission_id}:${slot.slot}`);
     }
   }
@@ -349,6 +386,10 @@ for (const mission of queue.missions) {
       context_only_claims: ceiling.context_only_claims,
       adapter_kind: ceiling.adapter_kind,
       adapter_implemented: true,
+      purpose_rights_decision: purposeRightsIndex.get(profile.source_id)?.decision,
+      purpose_rights_reason_codes: purposeRightsIndex.get(profile.source_id)?.reason_codes || [],
+      purpose_rights_evidence_refs: purposeRightsIndex.get(profile.source_id)?.evidence_refs || [],
+      acquisition_or_adapter_backlog_eligible: purposeRightsIndex.get(profile.source_id)?.decision === RIGHTS_CLEAR,
       required_claim_parser_match: matchingParser,
       software_evaluation_state: matchingParser ? 'CLAIM_PARSER_MATCH' : contextOnly ? 'CONTEXT_ONLY_NOT_CLAIM_CAPABLE' : 'CLAIM_REGISTERED_NOT_IMPLEMENTED',
       source_contract: ceiling.source_contract,
@@ -369,6 +410,7 @@ for (const mission of queue.missions) {
       : 'UNMAPPED';
   const unresolved = [];
   if (eligible.length === 0) unresolved.push('NO_REGISTERED_PROFILE_FOR_SCOPE_AND_CLAIM');
+  if (eligible.length > 0 && rightsEligible.length === 0) unresolved.push('NO_RIGHTS_CLEAR_PROFILE_FOR_PURPOSE');
   if (eligible.length > 0 && qualifying.length === 0) unresolved.push('NO_MATCHING_IMPLEMENTED_CLAIM_PARSER');
   if (coverageState === 'CONTEXT_ONLY') unresolved.push('CONTEXT_ONLY_CLASSIFIER_NON_PROMOTABLE');
   if (selectedIds.length < expectedSlots.length) unresolved.push('THREE_SLOT_REPLACEMENT_REDUNDANCY_INCOMPLETE');
@@ -400,6 +442,9 @@ for (const mission of queue.missions) {
       resolution_manifest: hash(manifestText),
     },
     eligible_source_ids: eligible.map((profile) => profile.source_id),
+    rights_clear_source_ids: rightsEligible.map((profile) => profile.source_id),
+    rights_hold_source_ids: eligible.filter((profile) => purposeRightsIndex.get(profile.source_id)?.decision !== RIGHTS_CLEAR).map((profile) => profile.source_id),
+    acquisition_eligible_source_ids: selectedIds,
     selected_source_ids: selectedIds,
     qualifying_software_adapter_ids: qualifying,
     selected_qualifying_software_adapter_ids: selectedQualifying,
@@ -480,14 +525,25 @@ const evidenceCounts = countBy(records, (record) => record.evidence_class);
 const softwareByEvidence = countBy(records.filter((record) => record.software_coverage_state === 'SOFTWARE_IMPLEMENTED'), (record) => record.evidence_class);
 const familyStateCounts = countBy(families, (family) => family.family_software_state);
 const baseline = contract.expected_current_main_baseline;
+const effectiveMissionsWithProfiles = new Set(records.filter((record) => record.selected_source_ids.length > 0).map((record) => record.mission_id)).size;
+const effectiveFilledSlots = records.reduce((total, record) => total + record.selected_source_ids.length, 0);
+const effectiveSelectedProfiles = uniq(records.flatMap((record) => record.selected_source_ids)).length;
 assert(queue.missions_with_profile_candidates === queue.missions.filter((mission) => mission.eligible_registered_profile_count > 0).length, 'QUEUE_MISSIONS_WITH_PROFILES_RECOMPUTE');
 assert(queue.missions_without_profile_candidates === queue.missions.filter((mission) => mission.eligible_registered_profile_count === 0).length, 'QUEUE_MISSIONS_WITHOUT_PROFILES_RECOMPUTE');
 assert(queue.filled_source_slots === queue.missions.reduce((sum, mission) => sum + mission.filled_slot_count, 0), 'QUEUE_FILLED_SLOTS_RECOMPUTE');
 assert(queue.unique_registered_profiles_selected === uniq(queue.missions.flatMap((mission) => mission.slots.map((slot) => slot.source_id))).length, 'QUEUE_SELECTED_PROFILES_RECOMPUTE');
-assert(queue.missions_with_profile_candidates === baseline.missions_with_registered_profiles, 'QUEUE_MISSIONS_WITH_PROFILES_BASELINE');
-assert(queue.missions_without_profile_candidates === baseline.missions_without_registered_profiles, 'QUEUE_MISSIONS_WITHOUT_PROFILES_BASELINE');
-assert(queue.filled_source_slots === baseline.filled_registered_profile_slots, 'QUEUE_FILLED_SLOTS_BASELINE');
-assert(queue.unique_registered_profiles_selected === baseline.unique_selected_registered_profiles, 'QUEUE_SELECTED_PROFILES_BASELINE');
+const effectiveQueueMetrics = legacyUpstreamRightsQueue
+  ? {
+      missions_with_profile_candidates: effectiveMissionsWithProfiles,
+      missions_without_profile_candidates: grain.expected_mission_count - effectiveMissionsWithProfiles,
+      filled_source_slots: effectiveFilledSlots,
+      unique_registered_profiles_selected: effectiveSelectedProfiles,
+    }
+  : queue;
+assert(effectiveQueueMetrics.missions_with_profile_candidates === baseline.missions_with_registered_profiles, 'QUEUE_MISSIONS_WITH_PROFILES_BASELINE');
+assert(effectiveQueueMetrics.missions_without_profile_candidates === baseline.missions_without_registered_profiles, 'QUEUE_MISSIONS_WITHOUT_PROFILES_BASELINE');
+assert(effectiveQueueMetrics.filled_source_slots === baseline.filled_registered_profile_slots, 'QUEUE_FILLED_SLOTS_BASELINE');
+assert(effectiveQueueMetrics.unique_registered_profiles_selected === baseline.unique_selected_registered_profiles, 'QUEUE_SELECTED_PROFILES_BASELINE');
 assert((coverageCounts.SOFTWARE_IMPLEMENTED || 0) === baseline.software_implemented_requirements, 'SOFTWARE_IMPLEMENTED_BASELINE');
 assert((coverageCounts.CONTEXT_ONLY || 0) === baseline.context_only_requirements, 'CONTEXT_ONLY_BASELINE');
 assert((coverageCounts.UNMAPPED || 0) === baseline.unmapped_requirements, 'UNMAPPED_BASELINE');
@@ -651,6 +707,13 @@ const outputManifest = {
     unmapped_requirements: coverageCounts.UNMAPPED || 0,
     software_gap_requirements: gapRecords.length,
     rights_schema_activation_hold_requirements: records.length,
+    rights_clear_registered_profiles: rightsClearRegisteredProfileCount,
+    rights_hold_registered_profiles: rightsHoldRegisteredProfileCount,
+    rights_preflight_queue_items: rightsHoldRegisteredProfileCount,
+    replacement_missions_with_rights_clear_profiles: new Set(records.filter((record) => record.selected_source_ids.length > 0).map((record) => record.mission_id)).size,
+    replacement_source_slots_filled: records.reduce((total, record) => total + record.selected_source_ids.length, 0),
+    unique_rights_clear_profiles_selected: uniq(records.flatMap((record) => record.selected_source_ids)).length,
+    rights_clear_gate: rightsGateRule,
     legacy_v2_adapter_requirement_ids_synthesized: 0,
     duplicate_sdk_or_runtime_introduced: 0,
     live_source_requests_executed: 0,

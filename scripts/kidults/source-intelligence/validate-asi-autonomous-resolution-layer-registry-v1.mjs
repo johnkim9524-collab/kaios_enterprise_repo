@@ -8,6 +8,7 @@ const files = {
   commonModule: 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-common-v1.mjs',
   currentModule: 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-current-v1.mjs',
   replacementModule: 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs',
+  purposeRightsGate: 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs',
   validator: 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs',
   registryValidator: 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs',
   workflow: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml',
@@ -57,6 +58,7 @@ for (const [key, expected] of Object.entries({
   common_module: files.commonModule,
   current_resolution_module: files.currentModule,
   replacement_resolution_module: files.replacementModule,
+  purpose_rights_gate: files.purposeRightsGate,
   validator: files.validator,
   registry_validator: files.registryValidator,
   workflow: files.workflow,
@@ -91,7 +93,7 @@ for (const marker of [
   'mutate_and_reject gate1-pass gate1-pass',
   'mutate_and_reject unresolved-action unresolved-action',
   'mutate_and_reject evidence-admission evidence-admission',
-  'mutate_and_reject activated-profile activated-profile',
+  'mutate_and_reject rights-hold-promotion rights-hold-promotion',
   'mutate_and_reject global-retirement global-retirement',
   'Reject manual-only activation mutation',
   'Emit KPMO autonomous-resolution receipt'
@@ -112,6 +114,8 @@ for (const marker of [
   'kidults-asi-gate1-resolution-ledger-v1',
   'kidults-asi-evidence-admission-resolution-ledger-v1',
   'kidults-asi-replacement-source-mission-queue-v1',
+  'RIGHTS_CLEAR_FOR_PURPOSE',
+  'RIGHTS_GATED_REPLACEMENT_QUEUE_READY',
   'kidults-asi-resolution-learning-ledger-v1',
   'TERMINAL_REJECT_FOR_CURRENT_MARKET_EVIDENCE'
 ]) assert(implementation.includes(marker), `IMPLEMENTATION_MARKER:${marker}`);

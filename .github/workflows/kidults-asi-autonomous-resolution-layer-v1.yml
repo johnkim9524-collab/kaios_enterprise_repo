@@ -12,10 +12,12 @@ on:
       - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
       - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
       - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'scripts/kidults/source-intelligence/build-asi-autonomous-resolution-layer-v1.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-common-v1.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-current-v1.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs'
       - 'docs/kidults/asi/asi-autonomous-resolution-layer-v1.md'
@@ -28,10 +30,12 @@ on:
       - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
       - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
       - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'scripts/kidults/source-intelligence/build-asi-autonomous-resolution-layer-v1.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-common-v1.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-current-v1.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs'
       - 'docs/kidults/asi/asi-autonomous-resolution-layer-v1.md'
@@ -70,6 +74,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-common-v1.mjs
           node --check scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-current-v1.mjs
           node --check scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json','utf8'))"
@@ -86,7 +91,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/p1-expanded /tmp/p1-input
-          P1_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false)][0].id // empty)')
+          P1_ID=$(gh api --paginate -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false and .workflow_run.head_branch=="main" and .workflow_run.status=="completed" and .workflow_run.conclusion=="success") | [.created_at,.id] | @tsv' \
+            | sort -r | awk -F '\t' 'NR==1 {print $2}')
+          if [ -z "$P1_ID" ]; then
+            P1_ID=$(gh api --paginate -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+              --jq '.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false) | [.created_at,.id] | @tsv' \
+              | sort -r | awk -F '\t' 'NR==1 {print $2}')
+          fi
           test -n "$P1_ID"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/p1.zip
           unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
@@ -116,6 +130,7 @@ jobs:
               coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json \
               coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
               coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json \
+              coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
               "/tmp/kidults-asi-autonomous-resolution-layer-run-${RUN}"
           done
           diff -qr /tmp/kidults-asi-autonomous-resolution-layer-run-1 /tmp/kidults-asi-autonomous-resolution-layer-run-2
@@ -133,6 +148,7 @@ jobs:
             coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json \
             coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
             coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json \
+            coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
             | tee /tmp/kidults-asi-autonomous-resolution-layer-validation-v1.json
       - name: Reject false resolution promotions and incomplete terminalization
         shell: bash
@@ -149,7 +165,8 @@ jobs:
               coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv \
               coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json \
               coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
-              coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json
+              coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json \
+              coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json
           }
           mutate_and_reject() {
             local NAME="$1"
@@ -164,7 +181,7 @@ jobs:
           if(kind==='gate1-pass'){const [p,x]=load('gate1-resolution-ledger-v1.json');x.records[0].resolved_decision='PASS';x.pass_count=1;x.reject_count-=1;fs.writeFileSync(p,JSON.stringify(x,null,2));}
           if(kind==='unresolved-action'){const [p,x]=load('action-resolution-ledger-v1.json');x.records[0].terminal_state='QUEUED_NOT_EXECUTED';x.unresolved_action_count=1;x.terminal_action_count-=1;fs.writeFileSync(p,JSON.stringify(x,null,2));}
           if(kind==='evidence-admission'){const [p,x]=load('evidence-admission-resolution-ledger-v1.json');x.records[0].resolved_state='ADMITTED';x.records[0].evidence_admitted=true;x.records[0].admitted_evidence_id='fabricated';x.admitted_count=1;x.rejected_count-=1;fs.writeFileSync(p,JSON.stringify(x,null,2));}
-          if(kind==='activated-profile'){const [p,x]=load('replacement-source-mission-queue-v1.json');x.adapter_development_backlog[0].adapter_state='ACTIVATED_EVIDENCE_BOUND';fs.writeFileSync(p,JSON.stringify(x,null,2));}
+          if(kind==='rights-hold-promotion'){const [p,x]=load('replacement-source-mission-queue-v1.json');if(!x.rights_preflight_queue?.length)throw new Error('RIGHTS_QUEUE_EXPECTED');x.rights_preflight_queue[0].rights_eligibility_state='RIGHTS_CLEAR_FOR_PURPOSE';x.rights_preflight_queue[0].adapter_backlog_eligible=true;fs.writeFileSync(p,JSON.stringify(x,null,2));}
           if(kind==='global-retirement'){const [p,x]=load('semantic-resolution-ledger-v1.json');x.records[0].candidate_globally_retired=true;x.records[0].rejection_scope='GLOBAL';fs.writeFileSync(p,JSON.stringify(x,null,2));}
           NODE
             if validate "$DIR"; then
@@ -177,7 +194,7 @@ jobs:
           mutate_and_reject gate1-pass gate1-pass
           mutate_and_reject unresolved-action unresolved-action
           mutate_and_reject evidence-admission evidence-admission
-          mutate_and_reject activated-profile activated-profile
+          mutate_and_reject rights-hold-promotion rights-hold-promotion
           mutate_and_reject global-retirement global-retirement
       - name: Reject manual-only activation mutation
         run: |
@@ -207,6 +224,7 @@ jobs:
             coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json \
             coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
             coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json \
+            coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
             > /tmp/kidults-asi-autonomous-resolution-layer-final-validation-v1.json
       - name: Emit KPMO autonomous-resolution receipt
         run: |

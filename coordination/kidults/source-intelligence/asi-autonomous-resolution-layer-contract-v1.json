@@ -56,6 +56,10 @@
     "frontier_path": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
     "scope_crosswalk_path": "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
     "market_adapter_contract_path": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+    "purpose_rights_preflight_path": "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+    "required_rights_decision": "RIGHTS_CLEAR_FOR_PURPOSE",
+    "unknown_conditional_denied_or_permission_pending": "HOLD_AND_RIGHTS_PREFLIGHT_QUEUE",
+    "rights_clear_required_before_replacement_profile_selection": true,
     "claim_mapping": {
       "CURRENT_SOLD_TRANSACTION": "DATED_OBSERVED_SOLD_TRANSACTION",
       "LIQUIDITY_TIME_TO_SALE_EXPOSURE": "LIQUIDITY_OR_TIME_TO_SALE"
