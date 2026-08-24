@@ -24,7 +24,7 @@ jobs:
   collect:
     if: github.ref == 'refs/heads/main'
     environment: kidults-smithsonian-readonly
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       SMITHSONIAN_API_KEY: ${{ secrets.SMITHSONIAN_API_KEY }}
