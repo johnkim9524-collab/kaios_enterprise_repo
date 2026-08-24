@@ -99,6 +99,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TARGET_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_HEAD_BRANCH: ${{ github.event.pull_request.head.ref || 'main' }}
+          ARTIFACT_VALIDATION_SCOPE: ${{ github.event_name == 'pull_request' && 'PULL_REQUEST_HEAD' || 'MAIN' }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/arl-expanded /tmp/arl-input
@@ -110,10 +112,12 @@ jobs:
           const fs=require('fs');
           const x=JSON.parse(fs.readFileSync('/tmp/arl-runs.json','utf8'));
           const target=process.env.TARGET_SOURCE_SHA;
+          const expectedBranch=process.env.EXPECTED_HEAD_BRANCH;
           const runs=(x.workflow_runs||[])
             .filter((run)=>run.name==='KIDULTS ASI Autonomous Resolution Layer v1'&&
               run.path==='.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'&&
-              run.head_sha===target&&run.status==='completed'&&run.conclusion==='success')
+              run.head_sha===target&&run.head_branch===expectedBranch&&
+              run.status==='completed'&&run.conclusion==='success')
             .sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)||b.id-a.id);
           if(runs.length)fs.writeFileSync('/tmp/arl-run.json',JSON.stringify(runs[0],null,2));
           NODE
@@ -160,7 +164,13 @@ jobs:
           const fs=require('fs');
           const run=JSON.parse(fs.readFileSync('/tmp/arl-run.json','utf8'));
           const artifact=JSON.parse(fs.readFileSync('/tmp/arl-artifact.json','utf8'));
-          const binding={id:'kidults-asi-autonomous-resolution-artifact-binding-v1',version:'1.0.0',artifact_id:artifact.id,artifact_name:artifact.name,expired:artifact.expired,workflow_run_id:run.id,workflow_name:run.name,workflow_path:run.path,head_branch:run.head_branch,head_sha:run.head_sha,consumer_sha:process.env.CONSUMER_SHA,source_sha_ancestor_of_consumer:true,status:run.status,conclusion:run.conclusion,created_at:artifact.created_at,expires_at:artifact.expires_at};
+          const expectedSourceSha=process.env.TARGET_SOURCE_SHA;
+          const expectedHeadBranch=process.env.EXPECTED_HEAD_BRANCH;
+          const validationScope=process.env.ARTIFACT_VALIDATION_SCOPE;
+          if(run.head_sha!==expectedSourceSha)throw new Error('AUTONOMOUS_RESOLUTION_SOURCE_SHA_SCOPE');
+          if(run.head_branch!==expectedHeadBranch)throw new Error('AUTONOMOUS_RESOLUTION_HEAD_BRANCH_SCOPE');
+          if(!['MAIN','PULL_REQUEST_HEAD'].includes(validationScope))throw new Error('AUTONOMOUS_RESOLUTION_VALIDATION_SCOPE');
+          const binding={id:'kidults-asi-autonomous-resolution-artifact-binding-v1',version:'1.0.0',artifact_id:artifact.id,artifact_name:artifact.name,expired:artifact.expired,workflow_run_id:run.id,workflow_name:run.name,workflow_path:run.path,head_branch:run.head_branch,expected_head_branch:expectedHeadBranch,head_sha:run.head_sha,expected_source_sha:expectedSourceSha,consumer_sha:process.env.CONSUMER_SHA,validation_scope:validationScope,production_eligible:validationScope==='MAIN',source_sha_ancestor_of_consumer:true,status:run.status,conclusion:run.conclusion,created_at:artifact.created_at,expires_at:artifact.expires_at};
           fs.writeFileSync('/tmp/arl-input/autonomous-resolution-artifact-binding-v1.json',JSON.stringify(binding,null,2)+'\n');
           NODE
           echo "ARL_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
@@ -296,7 +306,7 @@ jobs:
       - name: Emit KPMO requirement coverage receipt
         run: |
           node - <<'NODE' > /tmp/kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json
-          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-requirement-adapter-coverage-run-1/requirement-adapter-coverage-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const binding=JSON.parse(fs.readFileSync('/tmp/arl-input/autonomous-resolution-artifact-binding-v1.json'));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');const out={id:'kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1',version:'1.0.0',agent_id:'github-actions/kidults-asi-requirement-adapter-coverage-v1',as_of:new Date().toISOString(),scope:'192 autonomous-resolution missions to current 16-source implemented claim ceilings',state:'VERIFIED_PASS',facts:[`requirements_accounted_for=${m.results.requirements_accounted_for}`,`software_implemented_requirements=${m.results.software_implemented_requirements}`,`software_gap_requirements=${m.results.software_gap_requirements}`],evidence_refs:[`workflow_run:${process.env.GITHUB_RUN_ID}`,`source_artifact_run:${binding.workflow_run_id}`,`source_artifact:${binding.artifact_id}`,`source_sha:${m.source_sha}`,`consumer_sha:${m.consumer_sha}`,`manifest_digest:${digest}`],inferences:[],uncertainties:[],blockers:['RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_ACTIVATION_AND_EMPIRICAL_ADMISSION_REMAIN_HOLD'],actions_executed:['RESTORED_EXACT_SUCCESSFUL_MAIN_ARL_ARTIFACT','BUILT_REQUIREMENT_CROSSWALK_TWICE','VALIDATED_192_GRAINS_AND_16_FAMILIES','EXECUTED_FAIL_CLOSED_MUTATIONS'],next_action:'REVIEW_DRAFT_AND_KEEP_EMPIRICAL_ACTIVATION_SEPARATELY_GATED',authority_boundary:'REVERSIBLE_INTERNAL_NON_PRODUCTION_SOFTWARE_LINEAGE_ONLY',source_sha:m.source_sha,consumer_sha:m.consumer_sha,upstream_workflow_run_id:binding.workflow_run_id,upstream_artifact_id:binding.artifact_id,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,live_source_requests_executed:0,provider_contacts_executed:0,rights_passes_created:0,adapters_activated:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,track_b_results_created:0,projections_created:0,public_release:'HOLD',production:'HOLD',g5:'HOLD'};process.stdout.write(JSON.stringify(out,null,2)+'\n');
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-requirement-adapter-coverage-run-1/requirement-adapter-coverage-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const binding=JSON.parse(fs.readFileSync('/tmp/arl-input/autonomous-resolution-artifact-binding-v1.json'));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');const out={id:'kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1',version:'1.0.0',agent_id:'github-actions/kidults-asi-requirement-adapter-coverage-v1',as_of:new Date().toISOString(),scope:'192 autonomous-resolution missions to current 16-source implemented claim ceilings',state:'VERIFIED_PASS',facts:[`requirements_accounted_for=${m.results.requirements_accounted_for}`,`software_implemented_requirements=${m.results.software_implemented_requirements}`,`software_gap_requirements=${m.results.software_gap_requirements}`],evidence_refs:[`workflow_run:${process.env.GITHUB_RUN_ID}`,`source_artifact_run:${binding.workflow_run_id}`,`source_artifact:${binding.artifact_id}`,`source_sha:${m.source_sha}`,`consumer_sha:${m.consumer_sha}`,`manifest_digest:${digest}`],inferences:[],uncertainties:[],blockers:['RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_ACTIVATION_AND_EMPIRICAL_ADMISSION_REMAIN_HOLD'],actions_executed:['RESTORED_EXACT_SUCCESSFUL_PROVENANCE_BOUND_ARL_ARTIFACT','BUILT_REQUIREMENT_CROSSWALK_TWICE','VALIDATED_192_GRAINS_AND_16_FAMILIES','EXECUTED_FAIL_CLOSED_MUTATIONS'],next_action:'REVIEW_DRAFT_AND_KEEP_EMPIRICAL_ACTIVATION_SEPARATELY_GATED',authority_boundary:'REVERSIBLE_INTERNAL_NON_PRODUCTION_SOFTWARE_LINEAGE_ONLY',source_sha:m.source_sha,consumer_sha:m.consumer_sha,upstream_workflow_run_id:binding.workflow_run_id,upstream_artifact_id:binding.artifact_id,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,live_source_requests_executed:0,provider_contacts_executed:0,rights_passes_created:0,adapters_activated:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,track_b_results_created:0,projections_created:0,public_release:'HOLD',production:'HOLD',g5:'HOLD'};process.stdout.write(JSON.stringify(out,null,2)+'\n');
           NODE
           cat /tmp/kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
