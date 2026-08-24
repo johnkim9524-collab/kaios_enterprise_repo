@@ -1,7 +1,11 @@
+import {validProofProductDateTime,validateProofProductProjectionSchema} from './proof-product-schema-validator.js';
+
 const APPROVED_STATES=new Set(['APPROVED_INTERNAL','APPROVED_PUBLIC']);
 const PRODUCT_TYPES=new Set(['OBJECT_PASSPORT','MARKET_PROJECTION_API','KIDULT_100_INDEX']);
 const CLOSED_FIELD_STATES=new Set(['UNAVAILABLE','UNKNOWN','PENDING','RIGHTS_BLOCKED','STALE','NOT_APPLICABLE']);
 const PURPOSE_RIGHT={INTERNAL_ANALYSIS:'internal_analysis',PUBLIC_DISPLAY:'public_display',API_REDISTRIBUTION:'api_redistribution'};
+const SURFACE_PURPOSE={PORTAL_RENDER:'PUBLIC_DISPLAY',PUBLIC_API_RESPONSE:'API_REDISTRIBUTION',EXPORT:'API_REDISTRIBUTION'};
+const UNBOUND_SURFACES=new Set(['PUBLIC_API_RESPONSE','EXPORT']);
 const REQUIRED_ROOT=[
   'record_type','contract_version','projection_id','product_type','projection_state','display_eligibility',
   'scope','method_version','lineage','evidence_summary','rights','freshness','confidence','rankability',
@@ -12,9 +16,9 @@ const plainObject=value=>Boolean(value)&&typeof value==='object'&&!Array.isArray
 const nonEmpty=value=>typeof value==='string'&&value.trim().length>0;
 const allowedDecision=value=>['ALLOWED','BLOCKED','UNKNOWN'].includes(value);
 const parsedTime=value=>{
-  if(!nonEmpty(value))return null;
+  if(!nonEmpty(value)||!validProofProductDateTime(value))return null;
   const parsed=Date.parse(value);
-  return Number.isFinite(parsed)&&/(?:Z|[+-]\d\d:\d\d)$/.test(value)?parsed:null;
+  return Number.isFinite(parsed)?parsed:null;
 };
 
 function expectedRightsSummary(rights){
@@ -36,8 +40,8 @@ function collectFields(value,fields=[]){
 }
 
 function structuralErrors(projection){
-  const errors=[];
-  if(!plainObject(projection))return ['PROJECTION_ENVELOPE_MISSING'];
+  const errors=validateProofProductProjectionSchema(projection).map(error=>`SCHEMA:${error}`);
+  if(!plainObject(projection))return errors.length?errors:['PROJECTION_ENVELOPE_MISSING'];
   for(const key of REQUIRED_ROOT)if(!Object.hasOwn(projection,key))errors.push(`ROOT_FIELD_MISSING:${key}`);
   if(projection.record_type!=='kidults_proof_product_projection')errors.push('RECORD_TYPE_INVALID');
   if(projection.contract_version!=='1.0.0')errors.push('CONTRACT_VERSION_INVALID');
@@ -134,7 +138,7 @@ function receipt(projection,context,{accepted,reason,errors,stateOnly}){
     rankability_assessment_id:nonEmpty(projection?.rankability?.assessment_id)?projection.rankability.assessment_id:null,
     rights_state:projection?.rights?.state||'UNKNOWN',freshness_state:projection?.freshness?.state||'UNKNOWN',
     valid_until:projection?.freshness?.valid_until||null,clock_authority:context.clockAuthority||'NONE',
-    release_authority:context.releaseAuthority||'HOLD',state_only:stateOnly,payload_exposed:accepted&&!stateOnly,
+    release_authority:context.releaseAuthority||'HOLD',state_only:stateOnly,payload_exposed:false,
     production:'HOLD',public:'HOLD',g5:'HOLD',
     autonomous_effect:'One executable admission function governs Portal, API and export.',
     global_effect:'Consumer validation is product- and geography-neutral.',
@@ -144,21 +148,37 @@ function receipt(projection,context,{accepted,reason,errors,stateOnly}){
 }
 
 export function admitProofProductProjection(projection,context={}){
-  const normalized={surface:context.surface||'UNKNOWN',purpose:context.purpose||'PUBLIC_DISPLAY',trustedNow:context.trustedNow??null,clockAuthority:context.clockAuthority||'NONE',releaseAuthority:context.releaseAuthority||'HOLD'};
+  const requestedSurface=context.surface||'UNKNOWN';
+  const normalized={
+    surface:requestedSurface,
+    purpose:SURFACE_PURPOSE[requestedSurface]||'UNKNOWN',
+    trustedNow:null,
+    clockAuthority:'NO_BOUND_CONTROL_PLANE',
+    releaseAuthority:'HOLD'
+  };
+  const errors=[];
+  if(UNBOUND_SURFACES.has(requestedSurface))errors.push('SURFACE_NOT_IMPLEMENTED_HOLD');
+  else if(requestedSurface!=='PORTAL_RENDER')errors.push('SURFACE_UNSUPPORTED');
   const structural=structuralErrors(projection);
   const semantic=structural.length?[]:semanticErrors(projection,normalized);
-  const errors=[...structural,...semantic];
+  errors.push(...structural,...semantic);
   const approved=APPROVED_STATES.has(projection?.projection_state);
   const stateOnly=!approved;
-  if(approved&&!['TEST_ONLY','INTERNAL_APPROVED','PUBLIC_APPROVED'].includes(normalized.releaseAuthority))errors.push('RELEASE_AUTHORITY_HOLD');
-  if(normalized.surface==='PORTAL_RENDER'&&approved&&normalized.releaseAuthority!=='TEST_ONLY')errors.push('CLIENT_VALUE_RENDER_DISABLED');
+  if(approved)errors.push('RELEASE_AUTHORITY_HOLD');
+  if(normalized.surface==='PORTAL_RENDER'&&approved)errors.push('CLIENT_VALUE_RENDER_DISABLED');
   const accepted=errors.length===0;
   const resultReceipt=receipt(projection,normalized,{accepted,reason:accepted?(stateOnly?'STATE_ONLY_ACCEPTED':'APPROVED_TEST_ADMISSION'):errors[0],errors,stateOnly});
-  return Object.freeze({accepted,state_only:stateOnly,projection:accepted?projection:null,payload:accepted&&!stateOnly?projection.payload:null,receipt:resultReceipt});
+  // Public/browser evaluation never releases the raw Projection or payload.
+  // A future server-only signed-capability consumer must attach approved values after verification.
+  return Object.freeze({accepted,state_only:stateOnly,projection:null,payload:null,receipt:resultReceipt});
 }
 
 export const proofProductConsumerContract=Object.freeze({
   version:'1.0.0',surfaces:['PORTAL_RENDER','PUBLIC_API_RESPONSE','EXPORT'],
+  bound_surfaces:['PORTAL_RENDER_STATE_ONLY'],unbound_surfaces:['PUBLIC_API_RESPONSE','EXPORT'],
   purposes:['PUBLIC_DISPLAY','API_REDISTRIBUTION'],schema_only_sufficient:false,
-  browser_clock_authoritative:false,release_authority_default:'HOLD',production:'HOLD',public:'HOLD',g5:'HOLD'
+  browser_clock_authoritative:false,caller_asserted_authority_accepted:false,
+  fixture_validation_bypass:false,
+  approved_release_capability_exposed:false,release_authority_default:'HOLD',
+  production:'HOLD',public:'HOLD',g5:'HOLD'
 });

@@ -4,6 +4,11 @@ import path from 'node:path';
 const root = process.cwd();
 const aggregatePath = 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs';
 const orchestratorPath = 'coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json';
+const exactNonScriptExecutables = new Set([
+  'apps/kidults-enterprise-staging/public/portal-r001/projection-store.js',
+  'apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js',
+  'apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js'
+]);
 
 const fail = message => {
   console.error(`FAIL trusted-control dependency-closure selftest: ${message}`);
@@ -59,7 +64,9 @@ const repositoryDependencyRefs = (text, currentPath) => {
   for (const pattern of relativePatterns) {
     for (const match of text.matchAll(pattern)) {
       const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(currentPath), match[1]));
-      if (!resolved.startsWith('scripts/')) fail(`dependency escaped scripts/: ${currentPath} -> ${match[1]}`);
+      if (!resolved.startsWith('scripts/') && !exactNonScriptExecutables.has(resolved)) {
+        fail(`dependency escaped exact trusted executable allowlist: ${currentPath} -> ${match[1]}`);
+      }
       executable.add(resolved);
     }
   }
@@ -112,6 +119,9 @@ const mandatoryDiscoveries = [
   'scripts/kidults/source-intelligence/test-source-admission-record-v1.mjs',
   'scripts/kidults/projection/validate-projection-dry-run-v1.mjs',
   'scripts/kidults/audit/rfc3339-v1.mjs',
+  'apps/kidults-enterprise-staging/public/portal-r001/projection-store.js',
+  'apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js',
+  'apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js',
   'coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json',
   'coordination/kidults/audit/unified-audit-control-plane-v1.json',
   'coordination/kidults/kpmo/epistemic-causal-integrity-controls-v1.json'
@@ -130,13 +140,16 @@ const fakeChild = ['scripts', 'probe-child.mjs'].join('/');
 const fakeRelativeHelper = ['.', 'probe-helper.js'].join('/');
 const fakeParent = ['scripts', 'kidults', 'kpmo', 'probe-parent.mjs'].join('/');
 const fakeResolvedHelper = ['scripts', 'kidults', 'kpmo', 'probe-helper.js'].join('/');
+const exactAppHelper = ['..', '..', '..', 'apps', 'kidults-enterprise-staging', 'public', 'portal-r001', 'projection-store.js'].join('/');
+const exactResolvedAppHelper = 'apps/kidults-enterprise-staging/public/portal-r001/projection-store.js';
 const dependencyMutationProbe = repositoryDependencyRefs([
   `run('${fakeChild}')`,
   `import helper from '${fakeRelativeHelper}';`,
+  `import runtime from '${exactAppHelper}';`,
   "const fixture = 'coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json';",
   "const causal = path.join(root, 'coordination', 'kidults', 'kpmo', 'epistemic-causal-integrity-controls-v1.json');"
 ].join('\n'), fakeParent);
-for (const expected of [fakeChild, fakeResolvedHelper]) {
+for (const expected of [fakeChild, fakeResolvedHelper, exactResolvedAppHelper]) {
   if (!dependencyMutationProbe.executable.has(expected)) fail(`transitive executable mutation probe missed ${expected}`);
 }
 for (const expected of ['coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json', 'coordination/kidults/kpmo/epistemic-causal-integrity-controls-v1.json']) {
@@ -153,7 +166,7 @@ console.log(JSON.stringify({
   semantic_control_refs: semanticClosure.size,
   total_trust_dependency_refs: closure.size,
   mandatory_discoveries_proven: mandatoryDiscoveries.length,
-  mutation_probes: 5,
+  mutation_probes: 6,
   empirical_gate_effect: 'NONE',
   external_partner_ingestion: 'HOLD',
   production: 'HOLD',

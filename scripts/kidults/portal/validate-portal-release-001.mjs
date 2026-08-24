@@ -13,6 +13,23 @@ const parseJson=relativePath=>{
   try{return JSON.parse(read(relativePath)||'{}')}catch(error){errors.push(`invalid JSON ${relativePath}: ${error.message}`);return {}}
 };
 const requireMarkers=(content,markers,label)=>markers.forEach(marker=>{if(!content.includes(marker))errors.push(`${label} missing ${marker}`)});
+const approvedProjectionStates=new Set(['APPROVED_INTERNAL','APPROVED_PUBLIC']);
+const containsStaticProjection=value=>{
+  if(Array.isArray(value))return value.some(containsStaticProjection);
+  if(!value||typeof value!=='object')return false;
+  if(value.record_type==='kidults_proof_product_projection')return true;
+  if(approvedProjectionStates.has(value.projection_state))return true;
+  if(value.projection&&typeof value.projection==='object'&&value.projection.state==='LIVE_APPROVED')return true;
+  return Object.values(value).some(containsStaticProjection);
+};
+const publicJsonFiles=[];
+const collectPublicJson=directory=>{
+  for(const entry of fs.readdirSync(directory,{withFileTypes:true})){
+    const file=path.join(directory,entry.name);
+    if(entry.isDirectory())collectPublicJson(file);
+    else if(entry.isFile()&&entry.name.endsWith('.json'))publicJsonFiles.push(file);
+  }
+};
 
 const html=read(`${base}/index.html`);
 const objectHtml=read(`${base}/object.html`);
@@ -25,6 +42,21 @@ const server=read('apps/kidults-enterprise-staging/server.mjs');
 const fixture=parseJson(`${base}/data/projection-control-fixture.json`);
 const matrix=parseJson(`${base}/data/negative-state-matrix.json`);
 const contentContract=parseJson(`${base}/data/projection-content-contract-v1.json`);
+
+const publicRoot=path.join(root,'apps/kidults-enterprise-staging/public');
+collectPublicJson(publicRoot);
+for(const file of publicJsonFiles){
+  const relative=path.relative(root,file).split(path.sep).join('/');
+  try{
+    const value=JSON.parse(fs.readFileSync(file,'utf8'));
+    if(containsStaticProjection(value))errors.push(`public static Projection asset prohibited: ${relative}`);
+  }catch(error){
+    errors.push(`public JSON invalid during Projection-boundary scan: ${relative}: ${error.message}`);
+  }
+}
+if(!containsStaticProjection({record_type:'kidults_proof_product_projection',projection_state:'AWAITING_APPROVED_PROJECTION'}))errors.push('public Projection record mutation selftest failed');
+if(!containsStaticProjection({projection_state:'APPROVED_PUBLIC'}))errors.push('public approved payload mutation selftest failed');
+if(containsStaticProjection(fixture))errors.push('non-promotable control fixture must not trip public Projection boundary');
 
 requireMarkers(html,[
   'data-release="portal-release-001"','data-state="NO_PROJECTION"','GLOBAL COLLECTIBLES INTELLIGENCE',
@@ -89,7 +121,7 @@ for(const asset of ['verticals-v4.svg','object-dossier-v4.svg','market-map-v4.sv
   if(!css.includes(`assets/cards/${asset}`))errors.push(`premium card asset not referenced: ${asset}`);
 }
 
-requireMarkers(store,['portal-read-contract-001','normalizeIntelligenceState','normalizeStructuralState','normalizeReleaseState','live_envelope_requires','content_surfaces','LIVE_RIGHTS','LIVE_FRESHNESS','LIVE_RECOMMENDATIONS','LIVE_CONFIDENCE','LIVE_COVERAGE','LIVE_INDEPENDENCE','LIVE_MAX_AGE_MS','FIXTURE_LIVE_ATTEMPT','validDigest','strictIso','parsedStrictIso','validLiveDate','validDisplayScalar','uniqueNonEmpty','liveContentComplete','auditBound','synthetic===false','overall_rankability===true','raw_provider_payloads:false','credentials:false','track_b_bypass:false','admitProofProductProjection','UNTRUSTED_BROWSER','releaseAuthority:\'HOLD\'','proof_product_admission:\'EXECUTED_BEFORE_RENDER\''],'projection store');
+requireMarkers(store,['portal-read-contract-001','normalizeIntelligenceState','normalizeStructuralState','normalizeReleaseState','canonical_record_type','control_record_type','approved_browser_render:\'INVALID_PAYLOADLESS\'','state_only_browser_render:\'NO_PROJECTION_PAYLOADLESS\'','SAFE_STRUCTURAL_VERTICALS','kidults_proof_product_projection','PROJECTION_RECORD_TYPE_INVALID','NO_GOVERNED_PROJECTION','raw_provider_payloads:false','credentials:false','track_b_bypass:false','admitProofProductProjection','UNTRUSTED_BROWSER','releaseAuthority:\'HOLD\'','proof_product_admission:\'EXECUTED_BEFORE_RENDER\''],'projection store');
 requireMarkers(proofAdmission,['admitProofProductProjection','PORTAL_RENDER','PUBLIC_API_RESPONSE','EXPORT','ASSESSMENT_ID_REBOUND','TRUSTED_CLOCK_REQUIRED','FRESHNESS_EXPIRED_AT_CONSUMPTION','RELEASE_AUTHORITY_HOLD','payload_exposed','production:\'HOLD\'','public:\'HOLD\'','g5:\'HOLD\''],'proof-product executable admission');
 requireMarkers(js,['readPortalProjection','renderObjectIntelligence','renderVerticals','renderSignals','renderKidult100','renderResearch','renderEvidence','renderAudit','gateWorkspace','initializeNavigation','renderFailure'],'portal runtime');
 requireMarkers(objectJs,['renderObjectIntelligence','normalizeIntelligenceState','LIVE_APPROVED','data-object-identity','data-object-market','data-object-comparables','data-object-evidence','data-object-rights','data-object-limitations'],'object runtime');
@@ -144,4 +176,4 @@ if(errors.length){
   process.exit(1);
 }
 
-console.log('Portal Release-001 premium-v4 validation PASS — valid roadster WebP, single design system, responsive navigation, in-page Object runtime, governed state semantics and fail-closed boundaries.');
+console.log(`Portal Release-001 premium-v4 validation PASS — ${publicJsonFiles.length} public JSON assets scanned with no static Projection; valid roadster WebP, single design system, responsive navigation, in-page Object runtime, governed state semantics and fail-closed boundaries.`);

@@ -1,4 +1,6 @@
 {
+  "record_type": "kidults_non_promotable_control_projection",
+  "schema_version": "1.0.0",
   "fixture_type": "NON_PROMOTABLE_CONTROL",
   "product_release": "Portal Release-001",
   "projection": {
