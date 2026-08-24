@@ -1,0 +1,277 @@
+name: KIDULTS ASI Getty Historical Transaction Admission v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */4 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/getty-provenance-historical-transaction-observation-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/evidence/getty-provenance-sale-fbc91494-v1.json'
+      - 'coordination/kidults/source-intelligence/evidence/getty-provenance-object-09539ab1-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json'
+      - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/getty-provenance-index.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-getty-provenance-index-test.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-getty-historical-transaction-admission-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-getty-historical-transaction-admission-v1.mjs'
+      - 'scripts/kidults/intelligence/provider-independent-layers-v1.mjs'
+      - 'scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'AGENTS.md'
+      - '.github/AI_AGENT_OPERATING_RULES.md'
+      - '.github/copilot-instructions.md'
+      - 'package.json'
+      - 'npm-shrinkwrap.json'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'services/kidults-autonomous-intelligence/package-lock.json'
+      - 'services/kidults-autonomous-intelligence/tsconfig.json'
+      - 'docs/kidults/asi/asi-getty-historical-transaction-admission-v1.md'
+      - '.github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/getty-provenance-historical-transaction-observation-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/evidence/getty-provenance-sale-fbc91494-v1.json'
+      - 'coordination/kidults/source-intelligence/evidence/getty-provenance-object-09539ab1-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json'
+      - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/getty-provenance-index.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-getty-provenance-index-test.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-getty-historical-transaction-admission-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-getty-historical-transaction-admission-v1.mjs'
+      - 'scripts/kidults/intelligence/provider-independent-layers-v1.mjs'
+      - 'scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'AGENTS.md'
+      - '.github/AI_AGENT_OPERATING_RULES.md'
+      - '.github/copilot-instructions.md'
+      - 'package.json'
+      - 'npm-shrinkwrap.json'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'services/kidults-autonomous-intelligence/package-lock.json'
+      - 'services/kidults-autonomous-intelligence/tsconfig.json'
+      - 'docs/kidults/asi/asi-getty-historical-transaction-admission-v1.md'
+      - '.github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Source Adapter Wave 4 v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-getty-historical-transaction-admission-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-getty-historical-transaction:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            npm-shrinkwrap.json
+            services/kidults-autonomous-intelligence/package-lock.json
+      - name: Verify source files and contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check services/kidults-autonomous-intelligence/scripts/asi-getty-provenance-index-test.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-getty-historical-transaction-admission-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-getty-historical-transaction-admission-v1.mjs
+          for FILE in \
+            coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-contract-v1.json \
+            coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-registry-v1.json \
+            coordination/kidults/source-intelligence/getty-provenance-historical-transaction-observation-v1.json \
+            coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
+            coordination/kidults/source-intelligence/evidence/getty-provenance-sale-fbc91494-v1.json \
+            coordination/kidults/source-intelligence/evidence/getty-provenance-object-09539ab1-v1.json; do
+            node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$FILE"
+          done
+      - name: Install deterministic validation dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install bounded adapter dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck adapter and service bindings
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+      - name: Replay exact-digest adapter and mutations
+        run: |
+          set -euo pipefail
+          node services/kidults-autonomous-intelligence/scripts/asi-getty-provenance-index-test.mjs \
+            | tee /tmp/kidults-getty-adapter-test-v1.json
+      - name: Build admission package twice
+        run: |
+          set -euo pipefail
+          for RUN in 1 2; do
+            node scripts/kidults/source-intelligence/build-asi-getty-historical-transaction-admission-v1.mjs \
+              coordination/kidults/source-intelligence/getty-provenance-historical-transaction-observation-v1.json \
+              coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-contract-v1.json \
+              coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
+              /tmp/kidults-getty-adapter-test-v1.json \
+              "/tmp/kidults-getty-historical-run-${RUN}"
+          done
+          diff -qr /tmp/kidults-getty-historical-run-1 /tmp/kidults-getty-historical-run-2
+      - name: Validate evidence admission and claim ceiling
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-getty-historical-transaction-admission-v1.mjs \
+            /tmp/kidults-getty-historical-run-1 \
+            coordination/kidults/source-intelligence/getty-provenance-historical-transaction-observation-v1.json \
+            coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-contract-v1.json \
+            coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
+            /tmp/kidults-getty-adapter-test-v1.json \
+            | tee /tmp/kidults-getty-historical-validation-v1.json
+      - name: Verify shared generic market router isolation
+        run: node scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs
+      - name: Reject protected output mutations
+        run: |
+          set -euo pipefail
+          for CASE in CURRENT_PRICE GENERIC_EVENT TOP16_ACTIVATION PUBLIC_RELEASE; do
+            DIR=$(mktemp -d /tmp/bad-getty-historical.XXXXXX)
+            cp -a /tmp/kidults-getty-historical-run-1/. "$DIR/"
+            CASE="$CASE" DIR="$DIR" node - <<'NODE'
+          const fs=require('fs');
+          const dir=process.env.DIR;
+          const choose={
+            CURRENT_PRICE:'getty-historical-transaction-evidence-ledger-v1.json',
+            GENERIC_EVENT:'getty-historical-transaction-event-ledger-v1.json',
+            TOP16_ACTIVATION:'top16-empirical-activation-blocker-ledger-v1.json',
+            PUBLIC_RELEASE:'getty-historical-transaction-admission-receipt-v1.json'
+          }[process.env.CASE];
+          const p=`${dir}/${choose}`,x=JSON.parse(fs.readFileSync(p));
+          if(process.env.CASE==='CURRENT_PRICE') x.records[0].current_price_eligible=true;
+          if(process.env.CASE==='GENERIC_EVENT') x.events[0].generic_market_event_admitted=true;
+          if(process.env.CASE==='TOP16_ACTIVATION') x.empirically_activated=1;
+          if(process.env.CASE==='PUBLIC_RELEASE') x.public_release='ALLOW';
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+            if node scripts/kidults/source-intelligence/validate-asi-getty-historical-transaction-admission-v1.mjs \
+              "$DIR" \
+              coordination/kidults/source-intelligence/getty-provenance-historical-transaction-observation-v1.json \
+              coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-contract-v1.json \
+              coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
+              /tmp/kidults-getty-adapter-test-v1.json; then
+              echo "Validator accepted protected mutation: $CASE" >&2
+              exit 1
+            fi
+          done
+      - name: Revalidate pristine repository and outputs
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          node scripts/kidults/source-intelligence/validate-asi-getty-historical-transaction-admission-v1.mjs \
+            /tmp/kidults-getty-historical-run-1 \
+            coordination/kidults/source-intelligence/getty-provenance-historical-transaction-observation-v1.json \
+            coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-contract-v1.json \
+            coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
+            /tmp/kidults-getty-adapter-test-v1.json \
+            > /tmp/kidults-getty-historical-final-validation-v1.json
+      - name: Emit and validate governed KPMO receipt
+        run: |
+          set -euo pipefail
+          node - <<'NODE' >/tmp/kidults-getty-historical-kpmo-receipt-v1.json
+          const fs=require('fs'),crypto=require('crypto');
+          const now=new Date().toISOString();
+          const run=`https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+          const commit=`https://github.com/${process.env.GITHUB_REPOSITORY}/commit/${process.env.GITHUB_SHA}`;
+          const validationPath='/tmp/kidults-getty-historical-final-validation-v1.json';
+          const manifestPath='/tmp/kidults-getty-historical-run-1/getty-historical-transaction-manifest-v1.json';
+          const digest=(p)=>`sha256:${crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')}`;
+          const receipt={
+            id:'kidults-asi-getty-historical-transaction-admission-kpmo-receipt-v1',version:'1.0.0',
+            agent_id:'github-actions/kidults-asi-getty-historical-transaction-admission-v1',as_of:now,
+            scope:'Exact-digest Getty CC0 historical transaction evidence admission with current-market isolation',state:'VERIFIED_PASS',
+            facts:[
+              {statement:'immutable_live_source_snapshots_verified=2; purpose_specific_rights_verified_sources=1',evidence_ref_ids:['validator','manifest']},
+              {statement:'historical_transaction_evidence_admitted=1; historical_transaction_events_created=1',evidence_ref_ids:['validator','manifest']},
+              {statement:'generic_market_events_admitted=0; verified_current_sold_events_created=0; current_prices_created=0; liquidity_measures_created=0',evidence_ref_ids:['validator','manifest']},
+              {statement:'top16_source_adapters_activated=0; top16_evidence_admitted=0',evidence_ref_ids:['validator','manifest']},
+              {statement:'autonomous_effect=POSITIVE',evidence_ref_ids:['workflow-run','manifest']},
+              {statement:'global_effect=POSITIVE_BOUNDED_HISTORICAL_COVERAGE_ONLY',evidence_ref_ids:['manifest']},
+              {statement:'irreplaceable_value_effect=POSITIVE',evidence_ref_ids:['manifest']},
+              {statement:'transparency_effect=POSITIVE',evidence_ref_ids:['validator','manifest']}
+            ],
+            evidence_refs:[
+              {ref_id:'workflow-run',kind:'WORKFLOW_RUN',locator:run,observed_at:now},
+              {ref_id:'commit',kind:'COMMIT',locator:commit,observed_at:now},
+              {ref_id:'validator',kind:'VALIDATOR_OUTPUT',locator:validationPath,observed_at:now,digest:digest(validationPath)},
+              {ref_id:'manifest',kind:'ARTIFACT',locator:manifestPath,observed_at:now,digest:digest(manifestPath)}
+            ],
+            inferences:[],
+            uncertainties:[
+              'The source record supplies a month window, not an exact transaction day.',
+              'The documented monetary amount is not labeled as hammer, all-in realized or current price.',
+              'One historical record does not establish current demand, price, liquidity or market representativeness.'
+            ],
+            blockers:[
+              {blocked_action:'Activate a Top16 current-sold source',detected_at:now,blocker:'External written permission, authorized credentials, paid access or additional empirical rights/schema evidence is required.',owner:'KPMO Source Intelligence',unblock_condition:'Founder/KPMO authorizes the required external action and all empirical activation gates pass.'},
+              {blocked_action:'Create current price or liquidity signals from this Getty record',detected_at:now,blocker:'The evidence is historical-only and lacks current-market and exposure semantics.',owner:'KPMO Source Intelligence',unblock_condition:'Admit separate current-sold and exposure evidence from rights-cleared sources.'}
+            ],
+            actions_executed:[
+              {action:'Verified two exact-digest official Getty JSON-LD snapshots and CC0 purpose rights.',result:'EXECUTED',evidence_ref_ids:['validator','manifest']},
+              {action:'Admitted one bounded historical transaction evidence record and created one historical event.',result:'EXECUTED',evidence_ref_ids:['validator','manifest']},
+              {action:'Rejected adapter mutations, current-market promotions and forged generic-router wrappers.',result:'EXECUTED',evidence_ref_ids:['workflow-run','validator']},
+              {action:'Kept Top16, Public, Production and G5 gates on HOLD.',result:'EXECUTED',evidence_ref_ids:['validator','manifest']}
+            ],
+            next_action:'Obtain authorized access and purpose-specific rights for one Top16 current-sold source or licensed feed.',
+            authority_boundary:{within_authority:true,protected_gates_touched:[],notes:'Reversible internal implementation only; no account, terms acceptance, spend, permission request, credential expansion, public release, Production or G5 action.'},
+            production:'HOLD',public_release:'HOLD'
+          };
+          process.stdout.write(`${JSON.stringify(receipt,null,2)}\n`);
+          NODE
+          node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt \
+            /tmp/kidults-getty-historical-kpmo-receipt-v1.json \
+            | tee /tmp/kidults-getty-historical-kpmo-receipt-validation-v1.json
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';
+          import Ajv2020 from 'ajv/dist/2020.js';
+          import addFormats from 'ajv-formats';
+          const schema=JSON.parse(fs.readFileSync('coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json','utf8'));
+          const receipt=JSON.parse(fs.readFileSync('/tmp/kidults-getty-historical-kpmo-receipt-v1.json','utf8'));
+          const ajv=new Ajv2020({allErrors:true,strict:true,strictTypes:false,strictRequired:false});
+          addFormats(ajv);
+          const validate=ajv.compile(schema);
+          if(!validate(receipt)) throw new Error(`KPMO_RECEIPT_SCHEMA:${ajv.errorsText(validate.errors)}`);
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-getty-historical-transaction-admission-v1
+          path: |
+            /tmp/kidults-getty-adapter-test-v1.json
+            /tmp/kidults-getty-historical-run-1
+            /tmp/kidults-getty-historical-validation-v1.json
+            /tmp/kidults-getty-historical-final-validation-v1.json
+            /tmp/kidults-getty-historical-kpmo-receipt-v1.json
+            /tmp/kidults-getty-historical-kpmo-receipt-validation-v1.json
+          retention-days: 90
+          if-no-files-found: error

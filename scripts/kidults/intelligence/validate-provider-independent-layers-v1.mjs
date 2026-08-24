@@ -103,6 +103,19 @@ const forgedReferenceOnlyWrapper = {...referenceOnlyMarket, admitted: true, admi
 assert.equal(deduplicateMarketEvents([forgedReferenceOnlyWrapper]).length, 0);
 assert.equal(computeMarketSignals([forgedReferenceOnlyWrapper]).unique_event_count, 0);
 
+const historicalProvenance = canonicalizeMarketEvent({
+  ...soldEvent('GETTY_PROVENANCE_INDEX', 'historical-1'),
+  evidence_class: 'HISTORICAL_TRANSACTION_PROVENANCE',
+  event_at: '1938-09-01T00:00:00Z',
+  price: {price_type: 'DOCUMENTED_TRANSACTION_AMOUNT', amount: 1471.13, currency: 'GBP'}
+});
+assert.equal(historicalProvenance.admitted, false);
+assert.ok(historicalProvenance.admission_errors.includes('GENERIC_MARKET_EVENT_EVIDENCE_CLASS_UNSUPPORTED'));
+assert.equal(computeMarketSignals([historicalProvenance]).unique_event_count, 0);
+const forgedHistoricalWrapper = {...historicalProvenance, admitted: true, admission_errors: []};
+assert.equal(deduplicateMarketEvents([forgedHistoricalWrapper]).length, 0);
+assert.equal(computeMarketSignals([forgedHistoricalWrapper]).unique_event_count, 0);
+
 console.log(JSON.stringify({
   status: 'PASS',
   grading: {
@@ -116,6 +129,7 @@ console.log(JSON.stringify({
     corroborating_source_independence_preserved: 'PASS',
     unknown_rights_fail_closed: 'PASS',
     reference_only_evidence_generic_admission_rejected: 'PASS',
+    historical_provenance_generic_market_admission_rejected: 'PASS',
     forged_admitted_wrapper_revalidated_and_rejected: 'PASS',
     insufficient_liquidity_evidence_not_promoted: 'PASS'
   }

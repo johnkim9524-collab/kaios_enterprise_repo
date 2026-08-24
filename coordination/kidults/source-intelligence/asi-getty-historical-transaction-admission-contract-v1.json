@@ -1,0 +1,122 @@
+{
+  "id": "kidults-asi-getty-historical-transaction-admission-contract-v1",
+  "version": "1.0.0",
+  "status": "EXECUTION_CONTRACT_ACTIVE",
+  "owner": "KPMO",
+  "priority": "P0",
+  "purpose": "Admit exactly one digest-bound CC0 Getty Provenance Index historical title-transfer record without promoting it to a current sold event, current price, demand, liquidity, index, public release, Production or G5.",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "authoritative_inputs": {
+    "observation": "coordination/kidults/source-intelligence/getty-provenance-historical-transaction-observation-v1.json",
+    "sale_snapshot": "coordination/kidults/source-intelligence/evidence/getty-provenance-sale-fbc91494-v1.json",
+    "object_snapshot": "coordination/kidults/source-intelligence/evidence/getty-provenance-object-09539ab1-v1.json",
+    "rights_admitted_source_pool": "coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json",
+    "source_mesh": "coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json",
+    "top16_registry": "coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json",
+    "top16_empirical_preflight": "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+    "generic_market_router": "scripts/kidults/intelligence/provider-independent-layers-v1.mjs"
+  },
+  "source_profile": {
+    "source_id": "getty-provenance-index",
+    "source_owner_id": "j-paul-getty-trust",
+    "factual_origin_id": "knoedler-stock-book-a1983",
+    "canonical_host": "data.getty.edu",
+    "registered_top_16_source_profile": false,
+    "adapter_state": "ACTIVATED_EVIDENCE_BOUND_HISTORICAL_ONLY",
+    "activation_scope": "EXACT_TWO_SNAPSHOT_DIGESTS_ONE_HISTORICAL_TRANSACTION_ONLY"
+  },
+  "rights_policy": {
+    "decision": "ALLOW",
+    "basis": "CC0",
+    "collect": "ALLOW",
+    "store": "ALLOW",
+    "transform": "ALLOW",
+    "display_internal": "ALLOW",
+    "display_public_by_source_license": "ALLOW_WITH_SOURCE_ACKNOWLEDGEMENT_PREFERRED",
+    "program_public_release": "HOLD",
+    "evidence_refs": [
+      "https://data.getty.edu/provenance/docs/"
+    ]
+  },
+  "admission_target": {
+    "evidence_class": "HISTORICAL_TRANSACTION_PROVENANCE",
+    "historical_event_class": "HISTORICAL_TRANSACTION_EVENT",
+    "amount_semantics": "DOCUMENTED_TRANSACTION_AMOUNT_NOT_HAMMER_OR_CURRENT_PRICE",
+    "event_time_precision": "MONTH",
+    "maximum_evidence_records": 1,
+    "maximum_historical_transaction_events": 1,
+    "generic_market_event_allowed": false,
+    "verified_current_sold_event_allowed": false,
+    "current_price_allowed": false,
+    "demand_allowed": false,
+    "liquidity_allowed": false,
+    "index_or_projection_allowed": false,
+    "top16_activation_inheritance_allowed": false
+  },
+  "claim_ceiling": {
+    "allowed": [
+      "GETTY_RECORD_DOCUMENTS_A_TITLE_TRANSFER_FOR_THE_BOUND_OBJECT",
+      "GETTY_RECORD_DOCUMENTS_A_1471_13_POUND_STERLING_MONETARY_AMOUNT",
+      "GETTY_RECORD_BOUNDS_THE_ACTIVITY_TO_THE_1938_09_MONTH_WINDOW",
+      "THE_BOUND_OBJECT_RECORD_IS_LABELED_JAMES_CHRISTIE_AND_STOCK_NUMBER_A1983",
+      "ONE_BOUNDED_HISTORICAL_TRANSACTION_PROVENANCE_RECORD_WAS_ADMITTED"
+    ],
+    "forbidden": [
+      "EXACT_TRANSACTION_DAY",
+      "HAMMER_PRICE",
+      "ALL_IN_REALIZED_PRICE",
+      "SETTLEMENT_CONFIRMED",
+      "CURRENT_SOLD_EVENT",
+      "CURRENT_PRICE",
+      "CURRENT_DEMAND",
+      "CURRENT_LIQUIDITY",
+      "CURRENT_RANKING",
+      "MARKET_REPRESENTATIVENESS",
+      "TOP16_SOURCE_ACTIVATED",
+      "CUSTOMER_FACING_MARKET_CLAIM"
+    ]
+  },
+  "required_outputs": [
+    "getty-historical-transaction-evidence-ledger-v1.json",
+    "getty-historical-transaction-event-ledger-v1.json",
+    "getty-historical-transaction-admission-receipt-v1.json",
+    "top16-empirical-activation-blocker-ledger-v1.json",
+    "getty-historical-transaction-manifest-v1.json"
+  ],
+  "required_mutation_families": [
+    "RAW_SNAPSHOT_DIGEST_MUTATION",
+    "RIGHTS_ALLOW_REMOVAL",
+    "SOURCE_IDENTITY_SUBSTITUTION",
+    "TOP16_FALSE_PROMOTION",
+    "CURRENT_SOLD_FALSE_PROMOTION",
+    "CURRENT_PRICE_FALSE_PROMOTION",
+    "LIQUIDITY_FALSE_PROMOTION",
+    "GENERIC_MARKET_EVENT_FALSE_PROMOTION",
+    "DAY_PRECISION_FALSE_PROMOTION",
+    "PUBLIC_PRODUCTION_OR_G5_FALSE_PROMOTION",
+    "GENERIC_ROUTER_WRAPPER_BYPASS"
+  ],
+  "truth_boundary": {
+    "immutable_live_source_snapshots_verified": 2,
+    "purpose_specific_rights_verified_sources": 1,
+    "historical_transaction_evidence_admitted": 1,
+    "historical_transaction_events_created": 1,
+    "generic_market_events_admitted": 0,
+    "verified_current_sold_events_created": 0,
+    "top16_source_adapters_activated": 0,
+    "top16_evidence_admitted": 0,
+    "current_prices_created": 0,
+    "liquidity_measures_created": 0,
+    "demand_measures_created": 0,
+    "snapshot_candidates_created": 0,
+    "track_b_input_pairs_created": 0,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

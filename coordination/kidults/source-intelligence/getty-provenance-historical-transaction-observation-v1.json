@@ -1,0 +1,81 @@
+{
+  "id": "kidults-getty-provenance-historical-transaction-observation-v1",
+  "version": "1.0.0",
+  "state": "VERIFIED_PASS",
+  "as_of": "2026-08-24T02:38:18Z",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "source": {
+    "source_id": "getty-provenance-index",
+    "source_owner_id": "j-paul-getty-trust",
+    "factual_origin_id": "knoedler-stock-book-a1983",
+    "canonical_host": "data.getty.edu",
+    "sale_record_url": "https://data.getty.edu/provenance/fbc91494-294c-30a6-b6dc-885f3ea074ed",
+    "object_record_url": "https://data.getty.edu/provenance/09539ab1-416d-3870-810b-8a6b3b604368",
+    "registered_top_16_source_profile": false
+  },
+  "capture": {
+    "mode": "BOUNDED_PUBLIC_REST_JSON_LD_EXACT_RECORDS",
+    "authenticated": false,
+    "credential_used": false,
+    "paid_access": false,
+    "network_requests": 4
+  },
+  "rights": {
+    "decision": "ALLOW",
+    "basis": "CC0",
+    "collect": "ALLOW",
+    "store": "ALLOW",
+    "transform": "ALLOW",
+    "display_internal": "ALLOW",
+    "display_public": "ALLOW_WITH_SOURCE_ACKNOWLEDGEMENT_PREFERRED",
+    "evidence_refs": [
+      "https://data.getty.edu/provenance/docs/"
+    ],
+    "authoritative_pool_ref": "coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json"
+  },
+  "snapshots": {
+    "sale": {
+      "path": "coordination/kidults/source-intelligence/evidence/getty-provenance-sale-fbc91494-v1.json",
+      "source_url": "https://data.getty.edu/provenance/fbc91494-294c-30a6-b6dc-885f3ea074ed",
+      "sha256": "sha256:dd177b9189aea6f66d842a5c616a04c37aec16522196b667a6c5c8f219f2d74e",
+      "etag": "\"18b268d4f1c500f823c488accd14dc6fce662f9a1063530ed9dc1f8365565e53\"",
+      "etag_state": "VERIFIED",
+      "last_modified_at": "2025-03-02T09:44:23Z",
+      "content_type": "application/ld+json"
+    },
+    "object": {
+      "path": "coordination/kidults/source-intelligence/evidence/getty-provenance-object-09539ab1-v1.json",
+      "source_url": "https://data.getty.edu/provenance/09539ab1-416d-3870-810b-8a6b3b604368",
+      "sha256": "sha256:8497c19fc1a9f07d1e4b1caec30e7d0cc11b0a17484c91a212d52a440c45f1c7",
+      "etag": null,
+      "etag_state": "NOT_RETAINED",
+      "last_modified_at": "2025-02-20T16:13:02Z",
+      "content_type": "application/ld+json"
+    }
+  },
+  "semantic_boundary": {
+    "evidence_class": "HISTORICAL_TRANSACTION_PROVENANCE",
+    "amount_semantics": "DOCUMENTED_TRANSACTION_AMOUNT_NOT_HAMMER_OR_CURRENT_PRICE",
+    "event_time_precision": "MONTH",
+    "historical_transaction": true,
+    "verified_current_sold_event": false,
+    "current_price": false,
+    "liquidity": false,
+    "demand": false,
+    "generic_market_event": false
+  },
+  "uncertainties": [
+    "THE_SOURCE_RECORD_GIVES_A_MONTH_WINDOW_NOT_AN_EXACT_TRANSACTION_DAY",
+    "THE_MONETARY_AMOUNT_IS_DOCUMENTED_BUT_NOT_LABELED_AS_HAMMER_OR_ALL_IN_REALIZED_PRICE",
+    "THE_OBJECT_ETAG_WAS_NOT_RETAINED; THE_COMMITTED_RAW_PAYLOAD_DIGEST_IS_AUTHORITATIVE_FOR_REPLAY",
+    "ONE_HISTORICAL_RECORD_CANNOT_ESTABLISH_CURRENT_PRICE_DEMAND_OR_LIQUIDITY"
+  ],
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}

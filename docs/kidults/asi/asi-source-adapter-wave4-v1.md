@@ -23,7 +23,7 @@ The final seven sources do not share one market meaning. The implementation ther
 
 | Source | Implemented role | Claim ceiling before empirical activation |
 |---|---|---|
-| PriceCharting API | Strict transaction-candidate parser | Dated-SOLD candidate only; no Current Price |
+| PriceCharting API | Current-value context classifier | Context only; documented product values ≠ dated sold transactions or Current Market Price |
 | Reverb Price Guide | Aggregate price-guide context classifier | Context only; aggregate guide ≠ transaction or Current Price |
 | Hasbro Pulse Collections | Release/listing context classifier | Context only; release/listing ≠ liquidity |
 | GOAT Sneaker Marketplace | Strict exposure-candidate parser | Exposure candidate only; listing ≠ SOLD |
@@ -53,20 +53,9 @@ HOLD until empirical rights, schema, semantics, owner and origin pass
 
 The shared core performs no network request. It accepts only an immutable snapshot delivered by a separately governed acquisition path.
 
-## Transaction branch
+## PriceCharting correction
 
-The PriceCharting API adapter requires all of the following in the immutable source snapshot:
-
-- exact source record ID;
-- explicit terminal `SOLD` state;
-- positive realised price;
-- explicit ISO 4217 currency;
-- RFC3339 sale time;
-- canonical object and condition segment.
-
-`LISTED`, `ACTIVE`, `BID`, `ASK`, `OFFER`, `RESERVE`, `PENDING`, ambiguous currency, missing price or missing time are rejected.
-
-A valid synthetic fixture becomes only a non-promotable dated-SOLD candidate. It does not establish Current Price.
+Official API documentation describes a product endpoint for current guide values and a separately authenticated, party-scoped offers endpoint. It does not document the generic `/api/transactions/{sale_id}` shape that the original synthetic fixture assumed. Wave 4 therefore fail-closed corrects PriceCharting to a current-value context classifier. No dated-SOLD parser remains registered for this source, and a fixture containing `SOLD` fields cannot create a transaction candidate.
 
 ## Exposure branch
 
@@ -95,10 +84,10 @@ Wave 4 adapters implemented                    7
 Total registered adapters implemented          16
 Remaining software adapter backlog              0
 Deterministic replays                            7
-Positive transaction/exposure fixtures           4
-Context-only classifications                     3
+Positive exposure fixtures                       3
+Context-only classifications                     4
 49 / 49 negative fixture mutations rejected
-Generic Runtime bindings verified                4
+Generic Runtime bindings verified                3
 Live source snapshots verified                   0
 Rights-verified sources                          0
 Activated adapters                               0

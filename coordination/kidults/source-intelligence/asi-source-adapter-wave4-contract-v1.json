@@ -23,12 +23,12 @@
     {
       "rank": 7,
       "source_id": "pricecharting-api",
-      "family": "STRUCTURED_API_TRANSACTION",
+      "family": "AGGREGATE_PRICE_GUIDE_CONTEXT",
       "verified_assignment_count": 12,
       "registered_claims": ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE"],
-      "implemented_claim_parsers": ["DATED_OBSERVED_SOLD_TRANSACTION"],
-      "context_only_claims": [],
-      "implementation_state": "IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED"
+      "implemented_claim_parsers": [],
+      "context_only_claims": ["CURRENT_VALUE_CONTEXT_NOT_TRANSACTION_OR_CURRENT_MARKET_TRUTH"],
+      "implementation_state": "IMPLEMENTED_CONTEXT_CLASSIFIER_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED"
     },
     {
       "rank": 11,
@@ -92,9 +92,9 @@
     }
   ],
   "claim_partition": {
-    "strict_transaction_candidate_parsers": 1,
+    "strict_transaction_candidate_parsers": 0,
     "strict_exposure_candidate_parsers": 3,
-    "context_only_non_promotable_classifiers": 3,
+    "context_only_non_promotable_classifiers": 4,
     "dated_sold_parsers_may_not_inherit_current_price": true,
     "listing_or_release_context_may_not_inherit_liquidity": true,
     "aggregate_price_guide_may_not_inherit_transaction_or_current_price": true,
@@ -132,9 +132,9 @@
     "registered_source_profiles": 16,
     "source_specific_adapters_implemented": 16,
     "source_specific_adapters_pending": 0,
-    "transaction_candidate_parsers_implemented": 10,
+    "transaction_candidate_parsers_implemented": 9,
     "exposure_candidate_parsers_implemented": 3,
-    "context_only_classifiers_implemented": 3,
+    "context_only_classifiers_implemented": 4,
     "source_specific_adapters_activated": 0,
     "live_source_snapshots_verified": 0,
     "field_purpose_rights_verified_sources": 0,

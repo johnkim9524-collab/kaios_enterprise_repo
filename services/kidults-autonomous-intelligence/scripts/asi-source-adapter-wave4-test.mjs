@@ -5,7 +5,11 @@ import { readFileSync, writeFileSync, mkdirSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import ts from 'typescript';
+
+const typescriptModule = process.env.KIDULTS_TYPESCRIPT_MODULE;
+const ts = (await import(typescriptModule
+  ? pathToFileURL(resolve(typescriptModule)).href
+  : 'typescript')).default;
 
 const serviceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sourceRoot = resolve(serviceRoot, 'src/asi');
@@ -59,16 +63,16 @@ function withPayload(base, value) {
 const cases = [
   {
     source_id: 'pricecharting-api',
-    run: runtime.parsePriceChartingTransactionSnapshot,
-    positive: snapshot('https://www.pricecharting.com/api/transactions/pc-sale-1', {
-      sale_id: 'pc-sale-1', status: 'SOLD', sold_price: 125.50, currency: 'USD', sold_at: '2026-08-01T00:00:00.000Z',
+    run: runtime.classifyPriceChartingCurrentValueSnapshot,
+    positive: snapshot('https://www.pricecharting.com/api/product', {
+      id: 'pc-product-1', product_name: 'Fixture Product', loose_price: 12550,
     }),
-    expected_state: 'TRANSACTION_CANDIDATE_HOLD_RIGHTS_AND_LIVE_SCHEMA',
-    positive_kind: 'TRANSACTION',
+    expected_state: 'CONTEXT_ONLY_NOT_TRANSACTION_OR_LIQUIDITY',
+    positive_kind: 'CONTEXT',
     semanticMutations: (base) => [
-      withPayload(base, { sale_id: 'pc-sale-1', status: 'LISTED', sold_price: 125.50, currency: 'USD', sold_at: '2026-08-01T00:00:00.000Z' }),
-      withPayload(base, { sale_id: 'pc-sale-1', status: 'SOLD', sold_price: 0, currency: 'USD', sold_at: '2026-08-01T00:00:00.000Z' }),
-      withPayload(base, { sale_id: 'pc-sale-1', status: 'SOLD', sold_price: 125.50, currency: '$', sold_at: '2026-08-01T00:00:00.000Z' }),
+      withPayload(base, { sale_id: 'pc-sale-1', status: 'SOLD', sold_price: 125.50, currency: 'USD', sold_at: '2026-08-01T00:00:00.000Z' }),
+      withPayload(base, { id: 'pc-product-1', product_name: 'Fixture Product', current_price: 125.50, currency: 'USD' }),
+      withPayload(base, { id: 'pc-product-1', sale_count: 100, liquidity: 'HIGH' }),
     ],
   },
   {
@@ -225,8 +229,8 @@ const profiles = runtime.getWave4SourceAdapterProfiles();
 assert.equal(profiles.length, 7);
 assert.equal(new Set(profiles.map((profile) => profile.source_id)).size, 7);
 assert.equal(deterministicReplays, 7);
-assert.equal(positiveCandidates, 4);
-assert.equal(contextClassifications, 3);
+assert.equal(positiveCandidates, 3);
+assert.equal(contextClassifications, 4);
 assert.equal(negativeMutationsRejected, 49);
 
 console.log(JSON.stringify({
@@ -240,7 +244,7 @@ console.log(JSON.stringify({
   positive_fixture_candidates_parsed: positiveCandidates,
   context_only_classifications_verified: contextClassifications,
   negative_fixture_mutations_rejected: negativeMutationsRejected,
-  generic_market_adapter_runtime_bindings_verified: 4,
+  generic_market_adapter_runtime_bindings_verified: 3,
   live_source_snapshots_verified: 0,
   field_purpose_rights_verified_sources: 0,
   source_specific_adapters_activated: 0,
