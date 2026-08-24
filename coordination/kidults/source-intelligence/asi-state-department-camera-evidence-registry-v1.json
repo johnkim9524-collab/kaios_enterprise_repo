@@ -1,0 +1,89 @@
+{
+  "id": "kidults-asi-state-department-camera-evidence-registry-v1",
+  "version": "1.0.0",
+  "status": "VERIFIED_PASS",
+  "owner": "KPMO",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "registered_assets": {
+    "contract": "coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json",
+    "observation": "coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json",
+    "adapter": "services/kidults-autonomous-intelligence/src/asi/source-adapters/state-department-online-auction.ts",
+    "test": "services/kidults-autonomous-intelligence/scripts/asi-state-department-online-auction-test.mjs",
+    "builder": "scripts/kidults/source-intelligence/build-asi-state-department-camera-evidence-v1.mjs",
+    "validator": "scripts/kidults/source-intelligence/validate-asi-state-department-camera-evidence-v1.mjs",
+    "generic_market_router": "scripts/kidults/intelligence/provider-independent-layers-v1.mjs",
+    "generic_market_router_validator": "scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs",
+    "workflow": ".github/workflows/kidults-asi-state-department-camera-evidence-v1.yml",
+    "documentation": "docs/kidults/asi/asi-state-department-camera-evidence-v1.md"
+  },
+  "implementation_state": {
+    "fallback_source_profiles_registered": 1,
+    "fallback_source_adapters_implemented": 1,
+    "exact_projection_reference_validators_active": 1,
+    "fallback_live_adapters_activated": 0,
+    "bounded_primary_source_fact_projections_validated": 1,
+    "field_purpose_rights_preflight_pass_sources": 1,
+    "auction_result_reference_evidence_admitted": 1,
+    "market_event_references_created": 1,
+    "generic_market_events_admitted": 0,
+    "verified_sold_events_created": 0,
+    "top_16_source_profiles": 16,
+    "top_16_source_adapters_implemented": 16,
+    "top_16_source_adapters_activated": 0,
+    "top_16_evidence_admitted": 0,
+    "current_192_missions_closed": 0
+  },
+  "automatic_execution": {
+    "workflow_dispatch": true,
+    "schedule": "23 */4 * * *",
+    "main_push": true,
+    "pull_request": true,
+    "upstream_workflows": [
+      "KIDULTS ASI Requirement-to-Adapter Coverage v1",
+      "KIDULTS ASI Source Adapter Wave 4 v1"
+    ],
+    "manual_only_normal_activation": false
+  },
+  "effects": {
+    "autonomous_effect": "POSITIVE",
+    "global_effect": "NEUTRAL_WITH_EVIDENCE",
+    "irreplaceable_value_effect": "POSITIVE",
+    "transparency_effect": "POSITIVE",
+    "evidence": {
+      "autonomous": "Automatic exact-projection validation, expiry enforcement and deterministic rebuild are registered.",
+      "global": "One Qatar fallback reference is outside the current 192-region/evidence-class grain and is not global market evidence.",
+      "irreplaceable_value": "KIDULTS owns the scope crosswalk, rights, provenance-role, reference-routing and claim-ceiling controls.",
+      "transparent": "Raw capture, freshness, generic event, signal, index and verified-sold states remain separately reported."
+    }
+  },
+  "next_action": "Acquire an explicit hammer or all-in realized amount from a rights-cleared collector-market source, or complete purpose-specific rights and activation for one of the current top 16 sources.",
+  "truth_boundary": {
+    "registered_top_16_source_profile": false,
+    "raw_html_archived_or_republished": false,
+    "raw_live_source_snapshot_verified": false,
+    "generic_market_event_admitted": false,
+    "generic_market_router_rejection_verified": true,
+    "generic_admitted_wrapper_bypass_rejection_verified": true,
+    "signal_eligible": false,
+    "index_eligible": false,
+    "source_updated_at_verified": false,
+    "historical_event_freshness_state": "NOT_VERIFIED",
+    "current_192_mission_id": null,
+    "current_192_join_state": "OUTSIDE_CURRENT_192_REGION_AND_EVIDENCE_CLASS_GRAIN_FALLBACK_REFERENCE_ONLY",
+    "verified_sold_event_created": false,
+    "current_price_created": false,
+    "liquidity_created": false,
+    "collector_market_representativeness_verified": false,
+    "snapshot_candidate_created": false,
+    "track_b_input_created": false,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
