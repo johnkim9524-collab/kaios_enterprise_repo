@@ -56,7 +56,16 @@
             "https://catalog.data.gov/dataset/sold-fleet-equipment",
             "https://www.seattle.gov/documents/Departments/Tech/OpenData/COS_OpenDataPolicy.pdf"
           ],
-          "evidence_digest": "sha256:f37661a397097d552957a622d16b6c4ece5e438f3dae8f42f813c2eb559ea213"
+          "evidence_digest": "sha256:f37661a397097d552957a622d16b6c4ece5e438f3dae8f42f813c2eb559ea213",
+          "evidence_manifest": {
+            "verification_state": "VERIFIED",
+            "manifest_id": "rights-manifest-seattle-sold-fleet-2026-08-24",
+            "source_id": "seattle-sold-fleet-equipment-open-data",
+            "purpose": "CURRENT_SOLD_TRANSACTION_REFERENCE",
+            "manifest_digest": "sha256:f37661a397097d552957a622d16b6c4ece5e438f3dae8f42f813c2eb559ea213",
+            "content_digest": "sha256:f37661a397097d552957a622d16b6c4ece5e438f3dae8f42f813c2eb559ea213",
+            "immutable_snapshot_ref": "registry:kidults-rights-manifest-seattle-sold-fleet-2026-08-24"
+          }
         }
       ],
       "evidence_refs": [

@@ -126,13 +126,12 @@ function exactPurposeBinding(row, purpose) {
 
 function externalApprovalPass(row, purpose) {
   const required = EXTERNAL_COMMITMENT_FLAGS.filter(key => row?.[key] === true);
-  if (!required.length) return { pass: true, required };
-  const receipt = row?.external_approval_receipt;
-  const pass = receipt?.founder_decision === 'APPROVED' &&
-    token(receipt?.purpose) === token(purpose) &&
-    String(receipt?.source_id ?? '') === String(row?.source_id ?? '') &&
-    sha256(receipt?.digest);
-  return { pass, required };
+  // External approval is not a rights proof.  A preflight row must never be
+  // able to self-assert a Founder approval object and thereby clear a paid,
+  // credentialed, login-gated, or permission-pending source.  Track Z/KPMO
+  // must first normalize the written permission into the purpose binding and
+  // remove the commitment flag before this gate can return RIGHTS_CLEAR.
+  return { pass: required.length === 0, required };
 }
 
 function timestampState(row, binding, asOf) {
@@ -155,7 +154,10 @@ function bindingReasons(row, purpose, binding) {
   if (!spec) return ['PURPOSE_NOT_SUPPORTED_BY_GATE'];
   if (!binding) return ['EXACT_SOURCE_PURPOSE_BINDING_MISSING'];
 
-  const roles = unique([...array(binding.source_roles), ...array(row?.source_roles)]);
+  // Required roles must be present on the exact purpose binding itself.  A
+  // union with row-level roles can incorrectly combine SOLD and LISTING roles
+  // from different assertions and manufacture liquidity eligibility.
+  const roles = unique(array(binding.source_roles));
   const evidenceClasses = unique(array(binding.evidence_classes ?? binding.evidence_class));
   const fields = unique(array(binding.fields ?? binding.field_allowlist));
   const outputs = unique(array(binding.outputs ?? binding.authorized_outputs));
@@ -199,6 +201,16 @@ export function classifyPurposeRights(row, purpose = 'CURRENT_SOLD_TRANSACTION',
   reasons.push(...bindingReasons(row, purpose, binding));
   if (!evidenceRefs.length || evidenceRefs.some(value => !canonicalRef(value))) reasons.push('CANONICAL_RIGHTS_EVIDENCE_REFERENCE_MISSING_OR_INVALID');
   if (!sha256(evidenceDigest)) reasons.push('RIGHTS_EVIDENCE_DIGEST_MISSING_OR_INVALID');
+  const manifest = binding?.evidence_manifest ?? row?.evidence_manifest;
+  const manifestPass = manifest?.verification_state === 'VERIFIED' &&
+    String(manifest?.source_id ?? '') === String(row?.source_id ?? '') &&
+    token(manifest?.purpose) === token(purpose) &&
+    typeof manifest?.manifest_id === 'string' && manifest.manifest_id.length > 0 &&
+    sha256(manifest?.manifest_digest) &&
+    manifest?.content_digest === evidenceDigest &&
+    canonicalRef(manifest?.immutable_snapshot_ref) &&
+    /^(artifact|registry):/i.test(String(manifest.immutable_snapshot_ref));
+  if (!manifestPass) reasons.push('IMMUTABLE_EVIDENCE_MANIFEST_MISSING_OR_UNVERIFIED');
   if (!timestamp.observedValid) reasons.push('RIGHTS_EVIDENCE_OBSERVED_AT_MISSING_OR_INVALID');
   if (!timestamp.dueValid) reasons.push('RIGHTS_EVIDENCE_STALE_OR_REVALIDATION_DUE');
   for (const flag of INVALIDATION_FLAGS) if (row?.[flag] === true || binding?.[flag] === true) reasons.push(`RIGHTS_INVALIDATED:${flag.toUpperCase()}`);
@@ -226,6 +238,11 @@ export function classifyPurposeRights(row, purpose = 'CURRENT_SOLD_TRANSACTION',
 export function buildPurposeRightsIndex(preflight, sourceIds, purpose = 'CURRENT_SOLD_TRANSACTION', asOf = new Date()) {
   if (!preflight || typeof preflight !== 'object' || !Array.isArray(preflight.rows)) {
     throw new Error('PURPOSE_RIGHTS_PREFLIGHT_LEDGER_INVALID');
+  }
+  const seenSourceIds = new Set();
+  for (const row of preflight.rows) {
+    if (!row?.source_id || seenSourceIds.has(row.source_id)) throw new Error(`DUPLICATE_SOURCE_ID_IN_PURPOSE_RIGHTS_LEDGER:${row?.source_id || ''}`);
+    seenSourceIds.add(row.source_id);
   }
   const rows = new Map(preflight.rows.map(row => [row.source_id, row]));
   const index = new Map();

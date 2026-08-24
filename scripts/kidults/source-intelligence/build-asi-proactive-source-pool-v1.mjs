@@ -24,6 +24,11 @@ const governedRows = [
   ...readLedger(top16PreflightPath, 'top16-preflight'),
   ...readLedger(openPreflightPath, 'open-current-sold-preflight')
 ];
+const governedSourceIds = new Set();
+for (const row of governedRows) {
+  if (!row.source_id || governedSourceIds.has(row.source_id)) throw new Error(`DUPLICATE_SOURCE_ID_IN_GOVERNED_LEDGERS:${row.source_id || ''}`);
+  governedSourceIds.add(row.source_id);
+}
 
 const sha = value => crypto.createHash('sha256').update(String(value)).digest('hex');
 const normalizeUrl = value => {
@@ -312,8 +317,26 @@ sourcePurposePackages.sort((a, b) =>
 
 const candidateByKey = new Map(candidates.map(candidate => [candidate.source_candidate_key, candidate]));
 const maxPackets = Number(contract.rights_review_queue?.max_packets_per_cycle || 64);
-const rightsReviewQueue = sourcePurposePackages
+const previousReviewAges = previous?.rights_review_age_by_package || {};
+const previousQueuedPackages = new Set(array(previous?.rights_review_queue).map(packet => packet.package_id));
+for (const pkg of sourcePurposePackages) {
+  pkg.review_age_cycles = previous
+    ? (previousQueuedPackages.has(pkg.package_id) ? 0 : Number(previousReviewAges[pkg.package_id] || 0) + 1)
+    : 0;
+}
+const reviewCandidates = sourcePurposePackages
   .filter(pkg => pkg.rights_decision !== RIGHTS_CLEAR)
+  .sort((a, b) =>
+    Number(b.review_age_cycles >= 2) - Number(a.review_age_cycles >= 2) ||
+    a.rights_commercial_friction_rank - b.rights_commercial_friction_rank ||
+    a.purpose_rank - b.purpose_rank ||
+    Number(b.purpose_role_fit_state === 'CONFIRMED') - Number(a.purpose_role_fit_state === 'CONFIRMED') ||
+    Number(b.review_age_cycles) - Number(a.review_age_cycles) ||
+    (candidates.find(x => x.source_candidate_key === b.source_candidate_key)?.demand_instance_ids.length || 0) -
+      (candidates.find(x => x.source_candidate_key === a.source_candidate_key)?.demand_instance_ids.length || 0) ||
+    a.package_id.localeCompare(b.package_id)
+  );
+const rightsReviewQueue = reviewCandidates
   .slice(0, maxPackets)
   .map((pkg, index) => {
     const candidate = candidateByKey.get(pkg.source_candidate_key);
@@ -330,12 +353,16 @@ const rightsReviewQueue = sourcePurposePackages
       rights_commercial_friction_rank: pkg.rights_commercial_friction_rank,
       purpose_rank: pkg.purpose_rank,
       ranking_vector: [
+        pkg.review_age_cycles >= 2 ? 0 : 1,
         pkg.rights_commercial_friction_rank,
         pkg.purpose_rank,
         pkg.purpose_role_fit_state === 'CONFIRMED' ? 0 : 1,
+        -pkg.review_age_cycles,
         -candidate.demand_instance_ids.length
       ],
       rights_reason_codes: pkg.rights_reason_codes,
+      review_age_cycles: pkg.review_age_cycles,
+      review_overdue: pkg.review_age_cycles >= 2,
       rights_state: 'UNASSESSED',
       admission_state: 'NOT_ADMITTED',
       acquisition_authorized: false,
@@ -408,6 +435,9 @@ const artifact = {
   rights_clear_current_sold_source_count: rightsClearCurrentSold.length,
   context_only_excluded_from_current_sold_count: contextExcluded,
   rights_review_queue_count: rightsReviewQueue.length,
+  rights_review_age_by_package: Object.fromEntries(sourcePurposePackages
+    .filter(pkg => pkg.rights_decision !== RIGHTS_CLEAR)
+    .map(pkg => [pkg.package_id, pkg.review_age_cycles])),
   permission_required_queue_count: permissionRequiredQueue.length,
   no_go_queue_count: noGoQueue.length,
   domain_fit_hold_queue_count: domainFitHoldQueue.length,

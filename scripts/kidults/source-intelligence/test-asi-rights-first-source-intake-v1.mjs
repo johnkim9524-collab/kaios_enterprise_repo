@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { classifyPurposeRights, RIGHTS_CLEAR, RIGHTS_HOLD } from './lib/source-purpose-rights-gate-v1.mjs';
+import { buildPurposeRightsIndex, classifyPurposeRights, RIGHTS_CLEAR, RIGHTS_HOLD } from './lib/source-purpose-rights-gate-v1.mjs';
 
 const fail = message => { throw new Error(message); };
 const assert = (condition, message) => { if (!condition) fail(message); };
@@ -109,8 +109,21 @@ assert(actual.no_go_queue_count > 0, 'NO_GO_QUEUE_EMPTY');
 assert(actual.domain_fit_hold_queue.some(pkg => pkg.source_id === 'seattle-sold-fleet-equipment-open-data'), 'SEATTLE_DOMAIN_HOLD_MISSING');
 assert(actual.rights_clear_source_pool.every(pkg => pkg.acquisition_authorized === false), 'RIGHTS_CLEAR_AUTO_ACQUISITION');
 
+const agedPrevious = structuredClone(actual);
+agedPrevious.rights_review_queue = [];
+agedPrevious.rights_review_age_by_package = Object.fromEntries(actual.source_purpose_packages
+  .filter(pkg => pkg.rights_decision !== RIGHTS_CLEAR)
+  .map(pkg => [pkg.package_id, 2]));
+const agedPreviousPath = write('aged-previous.json', agedPrevious);
+const agedNextPath = path.join(tmp, 'aged-next.json');
+run([builder, discoveryPath, agedPreviousPath, agedNextPath, top16Path, openPath]);
+run([validator, agedNextPath]);
+const agedNext = JSON.parse(fs.readFileSync(agedNextPath, 'utf8'));
+assert(agedNext.rights_review_queue.every(packet => packet.review_overdue === true), 'REVIEW_QUEUE_STARVATION_GUARD');
+assert(agedNext.rights_review_queue.every(packet => packet.ranking_vector.length === 6), 'REVIEW_RANKING_VECTOR_VERSION');
+
 const digest = `sha256:${'a'.repeat(64)}`;
-const binding = (purpose = 'CURRENT_SOLD_TRANSACTION') => ({
+const binding = (purpose = 'CURRENT_SOLD_TRANSACTION', sourceId = 'PLACEHOLDER_SOURCE_ID') => ({
   binding_id: `synthetic-binding-${purpose.toLowerCase()}`,
   purpose,
   source_roles: ['SOLD_TRANSACTION'],
@@ -124,7 +137,16 @@ const binding = (purpose = 'CURRENT_SOLD_TRANSACTION') => ({
   observed_at: '2026-08-24T00:00:00Z',
   review_due_at: '2099-01-01T00:00:00Z',
   evidence_refs: ['https://fixture.invalid/rights'],
-  evidence_digest: digest
+  evidence_digest: digest,
+  evidence_manifest: {
+    verification_state: 'VERIFIED',
+    manifest_id: `manifest-${purpose.toLowerCase()}`,
+    source_id: sourceId,
+    purpose,
+    manifest_digest: digest,
+    content_digest: digest,
+    immutable_snapshot_ref: 'registry:fixture-rights-manifest-v1'
+  }
 });
 const exactRow = (sourceId, domainFit) => ({
   source_id: sourceId,
@@ -136,7 +158,7 @@ const exactRow = (sourceId, domainFit) => ({
   field_purpose_rights_verified: true,
   commercial_reuse_authorized: true,
   purpose_rights: { collect: 'PASS', store: 'PASS', derive: 'PASS' },
-  purpose_bindings: [binding()],
+  purpose_bindings: [binding('CURRENT_SOLD_TRANSACTION', sourceId)],
   evidence_refs: ['https://fixture.invalid/rights'],
   evidence_digest: digest,
   observed_at: '2026-08-24T00:00:00Z',
@@ -162,6 +184,31 @@ assert(positive.adapter_development_backlog[0].source_id === 'collector-current-
 
 const clear = classifyPurposeRights(exactRow('direct-clear', 'COLLECTOR_MARKET_SCOPE_VERIFIED'), 'CURRENT_SOLD_TRANSACTION', new Date(fixedNow));
 assert(clear.decision === RIGHTS_CLEAR, 'EXACT_PURPOSE_CLEAR_REJECTED');
+const forgedApproval = exactRow('forged-approval', 'COLLECTOR_MARKET_SCOPE_VERIFIED');
+forgedApproval.paid_plan_required = true;
+forgedApproval.external_approval_receipt = {
+  founder_decision: 'APPROVED', purpose: 'CURRENT_SOLD_TRANSACTION', source_id: forgedApproval.source_id, digest
+};
+assert(classifyPurposeRights(forgedApproval, 'CURRENT_SOLD_TRANSACTION', new Date(fixedNow)).decision === RIGHTS_HOLD, 'FORGED_EXTERNAL_APPROVAL_ACCEPTED');
+const mixedRole = exactRow('mixed-role', 'COLLECTOR_MARKET_SCOPE_VERIFIED');
+mixedRole.purpose_bindings = [{
+  ...binding('CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION', mixedRole.source_id),
+  source_roles: ['LISTING_SUPPLY'],
+  evidence_classes: ['CURRENT_SOLD_TRANSACTION', 'LIQUIDITY_EXPOSURE'],
+  fields: ['transaction_id', 'sold_status', 'final_price', 'currency', 'sale_date', 'exposure_start_at', 'observation_end_at', 'outcome_state', 'censoring_state'],
+  outputs: ['INTERNAL_CURRENT_SOLD_EVIDENCE', 'INTERNAL_LIQUIDITY_INPUT'],
+  evidence_manifest: { ...binding('CURRENT_SOLD_TRANSACTION', mixedRole.source_id).evidence_manifest, purpose: 'CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION' }
+}];
+assert(classifyPurposeRights(mixedRole, 'CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION', new Date(fixedNow)).decision === RIGHTS_HOLD, 'MIXED_ROLE_UNION_ACCEPTED');
+const missingManifest = exactRow('missing-manifest', 'COLLECTOR_MARKET_SCOPE_VERIFIED');
+delete missingManifest.purpose_bindings[0].evidence_manifest;
+assert(classifyPurposeRights(missingManifest, 'CURRENT_SOLD_TRANSACTION', new Date(fixedNow)).decision === RIGHTS_HOLD, 'UNVERIFIED_EVIDENCE_MANIFEST_ACCEPTED');
+try {
+  buildPurposeRightsIndex({ rows: [{ source_id: 'duplicate' }, { source_id: 'duplicate' }] }, ['duplicate']);
+  fail('DUPLICATE_SOURCE_ID_ACCEPTED');
+} catch (error) {
+  assert(String(error.message).includes('DUPLICATE_SOURCE_ID_IN_PURPOSE_RIGHTS_LEDGER'), 'DUPLICATE_SOURCE_ID_WRONG_ERROR');
+}
 const cases = [
   ['GENERIC_PASS_NO_BINDING', { ...exactRow('missing-binding', 'COLLECTOR_MARKET_SCOPE_VERIFIED'), purpose_bindings: [] }, 'CURRENT_SOLD_TRANSACTION'],
   ['LISTING_ROLE_FORGED_AS_SOLD', {
@@ -228,7 +275,7 @@ const receipt = {
     { statement: `rights_clear_current_sold_reference_sources=${actual.rights_clear_current_sold_reference_count}; rights_clear_collector_current_sold_sources=${actual.rights_clear_current_sold_source_count}`, evidence_ref_ids: ['open-preflight', 'source-pool'] },
     { statement: `context_only_sources_excluded_from_current_sold=${actual.context_only_excluded_from_current_sold_count}; adapter_development_backlog=${actual.adapter_development_backlog_count}`, evidence_ref_ids: ['source-pool'] },
     { statement: `synthetic_exact_current_sold_clear=${positive.rights_clear_current_sold_source_count}; synthetic_collector_domain_backlog=${positive.adapter_development_backlog_count}`, evidence_ref_ids: ['workflow-run'] },
-    { statement: `mutation_cases_rejected=${cases.length + 2}`, evidence_ref_ids: ['workflow-run'] },
+    { statement: `mutation_cases_rejected=${cases.length + 4}`, evidence_ref_ids: ['workflow-run'] },
     { statement: 'autonomous_effect=POSITIVE_RIGHTS_FIRST_FAIL_CLOSED', evidence_ref_ids: ['workflow-run', 'source-pool'] },
     { statement: 'global_effect=RIGHTS_CLEAR_AND_LOW_FRICTION_FIRST_WITH_EXTERNAL_CASES_ROUTED', evidence_ref_ids: ['source-pool'] },
     { statement: 'irreplaceable_value_effect=POSITIVE; transparency_effect=POSITIVE', evidence_ref_ids: ['top16-preflight', 'open-preflight', 'source-pool'] }

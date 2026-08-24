@@ -151,6 +151,7 @@ assertSubset(value.adapter_development_backlog, 'ADAPTER_BACKLOG');
 if (value.rights_clear_source_pool.some(pkg => pkg.rights_decision !== 'RIGHTS_CLEAR_FOR_PURPOSE')) fail('CLEAR_POOL_CONTAMINATION');
 if (Number(value.rights_review_queue_count) !== value.rights_review_queue.length) fail('REVIEW_QUEUE_COUNT');
 if (value.rights_review_queue.length > 64) fail('RIGHTS_QUEUE_LIMIT');
+if (!value.rights_review_age_by_package || typeof value.rights_review_age_by_package !== 'object') fail('REVIEW_AGE_STATE_MISSING');
 let previousRanking = null;
 for (const receipt of value.rights_review_queue) {
   if (receipt.rights_state !== 'UNASSESSED' ||
@@ -158,10 +159,13 @@ for (const receipt of value.rights_review_queue) {
       receipt.acquisition_authorized !== false) fail(`RIGHTS_PACKET_PROMOTION:${receipt.packet_id}`);
   if (!keys.has(receipt.source_candidate_key)) fail(`RIGHTS_PACKET_ORPHAN:${receipt.packet_id}`);
   if (!Array.isArray(receipt.discovery_providers) || receipt.discovery_providers.length < 1) fail(`RIGHTS_PACKET_PROVIDER_MISSING:${receipt.packet_id}`);
-  if (!Array.isArray(receipt.ranking_vector) || receipt.ranking_vector.length !== 4) fail(`RANKING_VECTOR:${receipt.packet_id}`);
+  if (!Array.isArray(receipt.ranking_vector) || receipt.ranking_vector.length !== 6) fail(`RANKING_VECTOR:${receipt.packet_id}`);
+  if (!Number.isInteger(receipt.review_age_cycles) || receipt.review_age_cycles < 0) fail(`REVIEW_AGE:${receipt.packet_id}`);
+  if (receipt.review_overdue !== (receipt.review_age_cycles >= 2)) fail(`REVIEW_OVERDUE:${receipt.packet_id}`);
+  if (Number(value.rights_review_age_by_package[`source-purpose:${receipt.source_candidate_key}:${receipt.purpose}`]) !== receipt.review_age_cycles) fail(`REVIEW_AGE_STATE:${receipt.packet_id}`);
   if (receipt.external_route !== 'TRACK_Z_ISSUE_1166_THEN_KPMO_ISSUE_344_THEN_FOUNDER') fail(`RIGHTS_PACKET_ROUTE:${receipt.packet_id}`);
   if (previousRanking) {
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       if (receipt.ranking_vector[i] < previousRanking[i]) fail(`RIGHTS_FIRST_RANKING_INVERSION:${receipt.packet_id}`);
       if (receipt.ranking_vector[i] > previousRanking[i]) break;
     }
