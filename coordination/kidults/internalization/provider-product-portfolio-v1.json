@@ -23,7 +23,8 @@
     "providerBaseline": "HOLD",
     "providerBaselineMeaning": "NO_EXTERNAL_ACCESS_SPEND_OR_ACTIVATION",
     "CONDITIONAL_HOLD": "OPTION_REMAINS_INACTIVE_UNTIL_ALL_EVIDENCE_GATES_PASS",
-    "DROP": "REMOVED_FROM_ACTIVE_CANDIDATE_UNIVERSE_UNTIL_REENTRY_GATE",
+    "PENDING_PROVIDER_RESPONSE": "INACTIVE_NON_TERMINAL_UNTIL_OFFICIAL_PROVIDER_RESPONSE_AND_DECISION_EVIDENCE",
+    "DROP": "TERMINAL_DISPOSITION_REQUIRING_OFFICIAL_PROVIDER_RESPONSE_NEW_DECISION_PACKET_KPMO_REVIEW_AND_FOUNDER_APPROVAL",
     "productDecisionPrecedence": "PRODUCT_DECISION_NARROWS_BUT_NEVER_RELAXES_PROVIDER_HOLD"
   },
   "currentSoldTransactionFeed": {
@@ -62,13 +63,14 @@
   },
   "summary": {
     "conditionalHoldCount": 3,
-    "dropCount": 5,
+    "pendingProviderResponseCount": 5,
+    "dropCount": 0,
     "conditionalHoldProductIds": [
       "GEMRATE_DEVELOPER_TIER",
       "PSA_PREMIUM_API",
       "CLASSIC_COM_LICENSED_BUNDLE_3"
     ],
-    "dropProductIds": [
+    "pendingProviderResponseProductIds": [
       "PSA_ENTERPRISE_API",
       "CGC_DEALER_PORTAL_API",
       "ALT_FNDATA",
@@ -179,10 +181,10 @@
       "providerId": "PSA",
       "productName": "PSA Enterprise API",
       "priority": 2,
-      "decision": "DROP",
+      "decision": "PENDING_PROVIDER_RESPONSE",
       "role": "CERTIFICATION_VERIFICATION_HELPER",
       "fit": "FUNCTIONALLY_SIMILAR_TO_PSA_PREMIUM_WITH_HIGHER_QUOTA",
-      "dropReason": "COST_EFFICIENCY_INSUFFICIENT_AT_CURRENT_SCALE",
+      "pendingReason": "COST_EFFICIENCY_CURRENTLY_LOW_BUT_TERMINAL_DECISION_REQUIRES_PROVIDER_RESPONSE",
       "currentSoldCapability": {
         "providesTransactionHistory": false,
         "potentiallyRelevant": false,
@@ -208,16 +210,19 @@
         "productionAllowed": false
       },
       "evidenceGates": [],
-      "reentryPolicy": {
-        "requiresNewOfficialProductProposal": true,
-        "requiresMaterialChange": true,
+      "terminalDispositionPolicy": {
+        "requiresOfficialProviderResponse": true,
+        "requiresResponseEvidenceReference": true,
+        "requiresResolvedDecisionEvidence": true,
         "acceptedMaterialChanges": [
           "PRICE",
           "QUOTA",
           "RIGHTS",
           "FORECAST_DEMAND"
         ],
-        "requiresNewDecisionPacket": true
+        "requiresNewDecisionPacket": true,
+        "requiresKpmoReview": true,
+        "requiresFounderApproval": true
       }
     },
     {
@@ -277,10 +282,10 @@
       "providerId": "CGC",
       "productName": "CGC Dealer Portal API",
       "priority": 4,
-      "decision": "DROP",
+      "decision": "PENDING_PROVIDER_RESPONSE",
       "role": "UNVERIFIED_CERTIFICATION_OR_GRADING_CANDIDATE",
       "fit": "SEMANTICALLY_POSSIBLE_BUT_UNVERIFIED",
-      "dropReason": "PRODUCT_PRICE_RIGHTS_AND_FIELDS_UNCONFIRMED",
+      "pendingReason": "PRODUCT_PRICE_RIGHTS_AND_FIELDS_UNCONFIRMED_PENDING_PROVIDER_RESPONSE",
       "currentSoldCapability": {
         "providesTransactionHistory": false,
         "potentiallyRelevant": false,
@@ -306,16 +311,19 @@
         "productionAllowed": false
       },
       "evidenceGates": [],
-      "reentryPolicy": {
-        "requiresNewOfficialProductProposal": true,
-        "requiresMaterialChange": true,
+      "terminalDispositionPolicy": {
+        "requiresOfficialProviderResponse": true,
+        "requiresResponseEvidenceReference": true,
+        "requiresResolvedDecisionEvidence": true,
         "acceptedMaterialChanges": [
           "PRODUCT",
           "SCHEMA",
           "PRICE",
           "RIGHTS"
         ],
-        "requiresNewDecisionPacket": true
+        "requiresNewDecisionPacket": true,
+        "requiresKpmoReview": true,
+        "requiresFounderApproval": true
       }
     },
     {
@@ -323,10 +331,10 @@
       "providerId": "ALT_FNDATA",
       "productName": "ALT/FNDATA",
       "priority": 5,
-      "decision": "DROP",
+      "decision": "PENDING_PROVIDER_RESPONSE",
       "role": "UNVERIFIED_MARKET_DATA_CANDIDATE",
       "fit": "UNVERIFIED",
-      "dropReason": "NO_VERIFIABLE_PRODUCT_SCHEMA_PRICE_OR_RIGHTS_RESPONSE",
+      "pendingReason": "NO_VERIFIABLE_PRODUCT_SCHEMA_PRICE_OR_RIGHTS_RESPONSE_YET",
       "currentSoldCapability": {
         "providesTransactionHistory": false,
         "potentiallyRelevant": false,
@@ -352,16 +360,19 @@
         "productionAllowed": false
       },
       "evidenceGates": [],
-      "reentryPolicy": {
-        "requiresNewOfficialProductProposal": true,
-        "requiresMaterialChange": true,
+      "terminalDispositionPolicy": {
+        "requiresOfficialProviderResponse": true,
+        "requiresResponseEvidenceReference": true,
+        "requiresResolvedDecisionEvidence": true,
         "acceptedMaterialChanges": [
           "PRODUCT",
           "SCHEMA",
           "PRICE",
           "RIGHTS"
         ],
-        "requiresNewDecisionPacket": true
+        "requiresNewDecisionPacket": true,
+        "requiresKpmoReview": true,
+        "requiresFounderApproval": true
       }
     },
     {
@@ -369,10 +380,10 @@
       "providerId": "LIVEART",
       "productName": "LiveArt Pilot",
       "priority": 6,
-      "decision": "DROP",
+      "decision": "PENDING_PROVIDER_RESPONSE",
       "role": "ART_AUCTION_DATA_CANDIDATE",
       "fit": "POTENTIALLY_RELEVANT_BUT_UNVERIFIED",
-      "dropReason": "PILOT_PRICE_RIGHTS_AND_PRODUCT_TERMS_UNCONFIRMED",
+      "pendingReason": "PILOT_PRICE_RIGHTS_AND_PRODUCT_TERMS_UNCONFIRMED_PENDING_PROVIDER_RESPONSE",
       "currentSoldCapability": {
         "providesTransactionHistory": false,
         "potentiallyRelevant": true,
@@ -398,9 +409,10 @@
         "productionAllowed": false
       },
       "evidenceGates": [],
-      "reentryPolicy": {
-        "requiresNewOfficialProductProposal": true,
-        "requiresMaterialChange": true,
+      "terminalDispositionPolicy": {
+        "requiresOfficialProviderResponse": true,
+        "requiresResponseEvidenceReference": true,
+        "requiresResolvedDecisionEvidence": true,
         "acceptedMaterialChanges": [
           "PRODUCT",
           "PILOT",
@@ -408,7 +420,9 @@
           "PRICE",
           "RIGHTS"
         ],
-        "requiresNewDecisionPacket": true
+        "requiresNewDecisionPacket": true,
+        "requiresKpmoReview": true,
+        "requiresFounderApproval": true
       }
     },
     {
@@ -416,10 +430,10 @@
       "providerId": "HAGERTY",
       "productName": "Hagerty",
       "priority": 7,
-      "decision": "DROP",
+      "decision": "PENDING_PROVIDER_RESPONSE",
       "role": "UNSPECIFIED_COLLECTOR_CAR_CANDIDATE",
       "fit": "UNVERIFIED",
-      "dropReason": "NO_PRODUCT_API_PRICE_OR_RIGHTS_PROPOSAL",
+      "pendingReason": "NO_PRODUCT_API_PRICE_OR_RIGHTS_PROPOSAL_YET",
       "currentSoldCapability": {
         "providesTransactionHistory": false,
         "potentiallyRelevant": false,
@@ -445,9 +459,10 @@
         "productionAllowed": false
       },
       "evidenceGates": [],
-      "reentryPolicy": {
-        "requiresNewOfficialProductProposal": true,
-        "requiresMaterialChange": true,
+      "terminalDispositionPolicy": {
+        "requiresOfficialProviderResponse": true,
+        "requiresResponseEvidenceReference": true,
+        "requiresResolvedDecisionEvidence": true,
         "acceptedMaterialChanges": [
           "PRODUCT",
           "API",
@@ -455,7 +470,9 @@
           "PRICE",
           "RIGHTS"
         ],
-        "requiresNewDecisionPacket": true
+        "requiresNewDecisionPacket": true,
+        "requiresKpmoReview": true,
+        "requiresFounderApproval": true
       }
     }
   ],
