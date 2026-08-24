@@ -4,6 +4,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   CONTRACT_PATH,
+  LIVE_MAIN_GUARD_STEP_NAME,
   REGISTRY_PATH,
   analyzeWorkflow,
   buildWorkflowInventory,
@@ -269,6 +270,9 @@ export function validateRepository(root = process.cwd()) {
   assert(contract.truth_boundary.g5 === 'EXPLICIT_APPROVAL_REQUIRED', 'G5_HOLD');
   assert(contract.truth_boundary.issue_974_closure_eligible_before_trusted_attestor === false, 'ISSUE_974_NOT_ELIGIBLE_BEFORE_ATTESTOR');
   assert(registry.issue === 974 && registry.status === 'EXTERNAL_APPROVAL_REQUIRED', 'REGISTRY_REMAINS_OPEN');
+  assert(registry.control_truth === 'REPOSITORY_ENVIRONMENT_LIVE_MAIN_AND_SECRET_LIFETIME_CONTROLS_IMPLEMENTED_EXTERNAL_POLICY_NOT_VERIFIED', 'REGISTRY_CONTROL_TRUTH');
+  assert(registry.repository_privileged_execution_policy?.required_live_main_guard_step_name === LIVE_MAIN_GUARD_STEP_NAME, 'REGISTRY_LIVE_MAIN_GUARD_POLICY');
+  assert(registry.repository_privileged_execution_policy?.provider_secret_scope === 'STEP_ONLY_AFTER_LIVE_MAIN_GUARD', 'REGISTRY_PROVIDER_SECRET_SCOPE_POLICY');
   assert(registry.inventory_evidence?.evidence_semantics === 'HISTORICAL_REGISTRATION_BASELINE_NOT_LIVE_EXTERNAL_POLICY_READBACK', 'REGISTRY_BASELINE_TIME_SEMANTICS');
   assert(registry.internal_readback_control?.contract === CONTRACT_PATH, 'REGISTRY_READBACK_CONTRACT_POINTER');
   assert(registry.internal_readback_control?.workflow === WORKFLOW_PATH, 'REGISTRY_READBACK_WORKFLOW_POINTER');
@@ -298,11 +302,16 @@ export function validateRepository(root = process.cwd()) {
   assert(collector.includes("stored_repository_or_environment_secret_activated: false"), 'STORED_SECRET_FALSE_RECEIPT');
   assert(collector.includes("provider_credential_activated: false"), 'PROVIDER_CREDENTIAL_FALSE_RECEIPT');
   assert(testSource.includes('selected non-main ref and stale main SHA are independently rejected'), 'NEGATIVE_REF_TEST_MISSING');
+  assert(testSource.includes('all 15 privileged jobs reject unreadable, stale, and non-main live-main guards'), 'PRIVILEGED_LIVE_MAIN_MUTATION_TEST_MISSING');
+  assert(testSource.includes('all 15 privileged jobs reject secret scope and guard order mutations'), 'PRIVILEGED_SECRET_LIFETIME_MUTATION_TEST_MISSING');
   assert(testSource.includes('external-proof mode rejects forged state, fixture scope, stale digest, stale SHA, and non-exclusive credentials'), 'EXTERNAL_PROOF_MUTATION_TEST_MISSING');
   assert(docs.includes('BLOCKED_EXTERNAL_CONTROL_PLANE_NOT_ESTABLISHED'), 'DOC_CURRENT_STATE');
   assert(docs.includes('#881'), 'DOC_PARENT_BOUNDARY');
   assert(docs.includes('EPHEMERAL_GITHUB_TOKEN_METADATA_READ'), 'DOC_EPHEMERAL_TOKEN_SEMANTICS');
   assert(docs.includes('external_proof_validator_fail_closed_until_trusted_attestor'), 'DOC_EXTERNAL_ATTESTOR_FAIL_CLOSED');
+  assert(docs.includes('## Repository live-main and credential-lifetime controls'), 'DOC_PRIVILEGED_EXECUTION_CONTROL');
+  assert(docs.includes('15/15 guards') && docs.includes('zero workflow-scope bindings') && docs.includes('zero job-scope bindings'), 'DOC_PRIVILEGED_EXECUTION_COUNTS');
+  assert(docs.includes('They therefore do not close #974.'), 'DOC_ISSUE_974_BOUNDARY');
 
   const workflowMutations = [
     ['pull_request_target', workflow.replace('pull_request:', 'pull_request_target:')],
@@ -350,6 +359,37 @@ export function validateRepository(root = process.cwd()) {
     assert(validateRequiredEnvironmentBindings(mutatedInventory, mutatedRegistry).length > 0, `REPOSITORY_BINDING_MUTATION_ACCEPTED:${id}`);
   }
 
+  const privilegedExecutionMutationCases = [
+    ['live_guard_removed', (job) => { job.live_main_guard.count = 0; }],
+    ['live_guard_api_unreadable_fail_open', (job) => { job.live_main_guard.contract_valid = false; }],
+    ['live_guard_stale_sha_fail_open', (job) => { job.live_main_guard.contract_valid = false; }],
+    ['live_guard_non_main_fail_open', (job) => { job.live_main_guard.contract_valid = false; }],
+    ['github_token_scope_expanded', (job) => { job.live_main_guard.github_token_step_count = 2; }],
+    ['github_token_job_permission_override', (job) => { job.job_permissions_override = true; }],
+    ['guard_after_provider_secret', (job) => { job.live_main_guard.before_all_provider_secret_steps = false; }],
+    ['workflow_scope_provider_secret', (job) => { job.workflow_scope_secret_names = ['MUTATED_SECRET']; }],
+    ['job_scope_provider_secret', (job) => { job.job_scope_secret_names = ['MUTATED_SECRET']; }],
+    ['provider_secret_not_step_scoped', (job) => { job.provider_secrets_step_scoped = false; }],
+    ['secret_step_name_drift', (job) => { job.step_secret_bindings[0].step = 'Mutated broad secret step'; }]
+  ];
+  let privilegedExecutionMutationsRejected = 0;
+  for (let laneIndex = 0; laneIndex < inventory.lanes.length; laneIndex += 1) {
+    for (let jobIndex = 0; jobIndex < inventory.lanes[laneIndex].secret_bearing_jobs.length; jobIndex += 1) {
+      for (const [id, mutate] of privilegedExecutionMutationCases) {
+        const mutatedInventory = structuredClone(inventory);
+        const job = mutatedInventory.lanes[laneIndex].secret_bearing_jobs[jobIndex];
+        mutate(job);
+        assert(
+          validateRequiredEnvironmentBindings(mutatedInventory, registry).length > 0,
+          `PRIVILEGED_EXECUTION_MUTATION_ACCEPTED:${inventory.lanes[laneIndex].workflow}#${job.job}:${id}`
+        );
+        privilegedExecutionMutationsRejected += 1;
+      }
+    }
+  }
+
+  const secretBearingJobs = inventory.lanes.flatMap((lane) => lane.secret_bearing_jobs);
+
   return {
     suite: 'KIDULTS_GITHUB_TRUSTED_REF_ENVIRONMENT_READBACK_VALIDATION_V1',
     state: 'VERIFIED_PASS',
@@ -366,6 +406,16 @@ export function validateRepository(root = process.cwd()) {
     repository_main_guard_lanes: repositoryGuardedLanes.length,
     required_environment_count: registry.required_environment_count,
     repository_binding_mutations_rejected: bindingMutations.length,
+    privileged_execution_mutations_rejected: privilegedExecutionMutationsRejected,
+    live_main_sha_guarded_secret_bearing_jobs: secretBearingJobs.filter((job) => (
+      job.live_main_guard.count === 1
+      && job.live_main_guard.contract_valid
+      && job.live_main_guard.before_all_provider_secret_steps
+    )).length,
+    workflow_scope_provider_secret_jobs: secretBearingJobs.filter((job) => job.workflow_scope_secret_names.length > 0).length,
+    job_scope_provider_secret_jobs: secretBearingJobs.filter((job) => job.job_scope_secret_names.length > 0).length,
+    step_scoped_provider_secret_jobs: secretBearingJobs.filter((job) => job.provider_secrets_step_scoped).length,
+    privileged_secret_steps: secretBearingJobs.reduce((count, job) => count + job.step_secret_bindings.length, 0),
     workflow_mutations_rejected: workflowMutations.length,
     analyzer_mutations_detected: analyzerMutations.length,
     live_github_requests_executed_by_validator: 0,

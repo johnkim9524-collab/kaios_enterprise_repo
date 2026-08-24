@@ -14,7 +14,7 @@ portal=(root/'apps/kidults-enterprise-staging/public/portal-r001/index.html').re
 errors=[]
 need=lambda c,m: errors.append(m) if not c else None
 need(contract['id']=='kidults-digitalocean-staging-portal-deploy-v1','id')
-need(contract['version']=='1.3.0','deploy contract version')
+need(contract['version']=='1.4.0','deploy contract version')
 need(contract['issue']==921,'issue')
 need(contract['environment']=='STAGING','env')
 need(contract['target']['hostname']=='ih-staging-01','hostname')
@@ -35,7 +35,13 @@ need(contract['deployment']['run_attempt_scoped_release_id'] is True,'run-attemp
 need(contract['deployment']['local_contract_proof_is_remote_evidence'] is False,'local proof must not be remote evidence')
 need(contract['deployment']['exact_main_ref_required_before_validation'] is True,'exact main required before validation')
 need(contract['deployment']['exact_main_ref_required_before_secret_consumption'] is True,'exact main required before secret consumption')
+need(contract['deployment']['live_main_branch_sha_equality_required_before_secret_consumption'] is True,'live main SHA equality required before secret consumption')
+need(contract['deployment']['live_main_read_uses_builtin_github_token_contents_read'] is True,'live main read must use built-in contents-read token')
 need(contract['deployment']['ssh_private_key_step_scoped'] is True,'SSH private key must be step scoped')
+need(contract['deployment']['host_key_scan_and_fingerprint_secret_free'] is True,'host-key scan must be secret free')
+need(contract['deployment']['ssh_materialization_separate_after_host_verification'] is True,'SSH materialization must follow host verification')
+need(contract['deployment']['ssh_key_cleanup_immediately_after_remote_receipts'] is True,'SSH key cleanup must immediately follow remote receipts')
+need(contract['deployment']['ssh_key_cleanup_before_artifact_upload'] is True,'SSH key cleanup must precede artifact upload')
 need(contract['deployment']['non_main_remote_mutation_allowed'] is False,'non-main remote mutation must be forbidden')
 need(contract['receipt_contract']=='coordination/kidults/runtime/digitalocean-staging-portal-receipt-contract-v1.json','receipt contract binding')
 need(contract['production']=='HOLD','production hold')
@@ -115,15 +121,25 @@ validate_guard='''      - name: Reject non-main source before privileged validat
             push|workflow_dispatch) ;;
             *) exit 64 ;;
           esac'''
-deploy_guard='''      - name: Enforce exact main before any SSH secret or remote access
+deploy_guard="""      - name: Verify live main before provider credential resolution
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/main"
-          case "$GITHUB_EVENT_NAME" in
-            push|workflow_dispatch) ;;
-            *) exit 64 ;;
-          esac'''
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \\
+              --connect-timeout 10 \\
+              --max-time 30 \\
+              --header "Authorization: Bearer $GITHUB_TOKEN" \\
+              --header "Accept: application/vnd.github+json" \\
+              --header "X-GitHub-Api-Version: 2022-11-28" \\
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+"""
 deploy_job_guard="if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')"
 need(validate_guard in deploy_workflow,'validate exact-main pre-privileged guard')
 need(deploy_guard in deploy_workflow,'deploy exact-main pre-secret guard')
@@ -133,10 +149,35 @@ if deploy_guard in deploy_workflow:
     guard_index=deploy_workflow.index(deploy_guard)
     for marker in ['${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}','ssh-keyscan -t ed25519','scp "${SSH_OPTS[@]}"']:
         need(marker in deploy_workflow and guard_index < deploy_workflow.index(marker),f'exact-main guard must precede {marker}')
-materialize_marker='''      - name: Materialize SSH identity and pin host
+host_scan_marker='''      - name: Scan and verify STAGING host key without SSH secret
+        shell: bash'''
+materialize_marker='''      - name: Materialize minimal SSH identity
         env:
           SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}'''
+cleanup_marker='''      - name: Remove SSH material before receipt validation or upload
+        if: always()
+        shell: bash'''
+need(host_scan_marker in deploy_workflow,'host scan must be a separate secret-free step')
 need(materialize_marker in deploy_workflow,'SSH secret must be scoped to materialization step')
+need(cleanup_marker in deploy_workflow,'SSH cleanup must be unconditional')
+if host_scan_marker in deploy_workflow and materialize_marker in deploy_workflow:
+    host_index=deploy_workflow.index(host_scan_marker)
+    materialize_index=deploy_workflow.index(materialize_marker)
+    host_block=deploy_workflow[host_index:materialize_index]
+    need('${{ secrets.' not in host_block and 'SSH_PRIVATE_KEY_B64' not in host_block,'host scan step must be secret free')
+    next_step=deploy_workflow.find('\n      - ',materialize_index+len(materialize_marker))
+    materialize_block=deploy_workflow[materialize_index:next_step if next_step >= 0 else len(deploy_workflow)]
+    need('ssh-keyscan' not in materialize_block,'host scan and key materialization must remain separate')
+    need('unset SSH_PRIVATE_KEY_B64' in materialize_block,'materialization step must unset decoded secret input')
+if cleanup_marker in deploy_workflow:
+    collect_index=deploy_workflow.find('      - name: Collect deployment-scoped remote receipts and localhost body')
+    cleanup_index=deploy_workflow.index(cleanup_marker)
+    validator_index=deploy_workflow.find('      - name: Validate exact remote receipt bundle')
+    upload_index=deploy_workflow.find('      - uses: actions/upload-artifact@',cleanup_index)
+    need(-1 not in [collect_index,validator_index,upload_index] and collect_index < cleanup_index < validator_index < upload_index,'SSH cleanup must immediately follow remote receipt collection and precede validation/upload')
+    cleanup_block=deploy_workflow[cleanup_index:validator_index]
+    for marker in ['"$RUNNER_TEMP/ssh/id_ed25519"','"$RUNNER_TEMP/ssh/id_ed25519.normalized"','"$RUNNER_TEMP/ssh/known_hosts"']:
+        need(marker in cleanup_block,f'SSH cleanup marker {marker}')
 need('RELEASE_ID="portal-r001-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"' in deploy_workflow,'release id must include workflow run attempt')
 for marker in ["'receipt_type':'GITHUB_RUNNER_EXECUTION'","'state':'CAPTURED_NOT_ATTESTED'","'workflow_ref':os.environ['GITHUB_WORKFLOW_REF']","'workflow_sha':os.environ['GITHUB_WORKFLOW_SHA']","'job_name':os.environ['GITHUB_JOB']","'successful_workflow_attested':False",'--expected-workflow-ref "$GITHUB_WORKFLOW_REF"','--expected-workflow-sha "$GITHUB_WORKFLOW_SHA"','--expected-job-name "$GITHUB_JOB"']:
     need(marker in deploy_workflow, f'workflow runner binding marker {marker}')

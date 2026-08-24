@@ -8,6 +8,7 @@ export const CONTRACT_PATH = 'coordination/kidults/kpmo/github-trusted-ref-envir
 export const REGISTRY_PATH = 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json';
 const DEFAULT_REPOSITORY = 'johnkim9524-collab/kaios_enterprise_repo';
 const DEFAULT_BRANCH = 'main';
+export const LIVE_MAIN_GUARD_STEP_NAME = 'Verify live main before provider credential resolution';
 
 const digest = (value) => `sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
 const uniqueSorted = (values) => [...new Set(values)].sort();
@@ -131,12 +132,70 @@ function jobEnvironment(block) {
   return { declared: false, name: null, static: false };
 }
 
+function workflowPermissionsContentsReadOnly(workflowScope) {
+  const block = workflowScope.match(/^permissions:\s*\n((?: {2}[^\n]+(?:\n|$))*)/m)?.[1] || '';
+  const entries = block.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  return entries.length === 1 && entries[0] === 'contents: read';
+}
+
+function jobSteps(block) {
+  const lines = block.split(/\r?\n/);
+  const stepsIndex = lines.findIndex((line) => /^ {4}steps\s*:\s*$/.test(line));
+  if (stepsIndex < 0) return { steps_index: -1, steps: [] };
+  const headers = [];
+  for (let index = stepsIndex + 1; index < lines.length; index += 1) {
+    const match = lines[index].match(/^ {6}-\s+(name|uses)\s*:\s*(.*?)\s*$/);
+    if (match) headers.push({ line: index, kind: match[1], value: scalarValue(match[2]) });
+  }
+  const steps = headers.map((header, position) => {
+    const end = position + 1 < headers.length ? headers[position + 1].line : lines.length;
+    const text = lines.slice(header.line, end).join('\n');
+    const secrets = secretMetadata(text);
+    return {
+      index: position,
+      kind: header.kind,
+      name: header.kind === 'name' ? header.value : null,
+      uses: header.kind === 'uses' ? header.value : null,
+      text,
+      secret_names: secrets.secret_names,
+      secret_bearing: secrets.secret_bearing,
+      github_token_context: /\$\{\{\s*github\.token\s*\}\}/.test(text)
+    };
+  });
+  return { steps_index: stepsIndex, steps };
+}
+
+function liveMainGuardContract(step) {
+  if (!step || step.name !== LIVE_MAIN_GUARD_STEP_NAME) return false;
+  const required = [
+    'GITHUB_TOKEN: ${{ github.token }}',
+    'set -euo pipefail',
+    'test "$GITHUB_REF" = "refs/heads/main"',
+    'curl --fail-with-body --silent --show-error',
+    '--connect-timeout 10',
+    '--max-time 30',
+    '--header "Authorization: Bearer $GITHUB_TOKEN"',
+    '--header "Accept: application/vnd.github+json"',
+    '--header "X-GitHub-Api-Version: 2022-11-28"',
+    '"$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main"',
+    '.get("commit",{}).get("sha","")',
+    're.fullmatch(r"[0-9a-f]{40}",sha)',
+    'test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"'
+  ];
+  return required.every((marker) => step.text.includes(marker))
+    && (step.text.match(/\$\{\{\s*github\.token\s*\}\}/g) || []).length === 1
+    && !secretMetadata(step.text).secret_bearing
+    && !/continue-on-error\s*:\s*true/i.test(step.text)
+    && !/\|\|\s*true|continue\s*$/m.test(step.text);
+}
+
 export function analyzeWorkflow(text, workflow = 'fixture.yml') {
   const active = activeWorkflowText(text);
   const workflowDispatch = /^\s*workflow_dispatch\s*:/mi.test(active);
   const jobsStart = active.search(/^jobs\s*:\s*$/m);
   const workflowScope = jobsStart >= 0 ? active.slice(0, jobsStart) : active;
   const workflowSecrets = secretMetadata(workflowScope);
+  const contentsReadOnly = workflowPermissionsContentsReadOnly(workflowScope);
   const lines = active.split(/\r?\n/);
   const jobHeaders = [];
   let insideJobs = false;
@@ -156,6 +215,15 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
     const nextLine = position + 1 < jobHeaders.length ? jobHeaders[position + 1].line : lines.length;
     const block = lines.slice(header.line, nextLine).join('\n');
     const jobSecrets = secretMetadata(block);
+    const parsedSteps = jobSteps(block);
+    const jobPreamble = parsedSteps.steps_index >= 0
+      ? block.split(/\r?\n/).slice(0, parsedSteps.steps_index).join('\n')
+      : block;
+    const jobScopeSecrets = secretMetadata(jobPreamble);
+    const jobPermissionsOverride = /^ {4}permissions\s*:/m.test(jobPreamble);
+    const providerSecretSteps = parsedSteps.steps.filter((step) => step.secret_bearing);
+    const liveMainGuardSteps = parsedSteps.steps.filter((step) => step.name === LIVE_MAIN_GUARD_STEP_NAME);
+    const liveMainGuard = liveMainGuardSteps.length === 1 ? liveMainGuardSteps[0] : null;
     const secretNames = uniqueSorted([...workflowSecrets.secret_names, ...jobSecrets.secret_names]);
     const dynamicSecretContext = workflowSecrets.dynamic_secret_context || jobSecrets.dynamic_secret_context;
     const inheritedReusableSecrets = workflowSecrets.inherited_reusable_secrets || jobSecrets.inherited_reusable_secrets;
@@ -170,7 +238,31 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
       dynamic_secret_context: dynamicSecretContext,
       inherited_reusable_secrets: inheritedReusableSecrets,
       environment,
-      explicit_main_ref_guard: explicitMainRefGuard
+      explicit_main_ref_guard: explicitMainRefGuard,
+      workflow_permissions_contents_read_only: contentsReadOnly,
+      job_permissions_override: jobPermissionsOverride,
+      workflow_scope_secret_names: workflowSecrets.secret_names,
+      job_scope_secret_names: jobScopeSecrets.secret_names,
+      step_secret_bindings: providerSecretSteps.map((step) => ({
+        step: step.name,
+        index: step.index,
+        secret_names: step.secret_names
+      })),
+      provider_secrets_step_scoped: workflowSecrets.secret_bearing === false
+        && jobScopeSecrets.secret_bearing === false
+        && providerSecretSteps.length > 0
+        && JSON.stringify(uniqueSorted(providerSecretSteps.flatMap((step) => step.secret_names))) === JSON.stringify(secretNames),
+      live_main_guard: {
+        count: liveMainGuardSteps.length,
+        step_index: liveMainGuard?.index ?? null,
+        contract_valid: liveMainGuardContract(liveMainGuard),
+        github_token_step_count: parsedSteps.steps.filter((step) => step.github_token_context).length,
+        before_all_provider_secret_steps: Boolean(
+          liveMainGuard
+          && providerSecretSteps.length > 0
+          && providerSecretSteps.every((step) => liveMainGuard.index < step.index)
+        )
+      }
     };
   });
 
@@ -182,7 +274,20 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
       dynamic_secret_context: workflowSecrets.dynamic_secret_context,
       inherited_reusable_secrets: workflowSecrets.inherited_reusable_secrets,
       environment: { declared: false, name: null, static: false },
-      explicit_main_ref_guard: false
+      explicit_main_ref_guard: false,
+      workflow_permissions_contents_read_only: contentsReadOnly,
+      job_permissions_override: false,
+      workflow_scope_secret_names: workflowSecrets.secret_names,
+      job_scope_secret_names: [],
+      step_secret_bindings: [],
+      provider_secrets_step_scoped: false,
+      live_main_guard: {
+        count: 0,
+        step_index: null,
+        contract_valid: false,
+        github_token_step_count: 0,
+        before_all_provider_secret_steps: false
+      }
     });
   }
 
@@ -224,8 +329,17 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
     ? registry.required_environment_bindings
     : [];
   const expectedByKey = new Map();
+  const privilegedPolicy = registry?.repository_privileged_execution_policy || {};
 
   require(bindings.length === registry?.registered_count, 'REQUIRED_BINDING_COUNT');
+  require(privilegedPolicy.required_live_main_guard_step_name === LIVE_MAIN_GUARD_STEP_NAME, 'LIVE_MAIN_GUARD_POLICY_NAME');
+  require(privilegedPolicy.required_branch_endpoint === '$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main', 'LIVE_MAIN_BRANCH_ENDPOINT_POLICY');
+  require(privilegedPolicy.guard_token_context === '${{ github.token }}', 'LIVE_MAIN_GUARD_TOKEN_CONTEXT_POLICY');
+  require(privilegedPolicy.guard_token_permission === 'contents:read', 'LIVE_MAIN_GUARD_TOKEN_PERMISSION_POLICY');
+  require(privilegedPolicy.provider_secret_scope === 'STEP_ONLY_AFTER_LIVE_MAIN_GUARD', 'PROVIDER_SECRET_SCOPE_POLICY');
+  require(privilegedPolicy.api_unreadable === 'FAIL_CLOSED', 'LIVE_MAIN_API_UNREADABLE_POLICY');
+  require(privilegedPolicy.stale_main_sha === 'FAIL_CLOSED', 'STALE_MAIN_SHA_POLICY');
+  require(privilegedPolicy.non_main_ref === 'FAIL_CLOSED', 'NON_MAIN_REF_POLICY');
   for (const binding of bindings) {
     const key = bindingKey(binding?.workflow, binding?.job);
     require(!expectedByKey.has(key), `DUPLICATE_REQUIRED_BINDING:${key}`);
@@ -233,6 +347,13 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
     require((registry?.registered_workflows || []).includes(binding?.workflow), `UNREGISTERED_BINDING_WORKFLOW:${key}`);
     require(/^[a-z0-9][a-z0-9-]{2,62}$/.test(String(binding?.environment || '')), `INVALID_REQUIRED_ENVIRONMENT:${key}`);
     require(/^sha256:[0-9a-f]{64}$/.test(String(binding?.required_secret_name_digest || '')), `INVALID_REQUIRED_SECRET_DIGEST:${key}`);
+    require(
+      Array.isArray(binding?.required_secret_step_names)
+      && binding.required_secret_step_names.length > 0
+      && binding.required_secret_step_names.every((name) => typeof name === 'string' && name.length > 0)
+      && new Set(binding.required_secret_step_names).size === binding.required_secret_step_names.length,
+      `INVALID_REQUIRED_SECRET_STEP_NAMES:${key}`
+    );
   }
 
   const observedKeys = [];
@@ -248,6 +369,20 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
       require(job.environment.static, `ENVIRONMENT_NOT_STATIC:${key}`);
       require(job.environment.name === expected.environment, `ENVIRONMENT_NAME_MISMATCH:${key}`);
       require(job.explicit_main_ref_guard, `EXACT_MAIN_GUARD_MISSING:${key}`);
+      require(job.workflow_permissions_contents_read_only, `GITHUB_TOKEN_PERMISSION_NOT_CONTENTS_READ_ONLY:${key}`);
+      require(job.job_permissions_override === false, `GITHUB_TOKEN_JOB_PERMISSION_OVERRIDE:${key}`);
+      require(job.live_main_guard?.count === 1, `LIVE_MAIN_GUARD_COUNT:${key}`);
+      require(job.live_main_guard?.contract_valid === true, `LIVE_MAIN_GUARD_CONTRACT:${key}`);
+      require(job.live_main_guard?.github_token_step_count === 1, `GITHUB_TOKEN_SCOPE_COUNT:${key}`);
+      require(job.live_main_guard?.before_all_provider_secret_steps === true, `LIVE_MAIN_GUARD_ORDER:${key}`);
+      require(job.workflow_scope_secret_names.length === 0, `WORKFLOW_SCOPE_PROVIDER_SECRET:${key}`);
+      require(job.job_scope_secret_names.length === 0, `JOB_SCOPE_PROVIDER_SECRET:${key}`);
+      require(job.provider_secrets_step_scoped === true, `PROVIDER_SECRET_NOT_STEP_SCOPED:${key}`);
+      require(
+        JSON.stringify(job.step_secret_bindings.map((item) => item.step).sort())
+          === JSON.stringify([...expected.required_secret_step_names].sort()),
+        `REQUIRED_SECRET_STEP_MISMATCH:${key}`
+      );
       require(!job.dynamic_secret_context, `DYNAMIC_SECRET_CONTEXT:${key}`);
       require(!job.inherited_reusable_secrets, `INHERITED_SECRET_CONTEXT:${key}`);
       require(digest(uniqueSorted(job.secret_names).join('\n')) === expected.required_secret_name_digest, `REQUIRED_SECRET_DIGEST_MISMATCH:${key}`);
@@ -261,6 +396,19 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
   require(observedEnvironments.size === registry?.required_environment_count, 'REQUIRED_ENVIRONMENT_COUNT');
   require(registry?.repository_binding_state?.environment_bound_secret_bearing_jobs === actualKeys.length, 'REGISTRY_ENVIRONMENT_BOUND_COUNT');
   require(registry?.repository_binding_state?.exact_main_guarded_secret_bearing_jobs === actualKeys.length, 'REGISTRY_EXACT_MAIN_GUARD_COUNT');
+  require(registry?.repository_binding_state?.live_main_sha_guarded_secret_bearing_jobs === actualKeys.length, 'REGISTRY_LIVE_MAIN_SHA_GUARD_COUNT');
+  require(registry?.repository_binding_state?.step_scoped_secret_bearing_jobs === actualKeys.length, 'REGISTRY_STEP_SCOPED_SECRET_JOB_COUNT');
+  require(
+    registry?.repository_binding_state?.privileged_secret_steps
+      === (inventory?.lanes || []).reduce(
+        (count, lane) => count + lane.secret_bearing_jobs.reduce(
+          (jobCount, job) => jobCount + job.step_secret_bindings.length,
+          0
+        ),
+        0
+      ),
+    'REGISTRY_PRIVILEGED_SECRET_STEP_COUNT'
+  );
   require(registry?.repository_binding_state?.external_environment_policy_verified === false, 'EXTERNAL_ENVIRONMENT_POLICY_TRUTH');
   require(registry?.repository_binding_state?.environment_secret_scope_verified === false, 'ENVIRONMENT_SECRET_SCOPE_TRUTH');
   require(registry?.repository_binding_state?.trusted_execution_attestation_verified === false, 'TRUSTED_EXECUTION_ATTESTATION_TRUTH');
