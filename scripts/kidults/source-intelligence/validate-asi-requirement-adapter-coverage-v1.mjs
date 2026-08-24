@@ -183,6 +183,11 @@ assert(outputManifest.state === 'AUTHORITATIVE_192_REQUIREMENT_TO_CURRENT_ADAPTE
 assert(same(outputManifest.platform_principles, principles), 'OUTPUT_MANIFEST_PRINCIPLES');
 assert(outputManifest.source_sha === artifactBinding.head_sha && outputManifest.consumer_sha === artifactBinding.consumer_sha, 'OUTPUT_MANIFEST_SHA_BINDING');
 assert(outputManifest.input_bindings?.upstream_artifact?.artifact_id === artifactBinding.artifact_id && outputManifest.input_bindings?.upstream_artifact?.workflow_run_id === artifactBinding.workflow_run_id, 'OUTPUT_MANIFEST_ARTIFACT_BINDING');
+assert(outputManifest.input_bindings?.upstream_artifact?.expected_source_sha === artifactBinding.expected_source_sha &&
+  outputManifest.input_bindings?.upstream_artifact?.expected_head_branch === artifactBinding.expected_head_branch &&
+  outputManifest.input_bindings?.upstream_artifact?.validation_scope === artifactBinding.validation_scope &&
+  outputManifest.input_bindings?.upstream_artifact?.production_eligible === artifactBinding.production_eligible,
+  'OUTPUT_MANIFEST_ARTIFACT_SCOPE_BINDING');
 assert(outputManifest.input_bindings?.upstream_artifact?.source_sha_ancestor_of_consumer === true && outputManifest.input_bindings?.upstream_artifact?.expired === false, 'OUTPUT_MANIFEST_ARTIFACT_TRUST');
 assert(outputManifest.results?.requirements_accounted_for === 192 && outputManifest.results?.duplicate_requirements === 0 && outputManifest.results?.silently_dropped_requirements === 0, 'OUTPUT_MANIFEST_ACCOUNTING');
 assert(outputManifest.results?.registered_source_profiles === 16 && outputManifest.results?.implemented_source_adapters === 16, 'OUTPUT_MANIFEST_SOURCE_DENOMINATOR');
