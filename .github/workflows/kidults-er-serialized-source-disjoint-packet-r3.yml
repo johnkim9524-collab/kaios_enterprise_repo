@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with: {node-version: '22'}
+        with: {node-version: '22.23.2'}
       - name: Build live source-disjoint Serialized packet
         run: node scripts/kidults/entity-resolution/build-serialized-source-disjoint-review-packet-r3.mjs coordination/kidults/entity-resolution/empirical-validation-sampling-plan-r1.json coordination/kidults/entity-resolution/independent-label-review-packet-contract-r1.json /tmp/serialized-source-disjoint-review-packet-r3.json
       - name: Enforce source-disjoint and fail-closed truth

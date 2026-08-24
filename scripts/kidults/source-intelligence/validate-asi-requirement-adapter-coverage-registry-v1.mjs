@@ -125,7 +125,7 @@ for (const marker of [
   'contents: read',
   'actions: read',
   'persist-credentials: false',
-  'node-version: \'24\'',
+  'node-version: \'24.19.0\'',
   'source_sha_ancestor_of_consumer',
   'Build requirement coverage twice',
   'Reject denominator-substitution mutation',

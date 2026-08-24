@@ -43,7 +43,7 @@ function findingsFor(text) {
   const actualShaCount = (text.match(/git rev-parse HEAD/g) || []).length;
   if (actualShaCount !== 1) findings.push(`ACTUAL_SHA_ASSERTION_COUNT_EXPECTED_1_GOT_${actualShaCount}`);
   if (!/test \"\$\{ACTUAL_SHA\}\" = \"\$\{EXPECTED_SHA\}\"/.test(text)) findings.push('EXACT_SHA_EQUALITY_ASSERTION_MISSING');
-  if (!/node-version:\s*["']?24["']?/i.test(text)) findings.push('NODE_24_REQUIRED');
+  if (!/node-version:\s*["']?24\.19\.0["']?/i.test(text)) findings.push('NODE_24_19_0_REQUIRED');
   if (!/node scripts\/kidults\/intelligence\/validate-provider-adapter-contract-v1\.mjs/.test(text)) findings.push('PROVIDER_ADAPTER_CONTRACT_VALIDATION_MISSING');
   if (!/node scripts\/kidults\/kpmo\/validate-provider-adapter-workflow-provenance-v1\.mjs/.test(text)) findings.push('SELF_PROVENANCE_VALIDATION_MISSING');
   return findings;

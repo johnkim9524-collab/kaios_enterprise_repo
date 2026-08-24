@@ -36,7 +36,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: '24'
+          node-version: '24.19.0'
       - name: Validate canonical three-stage gate and methods
         run: node scripts/kidults/source-intelligence/validate-asi-legal-commercial-three-stage-gate-v1.mjs coordination/kidults/source-intelligence/asi-legal-commercial-three-stage-gate-v1.json
       - name: Reject Gate1 bypass of ASI ingress verification

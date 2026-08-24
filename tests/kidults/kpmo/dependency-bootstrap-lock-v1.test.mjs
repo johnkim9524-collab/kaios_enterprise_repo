@@ -47,6 +47,8 @@ test('current dependency bootstrap estate is locked', () => {
   assert.ok(result.npmRegistryEntries > 0);
   assert.ok(result.pythonRequirementCount > 0);
   assert.equal(result.runtimeRequirementCount, 0);
+  assert.equal(result.remainingNodeVersionAliases, 0);
+  assert.equal(result.remainingPythonVersionAliases, 0);
 });
 
 test('rejects npm install and npx runtime resolution', () => {
@@ -68,8 +70,47 @@ test('rejects weakened npm ci flags and lock integrity', () => {
   expectMutation('NPM_PACKAGE_MANAGER_CONTRACT_DRIFT', (input) => {
     input.files['package.json'] = input.files['package.json'].replace('npm@11.17.0', 'npm@latest');
   });
-  expectMutation('GOVERNED_NODE_VERSION_ALIAS_OR_UNAPPROVED', (input) => {
+  expectMutation('ESTATE_NODE_VERSION_ALIAS_OR_UNAPPROVED', (input) => {
     input.workflows['.github/workflows/kidults-a15-autonomous-policy.yml'] = input.workflows['.github/workflows/kidults-a15-autonomous-policy.yml'].replace("node-version: '24.19.0'", "node-version: '24'");
+  });
+});
+
+test('rejects runtime aliases through block, flow, quoted, and escaped keys', () => {
+  expectMutation('ESTATE_SETUP_NODE_VERSION_BINDING_DRIFT', (input) => {
+    input.workflows['.github/workflows/kidults-a15-autonomous-policy.yml'] = input.workflows['.github/workflows/kidults-a15-autonomous-policy.yml'].replace(
+      'node-version:',
+      'runtime-version:'
+    );
+  });
+  expectMutation('ESTATE_SETUP_PYTHON_VERSION_BINDING_DRIFT', (input) => {
+    input.workflows['.github/workflows/ci-validation.yml'] = input.workflows['.github/workflows/ci-validation.yml'].replace(
+      'python-version:',
+      'runtime-version:'
+    );
+  });
+  expectMutation('ESTATE_NODE_VERSION_ALIAS_OR_UNAPPROVED', (input) => {
+    input.workflows['.github/workflows/kidults-a15-autonomous-policy.yml'] = input.workflows['.github/workflows/kidults-a15-autonomous-policy.yml'].replace(
+      "node-version: '24.19.0'",
+      "'node-version': '24'"
+    );
+  });
+  expectMutation('ESTATE_NODE_VERSION_ALIAS_OR_UNAPPROVED', (input) => {
+    input.workflows['.github/workflows/kidults-runtime-remote-readonly-inventory.yml'] = input.workflows['.github/workflows/kidults-runtime-remote-readonly-inventory.yml'].replace(
+      "{node-version: '24.19.0'}",
+      "{\"node-version\": '24'}"
+    );
+  });
+  expectMutation('ESTATE_NODE_VERSION_ALIAS_OR_UNAPPROVED', (input) => {
+    input.workflows['.github/workflows/kidults-a15-autonomous-policy.yml'] = input.workflows['.github/workflows/kidults-a15-autonomous-policy.yml'].replace(
+      "node-version: '24.19.0'",
+      "\"node\\u002dversion\": '24'"
+    );
+  });
+  expectMutation('ESTATE_PYTHON_VERSION_ALIAS_OR_UNAPPROVED', (input) => {
+    input.workflows['.github/workflows/ci-validation.yml'] = input.workflows['.github/workflows/ci-validation.yml'].replace(
+      'python-version: "3.11.16"',
+      '"python\\x2dversion": "3.11"'
+    );
   });
 });
 
@@ -92,7 +133,7 @@ test('rejects unhashed Python installs and requirements', () => {
       'python -m pip install -r requirements-ci.lock.txt | echo \\\n'
     );
   });
-  expectMutation('GOVERNED_PYTHON_VERSION_ALIAS_OR_UNAPPROVED', (input) => {
+  expectMutation('ESTATE_PYTHON_VERSION_ALIAS_OR_UNAPPROVED', (input) => {
     input.workflows['.github/workflows/ci-validation.yml'] = input.workflows['.github/workflows/ci-validation.yml'].replace('python-version: "3.11.16"', 'python-version: "3.11"');
   });
   expectMutation('PYTHON_RUNTIME_LOCK_NOT_EMPTY', (input) => {

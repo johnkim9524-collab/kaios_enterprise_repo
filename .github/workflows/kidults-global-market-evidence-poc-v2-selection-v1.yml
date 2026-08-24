@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 22.23.2
       - name: Compile canonical Scope v1.2 working set
         run: node scripts/kidults/scope/compile-scope-evolution-watches-v1.2.mjs coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json coordination/kidults/scope-data/scope-evolution-watches-v1.2.json tmp/scope-v1.2
       - name: Compile 160 challenger stress slots

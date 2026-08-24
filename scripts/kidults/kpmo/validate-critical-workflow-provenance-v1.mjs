@@ -34,7 +34,7 @@ function findingsFor(name, text) {
     findings.push(`${name}:CHECKOUT_CREDENTIAL_PERSISTENCE_NOT_DISABLED`);
   }
   if (/uses:\s*actions\/setup-node@/i.test(text)) {
-    if (!/node-version:\s*['"]?24['"]?/i.test(text)) findings.push(`${name}:NODE_RUNTIME_NOT_24`);
+    if (!/node-version:\s*['"]?24\.19\.0['"]?/i.test(text)) findings.push(`${name}:NODE_RUNTIME_NOT_24_19_0`);
     if (!/package-manager-cache:\s*false/i.test(text)) findings.push(`${name}:SETUP_NODE_CACHE_POLICY_NOT_EXPLICIT_FALSE`);
   }
   return findings;
@@ -64,7 +64,7 @@ const mutationCases = [
   {
     name: 'node22',
     text: `on:\n  pull_request:\nsteps:\n  - uses: actions/checkout@${'a'.repeat(40)} # vX\n    with:\n      ${exactRef}\n      persist-credentials: false\n  - name: Verify exact source SHA\n    env:\n      EXPECTED_SHA: x\n    run: git rev-parse HEAD\n  - uses: actions/setup-node@${'b'.repeat(40)} # vX\n    with:\n      node-version: '22'\n      package-manager-cache: false`,
-    expected: 'NODE_RUNTIME_NOT_24'
+    expected: 'NODE_RUNTIME_NOT_24_19_0'
   }
 ];
 
@@ -91,7 +91,7 @@ const result = {
   immutable_external_actions_required: true,
   exact_pr_head_required: true,
   checkout_credentials_persisted: false,
-  node_runtime_required: 24,
+  node_runtime_required: '24.19.0',
   findings,
   result: findings.length ? 'FAIL' : 'PASS',
   empirical_gate_effect: 'NONE',
