@@ -107,6 +107,8 @@ assert(workflow.includes('fetch-depth: 0'), 'WORKFLOW_FULL_HISTORY_REQUIRED');
 assert(workflow.includes('-f branch=main -f status=success -f per_page=20'), 'WORKFLOW_BOUNDED_P1_RUN_QUERY');
 assert(!workflow.includes('/actions/artifacts?per_page=100'), 'WORKFLOW_REPOSITORY_WIDE_ARTIFACT_SCAN_FORBIDDEN');
 assert(!workflow.includes('--paginate'), 'WORKFLOW_UNBOUNDED_PAGINATION_FORBIDDEN');
+assert(!workflow.includes('for ATTEMPT in $(seq'), 'WORKFLOW_FIXED_GH_API_RETRY_FORBIDDEN');
+assert(!workflow.includes('sleep 15'), 'WORKFLOW_API_RETRY_SLEEP_FORBIDDEN');
 assert(!workflow.includes('git push'), 'WORKFLOW_DIRECT_PUSH');
 assert(!workflow.includes('curl ') && !workflow.includes('wget '), 'WORKFLOW_UNDECLARED_NETWORK');
 

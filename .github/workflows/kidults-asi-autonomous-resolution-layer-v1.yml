@@ -96,27 +96,26 @@ jobs:
           P1_RUN_ID=""
           P1_SOURCE_SHA=""
           P1_ID=""
-          for ATTEMPT in $(seq 1 12); do
-            if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
-              -f branch=main -f status=success -f per_page=20 \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs" \
-              > /tmp/p1-runs.json; then
-              sleep 15
-              continue
+          gh api --method GET -H 'Accept: application/vnd.github+json' \
+            -f branch=main -f status=success -f per_page=20 \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs" \
+            > /tmp/p1-runs.json
+          mapfile -t CANDIDATES < <(jq -r '.workflow_runs[] | select(.name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .status=="completed" and .conclusion=="success") | [.id,.head_sha] | @tsv' /tmp/p1-runs.json)
+          for CANDIDATE in "${CANDIDATES[@]}"; do
+            IFS=$'\t' read -r CANDIDATE_RUN_ID CANDIDATE_SOURCE_SHA <<<"$CANDIDATE"
+            if git merge-base --is-ancestor "$CANDIDATE_SOURCE_SHA" "$CURRENT_SHA"; then
+              P1_RUN_ID="$CANDIDATE_RUN_ID"
+              P1_SOURCE_SHA="$CANDIDATE_SOURCE_SHA"
+              break
             fi
-            mapfile -t CANDIDATES < <(jq -r '.workflow_runs[] | select(.name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .status=="completed" and .conclusion=="success") | [.id,.head_sha] | @tsv' /tmp/p1-runs.json)
-            for CANDIDATE in "${CANDIDATES[@]}"; do
-              IFS=$'\t' read -r CANDIDATE_RUN_ID CANDIDATE_SOURCE_SHA <<<"$CANDIDATE"
-              if git merge-base --is-ancestor "$CANDIDATE_SOURCE_SHA" "$CURRENT_SHA"; then
-                P1_RUN_ID="$CANDIDATE_RUN_ID"
-                P1_SOURCE_SHA="$CANDIDATE_SOURCE_SHA"
-                break
-              fi
-            done
-            if [ -n "$P1_RUN_ID" ] && gh api -H 'Accept: application/vnd.github+json' \
-              "/repos/${GITHUB_REPOSITORY}/actions/runs/${P1_RUN_ID}/artifacts?per_page=100" \
-              > /tmp/p1-artifacts.json; then
-              P1_ARTIFACT_COUNT=$(P1_RUN_ID="$P1_RUN_ID" P1_SOURCE_SHA="$P1_SOURCE_SHA" node - <<'NODE'
+          done
+          test -n "$P1_RUN_ID"
+          test -n "$P1_SOURCE_SHA"
+          git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"
+          gh api --method GET -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${P1_RUN_ID}/artifacts?per_page=100" \
+            > /tmp/p1-artifacts.json
+          P1_ARTIFACT_COUNT=$(P1_RUN_ID="$P1_RUN_ID" P1_SOURCE_SHA="$P1_SOURCE_SHA" node - <<'NODE'
           const fs=require('fs');
           const x=JSON.parse(fs.readFileSync('/tmp/p1-artifacts.json','utf8'));
           const matches=(x.artifacts||[]).filter((artifact)=>
@@ -126,16 +125,9 @@ jobs:
           if(matches.length===1)fs.writeFileSync('/tmp/p1-artifact.json',JSON.stringify(matches[0],null,2));
           process.stdout.write(String(matches.length));
           NODE
-              )
-              if [ "$P1_ARTIFACT_COUNT" = 1 ]; then
-                P1_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/p1-artifact.json')).id")
-                break
-              fi
-            fi
-            P1_RUN_ID=""
-            P1_SOURCE_SHA=""
-            sleep 15
-          done
+          )
+          test "$P1_ARTIFACT_COUNT" = 1
+          P1_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/p1-artifact.json')).id")
           test -n "$P1_RUN_ID"
           test -n "$P1_SOURCE_SHA"
           test -n "$P1_ID"
