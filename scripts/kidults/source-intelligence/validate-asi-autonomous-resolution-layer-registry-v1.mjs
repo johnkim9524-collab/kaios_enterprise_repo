@@ -85,7 +85,9 @@ for (const marker of [
   'push:',
   'workflow_run:',
   "'KIDULTS ASI P1 Source Preflight v1'",
-  'Restore latest coherent P1 artifact',
+  'Restore latest successful main P1 artifact with bounded lookup',
+  'kidults-asi-p1-source-preflight-v1.yml/runs',
+  'p1-upstream-artifact-binding-v1.json',
   'Build autonomous resolution layer twice',
   'Reject false resolution promotions and incomplete terminalization',
   'mutate_and_reject semantic-pass semantic-pass',
@@ -101,6 +103,12 @@ for (const marker of [
 assert(workflow.includes('contents: read'), 'WORKFLOW_CONTENTS_READ');
 assert(!workflow.includes('contents: write'), 'WORKFLOW_CONTENTS_WRITE');
 assert(workflow.includes('persist-credentials: false'), 'WORKFLOW_CREDENTIALS');
+assert(workflow.includes('fetch-depth: 0'), 'WORKFLOW_FULL_HISTORY_REQUIRED');
+assert(workflow.includes('-f branch=main -f status=success -f per_page=20'), 'WORKFLOW_BOUNDED_P1_RUN_QUERY');
+assert(!workflow.includes('/actions/artifacts?per_page=100'), 'WORKFLOW_REPOSITORY_WIDE_ARTIFACT_SCAN_FORBIDDEN');
+assert(!workflow.includes('--paginate'), 'WORKFLOW_UNBOUNDED_PAGINATION_FORBIDDEN');
+assert(!workflow.includes('for ATTEMPT in $(seq'), 'WORKFLOW_FIXED_GH_API_RETRY_FORBIDDEN');
+assert(!workflow.includes('sleep 15'), 'WORKFLOW_API_RETRY_SLEEP_FORBIDDEN');
 assert(!workflow.includes('git push'), 'WORKFLOW_DIRECT_PUSH');
 assert(!workflow.includes('curl ') && !workflow.includes('wget '), 'WORKFLOW_UNDECLARED_NETWORK');
 
