@@ -20,6 +20,8 @@ on:
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - 'coordination/kidults/internalization/external-provider-track-z-routing-gate-v1.json'
+      - 'scripts/kidults/internalization/validate-external-provider-track-z-routing-gate-v1.mjs'
       - '.github/workflows/kidults-asi-rights-first-source-intake-v1.yml'
   pull_request:
     branches: [main]
@@ -39,6 +41,8 @@ on:
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - 'coordination/kidults/internalization/external-provider-track-z-routing-gate-v1.json'
+      - 'scripts/kidults/internalization/validate-external-provider-track-z-routing-gate-v1.mjs'
       - '.github/workflows/kidults-asi-rights-first-source-intake-v1.yml'
 
 permissions:
@@ -71,6 +75,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs
           node --check scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs
+          node --check scripts/kidults/internalization/validate-external-provider-track-z-routing-gate-v1.mjs
           for FILE in \
             coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json \
             coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
@@ -93,6 +98,11 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs \
             | tee /tmp/kidults-rights-first-claim-ceiling-validation-v1.json
+      - name: Validate mandatory Track Z routing
+        run: |
+          set -euo pipefail
+          node scripts/kidults/internalization/validate-external-provider-track-z-routing-gate-v1.mjs \
+            | tee /tmp/kidults-rights-first-track-z-routing-validation-v1.json
       - name: Validate governed KPMO receipt
         run: |
           set -euo pipefail
@@ -134,6 +144,7 @@ jobs:
             /tmp/kidults-rights-first-source-pool-v1.json
             /tmp/kidults-rights-first-source-intake-test-v1.log
             /tmp/kidults-rights-first-claim-ceiling-validation-v1.json
+            /tmp/kidults-rights-first-track-z-routing-validation-v1.json
             /tmp/kidults-rights-first-source-intake-receipt-validation-v1.json
           retention-days: 90
           if-no-files-found: error
