@@ -30,6 +30,7 @@ const mandatory = [
   'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py',
   ...snapshotReadinessMandatory,
   'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
+  'scripts/kidults/portal/validate-portal-launch-assurance-v1.mjs',
   'scripts/kidults/portal/validate-server-projection-capability-v1.mjs',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
@@ -108,7 +109,7 @@ for (const marker of [
   'proof_product_consumer_schema_runtime_bound: true',
   'server_projection_capability_cryptographic_core_machine_bound: true',
   "server_projection_capability_route_binding: 'NOT_IMPLEMENTED_HOLD'",
-  "proof_product_api_export_binding: 'NOT_IMPLEMENTED_HOLD'"
+  "proof_product_api_export_binding: 'SIGNED_SERVER_CAPABILITY_BOUND__PUBLIC_CALLER_PATH_HOLD'"
 ]) {
   if (!runner.includes(marker)) errors.push(`aggregate truth/control marker missing: ${marker}`);
 }
