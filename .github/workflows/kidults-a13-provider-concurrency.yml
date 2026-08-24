@@ -49,8 +49,7 @@ jobs:
         run: node scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs
 
       - name: Install committed dependency graph
-        run: npm ci
-
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Typecheck
         run: npm run typecheck
 

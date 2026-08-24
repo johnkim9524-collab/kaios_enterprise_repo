@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: '24'
       - name: Install locked dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run A17 certification
         run: npm run a17:certify
       - name: Upload A17 evidence

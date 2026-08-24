@@ -40,7 +40,7 @@ jobs:
           mkdir -p /tmp/kidults-r001-qa
           cp tooling/kidults-portal-r001-browser-qa/package.json /tmp/kidults-r001-qa/package.json
           cp tooling/kidults-portal-r001-browser-qa/package-lock.json /tmp/kidults-r001-qa/package-lock.json
-          npm ci --prefix /tmp/kidults-r001-qa
+          npm ci --prefix /tmp/kidults-r001-qa --ignore-scripts --no-audit --no-fund
           node /tmp/kidults-r001-qa/node_modules/playwright/cli.js install --with-deps chromium
       - name: Start staging portal
         shell: bash

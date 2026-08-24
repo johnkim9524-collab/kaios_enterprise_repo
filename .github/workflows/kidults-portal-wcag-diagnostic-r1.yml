@@ -17,10 +17,11 @@ jobs:
           node-version: 22
       - name: Install browser diagnostics
         run: |
-          mkdir -p /tmp/a11y && cd /tmp/a11y
-          npm init -y >/dev/null
-          npm install --silent playwright @axe-core/playwright
-          npx playwright install chromium
+          mkdir -p /tmp/a11y
+          cp tooling/kidults-portal-r001-browser-qa/package.json /tmp/a11y/package.json
+          cp tooling/kidults-portal-r001-browser-qa/package-lock.json /tmp/a11y/package-lock.json
+          npm ci --prefix /tmp/a11y --ignore-scripts --no-audit --no-fund
+          node /tmp/a11y/node_modules/playwright/cli.js install chromium
       - name: Start staging portal
         run: |
           mkdir -p /tmp/kidults-conversion-data

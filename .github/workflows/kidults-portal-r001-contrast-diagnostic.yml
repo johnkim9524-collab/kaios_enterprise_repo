@@ -19,10 +19,10 @@ jobs:
       - name: Install browser diagnostic deps
         run: |
           mkdir -p /tmp/kidults-r001-diag
-          cd /tmp/kidults-r001-diag
-          npm init -y >/dev/null
-          npm install --silent playwright @axe-core/playwright
-          npx playwright install --with-deps chromium
+          cp tooling/kidults-portal-r001-browser-qa/package.json /tmp/kidults-r001-diag/package.json
+          cp tooling/kidults-portal-r001-browser-qa/package-lock.json /tmp/kidults-r001-diag/package-lock.json
+          npm ci --prefix /tmp/kidults-r001-diag --ignore-scripts --no-audit --no-fund
+          node /tmp/kidults-r001-diag/node_modules/playwright/cli.js install --with-deps chromium
       - name: Start staging portal
         shell: bash
         run: |
