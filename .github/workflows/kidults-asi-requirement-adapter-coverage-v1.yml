@@ -1,0 +1,292 @@
+name: KIDULTS ASI Requirement-to-Adapter Coverage v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '12 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/**'
+      - 'scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md'
+      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/**'
+      - 'scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs'
+      - 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md'
+      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Autonomous Resolution Layer v1'
+      - 'KIDULTS ASI Source Adapter Wave 4 v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-requirement-adapter-coverage-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-requirement-adapter-coverage:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Verify exact source and coverage syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json','utf8'))"
+      - name: Validate requirement coverage registry and automatic continuation
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs \
+            | tee /tmp/kidults-asi-requirement-adapter-coverage-registry-validation-v1.json
+      - name: Restore exact successful main autonomous-resolution artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/arl-expanded /tmp/arl-input
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-autonomous-resolution-layer-v1.yml/runs?branch=main&status=success&per_page=100" \
+            > /tmp/arl-runs.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/arl-runs.json','utf8'));
+          const runs=(x.workflow_runs||[]).filter((run)=>run.name==='KIDULTS ASI Autonomous Resolution Layer v1'&&run.path==='.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'&&run.head_branch==='main'&&run.status==='completed'&&run.conclusion==='success').sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)||b.id-a.id);
+          if(runs.length===0)throw new Error('NO_SUCCESSFUL_MAIN_AUTONOMOUS_RESOLUTION_RUN');
+          fs.writeFileSync('/tmp/arl-run.json',JSON.stringify(runs[0],null,2));
+          NODE
+          RUN_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/arl-run.json')).id")
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" \
+            > /tmp/arl-artifacts.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const run=JSON.parse(fs.readFileSync('/tmp/arl-run.json','utf8'));
+          const x=JSON.parse(fs.readFileSync('/tmp/arl-artifacts.json','utf8'));
+          const artifacts=(x.artifacts||[]).filter((artifact)=>artifact.name==='kidults-asi-autonomous-resolution-layer-v1'&&artifact.expired===false&&artifact.workflow_run?.id===run.id&&artifact.workflow_run?.head_branch==='main'&&artifact.workflow_run?.head_sha===run.head_sha);
+          if(artifacts.length!==1)throw new Error(`AUTONOMOUS_RESOLUTION_ARTIFACT_CARDINALITY:${artifacts.length}`);
+          fs.writeFileSync('/tmp/arl-artifact.json',JSON.stringify(artifacts[0],null,2));
+          NODE
+          ARTIFACT_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/arl-artifact.json')).id")
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
+            > /tmp/arl.zip
+          unzip -q -o /tmp/arl.zip -d /tmp/arl-expanded
+          for NAME in \
+            replacement-source-mission-queue-v1.json \
+            autonomous-resolution-manifest-v1.json \
+            kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json; do
+            mapfile -t FILES < <(find /tmp/arl-expanded -type f -name "$NAME" -print)
+            test "${#FILES[@]}" -eq 1
+            cp "${FILES[0]}" "/tmp/arl-input/$NAME"
+          done
+          SOURCE_SHA=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/arl-run.json')).head_sha")
+          CONSUMER_SHA=$(git rev-parse HEAD)
+          git merge-base --is-ancestor "$SOURCE_SHA" "$CONSUMER_SHA"
+          export CONSUMER_SHA
+          node - <<'NODE'
+          const fs=require('fs');
+          const run=JSON.parse(fs.readFileSync('/tmp/arl-run.json','utf8'));
+          const artifact=JSON.parse(fs.readFileSync('/tmp/arl-artifact.json','utf8'));
+          const binding={id:'kidults-asi-autonomous-resolution-artifact-binding-v1',version:'1.0.0',artifact_id:artifact.id,artifact_name:artifact.name,expired:artifact.expired,workflow_run_id:run.id,workflow_name:run.name,workflow_path:run.path,head_branch:run.head_branch,head_sha:run.head_sha,consumer_sha:process.env.CONSUMER_SHA,source_sha_ancestor_of_consumer:true,status:run.status,conclusion:run.conclusion,created_at:artifact.created_at,expires_at:artifact.expires_at};
+          fs.writeFileSync('/tmp/arl-input/autonomous-resolution-artifact-binding-v1.json',JSON.stringify(binding,null,2)+'\n');
+          NODE
+          echo "ARL_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          echo "ARL_ARTIFACT_ID=$ARTIFACT_ID" >> "$GITHUB_ENV"
+          echo "ARL_SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
+          echo "arl_run_id=$RUN_ID artifact_id=$ARTIFACT_ID source_sha=$SOURCE_SHA consumer_sha=$CONSUMER_SHA"
+      - name: Build requirement coverage twice
+        run: |
+          set -euo pipefail
+          for RUN in 1 2; do
+            node scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs \
+              /tmp/arl-input/replacement-source-mission-queue-v1.json \
+              /tmp/arl-input/autonomous-resolution-manifest-v1.json \
+              /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json \
+              /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json \
+              coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json \
+              "/tmp/kidults-asi-requirement-adapter-coverage-run-${RUN}"
+          done
+          diff -qr \
+            /tmp/kidults-asi-requirement-adapter-coverage-run-1 \
+            /tmp/kidults-asi-requirement-adapter-coverage-run-2
+      - name: Validate all 192 requirement mappings and claim ceilings
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs \
+            /tmp/kidults-asi-requirement-adapter-coverage-run-1 \
+            /tmp/arl-input/replacement-source-mission-queue-v1.json \
+            /tmp/arl-input/autonomous-resolution-manifest-v1.json \
+            /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json \
+            /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json \
+            coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json \
+            | tee /tmp/kidults-asi-requirement-adapter-coverage-validation-v1.json
+      - name: Reject denominator-substitution mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-requirement-adapter-coverage-run-1 /tmp/bad-coverage-denominator
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-coverage-denominator/requirement-adapter-coverage-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));x.requirement_count=16;x.unique_mission_count=16;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-coverage-denominator /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json; then
+            echo 'Validator accepted 16-source denominator as 192-requirement accounting' >&2
+            exit 1
+          fi
+      - name: Reject registered-claim inheritance mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-requirement-adapter-coverage-run-1 /tmp/bad-registered-inheritance
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-registered-inheritance/source-adapter-claim-ceiling-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));const s=x.sources.find((v)=>v.source_id==='reverb-price-guide');s.implemented_claim_parsers=[...s.registered_claims];s.unimplemented_registered_claims=[];s.adapter_kind='TRANSACTION_PARSER';fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-registered-inheritance /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json; then
+            echo 'Validator accepted registered claims as implemented parsers' >&2
+            exit 1
+          fi
+      - name: Reject context-as-parser mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-requirement-adapter-coverage-run-1 /tmp/bad-context-parser
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-context-parser/requirement-adapter-coverage-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));const r=x.records.find((v)=>v.software_coverage_state==='CONTEXT_ONLY');const e=r.source_evaluations.find((v)=>v.adapter_kind==='CONTEXT_ONLY_CLASSIFIER');r.software_coverage_state='SOFTWARE_IMPLEMENTED';r.qualifying_software_adapter_ids=[e.source_id];e.required_claim_parser_match=true;e.software_evaluation_state='CLAIM_PARSER_MATCH';fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-context-parser /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json; then
+            echo 'Validator accepted context-only classification as parser coverage' >&2
+            exit 1
+          fi
+      - name: Reject live-rights-activation promotion mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-requirement-adapter-coverage-run-1 /tmp/bad-live-promotion
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-live-promotion/requirement-adapter-coverage-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));x.records[0].rights_verified=true;x.records[0].live_schema_verified=true;x.records[0].adapter_activated=true;x.records[0].evidence_admitted=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs /tmp/bad-live-promotion /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json; then
+            echo 'Validator accepted unsupported live, rights, activation or Evidence promotion' >&2
+            exit 1
+          fi
+      - name: Reject unbound upstream digest mutation
+        run: |
+          set -euo pipefail
+          cp /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/bad-autonomous-resolution-manifest-v1.json
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-autonomous-resolution-manifest-v1.json';const x=JSON.parse(fs.readFileSync(p));x.input_bindings.adapter_contract.digest='sha256:'+('0'.repeat(64));fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/bad-autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json /tmp/bad-unbound-digest-output; then
+            echo 'Builder accepted an unbound upstream digest' >&2
+            exit 1
+          fi
+      - name: Reject silent-drop and duplicate-grain mutations
+        run: |
+          set -euo pipefail
+          cp /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/bad-silent-drop-queue.json
+          cp /tmp/arl-input/replacement-source-mission-queue-v1.json /tmp/bad-duplicate-grain-queue.json
+          node - <<'NODE'
+          const fs=require('fs');let p='/tmp/bad-silent-drop-queue.json';let x=JSON.parse(fs.readFileSync(p));x.missions.pop();x.mission_count=191;fs.writeFileSync(p,JSON.stringify(x,null,2));p='/tmp/bad-duplicate-grain-queue.json';x=JSON.parse(fs.readFileSync(p));x.missions[1].mission_id=x.missions[0].mission_id;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          for BAD in /tmp/bad-silent-drop-queue.json /tmp/bad-duplicate-grain-queue.json; do
+            if node scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs "$BAD" /tmp/arl-input/autonomous-resolution-manifest-v1.json /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json "/tmp/$(basename "$BAD" .json)-output"; then
+              echo "Builder accepted forbidden mission mutation: $BAD" >&2
+              exit 1
+            fi
+          done
+      - name: Reject manual-only activation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json /tmp/coverage-registry-pristine.json
+          restore_registry() { mv /tmp/coverage-registry-pristine.json coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json; }
+          trap restore_registry EXIT
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.schedule='NONE';x.automatic_activation.upstream_workflows=[];fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs; then
+            echo 'Registry validator accepted manual-only activation' >&2
+            exit 1
+          fi
+          restore_registry
+          trap - EXIT
+      - name: Revalidate pristine coverage outputs and registry
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs \
+            > /tmp/kidults-asi-requirement-adapter-coverage-registry-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs \
+            /tmp/kidults-asi-requirement-adapter-coverage-run-1 \
+            /tmp/arl-input/replacement-source-mission-queue-v1.json \
+            /tmp/arl-input/autonomous-resolution-manifest-v1.json \
+            /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json \
+            /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json \
+            coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json \
+            > /tmp/kidults-asi-requirement-adapter-coverage-final-validation-v1.json
+      - name: Emit KPMO requirement coverage receipt
+        run: |
+          node - <<'NODE' > /tmp/kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-requirement-adapter-coverage-run-1/requirement-adapter-coverage-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const binding=JSON.parse(fs.readFileSync('/tmp/arl-input/autonomous-resolution-artifact-binding-v1.json'));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');const out={id:'kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1',version:'1.0.0',agent_id:'github-actions/kidults-asi-requirement-adapter-coverage-v1',as_of:new Date().toISOString(),scope:'192 autonomous-resolution missions to current 16-source implemented claim ceilings',state:'VERIFIED_PASS',facts:[`requirements_accounted_for=${m.results.requirements_accounted_for}`,`software_implemented_requirements=${m.results.software_implemented_requirements}`,`software_gap_requirements=${m.results.software_gap_requirements}`],evidence_refs:[`workflow_run:${process.env.GITHUB_RUN_ID}`,`source_artifact_run:${binding.workflow_run_id}`,`source_artifact:${binding.artifact_id}`,`source_sha:${m.source_sha}`,`consumer_sha:${m.consumer_sha}`,`manifest_digest:${digest}`],inferences:[],uncertainties:[],blockers:['RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_ACTIVATION_AND_EMPIRICAL_ADMISSION_REMAIN_HOLD'],actions_executed:['RESTORED_EXACT_SUCCESSFUL_MAIN_ARL_ARTIFACT','BUILT_REQUIREMENT_CROSSWALK_TWICE','VALIDATED_192_GRAINS_AND_16_FAMILIES','EXECUTED_FAIL_CLOSED_MUTATIONS'],next_action:'REVIEW_DRAFT_AND_KEEP_EMPIRICAL_ACTIVATION_SEPARATELY_GATED',authority_boundary:'REVERSIBLE_INTERNAL_NON_PRODUCTION_SOFTWARE_LINEAGE_ONLY',source_sha:m.source_sha,consumer_sha:m.consumer_sha,upstream_workflow_run_id:binding.workflow_run_id,upstream_artifact_id:binding.artifact_id,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,live_source_requests_executed:0,provider_contacts_executed:0,rights_passes_created:0,adapters_activated:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,track_b_results_created:0,projections_created:0,public_release:'HOLD',production:'HOLD',g5:'HOLD'};process.stdout.write(JSON.stringify(out,null,2)+'\n');
+          NODE
+          cat /tmp/kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-requirement-adapter-coverage-v1
+          path: |
+            /tmp/kidults-asi-requirement-adapter-coverage-run-1
+            /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json
+            /tmp/kidults-asi-requirement-adapter-coverage-registry-validation-v1.json
+            /tmp/kidults-asi-requirement-adapter-coverage-validation-v1.json
+            /tmp/kidults-asi-requirement-adapter-coverage-registry-final-validation-v1.json
+            /tmp/kidults-asi-requirement-adapter-coverage-final-validation-v1.json
+            /tmp/kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
