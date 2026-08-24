@@ -1,0 +1,58 @@
+{
+  "id": "global-open-market-legal-source-admission-v1",
+  "record_type": "legal_source_admission_contract",
+  "version": "1.0.0",
+  "status": "ACTIVE_FAIL_CLOSED",
+  "generated_at": "2026-08-18T12:30:00Z",
+  "site_identity_fields": [
+    "canonical_site_host",
+    "source_family_id",
+    "owner",
+    "jurisdiction",
+    "region_ids",
+    "language_codes"
+  ],
+  "required_direct_relevance_fields": [
+    "scope_ids",
+    "source_roles",
+    "claim_locator",
+    "reviewed_at",
+    "reviewer",
+    "relevance_decision"
+  ],
+  "required_legal_fields": [
+    "terms_url",
+    "terms_version_or_observed_hash",
+    "terms_observed_at",
+    "robots_url",
+    "robots_observed_at",
+    "collect_state",
+    "store_state",
+    "transform_state",
+    "derive_state",
+    "display_state",
+    "redistribute_state",
+    "sell_state",
+    "retention_state",
+    "attribution_requirements",
+    "territory",
+    "review_due_at"
+  ],
+  "required_market_semantic_fields": [
+    "listing_state",
+    "terminal_sale_state",
+    "price_type",
+    "event_time_state",
+    "object_or_lot_identity_state",
+    "failed_sale_state",
+    "relist_state"
+  ],
+  "unknown_rights_admission": false,
+  "missing_direct_relevance_admission": false,
+  "query_match_only_admission": false,
+  "museum_or_institution_presence_as_market_evidence": false,
+  "listing_as_sold": false,
+  "acquisition_authorized": false,
+  "production": "HOLD",
+  "admission_fingerprint": "sha256:d4464bfa12a502bd59d7ead574db8fd34996c124e986c014463d9b212216de17"
+}

@@ -1,0 +1,36 @@
+{
+  "id": "asi-global-source-universe-run-v1",
+  "record_type": "asi_global_source_universe_run",
+  "version": "1.0.0",
+  "status": "ENGINE_AND_GLOBAL_REVIEW_FRONTIER_READY_LIVE_DISCOVERY_NOT_PROVEN",
+  "generated_at": "2026-08-18T12:30:00Z",
+  "inputs": {
+    "contract": "sha256:05b0f01d21588bb6af971c23710938d3c41ed9d2bd70b6f2f1bd67d1e52e6f56",
+    "crosswalk": "sha256:f550c7d744c810245b2a4eb0f074ca50b9a1685d138d91f9b975ad5096b1de80",
+    "current_matrix": "sha256:a7892fe246752d65fe71daaf942ae54327d0ac1a96172a246ac7fc958d238c26",
+    "question_matrix": "sha256:2b1e51ef2f397de526486d5ca8e254d6666e2c6b40ff2b3de531b94786daa7fa",
+    "legacy_registry": "sha256:799ece96445495fc0d0f6fe66f1f3650b34bbb1d763dba4b33b237dc60ef810c"
+  },
+  "outputs": {
+    "canonical-collection-scope-registry-v2.json": "sha256:960cc652bb5fcfecf26ab0da41d5282d2a8e60e2e2cde79324146ce604ffb99e",
+    "scope-registry-crosswalk-audit-v1.json": "sha256:2b2ef6fa5bb632589c4970e1fdcd920a12de4145307eb6e6d76a71aca372a046",
+    "global-open-market-scope-role-region-frontier-v1.json": "sha256:55ef2ae23a4d3a4fc862bd2cab19d5e66ea4ee431c1c26b56664478da55748aa",
+    "global-open-market-legal-source-admission-v1.json": "sha256:d4464bfa12a502bd59d7ead574db8fd34996c124e986c014463d9b212216de17"
+  },
+  "canonical_scope_count": 32,
+  "source_role_count": 7,
+  "geographic_region_count": 12,
+  "coverage_cell_count": 2688,
+  "numeric_site_target": null,
+  "discovery_mode": "CONTINUOUS_GLOBAL_OPEN_MARKET_ENUMERATION",
+  "discovered_unique_sites": null,
+  "reviewed_unique_sites": null,
+  "legally_admitted_unique_sites": null,
+  "source_pools_ready": 0,
+  "acquisition_authorized": false,
+  "market_claims_created": 0,
+  "indexes_computed": 0,
+  "public_projection": false,
+  "production": "HOLD",
+  "run_fingerprint": "sha256:e18a64cded205d81469a1cd9f30e8404ab834033bfb3f0d89a88056954b154a7"
+}
