@@ -30,8 +30,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: services/kidults-autonomous-intelligence
-        run: npm install
-
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify A29 package scripts exist
         working-directory: services/kidults-autonomous-intelligence
         run: |

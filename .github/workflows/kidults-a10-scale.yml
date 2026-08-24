@@ -42,8 +42,7 @@ jobs:
           package-manager-cache: false
 
       - name: Install locked dependencies
-        run: npm ci
-
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Typecheck
         run: npm run typecheck
 

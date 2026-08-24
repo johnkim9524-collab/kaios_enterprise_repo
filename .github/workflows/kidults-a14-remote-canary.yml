@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - run: npm ci
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run typecheck
       - name: Verify A14 command wiring
         run: |

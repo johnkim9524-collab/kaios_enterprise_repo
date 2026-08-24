@@ -46,8 +46,7 @@ jobs:
           package-manager-cache: false
 
       - name: Install locked validation dependencies
-        run: npm ci
-
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Compile and validate Market Event JSON Schema 2020-12 fixtures
         run: npm run validate:market-event
 

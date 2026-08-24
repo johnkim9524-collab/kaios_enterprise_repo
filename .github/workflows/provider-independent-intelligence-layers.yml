@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: "24.19.0"
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Validate existing market-event contract
         run: npm run validate:market-event
       - name: Validate provider-independent intelligence layers
