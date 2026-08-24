@@ -81,6 +81,7 @@ const safeState = candidate => ({
   target_languages: array(candidate.target_languages),
   provider_record_ids: array(candidate.provider_record_ids),
   governed_source_ids: array(candidate.governed_source_ids),
+  fixture_classification: candidate.fixture_classification || null,
   provider_switchable_identity: true,
   rights_state: 'UNASSESSED',
   admission_state: 'NOT_ADMITTED',
@@ -158,7 +159,8 @@ for (const candidate of array(discovery.candidates)) {
     target_regions: unique([...(prior?.target_regions || []), ...array(candidate.target_regions)]),
     target_languages: unique([...(prior?.target_languages || []), ...array(candidate.target_languages)]),
     provider_record_ids: unique([...(prior?.provider_record_ids || []), ...array(candidate.provider_record_ids), candidate.provider_record_id]),
-    governed_source_ids: unique([...(prior?.governed_source_ids || []), ...array(candidate.governed_source_ids)])
+    governed_source_ids: unique([...(prior?.governed_source_ids || []), ...array(candidate.governed_source_ids)]),
+    fixture_classification: candidate.fixture_classification || prior?.fixture_classification || null
   });
   byKey.set(key, next);
   keyByLocator.set(locator, key);
