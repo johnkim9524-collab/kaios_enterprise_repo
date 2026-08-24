@@ -1,0 +1,139 @@
+name: KIDULTS ASI Rights-First Source Intake v1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - '.github/workflows/kidults-asi-rights-first-source-intake-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - '.github/workflows/kidults-asi-rights-first-source-intake-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-rights-first-source-intake-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-rights-first-source-intake:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: npm-shrinkwrap.json
+      - name: Verify exact source and contract syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs
+          for FILE in \
+            coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json \
+            coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
+            coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json \
+            coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json; do
+            node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$FILE"
+          done
+      - name: Install deterministic governance dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Execute rights-first source intake and mutations
+        env:
+          RIGHTS_FIRST_RECEIPT_OUT: /tmp/kidults-rights-first-source-intake-receipt-v1.json
+          RIGHTS_FIRST_POOL_OUT: /tmp/kidults-rights-first-source-pool-v1.json
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs \
+            | tee /tmp/kidults-rights-first-source-intake-test-v1.log
+      - name: Validate profile claim ceilings
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs \
+            | tee /tmp/kidults-rights-first-claim-ceiling-validation-v1.json
+      - name: Validate governed KPMO receipt
+        run: |
+          set -euo pipefail
+          node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt \
+            /tmp/kidults-rights-first-source-intake-receipt-v1.json \
+            | tee /tmp/kidults-rights-first-source-intake-receipt-validation-v1.json
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';
+          import Ajv2020 from 'ajv/dist/2020.js';
+          import addFormats from 'ajv-formats';
+          const schema=JSON.parse(fs.readFileSync('coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json','utf8'));
+          const receipt=JSON.parse(fs.readFileSync('/tmp/kidults-rights-first-source-intake-receipt-v1.json','utf8'));
+          const ajv=new Ajv2020({allErrors:true,strict:true,strictTypes:false,strictRequired:false});
+          addFormats(ajv);
+          const validate=ajv.compile(schema);
+          if(!validate(receipt)) throw new Error(`KPMO_RECEIPT_SCHEMA:${ajv.errorsText(validate.errors)}`);
+          NODE
+      - name: Revalidate pristine repository and protected boundaries
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          node scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs \
+            /tmp/kidults-rights-first-source-pool-v1.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/kidults-rights-first-source-pool-v1.json','utf8'));
+          if(x.rights_clear_current_sold_source_count!==0) throw new Error('TOP16_OR_OPEN_CURRENT_SOLD_OVERCLAIM');
+          if(x.rights_clear_current_sold_reference_count!==1) throw new Error('RIGHTS_CLEAR_REFERENCE_COUNT');
+          if(x.adapter_development_backlog_count!==0) throw new Error('ADAPTER_BACKLOG_OVERCLAIM');
+          for(const key of ['acquisition_authorized','provider_contacted','account_created','eula_accepted','spend_authorized']) {
+            if(x[key]!==false) throw new Error(`EXTERNAL_BOUNDARY:${key}`);
+          }
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-rights-first-source-intake-v1
+          path: |
+            /tmp/kidults-rights-first-source-intake-receipt-v1.json
+            /tmp/kidults-rights-first-source-pool-v1.json
+            /tmp/kidults-rights-first-source-intake-test-v1.log
+            /tmp/kidults-rights-first-claim-ceiling-validation-v1.json
+            /tmp/kidults-rights-first-source-intake-receipt-validation-v1.json
+          retention-days: 90
+          if-no-files-found: error
