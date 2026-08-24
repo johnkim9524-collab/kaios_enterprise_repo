@@ -1,0 +1,54 @@
+{
+  "contract_id": "KIDULTS_D1_FREE_TIER_DEGRADED_MODE_V1",
+  "parent_issue": 1225,
+  "effective_deadline": "2026-09-01",
+  "free_plan_daily_limits": {
+    "rows_read": 5000000,
+    "rows_written": 100000
+  },
+  "operating_principles": [
+    "MEASURE_BEFORE_UPGRADE",
+    "NO_ACCOUNT_LEVEL_CAUSE_ATTRIBUTION_WITHOUT_TELEMETRY",
+    "INDEX_BACKED_HOT_PATHS",
+    "NO_RECURRING_FULL_TABLE_HEALTH_SCANS",
+    "FAIL_CLOSED_ON_D1_LIMIT_OR_UNAVAILABLE",
+    "PRESERVE_LAST_VERIFIED_NON_STALE_TRUTH_ONLY",
+    "NO_SILENT_PARTIAL_WRITES",
+    "NO_PROVIDER_OR_PRODUCTION_SCOPE_EXPANSION"
+  ],
+  "budget_bands": {
+    "green_below_fraction": 0.70,
+    "amber_at_or_above_fraction": 0.70,
+    "red_at_or_above_fraction": 0.90
+  },
+  "red_band_actions": [
+    "STOP_NONESSENTIAL_POLLING",
+    "STOP_NONESSENTIAL_REPLAY",
+    "STOP_NONESSENTIAL_REBUILD_AND_BACKFILL",
+    "SERVE_ONLY_ALREADY_VERIFIED_NON_STALE_READ_MODELS_WHERE_AVAILABLE",
+    "HOLD_NEW_EXTERNAL_DATA_ACQUISITION",
+    "KPMO_INCIDENT_REPORT"
+  ],
+  "limit_exhausted_actions": [
+    "D1_MUTATING_PATHS_HOLD",
+    "NO_SYNTHETIC_SUCCESS",
+    "NO_PARTIAL_PROJECTION_ADVANCE",
+    "NO_RANKING_OR_INDEX_ADVANCE_FROM_UNPERSISTED_INPUT",
+    "MARK_RUNTIME_DEGRADED",
+    "WAIT_FOR_UTC_RESET_OR_SEPARATE_FOUNDER_APPROVED_PLAN_CHANGE"
+  ],
+  "recurring_query_rules": {
+    "full_table_count_prohibited": true,
+    "select_star_hot_path_prohibited": true,
+    "bounded_selection_requires_limit": true,
+    "hot_predicates_require_index": true,
+    "account_telemetry_preferred_for_usage_monitoring": true
+  },
+  "non_bypass": {
+    "paid_plan_change": "FOUNDER_EXPLICIT_APPROVAL_REQUIRED",
+    "external_spend": "FOUNDER_EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "FOUNDER_EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
