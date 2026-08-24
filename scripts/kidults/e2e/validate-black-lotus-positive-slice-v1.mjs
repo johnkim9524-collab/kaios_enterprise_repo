@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+
+throw new Error('LEGACY_POSITIVE_QUALIFICATION_DISABLED: positive qualification validation is quarantined and cannot establish Product PASS, Track B, or Projection state');
 const e=JSON.parse(fs.readFileSync(process.argv[2]||'input/product-evidence-package.json','utf8'));
 const a=JSON.parse(fs.readFileSync(process.argv[3]||'input/track-b-assessment.json','utf8'));
 const p=JSON.parse(fs.readFileSync(process.argv[4]||'input/projection.json','utf8'));

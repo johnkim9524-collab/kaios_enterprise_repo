@@ -20,7 +20,8 @@ const secretBoundaryValidators = [
   'scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs'
 ];
 const truthScopeValidators = [
-  'scripts/kidults/kpmo/validate-scoped-certification-truth-boundary-v1.mjs'
+  'scripts/kidults/kpmo/validate-scoped-certification-truth-boundary-v1.mjs',
+  'scripts/kidults/e2e/validate-black-lotus-legacy-quarantine-v1.mjs'
 ];
 const trustRootMigrationRegressionValidators = [
   'scripts/kidults/kpmo/validate-trusted-control-dependency-closure-v1.mjs'
@@ -118,6 +119,7 @@ console.log(JSON.stringify({
   privileged_manual_secret_lane_issue: 974,
   scoped_certification_truth_boundary_machine_bound: true,
   scoped_certification_truth_boundary_validators: truthScopeValidators.length,
+  black_lotus_legacy_qualification_quarantined: true,
   trust_root_migration_dependency_closure_regression_machine_bound: true,
   trust_root_migration_dependency_closure_validators: trustRootMigrationRegressionValidators.length,
   pre_partner_intake_gate_machine_bound: true,
