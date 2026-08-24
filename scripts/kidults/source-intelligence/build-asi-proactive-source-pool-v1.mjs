@@ -250,6 +250,8 @@ const priorRightsCache = previous?.rights_eval_cache && typeof previous.rights_e
   ? previous.rights_eval_cache : {};
 const rightsEvalCache = { ...priorRightsCache };
 let rightsCacheHits = 0;
+let rightsCacheMisses = 0;
+let rightsCacheStaleRejects = 0;
 const stable = value => {
   if (Array.isArray(value)) return value.map(stable);
   if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map(key => [key, stable(value[key])]));
@@ -272,6 +274,8 @@ for (const candidate of candidates) {
     const cacheKey = row ? rightsCacheKey(row, purpose) : null;
     const cached = cacheKey ? priorRightsCache[cacheKey] : null;
     const cacheUsable = cached && cached.review_due_at && new Date(cached.review_due_at) >= asOf;
+    if (supportedGatePurpose(purpose) && row && !cacheUsable) rightsCacheMisses++;
+    if (cached && !cacheUsable) rightsCacheStaleRejects++;
     const decision = supportedGatePurpose(purpose) && row
       ? (cacheUsable ? (rightsCacheHits++, cached) : classifyPurposeRights(row, purpose, asOf))
       : {
@@ -348,10 +352,20 @@ sourcePurposePackages.sort((a, b) =>
 
 const candidateByKey = new Map(candidates.map(candidate => [candidate.source_candidate_key, candidate]));
 const maxPackets = Number(contract.rights_review_queue?.max_packets_per_cycle || 64);
+const reviewSlaDays = Number(contract.rights_review_queue?.review_sla_days || 7);
+const reviewOwner = pkg => pkg.rights_commercial_friction_rank >= 3 ? 'TRACK_Z' : 'KPMO_SOURCE_INTELLIGENCE';
+const dueAt = (pkg, prior) => {
+  const existing = previous?.review_due_at_by_package?.[pkg.package_id] || prior?.review_due_at;
+  if (existing && new Date(existing) >= asOf) return existing;
+  return new Date(asOf.getTime() + reviewSlaDays * 86400000).toISOString();
+};
 const previousReviewAges = previous?.rights_review_age_by_package || {};
 for (const pkg of sourcePurposePackages) {
   const priorState = previous?.review_state_by_package?.[pkg.package_id] || 'PENDING';
   pkg.review_state = priorState;
+  pkg.review_owner = reviewOwner(pkg);
+  pkg.review_due_at = dueAt(pkg, previous?.source_purpose_packages?.find(item => item.package_id === pkg.package_id));
+  pkg.escalation_at = new Date(new Date(pkg.review_due_at).getTime() + 2 * 86400000).toISOString();
   pkg.review_age_cycles = previous
     ? (['CLOSED', 'REVIEWED_PASS', 'REVIEWED_NO_GO'].includes(priorState) ? 0 : Number(previousReviewAges[pkg.package_id] || 0) + 1)
     : 0;
@@ -373,6 +387,7 @@ const rightsReviewQueue = reviewCandidates
   .map((pkg, index) => {
     const candidate = candidateByKey.get(pkg.source_candidate_key);
     return {
+      package_id: pkg.package_id,
       packet_id: `rights-review:${pkg.source_candidate_key}:${pkg.purpose}:${index + 1}`,
       source_candidate_key: pkg.source_candidate_key,
       source_id: pkg.source_id,
@@ -395,6 +410,10 @@ const rightsReviewQueue = reviewCandidates
       rights_reason_codes: pkg.rights_reason_codes,
       review_age_cycles: pkg.review_age_cycles,
       review_overdue: pkg.review_age_cycles >= 2,
+      review_state: pkg.review_state,
+      review_owner: pkg.review_owner,
+      review_due_at: pkg.review_due_at,
+      escalation_at: pkg.escalation_at,
       rights_state: 'UNASSESSED',
       admission_state: 'NOT_ADMITTED',
       acquisition_authorized: false,
@@ -470,11 +489,30 @@ const artifact = {
   rights_review_age_by_package: Object.fromEntries(sourcePurposePackages
     .filter(pkg => pkg.rights_decision !== RIGHTS_CLEAR)
     .map(pkg => [pkg.package_id, pkg.review_age_cycles])),
+  review_due_at_by_package: Object.fromEntries(sourcePurposePackages
+    .filter(pkg => pkg.rights_decision !== RIGHTS_CLEAR)
+    .map(pkg => [pkg.package_id, pkg.review_due_at])),
   review_state_by_package: Object.fromEntries(sourcePurposePackages
     .filter(pkg => pkg.rights_decision !== RIGHTS_CLEAR)
     .map(pkg => [pkg.package_id, pkg.review_state || 'PENDING'])),
   rights_eval_cache: rightsEvalCache,
   rights_evaluation_cache_hits: rightsCacheHits,
+  rights_evaluation_cache_misses: rightsCacheMisses,
+  rights_evaluation_stale_cache_rejections: rightsCacheStaleRejects,
+  source_state_transition_policy: {
+    DISCOVERY_OR_CONTEXT_ONLY: ['REFERENCE_PURPOSE_HOLD', 'CURRENT_SOLD_PURPOSE_HOLD'],
+    REFERENCE_PURPOSE_HOLD: ['RIGHTS_CLEAR_REFERENCE_ONLY'],
+    CURRENT_SOLD_PURPOSE_HOLD: ['RIGHTS_CLEAR_COLLECTOR_CURRENT_SOLD_CANDIDATE'],
+    RIGHTS_CLEAR_REFERENCE_ONLY: [],
+    RIGHTS_CLEAR_COLLECTOR_CURRENT_SOLD_CANDIDATE: []
+  },
+  throughput_kpis: {
+    rights_clear_current_sold_sources: rightsClearCurrentSold.length,
+    current_sold_evidence_admitted: 0,
+    market_events_created: 0,
+    track_b_inputs_ready: 0,
+    index_candidates_created: 0
+  },
   permission_required_queue_count: permissionRequiredQueue.length,
   no_go_queue_count: noGoQueue.length,
   domain_fit_hold_queue_count: domainFitHoldQueue.length,

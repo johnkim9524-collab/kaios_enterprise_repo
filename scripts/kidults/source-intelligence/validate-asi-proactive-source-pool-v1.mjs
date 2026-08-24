@@ -161,7 +161,13 @@ if (Number(value.rights_review_queue_count) !== value.rights_review_queue.length
 if (value.rights_review_queue.length > 64) fail('RIGHTS_QUEUE_LIMIT');
 if (!value.rights_review_age_by_package || typeof value.rights_review_age_by_package !== 'object') fail('REVIEW_AGE_STATE_MISSING');
 if (!value.review_state_by_package || typeof value.review_state_by_package !== 'object') fail('REVIEW_STATE_MISSING');
+if (!value.review_due_at_by_package || typeof value.review_due_at_by_package !== 'object') fail('REVIEW_DUE_STATE_MISSING');
 if (!value.rights_eval_cache || typeof value.rights_eval_cache !== 'object') fail('RIGHTS_EVAL_CACHE_MISSING');
+for (const key of ['rights_evaluation_cache_hits', 'rights_evaluation_cache_misses', 'rights_evaluation_stale_cache_rejections']) {
+  if (!Number.isInteger(value[key]) || value[key] < 0) fail(`CACHE_METRIC:${key}`);
+}
+if (!value.source_state_transition_policy || typeof value.source_state_transition_policy !== 'object') fail('SOURCE_STATE_TRANSITION_POLICY_MISSING');
+if (!value.throughput_kpis || typeof value.throughput_kpis !== 'object') fail('THROUGHPUT_KPIS_MISSING');
 let previousRanking = null;
 for (const receipt of value.rights_review_queue) {
   if (receipt.rights_state !== 'UNASSESSED' ||
@@ -172,7 +178,10 @@ for (const receipt of value.rights_review_queue) {
   if (!Array.isArray(receipt.ranking_vector) || receipt.ranking_vector.length !== 6) fail(`RANKING_VECTOR:${receipt.packet_id}`);
   if (!Number.isInteger(receipt.review_age_cycles) || receipt.review_age_cycles < 0) fail(`REVIEW_AGE:${receipt.packet_id}`);
   if (receipt.review_overdue !== (receipt.review_age_cycles >= 2)) fail(`REVIEW_OVERDUE:${receipt.packet_id}`);
-  if (!['PENDING', 'IN_REVIEW', 'CLOSED', 'REVIEWED_PASS', 'REVIEWED_NO_GO'].includes(packageById.get(receipt.package_id)?.review_state || 'PENDING')) fail(`REVIEW_STATE:${receipt.packet_id}`);
+  if (!['PENDING', 'IN_REVIEW', 'CLOSED', 'REVIEWED_PASS', 'REVIEWED_NO_GO'].includes(receipt.review_state || 'PENDING')) fail(`REVIEW_STATE:${receipt.packet_id}`);
+  if (!['TRACK_Z', 'KPMO_SOURCE_INTELLIGENCE'].includes(receipt.review_owner)) fail(`REVIEW_OWNER:${receipt.packet_id}`);
+  if (!receipt.review_due_at || Number.isNaN(new Date(receipt.review_due_at).getTime())) fail(`REVIEW_DUE:${receipt.packet_id}`);
+  if (!receipt.escalation_at || Number.isNaN(new Date(receipt.escalation_at).getTime())) fail(`REVIEW_ESCALATION:${receipt.packet_id}`);
   if (Number(value.rights_review_age_by_package[`source-purpose:${receipt.source_candidate_key}:${receipt.purpose}`]) !== receipt.review_age_cycles) fail(`REVIEW_AGE_STATE:${receipt.packet_id}`);
   if (receipt.external_route !== 'TRACK_Z_ISSUE_1166_THEN_KPMO_ISSUE_344_THEN_FOUNDER') fail(`RIGHTS_PACKET_ROUTE:${receipt.packet_id}`);
   if (previousRanking) {
