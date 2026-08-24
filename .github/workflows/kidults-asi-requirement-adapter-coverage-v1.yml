@@ -156,10 +156,12 @@ jobs:
             test "${#FILES[@]}" -eq 1
             cp "${FILES[0]}" "/tmp/arl-input/$NAME"
           done
-          SOURCE_SHA=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/arl-run.json')).head_sha")
+          PRODUCER_HEAD_SHA=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/arl-run.json')).head_sha")
+          EXECUTION_SHA=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json')).source_sha")
           CONSUMER_SHA=$(git rev-parse HEAD)
-          git merge-base --is-ancestor "$SOURCE_SHA" "$CONSUMER_SHA"
-          export CONSUMER_SHA
+          git merge-base --is-ancestor "$PRODUCER_HEAD_SHA" "$CONSUMER_SHA"
+          git merge-base --is-ancestor "$EXECUTION_SHA" "$CONSUMER_SHA"
+          export PRODUCER_HEAD_SHA EXECUTION_SHA CONSUMER_SHA
           node - <<'NODE'
           const fs=require('fs');
           const run=JSON.parse(fs.readFileSync('/tmp/arl-run.json','utf8'));
@@ -167,16 +169,18 @@ jobs:
           const expectedSourceSha=process.env.TARGET_SOURCE_SHA;
           const expectedHeadBranch=process.env.EXPECTED_HEAD_BRANCH;
           const validationScope=process.env.ARTIFACT_VALIDATION_SCOPE;
-          if(run.head_sha!==expectedSourceSha)throw new Error('AUTONOMOUS_RESOLUTION_SOURCE_SHA_SCOPE');
+          const executionSha=process.env.EXECUTION_SHA;
+          if(run.head_sha!==expectedSourceSha||run.head_sha!==process.env.PRODUCER_HEAD_SHA)throw new Error('AUTONOMOUS_RESOLUTION_SOURCE_SHA_SCOPE');
           if(run.head_branch!==expectedHeadBranch)throw new Error('AUTONOMOUS_RESOLUTION_HEAD_BRANCH_SCOPE');
           if(!['MAIN','PULL_REQUEST_HEAD'].includes(validationScope))throw new Error('AUTONOMOUS_RESOLUTION_VALIDATION_SCOPE');
-          const binding={id:'kidults-asi-autonomous-resolution-artifact-binding-v1',version:'1.0.0',artifact_id:artifact.id,artifact_name:artifact.name,expired:artifact.expired,workflow_run_id:run.id,workflow_name:run.name,workflow_path:run.path,head_branch:run.head_branch,expected_head_branch:expectedHeadBranch,head_sha:run.head_sha,expected_source_sha:expectedSourceSha,consumer_sha:process.env.CONSUMER_SHA,validation_scope:validationScope,production_eligible:validationScope==='MAIN',source_sha_ancestor_of_consumer:true,status:run.status,conclusion:run.conclusion,created_at:artifact.created_at,expires_at:artifact.expires_at};
+          const binding={id:'kidults-asi-autonomous-resolution-artifact-binding-v1',version:'1.0.0',artifact_id:artifact.id,artifact_name:artifact.name,expired:artifact.expired,workflow_run_id:run.id,workflow_name:run.name,workflow_path:run.path,head_branch:run.head_branch,expected_head_branch:expectedHeadBranch,head_sha:run.head_sha,expected_source_sha:expectedSourceSha,execution_sha:executionSha,consumer_sha:process.env.CONSUMER_SHA,validation_scope:validationScope,production_eligible:validationScope==='MAIN',source_sha_ancestor_of_consumer:true,execution_sha_ancestor_of_consumer:true,status:run.status,conclusion:run.conclusion,created_at:artifact.created_at,expires_at:artifact.expires_at};
           fs.writeFileSync('/tmp/arl-input/autonomous-resolution-artifact-binding-v1.json',JSON.stringify(binding,null,2)+'\n');
           NODE
           echo "ARL_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
           echo "ARL_ARTIFACT_ID=$ARTIFACT_ID" >> "$GITHUB_ENV"
-          echo "ARL_SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
-          echo "arl_run_id=$RUN_ID artifact_id=$ARTIFACT_ID source_sha=$SOURCE_SHA consumer_sha=$CONSUMER_SHA"
+          echo "ARL_PRODUCER_HEAD_SHA=$PRODUCER_HEAD_SHA" >> "$GITHUB_ENV"
+          echo "ARL_EXECUTION_SHA=$EXECUTION_SHA" >> "$GITHUB_ENV"
+          echo "arl_run_id=$RUN_ID artifact_id=$ARTIFACT_ID producer_head_sha=$PRODUCER_HEAD_SHA execution_sha=$EXECUTION_SHA consumer_sha=$CONSUMER_SHA"
       - name: Build requirement coverage twice
         run: |
           set -euo pipefail
