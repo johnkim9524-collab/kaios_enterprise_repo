@@ -7,10 +7,19 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
     if (!targetToLegacy.has(target)) targetToLegacy.set(target, []);
     targetToLegacy.get(target).push(record.legacy_scope_id);
   }
-  const adapterProfiles = new Map(adapterContract.registered_source_profiles.map(([priorityRank, sourceId, verifiedAssignmentCount, targetClaims]) => [sourceId, {
-    priority_rank: priorityRank, source_id: sourceId,
-    verified_assignment_count: verifiedAssignmentCount, target_claims: targetClaims
-  }]));
+  const adapterProfiles = new Map(adapterContract.registered_source_profiles.map(([priorityRank, sourceId, verifiedAssignmentCount, targetClaims]) => {
+    const ceiling = adapterContract.purpose_claim_ceiling_overrides?.[sourceId] || {};
+    const suppressed = new Set(ceiling.suppressed_target_claims || []);
+    return [sourceId, {
+      priority_rank: priorityRank,
+      source_id: sourceId,
+      verified_assignment_count: verifiedAssignmentCount,
+      target_claims: targetClaims,
+      effective_target_claims: targetClaims.filter((claim) => !suppressed.has(claim)),
+      suppressed_target_claims: [...suppressed].sort(),
+      context_only_claims: [...(ceiling.context_only_claims || [])].sort()
+    }];
+  }));
   const rightsIndex = buildPurposeRightsIndex(
     rightsPreflight,
     adapterContract.registered_source_profiles.map(([, sourceId]) => sourceId),
@@ -37,7 +46,7 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
     const legacyScopes = targetToLegacy.get(binding.scope_id) || [];
     const eligible = frontierProfiles
       .filter((profile) => profile.rights_eligibility?.decision === RIGHTS_CLEAR)
-      .filter((profile) => profile.target_claims.includes(requiredClaim) && profile.collection_scope_ids.some((scope) => legacyScopes.includes(scope)))
+      .filter((profile) => profile.effective_target_claims.includes(requiredClaim) && profile.collection_scope_ids.some((scope) => legacyScopes.includes(scope)))
       .sort((a, b) => a.priority_rank - b.priority_rank || a.source_id.localeCompare(b.source_id));
     const slots = contract.replacement_policy.required_slots.map((slotName, index) => {
       const profile = eligible[index] || null;
@@ -52,10 +61,16 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
         channel_type: profile.channel_type,
         declared_source_roles: profile.source_roles,
         registered_target_claims: profile.target_claims,
+        effective_target_claims: profile.effective_target_claims,
+        suppressed_target_claims: profile.suppressed_target_claims,
+        context_only_claims: profile.context_only_claims,
         adapter_state: 'ADAPTER_NOT_IMPLEMENTED',
         rights_state: profile.rights_eligibility.decision,
         rights_eligibility_state: profile.rights_eligibility.decision,
         rights_eligibility_reason_codes: profile.rights_eligibility.reason_codes,
+        rights_evidence_refs: profile.rights_eligibility.evidence_refs,
+        rights_evidence_digest: profile.rights_eligibility.evidence_digest,
+        purpose_binding_id: profile.rights_eligibility.purpose_binding_id,
         sold_or_liquidity_semantics_state: 'UNVERIFIED',
         factual_origin_independence_state: 'UNVERIFIED',
         evidence_admitted: false
@@ -85,7 +100,7 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
       state: eligible.length > 0 ? 'RIGHTS_CLEAR_REGISTERED_PROFILES_IDENTIFIED' : 'NO_RIGHTS_CLEAR_REGISTERED_PROFILE',
       eligible_registered_profile_count: eligible.length,
       rights_clear_registered_profile_count: eligible.length,
-      rights_hold_registered_profile_count: rightsHoldProfiles.filter((profile) => profile.target_claims.includes(requiredClaim) && profile.collection_scope_ids.some((scope) => legacyScopes.includes(scope))).length,
+      rights_hold_registered_profile_count: rightsHoldProfiles.filter((profile) => profile.effective_target_claims.includes(requiredClaim) && profile.collection_scope_ids.some((scope) => legacyScopes.includes(scope))).length,
       filled_slot_count: slots.filter((slot) => slot.source_id).length,
       slots,
       rights_or_admission_created: false,
@@ -162,7 +177,10 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
         display_name: profile.display_name,
         priority_rank: profile.priority_rank,
         verified_assignment_count: profile.verified_assignment_count,
-        target_claims: profile.target_claims,
+        registered_target_claims: profile.target_claims,
+        effective_target_claims: profile.effective_target_claims,
+        suppressed_target_claims: profile.suppressed_target_claims,
+        context_only_claims: profile.context_only_claims,
         rights_eligibility_state: profile.rights_eligibility.decision,
         rights_eligibility_reason_codes: profile.rights_eligibility.reason_codes,
         rights_evidence_refs: profile.rights_eligibility.evidence_refs,

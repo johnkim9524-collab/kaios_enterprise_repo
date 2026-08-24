@@ -73,6 +73,22 @@ for (const tuple of contract.registered_source_profiles) {
 }
 assert(profileSourceIds.size === 16, 'PROFILE_UNIQUE_COUNT');
 assert(assignmentTotal === 156, 'PROFILE_ASSIGNMENT_TOTAL');
+const claimCeilingSources = [
+  'pricecharting-api',
+  'bricklink-catalog-api',
+  'comc-marketplace',
+  'goat-sneaker-marketplace',
+  'hasbro-pulse-collections',
+  'nike-snkrs-launch-calendar'
+];
+assert(contract.claim_ceiling_policy?.exact_source_purpose_binding_required === true, 'CLAIM_CEILING_EXACT_PURPOSE');
+assert(contract.claim_ceiling_policy?.context_only_claims_never_enter_current_sold_or_liquidity === true, 'CLAIM_CEILING_CONTEXT_BOUNDARY');
+for (const sourceId of claimCeilingSources) {
+  const ceiling = contract.purpose_claim_ceiling_overrides?.[sourceId];
+  assert(ceiling && Array.isArray(ceiling.suppressed_target_claims) && ceiling.suppressed_target_claims.length > 0, `CLAIM_CEILING_SOURCE:${sourceId}`);
+  assert(ceiling.suppressed_target_claims.every((claim) => claims.includes(claim)), `CLAIM_CEILING_TARGET:${sourceId}`);
+  assert(Array.isArray(ceiling.context_only_claims) && ceiling.context_only_claims.length > 0, `CLAIM_CEILING_CONTEXT:${sourceId}`);
+}
 
 const requiredImplementationTruth = {
   generic_strict_adapter_runtime_implemented: true,

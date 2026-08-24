@@ -1,11 +1,15 @@
 {
   "id": "kidults-asi-proactive-source-pool-accumulator-v1",
-  "version": "1.0.0",
-  "status": "SHADOW_CONTINUOUS_CANDIDATE_POOL_CONTRACT",
-  "parent_issues": [480, 654, 746],
+  "version": "1.1.0",
+  "status": "SHADOW_RIGHTS_FIRST_SOURCE_X_PURPOSE_POOL_CONTRACT",
+  "parent_issues": [
+    480,
+    654,
+    746
+  ],
   "production": "HOLD",
   "public_release": "HOLD",
-  "purpose": "Continuously discover, deduplicate and retain source candidates ahead of immediate demand fulfillment without converting discovery metadata into rights, admission, evidence or market claims.",
+  "purpose": "Continuously discover, deduplicate and retain global source candidates, partition them by Source × Purpose, and rank purpose-specific rights/commercial preflight before mission utility without converting discovery metadata into rights, admission, evidence or market claims.",
   "persistence": {
     "mode": "ROLLING_GITHUB_ACTIONS_ARTIFACT",
     "artifact_name": "kidults-asi-proactive-source-pool-v1",
@@ -18,9 +22,17 @@
     "category_shards": 8,
     "products_per_category_per_cycle": 2,
     "rotation_cycle_count": 10,
-    "safe_discovery_providers": ["WIKIDATA_ACTION_API", "WIKIDATA_OFFICIAL_WEBSITE_CLAIM", "DATACITE_DOI_METADATA"],
+    "safe_discovery_providers": [
+      "WIKIDATA_ACTION_API",
+      "WIKIDATA_OFFICIAL_WEBSITE_CLAIM",
+      "DATACITE_DOI_METADATA"
+    ],
     "target_site_traversal_authorized": false,
-    "content_acquisition_authorized": false
+    "content_acquisition_authorized": false,
+    "purpose_partition_required": true,
+    "current_sold_purpose": "CURRENT_SOLD_TRANSACTION",
+    "current_sold_confirmed_role": "SOLD_TRANSACTION",
+    "context_or_catalog_roles_never_imply_current_sold": true
   },
   "candidate_state_machine": [
     "DISCOVERY_METADATA_OBSERVED",
@@ -48,7 +60,9 @@
     "admission_state",
     "source_pool_state",
     "evidence_state",
-    "next_action"
+    "next_action",
+    "candidate_purposes",
+    "rights_friction_hint"
   ],
   "automatic_boundaries": {
     "rights_state": "UNASSESSED",
@@ -66,8 +80,56 @@
   },
   "rights_review_queue": {
     "max_packets_per_cycle": 64,
-    "ranking": ["NEW_CANDIDATE_FIRST", "DEMAND_LINK_COUNT_DESC", "ROLE_DIVERSITY_DESC", "REGION_DIVERSITY_DESC", "OBSERVATION_COUNT_DESC"],
-    "packet_purpose": "PURPOSE_SPECIFIC_RIGHTS_ROBOTS_ACCESS_PREFLIGHT_ONLY"
+    "ranking": [
+      "PURPOSE_PRIORITY_CURRENT_SOLD_FIRST",
+      "RIGHTS_COMMERCIAL_FRICTION_ASC",
+      "CONFIRMED_ROLE_BEFORE_DISCOVERY_INTENT",
+      "NEW_CANDIDATE_FIRST",
+      "DEMAND_LINK_COUNT_DESC",
+      "ROLE_DIVERSITY_DESC",
+      "REGION_DIVERSITY_DESC",
+      "OBSERVATION_COUNT_DESC"
+    ],
+    "packet_purpose": "SOURCE_X_PURPOSE_RIGHTS_ACCESS_COMMERCIAL_PREFLIGHT_ONLY",
+    "rights_first_before_mission_fit": true
   },
-  "truth_boundary": "Persistent candidate accumulation is discovery metadata only. Repeated observation does not create rights, admission, source-pool eligibility, verified evidence, market truth, Public release or Production authority."
+  "truth_boundary": "Persistent candidate accumulation and Source × Purpose prioritization are discovery/preflight metadata only. Rights/commercial friction is ranked before mission utility. Listing, catalog, attention or public visibility never becomes Current SOLD; only an evidence-backed RIGHTS_CLEAR_FOR_PURPOSE record may enter the adapter-development backlog, and backlog entry never authorizes acquisition, provider contact, spend, Public release or Production.",
+  "source_x_purpose": {
+    "required": true,
+    "purposes": [
+      "CURRENT_SOLD_TRANSACTION",
+      "ACTIVE_LISTING_CONTEXT",
+      "IDENTITY_CATALOG",
+      "AUTHENTICATION_CONDITION",
+      "PROVENANCE_HISTORY",
+      "CULTURE_ATTENTION",
+      "SOURCE_ROLE_CLASSIFICATION"
+    ],
+    "current_sold_entry_bases": [
+      "CONFIRMED_SOLD_TRANSACTION_ROLE",
+      "EXPLICIT_CURRENT_SOLD_DISCOVERY_INTENT_PENDING_ROLE_VERIFICATION"
+    ],
+    "prohibited_current_sold_substitutions": [
+      "LISTING_SUPPLY",
+      "CATALOG_REFERENCE",
+      "PRIMARY_AUTHORITY",
+      "CULTURE_ATTENTION",
+      "PROVENANCE_HISTORY"
+    ]
+  },
+  "rights_clear_adapter_backlog": {
+    "eligibility_rule": "ONLY_RIGHTS_CLEAR_FOR_PURPOSE_AND_PURPOSE_ROLE_VERIFIED",
+    "required_rights": [
+      "COLLECT",
+      "STORE",
+      "DERIVE",
+      "COMMERCIAL_REUSE",
+      "AUTHORIZED_ACCESS",
+      "EVIDENCE_REFERENCE"
+    ],
+    "unknown_or_conditional_decision": "RIGHTS_HOLD",
+    "provider_contact_required_for_entry": false,
+    "acquisition_authorized_by_backlog_entry": false,
+    "adapter_implementation_authorized_by_backlog_entry": false
+  }
 }

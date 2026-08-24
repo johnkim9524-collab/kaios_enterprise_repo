@@ -22,14 +22,28 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-admitted-metadata-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/asi-admitted-metadata-revocation-registry-v1.json'
       - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml'
   push:
     branches: [main]
     paths:
+      - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
       - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml'
 
 permissions:
@@ -80,11 +94,16 @@ jobs:
           mkdir -p input queue discovery-out /tmp/previous-any-site-pool-v2
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" > /tmp/anchor-foundation.zip
           unzip -q -o /tmp/anchor-foundation.zip -d input
-          PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v2" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          PREV_RUN_ID=$(gh api --paginate -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs?branch=main&status=success&per_page=100" --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | awk 'NR==1{first=$0} END{if(first) print first}')
+          PREV_ID=""
+          if [ -n "$PREV_RUN_ID" ]; then
+            PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${PREV_RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v2" and .expired==false)] | sort_by(.created_at) | reverse | .[0].id // empty')
+          fi
           if [ -n "$PREV_ID" ]; then
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-any-site-pool-v2.zip
             unzip -q -o /tmp/previous-any-site-pool-v2.zip -d /tmp/previous-any-site-pool-v2
           fi
+          echo "previous_successful_run_id=${PREV_RUN_ID:-NONE}"
           echo "previous_artifact_id=${PREV_ID:-NONE}"
       - name: Build governed 160-anchor and 32-scope demand queue
         run: |

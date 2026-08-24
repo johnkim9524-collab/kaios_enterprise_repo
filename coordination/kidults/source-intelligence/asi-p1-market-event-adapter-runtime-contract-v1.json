@@ -4,7 +4,12 @@
   "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P1",
-  "platform_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
   "purpose": "Provide the executable fail-closed normalization, rights, provenance, sold-semantics, exposure, censoring, independence and claim-ceiling runtime required before a source-specific adapter may emit a dated sold transaction, current-price input or liquidity observation.",
   "canonical_inputs": {
     "strict_current_market_gate": "coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json",
@@ -24,20 +29,74 @@
   ],
   "claim_targets": {
     "DATED_OBSERVED_SOLD_TRANSACTION": {
-      "required_fields": ["source_record_id", "canonical_object_id", "terminal_market_state", "realized_price", "currency", "event_at", "condition_segment", "source_owner_id", "factual_origin_id", "field_purpose_rights_refs", "provenance_refs", "input_snapshot_ref", "source_schema_version"],
-      "required_rights": ["COLLECT_RIGHT", "BOUNDED_STORE_RIGHT", "INTERNAL_DERIVE_RIGHT"],
-      "allowed_terminal_states": ["SOLD"],
+      "required_fields": [
+        "source_record_id",
+        "canonical_object_id",
+        "terminal_market_state",
+        "realized_price",
+        "currency",
+        "event_at",
+        "condition_segment",
+        "source_owner_id",
+        "factual_origin_id",
+        "field_purpose_rights_refs",
+        "provenance_refs",
+        "input_snapshot_ref",
+        "source_schema_version"
+      ],
+      "required_rights": [
+        "COLLECT_RIGHT",
+        "BOUNDED_STORE_RIGHT",
+        "INTERNAL_DERIVE_RIGHT"
+      ],
+      "allowed_terminal_states": [
+        "SOLD"
+      ],
       "listing_or_bid_ask_is_sold": false
     },
     "CURRENT_PRICE": {
       "requires_dated_sold_admission": true,
-      "required_controls": ["FRESHNESS", "MINIMUM_SAMPLE", "CONDITION_SEGMENTATION", "OUTLIER_AND_DUPLICATE_CONTROL", "CURRENCY_NORMALIZATION", "SOURCE_OWNER_AND_FACTUAL_ORIGIN_INDEPENDENCE", "TEMPORAL_COHERENCE", "DETERMINISTIC_RECOMPUTATION"],
+      "required_controls": [
+        "FRESHNESS",
+        "MINIMUM_SAMPLE",
+        "CONDITION_SEGMENTATION",
+        "OUTLIER_AND_DUPLICATE_CONTROL",
+        "CURRENCY_NORMALIZATION",
+        "SOURCE_OWNER_AND_FACTUAL_ORIGIN_INDEPENDENCE",
+        "TEMPORAL_COHERENCE",
+        "DETERMINISTIC_RECOMPUTATION"
+      ],
       "single_transaction_can_establish_current_price": false
     },
     "LIQUIDITY_OR_TIME_TO_SALE": {
-      "required_fields": ["source_record_id", "canonical_object_id", "exposure_start_at", "observation_end_at", "outcome_state", "censoring_state", "failed_sale_handling", "exposure_denominator_id", "source_owner_id", "factual_origin_id", "field_purpose_rights_refs", "provenance_refs", "input_snapshot_ref", "source_schema_version"],
-      "required_rights": ["COLLECT_RIGHT", "BOUNDED_STORE_RIGHT", "INTERNAL_DERIVE_RIGHT"],
-      "allowed_outcomes": ["SOLD", "UNSOLD", "WITHDRAWN", "FAILED_SALE", "RIGHT_CENSORED"],
+      "required_fields": [
+        "source_record_id",
+        "canonical_object_id",
+        "exposure_start_at",
+        "observation_end_at",
+        "outcome_state",
+        "censoring_state",
+        "failed_sale_handling",
+        "exposure_denominator_id",
+        "source_owner_id",
+        "factual_origin_id",
+        "field_purpose_rights_refs",
+        "provenance_refs",
+        "input_snapshot_ref",
+        "source_schema_version"
+      ],
+      "required_rights": [
+        "COLLECT_RIGHT",
+        "BOUNDED_STORE_RIGHT",
+        "INTERNAL_DERIVE_RIGHT"
+      ],
+      "allowed_outcomes": [
+        "SOLD",
+        "UNSOLD",
+        "WITHDRAWN",
+        "FAILED_SALE",
+        "RIGHT_CENSORED"
+      ],
       "sold_count_without_exposure_denominator_is_liquidity": false
     }
   },
@@ -56,24 +115,161 @@
     "PROVIDER_DIRECT_TO_INDEX_OR_PROJECTION_FORBIDDEN"
   ],
   "registered_source_profiles": [
-    [1, "bonhams-cars-results", 24, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"]],
-    [2, "barrett-jackson-results", 18, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"]],
-    [3, "bonhams-watches-results", 18, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE"]],
-    [4, "christies-watches-results", 12, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE"]],
-    [5, "sothebys-watches-results", 12, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE"]],
-    [6, "broad-arrow-results", 12, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"]],
-    [7, "pricecharting-api", 12, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE"]],
-    [8, "collecting-cars-sold", 6, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"]],
-    [9, "iconic-auctioneers-results", 6, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"]],
-    [10, "christies-handbags-results", 6, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE"]],
-    [11, "reverb-price-guide", 6, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE"]],
-    [12, "hasbro-pulse-collections", 6, ["LIQUIDITY_OR_TIME_TO_SALE"]],
-    [13, "goat-sneaker-marketplace", 6, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"]],
-    [14, "comc-marketplace", 6, ["DATED_OBSERVED_SOLD_TRANSACTION", "CURRENT_PRICE", "LIQUIDITY_OR_TIME_TO_SALE"]],
-    [15, "bricklink-catalog-api", 3, ["LIQUIDITY_OR_TIME_TO_SALE"]],
-    [16, "nike-snkrs-launch-calendar", 3, ["LIQUIDITY_OR_TIME_TO_SALE"]]
+    [
+      1,
+      "bonhams-cars-results",
+      24,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ]
+    ],
+    [
+      2,
+      "barrett-jackson-results",
+      18,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ]
+    ],
+    [
+      3,
+      "bonhams-watches-results",
+      18,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE"
+      ]
+    ],
+    [
+      4,
+      "christies-watches-results",
+      12,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE"
+      ]
+    ],
+    [
+      5,
+      "sothebys-watches-results",
+      12,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE"
+      ]
+    ],
+    [
+      6,
+      "broad-arrow-results",
+      12,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ]
+    ],
+    [
+      7,
+      "pricecharting-api",
+      12,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE"
+      ]
+    ],
+    [
+      8,
+      "collecting-cars-sold",
+      6,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ]
+    ],
+    [
+      9,
+      "iconic-auctioneers-results",
+      6,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ]
+    ],
+    [
+      10,
+      "christies-handbags-results",
+      6,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE"
+      ]
+    ],
+    [
+      11,
+      "reverb-price-guide",
+      6,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE"
+      ]
+    ],
+    [
+      12,
+      "hasbro-pulse-collections",
+      6,
+      [
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ]
+    ],
+    [
+      13,
+      "goat-sneaker-marketplace",
+      6,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ]
+    ],
+    [
+      14,
+      "comc-marketplace",
+      6,
+      [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ]
+    ],
+    [
+      15,
+      "bricklink-catalog-api",
+      3,
+      [
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ]
+    ],
+    [
+      16,
+      "nike-snkrs-launch-calendar",
+      3,
+      [
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ]
+    ]
   ],
-  "profile_tuple": ["priority_rank", "source_id", "verified_assignment_count", "target_claims"],
+  "profile_tuple": [
+    "priority_rank",
+    "source_id",
+    "verified_assignment_count",
+    "target_claims"
+  ],
   "registered_profile_default_state": "ADAPTER_NOT_IMPLEMENTED",
   "implementation_truth": {
     "generic_strict_adapter_runtime_implemented": true,
@@ -95,7 +291,17 @@
     "can_prove_empirical_source_rights_or_semantics": false,
     "can_create_market_event_or_claim": false
   },
-  "p1_exit_criteria": ["REGISTERED_SOURCE_ADAPTER_IMPLEMENTED", "EXACT_RIGHTS_VERIFIED", "SCHEMA_AND_DRIFT_CONTROL_VERIFIED", "SOLD_OR_EXPOSURE_SEMANTICS_VERIFIED", "CANONICAL_IDENTITY_VERIFIED", "OWNER_AND_FACTUAL_ORIGIN_VERIFIED", "DUPLICATE_OUTLIER_AND_CENSOR_CONTROLS_VERIFIED", "DETERMINISTIC_REPLAY_VERIFIED", "MARKET_EVENT_ADMISSION_RECEIPT_EMITTED"],
+  "p1_exit_criteria": [
+    "REGISTERED_SOURCE_ADAPTER_IMPLEMENTED",
+    "EXACT_RIGHTS_VERIFIED",
+    "SCHEMA_AND_DRIFT_CONTROL_VERIFIED",
+    "SOLD_OR_EXPOSURE_SEMANTICS_VERIFIED",
+    "CANONICAL_IDENTITY_VERIFIED",
+    "OWNER_AND_FACTUAL_ORIGIN_VERIFIED",
+    "DUPLICATE_OUTLIER_AND_CENSOR_CONTROLS_VERIFIED",
+    "DETERMINISTIC_REPLAY_VERIFIED",
+    "MARKET_EVENT_ADMISSION_RECEIPT_EMITTED"
+  ],
   "truth_boundary": {
     "generic_runtime_is_source_specific_adapter": false,
     "fixture_normalization_is_empirical_admission": false,
@@ -104,5 +310,72 @@
     "sold_count_is_liquidity": false,
     "public_release": "HOLD",
     "production": "HOLD"
+  },
+  "purpose_claim_ceiling_overrides": {
+    "pricecharting-api": {
+      "suppressed_target_claims": [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE"
+      ],
+      "context_only_claims": [
+        "CURRENT_VALUE_AGGREGATE_CONTEXT"
+      ],
+      "rationale": "Official API documentation does not establish individual dated sold transactions."
+    },
+    "bricklink-catalog-api": {
+      "suppressed_target_claims": [
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ],
+      "context_only_claims": [
+        "SIX_MONTH_SOLD_AGGREGATE_CONTEXT"
+      ],
+      "rationale": "Aggregate price-guide statistics are not individual exposure-denominator observations."
+    },
+    "comc-marketplace": {
+      "suppressed_target_claims": [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ],
+      "context_only_claims": [
+        "LISTING_AND_ACCOUNT_GATED_HISTORY_CONTEXT"
+      ],
+      "rationale": "Public listing and account/subscription surfaces do not establish a rights-cleared transaction feed."
+    },
+    "goat-sneaker-marketplace": {
+      "suppressed_target_claims": [
+        "DATED_OBSERVED_SOLD_TRANSACTION",
+        "CURRENT_PRICE",
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ],
+      "context_only_claims": [
+        "LISTING_AND_ASK_CONTEXT"
+      ],
+      "rationale": "Listing and ask context cannot be widened to sold, current price, or liquidity evidence."
+    },
+    "hasbro-pulse-collections": {
+      "suppressed_target_claims": [
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ],
+      "context_only_claims": [
+        "PRIMARY_RETAIL_CATALOG_CONTEXT"
+      ],
+      "rationale": "Primary retail catalog availability is not resale liquidity."
+    },
+    "nike-snkrs-launch-calendar": {
+      "suppressed_target_claims": [
+        "LIQUIDITY_OR_TIME_TO_SALE"
+      ],
+      "context_only_claims": [
+        "PRIMARY_RELEASE_CALENDAR_CONTEXT"
+      ],
+      "rationale": "Release-calendar availability is not secondary-market liquidity."
+    }
+  },
+  "claim_ceiling_policy": {
+    "exact_source_purpose_binding_required": true,
+    "generic_profile_target_claim_is_not_empirical_eligibility": true,
+    "context_only_claims_never_enter_current_sold_or_liquidity": true,
+    "claim_ceiling_override_precedes_mission_impact_ranking": true
   }
 }

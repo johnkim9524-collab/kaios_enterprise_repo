@@ -101,7 +101,7 @@ assert(admission.public_release === 'HOLD' && admission.production === 'HOLD' &&
 
 assert(top16Preflight.rows.length === 16 && blockers.rows?.length === 16 && same(blockers.rows, top16Preflight.rows), 'TOP16_ROWS');
 assert(blockers.registered_source_profiles === 16 && blockers.software_adapters_implemented_fixture_verified === 16 &&
-  blockers.preflighted_sources === 5 && blockers.empirically_activated === 0 && blockers.evidence_admitted === 0 &&
+  blockers.preflighted_sources === 16 && blockers.empirically_activated === 0 && blockers.evidence_admitted === 0 &&
   blockers.verified_current_sold_events === 0, 'TOP16_COUNTS');
 assert(blockers.rows.every((row) => row.activation_state.startsWith('HOLD_')), 'TOP16_FAIL_CLOSED');
 assert(blockers.authority_boundary?.external_account_creation === 'HOLD' &&

@@ -108,7 +108,7 @@ for (const record of ledger.records) {
   assert(record.legacy_v2_adapter_requirement_id === null && record.legacy_v2_identifier_synthesized === false, `COVERAGE_V2_ID_SYNTHESIS:${record.mission_id}`);
   assert(record.mission_id === `mission::${record.market_cell_id}`, `COVERAGE_MISSION_FORMAT:${record.mission_id}`);
   assert(record.market_cell_id === `${record.scope_id}::${record.region}::${record.evidence_class}`, `COVERAGE_MARKET_CELL_FORMAT:${record.mission_id}`);
-  assert(record.producer_source_sha === artifactBinding.head_sha && record.consumer_source_sha === artifactBinding.consumer_sha, `COVERAGE_SOURCE_SHA:${record.mission_id}`);
+  assert(record.producer_source_sha === artifactBinding.execution_sha && record.consumer_source_sha === artifactBinding.consumer_sha, `COVERAGE_SOURCE_SHA:${record.mission_id}`);
   assert(/^sha256:[a-f0-9]{64}$/.test(record.upstream_digests?.replacement_queue) && /^sha256:[a-f0-9]{64}$/.test(record.upstream_digests?.resolution_manifest), `COVERAGE_UPSTREAM_DIGEST:${record.mission_id}`);
   assert(record.selected_source_ids.every((sourceId) => record.eligible_source_ids.includes(sourceId)), `COVERAGE_SELECTED_NOT_ELIGIBLE:${record.mission_id}`);
   assert(record.acquisition_eligible_source_ids.every((sourceId) => record.rights_clear_source_ids.includes(sourceId)), `COVERAGE_ACQUISITION_RIGHTS:${record.mission_id}`);
@@ -181,9 +181,19 @@ assert(gapQueue.evidence_admitted === 0 && gapQueue.public_release === 'HOLD' &&
 assert(outputManifest.id === 'kidults-asi-requirement-adapter-coverage-manifest-v1' && outputManifest.version === '1.0.0', 'OUTPUT_MANIFEST_ID_VERSION');
 assert(outputManifest.state === 'AUTHORITATIVE_192_REQUIREMENT_TO_CURRENT_ADAPTER_CLAIM_CEILING_CROSSWALK_BUILT', 'OUTPUT_MANIFEST_STATE');
 assert(same(outputManifest.platform_principles, principles), 'OUTPUT_MANIFEST_PRINCIPLES');
-assert(outputManifest.source_sha === artifactBinding.head_sha && outputManifest.consumer_sha === artifactBinding.consumer_sha, 'OUTPUT_MANIFEST_SHA_BINDING');
+assert(outputManifest.source_sha === artifactBinding.execution_sha && outputManifest.producer_head_sha === artifactBinding.head_sha &&
+  outputManifest.consumer_sha === artifactBinding.consumer_sha, 'OUTPUT_MANIFEST_SHA_BINDING');
 assert(outputManifest.input_bindings?.upstream_artifact?.artifact_id === artifactBinding.artifact_id && outputManifest.input_bindings?.upstream_artifact?.workflow_run_id === artifactBinding.workflow_run_id, 'OUTPUT_MANIFEST_ARTIFACT_BINDING');
-assert(outputManifest.input_bindings?.upstream_artifact?.source_sha_ancestor_of_consumer === true && outputManifest.input_bindings?.upstream_artifact?.expired === false, 'OUTPUT_MANIFEST_ARTIFACT_TRUST');
+assert(outputManifest.input_bindings?.upstream_artifact?.head_sha === artifactBinding.head_sha &&
+  outputManifest.input_bindings?.upstream_artifact?.expected_source_sha === artifactBinding.expected_source_sha &&
+  outputManifest.input_bindings?.upstream_artifact?.execution_sha === artifactBinding.execution_sha &&
+  outputManifest.input_bindings?.upstream_artifact?.expected_head_branch === artifactBinding.expected_head_branch &&
+  outputManifest.input_bindings?.upstream_artifact?.validation_scope === artifactBinding.validation_scope &&
+  outputManifest.input_bindings?.upstream_artifact?.production_eligible === artifactBinding.production_eligible,
+  'OUTPUT_MANIFEST_ARTIFACT_SCOPE_BINDING');
+assert(outputManifest.input_bindings?.upstream_artifact?.source_sha_ancestor_of_consumer === true &&
+  outputManifest.input_bindings?.upstream_artifact?.execution_sha_ancestor_of_consumer === true &&
+  outputManifest.input_bindings?.upstream_artifact?.expired === false, 'OUTPUT_MANIFEST_ARTIFACT_TRUST');
 assert(outputManifest.results?.requirements_accounted_for === 192 && outputManifest.results?.duplicate_requirements === 0 && outputManifest.results?.silently_dropped_requirements === 0, 'OUTPUT_MANIFEST_ACCOUNTING');
 assert(outputManifest.results?.registered_source_profiles === 16 && outputManifest.results?.implemented_source_adapters === 16, 'OUTPUT_MANIFEST_SOURCE_DENOMINATOR');
 assert(outputManifest.results?.software_implemented_requirements === 39 && outputManifest.results?.context_only_requirements === 15 && outputManifest.results?.unmapped_requirements === 138, 'OUTPUT_MANIFEST_COVERAGE_COUNTS');

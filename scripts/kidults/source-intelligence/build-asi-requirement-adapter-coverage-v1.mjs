@@ -102,17 +102,27 @@ assert(artifactBinding.expired === false, 'ARTIFACT_EXPIRED');
 assert(Number.isInteger(artifactBinding.workflow_run_id) && artifactBinding.workflow_run_id > 0, 'WORKFLOW_RUN_ID_INVALID');
 assert(artifactBinding.workflow_name === input.upstream_workflow_name, 'WORKFLOW_NAME_MISMATCH');
 assert(artifactBinding.workflow_path === input.upstream_workflow_path, 'WORKFLOW_PATH_MISMATCH');
-assert(artifactBinding.head_branch === 'main', 'ARTIFACT_NOT_MAIN');
+assert(artifactBinding.expected_source_sha === artifactBinding.head_sha, 'ARTIFACT_EXPECTED_SOURCE_SHA_MISMATCH');
+assert(artifactBinding.expected_head_branch === artifactBinding.head_branch, 'ARTIFACT_EXPECTED_HEAD_BRANCH_MISMATCH');
+assert(shaPattern.test(artifactBinding.execution_sha), 'ARTIFACT_EXECUTION_SHA_INVALID');
+const trustedMainArtifact = artifactBinding.validation_scope === 'MAIN' &&
+  artifactBinding.head_branch === 'main' && artifactBinding.production_eligible === true;
+const trustedPullRequestArtifact = artifactBinding.validation_scope === 'PULL_REQUEST_HEAD' &&
+  artifactBinding.head_branch !== 'main' && artifactBinding.production_eligible === false &&
+  artifactBinding.head_sha !== artifactBinding.consumer_sha &&
+  artifactBinding.execution_sha === artifactBinding.consumer_sha;
+assert(trustedMainArtifact || trustedPullRequestArtifact, 'ARTIFACT_PROVENANCE_SCOPE_INVALID');
 assert(artifactBinding.status === 'completed' && artifactBinding.conclusion === 'success', 'ARTIFACT_RUN_NOT_SUCCESSFUL');
 assert(shaPattern.test(artifactBinding.head_sha) && shaPattern.test(artifactBinding.consumer_sha), 'ARTIFACT_SHA_INVALID');
 assert(artifactBinding.source_sha_ancestor_of_consumer === true, 'ARTIFACT_SOURCE_NOT_ANCESTOR');
+assert(artifactBinding.execution_sha_ancestor_of_consumer === true, 'ARTIFACT_EXECUTION_NOT_ANCESTOR');
 assert(Number.isFinite(Date.parse(artifactBinding.created_at)) && Number.isFinite(Date.parse(artifactBinding.expires_at)), 'ARTIFACT_TIME_INVALID');
 assert(Date.parse(artifactBinding.expires_at) > Date.parse(artifactBinding.created_at), 'ARTIFACT_EXPIRY_INVALID');
 
 assert(queue.id === input.replacement_queue_id && queue.version === '1.0.0', 'REPLACEMENT_QUEUE_ID_VERSION');
 assert(resolutionManifest.id === input.resolution_manifest_id && resolutionManifest.version === '1.0.0', 'RESOLUTION_MANIFEST_ID_VERSION');
 assert(resolutionReceipt.id === input.resolution_receipt_id && resolutionReceipt.state === 'VERIFIED_PASS', 'RESOLUTION_RECEIPT_ID_STATE');
-assert(resolutionReceipt.source_sha === artifactBinding.head_sha, 'RECEIPT_SOURCE_SHA_MISMATCH');
+assert(resolutionReceipt.source_sha === artifactBinding.execution_sha, 'RECEIPT_EXECUTION_SHA_MISMATCH');
 assert(resolutionReceipt.manifest_digest === hash(manifestText), 'RESOLUTION_MANIFEST_DIGEST_MISMATCH');
 assert(same(resolutionReceipt.results, resolutionManifest.results), 'RESOLUTION_RECEIPT_RESULTS_MISMATCH');
 assert(resolutionReceipt.live_target_site_network_requests === 0 && resolutionReceipt.rights_pass_created === 0, 'RESOLUTION_RECEIPT_LIVE_OR_RIGHTS_OVERCLAIM');
@@ -435,7 +445,7 @@ for (const mission of queue.missions) {
     evidence_class: mission.evidence_class,
     required_adapter_claim: mission.required_adapter_claim,
     legacy_scope_crosswalks: legacyScopes,
-    producer_source_sha: artifactBinding.head_sha,
+    producer_source_sha: artifactBinding.execution_sha,
     consumer_source_sha: artifactBinding.consumer_sha,
     upstream_digests: {
       replacement_queue: hash(queueText),
@@ -665,7 +675,8 @@ const outputManifest = {
   state: 'AUTHORITATIVE_192_REQUIREMENT_TO_CURRENT_ADAPTER_CLAIM_CEILING_CROSSWALK_BUILT',
   as_of: resolutionManifest.as_of,
   platform_principles: principles,
-  source_sha: artifactBinding.head_sha,
+  source_sha: artifactBinding.execution_sha,
+  producer_head_sha: artifactBinding.head_sha,
   consumer_sha: artifactBinding.consumer_sha,
   input_bindings: {
     upstream_artifact: {
@@ -675,10 +686,16 @@ const outputManifest = {
       workflow_name: artifactBinding.workflow_name,
       workflow_path: artifactBinding.workflow_path,
       head_branch: artifactBinding.head_branch,
+      expected_head_branch: artifactBinding.expected_head_branch,
       head_sha: artifactBinding.head_sha,
+      expected_source_sha: artifactBinding.expected_source_sha,
+      execution_sha: artifactBinding.execution_sha,
+      validation_scope: artifactBinding.validation_scope,
+      production_eligible: artifactBinding.production_eligible,
       conclusion: artifactBinding.conclusion,
       expired: artifactBinding.expired,
       source_sha_ancestor_of_consumer: artifactBinding.source_sha_ancestor_of_consumer,
+      execution_sha_ancestor_of_consumer: artifactBinding.execution_sha_ancestor_of_consumer,
       created_at: artifactBinding.created_at,
       expires_at: artifactBinding.expires_at,
     },
@@ -727,7 +744,7 @@ const outputManifest = {
     projections_created: 0,
   },
   output_files: outputs,
-  autonomous_effect: 'POSITIVE_AUTOMATIC_EXACT_MAIN_ARTIFACT_REPLAY_AND_FAIL_CLOSED_SOFTWARE_GAP_QUEUE',
+  autonomous_effect: 'POSITIVE_AUTOMATIC_EXACT_PROVENANCE_BOUND_ARTIFACT_REPLAY_AND_FAIL_CLOSED_SOFTWARE_GAP_QUEUE',
   global_effect: 'POSITIVE_ALL_192_SCOPE_REGION_EVIDENCE_REQUIREMENTS_RETAINED_WITHOUT_CALLING_SOURCE_COUNT_GLOBAL_EVIDENCE',
   irreplaceable_value_effect: 'POSITIVE_KIDULTS_OWNED_REQUIREMENT_TO_SOURCE_CLAIM_CEILING_LINEAGE_AND_SWITCHING_GAPS',
   transparency_effect: 'POSITIVE_REGISTERED_IMPLEMENTED_CONTEXT_EMPIRICAL_AND_RELEASE_STATES_SEPARATED_WITH_DIGESTS',
@@ -741,7 +758,8 @@ assert(contract.required_outputs.length === outputs.length && same(contract.requ
 console.log(JSON.stringify({
   id: 'kidults-asi-requirement-adapter-coverage-build-v1',
   state: 'IMPLEMENTED_NOT_VERIFIED',
-  source_sha: artifactBinding.head_sha,
+  source_sha: artifactBinding.execution_sha,
+  producer_head_sha: artifactBinding.head_sha,
   consumer_sha: artifactBinding.consumer_sha,
   requirements_accounted_for: records.length,
   family_count: families.length,
