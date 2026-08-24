@@ -9,6 +9,7 @@ on:
       - 'tooling/kidults-portal-r001-browser-qa/package-lock.json'
       - 'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs'
       - 'scripts/kidults/kpmo/build-portal-r001-browser-qa-toolchain-receipt-v1.mjs'
+      - 'scripts/kidults/portal/proof-product-test-fixtures-v1.mjs'
   workflow_dispatch:
 
 jobs:
