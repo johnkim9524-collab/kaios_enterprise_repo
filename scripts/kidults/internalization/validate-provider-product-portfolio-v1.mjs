@@ -19,7 +19,7 @@ const EXPECTED_HOLD_IDS = [
   'CLASSIC_COM_LICENSED_BUNDLE_3'
 ];
 
-const EXPECTED_DROP_IDS = [
+const EXPECTED_PENDING_RESPONSE_IDS = [
   'PSA_ENTERPRISE_API',
   'CGC_DEALER_PORTAL_API',
   'ALT_FNDATA',
@@ -153,21 +153,26 @@ function validatePortfolio(portfolio) {
   const conditionalHoldIds = products
     .filter(product => product.decision === 'CONDITIONAL_HOLD')
     .map(product => product.productId);
-  const dropIds = products
-    .filter(product => product.decision === 'DROP')
+  const pendingResponseIds = products
+    .filter(product => product.decision === 'PENDING_PROVIDER_RESPONSE')
+    .map(product => product.productId);
+  const terminalDispositionIds = products
+    .filter(product => ['DROP', 'REJECTED'].includes(product.decision))
     .map(product => product.productId);
 
   assert(sameMembers(conditionalHoldIds, EXPECTED_HOLD_IDS), 'conditional HOLD universe drift');
-  assert(sameMembers(dropIds, EXPECTED_DROP_IDS), 'DROP universe drift');
+  assert(sameMembers(pendingResponseIds, EXPECTED_PENDING_RESPONSE_IDS), 'pending provider-response universe drift');
+  assert(terminalDispositionIds.length === 0, 'terminal disposition is prohibited before provider response');
   assert(portfolio.summary?.conditionalHoldCount === 3, 'conditional HOLD count drift');
-  assert(portfolio.summary?.dropCount === 5, 'DROP count drift');
+  assert(portfolio.summary?.pendingProviderResponseCount === 5, 'pending provider-response count drift');
+  assert(portfolio.summary?.dropCount === 0, 'DROP count must remain zero before provider response');
   assert(
     sameMembers(portfolio.summary?.conditionalHoldProductIds, EXPECTED_HOLD_IDS),
     'conditional HOLD summary drift'
   );
   assert(
-    sameMembers(portfolio.summary?.dropProductIds, EXPECTED_DROP_IDS),
-    'DROP summary drift'
+    sameMembers(portfolio.summary?.pendingProviderResponseProductIds, EXPECTED_PENDING_RESPONSE_IDS),
+    'pending provider-response summary drift'
   );
   assert(
     sameMembers(
@@ -220,10 +225,14 @@ function validatePortfolio(portfolio) {
   assert(psaPremium.economics?.callsPerDay === 100, 'PSA Premium quota drift');
 
   const psaEnterprise = byId.PSA_ENTERPRISE_API ?? {};
-  assert(psaEnterprise.decision === 'DROP', 'PSA Enterprise must remain DROP');
   assert(
-    psaEnterprise.dropReason === 'COST_EFFICIENCY_INSUFFICIENT_AT_CURRENT_SCALE',
-    'PSA Enterprise DROP reason drift'
+    psaEnterprise.decision === 'PENDING_PROVIDER_RESPONSE',
+    'PSA Enterprise must remain pending until provider response'
+  );
+  assert(
+    psaEnterprise.pendingReason ===
+      'COST_EFFICIENCY_CURRENTLY_LOW_BUT_TERMINAL_DECISION_REQUIRES_PROVIDER_RESPONSE',
+    'PSA Enterprise pending reason drift'
   );
   assert(psaEnterprise.economics?.annualAmount === 3500, 'PSA Enterprise annual cost drift');
   assert(psaEnterprise.economics?.callsPerDay === 500, 'PSA Enterprise quota drift');
@@ -239,13 +248,16 @@ function validatePortfolio(portfolio) {
     assert(classic.evidenceGates?.includes(gate), `Classic.com missing evidence gate ${gate}`);
   }
 
-  for (const productId of EXPECTED_DROP_IDS) {
+  for (const productId of EXPECTED_PENDING_RESPONSE_IDS) {
     const product = byId[productId] ?? {};
-    const reentry = product.reentryPolicy ?? {};
-    assert(reentry.requiresNewOfficialProductProposal === true, `${productId}: official proposal reentry gate missing`);
-    assert(reentry.requiresMaterialChange === true, `${productId}: material-change reentry gate missing`);
-    assert(reentry.requiresNewDecisionPacket === true, `${productId}: new decision packet gate missing`);
-    assert((reentry.acceptedMaterialChanges ?? []).length > 0, `${productId}: accepted material changes missing`);
+    const terminal = product.terminalDispositionPolicy ?? {};
+    assert(terminal.requiresOfficialProviderResponse === true, `${productId}: provider response gate missing`);
+    assert(terminal.requiresResponseEvidenceReference === true, `${productId}: response evidence gate missing`);
+    assert(terminal.requiresResolvedDecisionEvidence === true, `${productId}: resolved evidence gate missing`);
+    assert(terminal.requiresNewDecisionPacket === true, `${productId}: new decision packet gate missing`);
+    assert(terminal.requiresKpmoReview === true, `${productId}: KPMO review gate missing`);
+    assert(terminal.requiresFounderApproval === true, `${productId}: Founder approval gate missing`);
+    assert((terminal.acceptedMaterialChanges ?? []).length > 0, `${productId}: accepted decision evidence missing`);
   }
 
   const lanes = portfolio.gapClosureWork?.lanes ?? [];
@@ -293,10 +305,23 @@ const mutationTests = [
     }
   },
   {
-    name: 'reject_drop_reentry_without_official_proposal',
+    name: 'reject_terminal_disposition_without_provider_response',
     mutate: value => {
-      value.products.find(product => product.productId === 'CGC_DEALER_PORTAL_API')
-        .reentryPolicy.requiresNewOfficialProductProposal = false;
+      value.products.find(product => product.productId === 'CGC_DEALER_PORTAL_API').decision = 'DROP';
+    }
+  },
+  {
+    name: 'reject_missing_provider_response_gate',
+    mutate: value => {
+      value.products.find(product => product.productId === 'ALT_FNDATA')
+        .terminalDispositionPolicy.requiresOfficialProviderResponse = false;
+    }
+  },
+  {
+    name: 'reject_missing_response_evidence_reference_gate',
+    mutate: value => {
+      value.products.find(product => product.productId === 'LIVEART_PILOT')
+        .terminalDispositionPolicy.requiresResponseEvidenceReference = false;
     }
   },
   {
@@ -357,7 +382,8 @@ console.log(JSON.stringify({
   result: 'PASS',
   products: portfolio.products.length,
   conditional_hold: portfolio.summary.conditionalHoldCount,
-  drop: portfolio.summary.dropCount,
+  pending_provider_response: portfolio.summary.pendingProviderResponseCount,
+  terminal_drop: portfolio.summary.dropCount,
   complete_immediately_purchasable_current_sold_products:
     portfolio.currentSoldTransactionFeed.completeImmediatelyPurchasableProductCount,
   mutation_tests: mutationTests.length,
