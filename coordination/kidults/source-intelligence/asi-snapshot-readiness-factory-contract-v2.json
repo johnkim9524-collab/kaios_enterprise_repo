@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-snapshot-readiness-factory-contract-v2",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P3",
@@ -47,30 +47,87 @@
     "IMMUTABLE_EVIDENCE_PACKAGE",
     "TRACK_B_INPUT_PAIR"
   ],
+  "prerequisite_dimensions": [
+    "MISSION_SOURCE_CANDIDATE_COVERAGE",
+    "PRIMARY_FALLBACK_REPLACEMENT_COVERAGE",
+    "GATE1_SOURCE_SAFETY",
+    "PURPOSE_SPECIFIC_RIGHTS",
+    "MARKET_SEMANTIC_SUFFICIENCY",
+    "FACTUAL_ORIGIN_INDEPENDENCE",
+    "EVIDENCE_ADMISSION",
+    "CURRENT_SOLD_TRANSACTION_EVIDENCE",
+    "LIQUIDITY_TIME_TO_SALE_EVIDENCE",
+    "MARKET_EVENT_GRAPH"
+  ],
+  "output_assertion_dimensions": [
+    "IMMUTABLE_EVIDENCE_PACKAGE",
+    "TRACK_B_INPUT_PAIR"
+  ],
   "snapshot_creation_gate": {
-    "all_readiness_dimensions_must_pass": true,
+    "all_prerequisite_dimensions_must_pass_before_generation": true,
+    "output_existence_is_prerequisite": false,
     "admitted_evidence_minimum": 1,
     "admitted_current_sold_minimum": 1,
     "admitted_liquidity_minimum": 1,
     "market_event_graph_nodes_minimum": 1,
+    "current_evidence_maximum_window_days": 30,
     "immutable_evidence_package_required": true,
     "snapshot_candidate_may_be_generated_when_gate_fails": false,
     "blocker_package_may_be_called_evidence_package": false,
     "track_b_may_start_without_exact_immutable_pair": false
   },
-  "required_outputs": [
+  "always_required_outputs": [
     "snapshot-readiness-ledger-v2.json",
     "immutable-blocker-package-v2.json",
     "admission-demand-package-v2.json",
-    "snapshot-non-generation-receipt-v2.json",
     "track-b-handoff-readiness-v2.json",
     "snapshot-readiness-manifest-v2.json"
+  ],
+  "outputs_when_gate_fails": [
+    "snapshot-non-generation-receipt-v2.json"
+  ],
+  "outputs_when_gate_passes": [
+    "snapshot-candidate.json",
+    "evidence-package.json",
+    "snapshot-pair-generation-receipt-v2.json"
   ],
   "forbidden_outputs_when_gate_fails": [
     "snapshot-candidate.json",
     "evidence-package.json",
-    "rankability-assessment.json"
+    "snapshot-pair-generation-receipt-v2.json"
   ],
+  "forbidden_outputs_when_gate_passes": [
+    "snapshot-non-generation-receipt-v2.json"
+  ],
+  "forbidden_outputs_always": [
+    "rankability-assessment.json",
+    "live-admission-manifest.json",
+    "projection-admission-receipt.json"
+  ],
+  "pair_generation": {
+    "methodology_version": "kidults-asi-snapshot-pair-generation-v2.1.0",
+    "atomic_directory_commit_required": true,
+    "canonical_payload_digest_algorithm": "SHA-256_CANONICAL_SORTED_JSON",
+    "admitted_record_rights_allow_required": true,
+    "admitted_record_source_payload_digest_required": true,
+    "admitted_record_license_evidence_required": true,
+    "admitted_record_market_event_digest_binding_required": true,
+    "canonical_handoff_validator": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
+    "canonical_handoff_preflight_required_after_generation": true,
+    "track_b_submission_preauthorization_forbidden": true
+  },
+  "artifact_restore": {
+    "p2_exact_workflow_run_required": true,
+    "p2_workflow_path": ".github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml",
+    "p2_artifact_name": "kidults-asi-owned-source-intelligence-graph-v2",
+    "p2_main_head_sha_binding_required": true,
+    "artifact_digest_required": true,
+    "downloaded_archive_sha256_must_equal_provider_artifact_digest": true,
+    "p0b_and_p1_artifact_ids_must_come_from_p2_receipt": true,
+    "any_branch_fallback_forbidden": true,
+    "first_hundred_global_artifact_scan_forbidden": true,
+    "content_digests_must_match_p2_lineage": true
+  },
   "automatic_activation": {
     "main_push": true,
     "schedule": "7 * * * *",
@@ -83,9 +140,10 @@
     "PREFLIGHT_ACTION_IS_NOT_COMPLETED_PREFLIGHT",
     "HOST_IS_NOT_FACTUAL_ORIGIN",
     "ADMISSION_CANDIDATE_IS_NOT_ADMITTED_EVIDENCE",
-    "SOURCE_INTELLIGENCE_GRAPH_IS_NOT_MARKET_EVIDENCE_GRAPH",
+    "SOURCE_INTELLIGENCE_GRAPH_WITHOUT_ADMITTED_EVENT_BINDINGS_IS_NOT_MARKET_EVIDENCE_GRAPH",
     "BLOCKER_PACKAGE_IS_NOT_EVIDENCE_PACKAGE",
     "SNAPSHOT_READINESS_IS_NOT_SNAPSHOT_CANDIDATE",
+    "PAIR_GENERATED_IS_NOT_TRACK_B_READY",
     "TRACK_B_WAITING_IS_NOT_TRACK_B_STARTED"
   ],
   "public_release": "HOLD",

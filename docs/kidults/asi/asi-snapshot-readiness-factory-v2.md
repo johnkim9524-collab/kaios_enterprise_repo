@@ -1,4 +1,4 @@
-# KIDULTS ASI Snapshot Readiness Factory v2
+# KIDULTS ASI Snapshot Readiness Factory v2.1
 
 **Owner:** KPMO  
 **Priority:** P3  
@@ -6,11 +6,9 @@
 
 ## Purpose
 
-This factory executes the current P0B → P1 → P2 v2 chain and answers one question with evidence:
+This factory consumes an exactly bound P0B → P1 → P2 v2 chain and answers whether the chain contains lawful, current, admitted market evidence sufficient to generate an immutable `snapshot-candidate.json` and `evidence-package.json` pair.
 
-> Does the exact current intelligence chain contain enough admitted market evidence and immutable lineage to generate `snapshot-candidate.json`, an Evidence Package, and the exact Track B input pair?
-
-The answer remains fail-closed. When any required dimension fails, the factory does not fabricate a Snapshot Candidate or Evidence Package. It emits exact blockers, admission demands, non-generation evidence, and Track B waiting state.
+The factory is fail-closed without being deadlocked. The ten evidence and governance prerequisites are evaluated before generation. The existence of the two outputs is checked only after generation; output absence is never used as an input prerequisite. When every prerequisite passes, the pair is generated in one staging directory and exposed by one atomic directory rename. Pair generation still does not start Track B, authorize publication, or authorize production.
 
 ## Current P0B → P1 → P2 v2 chain
 
@@ -21,10 +19,10 @@ P1 classification / qualification / Gate 1 / admission preflight
         ↓
 P2 KIDULTS-owned Source Intelligence Graph v2
         ↓
-P3 Snapshot Readiness Factory v2
+P3 Snapshot Readiness Factory v2.1
 ```
 
-The verified bounded input baseline is:
+The verified bounded pre-admission baseline remains:
 
 | Input | Current evidence-bound count |
 |---|---:|
@@ -43,88 +41,94 @@ The verified bounded input baseline is:
 | Snapshot candidates | 0 |
 | Track B input pairs | 0 |
 
-## Twelve readiness dimensions
+These are baseline facts, not hard-coded success values. Each run recomputes readiness from the restored, digest-bound inputs.
+
+## Ten prerequisites and two output assertions
+
+The ten pre-generation prerequisites are:
 
 1. Mission source-candidate coverage;
-2. Primary, fallback, and replacement candidate coverage;
-3. Gate 1 source safety;
+2. Primary, fallback, replacement-host, and regional coverage;
+3. Gate 1 source safety and completed preflight actions;
 4. Purpose-specific rights;
 5. Market-semantic sufficiency;
 6. Factual-origin independence;
-7. Evidence admission;
-8. Current SOLD transaction evidence;
+7. Lawful evidence admission with exact event binding;
+8. Current dated SOLD transaction evidence;
 9. Liquidity and time-to-sale evidence;
-10. Market Event Graph;
-11. Immutable Evidence Package;
-12. Exact Track B input pair.
+10. A digest-bound Market Event Graph.
 
-The first two dimensions pass because all 192 missions have source candidates and three candidate-host slots. The remaining ten dimensions fail because current P1 and P2 evidence remains pre-admission.
+The two post-generation assertions are:
 
-## Exact output
+11. Immutable Evidence Package exists and validates;
+12. Exact Snapshot Candidate / Evidence Package pair exists and validates.
 
-The factory generates:
+When a prerequisite fails, assertions 11 and 12 are `NOT_EVALUATED`, not blockers. This separation removes the former factory liveness cycle in which outputs had to exist before the factory was allowed to generate them.
+
+## Lawful evidence admission boundary
+
+Every admitted record must bind to a `PASS` Gate 1 decision, explicit `ALLOW` rights, authorized collection, a non-zero source payload SHA-256, HTTPS source and license evidence references, a current validity window no longer than the contract maximum, zero unresolved critical contradictions, and the exact evidence class. Current SOLD and liquidity observations remain semantically distinct.
+
+P2 must expose exactly one market event for each admitted record. Its evidence ID, rights state, observation time, source payload digest, and canonical record digest must match the admitted record. P2 graph, manifest, value receipt, and lineage counts and digests must agree.
+
+## Conditional output sets
+
+Every run creates:
 
 ```text
 snapshot-readiness-ledger-v2.json
 immutable-blocker-package-v2.json
 admission-demand-package-v2.json
-snapshot-non-generation-receipt-v2.json
 track-b-handoff-readiness-v2.json
 snapshot-readiness-manifest-v2.json
 ```
 
-It must not generate the following while the gate fails:
+A blocked run additionally creates only:
+
+```text
+snapshot-non-generation-receipt-v2.json
+```
+
+A lawful ready run instead creates the atomic immutable pair and its receipt:
 
 ```text
 snapshot-candidate.json
 evidence-package.json
-rankability-assessment.json
+snapshot-pair-generation-receipt-v2.json
 ```
 
-## Current blocker structure
+The ready and blocked conditional sets are mutually exclusive. `rankability-assessment.json`, `live-admission-manifest.json`, and `projection-admission-receipt.json` are always forbidden.
 
-The current baseline produces twelve explicit blocker classes:
+## Current blockers and admission demand
 
-- Gate 1 HOLD open;
-- Purpose-specific rights unknown;
-- Market semantics unverified;
-- 672 preflight actions unexecuted;
-- Regional relevance unproven;
-- Factual-origin independence unproven;
-- Evidence admission zero;
-- Current SOLD transaction evidence zero;
-- Liquidity evidence zero;
-- Market Event Graph zero;
-- Immutable Evidence Package missing;
-- Track B exact input pair missing.
+The current zero-admission baseline remains blocked by the failing evidence/governance prerequisites: replacement or regional coverage, Gate 1 or preflight completion, purpose-specific rights, market semantics, factual-origin independence, evidence admission, dated SOLD evidence, liquidity evidence, and Market Event Graph binding. Exact blocker counts and affected counts are derived from each run instead of being assumed.
 
-Every blocker carries severity, affected count, exact unblock condition, dependency, evidence reference, and snapshot-gate effect.
+The admission-demand package preserves all current P1 actions as machine-readable execution demand. It reports action type, candidate, host, expected output, impacted grain and mission counts, execution state, and permission boundary. It is neither admitted evidence nor an Evidence Package.
 
-## Admission demand package
+## Exact upstream artifact restore
 
-The admission-demand package preserves all 672 P1 actions as machine-readable execution demand. It reports action type, candidate, host, expected output, impacted grain count, impacted mission count, execution state, and permission boundary.
+P3 never scans the repository-wide first 100 artifacts and never falls back to an artifact from any branch.
 
-This package is the direct input for the next P1 action executor. It is not admitted evidence.
+For a `workflow_run` trigger, the event's P2 run ID and head SHA are authoritative. For schedule, protected-main push, or explicit replay, P3 first selects one successful `main` run of the exact P2 workflow and then fetches that run by ID. P3 requires:
+
+- the exact workflow path, successful conclusion, repository, `main` branch, and 40-character head SHA;
+- exactly one unexpired P2 artifact from that run, bound to the same run ID/head SHA and a provider artifact digest, with the downloaded archive SHA-256 equal to that provider digest;
+- P0B and P1 artifact IDs taken only from the restored P2 KPMO receipt;
+- exact P0B/P1 names, `main` metadata, non-expired status, provider artifact digests, and matching downloaded archive SHA-256 values;
+- P2 receipt source SHA and graph digest matching the selected P2 run and manifest; and
+- restored P0B/P1 content digests matching the inputs recorded in P2 lineage.
+
+The binding validator has mutation cases for run/head mismatch, non-main and failed runs, expired or mismatched artifacts, downloaded-archive digest substitution, receipt-ID substitution, wrong artifact name, and lineage-content substitution.
+
+## Atomic generation and Track B boundary
+
+The factory refuses an existing destination directory, writes all outputs into a new private staging directory, validates conditional absence while still staged, and exposes the complete result with one directory rename. The generated files contain canonical payload digests, file digests, source graph binding, mutual Snapshot/Evidence IDs, and one exact pair digest. A deterministic liveness test proves blocked non-generation, lawful ready generation, identical replay, atomic commit, and fail-closed mutation rejection.
+
+After pair generation, `track-b-handoff-readiness-v2.json` remains `PAIR_GENERATED_HANDOFF_PREFLIGHT_REQUIRED`, `track_b_submission_eligible` remains false, and `independent_assessment_started` remains false. The canonical handoff preflight must separately verify the pair before Track B may begin.
 
 ## Automatic execution
 
-```text
-Successful KIDULTS ASI Owned Source Intelligence Graph v2
-or relevant protected-main push
-or hourly schedule at :07
-        ↓
-Restore latest current P0B / P1 / P2 v2 artifacts
-        ↓
-Build twice and prove deterministic replay
-        ↓
-Validate exact counts, dimensions, blockers, digests and forbidden-file absence
-        ↓
-Reject false promotions
-        ↓
-KPMO receipt and 90-day artifact
-```
-
-Manual dispatch remains recovery or explicit replay only.
+The workflow activates from a successful exact P2 workflow run, a relevant protected-main push, the hourly `:07` schedule, or manual recovery/replay. It restores the exact upstream chain, validates its receipt and lineage bindings, builds twice, proves deterministic replay, validates conditional outputs and digests, executes liveness and mutation tests, and emits a KPMO receipt plus a 90-day artifact. Manual dispatch does not weaken artifact binding or release gates.
 
 ## Fail-closed truth boundaries
 
@@ -134,8 +138,11 @@ Gate 1 HOLD ≠ PASS
 Preflight Action ≠ Completed Preflight
 Host ≠ Factual Origin
 Admission Candidate ≠ Admitted Evidence
-Source Intelligence Graph ≠ Market Evidence Graph
+Unbound Source Intelligence Graph ≠ Market Evidence Graph
 Blocker Package ≠ Evidence Package
 Snapshot Readiness ≠ Snapshot Candidate
+Pair Generated ≠ Track B Ready
 Track B Waiting ≠ Track B Started
 ```
+
+Public release and production remain `HOLD` in every P3 state.
