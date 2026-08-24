@@ -1,0 +1,143 @@
+{
+  "id": "kidults-rights-first-current-sold-source-preflight-v1",
+  "version": "1.0.0",
+  "status": "VERIFIED_RIGHTS_FIRST_PREFLIGHT_NO_COLLECTOR_ACTIVATION",
+  "as_of": "2026-08-24T05:15:00Z",
+  "purpose": "Find lawfully usable current SOLD evidence before adapter development, without contacting providers, accepting terms, creating accounts, using credentials, spending money, or acquiring live records.",
+  "rows": [
+    {
+      "source_id": "seattle-sold-fleet-equipment-open-data",
+      "source_name": "City of Seattle Sold Fleet Equipment",
+      "official_locator": "https://catalog.data.gov/dataset/sold-fleet-equipment",
+      "official_data_endpoint": "https://cos-data.seattle.gov/api/v3/views/y6ef-jf2w/query.json?accessType=DOWNLOAD",
+      "source_roles": [
+        "SOLD_TRANSACTION"
+      ],
+      "current_sold_purpose_candidate_state": "RIGHTS_CLEAR_REFERENCE_DOMAIN_FIT_HOLD",
+      "rights_state": "PASS",
+      "access_state": "OPEN_API",
+      "field_purpose_rights_verified": true,
+      "commercial_reuse_authorized": true,
+      "purpose_rights": {
+        "collect": "PASS",
+        "store": "PASS",
+        "derive": "PASS"
+      },
+      "purpose_bindings": [
+        {
+          "binding_id": "seattle-sold-fleet-current-sold-reference-2026-08-24",
+          "purpose": "CURRENT_SOLD_TRANSACTION_REFERENCE",
+          "source_roles": [
+            "SOLD_TRANSACTION"
+          ],
+          "evidence_classes": [
+            "CURRENT_SOLD_TRANSACTION_REFERENCE"
+          ],
+          "fields": [
+            "equip_id",
+            "vin",
+            "year",
+            "make",
+            "model",
+            "sale_price",
+            "sale_date",
+            "sold_by"
+          ],
+          "outputs": [
+            "INTERNAL_CURRENT_SOLD_REFERENCE"
+          ],
+          "scope_verified": true,
+          "time_scope_verified": true,
+          "freshness_verified": true,
+          "license_scope_verified": true,
+          "observed_at": "2026-08-24T05:15:00Z",
+          "review_due_at": "2026-09-23T05:15:00Z",
+          "evidence_refs": [
+            "https://catalog.data.gov/dataset/sold-fleet-equipment",
+            "https://www.seattle.gov/documents/Departments/Tech/OpenData/COS_OpenDataPolicy.pdf"
+          ],
+          "evidence_digest": "sha256:f37661a397097d552957a622d16b6c4ece5e438f3dae8f42f813c2eb559ea213"
+        }
+      ],
+      "evidence_refs": [
+        "https://catalog.data.gov/dataset/sold-fleet-equipment",
+        "https://www.seattle.gov/documents/Departments/Tech/OpenData/COS_OpenDataPolicy.pdf"
+      ],
+      "evidence_digest": "sha256:f37661a397097d552957a622d16b6c4ece5e438f3dae8f42f813c2eb559ea213",
+      "observed_at": "2026-08-24T05:15:00Z",
+      "review_due_at": "2026-09-23T05:15:00Z",
+      "domain_fit_state": "NON_COLLECTOR_MUNICIPAL_FLEET_REFERENCE_ONLY",
+      "semantic_limitations": [
+        "The source is municipal fleet disposition, not the KIDULTS collector-market universe.",
+        "Currency and terminal-status semantics require a separate empirical schema review before any collector-market claim.",
+        "This preflight does not fetch or admit live records."
+      ],
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false
+    },
+    {
+      "source_id": "gsa-auctions-api",
+      "source_name": "GSA Auctions API",
+      "official_locator": "https://open.gsa.gov/api/auctions-api/",
+      "source_roles": [
+        "LISTING_SUPPLY"
+      ],
+      "current_sold_purpose_candidate_state": "RIGHTS_CLEAR_WRONG_PURPOSE",
+      "rights_state": "PASS",
+      "access_state": "OPEN_API",
+      "field_purpose_rights_verified": true,
+      "commercial_reuse_authorized": true,
+      "purpose_rights": {
+        "collect": "PASS",
+        "store": "PASS",
+        "derive": "PASS"
+      },
+      "purpose_bindings": [],
+      "evidence_refs": [
+        "https://open.gsa.gov/api/auctions-api/",
+        "https://open.gsa.gov/open-data-terms-and-conditions/"
+      ],
+      "evidence_digest": "sha256:6865bbb5c03f66f2b4929f14c692f425ed6650a671285bb614bd6676257696f8",
+      "observed_at": "2026-08-24T05:15:00Z",
+      "review_due_at": "2026-09-23T05:15:00Z",
+      "domain_fit_state": "PUBLIC_SURPLUS_LISTING_CONTEXT",
+      "semantic_limitations": [
+        "HighBidAmount on active, preview, or scheduled auctions is not accepted sale, award, hammer, settlement, or realized price.",
+        "Listing or bid context cannot be widened to CURRENT_SOLD_TRANSACTION."
+      ],
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false
+    }
+  ],
+  "summary": {
+    "official_public_sources_reviewed": 2,
+    "rights_clear_current_sold_reference_sources": 1,
+    "rights_clear_collector_current_sold_sources": 0,
+    "rights_clear_wrong_purpose_sources": 1,
+    "adapter_development_backlog": 0,
+    "live_records_acquired": 0,
+    "evidence_admitted": 0,
+    "current_market_events": 0
+  },
+  "authority_boundary": {
+    "public_metadata_and_official_terms_review": "AUTHORIZED_READ_ONLY",
+    "internal_fail_closed_code_and_ci": "AUTHORIZED",
+    "provider_contact": "HOLD",
+    "contract_or_eula_acceptance": "HOLD",
+    "account_or_credential_activation": "HOLD",
+    "spend": "HOLD",
+    "live_record_acquisition": "HOLD_PENDING_EXACT_PURPOSE_AND_DOMAIN_FIT_GATE",
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "routing": {
+    "external_provider_matters": "TRACK_Z_ISSUE_1166",
+    "integrated_report": "KPMO_ISSUE_344",
+    "founder_decision_required_before_external_commitment": true
+  }
+}
