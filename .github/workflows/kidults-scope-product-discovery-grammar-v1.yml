@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 22.23.2
       - run: node scripts/kidults/poc/compile-scope-product-discovery-grammar-v1.mjs coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json tmp/scope-product-discovery-grammar-v1.json
       - run: |
           node -e "const x=require('./tmp/scope-product-discovery-grammar-v1.json'); if(x.scope_count!==32) throw Error('scope count'); if(x.records.some(r=>r.templates.length!==5||!r.identity_keys.length)) throw Error('grammar incomplete'); if(!x.guards.includes('NO_GENERIC_SCOPE_NAME_ONLY_QUERY')) throw Error('guard'); console.log(JSON.stringify({status:'PASS',scopes:x.scope_count,templates:x.records.reduce((n,r)=>n+r.templates.length,0)},null,2));"

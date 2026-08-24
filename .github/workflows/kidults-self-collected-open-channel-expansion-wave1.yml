@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '22'
+          node-version: '22.23.2'
       - name: Execute requirement-driven open channels
         run: node scripts/kidults/scope/run-self-collected-open-channel-expansion-v1.mjs coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json coordination/kidults/scope-data/self-collected-open-channel-topology-v1.json scope-open-wave1-out
       - name: Validate rights and traceability invariants

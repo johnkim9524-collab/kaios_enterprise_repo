@@ -312,7 +312,7 @@ jobs:
             'persist-credentials: false',
             'github.event.pull_request.head.sha || github.sha',
             'test "$ACTUAL_SHA" = "$EXPECTED_SHA"',
-            "node-version: '24'",
+            "node-version: '24.19.0'",
             'run: node scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs'
           ];
           for (const primitive of criticalPrimitives) {

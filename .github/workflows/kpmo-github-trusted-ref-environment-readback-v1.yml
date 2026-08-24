@@ -54,7 +54,7 @@ jobs:
           test "$ACTUAL_SOURCE_SHA" = "$EXPECTED_SOURCE_SHA"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '24'
+          node-version: '24.19.0'
           package-manager-cache: false
       - name: Validate contract collector workflow and fail-closed mutations
         run: |
@@ -88,7 +88,7 @@ jobs:
           test "$ACTUAL_SOURCE_SHA" = "$EXPECTED_SOURCE_SHA"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '24'
+          node-version: '24.19.0'
           package-manager-cache: false
       - name: Read GitHub control-plane metadata without mutation or secret values
         run: |

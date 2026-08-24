@@ -1,9 +1,10 @@
 {
   "id": "kidults-dependency-bootstrap-lock-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_FAIL_CLOSED",
   "governing_issue": 976,
   "scope": [
+    "ACTIVE_WORKFLOW_RUNTIME_PATCHES",
     "GITHUB_WORKFLOW_NODE_BOOTSTRAP",
     "GITHUB_WORKFLOW_PYTHON_BOOTSTRAP",
     "ROOT_RUNTIME_CONTAINER"
@@ -22,14 +23,26 @@
         "npm": "11.17.0",
         "release_evidence": "https://nodejs.org/en/blog/release/v24.19.0"
       },
-      "approved_lts_reference_not_used_by_governed_install_lanes": {
+      "approved_non_install_estate_lanes": {
         "node": "22.23.2",
         "npm": "10.9.8",
         "node_release_evidence": "https://nodejs.org/en/blog/release/v22.23.2",
-        "npm_release_evidence": "https://nodejs.org/en/blog/release/v22.22.3"
+        "npm_release_evidence": "https://nodejs.org/en/blog/release/v22.22.3",
+        "scope": "ACTIVE_WORKFLOWS_WITHOUT_GOVERNED_NPM_CI"
+      }
+    },
+    "estate_runtimes": {
+      "node_22": {
+        "node": "22.23.2",
+        "release_evidence": "https://nodejs.org/en/blog/release/v22.23.2"
+      },
+      "node_24": {
+        "node": "24.19.0",
+        "release_evidence": "https://nodejs.org/en/blog/release/v24.19.0"
       }
     },
     "node_20_governed_install_lanes_allowed": false,
+    "node_20_active_workflows_allowed": false,
     "manifest_package_manager": {
       "package.json": "npm@11.17.0",
       "services/kidults-autonomous-intelligence/package.json": "npm@11.17.0",

@@ -219,7 +219,7 @@ export function validateWorkflowSource(source) {
   require(count(`EXPECTED_SOURCE_SHA: ${EXPECTED_SOURCE_EXPR}`) === 2, 'expected_sha_binding');
   require(count('git rev-parse HEAD') === 2, 'source_sha_readback');
   require(count('test "$ACTUAL_SOURCE_SHA" = "$EXPECTED_SOURCE_SHA"') === 2, 'source_sha_assertion');
-  require((source.match(/node-version:\s*['"]24['"]/g) || []).length === 2, 'node_24');
+  require((source.match(/node-version:\s*['"]24\.19\.0['"]/g) || []).length === 2, 'node_24_19_0');
   require(source.includes(`node ${COLLECTOR_PATH}`), 'collector_execution');
   require(source.includes('node scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs'), 'validator_execution');
   require(source.includes(`node --test ${TEST_PATH}`), 'test_execution');
@@ -314,7 +314,7 @@ export function validateRepository(root = process.cwd()) {
     ['wrong_checkout_ref', workflow.replace(`ref: ${EXPECTED_SOURCE_EXPR}`, 'ref: main')],
     ['persist_credentials', workflow.replace('persist-credentials: false', 'persist-credentials: true')],
     ['sha_assertion_removed', workflow.replace('test "$ACTUAL_SOURCE_SHA" = "$EXPECTED_SOURCE_SHA"', 'true # disabled')],
-    ['node_downgrade', workflow.replace("node-version: '24'", "node-version: '22'")],
+    ['node_downgrade', workflow.replace("node-version: '24.19.0'", "node-version: '22'")],
     ['repository_secret_injection', `${workflow}\nenv:\n  BAD: \${{ secrets.BAD }}\n`],
     ['manual_only', workflow.replace(/\n\s*schedule:\n\s*- cron:[^\n]+/, '')]
   ];
