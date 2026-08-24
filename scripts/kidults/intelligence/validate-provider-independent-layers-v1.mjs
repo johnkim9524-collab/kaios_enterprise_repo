@@ -91,6 +91,18 @@ const deniedMarket = canonicalizeMarketEvent({
 assert.equal(deniedMarket.admitted, false);
 assert.ok(deniedMarket.admission_errors.includes('RIGHTS_STORE_NOT_ALLOWED'));
 
+const referenceOnlyMarket = canonicalizeMarketEvent({
+  ...soldEvent('SOURCE_OWNER_REFERENCE', 'reference-1'),
+  evidence_class: 'AUCTION_RESULT_REFERENCE',
+  price: {price_type: 'BID', amount: 100000, currency: 'USD'}
+});
+assert.equal(referenceOnlyMarket.admitted, false);
+assert.ok(referenceOnlyMarket.admission_errors.includes('REFERENCE_ONLY_EVIDENCE_CLASS_NOT_GENERIC_ADMISSIBLE'));
+assert.equal(computeMarketSignals([referenceOnlyMarket]).unique_event_count, 0);
+const forgedReferenceOnlyWrapper = {...referenceOnlyMarket, admitted: true, admission_errors: []};
+assert.equal(deduplicateMarketEvents([forgedReferenceOnlyWrapper]).length, 0);
+assert.equal(computeMarketSignals([forgedReferenceOnlyWrapper]).unique_event_count, 0);
+
 console.log(JSON.stringify({
   status: 'PASS',
   grading: {
@@ -103,6 +115,8 @@ console.log(JSON.stringify({
     duplicate_republished_event_counts_once: 'PASS',
     corroborating_source_independence_preserved: 'PASS',
     unknown_rights_fail_closed: 'PASS',
+    reference_only_evidence_generic_admission_rejected: 'PASS',
+    forged_admitted_wrapper_revalidated_and_rejected: 'PASS',
     insufficient_liquidity_evidence_not_promoted: 'PASS'
   }
 }, null, 2));

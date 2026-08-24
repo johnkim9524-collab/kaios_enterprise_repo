@@ -1,0 +1,411 @@
+name: KIDULTS ASI State Department Camera Evidence v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 */4 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-state-department-camera-evidence-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'coordination/kidults/schemas/market-event-v1.schema.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/state-department-online-auction.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-state-department-online-auction-test.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-state-department-camera-evidence-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-state-department-camera-evidence-v1.mjs'
+      - 'scripts/kidults/intelligence/provider-independent-layers-v1.mjs'
+      - 'scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
+      - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
+      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+      - '.github/workflows/kidults-asi-source-adapter-wave4-v1.yml'
+      - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'AGENTS.md'
+      - '.github/AI_AGENT_OPERATING_RULES.md'
+      - '.github/copilot-instructions.md'
+      - 'package.json'
+      - 'npm-shrinkwrap.json'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'services/kidults-autonomous-intelligence/package-lock.json'
+      - 'services/kidults-autonomous-intelligence/tsconfig.json'
+      - 'services/kidults-autonomous-intelligence/wrangler.jsonc'
+      - 'docs/kidults/asi/asi-state-department-camera-evidence-v1.md'
+      - '.github/workflows/kidults-asi-state-department-camera-evidence-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-state-department-camera-evidence-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
+      - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
+      - 'coordination/kidults/schemas/market-event-v1.schema.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/state-department-online-auction.ts'
+      - 'services/kidults-autonomous-intelligence/scripts/asi-state-department-online-auction-test.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-state-department-camera-evidence-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-state-department-camera-evidence-v1.mjs'
+      - 'scripts/kidults/intelligence/provider-independent-layers-v1.mjs'
+      - 'scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
+      - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
+      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+      - '.github/workflows/kidults-asi-source-adapter-wave4-v1.yml'
+      - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
+      - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'AGENTS.md'
+      - '.github/AI_AGENT_OPERATING_RULES.md'
+      - '.github/copilot-instructions.md'
+      - 'package.json'
+      - 'npm-shrinkwrap.json'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'services/kidults-autonomous-intelligence/package-lock.json'
+      - 'services/kidults-autonomous-intelligence/tsconfig.json'
+      - 'services/kidults-autonomous-intelligence/wrangler.jsonc'
+      - 'docs/kidults/asi/asi-state-department-camera-evidence-v1.md'
+      - '.github/workflows/kidults-asi-state-department-camera-evidence-v1.yml'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
+      - 'KIDULTS ASI Source Adapter Wave 4 v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-state-department-camera-evidence-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-bounded-camera-evidence:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            npm-shrinkwrap.json
+            services/kidults-autonomous-intelligence/package-lock.json
+      - name: Verify exact sources and machine contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check services/kidults-autonomous-intelligence/scripts/asi-state-department-online-auction-test.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-state-department-camera-evidence-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-state-department-camera-evidence-v1.mjs
+          for FILE in \
+            coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+            coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
+            coordination/kidults/source-intelligence/asi-state-department-camera-evidence-registry-v1.json; do
+            node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$FILE"
+          done
+      - name: Install deterministic validation dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install bounded adapter runtime dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck exact adapter and service bindings
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm run typecheck
+      - name: Run exact-digest adapter replay and mutation proof
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          node scripts/asi-state-department-online-auction-test.mjs \
+            | tee /tmp/state-department-online-auction-adapter-test-v1.json
+      - name: Build bounded Evidence package twice
+        run: |
+          set -euo pipefail
+          for RUN in 1 2; do
+            node scripts/kidults/source-intelligence/build-asi-state-department-camera-evidence-v1.mjs \
+              coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+              coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
+              /tmp/state-department-online-auction-adapter-test-v1.json \
+              "/tmp/kidults-state-department-camera-evidence-run-${RUN}"
+          done
+          diff -qr \
+            /tmp/kidults-state-department-camera-evidence-run-1 \
+            /tmp/kidults-state-department-camera-evidence-run-2
+      - name: Validate bounded Evidence and market-event reference
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-state-department-camera-evidence-v1.mjs \
+            /tmp/kidults-state-department-camera-evidence-run-1 \
+            coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+            coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
+            /tmp/state-department-online-auction-adapter-test-v1.json \
+            | tee /tmp/state-department-camera-evidence-validation-v1.json
+      - name: Reject generic admission of reference-only event
+        run: |
+          set -euo pipefail
+          node scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';
+          import {canonicalizeMarketEvent,computeMarketSignals,marketAdmissionErrors} from './scripts/kidults/intelligence/provider-independent-layers-v1.mjs';
+          const ledger=JSON.parse(fs.readFileSync('/tmp/kidults-state-department-camera-evidence-run-1/state-department-camera-market-event-ledger-v1.json'));
+          const event=ledger.reference_events[0];
+          const errors=marketAdmissionErrors(event);
+          const canonical=canonicalizeMarketEvent(event);
+          const signals=computeMarketSignals([canonical]);
+          const forgedSignals=computeMarketSignals([{...canonical,admitted:true,admission_errors:[]}]);
+          if(!errors.includes('REFERENCE_ONLY_EVIDENCE_CLASS_NOT_GENERIC_ADMISSIBLE')||canonical.admitted||signals.unique_event_count!==0||forgedSignals.unique_event_count!==0){
+            throw new Error(`REFERENCE_ONLY_GENERIC_ROUTER_FALSE_ADMISSION:${JSON.stringify({errors,admitted:canonical.admitted,signals,forgedSignals})}`);
+          }
+          NODE
+      - name: Reject verified-sold and hammer-price promotion
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-state-department-camera-evidence-run-1 /tmp/bad-state-department-camera-promotion
+          node - <<'NODE'
+          const fs=require('fs');
+          const dir='/tmp/bad-state-department-camera-promotion';
+          const ep=`${dir}/state-department-camera-evidence-ledger-v1.json`;
+          const mp=`${dir}/state-department-camera-market-event-ledger-v1.json`;
+          const e=JSON.parse(fs.readFileSync(ep));
+          const m=JSON.parse(fs.readFileSync(mp));
+          e.verified_sold_event_count=1;
+          e.records[0].verified_sold_event=true;
+          e.records[0].price_observation.price_type='HAMMER';
+          m.verified_sold_events=1;
+          m.reference_events[0].price.price_type='HAMMER';
+          fs.writeFileSync(ep,JSON.stringify(e,null,2));
+          fs.writeFileSync(mp,JSON.stringify(m,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-state-department-camera-evidence-v1.mjs \
+            /tmp/bad-state-department-camera-promotion \
+            coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+            coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
+            /tmp/state-department-online-auction-adapter-test-v1.json; then
+            echo 'Validator accepted AUCTION_RESULT_REFERENCE as verified sold or hammer evidence' >&2
+            exit 1
+          fi
+      - name: Reject each protected output gate promotion
+        run: |
+          set -euo pipefail
+          for GATE in PUBLIC PRODUCTION G5; do
+            MUTATION_DIR=$(mktemp -d /tmp/bad-camera-protected-gate.XXXXXX)
+            cp -a /tmp/kidults-state-department-camera-evidence-run-1/. "$MUTATION_DIR/"
+            GATE="$GATE" MUTATION_DIR="$MUTATION_DIR" node - <<'NODE'
+          const fs=require('fs');
+          const dir=process.env.MUTATION_DIR;
+          const gate=process.env.GATE;
+          if(gate==='PUBLIC'){
+            const p=`${dir}/state-department-camera-evidence-ledger-v1.json`;
+            const x=JSON.parse(fs.readFileSync(p));
+            x.records[0].public_release='ALLOW';
+            fs.writeFileSync(p,JSON.stringify(x,null,2));
+          }else if(gate==='PRODUCTION'){
+            const p=`${dir}/state-department-camera-market-event-ledger-v1.json`;
+            const x=JSON.parse(fs.readFileSync(p));
+            x.production='ALLOW';
+            fs.writeFileSync(p,JSON.stringify(x,null,2));
+          }else{
+            const p=`${dir}/state-department-camera-claim-ceiling-receipt-v1.json`;
+            const x=JSON.parse(fs.readFileSync(p));
+            x.g5='ALLOW';
+            fs.writeFileSync(p,JSON.stringify(x,null,2));
+          }
+          NODE
+            if node scripts/kidults/source-intelligence/validate-asi-state-department-camera-evidence-v1.mjs \
+              "$MUTATION_DIR" \
+              coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+              coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
+              /tmp/state-department-online-auction-adapter-test-v1.json; then
+              echo "Validator accepted isolated $GATE gate promotion" >&2
+              exit 1
+            fi
+          done
+      - name: Reject rights removal
+        working-directory: services/kidults-autonomous-intelligence
+        run: |
+          set -euo pipefail
+          cp ../../coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json /tmp/bad-state-department-camera-rights.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='/tmp/bad-state-department-camera-rights.json';
+          const x=JSON.parse(fs.readFileSync(p));
+          x.rights.transform='UNKNOWN';
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/asi-state-department-online-auction-test.mjs \
+            /tmp/bad-state-department-camera-rights.json \
+            ../../coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json; then
+            echo 'Adapter accepted a rights-withdrawn observation' >&2
+            exit 1
+          fi
+      - name: Reject contract claim-ceiling promotion
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json /tmp/state-department-camera-contract-pristine.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json';
+          const x=JSON.parse(fs.readFileSync(p));
+          x.admission_target.verified_sold_event_allowed=true;
+          x.truth_boundary.verified_sold_events_created=1;
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/build-asi-state-department-camera-evidence-v1.mjs \
+            coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+            coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
+            /tmp/state-department-online-auction-adapter-test-v1.json \
+            /tmp/bad-state-department-contract-output; then
+            echo 'Builder accepted a verified-sold contract promotion' >&2
+            exit 1
+          fi
+          mv /tmp/state-department-camera-contract-pristine.json coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json
+      - name: Reject claim allowlist expansion
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json /tmp/bad-state-department-camera-allowlist.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='/tmp/bad-state-department-camera-allowlist.json';
+          const x=JSON.parse(fs.readFileSync(p));
+          x.claim_ceiling.allowed.push('REPRESENTATIVE_MARKET_VALUE');
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/build-asi-state-department-camera-evidence-v1.mjs \
+            coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+            /tmp/bad-state-department-camera-allowlist.json \
+            /tmp/state-department-online-auction-adapter-test-v1.json \
+            /tmp/bad-state-department-allowlist-output; then
+            echo 'Builder accepted a claim allowlist expansion' >&2
+            exit 1
+          fi
+      - name: Reject top-16 activation inheritance
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json /tmp/source-adapter-wave4-registry-pristine.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json';
+          const x=JSON.parse(fs.readFileSync(p));
+          x.implementation_state.source_specific_adapters_activated=1;
+          x.implementation_state.empirical_market_events_admitted=1;
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-state-department-camera-evidence-v1.mjs \
+            /tmp/kidults-state-department-camera-evidence-run-1 \
+            coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+            coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
+            /tmp/state-department-online-auction-adapter-test-v1.json; then
+            echo 'Validator inherited fallback Evidence as top-16 activation' >&2
+            exit 1
+          fi
+          mv /tmp/source-adapter-wave4-registry-pristine.json coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json
+      - name: Revalidate pristine repository and outputs
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          node scripts/kidults/source-intelligence/validate-asi-state-department-camera-evidence-v1.mjs \
+            /tmp/kidults-state-department-camera-evidence-run-1 \
+            coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+            coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
+            /tmp/state-department-online-auction-adapter-test-v1.json \
+            > /tmp/state-department-camera-evidence-final-validation-v1.json
+      - name: Emit and validate governed KPMO receipt
+        run: |
+          set -euo pipefail
+          node - <<'NODE' >/tmp/state-department-camera-evidence-kpmo-receipt-v1.json
+          const fs=require('fs'),crypto=require('crypto');
+          const now=new Date().toISOString();
+          const run=`https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+          const commit=`https://github.com/${process.env.GITHUB_REPOSITORY}/commit/${process.env.GITHUB_SHA}`;
+          const validationPath='/tmp/state-department-camera-evidence-final-validation-v1.json';
+          const manifestPath='/tmp/kidults-state-department-camera-evidence-run-1/state-department-camera-evidence-manifest-v1.json';
+          const digest=(p)=>`sha256:${crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')}`;
+          const validation=JSON.parse(fs.readFileSync(validationPath));
+          const receipt={
+            id:'kidults-asi-state-department-camera-evidence-kpmo-receipt-v1',
+            version:'1.0.0',
+            agent_id:'github-actions/kidults-asi-state-department-camera-evidence-v1',
+            as_of:now,
+            scope:'Exact-digest State Department Doha Nikon camera auction-result reference admission',
+            state:'VERIFIED_PASS',
+            facts:[
+              {statement:`auction_result_reference_evidence_admitted=${validation.auction_result_reference_evidence_admitted}`,evidence_ref_ids:['validator','manifest']},
+              {statement:`market_event_references_created=${validation.market_event_references_created}`,evidence_ref_ids:['validator','manifest']},
+              {statement:'generic_market_events_admitted=0; verified_sold_events_created=0; current_prices_created=0; liquidity_measures_created=0',evidence_ref_ids:['validator','manifest']},
+              {statement:'generic_market_event_rejection_verified=1; forged admitted-wrapper bypass rejected=1; shared generic router produced zero signals',evidence_ref_ids:['validator']},
+              {statement:'top_16_source_adapters_activated=0; top_16_evidence_admitted=0',evidence_ref_ids:['validator','manifest']},
+              {statement:'current_192_missions_closed=0; signal_eligible=false; index_eligible=false; raw_live_source_snapshot_verified=false',evidence_ref_ids:['validator','manifest']},
+              {statement:'autonomous_effect=POSITIVE',evidence_ref_ids:['workflow-run','manifest']},
+              {statement:'global_effect=NEUTRAL_WITH_EVIDENCE; single Qatar fallback reference is not global market evidence',evidence_ref_ids:['manifest']},
+              {statement:'irreplaceable_value_effect=POSITIVE',evidence_ref_ids:['manifest']},
+              {statement:'transparency_effect=POSITIVE; reference, raw-capture, freshness, generic-event, signal, index and verified-sold states are separated',evidence_ref_ids:['validator','manifest']}
+            ],
+            evidence_refs:[
+              {ref_id:'workflow-run',kind:'WORKFLOW_RUN',locator:run,observed_at:now},
+              {ref_id:'commit',kind:'COMMIT',locator:commit,observed_at:now},
+              {ref_id:'validator',kind:'VALIDATOR_OUTPUT',locator:validationPath,observed_at:now,digest:digest(validationPath)},
+              {ref_id:'manifest',kind:'ARTIFACT',locator:manifestPath,observed_at:now,digest:digest(manifestPath)}
+            ],
+            inferences:[],
+            uncertainties:['Independent legal review is not complete; the rights decision is a bounded internal policy-and-evidence preflight only.','The terminal amount is a bid display and is not confirmed hammer, settlement, or all-in realized price.','No immutable raw-source capture exists; the lineage digest is explicitly a normalized projection digest.'],
+            blockers:[
+              {blocked_action:'Create a VERIFIED_SOLD_EVENT or confirmed hammer-price claim',detected_at:now,blocker:'No source-bound hammer, settlement, buyer-premium, or all-in realized-price semantics',owner:'KPMO Source Intelligence',unblock_condition:'Admit a rights-cleared source record with explicit verified hammer or all-in realized semantics.'},
+              {blocked_action:'Activate a current top-16 source adapter for empirical Evidence',detected_at:now,blocker:'Purpose-specific rights, live schema, semantics, owner/origin and activation remain unverified',owner:'KPMO Source Intelligence',unblock_condition:'Pass all non-compensating empirical activation gates for one registered top-16 source.'}
+            ],
+            actions_executed:[
+              {action:'Replayed the exact-projection source validator and rejected twenty-three negative mutations',result:'EXECUTED',evidence_ref_ids:['workflow-run','validator']},
+              {action:'Built the bounded Evidence package twice and verified byte-identical output',result:'EXECUTED',evidence_ref_ids:['workflow-run','manifest']},
+              {action:'Validated market-event schema, admission gates, rights, provenance and claim ceiling',result:'EXECUTED',evidence_ref_ids:['validator']},
+              {action:'Kept Public, Production and G5 release gates on HOLD',result:'EXECUTED',evidence_ref_ids:['validator','manifest']}
+            ],
+            next_action:'Acquire explicit rights-cleared hammer or all-in realized semantics from a collector-market source, or activate one current top-16 source without inheriting this fallback admission.',
+            authority_boundary:{within_authority:true,protected_gates_touched:[],notes:'Reversible internal validation only; no bid, purchase, credential, external commitment, public release, Production or G5 action.'},
+            production:'HOLD',
+            public_release:'HOLD'
+          };
+          process.stdout.write(`${JSON.stringify(receipt,null,2)}\n`);
+          NODE
+          node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt \
+            /tmp/state-department-camera-evidence-kpmo-receipt-v1.json \
+            | tee /tmp/state-department-camera-evidence-kpmo-receipt-validation-v1.json
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';
+          import Ajv2020 from 'ajv/dist/2020.js';
+          import addFormats from 'ajv-formats';
+          const schema=JSON.parse(fs.readFileSync('coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json','utf8'));
+          const receipt=JSON.parse(fs.readFileSync('/tmp/state-department-camera-evidence-kpmo-receipt-v1.json','utf8'));
+          const ajv=new Ajv2020({allErrors:true,strict:true,strictTypes:false,strictRequired:false});
+          addFormats(ajv);
+          const validate=ajv.compile(schema);
+          if(!validate(receipt)) throw new Error(`KPMO_RECEIPT_SCHEMA:${ajv.errorsText(validate.errors)}`);
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-state-department-camera-evidence-v1
+          path: |
+            /tmp/state-department-online-auction-adapter-test-v1.json
+            /tmp/kidults-state-department-camera-evidence-run-1
+            /tmp/state-department-camera-evidence-validation-v1.json
+            /tmp/state-department-camera-evidence-final-validation-v1.json
+            /tmp/state-department-camera-evidence-kpmo-receipt-v1.json
+            /tmp/state-department-camera-evidence-kpmo-receipt-validation-v1.json
+          retention-days: 90
+          if-no-files-found: error
