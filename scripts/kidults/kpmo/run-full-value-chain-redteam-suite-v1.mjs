@@ -57,6 +57,7 @@ const productionRecoveryValidators = [
 const downstreamBoundaryValidators = [
   'scripts/kidults/kpmo/validate-er-projection-workflow-provenance-v1.mjs',
   'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
+  'scripts/kidults/portal/validate-server-projection-capability-v1.mjs',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
 const validators = [...new Set([
@@ -153,6 +154,9 @@ console.log(JSON.stringify({
   proof_product_consumer_runtime_machine_bound: true,
   proof_product_consumer_schema_runtime_bound: true,
   proof_product_consumer_unknown_discriminator_fail_closed: true,
+  server_projection_capability_cryptographic_core_machine_bound: true,
+  server_projection_capability_algorithm: 'Ed25519',
+  server_projection_capability_route_binding: 'NOT_IMPLEMENTED_HOLD',
   proof_product_api_export_binding: 'NOT_IMPLEMENTED_HOLD',
   projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
