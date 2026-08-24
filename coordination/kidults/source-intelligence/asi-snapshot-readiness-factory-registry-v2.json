@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-snapshot-readiness-factory-registry-v2",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P3",
@@ -14,6 +14,10 @@
     "contract": "coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json",
     "builder": "scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs",
     "validator": "scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs",
+    "readiness_library": "scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs",
+    "liveness_test": "scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs",
+    "upstream_binding_validator": "scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs",
+    "canonical_handoff_validator": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
     "registry_validator": "scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs",
     "workflow": ".github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml",
     "documentation": "docs/kidults/asi/asi-snapshot-readiness-factory-v2.md"
@@ -30,10 +34,19 @@
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },
   "release_semantics": {
-    "snapshot_candidate_generation": "FAIL_CLOSED_UNTIL_ALL_DIMENSIONS_PASS",
-    "evidence_package_generation": "FAIL_CLOSED_UNTIL_ADMITTED_EVIDENCE_EXISTS",
-    "track_b_start": "FAIL_CLOSED_UNTIL_EXACT_IMMUTABLE_PAIR_EXISTS",
+    "snapshot_candidate_generation": "ATOMIC_WITH_EVIDENCE_PACKAGE_AFTER_ALL_TEN_PREREQUISITES_PASS",
+    "evidence_package_generation": "ATOMIC_WITH_SNAPSHOT_CANDIDATE_AFTER_LAWFUL_ADMITTED_EVIDENCE_BINDINGS_PASS",
+    "output_existence_is_prerequisite": false,
+    "track_b_start": "FAIL_CLOSED_AFTER_PAIR_GENERATION_UNTIL_CANONICAL_HANDOFF_PREFLIGHT_PASSES",
+    "track_b_submission_preauthorized": false,
     "blocker_package_is_evidence_package": false
+  },
+  "artifact_restore_semantics": {
+    "p2_artifact": "EXACT_WORKFLOW_RUN_ID_HEAD_SHA_PROVIDER_DIGEST_AND_DOWNLOADED_ARCHIVE_SHA256",
+    "p0b_p1_artifact_ids": "ONLY_FROM_EXACT_P2_KPMO_RECEIPT",
+    "content_binding": "P0B_AND_P1_CONTENT_DIGESTS_MUST_MATCH_P2_LINEAGE",
+    "global_artifact_scan": "FORBIDDEN",
+    "any_branch_fallback": "FORBIDDEN"
   },
   "public_release": "HOLD",
   "production": "HOLD"
