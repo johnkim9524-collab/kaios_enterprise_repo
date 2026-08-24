@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 const LOCK_PATH = 'tooling/kidults-portal-r001-browser-qa/package-lock.json';
 const INSTALLED_LOCK_PATH = '/tmp/kidults-r001-qa/node_modules/.package-lock.json';
 const REPORT_PATH = '/tmp/kidults-portal-r001-release-qa-v1.json';
+const FIXTURE_BUILDER_PATH = 'scripts/kidults/portal/proof-product-test-fixtures-v1.mjs';
 const OUTPUT_PATH = process.argv[2] || null;
 
 function fail(message) { throw new Error(message); }
@@ -33,6 +34,7 @@ for (const [name, installed] of installedRecords) {
 }
 
 const reportBytes = fs.readFileSync(REPORT_PATH);
+const fixtureBuilderBytes = fs.readFileSync(FIXTURE_BUILDER_PATH);
 const report = JSON.parse(reportBytes.toString('utf8'));
 if (report.result !== 'PASS') fail('BROWSER_QA_REPORT_NOT_PASS');
 if (report.truth_boundary?.empirical_gate_effect !== 'NONE') fail('BROWSER_QA_REPORT_TRUTH_BOUNDARY');
@@ -62,6 +64,8 @@ const receipt = {
   install_mode: 'NPM_CI_COMMITTED_LOCK',
   browser_qa_report_path: REPORT_PATH,
   browser_qa_report_sha256: `sha256:${crypto.createHash('sha256').update(reportBytes).digest('hex')}`,
+  fixture_builder_path: FIXTURE_BUILDER_PATH,
+  fixture_builder_sha256: `sha256:${crypto.createHash('sha256').update(fixtureBuilderBytes).digest('hex')}`,
   browser_qa_result: report.result,
   empirical_gate_effect: 'NONE',
   external_runtime_mutation: false,

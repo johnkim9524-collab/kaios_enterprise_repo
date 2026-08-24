@@ -20,6 +20,7 @@ const mandatory = [
   'scripts/operations/validate_digitalocean_staging_bootstrap_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_exec_v1.py',
   'scripts/operations/validate_digitalocean_staging_bootstrap_workflow_v1.py',
+  'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
 
@@ -44,7 +45,10 @@ for (const marker of [
   'pre_partner_canonical_source_object_suppression_machine_bound: true',
   'pre_partner_rekey_alias_reingestion_fail_closed: true',
   'digitalocean_staging_bootstrap_exec_contract_machine_bound: true',
-  'digitalocean_staging_bootstrap_workflow_machine_bound: true'
+  'digitalocean_staging_bootstrap_workflow_machine_bound: true',
+  'proof_product_consumer_runtime_machine_bound: true',
+  'proof_product_consumer_schema_runtime_bound: true',
+  "proof_product_api_export_binding: 'NOT_IMPLEMENTED_HOLD'"
 ]) {
   if (!runner.includes(marker)) errors.push(`aggregate truth/control marker missing: ${marker}`);
 }
