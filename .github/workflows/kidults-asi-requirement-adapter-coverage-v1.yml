@@ -249,6 +249,28 @@ jobs:
             echo 'Validator accepted unsupported live, rights, activation or Evidence promotion' >&2
             exit 1
           fi
+      - name: Reject forged upstream artifact validation scope
+        run: |
+          set -euo pipefail
+          cp /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json /tmp/bad-autonomous-resolution-artifact-scope-v1.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='/tmp/bad-autonomous-resolution-artifact-scope-v1.json';
+          const x=JSON.parse(fs.readFileSync(p));
+          if(x.validation_scope==='MAIN'){x.validation_scope='PULL_REQUEST_HEAD';x.production_eligible=false;}else{x.validation_scope='MAIN';x.production_eligible=true;}
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs \
+            /tmp/arl-input/replacement-source-mission-queue-v1.json \
+            /tmp/arl-input/autonomous-resolution-manifest-v1.json \
+            /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json \
+            /tmp/bad-autonomous-resolution-artifact-scope-v1.json \
+            coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json \
+            coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
+            /tmp/bad-artifact-scope-output; then
+            echo 'Builder accepted forged upstream artifact validation scope' >&2
+            exit 1
+          fi
       - name: Reject unbound upstream digest mutation
         run: |
           set -euo pipefail
