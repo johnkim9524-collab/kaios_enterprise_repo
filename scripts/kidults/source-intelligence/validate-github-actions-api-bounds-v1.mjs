@@ -35,7 +35,8 @@ const criticalRunScopedArtifactConsumers = [
   '.github/workflows/kidults-asi-source-domain-observation-graph-v1.yml',
   '.github/workflows/kidults-asi-common-crawl-host-expansion-v1.yml',
   '.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml',
-  '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
+  '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',
+  '.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml'
 ];
 
 const inspectCriticalRunScopedArtifactConsumer = (text, source) => {

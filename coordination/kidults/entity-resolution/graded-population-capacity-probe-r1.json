@@ -231,7 +231,7 @@
         "observed_description": "number of people inhabiting the place; number of people of subject",
         "observed_datatype": "quantity",
         "source_url": "https://www.wikidata.org/wiki/Special:EntityData/P1082.json",
-        "source_payload_sha256": "sha256:10ae922b7ee125b7e2c1b20e1d592f99a38d1866ea67c5824fa07da62099b458",
+        "source_payload_sha256": "sha256:a830b84915116af6fad1729c1190095d35bd5311b98d56ca4d12afba9767161e",
         "license_evidence_refs": [
           "https://www.wikidata.org/wiki/Wikidata:Licensing"
         ]
@@ -332,6 +332,6 @@
   },
   "truth_boundary": "This bounded preflight makes four unauthenticated GET requests only to Wikidata CC0 property-schema endpoints and makes zero provider-record requests. PCGS and PSA contribute zero because current bulk rights are blocked or not cleared. CGC contributes zero under a dated manual conservative terms review and the repository pending-terms/not-cleared gate; this probe does not fetch CGC. This four-property Wikidata audit identified no exact grade, grading-certification-number and graded-population-context mapping; it does not claim an exhaustive catalog-wide absence, and rejected generic properties are never reinterpreted. No cases, labels, reviewers, market/current-price claims, publication or Production authority are created.",
   "integrity": {
-    "canonical_payload_sha256": "sha256:484a278f97fb4785dd56bc8643c5bc4e9f74367b1fab671d06dec9ecda4a4c7b"
+    "canonical_payload_sha256": "sha256:d5d7c8c59645083cda18bac43210d8c673acdc26a8b788da8b9ce82a2a5475fd"
   }
 }

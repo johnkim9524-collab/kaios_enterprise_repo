@@ -57,7 +57,8 @@ jobs:
             for(const route of routes){
               const page=await context.newPage();
               const url='http://127.0.0.1:4173'+route;
-              const response=await page.goto(url,{waitUntil:'networkidle'});
+              const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:15000});
+              await page.waitForFunction(()=>Boolean(document.documentElement.dataset.state),null,{timeout:5000});
               if(!response?.ok()){failures.push(`${route}:${vp.name}:HTTP_${response?.status()}`); await page.close(); continue;}
               const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
               const serious=axe.violations.filter(v=>['serious','critical'].includes(v.impact));

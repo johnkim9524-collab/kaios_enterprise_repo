@@ -39,15 +39,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/live-gates/raw /tmp/live-gates/canonical discovery-out/raw discovery-out
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            META_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false)][0].id // empty'
-            DISC_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-hourly-cycle-v1" and .expired==false)][0].id // empty'
-          else
-            META_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
-            DISC_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-hourly-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
-          fi
-          META_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$META_JQ")
-          DISC_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$DISC_JQ")
+          RUN_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')
+          test -n "$RUN_ID"
+          META_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false)][0].id // empty')
+          DISC_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-hourly-cycle-v1" and .expired==false)][0].id // empty')
           echo "META_ID=${META_ID:-NONE} DISC_ID=${DISC_ID:-NONE}"
           test -n "$META_ID"
           test -n "$DISC_ID"

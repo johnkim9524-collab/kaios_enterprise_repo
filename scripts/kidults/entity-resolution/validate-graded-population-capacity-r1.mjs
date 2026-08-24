@@ -11,7 +11,7 @@ const STRATUM_ID = 'er-stratum-graded-population';
 const SHA256 = /^sha256:[a-f0-9]{64}$/;
 const WIKIDATA_LICENSE = 'https://www.wikidata.org/wiki/Wikidata:Licensing';
 const CGC_TERMS = 'https://www.cgccomics.com/legal/terms-of-use/';
-const FROZEN_COMPLETE_SEMANTIC_SHA256 = 'sha256:e3ba38c0186433c9f98eb498a1302b633597f891b486fe761d1291d76d9027f0';
+const FROZEN_COMPLETE_SEMANTIC_SHA256 = 'sha256:45c6d09f9cfb9968bfff55f95e5f9c0b6b865c4713c425bff5b99e391237cc90';
 const VOLATILE_SEMANTIC_PATHS = new Set(['generated_at', 'integrity', 'cc0_live_schema_observation.accessed_at']);
 const EXPECTED_PROPERTY_DECISIONS = {
   P10611:['has certification', 'certain certification', 'CERTIFICATION_NUMBER', 'REJECT_NOT_AN_IDENTIFIER'],
