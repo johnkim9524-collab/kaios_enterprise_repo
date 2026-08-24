@@ -1,8 +1,9 @@
 {
   "id": "kidults-top16-empirical-activation-preflight-v1",
-  "version": "1.0.0",
-  "status": "VERIFIED_FAIL_CLOSED",
-  "as_of": "2026-08-24T02:38:18Z",
+  "version": "1.1.0",
+  "status": "VERIFIED_FAIL_CLOSED_ALL_16_PREFLIGHTED",
+  "as_of": "2026-08-24T05:20:00Z",
+  "legal_character": "INTERNAL_PURPOSE_SPECIFIC_PREFLIGHT_NOT_LEGAL_ADVICE",
   "platform_principles": [
     "AUTONOMOUS",
     "GLOBAL",
@@ -12,207 +13,638 @@
   "portfolio": {
     "registered_source_profiles": 16,
     "software_adapters_implemented_fixture_verified": 16,
+    "official_surfaces_and_terms_preflighted": 16,
     "purpose_specific_rights_verified": 0,
+    "rights_clear_current_sold_sources": 0,
+    "rights_or_access_hold": 16,
+    "current_sold_wrong_purpose_or_unproven_sources": 6,
     "immutable_live_source_snapshots_verified": 0,
     "empirically_activated": 0,
     "evidence_admitted": 0,
-    "verified_current_sold_events": 0
+    "verified_current_sold_events": 0,
+    "adapter_development_backlog_eligible": 0
   },
-  "preflighted_sources": 5,
+  "preflighted_sources": 16,
   "rows": [
     {
       "source_id": "broad-arrow-results",
-      "preflight_state": "OFFICIAL_TERMS_AND_ROBOTS_VERIFIED",
-      "access_state": "PUBLIC_RESULT_VISIBLE",
+      "source_name": "Broad Arrow Auction Results",
+      "official_locator": "https://www.broadarrowauctions.com/vehicles/results",
+      "source_roles": [
+        "SOLD_TRANSACTION"
+      ],
+      "candidate_purpose_intents": [],
+      "current_sold_purpose_candidate_state": "CANDIDATE_UNVERIFIED_AUCTION_RESULT",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
       "rights_state": "DENY_AUTOMATED_COLLECTION_ABSENT_WRITTEN_PERMISSION",
-      "schema_state": "EXACT_LOT_RESULT_VISIBLE_NOT_COLLECTED",
-      "semantic_state": "SOLD_PRICE_LABEL_VISIBLE_NOT_ADMITTED",
-      "activation_state": "HOLD_EXTERNAL_WRITTEN_PERMISSION_REQUIRED",
-      "blocker": "ROBOTS_DISALLOWS_VEHICLES_RESULTS_AND_PLATFORM_TERMS_PROHIBIT_AUTOMATED_RETRIEVAL_DATA_MINING_OR_REPRODUCTION",
+      "access_state": "PUBLIC_RESULTS_ROBOTS_BLOCKED",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "SOLD_RESULT_SURFACE_VISIBLE_NOT_ADMITTED",
+      "domain_fit_state": "COLLECTOR_CARS_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "ROBOTS_BLOCKS_RESULTS_AND_PLATFORM_TERMS_PROHIBIT_RETRIEVAL_INDEXING_DATA_MINING_OR_REPRODUCTION",
       "evidence_refs": [
+        "https://www.broadarrowauctions.com/vehicles/results",
         "https://www.broadarrowauctions.com/robots.txt",
-        "https://speeddigital.com/terms-and-conditions/",
-        "https://www.broadarrowauctions.com/vehicles/ch24_r073/2005-honda-s2000"
-      ]
+        "https://speeddigital.com/terms-and-conditions"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "written_permission_required": true
     },
     {
       "source_id": "collecting-cars-sold",
-      "preflight_state": "OFFICIAL_TERMS_AND_ROBOTS_VERIFIED",
-      "access_state": "SOLD_ARCHIVE_VISIBLE_PRICE_LOGIN_GATED_ON_OBSERVED_ROWS",
-      "rights_state": "DENY_AUTOMATED_COLLECTION_ABSENT_PRIOR_WRITTEN_CONSENT",
-      "schema_state": "LIVE_PRICE_SCHEMA_NOT_VERIFIED",
-      "semantic_state": "SOLD_ARCHIVE_LABEL_ONLY_NOT_PRICE_EVIDENCE",
-      "activation_state": "HOLD_EXTERNAL_WRITTEN_PERMISSION_REQUIRED",
-      "blocker": "TERMS_PROHIBIT_SCRAPING_DATA_MINING_ROBOTS_AND_DATA_EXTRACTION_WITHOUT_PRIOR_WRITTEN_CONSENT",
+      "source_name": "Collecting Cars Sold Archive",
+      "official_locator": "https://collectingcars.com/auctions/sold",
+      "source_roles": [
+        "SOLD_TRANSACTION"
+      ],
+      "candidate_purpose_intents": [],
+      "current_sold_purpose_candidate_state": "CANDIDATE_UNVERIFIED_AUCTION_RESULT",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "DENY_AUTOMATED_COLLECTION_ABSENT_WRITTEN_PERMISSION",
+      "access_state": "PUBLIC_ARCHIVE_REUSE_NOT_AUTHORIZED",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "SOLD_ARCHIVE_SURFACE_VISIBLE_NOT_ADMITTED",
+      "domain_fit_state": "COLLECTOR_CARS_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "TERMS_PROHIBIT SCRAPING_MINING_ROBOTS_THIRD_PARTY_INCORPORATION_AND_MONETIZATION_ABSENT_WRITTEN_CONSENT",
       "evidence_refs": [
-        "https://collectingcars.com/robots.txt",
-        "https://collectingcars.com/terms-conditions",
-        "https://collectingcars.com/sold"
-      ]
+        "https://collectingcars.com/auctions/sold",
+        "https://collectingcars.com/terms-conditions"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "written_permission_required": true
     },
     {
       "source_id": "barrett-jackson-results",
-      "preflight_state": "OFFICIAL_RESULT_SURFACE_OBSERVED",
-      "access_state": "REGISTER_TO_VIEW_PRICE_AND_AUTOMATED_PREFLIGHT_BLOCKED",
+      "source_name": "Barrett-Jackson Results",
+      "official_locator": "https://www.barrett-jackson.com/results",
+      "source_roles": [
+        "SOLD_TRANSACTION"
+      ],
+      "candidate_purpose_intents": [],
+      "current_sold_purpose_candidate_state": "CANDIDATE_UNVERIFIED_AUCTION_RESULT",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
       "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "LIVE_PRICE_SCHEMA_NOT_VERIFIED",
-      "semantic_state": "TERMINAL_PRICE_NOT_OBSERVED_WITHOUT_ACCOUNT",
-      "activation_state": "HOLD_ACCOUNT_RIGHTS_AND_SCHEMA_REQUIRED",
-      "blocker": "PRICE_REQUIRES_REGISTRATION_AND_NONINTERACTIVE_ROBOTS_PREFLIGHT_RETURNED_ACCESS_DENIAL",
+      "access_state": "REGISTER_TO_VIEW_PRICE",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "CURRENT_SOLD_SEMANTICS_NOT_VERIFIED",
+      "domain_fit_state": "COLLECTOR_CARS_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "RESULT_PRICE_REQUIRES_REGISTRATION_AND_NO_PUBLIC_API_OR_PURPOSE_SPECIFIC_REUSE_RIGHT_WAS VERIFIED",
       "evidence_refs": [
-        "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle-results"
-      ]
+        "https://www.barrett-jackson.com/results"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "account_required": true,
+      "login_required": true
     },
     {
       "source_id": "iconic-auctioneers-results",
-      "preflight_state": "OFFICIAL_SEARCH_RESULT_SEMANTICS_OBSERVED",
-      "access_state": "AWS_WAF_CHALLENGE_BLOCKS_NONINTERACTIVE_CAPTURE",
+      "source_name": "Iconic Auctioneers Results",
+      "official_locator": "https://www.iconicauctioneers.com/auction-results",
+      "source_roles": [
+        "SOLD_TRANSACTION"
+      ],
+      "candidate_purpose_intents": [],
+      "current_sold_purpose_candidate_state": "CANDIDATE_UNVERIFIED_AUCTION_RESULT",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
       "rights_state": "UNKNOWN_FAIL_CLOSED",
+      "access_state": "WAF_BLOCKED_NONINTERACTIVE_ACCESS",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
       "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
-      "semantic_state": "SOLD_INCLUDING_PREMIUM_LABEL_VISIBLE_IN_SEARCH_CONTEXT_NOT_ADMITTED",
-      "activation_state": "HOLD_ACCESS_RIGHTS_AND_SCHEMA_REQUIRED",
-      "blocker": "NONINTERACTIVE_OFFICIAL_PAGE_CAPTURE_IS_BLOCKED_BY_WAF_AND_NO_PURPOSE_SPECIFIC_RIGHTS_PASS_EXISTS",
+      "semantic_state": "CURRENT_SOLD_SEMANTICS_NOT_VERIFIED",
+      "domain_fit_state": "COLLECTOR_CARS_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "WAF_BLOCKS_NONINTERACTIVE_CAPTURE_AND_NO_PUBLIC_API_OR_OPEN_DATA_LICENSE_WAS VERIFIED",
       "evidence_refs": [
-        "https://www.iconicauctioneers.com/auction-results"
-      ]
+        "https://www.iconicauctioneers.com/auction-results",
+        "https://www.iconicauctioneers.com/terms-and-conditions"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false
     },
     {
       "source_id": "pricecharting-api",
-      "preflight_state": "OFFICIAL_API_DOCUMENTATION_VERIFIED",
-      "access_state": "PAID_SUBSCRIPTION_AND_TOKEN_REQUIRED",
-      "rights_state": "EXTERNAL_ACCOUNT_SPEND_AND_TERMS_ACCEPTANCE_REQUIRED",
-      "schema_state": "SOFTWARE_ADAPTER_CORRECTED_TO_DOCUMENTED_CURRENT_VALUE_CONTEXT_ONLY_LIVE_UNVERIFIED",
-      "semantic_state": "DOCUMENTED_PRICE_API_IS_CURRENT_VALUE_NOT_GENERIC_HISTORICAL_SOLD_TRANSACTIONS",
-      "activation_state": "HOLD_EXTERNAL_SPEND_CREDENTIAL_RIGHTS_AND_LIVE_SCHEMA_REQUIRED",
-      "blocker": "NO_AUTHORIZED_TOKEN_OR_SPEND; DOCUMENTED_SOLD_OFFERS_ENDPOINT_IS PARTY_SCOPED_AND_CANNOT_SUPPORT_A_GENERIC_TRANSACTION_CLAIM",
+      "source_name": "PriceCharting API",
+      "official_locator": "https://www.pricecharting.com/api-documentation",
+      "source_roles": [
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_purpose_intents": [
+        "CURRENT_VALUE_AGGREGATE_CONTEXT"
+      ],
+      "current_sold_purpose_candidate_state": "NOT_CANDIDATE_CURRENT_VALUE_ONLY",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "EXTERNAL_ACCOUNT_SPEND_TERMS_AND_AUTHORIZATION_REQUIRED",
+      "access_state": "PAID_TOKEN_REQUIRED",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "DOCUMENTED_CURRENT_VALUE_CONTEXT_ONLY",
+      "semantic_state": "NOT_INDIVIDUAL_DATED_SOLD_TRANSACTION",
+      "domain_fit_state": "GAMES_CARDS_COMICS_COINS_COLLECTIBLES_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "OFFICIAL_API SUPPORTS CURRENT_VALUE_CONTEXT_NOT_GENERIC_HISTORICAL_SOLD_TRANSACTIONS_AND_REQUIRES_PAID_TOKEN",
       "evidence_refs": [
         "https://www.pricecharting.com/api-documentation",
-        "https://www.pricecharting.com/pricecharting-pro"
-      ]
+        "https://www.pricecharting.com/page/terms-of-service"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "paid_plan_required": true,
+      "spend_required": true,
+      "credential_required": true,
+      "account_required": true
     },
     {
       "source_id": "bonhams-cars-results",
-      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
-      "access_state": "UNVERIFIED",
-      "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
-      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
-      "evidence_refs": []
+      "source_name": "Bonhams Cars",
+      "official_locator": "https://cars.bonhams.com/",
+      "source_roles": [
+        "SOLD_TRANSACTION"
+      ],
+      "candidate_purpose_intents": [],
+      "current_sold_purpose_candidate_state": "CANDIDATE_UNVERIFIED_AUCTION_RESULT",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "COMMERCIAL_DATABASE_REUSE_NOT_AUTHORIZED",
+      "access_state": "PUBLIC_PERSONAL_USE_ONLY",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "CURRENT_SOLD_SEMANTICS_NOT_VERIFIED",
+      "domain_fit_state": "COLLECTOR_CARS_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "WEBSITE_TERMS MAKE PERSONAL USE CLEAR BUT DO NOT AUTHORIZE AUTOMATED COMMERCIAL DATABASE ACCUMULATION",
+      "evidence_refs": [
+        "https://cars.bonhams.com/",
+        "https://www.bonhams.com/legals/9944/"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "written_permission_required": true
     },
     {
       "source_id": "bonhams-watches-results",
-      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
-      "access_state": "UNVERIFIED",
-      "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
-      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
-      "evidence_refs": []
+      "source_name": "Bonhams Watches",
+      "official_locator": "https://www.bonhams.com/auctions/",
+      "source_roles": [
+        "SOLD_TRANSACTION"
+      ],
+      "candidate_purpose_intents": [],
+      "current_sold_purpose_candidate_state": "CANDIDATE_UNVERIFIED_AUCTION_RESULT",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "COMMERCIAL_DATABASE_REUSE_NOT_AUTHORIZED",
+      "access_state": "PUBLIC_PERSONAL_USE_ONLY",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "CURRENT_SOLD_SEMANTICS_NOT_VERIFIED",
+      "domain_fit_state": "COLLECTOR_WATCHES_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "WEBSITE_TERMS MAKE PERSONAL USE CLEAR BUT DO NOT AUTHORIZE AUTOMATED COMMERCIAL DATABASE ACCUMULATION",
+      "evidence_refs": [
+        "https://www.bonhams.com/auctions/",
+        "https://www.bonhams.com/legals/9944/"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "written_permission_required": true
     },
     {
       "source_id": "bricklink-catalog-api",
-      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
-      "access_state": "CREDENTIAL_REQUIRED_FROM_EXISTING_REGISTRY",
-      "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "activation_state": "HOLD_CREDENTIAL_RIGHTS_SCHEMA_SEMANTICS_REQUIRED",
-      "blocker": "AUTHORIZED_CREDENTIAL_AND_PURPOSE_RIGHTS_NOT_AVAILABLE",
-      "evidence_refs": []
+      "source_name": "BrickLink Price Guide API",
+      "official_locator": "https://www.bricklink.com/v3/api.page?page=get-price-guide",
+      "source_roles": [
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_purpose_intents": [
+        "SOLD_AGGREGATE_CONTEXT"
+      ],
+      "current_sold_purpose_candidate_state": "NOT_CANDIDATE_SOLD_AGGREGATE_ONLY",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "EXTERNAL_ACCOUNT_EULA_CREDENTIAL_REQUIRED",
+      "access_state": "OAUTH_KEY_AND_EULA_REQUIRED",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "DOCUMENTED_AGGREGATE_PRICE_GUIDE",
+      "semantic_state": "NOT_INDIVIDUAL_DATED_SOLD_TRANSACTION_OR_LIQUIDITY",
+      "domain_fit_state": "LEGO_COLLECTIBLES_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "RECENT_SIX_MONTH SOLD STATISTICS ARE AGGREGATES NOT INDIVIDUAL TRANSACTIONS_AND_API_CACHE_IS_RESTRICTED",
+      "evidence_refs": [
+        "https://www.bricklink.com/v3/api.page?page=get-price-guide",
+        "https://www.bricklink.com/help.asp?helpID=31",
+        "https://www.bricklink.com/v3/terms_of_use_api.page"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "credential_required": true,
+      "account_required": true,
+      "eula_required": true
     },
     {
       "source_id": "christies-handbags-results",
-      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
-      "access_state": "UNVERIFIED",
-      "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
-      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
-      "evidence_refs": []
+      "source_name": "Christie's Handbags Results",
+      "official_locator": "https://www.christies.com/en/results",
+      "source_roles": [
+        "SOLD_TRANSACTION"
+      ],
+      "candidate_purpose_intents": [],
+      "current_sold_purpose_candidate_state": "CANDIDATE_UNVERIFIED_AUCTION_RESULT",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "DENY_AUTOMATED_COMMERCIAL_COLLECTION",
+      "access_state": "PUBLIC_PERSONAL_NONCOMMERCIAL_ONLY",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "CURRENT_SOLD_SEMANTICS_NOT_VERIFIED",
+      "domain_fit_state": "COLLECTOR_HANDBAGS_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "WEBSITE_TERMS RESTRICT ROBOTS_SCRAPING_AUTOMATED_COLLECTION_CACHE_AND_DATABASE_USE",
+      "evidence_refs": [
+        "https://www.christies.com/en/about/terms-and-conditions/terms-and-conditions-for-website-use"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "written_permission_required": true
     },
     {
       "source_id": "christies-watches-results",
-      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
-      "access_state": "UNVERIFIED",
-      "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
-      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
-      "evidence_refs": []
+      "source_name": "Christie's Watches Results",
+      "official_locator": "https://www.christies.com/en/results",
+      "source_roles": [
+        "SOLD_TRANSACTION"
+      ],
+      "candidate_purpose_intents": [],
+      "current_sold_purpose_candidate_state": "CANDIDATE_UNVERIFIED_AUCTION_RESULT",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "DENY_AUTOMATED_COMMERCIAL_COLLECTION",
+      "access_state": "PUBLIC_PERSONAL_NONCOMMERCIAL_ONLY",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "CURRENT_SOLD_SEMANTICS_NOT_VERIFIED",
+      "domain_fit_state": "COLLECTOR_WATCHES_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "WEBSITE_TERMS RESTRICT ROBOTS_SCRAPING_AUTOMATED_COLLECTION_CACHE_AND_DATABASE_USE",
+      "evidence_refs": [
+        "https://www.christies.com/en/about/terms-and-conditions/terms-and-conditions-for-website-use"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "written_permission_required": true
     },
     {
       "source_id": "comc-marketplace",
-      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
-      "access_state": "UNVERIFIED",
-      "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
-      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
-      "evidence_refs": []
+      "source_name": "COMC Marketplace",
+      "official_locator": "https://www.comc.com/buy",
+      "source_roles": [
+        "LISTING_SUPPLY"
+      ],
+      "candidate_purpose_intents": [
+        "ACCOUNT_GATED_MARKETPLACE_CONTEXT"
+      ],
+      "current_sold_purpose_candidate_state": "UNPROVEN_ACCOUNT_GATED_SALES_HISTORY",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "ACCOUNT_OR_SUBSCRIPTION_AND_REUSE_RIGHTS_REQUIRED",
+      "access_state": "LISTINGS_PUBLIC_HISTORY_ACCOUNT_GATED",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "LISTING_AND_ACCOUNT_GATED_CONTEXT_NOT_VERIFIED_SOLD_FEED",
+      "domain_fit_state": "TRADING_CARDS_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "SALES_HISTORY_REQUIRES_ACCOUNT_SUGGESTED_PRICES_REQUIRE_SUBSCRIPTION_AND_NO PUBLIC COMMERCIAL FEED RIGHT_WAS_VERIFIED",
+      "evidence_refs": [
+        "https://www.comc.com/buy",
+        "https://www.comc.com/GetSuggestedPrices",
+        "https://www.comc.com/UserAgreement"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "account_required": true,
+      "paid_plan_required": true,
+      "spend_required": true
     },
     {
       "source_id": "goat-sneaker-marketplace",
-      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
-      "access_state": "UNVERIFIED",
-      "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
-      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
-      "evidence_refs": []
+      "source_name": "GOAT Marketplace",
+      "official_locator": "https://www.goat.com/",
+      "source_roles": [
+        "LISTING_SUPPLY"
+      ],
+      "candidate_purpose_intents": [
+        "ACTIVE_LISTING_CONTEXT"
+      ],
+      "current_sold_purpose_candidate_state": "NOT_CANDIDATE_LISTING_ASK_CONTEXT",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "DENY_AUTOMATED_COMMERCIAL_COLLECTION",
+      "access_state": "PUBLIC_LISTING_CONTEXT_ONLY",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "LISTING_AND_ASK_CONTEXT_NOT_SOLD",
+      "domain_fit_state": "COLLECTOR_SNEAKERS_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "TERMS RESTRICT ROBOTS_CRAWLERS_DATA_MINING_AND_COMMERCIAL_OR_THIRD_PARTY_USE",
+      "evidence_refs": [
+        "https://www.goat.com/terms"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "written_permission_required": true
     },
     {
       "source_id": "hasbro-pulse-collections",
-      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
-      "access_state": "UNVERIFIED",
-      "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "semantic_state": "CONTEXT_OR_RELEASE_SURFACE_NOT_SOLD_EVIDENCE",
-      "activation_state": "HOLD_RIGHTS_SCHEMA_AND_CLAIM_CEILING_REQUIRED",
-      "blocker": "EMPIRICAL_CONTEXT_ONLY_ACTIVATION_DOSSIER_INCOMPLETE",
-      "evidence_refs": []
+      "source_name": "Hasbro Pulse Collections",
+      "official_locator": "https://www.hasbropulse.com/",
+      "source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_purpose_intents": [
+        "IDENTITY_CATALOG"
+      ],
+      "current_sold_purpose_candidate_state": "NOT_CANDIDATE_PRIMARY_RETAIL_CATALOG",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "DENY_AUTOMATED_COMMERCIAL_COLLECTION",
+      "access_state": "PUBLIC_RETAIL_CATALOG",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "PRIMARY_RETAIL_CATALOG_NOT_SOLD_OR_LIQUIDITY",
+      "domain_fit_state": "TOYS_COLLECTIBLES_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "PRIMARY_RETAIL_CATALOG_IS_NOT_SECONDARY_SOLD_AND_TERMS_RESTRICT_SCRAPERS_BOTS_AND_COMMERCIALIZATION",
+      "evidence_refs": [
+        "https://www.hasbropulse.com/",
+        "https://www.hasbropulse.com/pages/terms-of-use"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "written_permission_required": true
     },
     {
       "source_id": "nike-snkrs-launch-calendar",
-      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
-      "access_state": "UNVERIFIED",
-      "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "semantic_state": "RELEASE_CALENDAR_NOT_SOLD_EVIDENCE",
-      "activation_state": "HOLD_RIGHTS_SCHEMA_AND_CLAIM_CEILING_REQUIRED",
-      "blocker": "EMPIRICAL_CONTEXT_ONLY_ACTIVATION_DOSSIER_INCOMPLETE",
-      "evidence_refs": []
+      "source_name": "Nike SNKRS Launch Calendar",
+      "official_locator": "https://www.nike.com/launch",
+      "source_roles": [
+        "PRIMARY_AUTHORITY"
+      ],
+      "candidate_purpose_intents": [
+        "PRIMARY_RELEASE_CALENDAR_CONTEXT"
+      ],
+      "current_sold_purpose_candidate_state": "NOT_CANDIDATE_PRIMARY_RELEASE_CALENDAR",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "WRONG_PURPOSE_FAIL_CLOSED",
+      "access_state": "PUBLIC_RELEASE_CALENDAR",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "PUBLIC_RELEASE_CALENDAR",
+      "semantic_state": "NOT_SECONDARY_MARKET_SOLD_OR_LIQUIDITY",
+      "domain_fit_state": "COLLECTOR_SNEAKERS_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "PRIMARY RELEASE_AND_RETAIL_AVAILABILITY_SURFACE_IS_NOT_A_RESALE_TRANSACTION_OR_LIQUIDITY_SOURCE",
+      "evidence_refs": [
+        "https://www.nike.com/launch",
+        "https://www.nike.com/snkrs-app"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false
     },
     {
       "source_id": "reverb-price-guide",
-      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
-      "access_state": "CREDENTIAL_OR_AUTHORIZED_ACCESS_UNVERIFIED",
-      "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "activation_state": "HOLD_CREDENTIAL_RIGHTS_SCHEMA_SEMANTICS_REQUIRED",
-      "blocker": "AUTHORIZED_ACCESS_AND_PURPOSE_RIGHTS_NOT_AVAILABLE",
-      "evidence_refs": []
+      "source_name": "Reverb Price Guide",
+      "official_locator": "https://reverb.com/price-guide",
+      "source_roles": [
+        "SOLD_TRANSACTION"
+      ],
+      "candidate_purpose_intents": [],
+      "current_sold_purpose_candidate_state": "CANDIDATE_SEMANTIC_PASS_RIGHTS_HOLD",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "EXPRESS_AUTHORIZATION_AND_CREDENTIAL_REQUIRED",
+      "access_state": "API_KEY_REQUIRED",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "FINAL_PRICE_HISTORY_SEMANTIC_CANDIDATE_NOT_RIGHTS_BOUND",
+      "domain_fit_state": "COLLECTIBLE_INSTRUMENTS_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "FINAL_PRICE HISTORY_SEMANTICS_APPEAR_RELEVANT_BUT_API_KEY_AND_EXPRESS_AUTHORIZATION_FOR_ANALYTICS_ML_OR_ACCUMULATION_ARE_REQUIRED",
+      "evidence_refs": [
+        "https://reverb.com/price-guide",
+        "https://reverb.com/page/integrations",
+        "https://reverb.com/legal/reverbcom-api-terms-of-use"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "credential_required": true,
+      "written_permission_required": true
     },
     {
       "source_id": "sothebys-watches-results",
-      "preflight_state": "NOT_LIVE_PREFLIGHTED_IN_THIS_WAVE",
-      "access_state": "UNVERIFIED",
-      "rights_state": "UNKNOWN_FAIL_CLOSED",
-      "schema_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "semantic_state": "FIXTURE_VERIFIED_LIVE_UNVERIFIED",
-      "activation_state": "HOLD_RIGHTS_SCHEMA_SEMANTICS_OWNER_ORIGIN_REQUIRED",
-      "blocker": "EMPIRICAL_ACTIVATION_DOSSIER_INCOMPLETE",
-      "evidence_refs": []
+      "source_name": "Sotheby's Watches Results",
+      "official_locator": "https://www.sothebys.com/en/buy/auction-results",
+      "source_roles": [
+        "SOLD_TRANSACTION"
+      ],
+      "candidate_purpose_intents": [],
+      "current_sold_purpose_candidate_state": "CANDIDATE_UNVERIFIED_AUCTION_RESULT",
+      "preflight_state": "OFFICIAL_SURFACE_AND_TERMS_REVIEWED_READ_ONLY",
+      "rights_state": "DENY_AUTOMATED_COMMERCIAL_COLLECTION",
+      "access_state": "PUBLIC_RESULTS_REUSE_RESTRICTED",
+      "field_purpose_rights_verified": false,
+      "commercial_reuse_authorized": false,
+      "purpose_rights": {
+        "collect": "HOLD",
+        "store": "HOLD",
+        "derive": "HOLD"
+      },
+      "purpose_bindings": [],
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "semantic_state": "CURRENT_SOLD_SEMANTICS_NOT_VERIFIED",
+      "domain_fit_state": "COLLECTOR_WATCHES_FIT",
+      "activation_state": "HOLD_RIGHTS_ACCESS_SCHEMA_SEMANTICS_AND_ORIGIN",
+      "blocker": "TERMS RESTRICT COMMERCIAL_EXPLOITATION_DATA_MINING_SPIDERING_AND_DATABASE_SCRAPING",
+      "evidence_refs": [
+        "https://www.sothebys.com/en/terms-conditions"
+      ],
+      "observed_at": "2026-08-24T05:20:00Z",
+      "review_due_at": "2026-09-23T05:20:00Z",
+      "adapter_development_backlog_eligible": false,
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "written_permission_required": true
     }
   ],
+  "routing": {
+    "external_provider_owner": "TRACK_Z_ISSUE_1166",
+    "integrated_reporting": "KPMO_ISSUE_344",
+    "founder_decision_required": true
+  },
   "authority_boundary": {
+    "public_official_metadata_and_terms_review": "AUTHORIZED_READ_ONLY",
     "internal_adapter_code_and_fail_closed_routing": "AUTHORIZED",
     "external_account_creation": "HOLD",
     "terms_acceptance": "HOLD",
@@ -221,7 +653,7 @@
     "credential_use_not_already_configured": "HOLD",
     "production_public_release_or_g5": "HOLD"
   },
-  "next_action": "Route a provider-permission or licensed-feed decision through KPMO/founder authority while continuing rights-clear open historical transaction acquisition independently.",
+  "next_action": "Rank rights-clear or low-friction Source x Purpose candidates first; route permission, contract, account, credential, and spend cases through Track Z then KPMO then Founder.",
   "public_release": "HOLD",
   "production": "HOLD",
   "g5": "HOLD"
