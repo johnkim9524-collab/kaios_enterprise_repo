@@ -6,7 +6,9 @@ import {
   REGISTRY_PATH,
   analyzeWorkflow,
   buildReadbackReceipt,
-  buildWorkflowInventory
+  buildWorkflowInventory,
+  computeReadbackDigest,
+  githubGetCompleteList
 } from '../../../scripts/kidults/kpmo/github-trusted-ref-environment-readback-v1.mjs';
 import { validateReceipt } from '../../../scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs';
 
@@ -48,7 +50,9 @@ function verifiedSnapshot(inventory = verifiedInventory()) {
     environments: {
       ok: true,
       status: 200,
+      complete: true,
       body: {
+        total_count: 1,
         environments: [{
           name: 'staging',
           can_admins_bypass: false,
@@ -61,18 +65,35 @@ function verifiedSnapshot(inventory = verifiedInventory()) {
       staging: {
         ok: true,
         status: 200,
-        body: { total_count: 1, branch_policies: [{ name: 'main', type: 'branch' }] },
-        items: [{ name: 'main', type: 'branch' }]
+        complete: true,
+        body: { total_count: 1, branch_policies: [{ name: 'main', type: 'branch' }] }
       }
     },
     environmentSecrets: {
       staging: {
         ok: true,
         status: 200,
+        complete: true,
         body: { total_count: secretNames.length, secrets: secretNames.map((name) => ({ name })) }
       }
     },
-    rulesets: { ok: true, status: 200, body: [{ id: 1 }] },
+    repositorySecrets: { ok: true, status: 200, complete: true, body: { total_count: 0, secrets: [] } },
+    organizationSecrets: { ok: true, status: 200, complete: true, body: { total_count: 0, secrets: [] } },
+    negativeExecutionProof: {
+      selected_non_main_ref: {
+        state: 'VERIFIED_REJECTED',
+        evidence_ref: 'https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/1001',
+        source_ref: 'refs/heads/negative-non-main-control',
+        observed_at: '2026-08-23T00:00:00.000Z'
+      },
+      branch_controlled_workflow_replacement: {
+        state: 'VERIFIED_REJECTED',
+        evidence_ref: 'https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/1002',
+        source_ref: 'refs/heads/negative-workflow-replacement-control',
+        observed_at: '2026-08-23T00:00:00.000Z'
+      }
+    },
+    rulesets: { ok: true, status: 200, complete: true, body: [{ id: 1 }] },
     rulesetDetails: [{
       ok: true,
       status: 200,
@@ -113,7 +134,11 @@ test('current exact registry remains 15 privileged manual lanes and unbound jobs
 test('synthetic exact-main environment and secret-name metadata is a test-only positive control', () => {
   const positive = receipt();
   assert.equal(positive.state, 'VERIFIED_PASS');
-  assert.equal(positive.issue_974_closure_eligible, true);
+  assert.equal(positive.issue_974_closure_eligible, false);
+  assert.equal(positive.proof_scope, 'SYNTHETIC_TEST_CONTROL');
+  assert.equal(positive.control_truth, 'SYNTHETIC_POSITIVE_CONTROL_ONLY_NOT_EXTERNAL_PROOF');
+  assert.equal(positive.external_proof_state, 'BLOCKED');
+  assert.equal(positive.trusted_execution_attestation.state, 'NOT_IMPLEMENTED');
   assert.equal(positive.issue_974_closed_by_this_readback, false);
   assert.equal(positive.issue_881_control_pass_promoted, false);
   assert.equal(positive.settings_mutated, false);
@@ -130,6 +155,14 @@ test('authorization mode is bound to truthful ephemeral credential semantics', (
   assert.equal(githubToken.stored_repository_or_environment_secret_activated, false);
   assert.equal(githubToken.provider_credential_activated, false);
   assert.deepEqual(validateReceipt(githubToken), []);
+  assert.ok(validateReceipt(githubToken, { requireExternalProof: true }).includes('external_proof_authorization_mode'));
+
+  const githubApp = receipt({ authorizationMode: 'GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ' });
+  assert.equal(githubApp.credential_activation, 'EPHEMERAL_GITHUB_APP_INSTALLATION_TOKEN_ENVIRONMENTS_AND_SECRETS_READ');
+  assert.equal(githubApp.proof_scope, 'AUTHORIZED_ENVIRONMENT_AND_SECRET_SCOPE_METADATA_READBACK');
+  assert.equal(githubApp.issue_974_closure_eligible, false);
+  assert.ok(validateReceipt(githubApp, { requireExternalProof: true }).includes('external_proof_validator_fail_closed_until_trusted_attestor'));
+  assert.ok(validateReceipt(githubApp, { requireExternalProof: true }).includes('external_proof_trusted_execution_attestation'));
 
   const understated = structuredClone(githubToken);
   understated.credential_activation = 'NONE';
@@ -166,20 +199,94 @@ test('unprotected main, wildcard policy, and unreadable secret metadata fail clo
   assert.ok(receipt({ snapshot: unprotected }).blockers.includes('DEFAULT_BRANCH_NOT_PROTECTED'));
 
   const wildcard = verifiedSnapshot();
-  wildcard.environmentPolicies.staging.items = [{ name: '*', type: 'branch' }];
+  wildcard.environmentPolicies.staging.body.branch_policies = [{ name: '*', type: 'branch' }];
   const wildcardReceipt = receipt({ snapshot: wildcard });
   assert.ok(wildcardReceipt.binding_results.every((result) => result.blockers.includes('EXACT_MAIN_DEPLOYMENT_POLICY_NOT_PROVEN')));
 
   const unreadable = verifiedSnapshot();
-  unreadable.environmentSecrets.staging = { ok: false, status: 403, body: null };
+  unreadable.environmentSecrets.staging = { ok: false, status: 403, complete: false, body: null };
   const unreadableReceipt = receipt({ snapshot: unreadable });
-  assert.ok(unreadableReceipt.binding_results.every((result) => result.blockers.includes('ENVIRONMENT_SECRET_METADATA_NOT_READABLE')));
+  assert.ok(unreadableReceipt.binding_results.every((result) => result.blockers.includes('ENVIRONMENT_SECRET_METADATA_INCOMPLETE')));
+});
+
+test('truncated list metadata fails closed even when required names appear on the first page', () => {
+  const truncatedRepositorySecrets = verifiedSnapshot();
+  truncatedRepositorySecrets.repositorySecrets.complete = false;
+  truncatedRepositorySecrets.repositorySecrets.body.total_count = 101;
+  const truncated = receipt({ snapshot: truncatedRepositorySecrets });
+  assert.equal(truncated.state, 'BLOCKED');
+  assert.ok(truncated.blockers.includes('REPOSITORY_SECRET_METADATA_INCOMPLETE'));
+  assert.ok(truncated.binding_results.every((result) => result.credential_environment_exclusive === false));
+});
+
+test('list collector exhausts pagination and reconciles the reported count', async () => {
+  const originalFetch = globalThis.fetch;
+  const requestedPages = [];
+  globalThis.fetch = async (url) => {
+    const page = Number(new URL(url).searchParams.get('page'));
+    requestedPages.push(page);
+    const offset = (page - 1) * 100;
+    const count = page === 1 ? 100 : 1;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        total_count: 101,
+        secrets: Array.from({ length: count }, (_, index) => ({ name: `SECRET_${offset + index}` }))
+      })
+    };
+  };
+  try {
+    const result = await githubGetCompleteList(
+      'johnkim9524-collab/kaios_enterprise_repo',
+      '/actions/secrets',
+      'test-token',
+      { listKey: 'secrets', identityFields: ['name'] }
+    );
+    assert.equal(result.ok, true);
+    assert.equal(result.complete, true);
+    assert.equal(result.body.total_count, 101);
+    assert.equal(result.body.secrets.length, 101);
+    assert.deepEqual(requestedPages, [1, 2]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('list collector rejects duplicate identities across otherwise count-complete pages', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const page = Number(new URL(url).searchParams.get('page'));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        total_count: 101,
+        secrets: page === 1
+          ? Array.from({ length: 100 }, (_, index) => ({ name: `SECRET_${index}` }))
+          : [{ name: 'SECRET_0' }]
+      })
+    };
+  };
+  try {
+    const result = await githubGetCompleteList(
+      'johnkim9524-collab/kaios_enterprise_repo',
+      '/actions/secrets',
+      'test-token',
+      { listKey: 'secrets', identityFields: ['name'] }
+    );
+    assert.equal(result.ok, false);
+    assert.equal(result.complete, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test('partial environment secret-name coverage fails without emitting names', () => {
   const inventory = verifiedInventory();
   const snapshot = verifiedSnapshot(inventory);
   const removedName = snapshot.environmentSecrets.staging.body.secrets.pop().name;
+  snapshot.environmentSecrets.staging.body.total_count -= 1;
   const partial = receipt({ inventory, snapshot });
   assert.equal(partial.state, 'BLOCKED');
   assert.ok(partial.binding_results.some((result) => result.blockers.includes('ENVIRONMENT_SECRET_NAME_COVERAGE_INCOMPLETE')));
@@ -241,4 +348,47 @@ test('receipt validator rejects mutation and semantic-boundary promotion claims'
 
   const blocked = receipt({ inventory: currentInventory, snapshot: verifiedSnapshot(currentInventory) });
   assert.ok(validateReceipt(blocked, { requireExternalProof: true }).includes('external_proof_required'));
+});
+
+test('external-proof mode rejects forged state, fixture scope, stale digest, stale SHA, and non-exclusive credentials', () => {
+  const forgedFixture = receipt();
+  forgedFixture.issue_974_closure_eligible = true;
+  forgedFixture.control_truth = 'CONTROL_PLANE_READBACK_COMPLETE_EXTERNAL_TRUSTED_EXECUTION_NOT_PROVEN';
+  assert.ok(validateReceipt(forgedFixture, { requireExternalProof: true }).includes('external_proof_authorization_mode'));
+
+  const validExternal = receipt({ authorizationMode: 'GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ' });
+  assert.ok(validateReceipt(validExternal, { requireExternalProof: true }).includes('external_proof_validator_fail_closed_until_trusted_attestor'));
+
+  const forgedAttestor = structuredClone(validExternal);
+  forgedAttestor.issue_974_closure_eligible = true;
+  forgedAttestor.external_proof_state = 'VERIFIED_PASS';
+  forgedAttestor.external_proof_blockers = [];
+  forgedAttestor.trusted_execution_attestation = {
+    state: 'VERIFIED_PASS',
+    provenance_type: 'FORGED',
+    subject_digest: `sha256:${'c'.repeat(64)}`,
+    workflow_run_id: 999999,
+    verified_by: 'UNTRUSTED_INPUT'
+  };
+  forgedAttestor.readback_digest = computeReadbackDigest(forgedAttestor);
+  assert.ok(validateReceipt(forgedAttestor, { requireExternalProof: true }).includes('external_proof_validator_fail_closed_until_trusted_attestor'));
+  const staleDigest = structuredClone(validExternal);
+  staleDigest.binding_results[0].environment_observed = false;
+  assert.ok(validateReceipt(staleDigest, { requireExternalProof: true }).includes('readback_digest_integrity'));
+
+  const staleSha = structuredClone(validExternal);
+  staleSha.exact_source_sha = 'b'.repeat(40);
+  staleSha.readback_digest = computeReadbackDigest(staleSha);
+  assert.ok(validateReceipt(staleSha, { requireExternalProof: true }).includes('external_proof_exact_main_sha'));
+
+  const repoScoped = structuredClone(validExternal);
+  repoScoped.binding_results[0].repository_scoped_required_secret_count = 1;
+  repoScoped.binding_results[0].credential_environment_exclusive = false;
+  repoScoped.readback_digest = computeReadbackDigest(repoScoped);
+  assert.ok(validateReceipt(repoScoped, { requireExternalProof: true }).includes('external_proof_binding_semantics'));
+
+  const bypassableAdmin = structuredClone(validExternal);
+  bypassableAdmin.environment_summary[0].can_admins_bypass = true;
+  bypassableAdmin.readback_digest = computeReadbackDigest(bypassableAdmin);
+  assert.ok(validateReceipt(bypassableAdmin, { requireExternalProof: true }).includes('external_proof_environment_summary'));
 });

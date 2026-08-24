@@ -12,6 +12,48 @@ const DEFAULT_BRANCH = 'main';
 const digest = (value) => `sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
 const uniqueSorted = (values) => [...new Set(values)].sort();
 
+function canonicalize(value) {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.keys(value).sort().map((key) => [key, canonicalize(value[key])])
+  );
+}
+
+export function readbackDigestPayload(receipt) {
+  const { readback_digest: omittedDigest, ...materialReceipt } = receipt || {};
+  void omittedDigest;
+  return canonicalize(materialReceipt);
+}
+
+export function computeReadbackDigest(receipt) {
+  return digest(JSON.stringify(readbackDigestPayload(receipt)));
+}
+
+function sanitizeNegativeExecutionProof(snapshot) {
+  const controls = [
+    'selected_non_main_ref',
+    'branch_controlled_workflow_replacement'
+  ];
+  return Object.fromEntries(controls.map((control) => {
+    const observed = snapshot.negativeExecutionProof?.[control] || {};
+    const evidenceRef = typeof observed.evidence_ref === 'string' ? observed.evidence_ref : null;
+    const sourceRef = typeof observed.source_ref === 'string' ? observed.source_ref : null;
+    const observedAt = typeof observed.observed_at === 'string' ? observed.observed_at : null;
+    const verified = observed.state === 'VERIFIED_REJECTED'
+      && /^https:\/\/github\.com\/johnkim9524-collab\/kaios_enterprise_repo\/actions\/runs\/[1-9][0-9]*$/.test(String(evidenceRef || ''))
+      && /^refs\/heads\//.test(String(sourceRef || ''))
+      && sourceRef !== 'refs/heads/main'
+      && !Number.isNaN(Date.parse(String(observedAt || '')));
+    return [control, {
+      state: verified ? 'VERIFIED_REJECTED' : 'NOT_PROVEN',
+      evidence_ref: verified ? evidenceRef : null,
+      source_ref: verified ? sourceRef : null,
+      observed_at: verified ? observedAt : null
+    }];
+  }));
+}
+
 export function activeWorkflowText(text) {
   return text
     .split(/\r?\n/)
@@ -173,20 +215,34 @@ export function buildWorkflowInventory(root = process.cwd(), registry = null) {
   };
 }
 
-function endpoint(status, ok) {
-  return { http_status: Number(status || 0), readable: Boolean(ok) };
+function endpoint(status, ok, complete = null) {
+  return {
+    http_status: Number(status || 0),
+    readable: Boolean(ok),
+    ...(complete === null ? {} : { complete: Boolean(complete) })
+  };
+}
+
+function completeListReadback(result, listKey) {
+  if (!result?.ok || result?.complete !== true || !Array.isArray(result.body?.[listKey])) return false;
+  const totalCount = Number(result.body?.total_count);
+  return Number.isSafeInteger(totalCount)
+    && totalCount >= 0
+    && totalCount === result.body[listKey].length;
 }
 
 function exactMainPolicy(environment, policyReadback) {
   const branchPolicyRule = (environment.protection_rules || []).some((rule) => rule?.type === 'branch_policy');
   const deployment = environment.deployment_branch_policy;
-  const policies = policyReadback?.items || [];
+  const policies = policyReadback?.body?.branch_policies || [];
   const exactMainOnly = policies.length === 1 && policies[0]?.type === 'branch' && policies[0]?.name === DEFAULT_BRANCH;
   return Boolean(
-    branchPolicyRule
+    environment.can_admins_bypass === false
+      && branchPolicyRule
       && deployment?.protected_branches === false
       && deployment?.custom_branch_policies === true
       && policyReadback?.ok
+      && policyReadback?.complete === true
       && exactMainOnly
   );
 }
@@ -215,10 +271,19 @@ export function buildReadbackReceipt({
   const repositoryBody = snapshot.repository?.body || {};
   const branchBody = snapshot.branch?.body || {};
   const observedBranchSha = branchBody.sha || branchBody.commit?.sha || null;
-  const environmentItems = snapshot.environments?.ok && Array.isArray(snapshot.environments.body?.environments)
+  const environmentsComplete = completeListReadback(snapshot.environments, 'environments');
+  const repositorySecretsComplete = completeListReadback(snapshot.repositorySecrets, 'secrets');
+  const organizationSecretsComplete = completeListReadback(snapshot.organizationSecrets, 'secrets');
+  const environmentItems = environmentsComplete
     ? snapshot.environments.body.environments
     : [];
   const environmentsByName = new Map(environmentItems.map((environment) => [environment.name, environment]));
+  const repositorySecretNames = repositorySecretsComplete
+    ? uniqueSorted(snapshot.repositorySecrets.body.secrets.map((item) => item?.name).filter(Boolean))
+    : [];
+  const organizationSecretNames = organizationSecretsComplete
+    ? uniqueSorted(snapshot.organizationSecrets.body.secrets.map((item) => item?.name).filter(Boolean))
+    : [];
   const bindingResults = [];
 
   for (const lane of inventory.lanes) {
@@ -227,11 +292,15 @@ export function buildReadbackReceipt({
       const environment = environmentName ? environmentsByName.get(environmentName) : null;
       const policyReadback = environmentName ? snapshot.environmentPolicies?.[environmentName] : null;
       const secretReadback = environmentName ? snapshot.environmentSecrets?.[environmentName] : null;
-      const observedSecretNames = secretReadback?.ok && Array.isArray(secretReadback.body?.secrets)
+      const policyReadbackComplete = completeListReadback(policyReadback, 'branch_policies');
+      const secretReadbackComplete = completeListReadback(secretReadback, 'secrets');
+      const observedSecretNames = secretReadbackComplete
         ? uniqueSorted(secretReadback.body.secrets.map((item) => item?.name).filter(Boolean))
         : [];
       const requiredNames = uniqueSorted(job.secret_names);
       const matchedSecretCount = requiredNames.filter((name) => observedSecretNames.includes(name)).length;
+      const repositoryScopedMatchCount = requiredNames.filter((name) => repositorySecretNames.includes(name)).length;
+      const organizationScopedMatchCount = requiredNames.filter((name) => organizationSecretNames.includes(name)).length;
       const blockers = [];
       if (!job.environment.declared) blockers.push('JOB_ENVIRONMENT_NOT_DECLARED');
       else if (!job.environment.static) blockers.push('JOB_ENVIRONMENT_NAME_NOT_STATIC');
@@ -239,8 +308,13 @@ export function buildReadbackReceipt({
       if (job.inherited_reusable_secrets) blockers.push('INHERITED_SECRET_SET_NOT_PROVABLE');
       if (!environment) blockers.push('DECLARED_ENVIRONMENT_NOT_OBSERVED');
       if (environment && !exactMainPolicy(environment, policyReadback)) blockers.push('EXACT_MAIN_DEPLOYMENT_POLICY_NOT_PROVEN');
-      if (environment && !secretReadback?.ok) blockers.push('ENVIRONMENT_SECRET_METADATA_NOT_READABLE');
-      if (environment && secretReadback?.ok && matchedSecretCount !== requiredNames.length) blockers.push('ENVIRONMENT_SECRET_NAME_COVERAGE_INCOMPLETE');
+      if (environment && !policyReadbackComplete) blockers.push('DEPLOYMENT_BRANCH_POLICY_READBACK_INCOMPLETE');
+      if (environment && !secretReadbackComplete) blockers.push('ENVIRONMENT_SECRET_METADATA_INCOMPLETE');
+      if (environment && secretReadbackComplete && matchedSecretCount !== requiredNames.length) blockers.push('ENVIRONMENT_SECRET_NAME_COVERAGE_INCOMPLETE');
+      if (!repositorySecretsComplete) blockers.push('REPOSITORY_SECRET_METADATA_INCOMPLETE');
+      if (!organizationSecretsComplete) blockers.push('ORGANIZATION_SECRET_METADATA_INCOMPLETE');
+      if (repositoryScopedMatchCount > 0) blockers.push('REQUIRED_SECRET_STILL_REPOSITORY_SCOPED');
+      if (organizationScopedMatchCount > 0) blockers.push('REQUIRED_SECRET_STILL_ORGANIZATION_SCOPED');
       if (requiredNames.length === 0) blockers.push('STATIC_SECRET_NAME_SET_EMPTY_OR_DYNAMIC');
 
       bindingResults.push({
@@ -257,10 +331,23 @@ export function buildReadbackReceipt({
         environment_observed: Boolean(environment),
         exact_main_deployment_policy_verified: Boolean(environment && exactMainPolicy(environment, policyReadback)),
         environment_secret_metadata_readable: Boolean(secretReadback?.ok),
+        environment_secret_metadata_complete: secretReadbackComplete,
         observed_environment_secret_count: observedSecretNames.length,
-        observed_environment_secret_name_digest: secretReadback?.ok ? digest(observedSecretNames.join('\n')) : null,
+        observed_environment_secret_name_digest: secretReadbackComplete ? digest(observedSecretNames.join('\n')) : null,
         matched_required_secret_count: matchedSecretCount,
-        environment_secret_name_coverage_complete: Boolean(secretReadback?.ok && requiredNames.length > 0 && matchedSecretCount === requiredNames.length),
+        environment_secret_name_coverage_complete: Boolean(secretReadbackComplete && requiredNames.length > 0 && matchedSecretCount === requiredNames.length),
+        repository_secret_metadata_readable: Boolean(snapshot.repositorySecrets?.ok),
+        repository_secret_metadata_complete: repositorySecretsComplete,
+        organization_secret_metadata_readable: Boolean(snapshot.organizationSecrets?.ok),
+        organization_secret_metadata_complete: organizationSecretsComplete,
+        repository_scoped_required_secret_count: repositoryScopedMatchCount,
+        organization_scoped_required_secret_count: organizationScopedMatchCount,
+        credential_environment_exclusive: Boolean(
+          repositorySecretsComplete
+          && organizationSecretsComplete
+          && repositoryScopedMatchCount === 0
+          && organizationScopedMatchCount === 0
+        ),
         state: blockers.length === 0 ? 'VERIFIED_PASS' : 'BLOCKED',
         blockers
       });
@@ -274,7 +361,10 @@ export function buildReadbackReceipt({
   if (!snapshot.branch?.ok) globalBlockers.push('DEFAULT_BRANCH_METADATA_NOT_READABLE');
   if (branchBody.name !== contract.scope.default_branch) globalBlockers.push('OBSERVED_BRANCH_NAME_MISMATCH');
   if (!branchBody.protected) globalBlockers.push('DEFAULT_BRANCH_NOT_PROTECTED');
-  if (!snapshot.environments?.ok) globalBlockers.push('ENVIRONMENT_LIST_NOT_READABLE');
+  if (!environmentsComplete) globalBlockers.push('ENVIRONMENT_LIST_INCOMPLETE');
+  if (!snapshot.rulesets?.ok || snapshot.rulesets?.complete !== true) globalBlockers.push('RULESET_METADATA_INCOMPLETE');
+  if (!repositorySecretsComplete) globalBlockers.push('REPOSITORY_SECRET_METADATA_INCOMPLETE');
+  if (!organizationSecretsComplete) globalBlockers.push('ORGANIZATION_SECRET_METADATA_INCOMPLETE');
   if (sourceContext.ref !== `refs/heads/${contract.scope.default_branch}`) globalBlockers.push('READBACK_SOURCE_REF_NOT_DEFAULT_BRANCH');
   if (!/^[0-9a-f]{40}$/.test(String(sourceContext.sha || ''))) globalBlockers.push('EXACT_SOURCE_SHA_MISSING_OR_INVALID');
   if (sourceContext.ref === `refs/heads/${contract.scope.default_branch}` && sourceContext.sha !== observedBranchSha) {
@@ -282,12 +372,20 @@ export function buildReadbackReceipt({
   }
   if (bindingResults.length === 0) globalBlockers.push('NO_SECRET_BEARING_JOB_BINDINGS_FOUND');
   if (bindingResults.some((result) => result.state !== 'VERIFIED_PASS')) globalBlockers.push('ONE_OR_MORE_PRIVILEGED_JOBS_UNVERIFIED');
-  globalBlockers.push('TRUSTED_DEFAULT_BRANCH_OR_RELEASE_HANDOFF_NOT_IMPLEMENTED_OR_PROVEN');
+  const negativeExecutionProof = sanitizeNegativeExecutionProof(snapshot);
+  if (negativeExecutionProof.selected_non_main_ref.state !== 'VERIFIED_REJECTED') {
+    globalBlockers.push('SELECTED_NON_MAIN_REF_NEGATIVE_EXECUTION_NOT_PROVEN');
+  }
+  if (negativeExecutionProof.branch_controlled_workflow_replacement.state !== 'VERIFIED_REJECTED') {
+    globalBlockers.push('BRANCH_CONTROLLED_WORKFLOW_REPLACEMENT_NEGATIVE_EXECUTION_NOT_PROVEN');
+  }
 
   const environmentSummary = environmentItems.map((environment) => {
     const policyReadback = snapshot.environmentPolicies?.[environment.name];
     const secretReadback = snapshot.environmentSecrets?.[environment.name];
-    const secretNames = secretReadback?.ok && Array.isArray(secretReadback.body?.secrets)
+    const policyReadbackComplete = completeListReadback(policyReadback, 'branch_policies');
+    const secretReadbackComplete = completeListReadback(secretReadback, 'secrets');
+    const secretNames = secretReadbackComplete
       ? uniqueSorted(secretReadback.body.secrets.map((item) => item?.name).filter(Boolean))
       : [];
     return {
@@ -295,57 +393,88 @@ export function buildReadbackReceipt({
       can_admins_bypass: environment.can_admins_bypass,
       protection_rule_types: uniqueSorted((environment.protection_rules || []).map((rule) => rule?.type).filter(Boolean)),
       deployment_branch_policy: environment.deployment_branch_policy || null,
-      deployment_branch_policy_readback: endpoint(policyReadback?.status, policyReadback?.ok),
+      deployment_branch_policy_readback: endpoint(policyReadback?.status, policyReadback?.ok, policyReadbackComplete),
       exact_main_only: exactMainPolicy(environment, policyReadback),
-      environment_secret_metadata_readback: endpoint(secretReadback?.status, secretReadback?.ok),
+      environment_secret_metadata_readback: endpoint(secretReadback?.status, secretReadback?.ok, secretReadbackComplete),
       environment_secret_count: secretNames.length,
-      environment_secret_name_digest: secretReadback?.ok ? digest(secretNames.join('\n')) : null
+      environment_secret_name_digest: secretReadbackComplete ? digest(secretNames.join('\n')) : null
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
 
   const endpointStatuses = {
     repository: endpoint(snapshot.repository?.status, snapshot.repository?.ok),
     default_branch: endpoint(snapshot.branch?.status, snapshot.branch?.ok),
-    environments: endpoint(snapshot.environments?.status, snapshot.environments?.ok),
-    rulesets: endpoint(snapshot.rulesets?.status, snapshot.rulesets?.ok)
+    environments: endpoint(snapshot.environments?.status, snapshot.environments?.ok, environmentsComplete),
+    rulesets: endpoint(snapshot.rulesets?.status, snapshot.rulesets?.ok, snapshot.rulesets?.complete === true),
+    repository_secrets: endpoint(snapshot.repositorySecrets?.status, snapshot.repositorySecrets?.ok, repositorySecretsComplete),
+    organization_secrets: endpoint(snapshot.organizationSecrets?.status, snapshot.organizationSecrets?.ok, organizationSecretsComplete)
   };
   const uniqueGlobalBlockers = uniqueSorted(globalBlockers);
-  const closureEligible = uniqueGlobalBlockers.length === 1
-    && uniqueGlobalBlockers[0] === 'TRUSTED_DEFAULT_BRANCH_OR_RELEASE_HANDOFF_NOT_IMPLEMENTED_OR_PROVEN'
+  const proofComplete = uniqueGlobalBlockers.length === 0
     && bindingResults.every((result) => result.state === 'VERIFIED_PASS');
-  if (closureEligible) uniqueGlobalBlockers.splice(0, uniqueGlobalBlockers.length);
 
-  const credentialActivation = authorizationMode === 'GITHUB_TOKEN_METADATA_READ'
-    ? 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ'
-    : 'NONE';
+  const credentialActivation = authorizationMode === 'GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ'
+    ? 'EPHEMERAL_GITHUB_APP_INSTALLATION_TOKEN_ENVIRONMENTS_AND_SECRETS_READ'
+    : (authorizationMode === 'GITHUB_TOKEN_METADATA_READ' ? 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ' : 'NONE');
+  const proofScope = authorizationMode === 'GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ'
+    ? 'AUTHORIZED_ENVIRONMENT_AND_SECRET_SCOPE_METADATA_READBACK'
+    : (authorizationMode === 'GITHUB_TOKEN_METADATA_READ'
+        ? 'LIMITED_GITHUB_TOKEN_METADATA_READBACK'
+        : (authorizationMode === 'TEST_FIXTURE' ? 'SYNTHETIC_TEST_CONTROL' : 'PUBLIC_METADATA_OBSERVATION'));
+  const externalClosureEligible = false;
 
   const receipt = {
     id: 'kidults-github-trusted-ref-environment-readback-receipt-v1',
-    version: '1.1.0',
+    version: '1.2.0',
     issue: 974,
     parent_gate_issue: 881,
     observed_at: observedAt,
-    state: closureEligible ? 'VERIFIED_PASS' : 'BLOCKED',
-    control_truth: closureEligible
-      ? 'EXTERNAL_TRUSTED_REF_ENVIRONMENT_POLICY_VERIFIED_CLOSURE_DECISION_STILL_EXTERNAL'
+    state: proofComplete ? 'VERIFIED_PASS' : 'BLOCKED',
+    control_truth: proofComplete
+      ? (authorizationMode === 'TEST_FIXTURE'
+          ? 'SYNTHETIC_POSITIVE_CONTROL_ONLY_NOT_EXTERNAL_PROOF'
+          : 'CONTROL_PLANE_READBACK_COMPLETE_EXTERNAL_TRUSTED_EXECUTION_NOT_PROVEN')
       : 'EXTERNAL_CONTROL_PLANE_PROOF_INCOMPLETE',
     repository: contract.scope.repository,
     authorization_mode: authorizationMode,
+    proof_scope: proofScope,
     source_ref: sourceContext.ref,
     exact_source_sha: sourceContext.sha,
     observed_default_branch: repositoryBody.default_branch || null,
     observed_default_branch_sha: observedBranchSha,
     observed_default_branch_protected: branchBody.protected === true,
     endpoint_http_statuses: endpointStatuses,
+    credential_scope_summary: {
+      repository_secret_metadata_readback: endpoint(snapshot.repositorySecrets?.status, snapshot.repositorySecrets?.ok, repositorySecretsComplete),
+      organization_secret_metadata_readback: endpoint(snapshot.organizationSecrets?.status, snapshot.organizationSecrets?.ok, organizationSecretsComplete),
+      repository_secret_count: repositorySecretNames.length,
+      repository_secret_name_digest: repositorySecretsComplete ? digest(repositorySecretNames.join('\n')) : null,
+      organization_secret_count: organizationSecretNames.length,
+      organization_secret_name_digest: organizationSecretsComplete ? digest(organizationSecretNames.join('\n')) : null,
+      secret_names_emitted: false
+    },
     registered_privileged_manual_lanes: inventory.registered_lane_count,
     secret_bearing_jobs: inventory.secret_bearing_job_count,
     verified_secret_bearing_jobs: bindingResults.filter((result) => result.state === 'VERIFIED_PASS').length,
     binding_results: bindingResults,
     environment_summary: environmentSummary,
     ruleset_context: sanitizedRulesets(snapshot),
+    negative_execution_proof: negativeExecutionProof,
+    trusted_execution_attestation: {
+      state: 'NOT_IMPLEMENTED',
+      provenance_type: 'NONE',
+      subject_digest: null,
+      workflow_run_id: null,
+      verified_by: null
+    },
+    external_proof_state: 'BLOCKED',
+    external_proof_blockers: [
+      'TRUSTED_POST_RUN_ATTESTOR_NOT_IMPLEMENTED',
+      'CRYPTOGRAPHIC_ARTIFACT_PROVENANCE_NOT_VERIFIED'
+    ],
     ruleset_context_only: true,
     effective_ruleset_readback_issue_936_closed: false,
-    issue_974_closure_eligible: closureEligible,
+    issue_974_closure_eligible: externalClosureEligible,
     issue_974_closed_by_this_readback: false,
     issue_881_control_pass_promoted: false,
     empirical_evidence_promoted: false,
@@ -365,18 +494,7 @@ export function buildReadbackReceipt({
     irreplaceable_value_effect: contract.effects.irreplaceable_value_effect,
     transparency_effect: contract.effects.transparency_effect
   };
-  receipt.readback_digest = digest(JSON.stringify({
-    authorization_mode: receipt.authorization_mode,
-    credential_activation: receipt.credential_activation,
-    source_ref: receipt.source_ref,
-    exact_source_sha: receipt.exact_source_sha,
-    observed_default_branch_sha: receipt.observed_default_branch_sha,
-    endpoint_http_statuses: receipt.endpoint_http_statuses,
-    binding_results: receipt.binding_results,
-    environment_summary: receipt.environment_summary,
-    ruleset_context: receipt.ruleset_context,
-    blockers: receipt.blockers
-  }));
+  receipt.readback_digest = computeReadbackDigest(receipt);
   return receipt;
 }
 
@@ -400,12 +518,69 @@ async function githubGet(repository, suffix, token) {
   return { ok: response.ok, status: response.status, body: response.ok ? body : null };
 }
 
+export async function githubGetCompleteList(repository, suffix, token, {
+  listKey = null,
+  arrayBody = false,
+  identityFields = []
+} = {}) {
+  const pageSize = 100;
+  const maxPages = 100;
+  const items = [];
+  let totalCount = null;
+  let lastStatus = 0;
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const separator = suffix.includes('?') ? '&' : '?';
+    const result = await githubGet(repository, `${suffix}${separator}per_page=${pageSize}&page=${page}`, token);
+    lastStatus = result.status;
+    if (!result.ok) return { ...result, complete: false };
+
+    const pageItems = arrayBody ? result.body : result.body?.[listKey];
+    if (!Array.isArray(pageItems)) {
+      return { ok: false, status: result.status, body: null, complete: false };
+    }
+    items.push(...pageItems);
+
+    if (!arrayBody) {
+      const reportedTotal = Number(result.body?.total_count);
+      if (!Number.isSafeInteger(reportedTotal) || reportedTotal < 0) {
+        return { ok: false, status: result.status, body: null, complete: false };
+      }
+      if (totalCount === null) totalCount = reportedTotal;
+      if (totalCount !== reportedTotal) {
+        return { ok: false, status: result.status, body: null, complete: false };
+      }
+    }
+
+    if (pageItems.length < pageSize) {
+      const identities = identityFields.length > 0
+        ? items.map((item) => identityFields.map((field) => String(item?.[field] ?? '')).join('\u0000'))
+        : [];
+      const identitiesCompleteAndUnique = identityFields.length === 0 || (
+        items.every((item) => identityFields.every((field) => String(item?.[field] ?? '').length > 0))
+        && new Set(identities).size === identities.length
+      );
+      const complete = (arrayBody || items.length === totalCount) && identitiesCompleteAndUnique;
+      return {
+        ok: complete,
+        status: result.status,
+        complete,
+        body: arrayBody ? items : { total_count: totalCount, [listKey]: items }
+      };
+    }
+  }
+
+  return { ok: false, status: lastStatus, body: null, complete: false };
+}
+
 export async function collectLiveSnapshot(repository, token = '') {
-  const [repositoryResult, branchResult, environmentsResult, rulesetsResult] = await Promise.all([
+  const [repositoryResult, branchResult, environmentsResult, rulesetsResult, repositorySecretsResult, organizationSecretsResult] = await Promise.all([
     githubGet(repository, '', token),
     githubGet(repository, `/branches/${DEFAULT_BRANCH}`, token),
-    githubGet(repository, '/environments', token),
-    githubGet(repository, '/rulesets', token)
+    githubGetCompleteList(repository, '/environments', token, { listKey: 'environments', identityFields: ['name'] }),
+    githubGetCompleteList(repository, '/rulesets', token, { arrayBody: true, identityFields: ['id'] }),
+    githubGetCompleteList(repository, '/actions/secrets', token, { listKey: 'secrets', identityFields: ['name'] }),
+    githubGetCompleteList(repository, '/actions/organization-secrets', token, { listKey: 'secrets', identityFields: ['name'] })
   ]);
 
   const environments = environmentsResult.ok && Array.isArray(environmentsResult.body?.environments)
@@ -416,13 +591,10 @@ export async function collectLiveSnapshot(repository, token = '') {
   await Promise.all(environments.map(async (environment) => {
     const encoded = encodeURIComponent(environment.name);
     const [policy, secrets] = await Promise.all([
-      githubGet(repository, `/environments/${encoded}/deployment-branch-policies`, token),
-      githubGet(repository, `/environments/${encoded}/secrets`, token)
+      githubGetCompleteList(repository, `/environments/${encoded}/deployment-branch-policies`, token, { listKey: 'branch_policies', identityFields: ['type', 'name'] }),
+      githubGetCompleteList(repository, `/environments/${encoded}/secrets`, token, { listKey: 'secrets', identityFields: ['name'] })
     ]);
-    environmentPolicies[environment.name] = {
-      ...policy,
-      items: policy.ok && Array.isArray(policy.body?.branch_policies) ? policy.body.branch_policies : []
-    };
+    environmentPolicies[environment.name] = policy;
     environmentSecrets[environment.name] = secrets;
   }));
 
@@ -434,6 +606,8 @@ export async function collectLiveSnapshot(repository, token = '') {
     environments: environmentsResult,
     environmentPolicies,
     environmentSecrets,
+    repositorySecrets: repositorySecretsResult,
+    organizationSecrets: organizationSecretsResult,
     rulesets: rulesetsResult,
     rulesetDetails
   };
