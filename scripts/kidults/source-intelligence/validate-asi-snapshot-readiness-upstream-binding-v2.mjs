@@ -160,8 +160,14 @@ function selfTest() {
 }
 
 const args = process.argv.slice(2);
-if (args[0] === '--self-test') {
-  console.log(JSON.stringify({ id: 'kidults-asi-snapshot-readiness-upstream-binding-self-test-v2', ...selfTest() }, null, 2));
+const noArgumentSelfTest = args.length === 0;
+const explicitSelfTest = args.length === 1 && args[0] === '--self-test';
+if (noArgumentSelfTest || explicitSelfTest) {
+  console.log(JSON.stringify({
+    id: 'kidults-asi-snapshot-readiness-upstream-binding-self-test-v2',
+    invocation_mode: noArgumentSelfTest ? 'NO_ARGUMENT_SAFE_SELF_TEST' : 'EXPLICIT_SELF_TEST',
+    ...selfTest(),
+  }, null, 2));
 } else {
   const [bindingPath, p0bDir, p1Dir, p2Dir, outputPath = '/tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json'] = args;
   requireCondition(Boolean(bindingPath && p0bDir && p1Dir && p2Dir), 'UPSTREAM_BINDING_ARGUMENTS_REQUIRED');
