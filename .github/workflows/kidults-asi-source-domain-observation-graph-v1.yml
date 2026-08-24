@@ -39,7 +39,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/source-domain-input discovery-out
-          ART_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-self-driving-control-loop-v1.yml/runs?branch=main&status=success&per_page=1" \
+            > /tmp/source-domain-runs.json
+          RUN_ID=$(node -e "const x=require('/tmp/source-domain-runs.json');if(x.workflow_runs?.length!==1)process.exit(2);const r=x.workflow_runs[0];if(r.head_branch!=='main'||r.status!=='completed'||r.conclusion!=='success'||!Number.isInteger(r.id))process.exit(3);process.stdout.write(String(r.id))")
+          [[ "$RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" \
+            > /tmp/source-domain-artifacts.json
+          ART_ID=$(node -e "const x=require('/tmp/source-domain-artifacts.json');const a=(x.artifacts||[]).filter(v=>v.name==='kidults-asi-self-driving-cycle-v1'&&v.expired===false);if(a.length!==1||!Number.isInteger(a[0].id))process.exit(4);process.stdout.write(String(a[0].id))")
           test -n "$ART_ID"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip" > /tmp/source-domain-input.zip
           unzip -q -o /tmp/source-domain-input.zip -d /tmp/source-domain-input

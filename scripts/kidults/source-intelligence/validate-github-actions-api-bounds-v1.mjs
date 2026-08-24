@@ -30,6 +30,29 @@ const inspectWorkflow = (text, source) => {
   return violations;
 };
 
+const criticalRunScopedArtifactConsumers = [
+  '.github/workflows/kidults-asi-autobalance-steering-overlay-live-v1.yml',
+  '.github/workflows/kidults-asi-source-domain-observation-graph-v1.yml'
+];
+
+const inspectCriticalRunScopedArtifactConsumer = (text, source) => {
+  const violations = [];
+  for (const match of text.matchAll(/\/actions\/artifacts\?per_page=100/gu)) {
+    violations.push({
+      source,
+      kind: 'CRITICAL_REPOSITORY_WIDE_ARTIFACT_SCAN',
+      line: lineNumber(text, match.index ?? 0)
+    });
+  }
+  if (!/\/actions\/workflows\/[^\s"']+\/runs\?branch=main&status=success&per_page=1/u.test(text)) {
+    violations.push({source, kind: 'CRITICAL_MAIN_WORKFLOW_RUN_LOOKUP_MISSING', line: 1});
+  }
+  if (!/\/actions\/runs\/\$\{[^}]+\}\/artifacts\?per_page=100/u.test(text)) {
+    violations.push({source, kind: 'CRITICAL_RUN_SCOPED_ARTIFACT_LOOKUP_MISSING', line: 1});
+  }
+  return violations;
+};
+
 const runSelfTest = () => {
   const forbidden = [
     'gh api --paginate "/repos/o/r/actions/runs"',
@@ -44,11 +67,16 @@ const runSelfTest = () => {
     'gh api --method GET "/repos/o/r/actions/runs/123/artifacts?per_page=100"'
   ].join('\n');
   assert(inspectWorkflow(bounded, 'self-test-bounded').length === 0, 'SELF_TEST_BOUNDED_REJECTED');
+  const criticalForbidden = 'gh api "/repos/o/r/actions/artifacts?per_page=100"';
+  assert(inspectCriticalRunScopedArtifactConsumer(criticalForbidden, 'self-test-critical-forbidden').some(v => v.kind === 'CRITICAL_REPOSITORY_WIDE_ARTIFACT_SCAN'), 'SELF_TEST_CRITICAL_REPOSITORY_SCAN_ACCEPTED');
+  const criticalBounded = 'gh api "/repos/o/r/actions/workflows/p1.yml/runs?branch=main&status=success&per_page=1"\ngh api "/repos/o/r/actions/runs/${RUN_ID}/artifacts?per_page=100"';
+  assert(inspectCriticalRunScopedArtifactConsumer(criticalBounded, 'self-test-critical-bounded').length === 0, 'SELF_TEST_CRITICAL_RUN_SCOPED_REJECTED');
   console.log(JSON.stringify({
     id: 'kidults-github-actions-api-bounds-self-test-v1',
     state: 'VERIFIED_PASS',
     unbounded_cases_rejected: forbidden.length,
-    bounded_cases_accepted: 3
+    bounded_cases_accepted: 4,
+    critical_repository_scans_rejected: 1
   }, null, 2));
 };
 
@@ -60,6 +88,10 @@ if (process.argv.includes('--self-test')) {
 assert(fs.existsSync(workflowRoot), `WORKFLOW_ROOT_MISSING:${workflowRoot}`);
 const files = workflowFiles(workflowRoot);
 const violations = files.flatMap((file) => inspectWorkflow(fs.readFileSync(file, 'utf8'), file));
+for (const file of criticalRunScopedArtifactConsumers) {
+  assert(fs.existsSync(file), `CRITICAL_WORKFLOW_MISSING:${file}`);
+  violations.push(...inspectCriticalRunScopedArtifactConsumer(fs.readFileSync(file, 'utf8'), file));
+}
 if (violations.length > 0) {
   console.error(JSON.stringify({
     id: 'kidults-github-actions-api-bounds-validation-v1',
@@ -73,5 +105,7 @@ console.log(JSON.stringify({
   id: 'kidults-github-actions-api-bounds-validation-v1',
   state: 'VERIFIED_PASS',
   workflow_count: files.length,
-  unbounded_pagination_count: 0
+  unbounded_pagination_count: 0,
+  critical_run_scoped_artifact_consumers: criticalRunScopedArtifactConsumers.length,
+  critical_repository_wide_artifact_scans: 0
 }, null, 2));

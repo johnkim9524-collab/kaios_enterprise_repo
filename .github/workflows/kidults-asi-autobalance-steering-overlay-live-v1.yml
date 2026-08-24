@@ -43,19 +43,24 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/base-raw /tmp/base-cycle /tmp/live-balance /tmp/live-gates-raw /tmp/live-gates discovery-out/raw discovery-out
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            BASE_JQ='[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false)][0].id // empty'
-            BAL_JQ='[.artifacts[] | select(.name=="kidults-asi-throughput-coverage-autobalance-live-v1" and .expired==false)][0].id // empty'
-            META_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false)][0].id // empty'
-            DISC_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-hourly-cycle-v1" and .expired==false)][0].id // empty'
-          else
-            BASE_JQ='[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
-            BAL_JQ='[.artifacts[] | select(.name=="kidults-asi-throughput-coverage-autobalance-live-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
-            META_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
-            DISC_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-hourly-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
-          fi
+          resolve_latest_main_run() {
+            local workflow="$1" output="$2" mode="${3:-required}"
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs?branch=main&status=success&per_page=1" \
+              > "$output"
+            node -e "const x=require(process.argv[1]);const mode=process.argv[2];if(x.workflow_runs?.length===0&&mode==='optional')process.exit(0);if(x.workflow_runs?.length!==1)process.exit(2);const r=x.workflow_runs[0];if(r.head_branch!=='main'||r.status!=='completed'||r.conclusion!=='success'||!Number.isInteger(r.id))process.exit(3);process.stdout.write(String(r.id))" "$output" "$mode"
+          }
+          resolve_run_artifact() {
+            local run_id="$1" artifact_name="$2" output="$3" mode="${4:-required}"
+            [[ "$run_id" =~ ^[1-9][0-9]*$ ]]
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts?per_page=100" \
+              > "$output"
+            node -e "const x=require(process.argv[1]);const name=process.argv[2],mode=process.argv[3];const a=(x.artifacts||[]).filter(v=>v.name===name&&v.expired===false);if(a.length===0&&mode==='optional')process.exit(0);if(a.length!==1||!Number.isInteger(a[0].id))process.exit(4);process.stdout.write(String(a[0].id))" "$output" "$artifact_name" "$mode"
+          }
 
-          BASE_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$BASE_JQ")
+          BASE_RUN_ID=$(resolve_latest_main_run kidults-asi-self-driving-control-loop-v1.yml /tmp/base-runs.json)
+          BASE_ID=$(resolve_run_artifact "$BASE_RUN_ID" kidults-asi-self-driving-cycle-v1 /tmp/base-artifacts.json)
           test -n "$BASE_ID"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BASE_ID}/zip" > /tmp/base.zip
           unzip -q -o /tmp/base.zip -d /tmp/base-raw
@@ -64,7 +69,11 @@ jobs:
           cp "$BASE_SRC" /tmp/base-cycle/asi-discovery-steering-plan-v1.json
 
           BAL_CANON=/tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
-          BAL_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$BAL_JQ")
+          BAL_RUN_ID=$(resolve_latest_main_run kidults-asi-throughput-coverage-autobalance-live-v1.yml /tmp/balance-runs.json optional)
+          BAL_ID=""
+          if [ -n "$BAL_RUN_ID" ]; then
+            BAL_ID=$(resolve_run_artifact "$BAL_RUN_ID" kidults-asi-throughput-coverage-autobalance-live-v1 /tmp/balance-artifacts.json optional)
+          fi
           if [ -n "$BAL_ID" ]; then
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BAL_ID}/zip" > /tmp/balance.zip
             unzip -q -o /tmp/balance.zip -d /tmp/live-balance
@@ -72,8 +81,9 @@ jobs:
           BAL_SRC=$(find /tmp/live-balance -type f -name 'asi-throughput-coverage-autobalance-live-v1.json' -print -quit || true)
 
           if [ -z "$BAL_SRC" ]; then
-            META_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$META_JQ")
-            DISC_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$DISC_JQ")
+            POOL_RUN_ID=$(resolve_latest_main_run kidults-asi-global-any-site-hourly-pooling-v1.yml /tmp/pool-runs.json)
+            META_ID=$(resolve_run_artifact "$POOL_RUN_ID" kidults-asi-global-any-site-source-pool-v1 /tmp/pool-artifacts.json)
+            DISC_ID=$(resolve_run_artifact "$POOL_RUN_ID" kidults-asi-global-any-site-hourly-cycle-v1 /tmp/pool-artifacts.json)
             test -n "$META_ID"
             test -n "$DISC_ID"
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${META_ID}/zip" > /tmp/meta.zip
