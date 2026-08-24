@@ -17,7 +17,7 @@ const APP_DIR = fileURLToPath(new URL(".", import.meta.url));
 const DEFAULT_PUBLIC_DIR = resolve(APP_DIR, "public");
 const DEFAULT_DATA_DIR = "/opt/intelligence-holdings/staging/data/kidults-conversions";
 const DEFAULT_OPERATIONS_DIR = "/opt/intelligence-holdings/staging/data/kidults-operations";
-const RETENTION_DAYS = 90;
+const RETENTION_DAYS = 365;
 
 function ensureDir(path, mode = 0o700) {
   mkdirSync(path, { recursive: true, mode });

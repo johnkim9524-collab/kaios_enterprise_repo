@@ -5,6 +5,12 @@ import {admitProofProductProjectionWithVerifiedCapability} from './public/portal
 const VERSION='kidults_projection_capability_v1';
 const MAX_TTL_SECONDS=300;
 const SURFACES=new Set(['PORTAL_RENDER','PUBLIC_API_RESPONSE','EXPORT']);
+const SAFE_STRUCTURAL_VERTICALS=Object.freeze([
+  ['toys-models','Toys & Models'],['watches-jewelry','Watches & Jewelry'],
+  ['automobiles-mobility','Automobiles & Mobility'],['fashion-accessories','Fashion & Accessories'],
+  ['design-furniture','Design & Furniture'],['technology-cameras','Technology & Cameras'],
+  ['gaming-music-screen','Gaming / Music / Screen Culture'],['cards-comics-memorabilia','Cards / Comics / Memorabilia']
+].map(([vertical_id,label])=>Object.freeze({vertical_id,label,structural_state:'AVAILABLE'})));
 
 function canonical(value){
   if(Array.isArray(value))return `[${value.map(canonical).join(',')}]`;
@@ -96,7 +102,7 @@ export function toPortalView(projection,receipt){
     source:'SIGNED_SERVER_CAPABILITY',
     projection:{state:'LIVE_APPROVED',projection_id:projection.projection_id,as_of:projection.freshness.observed_at,
       assessment_id:projection.lineage.assessment_id,rights_state:projection.rights.state,freshness:projection.freshness.state},
-    release:{state:'READY'},verticals:[],signals,objects:[],evidence:[],
+    release:{state:'READY'},verticals:[...SAFE_STRUCTURAL_VERTICALS],signals,objects:[],evidence:[],
     evidence_methodology:{coverage:`${projection.evidence_summary.source_count} sources`,independence:`${projection.evidence_summary.independent_source_family_count} families`,freshness:projection.freshness.state,rights:projection.rights.state,methodology_version:projection.method_version,lineage_version:projection.contract_version},
     kidult_100:{state:'NOT_AVAILABLE',index_value:null,change:null,as_of:null,constituents:[],methodology_version:null},
     research_archive:{state:'NOT_AVAILABLE',items:[]},
@@ -107,4 +113,5 @@ export function toPortalView(projection,receipt){
 
 export const projectionCapabilityContract=Object.freeze({version:VERSION,max_ttl_seconds:MAX_TTL_SECONDS,
   surfaces:[...SURFACES],binding:['projection_digest','projection_id','assessment_id','rankability_assessment_id','snapshot_id','evidence_package_id','surface','purpose'],
-  trusted_clock:'KIDULTS_CONTROL_PLANE',browser_issuance:false,static_approved_projection:false,production:'HOLD',public:'HOLD',g5:'HOLD'});
+  trusted_clock:'KIDULTS_CONTROL_PLANE',browser_issuance:false,static_approved_projection:false,
+  structural_catalog:'IMMUTABLE_KIDULTS_OWNED_EIGHT_VERTICAL_TAXONOMY',production:'HOLD',public:'HOLD',g5:'HOLD'});

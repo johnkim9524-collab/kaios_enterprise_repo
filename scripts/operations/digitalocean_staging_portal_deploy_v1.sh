@@ -24,7 +24,7 @@ RECEIPT_CONTRACT_ID="kidults-digitalocean-staging-portal-receipt-contract-v1"
 ip4="$(ip -4 addr show || true)"
 grep -Fq "$EXPECTED_PUBLIC_IP" <<<"$ip4" || exit 22
 grep -Fq "$EXPECTED_PRIVATE_IP" <<<"$ip4" || exit 23
-for required_command in python3 curl setsid realpath sha256sum flock; do
+for required_command in python3 node curl setsid realpath sha256sum flock; do
   command -v "$required_command" >/dev/null 2>&1 || { echo "FAIL: $required_command missing" >&2; exit 32; }
 done
 
@@ -128,8 +128,16 @@ NEWPID=""
 start_server() {
   local directory="$1"
   : > "$SERVERLOG"
-  setsid python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$directory" \
-    </dev/null >>"$SERVERLOG" 2>&1 9>&- &
+  if [[ -f "$directory/runtime/server-entry.mjs" ]]; then
+    KAIOS_ENVIRONMENT=staging \
+    KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false \
+    HOST=127.0.0.1 PORT="$PORT" \
+    setsid node "$directory/runtime/server-entry.mjs" "$directory" "$ROOT/data" \
+      </dev/null >>"$SERVERLOG" 2>&1 9>&- &
+  else
+    setsid python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$directory" \
+      </dev/null >>"$SERVERLOG" 2>&1 9>&- &
+  fi
   local pid="$!"
   for _ in $(seq 1 30); do
     if kill -0 "$pid" 2>/dev/null && curl -fsS "$HEALTH_URL" -o "$HEALTHFILE" 2>/dev/null; then

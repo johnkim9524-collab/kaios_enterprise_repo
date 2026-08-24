@@ -12,7 +12,8 @@ assert.equal(contract.canonical_surface.id,'portal-r001');
 assert.equal(contract.canonical_surface.default_runtime_root_is_canonical_only,true);
 assert.equal(contract.canonical_surface.legacy_and_variant_directories_deployable,false);
 assert.match(server,/DEFAULT_PUBLIC_DIR = resolve\(APP_DIR, "public", "portal-r001"\)/);
-assert.match(deploy,/tar -C apps\/kidults-enterprise-staging\/public\/portal-r001/);
+assert.match(deploy,/cp -a apps\/kidults-enterprise-staging\/public\/portal-r001\/. \"\$PACKAGE\//);
+assert.match(deploy,/runtime\/server-entry\.mjs/);
 assert.doesNotMatch(deploy,/tar -C apps\/kidults-enterprise-staging\/public -/);
 
 assert.deepEqual(contract.projection_release.surfaces,['PORTAL_RENDER','PUBLIC_API_RESPONSE','EXPORT']);
@@ -34,8 +35,8 @@ assert.equal(contract.accessibility.manual_receipt,'NONE');
 assert.equal(contract.accessibility.screen_reader_gate,'HOLD');
 
 assert.equal(contract.conversion_security['pii_at_rest'],'AES-256-GCM-v1');
-assert.equal(contract.conversion_security.retention_days,90);
-for(const marker of ['AES-256-GCM-v1','sameOrigin(request)','conversion-rate-state.json','RETENTION_DAYS = 90'])assert.match(server,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+assert.equal(contract.conversion_security.retention_days,365);
+for(const marker of ['AES-256-GCM-v1','sameOrigin(request)','conversion-rate-state.json','RETENTION_DAYS = 365'])assert.match(server,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
 assert.match(server,/strict-transport-security/);
 assert.equal(contract.edge.remote_tls_proxy_observability_receipt,'NONE');
 assert.equal(contract.edge.gate,'HOLD');

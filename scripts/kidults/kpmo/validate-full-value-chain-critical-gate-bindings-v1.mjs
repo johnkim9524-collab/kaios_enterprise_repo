@@ -31,6 +31,7 @@ const mandatory = [
   ...snapshotReadinessMandatory,
   'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
   'scripts/kidults/portal/validate-portal-internal-readiness-v1.mjs',
+  'scripts/kidults/portal/validate-portal-external-gate-evidence-v1.mjs',
   'scripts/kidults/portal/validate-portal-launch-assurance-v1.mjs',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];

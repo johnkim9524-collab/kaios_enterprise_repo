@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {approvedProjectionFixture} from '../../scripts/kidults/portal/proof-product-test-fixtures-v1.mjs';
-import {authorizeProjection,issueProjectionCapability,projectionDigest,verifyProjectionCapability} from './projection-capability-v1.mjs';
+import {authorizeProjection,issueProjectionCapability,projectionDigest,verifyProjectionCapability,toPortalView} from './projection-capability-v1.mjs';
 
 const secret='projection-capability-test-secret-with-at-least-32-bytes';
 const now=new Date('2026-08-22T10:30:00Z');
@@ -29,4 +29,12 @@ test('server authorization admits each rights-specific surface and rejects stale
   const stale=approvedProjectionFixture();
   stale.freshness.valid_until='2026-08-22T10:30:00Z';
   assert.throws(()=>authorizeProjection({projection:stale,surface:'PORTAL_RENDER',secret,now}),/FRESHNESS_EXPIRED/);
+});
+
+test('approved Full-Scope view preserves the immutable eight-vertical structural catalog',()=>{
+  const projection=approvedProjectionFixture();
+  const result=authorizeProjection({projection,surface:'PORTAL_RENDER',secret,now});
+  const view=toPortalView(projection,result.admission.receipt);
+  assert.equal(view.verticals.length,8);
+  assert.ok(view.verticals.every(vertical=>vertical.structural_state==='AVAILABLE'));
 });

@@ -21,7 +21,7 @@ const DEDUPE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 const RATE_MAX_REQUESTS = 5;
 const CONSENT_VERSION = "2026-08";
-const RETENTION_DAYS = 90;
+const RETENTION_DAYS = 365;
 const TYPES = new Set(["newsletter", "waitlist", "inquiry"]);
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -183,7 +183,7 @@ function validateSubmission(body) {
 export function createKidultsServer(options) {
   const publicDir = resolve(options.publicDir || DEFAULT_PUBLIC_DIR);
   const dataDir = resolve(required(options.dataDir, "dataDir"));
-  const secret = required(options.secret, "secret");
+  const secret = options.secret || null;
   const now = options.now || (() => new Date());
   const rateMax = options.rateMax || RATE_MAX_REQUESTS;
   const storage = ensureStorage(dataDir);
@@ -253,6 +253,10 @@ export function createKidultsServer(options) {
   };
 
   const acceptConversion = async (request, response) => {
+    if (!secret) {
+      audit("conversion_rejected", { reason: "conversion_vault_unconfigured" });
+      return json(response, 503, {ok:false,error:"conversion_unavailable",message:"Staging conversion vault is not configured."});
+    }
     if (!sameOrigin(request)) {
       audit("conversion_rejected", { reason: "cross_origin" });
       return json(response, 403, {ok:false,error:"cross_origin",message:"The request origin is not allowed."});

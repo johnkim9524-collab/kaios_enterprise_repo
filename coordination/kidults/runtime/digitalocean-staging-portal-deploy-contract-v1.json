@@ -18,6 +18,9 @@
   "receipt_root": "/home/kidults-staging/kidults-runtime/audit/portal-r001-deployments",
   "required_markers": ["data-release=\"portal-release-001\"", "data-state=\"NO_PROJECTION\"", "Read the market.", "Know the evidence."],
   "deployment": {
+    "runtime": "NODE_SERVER_ENTRY_V1_WITH_STATIC_FALLBACK_FOR_LOCAL_CONTRACT_PROOF",
+    "runtime_entry": "scripts/operations/kidults_portal_runtime_entry_v1.mjs",
+    "runtime_requires_public_provider_ingestion": false,
     "no_sudo": true,
     "no_package_mutation": true,
     "no_firewall_mutation": true,

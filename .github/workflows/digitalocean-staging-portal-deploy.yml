@@ -157,7 +157,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tar -C apps/kidults-enterprise-staging/public/portal-r001 -czf "$RUNNER_TEMP/portal-r001.tgz" .
+          PACKAGE="$RUNNER_TEMP/portal-r001-package"
+          rm -rf "$PACKAGE"
+          mkdir -p "$PACKAGE/runtime/public/portal-r001"
+          cp -a apps/kidults-enterprise-staging/public/portal-r001/. "$PACKAGE/"
+          cp scripts/operations/kidults_portal_runtime_entry_v1.mjs "$PACKAGE/runtime/server-entry.mjs"
+          cp apps/kidults-enterprise-staging/server.mjs "$PACKAGE/runtime/server.mjs"
+          cp apps/kidults-enterprise-staging/projection-capability-v1.mjs "$PACKAGE/runtime/projection-capability-v1.mjs"
+          cp apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js "$PACKAGE/runtime/public/portal-r001/proof-product-admission.js"
+          cp apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js "$PACKAGE/runtime/public/portal-r001/proof-product-schema-validator.js"
+          tar -C "$PACKAGE" -czf "$RUNNER_TEMP/portal-r001.tgz" .
           sha256sum "$RUNNER_TEMP/portal-r001.tgz"
       - name: Transfer and deploy to remote localhost-only STAGING
         id: remote_deploy

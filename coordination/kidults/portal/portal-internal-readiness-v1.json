@@ -30,6 +30,7 @@
       "candidate_evidence_immutability": "DIGEST_BOUND_APPEND_ONLY_REQUIRED",
       "projection_receipts": "CAPABILITY_DIGEST_AND_EXACT_IDENTITY",
       "conversion_pii": "AES-256-GCM-v1",
+      "conversion_retention_days": 365,
       "plaintext_without_vault_secret": false
     },
     "runtime": {

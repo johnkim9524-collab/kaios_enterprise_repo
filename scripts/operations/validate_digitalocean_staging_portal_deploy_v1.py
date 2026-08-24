@@ -26,6 +26,8 @@ need(contract['deployment']['no_sudo'] is True,'no sudo')
 need(contract['deployment']['public_bind'] is False,'no public bind')
 need(contract['deployment']['rollback_required'] is True,'rollback required')
 need(contract['deployment']['deployment_scoped_receipts_required'] is True,'deployment-scoped receipts required')
+need(contract['deployment']['runtime']=='NODE_SERVER_ENTRY_V1_WITH_STATIC_FALLBACK_FOR_LOCAL_CONTRACT_PROOF','Node runtime contract')
+need(contract['deployment']['runtime_entry']=='scripts/operations/kidults_portal_runtime_entry_v1.mjs','Node runtime entry binding')
 need(contract['deployment']['exact_source_and_workflow_binding_required'] is True,'exact binding required')
 need(contract['deployment']['successful_deploy_rollback_readiness_receipt_required'] is True,'rollback readiness receipt required')
 need(contract['deployment']['previous_release_required_before_cutover'] is True,'previous release required before cutover')
@@ -81,6 +83,9 @@ for marker in [
     'rollback_target_matches_digest',
     '"state": "DEPLOYED_VERIFIED"',
     '"state": "VERIFIED_PASS"',
+    'runtime/server-entry.mjs',
+    'server-entry.mjs',
+    'node "$directory/runtime/server-entry.mjs"',
 ]:
     need(marker in script, f'script marker {marker}')
 need(script.index('ROLLBACK_ARMED=true') < script.index('ln -sfn "$RELEASE" "$CURRENT"'), 'rollback must arm before cutover')

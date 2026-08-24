@@ -5,6 +5,8 @@ const root = process.cwd();
 const aggregatePath = 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs';
 const orchestratorPath = 'coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json';
 const exactNonScriptExecutables = new Set([
+  'apps/kidults-enterprise-staging/server.mjs',
+  'apps/kidults-enterprise-staging/projection-capability-v1.mjs',
   'apps/kidults-enterprise-staging/public/portal-r001/projection-store.js',
   'apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js',
   'apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js'

@@ -35,7 +35,7 @@
     "pii_at_rest": "AES-256-GCM-v1",
     "rate_limit": "PERSISTENT_HMAC_CLIENT_KEY",
     "same_origin_write_required": true,
-    "retention_days": 90,
+    "retention_days": 365,
     "plaintext_operational_access_requires_vault_secret": true
   },
   "edge": {
