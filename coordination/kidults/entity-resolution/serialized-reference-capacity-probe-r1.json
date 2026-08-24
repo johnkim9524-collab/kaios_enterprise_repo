@@ -120,7 +120,7 @@
           "role": "MODEL",
           "entity_id": "Q1164696",
           "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q1164696.json",
-          "source_payload_sha256": "sha256:11a9ae07dd3ee89f10ddcc418fbae5c076ab79447889f6325a9bd29c6d6d22db",
+          "source_payload_sha256": "sha256:52b93fdafc2ab3611f250d35a2789b3b2b45368a8006ee95c77d672880324f7b",
           "license_evidence_refs": [
             "https://www.wikidata.org/wiki/Wikidata:Licensing"
           ]
@@ -306,7 +306,7 @@
           "role": "MAKER",
           "entity_id": "Q27401",
           "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q27401.json",
-          "source_payload_sha256": "sha256:9cef740d130346fa3e460ada07bf0b225d925a83c8b2251a372dda9f9bd0f6ba",
+          "source_payload_sha256": "sha256:06b5a8302471b2a5fb7038306efcce66494acea674e740fdf9a8e8f4de6b757a",
           "license_evidence_refs": [
             "https://www.wikidata.org/wiki/Wikidata:Licensing"
           ]
@@ -514,7 +514,7 @@
           "role": "MAKER",
           "entity_id": "Q650639",
           "source_url": "https://www.wikidata.org/wiki/Special:EntityData/Q650639.json",
-          "source_payload_sha256": "sha256:3ca35f492a5a85fd1ff963afcc62133c447c8f4bd0f2e392aff10d0ec73c1f88",
+          "source_payload_sha256": "sha256:543cf9d19dd08356a0fe0a0bff9f0db93c337722c3490f6a839e93956058a450",
           "license_evidence_refs": [
             "https://www.wikidata.org/wiki/Wikidata:Licensing"
           ]
@@ -769,6 +769,6 @@
   },
   "truth_boundary": "This is a read-only source-capacity observation, not an empirical ER dataset or label set. A Wikidata item counts only when live entity data revalidates maker/manufacturer, a product-model-qualified P31 target, P2598 serial, and P217 inventory reference with P195 collection qualifier. Met accessionNumber alone contributes zero serial/reference capacity. Source capacity, independent labels, blind sealing, empirical accuracy, Track B, public release and Production remain separate fail-closed gates.",
   "integrity": {
-    "canonical_payload_sha256": "sha256:9040446cd2db640eb5641a639d29205944134292a2a17af70ac522298b499a03"
+    "canonical_payload_sha256": "sha256:4b8366f27ad8479b2f620a7e846be7be275fcd05475b9acef84b749d31311c45"
   }
 }
