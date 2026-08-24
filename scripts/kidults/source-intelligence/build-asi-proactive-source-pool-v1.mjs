@@ -180,7 +180,7 @@ for (const row of governedRows) {
     discovery_providers: unique([...(prior?.discovery_providers || []), 'GOVERNED_RIGHTS_PREFLIGHT_LEDGER']),
     source_family_hints: unique([...(prior?.source_family_hints || []), 'RIGHTS_FIRST_PREFLIGHTED_SOURCE']),
     candidate_source_roles: unique([...(prior?.candidate_source_roles || []), ...array(row.source_roles)]),
-    candidate_purpose_intents: unique([...(prior?.candidate_purpose_intents || []), ...bindingPurposes]),
+    candidate_purpose_intents: unique([...(prior?.candidate_purpose_intents || []), ...bindingPurposes, ...array(row.candidate_purpose_intents)]),
     representative_product_ids: array(prior?.representative_product_ids),
     demand_instance_ids: array(prior?.demand_instance_ids),
     target_regions: array(prior?.target_regions),
@@ -205,7 +205,10 @@ const candidates = [...byKey.values()].map(candidate => {
   const wrongPurpose = rows.some(row => /WRONG_PURPOSE|CONTEXT_ONLY|NOT_CANDIDATE|UNPROVEN_ACCOUNT_GATED/.test(String(row.current_sold_purpose_candidate_state || row.semantic_state || '')));
   let purposes = purposeForRoles(candidate.candidate_source_roles, candidate.candidate_purpose_intents);
   if (wrongPurpose) purposes = purposes.filter(purpose => !purpose.startsWith('CURRENT_SOLD_TRANSACTION'));
-  for (const row of rows) for (const binding of array(row.purpose_bindings)) purposes.push(binding.purpose);
+  for (const row of rows) {
+    for (const binding of array(row.purpose_bindings)) purposes.push(binding.purpose);
+    purposes.push(...array(row.candidate_purpose_intents));
+  }
   purposes = unique(purposes);
   if (!purposes.length) purposes = ['SOURCE_ROLE_CLASSIFICATION'];
   return safeState({
