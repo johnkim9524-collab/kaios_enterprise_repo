@@ -315,9 +315,13 @@ export function buildReadbackReceipt({
     && bindingResults.every((result) => result.state === 'VERIFIED_PASS');
   if (closureEligible) uniqueGlobalBlockers.splice(0, uniqueGlobalBlockers.length);
 
+  const credentialActivation = authorizationMode === 'GITHUB_TOKEN_METADATA_READ'
+    ? 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ'
+    : 'NONE';
+
   const receipt = {
     id: 'kidults-github-trusted-ref-environment-readback-receipt-v1',
-    version: '1.0.0',
+    version: '1.1.0',
     issue: 974,
     parent_gate_issue: 881,
     observed_at: observedAt,
@@ -349,7 +353,9 @@ export function buildReadbackReceipt({
     settings_mutated: false,
     secret_material_read: false,
     secret_names_emitted: false,
-    credential_activation: 'NONE',
+    credential_activation: credentialActivation,
+    stored_repository_or_environment_secret_activated: false,
+    provider_credential_activated: false,
     blockers: uniqueGlobalBlockers,
     production: 'HOLD',
     public: 'HOLD',
@@ -360,6 +366,8 @@ export function buildReadbackReceipt({
     transparency_effect: contract.effects.transparency_effect
   };
   receipt.readback_digest = digest(JSON.stringify({
+    authorization_mode: receipt.authorization_mode,
+    credential_activation: receipt.credential_activation,
     source_ref: receipt.source_ref,
     exact_source_sha: receipt.exact_source_sha,
     observed_default_branch_sha: receipt.observed_default_branch_sha,

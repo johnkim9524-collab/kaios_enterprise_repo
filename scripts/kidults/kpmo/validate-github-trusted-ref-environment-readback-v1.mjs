@@ -29,6 +29,7 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
     return Object.entries(value).some(([key, nested]) => forbiddenKeys.has(key.toLowerCase()) || hasForbiddenKey(nested));
   };
   require(receipt?.id === 'kidults-github-trusted-ref-environment-readback-receipt-v1', 'receipt_id');
+  require(receipt?.version === '1.1.0', 'receipt_version');
   require(receipt?.issue === 974 && receipt?.parent_gate_issue === 881, 'issue_binding');
   require(['BLOCKED', 'VERIFIED_PASS'].includes(receipt?.state), 'governed_state');
   require(!Number.isNaN(Date.parse(String(receipt?.observed_at || ''))), 'observed_at');
@@ -40,7 +41,12 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
   require(receipt?.settings_mutated === false, 'settings_mutation_boundary');
   require(receipt?.secret_material_read === false, 'secret_material_boundary');
   require(receipt?.secret_names_emitted === false, 'secret_name_output_boundary');
-  require(receipt?.credential_activation === 'NONE', 'credential_activation_boundary');
+  const expectedCredentialActivation = receipt?.authorization_mode === 'GITHUB_TOKEN_METADATA_READ'
+    ? 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ'
+    : 'NONE';
+  require(receipt?.credential_activation === expectedCredentialActivation, 'credential_activation_semantics');
+  require(receipt?.stored_repository_or_environment_secret_activated === false, 'stored_secret_activation_boundary');
+  require(receipt?.provider_credential_activated === false, 'provider_credential_activation_boundary');
   require(receipt?.issue_974_closed_by_this_readback === false, 'issue_974_auto_closure_forbidden');
   require(receipt?.issue_881_control_pass_promoted === false, 'issue_881_promotion_forbidden');
   require(receipt?.effective_ruleset_readback_issue_936_closed === false, 'issue_936_closure_forbidden');
@@ -114,12 +120,16 @@ export function validateRepository(root = process.cwd()) {
   const docs = fs.readFileSync(path.join(root, DOC_PATH), 'utf8');
 
   assert(contract.id === 'kidults-github-trusted-ref-environment-readback-contract-v1', 'CONTRACT_ID');
+  assert(contract.version === '1.1.0', 'CONTRACT_VERSION');
   assert(contract.issue === 974 && contract.parent_gate_issue === 881, 'CONTRACT_ISSUE_BINDING');
   assert(contract.status === 'IMPLEMENTED_READ_ONLY_PROOF_PATH_EXTERNAL_POLICY_NOT_VERIFIED', 'CONTRACT_STATUS');
   assert(JSON.stringify(contract.platform_principles) === JSON.stringify(['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT']), 'PRINCIPLE_ORDER');
   assert(contract.approved_closure_patterns.github_environment.deployment_branch_policy_is_exact_main_only === true, 'EXACT_MAIN_POLICY');
   assert(contract.approved_closure_patterns.trusted_default_branch_or_release_handoff.repository_declaration_alone_is_sufficient === false, 'REPOSITORY_DECLARATION_NOT_PROOF');
   assert(contract.approved_closure_patterns.trusted_default_branch_or_release_handoff.implemented_by_this_contract === false, 'HANDOFF_NOT_IMPLEMENTED');
+  assert(contract.receipt_requirements.credential_activation_by_authorization_mode.GITHUB_TOKEN_METADATA_READ === 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ', 'EPHEMERAL_TOKEN_SEMANTICS');
+  assert(contract.receipt_requirements.stored_repository_or_environment_secret_activated === false, 'STORED_SECRET_ACTIVATION_BOUNDARY');
+  assert(contract.receipt_requirements.provider_credential_activated === false, 'PROVIDER_CREDENTIAL_ACTIVATION_BOUNDARY');
   assert(contract.truth_boundary.issue_974_closed_by_repository_implementation === false, 'ISSUE_974_BOUNDARY');
   assert(contract.truth_boundary.issue_881_control_pass_promoted === false, 'ISSUE_881_BOUNDARY');
   assert(contract.truth_boundary.empirical_evidence_promoted === false, 'EMPIRICAL_BOUNDARY');
@@ -142,9 +152,13 @@ export function validateRepository(root = process.cwd()) {
   assert(!/\/actions\/secrets/.test(collector), 'REPOSITORY_SECRET_ENDPOINT_FORBIDDEN');
   assert(collector.includes('/environments/${encoded}/secrets'), 'ENVIRONMENT_SECRET_METADATA_ENDPOINT_REQUIRED');
   assert(collector.includes('secret_names_emitted: false'), 'SECRET_NAMES_OUTPUT_BOUNDARY');
+  assert(collector.includes("credentialActivation = authorizationMode === 'GITHUB_TOKEN_METADATA_READ'"), 'CREDENTIAL_ACTIVATION_MAPPING');
+  assert(collector.includes("stored_repository_or_environment_secret_activated: false"), 'STORED_SECRET_FALSE_RECEIPT');
+  assert(collector.includes("provider_credential_activated: false"), 'PROVIDER_CREDENTIAL_FALSE_RECEIPT');
   assert(testSource.includes('selected non-main ref and stale main SHA are independently rejected'), 'NEGATIVE_REF_TEST_MISSING');
   assert(docs.includes('BLOCKED_EXTERNAL_CONTROL_PLANE_NOT_ESTABLISHED'), 'DOC_CURRENT_STATE');
   assert(docs.includes('#881'), 'DOC_PARENT_BOUNDARY');
+  assert(docs.includes('EPHEMERAL_GITHUB_TOKEN_METADATA_READ'), 'DOC_EPHEMERAL_TOKEN_SEMANTICS');
 
   const workflowMutations = [
     ['pull_request_target', workflow.replace('pull_request:', 'pull_request_target:')],
@@ -196,7 +210,7 @@ export function validateRepository(root = process.cwd()) {
     live_github_requests_executed_by_validator: 0,
     settings_mutated: false,
     secret_material_read: false,
-    credential_activation: 'NONE',
+    validator_credential_activation: 'NONE_STATIC_VALIDATION_ONLY',
     issue_974_closed: false,
     issue_881_control_pass_promoted: false,
     empirical_evidence_promoted: false,

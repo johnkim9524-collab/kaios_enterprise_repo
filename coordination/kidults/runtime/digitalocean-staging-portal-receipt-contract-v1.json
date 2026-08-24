@@ -1,10 +1,10 @@
 {
   "id": "kidults-digitalocean-staging-portal-receipt-contract-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "issue": 921,
   "status": "REGISTERED_FAIL_CLOSED",
   "environment": "STAGING",
-  "purpose": "Bind one exact source commit and workflow execution to deployment, remote localhost NO_PROJECTION health, and rollback evidence without treating local contract proof as remote deployment proof.",
+  "purpose": "Bind one exact source commit, GitHub workflow identity, workflow run, deployment, remote localhost NO_PROJECTION health, and rollback evidence while keeping in-run evidence at REMOTE_EXIT_CANDIDATE until a separate successful-workflow attestation exists.",
   "target": {
     "hostname": "ih-staging-01",
     "user": "kidults-staging",
@@ -15,26 +15,31 @@
   "evidence_classes": {
     "REMOTE_STAGING": {
       "description": "Evidence emitted by the pinned non-root DigitalOcean STAGING execution path.",
-      "eligible_for_issue_921_remote_exit": true
+      "eligible_for_remote_exit_candidate": true,
+      "eligible_for_issue_921_remote_exit": false,
+      "final_eligibility_requires_successful_workflow_attestation": true
     },
     "LOCALHOST_CONTRACT_PROOF": {
       "description": "Credential-free local execution of the same deploy and receipt code against 127.0.0.1.",
+      "eligible_for_remote_exit_candidate": false,
       "eligible_for_issue_921_remote_exit": false
     }
   },
   "bundle": {
     "remote_root": "/home/kidults-staging/kidults-runtime/audit/portal-r001-deployments/<deployment_id>",
     "required_for_deployed_outcome": [
+      "runner-execution.json",
       "deploy-receipt.json",
       "health-receipt.json",
       "rollback-receipt.json",
       "index.html"
     ],
     "required_for_rolled_back_outcome": [
+      "runner-execution.json",
       "rollback-receipt.json",
       "rollback-index.html"
     ],
-    "stale_evidence_control": "Every receipt must match the caller-supplied deployment_id, source_commit_sha, workflow_run_id, workflow_run_attempt, evidence_class, environment, hostname, user, and bind.",
+    "stale_evidence_control": "Every receipt must match the caller-supplied deployment_id, source_commit_sha, workflow_run_id, workflow_run_attempt, evidence_class, environment, hostname, user, and bind. The runner execution receipt must additionally bind repository, workflow name/ref/SHA, source ref, event, job, outcome exit code, and in-run attestation boundary.",
     "artifact_retention_days": 30
   },
   "common_required_fields": [
@@ -147,12 +152,36 @@
   "authority_boundary": {
     "local_contract_proof": "AUTHORIZED_REVERSIBLE_NON_PRODUCTION",
     "remote_deployment": "NOT_PERFORMED_BY_THIS_CHANGE",
-    "production_g5": "HOLD"
+    "production_g5": "HOLD",
+    "remote_exit_candidate": "INTERNAL_IN_RUN_BUNDLE_VALIDATION_ONLY",
+    "issue_921_remote_exit": "SEPARATE_SUCCESSFUL_WORKFLOW_ATTESTATION_AND_EXTERNAL_CLOSURE_DECISION_REQUIRED"
   },
   "platform_principle_effects": {
     "autonomous_effect": "A credential-free exact-head validator runs automatically on pull requests and protected-main changes; the privileged deploy remains separately gated.",
     "global_effect": "No global coverage or intelligence claim is created; the Portal remains NO_PROJECTION.",
     "irreplaceable_value_effect": "Provider-independent repository-owned receipts preserve release, health, and rollback lineage.",
-    "transparency_effect": "Exact commit, workflow run, deployment ID, localhost body digest, rollback target, and evidence class are machine-validated and stale bundles fail closed."
+    "transparency_effect": "Exact commit, workflow identity/ref/SHA, workflow run, deployment ID, localhost body digest, rollback target, evidence class, and in-run versus final eligibility are machine-validated; stale or overstated bundles fail closed."
+  },
+  "runner_execution_receipt": {
+    "id": "kidults-digitalocean-staging-portal-runner-execution-v1",
+    "receipt_type": "GITHUB_RUNNER_EXECUTION",
+    "required_state": "CAPTURED_NOT_ATTESTED",
+    "required_job_name": "deploy",
+    "required_remote_repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "required_remote_workflow_name": "KIDULTS DigitalOcean STAGING Portal Deploy",
+    "required_remote_workflow_path": ".github/workflows/digitalocean-staging-portal-deploy.yml",
+    "required_remote_source_ref": "refs/heads/main",
+    "workflow_sha_must_equal_source_commit_sha_for_remote_candidate": true,
+    "deployed_outcome_remote_exit_code": 0,
+    "rolled_back_outcome_remote_exit_code_must_be_nonzero": true,
+    "successful_workflow_attested": false,
+    "purpose": "Bind the collected deployment receipts to the exact in-progress GitHub runner execution without claiming a final workflow conclusion."
+  },
+  "validation_receipt": {
+    "runner_execution_verified": true,
+    "remote_deployed_state": "REMOTE_EXIT_CANDIDATE",
+    "issue_921_remote_exit_eligible": false,
+    "successful_workflow_attested": false,
+    "final_remote_exit_requires_separate_successful_workflow_attestation": true
   }
 }
