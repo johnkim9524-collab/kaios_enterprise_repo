@@ -19,74 +19,51 @@ jobs:
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+        with: {persist-credentials: false}
       - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+        with: {node-version: '22'}
       - name: Validate local D1 hardening contract
         run: node scripts/kidults/dos/validate-d1-free-tier-hardening-v1.mjs
-      - name: Read account D1 inventory and 7-day analytics
+      - name: Read D1 inventory and attempt account analytics
         run: |
           set -euo pipefail
-          test -n "$CLOUDFLARE_ACCOUNT_ID"
-          test -n "$CLOUDFLARE_API_TOKEN"
-          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"; test -n "$CLOUDFLARE_API_TOKEN"; echo "::add-mask::$CLOUDFLARE_API_TOKEN"
           mkdir -p /tmp/d1-redteam
           npx wrangler d1 list --json > /tmp/d1-redteam/databases.json
-          START=$(date -u -d '7 days ago' +%F)
-          END=$(date -u +%F)
-          cat > /tmp/d1-redteam/query.json <<'JSON'
-          {"query":"query D1Usage($accountTag: string!, $start: Date, $end: Date) { viewer { accounts(filter: { accountTag: $accountTag }) { d1AnalyticsAdaptiveGroups(limit: 10000, filter: { date_geq: $start, date_leq: $end }, orderBy: [date_DESC]) { sum { rowsRead rowsWritten readQueries writeQueries } dimensions { date databaseId } } } } }","variables":{"accountTag":"ACCOUNT_ID_PLACEHOLDER","start":"START_PLACEHOLDER","end":"END_PLACEHOLDER"}}
-          JSON
-          node - "$CLOUDFLARE_ACCOUNT_ID" "$START" "$END" <<'NODE'
-          const fs=require('fs');
+          START=$(date -u -d '7 days ago' +%F); END=$(date -u +%F)
+          node - "$CLOUDFLARE_ACCOUNT_ID" "$START" "$END" <<'NODE' >/tmp/d1-redteam/query.json
           const [account,start,end]=process.argv.slice(2);
-          const q=JSON.parse(fs.readFileSync('/tmp/d1-redteam/query.json','utf8'));
-          q.variables={accountTag:account,start,end};
-          fs.writeFileSync('/tmp/d1-redteam/query.json',JSON.stringify(q));
+          console.log(JSON.stringify({query:`query D1Usage($accountTag: string!, $start: Date, $end: Date) { viewer { accounts(filter: { accountTag: $accountTag }) { d1AnalyticsAdaptiveGroups(limit: 10000, filter: { date_geq: $start, date_leq: $end }, orderBy: [date_DESC]) { sum { rowsRead rowsWritten readQueries writeQueries } dimensions { date databaseId } } } } }`,variables:{accountTag:account,start,end}}));
           NODE
-          curl -fsS https://api.cloudflare.com/client/v4/graphql \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            -H 'Content-Type: application/json' \
-            --data-binary @/tmp/d1-redteam/query.json > /tmp/d1-redteam/analytics.json
+          curl -fsS https://api.cloudflare.com/client/v4/graphql -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' --data-binary @/tmp/d1-redteam/query.json > /tmp/d1-redteam/analytics.json
           node <<'NODE'
-          const fs=require('fs');
-          const dbs=JSON.parse(fs.readFileSync('/tmp/d1-redteam/databases.json','utf8'));
-          const gql=JSON.parse(fs.readFileSync('/tmp/d1-redteam/analytics.json','utf8'));
-          if(gql.errors?.length) throw new Error('D1_GRAPHQL_ERRORS:'+JSON.stringify(gql.errors));
-          const groups=gql?.data?.viewer?.accounts?.[0]?.d1AnalyticsAdaptiveGroups||[];
-          const names=new Map((Array.isArray(dbs)?dbs:dbs?.result||[]).map(x=>[x.uuid||x.database_id||x.id,x.name||x.database_name||'UNKNOWN']));
-          const by={};
-          for(const g of groups){
-            const id=g.dimensions?.databaseId||'UNKNOWN'; const date=g.dimensions?.date||'UNKNOWN';
-            const r=by[id] ||= {database_id:id,name:names.get(id)||'UNKNOWN',rows_read_7d:0,rows_written_7d:0,read_queries_7d:0,write_queries_7d:0,peak_rows_read_day:0,peak_rows_written_day:0,days:[]};
-            const s=g.sum||{}; const rr=Number(s.rowsRead||0), rw=Number(s.rowsWritten||0);
-            r.rows_read_7d+=rr; r.rows_written_7d+=rw; r.read_queries_7d+=Number(s.readQueries||0); r.write_queries_7d+=Number(s.writeQueries||0);
-            r.peak_rows_read_day=Math.max(r.peak_rows_read_day,rr); r.peak_rows_written_day=Math.max(r.peak_rows_written_day,rw);
-            r.days.push({date,rows_read:rr,rows_written:rw});
-          }
-          const list=Object.values(by).sort((a,b)=>b.rows_read_7d-a.rows_read_7d);
-          const safe={captured_at:new Date().toISOString(),window_days:7,free_daily_limits:{rows_read:5000000,rows_written:100000},database_count:(Array.isArray(dbs)?dbs:dbs?.result||[]).length,databases:list};
-          fs.writeFileSync('/tmp/d1-redteam/usage-summary.json',JSON.stringify(safe,null,2));
-          console.log(JSON.stringify(safe,null,2));
+          const fs=require('fs'); const dbs=JSON.parse(fs.readFileSync('/tmp/d1-redteam/databases.json','utf8')); const gql=JSON.parse(fs.readFileSync('/tmp/d1-redteam/analytics.json','utf8'));
+          const inventory=Array.isArray(dbs)?dbs:dbs?.result||[];
+          if(gql.errors?.length){const safe={captured_at:new Date().toISOString(),analytics_status:'AUTHZ_BLOCKED',database_count:inventory.length,error_codes:gql.errors.map(x=>x.extensions?.code||'unknown')};fs.writeFileSync('/tmp/d1-redteam/usage-summary.json',JSON.stringify(safe,null,2));console.log(JSON.stringify(safe,null,2));process.exit(0);}
+          const groups=gql?.data?.viewer?.accounts?.[0]?.d1AnalyticsAdaptiveGroups||[]; const names=new Map(inventory.map(x=>[x.uuid||x.database_id||x.id,x.name||x.database_name||'UNKNOWN'])); const by={};
+          for(const g of groups){const id=g.dimensions?.databaseId||'UNKNOWN';const r=by[id]||={database_id:id,name:names.get(id)||'UNKNOWN',rows_read_7d:0,rows_written_7d:0,peak_rows_read_day:0,peak_rows_written_day:0};const s=g.sum||{};r.rows_read_7d+=Number(s.rowsRead||0);r.rows_written_7d+=Number(s.rowsWritten||0);r.peak_rows_read_day=Math.max(r.peak_rows_read_day,Number(s.rowsRead||0));r.peak_rows_written_day=Math.max(r.peak_rows_written_day,Number(s.rowsWritten||0));}
+          const safe={captured_at:new Date().toISOString(),analytics_status:'OK',window_days:7,free_daily_limits:{rows_read:5000000,rows_written:100000},database_count:inventory.length,databases:Object.values(by).sort((a,b)=>b.rows_read_7d-a.rows_read_7d)};fs.writeFileSync('/tmp/d1-redteam/usage-summary.json',JSON.stringify(safe,null,2));console.log(JSON.stringify(safe,null,2));
           NODE
       - name: Read top query insights for each D1 database
         run: |
           set -euo pipefail
           node <<'NODE' >/tmp/d1-redteam/db-names.txt
-          const fs=require('fs'); const d=JSON.parse(fs.readFileSync('/tmp/d1-redteam/databases.json','utf8'));
-          for(const x of (Array.isArray(d)?d:d?.result||[])) console.log(x.name||x.database_name);
+          const fs=require('fs');const d=JSON.parse(fs.readFileSync('/tmp/d1-redteam/databases.json','utf8'));for(const x of (Array.isArray(d)?d:d?.result||[])) console.log(x.name||x.database_name);
           NODE
           : > /tmp/d1-redteam/query-insights.ndjson
+          : > /tmp/d1-redteam/insights-errors.ndjson
           while IFS= read -r DB; do
             [ -n "$DB" ] || continue
             for SORT in reads writes count; do
-              OUT=$(npx wrangler d1 insights "$DB" --sort-type=sum --sort-by="$SORT" --limit=10 --timePeriod=7d --json 2>/dev/null || echo '[]')
-              DB_NAME="$DB" SORT_NAME="$SORT" OUT_JSON="$OUT" node <<'NODE' >> /tmp/d1-redteam/query-insights.ndjson
-              const rows=JSON.parse(process.env.OUT_JSON||'[]');
-              for(const r of rows) console.log(JSON.stringify({database:process.env.DB_NAME,sort:process.env.SORT_NAME,totalRowsRead:Number(r.totalRowsRead||0),totalRowsWritten:Number(r.totalRowsWritten||0),numberOfTimesRun:Number(r.numberOfTimesRun||0),avgRowsRead:Number(r.avgRowsRead||0),avgRowsWritten:Number(r.avgRowsWritten||0),queryEfficiency:Number(r.queryEfficiency||0),query:String(r.query||'').slice(0,500)}));
-              NODE
+              if OUT=$(npx wrangler d1 insights "$DB" --sort-type=sum --sort-by="$SORT" --limit=10 --timePeriod=7d --json 2>/tmp/d1-redteam/err); then
+                DB_NAME="$DB" SORT_NAME="$SORT" OUT_JSON="$OUT" node <<'NODE' >> /tmp/d1-redteam/query-insights.ndjson
+                const rows=JSON.parse(process.env.OUT_JSON||'[]');for(const r of rows) console.log(JSON.stringify({database:process.env.DB_NAME,sort:process.env.SORT_NAME,totalRowsRead:Number(r.totalRowsRead||0),totalRowsWritten:Number(r.totalRowsWritten||0),numberOfTimesRun:Number(r.numberOfTimesRun||0),avgRowsRead:Number(r.avgRowsRead||0),avgRowsWritten:Number(r.avgRowsWritten||0),queryEfficiency:Number(r.queryEfficiency||0),query:String(r.query||'').slice(0,500)}));
+                NODE
+              else
+                DB_NAME="$DB" SORT_NAME="$SORT" ERR_TEXT="$(cat /tmp/d1-redteam/err)" node <<'NODE' >> /tmp/d1-redteam/insights-errors.ndjson
+                console.log(JSON.stringify({database:process.env.DB_NAME,sort:process.env.SORT_NAME,error:String(process.env.ERR_TEXT||'').slice(0,500)}));
+                NODE
+              fi
             done
           done < /tmp/d1-redteam/db-names.txt
       - uses: actions/upload-artifact@v4
@@ -95,5 +72,7 @@ jobs:
           path: |
             /tmp/d1-redteam/usage-summary.json
             /tmp/d1-redteam/query-insights.ndjson
+            /tmp/d1-redteam/insights-errors.ndjson
+            /tmp/d1-redteam/databases.json
           retention-days: 7
           if-no-files-found: error
