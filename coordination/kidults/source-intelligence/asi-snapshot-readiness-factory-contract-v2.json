@@ -114,7 +114,18 @@
     "admitted_record_market_event_digest_binding_required": true,
     "canonical_handoff_validator": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
     "canonical_handoff_preflight_required_after_generation": true,
-    "track_b_submission_preauthorization_forbidden": true
+    "track_b_submission_preauthorization_forbidden": true,
+    "content_addressed_pair_is_not_immutable_storage": true,
+    "immutable_storage_receipt_required_for_track_b": true,
+    "artifact_attestation_required_for_track_b": true,
+    "upstream_binding_receipt_digest_must_be_inside_exact_pair": true
+  },
+  "upstream_freshness": {
+    "require_current_main_head": true,
+    "maximum_age_hours": 24,
+    "p2_completed_at_required": true,
+    "readback_observed_at_required": true,
+    "snapshot_as_of_must_not_postdate_p2_completion": true
   },
   "artifact_restore": {
     "p2_exact_workflow_run_required": true,
@@ -132,7 +143,7 @@
     "main_push": true,
     "schedule": "7 * * * *",
     "upstream_workflow": "KIDULTS ASI Owned Source Intelligence Graph v2",
-    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+    "manual_dispatch_role": "DISABLED_UNTIL_TRUSTED_REF_ENFORCEMENT"
   },
   "truth_boundaries": [
     "SOURCE_CANDIDATE_IS_NOT_EVIDENCE",

@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { isIP } from 'node:net';
 
 export const PRINCIPLES = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
 
@@ -23,13 +24,59 @@ const SHA256 = /^sha256:[0-9a-f]{64}$/;
 const secureHttps = (value) => {
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && Boolean(url.hostname) && !['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+    const host = url.hostname.toLowerCase();
+    const placeholder = host === 'example.com' || host.endsWith('.example.com') || host.endsWith('.example')
+      || host === 'example.org' || host.endsWith('.example.org') || host === 'example.net' || host.endsWith('.example.net')
+      || host.endsWith('.test') || host.endsWith('.invalid') || host.endsWith('.localhost');
+    const ipv4 = isIP(host) === 4 ? host.split('.').map(Number) : null;
+    const privateIpv4 = ipv4 && (ipv4[0] === 0 || ipv4[0] === 10 || ipv4[0] === 127 || ipv4[0] >= 224
+      || (ipv4[0] === 169 && ipv4[1] === 254) || (ipv4[0] === 172 && ipv4[1] >= 16 && ipv4[1] <= 31)
+      || (ipv4[0] === 192 && [0, 2, 168].includes(ipv4[1])) || (ipv4[0] === 198 && [18, 19, 51].includes(ipv4[1]))
+      || (ipv4[0] === 203 && ipv4[1] === 0 && ipv4[2] === 113));
+    const normalizedIpv6 = host.replace(/^\[|\]$/g, '');
+    const privateIpv6 = isIP(normalizedIpv6) === 6 && (/^(?:::|::1)$/.test(normalizedIpv6)
+      || /^(?:fc|fd|fe[89ab]|2001:db8)/i.test(normalizedIpv6));
+    return url.protocol === 'https:' && Boolean(host) && !url.username && !url.password
+      && host !== 'localhost' && !placeholder && !privateIpv4 && !privateIpv6;
   } catch {
     return false;
   }
 };
-const validTime = (value) => typeof value === 'string' && Number.isFinite(Date.parse(value));
+const STRICT_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+const validTime = (value) => {
+  if (typeof value !== 'string' || !STRICT_UTC.test(value) || !Number.isFinite(Date.parse(value))) return false;
+  const canonical = new Date(value).toISOString();
+  return value === canonical || value === canonical.replace('.000Z', 'Z');
+};
 const requireCondition = (condition, code) => { if (!condition) throw new Error(code); };
+
+const uniqueMap = (values, key, code) => {
+  requireCondition(Array.isArray(values), `${code}_ARRAY_MISSING`);
+  const map = new Map();
+  for (const value of values) {
+    const id = value?.[key];
+    requireCondition(typeof id === 'string' && id.length > 0 && !map.has(id), `${code}_ID_INVALID_OR_DUPLICATE:${id || 'UNKNOWN'}`);
+    map.set(id, value);
+  }
+  return map;
+};
+
+function validateRightsAssertion(candidate, record, snapshotAsOf) {
+  const assertion = record.rights_assertion;
+  requireCondition(assertion && typeof assertion === 'object' && !Array.isArray(assertion), `RIGHTS_ASSERTION_MISSING:${record.evidence_id}`);
+  for (const field of ['assertion_id', 'source_owner_id', 'purpose_binding_id', 'jurisdiction']) {
+    requireCondition(typeof assertion[field] === 'string' && assertion[field].length > 0, `RIGHTS_ASSERTION_FIELD_MISSING:${field}:${record.evidence_id}`);
+  }
+  requireCondition(assertion.source_owner_id === candidate.source_owner_id && assertion.source_owner_id === record.source_owner_id, `RIGHTS_SOURCE_OWNER_BINDING_MISMATCH:${record.evidence_id}`);
+  requireCondition(assertion.purpose_binding_id === candidate.purpose_binding_id && assertion.purpose_binding_id === record.purpose_binding_id, `RIGHTS_PURPOSE_BINDING_MISMATCH:${record.evidence_id}`);
+  requireCondition(JSON.stringify(uniq(assertion.rights_atoms)) === JSON.stringify(['COLLECT', 'DERIVE', 'DISPLAY', 'STORE']), `RIGHTS_ATOMS_INCOMPLETE:${record.evidence_id}`);
+  requireCondition(validTime(assertion.effective_at) && validTime(assertion.expires_at), `RIGHTS_ASSERTION_TIME_INVALID:${record.evidence_id}`);
+  const effectiveAt = Date.parse(assertion.effective_at);
+  const expiresAt = Date.parse(assertion.expires_at);
+  requireCondition(effectiveAt <= snapshotAsOf && snapshotAsOf <= expiresAt && expiresAt > effectiveAt, `RIGHTS_ASSERTION_NOT_EFFECTIVE_AT_SNAPSHOT:${record.evidence_id}`);
+  requireCondition(SHA256.test(assertion.document_sha256 || '') && !/^sha256:0{64}$/.test(assertion.document_sha256), `RIGHTS_DOCUMENT_DIGEST_INVALID:${record.evidence_id}`);
+  requireCondition(secureHttps(assertion.evidence_uri), `RIGHTS_EVIDENCE_URI_INVALID:${record.evidence_id}`);
+}
 
 function validateAdmittedRecord(candidate, snapshotAsOf, maximumWindowDays) {
   const record = candidate.admitted_evidence;
@@ -51,8 +98,8 @@ function validateAdmittedRecord(candidate, snapshotAsOf, maximumWindowDays) {
   }
   requireCondition(record.rights_state === 'ALLOW', `ADMITTED_EVIDENCE_RIGHTS_NOT_ALLOW:${record.evidence_id}`);
   requireCondition(secureHttps(record.source_url), `ADMITTED_EVIDENCE_SOURCE_URL_INVALID:${record.evidence_id}`);
+  requireCondition(secureHttps(record.source_object_uri), `ADMITTED_EVIDENCE_SOURCE_OBJECT_URI_INVALID:${record.evidence_id}`);
   requireCondition(SHA256.test(record.source_payload_sha256 || '') && !/^sha256:0{64}$/.test(record.source_payload_sha256), `ADMITTED_EVIDENCE_SOURCE_DIGEST_INVALID:${record.evidence_id}`);
-  requireCondition(Array.isArray(record.license_evidence_refs) && record.license_evidence_refs.length > 0 && record.license_evidence_refs.every(secureHttps), `ADMITTED_EVIDENCE_LICENSE_REFS_INVALID:${record.evidence_id}`);
   requireCondition(validTime(record.observed_at) && validTime(record.valid_until), `ADMITTED_EVIDENCE_TIME_INVALID:${record.evidence_id}`);
   const observedAt = Date.parse(record.observed_at);
   const validUntil = Date.parse(record.valid_until);
@@ -60,10 +107,26 @@ function validateAdmittedRecord(candidate, snapshotAsOf, maximumWindowDays) {
   requireCondition(observedAt <= snapshotAsOf && snapshotAsOf <= validUntil && validUntil > observedAt && validUntil - observedAt <= maximumWindowMs, `ADMITTED_EVIDENCE_FRESHNESS_INVALID:${record.evidence_id}`);
   requireCondition(Number.isFinite(record.evidence_strength) && record.evidence_strength > 0 && record.evidence_strength <= 1, `ADMITTED_EVIDENCE_STRENGTH_INVALID:${record.evidence_id}`);
   requireCondition(record.unresolved_critical_contradiction_count === 0, `ADMITTED_EVIDENCE_CONTRADICTION_OPEN:${record.evidence_id}`);
+  validateRightsAssertion(candidate, record, snapshotAsOf);
   if (candidate.evidence_class === 'CURRENT_SOLD_TRANSACTION') {
     requireCondition(record.temporality === 'CURRENT_MARKET' && record.market_observation_type === 'SOLD_TRANSACTION', `CURRENT_SOLD_SEMANTICS_INVALID:${record.evidence_id}`);
+    const transactionAt = Date.parse(record.transaction_occurred_at || '');
+    requireCondition(validTime(record.transaction_occurred_at) && transactionAt <= observedAt
+      && snapshotAsOf - transactionAt >= 0 && snapshotAsOf - transactionAt <= maximumWindowMs, `CURRENT_SOLD_TRANSACTION_TIME_INVALID:${record.evidence_id}`);
+    requireCondition(typeof record.asset_identity_id === 'string' && record.asset_identity_id.length > 0, `CURRENT_SOLD_ASSET_IDENTITY_MISSING:${record.evidence_id}`);
+    requireCondition(typeof record.market_venue_id === 'string' && record.market_venue_id.length > 0, `CURRENT_SOLD_VENUE_MISSING:${record.evidence_id}`);
+    requireCondition(typeof record.grade_or_condition === 'string' && record.grade_or_condition.length > 0, `CURRENT_SOLD_GRADE_CONDITION_MISSING:${record.evidence_id}`);
+    requireCondition(Number.isFinite(record.sold_price?.amount) && record.sold_price.amount > 0 && /^[A-Z]{3}$/.test(record.sold_price?.currency || ''), `CURRENT_SOLD_PRICE_INVALID:${record.evidence_id}`);
   } else if (candidate.evidence_class === 'LIQUIDITY_TIME_TO_SALE_EXPOSURE') {
     requireCondition(record.temporality === 'CURRENT_MARKET' && record.market_observation_type === 'LIQUIDITY_EXPOSURE', `LIQUIDITY_SEMANTICS_INVALID:${record.evidence_id}`);
+    requireCondition(validTime(record.exposure_started_at) && Date.parse(record.exposure_started_at) <= observedAt, `LIQUIDITY_START_TIME_INVALID:${record.evidence_id}`);
+    requireCondition(['SOLD_EVENT_OBSERVED', 'RIGHT_CENSORED_ACTIVE'].includes(record.censoring_state), `LIQUIDITY_CENSORING_STATE_INVALID:${record.evidence_id}`);
+    if (record.censoring_state === 'SOLD_EVENT_OBSERVED') requireCondition(validTime(record.exposure_ended_at) && Date.parse(record.exposure_ended_at) <= observedAt, `LIQUIDITY_END_TIME_INVALID:${record.evidence_id}`);
+    else requireCondition(record.exposure_ended_at === null || record.exposure_ended_at === undefined, `LIQUIDITY_ACTIVE_END_TIME_FORBIDDEN:${record.evidence_id}`);
+    const exposureEnd = record.censoring_state === 'SOLD_EVENT_OBSERVED' ? Date.parse(record.exposure_ended_at) : observedAt;
+    requireCondition(Number.isFinite(exposureEnd) && exposureEnd >= Date.parse(record.exposure_started_at), `LIQUIDITY_END_TIME_INVALID:${record.evidence_id}`);
+    const expectedDays = (exposureEnd - Date.parse(record.exposure_started_at)) / 86400000;
+    requireCondition(Number.isFinite(record.exposure_days) && Math.abs(record.exposure_days - expectedDays) < 1e-9, `LIQUIDITY_DURATION_INVALID:${record.evidence_id}`);
   }
   return stable(record);
 }
@@ -71,7 +134,7 @@ function validateAdmittedRecord(candidate, snapshotAsOf, maximumWindowDays) {
 export function deriveReadiness(inputs, contract) {
   const {
     p0Registry, p0Bindings, p0Manifest, p1Gate, p1Admission, p1Actions, p1Manifest,
-    p2Graph, p2Lineage, p2Quality, p2Value, p2Manifest,
+    p2Graph, p2Lineage, p2Quality, p2Value, p2Manifest, upstreamBinding,
   } = inputs;
   requireCondition(p0Registry.id === 'kidults-asi-p0b-source-candidate-registry-v1' && p0Registry.canonical_candidate_count > 0, 'P0B_REGISTRY_INVALID');
   requireCondition(p0Bindings.id === 'kidults-asi-p0b-mission-candidate-binding-ledger-v1' && p0Bindings.mission_count === 192 && p0Bindings.bindings?.length === 192, 'P0B_BINDINGS_INVALID');
@@ -86,6 +149,85 @@ export function deriveReadiness(inputs, contract) {
   requireCondition(p2Value.id === 'kidults-owned-source-intelligence-value-receipt-v2', 'P2_VALUE_INVALID');
   requireCondition(p2Manifest.id === 'kidults-owned-source-intelligence-manifest-v2' && p2Manifest.graph_digest === p2Lineage.graph.digest, 'P2_MANIFEST_INVALID');
   requireCondition(contract.id === 'kidults-asi-snapshot-readiness-factory-contract-v2' && contract.version === '2.1.0' && JSON.stringify(contract.platform_principles) === JSON.stringify(PRINCIPLES), 'P3_CONTRACT_INVALID');
+
+  const candidateById = uniqueMap(p0Registry.candidates, 'candidate_id', 'P0B_CANDIDATE');
+  requireCondition(candidateById.size === p0Registry.canonical_candidate_count, 'P0B_CANDIDATE_COUNT_DRIFT');
+  requireCondition(new Set([...candidateById.values()].map((candidate) => candidate.canonical_host)).size === p0Registry.unique_host_count, 'P0B_UNIQUE_HOST_COUNT_DRIFT');
+  uniqueMap(p0Bindings.bindings, 'binding_id', 'P0B_BINDING');
+  const missionById = uniqueMap(p0Bindings.bindings, 'mission_id', 'P0B_MISSION');
+  requireCondition(missionById.size === p0Bindings.mission_count, 'P0B_MISSION_COUNT_DRIFT');
+  for (const mission of missionById.values()) {
+    const slotIds = (mission.slot_bindings || []).map((slot) => slot.candidate_id).filter(Boolean);
+    requireCondition(new Set(slotIds).size === slotIds.length && slotIds.every((id) => candidateById.has(id)), `P0B_MISSION_SLOT_BINDING_INVALID:${mission.mission_id}`);
+  }
+  const missionSlotIds = (mission) => (mission.slot_bindings || []).map((slot) => slot.candidate_id).filter(Boolean);
+  requireCondition([...missionById.values()].filter((mission) => missionSlotIds(mission).length >= 1).length === p0Bindings.missions_with_at_least_one_candidate, 'P0B_MISSION_COVERAGE_COUNT_DRIFT');
+  requireCondition([...missionById.values()].filter((mission) => missionSlotIds(mission).length >= 2).length === p0Bindings.missions_with_primary_and_fallback_candidates, 'P0B_PRIMARY_FALLBACK_COUNT_DRIFT');
+  requireCondition([...missionById.values()].filter((mission) => new Set(missionSlotIds(mission).map((id) => candidateById.get(id)?.canonical_host)).size >= 3).length === p0Bindings.missions_with_three_candidate_hosts, 'P0B_THREE_HOST_COUNT_DRIFT');
+  const gateByGrain = uniqueMap(p1Gate.decisions, 'grain_id', 'P1_GATE_GRAIN');
+  uniqueMap(p1Gate.decisions, 'gate1_decision_id', 'P1_GATE_DECISION');
+  const admissionByGrain = uniqueMap(p1Admission.candidates, 'grain_id', 'P1_ADMISSION_GRAIN');
+  uniqueMap(p1Admission.candidates, 'admission_candidate_id', 'P1_ADMISSION_CANDIDATE');
+  requireCondition(gateByGrain.size === admissionByGrain.size && gateByGrain.size === p1Gate.decision_count, 'P1_GATE_ADMISSION_PARTITION_DRIFT');
+  for (const [grainId, gate] of gateByGrain) {
+    const admission = admissionByGrain.get(grainId);
+    const mission = missionById.get(gate.mission_id);
+    requireCondition(Boolean(admission && mission && candidateById.has(gate.candidate_id)), `P0_P1_IDENTITY_ORPHAN:${grainId}`);
+    requireCondition((mission.slot_bindings || []).some((slot) => slot.candidate_id === gate.candidate_id), `P0_MISSION_GATE_CANDIDATE_MISMATCH:${grainId}`);
+    requireCondition(gate.market_cell_id === mission.market_cell_id, `P0_MISSION_GATE_MARKET_CELL_MISMATCH:${grainId}`);
+    for (const field of ['candidate_id', 'mission_id', 'market_cell_id']) {
+      requireCondition(admission[field] === gate[field], `GATE_ADMISSION_IDENTITY_MISMATCH:${field}:${grainId}`);
+    }
+    requireCondition(admission.gate1_decision === gate.decision && admission.rights_state === gate.rights_state, `GATE_ADMISSION_DECISION_RIGHTS_MISMATCH:${grainId}`);
+    requireCondition(admission.collection_authorized === gate.collection_authorized, `GATE_ADMISSION_COLLECTION_AUTHORITY_MISMATCH:${grainId}`);
+    requireCondition(admission.evidence_class === mission.evidence_class, `MISSION_ADMISSION_EVIDENCE_CLASS_MISMATCH:${grainId}`);
+  }
+  const actionById = uniqueMap(p1Actions.actions, 'action_id', 'P1_ACTION');
+  requireCondition(actionById.size === p1Actions.action_count, 'P1_ACTION_COUNT_DRIFT');
+  const admissionsByCandidate = new Map();
+  for (const admission of admissionByGrain.values()) {
+    if (!admissionsByCandidate.has(admission.candidate_id)) admissionsByCandidate.set(admission.candidate_id, []);
+    admissionsByCandidate.get(admission.candidate_id).push(admission);
+  }
+  const actionsByCandidate = new Map();
+  for (const action of actionById.values()) {
+    const sourceCandidate = candidateById.get(action.candidate_id);
+    const candidateAdmissions = admissionsByCandidate.get(action.candidate_id) || [];
+    requireCondition(Boolean(sourceCandidate) && action.canonical_host === sourceCandidate.canonical_host, `P1_ACTION_CANDIDATE_ORPHAN:${action.action_id}`);
+    requireCondition(JSON.stringify(uniq(action.impacted_grain_ids)) === JSON.stringify(uniq(candidateAdmissions.map((admission) => admission.grain_id))), `P1_ACTION_GRAIN_SET_MISMATCH:${action.action_id}`);
+    requireCondition(JSON.stringify(uniq(action.impacted_mission_ids)) === JSON.stringify(uniq(candidateAdmissions.map((admission) => admission.mission_id))), `P1_ACTION_MISSION_SET_MISMATCH:${action.action_id}`);
+    if (!actionsByCandidate.has(action.candidate_id)) actionsByCandidate.set(action.candidate_id, []);
+    actionsByCandidate.get(action.candidate_id).push(action);
+  }
+  for (const [candidateId, actions] of actionsByCandidate) requireCondition(new Set(actions.map((action) => action.action_type)).size === actions.length, `P1_ACTION_TYPE_DUPLICATE:${candidateId}`);
+  for (const admission of admissionByGrain.values()) {
+    const actions = actionsByCandidate.get(admission.candidate_id) || [];
+    const requiredTypes = uniq(admission.required_next_actions || []);
+    const boundActions = actions.filter((action) => (action.impacted_grain_ids || []).includes(admission.grain_id)
+      && (action.impacted_mission_ids || []).includes(admission.mission_id));
+    requireCondition(requiredTypes.length > 0 && requiredTypes.every((type) => boundActions.some((action) => action.action_type === type)), `ADMISSION_PREFLIGHT_ACTION_BINDING_INCOMPLETE:${admission.admission_candidate_id}`);
+    if (admission.evidence_admitted === true) {
+      requireCondition(boundActions.filter((action) => requiredTypes.includes(action.action_type)).every((action) => ['COMPLETED', 'PASS', 'VERIFIED_PASS'].includes(action.state)), `ADMISSION_PREFLIGHT_ACTION_NOT_COMPLETED:${admission.admission_candidate_id}`);
+    }
+  }
+
+  requireCondition(upstreamBinding?.id === 'kidults-asi-snapshot-readiness-upstream-binding-v2' && upstreamBinding?.state === 'VERIFIED_EXACT_UPSTREAM_CHAIN', 'P3_UPSTREAM_BINDING_RECEIPT_INVALID');
+  requireCondition(upstreamBinding.p2_workflow_path === '.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml', 'P3_UPSTREAM_WORKFLOW_PATH_INVALID');
+  requireCondition(typeof upstreamBinding.repository === 'string' && upstreamBinding.repository.includes('/'), 'P3_UPSTREAM_REPOSITORY_INVALID');
+  requireCondition(upstreamBinding.p0b_and_p1_selected_from_p2_receipt === true && upstreamBinding.global_artifact_scan_used === false && upstreamBinding.any_branch_fallback_used === false, 'P3_UPSTREAM_SELECTION_BOUNDARY_INVALID');
+  requireCondition(upstreamBinding.graph_digest === p2Lineage.graph.digest, 'P3_UPSTREAM_GRAPH_DIGEST_MISMATCH');
+  requireCondition(upstreamBinding.p2_head_sha === upstreamBinding.observed_main_head_sha && /^[0-9a-f]{40}$/.test(upstreamBinding.p2_head_sha || ''), 'P3_UPSTREAM_NOT_CURRENT_MAIN_HEAD');
+  requireCondition(validTime(upstreamBinding.p2_completed_at) && validTime(upstreamBinding.readback_observed_at), 'P3_UPSTREAM_TIME_INVALID');
+  const maximumUpstreamAgeMs = Number(contract.upstream_freshness?.maximum_age_hours) * 3600000;
+  const upstreamAgeMs = Date.parse(upstreamBinding.readback_observed_at) - Date.parse(upstreamBinding.p2_completed_at);
+  requireCondition(Number.isFinite(maximumUpstreamAgeMs) && maximumUpstreamAgeMs > 0 && upstreamAgeMs >= 0 && upstreamAgeMs <= maximumUpstreamAgeMs, 'P3_UPSTREAM_RUN_STALE');
+  for (const field of ['p0b_artifact_digest', 'p1_artifact_digest', 'p2_artifact_digest', 'p0b_downloaded_archive_sha256', 'p1_downloaded_archive_sha256', 'p2_downloaded_archive_sha256']) {
+    requireCondition(SHA256.test(upstreamBinding[field] || '') && !/^sha256:0{64}$/.test(upstreamBinding[field]), `P3_UPSTREAM_DIGEST_INVALID:${field}`);
+  }
+  for (const stage of ['p0b', 'p1', 'p2']) {
+    requireCondition(/^[1-9][0-9]*$/.test(upstreamBinding[`${stage}_artifact_id`] || ''), `P3_UPSTREAM_ARTIFACT_ID_INVALID:${stage}`);
+    requireCondition(upstreamBinding[`${stage}_artifact_digest`] === upstreamBinding[`${stage}_downloaded_archive_sha256`], `P3_UPSTREAM_PROVIDER_DOWNLOAD_DIGEST_MISMATCH:${stage}`);
+  }
 
   const lineageInputs = new Map((p2Lineage.inputs || []).map((entry) => [entry.id, entry.digest]));
   for (const value of [p0Registry, p0Bindings, p1Gate, p1Admission, p1Actions]) {
@@ -109,7 +251,8 @@ export function deriveReadiness(inputs, contract) {
   requireCondition(p1Admission.admitted_count === admittedCandidates.length, 'P1_ADMISSION_COUNT_DRIFT');
 
   const snapshotAsOf = Date.parse(p2Graph.as_of);
-  requireCondition(Number.isFinite(snapshotAsOf), 'P2_AS_OF_INVALID');
+  requireCondition(validTime(p2Graph.as_of), 'P2_AS_OF_INVALID');
+  requireCondition(snapshotAsOf <= Date.parse(upstreamBinding.p2_completed_at) && Date.parse(upstreamBinding.readback_observed_at) - snapshotAsOf <= maximumUpstreamAgeMs, 'P2_AS_OF_STALE_OR_AFTER_COMPLETION');
   const maximumWindowDays = Number(contract.snapshot_creation_gate.current_evidence_maximum_window_days);
   requireCondition(Number.isInteger(maximumWindowDays) && maximumWindowDays > 0, 'P3_CURRENT_WINDOW_INVALID');
   const evidenceRecords = admittedCandidates.map((candidate) => validateAdmittedRecord(candidate, snapshotAsOf, maximumWindowDays));
@@ -203,5 +346,6 @@ export function deriveReadiness(inputs, contract) {
     admittedSold, admittedLiquidity, marketEvents: stable(marketEvents), marketEventBindingComplete,
     prerequisiteDimensions: dimensions, prerequisitesPass, blockers,
     asOf: new Date(snapshotAsOf).toISOString(), sourceGraphDigest: p2Lineage.graph.digest,
+    upstreamBinding: stable(upstreamBinding), upstreamBindingDigest: hashText(stableJson(upstreamBinding)),
   };
 }

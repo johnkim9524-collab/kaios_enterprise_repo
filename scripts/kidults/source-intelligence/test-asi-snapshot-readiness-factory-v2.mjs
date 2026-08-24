@@ -16,16 +16,27 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 const write = (file, value) => fs.writeFileSync(file, stableJson(value));
 
 function evidenceRecord(id, evidenceClass, observationType, sourceByte) {
-  return {
+  const record = {
     evidence_id: id,
     evidence_class: evidenceClass,
     purpose_binding_id: `purpose-${id}`,
     source_owner_id: `owner-${id}`,
     factual_origin_id: `origin-${id}`,
     rights_state: 'ALLOW',
-    source_url: `https://evidence.example.test/${id}`,
+    source_url: `https://market-evidence.kidults.com/${id}`,
+    source_object_uri: `https://evidence-archive.kidults.com/objects/${sourceByte.repeat(64)}`,
     source_payload_sha256: `sha256:${sourceByte.repeat(64)}`,
-    license_evidence_refs: [`https://rights.example.test/${id}`],
+    rights_assertion: {
+      assertion_id: `rights-${id}`,
+      source_owner_id: `owner-${id}`,
+      purpose_binding_id: `purpose-${id}`,
+      jurisdiction: 'US',
+      rights_atoms: ['COLLECT', 'STORE', 'DERIVE', 'DISPLAY'],
+      effective_at: '2026-08-01T00:00:00.000Z',
+      expires_at: '2026-12-31T00:00:00.000Z',
+      document_sha256: `sha256:${sourceByte.repeat(64)}`,
+      evidence_uri: `https://rights-archive.kidults.com/${id}`,
+    },
     observed_at: '2026-08-23T00:00:00.000Z',
     valid_until: '2026-09-01T00:00:00.000Z',
     temporality: 'CURRENT_MARKET',
@@ -33,14 +44,34 @@ function evidenceRecord(id, evidenceClass, observationType, sourceByte) {
     evidence_strength: 1,
     unresolved_critical_contradiction_count: 0,
   };
+  if (evidenceClass === 'CURRENT_SOLD_TRANSACTION') Object.assign(record, {
+    transaction_occurred_at: '2026-08-22T00:00:00.000Z',
+    asset_identity_id: `asset-${id}`,
+    market_venue_id: 'venue-authorized-1',
+    grade_or_condition: 'GRADED_9',
+    sold_price: { amount: 125.5, currency: 'USD' },
+  });
+  else Object.assign(record, {
+    exposure_started_at: '2026-08-01T00:00:00.000Z',
+    exposure_ended_at: '2026-08-20T00:00:00.000Z',
+    censoring_state: 'SOLD_EVENT_OBSERVED',
+    exposure_days: 19,
+  });
+  return record;
 }
 
 function readyInputs() {
-  const p0Registry = { id: 'kidults-asi-p0b-source-candidate-registry-v1', version: '1.0.0', canonical_candidate_count: 576, unique_host_count: 576 };
+  const sourceCandidates = Array.from({ length: 96 }, (_, index) => ({
+    candidate_id: `candidate-${index}`,
+    canonical_host: `source-${index}.market.kidults.com`,
+  }));
+  const p0Registry = { id: 'kidults-asi-p0b-source-candidate-registry-v1', version: '1.0.0', canonical_candidate_count: 96, unique_host_count: 96, candidates: sourceCandidates };
   const bindings = Array.from({ length: 192 }, (_, index) => ({
     binding_id: `binding-${index}`,
     mission_id: `mission-${index}`,
+    market_cell_id: `market-${index}`,
     evidence_class: index % 2 ? 'LIQUIDITY_TIME_TO_SALE_EXPOSURE' : 'CURRENT_SOLD_TRANSACTION',
+    slot_bindings: Array.from({ length: 3 }, (_, slot) => ({ candidate_id: `candidate-${(index * 3 + slot) % 96}` })),
     factual_origin_independence_proven: true,
     regional_coverage_proven: true,
   }));
@@ -52,6 +83,9 @@ function readyInputs() {
   const p0Manifest = { id: 'kidults-asi-p0b-bounded-discovery-manifest-v1', version: '1.0.0' };
   const decisions = Array.from({ length: 576 }, (_, index) => ({
     gate1_decision_id: `gate-${index}`, decision: 'PASS', rights_state: 'ALLOW',
+    collection_authorized: true,
+    grain_id: `grain-${index}`, candidate_id: `candidate-${index % 96}`, mission_id: `mission-${Math.floor(index / 3)}`,
+    market_cell_id: `market-${Math.floor(index / 3)}`,
     market_semantics_verified: true, reason_codes: [],
   }));
   const p1Gate = {
@@ -61,32 +95,43 @@ function readyInputs() {
   const sold = evidenceRecord('evidence-sold-1', 'CURRENT_SOLD_TRANSACTION', 'SOLD_TRANSACTION', 'a');
   const liquidity = evidenceRecord('evidence-liquidity-1', 'LIQUIDITY_TIME_TO_SALE_EXPOSURE', 'LIQUIDITY_EXPOSURE', 'b');
   const candidates = Array.from({ length: 576 }, (_, index) => {
-    const record = index === 0 ? sold : index === 1 ? liquidity : null;
+    const record = index === 0 ? sold : index === 3 ? liquidity : null;
+    const missionIndex = Math.floor(index / 3);
     return {
       admission_candidate_id: `admission-${index}`,
-      candidate_id: `candidate-${index}`,
-      mission_id: `mission-${index % 192}`,
+      candidate_id: `candidate-${index % 96}`,
+      grain_id: `grain-${index}`,
+      mission_id: `mission-${missionIndex}`,
+      market_cell_id: `market-${missionIndex}`,
       purpose_binding_id: record?.purpose_binding_id || `purpose-candidate-${index}`,
       source_owner_id: record?.source_owner_id || `owner-candidate-${index}`,
       factual_origin_id: record?.factual_origin_id || `origin-candidate-${index}`,
-      evidence_class: index === 1 ? 'LIQUIDITY_TIME_TO_SALE_EXPOSURE' : 'CURRENT_SOLD_TRANSACTION',
+      evidence_class: missionIndex % 2 ? 'LIQUIDITY_TIME_TO_SALE_EXPOSURE' : 'CURRENT_SOLD_TRANSACTION',
       state: record ? 'ADMITTED_VERIFIED' : 'READY_RIGHTS_AND_SEMANTICS_VERIFIED',
       gate1_decision: 'PASS', rights_state: 'ALLOW', collection_authorized: true,
       evidence_admitted: Boolean(record), admitted_evidence_id: record?.evidence_id || null,
       admitted_evidence: record || undefined,
+      required_next_actions: ['OWNER', 'RIGHTS', 'ACCESS', 'SEMANTICS', 'REGION', 'SCHEMA', 'ORIGIN'],
     };
   });
   const p1Admission = {
     id: 'kidults-asi-p1-evidence-admission-candidate-register-v1', version: '1.0.0', candidate_count: 576,
     admitted_count: 2, candidates,
   };
-  const actions = Array.from({ length: 672 }, (_, index) => ({
-    action_id: `action-${index}`, action_type: `TYPE_${index % 7}`, state: 'VERIFIED_PASS',
-    candidate_id: `candidate-${index % 576}`, canonical_host: `source-${index % 576}.example.test`,
-    expected_output: 'VERIFIED_PREFLIGHT_RECEIPT', impacted_grain_ids: [`grain-${index}`],
-    impacted_mission_ids: [`mission-${index % 192}`], network_probe_authorized: false,
-    collection_authorized: index < 2, evidence_admitted: index < 2,
-  }));
+  const actionTypes = ['OWNER', 'RIGHTS', 'ACCESS', 'SEMANTICS', 'REGION', 'SCHEMA', 'ORIGIN'];
+  const actions = Array.from({ length: 672 }, (_, index) => {
+    const candidateIndex = Math.floor(index / 7);
+    const impactedAdmissions = candidates.filter((candidate) => candidate.candidate_id === `candidate-${candidateIndex}`);
+    return {
+      action_id: `action-${index}`, action_type: actionTypes[index % 7], state: 'VERIFIED_PASS',
+      candidate_id: `candidate-${candidateIndex}`, canonical_host: `source-${candidateIndex}.market.kidults.com`,
+      expected_output: 'VERIFIED_PREFLIGHT_RECEIPT',
+      impacted_grain_ids: impactedAdmissions.map((candidate) => candidate.grain_id),
+      impacted_mission_ids: [...new Set(impactedAdmissions.map((candidate) => candidate.mission_id))],
+      network_probe_authorized: false, collection_authorized: true,
+      evidence_admitted: impactedAdmissions.some((candidate) => candidate.evidence_admitted),
+    };
+  });
   const p1Actions = { id: 'kidults-asi-p1-preflight-action-queue-v1', version: '1.0.0', action_count: 672, actions };
   const p1Manifest = { id: 'kidults-asi-p1-source-preflight-manifest-v1', version: '1.0.0' };
   const marketEvents = [sold, liquidity].map((record, index) => ({
@@ -105,7 +150,18 @@ function readyInputs() {
     id: 'kidults-owned-source-intelligence-manifest-v2', version: '2.0.0', graph_digest: null,
     results: { assigned_unique_candidates: 576, evidence_admitted: 2, market_events_created: 2 },
   };
-  return { p0Registry, p0Bindings, p0Manifest, p1Gate, p1Admission, p1Actions, p1Manifest, p2Graph, p2Quality, p2Value, p2Manifest };
+  const upstreamBinding = {
+    id: 'kidults-asi-snapshot-readiness-upstream-binding-v2', version: '2.1.0', state: 'VERIFIED_EXACT_UPSTREAM_CHAIN',
+    repository: 'kidults/kidults', p2_workflow_path: '.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml',
+    p2_run_id: '30', p2_head_sha: '1'.repeat(40), observed_main_head_sha: '1'.repeat(40),
+    p2_completed_at: '2026-08-24T00:05:00.000Z', readback_observed_at: '2026-08-24T00:10:00.000Z',
+    p0b_artifact_id: '10', p1_artifact_id: '20', p2_artifact_id: '30',
+    p0b_artifact_digest: `sha256:${'1'.repeat(64)}`, p1_artifact_digest: `sha256:${'2'.repeat(64)}`, p2_artifact_digest: `sha256:${'3'.repeat(64)}`,
+    p0b_downloaded_archive_sha256: `sha256:${'1'.repeat(64)}`, p1_downloaded_archive_sha256: `sha256:${'2'.repeat(64)}`, p2_downloaded_archive_sha256: `sha256:${'3'.repeat(64)}`,
+    p0b_and_p1_selected_from_p2_receipt: true, global_artifact_scan_used: false, any_branch_fallback_used: false,
+    graph_digest: null,
+  };
+  return { p0Registry, p0Bindings, p0Manifest, p1Gate, p1Admission, p1Actions, p1Manifest, p2Graph, p2Quality, p2Value, p2Manifest, upstreamBinding };
 }
 
 function finalize(values) {
@@ -116,6 +172,7 @@ function finalize(values) {
       .map((value) => ({ id: value.id, digest: hashText(stableJson(value)) })),
     graph: { digest: values.p2Manifest.graph_digest },
   };
+  values.upstreamBinding.graph_digest = values.p2Manifest.graph_digest;
   return values;
 }
 
@@ -128,6 +185,7 @@ function blockedInputs() {
   for (const decision of values.p1Gate.decisions) {
     decision.decision = 'HOLD';
     decision.rights_state = 'UNKNOWN';
+    decision.collection_authorized = false;
     decision.market_semantics_verified = false;
   }
   Object.assign(values.p1Gate, { pass_count: 0, hold_count: 576, reject_count: 0 });
@@ -162,6 +220,7 @@ function materialize(name, values) {
     p1Manifest: 'p1-source-preflight-manifest-v1.json', p2Graph: 'owned-source-intelligence-graph-v2.json',
     p2Lineage: 'owned-source-intelligence-lineage-v2.json', p2Quality: 'owned-source-intelligence-quality-v2.json',
     p2Value: 'owned-source-intelligence-value-receipt-v2.json', p2Manifest: 'owned-source-intelligence-manifest-v2.json',
+    upstreamBinding: 'asi-snapshot-readiness-upstream-binding-v2.json',
   };
   for (const [key, file] of Object.entries(files)) write(path.join(dir, file), values[key]);
   return { dir, args: Object.values(files).map((file) => path.join(dir, file)) };
@@ -200,7 +259,8 @@ try {
     requireCondition(fs.readFileSync(path.join(readyOutputA, name), 'utf8') === fs.readFileSync(path.join(readyOutputB, name), 'utf8'), `NONDETERMINISTIC_OUTPUT:${name}`);
   }
   const receipt = JSON.parse(fs.readFileSync(path.join(readyOutputA, 'snapshot-pair-generation-receipt-v2.json')));
-  requireCondition(receipt.state === 'IMMUTABLE_PAIR_ATOMICALLY_GENERATED' && receipt.atomic_directory_commit === true, 'READY_PAIR_NOT_ATOMIC');
+  requireCondition(receipt.state === 'CONTENT_ADDRESSED_PAIR_ATOMICALLY_GENERATED_ATTESTATION_PENDING' && receipt.atomic_directory_commit === true, 'READY_PAIR_NOT_ATOMIC');
+  requireCondition(receipt.immutable_storage_receipt === null && receipt.artifact_attestation === null && receipt.track_b_submission_eligible === false, 'READY_PAIR_FALSE_ATTESTATION');
   const handoffOutput = path.join(temp, 'canonical-handoff-result.json');
   execute(handoffValidator, [
     path.join(readyOutputA, 'snapshot-candidate.json'),
@@ -233,18 +293,51 @@ try {
   const invalid = materialize('invalid-event-input', invalidValues);
   execute(builder, [...invalid.args, contract, path.join(temp, 'invalid-event-output')], false);
 
+  const rejectedInputMutations = [
+    ['orphan-candidate', (values) => { values.p1Admission.candidates[0].candidate_id = 'candidate-orphan'; }],
+    ['mission-swap', (values) => { values.p1Admission.candidates[0].mission_id = 'mission-1'; }],
+    ['duplicate-candidate-id', (values) => { values.p0Registry.candidates[1].candidate_id = values.p0Registry.candidates[0].candidate_id; }],
+    ['incomplete-action-binding', (values) => { values.p1Admission.candidates[0].required_next_actions.push('MISSING_ACTION'); }],
+    ['fake-source-url', (values) => { values.p1Admission.candidates[0].admitted_evidence.source_url = 'https://evidence.example.test/fake'; }],
+    ['purpose-rights-swap', (values) => { values.p1Admission.candidates[0].admitted_evidence.rights_assertion.purpose_binding_id = 'purpose-other'; }],
+    ['sold-time-after-observation', (values) => { values.p1Admission.candidates[0].admitted_evidence.transaction_occurred_at = '2026-08-24T00:00:00.000Z'; }],
+    ['stale-sold-time', (values) => { values.p1Admission.candidates[0].admitted_evidence.transaction_occurred_at = '2025-08-22T00:00:00.000Z'; }],
+    ['stale-upstream', (values) => { values.upstreamBinding.readback_observed_at = '2026-08-26T00:10:00.000Z'; }],
+    ['upstream-provider-download-digest-mismatch', (values) => { values.upstreamBinding.p2_downloaded_archive_sha256 = `sha256:${'4'.repeat(64)}`; }],
+  ];
+  for (const [id, mutate] of rejectedInputMutations) {
+    const values = finalize(readyInputs());
+    mutate(values);
+    finalize(values);
+    const mutated = materialize(`bad-${id}-input`, values);
+    execute(builder, [...mutated.args, contract, path.join(temp, `bad-${id}-output`)], false);
+  }
+
+  const badAttestation = path.join(temp, 'bad-attestation');
+  fs.cpSync(readyOutputA, badAttestation, { recursive: true });
+  const trackBPath = path.join(badAttestation, 'track-b-handoff-readiness-v2.json');
+  const badTrackB = JSON.parse(fs.readFileSync(trackBPath));
+  badTrackB.immutable_storage_verified = true;
+  badTrackB.artifact_attestation_verified = true;
+  badTrackB.track_b_submission_eligible = true;
+  write(trackBPath, badTrackB);
+  execute(validator, [badAttestation, ...ready.args, contract], false);
+
   execute(builder, [...ready.args, contract, readyOutputA], false);
   console.log(JSON.stringify({
     id: 'kidults-asi-snapshot-readiness-factory-liveness-test-v2',
     state: 'VERIFIED_PASS',
     blocked_non_generation_verified: true,
     lawful_ready_pair_generation_verified: true,
+    generated_pair_state: 'CONTENT_ADDRESSED_STORAGE_AND_ATTESTATION_PENDING',
     deterministic_pair_generation_verified: true,
     cross_timezone_locale_replay_verified: true,
     atomic_directory_commit_verified: true,
+    immutable_storage_verified: false,
+    artifact_attestation_verified: false,
     canonical_handoff_pair_digest_verified: true,
     canonical_handoff_remains_blocked: true,
-    negative_mutation_cases: 4,
+    negative_mutation_cases: 15,
     track_b_assessment_started: false,
     public_release: 'HOLD',
     production: 'HOLD',

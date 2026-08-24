@@ -6,8 +6,8 @@ import {
 } from './lib/asi-snapshot-readiness-factory-v2.mjs';
 
 const args = process.argv.slice(2);
-if (args.length !== 14) throw new Error('P3_VALIDATION_ARGUMENTS_REQUIRED');
-const [out, p0r, p0b, p0m, p1g, p1a, p1q, p1m, p2g, p2l, p2q, p2v, p2m, cp] = args;
+if (args.length !== 15) throw new Error('P3_VALIDATION_ARGUMENTS_REQUIRED');
+const [out, p0r, p0b, p0m, p1g, p1a, p1q, p1m, p2g, p2l, p2q, p2v, p2m, ub, cp] = args;
 const fail = (message) => { throw new Error(message); };
 const ok = (condition, message) => { if (!condition) fail(message); };
 const text = (file) => fs.readFileSync(file, 'utf8');
@@ -31,6 +31,7 @@ const inputs = {
   p2Quality: json(p2q),
   p2Value: json(p2v),
   p2Manifest: json(p2m),
+  upstreamBinding: json(ub),
 };
 const derived = deriveReadiness(inputs, contract);
 
@@ -96,18 +97,23 @@ if (derived.prerequisitesPass) {
   const computedEvidenceDigest = digestObject(Object.fromEntries(Object.entries(evidence).filter(([key]) => key !== 'package_payload_sha256')));
   const computedSnapshotDigest = digestObject(Object.fromEntries(Object.entries(snapshot).filter(([key]) => key !== 'snapshot_payload_sha256')));
   const pairDigest = digestObject({ snapshot, evidence });
-  ok(evidence.package_status === 'IMMUTABLE' && evidence.package_id === evidence.evidence_package_id, 'EVIDENCE_PACKAGE_ID_STATUS');
+  ok(evidence.package_status === 'CONTENT_ADDRESSED_STORAGE_AND_ATTESTATION_PENDING' && evidence.package_id === evidence.evidence_package_id, 'EVIDENCE_PACKAGE_ID_STATUS');
   ok(evidence.bound_snapshot_id === snapshot.snapshot_id && snapshot.bound_evidence_package_id === evidence.package_id, 'PAIR_CROSS_BINDING');
   ok(evidence.package_payload_sha256 === computedEvidenceDigest && snapshot.snapshot_payload_sha256 === computedSnapshotDigest, 'PAIR_PAYLOAD_DIGESTS');
   ok(stableJson(evidence.evidence_records) === stableJson(derived.evidenceRecords), 'EVIDENCE_RECORD_BINDING');
-  ok(snapshot.snapshot_status === 'DRAFT_CANDIDATE' && snapshot.as_of === derived.asOf && snapshot.source_graph_digest === derived.sourceGraphDigest, 'SNAPSHOT_STATE_BINDING');
+  ok(snapshot.snapshot_status === 'DRAFT_CANDIDATE_STORAGE_AND_ATTESTATION_PENDING' && snapshot.as_of === derived.asOf && snapshot.source_graph_digest === derived.sourceGraphDigest, 'SNAPSHOT_STATE_BINDING');
+  ok(snapshot.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest && evidence.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest, 'PAIR_UPSTREAM_RECEIPT_BINDING');
+  ok(stableJson(snapshot.upstream_binding) === stableJson(derived.upstreamBinding) && stableJson(evidence.upstream_binding) === stableJson(derived.upstreamBinding), 'PAIR_UPSTREAM_RECEIPT_PAYLOAD');
   ok(snapshot.publication_eligible === false && snapshot.production_authorized === false && evidence.publication_authorized === false && evidence.production_authorized === false, 'PAIR_RELEASE_BOUNDARY');
-  ok(trackB.state === 'PAIR_GENERATED_HANDOFF_PREFLIGHT_REQUIRED' && trackB.snapshot_candidate_present === true && trackB.evidence_package_present === true && trackB.exact_pair_digest_present === true, 'TRACK_B_PAIR_FLAGS');
-  ok(trackB.exact_pair_digest === pairDigest && trackB.canonical_handoff_preflight === 'REQUIRED_NOT_PERFORMED', 'TRACK_B_PAIR_DIGEST');
-  ok(receipt.state === 'IMMUTABLE_PAIR_ATOMICALLY_GENERATED' && receipt.exact_pair_digest === pairDigest && receipt.atomic_directory_commit === true, 'PAIR_GENERATION_RECEIPT');
+  ok(trackB.state === 'PAIR_GENERATED_STORAGE_AND_ATTESTATION_REQUIRED' && trackB.snapshot_candidate_present === true && trackB.evidence_package_present === true && trackB.exact_pair_digest_present === true, 'TRACK_B_PAIR_FLAGS');
+  ok(trackB.exact_pair_digest === pairDigest && trackB.canonical_handoff_preflight === 'BLOCKED_PENDING_IMMUTABLE_STORAGE_AND_ATTESTATION', 'TRACK_B_PAIR_DIGEST');
+  ok(trackB.immutable_storage_verified === false && trackB.artifact_attestation_verified === false && trackB.track_b_submission_eligible === false, 'TRACK_B_ATTESTATION_HOLD');
+  ok(receipt.state === 'CONTENT_ADDRESSED_PAIR_ATOMICALLY_GENERATED_ATTESTATION_PENDING' && receipt.exact_pair_digest === pairDigest && receipt.atomic_directory_commit === true, 'PAIR_GENERATION_RECEIPT');
+  ok(receipt.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest && receipt.immutable_storage_receipt === null && receipt.artifact_attestation === null && receipt.track_b_submission_eligible === false, 'PAIR_PROVENANCE_ATTESTATION_BOUNDARY');
+  ok(receipt.canonical_handoff_preflight === 'BLOCKED_PENDING_IMMUTABLE_STORAGE_AND_ATTESTATION', 'PAIR_HANDOFF_ATTESTATION_BOUNDARY');
   ok(receipt.snapshot_file_sha256 === hashText(outputText('snapshot-candidate.json')) && receipt.evidence_file_sha256 === hashText(outputText('evidence-package.json')), 'PAIR_FILE_DIGESTS');
-  ok(readiness.state === 'READY_PAIR_GENERATED' && readiness.all_dimensions_pass === true, 'READY_STATE');
-  ok(readiness.output_assertion_dimensions.every((value) => value.state === 'PASS') && readiness.counts.snapshot_candidates === 1 && readiness.counts.immutable_evidence_packages === 1 && readiness.counts.track_b_input_pairs === 1, 'READY_OUTPUT_ASSERTIONS');
+  ok(readiness.state === 'PAIR_GENERATED_STORAGE_AND_ATTESTATION_PENDING' && readiness.all_dimensions_pass === false, 'READY_STATE');
+  ok(readiness.output_assertion_dimensions.every((value) => value.state === 'NOT_EVALUATED') && readiness.counts.snapshot_candidates === 1 && readiness.counts.immutable_evidence_packages === 0 && readiness.counts.track_b_input_pairs === 0, 'READY_OUTPUT_ASSERTIONS');
   ok(readiness.exact_pair_digest === pairDigest, 'READINESS_PAIR_DIGEST');
 } else {
   for (const name of contract.outputs_when_gate_fails) ok(exists(name), `MISSING_GATE_FAIL_OUTPUT:${name}`);
@@ -129,7 +135,8 @@ ok(manifest.input_bindings.p1.gate1_hold === derived.actualGateHold && manifest.
 ok(manifest.input_bindings.p2.graph_digest === derived.sourceGraphDigest && manifest.input_bindings.p2.node_count === inputs.p2Graph.node_count && manifest.input_bindings.p2.edge_count === inputs.p2Graph.edge_count, 'MANIFEST_P2');
 ok(manifest.results.readiness_dimensions === 12 && manifest.results.prerequisite_dimensions === 10 && manifest.results.output_assertion_dimensions === 2, 'MANIFEST_DIMENSIONS');
 ok(manifest.results.open_blockers === derived.blockers.length && manifest.results.preflight_actions_queued === derived.queuedActions && manifest.results.evidence_admitted === derived.evidenceRecords.length && manifest.results.market_events_created === derived.marketEvents.length, 'MANIFEST_PIPELINE_COUNTS');
-ok(manifest.results.snapshot_candidates_created === (derived.prerequisitesPass ? 1 : 0) && manifest.results.evidence_packages_created === (derived.prerequisitesPass ? 1 : 0) && manifest.results.track_b_input_pairs_created === (derived.prerequisitesPass ? 1 : 0), 'MANIFEST_OUTPUT_COUNTS');
+ok(manifest.results.snapshot_candidates_created === (derived.prerequisitesPass ? 1 : 0) && manifest.results.evidence_packages_created === (derived.prerequisitesPass ? 1 : 0) && manifest.results.track_b_input_pairs_created === 0, 'MANIFEST_OUTPUT_COUNTS');
+ok(manifest.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest, 'MANIFEST_UPSTREAM_BINDING');
 ok(manifest.results.track_b_assessments_started === 0 && manifest.atomic_directory_commit === true, 'MANIFEST_ATOMIC_TRACK_B_BOUNDARY');
 for (const output of manifest.output_files) {
   ok(exists(output.name), `MANIFEST_FILE_MISSING:${output.name}`);
@@ -150,7 +157,9 @@ console.log(JSON.stringify({
   market_events_created: derived.marketEvents.length,
   snapshot_candidates_created: derived.prerequisitesPass ? 1 : 0,
   evidence_packages_created: derived.prerequisitesPass ? 1 : 0,
-  track_b_input_pairs_created: derived.prerequisitesPass ? 1 : 0,
+  track_b_input_pairs_created: 0,
+  immutable_storage_verified: false,
+  artifact_attestation_verified: false,
   atomic_directory_commit: true,
   public_release: 'HOLD',
   production: 'HOLD',
