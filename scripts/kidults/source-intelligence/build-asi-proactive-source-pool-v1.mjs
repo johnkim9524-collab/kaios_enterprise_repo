@@ -202,7 +202,7 @@ const matchingRows = candidate => unique([
 
 const candidates = [...byKey.values()].map(candidate => {
   const rows = matchingRows(candidate);
-  const wrongPurpose = rows.some(row => /WRONG_PURPOSE|CONTEXT_ONLY/.test(String(row.current_sold_purpose_candidate_state || row.semantic_state || '')));
+  const wrongPurpose = rows.some(row => /WRONG_PURPOSE|CONTEXT_ONLY|NOT_CANDIDATE|UNPROVEN_ACCOUNT_GATED/.test(String(row.current_sold_purpose_candidate_state || row.semantic_state || '')));
   let purposes = purposeForRoles(candidate.candidate_source_roles, candidate.candidate_purpose_intents);
   if (wrongPurpose) purposes = purposes.filter(purpose => !purpose.startsWith('CURRENT_SOLD_TRANSACTION'));
   for (const row of rows) for (const binding of array(row.purpose_bindings)) purposes.push(binding.purpose);
