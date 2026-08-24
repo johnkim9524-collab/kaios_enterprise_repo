@@ -10,7 +10,7 @@ jobs:
   inventory:
     if: github.ref == 'refs/heads/main'
     environment: kidults-cloudflare-readonly
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

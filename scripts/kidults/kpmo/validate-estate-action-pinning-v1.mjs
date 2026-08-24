@@ -31,6 +31,27 @@ function parseUsesLine(line) {
   };
 }
 
+function unquoteScalar(value) {
+  const scalar = value.trim();
+  return /^(['"]).*\1$/.test(scalar) ? scalar.slice(1, -1).trim() : scalar;
+}
+
+function parseRunsOnLine(line) {
+  const match = line.match(/^\s*runs-on\s*:\s*(.*?)\s*$/i);
+  if (!match) return null;
+  const reference = stripYamlComment(match[1]).trim();
+  const labels = reference.startsWith('[') && reference.endsWith(']')
+    ? reference.slice(1, -1).split(',').map(unquoteScalar).filter(Boolean)
+    : [unquoteScalar(reference)].filter(Boolean);
+  return { reference, labels };
+}
+
+function runnerFinding(labels) {
+  return labels.some(label => label.toLowerCase() === 'ubuntu-latest')
+    ? 'MOVING_GITHUB_HOSTED_RUNNER_ALIAS'
+    : null;
+}
+
 function referenceFinding(reference) {
   if (!reference) return 'EMPTY_ACTION_REF';
   if (reference.startsWith('./')) return null;
@@ -157,8 +178,12 @@ function semanticKeyFindings(name, text) {
       if (!parsed) continue;
       let cursor = parsed.end + 1;
       while (/\s/.test(text[cursor] || '')) cursor += 1;
-      if (parsed.decoded.toLowerCase() === 'uses' && text[cursor] === ':') {
+      const semanticKey = parsed.decoded.toLowerCase();
+      if (semanticKey === 'uses' && text[cursor] === ':') {
         findings.push(`${name}:${lineIndex + 1}:NONCANONICAL_ESCAPED_USES_KEY`);
+      }
+      if (semanticKey === 'runs-on' && text[cursor] === ':') {
+        findings.push(`${name}:${lineIndex + 1}:NONCANONICAL_ESCAPED_RUNS_ON_KEY`);
       }
     }
 
@@ -172,10 +197,20 @@ function semanticKeyFindings(name, text) {
 function findingsFor(name, text) {
   const findings = semanticKeyFindings(name, text);
   const refs = [];
+  const runners = [];
   for (const [index, line] of text.split(/\r?\n/).entries()) {
+    const runner = parseRunsOnLine(line);
+    if (runner) {
+      runners.push({ line: index + 1, reference: runner.reference, labels: runner.labels });
+      const finding = runnerFinding(runner.labels);
+      if (finding) findings.push(`${name}:${index + 1}:${finding}:${runner.reference || '<EMPTY>'}`);
+    }
     const parsed = parseUsesLine(line);
     if (!parsed) {
       const uncommented = stripYamlComment(line);
+      if (!runner && /(?:^|[{,]|-\s)\s*(?:runs-on|['"]runs-on['"])\s*:/i.test(uncommented)) {
+        findings.push(`${name}:${index + 1}:NONCANONICAL_RUNS_ON_SYNTAX:${line.trim()}`);
+      }
       // Complex, alias and merge keys are unnecessary in canonical Actions syntax and
       // can synthesize a `uses` key only after YAML parsing, so they fail closed.
       if (/^\s*(?:-\s*)?\?\s/.test(uncommented) || /[{,]\s*\?\s/.test(uncommented)) {
@@ -202,7 +237,7 @@ function findingsFor(name, text) {
     });
     if (finding) findings.push(`${name}:${index + 1}:${finding}:${parsed.reference || '<EMPTY>'}`);
   }
-  return { findings, refs };
+  return { findings, refs, runners };
 }
 
 const sha = 'a'.repeat(40);
@@ -231,11 +266,18 @@ const mutationCases = [
   { name: 'alias-colon-key', text: 'steps:\n  - env:\n      KEY: &uses_key uses\n    *uses_key: actions/checkout@v4', expected: 'NONCANONICAL_ALIAS_MAPPING_KEY' },
   { name: 'tagged-complex-key', text: 'steps:\n  - ? !!str "uses"\n    : actions/checkout@v4', expected: 'NONCANONICAL_COMPLEX_MAPPING_KEY' },
   { name: 'merge-escaped-source', text: 'steps:\n  - &base {"u\\u0073es": actions/checkout@v4}\n  - <<: *base', expected: 'NONCANONICAL_MERGE_MAPPING_KEY' },
+  { name: 'moving-runner-alias', text: 'jobs:\n  check:\n    runs-on: ubuntu-latest', expected: 'MOVING_GITHUB_HOSTED_RUNNER_ALIAS' },
+  { name: 'quoted-moving-runner-alias', text: 'jobs:\n  check:\n    runs-on: "ubuntu-latest"', expected: 'MOVING_GITHUB_HOSTED_RUNNER_ALIAS' },
+  { name: 'array-moving-runner-alias', text: "jobs:\n  check:\n    runs-on: [self-hosted, 'ubuntu-latest']", expected: 'MOVING_GITHUB_HOSTED_RUNNER_ALIAS' },
+  { name: 'quoted-runner-key', text: 'jobs:\n  check:\n    "runs-on": ubuntu-latest', expected: 'NONCANONICAL_RUNS_ON_SYNTAX' },
+  { name: 'flow-runner-alias', text: 'jobs: {check: {runs-on: ubuntu-latest}}', expected: 'NONCANONICAL_RUNS_ON_SYNTAX' },
+  { name: 'escaped-runner-key', text: 'jobs:\n  check:\n    "runs-\\u006fn": ubuntu-latest', expected: 'NONCANONICAL_ESCAPED_RUNS_ON_KEY' },
   { name: 'full-sha', text: `steps:\n  - uses: owner/action@${sha}`, expected: null },
   { name: 'full-sha-comment', text: `steps:\n  - uses: owner/action@${sha} # v1.2.3`, expected: null },
   { name: 'reusable-workflow-sha', text: `jobs:\n  call:\n    uses: owner/repository/.github/workflows/check.yml@${sha}`, expected: null },
   { name: 'local-action', text: 'steps:\n  - uses: ./.github/actions/local', expected: null },
-  { name: 'container-digest', text: `steps:\n  - uses: docker://alpine@sha256:${digest}`, expected: null }
+  { name: 'container-digest', text: `steps:\n  - uses: docker://alpine@sha256:${digest}`, expected: null },
+  { name: 'versioned-hosted-runner', text: 'jobs:\n  check:\n    runs-on: ubuntu-24.04', expected: null }
 ];
 
 for (const mutation of mutationCases) {
@@ -251,10 +293,12 @@ for (const mutation of mutationCases) {
 const workflows = workflowFiles(WORKFLOW_ROOT);
 const findings = [];
 const inventory = [];
+const runnerInventory = [];
 for (const workflow of workflows) {
   const result = findingsFor(workflow, fs.readFileSync(workflow, 'utf8'));
   findings.push(...result.findings);
   inventory.push(...result.refs.map(ref => ({ workflow, ...ref })));
+  runnerInventory.push(...result.runners.map(runner => ({ workflow, ...runner })));
 }
 
 if (!workflows.length) findings.push(`${WORKFLOW_ROOT}:NO_WORKFLOW_FILES_DISCOVERED`);
@@ -265,10 +309,21 @@ const containers = external.filter(ref => ref.container);
 const commitPinned = external.filter(ref => !ref.container && FULL_COMMIT_ACTION.test(ref.reference));
 const digestPinnedContainers = containers.filter(ref => DIGEST_PINNED_CONTAINER.test(ref.reference));
 const versionAnnotated = commitPinned.filter(ref => ref.has_version_annotation);
+const ubuntu2404Runners = runnerInventory.filter(runner => runner.labels.includes('ubuntu-24.04'));
+const movingRunnerAliases = runnerInventory.filter(runner => runnerFinding(runner.labels));
 const inventorySha256 = crypto.createHash('sha256')
-  .update(JSON.stringify(inventory.map(({ workflow, line, reference }) => ({ workflow, line, reference }))))
+  .update(JSON.stringify({
+    actions: inventory.map(({ workflow, line, reference }) => ({ workflow, line, reference })),
+    runners: runnerInventory.map(({ workflow, line, reference }) => ({ workflow, line, reference }))
+  }))
   .digest('hex');
 const state = findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS';
+const uncertainties = [
+  'ubuntu-24.04 fixes the hosted OS release label, but GitHub updates that hosted image build in place and runs-on cannot pin its build by SHA or digest'
+];
+if (versionAnnotated.length !== commitPinned.length) {
+  uncertainties.push(`${commitPinned.length - versionAnnotated.length} immutable Action refs lack an optional human-readable release annotation`);
+}
 
 const receipt = {
   suite: 'KIDULTS_ESTATE_ACTION_PINNING_V1',
@@ -280,20 +335,29 @@ const receipt = {
     `${workflows.length} workflow files were discovered dynamically`,
     `${external.length} external Action/container references were inspected`,
     `${commitPinned.length} repository Action references are pinned to full 40-character commit SHAs`,
-    `${digestPinnedContainers.length} container Action references are pinned to sha256 digests`
+    `${digestPinnedContainers.length} container Action references are pinned to sha256 digests`,
+    `${runnerInventory.length} runs-on declarations were inspected`,
+    `${ubuntu2404Runners.length} runs-on declarations use the versioned ubuntu-24.04 label`,
+    `${movingRunnerAliases.length} runs-on declarations use the forbidden ubuntu-latest alias`
   ],
   evidence_refs: [
     WORKFLOW_ROOT,
     'scripts/kidults/kpmo/validate-estate-action-pinning-v1.mjs',
     'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs',
-    'scripts/kidults/kpmo/validate-full-value-chain-critical-gate-bindings-v1.mjs'
+    'scripts/kidults/kpmo/validate-full-value-chain-critical-gate-bindings-v1.mjs',
+    'docs/kidults/security/estate-github-actions-runner-policy-v1.md'
   ],
   inferences: [],
-  uncertainties: versionAnnotated.length === commitPinned.length ? [] : [
-    `${commitPinned.length - versionAnnotated.length} immutable Action refs lack an optional human-readable release annotation`
+  uncertainties,
+  external_residuals: [
+    {
+      control: 'GITHUB_HOSTED_IMAGE_BUILD_IDENTITY',
+      state: 'NOT_IMMUTABLY_PINNABLE_VIA_RUNS_ON',
+      mitigation: 'RECORD_IMAGEOS_IMAGEVERSION_RUNNER_OS_RUNNER_ARCH_IN_EXECUTION_RECEIPTS'
+    }
   ],
   blockers: findings,
-  actions_executed: ['READ_WORKFLOW_ESTATE', 'VALIDATE_EXTERNAL_ACTION_REFS', 'RUN_MUTATION_SELF_TESTS'],
+  actions_executed: ['READ_WORKFLOW_ESTATE', 'VALIDATE_EXTERNAL_ACTION_REFS', 'VALIDATE_GITHUB_HOSTED_RUNNER_LABELS', 'RUN_MUTATION_SELF_TESTS'],
   next_action: findings.length ? 'PIN_EVERY_REPORTED_REFERENCE_AND_RERUN' : 'KEEP_VALIDATOR_BOUND_TO_REQUIRED_MAIN_AND_PR_GATES',
   authority_boundary: {
     repository_mutated: false,
@@ -314,7 +378,15 @@ const receipt = {
   container_action_references: containers.length,
   digest_pinned_container_action_references: digestPinnedContainers.length,
   version_annotated_action_references: versionAnnotated.length,
+  runner_declarations: runnerInventory.length,
+  ubuntu_24_04_runner_declarations: ubuntu2404Runners.length,
+  moving_ubuntu_latest_runner_aliases: movingRunnerAliases.length,
+  github_hosted_runner_alias_policy: 'OS_VERSION_LABEL_REQUIRED',
+  github_hosted_image_build_immutability: 'NOT_AVAILABLE_EXTERNAL_RESIDUAL',
+  github_hosted_image_identity_receipt_requirement: 'EXTERNAL_RUNTIME_EVIDENCE_REQUIRED_NOT_CLOSED_BY_THIS_VALIDATOR',
   mutation_cases: mutationCases.length,
+  moving_runner_alias_mutation_selftest: true,
+  semantic_runner_key_bypass_mutation_selftest: true,
   semantic_action_key_bypass_mutation_selftest: true,
   inventory_sha256: inventorySha256,
   findings,

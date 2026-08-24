@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   a30-executive-control-tower-ui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
