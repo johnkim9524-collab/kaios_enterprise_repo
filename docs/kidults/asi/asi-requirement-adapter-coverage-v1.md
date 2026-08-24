@@ -56,13 +56,13 @@ The 16 implemented source adapters and the 192 mission requirements are differen
 | Domain × evidence-class families | 16 |
 | Registered source profiles | 16 |
 | Implemented source adapters | 16 |
-| `SOFTWARE_IMPLEMENTED` | **45 / 192** |
-| `CONTEXT_ONLY` | 9 / 192 |
+| `SOFTWARE_IMPLEMENTED` | **39 / 192** |
+| `CONTEXT_ONLY` | 15 / 192 |
 | `UNMAPPED` | 138 / 192 |
-| Total software gap | **147 / 192** |
+| Total software gap | **153 / 192** |
 | `RIGHTS_SCHEMA_ACTIVATION_HOLD` | 192 / 192 |
 
-The 45 software matches comprise 30 of 96 CURRENT_SOLD requirements and 15 of 96 liquidity requirements. One of 16 families is fully software-covered, six are partial, and nine have zero matching claim-parser coverage.
+The 39 software matches comprise 24 of 96 CURRENT_SOLD requirements and 15 of 96 liquidity requirements. One of 16 families is fully software-covered, five are partial, and ten have zero matching claim-parser coverage.
 
 The runtime profile `verified_assignment_count` values sum to 156. That value is source-assignment metadata, not a requirement denominator, and is never compared with or subtracted from 192.
 
@@ -71,7 +71,7 @@ The runtime profile `verified_assignment_count` values sum to 156. That value is
 - `requirement-adapter-coverage-ledger-v1.json` — all 192 current mission-grain records;
 - `requirement-adapter-family-coverage-v1.json` — the 16 domain × evidence-class reporting families;
 - `source-adapter-claim-ceiling-registry-v1.json` — the normalized 16-source registered/implemented/template/context claim ceilings;
-- `requirement-adapter-gap-queue-v1.json` — all 147 software gaps;
+- `requirement-adapter-gap-queue-v1.json` — all 153 software gaps;
 - `requirement-adapter-coverage-manifest-v1.json` — exact producer/consumer SHA, upstream artifact, input and output digest lineage.
 
 Generated data remains a 90-day workflow artifact. It is not committed as empirical truth.
