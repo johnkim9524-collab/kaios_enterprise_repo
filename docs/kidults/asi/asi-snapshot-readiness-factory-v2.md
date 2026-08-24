@@ -6,9 +6,9 @@
 
 ## Purpose
 
-This factory consumes an exactly bound P0B → P1 → P2 v2 chain and answers whether the chain contains lawful, current, admitted market evidence sufficient to generate an immutable `snapshot-candidate.json` and `evidence-package.json` pair.
+This factory consumes an exactly bound P0B → P1 → P2 v2 chain and answers whether the chain contains lawful, current, admitted market evidence sufficient to generate a content-addressed `snapshot-candidate.json` and `evidence-package.json` pair. Content addressing and atomic local creation are not immutable storage or artifact attestation.
 
-The factory is fail-closed without being deadlocked. The ten evidence and governance prerequisites are evaluated before generation. The existence of the two outputs is checked only after generation; output absence is never used as an input prerequisite. When every prerequisite passes, the pair is generated in one staging directory and exposed by one atomic directory rename. Pair generation still does not start Track B, authorize publication, or authorize production.
+The factory is fail-closed without being deadlocked. The ten evidence and governance prerequisites are evaluated before generation. The existence of the two outputs is checked only after generation; output absence is never used as an input prerequisite. When every prerequisite passes, the pair is generated in one staging directory and exposed by one atomic directory rename. Pair generation still does not start Track B, authorize publication, authorize production, or claim immutable storage. Track B remains blocked until immutable-storage and cryptographic artifact-attestation receipts exist and the canonical handoff passes.
 
 ## Current P0B → P1 → P2 v2 chain
 
@@ -60,14 +60,16 @@ The ten pre-generation prerequisites are:
 
 The two post-generation assertions are:
 
-11. Immutable Evidence Package exists and validates;
-12. Exact Snapshot Candidate / Evidence Package pair exists and validates.
+11. Immutable Evidence Package storage and attestation exist and validate;
+12. Exact Snapshot Candidate / Evidence Package Track B input pair exists and validates.
 
-When a prerequisite fails, assertions 11 and 12 are `NOT_EVALUATED`, not blockers. This separation removes the former factory liveness cycle in which outputs had to exist before the factory was allowed to generate them.
+Assertions 11 and 12 remain `NOT_EVALUATED` after local content-addressed generation because this repository does not implement immutable storage or cryptographic artifact attestation. They may become `PASS` only from externally verified receipts. This separation removes the former factory liveness cycle without falsely promoting local files to immutable evidence.
 
 ## Lawful evidence admission boundary
 
-Every admitted record must bind to a `PASS` Gate 1 decision, explicit `ALLOW` rights, authorized collection, a non-zero source payload SHA-256, HTTPS source and license evidence references, a current validity window no longer than the contract maximum, zero unresolved critical contradictions, and the exact evidence class. Current SOLD and liquidity observations remain semantically distinct.
+Every admitted record must bind through an exact, unique P0 candidate → mission slot → Gate 1 grain → admission identity join. The admission's candidate, mission, market cell, evidence class, rights decision, collection authority, and completed candidate-specific preflight actions must agree with that chain; orphan, duplicate, and cross-mission substitutions fail closed.
+
+Rights evidence is typed at Source × Purpose grain and requires `COLLECT`, `STORE`, `DERIVE`, and `DISPLAY`, owner and purpose identity, jurisdiction, effective/expiry times, a non-zero document digest, and a non-placeholder HTTPS evidence URI. A dated SOLD record additionally requires transaction time, positive amount and ISO currency, canonical asset identity, venue, and grade/condition. Liquidity evidence requires exposure start/end semantics, an explicit censoring state, and a recomputable duration. Placeholder/reserved URLs are forbidden.
 
 P2 must expose exactly one market event for each admitted record. Its evidence ID, rights state, observation time, source payload digest, and canonical record digest must match the admitted record. P2 graph, manifest, value receipt, and lineage counts and digests must agree.
 
@@ -89,7 +91,7 @@ A blocked run additionally creates only:
 snapshot-non-generation-receipt-v2.json
 ```
 
-A lawful ready run instead creates the atomic immutable pair and its receipt:
+A lawful prerequisite-ready run instead creates an atomic content-addressed pair and an attestation-pending receipt:
 
 ```text
 snapshot-candidate.json
@@ -109,26 +111,27 @@ The admission-demand package preserves all current P1 actions as machine-readabl
 
 P3 never scans the repository-wide first 100 artifacts and never falls back to an artifact from any branch.
 
-For a `workflow_run` trigger, the event's P2 run ID and head SHA are authoritative. For schedule, protected-main push, or explicit replay, P3 first selects one successful `main` run of the exact P2 workflow and then fetches that run by ID. P3 requires:
+For a `workflow_run` trigger, the event's P2 run ID and head SHA are authoritative inputs but still must equal the live observed `main` head. For schedule or protected-main push, P3 first selects one successful `main` run of the exact P2 workflow and then fetches that run by ID. Manual replay is disabled until trusted-ref enforcement exists. P3 requires:
 
 - the exact workflow path, successful conclusion, repository, `main` branch, and 40-character head SHA;
+- the run head to equal live `main`, a strict completion timestamp, and no more than 24 hours between completion/readback and graph snapshot time;
 - exactly one unexpired P2 artifact from that run, bound to the same run ID/head SHA and a provider artifact digest, with the downloaded archive SHA-256 equal to that provider digest;
 - P0B and P1 artifact IDs taken only from the restored P2 KPMO receipt;
 - exact P0B/P1 names, `main` metadata, non-expired status, provider artifact digests, and matching downloaded archive SHA-256 values;
 - P2 receipt source SHA and graph digest matching the selected P2 run and manifest; and
 - restored P0B/P1 content digests matching the inputs recorded in P2 lineage.
 
-The binding validator has mutation cases for run/head mismatch, non-main and failed runs, expired or mismatched artifacts, downloaded-archive digest substitution, receipt-ID substitution, wrong artifact name, and lineage-content substitution.
+The binding validator has mutation cases for run/head mismatch, stale/non-current main runs, non-main and failed runs, expired or mismatched artifacts, downloaded-archive digest substitution, receipt-ID substitution, wrong artifact name, and lineage-content substitution.
 
 ## Atomic generation and Track B boundary
 
-The factory refuses an existing destination directory, writes all outputs into a new private staging directory, validates conditional absence while still staged, and exposes the complete result with one directory rename. The generated files contain canonical payload digests, file digests, source graph binding, mutual Snapshot/Evidence IDs, and one exact pair digest. A deterministic liveness test proves blocked non-generation, lawful ready generation, identical replay, atomic commit, and fail-closed mutation rejection.
+The factory refuses an existing destination directory, writes all outputs into a new private staging directory, validates conditional absence while still staged, and exposes the complete result with one directory rename. The generated files contain canonical payload digests, file digests, source graph binding, the complete upstream binding receipt and digest, mutual Snapshot/Evidence IDs, and one exact pair digest. A deterministic liveness test proves blocked non-generation, lawful prerequisite-ready generation, identical replay, atomic commit, and 15 fail-closed mutations covering identity, semantics, rights, time, upstream freshness/digests, and false attestation.
 
-After pair generation, `track-b-handoff-readiness-v2.json` remains `PAIR_GENERATED_HANDOFF_PREFLIGHT_REQUIRED`, `track_b_submission_eligible` remains false, and `independent_assessment_started` remains false. The canonical handoff preflight must separately verify the pair before Track B may begin.
+After pair generation, `track-b-handoff-readiness-v2.json` remains `PAIR_GENERATED_STORAGE_AND_ATTESTATION_REQUIRED`; immutable storage and artifact attestation are false, `track_b_submission_eligible` remains false, and `independent_assessment_started` remains false. The provider artifact receipt is captured after upload but explicitly remains attestation-pending. External immutable storage, cryptographic attestation, and canonical handoff must all pass before Track B may begin.
 
 ## Automatic execution
 
-The workflow activates from a successful exact P2 workflow run, a relevant protected-main push, the hourly `:07` schedule, or manual recovery/replay. It restores the exact upstream chain, validates its receipt and lineage bindings, builds twice, proves deterministic replay, validates conditional outputs and digests, executes liveness and mutation tests, and emits a KPMO receipt plus a 90-day artifact. Manual dispatch does not weaken artifact binding or release gates.
+Pull requests execute only secretless static and liveness validation and cannot publish an authoritative Candidate/Evidence artifact. The authoritative job activates only on exact `refs/heads/main` from a successful exact P2 workflow run, a relevant protected-main push, or the hourly `:07` schedule. Manual dispatch is disabled until trusted-ref enforcement exists, preventing a branch-selected workflow from publishing into the authoritative artifact lane. The job restores the exact fresh upstream chain, validates receipt and lineage bindings, builds twice, proves deterministic replay, validates conditional outputs and digests, executes liveness and mutation tests, and emits a KPMO receipt, a uniquely main-SHA/run-ID-named 90-day content-addressed artifact, and a separate provider artifact receipt. The 90-day artifact is not immutable evidence or a Track B input without external receipts.
 
 ## Fail-closed truth boundaries
 

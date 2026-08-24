@@ -12,9 +12,16 @@ const NAMES = {
 const SHA = /^[0-9a-f]{40}$/;
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
 const POSITIVE_INTEGER = /^[1-9][0-9]*$/;
+const STRICT_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+const MAXIMUM_UPSTREAM_AGE_MS = 24 * 60 * 60 * 1000;
 const requireCondition = (condition, code) => { if (!condition) throw new Error(code); };
 const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 const clone = (value) => JSON.parse(JSON.stringify(value));
+const strictTime = (value) => {
+  if (typeof value !== 'string' || !STRICT_UTC.test(value) || !Number.isFinite(Date.parse(value))) return false;
+  const canonical = new Date(value).toISOString();
+  return value === canonical || value === canonical.replace('.000Z', 'Z');
+};
 
 function artifactValid(artifact, name) {
   return artifact && POSITIVE_INTEGER.test(String(artifact.id)) && artifact.name === name && artifact.expired === false
@@ -32,6 +39,10 @@ function validate(binding, documents) {
   requireCondition(run.head_branch === 'main' && SHA.test(run.head_sha || ''), 'P2_RUN_MAIN_HEAD_INVALID');
   requireCondition(run.conclusion === 'success', 'P2_RUN_NOT_SUCCESSFUL');
   requireCondition(run.repository?.full_name === binding.repository, 'P2_RUN_REPOSITORY_MISMATCH');
+  requireCondition(strictTime(run.completed_at) && strictTime(binding.readback_observed_at), 'P2_RUN_FRESHNESS_TIME_INVALID');
+  requireCondition(binding.observed_main_head_sha === run.head_sha, 'P2_RUN_NOT_CURRENT_OBSERVED_MAIN_HEAD');
+  const ageMs = Date.parse(binding.readback_observed_at) - Date.parse(run.completed_at);
+  requireCondition(ageMs >= 0 && ageMs <= MAXIMUM_UPSTREAM_AGE_MS, 'P2_RUN_STALE');
   if (binding.trigger_event === 'workflow_run') {
     requireCondition(String(binding.event_upstream_run_id) === String(run.id), 'WORKFLOW_RUN_EVENT_ID_MISMATCH');
     requireCondition(binding.event_upstream_head_sha === run.head_sha, 'WORKFLOW_RUN_EVENT_HEAD_MISMATCH');
@@ -65,6 +76,9 @@ function validate(binding, documents) {
     p2_workflow_path: P2_WORKFLOW_PATH,
     p2_run_id: String(run.id),
     p2_head_sha: run.head_sha,
+    observed_main_head_sha: binding.observed_main_head_sha,
+    p2_completed_at: run.completed_at,
+    readback_observed_at: binding.readback_observed_at,
     p2_artifact_id: String(p2.id),
     p2_artifact_digest: p2.digest,
     p2_downloaded_archive_sha256: p2.downloaded_archive_sha256,
@@ -121,7 +135,9 @@ function selfTest() {
     trigger_event: 'workflow_run',
     event_upstream_run_id: 30,
     event_upstream_head_sha: head,
-    p2_run: { id: 30, path: P2_WORKFLOW_PATH, head_branch: 'main', head_sha: head, conclusion: 'success', repository: { full_name: 'owner/repo' } },
+    readback_observed_at: '2026-08-24T00:10:00.000Z',
+    observed_main_head_sha: head,
+    p2_run: { id: 30, path: P2_WORKFLOW_PATH, head_branch: 'main', head_sha: head, conclusion: 'success', completed_at: '2026-08-24T00:05:00.000Z', repository: { full_name: 'owner/repo' } },
     artifacts: { p0b: artifact(10, NAMES.p0b), p1: artifact(20, NAMES.p1), p2: artifact(30, NAMES.p2) },
   };
   const documents = {
@@ -138,6 +154,9 @@ function selfTest() {
   const mutations = [
     ['wrong-event-run', (b) => { b.event_upstream_run_id = 31; }],
     ['wrong-event-head', (b) => { b.event_upstream_head_sha = '2'.repeat(40); }],
+    ['not-current-main-head', (b) => { b.observed_main_head_sha = '2'.repeat(40); }],
+    ['stale-run', (b) => { b.readback_observed_at = '2026-08-26T00:10:00.000Z'; }],
+    ['invalid-calendar-time', (b) => { b.p2_run.completed_at = '2026-02-31T00:05:00.000Z'; }],
     ['non-main-run', (b) => { b.p2_run.head_branch = 'feature'; }],
     ['failed-run', (b) => { b.p2_run.conclusion = 'failure'; }],
     ['expired-p2-artifact', (b) => { b.artifacts.p2.expired = true; }],
@@ -172,6 +191,6 @@ if (noArgumentSelfTest || explicitSelfTest) {
   const [bindingPath, p0bDir, p1Dir, p2Dir, outputPath = '/tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json'] = args;
   requireCondition(Boolean(bindingPath && p0bDir && p1Dir && p2Dir), 'UPSTREAM_BINDING_ARGUMENTS_REQUIRED');
   const receipt = validate(readJson(bindingPath), documentsFromDirectories(p0bDir, p1Dir, p2Dir));
-  fs.writeFileSync(outputPath, `${JSON.stringify(receipt, null, 2)}\n`);
+  fs.writeFileSync(outputPath, stableJson(receipt));
   console.log(JSON.stringify(receipt, null, 2));
 }

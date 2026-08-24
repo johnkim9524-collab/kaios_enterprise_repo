@@ -31,13 +31,13 @@
     "main_push": true,
     "schedule": "7 * * * *",
     "upstream_workflow": "KIDULTS ASI Owned Source Intelligence Graph v2",
-    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+    "manual_dispatch_role": "DISABLED_UNTIL_TRUSTED_REF_ENFORCEMENT"
   },
   "release_semantics": {
-    "snapshot_candidate_generation": "ATOMIC_WITH_EVIDENCE_PACKAGE_AFTER_ALL_TEN_PREREQUISITES_PASS",
-    "evidence_package_generation": "ATOMIC_WITH_SNAPSHOT_CANDIDATE_AFTER_LAWFUL_ADMITTED_EVIDENCE_BINDINGS_PASS",
+    "snapshot_candidate_generation": "ATOMIC_CONTENT_ADDRESSED_PAIR_AFTER_ALL_TEN_PREREQUISITES_PASS_STORAGE_AND_ATTESTATION_PENDING",
+    "evidence_package_generation": "CONTENT_ADDRESSED_WITH_SNAPSHOT_CANDIDATE_AFTER_LAWFUL_ADMITTED_EVIDENCE_BINDINGS_PASS_NOT_IMMUTABLE_UNTIL_EXTERNAL_RECEIPTS",
     "output_existence_is_prerequisite": false,
-    "track_b_start": "FAIL_CLOSED_AFTER_PAIR_GENERATION_UNTIL_CANONICAL_HANDOFF_PREFLIGHT_PASSES",
+    "track_b_start": "FAIL_CLOSED_AFTER_PAIR_GENERATION_UNTIL_IMMUTABLE_STORAGE_ARTIFACT_ATTESTATION_AND_CANONICAL_HANDOFF_PASS",
     "track_b_submission_preauthorized": false,
     "blocker_package_is_evidence_package": false
   },

@@ -8,23 +8,23 @@ import {
 const [
   p0RegistryPath, p0BindingsPath, p0ManifestPath, p1GatePath, p1AdmissionPath,
   p1ActionsPath, p1ManifestPath, p2GraphPath, p2LineagePath, p2QualityPath,
-  p2ValuePath, p2ManifestPath, contractPath, outputDir,
+  p2ValuePath, p2ManifestPath, upstreamBindingPath, contractPath, outputDir,
 ] = process.argv.slice(2);
 const required = [
   p0RegistryPath, p0BindingsPath, p0ManifestPath, p1GatePath, p1AdmissionPath,
   p1ActionsPath, p1ManifestPath, p2GraphPath, p2LineagePath, p2QualityPath,
-  p2ValuePath, p2ManifestPath, contractPath, outputDir,
+  p2ValuePath, p2ManifestPath, upstreamBindingPath, contractPath, outputDir,
 ];
 if (!required.every(Boolean)) throw new Error('P3_ARGUMENTS_REQUIRED');
 
 const readJson = async (file) => JSON.parse(await fs.readFile(file, 'utf8'));
 const [
   p0Registry, p0Bindings, p0Manifest, p1Gate, p1Admission, p1Actions, p1Manifest,
-  p2Graph, p2Lineage, p2Quality, p2Value, p2Manifest, contract,
+  p2Graph, p2Lineage, p2Quality, p2Value, p2Manifest, upstreamBinding, contract,
 ] = await Promise.all(required.slice(0, -1).map(readJson));
 const inputs = {
   p0Registry, p0Bindings, p0Manifest, p1Gate, p1Admission, p1Actions, p1Manifest,
-  p2Graph, p2Lineage, p2Quality, p2Value, p2Manifest,
+  p2Graph, p2Lineage, p2Quality, p2Value, p2Manifest, upstreamBinding,
 };
 const derived = deriveReadiness(inputs, contract);
 
@@ -43,15 +43,15 @@ try {
   const outputAssertions = [
     {
       dimension: 'IMMUTABLE_EVIDENCE_PACKAGE',
-      state: derived.prerequisitesPass ? 'PASS' : 'NOT_EVALUATED',
-      current_value: derived.prerequisitesPass ? 1 : 0,
+      state: 'NOT_EVALUATED',
+      current_value: 0,
       required_value: 1,
       evidence_refs: [derived.sourceGraphDigest],
     },
     {
       dimension: 'TRACK_B_INPUT_PAIR',
-      state: derived.prerequisitesPass ? 'PASS' : 'NOT_EVALUATED',
-      current_value: derived.prerequisitesPass ? 1 : 0,
+      state: 'NOT_EVALUATED',
+      current_value: 0,
       required_value: 1,
       evidence_refs: [derived.sourceGraphDigest],
     },
@@ -133,7 +133,7 @@ try {
     evidence = {
       package_id: packageId,
       evidence_package_id: packageId,
-      package_status: 'IMMUTABLE',
+      package_status: 'CONTENT_ADDRESSED_STORAGE_AND_ATTESTATION_PENDING',
       bound_snapshot_id: snapshotId,
       registry_version: p0Registry.version,
       methodology_version: contract.pair_generation.methodology_version,
@@ -141,6 +141,8 @@ try {
       as_of: derived.asOf,
       source_graph_id: p2Graph.id,
       source_graph_digest: derived.sourceGraphDigest,
+      upstream_binding_receipt_sha256: derived.upstreamBindingDigest,
+      upstream_binding: derived.upstreamBinding,
       evidence_records: derived.evidenceRecords,
       claims,
       entity_resolution: stable(p2Graph.entity_resolution || {
@@ -152,6 +154,8 @@ try {
       unknown_or_denied_claim_input_count: 0,
       handoff_preflight_required: true,
       track_b_submission_eligible: false,
+      immutable_storage_verified: false,
+      artifact_attestation_verified: false,
       publication_authorized: false,
       production_authorized: false,
       public_release: 'HOLD',
@@ -160,7 +164,7 @@ try {
     evidence.package_payload_sha256 = digestObject(evidence);
     snapshot = {
       snapshot_id: snapshotId,
-      snapshot_status: 'DRAFT_CANDIDATE',
+      snapshot_status: 'DRAFT_CANDIDATE_STORAGE_AND_ATTESTATION_PENDING',
       bound_evidence_package_id: packageId,
       registry_version: p0Registry.version,
       methodology_version: contract.pair_generation.methodology_version,
@@ -168,11 +172,13 @@ try {
       as_of: derived.asOf,
       source_graph_id: p2Graph.id,
       source_graph_digest: derived.sourceGraphDigest,
+      upstream_binding_receipt_sha256: derived.upstreamBindingDigest,
+      upstream_binding: derived.upstreamBinding,
       evidence_record_count: derived.evidenceRecords.length,
       current_sold_record_count: derived.admittedSold,
       liquidity_record_count: derived.admittedLiquidity,
       claim_ids: claims.map((claim) => claim.claim_id),
-      exact_pair_status: 'GENERATED_PENDING_CANONICAL_HANDOFF_PREFLIGHT',
+      exact_pair_status: 'GENERATED_PENDING_IMMUTABLE_STORAGE_ATTESTATION_AND_CANONICAL_HANDOFF_PREFLIGHT',
       publication_eligible: false,
       production_authorized: false,
       public_release: 'HOLD',
@@ -185,7 +191,7 @@ try {
     pairGenerationReceipt = {
       id: 'kidults-asi-snapshot-pair-generation-receipt-v2',
       version: '2.1.0',
-      state: 'IMMUTABLE_PAIR_ATOMICALLY_GENERATED',
+      state: 'CONTENT_ADDRESSED_PAIR_ATOMICALLY_GENERATED_ATTESTATION_PENDING',
       as_of: derived.asOf,
       snapshot_id: snapshotId,
       evidence_package_id: packageId,
@@ -193,10 +199,14 @@ try {
       evidence_file_sha256: evidenceFileDigest,
       exact_pair_digest: pairDigest,
       source_graph_digest: derived.sourceGraphDigest,
+      upstream_binding_receipt_sha256: derived.upstreamBindingDigest,
       admitted_evidence_count: derived.evidenceRecords.length,
       market_event_count: derived.marketEvents.length,
       atomic_directory_commit: true,
-      canonical_handoff_preflight: 'REQUIRED_NOT_PERFORMED',
+      immutable_storage_receipt: null,
+      artifact_attestation: null,
+      track_b_submission_eligible: false,
+      canonical_handoff_preflight: 'BLOCKED_PENDING_IMMUTABLE_STORAGE_AND_ATTESTATION',
       track_b_assessment_started: false,
       public_release: 'HOLD',
       production: 'HOLD',
@@ -206,13 +216,13 @@ try {
   const readiness = {
     id: 'kidults-asi-snapshot-readiness-ledger-v2',
     version: '2.1.0',
-    state: derived.prerequisitesPass ? 'READY_PAIR_GENERATED' : 'NOT_READY_EXACT_PREREQUISITE_BLOCKERS_OPEN',
+    state: derived.prerequisitesPass ? 'PAIR_GENERATED_STORAGE_AND_ATTESTATION_PENDING' : 'NOT_READY_EXACT_PREREQUISITE_BLOCKERS_OPEN',
     as_of: derived.asOf,
     platform_principles: PRINCIPLES,
     source_graph_digest: derived.sourceGraphDigest,
     snapshot_creation_prerequisites_pass: derived.prerequisitesPass,
     snapshot_creation_gate_pass: derived.prerequisitesPass,
-    all_dimensions_pass: derived.prerequisitesPass,
+    all_dimensions_pass: false,
     prerequisite_dimensions: derived.prerequisiteDimensions,
     output_assertion_dimensions: outputAssertions,
     dimensions,
@@ -234,9 +244,9 @@ try {
       admitted_current_sold: derived.admittedSold,
       admitted_liquidity: derived.admittedLiquidity,
       market_events: derived.marketEvents.length,
-      immutable_evidence_packages: derived.prerequisitesPass ? 1 : 0,
+      immutable_evidence_packages: 0,
       snapshot_candidates: derived.prerequisitesPass ? 1 : 0,
-      track_b_input_pairs: derived.prerequisitesPass ? 1 : 0,
+      track_b_input_pairs: 0,
     },
     snapshot_candidate_generated: derived.prerequisitesPass,
     evidence_package_generated: derived.prerequisitesPass,
@@ -264,7 +274,7 @@ try {
   const trackB = {
     id: 'kidults-track-b-handoff-readiness-v2',
     version: '2.1.0',
-    state: derived.prerequisitesPass ? 'PAIR_GENERATED_HANDOFF_PREFLIGHT_REQUIRED' : 'WAITING_FOR_SNAPSHOT_PREREQUISITES',
+    state: derived.prerequisitesPass ? 'PAIR_GENERATED_STORAGE_AND_ATTESTATION_REQUIRED' : 'WAITING_FOR_SNAPSHOT_PREREQUISITES',
     as_of: derived.asOf,
     snapshot_candidate_present: derived.prerequisitesPass,
     evidence_package_present: derived.prerequisitesPass,
@@ -272,7 +282,9 @@ try {
     snapshot_id: snapshot?.snapshot_id || null,
     evidence_package_id: evidence?.package_id || null,
     exact_pair_digest: pairDigest,
-    canonical_handoff_preflight: derived.prerequisitesPass ? 'REQUIRED_NOT_PERFORMED' : 'NOT_ELIGIBLE_NO_PAIR',
+    canonical_handoff_preflight: derived.prerequisitesPass ? 'BLOCKED_PENDING_IMMUTABLE_STORAGE_AND_ATTESTATION' : 'NOT_ELIGIBLE_NO_PAIR',
+    immutable_storage_verified: false,
+    artifact_attestation_verified: false,
     track_b_submission_eligible: false,
     independent_assessment_started: false,
     blocker_package_is_not_track_b_input: true,
@@ -319,7 +331,7 @@ try {
   const manifest = {
     id: 'kidults-asi-snapshot-readiness-manifest-v2',
     version: '2.1.0',
-    state: derived.prerequisitesPass ? 'P3_IMMUTABLE_PAIR_GENERATED_HANDOFF_PREFLIGHT_REQUIRED' : 'P3_READINESS_ASSESSED_SNAPSHOT_NOT_GENERATED',
+    state: derived.prerequisitesPass ? 'P3_CONTENT_ADDRESSED_PAIR_GENERATED_STORAGE_AND_ATTESTATION_PENDING' : 'P3_READINESS_ASSESSED_SNAPSHOT_NOT_GENERATED',
     as_of: derived.asOf,
     platform_principles: PRINCIPLES,
     input_bindings: {
@@ -342,15 +354,16 @@ try {
       market_events_created: derived.marketEvents.length,
       snapshot_candidates_created: derived.prerequisitesPass ? 1 : 0,
       evidence_packages_created: derived.prerequisitesPass ? 1 : 0,
-      track_b_input_pairs_created: derived.prerequisitesPass ? 1 : 0,
+      track_b_input_pairs_created: 0,
       track_b_assessments_started: 0,
     },
     exact_pair_digest: pairDigest,
     output_files: outputs,
     atomic_directory_commit: true,
-    autonomous_effect: derived.prerequisitesPass ? 'POSITIVE_LAWFUL_ADMITTED_CHAIN_ATOMICALLY_COMPILED_TO_IMMUTABLE_PAIR' : 'POSITIVE_CURRENT_CHAIN_AUTOMATICALLY_ASSESSED_WITHOUT_FALSE_GENERATION',
+    upstream_binding_receipt_sha256: derived.upstreamBindingDigest,
+    autonomous_effect: derived.prerequisitesPass ? 'POSITIVE_LAWFUL_ADMITTED_CHAIN_ATOMICALLY_COMPILED_TO_CONTENT_ADDRESSED_PAIR_PENDING_ATTESTATION' : 'POSITIVE_CURRENT_CHAIN_AUTOMATICALLY_ASSESSED_WITHOUT_FALSE_GENERATION',
     global_effect: 'NEUTRAL_NO_NEW_GLOBAL_COVERAGE_OR_PUBLIC_CLAIM',
-    irreplaceable_value_effect: derived.prerequisitesPass ? 'POSITIVE_KIDULTS_OWNED_DIGEST_BOUND_CANDIDATE_EVIDENCE_PAIR' : 'POSITIVE_IMMUTABLE_BLOCKER_AND_ADMISSION_DEMAND_ASSETS',
+    irreplaceable_value_effect: derived.prerequisitesPass ? 'POSITIVE_KIDULTS_OWNED_DIGEST_BOUND_CANDIDATE_EVIDENCE_PAIR_PENDING_IMMUTABLE_STORAGE' : 'POSITIVE_CONTENT_ADDRESSED_BLOCKER_AND_ADMISSION_DEMAND_ASSETS',
     transparency_effect: 'POSITIVE_PREREQUISITES_OUTPUT_ASSERTIONS_DIGESTS_AND_HANDOFF_BOUNDARY_SEPARATED',
     public_release: 'HOLD',
     production: 'HOLD',

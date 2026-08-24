@@ -71,7 +71,7 @@ assert(JSON.stringify(registry.input_artifacts) === JSON.stringify([
 assert(registry.automatic_activation?.main_push === true, 'REGISTRY_MAIN_PUSH');
 assert(registry.automatic_activation?.schedule === '7 * * * *', 'REGISTRY_SCHEDULE');
 assert(registry.automatic_activation?.upstream_workflow === 'KIDULTS ASI Owned Source Intelligence Graph v2', 'REGISTRY_UPSTREAM');
-assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
+assert(registry.automatic_activation?.manual_dispatch_role === 'DISABLED_UNTIL_TRUSTED_REF_ENFORCEMENT', 'REGISTRY_MANUAL_ROLE');
 assert(registry.release_semantics?.output_existence_is_prerequisite === false, 'REGISTRY_LIVENESS_BOUNDARY');
 assert(registry.release_semantics?.track_b_submission_preauthorized === false, 'REGISTRY_TRACK_B_PREAUTHORIZATION');
 assert(registry.release_semantics?.blocker_package_is_evidence_package === false, 'REGISTRY_BLOCKER_BOUNDARY');
@@ -87,6 +87,11 @@ assert(contract.snapshot_creation_gate?.output_existence_is_prerequisite === fal
 assert(contract.pair_generation?.atomic_directory_commit_required === true && contract.pair_generation?.canonical_handoff_preflight_required_after_generation === true, 'CONTRACT_ATOMIC_HANDOFF');
 assert(contract.pair_generation?.canonical_handoff_validator === files.canonical_handoff_validator, 'CONTRACT_CANONICAL_HANDOFF_VALIDATOR');
 assert(contract.pair_generation?.track_b_submission_preauthorization_forbidden === true, 'CONTRACT_TRACK_B_PREAUTHORIZATION');
+assert(contract.pair_generation?.content_addressed_pair_is_not_immutable_storage === true, 'CONTRACT_CONTENT_ADDRESSING_NOT_IMMUTABILITY');
+assert(contract.pair_generation?.immutable_storage_receipt_required_for_track_b === true && contract.pair_generation?.artifact_attestation_required_for_track_b === true, 'CONTRACT_TRACK_B_ATTESTATION');
+assert(contract.pair_generation?.upstream_binding_receipt_digest_must_be_inside_exact_pair === true, 'CONTRACT_PAIR_UPSTREAM_BINDING');
+assert(contract.upstream_freshness?.require_current_main_head === true && contract.upstream_freshness?.maximum_age_hours === 24, 'CONTRACT_UPSTREAM_FRESHNESS');
+assert(contract.automatic_activation?.manual_dispatch_role === 'DISABLED_UNTIL_TRUSTED_REF_ENFORCEMENT', 'CONTRACT_MANUAL_DISPATCH_BOUNDARY');
 assert(contract.artifact_restore?.p2_exact_workflow_run_required === true && contract.artifact_restore?.p2_main_head_sha_binding_required === true && contract.artifact_restore?.artifact_digest_required === true, 'CONTRACT_EXACT_RESTORE');
 assert(contract.artifact_restore?.downloaded_archive_sha256_must_equal_provider_artifact_digest === true, 'CONTRACT_ARCHIVE_DIGEST_RESTORE');
 assert(contract.artifact_restore?.p0b_and_p1_artifact_ids_must_come_from_p2_receipt === true && contract.artifact_restore?.content_digests_must_match_p2_lineage === true, 'CONTRACT_RECEIPT_LINEAGE_RESTORE');
@@ -100,11 +105,15 @@ assert(JSON.stringify(contract.forbidden_outputs_when_gate_passes) === JSON.stri
 function workflowFindings(source) {
   const findings = [];
   const requiredMarkers = [
-    'workflow_dispatch:',
     'schedule:',
     "cron: '7 * * * *'",
     'push:',
     'workflow_run:',
+    'validate-p3-control-on-pr:',
+    "if: github.event_name == 'pull_request'",
+    'Run secretless P3 static and liveness validation only',
+    'Require exact main for authoritative P3 artifact publication',
+    'test "$GITHUB_REF" = "refs/heads/main"',
     "'KIDULTS ASI Owned Source Intelligence Graph v2'",
     'Prove P3 liveness and upstream-binding mutation resistance',
     'validate-asi-snapshot-readiness-upstream-binding-v2.mjs --self-test',
@@ -117,6 +126,9 @@ function workflowFindings(source) {
     "run.path!=='.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'",
     "run.head_branch!=='main'",
     "run.conclusion!=='success'",
+    "main.commit?.sha!==run.head_sha",
+    'main.commit.sha!==process.env.GITHUB_SHA',
+    'age>24*60*60*1000',
     'a.workflow_run?.head_sha!==run.head_sha',
     "!(/^sha256:[0-9a-f]{64}$/.test(a.digest||''))",
     "P2_ARCHIVE_SHA256=\"sha256:$(sha256sum /tmp/p2.zip | awk '{print $1}')\"",
@@ -138,8 +150,14 @@ function workflowFindings(source) {
     'Reject blocker package as Evidence Package mutation',
     'Reject manual-only activation mutation',
     'Emit KPMO P3 receipt',
+    'bindingReceiptSha256!==m.upstream_binding_receipt_sha256',
+    'Capture provider artifact receipt without promoting attestation',
+    "state:'PROVIDER_ARTIFACT_RECEIPT_CAPTURED_ATTESTATION_PENDING'",
+    'process.env.ARTIFACT_URL!==expectedUrl',
+    'artifact_attestation_verified:false',
   ];
   for (const marker of requiredMarkers) if (!source.includes(marker)) findings.push(`MISSING:${marker}`);
+  if (/^\s{2}workflow_dispatch\s*:/m.test(source)) findings.push('AUTHORITATIVE_MANUAL_DISPATCH_FORBIDDEN_UNTIL_TRUSTED_REF_ENFORCEMENT');
   if (/\/repos\/\$\{GITHUB_REPOSITORY\}\/actions\/artifacts\?per_page=/.test(source)) findings.push('GLOBAL_ARTIFACT_SCAN_PRESENT');
   if (/artifacts\?per_page=100[^\n]*\|[^\n]*(head_branch|main)/.test(source)) findings.push('ANY_BRANCH_FALLBACK_PRESENT');
   if (!source.includes('P2_RUN_ID="$EVENT_P2_RUN_ID"') || !source.includes('P2_HEAD_SHA="$P2_HEAD_SHA"')) findings.push('UPSTREAM_RUN_HEAD_BINDING_MISSING');
@@ -157,6 +175,10 @@ const workflowMutations = [
   ['artifact-digest-unchecked', (value) => value.replaceAll("||!(/^sha256:[0-9a-f]{64}$/.test(a.digest||''))", '')],
   ['downloaded-archive-digest-unchecked', (value) => value.replace('if(a.digest!==process.env.P2_ARCHIVE_SHA256)process.exit(2)', 'if(false)process.exit(2)')],
   ['artifact-id-shape-unchecked', (value) => value.replace('[[ "$P0B_ID" =~ ^[1-9][0-9]*$ ]] && [[ "$P1_ID" =~ ^[1-9][0-9]*$ ]]', 'test -n "$P0B_ID" && test -n "$P1_ID"')],
+  ['authoritative-main-guard-removed', (value) => value.replace('test "$GITHUB_REF" = "refs/heads/main"', 'test -n "$GITHUB_REF"')],
+  ['current-main-head-check-removed', (value) => value.replace('||main.commit?.sha!==run.head_sha', '')],
+  ['upstream-age-check-removed', (value) => value.replace('||age>24*60*60*1000', '')],
+  ['manual-dispatch-added', (value) => value.replace('on:\n', 'on:\n  workflow_dispatch:\n')],
 ];
 for (const [name, mutate] of workflowMutations) {
   const candidate = mutate(workflow);
@@ -176,9 +198,20 @@ for (const marker of [
 for (const marker of [
   'P3_PREREQUISITE_DIMENSION_ORDER_INVALID',
   'P2_INPUT_LINEAGE_MISMATCH',
+  'P0_P1_IDENTITY_ORPHAN',
+  'P0_MISSION_GATE_MARKET_CELL_MISMATCH',
+  'GATE_ADMISSION_IDENTITY_MISMATCH',
+  'P1_ACTION_GRAIN_SET_MISMATCH',
+  'ADMISSION_PREFLIGHT_ACTION_BINDING_INCOMPLETE',
+  'RIGHTS_ATOMS_INCOMPLETE',
+  'CURRENT_SOLD_TRANSACTION_TIME_INVALID',
+  'LIQUIDITY_CENSORING_STATE_INVALID',
+  'P3_UPSTREAM_RUN_STALE',
   'ADMITTED_EVIDENCE_SOURCE_DIGEST_INVALID',
   'P2_MARKET_EVENT_EVIDENCE_BINDING_INVALID',
   'EVIDENCE_ADMISSION_ZERO_OR_UNBOUND',
+  'ADMISSION_PREFLIGHT_ACTION_BINDING_INCOMPLETE',
+  'P3_UPSTREAM_PROVIDER_DOWNLOAD_DIGEST_MISMATCH',
 ]) assert(library.includes(marker), `READINESS_LIBRARY_MARKER:${marker}`);
 for (const marker of [
   'READINESS_PREREQUISITE_DIMENSIONS',
@@ -195,7 +228,9 @@ for (const marker of [
   'atomic_directory_commit_verified',
   'canonical_handoff_pair_digest_verified',
   'canonical_handoff_remains_blocked',
-  'negative_mutation_cases: 4',
+  'negative_mutation_cases: 15',
+  "generated_pair_state: 'CONTENT_ADDRESSED_STORAGE_AND_ATTESTATION_PENDING'",
+  'artifact_attestation_verified: false',
 ]) assert(livenessTest.includes(marker), `LIVENESS_TEST_MARKER:${marker}`);
 for (const marker of [
   "handoff_semantics: 'TRACK_B_SUBMISSION_ELIGIBILITY_ONLY'",
@@ -205,6 +240,8 @@ for (const marker of [
 ]) assert(canonicalHandoffValidator.includes(marker), `CANONICAL_HANDOFF_MARKER:${marker}`);
 for (const marker of [
   'P2_ARTIFACT_RUN_HEAD_MISMATCH',
+  'P2_RUN_NOT_CURRENT_OBSERVED_MAIN_HEAD',
+  'P2_RUN_STALE',
   'artifact.downloaded_archive_sha256 === artifact.digest',
   'POSITIVE_INTEGER.test(String(artifact.id))',
   'P0B_ARTIFACT_NOT_BOUND_BY_P2_RECEIPT',
