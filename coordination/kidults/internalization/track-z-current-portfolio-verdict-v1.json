@@ -9,11 +9,11 @@
   "verdicts": [
     {"provider_id":"PSA","portfolio_priority":"TIER_1","track_z_verdict":"HOLD","decision":"REVISE","reason_codes":["WRITTEN_FIELD_PURPOSE_RIGHTS_PENDING","CREDENTIAL_AND_PRODUCT_SCOPE_UNVERIFIED"],"next_gate":"FIELD_BY_PURPOSE_RIGHTS_AND_PRODUCT_SPEC"},
     {"provider_id":"GEMRATE","portfolio_priority":"TIER_2","track_z_verdict":"HOLD","decision":"REVISE","reason_codes":["PARTIAL_WRITTEN_CONFIRMATION","POPULATION_AND_MAPPING_SCOPE_UNVERIFIED"],"next_gate":"FIELD_BY_PURPOSE_RIGHTS_AND_MAPPING_SPEC"},
-    {"provider_id":"CGC_CCG","portfolio_priority":"TIER_1_OR_FALLBACK_PENDING_PRODUCT_RIGHTS","track_z_verdict":"HOLD","decision":"REVISE","reason_codes":["DEALER_API_RIGHTS_PENDING","PRODUCT_AND_FIELD_SCOPE_UNVERIFIED"],"next_gate":"API_OR_LICENSED_FEED_SPEC"},
-    {"provider_id":"ALT_FNDATA","portfolio_priority":"TIER_1_MARKET_BACKBONE_CANDIDATE","track_z_verdict":"HOLD","decision":"REVISE","reason_codes":["RIGHTS_PENDING","CURRENT_SOLD_SCHEMA_AND_COST_UNVERIFIED"],"next_gate":"LICENSED_TRANSACTION_FEED_SPEC"},
+    {"provider_id":"CGC_CCG","portfolio_priority":"TIER_1_OR_FALLBACK_PENDING_PRODUCT_RIGHTS","track_z_verdict":"NO_GO","decision":"DROP","reason_codes":["NO_VERIFIABLE_PRODUCT_SPEC","PRICE_UNKNOWN","RIGHTS_AND_ELIGIBILITY_UNKNOWN"],"next_gate":"NONE_UNLESS_NEW_OFFICIAL_PRODUCT_OFFER"},
+    {"provider_id":"ALT_FNDATA","portfolio_priority":"TIER_1_MARKET_BACKBONE_CANDIDATE","track_z_verdict":"NO_GO","decision":"DROP","reason_codes":["NO_SUBSTANTIVE_PRODUCT_RESPONSE","PRICE_UNKNOWN","RIGHTS_AND_SCHEMA_UNKNOWN"],"next_gate":"NONE_UNLESS_NEW_OFFICIAL_PRODUCT_OFFER"},
     {"provider_id":"CLASSIC_COM","portfolio_priority":"TIER_1_VERTICAL_SPECIALIST","track_z_verdict":"HOLD","decision":"REVISE","reason_codes":["COMMERCIAL_LICENSE_VIABLE_NOT_CONFIRMED","CURRENT_SOLD_FIELD_AND_DERIVATION_SCOPE_UNVERIFIED"],"next_gate":"WRITTEN_LICENSE_AND_CURRENT_SOLD_SPEC"},
-    {"provider_id":"LIVEART","portfolio_priority":"VERTICAL_SPECIALIST","track_z_verdict":"HOLD","decision":"REVISE","reason_codes":["RIGHTS_PENDING","PRODUCT_AND_MARKET_OBSERVATION_SCOPE_UNVERIFIED"],"next_gate":"PURPOSE_SPECIFIC_RIGHTS_AND_PRODUCT_ANALYSIS"},
-    {"provider_id":"HAGERTY","portfolio_priority":"SUPPLEMENTAL_OR_VERTICAL_SPECIALIST_PENDING_PRODUCT_REVIEW","track_z_verdict":"HOLD","decision":"INTERNALIZE_FIRST","reason_codes":["PRODUCT_REVIEW_PENDING","PROVIDER_VALUATION_CANNOT_BE_CANONICAL","AUTHORIZED_MARKET_OBSERVATION_UNVERIFIED"],"next_gate":"INTERNAL_METHOD_FIRST_AND_PRODUCT_SPEC"}
+    {"provider_id":"LIVEART","portfolio_priority":"VERTICAL_SPECIALIST","track_z_verdict":"NO_GO","decision":"DROP","reason_codes":["UNPRICED_PILOT_ONLY","RIGHTS_UNRESOLVED","NO_VERIFIABLE_PRODUCT_OFFER"],"next_gate":"NONE_UNLESS_NEW_OFFICIAL_PRODUCT_OFFER"},
+    {"provider_id":"HAGERTY","portfolio_priority":"SUPPLEMENTAL_OR_VERTICAL_SPECIALIST_PENDING_PRODUCT_REVIEW","track_z_verdict":"NO_GO","decision":"DROP","reason_codes":["NO_HUMAN_SUBSTANTIVE_REPLY","PRODUCT_UNKNOWN","PRICE_AND_RIGHTS_UNKNOWN"],"next_gate":"NONE_UNLESS_NEW_OFFICIAL_PRODUCT_OFFER"}
   ],
   "product_assessments": [
     {
