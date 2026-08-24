@@ -129,7 +129,7 @@ function semanticErrors(projection,{purpose,trustedNow,clockAuthority}){
   return errors;
 }
 
-function receipt(projection,context,{accepted,reason,errors,stateOnly}){
+function receipt(projection,context,{accepted,reason,errors,stateOnly,payloadExposed=false}){
   return Object.freeze({
     record_type:'kidults_projection_consumption_receipt',version:'1.0.0',decision:accepted?'ACCEPTED':'REJECTED',
     reason,errors:Object.freeze([...errors]),surface:context.surface,purpose:context.purpose,
@@ -138,12 +138,50 @@ function receipt(projection,context,{accepted,reason,errors,stateOnly}){
     rankability_assessment_id:nonEmpty(projection?.rankability?.assessment_id)?projection.rankability.assessment_id:null,
     rights_state:projection?.rights?.state||'UNKNOWN',freshness_state:projection?.freshness?.state||'UNKNOWN',
     valid_until:projection?.freshness?.valid_until||null,clock_authority:context.clockAuthority||'NONE',
-    release_authority:context.releaseAuthority||'HOLD',state_only:stateOnly,payload_exposed:false,
+    release_authority:context.releaseAuthority||'HOLD',state_only:stateOnly,payload_exposed:payloadExposed,
     production:'HOLD',public:'HOLD',g5:'HOLD',
     autonomous_effect:'One executable admission function governs Portal, API and export.',
     global_effect:'Consumer validation is product- and geography-neutral.',
     irreplaceable_value_effect:'KIDULTS-owned Projection semantics remain provider-independent.',
     transparency_effect:'Every decision records identity, rights, freshness, purpose and rejection reason.'
+  });
+}
+
+// This entry point is intentionally useful only after a server-side verifier has
+// authenticated a short-lived, projection-bound capability. It is public code so
+// that the admission rules stay identical across consumers; possession of this
+// function is not authority and approved Projection bytes are never public files.
+export function admitProofProductProjectionWithVerifiedCapability(projection,context={}){
+  const requestedSurface=context.surface||'UNKNOWN';
+  const normalized={
+    surface:requestedSurface,
+    purpose:SURFACE_PURPOSE[requestedSurface]||'UNKNOWN',
+    trustedNow:context.trustedNow,
+    clockAuthority:context.clockAuthority,
+    releaseAuthority:context.releaseAuthority
+  };
+  const errors=[];
+  if(!Object.hasOwn(SURFACE_PURPOSE,requestedSurface))errors.push('SURFACE_UNSUPPORTED');
+  if(context.capabilityVerified!==true)errors.push('VERIFIED_CAPABILITY_REQUIRED');
+  if(context.clockAuthority!=='KIDULTS_CONTROL_PLANE')errors.push('TRUSTED_CLOCK_REQUIRED');
+  if(context.releaseAuthority!=='SIGNED_SERVER_CAPABILITY')errors.push('SIGNED_RELEASE_AUTHORITY_REQUIRED');
+  if(!nonEmpty(context.capabilityId)||!nonEmpty(context.capabilityDigest))errors.push('CAPABILITY_IDENTITY_MISSING');
+  const structural=structuralErrors(projection);
+  const semantic=structural.length?[]:semanticErrors(projection,normalized);
+  errors.push(...structural,...semantic);
+  const approved=APPROVED_STATES.has(projection?.projection_state);
+  if(!approved)errors.push('APPROVED_PROJECTION_REQUIRED');
+  const stateOnly=!approved;
+  const accepted=errors.length===0;
+  const resultReceipt=receipt(projection,normalized,{
+    accepted,reason:accepted?'SIGNED_CAPABILITY_ADMISSION':errors[0],errors,stateOnly,
+    payloadExposed:accepted
+  });
+  return Object.freeze({
+    accepted,state_only:stateOnly,
+    projection:accepted?projection:null,
+    payload:accepted?projection.payload:null,
+    receipt:Object.freeze({...resultReceipt,capability_id:context.capabilityId||null,capability_digest:context.capabilityDigest||null})
   });
 }
 
@@ -175,10 +213,10 @@ export function admitProofProductProjection(projection,context={}){
 
 export const proofProductConsumerContract=Object.freeze({
   version:'1.0.0',surfaces:['PORTAL_RENDER','PUBLIC_API_RESPONSE','EXPORT'],
-  bound_surfaces:['PORTAL_RENDER_STATE_ONLY'],unbound_surfaces:['PUBLIC_API_RESPONSE','EXPORT'],
+  bound_surfaces:['PORTAL_RENDER_STATE_ONLY','SIGNED_SERVER_PORTAL_RENDER','SIGNED_SERVER_PUBLIC_API_RESPONSE','SIGNED_SERVER_EXPORT'],unbound_surfaces:['PUBLIC_API_RESPONSE','EXPORT'],
   purposes:['PUBLIC_DISPLAY','API_REDISTRIBUTION'],schema_only_sufficient:false,
   browser_clock_authoritative:false,caller_asserted_authority_accepted:false,
   fixture_validation_bypass:false,
-  approved_release_capability_exposed:false,release_authority_default:'HOLD',
+  approved_release_capability_exposed:false,server_release_capability:'SHORT_LIVED_EXACT_PROJECTION_BOUND',release_authority_default:'HOLD',
   production:'HOLD',public:'HOLD',g5:'HOLD'
 });
