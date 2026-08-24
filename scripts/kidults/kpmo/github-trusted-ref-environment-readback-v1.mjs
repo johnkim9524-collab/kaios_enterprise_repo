@@ -215,6 +215,58 @@ export function buildWorkflowInventory(root = process.cwd(), registry = null) {
   };
 }
 
+const bindingKey = (workflow, job) => `${workflow}#${job}`;
+
+export function validateRequiredEnvironmentBindings(inventory, registry) {
+  const failures = [];
+  const require = (condition, id) => { if (!condition) failures.push(id); };
+  const bindings = Array.isArray(registry?.required_environment_bindings)
+    ? registry.required_environment_bindings
+    : [];
+  const expectedByKey = new Map();
+
+  require(bindings.length === registry?.registered_count, 'REQUIRED_BINDING_COUNT');
+  for (const binding of bindings) {
+    const key = bindingKey(binding?.workflow, binding?.job);
+    require(!expectedByKey.has(key), `DUPLICATE_REQUIRED_BINDING:${key}`);
+    expectedByKey.set(key, binding);
+    require((registry?.registered_workflows || []).includes(binding?.workflow), `UNREGISTERED_BINDING_WORKFLOW:${key}`);
+    require(/^[a-z0-9][a-z0-9-]{2,62}$/.test(String(binding?.environment || '')), `INVALID_REQUIRED_ENVIRONMENT:${key}`);
+    require(/^sha256:[0-9a-f]{64}$/.test(String(binding?.required_secret_name_digest || '')), `INVALID_REQUIRED_SECRET_DIGEST:${key}`);
+  }
+
+  const observedKeys = [];
+  const observedEnvironments = new Set();
+  for (const lane of inventory?.lanes || []) {
+    for (const job of lane.secret_bearing_jobs || []) {
+      const key = bindingKey(lane.workflow, job.job);
+      const expected = expectedByKey.get(key);
+      observedKeys.push(key);
+      require(Boolean(expected), `MISSING_REQUIRED_BINDING:${key}`);
+      if (!expected) continue;
+      require(job.environment.declared, `ENVIRONMENT_NOT_DECLARED:${key}`);
+      require(job.environment.static, `ENVIRONMENT_NOT_STATIC:${key}`);
+      require(job.environment.name === expected.environment, `ENVIRONMENT_NAME_MISMATCH:${key}`);
+      require(job.explicit_main_ref_guard, `EXACT_MAIN_GUARD_MISSING:${key}`);
+      require(!job.dynamic_secret_context, `DYNAMIC_SECRET_CONTEXT:${key}`);
+      require(!job.inherited_reusable_secrets, `INHERITED_SECRET_CONTEXT:${key}`);
+      require(digest(uniqueSorted(job.secret_names).join('\n')) === expected.required_secret_name_digest, `REQUIRED_SECRET_DIGEST_MISMATCH:${key}`);
+      observedEnvironments.add(job.environment.name);
+    }
+  }
+
+  const actualKeys = [...new Set(observedKeys)].sort();
+  const requiredKeys = [...expectedByKey.keys()].sort();
+  require(JSON.stringify(actualKeys) === JSON.stringify(requiredKeys), 'REQUIRED_BINDING_PARTITION');
+  require(observedEnvironments.size === registry?.required_environment_count, 'REQUIRED_ENVIRONMENT_COUNT');
+  require(registry?.repository_binding_state?.environment_bound_secret_bearing_jobs === actualKeys.length, 'REGISTRY_ENVIRONMENT_BOUND_COUNT');
+  require(registry?.repository_binding_state?.exact_main_guarded_secret_bearing_jobs === actualKeys.length, 'REGISTRY_EXACT_MAIN_GUARD_COUNT');
+  require(registry?.repository_binding_state?.external_environment_policy_verified === false, 'EXTERNAL_ENVIRONMENT_POLICY_TRUTH');
+  require(registry?.repository_binding_state?.environment_secret_scope_verified === false, 'ENVIRONMENT_SECRET_SCOPE_TRUTH');
+  require(registry?.repository_binding_state?.trusted_execution_attestation_verified === false, 'TRUSTED_EXECUTION_ATTESTATION_TRUTH');
+  return uniqueSorted(failures);
+}
+
 function endpoint(status, ok, complete = null) {
   return {
     http_status: Number(status || 0),
@@ -285,9 +337,14 @@ export function buildReadbackReceipt({
     ? uniqueSorted(snapshot.organizationSecrets.body.secrets.map((item) => item?.name).filter(Boolean))
     : [];
   const bindingResults = [];
+  const requiredBindings = new Map((registry.required_environment_bindings || []).map((binding) => [
+    bindingKey(binding.workflow, binding.job),
+    binding
+  ]));
 
   for (const lane of inventory.lanes) {
     for (const job of lane.secret_bearing_jobs) {
+      const requiredBinding = requiredBindings.get(bindingKey(lane.workflow, job.job));
       const environmentName = job.environment.name;
       const environment = environmentName ? environmentsByName.get(environmentName) : null;
       const policyReadback = environmentName ? snapshot.environmentPolicies?.[environmentName] : null;
@@ -302,6 +359,10 @@ export function buildReadbackReceipt({
       const repositoryScopedMatchCount = requiredNames.filter((name) => repositorySecretNames.includes(name)).length;
       const organizationScopedMatchCount = requiredNames.filter((name) => organizationSecretNames.includes(name)).length;
       const blockers = [];
+      if (!requiredBinding) blockers.push('REGISTRY_ENVIRONMENT_BINDING_NOT_DECLARED');
+      if (requiredBinding && environmentName !== requiredBinding.environment) blockers.push('REGISTRY_ENVIRONMENT_NAME_MISMATCH');
+      if (requiredBinding && digest(requiredNames.join('\n')) !== requiredBinding.required_secret_name_digest) blockers.push('REGISTRY_REQUIRED_SECRET_DIGEST_MISMATCH');
+      if (!job.explicit_main_ref_guard) blockers.push('REPOSITORY_EXACT_MAIN_GUARD_NOT_PRESENT');
       if (!job.environment.declared) blockers.push('JOB_ENVIRONMENT_NOT_DECLARED');
       else if (!job.environment.static) blockers.push('JOB_ENVIRONMENT_NAME_NOT_STATIC');
       if (job.dynamic_secret_context) blockers.push('DYNAMIC_OR_WHOLE_SECRET_CONTEXT_NOT_PROVABLE');
@@ -325,6 +386,9 @@ export function buildReadbackReceipt({
         dynamic_secret_context: job.dynamic_secret_context,
         inherited_reusable_secrets: job.inherited_reusable_secrets,
         repository_main_guard_present: job.explicit_main_ref_guard,
+        registry_environment_binding_declared: Boolean(requiredBinding),
+        registry_environment_name: requiredBinding?.environment || null,
+        registry_required_secret_name_digest: requiredBinding?.required_secret_name_digest || null,
         environment_declared: job.environment.declared,
         environment_binding_static: job.environment.static,
         environment_name: environmentName,
@@ -425,7 +489,7 @@ export function buildReadbackReceipt({
 
   const receipt = {
     id: 'kidults-github-trusted-ref-environment-readback-receipt-v1',
-    version: '1.2.0',
+    version: '1.3.0',
     issue: 974,
     parent_gate_issue: 881,
     observed_at: observedAt,

@@ -8,6 +8,8 @@ permissions:
 
 jobs:
   bounded-banknote-alias-probe:
+    if: github.ref == 'refs/heads/main'
+    environment: kidults-pcgs-bounded-probe
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:

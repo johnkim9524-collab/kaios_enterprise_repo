@@ -8,7 +8,8 @@ import {
   buildReadbackReceipt,
   buildWorkflowInventory,
   computeReadbackDigest,
-  githubGetCompleteList
+  githubGetCompleteList,
+  validateRequiredEnvironmentBindings
 } from '../../../scripts/kidults/kpmo/github-trusted-ref-environment-readback-v1.mjs';
 import { validateReceipt } from '../../../scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs';
 
@@ -21,7 +22,6 @@ function verifiedInventory() {
   const inventory = structuredClone(currentInventory);
   for (const lane of inventory.lanes) {
     for (const job of lane.secret_bearing_jobs) {
-      job.environment = { declared: true, name: 'staging', static: true };
       job.dynamic_secret_context = false;
       job.inherited_reusable_secrets = false;
       if (job.secret_names.length === 0) job.secret_names = ['STATIC_TEST_SECRET'];
@@ -30,12 +30,20 @@ function verifiedInventory() {
   return inventory;
 }
 
-function requiredSecretNames(inventory) {
-  return [...new Set(inventory.lanes.flatMap((lane) => lane.secret_bearing_jobs.flatMap((job) => job.secret_names)))].sort();
+function requiredSecretsByEnvironment(inventory) {
+  const grouped = new Map();
+  for (const lane of inventory.lanes) {
+    for (const job of lane.secret_bearing_jobs) {
+      const names = grouped.get(job.environment.name) || [];
+      grouped.set(job.environment.name, [...new Set([...names, ...job.secret_names])].sort());
+    }
+  }
+  return grouped;
 }
 
 function verifiedSnapshot(inventory = verifiedInventory()) {
-  const secretNames = requiredSecretNames(inventory);
+  const secretsByEnvironment = requiredSecretsByEnvironment(inventory);
+  const environmentNames = [...secretsByEnvironment.keys()].sort();
   return {
     repository: {
       ok: true,
@@ -52,31 +60,30 @@ function verifiedSnapshot(inventory = verifiedInventory()) {
       status: 200,
       complete: true,
       body: {
-        total_count: 1,
-        environments: [{
-          name: 'staging',
+        total_count: environmentNames.length,
+        environments: environmentNames.map((name) => ({
+          name,
           can_admins_bypass: false,
           protection_rules: [{ type: 'branch_policy' }],
           deployment_branch_policy: { protected_branches: false, custom_branch_policies: true }
-        }]
+        }))
       }
     },
-    environmentPolicies: {
-      staging: {
+    environmentPolicies: Object.fromEntries(environmentNames.map((name) => [name, {
         ok: true,
         status: 200,
         complete: true,
         body: { total_count: 1, branch_policies: [{ name: 'main', type: 'branch' }] }
-      }
-    },
-    environmentSecrets: {
-      staging: {
+      }])),
+    environmentSecrets: Object.fromEntries(environmentNames.map((name) => {
+      const secretNames = secretsByEnvironment.get(name);
+      return [name, {
         ok: true,
         status: 200,
         complete: true,
         body: { total_count: secretNames.length, secrets: secretNames.map((name) => ({ name })) }
-      }
-    },
+      }];
+    })),
     repositorySecrets: { ok: true, status: 200, complete: true, body: { total_count: 0, secrets: [] } },
     organizationSecrets: { ok: true, status: 200, complete: true, body: { total_count: 0, secrets: [] } },
     negativeExecutionProof: {
@@ -120,22 +127,24 @@ function receipt({ inventory = verifiedInventory(), snapshot = null, ref = 'refs
   });
 }
 
-test('current exact registry remains 15 privileged manual lanes and unbound jobs fail closed', () => {
+test('current exact registry binds all 15 privileged lanes but external policy remains fail closed', () => {
   assert.equal(currentInventory.registered_lane_count, 15);
-  assert.ok(currentInventory.secret_bearing_job_count >= 15);
+  assert.equal(currentInventory.secret_bearing_job_count, 15);
+  assert.deepEqual(validateRequiredEnvironmentBindings(currentInventory, registry), []);
   const repositoryGuardedLanes = currentInventory.lanes
     .filter((lane) => lane.secret_bearing_jobs.some((job) => job.explicit_main_ref_guard))
     .map((lane) => lane.workflow)
     .sort();
-  assert.deepEqual(repositoryGuardedLanes, [
-    '.github/workflows/digitalocean-readonly-audit.yml',
-    '.github/workflows/digitalocean-staging-bootstrap-exec.yml',
-    '.github/workflows/digitalocean-staging-portal-deploy.yml',
-  ]);
-  const current = receipt({ inventory: currentInventory, snapshot: verifiedSnapshot(currentInventory) });
+  assert.deepEqual(repositoryGuardedLanes, [...registry.registered_workflows].sort());
+  assert.ok(currentInventory.lanes.every((lane) => lane.secret_bearing_jobs.every((job) => job.environment.declared && job.environment.static)));
+  const externalUnavailable = verifiedSnapshot(currentInventory);
+  externalUnavailable.environments = { ok: false, status: 403, complete: false, body: null };
+  externalUnavailable.environmentPolicies = {};
+  externalUnavailable.environmentSecrets = {};
+  const current = receipt({ inventory: currentInventory, snapshot: externalUnavailable });
   assert.equal(current.state, 'BLOCKED');
   assert.equal(current.issue_974_closure_eligible, false);
-  assert.ok(current.binding_results.every((result) => result.blockers.includes('JOB_ENVIRONMENT_NOT_DECLARED')));
+  assert.ok(current.binding_results.every((result) => result.blockers.includes('DECLARED_ENVIRONMENT_NOT_OBSERVED')));
   assert.equal(current.issue_881_control_pass_promoted, false);
   assert.equal(current.empirical_evidence_promoted, false);
 });
@@ -156,6 +165,12 @@ test('synthetic exact-main environment and secret-name metadata is a test-only p
   assert.equal(positive.credential_activation, 'NONE');
   assert.equal(positive.stored_repository_or_environment_secret_activated, false);
   assert.equal(positive.provider_credential_activated, false);
+  assert.ok(positive.binding_results.every((result) => (
+    result.repository_main_guard_present === true
+    && result.registry_environment_binding_declared === true
+    && result.registry_environment_name === result.environment_name
+    && result.registry_required_secret_name_digest === result.required_secret_name_digest
+  )));
 });
 
 test('authorization mode is bound to truthful ephemeral credential semantics', () => {
@@ -208,12 +223,12 @@ test('unprotected main, wildcard policy, and unreadable secret metadata fail clo
   assert.ok(receipt({ snapshot: unprotected }).blockers.includes('DEFAULT_BRANCH_NOT_PROTECTED'));
 
   const wildcard = verifiedSnapshot();
-  wildcard.environmentPolicies.staging.body.branch_policies = [{ name: '*', type: 'branch' }];
+  for (const policy of Object.values(wildcard.environmentPolicies)) policy.body.branch_policies = [{ name: '*', type: 'branch' }];
   const wildcardReceipt = receipt({ snapshot: wildcard });
   assert.ok(wildcardReceipt.binding_results.every((result) => result.blockers.includes('EXACT_MAIN_DEPLOYMENT_POLICY_NOT_PROVEN')));
 
   const unreadable = verifiedSnapshot();
-  unreadable.environmentSecrets.staging = { ok: false, status: 403, complete: false, body: null };
+  for (const name of Object.keys(unreadable.environmentSecrets)) unreadable.environmentSecrets[name] = { ok: false, status: 403, complete: false, body: null };
   const unreadableReceipt = receipt({ snapshot: unreadable });
   assert.ok(unreadableReceipt.binding_results.every((result) => result.blockers.includes('ENVIRONMENT_SECRET_METADATA_INCOMPLETE')));
 });
@@ -294,8 +309,9 @@ test('list collector rejects duplicate identities across otherwise count-complet
 test('partial environment secret-name coverage fails without emitting names', () => {
   const inventory = verifiedInventory();
   const snapshot = verifiedSnapshot(inventory);
-  const removedName = snapshot.environmentSecrets.staging.body.secrets.pop().name;
-  snapshot.environmentSecrets.staging.body.total_count -= 1;
+  const environmentName = Object.keys(snapshot.environmentSecrets)[0];
+  const removedName = snapshot.environmentSecrets[environmentName].body.secrets.pop().name;
+  snapshot.environmentSecrets[environmentName].body.total_count -= 1;
   const partial = receipt({ inventory, snapshot });
   assert.equal(partial.state, 'BLOCKED');
   assert.ok(partial.binding_results.some((result) => result.blockers.includes('ENVIRONMENT_SECRET_NAME_COVERAGE_INCOMPLETE')));
@@ -355,7 +371,11 @@ test('receipt validator rejects mutation and semantic-boundary promotion claims'
   rawSecretMetadata.raw = { secrets: [{ name: 'MUST_NOT_APPEAR' }] };
   assert.ok(validateReceipt(rawSecretMetadata).includes('raw_secret_or_credential_field_forbidden'));
 
-  const blocked = receipt({ inventory: currentInventory, snapshot: verifiedSnapshot(currentInventory) });
+  const unavailable = verifiedSnapshot(currentInventory);
+  unavailable.environments = { ok: false, status: 403, complete: false, body: null };
+  unavailable.environmentPolicies = {};
+  unavailable.environmentSecrets = {};
+  const blocked = receipt({ inventory: currentInventory, snapshot: unavailable });
   assert.ok(validateReceipt(blocked, { requireExternalProof: true }).includes('external_proof_required'));
 });
 

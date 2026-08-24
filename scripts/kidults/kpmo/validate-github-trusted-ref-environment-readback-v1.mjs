@@ -7,7 +7,8 @@ import {
   REGISTRY_PATH,
   analyzeWorkflow,
   buildWorkflowInventory,
-  computeReadbackDigest
+  computeReadbackDigest,
+  validateRequiredEnvironmentBindings
 } from './github-trusted-ref-environment-readback-v1.mjs';
 
 const WORKFLOW_PATH = '.github/workflows/kpmo-github-trusted-ref-environment-readback-v1.yml';
@@ -30,7 +31,7 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
     return Object.entries(value).some(([key, nested]) => forbiddenKeys.has(key.toLowerCase()) || hasForbiddenKey(nested));
   };
   require(receipt?.id === 'kidults-github-trusted-ref-environment-readback-receipt-v1', 'receipt_id');
-  require(receipt?.version === '1.2.0', 'receipt_version');
+  require(receipt?.version === '1.3.0', 'receipt_version');
   require(receipt?.issue === 974 && receipt?.parent_gate_issue === 881, 'issue_binding');
   require(['BLOCKED', 'VERIFIED_PASS'].includes(receipt?.state), 'governed_state');
   require(!Number.isNaN(Date.parse(String(receipt?.observed_at || ''))), 'observed_at');
@@ -73,6 +74,12 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
   require(receipt?.registered_privileged_manual_lanes === 15, 'registered_lane_count');
   require(Array.isArray(receipt?.binding_results) && receipt.binding_results.length === receipt?.secret_bearing_jobs, 'binding_partition');
   require(receipt?.verified_secret_bearing_jobs === receipt?.binding_results?.filter((item) => item.state === 'VERIFIED_PASS').length, 'verified_binding_count');
+  require(receipt?.binding_results?.every((item) => (
+    typeof item?.repository_main_guard_present === 'boolean'
+    && typeof item?.registry_environment_binding_declared === 'boolean'
+    && (item?.registry_environment_name === null || typeof item?.registry_environment_name === 'string')
+    && (item?.registry_required_secret_name_digest === null || /^sha256:[0-9a-f]{64}$/.test(String(item?.registry_required_secret_name_digest)))
+  )), 'registry_binding_receipt_shape');
   require(receipt?.ruleset_context_only === true, 'ruleset_context_boundary');
   const negativeControls = receipt?.negative_execution_proof;
   require(negativeControls && typeof negativeControls === 'object', 'negative_execution_proof_partition');
@@ -136,6 +143,10 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
       && /^sha256:[0-9a-f]{64}$/.test(String(item?.required_secret_name_digest || ''))
       && item?.dynamic_secret_context === false
       && item?.inherited_reusable_secrets === false
+      && item?.repository_main_guard_present === true
+      && item?.registry_environment_binding_declared === true
+      && item?.registry_environment_name === item?.environment_name
+      && item?.registry_required_secret_name_digest === item?.required_secret_name_digest
       && item?.environment_declared === true
       && item?.environment_binding_static === true
       && typeof item?.environment_name === 'string' && item.environment_name.length > 0
@@ -230,11 +241,13 @@ export function validateRepository(root = process.cwd()) {
   const docs = fs.readFileSync(path.join(root, DOC_PATH), 'utf8');
 
   assert(contract.id === 'kidults-github-trusted-ref-environment-readback-contract-v1', 'CONTRACT_ID');
-  assert(contract.version === '1.2.0', 'CONTRACT_VERSION');
+  assert(contract.version === '1.3.0', 'CONTRACT_VERSION');
   assert(contract.issue === 974 && contract.parent_gate_issue === 881, 'CONTRACT_ISSUE_BINDING');
   assert(contract.status === 'IMPLEMENTED_READ_ONLY_PROOF_PATH_EXTERNAL_POLICY_NOT_VERIFIED', 'CONTRACT_STATUS');
   assert(JSON.stringify(contract.platform_principles) === JSON.stringify(['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT']), 'PRINCIPLE_ORDER');
   assert(contract.approved_closure_patterns.github_environment.deployment_branch_policy_is_exact_main_only === true, 'EXACT_MAIN_POLICY');
+  assert(contract.approved_closure_patterns.github_environment.each_secret_bearing_job_matches_registry_environment_and_secret_digest === true, 'REGISTRY_ENVIRONMENT_SECRET_BINDING');
+  assert(contract.approved_closure_patterns.github_environment.each_secret_bearing_job_has_repository_exact_main_guard === true, 'REPOSITORY_EXACT_MAIN_GUARD');
   assert(contract.approved_closure_patterns.github_environment.environment_administrator_bypass_is_disabled === true, 'ADMIN_BYPASS_DISABLED');
   assert(contract.approved_closure_patterns.github_environment.required_secret_names_are_absent_from_repository_and_organization_scopes === true, 'ENVIRONMENT_EXCLUSIVE_SECRET_SCOPE');
   assert(contract.approved_closure_patterns.github_environment.all_list_endpoints_are_exhaustively_paginated_and_count_reconciled === true, 'COMPLETE_LIST_READBACK');
@@ -242,6 +255,8 @@ export function validateRepository(root = process.cwd()) {
   assert(contract.approved_closure_patterns.trusted_default_branch_or_release_handoff.implemented_by_this_contract === false, 'HANDOFF_NOT_IMPLEMENTED');
   assert(contract.receipt_requirements.credential_activation_by_authorization_mode.GITHUB_TOKEN_METADATA_READ === 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ', 'EPHEMERAL_TOKEN_SEMANTICS');
   assert(contract.receipt_requirements.external_proof_authorization_mode === 'GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ', 'EXTERNAL_PROOF_AUTHORIZATION_MODE');
+  assert(contract.receipt_requirements.registry_environment_name_and_secret_digest_binding_results === true, 'REGISTRY_BINDING_RECEIPT_REQUIRED');
+  assert(contract.receipt_requirements.repository_exact_main_guard_results === true, 'REPOSITORY_MAIN_GUARD_RECEIPT_REQUIRED');
   assert(contract.receipt_requirements.trusted_post_run_attestor_required_for_external_proof === true, 'TRUSTED_ATTESTOR_REQUIRED');
   assert(contract.receipt_requirements.external_proof_validator_fail_closed_until_attestor_is_implemented === true, 'EXTERNAL_VALIDATOR_FAIL_CLOSED');
   assert(contract.receipt_requirements.credential_activation_by_authorization_mode.GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ === 'EPHEMERAL_GITHUB_APP_INSTALLATION_TOKEN_ENVIRONMENTS_AND_SECRETS_READ', 'GITHUB_APP_TOKEN_SEMANTICS');
@@ -262,16 +277,13 @@ export function validateRepository(root = process.cwd()) {
   assert(registry.internal_readback_control?.issue_974_closed === false && registry.internal_readback_control?.issue_881_control_pass_promoted === false, 'REGISTRY_SEMANTIC_BOUNDARY');
   assert(inventory.registered_lane_count === registry.registered_count && registry.registered_count === 15, 'REGISTRY_LANE_PARTITION');
   assert(inventory.secret_bearing_job_count === 15, 'SECRET_BEARING_JOB_PARTITION');
-  assert(inventory.lanes.every((lane) => lane.secret_bearing_jobs.every((job) => !job.environment.declared)), 'CURRENT_LANES_MUST_NOT_BE_PROMOTED_TO_ENV_BOUND');
+  const repositoryBindingFailures = validateRequiredEnvironmentBindings(inventory, registry);
+  assert(repositoryBindingFailures.length === 0, `REPOSITORY_ENVIRONMENT_BINDINGS:${repositoryBindingFailures.join(',')}`);
   const repositoryGuardedLanes = inventory.lanes
     .filter((lane) => lane.secret_bearing_jobs.some((job) => job.explicit_main_ref_guard))
     .map((lane) => lane.workflow)
     .sort();
-  assert(JSON.stringify(repositoryGuardedLanes) === JSON.stringify([
-    '.github/workflows/digitalocean-readonly-audit.yml',
-    '.github/workflows/digitalocean-staging-bootstrap-exec.yml',
-    '.github/workflows/digitalocean-staging-portal-deploy.yml',
-  ]), 'REPOSITORY_MAIN_GUARD_LANES');
+  assert(JSON.stringify(repositoryGuardedLanes) === JSON.stringify([...registry.registered_workflows].sort()), 'REPOSITORY_MAIN_GUARD_LANES');
   assert(validateWorkflowSource(workflow).length === 0, `WORKFLOW_PROVENANCE:${validateWorkflowSource(workflow).join(',')}`);
   assert(/method:\s*'GET'/.test(collector), 'COLLECTOR_GET_ONLY');
   assert(!/method:\s*['"](?:POST|PUT|PATCH|DELETE)['"]/.test(collector), 'COLLECTOR_MUTATING_METHOD');
@@ -321,6 +333,23 @@ export function validateRepository(root = process.cwd()) {
     assert(analyzeWorkflow(source, `${id}.yml`).privileged_manual_lane, `ANALYZER_MUTATION_MISSED:${id}`);
   }
 
+  const firstLane = inventory.lanes[0];
+  const firstJob = firstLane.secret_bearing_jobs[0];
+  const bindingMutations = [
+    ['environment_removed', (mutatedInventory, mutatedRegistry) => { void mutatedRegistry; mutatedInventory.lanes[0].secret_bearing_jobs[0].environment = { declared: false, name: null, static: false }; }],
+    ['environment_renamed', (mutatedInventory, mutatedRegistry) => { void mutatedRegistry; mutatedInventory.lanes[0].secret_bearing_jobs[0].environment.name = 'kidults-unregistered-environment'; }],
+    ['main_guard_removed', (mutatedInventory, mutatedRegistry) => { void mutatedRegistry; mutatedInventory.lanes[0].secret_bearing_jobs[0].explicit_main_ref_guard = false; }],
+    ['secret_digest_changed', (mutatedInventory, mutatedRegistry) => { void mutatedInventory; mutatedRegistry.required_environment_bindings[0].required_secret_name_digest = `sha256:${'0'.repeat(64)}`; }],
+    ['binding_removed', (mutatedInventory, mutatedRegistry) => { void mutatedInventory; mutatedRegistry.required_environment_bindings.shift(); }]
+  ];
+  assert(Boolean(firstLane && firstJob), 'BINDING_MUTATION_FIXTURE');
+  for (const [id, mutate] of bindingMutations) {
+    const mutatedInventory = structuredClone(inventory);
+    const mutatedRegistry = structuredClone(registry);
+    mutate(mutatedInventory, mutatedRegistry);
+    assert(validateRequiredEnvironmentBindings(mutatedInventory, mutatedRegistry).length > 0, `REPOSITORY_BINDING_MUTATION_ACCEPTED:${id}`);
+  }
+
   return {
     suite: 'KIDULTS_GITHUB_TRUSTED_REF_ENVIRONMENT_READBACK_VALIDATION_V1',
     state: 'VERIFIED_PASS',
@@ -335,6 +364,8 @@ export function validateRepository(root = process.cwd()) {
       0
     ),
     repository_main_guard_lanes: repositoryGuardedLanes.length,
+    required_environment_count: registry.required_environment_count,
+    repository_binding_mutations_rejected: bindingMutations.length,
     workflow_mutations_rejected: workflowMutations.length,
     analyzer_mutations_detected: analyzerMutations.length,
     live_github_requests_executed_by_validator: 0,

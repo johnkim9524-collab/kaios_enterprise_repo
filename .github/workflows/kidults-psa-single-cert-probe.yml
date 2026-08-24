@@ -8,6 +8,8 @@ permissions:
 
 jobs:
   probe:
+    if: github.ref == 'refs/heads/main'
+    environment: kidults-psa-public-single-cert
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
