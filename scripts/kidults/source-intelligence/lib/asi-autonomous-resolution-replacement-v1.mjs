@@ -56,6 +56,9 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
         rights_state: profile.rights_eligibility.decision,
         rights_eligibility_state: profile.rights_eligibility.decision,
         rights_eligibility_reason_codes: profile.rights_eligibility.reason_codes,
+        rights_evidence_refs: profile.rights_eligibility.evidence_refs,
+        rights_evidence_digest: profile.rights_eligibility.evidence_digest,
+        purpose_binding_id: profile.rights_eligibility.purpose_binding_id,
         sold_or_liquidity_semantics_state: 'UNVERIFIED',
         factual_origin_independence_state: 'UNVERIFIED',
         evidence_admitted: false
