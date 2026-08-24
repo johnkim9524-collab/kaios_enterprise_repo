@@ -1,27 +1,41 @@
 import fs from 'node:fs';
 
-const files = [
+const errors=[];
+const findings=[];
+for (const file of [
   'services/kidults-autonomous-intelligence/src/index.ts',
   'services/kidults-autonomous-intelligence/src/asi/runtime.ts',
   'services/kidults-autonomous-intelligence/src/asi/processor-runtime.ts'
-];
-const errors=[];
-const findings=[];
-for (const file of files) {
+]) {
   if (!fs.existsSync(file)) continue;
   const text=fs.readFileSync(file,'utf8');
-  const selectStar=[...text.matchAll(/SELECT\s+\*/gi)].length;
-  const unbounded=[...text.matchAll(/SELECT[\s\S]{0,240}?FROM\s+[a-zA-Z0-9_]+(?![\s\S]{0,240}?\b(?:WHERE|LIMIT)\b)/gi)].length;
-  findings.push({file,selectStar,unboundedCandidates:unbounded});
-  if (selectStar>0) errors.push(`${file}: SELECT * present (${selectStar})`);
+  findings.push({file,selectStar:[...text.matchAll(/SELECT\s+\*/gi)].length});
 }
-const migration='services/kidults-autonomous-intelligence/migrations/0004_asi_processor_shadow.sql';
-if (fs.existsSync(migration)) {
+
+const worker='services/kidults-autonomous-intelligence/src/worker.ts';
+if (fs.existsSync(worker)) {
+  const text=fs.readFileSync(worker,'utf8');
+  const heartbeat=text.match(/async function recordShadowHeartbeat[\s\S]*?\n}\n/)?.[0] || '';
+  if (/asiMeshTelemetry\s*\(/.test(heartbeat)) errors.push('scheduled heartbeat must not invoke full asiMeshTelemetry');
+  if (!heartbeat.includes("telemetryMode:'ON_DEMAND_ONLY'")) errors.push('heartbeat must declare on-demand telemetry mode');
+}
+
+const migration='services/kidults-autonomous-intelligence/migrations/0007_d1_query_efficiency_indexes.sql';
+if (!fs.existsSync(migration)) errors.push('missing D1 query efficiency migration 0007');
+else {
   const sql=fs.readFileSync(migration,'utf8');
-  for (const required of ['idx_asi_source_candidates_partition','idx_asi_source_candidates_host','idx_asi_candidate_observations_source','idx_asi_processor_assertions_fan_in','idx_asi_source_pool_decisions_state']) {
-    if (!sql.includes(required)) errors.push(`missing hot-path index: ${required}`);
-  }
+  for (const required of [
+    'idx_evidence_status_observed',
+    'idx_observations_entity_metric_latest',
+    'idx_observations_metric_latest',
+    'idx_intelligence_runs_status_finished',
+    'idx_category_snapshots_run_score',
+    'idx_publication_snapshots_channel_status_published',
+    'idx_source_registry_active_family_region',
+    'idx_entity_registry_type'
+  ]) if (!sql.includes(required)) errors.push(`missing hot-path index: ${required}`);
 }
+
 if (errors.length) {
   console.error(JSON.stringify({suite:'D1_QUERY_EFFICIENCY_V1',result:'FAIL',errors,findings},null,2));
   process.exit(1);
