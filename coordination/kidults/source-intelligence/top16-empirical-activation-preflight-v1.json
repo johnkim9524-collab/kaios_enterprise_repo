@@ -1,7 +1,7 @@
 {
   "id": "kidults-top16-empirical-activation-preflight-v1",
   "version": "1.1.0",
-  "status": "VERIFIED_FAIL_CLOSED_ALL_16_PREFLIGHTED",
+  "status": "VERIFIED_FAIL_CLOSED",
   "as_of": "2026-08-24T05:20:00Z",
   "legal_character": "INTERNAL_PURPOSE_SPECIFIC_PREFLIGHT_NOT_LEGAL_ADVICE",
   "platform_principles": [
@@ -656,5 +656,6 @@
   "next_action": "Rank rights-clear or low-friction Source x Purpose candidates first; route permission, contract, account, credential, and spend cases through Track Z then KPMO then Founder.",
   "public_release": "HOLD",
   "production": "HOLD",
-  "g5": "HOLD"
+  "g5": "HOLD",
+  "coverage_state": "ALL_16_OFFICIAL_SURFACES_AND_TERMS_PREFLIGHTED"
 }
