@@ -1,6 +1,6 @@
 {
   "policy_id": "KIDULTS_CLOUDFLARE_WORKER_ESTATE_POLICY_V1",
-  "as_of": "2026-08-25T19:11:16+09:00",
+  "as_of": "2026-08-25T20:32:08+09:00",
   "canonical_keep": [
     "kidults",
     "kidults-autonomous-intelligence"
@@ -13,7 +13,6 @@
     "kidults-autonomous-intelligence-staging"
   ],
   "migrate_then_retire": [
-    "kidults-platform-api",
     "kidults-terminal-ui-api",
     "kidults-enterprise"
   ],
@@ -82,7 +81,14 @@
       "type": "PAGES",
       "status": "RETIRED_POST_DELETE_EMPIRICAL_PASS",
       "proof": "custom domains none; no Git/runtime bindings; pages.dev post-delete surface returned Cloudflare Error 1016 / Origin DNS error",
-      "residual_observation": "API_KIDULTS_COM_D1_DEPENDENCY_REMAINS_SEPARATE_MIGRATE_THEN_RETIRE"
+      "residual_observation": "LEGACY_D1_REVIEW_REMAINS_SEPARATE"
+    },
+    {
+      "name": "kidults-platform-api",
+      "type": "WORKER",
+      "status": "RETIRED_POST_DELETE_EMPIRICAL_PASS",
+      "proof": "Founder deletion confirmed; api.kidults.com returned Cloudflare Error 1016 and the former workers.dev endpoint returned HTTP 404 / error code 1042",
+      "residual_observation": "KEEP_KIDULTS_MAIN_DB; 24H_72H_D1_OBSERVATION_PENDING; D1_DELETION_NOT_AUTHORIZED"
     }
   ],
   "forbidden_new_deploy_targets": [
@@ -90,6 +96,7 @@
     "kidults-one-dev",
     "kidults-enterprise",
     "kidults-kaios",
+    "kidults-platform-api",
     "kidults-web",
     "kidults-admin",
     "kidults-terminal-ui",
