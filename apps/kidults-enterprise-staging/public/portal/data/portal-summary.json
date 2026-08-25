@@ -20,7 +20,7 @@
     {"id":"markets","label":"ACTIVE MARKETS","value":"—","caption":"Current candidate market coverage not registered","state":"NOT VERIFIED"}
   ],
   "operations": [
-    {"label":"EVIDENCE OBJECTS","value":"—","caption":"No current Evidence Package","detail":"Registry evidence.current_package_id is not available","state":"NOT AVAILABLE","tone":"controlled"},
+    {"label":"EVIDENCE OBJECTS","value":"—","caption":"Registered evidence objects","detail":"Current Registry projection","state":"NOT AVAILABLE","tone":"controlled"},
     {"label":"SOURCE FAMILIES","value":"—","caption":"No current candidate-backed source metric","detail":"Awaiting immutable Evidence Package","state":"NOT VERIFIED","tone":"controlled"},
     {"label":"MODEL CONFIDENCE","value":"—","caption":"No current candidate confidence","detail":"Rankability assessment not created for a current candidate","state":"NOT AVAILABLE","tone":"controlled"},
     {"label":"ACCESS STATUS","value":"LOCKED","caption":"Public intelligence release gated","detail":"Registry-grounded access remains fail-closed","state":"CONTROLLED","tone":"controlled"},
