@@ -1,0 +1,2 @@
+KPMO root PR impact routing canary.
+No runtime, policy, empirical, deployment, Public, Production, or G5 effect.
