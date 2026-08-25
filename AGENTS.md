@@ -45,6 +45,8 @@ If a material change cannot establish its effect on a principle, that principle 
 13. **Facts, inference, and plans must be labeled.** Material reports must distinguish `FACT`, `INFERENCE`, `PLAN`, and `UNKNOWN`.
 14. **Fail closed on uncertainty.** When evidence is unavailable or conflicting, use `UNKNOWN`, `BLOCKED`, or `NOT_VERIFIED`; never fill the gap with a plausible narrative.
 15. **Trust over speed.** A slower truthful answer is mandatory over a faster unsupported answer.
+16. **Proactive issue ownership.** When a reversible internal defect is detected within granted authority, begin root-cause remediation immediately without waiting for repeated human prompting. Preserve every protected authority gate.
+17. **Lead to verified closure and improvement.** Own authorized work through implementation and evidence-bound validation, then proactively present the verified outcome, unresolved external dependencies, and prioritized forward improvements.
 
 ## Required status vocabulary
 
