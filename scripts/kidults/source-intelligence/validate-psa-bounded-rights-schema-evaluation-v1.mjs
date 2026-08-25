@@ -15,6 +15,12 @@ for (const guard of ['120_CASE_ACQUISITION_BEFORE_RIGHTS_TERMINALIZATION','BULK_
   if (!(x.prohibited || []).includes(guard)) throw new Error(`PROHIBITED_GUARD_MISSING:${guard}`);
 }
 if (x.field_purpose_rights?.display_public !== 'BLOCK' || x.field_purpose_rights?.redistribute !== 'BLOCK') throw new Error('PUBLIC_RIGHTS_BLOCK_REQUIRED');
+if (x.field_purpose_rights?.collect !== 'ALLOW_BOUNDED_INTERNAL_EVALUATION' ||
+    x.field_purpose_rights?.store !== 'ALLOW_PRIVATE_INTERNAL_EVALUATION' ||
+    x.field_purpose_rights?.derive_internal_er_calibration !== 'ALLOW' ||
+    x.field_purpose_rights?.human_review !== 'ALLOW') throw new Error('WRITTEN_INTERNAL_EVALUATION_RIGHTS_REQUIRED');
+if (x.retention?.maximum_days !== 30 || x.retention?.expiry_action !== 'DELETE_AND_TOMBSTONE') throw new Error('BOUNDED_30_DAY_RETENTION_REQUIRED');
+if (x.not_a_market_transaction_source !== true) throw new Error('PSA_MARKET_TRANSACTION_BOUNDARY_REQUIRED');
 if (x.reviewer_material_increment !== 0) throw new Error('NO_REVIEWER_MATERIAL_PROMOTION_ALLOWED');
 
 const accountAuthorized = process.env.KAIOS_PSA_ACCOUNT_AUTHORIZED === '1';
@@ -42,12 +48,12 @@ const out = {
   max_probe_count: x.max_schema_probe_calls,
   secret_material_observed: false,
   reviewer_material_increment: 0,
-  field_purpose_rights_state: 'PENDING_ACTUAL_API_EULA_TERMINALIZATION',
+  field_purpose_rights_state: 'WRITTEN_BOUNDED_INTERNAL_EVALUATION_RIGHTS_CONFIRMED',
   production: 'HOLD',
   publication: 'HOLD',
   truth_boundary: state === 'BLOCKED'
-    ? 'Founder approval is satisfied, but account/EULA/token/cert handoff is incomplete. No PSA network call or reviewer-material promotion is permitted.'
-    : 'Preflight permits only one-to-three documented PSA single-cert DEV/SHADOW schema calls. Raw provider payload must not be logged or uploaded; 120-case acquisition remains separately blocked pending rights terminalization.'
+    ? 'Written bounded internal-evaluation rights and Founder approval are satisfied, but account/EULA/token/cert technical handoff is incomplete. No PSA network call is permitted.'
+    : 'Preflight permits only one-to-three documented PSA single-cert DEV/SHADOW schema calls. Raw provider payload must not be logged or uploaded; PSA remains certification/grade authority only and creates no Current SOLD claim.'
 };
 await fs.writeFile(outputPath, JSON.stringify(out, null, 2) + '\n');
 console.log(JSON.stringify(out, null, 2));

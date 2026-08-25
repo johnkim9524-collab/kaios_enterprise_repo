@@ -53,10 +53,10 @@ const artifact = {
   raw_provider_payload_retained: false,
   token_retained: false,
   reviewer_material_increment: 0,
-  rights_state: 'PENDING_ACTUAL_API_EULA_TERMINALIZATION',
+  rights_state: 'WRITTEN_BOUNDED_INTERNAL_EVALUATION_RIGHTS_CONFIRMED',
   production: 'HOLD',
   publication: 'HOLD',
-  truth_boundary: 'This artifact records only schema-key presence, response digests and transport status from at most three Founder-approved PSA single-cert calls. It does not admit provider data, authorize 120-case acquisition, create reviewer material, labels, empirical PASS, publication or Production.'
+  truth_boundary: 'This artifact records only schema-key presence, response digests and transport status from at most three Founder-approved PSA single-cert calls. It does not retain raw provider data, create Current SOLD evidence, authorize public display, publication or Production.'
 };
 await fs.writeFile(outPath, JSON.stringify(artifact, null, 2) + '\n');
 console.log(JSON.stringify({status:'SCHEMA_ONLY_OBSERVED',probe_count:artifact.probe_count,field_presence:results.map(r=>r.field_presence),raw_provider_payload_retained:false,reviewer_material_increment:0,production:'HOLD'}, null, 2));

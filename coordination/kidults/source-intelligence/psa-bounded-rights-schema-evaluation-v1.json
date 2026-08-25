@@ -1,6 +1,6 @@
 {
   "id": "kidults-psa-bounded-rights-schema-evaluation-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "parent_issues": [742, 521, 479, 344],
   "founder_approval": {
     "issue": 742,
@@ -12,7 +12,22 @@
     "publication": "HOLD"
   },
   "provider_id": "psa-public-api",
-  "state": "FOUNDER_APPROVED_ACCOUNT_EULA_TOKEN_HANDOFF_PENDING",
+  "state": "WRITTEN_BOUNDED_INTERNAL_EVALUATION_RIGHTS_CONFIRMED_TECHNICAL_HANDOFF_PENDING",
+  "provider_role": "AUTHORITATIVE_CERTIFICATION_AND_GRADE_VERIFICATION",
+  "not_a_market_transaction_source": true,
+  "written_rights_evidence": {
+    "counterparty": "PSA API Team",
+    "received_at": "2026-08-24",
+    "confirmed": [
+      "QUERY_CERT_VERIFICATION_RESULTS",
+      "TEMPORARY_PRIVATE_INTERNAL_STORAGE",
+      "INTERNAL_ENTITY_RESOLUTION_AND_MODEL_CALIBRATION_ONLY",
+      "HUMAN_QA_OF_RETURNED_AND_DERIVED_MATCHING_RESULTS",
+      "RETENTION_UP_TO_APPROXIMATELY_30_DAYS_THEN_DELETE"
+    ],
+    "raw_public_redistribution": "NOT_AUTHORIZED",
+    "current_sold_market_data": "NOT_IN_SCOPE"
+  },
   "official_docs": [
     "https://www.psacard.com/publicapi",
     "https://www.psacard.com/publicapi/documentation",
@@ -60,13 +75,21 @@
     "FIELD_RIGHTS_ASSUMPTION"
   ],
   "field_purpose_rights": {
-    "collect": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
-    "store": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
-    "derive_internal_er_calibration": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
-    "display_internal": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
+    "collect": "ALLOW_BOUNDED_INTERNAL_EVALUATION",
+    "store": "ALLOW_PRIVATE_INTERNAL_EVALUATION",
+    "derive_internal_er_calibration": "ALLOW",
+    "human_review": "ALLOW",
+    "display_internal": "ALLOW_PRIVATE_REVIEW_ONLY",
     "display_public": "BLOCK",
     "redistribute": "BLOCK",
-    "retention": "PENDING_ACTUAL_API_EULA_TERMINALIZATION"
+    "retention": "ALLOW_UP_TO_30_DAYS_THEN_DELETE"
+  },
+  "retention": {
+    "maximum_days": 30,
+    "start_event": "COLLECTED_AT",
+    "expiry_action": "DELETE_AND_TOMBSTONE",
+    "raw_payload_retention": "NONE",
+    "tombstone_content": "DIGEST_AND_DELETION_REASON_ONLY"
   },
   "max_schema_probe_calls": 3,
   "target_schema_presence": [

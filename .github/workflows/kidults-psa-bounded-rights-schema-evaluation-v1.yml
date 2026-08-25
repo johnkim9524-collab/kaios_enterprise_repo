@@ -32,6 +32,7 @@ jobs:
         run: |
           node --check scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs
           node --check scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-psa-premium-internal-evaluation-v1.mjs
           node scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs \
             coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json \
             /tmp/psa-preflight-default.json
@@ -43,6 +44,11 @@ jobs:
           if(x.secret_material_observed!==false||x.reviewer_material_increment!==0||x.production!=='HOLD'||x.publication!=='HOLD') process.exit(1);
           console.log('PASS: Founder approval is bound and PSA probe defaults fail closed with zero reviewer-material promotion.');
           NODE
+      - name: Verify PSA Premium downstream chain with synthetic data
+        run: |
+          node scripts/kidults/source-intelligence/validate-psa-premium-internal-evaluation-v1.mjs \
+            coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json \
+            /tmp/psa-premium-downstream-readiness-v1.json
       - name: Strict mode must reject absent operational handoff
         run: |
           set +e
@@ -110,7 +116,7 @@ jobs:
           const x=require('/tmp/psa-single-cert-schema-v1.json');
           if(x.probe_count<1||x.probe_count>3) process.exit(1);
           if(x.raw_provider_payload_retained!==false||x.token_retained!==false||x.reviewer_material_increment!==0) process.exit(1);
-          if(x.rights_state!=='PENDING_ACTUAL_API_EULA_TERMINALIZATION'||x.production!=='HOLD'||x.publication!=='HOLD') process.exit(1);
+          if(x.rights_state!=='WRITTEN_BOUNDED_INTERNAL_EVALUATION_RIGHTS_CONFIRMED'||x.production!=='HOLD'||x.publication!=='HOLD') process.exit(1);
           for(const r of x.results){if(r.raw_payload_emitted!==false||!/^sha256:[a-f0-9]{64}$/.test(r.response_sha256)||!/^sha256:[a-f0-9]{64}$/.test(r.cert_number_sha256))process.exit(1);}
           console.log('PASS: PSA bounded schema observation contains no raw provider payload and promotes zero reviewer material.');
           NODE
