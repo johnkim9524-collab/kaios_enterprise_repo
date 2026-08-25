@@ -1,0 +1,19 @@
+{
+  "policy_id": "KIDULTS_D1_LEGACY_RESOURCE_POLICY_V1",
+  "canonical_database": "kidults-intelligence-db",
+  "resources": {
+    "kidults-intelligence-db": "ACTIVE_CANONICAL",
+    "kidults-intelligence-db-dev": "DEV_IDLE_REVIEW",
+    "kidults-intelligence-db-staging": "STAGING_IDLE_REVIEW",
+    "kidults-main-db": "LEGACY_RETIRE_CANDIDATE",
+    "kidults_db": "DORMANT_REVIEW"
+  },
+  "forbidden_new_bindings": ["kidults-main-db", "kidults_db"],
+  "forbidden_refresh_patterns": [
+    "DELETE FROM signal_scores",
+    "DELETE FROM kidult_rankings"
+  ],
+  "required_replacement": "KEYED_UPSERT_CHANGED_ROWS_ONLY_AND_TARGETED_RETIRE_DELETE",
+  "remote_disable_gate": "BINDING_IDENTIFICATION_AND_DEPENDENCY_PROOF_REQUIRED",
+  "paid_upgrade": "HOLD"
+}
