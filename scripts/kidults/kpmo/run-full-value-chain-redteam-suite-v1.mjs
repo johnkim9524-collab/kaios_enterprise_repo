@@ -12,6 +12,10 @@ const criticalWorkflowProvenanceValidators = [
   'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs',
   'scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs'
 ];
+const estateSupplyChainValidators = [
+  'scripts/kidults/kpmo/validate-estate-action-pinning-v1.mjs',
+  'scripts/kidults/kpmo/validate-dependency-bootstrap-lock-v1.mjs'
+];
 const repositoryMutationBoundaryValidators = [
   'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
 ];
@@ -63,6 +67,7 @@ const downstreamBoundaryValidators = [
   'scripts/kidults/kpmo/validate-er-projection-workflow-provenance-v1.mjs',
   'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
   'scripts/kidults/portal/validate-server-projection-capability-v1.mjs',
+  'scripts/kidults/portal/validate-portal-launch-assurance-v1.mjs',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
 const validators = [...new Set([
@@ -70,6 +75,7 @@ const validators = [...new Set([
   stageCoverageValidator,
   criticalGateBindingValidator,
   ...criticalWorkflowProvenanceValidators,
+  ...estateSupplyChainValidators,
   ...repositoryMutationBoundaryValidators,
   ...secretBoundaryValidators,
   ...truthScopeValidators,
@@ -117,6 +123,15 @@ console.log(JSON.stringify({
   critical_workflow_provenance_validators: criticalWorkflowProvenanceValidators.length,
   a13_validation_supply_chain_machine_bound: true,
   a13_validation_dependency_install_mode: 'NPM_CI_COMMITTED_LOCK',
+  estate_action_pinning_machine_bound: true,
+  estate_action_pinning_mutation_selftest: true,
+  estate_action_pinning_semantic_key_mutation_selftest: true,
+  estate_action_exact_allowlist_machine_bound: true,
+  estate_action_allowlist_mutation_selftest: true,
+  estate_moving_runner_alias_forbidden: true,
+  github_hosted_image_build_external_residual: true,
+  dependency_bootstrap_lock_machine_bound: true,
+  dependency_bootstrap_empirical_gate_effect: 'NONE',
   workflow_repository_mutation_boundary_machine_bound: true,
   workflow_repository_mutation_boundary_validators: repositoryMutationBoundaryValidators.length,
   pull_request_secret_boundary_machine_bound: true,
@@ -156,6 +171,10 @@ console.log(JSON.stringify({
   production_recovery_validators: productionRecoveryValidators.length,
   snapshot_readiness_validators: snapshotReadinessValidators.length,
   snapshot_readiness_all_pass_required: true,
+  snapshot_readiness_factory_machine_bound: true,
+  snapshot_readiness_upstream_no_argument_mode: 'SAFE_SELF_TEST',
+  snapshot_readiness_output_existence_is_prerequisite: false,
+  snapshot_readiness_track_b_submission_preauthorized: false,
   production_automatic_rollback_executable_contract: true,
   er_projection_workflow_provenance_machine_bound: true,
   er_projection_workflow_provenance_validators: 1,
@@ -165,7 +184,7 @@ console.log(JSON.stringify({
   server_projection_capability_cryptographic_core_machine_bound: true,
   server_projection_capability_algorithm: 'Ed25519',
   server_projection_capability_route_binding: 'NOT_IMPLEMENTED_HOLD',
-  proof_product_api_export_binding: 'NOT_IMPLEMENTED_HOLD',
+  proof_product_api_export_binding: 'SIGNED_SERVER_CAPABILITY_BOUND__PUBLIC_CALLER_PATH_HOLD',
   projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
   release_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',
