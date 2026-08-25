@@ -32,6 +32,7 @@ jobs:
           printf 'wcag-r1-ci-nonproduction-secret' > /tmp/kidults-conversion-secret
           KAIOS_ENVIRONMENT=staging \
           KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false \
+          KIDULTS_PUBLIC_DIR="$GITHUB_WORKSPACE/apps/kidults-enterprise-staging/public" \
           KIDULTS_CONVERSION_DATA_DIR=/tmp/kidults-conversion-data \
           KIDULTS_CONVERSION_HASH_SECRET_FILE=/tmp/kidults-conversion-secret \
           HOST=127.0.0.1 PORT=4173 \
@@ -57,7 +58,7 @@ jobs:
             for(const route of routes){
               const page=await context.newPage();
               const url='http://127.0.0.1:4173'+route;
-              const response=await page.goto(url,{waitUntil:'networkidle'});
+              const response=await page.goto(url,{waitUntil:'domcontentloaded'});
               if(!response?.ok()){failures.push(`${route}:${vp.name}:HTTP_${response?.status()}`); await page.close(); continue;}
               const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
               const serious=axe.violations.filter(v=>['serious','critical'].includes(v.impact));
