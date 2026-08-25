@@ -1,8 +1,12 @@
 {
   "policy_id": "KIDULTS_CLOUDFLARE_WORKER_ESTATE_POLICY_V1",
+  "as_of": "2026-08-25T12:38:00+09:00",
   "canonical_keep": [
     "kidults",
     "kidults-autonomous-intelligence"
+  ],
+  "temporary_staging_keep": [
+    "kidults-workspace-staging"
   ],
   "inspect_before_decision": [
     "kidults-autonomous-intelligence-dev",
@@ -14,8 +18,6 @@
     "kidults-enterprise"
   ],
   "quarantine_retire_candidates": [
-    "kidults-global-standard-preview",
-    "kidults-one-dev",
     "kidults-kaios",
     "kidults-web",
     "kidults-admin",
@@ -27,15 +29,55 @@
     "kidults-brand-intelligence",
     "kidults-real-collector",
     "kidults-gpt-intelligence",
-    "kidults-automation-engine",
     "kidults-platform-core",
     "kidults-v22-ai-analyzer",
     "kidults-v21-collector",
     "kidults-pages",
-    "kidults-api",
-    "kaios-collector",
-    "raspy-fog-3002",
-    "hidden-firefly-d588"
+    "kidults-api"
+  ],
+  "retired_confirmed": [
+    {
+      "name": "kidults-automation-engine",
+      "type": "WORKER",
+      "status": "RETIRED_FOUNDER_CONFIRMED",
+      "proof": "remote deletion confirmed; initial kidults-main-db destructive-refresh counters stopped increasing after removal",
+      "residual_observation": "24H_72H_DATA_RESOURCE_OBSERVATION_PENDING"
+    },
+    {
+      "name": "raspy-fog-3002",
+      "type": "WORKER",
+      "status": "RETIRED_FOUNDER_CONFIRMED",
+      "proof": "remote deletion confirmed after zero-activity/dependency inspection; visibly exposed Gemini credential deleted",
+      "residual_observation": "LEGACY_D1_OBSERVATION_PENDING"
+    },
+    {
+      "name": "hidden-firefly-d588",
+      "type": "WORKER",
+      "status": "RETIRED_FOUNDER_CONFIRMED",
+      "proof": "remote deletion confirmed after zero-binding/static-asset inspection",
+      "residual_observation": "POST_DELETE_INVENTORY_CONFIRMATION"
+    },
+    {
+      "name": "kaios-collector",
+      "type": "WORKER",
+      "status": "RETIRED_FOUNDER_CONFIRMED",
+      "proof": "remote deletion confirmed after failing 6-hour collector dependency review",
+      "residual_observation": "KEEP_KIDULTS_MAIN_DB_AND_KAIOS_RAW_FOR_SEPARATE_REVIEW"
+    },
+    {
+      "name": "kidults-global-standard-preview",
+      "type": "WORKER",
+      "status": "RETIRED_POST_DELETE_EMPIRICAL_PASS",
+      "proof": "workers.dev post-delete surface returned Cloudflare empty-site state",
+      "residual_observation": "PUBLICATION_SURFACE_REMOVED"
+    },
+    {
+      "name": "kidults-one-dev",
+      "type": "PAGES",
+      "status": "RETIRED_POST_DELETE_EMPIRICAL_PASS",
+      "proof": "pages.dev post-delete surface returned Cloudflare Error 1016 / Origin DNS error",
+      "residual_observation": "SOURCE_REPOSITORY_PRESERVED"
+    }
   ],
   "forbidden_new_deploy_targets": [
     "kidults-global-standard-preview",
