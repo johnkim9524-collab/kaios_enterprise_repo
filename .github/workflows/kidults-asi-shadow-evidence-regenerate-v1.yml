@@ -75,6 +75,7 @@ jobs:
           NODE
           cat /tmp/asi-shadow-evidence-regeneration-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: kidults-asi-shadow-evidence-regenerated-v1
           path: |
