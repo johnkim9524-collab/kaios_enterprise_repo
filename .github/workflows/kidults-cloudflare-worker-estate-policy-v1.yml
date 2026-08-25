@@ -19,6 +19,7 @@ jobs:
         with:
           node-version: '24'
       - run: node scripts/kidults/redteam/validate-cloudflare-worker-estate-policy-v1.mjs
+      - run: node scripts/kidults/redteam/validate-cloudflare-estate-classification-v1.mjs
       - run: node scripts/kidults/redteam/validate-enterprise-workspace-cutover-v1.mjs
       - run: node scripts/kidults/redteam/validate-workspace-registry-truth-source-v1.mjs
       - run: node scripts/kidults/portal/validate-current-truth-surface-v1.mjs
