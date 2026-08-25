@@ -121,6 +121,8 @@
     "architecture_coverage_counts_as_empirical_global_proof": false,
     "authorized_internal_bottleneck_remediation_required": true,
     "scale_claim_requires_measured_evidence": true,
-    "protected_external_empirical_gates_preserved": true
+    "protected_external_empirical_gates_preserved": true,
+    "rule_id": "AI-018",
+    "rule_name": "GLOBAL_SCALE_STEWARDSHIP"
   }
 }
