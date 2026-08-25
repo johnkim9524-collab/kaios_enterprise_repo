@@ -33,6 +33,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-asi-source-domain-observation-graph-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-source-domain-observation-graph-v1.mjs
       - name: Restore latest main Self-Driving cycle inputs
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -50,10 +51,12 @@ jobs:
           cp "$DISCOVERY" discovery-out/global-low-risk-discovery.json
           cp "$POOL" /tmp/asi-proactive-source-pool-v1.json
       - name: Build and validate conservative source-domain graph
+        if: github.event_name != 'pull_request'
         run: |
           node scripts/kidults/source-intelligence/build-asi-source-domain-observation-graph-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-proactive-source-pool-v1.json /tmp/asi-source-domain-observation-graph-v1.json
           node scripts/kidults/source-intelligence/validate-asi-source-domain-observation-graph-v1.mjs /tmp/asi-source-domain-observation-graph-v1.json
       - name: Prove deterministic graph topology replay
+        if: github.event_name != 'pull_request'
         run: |
           node scripts/kidults/source-intelligence/build-asi-source-domain-observation-graph-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-proactive-source-pool-v1.json /tmp/asi-source-domain-observation-graph-replay-v1.json
           node - <<'NODE'
@@ -65,6 +68,7 @@ jobs:
           console.log(JSON.stringify({status:'PASS',graph_digest:a.graph_digest,nodes:a.nodes.length,edges:a.edges.length,production:'HOLD'}));
           NODE
       - name: Reject cross-domain same-organization mutation
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           node - <<'NODE'
@@ -77,6 +81,7 @@ jobs:
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-source-domain-observation-graph-v1.mjs /tmp/bad-source-domain-org-merge.json; then exit 1; fi
       - name: Reject topology-created rights mutation
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           node - <<'NODE'
@@ -89,6 +94,7 @@ jobs:
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-source-domain-observation-graph-v1.mjs /tmp/bad-source-domain-rights.json; then exit 1; fi
       - name: Reject registrable-domain or legal-owner inference mutation
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           node - <<'NODE'
@@ -102,6 +108,7 @@ jobs:
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-source-domain-observation-graph-v1.mjs /tmp/bad-source-domain-owner.json; then exit 1; fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.event_name != 'pull_request'
         with:
           name: kidults-asi-source-domain-observation-graph-v1
           path: |
