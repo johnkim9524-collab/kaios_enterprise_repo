@@ -51,9 +51,15 @@ function sourceSha() {
 }
 
 function safeChildEnv() {
-  const allowed = ['PATH', 'HOME', 'TMPDIR', 'LANG', 'LC_ALL', 'NODE_OPTIONS', 'PYTHON'];
+  const allowed = ['PATH', 'TMPDIR', 'LANG', 'LC_ALL', 'NODE_OPTIONS', 'PYTHON'];
   const env = Object.fromEntries(allowed.filter((key) => process.env[key]).map((key) => [key, process.env[key]]));
-  return { ...env, CI: 'true', NODE_ENV: 'test', KPMO_AUDIT_NETWORK_MODE: 'UNPRIVILEGED' };
+  return {
+    ...env,
+    HOME: tempRoot,
+    CI: 'true',
+    NODE_ENV: 'test',
+    KPMO_AUDIT_NETWORK_MODE: 'UNPRIVILEGED'
+  };
 }
 
 function run(id, command, args, timeoutMs = 600_000) {
