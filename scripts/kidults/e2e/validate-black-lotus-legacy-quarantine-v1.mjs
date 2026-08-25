@@ -16,7 +16,7 @@ const requireTruth = (condition, message) => {
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 requireTruth(!workflow.includes('workflow_dispatch:'), 'LEGACY_MANUAL_EXECUTION_MUST_BE_REMOVED');
 requireTruth(workflow.includes('runs-on: ubuntu-24.04'), 'RUNNER_MUST_BE_PINNED');
-requireTruth(workflow.includes("node-version: '24'"), 'NODE_24_REQUIRED');
+requireTruth(workflow.includes("node-version: '24.19.0'"), 'NODE_24_19_0_REQUIRED');
 requireTruth(workflow.includes('actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'), 'CHECKOUT_MUST_BE_IMMUTABLE');
 requireTruth(workflow.includes('actions/setup-node@820762786026740c76f36085b0efc47a31fe5020'), 'SETUP_NODE_MUST_BE_IMMUTABLE');
 requireTruth(workflow.includes('persist-credentials: false'), 'CHECKOUT_CREDENTIALS_MUST_NOT_PERSIST');

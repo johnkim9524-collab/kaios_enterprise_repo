@@ -9,6 +9,7 @@ import {
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { notifierFromEnvironment } from "./notification.mjs";
+import {hydrateConversionRecord} from "./server.mjs";
 
 const DEFAULT_INTERVAL_MS = 30000;
 
@@ -63,7 +64,7 @@ export async function dispatchPendingNotifications(options) {
   const now = options.now || (() => new Date());
   const state = readState(statePath);
   const delivered = new Set(state.delivered_ids);
-  const submissions = readJsonLines(submissionsPath);
+  const submissions = readJsonLines(submissionsPath).map(record=>hydrateConversionRecord(record,options.vaultSecret));
   const pending = submissions.filter((submission) => submission?.id && !delivered.has(submission.id));
   const results = [];
 
@@ -108,6 +109,7 @@ function configurationFromEnvironment(env = process.env) {
     statePath: resolve(dataDir, "notification-state.json"),
     auditPath: resolve(dataDir, "conversion-audit.jsonl"),
     notify: required(notifierFromEnvironment(env), "KIDULTS_NOTIFICATION_ENABLED=true")
+    ,vaultSecret: env.KIDULTS_CONVERSION_VAULT_SECRET_FILE?readFileSync(env.KIDULTS_CONVERSION_VAULT_SECRET_FILE,"utf8").trim():null
   };
 }
 

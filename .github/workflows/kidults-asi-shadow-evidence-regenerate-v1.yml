@@ -45,7 +45,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: '24'
+          node-version: '24.19.0'
       - name: Verify exact source and syntax
         run: |
           set -euo pipefail
@@ -75,6 +75,7 @@ jobs:
           NODE
           cat /tmp/asi-shadow-evidence-regeneration-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: kidults-asi-shadow-evidence-regenerated-v1
           path: |

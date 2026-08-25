@@ -1,11 +1,11 @@
 {
   "id": "kidults-ai-agent-governance-registry-v1",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "registered_policy": {
     "policy_id": "KPMO-AI-GOV-001",
-    "policy_version": "1.1.0",
+    "policy_version": "1.3.0",
     "platform_constitution_path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
     "human_policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
     "root_instruction_path": "AGENTS.md",
@@ -73,7 +73,10 @@
     "REGISTRY_IS_TRUTH",
     "LABEL_FACT_INFERENCE_PLAN_UNKNOWN",
     "FAIL_CLOSED_ON_UNCERTAINTY",
-    "TRUST_OVER_SPEED"
+    "TRUST_OVER_SPEED",
+    "PROACTIVE_ISSUE_OWNERSHIP",
+    "LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT",
+    "GLOBAL_SCALE_STEWARDSHIP"
   ],
   "violation_classification": {
     "material_false_or_unsupported_claim": "P0_GOVERNANCE_DEFECT",
@@ -92,5 +95,34 @@
     "requires_change_rationale": true
   },
   "public_release": "HOLD",
-  "production": "HOLD"
+  "production": "HOLD",
+  "leadership_execution": {
+    "detected_internal_defect_requires_immediate_authorized_remediation": true,
+    "repeated_human_prompting_as_normal_activation_forbidden": true,
+    "ownership_through_evidence_bound_validation_required": true,
+    "verified_outcome_report_required": true,
+    "unresolved_external_dependency_disclosure_required": true,
+    "prioritized_forward_improvement_proposal_required": true,
+    "protected_authority_gates_preserved": true
+  },
+  "global_scale_stewardship": {
+    "scope": "ENTIRE_VALUE_CHAIN",
+    "platform_position": "GLOBAL_LEADING_PLATFORM",
+    "boutique_or_local_only_assumptions_allowed": false,
+    "required_dimensions": [
+      "CATEGORY_GEOGRAPHY_LANGUAGE_SOURCE_EVIDENCE_COVERAGE",
+      "CAPACITY_THROUGHPUT_CONCURRENCY_BACKPRESSURE",
+      "HORIZONTAL_PARTITIONING_AND_FAILURE_ISOLATION",
+      "RIGHTS_LEGAL_AND_COMMERCIAL_BOUNDARIES",
+      "DATA_QUALITY_FRESHNESS_LINEAGE_AND_IMMUTABILITY",
+      "COST_EFFICIENCY_UNIT_ECONOMICS_AND_PROVIDER_INDEPENDENCE",
+      "OBSERVABILITY_SLO_RECOVERY_AND_AUDIT_RECEIPTS"
+    ],
+    "architecture_coverage_counts_as_empirical_global_proof": false,
+    "authorized_internal_bottleneck_remediation_required": true,
+    "scale_claim_requires_measured_evidence": true,
+    "protected_external_empirical_gates_preserved": true,
+    "rule_id": "AI-018",
+    "rule_name": "GLOBAL_SCALE_STEWARDSHIP"
+  }
 }

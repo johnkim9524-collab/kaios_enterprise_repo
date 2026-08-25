@@ -1,0 +1,3 @@
+# Direct CI/test dependencies. Compile with Python 3.11 for the governed hashed lock.
+pytest>=8.0.0
+jsonschema==4.26.0

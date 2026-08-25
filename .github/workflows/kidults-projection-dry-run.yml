@@ -25,7 +25,7 @@ permissions:
 jobs:
   projection-dry-run:
     name: Projection Dry-Run
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout exact source commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -45,6 +45,6 @@ jobs:
           test "${ACTUAL_SHA}" = "${EXPECTED_SHA}"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '24'
+          node-version: '24.19.0'
       - name: Execute NON_PROMOTABLE Projection chain
         run: node scripts/kidults/projection/validate-projection-dry-run-v1.mjs

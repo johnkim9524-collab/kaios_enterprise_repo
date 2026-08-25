@@ -8,24 +8,35 @@ permissions:
 
 jobs:
   probe:
+    if: github.ref == 'refs/heads/main'
+    environment: kidults-psa-public-single-cert
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
       PSA_CERT_NUMBER: '08178895'
-      PSA_PUBLIC_API_TOKEN: ${{ secrets.PSA_PUBLIC_API_TOKEN }}
     steps:
-      - name: Verify credential boundary
+      - name: Verify live main before provider credential resolution
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          if [ -z "$PSA_PUBLIC_API_TOKEN" ]; then
-            echo 'PSA_PUBLIC_API_TOKEN secret is absent; fail closed.'
-            exit 2
-          fi
-          echo "::add-mask::$PSA_PUBLIC_API_TOKEN"
-          echo 'Credential boundary PASS: token present and masked.'
-
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
       - name: Execute one official single-cert probe
         shell: bash
+        env:
+          PSA_PUBLIC_API_TOKEN: ${{ secrets.PSA_PUBLIC_API_TOKEN }}
         run: |
           node - <<'NODE'
           const fs = require('node:fs');

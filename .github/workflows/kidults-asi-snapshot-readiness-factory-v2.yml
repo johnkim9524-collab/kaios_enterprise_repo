@@ -1,7 +1,6 @@
 name: KIDULTS ASI Snapshot Readiness Factory v2
 
 on:
-  workflow_dispatch:
   schedule:
     - cron: '7 * * * *'
   push:
@@ -11,6 +10,10 @@ on:
       - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json'
       - 'scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs'
+      - 'scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs'
+      - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs'
       - 'docs/kidults/asi/asi-snapshot-readiness-factory-v2.md'
       - '.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml'
@@ -21,6 +24,10 @@ on:
       - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json'
       - 'scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs'
+      - 'scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs'
+      - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs'
       - 'docs/kidults/asi/asi-snapshot-readiness-factory-v2.md'
       - '.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml'
@@ -39,23 +46,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate-p3-control-on-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Run secretless P3 static and liveness validation only
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs
+          node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs --self-test
+          node scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
+
   assess-current-snapshot-readiness:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') && (github.event_name == 'schedule' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
+      - name: Require exact main for authoritative P3 artifact publication
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          case "$GITHUB_EVENT_NAME" in
+            push|schedule|workflow_run) ;;
+            *) exit 64 ;;
+          esac
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: '24'
+          node-version: '24.19.0'
       - name: Verify exact source and current P3 contracts
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs
+          node --check scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs
+          node --check scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs
+          node --check scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json','utf8'))"
@@ -64,38 +103,95 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs \
             | tee /tmp/kidults-asi-snapshot-readiness-factory-registry-validation-v2.json
-      - name: Restore latest current P0B P1 and P2 v2 artifacts
+      - name: Prove P3 liveness and upstream-binding mutation resistance
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs --self-test
+          node scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
+      - name: Restore exact P2 run and its receipt-bound P0B and P1 artifacts
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_P2_RUN_ID: ${{ github.event.workflow_run.id }}
+          EVENT_P2_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/p0b-expanded /tmp/p1-expanded /tmp/p2-expanded /tmp/p0b /tmp/p1 /tmp/p2
-          P0B_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false)][0].id // empty)')
-          P1_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false)][0].id // empty)')
-          P2_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-owned-source-intelligence-graph-v2" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-owned-source-intelligence-graph-v2" and .expired==false)][0].id // empty)')
-          test -n "$P0B_ID" && test -n "$P1_ID" && test -n "$P2_ID"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
+            test -n "$EVENT_P2_RUN_ID" && test -n "$EVENT_P2_HEAD_SHA"
+            P2_RUN_ID="$EVENT_P2_RUN_ID"
+          else
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml/runs?branch=main&status=success&per_page=1" \
+              > /tmp/p2-runs.json
+            P2_RUN_ID="$(node -e "const x=require('/tmp/p2-runs.json');if(x.workflow_runs?.length!==1)process.exit(2);process.stdout.write(String(x.workflow_runs[0].id))")"
+          fi
+          [[ "$P2_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${P2_RUN_ID}" > /tmp/p2-run.json
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/branches/main" > /tmp/main-branch.json
+          P2_RUN_ID="$P2_RUN_ID" node - <<'NODE'
+          const fs=require('fs');const run=JSON.parse(fs.readFileSync('/tmp/p2-run.json'));const main=JSON.parse(fs.readFileSync('/tmp/main-branch.json'));
+          const completed=Date.parse(run.completed_at||'');const age=Date.now()-completed;
+          if(String(run.id)!==String(process.env.P2_RUN_ID)||run.path!=='.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'||run.head_branch!=='main'||run.conclusion!=='success'||!(/^[0-9a-f]{40}$/.test(run.head_sha))||run.repository?.full_name!==process.env.GITHUB_REPOSITORY||main.name!=='main'||main.commit?.sha!==run.head_sha||main.commit.sha!==process.env.GITHUB_SHA||!Number.isFinite(completed)||age<0||age>24*60*60*1000)process.exit(2);
+          if(process.env.GITHUB_EVENT_NAME==='workflow_run'&&(String(run.id)!==String(process.env.EVENT_P2_RUN_ID)||run.head_sha!==process.env.EVENT_P2_HEAD_SHA))process.exit(3);
+          NODE
+          P2_HEAD_SHA="$(node -p "require('/tmp/p2-run.json').head_sha")"
+          for PAGE in 1 2 3; do
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${P2_RUN_ID}/artifacts?per_page=100&page=${PAGE}"
+          done | jq -s '.' > /tmp/p2-artifact-pages.json
+          node - <<'NODE'
+          const fs=require('fs');const pages=JSON.parse(fs.readFileSync('/tmp/p2-artifact-pages.json'));const run=JSON.parse(fs.readFileSync('/tmp/p2-run.json'));
+          const matches=pages.flatMap(x=>x.artifacts||[]).filter(x=>x.name==='kidults-asi-owned-source-intelligence-graph-v2'&&x.expired===false);
+          if(matches.length!==1)process.exit(2);const a=matches[0];
+          if(String(a.workflow_run?.id)!==String(run.id)||a.workflow_run?.head_branch!=='main'||a.workflow_run?.head_sha!==run.head_sha||!(/^sha256:[0-9a-f]{64}$/.test(a.digest||'')))process.exit(3);
+          fs.writeFileSync('/tmp/p2-artifact.json',JSON.stringify(a,null,2)+'\n');
+          NODE
+          P2_ID="$(node -p "require('/tmp/p2-artifact.json').id")"
+          [[ "$P2_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P2_ID}/zip" > /tmp/p2.zip
+          P2_ARCHIVE_SHA256="sha256:$(sha256sum /tmp/p2.zip | awk '{print $1}')"
+          P2_ARCHIVE_SHA256="$P2_ARCHIVE_SHA256" node - <<'NODE'
+          const fs=require('fs');const p='/tmp/p2-artifact.json';const a=JSON.parse(fs.readFileSync(p));if(a.digest!==process.env.P2_ARCHIVE_SHA256)process.exit(2);a.downloaded_archive_sha256=process.env.P2_ARCHIVE_SHA256;fs.writeFileSync(p,JSON.stringify(a,null,2)+'\n');
+          NODE
+          unzip -q -o /tmp/p2.zip -d /tmp/p2-expanded
+          copy_unique() { mapfile -t FILES < <(find "$1" -type f -name "$2" -print); test "${#FILES[@]}" -eq 1; cp -- "${FILES[0]}" "$3/$2"; }
+          for NAME in owned-source-intelligence-graph-v2.json owned-source-intelligence-lineage-v2.json owned-source-intelligence-quality-v2.json owned-source-intelligence-value-receipt-v2.json owned-source-intelligence-manifest-v2.json kidults-asi-owned-source-intelligence-graph-kpmo-receipt-v2.json; do copy_unique /tmp/p2-expanded "$NAME" /tmp/p2; done
+          P0B_ID="$(node -p "require('/tmp/p2/kidults-asi-owned-source-intelligence-graph-kpmo-receipt-v2.json').p0b_artifact_id")"
+          P1_ID="$(node -p "require('/tmp/p2/kidults-asi-owned-source-intelligence-graph-kpmo-receipt-v2.json').p1_artifact_id")"
+          [[ "$P0B_ID" =~ ^[1-9][0-9]*$ ]] && [[ "$P1_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0B_ID}" > /tmp/p0b-artifact.json
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}" > /tmp/p1-artifact.json
+          node - <<'NODE'
+          const fs=require('fs');for(const [file,name] of [['/tmp/p0b-artifact.json','kidults-asi-p0b-bounded-discovery-candidates-v1'],['/tmp/p1-artifact.json','kidults-asi-p1-source-preflight-v1']]){const a=JSON.parse(fs.readFileSync(file));if(a.name!==name||a.expired!==false||a.workflow_run?.head_branch!=='main'||!(/^[0-9a-f]{40}$/.test(a.workflow_run?.head_sha||''))||!(/^sha256:[0-9a-f]{64}$/.test(a.digest||'')))process.exit(2);}
+          NODE
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0B_ID}/zip" > /tmp/p0b.zip
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/p1.zip
-          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P2_ID}/zip" > /tmp/p2.zip
+          P0B_ARCHIVE_SHA256="sha256:$(sha256sum /tmp/p0b.zip | awk '{print $1}')"
+          P1_ARCHIVE_SHA256="sha256:$(sha256sum /tmp/p1.zip | awk '{print $1}')"
+          P0B_ARCHIVE_SHA256="$P0B_ARCHIVE_SHA256" P1_ARCHIVE_SHA256="$P1_ARCHIVE_SHA256" node - <<'NODE'
+          const fs=require('fs');for(const [file,digest] of [['/tmp/p0b-artifact.json',process.env.P0B_ARCHIVE_SHA256],['/tmp/p1-artifact.json',process.env.P1_ARCHIVE_SHA256]]){const a=JSON.parse(fs.readFileSync(file));if(a.digest!==digest)process.exit(2);a.downloaded_archive_sha256=digest;fs.writeFileSync(file,JSON.stringify(a,null,2)+'\n');}
+          NODE
           unzip -q -o /tmp/p0b.zip -d /tmp/p0b-expanded
           unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
-          unzip -q -o /tmp/p2.zip -d /tmp/p2-expanded
-          for NAME in p0b-source-candidate-registry-v1.json p0b-mission-candidate-binding-ledger-v1.json p0b-bounded-discovery-manifest-v1.json; do
-            FILE=$(find /tmp/p0b-expanded -type f -name "$NAME" -print -quit); test -n "$FILE"; cp "$FILE" "/tmp/p0b/$NAME"
-          done
-          for NAME in p1-gate1-source-safety-decisions-v1.json p1-evidence-admission-candidate-register-v1.json p1-preflight-action-queue-v1.json p1-source-preflight-manifest-v1.json; do
-            FILE=$(find /tmp/p1-expanded -type f -name "$NAME" -print -quit); test -n "$FILE"; cp "$FILE" "/tmp/p1/$NAME"
-          done
-          for NAME in owned-source-intelligence-graph-v2.json owned-source-intelligence-lineage-v2.json owned-source-intelligence-quality-v2.json owned-source-intelligence-value-receipt-v2.json owned-source-intelligence-manifest-v2.json; do
-            FILE=$(find /tmp/p2-expanded -type f -name "$NAME" -print -quit); test -n "$FILE"; cp "$FILE" "/tmp/p2/$NAME"
-          done
+          for NAME in p0b-source-candidate-registry-v1.json p0b-mission-candidate-binding-ledger-v1.json p0b-bounded-discovery-manifest-v1.json; do copy_unique /tmp/p0b-expanded "$NAME" /tmp/p0b; done
+          for NAME in p1-gate1-source-safety-decisions-v1.json p1-evidence-admission-candidate-register-v1.json p1-preflight-action-queue-v1.json p1-source-preflight-manifest-v1.json; do copy_unique /tmp/p1-expanded "$NAME" /tmp/p1; done
+          P2_RUN_ID="$P2_RUN_ID" P2_HEAD_SHA="$P2_HEAD_SHA" node - <<'NODE'
+          const fs=require('fs');const workflowRun=process.env.GITHUB_EVENT_NAME==='workflow_run';const run=JSON.parse(fs.readFileSync('/tmp/p2-run.json'));const main=JSON.parse(fs.readFileSync('/tmp/main-branch.json'));const value={repository:process.env.GITHUB_REPOSITORY,trigger_event:process.env.GITHUB_EVENT_NAME,event_upstream_run_id:workflowRun?process.env.EVENT_P2_RUN_ID:null,event_upstream_head_sha:workflowRun?process.env.EVENT_P2_HEAD_SHA:null,observed_main_head_sha:main.commit.sha,readback_observed_at:new Date().toISOString(),p2_run:run,artifacts:{p0b:JSON.parse(fs.readFileSync('/tmp/p0b-artifact.json')),p1:JSON.parse(fs.readFileSync('/tmp/p1-artifact.json')),p2:JSON.parse(fs.readFileSync('/tmp/p2-artifact.json'))}};fs.writeFileSync('/tmp/p3-upstream-binding.json',JSON.stringify(value,null,2)+'\n');
+          NODE
+          node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs \
+            /tmp/p3-upstream-binding.json /tmp/p0b /tmp/p1 /tmp/p2 \
+            /tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json
           echo "P0B_ARTIFACT_ID=$P0B_ID" >> "$GITHUB_ENV"
           echo "P1_ARTIFACT_ID=$P1_ID" >> "$GITHUB_ENV"
           echo "P2_ARTIFACT_ID=$P2_ID" >> "$GITHUB_ENV"
+          echo "P2_WORKFLOW_RUN_ID=$P2_RUN_ID" >> "$GITHUB_ENV"
+          echo "P2_HEAD_SHA=$P2_HEAD_SHA" >> "$GITHUB_ENV"
           echo "p0b_artifact_id=$P0B_ID"
           echo "p1_artifact_id=$P1_ID"
           echo "p2_artifact_id=$P2_ID"
+          echo "p2_workflow_run_id=$P2_RUN_ID"
+          echo "p2_head_sha=$P2_HEAD_SHA"
       - name: Build current P3 readiness twice
         run: |
           set -euo pipefail
@@ -113,6 +209,7 @@ jobs:
               /tmp/p2/owned-source-intelligence-quality-v2.json \
               /tmp/p2/owned-source-intelligence-value-receipt-v2.json \
               /tmp/p2/owned-source-intelligence-manifest-v2.json \
+              /tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json \
               coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json \
               "/tmp/kidults-asi-snapshot-readiness-factory-run-${RUN}"
           done
@@ -134,6 +231,7 @@ jobs:
             /tmp/p2/owned-source-intelligence-quality-v2.json \
             /tmp/p2/owned-source-intelligence-value-receipt-v2.json \
             /tmp/p2/owned-source-intelligence-manifest-v2.json \
+            /tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json \
             coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json \
             | tee /tmp/kidults-asi-snapshot-readiness-factory-validation-v2.json
       - name: Reject false snapshot candidate mutation
@@ -141,7 +239,7 @@ jobs:
           set -euo pipefail
           cp -a /tmp/kidults-asi-snapshot-readiness-factory-run-1 /tmp/bad-false-snapshot
           printf '%s\n' '{"id":"fabricated"}' > /tmp/bad-false-snapshot/snapshot-candidate.json
-          if node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs /tmp/bad-false-snapshot /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b/p0b-bounded-discovery-manifest-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1/p1-source-preflight-manifest-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json; then exit 1; fi
+          if node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs /tmp/bad-false-snapshot /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b/p0b-bounded-discovery-manifest-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1/p1-source-preflight-manifest-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json /tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json; then exit 1; fi
       - name: Reject false evidence admission mutation
         run: |
           set -euo pipefail
@@ -149,7 +247,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-false-admission/snapshot-readiness-ledger-v2.json';const x=JSON.parse(fs.readFileSync(p));x.counts.evidence_admitted=1;x.snapshot_creation_gate_pass=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs /tmp/bad-false-admission /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b/p0b-bounded-discovery-manifest-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1/p1-source-preflight-manifest-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json; then exit 1; fi
+          if node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs /tmp/bad-false-admission /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b/p0b-bounded-discovery-manifest-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1/p1-source-preflight-manifest-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json /tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json; then exit 1; fi
       - name: Reject Track B start mutation
         run: |
           set -euo pipefail
@@ -157,15 +255,15 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-track-b/track-b-handoff-readiness-v2.json';const x=JSON.parse(fs.readFileSync(p));x.state='READY_FOR_INDEPENDENT_ASSESSMENT';x.independent_assessment_started=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs /tmp/bad-track-b /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b/p0b-bounded-discovery-manifest-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1/p1-source-preflight-manifest-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json; then exit 1; fi
+          if node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs /tmp/bad-track-b /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b/p0b-bounded-discovery-manifest-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1/p1-source-preflight-manifest-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json /tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json; then exit 1; fi
       - name: Reject missing blocker mutation
         run: |
           set -euo pipefail
           cp -a /tmp/kidults-asi-snapshot-readiness-factory-run-1 /tmp/bad-missing-blocker
           node - <<'NODE'
-          const fs=require('fs');const p='/tmp/bad-missing-blocker/immutable-blocker-package-v2.json';const x=JSON.parse(fs.readFileSync(p));x.blockers=x.blockers.filter(v=>v.blocker_class!=='EVIDENCE_ADMISSION_ZERO');x.blocker_count=x.blockers.length;x.p0_blocker_count=x.blockers.filter(v=>v.severity==='P0').length;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          const fs=require('fs');const p='/tmp/bad-missing-blocker/immutable-blocker-package-v2.json';const x=JSON.parse(fs.readFileSync(p));x.blockers=x.blockers.length?x.blockers.slice(1):[{blocker_class:'FABRICATED',severity:'P0'}];x.blocker_count=x.blockers.length;x.p0_blocker_count=x.blockers.filter(v=>v.severity==='P0').length;x.p1_blocker_count=x.blockers.filter(v=>v.severity==='P1').length;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs /tmp/bad-missing-blocker /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b/p0b-bounded-discovery-manifest-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1/p1-source-preflight-manifest-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json; then exit 1; fi
+          if node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs /tmp/bad-missing-blocker /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b/p0b-bounded-discovery-manifest-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1/p1-source-preflight-manifest-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json /tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json; then exit 1; fi
       - name: Reject blocker package as Evidence Package mutation
         run: |
           set -euo pipefail
@@ -173,7 +271,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-blocker-package/immutable-blocker-package-v2.json';const x=JSON.parse(fs.readFileSync(p));x.package_is_evidence_package=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs /tmp/bad-blocker-package /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b/p0b-bounded-discovery-manifest-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1/p1-source-preflight-manifest-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json; then exit 1; fi
+          if node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs /tmp/bad-blocker-package /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b/p0b-bounded-discovery-manifest-v1.json /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1/p1-source-preflight-manifest-v1.json /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json /tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json; then exit 1; fi
       - name: Reject manual-only activation mutation
         run: |
           set -euo pipefail
@@ -191,24 +289,42 @@ jobs:
             /tmp/kidults-asi-snapshot-readiness-factory-run-1 \
             /tmp/p0b/p0b-source-candidate-registry-v1.json /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b/p0b-bounded-discovery-manifest-v1.json \
             /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1/p1-source-preflight-manifest-v1.json \
-            /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json \
+            /tmp/p2/owned-source-intelligence-graph-v2.json /tmp/p2/owned-source-intelligence-lineage-v2.json /tmp/p2/owned-source-intelligence-quality-v2.json /tmp/p2/owned-source-intelligence-value-receipt-v2.json /tmp/p2/owned-source-intelligence-manifest-v2.json /tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json \
             coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json \
             > /tmp/kidults-asi-snapshot-readiness-factory-final-validation-v2.json
       - name: Emit KPMO P3 receipt
         run: |
           node - <<'NODE' >/tmp/kidults-asi-snapshot-readiness-factory-kpmo-receipt-v2.json
-          const fs=require('fs');const m=JSON.parse(fs.readFileSync('/tmp/kidults-asi-snapshot-readiness-factory-run-1/snapshot-readiness-manifest-v2.json'));process.stdout.write(JSON.stringify({id:'kidults-asi-snapshot-readiness-factory-kpmo-receipt-v2',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,p0b_artifact_id:process.env.P0B_ARTIFACT_ID,p1_artifact_id:process.env.P1_ARTIFACT_ID,p2_artifact_id:process.env.P2_ARTIFACT_ID,graph_digest:m.input_bindings.p2.graph_digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,snapshot_candidate_generated:false,evidence_package_generated:false,track_b_assessment_started:false,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs'),crypto=require('crypto');const m=JSON.parse(fs.readFileSync('/tmp/kidults-asi-snapshot-readiness-factory-run-1/snapshot-readiness-manifest-v2.json'));const b=JSON.parse(fs.readFileSync('/tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json'));const bindingReceiptSha256='sha256:'+crypto.createHash('sha256').update(fs.readFileSync('/tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json')).digest('hex');if(bindingReceiptSha256!==m.upstream_binding_receipt_sha256)process.exit(2);process.stdout.write(JSON.stringify({id:'kidults-asi-snapshot-readiness-factory-kpmo-receipt-v2',state:'VERIFIED_PASS',source_ref:process.env.GITHUB_REF,source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,authoritative_artifact_publish:process.env.GITHUB_REF==='refs/heads/main'&&process.env.GITHUB_EVENT_NAME!=='pull_request',p0b_artifact_id:process.env.P0B_ARTIFACT_ID,p1_artifact_id:process.env.P1_ARTIFACT_ID,p2_artifact_id:process.env.P2_ARTIFACT_ID,p2_workflow_run_id:process.env.P2_WORKFLOW_RUN_ID,p2_head_sha:process.env.P2_HEAD_SHA,upstream_binding_receipt_id:b.id,upstream_binding_receipt_sha256:bindingReceiptSha256,graph_digest:m.input_bindings.p2.graph_digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,snapshot_candidate_generated:m.results.snapshot_candidates_created===1,evidence_package_generated:m.results.evidence_packages_created===1,exact_pair_digest:m.exact_pair_digest,immutable_storage_verified:false,artifact_attestation_verified:false,canonical_handoff_preflight:m.exact_pair_digest?'BLOCKED_PENDING_IMMUTABLE_STORAGE_AND_ATTESTATION':'NOT_APPLICABLE',track_b_submission_eligible:false,track_b_assessment_started:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/kidults-asi-snapshot-readiness-factory-kpmo-receipt-v2.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - id: upload_pair
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: kidults-asi-snapshot-readiness-factory-v2
+          name: kidults-asi-snapshot-readiness-factory-v2-main-${{ github.sha }}-${{ github.run_id }}
           path: |
             /tmp/kidults-asi-snapshot-readiness-factory-run-1
             /tmp/kidults-asi-snapshot-readiness-factory-registry-validation-v2.json
             /tmp/kidults-asi-snapshot-readiness-factory-validation-v2.json
             /tmp/kidults-asi-snapshot-readiness-factory-registry-final-validation-v2.json
             /tmp/kidults-asi-snapshot-readiness-factory-final-validation-v2.json
+            /tmp/kidults-asi-snapshot-readiness-upstream-binding-v2.json
             /tmp/kidults-asi-snapshot-readiness-factory-kpmo-receipt-v2.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Capture provider artifact receipt without promoting attestation
+        env:
+          ARTIFACT_ID: ${{ steps.upload_pair.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload_pair.outputs.artifact-digest }}
+          ARTIFACT_URL: ${{ steps.upload_pair.outputs.artifact-url }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE' >/tmp/kidults-asi-snapshot-readiness-provider-artifact-receipt-v2.json
+          const fs=require('fs');const m=JSON.parse(fs.readFileSync('/tmp/kidults-asi-snapshot-readiness-factory-run-1/snapshot-readiness-manifest-v2.json'));const expectedUrl=`${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${process.env.ARTIFACT_ID}`;if(!/^[1-9][0-9]*$/.test(process.env.ARTIFACT_ID||'')||!/^sha256:[0-9a-f]{64}$/.test(process.env.ARTIFACT_DIGEST||'')||process.env.ARTIFACT_URL!==expectedUrl)process.exit(2);process.stdout.write(JSON.stringify({id:'kidults-asi-snapshot-readiness-provider-artifact-receipt-v2',state:'PROVIDER_ARTIFACT_RECEIPT_CAPTURED_ATTESTATION_PENDING',repository:process.env.GITHUB_REPOSITORY,source_ref:process.env.GITHUB_REF,source_sha:process.env.GITHUB_SHA,workflow_run_id:process.env.GITHUB_RUN_ID,artifact_id:process.env.ARTIFACT_ID,artifact_digest:process.env.ARTIFACT_DIGEST,artifact_url:process.env.ARTIFACT_URL,exact_pair_digest:m.exact_pair_digest,upstream_binding_receipt_sha256:m.upstream_binding_receipt_sha256,immutable_storage_verified:false,artifact_attestation_verified:false,track_b_submission_eligible:false,public_release:'HOLD',production:'HOLD'},null,2)+'\n');
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-snapshot-readiness-factory-v2-provider-receipt-main-${{ github.sha }}-${{ github.run_id }}
+          path: /tmp/kidults-asi-snapshot-readiness-provider-artifact-receipt-v2.json
           retention-days: 90
           if-no-files-found: error
