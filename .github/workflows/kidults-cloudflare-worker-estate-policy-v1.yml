@@ -23,3 +23,4 @@ jobs:
       - run: node scripts/kidults/redteam/validate-enterprise-workspace-cutover-v1.mjs
       - run: node scripts/kidults/redteam/validate-workspace-registry-truth-source-v1.mjs
       - run: node scripts/kidults/portal/validate-current-truth-surface-v1.mjs
+      - run: node scripts/kidults/redteam/validate-mobile-workspace-whitespace-v1.mjs
