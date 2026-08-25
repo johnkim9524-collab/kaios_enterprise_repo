@@ -2,60 +2,9 @@ name: KIDULTS ASI Requirement-to-Adapter Coverage v1
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '12 * * * *'
-  push:
-    branches: [main]
-    paths:
-      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
-      - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
-      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/**'
-      - 'scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs'
-      - 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md'
-      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
-      - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
-      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/**'
-      - 'scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs'
-      - 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md'
-      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
   workflow_run:
     workflows:
       - 'KIDULTS ASI Autonomous Resolution Layer v1'
-      - 'KIDULTS ASI Source Adapter Wave 4 v1'
     branches: [main]
     types: [completed]
 
@@ -88,6 +37,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs
           node --check scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs
+          node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json','utf8'))"
       - name: Validate requirement coverage registry and automatic continuation

@@ -24,8 +24,8 @@
     "kidults-asi-owned-source-intelligence-graph-v2"
   ],
   "automatic_activation": {
-    "main_push": true,
-    "schedule": "7 * * * *",
+    "main_push": false,
+    "schedule": "UPSTREAM_WORKFLOW_ONLY",
     "upstream_workflow": "KIDULTS ASI Owned Source Intelligence Graph v2",
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },

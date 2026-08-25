@@ -110,10 +110,8 @@ This package is the direct input for the next P1 action executor. It is not admi
 
 ```text
 Successful KIDULTS ASI Owned Source Intelligence Graph v2
-or relevant protected-main push
-or hourly schedule at :07
         ↓
-Restore latest current P0B / P1 / P2 v2 artifacts
+Restore exact P2 workflow-run artifact and latest successful ancestor P0B / P1 artifacts
         ↓
 Build twice and prove deterministic replay
         ↓
@@ -124,7 +122,7 @@ Reject false promotions
 KPMO receipt and 90-day artifact
 ```
 
-Manual dispatch remains recovery or explicit replay only.
+The producer owns relevant protected-main and pull-request path activation. The consumer has no independent push or clock trigger, so queue delay cannot bind a newer main SHA to a missing producer artifact. Every artifact lookup is scoped to an exact workflow run; repository-global first-page artifact selection is forbidden. Manual dispatch remains recovery or explicit replay only.
 
 ## Fail-closed truth boundaries
 

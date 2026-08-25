@@ -22,6 +22,14 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs'
       - 'docs/kidults/asi/asi-autonomous-resolution-layer-v1.md'
       - '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'
+      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-*.json'
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-*.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave*-*.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/**'
+      - 'scripts/kidults/source-intelligence/*requirement-adapter-coverage*.mjs'
+      - 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md'
+      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+      - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
   pull_request:
     branches: [main]
     paths:
@@ -40,6 +48,14 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs'
       - 'docs/kidults/asi/asi-autonomous-resolution-layer-v1.md'
       - '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'
+      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-*.json'
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-*.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave*-*.json'
+      - 'services/kidults-autonomous-intelligence/src/asi/source-adapters/**'
+      - 'scripts/kidults/source-intelligence/*requirement-adapter-coverage*.mjs'
+      - 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md'
+      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+      - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
   workflow_run:
     workflows:
       - 'KIDULTS ASI P1 Source Preflight v1'

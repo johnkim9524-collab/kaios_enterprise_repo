@@ -1,8 +1,6 @@
 name: KIDULTS ASI Autobalance Steering Overlay Live v1
 
 on:
-  schedule:
-    - cron: '7 * * * *'
   workflow_dispatch:
   pull_request:
     paths:
@@ -11,6 +9,12 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs'
       - '.github/workflows/kidults-asi-autobalance-steering-overlay-live-v1.yml'
+      - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Throughput Coverage Autobalance Live v1'
+    branches: [main]
+    types: [completed]
 
 permissions:
   contents: read
@@ -22,11 +26,14 @@ concurrency:
 
 jobs:
   steering-overlay-live:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with: {persist-credentials: false}
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: {node-version: '24'}
       - name: Verify exact source and syntax
@@ -36,26 +43,40 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-autobalance-steering-overlay-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs
+          node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
       - name: Restore latest steering and live autobalance inputs
         env:
           GH_TOKEN: ${{ github.token }}
+          AUTOBALANCE_RUN_ID: ${{ github.event.workflow_run.id || '' }}
+          AUTOBALANCE_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || '' }}
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/base-raw /tmp/base-cycle /tmp/live-balance /tmp/live-gates-raw /tmp/live-gates discovery-out/raw discovery-out
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            BASE_JQ='[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false)][0].id // empty'
-            BAL_JQ='[.artifacts[] | select(.name=="kidults-asi-throughput-coverage-autobalance-live-v1" and .expired==false)][0].id // empty'
-            META_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false)][0].id // empty'
-            DISC_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-hourly-cycle-v1" and .expired==false)][0].id // empty'
-          else
-            BASE_JQ='[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
-            BAL_JQ='[.artifacts[] | select(.name=="kidults-asi-throughput-coverage-autobalance-live-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
-            META_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
-            DISC_JQ='[.artifacts[] | select(.name=="kidults-asi-global-any-site-hourly-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
-          fi
+          mkdir -p /tmp/base-raw /tmp/base-cycle /tmp/live-balance
+          CURRENT_SHA=$(git rev-parse HEAD)
 
-          BASE_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$BASE_JQ")
+          gh api --method GET -H 'Accept: application/vnd.github+json' \
+            -f branch=main -f status=success -f per_page=100 \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-self-driving-control-loop-v1.yml/runs" \
+            > /tmp/base-runs.json
+          BASE_RUN_ID=""
+          BASE_SOURCE_SHA=""
+          mapfile -t BASE_CANDIDATES < <(jq -r '.workflow_runs[] | select(.name=="KIDULTS ASI Self-Driving Control Loop v1" and .path==".github/workflows/kidults-asi-self-driving-control-loop-v1.yml" and .head_branch=="main" and .status=="completed" and .conclusion=="success") | [.id,.head_sha] | @tsv' /tmp/base-runs.json)
+          for CANDIDATE in "${BASE_CANDIDATES[@]}"; do
+            IFS=$'\t' read -r CANDIDATE_RUN_ID CANDIDATE_SOURCE_SHA <<<"$CANDIDATE"
+            if git merge-base --is-ancestor "$CANDIDATE_SOURCE_SHA" "$CURRENT_SHA"; then
+              BASE_RUN_ID="$CANDIDATE_RUN_ID"
+              BASE_SOURCE_SHA="$CANDIDATE_SOURCE_SHA"
+              break
+            fi
+          done
+          test -n "$BASE_RUN_ID"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${BASE_RUN_ID}/artifacts?per_page=100" \
+            > /tmp/base-artifacts.json
+          BASE_ID=$(jq -r --argjson run "$BASE_RUN_ID" --arg sha "$BASE_SOURCE_SHA" \
+            '[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | if length==1 then .[0].id else empty end' \
+            /tmp/base-artifacts.json)
           test -n "$BASE_ID"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BASE_ID}/zip" > /tmp/base.zip
           unzip -q -o /tmp/base.zip -d /tmp/base-raw
@@ -64,40 +85,35 @@ jobs:
           cp "$BASE_SRC" /tmp/base-cycle/asi-discovery-steering-plan-v1.json
 
           BAL_CANON=/tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
-          BAL_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$BAL_JQ")
-          if [ -n "$BAL_ID" ]; then
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BAL_ID}/zip" > /tmp/balance.zip
-            unzip -q -o /tmp/balance.zip -d /tmp/live-balance
-          fi
-          BAL_SRC=$(find /tmp/live-balance -type f -name 'asi-throughput-coverage-autobalance-live-v1.json' -print -quit || true)
-
-          if [ -z "$BAL_SRC" ]; then
-            META_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$META_JQ")
-            DISC_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$DISC_JQ")
-            test -n "$META_ID"
-            test -n "$DISC_ID"
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${META_ID}/zip" > /tmp/meta.zip
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISC_ID}/zip" > /tmp/disc.zip
-            unzip -q -o /tmp/meta.zip -d /tmp/live-gates-raw
-            unzip -q -o /tmp/disc.zip -d discovery-out/raw
-            for f in asi-gate1-safe-candidate-pool-v1.json asi-gate2-independent-reverification-v1.json asi-gate3-admission-runtime-v1.json asi-admitted-metadata-pool-v1.json; do
-              SRC=$(find /tmp/live-gates-raw -type f -name "$f" -print -quit)
-              test -n "$SRC"
-              cp "$SRC" "/tmp/live-gates/$f"
+          if [ -z "$AUTOBALANCE_RUN_ID" ]; then
+            gh api --method GET -H 'Accept: application/vnd.github+json' \
+              -f branch=main -f status=success -f per_page=100 \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml/runs" \
+              > /tmp/balance-runs.json
+            mapfile -t BAL_CANDIDATES < <(jq -r '.workflow_runs[] | select(.name=="KIDULTS ASI Throughput Coverage Autobalance Live v1" and .path==".github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml" and .head_branch=="main" and .status=="completed" and .conclusion=="success") | [.id,.head_sha] | @tsv' /tmp/balance-runs.json)
+            for CANDIDATE in "${BAL_CANDIDATES[@]}"; do
+              IFS=$'\t' read -r CANDIDATE_RUN_ID CANDIDATE_SOURCE_SHA <<<"$CANDIDATE"
+              if git merge-base --is-ancestor "$CANDIDATE_SOURCE_SHA" "$CURRENT_SHA"; then
+                AUTOBALANCE_RUN_ID="$CANDIDATE_RUN_ID"
+                AUTOBALANCE_SOURCE_SHA="$CANDIDATE_SOURCE_SHA"
+                break
+              fi
             done
-            DISC_SRC=$(find discovery-out/raw -type f -name 'global-low-risk-discovery.json' -print -quit)
-            test -n "$DISC_SRC"
-            cp "$DISC_SRC" discovery-out/global-low-risk-discovery.json
-            node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs \
-              discovery-out/global-low-risk-discovery.json \
-              /tmp/live-gates/asi-gate1-safe-candidate-pool-v1.json \
-              /tmp/live-gates/asi-gate2-independent-reverification-v1.json \
-              /tmp/live-gates/asi-gate3-admission-runtime-v1.json \
-              /tmp/live-gates/asi-admitted-metadata-pool-v1.json \
-              "$BAL_CANON"
-            BAL_SRC="$BAL_CANON"
           fi
-
+          test -n "$AUTOBALANCE_RUN_ID"
+          test -n "$AUTOBALANCE_SOURCE_SHA"
+          git merge-base --is-ancestor "$AUTOBALANCE_SOURCE_SHA" "$CURRENT_SHA"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${AUTOBALANCE_RUN_ID}/artifacts?per_page=100" \
+            > /tmp/balance-artifacts.json
+          BAL_ID=$(jq -r --argjson run "$AUTOBALANCE_RUN_ID" --arg sha "$AUTOBALANCE_SOURCE_SHA" \
+            '[.artifacts[] | select(.name=="kidults-asi-throughput-coverage-autobalance-live-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | if length==1 then .[0].id else empty end' \
+            /tmp/balance-artifacts.json)
+          test -n "$BAL_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BAL_ID}/zip" > /tmp/balance.zip
+          unzip -q -o /tmp/balance.zip -d /tmp/live-balance
+          BAL_SRC=$(find /tmp/live-balance -type f -name 'asi-throughput-coverage-autobalance-live-v1.json' -print -quit)
+          test -n "$BAL_SRC"
           node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs "$BAL_SRC"
           if [ "$BAL_SRC" != "$BAL_CANON" ]; then cp "$BAL_SRC" "$BAL_CANON"; fi
           test -f "$BAL_CANON"

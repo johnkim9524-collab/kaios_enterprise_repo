@@ -2,28 +2,6 @@ name: KIDULTS ASI Snapshot Readiness Factory v2
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '7 * * * *'
-  push:
-    branches: [main]
-    paths:
-      - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json'
-      - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json'
-      - 'scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs'
-      - 'docs/kidults/asi/asi-snapshot-readiness-factory-v2.md'
-      - '.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json'
-      - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json'
-      - 'scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs'
-      - 'docs/kidults/asi/asi-snapshot-readiness-factory-v2.md'
-      - '.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml'
   workflow_run:
     workflows:
       - 'KIDULTS ASI Owned Source Intelligence Graph v2'
@@ -46,6 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -57,6 +36,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs
+          node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json','utf8'))"
       - name: Validate registered current-chain P3 assets and activation
@@ -67,13 +47,71 @@ jobs:
       - name: Restore latest current P0B P1 and P2 v2 artifacts
         env:
           GH_TOKEN: ${{ github.token }}
+          P2_EVENT_RUN_ID: ${{ github.event.workflow_run.id || '' }}
+          P2_EVENT_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || '' }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/p0b-expanded /tmp/p1-expanded /tmp/p2-expanded /tmp/p0b /tmp/p1 /tmp/p2
-          P0B_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false)][0].id // empty)')
-          P1_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-p1-source-preflight-v1" and .expired==false)][0].id // empty)')
-          P2_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '([.artifacts[] | select(.name=="kidults-asi-owned-source-intelligence-graph-v2" and .expired==false and .workflow_run.head_branch=="main")][0].id // [.artifacts[] | select(.name=="kidults-asi-owned-source-intelligence-graph-v2" and .expired==false)][0].id // empty)')
+          CURRENT_SHA=$(git rev-parse HEAD)
+
+          resolve_latest_ancestor_artifact() {
+            local workflow_file="$1" workflow_name="$2" artifact_name="$3" prefix="$4"
+            local runs_file="/tmp/${prefix,,}-runs.json" artifacts_file="/tmp/${prefix,,}-artifacts.json"
+            local run_id="" source_sha="" artifact_id=""
+            gh api --method GET -H 'Accept: application/vnd.github+json' \
+              -f branch=main -f status=success -f per_page=100 \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/runs" \
+              > "$runs_file"
+            mapfile -t candidates < <(jq -r --arg name "$workflow_name" --arg path ".github/workflows/${workflow_file}" '.workflow_runs[] | select(.name==$name and .path==$path and .head_branch=="main" and .status=="completed" and .conclusion=="success") | [.id,.head_sha] | @tsv' "$runs_file")
+            for candidate in "${candidates[@]}"; do
+              IFS=$'\t' read -r candidate_run candidate_sha <<<"$candidate"
+              if git merge-base --is-ancestor "$candidate_sha" "$CURRENT_SHA"; then
+                run_id="$candidate_run"
+                source_sha="$candidate_sha"
+                break
+              fi
+            done
+            test -n "$run_id" && test -n "$source_sha"
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts?per_page=100" \
+              > "$artifacts_file"
+            artifact_id=$(jq -r --arg name "$artifact_name" --argjson run "$run_id" --arg sha "$source_sha" \
+              '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | if length==1 then .[0].id else empty end' \
+              "$artifacts_file")
+            test -n "$artifact_id"
+            printf -v "${prefix}_RUN_ID" '%s' "$run_id"
+            printf -v "${prefix}_SOURCE_SHA" '%s' "$source_sha"
+            printf -v "${prefix}_ID" '%s' "$artifact_id"
+          }
+
+          resolve_latest_ancestor_artifact \
+            kidults-asi-p0b-bounded-discovery-candidates-v1.yml \
+            'KIDULTS ASI P0B Bounded Discovery Candidates v1' \
+            kidults-asi-p0b-bounded-discovery-candidates-v1 P0B
+          resolve_latest_ancestor_artifact \
+            kidults-asi-p1-source-preflight-v1.yml \
+            'KIDULTS ASI P1 Source Preflight v1' \
+            kidults-asi-p1-source-preflight-v1 P1
+
+          if [ -n "$P2_EVENT_RUN_ID" ]; then
+            P2_RUN_ID="$P2_EVENT_RUN_ID"
+            P2_SOURCE_SHA="$P2_EVENT_SOURCE_SHA"
+            test -n "$P2_SOURCE_SHA"
+            git merge-base --is-ancestor "$P2_SOURCE_SHA" "$CURRENT_SHA"
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${P2_RUN_ID}/artifacts?per_page=100" \
+              > /tmp/p2-artifacts.json
+            P2_ID=$(jq -r --argjson run "$P2_RUN_ID" --arg sha "$P2_SOURCE_SHA" \
+              '[.artifacts[] | select(.name=="kidults-asi-owned-source-intelligence-graph-v2" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | if length==1 then .[0].id else empty end' \
+              /tmp/p2-artifacts.json)
+            test -n "$P2_ID"
+          else
+            resolve_latest_ancestor_artifact \
+              kidults-asi-owned-source-intelligence-graph-v2.yml \
+              'KIDULTS ASI Owned Source Intelligence Graph v2' \
+              kidults-asi-owned-source-intelligence-graph-v2 P2
+          fi
           test -n "$P0B_ID" && test -n "$P1_ID" && test -n "$P2_ID"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0B_ID}/zip" > /tmp/p0b.zip
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/p1.zip
