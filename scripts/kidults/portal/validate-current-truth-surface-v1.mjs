@@ -2,6 +2,7 @@ import fs from "node:fs";
 
 const summary = JSON.parse(fs.readFileSync("apps/kidults-enterprise-staging/public/portal/data/portal-summary.json", "utf8"));
 const registry = JSON.parse(fs.readFileSync("apps/kidults-enterprise-staging/public/portal/data/registry-view.json", "utf8"));
+const manifest = JSON.parse(fs.readFileSync("apps/kidults-enterprise-staging/public/portal/data/v502-manifest.json", "utf8"));
 const workspacePage = fs.readFileSync("apps/kidults-enterprise-staging/public/portal/workspace-page.js", "utf8");
 const renderers = fs.readFileSync("apps/kidults-enterprise-staging/public/portal/components/renderers.js", "utf8");
 const errors = [];
@@ -17,7 +18,9 @@ requireTrue(workspacePage.includes("evidencePackageId: data.registry?.evidence?.
 const noCandidate = registry.snapshot?.candidate_id == null;
 const noEvidence = registry.evidence?.current_package_id == null;
 if (noCandidate || noEvidence) {
-  requireTrue(summary.snapshot_id === null, "Portal summary snapshot_id must be null without a current candidate.");
+  requireTrue(summary.snapshot_id === manifest.snapshot_id, "Portal summary must retain only the registered structural baseline id for contract alignment.");
+  requireTrue(summary.snapshot_id === registry.snapshot?.baseline_id, "Portal summary baseline id must match Registry baseline.");
+  requireTrue(summary.truth_state?.baseline === "REGISTERED_STRUCTURAL_BASELINE", "Structural baseline must be explicitly distinguished from a current candidate.");
   requireTrue(summary.source_mode === "REGISTRY_FAIL_CLOSED", "Portal summary must declare REGISTRY_FAIL_CLOSED.");
   requireTrue(summary.truth_state?.candidate === "NOT_AVAILABLE", "Portal summary candidate must be NOT_AVAILABLE.");
   requireTrue(summary.truth_state?.evidence_package === "NOT_AVAILABLE", "Portal summary Evidence Package must be NOT_AVAILABLE.");
@@ -52,6 +55,7 @@ if (errors.length) {
 console.log(JSON.stringify({
   suite: "KIDULTS_PORTAL_CURRENT_TRUTH_SURFACE_V1",
   result: "PASS",
+  structural_baseline_id: summary.snapshot_id,
   candidate_id: registry.snapshot?.candidate_id ?? null,
   evidence_package_id: registry.evidence?.current_package_id ?? null,
   assessment: registry.assessment?.status ?? "NOT_AVAILABLE",
