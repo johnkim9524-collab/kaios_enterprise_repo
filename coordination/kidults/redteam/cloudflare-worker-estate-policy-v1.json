@@ -1,6 +1,6 @@
 {
   "policy_id": "KIDULTS_CLOUDFLARE_WORKER_ESTATE_POLICY_V1",
-  "as_of": "2026-08-25T12:38:00+09:00",
+  "as_of": "2026-08-25T19:11:16+09:00",
   "canonical_keep": [
     "kidults",
     "kidults-autonomous-intelligence"
@@ -18,7 +18,6 @@
     "kidults-enterprise"
   ],
   "quarantine_retire_candidates": [
-    "kidults-kaios",
     "kidults-web",
     "kidults-admin",
     "kidults-terminal-ui",
@@ -77,6 +76,13 @@
       "status": "RETIRED_POST_DELETE_EMPIRICAL_PASS",
       "proof": "pages.dev post-delete surface returned Cloudflare Error 1016 / Origin DNS error",
       "residual_observation": "SOURCE_REPOSITORY_PRESERVED"
+    },
+    {
+      "name": "kidults-kaios",
+      "type": "PAGES",
+      "status": "RETIRED_POST_DELETE_EMPIRICAL_PASS",
+      "proof": "custom domains none; no Git/runtime bindings; pages.dev post-delete surface returned Cloudflare Error 1016 / Origin DNS error",
+      "residual_observation": "API_KIDULTS_COM_D1_DEPENDENCY_REMAINS_SEPARATE_MIGRATE_THEN_RETIRE"
     }
   ],
   "forbidden_new_deploy_targets": [
