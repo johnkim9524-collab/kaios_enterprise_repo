@@ -21,9 +21,12 @@ requireTrue(/\.living-workspace__panels\s*\{[\s\S]*?min-height:\s*520px/.test(wo
 requireTrue(/\.workspace-page-mount\s*\{[\s\S]*?padding-bottom:\s*100px/.test(workspacePageCss), 'Desktop 100px mount padding must remain explicit.');
 requireTrue(/\.workspace-page-main\s*\{[\s\S]*?min-height:\s*70vh/.test(workspacePageCss), 'Desktop Workspace main-height floor must remain explicit.');
 
-const mobileBlockMatch = workspacePageCss.match(/@media\s*\(max-width:\s*768px\)\s*\{([\s\S]*?)\n\}/);
-const mobileBlock = mobileBlockMatch?.[1] || '';
-requireTrue(Boolean(mobileBlockMatch), 'Canonical Workspace page CSS must define a <=768px media block.');
+const mobileStart = workspacePageCss.indexOf('@media(max-width:768px){');
+const nextMediaStart = workspacePageCss.indexOf('@media(max-width:420px){', mobileStart + 1);
+const mobileBlock = mobileStart >= 0
+  ? workspacePageCss.slice(mobileStart, nextMediaStart >= 0 ? nextMediaStart : workspacePageCss.length)
+  : '';
+requireTrue(mobileStart >= 0, 'Canonical Workspace page CSS must define a <=768px media block.');
 requireTrue(/\.workspace-page-main\s*\{[\s\S]*?min-height:\s*0/.test(mobileBlock), 'Mobile Workspace main must remove the desktop viewport-height floor in canonical CSS.');
 requireTrue(/\.workspace-page-mount\s*\{[\s\S]*?padding-bottom:\s*0/.test(mobileBlock), 'Mobile Workspace mount must remove the desktop 100px bottom padding in canonical CSS.');
 requireTrue(/body\[data-page="workspace"\]\s+\.living-workspace__panels\s*\{[\s\S]*?min-height:\s*0\s*!important/.test(mobileBlock), 'Mobile Workspace panels must remove the desktop 520px floor in canonical CSS.');
