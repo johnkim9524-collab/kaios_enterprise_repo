@@ -1,0 +1,110 @@
+name: KIDULTS Platform Continuous Assurance V1
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+      - 'coordination/kidults/kpmo/platform-continuous-assurance-v1.json'
+      - 'scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs'
+      - 'scripts/kidults/kpmo/plan-safe-remediation-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs'
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Snapshot Readiness Factory v2'
+      - 'KIDULTS Full Value Chain Red-Team Orchestrator V1'
+      - 'KIDULTS Unified Audit Control Plane'
+      - 'KPMO Trusted Merge Result Monotonicity V1'
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Audit depth
+        required: true
+        default: deep
+        type: choice
+        options: [sentinel, deep]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-platform-continuous-assurance-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion != 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      KPMO_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      KPMO_AUDIT_PROFILE: ${{ github.event_name == 'schedule' && 'sentinel' || inputs.profile || 'deep' }}
+    steps:
+      - name: Checkout exact audited source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.KPMO_SOURCE_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact source binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$KPMO_SOURCE_SHA"
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          cache: npm
+
+      - name: Install locked validation dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Validate continuous assurance contract
+        run: node scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs
+
+      - name: Run audit and always retain receipt
+        id: audit
+        shell: bash
+        run: |
+          set +e
+          mkdir -p artifacts/kpmo/continuous-assurance
+          node scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs \
+            --profile "$KPMO_AUDIT_PROFILE" \
+            --output artifacts/kpmo/continuous-assurance/audit-receipt.json
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Emit safe remediation packet
+        if: always()
+        run: >-
+          node scripts/kidults/kpmo/plan-safe-remediation-v1.mjs
+          --receipt artifacts/kpmo/continuous-assurance/audit-receipt.json
+          --policy coordination/kidults/kpmo/platform-continuous-assurance-v1.json
+          --output artifacts/kpmo/continuous-assurance/remediation-plan.json
+
+      - name: Upload exact-run assurance packet
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-continuous-assurance-${{ env.KPMO_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/kpmo/continuous-assurance/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Preserve fail-closed audit result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.audit.outputs.status }}" = "0"
