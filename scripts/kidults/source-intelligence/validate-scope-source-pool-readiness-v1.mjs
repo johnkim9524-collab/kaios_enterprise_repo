@@ -4,6 +4,22 @@ import process from "node:process";
 
 const output = path.resolve(process.argv[2] ?? "artifacts/agci-os/scope-source-pool-foundation-v1");
 const errors = [];
+const requiredArtifacts = [
+  "global-source-discovery-funnel.json",
+  "scope-source-pool-readiness.json",
+  "source-role-gap-matrix.json",
+  "acquisition-priority-queue.json",
+  "run-manifest.json"
+];
+
+const missingArtifacts = requiredArtifacts.filter(name => !fs.existsSync(path.join(output, name)));
+if (missingArtifacts.length) {
+  console.error("AGCI-OS Scope Source Pool Foundation: BLOCKED_MISSING_PREREQUISITE_ARTIFACTS");
+  console.error(`Output directory: ${output}`);
+  console.error(`Missing artifacts: ${missingArtifacts.join(", ")}`);
+  console.error("Next action: run build-scope-source-pool-readiness-v1.mjs --write --output <directory>, then validate that directory.");
+  process.exit(1);
+}
 
 function read(name) {
   try {
