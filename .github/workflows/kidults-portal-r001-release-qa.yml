@@ -127,7 +127,7 @@ jobs:
                 const runtimeErrors=[];
                 page.on('pageerror',error=>runtimeErrors.push(`PAGEERROR_${error.message}`));
                 page.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))runtimeErrors.push(`CONSOLE_${message.text()}`)});
-                const response=await page.goto(baseUrl+route,{waitUntil:'networkidle'});
+                const response=await page.goto(baseUrl+route,{waitUntil:'domcontentloaded'});
                 if(!response?.ok()){
                   failures.push(`${route}:${vp.name}:${caseName}:HTTP_${response?.status()}`);
                   await page.close();
@@ -226,7 +226,7 @@ jobs:
               const runtimeErrors=[];
               page.on('pageerror',error=>runtimeErrors.push(`PAGEERROR_${error.message}`));
               page.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))runtimeErrors.push(`CONSOLE_${message.text()}`)});
-              await page.goto('http://127.0.0.1:4174/portal-r001/index.html',{waitUntil:'networkidle'});
+              await page.goto('http://127.0.0.1:4174/portal-r001/index.html',{waitUntil:'domcontentloaded'});
               await page.keyboard.press('Tab');
               await page.waitForTimeout(100);
               const obs=await page.evaluate(()=>({
@@ -290,7 +290,7 @@ jobs:
               const context=await browser.newContext({viewport:{width:390,height:900},reducedMotion:'reduce'});
               await context.route('**/portal-r001/data/projection-control-fixture.json',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(envelope)}));
               const page=await context.newPage();
-              await page.goto(baseUrl+'/portal-r001/index.html',{waitUntil:'networkidle'});
+              await page.goto(baseUrl+'/portal-r001/index.html',{waitUntil:'domcontentloaded'});
               const obs=await page.evaluate(()=>({
                 state:document.documentElement.dataset.state,
                 workspaceBlocked:document.querySelectorAll('.workspace-grid article').length===4&&[...document.querySelectorAll('.workspace-grid article')].every(node=>node.getAttribute('aria-disabled')==='true'),
@@ -309,7 +309,7 @@ jobs:
             const context=await browser.newContext({viewport:{width:390,height:900},reducedMotion:'reduce'});
             await context.route('**/portal-r001/data/projection-control-fixture.json',route=>route.abort('failed'));
             const page=await context.newPage();
-            await page.goto(baseUrl+'/portal-r001/index.html',{waitUntil:'networkidle'});
+            await page.goto(baseUrl+'/portal-r001/index.html',{waitUntil:'domcontentloaded'});
             await page.waitForTimeout(100);
             const state=await page.evaluate(()=>document.documentElement.dataset.state||null);
             const body=await page.locator('body').innerText();
