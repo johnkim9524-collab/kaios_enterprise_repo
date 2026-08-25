@@ -90,8 +90,8 @@ for (const marker of [
   'startCompareEngine({ data, contract: data.compare })',
   'startDecisionEngine({ data, contract: data.decision })',
   'startWorkspace({ data, contract: data.workspace })',
-  'window.KIDULTS_WORKSPACE.open(mode',
-  'selectedMode()'
+  'const mode = window.KIDULTS_WORKSPACE.state()',
+  'document.documentElement.dataset.workspaceRoute = mode'
 ]) {
   if (!workspacePage.includes(marker)) errors.push(`Dedicated Workspace runtime marker missing: ${marker}`);
 }

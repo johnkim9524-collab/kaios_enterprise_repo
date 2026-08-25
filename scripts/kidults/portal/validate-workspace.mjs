@@ -84,6 +84,11 @@ async function validateWorkspaceRouting() {
   }
 
   const cases = [
+    ["https://enterprise.example/workspace#ask", "decision", "ask"],
+    ["https://enterprise.example/workspace#compare", "ask", "compare"],
+    ["https://enterprise.example/workspace#decision", "ask", "decision"],
+    ["https://enterprise.example/workspace?tool=decision#compare", "ask", "compare"],
+    ["https://enterprise.example/workspace?tool=decision", "ask", "decision"],
     ["https://enterprise.example/workspace#ask-kidults", "decision", "ask"],
     ["https://enterprise.example/workspace#compare-intelligence", "ask", "compare"],
     ["https://enterprise.example/workspace#decision-support", "ask", "decision"],
@@ -98,6 +103,88 @@ async function validateWorkspaceRouting() {
     if (actual !== expected) {
       errors.push(`Workspace route ${href} expected ${expected}, received ${actual}.`);
     }
+  }
+}
+
+async function validateInitialWorkspaceActivation() {
+  if (!workspace || !contract) return;
+
+  let activateInitialWorkspacePanel;
+  try {
+    ({ activateInitialWorkspacePanel } = await import(pathToFileURL(absolute(paths.workspace)).href));
+  } catch (error) {
+    errors.push(`Workspace initial activation behavioral import failed: ${error.message}`);
+    return;
+  }
+
+  if (typeof activateInitialWorkspacePanel !== "function") {
+    errors.push("Workspace must export activateInitialWorkspacePanel for initial tab integration validation.");
+    return;
+  }
+
+  const createNode = dataset => ({
+    dataset: { ...dataset },
+    attributes: new Map(),
+    hidden: false,
+    tabIndex: -1,
+    setAttribute(name, value) {
+      this.attributes.set(name, String(value));
+    },
+    focus() {}
+  });
+  const createRoot = () => {
+    const tabs = contract.panels.map(panel => createNode({ workspaceTab: panel.id }));
+    const panels = contract.panels.map(panel => createNode({ workspacePanel: panel.id }));
+    return {
+      dataset: {},
+      tabs,
+      panels,
+      querySelectorAll(selector) {
+        if (selector === "[data-workspace-tab]") return tabs;
+        if (selector === "[data-workspace-panel]") return panels;
+        return [];
+      }
+    };
+  };
+
+  const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const previousCustomEvent = globalThis.CustomEvent;
+  globalThis.document = { documentElement: { dataset: {} } };
+  globalThis.window = { dispatchEvent() {} };
+  globalThis.CustomEvent = class {
+    constructor(type, init) {
+      this.type = type;
+      this.detail = init?.detail;
+    }
+  };
+
+  try {
+    const cases = [
+      ["https://enterprise.example/workspace#ask", "ask"],
+      ["https://enterprise.example/workspace#compare", "compare"],
+      ["https://enterprise.example/workspace#decision", "decision"],
+      ["https://enterprise.example/workspace?tool=decision#compare", "compare"]
+    ];
+    for (const [href, expected] of cases) {
+      const root = createRoot();
+      const actual = activateInitialWorkspacePanel({ root, contract, href });
+      const selectedTabs = root.tabs.filter(tab => tab.attributes.get("aria-selected") === "true");
+      const visiblePanels = root.panels.filter(panel => panel.hidden === false);
+      if (actual !== expected || root.dataset.activePanel !== expected) {
+        errors.push(`Workspace initial activation ${href} expected ${expected}, received ${actual}.`);
+      }
+      if (selectedTabs.length !== 1 || selectedTabs[0].dataset.workspaceTab !== expected) {
+        errors.push(`Workspace initial activation ${href} did not select the ${expected} tab.`);
+      }
+      if (visiblePanels.length !== 1 || visiblePanels[0].dataset.workspacePanel !== expected) {
+        errors.push(`Workspace initial activation ${href} did not expose only the ${expected} panel.`);
+      }
+    }
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
+    globalThis.CustomEvent = previousCustomEvent;
   }
 }
 
@@ -174,9 +261,11 @@ async function validateCompareSnapshotInvariant() {
 }
 
 for (const marker of [
+  'import { resolveWorkspaceMode } from "./workspace-route.js";',
   "startWorkspace",
   "createRoot",
   "activate",
+  "activateInitialWorkspacePanel",
   "setupKeyboard",
   "panelFromHash",
   "updateHash",
@@ -230,13 +319,11 @@ if (!workspacePageCss.includes(".workspace-page-status-section")) errors.push("W
 for (const marker of [
   'import { loadWorkspaceData } from "./components/data-store.js";',
   'import { startWorkspace } from "./components/workspace.js";',
-  'import { resolveWorkspaceMode } from "./components/workspace-route.js";',
   'startCopilot({ data, contract: data.copilot })',
   'startCompareEngine({ data, contract: data.compare })',
   'startDecisionEngine({ data, contract: data.decision })',
   'startWorkspace({ data, contract: data.workspace })',
-  'window.KIDULTS_WORKSPACE.open(mode',
-  'selectedMode()',
+  'const mode = window.KIDULTS_WORKSPACE.state()',
   'mount.append(root)'
 ]) {
   if (!workspacePage.includes(marker)) errors.push(`Dedicated Workspace runtime missing marker: ${marker}`);
@@ -247,11 +334,8 @@ if (!workspacePage.includes("const data = await loadWorkspaceData()")) {
 if (workspacePage.includes("loadPortalData")) {
   errors.push("Dedicated Workspace must not fetch the full public Portal payload bundle.");
 }
-if (!workspacePage.includes("if (window.KIDULTS_WORKSPACE.state() !== mode)")) {
-  errors.push("Dedicated Workspace route can overwrite the requested initial deep link.");
-}
-if (!workspacePage.includes("updateUrl: false")) {
-  errors.push("Dedicated Workspace initial routing must preserve the requested URL.");
+if (!workspace.includes("activateInitialWorkspacePanel({")) {
+  errors.push("Workspace runtime must activate the requested route before exposing its public API.");
 }
 
 for (const marker of [
@@ -372,10 +456,11 @@ for (const prohibited of [
 
 if (!workspace.includes("data-decision-ask")) errors.push("Workspace does not activate Ask before Decision-to-Copilot actions.");
 if (!workspace.includes("data-decision-compare-left")) errors.push("Workspace does not activate Compare before Decision comparison actions.");
-if (!workspace.includes("window.location.hash")) errors.push("Workspace does not read deep links.");
+if (!workspaceRoute.includes("url.hash")) errors.push("Workspace route does not read deep links.");
 if (!workspace.includes("history.replaceState")) errors.push("Workspace does not write deep links.");
 
 await validateWorkspaceRouting();
+await validateInitialWorkspaceActivation();
 await validateCompareSnapshotInvariant();
 
 if (errors.length) {
@@ -385,5 +470,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS Workspace validation: PASS (deep-link routing, menu focus controls, 3 panels, compare snapshot invariant)");
+console.log("KIDULTS Workspace validation: PASS (initial tab activation, deep-link routing, menu focus controls, 3 panels, compare snapshot invariant)");
 for (const warning of warnings) console.warn(`WARN: ${warning}`);

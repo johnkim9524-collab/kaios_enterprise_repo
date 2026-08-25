@@ -1,3 +1,5 @@
+import { resolveWorkspaceMode } from "./workspace-route.js";
+
 const ROOT_ID = "kidults-living-workspace";
 const STYLE_ID = "kidults-living-workspace-style";
 
@@ -160,9 +162,12 @@ function createRoot(contract, data) {
   return root;
 }
 
-function panelFromHash(contract) {
-  const hash = window.location.hash.replace(/^#/, "");
-  return contract.panels.find(panel => panel.hash === hash)?.id ?? null;
+function panelFromHash(contract, activeMode) {
+  return resolveWorkspaceMode({
+    href: window.location.href,
+    activeMode,
+    panels: contract.panels
+  });
 }
 
 function updateHash(contract, panelId) {
@@ -212,6 +217,16 @@ function activate(root, contract, panelId, { focus = false, updateUrl = true, sc
   return selected;
 }
 
+export function activateInitialWorkspacePanel({ root, contract, href } = {}) {
+  const normalizedContract = normalizeContract(contract);
+  const initial = resolveWorkspaceMode({
+    href,
+    activeMode: normalizedContract.default_panel,
+    panels: normalizedContract.panels
+  });
+  return activate(root, normalizedContract, initial, { updateUrl: false });
+}
+
 function setupKeyboard(root, contract, activatePanel) {
   const tabs = [...root.querySelectorAll("[data-workspace-tab]")];
   root.querySelector("[role=tablist]").addEventListener("keydown", event => {
@@ -237,8 +252,11 @@ export function startWorkspace({ data, contract } = {}) {
   const root = createRoot(normalizedContract, data);
 
   const open = (panelId, options = {}) => activate(root, normalizedContract, panelId, options);
-  const initial = panelFromHash(normalizedContract) ?? normalizedContract.default_panel;
-  open(initial, { updateUrl: false });
+  activateInitialWorkspacePanel({
+    root,
+    contract: normalizedContract,
+    href: window.location.href
+  });
 
   root.addEventListener("click", event => {
     const tab = event.target.closest("[data-workspace-tab]");
@@ -249,7 +267,7 @@ export function startWorkspace({ data, contract } = {}) {
   setupKeyboard(root, normalizedContract, open);
 
   window.addEventListener("hashchange", () => {
-    const panel = panelFromHash(normalizedContract);
+    const panel = panelFromHash(normalizedContract, root.dataset.activePanel);
     if (panel) open(panel, { updateUrl: false });
   });
 

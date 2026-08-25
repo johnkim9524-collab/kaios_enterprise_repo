@@ -7,17 +7,9 @@ import { startWorkspace } from "./components/workspace.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 import { setupNavigation } from "./components/interactions.js";
-import { resolveWorkspaceMode } from "./components/workspace-route.js";
 
 function human(value) {
   return String(value ?? "NOT AVAILABLE").replaceAll("_", " ");
-}
-
-function selectedMode() {
-  return resolveWorkspaceMode({
-    href: window.location.href,
-    activeMode: window.KIDULTS_WORKSPACE?.state?.() ?? "ask"
-  });
 }
 
 function registrySnapshotContext(registry) {
@@ -70,10 +62,7 @@ function mountWorkspace(data) {
   if (!root || !mount) throw new Error("The Intelligence Workspace mount is unavailable.");
   mount.append(root);
 
-  const mode = selectedMode();
-  if (window.KIDULTS_WORKSPACE.state() !== mode) {
-    window.KIDULTS_WORKSPACE.open(mode, { updateUrl: false, scroll: false });
-  }
+  const mode = window.KIDULTS_WORKSPACE.state();
   document.documentElement.dataset.workspaceRoute = mode;
   return mode;
 }
