@@ -1,0 +1,78 @@
+{
+  "policy_id": "KIDULTS_CLOUDFLARE_WORKER_ESTATE_POLICY_V1",
+  "canonical_keep": [
+    "kidults",
+    "kidults-autonomous-intelligence"
+  ],
+  "inspect_before_decision": [
+    "kidults-autonomous-intelligence-dev",
+    "kidults-autonomous-intelligence-staging"
+  ],
+  "migrate_then_retire": [
+    "kidults-platform-api",
+    "kidults-terminal-ui-api"
+  ],
+  "quarantine_retire_candidates": [
+    "kidults-global-standard-preview",
+    "kidults-one-dev",
+    "kidults-enterprise",
+    "kidults-kaios",
+    "kidults-web",
+    "kidults-admin",
+    "kidults-terminal-ui",
+    "kidults-unified-gateway",
+    "kidults-saas-user-system",
+    "kidults-enterprise-api",
+    "kidults-portfolio-ai",
+    "kidults-brand-intelligence",
+    "kidults-real-collector",
+    "kidults-gpt-intelligence",
+    "kidults-automation-engine",
+    "kidults-platform-core",
+    "kidults-v22-ai-analyzer",
+    "kidults-v21-collector",
+    "kidults-pages",
+    "kidults-api",
+    "kaios-collector",
+    "raspy-fog-3002",
+    "hidden-firefly-d588"
+  ],
+  "forbidden_new_deploy_targets": [
+    "kidults-global-standard-preview",
+    "kidults-one-dev",
+    "kidults-enterprise",
+    "kidults-kaios",
+    "kidults-web",
+    "kidults-admin",
+    "kidults-terminal-ui",
+    "kidults-unified-gateway",
+    "kidults-saas-user-system",
+    "kidults-enterprise-api",
+    "kidults-portfolio-ai",
+    "kidults-brand-intelligence",
+    "kidults-real-collector",
+    "kidults-gpt-intelligence",
+    "kidults-automation-engine",
+    "kidults-platform-core",
+    "kidults-v22-ai-analyzer",
+    "kidults-v21-collector",
+    "kidults-pages",
+    "kidults-api",
+    "kaios-collector",
+    "raspy-fog-3002",
+    "hidden-firefly-d588"
+  ],
+  "retirement_sequence": [
+    "INVENTORY",
+    "DEPENDENCY_PROOF",
+    "REMOVE_CRON_QUEUE_WRITES",
+    "REMOVE_DATA_SECRET_SERVICE_BINDINGS",
+    "OBSERVE_24H",
+    "MIGRATE_OR_REMOVE_ROUTE",
+    "OBSERVE_72H",
+    "DELETE_RESOURCE",
+    "POST_DELETE_SMOKE_TEST"
+  ],
+  "production_public_g5": "NO_CHANGE_WITHOUT_EXISTING_APPROVAL_GATE",
+  "d1_deletion": "NOT_AUTHORIZED_BY_THIS_POLICY"
+}
